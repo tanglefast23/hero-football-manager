@@ -9,7 +9,7 @@ Every factual claim about the current code below was read out of the tree on
 ## Problem
 
 Bert teaches. That is the whole of his job outside the story beats: 24 inbox
-explainers, an objective line with arrows, a dozen one-shot lessons, and three
+explainers, an objective line with arrows, a dozen one-shot lessons, and four
 hard blocks on Advance Week that hold the first three weeks of a career shut
 until the manager builds a training pitch, builds a coaching office, and answers
 a youth intake.
@@ -58,19 +58,36 @@ need any of it.
 | One-shot lessons | `AssistantGuideMilestone` (`src/game/assistant-guide.ts:37`) | condition gamble, matchday condition, quick-train, three facility combos, 3× speed, first cup exit, two fans beats |
 | Desk tips | `showManagerTips` (`src/ui/screens/ClubHomeScreen.tsx:134`) | filters manager notes where `kind === 'tip'` |
 
-### The three blocks
+### The four blocks
 
-All three live in one function — `advanceWeek` in `src/application/store.ts`:
+Three live in one function — `advanceCareer` in `src/application/store.ts`,
+which calls the game ring's `advanceWeek` only after its gates pass:
 
 | Block | Line | Guard |
 |---|---|---|
 | "Train a player before advancing the week." | 673 | requires `intro-complete` |
-| Guided first week: tab, pitch, head coach | 675–700 | requires `intro-complete` |
+| Guided first week: tab, pitch, head coach | 675–703 | requires `intro-complete` |
 | Weeks 1–3 duties hold the week shut | 752 | none — reads `dueAssistantInboxGuideSequences` directly |
 
 The first two are guarded by `intro-complete`, a milestone banked only by
 completing the `management-intro` walk-on. The third is not guarded by anything
 Bert-shaped and is the one that must be lifted deliberately.
+
+The fourth is not in the store at all. `App.tsx:1624` disables the button — and
+its keyboard binding — whenever an objective is live and is not pointing at
+Advance Week itself:
+
+```ts
+advanceWeekDisabled={store.saving
+  || store.saveBlocked
+  || (assistantObjective !== null && assistantObjective.target !== 'advance-week')}
+```
+
+It needs no gate of its own, because `assistantObjective` *is*
+`currentAssistantObjective(...)`, which returns `null` for an Advisor career —
+but it is a fourth way the button can refuse, and a design that only counted the
+store's three would leave a veteran with a dead button if the objective were
+ever resurrected. It is pinned by test rather than by a redundant condition.
 
 ### The existing toggle
 
@@ -184,6 +201,12 @@ teaching.
 The rule: **if it carries a decision or a story beat, he stays. If it explains
 or enforces, he goes.**
 
+The inbox itself keeps running. `scheduleAssistantInboxWeek` still delivers
+product alerts and still writes their delivery and acknowledgement flags for an
+Advisor career; only the guide strand of its input is empty. That is the point —
+an alert is the club telling the manager something happened, which is the half
+of the desk Advisor is meant to keep.
+
 ### The prompt
 
 Pressing "Take the keys" on `NewGameWelcomeScreen` routes, for veterans only, to
@@ -205,9 +228,22 @@ covers that moment instead.
 
 Switching back to Teacher mid-career lets the skipped explainers arrive from
 that point on, at the existing cap of three per week
-(`MAX_ASSISTANT_INBOX_ITEMS_PER_WEEK`, `src/game/assistant-guide.ts:100`). This
-is accepted: a manager who turns the teacher back on is asking for help, and the
-queue drains at a rate the inbox was already built to handle.
+(`MAX_ASSISTANT_INBOX_ITEMS_PER_WEEK`, `src/game/assistant-guide.ts:100`).
+
+The backlog is bounded well below the 24 sequences in the catalog.
+`dueAssistantInboxGuideSequences` reports what is *currently* relevant, and its
+coach, scouting, transfer and board strands are `else if` chains contributing
+one item each — so the function can emit **at most 14 at once, by
+construction**, and that ceiling needs a club simultaneously carrying an injury,
+a loan, a transfer request, a retirement, a legacy and a board ultimatum. Five
+weeks is the worst case; the ordinary case is two or three. This is a bound read
+off the code, not a measurement of play.
+
+Accepted as designed: a manager who turns the teacher back on is asking for
+help, and the queue drains at a rate the inbox was already built to handle. If
+that proves wrong in play, the smallest fix is to complete every currently-due
+sequence at the moment of the switch — Bert then explains only what happens
+next, and never what the manager already did without him.
 
 ### The unlock
 
@@ -223,6 +259,19 @@ Set in two places:
 2. **Backfilled on career load** when the loaded save already carries
    `TRUE_ENDING_SEEN_FLAG`. Without this, anyone who finished the climb before
    this ships never sees the prompt.
+
+**A known hole, accepted.** The backfill can only read a career that still
+exists. A player who finished the climb and then started a fresh career *before
+this ships* has already erased the only proof, and no durable device-level
+signal survives it — the Hall of Fame record lives in the same save. Their
+`climbCompleted` stays false and they are never asked.
+
+The cost is bounded to the *asking*. Because the Settings row is available to
+every player with a career loaded and is not gated on `climbCompleted`, such a
+veteran can still put Bert in the corner from Settings in the first minute of
+the new career. They lose the prompt, not the feature. Buying more than that
+would mean writing a device-level trophy record we have no reason to keep
+otherwise, which is a worse trade than one missed question.
 
 ## Data changes
 
@@ -265,9 +314,10 @@ each of the four functions returns empty for an Advisor career and unchanged
 values for a Teacher career built from the same seed.
 
 **The blocks** (store tests): a fresh Advisor career at S1W1 advances the week
-with nothing trained, nothing built, and the youth intake unanswered. The same
-career in Teacher mode still throws all three messages — a regression pin on the
-opening being unchanged.
+with nothing trained, nothing built, off the home tab, and with the youth intake
+unanswered. Each case is paired with the Teacher career that still refuses it,
+so the opening is pinned as unchanged. The Teacher cases must bank
+`intro-complete` first — see Risks.
 
 **Reaching the end**: an Advisor career runs through the existing headless
 harness for four seasons and matches the Teacher career from the same seed
@@ -295,7 +345,17 @@ will default to firing in Advisor mode. Mitigation: the mode is read through one
 exported predicate rather than compared inline, so the call sites are greppable.
 
 **Preferences ladder regression.** Retiring a key from a `strictObject` touches
-six existing migration branches. Mitigation: the round-trip test above, plus the
-repository's existing per-version tests.
+six existing migration branches, and only three of them (v5, v6, v7) ever
+carried the key — v3 and v4 predate it, so stripping it there is a compile
+error. Mitigation: the round-trip test above, plus the repository's existing
+per-version tests, several of which assert `schema_version` 7 and must be
+updated to 8.
+
+**Vacuous block tests.** Two of the four blocks are guarded by `intro-complete`,
+which a headless career never banks because nothing watches the walk-on that
+banks it. A Teacher-mode test that omits `completeGuideMilestone('intro-complete')`
+passes without the career ever having been blocked, and would green an
+implementation that forgot the mode gate entirely. Every Teacher case banks it
+explicitly.
 
 **Mid-career Teacher backlog.** Accepted, above.

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** After a device has won both trophies, starting a new game asks whether Bert should teach; choosing Advisor silences every teaching surface and lifts the three blocks on Advance Week, while keeping him for every decision and story beat.
+**Goal:** After a device has won both trophies, starting a new game asks whether Bert should teach; choosing Advisor silences every teaching surface and lifts every block on Advance Week, while keeping him for every decision and story beat.
 
 **Architecture:** One optional enum on `GameState` (`assistantMode`, absent = `'teacher'`), read through a single exported predicate `assistantTeaches(state)`. Four pure functions in the application ring return empty for Advisor, which cascades to nearly every surface; the remaining one-shots are gated at their `App.tsx` call sites. The unlock (`climbCompleted`) lives in `AppPreferences` because it is the only fact that must survive `startNewCareer()` erasing the save.
 
@@ -18,7 +18,8 @@
 - `src/ui/assistant-mode-choice.ts` — the prompt's copy and Bert moment, as a pure module so Jest can assert on it without a DOM
 - `src/ui/screens/AssistantModeChoiceScreen.tsx` — the prompt screen
 - `src/application/__tests__/assistant-mode.test.ts` — the four functions honour the mode
-- `src/application/__tests__/assistant-mode-blocks.test.ts` — the three Advance Week blocks
+- `src/application/__tests__/assistant-mode-blocks.test.ts` — the Advance Week blocks
+- `src/persistence/__tests__/assistant-mode-codec.test.ts` — the mode survives a save
 - `src/application/__tests__/climb-completed-unlock.test.ts` — unlock set + backfill
 - `src/ui/__tests__/assistant-mode-choice.test.ts` — copy module + App/Settings wiring assertions
 
@@ -28,7 +29,7 @@
 - `src/persistence/game-state-codec.ts:925` — codec field
 - `src/persistence/preferences-repository.ts` — add `climbCompleted`, retire `managerTipsEnabled`, schema version 8
 - `src/application/assistant-guide.ts` — four early-returns
-- `src/application/store.ts` — three blocks, `startNewCareer(seed, mode)`, `setAssistantMode`, unlock backfill
+- `src/application/store.ts` — the blocks, `startNewCareer(seed, mode)`, `setAssistantMode`, `careerClimbCompleted`
 - `src/ui/SettingsOverlay.tsx` — the Bert row replaces the Manager's tips row
 - `src/ui/screens/ClubHomeScreen.tsx` — unchanged prop, new source
 - `App.tsx` — routing, one-shot gates, Settings wiring
@@ -42,32 +43,47 @@
 - Modify: `src/game/types.ts:698`
 - Modify: `src/game/assistant-guide.ts`
 - Modify: `src/persistence/game-state-codec.ts:925`
-- Test: `src/persistence/__tests__/game-state-codec.test.ts`
+- Test: `src/persistence/__tests__/assistant-mode-codec.test.ts` (create)
+
+There is no monolithic `game-state-codec.test.ts` — the codec's suites are split by feature (`m2-game-state-codec.test.ts`, `hall-of-fame-codec.test.ts`, and so on), each building its fixture with `createCareer(createLaunchCareerSetup(seed))`. Follow that convention with a new focused file. The public API is `serializeGameState` / `parseStoredGameState`; there is no `encodeGameState`.
 
 - [ ] **Step 1: Write the failing test**
 
-Append to `src/persistence/__tests__/game-state-codec.test.ts`, inside the outermost `describe`:
+Create `src/persistence/__tests__/assistant-mode-codec.test.ts`:
 
 ```ts
-  it('round-trips the assistant mode and defaults an old save to teacher', () => {
-    const base = decodeGameState(encodeGameState(sampleState()));
-    expect(base.assistantMode).toBeUndefined();
-    expect(assistantTeaches(base)).toBe(true);
+import { createLaunchCareerSetup } from '../../application/launch';
+import { createCareer } from '../../game/career';
+import { assistantTeaches } from '../../game/assistant-guide';
+import { parseStoredGameState, serializeGameState } from '../game-state-codec';
 
-    const advisor = decodeGameState(
-      encodeGameState({ ...sampleState(), assistantMode: 'advisor' }),
-    );
-    expect(advisor.assistantMode).toBe('advisor');
-    expect(assistantTeaches(advisor)).toBe(false);
+describe('assistant mode codec', () => {
+  test('defaults a save that never chose to being taught', () => {
+    const state = createCareer(createLaunchCareerSetup(20260804));
+    expect(state.assistantMode).toBeUndefined();
+
+    const restored = parseStoredGameState(serializeGameState(state));
+    expect(restored.assistantMode).toBeUndefined();
+    expect(assistantTeaches(restored)).toBe(true);
   });
-```
 
-Add `import { assistantTeaches } from '../../game/assistant-guide';` to the file's imports. If the existing suite names its fixture builder something other than `sampleState()`, use that name instead — do not invent a second builder.
+  test('round-trips an advised career', () => {
+    const state = {
+      ...createCareer(createLaunchCareerSetup(20260804)),
+      assistantMode: 'advisor' as const,
+    };
+
+    const restored = parseStoredGameState(serializeGameState(state));
+    expect(restored.assistantMode).toBe('advisor');
+    expect(assistantTeaches(restored)).toBe(false);
+  });
+});
+```
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx jest src/persistence/__tests__/game-state-codec.test.ts -t "assistant mode"`
-Expected: FAIL — `assistantTeaches` is not exported.
+Run: `npx jest src/persistence/__tests__/assistant-mode-codec.test.ts`
+Expected: FAIL — `assistantTeaches` is not exported from `src/game/assistant-guide`.
 
 - [ ] **Step 3: Add the type and the field**
 
@@ -126,8 +142,8 @@ In `src/persistence/game-state-codec.ts`, directly after the `difficulty` line a
 
 - [ ] **Step 6: Run the test to verify it passes**
 
-Run: `npx jest src/persistence/__tests__/game-state-codec.test.ts -t "assistant mode"`
-Expected: PASS
+Run: `npx jest src/persistence/__tests__/assistant-mode-codec.test.ts`
+Expected: PASS, 2 tests
 
 - [ ] **Step 7: Verify `src/game` still exports cleanly**
 
@@ -137,7 +153,7 @@ Expected: no errors. If `assistantTeaches` is not reachable from `src/game/index
 - [ ] **Step 8: Commit**
 
 ```bash
-git add src/game/types.ts src/game/assistant-guide.ts src/game/index.ts src/persistence/game-state-codec.ts src/persistence/__tests__/game-state-codec.test.ts
+git add src/game/types.ts src/game/assistant-guide.ts src/game/index.ts src/persistence/game-state-codec.ts src/persistence/__tests__/assistant-mode-codec.test.ts
 git commit -m "feat: record whether a career is taught"
 ```
 
@@ -290,13 +306,13 @@ git commit -m "feat: silence Bert's teaching for an advised career"
 
 ---
 
-## Task 3: Lift the three Advance Week blocks
+## Task 3: Lift the Advance Week blocks
 
 **Files:**
 - Modify: `src/application/store.ts:669-700,752`
 - Test: `src/application/__tests__/assistant-mode-blocks.test.ts` (create)
 
-The third block already lifts, because `outstandingInboxDuties` now returns `[]` for Advisor. The first two are guarded by `intro-complete` and would fall away on their own — they are gated explicitly anyway, per the spec, so a future change that banks the milestone cannot silently restore them.
+The third block already lifts, because `outstandingInboxDuties` now returns `[]` for Advisor. The first two are guarded by `intro-complete` and would fall away on their own — they are gated explicitly anyway, per the spec, so a future change that banks the milestone cannot silently restore them. The fourth block is the button's own `advanceWeekDisabled` term in `App.tsx`, which needs no change and is handled in Task 8 step 5.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -335,6 +351,16 @@ describe('a taught opening still holds the week', () => {
     expect(useM1Store.getState().error).toBe('Train a player before advancing the week.');
   });
 
+  it('sends a trained manager off to build the pitch', () => {
+    // The paired positive for the Advisor case below: with both opening
+    // milestones banked and no pitch started, week one does not move.
+    useM1Store.getState().completeGuideMilestone('first-training-complete');
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(1);
+    expect(useM1Store.getState().error)
+      .toBe('Build the Training Ground from your inbox before advancing the week.');
+  });
+
   it('holds week two for the youth intake', () => {
     useM1Store.getState().completeGuideMilestone('first-training-complete');
     useM1Store.getState().completeGuideMilestone('first-week-advanced');
@@ -356,6 +382,21 @@ describe('an advised opening never holds the week', () => {
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(2);
     expect(useM1Store.getState().error).toBeNull();
+  });
+
+  it('advances after training without being sent to build a pitch', () => {
+    // The second wall needs BOTH intro-complete and first-training-complete, so
+    // an Advisor who never trains never reaches it — and a test that only banks
+    // the first milestone would pass with the `guidedFirstWeek` mode gate
+    // missing entirely. This is the case that actually pins that gate.
+    useM1Store.getState().completeGuideMilestone('first-training-complete');
+    useM1Store.getState().setActiveTab('squad');
+
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(2);
+    expect(useM1Store.getState().error).toBeNull();
+    expect(useM1Store.getState().notice).toBeNull();
+    expect(useM1Store.getState().career?.facilities.trainingGroundBuilt).toBe(false);
   });
 
   it('advances past week two with the youth intake unanswered', () => {
@@ -437,7 +478,7 @@ In `src/application/store.ts`, add `assistantTeaches` to the existing import fro
 - [ ] **Step 5: Run test to verify it passes**
 
 Run: `npx jest src/application/__tests__/assistant-mode-blocks.test.ts`
-Expected: PASS, 4 tests.
+Expected: PASS, 6 tests.
 
 - [ ] **Step 6: Verify the opening is unchanged for everyone else**
 
@@ -517,7 +558,7 @@ And the implementation, next to `completeGuideMilestone`:
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx jest src/application/__tests__/assistant-mode-blocks.test.ts`
-Expected: PASS, 6 tests.
+Expected: PASS, 8 tests.
 
 - [ ] **Step 5: Commit**
 
@@ -537,18 +578,18 @@ git commit -m "feat: let Settings change Bert's job mid-career"
 
 - [ ] **Step 1: Write the failing test**
 
-Append to `src/persistence/__tests__/preferences-repository.test.ts`, inside the outermost `describe`. Match the file's existing helper for building a fake database and seeding a row — read the top of the file first and reuse it rather than writing a second one.
+Append to `src/persistence/__tests__/preferences-repository.test.ts`, inside the outermost `describe`. The file already imports `FakePersistenceDatabase` from `./fake-database` and constructs it with `new FakePersistenceDatabase()` — reuse that rather than writing a second helper.
 
 ```ts
   it('defaults a fresh install to a locked climb', async () => {
-    const repository = await createPreferencesRepository(createFakeDatabase());
+    const repository = await createPreferencesRepository(new FakePersistenceDatabase());
     const preferences = await repository.load();
     expect(preferences.climbCompleted).toBe(false);
     expect('managerTipsEnabled' in preferences).toBe(false);
   });
 
   it('migrates a version 7 row by dropping the tips flag and locking the climb', async () => {
-    const database = createFakeDatabase();
+    const database = new FakePersistenceDatabase();
     await database.runAsync(
       `INSERT INTO app_preferences (slot, schema_version, preferences_json) VALUES (?, ?, ?)`,
       [
@@ -580,7 +621,7 @@ Append to `src/persistence/__tests__/preferences-repository.test.ts`, inside the
   });
 
   it('round-trips a completed climb', async () => {
-    const repository = await createPreferencesRepository(createFakeDatabase());
+    const repository = await createPreferencesRepository(new FakePersistenceDatabase());
     const preferences = await repository.load();
     await repository.save({ ...preferences, climbCompleted: true });
     expect((await repository.load()).climbCompleted).toBe(true);
@@ -671,7 +712,7 @@ In each of the six existing branches in `load()` (lines 173–300), the `migrate
 - Every branch that currently writes `managerTipsEnabled: DEFAULT_APP_PREFERENCES.managerTipsEnabled,` — delete that line.
 - Every branch gains `climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,`.
 
-The four branches whose schema now carries the retired key (`M4`, `CutInHistory`, `ManagerTips`, `AutoSubs`) must also strip it, because `PreferencesSchema.parse` in `save()` is a `strictObject` and would reject it. Destructure it away rather than spreading it through — for the `AutoSubs` branch:
+Only the branches whose schema `.extend(RetiredTipsShape)` actually carry the retired key: **v5 `ManagerTips`, v6 `AutoSubs`, and the new v7 branch**. Those three must strip it, because `PreferencesSchema.parse` in `save()` is a `strictObject` and would reject it. Destructure it away rather than spreading it through — for the `AutoSubs` branch:
 
 ```ts
       if (row.schema_version === AUTO_SUBS_PREFERENCES_SCHEMA_VERSION) {
@@ -696,7 +737,9 @@ The four branches whose schema now carries the retired key (`M4`, `CutInHistory`
       }
 ```
 
-Apply the same `const { managerTipsEnabled: _retired, ...carried }` shape to the `M4`, `CutInHistory` and `ManagerTips` branches. The `Legacy` and `M2` branches pick so few fields that they never carry it, and only need the `climbCompleted` line added and their `managerTipsEnabled:` line removed.
+Apply the same `const { managerTipsEnabled: _retired, ...carried }` shape to the `ManagerTips` branch, and to the new v7 branch in the next step.
+
+**Do NOT destructure it in the `M4` or `CutInHistory` branches.** Version 3 and 4 rows predate the field: their schemas omit it and always did, so `legacy.data` has no such property and destructuring it is a TypeScript error. Those two branches — and `Legacy` and `M2`, which pick too few fields to ever carry it — need exactly two edits each: delete the `managerTipsEnabled: DEFAULT_APP_PREFERENCES.managerTipsEnabled,` line, and add `climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,`.
 
 - [ ] **Step 6: Add the version 7 branch**
 
@@ -714,7 +757,7 @@ Directly above the final `if (row.schema_version !== PREFERENCES_SCHEMA_VERSION)
           formationPresets: [...legacy.data.formationPresets],
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
           // A device that has finished the climb re-earns the prompt from its
-          // own save on the next load — see the backfill in Task 6.
+          // own save on the next load — see the mirror in Task 8, step 7.
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
         };
         await database.runAsync(UPSERT_SQL, [
@@ -729,7 +772,7 @@ Directly above the final `if (row.schema_version !== PREFERENCES_SCHEMA_VERSION)
 - [ ] **Step 7: Run the tests**
 
 Run: `npx jest src/persistence/__tests__/preferences-repository.test.ts`
-Expected: PASS. Every pre-existing case in this file must still pass; if one asserts on `managerTipsEnabled`, delete that assertion — the field is retired, not renamed.
+Expected: PASS. Several pre-existing cases in this file WILL fail first and must be updated, not worked around: any that assert on `managerTipsEnabled` (delete the assertion — the field is retired, not renamed) and any that assert the stored `schema_version` is `7` (it is now `8`). The first case, `loads manual powers and the three coverage formations by default`, compares against `DEFAULT_APP_PREFERENCES` wholesale and passes untouched.
 
 - [ ] **Step 8: Fix the two compile sites**
 
@@ -1121,6 +1164,32 @@ describe('the app wires the mode to every teaching surface', () => {
     }
   });
 
+  it('gates the surfaces that are not a single declaration', () => {
+    // The five above are one const each. These five are not, and were the ones
+    // most likely to be missed: two live inside branches, two are props, and
+    // one is the desk-tips filter that used to read a preference.
+    for (const fragment of [
+      "store.screen === 'legacy'\n      && careerTeaches",
+      'if (careerTeaches && !hasAssistantGuideMilestone(store.career, ',
+      'conditionWarningSeen={!careerTeaches',
+      'guideQuickTrain={careerTeaches',
+      'showManagerTips={careerTeaches}',
+    ]) {
+      expect(app).toContain(fragment);
+    }
+  });
+
+  it('keeps the Advance Week button tied to the objective it reads', () => {
+    // The fourth refusal of Advance Week lives here, not in the store. It needs
+    // no mode gate of its own because `currentAssistantObjective` is already
+    // null for an Advisor career — but only while this expression keeps reading
+    // that objective. If someone rewrites it to read a milestone directly, an
+    // Advisor career gets a dead button and this test is the alarm.
+    const disabled = app.slice(app.indexOf('advanceWeekDisabled='));
+    expect(disabled.slice(0, disabled.indexOf('\n        guideFocus')))
+      .toContain('assistantObjective !== null');
+  });
+
   it('routes veterans through the choice and first-timers past it', () => {
     expect(app).toContain('AssistantModeChoiceScreen');
     expect(app).toContain("landingView === 'assistant-mode'");
@@ -1201,6 +1270,16 @@ Import it: `import { assistantTeaches } from './src/game/assistant-guide';` — 
 
 - [ ] **Step 5: Gate the one-shots**
 
+Before the edits, one gate you must NOT need to change, and must understand. `App.tsx:1624` carries a **fourth** refusal of Advance Week that the store knows nothing about:
+
+```ts
+        advanceWeekDisabled={store.saving
+          || store.saveBlocked
+          || (assistantObjective !== null && assistantObjective.target !== 'advance-week')}
+```
+
+`assistantObjective` is `currentAssistantObjective(store.career, store.activeTab)`, which Task 2 already returns `null` from for an Advisor career — so the term is `false` and the button is live. Leave the expression alone: adding `careerTeaches &&` would be redundant with a direct data dependency, not defence against an accident. Step 9's test pins the dependency instead, so a future change that resurrects the objective for Advisor fails loudly.
+
 Six edits in `App.tsx`, each adding `careerTeaches &&` to an existing condition:
 
 `club-legacy` auto-request (line 992):
@@ -1255,13 +1334,18 @@ Six edits in `App.tsx`, each adding `careerTeaches &&` to an existing condition:
 Replace `toggleManagerTips` (lines 586–589) with nothing — delete the callback. Then change `startNewCareer` (line 973) so the veteran path stops at the question:
 
 ```ts
-  const startNewCareer = useCallback(() => {
+  /**
+   * Erases the old career and opens the new one.
+   *
+   * The destructive confirmation lives HERE, immediately before the erase, and
+   * not on the way into the question. Confirming "this permanently erases the
+   * current career" and then showing a screen with a Back button would have
+   * been a lie in one direction or a thrown-away save in the other.
+   */
+  const beginNewCareer = useCallback((assistantMode?: AssistantMode) => {
     const begin = () => {
-      if (preferencesRef.current.climbCompleted) {
-        setLandingView('assistant-mode');
-        return;
-      }
-      store.startNewCareer();
+      setLandingView('title');
+      store.startNewCareer(undefined, assistantMode);
     };
     if (!store.hasSavedCareer) {
       begin();
@@ -1275,7 +1359,18 @@ Replace `toggleManagerTips` (lines 586–589) with nothing — delete the callba
       onConfirm: begin,
     });
   }, [requestConfirmation, store.hasSavedCareer, store.startNewCareer]);
+
+  const startNewCareer = useCallback(() => {
+    // Asking costs nothing and destroys nothing, so a veteran is asked first.
+    if (preferencesRef.current.climbCompleted) {
+      setLandingView('assistant-mode');
+      return;
+    }
+    beginNewCareer();
+  }, [beginNewCareer]);
 ```
+
+Declare `beginNewCareer` above `startNewCareer` — the second reads the first. Import `AssistantMode` as a type from `'./src/game/types'`. Cancelling the confirmation leaves the manager on the choice screen with the old career untouched, which is the correct reading of "no".
 
 Add the screen branch directly above the `store.screen === 'welcome'` branch (line 1373):
 
@@ -1283,10 +1378,7 @@ Add the screen branch directly above the `store.screen === 'welcome'` branch (li
   } else if (store.screen === 'welcome' && landingView === 'assistant-mode') {
     screen = (
       <AssistantModeChoiceScreen
-        onChoose={mode => {
-          setLandingView('title');
-          store.startNewCareer(undefined, mode);
-        }}
+        onChoose={beginNewCareer}
         onBack={() => setLandingView('title')}
       />
     );
@@ -1369,38 +1461,55 @@ Append to `src/application/__tests__/assistant-mode.test.ts`:
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-function careerAfterWeeks(mode: 'teacher' | 'advisor', weeks: number): GameState {
+/**
+ * One week, both modes, same seed.
+ *
+ * Exactly one advance, because that is the last press both careers survive:
+ * the youth intake is due from week 2 (`STORY_YOUTH_UNLOCK_WEEK`), so the
+ * SECOND press is where a taught career stops and an advised one does not. A
+ * loop that breaks on one side and not the other compares week 2 against week
+ * 3 and fails against a correct implementation.
+ */
+function careerAfterOneWeek(mode: 'teacher' | 'advisor'): GameState {
   useM1Store.setState(useM1Store.getInitialState(), true);
   useM1Store.getState().startNewCareer(4242, mode);
   useM1Store.getState().completePlayerCreation({
     name: 'Jo Rook',
     ratings: DEFAULT_CREATION_RATINGS,
   });
-  for (let advanced = 0; advanced < weeks; advanced += 1) {
-    useM1Store.getState().advanceCareer();
-    if (useM1Store.getState().inboxDutyReminder !== null) {
-      useM1Store.getState().dismissInboxDutyReminder();
-      break;
-    }
-    if (useM1Store.getState().screen === 'week-review') {
-      useM1Store.getState().continueWeekReview();
-    }
-  }
+  useM1Store.getState().advanceCareer();
+  expect(useM1Store.getState().inboxDutyReminder).toBeNull();
+  useM1Store.getState().continueWeekReview();
   return useM1Store.getState().career!;
 }
 
 describe('advice costs the manager nothing', () => {
-  it('leaves the club in the same financial position on the same seed', () => {
-    // Two weeks: the last point both careers reach, because week three is where
-    // the taught career hits the youth-intake duty and stops.
-    const taught = careerAfterWeeks('teacher', 2);
-    const advised = careerAfterWeeks('advisor', 2);
+  it('leaves the club in the same position after the same week', () => {
+    const taught = careerAfterOneWeek('teacher');
+    const advised = careerAfterOneWeek('advisor');
 
-    expect(advised.week).toBe(taught.week);
+    expect(advised.week).toBe(2);
+    expect(taught.week).toBe(2);
     expect(advised.clubs.map(club => club.cash)).toEqual(taught.clubs.map(club => club.cash));
     expect(advised.trainingPoints).toBe(taught.trainingPoints);
     expect(advised.players.map(player => player.id))
       .toEqual(taught.players.map(player => player.id));
+    expect(advised.fixtures.filter(fixture => fixture.status === 'played').length)
+      .toBe(taught.fixtures.filter(fixture => fixture.status === 'played').length);
+  });
+
+  it('diverges only on whether the next week is held', () => {
+    // The one difference the mode is allowed to make, asserted as a difference
+    // rather than assumed. Teacher stops on the youth intake; Advisor does not.
+    careerAfterOneWeek('teacher');
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(2);
+    expect(useM1Store.getState().inboxDutyReminder).toContain('youth-intake');
+
+    careerAfterOneWeek('advisor');
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(3);
+    expect(useM1Store.getState().inboxDutyReminder).toBeNull();
   });
 
   it('is invisible to the game ring', () => {
@@ -1422,7 +1531,7 @@ Add `import type { GameState } from '../../game/types';` to the file's imports i
 - [ ] **Step 2: Run the tests**
 
 Run: `npx jest src/application/__tests__/assistant-mode.test.ts -t "advice costs"`
-Expected: PASS, 2 tests. A failure in the first means an Advisor gate changed the simulation; a failure in the second names the file that reached into the game ring. Fix the cause, never the assertion.
+Expected: PASS, 3 tests. A failure in the first means an Advisor gate changed the simulation; the second is the only sanctioned difference; the third names the file that reached into the game ring. Fix the cause, never the assertion.
 
 - [ ] **Step 3: Run the whole suite**
 
