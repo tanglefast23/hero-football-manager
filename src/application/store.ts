@@ -121,6 +121,7 @@ import {
   endgameSupersedesLeagueTitle,
   markEndgameCelebrationComplete,
   pendingEndgameCelebration,
+  TRUE_ENDING_SEEN_FLAG,
 } from './endgame-celebration';
 import { recordHallOfFame } from './hall-of-fame';
 
@@ -2224,6 +2225,13 @@ function enqueueSave(
       if (ticket === latestSaveTicket) set({ saving: false });
       set({ error: `${errorPrefix}: ${errorMessage(error)}` });
     });
+}
+
+/** Whether the loaded career has finished the climb at least once. */
+export function careerClimbCompleted(
+  state: { career: GameState | null },
+): boolean {
+  return state.career?.eventFlags.includes(TRUE_ENDING_SEEN_FLAG) ?? false;
 }
 
 function guarded(set: (partial: Partial<M1Store>) => void, action: () => void): void {

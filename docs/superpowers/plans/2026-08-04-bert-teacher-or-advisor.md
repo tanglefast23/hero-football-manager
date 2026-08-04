@@ -829,7 +829,7 @@ git commit -m "feat: remember that this device finished the climb"
 
 The store cannot write preferences — it has no reference to them. It exposes the fact, and `App.tsx` mirrors it in Task 8.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/application/__tests__/climb-completed-unlock.test.ts`:
 
@@ -880,12 +880,12 @@ describe('the climb, as the app can read it', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/application/__tests__/climb-completed-unlock.test.ts`
 Expected: FAIL — `climbCompleted` is not on the store state.
 
-- [ ] **Step 3: Expose the fact as a selector**
+- [x] **Step 3: Expose the fact as a selector**
 
 `climbCompleted` is **derived, never stored**. A copy on the store state would be a second thing to keep in sync with `eventFlags`, and zustand cannot host a getter that survives `set()`. Add a plain exported function near the other exported helpers at the bottom of `src/application/store.ts`:
 
@@ -906,7 +906,7 @@ export function careerClimbCompleted(
 
 `TRUE_ENDING_SEEN_FLAG` is already imported in this file (line ~119). The parameter is typed structurally on purpose: the store's own interface is `M1Store` at line 199 and is **not exported**, so `Pick<M1Store, 'career'>` would force an export this function does not need.
 
-- [ ] **Step 3b: Point the test at the selector**
+- [x] **Step 3b: Point the test at the selector**
 
 In `src/application/__tests__/climb-completed-unlock.test.ts`, change all four `useM1Store.getState().climbCompleted` reads to `careerClimbCompleted(useM1Store.getState())` and add:
 
@@ -916,12 +916,12 @@ import { careerClimbCompleted, useM1Store } from '../store';
 
 replacing the existing `useM1Store` import line.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest src/application/__tests__/climb-completed-unlock.test.ts`
 Expected: PASS, 3 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/application/store.ts src/application/__tests__/climb-completed-unlock.test.ts
