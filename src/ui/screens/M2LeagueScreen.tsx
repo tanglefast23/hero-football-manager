@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { InfoTip } from '../components/InfoTip';
+import {
+  HEADER_MAX_FONT_MULTIPLIER,
+  LEAGUE_COLUMN_WIDTH,
+  type LeagueColumn,
+} from '../league-table-columns';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import type {
   M2CupFixtureViewModel,
@@ -23,6 +29,41 @@ import type { TutorialAnchorLayout } from '../tutorial-cue-position';
 import { CupBracket } from '../components/CupBracket';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+
+/**
+ * What each abbreviated column means, in one sentence, reachable by tapping the
+ * header itself. The table already carried a legend underneath — "P played · GD
+ * goal difference · Pts points" — and it did not reach the reader who asked
+ * what GD stood for: grey, small, and printed after the thing it explains.
+ */
+const LEAGUE_COLUMN_EXPLAINER: Readonly<Record<LeagueColumn, string>> = {
+  position: 'Where the club sits in the division right now.',
+  played: 'League matches played so far this season.',
+  goalDifference: 'Goals scored minus goals conceded. It separates clubs level on points.',
+  points: 'Three for a win, one for a draw. The top two are promoted.',
+};
+
+const LEAGUE_TABLE_HEADERS: readonly {
+  column: Exclude<LeagueColumn, 'position'>;
+  label: string;
+  name: string;
+}[] = [
+  { column: 'played', label: 'P', name: 'Played' },
+  { column: 'goalDifference', label: 'GD', name: 'Goal difference' },
+  { column: 'points', label: 'PTS', name: 'Points' },
+];
+
+/**
+ * Points, not Tailwind widths. `w-9` is 2.25rem and a rem is React Native's
+ * 14pt, so it was 31.5pt and not the 36 its name implies — which is how "PTS"
+ * came to wrap to "PT" over a lone "S". See league-table-columns.ts.
+ */
+const leagueColumns = StyleSheet.create({
+  position: { width: LEAGUE_COLUMN_WIDTH.position, flexShrink: 0 },
+  played: { width: LEAGUE_COLUMN_WIDTH.played, flexShrink: 0 },
+  goalDifference: { width: LEAGUE_COLUMN_WIDTH.goalDifference, flexShrink: 0 },
+  points: { width: LEAGUE_COLUMN_WIDTH.points, flexShrink: 0 },
+});
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
 
 export interface M2LeagueScreenProps {
@@ -147,12 +188,30 @@ export function M2LeagueScreen({
             accessibilityLabel={`${viewModel.activeTable.divisionLabel} live standings after ${viewModel.activeTable.matchesPlayed} matches`}
             className="border-2 border-b-4 border-ink bg-white"
           >
+            {/* Every abbreviation here is tappable, because the legend under
+                the table did not reach the reader who asked what GD meant —
+                grey, small, and after the thing it explains. The register
+                answers the same question at the header itself. */}
             <View className="flex-row border-b border-ink/20 px-2 py-2">
-              <Text className="w-7 font-mono text-sm text-ink/50">#</Text>
+              <Text style={leagueColumns.position} className="font-mono text-sm text-ink/50">#</Text>
               <PixelText className="flex-1 text-sm uppercase text-ink/50">Club</PixelText>
-              <Text className="w-7 text-right font-mono text-sm text-ink/50">P</Text>
-              <Text className="w-9 text-right font-mono text-sm text-ink/50">GD</Text>
-              <Text className="w-9 text-right font-mono text-sm text-ink/50">PTS</Text>
+              {LEAGUE_TABLE_HEADERS.map(header => (
+                <InfoTip
+                  key={header.label}
+                  text={LEAGUE_COLUMN_EXPLAINER[header.column]}
+                  align="right"
+                  style={leagueColumns[header.column]}
+                  accessibilityLabel={`${header.name}. ${LEAGUE_COLUMN_EXPLAINER[header.column]}`}
+                >
+                  <Text
+                    className="w-full text-right font-mono text-sm text-ink/50"
+                    maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
+                    numberOfLines={1}
+                  >
+                    {header.label}
+                  </Text>
+                </InfoTip>
+              ))}
             </View>
             {viewModel.activeTable.rows.map(row => {
               const rowClass = row.isUserClub
@@ -169,7 +228,7 @@ export function M2LeagueScreen({
                   accessibilityLabel={`${row.position}. ${row.clubName}.${row.isUserClub ? ' Your club.' : ''} Played ${row.played}, goal difference ${row.goalDifference}, ${row.points} points.${row.movement === 'PROMOTION' ? ' Promotion place.' : row.movement === 'RELEGATION' ? ' Relegation place.' : ''}`}
                   className={`min-h-11 flex-row items-center border-b border-ink/10 px-2 py-2 ${rowClass}`}
                 >
-                  <Text className="w-7 font-mono text-base text-ink">{row.position}</Text>
+                  <Text style={leagueColumns.position} className="font-mono text-base text-ink" numberOfLines={1}>{row.position}</Text>
                   <View className="flex-1 flex-row items-center pr-1">
                     <Text className={row.isUserClub ? 'flex-1 text-base font-bold text-ink' : 'flex-1 text-base text-ink'} numberOfLines={1}>
                       {row.clubName}
@@ -183,9 +242,12 @@ export function M2LeagueScreen({
                       </Text>
                     ) : null}
                   </View>
-                  <Text className="w-7 text-right font-mono text-sm text-ink/65">{row.played}</Text>
-                  <Text className="w-9 text-right font-mono text-sm text-ink/65">{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>
-                  <Text className="w-9 text-right font-mono text-base text-ink">{row.points}</Text>
+                  {/* numberOfLines guards the columns the arithmetic sizes: an
+                      overflow clips rather than reflowing the row, which is how
+                      "+10" came to render as "+1" over "0". */}
+                  <Text style={leagueColumns.played} className="text-right font-mono text-sm text-ink/65" numberOfLines={1}>{row.played}</Text>
+                  <Text style={leagueColumns.goalDifference} className="text-right font-mono text-sm text-ink/65" numberOfLines={1}>{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>
+                  <Text style={leagueColumns.points} className="text-right font-mono text-base text-ink" numberOfLines={1}>{row.points}</Text>
                 </View>
               );
             })}
