@@ -242,6 +242,7 @@ export function PlayerRequestsReel({ caseId }: { readonly caseId: string }) {
           selectedPlayerId={selectedPlayerId}
           onSelectPlayer={setSelectedPlayerId}
           onTrainDrill={() => {}}
+          onTrainDrillBatch={() => {}}
           onBuyDrillUpgrade={() => {}}
           lastDrillResult={null}
           trainingPoints={state.trainingPoints}

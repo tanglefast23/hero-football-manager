@@ -1655,6 +1655,7 @@ function GameApp() {
               }
             }}
             onTrainDrill={(playerId, pathId) => store.trainPlayer(playerId, pathId)}
+            onTrainDrillBatch={(playerId, pathId, runs) => store.trainPlayerBatch(playerId, pathId, runs)}
             onBuyDrillUpgrade={pathId => {
               const upgrade = squadTrainingVm!.drillUpgrades.find(row => row.pathId === pathId);
               requestConfirmation({
@@ -2109,7 +2110,7 @@ function GameApp() {
               body: [
                 'No one loves to look at the finances, except smart guys.',
                 'You’re a smart guy so look at it and make sure you have income streams.',
-                'Build buildings that get you more fans if you need the money.',
+                'Build facilities that help with fans or income if you’re short on cash.',
               ],
             }}
             navigationAnchor={navigationGuideAnchor}
@@ -2525,6 +2526,10 @@ function ConfirmationSheet({
       {/* edges=['bottom'] matches every sibling bottom sheet: pb-8 alone sat
           the Cancel/Confirm row on the home indicator (34pt inset). */}
       <SafeAreaView edges={['bottom']} className="flex-1 justify-end bg-ink/70 px-4 pb-8">
+        {/* An outside tap cancels — the safe half of every question this sheet
+            asks. It never spends the money or signs the contract. Sibling of
+            the sheet so taps on Cancel/Confirm never bubble into it. */}
+        <Pressable accessible={false} className="absolute inset-0" onPress={onCancel} />
         <View
           accessibilityViewIsModal
           className="w-full max-w-[1180px] self-center border-2 border-b-4 border-ink bg-paper p-5"

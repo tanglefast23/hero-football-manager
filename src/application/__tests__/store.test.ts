@@ -263,6 +263,45 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career?.resolvedEventIds).toContain('hundredth-fan');
   });
 
+  /**
+   * A story used to be the toll on the way OUT of a week: Advance Week opened
+   * the card instead of advancing, and answering it spent the week. It belongs
+   * to the week it was drawn for, so it is now the first thing in that week and
+   * the manager still has the week to act on whatever it did to the club.
+   */
+  it("opens a week's story on arrival and hands the week back when it is answered", () => {
+    startAwakenedCareer(457);
+    const career = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: {
+        ...career,
+        phase: 'manage',
+        week: 8,
+        pendingEvent: {
+          eventId: 'hundredth-fan',
+          resolvedChoiceId: 'hundredth-fan-parade',
+          outcomeText: 'The parade inspires a new stadium mural.',
+          resolvedOutcomeIndex: 0,
+          resolvedRisky: true,
+          resolvedSuccess: true,
+        },
+      },
+      screen: 'week-review',
+    });
+
+    // The review hands over to the story, not to the desk.
+    useM1Store.getState().continueWeekReview();
+    expect(useM1Store.getState().screen).toBe('event');
+
+    useM1Store.getState().continueAfterEvent();
+
+    // Answered — and week 8 is still there to be played.
+    expect(useM1Store.getState().screen).toBe('management');
+    expect(useM1Store.getState().career?.week).toBe(8);
+    expect(useM1Store.getState().career?.pendingEvent).toBeUndefined();
+    expect(useM1Store.getState().career?.resolvedEventIds).toContain('hundredth-fan');
+  });
+
   it('trains a player the moment a drill is tapped and reviews the week without it', () => {
     startCreatedCareer(789);
     const before = useM1Store.getState().career!;
@@ -323,6 +362,55 @@ describe('M1 app store integration', () => {
       level: 1,
       kind: 'BUILD',
     });
+  });
+
+  /**
+   * Skipping out of the presentation used to cancel the drills still queued
+   * behind it: a confirmed 3x batch counted only the cards the manager sat
+   * through. The animation is the optional part, not the training.
+   */
+  it('runs the drills queued behind a skipped presentation', () => {
+    startCreatedCareer(789);
+    const before = useM1Store.getState().career!;
+    const playerId = 'bramble-rovers-created-player';
+
+    useM1Store.getState().buildFacility();
+    // The manager confirms three runs, watches the first, then taps outside.
+    useM1Store.getState().trainPlayer(playerId, 'sprints');
+    const watched = useM1Store.getState().lastDrillResult!;
+    useM1Store.getState().trainPlayerBatch(playerId, 'sprints', 2);
+
+    const finished = useM1Store.getState().career!;
+    expect(useM1Store.getState().error).toBeNull();
+    // All three counted: the TP, the tally, and the stat itself.
+    expect(finished.trainingPoints).toBe(before.trainingPoints - 30);
+    expect(finished.totalInstantDrills).toBe(3);
+    expect(useM1Store.getState().lastDrillResult).toMatchObject({ sequence: 3 });
+    expect(finished.players.find(player => player.id === playerId)!.attrs.pac)
+      .toBeGreaterThan(watched.after);
+  });
+
+  it('trains nobody when the skipped batch belongs to a player who has pulled up', () => {
+    startCreatedCareer(789);
+    useM1Store.getState().buildFacility();
+    const playerId = 'bramble-rovers-created-player';
+    const career = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: {
+        ...career,
+        players: career.players.map(player => player.id === playerId
+          ? { ...player, injuryWeeks: 3 }
+          : player),
+      },
+    });
+    const before = useM1Store.getState().career!;
+
+    useM1Store.getState().trainPlayerBatch(playerId, 'sprints', 2);
+
+    // Silently, and without an error banner: the batch simply has nowhere to go.
+    expect(useM1Store.getState().error).toBeNull();
+    expect(useM1Store.getState().career?.trainingPoints).toBe(before.trainingPoints);
+    expect(useM1Store.getState().career?.totalInstantDrills ?? 0).toBe(0);
   });
 
   it('accepts a TRAINING_PRIORITY renewal as a five-drill debt', () => {

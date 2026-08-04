@@ -58,6 +58,11 @@ export interface TrainingDrillModalProps {
   /** Jumps the popup to the promised player when their reminder is tapped. */
   onSwitchToPromised?: (playerId: string) => void;
   onTrainDrill: (playerId: string, pathId: string) => void;
+  /**
+   * Resolves the drills still queued behind the one on screen, without their
+   * presentations. Leaving early skips the animation, not the training.
+   */
+  onTrainDrillBatch: (playerId: string, pathId: string, runs: number) => void;
   onDismiss: () => void;
   reduceMotion?: boolean;
   /**
@@ -112,6 +117,7 @@ export function TrainingDrillModal({
   promiseGate,
   onSwitchToPromised,
   onTrainDrill,
+  onTrainDrillBatch,
   onDismiss,
   reduceMotion = false,
   saveWarning = null,
@@ -294,11 +300,20 @@ export function TrainingDrillModal({
   }, [onTrainDrill, playerId, trainingPoints]);
 
   const dismiss = useCallback(() => {
+    const batch = batchRef.current;
     batchRef.current = null;
     setBatchProgress(null);
     setConfirmingHighRisk(false);
+    // Leaving early skips the presentation, not the training. The manager
+    // confirmed the whole batch and its TP on the way in, so the drills behind
+    // the one on screen still run — they just run without their cards. An
+    // injury on the drill being watched still ends the batch, exactly as it
+    // does when the manager sits through it.
+    if (batch !== null && batch.remaining > 0 && activeResult?.injury === undefined) {
+      onTrainDrillBatch(playerId, batch.pathId, batch.remaining);
+    }
     onDismiss();
-  }, [onDismiss]);
+  }, [activeResult, onDismiss, onTrainDrillBatch, playerId]);
 
   const resultOption = activeResult === null
     ? undefined
