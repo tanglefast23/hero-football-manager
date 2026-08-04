@@ -17,6 +17,7 @@ describe('overlay dismissal', () => {
     ['player signing receipt', 'src/ui/PlayerSigningOverlay.tsx'],
     ['coach staff overlay', 'src/ui/CoachStaffOverlay.tsx'],
     ['facility placement confirmation', 'src/ui/FacilityPlacementConfirmation.tsx'],
+    ['club decision sheet', 'App.tsx'],
   ] as const;
 
   it.each(dismissable)('closes %s on an outside tap', (_label, path) => {
@@ -35,6 +36,19 @@ describe('overlay dismissal', () => {
     // The receipts close on an outside tap; "Dismiss <coach>?" does not.
     expect(file).toContain('{isDismissConfirmation ? null : (');
     expect(file).toContain('onPress={onClose}');
+  });
+
+  /**
+   * One sheet asks every club question — hire, sell, release, upgrade, close,
+   * sign, erase the career — so this is the outside tap eleven confirmations
+   * share. Cancel is the safe half of all of them.
+   */
+  it('cancels rather than commits when the club decision sheet is tapped away', () => {
+    const file = source('App.tsx');
+    const sheet = file.slice(file.indexOf('function ConfirmationSheet'));
+
+    expect(sheet).toContain('className="absolute inset-0" onPress={onCancel}');
+    expect(sheet).not.toContain('className="absolute inset-0" onPress={onConfirm}');
   });
 
   it('cancels rather than approves when a build confirmation is tapped away', () => {

@@ -2525,6 +2525,10 @@ function ConfirmationSheet({
       {/* edges=['bottom'] matches every sibling bottom sheet: pb-8 alone sat
           the Cancel/Confirm row on the home indicator (34pt inset). */}
       <SafeAreaView edges={['bottom']} className="flex-1 justify-end bg-ink/70 px-4 pb-8">
+        {/* An outside tap cancels — the safe half of every question this sheet
+            asks. It never spends the money or signs the contract. Sibling of
+            the sheet so taps on Cancel/Confirm never bubble into it. */}
+        <Pressable accessible={false} className="absolute inset-0" onPress={onCancel} />
         <View
           accessibilityViewIsModal
           className="w-full max-w-[1180px] self-center border-2 border-b-4 border-ink bg-paper p-5"
