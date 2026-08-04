@@ -1,4 +1,5 @@
 import {
+  assistantTeaches,
   hasAssistantGuideSequenceCompleted,
   hasAssistantGuideMilestone,
   careerRosterCapacity,
@@ -35,6 +36,7 @@ export function pendingAssistantGuideSequence(
   state: GameState,
   _activeTab: ManagementTab,
 ): AssistantGuideSequenceId | null {
+  if (!assistantTeaches(state)) return null;
   if (isFirstCareerWeek(state)) {
     return hasAssistantGuideMilestone(state, 'intro-complete') ? null : 'management-intro';
   }
@@ -271,6 +273,7 @@ export const LAST_GATED_INBOX_WEEK = 3;
 export function outstandingInboxDuties(
   state: GameState,
 ): AssistantInboxGuideSequenceId[] {
+  if (!assistantTeaches(state)) return [];
   if (state.season !== 1 || state.week > LAST_GATED_INBOX_WEEK) return [];
   const due = new Set(dueAssistantInboxGuideSequences(state));
   return BLOCKING_INBOX_DUTIES.filter(
@@ -352,6 +355,7 @@ export function currentAssistantObjective(
   state: GameState,
   activeTab: ManagementTab,
 ): AssistantObjective | null {
+  if (!assistantTeaches(state)) return null;
   if (!isFirstCareerWeek(state)) return null;
   if (!hasAssistantGuideMilestone(state, 'intro-complete')) return null;
   if (!hasAssistantGuideMilestone(state, 'first-training-complete')) {

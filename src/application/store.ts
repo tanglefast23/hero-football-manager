@@ -22,6 +22,8 @@ import {
   completeAssistantGuideMilestone,
   type AssistantGuideMilestone,
   completeAssistantGuideSequence,
+  assistantTeaches,
+  clearAdvisorAssistantInboxSuppressions,
   completeMatchday,
   completePostMatchAwakening,
   completeCareerTransfer,
@@ -71,6 +73,7 @@ import {
   type CareerLegendLegacyChoice,
   type AssistantGuideSequenceId,
   type AssistantInboxGuideSequenceId,
+  type AssistantMode,
   type GameState,
   type FacilityPosition,
   type FacilityType,
@@ -241,8 +244,9 @@ interface M1Store {
   ) => Promise<void>;
   restoreBackupSave: () => Promise<void>;
   retrySave: () => void;
-  startNewCareer: (seed?: number) => void;
+  startNewCareer: (seed?: number, assistantMode?: AssistantMode) => void;
   continueCareer: () => void;
+  setAssistantMode: (assistantMode: AssistantMode) => void;
   completePlayerCreation: (draft: CreatedPlayerDraft) => void;
   continueAfterAwakening: () => void;
   setActiveTab: (tab: ManagementTab) => void;
@@ -479,7 +483,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     queueCareerSave(get, set, career);
   },
 
-  startNewCareer(seed) {
+  startNewCareer(seed, assistantMode) {
     guarded(set, () => {
       if (get().persistenceLoadError !== null) {
         throw new Error('Resolve the save-load error before replacing this career.');
@@ -490,14 +494,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // probes, all of which build their careers from that helper — stays
       // request-free by default. A probe that silently accrued lapse penalties
       // would be measuring a different game than its recorded baseline.
-      const career = beginStoryOnboarding(createCareer({
+      const created = createCareer({
         ...createLaunchCareerSetup(
           seed ?? generateCareerSeed(),
           undefined,
           launchContent,
         ),
         playerRequestRules: launchContent.playerRequests,
-      }));
+      });
+      const career = beginStoryOnboarding(assistantMode === undefined
+        ? created
+        : { ...created, assistantMode });
       set({
         career,
         hasSavedCareer: true,
@@ -508,6 +515,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatch: null,
         postMatchOverlay: null,
         weekReview: null,
+        inboxDutyReminder: null,
         error: null,
       });
       queueNewCareerSave(get, set, career, replacedCareer);
@@ -526,6 +534,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
       postMatchOverlay: null,
       weekReview: null,
       error: null,
+    });
+  },
+
+  setAssistantMode(assistantMode) {
+    const career = get().career;
+    if (career === null) return;
+    guarded(set, () => {
+      const changed = { ...career, assistantMode };
+      const next = assistantMode === 'teacher'
+        ? clearAdvisorAssistantInboxSuppressions(changed)
+        : changed;
+      set({ career: next, inboxDutyReminder: null, error: null });
+      queueCareerSave(get, set, next);
     });
   },
 
@@ -679,12 +700,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
         return;
       }
       if (
-        hasAssistantGuideMilestone(career, 'intro-complete')
+        assistantTeaches(career)
+        && hasAssistantGuideMilestone(career, 'intro-complete')
         && !hasAssistantGuideMilestone(career, 'first-training-complete')
       ) {
         throw new Error('Train a player before advancing the week.');
       }
-      const guidedFirstWeek = hasAssistantGuideMilestone(career, 'intro-complete')
+      const guidedFirstWeek = assistantTeaches(career)
+        && hasAssistantGuideMilestone(career, 'intro-complete')
         && hasAssistantGuideMilestone(career, 'first-training-complete')
         && !hasAssistantGuideMilestone(career, 'first-week-advanced');
       if (guidedFirstWeek) {
@@ -1610,7 +1633,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           error: null,
           notice: {
             tone: 'success',
-            message: 'Transfer complete. The squad is now full; Bert has left a note about future signings.',
+            message: 'Transfer complete. The squad is now full; make room before the next signing.',
           },
         });
         queueCareerSave(get, set, next);

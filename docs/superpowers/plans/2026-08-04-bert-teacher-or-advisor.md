@@ -186,7 +186,7 @@ git commit -m "feat: record whether a career is taught"
 - Modify: `src/application/view-models.ts`
 - Test: `src/application/__tests__/assistant-mode.test.ts` (create)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/application/__tests__/assistant-mode.test.ts`:
 
@@ -258,12 +258,12 @@ describe('an advised career', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/application/__tests__/assistant-mode.test.ts`
 Expected: FAIL — the advised career still returns `'management-intro'`, an objective, and `['youth-intake']`. The due list is deliberately unchanged.
 
-- [ ] **Step 3: Add the three presentation/block early-returns**
+- [x] **Step 3: Add the three presentation/block early-returns**
 
 In `src/application/assistant-guide.ts`, add `assistantTeaches` to the existing import block from `'../game'`, then add one guard as the first line of each function body.
 
@@ -303,12 +303,12 @@ export function currentAssistantObjective(
   if (!isFirstCareerWeek(state)) return null;
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest src/application/__tests__/assistant-mode.test.ts`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 4b: Make hidden inbox pacing finite and presentation-only**
+- [x] **Step 4b: Make hidden inbox pacing finite and presentation-only**
 
 Add a namespaced Advisor-suppression flag in `src/game/assistant-guide.ts`.
 After a standalone guide consumes a logical weekly slot in Advisor mode, bank
@@ -324,12 +324,12 @@ that the first hidden tranche occupies the same logical week as Teacher, the
 next week does not repeat it, no Bert row is rendered, product alerts remain,
 and switching back to Teacher exposes the queued backlog.
 
-- [ ] **Step 5: Verify no existing suite regressed**
+- [x] **Step 5: Verify no existing suite regressed**
 
 Run: `npx jest src/application/__tests__/assistant-guide.test.ts src/application/__tests__/inbox-duty-gate.test.ts`
 Expected: PASS. These build careers with no `assistantMode`, so every one of them is a Teacher career and must be untouched.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/application/assistant-guide.ts src/application/__tests__/assistant-mode.test.ts
@@ -346,7 +346,7 @@ git commit -m "feat: silence Bert's teaching for an advised career"
 
 The third block already lifts, because `outstandingInboxDuties` now returns `[]` for Advisor. The first two are guarded by `intro-complete` and would fall away on their own — they are gated explicitly anyway, per the spec, so a future change that banks the milestone cannot silently restore them. The fourth block is the button's own `advanceWeekDisabled` term in `App.tsx`, which needs no change and is handled in Task 8 step 5.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/application/__tests__/assistant-mode-blocks.test.ts`:
 
@@ -442,12 +442,12 @@ describe('an advised opening never holds the week', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/application/__tests__/assistant-mode-blocks.test.ts`
 Expected: FAIL — `startNewCareer` takes one argument, so `'advisor'` is rejected by the compiler and both advised cases behave as Teacher.
 
-- [ ] **Step 3: Widen `startNewCareer`**
+- [x] **Step 3: Widen `startNewCareer`**
 
 In `src/application/store.ts`, change the interface entry at line 244:
 
@@ -489,7 +489,7 @@ and change the two later references in that action from `career` to `opened`:
 
 Leave the existing comment above `beginStoryOnboarding` in place — it explains why player requests are attached here and is still true.
 
-- [ ] **Step 4: Gate the two milestone-guarded blocks**
+- [x] **Step 4: Gate the two milestone-guarded blocks**
 
 In `src/application/store.ts`, add `assistantTeaches` to the existing import from `'../game'`. Then in `advanceCareer`, replace the block starting at line 669:
 
@@ -507,17 +507,17 @@ In `src/application/store.ts`, add `assistantTeaches` to the existing import fro
         && !hasAssistantGuideMilestone(career, 'first-week-advanced');
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `npx jest src/application/__tests__/assistant-mode-blocks.test.ts`
 Expected: PASS, 6 tests.
 
-- [ ] **Step 6: Verify the opening is unchanged for everyone else**
+- [x] **Step 6: Verify the opening is unchanged for everyone else**
 
 Run: `npx jest src/application/__tests__/inbox-duty-gate.test.ts src/application/__tests__/default-career-journey.test.ts src/application/__tests__/store.test.ts`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/application/store.ts src/application/__tests__/assistant-mode-blocks.test.ts
@@ -532,7 +532,7 @@ git commit -m "feat: let an advised career advance its own weeks"
 - Modify: `src/application/store.ts`
 - Test: `src/application/__tests__/assistant-mode-blocks.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `src/application/__tests__/assistant-mode-blocks.test.ts`:
 
@@ -558,12 +558,12 @@ describe('changing his job mid-career', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/application/__tests__/assistant-mode-blocks.test.ts -t "mid-career"`
 Expected: FAIL — `setAssistantMode` is not a function.
 
-- [ ] **Step 3: Add the store action**
+- [x] **Step 3: Add the store action**
 
 In `src/application/store.ts`, add to the interface beside `startNewCareer`:
 
@@ -587,12 +587,12 @@ And the implementation, next to `completeGuideMilestone`:
   },
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest src/application/__tests__/assistant-mode-blocks.test.ts`
 Expected: PASS, 8 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/application/store.ts src/application/__tests__/assistant-mode-blocks.test.ts

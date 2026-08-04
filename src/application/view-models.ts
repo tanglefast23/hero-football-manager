@@ -12,6 +12,7 @@ import {
   FACILITY_CATALOG,
   activeCareerMatchday,
   activeFacilityAdjacencies,
+  assistantTeaches,
   attributeAffectsPlay,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
@@ -1530,6 +1531,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
       `board-resolution:${latestBoardResolution.id}`,
     );
   const assistantState = reconcileSatisfiedAssistantGuideSequences(state);
+  const careerTeaches = assistantTeaches(assistantState);
   const productAlerts = homeProductAlerts(assistantState);
   const dueGuides = dueAssistantInboxGuideSequences(assistantState);
   const inboxPlan = scheduleAssistantInboxWeek(assistantState, {
@@ -1553,6 +1555,9 @@ export function homeViewModel(state: GameState): HomeViewModel {
   const selectedProducts = productAlerts
     .filter(alert => selectedProductIds.has(alert.id))
     .map(alert => {
+      // Product news survives Advisor mode; only Bert's route attached to it
+      // disappears. This also prevents a stale queued guide opening silently.
+      if (!careerTeaches) return alert;
       const guideSequenceId = alert.id === 'board-ultimatum'
         ? boardGuide
         : !facilityGuideAssigned
@@ -1590,7 +1595,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
         destination: sequence.destination,
       };
     });
-  const guideAlerts: ClubAlertViewModel[] = inboxPlan.guideSequenceIds.map(sequenceId => {
+  const guideAlerts: ClubAlertViewModel[] = (careerTeaches ? inboxPlan.guideSequenceIds : []).map(sequenceId => {
     const sequence = ASSISTANT_GUIDE_CONTENT.sequences.find(candidate => candidate.id === sequenceId);
     if (sequence?.inbox === undefined || sequence.destination === undefined) {
       throw new Error(`assistant guide ${sequenceId} is missing inbox routing`);
