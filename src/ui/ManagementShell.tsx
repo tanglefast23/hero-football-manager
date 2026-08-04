@@ -11,6 +11,7 @@ import { managementHeaderLine } from './management-header';
 import { managementKeyBindings, tabNumberKey } from './management-key-bindings';
 import { useKeyBindings } from './use-key-bindings';
 import { PixelText } from './components/PixelText';
+import { InfoTip } from './components/InfoTip';
 import { useGuideAnchor } from './use-guide-anchor';
 
 const TABS: ReadonlyArray<{
@@ -48,17 +49,22 @@ function abbrev(n: number): string {
   return formatCompactNumber(n);
 }
 
-function ResourceChip({ glyph, name, value, tone }: {
+function ResourceChip({ glyph, name, explainer, value, tone }: {
   glyph: string;
   name: string;
+  /** What the glyph buys, for the manager who has never been told what TP is. */
+  explainer: string;
   value: number;
   tone?: 'hero';
 }) {
   const hero = tone === 'hero';
   return (
+    <InfoTip
+      text={explainer}
+      align="right"
+      accessibilityLabel={`${name}: ${name === 'Money' ? formatCurrency(value) : formatCompactNumber(value)}. ${explainer}`}
+    >
     <View
-      accessible
-      accessibilityLabel={`${name}: ${name === 'Money' ? formatCurrency(value) : formatCompactNumber(value)}`}
       className={hero
         ? 'h-11 flex-row items-center gap-1 border-2 border-gold-dark bg-white px-2'
         : 'h-11 flex-row items-center gap-1 border-2 border-ink bg-white px-2'}
@@ -72,6 +78,7 @@ function ResourceChip({ glyph, name, value, tone }: {
         {abbrev(value)}
       </Text>
     </View>
+    </InfoTip>
   );
 }
 
@@ -178,9 +185,9 @@ export function ManagementShell({
         onLayout={moneyGuideAnchor.scheduleMeasurement}
         className={guideFocus === 'money' ? 'border-2 border-blue-dark bg-blue-light p-1' : undefined}
       >
-        <ResourceChip glyph="$" name="Money" value={resources.money} />
+        <ResourceChip glyph="$" name="Money" explainer="Cash. Wages come out of it every week, and it pays for facilities, transfers and coaches." value={resources.money} />
       </View>
-      <ResourceChip glyph="TP" name="Training points" value={resources.trainingPoints} />
+      <ResourceChip glyph="TP" name="Training points" explainer="Training Points. Earned each week and spent on drills — the only thing that improves a player." value={resources.trainingPoints} />
     </View>
   );
 
