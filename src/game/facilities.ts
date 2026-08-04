@@ -219,7 +219,7 @@ export function buildFacility(
   availableCash: number,
 ): FacilityTransaction {
   validateFacilityGrid(grid);
-  validateCash(availableCash);
+  validateSpendableCash(availableCash);
   assertNoActiveConstruction(grid);
   const definition = definitionFor(type);
   if (!definition.available) throw new Error(`${definition.name} is not unlocked`);
@@ -261,7 +261,7 @@ export function upgradeFacility(
   availableCash: number,
 ): FacilityTransaction {
   validateFacilityGrid(grid);
-  validateCash(availableCash);
+  validateSpendableCash(availableCash);
   assertNoActiveConstruction(grid);
   const building = findBuilding(grid, buildingId);
   if (building.level === MAX_FACILITY_LEVEL) {
@@ -289,7 +289,7 @@ export function relocateFacility(
   availableCash: number,
 ): FacilityTransaction {
   validateFacilityGrid(grid);
-  validateCash(availableCash);
+  validateSpendableCash(availableCash);
   const building = findBuilding(grid, buildingId);
   if (grid.construction?.buildingId === buildingId) {
     throw new Error(`${buildingId} cannot move while construction is active`);
@@ -310,6 +310,58 @@ export function relocateFacility(
         : candidate),
     },
     cost,
+    availableCash,
+  );
+}
+
+/**
+ * Everything the club has actually paid into a building: the build, plus each
+ * upgrade it has finished. Founding facilities cost nothing to put up, so only
+ * the upgrades the manager bought on top of one count towards it.
+ */
+export function facilityInvestment(building: PlacedFacility): number {
+  const definition = FACILITY_CATALOG[building.type];
+  let total = building.seeded === true ? 0 : definition.buildCost;
+  for (let level = 1; level < building.level; level += 1) {
+    total = checkedAdd(total, definition.upgradeCosts[level - 1], 'facility investment');
+  }
+  return total;
+}
+
+/** Half of what went in, rounded down. Closing is meant to hurt a little. */
+export function facilityCloseRefund(building: PlacedFacility): number {
+  return Math.floor(facilityInvestment(building) / 2);
+}
+
+/**
+ * Demolish a building and hand back half its investment.
+ *
+ * The square is freed and the level is gone for good: a rebuilt facility starts
+ * at Level 1 and pays full price again, so this is never a cheaper route to
+ * anything. It exists so a bad early build, or a wage bill that has outgrown
+ * the upkeep, is recoverable rather than permanent.
+ */
+export function closeFacility(
+  grid: FacilityGridState,
+  buildingId: string,
+  availableCash: number,
+): FacilityTransaction {
+  validateFacilityGrid(grid);
+  validateCash(availableCash);
+  const building = findBuilding(grid, buildingId);
+  if (grid.construction?.buildingId === buildingId) {
+    throw new Error(`${buildingId} cannot close while construction is active`);
+  }
+  // A negative cost is a credit; `transaction` already computes cash after.
+  // Negated through a guard rather than plainly, because `-0` is a real value
+  // that survives into a transaction and reads as a signed refund of nothing.
+  const refund = facilityCloseRefund(building);
+  return transaction(
+    {
+      ...grid,
+      buildings: grid.buildings.filter(candidate => candidate.id !== buildingId),
+    },
+    refund === 0 ? 0 : -refund,
     availableCash,
   );
 }
@@ -566,7 +618,24 @@ function definitionFor(type: FacilityType): FacilityCatalogEntry {
 }
 
 function validateCash(cash: number): void {
-  if (!Number.isSafeInteger(cash) || cash < 0) {
+  if (!Number.isSafeInteger(cash)) {
+    throw new Error('available cash must be a safe integer');
+  }
+}
+
+/**
+ * The non-negative floor, asserted only for transactions that take money.
+ *
+ * A club in trouble sits below zero for weeks by design: the fail-soft economy
+ * runs on a difficulty cash floor of -15,000 (Cozy) or -30,000 (Chairman), and
+ * several negative weeks have to pass before the board intervenes at all. A
+ * credit has to stay reachable in exactly that state, because cutting upkeep
+ * you can no longer pay is the whole point of closing a building. Only spends
+ * need a balance to spend from.
+ */
+function validateSpendableCash(cash: number): void {
+  validateCash(cash);
+  if (cash < 0) {
     throw new Error('available cash must be a non-negative safe integer');
   }
 }

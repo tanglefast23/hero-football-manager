@@ -104,7 +104,7 @@
       "title": "Club & competitions",
       "entries": [
         { "term": "Money", "definition": "The club-capacity currency used for wages, transfers, facilities, scouting, and events. It is earned from sponsors, tickets, prizes, and player sales." },
-        { "term": "Fans", "definition": "Supporters who affect home attendance and ticket income. Club events can grow — or shrink — the fanbase." },
+        { "term": "Fans", "definition": "Supporters who affect home attendance and ticket income. Club events can grow or shrink the fanbase." },
         { "term": "Facility", "definition": "A building placed on club grounds that adds a lasting benefit and usually a weekly upkeep cost." },
         { "term": "Upkeep", "definition": "The recurring weekly Money cost of running a facility." },
         { "term": "Adjacency", "definition": "A bonus discovered when compatible facilities touch on the grounds grid." },

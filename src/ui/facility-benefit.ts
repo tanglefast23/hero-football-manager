@@ -11,13 +11,13 @@ export function facilityBenefit(type: FacilityTypeViewModel): string {
     case 'training-pitch':
       return 'Adds +10 Training Points per Level every week. Upgrades also boost defense training.';
     case 'gym':
-      return 'Boosts pace and stamina training — +25% at Level 1, up to +100% at Level 3.';
+      return 'Boosts pace and stamina training. +25% at Level 1, up to +100% at Level 3.';
     case 'tech-center':
-      return 'Boosts passing and technique training — +25% at Level 1, up to +100% at Level 3.';
+      return 'Boosts passing and technique training. +25% at Level 1, up to +100% at Level 3.';
     case 'shooting-range':
-      return 'Boosts shooting training — +25% at Level 1, up to +100% at Level 3.';
+      return 'Boosts shooting training. +25% at Level 1, up to +100% at Level 3.';
     case 'keeper-court':
-      return 'Boosts goalkeeping training — +25% at Level 1, up to +100% at Level 3.';
+      return 'Boosts goalkeeping training. +25% at Level 1, up to +100% at Level 3.';
     case 'medical-bay':
       return 'Shortens injuries by one week. Its placement can also unlock a safety bonus.';
     case 'dorm':
@@ -29,8 +29,8 @@ export function facilityBenefit(type: FacilityTypeViewModel): string {
     case 'youth-field':
       return 'Improves the starting ratings of future youth intakes. Better prospects cost larger signing bonuses.';
     case 'fan-shop':
-      return 'Earns weekly merchandise income — more per Level.';
+      return 'Earns weekly merchandise income, more per Level.';
     case 'stadium-stand':
-      return 'Adds +25% home gate income per Level — the bigger the club, the bigger the return.';
+      return 'Adds +25% home gate income per Level. The bigger the club, the bigger the return.';
   }
 }

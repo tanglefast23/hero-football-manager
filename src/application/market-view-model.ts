@@ -558,7 +558,7 @@ function focusDetail(focus: ScoutFocus): string {
   if (focus.kind === 'POSITION') return `Look only for players who can fill ${focus.role}.`;
   if (focus.kind === 'AGE') return 'Hunt within a specific point of the age curve.';
   if (focus.kind === 'ELITE_PROSPECT') return 'Target young players with four- or five-star potential.';
-  return 'Expensive and usually wrong—but the rare hit arrives powered.';
+  return 'Expensive and usually wrong, but the rare hit arrives powered.';
 }
 
 function regionLabel(region: ScoutRegion): string {

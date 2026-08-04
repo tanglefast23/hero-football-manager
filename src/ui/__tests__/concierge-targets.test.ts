@@ -51,6 +51,9 @@ describe('concierge actionable targets', () => {
     );
     expect(source).toContain("const guidedFirstFacility = guideFocus === 'facility-grid';");
     expect(source).toContain('guidedFirstFacilityAllowsBuildType(entry.type)');
-    expect(source).not.toContain('facilities.buildings.length === 0');
+    // Pinned to the guard itself rather than the bare comparison: the club now
+    // starts seeded, so re-gating the guide on an empty board is the mistake.
+    // Other sections legitimately ask whether anything is built at all.
+    expect(source).not.toContain("guideFocus === 'facility-grid' && facilities.buildings.length === 0");
   });
 });

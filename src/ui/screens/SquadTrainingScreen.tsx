@@ -383,6 +383,26 @@ export function SquadTrainingScreen({
     if (!guideQuickTrain) attributesScrolledRef.current = false;
   }, [guideQuickTrain]);
 
+  /**
+   * The lesson is spent once the manager has left the squad having seen it.
+   *
+   * Retiring it only on a Quick Train left it armed for the rest of season 1
+   * for anyone who trained from the drill badge instead, or who simply read the
+   * cue and moved on — and an armed lesson re-frames the attribute grid on
+   * every arrival, so the scroller jumped down past the register to the player
+   * file and drill shop each time the squad was opened.
+   */
+  const quickTrainShownRef = useRef(onQuickTrainShown);
+  quickTrainShownRef.current = onQuickTrainShown;
+  useEffect(() => () => {
+    // Gated on the framing rather than on the flag alone: an Advance Week that
+    // ticks into week 6 tears this screen down for the match, and a lesson the
+    // manager was never actually shown must not be spent by that.
+    if (guideQuickTrainRef.current && attributesScrolledRef.current) {
+      quickTrainShownRef.current?.();
+    }
+  }, []);
+
   const layoutMode = useLayoutMode();
 
   const sections: FlowSection[] = [

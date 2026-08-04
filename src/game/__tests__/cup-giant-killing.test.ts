@@ -14,11 +14,11 @@ describe('Bert Cup giant-killing celebrations', () => {
   it('pins one distinct speech per division gap', () => {
     expect(ONE_DIVISION_CUP_UPSET_COPY).toEqual({
       title: "You've toppled a favourite",
-      body: "Boss, that was magnificent! We've just sent a club from the division above packing. That's a proper Cup upset — enjoy this one.",
+      body: "Boss, that was magnificent! We've just sent a club from the division above packing. That's a proper Cup upset. Enjoy this one.",
     });
     expect(TWO_DIVISION_CUP_UPSET_COPY).toEqual({
       title: 'Two divisions up!',
-      body: "Boss — two divisions. TWO. Clubs like ours are not supposed to get past sides like that, and we just did it in front of everyone.",
+      body: "Boss. Two divisions. TWO. Clubs like ours are not supposed to get past sides like that, and we just did it in front of everyone.",
     });
     expect(THREE_DIVISION_CUP_UPSET_COPY).toEqual({
       title: 'THREE DIVISIONS!',
@@ -26,7 +26,7 @@ describe('Bert Cup giant-killing celebrations', () => {
     });
     expect(GIANT_KILLING_CUP_UPSET_COPY).toEqual({
       title: 'GIANT-KILLERS!',
-      body: "BOSS. Four divisions. The whole way up the pyramid, in one afternoon. Nobody does this. I have watched football my entire life and I have never — never — seen anything like it.",
+      body: "BOSS. Four divisions. The whole way up the pyramid, in one afternoon. Nobody does this. I have watched football my entire life and I have never, never seen anything like it.",
     });
   });
 

@@ -147,7 +147,7 @@ const QA_COPY: Readonly<Record<EndgameCelebrationKind, {
     headline: 'THE CLIMB IS COMPLETE',
     subheading: 'Bramble Rovers · Global League and Hero Cup',
     lines: [
-      'Boss. Before anyone else gets in here — thank you.',
+      'Boss. Before anyone else gets in here, thank you.',
       'You made me the player I am. Every bit of it came out of your coaching.',
       'We won the league. We won the Cup. I am glad we did.',
       'But it is not the trophies I will carry. It is the mornings on the training pitch, and the one man who kept turning up for me.',

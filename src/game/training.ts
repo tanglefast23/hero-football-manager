@@ -128,7 +128,7 @@ export function trainPlayerInstantly(
   if (!targetOwedDrills && priorityHolder !== undefined) {
     throw new Error(
       `${priorityHolder.playerName} was promised the next `
-      + `${priorityHolder.remaining} drill${priorityHolder.remaining === 1 ? '' : 's'} — train them first`,
+      + `${priorityHolder.remaining} drill${priorityHolder.remaining === 1 ? '' : 's'}, train them first`,
     );
   }
   const drill = resolveTrainingDrillForPath(state, pathId);

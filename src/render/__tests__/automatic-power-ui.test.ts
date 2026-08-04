@@ -13,7 +13,7 @@ describe('automatic superpower presentation', () => {
     expect(source).toContain('<PowerTitleTakeover');
     expect(source).toContain('layout="mobile"');
     expect(rail).toContain('<PowerTitleTakeover {...powerTakeover} layout="desktop" />');
-    expect(source).toContain("text: `⚡ ${e.power.replace(/_/g, ' ')} — ${firingPlayer.def.name}`");
+    expect(source).toContain("text: `⚡ ${e.power.replace(/_/g, ' ')} · ${firingPlayer.def.name}`");
     expect(source).not.toContain('SUPER POWER READY');
     expect(source).not.toContain('heroPowerReady');
     expect(source).toContain('if (player.team !== controlledTeam) rivalHeroPlayers.push(index);');

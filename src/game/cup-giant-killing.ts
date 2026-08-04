@@ -16,12 +16,12 @@ import type { NationalCupFixture } from './pyramid';
  */
 export const ONE_DIVISION_CUP_UPSET_COPY = {
   title: "You've toppled a favourite",
-  body: "Boss, that was magnificent! We've just sent a club from the division above packing. That's a proper Cup upset — enjoy this one.",
+  body: "Boss, that was magnificent! We've just sent a club from the division above packing. That's a proper Cup upset. Enjoy this one.",
 } as const;
 
 export const TWO_DIVISION_CUP_UPSET_COPY = {
   title: 'Two divisions up!',
-  body: "Boss — two divisions. TWO. Clubs like ours are not supposed to get past sides like that, and we just did it in front of everyone.",
+  body: "Boss. Two divisions. TWO. Clubs like ours are not supposed to get past sides like that, and we just did it in front of everyone.",
 } as const;
 
 export const THREE_DIVISION_CUP_UPSET_COPY = {
@@ -31,7 +31,7 @@ export const THREE_DIVISION_CUP_UPSET_COPY = {
 
 export const GIANT_KILLING_CUP_UPSET_COPY = {
   title: 'GIANT-KILLERS!',
-  body: "BOSS. Four divisions. The whole way up the pyramid, in one afternoon. Nobody does this. I have watched football my entire life and I have never — never — seen anything like it.",
+  body: "BOSS. Four divisions. The whole way up the pyramid, in one afternoon. Nobody does this. I have watched football my entire life and I have never, never seen anything like it.",
 } as const;
 
 /**

@@ -1,4 +1,9 @@
-import { loadLaunchContent, type GameEvent, type LaunchContent } from '../content';
+import {
+  loadLaunchContent,
+  type FulltimeCoachLinePool,
+  type GameEvent,
+  type LaunchContent,
+} from '../content';
 import { managerNotes } from './manager-notes';
 import { eventOfferForWeek } from './event-selection';
 import {
@@ -51,6 +56,10 @@ import {
   trainingPathAttribute,
   TRAINING_PATHS,
   TRAINING_PITCH_TP_PER_LEVEL,
+  BASE_WEEKLY_TRAINING_POINTS,
+  coachWeeklyTrainingPoints,
+  facilityCloseRefund,
+  isFacilityOperational,
   weeklyFacilityUpkeep,
   weeklyAmbientTrainingPoints,
   weeklyMerchandiseIncome,
@@ -81,6 +90,7 @@ import type {
   SeasonEndViewModel,
   StoryEventViewModel,
   SquadTrainingViewModel,
+  TrainingPointIncomeViewModel,
   TrainingSlotStatOption,
   WeeklyReviewViewModel,
 } from '../ui';
@@ -374,7 +384,64 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     clubName: club.name,
     coachingStaff: coachingStaffViewModels(state),
     facilities: facilityGridViewModel(state),
+    trainingPointIncome: trainingPointIncomeViewModel(state),
   };
+}
+
+/**
+ * The weekly training-point total, itemized.
+ *
+ * Deliberately assembled from the same three terms `weeklyAmbientTrainingPoints`
+ * adds up, in the same order, so the rows can never sum to a different number
+ * than the engine credits. The total is asserted against it below rather than
+ * re-derived, because two additions of the same figures is exactly how a
+ * breakdown screen drifts from the thing it explains.
+ */
+function trainingPointIncomeViewModel(state: GameState): TrainingPointIncomeViewModel {
+  const grid = state.facilities.grid;
+  const pitchLevel = grid === undefined
+    ? (state.facilities.trainingGroundBuilt ? 1 : 0)
+    : grid.buildings
+      .filter(building => (
+        building.type === 'training-pitch' && isFacilityOperational(grid, building.id)
+      ))
+      .reduce((maximum, building) => Math.max(maximum, building.level), 0);
+  const head = state.market?.headCoach;
+  const assistant = state.market?.assistantCoach;
+  const rows = [
+    {
+      id: 'training-points-baseline',
+      label: 'Club baseline',
+      detail: 'Every club trains on whatever field it has',
+      points: BASE_WEEKLY_TRAINING_POINTS,
+    },
+    ...(pitchLevel === 0 ? [] : [{
+      id: 'training-points-pitch',
+      label: `Training Pitch · Level ${pitchLevel}`,
+      detail: `${TRAINING_PITCH_TP_PER_LEVEL} per Level`,
+      points: pitchLevel * TRAINING_PITCH_TP_PER_LEVEL,
+    }]),
+    ...(head === undefined ? [] : [{
+      id: 'training-points-head-coach',
+      label: head.name,
+      detail: `Head coach · Level ${head.level}`,
+      points: coachWeeklyTrainingPoints(head.level, 'HEAD'),
+    }]),
+    ...(assistant === undefined ? [] : [{
+      id: 'training-points-assistant-coach',
+      label: assistant.name,
+      detail: `Assistant coach · Level ${assistant.level}`,
+      points: coachWeeklyTrainingPoints(assistant.level, 'ASSISTANT'),
+    }]),
+  ];
+  const total = weeklyAmbientTrainingPoints(state);
+  const listed = rows.reduce((sum, row) => sum + row.points, 0);
+  if (listed !== total) {
+    throw new Error(
+      `training point breakdown lists ${listed} but the week credits ${total}`,
+    );
+  }
+  return { rows, total };
 }
 
 /**
@@ -480,6 +547,8 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
         relocationFee: definition.relocationFee,
         canRelocate: grid.construction === undefined && club.cash >= definition.relocationFee,
         relocationShortfall: Math.max(0, definition.relocationFee - club.cash),
+        closeRefund: facilityCloseRefund(building),
+        canClose: grid.construction?.buildingId !== building.id,
         activeAdjacencyIds: activeAdjacencyIdsForBuilding(grid.buildings, building, activeAdjacencies),
         status: project?.kind === 'BUILD'
           ? 'construction' as const
@@ -912,7 +981,7 @@ function drillShopAlert(state: GameState): ClubAlertViewModel | undefined {
   return {
     id: `training-upgrade:tier-${offer.tier}`,
     title: `Tier ${offer.tier} drills on sale`,
-    detail: `Promotion opened a stronger drill for every training path — ${formatMoney(offer.cost)} each, bought once and kept for the rest of the career. Every session on a tier ${offer.tier} drill adds more than the one you are running now. The shop is on the Squad screen.`,
+    detail: `Promotion opened a stronger drill for every training path. ${formatMoney(offer.cost)} each, bought once and kept for the rest of the career. Every session on a tier ${offer.tier} drill adds more than the one you are running now. The shop is on the Squad screen.`,
     tone: 'info',
   };
 }
@@ -1080,7 +1149,7 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
         : `${finalWeeks.length} players play their last matches`,
       detail: `${namesWithOverflow(finalWeeks.map(player => player.name))}`
         + ` ${finalWeeks.length === 1 ? 'retires' : 'retire'} when the season ends`
-        + ` — ${weekCountLabel(SEASON_WEEKS - state.week + 1).toLowerCase()} left.`,
+        + `, ${weekCountLabel(SEASON_WEEKS - state.week + 1).toLowerCase()} left.`,
       tone: 'info' as const,
       ...(finalWeeks.some(player => player.power !== undefined) ? { isHero: true } : {}),
     }]),
@@ -1113,7 +1182,7 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     ...injured.map(player => ({
       id: `injury-${player.id}`,
       title: `${player.name} · OUT`,
-      detail: `OUT · ${weekCountLabel(player.injuryWeeks)} — unavailable for selection.`,
+      detail: `OUT · ${weekCountLabel(player.injuryWeeks)}, unavailable for selection.`,
       tone: 'urgent' as const,
     })),
     ...transferRequests.map(player => ({
@@ -1568,7 +1637,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
             }
             return {
               kind: 'FORCED_SALE' as const,
-              headline: 'A hard sale—and a new chance',
+              headline: 'A hard sale and a new chance',
               detail: `${sold.name} joined ${clubName(state, latestBoardResolution.buyerClubId)}. The academy promoted ${replacement.name} to keep a complete 16-player squad.`,
               soldPlayer: {
                 id: sold.id,
@@ -1790,7 +1859,7 @@ export function squadTrainingViewModel(
         fame: player.fame ?? 0,
         weeklyWage: player.weeklyWage,
         contractLabel: player.contractSeasonsRemaining === 0
-          ? 'Expired — renewal due'
+          ? 'Expired, renewal due'
           : `${player.contractSeasonsRemaining} season${player.contractSeasonsRemaining === 1 ? '' : 's'} left`,
         ...(player.contractPromise === undefined ? {} : {
           contractPromiseLabel: contractPromiseLabel(player.contractPromise.perk),
@@ -1934,7 +2003,8 @@ export function postMatchViewModel(
   const cupRound = before.m2?.nationalCups
     .flatMap(cup => cup.rounds)
     .find(round => round.fixtures.some(fixture => fixture.id === fixtureId));
-  const fixture = leagueFixture ?? cupRound?.fixtures.find(candidate => candidate.id === fixtureId);
+  const cupFixture = cupRound?.fixtures.find(candidate => candidate.id === fixtureId);
+  const fixture = leagueFixture ?? cupFixture;
   if (fixture === undefined) throw new Error(`unknown fixture ${fixtureId}`);
   const isHome = fixture.homeClubId === before.userClubId;
   const goalsFor = isHome ? score.homeGoals : score.awayGoals;
@@ -1953,7 +2023,18 @@ export function postMatchViewModel(
     ? goalsFor > goalsAgainst ? 'WIN' : goalsFor < goalsAgainst ? 'LOSS' : 'DRAW'
     : cupWinnerClubId === before.userClubId ? 'WIN' : 'LOSS';
   const completedFacility = facilityCompletion(before, after);
-  const reaction = fulltimeReaction(after, fixtureId, score, outcomeLabel);
+  const opponentClubId = isHome ? fixture.awayClubId : fixture.homeClubId;
+  const pool = coachLinePool(before, {
+    outcomeLabel,
+    margin: Math.abs(goalsFor - goalsAgainst),
+    // The season travels with the tie: the seeding map has to be read off the
+    // cup this fixture belongs to, not off whichever retained cup happens to
+    // mention the opponent first.
+    ...(cupFixture === undefined
+      ? {}
+      : { cupTie: { opponentClubId, season: cupFixture.season } }),
+  });
+  const reaction = fulltimeReaction(after, fixtureId, score, outcomeLabel, pool);
 
   return {
     result: {
@@ -1970,15 +2051,6 @@ export function postMatchViewModel(
         ? 'home'
         : score.awayGoals > score.homeGoals ? 'away' : null,
       cupExit: cupRound !== undefined && outcomeLabel === 'LOSS',
-      headline: cupRound !== undefined
-        ? outcomeLabel === 'WIN'
-          ? 'Cup dream alive. You are through.'
-          : 'The cup run ends here. The league keeps moving.'
-        : goalsFor > goalsAgainst
-        ? 'The office will be loud tonight.'
-        : goalsFor < goalsAgainst
-          ? 'Plenty for the training board tomorrow.'
-          : 'A point banked. The work continues.',
     },
     ledger: (ledger?.lines ?? []).map((line, index) => ({
       id: `${before.season}-${before.week}-${index}`,
@@ -1997,6 +2069,84 @@ export function postMatchViewModel(
 }
 
 /**
+ * Three goals is a hiding; one or two is a Saturday.
+ *
+ * The league bands on margin because that is what a league result is: nobody
+ * remembers who the visitors were on week nine, they remember whether it was
+ * close. The cup does the opposite, below.
+ */
+const BLOWOUT_MARGIN = 3;
+
+/**
+ * Which of the gaffer's pools this afternoon draws from.
+ *
+ * Cup ties band on the division gap frozen into the draw rather than on the
+ * margin or on live squad ratings. A knockout is remembered for who it was
+ * against — beating a club two tiers up is the story whether it finished 1-0 or
+ * 4-0 — and the seeded divisions are the same numbers `cupGiantKillingCelebration`
+ * already reads, so the gaffer and Bert cannot disagree about how big the upset
+ * was. Cups drawn before the seed map existed fall through as a level tie,
+ * which is the reading that claims least.
+ */
+function coachLinePool(
+  state: GameState,
+  result: {
+    outcomeLabel: 'WIN' | 'DRAW' | 'LOSS';
+    margin: number;
+    cupTie?: { opponentClubId: string; season: number };
+  },
+): FulltimeCoachLinePool {
+  const { outcomeLabel, margin, cupTie } = result;
+  // A cup tie is settled on the day, so a DRAW here means the round has not
+  // been resolved yet. The league's level-game lines are the honest answer.
+  if (cupTie === undefined || outcomeLabel === 'DRAW') {
+    if (outcomeLabel === 'DRAW') return 'leagueDraw';
+    const heavy = margin >= BLOWOUT_MARGIN;
+    if (outcomeLabel === 'WIN') return heavy ? 'leagueWinBig' : 'leagueWinClose';
+    return heavy ? 'leagueLossBig' : 'leagueLossClose';
+  }
+  const tiersAbove = cupOpponentTiersAbove(state, cupTie);
+  if (outcomeLabel === 'WIN') {
+    if (tiersAbove >= 2) return 'cupWinGiant';
+    if (tiersAbove === 1) return 'cupWinBetter';
+    if (tiersAbove >= -1) return 'cupWinSlight';
+    return 'cupWinRoutine';
+  }
+  if (tiersAbove >= 1) return 'cupLossStrong';
+  if (tiersAbove === 0) return 'cupLossEven';
+  return 'cupLossWeak';
+}
+
+/**
+ * How many divisions above us the cup opponent was when this tie was drawn.
+ *
+ * Positive means they are the bigger club. `DivisionLevel` counts downward — D1
+ * is the top — so the subtraction reads the same way round as
+ * `cupGiantKillingCelebration`'s `divisionGap`, deliberately.
+ *
+ * The cup is found by season, the same lookup Bert's celebration uses, because
+ * both surfaces describe the size of the same upset and must not contradict
+ * each other over it. Completed cups keep their seeding map for ten seasons
+ * (`RETAINED_CUP_BRACKET_SEASONS`), so from season two there are several maps on
+ * the state and a promoted club sits at a different tier in each. Matching on
+ * the club alone would date the tie to whichever cup mentioned it first, and
+ * since the manager's own division moves too, both sides of the subtraction
+ * would go stale together.
+ */
+function cupOpponentTiersAbove(
+  state: GameState,
+  cupTie: { opponentClubId: string; season: number },
+): number {
+  const divisions = state.m2?.nationalCups
+    .find(cup => cup.season === cupTie.season)
+    ?.seedDivisionByClubId;
+  const userDivision = divisions?.[state.userClubId];
+  const opponentDivision = divisions?.[cupTie.opponentClubId];
+  if (userDivision === undefined || opponentDivision === undefined) return 0;
+  return userDivision - opponentDivision;
+}
+
+/**
  * The touchline's answer to the result.
  *
  * Rolled off the fixture id rather than a random number so the same match always
@@ -2012,6 +2162,7 @@ function fulltimeReaction(
   fixtureId: string,
   score: { homeGoals: number; awayGoals: number },
   outcomeLabel: 'WIN' | 'DRAW' | 'LOSS',
+  pool: FulltimeCoachLinePool,
 ): FulltimeReactionViewModel | undefined {
   const headCoach = state.market?.headCoach;
   if (headCoach === undefined) return undefined;
@@ -2019,27 +2170,37 @@ function fulltimeReaction(
     coachPortraitId: headCoach.portraitId ?? headCoach.id,
     coachName: headCoach.name,
   };
-  if (outcomeLabel === 'WIN') return { pose: 'joy', ...coach };
-  if (outcomeLabel === 'DRAW') return undefined;
-
-  const assistant = state.market?.assistantCoach;
   // Fixture ids are structural — every career's opener is `s1-r1-m1` — so a roll
   // keyed on the id alone would blame the assistant in the same weeks of every
   // save on earth. The scoreline and the man in the job are what make this
   // club's season its own, and both are fixed once the match is over.
   const draw = `${fixtureId}:${state.season}:${score.homeGoals}-${score.awayGoals}:${headCoach.id}`;
-  if (assistant === undefined || hashString(`blame:${draw}`) % BLAME_ROLL_IN !== 0) {
-    return { pose: 'cry', ...coach };
+
+  const assistant = state.market?.assistantCoach;
+  if (
+    outcomeLabel === 'LOSS'
+    && assistant !== undefined
+    && hashString(`blame:${draw}`) % BLAME_ROLL_IN === 0
+  ) {
+    const blamePool = LAUNCH_CONTENT.fulltimeBlameLines.lines;
+    return {
+      pose: 'point',
+      ...coach,
+      assistantPortraitId: assistant.portraitId ?? assistant.id,
+      assistantName: assistant.name,
+      // A second, independent draw: the roll decides whether he speaks, the line
+      // decides what he says, and one must not narrow the other.
+      line: blamePool[hashString(`blame-line:${draw}`) % blamePool.length]!,
+    };
   }
-  const pool = LAUNCH_CONTENT.fulltimeBlameLines.lines;
+
+  const lines = LAUNCH_CONTENT.fulltimeCoachLines[pool];
   return {
-    pose: 'point',
+    pose: outcomeLabel === 'WIN' ? 'joy' : outcomeLabel === 'DRAW' ? 'rest' : 'cry',
     ...coach,
-    assistantPortraitId: assistant.portraitId ?? assistant.id,
-    assistantName: assistant.name,
-    // A second, independent draw: the roll decides whether he speaks, the line
-    // decides what he says, and one must not narrow the other.
-    blameLine: pool[hashString(`blame-line:${draw}`) % pool.length],
+    // Keyed apart from the blame draw so the two pools cannot shadow each other:
+    // the same match must be free to pick line 3 of either.
+    line: lines[hashString(`coach-line:${pool}:${draw}`) % lines.length]!,
   };
 }
 

@@ -40,7 +40,8 @@ export interface BertBriefingWalkOnProps {
   sequenceId?: string;
   /** A one-off persisted remark, such as a Cup giant-killing celebration. */
   customMessage?: {
-    readonly title: string;
+    /** Omitted when the beat is plain talk rather than a headlined moment. */
+    readonly title?: string;
     readonly body: string | readonly string[];
   };
   moneyAnchor?: TutorialAnchorLayout | null;

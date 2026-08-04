@@ -46,7 +46,7 @@ describe('management injury and lineup presentation', () => {
     expect(homeViewModel(injured).alerts).toContainEqual(expect.objectContaining({
       id: `injury-${benchPlayer.id}`,
       title: `${benchPlayer.name} · OUT`,
-      detail: 'OUT · 2 WEEKS — unavailable for selection.',
+      detail: 'OUT · 2 WEEKS, unavailable for selection.',
       tone: 'urgent',
       guideSequenceId: 'first-injury',
       destination: 'squad',

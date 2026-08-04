@@ -42,7 +42,7 @@ import { BERT_SPRITE_SIZE } from './bert-walk-frames';
  * `MAX_SIGNOFF_CHARACTERS` is the ceiling that keeps them to three.
  */
 export const BERT_SIGNOFF_LINES: readonly string[] = Object.freeze([
-  'One last thing. This game was made by one man on his own — Joe Vu — and he thanks you very much.',
+  'One last thing. This game was made by one man on his own, Joe Vu, and he thanks you very much.',
   'People like you are what let him make the next one. Keep an eye out for it.',
 ]);
 

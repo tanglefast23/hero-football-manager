@@ -1,6 +1,6 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../../game/career';
-import { buildCareerFacility } from '../../game/management';
+import { buildCareerFacility, closeCareerFacility } from '../../game/management';
 import { advanceFacilityConstruction } from '../../game/facilities';
 import type { GameState } from '../../game/types';
 import { parseStoredGameState, serializeGameState } from '../game-state-codec';
@@ -29,6 +29,33 @@ describe('facility game-state persistence', () => {
     expect(restored.facilities.grid?.discoveredAdjacencies).toEqual(['gym-dorm']);
     expect(restored.players[0].facilityStaBonusRemainder).toBe(70);
     expect(restored.ledgers[0].lines[0].kind).toBe('facilities');
+  });
+
+  /**
+   * Closing is reachable while the club is under water, so the credit it logs
+   * can leave a negative balance behind it. Every other cash transaction is a
+   * purchase, which needs money to make, so this field was non-negative until
+   * now — a save written after an underwater closure would have failed to load.
+   */
+  test('round-trips a closure logged while the club was in the red', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260804));
+    const built = completeProject(buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state);
+    const broke = {
+      ...built,
+      clubs: built.clubs.map(club => (
+        club.id === built.userClubId ? { ...club, cash: -10_000 } : club
+      )),
+    };
+    const closed = closeCareerFacility(broke, 'facility-1').state;
+
+    expect(closed.clubs.find(club => club.id === closed.userClubId)?.cash).toBe(-6_500);
+    expect(closed.cashTransactions?.at(-1)).toMatchObject({
+      kind: 'facility-closure',
+      amount: 3_500,
+      balanceAfter: -6_500,
+    });
+    expect(parseStoredGameState(serializeGameState(closed)).cashTransactions?.at(-1))
+      .toEqual(closed.cashTransactions?.at(-1));
   });
 
   test('loads an M1 save without a grid or stamina-bonus carry', () => {

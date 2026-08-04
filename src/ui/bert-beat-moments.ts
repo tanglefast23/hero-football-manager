@@ -80,9 +80,9 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   // The crowd is the first thing the club earns that is not money, so it opens
   // as a celebration and then turns into the lesson about what it pays for.
   'first-fans': ['celebrating', 'explaining'],
-  // The ledger. Deadpan over the bills, because he is reading them out and the
-  // joke is that he knows nobody wants to; then he talks you into the habit.
-  'first-fans-ledger': ['listing', 'encouraging'],
+  // The ledger. He lets you in on the joke that only the smart ones read this
+  // page, talks you into being one of them, then points at the way out.
+  'first-fans-ledger': ['confiding', 'encouraging', 'pointing-out'],
 };
 
 /**

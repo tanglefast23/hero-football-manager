@@ -217,7 +217,6 @@ export interface MatchResultViewModel {
   homeScore: number;
   awayScore: number;
   outcomeLabel: 'WIN' | 'DRAW' | 'LOSS';
-  headline: string;
   /**
    * Which name the report boxes up as the winner, from the score rather than
    * the manager's point of view — a drawn match boxes nobody.
@@ -234,21 +233,24 @@ export interface MatchResultViewModel {
 }
 
 /**
- * What the touchline does about the result, decided once so a re-render cannot
+ * What the touchline says about the result, decided once so a re-render cannot
  * change the gaffer's mind halfway through reading it.
  *
- * A loss puts him in tears unless the blame roll comes up, in which case the
- * assistant is standing there being pointed at instead. Absent entirely when
- * the club has no head coach to react.
+ * He always has a line: this is the report's closing beat, so a silent coach
+ * would leave the score with nothing under it. A loss puts him in tears unless
+ * the blame roll comes up, in which case the assistant is standing there being
+ * pointed at instead. Absent entirely when the club has no head coach to react,
+ * which only happens between sacking one and hiring the next.
  */
 export interface FulltimeReactionViewModel {
-  pose: 'joy' | 'cry' | 'point';
+  pose: 'joy' | 'rest' | 'cry' | 'point';
   coachPortraitId: string;
   coachName: string;
+  /** What he says, from the pool the result fell into. */
+  line: string;
   /** Only on the blame pose: who is getting it. */
   assistantPortraitId?: string;
   assistantName?: string;
-  blameLine?: string;
 }
 
 export interface LedgerLineViewModel {
@@ -514,6 +516,10 @@ export interface ClubFacilityBuildingViewModel {
   canRelocate: boolean;
   relocationShortfall: number;
   activeAdjacencyIds: readonly string[];
+  /** Half of everything sunk into it, paid back on closing. */
+  closeRefund: number;
+  /** False while a crew is on it: nothing half-built can be demolished. */
+  canClose: boolean;
 }
 
 export interface ClubFacilityCatalogViewModel {
@@ -611,6 +617,25 @@ export interface ClubFinancesViewModel {
   clubName: string;
   coachingStaff: readonly CoachStaffMemberViewModel[];
   facilities: ClubFacilityGridViewModel;
+  trainingPointIncome: TrainingPointIncomeViewModel;
+}
+
+/**
+ * Where next week's training points come from, one row per contributor.
+ *
+ * The number in the HUD is the only thing the manager ever saw, so a Training
+ * Pitch upgrade and a coach hire both read as "it went up" without saying by
+ * how much or because of what.
+ */
+export interface TrainingPointIncomeViewModel {
+  rows: readonly {
+    id: string;
+    label: string;
+    /** What earns it, when the label alone does not say. */
+    detail?: string;
+    points: number;
+  }[];
+  total: number;
 }
 
 export interface StoryEventPlayerViewModel {

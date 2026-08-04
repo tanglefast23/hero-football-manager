@@ -1704,6 +1704,25 @@ function GameApp() {
               'build',
               'commit',
             )}
+            onCloseFacility={buildingId => {
+              const finances = clubFinancesViewModel(useM1Store.getState().career!);
+              const building = finances.facilities.buildings.find(candidate => candidate.id === buildingId);
+              requestConfirmation({
+                title: `Close ${building?.name ?? 'facility'}?`,
+                detail: building?.closeRefund === 0
+                  ? 'The club never paid to put this up, so nothing comes back. Its bonus and its square go straight away.'
+                  : `You will only get half your investment back${
+                    building === undefined ? '' : `, ${formatCurrency(building.closeRefund)}`
+                  }. Are you sure?`,
+                confirmLabel: 'Close it',
+                tone: 'danger',
+                onConfirm: () => performManagementAction(
+                  () => store.closeClubFacility(buildingId),
+                  'build',
+                  'commit',
+                ),
+              });
+            }}
             onOpenCoachMarket={() => {
               // The Staff board's own button, so it lands on the Coaches desk
               // rather than whichever docket the market happened to open on.
@@ -2049,7 +2068,7 @@ function GameApp() {
               title: '3× speed unlocked',
               body: [
                 '3× match speed is now an option.',
-                'You’re a veteran coach now — you can manage the team even when the action moves this fast.',
+                'You’re a veteran coach now. You can manage the team even when the action moves this fast.',
               ],
             }}
             navigationAnchor={navigationGuideAnchor}
@@ -2087,10 +2106,10 @@ function GameApp() {
             content={content.assistantGuide}
             sequenceId="first-fans-ledger"
             customMessage={{
-              title: 'The page nobody likes',
               body: [
-                'Here we are. Nobody wants to look at this page, because it lists every bill the club owes.',
-                'But it also lists the money coming in — gate, sponsor, prizes. Check it every week and nothing here can ambush you.',
+                'No one loves to look at the finances, except smart guys.',
+                'You’re a smart guy so look at it and make sure you have income streams.',
+                'Build buildings that get you more fans if you need the money.',
               ],
             }}
             navigationAnchor={navigationGuideAnchor}

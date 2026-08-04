@@ -9,7 +9,7 @@
       "title": "It already happened.",
       "callout": "BITE CONFIRMED",
       "detail": "Tiny · glowing · already gone",
-      "copy": "There—a tiny caterpillar glowing against {name}'s skin. It has already bitten. Something impossible is leaking out."
+      "copy": "There, a tiny caterpillar glowing against {name}'s skin. It has already bitten. Something impossible is leaking out."
     },
     {
       "id": "overenthusiastic-water-bottle",
@@ -142,7 +142,7 @@
     {
       "powerId": "SUPER_SPEED",
       "omen": "The grass around {name}'s boots bends backward. The stadium lights seem a fraction too slow.",
-      "reveal": "FWOOSH! {name} floats upright—and the world blurs around a brand-new hero."
+      "reveal": "FWOOSH! {name} floats upright, and the world blurs around a brand-new hero."
     },
     {
       "powerId": "BLINK_RUN",

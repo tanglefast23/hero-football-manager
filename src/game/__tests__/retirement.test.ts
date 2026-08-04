@@ -205,7 +205,7 @@ describe('retirementCardLabel', () => {
 
   it('marks the final season once announced', () => {
     const player = lifecyclePlayer({ age: 36, retirementAnnouncementSeason: 4 });
-    expect(retirementCardLabel(player, SEED)).toBe('Final season — retires in summer');
+    expect(retirementCardLabel(player, SEED)).toBe('Final season, retires in summer');
     expect(isConsideringRetirement(player, SEED)).toBe(false);
   });
 });

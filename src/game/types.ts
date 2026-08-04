@@ -292,6 +292,7 @@ export type CashTransactionKind =
   | 'facility-build'
   | 'facility-upgrade'
   | 'facility-relocation'
+  | 'facility-closure'
   | 'training-upgrade'
   | 'scouting'
   | 'transfer-buy'

@@ -11,6 +11,24 @@ export const POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS = 15;
 export const POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS = 1000;
 
 /**
+ * Powers whose point is made after their own effect ends, and how much longer
+ * than the standard second the clip holds for them.
+ *
+ * Gravity Well is the case that forced this. The pull is only the setup — the
+ * card promises a runner into the abandoned lane and a pass into it, and both
+ * happen once the well has released. Freezing a second after the effect ended
+ * caught the vacated space and none of the use made of it.
+ */
+const EXTRA_FREEZE_MS: Partial<Readonly<Record<PowerId, number>>> = {
+  GRAVITY_WELL: 1000,
+};
+
+/** How long ordinary play continues after `power` ends before the clip freezes. */
+export function powerMatchShowcaseFreezeMs(power: PowerId): number {
+  return POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS + (EXTRA_FREEZE_MS[power] ?? 0);
+}
+
+/**
  * True once the showcased power has finished being worth watching, for the
  * powers whose sim `active` window outlives what is on screen.
  *

@@ -94,7 +94,7 @@ import {
   advancePowerMatchShowcaseReady,
   initializePowerMatchShowcase,
   powerMatchShowcaseEffectSpent,
-  POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS,
+  powerMatchShowcaseFreezeMs,
 } from './power-match-showcase';
 import {
   AUTO_SUBSTITUTION_TICKS,
@@ -793,7 +793,7 @@ export function MatchScreen({
     const endedAt = [endedPower?.outroStartedAt, powerShowcaseSpentAt]
       .filter((value): value is number => value !== undefined);
     if (endedAt.length === 0) return undefined;
-    const freezeAt = Math.min(...endedAt) + POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS;
+    const freezeAt = Math.min(...endedAt) + powerMatchShowcaseFreezeMs(powerMatchQa.power);
     const timer = setTimeout(() => {
       if (powerShowcaseCompletedRef.current) return;
       powerShowcaseCompletedRef.current = true;
@@ -1177,7 +1177,7 @@ export function MatchScreen({
           } else {
             bannerRef.current = appendNewestFour(bannerRef.current, {
               id: `power:${e.t}:${e.player}:${e.power}`,
-              text: `⚡ ${e.power.replace(/_/g, ' ')} — ${firingPlayer.def.name}`,
+              text: `⚡ ${e.power.replace(/_/g, ' ')} · ${firingPlayer.def.name}`,
               untilTick: e.t + FLASH_TICKS,
               tone: firingPlayer.team === controlledTeam ? 'gold' : 'red',
             });
@@ -1376,7 +1376,7 @@ export function MatchScreen({
           if (s.players[e.player].team !== controlledTeam) {
             bannerRef.current = appendNewestFour(bannerRef.current, {
               id: `rival-zone:${e.t}:${e.player}`,
-              text: `⚠ ${firstName} IS HOT — KEEP THE BALL AWAY`,
+              text: `⚠ ${firstName} IS HOT, KEEP THE BALL AWAY`,
               untilTick: e.t + RIVAL_ZONE_BANNER_TICKS,
               tone: 'red',
             });

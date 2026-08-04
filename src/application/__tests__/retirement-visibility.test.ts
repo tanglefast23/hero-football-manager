@@ -297,7 +297,7 @@ describe('player-card retirement label', () => {
     const view = squadTrainingViewModel(state, content, undefined);
 
     expect(view.players.find(player => player.id === target.id)?.retirementLabel)
-      .toBe('Final season — retires in summer');
+      .toBe('Final season, retires in summer');
   });
 });
 

@@ -6,8 +6,11 @@ import {
   activeFacilityAdjacencies,
   advanceFacilityConstruction,
   buildFacility,
+  closeFacility,
   createFacilityGrid,
+  facilityCloseRefund,
   facilityEffects,
+  facilityInvestment,
   relocateFacility,
   upgradeFacility,
   weeklyFacilityUpkeep,
@@ -132,6 +135,75 @@ describe('facility upgrades and upkeep', () => {
 
     expect(() => upgradeFacility(grid, 'missing', 100_000)).toThrow(/unknown facility/);
     expect(() => upgradeFacility(grid, 'facility-1', 9_999)).toThrow(/not affordable/);
+  });
+});
+
+describe('closing a facility', () => {
+  test('refunds half of the build and every finished upgrade, and frees the square', () => {
+    const built = build(createFacilityGrid(), 'gym', { x: 0, y: 0 }, 30_000);
+    const ready = finishConstruction(built.grid);
+    const upgraded = finishConstruction(upgradeFacility(ready, 'facility-1', 30_000).grid);
+
+    // 7,000 built + 7,000 to reach Level 2.
+    expect(facilityInvestment(upgraded.buildings[0])).toBe(14_000);
+    const closed = closeFacility(upgraded, 'facility-1', 1_000);
+
+    expect(closed).toMatchObject({ cost: -7_000, cashAfter: 8_000 });
+    expect(closed.grid.buildings).toEqual([]);
+    expect(weeklyFacilityUpkeep(closed.grid)).toBe(0);
+  });
+
+  test('gives nothing back for a founding facility the club never paid for', () => {
+    const seeded: FacilityGridState = {
+      ...createFacilityGrid(),
+      nextBuildingId: 2,
+      buildings: [{ id: 'facility-1', type: 'dorm', level: 1, x: 0, y: 0, seeded: true }],
+    };
+
+    expect(facilityCloseRefund(seeded.buildings[0])).toBe(0);
+    expect(closeFacility(seeded, 'facility-1', 500)).toMatchObject({ cost: 0, cashAfter: 500 });
+  });
+
+  /**
+   * The state closing exists for. A struggling club sits under water for weeks
+   * by design — the difficulty cash floor is -15,000 on Cozy and -30,000 on
+   * Chairman — and cutting upkeep is what a manager does about it. Refusing the
+   * credit there made the button throw at exactly the moment it was needed.
+   */
+  test('pays out while the club is in the red, where spending is still refused', () => {
+    const grid = finishConstruction(build(createFacilityGrid(), 'gym', { x: 0, y: 0 }, 30_000).grid);
+    const closed = closeFacility(grid, 'facility-1', -10_000);
+
+    expect(closed).toMatchObject({ cost: -3_500, cashAfter: -6_500 });
+    expect(closed.grid.buildings).toEqual([]);
+    expect(() => upgradeFacility(grid, 'facility-1', -10_000))
+      .toThrow(/non-negative safe integer/);
+    expect(() => buildFacility(grid, 'dorm', { x: 4, y: 4 }, -10_000))
+      .toThrow(/non-negative safe integer/);
+    expect(() => relocateFacility(grid, 'facility-1', { x: 4, y: 4 }, -10_000))
+      .toThrow(/non-negative safe integer/);
+    // A credit still refuses nonsense; only the floor was lifted.
+    expect(() => closeFacility(grid, 'facility-1', 1.5)).toThrow(/safe integer/);
+  });
+
+  test('refuses to demolish whatever the crew is currently on', () => {
+    const built = build(createFacilityGrid(), 'gym', { x: 0, y: 0 }, 30_000);
+
+    expect(() => closeFacility(built.grid, 'facility-1', 1_000))
+      .toThrow(/cannot close while construction is active/);
+    expect(() => closeFacility(finishConstruction(built.grid), 'missing', 1_000))
+      .toThrow(/unknown facility/);
+  });
+
+  test('rebuilding costs full price, so closing is never a discount', () => {
+    const built = build(createFacilityGrid(), 'gym', { x: 0, y: 0 }, 30_000);
+    const closed = closeFacility(finishConstruction(built.grid), 'facility-1', built.cashAfter);
+    const rebuilt = build(closed.grid, 'gym', { x: 0, y: 0 }, closed.cashAfter);
+
+    expect(rebuilt.cost).toBe(FACILITY_CATALOG.gym.buildCost);
+    expect(rebuilt.grid.buildings[0].level).toBe(1);
+    // 30,000 out, 3,500 back, 7,000 out again: two builds cost more than one.
+    expect(rebuilt.cashAfter).toBeLessThan(built.cashAfter);
   });
 });
 

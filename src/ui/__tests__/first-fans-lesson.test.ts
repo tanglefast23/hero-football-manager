@@ -46,9 +46,9 @@ describe("Bert's first-fans lesson", () => {
     expect(app).toMatch(/guideOverlayVisible = \([\s\S]{0,400}\|\| fansLedgerTourVisible/);
   });
 
-  it('names both bills and income, because half the page is good news', () => {
-    expect(app).toContain('every bill the club owes');
-    expect(app).toContain('the money coming in');
+  it('sends the manager after income rather than dwelling on the bills', () => {
+    expect(app).toContain('make sure you have income streams');
+    expect(app).toContain('get you more fans if you need the money');
   });
 
   /** The owner's rule: the face is chosen for the line, never left to the fallback run. */
@@ -61,13 +61,19 @@ describe("Bert's first-fans lesson", () => {
       kind: 'body',
       pageIndex,
     }));
+    const threeBeats: BriefingBeat[] = [...twoBeats, {
+      text: 'beat 2',
+      focus: 'money',
+      kind: 'body',
+      pageIndex: 2,
+    }];
     const desk = briefingMoments('first-fans', twoBeats);
-    const ledger = briefingMoments('first-fans-ledger', twoBeats);
+    const ledger = briefingMoments('first-fans-ledger', threeBeats);
 
     expect(desk).toEqual(['celebrating', 'explaining']);
-    expect(ledger).toEqual(['listing', 'encouraging']);
-    // Good news opens delighted; the ledger opens flat. The two beats must not
-    // arrive wearing the same face as each other.
+    expect(ledger).toEqual(['confiding', 'encouraging', 'pointing-out']);
+    // Good news opens delighted; the ledger opens on the joke. The two beats
+    // must not arrive wearing the same face as each other.
     expect(BERT_MOMENTS[desk[0]].expression).toBe('delighted');
     expect(BERT_MOMENTS[ledger[0]].expression).not.toBe(BERT_MOMENTS[desk[0]].expression);
   });

@@ -213,7 +213,7 @@ export function TrainingDrillModal({
     playManagementActionSfx('warning');
     setNotice({
       title: 'Bert has a word',
-      detail: `${playerName} is in the red. Push them again and you're gambling on an injury — and an injured player sits out for weeks.`,
+      detail: `${playerName} is in the red. Push them again and you're gambling on an injury, and an injured player sits out for weeks.`,
       bert: true,
     });
   }, [onConditionWarningShown, playerName]);

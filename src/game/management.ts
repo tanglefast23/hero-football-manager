@@ -1,6 +1,7 @@
 import {
   FACILITY_CATALOG,
   buildFacility,
+  closeFacility,
   createFacilityGrid,
   isFacilityOperational,
   relocateFacility,
@@ -105,6 +106,40 @@ export function relocateCareerFacility(
       kind: 'facility-relocation',
       label: `Relocated ${FACILITY_CATALOG[building.type].name}`,
       amount: -transaction.cost,
+      referenceId: building.id,
+    }),
+  };
+}
+
+/**
+ * Demolishes a building and credits half its investment.
+ *
+ * The refund is the transaction's negative cost, so it reaches the club through
+ * the same cash path as a build and lands in the One offs list beside it.
+ */
+export function closeCareerFacility(
+  state: GameState,
+  buildingId: string,
+): CareerFacilityTransaction {
+  assertManagementPhase(state);
+  const building = state.facilities.grid?.buildings.find(candidate => candidate.id === buildingId);
+  if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
+  const transaction = closeFacility(
+    state.facilities.grid ?? createFacilityGrid(),
+    buildingId,
+    userCash(state),
+  );
+  const applied = applyFacilityTransaction(state, transaction);
+  const refund = -transaction.cost;
+  // A founding facility cost the club nothing, so closing one credits nothing
+  // and there is no money movement worth a line in the list.
+  if (refund === 0) return applied;
+  return {
+    ...applied,
+    state: recordCashTransaction(applied.state, {
+      kind: 'facility-closure',
+      label: `Closed ${FACILITY_CATALOG[building.type].name}`,
+      amount: refund,
       referenceId: building.id,
     }),
   };

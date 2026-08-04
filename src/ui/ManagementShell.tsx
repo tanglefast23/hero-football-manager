@@ -16,8 +16,8 @@ import { useGuideAnchor } from './use-guide-anchor';
 const TABS: ReadonlyArray<{
   id: ManagementTab; label: string; glyph: string; available: boolean; tip: string;
 }> = [
-  { id: 'home', label: 'Home', glyph: '⌂', available: true, tip: 'Today\u2019s work — next fixture, inbox and the league table' },
-  { id: 'squad', label: 'Squad', glyph: '11', available: true, tip: 'Your eleven and the bench — train players and set the lineup' },
+  { id: 'home', label: 'Home', glyph: '⌂', available: true, tip: 'Today\u2019s work: next fixture, inbox and the league table' },
+  { id: 'squad', label: 'Squad', glyph: '11', available: true, tip: 'Your eleven and the bench: train players and set the lineup' },
   { id: 'club', label: 'Club', glyph: '▦', available: true, tip: 'Grounds, coaching staff and the books' },
   { id: 'market', label: 'Market', glyph: '⇄', available: true, tip: 'Scout, sign, sell and hire coaches' },
   { id: 'league', label: 'League', glyph: '≡', available: true, tip: 'Standings, fixtures and the cup' },

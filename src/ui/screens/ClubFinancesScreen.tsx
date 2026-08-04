@@ -7,11 +7,13 @@ import { EmptyDocket } from '../components/EmptyDocket';
 import { FacilitySprite } from '../components/FacilitySprite';
 import type {
   ClubFacilityBuildingViewModel,
+  ClubFacilityGridViewModel,
   ClubFinancesViewModel,
   ClubLoanViewModel,
   ClubOfficeTab,
   FacilityTypeViewModel,
   TrainingGroundDecisionViewModel,
+  TrainingPointIncomeViewModel,
 } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
@@ -77,6 +79,7 @@ export interface ClubFinancesScreenProps {
   onBuildFacility?: (type: FacilityTypeViewModel, x: number, y: number) => void;
   onUpgradeFacility?: (buildingId: string) => void;
   onRelocateFacility?: (buildingId: string, x: number, y: number) => void;
+  onCloseFacility?: (buildingId: string) => void;
   onOpenCoachMarket?: () => void;
   onDismissCoach?: (role: 'HEAD' | 'ASSISTANT') => void;
   guideTrainingGround?: boolean;
@@ -92,6 +95,7 @@ export function ClubFinancesScreen({
   onBuildFacility,
   onUpgradeFacility,
   onRelocateFacility,
+  onCloseFacility,
   onOpenCoachMarket,
   onDismissCoach,
   guideTrainingGround = false,
@@ -363,6 +367,11 @@ export function ClubFinancesScreen({
       weight: 2 + viewModel.recentTransactions.length,
       node: <RecentTransactionsSection viewModel={viewModel} />,
     }] : []),
+    {
+      key: 'training-points',
+      weight: 3 + viewModel.trainingPointIncome.rows.length,
+      node: <TrainingPointIncomeSection income={viewModel.trainingPointIncome} />,
+    },
   ];
 
   const staffSections: FlowSection[] = [
@@ -413,6 +422,7 @@ export function ClubFinancesScreen({
           cancelPlacement={cancelPlacement}
           handleGridCell={handleGridCell}
           onUpgradeFacility={onUpgradeFacility}
+          onCloseFacility={onCloseFacility}
           facilityGuideGridTargetRef={facilityGuideGridTargetRef}
           facilityGuideBuildTargetRef={facilityGuideBuildTargetRef}
           scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
@@ -423,6 +433,11 @@ export function ClubFinancesScreen({
         />
       ),
     },
+    ...(viewModel.facilities.buildings.length === 0 ? [] : [{
+      key: 'facility-register',
+      weight: 3 + 2 * viewModel.facilities.buildings.length,
+      node: <FacilityRegisterSection facilities={viewModel.facilities} />,
+    }]),
     ...(viewModel.legacyTrainingGroundVisible ? [{
       key: 'training-ground',
       weight: 5,
@@ -571,10 +586,10 @@ interface ItemizedStatementSectionProps {
 function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedStatementSectionProps) {
   return (
     <View>
-        <SectionLabel eyebrow="Itemized statement" title="Every coin accounted for" />
+        <SectionLabel eyebrow="Weekly" title="Expenses and income" />
         {viewModel.ledger.length === 0 ? (
           <EmptyDocket
-            title="Statement empty"
+            title="Nothing yet"
             detail="Wages, gate receipts, sponsor money and upkeep land here as each week is played."
           />
         ) : (
@@ -640,11 +655,11 @@ interface RecentTransactionsSectionProps {
 function RecentTransactionsSection({ viewModel }: RecentTransactionsSectionProps) {
   return (
     <View>
-          <SectionLabel eyebrow="Cash activity" title="Recent signings & builds" />
+          <SectionLabel eyebrow="One offs" title="Signings and purchases" />
           {viewModel.recentTransactions.length === 0 ? (
             <EmptyDocket
               title="Nothing signed or built"
-              detail="Transfers, youth signings, coach hires and facility work land here. Weekly wages and gate money stay on the statement above."
+              detail="Transfers, youth signings, coach hires and facility work land here. Wages, gate money, sponsor and prizes stay in the weekly list above."
             />
           ) : (
           <View className="border-2 border-ink bg-white">
@@ -666,6 +681,102 @@ function RecentTransactionsSection({ viewModel }: RecentTransactionsSectionProps
             ))}
           </View>
           )}
+    </View>
+  );
+}
+
+/**
+ * Where the week's training points come from, row by row.
+ *
+ * The HUD number went up when a Training Pitch finished and again when a coach
+ * signed, and nothing on any screen said which of them was worth more. Same
+ * shape as the statement above it so the two read as one habit.
+ */
+function TrainingPointIncomeSection({ income }: { readonly income: TrainingPointIncomeViewModel }) {
+  return (
+    <View>
+      <SectionLabel eyebrow="Training points" title="What earns them" />
+      <View className="border-2 border-ink bg-white">
+        {income.rows.map(row => (
+          <View
+            key={row.id}
+            accessible
+            accessibilityRole="text"
+            accessibilityLabel={`${row.label}, ${row.points} training points a week`}
+            className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2"
+          >
+            <View className="flex-1 pr-3">
+              <Text className="text-base text-ink">{row.label}</Text>
+              {row.detail === undefined ? null : (
+                <Text className="font-mono text-xs uppercase text-ink/50">{row.detail}</Text>
+              )}
+            </View>
+            <Text className="font-mono text-base text-blue-dark">+{row.points}</Text>
+          </View>
+        ))}
+        <View
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={`Total, ${income.total} training points a week`}
+          className="min-h-11 flex-row items-center bg-paper px-3 py-2"
+        >
+          <PixelText className="flex-1 pr-3 text-sm uppercase text-ink">Per week</PixelText>
+          <Text className="font-mono text-lg text-ink">{income.total}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Everything the club owns, what each one buys it, and what the lot costs to
+ * run. The grid above shows where they are; this says what they are for.
+ */
+function FacilityRegisterSection({ facilities }: { readonly facilities: ClubFacilityGridViewModel }) {
+  return (
+    // No margin of its own: SectionFlow already spaces every section by gap-6.
+    <View>
+      <SectionLabel
+        eyebrow="On the books"
+        title="What the club owns"
+        right={<StatusChip label={`${facilities.buildings.length} built`} />}
+      />
+      <View className="border-2 border-ink bg-white">
+        {facilities.buildings.map(building => (
+          <View
+            key={building.id}
+            accessible
+            accessibilityRole="text"
+            accessibilityLabel={`${building.name}, Level ${building.level}. ${building.effectLabel}. ${formatCurrency(building.weeklyUpkeep)} a week.`}
+            className="flex-row items-start border-b border-ink/10 px-3 py-2"
+          >
+            <View className="flex-1 pr-3">
+              <Text className="text-base font-bold text-ink">
+                {building.name} · Level {building.level}
+              </Text>
+              <Text className="mt-1 text-sm leading-5 text-ink/70">
+                {building.status === 'operational'
+                  ? building.effectLabel
+                  : `${building.status === 'construction' ? 'Building' : 'Upgrading'} · ${building.weeksRemaining} week${building.weeksRemaining === 1 ? '' : 's'} remaining`}
+              </Text>
+            </View>
+            <Text className="font-mono text-base text-red-dark">
+              {building.weeklyUpkeep === 0 ? formatCurrency(0) : formatCurrency(-building.weeklyUpkeep)}
+            </Text>
+          </View>
+        ))}
+        <View
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={`Total upkeep, ${formatCurrency(facilities.weeklyUpkeep)} a week`}
+          className="min-h-11 flex-row items-center bg-paper px-3 py-2"
+        >
+          <PixelText className="flex-1 pr-3 text-sm uppercase text-ink">Running cost</PixelText>
+          <Text className="font-mono text-lg text-red-dark">
+            {formatCurrency(-facilities.weeklyUpkeep)}/wk
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -792,6 +903,7 @@ interface GroundsSectionProps {
   cancelPlacement: () => void;
   handleGridCell: (x: number, y: number) => void;
   onUpgradeFacility?: (buildingId: string) => void;
+  onCloseFacility?: (buildingId: string) => void;
   facilityGuideGridTargetRef: RefObject<View | null>;
   facilityGuideBuildTargetRef: RefObject<View | null>;
   scrollFacilityGuideTargetIntoView: (phase: GuidedFirstFacilityPhase) => void;
@@ -830,6 +942,7 @@ function GroundsSection({
   cancelPlacement,
   handleGridCell,
   onUpgradeFacility,
+  onCloseFacility,
   facilityGuideGridTargetRef,
   facilityGuideBuildTargetRef,
   scrollFacilityGuideTargetIntoView,
@@ -959,7 +1072,7 @@ function GroundsSection({
                           tip={placementActive
                             ? (buildable
                               ? `Build here · column ${x + 1}, row ${y + 1}`
-                              : 'Blocked — the footprint does not fit here')
+                              : 'Blocked, the footprint does not fit here')
                             : undefined}
                           style={{
                             flex: 1,
@@ -1142,7 +1255,7 @@ function GroundsSection({
           ) : (
             <View className="mt-3 border-2 border-dashed border-ink/30 bg-paper px-3 py-2">
               <Text className="text-sm text-ink/70">
-                Pick a building from the <Text className="font-bold text-ink">Build menu</Text> below to start — every available starting square shows a +.
+                Pick a building from the <Text className="font-bold text-ink">Build menu</Text> below to start. Every available starting square shows a +.
               </Text>
             </View>
           )}
@@ -1281,6 +1394,29 @@ function GroundsSection({
                   {selectedBuilding.upgradeBlockedReason}
                 </Text>
               ) : null}
+              {/* Its own row, and outlined rather than filled: demolishing is
+                  never the thing the manager came to this panel to do, and a
+                  third solid button beside Move and Upgrade would read as one. */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={selectedBuilding.canClose
+                  ? `Close ${selectedBuilding.name} and recover ${formatCurrency(selectedBuilding.closeRefund)}`
+                  : `Cannot close ${selectedBuilding.name} while its project is active`}
+                accessibilityState={{ disabled: !selectedBuilding.canClose }}
+                disabled={!selectedBuilding.canClose}
+                onPress={() => onCloseFacility?.(selectedBuilding.id)}
+                className={selectedBuilding.canClose
+                  ? 'mt-2 min-h-12 items-center justify-center border-2 border-b-4 border-red-dark bg-white px-2'
+                  : 'mt-2 min-h-12 items-center justify-center border-2 border-ink/30 bg-ink/5 px-2'}
+              >
+                <PixelText className={selectedBuilding.canClose
+                  ? 'text-center text-sm uppercase text-red-dark'
+                  : 'text-center text-sm uppercase text-ink/35'}>
+                  {selectedBuilding.canClose
+                    ? `Close · ${formatCurrency(selectedBuilding.closeRefund)} back`
+                    : 'Project active'}
+                </PixelText>
+              </Pressable>
             </View>
           ) : null}
 

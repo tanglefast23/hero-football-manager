@@ -154,7 +154,7 @@
       "id": "assistant-coach-hire",
       "inbox": {
         "title": "The assistant desk is open",
-        "detail": "Add a second set of specialties—and a second weekly wage."
+        "detail": "Add a second set of specialties, and a second weekly wage."
       },
       "destination": "coach-market",
       "pages": [
@@ -294,7 +294,7 @@
       "id": "transfer-list",
       "inbox": {
         "title": "The transfer window is open",
-        "detail": "List a player only when the squad—and your heart—can spare them."
+        "detail": "List a player only when the squad and your heart can spare them."
       },
       "destination": "market-transfers",
       "pages": [

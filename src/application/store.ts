@@ -43,6 +43,7 @@ import {
   protectBoardUltimatumPlayer,
   purchaseCareerTrainingUpgrade,
   reconcilePendingClubLegends,
+  closeCareerFacility,
   relocateCareerFacility,
   renewCareerPlayer,
   releaseCareerPlayer,
@@ -283,6 +284,7 @@ interface M1Store {
   buildClubFacility: (type: FacilityType, position: FacilityPosition) => void;
   upgradeClubFacility: (buildingId: string) => void;
   relocateClubFacility: (buildingId: string, position: FacilityPosition) => void;
+  closeClubFacility: (buildingId: string) => void;
   startScoutMission: (optionId: string) => void;
   openScoutReport: (playerId: string) => void;
   actOnTransfer: (playerId: string, direction: 'BUY' | 'SELL', bidId?: string) => void;
@@ -1361,6 +1363,27 @@ export const useM1Store = create<M1Store>((set, get) => ({
         career: transaction.state,
         error: null,
         notice: { tone: 'success', message: `Facility moved.${discovery}` },
+      });
+      queueCareerSave(get, set, transaction.state);
+    });
+  },
+
+  closeClubFacility(buildingId) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const building = career.facilities.grid?.buildings.find(candidate => candidate.id === buildingId);
+      if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
+      const transaction = closeCareerFacility(career, buildingId);
+      const refund = -transaction.cost;
+      set({
+        career: transaction.state,
+        error: null,
+        notice: {
+          tone: 'info',
+          message: refund === 0
+            ? `${FACILITY_CATALOG[building.type].name} closed.`
+            : `${FACILITY_CATALOG[building.type].name} closed. $${refund.toLocaleString()} recovered.`,
+        },
       });
       queueCareerSave(get, set, transaction.state);
     });

@@ -138,6 +138,7 @@ const cashTransactionSchema = z.object({
     'facility-build',
     'facility-upgrade',
     'facility-relocation',
+    'facility-closure',
     'training-upgrade',
     'scouting',
     'transfer-buy',
@@ -149,7 +150,12 @@ const cashTransactionSchema = z.object({
   ]),
   label: nonemptyString,
   amount: safeInteger.refine(value => value !== 0, 'must be non-zero'),
-  balanceAfter: nonnegativeInteger,
+  // Signed, like `ledgerSchema` above. Every kind here used to be a purchase,
+  // which a club can only make with money, so the balance left after one was
+  // always positive. Closing a facility is a credit and is deliberately
+  // reachable while the club is under water — the difficulty cash floor parks
+  // it at -15,000 or -30,000 — so the balance after one can be negative.
+  balanceAfter: safeInteger,
   referenceId: nonemptyString.optional(),
 }).passthrough();
 

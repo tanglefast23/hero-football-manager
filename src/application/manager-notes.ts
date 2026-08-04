@@ -59,7 +59,7 @@ function transferWindowNotes(state: GameState): ManagerNoteViewModel[] {
     return [{
       id: 'note:midseason-window-open',
       title: `Manager's Note: Transfer window reopens, weeks ${MIDSEASON_WINDOW_FIRST_WEEK}-${MIDSEASON_WINDOW_LAST_WEEK}`,
-      detail: 'Two weeks to fix what the first half of the season exposed. The academy stays shut — this window is signings and sales only, and it is the last one before the season ends.',
+      detail: 'Two weeks to fix what the first half of the season exposed. The academy stays shut. This window is signings and sales only, and it is the last one before the season ends.',
     }];
   }
 
@@ -115,8 +115,8 @@ function cupRoundNotes(state: GameState): ManagerNoteViewModel[] {
     id: `note:cup-round:${round.number}`,
     title: `Manager's Note: Hero Cup ${round.label} this week`,
     detail: nextRoundLabel === undefined || nextRoundWeek === undefined
-      ? `${opening} Win it and the Hero Cup is yours — the biggest prize money and the biggest crowd of the season.`
-      : `${opening} Win and you reach the ${nextRoundLabel} in Week ${nextRoundWeek}, where the prize money and the fans both grow. Lose and your run is over — there is no second chance.`,
+      ? `${opening} Win it and the Hero Cup is yours, the biggest prize money and the biggest crowd of the season.`
+      : `${opening} Win and you reach the ${nextRoundLabel} in Week ${nextRoundWeek}, where the prize money and the fans both grow. Lose and your run is over. There is no second chance.`,
   }];
 }
 

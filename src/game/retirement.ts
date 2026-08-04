@@ -100,7 +100,7 @@ export function retirementCardLabel(
   player: RetirementPlayer,
   careerSeed: number,
 ): string | undefined {
-  if (player.retirementAnnouncementSeason !== undefined) return 'Final season — retires in summer';
+  if (player.retirementAnnouncementSeason !== undefined) return 'Final season, retires in summer';
   return seasonsBeforeRetirement(player, careerSeed) === 1
     ? 'Considering retirement in 1 year'
     : undefined;
@@ -149,5 +149,5 @@ export function assertContractTermFitsCareer(
  */
 export function shortContractReason(age: number, maxTerm: number): string {
   const years = maxTerm === 1 ? '1 year' : `${maxTerm} years`;
-  return `He'll only put his name to ${years} — at ${age} he reckons that's about all he has left in him.`;
+  return `He'll only put his name to ${years}. At ${age} he reckons that's about all he has left in him.`;
 }

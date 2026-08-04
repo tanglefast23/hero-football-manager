@@ -116,7 +116,7 @@ function PixelSprite({ rows, palette, pixel, label }: PixelSpriteProps) {
 const DEFAULT_LINES: string[] = [
   'Gaffer! You found me! I have been waiting by the training-ground gate since Tuesday.',
   'I am basically three legends in one kit. I lost count of the other two during warm-ups.',
-  'Both feet, my head, and — on a good day — sheer force of personality. All lethal.',
+  'Both feet, my head, and on a good day sheer force of personality. All lethal.',
   'I will score the goals, mop the changing room, and befriend every pigeon in the stand.',
   'Please. My mum already told the whole street I signed. Do not make a liar of a lovely woman.',
 ];
