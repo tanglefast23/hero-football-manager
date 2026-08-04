@@ -6,10 +6,13 @@ import {
   ZONE_WINDOW_TICKS,
 } from '../../sim/powers';
 import type { MatchState, PowerId } from '../../sim/types';
+import { powerCutInOutroDue } from '../power-cut-in';
 import {
   advancePowerMatchShowcaseReady,
   initializePowerMatchShowcase,
   POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS,
+  POWER_MATCH_SHOWCASE_CARD_DELAY_MS,
+  powerMatchShowcaseCardDueAt,
   powerMatchShowcaseAway,
   powerMatchShowcaseHeroIndex,
   powerMatchShowcaseHome,
@@ -175,6 +178,72 @@ describe('live power match showcase', () => {
     // And the manager should not be made to wait for it: the promise lands
     // inside the same move, not two attacks later.
     expect(successAt! - firedAt!).toBeLessThanOrEqual(MAX_FOLLOW_THROUGH_TICKS);
+  });
+
+  /**
+   * What the manager is handed once the pitch stops.
+   *
+   * The clip freezes the sim, so every question the screen still has to answer
+   * has to be answerable from the frozen frame — nothing is going to tick
+   * again. The screen's cut-in bookkeeping runs on the tick, and Portal Pass
+   * and Gravity Well both freeze with the hero's power still `active`: read
+   * live, their cut-in has not ended and never will, and a result card that
+   * waits for that ending waits for the life of the modal. That is a frozen
+   * pitch with no REPLAY and no CONTINUE, which is the one thing the demo must
+   * never do.
+   */
+  describe('the result card after the clip freezes', () => {
+    const FROZEN_AT = 10_000;
+
+    /** The hero's power state on the frame the clip freezes on. */
+    function heroPowerStateAtFreeze(power: PowerId): string {
+      const match = createMatch(
+        powerMatchShowcaseSeed(power),
+        powerMatchShowcaseHome(power),
+        powerMatchShowcaseAway(),
+      );
+      const hero = initializePowerMatchShowcase(match, power);
+      for (let frame = 0; frame < CLIP_TICK_BUDGET; frame += 1) {
+        if (!advancePowerMatchShowcaseReady(match, power)) tick(match);
+        if (powerMatchShowcaseSucceeded(match, power)) {
+          return match.players[hero].powerState.kind;
+        }
+      }
+      throw new Error(`${power} never froze inside the clip budget`);
+    }
+
+    /** The screen's chain, end to end, on a clip frozen at FROZEN_AT. */
+    function cardDueAt(power: PowerId): number | 'never' {
+      const stillActive = heroPowerStateAtFreeze(power) === 'active';
+      const outroStartedAt = powerCutInOutroDue(stillActive, true) ? FROZEN_AT : undefined;
+      if (outroStartedAt === undefined) return 'never';
+      return powerMatchShowcaseCardDueAt(FROZEN_AT, outroStartedAt);
+    }
+
+    it.each(LAUNCH_POWER_IDS)('%s hands over a card a beat after it freezes', power => {
+      expect(cardDueAt(power)).toBe(FROZEN_AT + POWER_MATCH_SHOWCASE_CARD_DELAY_MS);
+    });
+
+    it('still freezes clips with the power mid-effect, so that branch is real', () => {
+      // The assertion above is only worth anything while some shipped seed
+      // actually reaches the freeze with its power still running. If tuning
+      // ever takes that to none, this fails rather than letting the guard
+      // quietly become decoration.
+      const midEffect = LAUNCH_POWER_IDS.filter(
+        power => heroPowerStateAtFreeze(power) === 'active',
+      );
+      expect(midEffect.length).toBeGreaterThan(0);
+    });
+
+    it('is due off the freeze alone when no cut-in ending was ever recorded', () => {
+      expect(powerMatchShowcaseCardDueAt(FROZEN_AT, undefined))
+        .toBe(FROZEN_AT + POWER_MATCH_SHOWCASE_CARD_DELAY_MS);
+    });
+
+    it('waits out a cut-in that is still ending after the freeze', () => {
+      expect(powerMatchShowcaseCardDueAt(FROZEN_AT, FROZEN_AT + 400))
+        .toBe(FROZEN_AT + 400 + POWER_MATCH_SHOWCASE_CARD_DELAY_MS);
+    });
   });
 
   it('holds the frame before the success only where the success restarts play', () => {

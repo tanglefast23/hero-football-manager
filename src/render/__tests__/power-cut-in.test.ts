@@ -3,6 +3,7 @@ import {
   POWER_TAKEOVER_POST_POWER_MS,
   powerCutInAccessibilityLabel,
   powerCutInGroupPolicy,
+  powerCutInOutroDue,
   powerCutInPresentation,
   powerOverlayPath,
   powerTakeoverShouldRemain,
@@ -73,6 +74,16 @@ describe('M4 power cut-in policy', () => {
     expect(label).toContain('Super Speed, Zip Vela. A runner explodes into space');
     expect(label).toContain('Gravity Well, Leo Quick. Gravity lines pull defenders inward');
     expect(label).toContain('Elastic Keeper, Sam Mitts. The goalkeeper stretches across the goal');
+  });
+
+  it('ends a cut-in when its power ends, and when a frozen clip means it never will', () => {
+    // Live match: the power's own state is the only thing that ends it.
+    expect(powerCutInOutroDue(true, false)).toBe(false);
+    expect(powerCutInOutroDue(false, false)).toBe(true);
+    // Frozen clip: no further tick is coming, so a power still mid-effect on
+    // the frozen frame stays mid-effect for good. The freeze ends it instead.
+    expect(powerCutInOutroDue(true, true)).toBe(true);
+    expect(powerCutInOutroDue(false, true)).toBe(true);
   });
 
   it('never pauses a mixed first-reveal group', () => {

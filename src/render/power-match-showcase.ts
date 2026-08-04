@@ -17,6 +17,24 @@ export const POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS = 15;
 export const POWER_MATCH_SHOWCASE_CARD_DELAY_MS = 900;
 
 /**
+ * When the result card is due, given the moment the pitch froze and the moment
+ * the power's own cut-in began ending (if one was still on screen).
+ *
+ * Total on purpose. This used to be expressed as "wait until the cut-in has an
+ * ending", which is only answerable while the sim is running — and the sim has
+ * stopped by definition here, so for the powers still mid-effect on the frozen
+ * frame the answer never arrived and the manager was left holding a frozen
+ * pitch with no REPLAY and no CONTINUE. A missing cut-in ending now means the
+ * card is due off the freeze alone, which is never later than the truth.
+ */
+export function powerMatchShowcaseCardDueAt(
+  frozenAt: number,
+  cutInOutroStartedAt: number | undefined,
+): number {
+  return Math.max(frozenAt, cutInOutroStartedAt ?? 0) + POWER_MATCH_SHOWCASE_CARD_DELAY_MS;
+}
+
+/**
  * A clip must never be able to run forever. If the promise somehow fails to
  * land, freeze anyway rather than leave the manager holding an unclosable
  * modal. `power-match-showcase-success.test.ts` is what keeps this unreachable.
