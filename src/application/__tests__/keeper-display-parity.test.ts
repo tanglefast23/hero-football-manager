@@ -69,6 +69,31 @@ describe('keeper confirm card', () => {
     expect(drills.baseValueAfter - drills.currentValue).toBe(drills.gain);
   });
 
+  it('never puts a negative number in front of a keeper, at any age', () => {
+    const state = careerState();
+    const gk = keeper(state);
+
+    // The rule, stated by the owner: never show a negative modifier or a reduced
+    // headline gain on the keeper card. A thirty-year-old reading "VETERAN … -2"
+    // is being told off for their age on a card that exists to sell them a
+    // session. Both numbers the card prints have to be things they receive.
+    for (const age of [22, 26, 31, 34]) {
+      const aged: GameState = {
+        ...state,
+        players: state.players.map(p => (p.id === gk.id ? { ...p, age } : p)),
+      };
+      const options = squadTrainingViewModel(aged, content, gk.id).selectedPlayerStatOptions!;
+      for (const option of options) {
+        const headline = option.baseValueAfter - option.currentValue;
+        const forThisPlayer = option.baseValueAfter
+          + option.trainingAdjustment
+          - option.currentValue;
+        expect(headline).toBeGreaterThan(0);
+        expect(forThisPlayer).toBeGreaterThan(0);
+      }
+    }
+  });
+
   it('reports the displayed current value, not the stored one', () => {
     const state = careerState();
     const gk = keeper(state);

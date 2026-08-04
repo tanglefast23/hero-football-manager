@@ -40,7 +40,18 @@ describe('training stat option rendering', () => {
     expect(source).not.toContain(
       '{pendingConfirm.currentValue} → {pendingConfirm.baseValueAfter}',
     );
-    expect(source).toContain("pendingConfirm.trainingModifierLabels.join(' + ')");
-    expect(source).toContain('pendingConfirm.trainingAdjustment');
+    // The card may never print a negative, and may never promise more than the
+    // count-up delivers. So the second line is this player's *result*, named
+    // after them rather than after whatever is dragging it down: a thirty-year-
+    // old reads "FOR NORA VALE +2", not "VETERAN … -2". The signed adjustment
+    // survives only as the border colour.
+    expect(source).toContain('For {playerName}');
+    expect(source).toContain(
+      '+{pendingConfirm.baseValueAfter\n                            + pendingConfirm.trainingAdjustment\n                            - pendingConfirm.currentValue}',
+    );
+    expect(source).not.toContain("trainingModifierLabels.join(' + ')} {pendingConfirm.trainingAdjustment");
+    expect(source).not.toContain("{pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}");
+    // Direction is still carried, just not as a number the manager reads.
+    expect(source).toContain('pendingConfirm.trainingAdjustment >= 0');
   });
 });

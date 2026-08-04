@@ -659,6 +659,19 @@ export function TrainingDrillModal({
                         +{pendingConfirm.baseValueAfter - pendingConfirm.currentValue}
                       </Text>
                     </View>
+                    {/* This player's own result, named after them rather than
+                        after what is holding them back.
+
+                        Two rules the wording has to keep at once. It may never
+                        print a negative — a thirty-year-old reading
+                        "VETERAN … -2" is being told off for their age on a card
+                        that is supposed to be selling them a session. And it may
+                        never promise more than the count-up two seconds later
+                        delivers, which is why the drop cannot simply be hidden:
+                        the base line reconciles with the drill row's advertised
+                        gain, and this line is what actually lands. Both numbers
+                        are things the manager receives. The gold border still
+                        carries the direction for anyone who wants it. */}
                     {pendingConfirm.trainingModifierLabels.length > 0 ? (
                       <View className={pendingConfirm.trainingAdjustment >= 0
                         ? 'flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-2'
@@ -668,11 +681,12 @@ export function TrainingDrillModal({
                           numberOfLines={2}
                           adjustsFontSizeToFit
                         >
-                          {pendingConfirm.trainingModifierLabels.join(' + ')} {pendingConfirm.trainingAdjustment >= 0 ? 'bonus' : 'adjustment'}
+                          For {playerName}
                         </PixelText>
                         <Text className="font-pixel text-base text-ink">
-                          {pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}
-                          {pendingConfirm.trainingAdjustment}
+                          +{pendingConfirm.baseValueAfter
+                            + pendingConfirm.trainingAdjustment
+                            - pendingConfirm.currentValue}
                         </Text>
                       </View>
                     ) : null}
