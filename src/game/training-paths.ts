@@ -3,6 +3,7 @@ import {
   MAX_TRAINING_DRILL_TIER,
   trainingDrillBlockedReason,
   trainingDrillIdForTier,
+  trainingDrillTier,
   trainingDrillUpgradeCost,
   type TrainingDrillTier,
 } from './promotion-progression';
@@ -63,6 +64,49 @@ export function ownedTrainingTier(state: GameState, pathId: string): TrainingDri
  * better drill over — it only puts it up for sale — so this reads the purchase
  * record rather than the best tier the division allows.
  */
+/**
+ * The path whose ladder every other outfield path shares, used as the reference
+ * the keeper's is measured against. `keeper-ladder-parity.test.ts` asserts the
+ * other five agree with it, so reading one is reading all six.
+ */
+const REFERENCE_OUTFIELD_PATH_ID = 'sprints';
+
+/**
+ * How far short of the ordinary ladder a given drill falls.
+ *
+ * Keyed on the drill rather than the path because the upgrade shop quotes tiers
+ * the club has not bought yet, and a path's owned tier is the wrong answer for
+ * those rows.
+ *
+ * Keeper Drills award exactly half the outfield gain at every tier for the same
+ * TP — deliberately, because Reflexes is contested on every shot faced and
+ * `training-leverage-rails` prices keeper training at 6.61x a striker's. This
+ * returns 2 for the keeper path and 1 for everything else.
+ *
+ * Derived from the content rather than written as a literal 2 on purpose. The
+ * keeper ladder is under active balance review and `keeper-drill-gain-probe`
+ * only ever sweeps it *downward*; a hardcoded 2 would quietly stop meaning
+ * "undo the halving" the first time those numbers move.
+ */
+export function keeperDisplayLadderMultiplier(state: GameState, drillId: string): number {
+  const attribute = trainingPathAttribute(trainingDrillPathId(drillId));
+  const drill = state.trainingRules?.focusDrills.find(candidate => candidate.id === drillId);
+  const ownGain = drill?.gains[attribute] ?? 0;
+  if (ownGain <= 0) return 1;
+
+  const referenceId = trainingDrillIdForTier(
+    REFERENCE_OUTFIELD_PATH_ID,
+    trainingDrillTier(drillId),
+  );
+  const reference = state.trainingRules?.focusDrills.find(candidate => candidate.id === referenceId);
+  const referenceGain = reference?.gains[trainingPathAttribute(REFERENCE_OUTFIELD_PATH_ID)] ?? 0;
+  // A path that already matches the reference — every outfield path, and the
+  // keeper's too if the ladders are ever equalised for real — returns 1 and no
+  // display bonus is ever banked.
+  if (referenceGain <= ownGain) return 1;
+  return referenceGain / ownGain;
+}
+
 export function resolveTrainingDrillForPath(state: GameState, pathId: string): CareerTrainingDrill {
   const drillId = trainingDrillIdForTier(pathId, ownedTrainingTier(state, pathId));
   const drill = state.trainingRules?.focusDrills.find(candidate => candidate.id === drillId);

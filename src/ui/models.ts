@@ -447,8 +447,16 @@ export interface DrillResultViewModel {
   attribute: string;
   tpSpent: number;
   isSuper: boolean;
+  /** The stored stat, which the sim, scout, wage and transfer fee all read. */
   before: number;
   after: number;
+  /**
+   * What the scene counts up to. Runs ahead of the stored pair for a keeper's
+   * Reflexes so the halved Keeper Drills ladder reads like the outfield one;
+   * identical to `before` / `after` for everything else.
+   */
+  displayedBefore: number;
+  displayedAfter: number;
   conditionAfter: number;
   injury?: { chancePercent: number; recoveryWeeks: number };
 }

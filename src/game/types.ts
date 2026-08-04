@@ -156,6 +156,17 @@ export interface CareerPlayer {
   drillsSinceSuper?: number;
   /** Drills still owed under a TRAINING_PRIORITY promise; blocks other training while > 0. */
   priorityDrillsRemaining?: number;
+  /**
+   * How far this keeper's *displayed* Reflexes is allowed to run ahead of the
+   * stored value, so a halved Keeper Drills ladder reads like the outfield one.
+   *
+   * Presentation only. Nothing in `src/sim/`, `lineup.ts`, `squad.ts` or
+   * `market.ts` reads it — a reviewer can confirm that with one grep rather than
+   * by reasoning about call graphs, which is the property that makes the trick
+   * safe to ship and cheap to delete. The scout, the wage, the transfer fee and
+   * the match engine all see `attrs.ref`.
+   */
+  refDisplayBonus?: number;
 }
 
 export interface ClubLineupState {

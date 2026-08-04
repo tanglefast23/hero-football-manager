@@ -1,3 +1,4 @@
+import { displayedAttributeValue, displayedDrillGain } from './displayed-attributes';
 import {
   loadLaunchContent,
   type FulltimeCoachLinePool,
@@ -1876,9 +1877,11 @@ export function squadTrainingViewModel(
         } : {}),
         licensed: player.licensed,
         attributes: (Object.entries(player.attrs) as Array<[keyof typeof player.attrs, number]>).map(
-          ([attribute, value]) => ({
+          ([attribute]) => ({
             label: attribute.toUpperCase() as 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF',
-            value,
+            // Display only — a keeper's Reflexes runs ahead of the stored stat
+            // so the halved Keeper Drills ladder reads like the outfield one.
+            value: displayedAttributeValue(player, attribute),
             cap: personalCaps[attribute],
           }),
         ),
@@ -1889,8 +1892,8 @@ export function squadTrainingViewModel(
         .filter(path => attributeAffectsPlay(selectedPlayer.role, path.attribute))
         .map(path => {
           const drill = resolveTrainingDrillForPath(state, path.pathId);
-          const gain = drill.gains[path.attribute] ?? 0;
-          const currentValue = selectedPlayer.attrs[path.attribute];
+          const gain = displayedDrillGain(state, drill.id, drill.gains[path.attribute] ?? 0);
+          const currentValue = displayedAttributeValue(selectedPlayer, path.attribute);
           const preview = instantTrainingPreview(state, selectedPlayer.id, path.pathId);
           return {
             pathId: path.pathId,
@@ -1903,7 +1906,9 @@ export function squadTrainingViewModel(
             baseValueAfter: preview.baseAfter,
             trainingAdjustment: preview.adjustment,
             trainingModifierLabels: preview.modifierLabels,
-            atSafetyCeiling: currentValue >= 999,
+            // The stored value, never the displayed one: a keeper whose card
+            // has stalled at 999 may still have real room to train.
+            atSafetyCeiling: selectedPlayer.attrs[path.attribute] >= 999,
             affordable: drill.tpCost <= state.trainingPoints,
           };
         }),
@@ -1919,11 +1924,13 @@ export function squadTrainingViewModel(
         label: path.label,
         drillName: drillName(owned.id),
         ownedTier: trainingDrillTier(owned.id),
-        ownedGain: owned.gains[path.attribute] ?? 0,
+        // The upgrade panel sits on the same screen as the drill rows, so it
+        // has to quote the same ladder they do or the defect just moves down.
+        ownedGain: displayedDrillGain(state, owned.id, owned.gains[path.attribute] ?? 0),
         ownedTpCost: owned.tpCost,
         ...(offer === undefined || next === undefined ? {} : {
           nextTier: offer.tier,
-          nextGain: next.gains[path.attribute] ?? 0,
+          nextGain: displayedDrillGain(state, next.id, next.gains[path.attribute] ?? 0),
           nextTpCost: next.tpCost,
           cost: offer.cost,
           ...(offer.blockedReason === undefined ? {} : { blockedReason: offer.blockedReason }),

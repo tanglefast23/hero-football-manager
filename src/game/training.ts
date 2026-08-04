@@ -1,3 +1,4 @@
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { mulberry32 } from '../sim/rng';
 import {
   FACILITY_CATALOG,
@@ -27,7 +28,11 @@ import {
 import { repairCareerLineupForInjuries } from './squad';
 import { isAvailableForSelection } from './lineup';
 import { drillMultiplierPercent } from './player-requests';
-import { resolveTrainingDrillForPath, trainingPathAttribute } from './training-paths';
+import {
+  keeperDisplayLadderMultiplier,
+  resolveTrainingDrillForPath,
+  trainingPathAttribute,
+} from './training-paths';
 import type { CareerPlayer, GameState } from './types';
 
 export const INSTANT_DRILL_CONDITION_COST = 8;
@@ -41,8 +46,17 @@ export interface InstantDrillResolution {
   attribute: keyof CareerPlayer['attrs'];
   tpSpent: number;
   isSuper: boolean;
+  /** The stored stat before the drill — what the sim, scout and wage all see. */
   before: number;
+  /** The stored stat after the drill. Never the displayed one; see `displayedAfter`. */
   after: number;
+  /**
+   * What the card shows, which for a keeper's Reflexes runs ahead of the stored
+   * value so the halved Keeper Drills ladder reads like the outfield one. Equal
+   * to `before` / `after` for every other player and every other drill.
+   */
+  displayedBefore: number;
+  displayedAfter: number;
   conditionAfter: number;
   injury?: { chancePercent: number; recoveryWeeks: number };
 }
@@ -77,26 +91,56 @@ export function instantTrainingPreview(
   }
   const drill = resolveTrainingDrillForPath(state, pathId);
   const attribute = trainingPathAttribute(pathId);
-  const baseGain = drill.gains[attribute] ?? 0;
   const currentValue = player.attrs[attribute];
-  const baseAfter = capPlayerTrainingGain(
-    player,
-    attribute,
-    currentValue,
-    checkedAdd(currentValue, baseGain, 'base training attribute'),
+
+  /**
+   * The card previews the *displayed* result, because the count-up that follows
+   * it does. Both halves shadow, not just the adjusted one: the card's top line
+   * is `baseValueAfter - currentValue`, so leaving it on the authored gain would
+   * promise `+2` over a `+4` count-up — a worse defect than the uniform `+2` the
+   * whole change exists to remove.
+   *
+   * The ceiling here is the displayed one, deliberately. `capPlayerTrainingGain`
+   * clamps against the stored value, and near the top of the range that would
+   * keep promising a full step after the display had already stalled at 999.
+   */
+  const displayMultiplier = keeperDisplayLadderMultiplier(state, drill.id);
+  const displayedCurrent = displayedValue(player, attribute);
+  const baseGain = (drill.gains[attribute] ?? 0) * displayMultiplier;
+  const baseAfter = Math.min(
+    MAX_PLAYER_ATTRIBUTE,
+    checkedAdd(displayedCurrent, baseGain, 'base training attribute'),
   );
-  const adjustedAfter = applyInstantGrowthModifiers(
+  const adjustedGain = applyInstantGrowthModifiers(
     state,
     player,
     attribute,
     baseGain,
-  ).value;
+  ).value - currentValue;
+  const adjustedAfter = Math.min(MAX_PLAYER_ATTRIBUTE, displayedCurrent + adjustedGain);
   return {
     baseAfter,
     adjustedAfter,
     adjustment: adjustedAfter - baseAfter,
     modifierLabels: instantGrowthModifierLabels(state, player, attribute),
   };
+}
+
+/**
+ * The value a card shows for one attribute — the stored stat plus whatever the
+ * keeper's Reflexes display bonus has banked, stalled at the shared ceiling.
+ *
+ * Lives here rather than in `src/application/displayed-attributes.ts` because
+ * `src/game/` cannot import the application layer. That module re-exports the
+ * same rule for the UI; both are one line and the tests pin them together.
+ */
+export function displayedValue(
+  player: CareerPlayer,
+  attribute: keyof CareerPlayer['attrs'],
+): number {
+  const stored = player.attrs[attribute];
+  if (attribute !== 'ref') return stored;
+  return Math.min(MAX_PLAYER_ATTRIBUTE, stored + (player.refDisplayBonus ?? 0));
 }
 
 /**
@@ -147,6 +191,40 @@ export function trainPlayerInstantly(
   const rolledGain = isSuper ? Math.round(baseDrillGain * 1.5) : baseDrillGain;
   const growth = applyInstantGrowthModifiers(state, player, attribute, rolledGain);
 
+  /**
+   * Keeper Drills award half the outfield ladder for the same TP, so a keeper's
+   * card reads `+2` beside three `+4`s and looks short-changed when the truth is
+   * the opposite. Bank the shortfall for display only.
+   *
+   * Computed by running this player's own modifiers a second time over the
+   * outfield-ladder base rather than doubling the realised gain, because a flat
+   * x2 would print +6 for a 22-year-old whose outfield equivalent gets +5 —
+   * `round(2 x 1.3) x 2` is not `round(4 x 1.3)`.
+   *
+   * **Only `growth`'s remainders are persisted; the shadow's are discarded.**
+   * That is the invariant the whole trick rests on: `applyInstantGrowthModifiers`
+   * banks sub-point percent bonuses, and a goalkeeper always earns one on REF,
+   * so letting the shadow's ledger through would hand the keeper genuine extra
+   * attribute points off a presentation feature. The call is pure — it returns a
+   * fresh remainder object and mutates nothing — so running it twice is free of
+   * ordering effects and consumes no RNG.
+   *
+   * Not clamped here. The ceiling belongs to the *display*, and an earlier draft
+   * that capped the banked figure at `999 - stored` quietly destroyed it as the
+   * stat climbed: measured over a long keeper career the bonus peaked at 405 and
+   * then fell to 5 while the card still read a stalled 999. That made the field
+   * mean "whatever fits under the ceiling" rather than "how far the display has
+   * been allowed to run ahead", and left §6's drift rail measuring nothing.
+   * `displayedValue` applies the ceiling on the way out instead.
+   */
+  const displayMultiplier = keeperDisplayLadderMultiplier(state, pathId);
+  const displayBonusBefore = attribute === 'ref' ? player.refDisplayBonus ?? 0 : 0;
+  const displayBonusAfter = displayMultiplier <= 1
+    ? displayBonusBefore
+    : displayBonusBefore
+      + (applyInstantGrowthModifiers(state, player, attribute, rolledGain * displayMultiplier).value
+        - growth.value);
+
   const conditionBefore = player.condition ?? 100;
   const injuryRiskReductionPercent = state.facilities.grid === undefined
     ? 0
@@ -178,6 +256,7 @@ export function trainPlayerInstantly(
     ...(growth.facilityStaBonusRemainder === undefined
       ? {}
       : { facilityStaBonusRemainder: growth.facilityStaBonusRemainder }),
+    ...(displayBonusAfter > 0 ? { refDisplayBonus: displayBonusAfter } : {}),
     ...(recoveryWeeks === undefined ? {} : { injuryWeeks: recoveryWeeks }),
   };
 
@@ -202,6 +281,9 @@ export function trainPlayerInstantly(
     isSuper,
     before: player.attrs[attribute],
     after: growth.value,
+    // Clamped on the way out, like every other read of the displayed value.
+    displayedBefore: Math.min(MAX_PLAYER_ATTRIBUTE, player.attrs[attribute] + displayBonusBefore),
+    displayedAfter: Math.min(MAX_PLAYER_ATTRIBUTE, growth.value + displayBonusAfter),
     conditionAfter,
     ...(recoveryWeeks === undefined
       ? {}

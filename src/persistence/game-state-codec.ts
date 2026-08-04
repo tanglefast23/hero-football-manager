@@ -254,6 +254,11 @@ const playerSchema = z
     trainingBonusRemainders: trainingRemaindersSchema.optional(),
     drillsSinceSuper: nonnegativeInteger.optional(),
     priorityDrillsRemaining: nonnegativeInteger.optional(),
+    // Presentation only — how far a keeper's displayed Reflexes runs ahead of
+    // the stored stat. `playerSchema` passes unknown keys through, so this line
+    // is not what makes it survive a round trip; it is here to declare intent
+    // and to fail a save that carries a nonsense value, like its neighbours.
+    refDisplayBonus: nonnegativeInteger.optional(),
   })
   .passthrough()
   .superRefine((player, context) => {

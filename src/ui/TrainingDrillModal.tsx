@@ -569,8 +569,8 @@ export function TrainingDrillModal({
                 activityId={drillActivityId(activeResult.pathId)}
                 drillName={`${resultOption.drillName}${batchProgress === null ? '' : ` · ${batchProgress.current}/${batchProgress.total}`}`}
                 shortCode={resultOption.shortCode}
-                before={activeResult.before}
-                after={activeResult.after}
+                before={activeResult.displayedBefore}
+                after={activeResult.displayedAfter}
                 isSuper={activeResult.isSuper}
                 reduceMotion={reduceMotion}
                 onComplete={advanceStage}
@@ -579,7 +579,7 @@ export function TrainingDrillModal({
 
             {stage === 'reveal' && activeResult !== null ? (
               <DrillGainReveal
-                gainLabel={`+${activeResult.after - activeResult.before} ${resultOption?.label ?? activeResult.attribute}`}
+                gainLabel={`+${activeResult.displayedAfter - activeResult.displayedBefore} ${resultOption?.label ?? activeResult.attribute}`}
                 reduceMotion={reduceMotion}
                 onComplete={advanceStage}
               />
@@ -587,7 +587,7 @@ export function TrainingDrillModal({
 
             {stage === 'super' && activeResult !== null ? (
               <SuperTrainingCelebration
-                gainLabel={`+${activeResult.after - activeResult.before} ${resultOption?.shortCode ?? activeResult.attribute.toUpperCase()}`}
+                gainLabel={`+${activeResult.displayedAfter - activeResult.displayedBefore} ${resultOption?.shortCode ?? activeResult.attribute.toUpperCase()}`}
                 reduceMotion={reduceMotion}
                 onComplete={advanceStage}
               />
