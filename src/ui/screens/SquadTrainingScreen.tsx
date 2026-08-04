@@ -101,6 +101,23 @@ const COLUMN_EXPLAINER: Readonly<Record<SquadSortKey, string>> = {
  * manager has to watch the number fall a couple of times before being told
  * what a low one costs, or the warning is just noise on a full-energy squad.
  */
+/**
+ * The seven stats, in words. These are the game's core vocabulary and none of
+ * them is guessable from three letters — TEC and STA in particular say nothing
+ * to a manager who has not been told. Each line says what the stat *does* in a
+ * match, not what the letters stand for: knowing SHO is "shooting" is not the
+ * question, knowing it decides whether the ball goes in is.
+ */
+const ATTRIBUTE_EXPLAINER: Readonly<Record<string, string>> = {
+  PAC: 'Pace. How fast they cover ground, close a runner down, and reach a loose ball first.',
+  SHO: 'Shooting. How likely their efforts beat the keeper once they get a sight of goal.',
+  PAS: 'Passing. How reliably the ball reaches the teammate they meant to find.',
+  DEF: 'Defending. How often they win the tackle and break up the other side\'s move.',
+  TEC: 'Technique. Their touch under pressure — keeping the ball when someone is on them.',
+  STA: 'Stamina. How much of the match they play at full strength before tiring.',
+  REF: 'Reflexes. A keeper\'s shot-stopping. Contested on every effort they face, which is why it is trained on a shorter ladder.',
+};
+
 const CONDITION_WARNING_DRILL = 3;
 
 /** How far below the viewport top the attribute grid sits once framed. */
@@ -1107,18 +1124,22 @@ function PlayerFileSection({
               const option = statOptions?.find(candidate => candidate.shortCode === attribute.label);
               const trainable = option !== undefined && onTrainAttribute !== undefined;
               return (
-                <Pressable
+                // Tap trains, hold explains. InfoTip's 500ms delay is chosen so
+                // an unhurried tap still counts as a tap, which is what lets one
+                // control carry both without the abbreviation needing its own
+                // affordance — SHO and TEC are not guessable, and a manager
+                // should not have to spend TP to find out what they bought.
+                <InfoTip
                   key={attribute.label}
-                  accessibilityRole={trainable ? 'button' : 'text'}
+                  text={ATTRIBUTE_EXPLAINER[attribute.label]}
                   accessibilityLabel={trainable
-                    ? `Train ${attribute.label}, currently ${attribute.value}. ${option.drillName} for ${option.tpCost} training points, plus ${option.gain}.`
-                    : `${attribute.label} ${attribute.value}`}
-                  disabled={!trainable}
-                  onPress={trainable ? () => onTrainAttribute(option.pathId) : undefined}
+                    ? `Train ${attribute.label}, currently ${attribute.value}. ${option.drillName} for ${option.tpCost} training points, plus ${option.gain}. ${ATTRIBUTE_EXPLAINER[attribute.label]}`
+                    : `${attribute.label} ${attribute.value}. ${ATTRIBUTE_EXPLAINER[attribute.label]}`}
                   className={trainable
                     ? 'min-w-[29%] flex-1 border-2 border-b-4 border-ink/40 bg-paper px-2 py-2'
                     : 'min-w-[29%] flex-1 border border-ink/20 bg-paper px-2 py-2'}
-                  style={({ pressed }) => ({ opacity: pressed && trainable ? 0.65 : undefined })}
+                  disabled={!trainable}
+                  onPress={trainable ? () => onTrainAttribute(option.pathId) : undefined}
                 >
                   <PixelText className="text-sm uppercase text-ink/50">{attribute.label}</PixelText>
                   <Text className="mt-1 font-mono text-base text-ink">
@@ -1129,7 +1150,7 @@ function PlayerFileSection({
                       +{option.gain} · {option.tpCost} TP
                     </Text>
                   ) : null}
-                </Pressable>
+                </InfoTip>
               );
             })}
         </View>

@@ -1,4 +1,4 @@
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Metric, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
 import { EmptyDocket } from '../components/EmptyDocket';
 import { LeagueFixtureRow } from '../components/LeagueFixtureRow';
@@ -6,6 +6,47 @@ import type { LeagueTableViewModel } from '../models';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { InfoTip } from '../components/InfoTip';
+import {
+  HEADER_MAX_FONT_MULTIPLIER,
+  LEAGUE_COLUMN_WIDTH,
+  type LeagueColumn,
+} from '../league-table-columns';
+
+/** What each abbreviated column means, reachable by tapping the heading. */
+const TABLE_COLUMN_EXPLAINER: Readonly<Record<LeagueColumn, string>> = {
+  position: 'Where the club sits in the division right now.',
+  played: 'League matches played so far this season.',
+  won: 'Matches won. Three points each.',
+  drawn: 'Matches drawn. One point each.',
+  lost: 'Matches lost. No points.',
+  goalDifference: 'Goals scored minus goals conceded. It separates clubs level on points.',
+  points: 'Three for a win, one for a draw. The top two are promoted.',
+};
+
+const TABLE_HEADERS: readonly {
+  column: Exclude<LeagueColumn, 'position'>;
+  label: string;
+  name: string;
+}[] = [
+  { column: 'played', label: 'P', name: 'Played' },
+  { column: 'won', label: 'W', name: 'Won' },
+  { column: 'drawn', label: 'D', name: 'Drawn' },
+  { column: 'lost', label: 'L', name: 'Lost' },
+  { column: 'goalDifference', label: 'GD', name: 'Goal difference' },
+  { column: 'points', label: 'PTS', name: 'Points' },
+];
+
+/** Points, not rem-based classes. See league-table-columns.ts. */
+const tableColumns = StyleSheet.create({
+  position: { width: LEAGUE_COLUMN_WIDTH.position, flexShrink: 0 },
+  played: { width: LEAGUE_COLUMN_WIDTH.played, flexShrink: 0 },
+  won: { width: LEAGUE_COLUMN_WIDTH.won, flexShrink: 0 },
+  drawn: { width: LEAGUE_COLUMN_WIDTH.drawn, flexShrink: 0 },
+  lost: { width: LEAGUE_COLUMN_WIDTH.lost, flexShrink: 0 },
+  goalDifference: { width: LEAGUE_COLUMN_WIDTH.goalDifference, flexShrink: 0 },
+  points: { width: LEAGUE_COLUMN_WIDTH.points, flexShrink: 0 },
+});
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
 
 export interface LeagueTableScreenProps {
@@ -56,14 +97,25 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
             className="border-2 border-ink bg-white"
           >
             <View className="flex-row border-b border-ink/20 px-2 py-2">
-              <Text className="w-7 font-mono text-sm text-ink/50">#</Text>
+              <Text style={tableColumns.position} className="font-mono text-sm text-ink/50">#</Text>
               <PixelText className="flex-1 text-sm uppercase text-ink/50">Club</PixelText>
-              <Text className="w-7 text-right font-mono text-sm text-ink/50">P</Text>
-              <Text className="w-7 text-right font-mono text-sm text-ink/50">W</Text>
-              <Text className="w-7 text-right font-mono text-sm text-ink/50">D</Text>
-              <Text className="w-7 text-right font-mono text-sm text-ink/50">L</Text>
-              <Text className="w-9 text-right font-mono text-sm text-ink/50">GD</Text>
-              <Text className="w-9 text-right font-mono text-sm text-ink/50">PTS</Text>
+              {TABLE_HEADERS.map(header => (
+                <InfoTip
+                  key={header.label}
+                  text={TABLE_COLUMN_EXPLAINER[header.column]}
+                  align="right"
+                  style={tableColumns[header.column]}
+                  accessibilityLabel={`${header.name}. ${TABLE_COLUMN_EXPLAINER[header.column]}`}
+                >
+                  <Text
+                    className="w-full text-right font-mono text-sm text-ink/50"
+                    maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
+                    numberOfLines={1}
+                  >
+                    {header.label}
+                  </Text>
+                </InfoTip>
+              ))}
             </View>
             {viewModel.rows.map(row => {
               const rowClass = row.isUserClub
@@ -80,19 +132,19 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
                   accessibilityLabel={`${row.position}. ${row.clubName}. Played ${row.played}, won ${row.won}, drawn ${row.drawn}, lost ${row.lost}, goal difference ${row.goalDifference}, ${row.points} points.`}
                   className={`min-h-11 flex-row items-center border-b border-ink/10 px-2 py-2 ${rowClass}`}
                 >
-                  <Text className={`w-7 font-mono text-base ${primaryText}`}>{row.position}</Text>
+                  <Text style={tableColumns.position} className={`font-mono text-base ${primaryText}`} numberOfLines={1}>{row.position}</Text>
                   <View className="flex-1 flex-row items-center pr-1">
                     <Text className={`flex-1 text-base ${row.isUserClub ? 'font-bold' : ''} ${primaryText}`} numberOfLines={1}>{row.clubName}</Text>
                     {row.inPromotionPlaces ? (
                       <Text className={row.isUserClub ? 'text-sm font-bold text-ink' : 'text-sm font-bold text-pitch-dark'}>↑</Text>
                     ) : null}
                   </View>
-                  <Text className={`w-7 text-right font-mono text-sm ${secondaryText}`}>{row.played}</Text>
-                  <Text className={`w-7 text-right font-mono text-sm ${secondaryText}`}>{row.won}</Text>
-                  <Text className={`w-7 text-right font-mono text-sm ${secondaryText}`}>{row.drawn}</Text>
-                  <Text className={`w-7 text-right font-mono text-sm ${secondaryText}`}>{row.lost}</Text>
-                  <Text className={`w-9 text-right font-mono text-sm ${secondaryText}`}>{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>
-                  <Text className={`w-9 text-right font-mono text-base ${primaryText}`}>{row.points}</Text>
+                  <Text style={tableColumns.played} className={`text-right font-mono text-sm ${secondaryText}`} numberOfLines={1}>{row.played}</Text>
+                  <Text style={tableColumns.won} className={`text-right font-mono text-sm ${secondaryText}`} numberOfLines={1}>{row.won}</Text>
+                  <Text style={tableColumns.drawn} className={`text-right font-mono text-sm ${secondaryText}`} numberOfLines={1}>{row.drawn}</Text>
+                  <Text style={tableColumns.lost} className={`text-right font-mono text-sm ${secondaryText}`} numberOfLines={1}>{row.lost}</Text>
+                  <Text style={tableColumns.goalDifference} className={`text-right font-mono text-sm ${secondaryText}`} numberOfLines={1}>{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>
+                  <Text style={tableColumns.points} className={`text-right font-mono text-base ${primaryText}`} numberOfLines={1}>{row.points}</Text>
                 </View>
               );
             })}

@@ -15,6 +15,14 @@ import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
 import type { ManagerTipDestination } from '../../content';
+import { InfoTip } from '../components/InfoTip';
+
+/** The three letters on the form strip, which nothing else in the game defines. */
+const FORM_EXPLAINER: Readonly<Record<'W' | 'D' | 'L', string>> = {
+  W: 'Won. Three points.',
+  D: 'Drawn. One point each.',
+  L: 'Lost. No points.',
+};
 
 const HORIZONTAL_MARQUEE_BULBS = Array.from({ length: 12 }, (_, index) => index);
 const VERTICAL_MARQUEE_BULBS = Array.from({ length: 7 }, (_, index) => index);
@@ -462,12 +470,19 @@ export function ClubHomeScreen({
                   <PixelText className="mt-2 text-sm uppercase tracking-wide text-ink/40">No games yet</PixelText>
                 ) : (
                   <View className="mt-2 flex-row gap-1">
+                    {/* W, D and L are only obvious once you already know them.
+                        Hold one and it says so; the colour alone never did. */}
                     {viewModel.form.map((result, index) => (
-                      <StatusChip
+                      <InfoTip
                         key={`${result}-${index}`}
-                        label={result}
-                        tone={result === 'W' ? 'success' : result === 'L' ? 'danger' : 'normal'}
-                      />
+                        text={FORM_EXPLAINER[result]}
+                        accessibilityLabel={FORM_EXPLAINER[result]}
+                      >
+                        <StatusChip
+                          label={result}
+                          tone={result === 'W' ? 'success' : result === 'L' ? 'danger' : 'normal'}
+                        />
+                      </InfoTip>
                     ))}
                   </View>
                 )}

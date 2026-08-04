@@ -36,7 +36,14 @@ import { PixelText } from '../components/PixelText';
  * goal difference · Pts points" — and it did not reach the reader who asked
  * what GD stood for: grey, small, and printed after the thing it explains.
  */
-const LEAGUE_COLUMN_EXPLAINER: Readonly<Record<LeagueColumn, string>> = {
+/**
+ * The standings table shows four columns; the full-table screen adds W/D/L and
+ * has its own map. Narrowed rather than padded so an unused column cannot be
+ * quietly added here and never rendered.
+ */
+type StandingsColumn = Extract<LeagueColumn, 'position' | 'played' | 'goalDifference' | 'points'>;
+
+const LEAGUE_COLUMN_EXPLAINER: Readonly<Record<StandingsColumn, string>> = {
   position: 'Where the club sits in the division right now.',
   played: 'League matches played so far this season.',
   goalDifference: 'Goals scored minus goals conceded. It separates clubs level on points.',
@@ -44,7 +51,7 @@ const LEAGUE_COLUMN_EXPLAINER: Readonly<Record<LeagueColumn, string>> = {
 };
 
 const LEAGUE_TABLE_HEADERS: readonly {
-  column: Exclude<LeagueColumn, 'position'>;
+  column: Exclude<StandingsColumn, 'position'>;
   label: string;
   name: string;
 }[] = [

@@ -41,6 +41,12 @@ export interface InfoTipProps {
   style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
   onPress?: () => void;
+  /**
+   * Greys nothing out on its own — it only stops the tap. A control the manager
+   * cannot use is still a control they may not understand, so the explanation
+   * stays reachable by hold and by screen reader either way.
+   */
+  disabled?: boolean;
 }
 
 /**
@@ -63,6 +69,7 @@ export function InfoTip({
   style,
   children,
   onPress,
+  disabled = false,
 }: InfoTipProps) {
   const [shown, setShown] = useState(false);
   const { width } = useWindowDimensions();
@@ -112,6 +119,13 @@ export function InfoTip({
           hide();
           onPress?.();
         }}
+        disabled={disabled && onPress !== undefined}
+        // Opacity only. A function-form style carrying layout on a Pressable
+        // collapses it to zero height on iOS — a trap this codebase has hit
+        // twice — so the box stays in className and only the fade lives here.
+        style={onPress === undefined
+          ? undefined
+          : ({ pressed }) => ({ opacity: pressed && !disabled ? 0.65 : undefined })}
         delayLongPress={TOUCH_HOLD_MS}
       >
         {children}
