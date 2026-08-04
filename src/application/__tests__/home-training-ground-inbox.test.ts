@@ -24,6 +24,18 @@ describe('training-ground inbox letter', () => {
     }));
   });
 
+  /*
+   * The opening cue points at this row, and until the pitch is placed it is the
+   * only row of the two the week can act on. It shipped second, under the coach
+   * explainer, because the desk sorted on `tone` and this row is calm by design.
+   */
+  it('puts the pitch above the coach explainer on the opening desk', () => {
+    const fresh = createCareer(createLaunchCareerSetup(20260804, undefined, content));
+
+    expect(homeViewModel(fresh).alerts.map(alert => alert.id))
+      .toEqual(['training-ground', 'assistant-guide:head-coach-market']);
+  });
+
   it('leaves an existing seeded pitch alone when loading an older career', () => {
     const fresh = createCareer(createLaunchCareerSetup(20260721, undefined, content));
     const started = buildCareerFacility(fresh, 'training-pitch', { x: 0, y: 0 }).state;

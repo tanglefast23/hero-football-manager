@@ -1530,10 +1530,17 @@ export function homeViewModel(state: GameState): HomeViewModel {
       destination: sequence.destination,
     };
   });
+  // Ordered by the priority that bought each row its slot, not by how the row
+  // looks — the distinction `assistantProductPriority` exists to make. Sorting
+  // on `tone` put the Training Pitch second for the whole opening week: the row
+  // holds an urgent slot but is deliberately written calmly, so the one row the
+  // tutorial cue points at ranked below Bert's coach explainer, with the cue
+  // itself sitting over the explainer's card.
+  const productPriority = (alert: ClubAlertViewModel) => assistantProductPriority(alert, dueGuides);
   const scheduledAlerts = [
-    ...selectedProducts.filter(alert => alert.tone === 'urgent'),
+    ...selectedProducts.filter(alert => productPriority(alert) === 'urgent'),
     ...guideAlerts,
-    ...selectedProducts.filter(alert => alert.tone !== 'urgent'),
+    ...selectedProducts.filter(alert => productPriority(alert) !== 'urgent'),
   ].slice(0, 3);
   // A quiet week's own contents, in the order they earn attention: the story
   // that landed this week, the shop the club has not found yet, and only if
