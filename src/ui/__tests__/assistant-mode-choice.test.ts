@@ -64,6 +64,7 @@ describe('the app wires the choice to every teaching surface', () => {
       'guideQuickTrain={careerTeaches',
       'showManagerTips={careerTeaches}',
       'firstMatchTutorial={careerTeaches',
+      'const boardFinanceMessage = !careerTeaches',
     ]) {
       expect(app).toContain(fragment);
     }
@@ -76,6 +77,7 @@ describe('the app wires the choice to every teaching surface', () => {
       'setConciergeFocus(null)',
       'setManagerTipGuideRequest(null)',
       'setActiveGuideFocus(undefined)',
+      'setOpenedBoardFinanceAlertId(null)',
     ]) {
       expect(handler).toContain(setter);
     }

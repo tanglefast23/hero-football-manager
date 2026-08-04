@@ -996,6 +996,7 @@ function GameApp() {
       setActiveGuideFocus(undefined);
       setDismissedAssistantObjectiveKey(null);
       setMarketSectionRequest(null);
+      setOpenedBoardFinanceAlertId(null);
     }
     store.setAssistantMode(assistantMode);
   }, [store.setAssistantMode]);
@@ -1178,7 +1179,9 @@ function GameApp() {
    * press: the row that opened it quotes numbers, and reading a stale copy of
    * them would be the same defect as the clipped desk row in a new place.
    */
-  const boardFinanceMessage = openedBoardFinanceAlertId === null || store.career === null
+  const boardFinanceMessage = !careerTeaches
+    || openedBoardFinanceAlertId === null
+    || store.career === null
     ? undefined
     : boardFinanceBriefing(store.career, openedBoardFinanceAlertId);
   /**
@@ -2005,7 +2008,7 @@ function GameApp() {
                 // the whole warning here, one bubble per tap, because the desk
                 // clips it at two lines and nothing else in the game finishes
                 // the sentence.
-                setOpenedBoardFinanceAlertId(alertId);
+                setOpenedBoardFinanceAlertId(careerTeaches ? alertId : null);
               }
               else if (alertId === 'board-ultimatum') {
                 store.notify('Choose one protected player in the Board intervention panel below.');
