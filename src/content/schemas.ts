@@ -207,6 +207,8 @@ export const AssistantGuideFocusSchema = z.enum([
   'facility-grid',
   'facility-upgrade',
   'facility-adjacency',
+  /** The two money-making buildings, shown to a club that has just been bailed out. */
+  'income-facilities',
   'scout-mission',
   'scout-report',
   'transfer-list',

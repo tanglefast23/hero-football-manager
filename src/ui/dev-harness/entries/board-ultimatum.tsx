@@ -1,7 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { homeProductAlerts, homeViewModel } from '../../../application/view-models';
+import {
+  boardFinanceBriefing,
+  clubFinancesViewModel,
+  homeProductAlerts,
+  homeViewModel,
+} from '../../../application/view-models';
+import { loadLaunchContent } from '../../../content';
 import { M2_ASSISTANT_GUIDE_SEQUENCE_IDS, completeAssistantGuideSequence } from '../../../game/assistant-guide';
 import {
   BOARD_ULTIMATUM_WEEKS,
@@ -13,6 +19,8 @@ import {
 } from '../../../game/board-ultimatum';
 import { difficultyRules } from '../../../game/difficulty';
 import type { BoardUltimatumState, GameState } from '../../../game/types';
+import { BertBriefingWalkOn } from '../../BertBriefingWalkOn';
+import { ClubFinancesScreen } from '../../screens/ClubFinancesScreen';
 import { ClubHomeScreen } from '../../screens/ClubHomeScreen';
 import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls';
 import { devHarnessCareerAtWeek } from '../career';
@@ -266,12 +274,23 @@ export function BoardUltimatumReel({ caseId }: { readonly caseId: BoardUltimatum
   const [quietDesk, setQuietDesk] = useState(true);
   const [guideBoard, setGuideBoard] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
+  /**
+   * What tapping a board money row does, played out here rather than described.
+   *
+   * The desk row is clipped to two lines, so the reel could show that the board
+   * had spoken but never what it said. These two follow the real flow: Bert
+   * reads the whole message, and the loan then opens the Facility board with
+   * the money-making buildings lit.
+   */
+  const [openedBoardAlertId, setOpenedBoardAlertId] = useState<string | null>(null);
+  const [incomeFacilityTour, setIncomeFacilityTour] = useState(false);
   // Every tap the manager can make lands here, applied by the real reducer on
   // top of the built state. Cleared whenever an option rebuilds the career.
   const [played, setPlayed] = useState<GameState | undefined>(undefined);
   const [failure, setFailure] = useState<string | undefined>(undefined);
   const insets = useSafeAreaInsets();
 
+  const guideContent = useMemo(() => loadLaunchContent().assistantGuide, []);
   const built = useMemo(
     () => boardUltimatumCareer(caseId, { weeksRemaining, quietDesk }),
     [caseId, quietDesk, weeksRemaining],
@@ -280,9 +299,15 @@ export function BoardUltimatumReel({ caseId }: { readonly caseId: BoardUltimatum
   const viewModel = useMemo(() => homeViewModel(state), [state]);
   const note = useMemo(() => boardUltimatumNote(state), [state]);
 
+  const briefing = openedBoardAlertId === null
+    ? undefined
+    : boardFinanceBriefing(state, openedBoardAlertId);
+
   const rebuild = useCallback((change: () => void) => {
     setPlayed(undefined);
     setFailure(undefined);
+    setOpenedBoardAlertId(null);
+    setIncomeFacilityTour(false);
     change();
   }, []);
 
@@ -297,14 +322,40 @@ export function BoardUltimatumReel({ caseId }: { readonly caseId: BoardUltimatum
 
   return (
     <View style={styles.root}>
-      <ClubHomeScreen
-        viewModel={viewModel}
-        onOpenFixture={() => {}}
-        onOpenAlert={() => {}}
-        onOpenLeague={() => {}}
-        onProtectBoardCandidate={protectCandidate}
-        guideBoard={guideBoard}
-      />
+      {incomeFacilityTour ? (
+        <ClubFinancesScreen
+          viewModel={clubFinancesViewModel(state)}
+          activeTab="facility"
+          onSelectTab={() => {}}
+          onBuildTrainingGround={() => {}}
+          guideFocus="income-facilities"
+        />
+      ) : (
+        <ClubHomeScreen
+          viewModel={viewModel}
+          onOpenFixture={() => {}}
+          onOpenAlert={setOpenedBoardAlertId}
+          onOpenLeague={() => {}}
+          onProtectBoardCandidate={protectCandidate}
+          guideBoard={guideBoard}
+        />
+      )}
+
+      {briefing === undefined || openedBoardAlertId === null ? null : (
+        <BertBriefingWalkOn
+          key={openedBoardAlertId}
+          content={guideContent}
+          sequenceId={openedBoardAlertId === 'emergency-loan'
+            ? 'board-emergency-loan'
+            : 'board-financial-warning'}
+          customMessage={briefing}
+          onDone={() => {
+            const wasLoan = openedBoardAlertId === 'emergency-loan';
+            setOpenedBoardAlertId(null);
+            if (wasLoan) setIncomeFacilityTour(true);
+          }}
+        />
+      )}
 
       {controlsVisible ? (
         <View style={[styles.panel, { paddingBottom: insets.bottom + 12 }]}>

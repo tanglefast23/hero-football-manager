@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
@@ -30,6 +30,7 @@ import {
   guidedFirstFacilityAllowsBuildType,
   guidedFirstFacilityAllowsPlacement,
   guidedFirstFacilityPhase,
+  isIncomeFacilityType,
   type GuidedFirstFacilityPhase,
 } from '../concierge-targets';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
@@ -111,6 +112,9 @@ export function ClubFinancesScreen({
   const coachingOfficeScrollFrameRef = useRef<number | null>(null);
   const coachingOfficeScrolledRef = useRef(false);
   const coachingOfficeBuildTargetRef = useRef<View>(null);
+  const incomeFacilityScrollFrameRef = useRef<number | null>(null);
+  const incomeFacilityScrolledRef = useRef(false);
+  const incomeFacilityBuildTargetRef = useRef<View>(null);
   const facilityGuideScrollFrameRef = useRef<number | null>(null);
   const facilityGuideScrolledPhaseRef = useRef<GuidedFirstFacilityPhase | null>(null);
   const facilityGuideBuildTargetRef = useRef<View>(null);
@@ -136,6 +140,7 @@ export function ClubFinancesScreen({
     : facilities.catalog.find(entry => entry.type === selectedBuildType);
 
   const placementActive = selectedBuildType !== null || relocatingBuildingId !== null;
+  const guideIncomeFacilities = guideFocus === 'income-facilities';
   const guideGrounds = guideFocus === 'coaching-office'
     || guideFocus === 'facility-grid'
     || guideFocus === 'facility-upgrade'
@@ -278,6 +283,42 @@ export function ClubFinancesScreen({
     });
   }, [guideFocus]);
 
+  /**
+   * The bail-out follow-up: the loan briefing ends by naming a shop and a
+   * stand, and this is what puts them in front of the manager. They are the
+   * last two cards of a twelve-card menu, so arriving on the Facility board
+   * without this leaves him looking at eight training buildings he cannot
+   * afford and has just been told not to buy.
+   */
+  const scrollToIncomeFacilities = useCallback(() => {
+    if (
+      !guideIncomeFacilities
+      || incomeFacilityScrolledRef.current
+      || incomeFacilityBuildTargetRef.current === null
+    ) return;
+    if (incomeFacilityScrollFrameRef.current !== null) {
+      cancelAnimationFrame(incomeFacilityScrollFrameRef.current);
+    }
+    incomeFacilityScrollFrameRef.current = requestAnimationFrame(() => {
+      incomeFacilityScrollFrameRef.current = null;
+      scrollToTarget(
+        scrollRef,
+        scrollViewportRef,
+        incomeFacilityBuildTargetRef,
+        latestScrollOffsetRef.current,
+      );
+      incomeFacilityScrolledRef.current = true;
+    });
+  }, [guideIncomeFacilities]);
+
+  useEffect(() => {
+    if (!guideIncomeFacilities) {
+      incomeFacilityScrolledRef.current = false;
+      return;
+    }
+    scrollToIncomeFacilities();
+  }, [guideIncomeFacilities, scrollToIncomeFacilities]);
+
   useEffect(() => {
     scrollToTrainingGround();
     return () => {
@@ -321,6 +362,9 @@ export function ClubFinancesScreen({
     }
     if (coachingOfficeScrollFrameRef.current !== null) {
       cancelAnimationFrame(coachingOfficeScrollFrameRef.current);
+    }
+    if (incomeFacilityScrollFrameRef.current !== null) {
+      cancelAnimationFrame(incomeFacilityScrollFrameRef.current);
     }
   }, []);
 
@@ -430,6 +474,9 @@ export function ClubFinancesScreen({
           scrollToCoachingOffice={scrollToCoachingOffice}
           showCoachingOfficeScrollCue={guideFocus === 'coaching-office' && !coachingOfficeScrollCueDismissed}
           dismissCoachingOfficeScrollCue={dismissCoachingOfficeScrollCue}
+          guideIncomeFacilities={guideIncomeFacilities}
+          incomeFacilityBuildTargetRef={incomeFacilityBuildTargetRef}
+          scrollToIncomeFacilities={scrollToIncomeFacilities}
         />
       ),
     },
@@ -911,6 +958,10 @@ interface GroundsSectionProps {
   scrollToCoachingOffice: () => void;
   showCoachingOfficeScrollCue: boolean;
   dismissCoachingOfficeScrollCue: () => void;
+  /** Lights the Fan Shop and Stadium Stand after the board's loan lands. */
+  guideIncomeFacilities: boolean;
+  incomeFacilityBuildTargetRef: RefObject<View | null>;
+  scrollToIncomeFacilities: () => void;
 }
 
 function GroundsSection({
@@ -950,6 +1001,9 @@ function GroundsSection({
   scrollToCoachingOffice,
   showCoachingOfficeScrollCue,
   dismissCoachingOfficeScrollCue,
+  guideIncomeFacilities,
+  incomeFacilityBuildTargetRef,
+  scrollToIncomeFacilities,
 }: GroundsSectionProps) {
   const facilities = viewModel.facilities;
   return (
@@ -1448,9 +1502,29 @@ function GroundsSection({
                 const guideAllowsType = !guidedFirstFacility
                   || guidedFirstFacilityAllowsBuildType(entry.type);
                 const entryEnabled = entry.available && entry.affordable && guideAllowsType;
+                const guidedIncome = guideIncomeFacilities && isIncomeFacilityType(entry.type);
                 return (
+                  <Fragment key={entry.type}>
+                    {/* The banner rides the same wrapping row as the cards it
+                        introduces rather than sitting at the top of the menu:
+                        these two are the last of twelve, so a heading up there
+                        would scroll off before the buildings it names arrive. */}
+                    {guidedIncome && entry.type === 'fan-shop' ? (
+                      <View
+                        ref={incomeFacilityBuildTargetRef}
+                        collapsable={false}
+                        onLayout={scrollToIncomeFacilities}
+                        className="w-full border-2 border-b-4 border-gold-dark bg-gold-light px-3 py-3"
+                      >
+                        <PixelText className="text-sm uppercase tracking-wide text-ink">
+                          Bert says
+                        </PixelText>
+                        <Text className="mt-1 text-sm leading-5 text-ink">
+                          These are the buildings that will get you out of your financial hole. Build them!
+                        </Text>
+                      </View>
+                    ) : null}
                   <View
-                    key={entry.type}
                     ref={entry.type === 'coaching-office' ? coachingOfficeBuildTargetRef : undefined}
                     collapsable={entry.type === 'coaching-office' ? false : undefined}
                     className={guideFocus === 'coaching-office' && entry.type === 'coaching-office'
@@ -1522,12 +1596,17 @@ function GroundsSection({
                       }}
                       className={selected
                         ? 'min-h-36 w-full border-2 border-b-4 border-blue-dark bg-blue-light/30 p-2'
-                        : guideFocus === 'coaching-office' && entry.type === 'coaching-office'
+                        : (guideFocus === 'coaching-office' && entry.type === 'coaching-office')
+                          || guidedIncome
                           ? 'min-h-36 w-full border-2 border-b-4 border-gold-dark bg-gold-light/25 p-2'
                           : entryEnabled
                             ? 'min-h-36 w-full border-2 border-b-4 border-ink bg-white p-2'
                             : 'min-h-36 w-full border-2 border-ink/20 bg-ink/5 p-2'}
-                      style={guideFocus === 'coaching-office' && entry.type === 'coaching-office'
+                      // Lit even when the club cannot afford it yet: the point
+                      // of the highlight is which buildings earn, and a shop
+                      // the manager has to save up for is still the answer.
+                      style={(guideFocus === 'coaching-office' && entry.type === 'coaching-office')
+                        || guidedIncome
                         ? styles.guidedFacilityGlow
                         : undefined}
                     >
@@ -1573,6 +1652,7 @@ function GroundsSection({
                       ) : null}
                     </Pressable>
                   </View>
+                  </Fragment>
                 );
               })}
             </View>

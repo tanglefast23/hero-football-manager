@@ -30,6 +30,16 @@ export function firstGuidedCoachCandidateId(
   ))?.id;
 }
 
+/**
+ * The two buildings that bring money in rather than only spend it: the Fan
+ * Shop's weekly merchandise and the Stadium Stand's share of the home gate.
+ * Everything else in the catalog trains, heals or scouts, and pays upkeep to do
+ * it — which is the whole point of showing these two to a club in the red.
+ */
+export function isIncomeFacilityType(type: FacilityTypeViewModel): boolean {
+  return type === 'fan-shop' || type === 'stadium-stand';
+}
+
 export function firstGuidedFacilityUpgradeId(
   buildings: readonly ClubFacilityBuildingViewModel[],
 ): string | undefined {

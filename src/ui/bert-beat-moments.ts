@@ -77,6 +77,14 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   // The one piece of good news here: explain the boards, then send you after one.
   'division-leaders': ['explaining', 'encouraging'],
 
+  // The two board money rows, said in full on the finances screen. Both open on
+  // the number, harden on what the board does about it, and end pointing at the
+  // only move that fixes it — a building that earns. The middle face is the
+  // difference between the pair: the warning is a threat he is passing on, the
+  // loan is a rescue that has already been spent, so `warning-hard` carries the
+  // first and `pointing-up` carries the one detail that will not come again.
+  'board-financial-warning': ['warning-money', 'warning-hard', 'pointing-out'],
+  'board-emergency-loan': ['warning-money', 'pointing-up', 'pointing-out'],
   // The crowd is the first thing the club earns that is not money, so it opens
   // as a celebration and then turns into the lesson about what it pays for.
   'first-fans': ['celebrating', 'explaining'],
