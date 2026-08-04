@@ -18,13 +18,13 @@ describe('first training guidance', () => {
     expect(source).toContain('setDrillPickerOpen(true)');
     expect(source).not.toContain('slotNumber');
     expect(source).not.toContain('label="Tap the number"');
-    // Position is a labelled, sortable column again — "Pos" fits the 48pt role
-    // cell where the old spelled-out "Role" did not.
+    // Position is a labelled, sortable column again — "Pos" fits the role cell
+    // where the old spelled-out "Role" did not.
     expect(source).toContain('<SquadSortHeader label="Pos" sortKey="role"');
     // Condition is still a sortable column, now spelled out and sharing its
     // width with the row cell beneath it.
     expect(source).toContain('sortKey="condition"');
-    expect(source).toContain('widthClass={conditionColumnWidth}');
+    expect(source).toContain('columnStyle={columns.condition}');
     // The train column keeps its width to hold the + buttons in line, but has
     // no header label to clip.
     expect(source).toContain('<View className={ROSTER_TRAIN_COLUMN_CLASS} />');
