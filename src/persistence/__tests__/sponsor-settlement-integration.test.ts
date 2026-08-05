@@ -89,7 +89,9 @@ describe('sponsor settlement integration', () => {
     expect(paid.map(line => line.amount)).toEqual([2_134, 2_133, 2_133]);
     expect(paid.reduce((total, line) => total + line.amount, 0)).toBe(6_400);
     expect(paid).toHaveLength(3);
-    expect(paid.some(line => line.label === 'Chairman sponsor target')).toBe(false);
+    expect(paid.some(line => (
+      line.label === 'Chairman sponsor target' || line.label === 'Local advertising (monthly)'
+    ))).toBe(false);
     expect(settled).toMatchObject({ season: 1, week: 5, phase: 'manage' });
     expect(settled.clubBusiness.sponsorship.offers).toEqual([]);
     expect(settled.clubBusiness.sponsorship.activeContracts.every(contract => (
@@ -217,5 +219,19 @@ describe('sponsor settlement integration', () => {
     expect(repeated.ledgers.flatMap(ledger => ledger.lines).filter(line => (
       line.idempotencyKey?.startsWith('sponsor-objective:')
     ))).toEqual(objectiveLines);
+  });
+
+  test('labels the unmanaged D5 monthly income as local advertising in both modes', () => {
+    const cozy = sponsorLines(settleManageWeek(reachWeekFour('COZY')));
+    expect(cozy).toEqual([expect.objectContaining({
+      label: 'Local advertising (monthly)',
+      amount: 3_000,
+    })]);
+
+    const chairman = sponsorLines(settleManageWeek(reachWeekFour('CHAIRMAN')));
+    expect(chairman).toEqual([expect.objectContaining({
+      label: 'Local advertising (monthly)',
+      amount: 2_400,
+    })]);
   });
 });
