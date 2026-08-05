@@ -8,7 +8,13 @@ import {
 } from '../../persistence';
 import type { ReplayEnvelope } from '../../sim/types';
 import { createMatch, queueInput, runReplay, tick } from '../../sim/match';
-import { DEFAULT_CREATION_RATINGS, offerCareerEvent, type GameState } from '../../game';
+import {
+  buildCareerFacility,
+  completeAssistantGuideMilestone,
+  DEFAULT_CREATION_RATINGS,
+  offerCareerEvent,
+  type GameState,
+} from '../../game';
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
 import type { PostMatchViewModel } from '../../ui';
 import { loadLaunchContent } from '../../content';
@@ -361,6 +367,40 @@ describe('M1 app store integration', () => {
       name: 'Training Pitch',
       level: 1,
       kind: 'BUILD',
+    });
+  });
+
+  it('kindly refuses a non-pitch facility as the opening build', () => {
+    startCreatedCareer(20260805);
+    const before = useM1Store.getState().career!;
+    const cashBefore = before.clubs.find(club => club.id === before.userClubId)!.cash;
+
+    useM1Store.getState().buildClubFacility('gym', { x: 0, y: 0 });
+
+    const after = useM1Store.getState();
+    expect(after.error).toBeNull();
+    expect(after.notice).toEqual({
+      tone: 'info',
+      message: 'Let\'s build the Training Pitch first. The other facilities will open up once it is underway.',
+    });
+    expect(after.career?.facilities.grid?.buildings).toEqual([]);
+    expect(after.career?.clubs.find(club => club.id === before.userClubId)?.cash).toBe(cashBefore);
+  });
+
+  it('lets an already-stuck opening save advance its wrong project', () => {
+    startCreatedCareer(20260806);
+    let career = useM1Store.getState().career!;
+    career = completeAssistantGuideMilestone(career, 'intro-complete');
+    career = completeAssistantGuideMilestone(career, 'first-training-complete');
+    career = buildCareerFacility(career, 'gym', { x: 0, y: 0 }).state;
+    useM1Store.setState({ career, activeTab: 'home', screen: 'management' });
+
+    useM1Store.getState().advanceCareer();
+
+    expect(useM1Store.getState()).toMatchObject({ screen: 'week-review', error: null });
+    expect(useM1Store.getState().career).toMatchObject({
+      week: 2,
+      facilities: { grid: { construction: { type: 'gym', weeksRemaining: 1 } } },
     });
   });
 

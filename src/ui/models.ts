@@ -553,6 +553,8 @@ export interface ClubFacilityCatalogViewModel {
   effectLabel: string;
   available: boolean;
   affordable: boolean;
+  /** True only while Teacher is waiting for the career's first Training Pitch. */
+  blockedByOpeningTrainingPitch: boolean;
   buildWeeks: number;
   blockedReason?: string;
   affordabilityShortfall: number;

@@ -157,6 +157,7 @@ export function ClubFinancesScreen({
   const [pendingPlacement, setPendingPlacement] = useState<FacilityPlacement | null>(null);
   /** Why the last tapped square could not take the building; null while nothing has been refused. */
   const [placementRejection, setPlacementRejection] = useState<string | null>(null);
+  const [buildMenuReminder, setBuildMenuReminder] = useState<string | null>(null);
   const [facilityGridWidth, setFacilityGridWidth] = useState(0);
   const [coachingOfficeScrollCueDismissed, setCoachingOfficeScrollCueDismissed] = useState(false);
   const [selectedSponsorSlot, setSelectedSponsorSlot] = useState(0);
@@ -214,6 +215,7 @@ export function ClubFinancesScreen({
     setRelocatingBuildingId(null);
     setPreviewCell(null);
     setPlacementRejection(null);
+    setBuildMenuReminder(null);
   }, []);
 
   const handleGridCell = useCallback((x: number, y: number) => {
@@ -577,6 +579,8 @@ export function ClubFinancesScreen({
           previewCell={previewCell}
           setPreviewCell={setPreviewCell}
           placementRejection={placementRejection}
+          buildMenuReminder={buildMenuReminder}
+          setBuildMenuReminder={setBuildMenuReminder}
           facilityGridWidth={facilityGridWidth}
           setFacilityGridWidth={setFacilityGridWidth}
           selectedBuilding={selectedBuilding}
@@ -1423,6 +1427,8 @@ interface GroundsSectionProps {
   setPreviewCell: Dispatch<SetStateAction<{ x: number; y: number } | null>>;
   /** Why the last tapped square was refused, shown in place of the placement hint. */
   placementRejection: string | null;
+  buildMenuReminder: string | null;
+  setBuildMenuReminder: Dispatch<SetStateAction<string | null>>;
   facilityGridWidth: number;
   setFacilityGridWidth: Dispatch<SetStateAction<number>>;
   selectedBuilding?: ClubFacilityBuildingViewModel;
@@ -1466,6 +1472,8 @@ function GroundsSection({
   previewCell,
   setPreviewCell,
   placementRejection,
+  buildMenuReminder,
+  setBuildMenuReminder,
   facilityGridWidth,
   setFacilityGridWidth,
   selectedBuilding,
@@ -1971,6 +1979,14 @@ function GroundsSection({
             }}
           >
             <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/70">Build menu</PixelText>
+            {buildMenuReminder !== null ? (
+              <Text
+                accessibilityLiveRegion="polite"
+                className="mb-3 border-2 border-gold-dark bg-gold-light px-3 py-3 text-sm font-bold leading-5 text-ink"
+              >
+                {buildMenuReminder}
+              </Text>
+            ) : null}
             <View className={guidedFirstFacility && guidedFacilityPhase === 'build-menu'
               ? 'mt-20 flex-row flex-wrap gap-2'
               : 'flex-row flex-wrap gap-2'}>
@@ -1988,6 +2004,8 @@ function GroundsSection({
                 const guideAllowsType = !guidedFirstFacility
                   || guidedFirstFacilityAllowsBuildType(entry.type);
                 const entryEnabled = entry.available && entry.affordable && guideAllowsType;
+                const openingPitchChoiceBlocked = entry.blockedByOpeningTrainingPitch
+                  || !guideAllowsType;
                 const guidedIncome = guideIncomeFacilities && isIncomeFacilityType(entry.type);
                 return (
                   <Fragment key={entry.type}>
@@ -2073,9 +2091,13 @@ function GroundsSection({
                             : ''}`
                         : `Locked.${entry.blockedReason ? ` ${entry.blockedReason}` : ''}`}`}
                       accessibilityState={{ disabled: !entryEnabled, selected }}
-                      disabled={!entryEnabled}
+                      disabled={!entryEnabled && !openingPitchChoiceBlocked}
                       onPress={() => {
-                        if (!guidedFirstFacilityAllowsBuildType(entry.type) && guidedFirstFacility) return;
+                        if (openingPitchChoiceBlocked) {
+                          setBuildMenuReminder("Let's build the Training Pitch first. Once it is underway, the other facilities will be available.");
+                          return;
+                        }
+                        setBuildMenuReminder(null);
                         setSelectedBuildType(selected ? null : entry.type);
                         setSelectedBuildingId(null);
                         setRelocatingBuildingId(null);

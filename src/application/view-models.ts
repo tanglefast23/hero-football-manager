@@ -130,6 +130,8 @@ import { leagueFixtureViewModel } from './m2-league-view-model';
 import { coachRoleEffectLabels } from './coach-effects';
 import {
   dueAssistantInboxGuideSequences,
+  OPENING_TRAINING_PITCH_BLOCKED_REASON,
+  openingTrainingPitchRequired,
   reconcileSatisfiedAssistantGuideSequences,
 } from './assistant-guide';
 import { eventChoiceUnavailableReason } from './event-selection';
@@ -738,6 +740,7 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
   const grid = state.facilities.grid ?? createFacilityGrid();
   const club = requireUserClub(state);
   const activeAdjacencies = activeFacilityAdjacencies(grid);
+  const pitchMustBeFirst = openingTrainingPitchRequired(state);
   return {
     width: grid.width,
     height: grid.height,
@@ -793,6 +796,8 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
     }),
     catalog: Object.values(FACILITY_CATALOG).filter(definition => definition.available).map(definition => {
       const alreadyBuilt = grid.buildings.some(building => building.type === definition.type);
+      const blockedByOpeningTrainingPitch = pitchMustBeFirst
+        && definition.type !== 'training-pitch';
       return {
         type: definition.type,
         name: definition.name,
@@ -804,8 +809,10 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
         available: definition.available,
         affordable: definition.available
           && !alreadyBuilt
+          && !blockedByOpeningTrainingPitch
           && grid.construction === undefined
           && club.cash >= definition.buildCost,
+        blockedByOpeningTrainingPitch,
         affordabilityShortfall: definition.available && !alreadyBuilt
           ? Math.max(0, definition.buildCost - club.cash)
           : 0,
@@ -814,11 +821,13 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
           ? { blockedReason: 'Locked.' }
           : alreadyBuilt
             ? { blockedReason: 'Already built. Select it on the grid to upgrade or move it.' }
-            : grid.construction !== undefined
-              ? { blockedReason: 'Construction crew is already assigned.' }
-              : club.cash < definition.buildCost
-                ? { blockedReason: 'Insufficient balance.' }
-                : {}),
+            : blockedByOpeningTrainingPitch
+              ? { blockedReason: OPENING_TRAINING_PITCH_BLOCKED_REASON }
+              : grid.construction !== undefined
+                ? { blockedReason: 'Construction crew is already assigned.' }
+                : club.cash < definition.buildCost
+                  ? { blockedReason: 'Insufficient balance.' }
+                  : {}),
       };
     }),
     weeklyUpkeep: weeklyFacilityUpkeep(grid),

@@ -109,7 +109,11 @@ import {
   settleWeeklyTip,
   weeklyReviewViewModel,
 } from './view-models';
-import { outstandingInboxDuties } from './assistant-guide';
+import {
+  OPENING_TRAINING_PITCH_REMINDER,
+  openingTrainingPitchRequired,
+  outstandingInboxDuties,
+} from './assistant-guide';
 import {
   eventChoiceUnavailableReason,
   eventOfferForWeek,
@@ -751,13 +755,20 @@ export const useM1Store = create<M1Store>((set, get) => ({
             career.facilities.grid?.construction?.kind === 'BUILD'
             && career.facilities.grid.construction.type === 'training-pitch'
           );
-        if (!trainingGroundStarted) {
+        const recoveringWrongOpeningProject = openingTrainingPitchRequired(career)
+          && career.facilities.grid?.construction !== undefined
+          && career.facilities.grid.construction.type !== 'training-pitch';
+        if (!trainingGroundStarted && !recoveringWrongOpeningProject) {
           throw new Error('Build the Training Ground from your inbox before advancing the week.');
         }
         if (activeTab !== 'home') {
           throw new Error('Return home before advancing the week.');
         }
-        if (career.market !== undefined && career.market.headCoach === undefined) {
+        if (
+          !recoveringWrongOpeningProject
+          && career.market !== undefined
+          && career.market.headCoach === undefined
+        ) {
           set({
             error: null,
             notice: {
@@ -1495,7 +1506,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   buildClubFacility(type, position) {
     guarded(set, () => {
-      const transaction = buildCareerFacility(requireCareer(get()), type, position);
+      const career = requireCareer(get());
+      if (type !== 'training-pitch' && openingTrainingPitchRequired(career)) {
+        set({
+          error: null,
+          notice: { tone: 'info', message: OPENING_TRAINING_PITCH_REMINDER },
+        });
+        return;
+      }
+      const transaction = buildCareerFacility(career, type, position);
       const discovery = transaction.newlyDiscoveredAdjacencies.length === 0
         ? ''
         : ` Adjacency discovered: ${transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', ')}.`;

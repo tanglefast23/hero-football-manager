@@ -242,19 +242,43 @@ const BLOCKING_INBOX_DUTIES: readonly AssistantInboxGuideSequenceId[] = [
   'youth-intake',
 ];
 
+export const OPENING_TRAINING_PITCH_BLOCKED_REASON = 'Build the Training Pitch first.';
+export const OPENING_TRAINING_PITCH_REMINDER = "Let's build the Training Pitch first. The other facilities will open up once it is underway.";
+
+/**
+ * The opening build is part of the Teacher path, not a momentary arrow state.
+ * Keeping the rule in career data means dismissing the cue, changing tabs, or
+ * reopening a save cannot expose another first project. Once a pitch has been
+ * started the works crew is the ordinary gate; once the lesson has completed,
+ * closing that pitch later does not restart onboarding.
+ */
+export function openingTrainingPitchRequired(state: GameState): boolean {
+  if (!assistantTeaches(state)) return false;
+  if (hasAssistantGuideSequenceCompleted(state, 'facility-placement')) return false;
+  if (state.facilities.trainingGroundBuilt) return false;
+  return !(state.facilities.grid?.buildings.some(
+    building => building.type === 'training-pitch',
+  ) ?? false);
+}
+
 /**
  * Whether the club could actually clear this duty right now.
  *
  * The youth intake is always answerable — declining closes it and costs
- * nothing — so only the build has a price to check. Checked against the same
- * `buildCost` the facility screen spends, so the gate lifts at exactly the
- * moment the button it is pointing at would refuse.
+ * nothing — so only the build has availability to check. Cash, the one works
+ * crew, and the opening Training Pitch rule all have to permit the office, so
+ * the week gate lifts whenever the button it points at would refuse.
  */
 function isInboxDutyAffordable(
   state: GameState,
   duty: AssistantInboxGuideSequenceId,
 ): boolean {
   if (duty !== 'coaching-office') return true;
+  // A wrong opening project in an older save must be allowed to finish, and a
+  // newly started pitch must be allowed to finish too. Asking for the office
+  // while either rule owns the one works crew would deadlock Advance Week.
+  if (openingTrainingPitchRequired(state)) return false;
+  if (state.facilities.grid?.construction !== undefined) return false;
   const cash = state.clubs.find(club => club.id === state.userClubId)?.cash ?? 0;
   return cash >= FACILITY_CATALOG['coaching-office'].buildCost;
 }
@@ -387,6 +411,20 @@ export function currentAssistantObjective(
       return { text: 'TAP + ON A PLAYER AND TRAIN A STAT.', target: 'training-plan' };
     }
     return { text: 'OPEN SQUAD.', target: 'squad-tab' };
+  }
+  const currentProject = state.facilities.grid?.construction;
+  if (
+    openingTrainingPitchRequired(state)
+    && currentProject !== undefined
+    && currentProject.type !== 'training-pitch'
+  ) {
+    if (activeTab === 'home') {
+      return {
+        text: 'LET THE CURRENT BUILD FINISH. ADVANCE WEEK.',
+        target: 'advance-week',
+      };
+    }
+    return { text: 'RETURN HOME.', target: 'home-tab' };
   }
   if (!state.facilities.trainingGroundBuilt && !isTrainingGroundUnderConstruction(state)) {
     if (activeTab === 'home') {

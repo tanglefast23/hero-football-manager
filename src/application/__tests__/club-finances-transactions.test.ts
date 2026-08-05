@@ -15,6 +15,35 @@ function finishConstruction(grid: FacilityGridState): FacilityGridState {
 }
 
 describe('club finances immediate transaction history', () => {
+  test('offers only the Training Pitch for the guided first facility', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260805));
+    const openingCatalog = clubFinancesViewModel(initial).facilities.catalog;
+
+    expect(openingCatalog.find(entry => entry.type === 'training-pitch')).toMatchObject({
+      affordable: true,
+      blockedByOpeningTrainingPitch: false,
+    });
+    expect(openingCatalog.find(entry => entry.type === 'gym')).toMatchObject({
+      affordable: false,
+      blockedByOpeningTrainingPitch: true,
+      blockedReason: 'Build the Training Pitch first.',
+    });
+    expect(clubFinancesViewModel({ ...initial, assistantMode: 'advisor' })
+      .facilities.catalog.find(entry => entry.type === 'gym'))
+      .toMatchObject({ affordable: true, blockedByOpeningTrainingPitch: false });
+
+    const pitchProject = buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state;
+    const pitchReady = {
+      ...pitchProject,
+      facilities: {
+        ...pitchProject.facilities,
+        grid: finishConstruction(pitchProject.facilities.grid!),
+      },
+    };
+    expect(clubFinancesViewModel(pitchReady).facilities.catalog.find(entry => entry.type === 'gym'))
+      .toMatchObject({ affordable: true, blockedByOpeningTrainingPitch: false });
+  });
+
   test('shows newest M2 purchases separately from the weekly statement', () => {
     const initial = createCareer(createLaunchCareerSetup(20260719));
     const building = buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state;

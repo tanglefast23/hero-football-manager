@@ -51,6 +51,8 @@ describe('concierge actionable targets', () => {
     );
     expect(source).toContain("const guidedFirstFacility = guideFocus === 'facility-grid';");
     expect(source).toContain('guidedFirstFacilityAllowsBuildType(entry.type)');
+    expect(source).toContain('entry.blockedByOpeningTrainingPitch');
+    expect(source).toContain("Let's build the Training Pitch first.");
     // Pinned to the guard itself rather than the bare comparison: the club now
     // starts seeded, so re-gating the guide on an empty board is the mistake.
     // Other sections legitimately ask whether anything is built at all.

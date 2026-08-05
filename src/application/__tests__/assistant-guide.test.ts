@@ -1,4 +1,5 @@
 import { advanceWeek, createCareer, CUP_SETTLEMENT_WEEKS } from '../../game/career';
+import { advanceFacilityConstruction } from '../../game/facilities';
 import { buildTrainingGround } from '../../game/squad';
 import { buildCareerFacility } from '../../game/management';
 import { hireCareerCoach } from '../../game/market-career';
@@ -16,6 +17,7 @@ import {
   currentAssistantObjective,
   dueAssistantInboxGuideSequences,
   LAST_GATED_INBOX_WEEK,
+  openingTrainingPitchRequired,
   outstandingInboxDuties,
   pendingAssistantGuideSequence,
   reconcileSatisfiedAssistantGuideSequences,
@@ -38,6 +40,16 @@ function clearOtherGuideFirsts(state: GameState): GameState {
     }
   }
   return next;
+}
+
+function completeOpeningPitch(state: GameState): GameState {
+  const started = buildCareerFacility(state, 'training-pitch', { x: 0, y: 0 }).state;
+  let grid = started.facilities.grid!;
+  while (grid.construction !== undefined) grid = advanceFacilityConstruction(grid).grid;
+  return {
+    ...started,
+    facilities: { ...started.facilities, trainingGroundBuilt: true, grid },
+  };
 }
 
 function managedSponsorCareer(options: {
@@ -282,6 +294,42 @@ describe('assistant guide application flow', () => {
     });
   });
 
+  test('lets a save with the wrong opening project finish it before asking for the pitch again', () => {
+    let state = createCareer(createLaunchCareerSetup(935));
+    state = completeAssistantGuideSequence(state, 'management-intro');
+    state = completeAssistantGuideMilestone(state, 'first-training-complete');
+    state = buildCareerFacility(state, 'gym', { x: 0, y: 0 }).state;
+    state = {
+      ...state,
+      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+    };
+
+    expect(openingTrainingPitchRequired(state)).toBe(true);
+    expect(currentAssistantObjective(state, 'club')).toEqual({
+      text: 'RETURN HOME.',
+      target: 'home-tab',
+    });
+    expect(currentAssistantObjective(state, 'home')).toEqual({
+      text: 'LET THE CURRENT BUILD FINISH. ADVANCE WEEK.',
+      target: 'advance-week',
+    });
+
+    let finishedGrid = state.facilities.grid!;
+    while (finishedGrid.construction !== undefined) {
+      finishedGrid = advanceFacilityConstruction(finishedGrid).grid;
+    }
+    const recoveredWeekThree = {
+      ...state,
+      week: 3,
+      facilities: { ...state.facilities, grid: finishedGrid },
+    };
+    expect(dueAssistantInboxGuideSequences(recoveredWeekThree)).toEqual(expect.arrayContaining([
+      'facility-placement',
+      'coaching-office',
+    ]));
+    expect(outstandingInboxDuties(recoveredWeekThree)).not.toContain('coaching-office');
+  });
+
   test('waits for both first-week inbox jobs before pointing to Advance Week', () => {
     let state = createCareer(createLaunchCareerSetup(936));
     state = completeAssistantGuideSequence(state, 'management-intro');
@@ -436,6 +484,7 @@ describe('assistant guide application flow', () => {
     expect(dueAssistantInboxGuideSequences(state)).toContain('facility-placement');
     expect(outstandingInboxDuties(state)).toEqual([]);
 
+    state = completeOpeningPitch(state);
     const weekTwo = reconcileStoryYouthIntake({ ...state, week: 2 });
     expect(outstandingInboxDuties(weekTwo)).toEqual(['youth-intake']);
 
@@ -461,8 +510,8 @@ describe('assistant guide application flow', () => {
     state = {
       ...state,
       market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
-      week: 3,
     };
+    state = { ...completeOpeningPitch(state), week: 3 };
     expect(outstandingInboxDuties(state)).toContain('coaching-office');
 
     // A club that cannot afford the office has no way to earn until the week
