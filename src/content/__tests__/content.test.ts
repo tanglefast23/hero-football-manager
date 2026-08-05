@@ -528,4 +528,15 @@ describe('validated M1 launch content', () => {
 
     expect(bodies.some(line => line.includes('Training Pitch'))).toBe(false);
   });
+
+  test('explains local advertising in the club glossary', () => {
+    const club = loadLaunchContent().glossary.categories
+      .find(category => category.id === 'club');
+    const entry = club?.entries.find(term => term.term === 'Local advertising');
+    expect(entry?.definition).toContain('every fourth week');
+    expect(entry?.definition).toContain('Division 4');
+
+    const money = club?.entries.find(term => term.term === 'Money');
+    expect(money?.definition).toContain('advertising');
+  });
 });

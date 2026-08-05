@@ -103,7 +103,8 @@
       "id": "club",
       "title": "Club & competitions",
       "entries": [
-        { "term": "Money", "definition": "The club-capacity currency used for wages, transfers, facilities, scouting, and events. It is earned from sponsors, tickets, prizes, and player sales." },
+        { "term": "Money", "definition": "The club-capacity currency used for wages, transfers, facilities, scouting, and events. It is earned from advertising, tickets, sponsors, prizes, and player sales." },
+        { "term": "Local advertising", "definition": "Money from the hoardings around your pitch, paid every fourth week. It is a fixed amount while your club is in Division 5. Reach Division 4 and real sponsors take the boards over, replacing it with deals you choose." },
         { "term": "Fans", "definition": "Supporters who affect home attendance and ticket income. Club events can grow or shrink the fanbase." },
         { "term": "Facility", "definition": "A building placed on club grounds that adds a lasting benefit and usually a weekly upkeep cost. You may build up to three Fan Shops and three Stadium Stands; every other facility is limited to one." },
         { "term": "Upkeep", "definition": "The recurring weekly Money cost of running a facility." },
