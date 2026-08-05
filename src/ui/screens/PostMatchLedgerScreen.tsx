@@ -122,7 +122,7 @@ export function PostMatchLedgerScreen({
         <DesktopClamp>
           <ActionButton
             label="Back to the office  ▸"
-            accessibilityLabel="Continue to the Home screen and review the match summary"
+            accessibilityLabel="Continue to the Home screen and review the financial report"
             onPress={onContinue}
           />
         </DesktopClamp>

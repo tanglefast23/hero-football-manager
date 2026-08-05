@@ -62,18 +62,24 @@ describe('player-facing acceptance audit regressions', () => {
 
   test('does not collapse the match statement into its dismiss backdrop', () => {
     const summary = source('src/ui/PostMatchSummaryModal.tsx');
+    const statement = source('src/ui/components/FinancialStatement.tsx');
 
     expect(summary).toContain('accessible={false}');
     expect(summary).toContain('style={StyleSheet.absoluteFill}');
-    expect(summary).toContain('accessibilityLabel={`${line.label},');
+    // The row labels moved into the statement component with the reveal math;
+    // every row still narrates itself rather than dissolving into the panel.
+    expect(statement).toContain('accessibilityLabel={rowAccessibilityLabel(line)}');
+    expect(statement).toContain("return `${line.label}, ${sign}${money(line.amount)}`;");
   });
 
   test('labels net training-point movement truthfully for positive and negative weeks', () => {
-    const summary = source('src/ui/PostMatchSummaryModal.tsx');
+    const body = source('src/ui/components/FinancialReportBody.tsx');
 
-    expect(summary).toContain('label="TP change"');
-    expect(summary).toContain('formatSignedCompactNumber(viewModel.trainingPointsGained)');
-    expect(summary).not.toContain('value={`+${formatCompactNumber(viewModel.trainingPointsGained)}`}');
+    expect(body).toContain('label="TP change"');
+    // The count-up formatter keeps the signed presentation the old
+    // formatSignedCompactNumber call guaranteed.
+    expect(body).toContain("format={amount => `${amount > 0 ? '+' : ''}${formatCompactNumber(amount)}`}");
+    expect(body).not.toContain('value={`+${formatCompactNumber(viewModel.trainingPointsGained)}`}');
   });
 
   test('uses native text rows for noninteractive ledger entries', () => {
