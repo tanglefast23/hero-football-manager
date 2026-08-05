@@ -10,7 +10,7 @@ import type { PersistenceDatabase } from './database';
 import type { PowerId } from '../sim/types';
 import { migrateDatabase } from './migrations';
 
-const PREFERENCES_SCHEMA_VERSION = 8;
+const PREFERENCES_SCHEMA_VERSION = 9;
 const LEGACY_PREFERENCES_SCHEMA_VERSION = 1;
 const M2_PREFERENCES_SCHEMA_VERSION = 2;
 const M4_PREFERENCES_SCHEMA_VERSION = 3;
@@ -18,6 +18,7 @@ const CUT_IN_HISTORY_PREFERENCES_SCHEMA_VERSION = 4;
 const MANAGER_TIPS_PREFERENCES_SCHEMA_VERSION = 5;
 const AUTO_SUBS_PREFERENCES_SCHEMA_VERSION = 6;
 const SQUAD_SORT_PREFERENCES_SCHEMA_VERSION = 7;
+const CLIMB_COMPLETED_PREFERENCES_SCHEMA_VERSION = 8;
 const PRIMARY_SLOT = 1;
 
 export type MasterVolume = 0 | 0.25 | 0.5 | 0.75 | 1;
@@ -52,6 +53,8 @@ export interface AppPreferences {
   autoSubs: boolean;
   /** Squad list ordering, remembered between visits and between sessions. */
   squadSort: SquadSort | null;
+  /** Debug-build-only switch for developer save controls. */
+  developerMode: boolean;
 }
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
@@ -69,6 +72,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   seenPowerCutIns: [],
   autoSubs: false,
   squadSort: null,
+  developerMode: false,
 };
 
 const FormationSchema = z.enum(FORMATION_IDS);
@@ -107,6 +111,7 @@ const PreferencesSchema = z.strictObject({
       direction: z.enum(['descending', 'ascending']),
     }),
   ]),
+  developerMode: z.boolean(),
 });
 const LegacyPreferencesSchema = PreferencesSchema.pick({
   formationPresets: true,
@@ -126,21 +131,24 @@ const M4PreferencesSchema = PreferencesSchema.omit({
   autoSubs: true,
   squadSort: true,
   climbCompleted: true,
+  developerMode: true,
 });
 const CutInHistoryPreferencesSchema = PreferencesSchema.omit({
   autoSubs: true,
   squadSort: true,
   climbCompleted: true,
+  developerMode: true,
 });
 const ManagerTipsPreferencesSchema = PreferencesSchema
-  .omit({ autoSubs: true, squadSort: true, climbCompleted: true })
+  .omit({ autoSubs: true, squadSort: true, climbCompleted: true, developerMode: true })
   .extend(RetiredTipsShape);
 const AutoSubsPreferencesSchema = PreferencesSchema
-  .omit({ squadSort: true, climbCompleted: true })
+  .omit({ squadSort: true, climbCompleted: true, developerMode: true })
   .extend(RetiredTipsShape);
 const SquadSortPreferencesSchema = PreferencesSchema
-  .omit({ climbCompleted: true })
+  .omit({ climbCompleted: true, developerMode: true })
   .extend(RetiredTipsShape);
+const ClimbCompletedPreferencesSchema = PreferencesSchema.omit({ developerMode: true });
 
 const UPSERT_SQL = `
   INSERT INTO app_preferences (slot, schema_version, preferences_json)
@@ -196,6 +204,7 @@ export async function createPreferencesRepository(
           seenPowerCutIns: [...DEFAULT_APP_PREFERENCES.seenPowerCutIns],
           autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
+          developerMode: DEFAULT_APP_PREFERENCES.developerMode,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -221,6 +230,7 @@ export async function createPreferencesRepository(
           seenPowerCutIns: [...DEFAULT_APP_PREFERENCES.seenPowerCutIns],
           autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
+          developerMode: DEFAULT_APP_PREFERENCES.developerMode,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -241,6 +251,7 @@ export async function createPreferencesRepository(
           seenPowerCutIns: [...DEFAULT_APP_PREFERENCES.seenPowerCutIns],
           autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
+          developerMode: DEFAULT_APP_PREFERENCES.developerMode,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -261,6 +272,7 @@ export async function createPreferencesRepository(
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
           autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
+          developerMode: DEFAULT_APP_PREFERENCES.developerMode,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -282,6 +294,7 @@ export async function createPreferencesRepository(
           autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
+          developerMode: DEFAULT_APP_PREFERENCES.developerMode,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -302,6 +315,7 @@ export async function createPreferencesRepository(
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
+          developerMode: DEFAULT_APP_PREFERENCES.developerMode,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -322,6 +336,26 @@ export async function createPreferencesRepository(
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
           squadSort: legacy.data.squadSort === null ? null : { ...legacy.data.squadSort },
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
+          developerMode: DEFAULT_APP_PREFERENCES.developerMode,
+        };
+        await database.runAsync(UPSERT_SQL, [
+          PRIMARY_SLOT,
+          PREFERENCES_SCHEMA_VERSION,
+          JSON.stringify(migrated),
+        ]);
+        return migrated;
+      }
+      if (row.schema_version === CLIMB_COMPLETED_PREFERENCES_SCHEMA_VERSION) {
+        const legacy = ClimbCompletedPreferencesSchema.safeParse(decoded);
+        if (!legacy.success) {
+          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+        }
+        const migrated: AppPreferences = {
+          ...legacy.data,
+          formationPresets: [...legacy.data.formationPresets],
+          seenPowerCutIns: [...legacy.data.seenPowerCutIns],
+          squadSort: legacy.data.squadSort === null ? null : { ...legacy.data.squadSort },
+          developerMode: DEFAULT_APP_PREFERENCES.developerMode,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,

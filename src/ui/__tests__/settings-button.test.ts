@@ -91,4 +91,43 @@ describe('SettingsButton', () => {
     (bertMode?.props.onPress as (() => void) | undefined)?.();
     expect(onSetAssistantMode).toHaveBeenCalledWith('advisor');
   });
+
+  it('only exposes Developer Mode when the Debug-build props are supplied', () => {
+    const onToggleDeveloperMode = jest.fn();
+    const common = {
+      open: true,
+      glossary: { schemaVersion: 1 as const, categories: [] },
+      glossaryOpen: false,
+      volume: 1 as const,
+      reduceMotion: false,
+      hudSide: 'left' as const,
+      hapticsEnabled: true,
+      textScale: 1 as const,
+      highContrast: false,
+      colorSafeKits: true,
+      cutInMode: 'full' as const,
+      onVolumeChange: jest.fn(),
+      onToggleReduceMotion: jest.fn(),
+      onToggleHudSide: jest.fn(),
+      onToggleHaptics: jest.fn(),
+      onCycleTextScale: jest.fn(),
+      onToggleHighContrast: jest.fn(),
+      onToggleColorSafeKits: jest.fn(),
+      onToggleCutInMode: jest.fn(),
+      onGlossaryOpenChange: jest.fn(),
+      onOpenChange: jest.fn(),
+    };
+
+    expect(findByAccessibilityLabel(SettingsOverlay(common), 'Developer mode')).toBeUndefined();
+
+    const debug = SettingsOverlay({
+      ...common,
+      developerMode: true,
+      onToggleDeveloperMode,
+    });
+    const developerMode = findByAccessibilityLabel(debug, 'Developer mode');
+    expect(developerMode?.props.accessibilityState).toEqual({ checked: true });
+    (developerMode?.props.onPress as (() => void) | undefined)?.();
+    expect(onToggleDeveloperMode).toHaveBeenCalledTimes(1);
+  });
 });

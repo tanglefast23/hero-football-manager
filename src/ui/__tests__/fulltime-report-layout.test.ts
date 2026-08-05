@@ -12,17 +12,19 @@ describe('full-time report layout', () => {
 
     // Side by side, the names were cut to "BRAMB LE RO_" on a phone. Stacked,
     // both spell out, and the score sits between them.
-    expect(source).toContain('<TeamLine name={result.homeTeam} won={result.winner === \'home\'} />');
-    expect(source).toContain('<TeamLine name={result.awayTeam} won={result.winner === \'away\'} />');
+    expect(source).toContain("outcome={result.winner === 'home' && result.outcomeLabel !== 'DRAW'");
+    expect(source).toContain("outcome={result.winner === 'away' && result.outcomeLabel !== 'DRAW'");
     expect(source).not.toContain('className="w-24 text-right text-base uppercase text-ink"');
   });
 
-  it('boxes the winner in red and puts WIN on its own row underneath', () => {
+  it('states our result in green or red without boxing either club', () => {
     const source = screen();
 
-    expect(source).toContain("? 'border-2 border-stamp px-4 py-2'");
-    expect(source).toContain('{won ? (');
-    expect(source).toContain('className="mt-2 text-xl uppercase text-red-dark">Win<');
+    expect(source).not.toContain('border-stamp');
+    expect(source).toContain("outcome === 'WIN'");
+    expect(source).toContain("? 'We Won!' : 'We Lost'");
+    expect(source).toContain('text-pitch-ink');
+    expect(source).toContain('text-red-dark');
     // A drawn match boxes nobody, so it still has to say so somewhere.
     expect(source).toContain('{result.winner === null ? (');
     expect(source).toContain('>Draw<');

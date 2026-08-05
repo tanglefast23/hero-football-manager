@@ -107,7 +107,13 @@ export function InfoTip({
     : TIP_WIDTH;
 
   return (
-    <View style={[styles.anchor, style]} className={className}>
+    <View
+      // The bubble's own z-index cannot outrank a later sibling when its anchor
+      // stays in the ordinary paint order. Raise the whole anchor while open so
+      // roster rows, panels and adjacent columns never draw through the tip.
+      style={[styles.anchor, style, shown ? styles.anchorShown : null]}
+      className={className}
+    >
       <Pressable
         accessibilityRole={onPress === undefined ? 'text' : 'button'}
         accessibilityLabel={accessibilityLabel}
@@ -151,6 +157,7 @@ export function InfoTip({
 
 const styles = StyleSheet.create({
   anchor: { position: 'relative' },
+  anchorShown: { zIndex: 1000, elevation: 20 },
   bubble: {
     position: 'absolute',
     top: '100%',

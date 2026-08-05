@@ -56,7 +56,7 @@ describe('drill shop nudge', () => {
       m2: { ...promotedDeskClearCareer(20261103).m2!, highestDivisionReached: 5 as const },
     };
 
-    expect(homeViewModel(stillD5).alerts.map(alert => alert.id)).toEqual(['build-reminder']);
+    expect(homeViewModel(stillD5).alerts).toHaveLength(0);
   });
 
   it('waits until the club can afford the drill', () => {
@@ -68,7 +68,7 @@ describe('drill shop nudge', () => {
       )),
     };
 
-    expect(homeViewModel(poor).alerts.map(alert => alert.id)).toEqual(['build-reminder']);
+    expect(homeViewModel(poor).alerts).toHaveLength(0);
   });
 
   it('goes away for good once the club buys any upgrade', () => {
@@ -77,7 +77,7 @@ describe('drill shop nudge', () => {
       ownedTrainingTiers: { sprints: 2 },
     };
 
-    expect(homeViewModel(bought).alerts.map(alert => alert.id)).toEqual(['build-reminder']);
+    expect(homeViewModel(bought).alerts).toHaveLength(0);
   });
 
   it('never displaces a real inbox item', () => {

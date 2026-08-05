@@ -256,6 +256,8 @@ interface M1Store {
     share: (fileName: string, contents: string) => Promise<void>,
   ) => Promise<void>;
   restoreBackupSave: () => Promise<void>;
+  /** Debug UI only: replaces the live career with an exact stored snapshot. */
+  restoreDeveloperSave: (state: GameState, slotLabel: string) => void;
   retrySave: () => void;
   startNewCareer: (seed?: number, assistantMode?: AssistantMode) => void;
   continueCareer: () => void;
@@ -497,6 +499,31 @@ export const useM1Store = create<M1Store>((set, get) => ({
     clearSaveFailures(set);
     // Reconciliation may have changed the restored state; persist that shape.
     queueCareerSave(get, set, restored);
+  },
+
+  restoreDeveloperSave(state, slotLabel) {
+    guarded(set, () => {
+      const restored = reconcileLoadedCareer(state);
+      clearRivalResultCache();
+      set({
+        career: restored,
+        hasSavedCareer: true,
+        lastPersistedCareer: null,
+        screen: resumeScreen(restored),
+        activeTab: 'home',
+        selectedPlayerId: undefined,
+        lastDrillResult: null,
+        watchedMatch: null,
+        postMatch: null,
+        postMatchOverlay: null,
+        weekReview: null,
+        inboxDutyReminder: null,
+        error: null,
+        notice: { tone: 'info', message: `Loaded developer save ${slotLabel}.` },
+      });
+      clearSaveFailures(set);
+      queueCareerSave(get, set, restored);
+    });
   },
 
   /** Retries the last career state, so a fixed disk can clear a save block. */

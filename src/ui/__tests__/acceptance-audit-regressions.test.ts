@@ -88,7 +88,10 @@ describe('player-facing acceptance audit regressions', () => {
     const club = source('src/ui/screens/ClubFinancesScreen.tsx');
 
     expect(club).toContain("position: 'relative'");
-    expect(club).toContain('zIndex: placementActive ? 2 : 0');
+    // The hovered SfxPressable has to share the grid's stacking context so its
+    // raised tooltip can clear the absolutely positioned building layer.
+    expect(club).not.toContain('zIndex: placementActive ? 2 : 0');
+    expect(club).toContain('shared hover-tip host raises only the active cell');
     expect(club).toContain('zIndex: 3');
     expect(club).toContain('accessible={placementActive}');
     expect(club).toContain("`${buildable ? 'Build at' : 'Blocked at'} column ${x + 1}, row ${y + 1}`");

@@ -49,7 +49,7 @@ describe('app preferences repository', () => {
       autoPowers: true,
       masterVolume: 0.75,
     });
-    expect(database.preferencesRow?.schema_version).toBe(8);
+    expect(database.preferencesRow?.schema_version).toBe(9);
   });
 
   it('migrates schema-2 preferences with M4 accessibility defaults', async () => {
@@ -73,7 +73,7 @@ describe('app preferences repository', () => {
       reduceMotion: true,
       hudSide: 'right',
     });
-    expect(database.preferencesRow?.schema_version).toBe(8);
+    expect(database.preferencesRow?.schema_version).toBe(9);
   });
 
   it('migrates schema-3 M4 preferences with an empty persistent cut-in history', async () => {
@@ -83,6 +83,7 @@ describe('app preferences repository', () => {
       autoSubs: _autoSubs,
       squadSort: _squadSort,
       climbCompleted: _climbCompleted,
+      developerMode: _developerMode,
       ...m4Preferences
     } = DEFAULT_APP_PREFERENCES;
     database.preferencesRow = {
@@ -95,7 +96,7 @@ describe('app preferences repository', () => {
       ...DEFAULT_APP_PREFERENCES,
       cutInMode: 'banner',
     });
-    expect(database.preferencesRow?.schema_version).toBe(8);
+    expect(database.preferencesRow?.schema_version).toBe(9);
   });
 
   it('migrates schema-4 preferences with manager tips enabled', async () => {
@@ -104,6 +105,7 @@ describe('app preferences repository', () => {
       autoSubs: _autoSubs,
       squadSort: _squadSort,
       climbCompleted: _climbCompleted,
+      developerMode: _developerMode,
       ...schema4Preferences
     } = DEFAULT_APP_PREFERENCES;
     database.preferencesRow = {
@@ -113,7 +115,7 @@ describe('app preferences repository', () => {
     const repository = await createPreferencesRepository(database);
 
     await expect(repository.load()).resolves.toEqual(DEFAULT_APP_PREFERENCES);
-    expect(database.preferencesRow?.schema_version).toBe(8);
+    expect(database.preferencesRow?.schema_version).toBe(9);
   });
 
   it('migrates schema-5 preferences with bench cover off, keeping the rest', async () => {
@@ -122,6 +124,7 @@ describe('app preferences repository', () => {
       autoSubs: _autoSubs,
       squadSort: _squadSort,
       climbCompleted: _climbCompleted,
+      developerMode: _developerMode,
       ...schema5Base
     } = DEFAULT_APP_PREFERENCES;
     const schema5Preferences = { ...schema5Base, managerTipsEnabled: true };
@@ -141,7 +144,7 @@ describe('app preferences repository', () => {
       seenPowerCutIns: ['GRAVITY_WELL'],
       autoSubs: false,
     });
-    expect(database.preferencesRow?.schema_version).toBe(8);
+    expect(database.preferencesRow?.schema_version).toBe(9);
   });
 
   it('migrates schema-6 preferences to the roster order the club has not chosen yet', async () => {
@@ -149,6 +152,7 @@ describe('app preferences repository', () => {
     const {
       squadSort: _squadSort,
       climbCompleted: _climbCompleted,
+      developerMode: _developerMode,
       ...schema6Base
     } = DEFAULT_APP_PREFERENCES;
     const schema6Preferences = { ...schema6Base, managerTipsEnabled: true };
@@ -163,7 +167,7 @@ describe('app preferences repository', () => {
       autoSubs: true,
       squadSort: null,
     });
-    expect(database.preferencesRow?.schema_version).toBe(8);
+    expect(database.preferencesRow?.schema_version).toBe(9);
   });
 
   it('keeps the roster ordering the manager picked', async () => {
@@ -264,7 +268,7 @@ describe('app preferences repository', () => {
     const preferences = await repository.load();
     expect(preferences.climbCompleted).toBe(false);
     expect('managerTipsEnabled' in preferences).toBe(false);
-    expect(database.preferencesRow?.schema_version).toBe(8);
+    expect(database.preferencesRow?.schema_version).toBe(9);
   });
 
   it('round-trips a completed climb', async () => {
@@ -274,5 +278,19 @@ describe('app preferences repository', () => {
     await repository.save({ ...preferences, climbCompleted: true });
 
     expect((await repository.load()).climbCompleted).toBe(true);
+  });
+
+  it('migrates a version 8 row with Developer Mode safely off', async () => {
+    const database = new FakePersistenceDatabase();
+    const { developerMode: _developerMode, ...schema8Preferences } = DEFAULT_APP_PREFERENCES;
+    database.preferencesRow = {
+      schema_version: 8,
+      preferences_json: JSON.stringify(schema8Preferences),
+    };
+
+    const repository = await createPreferencesRepository(database);
+
+    await expect(repository.load()).resolves.toEqual(DEFAULT_APP_PREFERENCES);
+    expect(database.preferencesRow?.schema_version).toBe(9);
   });
 });

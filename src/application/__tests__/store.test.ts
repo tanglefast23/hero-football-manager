@@ -75,6 +75,37 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState()).toMatchObject({ screen: 'management' });
   });
 
+  it('restores a developer snapshot as the live career and clears transient match UI', () => {
+    startCreatedCareer(20260805);
+    const snapshot: GameState = {
+      ...useM1Store.getState().career!,
+      week: 11,
+      trainingPoints: 76,
+      phase: 'manage',
+    };
+    useM1Store.setState({
+      screen: 'postmatch',
+      selectedPlayerId: snapshot.players[0]?.id,
+      error: 'Old error',
+    });
+
+    useM1Store.getState().restoreDeveloperSave(snapshot, 'B');
+
+    expect(useM1Store.getState()).toMatchObject({
+      career: { week: 11, trainingPoints: 76 },
+      hasSavedCareer: true,
+      lastPersistedCareer: null,
+      screen: 'management',
+      activeTab: 'home',
+      selectedPlayerId: undefined,
+      watchedMatch: null,
+      postMatch: null,
+      weekReview: null,
+      error: null,
+      notice: { tone: 'info', message: 'Loaded developer save B.' },
+    });
+  });
+
   it('still awakens the created player after they are substituted in the first match', () => {
     startCreatedCareer(124);
     advanceToWeek(3);

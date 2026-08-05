@@ -108,11 +108,13 @@ export function SfxPressable({
           ? style({ pressed, hovered } as Parameters<typeof style>[0])
           : style;
         return [
+          tip !== undefined ? hoverTipAnchor : undefined,
           resolved,
           pressed && !setsOpacity(resolved) ? { opacity: 0.7 } : undefined,
           // A mouse gets a cursor and a 1px lift so the UI stops feeling dead.
           pointer && !disabled ? pointerCursor : undefined,
           pointer && hovered && !pressed && !disabled ? hoverLift : undefined,
+          showTip ? hoverTipTopLayer : undefined,
         ];
       })()}
     >
@@ -143,6 +145,7 @@ export function HoverTipAnchor({ tip, className, children }: {
   return (
     <View
       className={className}
+      style={showTip ? hoverTipTopLayer : hoverTipAnchor}
       onPointerEnter={pointer ? () => setHovered(true) : undefined}
       onPointerLeave={pointer ? () => setHovered(false) : undefined}
     >
@@ -158,6 +161,10 @@ export function HoverTipAnchor({ tip, className, children }: {
  */
 const pointerCursor = { cursor: 'pointer' } as ViewStyle;
 const hoverLift: ViewStyle = { transform: [{ translateY: -1 }] };
+const hoverTipAnchor: ViewStyle = { position: 'relative' };
+// Raise the host, not only the absolute bubble. A child's z-index is trapped in
+// its parent's paint order, which is why later roster text appeared over tips.
+const hoverTipTopLayer: ViewStyle = { zIndex: 1000, elevation: 20 };
 
 function HoverTip({ text, side }: { text: string; side: 'top' | 'bottom' }): ReactNode {
   return (

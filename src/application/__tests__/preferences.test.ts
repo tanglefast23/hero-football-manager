@@ -29,6 +29,7 @@ describe('fail-soft app preferences', () => {
       seenPowerCutIns: [],
       autoSubs: false,
       squadSort: null,
+      developerMode: false,
     });
     expect(saved).toEqual(result.preferences);
     expect(result.warning).toContain('reset to defaults');

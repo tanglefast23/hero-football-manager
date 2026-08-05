@@ -12,6 +12,16 @@ export {
   type RawStoredCareer,
 } from './career-repository';
 export {
+  createDeveloperSaveRepository,
+  DEVELOPER_AUTO_SAVE_SLOTS,
+  DEVELOPER_MANUAL_SAVE_SLOTS,
+  type DeveloperAutoSaveSlot,
+  type DeveloperManualSaveSlot,
+  type DeveloperSaveRepository,
+  type DeveloperSaveSlot,
+  type DeveloperSaveSummary,
+} from './developer-save-repository';
+export {
   resetCareerDatabase,
   type CareerDatabaseResetOptions,
 } from './hard-reset';

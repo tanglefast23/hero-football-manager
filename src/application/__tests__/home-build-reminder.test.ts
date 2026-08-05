@@ -80,5 +80,12 @@ describe('keep-building inbox nudge', () => {
 
     expect(homeViewModel({ ...clear, week: 6 }).alerts).toHaveLength(0);
     expect(homeViewModel({ ...clear, week: 7 }).alerts).toHaveLength(1);
+    expect(homeViewModel({ ...clear, week: 8 }).alerts).toHaveLength(0);
+  });
+
+  it('does not repeat in a later season', () => {
+    const clear = deskClearCareer(20260805);
+
+    expect(homeViewModel({ ...clear, season: 2, week: 7 }).alerts).toHaveLength(0);
   });
 });

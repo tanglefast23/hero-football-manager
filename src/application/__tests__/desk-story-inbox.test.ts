@@ -80,7 +80,8 @@ describe('stories on the desk', () => {
       pendingEvent: { ...offered.pendingEvent!, resolvedChoiceId: spider.choices[0].id },
     };
 
-    // The card is gone and the quiet week falls back to the standing nudge.
-    expect(homeViewModel(resolved).alerts.map(alert => alert.id)).toEqual(['build-reminder']);
+    // The card is gone and Week 9 stays quiet; the building reminder retired
+    // after its single Week 7 appearance.
+    expect(homeViewModel(resolved).alerts).toHaveLength(0);
   });
 });

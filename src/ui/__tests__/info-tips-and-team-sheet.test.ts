@@ -33,6 +33,19 @@ describe('column and personality explanations', () => {
     expect(tip).toContain('bubbleNarrow:');
   });
 
+  it('raises each tooltip host above later rows and neighboring panels', () => {
+    const infoTip = read('src/ui/components/InfoTip.tsx');
+    const hoverTip = read('src/ui/components/SfxPressable.tsx');
+
+    // A high z-index on only the bubble stays trapped in its parent's paint
+    // order. The whole active anchor must rise while the tip is visible.
+    expect(infoTip).toContain('shown ? styles.anchorShown : null');
+    expect(infoTip).toContain('anchorShown: { zIndex: 1000, elevation: 20 }');
+    expect(hoverTip).toContain('showTip ? hoverTipTopLayer : undefined');
+    expect(hoverTip).toContain('style={showTip ? hoverTipTopLayer : hoverTipAnchor}');
+    expect(hoverTip).toContain('const hoverTipTopLayer: ViewStyle = { zIndex: 1000, elevation: 20 };');
+  });
+
   it('explains every sortable roster column and the personality', () => {
     const screen = read('src/ui/screens/SquadTrainingScreen.tsx');
 

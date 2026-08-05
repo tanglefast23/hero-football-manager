@@ -41,7 +41,7 @@ export type FulltimeReportCaseId =
 const CASES: readonly { id: FulltimeReportCaseId; label: string; note: string }[] = [
   { id: 'win', label: 'Win · close', note: 'Won by two. Relieved rather than delighted.' },
   { id: 'rout', label: 'Win · big', note: 'Won by four. He has run out of things to shout.' },
-  { id: 'draw', label: 'Draw', note: 'Nobody boxed, and he stands at rest to say so.' },
+  { id: 'draw', label: 'Draw', note: 'Neutral result copy, and he stands at rest to say so.' },
   { id: 'loss', label: 'Loss · close', note: 'Beaten by two, and in tears about it.' },
   { id: 'hiding', label: 'Loss · big', note: 'Beaten by four. No speech exists for that.' },
   { id: 'blamed', label: 'Loss · blamed', note: 'The one-in-three: he points at the assistant.' },
@@ -145,7 +145,7 @@ export const fulltimeReportEntry: DevHarnessEntry = Object.freeze({
   id: 'fulltime-report',
   group: 'Match',
   title: 'Full-time report',
-  summary: 'The winner boxed in red, and what the gaffer says about it.',
+  summary: 'Our result in green or red, and what the gaffer says about it.',
   cases: Object.freeze(CASES.map(entry => ({
     id: entry.id,
     label: entry.label,

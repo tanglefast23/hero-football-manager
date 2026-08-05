@@ -17,13 +17,19 @@ import {
 } from './src/content';
 import {
   createCareerRepository,
+  createDeveloperSaveRepository,
   createPreferencesRepository,
   createReplayRepository,
   DEFAULT_APP_PREFERENCES,
+  DEVELOPER_MANUAL_SAVE_SLOTS,
   migrateDatabase,
   replaceFormationPreset,
   resetCareerDatabase,
   type AppPreferences,
+  type DeveloperManualSaveSlot,
+  type DeveloperSaveRepository,
+  type DeveloperSaveSlot,
+  type DeveloperSaveSummary,
   type PreferencesRepository,
 } from './src/persistence';
 import { MatchScreen, type PowerCutInQaEntry } from './src/render/MatchScreen';
@@ -531,7 +537,12 @@ function GameApp() {
   const [selectedCupSeason, setSelectedCupSeason] = useState<number | undefined>();
   const [bootAttempt, setBootAttempt] = useState(0);
   const [pendingConfirmation, setPendingConfirmation] = useState<ConfirmationRequest | null>(null);
+  const [developerSaveSummaries, setDeveloperSaveSummaries] = useState<DeveloperSaveSummary[]>([]);
+  const [developerManualSaveSelecting, setDeveloperManualSaveSelecting] = useState(false);
+  const [developerSaveError, setDeveloperSaveError] = useState<string | null>(null);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
+  const developerSaveRepositoryRef = useRef<DeveloperSaveRepository | null>(null);
+  const developerSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const preferencesSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const preferencesRef = useRef(preferences);
   preferencesRef.current = preferences;
@@ -603,6 +614,13 @@ function GameApp() {
     const current = preferencesRef.current;
     savePreferences({ ...current, cutInMode: current.cutInMode === 'full' ? 'banner' : 'full' });
   }, [savePreferences]);
+  const toggleDeveloperMode = useCallback(() => {
+    if (!__DEV__) return;
+    const current = preferencesRef.current;
+    const developerMode = !current.developerMode;
+    if (!developerMode) setDeveloperManualSaveSelecting(false);
+    savePreferences({ ...current, developerMode });
+  }, [savePreferences]);
   const saveAutoSubs = useCallback((autoSubs: boolean) => {
     savePreferences({ ...preferencesRef.current, autoSubs });
   }, [savePreferences]);
@@ -624,6 +642,15 @@ function GameApp() {
     savePreferences(next);
   }, [savePreferences]);
 
+  const queueDeveloperSaveTask = useCallback((task: () => Promise<void>) => {
+    developerSaveQueueRef.current = developerSaveQueueRef.current
+      .then(task)
+      .catch(error => {
+        const detail = error instanceof Error ? error.message : String(error);
+        setDeveloperSaveError(`Developer save failed. ${detail}`);
+      });
+  }, []);
+
   const advanceCareerWithSfx = useCallback(() => {
     // Zustand updates synchronously here. Only a real week change gets the
     // cue, so tutorial-blocked taps and event redirects stay silent.
@@ -635,6 +662,19 @@ function GameApp() {
     const boardResolutionAfter = useM1Store.getState().career?.financialSafety?.latestBoardResolution;
     if (before !== undefined && after !== undefined && after !== before) {
       playAdvanceWeekSfx();
+      const advancedCareer = useM1Store.getState().career;
+      const developerRepository = developerSaveRepositoryRef.current;
+      if (
+        __DEV__
+        && preferencesRef.current.developerMode
+        && advancedCareer !== null
+        && developerRepository !== null
+      ) {
+        queueDeveloperSaveTask(async () => {
+          setDeveloperSaveSummaries(await developerRepository.saveNextWeek(advancedCareer));
+          setDeveloperSaveError(null);
+        });
+      }
     }
     if (boardResolutionAfter !== undefined && boardResolutionAfter.id !== boardResolutionBefore) {
       if (boardResolutionAfter.kind === 'TARGET_MET') {
@@ -646,7 +686,7 @@ function GameApp() {
         setTimeout(() => playManagementActionSfx('success'), 280);
       }
     }
-  }, []);
+  }, [queueDeveloperSaveTask]);
 
   const showStartedFacilityProject = useCallback(() => {
     const career = useM1Store.getState().career;
@@ -692,6 +732,56 @@ function GameApp() {
   const requestConfirmation = useCallback((confirmation: ConfirmationRequest) => {
     setPendingConfirmation(confirmation);
   }, []);
+
+  const saveDeveloperManualSlot = useCallback((slot: DeveloperManualSaveSlot) => {
+    const repository = developerSaveRepositoryRef.current;
+    const career = useM1Store.getState().career;
+    setDeveloperManualSaveSelecting(false);
+    if (!__DEV__ || !preferencesRef.current.developerMode || repository === null || career === null) return;
+    // Capture the object now, before the queued write starts: manual means this
+    // exact moment, even if another ordinary save lands while SQLite is busy.
+    const snapshot = career;
+    queueDeveloperSaveTask(async () => {
+      setDeveloperSaveSummaries(await repository.saveManual(slot, snapshot));
+      setDeveloperSaveError(null);
+      useM1Store.getState().notify(`Saved the current game to developer slot ${slot}.`, 'success');
+    });
+  }, [queueDeveloperSaveTask]);
+
+  const loadDeveloperSlot = useCallback((slot: DeveloperSaveSlot) => {
+    const repository = developerSaveRepositoryRef.current;
+    const careerSeed = useM1Store.getState().career?.careerSeed;
+    if (!__DEV__ || repository === null || careerSeed === undefined) return;
+    queueDeveloperSaveTask(async () => {
+      const snapshot = await repository.load(slot, careerSeed);
+      if (snapshot === null) throw new Error(`Developer save ${slot} is empty.`);
+      useM1Store.getState().restoreDeveloperSave(snapshot, slot);
+      setDeveloperSaveError(null);
+    });
+  }, [queueDeveloperSaveTask]);
+
+  const pressDeveloperSaveSlot = useCallback((slot: DeveloperSaveSlot) => {
+    const manual = (DEVELOPER_MANUAL_SAVE_SLOTS as readonly string[]).includes(slot);
+    if (developerManualSaveSelecting) {
+      if (manual) saveDeveloperManualSlot(slot as DeveloperManualSaveSlot);
+      return;
+    }
+    const summary = developerSaveSummaries.find(candidate => candidate.slot === slot);
+    if (summary === undefined) return;
+    requestConfirmation({
+      title: `Load developer save ${slot}?`,
+      detail: `Return this career to Season ${summary.season}, Week ${summary.week}. The current career will be replaced by that saved point.`,
+      confirmLabel: 'Load saved point',
+      tone: 'danger',
+      onConfirm: () => loadDeveloperSlot(slot),
+    });
+  }, [
+    developerManualSaveSelecting,
+    developerSaveSummaries,
+    loadDeveloperSlot,
+    requestConfirmation,
+    saveDeveloperManualSlot,
+  ]);
 
   const buildTrainingGroundWithSfx = useCallback(() => {
     const before = useM1Store.getState().career?.facilities.grid?.construction;
@@ -950,12 +1040,23 @@ function GameApp() {
         // already current their internal calls read the version and do nothing,
         // so the three builds are free to overlap.
         await migrateDatabase(database);
-        const [careerRepository, replayRepository, preferencesRepository] = await Promise.all([
+        const [
+          careerRepository,
+          replayRepository,
+          preferencesRepository,
+          developerSaveRepository,
+        ] = await Promise.all([
           createCareerRepository(database),
           createReplayRepository(database),
           createPreferencesRepository(database),
+          __DEV__ ? createDeveloperSaveRepository(database) : Promise.resolve(null),
         ]);
-        return { careerRepository, replayRepository, preferencesRepository };
+        return {
+          careerRepository,
+          replayRepository,
+          preferencesRepository,
+          developerSaveRepository,
+        };
       })
       .then(async repositories => ({
         ...repositories,
@@ -964,6 +1065,7 @@ function GameApp() {
       .then(async repositories => {
         if (!active) return undefined;
         preferencesRepositoryRef.current = repositories.preferencesRepository;
+        developerSaveRepositoryRef.current = repositories.developerSaveRepository;
         setPreferences(repositories.preferences);
         await store.initializePersistence(
           repositories.careerRepository,
@@ -981,6 +1083,33 @@ function GameApp() {
       active = false;
     };
   }, [bootAttempt, store.initializePersistence]);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    const repository = developerSaveRepositoryRef.current;
+    const careerSeed = store.career?.careerSeed;
+    setDeveloperManualSaveSelecting(false);
+    if (repository === null || careerSeed === undefined) {
+      setDeveloperSaveSummaries([]);
+      return;
+    }
+    let active = true;
+    void repository.list(careerSeed)
+      .then(summaries => {
+        if (!active) return;
+        setDeveloperSaveSummaries(summaries);
+        setDeveloperSaveError(null);
+      })
+      .catch(error => {
+        if (!active) return;
+        const detail = error instanceof Error ? error.message : String(error);
+        setDeveloperSaveSummaries([]);
+        setDeveloperSaveError(`Developer saves could not be read. ${detail}`);
+      });
+    return () => {
+      active = false;
+    };
+  }, [store.career?.careerSeed]);
 
   const finishWatchedMatch = useCallback((result: MatchState) => {
     store.finishWatchedMatch(result);
@@ -1730,6 +1859,14 @@ function GameApp() {
         keyboardShortcutsEnabled={!guideOverlayVisible}
         onOpenLedger={() => store.setActiveTab('club')}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
+        developerSaveSummaries={__DEV__ && preferences.developerMode
+          ? developerSaveSummaries
+          : undefined}
+        developerManualSaveSelecting={developerManualSaveSelecting}
+        onPressDeveloperSaveSlot={pressDeveloperSaveSlot}
+        onToggleDeveloperManualSave={() => {
+          setDeveloperManualSaveSelecting(selecting => !selecting);
+        }}
         advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ▸'}
         // `saveBlocked` already refuses the advance in the store; the button has
         // to say so too, or the only feedback for a paused season is a toast
@@ -2117,7 +2254,13 @@ function GameApp() {
             onRetry={store.retrySave}
           />
         )}
-        {store.error ? (
+        {developerSaveError ? (
+          <FeedbackNotice
+            message={developerSaveError}
+            tone="error"
+            onDismiss={() => setDeveloperSaveError(null)}
+          />
+        ) : store.error ? (
           <FeedbackNotice message={store.error} tone="error" onDismiss={store.clearError} />
         ) : store.notice ? (
           <FeedbackNotice
@@ -2138,6 +2281,7 @@ function GameApp() {
           highContrast={preferences.highContrast}
           colorSafeKits={preferences.colorSafeKits}
           cutInMode={preferences.cutInMode}
+          developerMode={__DEV__ ? preferences.developerMode : undefined}
           assistantMode={store.career === null
             ? undefined
             : store.career.assistantMode ?? 'teacher'}
@@ -2158,6 +2302,7 @@ function GameApp() {
           onToggleHighContrast={toggleHighContrast}
           onToggleColorSafeKits={toggleColorSafeKits}
           onToggleCutInMode={toggleCutInMode}
+          onToggleDeveloperMode={__DEV__ ? toggleDeveloperMode : undefined}
           onSetAssistantMode={store.career === null ? undefined : handleSetAssistantMode}
           onGlossaryOpenChange={setGlobalGlossaryOpen}
           onOpenChange={open => {

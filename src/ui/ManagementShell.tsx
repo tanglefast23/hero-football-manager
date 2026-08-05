@@ -13,6 +13,7 @@ import { useKeyBindings } from './use-key-bindings';
 import { PixelText } from './components/PixelText';
 import { InfoTip } from './components/InfoTip';
 import { useGuideAnchor } from './use-guide-anchor';
+import type { DeveloperSaveSlot, DeveloperSaveSummary } from '../persistence';
 
 const TABS: ReadonlyArray<{
   id: ManagementTab; label: string; glyph: string; available: boolean; tip: string;
@@ -40,6 +41,8 @@ const HUD_TOP_BREATHING_ROOM = 4;
 // empty chrome — the tabs sit lower and the content column keeps the pixels.
 const TAB_BAR_BOTTOM_CLEARANCE = 8;
 const TAB_BAR_BOTTOM_INSET_TRIM = 14;
+const DEVELOPER_AUTO_SLOT_LABELS = ['1', '2', '3', '4', '5'] as const;
+const DEVELOPER_MANUAL_SLOT_LABELS = ['A', 'B', 'C', 'D', 'E'] as const;
 
 /** Compact top-bar numerals: commas under 10k, then k / M so three fit on one row. */
 function abbrev(n: number): string {
@@ -79,6 +82,71 @@ function ResourceChip({ glyph, name, explainer, value, tone }: {
       </Text>
     </View>
     </InfoTip>
+  );
+}
+
+function DeveloperSaveControls({
+  summaries,
+  manualSaveSelecting,
+  onPressSlot,
+  onToggleManualSave,
+}: {
+  summaries: readonly DeveloperSaveSummary[];
+  manualSaveSelecting: boolean;
+  onPressSlot: (slot: DeveloperSaveSlot) => void;
+  onToggleManualSave: () => void;
+}) {
+  const bySlot = new Map(summaries.map(summary => [summary.slot, summary]));
+  const slotButton = (slot: DeveloperSaveSlot, manual: boolean) => {
+    const summary = bySlot.get(slot);
+    const choosingTarget = manual && manualSaveSelecting;
+    // While S is active, A-E are save destinations and every load control is
+    // frozen. That prevents a filled weekly slot from looking live while its
+    // press is deliberately ignored by the manual-save flow.
+    const enabled = choosingTarget || (!manualSaveSelecting && summary !== undefined);
+    const purpose = choosingTarget
+      ? `Save the current game to manual slot ${slot}`
+      : summary === undefined
+        ? `${manual ? 'Manual' : 'Weekly'} save slot ${slot}, empty`
+        : `Load ${manual ? 'manual' : 'weekly'} save slot ${slot}, season ${summary.season}, week ${summary.week}`;
+    return (
+      <Pressable
+        key={slot}
+        accessibilityRole="button"
+        accessibilityLabel={purpose}
+        accessibilityState={{ disabled: !enabled }}
+        disabled={!enabled}
+        hitSlop={3}
+        onPress={() => onPressSlot(slot)}
+        className={choosingTarget
+          ? 'h-8 w-6 items-center justify-center border-2 border-gold-dark bg-gold-light'
+          : summary !== undefined
+            ? 'h-8 w-6 items-center justify-center border-2 border-blue-dark bg-blue-light'
+            : 'h-8 w-6 items-center justify-center border border-ink/25 bg-white'}
+        style={({ pressed }) => ({ opacity: !enabled ? 0.35 : pressed ? 0.65 : 1 })}
+      >
+        <Text maxFontSizeMultiplier={1} className="font-mono text-xs font-bold text-ink">{slot}</Text>
+      </Pressable>
+    );
+  };
+
+  return (
+    <View className="flex-row items-center gap-0.5">
+      {DEVELOPER_AUTO_SLOT_LABELS.map(slot => slotButton(slot, false))}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={manualSaveSelecting ? 'Cancel manual save' : 'Choose a manual save slot'}
+        onPress={onToggleManualSave}
+        hitSlop={3}
+        className={manualSaveSelecting
+          ? 'h-8 w-6 items-center justify-center border-2 border-gold-dark bg-gold'
+          : 'h-8 w-6 items-center justify-center border-2 border-ink bg-paper'}
+        style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
+      >
+        <Text maxFontSizeMultiplier={1} className="font-mono text-xs font-bold text-ink">S</Text>
+      </Pressable>
+      {DEVELOPER_MANUAL_SLOT_LABELS.map(slot => slotButton(slot, true))}
+    </View>
   );
 }
 
@@ -125,6 +193,11 @@ export interface ManagementShellProps {
    * first tap.
    */
   onDismissGuidance?: () => void;
+  /** Present only while Debug-build Developer Mode is on. */
+  developerSaveSummaries?: readonly DeveloperSaveSummary[];
+  developerManualSaveSelecting?: boolean;
+  onPressDeveloperSaveSlot?: (slot: DeveloperSaveSlot) => void;
+  onToggleDeveloperManualSave?: () => void;
 }
 
 export function ManagementShell({
@@ -148,6 +221,10 @@ export function ManagementShell({
   onMoneyGuideAnchorChange,
   onNavigationGuideAnchorChange,
   onDismissGuidance,
+  developerSaveSummaries,
+  developerManualSaveSelecting = false,
+  onPressDeveloperSaveSlot,
+  onToggleDeveloperManualSave,
 }: ManagementShellProps) {
   const headerLine = managementHeaderLine(seasonLabel, weekLabel);
   const dismissFrameRef = useRef<number | null>(null);
@@ -176,6 +253,9 @@ export function ManagementShell({
     onNavigationGuideAnchorChange,
   );
   const insets = useSafeAreaInsets();
+  const developerControlsVisible = developerSaveSummaries !== undefined
+    && onPressDeveloperSaveSlot !== undefined
+    && onToggleDeveloperManualSave !== undefined;
 
   const resourceCluster = (
     <View className="flex-shrink flex-row items-center gap-1.5">
@@ -213,7 +293,15 @@ export function ManagementShell({
           >
             {clubName}
           </Text>
-          <View className="flex-row items-center gap-2">
+          {developerControlsVisible ? (
+            <DeveloperSaveControls
+              summaries={developerSaveSummaries}
+              manualSaveSelecting={developerManualSaveSelecting}
+              onPressSlot={onPressDeveloperSaveSlot}
+              onToggleManualSave={onToggleDeveloperManualSave}
+            />
+          ) : null}
+          {!developerControlsVisible ? <View className="flex-row items-center gap-2">
             {onOpenLedger ? (
               <Pressable
                 accessibilityRole="button"
@@ -229,18 +317,39 @@ export function ManagementShell({
             {onOpenSettings ? (
               <SettingsButton onPress={onOpenSettings} />
             ) : null}
-          </View>
+          </View> : null}
         </View>
-        <View className="mt-2 border-t border-ink/15 pt-2">
+        <View className={developerControlsVisible
+          ? 'mt-2 flex-row items-center gap-2 border-t border-ink/15 pt-2'
+          : 'mt-2 border-t border-ink/15 pt-2'}>
           <Text
-            className="font-pixel text-sm uppercase text-blue-dark"
+            className={developerControlsVisible
+              ? `min-w-0 flex-1 font-pixel text-sm uppercase ${developerManualSaveSelecting ? 'text-gold-dark' : 'text-blue-dark'}`
+              : 'font-pixel text-sm uppercase text-blue-dark'}
             numberOfLines={1}
             adjustsFontSizeToFit
-            accessibilityLabel={headerLine.spoken}
+            accessibilityLabel={developerManualSaveSelecting
+              ? 'Choose manual save slot A through E'
+              : headerLine.spoken}
             maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
           >
-            {headerLine.visible}
+            {developerManualSaveSelecting ? 'Choose A–E to save' : headerLine.visible}
           </Text>
+          {developerControlsVisible ? (
+            <View className="flex-row items-center gap-2">
+              {onOpenLedger ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Open the club ledger"
+                  onPress={onOpenLedger}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
+                >
+                  {resourceCluster}
+                </Pressable>
+              ) : resourceCluster}
+              {onOpenSettings ? <SettingsButton onPress={onOpenSettings} /> : null}
+            </View>
+          ) : null}
         </View>
       </View>
 

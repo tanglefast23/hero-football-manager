@@ -296,6 +296,7 @@ describe('substitution board layout', () => {
     const source = board();
 
     expect(source).toContain('label="CANCEL"');
+    expect(source).toMatch(/label="CANCEL"[\s\S]*?onPressIn=\{\(\) => \{[\s\S]*?onCancel\(\);[\s\S]*?onPress=\{onCancel\}/);
     expect(source).toContain('label="RESET"');
     // Just SAVE: the header counter says how many, the cards say which.
     expect(source).toContain('label="SAVE"');

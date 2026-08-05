@@ -77,6 +77,25 @@ const MIGRATIONS: readonly Migration[] = [
       'ALTER TABLE career_save_backups ADD COLUMN saved_career_seed INTEGER',
     ],
   },
+  // Developer builds keep five rotating week checkpoints and five manual
+  // exact-moment saves. The table exists in every schema so a Debug build and
+  // a Release build can safely open the same database; only Debug UI can write
+  // or restore these rows.
+  {
+    version: 6,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS developer_saves (
+        slot TEXT PRIMARY KEY CHECK (slot IN ('1','2','3','4','5','A','B','C','D','E')),
+        kind TEXT NOT NULL CHECK (kind IN ('AUTO','MANUAL')),
+        schema_version INTEGER NOT NULL,
+        state_json TEXT NOT NULL,
+        saved_season INTEGER NOT NULL CHECK (saved_season >= 1),
+        saved_week INTEGER NOT NULL CHECK (saved_week >= 1),
+        saved_career_seed INTEGER NOT NULL,
+        save_sequence INTEGER NOT NULL CHECK (save_sequence >= 0)
+      )`,
+    ],
+  },
 ];
 
 export const PERSISTENCE_SCHEMA_VERSION = MIGRATIONS.length;

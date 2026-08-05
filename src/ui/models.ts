@@ -219,9 +219,8 @@ export interface MatchResultViewModel {
   awayScore: number;
   outcomeLabel: 'WIN' | 'DRAW' | 'LOSS';
   /**
-   * Which name the report boxes up as the winner, independent of the manager's
-   * point of view. A league draw boxes nobody; a tied Cup score boxes the
-   * recorded penalty winner.
+   * Which side won, independent of the manager's point of view. A league draw
+   * has no winner; a tied Cup score uses the recorded penalty winner.
    */
   winner: 'home' | 'away' | null;
   /**

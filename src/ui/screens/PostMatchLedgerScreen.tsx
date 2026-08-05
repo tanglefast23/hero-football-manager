@@ -54,13 +54,17 @@ export function PostMatchLedgerScreen({
         {/* Stacked rather than side by side: two names in 24-point columns
             either wrapped mid-word or truncated to "BRAMB LE RO_" on a phone,
             which is no way to read your own club's name. The vertical run has
-            the width to spell both out, and it gives the winner's box somewhere
-            to sit without crowding the score. */}
+            the width to spell both out without crowding the score. */}
         <View className="items-center py-3">
           <StatusChip label="Full time" tone={resultTone} />
           <PixelText className="mt-3 text-sm uppercase text-blue-dark">{result.competition}</PixelText>
 
-          <TeamLine name={result.homeTeam} won={result.winner === 'home'} />
+          <TeamLine
+            name={result.homeTeam}
+            outcome={result.winner === 'home' && result.outcomeLabel !== 'DRAW'
+              ? result.outcomeLabel
+              : null}
+          />
 
           <View className="mt-3 flex-row items-center border-2 border-ink bg-ink px-5 py-3">
             <Text className="font-mono text-3xl text-paper">{result.homeScore}</Text>
@@ -71,7 +75,12 @@ export function PostMatchLedgerScreen({
             <PixelText className="mt-3 text-base uppercase text-ink/70">Draw</PixelText>
           ) : null}
 
-          <TeamLine name={result.awayTeam} won={result.winner === 'away'} />
+          <TeamLine
+            name={result.awayTeam}
+            outcome={result.winner === 'away' && result.outcomeLabel !== 'DRAW'
+              ? result.outcomeLabel
+              : null}
+          />
         </View>
 
         {viewModel.reaction ? (
@@ -123,16 +132,20 @@ export function PostMatchLedgerScreen({
 }
 
 /**
- * One club, on its own line, spelled out. The winner wears a red box with the
- * word under it rather than beside it, so the box stays a box on the narrowest
- * phone instead of squeezing into a badge.
+ * One club, on its own line, spelled out. The outcome stays where the old WIN
+ * marker sat, but speaks from the manager's point of view and uses the matching
+ * success/danger colour. The club name no longer gets an unrelated red box.
  */
-function TeamLine({ name, won }: { name: string; won: boolean }) {
+function TeamLine({
+  name,
+  outcome,
+}: {
+  name: string;
+  outcome: 'WIN' | 'LOSS' | null;
+}) {
   return (
     <View className="mt-4 items-center">
-      <View className={won
-        ? 'border-2 border-stamp px-4 py-2'
-        : 'px-4 py-2'}>
+      <View className="px-4 py-2">
         <PixelText
           className="text-center text-base uppercase text-ink"
           numberOfLines={2}
@@ -140,8 +153,14 @@ function TeamLine({ name, won }: { name: string; won: boolean }) {
           {name}
         </PixelText>
       </View>
-      {won ? (
-        <PixelText className="mt-2 text-xl uppercase text-red-dark">Win</PixelText>
+      {outcome ? (
+        <PixelText
+          className={outcome === 'WIN'
+            ? 'mt-2 text-xl uppercase text-pitch-ink'
+            : 'mt-2 text-xl uppercase text-red-dark'}
+        >
+          {outcome === 'WIN' ? 'We Won!' : 'We Lost'}
+        </PixelText>
       ) : null}
     </View>
   );

@@ -1205,13 +1205,12 @@ export function seasonEndViewModel(
   };
 }
 
-/** First week the empty desk is a habit worth nudging rather than a tutorial gap. */
+/** The one career week when an empty desk is worth one building reminder. */
 const BUILD_REMINDER_WEEK = 7;
 
 /**
- * The standing "keep building" nudge. It lives outside the weekly inbox
- * scheduler on purpose: it carries no persisted read state, so it simply
- * reappears on any week the desk is genuinely empty.
+ * The one-week "keep building" nudge. Its Week 7 gate is its read state: after
+ * that week it retires whether or not the manager opened it.
  */
 const BUILD_REMINDER_ALERT: ClubAlertViewModel = {
   id: 'build-reminder',
@@ -1276,7 +1275,8 @@ function drillShopAlert(state: GameState): ClubAlertViewModel | undefined {
  */
 function isBuildReminderDue(state: GameState, alerts: readonly ClubAlertViewModel[]): boolean {
   return alerts.length === 0
-    && state.week >= BUILD_REMINDER_WEEK
+    && state.season === 1
+    && state.week === BUILD_REMINDER_WEEK
     && state.facilities.grid?.construction === undefined;
 }
 
@@ -1931,7 +1931,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
   ].slice(0, 3);
   // A quiet week's own contents, in the order they earn attention: the story
   // that landed this week, the shop the club has not found yet, and only if
-  // neither applies, the standing build nudge.
+  // neither applies, the one-week build nudge.
   const tipNote = deskTipNote(state);
   const homeNotes = tipNote === undefined ? managerNotes(state) : [...managerNotes(state), tipNote];
   const storyAlert = deskStoryAlert(state);

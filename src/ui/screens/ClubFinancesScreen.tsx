@@ -1579,7 +1579,10 @@ function GroundsSection({
               style={{
                 position: 'relative',
                 flex: 1,
-                zIndex: placementActive ? 2 : 0,
+                // Do not make the cell layer its own stacking context. The
+                // shared hover-tip host raises only the active cell; trapping
+                // it under a layer below the facility art made buildings paint
+                // through the placement message.
               }}
             >
               {Array.from({ length: facilities.height }, (_, y) => (

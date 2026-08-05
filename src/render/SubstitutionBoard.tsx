@@ -585,6 +585,13 @@ export function SubstitutionBoard({
             label="CANCEL"
             accessibilityLabel="Cancel and close without substituting"
             tone="grey"
+            // The board's full-screen scroll/responder stack can cancel the
+            // completed web press after the button has already received focus.
+            // Cancel is safe to honour on contact and must never trap the user.
+            onPressIn={() => {
+              playUiClickSfx();
+              onCancel();
+            }}
             onPress={onCancel}
           />
           <LozengeButton
@@ -623,6 +630,7 @@ function LozengeButton({
   tone,
   wide = false,
   disabled = false,
+  onPressIn,
   onPress,
 }: {
   label: string;
@@ -630,6 +638,7 @@ function LozengeButton({
   tone: 'grey' | 'blue';
   wide?: boolean;
   disabled?: boolean;
+  onPressIn?: () => void;
   onPress: () => void;
 }) {
   const face = disabled ? styles.faceDisabled : tone === 'blue' ? styles.faceBlue : styles.faceGrey;
@@ -644,6 +653,7 @@ function LozengeButton({
       // same way.
       disabled={disabled}
       pressSfx="click"
+      onPressIn={onPressIn}
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,

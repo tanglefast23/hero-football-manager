@@ -108,6 +108,8 @@ export interface SettingsOverlayProps {
   highContrast: boolean;
   colorSafeKits: boolean;
   cutInMode: CutInMode;
+  /** Omitted in Release builds so Developer Mode cannot be discovered or enabled. */
+  developerMode?: boolean;
   /** Omit both values when no career is loaded; there is nothing to advise. */
   assistantMode?: AssistantMode;
   onSetAssistantMode?: (mode: AssistantMode) => void;
@@ -138,6 +140,7 @@ export interface SettingsOverlayProps {
   onToggleHighContrast: () => void;
   onToggleColorSafeKits: () => void;
   onToggleCutInMode: () => void;
+  onToggleDeveloperMode?: () => void;
   onGlossaryOpenChange: (open: boolean) => void;
   onOpenChange: (open: boolean) => void;
 }
@@ -182,6 +185,7 @@ export function SettingsOverlay({
   highContrast,
   colorSafeKits,
   cutInMode,
+  developerMode,
   assistantMode,
   onSetAssistantMode,
   accessibilityCopy,
@@ -202,6 +206,7 @@ export function SettingsOverlay({
   onToggleHighContrast,
   onToggleColorSafeKits,
   onToggleCutInMode,
+  onToggleDeveloperMode,
   onGlossaryOpenChange,
   onOpenChange,
 }: SettingsOverlayProps) {
@@ -274,6 +279,20 @@ export function SettingsOverlay({
             ) : null}
             <VolumeSlider value={volume} onChange={onVolumeChange} />
             <View className="mt-5 gap-3 border-t border-ink/15 pt-5">
+              {developerMode !== undefined && onToggleDeveloperMode !== undefined ? (
+                <Pressable
+                  accessibilityRole="switch"
+                  accessibilityLabel="Developer mode"
+                  accessibilityState={{ checked: developerMode }}
+                  onPress={onToggleDeveloperMode}
+                  className={developerMode
+                    ? 'min-h-12 flex-row items-center justify-between border-2 border-gold-dark bg-gold-light px-3 py-2'
+                    : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}
+                >
+                  <Text className="font-pixel text-sm uppercase text-ink">Developer mode</Text>
+                  <Text className="font-pixel text-base text-ink">{developerMode ? 'ON' : 'OFF'}</Text>
+                </Pressable>
+              ) : null}
               <Pressable
                 accessibilityRole="switch"
                 accessibilityLabel="Reduce motion"
