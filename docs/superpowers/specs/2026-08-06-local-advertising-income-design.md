@@ -31,9 +31,12 @@ label: state.difficulty === 'CHAIRMAN'
   : 'Monthly sponsor fee',
 ```
 
-That branch runs only while the club's best-ever division is D5.
-`managedSponsorCapacity` returns 0 for D5, so `createSeasonSponsorship` builds an
-empty portfolio and no contract lines exist. D5's `sponsorMonthlyFee` is 3,000,
+**The gate is `activeContracts.length === 0`, not a division test.** In normal
+play that is the never-promoted D5 club — `managedSponsorCapacity` returns 0 for
+D5, so `createSeasonSponsorship` builds an empty portfolio and no contract lines
+exist — but the two are not the same condition, and a club relegated back to D5
+from D4 keeps its capacity and its contracts. Implementers must branch on the
+contracts, never on the division. D5's `sponsorMonthlyFee` is 3,000,
 and `currentActualMonthlySponsorIncome` scales it by
 `difficultyRules(state).sponsorIncomePercent` — 100 on Cozy, 80 on Chairman.
 
@@ -98,6 +101,24 @@ and the balance-harness assertions for a copy problem.
 
 ## 3. What changes
 
+Every surface that says "sponsor" to a Division 5 club, and its disposition:
+
+| Surface | Seen by | Disposition |
+|---|---|---|
+| Settlement ledger label | D5, every 4th week | Rename (§3.1) |
+| Four-week outlook facts | D5, always | Branch on contracts (§3.2) |
+| `Match, sponsor & prize` metric | D5, always | Reword neutrally (§3.3) |
+| Empty-ledger docket copy | D5, before first settlement | Reword neutrally (§3.3) |
+| Club Buzz panel, unmanaged branch | D5, Season 3+ | Rename (§3.4) |
+| Buzz payout card + Bert sequence | D5 **and D4+**, Season 3+ | Drop the actor (§3.5) |
+| Glossary | Anyone who looks | New entry (§3.6) |
+| Onboarding "get sponsors" | Season 1 intro | **Out of scope** (§3.7) |
+| Random `category: "sponsor"` events | Any division | **Out of scope** (§3.7) |
+
+Two of these are shared with D4+ clubs, where "sponsor" is the correct word.
+Those are reworded to drop the actor rather than branched, so one string stays
+true at every division — see §3.5.
+
 ### 3.1 The settlement label
 
 The Cozy/Chairman split collapses to one label for both modes:
@@ -114,10 +135,11 @@ difficulty stops being named in the club's ledger.
 row in it is money, so the word carries no information. `(monthly)` stays
 parenthesised so it reads as a schedule note rather than part of the name.
 
-The label row is `<Text className="flex-1 text-base text-ink">` with no line
-clamp in both `PostMatchSummaryModal` and `ClubFinancesScreen`, so long labels
-wrap rather than clip. At 27 characters this fits one line at default text size
-and wraps gracefully for players using large iOS text.
+Neither label row sets a line clamp, so long labels wrap rather than clip:
+`PostMatchSummaryModal` uses `<Text className="flex-1 text-base text-ink">`,
+while `ClubFinancesScreen` puts the flex on the wrapping `View` and renders
+`<Text className="text-base text-ink">`. At 27 characters the label fits one
+line at default text size and wraps gracefully at large iOS text sizes.
 
 ### 3.2 The outlook copy
 
@@ -137,18 +159,30 @@ omit `(monthly)` — the cadence is already visible in the column beside them.
 Only the ledger label, which appears alone with no schedule around it, carries
 the parenthetical.
 
-### 3.3 The glossary
+### 3.3 The Club Finances chrome
 
-One new entry in the `club` category, placed after **Money**:
+Two strings on the Club Finances screen say "sponsor" to every D5 club from
+Season 1, before any of the sponsor machinery exists. Both are shared with D4+
+clubs, so both are reworded neutrally rather than branched.
 
-> **Local advertising** — Money from the hoardings around your pitch, paid every
-> fourth week. It is a fixed amount while your club is in Division 5. Reach
-> Division 4 and real sponsors take the boards over, replacing it with deals you
-> choose.
+**The variable-income metric** (`ClubFinancesScreen.tsx`, currently
+`label="Match, sponsor & prize"`) summarises `VARIABLE_INCOME_KINDS` —
+`tickets`, `sponsor`, `buzz`, `prize`. It becomes:
 
-The existing **Money** entry reads "It is earned from sponsors, tickets, prizes,
-and player sales" — sponsors again, to a player who has none. It becomes
-"advertising, tickets, sponsors, prizes, and player sales".
+```
+Match, deals & prize
+```
+
+"Deals" covers an advertising deal and a sponsor deal equally, so the metric is
+true in both worlds and keeps its current three-part shape.
+
+**The empty-ledger docket**, shown before the first week of a season settles,
+currently reads "Wages, gate receipts, sponsor money and upkeep land here as
+each week is played." It becomes:
+
+```
+Wages, gate receipts, upkeep and every payment land here as each week is played.
+```
 
 ### 3.4 The Season 3 Buzz panel
 
@@ -163,11 +197,56 @@ more twice a season" — describes the Buzz payout, which is a separate `buzz`
 ledger kind, so it keeps working. It becomes "…make them worth more twice a
 season" to agree with the new subject.
 
-The panel's `title` ("The crowd is talking"), `stamp`, heading and Buzz card are
-untouched; this is the Buzz feature's card, and local advertising is only the
-one line inside it that was misnamed.
+The panel's `title` ("The crowd is talking"), `stamp` and heading are untouched;
+this is the Buzz feature's card, and local advertising is only the one line
+inside it that was misnamed.
 
-### 3.5 What does not change
+### 3.5 The Buzz payout copy — drop the actor
+
+Two Buzz strings credit the payout to sponsors. Unlike everything above, these
+reach **D4+ clubs too**, where sponsors genuinely exist and the wording is
+correct. They are not branched. Branching would need a second set of strings in
+`content/assistant-guide.json`, which has no per-division mechanism, and would
+leave two copies of one sentence to drift apart.
+
+Instead both drop the actor. Buzz pays out; who funds it goes unstated, which is
+true at every division:
+
+**`PostMatchBuzzCard.tsx`** — the visible line and its accessibility label:
+
+| Now | Becomes |
+|---|---|
+| `Sponsors paid {amount} · Buzz reset to 0` | `Buzz paid out {amount} · reset to 0` |
+| `Sponsors paid {amount} and Buzz reset to zero.` | `Buzz paid out {amount} and reset to zero.` |
+
+**`content/assistant-guide.json`**, the `sponsor-buzz` sequence:
+
+| Field | Now | Becomes |
+|---|---|---|
+| `inbox.detail` | "…and sponsors are watching." | "…and it is starting to pay." |
+| `pages[0].body[0]` | "…build Buzz. Sponsors pay it out twice each season." | "…build Buzz. It pays out twice each season." |
+
+The sequence `id` stays `sponsor-buzz`. It is an internal identifier, persisted
+in `eventFlags` as delivery evidence, and renaming it would strand existing
+saves' guide progress for no player-visible gain.
+
+`src/content/__tests__/content.test.ts` pins the body string verbatim and moves
+with it.
+
+### 3.6 The glossary
+
+One new entry in the `club` category, placed after **Money**:
+
+> **Local advertising** — Money from the hoardings around your pitch, paid every
+> fourth week. It is a fixed amount while your club is in Division 5. Reach
+> Division 4 and real sponsors take the boards over, replacing it with deals you
+> choose.
+
+The existing **Money** entry reads "It is earned from sponsors, tickets, prizes,
+and player sales" — sponsors again, to a player who has none. It becomes
+"advertising, tickets, sponsors, prizes, and player sales".
+
+### 3.7 What does not change
 
 - The amount, the four-week cadence, and the 80% Chairman rate.
 - The D4 handoff to named sponsor contracts.
@@ -183,29 +262,57 @@ lands, and the glossary answers the source question for anyone who looks; a new
 guide sequence would cost a sequence id, `content/assistant-guide.json` copy and
 a Bert expression pairing for a third telling of the same fact.
 
+Two more "sponsor" strings are deliberately left alone:
+
+**The Season 1 onboarding line** — Bert's "All you gotta do is win games, gain
+fans, get sponsors. Not hard right?" (`content/assistant-guide.json`, pinned by
+`src/render/__tests__/bert-voice.test.ts`). It describes the job ahead, not the
+club's current income, and getting sponsors is a real thing the manager will do
+at D4. It is correct as written.
+
+**Random `category: "sponsor"` events** — `popup-sponsor`, `hero-commercial` and
+friends still hand D5 clubs sponsor storylines. That is the events system
+choosing its fiction, not this income line being misnamed, and it is a separate
+call. This cycle does not claim a D5 manager never hears the word "sponsor" —
+only that the money they bank every month stops pretending to be one.
+
 ## 4. Files touched
 
 | File | Change |
 |---|---|
-| `src/game/career.ts` | Collapse the difficulty branch to the single label |
-| `src/application/view-models.ts` | Branch the two outlook strings on managed contracts |
-| `src/ui/screens/ClubFinancesScreen.tsx` | Rekicker and reword the unmanaged Buzz panel line |
-| `content/glossary.json` | Add the entry, amend the Money definition |
+| `src/game/career.ts` | Collapse the difficulty branch to the single label (§3.1) |
+| `src/application/view-models.ts` | Branch the two outlook strings on managed contracts (§3.2) |
+| `src/ui/screens/ClubFinancesScreen.tsx` | Metric label, empty docket, unmanaged Buzz panel (§3.3, §3.4) |
+| `src/ui/components/PostMatchBuzzCard.tsx` | Payout line and accessibility label (§3.5) |
+| `content/assistant-guide.json` | `sponsor-buzz` inbox detail and body (§3.5) |
+| `content/glossary.json` | Add the entry, amend the Money definition (§3.6) |
 | `src/ui/dev-harness/entries/club-business.tsx` | Scenario note says "Season 3 basic sponsor" |
 
 ## 5. Testing
 
-Three existing assertions reference the old strings and move with them:
+Existing assertions that reference the old strings and move with them:
 
 - `src/persistence/__tests__/sponsor-settlement-integration.test.ts:92` —
-  asserts the flat line is absent once managed contracts exist.
+  asserts the flat line is absent once managed contracts exist. Extend it to ban
+  `'Local advertising (monthly)'` as well, so the managed path stays covered.
 - `src/application/__tests__/club-finances-transactions.test.ts:150,154` — the
   outlook detail strings for a payment week and a quiet week.
 - `src/application/__tests__/club-finances-transactions.test.ts:220` — a ledger
   fixture using `'Monthly sponsor fee'`.
+- `src/content/__tests__/content.test.ts:518` — pins the `sponsor-buzz` body
+  string verbatim.
 
 `src/ui/__tests__/club-business-ui.test.ts` covers the club business screen and
 should be checked for the Buzz panel copy before editing.
+
+Tests that assert on amounts by `kind: 'sponsor'` rather than by label — such as
+`src/game/__tests__/m4-difficulty-recap.test.ts` — must stay green untouched.
+They are the evidence that this cycle moved no money.
+
+New tests extend the files that already own this ground rather than starting a
+new one: settlement labels go in `sponsor-settlement-integration.test.ts`,
+outlook and ledger strings in `club-finances-transactions.test.ts`, and content
+copy in `content.test.ts`.
 
 New coverage:
 
