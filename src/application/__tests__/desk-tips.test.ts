@@ -13,6 +13,7 @@ import { homeViewModel, settleWeeklyTip } from '../view-models';
 describe("manager's tips", () => {
   const content = loadLaunchContent();
   const tipIds = content.tips.tips.map(tip => tip.id);
+  const sortableColumnsTipId = 'player-columns-are-sortable';
 
   /** A career whose guide queue is silent, so the desk is genuinely empty. */
   function deskClearCareer(seed: number): GameState {
@@ -105,6 +106,28 @@ describe("manager's tips", () => {
 
     expect(outcomes.some(tipId => tipId === undefined)).toBe(true);
     expect(outcomes.some(tipId => tipId !== undefined)).toBe(true);
+  });
+
+  it('reserves the sortable-column lesson for Week 12 and guarantees it there', () => {
+    for (let seed = 20261200; seed < 20261300; seed += 1) {
+      const clear = deskClearCareer(seed);
+      const weekEleven = settleWeeklyTip({ ...clear, week: 11, deskTip: undefined });
+      expect(weekEleven.deskTip?.tipId).not.toBe(sortableColumnsTipId);
+
+      const weekTwelve = settleWeeklyTip({ ...weekEleven, week: 12, deskTip: undefined });
+      expect(weekTwelve.deskTip?.tipId).toBe(sortableColumnsTipId);
+      expect(hasSeenDeskTip(weekTwelve, sortableColumnsTipId)).toBe(true);
+    }
+  });
+
+  it('shows the Week 12 sorting lesson after that week\'s story is cleared', () => {
+    const clear = { ...deskClearCareer(20261209), week: 12 };
+    const withStory = offerCareerEvent(clear, 'giant-spider-arrives');
+
+    expect(settleWeeklyTip(withStory)).toBe(withStory);
+
+    const afterStory = settleWeeklyTip({ ...withStory, pendingEvent: undefined });
+    expect(afterStory.deskTip?.tipId).toBe(sortableColumnsTipId);
   });
 
   it('never repeats a tip in one career', () => {

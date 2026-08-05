@@ -1632,7 +1632,11 @@ export function settleWeeklyStory(state: GameState): GameState {
   return offer.eventId === undefined ? settled : offerCareerEvent(settled, offer.eventId);
 }
 
-/** Roughly a third of eligible weeks, so a tip stays a find rather than a lecture. */
+const SORTABLE_COLUMNS_TIP_ID = 'player-columns-are-sortable';
+const SORTABLE_COLUMNS_TIP_SEASON = 1;
+const SORTABLE_COLUMNS_TIP_WEEK = 12;
+
+/** Roughly a third of eligible weeks, so the unscheduled tips stay finds rather than lectures. */
 const DESK_TIP_CHANCE_PERCENT = 35;
 
 /**
@@ -1649,10 +1653,22 @@ export function settleWeeklyTip(state: GameState): GameState {
 
   const blank: GameState = { ...state, deskTip: { season: state.season, week: state.week } };
   const unseen = unseenDeskTipIds(state, LAUNCH_CONTENT.tips.tips.map(tip => tip.id));
-  if (unseen.length === 0) return blank;
+  if (state.season === SORTABLE_COLUMNS_TIP_SEASON
+    && state.week === SORTABLE_COLUMNS_TIP_WEEK
+    && unseen.includes(SORTABLE_COLUMNS_TIP_ID)) {
+    return markDeskTipSeen(
+      { ...state, deskTip: { season: state.season, week: state.week, tipId: SORTABLE_COLUMNS_TIP_ID } },
+      SORTABLE_COLUMNS_TIP_ID,
+    );
+  }
+
+  // This lesson owns Week 12. Keeping it out of the random deck means a fresh
+  // career cannot be taught the rule early, or miss its promised week by luck.
+  const randomizedUnseen = unseen.filter(tipId => tipId !== SORTABLE_COLUMNS_TIP_ID);
+  if (randomizedUnseen.length === 0) return blank;
   if (deskTipRoll(state, '__desk_tip_chance__', 100) >= DESK_TIP_CHANCE_PERCENT) return blank;
 
-  const tipId = unseen[deskTipRoll(state, '__desk_tip_pick__', unseen.length)];
+  const tipId = randomizedUnseen[deskTipRoll(state, '__desk_tip_pick__', randomizedUnseen.length)];
   return markDeskTipSeen(
     { ...state, deskTip: { season: state.season, week: state.week, tipId } },
     tipId,
