@@ -7,6 +7,7 @@ import { clubBusinessEntry } from './entries/club-business';
 import { cupGiantKillingEntry } from './entries/cup-giant-killing';
 import { cupMismatchWarningEntry } from './entries/cup-mismatch-warning';
 import { endgameCelebrationEntry } from './entries/endgame';
+import { financialReportEntry } from './entries/financial-report';
 import { fulltimeReportEntry } from './entries/fulltime-report';
 import { hallOfFameEntry } from './entries/hall-of-fame';
 import { playerRequestsEntry } from './entries/player-requests';
@@ -57,6 +58,7 @@ export const DEV_HARNESS_ENTRIES: readonly DevHarnessEntry[] = Object.freeze([
   // Ordered so the menu reads as a career does: what happens during a season,
   // then what closes one, then the two ends of the whole climb.
   fulltimeReportEntry,
+  financialReportEntry,
   clubBusinessEntry,
   careerEventsEntry,
   playerRequestsEntry,
