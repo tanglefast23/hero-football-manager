@@ -331,14 +331,17 @@ function MultiplierChip({ reveal, reduceMotion }: { reveal: LedgerLineReveal; re
   }, [progress, reduceMotion]);
   const label = reveal.source === 'merch' ? `×${reveal.multiplierTimes}` : `×${reveal.multiplierPercent}%`;
   return (
+    // NativeWind does not process className on Animated views, so the
+    // animated wrapper is style-only and a plain View carries the look.
     <Animated.View
-      className="mr-2 border-2 border-pitch-dark bg-pitch-light px-1"
       style={{
         opacity: progress,
         transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
       }}
     >
-      <Text className="font-mono text-xs text-pitch-ink">{label}</Text>
+      <View className="mr-2 border-2 border-pitch-dark bg-pitch-light px-1">
+        <Text className="font-mono text-xs text-pitch-ink">{label}</Text>
+      </View>
     </Animated.View>
   );
 }
@@ -418,12 +421,12 @@ function RecordedStamp({
     ? '4deg'
     : progress.interpolate({ inputRange: [0, 1], outputRange: ['-8deg', '4deg'] });
   return (
-    <Animated.View
-      pointerEvents="none"
-      className="absolute right-3 top-3 border-2 border-b-4 border-stamp bg-red-light/40 px-2 py-1"
-      style={{ transform: [{ scale }, { rotate }] }}
-    >
-      <Text className="font-pixel text-sm uppercase text-red-dark">Recorded</Text>
-    </Animated.View>
+    <View pointerEvents="none" className="absolute right-3 top-3">
+      <Animated.View style={{ transform: [{ scale }, { rotate }] }}>
+        <View className="border-2 border-b-4 border-stamp bg-red-light/40 px-2 py-1">
+          <Text className="font-pixel text-sm uppercase text-red-dark">Recorded</Text>
+        </View>
+      </Animated.View>
+    </View>
   );
 }

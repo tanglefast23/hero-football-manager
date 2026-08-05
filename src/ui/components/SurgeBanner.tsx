@@ -90,13 +90,15 @@ export function SurgeBanner({
 
   return (
     <View pointerEvents="none" className="absolute inset-x-4 top-1/4">
+      {/* NativeWind ignores className on Animated views: the animated wrapper
+          is style-only and the plain View inside carries the card look. */}
       <Animated.View
         accessibilityRole="alert"
         accessibilityLabel={headline}
-        className="items-center border-2 border-b-4 border-ink bg-paper px-3 py-3"
         style={{ opacity, transform: [{ rotate: '-3deg' }, { scale }] }}
       >
-        <View style={{ flexDirection: 'row', gap: 4 }}>
+        <View className="items-center border-2 border-b-4 border-ink bg-paper px-3 py-3">
+          <View style={{ flexDirection: 'row', gap: 4 }}>
           {sprites.map(spriteId => (
             <Canvas key={spriteId} style={{ width: SPRITE_PX, height: SPRITE_PX }}>
               {financeSpriteRuns(spriteId).map(run => (
@@ -112,13 +114,14 @@ export function SurgeBanner({
             </Canvas>
           ))}
         </View>
-        <PixelText
-          className={attendance
-            ? 'mt-2 text-base uppercase text-red-dark'
-            : 'mt-2 text-base uppercase text-pitch-ink'}
-        >
-          {headline}
-        </PixelText>
+          <PixelText
+            className={attendance
+              ? 'mt-2 text-base uppercase text-red-dark'
+              : 'mt-2 text-base uppercase text-pitch-ink'}
+          >
+            {headline}
+          </PixelText>
+        </View>
       </Animated.View>
     </View>
   );

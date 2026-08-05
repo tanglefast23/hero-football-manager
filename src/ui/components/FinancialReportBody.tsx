@@ -42,6 +42,7 @@ export function FinancialReportBody({ viewModel, reduceMotion }: FinancialReport
                 value={viewModel.trainingPointsGained}
                 format={amount => `${amount > 0 ? '+' : ''}${formatCompactNumber(amount)}`}
                 reduceMotion={reduceMotion}
+                colorClass={viewModel.trainingPointsGained < 0 ? 'text-red-dark' : 'text-pitch-ink'}
               />
             )}
             tone={viewModel.trainingPointsGained < 0 ? 'negative' : 'positive'}
@@ -53,6 +54,7 @@ export function FinancialReportBody({ viewModel, reduceMotion }: FinancialReport
                 value={viewModel.fanDelta}
                 format={amount => `${amount > 0 ? '+' : ''}${formatCompactNumber(amount)}`}
                 reduceMotion={reduceMotion}
+                colorClass={viewModel.fanDelta < 0 ? 'text-red-dark' : 'text-pitch-ink'}
               />
             )}
             tone={viewModel.fanDelta < 0 ? 'negative' : 'positive'}
@@ -135,18 +137,21 @@ function EntranceView({
     return () => sequence.stop();
   }, [delayMs, progress, reduceMotion, tilt, wiggle]);
   return (
-    <Animated.View
-      className={className}
-      style={{
-        opacity: progress,
-        transform: [
-          { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
-          { rotate: tilt.interpolate({ inputRange: [-1, 1], outputRange: ['-3deg', '3deg'] }) },
-        ],
-      }}
-    >
-      {children}
-    </Animated.View>
+    // NativeWind ignores className on Animated views: spacing classes live on
+    // a plain outer View and the animated wrapper handles motion only.
+    <View className={className}>
+      <Animated.View
+        style={{
+          opacity: progress,
+          transform: [
+            { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
+            { rotate: tilt.interpolate({ inputRange: [-1, 1], outputRange: ['-3deg', '3deg'] }) },
+          ],
+        }}
+      >
+        {children}
+      </Animated.View>
+    </View>
   );
 }
 
@@ -155,10 +160,12 @@ function CountUpText({
   value,
   format,
   reduceMotion,
+  colorClass,
 }: {
   value: number;
   format: (amount: number) => string;
   reduceMotion: boolean;
+  colorClass: string;
 }) {
   const [shown, setShown] = useState(reduceMotion ? value : 0);
   const bounce = useRef(new Animated.Value(1)).current;
@@ -186,12 +193,10 @@ function CountUpText({
     return () => cancelAnimationFrame(frame);
   }, [bounce, reduceMotion, value]);
   return (
-    <Animated.Text
-      className="font-mono text-base"
-      style={{ transform: [{ scale: bounce }] }}
-      accessibilityLabel={format(value)}
-    >
-      {format(shown)}
-    </Animated.Text>
+    <Animated.View style={{ transform: [{ scale: bounce }], alignSelf: 'flex-start' }}>
+      <Text className={`font-mono text-base ${colorClass}`} accessibilityLabel={format(value)} numberOfLines={1}>
+        {format(shown)}
+      </Text>
+    </Animated.View>
   );
 }

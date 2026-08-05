@@ -132,7 +132,10 @@ function seekThenPlay(cue: Cue, isCurrent: () => boolean, allowRecovery = true):
       () => {
         if (!isCurrent() || suspended || audioIsSuspended()) return;
         try {
-          player.play();
+          // On web, play() returns a promise that rejects when a pause
+          // interrupts it — swallow that too, or it logs as uncaught.
+          const played = (player.play as () => unknown)();
+          if (played instanceof Promise) played.catch(() => undefined);
         } catch {
           // Device audio loss at play time is non-fatal.
         }

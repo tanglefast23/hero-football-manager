@@ -163,7 +163,7 @@ const CASES: readonly HarnessCase[] = [
     label: '2 stands + 3 shops',
     note: 'Gate ×200%, merch ×3 with adjacency caption.',
     build: () => reportCase([
-      gateLine(1968, { standLevel: 4, standCount: 2 }),
+      gateLine(1968, { standLevel: 2, standCount: 2 }),
       merchLine(273, { times: 3, count: 3, adjacencyPercent: 10 }),
       ...CONSTANT_TAIL.map(make => make()),
     ]),
@@ -227,11 +227,11 @@ const CASES: readonly HarnessCase[] = [
   {
     id: 'reduce-motion',
     label: 'Reduce motion',
-    note: 'Instant landing; the surged banner still shows, statically.',
+    note: 'Instant landing; both surged banners still show, statically.',
     reduceMotion: true,
     build: () => reportCase([
       gateLine(2264, { percent: 15, surge: true, standLevel: 2, standCount: 2 }),
-      merchLine(273, { times: 3, count: 3, adjacencyPercent: 10 }),
+      merchLine(312, { percent: 18, surge: true, times: 3, count: 3, adjacencyPercent: 10 }),
       ...CONSTANT_TAIL.map(make => make()),
     ]),
   },
@@ -247,6 +247,7 @@ function FinancialReportCase({ caseId }: { caseId: string }) {
         accessibilityLabel="Replay the reveal"
         onPress={() => setReplayKey(key => key + 1)}
         className="mb-3 self-start border-2 border-b-4 border-ink bg-white px-3 py-2"
+        style={{ minHeight: 44 }}
       >
         <Text className="font-pixel text-sm uppercase text-ink">Replay ▸</Text>
       </Pressable>
