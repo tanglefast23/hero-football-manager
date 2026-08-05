@@ -1,5 +1,6 @@
 import { createLaunchCareerSetup } from '../launch';
 import { clubFinancesViewModel } from '../view-models';
+import type { SponsorContractSnapshot } from '../../game/club-business-types';
 import {
   advanceFacilityConstruction,
   buildCareerFacility,
@@ -147,11 +148,11 @@ describe('club finances immediate transaction history', () => {
         periodLabel: 'S1 · W3', detail: 'Home league gate', net: baseline + 1_200,
       }),
       expect.objectContaining({
-        periodLabel: 'S1 · W4', detail: 'Away league game · no gate · Sponsor payment',
+        periodLabel: 'S1 · W4', detail: 'Away league game · no gate · Advertising payment',
         net: baseline + 3_000,
       }),
       expect.objectContaining({
-        periodLabel: 'S1 · W5', detail: 'No match or sponsor payment', net: baseline,
+        periodLabel: 'S1 · W5', detail: 'No match or advertising payment', net: baseline,
       }),
       expect.objectContaining({
         periodLabel: 'S1 · W6', detail: 'Home Hero Cup gate', net: baseline + 1_200,
@@ -160,6 +161,38 @@ describe('club finances immediate transaction history', () => {
     expect(viewModel.operatingOutlook.net).toBe(baseline * 4 + 5_400);
     expect(viewModel.operatingOutlook.projectedBalance)
       .toBe(viewModel.resources.money + viewModel.operatingOutlook.net);
+  });
+
+  /**
+   * The outlook must follow the contracts, not the division. A club relegated
+   * from D4 keeps its managed portfolio, so a division test would tell it its
+   * real sponsors were pitchside boards.
+   */
+  test('keeps sponsor wording in the outlook once managed contracts exist', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260806));
+    const contract: SponsorContractSnapshot = {
+      contractId: 'test-slot0',
+      sponsorContentId: 'continuity',
+      sponsorName: 'Test Sponsor',
+      offerLine: 'Test terms.',
+      season: 1,
+      slot: 0,
+      nominalMonthlyFee: 4_000,
+      provisional: false,
+    };
+    const managed = {
+      ...initial,
+      clubBusiness: {
+        ...initial.clubBusiness,
+        sponsorship: { activeContracts: [contract], offers: [], portfolioSeason: 1 },
+      },
+    };
+
+    const details = clubFinancesViewModel(managed).operatingOutlook.weeks
+      .map(week => week.detail)
+      .join(' | ');
+    expect(details).toContain('Sponsor payment');
+    expect(details).not.toContain('dvertising');
   });
 
   /**
@@ -217,7 +250,7 @@ describe('club finances immediate transaction history', () => {
 
     expect(clubFinancesViewModel(settled([
       { kind: 'tickets', label: 'League home gate', amount: 2_040 },
-      { kind: 'sponsor', label: 'Monthly sponsor fee', amount: 600 },
+      { kind: 'sponsor', label: 'Local advertising (monthly)', amount: 600 },
       { kind: 'wages', label: 'Weekly wages', amount: -1_180 },
     ])).variableIncome).toEqual({ amount: 2_640 });
 

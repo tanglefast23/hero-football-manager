@@ -426,6 +426,9 @@ function fourWeekOperatingOutlook(
   }
   const recurringNet = recurringLines.reduce((sum, line) => sum + line.amount, 0);
   const sponsorIncome = currentActualMonthlySponsorIncome(state, club);
+  // A D5 club has no sponsors to name. Managed contracts, not the division, are
+  // what makes "sponsor" the true word — a club relegated from D4 keeps both.
+  const managed = state.clubBusiness.sponsorship.activeContracts.length > 0;
   const gateIncome = homeGateIncome(state, club, 'projected home gate');
   const cup = state.m2?.nationalCups.find(candidate => candidate.season === state.season);
   let runningBalance = club.cash;
@@ -460,9 +463,11 @@ function fourWeekOperatingOutlook(
 
     if (SPONSOR_PAYMENT_WEEKS.includes(week as typeof SPONSOR_PAYMENT_WEEKS[number])) {
       net += sponsorIncome;
-      facts.push('Sponsor payment');
+      facts.push(managed ? 'Sponsor payment' : 'Advertising payment');
     }
-    if (facts.length === 0) facts.push('No match or sponsor payment');
+    if (facts.length === 0) {
+      facts.push(managed ? 'No match or sponsor payment' : 'No match or advertising payment');
+    }
     runningBalance += net;
     return {
       periodLabel: `S${state.season} · W${week}`,
