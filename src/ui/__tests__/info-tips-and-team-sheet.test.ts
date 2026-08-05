@@ -113,8 +113,12 @@ describe('quick train', () => {
     expect(guide).toContain("'quick-train-seen': 'guide:bert:quick-train-seen'");
     expect(app).toContain('const QUICK_TRAIN_LESSON_WEEK = 6;');
     expect(app).toContain("!hasAssistantGuideMilestone(store.career, 'quick-train-seen')");
-    // The lesson needs a grid to point at, so it selects someone first.
-    expect(screen).toContain('if (!guideQuickTrain || selectedPlayerId !== undefined) return;');
+    // The Squad page keeps its ordinary opening position. The lesson appears
+    // only after the manager naturally selects a player; it never selects or
+    // scrolls the viewport for them.
+    expect(screen).not.toContain('if (!guideQuickTrain || selectedPlayerId !== undefined) return;');
+    expect(screen).not.toContain('const frameAttributes = useCallback');
+    expect(screen).not.toContain('attributesScrolledRef');
     expect(screen).toContain('label="Quick Train"');
     expect(screen).toContain('detail="Select a player and tap the attribute you want to train."');
     // Doing the thing retires the lesson.

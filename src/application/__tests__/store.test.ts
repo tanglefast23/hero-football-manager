@@ -1347,7 +1347,7 @@ describe('M1 app store integration', () => {
     const fixtureId = before.onboarding?.firstFixtureId;
     const fixture = before.fixtures.find(candidate => candidate.id === fixtureId)!;
     const controlledTeam: 0 | 1 = fixture.homeClubId === before.userClubId ? 0 : 1;
-    useM1Store.getState().quickResult({ initialFormation: '3-5-2', autoSubs: false });
+    useM1Store.getState().quickResult({ initialFormation: '3-5-2' });
     await waitFor(() => saved.length === 1);
 
     expect(saved[0]).toMatchObject({
@@ -1356,7 +1356,9 @@ describe('M1 app store integration', () => {
       envelope: {
         schemaVersion: 1,
         engineVersion: expect.any(String),
-        inputs: [],
+        inputs: expect.arrayContaining([
+          expect.objectContaining({ kind: 'SUBSTITUTE' }),
+        ]),
       },
     });
     expect(saved[0].envelope.opts).toEqual({

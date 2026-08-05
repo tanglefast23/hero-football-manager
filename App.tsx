@@ -1590,7 +1590,6 @@ function GameApp() {
         onWatchMatch={store.watchMatch}
         onQuickResult={() => store.quickResult({
           initialFormation: preferences.formationPresets[0],
-          autoSubs: preferences.autoSubs,
         })}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
       />

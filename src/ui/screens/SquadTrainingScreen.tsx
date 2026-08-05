@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode, RefObject } from 'react';
+import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { GestureResponderEvent, ViewStyle } from 'react-native';
 import type { AssistantGuideFocus, ManagerTipDestination } from '../../content';
@@ -120,8 +120,8 @@ const ATTRIBUTE_EXPLAINER: Readonly<Record<string, string>> = {
 
 const CONDITION_WARNING_DRILL = 3;
 
-/** How far below the viewport top the attribute grid sits once framed. */
-const QUICK_TRAIN_FRAME_TOP = 96;
+/** How far below the viewport top an explicitly requested guide target sits. */
+const SQUAD_GUIDE_FRAME_TOP = 96;
 /**
  * Every fixed register column, header and cells alike, in points. Deriving
  * them lives in squad-register-columns.ts, which explains why they are points
@@ -172,9 +172,8 @@ export interface SquadTrainingScreenProps {
   conditionWarningSeen?: boolean;
   onConditionWarningShown?: () => void;
   /**
-   * The week-6 Quick Train lesson. The screen selects a player, frames the
-   * attribute grid and points at it, because the lesson is meaningless without
-   * a grid on screen to point at.
+   * The week-6 Quick Train lesson. It waits for the manager to select a player,
+   * then points out that the attribute boxes are training shortcuts.
    */
   guideQuickTrain?: boolean;
   onQuickTrainShown?: () => void;
@@ -269,9 +268,7 @@ export function SquadTrainingScreen({
   /** The stat the manager tapped in the player file, aimed at its drill. */
   const [quickTrainPathId, setQuickTrainPathId] = useState<string | undefined>(undefined);
   const scrollRef = useRef<ScrollView>(null);
-  const attributesRef = useRef<View>(null);
   const drillShopRef = useRef<View>(null);
-  const attributesScrolledRef = useRef(false);
   const setSquadSort = useCallback((key: SquadSortKey) => {
     // A sort is a statement about the whole register, so it drops the current
     // selection. Keeping it left the open player file reading as a row pinned
@@ -392,7 +389,7 @@ export function SquadTrainingScreen({
         if (target === 'drill-shop') {
           drillShopRef.current?.measureInWindow((_x, y) => {
             scrollRef.current?.scrollTo({
-              y: Math.max(0, y - QUICK_TRAIN_FRAME_TOP),
+              y: Math.max(0, y - SQUAD_GUIDE_FRAME_TOP),
               animated: true,
             });
           });
@@ -409,54 +406,6 @@ export function SquadTrainingScreen({
     guideQuickTrainRef.current = guideQuickTrain;
     if (!guideQuickTrain) setQuickTrainCueDismissed(false);
   }, [guideQuickTrain]);
-
-  /**
-   * Pick someone if nobody is selected, or there is no attribute grid for the
-   * lesson to point at. The created player sorts first, so they are the pick.
-   */
-  useEffect(() => {
-    if (!guideQuickTrain || selectedPlayerId !== undefined) return;
-    const first = sortedPlayers[0];
-    if (first !== undefined) onSelectPlayer(first.id);
-  }, [guideQuickTrain, onSelectPlayer, selectedPlayerId, sortedPlayers]);
-
-  /** Frame the grid once, on the frame after it has laid out. */
-  const frameAttributes = useCallback(() => {
-    if (!guideQuickTrain || attributesScrolledRef.current) return;
-    const target = attributesRef.current;
-    const scroller = scrollRef.current;
-    if (target === null || scroller === null) return;
-    attributesScrolledRef.current = true;
-    requestAnimationFrame(() => {
-      target.measureInWindow((_x, y) => {
-        scroller.scrollTo({ y: Math.max(0, y - QUICK_TRAIN_FRAME_TOP), animated: true });
-      });
-    });
-  }, [guideQuickTrain]);
-
-  useEffect(() => {
-    if (!guideQuickTrain) attributesScrolledRef.current = false;
-  }, [guideQuickTrain]);
-
-  /**
-   * The lesson is spent once the manager has left the squad having seen it.
-   *
-   * Retiring it only on a Quick Train left it armed for the rest of season 1
-   * for anyone who trained from the drill badge instead, or who simply read the
-   * cue and moved on — and an armed lesson re-frames the attribute grid on
-   * every arrival, so the scroller jumped down past the register to the player
-   * file and drill shop each time the squad was opened.
-   */
-  const quickTrainShownRef = useRef(onQuickTrainShown);
-  quickTrainShownRef.current = onQuickTrainShown;
-  useEffect(() => () => {
-    // Gated on the framing rather than on the flag alone: an Advance Week that
-    // ticks into week 6 tears this screen down for the match, and a lesson the
-    // manager was never actually shown must not be spent by that.
-    if (guideQuickTrainRef.current && attributesScrolledRef.current) {
-      quickTrainShownRef.current?.();
-    }
-  }, []);
 
   const layoutMode = useLayoutMode();
 
@@ -496,8 +445,6 @@ export function SquadTrainingScreen({
           statOptions={viewModel.selectedPlayerStatOptions}
           onTrainAttribute={handleTrainAttribute}
           guideQuickTrain={guideQuickTrain && !quickTrainCueDismissed}
-          attributesRef={attributesRef}
-          onAttributesLayout={frameAttributes}
         />
       ),
     }] : []),
@@ -958,8 +905,6 @@ interface PlayerFileSectionProps {
   onTrainAttribute?: (pathId: string) => void;
   /** Week-6 lesson: point at the grid and explain that the boxes are buttons. */
   guideQuickTrain?: boolean;
-  attributesRef?: RefObject<View | null>;
-  onAttributesLayout?: () => void;
 }
 
 function PlayerFileSection({
@@ -968,8 +913,6 @@ function PlayerFileSection({
   statOptions,
   onTrainAttribute,
   guideQuickTrain = false,
-  attributesRef,
-  onAttributesLayout,
 }: PlayerFileSectionProps) {
   return (
     <PaperPanel
@@ -1091,9 +1034,6 @@ function PlayerFileSection({
         </View>
       </View>
       <View
-        ref={attributesRef}
-        collapsable={false}
-        onLayout={onAttributesLayout}
         className={guideQuickTrain
           ? 'relative mt-20 border-2 border-blue-dark bg-blue-light/20 p-3'
           : 'mt-3 border-2 border-ink bg-white p-3'}

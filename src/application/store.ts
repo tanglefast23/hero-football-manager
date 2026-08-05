@@ -276,7 +276,7 @@ interface M1Store {
   openMatchday: () => void;
   openCupFixture: (fixtureId: string) => void;
   advanceCareer: () => void;
-  quickResult: (preferences?: ManagerMatchPreferences) => void;
+  quickResult: (preferences?: Pick<ManagerMatchPreferences, 'initialFormation'>) => void;
   watchMatch: () => void;
   finishWatchedMatch: (result: MatchState) => void;
   continueAfterMatch: () => Promise<void>;
@@ -848,7 +848,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
-  quickResult(preferences = { initialFormation: '4-4-2', autoSubs: false }) {
+  quickResult(preferences = { initialFormation: '4-4-2' }) {
     guarded(set, () => {
       // Only the match-day screen offers Quick Result. On a shared league+cup
       // week the first dispatch leaves the cup fixture active, so an unguarded
@@ -867,6 +867,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const quickMatch = quickMatchForFixture(fixture, teams, {
         userClubId: before.userClubId,
         ...preferences,
+        // Quick Result owns the touchline. It always replaces tired players;
+        // the saved switch belongs only to matches the manager watches.
+        autoSubs: true,
       });
       const production = quickMatch.production;
       if (production === undefined) throw new Error('Quick Result did not produce user match facts');

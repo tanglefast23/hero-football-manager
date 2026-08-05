@@ -3,13 +3,15 @@ import { join } from 'path';
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
-describe('bench cover survives the final whistle', () => {
-  it('opens every match on the saved setting instead of off', () => {
+describe('automatic substitution policy', () => {
+  it('opens every live match on the saved setting, with a fresh install defaulting off', () => {
     const match = source('src/render/MatchScreen.tsx');
+    const repository = source('src/persistence/preferences-repository.ts');
 
     expect(match).toContain('autoSubs: initialAutoSubs = false,');
     expect(match).toContain('const [autoSubs, setAutoSubs] = useState(initialAutoSubs);');
     expect(match).toContain('const autoSubsRef = useRef(initialAutoSubs);');
+    expect(repository).toContain('autoSubs: false,');
     // The old default made the manager re-tick AUTO every week.
     expect(match).not.toContain('const [autoSubs, setAutoSubs] = useState(false);');
   });
@@ -47,5 +49,18 @@ describe('bench cover survives the final whistle', () => {
     expect(app).toContain('savePreferences({ ...preferencesRef.current, autoSubs });');
     expect(repository).toContain('autoSubs: z.boolean(),');
     expect(repository).toContain('autoSubs: false,');
+  });
+
+  it('always enables tired-player swaps for Quick Result without changing the live preference', () => {
+    const app = source('App.tsx');
+    const store = source('src/application/store.ts');
+    const quickResultStart = store.indexOf("  quickResult(preferences = { initialFormation: '4-4-2' }) {");
+    const quickResultEnd = store.indexOf('\n\n  watchMatch() {', quickResultStart);
+
+    expect(quickResultStart).toBeGreaterThan(-1);
+    expect(quickResultEnd).toBeGreaterThan(quickResultStart);
+    expect(store.slice(quickResultStart, quickResultEnd)).toContain('autoSubs: true,');
+    expect(app).toContain('autoSubs={preferences.autoSubs}');
+    expect(app).not.toContain('autoSubs: preferences.autoSubs,');
   });
 });
