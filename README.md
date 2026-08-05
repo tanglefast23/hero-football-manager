@@ -101,7 +101,7 @@ Logic goes in a module that imports no React: `route.ts` (addresses) and `career
 Research reports (source material, written by research agents):
 [research/kairosoft-economy.md](research/kairosoft-economy.md) · [research/match-presentation.md](research/match-presentation.md) · [research/stack-analysis.md](research/stack-analysis.md)
 
-## Decision log (locked through 2026-08-05)
+## Decision log (locked through 2026-08-06)
 
 | Decision | Choice |
 |---|---|
@@ -148,6 +148,7 @@ in [the scale-invariant attributes master spec](docs/superpowers/plans/2026-07-2
 | Should the harness gate the ramp? | **Yes** — assert a best-play career promotes out of D5 **within 2 seasons**, and that a competent-play career manages it in 1 | `division-ramp-probe.test.ts` (`DIVISION_RAMP_PROBE=1`). Not `m2-balance.test.ts`: it scores fixtures from the seed alone and never reads squad strength |
 | Manual Zone tap | **Removed permanently**; powers always fire automatically | Done — see docs/04 |
 | Cup giant-killing | **Enabled:** one division down wins 5–10%; two-plus down wins 1–2% | Deterministic long-tail Cup model; Bert celebrates every qualifying player win with gap-specific copy |
+| Financial Report (2026-08-06) | The post-match summary is the **Financial Report**: slot-reel reveals, seeded ±10% gate/merch variance with a 1-in-10 surge band (+11–20%), facility base × multiplier beats, pixel surge banners | Spec + plan council-audited; variance only on report-eligible settlements; projections stay baseline ("typical") |
 
 ## Deliberately deferred (not forgotten)
 
