@@ -177,9 +177,8 @@ gated on the mode.
 Plus these one-shots, each currently a `!hasAssistantGuideMilestone(...)`
 condition in `App.tsx`:
 
-- `facilityComboReveal` (1028), `cupExitConsolationVisible` (1046),
-  `tripleSpeedIntroVisible` (1050), `fansLessonVisible` (1063),
-  `fansLedgerTourVisible` (1068)
+- `facilityComboReveal` (1028), `tripleSpeedIntroVisible` (1050),
+  `fansLessonVisible` (1063), `fansLedgerTourVisible` (1068)
 - `lowConditionMatchdayStarter` (1446)
 - `conditionWarningSeen` / `guideQuickTrain` on `SquadTrainingScreen` (1676–1682)
 - the `club-legacy` auto-request at `App.tsx:992` — reached through
@@ -195,10 +194,11 @@ mid-career switch to Teacher from re-teaching things the manager has done.
 ### What stays in both modes
 
 The awakening cutscene, story events, player-request walk-ons, rookie and
-academy arrivals, the coach overlay, board ultimatums, retirement and legacy
-decisions, championship celebrations, and the endgame — including the true
-ending, where Bert is the one talking to the manager. The `create-player` gate
-(`src/application/store.ts:663`) stays: that is the onboarding spine, not
+academy arrivals, the coach overlay, board ultimatums, Cup mismatch warnings,
+Cup giant-killing celebrations, the first Cup-exit consolation, retirement and
+legacy decisions, championship celebrations, and the endgame — including the
+true ending, where Bert is the one talking to the manager. The
+`create-player` gate (`src/application/store.ts:663`) stays: that is the onboarding spine, not
 teaching.
 
 The rule: **if it carries a decision or a story beat, he stays. If it explains

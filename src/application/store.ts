@@ -17,6 +17,7 @@ import {
   buildCareerMatchTeams,
   buildCareerFacility,
   buildTrainingGround,
+  completeCupMismatchWarning as markCupMismatchWarningComplete,
   completeCupGiantKillingCelebration as markCupGiantKillingCelebrationComplete,
   completeFirstOnboardingMatch,
   completeAssistantGuideMilestone,
@@ -273,6 +274,8 @@ interface M1Store {
   completeAssistantGuide: (sequenceId: AssistantGuideSequenceId) => void;
   /** Retires a one-shot Bert lesson for the rest of the career. */
   completeGuideMilestone: (milestone: AssistantGuideMilestone) => void;
+  /** Sends Bert away after the current pre-match Cup mismatch warning. */
+  completeCupMismatchWarning: () => void;
   completeCupGiantKillingCelebration: () => void;
   /** Sends Bert away after he has refused an Advance Week. */
   dismissInboxDutyReminder: () => void;
@@ -685,6 +688,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const career = requireCareer(get());
       if (hasAssistantGuideMilestone(career, milestone)) return;
       const next = completeAssistantGuideMilestone(career, milestone);
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  completeCupMismatchWarning() {
+    guarded(set, () => {
+      const next = markCupMismatchWarningComplete(requireCareer(get()));
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });

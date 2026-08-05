@@ -55,7 +55,6 @@ describe('the app wires the choice to every teaching surface', () => {
       'const careerTeaches =',
       'assistantSequenceId = !careerTeaches',
       'facilityComboReveal = !careerTeaches',
-      'cupExitConsolationVisible = careerTeaches',
       'tripleSpeedIntroVisible = careerTeaches',
       'fansLessonVisible = careerTeaches',
       'fansLedgerTourVisible = careerTeaches',
@@ -68,6 +67,21 @@ describe('the app wires the choice to every teaching surface', () => {
     ]) {
       expect(app).toContain(fragment);
     }
+  });
+
+  it('keeps Cup flavour in both modes', () => {
+    const cupExitDeclaration = app.slice(
+      app.indexOf('const cupExitConsolationVisible ='),
+      app.indexOf('const tripleSpeedIntroVisible ='),
+    );
+    const cupWarningDeclaration = app.slice(
+      app.indexOf('const cupMismatchWarning ='),
+      app.indexOf('const facilityComboReveal ='),
+    );
+
+    expect(cupExitDeclaration).not.toContain('careerTeaches');
+    expect(cupWarningDeclaration).not.toContain('careerTeaches');
+    expect(app).toContain('pendingCupGiantKillingCelebrations?.[0]');
   });
 
   it('clears active teaching state before changing Bert to Advisor', () => {

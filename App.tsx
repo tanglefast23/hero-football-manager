@@ -123,6 +123,7 @@ import {
   buildCareerMatchTeams,
   careerCoachUnlockedFormationIds,
   clubSquadStrength,
+  cupMismatchWarning as pendingCupMismatchWarning,
   hasActiveCareerContractPromise,
   hasAssistantGuideSequenceCompleted,
   hasEverGainedFans,
@@ -1177,7 +1178,6 @@ function GameApp() {
         && store.activeTab === 'club'
         && clubOfficeTab === 'finances',
       watchingMatch: store.screen === 'watched',
-      cupExit: store.screen === 'postmatch' && store.postMatch?.result.cupExit === true,
       lowConditionMatchday,
     });
     for (const milestone of milestones) store.completeGuideMilestone(milestone);
@@ -1237,6 +1237,9 @@ function GameApp() {
       : undefined;
   const cupGiantKillingCelebration = store.career
     ?.pendingCupGiantKillingCelebrations?.[0];
+  const cupMismatchWarning = store.screen === 'matchday' && store.career !== null
+    ? pendingCupMismatchWarning(store.career)
+    : undefined;
   const facilityComboReveal = !careerTeaches || store.screen !== 'management' || store.career === null
     ? undefined
     : store.career.facilities.grid?.discoveredAdjacencies
@@ -1255,8 +1258,7 @@ function GameApp() {
    * back to the office, the sympathy would arrive after they had already
    * clicked past the defeat and started on next week.
    */
-  const cupExitConsolationVisible = careerTeaches
-    && store.screen === 'postmatch'
+  const cupExitConsolationVisible = store.screen === 'postmatch'
     && store.postMatch?.result.cupExit === true
     && store.career !== null
     && !hasAssistantGuideMilestone(store.career, 'first-cup-exit-seen');
@@ -1324,6 +1326,7 @@ function GameApp() {
    */
   const guideOverlayVisible = (
     assistantSequenceId !== null
+    || cupMismatchWarning !== undefined
     || cupGiantKillingCelebration !== undefined
     || cupExitConsolationVisible
     || facilityComboReveal !== undefined
@@ -2317,7 +2320,16 @@ function GameApp() {
           }}
         />
         </View>
-        {guideOverlayVisible && cupGiantKillingCelebration !== undefined ? (
+        {guideOverlayVisible && cupMismatchWarning !== undefined ? (
+          <BertBriefingWalkOn
+            key={cupMismatchWarning.fixtureId}
+            content={content.assistantGuide}
+            customMessage={cupMismatchWarning}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={store.completeCupMismatchWarning}
+          />
+        ) : guideOverlayVisible && cupGiantKillingCelebration !== undefined ? (
           <BertBriefingWalkOn
             key={cupGiantKillingCelebration.fixtureId}
             content={content.assistantGuide}
