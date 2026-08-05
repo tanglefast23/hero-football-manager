@@ -1,18 +1,14 @@
-# Financial Report Implementation Plan
+# Financial Report Implementation Plan (v2 — council round 1 applied)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebuild the post-match Match Summary modal as the animated "Financial Report" — slot-machine ledger reveals, seeded gate/merch variance with surge events, facility multiplier beats — per `docs/superpowers/specs/2026-08-06-financial-report-design.md` (the spec; council-audited; its §-references are used throughout).
+**Goal:** Rebuild the post-match Match Summary modal as the animated "Financial Report" — slot-machine ledger reveals, seeded gate/merch variance with surge events, facility multiplier beats — per `docs/superpowers/specs/2026-08-06-financial-report-design.md` (the spec).
 
-**Architecture:** Variance rolls once at settlement in the pure game ring (`src/game`), seeded from persisted career data, and saves a `reveal` breakdown on the ledger line; the UI replays saved truth only. A dedicated audio controller owns the four report cues. New UI components (`SlotAmount`, `FinancialStatement`, `SurgeBanner`) implement the reveal state machine inside the existing modal shell.
+**Architecture:** Variance rolls once at settlement in the pure game ring, seeded from persisted career data, saving a `reveal` breakdown on the ledger line; the UI replays saved truth only. The reveal sequencing lives in a **pure, fully tested state machine** (`financial-statement-machine.ts`); `FinancialStatement.tsx` is a thin timer/Animated/audio shell over it. A dedicated audio controller owns the four report cues with generation-based cancellation on every cue.
 
-**Tech Stack:** TypeScript, React Native (plain `Animated`), react-native-skia (`Canvas`/`Rect` pixel art), expo-audio, zod, Jest.
+**Tech Stack:** TypeScript, React Native (plain `Animated`), react-native-skia (`Canvas`/`Rect` pixel art), expo-audio, zod v4, Jest (node env, transpile-only — run `npx tsc --noEmit` at the end of EVERY task, not just at the finish line).
 
-**Worktree:** already isolated (`claude/match-summary-financial-redesign-ee490a`). Commit after every task.
-
-**Verification commands** (used throughout):
-- Tests: `npx jest <path> --runTestsByPath` (single file) / `npm test` (suite, includes the opening-economy balance harness — nothing in `src/audit` except `*-probe` tests is excluded)
-- Types: `npx tsc --noEmit`
+**Commit hygiene:** stage explicitly (`git add <paths>`) — never `-am`/`-A`; the worktree may carry unrelated files. Commit after every task.
 
 ---
 
@@ -20,6 +16,7 @@
 
 **Files:**
 - Create: `src/game/finance-variance.ts`
+- Modify: `src/game/types.ts` (~line 293)
 - Test: `src/game/__tests__/finance-variance.test.ts`
 
 - [ ] **Step 1: Write the failing tests**
@@ -28,22 +25,25 @@
 // src/game/__tests__/finance-variance.test.ts
 import { applyVariancePercent, matchdayVarianceRoll } from '../finance-variance';
 
+// In-range seeds only: mirror the event-clock contract (nonnegative safe ints;
+// the mixer folds them to uint32 itself).
+const seedGrid = Array.from({ length: 3000 }, (_, i) => (Math.imul(i, 2654435761) >>> 0));
+
 describe('matchdayVarianceRoll', () => {
   it('is deterministic for identical inputs', () => {
-    const a = matchdayVarianceRoll(123456, 1, 5, 'league-gate');
-    const b = matchdayVarianceRoll(123456, 1, 5, 'league-gate');
-    expect(a).toEqual(b);
+    expect(matchdayVarianceRoll(123456, 1, 5, 'league-gate'))
+      .toEqual(matchdayVarianceRoll(123456, 1, 5, 'league-gate'));
   });
 
   it('rolls independently per source in the same week', () => {
-    const seeds = Array.from({ length: 200 }, (_, i) => i * 7919 + 13);
+    const seeds = seedGrid.slice(0, 200);
     const gate = seeds.map(seed => matchdayVarianceRoll(seed, 2, 9, 'league-gate').percent);
     const merch = seeds.map(seed => matchdayVarianceRoll(seed, 2, 9, 'merch').percent);
     expect(gate).not.toEqual(merch);
   });
 
   it('always lands inside a legal band and surge matches the band', () => {
-    for (let seed = 0; seed < 500; seed += 1) {
+    for (const seed of seedGrid.slice(0, 500)) {
       for (const source of ['league-gate', 'cup-gate', 'merch'] as const) {
         const roll = matchdayVarianceRoll(seed, 1 + (seed % 3), 1 + (seed % 29), source);
         expect(Number.isSafeInteger(roll.percent)).toBe(true);
@@ -58,22 +58,18 @@ describe('matchdayVarianceRoll', () => {
     }
   });
 
-  it('surges close to 10% of the time over a fixed seed grid', () => {
-    let surges = 0;
-    const total = 3000;
-    for (let i = 0; i < total; i += 1) {
-      if (matchdayVarianceRoll(i * 2654435761 + 1, 1, 5, 'merch').surge) surges += 1;
-    }
-    // Deterministic grid: assert the exact measured count once known; the
-    // tolerance below guards the initial red run only. After the first green
-    // run, replace with `expect(surges).toBe(<measured>)`.
-    expect(surges).toBeGreaterThan(total * 0.07);
-    expect(surges).toBeLessThan(total * 0.13);
+  it('surges close to 10% of the time over the fixed seed grid', () => {
+    const surges = seedGrid.filter(seed => matchdayVarianceRoll(seed, 1, 5, 'merch').surge).length;
+    // Replace with expect(surges).toBe(<measured>) after the first green run.
+    expect(surges).toBeGreaterThan(3000 * 0.07);
+    expect(surges).toBeLessThan(3000 * 0.13);
   });
 
-  it('rejects non-safe-integer inputs', () => {
+  it('rejects out-of-contract inputs', () => {
     expect(() => matchdayVarianceRoll(0.5, 1, 1, 'merch')).toThrow();
-    expect(() => matchdayVarianceRoll(1, -1, 1, 'merch')).toThrow();
+    expect(() => matchdayVarianceRoll(-1, 1, 1, 'merch')).toThrow();
+    expect(() => matchdayVarianceRoll(1, 0, 1, 'merch')).toThrow();
+    expect(() => matchdayVarianceRoll(1, 1, 0, 'merch')).toThrow();
   });
 });
 
@@ -84,15 +80,18 @@ describe('applyVariancePercent', () => {
     expect(applyVariancePercent(999, 15)).toBe(1149); // round(1148.85)
     expect(applyVariancePercent(0, 20)).toBe(0);
   });
+
+  it('keeps every intermediate a safe integer', () => {
+    expect(() => applyVariancePercent(Number.MAX_SAFE_INTEGER - 1, 20)).toThrow();
+  });
 });
 ```
 
-- [ ] **Step 2: Run to verify failure** — `npx jest src/game/__tests__/finance-variance.test.ts --runTestsByPath` → FAIL (module not found).
+- [ ] **Step 2: Run** `npx jest --runTestsByPath src/game/__tests__/finance-variance.test.ts` → FAIL (module not found).
 
-- [ ] **Step 3: Implement**
+- [ ] **Step 3: Implement `src/game/finance-variance.ts`**
 
 ```ts
-// src/game/finance-variance.ts
 import { mulberry32 } from '../sim/rng';
 import type { LedgerLineReveal } from './types';
 
@@ -105,17 +104,25 @@ const SOURCE_SALT: Readonly<Record<VarianceSource, number>> = {
   merch: 0x9b05688c,
 };
 
+/**
+ * Season-1 solvency contingency (spec §5): stays −10 unless the
+ * opening-economy balance suite fails, in which case it becomes −5 — a
+ * NARROWED UNIFORM band (−5…+10, 16 values, mean +2.5 → +3.8% EV per eligible
+ * line), never a floor-clamp, which would pile 28.6% of rolls onto −5.
+ */
+export const SEASON_ONE_NORMAL_BAND_MIN = -10;
+
 export interface VarianceRoll {
-  /** −10…+10 when surge is false; 11…20 when surge is true. */
+  /** normal band min…+10 when surge is false; 11…20 when surge is true. */
   percent: number;
   surge: boolean;
 }
 
 /**
  * The weekly income roll for one variance source. Seeded exclusively from
- * persisted career data (the deterministicCareerEventRoll pattern), so
- * save/reload can never re-spin and Quick Result banks the same money as a
- * watched match. Consumes no RNG from any other stream.
+ * persisted career data (the deterministicCareerEventRoll pattern in
+ * event-clock.ts), so save/reload can never re-spin and Quick Result banks
+ * the same money as a watched match. Consumes no RNG from any other stream.
  */
 export function matchdayVarianceRoll(
   careerSeed: number,
@@ -123,9 +130,15 @@ export function matchdayVarianceRoll(
   week: number,
   source: VarianceSource,
 ): VarianceRoll {
-  if (!Number.isSafeInteger(careerSeed)) throw new Error('variance careerSeed must be a safe integer');
-  if (!Number.isSafeInteger(season) || season < 1) throw new Error('variance season must be a positive integer');
-  if (!Number.isSafeInteger(week) || week < 1) throw new Error('variance week must be a positive integer');
+  if (!Number.isSafeInteger(careerSeed) || careerSeed < 0) {
+    throw new Error('variance careerSeed must be a nonnegative safe integer');
+  }
+  if (!Number.isSafeInteger(season) || season < 1) {
+    throw new Error('variance season must be a positive integer');
+  }
+  if (!Number.isSafeInteger(week) || week < 1) {
+    throw new Error('variance week must be a positive integer');
+  }
   const seed = (
     careerSeed
     ^ Math.imul(season, 0x9e3779b1)
@@ -134,24 +147,26 @@ export function matchdayVarianceRoll(
   ) >>> 0;
   const rng = mulberry32(seed);
   const surge = Math.floor(rng() * 10) === 0;
-  const percent = surge
-    ? 11 + Math.floor(rng() * 10)   // uniform 11…20
-    : -10 + Math.floor(rng() * 21); // uniform −10…+10
-  return { percent, surge };
+  if (surge) return { percent: 11 + Math.floor(rng() * 10), surge };
+  const min = season === 1 ? SEASON_ONE_NORMAL_BAND_MIN : -10;
+  const span = 10 - min + 1;
+  return { percent: min + Math.floor(rng() * span), surge };
 }
 
 /** round(base × (100+p)/100) — variance applies to the base, before multipliers. */
 export function applyVariancePercent(base: number, percent: number): number {
-  if (!Number.isSafeInteger(base) || base < 0) throw new Error('variance base must be a nonnegative safe integer');
-  const varied = Math.round(base * (100 + percent) / 100);
-  if (!Number.isSafeInteger(varied)) throw new Error('varied amount exceeded safe integer range');
-  return varied;
+  if (!Number.isSafeInteger(base) || base < 0) {
+    throw new Error('variance base must be a nonnegative safe integer');
+  }
+  const scaled = base * (100 + percent);
+  if (!Number.isSafeInteger(scaled)) {
+    throw new Error('variance product exceeded safe integer range');
+  }
+  return Math.round(scaled / 100);
 }
 ```
 
-Note: this imports `LedgerLineReveal` from `./types`, added in the same commit (Step 4) so the module compiles.
-
-- [ ] **Step 4: Add the reveal types to `src/game/types.ts`** — directly below the `LedgerLine` interface (~line 293):
+- [ ] **Step 4: Add `LedgerLineReveal` to `src/game/types.ts`** below `LedgerLine` (~line 293) and extend `LedgerLine` — exact code:
 
 ```ts
 /**
@@ -190,8 +205,6 @@ export type LedgerLineReveal =
     };
 ```
 
-and extend `LedgerLine`:
-
 ```ts
 export interface LedgerLine {
   kind: LedgerLineKind;
@@ -204,57 +217,46 @@ export interface LedgerLine {
 }
 ```
 
-- [ ] **Step 5: Run tests** → PASS. Then pin the exact surge count measured in the grid test (replace the tolerance assertions with `expect(surges).toBe(<measured>)`).
+- [ ] **Step 5: Run tests → PASS; pin the exact surge count; `npx tsc --noEmit` → clean.**
 
-- [ ] **Step 6: Commit** — `git add -A && git commit -m "feat: add seeded matchday income variance roll"`
+- [ ] **Step 6: Commit** — `git add src/game/finance-variance.ts src/game/types.ts src/game/__tests__/finance-variance.test.ts && git commit -m "feat: add seeded matchday income variance roll"`
 
 ---
 
 ### Task 2: Settlement attaches variance + reveals
 
 **Files:**
-- Modify: `src/game/career.ts` (`settlementLines` ~line 792, `homeGateIncome` ~1025, `weeklyMerchandiseIncome` ~1039)
+- Modify: `src/game/career.ts` (`settlementLines` ~792, `homeGateIncome` ~1025, `weeklyMerchandiseIncome` ~1039)
 - Test: `src/game/__tests__/finance-reveal-settlement.test.ts` (new)
 
-- [ ] **Step 1: Write the failing tests.** Build states with the same helpers the existing settlement tests use (see `src/game/__tests__/career.test.ts` for the state-builder conventions — reuse its fixture/club builders rather than inventing new ones). Cover, as separate `it` cases:
+- [ ] **Step 1: Write the failing tests.** Do NOT import private helpers from `career.test.ts` (not exported). Build states through public builders/the public API the way other settlement tests do — if `career.test.ts` constructs states inline, copy the minimal builder into this file as local helpers. Assert through `advanceWeek`/`completeMatchday` → `state.ledgers`. Cases (each its own `it`):
 
-```ts
-// src/game/__tests__/finance-reveal-settlement.test.ts — shape of each case:
-// 1. Determinism: advanceWeek twice from structuredClone'd identical states →
-//    byte-identical settled lines (JSON.stringify equality).
-// 2. Home league week: 'League home gate' line has reveal.source 'league-gate';
-//    reconstruction holds: amount === base + Math.floor(base * (multiplierPercent - 100) / 100).
-// 3. Merch line (shop built): reveal.source 'merch';
-//    amount === base * multiplierTimes + adjacencyAmount;
-//    adjacencyAmount === Math.floor(base * multiplierTimes * adjacencyPercent / 100).
-// 4. Away-match week: no gate line at all; merch line still carries a reveal.
-// 5. Quiet week (no user fixture): merch line has NO reveal and equals the
-//    baseline weeklyMerchandiseIncome value.
-// 6. Season-final week (week === SEASON_WEEKS): no reveals on any line.
-// 7. Cup home week: cup gate line carries reveal.source 'cup-gate'; a week that
-//    is BOTH a league and cup home week carries three reveal-capable lines
-//    with three independent rolls.
-// 8. Zero-fan home fixture: gate line amount 0 and NO reveal.
-// 9. Constant lines (wages, upkeep, subsidy, sponsor, prize): never a reveal.
-// 10. Variance bounds at scale: iterate ~100 careerSeeds; every gate/merch
-//     line's variancePercent ∈ [−10,20], surge ⇔ band 11…20.
-```
+1. Determinism: settle two `structuredClone`-identical states → `JSON.stringify`-identical settled lines.
+2. **Watched vs Quick Result equality**: settle the same pre-match state via the two store-visible paths that both end in `completeMatchday` with identical results → identical lines including reveals. (If both paths are literally one function, assert that a second settle of a clone matches — and note in a comment that path equality is structural.)
+3. Home league week: `League home gate` line has `reveal.source === 'league-gate'`; reconstruction: `amount === base + Math.floor(base * (multiplierPercent - 100) / 100)`.
+4. Merch with shop(s): `reveal.source === 'merch'`; `amount === base * multiplierTimes + adjacencyAmount`; `adjacencyAmount === Math.floor(base * multiplierTimes * adjacencyPercent / 100)`.
+5. Away-match week: no gate line; merch line still reveals.
+6. Quiet week: merch has NO reveal and equals baseline `weeklyMerchandiseIncome`.
+7. Season-final week (`week === SEASON_WEEKS`): no reveals anywhere.
+8. Cup home week: `cup-gate` reveal; a league+cup double-header week carries three reveal-capable lines with three independent rolls.
+9. Zero-fan home fixture: gate amount 0, NO reveal.
+10. Constant lines (wages, upkeep, subsidy, sponsor, prize): never a reveal.
+11. **Projection parity at p = 0**: with variance forced ineligible (quiet week), settled gate and merch equal `homeGateIncome`/`weeklyMerchandiseIncome` on the same state.
+12. Bounds at scale over ~100 careerSeeds: every reveal's `variancePercent ∈ [−10, 20]`, `surge ⇔ percent ≥ 11`.
 
-Every case asserts through the public API (`advanceWeek`/`completeMatchday` → `state.ledgers`), not by calling private helpers.
+- [ ] **Step 2: Run → FAIL** (reveals undefined).
 
-- [ ] **Step 2: Run to verify failure** → reveals are undefined.
+- [ ] **Step 3: Implement in `career.ts`** exactly as follows.
 
-- [ ] **Step 3: Implement in `career.ts`.**
+(a) Imports: `matchdayVarianceRoll`, `applyVariancePercent` from `./finance-variance`; add `LedgerLineReveal` to the `./types` import.
 
-(a) Imports: add `matchdayVarianceRoll`, `applyVariancePercent` from `./finance-variance`; add `LedgerLineReveal` to the types import.
-
-(b) Eligibility helper (place next to `settlementLines`):
+(b) Eligibility helper (next to `settlementLines`):
 
 ```ts
 /**
- * Variance rolls only on settlements the Financial Report presents (§5 of the
- * spec): a played user fixture this week, and never the season-final
- * settlement, which routes to the season review instead of the report.
+ * Variance rolls only on settlements the Financial Report presents (spec §5):
+ * a played user fixture this week, and never the season-final settlement,
+ * which routes to the season review instead of the report.
  */
 function varianceEligibleSettlement(state: GameState): boolean {
   if (state.week === SEASON_WEEKS) return false;
@@ -275,7 +277,7 @@ function varianceEligibleSettlement(state: GameState): boolean {
 }
 ```
 
-(c) Facility counting. Extend the existing loops into count-aware helpers (keep `gridStadiumStandLevel` exported and delegating):
+(c) Facility counting — extend the existing loops (keep `gridStadiumStandLevel` exported and delegating):
 
 ```ts
 function gridStadiumStands(grid: FacilityGridState | undefined): { level: number; count: number } {
@@ -309,7 +311,7 @@ function gridFanShops(grid: FacilityGridState | undefined): { level: number; cou
 }
 ```
 
-(d) Rewrite the two income functions around a shared varied core. **Baseline signatures and call sites for projections stay** (`homeGateIncome`, `weeklyMerchandiseIncome`), but merch moves to per-level rounding (§6 — deltas ≤ floor(N/2) dollars):
+(d) Income functions — baseline signatures preserved for the two projection call sites in `view-models.ts` (lines ~315, ~429); merch baseline moves to per-level rounding (spec §6, deltas ≤ floor(N/2) dollars):
 
 ```ts
 export function homeGateIncome(state: GameState, userClub: ClubState, label: string): number {
@@ -404,9 +406,7 @@ function weeklyMerchandiseIncomeWithReveal(
   const roll = matchdayVarianceRoll(state.careerSeed, state.season, state.week, 'merch');
   const base = applyVariancePercent(rawPerLevel, roll.percent);
   const result = merchandiseIncomeFromPerLevel(state, base);
-  if (result.level === 0 || base <= 0) {
-    return { amount: result.amount };
-  }
+  if (result.level === 0 || base <= 0) return { amount: result.amount };
   const { count } = gridFanShops(state.facilities.grid);
   return {
     amount: result.amount,
@@ -424,7 +424,7 @@ function weeklyMerchandiseIncomeWithReveal(
 }
 ```
 
-(e) In `settlementLines`, replace the three push sites:
+(e) The three `settlementLines` push sites spread the optional reveal:
 
 ```ts
   if (homeFixture !== undefined) {
@@ -462,33 +462,25 @@ function weeklyMerchandiseIncomeWithReveal(
   }
 ```
 
-- [ ] **Step 4: Run the new test file** → PASS.
+- [ ] **Step 4: Run the new file → PASS.**
 
-- [ ] **Step 5: Run the full game/application suites and update pinned dollar expectations.** `npm test`. Expected breakage: settlement-integration tests with pinned amounts (e.g. `src/game/__tests__/m2-weekly-integration.test.ts`, `src/application/__tests__/*finances*`, store tests) now differ on match weeks by the deterministic roll, and quiet-week merch by ≤ floor(N/2) from the rounding change. Recompute each pinned value by reading the test's actual output — the new values are deterministic. Do NOT touch `src/audit` assertions; if `opening-economy-balance.test.ts` fails, apply the spec §5 contingency (season-1 clamp in `matchdayVarianceRoll` callers is NOT the mechanism — instead add the clamp inside `matchdayVarianceRoll` via an optional `options?: { minPercent?: number }` parameter passed from the two `WithReveal` functions when `state.season === 1`), re-run, and if it still fails STOP and surface to the owner.
+- [ ] **Step 5: `npm test` and repair expectations.** Failing settlement tests with pinned dollars must be re-derived **from the seed and formula** (compute `matchdayVarianceRoll(careerSeed, season, week, source)` for the test's fixed state and apply the §6 math by hand in a comment) — never by copying jest's actual-value output blind. Quiet-week merch deltas come from the per-level rounding change only. `src/audit/__tests__/opening-economy-balance.test.ts` must pass untouched; if it fails: flip `SEASON_ONE_NORMAL_BAND_MIN` to `-5`, add a focused test pinning the season-1 band (`percent ≥ −5` for season 1, full band for season 2), update `docs/06-economy.md` to the active band + +3.8% EV wording (Task 12 carries the doc), re-run; if still red, STOP and surface to the owner.
 
-- [ ] **Step 6: Commit** — `git commit -am "feat: settle gate and merch income with seeded variance and saved reveals"`
+- [ ] **Step 6: `npx tsc --noEmit` → clean. Commit** — `git add src/game/career.ts src/game/__tests__/finance-reveal-settlement.test.ts <updated test files> && git commit -m "feat: settle gate and merch income with seeded variance and saved reveals"`
 
 ---
 
 ### Task 3: Codec — reveal sanitization
 
 **Files:**
-- Modify: `src/persistence/game-state-codec.ts` (ledger schema ~line 109; normalization passes ~line 2040)
-- Test: `src/persistence/__tests__/ledger-reveal-sanitize.test.ts` (new; follow the existing codec test conventions in `src/persistence/__tests__/`)
+- Modify: `src/persistence/game-state-codec.ts` (schema block ~109; normalization pipeline ~2032–2053)
+- Test: `src/persistence/__tests__/ledger-reveal-sanitize.test.ts` (new; follow the conventions of the existing codec tests)
 
-- [ ] **Step 1: Write the failing tests.** Encode a valid state whose latest ledger has (a) a gate line with a valid reveal including `variancePercent: -7`, (b) a merch line with a valid reveal; decode; expect both reveals preserved exactly. Then hand-corrupt the JSON (decode → mutate → re-encode as the codec's tests do) for each strip case and expect: decode succeeds, `line.amount` intact, `line.reveal` gone:
-  - `source: 'merch'` on a `kind: 'tickets'` line (source/kind mismatch)
-  - `variancePercent: 25` with `surge: true` (out of band)
-  - `variancePercent: 15` with `surge: false` (band/flag disagreement)
-  - `base: 0` (zero base)
-  - gate reveal where `base + floor(base × (multiplierPercent−100)/100) !== amount` (reconstruction mismatch)
-  - merch reveal where `adjacencyAmount !== floor(base × multiplierTimes × adjacencyPercent / 100)` (adjacency mismatch)
-  - `multiplierTimes: 0` on merch (constraint violation)
-  - `reveal: "garbage"` (not an object)
+- [ ] **Step 1: Write the failing tests.** Round-trip: a state whose latest ledger holds (a) a gate line with valid reveal including `variancePercent: -7` and (b) a valid merch reveal → decode preserves both **exactly** (the negative-variance survival case is mandatory). Strip cases (decode succeeds, `amount` intact, `reveal` gone): source/kind mismatch; `variancePercent: 25` + `surge: true`; `variancePercent: 15` + `surge: false`; `base: 0`; gate reconstruction mismatch; merch adjacency mismatch; `multiplierTimes: 0`; `reveal: "garbage"`; **overflow at each reconstruction intermediate** (e.g. `base: Number.MAX_SAFE_INTEGER - 1, multiplierTimes: 4` — the sanitizer must strip, not throw).
 
-- [ ] **Step 2: Run to verify failure.**
+- [ ] **Step 2: Run → FAIL.**
 
-- [ ] **Step 3: Implement.** Add a reveal schema next to `ledgerLineSchema` — used ONLY by the sanitizer (never wired into the state schema, so a bad reveal can never fail whole-save validation):
+- [ ] **Step 3: Implement.** Reveal schemas next to `ledgerLineSchema` — used ONLY by the sanitizer, never wired into the state schema:
 
 ```ts
 const gateRevealSchema = z.object({
@@ -511,15 +503,11 @@ const merchRevealSchema = z.object({
   adjacencyAmount: safeInteger.refine(v => v >= 0),
 });
 
-const ledgerLineRevealSchema = z.discriminatedUnion('source', [
-  gateRevealSchema.omit({ source: true }).extend({ source: z.enum(['league-gate', 'cup-gate']) }),
-  merchRevealSchema,
-]);
+// zod v4 accepts enum discriminators directly — no omit/extend dance.
+const ledgerLineRevealSchema = z.discriminatedUnion('source', [gateRevealSchema, merchRevealSchema]);
 ```
 
-(If the `omit/extend` dance fights zod's discriminated-union typing, define the two arms directly as above — `gateRevealSchema` already carries its own `source` enum, so `z.discriminatedUnion('source', [gateRevealSchema, merchRevealSchema])` is the simpler correct form. Use whichever compiles cleanly under the repo's zod version.)
-
-Then the sanitize pass, applied where the codec runs its other pre-validation normalizations (~line 2040, alongside the existing recoverable-data fixups — match the surrounding function style):
+The sanitizer joins the existing `unknown => unknown` normalization pipeline (~line 2032) — match that contract and the codec's `isRecord` guard style, returning `value`:
 
 ```ts
 /**
@@ -527,22 +515,19 @@ Then the sanitize pass, applied where the codec runs its other pre-validation no
  * dropped — and only the reveal — so the line and its authoritative amount
  * always load. Never rejects the save in either direction.
  */
-function sanitizeLedgerReveals(state: { ledgers?: unknown }): void {
-  if (!Array.isArray(state.ledgers)) return;
-  for (const ledger of state.ledgers) {
-    if (typeof ledger !== 'object' || ledger === null) continue;
-    const lines = (ledger as { lines?: unknown }).lines;
-    if (!Array.isArray(lines)) continue;
-    for (const line of lines) {
-      if (typeof line !== 'object' || line === null) continue;
-      const candidate = line as { kind?: unknown; amount?: unknown; reveal?: unknown };
-      if (candidate.reveal === undefined) continue;
-      if (!revealIsConsistent(candidate)) delete candidate.reveal;
+function sanitizeLedgerReveals(value: unknown): unknown {
+  if (!isRecord(value) || !Array.isArray(value.ledgers)) return value;
+  for (const ledger of value.ledgers) {
+    if (!isRecord(ledger) || !Array.isArray(ledger.lines)) continue;
+    for (const line of ledger.lines) {
+      if (!isRecord(line) || line.reveal === undefined) continue;
+      if (!revealIsConsistent(line)) delete line.reveal;
     }
   }
+  return value;
 }
 
-function revealIsConsistent(line: { kind?: unknown; amount?: unknown; reveal?: unknown }): boolean {
+function revealIsConsistent(line: Record<string, unknown>): boolean {
   const parsed = ledgerLineRevealSchema.safeParse(line.reveal);
   if (!parsed.success) return false;
   const reveal = parsed.data;
@@ -552,55 +537,47 @@ function revealIsConsistent(line: { kind?: unknown; amount?: unknown; reveal?: u
     if (line.kind !== 'merch') return false;
     const afterMultiplier = reveal.base * reveal.multiplierTimes;
     if (!Number.isSafeInteger(afterMultiplier)) return false;
-    const expectedAdjacency = Math.floor(afterMultiplier * reveal.adjacencyPercent / 100);
-    if (reveal.adjacencyAmount !== expectedAdjacency) return false;
+    const adjacencyProduct = afterMultiplier * reveal.adjacencyPercent;
+    if (!Number.isSafeInteger(adjacencyProduct)) return false;
+    if (reveal.adjacencyAmount !== Math.floor(adjacencyProduct / 100)) return false;
     return afterMultiplier + reveal.adjacencyAmount === line.amount;
   }
   if (line.kind !== 'tickets') return false;
-  const bonus = Math.floor(reveal.base * (reveal.multiplierPercent - 100) / 100);
-  if (!Number.isSafeInteger(reveal.base + bonus)) return false;
-  return reveal.base + bonus === line.amount;
+  const bonusProduct = reveal.base * (reveal.multiplierPercent - 100);
+  if (!Number.isSafeInteger(bonusProduct)) return false;
+  const reconstructed = reveal.base + Math.floor(bonusProduct / 100);
+  if (!Number.isSafeInteger(reconstructed)) return false;
+  return reconstructed === line.amount;
 }
 ```
 
-Call `sanitizeLedgerReveals(...)` from the same place the codec applies its other normalizations, before final validation. `GAME_SCHEMA_VERSION` does NOT bump.
+Register `sanitizeLedgerReveals` in the normalization pipeline exactly where its peers run (before final validation). `GAME_SCHEMA_VERSION` does NOT bump.
 
-- [ ] **Step 4: Run tests** → PASS. Run the full persistence suite: `npx jest src/persistence --runTestsByPath src/persistence/__tests__/*.test.ts` (or `npm test`).
-
-- [ ] **Step 5: Commit** — `git commit -am "feat: fail-soft ledger reveal sanitization in the save codec"`
+- [ ] **Step 4: Run new tests + the persistence suite** (`npx jest --runTestsByPath src/persistence/__tests__/ledger-reveal-sanitize.test.ts` then `npm test` filtered or full). **Step 5: `npx tsc --noEmit`. Commit** — scoped `git add`, message `"feat: fail-soft ledger reveal sanitization in the save codec"`.
 
 ---
 
 ### Task 4: View models — reveal pass-through + settlement week
 
 **Files:**
-- Modify: `src/ui/models.ts` (~line 263 and ~line 306)
-- Modify: `src/application/view-models.ts` (`postMatchViewModel` ~line 2498)
-- Test: extend `src/application/__tests__/store.test.ts` or the view-model test file that already covers `postMatchViewModel` (locate with `grep -rn "postMatchViewModel" src/application/__tests__`)
+- Modify: `src/ui/models.ts` (~263, ~306), `src/application/view-models.ts` (~2498)
+- Modify: `src/application/__tests__/store.test.ts` (~1647 — the hand-built `PostMatchViewModel` literal gains the two new required fields, or typecheck breaks)
+- Test: extend the existing `postMatchViewModel` coverage (locate: `grep -rn "postMatchViewModel" src/application/__tests__`)
 
-- [ ] **Step 1: Write the failing test.** After a settled home match with a shop and stands, `store.postMatch.ledger` lines for gate/merch carry `reveal` equal to the settled `LedgerLine.reveal`, and `postMatch.settlementSeason`/`settlementWeek` equal the settled week. Finances view model lines (`clubFinancesViewModel(...).ledger[n]`) have no `reveal` property.
+- [ ] **Step 1: Failing test** — gate/merch lines in `store.postMatch.ledger` carry `reveal` equal to the settled lines'; `postMatch.settlementSeason`/`settlementWeek` equal the settled week; `clubFinancesViewModel(...).ledger` lines have no `reveal` property.
 
-- [ ] **Step 2: Run to verify failure.**
-
-- [ ] **Step 3: Implement.** In `src/ui/models.ts`:
+- [ ] **Step 2–3: Implement.** `src/ui/models.ts`:
 
 ```ts
-import type { LedgerLineReveal } from '../game/types'; // add to existing type imports
+import type { LedgerLineReveal } from '../game/types'; // add to the existing type imports
 
-export interface LedgerLineViewModel {
-  id: string;
-  label: string;
-  amount: number;
-  kind: 'income' | 'expense' | 'neutral';
-}
-
-/** Post-match statement rows only: the Finances ledger stays undressed. */
 export interface PostMatchLedgerLineViewModel extends LedgerLineViewModel {
+  /** Post-match statement rows only: the Finances ledger stays undressed. */
   reveal?: LedgerLineReveal;
 }
 ```
 
-In `PostMatchViewModel` change `ledger: readonly LedgerLineViewModel[]` to `ledger: readonly PostMatchLedgerLineViewModel[]` and add:
+`PostMatchViewModel`: `ledger: readonly PostMatchLedgerLineViewModel[]` plus:
 
 ```ts
   /** Settled week identity — the deterministic banner/toy seed (spec §7). */
@@ -608,23 +585,9 @@ In `PostMatchViewModel` change `ledger: readonly LedgerLineViewModel[]` to `ledg
   settlementWeek: number;
 ```
 
-In `postMatchViewModel` (view-models.ts ~2498):
+`postMatchViewModel` ledger mapping gains `...(line.reveal === undefined ? {} : { reveal: line.reveal })` per line, and the return gains `settlementSeason: before.season, settlementWeek: before.week`. Update the `store.test.ts` literal (~1647) with both fields.
 
-```ts
-    ledger: (ledger?.lines ?? []).map((line, index) => ({
-      id: `${before.season}-${before.week}-${index}`,
-      label: line.label,
-      amount: line.amount,
-      kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
-      ...(line.reveal === undefined ? {} : { reveal: line.reveal }),
-    })),
-    settlementSeason: before.season,
-    settlementWeek: before.week,
-```
-
-- [ ] **Step 4: Run tests** → PASS. `npx tsc --noEmit`.
-
-- [ ] **Step 5: Commit** — `git commit -am "feat: pass ledger reveals and settlement week through the post-match view model"`
+- [ ] **Step 4: Tests + `npx tsc --noEmit`. Commit** — `"feat: pass ledger reveals and settlement week through the post-match view model"`.
 
 ---
 
@@ -633,159 +596,51 @@ In `postMatchViewModel` (view-models.ts ~2498):
 **Files:**
 - Create: `assets/audio/sfx/ledger-spin.wav`, `assets/audio/sfx/ledger-thunk.wav`
 - Create: `src/render/financial-report-sfx.ts`
-- Modify: `App.tsx` (volume effect ~line 953; teardown effect ~line 986)
-- Test: `src/render/__tests__/financial-report-sfx.test.ts` (mock `expo-audio` exactly as `src/render/__tests__/management-sfx.test.ts` does)
+- Modify: `App.tsx` (volume effect ~953; unmount teardown ~986)
+- Test: `src/render/__tests__/financial-report-sfx.test.ts`
 
-- [ ] **Step 1: Convert and add the assets** (already staged in the session scratchpad; the canonical commands, matching `flame-up.wav`'s pcm_s16le/48k/stereo):
+- [ ] **Step 1: Assets** (canonical conversion, matching `flame-up.wav`'s pcm_s16le/48k/stereo):
 
 ```bash
 ffmpeg -y -i "/Users/joemacprom5/Library/Mobile Documents/com~apple~CloudDocs/sounds/progress.webm" -ar 48000 -ac 2 -c:a pcm_s16le assets/audio/sfx/ledger-spin.wav
 ffmpeg -y -i "/Users/joemacprom5/Library/Mobile Documents/com~apple~CloudDocs/sounds/thunk.webm" -ar 48000 -ac 2 -c:a pcm_s16le assets/audio/sfx/ledger-thunk.wav
 ```
 
-- [ ] **Step 2: Write the failing controller tests.** Mock `expo-audio` with recording fake players (the management-sfx test file shows the exact mock shape: `createAudioPlayer` returning `{ play, pause, remove, release, seekTo: jest.fn(() => Promise.resolve()), volume, loop }`). Cases:
-  - `playLedgerSpin()` then `stopLedgerSpin()` before the seek promise resolves → the late `play` never fires (generation token).
-  - `playLedgerSpin()` twice rapidly → second call restarts (seek+play), no double-play from the first.
-  - `playSurgeIgnition()` starts flame-up one-shot AND the crackle loop player (loop=true); `stopSurgeBed()` pauses the loop; calling it twice is safe.
-  - `setFinancialReportSfxMasterVolume(0)` silences every player (volume 0 on all).
-  - `stopAllFinancialReportSfx()` pauses everything; `teardownFinancialReportSfx()` removes/releases all players and a later `playLedgerThunk()` re-inits without throwing.
+- [ ] **Step 2: Failing tests** (mock `expo-audio` exactly as `src/render/__tests__/management-sfx.test.ts` does; seekTo returns a controllable promise). Cases:
+  - Spin: stop before pending seek resolves → late `play` never fires; double-start restarts cleanly.
+  - **Thunk pool**: three rapid `playLedgerThunk()` calls use distinct pool players (no self-cutoff); a pending thunk seek after `stopAllFinancialReportSfx()` never plays.
+  - Surge: `playSurgeIgnition()` starts flame-up AND crackle (loop=true); `stopSurgeBed()` pauses BOTH; pending flame-up seek after stop never plays; double-stop safe.
+  - Lifecycle: `suspend` pauses everything; `resume` restarts the crackle ONLY when the surge bed was active at suspend and has not been stopped since (`crackleActive` with unchanged generation); resume after `stopSurgeBed()` stays silent; a `playLedgerSpin()` while suspended does not start audio (respects `audioIsSuspended()` — verify the exact suspended-query export in `src/render/audio-lifecycle.ts` and use it; if the module instead delivers suspend state only via the owner callbacks, track a local `suspended` flag set by our own suspend/resume handlers).
+  - Volume: `setFinancialReportSfxMasterVolume(0)` sets `volume = 0` AND `muted = true` on every player (the repo's documented web/iOS behavior in `audio.ts` ~275); restoring volume unmutes.
+  - Rejected seek: `seekTo` rejecting does not throw or wedge the generation.
+  - `teardownFinancialReportSfx()` removes/releases all; later play re-inits without throwing.
 
-- [ ] **Step 3: Run to verify failure.**
-
-- [ ] **Step 4: Implement `src/render/financial-report-sfx.ts`.** Model the lazy-init/teardown structure on `management-sfx.ts` and the loop handling on `audio.ts`:
+- [ ] **Step 3: Implement.** Structure: one generation counter **per cue family** (`spinGen`, `thunkGen`, `surgeGen`), a `suspended` flag, and a shared guarded start:
 
 ```ts
-/**
- * Report-owned audio for the Financial Report modal (spec §9): the slot-spin
- * bed, the landing thunk, and the two surge cues. Deliberately NOT in the
- * management-sfx registry — the report needs a loop player, per-cue gain, and
- * cancellation around async seek/play, none of which the one-shot registry has.
- */
-import type { AudioPlayer, AudioSource } from 'expo-audio';
-
-const SPIN_SOURCE: AudioSource = require('../../assets/audio/sfx/ledger-spin.wav');
-const THUNK_SOURCE: AudioSource = require('../../assets/audio/sfx/ledger-thunk.wav');
-const FLAME_UP_SOURCE: AudioSource = require('../../assets/audio/sfx/flame-up.wav');
-const CRACKLE_SOURCE: AudioSource = require('../../assets/audio/sfx/flame-loop.m4a');
-
-// Per-cue gain under the shared master volume: the spin bed sits low so the
-// thunk and flame reads land above it.
-const SPIN_GAIN = 0.6;
-const THUNK_GAIN = 1.0;
-const FLAME_UP_GAIN = 0.9;
-const CRACKLE_GAIN = 0.5;
-
-let spinPlayer: AudioPlayer | null = null;
-let thunkPlayer: AudioPlayer | null = null;
-let flameUpPlayer: AudioPlayer | null = null;
-let cracklePlayer: AudioPlayer | null = null;
-let masterVolume = 1;
-let ready = false;
-/** Bumped on every stop/start; async seek callbacks check it before playing. */
-let spinGeneration = 0;
-let crackleGeneration = 0;
-let crackleActive = false;
-
-function init(): void {
-  if (ready) return;
-  try {
-    const mod = require('expo-audio') as typeof import('expo-audio');
-    spinPlayer = mod.createAudioPlayer(SPIN_SOURCE);
-    thunkPlayer = mod.createAudioPlayer(THUNK_SOURCE);
-    flameUpPlayer = mod.createAudioPlayer(FLAME_UP_SOURCE);
-    cracklePlayer = mod.createAudioPlayer(CRACKLE_SOURCE);
-    cracklePlayer.loop = true;
-    ready = true;
-    applyVolumes();
-  } catch {
-    spinPlayer = thunkPlayer = flameUpPlayer = cracklePlayer = null;
-  }
-}
-
-function applyVolumes(): void {
-  if (spinPlayer) spinPlayer.volume = SPIN_GAIN * masterVolume;
-  if (thunkPlayer) thunkPlayer.volume = THUNK_GAIN * masterVolume;
-  if (flameUpPlayer) flameUpPlayer.volume = FLAME_UP_GAIN * masterVolume;
-  if (cracklePlayer) cracklePlayer.volume = CRACKLE_GAIN * masterVolume;
-}
-
-function seekThenPlay(player: AudioPlayer | null, generation: number, isCurrent: () => boolean): void {
-  if (player === null) return;
+function seekThenPlay(player: AudioPlayer | null, isCurrent: () => boolean): void {
+  if (player === null || suspended) return;
   try {
     player.pause();
-    void player.seekTo(0).then(() => {
-      if (!isCurrent()) return; // stopped or superseded while seeking
-      try { player.play(); } catch { /* device audio loss is non-fatal */ }
-    });
+    player.seekTo(0).then(
+      () => { if (isCurrent() && !suspended) { try { player.play(); } catch { /* non-fatal */ } } },
+      () => { /* rejected seek: stay silent, never wedge */ },
+    );
   } catch { /* non-fatal */ }
-}
-
-export function playLedgerSpin(): void {
-  init();
-  spinGeneration += 1;
-  const generation = spinGeneration;
-  seekThenPlay(spinPlayer, generation, () => generation === spinGeneration);
-}
-
-export function stopLedgerSpin(): void {
-  spinGeneration += 1;
-  try { spinPlayer?.pause(); } catch { /* non-fatal */ }
-}
-
-export function playLedgerThunk(): void {
-  init();
-  // The thunk is fire-and-forget; a retrigger restarts it, which is the wanted
-  // machine-gun feel under rapid skips.
-  seekThenPlay(thunkPlayer, 0, () => true);
-}
-
-export function playSurgeIgnition(): void {
-  init();
-  seekThenPlay(flameUpPlayer, 0, () => true);
-  crackleGeneration += 1;
-  crackleActive = true;
-  const generation = crackleGeneration;
-  seekThenPlay(cracklePlayer, generation, () => generation === crackleGeneration && crackleActive);
-}
-
-export function stopSurgeBed(): void {
-  crackleGeneration += 1;
-  crackleActive = false;
-  try { cracklePlayer?.pause(); } catch { /* non-fatal */ }
-}
-
-export function stopAllFinancialReportSfx(): void {
-  stopLedgerSpin();
-  stopSurgeBed();
-  try { thunkPlayer?.pause(); } catch { /* non-fatal */ }
-  try { flameUpPlayer?.pause(); } catch { /* non-fatal */ }
-}
-
-export function setFinancialReportSfxMasterVolume(volume: number): void {
-  masterVolume = Math.max(0, Math.min(1, volume));
-  applyVolumes();
-}
-
-export function teardownFinancialReportSfx(): void {
-  stopAllFinancialReportSfx();
-  for (const player of [spinPlayer, thunkPlayer, flameUpPlayer, cracklePlayer]) {
-    try {
-      player?.remove();
-      player?.release();
-    } catch { /* one bad player must not block the rest */ }
-  }
-  spinPlayer = thunkPlayer = flameUpPlayer = cracklePlayer = null;
-  ready = false;
 }
 ```
 
-Check `src/render/audio-lifecycle.ts` for the looping-owner registration contract (the file's header names "every looping owner"); if it exposes a register function used by menu/match audio, register `stopAllFinancialReportSfx` as the suspend handler and nothing on resume (spec §9: a suspend that outlives the row resumes to silence — the FinancialStatement component restarts cues itself when a new row begins).
+- Players: `spinPlayer`, `thunkPool: AudioPlayer[]` (3 voices, round-robin index — the management-sfx rapid-pool pattern), `flameUpPlayer`, `cracklePlayer` (loop=true). Gains: spin 0.6, thunk 1.0, flame-up 0.9, crackle 0.5, each × master volume; volume 0 also sets `muted = true` on all.
+- `playLedgerSpin()`: `spinGen += 1`; guarded start with `() => gen === spinGen`. `stopLedgerSpin()`: `spinGen += 1; pause`.
+- `playLedgerThunk()`: `thunkGen += 1` captured per call; next pool voice; guard `() => gen === thunkGen || true`-style is WRONG — guard is `() => !stoppedAll && !suspended` via a `stopEpoch` captured at call time (`const epoch = stopEpoch; () => epoch === stopEpoch`). `stopAllFinancialReportSfx()` bumps `stopEpoch`.
+- `playSurgeIgnition()`: `surgeGen += 1; crackleActive = true`; start flame-up guarded by the surge generation, crackle likewise. `stopSurgeBed()`: `surgeGen += 1; crackleActive = false; pause(flameUpPlayer); pause(cracklePlayer)` — flame-up and crackle stop together (spec: both surge sounds stop at land).
+- Lifecycle: `registerAudioOwner({ suspend, resume })` (the contract at `audio-lifecycle.ts:15` requires both). `suspend`: set `suspended = true`, pause all (do NOT bump generations — this is a pause, not a cancel). `resume`: `suspended = false`; if `crackleActive` restart the crackle guarded by the current `surgeGen`; everything else stays silent (a new row restarts its own cues).
+- `stopAllFinancialReportSfx()`: bump all generations + `stopEpoch`, `crackleActive = false`, pause everything.
+- `setFinancialReportSfxMasterVolume`, `teardownFinancialReportSfx` as in v1, plus the mute behavior.
 
-- [ ] **Step 5: Wire `App.tsx`.** In the volume effect add `setFinancialReportSfxMasterVolume(devVolume);`; in the unmount cleanup add `teardownFinancialReportSfx();`. Add both imports.
+- [ ] **Step 4: Wire `App.tsx`** — `setFinancialReportSfxMasterVolume(devVolume)` in the volume effect; `teardownFinancialReportSfx()` in the unmount cleanup.
 
-- [ ] **Step 6: Run tests** → PASS. `npx tsc --noEmit`.
-
-- [ ] **Step 7: Commit** — `git commit -am "feat: financial report audio controller and owner-supplied ledger SFX"`
+- [ ] **Step 5: Tests → PASS; `npx tsc --noEmit`. Commit** (scoped add includes the two wavs) — `"feat: financial report audio controller and owner-supplied ledger SFX"`.
 
 ---
 
@@ -795,328 +650,211 @@ Check `src/render/audio-lifecycle.ts` for the looping-owner registration contrac
 - Create: `src/ui/finance-pixel-art.ts`
 - Test: `src/ui/__tests__/finance-pixel-art.test.ts`
 
-- [ ] **Step 1: Write the failing tests.**
+Same as plan v1 (tests: 16×16 grids over known palette keys, exactly ten toys, deterministic 4–5-toy pick with duplicate-free results) with two changes:
+- `FINANCE_SPRITE_SCALE = 3` (five 16-px sprites at scale 4 = 320 px would clip common phones; at 3 the crowd strip is 240 px + padding).
+- Export `financeSpriteRuns(id)` with the `{x, y, width, color}` run shape mirroring `eventSpriteRuns`.
 
-```ts
-import { CROWD_SPRITE_IDS, MERCH_TOY_IDS, financeSpriteRows, pickMerchToys } from '../finance-pixel-art';
+Author the 15 grids (5 cheering chibi fans + confetti; 10 toys: scarf, ball, foam finger, bobblehead, plush mascot, snow globe, boot keychain, jersey, card pack, club mug) in the `event-pixel-art.ts` character-grid style with its palette letters; the two reference grids from plan v1 (`toy-ball`, `toy-scarf`) set the drawing style.
 
-describe('finance pixel art', () => {
-  it('every sprite is a 16x16 grid over known palette keys', () => {
-    for (const id of [...CROWD_SPRITE_IDS, ...MERCH_TOY_IDS]) {
-      const rows = financeSpriteRows(id);
-      expect(rows).toHaveLength(16);
-      for (const row of rows) expect(row).toHaveLength(16);
-    }
-  });
-
-  it('ships exactly ten merch toys', () => {
-    expect(MERCH_TOY_IDS).toHaveLength(10);
-  });
-
-  it('picks 4-5 toys deterministically from season and week', () => {
-    const a = pickMerchToys(2, 9);
-    const b = pickMerchToys(2, 9);
-    expect(a).toEqual(b);
-    expect(a.length).toBeGreaterThanOrEqual(4);
-    expect(a.length).toBeLessThanOrEqual(5);
-    expect(new Set(a).size).toBe(a.length);
-    expect(pickMerchToys(2, 10)).not.toEqual(a); // different week, different mix (true for this seed pair)
-  });
-});
-```
-
-- [ ] **Step 2: Run to verify failure.**
-
-- [ ] **Step 3: Implement.** Follow the `event-pixel-art.ts` format exactly: 16×16 character grids over a local palette (reuse the same palette letters/colors as `EVENT` art so the art style matches — copy the `PALETTE` map). Export:
-
-```ts
-export const CROWD_SPRITE_IDS = ['fan-cheer-a', 'fan-cheer-b', 'fan-cheer-c', 'fan-cheer-d', 'fan-cheer-e'] as const;
-export const MERCH_TOY_IDS = [
-  'toy-scarf', 'toy-ball', 'toy-foam-finger', 'toy-bobblehead', 'toy-plush-mascot',
-  'toy-snow-globe', 'toy-boot-keychain', 'toy-jersey', 'toy-card-pack', 'toy-club-mug',
-] as const;
-export type FinanceSpriteId = typeof CROWD_SPRITE_IDS[number] | typeof MERCH_TOY_IDS[number];
-export function financeSpriteRows(id: FinanceSpriteId): readonly string[] { /* lookup */ }
-export interface SpriteRun { x: number; y: number; width: number; color: string }
-export function financeSpriteRuns(id: FinanceSpriteId): readonly SpriteRun[] { /* row-run-length encode non-'.' cells */ }
-export function pickMerchToys(season: number, week: number): FinanceSpriteId[] {
-  const seed = (Math.imul(season, 0x9e3779b1) ^ Math.imul(week, 0x85ebca6b) ^ 0x6d2b79f5) >>> 0;
-  const rng = mulberry32(seed);
-  const count = 4 + Math.floor(rng() * 2);
-  const pool = [...MERCH_TOY_IDS];
-  const picked: FinanceSpriteId[] = [];
-  for (let i = 0; i < count; i += 1) {
-    picked.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
-  }
-  return picked;
-}
-```
-
-(`mulberry32` imported from `../sim/rng` — UI code may import the pure sim ring.) The run encoder walks each row and emits `{x, y, width, color}` for maximal same-color spans, skipping `.` (transparent) — mirror how `eventSpriteRuns` in `event-pixel-art.ts` does it and keep the same `EVENT_SPRITE_CELL`-style scale constants (`FINANCE_SPRITE_CELL = 16`, `FINANCE_SPRITE_SCALE = 4`).
-
-Author the 15 grids (5 cheering chibi fans with raised arms in varied kit colors + confetti pixels; 10 toys as listed). Art direction: chunky `K` ink outlines like the cast portraits, docs/11 palette letters. Two reference grids to set the drawing style (author the rest to match):
-
-```ts
-'toy-ball': [
-  '................',
-  '................',
-  '.....KKKKKK.....',
-  '...KKWWWWWWKK...',
-  '..KWWWKKWWWWWK..',
-  '..KWWKKKKWWWWK..',
-  '.KWWWKKKKWWWWWK.',
-  '.KWKKWWWWKKWWWK.',
-  '.KWKKWWWWKKWWWK.',
-  '.KWWWKKKKWWWWWK.',
-  '..KWWKKKKWWWWK..',
-  '..KWWWKKWWWWWK..',
-  '...KKWWWWWWKK...',
-  '.....KKKKKK.....',
-  '................',
-  '................',
-],
-'toy-scarf': [
-  '................',
-  '..KKKK..........',
-  '.KRRRRK.........',
-  '.KWWWWK.........',
-  '.KRRRRKKKKKK....',
-  '.KWWWWRRRRRRK...',
-  '.KRRRRWWWWWWK...',
-  '..KKRRRRRRRRK...',
-  '....KWWWWWWK....',
-  '....KRRRRRRK....',
-  '....KWWWWWWK....',
-  '....KRRRRKK.....',
-  '....KRRRK.......',
-  '....KKKK........',
-  '................',
-  '................',
-],
-```
-
-- [ ] **Step 4: Run tests** → PASS.
-
-- [ ] **Step 5: Commit** — `git commit -am "feat: crowd and merch toy pixel art for surge banners"`
+- [ ] Steps: failing tests → implement → PASS → `npx tsc --noEmit` → scoped commit `"feat: crowd and merch toy pixel art for surge banners"`.
 
 ---
 
-### Task 7: SlotAmount — the digit reel
+### Task 7: The pure reveal state machine (NEW — the core logic, fully tested)
+
+**Files:**
+- Create: `src/ui/financial-statement-machine.ts`
+- Test: `src/ui/__tests__/financial-statement-machine.test.ts`
+
+The riskiest logic in the feature — sequencing, tap semantics, banner queue, audio commands — lives here as a pure reducer so it tests headless in node (spec §13). No React, no timers, no audio imports: the machine consumes events and RETURNS commands; the component executes them.
+
+- [ ] **Step 1: Write the failing tests** for this exact contract:
+
+```ts
+// Types (exported by the module):
+export type RowPhase = 'pending' | 'spinning' | 'base' | 'chip' | 'multiplied' | 'adjacency' | 'complete';
+
+export interface MachineRow {
+  id: string;
+  amount: number;
+  reveal?: LedgerLineReveal;
+}
+
+export interface MachineState {
+  generation: number;                 // bumped on EVERY event that cancels scheduled work
+  rows: readonly { phase: RowPhase; shownValue: number }[]; // index rows.length = the net row
+  status: 'running' | 'reportComplete';
+  currentRow: number;                 // rows.length = net row; rows.length + 1 = done sentinel
+  stampVisible: boolean;
+  bannerQueue: readonly { rowId: string; kind: 'attendance' | 'merch' }[];
+  bannersEnqueued: readonly string[]; // row ids — a surged row enqueues exactly once, ever
+}
+
+export type MachineEvent =
+  | { type: 'start' }
+  | { type: 'timer'; generation: number; rowIndex: number; phase: RowPhase | 'advance' }
+  | { type: 'tap' }
+  | { type: 'bannerShown' };          // dequeues bannerQueue[0]
+
+export type MachineCommand =
+  | { type: 'schedule'; afterMs: number; event: MachineEvent }   // event carries the CURRENT generation
+  | { type: 'playSpin' } | { type: 'stopSpin' }
+  | { type: 'playThunk' }
+  | { type: 'playSurgeIgnition' } | { type: 'stopSurgeBed' }
+  | { type: 'settleAmount'; rowIndex: number; value: number };   // drives SlotAmount settleKey/value
+
+export function createMachine(rows: readonly MachineRow[], netAmount: number, timings: MachineTimings, reduceMotion: boolean): MachineState;
+export function reduce(state: MachineState, event: MachineEvent): { state: MachineState; commands: readonly MachineCommand[] };
+```
+
+Behavioral test matrix (each an `it`; drive the machine by feeding back its own scheduled events, fake-timer style but purely synchronously):
+
+1. Happy path: `start` → rows spin/land/complete in order, each with exactly one `playSpin`/`stopSpin`/`playThunk` triple; net row last; stamp after net; `status === 'reportComplete'`.
+2. A stale timer (generation ≠ current) is a no-op with zero commands.
+3. Tap during EVERY phase of a multiplied surged row: row jumps atomically to `complete` (shownValue = final amount), exactly ONE `playThunk` in the emitted commands, `stopSpin` + `stopSurgeBed` present, banner enqueued exactly once (also when the tap skipped the spin entirely), generation bumped (cancelling scheduled work), next row scheduled after `interRowMs`.
+4. Rapid double tap: second tap acts on the NEXT row (never re-completes the same row, never a second thunk for the completed row, never double-schedules).
+5. Tap on the net row: net completes + `stampVisible` in the same reduction with ONE `playThunk`; `status === 'reportComplete'`; further taps → zero commands.
+6. Multiplied-row phases: gate with `multiplierPercent > 100` goes base → chip → multiplied → complete with `settleAmount` values base → final; merch with `multiplierTimes === 1` but `adjacencyAmount > 0` goes base → adjacency → complete (NO chip phase — the ×1 chip must not exist); merch with both goes base → chip → multiplied → adjacency → complete; identity reveal (percent 100 / times 1, no adjacency) goes base → complete.
+7. Surge timing: surged rows schedule their land at `spinMs × 1.3`.
+8. Empty ledger: `start` with zero rows goes straight to the net row.
+9. Reduce motion: `createMachine(..., reduceMotion: true)` returns every row `complete`, net complete, stamp visible, `status 'reportComplete'`, AND `bannerQueue` pre-populated with every surged row (spec §4 — banners still show statically).
+10. Triple surge: three surged rows enqueue three banners in ledger order; `bannerShown` dequeues FIFO.
+11. Unmount contract: the machine never needs external cleanup beyond dropping scheduled events (documented invariant — commands are pure data; a component that stops dispatching after unmount leaks nothing).
+
+- [ ] **Step 2: Run → FAIL. Step 3: Implement the reducer** to satisfy exactly that matrix. Key rules: every `tap`/`start` bumps `generation` before emitting `schedule` commands (which embed the NEW generation); `timer` events are dropped unless `event.generation === state.generation` AND the row/phase still matches; `currentRow` advances only through `advance` timers or taps; `bannersEnqueued` (a list used as a set) gates banner enqueueing; the net row completion sets `stampVisible` and `reportComplete` in one reduction when reached by tap, or via a final `STAMP_MS` timer when reached by timer flow.
+
+- [ ] **Step 4: PASS; `npx tsc --noEmit`. Commit** — `"feat: pure financial statement reveal state machine"`.
+
+---
+
+### Task 8: SlotAmount — the digit reel
 
 **Files:**
 - Create: `src/ui/components/SlotAmount.tsx`
 
-No Jest coverage (the node test env has no react-native — platform components verify by typecheck + harness QA).
-
-- [ ] **Step 1: Implement.** Contract with `FinancialStatement`:
+Contract (fixes the width-reservation and completion-guessing flaws):
 
 ```ts
-export type SlotPhase = 'pending' | 'spinning' | 'settled';
-
 export interface SlotAmountProps {
-  /** The value currently shown when settled; digits reel-cycle while spinning. */
+  /** What the reel currently shows (or settles to). */
   value: number;
-  phase: SlotPhase;
+  /** The row's FINAL amount — reserves layout width from the start. */
+  finalValue: number;
+  phase: 'pending' | 'spinning' | 'settled';
   tone: 'income' | 'expense' | 'neutral';
   surge: boolean;
-  /** Digit-settle stagger start signal: bump to re-run the settle animation (odometer). */
+  /** Bump to re-run the settle animation with the new value (odometer). */
   settleKey: number;
   large?: boolean;
   reduceMotion: boolean;
+  /** Fired once per settleKey when the last digit finishes settling. */
+  onSettled?: () => void;
 }
 ```
 
-Implementation notes (complete component, ~170 lines):
-- Format with `formatCurrency(Math.abs(value), false)` plus an explicit leading `+`/`−` sign from the tone/value; split into characters. Non-digit characters (`$ , + −`) render as static `<Text>`; each digit renders as a fixed-width cell (`width: DIGIT_WIDTH` = 10 for base size / 13 for `large`, both on the 8-pt-friendly grid at the mono font sizes already used in the modal: `text-base` and `text-xl`).
-- Each digit cell: `overflow-hidden` View of one line-height; inside, an `Animated.View` column of the ten digits 0–9 (mono font). Spinning: `Animated.loop(Animated.timing(translateY, { toValue: -10 * LINE_H, duration: 260, easing: Easing.linear, useNativeDriver: true }))` from 0 — a fast continuous cycle. Settled: stop the loop, then `Animated.timing` to `-digit * LINE_H` with `duration: 90`, `delay: index * 30` (the left-to-right click-click-click). `settleKey` in a `useEffect` dep re-runs the settle timing so the odometer roll (base → multiplied total) replays with the new value's digits.
-- `phase === 'pending'`: render the dimmed placeholder `$•••` in `text-ink/30` at the same fixed width (reserve `formatCurrency` width of the final value so nothing shifts — render the final string invisibly to size the row, exactly one hidden `<Text>` with `opacity: 0` and the placeholder absolutely centered over it).
-- Colors: income `#265b30`, expense `#a83440`, neutral `#241f2e` (the modal's existing constants); while spinning wrap the digit color at 55% opacity via the color's `Animated` interpolation or a static `${color}8C` alpha suffix — static alpha is fine and cheaper.
-- Surge: when `surge && phase === 'spinning'`, drive a looping color flicker (interpolate an `Animated.Value` through `['#b45309', '#dc2626', '#f59e0b']`, 400 ms loop — colors from the approved mockup) — note color interpolation cannot use the native driver; keep `useNativeDriver: false` for that single Animated.Value. When `surge && phase === 'settled'`, render one font size larger + `font-bold` with fixed color `#b45309`, permanently.
-- Land pop: on transition into `settled`, run scale 1 → 1.06 → 1 (120 ms total, native driver) on the row's amount container.
-- `reduceMotion`: render the final formatted string as plain static `<Text>` (surge keeps its permanent tint/size), no Animated at all.
-- Cleanup: every effect returns a cancel that calls `.stopAnimation()`/`clearTimeout` — the unmount-while-spinning test in Task 8's QA checklist depends on no stray timers.
-- Do not use function-form `style` on any Pressable anywhere in these components (known iOS trap; there is no Pressable in SlotAmount itself).
+Implementation requirements (complete component; no Jest — verified by typecheck + Task 13 QA):
+- Format with `formatCurrency` + explicit ASCII `-`/`+` sign (Silkscreen has no U+2212 — documented in `Scorecard.tsx:10`).
+- Width reservation: render `format(finalValue)` as an invisible (`opacity: 0`) sizing text; the live reel/placeholder overlays it absolutely. Placeholder `$•••` dimmed.
+- Digit cells scale with the OS font scale: `const cellWidth = BASE_DIGIT_WIDTH * PixelRatio.getFontScale()` (same for line height) so the 1.6× Dynamic Type pass doesn't clip.
+- Reel track is `0 1 2 3 4 5 6 7 8 9 0` (duplicated zero) so the loop can run 0 → −10×LINE_H and snap back to 0 without a blank frame.
+- Settle: animate each digit upward to the target (if the target offset is behind the current position, first jump back one full cycle so motion is always upward — the odometer rule), `delay: index * 30`, duration 90; the LAST digit's animation `start(({ finished }) => finished && onSettled?.())` — completion is callback-driven, never a guessed timeout. `settleKey` re-runs settle with the new `value`.
+- Spin loop per digit: `Animated.loop` on translateY, stored in a ref and `.stop()`ed on phase change/unmount (the `EventPixelScene` cleanup pattern).
+- Surge: spinning = looping color flicker `#b45309 → #dc2626 → #f59e0b` (single JS-driven Animated.Value, useNativeDriver: false for color only); settled = one font size larger + bold + permanent `#b45309`. Land pop scale 1 → 1.06 → 1 (120 ms, native driver) on settle.
+- `reduceMotion`: static final text (surge keeps permanent tint/size); `onSettled` fires synchronously via `useEffect`.
+- Colors: income `#265b30`, expense `#a83440`, neutral `#241f2e`; spinning digits at 55% alpha (`8C` suffix).
 
-- [ ] **Step 2: Typecheck** — `npx tsc --noEmit` → clean.
-
-- [ ] **Step 3: Commit** — `git commit -am "feat: SlotAmount digit-reel component"`
+- [ ] Steps: implement → `npx tsc --noEmit` → commit `"feat: SlotAmount digit-reel component"`.
 
 ---
 
-### Task 8: FinancialStatement + SurgeBanner — the reveal state machine
+### Task 9: FinancialStatement + SurgeBanner — the thin shell
 
 **Files:**
-- Create: `src/ui/components/FinancialStatement.tsx`
-- Create: `src/ui/components/SurgeBanner.tsx`
+- Create: `src/ui/components/FinancialStatement.tsx`, `src/ui/components/SurgeBanner.tsx`
 
-- [ ] **Step 1: Implement `SurgeBanner.tsx`.** Props:
+- [ ] **Step 1: `SurgeBanner.tsx`** as plan v1 (queue props, `pointerEvents="none"`, pop-in/hold-2s/fade, Skia sprite strip via `financeSpriteRuns` at scale 3, `accessibilityRole="alert"`) with one change: under `reduceMotion` the banner is **fully static** for its 2 s — no pop, no fade (spec §4; "fade only" also violates it).
 
-```ts
-export interface SurgeBannerEvent {
-  id: string;                       // row id — one banner per surged row
-  kind: 'attendance' | 'merch';
-  settlementSeason: number;
-  settlementWeek: number;
-}
-export interface SurgeBannerProps {
-  queue: readonly SurgeBannerEvent[];
-  onShown: (id: string) => void;    // called 2s after an event becomes visible
-  reduceMotion: boolean;
-}
-```
+- [ ] **Step 2: `FinancialStatement.tsx`** — a shell over the Task 7 machine:
+  - Holds `machineState` in a `useReducer`-style `useState` + a `dispatch` that runs `reduce`, executes returned commands: `schedule` → `setTimeout` stored in a ref map keyed by generation (all cleared on unmount); audio commands → the Task 5 controller functions; `settleAmount` → per-row `{ value, settleKey }` state consumed by `SlotAmount`.
+  - Timings from spec §4 in one constants block: `ROW_SPIN_MS 500, SURGE_SPIN_FACTOR 1.3, NET_SPIN_MS 650, INTER_ROW_MS 80, CHIP_MS 150, ODOMETER_MS 200, ADJACENCY_MS 150, BANNER_HOLD_MS 2000, STAMP_MS 250`. Chip/odometer/adjacency phase transitions are driven by `SlotAmount.onSettled` + scheduled timers carrying the machine generation — never bare guesses.
+  - The tap surface is a **native RN `Pressable`** (import from `react-native`, NOT `SfxPressable`) wrapping the ENTIRE PaperPanel content, `accessible={false}` so it never swallows the row-level labels; `onPress={() => dispatch({ type: 'tap' })}`. No function-form `style` on it (iOS trap).
+  - Surge rows: warm background wash while spinning — an `Animated.View` row background looping `#fde68a → #fdba74` (the spec's swept wash; a horizontal translateX sweep of a lighter overlay is optional polish if trivial, otherwise the pulse wash suffices — log the choice in the commit body).
+  - Chips (`×200%` / `×3`) slide in 10 px + fade at the chip phase; adjacency caption `+X% adjacency` fades at the adjacency phase; suffix rendering and `rowAccessibilityLabel` per plan v1 — but the label helper must skip the multiplier phrase entirely for identity reveals (`multiplierPercent === 100` / `multiplierTimes === 1`), so nothing narrates "times 1".
+  - Stamp: self-rendered over the panel corner, `STAMP_MS` rotate −8°→4° + scale 1.4→1 on `stampVisible`, with `playLedgerThunk()` (via machine command flow when timer-driven; the tap path's single thunk already covers it).
+  - Unmount cleanup: clear all timers, `stopAllFinancialReportSfx()`.
+  - Reduce motion: machine already starts complete (Task 7 case 9); the shell renders everything settled and runs only the banner queue.
 
-Renders `pointerEvents="none"` absolutely over the statement (`className="absolute inset-x-4 top-1/3"`). Shows `queue[0]` only: paper card, `border-2 border-b-4 border-ink bg-paper`, slight `rotate: '-3deg'`; pop-in `Animated.spring` scale 0.2 → 1 (skip under reduceMotion — fade only), hold 2000 ms, fade 200 ms, then `onShown(id)` (parent dequeues; next event shows on re-render). Content: a Skia `<Canvas>` strip of sprite runs — `kind === 'attendance'`: the five `CROWD_SPRITE_IDS` side by side; `kind === 'merch'`: `pickMerchToys(settlementSeason, settlementWeek)` side by side — each sprite drawn as `<Rect>`s from `financeSpriteRuns(id)` at `FINANCE_SPRITE_SCALE`, exactly how `EventPixelScene` renders event objects. Below the strip, `PixelText` headline: `EXTREME ATTENDANCE!` in `text-red-dark` / `TRENDING MERCHANDISE!` in `text-pitch-ink`. `accessibilityRole="alert"`, `accessibilityLabel` = the headline.
-
-- [ ] **Step 2: Implement `FinancialStatement.tsx`.** Props:
-
-```ts
-export interface FinancialStatementProps {
-  lines: readonly PostMatchLedgerLineViewModel[];
-  netAmount: number;
-  settlementSeason: number;
-  settlementWeek: number;
-  reduceMotion: boolean;
-}
-```
-
-The component owns the PaperPanel (`kicker="Accounts office" title="Match statement"` — NO `stamp` prop; the stamp is self-rendered), the row list, the net banner, the stamp, the banner queue, and all audio calls. Complete state machine:
-
-```ts
-type RowPhase = 'pending' | 'spinning' | 'base' | 'chip' | 'multiplied' | 'complete';
-interface RowState { phase: RowPhase; shownValue: number; settleKey: number }
-// Rows are lines + one net pseudo-row at index lines.length. Stamp shows when
-// the net row completes.
-```
-
-Timing constants in one block (spec §4): `ROW_SPIN_MS = 500`, `SURGE_SPIN_FACTOR = 1.3`, `NET_SPIN_MS = 650`, `INTER_ROW_MS = 80`, `CHIP_MS = 150`, `ODOMETER_MS = 200`, `ADJACENCY_MS = 150`, `BANNER_HOLD_MS = 2000`, `STAMP_MS = 250`.
-
-Per-row phase flow, driven by one `advance(rowIndex, phase)` reducer + `setTimeout` chain (all timeouts kept in a ref and cleared on unmount):
-
-1. `spinning` — `playLedgerSpin()`; surge rows also `playSurgeIgnition()`; duration `ROW_SPIN_MS` (× `SURGE_SPIN_FACTOR` when `reveal?.surge`). SlotAmount `phase='spinning'`, `value` = the row's first landing value: `reveal?.base ?? amount`.
-2. `base` — `stopLedgerSpin()`, `stopSurgeBed()` (if surge), `playLedgerThunk()`; SlotAmount settles on `reveal?.base ?? amount`. If the row has no multiplier beat (no reveal, or gate `multiplierPercent === 100`, or merch `multiplierTimes === 1 && adjacencyAmount === 0`) → straight to `complete` after the settle (`10 * 30 + 90` ms cap ≈ 400 ms; use a 420 ms timeout). If surged → enqueue its banner now.
-3. `chip` — chip slides in (`CHIP_MS`); then
-4. `multiplied` — `shownValue` becomes gate `amount` / merch `base × multiplierTimes`, `settleKey += 1` (odometer roll, `ODOMETER_MS`); merch with `adjacencyAmount > 0` rolls once more to `amount` after `ADJACENCY_MS` with the caption fading in; then
-5. `complete` — after `INTER_ROW_MS`, start the next row. The net pseudo-row spins `NET_SPIN_MS`, lands (thunk), then the stamp slams (`STAMP_MS` rotate −8°→4°, scale 1.4→1, `playLedgerThunk()` — its own thunk when reached by timer).
-
-Tap-to-complete (spec §4): the row list is wrapped in a **native RN `Pressable`** (NOT `SfxPressable` — no generic click; import `Pressable` from `react-native`), `onPress` only:
-
-```ts
-const completeCurrentRow = () => {
-  const index = currentRowIndexRef.current;
-  if (index > rowCount) return;                 // everything already complete
-  clearAllRowTimers();
-  stopLedgerSpin(); stopSurgeBed();
-  playLedgerThunk();                            // exactly one thunk per tap
-  if (isNetRow(index)) {
-    setNet({ phase: 'complete' });              // amount + stamp in one beat, one shared thunk
-    setStampVisible(true);
-  } else {
-    setRow(index, { phase: 'complete', shownValue: finalAmount(index), settleKey: bump() });
-    if (isSurged(index) && !bannerAlreadyEnqueued(index)) enqueueBanner(index); // still exactly one banner
-    scheduleNextRow(index, INTER_ROW_MS);
-  }
-};
-```
-
-Rows render: label (`text-base text-ink`) + UI-only suffix from the reveal (`facilityCount > 0` on gate → `· ${count} stand${count === 1 ? '' : 's'}`; merch `multiplierTimes >= 2` → `· ${facilityCount} shop${…}`), chip (`border-2 border-pitch-dark bg-pitch-light px-1 text-pitch-ink`, text `×${multiplierPercent}%` / `×${multiplierTimes}`, entering with a 10 px translateX+fade), adjacency caption under the row (`text-xs text-ink/60`, `+${adjacencyPercent}% adjacency`), and the SlotAmount. Pending rows show the placeholder per Task 7.
-
-Accessibility per spec §12 (label carries everything immediately — build with a helper):
-
-```ts
-function rowAccessibilityLabel(line: PostMatchLedgerLineViewModel): string {
-  const money = (v: number) => formatCurrency(Math.abs(v));
-  const sign = line.amount > 0 ? 'plus ' : line.amount < 0 ? 'minus ' : '';
-  if (line.reveal === undefined) return `${line.label}, ${sign}${money(line.amount)}`;
-  const r = line.reveal;
-  const surgeNote = r.surge ? ' Surged this week.' : '';
-  if (r.source === 'merch') {
-    const adjacency = r.adjacencyPercent > 0 ? `, plus ${r.adjacencyPercent} percent adjacency` : '';
-    return `${line.label}, ${r.facilityCount} shop${r.facilityCount === 1 ? '' : 's'}. Base ${money(r.base)}, times ${r.multiplierTimes}${adjacency}, total ${money(line.amount)}.${surgeNote}`;
-  }
-  const stands = r.facilityCount > 0 ? `, ${r.facilityCount} stand${r.facilityCount === 1 ? '' : 's'}` : '';
-  return `${line.label}${stands}. Base ${money(r.base)}, times ${r.multiplierPercent} percent, total ${money(line.amount)}.${surgeNote}`;
-}
-```
-
-`reduceMotion`: every row/net `complete`, stamp visible, chips/captions shown, no audio except nothing (spin bed never starts); banner queue still runs (static cards, 2 s each). All report audio also stops in the component's unmount cleanup via `stopAllFinancialReportSfx()`.
-
-- [ ] **Step 3: Typecheck** → clean.
-
-- [ ] **Step 4: Commit** — `git commit -am "feat: FinancialStatement reveal state machine and surge banners"`
+- [ ] **Step 3: `npx tsc --noEmit`. Commit** — `"feat: FinancialStatement shell and surge banners"`.
 
 ---
 
-### Task 9: Rewire PostMatchSummaryModal
+### Task 10: Rewire PostMatchSummaryModal
 
 **Files:**
-- Modify: `src/ui/PostMatchSummaryModal.tsx`
+- Modify: `src/ui/PostMatchSummaryModal.tsx`, `src/ui/screens/PostMatchLedgerScreen.tsx` (~125), `src/ui/components/Scorecard.tsx` (~180), `src/ui/__tests__/acceptance-audit-regressions.test.ts` (~63–77)
 
-- [ ] **Step 1: Rewire.** Keep the Modal shell, header, close, backdrop, footer Continue exactly as-is except:
-  - Header title text: `Match summary` → `Financial report`.
-  - DELETE: the score row + StatusChip block (lines ~87–102), the `CountUpAmount` component, `countUpValue` import, the `animationsComplete` state and `onTouchStart` handler.
-  - New ScrollView order: `<FinancialStatement lines={viewModel.ledger} netAmount={viewModel.netAmount} settlementSeason={viewModel.settlementSeason} settlementWeek={viewModel.settlementWeek} reduceMotion={reduceMotion} />` first, then a `WhatMoved` chips row (TP/Fans, from the existing Metric markup), then the buzz card, then the updates ("What needs attention") section — each below-the-statement section wrapped in a small `EntranceView` (local helper in this file: `Animated.View` translateY 12→0 + opacity 0→1, 320 ms, staggered `delay = 80 * index`, immediate under reduceMotion; warning-tone update cards additionally run one 300 ms ±3° wiggle after entrance).
-  - TP/Fans chips count up: replace static `Metric` values with a small `CountUpText` local component using the existing `countUpValue` over 600 ms (this keeps `count-up.ts` in use).
-  - On dismiss (`onDismiss` from close/backdrop/Continue): call `stopAllFinancialReportSfx()` before forwarding (belt-and-braces with the statement's unmount cleanup).
-  - Keep `playMatchStatementSfx()`/`stopMatchStatementSfx()` mount effect as-is.
-
-- [ ] **Step 2: Typecheck; run the UI test suites** (`npx jest src/ui --runTestsByPath $(ls src/ui/__tests__/*.test.ts)` — `overlay-dismissal.test.ts` and `acceptance-audit-regressions.test.ts` reference this modal; update any assertion on the removed score block or old tap behavior).
-
-- [ ] **Step 3: Commit** — `git commit -am "feat: rebuild post-match modal as the Financial Report"`
+- [ ] **Step 1: Rewire the modal.**
+  - Title → `Financial report`; close button label → `Close financial report`; `onRequestClose` (Android back) must call the same audio-stopping dismiss handler as the close button — introduce one `handleDismiss = () => { stopAllFinancialReportSfx(); onDismiss(); }` used by close, backdrop, Continue, and `onRequestClose`.
+  - DELETE the score row + StatusChip block and the `CountUpAmount` component + `animationsComplete`/`onTouchStart`. KEEP the `countUpValue` import — the new `CountUpText` uses it.
+  - New order: `<FinancialStatement …/>` → What moved (TP/Fans) → buzz → updates, each in an `EntranceView` (translateY 12→0 + fade, 320 ms, stagger 80 ms; immediate under reduceMotion). **Per-warning stagger**: each update card gets its own `EntranceView` delay (`80 * cardIndex`), and warning-tone cards run one ±3° 300 ms wiggle after entrance. TP/Fans chips: `CountUpText` (local, uses `countUpValue` over 600 ms) **plus a small landing bounce** (scale 1 → 1.08 → 1 on completion).
+  - `Metric` in `Scorecard.tsx` types `value: string` — widen to `value: ReactNode` (string remains assignable; smallest diff) so `<Metric value={<CountUpText …/>} …/>` compiles.
+  - `PostMatchLedgerScreen.tsx` ~125: the Continue CTA's stale "match summary" accessibility wording → "financial report".
+- [ ] **Step 2: Retarget the audit rails** in `acceptance-audit-regressions.test.ts:63–77` — the row `accessibilityLabel` template moved into `FinancialStatement.tsx` and the TP-change markup into the modal's `CountUpText`; point the source-string guards at the new files/strings, do NOT delete them.
+- [ ] **Step 3:** `npx jest --runTestsByPath src/ui/__tests__/overlay-dismissal.test.ts src/ui/__tests__/acceptance-audit-regressions.test.ts`; `npx tsc --noEmit`. **Commit** — `"feat: rebuild post-match modal as the Financial Report"`.
 
 ---
 
-### Task 10: Dev harness entry
+### Task 11: Dev harness entry
 
 **Files:**
 - Create: `src/ui/dev-harness/entries/financial-report.tsx`
-- Modify: `src/ui/dev-harness/registry.ts` (import + registry row, group `'Season'`)
+- Modify: `src/ui/dev-harness/registry.ts` (import + row, group **`'Match'`** beside Full-time Report)
 
-- [ ] **Step 1: Implement.** Cases (spec §10): `baseline` (no facilities, home win week), `facilities` (2 stands ×200%, 3 shops ×3 + adjacency), `gate-surge`, `merch-surge`, `triple-surge` (league + cup + merch reveals all surged), `zero-fan-home` ($0 gate line, no reveal), `longest-ledger` (sponsor portfolio + prize + buzz + loan repayment rows), `reduce-motion`. Unlike `fulltime-report.tsx` (which replays a real career), this entry hand-builds `PostMatchViewModel` objects — the reveal dressing is exactly what's under review, so the states must be exact; each case is a literal with correctly reconstructing reveal math (compute `amount` from the reveal fields in the literal, e.g. base 1968 × 200% → amount 3936). Render `<PostMatchSummaryModal viewModel={vm} reduceMotion={caseId === 'reduce-motion'} onDismiss={() => {}} />`.
+- [ ] **Step 1: Implement.** Cases as v1 (`baseline`, `facilities`, `gate-surge`, `merch-surge`, `triple-surge`, `zero-fan-home`, `longest-ledger`, `reduce-motion`) with these corrections:
+  - Do NOT render the RN `Modal` (it would sit over the harness controls and make them inert). Render the modal's CONTENT inline: `<FinancialStatement …/>` + the What-moved/buzz/updates sections in a ScrollView, plus a "Replay" button that remounts via a `key` bump.
+  - Build cases from **one factory + reveal builders**, not eight literals:
 
-- [ ] **Step 2: Typecheck; run the harness registry test** (`src/ui/dev-harness/__tests__` covers registry integrity).
+```ts
+function gateReveal(base: number, opts: { percent?: number; surge?: boolean; standLevel?: number; count?: number; cup?: boolean }): PostMatchLedgerLineViewModel { /* computes amount from the reveal fields */ }
+function merchReveal(base: number, opts: { percent?: number; surge?: boolean; times?: number; count?: number; adjacencyPercent?: number }): PostMatchLedgerLineViewModel { /* ditto */ }
+function reportCase(lines: PostMatchLedgerLineViewModel[], overrides?: Partial<PostMatchViewModel>): PostMatchViewModel { /* fills result/updates/etc. with plausible fixed values */ }
+```
 
-- [ ] **Step 3: Commit** — `git commit -am "feat: financial report dev-harness entry"`
+  Amounts are COMPUTED from the reveal fields inside the builders, so every case reconstructs exactly by construction.
+- [ ] **Step 2:** `npx tsc --noEmit` (there is no registry-integrity jest test — `route.test.ts` deliberately avoids importing the RN registry; typecheck is the gate). **Commit** — `"feat: financial report dev-harness entry"`.
 
 ---
 
-### Task 11: Finances outlook microcopy + docs sync
+### Task 12: Finances outlook microcopy + docs sync
 
 **Files:**
-- Modify: the Finances screen label sites — locate with `grep -rn "Next four weeks\|Four-week balance" src/ui`
-- Modify: `docs/08-ui-ux.md`, `docs/06-economy.md`, `docs/02-core-loop.md`
+- Modify: the outlook label sites (`grep -rn "Next four weeks\|Four-week balance" src/ui`), `docs/08-ui-ux.md`, `docs/06-economy.md`, `docs/02-core-loop.md`, `README.md`
 
-- [ ] **Step 1: Microcopy.** Append the qualifier to both outlook labels: `Next four weeks · typical`, `Four-week balance · typical`. Update any snapshot/string assertions that pin them.
-
-- [ ] **Step 2: Docs (spec §10 council items).**
-  - `docs/08-ui-ux.md`: replace the "one tap completes all post-match motion" passage (~line 37) with the Financial Report flow: row-by-row slot reveal, one-row-per-press skip, reduce-motion behavior; add the narrow palette exception — permanent gold/orange/red fire tint + larger bold type allowed *only* on surged income amounts in the Financial Report; hero gold elsewhere still means hero/power UI.
-  - `docs/06-economy.md`: report-eligible variance (bands, 1-in-10 surge, eligibility rule, determinism), baseline projections stay variance-free, and the per-level Fan Shop formula.
-  - `docs/02-core-loop.md`: the post-match income statement is named the Financial Report.
-  - `README.md` decision log: one line for the feature (matches repo convention of logging decisions).
-
-- [ ] **Step 3: Commit** — `git commit -am "docs: sync canon docs with the Financial Report design"`
+- [ ] **Step 1: Microcopy** — `Next four weeks · typical`, `Four-week balance · typical`; update any pinned string assertions.
+- [ ] **Step 2: Docs.** `docs/08-ui-ux.md` has TWO stale passages — the weekly-flow paragraph (~line 30: "one tap completes all motion … accounts statement as a modal") AND Match Day flow item 3 (~line 37: "line-by-line count-up … One tap finishes all remaining motion"); rewrite BOTH to the Financial Report flow (row-by-row slot reveal, one-row-per-press skip, reduce-motion) and add the narrow palette exception (permanent gold/orange/red fire tint + larger bold type only on surged income amounts in this report; hero gold elsewhere still means hero/power UI). `docs/06-economy.md`: report-eligible variance (bands, 1-in-10 surge, eligibility, determinism; if the season-1 contingency activated, the −5…+10 band and +3.8% EV), baseline projections, per-level Fan Shop formula. `docs/02-core-loop.md`: statement renamed Financial Report. `README.md` decision log: one line.
+- [ ] **Step 3: Commit** — `"docs: sync canon docs with the Financial Report design"`.
 
 ---
 
-### Task 12: Full verification + QA evidence
+### Task 13: Full verification + QA evidence
 
-- [ ] **Step 1:** `npx tsc --noEmit` → clean.
-- [ ] **Step 2:** `npm test` → all green, including `src/audit/__tests__/opening-economy-balance.test.ts` (the balance harness). If it fails: apply the spec §5 season-1 clamp inside the `WithReveal` callers via `matchdayVarianceRoll` options, re-run; if still red, STOP — surface to owner.
-- [ ] **Step 3: Animation QA (web static export).** `npm run export:web`, copy `canvaskit.wasm` into `dist` (known worktree pattern), serve, open the browser pane at the dev-harness `financial-report` entry, **mute audio immediately** (`document.querySelectorAll('audio,video').forEach(el => el.muted = true)`). Verify each case; capture screenshots (RAF-recorder + forced-paint technique — the pane freezes RAF while hidden). Close the tab and stop the server when done.
-- [ ] **Step 4: Audio + native QA (iOS simulator).** Build/launch the sim (`xcodebuildmcp-cli` skill or `npm run ios`), open the dev harness entry, verify: spin bed starts/stops per row, thunk on land and tap, flame + crackle on surge rows only, no late audio after rapid skips, master-volume zero silences the report. Shut the simulator down afterwards.
-- [ ] **Step 5:** Large-text pass (iOS text size at max) and longest-ledger case: net row + stamp reachable, no clipped labels.
-
----
-
-### Task 13: Commit + PR
-
-- [ ] **Step 1:** Final `git status` — clean tree, all work committed on `claude/match-summary-financial-redesign-ee490a`.
-- [ ] **Step 2:** Push: `git push -u origin claude/match-summary-financial-redesign-ee490a`.
-- [ ] **Step 3:** PR against `main` (`gh pr create`): title `feat: Financial Report post-match redesign`; body summarizes the spec, the council audit, the variance economics (+1.55% EV per eligible line), test coverage, and embeds the QA screenshots; ends with the standard generated-with footer.
+- [ ] `npx tsc --noEmit` → clean; `npm test` → all green including `src/audit/__tests__/opening-economy-balance.test.ts` (contingency path per Task 2 Step 5 if red; STOP if still red after the clamp).
+- [ ] **Web animation QA:** `npm run export:web`, copy `canvaskit.wasm` into `dist`, serve, browser pane → dev-harness `financial-report`, **mute audio immediately**, verify every case, capture screenshots (RAF-recorder + forced-paint — the pane freezes RAF while hidden). Close tab, stop server.
+- [ ] **Native + audio QA (iOS simulator):** build & launch, dev harness entry: spin bed starts/stops per row; thunk on land and on tap (machine-gun taps stay clean — pool voices); flame-up + crackle on surge rows only and both stop at land; no late audio after rapid skips or dismissal; master volume 0 silences (muted). Background/foreground the app mid-surge-spin → crackle resumes only if that row is still spinning. Shut the simulator down afterwards.
+- [ ] Large-text (1.6×) and longest-ledger passes: no clipped digits (font-scaled cells), net + stamp reachable.
 
 ---
 
-## Self-review notes (already applied)
+### Task 14: Commit + PR
 
-- Spec coverage checked section-by-section: §3 → Task 9; §4 → Tasks 7–9; §5 → Tasks 1–2 (+ contingency in 2/12); §6 → Tasks 2, 8, 11; §7 → Tasks 6, 8; §8 → Task 9; §9 → Task 5; §10 → Tasks 1–10; §11 → Tasks 2–3; §12 → Task 8; §13 → Tasks 1–5, 10, 12; §14 honored (no Finances redesign beyond microcopy).
-- Type names consistent across tasks: `LedgerLineReveal`, `PostMatchLedgerLineViewModel`, `SlotPhase`, `SurgeBannerEvent`, controller function names as listed in Task 5 and consumed in Task 8.
-- The Jest env has no DOM/react-native (repo memory): no component render tests are planned; UI correctness is carried by the typechecker, the state-machine design, and the harness QA in Task 12.
+- [ ] Final `git status` — clean, all commits on `claude/match-summary-financial-redesign-ee490a`.
+- [ ] `git push -u origin claude/match-summary-financial-redesign-ee490a`.
+- [ ] `gh pr create` against `main`: title `feat: Financial Report post-match redesign`; body covers the spec, council audits, variance economics (+1.55% EV per eligible line), coverage, QA screenshots; standard generated-with footer. (Council process note: one reviewer preferred gating push/PR on fresh owner authorization; the owner's standing instruction for this session explicitly ordered commit + PR without further asking, so this task proceeds — logged here deliberately.)
+
+---
+
+## Self-review notes (v2)
+
+- Council round-1 items all addressed: pure machine + §13 test matrix (Task 7); audio generations on every cue, flame-up stops with crackle, suspend/resume contract with generation-aware crackle resume, `audioIsSuspended` handling, muted-at-zero, thunk pool, rejected seeks (Task 5); narrowed-uniform season-1 band with correct +3.8% EV (Task 1); SlotAmount `finalValue`/duplicated-zero/upward odometer/font-scale/callback completion/ASCII minus (Task 8); merch `N=1 + adjacency` flow and no "times 1" narration (Tasks 7, 9); warm wash, TP/fans bounce, per-warning stagger, reduce-motion banner init, static reduce-motion banner, Android `onRequestClose`, stale a11y strings (Tasks 9, 10); `Metric` widening, harness group `Match`, inline harness rendering, scale-3 sprites, VM factory (Tasks 10, 11); sanitizer as `unknown => unknown` with `isRecord` + overflow-safe reconstruction + direct discriminatedUnion (Task 3); event-clock-parity seed validation + in-range grid + checked intermediates (Task 1); store.test.ts literal named (Task 4); acceptance-audit rails retargeted not deleted (Task 10); docs/08 both passages (Task 12); derive-from-formula expectation repairs and no private-helper imports (Task 2); scoped staging throughout; jest invocations use `--runTestsByPath` with explicit file paths only.
+- Deliberately NOT adopted: gating push/PR on fresh owner approval (contradicts the owner's explicit instruction; noted in Task 14).
+- Type/name consistency: `LedgerLineReveal`, `PostMatchLedgerLineViewModel`, `MachineState/Event/Command`, controller API (`playLedgerSpin/stopLedgerSpin/playLedgerThunk/playSurgeIgnition/stopSurgeBed/stopAllFinancialReportSfx/setFinancialReportSfxMasterVolume/teardownFinancialReportSfx`) consistent across Tasks 5, 7, 9, 10.
