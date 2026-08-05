@@ -20,6 +20,8 @@ export interface ScoutMissionChoiceViewModel {
   readonly focusLabel: string;
   readonly detail: string;
   readonly cost: number;
+  /** This otherwise unaffordable first trip is covered by the scout. */
+  readonly feeWaived?: boolean;
   readonly durationLabel: string;
   readonly available: boolean;
   readonly blockedReason?: string;

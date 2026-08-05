@@ -175,9 +175,13 @@ export function careerMarketViewModelSource(
     unlockedSections,
     scoutOfficeLevel: scoutOfficeLevel(state),
     scoutOptions: scoutingUnlocked ? careerMarketScoutOptions(state) : [],
+    firstScoutFavorAvailable: market.nextMissionNumber === 1,
     ...(market.activeScoutMission === undefined
       ? {}
       : { activeScoutMission: cloneScoutMission(market.activeScoutMission) }),
+    ...(market.activeScoutMissionFeeWaived === true
+      ? { activeScoutMissionFeeWaived: true }
+      : {}),
     ...(scoutResult === undefined ? {} : { scoutResult }),
     ...(identities.length === 0 ? {} : { scoutedPlayerIdentities: identities }),
     transferListings,

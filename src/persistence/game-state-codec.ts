@@ -1004,6 +1004,7 @@ const negotiationSchema = z.object({
 const careerMarketSchema = z.object({
   nextMissionNumber: positiveInteger,
   activeScoutMission: scoutMissionSchema.optional(),
+  activeScoutMissionFeeWaived: z.boolean().optional(),
   scoutReports: z.array(scoutReportSchema),
   coachCandidates: z.array(coachCandidateSchema),
   headCoach: coachCandidateSchema.optional(),

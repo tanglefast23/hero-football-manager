@@ -242,7 +242,7 @@
           "kicker": "Boots on the road",
           "title": "One mission at a time",
           "body": [
-            "Choose a region and focus, pay the fee, then wait for the due week. A better Scout Office gives clearer reports."
+            "Choose a region and focus, then wait for the due week. Scouting normally costs money, and a better Scout Office gives clearer reports."
           ],
           "focus": "scout-mission",
           "objective": "START A SCOUT MISSION.",

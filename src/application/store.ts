@@ -208,6 +208,8 @@ export type StoreNoticeTone = 'info' | 'success';
 export interface StoreNotice {
   readonly message: string;
   readonly tone: StoreNoticeTone;
+  /** Character notices use the full speech overlay instead of the toast. */
+  readonly speaker?: 'bert';
 }
 
 interface M1Store {
@@ -1644,7 +1646,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
         highestDivisionReached(career),
       );
       const next = { ...transaction.state, market: transaction.market };
-      set({ career: next, error: null });
+      set({
+        career: next,
+        error: null,
+        ...(transaction.market.activeScoutMissionFeeWaived === true
+          ? {
+              notice: {
+                tone: 'info' as const,
+                speaker: 'bert' as const,
+                message: "We don't have enough money for this scouting trip. But because of our deep relationship with the scout, they'll do this one for free. Just this once — the next trip, when you're hooked, costs money.",
+              },
+            }
+          : {}),
+      });
       queueCareerSave(get, set, next);
     });
   },

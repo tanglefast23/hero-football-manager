@@ -65,6 +65,29 @@ function baseSource(): MarketViewModelSource {
 }
 
 describe('marketViewModel', () => {
+  it('offers one unaffordable first scouting trip for free, then blocks later trips', () => {
+    const first = marketViewModel({
+      ...baseSource(),
+      cash: 0,
+      firstScoutFavorAvailable: true,
+    });
+    const later = marketViewModel({
+      ...baseSource(),
+      cash: 0,
+      firstScoutFavorAvailable: false,
+    });
+
+    expect(first.scouting.choices[0]).toMatchObject({
+      available: true,
+      feeWaived: true,
+    });
+    expect(later.scouting.choices[0]).toMatchObject({
+      available: false,
+      feeWaived: false,
+      blockedReason: 'Not enough money.',
+    });
+  });
+
   it('presents an active scouting trip and locks new mission choices', () => {
     const source = baseSource();
     const mission = startScoutMission({

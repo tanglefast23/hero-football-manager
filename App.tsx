@@ -1311,6 +1311,7 @@ function GameApp() {
     || store.career === null
     ? undefined
     : boardFinanceBriefing(store.career, openedBoardFinanceAlertId);
+  const bertNotice = store.notice?.speaker === 'bert' ? store.notice : undefined;
   /**
    * Whether Bert's guide is covering the screen.
    *
@@ -1330,6 +1331,7 @@ function GameApp() {
     || fansLessonVisible
     || fansLedgerTourVisible
     || boardFinanceMessage !== undefined
+    || bertNotice !== undefined
   )
     && signingWalkOn === null;
   const bertBriefingVisible = guideOverlayVisible || store.inboxDutyReminder !== null;
@@ -2262,7 +2264,7 @@ function GameApp() {
           />
         ) : store.error ? (
           <FeedbackNotice message={store.error} tone="error" onDismiss={store.clearError} />
-        ) : store.notice ? (
+        ) : store.notice && store.notice.speaker !== 'bert' ? (
           <FeedbackNotice
             message={store.notice.message}
             tone={store.notice.tone}
@@ -2344,6 +2346,16 @@ function GameApp() {
             navigationAnchor={navigationGuideAnchor}
             reduceMotion={reduceMotion}
             onDone={() => store.completeGuideMilestone('first-cup-exit-seen')}
+          />
+        ) : guideOverlayVisible && bertNotice !== undefined ? (
+          <BertBriefingWalkOn
+            key="first-scout-favor"
+            content={content.assistantGuide}
+            sequenceId="first-scout-favor"
+            customMessage={{ body: bertNotice.message }}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={store.clearNotice}
           />
         ) : guideOverlayVisible && assistantSequenceId !== null ? (
           <BertBriefingWalkOn

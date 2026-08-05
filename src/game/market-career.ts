@@ -112,6 +112,8 @@ export interface CareerRenewalTalks {
 export interface CareerMarketState {
   readonly nextMissionNumber: number;
   readonly activeScoutMission?: ScoutMission;
+  /** The active first mission was covered by the scout's one-time favor. */
+  readonly activeScoutMissionFeeWaived?: boolean;
   readonly scoutReports: readonly ScoutReport[];
   readonly coachCandidates: readonly CoachCandidate[];
   readonly headCoach?: CoachCandidate;
@@ -234,24 +236,33 @@ export function startCareerScoutMission(
     division,
   });
   const club = userClub(state);
-  if (club.cash < mission.cost) throw new Error('the scouting mission is not affordable');
-  const chargedState: GameState = {
-    ...state,
-    clubs: state.clubs.map(candidate => candidate.id === state.userClubId
-      ? { ...candidate, cash: candidate.cash - mission.cost }
-      : candidate),
-  };
+  const feeWaived = club.cash < mission.cost && market.nextMissionNumber === 1;
+  if (club.cash < mission.cost && !feeWaived) {
+    throw new Error('the scouting mission is not affordable');
+  }
+  const chargedState: GameState = feeWaived
+    ? state
+    : {
+        ...state,
+        clubs: state.clubs.map(candidate => candidate.id === state.userClubId
+          ? { ...candidate, cash: candidate.cash - mission.cost }
+          : candidate),
+      };
+  const transactionState = feeWaived
+    ? chargedState
+    : recordCashTransaction(chargedState, {
+        kind: 'scouting',
+        label: `Scouting mission · ${readableRegion(region)}`,
+        amount: -mission.cost,
+        referenceId: mission.id,
+      });
   return {
-    state: recordCashTransaction(chargedState, {
-      kind: 'scouting',
-      label: `Scouting mission · ${readableRegion(region)}`,
-      amount: -mission.cost,
-      referenceId: mission.id,
-    }),
+    state: transactionState,
     market: {
       ...market,
       nextMissionNumber: market.nextMissionNumber + 1,
       activeScoutMission: mission,
+      activeScoutMissionFeeWaived: feeWaived || undefined,
     },
   };
 }
@@ -272,6 +283,7 @@ export function resolveCareerScoutClock(
   return {
     ...currentMarket,
     activeScoutMission: undefined,
+    activeScoutMissionFeeWaived: undefined,
     scoutReports: result.reports,
   };
 }
@@ -908,6 +920,7 @@ export function refreshCareerMarketForNewSeason(
     ...refreshed,
     nextMissionNumber: previous.nextMissionNumber,
     activeScoutMission: previous.activeScoutMission,
+    activeScoutMissionFeeWaived: previous.activeScoutMissionFeeWaived,
     scoutReports,
     ...(head === undefined
       ? {}

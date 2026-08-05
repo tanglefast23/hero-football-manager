@@ -27,6 +27,8 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   'facility-upgrade': ['listing'],
   'facility-adjacency': ['confiding'],
   'scout-mission': ['explaining'],
+  // A quiet favor, not another lesson about how the scouting desk works.
+  'first-scout-favor': ['confiding'],
   'scout-report': ['listing'],
   // The squad is full and someone has to go — bad news, not instruction.
   'roster-cap': ['bad-news'],

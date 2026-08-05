@@ -141,7 +141,9 @@ export interface MarketViewModelSource {
   readonly unlockedSections?: readonly MarketSectionId[];
   readonly scoutOfficeLevel: number;
   readonly scoutOptions: readonly ScoutMissionOptionSource[];
+  readonly firstScoutFavorAvailable?: boolean;
   readonly activeScoutMission?: ScoutMission;
+  readonly activeScoutMissionFeeWaived?: boolean;
   readonly scoutResult?: ScoutMissionResult;
   readonly scoutedPlayerIdentities?: readonly ScoutedPlayerIdentitySource[];
   readonly transferListings: readonly TransferListingSource[];
@@ -382,7 +384,9 @@ function scoutingStatus(source: MarketViewModelSource): MarketViewModel['scoutin
   return {
     kind: 'IN_PROGRESS',
     headline: `${regionLabel(mission.region)} trip in progress`,
-    detail: `${focusLabel(mission.focus)} brief · paid ${formatMoney(mission.cost)}.`,
+    detail: source.activeScoutMissionFeeWaived === true
+      ? `${focusLabel(mission.focus)} brief · fee waived as a one-time favor.`
+      : `${focusLabel(mission.focus)} brief · paid ${formatMoney(mission.cost)}.`,
     progressLabel: `${weeksRemaining} week${weeksRemaining === 1 ? '' : 's'} left`,
   };
 }
@@ -397,14 +401,16 @@ function scoutingChoice(
   const eliteLocked = option.focus.kind === 'ELITE_PROSPECT' && progressionDivision > 2;
   const busy = source.activeScoutMission !== undefined;
   const affordable = source.cash >= cost;
+  const feeWaived = !affordable && source.firstScoutFavorAvailable === true;
   return {
     id: option.id,
     regionLabel: option.regionLabel ?? regionLabel(option.region),
     focusLabel: focusLabel(option.focus),
     detail: option.detail ?? focusDetail(option.focus),
     cost,
+    feeWaived,
     durationLabel: '2-3 weeks',
-    available: !busy && !heroLocked && !eliteLocked && affordable,
+    available: !busy && !heroLocked && !eliteLocked && (affordable || feeWaived),
     ...(busy
       ? { blockedReason: 'Scout Sent' }
       : heroLocked
