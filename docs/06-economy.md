@@ -43,7 +43,7 @@ Numbers rule; the mini-game influences (user spec: helps, never fully decides).
 
 ## Facilities (the club grounds grid)
 
-An 8×6 tile grid (expandable). Buildings: Training Pitch, Gym, Tech Center, Shooting Range, Keeper Court, Medical Bay, Dorm, Scout Office, Coaching Office, Youth Field, Fan Shop, and Stadium Stand tiers. Each: build cost, up to Lv3, small weekly upkeep.
+An 8×6 tile grid (expandable). Buildings: Training Pitch, Gym, Tech Center, Shooting Range, Keeper Court, Medical Bay, Dorm, Scout Office, Coaching Office, Youth Field, Fan Shop, and Stadium Stand tiers. The club may build up to **three Fan Shops and three Stadium Stands**; every other facility is limited to one. Each placed building is upgraded individually to Lv3 and pays its own weekly upkeep. Every Shop and Stand level adds its full income effect to the club total.
 
 Facility quality is partly promotion-gated: Levels 1 and 2 are available from D5, and reaching D2 permanently unlocks Level 3. Level 2 used to wait for D4 and was moved down after measurement — locking the club's main training accelerator behind the promotion it was needed to earn produced 0 promotions across 6 careers × 10 seasons. Existing higher-level buildings from older saves remain operational, but further upgrades follow the earned ceiling.
 
@@ -64,7 +64,7 @@ Additional sponsor and Buzz income is paired with higher upgrade prices while ev
 | Youth Field | $12,000 · 3 weeks | $15,000 · 2 weeks | $27,000 · 3 weeks |
 | Stadium Stand | $10,000 · 3 weeks | $19,000 · 2 weeks | $34,000 · 3 weeks |
 
-**Adjacency bonuses** (Grand Prix Story 2's stealable puzzle, simplified): certain pairings buff each other when adjacent (Gym+Dorm: +10% STA gains; Fan Shop+Stadium: +10% merch; Medical+Training Pitch: −20% injury odds). Buildings are **relocatable for a small fee**, so layout is a recurring optimization toy. Discovered pairings log into the Codex.
+**Adjacency bonuses** (Grand Prix Story 2's stealable puzzle, simplified): certain pairings buff each other when adjacent (Gym+Dorm: +10% STA gains; Fan Shop+Stadium: +10% merch; Medical+Training Pitch: −20% injury odds). Each named bonus applies once even when several copies form the same pairing. Buildings are **relocatable for a small fee**, so layout is a recurring optimization toy. Discovered pairings log into the Codex.
 
 ## First-pass tuning table (D5 · District League baseline — all numbers subject to the balance harness, doc 09)
 

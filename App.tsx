@@ -123,6 +123,7 @@ import {
   buildCareerMatchTeams,
   careerCoachUnlockedFormationIds,
   clubSquadStrength,
+  cupMismatchWarning as pendingCupMismatchWarning,
   hasActiveCareerContractPromise,
   hasAssistantGuideSequenceCompleted,
   hasEverGainedFans,
@@ -1212,7 +1213,7 @@ function GameApp() {
       && matchdayConditionWarningPlayer(matchDayViewModel(
         career,
         content,
-        preferences.formationPresets[0].replaceAll('-', '–'),
+        preferences.formationPresets[0],
       ).lineup) !== null;
     const milestones = advisorMilestonesToBank(career, {
       enteredManagement: store.screen === 'management',
@@ -1222,7 +1223,6 @@ function GameApp() {
         && store.activeTab === 'club'
         && clubOfficeTab === 'finances',
       watchingMatch: store.screen === 'watched',
-      cupExit: store.screen === 'postmatch' && store.postMatch?.result.cupExit === true,
       lowConditionMatchday,
     });
     for (const milestone of milestones) store.completeGuideMilestone(milestone);
@@ -1282,6 +1282,9 @@ function GameApp() {
       : undefined;
   const cupGiantKillingCelebration = store.career
     ?.pendingCupGiantKillingCelebrations?.[0];
+  const cupMismatchWarning = store.screen === 'matchday' && store.career !== null
+    ? pendingCupMismatchWarning(store.career)
+    : undefined;
   const facilityComboReveal = !careerTeaches || store.screen !== 'management' || store.career === null
     ? undefined
     : store.career.facilities.grid?.discoveredAdjacencies
@@ -1300,8 +1303,7 @@ function GameApp() {
    * back to the office, the sympathy would arrive after they had already
    * clicked past the defeat and started on next week.
    */
-  const cupExitConsolationVisible = careerTeaches
-    && store.screen === 'postmatch'
+  const cupExitConsolationVisible = store.screen === 'postmatch'
     && store.postMatch?.result.cupExit === true
     && store.career !== null
     && !hasAssistantGuideMilestone(store.career, 'first-cup-exit-seen');
@@ -1356,6 +1358,7 @@ function GameApp() {
     || store.career === null
     ? undefined
     : boardFinanceBriefing(store.career, openedBoardFinanceAlertId);
+  const bertNotice = store.notice?.speaker === 'bert' ? store.notice : undefined;
   /**
    * Whether Bert's guide is covering the screen.
    *
@@ -1368,6 +1371,7 @@ function GameApp() {
    */
   const guideOverlayVisible = (
     assistantSequenceId !== null
+    || cupMismatchWarning !== undefined
     || cupGiantKillingCelebration !== undefined
     || cupExitConsolationVisible
     || facilityComboReveal !== undefined
@@ -1375,6 +1379,7 @@ function GameApp() {
     || fansLessonVisible
     || fansLedgerTourVisible
     || boardFinanceMessage !== undefined
+    || bertNotice !== undefined
   )
     && signingWalkOn === null;
   const bertBriefingVisible = guideOverlayVisible || store.inboxDutyReminder !== null;
@@ -1726,7 +1731,7 @@ function GameApp() {
     const matchday = matchDayViewModel(
       store.career,
       content,
-      preferences.formationPresets[0].replaceAll('-', '–'),
+      preferences.formationPresets[0],
     );
     if (careerTeaches && !hasAssistantGuideMilestone(store.career, 'match-condition-warning-seen')) {
       lowConditionMatchdayStarter = matchdayConditionWarningPlayer(matchday.lineup);
@@ -2307,7 +2312,7 @@ function GameApp() {
           />
         ) : store.error ? (
           <FeedbackNotice message={store.error} tone="error" onDismiss={store.clearError} />
-        ) : store.notice ? (
+        ) : store.notice && store.notice.speaker !== 'bert' ? (
           <FeedbackNotice
             message={store.notice.message}
             tone={store.notice.tone}
@@ -2360,7 +2365,16 @@ function GameApp() {
           }}
         />
         </View>
-        {guideOverlayVisible && cupGiantKillingCelebration !== undefined ? (
+        {guideOverlayVisible && cupMismatchWarning !== undefined ? (
+          <BertBriefingWalkOn
+            key={cupMismatchWarning.fixtureId}
+            content={content.assistantGuide}
+            customMessage={cupMismatchWarning}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={store.completeCupMismatchWarning}
+          />
+        ) : guideOverlayVisible && cupGiantKillingCelebration !== undefined ? (
           <BertBriefingWalkOn
             key={cupGiantKillingCelebration.fixtureId}
             content={content.assistantGuide}
@@ -2389,6 +2403,16 @@ function GameApp() {
             navigationAnchor={navigationGuideAnchor}
             reduceMotion={reduceMotion}
             onDone={() => store.completeGuideMilestone('first-cup-exit-seen')}
+          />
+        ) : guideOverlayVisible && bertNotice !== undefined ? (
+          <BertBriefingWalkOn
+            key="first-scout-favor"
+            content={content.assistantGuide}
+            sequenceId="first-scout-favor"
+            customMessage={{ body: bertNotice.message }}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={store.clearNotice}
           />
         ) : guideOverlayVisible && assistantSequenceId !== null ? (
           <BertBriefingWalkOn

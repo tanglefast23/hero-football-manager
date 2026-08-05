@@ -70,6 +70,17 @@ describe('column and personality explanations', () => {
 });
 
 describe('starting eleven team sheet', () => {
+  it('draws starters in their assigned formation row rather than their natural role', () => {
+    const screen = read('src/ui/screens/FixtureMatchDayScreen.tsx');
+
+    expect(screen).toContain(
+      'viewModel.lineup.filter(player => player.formationRole === role)',
+    );
+    expect(screen).not.toContain(
+      'viewModel.lineup.filter(player => player.role === role)',
+    );
+  });
+
   it('uses portraits and wider flexible name cells on phone and desktop', () => {
     const screen = read('src/ui/screens/FixtureMatchDayScreen.tsx');
     const teamSheet = screen.match(/const teamSheet = \(([\s\S]*?)\n  const bench =/)?.[1] ?? '';
@@ -126,14 +137,25 @@ describe('quick train', () => {
     expect(guide).toContain("'quick-train-seen': 'guide:bert:quick-train-seen'");
     expect(app).toContain('const QUICK_TRAIN_LESSON_WEEK = 6;');
     expect(app).toContain("!hasAssistantGuideMilestone(store.career, 'quick-train-seen')");
-    // The Squad page keeps its ordinary opening position. The lesson appears
-    // only after the manager naturally selects a player; it never selects or
-    // scrolls the viewport for them.
+    // The Squad page keeps its ordinary opening position. The lesson guides
+    // natural player selection and the scroll down to attributes, but never
+    // selects or scrolls the viewport for the manager.
     expect(screen).not.toContain('if (!guideQuickTrain || selectedPlayerId !== undefined) return;');
     expect(screen).not.toContain('const frameAttributes = useCallback');
     expect(screen).not.toContain('attributesScrolledRef');
+    expect(screen).toContain('player.id === quickTrainTargetPlayerId');
+    // Desktop already shows the player file beside the roster, so only the
+    // single-column layout needs the intermediate scroll instruction.
+    expect(screen).toContain('&& (quickTrainNeedsPlayer || !wideColumns)');
     expect(screen).toContain('label="Quick Train"');
-    expect(screen).toContain('detail="Select a player and tap the attribute you want to train."');
+    expect(screen).toContain("? 'Tap a player to see their attributes'");
+    expect(screen).toContain(": 'Scroll down to Attributes'");
+    expect(screen).toContain('label="Tap an attribute"');
+    expect(screen).toContain('detail="Choose the stat you want to train"');
+    // Unrelated taps cannot erase a once-per-career lesson before it is used.
+    expect(screen).not.toContain('guideQuickTrainRef');
+    expect(screen).not.toContain('quickTrainCueDismissed');
+    expect(screen).toContain('guideQuickTrain={guideQuickTrain}');
     // Doing the thing retires the lesson.
     expect(screen).toContain('onQuickTrainShown?.();');
   });

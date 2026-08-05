@@ -1,4 +1,9 @@
-import { CUP_SETTLEMENT_WEEKS, DEFAULT_CREATION_RATINGS, createCareer } from '../../game';
+import {
+  CUP_SETTLEMENT_WEEKS,
+  DEFAULT_CREATION_RATINGS,
+  createCareer,
+  cupMismatchWarning,
+} from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import type { CareerRepository } from '../../persistence';
 import { MissingCareerBackupError } from '../../persistence';
@@ -223,6 +228,28 @@ describe('Hero Cup app routing', () => {
     ]);
     useM1Store.getState().completeCupGiantKillingCelebration();
     expect(useM1Store.getState().career?.pendingCupGiantKillingCelebrations).toBeUndefined();
+  });
+
+  test('dismisses the mode-neutral mismatch warning once before the Cup tie', () => {
+    const prepared = prepareCupTie(2);
+    useM1Store.setState({
+      career: { ...prepared, assistantMode: 'advisor' },
+      screen: 'matchday',
+    });
+
+    const warning = cupMismatchWarning(useM1Store.getState().career!);
+    expect(warning).toMatchObject({
+      fixtureId: expect.stringContaining('-cup-'),
+      divisionGap: 2,
+    });
+
+    useM1Store.getState().completeCupMismatchWarning();
+
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'matchday',
+      career: { assistantMode: 'advisor' },
+    });
+    expect(cupMismatchWarning(useM1Store.getState().career!)).toBeUndefined();
   });
 
   test('calls a knockout defeat the end of the cup run, and a win not', () => {

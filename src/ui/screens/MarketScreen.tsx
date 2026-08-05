@@ -511,7 +511,9 @@ function ScoutingDesk({
                   <PixelText className="text-base uppercase text-ink">{choice.regionLabel}</PixelText>
                   <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">{choice.focusLabel}</Text>
                 </View>
-                <Text className="font-mono text-base text-ink">{formatCurrency(choice.cost)}</Text>
+                <Text className="font-mono text-base text-ink">
+                  {choice.feeWaived === true ? 'FREE' : formatCurrency(choice.cost)}
+                </Text>
               </View>
               <Text className="mt-2 text-sm leading-5 text-ink/60">{choice.detail}</Text>
               <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/15 pt-3">
@@ -522,8 +524,10 @@ function ScoutingDesk({
                   targetRef={choice.id === scrollDismissTargetId ? southAmericaScoutActionRef : undefined}
                 >
                   <SmallAction
-                    label="Send scout"
-                    accessibilityLabel={`Send scout to ${choice.regionLabel} for ${choice.focusLabel}`}
+                    label={choice.feeWaived === true ? 'Send free scout' : 'Send scout'}
+                    accessibilityLabel={choice.feeWaived === true
+                      ? `Send scout to ${choice.regionLabel} for ${choice.focusLabel}, free first trip`
+                      : `Send scout to ${choice.regionLabel} for ${choice.focusLabel}`}
                     disabled={!choice.available}
                     onPress={() => onStartScoutMission(choice.id)}
                   />

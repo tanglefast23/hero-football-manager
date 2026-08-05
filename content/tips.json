@@ -44,6 +44,11 @@
       "body": "One build or upgrade runs at a time, so the order you queue is the order you get. Start the long cheap jobs on a week your money is already spent."
     },
     {
+      "id": "commercial-facilities-repeat",
+      "title": "Money buildings can be repeated",
+      "body": "Fan Shops pay every week and Stadium Stands improve home gates. You may build up to three of each, but every other facility is limited to one."
+    },
+    {
       "id": "hero-wage-cliff",
       "title": "A hero's wage waits for the contract",
       "body": "A player who awakens keeps their old wage until the contract ends. At renewal it jumps to hero rates, three to five times what you paid. Bank for that season early."

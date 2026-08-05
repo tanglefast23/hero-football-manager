@@ -3,6 +3,7 @@ export * from './archetype-caps';
 export * from './board-ultimatum';
 export * from './contract-promises';
 export * from './cup-giant-killing';
+export * from './cup-mismatch-warning';
 export * from './career';
 export * from './career-events';
 export * from './desk-tips';

@@ -22,6 +22,16 @@ describe('Bert on the first cup exit', () => {
     expect(source).toContain('store.postMatch?.result.cupExit === true');
   });
 
+  it('stays as Cup flavour when tutorial guidance is off', () => {
+    const source = app();
+    const declaration = source.slice(
+      source.indexOf('const cupExitConsolationVisible ='),
+      source.indexOf('const tripleSpeedIntroVisible ='),
+    );
+
+    expect(declaration).not.toContain('careerTeaches');
+  });
+
   it('says it once a career and never again', () => {
     const source = app();
 

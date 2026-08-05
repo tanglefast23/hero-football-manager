@@ -120,6 +120,35 @@ const FORMATION_ENGINE_ANCHORS: Readonly<Record<FormationId, readonly Normalized
   ],
 };
 
+export type FormationRole = 'GK' | 'DEF' | 'MID' | 'FWD';
+
+/**
+ * The positional line owned by each fixed engine slot in every formation.
+ *
+ * Player identity and natural role stay with the player, while this table says
+ * where that lineup slot is actually drawn and played. Most shapes read in
+ * simple groups; 5-3-2 is the important exception because fixed slot 8 drops
+ * from right midfield into the fifth defensive position.
+ */
+const FORMATION_SLOT_ROLES: Readonly<Record<FormationId, readonly Exclude<FormationRole, 'GK'>[]>> = {
+  '4-4-2': ['DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD'],
+  '4-3-3': ['DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'FWD', 'FWD', 'FWD'],
+  '3-5-2': ['DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD'],
+  '5-3-2': ['DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'DEF', 'FWD', 'FWD'],
+  '4-5-1': ['DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD'],
+  '3-4-3': ['DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD', 'FWD'],
+};
+
+export function formationRoleForSlot(
+  formation: FormationId,
+  engineSlot: number,
+): FormationRole {
+  if (!Number.isSafeInteger(engineSlot) || engineSlot < 0 || engineSlot > 10) {
+    throw new Error(`formation slot must be an integer from 0 to 10, got ${String(engineSlot)}`);
+  }
+  return engineSlot === 0 ? 'GK' : FORMATION_SLOT_ROLES[formation][engineSlot - 1];
+}
+
 export function isFormationId(value: unknown): value is FormationId {
   return typeof value === 'string' && FORMATION_IDS.includes(value as FormationId);
 }

@@ -10,6 +10,7 @@ import {
   FORMATION_LAYOUTS,
   energyDrainMultiplier,
   energyMovementMultiplier,
+  formationRoleForSlot,
   formationTarget,
   isEnergyUse,
   mentalityTarget,
@@ -38,6 +39,17 @@ describe('match tactics', () => {
     expect(nextFormation('4-4-2', DEFAULT_FORMATION_PRESETS)).toBe('3-4-3');
     expect(nextFormation('3-4-3', DEFAULT_FORMATION_PRESETS)).toBe('5-3-2');
     expect(nextFormation('5-3-2', DEFAULT_FORMATION_PRESETS)).toBe('4-4-2');
+  });
+
+  it('assigns players to the formation line owned by their engine slot', () => {
+    expect(formationRoleForSlot('4-4-2', 0)).toBe('GK');
+    expect(formationRoleForSlot('4-4-2', 4)).toBe('DEF');
+    expect(formationRoleForSlot('4-4-2', 5)).toBe('MID');
+    expect(formationRoleForSlot('4-4-2', 9)).toBe('FWD');
+
+    // 5-3-2 converts the old right-midfield engine slot into the fifth back.
+    // Sequential grouping would incorrectly draw slot 8 in midfield.
+    expect(formationRoleForSlot('5-3-2', 8)).toBe('DEF');
   });
 
   it('cycles mentality in the agreed balanced, attack, protect order', () => {

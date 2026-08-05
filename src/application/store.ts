@@ -17,6 +17,7 @@ import {
   buildCareerMatchTeams,
   buildCareerFacility,
   buildTrainingGround,
+  completeCupMismatchWarning as markCupMismatchWarningComplete,
   completeCupGiantKillingCelebration as markCupGiantKillingCelebrationComplete,
   completeFirstOnboardingMatch,
   completeAssistantGuideMilestone,
@@ -237,6 +238,8 @@ export type StoreNoticeTone = 'info' | 'success';
 export interface StoreNotice {
   readonly message: string;
   readonly tone: StoreNoticeTone;
+  /** Character notices use the full speech overlay instead of the toast. */
+  readonly speaker?: 'bert';
 }
 
 interface M1Store {
@@ -300,6 +303,8 @@ interface M1Store {
   completeAssistantGuide: (sequenceId: AssistantGuideSequenceId) => void;
   /** Retires a one-shot Bert lesson for the rest of the career. */
   completeGuideMilestone: (milestone: AssistantGuideMilestone) => void;
+  /** Sends Bert away after the current pre-match Cup mismatch warning. */
+  completeCupMismatchWarning: () => void;
   completeCupGiantKillingCelebration: () => void;
   /** Sends Bert away after he has refused an Advance Week. */
   dismissInboxDutyReminder: () => void;
@@ -724,6 +729,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const career = requireCareer(get());
       if (hasAssistantGuideMilestone(career, milestone)) return;
       const next = completeAssistantGuideMilestone(career, milestone);
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  completeCupMismatchWarning() {
+    guarded(set, () => {
+      const next = markCupMismatchWarningComplete(requireCareer(get()));
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -1685,7 +1698,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
         highestDivisionReached(career),
       );
       const next = { ...transaction.state, market: transaction.market };
-      set({ career: next, error: null });
+      set({
+        career: next,
+        error: null,
+        ...(transaction.market.activeScoutMissionFeeWaived === true
+          ? {
+              notice: {
+                tone: 'info' as const,
+                speaker: 'bert' as const,
+                message: "We don't have enough money for this scouting trip. But because of our deep relationship with the scout, they'll do this one for free. Just this once — the next trip, when you're hooked, costs money.",
+              },
+            }
+          : {}),
+      });
       queueCareerSave(get, set, next);
     });
   },

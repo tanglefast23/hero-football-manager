@@ -350,6 +350,21 @@ describe('M2 weekly sidecars', () => {
     });
   });
 
+  test('adds the full weekly income from three separately built Fan Shops', () => {
+    let grid = createFacilityGrid();
+    for (let index = 0; index < 3; index += 1) {
+      grid = buildFacility(grid, 'fan-shop', { x: index, y: 0 }, 100_000).grid;
+      grid = completeFacilityProject(grid);
+    }
+    const initial = fullCareer(508);
+    const club = initial.clubs.find(candidate => candidate.id === initial.userClubId)!;
+
+    expect(weeklyMerchandiseIncome({
+      ...initial,
+      facilities: { ...initial.facilities, grid },
+    }, club)).toBe(Math.floor((club.fans * 3) / 2));
+  });
+
   test.each([
     [500, 250, 275],
     [546, 273, 300],

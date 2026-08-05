@@ -7,7 +7,7 @@ import type {
 } from '../content';
 import type { PotentialGrade } from '../game/archetype-caps';
 import type { AwardCategoryId } from '../game/types';
-import type { PowerId } from '../sim/types';
+import type { PowerId, Role } from '../sim/types';
 import type { TrainingModifier } from '../game/training';
 
 export type ManagementTab = 'home' | 'squad' | 'club' | 'market' | 'league';
@@ -171,10 +171,11 @@ export interface TacticViewModel {
   detail: string;
 }
 
-export interface LineupPlayerViewModel {
+export interface MatchDayPlayerViewModel {
   id: string;
   name: string;
-  role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  /** The player's natural role, which stays with their identity. */
+  role: Role;
   lookId?: string;
   shirtNumber: number;
   isHero: boolean;
@@ -182,7 +183,12 @@ export interface LineupPlayerViewModel {
   condition: number;
 }
 
-export interface BenchPlayerViewModel extends LineupPlayerViewModel {
+export interface LineupPlayerViewModel extends MatchDayPlayerViewModel {
+  /** The positional line owned by this player's current formation slot. */
+  formationRole: Role;
+}
+
+export interface BenchPlayerViewModel extends MatchDayPlayerViewModel {
   injuryWeeks: number;
   /** Weeks away on a granted request. Blocks selection exactly as injury does. */
   awayWeeks: number;
@@ -545,6 +551,10 @@ export interface ClubFacilityBuildingViewModel {
 export interface ClubFacilityCatalogViewModel {
   type: FacilityTypeViewModel;
   name: string;
+  /** Copies already placed, including a copy still under construction. */
+  builtCount: number;
+  /** Three for income buildings; one for every other facility. */
+  buildLimit: number;
   buildCost: number;
   width: number;
   height: number;

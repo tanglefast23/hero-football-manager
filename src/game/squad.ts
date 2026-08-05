@@ -233,9 +233,9 @@ export function setCareerLineup(state: GameState, playerIds: readonly string[]):
 }
 
 /**
- * Replaces one starter with an eligible same-role bench player. Keeping the
- * role fixed preserves the selected formation while the shared lineup boundary
- * continues to enforce goalkeeper and hero-license rules.
+ * Replaces one starter with an eligible bench player. The lineup slot preserves
+ * the selected formation, so any outfield player may occupy any outfield slot;
+ * goalkeeper and hero-license boundaries remain strict.
  */
 export function swapCareerLineupPlayer(
   state: GameState,
@@ -258,8 +258,10 @@ export function swapCareerLineupPlayer(
   if (starter === undefined || replacement === undefined) {
     throw new Error('Both lineup players must belong to your club.');
   }
-  if (starter.role !== replacement.role) {
-    throw new Error(`Choose another ${starter.role} to preserve the formation.`);
+  if ((starter.role === 'GK') !== (replacement.role === 'GK')) {
+    throw new Error(starter.role === 'GK'
+      ? 'Choose another GK for the goalkeeper slot.'
+      : 'Choose an outfield player for this formation slot.');
   }
   if (replacement.injuryWeeks > 0) {
     throw new Error(`${replacement.name} is injured and unavailable for selection.`);

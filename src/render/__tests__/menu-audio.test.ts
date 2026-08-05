@@ -70,6 +70,20 @@ describe('non-match music ownership', () => {
     expect(menuThemeForScreen('matchday', 1)).toBe('opening');
   });
 
+  it('uses the opening theme for the full-time report, then restores the office theme', () => {
+    const fulltimeTheme = menuThemeForScreen('postmatch', 1);
+    const officeTheme = menuThemeForScreen('management', 1);
+
+    expect(fulltimeTheme).toBe('opening');
+    expect(officeTheme).toBe('management');
+
+    setMenuTheme(fulltimeTheme);
+    setMenuTheme(officeTheme);
+
+    expect(mockPlayers[0].pause).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[1].play).toHaveBeenCalledTimes(1);
+  });
+
   it('lays the event bed under the awakening from the bite onwards', () => {
     // Beat 1 is the hush, and the limp cue owns it alone. From beat 2 the bed
     // plays under the limp's tail and holds through the rise: the beats are

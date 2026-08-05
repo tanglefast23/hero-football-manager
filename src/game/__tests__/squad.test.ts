@@ -146,8 +146,9 @@ describe('career squad integration', () => {
     expect(buildCareerTeamDef(swapped, swapped.userClubId).players.map(player => player.id))
       .toContain(replacementId);
 
-    expect(() => swapCareerLineupPlayer(swapped, `${CLUB_IDS[0]}-p8`, starterId))
-      .toThrow('preserve the formation');
+    const crossRole = swapCareerLineupPlayer(swapped, `${CLUB_IDS[0]}-p8`, starterId);
+    const crossRoleLineup = crossRole.lineups.find(lineup => lineup.clubId === crossRole.userClubId)!;
+    expect(crossRoleLineup.playerIds[8]).toBe(starterId);
     expect(() => swapCareerLineupPlayer(initial, starterId, `${CLUB_IDS[0]}-p11`))
       .toThrow('Hero License');
 

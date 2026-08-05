@@ -18,8 +18,6 @@ export interface AdvisorMilestoneContext {
   readonly viewingFinances: boolean;
   /** A watched match has opened after 3x speed became available. */
   readonly watchingMatch: boolean;
-  /** The current full-time report is the club's first unseen Cup exit. */
-  readonly cupExit: boolean;
   /** Match day currently contains a below-peak starter. */
   readonly lowConditionMatchday: boolean;
 }
@@ -72,7 +70,6 @@ export function advisorMilestonesToBank(
     }
   }
   if (context.watchingMatch && state.season >= 3) add('triple-speed-seen');
-  if (context.cupExit) add('first-cup-exit-seen');
   if (context.lowConditionMatchday) add('match-condition-warning-seen');
   if (context.viewingHome && hasEverGainedFans(state)) add('first-fans-seen');
   if (context.viewingFinances && hasEverGainedFans(state)) {

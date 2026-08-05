@@ -31,6 +31,50 @@ import {
 import type { GameState } from '../types';
 
 describe('career market integration', () => {
+  test('waives only an unaffordable first scouting mission', () => {
+    const initial = {
+      ...createCareer(createLaunchCareerSetup(20260805)),
+      week: 15,
+    };
+    const broke = {
+      ...initial,
+      clubs: initial.clubs.map(club => club.id === initial.userClubId
+        ? { ...club, cash: 0 }
+        : club),
+    };
+    const started = startCareerScoutMission(
+      broke,
+      broke.market!,
+      'EUROPE',
+      { kind: 'POSITION', role: 'FWD' },
+    );
+
+    expect(started.state.clubs.find(club => club.id === initial.userClubId)?.cash).toBe(0);
+    expect(started.state.cashTransactions).toEqual(broke.cashTransactions);
+    expect(started.market).toMatchObject({
+      nextMissionNumber: 2,
+      activeScoutMissionFeeWaived: true,
+      activeScoutMission: { id: 'scout-1' },
+    });
+    expect(parseStoredGameState(serializeGameState({
+      ...started.state,
+      market: started.market,
+    })).market?.activeScoutMissionFeeWaived).toBe(true);
+
+    const dueState = {
+      ...started.state,
+      week: started.market.activeScoutMission!.dueWeek,
+    };
+    const resolved = resolveCareerScoutClock(dueState, started.market);
+    expect(resolved.activeScoutMissionFeeWaived).toBeUndefined();
+    expect(() => startCareerScoutMission(
+      dueState,
+      resolved,
+      'EUROPE',
+      { kind: 'POSITION', role: 'FWD' },
+    )).toThrow('not affordable');
+  });
+
   test('charges for a mission and resolves deterministic reports on its due week', () => {
     const initial = {
       ...createCareer(createLaunchCareerSetup(20260719)),

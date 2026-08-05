@@ -19,10 +19,37 @@ import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-databa
 import type { PostMatchViewModel } from '../../ui';
 import { loadLaunchContent } from '../../content';
 import { awakeningCutsceneViewModel, storyEventViewModel } from '../view-models';
+import { careerMarketScoutOptions } from '../market-source-adapter';
 
 describe('M1 app store integration', () => {
   beforeEach(() => {
     useM1Store.setState(useM1Store.getInitialState(), true);
+  });
+
+  it("has Bert explain the scout's one-time favor when the first trip is unaffordable", () => {
+    startCreatedCareer(20260805);
+    const career = useM1Store.getState().career!;
+    const broke = {
+      ...career,
+      week: 15,
+      clubs: career.clubs.map(club => club.id === career.userClubId
+        ? { ...club, cash: 0 }
+        : club),
+    };
+    useM1Store.setState({ career: broke, screen: 'management', activeTab: 'market' });
+    const option = careerMarketScoutOptions(broke)[0];
+
+    useM1Store.getState().startScoutMission(option.id);
+
+    expect(useM1Store.getState().notice).toMatchObject({
+      tone: 'info',
+      speaker: 'bert',
+      message: expect.stringContaining('one for free'),
+    });
+    expect(useM1Store.getState().career?.market).toMatchObject({
+      nextMissionNumber: 2,
+      activeScoutMissionFeeWaived: true,
+    });
   });
 
   it('creates the player, plays a powerless first match, and guarantees hero #1', () => {

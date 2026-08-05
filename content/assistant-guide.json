@@ -242,7 +242,7 @@
           "kicker": "Boots on the road",
           "title": "One mission at a time",
           "body": [
-            "Choose a region and focus, pay the fee, then wait for the due week. A better Scout Office gives clearer reports."
+            "Choose a region and focus, then wait for the due week. Scouting normally costs money, and a better Scout Office gives clearer reports."
           ],
           "focus": "scout-mission",
           "objective": "START A SCOUT MISSION.",
@@ -510,7 +510,7 @@
           "kicker": "The very last piggy bank",
           "title": "A bridge, not a lifestyle",
           "body": [
-            "This is the club's only automatic emergency loan, and repayments begin next season. Build cash-generating facilities now."
+            "This is the club's only automatic emergency loan. Repayments begin next season. Fan Shops and Stadium Stands make money, and you can build up to three of each. Every other facility is limited to one."
           ],
           "focus": "emergency-loan",
           "objective": "REVIEW THE LOAN AND WEEKLY COSTS.",

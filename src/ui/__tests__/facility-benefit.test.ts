@@ -31,4 +31,9 @@ describe('facilityBenefit', () => {
     expect(facilityBenefit('training-pitch')).toContain('+28 TP per completed level');
     expect(facilityBenefit('training-pitch')).not.toContain('+10');
   });
+
+  it('states the repeatable income-building rule on both commercial facilities', () => {
+    expect(facilityBenefit('fan-shop')).toMatch(/Build up to 3.*every Shop and Level/i);
+    expect(facilityBenefit('stadium-stand')).toMatch(/Build up to 3.*every Stand and Level/i);
+  });
 });

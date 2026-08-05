@@ -1,6 +1,7 @@
 export const FACILITY_GRID_WIDTH = 8;
 export const FACILITY_GRID_HEIGHT = 6;
 export const MAX_FACILITY_LEVEL = 3;
+export const MAX_INCOME_FACILITY_COPIES = 3;
 /**
  * Training Points a completed Training Pitch adds each week, per level.
  *
@@ -68,7 +69,19 @@ export type FacilityType =
 
 export type FacilityLevel = 1 | 2 | 3;
 
-interface FacilityFootprint {
+/**
+ * Fan Shops and Stadium Stands are commercial buildings: the club may open up
+ * to three of each. Every training, recovery, scouting, staff, and youth
+ * facility remains one per club so the grounds stay readable and those effects
+ * never need hidden stacking rules.
+ */
+export function facilityBuildLimit(type: FacilityType): number {
+  return type === 'fan-shop' || type === 'stadium-stand'
+    ? MAX_INCOME_FACILITY_COPIES
+    : 1;
+}
+
+export interface FacilityFootprint {
   readonly width: number;
   readonly height: number;
 }
@@ -218,8 +231,12 @@ export function buildFacility(
   validateSpendableCash(availableCash);
   const definition = definitionFor(type);
   if (!definition.available) throw new Error(`${definition.name} is not unlocked`);
-  if (grid.buildings.some(building => building.type === type)) {
-    throw new Error(`${definition.name} is already built; upgrade or move the existing facility`);
+  const copiesBuilt = grid.buildings.filter(building => building.type === type).length;
+  const buildLimit = facilityBuildLimit(type);
+  if (copiesBuilt >= buildLimit) {
+    throw new Error(buildLimit === 1
+      ? `${definition.name} is already built; upgrade or move the existing facility`
+      : `${definition.name} limit reached; the club may build up to ${buildLimit}`);
   }
   assertNoActiveConstruction(grid);
   assertAffordable(availableCash, definition.buildCost);
