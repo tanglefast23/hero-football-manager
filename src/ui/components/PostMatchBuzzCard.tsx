@@ -20,7 +20,7 @@ export function PostMatchBuzzCard({ buzz, className = '' }: {
     capped ? 'The 100 point cap limited this gain.' : undefined,
     buzz.payout === undefined
       ? `Current Buzz ${buzz.valueAfter} of 100.`
-      : `Sponsors paid ${formatCurrency(buzz.payout)} and Buzz reset to zero.`,
+      : `Buzz paid out ${formatCurrency(buzz.payout)} and reset to zero.`,
   ].filter(Boolean).join(' ');
   return (
     <View
@@ -45,7 +45,7 @@ export function PostMatchBuzzCard({ buzz, className = '' }: {
       {buzz.payout === undefined ? null : (
         <View className="mt-3 border-2 border-ink bg-white px-3 py-2">
           <Text className="text-sm font-bold text-ink">
-            Sponsors paid {formatCurrency(buzz.payout)} · Buzz reset to 0
+            Buzz paid out {formatCurrency(buzz.payout)} · reset to 0
           </Text>
         </View>
       )}
