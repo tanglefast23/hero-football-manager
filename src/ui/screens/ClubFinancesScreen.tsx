@@ -711,7 +711,7 @@ function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps
           </View>
           <View className="mt-2 flex-row">
             <Metric
-              label="Match, sponsor & prize"
+              label="Match, deals & prize"
               value={viewModel.variableIncome.detail === undefined
                 ? formatCurrency(viewModel.variableIncome.amount, true)
                 : `${formatCurrency(viewModel.variableIncome.amount)} (${viewModel.variableIncome.detail})`}
@@ -813,10 +813,10 @@ function SponsorBusinessSection({
           targetRef={sponsorBuzzTargetRef}
           onLayout={onGuideTargetLayout}
         />
-        <PaperPanel kicker="Basic sponsor" title="The crowd is talking" stamp="LIVE">
+        <PaperPanel kicker="Local advertising" title="The crowd is talking" stamp="LIVE">
           <Text className="text-sm leading-5 text-ink/70">
-            Your basic sponsor pays {formatCurrency(sponsorship.actualMonthlyIncome)} each month.
-            Wins, goals and hero moments now make that deal worth more twice a season.
+            Your pitchside boards pay {formatCurrency(sponsorship.actualMonthlyIncome)} each month.
+            Wins, goals and hero moments now make them worth more twice a season.
           </Text>
           {sponsorship.buzz === undefined ? null : (
             <BuzzCard buzz={sponsorship.buzz} focusTargetRef={sponsorBuzzAccessibilityRef} />
@@ -1127,7 +1127,7 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
         {viewModel.ledger.length === 0 ? (
           <EmptyDocket
             title="Nothing yet"
-            detail="Wages, gate receipts, sponsor money and upkeep land here as each week is played."
+            detail="Wages, gate receipts, upkeep and every payment land here as each week is played."
           />
         ) : (
         <View className="border-2 border-ink bg-white">
