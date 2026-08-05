@@ -69,7 +69,8 @@ Rows not yet started show their label with a dimmed `$•••` placeholder at 
 
 ### Input
 
-- **A tap on the panel during any phase of a row jumps that row atomically to complete**: final amount shown, chip and caption visible, all of that row's timers and audio cancelled, one thunk plays. The next row starts 80 ms later. Repeated taps machine-gun through the report. A tap on the net row completes it and slams the stamp immediately.
+- **A tap on the panel during any phase of a row jumps that row atomically to complete**: final amount shown, chip and caption visible, all of that row's timers and audio cancelled, one thunk plays. The next row starts 80 ms later. Repeated taps machine-gun through the report. A tap on the net row completes it and slams the stamp immediately — the amount-land and stamp slam coalesce into **one** thunk when reached by tap.
+- **Skipping a surged row still enqueues exactly one banner** — the surge is information, and the skip only compresses the spin, never the fact.
 - Taps are recognized as **presses** (Pressable `onPress`), not touch-starts — a drag that scrolls the modal never lands a row. This replaces today's `onTouchStart` "any touch completes all animation" behavior.
 - The concurrent sections below the panel (§8) have no skip affordance — they finish within ~1 s on their own; this drops today's skip for them deliberately.
 - Tapping does not dismiss a visible surge banner; banners auto-dismiss at 2 s and never block touches.
@@ -89,7 +90,9 @@ Three ledger lines can roll, at settlement time in `src/game/career.ts`:
 2. **Hero Cup home gate** (home cup weeks)
 3. **Fan Shop merchandise** (weeks where an operational Fan Shop produces positive income)
 
-**Variance rolls only on settlements the Financial Report presents**: weeks whose settlement includes a played user fixture (league or cup, home or away), *excluding* the season's final settlement (`week === SEASON_WEEKS`), which routes to the season review instead of the summary modal. Quiet weeks and the season-final settlement bank the baseline amounts — so the Weekly Review screen and the Finances-tab projection never disagree with a number the player was never shown spinning. (Merch can therefore surge on an away-match week; the report shows it.)
+**Variance rolls only on report-eligible settlements**: weeks whose settlement includes a played user fixture (league or cup, home or away), *excluding* the season's final settlement (`week === SEASON_WEEKS`), which routes to the season review instead of the summary modal. Quiet weeks and the season-final settlement bank the baseline amounts — so the Weekly Review screen and the Finances-tab projection never disagree with a number the report never presents. (Merch can therefore surge on an away-match week; the report shows it.)
+
+"Report-eligible" is a guarantee about the settlement, not the player's eyes: the career saves immediately after settlement, so killing the app during the Full-time Report or awakening — or dismissing the report before rows land — preserves the varied cash but skips the show. That is accepted (low-scope decision, §15): the settled amounts remain visible as plain rows in the Finances statement, and no pending-report snapshot is persisted. The career save is never postponed for presentation.
 
 Wages, coaching wages, facility upkeep, subsidy, sponsor, prize, training, loan lines: untouched and constant.
 
@@ -102,9 +105,9 @@ Per line, per rolling week:
 
 Lines roll independently; a league/cup double-header week can have up to three surge-capable lines. A line whose raw base is 0 (e.g., a zero-fan gate) gets no reveal and can never surge — no EXTREME ATTENDANCE over $0.
 
-The bonus band has no negative twin, so long-run average gate+merch income rises ~1.55% pre-rounding. Owner confirmed this straight bonus; the balance harness must still pass (§13).
+The bonus band has no negative twin, so each **eligible rolled line** carries a pre-rounding EV of **+1.55%**. The aggregate long-run gate+merch uplift is smaller, because quiet-week and season-final merchandise stays baseline. Owner confirmed this straight bonus; the balance harness must still pass (§13).
 
-**Balance-harness contingency (sanctioned in advance):** the opening-economy suite asserts hard zeros (no loans/forced sales/floor top-ups) over hundreds of seeds, and the −10% downside adds per-seed solvency risk the EV uplift does not offset seed-by-seed. If the suite fails under the full band, the sanctioned fallback is to clamp the **season 1** normal band to **−5…+10** (surge band untouched, later seasons untouched). If it still fails, stop and raise to the owner — do not silently retune assertions or bands further.
+**Balance-harness contingency (sanctioned in advance):** the opening-economy suite asserts hard zeros (no loans/forced sales/floor top-ups) over hundreds of seeds, and the −10% downside adds per-seed solvency risk the EV uplift does not offset seed-by-seed. If the suite fails under the full band, the sanctioned fallback is to clamp the **season 1** normal band to **−5…+10** (surge band untouched, later seasons untouched). Note the fallback raises season-1 per-eligible-line EV to **+3.8%** (0.9 × 2.5 + 0.1 × 15.5) — it deliberately trades a more generous season-1 average for the solvency floor. If it still fails, stop and raise to the owner — do not silently retune assertions or bands further.
 
 ### Determinism
 
@@ -186,7 +189,9 @@ Nothing below the statement ever waits for the slot machine.
   - a generation/cancellation token around every async seek/play, so a landed or unmounted row can never start late audio;
   - a real loop player for the crackle (the pattern `FIRE_LOOP_SOURCE` uses in `audio.ts`);
   - per-cue gain multiplied by the user's master volume setting;
-  - idempotent stop functions per cue and a stop-all wired to modal dismiss/unmount, registered with the audio lifecycle like other looping owners.
+  - idempotent stop functions per cue and a stop-all wired to modal dismiss/unmount, registered with the audio lifecycle like other looping owners;
+  - on lifecycle resume, the crackle restarts **only if the same generation is still actively spinning** — a suspend that outlives the row resumes to silence.
+- **`App.tsx` wiring (touched module):** the app propagates master volume to every audio owner and tears each down separately; the existing effects gain `setFinancialReportSfxMasterVolume(...)` and `teardownFinancialReportSfx()` calls alongside their peers.
 - `management-sfx.ts` is untouched — no registry append, no index-trap churn.
 - The existing `playMatchStatementSfx` opening is a ~6 s one-shot sting, not a loop; it stays exactly as today and the new cues ride over it.
 
@@ -229,7 +234,7 @@ Reconstruction invariant (enforced by settlement tests): gate `amount = base + f
 ### Touched modules
 
 - **`src/game/career.ts`** — settlement-time variants of gate/merch income that accept an injected RNG and return `{ amount, reveal }`; `settlementLines` attaches reveals per the §5 rolling rule. Baseline (variance-free) functions remain for projections; merch baseline moves to the per-level rounding (§6).
-- **`src/persistence/game-state-codec.ts`** — the ledger schema is zod `.passthrough()` over whole-state JSON, so persistence works without changes; add an explicit optional `reveal` schema (shape + ranges: safe nonnegative integers, variance within −10…+20, `surge` ⇔ band 11…20, multiplier form matching the source). **The exact amount-reconstruction check lives in settlement tests, not as a load-time refinement** — a load-time refinement would brick old saves after any future formula tweak (deliberate deviation from a council suggestion). `GAME_SCHEMA_VERSION` does not bump: the field is optional and backward-compatible. Old saves render historical weeks without reveal dressing.
+- **`src/persistence/game-state-codec.ts`** — the ledger schema is zod `.passthrough()` over whole-state JSON, so persistence works without changes. A malformed or inconsistent reveal must never brick the save **in either direction** — neither a hard reconstruction refinement nor schema rejection. Instead, a **fail-soft `sanitizeLedgerReveals` normalization pass** (alongside the codec's existing pre-validation normalizations) strips `line.reveal` — and only the reveal — when any of these fail: source agrees with the ledger kind; ranges and `surge` ⇔ band 11…20 hold; values are safe nonnegative integers; gate/merch reconstruction equals the authoritative `line.amount`; merch `adjacencyAmount` equals `floor(base × multiplierTimes × adjacencyPercent / 100)`. The line and its amount always load and render generically. Reconstruction uses only the stored fields, so future formula changes cannot invalidate old reveals; if stored semantics ever change, add a new reveal variant rather than reinterpreting the old one. `GAME_SCHEMA_VERSION` does not bump: the field is optional and backward-compatible. Old saves render historical weeks without reveal dressing.
 - **`src/application/view-models.ts`** — `postMatchViewModel` passes `reveal` through; Finances-tab view models ignore it. Outlook microcopy per §6.
 - **`src/ui/models.ts`** — the post-match ledger line view-model type gains the `reveal` field (post-match-specific; the Finances ledger line type is untouched).
 - **`src/ui/PostMatchSummaryModal.tsx`** — rewired per §3; drops the score block; hosts the new statement component and the concurrent sections.
@@ -238,7 +243,7 @@ Reconstruction invariant (enforced by settlement tests): gate `amount = base + f
 - **New `src/ui/components/SurgeBanner.tsx`** — banner queue + pixel art (Skia `Canvas`/`Rect` runs, same approach as `EventPixelScene`).
 - **New `src/ui/finance-pixel-art.ts`** — sprite runs: crowd strip + 10 merch toys.
 - **New `src/render/financial-report-sfx.ts`** — the report audio controller per §9.
-- **Dev harness** — new entry `financial-report` with scripted scenarios: no facilities; 2 stands + 3 shops; gate surge; merch surge; triple surge (league/cup double-header + merch); zero-base away week; longest realistic ledger (sponsor portfolio + prize week); reduce motion. This is the QA surface for the animation.
+- **Dev harness** — new entry `financial-report` with scripted scenarios: no facilities; 2 stands + 3 shops; gate surge; merch surge; triple surge (league/cup double-header + merch); zero-fan home fixture ($0 gate line, no reveal — away weeks emit no gate line at all, so they cannot exercise this rule); longest realistic ledger (sponsor portfolio + prize week); reduce motion. This is the QA surface for the animation.
 
 ### Known UI traps to respect
 
@@ -262,9 +267,10 @@ Reconstruction invariant (enforced by settlement tests): gate `amount = base + f
 ## 13. Testing and verification
 
 - **Game ring (Jest, headless):** determinism (same state → identical lines twice); watched vs Quick Result reveal equality; band bounds (percent always in −10…+10 or 11…20, `surge` matches band); exact surge counts over a fixed seed grid (~10%); reveal-reconstructs-amount invariant; constant lines carry no reveal; cup-gate reveal on home cup weeks; triple-source double-header weeks; zero-base lines carry no reveal; quiet weeks and season-final settlements bank baseline; projections match settlement at p = 0.
-- **Codec:** round-trip with and without `reveal`; malformed reveal payloads rejected by the schema.
+- **Codec:** round-trip with and without `reveal`; `sanitizeLedgerReveals` strips inconsistent reveals (wrong source/kind, out-of-range values, reconstruction mismatch, adjacency mismatch) while the save and the line still load.
 - **View model:** pass-through for `postMatchViewModel`; Finances ledger unaffected.
-- **UI state machine (headless where the Jest env allows):** rapid-skip transitions, timer cleanup on unmount, empty ledger, tap-during-every-phase.
+- **UI state machine (headless where the Jest env allows):** rapid-skip transitions, timer cleanup on unmount, empty ledger, tap-during-every-phase, single-banner-on-skipped-surge, single-thunk on tap-completed net row.
+- **Audio controller:** master volume zero, suspend/resume (crackle resumes only into a still-spinning generation), skip while suspended, stop-all on dismissal.
 - **Balance harness:** re-run; if the opening-economy suite fails, apply the §5 season-1 clamp contingency and re-run; if still failing, stop and raise to owner.
 - **Manual QA:** static web export + dev-harness entry for animation (RAF-recorder screenshots for the PR; the browser pane freezes RAF while hidden — use the recorder + forced-paint technique; mute game audio on load; close tabs and stop servers when done). **Audio verifies on the iOS simulator** — new bundled assets and loop behavior are not trustworthy on web alone. Include a large-text (iOS text-size 1.6×) harness pass and a longest-ledger pass so the net row and stamp stay reachable.
 
@@ -283,14 +289,16 @@ Reconstruction invariant (enforced by settlement tests): gate `amount = base + f
 | Screen scope | Money star on top; warnings/buzz/TP+fans stay below with concurrent animations | Owner |
 | Title | FINANCIAL REPORT | Owner ("something like Financial Report") |
 | Multiplier presentation | Count in label, combined level in math | Owner |
-| Economy effect | Straight bonus (~+1.55% EV on gate+merch); harness must pass | Owner |
+| Economy effect | Straight bonus (+1.55% EV per eligible rolled line; smaller in aggregate); harness must pass | Owner |
 | Audio | Owner-provided spin + thunk; Fire Torch flame sounds for surges | Owner |
 | Stamp at end of sequence | Yes (vetoable default, presented and accepted) | Claude proposal |
 | Surge rows stay fire-tinted after landing | Yes (vetoable default, presented and accepted) | Claude proposal |
 | Variance bands | 90%: −10…+10; 10%: +11…+20; independent per line | Owner |
 | Tap behavior | Press lands the current row atomically; repeat taps chain; drags scroll | Owner + council round 1 |
-| Variance scope | Only report-visible settlements: user-match weeks, excluding season-final | Council round 1 (Fable) |
-| Harness contingency | Season-1 normal band clamps to −5…+10 if the suite fails; then stop and ask | Council round 1 (Fable) |
-| Audio ownership | Dedicated `financial-report-sfx.ts` controller; management-sfx untouched | Council round 1 (both) |
+| Variance scope | Only report-eligible settlements: user-match weeks, excluding season-final | Council round 1 (Fable) |
+| Report lost on process kill / early dismissal | Accepted, low-scope: cash is honest, Finances shows the rows; no pending-report snapshot | Council round 2 (Codex), Claude chose low-scope |
+| Harness contingency | Season-1 normal band clamps to −5…+10 (+3.8% EV per eligible line) if the suite fails; then stop and ask | Council rounds 1–2 |
+| Audio ownership | Dedicated `financial-report-sfx.ts` controller + App.tsx volume/teardown wiring; management-sfx untouched | Council rounds 1–2 (both) |
 | Reveal shape | Discriminated union by source; identity values explicit; adjacencyPercent persisted | Council round 1 (Codex) |
-| Load-time reconstruction refinement | Rejected — enforced in tests instead (brick-risk on old saves) | Claude, deviating from Codex |
+| Malformed/inconsistent reveals | Fail-soft `sanitizeLedgerReveals` strips only the reveal; never bricks the save | Council round 2 (Codex) |
+| Skip semantics | Skipped surge still enqueues one banner; tap-completed net row plays one thunk | Council round 2 (Codex) |
