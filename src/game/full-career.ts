@@ -611,7 +611,7 @@ function repairUserLineup(
  * in the eleven is preferred; only when the eleven has none does a spare come
  * in from the squad.
  */
-export function ensureKeeperFirst(playerIds: string[], players: readonly CareerPlayer[]): void {
+function ensureKeeperFirst(playerIds: string[], players: readonly CareerPlayer[]): void {
   const roleById = new Map(players.map(player => [player.id, player.role]));
   if (playerIds.length === 0 || roleById.get(playerIds[0]) === 'GK') return;
   const keeperIndex = playerIds.findIndex(id => roleById.get(id) === 'GK');

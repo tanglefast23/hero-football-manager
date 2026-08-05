@@ -1037,13 +1037,18 @@ export function seasonEndViewModel(
     .filter(player => player.contractSeasonsRemaining === 0
       && !willRetireAtSeasonTransition(player, state.season))
     .sort((left, right) => left.id.localeCompare(right.id));
-  const expiredPlayer = expiredPlayers[0];
+  const renewalTalks = state.market?.renewalTalks;
+  // Open renewal talks pin their own player; otherwise the queue presents its
+  // id-ordered head. Pinning `expiredPlayers[0]` unconditionally could park the
+  // negotiation panel under the wrong name and locked the queue behind a player
+  // whose talks had collapsed for the season.
+  const expiredPlayer = expiredPlayers.find(player => player.id === renewalTalks?.playerId)
+    ?? expiredPlayers[0];
   // Zero would mean an announced player, and `expiredPlayers` already filters
   // those out through `willRetireAtSeasonTransition`.
   const renewalTermCap = expiredPlayer === undefined
     ? 3
     : maxRenewalTermSeasons(expiredPlayer, state.careerSeed);
-  const renewalTalks = state.market?.renewalTalks;
   const prizeMoney = state.ledgers[state.ledgers.length - 1]?.lines
     .filter(line => line.kind === 'prize')
     .reduce((sum, line) => sum + line.amount, 0) ?? 0;
@@ -1186,7 +1191,9 @@ export function seasonEndViewModel(
         remainingExpiredCount: expiredPlayers.length,
       },
     } : {}),
-    ...(renewalTalks === undefined || expiredPlayer === undefined
+    ...(renewalTalks === undefined
+      || expiredPlayer === undefined
+      || renewalTalks.playerId !== expiredPlayer.id
       ? {}
       : {
           renewalNegotiation: marketNegotiationViewModel({

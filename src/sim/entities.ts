@@ -1,7 +1,7 @@
 import type { DecoyCloneState, MatchState, SimPlayer } from './types';
 
 export const BASE_PLAYER_COUNT = 22;
-export const DECOY_CLONE_COUNT = 2;
+const DECOY_CLONE_COUNT = 2;
 export const HOME_DECOY_INDEX = 22;
 export const AWAY_DECOY_INDEX = 23;
 export const RENDER_PLAYER_COUNT = BASE_PLAYER_COUNT + DECOY_CLONE_COUNT;
@@ -10,7 +10,7 @@ export function decoyIndexForTeam(team: 0 | 1): 22 | 23 {
   return team === 0 ? HOME_DECOY_INDEX : AWAY_DECOY_INDEX;
 }
 
-export function decoyTeamForIndex(index: number): 0 | 1 | null {
+function decoyTeamForIndex(index: number): 0 | 1 | null {
   if (index === HOME_DECOY_INDEX) return 0;
   if (index === AWAY_DECOY_INDEX) return 1;
   return null;
@@ -39,7 +39,7 @@ export function activePlayerIndices(state: MatchState): number[] {
   return indices;
 }
 
-export function activeTeamPlayerIndices(state: MatchState, team: 0 | 1): number[] {
+function activeTeamPlayerIndices(state: MatchState, team: 0 | 1): number[] {
   const first = team === 0 ? 0 : 11;
   const indices = Array.from({ length: 11 }, (_, slot) => first + slot);
   if (state.decoyClones[team] !== null) indices.push(decoyIndexForTeam(team));

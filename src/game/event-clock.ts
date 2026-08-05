@@ -14,22 +14,24 @@ export interface EventClockState {
 }
 
 /** Story pacing knobs; the launch values live in `content/events.json`. */
-export interface EventClockTuning {
+interface EventClockTuning {
   weeklyChancePercent: number;
   guaranteeAfterDryWeeks: number;
 }
 
-export const DEFAULT_EVENT_CLOCK_TUNING: EventClockTuning = {
+// Mirrors the shipped values in `content/events.json` so a caller that omits
+// tuning cannot silently pace stories differently from launch content.
+const DEFAULT_EVENT_CLOCK_TUNING: EventClockTuning = {
   weeklyChancePercent: 18,
-  guaranteeAfterDryWeeks: 8,
+  guaranteeAfterDryWeeks: 6,
 };
 
-export interface WeeklyEventRoll {
+interface WeeklyEventRoll {
   offered: boolean;
   state: EventClockState;
 }
 
-export interface CareerEventRollContext {
+interface CareerEventRollContext {
   careerSeed: number;
   season: number;
   week: number;

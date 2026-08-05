@@ -8,6 +8,10 @@ import type { MatchInput, MatchResult, MatchState } from '../types';
 // a deterministic outcome; GOLDEN REPLAY locks full payloads. See gates-auto.test.ts,
 // gates-moments.test.ts, and balance-rails.test.ts for the rest of the suite.
 
+// Taps only exist under the SAVE_FOR_TAP test instrumentation policy; the
+// engine default is the shipped FIRE_WHEN_READY for both teams (m2.1).
+const TAP_HOME = { homePolicy: 'SAVE_FOR_TAP' } as const;
+
 function shotCount(r: { events: MatchResult['events'] }): number {
   return r.events.filter(e => e.kind === 'SHOT').length;
 }
@@ -35,14 +39,14 @@ describe('M0 acceptance suite (Task 13)', () => {
       let causal = false;
       let evidence = '';
       for (let seed = 1; seed <= 60 && !causal; seed++) {
-        const base = runMatch(seed, ROVERS, UNITED);
+        const base = runMatch(seed, ROVERS, UNITED, [], TAP_HOME);
         const ready = base.events.find(e => e.kind === 'POWER_READY' && (e as { player: number }).player < 11) as
           | { t: number; player: number } | undefined;
         if (!ready) continue;
         // Taps are only honored while that hero is in the Zone (powerTick), so
         // one tick after zone entry is the earliest legal, well-timed tap.
         const taps: MatchInput[] = [{ tick: ready.t + 1, kind: 'POWER_TAP', player: ready.player }];
-        const tapped = runMatch(seed, ROVERS, UNITED, taps);
+        const tapped = runMatch(seed, ROVERS, UNITED, taps, TAP_HOME);
         if (tapped.score[0] !== base.score[0] || tapped.score[1] !== base.score[1] || shotCount(tapped) !== shotCount(base)) {
           causal = true;
           evidence = `seed ${seed}: base score [${base.score}] shots ${shotCount(base)} vs tapped score [${tapped.score}] shots ${shotCount(tapped)}`;
@@ -60,13 +64,13 @@ describe('M0 acceptance suite (Task 13)', () => {
       // replay: the envelope only carries seed + teams + inputs + opts, never
       // ad hoc state mutation, so the taped match must be produced entirely
       // through the replayable pathway (createMatch + queueInput + tick).
-      const discovery = runMatch(42, ROVERS, UNITED);
+      const discovery = runMatch(42, ROVERS, UNITED, [], TAP_HOME);
       const ready = discovery.events.find(e => e.kind === 'POWER_READY' && (e as { player: number }).player < 11) as
         | { t: number; player: number } | undefined;
       expect(ready).toBeDefined();
       const scriptedTap: MatchInput = { tick: ready!.t + 1, kind: 'POWER_TAP', player: ready!.player };
 
-      const m = createMatch(42, ROVERS, UNITED);
+      const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
       queueInput(m, scriptedTap);
       const checkpoints = [500, 1000, 1500, 2000];
       const fingerprints: Record<number, ReturnType<typeof fingerprintAt>> = {};

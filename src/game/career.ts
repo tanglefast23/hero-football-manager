@@ -265,7 +265,7 @@ export function activeCareerMatchday(state: GameState): ActiveCareerMatchday | u
   };
 }
 
-export function nationalCupFixtureById(
+function nationalCupFixtureById(
   state: GameState,
   fixtureId: string,
 ): NationalCupFixture | undefined {
@@ -776,7 +776,7 @@ export function resolveCareerMatchFame(
 }
 
 /** Small club-wide recognition bonus for a real top-two league finish. */
-export function resolveCareerSeasonFame(state: GameState): CareerPlayer[] {
+function resolveCareerSeasonFame(state: GameState): CareerPlayer[] {
   const finish = leagueStandings(state).find(row => row.clubId === state.userClubId)?.position;
   const leagueBonus = finish === 1 ? 5 : finish === 2 ? 3 : 0;
   const cupWon = state.m2?.nationalCups.some(cup => (
@@ -1008,10 +1008,10 @@ export function currentActualMonthlySponsorIncome(state: GameState, userClub: Cl
  * `divisionTicketPrice` instead of bypassing it: the same stand is worth far
  * more in D1 than in D5, which is what makes it the club's climb investment.
  */
-export const STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL = 50;
+const STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL = 50;
 
 /** The best operational stand wins; a second stand is not a second bonus. */
-export function gridStadiumStandLevel(grid: FacilityGridState | undefined): number {
+function gridStadiumStandLevel(grid: FacilityGridState | undefined): number {
   if (grid === undefined) return 0;
   let level = 0;
   for (const building of grid.buildings) {

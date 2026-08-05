@@ -10,7 +10,12 @@ const TOTAL_TICKS = HALF_TICKS * 2;
 const SUBSTITUTION_MINUTES = [50, 60, 70, 80, 85] as const;
 const ENERGY_USE_MINUTES = [65, 75, 85] as const;
 const AUTO_SUB_CONDITION = 60;
-export const AUTO_SUB_EMERGENCY_CONDITION = 30;
+const AUTO_SUB_EMERGENCY_CONDITION = 30;
+// A replacement must arrive fresher than the scheduled threshold: a reserve
+// entering at or below it would immediately be a substitution candidate
+// himself, and an exhausted bench would cascade through all five substitutions
+// in the opening ticks (m2.1).
+const AUTO_SUB_MIN_ENTRY_CONDITION = AUTO_SUB_CONDITION;
 // Preserve the old D5 boundary exactly: at the scheduled threshold, a fresh
 // 48-rated reserve clears the three-point effective improvement over a tired
 // 50-rated starter, while a 47-rated reserve does not.
@@ -45,13 +50,18 @@ export function automaticRoleValue(player: PlayerDef, condition: number): number
   return weightedRatingD64 + conditionD64(condition);
 }
 
+/** The condition a reserve actually carries onto the pitch (substitutions.ts). */
+function replacementEntryCondition(replacement: PlayerDef): number {
+  return replacement.startingCondition ?? 100;
+}
+
 /** Scale-free version of the shipping D5 three-point substitution margin. */
 export function automaticSubstitutionClearsMargin(
   outgoing: PlayerDef,
   outgoingCondition: number,
   replacement: PlayerDef,
 ): boolean {
-  return automaticRoleValue(replacement, 100)
+  return automaticRoleValue(replacement, replacementEntryCondition(replacement))
     >= automaticRoleValue(outgoing, outgoingCondition) + ROLE_VALUE_MARGIN_D64;
 }
 
@@ -114,8 +124,12 @@ function automaticSubstitutionChoiceAtCondition(
 
   for (const outgoing of candidates) {
     const replacements = state.bench[team]
-      .filter(player => player.role === outgoing.player.def.role)
-      .sort((a, b) => automaticRoleValue(b, 100) - automaticRoleValue(a, 100) || stableIdCompare(a.id, b.id));
+      .filter(player => player.role === outgoing.player.def.role
+        && replacementEntryCondition(player) > AUTO_SUB_MIN_ENTRY_CONDITION)
+      .sort((a, b) => (
+        automaticRoleValue(b, replacementEntryCondition(b))
+          - automaticRoleValue(a, replacementEntryCondition(a))
+      ) || stableIdCompare(a.id, b.id));
     const replacement = replacements[0];
     if (replacement === undefined) continue;
     if (

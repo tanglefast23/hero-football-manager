@@ -761,7 +761,12 @@ function RosterSection({
                   ) : null}
                   <Text className="mt-1 text-sm text-ink/60" numberOfLines={1}>{player.contractLabel}</Text>
                   {player.powerName ? (
-                    <PixelText className="mt-0.5 text-sm uppercase text-gold-dark" numberOfLines={1}>★ {player.powerName}</PixelText>
+                    <View className="mt-0.5 flex-row items-center gap-1">
+                      {/* Glyph-only node: ★ is in neither Silkscreen weight, so it
+                          stands alone and falls back to the system face on purpose. */}
+                      <Text className="text-sm text-gold-dark">★</Text>
+                      <PixelText className="text-sm uppercase text-gold-dark" numberOfLines={1}>{player.powerName}</PixelText>
+                    </View>
                   ) : null}
                 </View>
                 <Text style={columns.overall} className="text-right font-mono text-base text-ink" numberOfLines={1}>{player.overall}</Text>

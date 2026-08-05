@@ -142,7 +142,6 @@ import {
   mostTiredFirst,
   RAIL_HERO_TILE_CAP,
   railHeroStatus,
-  zoneSecondsRemaining,
 } from './match-rail';
 import {
   ENERGY_USE_ACCESSIBILITY,
@@ -848,6 +847,9 @@ export function MatchScreen({
     startTheme();
     return () => {
       stopTheme();
+      // Pause the crackle loop's native player before release; the wanted-flag
+      // guarantee against a later match resurrecting it lives in teardownAudio().
+      stopFireAmbience();
       teardownAudio();
       releaseMenuThemeToMatch();
     };
@@ -2168,7 +2170,6 @@ export function MatchScreen({
         powerColor: presentation.color,
         heat: heatFraction(player.gauge),
         status: railHeroStatus(player.powerState),
-        zoneSecondsLeft: zoneSecondsRemaining(player.powerState),
       }];
     })
     .slice(0, RAIL_HERO_TILE_CAP);

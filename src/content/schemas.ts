@@ -117,7 +117,7 @@ export const PowerCatalogSchema = z.strictObject({
     postMatchChancePercent: z.literal(10),
     minimumMatchesBetween: z.literal(3),
   }),
-  powers: z.array(PowerDefinitionSchema).min(16).max(20),
+  powers: z.array(PowerDefinitionSchema).length(17),
 }).superRefine((catalog, context) => {
   addDuplicateIssues(catalog.powers.map(power => power.id), context, ['powers'], 'power ID');
 });

@@ -6,7 +6,7 @@ import ratingLogTable from './log-table.json';
 import resolveLogTable from './resolve-table.json';
 
 export const D64_SCALE = 64;
-export const MAX_CONTEST_D64 = 99 * D64_SCALE;
+const MAX_CONTEST_D64 = 99 * D64_SCALE;
 export const LOG_RATIO_K = ratingLogTable.k;
 
 function assertGeneratedTables(): void {

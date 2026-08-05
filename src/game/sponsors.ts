@@ -23,9 +23,9 @@ const SPONSOR_PROFILES: readonly SponsorProfileId[] = [
 const UINT32_MAX = 4_294_967_295;
 const MONEY_PERCENT_DENOMINATOR = 100;
 
-export type ManagedSponsorCapacity = 0 | 1 | 2 | 3;
+type ManagedSponsorCapacity = 0 | 1 | 2 | 3;
 
-export interface SponsorSeasonContext {
+interface SponsorSeasonContext {
   readonly rules: SponsorRules;
   readonly careerSeed: number;
   readonly season: number;
@@ -40,7 +40,7 @@ export interface SponsorSeasonContext {
   readonly nominalAnchor: number;
 }
 
-export interface SponsorOfferGenerationContext {
+interface SponsorOfferGenerationContext {
   readonly rules: SponsorRules;
   readonly careerSeed: number;
   readonly season: number;
@@ -49,13 +49,13 @@ export interface SponsorOfferGenerationContext {
   readonly activeContracts: readonly SponsorContractSnapshot[];
 }
 
-export interface AcceptSponsorOfferContext {
+interface AcceptSponsorOfferContext {
   readonly offerId: string;
   readonly season: number;
   readonly week: number;
 }
 
-export interface SponsorPaymentAllocation {
+interface SponsorPaymentAllocation {
   readonly contractId: string;
   readonly sponsorName: string;
   readonly slot: number;
@@ -63,7 +63,7 @@ export interface SponsorPaymentAllocation {
   readonly actualAmount: number;
 }
 
-export interface SponsorObjectiveProgress {
+interface SponsorObjectiveProgress {
   readonly kind: SponsorObjectiveKind;
   readonly target: number;
   /** Wins, goals, or current/final table position according to `kind`. */
@@ -71,7 +71,7 @@ export interface SponsorObjectiveProgress {
   readonly met: boolean;
 }
 
-export interface SponsorObjectiveSettlement {
+interface SponsorObjectiveSettlement {
   readonly sponsorship: SponsorshipState;
   /** Only met, newly settled objectives produce payment rows. */
   readonly payments: SponsorPaymentAllocation[];

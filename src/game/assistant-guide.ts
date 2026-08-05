@@ -83,16 +83,16 @@ export type AssistantGuideMilestone =
   | 'first-fans-seen'
   | 'first-fans-ledger-seen';
 
-export type AssistantInboxProductAlertPriority = 'urgent' | 'normal';
+type AssistantInboxProductAlertPriority = 'urgent' | 'normal';
 
-export interface AssistantInboxProductAlert {
+interface AssistantInboxProductAlert {
   readonly id: string;
   readonly priority: AssistantInboxProductAlertPriority;
   /** One-shot notices stay queued across save/load until a weekly slot opens. */
   readonly oneShot?: boolean;
 }
 
-export interface AssistantInboxWeekOptions {
+interface AssistantInboxWeekOptions {
   /** Newly relevant firsts. Queuing the same sequence repeatedly is harmless. */
   readonly dueGuideSequenceIds?: readonly AssistantInboxGuideSequenceId[];
   /**
@@ -105,7 +105,7 @@ export interface AssistantInboxWeekOptions {
   readonly productAlerts?: readonly AssistantInboxProductAlert[];
 }
 
-export interface AssistantInboxWeekPlan {
+interface AssistantInboxWeekPlan {
   readonly state: GameState;
   readonly season: number;
   readonly week: number;
@@ -115,7 +115,7 @@ export interface AssistantInboxWeekPlan {
   readonly deferredGuideSequenceIds: readonly AssistantInboxGuideSequenceId[];
 }
 
-export const MAX_ASSISTANT_INBOX_ITEMS_PER_WEEK = 3;
+const MAX_ASSISTANT_INBOX_ITEMS_PER_WEEK = 3;
 
 const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
   'intro-complete': 'guide:bert:intro-complete',

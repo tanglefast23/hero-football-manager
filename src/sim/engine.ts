@@ -31,20 +31,20 @@ import {
 
 export { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, knockOut };
 
-export const STANDING_TACKLE_RANGE = 200;
-export const SLIDE_TACKLE_MIN_RANGE = 800;
-export const SLIDE_TACKLE_MAX_RANGE = 1100;
+const STANDING_TACKLE_RANGE = 200;
+const SLIDE_TACKLE_MIN_RANGE = 800;
+const SLIDE_TACKLE_MAX_RANGE = 1100;
 export const SLIDE_TACKLE_TICKS = 4;
-export const SLIDE_TACKLE_SPEED_MULTIPLIER = 4.2;
-export const SLIDE_TACKLE_CONDITION_FLOOR = 30;
-export const SLIDE_TACKLE_PREFERRED_CONDITION = 80;
-export const SLIDE_TACKLE_CONDITION_COST = 0.4;
-export const SLIDE_TACKLE_COOLDOWN_TICKS = 40;
+const SLIDE_TACKLE_SPEED_MULTIPLIER = 4.2;
+const SLIDE_TACKLE_CONDITION_FLOOR = 30;
+const SLIDE_TACKLE_PREFERRED_CONDITION = 80;
+const SLIDE_TACKLE_CONDITION_COST = 0.4;
+const SLIDE_TACKLE_COOLDOWN_TICKS = 40;
 export const SLIDE_SUCCESS_RECOVERY_TICKS = 6;
-export const SLIDE_MISS_RECOVERY_TICKS = 12;
+const SLIDE_MISS_RECOVERY_TICKS = 12;
 const SLIDE_CONTACT_RANGE = 50;
 
-export const STANDING_TACKLE_COOLDOWN_TICKS = 10;
+const STANDING_TACKLE_COOLDOWN_TICKS = 10;
 
 // A beaten defender used to pay nothing: he kept his feet, kept his standoff
 // ring, and re-rolled one second later. MEASURED, 30-40 seeded matches: 121
@@ -55,7 +55,7 @@ export const STANDING_TACKLE_COOLDOWN_TICKS = 10;
 // The chance scales with how outgunned he is, so TEC finally buys something
 // visible. 0.25 at an even duel is roughly 20 falls a match (one per 10s); 0.35
 // measured out near 30, which reads as slapstick.
-export const BEATEN_DROP_BASE = 0.25;
+const BEATEN_DROP_BASE = 0.25;
 const BEATEN_DROP_DELTA_SCALE = 0.015;
 // The clamp band, not the base rate, is what bounds this mechanic. A carrier's
 // TEC usually exceeds his marker's DEF (MEASURED mean delta at a lost challenge:
@@ -115,23 +115,23 @@ const BEATEN_STREAK_FORCE_COUNT = 3;
 // Heat rewards, one table so each role's decisive act is worth about a shot.
 // Frequent actions stay cheap on purpose: a completed pass paid even 3 Heat
 // would let a midfielder making 40 passes out-charge every striker.
-export const SHOT_GAUGE = 20;
-export const SAVE_GAUGE = 30;
-export const MISS_GAUGE = 10;
-export const GOALKEEPER_DISTRIBUTION_GAUGE = 5;
-export const TACKLE_WON_GAUGE = 18;
-export const INTERCEPTION_GAUGE = 12;
-export const LOOSE_BALL_GAUGE = 8;
-export const TACKLE_ATTEMPT_GAUGE = 3;
-export const PASS_RECEIVED_GAUGE = 2;
-export const FAILED_PASS_LOOSE_CHANCE = 0.35;
+const SHOT_GAUGE = 20;
+const SAVE_GAUGE = 30;
+const MISS_GAUGE = 10;
+const GOALKEEPER_DISTRIBUTION_GAUGE = 5;
+const TACKLE_WON_GAUGE = 18;
+const INTERCEPTION_GAUGE = 12;
+const LOOSE_BALL_GAUGE = 8;
+const TACKLE_ATTEMPT_GAUGE = 3;
+const PASS_RECEIVED_GAUGE = 2;
+const FAILED_PASS_LOOSE_CHANCE = 0.35;
 const FAILED_PASS_DEFLECTION_SPEED = 240;
 
-export function goalYFor(team: 0 | 1): number {
+function goalYFor(team: 0 | 1): number {
   return team === 0 ? 0 : PITCH_H;
 }
 
-export function isAvailable(state: MatchState, idx: number): boolean {
+function isAvailable(state: MatchState, idx: number): boolean {
   const p = playerAt(state, idx);
   if (p === undefined) return false;
   return p.outUntilTick <= state.tick && p.slideTackle === undefined
@@ -212,8 +212,8 @@ export function ballHeight(state: MatchState): number {
   return b.kind === 'held' ? (b.caught ? GOALKEEPER_CATCH_HEIGHT : 0) : b.z;
 }
 
-export const ORDINARY_CONDITION_COST = 0.0205;
-export const SPRINT_CONDITION_COST = 0.058;
+const ORDINARY_CONDITION_COST = 0.0205;
+const SPRINT_CONDITION_COST = 0.058;
 
 export function drainStamina(p: SimPlayer, movedFar: boolean, energyUse: EnergyUse = 'BALANCED'): void {
   // The design-pinned comparison is STA 40 => 1.36x drain and STA 80 =>
@@ -555,8 +555,8 @@ export function movementTargets(state: MatchState): Vec[] {
   return targets;
 }
 
-export const PASS_SPEED = 250;
-export const BALL_GRAVITY = 10;
+const PASS_SPEED = 250;
+const BALL_GRAVITY = 10;
 export const BALL_CONTROL_HEIGHT = 150;
 export const GOALKEEPER_CATCH_HOLD_TICKS = 6;
 export const LIFTED_SHOT_CHANCE = 0.3;
@@ -609,7 +609,7 @@ interface ActionValues {
   pass: number;
 }
 
-export type AttackingDecision =
+type AttackingDecision =
   | { kind: 'shoot'; values: ActionValues }
   | { kind: 'carry'; values: ActionValues }
   | { kind: 'pass'; to: number; values: ActionValues };

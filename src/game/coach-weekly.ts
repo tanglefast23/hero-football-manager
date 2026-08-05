@@ -8,7 +8,7 @@ import type { CoachSpecialty } from './market';
 
 const TRAINING_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
 
-export type TrainingAttribute = typeof TRAINING_ATTRIBUTES[number];
+type TrainingAttribute = typeof TRAINING_ATTRIBUTES[number];
 
 export function coachTrainingBonusPercent(level: number, role: CareerCoachRole): number {
   validateCoachLevel(level, role === 'HEAD' ? 'head coach' : 'assistant coach');
@@ -53,7 +53,7 @@ const SPECIALTY_BY_ATTRIBUTE: Readonly<Record<TrainingAttribute, CoachSpecialty>
   ref: 'GOALKEEPING',
 };
 
-export interface CareerCoachTrainingModifiers {
+interface CareerCoachTrainingModifiers {
   readonly coachId?: string;
   readonly assistantCoachId?: string;
   readonly qualityLevel: number;

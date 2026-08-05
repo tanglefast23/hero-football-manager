@@ -54,7 +54,6 @@ import {
   closeCareerFacility,
   closeStaffedCareerCoachingOffice,
   relocateCareerFacility,
-  renewCareerPlayer,
   releaseCareerPlayer,
   closeCareerRenewalTalks,
   signYouthIntakeOffer,
@@ -150,8 +149,38 @@ let latestSaveTicket = 0;
  * more work, so a burst of actions (instant-training taps are the worst case)
  * costs one serialize+write of the final state rather than one per action.
  * Intermediate snapshots carry no information the final state lacks.
+ *
+ * `generation` ties the payload to the one queued task that owns it. A career
+ * replacement withdraws the payload without being able to retire the task that
+ * was queued for it, so that task still runs — and without the generation it
+ * would consume whatever payload a LATER action had queued by then, writing
+ * that newer state ahead of the replacement transaction sitting between them
+ * in the queue and leaving the disk behind `lastPersistedCareer`.
+ *
+ * `lineage` records which live-career lineage queued the payload. Bumped via
+ * `retireCareerLineage` whenever the live career is replaced wholesale, it is
+ * what lets a save task recognise an abandoned career without comparing seeds —
+ * a replacement career started with a deliberately repeated seed must not make
+ * a stale payload look live.
  */
-let pendingCareerSave: GameState | null = null;
+let pendingCareerSave: {
+  generation: number;
+  lineage: number;
+  state: GameState;
+} | null = null;
+let careerSaveGeneration = 0;
+let careerLineage = 0;
+
+/**
+ * Marks every career state queued so far as belonging to a replaced lineage.
+ * Called wherever the store swaps the live career wholesale (new career,
+ * backup/developer restore, boot, discard, and the failed-replacement
+ * rollback), so a save queued for the old lineage refuses to write over the
+ * new one.
+ */
+function retireCareerLineage(): void {
+  careerLineage += 1;
+}
 
 /**
  * How many career saves may fail in a row before the week stops advancing.
@@ -365,6 +394,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
   notice: null,
 
   async initializePersistence(repository, replayRepository) {
+    // Boot replaces whatever career an earlier lifetime of this store held, so
+    // any save still queued for it must not write over the loaded one.
+    retireCareerLineage();
     try {
       const loadedCareer = await repository.load();
       const career = loadedCareer === null ? null : reconcileLoadedCareer(loadedCareer);
@@ -450,6 +482,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
       });
       return;
     }
+    // The slot was just wiped; no save queued for the old career may refill it.
+    retireCareerLineage();
     set({
       persistenceLoadError: null,
       rawExportRequired: false,
@@ -475,17 +509,23 @@ export const useM1Store = create<M1Store>((set, get) => ({
   async restoreBackupSave() {
     const repository = get().repository;
     if (repository === null) return;
+    let written: GameState;
     let restored: GameState;
     try {
-      restored = reconcileLoadedCareer(await repository.restoreBackup());
+      written = await repository.restoreBackup();
+      restored = reconcileLoadedCareer(written);
     } catch (error) {
       set({ persistenceLoadError: `Backup could not be restored: ${errorMessage(error)}` });
       return;
     }
+    retireCareerLineage();
     set({
       career: restored,
       hasSavedCareer: true,
-      lastPersistedCareer: restored,
+      // The repository copied the raw backup bytes into the live slot, so that
+      // — not the reconciled shape — is what disk holds until the queued
+      // reconciliation save below lands. Same rule as `initializePersistence`.
+      lastPersistedCareer: restored === written ? restored : null,
       persistenceLoadError: null,
       screen: 'welcome',
       activeTab: 'home',
@@ -505,6 +545,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const restored = reconcileLoadedCareer(state);
       clearRivalResultCache();
+      retireCareerLineage();
       set({
         career: restored,
         hasSavedCareer: true,
@@ -823,9 +864,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
         const guidedCareer = career.eventFlags.includes('m4:season-recap-guide-seen')
           ? career
           : { ...career, eventFlags: [...career.eventFlags, 'm4:season-recap-guide-seen'] };
-        // TODO: startNextSeason bypasses advanceWeek's interrupt guard, but
-        // resolveCareerTrainingWeek still skips at-cap slots and the next real
-        // advance re-blocks, so this is low impact (see Finding 4).
         const next = reconcilePendingClubLegends(startNextSeason(guidedCareer));
         set({
           career: next,
@@ -1107,29 +1145,32 @@ export const useM1Store = create<M1Store>((set, get) => ({
   },
 
   continueWeekReview() {
-    const career = requireCareer(get());
-    set({
-      weekReview: null,
-      screen: career.phase === 'season-end' || career.phase === 'complete'
-        ? seasonBoundaryScreen(career)
-        // A story is the top of the week it was drawn for, not a toll on the way
-        // out of it. The manager reads it on arrival and then has the whole week
-        // to act on what it did, rather than meeting it as an ambush on the
-        // Advance Week press seven days later.
-        : career.pendingEvent !== undefined
-          ? 'event'
-          : 'management',
-      activeTab: 'home',
-      error: null,
+    guarded(set, () => {
+      const career = requireCareer(get());
+      set({
+        weekReview: null,
+        screen: career.phase === 'season-end' || career.phase === 'complete'
+          ? seasonBoundaryScreen(career)
+          // A story is the top of the week it was drawn for, not a toll on the
+          // way out of it. The manager reads it on arrival and then has the
+          // whole week to act on what it did, rather than meeting it as an
+          // ambush on the Advance Week press seven days later.
+          : career.pendingEvent !== undefined
+            ? 'event'
+            : 'management',
+        activeTab: 'home',
+        error: null,
+      });
     });
   },
 
   completeChampionshipCelebration() {
     guarded(set, () => {
       const career = requireCareer(get());
-      if (!hasPendingChampionshipCelebration(career)) {
-        throw new Error('there is no league championship celebration to complete');
-      }
+      // Deliberately unconditional, for the reason `completeEndgameCelebration`
+      // gives: this is the only way off the screen, so it must never refuse and
+      // strand a career on a watched cutscene. With nothing pending the marker
+      // is a no-op and the boundary router still points somewhere sensible.
       const next = markChampionshipCelebrationComplete(career);
       // The title is celebrated first and the individual boards second, so the
       // ceremony is what the trophy hands off to — never the recap directly.
@@ -1822,12 +1863,29 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   renewPlayer(playerId, term) {
     guarded(set, () => {
-      const next = renewCareerPlayer(
-        requireCareer(get()),
-        playerId,
-        4,
-        term ?? get().selectedContractTerm,
-      );
+      const career = requireCareer(get());
+      const market = requireMarket(career);
+      // The direct renewal is priced by the same machinery as the negotiated
+      // one: it opens talks (which is where the loyalty refusal and the
+      // growth/fame/hero premium live) and accepts the agent's opening ask
+      // sight unseen. Negotiation exists to beat that number; skipping it
+      // never beats it. Keeping one code path means this action can never
+      // drift into a cheaper renewal than the shipped flow offers.
+      const opened = beginCareerRenewalTalks(career, market, playerId);
+      const talks = opened.renewalTalks;
+      if (talks === undefined) throw new Error('renewal talks did not open');
+      // An offer of the full ask with no pitch card is accepted on round one by
+      // construction: the effective offer can only exceed the effective ask.
+      const accepted = submitCareerRenewalOffer(opened, {
+        weeklyWage: talks.negotiation.weeklyAsk,
+        termSeasons: term ?? get().selectedContractTerm,
+        // The cheapest promise in the deck, and the only one with no squad
+        // management consequence — no lineup guarantee, no captaincy change,
+        // no training debt.
+        perk: 'JERSEY_10',
+      });
+      const transaction = completeCareerRenewal(career, accepted);
+      const next = { ...transaction.state, market: transaction.market };
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -2203,25 +2261,36 @@ function queueCareerSave(
   const repository = get().repository;
   if (repository === null) return;
   if (pendingCareerSave !== null) {
-    pendingCareerSave = career;
+    // Coalesce into the already-queued task: same owner, newest state. The
+    // lineage is refreshed too — the payload now describes the career that is
+    // live at THIS moment, not whichever one queued the task.
+    pendingCareerSave = {
+      generation: pendingCareerSave.generation,
+      lineage: careerLineage,
+      state: career,
+    };
     return;
   }
-  pendingCareerSave = career;
+  const generation = ++careerSaveGeneration;
+  pendingCareerSave = { generation, lineage: careerLineage, state: career };
   let saved: GameState | null = null;
   enqueueSave(
     set,
     async () => {
       // Coalesced: while this task waited its turn, newer states replaced the
-      // payload, so a burst of actions costs one write of the final state.
-      const state = pendingCareerSave;
+      // payload, so a burst of actions costs one write of the final state. A
+      // generation mismatch means this task's payload was withdrawn by a career
+      // replacement and the one sitting here belongs to a later task — stealing
+      // it would write that newer state ahead of the replacement transaction.
+      if (pendingCareerSave === null || pendingCareerSave.generation !== generation) return;
+      const { lineage, state } = pendingCareerSave;
       pendingCareerSave = null;
-      if (state === null || get().persistenceLoadError !== null) return;
+      if (get().persistenceLoadError !== null) return;
       // Every career save is queued for the career the store had just moved to,
-      // so a different one being live by the time this runs means this career
-      // was abandoned — a replacement whose own save failed and rolled back onto
+      // so a retired lineage by the time this runs means this career was
+      // abandoned — a replacement whose own save failed and rolled back onto
       // the career still in the live slot. Writing it now would undo that.
-      const live = get().career;
-      if (live !== null && live.careerSeed !== state.careerSeed) return;
+      if (lineage !== careerLineage) return;
       await repository.save(state);
       saved = state;
     },
@@ -2312,7 +2381,11 @@ function queueNewCareerSave(
   const careerId = `m1-career-${career.careerSeed}`;
   // Withdraw any coalesced old-career payload: its task runs before this one
   // and must not write the abandoned career's state ahead of the replacement.
+  // Retiring the lineage covers what the withdrawal alone cannot: saves queued
+  // before this moment can never mistake the replacement for their own career,
+  // even when both careers were started from the same seed.
   pendingCareerSave = null;
+  retireCareerLineage();
   let replacedCareerPersisted = false;
   const replacedCareerId = replacedCareer === null
     ? null
@@ -2365,6 +2438,10 @@ function queueNewCareerSave(
         recordSaveFailure(get, set);
         return;
       }
+      // The rollback is itself a wholesale career swap: anything queued for the
+      // failed replacement (its player creation, say) must not land on the slot
+      // this failure just preserved.
+      retireCareerLineage();
       set({
         career: replacedCareer,
         hasSavedCareer: true,

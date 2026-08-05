@@ -68,12 +68,12 @@ export type FacilityType =
 
 export type FacilityLevel = 1 | 2 | 3;
 
-export interface FacilityFootprint {
+interface FacilityFootprint {
   readonly width: number;
   readonly height: number;
 }
 
-export interface FacilityCatalogEntry {
+interface FacilityCatalogEntry {
   readonly type: FacilityType;
   readonly name: string;
   readonly footprint: FacilityFootprint;
@@ -113,13 +113,13 @@ export type FacilityAdjacencyId =
   | 'fan-shop-stadium'
   | 'medical-training-pitch';
 
-export interface FacilityEffects {
+interface FacilityEffects {
   readonly staminaTrainingBonusPercent: number;
   readonly merchIncomeBonusPercent: number;
   readonly injuryRiskReductionPercent: number;
 }
 
-export interface FacilityAdjacencyDefinition {
+interface FacilityAdjacencyDefinition {
   readonly id: FacilityAdjacencyId;
   readonly first: FacilityType;
   readonly second: FacilityType;
@@ -166,7 +166,7 @@ export interface PlacedFacility extends FacilityPosition {
   readonly seeded?: true;
 }
 
-export interface FacilityConstructionProject {
+interface FacilityConstructionProject {
   readonly kind: 'BUILD' | 'UPGRADE';
   readonly buildingId: string;
   readonly type: FacilityType;
@@ -185,7 +185,7 @@ export interface FacilityGridState {
   readonly construction?: FacilityConstructionProject;
 }
 
-export interface FacilityConstructionAdvance {
+interface FacilityConstructionAdvance {
   readonly grid: FacilityGridState;
   readonly completed?: FacilityConstructionProject;
   readonly newlyDiscoveredAdjacencies: readonly FacilityAdjacencyId[];

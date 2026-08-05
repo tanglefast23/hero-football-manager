@@ -271,11 +271,11 @@ export function FixtureMatchDayScreen({
                 ? 'mr-3 h-10 w-10 items-center justify-center border-2 border-gold-dark bg-gold'
                 : 'mr-3 h-10 w-10 items-center justify-center border-2 border-ink bg-paper-dark'}
               >
-                <Text className="font-mono text-sm text-ink">{player.shirtNumber}</Text>
+                <Text className="font-mono text-[12px] text-ink">{player.shirtNumber}</Text>
               </View>
               <View className="flex-1 pr-2">
                 <PixelText className="text-base uppercase text-ink" numberOfLines={1}>{player.name}</PixelText>
-                <Text className="mt-1 font-mono text-sm text-ink/60">
+                <Text className="mt-1 font-mono text-[12px] text-ink/60">
                   {player.role} · Rating {player.overall} · Condition {player.condition}%
                 </Text>
                 <MatchdayConditionStamp condition={player.condition} compact />
@@ -314,13 +314,16 @@ export function FixtureMatchDayScreen({
                 accessibilityState={{ checked: hero.licensed }}
                 onPress={() => onToggleHeroLicense(hero.playerId)}
                 className={hero.licensed ? 'h-11 w-11 items-center justify-center border-2 border-gold-dark bg-gold' : 'h-11 w-11 items-center justify-center border-2 border-ink bg-paper-dark'}
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
+                // Static style, not a function: layout in a function-form style
+                // is the twice-hit iOS zero-height trap. 44pt in explicit points
+                // (h-11 is 38.5pt); SfxPressable supplies the pressed dim.
+                style={{ minWidth: 44, minHeight: 44 }}
               >
-                <Text className="font-mono text-xl font-bold text-ink">{hero.licensed ? '★' : '○'}</Text>
+                <Text className="font-mono text-[18px] font-bold text-ink">{hero.licensed ? '★' : '○'}</Text>
               </Pressable>
               <View className="flex-1">
                 <PixelText className="text-base uppercase text-ink">{hero.playerName}</PixelText>
-                <PixelText className="mt-1 text-sm uppercase tracking-wide text-gold-dark">{hero.powerName}</PixelText>
+                <PixelText className="mt-1 text-[12px] uppercase tracking-wide text-gold-dark">{hero.powerName}</PixelText>
               </View>
             </View>
           </PaperPanel>
@@ -333,7 +336,7 @@ export function FixtureMatchDayScreen({
         </Text>
       ) : null}
       {!viewModel.licenseReady ? (
-        <PixelText className="mt-3 text-center text-sm uppercase tracking-wide text-red-light">
+        <PixelText className="mt-3 text-center text-[12px] uppercase tracking-wide text-red-light">
           License every starting hero before starting the match · limit {viewModel.heroLimit}
         </PixelText>
       ) : null}
@@ -354,15 +357,15 @@ export function FixtureMatchDayScreen({
           className="min-h-11 min-w-11 items-center justify-center border-2 border-paper/40"
           style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
         >
-          <Text className="font-pixel text-xl text-paper">‹</Text>
+          <Text className="font-pixel text-[18px] text-paper">‹</Text>
         </Pressable>
         <View className="flex-1 px-3">
-          <Text className="text-center font-pixel text-xs uppercase tracking-[2px] text-gold-light">Match-day docket</Text>
+          <Text className="text-center font-pixel text-[10px] uppercase tracking-[2px] text-gold-light">Match-day docket</Text>
           <Text className="mt-1 text-center font-pixel text-base uppercase text-white">{fixture.competition}</Text>
         </View>
         <View className="flex-row items-center gap-2">
           <View className="min-w-11 rotate-2 border-2 border-red bg-red-light/25 px-2 py-2">
-            <Text className="text-center font-pixel text-sm text-red-light">{fixture.weekLabel}</Text>
+            <Text className="text-center font-pixel text-[12px] text-red-light">{fixture.weekLabel}</Text>
           </View>
           <SettingsButton onPress={onOpenSettings} />
         </View>

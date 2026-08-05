@@ -526,8 +526,9 @@ describe('career market integration', () => {
   test('itemizes a player sale without creating a weekly ledger', () => {
     const state = createCareer(createLaunchCareerSetup(4243));
     const starters = new Set(state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds);
+    // Not the reserve keeper: selling the only spare goalkeeper is now blocked.
     const reserve = state.players.find(player => (
-      player.clubId === state.userClubId && !starters.has(player.id)
+      player.clubId === state.userClubId && !starters.has(player.id) && player.role !== 'GK'
     ))!;
     const buyer = state.clubs.find(club => club.id !== state.userClubId)!;
     const result = sellCareerPlayer(state, state.market!, reserve.id, buyer.id);
@@ -565,9 +566,11 @@ describe('career market integration', () => {
     // are in play.
     const soldId = lineup.playerIds[10];
     const sold = base.players.find(player => player.id === soldId)!;
-    // The earliest reserve the search reaches, wearing the sold player's role so
-    // he wins the exact-role pass — an awakened hero still waiting on a licence.
-    const benchOnlyHero = reserves[0];
+    // The earliest outfield reserve the search reaches, wearing the sold
+    // player's role so he wins the exact-role pass — an awakened hero still
+    // waiting on a licence. Not the reserve keeper: turning him outfield would
+    // strip the goalkeeper cover the sale guard demands.
+    const benchOnlyHero = reserves.find(reserve => reserve.role !== 'GK')!;
     const state: GameState = {
       ...base,
       players: base.players.map(player => player.id === benchOnlyHero.id
@@ -588,6 +591,86 @@ describe('career market integration', () => {
     expect(repaired.playerIds).not.toContain(benchOnlyHero.id);
     expect(repaired.playerIds).toHaveLength(11);
     expect(() => buildCareerTeamDef(result.state, state.userClubId)).not.toThrow();
+  });
+
+  test('refuses to sell or list the only spare goalkeeper', () => {
+    // A one-keeper roster is the seed of the season-end release dead-end: the
+    // expired starting keeper has no cover, and lineup repair for an injured
+    // keeper has nobody to promote. The board blocks the sale up front.
+    const state = createCareer(createLaunchCareerSetup(4243));
+    const starters = new Set(state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds);
+    const backupKeeper = state.players.find(player => (
+      player.clubId === state.userClubId && !starters.has(player.id) && player.role === 'GK'
+    ))!;
+    const buyer = state.clubs.find(club => club.id !== state.userClubId)!;
+
+    expect(() => sellCareerPlayer(state, state.market!, backupKeeper.id, buyer.id))
+      .toThrow('without matchday cover');
+    expect(() => listCareerPlayer(state, state.market!, backupKeeper.id))
+      .toThrow('without matchday cover');
+  });
+
+  test('refuses the sale that would leave no outfield substitute', () => {
+    const initial = createCareer(createLaunchCareerSetup(4243));
+    const starters = new Set(initial.lineups.find(lineup => lineup.clubId === initial.userClubId)!.playerIds);
+    const outfieldReserves = initial.players.filter(player => (
+      player.clubId === initial.userClubId && !starters.has(player.id) && player.role !== 'GK'
+    ));
+    expect(outfieldReserves.length).toBeGreaterThanOrEqual(2);
+    const lastOutfield = outfieldReserves[0];
+    const buyer = initial.clubs.find(club => club.id !== initial.userClubId)!;
+    // With a full bench the same sale is fine…
+    expect(() => sellCareerPlayer(initial, initial.market!, lastOutfield.id, buyer.id))
+      .not.toThrow();
+    // …but once he is the only outfield reserve left, an injured starter would
+    // have no legal replacement, so the sale is blocked.
+    const trimmed: GameState = {
+      ...initial,
+      players: initial.players.filter(player => (
+        player.id === lastOutfield.id
+        || !outfieldReserves.some(reserve => reserve.id === player.id)
+      )),
+    };
+    expect(() => sellCareerPlayer(trimmed, trimmed.market!, lastOutfield.id, buyer.id))
+      .toThrow('without matchday cover');
+  });
+
+  test('expires transfer talks with the window that priced them', () => {
+    // The quote and negotiated wage were rolled from the week talks opened, so
+    // window-1 talks completing in window 2 would sign at pre-season prices.
+    const initial = createCareer(createLaunchCareerSetup(4242));
+    const target = initial.players.find(player => (
+      player.clubId !== initial.userClubId && player.role === 'FWD'
+    ))!;
+    const market = {
+      ...createCareerMarketState(initial),
+      scoutReports: [{
+        playerId: target.id,
+        role: target.role,
+        age: target.age ?? 24,
+        statRanges: Object.fromEntries(Object.keys(target.attrs).map(key => [
+          key,
+          { minimum: target.attrs[key as keyof typeof target.attrs], maximum: target.attrs[key as keyof typeof target.attrs] },
+        ])) as never,
+        potentialRange: { minimum: 3, maximum: 3 },
+      }],
+    };
+    let talks = beginCareerTransferTalks(initial, market, target.id);
+    // Same window: the weekly clock keeps the talks alive.
+    expect(resolveCareerScoutClock({ ...initial, week: 4 }, talks).transferTalks).toBeDefined();
+    // Window shut: the weekly clock drops them, exactly like listings.
+    expect(resolveCareerScoutClock({ ...initial, week: 5 }, talks).transferTalks).toBeUndefined();
+    expect(resolveCareerScoutClock({ ...initial, week: 17 }, talks).transferTalks).toBeUndefined();
+
+    // Even a fully accepted deal cannot complete on the stale quote.
+    talks = submitCareerTransferOffer(talks, {
+      weeklyWage: talks.transferTalks!.negotiation.weeklyAsk,
+      termSeasons: 2,
+      perk: 'GUARANTEED_STARTER',
+    });
+    expect(talks.transferTalks?.negotiation.status).toBe('ACCEPTED');
+    expect(() => completeCareerTransfer({ ...initial, week: 17 }, talks))
+      .toThrow('expired with their transfer window');
   });
 
   test('hires one deterministic preseason coach candidate', () => {
@@ -664,7 +747,7 @@ describe('career market integration', () => {
     const state = createCareer(createLaunchCareerSetup(824));
     const starters = new Set(state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds);
     const reserve = state.players.find(player => (
-      player.clubId === state.userClubId && !starters.has(player.id)
+      player.clubId === state.userClubId && !starters.has(player.id) && player.role !== 'GK'
     ))!;
     const first = listCareerPlayer(state, state.market!, reserve.id);
     const second = listCareerPlayer(state, state.market!, reserve.id);
@@ -694,7 +777,7 @@ describe('career market integration', () => {
     const starters = new Set(weekFour.lineups
       .find(lineup => lineup.clubId === weekFour.userClubId)!.playerIds);
     const reserve = weekFour.players.find(player => (
-      player.clubId === weekFour.userClubId && !starters.has(player.id)
+      player.clubId === weekFour.userClubId && !starters.has(player.id) && player.role !== 'GK'
     ))!;
     const listed = listCareerPlayer(weekFour, weekFour.market!, reserve.id);
     const bidId = listed.transferListings![0].bids[0].id;

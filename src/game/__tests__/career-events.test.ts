@@ -89,6 +89,48 @@ describe('career event state', () => {
     expect(() => offerCareerEvent(dismissed, 'giant-spider-arrives')).toThrow('already resolved');
   });
 
+  it('records event money in the cash-transaction history', () => {
+    // Event cash used to mutate the balance silently, so the money history and
+    // the pre-M4 recap fallback both misstated the season's cash change.
+    const initial = createCareer(createLaunchCareerSetup());
+    const cashBefore = initial.clubs.find(club => club.id === initial.userClubId)!.cash;
+
+    const spent = applyCareerEventOutcome(
+      offerCareerEvent(initial, 'test-event'),
+      'pay-up',
+      'The club writes the cheque.',
+      { moneyDelta: -1200 },
+    );
+    expect(spent.cashTransactions?.at(-1)).toMatchObject({
+      kind: 'event',
+      label: 'Story event',
+      amount: -1200,
+      balanceAfter: cashBefore - 1200,
+      referenceId: 'test-event',
+    });
+
+    const paid = applyCareerEventOutcome(
+      offerCareerEvent(initial, 'test-event'),
+      'cash-in',
+      'The sponsor pays out.',
+      { moneyDelta: 4200 },
+    );
+    expect(paid.cashTransactions?.at(-1)).toMatchObject({
+      kind: 'event',
+      amount: 4200,
+      balanceAfter: cashBefore + 4200,
+    });
+
+    // A money-free outcome writes no history line at all.
+    const quiet = applyCareerEventOutcome(
+      offerCareerEvent(initial, 'test-event'),
+      'shrug',
+      'Nothing changes hands.',
+      { fanDelta: 5 },
+    );
+    expect(quiet.cashTransactions ?? []).toHaveLength(0);
+  });
+
   it('floors a fan setback at zero instead of blocking a nearly abandoned club', () => {
     const initial = createCareer(createLaunchCareerSetup());
     const abandoned: GameState = {

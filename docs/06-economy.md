@@ -62,7 +62,7 @@ Additional sponsor and Buzz income is paired with higher upgrade prices while ev
 | Coaching Office | $6,500 · 1 week | Disabled | Disabled |
 | Fan Shop | $5,000 · 1 week | $6,500 · 1 week | $11,500 · 2 weeks |
 | Youth Field | $12,000 · 3 weeks | $15,000 · 2 weeks | $27,000 · 3 weeks |
-| Stadium Stand | $15,000 · 3 weeks | $19,000 · 2 weeks | $34,000 · 3 weeks |
+| Stadium Stand | $10,000 · 3 weeks | $19,000 · 2 weeks | $34,000 · 3 weeks |
 
 **Adjacency bonuses** (Grand Prix Story 2's stealable puzzle, simplified): certain pairings buff each other when adjacent (Gym+Dorm: +10% STA gains; Fan Shop+Stadium: +10% merch; Medical+Training Pitch: −20% injury odds). Buildings are **relocatable for a small fee**, so layout is a recurring optimization toy. Discovered pairings log into the Codex.
 
@@ -78,12 +78,12 @@ Additional sponsor and Buzz income is paired with higher upgrade prices while ev
 | Home gate (500 fans) | ≈ 1,200/match |
 | Prize: D5 champion / runner-up | 20,000 / 10,000 |
 | Cup: per round win / trophy | 2,000–8,000 / 25,000 |
-| Facility Lv1 build | 5,000–15,000 |
+| Facility Lv1 build | 5,000–12,000 |
 | Focus drill (single-stat) | TP only, five tiers; tier 1 is the D5 starting drill and each tier up costs more TP for a bigger gain (exact gains and TP costs: `content/training.json`) |
 | Drill tier upgrade (per path) | $3,000 / $8,000 / $18,000 / $40,000 for tiers 2–5 |
 | Weekly TP income | 24 baseline; Training Pitch +28/completed level; head coach 10 + 2× level; assistant 5 + level; match result +0 |
 | Transfer (decent D5 player) | 5,000–15,000 |
 | Pre-powered hero signing | 100,000+ + 2,500+/wk (Div 3 era) |
-| Emergency loan | 20,000 once, 10%/season interest |
+| Emergency loan | Once per career: max(20,000 Cozy / 10,000 Chairman, deficit + 15,000), repaid at 10% over the next season |
 
 **Pressure curve targets**: Season 1 wages ≈ 60–70% of baseline income (tight but survivable); mid-game surplus flows to facilities and transfers; late game hero wages + stadium tiers keep money meaningful (Game Dev Story's "ultimate console" pattern — always one aspirational sink ahead of you).

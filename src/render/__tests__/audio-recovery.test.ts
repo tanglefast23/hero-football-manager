@@ -27,7 +27,14 @@ jest.mock('expo-audio', () => ({
   }),
 }));
 
-import { initAudio, playForEvent, setMasterVolume, startTheme, teardownAudio } from '../audio';
+import {
+  initAudio,
+  playForEvent,
+  setMasterVolume,
+  startFireAmbience,
+  startTheme,
+  teardownAudio,
+} from '../audio';
 import type { MatchEvent } from '../../sim/types';
 
 describe('match audio session recovery', () => {
@@ -83,5 +90,39 @@ describe('match audio session recovery', () => {
     expect(rebuilt[0].seekTo).toHaveBeenCalledWith(0);
     await Promise.resolve();
     expect(rebuilt[0].play).toHaveBeenCalledTimes(1);
+  });
+
+  it('forgets the wanted loops at teardown so no later match resurrects them', async () => {
+    // Match 1 ends at the fulltime whistle with a Fire Torch hero still ablaze:
+    // MatchScreen unmounts without the per-frame reconciliation ever calling
+    // stopFireAmbience(). The wanted-flags are module state, so unless teardown
+    // resets them, match 2's recovery/resume paths restart a crackle loop (and
+    // theme) the new match never asked for.
+    initAudio();
+    startTheme();
+    startFireAmbience();
+    await Promise.resolve();
+    expect(mockPlayers.at(-1)!.play).toHaveBeenCalledTimes(1);
+    teardownAudio();
+
+    // Match 2: audio comes up, then an SFX failure triggers session recovery,
+    // whose resumeWantedLoops() honours whatever the flags still say.
+    const countAfterTeardown = mockPlayers.length;
+    initAudio();
+    const kickoff = mockPlayers[countAfterTeardown];
+    kickoff.seekTo.mockImplementation(() =>
+      Promise.reject(new Error('Session lookup failed')));
+
+    playForEvent({ t: 0, kind: 'KICKOFF', half: 1 } as MatchEvent);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Recovery rebuilt the pool — but neither stale loop may come back.
+    const rebuiltTheme = mockPlayers.at(-2)!;
+    const rebuiltFire = mockPlayers.at(-1)!;
+    expect(rebuiltTheme.play).not.toHaveBeenCalled();
+    expect(rebuiltFire.seekTo).not.toHaveBeenCalled();
+    expect(rebuiltFire.play).not.toHaveBeenCalled();
   });
 });

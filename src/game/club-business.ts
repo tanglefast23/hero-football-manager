@@ -15,14 +15,14 @@ export const BUZZ_UNLOCK_SEASON = 3;
 /** Win contribution calibrated against two disjoint 300-seed cohorts. */
 export const BUZZ_WIN_POINTS = 4;
 
-export interface AppliedSupporterWeek {
+interface AppliedSupporterWeek {
   readonly supporters: SupporterBusinessState;
   readonly fanCount: number;
   /** Positive deltas still need to pass through `recordFanGain` at integration. */
   readonly positiveFanGain: number;
 }
 
-export interface AppliedBuzzWeek {
+interface AppliedBuzzWeek {
   readonly buzz: BuzzState;
   readonly payout?: {
     readonly amount: number;
@@ -32,7 +32,7 @@ export interface AppliedBuzzWeek {
   };
 }
 
-export function createEmptySponsorshipState(season: number): SponsorshipState {
+function createEmptySponsorshipState(season: number): SponsorshipState {
   requirePositiveInteger(season, 'portfolio season');
   return {
     activeContracts: [],

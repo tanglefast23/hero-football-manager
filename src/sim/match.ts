@@ -10,6 +10,11 @@ import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import { MAX_PLAYER_ATTRIBUTE } from './attributes';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
+// m2.1 rates automatic-substitution replacements at their real entry condition
+// with a freshness floor (no more kickoff cascades through a tired bench),
+// feeds replay inputs incrementally so a recorded substitute-of-a-substitute
+// replays cleanly, and defaults both teams to the shipped FIRE_WHEN_READY
+// policy (SAVE_FOR_TAP is now explicit test instrumentation only).
 // m2.0 makes displayed 1-999 ratings honest in ratio contests and execution,
 // carries career condition into matches, and uses bounded fixed-point PAC/STA.
 // m1.30 puts a beaten defender on the grass instead of letting him re-roll the
@@ -24,7 +29,7 @@ import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, 
 // immediately when an outfielder reaches red energy.
 // m1.24 accepts 1–999 career attributes and converts values above 99 to
 // bounded, diminishing match strength.
-export const ENGINE_VERSION = 'm2.0';
+export const ENGINE_VERSION = 'm2.1';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -72,7 +77,9 @@ function makePlayers(home: TeamDef, away: TeamDef, opts: MatchOpts): SimPlayer[]
       movementResidue: { x: 0, y: 0 },
       condition: def.startingCondition ?? 100, gauge: 0, zonesOpened: 0,
       powerState: { kind: 'idle' as const },
-      firePolicy: team === 0 ? (opts.homePolicy ?? 'SAVE_FOR_TAP') : (opts.awayPolicy ?? 'FIRE_WHEN_READY'),
+      // Auto-fire is the only shipped hero mode; SAVE_FOR_TAP survives as
+      // explicitly requested test instrumentation, never a default.
+      firePolicy: team === 0 ? (opts.homePolicy ?? 'FIRE_WHEN_READY') : (opts.awayPolicy ?? 'FIRE_WHEN_READY'),
       outUntilTick: 0, tackleRecoveryUntil: 0, tackleCooldownUntil: 0, cards: 0 as const,
     }));
   return [...mk(0, home), ...mk(1, away)];
@@ -280,8 +287,22 @@ export function tick(state: MatchState): void {
 
 export function runMatch(seed: number, home: TeamDef, away: TeamDef, inputs: MatchInput[] = [], opts: MatchOpts = {}): MatchResult {
   const state = createMatch(seed, home, away, opts);
-  for (const i of inputs) queueInput(state, i);
-  while (state.phase !== 'fulltime') tick(state);
+  // Feed each input just before the tick that consumes it, mirroring the live
+  // queue→drain cadence. Live pendingInputs never still holds an already
+  // consumed substitution, so prequeuing the whole log would trip queueInput's
+  // pending-duplicate guard on a legitimately recorded second substitution in
+  // the same slot. Stable sort: same-tick inputs keep their recorded order.
+  const feed = inputs
+    .map((input, index) => ({ input, index }))
+    .sort((a, b) => a.input.tick - b.input.tick || a.index - b.index);
+  let next = 0;
+  while (state.phase !== 'fulltime') {
+    while (next < feed.length && feed[next].input.tick <= state.tick + 1) {
+      queueInput(state, feed[next].input);
+      next += 1;
+    }
+    tick(state);
+  }
   return { score: state.score, events: state.events };
 }
 
@@ -491,7 +512,7 @@ export function validateEnvelope(env: ReplayEnvelope): void {
       throw new Error(`replay envelope: input targets team ${targetTeam} slot ${targetSlot}, which is not a hero (no power)`);
     }
     const targetPolicy = targetTeam === 0
-      ? (env.opts?.homePolicy ?? 'SAVE_FOR_TAP')
+      ? (env.opts?.homePolicy ?? 'FIRE_WHEN_READY')
       : (env.opts?.awayPolicy ?? 'FIRE_WHEN_READY');
     if (targetPolicy !== 'SAVE_FOR_TAP') {
       throw new Error(`replay envelope: input targets team ${targetTeam}, which is not manually controlled`);

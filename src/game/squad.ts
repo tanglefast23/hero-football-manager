@@ -10,6 +10,7 @@ import {
   restoreCareerContractPromiseLineup,
 } from './contract-promises';
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
+import { createEmergencyYouthReplacement } from './youth-intake';
 import { coachMotivatorBonusPercent } from './coach-weekly';
 import { highestDivisionReached } from './promotion-progression';
 import type { CareerPlayer, GameState } from './types';
@@ -399,7 +400,7 @@ export function releaseCareerPlayer(state: GameState, playerId: string): GameSta
     && candidate.contractSeasonsRemaining > 0
     && isAvailableForSelection(candidate)
     && !(candidate.power !== undefined && !candidate.licensed);
-  const replacement = needsReplacement
+  const rosterReplacement = needsReplacement
     ? state.players.find(candidate =>
         isEligibleReplacement(candidate) && candidate.role === player.role,
       ) ?? state.players.find(candidate =>
@@ -408,21 +409,30 @@ export function releaseCareerPlayer(state: GameState, playerId: string): GameSta
         && candidate.role !== 'GK',
       )
     : undefined;
-  if (needsReplacement && replacement === undefined) {
-    throw new Error('the expired starter cannot leave without an eligible replacement');
-  }
+  // Fail-soft: with no cover on the books, refusing the release would dead-end
+  // the career — startNextSeason blocks while any expired contract remains, and
+  // renewal can be locked out for the whole season (a walked-away agent, or
+  // loyalty below the re-signing threshold). The academy sends a role-correct
+  // emergency youth instead, the same relief a board-forced sale uses.
+  const emergencyYouth = needsReplacement && rosterReplacement === undefined
+    ? createEmergencyYouthReplacement(state, player.role, player.id)
+    : undefined;
+  const replacement = rosterReplacement ?? emergencyYouth;
 
   return reconcileBoardUltimatumCandidates({
     ...state,
     clubs: state.clubs.map(club => {
       if (club.id !== state.userClubId) return club;
-      const weeklyWages = club.weeklyWages - player.weeklyWage;
+      const weeklyWages = club.weeklyWages - player.weeklyWage + (emergencyYouth?.weeklyWage ?? 0);
       if (!Number.isSafeInteger(weeklyWages) || weeklyWages < 0) {
         throw new Error('club weekly wages exceed the supported range');
       }
       return { ...club, weeklyWages };
     }),
-    players: state.players.filter(candidate => candidate.id !== playerId),
+    players: [
+      ...state.players.filter(candidate => candidate.id !== playerId),
+      ...(emergencyYouth === undefined ? [] : [emergencyYouth]),
+    ],
     lineups: state.lineups.map(candidate => candidate.clubId !== state.userClubId
       ? candidate
       : {

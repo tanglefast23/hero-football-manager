@@ -10,6 +10,7 @@ import { advanceFacilityConstruction } from '../../game/facilities';
 import {
   beginCareerTransferTalks,
   hireCareerCoach,
+  listCareerPlayer,
   startCareerScoutMission,
   type CareerMarketState,
 } from '../../game/market-career';
@@ -253,6 +254,83 @@ describe('career market view-model source adapter', () => {
     expect(marketViewModel(careerMarketViewModelSource(relegated)).coaches[0].available).toBe(true);
     expect(hireCareerCoach(relegated, relegated.market!, candidate.id).headCoach?.id)
       .toBe(candidate.id);
+  });
+
+  it('carries the sale-path cover verdict on listings a spare on leave would strand', () => {
+    // The old adapter check only looked at injuryWeeks, so a squad whose only
+    // spare goalkeeper was AWAY still showed an enabled sell action that the
+    // sale path then rejected. The listing must stay visible, disabled, with
+    // the reason — never enabled-then-erroring, never silently gone.
+    const state = fullCareer(913);
+    const target = state.players.find(player => player.clubId !== state.userClubId)!;
+    const market: CareerMarketState = { ...state.market!, scoutReports: [exactReport(target)] };
+    const starters = new Set(
+      state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds,
+    );
+    const startingOutfielder = state.players.find(player => (
+      player.clubId === state.userClubId && player.role !== 'GK' && starters.has(player.id)
+    ))!;
+
+    const baseline = careerMarketViewModelSource(state, market).transferListings
+      .find(listing => (
+        listing.direction === 'SELL' && listing.player.id === startingOutfielder.id
+      ));
+    expect(baseline?.saleBlockedReason).toBeUndefined();
+
+    const withOutfieldSparesAway: GameState = {
+      ...state,
+      players: state.players.map(player => (
+        player.clubId === state.userClubId && player.role !== 'GK' && !starters.has(player.id)
+          ? { ...player, awayWeeks: 2 }
+          : player
+      )),
+    };
+    const source = careerMarketViewModelSource(withOutfieldSparesAway, market);
+    const listing = source.transferListings
+      .find(candidate => (
+        candidate.direction === 'SELL' && candidate.player.id === startingOutfielder.id
+      ));
+    expect(listing).toBeDefined();
+    expect(listing?.saleBlockedReason).toBeDefined();
+    // The adapter's verdict matches what the sale path itself enforces.
+    expect(() => listCareerPlayer(withOutfieldSparesAway, market, startingOutfielder.id, 5))
+      .toThrow();
+    const visible = marketViewModel(source).transfers
+      .find(candidate => candidate.playerId === startingOutfielder.id);
+    expect(visible).toMatchObject({
+      available: false,
+      blockedReason: listing?.saleBlockedReason,
+    });
+  });
+
+  it('treats an unlicensed hero as bench-locked when judging sale cover, like the sale path', () => {
+    const state = fullCareer(913);
+    const target = state.players.find(player => player.clubId !== state.userClubId)!;
+    const market: CareerMarketState = { ...state.market!, scoutReports: [exactReport(target)] };
+    const starters = new Set(
+      state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds,
+    );
+    const startingOutfielder = state.players.find(player => (
+      player.clubId === state.userClubId && player.role !== 'GK' && starters.has(player.id)
+    ))!;
+    // An unlicensed hero cannot enter a lineup, so a bench full of them is no
+    // cover at all — the old adapter would still have offered the sale.
+    const withUnlicensedSpares: GameState = {
+      ...state,
+      players: state.players.map(player => (
+        player.clubId === state.userClubId && player.role !== 'GK' && !starters.has(player.id)
+          ? { ...player, power: 'SUPER_SPEED' as const, powerTier: 1 as const, licensed: false }
+          : player
+      )),
+    };
+    const listing = careerMarketViewModelSource(withUnlicensedSpares, market).transferListings
+      .find(candidate => (
+        candidate.direction === 'SELL' && candidate.player.id === startingOutfielder.id
+      ));
+    expect(listing).toBeDefined();
+    expect(listing?.saleBlockedReason).toBeDefined();
+    expect(() => listCareerPlayer(withUnlicensedSpares, market, startingOutfielder.id, 5))
+      .toThrow();
   });
 
   it('requires an initialized market and rejects stale reports instead of inventing players', () => {

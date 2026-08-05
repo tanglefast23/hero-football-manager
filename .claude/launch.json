@@ -78,6 +78,18 @@
       "name": "home-qa",
       "url": "http://localhost:4520",
       "port": 4520
+    },
+    {
+      "name": "pixel-audit-export",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4175",
+        "--directory",
+        "/Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/.claude/worktrees/pixel-art-game-audit-771627/dist"
+      ],
+      "port": 4175
     }
   ]
 }

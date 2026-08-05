@@ -4,7 +4,7 @@ Events are the game's storyteller. They must feel like little comics: a setup, a
 
 ## System rules
 
-- **Roll**: 18% chance per week during the manage phase; guaranteed at least one event per 8 weeks (event dry-spell timer). These are club-life stories and resource decisions. **They do not award powers.**
+- **Roll**: 18% chance per week during the manage phase; guaranteed at least one event per 6 weeks (event dry-spell timer). The guarantee counts only eligible quiet weeks — a week whose desk still holds unresolved work returns before the clock ticks. These are club-life stories and resource decisions. **They do not award powers.**
 - **Format**: an event card — pixel illustration, 2–4 lines of flavor text, 2–3 choice buttons. Choices can be gated (needs a facility, a personality on the roster, or cash). Risky choices use the light pastel-red decision surface, not the pitch showing through.
 - **Outcomes**: weighted rolls; weights shift with relevant stats, facilities, and personalities. Every choice opens a distinct result screen that says what happened. A risky miss explicitly says no bonus was earned; a success celebrates, names each reward, and pairs it with a small canonical 16×16 pixel-art object and staggered micro-animation. Outcomes always narrate ("The spider respected the hustle."), never just emit numbers.
 - **Risk philosophy**: safe choices give small guaranteed value; unusual choices carry stronger club-culture outcomes and occasional downside. The player should hover over a strange button and grin, without wondering whether declining it forfeits a hero.
@@ -15,8 +15,10 @@ Events are the game's storyteller. They must feel like little comics: a setup, a
 
 | Choice | Requirements | Outcomes (weighted) |
 |---|---|---|
-| **Let the squad adopt it** | — | 100%: +5 squad morale; the spider receives a locker and demands extra cones |
+| **Adopt the spider** (risky) | — | 35%: a mascot is born — +10 squad morale, +100 fans, `spider-adopted` flag · 65%: the spider vanishes before its debut; nothing gained |
 | **Call the groundskeeper** | — | 100%: +10 TP; the clubhouse is safe but the tiny scarf remains unexplained |
+
+The shipped event (`giant-spider-arrives` in `content/events.json`) is the canonical template shape: the risky choice lists its success outcome first with a `successHeadline`, and its miss explicitly pays nothing.
 
 Awakening math is intentionally absent here. A manager never needs to chase this event, accept a bite, or sacrifice its guaranteed reward to make a hero (doc 04).
 

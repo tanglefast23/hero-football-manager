@@ -7,6 +7,7 @@ import { TutorialTapCue } from './TutorialTapCue';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
 import { SettingsButton } from './SettingsOverlay';
 import { HoverTipAnchor, SfxPressable as Pressable } from './components/SfxPressable';
+import { playUiClickSfx } from '../render/management-sfx';
 import { managementHeaderLine } from './management-header';
 import { managementKeyBindings, tabNumberKey } from './management-key-bindings';
 import { useKeyBindings } from './use-key-bindings';
@@ -52,20 +53,27 @@ function abbrev(n: number): string {
   return formatCompactNumber(n);
 }
 
-function ResourceChip({ glyph, name, explainer, value, tone }: {
+function ResourceChip({ glyph, name, explainer, value, tone, onPress }: {
   glyph: string;
   name: string;
   /** What the glyph buys, for the manager who has never been told what TP is. */
   explainer: string;
   value: number;
   tone?: 'hero';
+  /**
+   * The InfoTip anchor's inner Pressable claims the touch responder, so a tap
+   * on the chip face never reaches the shell's "open the ledger" Pressable
+   * wrapped around the cluster. The action is forwarded through here instead.
+   */
+  onPress?: () => void;
 }) {
   const hero = tone === 'hero';
   return (
     <InfoTip
       text={explainer}
       align="right"
-      accessibilityLabel={`${name}: ${name === 'Money' ? formatCurrency(value) : formatCompactNumber(value)}. ${explainer}`}
+      accessibilityLabel={`${name}: ${name === 'Money' ? formatCurrency(value) : formatCompactNumber(value)}. ${explainer}${onPress === undefined ? '' : ' Opens the club ledger.'}`}
+      onPress={onPress}
     >
     <View
       className={hero
@@ -211,7 +219,8 @@ export function ManagementShell({
   onAdvanceWeek,
   onOpenLedger,
   onOpenSettings,
-  advanceWeekLabel = 'Advance Week  ▸',
+  // '›' is in Silkscreen; '▸' is not and rendered in the fallback face.
+  advanceWeekLabel = 'Advance Week  ›',
   advanceWeekDisabled = false,
   keyboardShortcutsEnabled = true,
   guideFocus,
@@ -257,6 +266,15 @@ export function ManagementShell({
     && onPressDeveloperSaveSlot !== undefined
     && onToggleDeveloperManualSave !== undefined;
 
+  // Forwarded into each chip's InfoTip: the chips cover essentially the whole
+  // cluster, so the outer ledger Pressable below only ever receives taps in the
+  // gaps. The click cue the outer SfxPressable would have played rides along.
+  const openLedgerFromChip = onOpenLedger === undefined
+    ? undefined
+    : () => {
+        playUiClickSfx();
+        onOpenLedger();
+      };
   const resourceCluster = (
     <View className="flex-shrink flex-row items-center gap-1.5">
       <View
@@ -265,9 +283,9 @@ export function ManagementShell({
         onLayout={moneyGuideAnchor.scheduleMeasurement}
         className={guideFocus === 'money' ? 'border-2 border-blue-dark bg-blue-light p-1' : undefined}
       >
-        <ResourceChip glyph="$" name="Money" explainer="Cash. Wages come out of it every week, and it pays for facilities, transfers and coaches." value={resources.money} />
+        <ResourceChip glyph="$" name="Money" explainer="Cash. Wages come out of it every week, and it pays for facilities, transfers and coaches." value={resources.money} onPress={openLedgerFromChip} />
       </View>
-      <ResourceChip glyph="TP" name="Training points" explainer="Training Points. Earned each week and spent on drills — the only thing that improves a player." value={resources.trainingPoints} />
+      <ResourceChip glyph="TP" name="Training points" explainer="Training Points. Earned each week and spent on drills — the only thing that improves a player." value={resources.trainingPoints} onPress={openLedgerFromChip} />
     </View>
   );
 
@@ -404,8 +422,9 @@ export function ManagementShell({
           <ActionButton
             label={advanceWeekLabel}
             accessibilityLabel={guideTarget === 'advance-week'
-              ? `Bert says: read the desk, then ${advanceWeekLabel.replace('▸', '').trim()}`
-              : advanceWeekLabel.replace('▸', '').trim()}
+              // Strip either arrow glyph: App still passes labels with '▸'.
+              ? `Bert says: read the desk, then ${advanceWeekLabel.replace(/[▸›]/g, '').trim()}`
+              : advanceWeekLabel.replace(/[▸›]/g, '').trim()}
             onPress={onAdvanceWeek}
             disabled={advanceWeekDisabled}
             compact

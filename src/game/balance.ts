@@ -42,7 +42,7 @@ export const MINI_BALANCE_RAILS = Object.freeze({
   maximumAwakeningBySeasonEndRate: 0.86,
 });
 
-export interface MiniBalanceHarnessOptions {
+interface MiniBalanceHarnessOptions {
   readonly careerSeeds?: number;
   readonly awakeningSeeds?: number;
 }
@@ -62,7 +62,7 @@ export interface MiniBalanceScenario {
   };
 }
 
-export interface MiniBalanceMetrics {
+interface MiniBalanceMetrics {
   readonly careerSeeds: number;
   readonly awakeningSeeds: number;
   readonly seasonOneBankruptcyRate: number;

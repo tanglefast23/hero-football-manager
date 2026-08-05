@@ -78,7 +78,7 @@ export interface TrainingModifier {
   readonly helps: boolean;
 }
 
-export interface InstantTrainingPreview {
+interface InstantTrainingPreview {
   /** The authored drill result before any player or club modifiers. */
   baseAfter: number;
   /** The ordinary-session result after every active modifier and banked fraction. */

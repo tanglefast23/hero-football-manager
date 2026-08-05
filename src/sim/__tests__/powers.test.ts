@@ -5,8 +5,13 @@ import { activatePower, addGauge, ARM_WINDOW_TICKS, inUsefulContext, interruptWi
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState, PowerId } from '../types';
 
-const SPEEDSTER = 10; // Zip Vela (SAVE_FOR_TAP by default)
+const SPEEDSTER = 10; // Zip Vela (home hero, pinned to SAVE_FOR_TAP below)
 const RIVAL = 14;     // Rex Bould, United SUPER_STRENGTH (FIRE_WHEN_READY by default)
+
+// The engine defaults both teams to the shipped FIRE_WHEN_READY policy (m2.1).
+// These tests drive home powers by hand, so they pin the home side to the
+// SAVE_FOR_TAP test instrumentation policy explicitly.
+const TAP_HOME = { homePolicy: 'SAVE_FOR_TAP' } as const;
 
 function tickUntil(m: MatchState, pred: () => boolean, max = 500): void {
   for (let i = 0; i < max && !pred(); i++) tick(m);
@@ -14,7 +19,7 @@ function tickUntil(m: MatchState, pred: () => boolean, max = 500): void {
 
 describe('hero gauge and firing', () => {
   it('non-heroes never gain gauge; heroes trickle up', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     for (let i = 0; i < 200; i++) tick(m);
     expect(m.players[1].gauge).toBe(0);
     expect(m.players[SPEEDSTER].gauge).toBeGreaterThan(0);
@@ -30,7 +35,7 @@ describe('hero gauge and firing', () => {
     // A midfielder's decisive act is winning the ball in flight. Crediting it
     // the same 2 Heat as being passed to is why MID carriers never reach the
     // Zone threshold at all (M4 gate: 0.00 zones/match).
-    const received = createMatch(42, ROVERS, UNITED);
+    const received = createMatch(42, ROVERS, UNITED, TAP_HOME);
     received.ball = {
       kind: 'pass', from: 9, to: SPEEDSTER, pos: { ...received.players[SPEEDSTER].pos },
       speed: 200, willSucceed: true, interceptor: -1, z: 0, vz: 0,
@@ -38,7 +43,7 @@ describe('hero gauge and firing', () => {
     tick(received);
     const receptionHeat = received.players[SPEEDSTER].gauge;
 
-    const stolen = createMatch(42, ROVERS, UNITED);
+    const stolen = createMatch(42, ROVERS, UNITED, TAP_HOME);
     stolen.ball = {
       kind: 'pass', from: 14, to: 15, pos: { ...stolen.players[SPEEDSTER].pos },
       speed: 200, willSucceed: false, interceptor: SPEEDSTER, z: 0, vz: 0,
@@ -93,7 +98,7 @@ describe('hero gauge and firing', () => {
   });
 
   it('banked Heat converts immediately when an authored context appears', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].gauge = 199;
     m.ball = { kind: 'held', by: 9 };
     powerTick(m);
@@ -109,7 +114,7 @@ describe('hero gauge and firing', () => {
   });
 
   it('caps each hero at three Zone opportunities in one match', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     const hero = m.players[SPEEDSTER];
     hero.zonesOpened = MAX_ZONES_PER_PLAYER - 1;
     hero.gauge = 60;
@@ -135,7 +140,7 @@ describe('hero gauge and firing', () => {
   });
 
   it('a tap fires at strength 1.0 after the windup (rigged directly into the Zone)', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
     m.players[SPEEDSTER].pos = { x: 2250, y: 3500 };
     m.ball = { kind: 'held', by: SPEEDSTER };
@@ -147,7 +152,7 @@ describe('hero gauge and firing', () => {
   });
 
   it('an early tap commits to a fixed two-second arm window and fires later at reduced strength', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: 5 };
     m.ball = { kind: 'held', by: 9 };
 
@@ -164,7 +169,7 @@ describe('hero gauge and firing', () => {
     // SAVE_FOR_TAP survives only as test instrumentation (docs/04). Since m1.27
     // its Zone no longer expires either, so the guarantee that still matters is
     // that it never fires on its own.
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
     for (let i = 0; i < ZONE_WINDOW_TICKS + 20; i += 1) tick(m);
     expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
@@ -172,7 +177,7 @@ describe('hero gauge and firing', () => {
   });
 
   it('the rival auto-fires only via context (0.85) — never a targetless 0.75 lapse, never 1.0', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.ball = { kind: 'held', by: SPEEDSTER };
     m.players[SPEEDSTER].pos = { x: 3400, y: 5250 };
     m.players[RIVAL].pos = { ...m.players[SPEEDSTER].pos };
@@ -185,7 +190,7 @@ describe('hero gauge and firing', () => {
   });
 
   it('a FIRE_WHEN_READY SUPER_STRENGTH hero with no lockable target holds instead of firing targetless', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     // Every opponent is out: the only possible opposing "carrier" is the out kickoff
     // holder frozen at midfield (~2900+ from Rex's anchor), so no opposing carrier can
     // enter STRENGTH_LOCK_RANGE at any point in the window — no context, ever.
@@ -203,7 +208,7 @@ describe('hero gauge and firing', () => {
   });
 
   it('recognizes decisive carries, nearby loose balls, and a goal-side Torch marker during an attacking run', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].pos = { x: 3400, y: 4000 };
     m.ball = { kind: 'held', by: SPEEDSTER };
     expect(inUsefulContext(m, SPEEDSTER)).toBe(true);
@@ -238,7 +243,7 @@ describe('hero gauge and firing', () => {
 
 describe('windup interrupts and input guards', () => {
   it('interruptWindup: winding → idle at gauge 50 with the event', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[10].powerState = { kind: 'winding', untilTick: m.tick + 15, strength: 1 };
     interruptWindup(m, 10);
     expect(m.players[10].powerState.kind).toBe('idle');
@@ -251,7 +256,7 @@ describe('windup interrupts and input guards', () => {
     // (nothing upstream consumes rng). Seed 42's first draw (0.6011) loses the
     // 65v62 contest (p=0.5622) and the tick-5 pass then takes the ball away for
     // good; seed 7's first draw (0.0117) wins it decisively.
-    const m = createMatch(7, ROVERS, UNITED);
+    const m = createMatch(7, ROVERS, UNITED, TAP_HOME);
     m.ball = { kind: 'held', by: 10 };
     m.players[10].pos = { x: 3400, y: 6000 };
     m.players[10].powerState = { kind: 'winding', untilTick: m.tick + 500, strength: 1 };
@@ -267,7 +272,7 @@ describe('windup interrupts and input guards', () => {
   });
 
   it('taps on rivals, non-heroes, and bad indices are rejected', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     expect(() => queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: 14 })).toThrow('manually controlled team');
     expect(() => queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: 5 })).toThrow('manually controlled team');
     expect(() => queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: 99 })).toThrow('manually controlled team');
@@ -286,7 +291,7 @@ describe('windup interrupts and input guards', () => {
 
 describe('power effects', () => {
   it('SUPER_SPEED multiplies speed while active — read through the authoritative speedFor(state, idx)', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     const base = speedFor(m, SPEEDSTER);
     m.players[SPEEDSTER].powerState = { kind: 'active', untilTick: m.tick + 40, strength: 1 };
     expect(speedFor(m, SPEEDSTER)).toBeGreaterThanOrEqual(Math.round(base * 2.3));
@@ -294,7 +299,7 @@ describe('power effects', () => {
   });
 
   it('allows a power to exceed the trained-only 999 PAC movement endpoint', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].def.attrs.pac = 999;
     const trainedMaximum = speedFor(m, SPEEDSTER);
     expect(trainedMaximum).toBe(Math.round(fullConditionMovementSpeed(999)));
@@ -304,7 +309,7 @@ describe('power effects', () => {
   });
 
   it('FIRE_TORCH ignites the nearest opponent, who is later extinguished', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     const torch = 9;
     // Rig an attacking carry with a marker between Dario and goal.
     m.ball = { kind: 'held', by: torch };
@@ -319,7 +324,7 @@ describe('power effects', () => {
 
   it('FIRE_TORCH uses the shared visible acquisition radius at every tier', () => {
     const firesAt = (distance: number) => {
-      const m = createMatch(42, ROVERS, UNITED);
+      const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
       const torch = 9;
       m.ball = { kind: 'held', by: torch };
       m.players[torch].pos = { x: 2000, y: 4000 };
@@ -336,7 +341,7 @@ describe('power effects', () => {
   });
 
   it('knocking out the ball carrier releases the ball instead of freezing possession', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     const oppCarrier = 11;
     const pos = { x: 3400, y: 5250 };
     m.ball = { kind: 'held', by: oppCarrier };
@@ -346,7 +351,7 @@ describe('power effects', () => {
   });
 
   it('rival SUPER_STRENGTH locks its target at windup start, charges, and flattens them', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     // Rig at midfield (far from a valuable shot): Zip carries on top of Rex; zone set directly
     // so the lock happens at this windup's start. The flatten must land even though Zip
     // releases the ball during the charge (hadBall false is fine — that IS the counterplay).
@@ -361,7 +366,7 @@ describe('power effects', () => {
   });
 
   it('simultaneous teammate powers do not freeze another hero\'s Zone or Heat', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     const torch = 9;
     m.players[torch].powerState = { kind: 'winding', untilTick: m.tick + 200, strength: 1 };
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
@@ -387,7 +392,7 @@ describe('power effects', () => {
       const home = { ...ROVERS, players: ROVERS.players.map((p, i) => (
         i === slot ? { ...p, power: power as PowerId } : { ...p, power: undefined }
       )) };
-      const m = createMatch(42, home, UNITED);
+      const m = createMatch(42, home, UNITED, TAP_HOME);
       m.rng = () => roll;
       activatePower(m, slot, 1);
       expect(m.events.some(e => e.kind === 'CARD')).toBe(false);
@@ -399,7 +404,7 @@ describe('power effects', () => {
 
 describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zone pauses and resumes)', () => {
   it('knockOut on a zoned hero preserves the window (no POWER_EXPIRED, heat untouched) and freezes it while down', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
     m.players[SPEEDSTER].gauge = 0; // heat already spent on Zone entry
     knockOut(m, SPEEDSTER, m.tick + 5, 'ko');
@@ -416,7 +421,7 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
   });
 
   it('the window resumes on recovery — a tap after standing up still fires the preserved Zone', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
     m.players[SPEEDSTER].gauge = 0;
     knockOut(m, SPEEDSTER, m.tick + 3, 'ko');
@@ -430,7 +435,7 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
   });
 
   it('a due press commits a downed hero to the fixed arm window without a spurious interrupt', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
     m.players[SPEEDSTER].outUntilTick = m.tick + 200;
     m.players[SPEEDSTER].outReason = 'ko';
@@ -443,7 +448,7 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
   });
 
   it('places the arm window on its stamped tick during recovery instead of deferring the input', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
     m.players[SPEEDSTER].tackleRecoveryUntil = m.tick + 2;
     queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: SPEEDSTER });
@@ -454,7 +459,7 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
   });
 
   it('expires exactly 20 ticks after placement even when recovery outlasts the arm window', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
     m.players[SPEEDSTER].tackleRecoveryUntil = 100;
     queueInput(m, { tick: 1, kind: 'POWER_TAP', player: SPEEDSTER });
@@ -476,7 +481,7 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
   });
 
   it.each(['out', 'sliding'] as const)('continues the armed countdown while %s', state => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     const player = m.players[SPEEDSTER];
     player.powerState = { kind: 'armed', remainingTicks: ARM_WINDOW_TICKS };
     if (state === 'out') {
@@ -509,7 +514,7 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
 
 describe('frozen-team bug: knockOut clears an active/winding power instead of freezing the team', () => {
   it('knockOut on an active hero reverts them to idle, freeing the team for their teammate to Zone in', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     m.players[9].powerState = { kind: 'active', untilTick: m.tick + 60, strength: 1 };
     knockOut(m, 9, m.tick + 100, 'ko');
     expect(m.players[9].powerState.kind).toBe('idle');
@@ -531,7 +536,7 @@ describe('frozen-team bug: knockOut clears an active/winding power instead of fr
   // now reached by being ignited rather than sent off. The team-freeing
   // behaviour under test is unchanged.
   it('a permanently removed hero frees the team so Zip can still enter the Zone', () => {
-    const m = createMatch(42, ROVERS, UNITED);
+    const m = createMatch(42, ROVERS, UNITED, TAP_HOME);
     activatePower(m, 9, 1);
     knockOut(m, 9, Number.MAX_SAFE_INTEGER, 'ignited');
     expect(m.players[9].outReason).toBe('ignited');

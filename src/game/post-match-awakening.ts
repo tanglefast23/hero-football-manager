@@ -10,12 +10,12 @@ import { hasActiveCareerContractPromise } from './contract-promises';
 import { careerHeroLimit } from './squad';
 import { isAvailableForSelection } from './lineup';
 
-export interface PostMatchAwakeningTuning {
+interface PostMatchAwakeningTuning {
   chancePercent: number;
   minimumMatchesBetween: number;
 }
 
-export interface PostMatchAwakeningResult {
+interface PostMatchAwakeningResult {
   state: GameState;
   awakened: boolean;
 }

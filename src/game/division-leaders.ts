@@ -7,7 +7,7 @@ import type {
   PlayerSeasonStatLine,
 } from './types';
 
-export interface AwardCategory {
+interface AwardCategory {
   id: AwardCategoryId;
   /** Only this position line is eligible, so each line has one award to chase. */
   role: Role;
@@ -26,7 +26,7 @@ export const AWARD_CATEGORIES: Readonly<Record<AwardCategoryId, AwardCategory>> 
 
 export const PODIUM_SIZE = 3;
 
-export interface DivisionLeaderQuery {
+interface DivisionLeaderQuery {
   category: AwardCategoryId;
   season: number;
   /** The live roster, which also decides who is still eligible to be shown. */
@@ -35,7 +35,7 @@ export interface DivisionLeaderQuery {
   limit?: number;
 }
 
-export interface DivisionLeaderEntry extends DivisionAwardPlacement {
+interface DivisionLeaderEntry extends DivisionAwardPlacement {
   position: number;
 }
 

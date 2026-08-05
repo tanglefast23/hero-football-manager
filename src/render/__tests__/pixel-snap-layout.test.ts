@@ -182,6 +182,28 @@ describe('renderer wiring contract', () => {
     expect(source).toContain("from './pixel-grid'");
   });
 
+  test('the drill stage snaps its sprite magnifications like the match pitch', () => {
+    // DrillSceneOverlay used to hand its atlas raw fractional scales (4.1 /
+    // 3.1), smearing the pixel art at every dpr. The nominal constants stay,
+    // but the worklet must only ever read the snapped shared values.
+    const source = readFileSync(join(renderDir, 'DrillSceneOverlay.tsx'), 'utf8');
+
+    expect(source).toContain('snapSpriteScale(1, NOMINAL_PLAYER_SCALE, devicePixelRatio)');
+    expect(source).toContain('snapSpriteScale(1, NOMINAL_BALL_SCALE, devicePixelRatio)');
+    expect(source).toContain('const playerScale = playerMagnification.value;');
+    expect(source).toContain('const ballScale = ballMagnification.value;');
+
+    // With pitchScale 1 the RSXform scale maps source px -> dp, so the snapped
+    // magnification must land on whole device pixels at every real-world dpr.
+    for (const dpr of [1, 1.5, 2, 2.625, 3]) {
+      for (const nominal of [4.1, 3.1]) {
+        const snapped = snapSpriteScale(1, nominal, dpr);
+        expect(Number.isInteger(snapped.devicePixels)).toBe(true);
+        expect(Math.abs(snapped.drawScale * dpr - snapped.devicePixels)).toBeLessThan(1e-9);
+      }
+    }
+  });
+
   test('one device-pixel snapping rule, shared by the camera, sprites and FX', () => {
     const inlineRule = /Math\.round\([^\n]*\* *dpr\) *\/ *dpr/;
     for (const file of ['interpolate.ts', 'worklet-atlas-frame.ts', 'WorkletMatchOverlays.tsx']) {

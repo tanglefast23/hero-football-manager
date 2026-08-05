@@ -58,6 +58,12 @@ export interface TransferListingSource {
   readonly direction: 'BUY' | 'SELL';
   readonly sellingClubDivision: number;
   readonly listed?: boolean;
+  /**
+   * SELL only. Present when the career sale path would reject this sale (no
+   * matchday cover after it), so the action renders disabled with the reason
+   * instead of erroring on use — or silently vanishing from the desk.
+   */
+  readonly saleBlockedReason?: string;
   readonly savedQuote?: TransferQuote;
   readonly bids?: readonly {
     readonly id: string;
@@ -458,12 +464,14 @@ function transferListing(
       buyerName: bid.buyerName,
       fee: bid.quote.fee,
     })),
-    available: windowOpen && affordable,
+    available: windowOpen && affordable && listing.saleBlockedReason === undefined,
     ...(!windowOpen
       ? { blockedReason: 'Registration window closed.' }
-      : !affordable
-        ? { blockedReason: 'Transfer fee exceeds current cash.' }
-        : {}),
+      : listing.saleBlockedReason !== undefined
+        ? { blockedReason: listing.saleBlockedReason }
+        : !affordable
+          ? { blockedReason: 'Transfer fee exceeds current cash.' }
+          : {}),
   };
 }
 

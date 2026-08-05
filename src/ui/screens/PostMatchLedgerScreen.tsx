@@ -45,7 +45,7 @@ export function PostMatchLedgerScreen({
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
         <View>
-          <PixelText className="text-sm uppercase tracking-[2px] text-blue-dark">Match complete</PixelText>
+          <PixelText className="text-[12px] uppercase tracking-[2px] text-blue-dark">Match complete</PixelText>
           <PixelText className="mt-1 text-base uppercase text-ink">Full-time report</PixelText>
         </View>
         <SettingsButton onPress={onOpenSettings} />
@@ -57,7 +57,7 @@ export function PostMatchLedgerScreen({
             the width to spell both out without crowding the score. */}
         <View className="items-center py-3">
           <StatusChip label="Full time" tone={resultTone} />
-          <PixelText className="mt-3 text-sm uppercase text-blue-dark">{result.competition}</PixelText>
+          <PixelText className="mt-3 text-[12px] uppercase text-blue-dark">{result.competition}</PixelText>
 
           <TeamLine
             name={result.homeTeam}
@@ -67,9 +67,9 @@ export function PostMatchLedgerScreen({
           />
 
           <View className="mt-3 flex-row items-center border-2 border-ink bg-ink px-5 py-3">
-            <Text className="font-mono text-3xl text-paper">{result.homeScore}</Text>
-            <Text className="mx-3 font-mono text-xl text-paper/60">–</Text>
-            <Text className="font-mono text-3xl text-paper">{result.awayScore}</Text>
+            <Text className="font-mono text-[26px] text-paper">{result.homeScore}</Text>
+            <Text className="mx-3 font-mono text-[18px] text-paper/60">–</Text>
+            <Text className="font-mono text-[26px] text-paper">{result.awayScore}</Text>
           </View>
           {result.winner === null ? (
             <PixelText className="mt-3 text-base uppercase text-ink/70">Draw</PixelText>
@@ -156,8 +156,8 @@ function TeamLine({
       {outcome ? (
         <PixelText
           className={outcome === 'WIN'
-            ? 'mt-2 text-xl uppercase text-pitch-ink'
-            : 'mt-2 text-xl uppercase text-red-dark'}
+            ? 'mt-2 text-[18px] uppercase text-pitch-ink'
+            : 'mt-2 text-[18px] uppercase text-red-dark'}
         >
           {outcome === 'WIN' ? 'We Won!' : 'We Lost'}
         </PixelText>

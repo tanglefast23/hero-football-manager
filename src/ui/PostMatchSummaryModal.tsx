@@ -70,16 +70,19 @@ export function PostMatchSummaryModal({
           >
             <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
               <View className="flex-1 pr-3">
-                <Text className="font-pixel text-sm uppercase text-blue-dark">Back at the office</Text>
-                <Text className="mt-1 font-pixel text-xl uppercase text-ink">Match summary</Text>
+                <Text className="font-pixel text-[12px] uppercase text-blue-dark">Back at the office</Text>
+                <Text className="mt-1 font-pixel text-[18px] uppercase text-ink">Match summary</Text>
               </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Close match summary"
                 onPress={onDismiss}
                 className="h-11 w-11 items-center justify-center border-2 border-ink bg-white"
+                // Explicit points: h-11 is 38.5pt on native, under the 44pt
+                // touch-target contract — see ActionButton's minHeight.
+                style={{ minWidth: 44, minHeight: 44 }}
               >
-                <Text className="font-pixel text-lg text-ink">×</Text>
+                <Text className="font-pixel text-[16px] text-ink">×</Text>
               </Pressable>
             </View>
 
@@ -89,9 +92,9 @@ export function PostMatchSummaryModal({
                   {viewModel.result.homeTeam}
                 </PixelText>
                 <View className="flex-row items-center border-2 border-ink bg-ink px-3 py-2">
-                  <Text className="font-mono text-xl text-paper">{viewModel.result.homeScore}</Text>
+                  <Text className="font-mono text-[18px] text-paper">{viewModel.result.homeScore}</Text>
                   <Text className="mx-2 font-mono text-base text-paper/60">–</Text>
-                  <Text className="font-mono text-xl text-paper">{viewModel.result.awayScore}</Text>
+                  <Text className="font-mono text-[18px] text-paper">{viewModel.result.awayScore}</Text>
                 </View>
                 <PixelText className="max-w-28 flex-1 text-base uppercase text-ink" numberOfLines={2}>
                   {viewModel.result.awayTeam}
@@ -241,7 +244,7 @@ function CountUpAmount({
     <Text
       accessible
       accessibilityLabel={`${amount > 0 ? 'plus ' : amount < 0 ? 'minus ' : ''}${formatCurrency(Math.abs(amount))}`}
-      className={large ? 'font-mono text-xl' : 'font-mono text-base'}
+      className={large ? 'font-mono text-[18px]' : 'font-mono text-base'}
       style={{ color }}
     >
       {formatCurrency(displayAmount, true)}

@@ -110,6 +110,36 @@ describe('league championship celebration', () => {
     expect(completeChampionshipCelebration(completed)).toBe(completed);
   });
 
+  it('is total: renders without a pending celebration instead of throwing', () => {
+    const state = createCareer(createLaunchCareerSetup(777));
+
+    expect(hasPendingChampionshipCelebration(state)).toBe(false);
+    expect(() => championshipCelebrationViewModel(state, 'Bert Rudge')).not.toThrow();
+  });
+
+  it('parades a stand-in star when a damaged save leaves the champions empty-handed', () => {
+    const state = championState();
+    // Hand-damaged: the pending check still fires, but the club has no squad,
+    // no lineup and no recorded goals. The screen sits inside the season
+    // transition, so the view model must render rather than strand the save.
+    const damaged = {
+      ...state,
+      players: state.players.filter(player => player.clubId !== state.userClubId),
+      lineups: [],
+      seasonStatLines: [],
+    };
+
+    expect(hasPendingChampionshipCelebration(damaged)).toBe(true);
+    const viewModel = championshipCelebrationViewModel(damaged, 'Bert Rudge');
+    expect(viewModel.star.name).toBe('Your captain');
+    expect(viewModel.star.goals).toBe(0);
+    expect(viewModel.star.hasRecordedGoals).toBe(false);
+    expect(viewModel.squad).toHaveLength(0);
+    // The way off the screen stays reachable too.
+    expect(completeChampionshipCelebration(damaged).eventFlags)
+      .toContain(championshipCelebrationFlag(1));
+  });
+
   it('does not trigger for a club that did not win the division', () => {
     const state = championState();
     const losingFixtures = state.fixtures.map(fixture => {
