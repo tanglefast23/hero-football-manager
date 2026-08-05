@@ -160,7 +160,9 @@ describe('facility weekly integration', () => {
         grid: {
           ...built.facilities.grid!,
           buildings: built.facilities.grid!.buildings.map(building => (
-            building.type === 'training-pitch' ? { ...building, level: 3 as const } : building
+            building.type === 'training-pitch'
+              ? { ...building, level: 3 as const, capitalInvested: 36_000 }
+              : building
           )),
         },
       },
@@ -247,6 +249,7 @@ describe('facility weekly integration', () => {
             id: `facility-${index + 1}`,
             type: 'stadium-stand' as const,
             level,
+            capitalInvested: level === 1 ? 15_000 : level === 2 ? 34_000 : 68_000,
             x: index * 2,
             y: 0,
           })),
@@ -288,7 +291,14 @@ describe('facility weekly integration', () => {
             nextBuildingId: 2,
             buildings: level === 0
               ? []
-              : [{ id: 'facility-1', type: 'gym' as const, level, x: 0, y: 0 }],
+              : [{
+                  id: 'facility-1',
+                  type: 'gym' as const,
+                  level,
+                  capitalInvested: level === 1 ? 7_000 : level === 2 ? 16_000 : 32_000,
+                  x: 0,
+                  y: 0,
+                }],
           },
         },
       };

@@ -114,6 +114,7 @@ describe('weekly player wellbeing', () => {
             id: `facility-${index + 1}`,
             type: 'dorm' as const,
             level,
+            capitalInvested: level === 1 ? 6_000 : level === 2 ? 13_500 : 27_000,
             x: index,
             y: 0,
           })),

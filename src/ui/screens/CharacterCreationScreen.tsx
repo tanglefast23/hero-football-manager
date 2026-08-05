@@ -299,7 +299,7 @@ export function CharacterCreationScreen({
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
       <ChalkboardBackdrop wide={wide} />
       <View className={wide ? 'w-full max-w-[1180px] self-center px-10 pt-6' : 'px-5 py-4'}>
         <View className="flex-row items-start justify-between gap-3">

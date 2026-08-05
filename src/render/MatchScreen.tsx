@@ -9,6 +9,7 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 import { createMatch, MAX_SUBSTITUTIONS, queueInput, tick } from '../sim/match';
+import { queueControlledAutoSubstitution } from '../game/match-policy';
 import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
 import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
@@ -99,11 +100,6 @@ import {
   powerMatchShowcaseSucceeded,
   powerMatchShowcaseSuccessRestartsPlay,
 } from './power-match-showcase';
-import {
-  AUTO_SUBSTITUTION_TICKS,
-  automaticEmergencySubstitutionChoice,
-  automaticSubstitutionChoice,
-} from '../sim/auto-coaching';
 import { Pitch } from './Pitch';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playHapticForEvent } from './haptics';
@@ -1021,7 +1017,13 @@ export function MatchScreen({
         prevRef.current = before;
         const heldForPowerReview = powerMatchQa !== undefined
           && advancePowerMatchShowcaseReady(s, powerMatchQa.power);
-        if (!heldForPowerReview) tick(s);
+        if (!heldForPowerReview) {
+          tick(s);
+          // A frame may catch up several engine ticks. Evaluate Auto Subs after
+          // each one, in the same order as Quick Result, so a scheduled tick or
+          // a one-tick red-energy emergency cannot be skipped by frame batching.
+          queueControlledAutoSubstitution(s, autoSubsRef.current);
+        }
         advanced = true;
         nextRef.current = snapshotFrame(s, before);
 
@@ -1496,23 +1498,6 @@ export function MatchScreen({
       if (snap) {
         prevRef.current = nextRef.current;
         trailRef.current = [];
-      }
-
-      // Opt-in bench cover for the watched team. This queues the same recorded
-      // SUBSTITUTE input a tap would, using planned checkpoints plus the same
-      // immediate red-energy response as automatic teams, so replays stay honest.
-      if (advanced && autoSubsRef.current && s.phase !== 'fulltime') {
-        const choice = AUTO_SUBSTITUTION_TICKS.includes(s.tick)
-          ? automaticSubstitutionChoice(s, controlledTeam)
-          : automaticEmergencySubstitutionChoice(s, controlledTeam);
-        if (choice !== null) {
-          queueInput(match, {
-            tick: s.tick + 1,
-            kind: 'SUBSTITUTE',
-            player: choice.playerIndex,
-            replacementId: choice.replacementId,
-          });
-        }
       }
 
       if (advanced) {

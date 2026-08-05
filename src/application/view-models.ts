@@ -56,12 +56,18 @@ import {
   roleOverall,
   scheduleAssistantInboxWeek,
   SEASON_WEEKS,
+  SPONSOR_PAYMENT_WEEKS,
   trainingPathAttribute,
   TRAINING_PATHS,
   TRAINING_PITCH_TP_PER_LEVEL,
   BASE_WEEKLY_TRAINING_POINTS,
+  BUZZ_WIN_POINTS,
   coachWeeklyTrainingPoints,
   facilityCloseRefund,
+  actualSponsorPortfolioIncome,
+  allocateSponsorPortfolioPayment,
+  nominalSponsorPortfolioIncome,
+  sponsorObjectiveProgressFromFixtures,
   isFacilityOperational,
   weeklyFacilityUpkeep,
   weeklyAmbientTrainingPoints,
@@ -74,6 +80,8 @@ import {
   type LedgerLineKind,
   type PlacedFacility,
   type AssistantInboxGuideSequenceId,
+  type SponsorContractSnapshot,
+  type SponsorOfferSnapshot,
 } from '../game';
 import type {
   AwakeningCutsceneViewModel,
@@ -251,7 +259,7 @@ export function awakeningCutsceneViewModel(
 const STATEMENT_WEEKS = 4;
 
 /** The three ledger kinds no weekly projection can forecast. */
-const VARIABLE_INCOME_KINDS: readonly LedgerLineKind[] = ['tickets', 'sponsor', 'prize'];
+const VARIABLE_INCOME_KINDS: readonly LedgerLineKind[] = ['tickets', 'sponsor', 'buzz', 'prize'];
 
 function ledgerLineKind(amount: number): 'income' | 'expense' | 'neutral' {
   return amount > 0 ? 'income' : amount < 0 ? 'expense' : 'neutral';
@@ -288,6 +296,7 @@ function variableIncomeViewModel(state: GameState): ClubVariableIncomeViewModel 
 
 export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
   const club = requireUserClub(state);
+  const sponsorship = clubSponsorshipViewModel(state, club);
   const wageSubsidyPercent = difficultyRules(state).seasonOneWageSubsidyPercent;
   const latest = state.ledgers[state.ledgers.length - 1];
   const facilityUpkeep = state.facilities.grid === undefined
@@ -388,7 +397,152 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     coachingStaff: coachingStaffViewModels(state),
     facilities: facilityGridViewModel(state),
     trainingPointIncome: trainingPointIncomeViewModel(state),
+    ...(sponsorship === undefined ? {} : { sponsorship }),
   };
+}
+
+function clubSponsorshipViewModel(
+  state: GameState,
+  club: GameState['clubs'][number],
+): ClubFinancesViewModel['sponsorship'] {
+  const sponsorship = state.clubBusiness.sponsorship;
+  const managed = sponsorship.activeContracts.length > 0;
+  if (!managed && state.season < 3) return undefined;
+
+  const sponsorPercent = difficultyRules(state).sponsorIncomePercent;
+  const actualAllocations = managed
+    ? allocateSponsorPortfolioPayment(sponsorship.activeContracts, sponsorPercent)
+    : [];
+  const actualByContract = new Map(actualAllocations.map(allocation => [
+    allocation.contractId,
+    allocation.actualAmount,
+  ]));
+  const nominalMonthlyIncome = managed
+    ? nominalSponsorPortfolioIncome(sponsorship.activeContracts)
+    : club.sponsorMonthlyFee;
+  const actualMonthlyIncome = managed
+    ? actualSponsorPortfolioIncome(sponsorship.activeContracts, sponsorPercent)
+    : Math.floor(club.sponsorMonthlyFee * sponsorPercent / 100);
+  const bonusByContract = actualObjectiveBonuses(sponsorship.activeContracts, sponsorPercent);
+  const nextSponsorPaymentWeek = SPONSOR_PAYMENT_WEEKS.find(week => week >= state.week);
+
+  const slots = sponsorship.activeContracts.map(contract => {
+    const progress = contract.objective === undefined
+      ? undefined
+      : sponsorObjectiveProgressFromFixtures(
+          contract.objective,
+          state.fixtures,
+          state.userClubId,
+          state.season,
+        );
+    const objectiveStatus = contract.objectiveOutcome === undefined
+      ? 'IN_PROGRESS' as const
+      : contract.objectiveOutcome.met ? 'MET' as const : 'FAILED' as const;
+    return {
+      slot: contract.slot,
+      slotLabel: `Slot ${contract.slot + 1}`,
+      sponsorName: contract.sponsorName,
+      offerLine: contract.offerLine,
+      provisional: contract.provisional,
+      nominalMonthlyFee: contract.nominalMonthlyFee,
+      actualMonthlyFee: actualByContract.get(contract.contractId) ?? 0,
+      ...(contract.objective === undefined ? {} : {
+        objectiveLabel: contract.objective.label,
+        objectiveProgressLabel: progress === undefined
+          ? undefined
+          : contract.objective.kind === 'LEAGUE_FINISH'
+            ? `Current place ${progress.value} · Target top ${progress.target}`
+            : `${progress.value} / ${progress.target}`,
+        objectiveStatus,
+        nominalBonus: contract.objective.nominalBonus,
+        actualBonus: contract.objectiveOutcome?.actualBonus
+          ?? bonusByContract.get(contract.contractId)
+          ?? 0,
+      }),
+      offers: sponsorship.offers
+        .filter(offer => offer.slot === contract.slot)
+        .map(offer => sponsorOfferViewModel(
+          offer,
+          sponsorship.activeContracts,
+          sponsorPercent,
+        )),
+    };
+  });
+  const buzz = state.season < 3
+    ? undefined
+    : {
+        value: state.clubBusiness.buzz.value,
+        pendingPayout: Math.round(actualMonthlyIncome * state.clubBusiness.buzz.value / 100),
+        nextPayoutLabel: state.week <= 15 ? 'Week 15' : 'Week 30',
+        ...(state.clubBusiness.buzz.lastSettlementSummary === undefined ? {} : {
+          lastSettlementLabel: `Reached ${state.clubBusiness.buzz.lastSettlementSummary.prePayoutValue} · Paid $${state.clubBusiness.buzz.lastSettlementSummary.payout.toLocaleString()} · Reset to 0`,
+        }),
+      };
+  return {
+    managed,
+    offerWindowOpen: managed && state.week <= 4 && sponsorship.offers.length > 0,
+    actualMonthlyIncome,
+    nominalMonthlyIncome,
+    nextPaymentLabel: nextSponsorPaymentWeek === undefined
+      ? 'Next pre-season'
+      : `Week ${nextSponsorPaymentWeek}`,
+    ...(sponsorPercent === 100 ? {} : { chairmanPercent: sponsorPercent }),
+    slots,
+    ...(buzz === undefined ? {} : { buzz }),
+  };
+}
+
+function sponsorOfferViewModel(
+  offer: SponsorOfferSnapshot,
+  contracts: readonly SponsorContractSnapshot[],
+  sponsorPercent: number,
+) {
+  const hypothetical: SponsorContractSnapshot[] = contracts.map(contract => contract.slot === offer.slot
+    ? {
+        contractId: `preview-${offer.offerId}`,
+        sponsorContentId: offer.sponsorContentId,
+        sponsorName: offer.sponsorName,
+        offerLine: offer.offerLine,
+        season: offer.season,
+        slot: offer.slot,
+        nominalMonthlyFee: offer.nominalMonthlyFee,
+        profile: offer.profile,
+        objective: offer.objective,
+        provisional: false,
+      }
+    : contract);
+  const previewId = `preview-${offer.offerId}`;
+  const actualMonthlyFee = allocateSponsorPortfolioPayment(hypothetical, sponsorPercent)
+    .find(allocation => allocation.contractId === previewId)?.actualAmount ?? 0;
+  const actualBonus = actualObjectiveBonuses(hypothetical, sponsorPercent).get(previewId) ?? 0;
+  return {
+    offerId: offer.offerId,
+    sponsorName: offer.sponsorName,
+    offerLine: offer.offerLine,
+    profile: offer.profile,
+    profileLabel: offer.profile === 'STEADY'
+      ? 'Steady'
+      : offer.profile === 'BALANCED' ? 'Balanced' : 'Bold',
+    nominalMonthlyFee: offer.nominalMonthlyFee,
+    actualMonthlyFee,
+    objectiveLabel: offer.objective.label,
+    nominalBonus: offer.objective.nominalBonus,
+    actualBonus,
+  };
+}
+
+function actualObjectiveBonuses(
+  contracts: readonly SponsorContractSnapshot[],
+  sponsorPercent: number,
+): Map<string, number> {
+  const bonusContracts = contracts.map(contract => ({
+    ...contract,
+    nominalMonthlyFee: contract.objective?.nominalBonus ?? 0,
+  }));
+  return new Map(allocateSponsorPortfolioPayment(bonusContracts, sponsorPercent).map(allocation => [
+    allocation.contractId,
+    allocation.actualAmount,
+  ]));
 }
 
 /**
@@ -564,30 +718,36 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
         }),
       };
     }),
-    catalog: Object.values(FACILITY_CATALOG).filter(definition => definition.available).map(definition => ({
-      type: definition.type,
-      name: definition.name,
-      buildCost: definition.buildCost,
-      width: definition.footprint.width,
-      height: definition.footprint.height,
-      weeklyUpkeep: definition.weeklyUpkeep[0],
-      effectLabel: facilityEffectLabel(definition.type, 1),
-      available: definition.available,
-      affordable: definition.available
-        && grid.construction === undefined
-        && club.cash >= definition.buildCost,
-      affordabilityShortfall: definition.available
-        ? Math.max(0, definition.buildCost - club.cash)
-        : 0,
-      buildWeeks: definition.buildWeeks,
-      ...(!definition.available
-        ? { blockedReason: 'Locked.' }
-        : grid.construction !== undefined
-          ? { blockedReason: 'Construction crew is already assigned.' }
-          : club.cash < definition.buildCost
-            ? { blockedReason: 'Insufficient balance.' }
-            : {}),
-    })),
+    catalog: Object.values(FACILITY_CATALOG).filter(definition => definition.available).map(definition => {
+      const alreadyBuilt = grid.buildings.some(building => building.type === definition.type);
+      return {
+        type: definition.type,
+        name: definition.name,
+        buildCost: definition.buildCost,
+        width: definition.footprint.width,
+        height: definition.footprint.height,
+        weeklyUpkeep: definition.weeklyUpkeep[0],
+        effectLabel: facilityEffectLabel(definition.type, 1),
+        available: definition.available,
+        affordable: definition.available
+          && !alreadyBuilt
+          && grid.construction === undefined
+          && club.cash >= definition.buildCost,
+        affordabilityShortfall: definition.available && !alreadyBuilt
+          ? Math.max(0, definition.buildCost - club.cash)
+          : 0,
+        buildWeeks: definition.buildWeeks,
+        ...(!definition.available
+          ? { blockedReason: 'Locked.' }
+          : alreadyBuilt
+            ? { blockedReason: 'Already built. Select it on the grid to upgrade or move it.' }
+            : grid.construction !== undefined
+              ? { blockedReason: 'Construction crew is already assigned.' }
+              : club.cash < definition.buildCost
+                ? { blockedReason: 'Insufficient balance.' }
+                : {}),
+      };
+    }),
     weeklyUpkeep: weeklyFacilityUpkeep(grid),
     activeAdjacencies,
     discoveredAdjacencies: [...grid.discoveredAdjacencies],
@@ -614,7 +774,7 @@ function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
     `+${TRAINING_BONUS_PERCENT[level]}% ${attributes} training`
   );
   if (type === 'training-pitch') {
-    return `+${level * 10} TP weekly · +${TRAINING_BONUS_PERCENT[level]}% DEF training`;
+    return `+${TRAINING_PITCH_TP_PER_LEVEL} TP per completed level · +${TRAINING_BONUS_PERCENT[level]}% DEF training`;
   }
   if (type === 'gym') return trainingEffect('PAC + STA');
   if (type === 'tech-center') return trainingEffect('PAS + TEC');
@@ -833,6 +993,42 @@ export function seasonEndViewModel(
   const memorableEventTitle = recap?.memorableEventId === undefined
     ? undefined
     : content.events.events.find(event => event.id === recap.memorableEventId)?.title;
+  const objectiveResults = state.clubBusiness.sponsorship.activeContracts
+    .filter(contract => (
+      contract.season === state.season
+      && contract.objective !== undefined
+      && contract.objectiveOutcome?.settledSeason === state.season
+    ))
+    .sort((left, right) => left.slot - right.slot || left.contractId.localeCompare(right.contractId))
+    .map(contract => ({
+      contractId: contract.contractId,
+      sponsorName: contract.sponsorName,
+      objectiveLabel: contract.objective!.label,
+      met: contract.objectiveOutcome!.met,
+      // This is deliberately the persisted settlement value. Recomputing from
+      // nominal terms here could lie by a dollar after Chairman allocation.
+      actualBonus: contract.objectiveOutcome!.actualBonus,
+    }));
+  const objectiveBonusTotal = objectiveResults.reduce(
+    (sum, result) => sum + result.actualBonus,
+    0,
+  );
+  const buzzSummary = state.clubBusiness.buzz.lastSettlementSummary;
+  const seasonEndBuzz = buzzSummary?.season === state.season && buzzSummary.half === 2
+    ? {
+        reached: buzzSummary.prePayoutValue,
+        actualPayout: buzzSummary.payout,
+        resetTo: buzzSummary.resetValue,
+      }
+    : undefined;
+  const clubBusinessSettlement = objectiveResults.length === 0 && seasonEndBuzz === undefined
+    ? undefined
+    : {
+        objectiveResults,
+        objectiveBonusTotal,
+        ...(seasonEndBuzz === undefined ? {} : { buzz: seasonEndBuzz }),
+        actualPayoutTotal: objectiveBonusTotal + (seasonEndBuzz?.actualPayout ?? 0),
+      };
 
   return {
     seasonLabel: `Season ${state.season} · ${divisionTierLabel(division)}`,
@@ -882,6 +1078,7 @@ export function seasonEndViewModel(
             items: newlyUnlockedRewards.map(reward => ({ ...reward })),
           },
         }),
+    ...(clubBusinessSettlement === undefined ? {} : { clubBusinessSettlement }),
     ...(expiredPlayer ? {
       expiredContract: {
         playerId: expiredPlayer.id,
@@ -1721,29 +1918,38 @@ export function homeViewModel(state: GameState): HomeViewModel {
         : (() => {
             const sold = state.players.find(player => player.id === latestBoardResolution.playerId);
             const replacement = state.players.find(player => player.id === latestBoardResolution.replacementPlayerId);
-            if (sold === undefined || replacement === undefined) {
-              throw new Error('board resolution references missing players');
-            }
+            const buyerName = clubName(state, latestBoardResolution.buyerClubId);
+            // A Week-30 sale is first delivered on the next season's Home
+            // screen. By then the opponent roster has been regenerated, so the
+            // sold player can legitimately be absent even though the saved
+            // verdict is valid. Keep the durable money/outcome facts visible
+            // and enrich only the player sides that still exist.
+            const saleDetail = sold === undefined
+              ? `The board completed a forced sale to ${buyerName} for ${formatMoney(latestBoardResolution.fee)}`
+              : `${sold.name} joined ${buyerName}`;
+            const replacementDetail = replacement === undefined
+              ? 'The academy filled the vacancy to keep a complete 16-player squad'
+              : `The academy promoted ${replacement.name} to keep a complete 16-player squad`;
             return {
               kind: 'FORCED_SALE' as const,
               headline: 'A hard sale and a new chance',
-              detail: `${sold.name} joined ${clubName(state, latestBoardResolution.buyerClubId)}. The academy promoted ${replacement.name} to keep a complete 16-player squad.`,
-              soldPlayer: {
+              detail: `${saleDetail}. ${replacementDetail}.`,
+              ...(sold === undefined ? {} : { soldPlayer: {
                 id: sold.id,
                 name: sold.name,
                 role: sold.role,
                 lookId: sold.lookId,
-                buyerName: clubName(state, latestBoardResolution.buyerClubId),
+                buyerName,
                 fee: latestBoardResolution.fee,
-              },
-              replacementPlayer: {
+              } }),
+              ...(replacement === undefined ? {} : { replacementPlayer: {
                 id: replacement.id,
                 name: replacement.name,
                 role: replacement.role,
                 lookId: replacement.lookId,
                 age: replacement.age ?? 17,
                 weeklyWage: replacement.weeklyWage,
-              },
+              } }),
               fansLost: latestBoardResolution.fansLost,
               moraleDelta: latestBoardResolution.moraleDelta,
             };
@@ -2099,6 +2305,7 @@ export function postMatchViewModel(
   fixtureId: string,
   score: { homeGoals: number; awayGoals: number },
   highlights: PostMatchViewModel['highlights'] = [],
+  buzzPowerFiredPlayerIds?: readonly string[],
 ): PostMatchViewModel {
   const leagueFixture = before.fixtures.find(candidate => candidate.id === fixtureId);
   const cupRound = before.m2?.nationalCups
@@ -2136,6 +2343,15 @@ export function postMatchViewModel(
       : { cupTie: { opponentClubId, season: cupFixture.season } }),
   });
   const reaction = fulltimeReaction(after, fixtureId, score, outcomeLabel, pool);
+  const buzz = buzzPowerFiredPlayerIds === undefined || before.season < 3
+    ? undefined
+    : postMatchBuzzViewModel(
+        before,
+        after,
+        outcomeLabel,
+        goalsFor,
+        buzzPowerFiredPlayerIds,
+      );
 
   return {
     result: {
@@ -2148,9 +2364,13 @@ export function postMatchViewModel(
       homeScore: score.homeGoals,
       awayScore: score.awayGoals,
       outcomeLabel,
-      winner: score.homeGoals > score.awayGoals
+      winner: cupWinnerClubId === fixture.homeClubId
         ? 'home'
-        : score.awayGoals > score.homeGoals ? 'away' : null,
+        : cupWinnerClubId === fixture.awayClubId
+          ? 'away'
+          : score.homeGoals > score.awayGoals
+            ? 'home'
+            : score.awayGoals > score.homeGoals ? 'away' : null,
       cupExit: cupRound !== undefined && outcomeLabel === 'LOSS',
     },
     ledger: (ledger?.lines ?? []).map((line, index) => ({
@@ -2162,10 +2382,53 @@ export function postMatchViewModel(
     netAmount: (ledger?.lines ?? []).reduce((sum, line) => sum + line.amount, 0),
     trainingPointsGained: after.trainingPoints - before.trainingPoints,
     fanDelta: requireUserClub(after).fans - requireUserClub(before).fans,
+    ...(buzz === undefined ? {} : { buzz }),
     highlights,
     updates: weekUpdates(before, after),
     ...(completedFacility === undefined ? {} : { facilityCompletion: completedFacility }),
     ...(reaction === undefined ? {} : { reaction }),
+  };
+}
+
+function postMatchBuzzViewModel(
+  before: GameState,
+  after: GameState,
+  outcome: 'WIN' | 'DRAW' | 'LOSS',
+  goalsFor: number,
+  powerFiredPlayerIds: readonly string[],
+): NonNullable<PostMatchViewModel['buzz']> {
+  const win = outcome === 'WIN' ? BUZZ_WIN_POINTS : 0;
+  const goals = goalsFor;
+  const heroMoments = new Set(powerFiredPlayerIds).size * 2;
+  const rawEarned = win + goals + heroMoments;
+  const pendingBefore = before.clubBusiness.pendingUserMatchImpacts.reduce(
+    (sum, impact) => sum + impact.buzzWin + impact.buzzGoals + impact.buzzHeroMoments,
+    0,
+  );
+  const valueBeforeThisMatch = Math.min(100, before.clubBusiness.buzz.value + pendingBefore);
+  const earned = Math.min(rawEarned, 100 - valueBeforeThisMatch);
+  const pendingAfter = after.clubBusiness.pendingUserMatchImpacts.reduce(
+    (sum, impact) => sum + impact.buzzWin + impact.buzzGoals + impact.buzzHeroMoments,
+    0,
+  );
+  const valueAfter = after.clubBusiness.pendingUserMatchImpacts.length > 0
+    ? Math.min(100, after.clubBusiness.buzz.value + pendingAfter)
+    : after.clubBusiness.buzz.value;
+  const previousSettlement = before.clubBusiness.buzz.lastSettlementSummary;
+  const settlement = after.clubBusiness.buzz.lastSettlementSummary;
+  const newSettlement = settlement !== undefined && (
+    previousSettlement === undefined
+    || settlement.season !== previousSettlement.season
+    || settlement.half !== previousSettlement.half
+  );
+  return {
+    earned,
+    rawEarned,
+    valueAfter,
+    win,
+    goals,
+    heroMoments,
+    ...(newSettlement ? { payout: settlement.payout } : {}),
   };
 }
 

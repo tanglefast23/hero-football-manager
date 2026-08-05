@@ -420,6 +420,65 @@
       ]
     },
     {
+      "id": "sponsor-desk",
+      "inbox": {
+        "title": "SPONSORS ARE CALLING",
+        "detail": "Moving up the divisions has put the club on bigger companies' radar."
+      },
+      "destination": "club-finances",
+      "pages": [
+        {
+          "kicker": "A bigger division",
+          "title": "Now they know our name",
+          "body": [
+            "We've moved up in the divisions, boss. Bigger sponsors are interested now. Compare the monthly money and the season target, then choose who gets a slot."
+          ],
+          "focus": "sponsor-desk",
+          "objective": "REVIEW THE SPONSOR OFFERS.",
+          "buttonLabel": "Show me who's calling."
+        }
+      ]
+    },
+    {
+      "id": "sponsor-desk-continuity",
+      "inbox": {
+        "title": "SPONSOR INCOME CONTINUES",
+        "detail": "Your current deal is safe. New offers arrive next pre-season."
+      },
+      "destination": "club-finances",
+      "pages": [
+        {
+          "kicker": "Business already underway",
+          "title": "Your income is safe",
+          "body": [
+            "The club has already moved up in the divisions, boss. Your current sponsor income carries on this season. The new offers arrive next pre-season."
+          ],
+          "focus": "sponsor-summary",
+          "buttonLabel": "Show me the current deal."
+        }
+      ]
+    },
+    {
+      "id": "sponsor-buzz",
+      "inbox": {
+        "title": "THE CLUB IS TRENDING",
+        "detail": "The team has a real following now, and sponsors are watching."
+      },
+      "destination": "club-finances",
+      "pages": [
+        {
+          "kicker": "A proper following",
+          "title": "People are talking",
+          "body": [
+            "We're famous enough to have a proper social media following now. Goals, wins and hero moments build Buzz. Sponsors pay it out twice each season."
+          ],
+          "focus": "sponsor-buzz",
+          "objective": "REVIEW THE BUZZ METER.",
+          "buttonLabel": "Show me the noise."
+        }
+      ]
+    },
+    {
       "id": "first-injury",
       "inbox": {
         "title": "Your first injury",

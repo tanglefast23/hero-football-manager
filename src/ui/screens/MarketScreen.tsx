@@ -302,7 +302,7 @@ function YouthDesk({
   const intake = viewModel.youth;
   if (intake === undefined) return null;
   return (
-    <View className="relative overflow-hidden border-[3px] border-ink bg-pitch-dark p-4">
+    <View className="relative overflow-hidden border-[3px] border-ink bg-pitch-ink p-4">
       {/* The academy gets its own chalkboard stage inside the market desk. */}
       <View pointerEvents="none" className="absolute -left-12 -top-10 h-40 w-40 rounded-full border-4 border-paper/10" />
       <View pointerEvents="none" className="absolute -right-10 bottom-4 h-32 w-32 rounded-full border-4 border-paper/10" />
@@ -621,7 +621,7 @@ function TransferDesk({
                       <View key={bid.id} className="flex-row items-center gap-3 border-2 border-ink bg-paper px-3 py-2">
                         <View className="flex-1">
                           <Text className="font-bold text-ink">{index + 1}. {bid.buyerName}</Text>
-                          <Text className="mt-1 font-mono text-sm text-pitch-dark">
+                          <Text className="mt-1 font-mono text-sm text-pitch-ink">
                             {formatCurrency(bid.fee)} fee
                           </Text>
                         </View>
@@ -1063,7 +1063,7 @@ function YouthStatLine({
             </Text>
             <View className="mt-1 h-1 bg-ink/10">
               <View
-                className={strongest ? 'h-1 bg-gold-dark' : 'h-1 bg-pitch-dark'}
+                className={strongest ? 'h-1 bg-gold-dark' : 'h-1 bg-pitch-ink'}
                 style={{ width: `${Math.max(0, Math.min(100, stat.value))}%` }}
               />
             </View>

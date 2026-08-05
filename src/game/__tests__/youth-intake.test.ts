@@ -42,6 +42,11 @@ function careerWithRosterSize(
               id: 'facility-1',
               type: 'youth-field',
               level: youthFieldLevel,
+              capitalInvested: youthFieldLevel === 1
+                ? 12_000
+                : youthFieldLevel === 2
+                  ? 27_000
+                  : 54_000,
               x: 0,
               y: 0,
             }],
@@ -101,6 +106,7 @@ describe('pre-season youth intake', () => {
             id: `facility-${index + 1}`,
             type: 'youth-field' as const,
             level,
+            capitalInvested: level === 1 ? 12_000 : level === 2 ? 27_000 : 54_000,
             x: index * 2,
             y: 0,
           })),

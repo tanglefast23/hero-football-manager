@@ -17,7 +17,7 @@ describe('overlay dismissal', () => {
     ['player signing receipt', 'src/ui/PlayerSigningOverlay.tsx'],
     ['coach staff overlay', 'src/ui/CoachStaffOverlay.tsx'],
     ['facility placement confirmation', 'src/ui/FacilityPlacementConfirmation.tsx'],
-    ['club decision sheet', 'App.tsx'],
+    ['club decision sheet', 'src/ui/components/ConfirmationSheet.tsx'],
   ] as const;
 
   it.each(dismissable)('closes %s on an outside tap', (_label, path) => {
@@ -44,11 +44,14 @@ describe('overlay dismissal', () => {
    * share. Cancel is the safe half of all of them.
    */
   it('cancels rather than commits when the club decision sheet is tapped away', () => {
-    const file = source('App.tsx');
-    const sheet = file.slice(file.indexOf('function ConfirmationSheet'));
+    const file = source('src/ui/components/ConfirmationSheet.tsx');
+    const sheet = file.slice(file.indexOf('export function ConfirmationSheet'));
+    const backdrop = /<Pressable[\s\S]*?className="absolute inset-0"[\s\S]*?\/>/.exec(sheet)?.[0];
 
-    expect(sheet).toContain('className="absolute inset-0" onPress={onCancel}');
-    expect(sheet).not.toContain('className="absolute inset-0" onPress={onConfirm}');
+    expect(backdrop).toBeDefined();
+    expect(backdrop).toContain('onPress={cancel}');
+    expect(sheet).toMatch(/const cancel = useCallback\(\(\) => \{[\s\S]*?onCancel\(\);/);
+    expect(backdrop).not.toContain('onPress={onConfirm}');
   });
 
   it('cancels rather than approves when a build confirmation is tapped away', () => {
@@ -92,6 +95,8 @@ describe('overlay dismissal', () => {
     // The shared overlay is a plain Pressable, so the modal semantics the old
     // framed window had are the wrapper's job now.
     expect(walkOn).toContain('accessibilityViewIsModal');
+    expect(walkOn).toContain("role: 'dialog'");
+    expect(walkOn).toContain("'aria-modal': true");
   });
 
   it('shows and dismisses Bert instantly without changing the rookie walk-on', () => {

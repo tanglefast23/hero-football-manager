@@ -35,7 +35,7 @@ export function StickerWord({ text, wide = false }: { text: string; wide?: boole
 export function PaperSticker({ text, className = '' }: { text: string; className?: string }) {
   return (
     <View className={`-rotate-2 border-2 border-ink bg-paper px-3 py-2 ${className}`}>
-      <Text className="font-pixel text-xs uppercase text-pitch-dark">{text}</Text>
+      <Text className="font-pixel text-xs uppercase text-pitch-ink">{text}</Text>
     </View>
   );
 }
@@ -56,7 +56,9 @@ export function StageSection({
     <View className={`mb-3 flex-row items-end justify-between gap-3 ${className}`}>
       <View className="flex-1">
         <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{eyebrow}</Text>
-        <Text className="mt-1 font-pixel text-lg uppercase text-white">{title}</Text>
+        <Text accessibilityRole="header" className="mt-1 font-pixel text-lg uppercase text-white">
+          {title}
+        </Text>
       </View>
       {right}
     </View>

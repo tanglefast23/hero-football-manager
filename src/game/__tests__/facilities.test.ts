@@ -59,6 +59,23 @@ describe('facility catalog and grid', () => {
       && entry.upgradeWeeks.length === 2
       && entry.weeklyUpkeep.length === 3,
     )).toBe(true);
+    expect(Object.fromEntries(
+      Object.entries(FACILITY_CATALOG)
+        .filter(([type]) => type !== 'coaching-office')
+        .map(([type, entry]) => [type, entry.upgradeCosts]),
+    )).toEqual({
+      'training-pitch': [10_000, 18_000],
+      gym: [9_000, 16_000],
+      'tech-center': [11_500, 20_500],
+      'shooting-range': [9_500, 17_000],
+      'keeper-court': [9_500, 17_000],
+      'medical-bay': [12_500, 22_500],
+      dorm: [7_500, 13_500],
+      'scout-office': [7_500, 13_500],
+      'youth-field': [15_000, 27_000],
+      'fan-shop': [6_500, 11_500],
+      'stadium-stand': [19_000, 34_000],
+    });
   });
 
   test('builds immutably, charges the catalog cost, and generates stable IDs', () => {
@@ -71,8 +88,8 @@ describe('facility catalog and grid', () => {
     expect(first).toMatchObject({ cost: 7_000, cashAfter: 13_000 });
     expect(second).toMatchObject({ cost: 6_000, cashAfter: 7_000 });
     expect(second.grid.buildings).toEqual([
-      { id: 'facility-1', type: 'gym', level: 1, x: 2, y: 1 },
-      { id: 'facility-2', type: 'dorm', level: 1, x: 3, y: 1 },
+      { id: 'facility-1', type: 'gym', level: 1, capitalInvested: 7_000, x: 2, y: 1 },
+      { id: 'facility-2', type: 'dorm', level: 1, capitalInvested: 6_000, x: 3, y: 1 },
     ]);
     expect(second.grid.construction).toMatchObject({
       kind: 'BUILD',
@@ -100,6 +117,8 @@ describe('facility catalog and grid', () => {
   test('rejects locked, unaffordable, out-of-bounds, fractional, and overlapping builds', () => {
     const grid = finishConstruction(build(createFacilityGrid(), 'training-pitch', { x: 0, y: 0 }).grid);
 
+    expect(() => buildFacility(grid, 'training-pitch', { x: 4, y: 0 }, 1_000_000))
+      .toThrow(/Training Pitch is already built/);
     expect(() => buildFacility(grid, 'gym', { x: 3, y: 3 }, 6_999))
       .toThrow(/not affordable/);
     expect(() => buildFacility(grid, 'youth-field', { x: 7, y: 5 }, 1_000_000))
@@ -109,22 +128,34 @@ describe('facility catalog and grid', () => {
     expect(() => buildFacility(grid, 'medical-bay', { x: 1, y: 1 }, 1_000_000))
       .toThrow(/overlaps/);
   });
+
+  test('rejects a second copy while the first copy is still under construction', () => {
+    const grid = build(createFacilityGrid(), 'gym', { x: 0, y: 0 }).grid;
+
+    expect(() => buildFacility(grid, 'gym', { x: 2, y: 0 }, 1_000_000))
+      .toThrow(/Gym is already built/);
+  });
 });
 
 describe('facility upgrades and upkeep', () => {
   test('upgrades through level 3, charges each level, and totals weekly upkeep', () => {
-    const built = build(createFacilityGrid(), 'gym', { x: 0, y: 0 }, 30_000);
+    const built = build(createFacilityGrid(), 'gym', { x: 0, y: 0 }, 50_000);
+    expect(built.grid.buildings[0].capitalInvested).toBe(7_000);
     const ready = finishConstruction(built.grid);
     const levelTwoProject = upgradeFacility(ready, 'facility-1', built.cashAfter);
     expect(levelTwoProject.grid.buildings[0].level).toBe(1);
+    expect(levelTwoProject.grid.buildings[0].capitalInvested).toBe(16_000);
     expect(weeklyFacilityUpkeep(levelTwoProject.grid)).toBe(90);
     const levelTwoGrid = finishConstruction(levelTwoProject.grid);
+    expect(levelTwoGrid.buildings[0].capitalInvested).toBe(16_000);
     const levelThreeProject = upgradeFacility(levelTwoGrid, 'facility-1', levelTwoProject.cashAfter);
+    expect(levelThreeProject.grid.buildings[0].capitalInvested).toBe(32_000);
     const levelThreeGrid = finishConstruction(levelThreeProject.grid);
 
-    expect(levelTwoProject).toMatchObject({ cost: 7_000, cashAfter: 16_000 });
-    expect(levelThreeProject).toMatchObject({ cost: 10_500, cashAfter: 5_500 });
+    expect(levelTwoProject).toMatchObject({ cost: 9_000, cashAfter: 34_000 });
+    expect(levelThreeProject).toMatchObject({ cost: 16_000, cashAfter: 18_000 });
     expect(levelThreeGrid.buildings[0].level).toBe(3);
+    expect(levelThreeGrid.buildings[0].capitalInvested).toBe(32_000);
     expect(weeklyFacilityUpkeep(levelThreeGrid)).toBe(210);
     expect(() => upgradeFacility(levelThreeGrid, 'facility-1', 100_000))
       .toThrow(/already at level 3/);
@@ -134,7 +165,29 @@ describe('facility upgrades and upkeep', () => {
     const grid = finishConstruction(build(createFacilityGrid(), 'medical-bay', { x: 0, y: 0 }).grid);
 
     expect(() => upgradeFacility(grid, 'missing', 100_000)).toThrow(/unknown facility/);
-    expect(() => upgradeFacility(grid, 'facility-1', 9_999)).toThrow(/not affordable/);
+    expect(() => upgradeFacility(grid, 'facility-1', 12_499)).toThrow(/not affordable/);
+  });
+
+  test('rejects Coaching Office upgrades because higher levels have no benefit', () => {
+    const grid = finishConstruction(
+      build(createFacilityGrid(), 'coaching-office', { x: 0, y: 0 }).grid,
+    );
+
+    expect(() => upgradeFacility(grid, 'facility-1', 100_000))
+      .toThrow(/Coaching Office upgrades are disabled/);
+  });
+
+  test('rejects persisted investment outside the non-negative safe-integer invariant', () => {
+    const grid = finishConstruction(build(createFacilityGrid(), 'gym', { x: 0, y: 0 }).grid);
+    const withInvestment = (capitalInvested: number): FacilityGridState => ({
+      ...grid,
+      buildings: grid.buildings.map(building => ({ ...building, capitalInvested })),
+    });
+
+    expect(() => weeklyFacilityUpkeep(withInvestment(-1)))
+      .toThrow(/capital invested must be a non-negative safe integer/);
+    expect(() => weeklyFacilityUpkeep(withInvestment(1.5)))
+      .toThrow(/capital invested must be a non-negative safe integer/);
   });
 });
 
@@ -144,11 +197,11 @@ describe('closing a facility', () => {
     const ready = finishConstruction(built.grid);
     const upgraded = finishConstruction(upgradeFacility(ready, 'facility-1', 30_000).grid);
 
-    // 7,000 built + 7,000 to reach Level 2.
-    expect(facilityInvestment(upgraded.buildings[0])).toBe(14_000);
+    // 7,000 built + 9,000 to reach Level 2.
+    expect(facilityInvestment(upgraded.buildings[0])).toBe(16_000);
     const closed = closeFacility(upgraded, 'facility-1', 1_000);
 
-    expect(closed).toMatchObject({ cost: -7_000, cashAfter: 8_000 });
+    expect(closed).toMatchObject({ cost: -8_000, cashAfter: 9_000 });
     expect(closed.grid.buildings).toEqual([]);
     expect(weeklyFacilityUpkeep(closed.grid)).toBe(0);
   });
@@ -157,7 +210,15 @@ describe('closing a facility', () => {
     const seeded: FacilityGridState = {
       ...createFacilityGrid(),
       nextBuildingId: 2,
-      buildings: [{ id: 'facility-1', type: 'dorm', level: 1, x: 0, y: 0, seeded: true }],
+      buildings: [{
+        id: 'facility-1',
+        type: 'dorm',
+        level: 1,
+        capitalInvested: 0,
+        x: 0,
+        y: 0,
+        seeded: true,
+      }],
     };
 
     expect(facilityCloseRefund(seeded.buildings[0])).toBe(0);
@@ -220,6 +281,7 @@ describe('facility relocation and adjacency', () => {
       id: 'facility-1',
       type: 'shooting-range',
       level: 2,
+      capitalInvested: 17_000,
       x: 7,
       y: 4,
     });
@@ -266,7 +328,21 @@ describe('facility relocation and adjacency', () => {
     expect(activeFacilityAdjacencies(grid)).toEqual([]);
 
     grid = relocateFacility(grid, 'facility-2', { x: 1, y: 0 }, 1_000).grid;
-    grid = finishConstruction(build(grid, 'gym', { x: 2, y: 0 }).grid);
+    // Schema-3 careers could already contain duplicates. New purchases reject
+    // them, but decoding an old career must keep its paid building and the
+    // adjacency engine must still avoid stacking its benefit.
+    grid = {
+      ...grid,
+      nextBuildingId: 4,
+      buildings: [...grid.buildings, {
+        id: 'facility-3',
+        type: 'gym',
+        level: 1,
+        capitalInvested: 7_000,
+        x: 2,
+        y: 0,
+      }],
+    };
     expect(activeFacilityAdjacencies(grid)).toEqual(['gym-dorm']);
     expect(facilityEffects(grid).staminaTrainingBonusPercent).toBe(10);
   });

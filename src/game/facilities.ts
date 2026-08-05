@@ -90,17 +90,17 @@ export interface FacilityCatalogEntry {
 }
 
 export const FACILITY_CATALOG: Readonly<Record<FacilityType, FacilityCatalogEntry>> = {
-  'training-pitch': facility('training-pitch', 'Training Pitch', 2, 2, 8_000, 2, [8_000, 12_000], [2, 3], [100, 160, 240], 400),
-  gym: facility('gym', 'Gym', 1, 1, 7_000, 2, [7_000, 10_500], [2, 3], [90, 140, 210], 350),
-  'tech-center': facility('tech-center', 'Tech Center', 1, 1, 9_000, 2, [9_000, 13_500], [2, 3], [110, 175, 260], 450),
-  'shooting-range': facility('shooting-range', 'Shooting Range', 1, 2, 7_500, 2, [7_500, 11_250], [2, 3], [95, 150, 225], 375),
-  'keeper-court': facility('keeper-court', 'Keeper Court', 1, 2, 7_500, 2, [7_500, 11_250], [2, 3], [95, 150, 225], 375),
-  'medical-bay': facility('medical-bay', 'Medical Bay', 1, 1, 10_000, 2, [10_000, 15_000], [2, 3], [125, 200, 300], 500),
-  dorm: facility('dorm', 'Dorm', 1, 1, 6_000, 1, [6_000, 9_000], [1, 2], [75, 120, 180], 300),
-  'scout-office': facility('scout-office', 'Scout Office', 1, 1, 6_000, 1, [6_000, 9_000], [1, 2], [75, 120, 180], 300),
+  'training-pitch': facility('training-pitch', 'Training Pitch', 2, 2, 8_000, 2, [10_000, 18_000], [2, 3], [100, 160, 240], 400),
+  gym: facility('gym', 'Gym', 1, 1, 7_000, 2, [9_000, 16_000], [2, 3], [90, 140, 210], 350),
+  'tech-center': facility('tech-center', 'Tech Center', 1, 1, 9_000, 2, [11_500, 20_500], [2, 3], [110, 175, 260], 450),
+  'shooting-range': facility('shooting-range', 'Shooting Range', 1, 2, 7_500, 2, [9_500, 17_000], [2, 3], [95, 150, 225], 375),
+  'keeper-court': facility('keeper-court', 'Keeper Court', 1, 2, 7_500, 2, [9_500, 17_000], [2, 3], [95, 150, 225], 375),
+  'medical-bay': facility('medical-bay', 'Medical Bay', 1, 1, 10_000, 2, [12_500, 22_500], [2, 3], [125, 200, 300], 500),
+  dorm: facility('dorm', 'Dorm', 1, 1, 6_000, 1, [7_500, 13_500], [1, 2], [75, 120, 180], 300),
+  'scout-office': facility('scout-office', 'Scout Office', 1, 1, 6_000, 1, [7_500, 13_500], [1, 2], [75, 120, 180], 300),
   'coaching-office': facility('coaching-office', 'Coaching Office', 1, 1, 6_500, 1, [6_500, 9_750], [1, 2], [80, 130, 195], 325),
-  'youth-field': facility('youth-field', 'Youth Field', 2, 2, 12_000, 3, [12_000, 18_000], [2, 3], [150, 240, 360], 600),
-  'fan-shop': facility('fan-shop', 'Fan Shop', 1, 1, 5_000, 1, [5_000, 7_500], [1, 2], [65, 105, 155], 250),
+  'youth-field': facility('youth-field', 'Youth Field', 2, 2, 12_000, 3, [15_000, 27_000], [2, 3], [150, 240, 360], 600),
+  'fan-shop': facility('fan-shop', 'Fan Shop', 1, 1, 5_000, 1, [6_500, 11_500], [1, 2], [65, 105, 155], 250),
   // Upkeep was [190, 300, 450] while the stand had no effect at all — a flat
   // -190/wk forever. Measured at the D5 start (500 fans, $4 tickets, 9 home
   // league gates a season) a home gate is 300 x $4 = $1,200, so a season of
@@ -111,7 +111,7 @@ export const FACILITY_CATALOG: Readonly<Record<FacilityType, FacilityCatalogEntr
   // 15,000 / 600 is 25 D5 seasons, 3.4 seasons at D4 gate levels, and under
   // one season at D2. That is the intended shape — a climb investment, not a
   // starter building — but it is never a loss.
-  'stadium-stand': facility('stadium-stand', 'Stadium Stand', 2, 2, 15_000, 3, [15_000, 22_500], [2, 3], [70, 115, 175], 750),
+  'stadium-stand': facility('stadium-stand', 'Stadium Stand', 2, 2, 15_000, 3, [19_000, 34_000], [2, 3], [70, 115, 175], 750),
 };
 
 export type FacilityAdjacencyId =
@@ -166,6 +166,8 @@ export interface PlacedFacility extends FacilityPosition {
   readonly id: string;
   readonly type: FacilityType;
   readonly level: FacilityLevel;
+  /** Cash actually paid for this building and every started upgrade. */
+  readonly capitalInvested: number;
   /** True only for facilities the club was founded with, never player-built. */
   readonly seeded?: true;
 }
@@ -220,9 +222,12 @@ export function buildFacility(
 ): FacilityTransaction {
   validateFacilityGrid(grid);
   validateSpendableCash(availableCash);
-  assertNoActiveConstruction(grid);
   const definition = definitionFor(type);
   if (!definition.available) throw new Error(`${definition.name} is not unlocked`);
+  if (grid.buildings.some(building => building.type === type)) {
+    throw new Error(`${definition.name} is already built; upgrade or move the existing facility`);
+  }
+  assertNoActiveConstruction(grid);
   assertAffordable(availableCash, definition.buildCost);
 
   const id = `facility-${grid.nextBuildingId}`;
@@ -233,6 +238,7 @@ export function buildFacility(
     id,
     type,
     level: 1,
+    capitalInvested: definition.buildCost,
     x: position.x,
     y: position.y,
   };
@@ -264,6 +270,9 @@ export function upgradeFacility(
   validateSpendableCash(availableCash);
   assertNoActiveConstruction(grid);
   const building = findBuilding(grid, buildingId);
+  if (building.type === 'coaching-office') {
+    throw new Error('Coaching Office upgrades are disabled until they have a gameplay benefit');
+  }
   if (building.level === MAX_FACILITY_LEVEL) {
     throw new Error(`${buildingId} is already at level ${MAX_FACILITY_LEVEL}`);
   }
@@ -272,10 +281,21 @@ export function upgradeFacility(
 
   const nextLevel = (building.level + 1) as FacilityLevel;
   const weeks = FACILITY_CATALOG[building.type].upgradeWeeks[building.level - 1];
+  const paidBuilding: PlacedFacility = {
+    ...building,
+    capitalInvested: checkedAdd(
+      building.capitalInvested,
+      cost,
+      'facility investment',
+    ),
+  };
   return transaction(
     {
       ...grid,
-      construction: constructionProject('UPGRADE', building, nextLevel, weeks),
+      buildings: grid.buildings.map(candidate => candidate.id === buildingId
+        ? paidBuilding
+        : candidate),
+      construction: constructionProject('UPGRADE', paidBuilding, nextLevel, weeks),
     },
     cost,
     availableCash,
@@ -314,18 +334,10 @@ export function relocateFacility(
   );
 }
 
-/**
- * Everything the club has actually paid into a building: the build, plus each
- * upgrade it has finished. Founding facilities cost nothing to put up, so only
- * the upgrades the manager bought on top of one count towards it.
- */
+/** Everything the club actually paid, including work still under construction. */
 export function facilityInvestment(building: PlacedFacility): number {
-  const definition = FACILITY_CATALOG[building.type];
-  let total = building.seeded === true ? 0 : definition.buildCost;
-  for (let level = 1; level < building.level; level += 1) {
-    total = checkedAdd(total, definition.upgradeCosts[level - 1], 'facility investment');
-  }
-  return total;
+  validateCapitalInvested(building);
+  return building.capitalInvested;
 }
 
 /** Half of what went in, rounded down. Closing is meant to hurt a little. */
@@ -539,6 +551,7 @@ export function validateFacilityGrid(grid: FacilityGridState): void {
       || building.level > MAX_FACILITY_LEVEL) {
       throw new Error(`facility ${building.id} level must be from 1 to ${MAX_FACILITY_LEVEL}`);
     }
+    validateCapitalInvested(building);
     validatePlacement(grid, building, building.id);
   }
 
@@ -620,6 +633,12 @@ function definitionFor(type: FacilityType): FacilityCatalogEntry {
 function validateCash(cash: number): void {
   if (!Number.isSafeInteger(cash)) {
     throw new Error('available cash must be a safe integer');
+  }
+}
+
+function validateCapitalInvested(building: PlacedFacility): void {
+  if (!Number.isSafeInteger(building.capitalInvested) || building.capitalInvested < 0) {
+    throw new Error(`facility ${building.id} capital invested must be a non-negative safe integer`);
   }
 }
 

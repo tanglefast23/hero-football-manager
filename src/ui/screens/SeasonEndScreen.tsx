@@ -59,7 +59,7 @@ export function SeasonEndScreen({
       : 'normal';
 
   return (
-    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
       <ChalkboardBackdrop wide={wide} />
       <View className="flex-row items-center justify-between px-4 py-3">
         <View>
@@ -76,13 +76,76 @@ export function SeasonEndScreen({
             <PixelText className="text-xl uppercase text-red-light">{viewModel.outcomeLabel}</PixelText>
           </View>
           <Text className="mt-5 text-center font-pixel text-xl uppercase text-white">{viewModel.headline}</Text>
-          <Text className="mt-2 max-w-sm text-center text-paper/70" style={scaledBody(textScale)}>{viewModel.summary}</Text>
+          <Text className="mt-2 max-w-sm text-center text-paper/75" style={scaledBody(textScale)}>{viewModel.summary}</Text>
           <View className="mt-4 flex-row gap-2">
             <StatusChip label={`Finished #${viewModel.finalPosition}`} tone={outcomeTone} />
             <StatusChip label={`Prize ${formatCurrency(viewModel.prizeMoney)}`} />
             <StatusChip label={viewModel.difficultyLabel} tone="hero" />
           </View>
         </View>
+
+        {viewModel.clubBusinessSettlement ? (
+          <View className="mt-6">
+            <StageSection eyebrow="Club Business" title="Season-end payday" />
+            <PaperPanel
+              kicker="Cash actually received"
+              title="Sponsors and Buzz"
+              stamp={`+${formatCurrency(viewModel.clubBusinessSettlement.actualPayoutTotal)}`}
+            >
+              {viewModel.clubBusinessSettlement.buzz ? (
+                <View
+                  className="border-2 border-ink bg-blue-light p-3"
+                  accessible
+                  accessibilityLabel={`Buzz payout. Reached ${viewModel.clubBusinessSettlement.buzz.reached}. Club received ${formatCurrency(viewModel.clubBusinessSettlement.buzz.actualPayout)}. Reset to ${viewModel.clubBusinessSettlement.buzz.resetTo}.`}
+                >
+                  <View className="flex-row flex-wrap items-center justify-between gap-2">
+                    <PixelText className="text-base uppercase text-ink">Buzz payout</PixelText>
+                    <StatusChip label="PAID" tone="success" />
+                  </View>
+                  <Text className="mt-2 text-sm leading-5 text-ink">
+                    Reached {viewModel.clubBusinessSettlement.buzz.reached} · Club received {formatCurrency(viewModel.clubBusinessSettlement.buzz.actualPayout)} · Reset to {viewModel.clubBusinessSettlement.buzz.resetTo}
+                  </Text>
+                </View>
+              ) : null}
+
+              {viewModel.clubBusinessSettlement.objectiveResults.length > 0 ? (
+                <View className={viewModel.clubBusinessSettlement.buzz ? 'mt-3 gap-2' : 'gap-2'}>
+                  {viewModel.clubBusinessSettlement.objectiveResults.map(result => (
+                    <View
+                      key={result.contractId}
+                      className="border-2 border-ink bg-white p-3"
+                      accessible
+                      accessibilityLabel={`${result.sponsorName}. ${result.met ? 'Target met' : 'Target missed'}. Objective: ${result.objectiveLabel}. Club received ${formatCurrency(result.actualBonus)}.`}
+                    >
+                      <View className="flex-row flex-wrap items-start justify-between gap-2">
+                        <PixelText className="min-w-0 flex-1 text-base uppercase text-ink">
+                          {result.sponsorName}
+                        </PixelText>
+                        <StatusChip
+                          label={result.met ? 'TARGET MET' : 'TARGET MISSED'}
+                          tone={result.met ? 'success' : 'danger'}
+                        />
+                      </View>
+                      <Text className="mt-2 text-sm leading-5 text-ink/70">{result.objectiveLabel}</Text>
+                      <Text className={result.met
+                        ? 'mt-2 font-mono text-base text-pitch-ink'
+                        : 'mt-2 font-mono text-base text-red-dark'}
+                      >
+                        Club received {formatCurrency(result.actualBonus)}
+                      </Text>
+                    </View>
+                  ))}
+                  <View className="flex-row flex-wrap items-center justify-between gap-2 border-t-2 border-ink pt-3">
+                    <PixelText className="text-sm uppercase text-ink/70">Objective bonuses</PixelText>
+                    <Text className="font-mono text-lg text-ink">
+                      {formatCurrency(viewModel.clubBusinessSettlement.objectiveBonusTotal)}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+            </PaperPanel>
+          </View>
+        ) : null}
 
         {viewModel.recap ? (
           <View className="mt-6">
@@ -92,7 +155,7 @@ export function SeasonEndScreen({
                 <Text className="text-ink/70" style={scaledBody(textScale)}>{guideCopy.body}</Text>
               </PaperPanel>
             ) : null}
-            <View className="mt-3 flex-row gap-2">
+            <View className={wide ? 'mt-3 flex-row gap-2' : 'mt-3 gap-2'}>
               <Metric label="Record" value={viewModel.recap.record} />
               <Metric label="Goals" value={viewModel.recap.goals} />
             </View>
@@ -182,7 +245,7 @@ export function SeasonEndScreen({
                   <Text className={`w-8 font-mono text-base ${textClass}`}>{row.position}</Text>
                   <View className="flex-1 flex-row items-center pr-2">
                     <Text className={`flex-1 text-base ${row.isUserClub ? 'font-bold' : ''} ${textClass}`} numberOfLines={1}>{row.clubName}</Text>
-                    {row.promoted ? <Text className={row.isUserClub ? 'text-sm font-bold text-ink' : 'text-sm font-bold text-pitch-dark'}>↑</Text> : null}
+                    {row.promoted ? <Text className={row.isUserClub ? 'text-sm font-bold text-ink' : 'text-sm font-bold text-pitch-ink'}>↑</Text> : null}
                   </View>
                   <Text className={`w-8 text-right font-mono text-base ${textClass}`}>{row.played}</Text>
                   <Text className={`w-12 text-right font-mono text-base ${textClass}`}>{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>

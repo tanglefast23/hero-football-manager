@@ -22,7 +22,7 @@ describe('full-time report layout', () => {
 
     expect(source).toContain("? 'border-2 border-stamp px-4 py-2'");
     expect(source).toContain('{won ? (');
-    expect(source).toContain('className="mt-2 text-xl uppercase text-stamp">Win<');
+    expect(source).toContain('className="mt-2 text-xl uppercase text-red-dark">Win<');
     // A drawn match boxes nobody, so it still has to say so somewhere.
     expect(source).toContain('{result.winner === null ? (');
     expect(source).toContain('>Draw<');

@@ -85,6 +85,15 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   // first and `pointing-up` carries the one detail that will not come again.
   'board-financial-warning': ['warning-money', 'warning-hard', 'pointing-out'],
   'board-emergency-loan': ['warning-money', 'pointing-up', 'pointing-out'],
+
+  // Club Business arrives as three different moods: terms to compare, calm
+  // reassurance that existing income is safe, then the good news that the club
+  // is famous enough for Buzz. They are single-page briefings, so each needs a
+  // deliberate first look rather than the generic `explaining` fallback.
+  'sponsor-desk': ['listing'],
+  'sponsor-desk-continuity': ['encouraging'],
+  'sponsor-buzz': ['celebrating'],
+
   // The crowd is the first thing the club earns that is not money, so it opens
   // as a celebration and then turns into the lesson about what it pays for.
   'first-fans': ['celebrating', 'explaining'],

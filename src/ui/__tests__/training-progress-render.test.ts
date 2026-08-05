@@ -49,7 +49,7 @@ describe('training stat option rendering', () => {
     // green-on-red pairing that measured 1.9:1 against the 4.5:1 text needs.
     // Ink on the tinted box is 10.8:1; the red exception is 4.4:1.
     expect(source).toContain("modifier.helps ? 'text-ink' : 'text-red-dark'");
-    expect(source).not.toContain("modifier.helps ? 'text-pitch-dark'");
+    expect(source).not.toContain("modifier.helps ? 'text-pitch-ink'");
     // The box takes the colour of the net, as a tint rather than the full
     // colour, so the label has somewhere legible to sit.
     expect(source).toContain('border-red-dark bg-red-light/40 px-3 py-2');

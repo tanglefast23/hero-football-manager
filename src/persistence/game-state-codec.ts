@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
+import { createClubBusinessState } from '../game/club-business';
 import { validateFacilityGrid } from '../game/facilities';
+import {
+  createProvisionalSponsorPortfolio,
+  managedSponsorCapacity,
+} from '../game/sponsors';
 import { GAME_SCHEMA_VERSION, type GameState } from '../game/types';
 import { isPlayerLookIdForRole } from '../game/player-appearance';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
@@ -105,6 +110,7 @@ const ledgerLineSchema = z
     kind: z.enum([
       'tickets',
       'sponsor',
+      'buzz',
       'prize',
       'merch',
       'training',
@@ -118,6 +124,7 @@ const ledgerLineSchema = z
     ]),
     label: nonemptyString,
     amount: safeInteger,
+    idempotencyKey: nonemptyString.optional(),
   })
   .passthrough();
 
@@ -291,6 +298,7 @@ const facilityGridSchema = z
         'fan-shop', 'stadium-stand',
       ]),
       level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+      capitalInvested: nonnegativeInteger,
       x: nonnegativeInteger,
       y: nonnegativeInteger,
       seeded: z.literal(true).optional(),
@@ -396,6 +404,312 @@ const playerRequestRulesSchema = z
     }).passthrough()),
   })
   .passthrough();
+
+const sponsorProfileIdSchema = z.enum(['STEADY', 'BALANCED', 'BOLD']);
+const sponsorObjectiveLevelSchema = z.enum(['EASY', 'NORMAL', 'HARD']);
+const sponsorObjectiveKindSchema = z.enum([
+  'LEAGUE_WINS',
+  'LEAGUE_GOALS',
+  'LEAGUE_FINISH',
+]);
+const sponsorSlotSchema = z.union([z.literal(0), z.literal(1), z.literal(2)]);
+const sponsorBonusPercentByObjectiveSchema = z.strictObject({
+  LEAGUE_WINS: nonnegativeInteger.optional(),
+  LEAGUE_GOALS: nonnegativeInteger.optional(),
+  LEAGUE_FINISH: nonnegativeInteger.optional(),
+});
+
+const sponsorRulesSchema = z.strictObject({
+  brands: z.array(z.strictObject({
+    id: nonemptyString,
+    name: nonemptyString,
+    offerLine: nonemptyString,
+  })),
+  profiles: z.strictObject({
+    STEADY: z.strictObject({
+      monthlyPercent: positiveInteger,
+      objectiveLevel: sponsorObjectiveLevelSchema,
+      bonusPercent: nonnegativeInteger,
+      bonusPercentByObjective: sponsorBonusPercentByObjectiveSchema.optional(),
+    }),
+    BALANCED: z.strictObject({
+      monthlyPercent: positiveInteger,
+      objectiveLevel: sponsorObjectiveLevelSchema,
+      bonusPercent: nonnegativeInteger,
+      bonusPercentByObjective: sponsorBonusPercentByObjectiveSchema.optional(),
+    }),
+    BOLD: z.strictObject({
+      monthlyPercent: positiveInteger,
+      objectiveLevel: sponsorObjectiveLevelSchema,
+      bonusPercent: nonnegativeInteger,
+      bonusPercentByObjective: sponsorBonusPercentByObjectiveSchema.optional(),
+    }),
+  }),
+  objectives: z.array(z.strictObject({
+    id: nonemptyString,
+    kind: sponsorObjectiveKindSchema,
+    labelTemplate: nonemptyString,
+    targets: z.strictObject({
+      EASY: positiveInteger,
+      NORMAL: positiveInteger,
+      HARD: positiveInteger,
+    }),
+    chairmanDelta: safeInteger,
+  })),
+});
+
+const sponsorObjectiveSnapshotSchema = z.strictObject({
+  kind: sponsorObjectiveKindSchema,
+  label: nonemptyString,
+  target: positiveInteger,
+  nominalBonus: nonnegativeInteger,
+});
+
+const sponsorObjectiveOutcomeSchema = z.strictObject({
+  met: z.boolean(),
+  settledSeason: positiveInteger,
+  actualBonus: nonnegativeInteger,
+});
+
+const sponsorContractSnapshotSchema = z.strictObject({
+  contractId: nonemptyString,
+  sponsorContentId: nonemptyString,
+  sponsorName: nonemptyString,
+  offerLine: nonemptyString,
+  season: positiveInteger,
+  slot: sponsorSlotSchema,
+  nominalMonthlyFee: nonnegativeInteger,
+  profile: sponsorProfileIdSchema.optional(),
+  objective: sponsorObjectiveSnapshotSchema.optional(),
+  provisional: z.boolean(),
+  signedSeason: positiveInteger.optional(),
+  signedWeek: positiveInteger.optional(),
+  replacedContinuity: z.boolean().optional(),
+  objectiveOutcome: sponsorObjectiveOutcomeSchema.optional(),
+});
+
+const sponsorOfferSnapshotSchema = z.strictObject({
+  offerId: nonemptyString,
+  sponsorContentId: nonemptyString,
+  sponsorName: nonemptyString,
+  offerLine: nonemptyString,
+  season: positiveInteger,
+  slot: sponsorSlotSchema,
+  profile: sponsorProfileIdSchema,
+  nominalMonthlyFee: nonnegativeInteger,
+  objective: sponsorObjectiveSnapshotSchema,
+});
+
+const sponsorshipStateSchema = z.strictObject({
+  activeContracts: z.array(sponsorContractSnapshotSchema),
+  offers: z.array(sponsorOfferSnapshotSchema),
+  portfolioSeason: positiveInteger,
+  offerSeason: positiveInteger.optional(),
+}).superRefine((sponsorship, context) => {
+  const contractIds = new Set<string>();
+  const occupiedSlots = new Set<number>();
+  sponsorship.activeContracts.forEach((contract, index) => {
+    if (contractIds.has(contract.contractId)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['activeContracts', index, 'contractId'],
+        message: 'active sponsor contract ID must be unique',
+      });
+    }
+    if (occupiedSlots.has(contract.slot)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['activeContracts', index, 'slot'],
+        message: 'active sponsor slot must be unique',
+      });
+    }
+    if (contract.season !== sponsorship.portfolioSeason) {
+      context.addIssue({
+        code: 'custom',
+        path: ['activeContracts', index, 'season'],
+        message: 'must match the sponsor portfolio season',
+      });
+    }
+    contractIds.add(contract.contractId);
+    occupiedSlots.add(contract.slot);
+  });
+
+  const offerIds = new Set<string>();
+  sponsorship.offers.forEach((offer, index) => {
+    if (offerIds.has(offer.offerId)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['offers', index, 'offerId'],
+        message: 'sponsor offer ID must be unique',
+      });
+    }
+    if (offer.season !== sponsorship.portfolioSeason
+      || offer.season !== sponsorship.offerSeason) {
+      context.addIssue({
+        code: 'custom',
+        path: ['offers', index, 'season'],
+        message: 'must match the active offer and portfolio season',
+      });
+    }
+    offerIds.add(offer.offerId);
+  });
+});
+
+const userMatchCompetitionSchema = z.enum(['LEAGUE', 'CUP']);
+const userMatchOutcomeSchema = z.enum(['WIN', 'DRAW', 'LOSS']);
+
+const pendingUserMatchImpactSchema = z.strictObject({
+  fixtureId: nonemptyString,
+  competition: userMatchCompetitionSchema,
+  settlementOrder: z.union([z.literal(0), z.literal(1)]),
+  source: z.enum(['PRODUCTION', 'SYNTHETIC']),
+  outcome: userMatchOutcomeSchema,
+  regulationGoals: nonnegativeInteger,
+  participantPlayerIds: z.array(nonemptyString),
+  powerFiredPlayerIds: z.array(nonemptyString),
+  heroAppearancePlayerIds: z.array(nonemptyString),
+  divisionScale: positiveInteger,
+  supporterWinUnits: nonnegativeInteger,
+  supporterHeroUnits: nonnegativeInteger,
+  buzzWin: nonnegativeInteger,
+  buzzGoals: nonnegativeInteger,
+  buzzHeroMoments: nonnegativeInteger,
+}).superRefine((impact, context) => {
+  if ((impact.competition === 'LEAGUE' ? 0 : 1) !== impact.settlementOrder) {
+    context.addIssue({
+      code: 'custom',
+      path: ['settlementOrder'],
+      message: 'must order league before Cup',
+    });
+  }
+  const participants = new Set(impact.participantPlayerIds);
+  for (const [field, playerIds] of [
+    ['participantPlayerIds', impact.participantPlayerIds],
+    ['powerFiredPlayerIds', impact.powerFiredPlayerIds],
+    ['heroAppearancePlayerIds', impact.heroAppearancePlayerIds],
+  ] as const) {
+    const seen = new Set<string>();
+    playerIds.forEach((playerId, index) => {
+      if (seen.has(playerId)) {
+        context.addIssue({
+          code: 'custom',
+          path: [field, index],
+          message: 'match player IDs must be unique',
+        });
+      }
+      seen.add(playerId);
+    });
+  }
+  for (const [field, playerIds] of [
+    ['powerFiredPlayerIds', impact.powerFiredPlayerIds],
+    ['heroAppearancePlayerIds', impact.heroAppearancePlayerIds],
+  ] as const) {
+    playerIds.forEach((playerId, index) => {
+      if (!participants.has(playerId)) {
+        context.addIssue({
+          code: 'custom',
+          path: [field, index],
+          message: 'must reference a match participant',
+        });
+      }
+    });
+  }
+});
+
+const appliedSupporterImpactSummarySchema = z.strictObject({
+  fixtureId: nonemptyString,
+  outcome: userMatchOutcomeSchema,
+  streakAfter: nonnegativeInteger,
+  resultDelta: safeInteger,
+  heroDelta: safeInteger,
+  realizedDelta: safeInteger,
+});
+
+const supporterWeekSummarySchema = z.strictObject({
+  season: positiveInteger,
+  week: positiveInteger,
+  before: nonnegativeInteger,
+  after: nonnegativeInteger,
+  totalDelta: safeInteger,
+  impacts: z.array(appliedSupporterImpactSummarySchema),
+});
+
+const supporterBusinessStateSchema = z.strictObject({
+  consecutiveLosses: nonnegativeInteger,
+  lastAppliedImpact: supporterWeekSummarySchema.optional(),
+});
+
+const buzzMatchSummarySchema = z.strictObject({
+  fixtureId: nonemptyString,
+  win: nonnegativeInteger,
+  goals: nonnegativeInteger,
+  heroMoments: nonnegativeInteger,
+  rawEarned: nonnegativeInteger,
+});
+
+const buzzSettlementSummarySchema = z.strictObject({
+  season: positiveInteger,
+  half: z.union([z.literal(1), z.literal(2)]),
+  before: nonnegativeInteger.refine(value => value <= 100, 'must be at most 100'),
+  rawEarned: nonnegativeInteger,
+  realizedEarned: nonnegativeInteger,
+  prePayoutValue: nonnegativeInteger.refine(value => value <= 100, 'must be at most 100'),
+  payout: nonnegativeInteger,
+  resetValue: z.literal(0),
+  impacts: z.array(buzzMatchSummarySchema),
+});
+
+const buzzStateSchema = z.strictObject({
+  value: nonnegativeInteger.refine(value => value <= 100, 'must be at most 100'),
+  lastSettledSeason: positiveInteger.optional(),
+  lastSettledHalf: z.union([z.literal(1), z.literal(2)]).optional(),
+  lastSettlementSummary: buzzSettlementSummarySchema.optional(),
+}).superRefine((buzz, context) => {
+  if ((buzz.lastSettledSeason === undefined) !== (buzz.lastSettledHalf === undefined)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['lastSettledSeason'],
+      message: 'season and half settlement markers must be present together',
+    });
+  }
+  if (buzz.lastSettlementSummary !== undefined
+    && (buzz.lastSettlementSummary.season !== buzz.lastSettledSeason
+      || buzz.lastSettlementSummary.half !== buzz.lastSettledHalf)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['lastSettlementSummary'],
+      message: 'must match the latest settlement marker',
+    });
+  }
+});
+
+const clubBusinessStateSchema = z.strictObject({
+  supporters: supporterBusinessStateSchema,
+  pendingUserMatchImpacts: z.array(pendingUserMatchImpactSchema),
+  sponsorship: sponsorshipStateSchema,
+  buzz: buzzStateSchema,
+}).superRefine((business, context) => {
+  const fixtureIds = new Set<string>();
+  let previousOrder = -1;
+  business.pendingUserMatchImpacts.forEach((impact, index) => {
+    if (fixtureIds.has(impact.fixtureId)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['pendingUserMatchImpacts', index, 'fixtureId'],
+        message: 'pending match impact must be unique',
+      });
+    }
+    if (impact.settlementOrder < previousOrder) {
+      context.addIssue({
+        code: 'custom',
+        path: ['pendingUserMatchImpacts', index, 'settlementOrder'],
+        message: 'pending match impacts must settle league before Cup',
+      });
+    }
+    fixtureIds.add(impact.fixtureId);
+    previousOrder = impact.settlementOrder;
+  });
+});
 
 const eventClockSchema = z
   .object({
@@ -931,6 +1245,7 @@ const gameStateSchema = z
     facilities: facilitiesSchema,
     trainingRules: trainingRulesSchema.optional(),
     playerRequestRules: playerRequestRulesSchema.optional(),
+    sponsorRules: sponsorRulesSchema.optional(),
     eventClock: eventClockSchema,
     eventFlags: z.array(nonemptyString),
     resolvedEventIds: z.array(nonemptyString),
@@ -993,6 +1308,7 @@ const gameStateSchema = z
       title: nonemptyString,
       body: nonemptyString,
     }).passthrough()).optional(),
+    clubBusiness: clubBusinessStateSchema,
   })
   .passthrough()
   .superRefine((state, context) => {
@@ -1934,6 +2250,225 @@ interface GameStateMigration {
 }
 
 /**
+ * Frozen schema-3 prices. Never replace these with `FACILITY_CATALOG`: doing so
+ * would make a future balance patch rewrite the refund basis of an old save.
+ */
+const SCHEMA_3_FACILITY_PRICES = {
+  'training-pitch': { build: 8_000, upgrades: [8_000, 12_000] },
+  gym: { build: 7_000, upgrades: [7_000, 10_500] },
+  'tech-center': { build: 9_000, upgrades: [9_000, 13_500] },
+  'shooting-range': { build: 7_500, upgrades: [7_500, 11_250] },
+  'keeper-court': { build: 7_500, upgrades: [7_500, 11_250] },
+  'medical-bay': { build: 10_000, upgrades: [10_000, 15_000] },
+  dorm: { build: 6_000, upgrades: [6_000, 9_000] },
+  'scout-office': { build: 6_000, upgrades: [6_000, 9_000] },
+  'coaching-office': { build: 6_500, upgrades: [6_500, 9_750] },
+  'youth-field': { build: 12_000, upgrades: [12_000, 18_000] },
+  'fan-shop': { build: 5_000, upgrades: [5_000, 7_500] },
+  'stadium-stand': { build: 15_000, upgrades: [15_000, 22_500] },
+} as const;
+
+function migrateSchema3To4(state: Record<string, unknown>): Record<string, unknown> {
+  assertUncontaminatedSchema3(state);
+  const season = migrationPositiveInteger(state.season, 'season');
+  const week = migrationPositiveInteger(state.week, 'week');
+  const phase = migrationPhase(state.phase);
+  const settledLedgerWeeks = schema3SettledLedgerWeeks(state, season);
+  const baseBusiness = createClubBusinessState({
+    season,
+    week,
+    phase,
+    settledLedgerWeeks,
+  });
+  const highestDivision = schema3HighestDivisionReached(state);
+  const sponsorMonthlyFee = schema3UserSponsorMonthlyFee(state);
+  const capacity = highestDivision === undefined
+    ? 0
+    : managedSponsorCapacity(highestDivision);
+  const activeContracts = capacity === 0
+    ? []
+    : createProvisionalSponsorPortfolio(sponsorMonthlyFee, capacity, season);
+
+  return {
+    ...state,
+    facilities: migrateSchema3Facilities(state.facilities),
+    clubBusiness: {
+      ...baseBusiness,
+      sponsorship: {
+        activeContracts,
+        offers: [],
+        portfolioSeason: season,
+      },
+    },
+  };
+}
+
+function assertUncontaminatedSchema3(state: Record<string, unknown>): void {
+  if (hasOwn(state, 'clubBusiness') || hasOwn(state, 'sponsorRules')) {
+    throw new CorruptCareerSaveError(
+      'schema 3 save contains schema-4 Club Business data and cannot be remigrated',
+    );
+  }
+  const facilities = state.facilities;
+  const grid = isRecord(facilities) ? facilities.grid : undefined;
+  const buildings = isRecord(grid) ? grid.buildings : undefined;
+  if (Array.isArray(buildings)
+    && buildings.some(building => isRecord(building) && hasOwn(building, 'capitalInvested'))) {
+    throw new CorruptCareerSaveError(
+      'schema 3 save contains schema-4 facility basis and cannot be remigrated',
+    );
+  }
+}
+
+function migrateSchema3Facilities(value: unknown): unknown {
+  if (!isRecord(value) || !isRecord(value.grid) || !Array.isArray(value.grid.buildings)) {
+    return value;
+  }
+  const construction = isRecord(value.grid.construction)
+    ? value.grid.construction
+    : undefined;
+  return {
+    ...value,
+    grid: {
+      ...value.grid,
+      buildings: value.grid.buildings.map(building => {
+        if (!isRecord(building)) return building;
+        return {
+          ...building,
+          capitalInvested: schema3FacilityBasis(building, construction),
+        };
+      }),
+    },
+  };
+}
+
+function schema3FacilityBasis(
+  building: Record<string, unknown>,
+  construction: Record<string, unknown> | undefined,
+): number {
+  if (typeof building.type !== 'string'
+    || !hasOwn(SCHEMA_3_FACILITY_PRICES, building.type)) {
+    throw new CorruptCareerSaveError('schema 3 facility has an unknown type');
+  }
+  if (!Number.isSafeInteger(building.level)
+    || (building.level as number) < 1
+    || (building.level as number) > 3) {
+    throw new CorruptCareerSaveError('schema 3 facility has an invalid level');
+  }
+  const prices = SCHEMA_3_FACILITY_PRICES[
+    building.type as keyof typeof SCHEMA_3_FACILITY_PRICES
+  ];
+  const level = building.level as number;
+  let basis = building.seeded === true ? 0 : prices.build;
+  for (let completedLevel = 2; completedLevel <= level; completedLevel += 1) {
+    basis = checkedMigrationSum(
+      basis,
+      prices.upgrades[completedLevel - 2],
+      'schema 3 facility basis',
+    );
+  }
+  if (construction?.kind === 'UPGRADE'
+    && construction.buildingId === building.id) {
+    const targetLevel = construction.targetLevel;
+    if (!Number.isSafeInteger(targetLevel)
+      || (targetLevel as number) < 2
+      || (targetLevel as number) > 3) {
+      throw new CorruptCareerSaveError('schema 3 facility upgrade has an invalid target level');
+    }
+    basis = checkedMigrationSum(
+      basis,
+      prices.upgrades[(targetLevel as number) - 2],
+      'schema 3 in-flight facility basis',
+    );
+  }
+  return basis;
+}
+
+function schema3SettledLedgerWeeks(
+  state: Record<string, unknown>,
+  season: number,
+): number[] {
+  if (!Array.isArray(state.ledgers)) return [];
+  return state.ledgers.flatMap(ledger => (
+    isRecord(ledger)
+      && ledger.season === season
+      && Number.isSafeInteger(ledger.week)
+      && (ledger.week as number) > 0
+      ? [ledger.week as number]
+      : []
+  ));
+}
+
+function schema3UserSponsorMonthlyFee(state: Record<string, unknown>): number {
+  if (typeof state.userClubId !== 'string' || !Array.isArray(state.clubs)) {
+    throw new CorruptCareerSaveError('schema 3 save is missing its user club');
+  }
+  const userClub = state.clubs.find(club => (
+    isRecord(club) && club.id === state.userClubId
+  ));
+  if (!isRecord(userClub)
+    || !Number.isSafeInteger(userClub.sponsorMonthlyFee)
+    || (userClub.sponsorMonthlyFee as number) < 0) {
+    throw new CorruptCareerSaveError('schema 3 user club has an invalid sponsor fee');
+  }
+  return userClub.sponsorMonthlyFee as number;
+}
+
+function schema3HighestDivisionReached(state: Record<string, unknown>): 1 | 2 | 3 | 4 | 5 | undefined {
+  const m2 = state.m2;
+  const pyramid = isRecord(m2) ? m2.pyramid : undefined;
+  const divisions = isRecord(pyramid) ? pyramid.divisions : undefined;
+  if (!isRecord(m2) || !Array.isArray(divisions) || typeof state.userClubId !== 'string') {
+    return undefined;
+  }
+  const currentLevels = divisions.flatMap(division => {
+    if (!isRecord(division) || !Array.isArray(division.clubs)) return [];
+    const containsUser = division.clubs.some(club => (
+      isRecord(club) && club.id === state.userClubId
+    ));
+    return containsUser && isDivisionLevel(division.level)
+      ? [division.level]
+      : [];
+  });
+  if (currentLevels.length !== 1) return undefined;
+  const current = currentLevels[0];
+  const recorded = isDivisionLevel(m2.highestDivisionReached)
+    ? m2.highestDivisionReached
+    : current;
+  return Math.min(current, recorded) as 1 | 2 | 3 | 4 | 5;
+}
+
+function migrationPositiveInteger(value: unknown, label: string): number {
+  if (!Number.isSafeInteger(value) || (value as number) <= 0) {
+    throw new CorruptCareerSaveError(`schema 3 ${label} is missing or invalid`);
+  }
+  return value as number;
+}
+
+function migrationPhase(value: unknown): 'manage' | 'matchday' | 'season-end' | 'complete' {
+  if (value !== 'manage' && value !== 'matchday' && value !== 'season-end' && value !== 'complete') {
+    throw new CorruptCareerSaveError('schema 3 phase is missing or invalid');
+  }
+  return value;
+}
+
+function checkedMigrationSum(left: number, right: number, label: string): number {
+  const result = left + right;
+  if (!Number.isSafeInteger(result) || result < 0) {
+    throw new CorruptCareerSaveError(`${label} exceeds the safe integer range`);
+  }
+  return result;
+}
+
+function isDivisionLevel(value: unknown): value is 1 | 2 | 3 | 4 | 5 {
+  return value === 1 || value === 2 || value === 3 || value === 4 || value === 5;
+}
+
+function hasOwn(value: object, key: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+/**
  * The save-upgrade ladder, ordered by ascending `to`.
  *
  * Schema 2 deliberately has no schema-1 rung: the honest division ladder
@@ -1957,6 +2492,10 @@ const GAME_STATE_MIGRATIONS: readonly GameStateMigration[] = [
     // outright, so without it every save written before this feature would fail
     // to load rather than upgrade.
     up: state => state,
+  },
+  {
+    to: 4,
+    up: migrateSchema3To4,
   },
 ];
 

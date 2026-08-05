@@ -27,12 +27,14 @@ describe('career facility transactions', () => {
     expect(initial.facilities.grid?.buildings).toEqual([]);
     expect(built.state.clubs.find(club => club.id === initial.userClubId)?.cash)
       .toBe(46_000);
+    expect(built.state.facilities.grid?.buildings[0].capitalInvested).toBe(7_000);
     expect(upgraded.state.facilities.grid?.buildings.find(building => building.id === 'facility-1')?.level).toBe(1);
+    expect(upgraded.state.facilities.grid?.buildings.find(building => building.id === 'facility-1')?.capitalInvested).toBe(16_000);
     expect(upgradedReady.facilities.grid?.buildings.find(building => building.id === 'facility-1')?.level).toBe(2);
     expect(moved.state.facilities.grid?.buildings.find(building => building.id === 'facility-1'))
-      .toMatchObject({ x: 4, y: 3 });
+      .toMatchObject({ capitalInvested: 16_000, x: 4, y: 3 });
     expect(moved.state.clubs.find(club => club.id === initial.userClubId)?.cash)
-      .toBe(38_650);
+      .toBe(36_650);
     expect(moved.state.cashTransactions).toEqual([
       expect.objectContaining({
         id: 'cash-transaction-1',
@@ -45,14 +47,14 @@ describe('career facility transactions', () => {
         id: 'cash-transaction-2',
         kind: 'facility-upgrade',
         label: 'Gym Level 2 upgrade started',
-        amount: -7_000,
-        balanceAfter: 39_000,
+        amount: -9_000,
+        balanceAfter: 37_000,
       }),
       expect.objectContaining({
         id: 'cash-transaction-3',
         kind: 'facility-relocation',
         amount: -350,
-        balanceAfter: 38_650,
+        balanceAfter: 36_650,
       }),
     ]);
     expect(moved.state.ledgers).toHaveLength(0);
@@ -112,6 +114,7 @@ describe('career facility transactions', () => {
 
     expect(built.state.facilities.trainingGroundBuilt).toBe(false);
     expect(built.state.facilities.grid?.buildings[0].type).toBe('training-pitch');
+    expect(built.state.facilities.grid?.buildings[0].capitalInvested).toBe(8_000);
     expect(built.state.facilities.grid?.construction).toMatchObject({ weeksRemaining: 2 });
     expect(built.state.cashTransactions).toMatchObject([
       { kind: 'facility-build', label: 'Training Pitch construction started', amount: -8000 },

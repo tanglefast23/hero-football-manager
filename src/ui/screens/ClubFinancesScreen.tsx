@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, findNodeHandle, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
 import { EmptyDocket } from '../components/EmptyDocket';
@@ -11,7 +11,10 @@ import type {
   ClubFinancesViewModel,
   ClubLoanViewModel,
   ClubOfficeTab,
+  ClubSponsorshipViewModel,
   FacilityTypeViewModel,
+  SponsorOfferViewModel,
+  SponsorSlotViewModel,
   TrainingGroundDecisionViewModel,
   TrainingPointIncomeViewModel,
 } from '../models';
@@ -51,6 +54,7 @@ function scrollToTarget(
   targetRef: RefObject<View | null>,
   latestScrollOffset: number,
   margin = 12,
+  animated = true,
 ) {
   const viewport = viewportRef.current;
   const target = targetRef.current;
@@ -58,9 +62,20 @@ function scrollToTarget(
   viewport.measureInWindow((vx, vy) => {
     target.measureInWindow((tx, ty) => {
       const y = Math.max(0, latestScrollOffset + (ty - vy) - margin);
-      scrollRef.current?.scrollTo({ y, animated: true });
+      scrollRef.current?.scrollTo({ y, animated });
     });
   });
+}
+
+/** Moves both the viewport and assistive-technology focus to a revealed desk. */
+function focusGuideTarget(target: View | null): void {
+  if (target === null) return;
+  // React Native Web exposes the host node's focus method. Native needs the
+  // accessibility handle instead; each branch is optional so tests and older
+  // runtimes fail soft rather than trapping the briefing on screen.
+  (target as unknown as { focus?: () => void }).focus?.();
+  const handle = findNodeHandle(target);
+  if (handle !== null) AccessibilityInfo.setAccessibilityFocus(handle);
 }
 
 /** Which board each section belongs to. Facility first — it is the one the desk sends you to. */
@@ -83,8 +98,15 @@ export interface ClubFinancesScreenProps {
   onCloseFacility?: (buildingId: string) => void;
   onOpenCoachMarket?: () => void;
   onDismissCoach?: (role: 'HEAD' | 'ASSISTANT') => void;
+  onReviewSponsorOffer?: (
+    offer: SponsorOfferViewModel,
+    slot: SponsorSlotViewModel,
+  ) => void;
   guideTrainingGround?: boolean;
   guideFocus?: AssistantGuideFocus;
+  reduceMotion?: boolean;
+  /** Bumped after the signing modal is gone so the replacement desk receives focus. */
+  focusSponsorSummaryToken?: number;
 }
 
 export function ClubFinancesScreen({
@@ -99,8 +121,11 @@ export function ClubFinancesScreen({
   onCloseFacility,
   onOpenCoachMarket,
   onDismissCoach,
+  onReviewSponsorOffer,
   guideTrainingGround = false,
   guideFocus,
+  reduceMotion = false,
+  focusSponsorSummaryToken,
 }: ClubFinancesScreenProps) {
   const facility = viewModel.trainingGround;
   const facilities = viewModel.facilities;
@@ -115,6 +140,11 @@ export function ClubFinancesScreen({
   const incomeFacilityScrollFrameRef = useRef<number | null>(null);
   const incomeFacilityScrolledRef = useRef(false);
   const incomeFacilityBuildTargetRef = useRef<View>(null);
+  const sponsorDeskTargetRef = useRef<View>(null);
+  const sponsorBuzzTargetRef = useRef<View>(null);
+  const sponsorBuzzAccessibilityRef = useRef<View>(null);
+  const handledSponsorFocusTokenRef = useRef<number | undefined>(undefined);
+  const sponsorGuideHandledRef = useRef<string | null>(null);
   const facilityGuideScrollFrameRef = useRef<number | null>(null);
   const facilityGuideScrolledPhaseRef = useRef<GuidedFirstFacilityPhase | null>(null);
   const facilityGuideBuildTargetRef = useRef<View>(null);
@@ -129,6 +159,7 @@ export function ClubFinancesScreen({
   const [placementRejection, setPlacementRejection] = useState<string | null>(null);
   const [facilityGridWidth, setFacilityGridWidth] = useState(0);
   const [coachingOfficeScrollCueDismissed, setCoachingOfficeScrollCueDismissed] = useState(false);
+  const [selectedSponsorSlot, setSelectedSponsorSlot] = useState(0);
   const selectedBuilding = facilities.buildings.find(
     building => building.id === selectedBuildingId,
   );
@@ -383,6 +414,80 @@ export function ClubFinancesScreen({
     scrollToTarget(scrollRef, scrollViewportRef, groundsRef, latestScrollOffsetRef.current);
   }, [facilities.buildings, guideFocus, guideGrounds, scrollToCoachingOffice]);
 
+  useEffect(() => {
+    const slots = viewModel.sponsorship?.slots ?? [];
+    if (slots.length === 0) {
+      setSelectedSponsorSlot(0);
+      return;
+    }
+    if (!slots.some(slot => slot.slot === selectedSponsorSlot)) {
+      setSelectedSponsorSlot(slots[0].slot);
+    }
+  }, [selectedSponsorSlot, viewModel.sponsorship?.slots]);
+
+  const revealSponsorGuideTarget = useCallback(() => {
+    if (
+      activeTab !== 'finances'
+      || (guideFocus !== 'sponsor-desk'
+        && guideFocus !== 'sponsor-summary'
+        && guideFocus !== 'sponsor-buzz')
+      || sponsorGuideHandledRef.current === guideFocus
+    ) return;
+    const scrollTarget = guideFocus === 'sponsor-buzz'
+      ? sponsorBuzzTargetRef.current
+      : sponsorDeskTargetRef.current;
+    const focusTarget = guideFocus === 'sponsor-buzz'
+      ? sponsorBuzzAccessibilityRef.current ?? sponsorBuzzTargetRef.current
+      : sponsorDeskTargetRef.current;
+    if (scrollTarget === null || focusTarget === null) return;
+    sponsorGuideHandledRef.current = guideFocus;
+    requestAnimationFrame(() => {
+      scrollToTarget(
+        scrollRef,
+        scrollViewportRef,
+        guideFocus === 'sponsor-buzz' ? sponsorBuzzTargetRef : sponsorDeskTargetRef,
+        latestScrollOffsetRef.current,
+        12,
+        !reduceMotion,
+      );
+      focusGuideTarget(focusTarget);
+    });
+  }, [activeTab, guideFocus, reduceMotion]);
+
+  useEffect(() => {
+    if (
+      guideFocus !== 'sponsor-desk'
+      && guideFocus !== 'sponsor-summary'
+      && guideFocus !== 'sponsor-buzz'
+    ) {
+      sponsorGuideHandledRef.current = null;
+      return;
+    }
+    revealSponsorGuideTarget();
+  }, [guideFocus, revealSponsorGuideTarget]);
+
+  useEffect(() => {
+    if (
+      focusSponsorSummaryToken === undefined
+      || handledSponsorFocusTokenRef.current === focusSponsorSummaryToken
+      || activeTab !== 'finances'
+      || sponsorDeskTargetRef.current === null
+    ) return;
+    handledSponsorFocusTokenRef.current = focusSponsorSummaryToken;
+    const frame = requestAnimationFrame(() => {
+      scrollToTarget(
+        scrollRef,
+        scrollViewportRef,
+        sponsorDeskTargetRef,
+        latestScrollOffsetRef.current,
+        12,
+        !reduceMotion,
+      );
+      focusGuideTarget(sponsorDeskTargetRef.current);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activeTab, focusSponsorSummaryToken, reduceMotion, viewModel.sponsorship]);
+
   const onTrainingGroundLayout = useCallback(() => {
     scrollToTrainingGround();
   }, [scrollToTrainingGround]);
@@ -400,6 +505,25 @@ export function ClubFinancesScreen({
       key: 'loan',
       weight: 5,
       node: <EmergencyLoanSection loan={viewModel.loan} />,
+    }]),
+    ...(viewModel.sponsorship === undefined ? [] : [{
+      key: 'sponsorship',
+      weight: viewModel.sponsorship.managed
+        ? 8 + viewModel.sponsorship.slots.reduce((sum, slot) => sum + slot.offers.length * 4, 0)
+        : 5,
+      node: (
+        <SponsorBusinessSection
+          sponsorship={viewModel.sponsorship}
+          selectedSlot={selectedSponsorSlot}
+          onSelectSlot={setSelectedSponsorSlot}
+          onReviewOffer={onReviewSponsorOffer}
+          guideFocus={guideFocus}
+          sponsorDeskTargetRef={sponsorDeskTargetRef}
+          sponsorBuzzTargetRef={sponsorBuzzTargetRef}
+          sponsorBuzzAccessibilityRef={sponsorBuzzAccessibilityRef}
+          onGuideTargetLayout={revealSponsorGuideTarget}
+        />
+      ),
     }]),
     {
       key: 'itemized',
@@ -527,10 +651,10 @@ export function ClubFinancesScreen({
         mode={layoutMode}
         header={
       <View className="mb-5">
-        <View className="flex-row items-end justify-between">
-          <View className="flex-1 pr-3">
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="min-w-0 flex-1">
             <PixelText className="text-sm uppercase text-blue-dark">Club office</PixelText>
-            <PixelText className="mt-1 text-xl uppercase text-ink" numberOfLines={1}>
+            <PixelText className="mt-1 text-xl uppercase leading-7 text-ink" numberOfLines={2}>
               {viewModel.clubName}
             </PixelText>
           </View>
@@ -576,10 +700,12 @@ function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps
               value={formatCurrency(viewModel.weeklyNet, true)}
               tone={viewModel.weeklyNet < 0 ? 'negative' : 'positive'}
             />
-            <Metric label="Projected balance" value={formatCurrency(viewModel.projectedBalance)} />
           </View>
           <View className="mt-2 flex-row gap-2">
+            <Metric label="Projected balance" value={formatCurrency(viewModel.projectedBalance)} />
             <Metric label="Fans" value={formatCompactNumber(viewModel.fans)} />
+          </View>
+          <View className="mt-2 flex-row">
             <Metric
               label="Match, sponsor & prize"
               value={viewModel.variableIncome.detail === undefined
@@ -615,14 +741,359 @@ function EmergencyLoanSection({ loan }: { readonly loan: ClubLoanViewModel }) {
         <View className="flex-row gap-2">
           <Metric label="Borrowed" value={formatCurrency(loan.originalAmount)} />
           <Metric label="Still owed" value={formatCurrency(loan.remainingBalance)} tone="negative" />
+        </View>
+        <View className="mt-2 flex-row">
           <Metric label={loan.scheduleLabel} value={loan.scheduleValue} />
         </View>
-        <PixelText className="mt-3 text-xs uppercase leading-4 tracking-wide text-ink/45">
+        <PixelText className="mt-3 text-xs uppercase leading-4 tracking-wide text-ink/70">
           {loan.detail}
         </PixelText>
       </PaperPanel>
     </View>
   );
+}
+
+interface SponsorBusinessSectionProps {
+  sponsorship: ClubSponsorshipViewModel;
+  selectedSlot: number;
+  onSelectSlot: (slot: number) => void;
+  onReviewOffer?: (offer: SponsorOfferViewModel, slot: SponsorSlotViewModel) => void;
+  guideFocus?: AssistantGuideFocus;
+  sponsorDeskTargetRef: RefObject<View | null>;
+  sponsorBuzzTargetRef: RefObject<View | null>;
+  sponsorBuzzAccessibilityRef: RefObject<View | null>;
+  onGuideTargetLayout: () => void;
+}
+
+/** One honest sponsor desk: signed terms, one slot at a time, then its offers. */
+function SponsorBusinessSection({
+  sponsorship,
+  selectedSlot,
+  onSelectSlot,
+  onReviewOffer,
+  guideFocus,
+  sponsorDeskTargetRef,
+  sponsorBuzzTargetRef,
+  sponsorBuzzAccessibilityRef,
+  onGuideTargetLayout,
+}: SponsorBusinessSectionProps) {
+  const selected = sponsorship.slots.find(slot => slot.slot === selectedSlot)
+    ?? sponsorship.slots[0];
+  const guidedDesk = guideFocus === 'sponsor-desk' || guideFocus === 'sponsor-summary';
+
+  if (!sponsorship.managed) {
+    return (
+      <View className={guideFocus === 'sponsor-buzz'
+        ? 'border-2 border-blue-dark bg-blue-light p-1'
+        : undefined}
+      >
+        <SponsorHeading
+          title="Club Buzz"
+          eyebrow="Social following"
+          stamp="Season 3"
+          targetRef={sponsorBuzzTargetRef}
+          onLayout={onGuideTargetLayout}
+        />
+        <PaperPanel kicker="Basic sponsor" title="The crowd is talking" stamp="LIVE">
+          <Text className="text-sm leading-5 text-ink/70">
+            Your basic sponsor pays {formatCurrency(sponsorship.actualMonthlyIncome)} each month.
+            Wins, goals and hero moments now make that deal worth more twice a season.
+          </Text>
+          {sponsorship.buzz === undefined ? null : (
+            <BuzzCard buzz={sponsorship.buzz} focusTargetRef={sponsorBuzzAccessibilityRef} />
+          )}
+        </PaperPanel>
+      </View>
+    );
+  }
+
+  return (
+    <View className={guidedDesk ? 'border-2 border-blue-dark bg-blue-light p-1' : undefined}>
+      <SponsorHeading
+        title="Sponsor Desk"
+        eyebrow="Club business"
+        stamp={`${sponsorship.slots.length} slot${sponsorship.slots.length === 1 ? '' : 's'}`}
+        targetRef={sponsorDeskTargetRef}
+        onLayout={onGuideTargetLayout}
+      />
+      <View className="mb-3 border-2 border-ink bg-white p-3">
+        <View className="flex-row flex-wrap items-start justify-between gap-2">
+          <View className="min-w-0 flex-1">
+            <PixelText className="text-sm uppercase text-ink">Portfolio payment</PixelText>
+            <Text className="mt-1 font-mono text-xl text-ink">
+              {formatCurrency(sponsorship.actualMonthlyIncome)} / month
+            </Text>
+          </View>
+          <StatusChip label={`Next · ${sponsorship.nextPaymentLabel}`} tone="info" />
+        </View>
+        {sponsorship.chairmanPercent === undefined ? null : (
+          <Text className="mt-2 text-sm leading-5 text-ink/70">
+            Contract total {formatCurrency(sponsorship.nominalMonthlyIncome)}. On Chairman, the club receives {sponsorship.chairmanPercent}%.
+          </Text>
+        )}
+      </View>
+
+      <ScreenTabs
+        tabs={sponsorship.slots.map(slot => ({
+          id: String(slot.slot),
+          label: slot.slotLabel,
+          accessibilityLabel: `${slot.slotLabel}, ${slot.provisional ? 'needs a sponsor choice' : 'signed'}`,
+        }))}
+        activeId={String(selected?.slot ?? selectedSlot)}
+        onSelect={id => onSelectSlot(Number(id))}
+        idPrefix="sponsor-slots"
+        linkPanels
+        showSingleTab
+        className="mb-3 flex-row gap-1"
+      />
+
+      {selected === undefined ? null : (
+        <View
+          nativeID={`sponsor-slots-panel-${selected.slot}`}
+          {...webSponsorPanelProps(`sponsor-slots-tab-${selected.slot}`)}
+        >
+          <ActiveSponsorCard slot={selected} chairmanPercent={sponsorship.chairmanPercent} />
+          {!sponsorship.offerWindowOpen || selected.offers.length === 0 ? (
+            selected.provisional ? (
+              <View className="mt-3 border-2 border-dashed border-ink/30 bg-paper p-3">
+                <PixelText className="text-sm uppercase text-ink">Income protected</PixelText>
+                <Text className="mt-1 text-sm leading-5 text-ink/70">
+                  Your current sponsor income continues. New offers arrive next pre-season.
+                </Text>
+              </View>
+            ) : null
+          ) : (
+            <View className="mt-4 gap-3">
+              <SectionLabel eyebrow="Offers" title={`Choose for ${selected.slotLabel}`} />
+              {selected.offers.map(offer => (
+                <SponsorOfferCard
+                  key={offer.offerId}
+                  offer={offer}
+                  slot={selected}
+                  chairmanPercent={sponsorship.chairmanPercent}
+                  onReview={onReviewOffer}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      {sponsorship.buzz === undefined ? null : (
+        <View
+          ref={sponsorBuzzTargetRef}
+          collapsable={false}
+          onLayout={onGuideTargetLayout}
+          className={guideFocus === 'sponsor-buzz'
+            ? 'mt-4 border-2 border-blue-dark bg-blue-light p-1'
+            : 'mt-4'}
+        >
+          <BuzzCard buzz={sponsorship.buzz} focusTargetRef={sponsorBuzzAccessibilityRef} />
+        </View>
+      )}
+    </View>
+  );
+}
+
+function SponsorHeading({ title, eyebrow, stamp, targetRef, onLayout }: {
+  readonly title: string;
+  readonly eyebrow: string;
+  readonly stamp: string;
+  readonly targetRef: RefObject<View | null>;
+  readonly onLayout: () => void;
+}) {
+  return (
+    <View
+      ref={targetRef}
+      collapsable={false}
+      onLayout={onLayout}
+      className="mb-3 flex-row flex-wrap items-end justify-between gap-2"
+      accessibilityRole="header"
+      accessibilityLabel={`${title}. ${stamp}.`}
+      {...guideHeadingProps()}
+    >
+      <View className="min-w-0 flex-1">
+        <PixelText className="text-sm uppercase text-ink">{eyebrow}</PixelText>
+        <PixelText className="mt-1 text-xl uppercase text-ink">{title}</PixelText>
+      </View>
+      <StatusChip label={stamp} selected />
+    </View>
+  );
+}
+
+function ActiveSponsorCard({ slot, chairmanPercent }: {
+  readonly slot: SponsorSlotViewModel;
+  readonly chairmanPercent?: number;
+}) {
+  const statusLabel = slot.provisional
+    ? 'CONTINUITY'
+    : slot.objectiveStatus === 'MET'
+      ? 'TARGET MET'
+      : slot.objectiveStatus === 'FAILED' ? 'TARGET MISSED' : 'ACTIVE';
+  const statusTone = slot.objectiveStatus === 'MET'
+    ? 'success' as const
+    : slot.objectiveStatus === 'FAILED' ? 'danger' as const : 'normal' as const;
+  const accessibilityLabel = [
+    `${slot.sponsorName}. ${slot.provisional ? 'Continuity sponsor' : 'Active sponsor'}.`,
+    `Contract value ${formatCurrency(slot.nominalMonthlyFee)} per month.`,
+    chairmanPercent === undefined
+      ? undefined
+      : `On Chairman, the club receives ${formatCurrency(slot.actualMonthlyFee)} per month.`,
+    slot.objectiveLabel === undefined ? undefined : `Objective: ${slot.objectiveLabel}.`,
+    slot.objectiveProgressLabel === undefined ? undefined : `${slot.objectiveProgressLabel}.`,
+    slot.nominalBonus === undefined ? undefined : `Contract bonus: ${formatCurrency(slot.nominalBonus)}.`,
+    chairmanPercent === undefined || slot.actualBonus === undefined
+      ? undefined
+      : `Club receives ${formatCurrency(slot.actualBonus)}.`,
+  ].filter(Boolean).join(' ');
+  return (
+    <View
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={accessibilityLabel}
+      className="border-2 border-b-4 border-ink bg-white p-4"
+    >
+      <View className="flex-row flex-wrap items-start justify-between gap-2">
+        <View className="min-w-0 flex-1">
+          <PixelText className="text-base uppercase leading-6 text-ink">{slot.sponsorName}</PixelText>
+          <Text className="mt-1 text-sm leading-5 text-ink/70">{slot.offerLine}</Text>
+        </View>
+        <StatusChip label={statusLabel} tone={statusTone} />
+      </View>
+      <View className="mt-3 border-t border-ink/20 pt-3">
+        <Text className="font-mono text-base text-ink">
+          Contract {formatCurrency(slot.nominalMonthlyFee)} / month
+        </Text>
+        {chairmanPercent === undefined ? null : (
+          <Text className="mt-1 text-sm font-bold text-blue-dark">
+            Club receives {formatCurrency(slot.actualMonthlyFee)} / month · {chairmanPercent}%
+          </Text>
+        )}
+      </View>
+      {slot.objectiveLabel === undefined ? null : (
+        <View className="mt-3 border-2 border-ink/20 bg-paper p-3">
+          <Text className="text-sm font-bold leading-5 text-ink">{slot.objectiveLabel}</Text>
+          {slot.objectiveProgressLabel === undefined ? null : (
+            <Text className="mt-1 font-mono text-sm text-ink/70">{slot.objectiveProgressLabel}</Text>
+          )}
+          <Text className="mt-2 font-mono text-sm text-ink">
+            Target bonus {formatCurrency(slot.nominalBonus ?? 0)}
+          </Text>
+          {chairmanPercent === undefined ? null : (
+            <Text className="mt-1 text-sm text-blue-dark">
+              Club receives {formatCurrency(slot.actualBonus ?? 0)}
+            </Text>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function SponsorOfferCard({ offer, slot, chairmanPercent, onReview }: {
+  readonly offer: SponsorOfferViewModel;
+  readonly slot: SponsorSlotViewModel;
+  readonly chairmanPercent?: number;
+  readonly onReview?: (offer: SponsorOfferViewModel, slot: SponsorSlotViewModel) => void;
+}) {
+  const accessibilityLabel = [
+    `Review ${offer.sponsorName} for ${slot.slotLabel}.`,
+    `${offer.profileLabel} offer.`,
+    `Contract value ${formatCurrency(offer.nominalMonthlyFee)} per month.`,
+    chairmanPercent === undefined
+      ? undefined
+      : `On Chairman, the club receives ${formatCurrency(offer.actualMonthlyFee)} per month.`,
+    `Objective: ${offer.objectiveLabel}.`,
+    `Contract bonus ${formatCurrency(offer.nominalBonus)}.`,
+    chairmanPercent === undefined
+      ? undefined
+      : `Club receives ${formatCurrency(offer.actualBonus)}.`,
+  ].filter(Boolean).join(' ');
+  return (
+    <View className="border-2 border-b-4 border-ink bg-white p-4">
+      <View className="flex-row flex-wrap items-start justify-between gap-2">
+        <View className="min-w-0 flex-1">
+          <PixelText className="text-base uppercase leading-6 text-ink">{offer.sponsorName}</PixelText>
+          <Text className="mt-1 text-sm leading-5 text-ink/70">{offer.offerLine}</Text>
+        </View>
+        <StatusChip label={offer.profileLabel} tone={offer.profile === 'BOLD' ? 'hero' : 'normal'} />
+      </View>
+      <View className="mt-3 gap-1 border-t border-ink/20 pt-3">
+        <Text className="font-mono text-base text-ink">
+          Contract {formatCurrency(offer.nominalMonthlyFee)} / month
+        </Text>
+        {chairmanPercent === undefined ? null : (
+          <Text className="text-sm font-bold text-blue-dark">
+            Club receives {formatCurrency(offer.actualMonthlyFee)} / month · {chairmanPercent}%
+          </Text>
+        )}
+        <Text className="mt-2 text-sm font-bold leading-5 text-ink">{offer.objectiveLabel}</Text>
+        <Text className="font-mono text-sm text-ink">
+          Target bonus {formatCurrency(offer.nominalBonus)}
+        </Text>
+        {chairmanPercent === undefined ? null : (
+          <Text className="text-sm text-blue-dark">
+            Club receives {formatCurrency(offer.actualBonus)}
+          </Text>
+        )}
+      </View>
+      {onReview === undefined ? null : (
+        <View className="mt-4">
+          <ActionButton
+            label="Review offer"
+            accessibilityLabel={accessibilityLabel}
+            onPress={() => onReview(offer, slot)}
+          />
+        </View>
+      )}
+    </View>
+  );
+}
+
+function BuzzCard({ buzz, focusTargetRef }: {
+  readonly buzz: NonNullable<ClubSponsorshipViewModel['buzz']>;
+  readonly focusTargetRef: RefObject<View | null>;
+}) {
+  return (
+    <View
+      className="mt-3 border-2 border-b-4 border-ink bg-gold-light p-4"
+    >
+      <View className="flex-row flex-wrap items-start justify-between gap-2">
+        <View className="min-w-0 flex-1">
+          <PixelText className="text-base uppercase text-ink">Club Buzz</PixelText>
+          <Text className="mt-1 text-sm text-ink/70">Next payout · {buzz.nextPayoutLabel}</Text>
+        </View>
+        <StatusChip label={`${buzz.value} / 100`} tone="hero" />
+      </View>
+      <View
+        ref={focusTargetRef}
+        collapsable={false}
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel="Club Buzz progress"
+        accessibilityValue={{ min: 0, max: 100, now: buzz.value, text: `${buzz.value} of 100` }}
+        className="mt-3 h-6 overflow-hidden border-2 border-ink bg-white"
+      >
+        <View className="h-full bg-gold" style={{ width: `${buzz.value}%` }} />
+      </View>
+      <Text className="mt-3 font-mono text-base text-ink">
+        At today's rate · {formatCurrency(buzz.pendingPayout)}
+      </Text>
+      {buzz.lastSettlementLabel === undefined ? null : (
+        <Text className="mt-2 text-sm leading-5 text-ink/70">Last payout · {buzz.lastSettlementLabel}</Text>
+      )}
+    </View>
+  );
+}
+
+function webSponsorPanelProps(labelledBy: string): object {
+  if (Platform.OS !== 'web') return {};
+  return { role: 'tabpanel', 'aria-labelledby': labelledBy, tabIndex: -1 };
+}
+
+function guideHeadingProps(): object {
+  if (Platform.OS !== 'web') return { focusable: true };
+  return { tabIndex: -1 };
 }
 
 interface ItemizedStatementSectionProps {
@@ -642,12 +1113,12 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
         ) : (
         <View className="border-2 border-ink bg-white">
           <View className="flex-row border-b border-ink/20 px-3 py-2">
-            <PixelText className="flex-1 text-sm uppercase tracking-wide text-ink/50">Entry</PixelText>
-            <PixelText className="text-right text-sm uppercase tracking-wide text-ink/50">Amount</PixelText>
+            <PixelText className="flex-1 text-sm uppercase tracking-wide text-ink/70">Entry</PixelText>
+            <PixelText className="text-right text-sm uppercase tracking-wide text-ink/70">Amount</PixelText>
           </View>
           {viewModel.ledger.map(line => {
             const amountClass = line.kind === 'income'
-              ? 'text-pitch-dark'
+              ? 'text-pitch-ink'
               : line.kind === 'expense'
                 ? 'text-red-dark'
                 : 'text-ink';
@@ -656,7 +1127,7 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
               <>
                 <View className="flex-1 pr-3">
                   <Text className="text-base text-ink">{line.label}</Text>
-                  <Text className="font-mono text-xs uppercase text-ink/50">{line.periodLabel}</Text>
+                  <Text className="font-mono text-xs uppercase text-ink/70">{line.periodLabel}</Text>
                 </View>
                 <Text className={`font-mono text-base ${amountClass}`}>
                   {formatCurrency(line.amount, true)}
@@ -717,11 +1188,11 @@ function RecentTransactionsSection({ viewModel }: RecentTransactionsSectionProps
               >
                 <View className="flex-1 pr-3">
                   <Text className="text-base font-bold text-ink">{transaction.label}</Text>
-                  <Text className="font-mono text-xs uppercase text-ink/50">
+                  <Text className="font-mono text-xs uppercase text-ink/70">
                     {transaction.periodLabel} · Balance {formatCurrency(transaction.balanceAfter)}
                   </Text>
                 </View>
-                <Text className={`font-mono text-base ${transaction.kind === 'income' ? 'text-pitch-dark' : 'text-red-dark'}`}>
+                <Text className={`font-mono text-base ${transaction.kind === 'income' ? 'text-pitch-ink' : 'text-red-dark'}`}>
                   {formatCurrency(transaction.amount, true)}
                 </Text>
               </View>
@@ -755,7 +1226,7 @@ function TrainingPointIncomeSection({ income }: { readonly income: TrainingPoint
             <View className="flex-1 pr-3">
               <Text className="text-base text-ink">{row.label}</Text>
               {row.detail === undefined ? null : (
-                <Text className="font-mono text-xs uppercase text-ink/50">{row.detail}</Text>
+                <Text className="font-mono text-xs uppercase text-ink/70">{row.detail}</Text>
               )}
             </View>
             <Text className="font-mono text-base text-blue-dark">+{row.points}</Text>
@@ -844,7 +1315,7 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
         />
         {viewModel.coachingStaff.length === 0 ? (
           <PaperPanel kicker="Vacancy" title="The touchline needs a voice" stamp="OPEN">
-            <Text className="text-sm leading-5 text-ink/60">
+            <Text className="text-sm leading-5 text-ink/70">
               Hire a head coach to improve specialist training and guide Hero Gauge growth.
             </Text>
             {onOpenCoachMarket ? (
@@ -872,7 +1343,7 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
                   <View className="min-w-0 flex-1">
                     <Text className="font-pixel text-sm uppercase text-blue-dark">{coach.roleLabel}</Text>
                     <Text className="mt-1 text-lg font-bold text-ink" numberOfLines={1}>{coach.name}</Text>
-                    <Text className="mt-1 text-sm text-ink/60">
+                    <Text className="mt-1 text-sm text-ink/70">
                       Age {coach.age} · {coach.personalityLabel} · Level {coach.level}
                     </Text>
                     <Text className="mt-1 font-mono text-sm text-ink">
@@ -892,7 +1363,7 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
                     <Text key={effect} className="text-sm font-bold text-ink">{effect}</Text>
                   ))}
                 </View>
-                <Text className="mt-2 text-sm text-ink/55">
+                <Text className="mt-2 text-sm text-ink/70">
                   Employed {coach.seasonsEmployed} season{coach.seasonsEmployed === 1 ? '' : 's'} · Dismissal costs one weekly wage.
                 </Text>
                 {onDismissCoach ? (
@@ -1035,7 +1506,7 @@ function GroundsSection({
           title="Facilities grid"
           stamp={`${formatCurrency(viewModel.facilities.weeklyUpkeep)}/wk`}
         >
-          <Text className="mb-3 text-sm leading-4 text-ink/60">
+          <Text className="mb-3 text-sm leading-4 text-ink/70">
             Pick a building from the menu below, then tap any + square to drop it. Put useful pairs edge-to-edge to discover bonuses.
           </Text>
           {viewModel.facilities.activeProject ? (
@@ -1046,7 +1517,7 @@ function GroundsSection({
                 <PixelText className="mt-1 text-base uppercase text-ink">
                   {viewModel.facilities.activeProject.name} · {viewModel.facilities.activeProject.weeksRemaining}W left
                 </PixelText>
-                <Text className="mt-1 text-sm text-ink/60">Only one construction or upgrade project can run at a time.</Text>
+                <Text className="mt-1 text-sm text-ink/70">Only one construction or upgrade project can run at a time.</Text>
               </View>
             </View>
           ) : null}
@@ -1340,7 +1811,7 @@ function GroundsSection({
                   <PixelText className="text-base uppercase text-ink">
                     {selectedBuilding.name} · Level {selectedBuilding.level}
                   </PixelText>
-                  <Text className="mt-1 text-sm text-ink/60">
+                  <Text className="mt-1 text-sm text-ink/70">
                     {selectedBuilding.status === 'operational'
                       ? `${formatCurrency(selectedBuilding.weeklyUpkeep)}/wk upkeep · ${formatCurrency(selectedBuilding.relocationFee)} to move`
                       : `${selectedBuilding.status === 'construction' ? 'Building' : 'Upgrading'} · ${selectedBuilding.weeksRemaining} week${selectedBuilding.weeksRemaining === 1 ? '' : 's'} remaining`}
@@ -1349,12 +1820,12 @@ function GroundsSection({
                     {selectedBuilding.effectLabel}
                   </Text>
                   {selectedBuilding.nextLevelEffectLabel ? (
-                    <PixelText className="mt-1 text-xs uppercase leading-4 text-ink/45">
+                    <PixelText className="mt-1 text-xs uppercase leading-4 text-ink/70">
                       Next level · {selectedBuilding.nextLevelEffectLabel}
                     </PixelText>
                   ) : null}
                   {selectedBuilding.activeAdjacencyIds.length > 0 ? (
-                    <PixelText className="mt-2 text-xs uppercase text-pitch-dark">
+                    <PixelText className="mt-2 text-xs uppercase text-pitch-ink">
                       Active combo · {selectedBuilding.activeAdjacencyIds.map(facilityAdjacencyLabel).join(' · ')}
                     </PixelText>
                   ) : null}
@@ -1444,7 +1915,7 @@ function GroundsSection({
                 </Pressable>
               </View>
               {selectedBuilding.upgradeBlockedReason ? (
-                <Text className="mt-2 text-sm font-bold text-stamp">
+                <Text className="mt-2 text-sm font-bold text-red-dark">
                   {selectedBuilding.upgradeBlockedReason}
                 </Text>
               ) : null}
@@ -1484,7 +1955,7 @@ function GroundsSection({
               }
             }}
           >
-            <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/50">Build menu</PixelText>
+            <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/70">Build menu</PixelText>
             <View className={guidedFirstFacility && guidedFacilityPhase === 'build-menu'
               ? 'mt-20 flex-row flex-wrap gap-2'
               : 'flex-row flex-wrap gap-2'}>
@@ -1626,7 +2097,7 @@ function GroundsSection({
                         {entry.effectLabel}
                       </Text>
                       <Text className={entryEnabled
-                        ? 'mt-1 font-mono text-sm text-ink/60'
+                        ? 'mt-1 font-mono text-sm text-ink/70'
                         : 'mt-1 font-mono text-sm text-ink/30'}>
                         {entry.available
                           ? `${entry.width}x${entry.height} · ${formatCurrency(entry.buildCost)} · ${entry.buildWeeks}W · ${formatCurrency(entry.weeklyUpkeep)}/wk`
@@ -1634,7 +2105,7 @@ function GroundsSection({
                       </Text>
                       {adjacencyGuidance !== undefined && entry.available ? (
                         <View className="mt-2 border-t border-pitch-dark/25 pt-2">
-                          <PixelText className="text-xs uppercase tracking-wide text-pitch-dark">
+                          <PixelText className="text-xs uppercase tracking-wide text-pitch-ink">
                             Known combo
                           </PixelText>
                           <Text className="mt-1 text-xs leading-4 text-ink/65">
@@ -1643,7 +2114,7 @@ function GroundsSection({
                         </View>
                       ) : null}
                       {entry.blockedReason ? (
-                        <Text className="mt-1 text-xs font-bold text-stamp">{entry.blockedReason}</Text>
+                        <Text className="mt-1 text-xs font-bold text-red-dark">{entry.blockedReason}</Text>
                       ) : null}
                       {entry.available && !entry.affordable && entry.affordabilityShortfall > 0 ? (
                         <PixelText className="mt-1 text-xs uppercase text-red-dark">
@@ -1659,9 +2130,9 @@ function GroundsSection({
           </View>
 
           <View className="mt-4 border-t-2 border-ink/20 pt-3">
-            <PixelText className="text-sm uppercase tracking-wide text-ink/50">Facility pair bonuses</PixelText>
+            <PixelText className="text-sm uppercase tracking-wide text-ink/70">Facility pair bonuses</PixelText>
             {viewModel.facilities.discoveredAdjacencies.length === 0 ? (
-              <Text className="mt-2 text-sm leading-4 text-ink/55">
+              <Text className="mt-2 text-sm leading-4 text-ink/70">
                 No pairings discovered yet. Some facilities hide a bonus when the right pair shares an edge. Corners do not count.
               </Text>
             ) : viewModel.facilities.discoveredAdjacencies.map(adjacency => {
@@ -1678,7 +2149,7 @@ function GroundsSection({
                         <Text className="mt-1 text-sm font-bold text-blue-dark">
                           {presentation.effectLabel}
                         </Text>
-                        <Text className="mt-1 text-sm leading-4 text-ink/60">
+                        <Text className="mt-1 text-sm leading-4 text-ink/70">
                           Why it works: {presentation.rationale}
                         </Text>
                       </>
@@ -1730,7 +2201,7 @@ function LegacyTrainingGroundSection({
             </View>
             <View className="flex-1">
               <PixelText className="text-base uppercase text-ink">Training Ground · Level 1</PixelText>
-              <Text className="mt-2 text-sm leading-4 text-ink/60">
+              <Text className="mt-2 text-sm leading-4 text-ink/70">
                 A proper weekly practice base. Small, dependable improvement without adding another management chore.
               </Text>
             </View>
@@ -1739,7 +2210,7 @@ function LegacyTrainingGroundSection({
             <Metric label="Build cost" value={formatCurrency(facility.cost)} tone="negative" />
             <Metric label="Weekly return" value={`+${facility.weeklyTrainingPoints} TP`} tone="positive" />
           </View>
-          <PixelText className="mt-3 text-sm uppercase tracking-wide text-ink/50">
+          <PixelText className="mt-3 text-sm uppercase tracking-wide text-ink/70">
             M1 offer: {formatCurrency(facility.cost)} cost · +{facility.weeklyTrainingPoints} TP every week
           </PixelText>
           {!facility.built && !facility.underConstruction ? (
@@ -1765,7 +2236,7 @@ function LegacyTrainingGroundSection({
             </View>
           ) : null}
           {!facility.built && !facility.underConstruction && !facility.affordable ? (
-            <PixelText className="mt-2 text-center text-sm uppercase tracking-wide text-stamp">
+            <PixelText className="mt-2 text-center text-sm uppercase tracking-wide text-red-dark">
               Insufficient balance
             </PixelText>
           ) : null}

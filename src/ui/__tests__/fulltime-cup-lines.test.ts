@@ -93,6 +93,44 @@ describe('what the gaffer says about a cup tie', () => {
       .toContain(lineFor(settled, tieByGap(settled, 4), 4, 0));
   });
 
+  it('boxes the recorded penalty winner when the Cup score is level', () => {
+    const before = staffedCareer(6);
+    const fixtureId = tieByGap(before, 0);
+    const fixture = userCupTies(before).find(candidate => candidate.id === fixtureId)!;
+    const winnerClubId = fixture.awayClubId;
+    const after: GameState = {
+      ...before,
+      m2: {
+        ...before.m2!,
+        nationalCups: before.m2!.nationalCups.map(cup => ({
+          ...cup,
+          rounds: cup.rounds.map(round => ({
+            ...round,
+            fixtures: round.fixtures.map(candidate => candidate.id === fixtureId
+              ? {
+                  ...candidate,
+                  status: 'played' as const,
+                  score: { homeGoals: 0, awayGoals: 0 },
+                  winnerClubId,
+                }
+              : candidate),
+          })),
+        })),
+      },
+    };
+
+    expect(postMatchViewModel(before, after, fixtureId, {
+      homeGoals: 0,
+      awayGoals: 0,
+    }).result).toMatchObject({
+      homeScore: 0,
+      awayScore: 0,
+      winner: 'away',
+      outcomeLabel: winnerClubId === before.userClubId ? 'WIN' : 'LOSS',
+      cupExit: winnerClubId !== before.userClubId,
+    });
+  });
+
   it('never hands a cup tie one of the league lines', () => {
     const leagueLines = [
       ...content.fulltimeCoachLines.leagueWinBig,

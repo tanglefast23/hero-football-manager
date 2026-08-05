@@ -242,7 +242,7 @@ describe('career squad integration', () => {
     expect(advanceWeek(trained).ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
   });
 
-  it('starts the two-week training-ground build and pays its first 10 TP the week after completion', () => {
+  it('starts the two-week training-ground build and pays its first pitch TP after completion', () => {
     const built = buildTrainingGround(career());
     expect(built.clubs[0].cash).toBe(42000);
     expect(built.facilities.trainingGroundBuilt).toBe(false);
@@ -250,10 +250,10 @@ describe('career squad integration', () => {
       type: 'training-pitch',
       weeksRemaining: 2,
     });
-    expect(() => buildTrainingGround(built)).toThrow(/construction project/);
+    expect(() => buildTrainingGround(built)).toThrow(/Training Pitch is already built/);
 
     // Each week banks the club's unconditional baseline; only the pitch's own
-    // +10 waits for construction to finish.
+    // +28 waits for construction to finish.
     const stillBuilding = advanceWeek(built);
     expect(stillBuilding.week).toBe(2);
     expect(stillBuilding.trainingPoints).toBe(100 + BASE_WEEKLY_TRAINING_POINTS);

@@ -4,8 +4,9 @@ import type { CareerMarketState } from './market-career';
 import type { DeskTipState } from './desk-tips';
 import type { M2CareerState } from './m2-career';
 import type { YouthIntakeState } from './youth-intake';
+import type { ClubBusinessState, SponsorRules } from './club-business-types';
 
-export const GAME_SCHEMA_VERSION = 3;
+export const GAME_SCHEMA_VERSION = 4;
 export const SEASON_WEEKS = 30;
 
 export type GamePhase = 'manage' | 'matchday' | 'season-end' | 'complete';
@@ -44,6 +45,8 @@ export interface CareerSetup {
    * the feature off for them.
    */
   playerRequestRules?: PlayerRequestCatalog;
+  /** Validated sponsor content baked in by the application ring. */
+  sponsorRules?: SponsorRules;
   /** Defaults to Cozy for old fixtures and saves. */
   difficulty?: DifficultyMode;
 }
@@ -275,6 +278,7 @@ export interface FixtureResult extends FixtureScore {
 export type LedgerLineKind =
   | 'tickets'
   | 'sponsor'
+  | 'buzz'
   | 'prize'
   | 'merch'
   | 'training'
@@ -290,6 +294,22 @@ export interface LedgerLine {
   kind: LedgerLineKind;
   label: string;
   amount: number;
+  /** Stable identity for cash awards that must survive retries and reloads. */
+  idempotencyKey?: string;
+}
+
+export interface IdempotentLedgerLine extends LedgerLine {
+  idempotencyKey: string;
+}
+
+export interface WeeklySettlementAward {
+  line: IdempotentLedgerLine;
+  /** Supporters applied only after this week's gate and merchandise are fixed. */
+  fanGain?: number;
+}
+
+export interface WeeklySettlementAwards {
+  awards: WeeklySettlementAward[];
 }
 
 export interface WeeklyLedger {
@@ -709,6 +729,8 @@ export interface GameState {
   trainingRules?: TrainingRules;
   /** Baked request catalog; absent means requests never open for this career. */
   playerRequestRules?: PlayerRequestCatalog;
+  /** Baked sponsor catalog; restored by launch reconciliation when absent. */
+  sponsorRules?: SponsorRules;
   eventClock: CareerEventState;
   eventFlags: string[];
   resolvedEventIds: string[];
@@ -771,6 +793,8 @@ export interface GameState {
   playerRequests?: PlayerRequestState;
   /** Persisted FIFO until Bert has delivered every post-Cup giant-killing walk-on. */
   pendingCupGiantKillingCelebrations?: CupGiantKillingCelebration[];
+  /** Schema-4 audience and managed-sponsorship state. */
+  clubBusiness: ClubBusinessState;
 }
 
 export interface LeagueStanding {

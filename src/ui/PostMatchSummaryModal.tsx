@@ -19,6 +19,7 @@ import {
   formatCurrency,
   formatSignedCompactNumber,
 } from './components/Scorecard';
+import { PostMatchBuzzCard } from './components/PostMatchBuzzCard';
 
 export interface PostMatchSummaryModalProps {
   viewModel: PostMatchViewModel;
@@ -121,6 +122,10 @@ export function PostMatchSummaryModal({
                 </View>
               ) : null}
 
+              {viewModel.buzz === undefined ? null : (
+                <PostMatchBuzzCard buzz={viewModel.buzz} className="mt-5" />
+              )}
+
               <PaperPanel kicker="Accounts office" title="Match statement" stamp="Recorded" className="mt-5">
                 <View className="border-y border-ink/30">
                   {viewModel.ledger.map((line, index) => (
@@ -136,7 +141,7 @@ export function PostMatchSummaryModal({
                         amount={line.amount}
                         delay={index * 120}
                         reduceMotion={motionOff}
-                        color={line.amount > 0 ? '#3f8a4a' : line.amount < 0 ? '#a83440' : '#241f2e'}
+                        color={line.amount > 0 ? '#265b30' : line.amount < 0 ? '#a83440' : '#241f2e'}
                       />
                     </View>
                   ))}
@@ -149,7 +154,7 @@ export function PostMatchSummaryModal({
                   <PixelText className={viewModel.netAmount < 0
                     ? 'text-base uppercase text-red-dark'
                     : viewModel.netAmount > 0
-                      ? 'text-base uppercase text-pitch-dark'
+                      ? 'text-base uppercase text-pitch-ink'
                       : 'text-base uppercase text-blue-dark'}>
                     Net cash change
                   </PixelText>
@@ -157,7 +162,7 @@ export function PostMatchSummaryModal({
                     amount={viewModel.netAmount}
                     delay={viewModel.ledger.length * 120}
                     reduceMotion={motionOff}
-                    color={viewModel.netAmount < 0 ? '#a83440' : viewModel.netAmount > 0 ? '#3f8a4a' : '#3f6fb5'}
+                    color={viewModel.netAmount < 0 ? '#a83440' : viewModel.netAmount > 0 ? '#265b30' : '#3f6fb5'}
                     large
                   />
                 </View>

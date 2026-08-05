@@ -56,13 +56,13 @@ export function PaperPanel({ children, title, kicker, stamp, className, tone = '
           {(kicker || stamp) ? (
             <View className="flex-row items-start justify-end gap-3">
               {kicker ? (
-                <Text className={cx('flex-1 font-pixel text-sm uppercase', attention ? 'text-gold-dark' : 'text-stamp')}>
+                <Text className={cx('flex-1 font-pixel text-sm uppercase', attention ? 'text-gold-dark' : 'text-red-dark')}>
                   {kicker}
                 </Text>
               ) : null}
               {stamp ? (
                 <View className={cx('border-2 border-b-4 px-2 py-1', attention ? 'border-gold-dark bg-gold' : 'border-stamp bg-red-light/40')}>
-                  <Text className={cx('font-pixel text-sm uppercase', attention ? 'text-ink' : 'text-stamp')}>{stamp}</Text>
+                  <Text className={cx('font-pixel text-sm uppercase', attention ? 'text-ink' : 'text-red-dark')}>{stamp}</Text>
                 </View>
               ) : null}
             </View>
@@ -80,11 +80,11 @@ export function PaperPanel({ children, title, kicker, stamp, className, tone = '
 // Beveled button ramps — full literal class strings so NativeWind can extract them.
 type ButtonVariant = 'primary' | 'confirm' | 'action' | 'hero' | 'danger' | 'paper';
 const BUTTON_RAMP: Record<ButtonVariant, { face: string; light: string; lip: string; text: string }> = {
-  primary: { face: 'bg-blue', light: 'bg-blue-light', lip: 'bg-blue-dark', text: 'text-paper' },
-  confirm: { face: 'bg-blue', light: 'bg-blue-light', lip: 'bg-blue-dark', text: 'text-paper' },
-  action: { face: 'bg-blue', light: 'bg-blue-light', lip: 'bg-blue-dark', text: 'text-paper' },
+  primary: { face: 'bg-blue', light: 'bg-blue-light', lip: 'bg-blue-dark', text: 'text-ink' },
+  confirm: { face: 'bg-blue', light: 'bg-blue-light', lip: 'bg-blue-dark', text: 'text-ink' },
+  action: { face: 'bg-blue', light: 'bg-blue-light', lip: 'bg-blue-dark', text: 'text-ink' },
   hero: { face: 'bg-gold', light: 'bg-gold-light', lip: 'bg-gold-dark', text: 'text-ink' },
-  danger: { face: 'bg-red', light: 'bg-red-light', lip: 'bg-red-dark', text: 'text-paper' },
+  danger: { face: 'bg-red-dark', light: 'bg-red', lip: 'bg-ink', text: 'text-paper' },
   paper: { face: 'bg-paper', light: 'bg-white', lip: 'bg-paper-dark', text: 'text-ink' },
 };
 
@@ -154,7 +154,9 @@ export function ActionButton({
         compact ? 'py-2.5' : 'py-3.5',
         disabled && 'opacity-60',
       )}
-      style={[{ transform: [{ translateY: pressed && !disabled ? 2 : 0 }] }]}
+      // Explicit points are the acceptance contract; utility rem conversion on
+      // web must never shrink a committing action below a 44pt touch target.
+      style={[{ minHeight: 44, transform: [{ translateY: pressed && !disabled ? 2 : 0 }] }]}
     >
       {/* bold top-third gloss — clipped to the rounded corners */}
       {!pressed && !disabled ? (
@@ -185,14 +187,14 @@ export function Metric({ label, value, tone = 'normal' }: MetricProps) {
   const valueColor = tone === 'hero'
     ? 'text-gold-dark'
     : tone === 'positive'
-      ? 'text-pitch-dark'
+      ? 'text-pitch-ink'
       : tone === 'negative'
-        ? 'text-stamp'
+        ? 'text-red-dark'
         : 'text-ink';
 
   return (
     <View className="min-w-0 flex-1 border-2 border-b-4 border-ink bg-white px-2 py-2">
-      <PixelText className="text-sm uppercase text-ink/60">{label}</PixelText>
+      <PixelText className="text-sm uppercase text-ink/70">{label}</PixelText>
       <Text className={cx('mt-1 font-mono text-base', valueColor)} numberOfLines={1}>
         {value}
       </Text>

@@ -803,7 +803,7 @@ function RosterSection({
                     // One word, because the name column is the row's only
                     // flexible cell: "Starting XI" clipped to "STARTI…" on a
                     // phone, which reads as a bug rather than an abbreviation.
-                    <Text className="mt-0.5 font-pixel text-sm uppercase text-pitch-dark" numberOfLines={1}>
+                    <Text className="mt-0.5 font-pixel text-sm uppercase text-pitch-ink" numberOfLines={1}>
                       Start
                     </Text>
                   ) : null}
@@ -1066,7 +1066,7 @@ function PlayerFileSection({
           <View className="min-w-0 flex-1 items-end">
             <Text className="text-base font-bold text-ink">{selectedPlayer.archetype}</Text>
             <View className="mt-1 flex-row flex-wrap justify-end gap-x-2">
-              <Text className="font-pixel text-sm text-pitch-dark">{selectedArchetype?.strengths}</Text>
+              <Text className="font-pixel text-sm text-pitch-ink">{selectedArchetype?.strengths}</Text>
               <Text className="font-pixel text-sm text-ink/50">{selectedArchetype?.weaknesses}</Text>
             </View>
           </View>

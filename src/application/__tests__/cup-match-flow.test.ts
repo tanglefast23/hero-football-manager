@@ -1,5 +1,9 @@
-import { CUP_SETTLEMENT_WEEKS, DEFAULT_CREATION_RATINGS } from '../../game';
+import { CUP_SETTLEMENT_WEEKS, DEFAULT_CREATION_RATINGS, createCareer } from '../../game';
+import { createLaunchCareerSetup } from '../launch';
+import type { CareerRepository } from '../../persistence';
+import { MissingCareerBackupError } from '../../persistence';
 import { createMatch } from '../../sim/match';
+import { weeklySettlementAwardKeys } from '../../game/weekly-settlement-awards';
 import { useM1Store } from '../store';
 
 const PLAY_IN_WEEK = CUP_SETTLEMENT_WEEKS[0];
@@ -93,6 +97,55 @@ describe('Hero Cup app routing', () => {
     )).toBe(true);
   });
 
+  test('does not open the second match until the league checkpoint is on disk', async () => {
+    const initial = createCareer(createLaunchCareerSetup(20260805));
+    const doubleHeaderRound = Math.min(...initial.fixtures
+      .filter(fixture => fixture.season === initial.season && fixture.week > PLAY_IN_WEEK)
+      .map(fixture => fixture.round));
+    const checkpoint = {
+      ...initial,
+      week: PLAY_IN_WEEK,
+      phase: 'matchday' as const,
+      fixtures: initial.fixtures.map(fixture => (
+        fixture.season === initial.season && fixture.round === doubleHeaderRound
+          ? { ...fixture, week: PLAY_IN_WEEK }
+          : fixture
+      )),
+    };
+    let releaseSave: (() => void) | undefined;
+    const repository = emptyCareerRepository({
+      save: async () => new Promise<void>(resolve => { releaseSave = resolve; }),
+    });
+    useM1Store.setState({
+      career: checkpoint,
+      repository,
+      persistenceReady: true,
+      hasSavedCareer: true,
+      lastPersistedCareer: checkpoint,
+      screen: 'matchday',
+    });
+
+    useM1Store.getState().quickResult();
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'postmatch',
+      career: { week: PLAY_IN_WEEK, phase: 'matchday' },
+    });
+
+    const continuation = useM1Store.getState().continueAfterMatch();
+    expect(useM1Store.getState().screen).toBe('postmatch');
+    for (let attempt = 0; attempt < 20 && releaseSave === undefined; attempt += 1) {
+      await Promise.resolve();
+    }
+    expect(releaseSave).toBeDefined();
+    releaseSave?.();
+    await continuation;
+
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'matchday',
+      career: { week: PLAY_IN_WEEK, phase: 'matchday' },
+    });
+  });
+
   test('hands a watched cup tie its round, and a watched league fixture none', () => {
     // The round is what the match screen's title card is built from, so it has
     // to survive the trip from the bracket into the watched-match context.
@@ -151,6 +204,16 @@ describe('Hero Cup app routing', () => {
       useM1Store.getState().quickResult();
     }
 
+    const prizeLines = useM1Store.getState().career!.ledgers
+      .flatMap(ledger => ledger.lines)
+      .filter(line => line.idempotencyKey === weeklySettlementAwardKeys.cupRound(
+        prepared.userClubId,
+        prepared.season,
+        matchday.round,
+      ));
+    expect(prizeLines).toEqual([
+      expect.objectContaining({ kind: 'prize', amount: 2_000 }),
+    ]);
     expect(useM1Store.getState().career?.pendingCupGiantKillingCelebrations).toEqual([
       expect.objectContaining({
         fixtureId: matchday.id,
@@ -183,6 +246,19 @@ describe('Hero Cup app routing', () => {
     });
   });
 });
+
+function emptyCareerRepository(overrides: Partial<CareerRepository>): CareerRepository {
+  return {
+    async load() { return null; },
+    async loadRaw() { return null; },
+    async save() {},
+    async delete() {},
+    async backupSummary() { return null; },
+    async restoreBackup() { throw new MissingCareerBackupError(); },
+    async checkIntegrity() { return true; },
+    ...overrides,
+  };
+}
 
 function prepareCupTie(divisionGap: 1 | 2, winner: 'user' | 'opponent' = 'user') {
   useM1Store.getState().startNewCareer(2);

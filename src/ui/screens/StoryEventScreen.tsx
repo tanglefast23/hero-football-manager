@@ -122,7 +122,7 @@ export function StoryEventScreen({
         ? 'w-full max-w-[600px] self-center border-[3px] border-b-[7px] border-red-dark bg-paper px-5 pb-5 pt-4'
         : 'w-full max-w-[600px] self-center border-[3px] border-b-[7px] border-blue-dark bg-paper px-5 pb-5 pt-4';
     return (
-      <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+      <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
         <EventArtwork
           artKey={riskySuccess ? `${viewModel.artKey}-success` : viewModel.artKey}
           category={viewModel.category}
@@ -208,7 +208,7 @@ export function StoryEventScreen({
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
       <View className="flex-row items-center justify-between px-4 py-3">
         <View>
           <Text className="font-pixel text-xs uppercase tracking-[2px] text-red-light">Story interruption</Text>

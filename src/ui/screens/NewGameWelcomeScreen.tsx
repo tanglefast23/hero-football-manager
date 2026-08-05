@@ -204,14 +204,14 @@ export function NewGameWelcomeScreen({
           className="min-h-11 items-center justify-center"
           style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
         >
-          <PixelText className="text-sm uppercase tracking-widest text-paper/70">Accessibility & controls</PixelText>
+          <PixelText className="text-sm uppercase tracking-widest text-paper/75">Accessibility & controls</PixelText>
         </Pressable>
       ) : null}
     </View>
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
       <ChalkboardBackdrop wide={wide} />
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
         <View className={wide

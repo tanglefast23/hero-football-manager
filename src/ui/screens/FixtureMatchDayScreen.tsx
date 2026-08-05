@@ -163,7 +163,7 @@ export function FixtureMatchDayScreen({
   const teamSheet = (
     <View className="mt-6">
       <StageSection eyebrow="Team sheet" title="Starting eleven" right={<StatusChip label={viewModel.formationLabel} />} />
-      <Text className="mb-3 text-sm leading-5 text-paper/70">
+      <Text className="mb-3 text-sm leading-5 text-paper/75">
         To change starters, tap the starter and the replacement. Every change is saved for future matches.
       </Text>
       {/* Every starter is identified by their face and name. Phone cells share
@@ -327,7 +327,7 @@ export function FixtureMatchDayScreen({
         ))}
       </View>
       {viewModel.heroes.length > 0 ? (
-        <Text className="mt-3 text-sm leading-5 text-paper/60">
+        <Text className="mt-3 text-sm leading-5 text-paper/75">
           Owned heroes without a license must remain on the bench. Licensed heroes fire their
           powers automatically at the right moment in both watched and Quick Result matches.
         </Text>
@@ -341,7 +341,7 @@ export function FixtureMatchDayScreen({
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
       <ChalkboardBackdrop wide={wide} />
       <View className={wide
         ? 'w-full max-w-[1180px] flex-row items-center justify-between self-center px-6 py-3'

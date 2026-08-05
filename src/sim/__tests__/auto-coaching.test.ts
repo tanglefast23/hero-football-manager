@@ -42,13 +42,13 @@ function runToFullTime(match: ReturnType<typeof createMatch>): void {
 }
 
 describe('deterministic automatic coaching', () => {
-  it('auto-manages only the opponent in a watched match and both teams in Quick Result', () => {
+  it('auto-manages only the opponent in a controlled match and both teams in an uncontrolled match', () => {
     const watchedHome = createMatch(1, ROVERS, UNITED, { controlledTeam: 0 });
     const watchedAway = createMatch(1, ROVERS, UNITED, { controlledTeam: 1 });
-    const quick = createMatch(1, ROVERS, UNITED);
+    const uncontrolled = createMatch(1, ROVERS, UNITED);
     expect(automaticTeams(watchedHome)).toEqual([1]);
     expect(automaticTeams(watchedAway)).toEqual([0]);
-    expect(automaticTeams(quick)).toEqual([0, 1]);
+    expect(automaticTeams(uncontrolled)).toEqual([0, 1]);
   });
 
   it('uses one role-compatible opponent substitution at a checkpoint without logging an input', () => {
@@ -72,7 +72,7 @@ describe('deterministic automatic coaching', () => {
     }));
   });
 
-  it('auto-substitutes both sides in Quick Result and uses stable player-ID tie breaking', () => {
+  it('auto-substitutes both sides in an uncontrolled match and uses stable player-ID tie breaking', () => {
     const match = createMatch(3, withBench(ROVERS, 'h'), withBench(UNITED, 'a'));
     match.players[1].condition = 20;
     match.players[2].condition = 20;
@@ -224,7 +224,7 @@ describe('deterministic automatic coaching', () => {
   it.each([
     ['watched home', { controlledTeam: 0 as const }, [0, 5]],
     ['watched away', { controlledTeam: 1 as const }, [5, 0]],
-    ['Quick Result', {}, [5, 5]],
+    ['uncontrolled match', {}, [5, 5]],
   ])('regenerates %s automatic coaching during replay without fake inputs', (_label, opts, expectedSubs) => {
     const match = createMatch(77, withBench(ROVERS, 'h'), withBench(UNITED, 'a'), opts);
     runToFullTime(match);

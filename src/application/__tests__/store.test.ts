@@ -686,7 +686,12 @@ describe('M1 app store integration', () => {
     // The season transition replaces the fixture list, so record every played
     // score as the journey goes to verify Season 1 replays after Season 2.
     const scoreByFixtureId = new Map<string, [number, number]>();
-    for (let step = 0; step < 400; step += 1) {
+    let journeyCompleted = false;
+    // Club Business adds persisted Bert deliveries and safe league-to-Cup save
+    // checkpoints. Six hundred is a deadlock guard, not the expected journey
+    // length; exhausting it now fails explicitly instead of falling through to
+    // a misleading phase assertion.
+    for (let step = 0; step < 600; step += 1) {
       const current = useM1Store.getState();
       const career = current.career;
       if (career === null) throw new Error('career disappeared during persisted journey');
@@ -697,7 +702,10 @@ describe('M1 app store integration', () => {
         scoreByFixtureId.set(fixture.id, [fixture.score.homeGoals, fixture.score.awayGoals]);
       }
       // The career is endless, so the journey stops at Season 2's boundary.
-      if (career.season === 2 && career.phase === 'season-end') break;
+      if (career.season === 2 && career.phase === 'season-end') {
+        journeyCompleted = true;
+        break;
+      }
 
       if (current.screen === 'awakening') {
         current.continueAfterAwakening();
@@ -745,7 +753,10 @@ describe('M1 app store integration', () => {
         || current.screen === 'postmatch'
         || current.screen === 'week-review'
       ) {
-        if (current.screen === 'postmatch') current.continueAfterMatch();
+        // League/Cup double-headers deliberately checkpoint the first match
+        // before exposing the second. Await that persisted boundary before the
+        // test kills and relaunches the app, exactly as the UI does.
+        if (current.screen === 'postmatch') await current.continueAfterMatch();
         else if (current.screen === 'week-review') current.continueWeekReview();
         else if (current.postMatchOverlay === 'summary') current.dismissPostMatchSummary();
         // A story waits on the desk as an inbox card now, so the journey has to
@@ -767,6 +778,7 @@ describe('M1 app store integration', () => {
     }
 
     const completed = useM1Store.getState().career!;
+    expect(journeyCompleted).toBe(true);
     expect(completed).toMatchObject({ season: 2, phase: 'season-end' });
     expect(completed.ledgers).toHaveLength(60);
     expect(userHeroes().length).toBeGreaterThanOrEqual(1);
@@ -1106,7 +1118,7 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career?.onboarding?.stage).toBe('complete');
   });
 
-  it('clears the replay namespace before saving a replacement career', async () => {
+  it('saves a replacement career before clearing its replay namespace', async () => {
     const operations: string[] = [];
     const careerRepository = stubCareerRepository({
       async save(career) { operations.push(`save:${career.careerSeed}`); },
@@ -1129,12 +1141,12 @@ describe('M1 app store integration', () => {
     await waitFor(() => operations.length === 2);
 
     expect(operations).toEqual([
-      'reset:m1-career-20260718',
       'save:20260718',
+      'reset:m1-career-20260718',
     ]);
   });
 
-  it('erases the replaced career replay namespace before saving a new career', async () => {
+  it('erases replaced replay namespaces only after saving the new career', async () => {
     useM1Store.getState().startNewCareer(111);
     const existingCareer = useM1Store.getState().career!;
     useM1Store.setState(useM1Store.getInitialState(), true);
@@ -1156,34 +1168,38 @@ describe('M1 app store integration', () => {
     await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
 
     useM1Store.getState().startNewCareer(222);
-    await waitFor(() => operations.length === 4);
+    await waitFor(() => operations.length === 5);
 
-    // Loading reconciles the save into a fresh object, so boot re-saves it
-    // before the replacement career clears the old replay namespace.
+    // Loading reconciles the save into a fresh object, so boot re-saves it.
+    // Replacement then checkpoints that exact old snapshot before attempting
+    // the new write, and only a durable new career may clear either namespace.
     expect(operations).toEqual([
       'save:111',
+      'save:111',
+      'save:222',
       'reset:m1-career-111',
       'reset:m1-career-222',
-      'save:222',
     ]);
   });
 
-  it('keeps the existing career when a replacement career cannot be saved', async () => {
+  it('keeps the existing career and its replays when a replacement save fails', async () => {
     startCreatedCareer(111);
     const existingCareer = useM1Store.getState().career!;
     useM1Store.setState(useM1Store.getInitialState(), true);
 
-    const savedSeeds: number[] = [];
+    const replayDeletes: string[] = [];
     const careerRepository = stubCareerRepository({
       async load() { return existingCareer; },
-      async save(career) { savedSeeds.push(career.careerSeed); },
+      async save(career) {
+        if (career.careerSeed === 222) throw new Error('replacement save failed');
+      },
     });
     const replayRepository: ReplayRepository = {
       async save() {},
       async load() { return null; },
       async listForCareer() { return []; },
       async delete() {},
-      async deleteAllForCareer() { throw new Error('reset failed'); },
+      async deleteAllForCareer(careerId) { replayDeletes.push(careerId); },
     };
     await useM1Store.getState().initializePersistence(
       careerRepository,
@@ -1197,7 +1213,7 @@ describe('M1 app store integration', () => {
       name: 'Jo Rook',
       ratings: DEFAULT_CREATION_RATINGS,
     });
-    await waitFor(() => useM1Store.getState().error?.includes('reset failed') ?? false);
+    await waitFor(() => useM1Store.getState().error?.includes('replacement save failed') ?? false);
     await flushMicrotasks();
 
     // The write that failed is the one that would have replaced the save, so the
@@ -1207,17 +1223,88 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career?.careerSeed).toBe(111);
     expect(useM1Store.getState().hasSavedCareer).toBe(true);
     expect(useM1Store.getState().screen).toBe('management');
-    expect(savedSeeds).not.toContain(222);
+    expect(replayDeletes).toEqual([]);
   });
 
-  it('warns rather than rolling back when there was no career to replace', async () => {
-    const careerRepository = stubCareerRepository();
+  it('checkpoints queued old-career progress before a failed replacement rolls back', async () => {
+    startCreatedCareer(111);
+    const diskCareer = useM1Store.getState().career!;
+    useM1Store.setState(useM1Store.getInitialState(), true);
+
+    let durableCareer = diskCareer;
+    const savedSeeds: number[] = [];
+    const careerRepository = stubCareerRepository({
+      async load() { return durableCareer; },
+      async save(career) {
+        savedSeeds.push(career.careerSeed);
+        if (career.careerSeed === 222) throw new Error('replacement save failed');
+        durableCareer = career;
+      },
+    });
+    await useM1Store.getState().initializePersistence(careerRepository);
+    await waitFor(() => !useM1Store.getState().saving);
+    savedSeeds.length = 0;
+
+    const beforeSwap = useM1Store.getState().career!;
+    const { starterId, replacementId } = firstAvailableLineupSwap(beforeSwap);
+    useM1Store.getState().swapStartingPlayer(starterId, replacementId);
+    const queuedOldCareer = useM1Store.getState().career!;
+    // Do not yield: this is the real race. The normal save still owns only the
+    // module-level coalesced payload when replacement starts synchronously.
+    useM1Store.getState().startNewCareer(222);
+
+    await waitFor(() => useM1Store.getState().error?.includes('replacement save failed') ?? false);
+    await flushMicrotasks();
+
+    expect(savedSeeds).toEqual([111, 222]);
+    expect(useM1Store.getState().career).toBe(queuedOldCareer);
+    expect(useM1Store.getState().lastPersistedCareer).toBe(queuedOldCareer);
+    expect(durableCareer).toBe(queuedOldCareer);
+    expect(durableCareer.lineups.find(lineup => lineup.clubId === durableCareer.userClubId)?.playerIds)
+      .toContain(replacementId);
+
+    // A relaunch must load the same checkpoint the rollback screen showed.
+    useM1Store.setState(useM1Store.getInitialState(), true);
+    await useM1Store.getState().initializePersistence(careerRepository);
+    expect(useM1Store.getState().career?.lineups
+      .find(lineup => lineup.clubId === durableCareer.userClubId)?.playerIds)
+      .toContain(replacementId);
+  });
+
+  it('keeps the saved new career when replay cleanup fails', async () => {
+    startCreatedCareer(111);
+    const existingCareer = useM1Store.getState().career!;
+    useM1Store.setState(useM1Store.getInitialState(), true);
+    const careerRepository = stubCareerRepository({
+      async load() { return existingCareer; },
+    });
     const replayRepository: ReplayRepository = {
       async save() {},
       async load() { return null; },
       async listForCareer() { return []; },
       async delete() {},
-      async deleteAllForCareer() { throw new Error('reset failed'); },
+      async deleteAllForCareer() { throw new Error('cleanup failed'); },
+    };
+    await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
+
+    useM1Store.getState().startNewCareer(222);
+    await waitFor(() => useM1Store.getState().notice?.message.includes('cleanup failed') ?? false);
+
+    expect(useM1Store.getState().career?.careerSeed).toBe(222);
+    expect(useM1Store.getState().hasSavedCareer).toBe(true);
+    expect(useM1Store.getState().error).toBeNull();
+  });
+
+  it('warns rather than rolling back when there was no career to replace', async () => {
+    const careerRepository = stubCareerRepository({
+      async save() { throw new Error('new career write failed'); },
+    });
+    const replayRepository: ReplayRepository = {
+      async save() {},
+      async load() { return null; },
+      async listForCareer() { return []; },
+      async delete() {},
+      async deleteAllForCareer() {},
     };
     await useM1Store.getState().initializePersistence(
       careerRepository,
@@ -1256,7 +1343,11 @@ describe('M1 app store integration', () => {
     advanceToWeek(3);
     // The week-3 advance opens the fixture rather than moving the clock on.
     useM1Store.getState().advanceCareer();
-    useM1Store.getState().quickResult();
+    const before = useM1Store.getState().career!;
+    const fixtureId = before.onboarding?.firstFixtureId;
+    const fixture = before.fixtures.find(candidate => candidate.id === fixtureId)!;
+    const controlledTeam: 0 | 1 = fixture.homeClubId === before.userClubId ? 0 : 1;
+    useM1Store.getState().quickResult({ initialFormation: '3-5-2', autoSubs: false });
     await waitFor(() => saved.length === 1);
 
     expect(saved[0]).toMatchObject({
@@ -1266,11 +1357,15 @@ describe('M1 app store integration', () => {
         schemaVersion: 1,
         engineVersion: expect.any(String),
         inputs: [],
-        opts: {
-          homePolicy: 'FIRE_WHEN_READY',
-          awayPolicy: 'FIRE_WHEN_READY',
-        },
       },
+    });
+    expect(saved[0].envelope.opts).toEqual({
+      homePolicy: 'FIRE_WHEN_READY',
+      awayPolicy: 'FIRE_WHEN_READY',
+      controlledTeam,
+      ...(controlledTeam === 0
+        ? { homeFormation: '3-5-2' }
+        : { awayFormation: '3-5-2' }),
     });
     expect(saved[0].fixtureId).toBe(useM1Store.getState().career?.onboarding?.firstFixtureId);
     expect(saved[0].envelope.home.players).toHaveLength(11);
@@ -1326,6 +1421,10 @@ async function relaunchCheckpoint(
   const expected = structuredClone(useM1Store.getState().career);
   useM1Store.setState(useM1Store.getInitialState(), true);
   await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
+  // A load-time reconciliation is itself a persisted boundary. In particular,
+  // the Cup safety guard must see that write finish before the test immediately
+  // presses Quick Result on the second match of a double-header.
+  await waitFor(() => !useM1Store.getState().saving);
   // Boot re-runs the story feature pacing, which closes a Season 1 Week 1
   // youth intake that has not reached its unlock week yet. Everything else
   // about the career must come back exactly as it was saved.

@@ -22,6 +22,7 @@ import { earnedCareerMilestoneFlags, recordCareerMilestones } from '../career-ev
 import { FIRST_D4_PROMOTION_RECRUITMENT_FUND } from '../promotion-progression';
 import { generateSeasonFixtures } from '../schedule';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
+import { weeklySettlementAwardKeys } from '../weekly-settlement-awards';
 
 /** The shape a career club's starting eleven must be able to field. */
 const SQUAD_ROLES: readonly CareerPlayer['role'][] = [
@@ -158,6 +159,7 @@ describe('career season workflow', () => {
       kind: 'subsidy',
       label: 'County League recruitment fund',
       amount: FIRST_D4_PROMOTION_RECRUITMENT_FUND,
+      idempotencyKey: weeklySettlementAwardKeys.recruitmentFund(firstPromotion.userClubId),
     };
 
     expect(firstPromotion.ledgers.at(-1)?.lines).toContainEqual(fundLine);

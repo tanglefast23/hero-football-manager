@@ -29,6 +29,9 @@ module.exports = {
         pitch: '#5cb85c',
         'pitch-dark': '#3f8a4a',
         'pitch-light': '#8fd98f',
+        // AA-safe semantic green for text and dark UI stages. Keep pitch-dark
+        // as the authored turf shadow; it is not dark enough for small copy.
+        'pitch-ink': '#265b30',
         // --- legacy semantic aliases (kept so existing screens keep working,
         //     now pointing at the bible hues) ---
         signal: '#edb54a', // gold — hero/reward + primary CTA

@@ -115,6 +115,7 @@ describe('career market integration', () => {
             id: `facility-${index + 1}`,
             type: 'scout-office' as const,
             level,
+            capitalInvested: level === 1 ? 6_000 : level === 2 ? 13_500 : 27_000,
             x: index,
             y: 0,
           })),

@@ -19,6 +19,21 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     expect(appSource).not.toMatch(/import\s*\{[^}]*\bAlert\b[^}]*\}\s*from\s*['"]react-native['"]/);
   });
 
+  it('keeps a blocking Bert briefing outside an inert web and Android background', () => {
+    const bert = readFileSync(join(process.cwd(), 'src/ui/BertBriefingWalkOn.tsx'), 'utf8');
+    const speech = readFileSync(join(process.cwd(), 'src/ui/CharacterSpeechOverlay.tsx'), 'utf8');
+
+    expect(appSource).toContain('bertBriefingBackgroundProps(bertBriefingVisible)');
+    expect(appSource).toContain('guideOverlayVisible || store.inboxDutyReminder !== null');
+    expect(bert).toContain("return { role: 'dialog', 'aria-modal': true };");
+    expect(bert).toContain("return { inert: true, 'aria-hidden': true };");
+    expect(bert).toContain("Platform.OS === 'android'");
+    expect(bert).toContain("importantForAccessibility: 'no-hide-descendants'");
+    expect(speech).toContain("Platform.OS !== 'web' && Platform.OS !== 'android'");
+    expect(speech).toContain('AccessibilityInfo.setAccessibilityFocus(handle)');
+    expect(bert).toContain('focusOnMount');
+  });
+
   it('removes coach-card cues while retaining action-specific guidance until its target is used', () => {
     const market = readFileSync(join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'), 'utf8');
     const shell = readFileSync(join(process.cwd(), 'src/ui/ManagementShell.tsx'), 'utf8');

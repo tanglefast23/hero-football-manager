@@ -6,6 +6,7 @@ import {
 import type { CoachCandidate } from '../market';
 import type { CareerMarketState } from '../market-career';
 import type { CareerPlayer, GameState } from '../types';
+import { createClubBusinessState } from '../club-business';
 
 const USER_CLUB_ID = 'user-club';
 
@@ -79,6 +80,7 @@ function state(overrides: Partial<GameState> = {}): GameState {
     market: market(),
     retiredPlayers: [legend],
     pendingLegacyPlayerIds: [legend.id],
+    clubBusiness: createClubBusinessState({ season: 4 }),
     ...overrides,
   };
 }

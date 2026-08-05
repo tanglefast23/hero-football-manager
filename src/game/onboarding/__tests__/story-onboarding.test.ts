@@ -1,4 +1,5 @@
 import type { GameState } from '../../types';
+import { createClubBusinessState } from '../../club-business';
 import { completePostMatchAwakening, resolvePostMatchAwakening } from '../../post-match-awakening';
 import { DEFAULT_CREATION_RATINGS } from '../player-creation';
 import {
@@ -74,6 +75,7 @@ function state(): GameState {
     awakening: { matchesSinceLastAwakening: 0, usedTriggerIds: [] },
     trainingPoints: 0,
     ledgers: [],
+    clubBusiness: createClubBusinessState({ season: 1 }),
   };
 }
 

@@ -25,9 +25,20 @@ export const DORM_CONDITION_RECOVERY_PER_LEVEL = 4;
 export interface WeeklyPlayerWellbeingContext {
   /** Results played outside the league fixture list, such as a Cup tie. */
   readonly additionalMatchOutcomes?: readonly WeeklyMatchOutcome[];
+  /**
+   * Production appearances, one set per match. When supplied, completed-match
+   * morale never re-reads the club's current saved lineup.
+   */
+  readonly matchParticipations?: readonly WeeklyMatchParticipation[];
 }
 
 export type WeeklyMatchOutcome = 'win' | 'draw' | 'loss';
+
+export interface WeeklyMatchParticipation {
+  readonly fixtureId: string;
+  readonly outcome: WeeklyMatchOutcome;
+  readonly participantPlayerIds: readonly string[];
+}
 
 export interface WeeklyPlayerWellbeingResult {
   readonly players: CareerPlayer[];
@@ -46,20 +57,33 @@ export function resolveWeeklyPlayerWellbeing(
 ): WeeklyPlayerWellbeingResult {
   validateStateClock(state);
 
-  const match = currentUserMatch(state);
-  const additionalMatchOutcomes = context.additionalMatchOutcomes ?? [];
+  const matchParticipations = context.matchParticipations;
+  const match = matchParticipations === undefined ? currentUserMatch(state) : undefined;
+  const additionalMatchOutcomes = matchParticipations === undefined
+    ? context.additionalMatchOutcomes ?? []
+    : [];
   if (additionalMatchOutcomes.some(outcome => !['win', 'draw', 'loss'].includes(outcome))) {
     throw new Error('additional match outcomes must be win, draw, or loss');
   }
-  const matchOutcomes = [
-    ...(match === undefined ? [] : [match.outcome]),
-    ...additionalMatchOutcomes,
-  ];
+  const matchOutcomes = matchParticipations?.map(participation => participation.outcome) ?? [
+      ...(match === undefined ? [] : [match.outcome]),
+      ...additionalMatchOutcomes,
+    ];
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
-  if (matchOutcomes.length > 0 && lineup === undefined) {
+  if (matchOutcomes.length > 0 && lineup === undefined && matchParticipations === undefined) {
     throw new Error('a played user match requires a user lineup');
   }
   const starters = new Set(lineup?.playerIds ?? []);
+  const participantSets = matchParticipations?.map(participation => {
+    if (!['win', 'draw', 'loss'].includes(participation.outcome)) {
+      throw new Error('match participation outcome must be win, draw, or loss');
+    }
+    const participants = new Set(participation.participantPlayerIds);
+    if (participants.size !== participation.participantPlayerIds.length) {
+      throw new Error(`match ${participation.fixtureId} participant IDs must be unique`);
+    }
+    return { outcome: participation.outcome, participants };
+  });
   const motivatorStrengthHalfLevels = state.market === undefined
     ? 0
     : coachMotivatorStrengthHalfLevels(state.market);
@@ -68,10 +92,18 @@ export function resolveWeeklyPlayerWellbeing(
   const players = state.players.map(player => {
     if (player.clubId !== state.userClubId) return player;
 
-    const matchMoraleDelta = matchOutcomes.reduce(
-      (total, outcome) => total + moraleDeltaForMatch(outcome, starters.has(player.id)),
-      0,
-    );
+    const matchMoraleDelta = participantSets === undefined
+      ? matchOutcomes.reduce(
+          (total, outcome) => total + moraleDeltaForMatch(outcome, starters.has(player.id)),
+          0,
+        )
+      : participantSets.reduce(
+          (total, participation) => total + moraleDeltaForMatch(
+            participation.outcome,
+            participation.participants.has(player.id),
+          ),
+          0,
+        );
     const underpaidMoraleDelta = isUnderpaidPlayer(player) ? -2 : 0;
     const motivation = applyMotivatorProtection(
       matchMoraleDelta + underpaidMoraleDelta,

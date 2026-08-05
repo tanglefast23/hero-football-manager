@@ -11,8 +11,8 @@ Money is lumpy and stressful; TP flows steadily from investments in staff and gr
 
 ## Income (all four, per user decision)
 
-1. **Sponsors** — the backbone. 1 slot at start → 3 by fame tier. Each sponsor: monthly fee + season objective bonus ("finish top 3": +5,000) + a signing perk (cash advance, or unlocks a scout region/drill). Offers refresh each pre-season; better divisions and fame unlock better sponsors. A **Buzz meter** (goals, wins, hero moments) settles into a sponsor bonus twice per season (Grand Prix Story's twice-yearly settlement — two financial "paydays" beat a flat trickle).
-2. **Tickets & fans** — every home match, league or Cup, earns its own gate: fans × attendance rate × ticket price. A double-header week can therefore show separate League and Hero Cup gate lines. Fans grow on wins, star heroes fielded, promotions; shrink slowly on losing streaks. Ticket price is settable (too high = attendance drops — a gentle lever, not a spreadsheet).
+1. **Sponsors** — the backbone. D5 keeps its automatic baseline sponsor. Reaching D4 permanently unlocks one managed slot, D3 unlocks two, and D2 unlocks three; relegation never removes an earned slot. Each slot offers Steady, Balanced, and Bold terms during Weeks 1–4: exact monthly pay plus one league objective and an exactly-once Week-30 bonus. Untouched slots preserve their baseline income, so missing the offer window is never a punishment. There are **no signing perks or sponsor unlock perks** in this system. Payments land on Weeks 4, 8, 12, 16, 20, 24, and 28. A Season-3 **Buzz meter** (goals, wins, hero power moments) settles into sponsor cash at Weeks 15 and 30.
+2. **Tickets & fans** — every home match, league or Cup, earns its own gate: fans × attendance rate × the division's ticket price. A double-header week can therefore show separate League and Hero Cup gate lines. Wins and each distinct hero who actually played grow the following at a division-scaled rate. The first two consecutive losses cause no result-based decline; the third and later losses shrink support slowly, and a draw or win resets the streak. Ticket pricing and demand elasticity are deliberately deferred rather than advertised as a shipped control.
 3. **Prize money** — league placement paid at season end + per-round cup prizes. Promotion pays a bonus.
 4. **Player sales** — doc 05. The "training facilities print money" loop.
 
@@ -49,11 +49,20 @@ Facility quality is partly promotion-gated: Levels 1 and 2 are available from D5
 
 The club owns **one works crew**, so only one build or upgrade project may run at once. Paying for a building starts construction and occupies its tiles immediately, but it produces **no benefit and no upkeep until completion**. An upgrade keeps the facility's current level active while work proceeds; the higher level begins only on completion. New careers receive an extra **$8,000** in their starting budget and are guided to place the Training Pitch as their first build, so paying for it returns cash to the previously balanced opening level. It pays nothing before it opens; from then on every weekly settlement creates **+28 TP per completed level**. Relocation is unavailable for the building under construction. Completion resolves at weekly settlement, appears in the Weekly Review with the finished building sprite, and uses the dedicated win fanfare.
 
-| Facility group | Lv1 build | Lv2 upgrade | Lv3 upgrade |
+Additional sponsor and Buzz income is paired with higher upgrade prices while every Level-1 build remains unchanged. Level-2 prices are the previous price ×1.25 and Level-3 prices ×1.50, rounded to the nearest $500. A building records the cash actually invested, so closing it refunds half its historical basis rather than half today's catalog price. Coaching Office Levels 2–3 are disabled until those levels have a real benefit; charging for a no-effect upgrade is not allowed.
+
+| Facility | Lv1 build | Lv2 upgrade | Lv3 upgrade |
 |---|---:|---:|---:|
-| Training Pitch, Gym, Tech Center, Shooting Range, Keeper Court, Medical Bay | 2 weeks | 2 weeks | 3 weeks |
-| Dorm, Scout Office, Coaching Office, Fan Shop | 1 week | 1 week | 2 weeks |
-| Youth Field, Stadium Stand | 3 weeks | 2 weeks | 3 weeks |
+| Training Pitch | $8,000 · 2 weeks | $10,000 · 2 weeks | $18,000 · 3 weeks |
+| Gym | $7,000 · 2 weeks | $9,000 · 2 weeks | $16,000 · 3 weeks |
+| Tech Center | $9,000 · 2 weeks | $11,500 · 2 weeks | $20,500 · 3 weeks |
+| Shooting Range / Keeper Court | $7,500 · 2 weeks | $9,500 · 2 weeks | $17,000 · 3 weeks |
+| Medical Bay | $10,000 · 2 weeks | $12,500 · 2 weeks | $22,500 · 3 weeks |
+| Dorm / Scout Office | $6,000 · 1 week | $7,500 · 1 week | $13,500 · 2 weeks |
+| Coaching Office | $6,500 · 1 week | Disabled | Disabled |
+| Fan Shop | $5,000 · 1 week | $6,500 · 1 week | $11,500 · 2 weeks |
+| Youth Field | $12,000 · 3 weeks | $15,000 · 2 weeks | $27,000 · 3 weeks |
+| Stadium Stand | $15,000 · 3 weeks | $19,000 · 2 weeks | $34,000 · 3 weeks |
 
 **Adjacency bonuses** (Grand Prix Story 2's stealable puzzle, simplified): certain pairings buff each other when adjacent (Gym+Dorm: +10% STA gains; Fan Shop+Stadium: +10% merch; Medical+Training Pitch: −20% injury odds). Buildings are **relocatable for a small fee**, so layout is a recurring optimization toy. Discovered pairings log into the Codex.
 

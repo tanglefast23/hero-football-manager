@@ -6,6 +6,9 @@ import {
   createFacilityGrid,
   developmentPotentialCeiling,
   enableFullCareer,
+  currentUserDivision,
+  expireSponsorOfferWindow,
+  generateSponsorOffers,
   potentialTierForDivision,
 } from '../game';
 import {
@@ -53,6 +56,18 @@ export function createLaunchCareerSetup(
     trainingRules: {
       focusDrills: content.training.focusDrills.map(drill => ({
         id: drill.id, moneyCost: drill.moneyCost, tpCost: drill.tpCost, gains: { ...drill.gains },
+      })),
+    },
+    sponsorRules: {
+      brands: content.sponsors.brands.map(brand => ({ ...brand })),
+      profiles: {
+        STEADY: { ...content.sponsors.profiles.STEADY },
+        BALANCED: { ...content.sponsors.profiles.BALANCED },
+        BOLD: { ...content.sponsors.profiles.BOLD },
+      },
+      objectives: content.sponsors.objectives.map(objective => ({
+        ...objective,
+        targets: { ...objective.targets },
       })),
     },
     clubs: content.clubs.clubs.map(club => ({
@@ -175,6 +190,8 @@ export function reconcileLaunchRoster(
   let changed = state.launchRosterVersion !== LAUNCH_ROSTER_VERSION
     || missing.length > 0
     || state.trainingRules === undefined
+    || state.playerRequestRules === undefined
+    || state.sponsorRules === undefined
     || savedAwakening === undefined
     || savedAwakening.usedTriggerIds === undefined
     || state.facilities.grid === undefined;
@@ -253,7 +270,7 @@ export function reconcileLaunchRoster(
   }
 
   if (!changed) {
-    return reconcileCareerPlayerLooks(enableFullCareer(state));
+    return reconcileSponsorBusiness(reconcileCareerPlayerLooks(enableFullCareer(state)));
   }
 
   const reconciled: GameState = {
@@ -292,15 +309,61 @@ export function reconcileLaunchRoster(
     // Careers saved before requests existed have no baked catalog, and without
     // one the tab would stay empty forever. Reconciliation supplies it the same
     // way it supplies training rules.
-    ...(state.playerRequestRules === undefined && launch.playerRequestRules !== undefined
-      ? { playerRequestRules: launch.playerRequestRules }
+    ...(state.playerRequestRules === undefined
+      ? { playerRequestRules: JSON.parse(JSON.stringify(content.playerRequests)) }
+      : {}),
+    ...(state.sponsorRules === undefined && launch.sponsorRules !== undefined
+      ? { sponsorRules: launch.sponsorRules }
       : {}),
     clubs: state.clubs.map(club => ({
       ...club,
       weeklyWages: wageByClub.get(club.id) ?? club.weeklyWages,
     })),
   };
-  return reconcileCareerPlayerLooks(enableFullCareer(reconciled));
+  return reconcileSponsorBusiness(reconcileCareerPlayerLooks(enableFullCareer(reconciled)));
+}
+
+function reconcileSponsorBusiness(state: GameState): GameState {
+  const rules = state.sponsorRules;
+  if (rules === undefined || state.m2 === undefined) return state;
+  const sponsorship = state.clubBusiness.sponsorship;
+  if (sponsorship.portfolioSeason !== state.season || sponsorship.activeContracts.length === 0) {
+    return state;
+  }
+  if (sponsorship.offerSeason === state.season) return state;
+
+  if (state.week >= 5) {
+    return {
+      ...state,
+      clubBusiness: {
+        ...state.clubBusiness,
+        sponsorship: {
+          ...expireSponsorOfferWindow(sponsorship, state.season, state.week),
+          offerSeason: state.season,
+        },
+      },
+    };
+  }
+
+  const offers = generateSponsorOffers({
+    rules,
+    careerSeed: state.careerSeed,
+    season: state.season,
+    division: currentUserDivision(state.m2),
+    difficulty: state.difficulty ?? 'COZY',
+    activeContracts: sponsorship.activeContracts,
+  });
+  return {
+    ...state,
+    clubBusiness: {
+      ...state.clubBusiness,
+      sponsorship: {
+        ...sponsorship,
+        offers,
+        offerSeason: state.season,
+      },
+    },
+  };
 }
 
 function reconcileCareerPlayerLooks(state: GameState): GameState {

@@ -90,6 +90,6 @@ describe('the shared screen tab strip', () => {
   it('draws nothing when there is only one board to choose', () => {
     // The Market in week 1: Coaches is the only desk unlocked, and a lone
     // full-width tab reads as a title wearing a button.
-    expect(tabs).toContain('if (tabs.length < 2) return null;');
+    expect(tabs).toContain('if (tabs.length < 2 && !showSingleTab) return null;');
   });
 });

@@ -30,7 +30,7 @@ export function TitleLandingScreen({
   const isWide = width >= 900 && height >= 600;
 
   return (
-    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
       <View pointerEvents="none" className="absolute inset-0 overflow-hidden">
         <View className="absolute -left-28 top-16 h-72 w-72 rounded-full border-4 border-paper/15" />
         <View className="absolute -right-24 top-64 h-64 w-64 rounded-full border-4 border-paper/10" />
@@ -51,7 +51,7 @@ export function TitleLandingScreen({
           <View className={isWide ? 'w-[54%] max-w-[620px]' : 'relative'}>
             <View className="flex-row items-start justify-between">
               <View className="-rotate-2 border-2 border-ink bg-paper px-3 py-2">
-                <Text className="font-pixel text-xs uppercase text-pitch-dark">
+                <Text className="font-pixel text-xs uppercase text-pitch-ink">
                   Small club · Big heroes
                 </Text>
               </View>
@@ -353,7 +353,7 @@ export function TitleSettingsScreen({
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
       <ChalkboardBackdrop wide={wide} />
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
         <View className={wide

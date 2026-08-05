@@ -136,7 +136,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
                   <View className="flex-1 flex-row items-center pr-1">
                     <Text className={`flex-1 text-base ${row.isUserClub ? 'font-bold' : ''} ${primaryText}`} numberOfLines={1}>{row.clubName}</Text>
                     {row.inPromotionPlaces ? (
-                      <Text className={row.isUserClub ? 'text-sm font-bold text-ink' : 'text-sm font-bold text-pitch-dark'}>↑</Text>
+                      <Text className={row.isUserClub ? 'text-sm font-bold text-ink' : 'text-sm font-bold text-pitch-ink'}>↑</Text>
                     ) : null}
                   </View>
                   <Text style={tableColumns.played} className={`text-right font-mono text-sm ${secondaryText}`} numberOfLines={1}>{row.played}</Text>

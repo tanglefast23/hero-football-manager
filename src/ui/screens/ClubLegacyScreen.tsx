@@ -51,7 +51,7 @@ export function ClubLegacyScreen({
 
   return (
     <SafeAreaView
-      className="flex-1 bg-pitch-dark"
+      className="flex-1 bg-pitch-ink"
       edges={['top', 'left', 'right', 'bottom']}
       onPointerUp={dismissGuidanceAfterPress}
       onTouchEnd={dismissGuidanceAfterPress}

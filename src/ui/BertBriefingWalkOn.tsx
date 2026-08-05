@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { AssistantGuideContent, AssistantGuideFocus } from '../content/schemas';
 import { bertVoiceDurationMs, playBertVoice, stopBertVoice } from '../render/bert-voice';
 import { BertFullBody } from './BertFullBody';
@@ -139,6 +139,7 @@ export function BertBriefingWalkOn({
       accessibilityViewIsModal
       accessibilityLabel={`${content.assistant.name}, ${content.assistant.role}`}
       style={StyleSheet.absoluteFill}
+      {...bertDialogProps()}
     >
       <TutorialSpotlight
         anchor={spotlightAnchor}
@@ -163,6 +164,7 @@ export function BertBriefingWalkOn({
         reduceMotion={reduceMotion}
         instant
         typewriter
+        focusOnMount
         bubbleScale={BERT_BUBBLE_SCALE}
         // No auto-advance. The rookie remarks and moves on; this is the game
         // teaching, and a timer would pull a rule off screen mid-sentence.
@@ -189,4 +191,18 @@ export function BertBriefingWalkOn({
       />
     </View>
   );
+}
+
+/** Web needs an explicit dialog role; native owns its modal AX boundary. */
+function bertDialogProps(): object {
+  if (Platform.OS !== 'web') return {};
+  return { role: 'dialog', 'aria-modal': true };
+}
+
+/** Hide only the page behind a blocking Bert briefing, without changing iOS. */
+export function bertBriefingBackgroundProps(open: boolean): object {
+  if (!open) return {};
+  if (Platform.OS === 'web') return { inert: true, 'aria-hidden': true };
+  if (Platform.OS === 'android') return { importantForAccessibility: 'no-hide-descendants' };
+  return {};
 }

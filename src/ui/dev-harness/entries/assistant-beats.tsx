@@ -10,7 +10,7 @@ import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls
 import type { DevHarnessEntry } from '../registry';
 
 /**
- * Bert's twenty-six briefings, on demand.
+ * Bert's twenty-nine briefings, on demand.
  *
  * Each one fires exactly once per career on its own trigger, and several of the
  * triggers are years deep — a retirement, the board's ultimatum, the legacy
@@ -19,7 +19,7 @@ import type { DevHarnessEntry } from '../registry';
  * the spotlight moving mid-sentence, and above all whether the face he wears
  * suits the line he is saying.
  *
- * Twenty-six chips would be an index, not a set of bookmarks, so the cases are
+ * Twenty-nine chips would be an index, not a set of bookmarks, so the cases are
  * the six areas of the game he teaches and the sequence picker lives inside the
  * entry. Anything a reviewer flips while standing in one area — which sequence,
  * whether the measured anchors are supplied — is an entry control.
@@ -60,6 +60,9 @@ const AUTHORED_EXPRESSION_RUNS: readonly string[] = Object.freeze([
   'board-ultimatum',
   'board-protection',
   'division-leaders',
+  'sponsor-desk',
+  'sponsor-desk-continuity',
+  'sponsor-buzz',
   // The last six are authored the same way but have no content sequence: they
   // are one-off remarks App.tsx hands him as a custom message, so the reel
   // cannot play them. They belong here all the same — this list is a claim
@@ -100,6 +103,9 @@ const SEQUENCE_LABELS: Readonly<Record<string, string>> = Object.freeze({
   'club-legacy': 'LEGACY',
   'board-ultimatum': 'WARNING',
   'board-protection': 'PROTECT',
+  'sponsor-desk': 'DEALS',
+  'sponsor-desk-continuity': 'SAFE',
+  'sponsor-buzz': 'BUZZ',
 });
 
 interface BeatGroup {
@@ -129,7 +135,7 @@ const BEAT_GROUPS: readonly BeatGroup[] = Object.freeze([
   {
     id: 'backroom',
     label: 'Backroom',
-    note: 'Coaches, the office and the ground the club is built on',
+    note: 'Coaches, sponsors, the office and the ground the club is built on',
     sequenceIds: [
       'head-coach-market',
       'head-coach-hire',
@@ -138,6 +144,9 @@ const BEAT_GROUPS: readonly BeatGroup[] = Object.freeze([
       'facility-placement',
       'facility-upgrade',
       'facility-adjacency',
+      'sponsor-desk',
+      'sponsor-desk-continuity',
+      'sponsor-buzz',
     ],
   },
   {
@@ -302,7 +311,7 @@ export function AssistantBeatsReel({ caseId }: { readonly caseId: string }) {
 }
 
 /**
- * Six areas, twenty-six briefings.
+ * Six areas, twenty-nine briefings.
  *
  * A case is the area; which of its briefings is playing is where you happen to
  * be standing inside it, and every one of them is a tap away from every other.
@@ -311,7 +320,7 @@ export const assistantBeatsEntry: DevHarnessEntry = Object.freeze({
   id: 'assistant-beats',
   group: 'Guidance',
   title: "Bert's briefings",
-  summary: 'All 26 briefing sequences, grouped by what they teach, with the look he wears on each beat.',
+  summary: 'All 29 briefing sequences, grouped by what they teach, with the look he wears on each beat.',
   cases: Object.freeze(BEAT_GROUPS.map(group => Object.freeze({
     id: group.id,
     label: group.label,

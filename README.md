@@ -101,7 +101,7 @@ Logic goes in a module that imports no React: `route.ts` (addresses) and `career
 Research reports (source material, written by research agents):
 [research/kairosoft-economy.md](research/kairosoft-economy.md) · [research/match-presentation.md](research/match-presentation.md) · [research/stack-analysis.md](research/stack-analysis.md)
 
-## Decision log (locked through 2026-07-19)
+## Decision log (locked through 2026-08-05)
 
 | Decision | Choice |
 |---|---|
@@ -116,6 +116,9 @@ Research reports (source material, written by research agents):
 | Event music | **“The Big Call”** — original 136 BPM dramatic chiptune loop for story interruptions and player choices |
 | Awakening music | A 10.3-second trimmed **“Spirit of the Dead”** pre-rise bed starts with the limp and fades over its final second if the player waits; it cuts the instant the rise begins, when the existing angels/harps ascension cue takes over |
 | Income sources | All four: sponsors, tickets/fans, prize money, player sales |
+| Supporters | Wins and heroes who actually appear add supporters; only the third and later consecutive losses cause slow decline, and a draw or win resets the streak |
+| Managed sponsors | D5 retains automatic income; 1/2/3 selectable slots unlock permanently at D4/D3/D2, with monthly payments and league objectives but no signing or unlock perks |
+| Buzz | Season 3 unlocks Buzz from wins, goals, and distinct hero power moments; it pays sponsor cash at Weeks 15 and 30, then resets |
 | Currencies | Money + Training Points (TP) — each with exactly one job |
 | Contract talks | Offer/counter with mood meter; a light card mini-game influences (max ±20%) but never fully decides |
 | Superpower acquisition | Risky chance events (wage stays locked until renewal) + rare expensive pre-powered signings |

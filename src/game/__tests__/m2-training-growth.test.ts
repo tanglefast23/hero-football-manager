@@ -68,7 +68,14 @@ describe('M2 player-specific instant training growth', () => {
         grid: {
           ...initial.facilities.grid!,
           nextBuildingId: 2,
-          buildings: [{ id: 'facility-1', type: 'gym' as const, level: 3 as const, x: 0, y: 0 }],
+          buildings: [{
+            id: 'facility-1',
+            type: 'gym' as const,
+            level: 3 as const,
+            capitalInvested: 32_000,
+            x: 0,
+            y: 0,
+          }],
         },
       },
     };
