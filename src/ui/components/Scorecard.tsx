@@ -179,7 +179,8 @@ export function ActionButton({
 
 interface MetricProps {
   label: string;
-  value: string;
+  /** Plain string, or a live element like the report's counting numbers. */
+  value: ReactNode;
   tone?: 'normal' | 'hero' | 'positive' | 'negative';
 }
 
