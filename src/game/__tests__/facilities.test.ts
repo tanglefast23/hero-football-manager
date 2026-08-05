@@ -59,6 +59,12 @@ describe('facility catalog and grid', () => {
       && entry.upgradeWeeks.length === 2
       && entry.weeklyUpkeep.length === 3,
     )).toBe(true);
+    expect(FACILITY_CATALOG['stadium-stand']).toMatchObject({
+      buildCost: 10_000,
+      weeklyUpkeep: [50, 80, 120],
+    });
+    expect(FACILITY_CATALOG['fan-shop'].weeklyUpkeep).toEqual([40, 65, 95]);
+    expect(FACILITY_CATALOG['coaching-office'].weeklyUpkeep).toEqual([40, 65, 100]);
     expect(Object.fromEntries(
       Object.entries(FACILITY_CATALOG)
         .filter(([type]) => type !== 'coaching-office')
@@ -320,6 +326,15 @@ describe('facility relocation and adjacency', () => {
     ]);
     expect(moved.grid.discoveredAdjacencies).toEqual(FACILITY_ADJACENCIES.map(item => item.id));
     expect(moved.newlyDiscoveredAdjacencies).toEqual([]);
+  });
+
+  test('charges $230 a week for the four Level-1 opening facilities', () => {
+    let grid = finishConstruction(build(createFacilityGrid(), 'training-pitch', { x: 0, y: 0 }).grid);
+    grid = finishConstruction(build(grid, 'coaching-office', { x: 2, y: 0 }).grid);
+    grid = finishConstruction(build(grid, 'fan-shop', { x: 3, y: 0 }).grid);
+    grid = finishConstruction(build(grid, 'stadium-stand', { x: 4, y: 0 }).grid);
+
+    expect(weeklyFacilityUpkeep(grid)).toBe(230);
   });
 
   test('does not count diagonal corners as adjacent or stack duplicate pairs', () => {

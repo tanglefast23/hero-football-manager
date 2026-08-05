@@ -343,6 +343,12 @@ export interface LongCareerSeasonSummary {
   readonly ticketIncome: number;
   readonly merchandiseIncome: number;
   readonly prizeAndSubsidyIncome: number;
+  readonly wageExpense: number;
+  readonly facilityUpkeepExpense: number;
+  readonly loanRepaymentExpense: number;
+  /** Weekly ledger net before loans, forced sales, and board rescue packages. */
+  readonly ordinaryLedgerNet: number;
+  readonly safetyIncome: number;
   readonly facilityCapitalSpend: number;
   readonly drillUpgradeSpend: number;
   readonly scoutingSpend: number;
@@ -366,6 +372,11 @@ export interface LongCareerTotals {
   readonly buzzIncome: number;
   readonly ticketIncome: number;
   readonly merchandiseIncome: number;
+  readonly wageExpense: number;
+  readonly facilityUpkeepExpense: number;
+  readonly loanRepaymentExpense: number;
+  readonly ordinaryLedgerNet: number;
+  readonly safetyIncome: number;
   readonly facilityCapitalSpend: number;
   readonly drillUpgradeSpend: number;
   readonly scoutingSpend: number;
@@ -1365,6 +1376,20 @@ function summarizeSeason(input: {
     prizeAndSubsidyIncome: sumAmounts(lines.filter(line => (
       line.kind === 'prize' || line.kind === 'subsidy'
     ))),
+    wageExpense: -sumAmounts(lines.filter(line => line.kind === 'wages')),
+    facilityUpkeepExpense: -sumAmounts(lines.filter(line => line.kind === 'facilities')),
+    loanRepaymentExpense: -sumAmounts(lines.filter(line => line.kind === 'loan-repayment')),
+    ordinaryLedgerNet: sumAmounts(lines.filter(line => (
+      line.kind !== 'emergency-loan'
+      && line.kind !== 'board-sale'
+      && line.kind !== 'board-rescue'
+      && line.kind !== 'loan-repayment'
+    ))),
+    safetyIncome: sumAmounts(lines.filter(line => (
+      line.kind === 'emergency-loan'
+      || line.kind === 'board-sale'
+      || line.kind === 'board-rescue'
+    ))),
     facilityCapitalSpend: -sumAmounts(transactions.filter(transaction => (
       transaction.kind === 'facility-build' || transaction.kind === 'facility-upgrade'
     ))),
@@ -1455,6 +1480,11 @@ function buildRunResult(
       buzzIncome: sumSeason(season => season.buzzIncome),
       ticketIncome: sumSeason(season => season.ticketIncome),
       merchandiseIncome: sumSeason(season => season.merchandiseIncome),
+      wageExpense: sumSeason(season => season.wageExpense),
+      facilityUpkeepExpense: sumSeason(season => season.facilityUpkeepExpense),
+      loanRepaymentExpense: sumSeason(season => season.loanRepaymentExpense),
+      ordinaryLedgerNet: sumSeason(season => season.ordinaryLedgerNet),
+      safetyIncome: sumSeason(season => season.safetyIncome),
       facilityCapitalSpend: sumSeason(season => season.facilityCapitalSpend),
       drillUpgradeSpend: sumSeason(season => season.drillUpgradeSpend),
       scoutingSpend: sumSeason(season => season.scoutingSpend),

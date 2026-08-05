@@ -2296,8 +2296,13 @@ function GameApp() {
             navigationAnchor={navigationGuideAnchor}
             reduceMotion={reduceMotion}
             onDone={() => {
-              const wasLoan = openedBoardFinanceAlertId === 'emergency-loan';
+              const completedAlertId = openedBoardFinanceAlertId;
+              const wasLoan = completedAlertId === 'emergency-loan';
               setOpenedBoardFinanceAlertId(null);
+              store.dismissInboxProduct(
+                completedAlertId,
+                wasLoan ? 'permanent' : 'current-week',
+              );
               // He has just told a bailed-out club to build something that
               // earns. Saying so and leaving the manager on the ledger would
               // make it advice; opening the board and lighting the two

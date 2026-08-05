@@ -146,6 +146,8 @@ const INBOX_DELIVERED_PREFIX = 'guide:bert:inbox:delivered:';
 const INBOX_ADVISOR_SUPPRESSED_PREFIX = 'guide:bert:inbox:advisor-suppressed:';
 const INBOX_PENDING_PRODUCT_PREFIX = 'guide:bert:inbox:pending-product:';
 const INBOX_ACKNOWLEDGED_PRODUCT_PREFIX = 'guide:bert:inbox:acknowledged-product:';
+const INBOX_DISMISSED_PRODUCT_PREFIX = 'guide:bert:inbox:dismissed-product:';
+const INBOX_PERMANENTLY_DISMISSED_PRODUCT_PREFIX = 'guide:bert:inbox:permanently-dismissed-product:';
 const SPONSOR_DESK_FIRST_DELIVERY_PREFIX = 'guide:bert:sponsor-desk:first-delivered:';
 const MAX_PERSISTED_ONE_SHOT_PRODUCT_FLAGS = 24;
 const SPONSOR_DESK_INTRO_SEQUENCE_IDS = [
@@ -292,6 +294,58 @@ export function isAssistantInboxOneShotProductVisible(
   const acknowledged = state.eventFlags.includes(acknowledgedProductFlag(alertId));
   return !acknowledged
     || state.eventFlags.includes(productDeliveryFlag(state.season, state.week, alertId));
+}
+
+/** True after the manager has finished this product alert's talk this week. */
+export function isAssistantInboxProductDismissedForCurrentWeek(
+  state: Pick<GameState, 'eventFlags' | 'season' | 'week'>,
+  alertId: string,
+): boolean {
+  return state.eventFlags.includes(dismissedProductFlag(state.season, state.week, alertId));
+}
+
+/**
+ * Removes a read product alert from this week's desk without hiding a genuinely
+ * new occurrence next week. The flag lives in the career save, so leaving the
+ * page or reopening the app cannot resurrect a conversation already finished.
+ */
+export function dismissAssistantInboxProductForCurrentWeek(
+  state: GameState,
+  alertId: string,
+): GameState {
+  validateCareerWeek(state.season, state.week);
+  if (alertId.trim().length === 0) {
+    throw new Error('assistant inbox product alert IDs must be non-empty strings');
+  }
+  const currentPrefix = inboxDismissalWeekPrefix(state.season, state.week);
+  const flag = dismissedProductFlag(state.season, state.week, alertId);
+  const eventFlags = state.eventFlags.filter(existing => (
+    !existing.startsWith(INBOX_DISMISSED_PRODUCT_PREFIX)
+    || existing.startsWith(currentPrefix)
+  ));
+  if (!eventFlags.includes(flag)) eventFlags.push(flag);
+  return arraysEqual(eventFlags, state.eventFlags) ? state : { ...state, eventFlags };
+}
+
+/** True after a one-time product lesson has completed its final hand-off. */
+export function isAssistantInboxProductPermanentlyDismissed(
+  state: Pick<GameState, 'eventFlags'>,
+  alertId: string,
+): boolean {
+  return state.eventFlags.includes(permanentlyDismissedProductFlag(alertId));
+}
+
+/** Retires a product lesson for the rest of this career. */
+export function dismissAssistantInboxProductPermanently(
+  state: GameState,
+  alertId: string,
+): GameState {
+  if (alertId.trim().length === 0) {
+    throw new Error('assistant inbox product alert IDs must be non-empty strings');
+  }
+  const flag = permanentlyDismissedProductFlag(alertId);
+  if (state.eventFlags.includes(flag)) return state;
+  return { ...state, eventFlags: [...state.eventFlags, flag] };
 }
 
 /**
@@ -631,6 +685,18 @@ function guideDeliveryFlag(
 
 function productDeliveryFlag(season: number, week: number, alertId: string): string {
   return `${inboxDeliveryWeekPrefix(season, week)}product:${alertId}`;
+}
+
+function inboxDismissalWeekPrefix(season: number, week: number): string {
+  return `${INBOX_DISMISSED_PRODUCT_PREFIX}s${season}:w${week}:`;
+}
+
+function dismissedProductFlag(season: number, week: number, alertId: string): string {
+  return `${inboxDismissalWeekPrefix(season, week)}${encodeURIComponent(alertId)}`;
+}
+
+function permanentlyDismissedProductFlag(alertId: string): string {
+  return `${INBOX_PERMANENTLY_DISMISSED_PRODUCT_PREFIX}${encodeURIComponent(alertId)}`;
 }
 
 function pendingProductFlag(alert: AssistantInboxProductAlert): string {

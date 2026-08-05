@@ -87,12 +87,11 @@ import {
 const CLUB_COUNT = 10;
 const UINT32_MAX = 4294967295;
 /**
- * What the emergency loan must leave in the bank once the deficit is cleared:
- * a Stadium Stand, the club's income building. Read from the catalog so a
- * change to the stand's price moves the rescue with it rather than leaving
- * Bert promising a building the loan can no longer buy.
+ * What the emergency loan must leave in the bank once the deficit is cleared.
+ * Kept above the newly cheaper Stadium Stand so the one rescue buys the income
+ * building and still leaves operating room instead of shrinking by $5,000.
  */
-const EMERGENCY_LOAN_FLOOR = FACILITY_CATALOG['stadium-stand'].buildCost;
+const EMERGENCY_LOAN_FLOOR = 15_000;
 /**
  * The week each Hero Cup round settles, chosen to land on weeks the league
  * calendar leaves empty so a cup tie is its own event instead of a second match
@@ -985,7 +984,7 @@ function settlementAwards(
   return { awards };
 }
 
-function currentActualMonthlySponsorIncome(state: GameState, userClub: ClubState): number {
+export function currentActualMonthlySponsorIncome(state: GameState, userClub: ClubState): number {
   const contracts = state.clubBusiness.sponsorship.activeContracts;
   if (contracts.length > 0) {
     if (state.clubBusiness.sponsorship.portfolioSeason !== state.season) {
@@ -1009,7 +1008,7 @@ function currentActualMonthlySponsorIncome(state: GameState, userClub: ClubState
  * `divisionTicketPrice` instead of bypassing it: the same stand is worth far
  * more in D1 than in D5, which is what makes it the club's climb investment.
  */
-export const STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL = 25;
+export const STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL = 50;
 
 /** The best operational stand wins; a second stand is not a second bonus. */
 export function gridStadiumStandLevel(grid: FacilityGridState | undefined): number {
@@ -1023,7 +1022,7 @@ export function gridStadiumStandLevel(grid: FacilityGridState | undefined): numb
   return level;
 }
 
-function homeGateIncome(state: GameState, userClub: ClubState, label: string): number {
+export function homeGateIncome(state: GameState, userClub: ClubState, label: string): number {
   const attendance = sixtyPercentOf(userClub.fans);
   const base = checkedMultiply(attendance, userClub.ticketPrice, label);
   const standLevel = gridStadiumStandLevel(state.facilities.grid);
@@ -1052,14 +1051,14 @@ export function weeklyMerchandiseIncome(state: GameState, userClub: ClubState): 
   }
   if (combinedFanShopLevel === 0) return 0;
 
-  // One merchandise unit per five fans per shop level keeps this a useful
-  // trickle rather than a second gate-breaking sponsor payment.
+  // One merchandise unit per two fans per shop level makes the income building
+  // repay itself within the opening season at the D5 supporter floor.
   const fanLevelProduct = checkedMultiply(
     requireSafeInteger(userClub.fans, 'club fans'),
     combinedFanShopLevel,
     'Fan Shop merchandise base',
   );
-  const baseIncome = Math.floor(fanLevelProduct / 5);
+  const baseIncome = Math.floor(fanLevelProduct / 2);
   const bonusPercent = facilityEffects(grid).merchIncomeBonusPercent;
   const bonus = Math.floor(checkedMultiply(
     baseIncome,

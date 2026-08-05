@@ -1,6 +1,7 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../../game/career';
 import { GAME_SCHEMA_VERSION } from '../../game/types';
+import { createProvisionalSponsorPortfolio } from '../../game/sponsors';
 import {
   migrateStoredGameState,
   parseStoredGameState,
@@ -48,6 +49,110 @@ describe('stored game state migrations', () => {
     expect(restored.clubBusiness.pendingUserMatchImpacts).toEqual([]);
     expect(restored.clubBusiness.supporters).toEqual({ consecutiveLosses: 0 });
     expect(parseStoredGameState(serializeGameState(restored))).toEqual(restored);
+  });
+
+  it('migrates schema-4 assistant wages, passive D5 sponsor, and paid Stadium Stand bases once', () => {
+    const current = createCareer(createLaunchCareerSetup(20260806));
+    const legacy = JSON.parse(JSON.stringify(current)) as MutableRecord;
+    legacy.schemaVersion = 4;
+    legacy.week = 5;
+    const clubs = legacy.clubs as MutableRecord[];
+    const userClub = clubs.find(club => club.id === legacy.userClubId)!;
+    userClub.cash = 1_000;
+    userClub.sponsorMonthlyFee = 2_000;
+    const market = legacy.market as MutableRecord;
+    const candidates = market.coachCandidates as MutableRecord[];
+    market.headCoach = candidates[0];
+    market.assistantCoach = { ...candidates[1], weeklyWage: 500 };
+    market.coachCandidates = candidates.slice(2);
+    const ledgersBefore = JSON.parse(JSON.stringify(legacy.ledgers));
+    legacy.cashTransactions = [{
+      id: 'cash-transaction-economy-rebalance-v5-1',
+      season: 1,
+      week: 1,
+      kind: 'facility-build',
+      label: 'Existing history',
+      amount: -1,
+      balanceAfter: 1_000,
+    }];
+    legacy.facilities = {
+      trainingGroundBuilt: false,
+      grid: {
+        width: 8,
+        height: 6,
+        nextBuildingId: 6,
+        buildings: [
+          { id: 'stand-build', type: 'stadium-stand', level: 1, capitalInvested: 15_000, x: 0, y: 0 },
+          { id: 'stand-upgraded', type: 'stadium-stand', level: 2, capitalInvested: 34_000, x: 2, y: 0 },
+          { id: 'stand-seeded', type: 'stadium-stand', level: 1, capitalInvested: 0, x: 4, y: 0, seeded: true },
+          { id: 'stand-custom-low', type: 'stadium-stand', level: 1, capitalInvested: 12_000, x: 0, y: 2 },
+          { id: 'stand-custom-high', type: 'stadium-stand', level: 1, capitalInvested: 20_000, x: 2, y: 2 },
+        ],
+        discoveredAdjacencies: [],
+        construction: {
+          kind: 'BUILD', buildingId: 'stand-build', type: 'stadium-stand',
+          targetLevel: 1, weeksRemaining: 2, totalWeeks: 3,
+        },
+      },
+    };
+
+    const migrated = migrateStoredGameState(legacy) as MutableRecord;
+    const migratedClub = (migrated.clubs as MutableRecord[])
+      .find(club => club.id === migrated.userClubId)!;
+    const migratedMarket = migrated.market as MutableRecord;
+    const assistant = migratedMarket.assistantCoach as MutableRecord;
+    const facilities = migrated.facilities as MutableRecord;
+    const grid = facilities.grid as MutableRecord;
+    const buildings = grid.buildings as MutableRecord[];
+    const transactions = migrated.cashTransactions as MutableRecord[];
+
+    expect(migrated.schemaVersion).toBe(5);
+    expect(assistant.weeklyWage).toBe(250);
+    expect((migratedMarket.headCoach as MutableRecord).weeklyWage)
+      .toBe((market.headCoach as MutableRecord).weeklyWage);
+    expect(migratedClub).toMatchObject({ cash: 11_000, sponsorMonthlyFee: 3_000 });
+    expect(buildings.map(building => [building.id, building.capitalInvested])).toEqual([
+      ['stand-build', 10_000],
+      ['stand-upgraded', 29_000],
+      ['stand-seeded', 0],
+      ['stand-custom-low', 12_000],
+      ['stand-custom-high', 20_000],
+    ]);
+    expect(transactions.at(-1)).toMatchObject({
+      id: 'cash-transaction-economy-rebalance-v5-2',
+      kind: 'balance-adjustment',
+      label: 'Stadium Stand price protection',
+      amount: 10_000,
+      balanceAfter: 11_000,
+      referenceId: 'economy-rebalance-v5',
+    });
+    expect(migrated.ledgers).toEqual(ledgersBefore);
+    expect(parseStoredGameState(JSON.stringify(migrated))).toEqual(migrated);
+  });
+
+  it('preserves custom and managed sponsor values during schema-4 migration', () => {
+    const custom = JSON.parse(JSON.stringify(
+      createCareer(createLaunchCareerSetup(20260807)),
+    )) as MutableRecord;
+    custom.schemaVersion = 4;
+    const customClub = (custom.clubs as MutableRecord[])
+      .find(club => club.id === custom.userClubId)!;
+    customClub.sponsorMonthlyFee = 2_750;
+    const migratedCustom = migrateStoredGameState(custom) as MutableRecord;
+    expect(((migratedCustom.clubs as MutableRecord[])
+      .find(club => club.id === migratedCustom.userClubId)!).sponsorMonthlyFee).toBe(2_750);
+
+    const managed = JSON.parse(JSON.stringify(custom)) as MutableRecord;
+    managed.schemaVersion = 4;
+    const managedClub = (managed.clubs as MutableRecord[])
+      .find(club => club.id === managed.userClubId)!;
+    managedClub.sponsorMonthlyFee = 2_000;
+    const business = managed.clubBusiness as MutableRecord;
+    const sponsorship = business.sponsorship as MutableRecord;
+    sponsorship.activeContracts = createProvisionalSponsorPortfolio(2_000, 1, 1);
+    const migratedManaged = migrateStoredGameState(managed) as MutableRecord;
+    expect(((migratedManaged.clubs as MutableRecord[])
+      .find(club => club.id === migratedManaged.userClubId)!).sponsorMonthlyFee).toBe(2_000);
   });
 
   it.each([

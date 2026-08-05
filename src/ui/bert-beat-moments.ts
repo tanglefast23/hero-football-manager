@@ -78,12 +78,12 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   'division-leaders': ['explaining', 'encouraging'],
 
   // The two board money rows, said in full on the finances screen. Both open on
-  // the number, harden on what the board does about it, and end pointing at the
-  // only move that fixes it — a building that earns. The middle face is the
-  // difference between the pair: the warning is a threat he is passing on, the
-  // loan is a rescue that has already been spent, so `warning-hard` carries the
-  // first and `pointing-up` carries the one detail that will not come again.
-  'board-financial-warning': ['warning-money', 'warning-hard', 'pointing-out'],
+  // the number, harden on what the board does about it, and point at the only
+  // move that fixes it — a building that earns. The warning adds one last beat
+  // asking a broke manager to wait for the meeting rather than hunt for a dead
+  // action. The loan is a rescue already spent, so `pointing-up` carries the
+  // one detail that will not come again.
+  'board-financial-warning': ['warning-money', 'warning-hard', 'pointing-out', 'hold-on'],
   'board-emergency-loan': ['warning-money', 'pointing-up', 'pointing-out'],
 
   // Club Business arrives as three different moods: terms to compare, calm

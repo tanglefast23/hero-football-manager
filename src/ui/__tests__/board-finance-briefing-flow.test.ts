@@ -37,6 +37,13 @@ describe('the board money rows', () => {
     expect(app).toContain('setOpenedBoardFinanceAlertId(null);');
   });
 
+  it('consumes the current warning card when Bert finishes the talk', () => {
+    expect(app).toContain('const completedAlertId = openedBoardFinanceAlertId;');
+    expect(app).toMatch(
+      /store\.dismissInboxProduct\(\s*completedAlertId,\s*wasLoan \? 'permanent' : 'current-week',\s*\);/,
+    );
+  });
+
   it('rebuilds the message from the live career rather than the press', () => {
     // Both rows quote numbers that move every week. A copy captured when the
     // row was tapped would reintroduce the defect this replaces.
@@ -63,18 +70,26 @@ describe('the board money rows', () => {
 
 describe('the look on his face', () => {
   it('opens both messages on the money warning', () => {
-    expect(briefingMoments('board-financial-warning', beats(3))[0]).toBe('warning-money');
+    expect(briefingMoments('board-financial-warning', beats(4))[0]).toBe('warning-money');
     expect(briefingMoments('board-emergency-loan', beats(3))[0]).toBe('warning-money');
   });
 
-  it('ends both pointing at the way out', () => {
-    expect(briefingMoments('board-financial-warning', beats(3)).at(-1)).toBe('pointing-out');
+  it('asks a broke manager to hold tight after pointing out the way out', () => {
+    expect(briefingMoments('board-financial-warning', beats(4))).toEqual([
+      'warning-money',
+      'warning-hard',
+      'pointing-out',
+      'hold-on',
+    ]);
     expect(briefingMoments('board-emergency-loan', beats(3)).at(-1)).toBe('pointing-out');
   });
 
   it('never repeats a face back to back', () => {
-    for (const sequenceId of ['board-financial-warning', 'board-emergency-loan']) {
-      const moments = briefingMoments(sequenceId, beats(3));
+    for (const [sequenceId, count] of [
+      ['board-financial-warning', 4],
+      ['board-emergency-loan', 3],
+    ] as const) {
+      const moments = briefingMoments(sequenceId, beats(count));
       expect(new Set(moments).size).toBe(moments.length);
     }
   });

@@ -32,6 +32,7 @@ import type {
   YouthIntakeViewModel,
 } from '../ui/market-models';
 import { coachRoleEffectLabels } from './coach-effects';
+import { coachWeeklyWageForRole } from '../game/market-career';
 
 export interface ScoutMissionOptionSource {
   readonly id: string;
@@ -236,14 +237,18 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
         source.highestDivisionReached ?? source.division,
         source.fame,
       );
-      const affordable = source.cash >= candidate.weeklyWage;
+      const headWeeklyWage = coachWeeklyWageForRole(candidate, 'HEAD');
+      const assistantWeeklyWage = coachWeeklyWageForRole(candidate, 'ASSISTANT');
+      const headAffordable = source.cash >= headWeeklyWage;
+      const assistantAffordable = source.cash >= assistantWeeklyWage;
       const headCoachId = source.headCoachId ?? source.headCoach?.id;
       const legacySingleHeadSource = source.headCoach !== undefined && source.headCoachId === undefined;
       const alreadyOnStaff = candidate.id === headCoachId || candidate.id === source.assistantCoachId;
       const assistantSlotUnlocked = source.assistantSlotUnlocked === true;
-      const generallyAvailable = eligible && affordable && !alreadyOnStaff;
-      const headAvailable = generallyAvailable && headCoachId === undefined;
+      const generallyAvailable = eligible && !alreadyOnStaff;
+      const headAvailable = generallyAvailable && headAffordable && headCoachId === undefined;
       const assistantAvailable = generallyAvailable
+        && assistantAffordable
         && assistantSlotUnlocked
         && source.assistantCoachId === undefined;
       return {
@@ -261,6 +266,8 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
         assistantEffectLabels: coachRoleEffectLabels(candidate, 'ASSISTANT'),
         personalityLabel: readableId(candidate.personality),
         weeklyWage: candidate.weeklyWage,
+        headWeeklyWage,
+        assistantWeeklyWage,
         retiredLegend: candidate.retiredLegendPlayerId !== undefined,
         ...(candidate.loyaltyDiscountPercent > 0
           ? { loyaltyLabel: `${candidate.loyaltyDiscountPercent}% loyalty discount` }
@@ -283,7 +290,7 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
           ? { blockedReason: 'Already on the coaching staff.' }
           : !eligible
             ? { blockedReason: 'Raise division and fame to make contact.' }
-            : !affordable
+            : !headAffordable && !assistantAffordable
               ? { blockedReason: 'Cannot cover the first weekly wage.' }
               : headAvailable || assistantAvailable
                 ? {}

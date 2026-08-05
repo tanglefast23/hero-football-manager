@@ -696,13 +696,13 @@ function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps
           <View className="flex-row gap-2">
             <Metric label="Balance" value={formatCurrency(viewModel.resources.money)} />
             <Metric
-              label="Expected weekly change"
-              value={formatCurrency(viewModel.weeklyNet, true)}
-              tone={viewModel.weeklyNet < 0 ? 'negative' : 'positive'}
+              label="Next four weeks"
+              value={formatCurrency(viewModel.operatingOutlook.net, true)}
+              tone={viewModel.operatingOutlook.net < 0 ? 'negative' : 'positive'}
             />
           </View>
           <View className="mt-2 flex-row gap-2">
-            <Metric label="Projected balance" value={formatCurrency(viewModel.projectedBalance)} />
+            <Metric label="Four-week balance" value={formatCurrency(viewModel.operatingOutlook.projectedBalance)} />
             <Metric label="Fans" value={formatCompactNumber(viewModel.fans)} />
           </View>
           <View className="mt-2 flex-row">
@@ -714,6 +714,21 @@ function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps
               tone={viewModel.variableIncome.amount > 0 ? 'positive' : 'normal'}
             />
           </View>
+          {viewModel.operatingOutlook.weeks.length > 0 ? (
+            <View className="mt-3 border-2 border-ink bg-white">
+              {viewModel.operatingOutlook.weeks.map(week => (
+                <View key={week.periodLabel} className="border-b border-ink/20 px-3 py-2 last:border-b-0">
+                  <View className="flex-row items-center justify-between gap-2">
+                    <PixelText className="text-xs uppercase text-ink">{week.periodLabel}</PixelText>
+                    <Text className={week.net < 0 ? 'font-mono text-sm text-red-dark' : 'font-mono text-sm text-pitch-dark'}>
+                      {formatCurrency(week.net, true)}
+                    </Text>
+                  </View>
+                  <Text className="mt-1 text-xs text-ink/65">{week.detail}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
           {viewModel.wageSubsidyLabel ? (
             <View className="mt-3 border border-pitch-dark bg-pitch-light px-3 py-2">
               <PixelText className="text-sm uppercase tracking-wide text-ink">

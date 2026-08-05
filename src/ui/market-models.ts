@@ -91,7 +91,10 @@ export interface CoachCandidateViewModel {
   readonly headEffectLabels: readonly string[];
   readonly assistantEffectLabels: readonly string[];
   readonly personalityLabel: string;
+  /** Retained as the canonical candidate/head quote for older consumers. */
   readonly weeklyWage: number;
+  readonly headWeeklyWage: number;
+  readonly assistantWeeklyWage: number;
   readonly retiredLegend: boolean;
   readonly loyaltyLabel?: string;
   readonly unlockLabel?: string;

@@ -60,14 +60,29 @@ function finishSeason(state: GameState): GameState {
 }
 
 describe('M4 difficulty and season recap', () => {
-  it('keeps Cozy fail-soft while Chairman removes subsidy and trims sponsors', () => {
+  it('keeps Cozy fail-soft while Chairman receives less wage and sponsor support', () => {
     const cozy = settleThroughWeekFour(career('COZY'));
     const chairman = settleThroughWeekFour(career('CHAIRMAN'));
     const cozyLines = cozy.ledgers.find(ledger => ledger.week === 4)!.lines;
     const chairmanLines = chairman.ledgers.find(ledger => ledger.week === 4)!.lines;
 
     expect(cozyLines.find(line => line.kind === 'subsidy')?.amount).toBeGreaterThan(0);
-    expect(chairmanLines.some(line => line.kind === 'subsidy')).toBe(false);
+    const cozySubsidy = cozyLines.find(line => line.kind === 'subsidy')?.amount ?? 0;
+    const chairmanSubsidy = chairmanLines.find(line => line.kind === 'subsidy')?.amount ?? 0;
+    const cozyWageBill = -cozyLines
+      .filter(line => line.kind === 'wages')
+      .reduce((total, line) => total + line.amount, 0);
+    const chairmanWageBill = -chairmanLines
+      .filter(line => line.kind === 'wages')
+      .reduce((total, line) => total + line.amount, 0);
+    expect(chairmanSubsidy).toBeGreaterThan(0);
+    expect(cozySubsidy).toBe(Math.floor(
+      cozyWageBill * difficultyRules(cozy).seasonOneWageSubsidyPercent / 100,
+    ));
+    expect(chairmanSubsidy).toBe(Math.floor(
+      chairmanWageBill * difficultyRules(chairman).seasonOneWageSubsidyPercent / 100,
+    ));
+    expect(chairmanSubsidy).toBeLessThan(cozySubsidy);
     // Derived from the rules, not a pinned 0.85: this asserts the difficulty
     // actually reaches the ledger, and survives retuning the percentage.
     expect(chairmanLines.find(line => line.kind === 'sponsor')?.amount)

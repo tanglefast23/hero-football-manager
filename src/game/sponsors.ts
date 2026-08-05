@@ -95,7 +95,7 @@ export function managedSponsorCapacity(
 /** The nominal scalar the existing economy assigns to each division. */
 export function divisionSponsorAnchor(division: DivisionLevel): number {
   validateDivision(division, 'sponsor division');
-  return (6 - division) * 2_000;
+  return ({ 5: 3_000, 4: 4_000, 3: 6_000, 2: 8_000, 1: 10_000 } as const)[division];
 }
 
 /**

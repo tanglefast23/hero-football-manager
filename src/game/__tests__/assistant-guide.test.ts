@@ -2,8 +2,12 @@ import { createCareer } from '../career';
 import {
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
+  dismissAssistantInboxProductForCurrentWeek,
+  dismissAssistantInboxProductPermanently,
   hasAssistantGuideMilestone,
   hasAssistantGuideSequenceCompleted,
+  isAssistantInboxProductDismissedForCurrentWeek,
+  isAssistantInboxProductPermanentlyDismissed,
   pendingAssistantInboxGuideSequences,
   queueAssistantGuideSequence,
   queueAssistantGuideSequences,
@@ -155,6 +159,27 @@ describe('assistant guide milestones', () => {
     ]);
     expect(plannedAgain).toEqual({ ...planned, state: planned.state });
     expect(plannedAgain.state).toBe(planned.state);
+  });
+
+  test('dismisses a read product only for its current occurrence and persists it', () => {
+    const state = createCareer(createLaunchCareerSetup(8_461));
+    const dismissed = dismissAssistantInboxProductForCurrentWeek(state, 'financial-warning');
+    const reloaded = JSON.parse(JSON.stringify(dismissed)) as typeof dismissed;
+
+    expect(isAssistantInboxProductDismissedForCurrentWeek(reloaded, 'financial-warning')).toBe(true);
+    expect(isAssistantInboxProductDismissedForCurrentWeek(
+      { ...reloaded, week: reloaded.week + 1 },
+      'financial-warning',
+    )).toBe(false);
+  });
+
+  test('permanently dismisses a one-time product lesson after its hand-off', () => {
+    const state = createCareer(createLaunchCareerSetup(8_462));
+    const dismissed = dismissAssistantInboxProductPermanently(state, 'emergency-loan');
+    const nextWeek = { ...dismissed, week: dismissed.week + 1 };
+
+    expect(isAssistantInboxProductPermanentlyDismissed(dismissed, 'emergency-loan')).toBe(true);
+    expect(isAssistantInboxProductPermanentlyDismissed(nextWeek, 'emergency-loan')).toBe(true);
   });
 
   test.each([0, 1, 2, 3])(

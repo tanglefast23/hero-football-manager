@@ -10,7 +10,7 @@
       "startingCash": 53000,
       "fans": 500,
       "ticketPrice": 4,
-      "sponsorMonthlyFee": 2000,
+      "sponsorMonthlyFee": 3000,
       "players": [
         {
           "id": "bramble-rovers-p01",
@@ -372,7 +372,7 @@
       "startingCash": 27000,
       "fans": 540,
       "ticketPrice": 4,
-      "sponsorMonthlyFee": 2100,
+      "sponsorMonthlyFee": 3000,
       "players": [
         {
           "id": "ferrous-united-p01",
@@ -734,7 +734,7 @@
       "startingCash": 24000,
       "fans": 480,
       "ticketPrice": 4,
-      "sponsorMonthlyFee": 1900,
+      "sponsorMonthlyFee": 3000,
       "players": [
         {
           "id": "harbor-comets-p01",
@@ -1096,7 +1096,7 @@
       "startingCash": 23500,
       "fans": 465,
       "ticketPrice": 4,
-      "sponsorMonthlyFee": 1850,
+      "sponsorMonthlyFee": 3000,
       "players": [
         {
           "id": "oakridge-owls-p01",
@@ -1458,7 +1458,7 @@
       "startingCash": 26500,
       "fans": 530,
       "ticketPrice": 5,
-      "sponsorMonthlyFee": 2050,
+      "sponsorMonthlyFee": 3000,
       "players": [
         {
           "id": "neon-athletic-p01",
@@ -1820,7 +1820,7 @@
       "startingCash": 22500,
       "fans": 450,
       "ticketPrice": 4,
-      "sponsorMonthlyFee": 1800,
+      "sponsorMonthlyFee": 3000,
       "players": [
         {
           "id": "meadow-city-p01",
@@ -2182,7 +2182,7 @@
       "startingCash": 25500,
       "fans": 510,
       "ticketPrice": 4,
-      "sponsorMonthlyFee": 2000,
+      "sponsorMonthlyFee": 3000,
       "players": [
         {
           "id": "quartz-fc-p01",
@@ -2544,7 +2544,7 @@
       "startingCash": 28000,
       "fans": 560,
       "ticketPrice": 5,
-      "sponsorMonthlyFee": 2150,
+      "sponsorMonthlyFee": 3000,
       "players": [
         {
           "id": "thunder-borough-p01",
@@ -2906,7 +2906,7 @@
       "startingCash": 24500,
       "fans": 495,
       "ticketPrice": 4,
-      "sponsorMonthlyFee": 1950,
+      "sponsorMonthlyFee": 3000,
       "players": [
         {
           "id": "cedar-crown-p01",
@@ -3268,7 +3268,7 @@
       "startingCash": 26000,
       "fans": 525,
       "ticketPrice": 5,
-      "sponsorMonthlyFee": 2050,
+      "sponsorMonthlyFee": 3000,
       "players": [
         {
           "id": "moonlight-town-p01",

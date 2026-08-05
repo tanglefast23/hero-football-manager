@@ -207,10 +207,15 @@ describe('career market view-model source adapter', () => {
       state: { id: market.transferTalks?.negotiation.id, playerId: target.id },
     });
     expect(source.negotiation?.wageStep).toBeGreaterThan(0);
-    expect(marketViewModel(source).negotiation).toMatchObject({
+    const visible = marketViewModel(source);
+    expect(visible.negotiation).toMatchObject({
       playerName: target.name,
       status: 'OPEN',
       roundLabel: 'Round 1 of 3',
+    });
+    expect(visible.coaches[0]).toMatchObject({
+      headWeeklyWage: source.coachCandidates[0].weeklyWage,
+      assistantWeeklyWage: Math.round(source.coachCandidates[0].weeklyWage / 2),
     });
   });
 

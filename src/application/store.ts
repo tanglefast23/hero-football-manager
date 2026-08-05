@@ -32,6 +32,8 @@ import {
   currentUserDivision,
   deterministicCareerEventRoll,
   declineYouthIntakeOffers,
+  dismissAssistantInboxProductForCurrentWeek,
+  dismissAssistantInboxProductPermanently,
   dismissCareerEvent,
   dismissCareerCoach,
   hireCareerCoach,
@@ -266,6 +268,11 @@ interface M1Store {
   completeCupGiantKillingCelebration: () => void;
   /** Sends Bert away after he has refused an Advance Week. */
   dismissInboxDutyReminder: () => void;
+  /** Removes a product card after its current-week conversation is complete. */
+  dismissInboxProduct: (
+    alertId: string,
+    scope?: 'current-week' | 'permanent',
+  ) => void;
   openMatchday: () => void;
   openCupFixture: (fixtureId: string) => void;
   advanceCareer: () => void;
@@ -662,6 +669,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
     // Nothing to persist: the refusal lives and dies with the press that caused
     // it, and the duties themselves are already recorded on the career.
     set({ inboxDutyReminder: null });
+  },
+
+  dismissInboxProduct(alertId, scope = 'current-week') {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const next = scope === 'permanent'
+        ? dismissAssistantInboxProductPermanently(career, alertId)
+        : dismissAssistantInboxProductForCurrentWeek(career, alertId);
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
   },
 
   openMatchday() {
