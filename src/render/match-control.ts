@@ -1,5 +1,5 @@
-import type { MatchOpts } from '../sim/types';
 import type { FormationId } from '../sim/tactics';
+import { controlledMatchOptions } from '../game/match-policy';
 
 /** Keep the last confirmed holder visible while the ball is travelling loose. */
 export function retainedCarrierIndex(
@@ -13,13 +13,6 @@ export function retainedCarrierIndex(
 export function matchPoliciesForControlledTeam(
   controlledTeam: 0 | 1,
   initialFormation: FormationId = '4-4-2',
-): MatchOpts {
-  return {
-    homePolicy: 'FIRE_WHEN_READY',
-    awayPolicy: 'FIRE_WHEN_READY',
-    controlledTeam,
-    ...(controlledTeam === 0
-      ? { homeFormation: initialFormation }
-      : { awayFormation: initialFormation }),
-  };
+): ReturnType<typeof controlledMatchOptions> {
+  return controlledMatchOptions(controlledTeam, initialFormation);
 }

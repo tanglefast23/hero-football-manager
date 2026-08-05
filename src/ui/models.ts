@@ -219,8 +219,9 @@ export interface MatchResultViewModel {
   awayScore: number;
   outcomeLabel: 'WIN' | 'DRAW' | 'LOSS';
   /**
-   * Which name the report boxes up as the winner, from the score rather than
-   * the manager's point of view — a drawn match boxes nobody.
+   * Which name the report boxes up as the winner, independent of the manager's
+   * point of view. A league draw boxes nobody; a tied Cup score boxes the
+   * recorded penalty winner.
    */
   winner: 'home' | 'away' | null;
   /**
@@ -303,6 +304,16 @@ export interface PostMatchViewModel {
   netAmount: number;
   trainingPointsGained: number;
   fanDelta: number;
+  /** Present from Season 3 when this was a production user match. */
+  buzz?: {
+    earned: number;
+    rawEarned: number;
+    valueAfter: number;
+    win: number;
+    goals: number;
+    heroMoments: number;
+    payout?: number;
+  };
   highlights: readonly HighlightViewModel[];
   updates: readonly WeekUpdateViewModel[];
   facilityCompletion?: FacilityCompletionViewModel;
@@ -601,6 +612,52 @@ export interface ClubVariableIncomeViewModel {
   detail?: string;
 }
 
+export interface SponsorOfferViewModel {
+  offerId: string;
+  sponsorName: string;
+  offerLine: string;
+  profile: 'STEADY' | 'BALANCED' | 'BOLD';
+  profileLabel: string;
+  nominalMonthlyFee: number;
+  actualMonthlyFee: number;
+  objectiveLabel: string;
+  nominalBonus: number;
+  actualBonus: number;
+}
+
+export interface SponsorSlotViewModel {
+  slot: number;
+  slotLabel: string;
+  sponsorName: string;
+  offerLine: string;
+  provisional: boolean;
+  nominalMonthlyFee: number;
+  actualMonthlyFee: number;
+  objectiveLabel?: string;
+  objectiveProgressLabel?: string;
+  objectiveStatus?: 'IN_PROGRESS' | 'MET' | 'FAILED';
+  nominalBonus?: number;
+  actualBonus?: number;
+  offers: readonly SponsorOfferViewModel[];
+}
+
+export interface ClubSponsorshipViewModel {
+  managed: boolean;
+  offerWindowOpen: boolean;
+  actualMonthlyIncome: number;
+  nominalMonthlyIncome: number;
+  /** The next ordinary sponsor payment, or the next pre-season once W28 passed. */
+  nextPaymentLabel: string;
+  chairmanPercent?: number;
+  slots: readonly SponsorSlotViewModel[];
+  buzz?: {
+    value: number;
+    pendingPayout: number;
+    nextPayoutLabel: string;
+    lastSettlementLabel?: string;
+  };
+}
+
 export interface ClubFinancesViewModel {
   periodLabel: string;
   resources: ResourceSummaryViewModel;
@@ -628,6 +685,8 @@ export interface ClubFinancesViewModel {
   coachingStaff: readonly CoachStaffMemberViewModel[];
   facilities: ClubFacilityGridViewModel;
   trainingPointIncome: TrainingPointIncomeViewModel;
+  /** Absent until D4 managed sponsorship or Season 3 Buzz becomes visible. */
+  sponsorship?: ClubSponsorshipViewModel;
 }
 
 /**
@@ -775,6 +834,26 @@ export interface ExpiredContractViewModel {
   remainingExpiredCount: number;
 }
 
+/** Money and target outcomes already settled by the real Week 30 career path. */
+export interface SeasonEndClubBusinessViewModel {
+  objectiveResults: readonly {
+    contractId: string;
+    sponsorName: string;
+    objectiveLabel: string;
+    met: boolean;
+    /** The cash that reached the club after any Chairman adjustment. */
+    actualBonus: number;
+  }[];
+  objectiveBonusTotal: number;
+  buzz?: {
+    reached: number;
+    actualPayout: number;
+    resetTo: 0;
+  };
+  /** Objective bonuses plus the season-end Buzz payment, using actual receipts. */
+  actualPayoutTotal: number;
+}
+
 export interface SeasonEndViewModel {
   seasonLabel: string;
   outcomeLabel: 'CHAMPIONS' | 'PROMOTED' | 'SAFE' | 'RELEGATED';
@@ -808,6 +887,7 @@ export interface SeasonEndViewModel {
       detail: string;
     }[];
   };
+  clubBusinessSettlement?: SeasonEndClubBusinessViewModel;
   expiredContract?: ExpiredContractViewModel;
   renewalNegotiation?: MarketNegotiationViewModel;
   sliceComplete: boolean;

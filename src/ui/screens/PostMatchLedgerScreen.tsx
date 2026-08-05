@@ -9,6 +9,7 @@ import type { TextScale } from '../../persistence';
 import { PixelText } from '../components/PixelText';
 import { DesktopClamp, useDesktopContentStyle } from '../layout/DesktopClamp';
 import { ManagementSprite } from '../components/ManagementSprite';
+import { PostMatchBuzzCard } from '../components/PostMatchBuzzCard';
 import {
   SPEECH_BUBBLE_FONT_SIZE,
   SPEECH_BUBBLE_LINE_HEIGHT,
@@ -67,7 +68,7 @@ export function PostMatchLedgerScreen({
             <Text className="font-mono text-3xl text-paper">{result.awayScore}</Text>
           </View>
           {result.winner === null ? (
-            <PixelText className="mt-3 text-base uppercase text-ink/60">Draw</PixelText>
+            <PixelText className="mt-3 text-base uppercase text-ink/70">Draw</PixelText>
           ) : null}
 
           <TeamLine name={result.awayTeam} won={result.winner === 'away'} />
@@ -76,6 +77,10 @@ export function PostMatchLedgerScreen({
         {viewModel.reaction ? (
           <FulltimeReaction reaction={viewModel.reaction} textScale={textScale} />
         ) : null}
+
+        {viewModel.buzz === undefined ? null : (
+          <PostMatchBuzzCard buzz={viewModel.buzz} className="mt-6" />
+        )}
 
         {viewModel.highlights.length ? (
           <View className="mt-6">
@@ -136,7 +141,7 @@ function TeamLine({ name, won }: { name: string; won: boolean }) {
         </PixelText>
       </View>
       {won ? (
-        <PixelText className="mt-2 text-xl uppercase text-stamp">Win</PixelText>
+        <PixelText className="mt-2 text-xl uppercase text-red-dark">Win</PixelText>
       ) : null}
     </View>
   );

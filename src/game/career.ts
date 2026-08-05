@@ -40,15 +40,33 @@ import {
 } from './cup-giant-killing';
 import { repairCareerLineupForInjuries } from './squad';
 import { advancePlayerRequests } from './player-requests';
+import { createClubBusinessState } from './club-business';
+import { applyBuzzImpacts, applySupporterImpacts } from './club-business';
+import {
+  appendPendingUserMatchImpact,
+  pendingImpactFromProduction,
+} from './pending-match-impact';
+import type { ProductionFixtureResult } from './matchday';
+import {
+  actualSponsorPortfolioIncome,
+  allocateSponsorPortfolioPayment,
+  expireSponsorOfferWindow,
+  settleSponsorObjectivesAtWeek30,
+} from './sponsors';
 import { initializeSeasonYouthIntake, reconcileStoryYouthIntake } from './youth-intake';
 import {
   applyBoardForcedSaleConsequences,
   boardForcedSaleAtDeadline,
-  clearMetBoardUltimatum,
   createBoardUltimatum,
   targetMetResolution,
   type BoardForcedSaleResolution,
 } from './board-ultimatum';
+import {
+  EMPTY_WEEKLY_SETTLEMENT_AWARDS,
+  nationalCupRoundSettlementAwards,
+  resolveWeeklySettlementAwards,
+  weeklySettlementAwardKeys,
+} from './weekly-settlement-awards';
 import {
   GAME_SCHEMA_VERSION,
   SEASON_WEEKS,
@@ -62,6 +80,8 @@ import {
   type LeagueStanding,
   type LedgerLine,
   type FinancialSafetyState,
+  type WeeklySettlementAward,
+  type WeeklySettlementAwards,
 } from './types';
 
 const CLUB_COUNT = 10;
@@ -197,6 +217,9 @@ export function createCareer(setup: CareerSetup): GameState {
     ...(setup.playerRequestRules === undefined ? {} : {
       playerRequestRules: JSON.parse(JSON.stringify(setup.playerRequestRules)),
     }),
+    ...(setup.sponsorRules === undefined ? {} : {
+      sponsorRules: JSON.parse(JSON.stringify(setup.sponsorRules)),
+    }),
     eventClock: { weeksWithoutEvent: 0, riskyChoices: 0 },
     eventFlags: [],
     resolvedEventIds: [],
@@ -206,6 +229,7 @@ export function createCareer(setup: CareerSetup): GameState {
     seasonOpeningCash: clubs.find(club => club.id === setup.userClubId)!.cash,
     seasonStatLines: [],
     careerMode: 'full',
+    clubBusiness: createClubBusinessState({ season: 1 }),
   };
   return enableFullCareer(state);
 }
@@ -264,14 +288,18 @@ export function advanceWeek(state: GameState): GameState {
   return settleCurrentWeek(state);
 }
 
-export function completeMatchday(state: GameState, results: FixtureResult[]): GameState {
+export function completeMatchday(
+  state: GameState,
+  results: FixtureResult[],
+  production?: ProductionFixtureResult,
+): GameState {
   if (state.phase !== 'matchday') {
     throw new Error('matchday results can only be completed from the matchday phase');
   }
 
   const scheduledFixtures = fixturesForCurrentWeek(state);
   if (scheduledFixtures.length === 0) {
-    return completeNationalCupMatchday(state, results);
+    return completeNationalCupMatchday(state, results, production);
   }
   validateResults(state, scheduledFixtures, results);
 
@@ -297,13 +325,41 @@ export function completeMatchday(state: GameState, results: FixtureResult[]): Ga
     'league',
   );
 
-  const players = resolveCareerMatchFame(state, scheduledFixtures, resultByFixtureId);
+  const userFixture = scheduledFixtures.find(fixture => (
+    fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId
+  ));
+  const pendingImpact = production === undefined || userFixture === undefined
+    ? undefined
+    : pendingImpactFromProduction({
+        state,
+        fixture: userFixture,
+        production,
+        competition: 'LEAGUE',
+      });
+  const participantIdsByFixture = pendingImpact === undefined
+    ? undefined
+    : new Map([[pendingImpact.fixtureId, pendingImpact.participantPlayerIds]]);
+  const players = resolveCareerMatchFame(
+    state,
+    scheduledFixtures,
+    resultByFixtureId,
+    participantIdsByFixture,
+  );
 
   const playedLeagueState: GameState = {
     ...state,
     fixtures,
     players,
     seasonStatLines,
+    ...(pendingImpact === undefined ? {} : {
+      clubBusiness: {
+        ...state.clubBusiness,
+        pendingUserMatchImpacts: appendPendingUserMatchImpact(
+          state.clubBusiness.pendingUserMatchImpacts,
+          pendingImpact,
+        ),
+      },
+    }),
   };
   if (nationalCupUserFixtureForCurrentWeek(playedLeagueState) !== undefined) {
     return { ...playedLeagueState, phase: 'matchday' };
@@ -410,24 +466,76 @@ export function startNextSeason(state: GameState): GameState {
  * random value and skips flags already present, so a settled week records each
  * milestone exactly once.
  */
-function settleCurrentWeek(
-  state: GameState,
-  cupAlreadyResolved = false,
-  additionalMatchOutcomes: readonly WeeklyMatchOutcome[] = [],
-): GameState {
+interface SettleCurrentWeekOptions {
+  readonly cupAlreadyResolved?: boolean;
+  readonly additionalMatchOutcomes?: readonly WeeklyMatchOutcome[];
+  readonly awards?: WeeklySettlementAwards;
+}
+
+function settleCurrentWeek(state: GameState, options: SettleCurrentWeekOptions = {}): GameState {
+  const cupProgression = options.cupAlreadyResolved === true
+    ? { state, awards: EMPTY_WEEKLY_SETTLEMENT_AWARDS }
+    : progressAutomaticCupBeforeSettlement(state);
+  const suppliedAwards = options.awards ?? EMPTY_WEEKLY_SETTLEMENT_AWARDS;
   return recordCareerMilestones(
-    settleWeekResults(state, cupAlreadyResolved, additionalMatchOutcomes),
+    settleWeekResults(
+      cupProgression.state,
+      options.additionalMatchOutcomes ?? [],
+      {
+        awards: [...cupProgression.awards.awards, ...suppliedAwards.awards],
+      },
+    ),
   );
 }
 
 function settleWeekResults(
   state: GameState,
-  cupAlreadyResolved: boolean,
   additionalMatchOutcomes: readonly WeeklyMatchOutcome[],
+  suppliedAwards: WeeklySettlementAwards,
 ): GameState {
   const userClub = state.clubs.find(club => club.id === state.userClubId);
   if (userClub === undefined) {
     throw new Error(`user club ${state.userClubId} does not exist`);
+  }
+
+  if (state.week === SEASON_WEEKS
+    && state.clubBusiness.sponsorship.activeContracts.some(contract => (
+      contract.objective !== undefined && contract.objectiveOutcome === undefined
+    ))) {
+    const objectiveSettlement = settleSponsorObjectivesAtWeek30(
+      state.clubBusiness.sponsorship,
+      state.fixtures,
+      state.userClubId,
+      state.season,
+      state.week,
+      difficultyRules(state).sponsorIncomePercent,
+    );
+    state = {
+      ...state,
+      clubBusiness: {
+        ...state.clubBusiness,
+        sponsorship: objectiveSettlement.sponsorship,
+      },
+    };
+    suppliedAwards = {
+      awards: [
+        ...suppliedAwards.awards,
+        ...objectiveSettlement.payments
+          .filter(payment => payment.actualAmount > 0)
+          .map(payment => ({
+            line: {
+              kind: 'sponsor' as const,
+              label: `${payment.sponsorName} objective bonus`,
+              amount: payment.actualAmount,
+              idempotencyKey: weeklySettlementAwardKeys.sponsorObjective(
+                state.userClubId,
+                state.season,
+                payment.contractId,
+              ),
+            },
+          })),
+      ],
+    };
   }
 
   // Drills resolve instantly at tap time now, so settlement only credits the
@@ -438,21 +546,98 @@ function settleWeekResults(
     ambientTrainingPoints,
     'weekly ambient training point balance',
   );
-  const weeklyPlayers = resolveWeeklyPlayerWellbeing(state, { additionalMatchOutcomes }).players;
+  const pendingImpacts = state.clubBusiness.pendingUserMatchImpacts;
+  const productionParticipations = pendingImpacts.map(impact => ({
+    fixtureId: impact.fixtureId,
+    outcome: impact.outcome.toLowerCase() as WeeklyMatchOutcome,
+    participantPlayerIds: impact.participantPlayerIds,
+  }));
+  const currentLineup = state.lineups.find(lineup => lineup.clubId === state.userClubId);
+  const matchParticipations = productionParticipations.length === 0
+    ? undefined
+    : [
+        ...productionParticipations,
+        ...additionalMatchOutcomes.map((outcome, index) => ({
+          fixtureId: `synthetic-extra-${index}`,
+          outcome,
+          participantPlayerIds: currentLineup?.playerIds ?? [],
+        })),
+      ];
+  const weeklyPlayers = resolveWeeklyPlayerWellbeing(state, matchParticipations === undefined
+    ? { additionalMatchOutcomes }
+    : { matchParticipations }).players;
+  const actualMonthlySponsorIncome = currentActualMonthlySponsorIncome(state, userClub);
+  const appliedBuzz = applyBuzzImpacts(
+    state.clubBusiness.buzz,
+    pendingImpacts,
+    state.season,
+    state.week,
+    actualMonthlySponsorIncome,
+  );
   const trainedState = {
     ...state,
     players: weeklyPlayers,
     trainingPoints,
+    clubBusiness: {
+      ...state.clubBusiness,
+      buzz: appliedBuzz.buzz,
+    },
   };
-  const lines = settlementLines(trainedState, userClub, 0);
+  const buzzAwards: WeeklySettlementAward[] = appliedBuzz.payout === undefined
+    || appliedBuzz.payout.amount === 0
+    ? []
+    : [{
+        line: {
+          kind: 'buzz',
+          label: appliedBuzz.payout.label,
+          amount: appliedBuzz.payout.amount,
+          idempotencyKey: weeklySettlementAwardKeys.buzzHalf(
+            state.userClubId,
+            state.season,
+            appliedBuzz.payout.half,
+          ),
+        },
+      }];
+  const awards = resolveWeeklySettlementAwards(
+    state.ledgers,
+    settlementAwards(trainedState, userClub, {
+      awards: [...suppliedAwards.awards, ...buzzAwards],
+    }),
+  );
+  const lines = settlementLines(trainedState, userClub, 0, awards.lines);
   const safety = resolveFinancialSafety(trainedState, userClub.cash, lines);
   const settledLines = safety.lines;
   const balanceAfter = safety.balanceAfter;
   const intervenedState = safety.forcedSale === undefined
     ? trainedState
     : applyBoardForcedSaleConsequences(trainedState, safety.forcedSale);
+  const intervenedUserClub = intervenedState.clubs.find(club => club.id === state.userClubId);
+  if (intervenedUserClub === undefined) throw new Error(`user club ${state.userClubId} disappeared`);
+  const appliedSupporters = applySupporterImpacts(
+    intervenedState.clubBusiness.supporters,
+    intervenedUserClub.fans,
+    pendingImpacts,
+    state.season,
+    state.week,
+  );
+  const finalFanCount = checkedAdd(
+    appliedSupporters.fanCount,
+    awards.fanGain,
+    'weekly supporter awards',
+  );
+  const settledClubBusiness = {
+    ...intervenedState.clubBusiness,
+    supporters: appliedSupporters.supporters,
+    pendingUserMatchImpacts: [],
+  };
   const clubs = intervenedState.clubs.map(club =>
-    club.id === state.userClubId ? { ...club, cash: balanceAfter } : club,
+    club.id === state.userClubId
+      ? {
+          ...club,
+          cash: balanceAfter,
+          fans: finalFanCount,
+        }
+      : club,
   );
   const ledgers = [
     ...state.ledgers,
@@ -490,46 +675,48 @@ function settleWeekResults(
         ? player.contractSeasonsRemaining - 1
         : 0,
     }));
-    const settledState: GameState = {
+    const settledState = recordFanGain({
       ...intervenedState,
       clubs,
       ledgers,
       players,
       trainingPoints,
+      clubBusiness: settledClubBusiness,
       financialSafety: safety.financialSafety,
       phase: 'season-end',
-    };
+    }, checkedAdd(
+      appliedSupporters.positiveFanGain,
+      awards.fanGain,
+      'positive weekly supporter gain',
+    ));
     const withRecap = recordSeasonRecap(settledState);
     // openRequests: false — leave and effects still tick, but no card is dealt
     // on the week the season ends and the request clock resets.
     const withRequests = advancePlayerRequests(withRecap, false);
-    return advanceM2WeeklySidecars(
-      repairCareerLineupForInjuries(withRequests),
-      state.week,
-      cupAlreadyResolved,
-    );
+    return advanceM2WeeklySidecars(repairCareerLineupForInjuries(withRequests));
   }
 
-  const settledState: GameState = {
+  const settledState = recordFanGain({
     ...intervenedState,
     clubs,
     ledgers,
     players: recoveredPlayers,
     trainingPoints,
+    clubBusiness: settledClubBusiness,
     financialSafety: safety.financialSafety,
     week: checkedAdd(state.week, 1, 'career week'),
     phase: 'manage',
-  };
+  }, checkedAdd(
+    appliedSupporters.positiveFanGain,
+    awards.fanGain,
+    'positive weekly supporter gain',
+  ));
   // Runs on `settledState`, which already carries week + 1, so a pending request
   // stamps `askedWeek` as the week the manager is about to play. It runs BEFORE
   // repair because it decrements awayWeeks, and repair must see the
   // post-decrement flags or a returning player sits out an extra week.
   const withRequests = advancePlayerRequests(settledState, true);
-  return advanceM2WeeklySidecars(
-    repairCareerLineupForInjuries(withRequests),
-    state.week,
-    cupAlreadyResolved,
-  );
+  return advanceM2WeeklySidecars(repairCareerLineupForInjuries(withRequests));
 }
 
 /**
@@ -540,6 +727,8 @@ export function resolveCareerMatchFame(
   state: GameState,
   fixtures: readonly LeagueFixture[],
   resultByFixtureId: ReadonlyMap<string, FixtureResult>,
+  participantIdsByFixture?: ReadonlyMap<string, readonly string[]>,
+  winnerClubIdsByFixture?: ReadonlyMap<string, string>,
 ): CareerPlayer[] {
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
   if (lineup === undefined) throw new Error('the user club has no lineup');
@@ -552,8 +741,27 @@ export function resolveCareerMatchFame(
     const userIsHome = fixture.homeClubId === state.userClubId;
     const goalsFor = userIsHome ? result.homeGoals : result.awayGoals;
     const goalsAgainst = userIsHome ? result.awayGoals : result.homeGoals;
-    const resultGain = goalsFor > goalsAgainst ? 2 : goalsFor === goalsAgainst ? 1 : 0;
-    for (const playerId of lineup.playerIds) gains.set(playerId, 1 + resultGain);
+    const winnerClubId = winnerClubIdsByFixture?.get(fixture.id);
+    if (
+      winnerClubId !== undefined
+      && winnerClubId !== fixture.homeClubId
+      && winnerClubId !== fixture.awayClubId
+    ) {
+      throw new Error(`fixture ${fixture.id} winner ${winnerClubId} is not in the fixture`);
+    }
+    // League draws earn the ordinary draw point. A knockout score can also be
+    // level, but its recorded penalty winner is the result that earns Fame.
+    const resultGain = winnerClubId === undefined
+      ? goalsFor > goalsAgainst ? 2 : goalsFor === goalsAgainst ? 1 : 0
+      : winnerClubId === state.userClubId ? 2 : 0;
+    const participantIds = participantIdsByFixture?.get(fixture.id) ?? lineup.playerIds;
+    for (const playerId of participantIds) {
+      const participant = state.players.find(player => player.id === playerId);
+      if (participant?.clubId !== state.userClubId) {
+        throw new Error(`fixture ${fixture.id} participant ${playerId} is outside the user club`);
+      }
+      gains.set(playerId, 1 + resultGain);
+    }
     for (const scorerId of result.scorerPlayerIds ?? []) {
       const scorer = state.players.find(player => player.id === scorerId);
       if (scorer?.clubId !== state.userClubId) continue;
@@ -586,6 +794,7 @@ function settlementLines(
   state: GameState,
   userClub: ClubState,
   trainingMoneyCost: number,
+  awardLines: readonly LedgerLine[],
 ): LedgerLine[] {
   const lines: LedgerLine[] = [];
   const homeFixture = state.fixtures.find(
@@ -619,43 +828,7 @@ function settlementLines(
     });
   }
 
-  if (state.week % 4 === 0) {
-    const sponsorIncome = Math.floor(
-      requireSafeInteger(userClub.sponsorMonthlyFee, 'monthly sponsor fee')
-      * difficultyRules(state).sponsorIncomePercent
-      / 100,
-    );
-    lines.push({
-      kind: 'sponsor',
-      label: state.difficulty === 'CHAIRMAN' ? 'Chairman sponsor target' : 'Monthly sponsor fee',
-      amount: sponsorIncome,
-    });
-  }
-
-  if (state.week === SEASON_WEEKS) {
-    const position = leagueStandings(state).find(row => row.clubId === state.userClubId)?.position;
-    const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
-    const prize = position === undefined ? 0 : leaguePrizeMoney(division, position);
-    if (prize > 0) {
-      lines.push({
-        kind: 'prize',
-        label: position === 1 ? 'League champion prize' : 'League runner-up prize',
-        amount: prize,
-      });
-    }
-    const firstD4Promotion = state.m2 !== undefined
-      && position !== undefined
-      && position <= 2
-      && currentUserDivision(state.m2) === 5
-      && highestDivisionReached(state) === 5;
-    if (firstD4Promotion) {
-      lines.push({
-        kind: 'subsidy',
-        label: 'County League recruitment fund',
-        amount: FIRST_D4_PROMOTION_RECRUITMENT_FUND,
-      });
-    }
-  }
+  lines.push(...awardLines);
 
   if (trainingMoneyCost > 0) {
     lines.push({
@@ -718,6 +891,116 @@ function settlementLines(
   }
 
   return lines;
+}
+
+function settlementAwards(
+  state: GameState,
+  userClub: ClubState,
+  supplied: WeeklySettlementAwards,
+): WeeklySettlementAwards {
+  const awards: WeeklySettlementAward[] = [];
+
+  if (state.week % 4 === 0) {
+    const contracts = state.clubBusiness.sponsorship.activeContracts;
+    if (contracts.length > 0) {
+      if (state.clubBusiness.sponsorship.portfolioSeason !== state.season) {
+        throw new Error('active sponsor portfolio does not match the settling season');
+      }
+      for (const payment of allocateSponsorPortfolioPayment(
+        contracts,
+        difficultyRules(state).sponsorIncomePercent,
+      )) {
+        if (payment.actualAmount <= 0) continue;
+        awards.push({
+          line: {
+            kind: 'sponsor',
+            label: `${payment.sponsorName} · Monthly sponsor`,
+            amount: payment.actualAmount,
+            idempotencyKey: weeklySettlementAwardKeys.sponsorMonth(
+              state.userClubId,
+              state.season,
+              state.week,
+              payment.contractId,
+            ),
+          },
+        });
+      }
+    } else {
+      const sponsorIncome = currentActualMonthlySponsorIncome(state, userClub);
+      if (sponsorIncome > 0) {
+        awards.push({
+          line: {
+            kind: 'sponsor',
+            label: state.difficulty === 'CHAIRMAN'
+              ? 'Chairman sponsor target'
+              : 'Monthly sponsor fee',
+            amount: sponsorIncome,
+            idempotencyKey: weeklySettlementAwardKeys.sponsorMonth(
+              state.userClubId,
+              state.season,
+              state.week,
+            ),
+          },
+        });
+      }
+    }
+  }
+
+  awards.push(...supplied.awards);
+
+  if (state.week === SEASON_WEEKS) {
+    const position = leagueStandings(state).find(row => row.clubId === state.userClubId)?.position;
+    const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+    const prize = position === undefined ? 0 : leaguePrizeMoney(division, position);
+    if (prize > 0) {
+      awards.push({
+        line: {
+          kind: 'prize',
+          label: position === 1 ? 'League champion prize' : 'League runner-up prize',
+          amount: prize,
+          idempotencyKey: weeklySettlementAwardKeys.leaguePrize(
+            state.userClubId,
+            state.season,
+          ),
+        },
+      });
+    }
+    const firstD4Promotion = state.m2 !== undefined
+      && position !== undefined
+      && position <= 2
+      && currentUserDivision(state.m2) === 5
+      && highestDivisionReached(state) === 5;
+    if (firstD4Promotion) {
+      awards.push({
+        line: {
+          kind: 'subsidy',
+          label: 'County League recruitment fund',
+          amount: FIRST_D4_PROMOTION_RECRUITMENT_FUND,
+          idempotencyKey: weeklySettlementAwardKeys.recruitmentFund(state.userClubId),
+        },
+      });
+    }
+  }
+
+  return { awards };
+}
+
+function currentActualMonthlySponsorIncome(state: GameState, userClub: ClubState): number {
+  const contracts = state.clubBusiness.sponsorship.activeContracts;
+  if (contracts.length > 0) {
+    if (state.clubBusiness.sponsorship.portfolioSeason !== state.season) {
+      throw new Error('active sponsor portfolio does not match the current season');
+    }
+    return actualSponsorPortfolioIncome(
+      contracts,
+      difficultyRules(state).sponsorIncomePercent,
+    );
+  }
+  return Math.floor(
+    requireSafeInteger(userClub.sponsorMonthlyFee, 'monthly sponsor fee')
+    * difficultyRules(state).sponsorIncomePercent
+    / 100,
+  );
 }
 
 /**
@@ -786,12 +1069,59 @@ export function weeklyMerchandiseIncome(state: GameState, userClub: ClubState): 
   return checkedAdd(baseIncome, bonus, 'Fan Shop merchandise income');
 }
 
-function advanceM2WeeklySidecars(
-  state: GameState,
-  settledWeek: number,
-  cupAlreadyResolved = false,
-): GameState {
+function progressAutomaticCupBeforeSettlement(state: GameState): {
+  state: GameState;
+  awards: WeeklySettlementAwards;
+} {
+  if (
+    state.m2 === undefined
+    || !CUP_SETTLEMENT_WEEKS.includes(state.week as typeof CUP_SETTLEMENT_WEEKS[number])
+  ) {
+    return { state, awards: EMPTY_WEEKLY_SETTLEMENT_AWARDS };
+  }
+  const activeCup = state.m2.nationalCups.find(cup => cup.championClubId === undefined);
+  if (activeCup === undefined) return { state, awards: EMPTY_WEEKLY_SETTLEMENT_AWARDS };
+
+  const round = activeCup.rounds[activeCup.rounds.length - 1];
+  const progressedM2 = resolveNextM2NationalCupRound(state.m2);
+  const progressedState = { ...state, m2: progressedM2 };
+  const resolvedCup = progressedM2.nationalCups.find(cup => cup.season === activeCup.season)!;
+  const resolvedRound = resolvedCup.rounds.find(candidate => candidate.number === round.number)!;
+  const userWon = resolvedRound.fixtures.some(fixture => (
+    (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
+    && fixture.winnerClubId === state.userClubId
+  ));
+  return {
+    state: progressedState,
+    awards: userWon
+      ? nationalCupRoundSettlementAwards({
+          clubId: state.userClubId,
+          season: activeCup.season,
+          roundNumber: resolvedRound.number,
+          roundLabel: resolvedRound.label,
+        })
+      : EMPTY_WEEKLY_SETTLEMENT_AWARDS,
+  };
+}
+
+function advanceM2WeeklySidecars(state: GameState): GameState {
   let next = state;
+  const sponsorship = next.clubBusiness.sponsorship;
+  if (next.week >= 5
+    && sponsorship.portfolioSeason === next.season
+    && (sponsorship.offers.length > 0
+      || sponsorship.activeContracts.some(contract => contract.provisional))) {
+    next = {
+      ...next,
+      clubBusiness: {
+        ...next.clubBusiness,
+        sponsorship: {
+          ...expireSponsorOfferWindow(sponsorship, next.season, next.week),
+          offerSeason: sponsorship.offerSeason ?? next.season,
+        },
+      },
+    };
+  }
   const grid = next.facilities.grid;
   if (grid !== undefined) {
     const advanced = advanceFacilityConstruction(grid);
@@ -809,32 +1139,17 @@ function advanceM2WeeklySidecars(
       };
     }
   }
-  if (
-    next.m2 !== undefined
-    && !cupAlreadyResolved
-    && CUP_SETTLEMENT_WEEKS.includes(settledWeek as typeof CUP_SETTLEMENT_WEEKS[number])
-  ) {
-    const activeCup = next.m2.nationalCups.find(cup => cup.championClubId === undefined);
-    if (activeCup !== undefined) {
-      const round = activeCup.rounds[activeCup.rounds.length - 1];
-      const progressedM2 = resolveNextM2NationalCupRound(next.m2);
-      next = { ...next, m2: progressedM2 };
-      const resolvedCup = progressedM2.nationalCups.find(cup => cup.season === activeCup.season)!;
-      const resolvedRound = resolvedCup.rounds.find(candidate => candidate.number === round.number)!;
-      const userWon = resolvedRound.fixtures.some(fixture => (
-        (fixture.homeClubId === next.userClubId || fixture.awayClubId === next.userClubId)
-        && fixture.winnerClubId === next.userClubId
-      ));
-      if (userWon) next = awardNationalCupPrize(next, resolvedRound.label);
-    }
-  }
   if (next.market !== undefined) {
     next = { ...next, market: resolveCareerScoutClock(next, next.market) };
   }
   return reconcileStoryYouthIntake(next);
 }
 
-function completeNationalCupMatchday(state: GameState, results: FixtureResult[]): GameState {
+function completeNationalCupMatchday(
+  state: GameState,
+  results: FixtureResult[],
+  production?: ProductionFixtureResult,
+): GameState {
   const cupMatchday = activeCareerMatchday(state);
   if (cupMatchday?.kind !== 'national-cup' || cupMatchday.cupRoundLabel === undefined) {
     throw new Error('the matchday has no scheduled league or Hero Cup fixture');
@@ -857,17 +1172,55 @@ function completeNationalCupMatchday(state: GameState, results: FixtureResult[])
     winnerClubId,
   };
   const resultByFixtureId = new Map([[result.fixtureId, result]]);
+  const pendingImpact = production === undefined
+    ? undefined
+    : pendingImpactFromProduction({
+        state,
+        fixture: cupMatchday.fixture,
+        production,
+        competition: 'CUP',
+        cupWinnerClubId: winnerClubId,
+      });
+  const participantIdsByFixture = pendingImpact === undefined
+    ? undefined
+    : new Map([[pendingImpact.fixtureId, pendingImpact.participantPlayerIds]]);
   const progressed: GameState = queueCupGiantKillingCelebration({
     ...state,
     m2: resolveNextM2NationalCupRound(state.m2, cupResult),
-    players: resolveCareerMatchFame(state, cupMatchday.fixtures, resultByFixtureId),
+    players: resolveCareerMatchFame(
+      state,
+      cupMatchday.fixtures,
+      resultByFixtureId,
+      participantIdsByFixture,
+      new Map([[result.fixtureId, winnerClubId]]),
+    ),
     seasonStatLines: recordStatLines(state, cupMatchday.fixtures, resultByFixtureId, 'cup'),
+    ...(pendingImpact === undefined ? {} : {
+      clubBusiness: {
+        ...state.clubBusiness,
+        pendingUserMatchImpacts: appendPendingUserMatchImpact(
+          state.clubBusiness.pendingUserMatchImpacts,
+          pendingImpact,
+        ),
+      },
+    }),
   }, cupGiantKillingCelebration(state, cupFixture, winnerClubId));
   const cupOutcome: WeeklyMatchOutcome = winnerClubId === state.userClubId ? 'win' : 'loss';
-  const settled = settleCurrentWeek(progressed, true, [cupOutcome]);
-  return winnerClubId === state.userClubId
-    ? awardNationalCupPrize(settled, cupMatchday.cupRoundLabel)
-    : settled;
+  return settleCurrentWeek(progressed, {
+    cupAlreadyResolved: true,
+    // A production impact already carries this exact fixture, outcome, and its
+    // real participants. Supplying the thin fallback as well would apply Cup
+    // morale twice; only synthetic/headless Cup results need it.
+    additionalMatchOutcomes: pendingImpact === undefined ? [cupOutcome] : [],
+    awards: winnerClubId === state.userClubId
+      ? nationalCupRoundSettlementAwards({
+          clubId: state.userClubId,
+          season: cupFixture.season,
+          roundNumber: cupFixture.round,
+          roundLabel: cupMatchday.cupRoundLabel,
+        })
+      : EMPTY_WEEKLY_SETTLEMENT_AWARDS,
+  });
 }
 
 function resolveFinancialSafety(
@@ -1054,62 +1407,6 @@ function deterministicPenaltyWinner(state: GameState, fixture: NationalCupFixtur
     (fixture.matchSeed ^ state.careerSeed ^ Math.imul(fixture.round, 0x9e3779b1)) >>> 0
   ) % 2 === 0;
   return homeWins ? fixture.homeClubId : fixture.awayClubId;
-}
-
-function awardNationalCupPrize(
-  state: GameState,
-  roundLabel: 'Play-in' | 'Round of 32' | 'Round of 16' | 'Quarter-final' | 'Semi-final' | 'Final',
-): GameState {
-  const prizeByRound = {
-    'Play-in': 2_000,
-    'Round of 32': 3_000,
-    'Round of 16': 4_000,
-    'Quarter-final': 6_000,
-    'Semi-final': 8_000,
-    Final: 25_000,
-  } as const;
-  /**
-   * A cup run is when a small club picks up neutrals, and it is the only way to
-   * grow the gate without going up a division. A full run is ~900 fans, kept
-   * deliberately under the 500-per-tier step promotion gives so the league
-   * ladder stays the main driver of income.
-   */
-  const fansByRound = {
-    'Play-in': 6,
-    'Round of 32': 10,
-    'Round of 16': 16,
-    'Quarter-final': 24,
-    'Semi-final': 36,
-    Final: 120,
-  } as const;
-  const prize = prizeByRound[roundLabel];
-  const fansWon = fansByRound[roundLabel];
-  const latestLedger = state.ledgers[state.ledgers.length - 1];
-  if (latestLedger === undefined) throw new Error('Hero Cup prize requires a weekly ledger');
-  const balanceAfter = checkedAdd(latestLedger.balanceAfter, prize, 'Hero Cup prize balance');
-  return recordFanGain(clearMetBoardUltimatum({
-    ...state,
-    clubs: state.clubs.map(club => club.id === state.userClubId
-      ? {
-          ...club,
-          cash: checkedAdd(club.cash, prize, 'Hero Cup prize cash'),
-          fans: checkedAdd(club.fans, fansWon, 'Hero Cup fans won'),
-        }
-      : club),
-    ledgers: state.ledgers.map((ledger, index) => index === state.ledgers.length - 1
-      ? {
-          ...ledger,
-          lines: [...ledger.lines, {
-            kind: 'prize' as const,
-            label: roundLabel === 'Final'
-              ? `${CUP_DISPLAY_NAME} champions`
-              : `${CUP_DISPLAY_NAME} ${roundLabel} win`,
-            amount: prize,
-          }],
-          balanceAfter,
-        }
-      : ledger),
-  }), fansWon);
 }
 
 export function weeklyAmbientTrainingPoints(state: GameState): number {

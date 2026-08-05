@@ -22,6 +22,22 @@ describe('bench cover survives the final whistle', () => {
     );
   });
 
+  it('evaluates Auto Subs after every engine tick inside a catch-up frame', () => {
+    const match = source('src/render/MatchScreen.tsx');
+    const loopStart = match.indexOf("while (acc >= TICK_MS && s.phase !== 'fulltime') {");
+    const loopEnd = match.indexOf('\n      const newEvents =', loopStart);
+
+    expect(loopStart).toBeGreaterThan(-1);
+    expect(loopEnd).toBeGreaterThan(loopStart);
+    const catchUpLoop = match.slice(loopStart, loopEnd);
+    expect(catchUpLoop).toMatch(
+      /if \(!heldForPowerReview\) \{\s*tick\(s\);[\s\S]*?queueControlledAutoSubstitution\(s, autoSubsRef\.current\);\s*\}/,
+    );
+    expect(match.slice(loopEnd)).not.toContain(
+      'queueControlledAutoSubstitution(s, autoSubsRef.current);',
+    );
+  });
+
   it('stores it beside the other match settings, not in the career save', () => {
     const app = source('App.tsx');
     const repository = source('src/persistence/preferences-repository.ts');

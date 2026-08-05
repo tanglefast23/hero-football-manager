@@ -31,6 +31,11 @@ import { recordFanGain } from './fan-growth';
 import { highestDivisionReached, recordHighestDivisionReached } from './promotion-progression';
 import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
 import { prunedStatLines } from './season-recap';
+import {
+  createProvisionalSponsorPortfolio,
+  createSeasonSponsorship,
+  managedSponsorCapacity,
+} from './sponsors';
 import type {
   CareerPlayer,
   ClubLineupState,
@@ -273,6 +278,16 @@ export function startNextFullCareerSeason(
       : (state.seasonRecaps ?? []).map(recap => (recap.season === state.season
         ? { ...recap, divisionAwardPrize: awardPrize }
         : recap)),
+    clubBusiness: {
+      ...state.clubBusiness,
+      sponsorship: nextSeasonSponsorship(
+        state,
+        nextM2,
+        transition.division,
+        userClub.sponsorMonthlyFee,
+        season,
+      ),
+    },
   };
   const withMarket: GameState = {
     ...next,
@@ -292,6 +307,39 @@ export function startNextFullCareerSeason(
     }),
     userClub.fans - currentUserClub.fans,
   );
+}
+
+function nextSeasonSponsorship(
+  state: GameState,
+  nextM2: NonNullable<GameState['m2']>,
+  division: DivisionLevel,
+  nominalAnchor: number,
+  season: number,
+): GameState['clubBusiness']['sponsorship'] {
+  const highest = Math.min(
+    division,
+    nextM2.highestDivisionReached ?? division,
+  ) as DivisionLevel;
+  const capacity = managedSponsorCapacity(highest);
+  if (capacity === 0) {
+    return { activeContracts: [], offers: [], portfolioSeason: season };
+  }
+  if (state.sponsorRules === undefined) {
+    return {
+      activeContracts: createProvisionalSponsorPortfolio(nominalAnchor, capacity, season),
+      offers: [],
+      portfolioSeason: season,
+    };
+  }
+  return createSeasonSponsorship({
+    rules: state.sponsorRules,
+    careerSeed: state.careerSeed,
+    season,
+    division,
+    difficulty: state.difficulty ?? 'COZY',
+    highestDivisionReached: highest,
+    nominalAnchor,
+  });
 }
 
 function balanceOpeningDivision(state: GameState): GameState {

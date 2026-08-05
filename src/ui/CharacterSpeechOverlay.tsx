@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   Animated,
   Easing,
+  findNodeHandle,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -86,6 +89,8 @@ export interface CharacterSpeechOverlayProps {
    * before a later tap advances; reduced-motion mode always shows it in full.
    */
   typewriter?: boolean;
+  /** Give web keyboard and Android TalkBack focus to a blocking briefing. */
+  focusOnMount?: boolean;
 }
 
 type Phase = 'arriving' | 'speaking' | 'leaving';
@@ -116,6 +121,7 @@ export function CharacterSpeechOverlay({
   renderCharacter,
   bubbleScale = 1,
   typewriter = false,
+  focusOnMount = false,
 }: CharacterSpeechOverlayProps) {
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const reduce = useReducedMotion(reduceMotion);
@@ -139,6 +145,24 @@ export function CharacterSpeechOverlay({
   // line and advance it, but can never jump over an unseen line.
   const revealRef = useRef(initialReveal);
   const doneRef = useRef(false);
+  const pressableRef = useRef<View>(null);
+
+  useEffect(() => {
+    if (!focusOnMount || (Platform.OS !== 'web' && Platform.OS !== 'android')) {
+      return undefined;
+    }
+    const frame = requestAnimationFrame(() => {
+      const target = pressableRef.current;
+      if (target === null) return;
+      if (Platform.OS === 'web') {
+        (target as unknown as { focus?: () => void }).focus?.();
+        return;
+      }
+      const handle = findNodeHandle(target);
+      if (handle !== null) AccessibilityInfo.setAccessibilityFocus(handle);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusOnMount]);
 
   const restLeft = viewportWidth * (1 - PENETRATION) - characterWidth / 2;
   const offRight = viewportWidth + 24;
@@ -442,6 +466,7 @@ export function CharacterSpeechOverlay({
 
   return (
     <Pressable
+      ref={pressableRef}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? line}
       accessibilityHint={!lineFullyRevealed

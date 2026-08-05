@@ -23,7 +23,7 @@ function fingerprintAt(m: MatchState) {
 
 describe('M0 acceptance suite (Task 13)', () => {
   describe('parity', () => {
-    it('two zero-input runs are byte-identical (watched-no-taps == Quick Result)', () => {
+    it('two fully automatic zero-input runs are byte-identical', () => {
       const a = runMatch(42, ROVERS, UNITED);
       const b = runMatch(42, ROVERS, UNITED);
       expect(JSON.stringify(a)).toBe(JSON.stringify(b));

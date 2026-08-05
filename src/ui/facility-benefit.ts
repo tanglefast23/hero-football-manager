@@ -1,3 +1,4 @@
+import { TRAINING_PITCH_TP_PER_LEVEL } from '../game/facilities';
 import type { FacilityTypeViewModel } from './models';
 
 /**
@@ -9,7 +10,7 @@ import type { FacilityTypeViewModel } from './models';
 export function facilityBenefit(type: FacilityTypeViewModel): string {
   switch (type) {
     case 'training-pitch':
-      return 'Adds +10 Training Points per Level every week. Upgrades also boost defense training.';
+      return `Adds +${TRAINING_PITCH_TP_PER_LEVEL} TP per completed level every week. Upgrades also boost defense training.`;
     case 'gym':
       return 'Boosts pace and stamina training. +25% at Level 1, up to +100% at Level 3.';
     case 'tech-center':

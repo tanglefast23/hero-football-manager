@@ -6,6 +6,8 @@ import {
   createCareer,
   fixturesForCurrentWeek,
 } from '../career';
+import { weeklySettlementAwardKeys } from '../weekly-settlement-awards';
+import type { ProductionFixtureResult } from '../matchday';
 import type { FixtureResult, GameState } from '../types';
 
 const PLAY_IN_WEEK = CUP_SETTLEMENT_WEEKS[0];
@@ -131,7 +133,15 @@ describe('player-controlled Hero Cup match flow', () => {
       kind: 'prize',
       label: 'Hero Cup Play-in win',
       amount: 2_000,
+      idempotencyKey: weeklySettlementAwardKeys.cupRound(
+        settled.userClubId,
+        settled.season,
+        1,
+      ),
     });
+    expect(settled.clubs.find(club => club.id === settled.userClubId)?.fans).toBe(
+      afterLeague.clubs.find(club => club.id === afterLeague.userClubId)!.fans + 6,
+    );
     expect(settled.players.find(player => player.id === starterId)?.fame).toBe(fameBeforeCup + 7);
     expect(settled.players.find(player => player.id === starterId)?.morale).toBe(58);
     expect(settled.seasonStatLines).toContainEqual({
@@ -155,6 +165,82 @@ describe('player-controlled Hero Cup match flow', () => {
     expect(JSON.stringify(completeMatchday(afterLeague, result))).toBe(
       JSON.stringify(completeMatchday(afterLeague, result)),
     );
+  });
+
+  test('applies one wellbeing result for one production Cup appearance', () => {
+    const initial = createCareer(createLaunchCareerSetup(17));
+    const cupOnly: GameState = { ...initial, week: PLAY_IN_WEEK, phase: 'matchday' };
+    const fixture = activeCareerMatchday(cupOnly)!.fixture;
+    const starterIds = cupOnly.lineups.find(lineup => lineup.clubId === cupOnly.userClubId)!.playerIds;
+    const prepared: GameState = {
+      ...cupOnly,
+      players: cupOnly.players.map(player => starterIds.includes(player.id)
+        ? { ...player, morale: 50 }
+        : player),
+    };
+    const userIsHome = fixture.homeClubId === prepared.userClubId;
+    const fixtureResult: FixtureResult = {
+      fixtureId: fixture.id,
+      homeGoals: userIsHome ? 1 : 0,
+      awayGoals: userIsHome ? 0 : 1,
+    };
+    const production: ProductionFixtureResult = {
+      fixtureResult,
+      goals: [],
+      participantPlayerIds: starterIds,
+      powerFiredPlayerIds: [],
+    };
+
+    const settled = completeMatchday(prepared, [fixtureResult], production);
+
+    expect(settled.players.find(player => player.id === starterIds[0])?.morale).toBe(55);
+  });
+
+  test('uses the penalty winner exactly once for production Cup Fame and wellbeing', () => {
+    const initial = createCareer(createLaunchCareerSetup(17));
+    const cupOnly: GameState = { ...initial, week: PLAY_IN_WEEK, phase: 'matchday' };
+    const fixture = activeCareerMatchday(cupOnly)!.fixture;
+    const starterIds = cupOnly.lineups.find(lineup => lineup.clubId === cupOnly.userClubId)!.playerIds;
+    const trackedPlayerId = starterIds[0];
+    const fameBefore = cupOnly.players.find(player => player.id === trackedPlayerId)!.fame ?? 0;
+    const prepared: GameState = {
+      ...cupOnly,
+      players: cupOnly.players.map(player => starterIds.includes(player.id)
+        ? { ...player, morale: 50 }
+        : player),
+    };
+    const fixtureResult: FixtureResult = {
+      fixtureId: fixture.id,
+      homeGoals: 0,
+      awayGoals: 0,
+    };
+    const production: ProductionFixtureResult = {
+      fixtureResult,
+      goals: [],
+      participantPlayerIds: starterIds,
+      powerFiredPlayerIds: [],
+    };
+
+    const settled = completeMatchday(prepared, [fixtureResult], production);
+    const resolvedFixture = settled.m2!.nationalCups
+      .flatMap(cup => cup.rounds)
+      .flatMap(round => round.fixtures)
+      .find(candidate => candidate.id === fixture.id)!;
+    const userWon = resolvedFixture.winnerClubId === settled.userClubId;
+
+    expect(resolvedFixture).toMatchObject({
+      score: { homeGoals: 0, awayGoals: 0 },
+      winnerClubId: userWon
+        ? settled.userClubId
+        : (fixture.homeClubId === settled.userClubId ? fixture.awayClubId : fixture.homeClubId),
+    });
+    // One real appearance is +1 Fame, with another +2 only for the actual
+    // winner. One wellbeing result is +5 morale for a starting winner or -1
+    // for a starting loser; a second application would miss these exact values.
+    expect(settled.players.find(player => player.id === trackedPlayerId)?.fame)
+      .toBe(fameBefore + (userWon ? 3 : 1));
+    expect(settled.players.find(player => player.id === trackedPlayerId)?.morale)
+      .toBe(userWon ? 55 : 49);
   });
 
   test('adds a separately labelled gate receipt for a home Cup tie', () => {
@@ -193,5 +279,33 @@ describe('player-controlled Hero Cup match flow', () => {
     expect(settled.ledgers.at(-1)?.lines.some(line => (
       line.kind === 'tickets' && line.label.startsWith('Hero Cup')
     ))).toBe(false);
+  });
+
+  test('counts the Cup prize before financial safety can add an unnecessary rescue', () => {
+    const afterLeague = cupReadyCareer(false);
+    const fixture = activeCareerMatchday(afterLeague)!.fixture;
+    const userIsHome = fixture.homeClubId === afterLeague.userClubId;
+    const atRisk: GameState = {
+      ...afterLeague,
+      clubs: afterLeague.clubs.map(club => club.id === afterLeague.userClubId
+        ? { ...club, cash: -14_500 }
+        : club),
+    };
+    const won = completeMatchday(atRisk, [{
+      fixtureId: fixture.id,
+      homeGoals: userIsHome ? 1 : 0,
+      awayGoals: userIsHome ? 0 : 1,
+    }]);
+    const lost = completeMatchday(atRisk, [{
+      fixtureId: fixture.id,
+      homeGoals: userIsHome ? 0 : 1,
+      awayGoals: userIsHome ? 1 : 0,
+    }]);
+
+    expect(lost.ledgers.at(-1)?.lines.some(line => line.kind === 'board-rescue')).toBe(true);
+    expect(won.ledgers.at(-1)?.lines.some(line => line.kind === 'board-rescue')).toBe(false);
+    expect(won.ledgers.at(-1)?.lines.filter(line => line.kind === 'prize')).toHaveLength(1);
+    expect(won.clubs.find(club => club.id === won.userClubId)?.cash)
+      .toBe(won.ledgers.at(-1)?.balanceAfter);
   });
 });

@@ -144,7 +144,7 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass, onOp
     : player.position;
 
   return (
-    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
       <ChalkboardBackdrop wide={wide} />
       <View className="px-5 py-4">
         <View className="flex-row items-start justify-between gap-3">
@@ -161,7 +161,7 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass, onOp
             </View>
           </View>
         </View>
-        <Text className="mt-3 max-w-sm text-base leading-5 text-paper/70">{tagline}</Text>
+        <Text className="mt-3 max-w-sm text-base leading-5 text-paper/75">{tagline}</Text>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>

@@ -325,6 +325,40 @@ describe('management injury and lineup presentation', () => {
     });
   });
 
+  it('keeps a forced-sale aftermath readable after the next-season opponent rebuild', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260730, undefined, content));
+    const ultimatum = createBoardUltimatum(initial)!;
+    const resolution = boardForcedSaleAtDeadline(initial, ultimatum)!;
+    const afterSale = applyBoardForcedSaleConsequences(initial, resolution);
+    const seasonEnd: GameState = {
+      ...afterSale,
+      phase: 'season-end',
+      financialSafety: {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+        latestBoardResolution: resolution,
+      },
+    };
+
+    const nextSeason = startNextSeason(seasonEnd);
+    expect(nextSeason.players.some(player => player.id === resolution.playerId)).toBe(false);
+    expect(nextSeason.players.some(player => player.id === resolution.replacementPlayerId)).toBe(true);
+
+    const visible = reconcileHomeAssistantInbox(nextSeason);
+    expect(() => homeViewModel(visible)).not.toThrow();
+    const panel = homeViewModel(visible).boardResolution;
+    const buyerName = afterSale.clubs.find(club => club.id === resolution.buyerClubId)!.name;
+    const replacementName = nextSeason.players
+      .find(player => player.id === resolution.replacementPlayerId)!.name;
+    expect(panel).toMatchObject({
+      kind: 'FORCED_SALE',
+      replacementPlayer: { id: resolution.replacementPlayerId },
+    });
+    expect(panel?.soldPlayer).toBeUndefined();
+    expect(panel?.detail).toContain(`forced sale to ${buyerName} for $${resolution.fee.toLocaleString('en-US')}`);
+    expect(panel?.detail).toContain(`The academy promoted ${replacementName}`);
+  });
+
   it('never shows more than three inbox cards and defers the remaining firsts', () => {
     const initial = {
       ...createCareer(createLaunchCareerSetup(20260725, undefined, content)),

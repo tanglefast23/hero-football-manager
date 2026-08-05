@@ -181,7 +181,7 @@ describe('renderer juice wiring', () => {
     expect(source).not.toContain('powerJuiceDilation');
     expect(source).not.toContain('dilationRef');
     // The sim still sees the same fixed-step tick(s) in the same order.
-    expect(source).toContain('if (!heldForPowerReview) tick(s);');
+    expect(source).toMatch(/if \(!heldForPowerReview\) \{\s*tick\(s\);/);
     expect(source).not.toContain('tick(s, ');
   });
 

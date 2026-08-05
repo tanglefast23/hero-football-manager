@@ -1,13 +1,36 @@
 import * as simMatch from '../../sim/match';
 import { ROVERS, UNITED } from '../../sim/teams';
 import type { MatchEvent, MatchState, TeamDef } from '../../sim/types';
-import { goalsFrom, quickResultForFixture, resolveMatchday } from '../matchday';
+import { controlledMatchOptions, queueControlledAutoSubstitution } from '../match-policy';
+import {
+  goalsFrom,
+  productionResultFromMatch,
+  quickMatchForFixture,
+  quickResultForFixture,
+  resolveMatchday,
+} from '../matchday';
 import type { FixtureResult, LeagueFixture } from '../types';
 
 const TEAMS: Readonly<Record<string, TeamDef>> = {
   [ROVERS.id]: ROVERS,
   [UNITED.id]: UNITED,
 };
+
+function withEmergencyBench(team: TeamDef): TeamDef {
+  const benchIndexes = [1, 2, 5, 6, 9] as const;
+  return {
+    ...team,
+    players: team.players.map(player => player.role === 'GK'
+      ? player
+      : { ...player, startingCondition: 20 }),
+    bench: benchIndexes.map((playerIndex, benchIndex) => ({
+      ...team.players[playerIndex],
+      id: `${team.id}-bench-${benchIndex}`,
+      name: `${team.players[playerIndex].name} Reserve ${benchIndex + 1}`,
+      startingCondition: 100,
+    })),
+  };
+}
 
 /**
  * The minimum MatchState surface quickMatchForFixture reads from an
@@ -176,6 +199,145 @@ describe('quickResultForFixture', () => {
       ...TEAMS,
       [ROVERS.id]: invalidRoleTeam,
     })).toThrow('invalid role');
+  });
+
+  test('preserves the existing fully automatic replay when no user policy is supplied', () => {
+    const scheduled = fixture('legacy-envelope', ROVERS.id, UNITED.id, 91);
+    const quick = quickMatchForFixture(scheduled, TEAMS);
+    const legacy = simMatch.createMatch(91, ROVERS, UNITED, {
+      homePolicy: 'FIRE_WHEN_READY',
+      awayPolicy: 'FIRE_WHEN_READY',
+    });
+    while (legacy.phase !== 'fulltime') simMatch.tick(legacy);
+
+    expect(quick.replay).toEqual(simMatch.envelopeFrom(legacy));
+    expect(quick.match.events).toEqual(legacy.events);
+    expect(quick.result).toEqual(quickResultForFixture(scheduled, TEAMS));
+  });
+});
+
+describe('production user-match adapter', () => {
+  test('orders participants by entry and resolves powers to the event-time shirt owner', () => {
+    const substitute = {
+      ...ROVERS.players[9],
+      id: 'rovers-fire-substitute',
+      name: 'Ash Ember',
+    };
+    const home = { ...ROVERS, bench: [substitute] };
+    const scheduled = fixture('production-facts');
+    const state = fakeFulltimeMatch([0, 0], [
+      { t: 10, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 1 },
+      {
+        t: 11,
+        kind: 'SUBSTITUTION',
+        team: 0,
+        player: 9,
+        outPlayerId: ROVERS.players[9].id,
+        inPlayerId: substitute.id,
+      },
+      { t: 12, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 1 },
+      { t: 13, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 1 },
+    ]);
+    state.seed = scheduled.matchSeed;
+    state.teams = [home, UNITED];
+    state.players[9] = { ...state.players[9], def: substitute };
+
+    const production = productionResultFromMatch(scheduled, state, ROVERS.id);
+
+    expect(production.fixtureResult).toEqual({
+      fixtureId: scheduled.id,
+      homeGoals: 0,
+      awayGoals: 0,
+      scorerPlayerIds: [],
+    });
+    expect(production.participantPlayerIds).toEqual([
+      ...ROVERS.players.map(player => player.id),
+      substitute.id,
+    ]);
+    expect(production.powerFiredPlayerIds).toEqual([
+      ROVERS.players[9].id,
+      substitute.id,
+    ]);
+  });
+
+  test('rejects a watched state from the wrong fixture rather than attributing it', () => {
+    const scheduled = fixture('right-fixture', ROVERS.id, UNITED.id, 42);
+    const state = fakeFulltimeMatch([0, 0], []);
+    state.seed = 43;
+
+    expect(() => productionResultFromMatch(scheduled, state, ROVERS.id))
+      .toThrow('match seed does not match');
+  });
+});
+
+describe('Quick Result policy B parity', () => {
+  const formation = '3-5-2' as const;
+  const benchRovers = withEmergencyBench(ROVERS);
+  const benchUnited = withEmergencyBench(UNITED);
+
+  test.each([
+    { label: 'home, Auto Subs off', userHome: true, autoSubs: false, benches: true },
+    { label: 'away, Auto Subs off', userHome: false, autoSubs: false, benches: true },
+    { label: 'home, Auto Subs on', userHome: true, autoSubs: true, benches: true },
+    { label: 'away, Auto Subs on', userHome: false, autoSubs: true, benches: true },
+    { label: 'home, no bench', userHome: true, autoSubs: true, benches: false },
+  ])('matches the watched zero-input path: $label', ({ userHome, autoSubs, benches }) => {
+    const user = benches ? benchRovers : ROVERS;
+    const opponent = benches ? benchUnited : UNITED;
+    const home = userHome ? user : opponent;
+    const away = userHome ? opponent : user;
+    const scheduled = fixture(
+      `policy-b-${userHome ? 'home' : 'away'}-${autoSubs ? 'on' : 'off'}-${benches ? 'bench' : 'bare'}`,
+      home.id,
+      away.id,
+      404,
+    );
+    const teams = { [home.id]: home, [away.id]: away };
+    const controlledTeam: 0 | 1 = userHome ? 0 : 1;
+
+    // MatchScreen may catch up several engine ticks in one presentation frame.
+    // Auto Subs must still run after each actual tick, not once after the batch.
+    const watched = simMatch.createMatch(
+      scheduled.matchSeed,
+      home,
+      away,
+      controlledMatchOptions(controlledTeam, formation),
+    );
+    const catchUpFrames = [5, 3, 1, 4, 2] as const;
+    let frame = 0;
+    while (watched.phase !== 'fulltime') {
+      const ticksThisFrame = catchUpFrames[frame % catchUpFrames.length];
+      for (let step = 0; step < ticksThisFrame; step += 1) {
+        simMatch.tick(watched);
+        queueControlledAutoSubstitution(watched, autoSubs);
+      }
+      frame += 1;
+    }
+
+    const quick = quickMatchForFixture(scheduled, teams, {
+      userClubId: user.id,
+      initialFormation: formation,
+      autoSubs,
+    });
+
+    expect(quick.replay).toEqual(simMatch.envelopeFrom(watched));
+    expect(quick.match.score).toEqual(watched.score);
+    expect(quick.match.events).toEqual(watched.events);
+    expect(quick.match.substitutionsUsed).toEqual(watched.substitutionsUsed);
+    expect(quick.match.players.map(player => ({
+      id: player.def.id,
+      condition: player.condition,
+      outReason: player.outReason,
+    }))).toEqual(watched.players.map(player => ({
+      id: player.def.id,
+      condition: player.condition,
+      outReason: player.outReason,
+    })));
+    expect(quick.production).toEqual(
+      productionResultFromMatch(scheduled, watched, user.id),
+    );
+    const controlledInputs = quick.replay.inputs.filter(input => input.kind === 'SUBSTITUTE');
+    expect(controlledInputs.length > 0).toBe(autoSubs && benches);
   });
 });
 

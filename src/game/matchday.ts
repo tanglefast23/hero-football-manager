@@ -1,6 +1,8 @@
 import * as simMatch from '../sim/match';
+import type { FormationId } from '../sim/tactics';
 import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
 import { contributionsFrom } from './match-contributions';
+import { controlledMatchOptions, queueControlledAutoSubstitution } from './match-policy';
 import type { FixtureResult, LeagueFixture } from './types';
 
 const UINT32_MAX = 4294967295;
@@ -8,13 +10,35 @@ const UINT32_MAX = 4294967295;
 export function quickResultForFixture(
   fixture: LeagueFixture,
   teamsByClubId: Readonly<Record<string, TeamDef>>,
+  policy?: QuickMatchPolicy,
 ): FixtureResult {
-  return quickMatchForFixture(fixture, teamsByClubId).result;
+  return quickMatchForFixture(fixture, teamsByClubId, policy).result;
+}
+
+/** The saved manager choices that make Quick an unattended watched match. */
+export interface ManagerMatchPreferences {
+  readonly initialFormation: FormationId;
+  readonly autoSubs: boolean;
+}
+
+export interface QuickMatchPolicy extends ManagerMatchPreferences {
+  readonly userClubId: string;
+}
+
+export interface ProductionFixtureResult {
+  readonly fixtureResult: FixtureResult;
+  readonly goals: readonly MatchGoal[];
+  /** Kickoff XI in shirt order, then substitutes in first-entry order. */
+  readonly participantPlayerIds: readonly string[];
+  /** Distinct user players in first-fire order, resolved at event time. */
+  readonly powerFiredPlayerIds: readonly string[];
 }
 
 export interface QuickFixtureMatch {
   result: FixtureResult;
   replay: ReplayEnvelope;
+  /** Present for the production user path; rival/background resolution omits it. */
+  production?: ProductionFixtureResult;
   /**
    * Final match state, kept so callers read participants (auto-substitutes
    * included) exactly the way a watched match does. Discarding it forced the
@@ -35,26 +59,45 @@ export interface QuickFixtureMatch {
 function createFixtureMatch(
   fixture: LeagueFixture,
   teamsByClubId: Readonly<Record<string, TeamDef>>,
+  policy?: QuickMatchPolicy,
 ): MatchState {
   validateScheduledFixture(fixture);
   const [home, away] = teamsForFixture(fixture, teamsByClubId);
-  return simMatch.createMatch(fixture.matchSeed, home, away, {
-    homePolicy: 'FIRE_WHEN_READY',
-    awayPolicy: 'FIRE_WHEN_READY',
-  });
+  if (policy === undefined) {
+    // Background/rival fixtures retain their existing fully automatic envelope.
+    return simMatch.createMatch(fixture.matchSeed, home, away, {
+      homePolicy: 'FIRE_WHEN_READY',
+      awayPolicy: 'FIRE_WHEN_READY',
+    });
+  }
+  const controlledTeam = userTeamForFixture(fixture, policy.userClubId);
+  return simMatch.createMatch(
+    fixture.matchSeed,
+    home,
+    away,
+    controlledMatchOptions(controlledTeam, policy.initialFormation),
+  );
 }
 
 /** Runs Quick Result through the production engine and retains its replay. */
 export function quickMatchForFixture(
   fixture: LeagueFixture,
   teamsByClubId: Readonly<Record<string, TeamDef>>,
+  policy?: QuickMatchPolicy,
 ): QuickFixtureMatch {
-  const match = createFixtureMatch(fixture, teamsByClubId);
-  while (match.phase !== 'fulltime') simMatch.tick(match);
+  const match = createFixtureMatch(fixture, teamsByClubId, policy);
+  while (match.phase !== 'fulltime') {
+    simMatch.tick(match);
+    if (policy !== undefined) queueControlledAutoSubstitution(match, policy.autoSubs);
+  }
+  const production = policy === undefined
+    ? undefined
+    : productionResultFromMatch(fixture, match, policy.userClubId);
   return {
-    result: fixtureResultFrom(fixture, match),
+    result: production?.fixtureResult ?? fixtureResultFromMatch(fixture, match),
     replay: simMatch.envelopeFrom(match),
     match,
+    ...(production === undefined ? {} : { production }),
   };
 }
 
@@ -109,7 +152,7 @@ export function createFixtureResolver(
       if (match.phase !== 'fulltime') {
         throw new Error(`fixture ${fixture.id} has not finished`);
       }
-      return fixtureResultFrom(fixture, match);
+      return fixtureResultFromMatch(fixture, match);
     },
   };
 }
@@ -152,7 +195,7 @@ export function goalsFrom(match: MatchState): MatchGoal[] {
   return goals.reverse();
 }
 
-function fixtureResultFrom(fixture: LeagueFixture, match: MatchState): FixtureResult {
+export function fixtureResultFromMatch(fixture: LeagueFixture, match: MatchState): FixtureResult {
   const scorerPlayerIds = goalsFrom(match).map(goal => goal.playerId);
   const contributions = contributionsFrom(match);
   return {
@@ -163,6 +206,98 @@ function fixtureResultFrom(fixture: LeagueFixture, match: MatchState): FixtureRe
       ? { scorerPlayerIds }
       : {}),
     ...(contributions.length > 0 ? { contributions } : {}),
+  };
+}
+
+/**
+ * The single production adapter for Quick and watched user matches.
+ *
+ * It keeps the ordinary league result and the durable audience/appearance facts
+ * on one event-time ownership walk. Persistence is intentionally left to the
+ * caller; this function is pure and contains no Club Business state.
+ */
+export function productionResultFromMatch(
+  fixture: LeagueFixture,
+  match: MatchState,
+  userClubId: string,
+): ProductionFixtureResult {
+  validateProductionMatchContext(fixture, match, userClubId);
+  const goals = goalsFrom(match);
+  const fixtureResult = fixtureResultFromMatch(fixture, match);
+  const userTeam = userTeamForFixture(fixture, userClubId);
+  const slotOwners = match.teams.flatMap(team => team.players.map(player => player.id));
+  const rosterByTeam = match.teams.map(team => new Set([
+    ...team.players.map(player => player.id),
+    ...(team.bench ?? []).map(player => player.id),
+  ]));
+  const playerDefs = new Map(match.teams.flatMap(team => [
+    ...team.players,
+    ...(team.bench ?? []),
+  ]).map(player => [player.id, player] as const));
+  const participants = match.teams[userTeam].players.map(player => player.id);
+  const participantSet = new Set(participants);
+  const powerFiredPlayerIds: string[] = [];
+  const powerFiredSet = new Set<string>();
+
+  for (const event of match.events) {
+    if (event.kind === 'POWER_FIRED') {
+      const owner = slotOwners[event.player];
+      if (owner === undefined) {
+        throw new Error(`fixture ${fixture.id} power event references invalid player slot ${event.player}`);
+      }
+      if (playerDefs.get(owner)?.power !== event.power) {
+        throw new Error(`fixture ${fixture.id} power event does not match player ${owner}`);
+      }
+      const eventTeam: 0 | 1 = event.player < 11 ? 0 : 1;
+      if (eventTeam === userTeam && !powerFiredSet.has(owner)) {
+        powerFiredSet.add(owner);
+        powerFiredPlayerIds.push(owner);
+      }
+      continue;
+    }
+    if (event.kind !== 'SUBSTITUTION') continue;
+    const slotTeam: 0 | 1 = event.player < 11 ? 0 : 1;
+    if (event.player < 0 || event.player > 21 || slotTeam !== event.team) {
+      throw new Error(`fixture ${fixture.id} substitution references invalid team slot ${event.player}`);
+    }
+    if (slotOwners[event.player] !== event.outPlayerId) {
+      throw new Error(`fixture ${fixture.id} substitution ownership is inconsistent at slot ${event.player}`);
+    }
+    if (!rosterByTeam[event.team].has(event.inPlayerId)) {
+      throw new Error(`fixture ${fixture.id} substitution uses a player outside team ${event.team}`);
+    }
+    if (event.team === userTeam && !participantSet.has(event.inPlayerId)) {
+      participantSet.add(event.inPlayerId);
+      participants.push(event.inPlayerId);
+    }
+    slotOwners[event.player] = event.inPlayerId;
+  }
+
+  const userRosterIds = rosterByTeam[userTeam];
+  if (participants.some(playerId => !userRosterIds.has(playerId))) {
+    throw new Error(`fixture ${fixture.id} participants contain a player outside the user roster`);
+  }
+  if (powerFiredPlayerIds.some(playerId => !participantSet.has(playerId))) {
+    throw new Error(`fixture ${fixture.id} power owners must be match participants`);
+  }
+
+  const matchRosterIds = new Set(match.teams.flatMap(team => [
+    ...team.players.map(player => player.id),
+    ...(team.bench ?? []).map(player => player.id),
+  ]));
+  const attributedIds = [
+    ...(fixtureResult.scorerPlayerIds ?? []),
+    ...(fixtureResult.contributions ?? []).map(contribution => contribution.playerId),
+  ];
+  if (attributedIds.some(playerId => !matchRosterIds.has(playerId))) {
+    throw new Error(`fixture ${fixture.id} result attributes a player outside the match roster`);
+  }
+
+  return {
+    fixtureResult,
+    goals,
+    participantPlayerIds: participants,
+    powerFiredPlayerIds,
   };
 }
 
@@ -198,6 +333,26 @@ export function resolveMatchday(
     const supplied = suppliedByFixtureId.get(fixture.id);
     return supplied === undefined ? quickResultForFixture(fixture, teamsByClubId) : { ...supplied };
   });
+}
+
+function validateProductionMatchContext(
+  fixture: LeagueFixture,
+  match: MatchState,
+  userClubId: string,
+): void {
+  validateScheduledFixture(fixture);
+  if (match.phase !== 'fulltime') throw new Error(`fixture ${fixture.id} has not finished`);
+  if (match.seed !== fixture.matchSeed) throw new Error(`fixture ${fixture.id} match seed does not match`);
+  if (match.teams[0]?.id !== fixture.homeClubId || match.teams[1]?.id !== fixture.awayClubId) {
+    throw new Error(`fixture ${fixture.id} match teams do not match`);
+  }
+  userTeamForFixture(fixture, userClubId);
+}
+
+function userTeamForFixture(fixture: LeagueFixture, userClubId: string): 0 | 1 {
+  if (fixture.homeClubId === userClubId) return 0;
+  if (fixture.awayClubId === userClubId) return 1;
+  throw new Error(`fixture ${fixture.id} does not contain user club ${userClubId}`);
 }
 
 function validateScheduledFixture(fixture: LeagueFixture): void {

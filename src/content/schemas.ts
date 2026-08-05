@@ -184,6 +184,9 @@ export const AssistantGuideSequenceIdSchema = z.enum([
   'youth-intake',
   'national-cup',
   'division-leaders',
+  'sponsor-desk',
+  'sponsor-desk-continuity',
+  'sponsor-buzz',
   'first-injury',
   'first-emergency-loan',
   'first-transfer-request',
@@ -215,6 +218,9 @@ export const AssistantGuideFocusSchema = z.enum([
   'youth-intake',
   'national-cup',
   'division-leaders',
+  'sponsor-desk',
+  'sponsor-summary',
+  'sponsor-buzz',
   'squad-requests',
   'injury-lineup',
   'emergency-loan',
@@ -776,6 +782,102 @@ export type PlayerRequestDefinition = z.infer<typeof PlayerRequestSchema>;
 export type RequestCost = z.infer<typeof RequestCostSchema>;
 export type RequestGrantBonus = z.infer<typeof RequestGrantBonusSchema>;
 
+export const SponsorProfileIdSchema = z.enum(['STEADY', 'BALANCED', 'BOLD']);
+export const SponsorObjectiveLevelSchema = z.enum(['EASY', 'NORMAL', 'HARD']);
+export const SponsorObjectiveKindSchema = z.enum([
+  'LEAGUE_WINS',
+  'LEAGUE_GOALS',
+  'LEAGUE_FINISH',
+]);
+
+const SponsorProfileSchema = z.strictObject({
+  monthlyPercent: z.number().int().min(1).max(500),
+  objectiveLevel: SponsorObjectiveLevelSchema,
+  bonusPercent: z.number().int().nonnegative().max(1_000),
+  bonusPercentByObjective: z.strictObject({
+    LEAGUE_WINS: z.number().int().nonnegative().max(1_000).optional(),
+    LEAGUE_GOALS: z.number().int().nonnegative().max(1_000).optional(),
+    LEAGUE_FINISH: z.number().int().nonnegative().max(1_000).optional(),
+  }).optional(),
+});
+
+const SponsorObjectiveSchema = z.strictObject({
+  id: idSchema,
+  kind: SponsorObjectiveKindSchema,
+  labelTemplate: z.string().trim().min(1).max(72).refine(
+    label => label.includes('{target}'),
+    'sponsor objective label must include {target}',
+  ),
+  targets: z.strictObject({
+    EASY: z.number().int().positive().max(100),
+    NORMAL: z.number().int().positive().max(100),
+    HARD: z.number().int().positive().max(100),
+  }),
+  chairmanDelta: z.number().int().min(-10).max(10),
+});
+
+export const SponsorCatalogSchema = z.strictObject({
+  schemaVersion: ContentSchemaVersion,
+  brands: z.array(z.strictObject({
+    id: idSchema,
+    name: z.string().trim().min(1).max(28),
+    offerLine: z.string().trim().min(1).max(96),
+  })).min(9),
+  profiles: z.strictObject({
+    STEADY: SponsorProfileSchema,
+    BALANCED: SponsorProfileSchema,
+    BOLD: SponsorProfileSchema,
+  }),
+  objectives: z.array(SponsorObjectiveSchema).length(3),
+}).superRefine((catalog, context) => {
+  addDuplicateIssues(catalog.brands.map(brand => brand.id), context, ['brands'], 'sponsor brand ID');
+  addDuplicateIssues(catalog.brands.map(brand => brand.name), context, ['brands'], 'sponsor brand name');
+  addDuplicateIssues(catalog.objectives.map(objective => objective.id), context, ['objectives'], 'sponsor objective ID');
+  addDuplicateIssues(catalog.objectives.map(objective => objective.kind), context, ['objectives'], 'sponsor objective kind');
+
+  const expectedProfiles = {
+    STEADY: {
+      monthlyPercent: 105,
+      objectiveLevel: 'EASY',
+      bonusPercent: { LEAGUE_WINS: 25, LEAGUE_GOALS: 27, LEAGUE_FINISH: 25 },
+    },
+    BALANCED: {
+      monthlyPercent: 100,
+      objectiveLevel: 'NORMAL',
+      bonusPercent: { LEAGUE_WINS: 85, LEAGUE_GOALS: 100, LEAGUE_FINISH: 110 },
+    },
+    BOLD: {
+      monthlyPercent: 99,
+      objectiveLevel: 'HARD',
+      bonusPercent: { LEAGUE_WINS: 650, LEAGUE_GOALS: 650, LEAGUE_FINISH: 280 },
+    },
+  } as const;
+  for (const profile of SponsorProfileIdSchema.options) {
+    const actual = catalog.profiles[profile];
+    const expected = expectedProfiles[profile];
+    if (actual.monthlyPercent !== expected.monthlyPercent
+      || actual.objectiveLevel !== expected.objectiveLevel
+      || SponsorObjectiveKindSchema.options.some(kind => (
+        (actual.bonusPercentByObjective?.[kind] ?? actual.bonusPercent)
+        !== expected.bonusPercent[kind]
+      ))) {
+      addIssue(context, ['profiles', profile], `${profile} sponsor profile does not match the approved trade-off`);
+    }
+  }
+
+  catalog.objectives.forEach((objective, index) => {
+    const { EASY, NORMAL, HARD } = objective.targets;
+    const ordered = objective.kind === 'LEAGUE_FINISH'
+      ? EASY > NORMAL && NORMAL > HARD && objective.chairmanDelta === -1
+      : EASY < NORMAL && NORMAL < HARD && objective.chairmanDelta > 0;
+    if (!ordered) {
+      addIssue(context, ['objectives', index], 'sponsor objective difficulty targets are not ordered correctly');
+    }
+  });
+});
+
+export type SponsorCatalog = z.infer<typeof SponsorCatalogSchema>;
+
 export const LaunchContentSchema = z.strictObject({
   assistantGuide: AssistantGuideContentSchema,
   awardCeremonyLines: AwardCeremonyLinesSchema,
@@ -786,6 +888,7 @@ export const LaunchContentSchema = z.strictObject({
   onboarding: OnboardingContentSchema,
   powers: PowerCatalogSchema,
   playerRequests: PlayerRequestCatalogSchema,
+  sponsors: SponsorCatalogSchema,
   tips: ManagerTipCatalogSchema,
   training: TrainingCatalogSchema,
   events: EventCatalogSchema,

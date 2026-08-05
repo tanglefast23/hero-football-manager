@@ -244,7 +244,7 @@ export function M2LeagueScreen({
                       <Text className="mr-1 font-pixel text-sm uppercase text-blue-dark">YOU</Text>
                     ) : null}
                     {row.movement !== 'NONE' ? (
-                      <Text className={row.movement === 'PROMOTION' ? 'text-sm font-bold text-pitch-dark' : 'text-sm font-bold text-stamp'}>
+                      <Text className={row.movement === 'PROMOTION' ? 'text-sm font-bold text-pitch-ink' : 'text-sm font-bold text-stamp'}>
                         {row.movement === 'PROMOTION' ? '↑' : '↓'}
                       </Text>
                     ) : null}

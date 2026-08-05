@@ -1,6 +1,7 @@
 import {
   hasAssistantGuideSequenceCompleted,
   hasAssistantGuideMilestone,
+  highestDivisionReached,
   careerRosterCapacity,
   completeAssistantGuideSequence,
   deferAssistantGuideSequencesUntilUnlock,
@@ -18,6 +19,7 @@ import {
   type GameState,
 } from '../game';
 import { isTransferWindowOpen } from '../game/market';
+import { SPONSOR_OFFER_LAST_WEEK } from '../game/sponsors';
 import type { ManagementTab } from '../ui/models';
 
 export interface AssistantObjective {
@@ -91,6 +93,13 @@ export function dueAssistantInboxGuideSequences(
     >= careerRosterCapacity(state);
   const playerSalesUnlocked = !isStoryFeaturePacingActive(state)
     || (scoutingUnlocked && rosterFull);
+
+  if (state.phase === 'manage') {
+    if (highestDivisionReached(state) <= 4 && !completed('sponsor-desk')) {
+      due.push(sponsorDeskGuideForState(state));
+    }
+    if (state.season >= 3) due.push('sponsor-buzz');
+  }
 
   if (state.market.headCoach === undefined) {
     due.push(completed('head-coach-market') ? 'head-coach-hire' : 'head-coach-market');
@@ -320,6 +329,15 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
 
   const premature: AssistantInboxGuideSequenceId[] = [];
   if (!hasOperationalCoachingOffice) premature.push('assistant-coach-hire');
+  if (highestDivisionReached(next) > 4) {
+    premature.push('sponsor-desk', 'sponsor-desk-continuity');
+  } else if (!hasAssistantGuideSequenceCompleted(next, 'sponsor-desk')) {
+    const activeVariant = sponsorDeskGuideForState(next);
+    premature.push(activeVariant === 'sponsor-desk'
+      ? 'sponsor-desk-continuity'
+      : 'sponsor-desk');
+  }
+  if (next.season < 3) premature.push('sponsor-buzz');
   if (!isStoryFeaturePacingActive(next)) {
     return deferAssistantGuideSequencesUntilUnlock(next, premature);
   }
@@ -346,6 +364,12 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
     );
   }
   return deferAssistantGuideSequencesUntilUnlock(next, premature);
+}
+
+function sponsorDeskGuideForState(state: GameState): 'sponsor-desk' | 'sponsor-desk-continuity' {
+  const hasActionableOffer = state.week <= SPONSOR_OFFER_LAST_WEEK
+    && state.clubBusiness.sponsorship.offers.some(offer => offer.season === state.season);
+  return hasActionableOffer ? 'sponsor-desk' : 'sponsor-desk-continuity';
 }
 
 export function currentAssistantObjective(

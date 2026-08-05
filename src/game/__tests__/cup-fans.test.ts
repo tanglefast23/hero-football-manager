@@ -1,11 +1,12 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-
 import { divisionFans } from '../full-career';
+import {
+  nationalCupRoundSettlementAwards,
+  resolveWeeklySettlementAwards,
+} from '../weekly-settlement-awards';
 
 /**
- * The Hero Cup is the only way to grow the gate without a promotion, so its
- * fan rewards are pinned here against the promotion step they must stay under.
+ * The Hero Cup remains the largest discrete way to grow the gate, so its fan
+ * rewards are pinned here against the promotion step they must stay under.
  */
 describe('Hero Cup fan rewards', () => {
   const FANS_BY_ROUND = {
@@ -34,10 +35,15 @@ describe('Hero Cup fan rewards', () => {
   });
 
   it('matches the schedule the career actually awards', () => {
-    const source = readFileSync(join(process.cwd(), 'src/game/career.ts'), 'utf8');
-    for (const [round, fans] of Object.entries(FANS_BY_ROUND)) {
-      expect(source).toContain(round === 'Final' ? `Final: ${fans},` : `'${round}': ${fans},`);
+    const rounds = Object.keys(FANS_BY_ROUND) as Array<keyof typeof FANS_BY_ROUND>;
+    for (const [index, round] of rounds.entries()) {
+      const awards = nationalCupRoundSettlementAwards({
+        clubId: 'bramble-rovers',
+        season: 3,
+        roundNumber: index + 1,
+        roundLabel: round,
+      });
+      expect(resolveWeeklySettlementAwards([], awards).fanGain).toBe(FANS_BY_ROUND[round]);
     }
-    expect(source).toContain("fans: checkedAdd(club.fans, fansWon, 'Hero Cup fans won')");
   });
 });

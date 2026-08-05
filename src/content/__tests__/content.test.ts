@@ -63,6 +63,12 @@ describe('validated M1 launch content', () => {
     ]);
     expect(content.powers.powers.filter(power => power.tier === 'starter').length).toBeGreaterThanOrEqual(3);
     expect(content.training.focusDrills).toHaveLength(35);
+    expect(content.sponsors.brands).toHaveLength(12);
+    expect(content.sponsors.objectives.map(objective => objective.kind)).toEqual([
+      'LEAGUE_WINS',
+      'LEAGUE_GOALS',
+      'LEAGUE_FINISH',
+    ]);
     const drillPaths = new Map<string, number[]>();
     for (const drill of content.training.focusDrills) {
       expect(Object.keys(drill.gains)).toHaveLength(1);
@@ -254,6 +260,24 @@ describe('validated M1 launch content', () => {
     expect(() => parseLaunchContent(unknownTier)).toThrow(/seven five-tier drill paths/);
   });
 
+  test('rejects sponsor terms or copy that drift from the approved offer contract', () => {
+    const wrongTradeOff = cloneContent(loadLaunchContent());
+    wrongTradeOff.sponsors.profiles.BOLD.monthlyPercent = 110;
+    expect(() => parseLaunchContent(wrongTradeOff)).toThrow(/approved trade-off/);
+
+    const duplicateBrand = cloneContent(loadLaunchContent());
+    duplicateBrand.sponsors.brands[1].id = duplicateBrand.sponsors.brands[0].id;
+    expect(() => parseLaunchContent(duplicateBrand)).toThrow(/sponsor brand IDs must be unique/);
+
+    const unboundedCopy = cloneContent(loadLaunchContent());
+    unboundedCopy.sponsors.brands[0].name = 'A sponsor name that cannot fit safely';
+    expect(() => parseLaunchContent(unboundedCopy)).toThrow();
+
+    const backwardsDifficulty = cloneContent(loadLaunchContent());
+    backwardsDifficulty.sponsors.objectives[0].targets.HARD = 1;
+    expect(() => parseLaunchContent(backwardsDifficulty)).toThrow(/not ordered correctly/);
+  });
+
   test('rejects broken lineup, event-chain, and power references', () => {
     const badLineup = cloneContent(loadLaunchContent());
     badLineup.clubs.clubs[0].startingLineup[1] = 'missing-player';
@@ -359,6 +383,9 @@ describe('validated M1 launch content', () => {
       'youth-intake',
       'national-cup',
       'division-leaders',
+      'sponsor-desk',
+      'sponsor-desk-continuity',
+      'sponsor-buzz',
       'first-injury',
       'first-emergency-loan',
       'first-transfer-request',
@@ -402,11 +429,13 @@ describe('validated M1 launch content', () => {
       .find(sequence => sequence.id === 'head-coach-market')
       ?.inbox?.title).toBe('HIRE A COACH');
     const m2Sequences = content.assistantGuide.sequences.slice(2);
-    expect(m2Sequences).toHaveLength(24);
+    expect(m2Sequences).toHaveLength(27);
     expect(m2Sequences.every(sequence => (
       sequence.inbox !== undefined
       && sequence.destination !== undefined
-      && sequence.pages.some(page => page.objective !== undefined)
+      && (sequence.id === 'sponsor-desk-continuity'
+        ? sequence.pages.every(page => page.objective === undefined)
+        : sequence.pages.some(page => page.objective !== undefined))
     ))).toBe(true);
     const conciseBriefings = content.assistantGuide.sequences.slice(1)
       .flatMap(sequence => sequence.pages);
@@ -448,6 +477,42 @@ describe('validated M1 launch content', () => {
       .find(sequence => sequence.id === 'board-protection')).toMatchObject({
         destination: 'club-finances',
         pages: [{ focus: 'board-protection', objective: 'PROTECT ONE PLAYER.' }],
+      });
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'sponsor-desk')).toMatchObject({
+        inbox: {
+          title: 'SPONSORS ARE CALLING',
+          detail: "Moving up the divisions has put the club on bigger companies' radar.",
+        },
+        destination: 'club-finances',
+        pages: [{
+          focus: 'sponsor-desk',
+          objective: 'REVIEW THE SPONSOR OFFERS.',
+          body: [
+            "We've moved up in the divisions, boss. Bigger sponsors are interested now. Compare the monthly money and the season target, then choose who gets a slot.",
+          ],
+        }],
+      });
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'sponsor-desk-continuity')).toMatchObject({
+        destination: 'club-finances',
+        pages: [{
+          focus: 'sponsor-summary',
+          body: [
+            'The club has already moved up in the divisions, boss. Your current sponsor income carries on this season. The new offers arrive next pre-season.',
+          ],
+        }],
+      });
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'sponsor-buzz')).toMatchObject({
+        destination: 'club-finances',
+        pages: [{
+          focus: 'sponsor-buzz',
+          objective: 'REVIEW THE BUZZ METER.',
+          body: [
+            "We're famous enough to have a proper social media following now. Goals, wins and hero moments build Buzz. Sponsors pay it out twice each season.",
+          ],
+        }],
       });
   });
 

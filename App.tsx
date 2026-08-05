@@ -2,7 +2,7 @@ import './global.css';
 import { playerRequestViewModel } from './src/application/player-request-view-model';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LogBox, Modal, Share, Text, View } from 'react-native';
+import { LogBox, Platform, Share, Text, View } from 'react-native';
 import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -68,6 +68,7 @@ import { assertRuntimeGoldenReplay } from './src/sim/runtime-golden';
 import type { MatchState } from './src/sim/types';
 import {
   ClubFinancesScreen,
+  ConfirmationSheet,
   CoachStaffOverlay,
   FacilityProjectNotice,
   PlayerSigningOverlay,
@@ -102,7 +103,10 @@ import {
   type ClubOfficeTab,
   type MarketSectionId,
   formatCurrency,
+  confirmationBackgroundProps,
+  bertBriefingBackgroundProps,
   shouldShowOpeningBrief,
+  type ConfirmationRequest,
 } from './src/ui';
 import {
   activeCareerMatchday,
@@ -116,6 +120,7 @@ import {
   isFullyCappedPlayer,
   leagueStandings,
   hasAssistantGuideMilestone,
+  staffedCoachingOfficeClosureConfirmation,
 } from './src/game';
 import type { DivisionLevel } from './src/game/pyramid';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
@@ -181,14 +186,6 @@ LogBox.ignoreLogs([/Packager status check returned unexpected result/]);
 
 const DATABASE_NAME = 'hero-football-manager.db';
 type LandingView = 'title' | 'story' | 'settings';
-
-interface PendingConfirmation {
-  readonly title: string;
-  readonly detail: string;
-  readonly confirmLabel: string;
-  readonly tone?: 'normal' | 'danger' | 'hero';
-  readonly onConfirm: () => void;
-}
 
 /**
  * Week 6: late enough that the manager has trained the slow way a few times and
@@ -482,8 +479,9 @@ function GameApp() {
    * because three things outside it choose the board: the inbox's build job
    * opens Facility, the ledger warnings open Finances, and Bert's fans lesson
    * has to know Finances is showing before he walks out onto it.
-   */
+  */
   const [clubOfficeTab, setClubOfficeTab] = useState<ClubOfficeTab>('facility');
+  const [sponsorSummaryFocusToken, setSponsorSummaryFocusToken] = useState<number | undefined>();
   // Bumped when an inbox training-cap letter deep-links into the drill picker.
   const [drillFocusToken, setDrillFocusToken] = useState<number | null>(null);
   const [managerTipGuideRequest, setManagerTipGuideRequest] = useState<{
@@ -510,7 +508,7 @@ function GameApp() {
   const [selectedLeagueDivision, setSelectedLeagueDivision] = useState<DivisionLevel | undefined>();
   const [selectedCupSeason, setSelectedCupSeason] = useState<number | undefined>();
   const [bootAttempt, setBootAttempt] = useState(0);
-  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<ConfirmationRequest | null>(null);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
   const preferencesSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const preferencesRef = useRef(preferences);
@@ -673,7 +671,7 @@ function GameApp() {
 
   // No cue of its own: every control that opens a confirmation already played
   // one, and the two landing together read as a stutter.
-  const requestConfirmation = useCallback((confirmation: PendingConfirmation) => {
+  const requestConfirmation = useCallback((confirmation: ConfirmationRequest) => {
     setPendingConfirmation(confirmation);
   }, []);
 
@@ -1103,6 +1101,7 @@ function GameApp() {
     || fansLedgerTourVisible
   )
     && signingWalkOn === null;
+  const bertBriefingVisible = guideOverlayVisible || store.inboxDutyReminder !== null;
   const assistantObjective = store.career === null
     ? null
     : currentAssistantObjective(store.career, store.activeTab);
@@ -1333,7 +1332,10 @@ function GameApp() {
         onStartFresh={() => { void store.discardUnreadableSave(); }}
         onExportRaw={() => {
           void store.exportUnreadableSave(async (fileName, contents) => {
-            await Share.share({ title: fileName, message: contents });
+            const result = await Share.share({ title: fileName, message: contents });
+            if (result.action !== Share.sharedAction) {
+              throw new Error('the share sheet was dismissed');
+            }
           });
         }}
         onRestoreBackup={store.backupSummary === null
@@ -1477,7 +1479,10 @@ function GameApp() {
           'select',
         )}
         onWatchMatch={store.watchMatch}
-        onQuickResult={store.quickResult}
+        onQuickResult={() => store.quickResult({
+          initialFormation: preferences.formationPresets[0],
+          autoSubs: preferences.autoSubs,
+        })}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
       />
     );
@@ -1706,17 +1711,31 @@ function GameApp() {
               'commit',
             )}
             onCloseFacility={buildingId => {
-              const finances = clubFinancesViewModel(useM1Store.getState().career!);
+              const career = useM1Store.getState().career!;
+              const finances = clubFinancesViewModel(career);
               const building = finances.facilities.buildings.find(candidate => candidate.id === buildingId);
+              const staffedOffice = building?.type === 'coaching-office'
+                && career.market?.assistantCoach !== undefined
+                ? staffedCoachingOfficeClosureConfirmation(career, buildingId)
+                : undefined;
               requestConfirmation({
                 title: `Close ${building?.name ?? 'facility'}?`,
-                detail: building?.closeRefund === 0
-                  ? 'The club never paid to put this up, so nothing comes back. Its bonus and its square go straight away.'
-                  : `You will only get half your investment back${
-                    building === undefined ? '' : `, ${formatCurrency(building.closeRefund)}`
-                  }. Are you sure?`,
+                detail: staffedOffice === undefined
+                  ? building?.closeRefund === 0
+                    ? 'The club never paid to put this up, so nothing comes back. Its bonus and its square go straight away.'
+                    : `You will only get half your investment back${
+                      building === undefined ? '' : `, ${formatCurrency(building.closeRefund)}`
+                    }. Are you sure?`
+                  : `This also dismisses ${staffedOffice.assistantName}. The facility returns ${formatCurrency(staffedOffice.facilityRefund)} and severance costs ${formatCurrency(staffedOffice.severanceCost)}. ${
+                    staffedOffice.canConfirm
+                      ? `Net cash change ${formatCurrency(staffedOffice.netCashEffect, true)}; balance after ${formatCurrency(staffedOffice.cashAfter)}.`
+                      : `The club needs ${formatCurrency(staffedOffice.shortage)} more after the refund, so this cannot be completed.`
+                  }`,
                 confirmLabel: 'Close it',
                 tone: 'danger',
+                ...(staffedOffice !== undefined && !staffedOffice.canConfirm
+                  ? { confirmDisabled: true }
+                  : {}),
                 onConfirm: () => performManagementAction(
                   () => store.closeClubFacility(buildingId),
                   'build',
@@ -1734,8 +1753,33 @@ function GameApp() {
               store.setActiveTab('market');
             }}
             onDismissCoach={beginCoachDismissal}
+            onReviewSponsorOffer={(offer, slot) => requestConfirmation({
+              title: `Sign ${offer.sponsorName}?`,
+              detail: `${slot.slotLabel}. Contract ${formatCurrency(offer.nominalMonthlyFee)} per month.${
+                offer.actualMonthlyFee === offer.nominalMonthlyFee
+                  ? ''
+                  : ` On Chairman, the club receives ${formatCurrency(offer.actualMonthlyFee)} per month.`
+              } Objective: ${offer.objectiveLabel}. Target bonus ${formatCurrency(offer.nominalBonus)}.${
+                offer.actualBonus === offer.nominalBonus
+                  ? ''
+                  : ` The club receives ${formatCurrency(offer.actualBonus)} on Chairman.`
+              }`,
+              confirmLabel: 'Sign deal',
+              returnFocusId: `sponsor-slots-panel-${slot.slot}`,
+              onAfterConfirmDismiss: () => {
+                if (Platform.OS !== 'web') {
+                  setSponsorSummaryFocusToken(token => (token ?? 0) + 1);
+                }
+              },
+              onConfirm: () => {
+                store.acceptSponsorOffer(offer.offerId);
+                setConciergeFocus(null);
+              },
+            })}
             guideTrainingGround={visibleAssistantObjectiveTarget === 'training-ground-facility'}
             guideFocus={conciergeFocus ?? undefined}
+            reduceMotion={reduceMotion}
+            focusSponsorSummaryToken={sponsorSummaryFocusToken}
           />
         ) : store.activeTab === 'market' && store.career.market !== undefined ? (
           <MarketScreen
@@ -1939,6 +1983,13 @@ function GameApp() {
         ) ? 'light' : 'dark'}
       />
       <View className="flex-1 bg-ink">
+        <View
+          className="flex-1"
+          accessibilityElementsHidden={pendingConfirmation !== null}
+          importantForAccessibility={pendingConfirmation === null ? 'auto' : 'no-hide-descendants'}
+          {...confirmationBackgroundProps(pendingConfirmation !== null)}
+        >
+        <View className="flex-1" {...bertBriefingBackgroundProps(bertBriefingVisible)}>
         {screen}
         {/* Not a FeedbackNotice: that one is dismissible and auto-hides. An
             unsaved career must keep saying so until a save actually succeeds. */}
@@ -1958,15 +2009,6 @@ function GameApp() {
             onDismiss={store.clearNotice}
           />
         ) : null}
-        <ConfirmationSheet
-          confirmation={pendingConfirmation}
-          onCancel={() => setPendingConfirmation(null)}
-          onConfirm={() => {
-            const action = pendingConfirmation?.onConfirm;
-            setPendingConfirmation(null);
-            action?.();
-          }}
-        />
         <SettingsOverlay
           open={globalSettingsOpen}
           glossary={content.glossary}
@@ -2008,6 +2050,7 @@ function GameApp() {
             }
           }}
         />
+        </View>
         {guideOverlayVisible && cupGiantKillingCelebration !== undefined ? (
           <BertBriefingWalkOn
             key={cupGiantKillingCelebration.fixtureId}
@@ -2217,6 +2260,18 @@ function GameApp() {
               onDismiss={store.dismissPostMatchSummary}
             />
           ) : null}
+        </View>
+        <ConfirmationSheet
+          confirmation={pendingConfirmation}
+          reduceMotion={reduceMotion}
+          onCancel={() => setPendingConfirmation(null)}
+          onConfirm={() => {
+            if (pendingConfirmation?.confirmDisabled) return;
+            const action = pendingConfirmation?.onConfirm;
+            setPendingConfirmation(null);
+            action?.();
+          }}
+        />
       </View>
     </SafeAreaProvider>
   );
@@ -2505,70 +2560,4 @@ function feedbackNoticeAccessibilityLabel(message: string): string {
   const trimmed = message.trim();
   const sentence = /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
   return `${sentence} Tap to dismiss.`;
-}
-
-function ConfirmationSheet({
-  confirmation,
-  onCancel,
-  onConfirm,
-}: {
-  confirmation: PendingConfirmation | null;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <Modal
-      transparent
-      animationType="fade"
-      visible={confirmation !== null}
-      onRequestClose={onCancel}
-    >
-      {/* edges=['bottom'] matches every sibling bottom sheet: pb-8 alone sat
-          the Cancel/Confirm row on the home indicator (34pt inset). */}
-      <SafeAreaView edges={['bottom']} className="flex-1 justify-end bg-ink/70 px-4 pb-8">
-        {/* An outside tap cancels — the safe half of every question this sheet
-            asks. It never spends the money or signs the contract. Sibling of
-            the sheet so taps on Cancel/Confirm never bubble into it. */}
-        <Pressable accessible={false} className="absolute inset-0" onPress={onCancel} />
-        <View
-          accessibilityViewIsModal
-          className="w-full max-w-[1180px] self-center border-2 border-b-4 border-ink bg-paper p-5"
-        >
-          <Text className="font-pixel text-sm uppercase text-stamp">Confirm club decision</Text>
-          <Text className="mt-2 font-pixel text-xl uppercase text-ink">{confirmation?.title}</Text>
-          <Text className="mt-3 text-base leading-6 text-ink/70">{confirmation?.detail}</Text>
-          <View className="mt-5 flex-row gap-3">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Cancel decision"
-              onPress={onCancel}
-              className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
-              style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
-            >
-              <Text className="font-pixel text-sm uppercase text-ink">Cancel</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={confirmation?.confirmLabel ?? 'Confirm decision'}
-              onPress={onConfirm}
-              className={`min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink px-3 ${
-                confirmation?.tone === 'danger'
-                  ? 'bg-red'
-                  : confirmation?.tone === 'hero'
-                    ? 'bg-gold'
-                    : 'bg-blue'
-              }`}
-              style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
-            >
-              <Text className={`font-pixel text-sm uppercase ${
-                confirmation?.tone === 'hero' ? 'text-ink' : 'text-paper'
-              }`}>
-                {confirmation?.confirmLabel}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </SafeAreaView>
-    </Modal>
-  );
 }

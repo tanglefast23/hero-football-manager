@@ -40,7 +40,151 @@ function clearOtherGuideFirsts(state: GameState): GameState {
   return next;
 }
 
+function managedSponsorCareer(options: {
+  readonly season: number;
+  readonly week: number;
+  readonly withActionableOffer: boolean;
+  readonly phase?: GameState['phase'];
+}): GameState {
+  const state = createCareer(createLaunchCareerSetup(9_800 + options.season * 30 + options.week));
+  const contract = {
+    contractId: `continuity-s${options.season}-slot0`,
+    sponsorContentId: 'continuity',
+    sponsorName: 'Current Sponsor',
+    offerLine: 'Your existing sponsor terms continue.',
+    season: options.season,
+    slot: 0,
+    nominalMonthlyFee: 4_000,
+    provisional: options.withActionableOffer,
+  };
+  const offer = {
+    offerId: `offer-s${options.season}-slot0-steady-test`,
+    sponsorContentId: 'test-sponsor',
+    sponsorName: 'Test Sponsor',
+    offerLine: 'A steady deal for a rising club.',
+    season: options.season,
+    slot: 0,
+    profile: 'STEADY' as const,
+    nominalMonthlyFee: 4_200,
+    objective: {
+      kind: 'LEAGUE_WINS' as const,
+      label: 'Win 5 league matches',
+      target: 5,
+      nominalBonus: 1_000,
+    },
+  };
+  return {
+    ...state,
+    season: options.season,
+    week: options.week,
+    phase: options.phase ?? 'manage',
+    m2: { ...state.m2!, highestDivisionReached: 4 },
+    clubBusiness: {
+      ...state.clubBusiness,
+      sponsorship: {
+        activeContracts: [contract],
+        offers: options.withActionableOffer ? [offer] : [],
+        portfolioSeason: options.season,
+        offerSeason: options.season,
+      },
+    },
+  };
+}
+
 describe('assistant guide application flow', () => {
+  test('queues Sponsor Desk on the first D4 management morning, once offers are actionable', () => {
+    const promotionMorning = managedSponsorCareer({
+      season: 2,
+      week: 1,
+      withActionableOffer: true,
+    });
+
+    expect(dueAssistantInboxGuideSequences(promotionMorning)).toContain('sponsor-desk');
+    expect(dueAssistantInboxGuideSequences(promotionMorning)).not.toContain('sponsor-desk-continuity');
+    expect(dueAssistantInboxGuideSequences({ ...promotionMorning, phase: 'season-end' }))
+      .not.toContain('sponsor-desk');
+    expect(homeViewModel(reconcileHomeAssistantInbox(promotionMorning)).alerts).toContainEqual(
+      expect.objectContaining({
+        guideSequenceId: 'sponsor-desk',
+        destination: 'club-finances',
+      }),
+    );
+
+    const completed = completeAssistantGuideSequence(promotionMorning, 'sponsor-desk');
+    expect(dueAssistantInboxGuideSequences(completed)).not.toContain('sponsor-desk');
+  });
+
+  test('queues Buzz on the first Season 3 management morning even while managed sponsors stay locked', () => {
+    const fresh = createCareer(createLaunchCareerSetup(9_803));
+    const seasonThreeD5: GameState = {
+      ...fresh,
+      season: 3,
+      week: 1,
+      phase: 'manage',
+    };
+
+    expect(dueAssistantInboxGuideSequences(seasonThreeD5)).toContain('sponsor-buzz');
+    expect(dueAssistantInboxGuideSequences(seasonThreeD5)).not.toContain('sponsor-desk');
+    expect(dueAssistantInboxGuideSequences({ ...seasonThreeD5, phase: 'matchday' }))
+      .not.toContain('sponsor-buzz');
+  });
+
+  test('replaces an impossible Week 5 Sponsor Desk objective with continuity copy', () => {
+    const migrated = managedSponsorCareer({
+      season: 3,
+      week: 5,
+      withActionableOffer: false,
+    });
+    const staleStandardGuide: GameState = {
+      ...migrated,
+      eventFlags: [
+        ...migrated.eventFlags,
+        'guide:bert:inbox:queued:sponsor-desk',
+        'guide:bert:inbox:delivered:s3:w4:guide:sponsor-desk',
+      ],
+    };
+
+    const repaired = reconcileSatisfiedAssistantGuideSequences(staleStandardGuide);
+
+    expect(repaired.eventFlags.some(flag => flag.endsWith('guide:sponsor-desk'))).toBe(false);
+    expect(dueAssistantInboxGuideSequences(repaired)).toContain('sponsor-desk-continuity');
+    expect(dueAssistantInboxGuideSequences(repaired)).not.toContain('sponsor-desk');
+    expect(homeViewModel(reconcileHomeAssistantInbox(repaired)).alerts).toContainEqual(
+      expect.objectContaining({
+        guideSequenceId: 'sponsor-desk-continuity',
+        destination: 'club-finances',
+      }),
+    );
+  });
+
+  test('forgets a premature Sponsor Desk delivery before D4 instead of releasing Buzz early', () => {
+    const fresh = createCareer(createLaunchCareerSetup(9_804));
+    const exposed: GameState = {
+      ...fresh,
+      season: 3,
+      eventFlags: [
+        ...fresh.eventFlags,
+        'guide:bert:inbox:queued:sponsor-desk',
+        'guide:bert:inbox:delivered:s3:w1:guide:sponsor-desk',
+        'guide:bert:sponsor-desk:first-delivered:s3:w1:guide:sponsor-desk',
+      ],
+    };
+    const repaired = reconcileSatisfiedAssistantGuideSequences(exposed);
+    expect(repaired.eventFlags.some(flag => flag.includes('sponsor-desk'))).toBe(false);
+
+    const promoted = managedSponsorCareer({
+      season: 3,
+      week: 1,
+      withActionableOffer: true,
+    });
+    const alerts = homeViewModel(reconcileHomeAssistantInbox({
+      ...promoted,
+      eventFlags: repaired.eventFlags,
+    })).alerts;
+    expect(alerts).toContainEqual(expect.objectContaining({ guideSequenceId: 'sponsor-desk' }));
+    expect(alerts).not.toContainEqual(expect.objectContaining({ guideSequenceId: 'sponsor-buzz' }));
+  });
+
   test('flags the fixture on the morning of match week, once', () => {
     let state = createCareer(createLaunchCareerSetup(932));
     state = completeAssistantGuideSequence(state, 'management-intro');

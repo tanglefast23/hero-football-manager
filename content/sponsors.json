@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "brands": [
+    { "id": "northstar-tools", "name": "Northstar Tools", "offerLine": "Build something worth cheering for." },
+    { "id": "pixel-peak-mobile", "name": "Pixel Peak Mobile", "offerLine": "Every highlight, right in your pocket." },
+    { "id": "thunderbolt-energy", "name": "Thunderbolt Energy", "offerLine": "Bring the spark on matchday." },
+    { "id": "moonshot-insurance", "name": "Moonshot Insurance", "offerLine": "Big dreams deserve a safety net." },
+    { "id": "golden-boot-coffee", "name": "Golden Boot Coffee", "offerLine": "Wake up ready for extra time." },
+    { "id": "harborline-logistics", "name": "Harborline Logistics", "offerLine": "Moving the club forward, every week." },
+    { "id": "brightside-bank", "name": "Brightside Bank", "offerLine": "Backing the next great football story." },
+    { "id": "ironclad-workwear", "name": "Ironclad Workwear", "offerLine": "Made for teams that never stop." },
+    { "id": "rocket-fuel-noodles", "name": "Rocket Fuel Noodles", "offerLine": "Fast food for fearless football." },
+    { "id": "cloud-nine-travel", "name": "Cloud Nine Travel", "offerLine": "Take the support everywhere." },
+    { "id": "victory-vinyl", "name": "Victory Vinyl", "offerLine": "Put the season on repeat." },
+    { "id": "aurora-telecom", "name": "Aurora Telecom", "offerLine": "Keeping every supporter connected." }
+  ],
+  "profiles": {
+    "STEADY": {
+      "monthlyPercent": 105,
+      "objectiveLevel": "EASY",
+      "bonusPercent": 25,
+      "bonusPercentByObjective": { "LEAGUE_GOALS": 27 }
+    },
+    "BALANCED": {
+      "monthlyPercent": 100,
+      "objectiveLevel": "NORMAL",
+      "bonusPercent": 100,
+      "bonusPercentByObjective": { "LEAGUE_WINS": 85, "LEAGUE_FINISH": 110 }
+    },
+    "BOLD": {
+      "monthlyPercent": 99,
+      "objectiveLevel": "HARD",
+      "bonusPercent": 650,
+      "bonusPercentByObjective": { "LEAGUE_FINISH": 280 }
+    }
+  },
+  "objectives": [
+    {
+      "id": "league-wins",
+      "kind": "LEAGUE_WINS",
+      "labelTemplate": "Win {target} league matches",
+      "targets": { "EASY": 5, "NORMAL": 8, "HARD": 12 },
+      "chairmanDelta": 2
+    },
+    {
+      "id": "league-goals",
+      "kind": "LEAGUE_GOALS",
+      "labelTemplate": "Score {target} league goals",
+      "targets": { "EASY": 18, "NORMAL": 26, "HARD": 36 },
+      "chairmanDelta": 4
+    },
+    {
+      "id": "league-finish",
+      "kind": "LEAGUE_FINISH",
+      "labelTemplate": "Finish in the league's top {target}",
+      "targets": { "EASY": 7, "NORMAL": 4, "HARD": 2 },
+      "chairmanDelta": -1
+    }
+  ]
+}

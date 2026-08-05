@@ -217,7 +217,7 @@ describe('club finances immediate transaction history', () => {
     expect(gymBuilding).toMatchObject({
       effectLabel: '+25% PAC + STA training',
       canUpgrade: false,
-      upgradeShortfall: 7_000,
+      upgradeShortfall: 9_000,
       canRelocate: false,
       relocationShortfall: 350,
       activeAdjacencyIds: ['gym-dorm'],
@@ -228,6 +228,22 @@ describe('club finances immediate transaction history', () => {
       affordable: false,
       affordabilityShortfall: 5_000,
     });
+    expect(viewModel.facilities.catalog.find(entry => entry.type === 'gym')).toMatchObject({
+      affordable: false,
+      affordabilityShortfall: 0,
+      blockedReason: 'Already built. Select it on the grid to upgrade or move it.',
+    });
+  });
+
+  test('uses the real Training Pitch TP constant in catalog and active-building copy', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260804));
+    const withPitch = buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state;
+    const viewModel = clubFinancesViewModel(withPitch);
+
+    expect(viewModel.facilities.catalog.find(entry => entry.type === 'training-pitch')?.effectLabel)
+      .toContain('+28 TP per completed level');
+    expect(viewModel.facilities.buildings.find(building => building.type === 'training-pitch')?.effectLabel)
+      .toContain('+28 TP per completed level');
   });
 
   /**

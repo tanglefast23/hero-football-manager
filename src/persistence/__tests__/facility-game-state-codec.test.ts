@@ -3,7 +3,11 @@ import { createCareer } from '../../game/career';
 import { buildCareerFacility, closeCareerFacility } from '../../game/management';
 import { advanceFacilityConstruction } from '../../game/facilities';
 import type { GameState } from '../../game/types';
-import { parseStoredGameState, serializeGameState } from '../game-state-codec';
+import {
+  migrateStoredGameState,
+  parseStoredGameState,
+  serializeGameState,
+} from '../game-state-codec';
 
 describe('facility game-state persistence', () => {
   test('round-trips the grid, adjacency discoveries, and facility ledger lines', () => {
@@ -133,6 +137,60 @@ describe('facility game-state persistence', () => {
 
     expect(() => parseStoredGameState(JSON.stringify(stored))).toThrow(_label);
   });
+
+  test.each([
+    ['seeded Level 3', { level: 3, seeded: true }, undefined, 20_000],
+    ['player-built Level 3', { level: 3 }, undefined, 28_000],
+    [
+      'paid Level 2 upgrade underway',
+      { level: 1 },
+      { kind: 'UPGRADE', targetLevel: 2, weeksRemaining: 2, totalWeeks: 2 },
+      16_000,
+    ],
+    [
+      'paid build underway',
+      { level: 1 },
+      { kind: 'BUILD', targetLevel: 1, weeksRemaining: 2, totalWeeks: 2 },
+      8_000,
+    ],
+  ] as const)(
+    'migrates the frozen schema-3 Training Pitch basis for %s',
+    (_label, buildingPatch, constructionPatch, expectedBasis) => {
+      const legacy = schema3CareerWithPitch(buildingPatch, constructionPatch);
+
+      const migrated = migrateStoredGameState(legacy) as unknown as GameState;
+
+      expect(migrated.facilities.grid?.buildings[0].capitalInvested).toBe(expectedBasis);
+      expect(parseStoredGameState(JSON.stringify(migrated)).facilities.grid?.buildings[0])
+        .toMatchObject({ type: 'training-pitch', capitalInvested: expectedBasis });
+    },
+  );
+
+  test('requires a nonnegative safe capital basis in every schema-4 building', () => {
+    const current = createCareer(createLaunchCareerSetup(20260806));
+    const invalid = {
+      ...current,
+      facilities: {
+        ...current.facilities,
+        grid: {
+          ...current.facilities.grid!,
+          nextBuildingId: 2,
+          buildings: [{
+            id: 'facility-1',
+            type: 'gym' as const,
+            level: 1 as const,
+            capitalInvested: -1,
+            x: 0,
+            y: 0,
+          }],
+        },
+      },
+    };
+
+    expect(() => serializeGameState(invalid)).toThrow(/capitalInvested|capital invested/);
+    expect(() => parseStoredGameState(JSON.stringify(invalid)))
+      .toThrow(/capitalInvested|capital invested/);
+  });
 });
 
 function completeProject(state: GameState): GameState {
@@ -140,4 +198,44 @@ function completeProject(state: GameState): GameState {
   if (grid === undefined) throw new Error('missing facility grid');
   while (grid.construction !== undefined) grid = advanceFacilityConstruction(grid).grid;
   return { ...state, facilities: { ...state.facilities, grid } };
+}
+
+type MutableRecord = Record<string, unknown>;
+
+function schema3CareerWithPitch(
+  buildingPatch: Readonly<{ level: number; seeded?: true }>,
+  constructionPatch: Readonly<{
+    kind: 'BUILD' | 'UPGRADE';
+    targetLevel: number;
+    weeksRemaining: number;
+    totalWeeks: number;
+  }> | undefined,
+): MutableRecord {
+  const legacy = JSON.parse(JSON.stringify(
+    createCareer(createLaunchCareerSetup(20260807)),
+  )) as MutableRecord;
+  legacy.schemaVersion = 3;
+  delete legacy.clubBusiness;
+  delete legacy.sponsorRules;
+  const facilities = legacy.facilities as MutableRecord;
+  const grid = facilities.grid as MutableRecord;
+  grid.nextBuildingId = 2;
+  grid.buildings = [{
+    id: 'facility-1',
+    type: 'training-pitch',
+    ...buildingPatch,
+    x: 0,
+    y: 0,
+  }];
+  grid.discoveredAdjacencies = [];
+  if (constructionPatch === undefined) {
+    delete grid.construction;
+  } else {
+    grid.construction = {
+      ...constructionPatch,
+      buildingId: 'facility-1',
+      type: 'training-pitch',
+    };
+  }
+  return legacy;
 }

@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { matchPoliciesForControlledTeam } from '../match-control';
 
 describe('automatic superpower presentation', () => {
   it('shows only the actual power name when contextual automatic activation fires', () => {
@@ -23,11 +24,23 @@ describe('automatic superpower presentation', () => {
   });
 
   it('keeps both watched sides on the automatic firing policy', () => {
-    const source = readFileSync(join(process.cwd(), 'src/render/match-control.ts'), 'utf8');
+    expect(matchPoliciesForControlledTeam(0, '3-5-2')).toEqual({
+      homePolicy: 'FIRE_WHEN_READY',
+      awayPolicy: 'FIRE_WHEN_READY',
+      controlledTeam: 0,
+      homeFormation: '3-5-2',
+    });
+    expect(matchPoliciesForControlledTeam(1, '3-5-2')).toEqual({
+      homePolicy: 'FIRE_WHEN_READY',
+      awayPolicy: 'FIRE_WHEN_READY',
+      controlledTeam: 1,
+      awayFormation: '3-5-2',
+    });
 
-    expect(source).toContain("homePolicy: 'FIRE_WHEN_READY'");
-    expect(source).toContain("awayPolicy: 'FIRE_WHEN_READY'");
-    expect(source).not.toContain('SAVE_FOR_TAP');
+    const renderPolicy = readFileSync(join(process.cwd(), 'src/render/match-control.ts'), 'utf8');
+    const sharedPolicy = readFileSync(join(process.cwd(), 'src/game/match-policy.ts'), 'utf8');
+    expect(renderPolicy).toContain('return controlledMatchOptions(controlledTeam, initialFormation);');
+    expect(`${renderPolicy}\n${sharedPolicy}`).not.toContain('SAVE_FOR_TAP');
   });
 
   it('ships no manual-tap plumbing in the render ring', () => {

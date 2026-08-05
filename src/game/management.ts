@@ -17,10 +17,31 @@ import {
   trainingPathLabel,
   type TrainingUpgradeOffer,
 } from './training-paths';
+import { dismissCareerCoach } from './market-career';
 import type { GameState } from './types';
 
 export interface CareerFacilityTransaction extends FacilityTransaction {
   readonly state: GameState;
+}
+
+/** Everything the confirmation needs to explain one staffed-office closure. */
+export interface StaffedCoachingOfficeClosureConfirmation {
+  readonly buildingId: string;
+  readonly assistantId: string;
+  readonly assistantName: string;
+  readonly cashBefore: number;
+  readonly severanceCost: number;
+  readonly facilityRefund: number;
+  /** Positive means the close raises cash; negative means it consumes cash. */
+  readonly netCashEffect: number;
+  readonly cashAfter: number;
+  readonly shortage: number;
+  readonly canConfirm: boolean;
+}
+
+export interface StaffedCoachingOfficeClosureTransaction {
+  readonly state: GameState;
+  readonly confirmation: StaffedCoachingOfficeClosureConfirmation;
 }
 
 export function buildCareerFacility(
@@ -124,6 +145,9 @@ export function closeCareerFacility(
   assertManagementPhase(state);
   const building = state.facilities.grid?.buildings.find(candidate => candidate.id === buildingId);
   if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
+  if (building.type === 'coaching-office' && state.market?.assistantCoach !== undefined) {
+    throw new Error('a staffed Coaching Office must dismiss its assistant and close together');
+  }
   const transaction = closeFacility(
     state.facilities.grid ?? createFacilityGrid(),
     buildingId,
@@ -142,6 +166,62 @@ export function closeCareerFacility(
       amount: refund,
       referenceId: building.id,
     }),
+  };
+}
+
+/**
+ * Previews the exact atomic staffed-office close without changing the career.
+ *
+ * The low-level facility transaction runs first in the preview because its
+ * refund is allowed to fund the assistant's severance. This also keeps every
+ * facility guard (including active construction) identical between preview
+ * and confirmation.
+ */
+export function staffedCoachingOfficeClosureConfirmation(
+  state: GameState,
+  buildingId: string,
+): StaffedCoachingOfficeClosureConfirmation {
+  return planStaffedCoachingOfficeClosure(state, buildingId).confirmation;
+}
+
+/**
+ * Dismisses the assistant and closes their office as one pure transaction.
+ *
+ * There is no dismiss-first intermediate state for the caller to persist. A
+ * failed affordability check throws before either immutable result is built,
+ * while success returns one state containing both changes and two distinct
+ * one-off cash lines.
+ */
+export function closeStaffedCareerCoachingOffice(
+  state: GameState,
+  buildingId: string,
+): StaffedCoachingOfficeClosureTransaction {
+  assertManagementPhase(state);
+  const planned = planStaffedCoachingOfficeClosure(state, buildingId);
+  const { confirmation } = planned;
+  if (!confirmation.canConfirm) {
+    throw new Error(
+      `the club needs $${confirmation.shortage.toLocaleString('en-US')} more to cover assistant severance after the Coaching Office refund`,
+    );
+  }
+
+  const facilityApplied = applyFacilityTransaction(state, planned.facilityTransaction);
+  const withClosureLine = confirmation.facilityRefund === 0
+    ? facilityApplied.state
+    : recordCashTransaction(facilityApplied.state, {
+        kind: 'facility-closure',
+        label: `Closed ${FACILITY_CATALOG['coaching-office'].name}`,
+        amount: confirmation.facilityRefund,
+        referenceId: buildingId,
+      });
+  const dismissed = dismissCareerCoach(
+    withClosureLine,
+    planned.market,
+    'ASSISTANT',
+  );
+  return {
+    confirmation,
+    state: { ...dismissed.state, market: dismissed.market },
   };
 }
 
@@ -201,6 +281,54 @@ function applyFacilityTransaction(
     },
   };
   return { ...transaction, state: stateAfter };
+}
+
+interface PlannedStaffedCoachingOfficeClosure {
+  readonly confirmation: StaffedCoachingOfficeClosureConfirmation;
+  readonly facilityTransaction: FacilityTransaction;
+  readonly market: NonNullable<GameState['market']>;
+}
+
+function planStaffedCoachingOfficeClosure(
+  state: GameState,
+  buildingId: string,
+): PlannedStaffedCoachingOfficeClosure {
+  const grid = state.facilities.grid ?? createFacilityGrid();
+  const building = grid.buildings.find(candidate => candidate.id === buildingId);
+  if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
+  if (building.type !== 'coaching-office') {
+    throw new Error(`${buildingId} is not a Coaching Office`);
+  }
+  const market = state.market;
+  const assistant = market?.assistantCoach;
+  if (market === undefined || assistant === undefined) {
+    throw new Error('the Coaching Office does not have an assistant to dismiss');
+  }
+  if (!Number.isSafeInteger(assistant.weeklyWage) || assistant.weeklyWage <= 0) {
+    throw new Error('assistant weekly wage must be a positive safe integer');
+  }
+
+  const cashBefore = userCash(state);
+  const facilityTransaction = closeFacility(grid, buildingId, cashBefore);
+  const facilityRefund = -facilityTransaction.cost;
+  const severanceCost = assistant.weeklyWage;
+  const shortage = Math.max(0, severanceCost - facilityTransaction.cashAfter);
+  return {
+    facilityTransaction,
+    market,
+    confirmation: {
+      buildingId,
+      assistantId: assistant.id,
+      assistantName: assistant.name,
+      cashBefore,
+      severanceCost,
+      facilityRefund,
+      netCashEffect: facilityRefund - severanceCost,
+      cashAfter: Math.max(0, facilityTransaction.cashAfter - severanceCost),
+      shortage,
+      canConfirm: shortage === 0,
+    },
+  };
 }
 
 function userCash(state: GameState): number {

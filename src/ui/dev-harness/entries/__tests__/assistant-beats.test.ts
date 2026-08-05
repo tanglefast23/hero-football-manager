@@ -10,7 +10,7 @@ const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
  * are visible in its source anyway, and both are silent failures on screen:
  *
  * - a sequence that belongs to no group is simply unreachable, and the reel
- *   looks complete while hiding one of the twenty-six;
+ *   looks complete while hiding one of the twenty-nine;
  * - the list of sequences with an authored expression run is mirrored from a
  *   private map in `bert-beat-moments.ts`, and the reel PRINTS that fact, so
  *   drift would make it state the opposite of the truth.

@@ -64,7 +64,7 @@ export function WeeklyReviewScreen({
 
   const cashMovement = (
     <View className="flex-row items-center justify-between border-2 border-ink bg-ink px-3 py-2.5">
-      <Text className="font-pixel text-sm uppercase text-paper/70">Cash movement</Text>
+      <Text className="font-pixel text-sm uppercase text-paper/75">Cash movement</Text>
       <Text className="font-mono text-base text-paper">
         {formatCurrency(viewModel.cashBefore)} →{' '}
         <AnimatedCount
@@ -86,7 +86,7 @@ export function WeeklyReviewScreen({
           <Text className={line.amount < 0
             ? 'font-mono text-base text-stamp'
             : line.amount > 0
-              ? 'font-mono text-base text-pitch-dark'
+              ? 'font-mono text-base text-pitch-ink'
               : 'font-mono text-base text-ink'}>
             {formatCurrency(line.amount, true)}
           </Text>
@@ -96,14 +96,14 @@ export function WeeklyReviewScreen({
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
       <ChalkboardBackdrop wide={wide} />
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
         <View className={wide ? 'w-full max-w-[1180px] self-center px-4 pb-7 pt-4' : 'w-full px-4 pb-7 pt-4'}>
           <View className="border-b-2 border-paper/15 pb-3">
             <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Weekly review</Text>
             <Text className="mt-1 font-pixel text-xl uppercase text-white">{viewModel.completedWeekLabel}</Text>
-            <Text className="mt-2 font-pixel text-sm uppercase text-paper/70">{viewModel.clubName}</Text>
+            <Text className="mt-2 font-pixel text-sm uppercase text-paper/75">{viewModel.clubName}</Text>
           </View>
 
           {viewModel.facilityCompletion ? (
@@ -214,7 +214,7 @@ function AnimatedNetAmount({
         accessibilityLabel={`Net ${amount < 0 ? 'minus' : amount > 0 ? 'plus' : ''} ${Math.abs(amount)} ${kind === 'money' ? 'dollars' : 'training points'}`}
         className={amount < 0
           ? 'mt-1 text-right font-mono text-xl text-stamp'
-          : 'mt-1 text-right font-mono text-xl text-pitch-dark'}
+          : 'mt-1 text-right font-mono text-xl text-pitch-ink'}
         numberOfLines={1}
         adjustsFontSizeToFit
       >
@@ -244,7 +244,7 @@ function AnimatedBalanceAmount({
   const movementClass = to < from
     ? 'text-stamp'
     : to > from
-      ? 'text-pitch-dark'
+      ? 'text-pitch-ink'
       : 'text-ink';
   return (
     <Animated.View

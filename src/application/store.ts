@@ -35,15 +35,20 @@ import {
   hireCareerCoach,
   listCareerPlayer,
   acceptCareerTransferBid,
+  acceptSponsorOffer as acceptCareerSponsorOffer,
+  allocateSponsorPortfolioPayment,
+  difficultyRules,
   hasAssistantGuideMilestone,
   isFirstOnboardingFixture,
   offerCareerEvent,
   nextPendingClubLegend,
+  productionResultFromMatch,
   quickMatchForFixture,
   protectBoardUltimatumPlayer,
   purchaseCareerTrainingUpgrade,
   reconcilePendingClubLegends,
   closeCareerFacility,
+  closeStaffedCareerCoachingOffice,
   relocateCareerFacility,
   renewCareerPlayer,
   releaseCareerPlayer,
@@ -52,7 +57,6 @@ import {
   resolvePostMatchAwakening,
   resolveNextClubLegendLegacy,
   resolveMatchday,
-  goalsFrom,
   selectCareerEventPlayer,
   selectCareerLicensedHeroes,
   setCareerLineup,
@@ -75,9 +79,9 @@ import {
   type FacilityPosition,
   type FacilityType,
   type LeagueFixture,
+  type ManagerMatchPreferences,
   type NationalCupRoundLabel,
 } from '../game';
-import { contributionsFrom } from '../game/match-contributions';
 import type { PlayerRequestResolution } from '../game/types';
 import type { ContractOffer, PitchCard } from '../game/market';
 import type {
@@ -206,6 +210,8 @@ interface M1Store {
   persistenceReady: boolean;
   saving: boolean;
   hasSavedCareer: boolean;
+  /** Exact in-memory snapshot most recently confirmed on disk. */
+  lastPersistedCareer: GameState | null;
   /** Career saves that have failed in a row; 0 once one succeeds again. */
   consecutiveSaveFailures: number;
   /** Non-dismissible warning while progress is only in memory. */
@@ -258,10 +264,10 @@ interface M1Store {
   openMatchday: () => void;
   openCupFixture: (fixtureId: string) => void;
   advanceCareer: () => void;
-  quickResult: () => void;
+  quickResult: (preferences?: ManagerMatchPreferences) => void;
   watchMatch: () => void;
   finishWatchedMatch: (result: MatchState) => void;
-  continueAfterMatch: () => void;
+  continueAfterMatch: () => Promise<void>;
   dismissPostMatchSummary: () => void;
   continueWeekReview: () => void;
   completeChampionshipCelebration: () => void;
@@ -275,6 +281,7 @@ interface M1Store {
   toggleHeroLicense: (playerId: string) => void;
   swapStartingPlayer: (starterId: string, replacementId: string) => void;
   resolvePlayerRequest: (resolution: PlayerRequestResolution) => void;
+  acceptSponsorOffer: (offerId: string) => void;
   /** Passing undefined clears the selection — sorting the register deselects. */
   selectPlayer: (playerId: string | undefined) => void;
   trainPlayer: (playerId: string, pathId: string) => void;
@@ -322,6 +329,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   persistenceReady: false,
   saving: false,
   hasSavedCareer: false,
+  lastPersistedCareer: null,
   consecutiveSaveFailures: 0,
   saveWarning: null,
   saveBlocked: false,
@@ -348,6 +356,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         persistenceReady: true,
         career,
         hasSavedCareer: career !== null,
+        lastPersistedCareer: career === loadedCareer ? career : null,
         postMatch: null,
         postMatchOverlay: null,
         weekReview: null,
@@ -429,6 +438,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       rawExportSucceeded: false,
       career: null,
       hasSavedCareer: false,
+      lastPersistedCareer: null,
       screen: 'welcome',
       activeTab: 'home',
       watchedMatch: null,
@@ -457,6 +467,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     set({
       career: restored,
       hasSavedCareer: true,
+      lastPersistedCareer: restored,
       persistenceLoadError: null,
       screen: 'welcome',
       activeTab: 'home',
@@ -485,11 +496,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
         throw new Error('Resolve the save-load error before replacing this career.');
       }
       const replacedCareer = get().career;
-      // Requests are attached here rather than inside createLaunchCareerSetup so
-      // that every measurement harness — the balance rails and the ~15 audit
-      // probes, all of which build their careers from that helper — stays
-      // request-free by default. A probe that silently accrued lapse penalties
-      // would be measuring a different game than its recorded baseline.
       const career = beginStoryOnboarding(createCareer({
         ...createLaunchCareerSetup(
           seed ?? generateCareerSeed(),
@@ -501,6 +507,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({
         career,
         hasSavedCareer: true,
+        lastPersistedCareer: null,
         screen: 'create-player',
         activeTab: 'home',
         selectedPlayerId: undefined,
@@ -794,7 +801,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
-  quickResult() {
+  quickResult(preferences = { initialFormation: '4-4-2', autoSubs: false }) {
     guarded(set, () => {
       // Only the match-day screen offers Quick Result. On a shared league+cup
       // week the first dispatch leaves the cup fixture active, so an unguarded
@@ -808,23 +815,29 @@ export const useM1Store = create<M1Store>((set, get) => ({
         );
       }
       const before = requireCareer(get());
+      assertLeagueCupCheckpointPersisted(get(), before);
       const { kind, fixture, fixtures, teams } = currentMatchday(before);
-      const quickMatch = quickMatchForFixture(fixture, teams);
+      const quickMatch = quickMatchForFixture(fixture, teams, {
+        userClubId: before.userClubId,
+        ...preferences,
+      });
+      const production = quickMatch.production;
+      if (production === undefined) throw new Error('Quick Result did not produce user match facts');
       // Whatever the preload finished is handed over as a supplied result, so
       // `resolveMatchday` simulates only what is genuinely missing. A cold or
       // stale cache contributes nothing and it simulates all four, as before.
       const results = kind === 'league'
         ? resolveMatchday(fixtures, teams, [
-            quickMatch.result,
+            production.fixtureResult,
             ...cachedRivalResults(
               fixtures.filter(candidate => candidate.id !== fixture.id),
               teams,
             ),
           ])
-        : [quickMatch.result];
+        : [production.fixtureResult];
       const userResult = results.find(result => result.fixtureId === fixture.id);
       if (userResult === undefined) throw new Error('the user fixture did not produce a result');
-      const after = completeMatchday(before, results);
+      const after = completeMatchday(before, results, production);
       // The week is settled; nothing may claim these again, and the fingerprints
       // are large enough that a season of them would be worth real memory.
       clearRivalResultCache();
@@ -836,7 +849,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         ? resolvePostMatchAwakening(
             completed,
             fixture.id,
-            userMatchParticipantIds(quickMatch.match, fixture, before.userClubId),
+            production.participantPlayerIds,
             awakeningPowerIds,
             awakeningTriggerIds,
             awakeningTuning,
@@ -845,7 +858,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const next = awakening.state;
       // The onboarding match earns its statement too; the awakening cutscene
       // runs first, so the payoff still lands before any accounting.
-      const postMatch = postMatchViewModel(before, next, fixture.id, userResult);
+      const postMatch = postMatchViewModel(
+        before,
+        next,
+        fixture.id,
+        userResult,
+        [],
+        production.powerFiredPlayerIds,
+      );
       set({
         career: next,
         postMatch,
@@ -870,6 +890,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         );
       }
       const career = requireCareer(get());
+      assertLeagueCupCheckpointPersisted(get(), career);
       const { fixture, teams, cupRoundLabel } = currentMatchday(career);
       const userIsFixtureHome = fixture.homeClubId === career.userClubId;
       set({
@@ -901,23 +922,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (watchedMatch.fixture.id !== fixture.id) {
         throw new Error('the watched fixture context is missing');
       }
-      // Resolved at the moment of each goal, not at fulltime — see goalsFrom.
-      const goals = goalsFrom(result);
-      const scorerPlayerIds = goals.map(goal => goal.playerId);
-      // A supplied result is passed through resolveMatchday verbatim, so
-      // anything omitted here is simply never recorded. Without this the
-      // player's own squad would be the one team missing from every
-      // leaderboard, while their simulated rivals filled it.
-      const contributions = contributionsFrom(result);
-      const supplied = {
-        fixtureId: fixture.id,
-        homeGoals: result.score[0],
-        awayGoals: result.score[1],
-        ...(scorerPlayerIds.length === result.score[0] + result.score[1]
-          ? { scorerPlayerIds }
-          : {}),
-        ...(contributions.length > 0 ? { contributions } : {}),
-      };
+      const production = productionResultFromMatch(fixture, result, before.userClubId);
+      const supplied = production.fixtureResult;
       const results = kind === 'league'
         ? resolveMatchday(fixtures, teams, [
             supplied,
@@ -927,11 +933,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
             ),
           ])
         : [supplied];
-      const after = completeMatchday(before, results);
+      const after = completeMatchday(before, results, production);
       // The week is settled; nothing may claim these again, and the fingerprints
       // are large enough that a season of them would be worth real memory.
       clearRivalResultCache();
-      const highlights = goals.map((goal, index) => ({
+      const highlights = production.goals.map((goal, index) => ({
         id: `${fixture.id}-goal-${index}`,
         // Same rounding as the live match clock (MatchScreen): a goal's
         // post-match minute must match the minute shown when it went in.
@@ -946,14 +952,21 @@ export const useM1Store = create<M1Store>((set, get) => ({
         ? resolvePostMatchAwakening(
             completed,
             fixture.id,
-            userMatchParticipantIds(result, fixture, before.userClubId),
+            production.participantPlayerIds,
             awakeningPowerIds,
             awakeningTriggerIds,
             awakeningTuning,
           )
         : { state: completed, awakened: false };
       const next = awakening.state;
-      const postMatch = postMatchViewModel(before, next, fixture.id, supplied, highlights);
+      const postMatch = postMatchViewModel(
+        before,
+        next,
+        fixture.id,
+        supplied,
+        highlights,
+        production.powerFiredPlayerIds,
+      );
       set({
         career: next,
         postMatch,
@@ -968,18 +981,34 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
-  continueAfterMatch() {
+  async continueAfterMatch() {
     const career = get().career;
-    const atSeasonBoundary = career !== null
-      && (career.phase === 'season-end' || career.phase === 'complete');
     const hasSecondMatch = career?.phase === 'matchday';
+    // A league/Cup double-header has two independent production records. The
+    // first must exist on disk before the second match can start; otherwise the
+    // coalescing save queue could replace the only snapshot containing that
+    // league participation and audience impact.
+    if (
+      hasSecondMatch
+      && career !== null
+      && get().repository !== null
+      && get().lastPersistedCareer !== career
+    ) {
+      set({ notice: { tone: 'info', message: 'Saving the league result before the Cup tie…' } });
+      await saveQueue;
+      if (get().career !== career || get().lastPersistedCareer !== career) return;
+    }
+    const currentCareer = get().career;
+    const currentSeasonBoundary = currentCareer !== null
+      && (currentCareer.phase === 'season-end' || currentCareer.phase === 'complete');
+    const currentHasSecondMatch = currentCareer?.phase === 'matchday';
     set({
-      postMatch: atSeasonBoundary || hasSecondMatch ? null : get().postMatch,
+      postMatch: currentSeasonBoundary || currentHasSecondMatch ? null : get().postMatch,
       weekReview: null,
-      postMatchOverlay: atSeasonBoundary || hasSecondMatch || get().postMatch === null ? null : 'summary',
-      screen: atSeasonBoundary
-        ? seasonBoundaryScreen(career)
-        : hasSecondMatch ? 'matchday' : 'management',
+      postMatchOverlay: currentSeasonBoundary || currentHasSecondMatch || get().postMatch === null ? null : 'summary',
+      screen: currentSeasonBoundary
+        ? seasonBoundaryScreen(currentCareer)
+        : currentHasSecondMatch ? 'matchday' : 'management',
       activeTab: 'home',
       error: null,
     });
@@ -1281,6 +1310,41 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
+  acceptSponsorOffer(offerId) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const sponsorship = acceptCareerSponsorOffer(career.clubBusiness.sponsorship, {
+        offerId,
+        season: career.season,
+        week: career.week,
+      });
+      const next = {
+        ...career,
+        clubBusiness: { ...career.clubBusiness, sponsorship },
+      };
+      const signed = sponsorship.activeContracts.find(contract => contract.contractId === `contract-${offerId}`);
+      const actualSigned = signed === undefined
+        ? undefined
+        : allocateSponsorPortfolioPayment(
+            sponsorship.activeContracts,
+            difficultyRules(career).sponsorIncomePercent,
+          ).find(payment => payment.contractId === signed.contractId)?.actualAmount;
+      set({
+        career: next,
+        error: null,
+        notice: signed === undefined
+          ? null
+          : {
+              tone: 'success',
+              message: actualSigned === undefined || actualSigned === signed.nominalMonthlyFee
+                ? `${signed.sponsorName} signed for $${signed.nominalMonthlyFee.toLocaleString()} per month.`
+                : `${signed.sponsorName} signed. Contract $${signed.nominalMonthlyFee.toLocaleString()} per month; the club receives $${actualSigned.toLocaleString()} on Chairman.`,
+            },
+      });
+      queueCareerSave(get, set, next);
+    });
+  },
+
   selectPlayer(selectedPlayerId) {
     set({ selectedPlayerId, error: null });
   },
@@ -1436,6 +1500,24 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const career = requireCareer(get());
       const building = career.facilities.grid?.buildings.find(candidate => candidate.id === buildingId);
       if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
+      const staffedOffice = building.type === 'coaching-office'
+        && career.market?.assistantCoach !== undefined;
+      if (staffedOffice) {
+        const transaction = closeStaffedCareerCoachingOffice(career, buildingId);
+        const net = transaction.confirmation.netCashEffect;
+        set({
+          career: transaction.state,
+          error: null,
+          notice: {
+            tone: 'info',
+            message: `${FACILITY_CATALOG[building.type].name} closed and the assistant departed. ${
+              net < 0 ? '-' : net > 0 ? '+' : ''
+            }$${Math.abs(net).toLocaleString()} net cash.`,
+          },
+        });
+        queueCareerSave(get, set, transaction.state);
+        return;
+      }
       const transaction = closeCareerFacility(career, buildingId);
       const refund = -transaction.cost;
       set({
@@ -1905,23 +1987,6 @@ function seasonBoundaryScreen(career: GameState): M1Screen {
   return hasPendingAwardsCeremony(career) ? 'awards-ceremony' : 'season-end';
 }
 
-function userMatchParticipantIds(
-  result: MatchState,
-  fixture: LeagueFixture,
-  userClubId: string,
-): string[] {
-  const userTeam = fixture.homeClubId === userClubId ? 0 : 1;
-  const finalPlayers = result.players
-    .filter(player => player.team === userTeam)
-    .map(player => player.def.id);
-  const substitutedPlayers = result.events.flatMap(event =>
-    event.kind === 'SUBSTITUTION' && event.team === userTeam
-      ? [event.outPlayerId]
-      : [],
-  );
-  return [...new Set([...finalPlayers, ...substitutedPlayers])];
-}
-
 /**
  * Everything a loaded save needs before the UI touches it: roster reconciliation,
  * the legacy first-awakening repair, and the two content fail-softs that keep a
@@ -2019,6 +2084,21 @@ function requireCareer(state: Pick<M1Store, 'career'>): GameState {
   return state.career;
 }
 
+function assertLeagueCupCheckpointPersisted(
+  store: Pick<M1Store, 'repository' | 'lastPersistedCareer'>,
+  career: GameState,
+): void {
+  const owesCupAfterLeague = career.phase === 'matchday'
+    && career.clubBusiness.pendingUserMatchImpacts.some(impact => impact.competition === 'LEAGUE');
+  if (
+    owesCupAfterLeague
+    && store.repository !== null
+    && store.lastPersistedCareer !== career
+  ) {
+    throw new Error('The league result is still saving. The Cup tie will open when it is safe.');
+  }
+}
+
 function queueCareerSave(
   get: () => M1Store,
   set: (partial: Partial<M1Store>) => void,
@@ -2055,7 +2135,7 @@ function queueCareerSave(
       // only an actual write may clear the failure streak.
       if (saved === null) return;
       clearSaveFailures(set);
-      if (get().career === saved) set({ hasSavedCareer: true });
+      if (get().career === saved) set({ hasSavedCareer: true, lastPersistedCareer: saved });
     },
     () => recordSaveFailure(get, set),
   );
@@ -2137,22 +2217,45 @@ function queueNewCareerSave(
   // Withdraw any coalesced old-career payload: its task runs before this one
   // and must not write the abandoned career's state ahead of the replacement.
   pendingCareerSave = null;
+  let replacedCareerPersisted = false;
   const replacedCareerId = replacedCareer === null
     ? null
     : `m1-career-${replacedCareer.careerSeed}`;
   enqueueSave(
     set,
     async () => {
-      if (replacedCareerId !== null && replacedCareerId !== careerId) {
-        await replayRepository?.deleteAllForCareer(replacedCareerId);
+      // A replacement may be requested in the same turn as an ordinary save.
+      // That older task no longer owns its coalesced payload once we withdraw
+      // it above, so first checkpoint the exact career the player is replacing.
+      // If the new write then fails, both memory and disk can return to this
+      // same snapshot instead of quietly losing the latest lineup/week change.
+      if (replacedCareer !== null && careerRepository !== null) {
+        await careerRepository.save(replacedCareer);
+        replacedCareerPersisted = true;
       }
-      await replayRepository?.deleteAllForCareer(careerId);
+      // The career is the irreplaceable asset. Persist it before cleaning any
+      // replay namespace so a failed replacement never erases match history.
       await careerRepository?.save(career);
+      try {
+        if (replacedCareerId !== null && replacedCareerId !== careerId) {
+          await replayRepository?.deleteAllForCareer(replacedCareerId);
+        }
+        await replayRepository?.deleteAllForCareer(careerId);
+      } catch (error) {
+        // Replay cleanup is recoverable and must never make memory roll back to
+        // a career the disk has already replaced.
+        set({
+          notice: {
+            tone: 'info',
+            message: `New career saved, but old match replays could not be cleared: ${errorMessage(error)}`,
+          },
+        });
+      }
     },
     'New career could not be saved',
     () => {
       clearSaveFailures(set);
-      if (get().career === career) set({ hasSavedCareer: true });
+      if (get().career === career) set({ hasSavedCareer: true, lastPersistedCareer: career });
     },
     () => {
       // The write that failed is the one that would have replaced the career on
@@ -2169,6 +2272,7 @@ function queueNewCareerSave(
       set({
         career: replacedCareer,
         hasSavedCareer: true,
+        lastPersistedCareer: replacedCareerPersisted ? replacedCareer : null,
         screen: resumeScreen(replacedCareer),
         activeTab: 'home',
         selectedPlayerId: undefined,
@@ -2177,6 +2281,8 @@ function queueNewCareerSave(
         postMatchOverlay: null,
         weekReview: null,
       });
+      if (replacedCareerPersisted) clearSaveFailures(set);
+      else recordSaveFailure(get, set);
     },
   );
 }
