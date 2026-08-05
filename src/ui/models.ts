@@ -6,7 +6,7 @@ import type {
   ManagerTipDestination,
 } from '../content';
 import type { PotentialGrade } from '../game/archetype-caps';
-import type { AwardCategoryId } from '../game/types';
+import type { AwardCategoryId, LedgerLineReveal } from '../game/types';
 import type { PowerId, Role } from '../sim/types';
 import type { TrainingModifier } from '../game/training';
 
@@ -267,6 +267,11 @@ export interface LedgerLineViewModel {
   kind: 'income' | 'expense' | 'neutral';
 }
 
+/** Post-match statement rows only: the Finances ledger stays undressed. */
+export interface PostMatchLedgerLineViewModel extends LedgerLineViewModel {
+  reveal?: LedgerLineReveal;
+}
+
 export interface HighlightViewModel {
   id: string;
   minuteLabel: string;
@@ -305,7 +310,10 @@ export interface WeeklyReviewViewModel {
 
 export interface PostMatchViewModel {
   result: MatchResultViewModel;
-  ledger: readonly LedgerLineViewModel[];
+  ledger: readonly PostMatchLedgerLineViewModel[];
+  /** Settled week identity — the deterministic banner/toy seed (spec §7). */
+  settlementSeason: number;
+  settlementWeek: number;
   netAmount: number;
   trainingPointsGained: number;
   fanDelta: number;
