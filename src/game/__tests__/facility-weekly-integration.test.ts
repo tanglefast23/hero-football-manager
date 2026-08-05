@@ -1,6 +1,7 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';
 import { advanceWeek, completeMatchday, createCareer, fixturesForCurrentWeek } from '../career';
+import { matchdayVarianceRoll } from '../finance-variance';
 import { buildCareerFacility } from '../management';
 import {
   advanceFacilityConstruction,
@@ -230,8 +231,15 @@ describe('facility weekly integration', () => {
       fixture.season === 1 && fixture.homeClubId === initial.userClubId
     ));
     if (homeFixture === undefined) throw new Error('missing a home fixture');
+    // Pin the weekly gate roll to 0% so the stand multiplier is measured on
+    // the clean $1,200 baseline; the roll itself is covered by finance tests.
+    let zeroRollSeed = 0;
+    while (matchdayVarianceRoll(zeroRollSeed, 1, homeFixture.week, 'league-gate').percent !== 0) {
+      zeroRollSeed += 1;
+    }
     const playedHomeWeek: GameState = {
       ...initial,
+      careerSeed: zeroRollSeed,
       week: homeFixture.week,
       fixtures: [{ ...homeFixture, status: 'played', score: { homeGoals: 1, awayGoals: 0 } }],
       m2: initial.m2 === undefined ? undefined : { ...initial.m2, nationalCups: [] },

@@ -1,4 +1,5 @@
 import { generateSeasonFixtures } from './schedule';
+import { applyVariancePercent, matchdayVarianceRoll } from './finance-variance';
 import {
   BASE_WEEKLY_TRAINING_POINTS,
   FACILITY_CATALOG,
@@ -79,6 +80,7 @@ import {
   type LeagueFixture,
   type LeagueStanding,
   type LedgerLine,
+  type LedgerLineReveal,
   type FinancialSafetyState,
   type WeeklySettlementAward,
   type WeeklySettlementAwards,
@@ -789,6 +791,29 @@ export function resolveCareerSeasonFame(state: GameState): CareerPlayer[] {
     : clonePlayer(player));
 }
 
+/**
+ * Variance rolls only on settlements the Financial Report presents (spec §5):
+ * a played user fixture this week, and never the season-final settlement,
+ * which routes to the season review instead of the report.
+ */
+function varianceEligibleSettlement(state: GameState): boolean {
+  if (state.week === SEASON_WEEKS) return false;
+  const playedLeague = state.fixtures.some(fixture =>
+    fixture.season === state.season
+    && fixture.week === state.week
+    && fixture.status === 'played'
+    && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId));
+  if (playedLeague) return true;
+  const currentCup = state.m2?.nationalCups.find(cup => cup.season === state.season);
+  const currentRound = currentCup?.rounds.find(round => (
+    CUP_SETTLEMENT_WEEKS[round.number - 1] === state.week
+  ));
+  return currentRound?.fixtures.some(fixture =>
+    fixture.status === 'played'
+    && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId),
+  ) ?? false;
+}
+
 function settlementLines(
   state: GameState,
   userClub: ClubState,
@@ -805,10 +830,12 @@ function settlementLines(
   );
 
   if (homeFixture !== undefined) {
+    const gate = homeGateIncomeWithReveal(state, userClub, 'ticket revenue', 'league-gate');
     lines.push({
       kind: 'tickets',
       label: 'League home gate',
-      amount: homeGateIncome(state, userClub, 'ticket revenue'),
+      amount: gate.amount,
+      ...(gate.reveal === undefined ? {} : { reveal: gate.reveal }),
     });
   }
 
@@ -820,10 +847,12 @@ function settlementLines(
     fixture.homeClubId === state.userClubId && fixture.status === 'played'
   ));
   if (currentCupRound !== undefined && homeCupFixture !== undefined) {
+    const cupGate = homeGateIncomeWithReveal(state, userClub, 'Hero Cup ticket revenue', 'cup-gate');
     lines.push({
       kind: 'tickets',
       label: `${CUP_DISPLAY_NAME} ${currentCupRound.label} home gate`,
-      amount: homeGateIncome(state, userClub, 'Hero Cup ticket revenue'),
+      amount: cupGate.amount,
+      ...(cupGate.reveal === undefined ? {} : { reveal: cupGate.reveal }),
     });
   }
 
@@ -837,12 +866,13 @@ function settlementLines(
     });
   }
 
-  const merchandiseIncome = weeklyMerchandiseIncome(state, userClub);
-  if (merchandiseIncome > 0) {
+  const merchandise = weeklyMerchandiseIncomeWithReveal(state, userClub);
+  if (merchandise.amount > 0) {
     lines.push({
       kind: 'merch',
       label: 'Fan Shop merchandise',
-      amount: merchandiseIncome,
+      amount: merchandise.amount,
+      ...(merchandise.reveal === undefined ? {} : { reveal: merchandise.reveal }),
     });
   }
 
@@ -1010,62 +1040,152 @@ export function currentActualMonthlySponsorIncome(state: GameState, userClub: Cl
  */
 export const STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL = 50;
 
-/** Every operational stand level adds to the home gate across up to three stands. */
-export function gridStadiumStandLevel(grid: FacilityGridState | undefined): number {
-  if (grid === undefined) return 0;
+/** Combined operational Stadium Stand level and building count across up to three stands. */
+function gridStadiumStands(grid: FacilityGridState | undefined): { level: number; count: number } {
+  if (grid === undefined) return { level: 0, count: 0 };
   let level = 0;
+  let count = 0;
   for (const building of grid.buildings) {
     if (building.type !== 'stadium-stand') continue;
     if (!isFacilityOperational(grid, building.id)) continue;
     level = checkedAdd(level, building.level, 'combined Stadium Stand level');
+    count += 1;
   }
-  return level;
+  return { level, count };
 }
 
-export function homeGateIncome(state: GameState, userClub: ClubState, label: string): number {
+/** Every operational stand level adds to the home gate across up to three stands. */
+export function gridStadiumStandLevel(grid: FacilityGridState | undefined): number {
+  return gridStadiumStands(grid).level;
+}
+
+function gridFanShops(grid: FacilityGridState | undefined): { level: number; count: number } {
+  if (grid === undefined) return { level: 0, count: 0 };
+  let level = 0;
+  let count = 0;
+  for (const building of grid.buildings) {
+    if (building.type !== 'fan-shop') continue;
+    if (!isFacilityOperational(grid, building.id)) continue;
+    level = checkedAdd(level, building.level, 'combined Fan Shop level');
+    count += 1;
+  }
+  return { level, count };
+}
+
+function rawGateBase(userClub: ClubState, label: string): number {
   const attendance = sixtyPercentOf(userClub.fans);
-  const base = checkedMultiply(attendance, userClub.ticketPrice, label);
+  return checkedMultiply(attendance, userClub.ticketPrice, label);
+}
+
+function gateIncomeFromBase(state: GameState, base: number): { amount: number; standLevel: number } {
   const standLevel = gridStadiumStandLevel(state.facilities.grid);
-  if (standLevel === 0) return base;
+  if (standLevel === 0) return { amount: base, standLevel };
   const bonus = Math.floor(checkedMultiply(
     base,
     standLevel * STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL,
     'Stadium Stand gate bonus',
   ) / 100);
-  return checkedAdd(base, bonus, 'home gate income');
+  return { amount: checkedAdd(base, bonus, 'home gate income'), standLevel };
+}
+
+export function homeGateIncome(state: GameState, userClub: ClubState, label: string): number {
+  return gateIncomeFromBase(state, rawGateBase(userClub, label)).amount;
+}
+
+/**
+ * The gate as settlement banks it: the seeded weekly roll on the base, the
+ * stand multiplier on top, and the saved reveal the Financial Report replays.
+ * Ineligible weeks (spec §5) and zero-fan gates bank the baseline with no
+ * reveal.
+ */
+function homeGateIncomeWithReveal(
+  state: GameState,
+  userClub: ClubState,
+  label: string,
+  source: 'league-gate' | 'cup-gate',
+): { amount: number; reveal?: LedgerLineReveal } {
+  const rawBase = rawGateBase(userClub, label);
+  if (!varianceEligibleSettlement(state) || rawBase <= 0) {
+    return { amount: gateIncomeFromBase(state, rawBase).amount };
+  }
+  const roll = matchdayVarianceRoll(state.careerSeed, state.season, state.week, source);
+  const base = applyVariancePercent(rawBase, roll.percent);
+  const { amount, standLevel } = gateIncomeFromBase(state, base);
+  const { count } = gridStadiumStands(state.facilities.grid);
+  return {
+    amount,
+    reveal: {
+      source,
+      base,
+      variancePercent: roll.percent,
+      surge: roll.surge,
+      multiplierPercent: 100 + standLevel * STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL,
+      facilityCount: count,
+    },
+  };
+}
+
+function rawMerchPerLevel(userClub: ClubState): number {
+  // One merchandise unit per two fans per shop level makes the income building
+  // repay itself within the opening season at the D5 supporter floor.
+  return Math.floor(requireSafeInteger(userClub.fans, 'club fans') / 2);
+}
+
+function merchandiseIncomeFromPerLevel(state: GameState, perLevel: number): {
+  amount: number; level: number; adjacencyPercent: number; adjacencyAmount: number;
+} {
+  const grid = state.facilities.grid;
+  const { level } = gridFanShops(grid);
+  if (grid === undefined || level === 0) {
+    return { amount: 0, level, adjacencyPercent: 0, adjacencyAmount: 0 };
+  }
+  const afterMultiplier = checkedMultiply(perLevel, level, 'Fan Shop merchandise base');
+  const adjacencyPercent = facilityEffects(grid).merchIncomeBonusPercent;
+  const adjacencyAmount = Math.floor(checkedMultiply(
+    afterMultiplier,
+    adjacencyPercent,
+    'Fan Shop merchandise adjacency bonus',
+  ) / 100);
+  return {
+    amount: checkedAdd(afterMultiplier, adjacencyAmount, 'Fan Shop merchandise income'),
+    level,
+    adjacencyPercent,
+    adjacencyAmount,
+  };
 }
 
 /** A small recurring return for building a Fan Shop, with the documented adjacency bonus. */
 export function weeklyMerchandiseIncome(state: GameState, userClub: ClubState): number {
-  const grid = state.facilities.grid;
-  if (grid === undefined) return 0;
-  let combinedFanShopLevel = 0;
-  for (const building of grid.buildings) {
-    if (building.type !== 'fan-shop') continue;
-    if (!isFacilityOperational(grid, building.id)) continue;
-    combinedFanShopLevel = checkedAdd(
-      combinedFanShopLevel,
-      building.level,
-      'combined Fan Shop level',
-    );
-  }
-  if (combinedFanShopLevel === 0) return 0;
+  return merchandiseIncomeFromPerLevel(state, rawMerchPerLevel(userClub)).amount;
+}
 
-  // One merchandise unit per two fans per shop level makes the income building
-  // repay itself within the opening season at the D5 supporter floor.
-  const fanLevelProduct = checkedMultiply(
-    requireSafeInteger(userClub.fans, 'club fans'),
-    combinedFanShopLevel,
-    'Fan Shop merchandise base',
-  );
-  const baseIncome = Math.floor(fanLevelProduct / 2);
-  const bonusPercent = facilityEffects(grid).merchIncomeBonusPercent;
-  const bonus = Math.floor(checkedMultiply(
-    baseIncome,
-    bonusPercent,
-    'Fan Shop merchandise adjacency bonus',
-  ) / 100);
-  return checkedAdd(baseIncome, bonus, 'Fan Shop merchandise income');
+/** Merchandise as settlement banks it — see homeGateIncomeWithReveal. */
+function weeklyMerchandiseIncomeWithReveal(
+  state: GameState,
+  userClub: ClubState,
+): { amount: number; reveal?: LedgerLineReveal } {
+  const rawPerLevel = rawMerchPerLevel(userClub);
+  if (!varianceEligibleSettlement(state) || rawPerLevel <= 0) {
+    return { amount: merchandiseIncomeFromPerLevel(state, rawPerLevel).amount };
+  }
+  const roll = matchdayVarianceRoll(state.careerSeed, state.season, state.week, 'merch');
+  const base = applyVariancePercent(rawPerLevel, roll.percent);
+  const result = merchandiseIncomeFromPerLevel(state, base);
+  if (result.level === 0 || base <= 0) return { amount: result.amount };
+  const { count } = gridFanShops(state.facilities.grid);
+  return {
+    amount: result.amount,
+    reveal: {
+      source: 'merch',
+      base,
+      variancePercent: roll.percent,
+      surge: roll.surge,
+      multiplierTimes: result.level,
+      facilityCount: count,
+      adjacencyPercent: result.adjacencyPercent,
+      adjacencyAmount: result.adjacencyAmount,
+    },
+  };
 }
 
 function progressAutomaticCupBeforeSettlement(state: GameState): {
