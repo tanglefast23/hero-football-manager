@@ -6,6 +6,7 @@ import {
   createProvisionalSponsorPortfolio,
   managedSponsorCapacity,
 } from '../game/sponsors';
+import { coachWeeklyWageForRole } from '../game/market-career';
 import { GAME_SCHEMA_VERSION, type GameState } from '../game/types';
 import { isPlayerLookIdForRole } from '../game/player-appearance';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
@@ -154,6 +155,7 @@ const cashTransactionSchema = z.object({
     'coach-hiring',
     'coach-dismissal',
     'player-request',
+    'balance-adjustment',
   ]),
   label: nonemptyString,
   amount: safeInteger.refine(value => value !== 0, 'must be non-zero'),
@@ -2303,6 +2305,198 @@ function migrateSchema3To4(state: Record<string, unknown>): Record<string, unkno
   };
 }
 
+const SCHEMA_4_D5_SPONSOR_FEE = 2_000;
+const SCHEMA_5_D5_SPONSOR_FEE = 3_000;
+const SCHEMA_4_STADIUM_BUILD_COST = 15_000;
+const SCHEMA_5_STADIUM_BUILD_COST = 10_000;
+
+function migrateSchema4To5(state: Record<string, unknown>): Record<string, unknown> {
+  const userClubId = state.userClubId;
+  if (typeof userClubId !== 'string' || !Array.isArray(state.clubs)) {
+    throw new CorruptCareerSaveError('schema 4 save is missing its user club');
+  }
+
+  const assistantAdjusted = migrateSchema4AssistantWage(state.market);
+  const standAdjustment = migrateSchema4StadiumBases(state.facilities);
+  const managedSponsor = schema4HasManagedSponsor(state.clubBusiness);
+  const d5PassiveSponsor = !managedSponsor && schema4UserIsInD5(state);
+  const credit = standAdjustment.credit;
+  let userFound = false;
+  const clubs = state.clubs.map(club => {
+    if (!isRecord(club) || club.id !== userClubId) return club;
+    userFound = true;
+    if (!Number.isSafeInteger(club.cash)) {
+      throw new CorruptCareerSaveError('schema 4 user club has invalid cash');
+    }
+    const sponsorMonthlyFee = d5PassiveSponsor
+      && club.sponsorMonthlyFee === SCHEMA_4_D5_SPONSOR_FEE
+      ? SCHEMA_5_D5_SPONSOR_FEE
+      : club.sponsorMonthlyFee;
+    return {
+      ...club,
+      cash: checkedMigrationCash(club.cash as number, credit, 'schema 5 Stadium Stand credit'),
+      sponsorMonthlyFee,
+    };
+  });
+  if (!userFound) throw new CorruptCareerSaveError('schema 4 save has no matching user club');
+
+  const next: Record<string, unknown> = {
+    ...state,
+    clubs,
+    ...(assistantAdjusted === undefined ? {} : { market: assistantAdjusted }),
+    ...(standAdjustment.facilities === undefined ? {} : { facilities: standAdjustment.facilities }),
+  };
+  if (credit === 0) return next;
+
+  const history = state.cashTransactions;
+  if (history !== undefined && !Array.isArray(history)) {
+    throw new CorruptCareerSaveError('schema 4 cash transactions are invalid');
+  }
+  const season = migrationPositiveInteger(state.season, 'season');
+  const week = migrationPositiveInteger(state.week, 'week');
+  const migratedHistory = history ?? [];
+  const balanceAfter = (clubs.find(club => isRecord(club) && club.id === userClubId) as Record<string, unknown>).cash;
+  return {
+    ...next,
+    cashTransactions: [
+      ...migratedHistory,
+      {
+        id: nextMigrationCashTransactionId(migratedHistory),
+        season,
+        week,
+        kind: 'balance-adjustment',
+        label: 'Stadium Stand price protection',
+        amount: credit,
+        balanceAfter,
+        referenceId: 'economy-rebalance-v5',
+      },
+    ],
+  };
+}
+
+function migrateSchema4AssistantWage(value: unknown): Record<string, unknown> | undefined {
+  if (!isRecord(value)) return undefined;
+  const assistant = value.assistantCoach;
+  if (!isRecord(assistant)) return value;
+  if (!Number.isSafeInteger(assistant.weeklyWage) || (assistant.weeklyWage as number) < 0) {
+    throw new CorruptCareerSaveError('schema 4 assistant wage is invalid');
+  }
+  return {
+    ...value,
+    assistantCoach: {
+      ...assistant,
+      weeklyWage: coachWeeklyWageForRole(
+        { weeklyWage: assistant.weeklyWage as number },
+        'ASSISTANT',
+      ),
+    },
+  };
+}
+
+function migrateSchema4StadiumBases(value: unknown): {
+  facilities: Record<string, unknown> | undefined;
+  credit: number;
+} {
+  if (!isRecord(value) || !isRecord(value.grid)) {
+    return { facilities: isRecord(value) ? value : undefined, credit: 0 };
+  }
+  const grid = value.grid;
+  if (!Array.isArray(grid.buildings)) {
+    return { facilities: value, credit: 0 };
+  }
+  let protectedCount = 0;
+  const buildings = grid.buildings.map((building: unknown) => {
+    if (!isRecord(building)
+      || building.type !== 'stadium-stand'
+      || building.seeded === true
+      || !schema4StadiumBasisMatchesCatalog(building, grid.construction)) {
+      return building;
+    }
+    protectedCount += 1;
+    return {
+      ...building,
+      capitalInvested: (building.capitalInvested as number)
+        - (SCHEMA_4_STADIUM_BUILD_COST - SCHEMA_5_STADIUM_BUILD_COST),
+    };
+  });
+  const credit = checkedMigrationSum(
+    0,
+    protectedCount * (SCHEMA_4_STADIUM_BUILD_COST - SCHEMA_5_STADIUM_BUILD_COST),
+    'schema 5 Stadium Stand credit',
+  );
+  return {
+    facilities: {
+      ...value,
+      grid: { ...grid, buildings },
+    },
+    credit,
+  };
+}
+
+/**
+ * Price protection is for known schema-4 catalog purchases, not every custom
+ * historical number above the old build price. The saved building level is the
+ * last completed level; an active upgrade has already charged its target cost.
+ */
+function schema4StadiumBasisMatchesCatalog(
+  building: Record<string, unknown>,
+  construction: unknown,
+): boolean {
+  if (!Number.isSafeInteger(building.capitalInvested)) return false;
+  const project = isRecord(construction) && construction.buildingId === building.id
+    ? construction
+    : undefined;
+  const paidLevel = project?.kind === 'UPGRADE' && Number.isSafeInteger(project.targetLevel)
+    ? project.targetLevel
+    : building.level;
+  const expectedBasis = paidLevel === 1
+    ? 15_000
+    : paidLevel === 2
+      ? 34_000
+      : paidLevel === 3
+        ? 68_000
+        : undefined;
+  return expectedBasis !== undefined && building.capitalInvested === expectedBasis;
+}
+
+function schema4HasManagedSponsor(value: unknown): boolean {
+  if (!isRecord(value) || !isRecord(value.sponsorship)) return false;
+  return Array.isArray(value.sponsorship.activeContracts)
+    && value.sponsorship.activeContracts.length > 0;
+}
+
+function schema4UserIsInD5(state: Record<string, unknown>): boolean {
+  const m2 = state.m2;
+  if (!isRecord(m2) || !isRecord(m2.pyramid) || !Array.isArray(m2.pyramid.divisions)) {
+    return true;
+  }
+  const userClubId = state.userClubId;
+  for (const division of m2.pyramid.divisions) {
+    if (!isRecord(division) || !Array.isArray(division.clubs)) continue;
+    if (division.clubs.some(club => isRecord(club) && club.id === userClubId)) {
+      return division.level === 5;
+    }
+  }
+  return false;
+}
+
+function nextMigrationCashTransactionId(history: readonly unknown[]): string {
+  const ids = new Set(history.flatMap(transaction => (
+    isRecord(transaction) && typeof transaction.id === 'string' ? [transaction.id] : []
+  )));
+  let suffix = 1;
+  while (ids.has(`cash-transaction-economy-rebalance-v5-${suffix}`)) suffix += 1;
+  return `cash-transaction-economy-rebalance-v5-${suffix}`;
+}
+
+function checkedMigrationCash(left: number, right: number, label: string): number {
+  const result = left + right;
+  if (!Number.isSafeInteger(result)) {
+    throw new CorruptCareerSaveError(`${label} exceeds the safe integer range`);
+  }
+  return result;
+}
+
 function assertUncontaminatedSchema3(state: Record<string, unknown>): void {
   if (hasOwn(state, 'clubBusiness') || hasOwn(state, 'sponsorRules')) {
     throw new CorruptCareerSaveError(
@@ -2496,6 +2690,10 @@ const GAME_STATE_MIGRATIONS: readonly GameStateMigration[] = [
   {
     to: 4,
     up: migrateSchema3To4,
+  },
+  {
+    to: 5,
+    up: migrateSchema4To5,
   },
 ];
 

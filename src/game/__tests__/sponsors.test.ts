@@ -73,7 +73,7 @@ describe('managed sponsor capacity and continuity', () => {
 
   it('uses the exact division anchors and puts all split remainder in slot zero', () => {
     expect([5, 4, 3, 2, 1].map(division => divisionSponsorAnchor(division as 1 | 2 | 3 | 4 | 5)))
-      .toEqual([2_000, 4_000, 6_000, 8_000, 10_000]);
+      .toEqual([3_000, 4_000, 6_000, 8_000, 10_000]);
     expect(sponsorBaselineShares(8_000, 3)).toEqual([2_668, 2_666, 2_666]);
     expect(sponsorBaselineShares(10_000, 3)).toEqual([3_334, 3_333, 3_333]);
     expect(sponsorBaselineShares(10, 3)).toEqual([4, 3, 3]);

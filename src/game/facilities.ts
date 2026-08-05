@@ -98,20 +98,14 @@ export const FACILITY_CATALOG: Readonly<Record<FacilityType, FacilityCatalogEntr
   'medical-bay': facility('medical-bay', 'Medical Bay', 1, 1, 10_000, 2, [12_500, 22_500], [2, 3], [125, 200, 300], 500),
   dorm: facility('dorm', 'Dorm', 1, 1, 6_000, 1, [7_500, 13_500], [1, 2], [75, 120, 180], 300),
   'scout-office': facility('scout-office', 'Scout Office', 1, 1, 6_000, 1, [7_500, 13_500], [1, 2], [75, 120, 180], 300),
-  'coaching-office': facility('coaching-office', 'Coaching Office', 1, 1, 6_500, 1, [6_500, 9_750], [1, 2], [80, 130, 195], 325),
+  'coaching-office': facility('coaching-office', 'Coaching Office', 1, 1, 6_500, 1, [6_500, 9_750], [1, 2], [40, 65, 100], 325),
   'youth-field': facility('youth-field', 'Youth Field', 2, 2, 12_000, 3, [15_000, 27_000], [2, 3], [150, 240, 360], 600),
-  'fan-shop': facility('fan-shop', 'Fan Shop', 1, 1, 5_000, 1, [6_500, 11_500], [1, 2], [65, 105, 155], 250),
-  // Upkeep was [190, 300, 450] while the stand had no effect at all — a flat
-  // -190/wk forever. Measured at the D5 start (500 fans, $4 tickets, 9 home
-  // league gates a season) a home gate is 300 x $4 = $1,200, so a season of
-  // league gates is $10,800. At +25% per stand level that is +$2,700 / +$5,400
-  // / +$8,100 a season, against 30 weeks of upkeep. [70, 115, 175] therefore
-  // clears its own upkeep at every level even in D5 (+$600 / +$1,950 / +$2,850
-  // a season, before cup home ties) while staying the club's slowest payback:
-  // 15,000 / 600 is 25 D5 seasons, 3.4 seasons at D4 gate levels, and under
-  // one season at D2. That is the intended shape — a climb investment, not a
-  // starter building — but it is never a loss.
-  'stadium-stand': facility('stadium-stand', 'Stadium Stand', 2, 2, 15_000, 3, [19_000, 34_000], [2, 3], [70, 115, 175], 750),
+  'fan-shop': facility('fan-shop', 'Fan Shop', 1, 1, 5_000, 1, [6_500, 11_500], [1, 2], [40, 65, 95], 250),
+  // At the D5 floor (500 fans, $4 tickets), Level 1 adds $600 per home gate.
+  // Across nine league gates that is $5,400, less $1,500 annual upkeep: a
+  // $3,900 return and roughly 2.6-season payback before Cup ties. It remains a
+  // slower club-growth investment than the Fan Shop without being a trap.
+  'stadium-stand': facility('stadium-stand', 'Stadium Stand', 2, 2, 10_000, 3, [19_000, 34_000], [2, 3], [50, 80, 120], 750),
 };
 
 export type FacilityAdjacencyId =

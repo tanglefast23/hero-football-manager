@@ -16,7 +16,7 @@ describe('Club Business phone and accessibility contracts', () => {
     const cashPanel = /function CashPositionSection[\s\S]*?function EmergencyLoanSection/.exec(screen)?.[0];
     expect(cashPanel).toBeDefined();
     expect(cashPanel).toContain('<Metric label="Balance"');
-    expect(cashPanel).toMatch(/Expected weekly change[\s\S]*?<\/View>\s*<View className="mt-2 flex-row gap-2">[\s\S]*?Projected balance/);
+    expect(cashPanel).toMatch(/Next four weeks[\s\S]*?<\/View>\s*<View className="mt-2 flex-row gap-2">[\s\S]*?Four-week balance/);
     expect(cashPanel).toContain('<View className="mt-2 flex-row">');
     expect(screen).toMatch(/viewModel\.clubName[\s\S]{0,120}numberOfLines=\{2\}|numberOfLines=\{2\}[\s\S]{0,120}viewModel\.clubName/);
   });

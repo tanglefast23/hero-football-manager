@@ -32,6 +32,6 @@ export function facilityBenefit(type: FacilityTypeViewModel): string {
     case 'fan-shop':
       return 'Earns weekly merchandise income, more per Level.';
     case 'stadium-stand':
-      return 'Adds +25% home gate income per Level. The bigger the club, the bigger the return.';
+      return 'Adds +50% home gate income per Level. The bigger the club, the bigger the return.';
   }
 }

@@ -457,7 +457,12 @@ describe('validated M1 launch content', () => {
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'first-emergency-loan')).toMatchObject({
         destination: 'club-finances',
-        pages: [{ focus: 'emergency-loan' }],
+        pages: [{
+          focus: 'emergency-loan',
+          body: [
+            "This is the club's only automatic emergency loan, and repayments begin next season. Build cash-generating facilities now.",
+          ],
+        }],
       });
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'first-transfer-request')).toMatchObject({

@@ -1,5 +1,10 @@
 import { loadLaunchContent } from '../../content';
-import { createCareer, type GameState } from '../../game';
+import {
+  createCareer,
+  dismissAssistantInboxProductForCurrentWeek,
+  dismissAssistantInboxProductPermanently,
+  type GameState,
+} from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { boardFinanceBriefing, homeViewModel } from '../view-models';
 
@@ -68,15 +73,28 @@ describe('the board finance briefing', () => {
       expect(briefing?.body[1]).toContain('run out of patience');
     });
 
-    it('closes on the instruction the manager can act on', () => {
+    it('explains the action available when the manager can still afford it', () => {
       const briefing = boardFinanceBriefing(
         career(20260905, -2540, { consecutiveNegativeWeeks: 1, emergencyLoanUsed: false }),
         'financial-warning',
       );
 
-      expect(briefing?.body.at(-1)).toBe(
+      expect(briefing?.body[2]).toBe(
         'If you have the funds to do so, create a facility to help earn more income.'
         + ' If not, the board is having an emergency meeting right now.',
+      );
+    });
+
+    it('reassures a broke manager that waiting for the board is the right move', () => {
+      const briefing = boardFinanceBriefing(
+        career(20260916, -2540, { consecutiveNegativeWeeks: 1, emergencyLoanUsed: false }),
+        'financial-warning',
+      );
+
+      expect(briefing?.body[3]).toBe(
+        "If you don't have enough to build anything, hold tight."
+        + " There's nothing else you need to do until the board decides what happens next."
+        + " You'll hear from them soon.",
       );
     });
 
@@ -89,6 +107,18 @@ describe('the board finance briefing', () => {
       expect(row?.detail).toContain('negative for 2 weeks');
       expect(boardFinanceBriefing(state, 'financial-warning')?.body[0])
         .toContain('in the red for 2 weeks');
+    });
+
+    it('removes the warning after Bert finishes, but allows a new one next week', () => {
+      const state = career(20260917, -2540, {
+        consecutiveNegativeWeeks: 1,
+        emergencyLoanUsed: false,
+      });
+      const dismissed = dismissAssistantInboxProductForCurrentWeek(state, 'financial-warning');
+
+      expect(homeViewModel(dismissed).alerts.map(alert => alert.id)).not.toContain('financial-warning');
+      expect(homeViewModel({ ...dismissed, week: dismissed.week + 1 }).alerts.map(alert => alert.id))
+        .toContain('financial-warning');
     });
 
     it('says nothing when the club is not in the red', () => {
@@ -163,6 +193,19 @@ describe('the board finance briefing', () => {
       expect(briefing?.body.at(-1)).not.toContain('next season');
     });
 
+    it('retires the inbox card permanently after showing the highlighted income facilities', () => {
+      const state = career(20260918, 15000, {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+        loan,
+      });
+      const dismissed = dismissAssistantInboxProductPermanently(state, 'emergency-loan');
+
+      expect(homeViewModel(dismissed).alerts.map(alert => alert.id)).not.toContain('emergency-loan');
+      expect(homeViewModel({ ...dismissed, week: dismissed.week + 1 }).alerts.map(alert => alert.id))
+        .not.toContain('emergency-loan');
+    });
+
     it('says nothing when there is no loan to repay', () => {
       const state = career(20260913, 15000, { consecutiveNegativeWeeks: 0, emergencyLoanUsed: false });
 
@@ -183,7 +226,7 @@ describe('the board finance briefing', () => {
       'financial-warning',
     );
 
-    expect(warning?.body).toHaveLength(3);
+    expect(warning?.body).toHaveLength(4);
     expect(warning?.body.every(line => line.trim().length > 0)).toBe(true);
   });
 });

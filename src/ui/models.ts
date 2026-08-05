@@ -612,6 +612,19 @@ export interface ClubVariableIncomeViewModel {
   detail?: string;
 }
 
+export interface ClubOperatingOutlookWeekViewModel {
+  periodLabel: string;
+  detail: string;
+  net: number;
+  projectedBalance: number;
+}
+
+export interface ClubOperatingOutlookViewModel {
+  weeks: readonly ClubOperatingOutlookWeekViewModel[];
+  net: number;
+  projectedBalance: number;
+}
+
 export interface SponsorOfferViewModel {
   offerId: string;
   sponsorName: string;
@@ -675,6 +688,8 @@ export interface ClubFinancesViewModel {
   })[];
   fans: number;
   variableIncome: ClubVariableIncomeViewModel;
+  /** Scheduled gates and sponsor cadence added to the recurring four-week base. */
+  operatingOutlook: ClubOperatingOutlookViewModel;
   weeklyNet: number;
   projectedBalance: number;
   wageSubsidyLabel?: string;

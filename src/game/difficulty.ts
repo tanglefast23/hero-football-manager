@@ -57,7 +57,7 @@ const RULES: Record<DifficultyMode, DifficultyRules> = {
     cashFloor: -15_000,
   },
   CHAIRMAN: {
-    seasonOneWageSubsidyPercent: 0,
+    seasonOneWageSubsidyPercent: 40,
     sponsorIncomePercent: 80,
     negativeWeeksBeforeIntervention: 2,
     emergencyLoanAmount: 10_000,

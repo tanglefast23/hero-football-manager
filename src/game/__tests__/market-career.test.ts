@@ -11,6 +11,7 @@ import {
   beginCareerTransferTalks,
   closeCareerRenewalTalks,
   closeCareerTransferTalks,
+  coachWeeklyWageForRole,
   careerCoachUnlockedFormationIds,
   completeCareerTransfer,
   createCareerMarketState,
@@ -728,15 +729,39 @@ describe('career market integration', () => {
     const other = market.coachCandidates.find(coach => coach.id !== candidate.id)!;
     const withAssistant = hireCareerCoach(withOffice, hired, other.id, 'ASSISTANT');
     expect(withAssistant.assistantCoach?.id).toBe(other.id);
+    expect(withAssistant.assistantCoach?.weeklyWage)
+      .toBe(coachWeeklyWageForRole(other, 'ASSISTANT'));
+    expect(withAssistant.assistantCoach?.weeklyWage).toBe(Math.round(other.weeklyWage / 2));
 
     const dismissed = dismissCareerCoach(withOffice, withAssistant, 'ASSISTANT');
     expect(dismissed.market.headCoach?.id).toBe(candidate.id);
     expect(dismissed.market.assistantCoach).toBeUndefined();
     expect(dismissed.state.cashTransactions?.at(-1)).toMatchObject({
       kind: 'coach-dismissal',
-      amount: -other.weeklyWage,
+      amount: -Math.round(other.weeklyWage / 2),
       referenceId: other.id,
     });
+  });
+
+  test('keeps an assistant on the half-price scale after season progression', () => {
+    const initial = createCareer(createLaunchCareerSetup(826));
+    const officeProject = buildCareerFacility(initial, 'coaching-office', { x: 2, y: 0 }).state;
+    const withOffice = {
+      ...officeProject,
+      facilities: {
+        ...officeProject.facilities,
+        grid: advanceFacilityConstruction(officeProject.facilities.grid!).grid,
+      },
+    };
+    const candidate = withOffice.market!.coachCandidates[0];
+    const hired = hireCareerCoach(withOffice, withOffice.market!, candidate.id, 'ASSISTANT');
+    const yearOne = refreshCareerMarketForNewSeason({ ...withOffice, season: 2 }, hired);
+    const yearTwo = refreshCareerMarketForNewSeason({ ...withOffice, season: 3 }, yearOne);
+
+    expect(yearOne.assistantCoach?.weeklyWage)
+      .toBe(coachWeeklyWageForRole({ weeklyWage: 500 * yearOne.assistantCoach!.level }, 'ASSISTANT'));
+    expect(yearTwo.assistantCoach?.weeklyWage)
+      .toBe(coachWeeklyWageForRole({ weeklyWage: 500 * yearTwo.assistantCoach!.level }, 'ASSISTANT'));
   });
 
   test('measures contract growth from the stored signing attributes', () => {

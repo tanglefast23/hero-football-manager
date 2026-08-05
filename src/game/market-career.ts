@@ -64,6 +64,21 @@ export const DEFAULT_COACH_CONTENT_UNLOCK_IDS = [
 
 export type CareerCoachRole = 'HEAD' | 'ASSISTANT';
 
+export const ASSISTANT_COACH_WAGE_PERCENT = 50;
+
+/** The candidate quote is the head-coach wage; assistants are half price. */
+export function coachWeeklyWageForRole(
+  coach: Pick<CoachCandidate, 'weeklyWage'>,
+  role: CareerCoachRole,
+): number {
+  if (!Number.isSafeInteger(coach.weeklyWage) || coach.weeklyWage < 0) {
+    throw new Error('coach weekly wage must be a nonnegative safe integer');
+  }
+  return role === 'HEAD'
+    ? coach.weeklyWage
+    : Math.round(coach.weeklyWage * ASSISTANT_COACH_WAGE_PERCENT / 100);
+}
+
 export interface CareerTransferBid {
   readonly id: string;
   readonly playerId: string;
@@ -780,7 +795,8 @@ export function hireCareerCoach(
   if (!isCoachCandidateEligible(candidate, division, fame)) {
     throw new Error(`${candidate.name} is not eligible for this club`);
   }
-  if (userClub(state).cash < candidate.weeklyWage) {
+  const weeklyWage = coachWeeklyWageForRole(candidate, role);
+  if (userClub(state).cash < weeklyWage) {
     throw new Error('the club cannot cover the coach weekly wage');
   }
   if (role === 'ASSISTANT' && !hasCoachingOffice(state)) {
@@ -793,12 +809,13 @@ export function hireCareerCoach(
   const unlocks = candidate.unlockId === undefined
     ? [...(market.unlockedCoachContentIds ?? [])]
     : Array.from(new Set([...(market.unlockedCoachContentIds ?? []), candidate.unlockId]));
+  const employed = { ...candidate, weeklyWage };
   return {
     ...market,
     coachCandidates: market.coachCandidates.filter(coach => coach.id !== coachId),
     ...(role === 'HEAD'
-      ? { headCoach: candidate, headCoachSeasonsEmployed: 0 }
-      : { assistantCoach: candidate, assistantCoachSeasonsEmployed: 0 }),
+      ? { headCoach: employed, headCoachSeasonsEmployed: 0 }
+      : { assistantCoach: employed, assistantCoachSeasonsEmployed: 0 }),
     unlockedCoachContentIds: unlocks,
   };
 }
@@ -880,12 +897,12 @@ export function refreshCareerMarketForNewSeason(
   const head = progressEmployedCoach(
     previous.headCoach,
     previous.headCoachSeasonsEmployed,
-    'head coach',
+    'HEAD',
   );
   const assistant = progressEmployedCoach(
     previous.assistantCoach,
     previous.assistantCoachSeasonsEmployed,
-    'assistant coach',
+    'ASSISTANT',
   );
   return {
     ...refreshed,
@@ -1349,9 +1366,10 @@ function careerClubFame(state: GameState, market: CareerMarketState): number {
 function progressEmployedCoach(
   coach: CoachCandidate | undefined,
   previousSeasonsEmployed: number | undefined,
-  label: string,
+  role: CareerCoachRole,
 ): { coach: CoachCandidate; seasonsEmployed: number } | undefined {
   if (coach === undefined) return undefined;
+  const label = role === 'HEAD' ? 'head coach' : 'assistant coach';
   const seasonsEmployed = checkedAdd(
     previousSeasonsEmployed ?? 0,
     1,
@@ -1361,9 +1379,10 @@ function progressEmployedCoach(
     ? Math.min(5, coach.level + 1)
     : coach.level;
   const loyaltyPercent = 100 - coach.loyaltyDiscountPercent;
-  const weeklyWage = Math.round(
+  const headCoachWage = Math.round(
     (checkedMultiply(500, level, `${label} base wage`) * loyaltyPercent) / 100,
   );
+  const weeklyWage = coachWeeklyWageForRole({ weeklyWage: headCoachWage }, role);
   return { coach: { ...coach, level, weeklyWage }, seasonsEmployed };
 }
 

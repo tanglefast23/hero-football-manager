@@ -51,7 +51,7 @@ const SCHEMA_3_PRICES: Readonly<Record<Exclude<FacilityType, 'coaching-office'>,
 };
 
 describe('Club Business facility repricing and pacing probe', () => {
-  it('keeps Level 1 fixed and adds exactly $95,500 of intentional long-career sink', () => {
+  it('keeps Level 1 fixed except for the approved Stand reduction and preserves the long-career sink', () => {
     let level2Uplift = 0;
     let level3Uplift = 0;
     for (const [type, old] of Object.entries(SCHEMA_3_PRICES) as Array<[
@@ -59,7 +59,7 @@ describe('Club Business facility repricing and pacing probe', () => {
       typeof SCHEMA_3_PRICES[keyof typeof SCHEMA_3_PRICES],
     ]>) {
       const current = FACILITY_CATALOG[type];
-      expect(current.buildCost).toBe(old.build);
+      expect(current.buildCost).toBe(type === 'stadium-stand' ? 10_000 : old.build);
       expect(current.upgradeCosts[0]).toBe(roundToNearest500(old.level2 * 1.25));
       expect(current.upgradeCosts[1]).toBe(roundToNearest500(old.level3 * 1.50));
       level2Uplift += current.upgradeCosts[0] - old.level2;

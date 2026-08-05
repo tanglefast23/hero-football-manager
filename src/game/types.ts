@@ -6,7 +6,7 @@ import type { M2CareerState } from './m2-career';
 import type { YouthIntakeState } from './youth-intake';
 import type { ClubBusinessState, SponsorRules } from './club-business-types';
 
-export const GAME_SCHEMA_VERSION = 4;
+export const GAME_SCHEMA_VERSION = 5;
 export const SEASON_WEEKS = 30;
 
 export type GamePhase = 'manage' | 'matchday' | 'season-end' | 'complete';
@@ -331,7 +331,8 @@ export type CashTransactionKind =
   | 'youth-signing'
   | 'coach-hiring'
   | 'coach-dismissal'
-  | 'player-request';
+  | 'player-request'
+  | 'balance-adjustment';
 
 /**
  * Immediate M2 cash movements live beside weekly ledgers so buying something

@@ -71,6 +71,68 @@ describe('club finances immediate transaction history', () => {
     );
   });
 
+  test('projects four weeks with home gates, away no-gate weeks, Cup gates, and sponsor cadence', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260728));
+    const opponent = initial.clubs.find(club => club.id !== initial.userClubId)!;
+    const fixture = (id: string, week: number, homeClubId: string, awayClubId: string) => ({
+      id,
+      season: 1,
+      round: week,
+      week,
+      homeClubId,
+      awayClubId,
+      matchSeed: week,
+      status: 'scheduled' as const,
+    });
+    const cup = initial.m2!.nationalCups.find(candidate => candidate.season === 1)!;
+    const firstRound = cup.rounds[0];
+    const cupFixture = firstRound.fixtures.find(candidate => (
+      candidate.homeClubId === initial.userClubId || candidate.awayClubId === initial.userClubId
+    ))!;
+    const state = {
+      ...initial,
+      week: 3,
+      fixtures: [
+        fixture('home-w3', 3, initial.userClubId, opponent.id),
+        fixture('away-w4', 4, opponent.id, initial.userClubId),
+      ],
+      m2: {
+        ...initial.m2!,
+        nationalCups: [{
+          ...cup,
+          rounds: [{
+            ...firstRound,
+            fixtures: firstRound.fixtures.map(candidate => candidate.id === cupFixture.id
+              ? { ...candidate, homeClubId: initial.userClubId, awayClubId: opponent.id }
+              : candidate),
+          }],
+        }],
+      },
+    };
+
+    const viewModel = clubFinancesViewModel(state);
+    const baseline = viewModel.weeklyNet;
+
+    expect(viewModel.operatingOutlook.weeks).toEqual([
+      expect.objectContaining({
+        periodLabel: 'S1 · W3', detail: 'Home league gate', net: baseline + 1_200,
+      }),
+      expect.objectContaining({
+        periodLabel: 'S1 · W4', detail: 'Away league game · no gate · Sponsor payment',
+        net: baseline + 3_000,
+      }),
+      expect.objectContaining({
+        periodLabel: 'S1 · W5', detail: 'No match or sponsor payment', net: baseline,
+      }),
+      expect.objectContaining({
+        periodLabel: 'S1 · W6', detail: 'Home Hero Cup gate', net: baseline + 1_200,
+      }),
+    ]);
+    expect(viewModel.operatingOutlook.net).toBe(baseline * 4 + 5_400);
+    expect(viewModel.operatingOutlook.projectedBalance)
+      .toBe(viewModel.resources.money + viewModel.operatingOutlook.net);
+  });
+
   /**
    * A home gate is the club's largest income and exists only as a ledger line,
    * so a one-week statement window made it unreadable the moment the next week
@@ -158,7 +220,7 @@ describe('club finances immediate transaction history', () => {
     expect(club.fans).toBeGreaterThan(0);
   });
 
-  test('does not advertise or project the Cozy wage subsidy on Chairman difficulty', () => {
+  test('advertises and projects the smaller Chairman Season-1 wage subsidy', () => {
     const chairman = createCareer(createLaunchCareerSetup(
       20260721,
       undefined,
@@ -169,11 +231,13 @@ describe('club finances immediate transaction history', () => {
     const viewModel = clubFinancesViewModel(chairman);
     const userClub = chairman.clubs.find(club => club.id === chairman.userClubId)!;
 
-    expect(viewModel.wageSubsidyLabel).toBeUndefined();
-    expect(viewModel.ledger).not.toEqual(expect.arrayContaining([
+    expect(viewModel.wageSubsidyLabel).toBe('Season 1 support covers 40% of weekly wages');
+    expect(viewModel.ledger).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: 'Season 1 wage subsidy' }),
     ]));
-    expect(viewModel.weeklyNet).toBe(-userClub.weeklyWages);
+    expect(viewModel.weeklyNet).toBe(
+      -userClub.weeklyWages + Math.floor(userClub.weeklyWages * 40 / 100),
+    );
   });
 
   test('describes facility effects, affordability, and the exact buildings in an active combo', () => {
@@ -224,7 +288,7 @@ describe('club finances immediate transaction history', () => {
     });
     expect(dormBuilding?.activeAdjacencyIds).toEqual(['gym-dorm']);
     expect(viewModel.facilities.catalog.find(entry => entry.type === 'fan-shop')).toMatchObject({
-      weeklyUpkeep: 65,
+      weeklyUpkeep: 40,
       affordable: false,
       affordabilityShortfall: 5_000,
     });

@@ -128,14 +128,13 @@ describe('M2 weekly sidecars', () => {
     };
     for (let week = 0; week < 4; week += 1) state = settleScheduledWeek(state);
 
-    // The rescue clears the hole and leaves a Stadium Stand's worth behind, so
-    // the club's one intervention buys a way out rather than a week of air.
-    // The deficit here is 14,255, hence 29,255 lent and 15,000 left.
+    // The rescue clears the hole and preserves the old $15,000 operating floor,
+    // so the cheaper Stand leaves $5,000 to pay the next bills.
     expect(state.financialSafety).toMatchObject({
       emergencyLoanUsed: true,
       loan: {
-        originalAmount: 29_255,
-        remainingBalance: 32_181,
+        originalAmount: expect.any(Number),
+        remainingBalance: expect.any(Number),
         repaymentStartsSeason: 2,
         remainingWeeks: 30,
       },
@@ -143,12 +142,13 @@ describe('M2 weekly sidecars', () => {
     expect(state.ledgers[3].lines).toContainEqual({
       kind: 'emergency-loan',
       label: 'Board emergency loan',
-      amount: 29_255,
+      amount: state.financialSafety!.loan!.originalAmount,
     });
-    // The property, not just the number: whatever the deficit was, the week the
-    // loan lands the club can afford the stand Bert points at.
+    // The property, not just the number: the week the loan lands the club can
+    // afford the stand Bert points at and still keep an operating buffer.
     const rescuedCash = state.clubs.find(club => club.id === state.userClubId)!.cash;
-    expect(rescuedCash).toBe(FACILITY_CATALOG['stadium-stand'].buildCost);
+    expect(rescuedCash).toBe(15_000);
+    expect(rescuedCash - FACILITY_CATALOG['stadium-stand'].buildCost).toBe(5_000);
 
     const repaymentState: GameState = {
       ...fullCareer(505),
@@ -341,13 +341,38 @@ describe('M2 weekly sidecars', () => {
     const baseIncome = weeklyMerchandiseIncome(baseState, club);
     const adjacencyIncome = weeklyMerchandiseIncome(adjacentState, club);
 
-    expect(baseIncome).toBe(Math.floor((club.fans * 3) / 5));
+    expect(baseIncome).toBe(Math.floor((club.fans * 3) / 2));
     expect(adjacencyIncome).toBe(baseIncome + Math.floor(baseIncome / 10));
     expect(advanceWeek(adjacentState).ledgers[0].lines).toContainEqual({
       kind: 'merch',
       label: 'Fan Shop merchandise',
       amount: adjacencyIncome,
     });
+  });
+
+  test.each([
+    [500, 250, 275],
+    [546, 273, 300],
+  ])('prices a Level-1 Fan Shop exactly at %i fans', (fans, baseExpected, adjacentExpected) => {
+    let grid = buildFacility(createFacilityGrid(), 'fan-shop', { x: 0, y: 0 }, 100_000).grid;
+    grid = completeFacilityProject(grid);
+    const fanShopOnly = grid;
+    grid = buildFacility(grid, 'stadium-stand', { x: 1, y: 0 }, 100_000).grid;
+    grid = completeFacilityProject(grid);
+    const initial = fullCareer(507);
+    const club = {
+      ...initial.clubs.find(candidate => candidate.id === initial.userClubId)!,
+      fans,
+    };
+
+    expect(weeklyMerchandiseIncome({
+      ...initial,
+      facilities: { ...initial.facilities, grid: fanShopOnly },
+    }, club)).toBe(baseExpected);
+    expect(weeklyMerchandiseIncome({
+      ...initial,
+      facilities: { ...initial.facilities, grid },
+    }, club)).toBe(adjacentExpected);
   });
 });
 

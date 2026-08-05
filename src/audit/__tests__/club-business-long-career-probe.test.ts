@@ -53,7 +53,7 @@ import {
   type ClubBusinessLongCareerResult,
 } from '../club-business-long-career-harness';
 
-const SUMMARY_SCHEMA_VERSION = 2;
+const SUMMARY_SCHEMA_VERSION = 3;
 const DEFAULT_SEED_OFFSET = 30_000;
 const SEED_WINDOW_END = 40_000;
 const PROGRESSION_GATE_SEED_COUNT = 300;
@@ -96,6 +96,11 @@ interface LongCareerShardRun {
   readonly totalSponsorIncome: number;
   readonly totalSponsorObjectiveBonuses: number;
   readonly totalBuzzIncome: number;
+  readonly totalWageExpense: number;
+  readonly totalFacilityUpkeepExpense: number;
+  readonly totalLoanRepaymentExpense: number;
+  readonly totalOrdinaryLedgerNet: number;
+  readonly totalSafetyIncome: number;
   readonly totalFacilityCapitalSpend: number;
   readonly totalDrillUpgradeSpend: number;
   readonly totalTransferSpend: number;
@@ -113,6 +118,11 @@ interface LongCareerShardRun {
     readonly sponsorIncome: number;
     readonly sponsorObjectiveBonuses: number;
     readonly buzzIncome: number;
+    readonly wageExpense: number;
+    readonly facilityUpkeepExpense: number;
+    readonly loanRepaymentExpense: number;
+    readonly ordinaryLedgerNet: number;
+    readonly safetyIncome: number;
     readonly facilityCapitalSpend: number;
     readonly recruitmentEligible: boolean;
     readonly recruitmentStopReason: string;
@@ -140,6 +150,10 @@ interface LongCareerShardAggregate {
   readonly facilityCapitalSpendMedian: number;
   readonly totalObservedSponsorIncomeMedian: number;
   readonly totalObservedBuzzIncomeMedian: number;
+  readonly totalWageExpenseMedian: number;
+  readonly totalFacilityUpkeepExpenseMedian: number;
+  readonly totalOrdinaryLedgerNetMedian: number;
+  readonly totalSafetyIncomeMedian: number;
   readonly reachedDivisionCounts: Readonly<Record<DivisionLevel, number>>;
 }
 
@@ -367,6 +381,22 @@ function buildShardSummary(
         compactRuns.map(run => run.totalBuzzIncome),
         0.5,
       ),
+      totalWageExpenseMedian: percentile(
+        compactRuns.map(run => run.totalWageExpense),
+        0.5,
+      ),
+      totalFacilityUpkeepExpenseMedian: percentile(
+        compactRuns.map(run => run.totalFacilityUpkeepExpense),
+        0.5,
+      ),
+      totalOrdinaryLedgerNetMedian: percentile(
+        compactRuns.map(run => run.totalOrdinaryLedgerNet),
+        0.5,
+      ),
+      totalSafetyIncomeMedian: percentile(
+        compactRuns.map(run => run.totalSafetyIncome),
+        0.5,
+      ),
       reachedDivisionCounts,
     },
   };
@@ -393,6 +423,11 @@ function compactRun(seedIndex: number, result: ClubBusinessLongCareerResult): Lo
     totalSponsorIncome: result.totals.sponsorIncome,
     totalSponsorObjectiveBonuses: result.totals.sponsorObjectiveBonuses,
     totalBuzzIncome: result.totals.buzzIncome,
+    totalWageExpense: result.totals.wageExpense,
+    totalFacilityUpkeepExpense: result.totals.facilityUpkeepExpense,
+    totalLoanRepaymentExpense: result.totals.loanRepaymentExpense,
+    totalOrdinaryLedgerNet: result.totals.ordinaryLedgerNet,
+    totalSafetyIncome: result.totals.safetyIncome,
     totalFacilityCapitalSpend: result.totals.facilityCapitalSpend,
     totalDrillUpgradeSpend: result.totals.drillUpgradeSpend,
     totalTransferSpend: result.totals.transferSpend,
@@ -410,6 +445,11 @@ function compactRun(seedIndex: number, result: ClubBusinessLongCareerResult): Lo
       sponsorIncome: season.sponsorIncome,
       sponsorObjectiveBonuses: season.sponsorObjectiveBonuses,
       buzzIncome: season.buzzIncome,
+      wageExpense: season.wageExpense,
+      facilityUpkeepExpense: season.facilityUpkeepExpense,
+      loanRepaymentExpense: season.loanRepaymentExpense,
+      ordinaryLedgerNet: season.ordinaryLedgerNet,
+      safetyIncome: season.safetyIncome,
       facilityCapitalSpend: season.facilityCapitalSpend,
       recruitmentEligible: season.recruitment.eligible,
       recruitmentStopReason: season.recruitment.stopReason,
@@ -457,6 +497,10 @@ function reportShard(summary: LongCareerShardSummary): void {
     `observed medians — sponsor: ${aggregate.totalObservedSponsorIncomeMedian}`
       + `  Buzz: ${aggregate.totalObservedBuzzIncomeMedian}`
       + `  facility capital: ${aggregate.facilityCapitalSpendMedian}`,
+    `cost medians — wages: ${aggregate.totalWageExpenseMedian}`
+      + `  upkeep: ${aggregate.totalFacilityUpkeepExpenseMedian}`
+      + `  ordinary net: ${aggregate.totalOrdinaryLedgerNetMedian}`
+      + `  safety income: ${aggregate.totalSafetyIncomeMedian}`,
     `division reach: ${([5, 4, 3, 2, 1] as const)
       .map(division => `D${division} ${aggregate.reachedDivisionCounts[division]}/${summary.seedCount}`)
       .join('  ')}`,

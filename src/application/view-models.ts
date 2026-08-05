@@ -16,6 +16,8 @@ import {
   attributeAffectsPlay,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
+  currentActualMonthlySponsorIncome,
+  CUP_SETTLEMENT_WEEKS,
   contractTermOptions,
   createFacilityGrid,
   currentUserDivision,
@@ -29,10 +31,13 @@ import {
   hasActiveCareerContractPromise,
   pendingTrainingPriorityHolder,
   isAssistantInboxOneShotProductVisible,
+  isAssistantInboxProductDismissedForCurrentWeek,
+  isAssistantInboxProductPermanentlyDismissed,
   isFullyCappedPlayer,
   instantTrainingPreview,
   latestSeasonRecap,
   leagueStandings,
+  homeGateIncome,
   currentDeskTipId,
   deterministicCareerEventRoll,
   isDeskTipSettled,
@@ -330,6 +335,11 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     }] : []),
   ];
   const weeklyNet = recurringProjectionLines.reduce((sum, line) => sum + line.amount, 0);
+  const operatingOutlook = fourWeekOperatingOutlook(
+    state,
+    club,
+    recurringProjectionLines,
+  );
   // Newest week first: the statement is read top-down like a bank statement,
   // and the week just settled is the one the manager came here to check.
   const settledStatements = state.ledgers.slice(-STATEMENT_WEEKS).reverse();
@@ -374,6 +384,7 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
       })),
     fans: club.fans,
     variableIncome: variableIncomeViewModel(state),
+    operatingOutlook,
     weeklyNet,
     projectedBalance: club.cash + weeklyNet,
     ...(state.season === 1 && wageSubsidyPercent > 0
@@ -398,6 +409,68 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     facilities: facilityGridViewModel(state),
     trainingPointIncome: trainingPointIncomeViewModel(state),
     ...(sponsorship === undefined ? {} : { sponsorship }),
+  };
+}
+
+function fourWeekOperatingOutlook(
+  state: GameState,
+  club: GameState['clubs'][number],
+  recurringLines: readonly { readonly label: string; readonly amount: number }[],
+): ClubFinancesViewModel['operatingOutlook'] {
+  if (state.phase === 'season-end' || state.phase === 'complete') {
+    return { weeks: [], net: 0, projectedBalance: club.cash };
+  }
+  const recurringNet = recurringLines.reduce((sum, line) => sum + line.amount, 0);
+  const sponsorIncome = currentActualMonthlySponsorIncome(state, club);
+  const gateIncome = homeGateIncome(state, club, 'projected home gate');
+  const cup = state.m2?.nationalCups.find(candidate => candidate.season === state.season);
+  let runningBalance = club.cash;
+  const weeks = Array.from(
+    { length: Math.min(4, SEASON_WEEKS - state.week + 1) },
+    (_unused, index) => state.week + index,
+  ).map(week => {
+    let net = recurringNet;
+    const facts: string[] = [];
+    const leagueFixture = state.fixtures.find(fixture => (
+      fixture.season === state.season
+      && fixture.week === week
+      && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
+    ));
+    if (leagueFixture?.homeClubId === state.userClubId) {
+      net += gateIncome;
+      facts.push('Home league gate');
+    } else if (leagueFixture?.awayClubId === state.userClubId) {
+      facts.push('Away league game · no gate');
+    }
+
+    const cupRound = cup?.rounds.find(round => CUP_SETTLEMENT_WEEKS[round.number - 1] === week);
+    const cupFixture = cupRound?.fixtures.find(fixture => (
+      fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId
+    ));
+    if (cupFixture?.homeClubId === state.userClubId) {
+      net += gateIncome;
+      facts.push('Home Hero Cup gate');
+    } else if (cupFixture?.awayClubId === state.userClubId) {
+      facts.push('Away Hero Cup tie · no gate');
+    }
+
+    if (SPONSOR_PAYMENT_WEEKS.includes(week as typeof SPONSOR_PAYMENT_WEEKS[number])) {
+      net += sponsorIncome;
+      facts.push('Sponsor payment');
+    }
+    if (facts.length === 0) facts.push('No match or sponsor payment');
+    runningBalance += net;
+    return {
+      periodLabel: `S${state.season} · W${week}`,
+      detail: facts.join(' · '),
+      net,
+      projectedBalance: runningBalance,
+    };
+  });
+  return {
+    weeks,
+    net: weeks.reduce((sum, week) => sum + week.net, 0),
+    projectedBalance: runningBalance,
   };
 }
 
@@ -799,7 +872,7 @@ function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
     return `Youth starting strength +${level * 5}`;
   }
   if (type === 'fan-shop') return `Weekly merchandise scales with fans · x${level}`;
-  if (type === 'stadium-stand') return `+${level * 25}% home gate income`;
+  if (type === 'stadium-stand') return `+${level * 50}% home gate income`;
   throw new Error(`missing facility effect copy for ${type}`);
 }
 
@@ -1211,6 +1284,14 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
   const transferRequests = roster.filter(player => player.transferRequested === true);
   const negativeCashWeeks = state.financialSafety?.consecutiveNegativeWeeks ?? 0;
   const loan = state.financialSafety?.loan;
+  const financialWarningDismissed = isAssistantInboxProductDismissedForCurrentWeek(
+    state,
+    'financial-warning',
+  );
+  const emergencyLoanDismissed = isAssistantInboxProductDismissedForCurrentWeek(
+    state,
+    'emergency-loan',
+  ) || isAssistantInboxProductPermanentlyDismissed(state, 'emergency-loan');
   const boardUltimatum = state.financialSafety?.boardUltimatum;
   const latestBoardResolution = state.financialSafety?.latestBoardResolution;
   const boardResolutionAlertId = latestBoardResolution === undefined
@@ -1257,7 +1338,7 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     // escalation states, not one board row reached a desk that had anything
     // else on it. Money trouble outranks a squad grumble: nothing else in this
     // list can end the club.
-    ...(negativeCashWeeks > 0 ? [{
+    ...(negativeCashWeeks > 0 && !financialWarningDismissed ? [{
       id: 'financial-warning',
       title: 'Board financial warning',
       detail: `Cash has stayed negative for ${negativeCashWeeks} week${negativeCashWeeks === 1 ? '' : 's'}. Transfers and building are locked until the balance recovers.`,
@@ -1268,7 +1349,7 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     // urgent slot (see `assistantProductPriority`) — the accounts office now
     // carries the outstanding balance permanently, so this row announces the
     // debt rather than being the only place to read it.
-    ...(loan !== undefined && loan.remainingBalance > 0 ? [{
+    ...(loan !== undefined && loan.remainingBalance > 0 && !emergencyLoanDismissed ? [{
       id: 'emergency-loan',
       title: 'Emergency loan active',
       detail: `${formatMoney(loan.remainingBalance)} remains.`
@@ -1443,6 +1524,9 @@ export function boardFinanceBriefing(
             + ' The board has run out of patience.',
         'If you have the funds to do so, create a facility to help earn more income.'
           + ' If not, the board is having an emergency meeting right now.',
+        "If you don't have enough to build anything, hold tight."
+          + " There's nothing else you need to do until the board decides what happens next."
+          + " You'll hear from them soon.",
       ],
     };
   }

@@ -547,7 +547,7 @@ export function divisionTicketPrice(division: DivisionLevel): number {
 }
 
 export function divisionSponsorMonthlyFee(division: DivisionLevel): number {
-  return 2_000 * (6 - division);
+  return ({ 5: 3_000, 4: 4_000, 3: 6_000, 2: 8_000, 1: 10_000 } as const)[division];
 }
 
 function startingEleven(players: readonly CareerPlayer[]): string[] {

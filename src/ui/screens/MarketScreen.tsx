@@ -697,7 +697,10 @@ function CoachDesk({
               </View>
               <View className="mt-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
                 <Text className="font-pixel text-sm uppercase text-ink">
-                  {formatCurrency(coach.weeklyWage)} / week
+                  Head {formatCurrency(coach.headWeeklyWage)}/wk
+                  {coach.assistantSlotUnlocked
+                    ? ` · Assistant ${formatCurrency(coach.assistantWeeklyWage)}/wk`
+                    : ''}
                 </Text>
                 <View className="mt-2 border-t border-blue-dark/25 pt-2">
                   <Text className="font-pixel text-sm uppercase text-blue-dark">As head coach</Text>
