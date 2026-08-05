@@ -175,7 +175,7 @@ export function FixtureMatchDayScreen({
         <View className="absolute inset-x-3 top-1/2 h-px bg-paper/50" />
         <View className="absolute left-1/2 top-0 h-full w-px bg-paper/40" />
         {ROLE_ORDER.map(role => {
-          const players = viewModel.lineup.filter(player => player.role === role);
+          const players = viewModel.lineup.filter(player => player.formationRole === role);
           return (
             <View key={role} className={wide
               ? 'my-3 flex-row justify-center gap-4'
@@ -197,7 +197,7 @@ export function FixtureMatchDayScreen({
                   <Pressable
                     key={player.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`${player.name}, starting ${player.role}, shirt ${player.shirtNumber}, condition ${player.condition} percent${conditionStatus === null ? '' : `, ${conditionStatus.label}`}. Select to replace.`}
+                    accessibilityLabel={`${player.name}, ${player.role === player.formationRole ? `starting ${player.formationRole}` : `natural ${player.role}, starting ${player.formationRole}`}, shirt ${player.shirtNumber}, condition ${player.condition} percent${conditionStatus === null ? '' : `, ${conditionStatus.label}`}. Select to replace.`}
                     accessibilityState={{ selected }}
                     onPress={() => setSelectedStarterId(current => current === player.id ? null : player.id)}
                     className={cardClass}
@@ -241,15 +241,18 @@ export function FixtureMatchDayScreen({
       <StageSection
         eyebrow="Selection bench"
         title={selectedStarter === undefined ? 'Choose a starter' : `Replace ${selectedStarter.name}`}
-        right={selectedStarter === undefined ? undefined : <StatusChip label={selectedStarter.role} selected />}
+        right={selectedStarter === undefined ? undefined : <StatusChip label={selectedStarter.formationRole} selected />}
       />
       <View className="gap-2">
         {viewModel.bench.map(player => {
           const conditionStatus = matchdayConditionStatus(player.condition);
-          const roleMismatch = selectedStarter !== undefined && player.role !== selectedStarter.role;
+          const roleMismatch = selectedStarter !== undefined
+            && (player.role === 'GK') !== (selectedStarter.formationRole === 'GK');
           const disabled = selectedStarter === undefined || !player.canStart || roleMismatch;
           const statusLabel = player.unavailableLabel
-            ?? (roleMismatch ? `${selectedStarter?.role ?? player.role} only` : 'Ready');
+            ?? (roleMismatch
+              ? selectedStarter?.formationRole === 'GK' ? 'GK only' : 'Outfield only'
+              : 'Ready');
           return (
             <Pressable
               key={player.id}

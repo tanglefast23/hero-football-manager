@@ -70,6 +70,17 @@ describe('column and personality explanations', () => {
 });
 
 describe('starting eleven team sheet', () => {
+  it('draws starters in their assigned formation row rather than their natural role', () => {
+    const screen = read('src/ui/screens/FixtureMatchDayScreen.tsx');
+
+    expect(screen).toContain(
+      'viewModel.lineup.filter(player => player.formationRole === role)',
+    );
+    expect(screen).not.toContain(
+      'viewModel.lineup.filter(player => player.role === role)',
+    );
+  });
+
   it('uses portraits and wider flexible name cells on phone and desktop', () => {
     const screen = read('src/ui/screens/FixtureMatchDayScreen.tsx');
     const teamSheet = screen.match(/const teamSheet = \(([\s\S]*?)\n  const bench =/)?.[1] ?? '';

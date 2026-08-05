@@ -30,6 +30,37 @@ import {
 describe('management injury and lineup presentation', () => {
   const content = loadLaunchContent();
 
+  it('keeps an out-of-position replacement in the formation slot they took', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260805, undefined, content));
+    const fixture = initial.fixtures.find(candidate => (
+      candidate.homeClubId === initial.userClubId || candidate.awayClubId === initial.userClubId
+    ))!;
+    const lineup = initial.lineups.find(candidate => candidate.clubId === initial.userClubId)!;
+    const playerById = new Map(initial.players.map(player => [player.id, player]));
+    const midfieldSlot = lineup.playerIds.findIndex(id => playerById.get(id)?.role === 'MID');
+    const mae = initial.players.find(player => player.id === 'bramble-rovers-p14')!;
+    const swapped: GameState = {
+      ...initial,
+      week: fixture.week,
+      phase: 'matchday',
+      lineups: initial.lineups.map(candidate => candidate.clubId === initial.userClubId
+        ? {
+            ...candidate,
+            playerIds: candidate.playerIds.map((id, index) => index === midfieldSlot ? mae.id : id),
+          }
+        : candidate),
+    };
+
+    const matchday = matchDayViewModel(swapped, content, '4-4-2');
+    expect(matchday.lineup.find(player => player.id === mae.id)).toMatchObject({
+      role: 'DEF',
+      formationRole: 'MID',
+    });
+    expect(matchday.lineup.filter(player => player.formationRole === 'DEF')).toHaveLength(4);
+    expect(matchday.lineup.filter(player => player.formationRole === 'MID')).toHaveLength(4);
+    expect(matchday.lineup.filter(player => player.formationRole === 'FWD')).toHaveLength(2);
+  });
+
   it('shows active injuries on Home, in Squad, and on the match-day bench', () => {
     const initial = createCareer(createLaunchCareerSetup(20260720, undefined, content));
     const lineup = initial.lineups.find(candidate => candidate.clubId === initial.userClubId)!;

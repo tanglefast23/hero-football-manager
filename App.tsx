@@ -1167,7 +1167,7 @@ function GameApp() {
       && matchdayConditionWarningPlayer(matchDayViewModel(
         career,
         content,
-        preferences.formationPresets[0].replaceAll('-', '–'),
+        preferences.formationPresets[0],
       ).lineup) !== null;
     const milestones = advisorMilestonesToBank(career, {
       enteredManagement: store.screen === 'management',
@@ -1683,7 +1683,7 @@ function GameApp() {
     const matchday = matchDayViewModel(
       store.career,
       content,
-      preferences.formationPresets[0].replaceAll('-', '–'),
+      preferences.formationPresets[0],
     );
     if (careerTeaches && !hasAssistantGuideMilestone(store.career, 'match-condition-warning-seen')) {
       lowConditionMatchdayStarter = matchdayConditionWarningPlayer(matchday.lineup);

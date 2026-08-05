@@ -11,7 +11,7 @@ export type MenuTheme = 'opening' | 'management' | 'event' | null;
 type MenuSfx = 'advance-week' | 'plan-locked' | 'league-champions';
 
 export function menuThemeForScreen(screen: M1Screen, awakeningBeat: number): MenuTheme {
-  if (screen === 'welcome' || screen === 'matchday') return 'opening';
+  if (screen === 'welcome' || screen === 'matchday' || screen === 'postmatch') return 'opening';
   if (screen === 'create-player' || screen === 'management') return 'management';
   // The awakening carries the event bed from the bite onwards. Beat 1 is left
   // to the sad limp cue alone, because that beat IS the silence before it; from

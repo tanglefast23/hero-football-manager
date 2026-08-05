@@ -135,6 +135,7 @@ import {
   reconcileSatisfiedAssistantGuideSequences,
 } from './assistant-guide';
 import { eventChoiceUnavailableReason } from './event-selection';
+import { formationRoleForSlot, type FormationId } from '../sim/tactics';
 
 const LAUNCH_CONTENT = loadLaunchContent();
 const ASSISTANT_GUIDE_CONTENT = LAUNCH_CONTENT.assistantGuide;
@@ -2112,7 +2113,7 @@ export function leagueTableViewModel(state: GameState): LeagueTableViewModel {
 export function matchDayViewModel(
   state: GameState,
   content: LaunchContent,
-  formationLabel = '4–4–2',
+  formation: FormationId = '4-4-2',
 ): MatchDayViewModel {
   const matchday = activeCareerMatchday(state);
   if (matchday === undefined) throw new Error('the current matchday has no user fixture');
@@ -2138,7 +2139,7 @@ export function matchDayViewModel(
         ? `Hero Cup · ${matchday.cupRoundLabel ?? 'Knockout tie'}`
         : undefined,
     ),
-    formationLabel,
+    formationLabel: formation.replaceAll('-', '–'),
     selectedTacticId: 'balanced',
     tactics: [{ id: 'balanced', label: 'Balanced', detail: 'A steady shape with equal attacking and defensive intent.' }],
     lineup: lineupPlayers.map((player, index) => {
@@ -2146,6 +2147,7 @@ export function matchDayViewModel(
         id: player.id,
         name: player.name,
         role: player.role,
+        formationRole: formationRoleForSlot(formation, index),
         lookId: player.lookId,
         shirtNumber: player.shirtNumber ?? index + 1,
         isHero: player.power !== undefined,
