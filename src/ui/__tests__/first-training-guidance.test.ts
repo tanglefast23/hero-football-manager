@@ -67,8 +67,11 @@ describe('first training guidance', () => {
     expect(source).toContain('label="Condition"');
     expect(source).toContain("detail=\"Too low and they risk injury. You're okay for now.\"");
     expect(source).toContain('const conditionCueShowing = conditionCuePlayerId !== null;');
-    expect(source).toContain('if (guideQuickTrainRef.current) setQuickTrainCueDismissed(true);');
-    expect(source).toContain('guideQuickTrain={guideQuickTrain && !quickTrainCueDismissed}');
+    // Global tap cleanup retires short-lived warnings, not the persistent
+    // Quick Train lesson. That lesson ends only when an attribute is tapped.
+    expect(source).not.toContain('guideQuickTrainRef');
+    expect(source).not.toContain('quickTrainCueDismissed');
+    expect(source).toContain('guideQuickTrain={guideQuickTrain}');
     // The table, not a row, carries the cue and the space above it.
     expect(source).toContain('conditionCueShowing || guideOverallSort');
     expect(source).toContain("? 'relative mt-20 border-2 border-ink bg-white'");

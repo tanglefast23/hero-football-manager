@@ -172,8 +172,9 @@ export interface SquadTrainingScreenProps {
   conditionWarningSeen?: boolean;
   onConditionWarningShown?: () => void;
   /**
-   * The week-6 Quick Train lesson. It waits for the manager to select a player,
-   * then points out that the attribute boxes are training shortcuts.
+   * The week-6 Quick Train lesson. It first points to a healthy player, then
+   * leads the manager down to the attribute boxes without selecting or
+   * scrolling for them.
    */
   guideQuickTrain?: boolean;
   onQuickTrainShown?: () => void;
@@ -262,8 +263,6 @@ export function SquadTrainingScreen({
    */
   const [conditionCuePlayerId, setConditionCuePlayerId] = useState<string | null>(null);
   const lastDismissTipsTokenRef = useRef(dismissTipsToken);
-  const guideQuickTrainRef = useRef(guideQuickTrain);
-  const [quickTrainCueDismissed, setQuickTrainCueDismissed] = useState(false);
   const [managerTipGuideTarget, setManagerTipGuideTarget] = useState<ManagerTipDestination | null>(null);
   /** The stat the manager tapped in the player file, aimed at its drill. */
   const [quickTrainPathId, setQuickTrainPathId] = useState<string | undefined>(undefined);
@@ -358,10 +357,6 @@ export function SquadTrainingScreen({
     dismissPlayerGuide();
     dismissConditionCue();
     setManagerTipGuideTarget(null);
-    // Only retire the lesson if it was already on screen when this tap began.
-    // The Advance Week tap can unlock Quick Train; that new lesson must not be
-    // dismissed by the same tap that caused it to appear.
-    if (guideQuickTrainRef.current) setQuickTrainCueDismissed(true);
   }, [dismissConditionCue, dismissPlayerGuide, dismissTipsToken]);
 
   useEffect(() => {
@@ -402,11 +397,6 @@ export function SquadTrainingScreen({
     };
   }, [managerTipGuideRequest]);
 
-  useEffect(() => {
-    guideQuickTrainRef.current = guideQuickTrain;
-    if (!guideQuickTrain) setQuickTrainCueDismissed(false);
-  }, [guideQuickTrain]);
-
   const layoutMode = useLayoutMode();
 
   const sections: FlowSection[] = [
@@ -428,6 +418,7 @@ export function SquadTrainingScreen({
           sortedPlayers={sortedPlayers}
           trainingPoints={trainingPoints}
           selectedPlayerId={selectedPlayerId}
+          guideQuickTrain={guideQuickTrain}
           guideFocus={guideFocus}
           guideOverallSort={managerTipGuideTarget === 'overall-sort'}
           onSelectPlayer={onSelectPlayer}
@@ -444,7 +435,7 @@ export function SquadTrainingScreen({
           selectedArchetype={selectedArchetype}
           statOptions={viewModel.selectedPlayerStatOptions}
           onTrainAttribute={handleTrainAttribute}
-          guideQuickTrain={guideQuickTrain && !quickTrainCueDismissed}
+          guideQuickTrain={guideQuickTrain && selectedPlayer.injuryWeeks === 0}
         />
       ),
     }] : []),
@@ -591,6 +582,7 @@ interface RosterSectionProps {
   sortedPlayers: readonly SquadPlayerViewModel[];
   trainingPoints: number;
   selectedPlayerId?: string;
+  guideQuickTrain: boolean;
   guideFocus?: AssistantGuideFocus;
   guideOverallSort: boolean;
   onSelectPlayer: (playerId: string) => void;
@@ -611,6 +603,7 @@ function RosterSection({
   sortedPlayers,
   trainingPoints,
   selectedPlayerId,
+  guideQuickTrain,
   guideFocus,
   guideOverallSort,
   onSelectPlayer,
@@ -619,6 +612,11 @@ function RosterSection({
   // The lesson is about the column, so it only needs to know that some player
   // triggered it — not which row they are on.
   const conditionCueShowing = conditionCuePlayerId !== null;
+  const selectedQuickTrainPlayer = sortedPlayers.find(player => player.id === selectedPlayerId);
+  const quickTrainTargetPlayerId = selectedQuickTrainPlayer?.injuryWeeks === 0
+    ? selectedQuickTrainPlayer.id
+    : sortedPlayers.find(player => player.injuryWeeks === 0)?.id;
+  const quickTrainNeedsPlayer = selectedQuickTrainPlayer?.injuryWeeks !== 0;
   return (
     <View>
       <SectionLabel
@@ -703,15 +701,24 @@ function RosterSection({
             (guideFocus === 'injury-lineup' && player.injuryWeeks > 0)
             || guideFocus === 'transfer-request'
           );
+          const guideQuickTrainPlayer = guideQuickTrain
+            && !guidePlayers
+            && guideFocus === undefined
+            && !guideOverallSort
+            && !conditionCueShowing
+            && (quickTrainNeedsPlayer || !wideColumns)
+            && player.id === quickTrainTargetPlayerId;
           return (
             <View
               key={player.id}
-              className={selected
+              className={guideQuickTrainPlayer
+                ? 'relative flex-row items-center border-2 border-blue-dark bg-blue-light px-2 py-2'
+                : selected
                 ? 'flex-row items-center border-b border-ink/20 bg-paper-dark px-2 py-2'
                 : player.injuryWeeks > 0
                   ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-2 py-2'
                   : 'flex-row items-center border-b border-ink/10 px-2 py-2'}
-              style={guideConciergePlayer
+              style={guideConciergePlayer || guideQuickTrainPlayer
                 ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE }
                 : undefined}
             >
@@ -719,6 +726,19 @@ function RosterSection({
                 <TutorialTapCue
                   label="Bert says"
                   detail={guideFocus === 'injury-lineup' ? 'Review injury and replacement' : 'Review this player'}
+                  style={{
+                    left: '50%',
+                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                    top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                  }}
+                />
+              ) : null}
+              {guideQuickTrainPlayer ? (
+                <TutorialTapCue
+                  label="Quick Train"
+                  detail={quickTrainNeedsPlayer
+                    ? 'Tap a player to see their attributes'
+                    : 'Scroll down to Attributes'}
                   style={{
                     left: '50%',
                     marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -1040,8 +1060,8 @@ function PlayerFileSection({
       >
         {guideQuickTrain ? (
           <TutorialTapCue
-            label="Quick Train"
-            detail="Select a player and tap the attribute you want to train."
+            label="Tap an attribute"
+            detail="Choose the stat you want to train"
             style={{
               left: '50%',
               marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
