@@ -622,6 +622,8 @@ function seekThenPlay(player: AudioPlayer | null, isCurrent: () => boolean): voi
 
 Every call site builds `isCurrent` from the tuple it captured at start, e.g. spin: `const gen = ++spinGen; const stop = stopEpoch; const sus = suspendEpoch; seekThenPlay(spinPlayer, () => gen === spinGen && stop === stopEpoch && sus === suspendEpoch)`. Thunk voice i: `const gen = ++voiceGen[i]; …` plus the same epoch pair. Gains: spin 0.6, thunk 1.0, flame-up 0.9, crackle 0.5, each × master; volume 0 ⇒ `muted = true` on all (audio.ts ~275 behavior). `stopSurgeBed()` pauses flame-up AND crackle and bumps `surgeGen`, clears `crackleActive`. Exports: `playLedgerSpin, stopLedgerSpin, playLedgerThunk, playSurgeIgnition, stopSurgeBed, stopAllFinancialReportSfx, setFinancialReportSfxMasterVolume, teardownFinancialReportSfx`.
 
+**Dead-player recovery:** iOS invalidates players backgrounded too long — a rejected/failed seek must not leave a cue permanently dead. Mirror the bounded recreate-and-retry pattern the repo already uses (`audio.ts` ~399, `management-sfx.ts` ~117): on a failed seek/play, recreate that player from its source ONCE per failure event and retry; if the retry also fails, stay silent. Test: permanent player failure (creation keeps throwing) stays silent without wedging; failure-then-successful-recreate plays on the next call. **Lifecycle registration happens exactly once** (module-level guard); `teardownFinancialReportSfx()` calls the `registerAudioOwner` return value (its unregister) and clears the guard.
+
 - [ ] **Step 4: Wire `App.tsx`** — volume effect + unmount teardown. **Step 5: PASS; `npx tsc --noEmit`; scoped commit (includes both wavs)** — `"feat: financial report audio controller and owner-supplied ledger SFX"`.
 
 ---
@@ -760,8 +762,8 @@ export type RowPhase = 'pending' | 'spinning' | 'base' | 'chip' | 'multiplied' |
 export interface MachineState {
   generation: number;      // bumped by every event that cancels scheduled work
   rows: readonly { phase: RowPhase; shownValue: number; settleKey: number; settleMode: SettleMode }[];
-  net: { phase: 'pending' | 'spinning' | 'complete'; shownValue: number; settleKey: number; settleMode: SettleMode };
-  stampVisible: boolean;
+  net: { phase: 'pending' | 'spinning' | 'base' | 'complete'; shownValue: number; settleKey: number; settleMode: SettleMode };
+  stampPhase: 'hidden' | 'slamming' | 'complete';   // the component animates 'slamming' (250 ms) and dispatches stampSettled
   status: 'running' | 'reportComplete';
   cursor: { kind: 'row'; index: number } | { kind: 'net' } | { kind: 'done' };
   bannerQueue: readonly { rowId: string; kind: 'attendance' | 'merch' }[];
@@ -770,10 +772,13 @@ export interface MachineState {
 
 export type SettleMode = 'land' | 'odometer' | 'adjacency' | 'instant';
 
+export type MachineTarget = { target: 'row'; index: number } | { target: 'net' }; // discriminated — net carries no index
+
 export type MachineEvent =
   | { type: 'start' }
-  | { type: 'timer'; generation: number; target: 'row' | 'net'; index: number; expectPhase: RowPhase | 'advance' | 'stamp' }
-  | { type: 'amountSettled'; generation: number; target: 'row' | 'net'; index: number; settleKey: number }
+  | ({ type: 'timer'; generation: number; expectPhase: RowPhase | 'advance' } & MachineTarget)
+  | ({ type: 'amountSettled'; generation: number; settleKey: number } & MachineTarget)
+  | { type: 'stampSettled'; generation: number }   // the component's slam animation finished
   | { type: 'tap' }
   | { type: 'bannerShown'; rowId: string };  // ignored unless rowId is the queue head
 
@@ -788,17 +793,21 @@ export function reduce(config: MachineConfig, state: MachineState, event: Machin
   { state: MachineState; commands: readonly MachineCommand[] };
 ```
 
-Notes locked in: `settleAmount` is not a command — the row's `{ shownValue, settleKey, settleMode }` in state drives `SlotAmount`, and `amountSettled` events flow back (generation-checked) to advance phases. Phase-advance rules: base-land thunk fires on the base `amountSettled` (digits actually landed), not when the spin timer expires; the spin timer only transitions `spinning → base` (stop spin audio + set the base value settling). The **automatic** net path emits TWO thunks (net `amountSettled` → thunk; stamp timer → thunk + `stampVisible`); a **tapped** net coalesces into ONE thunk with stamp in the same reduction. Merch flow: `hasMultiplier = multiplierTimes > 1`, `hasAdjacency = adjacencyAmount > 0`, independent — N=1+adjacency goes base → adjacency (no chip); identity reveals go base → complete.
+Notes locked in: `settleAmount` is not a command — the row's `{ shownValue, settleKey, settleMode }` in state drives `SlotAmount`, and `amountSettled` events flow back (generation-checked) to advance phases. Phase-advance rules:
+- The spin timer only transitions `spinning → base` (emit `stopSpin`; the base value begins settling). The base-land **thunk**, the surge **`stopSurgeBed`** (spec: both surge sounds stop *at land*), and the surge **banner enqueue** all fire on the base `amountSettled` — never on the earlier spin-timer transition. The crackle legitimately runs through the digit-settle stagger.
+- The **automatic** net path: net `amountSettled` → thunk #1 + `stampPhase: 'slamming'`; the component's slam animation completes → `stampSettled` → thunk #2 + `stampPhase: 'complete'` + `status: 'reportComplete'`. A **tapped** net coalesces: ONE thunk, `stampPhase: 'complete'`, `reportComplete`, all in one reduction (no slam animation event needed). This keeps the stamp beat at its single 250 ms — the machine never double-waits `stampMs` on top of the component's animation.
+- Merch flow: `hasMultiplier = multiplierTimes > 1`, `hasAdjacency = adjacencyAmount > 0`, independent — N=1+adjacency goes base → adjacency (no chip); identity reveals go base → complete.
+- Export a `slotPhaseForRow(phase: RowPhase): SlotAmountProps['phase']` mapper (`'pending'→'pending'`, `'spinning'→'spinning'`, everything else `'settled'`) so the shell never hand-rolls the mapping.
 
 - [ ] **Step 1: Failing machine tests** — the matrix (drive the machine by feeding back its own scheduled/settled events synchronously):
 
-1. Happy path (timer flow): rows spin → base → … → complete in order; exactly one playSpin/stopSpin per row; base thunk emitted on `amountSettled`, not on the spin timer; net row last; automatic net = two thunks (land + stamp); `status 'reportComplete'`.
+1. Happy path (timer flow): rows spin → base → … → complete in order; exactly one playSpin/stopSpin per row; base thunk emitted on `amountSettled`, not on the spin timer; net row last; automatic net = two thunks (net `amountSettled` → thunk + `slamming`; `stampSettled` → thunk + `complete`); `status 'reportComplete'` only after `stampSettled`.
 2. Stale timer (old generation) and stale `amountSettled` (old settleKey) → zero commands.
 3. Tap during EVERY phase of a multiplied surged row → atomic complete (`settleMode 'instant'`, shownValue final), ONE thunk, stopSpin + stopSurgeBed present, banner enqueued exactly once (also when the tap skipped the spin phase entirely), generation bumped, next row scheduled after `interRowMs`.
 4. Rapid double tap → second tap acts on the NEXT row; never re-completes, never double-thunks, never double-schedules.
 5. Tap on net → complete + stamp + `reportComplete` in one reduction, ONE thunk; further taps → zero commands.
 6. Phase flows: gate `multiplierPercent > 100` → base(land) → chip → multiplied(odometer) → complete; merch N>1 + adjacency → base → chip → multiplied → adjacency → complete; merch N=1 + adjacency → base → adjacency → complete (NO chip); identity → base → complete. `settleMode` values match each transition.
-7. Surge timing: land timer at `rowSpinMs × surgeSpinFactor`; `playSurgeIgnition` at spin start; `stopSurgeBed` at the spin→base transition **also on the automatic (non-tapped) path**, with exactly one banner.
+7. Surge timing: land timer at `rowSpinMs × surgeSpinFactor`; `playSurgeIgnition` at spin start; on the automatic (non-tapped) path, `stopSurgeBed` AND the single banner enqueue both fire on the base `amountSettled` (the land), never on the spin timer.
 8. Empty ledger: `start` goes straight to the net row.
 9. Reduce motion: everything complete at creation, stamp visible, `reportComplete`, bannerQueue pre-populated with every surged row in ledger order.
 10. Triple surge: three banners FIFO in ledger order; `bannerShown` with the HEAD rowId dequeues; `bannerShown` with a non-head rowId is ignored.
@@ -851,11 +860,13 @@ export interface SlotAmountProps {
   phase: 'pending' | 'spinning' | 'settled';
   settleMode: 'land' | 'odometer' | 'adjacency' | 'instant';
   settleKey: number;             // re-runs the settle animation for the new value
+  /** Total duration for 'odometer'/'adjacency' modes — wired from MachineTimings, never hardcoded. */
+  settleDurationMs?: number;
   tone: 'income' | 'expense' | 'neutral';
   surge: boolean;
   large?: boolean;
   reduceMotion: boolean;
-  onSettled?: (settleKey: number) => void;  // fires ONCE per settleKey, after digits AND land pop
+  onSettled?: (settleKey: number) => void;  // fires ONCE per settleKey when the mode's animation fully completes
 }
 ```
 
@@ -864,10 +875,9 @@ Requirements (complete component; typecheck + QA verified):
 - Width reservation: invisible `format(finalValue)` sizing text; live reel/placeholder absolutely overlaid; `$•••` dimmed placeholder for `pending`.
 - Cell geometry scales with `PixelRatio.getFontScale()` (the 1.6× pass).
 - Reel track spans TWO full cycles + closing zero (`0…9,0…9,0`) so an upward roll from ANY settled digit to ANY target digit stays upward (from position p, the target's next occurrence ≤ one cycle ahead always exists); continuous spin loops over one cycle.
-- Settle durations by mode: `land` = 90 ms/digit with 30 ms left-to-right stagger; `odometer` = 200 ms total; `adjacency` = 150 ms total; `instant` = no animation, jump to final. `onSettled(settleKey)` fires after the LAST digit's animation completes AND the 120 ms land pop finishes (`Animated.sequence` completion callback — never a guessed timeout). `instant` fires it synchronously (via effect).
+- Settle durations by mode: `land` = 90 ms/digit with 30 ms left-to-right stagger, followed by the 120 ms land pop — the pop belongs to `land` ONLY; `odometer` and `adjacency` animate for exactly `settleDurationMs` (200/150 from `MachineTimings`, passed as a prop — never hardcoded) with NO pop; `instant` = no animation, jump to final. `onSettled(settleKey)` fires when the mode's full sequence completes (`Animated.sequence`/timing completion callback — never a guessed timeout). `instant` fires it synchronously (via effect).
 - Spin loops stored in refs, `.stop()`ed on phase change/unmount (`EventPixelScene` cleanup pattern).
-- Surge: spinning = looping `#b45309 → #dc2626 → #f59e0b` color flicker (JS-driven, `useNativeDriver: false` for color only); settled = one font size larger + permanent `#b45309`. **No synthetic bold**: `pixel-type-and-empty-states.test.ts:42` rejects `font-mono font-bold`; the mono face has no authored bold — the surge treatment is SIZE + COLOR only (spec's "bold" satisfied by weight-of-presence; log as a deviation in the commit body).
-- Land pop scale 1 → 1.06 → 1 (120 ms, native driver) as part of the settle sequence.
+- Surge: spinning = looping `#b45309 → #dc2626 → #f59e0b` color flicker (JS-driven, `useNativeDriver: false` for color only); settled = **`font-pixel`** (the authored bold cut — Tailwind maps it to `Silkscreen_700Bold`; `pixel-type-and-empty-states.test.ts:15` names it the real bold face, and only synthetic `font-bold` on mono is forbidden) one size larger with permanent `#b45309`. This keeps the spec's "larger, bold, fire-tinted" intact. The invisible width-reservation text for a surged row uses the SAME surged typography so the landed treatment never shifts layout.
 - Colors: income `#265b30`, expense `#a83440`, neutral `#241f2e`; spinning digits at 55% alpha.
 - `reduceMotion`: static final text; `onSettled` fires synchronously per settleKey.
 
@@ -893,7 +903,7 @@ export interface SurgeBannerProps {
 }
 ```
 
-Renders `pointerEvents="none"` absolutely over the statement (`className="absolute inset-x-4 top-1/3"`), showing `queue[0]` only: paper card `border-2 border-b-4 border-ink bg-paper`, `rotate: '-3deg'`; pop-in `Animated.spring` scale 0.2 → 1, hold 2000 ms, fade 200 ms, then `onShown(rowId)`. Under `reduceMotion` the card is FULLY static (no pop, no fade) for its 2 s. Content: Skia `<Canvas>` sprite strip — `attendance`: the five `CROWD_SPRITE_IDS` side by side; `merch`: `pickMerchToys(settlementSeason, settlementWeek)` side by side — each sprite drawn as `<Rect>`s from `financeSpriteRuns(id)` at `FINANCE_SPRITE_SCALE` (3), the `EventPixelScene` rendering pattern. Headline `PixelText`: `EXTREME ATTENDANCE!` (`text-red-dark`) / `TRENDING MERCHANDISE!` (`text-pitch-ink`). `accessibilityRole="alert"`, label = headline.
+Renders `pointerEvents="none"` absolutely over the statement (`className="absolute inset-x-4 top-1/3"`), showing `queue[0]` only: paper card `border-2 border-b-4 border-ink bg-paper`, `rotate: '-3deg'`; pop-in `Animated.spring` scale 0.2 → 1, hold 2000 ms, fade 200 ms, then `onShown(rowId)`. The banner effect is **keyed to the queue-head `rowId`** (`useEffect` dep), and its cleanup clears the hold timeout and stops the spring/fade handles — a queue change mid-display never leaks a timer or fires a stale `onShown`. Under `reduceMotion` the card is FULLY static (no pop, no fade) for its 2 s. Content: Skia `<Canvas>` sprite strip — `attendance`: the five `CROWD_SPRITE_IDS` side by side; `merch`: `pickMerchToys(settlementSeason, settlementWeek)` side by side — each sprite drawn as `<Rect>`s from `financeSpriteRuns(id)` at `FINANCE_SPRITE_SCALE` (3), the `EventPixelScene` rendering pattern. Headline `PixelText`: `EXTREME ATTENDANCE!` (`text-red-dark`) / `TRENDING MERCHANDISE!` (`text-pitch-ink`). `accessibilityRole="alert"`, label = headline.
 
 - [ ] **Step 2: `FinancialStatement.tsx`** — thin shell:
 
@@ -908,10 +918,13 @@ export interface FinancialStatementProps {
 ```
 
 - Creates the runtime once (`useRef`/`useMemo`): `createStatementRuntime({ config: { rows, netAmount, timings: DEFAULT_MACHINE_TIMINGS, reduceMotion }, audio: <the Task 5 controller mapped to RuntimeAudio>, onState: setMachineState })`; dispatches `{type:'start'}` on mount; `runtime.dispose()` on unmount.
-- Owns the PaperPanel (`kicker="Accounts office" title="Match statement"`, NO stamp prop — stamp self-rendered on `stampVisible` with the 250 ms slam: rotate −8°→4°, scale 1.4→1).
+- Owns the PaperPanel (`kicker="Accounts office" title="Match statement"`, NO stamp prop — stamp self-rendered). Stamp lifecycle: `stampPhase 'slamming'` starts the 250 ms slam (rotate −8°→4°, scale 1.4→1) whose completion callback dispatches `{ type: 'stampSettled', generation }`; `'complete'` renders it at rest (the tapped path lands here directly, no animation).
+- **Renders the net row** (the machine's `net` state) as the net cash change banner: its own `<SlotAmount>` (`large`, `finalValue = netAmount`, phase via `slotPhaseForRow`, `onSettled` dispatching `{ type: 'amountSettled', generation, target: 'net', settleKey }`), width reserved like every row, wrapped with `accessible`, `accessibilityRole="text"`, and label `Net cash change, plus/minus $X` available immediately. Without this the machine reaches the net cursor and can never complete.
+- Every ledger row's wrapper View explicitly APPLIES `accessible`, `accessibilityRole="text"`, and `accessibilityLabel={rowAccessibilityLabel(line)}` — defining the helper alone renders nothing.
+- Callback stability: `onSettled`/`onShown`/`onPress` handlers are `useCallback`-stable (runtime + generation read from refs), so ordinary rerenders never restart `SlotAmount` effects or banner timers.
 - Rows render label + UI-only suffix (gate `facilityCount > 0` → `· N stand(s)`; merch `multiplierTimes >= 2` → `· N shop(s)`), the chip (`×{multiplierPercent}%` / `×{multiplierTimes}`, slide-in 10 px + fade at the chip phase), the adjacency caption (`+{adjacencyPercent}% adjacency`, fade at the adjacency phase), and `<SlotAmount>` fed from the machine row state (`value/settleKey/settleMode/phase`), with `onSettled={(key) => runtime.dispatch({ type: 'amountSettled', generation: state.generation, target, index, settleKey: key })}`.
 - Tap surface: native RN `Pressable` (NOT `SfxPressable`) wrapping the ENTIRE panel content, `accessible={false}`, `onPress={() => runtime.dispatch({ type: 'tap' })}`, no function-form `style`.
-- Surge rows while spinning: the **sweeping warm wash** — an absolutely-positioned `Animated.View` overlay (`#fdba74` at 35% opacity, width 40% of the row) whose translateX loops from −40% to 140% of the row width (~600 ms cycle, native driver); the row's base background sits at `#fde68a`. A pulse alone does not satisfy the spec's "sweeping the row".
+- Surge rows while spinning: the **sweeping warm wash** — measure the row width with `onLayout`, then an absolutely-positioned `Animated.View` overlay (`#fdba74` at 35% opacity, width = 0.4 × measured width) loops translateX over NUMERIC values from `−0.4 × width` to `1.4 × width` (~600 ms cycle, native driver); the row's base background sits at `#fde68a`. Percentage transforms are unreliable here; a pulse alone does not satisfy "sweeping the row". The wash loop handle is stored and stopped on land/unmount.
 - `rowAccessibilityLabel` helper exactly as specified in spec §12, skipping the multiplier phrase entirely for identity reveals (never "times 1" / "times 100 percent"), appending "Surged this week." on surges.
 - `<SurgeBanner queue={state.bannerQueue} settlementSeason={…} settlementWeek={…} onShown={rowId => runtime.dispatch({ type: 'bannerShown', rowId })} reduceMotion={reduceMotion} />` over the panel.
 
@@ -924,7 +937,7 @@ export interface FinancialReportBodyProps {
 }
 ```
 
-Renders, in order: `<FinancialStatement lines={viewModel.ledger} netAmount={viewModel.netAmount} settlementSeason={viewModel.settlementSeason} settlementWeek={viewModel.settlementWeek} reduceMotion={reduceMotion} />` → What moved (TP/Fans `Metric`s with `CountUpText` + landing bounce) → buzz card → updates, each in `EntranceView` (translateY 12→0 + fade 320 ms; per-card stagger `80 * index`; warning-tone cards add one ±3° 300 ms wiggle; immediate under reduceMotion). `CountUpText` and `EntranceView` live here.
+Renders, in order: `<FinancialStatement lines={viewModel.ledger} netAmount={viewModel.netAmount} settlementSeason={viewModel.settlementSeason} settlementWeek={viewModel.settlementWeek} reduceMotion={reduceMotion} />` → What moved (TP/Fans `Metric`s with `CountUpText` + landing bounce) → buzz card → updates, each in `EntranceView` (translateY 12→0 + fade 320 ms; per-card stagger `80 * index`; warning-tone cards add one ±3° 300 ms wiggle; immediate under reduceMotion). `CountUpText` and `EntranceView` live here, and **this file imports `countUpValue` from `../count-up`** (the modal's old import does not carry across modules). Because this task hands `<CountUpText>` to `Metric`, the `Metric.value: string → ReactNode` widening in `Scorecard.tsx` (~line 180) happens in THIS task, or Task 9 fails typecheck — add `src/ui/components/Scorecard.tsx` to this task's files and staging.
 
 - [ ] **Step 4: `npx tsc --noEmit`; scoped commit** — `"feat: FinancialStatement shell, surge banners, shared report body"`.
 
@@ -937,9 +950,8 @@ Renders, in order: `<FinancialStatement lines={viewModel.ledger} netAmount={view
 
 - [ ] **Step 1:**
   - Title → `Financial report`; close label → `Close financial report`; one shared `handleDismiss = () => { stopAllFinancialReportSfx(); onDismiss(); }` used by close, backdrop, Continue, AND `onRequestClose` (Android back).
-  - DELETE the score row + StatusChip block, `CountUpAmount`, `animationsComplete`/`onTouchStart`. KEEP the `countUpValue` import (used by `CountUpText` in `FinancialReportBody`).
+  - DELETE the score row + StatusChip block, `CountUpAmount`, `animationsComplete`/`onTouchStart`, and the modal's now-unused `countUpValue` import (`CountUpText` lives in `FinancialReportBody`, which imports it itself; the `Metric` widening also already landed in Task 9).
   - Body becomes `<FinancialReportBody viewModel={viewModel} reduceMotion={reduceMotion} />` inside the existing ScrollView; keep `playMatchStatementSfx` mount effect.
-  - `Metric.value` in `Scorecard.tsx` widens `string → ReactNode` (string stays assignable).
   - `PostMatchLedgerScreen.tsx` ~125: stale "match summary" accessibility wording → "financial report".
 - [ ] **Step 2:** Retarget the audit rails in `acceptance-audit-regressions.test.ts:63–77` (row `accessibilityLabel` guard → `FinancialStatement.tsx`; TP-change guard → the new `CountUpText`/`FinancialReportBody` source) — retarget, never delete.
 - [ ] **Step 3:** `npx jest --runTestsByPath src/ui/__tests__/overlay-dismissal.test.ts src/ui/__tests__/acceptance-audit-regressions.test.ts src/ui/__tests__/pixel-type-and-empty-states.test.ts`; `npx tsc --noEmit`. **Commit** — `"feat: rebuild post-match modal as the Financial Report"`.
@@ -979,7 +991,7 @@ function reportCase(lines: PostMatchLedgerLineViewModel[], overrides?: Partial<P
 
 - [ ] `npx tsc --noEmit`; `npm test` (includes `opening-economy-balance.test.ts`; contingency path per Task 2 Step 5; STOP if still red after the clamp).
 - [ ] **Web animation QA:** the dev harness needs its flag — export with `EXPO_PUBLIC_DEV_HARNESS=1 npx expo export --platform web --clear` then the `fix-worker-bundles` step (see README ~line 24 for the documented harness export command), copy `canvaskit.wasm` into `dist`, serve, browser pane → `financial-report` entry, **mute audio immediately**, verify every case, capture screenshots (RAF-recorder + forced-paint). Close tab, stop server.
-- [ ] **Native + audio QA (iOS simulator):** launch with `EXPO_PUBLIC_DEV_HARNESS=1` set for the harness; verify: spin bed per row; thunk on land and tap (machine-gun clean — 4-voice pool); flame-up + crackle on surge rows only, both stopping at land; no late audio after rapid skips/dismissal; volume 0 silences (muted). Background/foreground mid-surge-spin → crackle resumes only if that row still spins; a suspend-straddling seek never plays. Shut the simulator down afterwards.
+- [ ] **Native + audio QA (iOS simulator):** the two new wav assets are BUNDLED — a fresh local native build is required (README: new audio assets cannot be hot-loaded by Metro); build with `EXPO_PUBLIC_DEV_HARNESS=1` set, then verify: spin bed per row; thunk on land and tap (machine-gun clean — 4-voice pool); flame-up + crackle on surge rows only, both stopping at land; no late audio after rapid skips/dismissal; volume 0 silences (muted). Background/foreground mid-surge-spin → crackle resumes only if that row still spins; a suspend-straddling seek never plays. Shut the simulator down afterwards.
 - [ ] Large-text (1.6×) and longest-ledger passes: no clipped digits, net + stamp reachable.
 
 ---
@@ -994,5 +1006,6 @@ function reportCase(lines: PostMatchLedgerLineViewModel[], overrides?: Partial<P
 ## Self-review notes (v3)
 
 - Round-2 items: machine reducer now configured (`MachineConfig` into `createMachine`/`reduce`), net represented explicitly (`net` field + cursor sentinel), `amountSettled` and rowId-carrying `bannerShown` events added, authoritative-ref dispatch rule stated (Task 7); runtime executor extracted and fake-timer-tested for disposal/stopAll-once/double-tap (Tasks 7); SlotAmount gains `settleMode` with per-mode durations, two-cycle track, pop-inclusive callback, no-synthetic-bold rule (Task 8); base thunk on digit-land, automatic net two thunks vs tapped one (Task 7 rules + tests); suspend epoch + per-voice thunk generations + 4-voice pool + `audioIsSuspended()` direct + wraparound test (Task 5); uint32 seed + merch final-addition safe check (Tasks 1, 3); projection parity via searched zero-roll seeds on eligible weeks, store-path watched-vs-quick parity in Task 4 (Tasks 2, 4); settlementSeason/Week wired modal → statement → banner → `pickMerchToys` (Tasks 9, 10); sweeping wash specified concretely (Task 9); all "plan v1" references replaced with self-contained content (Tasks 6, 9); `EXPO_PUBLIC_DEV_HARNESS=1` + `--clear` export and native flag (Task 13); shared `FinancialReportBody` for modal + harness (Tasks 9–11); reduce-motion harness case includes a surge (Task 11); contingency staging + dual-EV PR reporting (Tasks 2, 14); README locked-through heading (Task 12).
+- Round-3 items applied post-cap: net-row rendering + `slotPhaseForRow` mapper + discriminated `MachineTarget` (Tasks 7, 9); `stampPhase`/`stampSettled` callback flow keeping the stamp at one 250 ms beat, banner + `stopSurgeBed` on base `amountSettled` (Task 7); pop only on `land`, `settleDurationMs` wired from timings (Task 8); surge bold via the authored `font-pixel` cut with matching width reservation — spec's "bold" retained (Task 8); Task-9-local `Metric` widening + `FinancialReportBody`-local `countUpValue` import (Tasks 9, 10); stable callbacks, rowId-keyed banner effect with full cleanup, explicit row/net accessibility application, `onLayout`-measured numeric wash sweep (Task 9); bounded dead-player recreate-and-retry + once-only lifecycle registration with unregister (Task 5); fresh native build before audio QA (Task 13); spec §10 "injected RNG" wording amended to the internal derived roll (spec commit).
 - Fable round-2 notes honored: `MachineTimings` exported with defaults; thunk pool implemented to the tests (per-voice generations, no vestigial shared counter); fake player shape includes `muted`.
 - Name consistency: `MachineConfig/MachineTimings/DEFAULT_MACHINE_TIMINGS/SettleMode`, `createStatementRuntime/RuntimeAudio/StatementRuntime`, `FinancialReportBody`, controller API unchanged across Tasks 5/7/9/10.
