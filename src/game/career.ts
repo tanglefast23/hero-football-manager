@@ -1010,14 +1010,14 @@ export function currentActualMonthlySponsorIncome(state: GameState, userClub: Cl
  */
 export const STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL = 50;
 
-/** The best operational stand wins; a second stand is not a second bonus. */
+/** Every operational stand level adds to the home gate across up to three stands. */
 export function gridStadiumStandLevel(grid: FacilityGridState | undefined): number {
   if (grid === undefined) return 0;
   let level = 0;
   for (const building of grid.buildings) {
     if (building.type !== 'stadium-stand') continue;
     if (!isFacilityOperational(grid, building.id)) continue;
-    level = Math.max(level, building.level);
+    level = checkedAdd(level, building.level, 'combined Stadium Stand level');
   }
   return level;
 }

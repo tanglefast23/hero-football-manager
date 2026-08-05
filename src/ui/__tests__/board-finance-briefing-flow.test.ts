@@ -111,9 +111,9 @@ describe('the money-making buildings', () => {
   it('lights every income card and says why', () => {
     expect(club).toContain("const guideIncomeFacilities = guideFocus === 'income-facilities';");
     expect(club).toContain('const guidedIncome = guideIncomeFacilities && isIncomeFacilityType(entry.type);');
-    expect(club).toContain(
-      'These are the buildings that will get you out of your financial hole. Build them!',
-    );
+    expect(club).toContain('You can build up to 3 of each; every other facility is limited to 1.');
+    expect(club).toContain('Wait until construction finishes, then build another Fan Shop or Stadium Stand.');
+    expect(club).toContain('viewModel.facilities.activeProject === undefined');
     // The same gold treatment the guided Coaching Office card wears, so the two
     // read as one instruction rather than two unrelated highlights.
     expect(club).toMatch(/\|\| guidedIncome\s*\n\s*\? 'min-h-36 w-full border-2 border-b-4 border-gold-dark/);

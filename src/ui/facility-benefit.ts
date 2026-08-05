@@ -30,8 +30,8 @@ export function facilityBenefit(type: FacilityTypeViewModel): string {
     case 'youth-field':
       return 'Improves the starting ratings of future youth intakes. Better prospects cost larger signing bonuses.';
     case 'fan-shop':
-      return 'Earns weekly merchandise income, more per Level.';
+      return 'Earns weekly merchandise income. Build up to 3; every Shop and Level adds to the total.';
     case 'stadium-stand':
-      return 'Adds +50% home gate income per Level. The bigger the club, the bigger the return.';
+      return 'Adds +50% home gate income per Level. Build up to 3; every Stand and Level adds to the total.';
   }
 }

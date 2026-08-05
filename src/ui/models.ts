@@ -551,6 +551,10 @@ export interface ClubFacilityBuildingViewModel {
 export interface ClubFacilityCatalogViewModel {
   type: FacilityTypeViewModel;
   name: string;
+  /** Copies already placed, including a copy still under construction. */
+  builtCount: number;
+  /** Three for income buildings; one for every other facility. */
+  buildLimit: number;
   buildCost: number;
   width: number;
   height: number;

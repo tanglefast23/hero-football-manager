@@ -1,5 +1,6 @@
 import { loadLaunchContent } from '../../content';
 import {
+  buildCareerFacility,
   createCareer,
   dismissAssistantInboxProductForCurrentWeek,
   dismissAssistantInboxProductPermanently,
@@ -168,19 +169,20 @@ describe('the board finance briefing', () => {
       expect(briefing?.body[1]).toContain('12 weeks of repayments left');
     });
 
-    it('closes by pointing at income rather than at the deficit', () => {
+    it('explains the commercial build limits and points at more income', () => {
       const briefing = boardFinanceBriefing(
         career(20260911, 15000, { consecutiveNegativeWeeks: 0, emergencyLoanUsed: true, loan }),
         'emergency-loan',
       );
 
       expect(briefing?.body.at(-1)).toBe(
-        'Build something that earns while you sleep, like a shop or a stand,'
-        + ' or the repayments will find you next season.',
+        'Fan Shops earn money every week, while Stadium Stands improve home-match income.'
+        + ' You can build up to three of each; every other facility is limited to one.'
+        + ' Build another one now to create more income.',
       );
     });
 
-    it('drops the next-season warning once the repayments are already running', () => {
+    it('uses the same simple commercial rule once repayments are running', () => {
       const started = career(20260912, 15000, {
         consecutiveNegativeWeeks: 0,
         emergencyLoanUsed: true,
@@ -189,8 +191,24 @@ describe('the board finance briefing', () => {
 
       const briefing = boardFinanceBriefing({ ...started, season: 2 }, 'emergency-loan');
 
-      expect(briefing?.body.at(-1)).toContain('Build something that earns while you sleep');
-      expect(briefing?.body.at(-1)).not.toContain('next season');
+      expect(briefing?.body.at(-1)).toContain('up to three of each');
+      expect(briefing?.body.at(-1)).toContain('Build another one now');
+    });
+
+    it('says to wait only when another construction project is active', () => {
+      const borrowed = career(20260919, 15000, {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+        loan,
+      });
+      const busy = buildCareerFacility(borrowed, 'training-pitch', { x: 0, y: 0 }).state;
+
+      const briefing = boardFinanceBriefing(busy, 'emergency-loan');
+
+      expect(briefing?.body.at(-1)).toContain('works crew is busy with the Training Pitch');
+      expect(briefing?.body.at(-1)).toContain('Wait until that construction finishes');
+      expect(boardFinanceBriefing(borrowed, 'emergency-loan')?.body.at(-1))
+        .not.toContain('Wait until');
     });
 
     it('retires the inbox card permanently after showing the highlighted income facilities', () => {

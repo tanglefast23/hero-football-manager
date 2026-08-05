@@ -317,15 +317,42 @@ describe('club finances immediate transaction history', () => {
     });
     expect(dormBuilding?.activeAdjacencyIds).toEqual(['gym-dorm']);
     expect(viewModel.facilities.catalog.find(entry => entry.type === 'fan-shop')).toMatchObject({
+      builtCount: 0,
+      buildLimit: 3,
       weeklyUpkeep: 40,
       affordable: false,
       affordabilityShortfall: 5_000,
     });
     expect(viewModel.facilities.catalog.find(entry => entry.type === 'gym')).toMatchObject({
+      builtCount: 1,
+      buildLimit: 1,
       affordable: false,
       affordabilityShortfall: 0,
       blockedReason: 'Already built. Select it on the grid to upgrade or move it.',
     });
+  });
+
+  test('shows income-building counts and disables the build card at three', () => {
+    let state = createCareer(createLaunchCareerSetup(20260806));
+    for (let index = 0; index < 3; index += 1) {
+      const project = buildCareerFacility(state, 'fan-shop', { x: index, y: 0 }).state;
+      state = {
+        ...project,
+        facilities: {
+          ...project.facilities,
+          grid: finishConstruction(project.facilities.grid!),
+        },
+      };
+    }
+
+    expect(clubFinancesViewModel(state).facilities.catalog.find(entry => entry.type === 'fan-shop'))
+      .toMatchObject({
+        builtCount: 3,
+        buildLimit: 3,
+        affordable: false,
+        affordabilityShortfall: 0,
+        blockedReason: 'Build limit reached · 3 of 3 built.',
+      });
   });
 
   test('uses the real Training Pitch TP constant in catalog and active-building copy', () => {

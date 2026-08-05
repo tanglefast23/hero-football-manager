@@ -2027,7 +2027,9 @@ function GroundsSection({
                           Bert says
                         </PixelText>
                         <Text className="mt-1 text-sm leading-5 text-ink">
-                          These are the buildings that will get you out of your financial hole. Build them!
+                          {viewModel.facilities.activeProject === undefined
+                            ? 'Fan Shops earn every week and Stadium Stands boost home-match income. You can build up to 3 of each; every other facility is limited to 1.'
+                            : `The works crew is busy with ${viewModel.facilities.activeProject.name}. Wait until construction finishes, then build another Fan Shop or Stadium Stand. You can build up to 3 of each; every other facility is limited to 1.`}
                         </Text>
                       </View>
                     ) : null}
@@ -2086,7 +2088,7 @@ function GroundsSection({
                       ) : null}
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`${entry.name}. ${entry.effectLabel}. ${entry.width} by ${entry.height} footprint. Build time ${entry.buildWeeks} week${entry.buildWeeks === 1 ? '' : 's'}.${adjacencyAccessibility} ${guideAllowsType ? '' : 'Build the Training Pitch first. '}${entry.available
+                      accessibilityLabel={`${entry.name}. ${entry.builtCount} of ${entry.buildLimit} built. ${entry.effectLabel}. ${entry.width} by ${entry.height} footprint. Build time ${entry.buildWeeks} week${entry.buildWeeks === 1 ? '' : 's'}.${adjacencyAccessibility} ${guideAllowsType ? '' : 'Build the Training Pitch first. '}${entry.available
                         ? `Build cost ${formatCurrency(entry.buildCost)}. ${formatCurrency(entry.weeklyUpkeep)} per week upkeep.${entry.blockedReason
                           ? ` ${entry.blockedReason}`
                           : !entry.affordable && entry.affordabilityShortfall > 0
@@ -2140,7 +2142,7 @@ function GroundsSection({
                         ? 'mt-1 font-mono text-sm text-ink/70'
                         : 'mt-1 font-mono text-sm text-ink/30'}>
                         {entry.available
-                          ? `${entry.width}x${entry.height} · ${formatCurrency(entry.buildCost)} · ${entry.buildWeeks}W · ${formatCurrency(entry.weeklyUpkeep)}/wk`
+                          ? `${entry.builtCount}/${entry.buildLimit} built · ${entry.width}x${entry.height} · ${formatCurrency(entry.buildCost)} · ${entry.buildWeeks}W · ${formatCurrency(entry.weeklyUpkeep)}/wk`
                           : 'Locked'}
                       </Text>
                       {adjacencyGuidance !== undefined && entry.available ? (

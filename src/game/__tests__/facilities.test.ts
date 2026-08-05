@@ -141,6 +141,34 @@ describe('facility catalog and grid', () => {
     expect(() => buildFacility(grid, 'gym', { x: 2, y: 0 }, 1_000_000))
       .toThrow(/Gym is already built/);
   });
+
+  test('allows three income buildings of each type and rejects a fourth', () => {
+    let shops = createFacilityGrid();
+    for (let index = 0; index < 3; index += 1) {
+      shops = finishConstruction(build(shops, 'fan-shop', { x: index, y: 0 }).grid);
+    }
+    expect(shops.buildings.map(building => building.type)).toEqual([
+      'fan-shop',
+      'fan-shop',
+      'fan-shop',
+    ]);
+    expect(() => build(shops, 'fan-shop', { x: 3, y: 0 }))
+      .toThrow(/Fan Shop limit reached.*up to 3/);
+
+    let stands = createFacilityGrid();
+    for (let index = 0; index < 3; index += 1) {
+      stands = finishConstruction(build(stands, 'stadium-stand', { x: index * 2, y: 0 }).grid);
+    }
+    expect(() => build(stands, 'stadium-stand', { x: 6, y: 0 }))
+      .toThrow(/Stadium Stand limit reached.*up to 3/);
+  });
+
+  test('asks repeatable income buildings to wait while the works crew is busy', () => {
+    const firstShop = build(createFacilityGrid(), 'fan-shop', { x: 0, y: 0 }).grid;
+
+    expect(() => build(firstShop, 'fan-shop', { x: 1, y: 0 }))
+      .toThrow(/only one facility construction project/);
+  });
 });
 
 describe('facility upgrades and upkeep', () => {
@@ -181,6 +209,18 @@ describe('facility upgrades and upkeep', () => {
 
     expect(() => upgradeFacility(grid, 'facility-1', 100_000))
       .toThrow(/Coaching Office upgrades are disabled/);
+  });
+
+  test('upgrades one income building without changing its other copies', () => {
+    let grid = finishConstruction(build(createFacilityGrid(), 'fan-shop', { x: 0, y: 0 }).grid);
+    grid = finishConstruction(build(grid, 'fan-shop', { x: 1, y: 0 }).grid);
+
+    const upgrading = finishConstruction(upgradeFacility(grid, 'facility-2', 100_000).grid);
+
+    expect(upgrading.buildings.map(building => [building.id, building.level])).toEqual([
+      ['facility-1', 1],
+      ['facility-2', 2],
+    ]);
   });
 
   test('rejects persisted investment outside the non-negative safe-integer invariant', () => {

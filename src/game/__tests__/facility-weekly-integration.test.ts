@@ -224,7 +224,7 @@ describe('facility weekly integration', () => {
     expect(afterTen?.facilityStaBonusRemainder).toBe(20);
   });
 
-  test('raises the home gate by 50% per Stadium Stand level, best level only', () => {
+  test('raises the home gate by 50% for every level across up to three Stadium Stands', () => {
     const initial = createCareer(createLaunchCareerSetup(20260725));
     const homeFixture = initial.fixtures.find(fixture => (
       fixture.season === 1 && fixture.homeClubId === initial.userClubId
@@ -262,10 +262,10 @@ describe('facility weekly integration', () => {
     expect(gateOf(withStands(1))).toBe(1_800);
     expect(gateOf(withStands(2))).toBe(2_400);
     expect(gateOf(withStands(3))).toBe(3_000);
-    // Two stands are not two bonuses, and the better one wins whichever
-    // order they were built in.
-    expect(gateOf(withStands(1, 3))).toBe(3_000);
-    expect(gateOf(withStands(3, 1))).toBe(3_000);
+    // Every placed stand contributes, regardless of build order.
+    expect(gateOf(withStands(1, 3))).toBe(3_600);
+    expect(gateOf(withStands(3, 1))).toBe(3_600);
+    expect(gateOf(withStands(1, 1, 1))).toBe(3_000);
   });
 
   test('makes a level-1 training facility worth x1.25, not x1.0', () => {

@@ -51,6 +51,7 @@ import {
   overtrainingInjuryChancePercent,
   superTrainingChancePercent,
   facilityEffects,
+  facilityBuildLimit,
   nextTrainingUpgradeOffer,
   ownedTrainingTier,
   POSITION_TRAINING_ATTRIBUTES,
@@ -796,12 +797,16 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
       };
     }),
     catalog: Object.values(FACILITY_CATALOG).filter(definition => definition.available).map(definition => {
-      const alreadyBuilt = grid.buildings.some(building => building.type === definition.type);
+      const builtCount = grid.buildings.filter(building => building.type === definition.type).length;
+      const buildLimit = facilityBuildLimit(definition.type);
+      const buildLimitReached = builtCount >= buildLimit;
       const blockedByOpeningTrainingPitch = pitchMustBeFirst
         && definition.type !== 'training-pitch';
       return {
         type: definition.type,
         name: definition.name,
+        builtCount,
+        buildLimit,
         buildCost: definition.buildCost,
         width: definition.footprint.width,
         height: definition.footprint.height,
@@ -809,19 +814,21 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
         effectLabel: facilityEffectLabel(definition.type, 1),
         available: definition.available,
         affordable: definition.available
-          && !alreadyBuilt
+          && !buildLimitReached
           && !blockedByOpeningTrainingPitch
           && grid.construction === undefined
           && club.cash >= definition.buildCost,
         blockedByOpeningTrainingPitch,
-        affordabilityShortfall: definition.available && !alreadyBuilt
+        affordabilityShortfall: definition.available && !buildLimitReached
           ? Math.max(0, definition.buildCost - club.cash)
           : 0,
         buildWeeks: definition.buildWeeks,
         ...(!definition.available
           ? { blockedReason: 'Locked.' }
-          : alreadyBuilt
-            ? { blockedReason: 'Already built. Select it on the grid to upgrade or move it.' }
+          : buildLimitReached
+            ? { blockedReason: buildLimit === 1
+              ? 'Already built. Select it on the grid to upgrade or move it.'
+              : `Build limit reached · ${builtCount} of ${buildLimit} built.` }
             : blockedByOpeningTrainingPitch
               ? { blockedReason: OPENING_TRAINING_PITCH_BLOCKED_REASON }
               : grid.construction !== undefined
@@ -881,8 +888,8 @@ function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
   if (type === 'youth-field') {
     return `Youth starting strength +${level * 5}`;
   }
-  if (type === 'fan-shop') return `Weekly merchandise scales with fans · x${level}`;
-  if (type === 'stadium-stand') return `+${level * 50}% home gate income`;
+  if (type === 'fan-shop') return `Weekly merchandise scales with fans · x${level} from this shop`;
+  if (type === 'stadium-stand') return `+${level * 50}% home gate income from this stand`;
   throw new Error(`missing facility effect copy for ${type}`);
 }
 
@@ -1544,6 +1551,11 @@ export function boardFinanceBriefing(
     const loan = safety?.loan;
     if (loan === undefined || loan.remainingBalance <= 0) return undefined;
     const repaying = state.season >= loan.repaymentStartsSeason;
+    const activeProject = state.facilities.grid?.construction;
+    const commercialAction = activeProject === undefined
+      ? 'Build another one now to create more income.'
+      : `The works crew is busy with the ${FACILITY_CATALOG[activeProject.type].name}.`
+        + ' Wait until that construction finishes, then build another money-making facility.';
     return {
       title: 'Emergency loan active',
       body: [
@@ -1553,10 +1565,9 @@ export function boardFinanceBriefing(
             + ' taken out of the club’s money every week.'
           : `Repayments begin in Season ${loan.repaymentStartsSeason}.`)
           + ' That was the club’s one automatic rescue. There is no second.',
-        'Build something that earns while you sleep, like a shop or a stand,'
-          + (repaying
-            ? ' or the repayments will keep taking their cut every week.'
-            : ' or the repayments will find you next season.'),
+        'Fan Shops earn money every week, while Stadium Stands improve home-match income.'
+          + ' You can build up to three of each; every other facility is limited to one.'
+          + ` ${commercialAction}`,
       ],
     };
   }
