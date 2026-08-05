@@ -296,7 +296,44 @@ export interface LedgerLine {
   amount: number;
   /** Stable identity for cash awards that must survive retries and reloads. */
   idempotencyKey?: string;
+  /** Present only on varied income lines from report-eligible settlements. */
+  reveal?: LedgerLineReveal;
 }
+
+/**
+ * Saved breakdown of a varied income line, written once at settlement so the
+ * Financial Report replays saved truth and never recomputes money at display
+ * time. Identity values are stored explicitly (multiplierPercent 100, counts
+ * 0/1, adjacency zeros) rather than omitted.
+ */
+export type LedgerLineReveal =
+  | {
+      source: 'league-gate' | 'cup-gate';
+      /** Post-variance base the reel lands on first. Always > 0. */
+      base: number;
+      /** −10…+20; 11…20 iff surge. */
+      variancePercent: number;
+      surge: boolean;
+      /** 100 + 50 × combined operational Stadium Stand level; 100 when none. */
+      multiplierPercent: number;
+      /** Operational stand buildings; 0 when none. */
+      facilityCount: number;
+    }
+  | {
+      source: 'merch';
+      /** Varied per-level income (what one Lv1 shop makes). Always > 0. */
+      base: number;
+      variancePercent: number;
+      surge: boolean;
+      /** Combined operational Fan Shop level, ≥ 1. */
+      multiplierTimes: number;
+      /** Operational shop buildings, ≥ 1. */
+      facilityCount: number;
+      /** merchIncomeBonusPercent at settlement; 0 if none. */
+      adjacencyPercent: number;
+      /** floor(base × multiplierTimes × adjacencyPercent / 100); 0 if none. */
+      adjacencyAmount: number;
+    };
 
 export interface IdempotentLedgerLine extends LedgerLine {
   idempotencyKey: string;
