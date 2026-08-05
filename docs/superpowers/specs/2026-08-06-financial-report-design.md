@@ -1,7 +1,7 @@
 # Financial Report — post-match screen redesign
 
-- **Date:** 2026-08-06 (revised after council round 1)
-- **Status:** Approved by owner (design conversation, this date); council round 2 pending
+- **Date:** 2026-08-06 (revised through council round 3)
+- **Status:** Approved by owner (design conversation, this date). Council: Fable 5 approved (round 2); Codex hit the 3-round cap still requesting revisions — all of its round-3 items were applied to this document after the cap (sanitizer sign rule, docs 02/06/08 sync, VoiceOver math labels, banner-seed data path, native Pressable skip surface).
 - **Owner decisions locked:** screen scope, multiplier presentation, audio assets, straight-bonus economy (see §15)
 
 ## 1. Summary
@@ -234,8 +234,8 @@ Reconstruction invariant (enforced by settlement tests): gate `amount = base + f
 ### Touched modules
 
 - **`src/game/career.ts`** — settlement-time variants of gate/merch income that accept an injected RNG and return `{ amount, reveal }`; `settlementLines` attaches reveals per the §5 rolling rule. Baseline (variance-free) functions remain for projections; merch baseline moves to the per-level rounding (§6).
-- **`src/persistence/game-state-codec.ts`** — the ledger schema is zod `.passthrough()` over whole-state JSON, so persistence works without changes. A malformed or inconsistent reveal must never brick the save **in either direction** — neither a hard reconstruction refinement nor schema rejection. Instead, a **fail-soft `sanitizeLedgerReveals` normalization pass** (alongside the codec's existing pre-validation normalizations) strips `line.reveal` — and only the reveal — when any of these fail: source agrees with the ledger kind; ranges and `surge` ⇔ band 11…20 hold; values are safe nonnegative integers; gate/merch reconstruction equals the authoritative `line.amount`; merch `adjacencyAmount` equals `floor(base × multiplierTimes × adjacencyPercent / 100)`. The line and its amount always load and render generically. Reconstruction uses only the stored fields, so future formula changes cannot invalidate old reveals; if stored semantics ever change, add a new reveal variant rather than reinterpreting the old one. `GAME_SCHEMA_VERSION` does not bump: the field is optional and backward-compatible. Old saves render historical weeks without reveal dressing.
-- **`src/application/view-models.ts`** — `postMatchViewModel` passes `reveal` through; Finances-tab view models ignore it. Outlook microcopy per §6.
+- **`src/persistence/game-state-codec.ts`** — the ledger schema is zod `.passthrough()` over whole-state JSON, so persistence works without changes. A malformed or inconsistent reveal must never brick the save **in either direction** — neither a hard reconstruction refinement nor schema rejection. Instead, a **fail-soft `sanitizeLedgerReveals` normalization pass** (alongside the codec's existing pre-validation normalizations) strips `line.reveal` — and only the reveal — when any of these fail: source agrees with the ledger kind; `variancePercent` is a **signed** safe integer in −10…+10 when `surge` is false and 11…20 when `surge` is true; `base` is a **positive** safe integer (zero-base reveals are stripped — they should never have been written); counts, multipliers, and adjacency values meet their source-specific constraints (gate: `multiplierPercent` ≥ 100 and `facilityCount` ≥ 0; merch: `multiplierTimes` ≥ 1, `facilityCount` ≥ 1, `adjacencyPercent` ≥ 0, `adjacencyAmount` ≥ 0 — all safe integers); reconstruction intermediates stay safe integers; gate/merch reconstruction equals the authoritative `line.amount`; merch `adjacencyAmount` equals `floor(base × multiplierTimes × adjacencyPercent / 100)`. The line and its amount always load and render generically. Reconstruction uses only the stored fields, so future formula changes cannot invalidate old reveals; if stored semantics ever change, add a new reveal variant rather than reinterpreting the old one. `GAME_SCHEMA_VERSION` does not bump: the field is optional and backward-compatible. Old saves render historical weeks without reveal dressing.
+- **`src/application/view-models.ts`** — `postMatchViewModel` passes `reveal` through, plus explicit `settlementSeason` and `settlementWeek` fields (the banner toy-subset seed — never parsed out of an ID format). Finances-tab view models ignore reveals. Outlook microcopy per §6.
 - **`src/ui/models.ts`** — the post-match ledger line view-model type gains the `reveal` field (post-match-specific; the Finances ledger line type is untouched).
 - **`src/ui/PostMatchSummaryModal.tsx`** — rewired per §3; drops the score block; hosts the new statement component and the concurrent sections.
 - **New `src/ui/components/FinancialStatement.tsx`** — the row-sequence state machine per §4 (phases, tap-to-complete, chips, adjacency caption, net row, stamp), timing constants in one place.
@@ -244,6 +244,8 @@ Reconstruction invariant (enforced by settlement tests): gate `amount = base + f
 - **New `src/ui/finance-pixel-art.ts`** — sprite runs: crowd strip + 10 merch toys.
 - **New `src/render/financial-report-sfx.ts`** — the report audio controller per §9.
 - **Dev harness** — new entry `financial-report` with scripted scenarios: no facilities; 2 stands + 3 shops; gate surge; merch surge; triple surge (league/cup double-header + merch); zero-fan home fixture ($0 gate line, no reveal — away weeks emit no gate line at all, so they cannot exercise this rule); longest realistic ledger (sponsor portfolio + prize week); reduce motion. This is the QA surface for the animation.
+- **The statement's skip surface uses native RN `Pressable`, not `SfxPressable`** — the aliased wrapper auto-plays a generic click before `onPress`, which would double every skip with click + thunk. The report thunk is the only intended feedback. (Close, backdrop, and Continue keep their existing `SfxPressable` behavior.)
+- **Canonical docs sync (same PR):** `docs/08-ui-ux.md` — Financial Report flow, one-row-per-press skip, reduce-motion behavior, and a narrow approved palette exception: the permanent surge treatment (gold/orange/red fire tint, larger bold type) is allowed *only* on surged income amounts in this report, alongside the retained plus sign and banner; hero gold elsewhere still means hero/power UI. `docs/06-economy.md` — report-eligible variance bands, baseline projections, and the revised per-level Fan Shop calculation. `docs/02-core-loop.md` — the post-match income statement is named the Financial Report.
 
 ### Known UI traps to respect
 
@@ -260,6 +262,7 @@ Reconstruction invariant (enforced by settlement tests): gate `amount = base + f
 ## 12. Accessibility
 
 - Row `accessibilityLabel`s carry the final amounts immediately; VoiceOver never waits for reels.
+- Multiplied rows narrate the full math, available immediately (the grouped-row label pattern already overrides descendant text): "League home gate, two stands. Base $1,200, times 200 percent, total $2,400." / "Fan Shop merchandise, three shops. Base $250, times three, plus 10 percent adjacency, total $825."
 - Surge rows append "surged this week" to the row's accessibility label.
 - Banners are `accessibilityRole="alert"` with their text; they are announced but never trap focus.
 - Reduce-motion behavior per §4.
@@ -267,7 +270,7 @@ Reconstruction invariant (enforced by settlement tests): gate `amount = base + f
 ## 13. Testing and verification
 
 - **Game ring (Jest, headless):** determinism (same state → identical lines twice); watched vs Quick Result reveal equality; band bounds (percent always in −10…+10 or 11…20, `surge` matches band); exact surge counts over a fixed seed grid (~10%); reveal-reconstructs-amount invariant; constant lines carry no reveal; cup-gate reveal on home cup weeks; triple-source double-header weeks; zero-base lines carry no reveal; quiet weeks and season-final settlements bank baseline; projections match settlement at p = 0.
-- **Codec:** round-trip with and without `reveal`; `sanitizeLedgerReveals` strips inconsistent reveals (wrong source/kind, out-of-range values, reconstruction mismatch, adjacency mismatch) while the save and the line still load.
+- **Codec:** round-trip with and without `reveal`; a valid negative-variance reveal survives round-trip untouched; `sanitizeLedgerReveals` strips inconsistent reveals (wrong source/kind, out-of-range values, zero base, reconstruction mismatch, adjacency mismatch) while the save and the line still load.
 - **View model:** pass-through for `postMatchViewModel`; Finances ledger unaffected.
 - **UI state machine (headless where the Jest env allows):** rapid-skip transitions, timer cleanup on unmount, empty ledger, tap-during-every-phase, single-banner-on-skipped-surge, single-thunk on tap-completed net row.
 - **Audio controller:** master volume zero, suspend/resume (crackle resumes only into a still-spinning generation), skip while suspended, stop-all on dismissal.
