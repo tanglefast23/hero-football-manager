@@ -40,6 +40,7 @@ import { AwakeningTriggerCalloutIcon } from './awakening-trigger-visuals/Awakeni
 import { AwakeningTriggerVisual } from './awakening-trigger-visuals/AwakeningTriggerVisual';
 import { awakeningViewportHeight, nextAwakeningAction } from './awakening-progression';
 import { PowerAcquiredDemoModal } from '../PowerAcquiredDemoModal';
+import { usePixelStyles, type LocaleFaces } from '../../i18n';
 
 const FOCUS_INDEX = 4;
 /** How far the CTA halo dips between breaths; never to nothing, so it still reads as lit. */
@@ -93,6 +94,7 @@ export function AwakeningCutsceneScreen({
   onBeatChange,
   onContinue,
 }: AwakeningCutsceneScreenProps) {
+  const styles = usePixelStyles(makeStyles);
   const { width, height } = useWindowDimensions();
   const pitchScale = width / PITCH_W;
   const viewportHeight = awakeningViewportHeight(width, height);
@@ -553,6 +555,7 @@ export function AwakeningCutsceneScreen({
  * transform off, which keeps a single type on the style either way.
  */
 function AwakeningCta({ label, reduceMotion }: { label: string; reduceMotion: boolean }) {
+  const styles = usePixelStyles(makeStyles);
   const pulse = useRef(new Animated.Value(reduceMotion ? 1 : CTA_GLOW_MIN_OPACITY)).current;
   const scale = pulse.interpolate({
     inputRange: [CTA_GLOW_MIN_OPACITY, 1],
@@ -684,7 +687,7 @@ function PowerOmen({
 // dark-pitch stage as the landing screens — pixel display type, paper
 // stickers, and a centered story panel. Custom fonts are referenced without
 // fontWeight so iOS never swaps in a synthetic system face.
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   root: { flex: 1, backgroundColor: '#3f8a4a' },
   flex: { flex: 1 },
   header: {
@@ -695,8 +698,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  eyebrow: { fontFamily: 'Silkscreen_700Bold', color: '#f7d894', fontSize: 10, letterSpacing: 2 },
-  fixture: { marginTop: 6, fontFamily: 'Silkscreen_400Regular', color: '#f4f1ea', fontSize: 12, textTransform: 'uppercase' },
+  eyebrow: { fontFamily: faces.display, color: '#f7d894', fontSize: 10, letterSpacing: 2 },
+  fixture: { marginTop: 6, fontFamily: faces.data, color: '#f4f1ea', fontSize: 12, textTransform: 'uppercase' },
   counter: {
     borderWidth: 2,
     borderColor: '#241f2e',
@@ -705,7 +708,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     transform: [{ rotate: '2deg' }],
   },
-  counterText: { fontFamily: 'Silkscreen_700Bold', color: '#241f2e', fontSize: 13 },
+  counterText: { fontFamily: faces.display, color: '#241f2e', fontSize: 13 },
   viewport: { overflow: 'hidden', backgroundColor: '#3f8a4a', borderBottomWidth: 4, borderBottomColor: '#241f2e' },
   fullTimeBug: {
     position: 'absolute',
@@ -717,7 +720,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
-  fullTimeText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 12, letterSpacing: 1.5 },
+  fullTimeText: { fontFamily: faces.display, color: '#f4f1ea', fontSize: 12, letterSpacing: 1.5 },
   biteCallout: {
     position: 'absolute',
     right: 14,
@@ -730,7 +733,7 @@ const styles = StyleSheet.create({
     borderColor: '#e7ff7a',
     padding: 10,
   },
-  biteLabel: { fontFamily: 'Silkscreen_700Bold', color: '#e7ff7a', fontSize: 10, letterSpacing: 1 },
+  biteLabel: { fontFamily: faces.display, color: '#e7ff7a', fontSize: 10, letterSpacing: 1 },
   biteDetail: { marginTop: 3, color: '#f4f1ea', fontSize: 10 },
   storyPanel: {
     margin: 14,
@@ -746,18 +749,18 @@ const styles = StyleSheet.create({
   },
   storyPanelHero: { backgroundColor: '#edb54a', borderColor: '#f7d894' },
   storyTopline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  beatKicker: { fontFamily: 'Silkscreen_400Regular', color: '#d94f52', fontSize: 11, letterSpacing: 1 },
-  tapHint: { fontFamily: 'Silkscreen_400Regular', color: '#6b6675', fontSize: 9, letterSpacing: 0.8 },
+  beatKicker: { fontFamily: faces.data, color: '#d94f52', fontSize: 11, letterSpacing: 1 },
+  tapHint: { fontFamily: faces.data, color: '#6b6675', fontSize: 9, letterSpacing: 0.8 },
   heroInk: { color: '#241f2e' },
-  beatTitle: { marginTop: 8, fontFamily: 'Silkscreen_700Bold', color: '#241f2e', fontSize: 24, lineHeight: 28, textTransform: 'uppercase' },
-  powerName: { marginTop: 4, fontFamily: 'Silkscreen_700Bold', color: '#fff8df', fontSize: 17, textTransform: 'uppercase', letterSpacing: 1 },
+  beatTitle: { marginTop: 8, fontFamily: faces.display, color: '#241f2e', fontSize: 24, lineHeight: 28, textTransform: 'uppercase' },
+  powerName: { marginTop: 4, fontFamily: faces.display, color: '#fff8df', fontSize: 17, textTransform: 'uppercase', letterSpacing: 1 },
   powerDescriptionCard: { marginTop: 10, borderWidth: 2, borderColor: '#3f6fb5', backgroundColor: '#a3c8f0', paddingHorizontal: 10, paddingVertical: 8 },
-  powerDescriptionLabel: { color: '#3f6fb5', fontFamily: 'Silkscreen_700Bold', fontSize: 8, letterSpacing: 1.4 },
+  powerDescriptionLabel: { color: '#3f6fb5', fontFamily: faces.display, fontSize: 8, letterSpacing: 1.4 },
   powerDescription: { marginTop: 4, color: '#241f2e', fontSize: 14, lineHeight: 19 },
   storyCopy: { marginTop: 12, color: '#3a3350', fontSize: 15, lineHeight: 22 },
   heroCopy: { color: '#241f2e' },
   heroFooter: { marginTop: 14, paddingTop: 12, borderTopWidth: 2, borderTopColor: '#241f2e55', flexDirection: 'row', justifyContent: 'space-between' },
-  license: { fontFamily: 'Silkscreen_400Regular', color: '#241f2e', fontSize: 10, textTransform: 'uppercase' },
+  license: { fontFamily: faces.data, color: '#241f2e', fontSize: 10, textTransform: 'uppercase' },
   ctaAnchor: { position: 'relative' },
   ctaGlow: {
     position: 'absolute',
@@ -783,7 +786,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   ctaText: {
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     color: '#edb54a',
     fontSize: 10,
     letterSpacing: 1,

@@ -17,6 +17,7 @@ import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
 import { snapSpriteScale } from './interpolate';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playerLookId } from './sprites/player-look';
+import { usePixelStyles, type LocaleFaces } from '../i18n';
 
 /** Per-drill sprite scene: fast enough to chain-tap, always tap-to-skip. */
 export const DRILL_SCENE_MS = 2_200;
@@ -95,6 +96,7 @@ export function DrillSceneOverlay({
   reduceMotion = false,
   onComplete,
 }: DrillSceneOverlayProps) {
+  const styles = usePixelStyles(makeStyles);
   const { width: viewportWidth } = useWindowDimensions();
   const stageWidth = Math.min(460, Math.max(260, viewportWidth - 48));
   const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
@@ -395,7 +397,7 @@ function DrillAtlasStage({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   overlay: {
     position: 'absolute',
     top: 0,
@@ -427,11 +429,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#3972bd',
     paddingHorizontal: 14,
   },
-  kicker: { color: '#ffffff', fontFamily: 'Silkscreen_700Bold', fontSize: 15, letterSpacing: 1 },
-  timerLabel: { color: '#d9e9fb', fontFamily: 'Silkscreen_400Regular', fontSize: 10 },
+  kicker: { color: '#ffffff', fontFamily: faces.display, fontSize: 15, letterSpacing: 1 },
+  timerLabel: { color: '#d9e9fb', fontFamily: faces.data, fontSize: 10 },
   heading: { paddingHorizontal: 14, paddingBottom: 10, paddingTop: 12 },
-  title: { color: '#241f2e', fontFamily: 'Silkscreen_700Bold', fontSize: 18 },
-  drillList: { marginTop: 6, color: '#3972bd', fontFamily: 'Silkscreen_400Regular', fontSize: 10, lineHeight: 16 },
+  title: { color: '#241f2e', fontFamily: faces.display, fontSize: 18 },
+  drillList: { marginTop: 6, color: '#3972bd', fontFamily: faces.data, fontSize: 10, lineHeight: 16 },
   stageFrame: { marginHorizontal: 8, overflow: 'hidden', borderWidth: 2, borderColor: '#241f2e' },
   gainRow: {
     flexDirection: 'row',
@@ -442,7 +444,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   // Green while it climbs and after it lands: the number itself is the gain.
-  gainValue: { color: '#3f8a4a', fontFamily: 'Silkscreen_700Bold', fontSize: 30 },
+  gainValue: { color: '#3f8a4a', fontFamily: faces.display, fontSize: 30 },
   progressTrack: { height: 9, borderTopWidth: 2, borderColor: '#241f2e', backgroundColor: '#cfc8da' },
   progressFill: { width: '100%', height: '100%', backgroundColor: '#3972bd' },
   progressFillSuper: { backgroundColor: '#edb54a' },

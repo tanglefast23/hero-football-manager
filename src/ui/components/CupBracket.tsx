@@ -12,6 +12,7 @@ import {
 import { useLayoutMode } from '../layout/use-layout-mode';
 import type { M2CupRoundViewModel } from '../m2-league-models';
 import { PixelText } from './PixelText';
+import { usePixelStyles, type LocaleFaces } from '../../i18n';
 
 /**
  * The Hero Cup as a bracket rather than a stack of round cards.
@@ -36,6 +37,7 @@ export interface CupBracketProps {
 }
 
 export function CupBracket({ rounds, championName }: CupBracketProps) {
+  const styles = usePixelStyles(makeStyles);
   const narrow = useLayoutMode() !== 'twoColumn';
   // A phone gets the tree wrapped into bands rather than five columns it would
   // have to scroll sideways through, which hides the shape the bracket is for.
@@ -63,6 +65,7 @@ export function CupBracket({ rounds, championName }: CupBracketProps) {
 }
 
 function BracketBand({ layout }: { layout: BracketLayout }) {
+  const styles = usePixelStyles(makeStyles);
   const connectors = cupBracketConnectors(layout);
   return (
     <ScrollView
@@ -127,6 +130,7 @@ function BracketBand({ layout }: { layout: BracketLayout }) {
 }
 
 function TieCard({ tie, left }: { tie: BracketTie; left: number }) {
+  const styles = usePixelStyles(makeStyles);
   const label = tie.placeholder
     ? 'Winner to be decided'
     : `${tie.homeName} versus ${tie.awayName}${tie.played ? `, ${tie.scoreLabel}` : ''}`;
@@ -164,6 +168,7 @@ function TieCard({ tie, left }: { tie: BracketTie; left: number }) {
 
 /** The loser greys out, so a finished tie reads at a glance without a score. */
 function TieSide({ name, placeholder, beaten }: { name: string; placeholder: boolean; beaten: boolean }) {
+  const styles = usePixelStyles(makeStyles);
   return (
     <Text
       numberOfLines={1}
@@ -174,13 +179,13 @@ function TieSide({ name, placeholder, beaten }: { name: string; placeholder: boo
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   headerRow: { height: HEADER_HEIGHT },
   /** Bands are one tree wrapped, so the seam is spacing plus a hand-off note. */
   bandGap: { marginTop: 18 },
   bandNote: {
     color: '#6b6675',
-    fontFamily: 'Silkscreen_400Regular',
+    fontFamily: faces.data,
     fontSize: 10,
     letterSpacing: 0.8,
     marginBottom: 4,
@@ -221,5 +226,5 @@ const styles = StyleSheet.create({
     borderColor: INK,
     backgroundColor: '#edb54a',
   },
-  scoreText: { color: INK, fontFamily: 'Silkscreen_400Regular', fontSize: 10, lineHeight: 14 },
+  scoreText: { color: INK, fontFamily: faces.data, fontSize: 10, lineHeight: 14 },
 });

@@ -52,22 +52,7 @@ function sourceFiles(dir: string, found: string[] = []): string[] {
  * the Vietnamese font work — until then, these screens render Vietnamese in
  * Silkscreen, which cannot draw it.
  */
-const NOT_YET_CONVERTED = [
-  'src/render/CupTitleCard.tsx',
-  'src/render/DrillSceneOverlay.tsx',
-  'src/render/FirstMatchCoachingModal.tsx',
-  'src/render/MatchControlRail.tsx',
-  'src/render/PowerTitleTakeover.tsx',
-  'src/render/match-screen-styles.ts',
-  'src/ui/PowerAcquiredDemoModal.tsx',
-  'src/ui/TrainingDrillModal.tsx',
-  'src/ui/components/CupBracket.tsx',
-  'src/ui/components/DrillGainReveal.tsx',
-  'src/ui/components/TitlePlayerPopScene.tsx',
-  'src/ui/screens/AwakeningArtQaScreen.tsx',
-  'src/ui/screens/AwakeningCutsceneScreen.tsx',
-  'src/ui/screens/PowerArtQaScreen.tsx',
-];
+const NOT_YET_CONVERTED: string[] = [];
 
 function offenders(): string[] {
   return sourceFiles('src')

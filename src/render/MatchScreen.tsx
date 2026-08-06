@@ -152,7 +152,7 @@ import {
 import { chargeMeter } from './hero-charge-meter';
 import { HeroChargeMeter } from './HeroChargeMeter';
 import { teamKitColor } from './team-kit-ui';
-import { CARRIER_CARD_CONTENT_WIDTH, styles } from './match-screen-styles';
+import { CARRIER_CARD_CONTENT_WIDTH, useMatchScreenStyles } from './match-screen-styles';
 import {
   initAudio,
   playForEvent,
@@ -388,6 +388,9 @@ export function MatchScreen({
   onOpenSettings: () => void;
   onDone: (state: MatchState) => void;
 }) {
+  // The sheet names pixel faces directly, so it is rebuilt when the language
+  // changes — Silkscreen cannot draw Vietnamese.
+  const styles = useMatchScreenStyles();
   const seenPowerCutInsRef = useRef(new Set<PowerId>(seenPowerCutIns));
   for (const power of seenPowerCutIns) seenPowerCutInsRef.current.add(power);
   const onPowerCutInSeenRef = useRef(onPowerCutInSeen);

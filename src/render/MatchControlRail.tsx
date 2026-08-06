@@ -27,6 +27,7 @@ import {
   PowerTitleTakeover,
   type PowerTitleTakeoverProps,
 } from './PowerTitleTakeover';
+import { usePixelStyles, type LocaleFaces } from '../i18n';
 
 export interface MatchRailTiredPlayer {
   id: string;
@@ -130,6 +131,7 @@ export function MatchControlRail({
   heroTiles,
   powerTakeover,
 }: MatchControlRailProps) {
+  const styles = usePixelStyles(makeStyles);
   const teamBand = energyBand(teamEnergy);
   if (powerTakeover !== undefined) {
     return (
@@ -253,13 +255,13 @@ export function MatchControlRail({
                     <View
                       style={[
                         styles.energyFill,
-                        fillForBand(band),
+                        fillForBand(styles, band),
                         { width: `${Math.max(0, Math.min(100, player.condition))}%` },
                       ]}
                     />
                   </View>
                 </View>
-                <Text style={[styles.tiredPercent, textForBand(band)]}>
+                <Text style={[styles.tiredPercent, textForBand(styles, band)]}>
                   {Math.round(player.condition)}%
                 </Text>
                 <View
@@ -294,7 +296,7 @@ export function MatchControlRail({
             <View
               style={[
                 styles.energyFillWide,
-                fillForBand(teamBand),
+                fillForBand(styles, teamBand),
                 { width: `${Math.max(0, Math.min(100, teamEnergy))}%` },
               ]}
             />
@@ -375,13 +377,17 @@ function heroStatusText(tile: MatchRailHeroTile): string {
   return `${Math.round(tile.heat * 100)}%`;
 }
 
-function fillForBand(band: EnergyBand) {
+// These take the sheet rather than closing over a module-scope one: the sheet is
+// now per-language, and a plain function cannot call a hook to reach it.
+type RailStyles = ReturnType<typeof makeStyles>;
+
+function fillForBand(styles: RailStyles, band: EnergyBand) {
   if (band === 'amber') return styles.energyFillAmber;
   if (band === 'red') return styles.energyFillRed;
   return styles.energyFillGreen;
 }
 
-function textForBand(band: EnergyBand) {
+function textForBand(styles: RailStyles, band: EnergyBand) {
   if (band === 'amber') return styles.energyTextMedium;
   if (band === 'red') return styles.energyTextLow;
   return null;
@@ -396,10 +402,8 @@ function textForBand(band: EnergyBand) {
 // sprites. `fontWeight: 'bold'` is deliberately absent: the bold face is a
 // separate family here, and asking the platform to embolden a bitmap font
 // smears it. Everything is a step larger, on the 4/8 spacing grid.
-const PIXEL_BOLD = 'Silkscreen_700Bold';
-const PIXEL = 'Silkscreen_400Regular';
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   rail: {
     width: MATCH_RAIL_WIDTH,
     alignSelf: 'stretch',
@@ -417,9 +421,9 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     gap: 12,
   },
-  cardTitle: { color: '#bcb7c4', fontFamily: PIXEL_BOLD, fontSize: 14, letterSpacing: 1 },
+  cardTitle: { color: '#bcb7c4', fontFamily: faces.display, fontSize: 14, letterSpacing: 1 },
   cardTitleSpaced: { marginTop: 8 },
-  caption: { color: '#8e88a0', fontFamily: PIXEL, fontSize: 11, lineHeight: 16, letterSpacing: 0.8 },
+  caption: { color: '#8e88a0', fontFamily: faces.data, fontSize: 11, lineHeight: 16, letterSpacing: 0.8 },
   scoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   scoreBug: {
     flex: 1,
@@ -433,7 +437,7 @@ const styles = StyleSheet.create({
   },
   scoreText: {
     color: '#f4f1ea',
-    fontFamily: PIXEL_BOLD,
+    fontFamily: faces.display,
     fontSize: 26,
     letterSpacing: 1,
     fontVariant: ['tabular-nums'],
@@ -441,7 +445,7 @@ const styles = StyleSheet.create({
   scoreTextFlash: { color: '#f7d894' },
   clockText: {
     color: '#bcb7c4',
-    fontFamily: PIXEL,
+    fontFamily: faces.data,
     fontSize: 12,
     letterSpacing: 0.8,
     marginTop: 8,
@@ -464,7 +468,7 @@ const styles = StyleSheet.create({
   chipSelected: { backgroundColor: '#49415f', borderColor: '#f4f1ea', borderBottomColor: '#f4f1ea' },
   chipText: {
     color: '#bcb7c4',
-    fontFamily: PIXEL_BOLD,
+    fontFamily: faces.display,
     fontSize: 13,
     letterSpacing: 0.5,
     textAlign: 'center',
@@ -473,13 +477,13 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.38 },
   tiredRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   tiredCopy: { flex: 1, minWidth: 0 },
-  tiredName: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 16 },
-  tiredRole: { color: '#bcb7c4', fontFamily: PIXEL, fontSize: 11, marginTop: 4 },
+  tiredName: { color: '#f4f1ea', fontFamily: faces.display, fontSize: 16 },
+  tiredRole: { color: '#bcb7c4', fontFamily: faces.data, fontSize: 11, marginTop: 4 },
   tiredPercent: {
     width: 52,
     textAlign: 'right',
     color: '#65b96e',
-    fontFamily: PIXEL_BOLD,
+    fontFamily: faces.display,
     fontSize: 15,
     fontVariant: ['tabular-nums'],
   },
@@ -509,7 +513,7 @@ const styles = StyleSheet.create({
     borderColor: '#a3c8f0',
     borderBottomColor: '#3f6fb5',
   },
-  swapButtonText: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 14, letterSpacing: 0.5 },
+  swapButtonText: { color: '#f4f1ea', fontFamily: faces.display, fontSize: 14, letterSpacing: 0.5 },
   heroTile: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -521,16 +525,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
   },
-  heroGlyph: { width: 36, fontFamily: PIXEL_BOLD, fontSize: 26, textAlign: 'center' },
+  heroGlyph: { width: 36, fontFamily: faces.display, fontSize: 26, textAlign: 'center' },
   heroCopy: { flex: 1, minWidth: 0 },
-  heroName: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 15 },
-  heroPower: { fontFamily: PIXEL, fontSize: 11, marginTop: 4 },
+  heroName: { color: '#f4f1ea', fontFamily: faces.display, fontSize: 15 },
+  heroPower: { fontFamily: faces.data, fontSize: 11, marginTop: 4 },
   heatFill: { height: 6, backgroundColor: '#c8862a' },
   heatFillReady: { backgroundColor: '#edb54a' },
   heroStatusColumn: { alignItems: 'center', gap: 8 },
   heroStatus: {
     color: '#bcb7c4',
-    fontFamily: PIXEL_BOLD,
+    fontFamily: faces.display,
     fontSize: 14,
     fontVariant: ['tabular-nums'],
   },

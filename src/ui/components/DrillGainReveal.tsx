@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SfxPressable as Pressable } from './SfxPressable';
 import { playDrillGainRevealSfx } from '../../render/management-sfx';
+import { usePixelStyles, type LocaleFaces } from '../../i18n';
 
 export const DRILL_GAIN_REVEAL_MS = 1_400;
 const REDUCED_MOTION_GAIN_REVEAL_MS = 700;
@@ -24,6 +25,7 @@ export function DrillGainReveal({
   reduceMotion = false,
   onComplete,
 }: DrillGainRevealProps) {
+  const styles = usePixelStyles(makeStyles);
   const punch = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const burst = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const completedRef = useRef(false);
@@ -129,7 +131,7 @@ export function DrillGainReveal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   backdrop: {
     position: 'absolute',
     top: 0,
@@ -166,7 +168,7 @@ const styles = StyleSheet.create({
   },
   kicker: {
     color: '#d9f0d2',
-    fontFamily: 'Silkscreen_400Regular',
+    fontFamily: faces.data,
     fontSize: 10,
     letterSpacing: 2,
     textTransform: 'uppercase',
@@ -174,7 +176,7 @@ const styles = StyleSheet.create({
   headline: {
     marginTop: 8,
     color: '#ffffff',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 34,
     letterSpacing: 1,
     textShadowColor: '#241f2e',

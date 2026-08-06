@@ -12,6 +12,7 @@ import { livePowerEffectActors } from '../../render/live-power-effect-actors';
 import { PowerEffectScene } from '../../render/PowerEffectScene';
 import { powerEffectDescriptor } from '../../render/power-effect-descriptors';
 import { TitleMatchSprite } from './TitleMatchSprite';
+import { usePixelStyles, type LocaleFaces } from '../../i18n';
 
 interface PopHero {
   readonly spriteKey: string;
@@ -97,6 +98,7 @@ export function TitlePlayerPopScene({
 }: {
   readonly reduceMotion?: boolean;
 }) {
+  const styles = usePixelStyles(makeStyles);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [appearance, setAppearance] = useState(0);
   const showNextHero = useCallback(() => {
@@ -147,6 +149,7 @@ function PopSlot({
   readonly hero: PopHero;
   readonly onComplete: () => void;
 }) {
+  const styles = usePixelStyles(makeStyles);
   const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const appearanceStartedAtMs = useRef(elapsedMs).current;
@@ -323,7 +326,7 @@ function PopSlot({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   scene: {
     height: 250,
     overflow: 'visible',
@@ -445,7 +448,7 @@ const styles = StyleSheet.create({
   },
   powerBubbleText: {
     color: '#241f2e',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 14,
     textAlign: 'center',
   },

@@ -13,6 +13,7 @@ import {
   cupTitleBallFlight,
   type CupTitleCardModel,
 } from './cup-title-card';
+import { usePixelStyles, type LocaleFaces } from '../i18n';
 
 /** Ball diameter in points, and how high the lob rises over the plaque. */
 const BALL_SIZE = 24;
@@ -40,6 +41,7 @@ export interface CupTitleCardProps {
  * plaque, still long enough to read. A tap skips straight to kickoff.
  */
 export function CupTitleCard({ card, onDone }: CupTitleCardProps) {
+  const styles = usePixelStyles(makeStyles);
   const { width } = useWindowDimensions();
   const narrow = width < 380;
   // Under Reduce Motion the value starts past the end of the flight, so the
@@ -129,7 +131,7 @@ export function CupTitleCard({ card, onDone }: CupTitleCardProps) {
 // Palette from the pixel bible (docs/11): ink #241f2e canvas, ink-soft #3a3350
 // plaque face, cream #f4f1ea text, hero gold #edb54a for the one thing that
 // should shout. Chunky 4px ink outline with a heavier bottom lip, per Track A.
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   overlay: {
     position: 'absolute',
     top: 0,
@@ -182,7 +184,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#49415f',
   },
   title: {
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     color: '#edb54a',
     fontSize: 42,
     letterSpacing: 2,
@@ -193,7 +195,7 @@ const styles = StyleSheet.create({
   titleNarrow: { fontSize: 30 },
   rule: { alignSelf: 'stretch', height: 4, marginVertical: 16, backgroundColor: '#edb54a' },
   round: {
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     color: '#f4f1ea',
     fontSize: 16,
     letterSpacing: 3,

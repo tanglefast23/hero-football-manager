@@ -4,6 +4,7 @@ import { Canvas, Fill, Group } from '@shopify/react-native-skia';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { AwakeningCutsceneViewModel } from '../models';
 import { AwakeningTriggerVisual } from './awakening-trigger-visuals/AwakeningTriggerVisual';
+import { usePixelStyles, type LocaleFaces } from '../../i18n';
 
 interface AwakeningArtQaScreenProps {
   index: number;
@@ -25,6 +26,7 @@ export function AwakeningArtQaScreen({
   onPrevious,
   onNext,
 }: AwakeningArtQaScreenProps) {
+  const styles = usePixelStyles(makeStyles);
   const { width } = useWindowDimensions();
   const stageSize = Math.min(width - 32, 360);
   const center = stageSize / 2;
@@ -72,7 +74,7 @@ export function AwakeningArtQaScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   root: {
     flex: 1,
     alignItems: 'center',
@@ -86,7 +88,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     color: '#d94f52',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 13,
     letterSpacing: 1,
   },
@@ -109,7 +111,7 @@ const styles = StyleSheet.create({
   },
   callout: {
     color: '#d9ff60',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 17,
     textAlign: 'center',
     textTransform: 'uppercase',
@@ -142,7 +144,7 @@ const styles = StyleSheet.create({
   },
   navigationText: {
     color: '#ffffff',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 14,
     textAlign: 'center',
   },

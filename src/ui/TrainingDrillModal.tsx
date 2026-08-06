@@ -19,6 +19,7 @@ import {
   maximumSafeTrainingRuns,
   riskyTrainingRunCount,
 } from './training-repeat';
+import { usePixelStyles, type LocaleFaces } from '../i18n';
 
 export interface TrainingDrillModalProps {
   playerId: string;
@@ -122,6 +123,7 @@ export function TrainingDrillModal({
   reduceMotion = false,
   saveWarning = null,
 }: TrainingDrillModalProps) {
+  const styles = usePixelStyles(makeStyles);
   // Phones get the bottom sheet; wide viewports get a centered dialog so the
   // picker never stretches across the whole desktop window.
   const wide = useLayoutMode() === 'twoColumn';
@@ -1017,7 +1019,7 @@ function conditionBadgeStyle(condition: number): { box: string; text: string } {
   };
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   repeatDesktopRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -1049,7 +1051,7 @@ const styles = StyleSheet.create({
     // The loaded Silkscreen bold cut — 'PixelFont' was never registered, so iOS
     // silently fell back to San Francisco. Tabular numerals per the doc-11
     // numerals rule (same pattern as SubstitutionBoard's counter).
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 16,
     fontVariant: ['tabular-nums'],
     color: '#77737f',
