@@ -1082,9 +1082,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // it rather than competing with it. A week that merely CONTAINS the
       // matchday phase (the same week, one press later) is already past its
       // announcement, so the week must actually have changed.
-      const matchDayBanner = next.week !== career.week
-        ? matchDayBannerViewModel(next)
-        : get().matchDayBanner;
+      const matchDayBanner = matchDayBannerOnArrival(career, next, get().matchDayBanner);
       set({
         career: next,
         matchDayBanner,
@@ -1202,6 +1200,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatch,
         postMatchOverlay: null,
         weekReview: null,
+        // Settling this match rolled the calendar on. If the week it rolled
+        // into has its own fixture, that week gets its announcement when the
+        // manager reaches the desk, exactly as a quiet week's would.
+        matchDayBanner: matchDayBannerOnArrival(before, next, get().matchDayBanner),
         // A scene that could not be built is simply not shown: the settled
         // result reaches the manager either way.
         screen: faceOff === null ? destination : 'faceoff',
@@ -1307,6 +1309,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatch,
         postMatchOverlay: null,
         weekReview: null,
+        // See the Quick Result path: a settled match can land the club in
+        // another match week, and that week is owed its announcement too.
+        matchDayBanner: matchDayBannerOnArrival(before, next, get().matchDayBanner),
         screen: awakening.awakened ? 'awakening' : 'postmatch',
         watchedMatch: null,
         error: null,
@@ -2367,6 +2372,26 @@ function resumeScreen(career: GameState): M1Screen {
  * presentation cannot be skipped by arriving from an unusual direction, and a
  * presentation already seen cannot be re-entered by backing into one.
  */
+/**
+ * The announcement for the week the club has just arrived in, or the one
+ * already waiting when no week turned over.
+ *
+ * Every route into a new week has to ask this, not just the Advance Week
+ * press. A match week settles into the NEXT week inside `completeMatchday`,
+ * so the desk the manager returns to after a result can already be another
+ * match week — and while the announcement hung off the Advance press alone,
+ * every one of those weeks arrived in silence. That is most of a season: on a
+ * full fixture list, match weeks are usually reached from other match weeks.
+ */
+function matchDayBannerOnArrival(
+  before: GameState,
+  next: GameState,
+  waiting: MatchDayBannerViewModel | null,
+): MatchDayBannerViewModel | null {
+  if (next.week === before.week && next.season === before.season) return waiting;
+  return matchDayBannerViewModel(next);
+}
+
 function seasonBoundaryScreen(career: GameState): M1Screen {
   if (hasPendingChampionshipCelebration(career)) return 'championship-celebration';
   // After the ordinary title, never before it. A D1 title that fires an endgame

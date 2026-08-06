@@ -43,6 +43,14 @@ export interface FinancialStatementProps {
   settlementSeason: number;
   settlementWeek: number;
   reduceMotion: boolean;
+  /**
+   * Bumped by the caller to fast-forward the reveal from outside the panel —
+   * the same beat a tap on the statement produces. Lets the report's own
+   * Continue button spend its first press on the animation instead of leaving.
+   */
+  skipSignal?: number;
+  /** Reports whether the reveal is still running, so a caller can offer that. */
+  onRunningChange?: (running: boolean) => void;
 }
 
 const AMOUNT_COLORS = { income: '#265b30', expense: '#a83440', neutral: '#241f2e' };
@@ -55,6 +63,8 @@ export function FinancialStatement({
   settlementSeason,
   settlementWeek,
   reduceMotion,
+  skipSignal = 0,
+  onRunningChange,
 }: FinancialStatementProps) {
   const t = useCopy();
   const config = useMemo<MachineConfig>(() => ({
@@ -97,6 +107,21 @@ export function FinancialStatement({
   const handleTap = useCallback(() => {
     runtimeRef.current?.dispatch({ type: 'tap' });
   }, []);
+
+  // Zero is the resting value, never a request: mounting must not skip the
+  // reveal the panel exists to play.
+  useEffect(() => {
+    if (skipSignal === 0) return;
+    runtimeRef.current?.dispatch({ type: 'tap' });
+  }, [skipSignal]);
+
+  // Through a ref so an inline callback from the caller cannot re-fire this on
+  // every render — the report is reported on status changes only.
+  const onRunningChangeRef = useRef(onRunningChange);
+  onRunningChangeRef.current = onRunningChange;
+  useEffect(() => {
+    onRunningChangeRef.current?.(machine.status === 'running');
+  }, [machine.status]);
 
   const handleRowSettled = useCallback((index: number, settleKey: number) => {
     const runtime = runtimeRef.current;

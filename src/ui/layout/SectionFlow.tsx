@@ -12,6 +12,14 @@ export interface FlowSection {
    * `2 + 2 * alerts.length`. Only relative sizes matter.
    */
   weight: number;
+  /**
+   * Forces this section to open column 2 instead of letting the balancer pick
+   * the break. For the rare section whose place in the reading order is a
+   * decision rather than an estimate — the first section a manager should see
+   * on the right. Ignored on phones and on the first section, where there is
+   * no second column to open.
+   */
+  startsColumn?: boolean;
   node: ReactNode;
 }
 
@@ -26,7 +34,8 @@ export interface SectionFlowProps {
  * Lays management-screen sections out as one column (phones — unchanged
  * look) or two reading-order columns (wide viewports). Sections are atomic:
  * one never splits across columns. Column 1 fills top-to-bottom, then
- * column 2, split where the estimated heights balance best.
+ * column 2, split where the estimated heights balance best — unless a section
+ * asks for the break itself with `startsColumn`.
  * Crossing the mode breakpoint restructures the tree, so sections unmount
  * and remount — do not keep meaningful local state inside a section.
  */
@@ -44,7 +53,10 @@ export function SectionFlow({ mode, header, sections }: SectionFlowProps) {
     );
   }
 
-  const split = balancedSplitIndex(sections.map(section => section.weight));
+  const forcedSplit = sections.findIndex(section => section.startsColumn === true);
+  const split = forcedSplit > 0
+    ? forcedSplit
+    : balancedSplitIndex(sections.map(section => section.weight));
   return (
     <View className="w-full max-w-5xl self-center">
       {header}

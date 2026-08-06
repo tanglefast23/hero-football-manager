@@ -540,17 +540,22 @@ export function ClubFinancesScreen({
       weight: 2 + viewModel.recentTransactions.length,
       node: <RecentTransactionsSection viewModel={viewModel} />,
     }] : []),
+    // Opens the second column on a wide screen: the statement on the left is
+    // the week that just happened, and the manager reads across to where next
+    // week's money and TP will come from. The break is asked for rather than
+    // estimated so a long ledger cannot push this section down the page.
+    {
+      key: 'income-generation',
+      weight: 3 + viewModel.incomeGeneration.rows.length,
+      startsColumn: true,
+      node: <IncomeGenerationSection income={viewModel.incomeGeneration} />,
+    },
+    // The mirror of the section above it: that one is where next week's money
+    // comes from, this is where next week's TP comes from.
     {
       key: 'training-points',
       weight: 3 + viewModel.trainingPointIncome.rows.length,
       node: <TrainingPointIncomeSection income={viewModel.trainingPointIncome} />,
-    },
-    // The mirror of the section above it: that one is where next week's TP
-    // comes from, this is where next week's money comes from.
-    {
-      key: 'income-generation',
-      weight: 3 + viewModel.incomeGeneration.rows.length,
-      node: <IncomeGenerationSection income={viewModel.incomeGeneration} />,
     },
   ];
 

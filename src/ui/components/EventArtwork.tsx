@@ -11,6 +11,12 @@ interface EventArtworkProps {
   className?: string;
   /** 'stage' centres and enlarges the objects — see EventPixelScene. */
   sceneLayout?: EventPixelSceneLayout;
+  /**
+   * Height of the child card that covers the bottom of the art, so the stage
+   * objects centre above it rather than behind it. Measured by the caller: the
+   * children here fill the frame, so the artwork cannot measure the card itself.
+   */
+  sceneBottomInset?: number;
   children?: React.ReactNode;
 }
 
@@ -27,6 +33,7 @@ export function EventArtwork({
   reduceMotion = false,
   className,
   sceneLayout,
+  sceneBottomInset,
   children,
 }: EventArtworkProps) {
   return (
@@ -36,6 +43,7 @@ export function EventArtwork({
         reduceMotion={reduceMotion}
         success={success}
         {...(sceneLayout === undefined ? {} : { layout: sceneLayout })}
+        {...(sceneBottomInset === undefined ? {} : { bottomInset: sceneBottomInset })}
       />
       {children}
     </View>

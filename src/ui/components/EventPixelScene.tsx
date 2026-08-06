@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, View } from 'react-native';
 import { Canvas, Rect } from '@shopify/react-native-skia';
 import {
@@ -31,6 +31,8 @@ const STAGE_SCALE: Readonly<Record<number, number>> = { 1: 3, 2: 3, 3: 2.25 };
 const NARROW_STAGE_SCALE: Readonly<Record<number, number>> = { 1: 1.8, 2: 1.6, 3: 1.15 };
 /** Keeps the centred row from reading as a rigid line of stickers. */
 const STAGE_STAGGER_PX = 14;
+/** Clear air between the objects and the card that reserved the space. */
+const STAGE_CARD_GAP_PX = 16;
 
 /**
  * The 2-3 story objects of an event floating over the chalkboard stage.
@@ -41,21 +43,47 @@ export function EventPixelScene({
   reduceMotion = false,
   success = false,
   layout: sceneLayout = 'float',
+  bottomInset = 0,
 }: {
   artKey: string;
   reduceMotion?: boolean;
   success?: boolean;
   layout?: EventPixelSceneLayout;
+  /**
+   * Height of the card the caller lays over the bottom of this scene. Stage
+   * objects centre in the space left above it instead of behind it — see
+   * `reservedBottom`.
+   */
+  bottomInset?: number;
 }) {
   const wide = useLayoutMode() === 'twoColumn';
+  const [sceneHeight, setSceneHeight] = useState(0);
   const objectIds = eventObjectIds(artKey);
   const layout = eventObjectLayout(artKey, objectIds.length);
   const stage = sceneLayout === 'stage';
   const scale = !stage
     ? 1
     : (wide ? STAGE_SCALE : NARROW_STAGE_SCALE)[objectIds.length] ?? 1;
+  /**
+   * Centring in the whole scene put the objects behind the outcome card, which
+   * on a tall screen left two hats poking over its top edge. They centre in the
+   * clear band above the card instead — which, once the card is tall, reads as
+   * "sitting just above it".
+   *
+   * Clamped by the measured height: a card taller than the scene must not
+   * reserve the objects out of existence, and a scene that has not measured yet
+   * reserves nothing rather than guessing.
+   */
+  const rowHeight = SPRITE_SIZE * scale + STAGE_STAGGER_PX * 2;
+  const reservedBottom = !stage || sceneHeight === 0
+    ? 0
+    : Math.max(0, Math.min(bottomInset + STAGE_CARD_GAP_PX, sceneHeight - rowHeight));
   return (
-    <View pointerEvents="none" className="absolute inset-0 overflow-hidden">
+    <View
+      pointerEvents="none"
+      className="absolute inset-0 overflow-hidden"
+      onLayout={event => setSceneHeight(event.nativeEvent.layout.height)}
+    >
       <View className="absolute -left-16 top-6 h-48 w-48 rounded-full border-4 border-paper/15" />
       <View className="absolute -right-14 bottom-2 h-40 w-40 rounded-full border-4 border-paper/10" />
       <View
@@ -65,7 +93,7 @@ export function EventPixelScene({
               top: 0,
               left: 0,
               right: 0,
-              bottom: 0,
+              bottom: reservedBottom,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',

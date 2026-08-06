@@ -56,6 +56,14 @@ export function StoryEventScreen({
   const needsPlayer = viewModel.playerSelectionRequired && !viewModel.selectedPlayer;
   const [pickerOpen, setPickerOpen] = useState(false);
   /**
+   * What the cards laid over the artwork actually take up, so the stage objects
+   * can sit above them instead of behind them. Measured rather than guessed:
+   * both cards grow with their copy, and the outcome card grows with its
+   * rewards.
+   */
+  const [outcomeCardHeight, setOutcomeCardHeight] = useState(0);
+  const [titleBandHeight, setTitleBandHeight] = useState(0);
+  /**
    * A locked card is read-only: the manager already answered for this player in
    * the chapter that opened the story. A resolved one is history.
    */
@@ -140,6 +148,9 @@ export function StoryEventScreen({
           success={riskySuccess}
           reduceMotion={reduceMotion}
           sceneLayout="stage"
+          // Plus the ScrollView's own bottom padding, which is part of what the
+          // card occupies at the foot of the picture.
+          sceneBottomInset={outcomeCardHeight === 0 ? 0 : outcomeCardHeight + 16}
           className="flex-1"
         >
           {riskySuccess ? <EventPixelConfetti progress={rewardReveal} reduceMotion={reduceMotion} /> : null}
@@ -155,6 +166,7 @@ export function StoryEventScreen({
                 and the continue button all ran the full width of the screen.
                 The classes live on the plain View inside. */}
             <Animated.View
+              onLayout={event => setOutcomeCardHeight(event.nativeEvent.layout.height)}
               style={{
                 width: '100%',
                 maxWidth: 600,
@@ -246,9 +258,13 @@ export function StoryEventScreen({
           category={viewModel.category}
           reduceMotion={reduceMotion}
           sceneLayout="stage"
+          sceneBottomInset={titleBandHeight}
           className="h-64 justify-end border-y-[3px] border-ink"
         >
-          <View className="bg-ink/85 px-5 py-4">
+          <View
+            onLayout={event => setTitleBandHeight(event.nativeEvent.layout.height)}
+            className="bg-ink/85 px-5 py-4"
+          >
             <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold">{viewModel.categoryLabel}</Text>
             <Text className="mt-2 font-pixel text-2xl uppercase leading-8 text-paper">{viewModel.title}</Text>
           </View>
