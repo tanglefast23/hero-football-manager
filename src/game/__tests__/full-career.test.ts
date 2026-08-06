@@ -85,6 +85,32 @@ describe('full M2 career clock', () => {
     expect(resumed.youthIntake).toMatchObject({ status: 'CLOSED', offers: [] });
   });
 
+  test('carries the request clock across the break but drops leave and effects', () => {
+    // The cadence floor is a cooldown between requests, not a barrier at the
+    // start of a season. Resetting this to 0 made it bite twice and silenced
+    // the whole pre-season, which is shorter than the floor. Effects and leave
+    // still go: both are measured in weeks against a season that has ended.
+    const initial = createCareer({ ...createLaunchCareerSetup(78) });
+    const seasonEnd = {
+      ...initial,
+      phase: 'season-end' as const,
+      playerRequests: {
+        weeksSinceRequest: 9,
+        effects: [{ kind: 'DRILL_SQUAD' as const, weeksRemaining: 3, multiplierPercent: 50 }],
+        history: [],
+      },
+      fixtures: initial.fixtures.map(fixture => ({
+        ...fixture,
+        status: 'played' as const,
+        score: { homeGoals: 1, awayGoals: 1 },
+      })),
+    };
+    const next = startNextSeason(seasonEnd);
+
+    expect(next.playerRequests!.weeksSinceRequest).toBe(9);
+    expect(next.playerRequests!.effects).toEqual([]);
+  });
+
   test('starts an endless next season with an active ten-club division', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(78) });
     const seasonEnd = {
