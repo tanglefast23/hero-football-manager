@@ -106,6 +106,7 @@ Research reports (source material, written by research agents):
 
 | Decision | Choice |
 |---|---|
+| Contract renewals | The agent's asking wage is shown before talks open (transfers keep a hidden ask). Renewals can be signed in one tap at that full ask with no promise; negotiating is how you pay less, and promises stay inside the negotiation where their squad cost is stated. A signed hero renewal can land as low as x2.0 (measured floor x1.99, needing a loyal undeveloped hero plus two loved cards) — accepted, not floored, so x3-5 describes the ask rather than the signed wage |
 | Match involvement | Matches auto-play and powers always fire automatically in their authored context — there is no manual hero tap. The player's live controls are Formation, Playstyle, Swap, and Energy Use |
 | Match effort | Playstyle controls tactical intent; Save Energy / Balanced / All Out controls physical effort, movement, and condition drain without directly changing passing or shooting |
 | Career structure | Climb from D5 · District League to D1 · Global League; win **both** D1 and the Hero Cup to complete the main journey, then continue endlessly; the career record is kept in the Hall of Fame |

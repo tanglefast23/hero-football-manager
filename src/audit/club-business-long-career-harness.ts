@@ -957,7 +957,7 @@ function tryCompleteRecruitment(state: GameState, window: RecruitmentWindow): Ga
     }
     const transferState = sale?.state ?? next;
     const transferMarket = sale?.market ?? selected.market;
-    const talks = submitCareerTransferOffer(transferMarket, {
+    const talks = submitCareerTransferOffer(transferState, transferMarket, {
       weeklyWage: selected.weeklyAsk,
       termSeasons: selected.termSeasons,
       perk: 'GUARANTEED_STARTER',
@@ -1309,7 +1309,7 @@ function renewExpiringPlayers(state: GameState): GameState {
     }
     const talks = opened.renewalTalks;
     if (talks === undefined) throw new Error(`long-career renewal talks did not open for ${player.id}`);
-    const offered = submitCareerRenewalOffer(opened, {
+    const offered = submitCareerRenewalOffer(next, opened, {
       weeklyWage: talks.negotiation.weeklyAsk,
       termSeasons: Math.min(2, maxTerm),
       perk: 'JERSEY_10',

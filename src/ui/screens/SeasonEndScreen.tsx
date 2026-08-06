@@ -263,7 +263,7 @@ export function SeasonEndScreen({
               title={contract.remainingExpiredCount === 1
                 ? 'Expired contract'
                 : `${contract.remainingExpiredCount} expired contracts`}
-              right={<StatusChip label={contract.decision} tone={contract.decision === 'pending' ? 'danger' : 'success'} />}
+              right={<StatusChip label="Decision needed" tone="danger" />}
             />
             <PaperPanel
               kicker={contract.powerName ? 'Hero agent meeting' : 'Renewal meeting'}
@@ -300,40 +300,64 @@ export function SeasonEndScreen({
                 </View>
               ) : null}
 
-              {contract.decision === 'pending' && !contract.requiresNegotiation ? (
+              {viewModel.renewalNegotiation === undefined ? (
                 <>
-                  <PixelText className="mt-4 text-sm uppercase tracking-wide text-ink/50">Contract length</PixelText>
-                  <View className="mt-2 flex-row gap-2">
-                    {contract.termOptions.map(term => {
-                      const selected = contract.selectedTerm === term;
-                      return (
-                        <Pressable
-                          key={term}
-                          accessibilityRole="radio"
-                          accessibilityLabel={`${term} season contract`}
-                          accessibilityState={{ selected }}
-                          onPress={() => onSelectContractTerm(contract.playerId, term)}
-                          className={selected ? 'min-h-11 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light' : 'min-h-11 flex-1 items-center justify-center border-2 border-ink/30 bg-paper-dark'}
-                          style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
-                        >
-                          <Text className="font-mono text-base text-ink">{term}</Text>
-                          <PixelText className="mt-1 text-sm uppercase text-ink/50">Season{term === 1 ? '' : 's'}</PixelText>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                  {contract.shortTermReason === undefined ? null : (
-                    <Text className="mt-2 text-sm leading-5 text-ink/60">
-                      {contract.shortTermReason}
-                    </Text>
+                  {contract.renewalBlockedReason === undefined ? (
+                    <>
+                      <PixelText className="mt-4 text-sm uppercase tracking-wide text-ink/50">Contract length</PixelText>
+                      <View className="mt-2 flex-row gap-2">
+                        {contract.termOptions.map(term => {
+                          const selected = contract.selectedTerm === term;
+                          return (
+                            <Pressable
+                              key={term}
+                              accessibilityRole="radio"
+                              accessibilityLabel={`${term} season contract`}
+                              accessibilityState={{ selected }}
+                              onPress={() => onSelectContractTerm(contract.playerId, term)}
+                              className={selected
+                                ? 'min-h-11 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light'
+                                : 'min-h-11 flex-1 items-center justify-center border-2 border-ink/30 bg-paper-dark'}
+                            >
+                              <Text className="font-mono text-base text-ink">{term}</Text>
+                              <PixelText className="mt-1 text-sm uppercase text-ink/50">Season{term === 1 ? '' : 's'}</PixelText>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                      {contract.shortTermReason === undefined ? null : (
+                        <Text className="mt-2 text-sm leading-5 text-ink/60">
+                          {contract.shortTermReason}
+                        </Text>
+                      )}
+                      <View className="mt-3">
+                        <ActionButton
+                          label={`Sign now · ${formatCurrency(contract.quotedWeeklyWage)}/wk`}
+                          accessibilityLabel={`Sign ${contract.playerName} for ${contract.selectedTerm} seasons at ${formatCurrency(contract.quotedWeeklyWage)} per week, the asking price, with no promise`}
+                          onPress={() => guardTap(() => onRenewContract(contract.playerId, contract.selectedTerm))}
+                        />
+                      </View>
+                      <View className="mt-2">
+                        <ActionButton
+                          label="Meet the agent  ▸"
+                          accessibilityLabel={`Negotiate with ${contract.playerName}'s agent to pay less than the asking price`}
+                          onPress={() => onStartRenewal(contract.playerId)}
+                          variant="paper"
+                        />
+                      </View>
+                      <Text className="mt-2 text-center text-sm text-ink/50">
+                        Signing now pays the full ask and promises nothing. Talks can beat that
+                        price — three rounds, and a promise is your strongest chip.
+                      </Text>
+                    </>
+                  ) : (
+                    <View className="mt-4 border-2 border-stamp bg-red-light px-3 py-3">
+                      <PixelText className="text-sm uppercase tracking-wide text-stamp">Talks are over</PixelText>
+                      <Text className="mt-1 text-sm leading-5 text-ink/70">
+                        {contract.renewalBlockedReason}
+                      </Text>
+                    </View>
                   )}
-                  <View className="mt-3">
-                    <ActionButton
-                      label="Renew deal"
-                      accessibilityLabel={`Renew ${contract.playerName} for ${contract.selectedTerm} seasons`}
-                      onPress={() => guardTap(() => onRenewContract(contract.playerId, contract.selectedTerm))}
-                    />
-                  </View>
                   <View className="mt-2">
                     <ActionButton
                       label="Let player leave"
@@ -342,36 +366,7 @@ export function SeasonEndScreen({
                       variant="danger"
                     />
                   </View>
-                  <Text className="mt-2 text-center text-sm text-ink/50">
-                    Renewal raises weekly payroll; it does not require an upfront fee.
-                  </Text>
                 </>
-              ) : contract.requiresNegotiation && viewModel.renewalNegotiation === undefined ? (
-                <>
-                  <View className="mt-4">
-                    <ActionButton
-                      label="Meet the agent  ▸"
-                      accessibilityLabel={`Start renewal talks with ${contract.playerName}`}
-                      onPress={() => onStartRenewal(contract.playerId)}
-                    />
-                  </View>
-                  <View className="mt-2">
-                    <ActionButton
-                      label="Let player leave"
-                      accessibilityLabel={`Let ${contract.playerName} leave on a free transfer`}
-                      onPress={() => onReleaseContract(contract.playerId)}
-                      variant="danger"
-                    />
-                  </View>
-                  <Text className="mt-2 text-center text-sm text-ink/50">
-                    Three negotiation rounds. Mood, promises, and one-use pitch cards all matter.
-                  </Text>
-                </>
-              ) : viewModel.renewalNegotiation === undefined ? (
-                <View className="mt-3 flex-row gap-2">
-                  <Metric label="Decision" value="Renewed" />
-                  <Metric label="Next wage" value={formatCurrency(contract.quotedWeeklyWage)} />
-                </View>
               ) : null}
             </PaperPanel>
             {viewModel.renewalNegotiation ? (

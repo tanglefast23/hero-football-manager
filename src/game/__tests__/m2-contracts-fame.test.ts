@@ -67,15 +67,20 @@ describe('M2 fame and expired contracts', () => {
     };
 
     const firstReview = seasonEndViewModel(state, content, 1);
+    // `requiresNegotiation` was a hardcoded `true` that made the whole quick-renew
+    // branch of the screen unreachable; it was removed 2026-08-06 along with the
+    // equally hardcoded `decision`. A resolvable contract is now the absence of a
+    // `renewalBlockedReason`.
     expect(firstReview).toMatchObject({
       canContinue: false,
-      expiredContract: { requiresNegotiation: true, remainingExpiredCount: 2 },
+      expiredContract: { remainingExpiredCount: 2 },
     });
+    expect(firstReview.expiredContract?.renewalBlockedReason).toBeUndefined();
     expect(() => startNextSeason(state)).toThrow('2 expired contracts must be resolved');
 
     let market = beginCareerRenewalTalks(state, state.market!, firstReview.expiredContract!.playerId);
     const ask = market.renewalTalks!.negotiation.weeklyAsk;
-    market = submitCareerRenewalOffer(market, {
+    market = submitCareerRenewalOffer(state, market, {
       weeklyWage: ask,
       termSeasons: 2,
       perk: 'GUARANTEED_STARTER',

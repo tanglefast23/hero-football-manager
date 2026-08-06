@@ -29,6 +29,7 @@ import {
   completePostMatchAwakening,
   completeCareerTransfer,
   completeCareerRenewal,
+  signCareerRenewalAtAsk,
   createCareer,
   currentUserDivision,
   deterministicCareerEventRoll,
@@ -1958,6 +1959,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       const negotiatedMarket = submitCareerTransferOffer(
+        career,
         requireMarket(career),
         offer,
         pitchCard,
@@ -2006,28 +2008,23 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       const market = requireMarket(career);
-      // The direct renewal is priced by the same machinery as the negotiated
-      // one: it opens talks (which is where the loyalty refusal and the
-      // growth/fame/hero premium live) and accepts the agent's opening ask
-      // sight unseen. Negotiation exists to beat that number; skipping it
-      // never beats it. Keeping one code path means this action can never
-      // drift into a cheaper renewal than the shipped flow offers.
-      const opened = beginCareerRenewalTalks(career, market, playerId);
-      const talks = opened.renewalTalks;
-      if (talks === undefined) throw new Error('renewal talks did not open');
-      // An offer of the full ask with no pitch card is accepted on round one by
-      // construction: the effective offer can only exceed the effective ask.
-      const accepted = submitCareerRenewalOffer(opened, {
-        weeklyWage: talks.negotiation.weeklyAsk,
-        termSeasons: term ?? get().selectedContractTerm,
-        // The cheapest promise in the deck, and the only one with no squad
-        // management consequence — no lineup guarantee, no captaincy change,
-        // no training debt.
-        perk: 'JERSEY_10',
-      });
-      const transaction = completeCareerRenewal(career, accepted);
+      // Signs at the agent's asking price with no promise attached. Priced by
+      // the same `careerRenewalWeeklyAsk` the negotiation opens with and gated
+      // by the same loyalty and abandoned-agent checks, so this can never be a
+      // cheaper renewal — or a way past a player who will not re-sign.
+      const transaction = signCareerRenewalAtAsk(
+        career,
+        market,
+        playerId,
+        term ?? get().selectedContractTerm,
+      );
       const next = { ...transaction.state, market: transaction.market };
-      set({ career: next, error: null });
+      set({
+        career: next,
+        selectedContractTerm: 1,
+        error: null,
+        notice: { tone: 'success', message: 'Contract renewed at the asking price.' },
+      });
       queueCareerSave(get, set, next);
     });
   },
@@ -2047,7 +2044,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   submitRenewalOffer(offer, pitchCard) {
     guarded(set, () => {
       const career = requireCareer(get());
-      const negotiated = submitCareerRenewalOffer(requireMarket(career), offer, pitchCard);
+      const negotiated = submitCareerRenewalOffer(career, requireMarket(career), offer, pitchCard);
       if (negotiated.renewalTalks?.negotiation.status === 'ACCEPTED') {
         const transaction = completeCareerRenewal(career, negotiated);
         const next = { ...transaction.state, market: transaction.market };
@@ -2062,11 +2059,32 @@ export const useM1Store = create<M1Store>((set, get) => ({
       }
       const consequence = applyCareerNegotiationConsequence(career, negotiated, 'renewal');
       const next = { ...consequence.state, market: consequence.market };
+      // Outcome-specific, and on the right channel. The insult message used to
+      // travel on `error` while describing a penalty, and a genuine three-round
+      // walk-away produced no message at all -- it is only surfaced inline in
+      // the panel. No penalty is invented for the walk-away: doc 06 assigns
+      // morale and fame damage to insulting offers only, and `submitContractOffer`
+      // is shared with transfers, so adding one here would reprice those too.
+      const status = negotiated.renewalTalks?.negotiation.status;
+      const insulted = consequence.market !== negotiated;
       set({
         career: next,
-        error: consequence.market !== negotiated
-          ? 'The agent walked away. Player morale and club reputation fell.'
-          : null,
+        error: null,
+        notice: insulted
+          ? {
+              // 'info' rather than a new tone: the notice palette is info/success
+              // by design, and a bad-news cue belongs to the error banner, which
+              // this deliberately no longer uses -- nothing failed, the manager
+              // made a choice and it landed badly.
+              tone: 'info' as const,
+              message: 'That offer caused real offence. Talks are over, and the squad heard about it.',
+            }
+          : status === 'REJECTED'
+            ? {
+                tone: 'info' as const,
+                message: 'Three rounds gone and the agent walked. No hard feelings.',
+              }
+            : null,
       });
       queueCareerSave(get, set, next);
     });

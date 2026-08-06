@@ -58,7 +58,8 @@ import {
   ownedTrainingTier,
   POSITION_TRAINING_ATTRIBUTES,
   reconcilePendingClubLegends,
-  renewalQuote,
+  careerRenewalBlockedReason,
+  careerRenewalWeeklyAsk,
   resolveTrainingDrillForPath,
   rosterForClub,
   roleOverall,
@@ -132,6 +133,10 @@ import {
   promotionRewardsForDivision,
   trainingDrillTier,
 } from '../game/promotion-progression';
+import { renewalOpeningOfferWage } from '../game/market';
+
+/** The negotiation panel's wage increment, and the grid the opening seed rounds to. */
+const RENEWAL_WAGE_STEP = 50;
 import { marketNegotiationViewModel } from './market-view-model';
 import { leagueFixtureViewModel } from './m2-league-view-model';
 import { coachRoleEffectLabels } from './coach-effects';
@@ -1182,6 +1187,9 @@ export function seasonEndViewModel(
   const renewalTermCap = expiredPlayer === undefined
     ? 3
     : maxRenewalTermSeasons(expiredPlayer, state.careerSeed);
+  const renewalBlockedReason = expiredPlayer === undefined || state.market === undefined
+    ? undefined
+    : careerRenewalBlockedReason(state, state.market, expiredPlayer.id);
   const prizeMoney = state.ledgers[state.ledgers.length - 1]?.lines
     .filter(line => line.kind === 'prize')
     .reduce((sum, line) => sum + line.amount, 0) ?? 0;
@@ -1307,9 +1315,14 @@ export function seasonEndViewModel(
         lookId: expiredPlayer.lookId,
         powerName: content.powers.powers.find(power => power.id === expiredPlayer.power)?.name,
         currentWeeklyWage: expiredPlayer.weeklyWage,
+        // The agent's real opening ask, not `renewalQuote`'s wage-times-four.
+        // The old quote ignored growth, fame, loyalty and personality, so the
+        // headline number the manager used to decide renew-versus-release
+        // measured 13-24% low on ordinary squads and 61% low on a grown hero —
+        // and then changed the instant they tapped "Meet the agent".
         quotedWeeklyWage: renewalTalks?.playerId === expiredPlayer.id
           ? renewalTalks.negotiation.weeklyAsk
-          : renewalQuote(expiredPlayer, 4),
+          : careerRenewalWeeklyAsk(state, expiredPlayer),
         isHeroWageCliff: expiredPlayer.power !== undefined && !expiredPlayer.onHeroWage,
         termOptions: contractTermOptions(renewalTermCap),
         // Clamped rather than trusted: the term is held in the store across
@@ -1319,8 +1332,12 @@ export function seasonEndViewModel(
         ...(renewalTermCap >= 3 ? {} : {
           shortTermReason: shortContractReason(expiredPlayer.age ?? 24, renewalTermCap),
         }),
-        decision: 'pending' as const,
-        requiresNegotiation: true,
+        // Replaces a hardcoded `decision: 'pending'` and
+        // `requiresNegotiation: true`, which made the whole quick-renew branch
+        // of the screen unreachable while leaving a permanently red PENDING chip
+        // over it. Both renew actions now disable together with a reason, rather
+        // than rendering enabled over an engine call that always throws.
+        ...(renewalBlockedReason === undefined ? {} : { renewalBlockedReason }),
         remainingExpiredCount: expiredPlayers.length,
       },
     } : {}),
@@ -1334,8 +1351,11 @@ export function seasonEndViewModel(
             playerName: expiredPlayer.name,
             playerRole: expiredPlayer.role,
             lookId: expiredPlayer.lookId,
-            openingWeeklyWage: expiredPlayer.weeklyWage,
-            wageStep: 50,
+            openingWeeklyWage: renewalOpeningOfferWage(
+              renewalTalks.negotiation.weeklyAsk,
+              RENEWAL_WAGE_STEP,
+            ),
+            wageStep: RENEWAL_WAGE_STEP,
             maxTermSeasons: Math.max(1, renewalTermCap) as 1 | 2 | 3,
             playerAge: expiredPlayer.age ?? 24,
           }),
