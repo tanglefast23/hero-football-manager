@@ -296,8 +296,7 @@ export function SeasonEndScreen({
                 <View className="mt-3 border-2 border-gold-dark bg-gold/40 p-3">
                   <PixelText className="text-sm uppercase tracking-wide text-gold-dark">{t('seasonEnd.theBargainYearsAreOver')}</PixelText>
                   <Text className="mt-1 text-sm leading-5 text-ink/60">
-                    The awakening never changed this contract. Renewal does—and the agent knows exactly what a hero is worth.
-                  </Text>
+                    {t('seasonEnd.theAwakeningNeverChanged')}</Text>
                 </View>
               ) : null}
 

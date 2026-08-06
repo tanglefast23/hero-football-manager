@@ -1536,8 +1536,7 @@ function GroundsSection({
           stamp={`${formatCurrency(viewModel.facilities.weeklyUpkeep)}/wk`}
         >
           <Text className="mb-3 text-sm leading-4 text-ink/70">
-            Pick a building from the menu below, then tap any + square to drop it. Put useful pairs edge-to-edge to discover bonuses.
-          </Text>
+            {t('clubFinances.pickABuildingFrom')}</Text>
           {viewModel.facilities.activeProject ? (
             <View className="mb-3 flex-row items-center gap-3 border-2 border-b-4 border-amber-800 bg-amber-100 p-3">
               <ManagementSprite spriteKey="facility:worksite" width={54} accessibilityLabel={t('clubFinances.a11y.activeConstructionSite')} />
@@ -2190,8 +2189,7 @@ function GroundsSection({
             <PixelText className="text-sm uppercase tracking-wide text-ink/70">{t('clubFinances.facilityPairBonuses')}</PixelText>
             {viewModel.facilities.discoveredAdjacencies.length === 0 ? (
               <Text className="mt-2 text-sm leading-4 text-ink/70">
-                No pairings discovered yet. Some facilities hide a bonus when the right pair shares an edge. Corners do not count.
-              </Text>
+                {t('clubFinances.noPairingsDiscoveredYet')}</Text>
             ) : viewModel.facilities.discoveredAdjacencies.map(adjacency => {
               const presentation = facilityAdjacencyPresentation(adjacency);
               const active = viewModel.facilities.activeAdjacencies.includes(adjacency);

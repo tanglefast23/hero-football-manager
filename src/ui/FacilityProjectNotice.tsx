@@ -68,8 +68,7 @@ export function FacilityProjectNotice({
               </View>
             </View>
             <Text className="mt-4 text-center text-base leading-5 text-ink/65">
-              One club works crew is now assigned.
-            </Text>
+              {t('facilityProjectNotice.oneClubWorksCrew')}</Text>
             <View className="mt-4">
               <ActionButton
                 label="Let them build  ▸"

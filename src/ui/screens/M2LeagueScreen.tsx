@@ -176,8 +176,7 @@ export function M2LeagueScreen({
                 : `Preview only. Your fixtures and table remain in ${viewModel.activeTable.divisionLabel}.`}
             </Text>
             <Text className="mt-2 text-xs leading-4 text-ink/50">
-              Squad strength uses player attributes only. Form, condition, tactics, coaches, and hero powers can still change results.
-            </Text>
+              {t('m2League.squadStrengthUsesPlayer')}</Text>
           </PaperPanel>
         </View>
       ),
@@ -333,8 +332,7 @@ export function M2LeagueScreen({
           {!viewModel.cup.available ? (
             <PaperPanel kicker={viewModel.cup.seasonLabel} title={viewModel.cup.currentRoundLabel} stamp="PENDING">
               <Text className="text-sm leading-5 text-ink/60">
-                The competition office will draw 50 clubs into a play-in, then a clean 32-club bracket.
-              </Text>
+                {t('m2League.theCompetitionOfficeWill')}</Text>
             </PaperPanel>
           ) : (
             <>

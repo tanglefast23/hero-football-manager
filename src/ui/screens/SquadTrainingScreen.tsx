@@ -1079,8 +1079,7 @@ function PlayerFileSection({
         ) : null}
         <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/50">Attributes</PixelText>
         <Text className="mb-3 text-xs leading-4 text-ink/55">
-          PAC pace · SHO shooting · PAS passing · DEF defense · TEC technique · STA stamina · REF goalkeeping
-        </Text>
+          {t('squadTraining.pacPaceShoShooting')}</Text>
         <View className="flex-row flex-wrap gap-2">
           {selectedPlayer.attributes
             .filter(attribute => selectedPlayer.role === 'GK'

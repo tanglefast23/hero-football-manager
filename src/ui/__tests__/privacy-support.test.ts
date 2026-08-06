@@ -12,10 +12,17 @@ describe('Privacy and support release surface', () => {
   test('states the verified offline privacy behavior and open-source notice in game', () => {
     const panel = readFileSync(join(process.cwd(), 'src/ui/PrivacySupportPanel.tsx'), 'utf8');
 
-    expect(panel).toContain('does not require an account');
-    expect(panel).toContain('does not use ads, analytics, or tracking');
-    expect(panel).toContain('only when you deliberately choose Export Save');
-    expect(panel).toContain('SIL Open Font License, Version 1.1');
+    expect(loadCatalog('en').strings['privacySupport.heroFootballManagerDoes'])
+      .toContain('does not require an account');
+    // These are release commitments, so what matters is that the words ship —
+    // and they now ship from the catalog rather than the component.
+    const copy = loadCatalog('en').strings;
+    expect(copy['privacySupport.heroFootballManagerDoes'])
+      .toContain('does not use ads, analytics, or tracking');
+    expect(copy['privacySupport.yourPreferencesPlayerAnd'])
+      .toContain('only when you deliberately choose Export Save');
+    expect(copy['privacySupport.silkscreenFontCopyrightThe'])
+      .toContain('SIL Open Font License, Version 1.1');
     // Moved into the copy catalog; assert the key AND the English so the
     // guarantee is unchanged rather than merely "a key is present".
     expect(panel).toContain("t('privacySupport.a11y.emailHeroFootballManagerSupport')");

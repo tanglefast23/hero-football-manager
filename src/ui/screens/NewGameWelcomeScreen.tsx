@@ -95,9 +95,7 @@ export function NewGameWelcomeScreen({
         ? 'mt-6 max-w-lg font-mono text-base uppercase leading-7 text-paper/80'
         : 'mt-4 max-w-sm font-mono text-sm uppercase leading-5 text-paper/80'}
       >
-        A tiny ground. A nervous board. One blank registration card with your name waiting.
-        Build the club they will talk about for decades.
-      </Text>
+        {t('newGameWelcome.aTinyGroundA')}</Text>
     </>
   ) : hasSavedCareer ? (
     <>
@@ -127,8 +125,7 @@ export function NewGameWelcomeScreen({
         ? 'mt-6 max-w-lg font-mono text-base uppercase leading-7 text-paper/80'
         : 'mt-4 max-w-sm font-mono text-sm uppercase leading-5 text-paper/80'}
       >
-        The squad has been pretending not to watch the clock. Your club is exactly where you left it.
-      </Text>
+        {t('newGameWelcome.theSquadHasBeen')}</Text>
     </>
   ) : null;
 

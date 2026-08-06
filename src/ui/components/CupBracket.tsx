@@ -12,7 +12,7 @@ import {
 import { useLayoutMode } from '../layout/use-layout-mode';
 import type { M2CupRoundViewModel } from '../m2-league-models';
 import { PixelText } from './PixelText';
-import { usePixelStyles, type LocaleFaces } from '../../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
 
 /**
  * The Hero Cup as a bracket rather than a stack of round cards.
@@ -37,6 +37,7 @@ export interface CupBracketProps {
 }
 
 export function CupBracket({ rounds, championName }: CupBracketProps) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const narrow = useLayoutMode() !== 'twoColumn';
   // A phone gets the tree wrapped into bands rather than five columns it would
@@ -56,7 +57,7 @@ export function CupBracket({ rounds, championName }: CupBracketProps) {
       ))}
       {championName === undefined ? null : (
         <View accessible accessibilityLabel={`${championName} won the Hero Cup`} style={styles.champion}>
-          <PixelText className="text-xs uppercase text-ink/60">Hero Cup winners</PixelText>
+          <PixelText className="text-xs uppercase text-ink/60">{t('cupBracket.heroCupWinners')}</PixelText>
           <PixelText className="mt-1 text-lg uppercase text-ink" numberOfLines={1}>{championName}</PixelText>
         </View>
       )}

@@ -257,8 +257,7 @@ export function TitleSettingsScreen({
   const formationsPanel = (
     <PaperPanel kicker="Match-day kit" title="Three formations" stamp="Tap to swap">
       <Text className="text-base leading-5 text-ink/65">
-        These are the three shapes available from the live Formation button. The first shape starts every watched match.
-      </Text>
+        {t('titleLanding.theseAreTheThree')}</Text>
       <View className="mt-5 flex-row gap-2">
         {preferences.formationPresets.map((formation, index) => (
           <Pressable
@@ -327,8 +326,7 @@ export function TitleSettingsScreen({
   const difficultyPanel = difficultyLabel ? (
     <PaperPanel kicker="Current career" title="Boardroom pressure" stamp={difficultyLabel}>
       <Text className="text-base leading-5 text-ink/65">
-        Difficulty is chosen when the career begins. It changes economy pressure, never match replay rules.
-      </Text>
+        {t('titleLanding.difficultyIsChosenWhen')}</Text>
     </PaperPanel>
   ) : null;
 

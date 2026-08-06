@@ -18,9 +18,11 @@ import fs from 'fs';
 import path from 'path';
 import ts from 'typescript';
 
-// Whole labels and one-line sentences. Longer prose split across JSX is still
-// out of scope — that needs composing by hand.
-const MAX_WORDS = 14;
+// No length limit. A whole paragraph that is an element's entire content is
+// still one string to the player and one key in the catalog — and the slug is
+// capped below, so a long string does not produce a long key. What stays out of
+// scope is prose SPLIT across JSX, which needs composing by hand.
+const MAX_WORDS = Infinity;
 // The slug names the thing in a few words even when the string is a sentence.
 // A key echoing a whole sentence becomes a lie the first time it is reworded.
 const MAX_SLUG_WORDS = 4;
