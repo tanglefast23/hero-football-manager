@@ -48,12 +48,14 @@ const tableColumns = StyleSheet.create({
   points: { width: LEAGUE_COLUMN_WIDTH.points, flexShrink: 0 },
 });
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
+import { useCopy } from '../../i18n';
 
 export interface LeagueTableScreenProps {
   viewModel: LeagueTableViewModel;
 }
 
 export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
+  const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const pointsFromTop = viewModel.leaderPoints - viewModel.userPoints;
   const layoutMode = useLayoutMode();
@@ -153,11 +155,11 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
           <View className="mt-4 flex-row items-center gap-4 border-2 border-ink bg-white px-3 py-3">
             <View className="flex-row items-center gap-2">
               <View className="h-3 w-3 bg-blue" />
-              <Text className="text-sm text-ink/60">Your club</Text>
+              <Text className="text-sm text-ink/60">{t('leagueTable.yourClub')}</Text>
             </View>
             <View className="flex-row items-center gap-2">
               <View className="h-3 w-3 bg-pitch-light" />
-              <Text className="text-sm text-ink/60">Promotion place</Text>
+              <Text className="text-sm text-ink/60">{t('leagueTable.promotionPlace')}</Text>
             </View>
           </View>
         </View>
@@ -198,7 +200,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
         header={
           <View className="mb-5 flex-row items-end justify-between">
             <View>
-              <PixelText className="text-[12px] uppercase text-blue-dark">Competition office</PixelText>
+              <PixelText className="text-[12px] uppercase text-blue-dark">{t('leagueTable.competitionOffice')}</PixelText>
               <PixelText className="mt-1 text-[18px] uppercase text-ink">{viewModel.divisionLabel}</PixelText>
             </View>
             <View className="items-end gap-1">

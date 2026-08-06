@@ -72,6 +72,7 @@ const leagueColumns = StyleSheet.create({
   points: { width: LEAGUE_COLUMN_WIDTH.points, flexShrink: 0 },
 });
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
+import { useCopy } from '../../i18n';
 
 export interface M2LeagueScreenProps {
   viewModel: M2LeagueViewModel;
@@ -96,6 +97,7 @@ export function M2LeagueScreen({
   guideSubTab,
   onGuideSubTabAnchorChange,
 }: M2LeagueScreenProps) {
+  const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const summary = viewModel.selectedDivisionSummary;
   const layoutMode = useLayoutMode();
@@ -339,7 +341,7 @@ export function M2LeagueScreen({
             <>
               {viewModel.cup.championName ? (
                 <View className="mb-4 border-2 border-b-4 border-gold-dark bg-gold-light p-4">
-                  <Text className="font-pixel text-sm uppercase text-gold-dark">Cup champions</Text>
+                  <Text className="font-pixel text-sm uppercase text-gold-dark">{t('m2League.cupChampions')}</Text>
                   <Text className="mt-1 font-pixel text-xl uppercase text-ink">
                     {viewModel.cup.championName}
                   </Text>
@@ -349,7 +351,7 @@ export function M2LeagueScreen({
                 </View>
               ) : (
                 <View className="mb-4 border-2 border-b-4 border-blue-dark bg-blue-light p-3">
-                  <Text className="font-pixel text-sm uppercase text-blue-dark">Current desk</Text>
+                  <Text className="font-pixel text-sm uppercase text-blue-dark">{t('m2League.currentDesk')}</Text>
                   <Text className="mt-1 text-base font-bold text-ink">{viewModel.cup.currentRoundLabel}</Text>
                 </View>
               )}
@@ -403,7 +405,7 @@ export function M2LeagueScreen({
           <View className="mb-5">
             <View className="flex-row items-end justify-between gap-3">
               <View className="flex-1">
-                <Text className="font-pixel text-sm uppercase text-blue-dark">Competition office</Text>
+                <Text className="font-pixel text-sm uppercase text-blue-dark">{t('leagueTable.competitionOffice')}</Text>
                 <Text className="mt-1 font-pixel text-xl uppercase text-ink">{viewModel.title}</Text>
               </View>
               <View className="items-end gap-1">

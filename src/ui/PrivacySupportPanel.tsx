@@ -2,6 +2,7 @@ import { ScrollView, Text, View } from 'react-native';
 import appConfig from '../../app.json';
 import { SUPPORT_EMAIL } from '../release/support';
 import { ActionButton, PaperPanel } from './components/Scorecard';
+import { useCopy } from '../i18n';
 
 export interface PrivacySupportPanelProps {
   onBack: () => void;
@@ -11,12 +12,13 @@ export interface PrivacySupportPanelProps {
 
 /** Player-visible privacy, support, build, and license information. */
 export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: PrivacySupportPanelProps) {
+  const t = useCopy();
   const version = appConfig.expo.version;
   const build = appConfig.expo.ios.buildNumber;
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 4 }}>
-      <Text className="font-pixel text-2xl uppercase text-ink">Privacy &amp; Support</Text>
+      <Text className="font-pixel text-2xl uppercase text-ink">{t('settings.privacy.label')}</Text>
       <Text className="mt-2 text-sm leading-5 text-ink/60">
         Hero Football Manager · Version {version} ({build})
       </Text>
@@ -50,7 +52,7 @@ export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: Pr
           <View className="mt-4">
             <ActionButton
               label="Email support"
-              accessibilityLabel="Email Hero Football Manager support"
+              accessibilityLabel={t('privacySupport.a11y.emailHeroFootballManagerSupport')}
               onPress={onEmailSupport}
               variant="paper"
             />
@@ -65,7 +67,7 @@ export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: Pr
       </View>
 
       <View className="mt-6">
-        <ActionButton label="‹  Back to settings" accessibilityLabel="Back to settings" onPress={onBack} variant="primary" />
+        <ActionButton label="‹  Back to settings" accessibilityLabel={t('privacySupport.a11y.backToSettings')} onPress={onBack} variant="primary" />
       </View>
     </ScrollView>
   );

@@ -14,6 +14,7 @@ import {
   matchdayConditionStatus,
   type MatchdayConditionStatus,
 } from '../matchday-condition';
+import { useCopy } from '../../i18n';
 
 /**
  * Three pixels per sprite pixel: a 72x87 face, which fits a w-28 pitch cell
@@ -91,6 +92,7 @@ export function FixtureMatchDayScreen({
   quickResultDisabled = false,
   onOpenSettings,
 }: FixtureMatchDayScreenProps) {
+  const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
   const fixture = viewModel.fixture;
   const licensedCount = viewModel.heroes.filter(hero => hero.licensed).length;
@@ -355,7 +357,7 @@ export function FixtureMatchDayScreen({
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Return to club management"
+          accessibilityLabel={t('fixtureMatchDay.a11y.returnToClubManagement')}
           onPress={onBack}
           className="min-h-11 min-w-11 items-center justify-center border-2 border-paper/40"
           style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
@@ -363,7 +365,7 @@ export function FixtureMatchDayScreen({
           <Text className="font-pixel text-[18px] text-paper">‹</Text>
         </Pressable>
         <View className="flex-1 px-3">
-          <Text className="text-center font-pixel text-[10px] uppercase tracking-[2px] text-gold-light">Match-day docket</Text>
+          <Text className="text-center font-pixel text-[10px] uppercase tracking-[2px] text-gold-light">{t('fixtureMatchDay.match-dayDocket')}</Text>
           <Text className="mt-1 text-center font-pixel text-base uppercase text-white">{fixture.competition}</Text>
         </View>
         <View className="flex-row items-center gap-2">
@@ -401,7 +403,7 @@ export function FixtureMatchDayScreen({
           <View className="flex-1">
             <ActionButton
               label="Quick result"
-              accessibilityLabel="Simulate this match with quick result"
+              accessibilityLabel={t('fixtureMatchDay.a11y.simulateThisMatchWithQuickResult')}
               onPress={() => handOffFixture(onQuickResult)}
               disabled={quickResultDisabled || handedOff || !viewModel.licenseReady}
               variant="paper"
@@ -410,7 +412,7 @@ export function FixtureMatchDayScreen({
           <View className="flex-1">
             <ActionButton
               label={wide ? 'Play match  ▸' : 'Play  ▸'}
-              accessibilityLabel="Play match"
+              accessibilityLabel={t('fixtureMatchDay.a11y.playMatch')}
               onPress={() => handOffFixture(onWatchMatch)}
               disabled={watchDisabled || handedOff || !viewModel.licenseReady}
             />

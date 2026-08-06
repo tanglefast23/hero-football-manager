@@ -19,6 +19,10 @@ const SCOPE = ['src/ui', 'src/render', 'src/application', 'src/game'];
 const SCOPE_FILES = ['App.tsx'];
 
 const EXEMPT = [
+  // A class component — it cannot call `useCopy`, and it is the screen that
+  // renders when something has already gone wrong, so reaching for a context
+  // there is the wrong trade. Its three strings stay English on purpose.
+  /src\/ui\/ScreenErrorBoundary\.tsx$/,
   /src\/ui\/dev-harness\//,
   /src\/audit\//,
   /__tests__/,
@@ -29,7 +33,7 @@ const EXEMPT = [
  * Where the extraction has reached. Lower this as batches land; never raise it.
  * Zero means Task 13 is done.
  */
-const MAX_REMAINING = 314;
+const MAX_REMAINING = 265;
 
 function sourceFiles(dir: string, found: string[] = []): string[] {
   if (!fs.existsSync(dir)) return found;

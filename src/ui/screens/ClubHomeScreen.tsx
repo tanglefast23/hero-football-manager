@@ -16,6 +16,7 @@ import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
 import type { ManagerTipDestination } from '../../content';
 import { InfoTip } from '../components/InfoTip';
+import { useCopy } from '../../i18n';
 
 /** The three letters on the form strip, which nothing else in the game defines. */
 const FORM_EXPLAINER: Readonly<Record<'W' | 'D' | 'L', string>> = {
@@ -131,6 +132,7 @@ export function ClubHomeScreen({
   showManagerTips = true,
   textScale = 1,
 }: ClubHomeScreenProps) {
+  const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const fixture = viewModel.nextFixture;
   const fixtureIsThisWeek = viewModel.isCurrentGameWeek;
@@ -263,7 +265,7 @@ export function ClubHomeScreen({
                     : `${note.title}. ${note.detail}`}
                 >
                   {note.kind === 'tip' ? (
-                    <PixelText className="mb-1 text-xs uppercase text-gold-dark">Manager's tip</PixelText>
+                    <PixelText className="mb-1 text-xs uppercase text-gold-dark">{t('clubHome.managersTip')}</PixelText>
                   ) : null}
                   <PixelText className="text-base uppercase text-ink">{note.title}</PixelText>
                   <Text className="mt-1 text-ink/70" style={scaledBody(textScale, 14, 18)}>{note.detail}</Text>
@@ -420,7 +422,7 @@ export function ClubHomeScreen({
           <SectionLabel
             eyebrow={viewModel.divisionLabel}
             title="Table snapshot"
-            right={<Text className="font-pixel text-sm uppercase text-blue-dark">Table ›</Text>}
+            right={<Text className="font-pixel text-sm uppercase text-blue-dark">{t('clubHome.table')}</Text>}
           />
           {viewModel.table.length === 0 ? (
             <EmptyDocket
@@ -430,7 +432,7 @@ export function ClubHomeScreen({
           ) : (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Open full league table"
+            accessibilityLabel={t('clubHome.a11y.openFullLeagueTable')}
             onPress={onOpenLeague}
             className="border-2 border-b-4 border-ink bg-white"
             style={({ pressed }) => ({ opacity: pressed ? 0.75 : undefined })}
@@ -472,13 +474,13 @@ export function ClubHomeScreen({
           <>
             <View className="flex-row items-end justify-between">
               <View>
-                <Text className="font-pixel text-sm uppercase text-blue-dark">Good morning, boss</Text>
+                <Text className="font-pixel text-sm uppercase text-blue-dark">{t('clubHome.goodMorningBoss')}</Text>
                 <PixelText className="mt-1 text-xl uppercase tracking-wide text-ink">{viewModel.managerName}</PixelText>
               </View>
               <View className="items-end">
-                <PixelText className="text-sm uppercase tracking-wide text-ink/50">Recent form</PixelText>
+                <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('clubHome.recentForm')}</PixelText>
                 {viewModel.form.length === 0 ? (
-                  <PixelText className="mt-2 text-sm uppercase tracking-wide text-ink/40">No games yet</PixelText>
+                  <PixelText className="mt-2 text-sm uppercase tracking-wide text-ink/40">{t('clubHome.noGamesYet')}</PixelText>
                 ) : (
                   <View className="mt-2 flex-row gap-1">
                     {/* W, D and L are only obvious once you already know them.
