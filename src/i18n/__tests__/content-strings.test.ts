@@ -1,4 +1,4 @@
-import { contentStrings } from '../content-strings';
+import { contentStrings, glossaryTermSlug } from '../content-strings';
 import { copyFor } from '../use-copy';
 import { loadLaunchContent } from '../../content';
 
@@ -45,5 +45,29 @@ describe('content prose as catalog keys', () => {
   test('a locale with no translation still shows the English content', () => {
     const request = loadLaunchContent().playerRequests.requests[0]!;
     expect(copyFor('vi')(`playerRequest.${request.id}.title`)).toBe(request.title);
+  });
+});
+
+describe('the story and glossary screens read the keys that exist', () => {
+  test('every key StoryEventScreen builds resolves for every event', () => {
+    const strings = contentStrings();
+    for (const event of loadLaunchContent().events.events) {
+      expect({ id: event.id, title: strings[`event.${event.id}.title`] !== undefined })
+        .toEqual({ id: event.id, title: true });
+      for (const choice of event.choices) {
+        const key = `event.${event.id}.${choice.id}.label`;
+        expect({ key, present: strings[key] !== undefined }).toEqual({ key, present: true });
+      }
+    }
+  });
+
+  test('every key GlossaryPanel builds resolves', () => {
+    const strings = contentStrings();
+    for (const category of loadLaunchContent().glossary.categories) {
+      for (const entry of category.entries) {
+        const key = `glossary.${category.id}.${glossaryTermSlug(entry.term)}.definition`;
+        expect({ key, present: strings[key] !== undefined }).toEqual({ key, present: true });
+      }
+    }
   });
 });

@@ -54,8 +54,8 @@ export function contentStrings(): Readonly<Record<string, string>> {
   for (const category of content.glossary.categories) {
     put(`glossary.${category.id}.title`, category.title);
     for (const entry of category.entries) {
-      put(`glossary.${category.id}.${slug(entry.term)}.term`, entry.term);
-      put(`glossary.${category.id}.${slug(entry.term)}.definition`, entry.definition);
+      put(`glossary.${category.id}.${glossaryTermSlug(entry.term)}.term`, entry.term);
+      put(`glossary.${category.id}.${glossaryTermSlug(entry.term)}.definition`, entry.definition);
     }
   }
 
@@ -63,8 +63,15 @@ export function contentStrings(): Readonly<Record<string, string>> {
   return strings;
 }
 
-/** Glossary entries are keyed by term, which has no id of its own. */
-function slug(term: string): string {
+/**
+ * Glossary entries are keyed by term, which has no id of its own.
+ *
+ * Exported because the panel has to build the same key to read it back. Two
+ * copies of this would drift silently — the keys would simply stop matching and
+ * every glossary entry would fall through to its English, which looks like
+ * "translation not done yet" rather than a bug.
+ */
+export function glossaryTermSlug(term: string): string {
   return term
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
