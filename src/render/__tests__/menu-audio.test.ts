@@ -70,6 +70,18 @@ describe('non-match music ownership', () => {
     expect(menuThemeForScreen('matchday', 1)).toBe('opening');
   });
 
+  /**
+   * The face-off sits between two screens that both play the opening bed. If
+   * it ever returns null the music stops for the scene's two seconds and
+   * starts again straight after — a hole in the middle of the flow that is
+   * easy to introduce and hard to notice in a test suite. Pinned by name.
+   */
+  it('keeps the opening theme running under the Quick Result face-off', () => {
+    expect(menuThemeForScreen('faceoff', 1)).toBe('opening');
+    expect(menuThemeForScreen('faceoff', 1)).toBe(menuThemeForScreen('matchday', 1));
+    expect(menuThemeForScreen('faceoff', 1)).toBe(menuThemeForScreen('postmatch', 1));
+  });
+
   it('uses the opening theme for the full-time report, then restores the office theme', () => {
     const fulltimeTheme = menuThemeForScreen('postmatch', 1);
     const officeTheme = menuThemeForScreen('management', 1);

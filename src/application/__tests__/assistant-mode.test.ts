@@ -234,6 +234,8 @@ function runManagedCareer(
       progressManagedEvent();
     } else if (current.screen === 'matchday') {
       completeManagedMatchday();
+    } else if (current.screen === 'faceoff') {
+      current.completeFaceOff();
     } else if (current.screen === 'postmatch') {
       current.continueAfterMatch();
     } else if (current.screen === 'week-review') {

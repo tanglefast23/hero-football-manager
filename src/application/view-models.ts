@@ -16,6 +16,8 @@ import {
   attributeAffectsPlay,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
+  commercialFacilitySummary,
+  GATE_ATTENDANCE_PERCENT,
   currentActualMonthlySponsorIncome,
   CUP_SETTLEMENT_WEEKS,
   contractTermOptions,
@@ -101,6 +103,8 @@ import type {
   HomeViewModel,
   LeagueTableViewModel,
   ManagerNoteViewModel,
+  IncomeGenerationViewModel,
+  MatchDayBannerViewModel,
   MatchDayViewModel,
   FulltimeReactionViewModel,
   PostMatchViewModel,
@@ -111,7 +115,7 @@ import type {
   TrainingSlotStatOption,
   WeeklyReviewViewModel,
 } from '../ui';
-import { divisionTierLabel } from '../game/pyramid';
+import { CUP_DISPLAY_NAME, DIVISION_NAMES, divisionTierLabel } from '../game/pyramid';
 import { careerDifficulty } from '../game/difficulty';
 import { isAvailableForSelection } from '../game/lineup';
 import { playerLoyalty } from '../game/loyalty';
@@ -303,6 +307,84 @@ function variableIncomeViewModel(state: GameState): ClubVariableIncomeViewModel 
   return { amount };
 }
 
+/**
+ * The other half of the accounts office: not what the club spent, but what it
+ * owns that pays.
+ *
+ * Every row is a multiplier or a cadence rather than an amount — see
+ * IncomeGenerationViewModel. Unbuilt commercial buildings still get a row so
+ * the panel doubles as the answer to "how do I make more money", which is the
+ * question a manager reads this screen with.
+ */
+function incomeGenerationViewModel(
+  state: GameState,
+  club: ReturnType<typeof requireUserClub>,
+  sponsorship: ReturnType<typeof clubSponsorshipViewModel>,
+): IncomeGenerationViewModel {
+  const commercial = commercialFacilitySummary(state);
+  const rows: IncomeGenerationViewModel['rows'] = [
+    {
+      id: 'income-gate',
+      label: 'Home gate',
+      detail: `Every home match. ${GATE_ATTENDANCE_PERCENT}% of your ${club.fans} supporters buy a ticket.`,
+      // The weekly roll, stated as the swing the manager actually sees on the
+      // statement — including the surge the Financial Report makes a banner of.
+      effect: '±10% a week',
+      owned: true,
+    },
+    {
+      id: 'income-stadium-stand',
+      label: commercial.standCount === 0
+        ? 'Stadium Stand'
+        : `Stadium Stand · ${commercial.standCount === 1 ? 'Level ' + commercial.standLevel : commercial.standCount + ' built'}`,
+      detail: commercial.standCount === 0
+        ? 'Not built. Every level adds half the gate again, up to three stands.'
+        : `Adds to every home gate. ${commercial.standLevel} level${commercial.standLevel === 1 ? '' : 's'} across ${commercial.standCount} stand${commercial.standCount === 1 ? '' : 's'}.`,
+      effect: commercial.standCount === 0 ? '+50% / level' : `+${commercial.gateBonusPercent}% gate`,
+      owned: commercial.standCount > 0,
+    },
+    {
+      id: 'income-fan-shop',
+      label: commercial.shopCount === 0
+        ? 'Fan Shop'
+        : `Fan Shop · ${commercial.shopCount === 1 ? 'Level ' + commercial.shopLevel : commercial.shopCount + ' built'}`,
+      detail: commercial.shopCount === 0
+        ? 'Not built. Merchandise every week, paid whether the club is home or away.'
+        : commercial.merchAdjacencyPercent > 0
+          ? `Merchandise every week, plus a +${commercial.merchAdjacencyPercent}% neighbour bonus.`
+          : 'Merchandise every week, home or away.',
+      effect: commercial.shopCount === 0 ? '×1 / level' : `×${commercial.shopLevel} merch`,
+      owned: commercial.shopCount > 0,
+    },
+  ];
+  // At D5 this is the one line of commercial income the club has no say over;
+  // from D4 the managed desk replaces it with signed sponsors, and the row
+  // renames itself rather than the panel gaining a second sponsor block.
+  const sponsorIncome = currentActualMonthlySponsorIncome(state, club);
+  const managedSponsors = sponsorship?.managed === true;
+  return {
+    rows: [
+      ...rows,
+      ...(sponsorIncome <= 0 ? [] : [{
+        id: 'income-sponsor',
+        label: managedSponsors ? 'Sponsors' : 'Local advertising',
+        detail: managedSponsors
+          ? `Signed deals, paid together. ${sponsorship?.nextPaymentLabel ?? 'Paid monthly.'}`
+          : 'A local backer pays the club a flat fee, whatever the results.',
+        effect: 'Every 4 weeks',
+        owned: true,
+      }]),
+      ...(sponsorship?.buzz === undefined ? [] : [{
+        id: 'income-buzz',
+        label: 'Buzz',
+        detail: 'Earned by winning and by heroes. Paid on top of the sponsor money.',
+        effect: `${sponsorship.buzz.value} / 100`,
+        owned: true,
+      }]),
+    ],
+  };
+}
+
 export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
   const club = requireUserClub(state);
   const sponsorship = clubSponsorshipViewModel(state, club);
@@ -388,6 +470,7 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
       })),
     fans: club.fans,
     variableIncome: variableIncomeViewModel(state),
+    incomeGeneration: incomeGenerationViewModel(state, club, sponsorship),
     operatingOutlook,
     weeklyNet,
     projectedBalance: club.cash + weeklyNet,
@@ -2834,6 +2917,29 @@ function fixtureViewModel(
 
 function careerDivision(state: GameState): 1 | 2 | 3 | 4 | 5 {
   return state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+}
+
+/**
+ * The match-week announcement, or null on a quiet week.
+ *
+ * `activeCareerMatchday` is the whole test — it is the same call the desk uses
+ * for "This week", so the banner can never claim a fixture the club does not
+ * actually have. The competition is named the way every other screen names it:
+ * the division's own name (never "Division 5"), and the cup's single display
+ * name, so a rename can never leave this card behind.
+ */
+export function matchDayBannerViewModel(state: GameState): MatchDayBannerViewModel | null {
+  const matchday = activeCareerMatchday(state);
+  if (matchday === undefined) return null;
+  const competitionLabel = matchday.kind === 'national-cup'
+    ? CUP_DISPLAY_NAME
+    : DIVISION_NAMES[careerDivision(state)];
+  return {
+    id: `match-day-banner-${state.season}-${state.week}`,
+    competitionLabel,
+    headline: `${competitionLabel}: Match Day`,
+    accessibilityLabel: `${competitionLabel}. Match day.`,
+  };
 }
 
 function careerDivisionLabel(state: GameState): string {

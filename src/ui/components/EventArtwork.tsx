@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { EventPixelScene } from './EventPixelScene';
+import { EventPixelScene, type EventPixelSceneLayout } from './EventPixelScene';
 
 export type EventArtCategory = 'mystery' | 'club' | 'media' | 'sponsor' | 'player' | 'medical' | 'fan';
 
@@ -9,6 +9,8 @@ interface EventArtworkProps {
   success?: boolean;
   reduceMotion?: boolean;
   className?: string;
+  /** 'stage' centres and enlarges the objects — see EventPixelScene. */
+  sceneLayout?: EventPixelSceneLayout;
   children?: React.ReactNode;
 }
 
@@ -24,11 +26,17 @@ export function EventArtwork({
   success = false,
   reduceMotion = false,
   className,
+  sceneLayout,
   children,
 }: EventArtworkProps) {
   return (
     <View className={`bg-pitch-dark ${className ?? ''}`}>
-      <EventPixelScene artKey={artKey} reduceMotion={reduceMotion} success={success} />
+      <EventPixelScene
+        artKey={artKey}
+        reduceMotion={reduceMotion}
+        success={success}
+        {...(sceneLayout === undefined ? {} : { layout: sceneLayout })}
+      />
       {children}
     </View>
   );

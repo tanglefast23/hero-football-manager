@@ -216,6 +216,53 @@ export interface MatchDayViewModel {
   licenseReady: boolean;
 }
 
+/**
+ * The card that announces a match week the moment the manager reaches the desk
+ * — the fixture's own version of the Financial Report's surge callout.
+ *
+ * Built from the week's live fixture, so a league week and a Hero Cup week each
+ * name their own competition and nothing has to be persisted to know which.
+ */
+export interface MatchDayBannerViewModel {
+  /** Season and week: one banner per match week, and the key the card mounts on. */
+  id: string;
+  /** The competition as the rest of the game names it — a division name, or the cup. */
+  competitionLabel: string;
+  /** The single line on the card. */
+  headline: string;
+  accessibilityLabel: string;
+}
+
+/**
+ * The two-second face-off shown when the manager takes a Quick Result: the
+ * club's best outfielder against theirs, and who ends up kicking the ball.
+ *
+ * Built once, after the match has already been simulated and settled — it
+ * replays a decided result and can never influence one.
+ */
+export interface QuickResultFaceOffViewModel {
+  /** [club, opponent]. The club is index 0 and is always drawn on the left. */
+  sides: readonly [FaceOffSideViewModel, FaceOffSideViewModel];
+  /** Who strikes the ball: 'club', 'opponent', or 'bounce' for a draw. */
+  strike: FaceOffStrike;
+  /** The whole scene as one spoken sentence, minus the "Tap to skip." suffix. */
+  accessibilityLabel: string;
+}
+
+export type FaceOffStrike = 'club' | 'opponent' | 'bounce';
+
+export interface FaceOffSideViewModel {
+  playerId: string;
+  playerName: string;
+  role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  /**
+   * Passed straight to `playerLookId` in the component. The view model names
+   * the player, never the sprite: the pure ring must not know the atlas exists.
+   */
+  lookId?: string;
+  clubName: string;
+}
+
 export interface MatchResultViewModel {
   fixtureId: string;
   competition: string;
@@ -719,6 +766,7 @@ export interface ClubFinancesViewModel {
   coachingStaff: readonly CoachStaffMemberViewModel[];
   facilities: ClubFacilityGridViewModel;
   trainingPointIncome: TrainingPointIncomeViewModel;
+  incomeGeneration: IncomeGenerationViewModel;
   /** Absent until D4 managed sponsorship or Season 3 Buzz becomes visible. */
   sponsorship?: ClubSponsorshipViewModel;
 }
@@ -739,6 +787,29 @@ export interface TrainingPointIncomeViewModel {
     points: number;
   }[];
   total: number;
+}
+
+/**
+ * What the club owns that brings money IN, and what each one is worth.
+ *
+ * Deliberately percentages and multipliers rather than cash. A Stadium Stand is
+ * worth half the gate again whatever division the club is in, and printing one
+ * week's dollars would date the moment the club is promoted — the multiplier is
+ * the durable fact, and the statement above already shows the week's money.
+ * Sponsorship is the exception the shape allows for: it is a payment, not a
+ * multiplier, so its row says when it arrives instead.
+ */
+export interface IncomeGenerationViewModel {
+  rows: readonly {
+    id: string;
+    label: string;
+    /** What it acts on, in one line. */
+    detail: string;
+    /** The headline worth: "+150%", "×3", "Every 4 weeks". */
+    effect: string;
+    /** Rows for things the club has yet to build read back as prospects. */
+    owned: boolean;
+  }[];
 }
 
 export interface StoryEventPlayerViewModel {

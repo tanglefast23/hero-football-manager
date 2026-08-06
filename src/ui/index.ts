@@ -27,6 +27,7 @@ export * from './components/PixelPortrait';
 export * from './components/FacilityCompletionCard';
 export * from './components/ConfirmationSheet';
 export * from './components/PostMatchBuzzCard';
+export * from './components/MatchDayBanner';
 export * from './screens/ClubHomeScreen';
 export * from './screens/ClubLegacyScreen';
 export * from './screens/ClubFinancesScreen';

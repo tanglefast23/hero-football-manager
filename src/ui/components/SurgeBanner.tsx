@@ -37,8 +37,13 @@ export interface SurgeBannerProps {
 const HOLD_MS = 3000;
 const FADE_MS = 200;
 const SPRITE_PX = FINANCE_SPRITE_CELL * FINANCE_SPRITE_SCALE;
-/** The surged row's permanent tint — the banner's bonus wears the same fire. */
-const BONUS_COLOR = '#b45309';
+/**
+ * The surged row's settled tint, restated here: the banner's bonus and the row
+ * it belongs to are the same money, so they must be the same colour. Blue and
+ * lit rather than amber — see SURGE_SETTLED_COLOR in SlotAmount.
+ */
+const BONUS_COLOR = '#5a8fd6';
+const BONUS_GLOW_COLOR = '#a3c8f0';
 
 export function SurgeBanner({
   queue,
@@ -132,7 +137,15 @@ export function SurgeBanner({
               {headline}
             </PixelText>
             {bonusLabel === null ? null : (
-              <PixelText className="text-base uppercase" style={{ color: BONUS_COLOR }}>
+              <PixelText
+                className="text-base uppercase"
+                style={{
+                  color: BONUS_COLOR,
+                  textShadowColor: BONUS_GLOW_COLOR,
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: 7,
+                }}
+              >
                 {bonusLabel}
               </PixelText>
             )}

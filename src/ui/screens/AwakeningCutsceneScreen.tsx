@@ -409,7 +409,21 @@ export function AwakeningCutsceneScreen({
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.flex}>
-        <View style={styles.header}>
+        {/* First child, absolutely filled: it is painted UNDER the header, the
+            viewport and the story panel, so each of those still takes its own
+            taps — but the bare pitch either side of the card is no longer dead.
+            On a wide screen that empty area is most of the screen, and tapping
+            it did nothing. */}
+        <Pressable
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          onPress={advanceStory}
+          style={StyleSheet.absoluteFill}
+        />
+        {/* Read-only chrome, so it lets the tap through to the backdrop above
+            rather than swallowing it: a tap on the fixture line is a tap on
+            the cutscene. */}
+        <View style={styles.header} pointerEvents="none">
           <View>
             <Text style={styles.eyebrow}>FINAL WHISTLE · AWAKENING</Text>
             <Text style={styles.fixture}>{viewModel.fixtureLabel}</Text>
