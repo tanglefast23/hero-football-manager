@@ -45,33 +45,43 @@ bite-sized TDD steps for ~150,000 words of translation would be theatre.
 
 | Task | State |
 | --- | --- |
-| 0. Vietnamese face | **Done.** Handjet chosen on structural grounds (ships 400 + 700, so the display/data voice split survives; VT323 has one weight). Installed. Visual A/B still worth doing on device. |
-| 1. Locale registry | **Done.** `src/i18n/locales.ts`, 9 tests |
-| 2. Plural selector | **Done.** 4 tests |
-| 3. Number formatter | **Done.** 6 tests. *Call sites not yet migrated — see Task 13 step 6.* |
-| 4. Catalog schema + loader | **Done.** 8 tests. Seven catalog files exist; only chrome keys are populated |
-| 5. Resolver | **Done.** 9 tests |
-| 6. Language preference, schema v10 | **Done.** Frozen `V9PreferencesSchema`; 19 tests incl. two new migration tests |
-| 7. Locale context + wiring | **Done.** `LocaleProvider`, `useCopy`, `useFaces`, `setLanguage`, `cycleLanguage` |
-| 8. Font swap — className half | **Done.** `tailwind.config.js` → CSS vars, `vars()` at the app root, Handjet loaded at all 8 `useFonts` sites |
-| 9. Font swap — the 16 literal files | **Partial.** `usePixelStyles` helper built and 2 of 16 converted (`EventRewardArt`, `SubstitutionBoard`). The other 14 are listed in `NOT_YET_CONVERTED` in `src/i18n/__tests__/no-literal-faces.test.ts`, which fails on any *new* offender and also fails if a converted file is left in the list |
-| 10. Formation blurbs out of `src/sim/` | **Not started.** Six labels (not five), five display-only consumers, plus the source-text assertion at `match-rail.test.ts:182` |
-| 11. Event outcome ids | **Not started.** Outcomes nest under `choices`; ids must include the choice id |
-| 12. Persisted-English keys (12 surfaces) | **Not started.** Includes the `hall-of-fame.ts:50` landmine |
-| 13. The extraction (~3,000 strings) | **Not started.** The bulk of the phase |
-| 14. CI gates | **Partial.** Glyph coverage (gate 5) and the font-literal guard are built and green. Gates 1–4, 6, 8, 9 not yet written |
-| 15. Language picker | **Done.** On the signing screen and in Settings |
+| 0. Vietnamese face | **Done.** Handjet, on structural grounds: it ships 400 + 700 so the display/data voice split survives, where VT323's single weight would collapse it. Visual A/B on device still worth doing. |
+| 1–5. Locale registry, plurals, numbers, catalogs, resolver | **Done.** The pure core, 36 tests, all Hermes-safe and node-Jest-testable |
+| 6. Language preference, schema v10 | **Done.** Frozen `V9PreferencesSchema` so the `.omit()`-derived legacy schemas cannot acquire the new field |
+| 7. Locale context + wiring | **Done.** `LocaleProvider` fed from `preferences.language`; `setLanguage` and `cycleLanguage` wired |
+| 8. Font swap — className half | **Done.** Tailwind families resolve through CSS vars, one `vars()` at the root |
+| 9. Font swap — the 16 literal files | **Done.** `usePixelStyles`; guard allowlist empty |
+| 10. Formation blurbs out of `src/sim/` | **Done.** All six, replay unmoved, `ENGINE_VERSION` still `m2.1` |
+| 11. Event outcome ids | **Done.** 150 outcomes, ids stored not derived |
+| 12. Persisted-English keys | **Partial.** The Hall of Fame landmine is fixed and the `labelKey`/`labelParams` pair is declared on four schemas with a contract test. **The producers do not dual-write yet** — that is the remaining half |
+| 13. The extraction | **Partial.** 338 → 83. 243 catalog keys |
+| 14. CI gates | **Done.** Gates 1, 3, 3b, 4, 5, 5b, 5c, plus the AST prose gate and the font-literal guard |
+| 15. Language picker | **Done.** Title screen (owner's call) + Settings |
 | 16. Native config | **Done.** `CFBundleLocalizations`; README decision reversed |
-| 17. Phase 1 verification | **Blocked** on 10–14 |
+| 17. Phase 1 verification | **Blocked** on 12 and 13 |
 
-**What works right now:** the picker renders and persists, the whole app is
-wrapped in a live font swap, and switching to Vietnamese changes the face on
-every `font-pixel`/`font-mono` surface plus the two converted files. Copy itself
-is still English everywhere, because Task 13 has not run.
+### What remains, precisely
 
-**Where to resume:** Task 10, then 11, then 12 — all three are prerequisites of
-the extraction, and all three are the kind of change that is far cheaper before
-3,000 call sites move than after.
+**83 hardcoded strings.** `node scripts/i18n/prose-report.mjs` lists them; the
+shape breaks down as:
+
+- **74 are fragments split across JSX by an expression** — `Your boards pay
+  {amount} each month.` These are the hard ones and are deliberately *not*
+  automated: composing them into one key with placeholders is a judgement about
+  word order in six languages, and the codemod that guessed would produce
+  exactly the English-word-order trap gate 3b now fails on.
+- **~9 are mechanical stragglers** the codemod can still take.
+- `ScreenErrorBoundary` is exempt and stays English: it is a class component,
+  and it is the screen that renders when something has already gone wrong.
+
+**Task 12's producer half.** `career.ts`, `player-requests.ts`,
+`cup-giant-killing.ts`, `season-recap.ts` and `career-events.ts` still write
+English labels only. The schemas accept the key pair and the contract test pins
+the rules; nothing emits keys yet.
+
+**The ratchet is what makes this safe to hand off.** `MAX_REMAINING` in
+`no-hardcoded-prose.test.ts` is 83 and may only ever fall. New hardcoded copy
+fails immediately.
 
 ---
 
