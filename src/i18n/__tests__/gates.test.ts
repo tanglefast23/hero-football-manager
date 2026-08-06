@@ -56,7 +56,13 @@ describe('i18n gates', () => {
       const ceiling = localeMeta(locale).expansion;
       for (const [key, value] of Object.entries(loadCatalog(locale).strings)) {
         if (key.startsWith('col.')) continue; // layout tokens, sized by measurement
-        const limit = Math.ceil((source[key]?.length ?? 0) * ceiling) + 2;
+        // A percentage is the wrong instrument for a short label. "Fans" is four
+        // characters; x1.25 + 2 allows seven, and there is no seven-character
+        // Spanish word for it — "Aficionados" is simply what it is called. The
+        // rule exists to stop sprawl in sentences, so short sources get a flat
+        // allowance instead of a proportional one that rounds to nothing.
+        const english = source[key]?.length ?? 0;
+        const limit = Math.max(Math.ceil(english * ceiling) + 2, english + 8);
         expect({ locale, key, length: value.length, limit })
           .toMatchObject({ locale, key });
         expect(value.length).toBeLessThanOrEqual(limit);
@@ -102,16 +108,50 @@ describe('i18n gates', () => {
     }
   });
 
-  test('gate 3b — no key holds a sentence fragment', () => {
-    // A label trailing off on a preposition or article is half a sentence, split
-    // across JSX by an emphasised span. Keyed as-is it forces every language
-    // into English word order. Compose it into one key with a placeholder.
-    const trailing = /\b(the|a|an|to|for|of|and|or|in|on|with|from|by|at)$/i;
-    const fragments = Object.entries(english())
-      .filter(([, value]) => trailing.test(value.trim()))
-      .map(([key, value]) => `${key}: ${JSON.stringify(value)}`);
+  test('gate 3b — no key holds a sentence fragment, in any language', () => {
+    // A label trailing off on a preposition is half a sentence. Keyed as-is it
+    // forces every language into English word order, and reads as a typo
+    // wherever it lands.
+    //
+    // Two things this got wrong first time round, both worth keeping written
+    // down. The list has to be PER LANGUAGE — an English-only one let a French
+    // "Sang-froid du" through, the same mistake invisible to an English regex.
+    // And it must compare whole TOKENS, not use `\b`: JavaScript's word
+    // boundary treats "ñ" and "í" as non-word characters, so /\bo$/ happily
+    // matched "año" and /\ba$/ matched "energía".
+    //
+    // Only unambiguous prepositions and definite articles are listed.
+    // Conjunctions and indefinite articles ("y", "or", "una") legitimately end
+    // real phrases, and a gate that cries wolf gets switched off.
+    const TRAILING: Readonly<Record<string, readonly string[]>> = {
+      en: ['the', 'a', 'an', 'to', 'for', 'of', 'in', 'on', 'with', 'from', 'by', 'at'],
+      es: ['el', 'la', 'los', 'las', 'de', 'del', 'al', 'para', 'por', 'con', 'en'],
+      'pt-BR': ['o', 'os', 'as', 'de', 'do', 'da', 'para', 'por', 'com', 'em', 'no', 'na'],
+      fr: ['le', 'les', 'de', 'du', 'des', 'à', 'au', 'aux', 'pour', 'par', 'avec', 'en'],
+      // German separable verbs park their particle at the end, so "an", "mit",
+      // "auf", "zu" and "in" all finish perfectly good sentences — "Ruf mich
+      // nicht an" is complete. Only articles and prepositions that can never be
+      // a separable prefix are listed.
+      de: ['der', 'die', 'das', 'von', 'für'],
+      id: ['di', 'ke', 'dari', 'untuk', 'dengan', 'yang', 'pada'],
+      // Vietnamese is analytic and its function words double as content words,
+      // so a trailing-token check would fire constantly. Its fragments are
+      // caught by the in-context review instead.
+    };
 
-    expect(fragments).toEqual([]);
+    const lastToken = (value: string) =>
+      value.trim().replace(/[.!?:;,"“”«»]+$/u, '').split(/\s+/).at(-1)?.toLowerCase() ?? '';
+
+    for (const locale of ENABLED_LOCALES) {
+      const trailing = TRAILING[locale];
+      if (trailing === undefined) continue;
+      const strings = locale === 'en' ? english() : loadCatalog(locale).strings;
+      const fragments = Object.entries(strings)
+        .filter(([, value]) => trailing.includes(lastToken(value)))
+        .map(([key, value]) => `${key}: ${JSON.stringify(value)}`);
+
+      expect({ locale, fragments }).toEqual({ locale, fragments: [] });
+    }
   });
 
   test('gate 5c — every endonym renders in its OWN face', () => {
@@ -272,7 +312,7 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
    * translation gets recorded as landed.
    */
   const COVERAGE_FLOOR: Readonly<Record<string, number>> = {
-    es: 15, 'pt-BR': 9, fr: 9, id: 9, de: 9, vi: 9,
+    es: 25, 'pt-BR': 19, fr: 19, id: 19, de: 19, vi: 19,
   };
 
   test('every locale meets its recorded content-prose floor', () => {
