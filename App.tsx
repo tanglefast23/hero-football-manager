@@ -68,6 +68,10 @@ import {
   setManagementSfxMasterVolume,
   teardownManagementSfx,
 } from './src/render/management-sfx';
+import {
+  setFinancialReportSfxMasterVolume,
+  teardownFinancialReportSfx,
+} from './src/render/financial-report-sfx';
 import { setBertVoiceMasterVolume, teardownBertVoice } from './src/render/bert-voice';
 import { playManagementHaptic, setHapticsEnabled } from './src/render/haptics';
 import { assertRuntimeGoldenReplay } from './src/sim/runtime-golden';
@@ -985,6 +989,7 @@ function GameApp() {
     setMasterVolume(devVolume);
     setMenuMasterVolume(devVolume);
     setManagementSfxMasterVolume(devVolume);
+    setFinancialReportSfxMasterVolume(devVolume);
     setBertVoiceMasterVolume(devVolume);
     setAwakeningMasterVolume(devVolume);
     setCelebrationMasterVolume(devVolume);
@@ -1016,6 +1021,7 @@ function GameApp() {
   useEffect(() => () => {
     teardownMenuAudio();
     teardownManagementSfx();
+    teardownFinancialReportSfx();
     teardownBertVoice();
     teardownAwakeningAudio();
     teardownCelebrationAudio();

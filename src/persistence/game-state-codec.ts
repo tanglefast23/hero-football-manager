@@ -106,6 +106,35 @@ const fixtureSchema = z
     }
   });
 
+const gateRevealSchema = z.object({
+  source: z.enum(['league-gate', 'cup-gate']),
+  base: safeInteger.refine(value => value > 0),
+  variancePercent: safeInteger.refine(value => value >= -10 && value <= 20),
+  surge: z.boolean(),
+  multiplierPercent: safeInteger.refine(value => value >= 100),
+  facilityCount: safeInteger.refine(value => value >= 0),
+});
+
+const merchRevealSchema = z.object({
+  source: z.literal('merch'),
+  base: safeInteger.refine(value => value > 0),
+  variancePercent: safeInteger.refine(value => value >= -10 && value <= 20),
+  surge: z.boolean(),
+  multiplierTimes: safeInteger.refine(value => value >= 1),
+  facilityCount: safeInteger.refine(value => value >= 1),
+  adjacencyPercent: safeInteger.refine(value => value >= 0),
+  adjacencyAmount: safeInteger.refine(value => value >= 0),
+});
+
+/**
+ * Consumed only by `sanitizeLedgerReveals` — deliberately NOT wired into the
+ * state schema, so a malformed reveal can never fail whole-save validation.
+ */
+const ledgerLineRevealSchema = z.discriminatedUnion('source', [
+  gateRevealSchema,
+  merchRevealSchema,
+]);
+
 const ledgerLineSchema = z
   .object({
     kind: z.enum([
@@ -2056,6 +2085,7 @@ export function parseStoredGameState(serialized: string): GameState {
   // resolve, and saves written before it did must still load.
   value = dropUnresolvableScoutReports(value);
   value = dropUnresolvableTransferTalks(value);
+  value = sanitizeLedgerReveals(value);
   assertSupportedSchema(value, true);
   let validation: z.ZodSafeParseResult<unknown>;
   try {
@@ -2186,6 +2216,57 @@ function dropUnresolvableTransferTalks(value: unknown): unknown {
 
   const { transferTalks: _transferTalks, ...marketWithoutTalks } = market;
   return { ...value, market: marketWithoutTalks };
+}
+
+/**
+ * Fail-soft reveal repair (Financial Report spec §10): a malformed or
+ * inconsistent reveal is dropped — and only the reveal — so the line and its
+ * authoritative amount always load. Never rejects the save in either
+ * direction: neither schema rejection nor a hard reconstruction refinement.
+ */
+function sanitizeLedgerReveals(value: unknown): unknown {
+  if (!isRecord(value) || !Array.isArray(value.ledgers)) return value;
+  let changed = false;
+  const ledgers = value.ledgers.map(ledger => {
+    if (!isRecord(ledger) || !Array.isArray(ledger.lines)) return ledger;
+    let linesChanged = false;
+    const lines = ledger.lines.map(line => {
+      if (!isRecord(line) || line.reveal === undefined) return line;
+      if (revealIsConsistent(line)) return line;
+      linesChanged = true;
+      const { reveal: _reveal, ...withoutReveal } = line;
+      return withoutReveal;
+    });
+    if (!linesChanged) return ledger;
+    changed = true;
+    return { ...ledger, lines };
+  });
+  return changed ? { ...value, ledgers } : value;
+}
+
+function revealIsConsistent(line: Record<string, unknown>): boolean {
+  const parsed = ledgerLineRevealSchema.safeParse(line.reveal);
+  if (!parsed.success) return false;
+  const reveal = parsed.data;
+  if (typeof line.amount !== 'number' || !Number.isSafeInteger(line.amount)) return false;
+  if (reveal.surge !== (reveal.variancePercent >= 11)) return false;
+  if (reveal.source === 'merch') {
+    if (line.kind !== 'merch') return false;
+    const afterMultiplier = reveal.base * reveal.multiplierTimes;
+    if (!Number.isSafeInteger(afterMultiplier)) return false;
+    const adjacencyProduct = afterMultiplier * reveal.adjacencyPercent;
+    if (!Number.isSafeInteger(adjacencyProduct)) return false;
+    if (reveal.adjacencyAmount !== Math.floor(adjacencyProduct / 100)) return false;
+    const reconstructed = afterMultiplier + reveal.adjacencyAmount;
+    if (!Number.isSafeInteger(reconstructed)) return false;
+    return reconstructed === line.amount;
+  }
+  if (line.kind !== 'tickets') return false;
+  const bonusProduct = reveal.base * (reveal.multiplierPercent - 100);
+  if (!Number.isSafeInteger(bonusProduct)) return false;
+  const reconstructed = reveal.base + Math.floor(bonusProduct / 100);
+  if (!Number.isSafeInteger(reconstructed)) return false;
+  return reconstructed === line.amount;
 }
 
 function transferTargetPlayerIds(

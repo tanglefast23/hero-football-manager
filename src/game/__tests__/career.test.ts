@@ -8,6 +8,7 @@ import {
   leagueStandings,
   startNextSeason,
 } from '../career';
+import { matchdayVarianceRoll } from '../finance-variance';
 import { BASE_WEEKLY_TRAINING_POINTS } from '../facilities';
 import { SEASON_WEEKS } from '../types';
 import type {
@@ -262,12 +263,27 @@ describe('career season workflow', () => {
     expect(settled.fixtures.filter(fixture => fixture.status === 'played')).toHaveLength(5);
     // Three weeks have settled by now, each banking the flat baseline.
     expect(settled.trainingPoints).toBe(7 + BASE_WEEKLY_TRAINING_POINTS * 3);
+    // The $1,200 raw gate (500 fans x 60% x $4) takes week 3's seeded roll.
+    const gateRoll = matchdayVarianceRoll(settled.careerSeed, 1, 3, 'league-gate');
+    const gateAmount = Math.round(1200 * (100 + gateRoll.percent) / 100);
     expect(settled.ledgers.at(-1)?.lines).toEqual([
-      { kind: 'tickets', label: 'League home gate', amount: 1200 },
+      {
+        kind: 'tickets',
+        label: 'League home gate',
+        amount: gateAmount,
+        reveal: {
+          source: 'league-gate',
+          base: gateAmount,
+          variancePercent: gateRoll.percent,
+          surge: gateRoll.surge,
+          multiplierPercent: 100,
+          facilityCount: 0,
+        },
+      },
       { kind: 'wages', label: 'Weekly wages', amount: -3200 },
       { kind: 'subsidy', label: 'Season 1 wage subsidy', amount: 1600 },
     ]);
-    expect(settled.clubs.find(club => club.id === state.userClubId)?.cash).toBe(21400);
+    expect(settled.clubs.find(club => club.id === state.userClubId)?.cash).toBe(20200 + gateAmount);
     expect(beforeMatchday.week).toBe(3);
   });
 

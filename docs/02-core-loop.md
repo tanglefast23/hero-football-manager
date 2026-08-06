@@ -5,7 +5,7 @@
 Time advances in weeks. One button — **Advance Week** — is the game's primary CTA, always visible on Home. A week resolves in this order:
 
 1. **Manage phase** (player-driven, untimed): spend the TP bank on instant drills, handle transfers/contracts, build facilities, respond to any event card.
-2. **Match day** (if scheduled): pre-match screen (starting eleven, bench swaps, hero licenses — formation, Playstyle and Energy Use are live match controls, not pre-match ones) → Watch or Quick Result → post-match income statement (itemized, Kairosoft-style: tickets, sponsor fees, prize, minus wages).
+2. **Match day** (if scheduled): pre-match screen (starting eleven, bench swaps, hero licenses — formation, Playstyle and Energy Use are live match controls, not pre-match ones) → Watch or Quick Result → the post-match **Financial Report** (itemized, Kairosoft-style: tickets, sponsor fees, prize, minus wages — revealed row by row as slot reels).
 3. **Week tick**: wages paid, the week's TP income banked, condition recovers, injuries count down, sponsor/fan numbers update, next event rolls. Training results are not settled here — drills resolve the moment they are tapped.
 4. **Weekly Review**: a fast 2–4 second payoff shows the exact cash movement at the top, the TP the week just banked beneath it, and lists only applicable recovery, contract, event, or next-fixture updates. One tap finishes every animation immediately. On match weeks, player development is folded into the post-match statement instead of adding another screen.
 

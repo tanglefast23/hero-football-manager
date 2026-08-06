@@ -700,13 +700,13 @@ function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps
           <View className="flex-row gap-2">
             <Metric label="Balance" value={formatCurrency(viewModel.resources.money)} />
             <Metric
-              label="Next four weeks"
+              label="Next four weeks · typical"
               value={formatCurrency(viewModel.operatingOutlook.net, true)}
               tone={viewModel.operatingOutlook.net < 0 ? 'negative' : 'positive'}
             />
           </View>
           <View className="mt-2 flex-row gap-2">
-            <Metric label="Four-week balance" value={formatCurrency(viewModel.operatingOutlook.projectedBalance)} />
+            <Metric label="Four-week balance · typical" value={formatCurrency(viewModel.operatingOutlook.projectedBalance)} />
             <Metric label="Fans" value={formatCompactNumber(viewModel.fans)} />
           </View>
           <View className="mt-2 flex-row">

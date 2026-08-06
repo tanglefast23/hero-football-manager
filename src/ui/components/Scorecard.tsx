@@ -179,7 +179,8 @@ export function ActionButton({
 
 interface MetricProps {
   label: string;
-  value: string;
+  /** Plain string, or a live element like the report's counting numbers. */
+  value: ReactNode;
   tone?: 'normal' | 'hero' | 'positive' | 'negative';
 }
 
@@ -195,9 +196,15 @@ export function Metric({ label, value, tone = 'normal' }: MetricProps) {
   return (
     <View className="min-w-0 flex-1 border-2 border-b-4 border-ink bg-white px-2 py-2">
       <PixelText className="text-sm uppercase text-ink/70">{label}</PixelText>
-      <Text className={cx('mt-1 font-mono text-base', valueColor)} numberOfLines={1}>
-        {value}
-      </Text>
+      {typeof value === 'string' ? (
+        <Text className={cx('mt-1 font-mono text-base', valueColor)} numberOfLines={1}>
+          {value}
+        </Text>
+      ) : (
+        // A live element (the report's counting numbers) may contain Views,
+        // which cannot legally nest inside Text on native.
+        <View className="mt-1 self-start">{value}</View>
+      )}
     </View>
   );
 }

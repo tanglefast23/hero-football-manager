@@ -18,7 +18,7 @@ import {
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
 import type { PostMatchViewModel } from '../../ui';
 import { loadLaunchContent } from '../../content';
-import { awakeningCutsceneViewModel, storyEventViewModel } from '../view-models';
+import { awakeningCutsceneViewModel, clubFinancesViewModel, storyEventViewModel } from '../view-models';
 import { careerMarketScoutOptions } from '../market-source-adapter';
 
 describe('M1 app store integration', () => {
@@ -1731,6 +1731,105 @@ function progressJourneyEvent(current: ReturnType<typeof useM1Store.getState>): 
   current.chooseEvent(choice.id);
 }
 
+describe('financial report reveals', () => {
+  /** Walks management/review screens until the next matchday pauses the store. */
+  function advanceToNextMatchday(): void {
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const state = useM1Store.getState();
+      if (state.screen === 'matchday') return;
+      if (state.screen === 'week-review') { state.continueWeekReview(); continue; }
+      if (state.screen === 'postmatch') { state.continueAfterMatch(); continue; }
+      if (state.screen !== 'management') {
+        throw new Error(`advanceToNextMatchday stopped on the ${state.screen} screen`);
+      }
+      if (state.postMatchOverlay === 'summary') { state.dismissPostMatchSummary(); continue; }
+      state.advanceCareer();
+      answerRefusedDeskDuty();
+    }
+    throw new Error('advanceToNextMatchday never reached a matchday');
+  }
+
+  /** The next HOME league matchday past onboarding — home weeks carry the gate reveal. */
+  function parkOnNextHomeMatchday(seed: number): void {
+    useM1Store.setState(useM1Store.getInitialState(), true);
+    startAwakenedCareer(seed);
+    useM1Store.getState().continueAfterMatch();
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      advanceToNextMatchday();
+      const career = useM1Store.getState().career!;
+      const isHome = career.fixtures.some(fixture => (
+        fixture.season === career.season
+        && fixture.week === career.week
+        && fixture.homeClubId === career.userClubId
+        && fixture.status === 'scheduled'
+      ));
+      if (isHome) return;
+      useM1Store.getState().quickResult();
+      if (useM1Store.getState().screen === 'awakening') {
+        useM1Store.getState().continueAfterAwakening();
+      }
+      useM1Store.getState().continueAfterMatch();
+    }
+    throw new Error('no home matchday found within six match weeks');
+  }
+
+  function settleCurrentMatchAndCapture(): {
+    settled: GameState['ledgers'][number];
+    postMatch: PostMatchViewModel;
+    career: GameState;
+  } {
+    if (useM1Store.getState().screen === 'awakening') {
+      useM1Store.getState().continueAfterAwakening();
+    }
+    expect(useM1Store.getState().screen).toBe('postmatch');
+    const career = useM1Store.getState().career!;
+    const postMatch = useM1Store.getState().postMatch!;
+    return { settled: career.ledgers[career.ledgers.length - 1], postMatch, career };
+  }
+
+  it('banks identical reveal ledgers through Quick Result and a watched match', () => {
+    parkOnNextHomeMatchday(20260806);
+    useM1Store.getState().quickResult();
+    const quick = settleCurrentMatchAndCapture();
+
+    parkOnNextHomeMatchday(20260806);
+    useM1Store.getState().watchMatch();
+    const watched = useM1Store.getState().watchedMatch!;
+    const match = createMatch(watched.fixture.matchSeed, watched.home, watched.away, {
+      controlledTeam: watched.controlledTeam,
+    });
+    let guard = 0;
+    while (match.phase !== 'fulltime') {
+      if (guard++ > 100_000) throw new Error('watched match never finished');
+      tick(match);
+    }
+    useM1Store.getState().finishWatchedMatch(match);
+    const seen = settleCurrentMatchAndCapture();
+
+    // The settled money — including every reveal — is path-independent.
+    expect(JSON.stringify(quick.settled.lines)).toBe(JSON.stringify(seen.settled.lines));
+    expect(quick.postMatch.ledger).toEqual(seen.postMatch.ledger);
+  });
+
+  it('passes reveals and the settlement week through the post-match view model only', () => {
+    parkOnNextHomeMatchday(20260806);
+    useM1Store.getState().quickResult();
+    const { settled, postMatch, career } = settleCurrentMatchAndCapture();
+
+    const settledGate = settled.lines.find(line => line.label === 'League home gate');
+    const shownGate = postMatch.ledger.find(line => line.label === 'League home gate');
+    expect(settledGate?.reveal).toBeDefined();
+    expect(shownGate?.reveal).toEqual(settledGate?.reveal);
+    expect(postMatch.settlementSeason).toBe(settled.season);
+    expect(postMatch.settlementWeek).toBe(settled.week);
+
+    // The Finances tab stays undressed: no reveal field on its ledger lines.
+    for (const line of clubFinancesViewModel(career).ledger) {
+      expect('reveal' in line).toBe(false);
+    }
+  });
+});
+
 function startCreatedCareer(seed: number): void {
   useM1Store.getState().startNewCareer(seed);
   useM1Store.getState().completePlayerCreation({
@@ -1775,6 +1874,8 @@ function examplePostMatch(): PostMatchViewModel {
       cupExit: false,
     },
     ledger: [{ id: 'tickets', label: 'League home gate', amount: 1200, kind: 'income' }],
+    settlementSeason: 1,
+    settlementWeek: 3,
     netAmount: 1200,
     trainingPointsGained: 7,
     fanDelta: 10,

@@ -6,6 +6,7 @@ import {
   createCareer,
   fixturesForCurrentWeek,
 } from '../career';
+import { matchdayVarianceRoll } from '../finance-variance';
 import { weeklySettlementAwardKeys } from '../weekly-settlement-awards';
 import type { ProductionFixtureResult } from '../matchday';
 import type { FixtureResult, GameState } from '../types';
@@ -247,7 +248,15 @@ describe('player-controlled Hero Cup match flow', () => {
     const afterLeague = cupReadyCareer(true);
     const fixture = activeCareerMatchday(afterLeague)!.fixture;
     const userClub = afterLeague.clubs.find(club => club.id === afterLeague.userClubId)!;
-    const expectedGate = Math.floor(userClub.fans * 0.6) * userClub.ticketPrice;
+    // The raw gate takes this week's seeded cup-gate roll before banking.
+    const rawGate = Math.floor(userClub.fans * 0.6) * userClub.ticketPrice;
+    const roll = matchdayVarianceRoll(
+      afterLeague.careerSeed,
+      afterLeague.season,
+      afterLeague.week,
+      'cup-gate',
+    );
+    const expectedGate = Math.round(rawGate * (100 + roll.percent) / 100);
     const userWin: FixtureResult = {
       fixtureId: fixture.id,
       homeGoals: 2,
@@ -258,7 +267,19 @@ describe('player-controlled Hero Cup match flow', () => {
 
     const ledger = settled.ledgers.at(-1)!;
     expect(ledger.lines.filter(line => line.kind === 'tickets')).toContainEqual(
-      { kind: 'tickets', label: 'Hero Cup Play-in home gate', amount: expectedGate },
+      {
+        kind: 'tickets',
+        label: 'Hero Cup Play-in home gate',
+        amount: expectedGate,
+        reveal: {
+          source: 'cup-gate',
+          base: expectedGate,
+          variancePercent: roll.percent,
+          surge: roll.surge,
+          multiplierPercent: 100,
+          facilityCount: 0,
+        },
+      },
     );
     expect(ledger.balanceAfter).toBe(
       userClub.cash + ledger.lines.reduce((total, line) => total + line.amount, 0),
