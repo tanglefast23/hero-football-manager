@@ -34,6 +34,10 @@
           "definition": "The player's mood. Very low morale reduces effective match stats; repeated low-morale weeks can trigger a transfer request, with patience depending on Personality."
         },
         {
+          "term": "Loyalty",
+          "definition": "How much a player wants to stay, from 0 to 100. Only your own decisions move it and it never recovers on its own. It sets the price of their next contract - a loyal player asks for up to 20% less - and below 30 they will not re-sign at any wage."
+        },
+        {
           "term": "Contract",
           "definition": "How many seasons the player remains employed. An expired deal must be renewed or the player can leave."
         },
@@ -51,70 +55,190 @@
       "id": "attributes",
       "title": "Player attributes",
       "entries": [
-        { "term": "PAC · Pace", "definition": "Running speed and the ability to reach space, support attacks, and recover defensively." },
-        { "term": "SHO · Shooting", "definition": "Shot quality and power for outfield players. Goalkeepers store SHO but do not use it as a visible role stat." },
-        { "term": "PAS · Passing", "definition": "Pass selection and execution, especially when pressure or distance makes the ball difficult." },
-        { "term": "DEF · Defending", "definition": "Marking, tackling, interceptions, and resisting attacking actions." },
-        { "term": "TEC · Technique", "definition": "Close control, dribbling, and keeping useful possession in traffic." },
-        { "term": "STA · Stamina", "definition": "How well a player handles physical effort and condition drain across a match. Higher STA always slows energy loss, but even a 999-STA player still tires." },
-        { "term": "REF · Reflexes", "definition": "Goalkeeping reactions and save strength. Outfield players store REF but do not use it as a visible role stat." },
-        { "term": "Attribute cap", "definition": "The universal maximum of 999 where normal training for one attribute ends. There are no personal caps; every stat can train all the way there." }
+        {
+          "term": "PAC · Pace",
+          "definition": "Running speed and the ability to reach space, support attacks, and recover defensively."
+        },
+        {
+          "term": "SHO · Shooting",
+          "definition": "Shot quality and power for outfield players. Goalkeepers store SHO but do not use it as a visible role stat."
+        },
+        {
+          "term": "PAS · Passing",
+          "definition": "Pass selection and execution, especially when pressure or distance makes the ball difficult."
+        },
+        {
+          "term": "DEF · Defending",
+          "definition": "Marking, tackling, interceptions, and resisting attacking actions."
+        },
+        {
+          "term": "TEC · Technique",
+          "definition": "Close control, dribbling, and keeping useful possession in traffic."
+        },
+        {
+          "term": "STA · Stamina",
+          "definition": "How well a player handles physical effort and condition drain across a match. Higher STA always slows energy loss, but even a 999-STA player still tires."
+        },
+        {
+          "term": "REF · Reflexes",
+          "definition": "Goalkeeping reactions and save strength. Outfield players store REF but do not use it as a visible role stat."
+        },
+        {
+          "term": "Attribute cap",
+          "definition": "The universal maximum of 999 where normal training for one attribute ends. There are no personal caps; every stat can train all the way there."
+        }
       ]
     },
     {
       "id": "training",
       "title": "Training & staff",
       "entries": [
-        { "term": "Instant drill", "definition": "Training resolves the moment you tap a drill: the stat gain, any SUPER bonus, and any injury gamble land immediately. Nothing is scheduled and nothing repeats — every drill is a separate tap." },
-        { "term": "Focus drill", "definition": "A single-stat drill, costing Training Points per tap. Each stat's path has five purchasable tiers; higher tiers cost more TP for a bigger gain." },
-        { "term": "Training Points (TP)", "definition": "The improvement currency. Your best completed Training Pitch adds 28 TP per level at each weekly settlement once it opens. Coaches and upgrades can add more. Match results do not create TP." },
-        { "term": "Training Pitch", "definition": "Your first guided grounds project. Its $8,000 cost is included in the starting budget; you choose where to place it. Once open, it creates 28 TP per level each week." },
-        { "term": "Coach specialty", "definition": "The areas a coach improves. Matching a specialty to a drill or attribute increases training gains over time." },
-        { "term": "Head coach", "definition": "The primary coach, with the strongest specialty bonuses, a weekly TP contribution, and a weekly wage." },
-        { "term": "Assistant coach", "definition": "A second, smaller set of specialty bonuses and weekly TP, unlocked by building a Coaching Office." }
+        {
+          "term": "Instant drill",
+          "definition": "Training resolves the moment you tap a drill: the stat gain, any SUPER bonus, and any injury gamble land immediately. Nothing is scheduled and nothing repeats — every drill is a separate tap."
+        },
+        {
+          "term": "Focus drill",
+          "definition": "A single-stat drill, costing Training Points per tap. Each stat's path has five purchasable tiers; higher tiers cost more TP for a bigger gain."
+        },
+        {
+          "term": "Training Points (TP)",
+          "definition": "The improvement currency. Your best completed Training Pitch adds 28 TP per level at each weekly settlement once it opens. Coaches and upgrades can add more. Match results do not create TP."
+        },
+        {
+          "term": "Training Pitch",
+          "definition": "Your first guided grounds project. Its $8,000 cost is included in the starting budget; you choose where to place it. Once open, it creates 28 TP per level each week."
+        },
+        {
+          "term": "Coach specialty",
+          "definition": "The areas a coach improves. Matching a specialty to a drill or attribute increases training gains over time."
+        },
+        {
+          "term": "Head coach",
+          "definition": "The primary coach, with the strongest specialty bonuses, a weekly TP contribution, and a weekly wage."
+        },
+        {
+          "term": "Assistant coach",
+          "definition": "A second, smaller set of specialty bonuses and weekly TP, unlocked by building a Coaching Office."
+        }
       ]
     },
     {
       "id": "matches",
       "title": "Match day",
       "entries": [
-        { "term": "Formation", "definition": "The team's positional shape. Settings holds three presets; the first starts watched matches and the live Formation control cycles them." },
-        { "term": "Playstyle", "definition": "Tactical intent: Attack seeks more forward play, Protect values safety, and Balanced sits between them. It is separate from physical effort." },
-        { "term": "Energy Use", "definition": "How hard the team works off the ball. Save Energy reduces movement and condition drain; All Out increases movement but drains condition much faster." },
-        { "term": "Team Energy", "definition": "A live summary of the on-field team's remaining condition. It helps judge Energy Use and substitutions." },
-        { "term": "Substitution", "definition": "Swap an on-field player for an eligible bench player. Each team may use all five named substitutes once per match; replaced players cannot return." },
-        { "term": "Quick Result", "definition": "Runs the same deterministic match engine instantly with automatic hero timing, substitutions, and Energy Use. Watching instead lets you make the touchline calls yourself." },
-        { "term": "GK Resolve", "definition": "A goalkeeper's pressure bar. Saves and power shots damage Resolve, making later saves weaker; it partially recovers at halftime." }
+        {
+          "term": "Formation",
+          "definition": "The team's positional shape. Settings holds three presets; the first starts watched matches and the live Formation control cycles them."
+        },
+        {
+          "term": "Playstyle",
+          "definition": "Tactical intent: Attack seeks more forward play, Protect values safety, and Balanced sits between them. It is separate from physical effort."
+        },
+        {
+          "term": "Energy Use",
+          "definition": "How hard the team works off the ball. Save Energy reduces movement and condition drain; All Out increases movement but drains condition much faster."
+        },
+        {
+          "term": "Team Energy",
+          "definition": "A live summary of the on-field team's remaining condition. It helps judge Energy Use and substitutions."
+        },
+        {
+          "term": "Substitution",
+          "definition": "Swap an on-field player for an eligible bench player. Each team may use all five named substitutes once per match; replaced players cannot return."
+        },
+        {
+          "term": "Quick Result",
+          "definition": "Runs the same deterministic match engine instantly with automatic hero timing, substitutions, and Energy Use. Watching instead lets you make the touchline calls yourself."
+        },
+        {
+          "term": "GK Resolve",
+          "definition": "A goalkeeper's pressure bar. Saves and power shots damage Resolve, making later saves weaker; it partially recovers at halftime."
+        }
       ]
     },
     {
       "id": "heroes",
       "title": "Heroes & powers",
       "entries": [
-        { "term": "Power", "definition": "A hero's visible, moment-specific super ability. Powers change possession or geometry rather than giving a hidden permanent stat smear." },
-        { "term": "Heat", "definition": "Momentum earned from touches, tackles, shots, saves, and time on the pitch. At the threshold, Heat waits until that hero has a useful chance to enter the Zone." },
-        { "term": "The Zone", "definition": "The glowing, fully charged state a hero enters while waiting for their power's useful moment. There is no countdown: the charge holds until that moment arrives." },
-        { "term": "Automatic timing", "definition": "Every hero fires on their own when their power's useful moment appears. The same timing runs in watched matches, rival teams, and Quick Result." },
-        { "term": "Wind-up", "definition": "The visible delay before a power starts. Many wind-ups can be interrupted, which returns half the hero's Heat." },
-        { "term": "Hero License", "definition": "A permit allowing a powered player to use their power in the next match. You may own more heroes than the number you can license at once." }
+        {
+          "term": "Power",
+          "definition": "A hero's visible, moment-specific super ability. Powers change possession or geometry rather than giving a hidden permanent stat smear."
+        },
+        {
+          "term": "Heat",
+          "definition": "Momentum earned from touches, tackles, shots, saves, and time on the pitch. At the threshold, Heat waits until that hero has a useful chance to enter the Zone."
+        },
+        {
+          "term": "The Zone",
+          "definition": "The glowing, fully charged state a hero enters while waiting for their power's useful moment. There is no countdown: the charge holds until that moment arrives."
+        },
+        {
+          "term": "Automatic timing",
+          "definition": "Every hero fires on their own when their power's useful moment appears. The same timing runs in watched matches, rival teams, and Quick Result."
+        },
+        {
+          "term": "Wind-up",
+          "definition": "The visible delay before a power starts. Many wind-ups can be interrupted, which returns half the hero's Heat."
+        },
+        {
+          "term": "Hero License",
+          "definition": "A permit allowing a powered player to use their power in the next match. You may own more heroes than the number you can license at once."
+        }
       ]
     },
     {
       "id": "club",
       "title": "Club & competitions",
       "entries": [
-        { "term": "Money", "definition": "The club-capacity currency used for wages, transfers, facilities, scouting, and events. It is earned from advertising, tickets, sponsors, prizes, and player sales." },
-        { "term": "Local advertising", "definition": "Money from the hoardings around your pitch, paid every fourth week. It is a fixed amount while your club is in Division 5. Reach Division 4 and real sponsors take the boards over, replacing it with deals you choose." },
-        { "term": "Fans", "definition": "Supporters who affect home attendance and ticket income. Club events can grow or shrink the fanbase." },
-        { "term": "Facility", "definition": "A building placed on club grounds that adds a lasting benefit and usually a weekly upkeep cost. You may build up to three Fan Shops and three Stadium Stands; every other facility is limited to one." },
-        { "term": "Upkeep", "definition": "The recurring weekly Money cost of running a facility." },
-        { "term": "Adjacency", "definition": "A bonus discovered when compatible facilities touch on the grounds grid." },
-        { "term": "Scouting", "definition": "A timed search for recruits. Better scouting narrows hidden attribute ranges before you decide whether to negotiate." },
-        { "term": "Transfer window", "definition": "The registration period when players may be bought, sold, or listed through the market." },
-        { "term": "Youth Intake", "definition": "A periodic choice of young prospects. Better youth facilities improve their starting strength." },
-        { "term": "D5–D1", "definition": "The five-division league pyramid, from D5 District League to D1 Global League. Strong finishes earn promotion upward." },
-        { "term": "Hero Cup", "definition": "A knockout competition played alongside the league. Cup progress brings prizes, Fame, and a route to silverware." },
-        { "term": "Advance Week", "definition": "Locks in the current management choices and moves the calendar forward to training settlement, events, or match day." }
+        {
+          "term": "Money",
+          "definition": "The club-capacity currency used for wages, transfers, facilities, scouting, and events. It is earned from advertising, tickets, sponsors, prizes, and player sales."
+        },
+        {
+          "term": "Local advertising",
+          "definition": "Money from the hoardings around your pitch, paid every fourth week. It is a fixed amount while your club is in Division 5. Reach Division 4 and real sponsors take the boards over, replacing it with deals you choose."
+        },
+        {
+          "term": "Fans",
+          "definition": "Supporters who affect home attendance and ticket income. Club events can grow or shrink the fanbase."
+        },
+        {
+          "term": "Facility",
+          "definition": "A building placed on club grounds that adds a lasting benefit and usually a weekly upkeep cost. You may build up to three Fan Shops and three Stadium Stands; every other facility is limited to one."
+        },
+        {
+          "term": "Upkeep",
+          "definition": "The recurring weekly Money cost of running a facility."
+        },
+        {
+          "term": "Adjacency",
+          "definition": "A bonus discovered when compatible facilities touch on the grounds grid."
+        },
+        {
+          "term": "Scouting",
+          "definition": "A timed search for recruits. Better scouting narrows hidden attribute ranges before you decide whether to negotiate."
+        },
+        {
+          "term": "Transfer window",
+          "definition": "The registration period when players may be bought, sold, or listed through the market."
+        },
+        {
+          "term": "Youth Intake",
+          "definition": "A periodic choice of young prospects. Better youth facilities improve their starting strength."
+        },
+        {
+          "term": "D5–D1",
+          "definition": "The five-division league pyramid, from D5 District League to D1 Global League. Strong finishes earn promotion upward."
+        },
+        {
+          "term": "Hero Cup",
+          "definition": "A knockout competition played alongside the league. Cup progress brings prizes, Fame, and a route to silverware."
+        },
+        {
+          "term": "Advance Week",
+          "definition": "Locks in the current management choices and moves the calendar forward to training settlement, events, or match day."
+        }
       ]
     }
   ]

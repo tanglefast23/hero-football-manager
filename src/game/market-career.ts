@@ -56,6 +56,8 @@ import { assertUserCareerRosterSpace } from './youth-intake';
 import { isStoryScoutingUnlocked } from './story-progression';
 import {
   applyCareerContractPromise,
+  careerContractPromiseBlockedReason,
+  careerContractPromiseHeroLimit,
   clearCareerContractPromise,
 } from './contract-promises';
 import {
@@ -172,7 +174,8 @@ export function applyCareerNegotiationConsequence(
   // deliberately skips the user's club — it exists to find someone to buy. Used
   // for both kinds it threw `unknown negotiation player <yourPlayer>` the moment
   // a renewal produced a consequence, which is exactly when an insulting offer
-  // had just been made and the morale hit was owed.
+  // had just been made and the morale hit was owed. The transfer path shares
+  // this function and was always correct, which is why no test caught it.
   const target = kind === 'renewal'
     ? careerSquadNegotiationTarget(state, talks.playerId)
     : careerTransferTarget(state, talks.playerId);
@@ -423,11 +426,29 @@ export function beginCareerTransferTalks(
 }
 
 export function submitCareerTransferOffer(
+  state: GameState,
   market: CareerMarketState,
   offer: ContractOffer,
   pitchCard?: PitchCard,
+  heroLimit?: number,
 ): CareerMarketState {
   if (market.transferTalks === undefined) throw new Error('there are no active transfer talks');
+  // The same guard the renewal path runs, for the same reason: without it
+  // `applyCareerContractPromise` is the first thing to notice an impossible
+  // promise, and by then the agent has accepted -- so `guarded()` discards a
+  // signed deal and the panel reads "Round 1 of 3" as though nothing happened.
+  // Reachable on the normal path, because the draft's default perk is
+  // GUARANTEED_STARTER: buying any hero with the Hero Licence cap full does it.
+  const target = careerTransferTarget(state, market.transferTalks.playerId);
+  if (target !== undefined) {
+    const blocked = careerContractPromiseBlockedReason(
+      state,
+      target.player,
+      offer.perk,
+      heroLimit ?? careerContractPromiseHeroLimit(state),
+    );
+    if (blocked !== undefined) throw new Error(blocked);
+  }
   return {
     ...market,
     transferTalks: {
@@ -523,6 +544,63 @@ export function completeCareerTransfer(
   };
 }
 
+/** The hero premium a renewal prices at. Doc 06 allows 3-5; renewals use the midpoint. */
+export const RENEWAL_HERO_MULTIPLIER = 4;
+
+/**
+ * The agent's opening weekly ask for an expired contract.
+ *
+ * Extracted from `beginCareerRenewalTalks` so the season-end card can state the
+ * real number *before* talks open. It used to show `renewalQuote(player, 4)` —
+ * the wage times four and nothing else — which measured 13-24% under the true
+ * ask on ordinary squads and 61% under on a grown hero. That is the one number
+ * the manager reads to decide renew-versus-release, and it changed the moment
+ * they tapped the button.
+ *
+ * One function, two call sites: the quote on the card and the ask the agent
+ * actually opens with can no longer drift apart.
+ */
+export function careerRenewalWeeklyAsk(state: GameState, player: CareerPlayer): number {
+  return renewalContractAsk({
+    weeklyWage: player.weeklyWage,
+    personality: marketPersonality(player.personality),
+    ...(player.power === undefined ? {} : { power: player.power }),
+    onHeroWage: player.onHeroWage,
+  }, {
+    growthSinceSigningPercent: growthSinceSigningPercent(player),
+    famePercent: renewalFamePercent(player.fame ?? 0),
+    heroMultiplier: RENEWAL_HERO_MULTIPLIER,
+    loyaltyPercent: loyaltyRenewalPercent(playerLoyalty(player, state.careerSeed)),
+  });
+}
+
+/**
+ * Why this player cannot be re-signed at all this season, or undefined when they
+ * can.
+ *
+ * The same two gates `beginCareerRenewalTalks` enforces, readable without
+ * throwing. The season-end screen used to render an always-enabled "Meet the
+ * agent" button over both of them, so the only way to discover either was to tap
+ * it and read a raw engine string in an error toast.
+ */
+export function careerRenewalBlockedReason(
+  state: GameState,
+  market: CareerMarketState,
+  playerId: string,
+): string | undefined {
+  const player = state.players.find(candidate => (
+    candidate.id === playerId && candidate.clubId === state.userClubId
+  ));
+  if (player === undefined) return undefined;
+  if ((market.abandonedRenewalNegotiationIds ?? []).includes(renewalNegotiationId(state, playerId))) {
+    return `${player.name}'s agent has ended talks for this season. He can only leave now.`;
+  }
+  if (!willRenegotiate(playerLoyalty(player, state.careerSeed))) {
+    return `${player.name} has decided to move on and will not re-sign at any wage.`;
+  }
+  return undefined;
+}
+
 /** Opens deterministic player-facing talks for an expired M2 contract. */
 export function beginCareerRenewalTalks(
   state: GameState,
@@ -531,30 +609,8 @@ export function beginCareerRenewalTalks(
 ): CareerMarketState {
   assertSeasonEndPhase(state);
   if (market.renewalTalks !== undefined) throw new Error('another renewal is already being negotiated');
-  if ((market.abandonedRenewalNegotiationIds ?? []).includes(renewalNegotiationId(state, playerId))) {
-    throw new Error('That agent has ended talks for this season. Renew or release at the next contract.');
-  }
   const player = expiredUserPlayer(state, playerId);
-  const loyalty = playerLoyalty(player, state.careerSeed);
-  // Below the threshold there is no number that buys them. The manager has
-  // watched this fall on the player card all season and Bert said it would land
-  // here, so it is a consequence rather than an ambush.
-  if (!willRenegotiate(loyalty)) {
-    throw new Error(
-      `${player.name} will not re-sign. Loyalty below ${LOYALTY_NO_RENEWAL_THRESHOLD} ends talks before they start.`,
-    );
-  }
-  const weeklyAsk = renewalContractAsk({
-    weeklyWage: player.weeklyWage,
-    personality: marketPersonality(player.personality),
-    ...(player.power === undefined ? {} : { power: player.power }),
-    onHeroWage: player.onHeroWage,
-  }, {
-    growthSinceSigningPercent: growthSinceSigningPercent(player),
-    famePercent: renewalFamePercent(player.fame ?? 0),
-    heroMultiplier: 4,
-    loyaltyPercent: loyaltyRenewalPercent(loyalty),
-  });
+  assertCareerRenewalAllowed(state, market, playerId, player.name);
   return {
     ...market,
     renewalTalks: {
@@ -564,18 +620,60 @@ export function beginCareerRenewalTalks(
         negotiationId: renewalNegotiationId(state, playerId),
         playerId,
         personality: marketPersonality(player.personality),
-        weeklyAsk,
+        weeklyAsk: careerRenewalWeeklyAsk(state, player),
       }),
     },
   };
 }
 
+/**
+ * The abandoned-agent and loyalty gates, as an assertion.
+ *
+ * Shared so the one-tap signing path cannot skip them. Sign-now is a renewal,
+ * not a bypass: a player who will not re-sign at any price must not become
+ * signable simply because the manager took the button that avoids the haggle.
+ */
+function assertCareerRenewalAllowed(
+  state: GameState,
+  market: CareerMarketState,
+  playerId: string,
+  playerName: string,
+): void {
+  if ((market.abandonedRenewalNegotiationIds ?? []).includes(renewalNegotiationId(state, playerId))) {
+    throw new Error(`${playerName}'s agent has ended talks for this season. He can only leave now.`);
+  }
+  // Below the threshold there is no number that buys them. The manager has
+  // watched this fall on the player card all season and Bert said it would land
+  // here, so it is a consequence rather than an ambush.
+  const player = state.players.find(candidate => candidate.id === playerId);
+  if (player !== undefined && !willRenegotiate(playerLoyalty(player, state.careerSeed))) {
+    throw new Error(
+      `${playerName} will not re-sign. Loyalty below ${LOYALTY_NO_RENEWAL_THRESHOLD} ends talks before they start.`,
+    );
+  }
+}
+
 export function submitCareerRenewalOffer(
+  state: GameState,
   market: CareerMarketState,
   offer: ContractOffer,
   pitchCard?: PitchCard,
+  heroLimit?: number,
 ): CareerMarketState {
   if (market.renewalTalks === undefined) throw new Error('there are no active renewal talks');
+  // Validated here rather than at completion. `applyCareerContractPromise` used
+  // to be the first thing that noticed an impossible promise, and by then the
+  // agent had already accepted — so `guarded()` discarded the agreed deal and
+  // the panel silently reset to "Round 1 of 3". An offer that cannot be honoured
+  // must be refused before it can be accepted.
+  const player = expiredUserPlayer(state, market.renewalTalks.playerId);
+  const blocked = careerContractPromiseBlockedReason(
+    state,
+    player,
+    offer.perk,
+    heroLimit ?? careerContractPromiseHeroLimit(state),
+  );
+  if (blocked !== undefined) throw new Error(blocked);
   return {
     ...market,
     renewalTalks: {
@@ -585,27 +683,44 @@ export function submitCareerRenewalOffer(
   };
 }
 
-/** Applies the accepted wage/term and clears talks so the next expired deal can be resolved. */
-export function completeCareerRenewal(
+/**
+ * Writes a renewal's agreed terms. One core, two entry points.
+ *
+ * The negotiated path passes the promise it agreed; the one-tap path passes
+ * none. Sharing this is the point: a second transaction written alongside
+ * `completeCareerRenewal` would drift on payroll, `onHeroWage`, the growth
+ * baseline, or the term assertion the first time any of them changed.
+ */
+function applyCareerRenewalTerms(
   state: GameState,
-  market: CareerMarketState,
-): CareerMarketTransaction {
-  assertSeasonEndPhase(state);
-  const talks = market.renewalTalks;
-  const accepted = talks?.negotiation.acceptedOffer;
-  if (talks?.negotiation.status !== 'ACCEPTED' || accepted === undefined) {
-    throw new Error('a renewal requires an accepted player contract');
-  }
-  const player = expiredUserPlayer(state, talks.playerId);
-  const wageDelta = accepted.weeklyWage - player.weeklyWage;
-  assertContractTermFitsCareer(player, accepted.termSeasons, state.careerSeed, 'renewal');
+  player: CareerPlayer,
+  weeklyWage: number,
+  termSeasons: number,
+  perk: ContractOffer['perk'] | undefined,
+  heroLimit?: number,
+): GameState {
+  assertContractTermFitsCareer(player, termSeasons, state.careerSeed, 'renewal');
+  const wageDelta = weeklyWage - player.weeklyWage;
+  // Season end only decrements the term; it never clears `contractPromise`, so
+  // an expired player still carries the previous contract's promise, inert only
+  // because `hasActiveCareerContractPromise` requires a positive term. Restoring
+  // the term without dropping it would REVIVE that old promise -- its Hero
+  // License claim, its lineup lock, its unfinished training debt. The negotiated
+  // path never noticed because `applyCareerContractPromise` overwrites the field.
+  //
+  // Dropped by omission rather than through `clearCareerContractPromise`, which
+  // also strips `isCaptain` and `shirtNumber`: only the binding promise ends
+  // here, so re-signing your captain must not quietly demote him, and `licensed`
+  // is a squad assignment that must survive untouched.
+  const { contractPromise: _expiredPromise, ...carried } = player;
   const renewed: CareerPlayer = {
-    ...player,
-    weeklyWage: accepted.weeklyWage,
-    contractSeasonsRemaining: accepted.termSeasons,
+    ...carried,
+    weeklyWage,
+    contractSeasonsRemaining: termSeasons,
     onHeroWage: player.power !== undefined || player.onHeroWage,
     signingStatTotal: playerStatTotal(player),
     transferRequested: false,
+    priorityDrillsRemaining: 0,
   };
   const renewedState: GameState = {
     ...state,
@@ -614,8 +729,78 @@ export function completeCareerRenewal(
       : club),
     players: state.players.map(candidate => candidate.id === player.id ? renewed : candidate),
   };
+  return perk === undefined
+    ? renewedState
+    : applyCareerContractPromise(renewedState, player.id, perk, heroLimit);
+}
+
+/** Applies the accepted wage/term and clears talks so the next expired deal can be resolved. */
+export function completeCareerRenewal(
+  state: GameState,
+  market: CareerMarketState,
+  heroLimit?: number,
+): CareerMarketTransaction {
+  assertSeasonEndPhase(state);
+  const talks = market.renewalTalks;
+  const accepted = talks?.negotiation.acceptedOffer;
+  if (talks?.negotiation.status !== 'ACCEPTED' || accepted === undefined) {
+    throw new Error('a renewal requires an accepted player contract');
+  }
+  const player = expiredUserPlayer(state, talks.playerId);
   return {
-    state: applyCareerContractPromise(renewedState, player.id, accepted.perk),
+    state: applyCareerRenewalTerms(
+      state,
+      player,
+      accepted.weeklyWage,
+      accepted.termSeasons,
+      accepted.perk,
+      heroLimit,
+    ),
+    market: { ...market, renewalTalks: undefined },
+  };
+}
+
+/**
+ * Re-signs an expired player at the agent's asking price, with no promise.
+ *
+ * The convenience path, and deliberately the expensive one: it pays 100% of the
+ * ask, where a negotiated deal lands at 86-92% without pitch cards and around
+ * 69% with them. Forgoing that discount IS the premium, which is why there is no
+ * cap and no surcharge on top.
+ *
+ * No promise is attached. The old dead `renewPlayer` hard-coded `JERSEY_10`
+ * under a comment claiming it had "no squad management consequence", but that
+ * promise takes the number 10 off whoever wears it -- so several quick renewals
+ * in one season-end left a trail of players holding an active #10 promise while
+ * only the last actually wore the shirt. Promises are a negotiating chip; they
+ * belong in the conversation where their cost can be read.
+ *
+ * Runs the same gates as `beginCareerRenewalTalks`. Signing at the ask is a
+ * renewal, not a way around a player who has decided to leave.
+ */
+export function signCareerRenewalAtAsk(
+  state: GameState,
+  market: CareerMarketState,
+  playerId: string,
+  termSeasons: 1 | 2 | 3,
+): CareerMarketTransaction {
+  assertSeasonEndPhase(state);
+  // Talks open for somebody else are a different conversation and must not be
+  // discarded. The player's own open talks are superseded: signing at the ask is
+  // a deliberate end to that haggle.
+  if (market.renewalTalks !== undefined && market.renewalTalks.playerId !== playerId) {
+    throw new Error('another renewal is already being negotiated');
+  }
+  const player = expiredUserPlayer(state, playerId);
+  assertCareerRenewalAllowed(state, market, playerId, player.name);
+  return {
+    state: applyCareerRenewalTerms(
+      state,
+      player,
+      careerRenewalWeeklyAsk(state, player),
+      termSeasons,
+      undefined,
+    ),
     market: { ...market, renewalTalks: undefined },
   };
 }

@@ -174,7 +174,7 @@ describe('story recruitment pacing', () => {
       .find(candidate => candidate.transferTalks!.transferQuote.fee <= cash);
     expect(affordableTalks).toBeDefined();
     let talks = affordableTalks!;
-    talks = submitCareerTransferOffer(talks, {
+    talks = submitCareerTransferOffer(dueState, talks, {
       weeklyWage: talks.transferTalks!.negotiation.weeklyAsk,
       termSeasons: 2,
       perk: 'GUARANTEED_STARTER',

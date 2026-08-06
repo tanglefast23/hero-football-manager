@@ -950,8 +950,13 @@ export interface ExpiredContractViewModel {
   /** Present only when age has cut the term below three seasons. */
   shortTermReason?: string;
   selectedTerm: 1 | 2 | 3;
-  decision: 'pending' | 'renewed';
-  requiresNegotiation: boolean;
+  /**
+   * Why neither renew action can be taken, when that is so. Present for a player
+   * whose agent has ended talks for the season, or whose loyalty has fallen
+   * below the re-signing floor. Both used to be discoverable only by tapping a
+   * fully enabled button and reading a raw engine string in an error toast.
+   */
+  renewalBlockedReason?: string;
   remainingExpiredCount: number;
 }
 

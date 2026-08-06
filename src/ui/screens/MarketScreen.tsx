@@ -791,17 +791,37 @@ export function useContractDraft(viewModel: MarketNegotiationViewModel | undefin
   const [pitchCard, setPitchCard] = useState<PitchCard | undefined>();
 
   const id = viewModel?.id;
-  const roundLabel = viewModel?.roundLabel;
   const initialWeeklyWage = viewModel?.initialWeeklyWage;
+  const lastTermSeasons = viewModel?.lastOffer?.termSeasons;
+  const lastPerk = viewModel?.lastOffer?.perk;
+
+  // Two transitions, deliberately not one.
+  //
+  // This used to be a single effect keyed on `[id, roundLabel, initialWeeklyWage,
+  // maxTerm]`, which reset ALL FOUR fields whenever any of them changed. Both
+  // `roundLabel` and `initialWeeklyWage` change on every counter-offer, so a
+  // manager who chose "3 years / Shirt #10" and then raised their wage signed a
+  // 2-year Guaranteed Starter deal they never picked — binding for the whole
+  // contract, and it spends a Hero License.
+  //
+  // The binding half of the draft belongs to the negotiation, so it restores
+  // from the last offer on file: within a session that preserves the choice
+  // across a round, and after a reload it rebuilds it from saved history rather
+  // than snapping back to defaults. Before the first offer there is no history
+  // and the defaults apply.
+  useEffect(() => {
+    if (id === undefined) return;
+    setTermSeasons(lastTermSeasons ?? (Math.min(2, maxTerm) as 1 | 2 | 3));
+    setPerk(lastPerk ?? 'GUARANTEED_STARTER');
+  }, [id, lastTermSeasons, lastPerk, maxTerm]);
+
+  // The wage tracks the agent's counter, and the pitch card MUST clear: cards
+  // are one-use, and re-submitting a spent one throws in `submitContractOffer`.
   useEffect(() => {
     if (initialWeeklyWage === undefined) return;
     setWeeklyWage(initialWeeklyWage);
     setPitchCard(undefined);
-    // Term and promise reset with the target too. Leaving them behind handed the
-    // next player a term and a binding promise the user never chose for them.
-    setTermSeasons(Math.min(2, maxTerm) as 1 | 2 | 3);
-    setPerk('GUARANTEED_STARTER');
-  }, [id, roundLabel, initialWeeklyWage, maxTerm]);
+  }, [id, initialWeeklyWage]);
 
   return {
     weeklyWage, setWeeklyWage, termSeasons, setTermSeasons,
@@ -857,7 +877,20 @@ export function NegotiationPanel({
           />
         </View>
         <View className="flex-1">
-          <Text className="font-pixel text-base uppercase text-ink">{viewModel.moodLabel}</Text>
+          {/* `moodFace` has been computed in the view model since this feature
+              shipped and rendered by nothing. It is decorative beside the
+              already-labelled mood, so it is hidden from screen readers rather
+              than read out as punctuation. */}
+          <View className="flex-row items-center gap-2">
+            <Text className="font-pixel text-base uppercase text-ink">{viewModel.moodLabel}</Text>
+            <Text
+              className="font-mono text-base text-ink/70"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            >
+              {viewModel.moodFace}
+            </Text>
+          </View>
           <PixelText className="mt-1 text-sm uppercase text-ink/60">{viewModel.personalityLabel} personality</PixelText>
           <Text className="mt-2 font-pixel text-sm uppercase text-blue-dark">
             {viewModel.pitchLeverageLabel}
@@ -925,24 +958,46 @@ export function NegotiationPanel({
                 {viewModel.shortTermReason}
               </Text>
             )}
+            {/* Term stacks with the promise at 0/3/6%, invisibly. One line
+                rather than a second grading system beside the first. */}
+            <Text className="mt-2 text-sm leading-5 text-ink/50">
+              Longer deals sweeten the offer.
+            </Text>
           </View>
 
+          {/* Full width, mirroring the pitch cards below: the grade sits where a
+              card's status sits, so the two lists read as one visual language.
+              The old two-across grid clipped `detail` to a single line, which is
+              why the promise consequences were never stated. */}
           <View className="mt-4">
-            <Text className="font-pixel text-sm uppercase text-stamp">3 · One promise</Text>
-            <View className="mt-2 flex-row flex-wrap gap-2">
+            <View className="flex-row items-baseline justify-between gap-3">
+              <Text className="font-pixel text-sm uppercase text-stamp">3 · One promise</Text>
+              {/* Captions the grade column. Without it "A · Huge" reads as the
+                  best promise for the club, when it is the one that sways the
+                  agent most AND costs the squad most. */}
+              <PixelText className="text-sm uppercase text-ink/45">Value to agent</PixelText>
+            </View>
+            <View className="mt-2 gap-2">
               {viewModel.perks.map(option => (
                 <Pressable
                   key={option.id}
                   accessibilityRole="radio"
-                  accessibilityLabel={`${option.label}. ${option.detail}`}
+                  accessibilityLabel={`${option.label}. Worth ${option.gradeLabel.replace(' · ', ', ')} to the agent. ${option.detail}`}
                   accessibilityState={{ selected: perk === option.id }}
                   onPress={() => setPerk(option.id)}
                   className={perk === option.id
-                    ? 'min-h-14 w-[48%] flex-grow justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
-                    : 'min-h-14 w-[48%] flex-grow justify-center border-2 border-ink/30 bg-white px-3 py-2'}
+                    ? 'min-h-14 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
+                    : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'}
                 >
-                  <PixelText className="text-sm uppercase text-ink">{option.label}</PixelText>
-                  <Text className="mt-0.5 text-sm text-ink/55" numberOfLines={1}>{option.detail}</Text>
+                  <View className="flex-row items-center justify-between gap-3">
+                    <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink">
+                      {option.label}
+                    </PixelText>
+                    <PixelText className="text-sm uppercase text-ink/70">
+                      {option.gradeLabel}
+                    </PixelText>
+                  </View>
+                  <Text className="mt-1 text-sm text-ink/60">{option.detail}</Text>
                 </Pressable>
               ))}
             </View>
@@ -973,7 +1028,19 @@ export function NegotiationPanel({
                         : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'}
                   >
                     <View className="flex-row items-center justify-between gap-3">
-                      <PixelText className="text-sm uppercase text-ink">{card.label}</PixelText>
+                      <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink">{card.label}</PixelText>
+                      {/* The loved/hated mapping has always been in the engine
+                          and never on screen, so a hated card cost 10% AND one
+                          of only three rounds with no warning. Read as how the
+                          player takes it, not as a rule being quoted at you. */}
+                      {card.used || card.affinity === undefined || card.affinity === 'NEUTRAL' ? null : (
+                        <Text className={card.affinity === 'LOVED'
+                          ? 'font-pixel text-sm uppercase text-pitch-ink'
+                          : 'font-pixel text-sm uppercase text-stamp'}
+                        >
+                          {card.affinity === 'LOVED' ? "He'll like this" : 'Risky'}
+                        </Text>
+                      )}
                       <Text className="font-pixel text-sm uppercase text-ink/50">
                         {card.used ? 'Played' : selected ? 'Loaded' : 'Card'}
                       </Text>

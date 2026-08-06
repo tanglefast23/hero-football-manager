@@ -233,7 +233,11 @@ describe('marketViewModel', () => {
     ))).toBe(true);
   });
 
-  it('exposes a usable mood/card panel without leaking the hidden weekly ask', () => {
+  // Narrowed 2026-08-06 rather than deleted. The ask stays hidden for TRANSFERS,
+  // which is what this view model builds; renewals now publish it deliberately
+  // (see docs/06-economy.md and `careerRenewalWeeklyAsk`), because a manager
+  // knows what their own player wants and does not know what a stranger wants.
+  it('exposes a usable transfer mood/card panel without leaking the hidden weekly ask', () => {
     const initial = startContractNegotiation({
       careerSeed: 55,
       negotiationId: 'talks-55',

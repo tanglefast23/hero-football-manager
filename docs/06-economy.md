@@ -36,10 +36,14 @@ Weekly wages (players + coach + staff), transfer fees, facility construction/upk
 
 Numbers rule; the mini-game influences (user spec: helps, never fully decides).
 
-1. Player/agent has a hidden ask and a visible **mood face** (angry → thrilled).
+1. **Renewals show the agent's asking wage up front**; transfers keep the ask hidden. The manager plausibly knows what their own player wants and does not know what a stranger at another club wants. A visible **mood face** (angry → thrilled) runs alongside in both cases. *(Changed 2026-08-06: the renewal ask was previously hidden, and the season-end card showed a wage-times-four estimate that measured 13–61% under the real number.)*
 2. You offer wage + years + one perk (guaranteed starter, captaincy, training priority, jersey #10) — perks offset cash.
 3. Up to 3 rounds. Each round you may play one **Pitch Card** from a dealt hand of 3 (Flattery, Trophy Promise, Hometown Ties, Money Talks, Straight Talk…). Card vs. personality match shifts mood one step (Joker loves Flattery; Professional hates it). **Hard cap: cards move the effective ask ±20% max** — a great pitch gets a discount, never a miracle.
-4. Insulting offers (< 50% of ask) end talks and dent morale/fame.
+4. Insulting offers (< 50% of ask) end talks and dent morale/fame. A three-round walk-away ends talks with **no** penalty — the damage is reserved for the insult.
+5. **Renewals may also be signed in one tap at the full asking price**, with no promise attached. Negotiating is how you pay less: term, promise and pitch cards together land a signed deal at roughly 86–92% of the ask, or about 69% with two loved cards. Forgoing that discount is the whole cost of the shortcut, so there is no cap and no surcharge on it. Promises stay inside the negotiation, where their squad cost can be read before they are agreed. *(Added 2026-08-06.)*
+6. **A signed hero renewal can land as low as ×2.0** rather than the advertised ×4. Measured floor is ×1.99, not the ×2.8 first reported: the hero ×4 is not the only multiplier, and loyalty (−20% at maximum) and a LOYAL personality (−10%) both cut the ask *before* the negotiation discounts apply to it — `4 × 0.8 × 0.9 × 0.69 ≈ 1.99`. Reaching it needs a hero with no stat growth and no fame since signing (so, awakened late with the contract expiring that same summer) plus two loved pitch cards; any real development pushes the multiple back above ×2.5.
+
+   **Accepted, not floored** (owner decision 2026-08-06). A loyal, well-managed hero being cheap to keep is a reward for keeping him loyal and negotiating well, not a leak. ×4 remains what you pay for convenience or for negotiating badly, so the cliff still bites everyone who does not work at it. The advertised ×3–5 therefore describes the *ask*, not the signed wage. `hero-renewal-floor.test.ts` pins the measured floor so a future rebalance cannot move it unnoticed; a balance rail reporting minimum and median signed hero wage remains the right instrument before any retune.
 
 ## Facilities (the club grounds grid)
 

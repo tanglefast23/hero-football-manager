@@ -243,7 +243,7 @@ describe('career market integration', () => {
     expect(savedTalks.market?.transferTalks?.playerId).toBe(target.id);
 
     const ask = talksWithWrongFallback.transferTalks!.negotiation.weeklyAsk;
-    const accepted = submitCareerTransferOffer(talksWithWrongFallback, {
+    const accepted = submitCareerTransferOffer(withRosterSpace, talksWithWrongFallback, {
       weeklyWage: ask,
       termSeasons: 2,
       perk: 'GUARANTEED_STARTER',
@@ -539,7 +539,7 @@ describe('career market integration', () => {
     };
     let talks = beginCareerTransferTalks(withRosterSpace, market, target.id);
     const ask = talks.transferTalks!.negotiation.weeklyAsk;
-    talks = submitCareerTransferOffer(talks, {
+    talks = submitCareerTransferOffer(withRosterSpace, talks, {
       weeklyWage: ask,
       termSeasons: 2,
       perk: 'GUARANTEED_STARTER',
@@ -709,7 +709,7 @@ describe('career market integration', () => {
     expect(resolveCareerScoutClock({ ...initial, week: 17 }, talks).transferTalks).toBeUndefined();
 
     // Even a fully accepted deal cannot complete on the stale quote.
-    talks = submitCareerTransferOffer(talks, {
+    talks = submitCareerTransferOffer(initial, talks, {
       weeklyWage: talks.transferTalks!.negotiation.weeklyAsk,
       termSeasons: 2,
       perk: 'GUARANTEED_STARTER',
@@ -927,7 +927,7 @@ describe('career market integration', () => {
       }],
     };
     const talks = beginCareerTransferTalks(state, market, target.id);
-    const insulted = submitCareerTransferOffer(talks, {
+    const insulted = submitCareerTransferOffer(state, talks, {
       weeklyWage: 1,
       termSeasons: 1,
       perk: 'JERSEY_10',
@@ -959,7 +959,7 @@ describe('career market integration', () => {
       )),
     };
     const talks = beginCareerRenewalTalks(seasonEnd, seasonEnd.market!, expiring.id);
-    const insulted = submitCareerRenewalOffer(talks, {
+    const insulted = submitCareerRenewalOffer(seasonEnd, talks, {
       weeklyWage: 1,
       termSeasons: 1,
       perk: 'JERSEY_10',

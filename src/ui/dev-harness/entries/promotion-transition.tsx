@@ -166,10 +166,9 @@ export function PromotionTransitionReel({ caseId }: { readonly caseId: string })
       <SeasonEndScreen
         viewModel={viewModel}
         onSelectContractTerm={(_playerId, selected) => setTerm(selected)}
-        // Unreachable on the shipped screen — `seasonEndViewModel` hard-codes
-        // `requiresNegotiation: true`, so the direct Renew button and the
-        // contract-length picker beside it are dead code. Wired anyway, and
-        // guarded, so that if the flag ever comes back the reel can drive it.
+        // Live again: "Sign now" and the contract-length picker beside it were
+        // dead code while `seasonEndViewModel` hard-coded `requiresNegotiation:
+        // true`. The reel drives the same one-tap signing the screen offers.
         onRenewContract={playerId => {
           try {
             setState(current => renewCareerPlayer(current, playerId, 4, term));

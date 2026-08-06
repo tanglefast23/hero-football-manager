@@ -141,6 +141,13 @@ export interface YouthIntakeViewModel {
 }
 
 export interface PitchCardViewModel {
+  /**
+   * How this personality receives the card: 'LOVED' cuts the ask, 'HATED' raises
+   * it, 'NEUTRAL' does neither. The mapping has always existed in the engine and
+   * was never shown, so a hated card cost 10% AND one of only three rounds with
+   * nothing on screen to warn you.
+   */
+  readonly affinity?: 'LOVED' | 'HATED' | 'NEUTRAL';
   readonly id: PitchCard;
   readonly label: string;
   readonly detail: string;
@@ -150,7 +157,17 @@ export interface PitchCardViewModel {
 export interface ContractPerkViewModel {
   readonly id: ContractPerk;
   readonly label: string;
+  /** What the promise costs the club, in plain mechanics. Never flavour. */
   readonly detail: string;
+  /**
+   * How hard the promise pushes the agent, as "A · Huge" through "D · Small".
+   *
+   * Rates bargaining pull only — never desirability to the manager. The two run
+   * opposite here: the promise that sways the agent most is also the one that
+   * costs the squad most, which is why the panel captions this column "Value to
+   * agent" and gives `detail` equal weight beside it.
+   */
+  readonly gradeLabel: string;
 }
 
 export interface MarketNegotiationViewModel {
@@ -182,6 +199,18 @@ export interface MarketNegotiationViewModel {
    */
   readonly walkOutWeeklyWage: number;
   readonly lastOutcomeLabel?: string;
+  /**
+   * The offer that produced the current round, absent before the first one.
+   *
+   * The panel's draft restores term and promise from this rather than snapping
+   * back to defaults, which is what makes a choice survive a counter-offer and
+   * survive reloading a save mid-negotiation.
+   */
+  readonly lastOffer?: {
+    readonly weeklyWage: number;
+    readonly termSeasons: 1 | 2 | 3;
+    readonly perk: ContractPerk;
+  };
 }
 
 export interface MarketViewModel {
