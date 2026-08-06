@@ -13,7 +13,7 @@ export const LOCALES = ['en', 'es', 'pt-BR', 'fr', 'de', 'id', 'vi'] as const;
 export type Locale = (typeof LOCALES)[number];
 
 /** Widen as each language completes its translation phase. */
-export const ENABLED_LOCALES: readonly Locale[] = ['en', 'es'];
+export const ENABLED_LOCALES: readonly Locale[] = ['en', 'es', 'vi'];
 
 /**
  * Which plural forms a language needs. Hermes' `Intl` coverage varies by

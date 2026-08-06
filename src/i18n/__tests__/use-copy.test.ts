@@ -7,8 +7,14 @@ describe('copyFor', () => {
   });
 
   test('a locale with an empty catalog still resolves through English', () => {
+    // German has no catalog yet. Vietnamese does, so it is no longer the
+    // example — that is what finishing a translation phase looks like.
     expect(copyFor('de')('settings.language.title')).toBe('Language');
-    expect(copyFor('vi')('settings.language.title')).toBe('Language');
+  });
+
+  test('a translated locale returns its own copy, not the English fallback', () => {
+    expect(copyFor('vi')('settings.language.title')).toBe('Ngôn ngữ');
+    expect(copyFor('es')('settings.language.title')).toBe('Idioma');
   });
 
   test('a key nobody has authored returns the key', () => {
