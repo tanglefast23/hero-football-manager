@@ -4,9 +4,9 @@
 
 **Goal:** Build the localisation plumbing and ship it with English only — every player-facing string flows through a key lookup, the language picker works, and the game looks and behaves exactly as it does today.
 
-**Architecture:** Copy moves to zod-validated JSON catalogs under `content/i18n/`, resolved at the UI edge by a `useCopy()` hook backed by a Zustand slice. The pure rings (`src/sim/`, `src/game/`) and the application layer emit `labelKey` + `labelParams` instead of English sentences. Fonts swap per locale through NativeWind CSS custom properties for className sites and a `useFaces()` hook for the 13 files that set `fontFamily` as a raw literal.
+**Architecture:** Copy moves to zod-validated JSON catalogs under `content/i18n/`, resolved at the UI edge by a `useCopy()` hook that derives the active locale from `preferences.language` — the single source of language state. The pure rings (`src/sim/`, `src/game/`) and the application layer emit `labelKey` + `labelParams` instead of English sentences. Fonts swap per locale through NativeWind CSS custom properties for className sites and a `useFaces()` hook for the 16 files that set `fontFamily` from a raw literal.
 
-**Tech Stack:** TypeScript, zod 4, Zustand 5, NativeWind 4 / react-native-css-interop 0.2.6, expo-font, expo-sqlite, Jest (testEnvironment `node`, roots `src` only), ESLint.
+**Tech Stack:** TypeScript, zod 4, Zustand 5, NativeWind 4 / react-native-css-interop 0.2.6, expo-font, expo-sqlite, Jest (testEnvironment `node`, roots `src` only), the TypeScript compiler API for AST checks. **No ESLint** — `README.md:10` forbids adding a lint script.
 
 **Spec:** [`docs/superpowers/specs/2026-08-06-multilingual-copy-design.md`](../specs/2026-08-06-multilingual-copy-design.md)
 
@@ -28,9 +28,10 @@ bite-sized TDD steps for ~150,000 words of translation would be theatre.
 
 - [ ] `npx tsc --noEmit` clean
 - [ ] `npm test` green, **including the golden replay** (`ENGINE_VERSION` unchanged)
-- [ ] `content/i18n/en.json` regenerates with no diff
-- [ ] English catalog snapshot test passing
-- [ ] ESLint no-hardcoded-prose gate reports zero violations outside exempt paths
+- [ ] English catalog snapshot test passing (no silent rewording during keying)
+- [ ] The no-hardcoded-prose AST gate reports zero violations outside exempt paths
+- [ ] Locale-invariance test green: the same seeded career under all seven
+      languages produces identical `GameState`
 - [ ] Device pass: onboarding → first match, league table, squad register,
       financial report, Settings — nothing moved
 - [ ] Device smoke test: switching to Vietnamese changes the face **on the match
@@ -53,11 +54,11 @@ bite-sized TDD steps for ~150,000 words of translation would be theatre.
 | `src/i18n/use-copy.ts` | `useCopy()` hook reading the Zustand locale slice |
 | `src/i18n/use-faces.ts` | `useFaces()` → `{ display, data }` family names for the active locale |
 | `src/i18n/index.ts` | Public surface |
-| `content/i18n/en.json` | **Generated.** English catalog |
+| `content/i18n/en.json` | **Hand-authored.** English for UI chrome keys only — content prose stays in `content/*.json` (spec §3.3) |
 | `content/i18n/es.json` … `vi.json` | Hand-authored translations (empty in Phase 1) |
-| `scripts/i18n/generate-en-catalog.mjs` | Builds `en.json` from content JSON + keyed call sites |
 | `scripts/i18n/measure-advances.mjs` | Reads a TTF `hmtx` and emits per-string advances |
-| `eslint-rules/no-hardcoded-prose.js` | The gate that keeps English out of TSX |
+| `src/i18n/__tests__/no-hardcoded-prose.test.ts` | TypeScript-AST gate keeping English out of TSX. A Jest test, not a lint rule |
+| `src/i18n/voice.ts` | Which face a key is drawn in (`display`/`data`/`body`), for the glyph gate |
 
 **Modified files**
 
@@ -66,11 +67,13 @@ bite-sized TDD steps for ~150,000 words of translation would be theatre.
 | `tailwind.config.js:41-46` | `pixel`/`mono` families point at CSS vars |
 | `App.tsx` | `vars()` wrapper at root; load Handjet cuts; picker wiring |
 | `src/persistence/preferences-repository.ts` | `language` field, schema v10, migration rung |
-| `src/persistence/game-state-codec.ts` | `labelKey`/`labelParams` on the 11 persisted surfaces |
+| `src/persistence/game-state-codec.ts` | `labelKey`/`labelParams` on the 12 persisted surfaces |
+| `src/application/hall-of-fame.ts` | Stop parsing goals out of an English sentence |
 | `src/ui/screens/CharacterCreationScreen.tsx` | Language panel |
 | `src/ui/SettingsOverlay.tsx` | Language control |
 | `src/sim/tactics.ts:46-50` | Formation blurbs → ids |
-| 13 raw-`fontFamily` files (§4.1 of the spec) | `useFaces()` instead of module-scope literals |
+| 16 raw-`fontFamily` files (§4.1 of the spec) | `useFaces()` instead of module-scope literals |
+| `README.md:153` | Reverse the "localization — post-launch" decision |
 | `content/events.json` | `id` on every outcome |
 | `app.json` | `CFBundleLocalizations` |
 
@@ -764,17 +767,40 @@ test('an unknown language tag is rejected rather than silently kept', () => {
 Run: `npx jest src/persistence/__tests__/preferences-repository.test.ts`
 Expected: FAIL — `language` is undefined
 
-- [ ] **Step 3: Implement**
+- [ ] **Step 3: Freeze an explicit V9 schema — do NOT extend the live base**
 
-At `preferences-repository.ts:13`, bump the head and add the new rung. **Name
-the rung after the feature that version already had, not the one being added** —
-that is the existing convention (`CLIMB_COMPLETED_..._VERSION = 8` parses rows
-that *have* `climbCompleted`):
+**This is the step that decides whether real players lose their settings.** The
+legacy schemas for versions 3–8 are *derived* from the current schema with
+`.omit()` (`preferences-repository.ts:129` onward). Adding a required `language`
+to `PreferencesSchema` therefore propagates it into every legacy schema, so a
+genuine version-8 row — which has no `language` — fails validation, and the
+fail-soft path (`application/preferences.ts:24`) discards it and resets **all**
+settings to defaults.
+
+The existing tests will not catch this, because they build old-version fixtures
+from `DEFAULT_APP_PREFERENCES` (`preferences-repository.test.ts:79`), so the
+fixtures would silently gain `language` too and stay green.
+
+So:
 
 ```ts
 const PREFERENCES_SCHEMA_VERSION = 10;
 // ... existing constants 1-8 unchanged ...
+// Named for what version 9 already HAD, matching the ladder's convention
+// (CLIMB_COMPLETED_..._VERSION = 8 parses rows that have climbCompleted).
 const DEVELOPER_MODE_PREFERENCES_SCHEMA_VERSION = 9;
+
+/**
+ * Version 9, written out rather than derived. Freezing it is the whole point:
+ * a frozen schema cannot acquire a field just because the live schema did.
+ */
+const V9PreferencesSchema = z.strictObject({
+  /* every field as it exists today, verbatim, WITHOUT language */
+});
+
+const PreferencesSchema = V9PreferencesSchema.extend({
+  language: z.enum(LOCALES),
+});
 ```
 
 Add to `AppPreferences`:
@@ -784,20 +810,7 @@ Add to `AppPreferences`:
   language: Locale;
 ```
 
-Add to `DEFAULT_APP_PREFERENCES`:
-
-```ts
-  language: 'en',
-```
-
-Add to `PreferencesSchema` — required, because the schema is a `strictObject`
-and a missing declaration fails the whole row:
-
-```ts
-  language: z.enum(LOCALES),
-```
-
-Add the migration rung beside the existing eight:
+Add `language: 'en'` to `DEFAULT_APP_PREFERENCES`, and the rung:
 
 ```ts
 if (row.schema_version === DEVELOPER_MODE_PREFERENCES_SCHEMA_VERSION) {
@@ -807,6 +820,35 @@ if (row.schema_version === DEVELOPER_MODE_PREFERENCES_SCHEMA_VERSION) {
   );
 }
 ```
+
+- [ ] **Step 3b: Replace fixture-by-spread with literal fixtures**
+
+Add a hand-written version-9 fixture with **no** `language` key — not a spread
+of `DEFAULT_APP_PREFERENCES` minus a field, because that is the construction
+that hides the bug:
+
+```ts
+const V9_ROW_LITERAL = {
+  formationPresets: ['4-4-2', '4-3-3', '3-5-2'],
+  autoPowers: false,
+  masterVolume: 1,
+  reduceMotion: false,
+  hudSide: 'left',
+  hapticsEnabled: true,
+  textScale: 1,
+  highContrast: false,
+  colorSafeKits: true,
+  cutInMode: 'full',
+  climbCompleted: false,
+  seenPowerCutIns: [],
+  autoSubs: false,
+  squadSort: null,
+  developerMode: false,
+};
+```
+
+Do the same for versions 1–8. They have no literal fixtures today, which is why
+this class of bug can reach a device at all.
 
 - [ ] **Step 4: Run the test and watch it pass**
 
@@ -822,28 +864,38 @@ git commit -m "feat(i18n): persist the language preference, schema v10"
 
 ---
 
-## Task 7: Zustand slice, useCopy, useFaces
+## Task 7: Wire the preference through, then useCopy / useFaces
 
 **Files:**
 - Create: `src/i18n/use-copy.ts`, `src/i18n/use-faces.ts`, `src/i18n/index.ts`
-- Modify: `src/application/store.ts`
+- Modify: `App.tsx` (load, set, persist)
 - Test: `src/i18n/__tests__/use-copy.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+**An earlier draft of this plan shipped a dead control.** It added `language` to
+SQLite (Task 6) and read `preferences.language` in the hook, but never wrote the
+setter, never loaded the value into app state, and never persisted a change. The
+picker in Task 15 would have toggled nothing. The wiring is this task.
+
+**One source of truth.** `GameApp` already owns preferences, loads them
+asynchronously and queues saves (`App.tsx:481`, `:576`, `:1110`). Do **not** add
+a second Zustand locale slice — it would need bidirectional sync and the two
+copies would drift across the async load. The active locale is read from the
+preferences object that already exists.
+
+- [ ] **Step 1: Write the failing test for the pure core**
 
 The hooks cannot be rendered here — `require('react-native')` throws under this
-Jest config — so test the pure selector the hooks wrap:
+Jest config — so test the pure functions the hooks wrap:
 
 ```ts
 import { copyFor, facesFor } from '../use-copy';
 
 describe('copyFor', () => {
   test('returns a bound t() for the active locale', () => {
-    const t = copyFor('en');
-    expect(t('settings.language.title')).toBe('Language');
+    expect(copyFor('en')('settings.language.title')).toBe('Language');
   });
 
-  test('an unenabled locale still resolves through English', () => {
+  test('a locale with an empty catalog still resolves through English', () => {
     expect(copyFor('de')('settings.language.title')).toBe('Language');
   });
 });
@@ -866,7 +918,6 @@ Expected: FAIL — `Cannot find module '../use-copy'`
 - [ ] **Step 3: Implement the pure core plus the hooks**
 
 ```ts
-import { useStore } from '../application/store';
 import { loadCatalog } from './load-catalogs';
 import { localeMeta, type Locale, type LocaleFaces } from './locales';
 import { resolveCopy, type CopyParams } from './resolve';
@@ -874,8 +925,8 @@ import { resolveCopy, type CopyParams } from './resolve';
 export type CopyFn = (key: string, params?: CopyParams) => string;
 
 /**
- * Pure, and exported for tests: the hooks below are thin wrappers, and this
- * Jest config cannot render a component (testEnvironment is node and
+ * Pure, and exported for tests: the hooks are thin wrappers, and this Jest
+ * config cannot render a component (testEnvironment is node and
  * `require('react-native')` throws).
  */
 export function copyFor(locale: Locale): CopyFn {
@@ -887,25 +938,55 @@ export function copyFor(locale: Locale): CopyFn {
 export function facesFor(locale: Locale): LocaleFaces {
   return localeMeta(locale).faces;
 }
+```
 
+The hooks read the preference `GameApp` already holds, through the existing
+preferences context:
+
+```ts
 export function useCopy(): CopyFn {
-  return copyFor(useStore(state => state.preferences.language));
+  return copyFor(usePreferences().language);
 }
 
 export function useFaces(): LocaleFaces {
-  return facesFor(useStore(state => state.preferences.language));
+  return facesFor(usePreferences().language);
 }
 ```
 
-- [ ] **Step 4: Run the test and watch it pass**
+- [ ] **Step 4: Wire the setter and the persistence**
 
-Run: `npx jest src/i18n/__tests__/use-copy.test.ts`
+In `App.tsx`, beside the existing preference setters:
+
+```ts
+const setLanguage = useCallback((language: Locale) => {
+  setPreferences(current => ({ ...current, language }));   // queues the SQLite save
+}, [setPreferences]);
+```
+
+The picker (Task 15) takes `setLanguage` as a prop. Nothing else changes: the
+preference is already loaded on boot and already persisted by the existing
+queue, so language inherits both for free — which is exactly why it should not
+have its own slice.
+
+- [ ] **Step 5: Decide what the picker lists**
+
+The picker lists **`LOCALES`**, not `ENABLED_LOCALES` — the seven languages are
+the product promise, and a locale mid-translation still renders through English
+fallback rather than breaking. `ENABLED_LOCALES` governs **CI gates only**.
+Write this down in `locales.ts` next to both constants, because the two names
+are easy to confuse and picking the wrong one either hides finished languages or
+gates nothing.
+
+- [ ] **Step 6: Run the test and watch it pass**
+
+Run: `npx jest src/i18n/__tests__/use-copy.test.ts && npx tsc --noEmit`
 Expected: PASS, 4 tests
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add src/i18n/ && git commit -m "feat(i18n): useCopy and useFaces hooks over a pure core"
+git add src/i18n/ App.tsx
+git commit -m "feat(i18n): useCopy and useFaces over the existing preference, with the setter wired"
 ```
 
 ---
@@ -988,27 +1069,41 @@ git commit -m "feat(i18n): swap pixel faces per locale via NativeWind CSS variab
 
 ---
 
-## Task 9: Font swap — the 13 files `vars()` cannot reach
+## Task 9: Font swap — the 16 files `vars()` cannot reach
 
-**Files (all 13, one commit each is fine):**
+**Files (all 16):**
 ```
-src/render/CupTitleCard.tsx            src/ui/components/CupBracket.tsx
-src/render/DrillSceneOverlay.tsx       src/ui/components/DrillGainReveal.tsx
-src/render/FirstMatchCoachingModal.tsx src/ui/components/EventRewardArt.tsx
-src/render/match-screen-styles.ts      src/ui/components/TitlePlayerPopScene.tsx
-src/ui/PowerAcquiredDemoModal.tsx      src/ui/screens/AwakeningCutsceneScreen.tsx
-src/ui/TrainingDrillModal.tsx          src/ui/screens/AwakeningArtQaScreen.tsx
-                                       src/ui/screens/PowerArtQaScreen.tsx
+src/render/SubstitutionBoard.tsx       src/ui/PowerAcquiredDemoModal.tsx
+src/render/MatchControlRail.tsx        src/ui/TrainingDrillModal.tsx
+src/render/PowerTitleTakeover.tsx      src/ui/components/CupBracket.tsx
+src/render/CupTitleCard.tsx            src/ui/components/DrillGainReveal.tsx
+src/render/DrillSceneOverlay.tsx       src/ui/components/EventRewardArt.tsx
+src/render/FirstMatchCoachingModal.tsx src/ui/components/TitlePlayerPopScene.tsx
+src/render/match-screen-styles.ts      src/ui/screens/AwakeningCutsceneScreen.tsx
+src/ui/screens/PowerArtQaScreen.tsx    src/ui/screens/AwakeningArtQaScreen.tsx
 ```
 - Test: `src/i18n/__tests__/no-literal-faces.test.ts`
 
-**Why this task exists:** 70 raw `fontFamily: 'Silkscreen_*'` literals across 23
-files bypass NativeWind entirely — they are module-scope constants fed into
-`StyleSheet.create`, evaluated once at import, so no runtime rebinding reaches
-them. Ten of the 23 are `src/ui/dev-harness/` and stay English by policy. The 13
-above are player-facing and include the match screen, the power takeovers and
-the awakening cutscene. Skipping this task ships Vietnamese with broken type in
-the game's biggest moments.
+**Why this task exists:** raw `Silkscreen_*` family literals bypass NativeWind
+entirely — they are module-scope constants fed into `StyleSheet.create`,
+evaluated once at import, so no runtime rebinding reaches them. Ten matching
+files are `src/ui/dev-harness/` and stay English by policy; the 16 above are
+player-facing. Skipping this task ships Vietnamese with broken type in the
+game's biggest moments.
+
+**Count the files correctly.** Grepping `fontFamily: 'Silkscreen` finds only the
+direct form and misses the indirect one:
+
+```ts
+const PIXEL_BOLD = 'Silkscreen_700Bold';   // invisible to that grep
+const styles = StyleSheet.create({ name: { fontFamily: PIXEL_BOLD } });
+```
+
+That pattern hides `SubstitutionBoard.tsx:911`, `MatchControlRail.tsx:399` and
+`PowerTitleTakeover.tsx:194` — the match screen itself. Search for the **family
+name string literal anywhere in the file**. A guard written against the narrower
+pattern goes green while the match screen stays broken, which is exactly what an
+earlier draft of this plan did.
 
 - [ ] **Step 1: Write the guard test first**
 
@@ -1028,19 +1123,22 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 test('no player-facing file hardcodes a font family', () => {
+  // The family-name literal ANYWHERE in the file — not just after `fontFamily:`.
+  // The narrow pattern misses `const PIXEL_BOLD = 'Silkscreen_700Bold'`.
   const offenders = walk('src')
     .filter(f => !EXEMPT.test(f))
-    .filter(f => /fontFamily:\s*'(Silkscreen|Handjet|VT323)/.test(fs.readFileSync(f, 'utf8')));
+    .filter(f => /'(Silkscreen|Handjet|VT323)_/.test(fs.readFileSync(f, 'utf8')));
 
   expect(offenders).toEqual([]);
 });
 ```
 
-- [ ] **Step 2: Run it and watch it fail with exactly 13 files**
+- [ ] **Step 2: Run it and watch it fail with exactly 16 files**
 
 Run: `npx jest src/i18n/__tests__/no-literal-faces.test.ts`
-Expected: FAIL listing the 13 files above. If the list differs, reconcile before
-continuing — the set has drifted since the spec was written.
+Expected: FAIL listing the 16 files above, plus `src/i18n/locales.ts` (which
+legitimately names the families — add it to `EXEMPT` alongside the dev harness).
+If the list differs otherwise, reconcile before continuing.
 
 - [ ] **Step 3: Convert each file**
 
@@ -1192,7 +1290,7 @@ git commit -m "feat(i18n): give every event outcome a stable id"
 
 ---
 
-## Task 12: Persisted-English keys (the 11 surfaces)
+## Task 12: Persisted-English keys (the 12 surfaces)
 
 **Files:**
 - Modify: `src/persistence/game-state-codec.ts` (lines per the table below)
@@ -1212,6 +1310,7 @@ git commit -m "feat(i18n): give every event outcome a stable id"
 | 9 | Cup giant-killing `title`, `body` | `:1343-1348` | `.passthrough()` |
 | 10 | `seasonRecap.cupResult` | `:1176` | free string |
 | 11 | `playerRequestRules.requests[].title`, `.line` | `:429-436` | `.passthrough()` |
+| 12 | Season recap `topScorer.detail` — **parsed as data** | `:1132` | `.passthrough()` |
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1278,6 +1377,49 @@ Surface 10 changes shape: `cupResult: z.union([z.string(), z.strictObject({ outc
 English `label` **and** the key. `label` stays required — a producer that emits
 only keys fails its own schema.
 
+- [ ] **Step 4b: Stop parsing goals out of an English sentence**
+
+`hall-of-fame.ts:50` reads the Golden Boot goal count back out of the English
+string with `^(\d+) goals$`, written by `season-recap.ts:87` as
+`` `${topScorerGoals} goals` ``. Its own comment admits the coupling, and an
+unparseable detail "counts zero rather than throwing". Translate that string and
+every career top-scorer total silently becomes zero — no gate in this plan would
+catch it, because the key resolves, the placeholders match, the glyphs exist and
+the budget holds.
+
+Write the failing test first:
+
+```ts
+test('career top scorer survives a translated detail string', () => {
+  const recap = { ...recapFixture, topScorer: { ...award, detail: '22 goles', goals: 22 } };
+  expect(careerTopScorer([recap])?.goals).toBe(22);
+});
+
+test('a legacy recap with no numeric field still parses its English', () => {
+  const recap = { ...recapFixture, topScorer: { ...award, detail: '22 goals' } };
+  expect(careerTopScorer([recap])?.goals).toBe(22);
+});
+```
+
+Then persist an optional numeric `goals` on `seasonRecapAwardSchema`, write it in
+`season-recap.ts`, prefer it in `hall-of-fame.ts`, and keep the regex only as the
+legacy path.
+
+- [ ] **Step 4c: `cupResult` keeps its string**
+
+Do **not** change `cupResult` to an object. The codec requires a string today
+(`game-state-codec.ts:1163`); replacing the type breaks every existing recap and
+needs a real `GAME_SCHEMA_VERSION` bump with a migration, which contradicts the
+optional-additions reasoning in Step 3. Keep `cupResult` required, and add
+optional `cupOutcome` / `cupRound` siblings. New saves write all three, the UI
+prefers the pair, old saves keep rendering their English.
+
+- [ ] **Step 4d: Grep before you key**
+
+Before keying **any** string in this task or Task 13, grep `src/` for the English
+literal. Surface 12 is the proof that a display string can be load-bearing, and
+a grep is the only cheap way to find the next one.
+
 - [ ] **Step 5: Run the full suite**
 
 Run: `npx jest && npx tsc --noEmit`
@@ -1287,7 +1429,7 @@ Expected: PASS, golden replay unchanged
 
 ```bash
 git add src/persistence/ src/game/
-git commit -m "feat(i18n): dual-write labelKey alongside English on all 11 persisted surfaces"
+git commit -m "feat(i18n): dual-write labelKey alongside English on all 12 persisted surfaces"
 ```
 
 ---
@@ -1295,15 +1437,35 @@ git commit -m "feat(i18n): dual-write labelKey alongside English on all 11 persi
 ## Task 13: The extraction
 
 **Files:**
-- Create: `scripts/i18n/generate-en-catalog.mjs`
-- Modify: every player-facing file, in batches
+- Modify: every player-facing file, in batches; `content/i18n/en.json`
 - Test: `src/i18n/__tests__/en-catalog.snapshot.test.ts`
 
 This is the bulk of Phase 1 — roughly 3,000 candidate strings across 247 files.
 Work **one screen at a time**, committing per screen, so a partial extraction is
 always a working game.
 
-- [ ] **Step 1: Write the snapshot guard first**
+- [ ] **Step 1: Fix the key-naming scheme before keying anything**
+
+An earlier draft said "replace literal → add key → commit" with no scheme, which
+is not an executable instruction — two engineers would produce two incompatible
+catalogs. The scheme:
+
+```
+<area>.<screen-or-system>.<element>[.<variant>]
+```
+
+| Rule | Example |
+| --- | --- |
+| Area is the screen file's own name, lower-camel | `characterCreation`, `leagueTable`, `matchHud` |
+| Cross-screen systems get a flat namespace | `ledger.*`, `settings.*`, `bert.*`, `col.*` |
+| Element names the thing, not the text | `.confirmButton`, not `.eraseAndStartOver` |
+| Plural siblings use `.one` / `.other` | `squad.count.one` |
+| Content-derived keys mirror the content id | `event.derby-night.body` |
+
+Element-names-the-thing matters: a key derived from the English wording becomes
+a lie the first time the English changes.
+
+- [ ] **Step 2: Write the snapshot guard**
 
 ```ts
 test('the English catalog matches its snapshot', () => {
@@ -1311,31 +1473,68 @@ test('the English catalog matches its snapshot', () => {
 });
 ```
 
-This is what stops a keying pass from silently rewording copy. Every diff to the
-snapshot must be a deliberate copy change, reviewed as one.
+This is what stops a keying pass from silently rewording copy. Every snapshot
+diff must be a deliberate copy change, reviewed as one.
 
-- [ ] **Step 2: Order the batches by risk, lowest first**
+- [ ] **Step 3: Route content prose through the resolver too**
 
-1. `src/ui/SettingsOverlay.tsx`, `PrivacySupportPanel`, `GlossaryPanel` — 47 strings
+Adding ids to `content/events.json` (Task 11) does not by itself make the UI read
+through the catalog. Until the call sites change, `events.json` remains the live
+English *and* `<locale>.json` holds translations — two sources, guaranteed drift,
+and Phase 2 would translate keys the app never reads.
+
+So every content-prose consumer changes from reading `event.text` directly to
+`t('event.<id>.body')`. The resolver's English path for content keys reads the
+content file by id (spec §3.3), so English behaviour is unchanged and there is
+still exactly one English source.
+
+Consumers to convert: `StoryEventScreen`, the tips surface, `GlossaryPanel`, the
+Bert assistant-guide sequences, ceremony lines, fulltime coach and blame lines.
+
+- [ ] **Step 4: Declare the dynamic-key registry**
+
+Gate 2 needs to know which keys are legally built at runtime. Export it from
+`src/i18n/dynamic-keys.ts`, deriving the legal id set from the content files
+themselves:
+
+```ts
+export const DYNAMIC_KEY_PREFIXES = {
+  'event.': () => loadLaunchContent().events.events.map(e => e.id),
+  'tip.': () => loadLaunchContent().tips.tips.map(t => t.id),
+  'bert.': () => loadLaunchContent().assistantGuide.sequences.map(s => s.id),
+} as const;
+```
+
+- [ ] **Step 5: Work the batches, lowest risk first**
+
+1. `SettingsOverlay`, `PrivacySupportPanel`, `GlossaryPanel` — 47 strings
 2. `CharacterCreationScreen`, `NewGameWelcome`, `TitleLanding` — 101 strings
 3. The weekly loop — 905 strings across 20 files
 4. Match and render ring — 358 strings across 59 files
 5. Season and ceremony — 285 strings across 38 files
-6. `App.tsx` and the overlays — the 1,966 "unclassified" strings
+6. `App.tsx` and the overlays — the 1,966 unclassified strings
 
-- [ ] **Step 3: For each batch, the same four moves**
+For each batch: replace the literal with `t()`, add the key to `en.json`, run
+`npx jest && npx tsc --noEmit`, commit.
 
-Replace the literal with a `t()` call; add the key to `content/i18n/en.json`;
-run `npx jest && npx tsc --noEmit`; commit.
+- [ ] **Step 6: Replace the `toLocaleString` call sites**
 
-- [ ] **Step 4: Split player-facing copy out of `App.tsx` as you go**
+Task 3 built `formatInteger` / `formatMoney` but nothing calls them yet. Convert
+`view-models.ts:560`, `event-selection.ts:189`, `player-request-view-model.ts:111`
+and the four in `store.ts`. A helper nobody calls changes nothing, and these
+sites vary by device locale today.
+
+While converting, check that `labelParams` carry **raw numbers** — formatting
+belongs at the render edge, not in the params (spec §4.3).
+
+- [ ] **Step 7: Split player-facing copy out of `App.tsx` as you go — mechanically**
 
 `App.tsx` is 2,944 lines and holds the largest share of the unclassified
-strings. Extracting its copy is the natural moment to move screen-specific
-markup into the screen files it belongs to. Do not treat this as a separate
-refactor — but do not let it balloon either.
+strings. Move a screen's copy into that screen's file as you key it. Keep this
+**mechanical**: do not couple localisation to a broad component restructure, or
+Phase 1's "identical game" promise becomes impossible to verify.
 
-- [ ] **Step 5: Commit per batch**
+- [ ] **Step 8: Commit per batch**
 
 ```bash
 git add -A && git commit -m "refactor(i18n): key the <batch> copy"
@@ -1346,7 +1545,7 @@ git add -A && git commit -m "refactor(i18n): key the <batch> copy"
 ## Task 14: The CI gates
 
 **Files:**
-- Create: `src/i18n/__tests__/gates.test.ts`, `eslint-rules/no-hardcoded-prose.js`
+- Create: `src/i18n/__tests__/gates.test.ts`, `src/i18n/__tests__/no-hardcoded-prose.test.ts`, `src/i18n/glyph-coverage.ts`, `src/i18n/voice.ts`
 
 - [ ] **Step 1: Write the gates**
 
@@ -1402,34 +1601,121 @@ describe('i18n gates', () => {
 `glyphSet` parses a TTF `cmap` — the same technique `league-table-columns.ts`
 already uses for advances. Put it in `src/i18n/glyph-coverage.ts`.
 
-- [ ] **Step 2: Gate 2 as a warning until the dynamic-key registry exists**
+- [ ] **Step 2: Gate 2 against the dynamic-key registry**
 
-Keys like `event.<id>.body` are built at the call site, so a static reference
-graph cannot see them. The gate is legal-if-statically-referenced **or**
-matching a declared dynamic prefix whose ids come from `content/*.json`. Until
-that registry exists, log and do not fail.
+Use `DYNAMIC_KEY_PREFIXES` from Task 13. A catalog key is legal if it is
+statically referenced **or** matches a registered prefix with an id the content
+files actually contain. Anything else fails.
 
-- [ ] **Step 3: Gate 6 as ESLint, not Jest**
+- [ ] **Step 3: Gate 5 is per-voice, and covers formatter output**
 
-It needs TSX AST access the node Jest suite cannot provide. Scope:
-`src/ui/`, **`src/render/`**, `src/application/`, `App.tsx`. Exempt
-`src/ui/dev-harness/`, `src/audit/`, developer-mode strings.
+Checking the whole catalog against the pixel font is wrong in both directions.
+`PixelText.tsx:16` documents a third voice, `body`, that deliberately renders in
+the platform sans because pixel type is exhausting for long prose. A blanket
+check rejects a valid em dash in an event paragraph and misses an invalid glyph
+in a button.
 
-It must cover **`accessibilityLabel` and `accessibilityHint` props** — there are
-343 of them outside tests and the harness, they are props rather than JSX text
-nodes, and a naive rule is structurally blind to them. Left out, VoiceOver reads
-English to players in six languages.
+```ts
+test('gate 5 — every string renders in a face that has its glyphs', () => {
+  for (const locale of ENABLED_LOCALES) {
+    const faces = localeMeta(locale).faces;
+    for (const [key, value] of Object.entries(loadCatalog(locale).strings)) {
+      if (voiceOf(key) === 'body') continue;             // system sans, any glyph
+      const covered = glyphSet(faceFile(faces[voiceOf(key)]));
+      const missing = [...value].filter(ch => !covered.has(ch.codePointAt(0)!));
+      expect({ key, missing }).toEqual({ key, missing: [] });
+    }
+  }
+});
+
+test('gate 5b — the formatter s own characters exist in the face', () => {
+  for (const locale of ENABLED_LOCALES) {
+    const covered = glyphSet(faceFile(localeMeta(locale).faces.data));
+    for (const ch of [localeMeta(locale).groupSeparator, '$', '-']) {
+      expect({ locale, ch }).toMatchObject({ locale });
+      expect(covered.has(ch.codePointAt(0)!)).toBe(true);
+    }
+  }
+});
+```
+
+Gate 5b is not optional decoration — it is what catches a separator like U+202F
+that Silkscreen lacks, without anyone reading a French screenshot. Separators
+live in code, not in the catalog, so gate 5 alone cannot see them.
+
+`faceFile(family)` maps a family name to its TTF under
+`node_modules/@expo-google-fonts/`. A node Jest test may read it: `roots` limits
+test *discovery*, not filesystem access. `glyphSet` parses the TTF `cmap`, the
+same technique `league-table-columns.ts` uses for advances — put both in
+`src/i18n/glyph-coverage.ts`.
+
+- [ ] **Step 3b: Gate 6 is a TypeScript AST check, NOT ESLint**
+
+`README.md:10` says "There is no lint script — that's intentional, don't add
+one", and the repo has no ESLint dependency. Adding one to satisfy this gate
+would unilaterally reverse a documented decision.
+
+Use the TypeScript compiler API, already available via `ts-jest`, from a normal
+Jest test:
+
+```ts
+import ts from 'typescript';
+
+const SCOPE = ['src/ui', 'src/render', 'src/application', 'src/game', 'App.tsx'];
+const EXEMPT = /src\/ui\/dev-harness\/|src\/audit\//;
+
+test('gate 6 — no hardcoded player-facing prose', () => {
+  const offenders: string[] = [];
+  for (const file of filesIn(SCOPE).filter(f => !EXEMPT.test(f))) {
+    const sf = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
+    ts.forEachChild(sf, function visit(node) {
+      if (ts.isJsxText(node) && /[a-z]{2}/.test(node.text)) offenders.push(`${file}: ${node.text.trim()}`);
+      // Accessibility strings are PROPS, not JSX text — 343 of them. A rule
+      // written only against text nodes is structurally blind to them, and the
+      // result is VoiceOver reading English in six languages.
+      if (ts.isJsxAttribute(node) && /^accessibility(Label|Hint)$/.test(node.name.getText())
+          && node.initializer && ts.isStringLiteral(node.initializer)) {
+        offenders.push(`${file}: ${node.name.getText()}`);
+      }
+      ts.forEachChild(node, visit);
+    });
+  }
+  expect(offenders).toEqual([]);
+});
+```
+
+`src/game/` is in scope because §3 of the spec names it as one of the three
+English-emitting layers. `throw new Error` messages are developer-facing and
+exempt.
+
+- [ ] **Step 3c: Gate 9 — locale invariance**
+
+The golden replay runs `src/sim/match` with fixed teams
+(`parity-replay.test.ts:60`); it does not exercise career events, the economy, or
+save output, so it cannot alone prove language has no behavioural effect.
+
+```ts
+test('gate 9 — the same seeded career is identical under every language', () => {
+  const runs = LOCALES.map(language => JSON.stringify(
+    runSeededCareer({ seed: 12345, inputs: FIXED_INPUTS, preferences: { ...DEFAULT_APP_PREFERENCES, language } }),
+  ));
+  expect(new Set(runs).size).toBe(1);
+});
+```
+
+`language` stays out of career state entirely, which is what makes this cheap to
+satisfy — and the test is what proves it stayed out.
 
 - [ ] **Step 4: Run everything**
 
-Run: `npx jest && npx eslint . && npx tsc --noEmit`
+Run: `npx jest && npx tsc --noEmit`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/i18n/ eslint-rules/ .eslintrc*
-git commit -m "feat(i18n): CI gates for key parity, budget, placeholders, glyphs and hardcoded prose"
+git add src/i18n/
+git commit -m "feat(i18n): CI gates for key parity, budget, placeholders, glyphs, prose and locale invariance"
 ```
 
 ---
@@ -1532,7 +1818,7 @@ git add app.json && git commit -m "feat(i18n): declare CFBundleLocalizations"
 - [ ] **Step 1: Full gate run**
 
 ```bash
-npx tsc --noEmit && npx jest && npx eslint .
+npx tsc --noEmit && npx jest
 ```
 
 - [ ] **Step 2: Confirm the engine did not move**
@@ -1540,13 +1826,11 @@ npx tsc --noEmit && npx jest && npx eslint .
 Run: `npx jest src/sim/__tests__/runtime-golden.test.ts`
 Expected: PASS with `ENGINE_VERSION` unchanged from the value recorded in Task 10.
 
-- [ ] **Step 3: Confirm the English catalog regenerates clean**
+- [ ] **Step 3: Confirm the catalog snapshot is clean**
 
-```bash
-node scripts/i18n/generate-en-catalog.mjs && git diff --exit-code content/i18n/en.json
-```
-
-Expected: no diff.
+Run: `npx jest src/i18n/__tests__/en-catalog.snapshot.test.ts`
+Expected: PASS with no snapshot write. A snapshot diff here means the keying
+pass reworded English copy, which Phase 1 promised not to do.
 
 - [ ] **Step 4: Device pass, English**
 
@@ -1573,24 +1857,41 @@ git commit --allow-empty -m "chore(i18n): phase 1 complete — plumbing in, Engl
 
 ## Self-review
 
-**Spec coverage.** §1 voice rules → Phase 2 template, not this plan. §2 language
-set → Task 1. §3 architecture → Tasks 4, 5, 7, 10, 13; §3.1 catalog → Task 4;
-§3.2 runtime → Task 7; §3.3 single English source → Task 13; §3.4 numbers →
-Task 3. §4.1 font → Tasks 0, 8, 9. §4.2 layout → **Phase 2**, correctly, since
-short forms only matter once a second locale exists. §4.3 saves → Task 12. §5
-picker → Tasks 6, 15. §6 inventory → informs Task 13's batching. §7 phasing →
-scope note. §8 gates → Task 14. §9 quality → Phase 2 template. §10.1 native →
-Tasks 0, 16.
+**Spec coverage.** §1 voice → Phase 2. §2 languages → Task 1. §3 architecture →
+Tasks 4, 5, 7, 10, 13; §3.1 catalog → Task 4; §3.2 runtime → Task 7; §3.3 single
+English source → Task 13 step 3; §3.4 numbers → Tasks 3 and 13 step 6. §4.1 font
+→ Tasks 0, 8, 9. §4.2 layout → **Phase 2**. §4.3 saves → Task 12. §5 picker →
+Tasks 6, 7, 15. §6 inventory → Task 13 batching. §8 gates → Task 14. §9 quality
+→ Phase 2. §10.1 native → Tasks 0, 16. §10.2 README reversal → Task 16.
 
-**Known gap, stated rather than hidden:** the §4.2 advance-map work
-(`col.*` short forms, re-measuring `LEAGUE_COLUMN_WIDTH` as a max across enabled
-locales) is a hard dependency of Phase 2 and is *not* in this plan. It belongs
-with the first real translation, because there is nothing to measure until a
-second locale exists. Task 14's gate 8 is stubbed to English-only accordingly.
+**Known gap, stated rather than hidden:** the §4.2 advance-map work (`col.*`
+short forms, `LEAGUE_COLUMN_WIDTH` as a max across enabled locales, the
+row-fits-the-screen assertion) is a hard dependency of Phase 2 and is *not*
+here — there is nothing to measure until a second locale exists. Task 14's gate
+8 is English-only accordingly. **The spec recommends computing the seven-locale
+maxima up front** so enabling German later cannot widen English columns
+retroactively; that belongs in Phase 2 Task 2.
 
 **Placeholders:** none. Every code step carries its code.
 
-**Type consistency:** `Locale`, `LocaleFaces`, `CopyFn`, `CopyParams` are
-defined in Tasks 1, 1, 7, 5 and used consistently after. `facesFor`/`useFaces`
-and `copyFor`/`useCopy` keep the pure-core-plus-hook pairing throughout, which
-is what lets Tasks 5 and 7 be tested at all under a node-only Jest config.
+**Type consistency:** `Locale`, `LocaleFaces`, `CopyFn`, `CopyParams` are defined
+in Tasks 1, 1, 7, 5 and used consistently after. `copyFor`/`useCopy` and
+`facesFor`/`useFaces` keep the pure-core-plus-hook pairing throughout, which is
+what lets Tasks 5 and 7 be tested at all under a node-only Jest config.
+`voiceOf` (Task 14) and `DYNAMIC_KEY_PREFIXES` (Task 13) are each defined once
+and referenced once.
+
+**Corrections folded in from the second council round.** Recorded because each
+was a plan that would have failed in a specific way:
+
+| Was | Now |
+| --- | --- |
+| `en.json` generated from call sites | Hand-authored; the generator had no input once literals became keys |
+| 13 raw-font files | 16 — the grep missed `const PIXEL_BOLD = 'Silkscreen_700Bold'`, hiding the match screen |
+| `language` added to the live preferences schema | Frozen V9 schema — `.omit()`-derived legacy schemas would have failed real v8 rows and reset every setting |
+| Preference read but never written | Task 7 wires the setter, load and persistence |
+| `cupResult` becomes an object | Stays a required string with optional siblings; a type change breaks every old recap |
+| Gate 6 as ESLint | TypeScript AST in Jest — `README.md:10` forbids adding a lint script |
+| Gate 5 over the whole catalog | Per-voice, plus formatter output |
+| French separator "thin space" | U+00A0 — Silkscreen has neither U+202F nor U+2009 |
+| 11 persisted surfaces | 12 — `topScorer.detail` is parsed as data by `hall-of-fame.ts:50` |
