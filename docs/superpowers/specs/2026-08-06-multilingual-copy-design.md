@@ -149,7 +149,7 @@ t('market.bid.confirm', { club, player, fee });
 
 Missing key in a non-English catalog falls back to English rather than showing
 the raw key. In development it also warns, and CI treats a missing key as a
-failure (§7).
+failure (§8).
 
 ### 3.3 Content JSON
 
@@ -296,13 +296,62 @@ look; only grouping separators localise.
 the choice is changeable mid-career and is not a one-time trap.
 
 **Persistence.** A `language: Locale` field on `AppPreferences`, defaulting to
-`'en'`, with the preferences schema bumped to version 9 and a migration that
-defaults existing rows. It is a device preference, not a career preference —
-one player, one language, across careers.
+`'en'`. `PREFERENCES_SCHEMA_VERSION` in
+[`preferences-repository.ts:13`](src/persistence/preferences-repository.ts) is
+**already 9**, so this bumps it to **10** and adds
+`LANGUAGE_PREFERENCES_SCHEMA_VERSION = 9` to the migration ladder alongside the
+eight existing constants, defaulting `language` to `'en'` on every older row.
+Note that `PreferencesSchema` is a `z.strictObject` — a new field without the
+matching schema entry fails validation outright rather than being ignored.
+
+It is a device preference, not a career preference — one player, one language,
+across careers.
 
 ---
 
-## 6. Phasing
+## 6. Measured copy surface
+
+Counted from the tree, deduplicated per file, excluding tests, the dev harness,
+and `src/audit/`. These are candidate strings — the extraction pass in Phase 1
+will prune developer-only text — so treat them as an upper bound with roughly
+25% noise.
+
+| Area | Files | Strings | Words |
+| --- | ---: | ---: | ---: |
+| Weekly loop (shell, home, training, market, finances, table) | 20 | 905 | 5,616 |
+| Match (render ring, HUD, substitutions, power cut-ins) | 59 | 358 | 1,954 |
+| Season and ceremony (awards, celebrations, awakening, story) | 38 | 285 | 1,666 |
+| Onboarding and creation | 6 | 101 | 1,803 |
+| Settings and meta (glossary, privacy, hall of fame) | 5 | 47 | 187 |
+| Unclassified — `App.tsx`, overlays, walk-ons, view-models | 119 | 1,966 | 11,082 |
+| **TS/TSX total** | **247** | **3,662** | **22,308** |
+
+| Content file | Strings | Words |
+| --- | ---: | ---: |
+| `events.json` | 400 | 3,825 |
+| `assistant-guide.json` (Bert) | 223 | 1,610 |
+| `fulltime-coach-lines.json` | 180 | 1,408 |
+| `glossary.json` | 86 | 1,158 |
+| `onboarding.json` | 110 | 919 |
+| `tips.json` | 36 | 631 |
+| `award-ceremony-lines.json` | 60 | 542 |
+| `player-requests.json`, `powers.json`, `sponsors.json`, `training.json`, `fulltime-blame-lines.json` | 175 | 936 |
+| `clubs.json` — **names, not translated** | 170 | 340 |
+| **Content total (translatable)** | **1,270** | **11,029** |
+
+**Roughly 2,500–3,000 translatable strings and ~25,000 English words**, which
+is ~150,000 words across six target languages before the quality passes in §8.
+That number is the reason for phasing, and it is the number to sanity-check
+after Phase 2 — if Spanish costs materially more than a sixth of the budget,
+the scope conversation happens then, not at the end.
+
+The `unclassified` row is the one to watch: `App.tsx` alone is 2,944 lines and
+holds a large share of it. Splitting player-facing copy out of `App.tsx` is a
+natural part of Phase 1 rather than a separate refactor.
+
+---
+
+## 7. Phasing
 
 Every phase ships something that works. Nothing is left half-English at a
 stopping point.
@@ -343,7 +392,7 @@ are committed to it.
 
 ---
 
-## 7. Testing and CI
+## 8. Testing and CI
 
 The balance harness and golden-replay conventions already establish that this
 project gates on assertions rather than eyeballs. Localisation gets the same:
@@ -375,7 +424,7 @@ length and glyph coverage bite.
 
 ---
 
-## 8. Translation quality
+## 9. Translation quality
 
 The CI gates in §7 prove a translation is *present, sized, and renderable*.
 None of them prove it is *good*. A string can pass every check and still read
@@ -460,7 +509,7 @@ edit.
 
 ---
 
-## 9. Out of scope
+## 10. Out of scope
 
 - Arabic, Chinese, and any other non-Latin script. Named in §2 with reasons.
 - Right-to-left layout support.
@@ -472,7 +521,7 @@ edit.
 
 ---
 
-## 10. Open decisions
+## 11. Open decisions
 
 1. **VT323 vs Handjet** for Vietnamese — resolved by the Phase 0 visual gate.
 2. **`vars()` vs family-name aliasing** for the font swap — resolved by the
