@@ -185,44 +185,63 @@ translation is keyed off that id (`event.derby-night.body`) rather than
 duplicating the whole file per locale. `content/clubs.json` is club and player
 **names** and is not translated.
 
-**There must be exactly one English source, or the two will drift.** Content
-prose keeps living in `content/*.json` where it is authored today; the English
-catalog does **not** duplicate it by hand. Concretely:
+**There must be exactly one English source per string, and an earlier draft's
+answer to that was incoherent.** It said `en.json` would be *generated from the
+call sites* — but once a call site becomes `t('creation.stat.pac.label')`, the
+English is gone and there is nothing left to generate from. The generator had no
+input.
 
-- `content/i18n/en.json` is **generated, never hand-edited.** A build script
-  extracts it from the two English sources — the content files (by id) and the
-  keyed strings lifted out of TS/TSX — and writes the merged catalog. It carries
-  a `DO NOT EDIT` header and CI fails if regenerating it produces a diff.
-- The six translated catalogs **are** hand-authored, against the generated
-  English.
-- So editing English copy means editing `content/*.json` or the call site, never
-  `en.json`. That keeps one place to change a sentence and makes "the English
-  changed, these translations are now stale" a mechanical diff (§9.2).
+The fix is to give each kind of copy exactly one home, with **no overlap**, so
+nothing needs generating and nothing can drift:
 
-Without this rule, a writer fixes a tip in `tips.json`, the catalog still holds
-the old English, and every translation is silently reviewed against text the
-game no longer shows.
+| Copy | English source | Translations |
+| --- | --- | --- |
+| **Content prose** — events, tips, glossary, Bert, ceremony and coach lines | stays authored in `content/*.json`, exactly as today | `content/i18n/<locale>.json` under `event.<id>.body` etc. |
+| **UI chrome** — buttons, labels, headings, ledger lines, toasts | `content/i18n/en.json`, **hand-authored** | same file per locale |
+
+So the resolver has two lookups for English: a chrome key reads `en.json`, a
+content key reads the content file by id. For every other locale both read
+`<locale>.json`. Editing an English tip still means editing `tips.json`; editing
+an English button still means editing `en.json`. Neither file ever contains the
+other's strings, so there is no sync step and no generator to go stale.
+
+The English snapshot test (§8) covers `en.json` plus the content-derived key set,
+which is what makes "the keying pass did not silently reword anything" checkable.
 
 ### 3.4 Number formatting
 
 The same Hermes caution that rules out `Intl.PluralRules` (§3.1) rules out
 `Intl.NumberFormat`. The formatting helper is **hand-rolled**: group digits in
-threes and pick the separator from a seven-entry table (`.` for `de`, `es`,
-`pt-BR`, `id`, `vi`; `,` for `en`; thin space for `fr`). Seven locales do not
-justify a polyfill, and a hand-rolled grouper is trivially unit-testable in the
-node Jest environment.
+threes and pick the separator from a seven-entry table.
+
+| Locale | Separator | Codepoint |
+| --- | --- | --- |
+| `en` | `,` | U+002C |
+| `es`, `pt-BR`, `de`, `id`, `vi` | `.` | U+002E |
+| `fr` | non-breaking space | **U+00A0** |
+
+**French must use U+00A0, not a thin or narrow space.** Typographic French
+prefers U+202F (narrow no-break space), and an earlier draft of this spec said
+"thin space" — but Silkscreen has neither U+202F nor U+2009. Verified against
+the `cmap`: U+00A0 is present, the other two are not. Shipping the typographic
+choice would have put a tofu box in every French money value on screen.
 
 This replaces the mix of `toLocaleString('en-US')`, `toLocaleString('en-GB')`
 (`player-request-view-model.ts:111`), and unpinned `toLocaleString()`
 (`view-models.ts:560`, `event-selection.ts:189`, `store.ts` ×4) — the last of
 which already varies by *device* locale today and is a live bug regardless of
-this project.
+this project. **Replacing those call sites is its own work item**, not a
+side-effect of adding the helper; a helper nobody calls changes nothing.
 
 Formatting happens at the UI edge only, on the raw values in `labelParams`
-(§4.3). It must never run inside a match tick or anywhere its output could
-reach a deterministic log.
+(§4.3). It must never run inside a match tick or anywhere its output could reach
+a deterministic log.
 
----
+**Formatter output is glyph-checked too.** Gate 5 (§8) checks catalog strings,
+but a separator is not a catalog string — it lives in code. The gate therefore
+also asserts that every locale's separator, currency symbol and sign characters
+exist in that locale's face. That assertion is what would have caught the
+U+202F mistake above without anyone looking at a French screenshot.
 
 ## 4. The three hard constraints
 
@@ -301,33 +320,52 @@ This does not violate `PixelText.tsx`'s rule against mixing `style` and
 className pipeline; `vars()` supplies the *value* the class resolves against and
 never sets `fontFamily` itself.
 
-**Swap mechanism, part 2: the 13 files `vars()` cannot reach.** An earlier draft
+**Swap mechanism, part 2: the 16 files `vars()` cannot reach.** An earlier draft
 claimed the swap was "one line and no call-site churn." That was wrong, and it
-was wrong in the worst place. **70 raw `fontFamily: 'Silkscreen_*'` literals
-across 23 files** bypass NativeWind entirely — they are module-scope constants
-feeding `StyleSheet.create`, evaluated once at import, so no runtime rebinding
-can touch them. Ten of those files are `src/ui/dev-harness/` and are exempt
-(§8 gate 6). **Thirteen are player-facing, and they include the match screen:**
+was wrong in the worst place. Raw `Silkscreen_*` family literals bypass
+NativeWind entirely — they are module-scope constants feeding `StyleSheet.create`,
+evaluated once at import, so no runtime rebinding can touch them.
+
+**Counting them needs care, and a first attempt got it wrong.** Grepping for
+`fontFamily: 'Silkscreen` finds only the direct form and misses the indirect
+one:
+
+```ts
+const PIXEL_BOLD = 'Silkscreen_700Bold';   // <- invisible to that grep
+const styles = StyleSheet.create({ name: { fontFamily: PIXEL_BOLD } });
+```
+
+That pattern hides three of the most important files of all —
+`src/render/SubstitutionBoard.tsx:911`, `src/render/MatchControlRail.tsx:399`
+and `src/render/PowerTitleTakeover.tsx:194`. **The correct search is for the
+family-name string literal anywhere in a file**, not for the property
+assignment. Any gate written against the narrower pattern passes while the match
+screen stays broken.
+
+Ten of the matching files are `src/ui/dev-harness/` and are exempt (§8 gate 6).
+**Sixteen are player-facing:**
 
 ```
-src/render/CupTitleCard.tsx            src/ui/components/CupBracket.tsx
-src/render/DrillSceneOverlay.tsx       src/ui/components/DrillGainReveal.tsx
-src/render/FirstMatchCoachingModal.tsx src/ui/components/EventRewardArt.tsx
-src/render/match-screen-styles.ts      src/ui/components/TitlePlayerPopScene.tsx
-src/ui/PowerAcquiredDemoModal.tsx      src/ui/screens/AwakeningCutsceneScreen.tsx
-src/ui/TrainingDrillModal.tsx          src/ui/screens/AwakeningArtQaScreen.tsx
-                                       src/ui/screens/PowerArtQaScreen.tsx
+src/render/SubstitutionBoard.tsx       src/ui/PowerAcquiredDemoModal.tsx
+src/render/MatchControlRail.tsx        src/ui/TrainingDrillModal.tsx
+src/render/PowerTitleTakeover.tsx      src/ui/components/CupBracket.tsx
+src/render/CupTitleCard.tsx            src/ui/components/DrillGainReveal.tsx
+src/render/DrillSceneOverlay.tsx       src/ui/components/EventRewardArt.tsx
+src/render/FirstMatchCoachingModal.tsx src/ui/components/TitlePlayerPopScene.tsx
+src/render/match-screen-styles.ts      src/ui/screens/AwakeningCutsceneScreen.tsx
+src/ui/screens/PowerArtQaScreen.tsx    src/ui/screens/AwakeningArtQaScreen.tsx
 ```
 
 Left alone, a Vietnamese player gets correct type everywhere except the
-substitution board, power takeovers, cup cards, the awakening cutscene and the
-first-match coaching modal — i.e. the game's biggest moments.
+substitution board, the match control rail, power takeovers, cup cards, the
+awakening cutscene and the first-match coaching modal — i.e. the game's biggest
+moments.
 
-These 13 files convert to a `useFaces()` hook returning `{ display, data }` from
-the locale store, with their style objects built in render instead of at module
-scope. It is mechanical, it is bounded, and it is an explicit work item in the
-plan rather than something extraction discovers halfway through. The two
-`*ArtQaScreen` files are QA surfaces and may be exempted if that proves cheaper.
+These convert to a `useFaces()` hook returning `{ display, data }` from the
+active locale, with style objects built in render instead of at module scope.
+It is mechanical, it is bounded, and it is an explicit work item rather than
+something extraction discovers halfway through. The two `*ArtQaScreen` files are
+QA surfaces and may be exempted if that proves cheaper.
 
 **Family-name aliasing is rejected, not held in reserve.** Registering Handjet
 under the `Silkscreen_*` names would fix all 70 sites at once, but it forces an
@@ -430,6 +468,27 @@ missed.
 | 9 | `pendingCupGiantKillingCelebrations[].title`, `.body` | `:1343-1348` | `.passthrough()` | Four authored Bert speeches from `game/cup-giant-killing.ts:17-46`, persisted whole |
 | 10 | `seasonRecap.cupResult` | `:1176` | free string | Mixes `'Not entered'` / `'Winners'` / `'Entered'` with round labels (`game/season-recap.ts:247-257`); rendered as a panel **title** at `SeasonEndScreen.tsx:166` |
 | 11 | `playerRequestRules.requests[].title`, `.line` | `:429-436` | `.passthrough()` | Content rules copied into the save |
+| 12 | Season recap `topScorer.detail` — **also parsed as game data** | `:1132` | `.passthrough()` | See the landmine below |
+
+**Surface 12 is a data-corruption landmine, not a display string.**
+`hall-of-fame.ts:50` reads the Golden Boot goal count back out of the English
+sentence with `^(\d+) goals$`, written by `season-recap.ts:87` as
+`` `${topScorerGoals} goals` ``. The function's own comment admits the coupling
+and says an unparseable detail "counts zero rather than throwing". So translating
+that one string to `"22 goles"` does not throw, does not fail a gate, and does
+not look wrong — it silently zeroes every career top-scorer total in the Hall of
+Fame.
+
+No gate elsewhere in this spec would catch it: the key resolves, the placeholder
+count matches, the glyphs exist, the budget holds. **Fix it by persisting an
+optional numeric `goals` alongside the sentence**, reading the number when
+present and keeping the regex only as the legacy path for saves written before
+the change. Do this in the same task as the rest of §4.3, not later.
+
+This is also a general warning for the extraction: **before keying any string,
+check whether anything parses it.** A grep for the English literal across
+`src/` is the cheap version of that check, and it is the only thing that would
+have surfaced this one.
 
 `sponsorName` and club names on these schemas are names, not prose, and are not
 translated (§10).
@@ -442,8 +501,17 @@ prefers the id over the frozen string.
 
 `seasonRecap.cupResult` (10) is the awkward one: it is a *denormalised* string
 that mixes an outcome word with a round label, and §3's claim that "cup round
-labels are already an enum" covers `rounds[].label` but not this sibling. It
-becomes a `{ outcome, round }` pair rendered at the UI.
+labels are already an enum" covers `rounds[].label` but not this sibling.
+
+**It does not become a `{ outcome, round }` object**, which an earlier draft
+proposed. The codec requires a string today (`game-state-codec.ts:1163`), so
+replacing the type would break every existing recap and would need a real
+`GAME_SCHEMA_VERSION` bump with a migration — contradicting the
+optional-fields-need-no-bump reasoning below, which only holds for genuinely
+optional *additions*. Instead: **keep `cupResult` a required string** and add
+optional `cupOutcome` / `cupRound` siblings beside it. New saves write all
+three; the UI prefers the structured pair; old saves keep rendering their
+English.
 
 **Two rules the implementation must not get wrong:**
 
@@ -527,20 +595,45 @@ follow-up, not built speculatively.
 the choice is changeable mid-career and is not a one-time trap.
 
 **Persistence.** A `language: Locale` field on `AppPreferences`, defaulting to
-`'en'`. `PREFERENCES_SCHEMA_VERSION` in
-[`preferences-repository.ts:13`](src/persistence/preferences-repository.ts) is
+`'en'`. `PREFERENCES_SCHEMA_VERSION` (`preferences-repository.ts:13`) is
 **already 9**, so this bumps it to **10**.
 
-Naming matters here and is easy to get backwards. The existing ladder names each
-constant after the feature *added at* that version, and the rung parses rows
-that already have it — `CLIMB_COMPLETED_PREFERENCES_SCHEMA_VERSION = 8`
-(`:21`, used at `:151`) handles rows that have `climbCompleted`. The version-9
-rung therefore parses rows that have `developerMode` but **not** `language`, so
-it is named after `developerMode`, not after language. The new constant is what
-`PREFERENCES_SCHEMA_VERSION` becomes: `10`.
+**There is a trap here that would reset every player's settings.** The legacy
+schemas for versions 3–8 are not written out — they are *derived* from the
+current schema with `.omit()` (`preferences-repository.ts:129` onward, e.g.
+`PreferencesSchema.omit({ seenPowerCutIns: true, autoSubs: true, ... })`).
+Adding a **required** `language` to the base therefore silently adds it to every
+legacy schema, so a real version-8 row — which has no `language` — fails
+validation, and the fail-soft path (`application/preferences.ts:24`) responds by
+discarding the row and resetting *all* settings to defaults.
 
-`PreferencesSchema` is a `z.strictObject`, so a new field without a matching
-schema entry fails validation outright rather than being ignored.
+Worse, the existing migration tests build their old-version fixtures **from
+`DEFAULT_APP_PREFERENCES`** (`preferences-repository.test.ts:79`), so those
+fixtures would quietly acquire `language` too and the suite would stay green
+while shipping the reset.
+
+The fix is to stop deriving and start freezing:
+
+1. **Freeze an explicit `V9PreferencesSchema`** — the current shape, written out,
+   with no `language` — instead of letting version 9 inherit from the live base.
+2. Version 10 is `V9PreferencesSchema.extend({ language: z.enum(LOCALES) })`.
+3. Add a **literal** version-9 fixture with no `language` field, hand-written
+   rather than spread from defaults.
+4. Add literal fixtures for versions 1–8 too. They are missing today, which is
+   why this class of bug can reach a device at all.
+
+Name the new rung after the feature version 9 *already had*, following the
+existing convention (`CLIMB_COMPLETED_..._VERSION = 8` parses rows that have
+`climbCompleted`): the version-9 rung parses rows that have `developerMode` but
+not `language`, so it is `DEVELOPER_MODE_PREFERENCES_SCHEMA_VERSION = 9`.
+
+**One source of language state.** `GameApp` already owns preferences, loads them
+asynchronously and queues saves (`App.tsx:481`, `:576`, `:1110`). A separate
+Zustand locale slice would be a second copy needing bidirectional sync, and the
+two would drift on the async load. The active locale is therefore **derived from
+`preferences.language`** and nowhere else; `useCopy()` and `useFaces()` read
+that one value. Changing language writes the preference, and everything else
+follows from the re-render.
 
 It is a device preference, not a career preference — one player, one language,
 across careers.
@@ -713,27 +806,47 @@ All locale-scoped gates run against `ENABLED_LOCALES` only (§7.1).
    *succinctness* gate. It is explicitly **not** a layout proof — see §4.2.
 4. **Placeholder parity.** A translated string uses exactly the placeholders its
    English source uses. A dropped `{player}` is a silent content bug.
-5. **Glyph coverage.** Every character in a locale's catalog exists in that
-   locale's font, checked against the TTF `cmap` — the technique already used
-   for column advances. Catches a stray `ı`, a smart quote, or an em dash that
-   Silkscreen does not have.
-6. **No hardcoded prose — an ESLint job, not a Jest test.** A rule over
-   `src/ui/`, **`src/render/`**, `src/application/` and `App.tsx` rejecting JSX
-   text nodes and prose literals outside the catalog. It needs TSX AST access
-   that the node Jest suite cannot provide, so it runs as its own CI step.
-   `src/ui/dev-harness/`, `src/audit/` and developer-mode strings are exempt and
-   stay English.
+5. **Glyph coverage — per voice, not per catalog.** Every character in a string
+   must exist in the face that string will actually be drawn in. Checking the
+   whole catalog against the pixel font is wrong in both directions:
+   `PixelText.tsx:16` documents a third voice, `body`, that deliberately renders
+   in the platform sans because "pixel fonts are exhausting to read" for long
+   prose. Blanket-checking would reject valid body copy (an em dash in an event
+   paragraph is fine) and would miss invalid pixel copy.
 
-   `src/render/` is called out because an earlier draft omitted it while §6's
-   own table counts 358 strings across 59 render-ring files. Left out, the
-   substitution board, power takeovers and coaching modals could keep hardcoded
-   English forever and still pass CI.
+   So each key carries its **voice** (`display` / `data` / `body`), and the gate
+   checks display and data keys against the locale's pixel face while exempting
+   body keys. The voice is declarable per key-prefix — `event.*` and `bert.*`
+   are body, `col.*` and `settings.*` are display — with per-key overrides.
 
-   **The rule must also cover accessibility props.** There are **343**
+   The gate also covers **formatter output**, which is not in the catalog at
+   all: every locale's group separator, currency symbol and sign characters must
+   exist in its face. That assertion is what catches a separator like U+202F
+   that Silkscreen lacks (§3.4), without anyone reading a French screenshot.
+
+6. **No hardcoded prose — a TypeScript AST check, not ESLint.** An earlier draft
+   said ESLint. That violates a documented project rule: `README.md:10` states
+   "There is no lint script — that's intentional, don't add one", and the repo
+   carries no ESLint dependency. Adding one to satisfy a gate in this spec would
+   be a unilateral reversal of an existing decision.
+
+   Instead the check uses the **TypeScript compiler API**, which is already a
+   dependency via `ts-jest`, and runs as a normal Jest test under `src/`. It
+   parses each file to an AST and rejects JSX text nodes and prose string
+   literals outside the catalog.
+
+   Scope: `src/ui/`, `src/render/`, `src/application/`, **`src/game/`** and
+   `App.tsx`. `src/game/` is included because §3 identifies game-layer prose as
+   one of the three English-emitting layers; omitting it would let ledger labels
+   quietly stay English. Exempt: `src/ui/dev-harness/`, `src/audit/`,
+   developer-mode strings, and `throw new Error` messages (developer-facing).
+
+   **It must also cover accessibility props.** There are 343
    `accessibilityLabel` / `accessibilityHint` strings outside tests and the dev
-   harness. They are props, not JSX text nodes, so a naive rule is structurally
-   blind to them — and the result is VoiceOver reading English to players in six
-   languages. They are in scope, and they count toward the §6 totals.
+   harness. They are props, not JSX text nodes, so a rule written only against
+   text nodes is structurally blind to them — and the result is VoiceOver
+   reading English to players in six languages.
+
 7. **Golden replay still matches, or the bump is deliberate.** The earlier
    wording — "localisation must not touch `ENGINE_VERSION`" — was a prohibition
    dressed as a test, and prohibitions do not catch anything. The real gate is
@@ -742,9 +855,42 @@ All locale-scoped gates run against `ENABLED_LOCALES` only (§7.1).
    sized an array, branching on English text), the snapshot fails and that
    forces the version decision CLAUDE.md already requires. Expected outcome is
    no bump; the gate is what proves it rather than assuming it.
-8. **Width tables per locale.** Every `col.*` string in every enabled locale has
-   a measured advance **and** fits its column, for that locale's face. This is
-   the gate that makes §4.2 real rather than remembered.
+8. **Width tables per locale — and the row must still fit the phone.** Every
+   `col.*` string in every enabled locale has a measured advance and fits its
+   column, for that locale's face.
+
+   Per-column fitting is necessary but **not sufficient**. Because the shared
+   widths become a max across enabled locales (§4.2), the fixed columns can
+   collectively grow until they crowd out the one flexible column —
+   `squad-register-columns.ts:96` explicitly relies on the club/player column
+   paying for every fixed-width increase, and the full league table already has
+   seven non-shrinking columns (`LeagueTableScreen.tsx:40`). So the gate also
+   asserts:
+
+   ```
+   sum(fixed widths) + padding + gutters + min(flexible column)
+     <= smallest supported content width
+   ```
+
+   for both the phone and wide layouts.
+
+   **Consequence worth stating plainly:** because widths are global maxima,
+   enabling German or Vietnamese later can widen columns in the *English* game.
+   Either compute the seven-locale maxima up front, before Phase 2, or re-run
+   English layout acceptance after each locale is enabled. Computing up front is
+   cheaper and is the recommendation.
+
+9. **Locale invariance of the simulation.** The golden replay
+   (`parity-replay.test.ts:60`) runs `src/sim/match` with fixed teams — it does
+   not exercise career events, the economy, application formatting or save
+   output, so it cannot by itself prove that language has no behavioural effect.
+   Add a test that runs the same seeded career and the same input sequence under
+   **every** language preference and compares the resulting `GameState` and match
+   envelopes semantically. `language` stays out of career state entirely, which
+   is what makes this test cheap to satisfy.
+
+   Note also that a save-schema change is a separate concern from
+   `ENGINE_VERSION` — `save-file.ts:34` already documents that split.
 
 Device QA per language: onboarding through first match, the league table, the
 squad register, the financial report, and Settings — the five screens where
@@ -806,9 +952,15 @@ string, the English source, the glossary, and the screen the string appears on.
 | `long` | Correct but will not fit its cell | shorten in-language, re-review |
 
 Verdicts land in `content/i18n/review/<locale>.json` with the reviewer's
-one-line reason and the **hash of the English source** they judged. When English
-copy changes, exactly the affected strings go stale rather than the whole
-language.
+one-line reason and a **hash of everything the verdict depended on**: the key,
+the English source, **the translated string itself**, the glossary version, and
+the context (screen) description.
+
+Hashing only the English — as an earlier draft did — leaves an obvious hole: a
+translation could be edited after approval and keep its `ok`, because the
+English it was judged against never moved. Including the target string closes
+that. Including the glossary version means a terminology change re-opens the
+strings it affects rather than silently grandfathering them.
 
 **Coverage is a gate: no enabled locale ships with a string lacking an `ok`
 verdict against the current English hash.** That is what makes "audited at least
@@ -908,6 +1060,15 @@ Both are easy to mistake for store metadata. Neither is.
   all; that is a point in favour of not suggesting.
 
 Both land in Phase 1 so the single rebuild covers them together.
+
+---
+
+### 10.2 This supersedes a prior decision
+
+`README.md:153` records "localization beyond English — post-launch" as a
+canonical decision. This spec reverses it at the owner's request. The README
+entry must be updated in Phase 1 rather than left contradicting the plan of
+record — a decision log that disagrees with the code is worse than no log.
 
 ---
 
