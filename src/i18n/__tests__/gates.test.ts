@@ -361,9 +361,14 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
    *
    * These floors may only ever RISE. Raising one is how a batch of long-tail
    * translation gets recorded as landed.
+   *
+   * They are all at 100 now, which changes what this gate is for: it stops
+   * measuring progress and starts guarding completeness. New content prose —
+   * an event, a tip, a glossary entry — fails this gate until every locale has
+   * it, so English can no longer leak into six languages unnoticed.
    */
   const COVERAGE_FLOOR: Readonly<Record<string, number>> = {
-    es: 80, 'pt-BR': 80, fr: 80, id: 80, de: 80, vi: 80,
+    es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100,
   };
 
   test('every locale meets its recorded content-prose floor', () => {
