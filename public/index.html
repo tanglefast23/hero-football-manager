@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <!--
+      `viewport-fit=cover` is what makes env(safe-area-inset-*) report real
+      numbers, which is how the shell keeps its chrome out from under an iPad's
+      status bar and home indicator. Pinch zoom is deliberately left alone: it is
+      an accessibility gesture, iOS ignores `user-scalable=no` anyway, and the
+      double-tap zoom that actually fought the game is handled by
+      `touch-action: manipulation` in global.css.
+    -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
+    />
+    <title>%WEB_TITLE%</title>
+    <!--
+      Installed-to-the-home-screen metadata. Without these, iOS gives the game a
+      screenshot of the page as its icon and no declared display mode.
+    -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- The shell is dark, so a light status bar would read as a white strip. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Hero Football Manager" />
+    <meta name="theme-color" content="#241f2e" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+        /*
+         * The same colour global.css paints, repeated here on purpose: that
+         * stylesheet is a <link> and therefore arrives after the first paint, so
+         * without this a home-screen launch flashes white before the game shows.
+         */
+        background: #241f2e;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>

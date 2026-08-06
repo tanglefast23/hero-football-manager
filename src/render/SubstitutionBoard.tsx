@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SfxPressable } from '../ui/components/SfxPressable';
+import { hasHoverPointer } from '../ui/pointer-capability';
 import { TutorialTapCue } from '../ui/TutorialTapCue';
 import {
   TUTORIAL_TAP_CUE_RESERVED_SPACE,
@@ -735,6 +736,7 @@ function DragCard({
   const offset = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const [lifted, setLifted] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const pointerHover = hasHoverPointer();
   const liftedRef = useRef(false);
   /**
    * The responder is built once, so it must never read props directly: the plan
@@ -825,10 +827,11 @@ function DragCard({
     <Shell
       ref={registerCard(id)}
       {...(dragEnabled ? responder.panHandlers : { onPress: tap })}
-      // Hover is a pointer affordance and simply never fires on a touch screen,
-      // so the board loses nothing there.
-      onPointerEnter={() => setHovered(true)}
-      onPointerLeave={() => setHovered(false)}
+      // Hover is a pointer affordance, and asked for only where a pointer can
+      // hover: a tablet browser reports a synthetic hover on tap whose leave
+      // never arrives, which left a tapped card standing lifted for good.
+      onPointerEnter={pointerHover ? () => setHovered(true) : undefined}
+      onPointerLeave={pointerHover ? () => setHovered(false) : undefined}
       accessible
       focusable
       accessibilityRole="button"

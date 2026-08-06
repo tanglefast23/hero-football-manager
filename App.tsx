@@ -2,7 +2,7 @@ import './global.css';
 import { playerRequestViewModel } from './src/application/player-request-view-model';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, LogBox, Platform, Share, Text, View } from 'react-native';
+import { AppState, Linking, LogBox, Platform, Share, Text, View } from 'react-native';
 import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -24,6 +24,7 @@ import {
   DEVELOPER_MANUAL_SAVE_SLOTS,
   migrateDatabase,
   replaceFormationPreset,
+  requestPersistentStorage,
   resetCareerDatabase,
   type AppPreferences,
   type DeveloperManualSaveSlot,
@@ -148,6 +149,7 @@ import { guidedFirstFacilityAllowsPlacement } from './src/ui/concierge-targets';
 import { facilityAdjacencyPresentation } from './src/ui/facility-adjacency';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { useRivalPreload } from './src/ui/use-rival-preload';
+import { useSuspendFlush } from './src/ui/use-suspend-flush';
 import { DEVELOPER_MODE_AVAILABLE, qaRootRoutesEnabled } from './src/ui/release-surface';
 import { supportEmailUrl, SUPPORT_EMAIL } from './src/release/support';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
@@ -218,6 +220,19 @@ const DATABASE_NAME = 'hero-football-manager.db';
  * the BootFailure screen's Retry / Start Fresh options.
  */
 const BOOT_TIMEOUT_MS = 15_000;
+
+/**
+ * True while nobody is looking at the app — a backgrounded native app or a hidden
+ * browser tab. Both suspend the work a deadline is measuring, so both must be
+ * able to postpone it rather than fail it.
+ */
+function appIsHidden(): boolean {
+  if (Platform.OS === 'web') {
+    return typeof document !== 'undefined' && document.hidden === true;
+  }
+  return AppState.currentState !== 'active';
+}
+
 type LandingView = 'title' | 'story' | 'settings' | 'assistant-mode';
 
 /**
@@ -1091,11 +1106,26 @@ function GameApp() {
     // Retry / Start Fresh instead of an eternal spinner. Retry reuses the
     // cached native connection (expo-sqlite's default useNewConnection:false),
     // so a fired timeout never leaks connections.
-    const bootTimeout = setTimeout(() => {
-      if (active) {
+    // A hidden app is not a stuck app: iOS suspends a backgrounded web app (and
+    // throttles its timers) mid-boot, so a deadline that fired while the tablet
+    // was elsewhere would greet the player with BootFailure over a healthy save.
+    // Give it another full deadline once they are actually looking at it.
+    let bootTimeout: ReturnType<typeof setTimeout>;
+    const armBootTimeout = () => {
+      bootTimeout = setTimeout(() => {
+        if (!active) return;
+        if (appIsHidden()) {
+          armBootTimeout();
+          return;
+        }
         setBootError('The saved game data did not finish opening. Retrying may fix this.');
-      }
-    }, BOOT_TIMEOUT_MS);
+      }, BOOT_TIMEOUT_MS);
+    };
+    armBootTimeout();
+    // Ask the browser to keep the save before anything is written to it. Not
+    // awaited: the answer changes nothing about how the game boots, it only makes
+    // an eviction risk knowable instead of mysterious.
+    void requestPersistentStorage();
     void openDatabaseAsync(DATABASE_NAME)
       .then(async database => {
         // Migrate once up front. Each repository migrates defensively on its
@@ -1547,6 +1577,10 @@ function GameApp() {
     matchdayPreload?.teams ?? null,
     store.screen === 'watched',
   );
+
+  // A hidden web app can be killed without warning, so a queued career write
+  // goes out the moment the tablet or tab leaves the screen.
+  useSuspendFlush();
 
   const handleAdvanceWeek = advanceCareerWithSfx;
 
