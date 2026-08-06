@@ -518,6 +518,17 @@ export interface SeasonRecapAward {
   playerName: string;
   label: string;
   detail: string;
+  /**
+   * The Golden Boot's goal count as a number.
+   *
+   * `detail` reads "22 goals", and the Hall of Fame used to recover the count
+   * by parsing that sentence. That made a display string load-bearing: any
+   * rewording — and every translation — silently zeroed a career's top-scorer
+   * total, with no gate able to catch it because the copy stayed valid. The
+   * number is persisted now; the parse survives only as the legacy path for
+   * recaps written before this field existed.
+   */
+  goals?: number;
 }
 
 export interface SeasonRecap {

@@ -234,7 +234,7 @@ describe('capturing the Hall of Fame record', () => {
     if (recap.topScorer === undefined) throw new Error('the recap recorded no Golden Boot');
 
     expect(recap.topScorer.playerId).toBe(scorer.id);
-    expect(goldenBootGoals(recap.topScorer.detail)).toBe(scored);
+    expect(goldenBootGoals(recap.topScorer)).toBe(scored);
   });
 
   it('counts an unreadable Golden Boot as no goals rather than throwing', () => {
@@ -419,5 +419,23 @@ describe('the Hall of Fame page', () => {
     expect(viewModel.honoursEmptyLabel.length).toBeGreaterThan(0);
     expect(viewModel.stats.find(stat => stat.id === 'titles')?.detail)
       .toBe('Promoted without a title');
+  });
+});
+
+describe('the Golden Boot count survives translation', () => {
+  it('reads the persisted number, not the sentence', () => {
+    // The whole point: this detail is Spanish, so the regex cannot help. Before
+    // `goals` was persisted, translating the game zeroed every career
+    // top-scorer total and no gate could have caught it — the copy was valid,
+    // the key resolved, the placeholders matched.
+    expect(goldenBootGoals({ detail: '22 goles', goals: 22 })).toBe(22);
+  });
+
+  it('still parses a recap saved before the field existed', () => {
+    expect(goldenBootGoals({ detail: '22 goals' })).toBe(22);
+  });
+
+  it('counts an unparseable legacy detail as zero rather than throwing', () => {
+    expect(goldenBootGoals({ detail: 'Golden Boot' })).toBe(0);
   });
 });
