@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { playEventSuccessSfx, playManagementActionSfx } from '../../render/management-sfx';
@@ -17,7 +17,7 @@ import { useCopy } from '../../i18n';
 export interface StoryEventScreenProps {
   viewModel: StoryEventViewModel;
   onChoose: (choiceId: string) => void;
-  onSelectPlayer?: () => void;
+  onSelectPlayer?: (playerId: string) => void;
   onContinue: () => void;
   onOpenSettings: () => void;
   reduceMotion?: boolean;
@@ -54,6 +54,15 @@ export function StoryEventScreen({
   const t = useCopy();
   const resolved = Boolean(viewModel.resolvedChoiceId && viewModel.outcomeText);
   const needsPlayer = viewModel.playerSelectionRequired && !viewModel.selectedPlayer;
+  const [pickerOpen, setPickerOpen] = useState(false);
+  /**
+   * A locked card is read-only: the manager already answered for this player in
+   * the chapter that opened the story. A resolved one is history.
+   */
+  const pickerAvailable = onSelectPlayer !== undefined
+    && !resolved
+    && viewModel.playerLocked !== true
+    && viewModel.playerChoices.length > 0;
   const reveal = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const rewardReveal = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const playedOutcomeKey = useRef<string | null>(null);
@@ -130,6 +139,7 @@ export function StoryEventScreen({
           category={viewModel.category}
           success={riskySuccess}
           reduceMotion={reduceMotion}
+          sceneLayout="stage"
           className="flex-1"
         >
           {riskySuccess ? <EventPixelConfetti progress={rewardReveal} reduceMotion={reduceMotion} /> : null}
@@ -139,9 +149,16 @@ export function StoryEventScreen({
             contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', padding: 16, paddingTop: 72 }}
             showsVerticalScrollIndicator={false}
           >
+            {/* Style-only wrapper. NativeWind silently drops `className` on an
+                Animated view, which is why this panel had no paper, no border
+                and no 600pt cap on a desktop — the outcome text, the red bar
+                and the continue button all ran the full width of the screen.
+                The classes live on the plain View inside. */}
             <Animated.View
-              className={panelClass}
               style={{
+                width: '100%',
+                maxWidth: 600,
+                alignSelf: 'center',
                 opacity: reveal,
                 transform: [{
                   translateY: reveal.interpolate({
@@ -152,6 +169,7 @@ export function StoryEventScreen({
                 }],
               }}
             >
+              <View className={panelClass}>
               <Text className={riskySuccess
                 ? 'font-pixel text-xs uppercase tracking-[3px] text-gold'
                 : riskyFailure
@@ -201,6 +219,7 @@ export function StoryEventScreen({
                   onPress={onContinue}
                 />
               </View>
+              </View>
             </Animated.View>
           </ScrollView>
         </EventArtwork>
@@ -226,6 +245,7 @@ export function StoryEventScreen({
           artKey={viewModel.artKey}
           category={viewModel.category}
           reduceMotion={reduceMotion}
+          sceneLayout="stage"
           className="h-64 justify-end border-y-[3px] border-ink"
         >
           <View className="bg-ink/85 px-5 py-4">
@@ -264,10 +284,16 @@ export function StoryEventScreen({
             <View className="mt-5">
               <Text className="mb-2 font-pixel text-xs uppercase tracking-[2px] text-gold-light">{t('storyEvent.playerInvolved')}</Text>
               <Pressable
-                accessibilityRole={onSelectPlayer ? 'button' : 'text'}
-                accessibilityLabel={viewModel.selectedPlayer ? `Selected player ${viewModel.selectedPlayer.name}` : 'Choose a player for this event'}
-                disabled={!onSelectPlayer || resolved}
-                onPress={onSelectPlayer}
+                accessibilityRole={pickerAvailable ? 'button' : 'text'}
+                accessibilityLabel={viewModel.selectedPlayer
+                  ? `${viewModel.selectedPlayer.name}, ${viewModel.selectedPlayer.role}, overall ${viewModel.selectedPlayer.overall}. ${
+                    viewModel.playerLocked === true
+                      ? 'Chosen earlier in this story.'
+                      : pickerOpen ? 'Close the squad list.' : 'Open the squad list to change.'
+                  }`
+                  : 'Choose a player for this event'}
+                disabled={!pickerAvailable}
+                onPress={() => setPickerOpen(open => !open)}
                 className={viewModel.selectedPlayer ? 'min-h-14 flex-row items-center border-2 border-gold bg-gold-light p-3' : 'min-h-14 items-center justify-center border-2 border-dashed border-ink/40 bg-white p-3'}
               >
                 {viewModel.selectedPlayer ? (
@@ -275,9 +301,51 @@ export function StoryEventScreen({
                     <View className="mr-3 h-10 w-10 items-center justify-center border-2 border-ink bg-paper"><Text className="font-pixel text-sm text-ink">{viewModel.selectedPlayer.role}</Text></View>
                     <View className="flex-1"><PixelText className="text-base uppercase text-ink">{viewModel.selectedPlayer.name}</PixelText><Text className="mt-1 text-sm text-ink/60">{viewModel.selectedPlayer.detail}</Text></View>
                     {viewModel.selectedPlayer.powerName ? <StatusChip label={viewModel.selectedPlayer.powerName} tone="hero" /> : null}
+                    <Text className="ml-3 font-mono text-xl text-ink">{viewModel.selectedPlayer.overall}</Text>
                   </>
                 ) : <PixelText className="text-base uppercase text-ink">{t('storyEvent.choosePlayer')}</PixelText>}
               </Pressable>
+              {/* The stats the call actually turns on. The card used to say
+                  only "Starting XI", so a manager deciding whether to sell a
+                  player was told his squad status and nothing else. */}
+              {viewModel.selectedPlayer?.attributes === undefined ? null : (
+                <View className="mt-2 flex-row flex-wrap gap-1.5 border-2 border-gold/60 bg-paper p-2">
+                  {viewModel.selectedPlayer.attributes.map(attribute => (
+                    <View key={attribute.label} className="min-w-[22%] flex-1 border border-ink/20 bg-white px-2 py-1">
+                      <PixelText className="text-sm uppercase text-ink/50">{attribute.label}</PixelText>
+                      <Text className="mt-0.5 font-mono text-base text-ink">{attribute.value}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+              {!pickerOpen || viewModel.playerChoices.length === 0 ? null : (
+                <View className="mt-2 border-2 border-ink bg-white">
+                  {viewModel.playerChoices.map(candidate => (
+                    <Pressable
+                      key={candidate.id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: candidate.id === viewModel.selectedPlayer?.id }}
+                      accessibilityLabel={`${candidate.name}, ${candidate.role}, overall ${candidate.overall}, ${candidate.detail}`}
+                      onPress={() => {
+                        onSelectPlayer?.(candidate.id);
+                        setPickerOpen(false);
+                      }}
+                      className={candidate.id === viewModel.selectedPlayer?.id
+                        ? 'min-h-12 flex-row items-center gap-3 border-b border-ink/15 bg-gold-light px-3 py-2'
+                        : 'min-h-12 flex-row items-center gap-3 border-b border-ink/15 px-3 py-2'}
+                    >
+                      <View className="h-8 w-10 items-center justify-center border border-ink bg-paper">
+                        <Text className="font-pixel text-sm text-ink">{candidate.role}</Text>
+                      </View>
+                      <View className="min-w-0 flex-1">
+                        <Text className="text-base text-ink" numberOfLines={1}>{candidate.name}</Text>
+                        <Text className="text-sm text-ink/50" numberOfLines={1}>{candidate.detail}</Text>
+                      </View>
+                      <Text className="font-mono text-base text-ink">{candidate.overall}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
             </View>
           ) : null}
 

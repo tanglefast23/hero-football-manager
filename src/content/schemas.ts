@@ -342,19 +342,26 @@ const FOCUS_DRILL_PATHS = [
   { id: 'duels', name: 'Duels', attribute: 'def' },
   { id: 'first-touch', name: 'First Touch', attribute: 'tec' },
   { id: 'circuit', name: 'Circuit', attribute: 'sta' },
-  { id: 'keeper-drills', name: 'Keeper Drills', attribute: 'ref', gains: [2, 3, 5, 7, 9] },
+  { id: 'keeper-drills', name: 'Keeper Drills', attribute: 'ref', gains: [2, 4, 6, 8, 11] },
 ] as const;
 // Tier labels are Arabic digits: the Roman "I" rendered as a bare bar in the
 // UI font and read as a serif-less 1.
 // The outfield ladder was 5/8/12/17/23 and is now that curve scaled by 4/5, so
 // tier 1 grants 4. Rounding to whole points cancels out across the five rungs:
 // the ladder still totals exactly four fifths of what it used to (52 of 65).
+/**
+ * Each tier has to be worth its price. Tier II used to award 6 for 15 TP, the
+ * same 2.5 TP per point as tier I's 4 for 10 — so the $3,000 upgrade bought a
+ * bigger single click and no extra throughput. Tier V had the identical defect
+ * against tier IV. The ladder below is strictly improving: 2.50, 2.14, 1.91,
+ * 1.75, 1.64 TP per point.
+ */
 const FOCUS_DRILL_TIERS = [
   { suffix: '', label: '1', gain: 4 },
-  { suffix: '-ii', label: '2', gain: 6 },
-  { suffix: '-iii', label: '3', gain: 10 },
-  { suffix: '-iv', label: '4', gain: 14 },
-  { suffix: '-v', label: '5', gain: 18 },
+  { suffix: '-ii', label: '2', gain: 7 },
+  { suffix: '-iii', label: '3', gain: 11 },
+  { suffix: '-iv', label: '4', gain: 16 },
+  { suffix: '-v', label: '5', gain: 22 },
 ] as const;
 const EXPECTED_FOCUS_DRILLS = FOCUS_DRILL_PATHS.flatMap(path => (
   FOCUS_DRILL_TIERS.map((tier, tierIndex) => ({

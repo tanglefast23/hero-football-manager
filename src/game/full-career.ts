@@ -189,6 +189,13 @@ export function startNextFullCareerSeason(
     // climb — docs/02's "each division up means better sponsors, bigger gates"
     // was never implemented. Fans take the division floor but keep any surplus
     // earned through events, so growth is never taken away.
+    // The division-award prize is paid here, into the cash the new season opens
+    // on. It used to be credited as Training Points a few lines below; the
+    // board now writes a cheque instead, so it lands where every other prize
+    // does and the season-opening balance already includes it.
+    cash: awardPrize === undefined
+      ? currentUserClub.cash
+      : checkedAdd(currentUserClub.cash, awardPrize.money, 'division award prize'),
     fans: Math.max(currentUserClub.fans, divisionFans(transition.division)),
     ticketPrice: divisionTicketPrice(transition.division),
     sponsorMonthlyFee: divisionSponsorMonthlyFee(transition.division),
@@ -231,12 +238,18 @@ export function startNextFullCareerSeason(
     // repairUserLineup backfills retirement-vacated slots without an
     // availability check, so an away player could be promoted into the XI and
     // then throw on the first matchday of the new season.
-    // A new season starts the request clock fresh and drops every effect.
-    // Effects are bounded in weeks, so carrying one across the break would
-    // spend a penalty in a season the manager never agreed to spend it in.
-    // History survives: the tab is a record of what you decided.
+    // Effects are dropped: they are bounded in weeks, so carrying one across
+    // the break would spend a penalty in a season the manager never agreed to
+    // spend it in. History survives: the tab is a record of what you decided.
+    //
+    // The CLOCK survives too, and used to be reset to 0 here. The cadence floor
+    // is a cooldown between requests — "he asked six weeks ago, give it a rest"
+    // — and resetting made it bite a second time as a barrier at the start of
+    // every season, silencing a pre-season the floor is longer than. A club
+    // that went quiet for the last ten weeks of a season has served the wait
+    // and can be asked in week 1; one that was asked in week 28 still waits.
     playerRequests: {
-      weeksSinceRequest: 0,
+      weeksSinceRequest: state.playerRequests?.weeksSinceRequest ?? 0,
       effects: [],
       history: state.playerRequests?.history ?? [],
       ...(state.playerRequests?.lastAskingPlayerId === undefined
@@ -268,9 +281,6 @@ export function startNextFullCareerSeason(
     // pre-transition state, so `state.season` is the season just completed and
     // its rows survive.
     seasonStatLines: prunedStatLines({ ...state, players, retiredPlayers }),
-    trainingPoints: awardPrize === undefined
-      ? state.trainingPoints
-      : checkedAdd(state.trainingPoints, awardPrize.trainingPoints, 'division award prize'),
     // Stamped even when it paid nothing, so an absent field always means "this
     // season has not been transitioned through yet" and never "won nothing".
     seasonRecaps: awardPrize === undefined

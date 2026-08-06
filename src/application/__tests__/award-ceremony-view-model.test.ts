@@ -1,4 +1,4 @@
-import { DIVISION_AWARD_PRIZE_AT_D5 } from '../../game/division-award-prize';
+import { divisionAwardPrizeCashPerCategory } from '../../game/division-award-prize';
 import type {
   AwardCategoryId,
   DivisionAwardPlacement,
@@ -236,18 +236,20 @@ describe('awardCeremonyViewModel', () => {
       targetDivision: 5,
     });
 
-    expect(won.prize.perCategoryTrainingPoints).toBe(DIVISION_AWARD_PRIZE_AT_D5);
+    expect(won.prize.perCategoryMoney).toBe(divisionAwardPrizeCashPerCategory(5));
     expect(won.prize.boardsWon).toBe(2);
     // Tapered: the second board pays 75% of the first, so the total is not the
     // rate times the count.
-    expect(won.prize.totalTrainingPoints).toBe(210);
+    expect(won.prize.totalMoney).toBe(9_240);
   });
 
   it('raises the rate for a club promoted into a higher division', () => {
     const source = { recap: recap({ divisionAwards: awards({ goals: podium(1) }) }) };
 
-    expect(ceremony({ ...source, targetDivision: 4 }).prize.perCategoryTrainingPoints).toBe(140);
-    expect(ceremony({ ...source, targetDivision: 4 }).prize.totalTrainingPoints).toBe(140);
+    expect(ceremony({ ...source, targetDivision: 4 }).prize.perCategoryMoney)
+      .toBe(divisionAwardPrizeCashPerCategory(4));
+    expect(ceremony({ ...source, targetDivision: 4 }).prize.totalMoney)
+      .toBe(divisionAwardPrizeCashPerCategory(4));
   });
 
   /**
@@ -259,11 +261,11 @@ describe('awardCeremonyViewModel', () => {
     const banked = ceremony({
       recap: recap({
         divisionAwards: awards({ goals: podium(1) }),
-        divisionAwardPrize: { trainingPoints: 999, categoriesWon: ['goals'] },
+        divisionAwardPrize: { money: 999, categoriesWon: ['goals'] },
       }),
     });
 
-    expect(banked.prize.totalTrainingPoints).toBe(999);
+    expect(banked.prize.totalMoney).toBe(999);
     expect(banked.prize.boardsWon).toBe(1);
   });
 
@@ -279,8 +281,8 @@ describe('awardCeremonyViewModel', () => {
     // ceremony is podiums and no walk-on at all.
     expect(nothing.beats.every(beat => beat.speaker === undefined)).toBe(true);
     expect(nothing.prize).toEqual({
-      totalTrainingPoints: 0,
-      perCategoryTrainingPoints: DIVISION_AWARD_PRIZE_AT_D5,
+      totalMoney: 0,
+      perCategoryMoney: divisionAwardPrizeCashPerCategory(5),
       boardsWon: 0,
     });
   });
@@ -292,7 +294,7 @@ describe('awardCeremonyViewModel', () => {
     expect(legacy.beats.map(beat => beat.categoryId))
       .toEqual(['saves', 'tacklesWon', 'passesCompleted', 'goals']);
     expect(legacy.beats.every(beat => beat.placings.length === 0)).toBe(true);
-    expect(legacy.prize.totalTrainingPoints).toBe(0);
+    expect(legacy.prize.totalMoney).toBe(0);
   });
 
   it('survives a stored record that is missing a category', () => {

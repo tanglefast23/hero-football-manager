@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "tuning": {
     "startSeason": 2,
-    "startWeek": 5,
+    "startWeek": 1,
     "baseChancePercent": 25,
     "starFameThreshold": 120,
     "starGoalRank": 2,

@@ -1,4 +1,4 @@
-import { generateSeasonFixtures } from './schedule';
+import { CUP_SETTLEMENT_WEEKS, generateSeasonFixtures } from './schedule';
 import { applyVariancePercent, matchdayVarianceRoll } from './finance-variance';
 import {
   BASE_WEEKLY_TRAINING_POINTS,
@@ -94,22 +94,10 @@ const UINT32_MAX = 4294967295;
  * building and still leaves operating room instead of shrinking by $5,000.
  */
 const EMERGENCY_LOAN_FLOOR = 15_000;
-/**
- * The week each Hero Cup round settles, chosen to land on weeks the league
- * calendar leaves empty so a cup tie is its own event instead of a second match
- * bolted onto a league week. `leagueWeekForRound` fills weeks 3–28 in season 1
- * and 5–28 from season 2 on, which leaves these empty weeks:
- *
- *   season 1:  1 2   6   9   12    15    18    21    24 27 29 30
- *   season 2+: 1 2 3 4 8       12       16       20  24 27 29 30
- *
- * Only 12, 24, 27, 29 and 30 are free in every season, so no six-week set can
- * be empty in all of them. This set is empty for the whole of season 1 and
- * doubles up only twice (weeks 6 and 18) from season 2 on — the fewest possible
- * without opening in weeks 1–2, before the league has even kicked off, or
- * settling the final in week 30 alongside the season-end transition.
- */
-export const CUP_SETTLEMENT_WEEKS = [6, 12, 18, 24, 27, 29] as const;
+// Re-exported from its home in `schedule.ts`, which owns the season calendar.
+// `player-requests.ts` needs the same weeks to know whether a cost priced in
+// missed matches can be collected, and this module already imports that one.
+export { CUP_SETTLEMENT_WEEKS } from './schedule';
 
 /**
  * Long enough after the first cup match that a board has names on it rather
@@ -1057,6 +1045,42 @@ export function gridStadiumStandLevel(grid: FacilityGridState | undefined): numb
   return gridStadiumStands(grid).level;
 }
 
+/**
+ * What the club's money buildings are currently worth, as multipliers.
+ *
+ * The accounts office shows these as percentages rather than cash: a Stand is
+ * not worth "$600", it is worth half the gate again, and what that pays
+ * depends on the division the club is in when it is read. One derivation,
+ * reused by the panel that explains them, so the copy can never drift from the
+ * settlement above it.
+ */
+export interface CommercialFacilitySummary {
+  readonly standLevel: number;
+  readonly standCount: number;
+  /** Percent added to the home gate by every operational stand level together. */
+  readonly gateBonusPercent: number;
+  readonly shopLevel: number;
+  readonly shopCount: number;
+  /** The adjacency bonus already earned on merchandise; 0 when none is active. */
+  readonly merchAdjacencyPercent: number;
+}
+
+export function commercialFacilitySummary(state: GameState): CommercialFacilitySummary {
+  const grid = state.facilities.grid;
+  const stands = gridStadiumStands(grid);
+  const shops = gridFanShops(grid);
+  return {
+    standLevel: stands.level,
+    standCount: stands.count,
+    gateBonusPercent: stands.level * STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL,
+    shopLevel: shops.level,
+    shopCount: shops.count,
+    merchAdjacencyPercent: grid === undefined || shops.level === 0
+      ? 0
+      : facilityEffects(grid).merchIncomeBonusPercent,
+  };
+}
+
 function gridFanShops(grid: FacilityGridState | undefined): { level: number; count: number } {
   if (grid === undefined) return { level: 0, count: 0 };
   let level = 0;
@@ -1752,6 +1776,9 @@ function validateNonnegativeInteger(value: number, label: string): void {
     throw new Error(`${label} must be a nonnegative integer`);
   }
 }
+
+/** The share of the club's supporters who turn up and pay, in percent. */
+export const GATE_ATTENDANCE_PERCENT = 60;
 
 function sixtyPercentOf(value: number): number {
   const fans = requireSafeInteger(value, 'ticket attendance fan count');

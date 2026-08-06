@@ -37,6 +37,7 @@ import {
 } from './src/persistence';
 import { MatchScreen, type PowerCutInQaEntry } from './src/render/MatchScreen';
 import { PowerEffectPreview } from './src/render/PowerEffectPreview';
+import { QuickResultFaceOff } from './src/render/QuickResultFaceOff';
 import {
   powerMatchShowcaseAway,
   powerMatchShowcaseHome,
@@ -102,6 +103,7 @@ import {
   M2LeagueScreen,
   ManagementShell,
   MarketScreen,
+  MatchDayBanner,
   NewGameWelcomeScreen,
   PostMatchLedgerScreen,
   PostMatchSummaryModal,
@@ -136,6 +138,7 @@ import {
   hasEverGainedFans,
   isFirstOnboardingFixture,
   isFullyCappedPlayer,
+  isTransferWindowOpen,
   leagueStandings,
   hasAssistantGuideMilestone,
   type AssistantMode,
@@ -148,7 +151,7 @@ import { guidedFirstFacilityAllowsPlacement } from './src/ui/concierge-targets';
 import { facilityAdjacencyPresentation } from './src/ui/facility-adjacency';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { useRivalPreload } from './src/ui/use-rival-preload';
-import { qaRootRoutesEnabled } from './src/ui/release-surface';
+import { DEVELOPER_MODE_AVAILABLE, qaRootRoutesEnabled } from './src/ui/release-surface';
 import { supportEmailUrl, SUPPORT_EMAIL } from './src/release/support';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
 import { useM1Store } from './src/application/store';
@@ -664,7 +667,7 @@ function GameApp() {
     savePreferences({ ...current, cutInMode: current.cutInMode === 'full' ? 'banner' : 'full' });
   }, [savePreferences]);
   const toggleDeveloperMode = useCallback(() => {
-    if (!__DEV__) return;
+    if (!DEVELOPER_MODE_AVAILABLE) return;
     const current = preferencesRef.current;
     const developerMode = !current.developerMode;
     if (!developerMode) setDeveloperManualSaveSelecting(false);
@@ -720,7 +723,7 @@ function GameApp() {
       const advancedCareer = useM1Store.getState().career;
       const developerRepository = developerSaveRepositoryRef.current;
       if (
-        __DEV__
+        DEVELOPER_MODE_AVAILABLE
         && preferencesRef.current.developerMode
         && advancedCareer !== null
         && developerRepository !== null
@@ -792,7 +795,7 @@ function GameApp() {
     const repository = developerSaveRepositoryRef.current;
     const career = useM1Store.getState().career;
     setDeveloperManualSaveSelecting(false);
-    if (!__DEV__ || !preferencesRef.current.developerMode || repository === null || career === null) return;
+    if (!DEVELOPER_MODE_AVAILABLE || !preferencesRef.current.developerMode || repository === null || career === null) return;
     // Capture the object now, before the queued write starts: manual means this
     // exact moment, even if another ordinary save lands while SQLite is busy.
     const snapshot = career;
@@ -806,7 +809,7 @@ function GameApp() {
   const loadDeveloperSlot = useCallback((slot: DeveloperSaveSlot) => {
     const repository = developerSaveRepositoryRef.current;
     const careerSeed = useM1Store.getState().career?.careerSeed;
-    if (!__DEV__ || repository === null || careerSeed === undefined) return;
+    if (!DEVELOPER_MODE_AVAILABLE || repository === null || careerSeed === undefined) return;
     queueDeveloperSaveTask(async () => {
       const snapshot = await repository.load(slot, careerSeed);
       if (snapshot === null) throw new Error(`Developer save ${slot} is empty.`);
@@ -1017,6 +1020,19 @@ function GameApp() {
     setHapticsEnabled(preferences.hapticsEnabled);
   }, [preferences.hapticsEnabled]);
 
+  /**
+   * The face-off is decoration, and decoration must never be able to strand a
+   * settled match. `quickResult` only ever sets this screen in the same `set()`
+   * that supplies the scene, so the pair below is unreachable by construction —
+   * this is a self-heal for a state that should not exist, not a flow. It hands
+   * straight on to the screen the result was going to open (`completeFaceOff`
+   * falls back to the post-match ledger when even that was lost).
+   */
+  useEffect(() => {
+    if (store.screen === 'faceoff' && store.faceOff === null) store.completeFaceOff();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.screen, store.faceOff]);
+
   useEffect(() => {
     if (store.screen !== 'season-end' || store.career === null) return;
     const cueKey = `${store.career.careerSeed}:${store.career.season}:${store.career.phase}`;
@@ -1116,7 +1132,7 @@ function GameApp() {
           createCareerRepository(database),
           createReplayRepository(database),
           createPreferencesRepository(database),
-          __DEV__ ? createDeveloperSaveRepository(database) : Promise.resolve(null),
+          DEVELOPER_MODE_AVAILABLE ? createDeveloperSaveRepository(database) : Promise.resolve(null),
         ]);
         return {
           careerRepository,
@@ -1158,7 +1174,7 @@ function GameApp() {
   }, [bootAttempt, store.initializePersistence]);
 
   useEffect(() => {
-    if (!__DEV__) return;
+    if (!DEVELOPER_MODE_AVAILABLE) return;
     const repository = developerSaveRepositoryRef.current;
     const careerSeed = store.career?.careerSeed;
     setDeveloperManualSaveSelecting(false);
@@ -1249,7 +1265,10 @@ function GameApp() {
       viewingFinances: store.screen === 'management'
         && store.activeTab === 'club'
         && clubOfficeTab === 'finances',
-      watchingMatch: store.screen === 'watched',
+      viewingShutMarket: store.screen === 'management'
+        && store.activeTab === 'market'
+        && (career.market?.scoutReports.length ?? 0) > 0
+        && !isTransferWindowOpen(career.week),
       lowConditionMatchday,
     });
     for (const milestone of milestones) store.completeGuideMilestone(milestone);
@@ -1334,11 +1353,6 @@ function GameApp() {
     && store.postMatch?.result.cupExit === true
     && store.career !== null
     && !hasAssistantGuideMilestone(store.career, 'first-cup-exit-seen');
-  const tripleSpeedIntroVisible = careerTeaches
-    && store.screen === 'watched'
-    && store.career !== null
-    && store.career.season >= 3
-    && !hasAssistantGuideMilestone(store.career, 'triple-speed-seen');
   /**
    * Bert's one lesson on the crowd, in two beats on two screens.
    *
@@ -1361,6 +1375,25 @@ function GameApp() {
     && store.career !== null
     && hasAssistantGuideMilestone(store.career, 'first-fans-seen')
     && !hasAssistantGuideMilestone(store.career, 'first-fans-ledger-seen');
+  /**
+   * Why a scouted player is still not signable.
+   *
+   * The scouting report reads like a purchase order — it is the only thing that
+   * puts a player on the Deals tab — so holding one while the desk says SHUT
+   * looks like the report failed rather than like the calendar. He explains the
+   * two windows once, on the screen that is refusing.
+   *
+   * Declared below the Cup beats on purpose: those are mode-independent, and
+   * two tests read the slice between them to prove no `careerTeaches` gate has
+   * crept in there.
+   */
+  const transferWindowLessonVisible = careerTeaches
+    && store.screen === 'management'
+    && store.activeTab === 'market'
+    && store.career !== null
+    && (store.career.market?.scoutReports.length ?? 0) > 0
+    && !isTransferWindowOpen(store.career.week)
+    && !hasAssistantGuideMilestone(store.career, 'transfer-window-seen');
   /**
    * The signing that is walking onto the screen, if one is.
    *
@@ -1402,7 +1435,7 @@ function GameApp() {
     || cupGiantKillingCelebration !== undefined
     || cupExitConsolationVisible
     || facilityComboReveal !== undefined
-    || tripleSpeedIntroVisible
+    || transferWindowLessonVisible
     || fansLessonVisible
     || fansLedgerTourVisible
     || boardFinanceMessage !== undefined
@@ -1747,8 +1780,7 @@ function GameApp() {
         colorSafeKits={preferences.colorSafeKits}
         autoSubs={preferences.autoSubs}
         onAutoSubsChange={saveAutoSubs}
-        pausedExternally={globalSettingsOpen || tripleSpeedIntroVisible}
-        maximumSpeed={store.career.season >= 3 ? 3 : 2}
+        pausedExternally={globalSettingsOpen}
         firstMatchTutorial={careerTeaches && isFirstOnboardingFixture(
           store.career,
           store.watchedMatch.fixture.id,
@@ -1802,6 +1834,14 @@ function GameApp() {
           initialFormation: preferences.formationPresets[0],
         })}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
+      />
+    );
+  } else if (store.screen === 'faceoff' && store.faceOff !== null) {
+    screen = (
+      <QuickResultFaceOff
+        faceOff={store.faceOff}
+        reduceMotion={reduceMotion}
+        onDone={store.completeFaceOff}
       />
     );
   } else if (store.screen === 'postmatch' && store.postMatch !== null) {
@@ -1940,7 +1980,7 @@ function GameApp() {
         keyboardShortcutsEnabled={!guideOverlayVisible}
         onOpenLedger={() => store.setActiveTab('club')}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
-        developerSaveSummaries={__DEV__ && preferences.developerMode
+        developerSaveSummaries={DEVELOPER_MODE_AVAILABLE && preferences.developerMode
           ? developerSaveSummaries
           : undefined}
         developerManualSaveSelecting={developerManualSaveSelecting}
@@ -2320,6 +2360,7 @@ function GameApp() {
           || !store.persistenceReady
           || store.persistenceLoadError !== null
           || store.screen === 'watched'
+          || store.screen === 'faceoff'
           || store.screen === 'awakening'
         ) ? 'light' : 'dark'}
       />
@@ -2335,6 +2376,19 @@ function GameApp() {
         >
         <View className="flex-1" {...bertBriefingBackgroundProps(bertBriefingVisible)}>
         {screen}
+        {/* The match week announces itself the moment the desk appears, the
+            same way the Financial Report announces a surge. Held back until
+            the manager is actually ON the desk: the week review runs first,
+            and a bugle over it would be two announcements at once. */}
+        {store.screen === 'management' && store.matchDayBanner !== null ? (
+          <MatchDayBanner
+            key={store.matchDayBanner.id}
+            headline={store.matchDayBanner.headline}
+            accessibilityLabel={store.matchDayBanner.accessibilityLabel}
+            reduceMotion={reduceMotion}
+            onShown={store.dismissMatchDayBanner}
+          />
+        ) : null}
         {/* Not a FeedbackNotice: that one is dismissible and auto-hides. An
             unsaved career must keep saying so until a save actually succeeds. */}
         {store.saveWarning !== null && (
@@ -2374,7 +2428,7 @@ function GameApp() {
           highContrast={preferences.highContrast}
           colorSafeKits={preferences.colorSafeKits}
           cutInMode={preferences.cutInMode}
-          developerMode={__DEV__ ? preferences.developerMode : undefined}
+          developerMode={DEVELOPER_MODE_AVAILABLE ? preferences.developerMode : undefined}
           assistantMode={store.career === null
             ? undefined
             : store.career.assistantMode ?? 'teacher'}
@@ -2396,7 +2450,7 @@ function GameApp() {
           onToggleColorSafeKits={toggleColorSafeKits}
           onToggleCutInMode={toggleCutInMode}
           onEmailSupport={emailSupport}
-          onToggleDeveloperMode={__DEV__ ? toggleDeveloperMode : undefined}
+          onToggleDeveloperMode={DEVELOPER_MODE_AVAILABLE ? toggleDeveloperMode : undefined}
           onSetAssistantMode={store.career === null ? undefined : handleSetAssistantMode}
           onGlossaryOpenChange={setGlobalGlossaryOpen}
           onPrivacySupportOpenChange={setGlobalPrivacySupportOpen}
@@ -2483,20 +2537,21 @@ function GameApp() {
             reduceMotion={reduceMotion}
             onDone={() => store.completeGuideMilestone(facilityComboReveal.milestone)}
           />
-        ) : guideOverlayVisible && tripleSpeedIntroVisible ? (
+        ) : guideOverlayVisible && transferWindowLessonVisible ? (
           <BertBriefingWalkOn
-            key="triple-speed-intro"
+            key="transfer-window"
             content={content.assistantGuide}
             customMessage={{
-              title: '3× speed unlocked',
+              title: 'The desk is shut',
               body: [
-                '3× match speed is now an option.',
-                'You’re a veteran coach now. You can manage the team even when the action moves this fast.',
+                'That report is yours to keep — scouting a player is what lets you open talks for him at all, and he waits on the Deals tab until you do.',
+                'Registrations only happen inside a transfer window: Weeks 1 to 4, then Weeks 17 and 18. Outside them the desk refuses every deal, however much you offer.',
+                'So scout now and decide now. Walk in on the first day of the window with the name already chosen and the money already put aside.',
               ],
             }}
             navigationAnchor={navigationGuideAnchor}
             reduceMotion={reduceMotion}
-            onDone={() => store.completeGuideMilestone('triple-speed-seen')}
+            onDone={() => store.completeGuideMilestone('transfer-window-seen')}
           />
         ) : guideOverlayVisible && fansLessonVisible ? (
           <BertBriefingWalkOn

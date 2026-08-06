@@ -55,6 +55,30 @@
  *    to show for it — 61 of 149 settled weeks. The manager here answers nothing
  *    and trains nobody, so a played career will list fewer players than this;
  *    the mechanism is real either way and has no floor under it.
+ *
+ * WHAT HAS CHANGED SINCE THAT RUN — the findings above are kept as the record
+ * of 2026-08-02, but three of them no longer describe the shipped game:
+ *
+ * a. `starFameThreshold` is 120, not the 200 finding 1 was measured against.
+ *    Finding 1 reported top squad fame reaching 120–142 by season 6, so the
+ *    channel it called unreachable is now reached, and the star row does run in
+ *    a long career.
+ * b. Finding 3's empty pools are no longer caused by transfer listing. A listed
+ *    player may still ask — see the comment on `eligibleAskers` — because
+ *    testing it cost the feature half its life. Empty pools now mean injury,
+ *    leave, tenure under `minSeasonsAtClub`, or being the previous asker.
+ * c. 2026-08-06: the clock is no longer reset by `startNextSeason`, and
+ *    `startWeek` is 1. `since` therefore carries across the season boundary and
+ *    a pre-season ask is now normal rather than impossible — the floor was
+ *    silencing weeks 1–4 in every season, being longer than the pre-season. The
+ *    cadence rows themselves are UNCHANGED, so finding 2 still reads true: asks
+ *    arrive on a clock of 8–11 dry weeks. Watch for `since` values carried in
+ *    from the previous season on the first rows of each new one.
+ *
+ * Note for reading `opened` in weeks 1–4 and 29–30: `costIsCollectable` in
+ * `src/game/player-requests.ts` withholds leave and squad-condition requests
+ * when no fixture falls in the window their cost would occupy, so those weeks
+ * legitimately show money and drill requests only.
  */
 import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';

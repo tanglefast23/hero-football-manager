@@ -1,5 +1,5 @@
 import { AWARD_CATEGORIES, PODIUM_SIZE } from '../game/division-leaders';
-import { divisionAwardPrize, divisionAwardPrizePerCategory } from '../game/division-award-prize';
+import { divisionAwardPrize, divisionAwardPrizeCashPerCategory } from '../game/division-award-prize';
 import type {
   AwardCategoryId,
   DivisionAwardPlacement,
@@ -97,8 +97,8 @@ export function awardCeremonyViewModel(
     seasonLabel: `Season ${source.recap.season}`,
     beats,
     prize: {
-      totalTrainingPoints: prize.trainingPoints,
-      perCategoryTrainingPoints: divisionAwardPrizePerCategory(source.targetDivision),
+      totalMoney: prize.money,
+      perCategoryMoney: divisionAwardPrizeCashPerCategory(source.targetDivision),
       boardsWon: prize.categoriesWon.length,
     },
   };

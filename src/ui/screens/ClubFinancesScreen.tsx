@@ -16,6 +16,7 @@ import type {
   SponsorOfferViewModel,
   SponsorSlotViewModel,
   TrainingGroundDecisionViewModel,
+  IncomeGenerationViewModel,
   TrainingPointIncomeViewModel,
 } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
@@ -544,6 +545,13 @@ export function ClubFinancesScreen({
       weight: 3 + viewModel.trainingPointIncome.rows.length,
       node: <TrainingPointIncomeSection income={viewModel.trainingPointIncome} />,
     },
+    // The mirror of the section above it: that one is where next week's TP
+    // comes from, this is where next week's money comes from.
+    {
+      key: 'income-generation',
+      weight: 3 + viewModel.incomeGeneration.rows.length,
+      node: <IncomeGenerationSection income={viewModel.incomeGeneration} />,
+    },
   ];
 
   const staffSections: FlowSection[] = [
@@ -690,14 +698,13 @@ interface CashPositionSectionProps {
 
 function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps) {
   return (
-    <View className={guideFocus === 'emergency-loan' ? 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
-        {guideFocus === 'emergency-loan' ? (
-          <TutorialTapCue
-            label="Bert says"
-            detail="Review the loan and recurring costs"
-            style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
-          />
-        ) : null}
+    // Lit, but never a stop. This panel used to carry a "Bert says · Review the
+    // loan" tap cue and 80pt of clearance for it, which broke his loan briefing
+    // in half: he explained the bailout, the tutorial waited for a tap, and only
+    // then reached the part about building something that earns. He talks
+    // straight through to the facility board now, and the highlight just says
+    // which panel he means.
+    <View className={guideFocus === 'emergency-loan' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
         <PaperPanel kicker="Cash position" title="The board’s bottom line" stamp="Current">
           <View className="flex-row gap-2">
             <Metric label="Balance" value={formatCurrency(viewModel.resources.money)} />
@@ -849,14 +856,11 @@ function SponsorBusinessSection({
           </View>
           <StatusChip label={`Next · ${sponsorship.nextPaymentLabel}`} tone="info" />
         </View>
-        {sponsorship.chairmanPercent === undefined ? null : (
-          <Text className="mt-2 text-sm leading-5 text-ink/70">
-            {t('clubFinances.contractTotalOnChairman', {
-              amount: formatCurrency(sponsorship.nominalMonthlyIncome),
-              percent: sponsorship.chairmanPercent,
-            })}
-          </Text>
-        )}
+        {/* One number, and it is the club's. The contract total and the
+            Chairman percentage used to sit here, which told the manager the
+            difficulty was taking a cut of every sponsor — a penalty shown as a
+            penalty. The payment above is what arrives; nothing else is theirs
+            to act on. */}
       </View>
 
       <ScreenTabs
@@ -961,16 +965,10 @@ function ActiveSponsorCard({ slot, chairmanPercent }: {
     : slot.objectiveStatus === 'FAILED' ? 'danger' as const : 'normal' as const;
   const accessibilityLabel = [
     `${slot.sponsorName}. ${slot.provisional ? 'Continuity sponsor' : 'Active sponsor'}.`,
-    `Contract value ${formatCurrency(slot.nominalMonthlyFee)} per month.`,
-    chairmanPercent === undefined
-      ? undefined
-      : `On Chairman, the club receives ${formatCurrency(slot.actualMonthlyFee)} per month.`,
+    `Contract value ${formatCurrency(slot.actualMonthlyFee)} per month.`,
     slot.objectiveLabel === undefined ? undefined : `Objective: ${slot.objectiveLabel}.`,
     slot.objectiveProgressLabel === undefined ? undefined : `${slot.objectiveProgressLabel}.`,
-    slot.nominalBonus === undefined ? undefined : `Contract bonus: ${formatCurrency(slot.nominalBonus)}.`,
-    chairmanPercent === undefined || slot.actualBonus === undefined
-      ? undefined
-      : `Club receives ${formatCurrency(slot.actualBonus)}.`,
+    slot.actualBonus === undefined ? undefined : `Contract bonus: ${formatCurrency(slot.actualBonus)}.`,
   ].filter(Boolean).join(' ');
   return (
     <View
@@ -988,15 +986,8 @@ function ActiveSponsorCard({ slot, chairmanPercent }: {
       </View>
       <View className="mt-3 border-t border-ink/20 pt-3">
         <Text className="font-mono text-base text-ink">
-          {t('clubFinances.contractPerMonth', { amount: formatCurrency(slot.nominalMonthlyFee) })}
+          {t('clubFinances.contractPerMonth', { amount: formatCurrency(slot.actualMonthlyFee) })}
         </Text>
-        {chairmanPercent === undefined ? null : (
-          <Text className="mt-1 text-sm font-bold text-blue-dark">
-            {t('clubFinances.clubReceivesPerMonth', {
-              amount: formatCurrency(slot.actualMonthlyFee), percent: chairmanPercent,
-            })}
-          </Text>
-        )}
       </View>
       {slot.objectiveLabel === undefined ? null : (
         <View className="mt-3 border-2 border-ink/20 bg-paper p-3">
@@ -1005,13 +996,8 @@ function ActiveSponsorCard({ slot, chairmanPercent }: {
             <Text className="mt-1 font-mono text-sm text-ink/70">{slot.objectiveProgressLabel}</Text>
           )}
           <Text className="mt-2 font-mono text-sm text-ink">
-            {t('clubFinances.targetBonus', { amount: formatCurrency(slot.nominalBonus ?? 0) })}
+            {t('clubFinances.targetBonus', { amount: formatCurrency(slot.actualBonus ?? 0) })}
           </Text>
-          {chairmanPercent === undefined ? null : (
-            <Text className="mt-1 text-sm text-blue-dark">
-              {t('clubFinances.clubReceives', { amount: formatCurrency(slot.actualBonus ?? 0) })}
-            </Text>
-          )}
         </View>
       )}
     </View>
@@ -1028,16 +1014,10 @@ function SponsorOfferCard({ offer, slot, chairmanPercent, onReview }: {
   const accessibilityLabel = [
     `Review ${offer.sponsorName} for ${slot.slotLabel}.`,
     `${offer.profileLabel} offer.`,
-    `Contract value ${formatCurrency(offer.nominalMonthlyFee)} per month.`,
-    chairmanPercent === undefined
-      ? undefined
-      : `On Chairman, the club receives ${formatCurrency(offer.actualMonthlyFee)} per month.`,
+    `Contract value ${formatCurrency(offer.actualMonthlyFee)} per month.`,
     `Objective: ${offer.objectiveLabel}.`,
-    `Contract bonus ${formatCurrency(offer.nominalBonus)}.`,
-    chairmanPercent === undefined
-      ? undefined
-      : `Club receives ${formatCurrency(offer.actualBonus)}.`,
-  ].filter(Boolean).join(' ');
+    `Contract bonus ${formatCurrency(offer.actualBonus)}.`,
+  ].join(' ');
   return (
     <View className="border-2 border-b-4 border-ink bg-white p-4">
       <View className="flex-row flex-wrap items-start justify-between gap-2">
@@ -1049,24 +1029,12 @@ function SponsorOfferCard({ offer, slot, chairmanPercent, onReview }: {
       </View>
       <View className="mt-3 gap-1 border-t border-ink/20 pt-3">
         <Text className="font-mono text-base text-ink">
-          {t('clubFinances.contractPerMonth', { amount: formatCurrency(offer.nominalMonthlyFee) })}
+          {t('clubFinances.contractPerMonth', { amount: formatCurrency(offer.actualMonthlyFee) })}
         </Text>
-        {chairmanPercent === undefined ? null : (
-          <Text className="text-sm font-bold text-blue-dark">
-            {t('clubFinances.clubReceivesPerMonth', {
-              amount: formatCurrency(offer.actualMonthlyFee), percent: chairmanPercent,
-            })}
-          </Text>
-        )}
         <Text className="mt-2 text-sm font-bold leading-5 text-ink">{offer.objectiveLabel}</Text>
         <Text className="font-mono text-sm text-ink">
-          {t('clubFinances.targetBonus', { amount: formatCurrency(offer.nominalBonus) })}
+          {t('clubFinances.targetBonus', { amount: formatCurrency(offer.actualBonus) })}
         </Text>
-        {chairmanPercent === undefined ? null : (
-          <Text className="text-sm text-blue-dark">
-            {t('clubFinances.clubReceives', { amount: formatCurrency(offer.actualBonus) })}
-          </Text>
-        )}
       </View>
       {onReview === undefined ? null : (
         <View className="mt-4">
@@ -1149,6 +1117,14 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
             <PixelText className="text-right text-sm uppercase tracking-wide text-ink/70">Amount</PixelText>
           </View>
           {viewModel.ledger.map(line => {
+            // The list runs newest first, so the head row names the week just
+            // settled. Only that week keeps the white paper; the weeks behind
+            // it sit back on cream, which turns a wall of identical rows into
+            // "this week, then history" at a glance.
+            const currentWeek = line.periodLabel === viewModel.ledger[0]?.periodLabel;
+            const rowClass = currentWeek
+              ? 'min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2'
+              : 'min-h-11 flex-row items-center border-b border-ink/10 bg-paper px-3 py-2';
             const amountClass = line.kind === 'income'
               ? 'text-pitch-ink'
               : line.kind === 'expense'
@@ -1173,7 +1149,7 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
                   accessible
                   accessibilityRole="text"
                   accessibilityLabel={accessibilityLabel}
-                  className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2"
+                  className={rowClass}
                 >
                   {content}
                 </View>
@@ -1185,8 +1161,7 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
                 accessibilityRole="button"
                 accessibilityLabel={accessibilityLabel}
                 onPress={() => onOpenLedgerLine(line.id)}
-                className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2"
-                style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+                className={rowClass}
               >
                 {content}
               </Pressable>
@@ -1278,6 +1253,45 @@ function TrainingPointIncomeSection({ income }: { readonly income: TrainingPoint
           <PixelText className="flex-1 pr-3 text-sm uppercase text-ink">{t('clubFinances.perWeek')}</PixelText>
           <Text className="font-mono text-lg text-ink">{income.total}</Text>
         </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Where the money comes from, as multipliers rather than as amounts.
+ *
+ * The statement above says what the club banked last week; nothing said why it
+ * was that number, or what would make it bigger. Unbuilt commercial buildings
+ * keep a row — greyed, with the worth they WOULD have — because the panel is
+ * read as often for "how do I earn more" as for "what do I own".
+ */
+function IncomeGenerationSection({ income }: { readonly income: IncomeGenerationViewModel }) {
+  return (
+    <View>
+      <SectionLabel eyebrow="Income generation" title="Bringing in revenue" />
+      <View className="border-2 border-ink bg-white">
+        {income.rows.map(row => (
+          <View
+            key={row.id}
+            accessible
+            accessibilityRole="text"
+            accessibilityLabel={`${row.label}, ${row.effect}. ${row.detail}`}
+            className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2 last:border-b-0"
+          >
+            <View className="flex-1 pr-3">
+              <Text className={row.owned ? 'text-base text-ink' : 'text-base text-ink/45'}>
+                {row.label}
+              </Text>
+              <Text className="mt-0.5 text-xs leading-4 text-ink/60">{row.detail}</Text>
+            </View>
+            <Text className={row.owned
+              ? 'font-mono text-base text-pitch-ink'
+              : 'font-mono text-base text-ink/40'}>
+              {row.effect}
+            </Text>
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -1836,12 +1850,7 @@ function GroundsSection({
           ) : (
             <View className="mt-3 border-2 border-dashed border-ink/30 bg-paper px-3 py-2">
               <Text className="text-sm text-ink/70">
-                {/* One sentence, one key. Splitting it into three JSX pieces
-                    would force every language into English word order — and the
-                    emphasised menu name does not sit in the same place in all
-                    of them. */}
-                {t('clubFinances.buildHint', { menu: t('clubFinances.buildMenu') })}
-              </Text>
+                {t('clubFinances.pickABuildingFrom')}<Text className="font-bold text-ink">{t('clubFinances.buildMenu')}</Text> {t('clubFinances.belowToStartEvery')}</Text>
             </View>
           )}
 

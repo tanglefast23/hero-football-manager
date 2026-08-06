@@ -109,7 +109,10 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
       const risky = event.choices.find(choice => choice.risky)!;
       const staged = awakenedCareerAtEvent(456, event.id);
       useM1Store.setState({ career: staged, screen: 'event' });
-      if (event.trigger.requiresPlayer === true) useM1Store.getState().selectEventPlayer();
+      if (event.trigger.requiresPlayer === true) {
+        const squad = staged.players.filter(player => player.clubId === staged.userClubId);
+        useM1Store.getState().selectEventPlayer(squad[0]!.id);
+      }
       useM1Store.getState().chooseEvent(risky.id);
       if (useM1Store.getState().error !== null) {
         blocked.push(event.id); // requirement-gated choice this career cannot take

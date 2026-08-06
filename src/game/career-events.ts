@@ -253,7 +253,18 @@ function hasWonCupTie(state: GameState): boolean {
   )));
 }
 
-export function offerCareerEvent(state: GameState, eventId: string): GameState {
+/**
+ * `carriedPlayerId` continues a story about someone. A chapter offered with one
+ * opens already pointing at that player and refuses to be re-pointed, so the
+ * name the manager answered for in the first half is the name in the second.
+ * A player who has since left the club is dropped rather than carried, which
+ * leaves the chapter choosing again instead of naming a stranger.
+ */
+export function offerCareerEvent(
+  state: GameState,
+  eventId: string,
+  carriedPlayerId?: string,
+): GameState {
   if (state.phase !== 'manage') throw new Error('events can only interrupt the manage phase');
   if (state.pendingEvent !== undefined) throw new Error('another event is already pending');
   if (typeof eventId !== 'string' || eventId.trim().length === 0) {
@@ -262,13 +273,26 @@ export function offerCareerEvent(state: GameState, eventId: string): GameState {
   if (state.resolvedEventIds.includes(eventId)) {
     throw new Error(`event ${eventId} has already resolved`);
   }
-  return { ...state, pendingEvent: { eventId } };
+  const carried = carriedPlayerId === undefined
+    ? undefined
+    : state.players.find(
+      candidate => candidate.id === carriedPlayerId && candidate.clubId === state.userClubId,
+    );
+  return {
+    ...state,
+    pendingEvent: carried === undefined
+      ? { eventId }
+      : { eventId, selectedPlayerId: carried.id, playerLocked: true },
+  };
 }
 
 export function selectCareerEventPlayer(state: GameState, playerId: string): GameState {
   if (state.pendingEvent === undefined) throw new Error('there is no pending event');
   if (state.pendingEvent.resolvedChoiceId !== undefined) {
     throw new Error('the resolved event can no longer change player');
+  }
+  if (state.pendingEvent.playerLocked === true) {
+    throw new Error('this chapter is already about a player chosen earlier in the story');
   }
   const player = state.players.find(
     candidate => candidate.id === playerId && candidate.clubId === state.userClubId,

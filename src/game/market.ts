@@ -340,6 +340,22 @@ export function playerValuation(player: ValuationPlayer, sellingClubDivision: nu
 }
 
 /**
+ * Global wage relief, applied to every generated wage.
+ *
+ * The opening was reading as too tight across the board, and the wage bill is
+ * the pressure that never lets up. Held as one factor rather than folded into
+ * the anchors so the curve above stays the documented one and this stays a
+ * balance decision that can be read, tuned, or reversed on its own.
+ *
+ * The authored launch rosters in `content/clubs.json` carry the same 4% cut.
+ *
+ * Started at 5%, which pushed the six-season passive-club cash peak from
+ * 113,256 to 135,714 — a fifth richer for a twentieth off the wage bill,
+ * because a passive club banks the saving every week and never spends it.
+ */
+const GLOBAL_WAGE_SCALE = 0.96;
+
+/**
  * Rebased generated-player wage curve. Seven-stat average is compared with the
  * division's support rating, so rival growth and star premiums remain visible
  * without charging the user twice for the ladder's larger raw numbers.
@@ -358,7 +374,7 @@ export function generatedPlayerWeeklyWage(
   const division = divisionValue as DivisionLevel;
   const total = ATTR_NAMES.reduce((sum, attribute) => sum + attrs[attribute], 0);
   const wage = checkedRound(
-    DIVISION_WEEKLY_WAGE_ANCHORS[division] * total
+    GLOBAL_WAGE_SCALE * DIVISION_WEEKLY_WAGE_ANCHORS[division] * total
       / (DIVISION_SUPPORT_STRENGTHS[division] * ATTR_NAMES.length),
     'division-anchored weekly wage',
   );
@@ -573,6 +589,20 @@ export function pitchCardAffinity(
 }
 
 /** Pitch influence is clamped here so even restored or migrated state cannot exceed +/-20%. */
+/**
+ * The lowest weekly wage the agent will still talk about.
+ *
+ * Below this the offer is an insult: talks end on the spot, the player loses
+ * morale and the club loses reputation. Exported because the screen has to say
+ * the number BEFORE the offer is sent — the rule used to be enforced silently
+ * and explained only in small print under the button, so the first a manager
+ * knew of it was the talks being over.
+ */
+export function insultingOfferFloor(weeklyAsk: number): number {
+  assertPositiveSafeInteger(weeklyAsk, 'weekly contract ask');
+  return Math.ceil(weeklyAsk / 2);
+}
+
 export function effectiveContractAsk(weeklyAsk: number, pitchInfluencePercent: number): number {
   assertPositiveSafeInteger(weeklyAsk, 'weekly contract ask');
   if (!Number.isSafeInteger(pitchInfluencePercent)) {
@@ -582,21 +612,61 @@ export function effectiveContractAsk(weeklyAsk: number, pitchInfluencePercent: n
   return scaleByPercent(weeklyAsk, 100 + capped, 'pitch-adjusted contract ask');
 }
 
+/**
+ * What a promise is worth to the player, as percentage points added to the wage
+ * on the table.
+ *
+ * Exported so the negotiation panel can grade the four promises from the same
+ * numbers the agent judges them by. A grade hand-written in the view model is a
+ * second opinion that drifts the first time these move, and the promise ladder
+ * is the one thing the panel has to state correctly — it is the only reason to
+ * pick the promise that costs the squad the most.
+ */
+export function contractPerkPercent(perk: ContractPerk): number {
+  validateContractPerk(perk);
+  if (perk === 'GUARANTEED_STARTER') return 10;
+  if (perk === 'CAPTAINCY') return 8;
+  if (perk === 'TRAINING_PRIORITY') return 6;
+  return 4;
+}
+
 export function contractOfferValue(offer: ContractOffer): number {
   validateContractOffer(offer);
   const termPercent = (offer.termSeasons - 1) * 3;
-  const perkPercent = offer.perk === 'GUARANTEED_STARTER'
-    ? 10
-    : offer.perk === 'CAPTAINCY'
-      ? 8
-      : offer.perk === 'TRAINING_PRIORITY'
-        ? 6
-        : 4;
   return scaleByPercent(
     offer.weeklyWage,
-    100 + termPercent + perkPercent,
+    100 + termPercent + contractPerkPercent(offer.perk),
     'effective contract offer',
   );
+}
+
+/**
+ * The wage the negotiation panel opens on.
+ *
+ * Derived from the ask, never from the player's current wage. The panel used to
+ * seed the stepper with what the club already paid, and for anyone whose ask has
+ * outgrown their wage by more than 2x — every powered player on the wage cliff,
+ * and any heavily developed, famous or GREEDY player — that seed sits below the
+ * insult line, so the very first tap of "Make the offer" ended talks.
+ *
+ * Kept beside `submitContractOffer` because the two share an invariant: this
+ * must never return a wage that function would call insulting.
+ *
+ * It is deliberately NOT the ask itself. Seeding at the ask makes the panel's
+ * primary button an instant full-price accept that also commits whatever promise
+ * the draft happens to be defaulting to — one mis-tap signing at list price and
+ * spending a Hero License. 70% is a respectful opening counter: comfortably
+ * above the insult line, and too low to be accepted in round one even with a
+ * loved pitch card (0.7 x 1.16 = 0.81 against a 0.90 floor), so "Make the offer"
+ * keeps meaning negotiate while the one-tap accept stays its own button.
+ */
+export function renewalOpeningOfferWage(weeklyAsk: number, wageStep: number): number {
+  assertPositiveSafeInteger(weeklyAsk, 'weekly contract ask');
+  assertPositiveSafeInteger(wageStep, 'wage step');
+  const opening = Math.round((weeklyAsk * 0.7) / wageStep) * wageStep;
+  // Step rounding can land under half the ask on small numbers (ask 101, step
+  // 50 rounds to 50 against a 50.5 insult line), so the floor is applied last.
+  return Math.max(wageStep, Math.ceil(weeklyAsk / 2), opening);
 }
 
 export function submitContractOffer(
@@ -629,7 +699,7 @@ export function submitContractOffer(
   const effectiveAsk = effectiveContractAsk(negotiation.weeklyAsk, pitchInfluencePercent);
   const effectiveOffer = contractOfferValue(offer);
   const round = negotiation.round + 1;
-  const insulting = offer.weeklyWage < negotiation.weeklyAsk / 2;
+  const insulting = offer.weeklyWage < insultingOfferFloor(negotiation.weeklyAsk);
   const accepted = !insulting && effectiveOffer >= effectiveAsk;
   const finalRejection = !insulting && !accepted && round === 3;
   const outcome: ContractRoundRecord['outcome'] = insulting
@@ -1117,7 +1187,11 @@ function validateContractOffer(offer: ContractOffer): void {
   if (!Number.isSafeInteger(offer.termSeasons) || offer.termSeasons < 1 || offer.termSeasons > 3) {
     throw new Error('contract term must be an integer from 1 to 3 seasons');
   }
-  if (!['GUARANTEED_STARTER', 'CAPTAINCY', 'TRAINING_PRIORITY', 'JERSEY_10'].includes(offer.perk)) {
+  validateContractPerk(offer.perk);
+}
+
+function validateContractPerk(perk: ContractPerk): void {
+  if (!['GUARANTEED_STARTER', 'CAPTAINCY', 'TRAINING_PRIORITY', 'JERSEY_10'].includes(perk)) {
     throw new Error('contract offer has an unknown perk');
   }
 }

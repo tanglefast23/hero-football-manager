@@ -1,4 +1,5 @@
 import { countUpValue } from './count-up';
+
 import type {
   AwardCeremonyBeatViewModel,
   AwardCeremonyPlacingViewModel,
@@ -7,24 +8,39 @@ import type {
 } from './models';
 
 /**
- * The ceremony as a flat list of tap-advanced stages.
+ * Money, spelled the way the rest of the game spells it.
+ *
+ * Written out here rather than imported from Scorecard: this module is pure so
+ * the ceremony's stage order can be tested with no DOM and no react-native, and
+ * reaching into a component file for a string helper would drag both in.
+ */
+function formatPrizeMoney(value: number): string {
+  return `$${Math.abs(Math.trunc(value)).toLocaleString('en-US')}`;
+}
+
+/**
+ * The ceremony as a flat list of stages, played on a timer.
  *
  * Kept out of the component because Jest runs with no DOM and cannot render one
- * — and because the ordering IS the ceremony. A podium that appeared all at
- * once would be a table; third, then second, then first is what makes the last
- * name land.
+ * — and because the ordering IS the ceremony.
+ *
+ * The podium used to arrive one name at a time, third then second then first,
+ * on the theory that the last name lands harder for the wait. In practice that
+ * was a tap per name, four boards deep, every season — the ceremony asked for
+ * a dozen taps before it paid anything. The whole top three arrives together
+ * now and the stages advance themselves; a tap only makes them advance sooner.
  */
 export type AwardCeremonyStageKind =
   /** The board's title card, before any name is on the podium. */
   | 'board'
-  /** One placing arriving. Third first, first last. */
+  /** The whole podium arriving at once, top three together. */
   | 'placing'
   /**
    * The manager's highest-placed player on this board walking on to speak.
    * At most one a board, and never a rival.
    */
   | 'walk-on'
-  /** The finished podium, held until the manager taps on. */
+  /** The finished podium, held for a beat before the next board. */
   | 'result'
   /** The ceremony's single prize screen. */
   | 'prize';
@@ -41,6 +57,37 @@ export interface AwardCeremonyStage {
 export const PRIZE_COUNT_UP_MS = 2_400;
 
 /**
+ * How long each stage holds before it plays itself on.
+ *
+ * A title card is a beat, a podium wants reading, and a walk-on runs for as
+ * long as the speech overlay takes — so the walk-on is not on this clock at all
+ * and hands itself over when the sprite is done talking. The prize is the last
+ * screen and never advances; it waits for the button.
+ */
+export const STAGE_AUTOPLAY_MS: Readonly<Record<AwardCeremonyStageKind, number | null>> = {
+  board: 1_100,
+  placing: 2_200,
+  'walk-on': null,
+  result: 1_400,
+  prize: null,
+};
+
+/**
+ * How long this stage holds, or null when something other than the clock ends
+ * it. Reduced motion shortens every hold rather than removing it: a ceremony
+ * that jumped straight to the prize would skip the result it exists to show.
+ */
+export function stageAutoplayMs(
+  stage: AwardCeremonyStage | undefined,
+  reduceMotion = false,
+): number | null {
+  if (stage === undefined) return null;
+  const hold = STAGE_AUTOPLAY_MS[stage.kind];
+  if (hold === null) return null;
+  return reduceMotion ? Math.round(hold / 2) : hold;
+}
+
+/**
  * Every stage of the whole ceremony, in order.
  *
  * Built once from the view model rather than derived per tap, so "where am I"
@@ -53,9 +100,9 @@ export function awardCeremonyStages(
   viewModel.beats.forEach((beat, beatIndex) => {
     const revealed = beat.placings.length;
     stages.push({ kind: 'board', beatIndex, revealed: 0 });
-    beat.placings.forEach((_, index) => {
-      stages.push({ kind: 'placing', beatIndex, revealed: index + 1 });
-    });
+    // One reveal, not one per name. An empty board has nothing to arrive, so it
+    // goes straight from its title card to its "no one contested this" result.
+    if (revealed > 0) stages.push({ kind: 'placing', beatIndex, revealed });
     if (beat.speaker !== undefined) {
       stages.push({ kind: 'walk-on', beatIndex, revealed });
     }
@@ -199,7 +246,7 @@ export function placingRowLabel(
 
 /** Whether the prize screen has a number worth watching climb. */
 export function prizeCountsUp(prize: AwardCeremonyPrizeViewModel): boolean {
-  return prize.boardsWon > 0 && prize.totalTrainingPoints > 0;
+  return prize.boardsWon > 0 && prize.totalMoney > 0;
 }
 
 export function prizeCountProgress(elapsedMs: number): number {
@@ -218,20 +265,20 @@ export function prizeCountValue(total: number, elapsedMs: number): number {
  * A club that won nothing says so. Counting a zero up from zero would spend the
  * ceremony's last beat animating an absence.
  *
- * `totalTrainingPoints` is quoted directly and never rebuilt from the
- * per-board rate: the prize tapers, so two boards at D5 pay 210 and not 240.
+ * `totalMoney` is quoted directly and never rebuilt from the per-board rate:
+ * the prize tapers, so two boards pay less than twice one board.
  */
 export function prizeDetailLine(prize: AwardCeremonyPrizeViewModel): string {
   if (!prizeCountsUp(prize)) {
     return 'No board went to the club this season. Top one next year and the prize is yours.';
   }
   const boards = prize.boardsWon === 1 ? '1 board' : `${prize.boardsWon} boards`;
-  return `${boards} won · ${prize.perCategoryTrainingPoints} TP for the first, less for each after.`;
+  return `${boards} won · ${formatPrizeMoney(prize.perCategoryMoney)} for the first, less for each after.`;
 }
 
 export function prizeAccessibilityLabel(prize: AwardCeremonyPrizeViewModel): string {
   return prizeCountsUp(prize)
-    ? `Award prize: ${prize.totalTrainingPoints} Training Points. ${prizeDetailLine(prize)}`
+    ? `Award prize: ${formatPrizeMoney(prize.totalMoney)}. ${prizeDetailLine(prize)}`
     : `Award prize: nothing. ${prizeDetailLine(prize)}`;
 }
 

@@ -234,6 +234,8 @@ function runManagedCareer(
       progressManagedEvent();
     } else if (current.screen === 'matchday') {
       completeManagedMatchday();
+    } else if (current.screen === 'faceoff') {
+      current.completeFaceOff();
     } else if (current.screen === 'postmatch') {
       current.continueAfterMatch();
     } else if (current.screen === 'week-review') {
@@ -368,7 +370,7 @@ function progressManagedEvent(): void {
   }
   const viewModel = storyEventViewModel(career, loadLaunchContent());
   if (viewModel.playerSelectionRequired && viewModel.selectedPlayer === undefined) {
-    current.selectEventPlayer();
+    current.selectEventPlayer(viewModel.playerChoices[0]!.id);
     return;
   }
   const choice = viewModel.choices.find(candidate => !candidate.disabled && candidate.tone === 'safe')

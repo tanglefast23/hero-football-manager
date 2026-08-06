@@ -587,7 +587,7 @@ function tryCompletePromotionSigning(prep: PreparationState): void {
     }
     const transferState = sale?.state ?? prep.state;
     const transferMarket = sale?.market ?? selected.market;
-    const talks = submitCareerTransferOffer(transferMarket, {
+    const talks = submitCareerTransferOffer(transferState, transferMarket, {
       weeklyWage: selected.weeklyAsk,
       termSeasons: 2,
       perk: 'GUARANTEED_STARTER',

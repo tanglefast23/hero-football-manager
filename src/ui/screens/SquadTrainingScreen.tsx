@@ -639,7 +639,16 @@ function RosterSection({
             style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
           />
         ) : null}
-        <View className="flex-row items-center border-b border-ink/20 px-2">
+        {/* Raised above the rows beneath it. A column tip is an absolutely
+            positioned bubble hanging out of this row, and z-index only ranks
+            an element against its own siblings — the anchor's own z-index
+            cannot outrank a later sibling of its PARENT, which is what every
+            roster row is. Lifting the whole header settles it once for all
+            five columns. */}
+        <View
+          className="flex-row items-center border-b border-ink/20 px-2"
+          style={styles.sortHeaderBar}
+        >
           <SquadSortHeader label="Pos" sortKey="role" sort={squadSort} columnStyle={columns.role} labelSize={headerLabelSize} onSort={setSquadSort} />
           <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" labelSize={headerLabelSize} onSort={setSquadSort} />
           <SquadSortHeader
@@ -1218,6 +1227,7 @@ function SquadSortHeader({
 const SORT_ARROW_COLOUR = '#3f6fb5';
 
 const styles = StyleSheet.create({
+  sortHeaderBar: { zIndex: 40 },
   sortHeaderRow: { gap: SORT_ARROW_GAP },
   sortHeaderLabel: { flexShrink: 1 },
   sortArrowDown: {

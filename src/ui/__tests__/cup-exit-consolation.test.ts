@@ -26,7 +26,7 @@ describe('Bert on the first cup exit', () => {
     const source = app();
     const declaration = source.slice(
       source.indexOf('const cupExitConsolationVisible ='),
-      source.indexOf('const tripleSpeedIntroVisible ='),
+      source.indexOf('const fansLessonVisible ='),
     );
 
     expect(declaration).not.toContain('careerTeaches');

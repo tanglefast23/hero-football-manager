@@ -29,6 +29,7 @@ import {
   completePostMatchAwakening,
   completeCareerTransfer,
   completeCareerRenewal,
+  signCareerRenewalAtAsk,
   createCareer,
   currentUserDivision,
   deterministicCareerEventRoll,
@@ -98,11 +99,19 @@ import { HALF_TICKS } from '../sim/geometry';
 import { envelopeFrom } from '../sim/match';
 import { mulberry32 } from '../sim/rng';
 import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
-import type { ManagementTab, PostMatchViewModel, WeeklyReviewViewModel } from '../ui';
+import type {
+  ManagementTab,
+  MatchDayBannerViewModel,
+  PostMatchViewModel,
+  QuickResultFaceOffViewModel,
+  WeeklyReviewViewModel,
+} from '../ui';
 import { createLaunchCareerSetup, generateCareerSeed, reconcileLaunchRoster } from './launch';
 import { cachedRivalResults, clearRivalResultCache } from './rival-result-cache';
+import { quickResultFaceOffViewModel } from './quick-result-faceoff';
 import { careerMarketScoutOptions } from './market-source-adapter';
 import {
+  matchDayBannerViewModel,
   postMatchViewModel,
   reconcileHomeAssistantInbox,
   settleWeeklyStory,
@@ -198,6 +207,11 @@ export type M1Screen =
   | 'event'
   | 'matchday'
   | 'watched'
+  // The Quick Result face-off, shown between the settled match and whatever
+  // screen the result was going to open. A dedicated screen rather than an
+  // overlay so the awakening's beat timers and the ledger's slot animation
+  // cannot start underneath a scene the manager is still watching.
+  | 'faceoff'
   | 'postmatch'
   | 'week-review'
   | 'legacy'
@@ -276,6 +290,25 @@ interface M1Store {
    * about the club, and it must not survive a reload.
    */
   inboxDutyReminder: readonly AssistantInboxGuideSequenceId[] | null;
+  /**
+   * The match-week announcement waiting to land on the desk, or null.
+   *
+   * App state, not career state, for the same reason as the reminder above: it
+   * is a reaction to one press, it is shown once, and a reload must not replay
+   * the bugle for a week the manager has already been working in all evening.
+   */
+  matchDayBanner: MatchDayBannerViewModel | null;
+  /**
+   * The Quick Result face-off waiting to be watched, and the screen it is
+   * standing in front of.
+   *
+   * App state, never persisted — the same argument as `inboxDutyReminder` and
+   * `matchDayBanner`. The match itself was settled and saved before this was
+   * ever set, so losing it to a reload costs a two-second animation and
+   * nothing else.
+   */
+  faceOff: QuickResultFaceOffViewModel | null;
+  pendingPostFaceOffScreen: M1Screen | null;
   selectedContractTerm: 1 | 2 | 3;
   error: string | null;
   notice: StoreNotice | null;
@@ -308,6 +341,8 @@ interface M1Store {
   completeCupGiantKillingCelebration: () => void;
   /** Sends Bert away after he has refused an Advance Week. */
   dismissInboxDutyReminder: () => void;
+  dismissMatchDayBanner: () => void;
+  completeFaceOff: () => void;
   /** Removes a product card after its current-week conversation is complete. */
   dismissInboxProduct: (
     alertId: string,
@@ -327,7 +362,7 @@ interface M1Store {
   returnToTitleFromEnding: () => void;
   completeAwardsCeremony: () => void;
   chooseLegacy: (choice: CareerLegendLegacyChoice) => void;
-  selectEventPlayer: () => void;
+  selectEventPlayer: (playerId: string) => void;
   chooseEvent: (choiceId: string) => void;
   continueAfterEvent: () => void;
   toggleHeroLicense: (playerId: string) => void;
@@ -394,6 +429,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
   postMatchOverlay: null,
   weekReview: null,
   inboxDutyReminder: null,
+  matchDayBanner: null,
+  faceOff: null,
+  pendingPostFaceOffScreen: null,
   selectedContractTerm: 1,
   error: null,
   notice: null,
@@ -415,6 +453,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatch: null,
         postMatchOverlay: null,
         weekReview: null,
+        matchDayBanner: null,
+        faceOff: null,
+        pendingPostFaceOffScreen: null,
         persistenceLoadError: null,
         rawExportRequired: false,
         rawExportSucceeded: false,
@@ -502,6 +543,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       postMatch: null,
       postMatchOverlay: null,
       weekReview: null,
+      matchDayBanner: null,
+      faceOff: null,
+      pendingPostFaceOffScreen: null,
       error: null,
     });
   },
@@ -538,6 +582,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       postMatch: null,
       postMatchOverlay: null,
       weekReview: null,
+      matchDayBanner: null,
+      faceOff: null,
+      pendingPostFaceOffScreen: null,
       error: null,
       notice: { tone: 'info', message: 'Restored the backup save.' },
     });
@@ -564,6 +611,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatchOverlay: null,
         weekReview: null,
         inboxDutyReminder: null,
+        matchDayBanner: null,
+        faceOff: null,
+        pendingPostFaceOffScreen: null,
         error: null,
         notice: { tone: 'info', message: `Loaded developer save ${slotLabel}.` },
       });
@@ -613,6 +663,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatchOverlay: null,
         weekReview: null,
         inboxDutyReminder: null,
+        matchDayBanner: null,
+        faceOff: null,
+        pendingPostFaceOffScreen: null,
         error: null,
       });
       queueNewCareerSave(get, set, career, replacedCareer);
@@ -630,6 +683,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       postMatch: null,
       postMatchOverlay: null,
       weekReview: null,
+      matchDayBanner: null,
+      faceOff: null,
+      pendingPostFaceOffScreen: null,
       error: null,
     });
   },
@@ -754,6 +810,29 @@ export const useM1Store = create<M1Store>((set, get) => ({
     // Nothing to persist: the refusal lives and dies with the press that caused
     // it, and the duties themselves are already recorded on the career.
     set({ inboxDutyReminder: null });
+  },
+
+  dismissMatchDayBanner() {
+    // Same argument: the card announced the week, the week is on the desk, and
+    // nothing about the club changed by showing it.
+    set({ matchDayBanner: null });
+  },
+
+  /**
+   * Hands the manager on to the screen the result was always going to open.
+   *
+   * Deliberately does NOT save or touch the career: everything durable was
+   * settled and queued inside `quickResult` before this screen was ever shown.
+   * The guard makes a double-fire harmless — the scene's own timer and a tap
+   * can land in the same frame, and two advances would skip a screen.
+   */
+  completeFaceOff() {
+    if (get().screen !== 'faceoff') return;
+    set({
+      screen: get().pendingPostFaceOffScreen ?? 'postmatch',
+      faceOff: null,
+      pendingPostFaceOffScreen: null,
+    });
   },
 
   dismissInboxProduct(alertId, scope = 'current-week') {
@@ -921,8 +1000,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const weekReview = next.phase === 'manage' && next.week !== career.week
         ? weeklyReviewViewModel(career, next)
         : null;
+      // Announced on arrival at a new week that has a fixture, and only then:
+      // the week review comes first, so the card is waiting on the desk behind
+      // it rather than competing with it. A week that merely CONTAINS the
+      // matchday phase (the same week, one press later) is already past its
+      // announcement, so the week must actually have changed.
+      const matchDayBanner = next.week !== career.week
+        ? matchDayBannerViewModel(next)
+        : get().matchDayBanner;
       set({
         career: next,
+        matchDayBanner,
         screen: weekReview !== null
           ? 'week-review'
           : next.phase === 'matchday'
@@ -1005,12 +1093,43 @@ export const useM1Store = create<M1Store>((set, get) => ({
         [],
         production.powerFiredPlayerIds,
       );
+      const destination = awakening.awakened ? 'awakening' as const : 'postmatch' as const;
+      /**
+       * The face-off, built from the PRE-SETTLEMENT capture at the top of this
+       * call — `teams`, `fixture` and `before.userClubId`.
+       *
+       * `currentMatchday` must NOT be re-entered here. Two ways that breaks,
+       * both silently: on a league-only week the career has left
+       * `phase: 'matchday'` and it throws, turning a decorative scene into a
+       * crash on a settled match; and on a week where a cup tie shares the
+       * calendar the career is STILL on matchday for the cup, so it would hand
+       * back the cup's teams and name the wrong two players for this league
+       * fixture.
+       *
+       * The verdict comes from `postMatch.result.outcomeLabel` rather than the
+       * goals, because a cup tie level after ninety minutes is settled on
+       * penalties — reading the score would call every shoot-out a draw.
+       */
+      const userIsHome = fixture.homeClubId === before.userClubId;
+      const clubTeam = teams[userIsHome ? fixture.homeClubId : fixture.awayClubId];
+      const opponentTeam = teams[userIsHome ? fixture.awayClubId : fixture.homeClubId];
+      const faceOff = clubTeam === undefined || opponentTeam === undefined
+        ? null
+        : quickResultFaceOffViewModel({
+            clubTeam,
+            opponentTeam,
+            outcomeLabel: postMatch.result.outcomeLabel,
+          });
       set({
         career: next,
         postMatch,
         postMatchOverlay: null,
         weekReview: null,
-        screen: awakening.awakened ? 'awakening' : 'postmatch',
+        // A scene that could not be built is simply not shown: the settled
+        // result reaches the manager either way.
+        screen: faceOff === null ? destination : 'faceoff',
+        faceOff,
+        pendingPostFaceOffScreen: faceOff === null ? null : destination,
         watchedMatch: null,
         error: null,
       });
@@ -1288,24 +1407,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
-  selectEventPlayer() {
+  /**
+   * Names the player this story is about.
+   *
+   * Takes the id outright rather than cycling to the next name. Cycling made
+   * the choice a lottery: the manager tapped through the squad one at a time
+   * with no way to compare them, and the card only ever described whoever the
+   * last tap happened to land on.
+   */
+  selectEventPlayer(playerId) {
     guarded(set, () => {
       const career = requireCareer(get());
       if (career.pendingEvent === undefined) throw new Error('there is no active event');
-      const lineup = career.lineups.find(candidate => candidate.clubId === career.userClubId);
-      if (lineup === undefined) throw new Error('the user club has no lineup');
-      const candidates = career.players
-        .filter(player =>
-          player.clubId === career.userClubId,
-        )
-        .sort((left, right) => (
-          Number(!lineup.playerIds.includes(left.id)) - Number(!lineup.playerIds.includes(right.id))
-          || left.name.localeCompare(right.name)
-        ));
-      if (candidates.length === 0) throw new Error('no eligible user-club player is available');
-      const currentIndex = candidates.findIndex(player => player.id === career.pendingEvent?.selectedPlayerId);
-      const player = candidates[(currentIndex + 1) % candidates.length];
-      const next = selectCareerEventPlayer(career, player.id);
+      const next = selectCareerEventPlayer(career, playerId);
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -1356,7 +1470,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
         if (followUp !== undefined
           && (followUp.trigger.repeatable === true
             || !dismissed.resolvedEventIds.includes(followUp.id))) {
-          const next = offerCareerEvent(dismissed, followUp.id);
+          // The next chapter is about the same player, so it inherits him and
+          // locks him in. Without this the follow-up re-picked, and a deadline
+          // day that opened about Ravi Chan closed about Ed Stone.
+          const next = offerCareerEvent(dismissed, followUp.id, pending.selectedPlayerId);
           set({ career: next, screen: 'event', weekReview: null, error: null });
           queueCareerSave(get, set, next);
           return;
@@ -1842,6 +1959,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       const negotiatedMarket = submitCareerTransferOffer(
+        career,
         requireMarket(career),
         offer,
         pitchCard,
@@ -1890,28 +2008,23 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       const market = requireMarket(career);
-      // The direct renewal is priced by the same machinery as the negotiated
-      // one: it opens talks (which is where the loyalty refusal and the
-      // growth/fame/hero premium live) and accepts the agent's opening ask
-      // sight unseen. Negotiation exists to beat that number; skipping it
-      // never beats it. Keeping one code path means this action can never
-      // drift into a cheaper renewal than the shipped flow offers.
-      const opened = beginCareerRenewalTalks(career, market, playerId);
-      const talks = opened.renewalTalks;
-      if (talks === undefined) throw new Error('renewal talks did not open');
-      // An offer of the full ask with no pitch card is accepted on round one by
-      // construction: the effective offer can only exceed the effective ask.
-      const accepted = submitCareerRenewalOffer(opened, {
-        weeklyWage: talks.negotiation.weeklyAsk,
-        termSeasons: term ?? get().selectedContractTerm,
-        // The cheapest promise in the deck, and the only one with no squad
-        // management consequence — no lineup guarantee, no captaincy change,
-        // no training debt.
-        perk: 'JERSEY_10',
-      });
-      const transaction = completeCareerRenewal(career, accepted);
+      // Signs at the agent's asking price with no promise attached. Priced by
+      // the same `careerRenewalWeeklyAsk` the negotiation opens with and gated
+      // by the same loyalty and abandoned-agent checks, so this can never be a
+      // cheaper renewal — or a way past a player who will not re-sign.
+      const transaction = signCareerRenewalAtAsk(
+        career,
+        market,
+        playerId,
+        term ?? get().selectedContractTerm,
+      );
       const next = { ...transaction.state, market: transaction.market };
-      set({ career: next, error: null });
+      set({
+        career: next,
+        selectedContractTerm: 1,
+        error: null,
+        notice: { tone: 'success', message: 'Contract renewed at the asking price.' },
+      });
       queueCareerSave(get, set, next);
     });
   },
@@ -1931,7 +2044,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   submitRenewalOffer(offer, pitchCard) {
     guarded(set, () => {
       const career = requireCareer(get());
-      const negotiated = submitCareerRenewalOffer(requireMarket(career), offer, pitchCard);
+      const negotiated = submitCareerRenewalOffer(career, requireMarket(career), offer, pitchCard);
       if (negotiated.renewalTalks?.negotiation.status === 'ACCEPTED') {
         const transaction = completeCareerRenewal(career, negotiated);
         const next = { ...transaction.state, market: transaction.market };
@@ -1946,11 +2059,32 @@ export const useM1Store = create<M1Store>((set, get) => ({
       }
       const consequence = applyCareerNegotiationConsequence(career, negotiated, 'renewal');
       const next = { ...consequence.state, market: consequence.market };
+      // Outcome-specific, and on the right channel. The insult message used to
+      // travel on `error` while describing a penalty, and a genuine three-round
+      // walk-away produced no message at all -- it is only surfaced inline in
+      // the panel. No penalty is invented for the walk-away: doc 06 assigns
+      // morale and fame damage to insulting offers only, and `submitContractOffer`
+      // is shared with transfers, so adding one here would reprice those too.
+      const status = negotiated.renewalTalks?.negotiation.status;
+      const insulted = consequence.market !== negotiated;
       set({
         career: next,
-        error: consequence.market !== negotiated
-          ? 'The agent walked away. Player morale and club reputation fell.'
-          : null,
+        error: null,
+        notice: insulted
+          ? {
+              // 'info' rather than a new tone: the notice palette is info/success
+              // by design, and a bad-news cue belongs to the error banner, which
+              // this deliberately no longer uses -- nothing failed, the manager
+              // made a choice and it landed badly.
+              tone: 'info' as const,
+              message: 'That offer caused real offence. Talks are over, and the squad heard about it.',
+            }
+          : status === 'REJECTED'
+            ? {
+                tone: 'info' as const,
+                message: 'Three rounds gone and the agent walked. No hard feelings.',
+              }
+            : null,
       });
       queueCareerSave(get, set, next);
     });
@@ -2478,6 +2612,9 @@ function queueNewCareerSave(
         postMatch: null,
         postMatchOverlay: null,
         weekReview: null,
+        matchDayBanner: null,
+        faceOff: null,
+        pendingPostFaceOffScreen: null,
       });
       if (replacedCareerPersisted) clearSaveFailures(set);
       else recordSaveFailure(get, set);

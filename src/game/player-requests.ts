@@ -4,6 +4,7 @@ import { chooseWeightedOutcome, deterministicCareerEventRoll } from './event-clo
 import { isAvailableForSelection } from './lineup';
 import { adjustLoyalty, playerLoyalty } from './loyalty';
 import { compareIds } from './ordering';
+import { CUP_SETTLEMENT_WEEKS } from './schedule';
 import { repairCareerLineupForInjuries } from './squad';
 import type {
   ActiveRequestEffect,
@@ -265,6 +266,85 @@ export function requestMoneyCost(
 /** Cozy never loses a player for more than one week. */
 export function absenceWeeksFor(authoredWeeks: number, difficulty: DifficultyMode): number {
   return difficulty === 'COZY' ? Math.min(1, authoredWeeks) : authoredWeeks;
+}
+
+/**
+ * Whether the club can still be drawn into a further Hero Cup round.
+ *
+ * Cup rounds are drawn one at a time, so a future cup week holds a match for
+ * this club only if it is still in the competition. Survival is read from the
+ * latest round: a club absent from its entrants went out earlier, a club with
+ * no fixture in it had a bye and advances, and a club with one survives while
+ * that tie is unplayed or was won.
+ */
+function isUserAliveInCup(state: Pick<GameState, 'm2' | 'season' | 'userClubId'>): boolean {
+  const cup = state.m2?.nationalCups.find(candidate => candidate.championClubId === undefined);
+  if (cup === undefined || cup.season !== state.season) return false;
+  const round = cup.rounds[cup.rounds.length - 1];
+  if (round === undefined || !round.entrantClubIds.includes(state.userClubId)) return false;
+  const fixture = round.fixtures.find(candidate => (
+    candidate.homeClubId === state.userClubId || candidate.awayClubId === state.userClubId
+  ));
+  if (fixture === undefined) return true;
+  return fixture.status === 'scheduled' || fixture.winnerClubId === state.userClubId;
+}
+
+/**
+ * Whether the club has, or could have, a match in `[state.week, throughWeek]`.
+ *
+ * League fixtures are known for the whole season, so those are exact. Cup weeks
+ * are counted as possible matches whenever the club is still in the cup, which
+ * is deliberately optimistic — the callers use this to REFUSE to offer a
+ * request, so the only safe error is saying yes too often.
+ */
+function hasUserMatchThrough(
+  state: Pick<GameState, 'fixtures' | 'm2' | 'season' | 'userClubId' | 'week'>,
+  throughWeek: number,
+): boolean {
+  const inLeague = state.fixtures.some(fixture => (
+    fixture.week >= state.week
+    && fixture.week <= throughWeek
+    && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
+  ));
+  if (inLeague) return true;
+  return CUP_SETTLEMENT_WEEKS.some(week => week >= state.week && week <= throughWeek)
+    && isUserAliveInCup(state);
+}
+
+/**
+ * Whether the calendar can actually collect what this request costs.
+ *
+ * Leave is priced in missed matches and a squad condition hit is priced against
+ * the next one, so both read as FREE across a stretch of empty weeks — the
+ * pre-season, and the tail after the last league round, where a granted
+ * fortnight in the Bahamas costs nothing at all and still buys loyalty. Money
+ * and drill costs are collected in any week and are never filtered.
+ *
+ * A request whose cost cannot be collected is not offered, which is the same
+ * treatment an absence with no eligible asker already gets: the roll falls
+ * through to something the club can actually be charged for rather than being
+ * swallowed, which would read as the game forgetting about you.
+ *
+ * Windows are the widest the decision can occupy. A request is answerable in
+ * the week it is asked and the one after (`answerWeeks`), so leave granted at
+ * the last possible moment still runs `absenceWeeks` from there, and a
+ * condition hit taken then still meets that week's match.
+ */
+function costIsCollectable(
+  state: Pick<GameState, 'fixtures' | 'm2' | 'season' | 'userClubId' | 'week'>,
+  cost: PlayerRequestCost,
+  answerWeeks: number,
+  difficulty: DifficultyMode,
+): boolean {
+  const lastAnswerWeek = state.week + answerWeeks - 1;
+  if (cost.kind === 'ABSENCE') {
+    return hasUserMatchThrough(
+      state,
+      lastAnswerWeek + absenceWeeksFor(cost.weeks, difficulty) - 1,
+    );
+  }
+  if (cost.kind === 'CONDITION_SQUAD') return hasUserMatchThrough(state, lastAnswerWeek);
+  return true;
 }
 
 type RequestTarget = 'PLAYER' | 'SQUAD';
@@ -586,7 +666,8 @@ export function advancePlayerRequests(state: GameState, openRequests: boolean): 
   const hasStar = roster.some(
     player => weightForPlayer(player, qualifiers, tuning.starFameThreshold) > 1,
   );
-  const cadence = tuning.cadence[careerDifficulty(next)];
+  const difficulty = careerDifficulty(next);
+  const cadence = tuning.cadence[difficulty];
   const weeksSince = next.playerRequests!.weeksSinceRequest + 1;
   next = withRequests(next, { ...next.playerRequests!, weeksSinceRequest: weeksSince });
 
@@ -611,19 +692,25 @@ export function advancePlayerRequests(state: GameState, openRequests: boolean): 
     deterministicCareerEventRoll(context, 'request:pick', 1, catalog.requests.length)
   ];
   // If an absence draw leaves nobody eligible — a squad with one fit keeper —
-  // fall back to a non-absence request rather than swallowing a roll that has
-  // already succeeded, which would read as the game forgetting about you.
+  // or the calendar cannot collect what the draw costs, fall back to a request
+  // the club can be charged for rather than swallowing a roll that has already
+  // succeeded, which would read as the game forgetting about you.
   const drawnPool = eligibleAskers(roster, { ...base, absence: drawn.cost.kind === 'ABSENCE' });
+  // The fallback pool applies the same collectability test, so a week with no
+  // match ahead of it cannot swap a free absence for an equally free night out.
+  const fallbacks = catalog.requests.filter(request => (
+    request.cost.kind !== 'ABSENCE'
+    && costIsCollectable(next, request.cost, tuning.answerWeeks, difficulty)
+  ));
   const definition = drawnPool.length > 0
+    && costIsCollectable(next, drawn.cost, tuning.answerWeeks, difficulty)
     ? drawn
-    : catalog.requests.filter(request => request.cost.kind !== 'ABSENCE')[
-        deterministicCareerEventRoll(
-          context,
-          'request:fallback',
-          3,
-          Math.max(1, catalog.requests.filter(r => r.cost.kind !== 'ABSENCE').length),
-        )
-      ];
+    : fallbacks[deterministicCareerEventRoll(
+        context,
+        'request:fallback',
+        3,
+        Math.max(1, fallbacks.length),
+      )];
   if (definition === undefined) return next;
 
   const pool = eligibleAskers(roster, {

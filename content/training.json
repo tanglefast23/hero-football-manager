@@ -1,40 +1,320 @@
 {
   "schemaVersion": 1,
   "focusDrills": [
-    { "id": "sprints", "name": "Sprints 1", "moneyCost": 0, "tpCost": 10, "gains": { "pac": 4 } },
-    { "id": "sprints-ii", "name": "Sprints 2", "moneyCost": 0, "tpCost": 15, "gains": { "pac": 6 } },
-    { "id": "sprints-iii", "name": "Sprints 3", "moneyCost": 0, "tpCost": 21, "gains": { "pac": 10 } },
-    { "id": "sprints-iv", "name": "Sprints 4", "moneyCost": 0, "tpCost": 28, "gains": { "pac": 14 } },
-    { "id": "sprints-v", "name": "Sprints 5", "moneyCost": 0, "tpCost": 36, "gains": { "pac": 18 } },
-    { "id": "finishing", "name": "Finishing 1", "moneyCost": 0, "tpCost": 10, "gains": { "sho": 4 } },
-    { "id": "finishing-ii", "name": "Finishing 2", "moneyCost": 0, "tpCost": 15, "gains": { "sho": 6 } },
-    { "id": "finishing-iii", "name": "Finishing 3", "moneyCost": 0, "tpCost": 21, "gains": { "sho": 10 } },
-    { "id": "finishing-iv", "name": "Finishing 4", "moneyCost": 0, "tpCost": 28, "gains": { "sho": 14 } },
-    { "id": "finishing-v", "name": "Finishing 5", "moneyCost": 0, "tpCost": 36, "gains": { "sho": 18 } },
-    { "id": "rondo", "name": "Rondo 1", "moneyCost": 0, "tpCost": 10, "gains": { "pas": 4 } },
-    { "id": "rondo-ii", "name": "Rondo 2", "moneyCost": 0, "tpCost": 15, "gains": { "pas": 6 } },
-    { "id": "rondo-iii", "name": "Rondo 3", "moneyCost": 0, "tpCost": 21, "gains": { "pas": 10 } },
-    { "id": "rondo-iv", "name": "Rondo 4", "moneyCost": 0, "tpCost": 28, "gains": { "pas": 14 } },
-    { "id": "rondo-v", "name": "Rondo 5", "moneyCost": 0, "tpCost": 36, "gains": { "pas": 18 } },
-    { "id": "duels", "name": "Duels 1", "moneyCost": 0, "tpCost": 10, "gains": { "def": 4 } },
-    { "id": "duels-ii", "name": "Duels 2", "moneyCost": 0, "tpCost": 15, "gains": { "def": 6 } },
-    { "id": "duels-iii", "name": "Duels 3", "moneyCost": 0, "tpCost": 21, "gains": { "def": 10 } },
-    { "id": "duels-iv", "name": "Duels 4", "moneyCost": 0, "tpCost": 28, "gains": { "def": 14 } },
-    { "id": "duels-v", "name": "Duels 5", "moneyCost": 0, "tpCost": 36, "gains": { "def": 18 } },
-    { "id": "first-touch", "name": "First Touch 1", "moneyCost": 0, "tpCost": 10, "gains": { "tec": 4 } },
-    { "id": "first-touch-ii", "name": "First Touch 2", "moneyCost": 0, "tpCost": 15, "gains": { "tec": 6 } },
-    { "id": "first-touch-iii", "name": "First Touch 3", "moneyCost": 0, "tpCost": 21, "gains": { "tec": 10 } },
-    { "id": "first-touch-iv", "name": "First Touch 4", "moneyCost": 0, "tpCost": 28, "gains": { "tec": 14 } },
-    { "id": "first-touch-v", "name": "First Touch 5", "moneyCost": 0, "tpCost": 36, "gains": { "tec": 18 } },
-    { "id": "circuit", "name": "Circuit 1", "moneyCost": 0, "tpCost": 10, "gains": { "sta": 4 } },
-    { "id": "circuit-ii", "name": "Circuit 2", "moneyCost": 0, "tpCost": 15, "gains": { "sta": 6 } },
-    { "id": "circuit-iii", "name": "Circuit 3", "moneyCost": 0, "tpCost": 21, "gains": { "sta": 10 } },
-    { "id": "circuit-iv", "name": "Circuit 4", "moneyCost": 0, "tpCost": 28, "gains": { "sta": 14 } },
-    { "id": "circuit-v", "name": "Circuit 5", "moneyCost": 0, "tpCost": 36, "gains": { "sta": 18 } },
-    { "id": "keeper-drills", "name": "Keeper Drills 1", "moneyCost": 0, "tpCost": 10, "gains": { "ref": 2 } },
-    { "id": "keeper-drills-ii", "name": "Keeper Drills 2", "moneyCost": 0, "tpCost": 15, "gains": { "ref": 3 } },
-    { "id": "keeper-drills-iii", "name": "Keeper Drills 3", "moneyCost": 0, "tpCost": 21, "gains": { "ref": 5 } },
-    { "id": "keeper-drills-iv", "name": "Keeper Drills 4", "moneyCost": 0, "tpCost": 28, "gains": { "ref": 7 } },
-    { "id": "keeper-drills-v", "name": "Keeper Drills 5", "moneyCost": 0, "tpCost": 36, "gains": { "ref": 9 } }
+    {
+      "id": "sprints",
+      "name": "Sprints 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "pac": 4
+      }
+    },
+    {
+      "id": "sprints-ii",
+      "name": "Sprints 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "pac": 7
+      }
+    },
+    {
+      "id": "sprints-iii",
+      "name": "Sprints 3",
+      "moneyCost": 0,
+      "tpCost": 21,
+      "gains": {
+        "pac": 11
+      }
+    },
+    {
+      "id": "sprints-iv",
+      "name": "Sprints 4",
+      "moneyCost": 0,
+      "tpCost": 28,
+      "gains": {
+        "pac": 16
+      }
+    },
+    {
+      "id": "sprints-v",
+      "name": "Sprints 5",
+      "moneyCost": 0,
+      "tpCost": 36,
+      "gains": {
+        "pac": 22
+      }
+    },
+    {
+      "id": "finishing",
+      "name": "Finishing 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "sho": 4
+      }
+    },
+    {
+      "id": "finishing-ii",
+      "name": "Finishing 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "sho": 7
+      }
+    },
+    {
+      "id": "finishing-iii",
+      "name": "Finishing 3",
+      "moneyCost": 0,
+      "tpCost": 21,
+      "gains": {
+        "sho": 11
+      }
+    },
+    {
+      "id": "finishing-iv",
+      "name": "Finishing 4",
+      "moneyCost": 0,
+      "tpCost": 28,
+      "gains": {
+        "sho": 16
+      }
+    },
+    {
+      "id": "finishing-v",
+      "name": "Finishing 5",
+      "moneyCost": 0,
+      "tpCost": 36,
+      "gains": {
+        "sho": 22
+      }
+    },
+    {
+      "id": "rondo",
+      "name": "Rondo 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "pas": 4
+      }
+    },
+    {
+      "id": "rondo-ii",
+      "name": "Rondo 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "pas": 7
+      }
+    },
+    {
+      "id": "rondo-iii",
+      "name": "Rondo 3",
+      "moneyCost": 0,
+      "tpCost": 21,
+      "gains": {
+        "pas": 11
+      }
+    },
+    {
+      "id": "rondo-iv",
+      "name": "Rondo 4",
+      "moneyCost": 0,
+      "tpCost": 28,
+      "gains": {
+        "pas": 16
+      }
+    },
+    {
+      "id": "rondo-v",
+      "name": "Rondo 5",
+      "moneyCost": 0,
+      "tpCost": 36,
+      "gains": {
+        "pas": 22
+      }
+    },
+    {
+      "id": "duels",
+      "name": "Duels 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "def": 4
+      }
+    },
+    {
+      "id": "duels-ii",
+      "name": "Duels 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "def": 7
+      }
+    },
+    {
+      "id": "duels-iii",
+      "name": "Duels 3",
+      "moneyCost": 0,
+      "tpCost": 21,
+      "gains": {
+        "def": 11
+      }
+    },
+    {
+      "id": "duels-iv",
+      "name": "Duels 4",
+      "moneyCost": 0,
+      "tpCost": 28,
+      "gains": {
+        "def": 16
+      }
+    },
+    {
+      "id": "duels-v",
+      "name": "Duels 5",
+      "moneyCost": 0,
+      "tpCost": 36,
+      "gains": {
+        "def": 22
+      }
+    },
+    {
+      "id": "first-touch",
+      "name": "First Touch 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "tec": 4
+      }
+    },
+    {
+      "id": "first-touch-ii",
+      "name": "First Touch 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "tec": 7
+      }
+    },
+    {
+      "id": "first-touch-iii",
+      "name": "First Touch 3",
+      "moneyCost": 0,
+      "tpCost": 21,
+      "gains": {
+        "tec": 11
+      }
+    },
+    {
+      "id": "first-touch-iv",
+      "name": "First Touch 4",
+      "moneyCost": 0,
+      "tpCost": 28,
+      "gains": {
+        "tec": 16
+      }
+    },
+    {
+      "id": "first-touch-v",
+      "name": "First Touch 5",
+      "moneyCost": 0,
+      "tpCost": 36,
+      "gains": {
+        "tec": 22
+      }
+    },
+    {
+      "id": "circuit",
+      "name": "Circuit 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "sta": 4
+      }
+    },
+    {
+      "id": "circuit-ii",
+      "name": "Circuit 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "sta": 7
+      }
+    },
+    {
+      "id": "circuit-iii",
+      "name": "Circuit 3",
+      "moneyCost": 0,
+      "tpCost": 21,
+      "gains": {
+        "sta": 11
+      }
+    },
+    {
+      "id": "circuit-iv",
+      "name": "Circuit 4",
+      "moneyCost": 0,
+      "tpCost": 28,
+      "gains": {
+        "sta": 16
+      }
+    },
+    {
+      "id": "circuit-v",
+      "name": "Circuit 5",
+      "moneyCost": 0,
+      "tpCost": 36,
+      "gains": {
+        "sta": 22
+      }
+    },
+    {
+      "id": "keeper-drills",
+      "name": "Keeper Drills 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "ref": 2
+      }
+    },
+    {
+      "id": "keeper-drills-ii",
+      "name": "Keeper Drills 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "ref": 4
+      }
+    },
+    {
+      "id": "keeper-drills-iii",
+      "name": "Keeper Drills 3",
+      "moneyCost": 0,
+      "tpCost": 21,
+      "gains": {
+        "ref": 6
+      }
+    },
+    {
+      "id": "keeper-drills-iv",
+      "name": "Keeper Drills 4",
+      "moneyCost": 0,
+      "tpCost": 28,
+      "gains": {
+        "ref": 8
+      }
+    },
+    {
+      "id": "keeper-drills-v",
+      "name": "Keeper Drills 5",
+      "moneyCost": 0,
+      "tpCost": 36,
+      "gains": {
+        "ref": 11
+      }
+    }
   ]
 }

@@ -120,6 +120,42 @@ describe("manager's tips", () => {
     }
   });
 
+  it('waits for the next quiet week when Week 12 is busy', () => {
+    // Week 12 used to be the lesson's only chance: a career whose Week 12
+    // carried a story or a busy desk never learned that the columns sort.
+    const clear = deskClearCareer(20261210);
+    const busyTwelve = offerCareerEvent({ ...clear, week: 12 }, 'giant-spider-arrives');
+    expect(settleWeeklyTip(busyTwelve)).toBe(busyTwelve);
+
+    const busyThirteen = offerCareerEvent(
+      { ...busyTwelve, week: 13, pendingEvent: undefined, deskTip: undefined },
+      'giant-spider-arrives',
+    );
+    expect(settleWeeklyTip(busyThirteen)).toBe(busyThirteen);
+
+    const quietFourteen = settleWeeklyTip({
+      ...busyThirteen,
+      week: 14,
+      pendingEvent: undefined,
+      deskTip: undefined,
+    });
+    expect(quietFourteen.deskTip?.tipId).toBe(sortableColumnsTipId);
+  });
+
+  it('still delivers the sorting lesson in a later season', () => {
+    // Eligibility carries across the season boundary, so a first season that
+    // never went quiet after Week 12 does not swallow the lesson.
+    const clear = deskClearCareer(20261211);
+    const nextSeason = settleWeeklyTip({
+      ...clear,
+      season: 2,
+      week: 3,
+      deskTip: undefined,
+    });
+
+    expect(nextSeason.deskTip?.tipId).toBe(sortableColumnsTipId);
+  });
+
   it('shows the Week 12 sorting lesson after that week\'s story is cleared', () => {
     const clear = { ...deskClearCareer(20261209), week: 12 };
     const withStory = offerCareerEvent(clear, 'giant-spider-arrives');

@@ -101,28 +101,28 @@ describe('the awards ceremony in the season transition', () => {
     // inside the transition and its own completion is the only exit.
     const viewModel = careerAwardCeremonyViewModel(useM1Store.getState().career!);
     expect(viewModel.beats).toHaveLength(4);
-    expect(viewModel.prize.totalTrainingPoints).toBe(0);
+    expect(viewModel.prize.totalMoney).toBe(0);
 
     useM1Store.getState().completeAwardsCeremony();
     expect(useM1Store.getState().screen).toBe('season-end');
   });
 
-  describe('the Training Point grant', () => {
+  describe('the prize money grant', () => {
     it('lands once, at the transition, and never at the ceremony', () => {
       const career = startAtSeasonEnd({ champions: false, won: ['goals', 'saves'] });
-      const before = career.trainingPoints;
+      const before = userCash(career);
 
       useM1Store.getState().advanceCareer();
       expect(useM1Store.getState().screen).toBe('awards-ceremony');
       // Watching the ceremony moves nothing. The screen is a presentation of a
       // grant the transition has not made yet.
       useM1Store.getState().completeAwardsCeremony();
-      expect(useM1Store.getState().career!.trainingPoints).toBe(before);
+      expect(userCash(useM1Store.getState().career!)).toBe(before);
 
       useM1Store.getState().advanceCareer();
       const after = useM1Store.getState().career!;
       const expected = divisionAwardPrizeTotal(currentUserDivision(after.m2!), 2);
-      expect(after.trainingPoints).toBe(before + expected);
+      expect(userCash(after)).toBe(before + expected);
       expect(expected).toBeGreaterThan(0);
     });
 
@@ -131,13 +131,13 @@ describe('the awards ceremony in the season transition', () => {
       useM1Store.getState().advanceCareer();
       useM1Store.getState().completeAwardsCeremony();
       useM1Store.getState().advanceCareer();
-      const paid = useM1Store.getState().career!.trainingPoints;
+      const paid = userCash(useM1Store.getState().career!);
       const nextSeason = useM1Store.getState().career!.season;
 
       useM1Store.setState({ screen: 'awards-ceremony' });
       useM1Store.getState().completeAwardsCeremony();
 
-      expect(useM1Store.getState().career!.trainingPoints).toBe(paid);
+      expect(userCash(useM1Store.getState().career!)).toBe(paid);
       // And the new season's own ceremony is still owed: a completion dispatched
       // outside a boundary must not flag the season being played.
       expect(useM1Store.getState().career!.eventFlags)
@@ -173,12 +173,12 @@ describe('the awards ceremony in the season transition', () => {
       useM1Store.getState().advanceCareer();
       if (champions) useM1Store.getState().completeChampionshipCelebration();
       const projected = careerAwardCeremonyViewModel(useM1Store.getState().career!)
-        .prize.totalTrainingPoints;
+        .prize.totalMoney;
 
       useM1Store.getState().completeAwardsCeremony();
       useM1Store.getState().advanceCareer();
 
-      const banked = useM1Store.getState().career!.trainingPoints - career.trainingPoints;
+      const banked = userCash(useM1Store.getState().career!) - userCash(career);
       expect(banked).toBe(projected);
       // Pinned so the two rows cannot quietly become the same case: a champion
       // is priced against D4, the division he is about to enter.
@@ -214,13 +214,13 @@ describe('the awards ceremony in the season transition', () => {
         .toEqual([rival.points, rival.goalDifference, rival.goalsFor]);
       expect([user.position, rival.position].sort()).toEqual([2, 3]);
 
-      const projected = careerAwardCeremonyViewModel(career).prize.totalTrainingPoints;
+      const projected = careerAwardCeremonyViewModel(career).prize.totalMoney;
       const next = startNextFullCareerSeason(career, table);
-      const banked = next.trainingPoints - career.trainingPoints;
+      const banked = userCash(next) - userCash(career);
 
       expect(projected).toBe(banked);
       // A zero on both sides would pass while proving nothing, and the two
-      // divisions in play price the same single board differently: 120 v 140.
+      // divisions in play price the same single board differently.
       expect(banked).toBeGreaterThan(0);
       expect(banked).toBe(divisionAwardPrizeTotal(currentUserDivision(next.m2!), 1));
     });
@@ -292,6 +292,11 @@ function tiedAtThePromotionCutoff(): GameState {
  * The TP a full transition banks, driven through the screen's own stage machine
  * so "watched" and "skipped" are the two real routes and not two labels.
  */
+/** Where the boards now pay: the user club's cash, not the TP pool. */
+function userCash(career: { clubs: { id: string; cash: number }[]; userClubId: string }): number {
+  return career.clubs.find(club => club.id === career.userClubId)!.cash;
+}
+
 function runSeasonTransition(style: 'watch' | 'skip'): number {
   const career = startAtSeasonEnd({ champions: false, won: ['goals', 'saves'] });
   useM1Store.getState().advanceCareer();
@@ -305,7 +310,7 @@ function runSeasonTransition(style: 'watch' | 'skip'): number {
 
   useM1Store.getState().completeAwardsCeremony();
   useM1Store.getState().advanceCareer();
-  return useM1Store.getState().career!.trainingPoints - career.trainingPoints;
+  return userCash(useM1Store.getState().career!) - userCash(career);
 }
 
 /**

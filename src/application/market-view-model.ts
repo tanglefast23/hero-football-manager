@@ -2,16 +2,20 @@ import {
   buyingTransferQuote,
   isCoachCandidateEligible,
   isTransferWindowOpen,
+  insultingOfferFloor,
+  pitchCardAffinity,
   scoutMissionCost,
   sellingTransferQuote,
   type CoachCandidate,
   type ContractNegotiation,
+  type ContractPerk,
   type ScoutFocus,
   type ScoutMission,
   type ScoutMissionResult,
   type ScoutRegion,
   type TransferQuote,
   type ValuationPlayer,
+  contractPerkPercent,
 } from '../game/market';
 import { divisionTierLabel, type DivisionLevel } from '../game/pyramid';
 import { contractTermOptions, shortContractReason } from '../game/retirement';
@@ -162,12 +166,60 @@ export interface MarketViewModelSource {
   readonly negotiation?: NegotiationViewSource;
 }
 
-const PERKS: readonly ContractPerkViewModel[] = [
-  { id: 'GUARANTEED_STARTER', label: 'Starter', detail: 'A place in the first XI.' },
-  { id: 'CAPTAINCY', label: 'Captaincy', detail: 'The armband and the room.' },
-  { id: 'TRAINING_PRIORITY', label: 'Training', detail: 'First call on focus drills.' },
-  { id: 'JERSEY_10', label: 'Shirt #10', detail: 'The famous number.' },
-];
+/**
+ * The promise ladder, graded from the engine's own numbers.
+ *
+ * `detail` states the mechanical consequence rather than atmosphere. The old
+ * copy ("The armband and the room", "First call on focus drills") described none
+ * of what these actually do: captaincy silently strips the armband from the
+ * current captain, shirt #10 takes the number off whoever wears it, training
+ * priority blocks every other player's drills until five are spent, and a
+ * starting promise refuses any lineup that drops him for the whole contract.
+ *
+ * Grade and consequence are co-equal on purpose. The grade rates how hard the
+ * promise pushes the agent, and the promise that pushes hardest is also the most
+ * expensive to keep — a manager reading the letter alone would pick "A" and walk
+ * into a locked lineup slot and a spent Hero License.
+ */
+const PERKS: readonly ContractPerkViewModel[] = ([
+  {
+    id: 'GUARANTEED_STARTER',
+    label: 'Starter',
+    detail: 'He starts every match. Lineups that drop him are refused.',
+  },
+  {
+    id: 'CAPTAINCY',
+    label: 'Captaincy',
+    detail: 'He takes the armband from your current captain.',
+  },
+  {
+    id: 'TRAINING_PRIORITY',
+    label: 'Training',
+    detail: 'Your next 5 drills all go to him. Nobody else trains.',
+  },
+  {
+    id: 'JERSEY_10',
+    label: 'Shirt #10',
+    detail: 'He takes the number 10 shirt.',
+  },
+] as const).map(perk => ({ ...perk, gradeLabel: perkGradeLabel(perk.id) }));
+
+/**
+ * Derived from `contractPerkPercent` rather than written down twice.
+ *
+ * Thresholds, not ranks: if a rebalance moved Starter from 10% to 7% the badge
+ * would read "C · Solid" instead of quietly continuing to claim it is the
+ * strongest card in the deck. This repo has been bitten by a hand-copied engine
+ * number before — a scouting label promised "+8% training" for two releases
+ * after the bonus was deleted.
+ */
+function perkGradeLabel(perk: ContractPerk): string {
+  const percent = contractPerkPercent(perk);
+  if (percent >= 10) return 'A · Huge';
+  if (percent >= 8) return 'B · Big';
+  if (percent >= 6) return 'C · Solid';
+  return 'D · Small';
+}
 
 const CARD_COPY: Readonly<Record<string, { label: string; detail: string }>> = {
   FLATTERY: { label: 'Flattery', detail: 'Tell them the terrace already sings their name.' },
@@ -516,7 +568,8 @@ export function marketNegotiationViewModel(
   source: NegotiationViewSource,
 ): MarketNegotiationViewModel {
   const negotiation = source.state;
-  const previousOffer = negotiation.history.at(-1)?.offer.weeklyWage;
+  const lastOffer = negotiation.history.at(-1)?.offer;
+  const previousOffer = lastOffer?.weeklyWage;
   const mood = moodPresentation(negotiation.mood);
   const wageStep = source.wageStep ?? 50;
   const maxTermSeasons = source.maxTermSeasons ?? 3;
@@ -544,12 +597,16 @@ export function marketNegotiationViewModel(
       : leverage > 0
         ? `Pitch raises wage demand by ${leverage}%`
         : 'Pitch does not change wage demand',
-    cards: negotiation.pitchCards.map(card => ({
-      id: card,
-      label: CARD_COPY[card].label,
-      detail: CARD_COPY[card].detail,
-      used: negotiation.usedPitchCards.includes(card),
-    } satisfies PitchCardViewModel)),
+    cards: negotiation.pitchCards.map(card => {
+      const affinity = pitchCardAffinity(negotiation.personality, card);
+      return {
+        id: card,
+        label: CARD_COPY[card].label,
+        detail: CARD_COPY[card].detail,
+        used: negotiation.usedPitchCards.includes(card),
+        affinity: affinity === 1 ? 'LOVED' : affinity === -1 ? 'HATED' : 'NEUTRAL',
+      } satisfies PitchCardViewModel;
+    }),
     perks: PERKS,
     termOptions: contractTermOptions(maxTermSeasons),
     ...(maxTermSeasons >= 3 || source.playerAge === undefined ? {} : {
@@ -557,9 +614,17 @@ export function marketNegotiationViewModel(
     }),
     initialWeeklyWage: previousOffer ?? source.openingWeeklyWage,
     wageStep,
+    walkOutWeeklyWage: insultingOfferFloor(negotiation.weeklyAsk),
     ...(lastOutcome === undefined
       ? {}
       : { lastOutcomeLabel: outcomeLabel(lastOutcome) }),
+    ...(lastOffer === undefined ? {} : {
+      lastOffer: {
+        weeklyWage: lastOffer.weeklyWage,
+        termSeasons: lastOffer.termSeasons as 1 | 2 | 3,
+        perk: lastOffer.perk,
+      },
+    }),
   };
 }
 

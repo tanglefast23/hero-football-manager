@@ -128,7 +128,7 @@ describe('the walk-on states the reel has to reach', () => {
     expect(strikers.speaker).toBeUndefined();
     expect(awardCeremonyStages(viewModelFor('mixed'))
       .filter(stage => stage.beatIndex === 3)
-      .map(stage => stage.kind)).toEqual(['board', 'placing', 'placing', 'placing', 'result']);
+      .map(stage => stage.kind)).toEqual(['board', 'placing', 'result']);
   });
 
   it.each(CASE_IDS)('never lets %s walk on anyone but your highest-placed', caseId => {
@@ -207,7 +207,7 @@ describe('the thin and barren cases', () => {
 
     expect(barren.beats.some(beat => beat.wonByUserPlayer)).toBe(false);
     expect(barren.prize.boardsWon).toBe(0);
-    expect(barren.prize.totalTrainingPoints).toBe(0);
+    expect(barren.prize.totalMoney).toBe(0);
     expect(prizeCountsUp(barren.prize)).toBe(false);
   });
 });
@@ -222,13 +222,13 @@ describe('what the fabricated seasons pay', () => {
 
     expect(viewModel.prize.boardsWon)
       .toBe(viewModel.beats.filter(beat => beat.wonByUserPlayer).length);
-    expect(viewModel.prize.perCategoryTrainingPoints).toBe(120);
+    expect(viewModel.prize.perCategoryMoney).toBe(5_280);
   });
 
   it('shows the D5 taper rather than the rate times the boards won', () => {
-    expect(viewModelFor('mixed').prize.totalTrainingPoints).toBe(210);
-    expect(viewModelFor('thin').prize.totalTrainingPoints).toBe(120);
-    expect(viewModelFor('sweep').prize.totalTrainingPoints).toBe(300);
+    expect(viewModelFor('mixed').prize.totalMoney).toBe(9_240);
+    expect(viewModelFor('thin').prize.totalMoney).toBe(5_280);
+    expect(viewModelFor('sweep').prize.totalMoney).toBe(13_200);
   });
 });
 
@@ -332,7 +332,7 @@ describe('the reviewer’s note', () => {
       .toContain('Empty board');
     expect(awardsCeremonyQaNote(viewModelFor('barren'), 'prize'))
       .toContain('instead of counting to zero');
-    expect(awardsCeremonyQaNote(viewModelFor('sweep'), 'prize')).toContain('300 TP');
+    expect(awardsCeremonyQaNote(viewModelFor('sweep'), 'prize')).toContain('$13,200');
   });
 
   it('counts a single placing in the singular', () => {

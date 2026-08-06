@@ -21,7 +21,8 @@ import type {
 } from '../financial-statement-machine';
 import { createStatementRuntime } from '../financial-statement-runtime';
 import type { StatementRuntime } from '../financial-statement-runtime';
-import type { PostMatchLedgerLineViewModel } from '../models';
+import type { FacilityTypeViewModel, PostMatchLedgerLineViewModel } from '../models';
+import { FacilitySprite } from './FacilitySprite';
 import { PaperPanel, formatCurrency } from './Scorecard';
 import { PixelText } from './PixelText';
 import { SlotAmount } from './SlotAmount';
@@ -240,12 +241,22 @@ function StatementRow({
     >
       {washActive ? <SweepingWash /> : null}
       <View className="flex-row items-center">
-        <Text className="flex-1 text-base text-ink">
-          {line.label}
-          {suffixFor(reveal) === null ? null : (
-            <Text className="text-ink/60">{suffixFor(reveal)}</Text>
+        <View className="min-w-0 flex-1 flex-row items-center">
+          <Text className="shrink text-base text-ink">
+            {line.label}
+            {suffixFor(reveal) === null ? null : (
+              <Text className="text-ink/60">{suffixFor(reveal)}</Text>
+            )}
+          </Text>
+          {/* The building the money came from, at the size of the words. The
+              count already says how many, so one sprite names the place — a
+              sprite per stand would repeat the number in pictures. */}
+          {facilitySpriteFor(reveal) === null ? null : (
+            <View className="ml-2 shrink-0">
+              <FacilitySprite type={facilitySpriteFor(reveal)!} size={16} showLevel={false} />
+            </View>
           )}
-        </Text>
+        </View>
         {chipVisible ? <MultiplierChip reveal={reveal!} reduceMotion={reduceMotion} /> : null}
         <SlotAmount
           value={runtime.shownValue}
@@ -275,15 +286,25 @@ function hasMultiplierBeat(reveal: LedgerLineReveal): boolean {
   return reveal.source === 'merch' ? reveal.multiplierTimes > 1 : reveal.multiplierPercent > 100;
 }
 
-/** UI-only label suffix from the reveal — the persisted label stays clean. */
+/**
+ * UI-only label suffix from the reveal — the persisted label stays clean.
+ *
+ * Both sides count from one. The shop line used to stay bare below two shops,
+ * so a manager who had built one Fan Shop saw merchandise money with nothing
+ * naming where it came from while the gate line beside it said "1 stand".
+ */
 function suffixFor(reveal: LedgerLineReveal | undefined): string | null {
-  if (reveal === undefined) return null;
+  if (reveal === undefined || reveal.facilityCount < 1) return null;
   if (reveal.source === 'merch') {
-    if (reveal.multiplierTimes < 2) return null;
     return ` · ${reveal.facilityCount} shop${reveal.facilityCount === 1 ? '' : 's'}`;
   }
-  if (reveal.facilityCount < 1) return null;
   return ` · ${reveal.facilityCount} stand${reveal.facilityCount === 1 ? '' : 's'}`;
+}
+
+/** The facility sprite that belongs beside the count, if the row has one. */
+function facilitySpriteFor(reveal: LedgerLineReveal | undefined): FacilityTypeViewModel | null {
+  if (suffixFor(reveal) === null) return null;
+  return reveal!.source === 'merch' ? 'fan-shop' : 'stadium-stand';
 }
 
 /**
@@ -296,26 +317,25 @@ function rowAccessibilityLabel(line: PostMatchLedgerLineViewModel): string {
   const reveal = line.reveal;
   if (reveal === undefined) return `${line.label}, ${sign}${money(line.amount)}`;
   const surgeNote = reveal.surge ? ' Surged this week.' : '';
+  // The count the sighted row shows, spoken the same way — a row that reads
+  // "1 shop" on screen must not be announced as a bare amount.
+  const count = reveal.facilityCount >= 1
+    ? `, ${reveal.facilityCount} ${reveal.source === 'merch' ? 'shop' : 'stand'}${reveal.facilityCount === 1 ? '' : 's'}`
+    : '';
   if (reveal.source === 'merch') {
     if (reveal.multiplierTimes < 2 && reveal.adjacencyAmount === 0) {
-      return `${line.label}, ${sign}${money(line.amount)}.${surgeNote}`;
+      return `${line.label}${count}, ${sign}${money(line.amount)}.${surgeNote}`;
     }
     const times = reveal.multiplierTimes >= 2 ? `, times ${reveal.multiplierTimes}` : '';
     const adjacency = reveal.adjacencyAmount > 0
       ? `, plus ${reveal.adjacencyPercent} percent adjacency`
       : '';
-    const shops = reveal.multiplierTimes >= 2
-      ? `, ${reveal.facilityCount} shop${reveal.facilityCount === 1 ? '' : 's'}`
-      : '';
-    return `${line.label}${shops}. Base ${money(reveal.base)}${times}${adjacency}, total ${money(line.amount)}.${surgeNote}`;
+    return `${line.label}${count}. Base ${money(reveal.base)}${times}${adjacency}, total ${money(line.amount)}.${surgeNote}`;
   }
   if (reveal.multiplierPercent <= 100) {
-    return `${line.label}, ${sign}${money(line.amount)}.${surgeNote}`;
+    return `${line.label}${count}, ${sign}${money(line.amount)}.${surgeNote}`;
   }
-  const stands = reveal.facilityCount > 0
-    ? `, ${reveal.facilityCount} stand${reveal.facilityCount === 1 ? '' : 's'}`
-    : '';
-  return `${line.label}${stands}. Base ${money(reveal.base)}, times ${reveal.multiplierPercent} percent, total ${money(line.amount)}.${surgeNote}`;
+  return `${line.label}${count}. Base ${money(reveal.base)}, times ${reveal.multiplierPercent} percent, total ${money(line.amount)}.${surgeNote}`;
 }
 
 function MultiplierChip({ reveal, reduceMotion }: { reveal: LedgerLineReveal; reduceMotion: boolean }) {

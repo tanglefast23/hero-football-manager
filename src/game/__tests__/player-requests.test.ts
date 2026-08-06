@@ -760,10 +760,48 @@ describe('advancePlayerRequests', () => {
     expect(advancePlayerRequests(atSeason(bare, 3), true).playerRequests).toBeUndefined();
   });
 
-  it('opens nothing before the start season and week', () => {
-    const early = { ...tickingCareer(), season: 2, week: 4 };
+  it('opens nothing before the start season', () => {
+    const early = { ...tickingCareer(), season: 1, week: 30 };
 
     expect(advancePlayerRequests(early, true).playerRequests?.pending).toBeUndefined();
+  });
+
+  it('never offers a cost the calendar cannot collect', () => {
+    // Week 30 is past the last league round and past every cup week, so leave
+    // and a squad condition hit both cost exactly nothing. A request still
+    // opens — the roll succeeded — but it has to be one the club can be
+    // charged for.
+    const empty: GameState = {
+      ...atSeason(tickingCareer(), 3),
+      week: 30,
+      playerRequests: { ...DEFAULT_PLAYER_REQUEST_STATE, weeksSinceRequest: 40 },
+    };
+    const pending = advancePlayerRequests(empty, true).playerRequests?.pending;
+
+    expect(pending).toBeDefined();
+    expect(requestDefinition(CATALOG, pending!.requestId).cost.kind)
+      .not.toBe('ABSENCE');
+    expect(requestDefinition(CATALOG, pending!.requestId).cost.kind)
+      .not.toBe('CONDITION_SQUAD');
+  });
+
+  it('still offers leave in a week with football ahead of it', () => {
+    // The same setup a fortnight earlier, where the league is still running.
+    // Without this the guard above could pass by never offering leave at all.
+    const kinds = new Set<string>();
+    for (let week = 6; week <= 20; week += 1) {
+      const live: GameState = {
+        ...atSeason(tickingCareer(), 3),
+        week,
+        playerRequests: { ...DEFAULT_PLAYER_REQUEST_STATE, weeksSinceRequest: 40 },
+      };
+      const pending = advancePlayerRequests(live, true).playerRequests?.pending;
+      if (pending !== undefined) {
+        kinds.add(requestDefinition(CATALOG, pending.requestId).cost.kind);
+      }
+    }
+
+    expect(kinds.has('ABSENCE')).toBe(true);
   });
 
   it('counts down away weeks every settled week', () => {

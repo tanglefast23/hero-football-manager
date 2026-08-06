@@ -32,6 +32,15 @@ describe('Hero Cup app routing', () => {
 
     useM1Store.getState().quickResult();
     expect(useM1Store.getState().error).toBeNull();
+    // The face-off opens first and holds the awakening behind it: the scene is
+    // ahead of the settlement chain, never inside it.
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'faceoff',
+      pendingPostFaceOffScreen: 'awakening',
+      career: { week: 4, phase: 'manage' },
+    });
+
+    useM1Store.getState().completeFaceOff();
     expect(useM1Store.getState()).toMatchObject({
       screen: 'awakening',
       career: { week: 4, phase: 'manage' },
@@ -75,6 +84,7 @@ describe('Hero Cup app routing', () => {
     });
 
     useM1Store.getState().quickResult();
+    useM1Store.getState().completeFaceOff();
     expect(useM1Store.getState()).toMatchObject({
       screen: 'postmatch',
       career: { week: PLAY_IN_WEEK, phase: 'matchday' },
@@ -86,6 +96,7 @@ describe('Hero Cup app routing', () => {
     });
 
     useM1Store.getState().quickResult();
+    useM1Store.getState().completeFaceOff();
     const final = useM1Store.getState();
     expect(final).toMatchObject({
       screen: 'postmatch',
@@ -131,6 +142,17 @@ describe('Hero Cup app routing', () => {
     });
 
     useM1Store.getState().quickResult();
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'faceoff',
+      career: { week: PLAY_IN_WEEK, phase: 'matchday' },
+    });
+
+    // The face-off stands in front of the ledger. The career is already
+    // settled behind it, and still on `matchday` because the second fixture
+    // of this double-header week is waiting — which is exactly the case
+    // where a face-off built from post-settlement state would name the wrong
+    // two players.
+    useM1Store.getState().completeFaceOff();
     expect(useM1Store.getState()).toMatchObject({
       screen: 'postmatch',
       career: { week: PLAY_IN_WEEK, phase: 'matchday' },

@@ -13,6 +13,7 @@ import type { AwardCategoryId } from '../../game/types';
 import { PLAYER_SPRITE_CELL, PlayerRunSprite } from '../../render/PlayerRunSprite';
 import { CharacterSpeechOverlay } from '../CharacterSpeechOverlay';
 import { PixelText } from '../components/PixelText';
+import { formatCurrency } from '../components/Scorecard';
 import { useReducedMotion } from '../use-reduced-motion';
 import {
   arrivingPlacing,
@@ -20,6 +21,7 @@ import {
   beatResultStageIndex,
   isWalkOnStage,
   nextStageIndex,
+  stageAutoplayMs,
   placingRowLabel,
   podiumNameType,
   podiumRows,
@@ -96,10 +98,16 @@ export interface AwardsCeremonyScreenProps {
 /**
  * The four division boards, presented one at a time.
  *
- * Per board: the title card, then third, second and first arriving in turn,
- * then ONE walk-on — the manager's highest-placed player on that podium, and
- * nobody else. A rival never walks on, so a board the manager is nowhere on
- * reads out its three placings and moves on.
+ * Per board: the title card, the top three arriving together, then ONE walk-on
+ * — the manager's highest-placed player on that podium, and nobody else. A
+ * rival never walks on, so a board the manager is nowhere on shows its podium
+ * and moves along.
+ *
+ * It plays itself. Every stage but the walk-on and the prize holds for its own
+ * beat and then advances; a tap advances immediately, so tapping through is
+ * still the fast path rather than the only path. The walk-on hands over when
+ * the sprite has finished speaking, and the prize waits for the button because
+ * it is the screen the manager came for.
  *
  * Nothing here decides anything. The prize was granted by the season
  * transition (`startNextFullCareerSeason`), which runs whether this screen is
@@ -123,6 +131,16 @@ export function AwardsCeremonyScreen({
   const advance = useCallback(() => {
     setStageIndex(current => nextStageIndex(stages, current));
   }, [stages]);
+
+  // The clock that plays the ceremony. Keyed on the index as well as the stage
+  // so an advance always restarts the hold, and cleared on every change so a
+  // tap can never leave a stale timer to skip the stage it lands on.
+  useEffect(() => {
+    const hold = stageAutoplayMs(stage, reduce);
+    if (hold === null) return undefined;
+    const timer = setTimeout(advance, hold);
+    return () => clearTimeout(timer);
+  }, [advance, reduce, stage, stageIndex]);
   const skipWalkOn = useCallback(() => {
     setStageIndex(current => beatResultStageIndex(stages, current));
   }, [stages]);
@@ -143,7 +161,7 @@ export function AwardsCeremonyScreen({
         accessibilityLabel={stageAccessibilityLabel(viewModel, stage)}
         accessibilityHint={stage.kind === 'prize'
           ? 'Tap anywhere to finish'
-          : 'Tap anywhere to continue the ceremony'}
+          : 'The ceremony plays itself. Tap anywhere to move it along sooner.'}
         onPress={stage.kind === 'prize' ? onComplete : advance}
         // Static style only: a function-form style on a Pressable drops layout
         // properties on iOS, and this one has to fill the screen.
@@ -171,7 +189,7 @@ export function AwardsCeremonyScreen({
 
         <View style={styles.footer}>
           <PixelText className="text-[10px] uppercase tracking-[2px] text-paper/60">
-            {stage.kind === 'prize' ? 'Tap to finish' : 'Tap to continue'}
+            {stage.kind === 'prize' ? 'Tap to finish' : 'Tap to skip ahead'}
           </PixelText>
         </View>
       </Pressable>
@@ -312,7 +330,7 @@ function PodiumRow({
 /**
  * The ceremony's last beat: what the four boards paid.
  *
- * The figure shown is `totalTrainingPoints` and nothing else. The prize tapers
+ * The figure shown is `totalMoney` and nothing else. The prize tapers
  * per board, so multiplying the per-board rate by the count would overstate
  * every season the club won more than one.
  */
@@ -326,7 +344,7 @@ function PrizePanel({
   const t = useCopy();
   const { prize } = viewModel;
   const counts = prizeCountsUp(prize);
-  const total = prize.totalTrainingPoints;
+  const total = prize.totalMoney;
   const [shown, setShown] = useState(counts && !reduceMotion ? 0 : total);
 
   // Frame-driven, not a timer sampling the clock: the value belongs to the
@@ -357,7 +375,7 @@ function PrizePanel({
           {t('awardsCeremony.awardPrize')}</PixelText>
         {counts ? (
           <PixelText variant="data" className="mt-2 text-4xl text-ink">
-            {shown} TP
+            {formatCurrency(shown)}
           </PixelText>
         ) : (
           <PixelText className="mt-2 text-2xl uppercase text-ink">{t('awardsCeremony.nothingThisYear')}</PixelText>
@@ -485,6 +503,9 @@ function CelebratingPlayer({
   );
 }
 
+/** The two-column content width every other card in the game stops at. */
+const CEREMONY_MAX_WIDTH = 1180;
+
 const styles = StyleSheet.create({
   stage: {
     flex: 1,
@@ -492,11 +513,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 8,
   },
-  headerBlock: { width: '100%' },
+  headerBlock: { width: '100%', maxWidth: CEREMONY_MAX_WIDTH, alignSelf: 'center' },
   controlBand: { height: SKIP_CONTROL_BAND },
   header: { alignItems: 'center', paddingBottom: 16 },
-  footer: { alignItems: 'center', paddingTop: 16 },
+  footer: { alignItems: 'center', paddingTop: 16, maxWidth: CEREMONY_MAX_WIDTH, alignSelf: 'center', width: '100%' },
   board: {
+    // The podium is a card, and cards in this game stop at the two-column
+    // content width. Left unbounded it ran the full width of a desktop window,
+    // so a three-name table was stretched across two thousand pixels with the
+    // names at one end and the numbers at the other.
+    width: '100%',
+    maxWidth: CEREMONY_MAX_WIDTH,
+    alignSelf: 'center',
     borderWidth: 3,
     borderColor: '#edb54a',
     backgroundColor: 'rgba(58,51,80,0.92)',

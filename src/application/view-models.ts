@@ -16,6 +16,8 @@ import {
   attributeAffectsPlay,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
+  commercialFacilitySummary,
+  GATE_ATTENDANCE_PERCENT,
   currentActualMonthlySponsorIncome,
   CUP_SETTLEMENT_WEEKS,
   contractTermOptions,
@@ -56,7 +58,8 @@ import {
   ownedTrainingTier,
   POSITION_TRAINING_ATTRIBUTES,
   reconcilePendingClubLegends,
-  renewalQuote,
+  careerRenewalBlockedReason,
+  careerRenewalWeeklyAsk,
   resolveTrainingDrillForPath,
   rosterForClub,
   roleOverall,
@@ -82,6 +85,7 @@ import {
   type CareerPlayer,
   type FacilityLevel,
   type FacilityType,
+  compareIds,
   type GameState,
   type LedgerLineKind,
   type PlacedFacility,
@@ -101,17 +105,20 @@ import type {
   HomeViewModel,
   LeagueTableViewModel,
   ManagerNoteViewModel,
+  IncomeGenerationViewModel,
+  MatchDayBannerViewModel,
   MatchDayViewModel,
   FulltimeReactionViewModel,
   PostMatchViewModel,
   SeasonEndViewModel,
+  StoryEventPlayerViewModel,
   StoryEventViewModel,
   SquadTrainingViewModel,
   TrainingPointIncomeViewModel,
   TrainingSlotStatOption,
   WeeklyReviewViewModel,
 } from '../ui';
-import { divisionTierLabel } from '../game/pyramid';
+import { CUP_DISPLAY_NAME, DIVISION_NAMES, divisionTierLabel } from '../game/pyramid';
 import { careerDifficulty } from '../game/difficulty';
 import { isAvailableForSelection } from '../game/lineup';
 import { playerLoyalty } from '../game/loyalty';
@@ -126,6 +133,10 @@ import {
   promotionRewardsForDivision,
   trainingDrillTier,
 } from '../game/promotion-progression';
+import { renewalOpeningOfferWage } from '../game/market';
+
+/** The negotiation panel's wage increment, and the grid the opening seed rounds to. */
+const RENEWAL_WAGE_STEP = 50;
 import { marketNegotiationViewModel } from './market-view-model';
 import { leagueFixtureViewModel } from './m2-league-view-model';
 import { coachRoleEffectLabels } from './coach-effects';
@@ -303,6 +314,84 @@ function variableIncomeViewModel(state: GameState): ClubVariableIncomeViewModel 
   return { amount };
 }
 
+/**
+ * The other half of the accounts office: not what the club spent, but what it
+ * owns that pays.
+ *
+ * Every row is a multiplier or a cadence rather than an amount — see
+ * IncomeGenerationViewModel. Unbuilt commercial buildings still get a row so
+ * the panel doubles as the answer to "how do I make more money", which is the
+ * question a manager reads this screen with.
+ */
+function incomeGenerationViewModel(
+  state: GameState,
+  club: ReturnType<typeof requireUserClub>,
+  sponsorship: ReturnType<typeof clubSponsorshipViewModel>,
+): IncomeGenerationViewModel {
+  const commercial = commercialFacilitySummary(state);
+  const rows: IncomeGenerationViewModel['rows'] = [
+    {
+      id: 'income-gate',
+      label: 'Home gate',
+      detail: `Every home match. ${GATE_ATTENDANCE_PERCENT}% of your ${club.fans} supporters buy a ticket.`,
+      // The weekly roll, stated as the swing the manager actually sees on the
+      // statement — including the surge the Financial Report makes a banner of.
+      effect: '±10% a week',
+      owned: true,
+    },
+    {
+      id: 'income-stadium-stand',
+      label: commercial.standCount === 0
+        ? 'Stadium Stand'
+        : `Stadium Stand · ${commercial.standCount === 1 ? 'Level ' + commercial.standLevel : commercial.standCount + ' built'}`,
+      detail: commercial.standCount === 0
+        ? 'Not built. Every level adds half the gate again, up to three stands.'
+        : `Adds to every home gate. ${commercial.standLevel} level${commercial.standLevel === 1 ? '' : 's'} across ${commercial.standCount} stand${commercial.standCount === 1 ? '' : 's'}.`,
+      effect: commercial.standCount === 0 ? '+50% / level' : `+${commercial.gateBonusPercent}% gate`,
+      owned: commercial.standCount > 0,
+    },
+    {
+      id: 'income-fan-shop',
+      label: commercial.shopCount === 0
+        ? 'Fan Shop'
+        : `Fan Shop · ${commercial.shopCount === 1 ? 'Level ' + commercial.shopLevel : commercial.shopCount + ' built'}`,
+      detail: commercial.shopCount === 0
+        ? 'Not built. Merchandise every week, paid whether the club is home or away.'
+        : commercial.merchAdjacencyPercent > 0
+          ? `Merchandise every week, plus a +${commercial.merchAdjacencyPercent}% neighbour bonus.`
+          : 'Merchandise every week, home or away.',
+      effect: commercial.shopCount === 0 ? '×1 / level' : `×${commercial.shopLevel} merch`,
+      owned: commercial.shopCount > 0,
+    },
+  ];
+  // At D5 this is the one line of commercial income the club has no say over;
+  // from D4 the managed desk replaces it with signed sponsors, and the row
+  // renames itself rather than the panel gaining a second sponsor block.
+  const sponsorIncome = currentActualMonthlySponsorIncome(state, club);
+  const managedSponsors = sponsorship?.managed === true;
+  return {
+    rows: [
+      ...rows,
+      ...(sponsorIncome <= 0 ? [] : [{
+        id: 'income-sponsor',
+        label: managedSponsors ? 'Sponsors' : 'Local advertising',
+        detail: managedSponsors
+          ? `Signed deals, paid together. ${sponsorship?.nextPaymentLabel ?? 'Paid monthly.'}`
+          : 'A local backer pays the club a flat fee, whatever the results.',
+        effect: 'Every 4 weeks',
+        owned: true,
+      }]),
+      ...(sponsorship?.buzz === undefined ? [] : [{
+        id: 'income-buzz',
+        label: 'Buzz',
+        detail: 'Earned by winning and by heroes. Paid on top of the sponsor money.',
+        effect: `${sponsorship.buzz.value} / 100`,
+        owned: true,
+      }]),
+    ],
+  };
+}
+
 export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
   const club = requireUserClub(state);
   const sponsorship = clubSponsorshipViewModel(state, club);
@@ -388,6 +477,7 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
       })),
     fans: club.fans,
     variableIncome: variableIncomeViewModel(state),
+    incomeGeneration: incomeGenerationViewModel(state, club, sponsorship),
     operatingOutlook,
     weeklyNet,
     projectedBalance: club.cash + weeklyNet,
@@ -942,6 +1032,21 @@ function facilitiesShareEdge(first: PlacedFacility, second: PlacedFacility): boo
   return (horizontalContact && verticalOverlap) || (verticalContact && horizontalOverlap);
 }
 
+/**
+ * The card's stat block. Display values, matching the register: a keeper's
+ * Reflexes reads ahead of the stored number so the halved Keeper Drills ladder
+ * looks like the outfield one, and a story card that disagreed with the squad
+ * screen would read as two different players.
+ */
+function storyPlayerAttributes(
+  player: GameState['players'][number],
+): StoryEventPlayerViewModel['attributes'] {
+  return (Object.keys(player.attrs) as Array<keyof typeof player.attrs>).map(attribute => ({
+    label: attribute.toUpperCase(),
+    value: displayedAttributeValue(player, attribute),
+  }));
+}
+
 export function storyEventViewModel(state: GameState, content: LaunchContent): StoryEventViewModel {
   const pending = state.pendingEvent;
   if (pending === undefined) throw new Error('there is no pending story event');
@@ -950,9 +1055,37 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
   const selected = pending.selectedPlayerId === undefined
     ? undefined
     : state.players.find(player => player.id === pending.selectedPlayerId);
-  const selectedIsStarter = selected === undefined ? false : state.lineups
-    .find(lineup => lineup.clubId === state.userClubId)?.playerIds.includes(selected.id) === true;
+  const starterIds = state.lineups
+    .find(lineup => lineup.clubId === state.userClubId)?.playerIds ?? [];
   const requiresPlayer = event.trigger.requiresPlayer === true;
+  // Starters first, then by rating: the manager is usually deciding about
+  // someone who plays, and within that the number is what the choice turns on.
+  const squad = state.players
+    .filter(player => player.clubId === state.userClubId)
+    .slice()
+    .sort((left, right) => (
+      Number(!starterIds.includes(left.id)) - Number(!starterIds.includes(right.id))
+      || overall(right.role, right.attrs) - overall(left.role, left.attrs)
+      || compareIds(left.id, right.id)
+    ));
+  const storyPlayer = (
+    player: GameState['players'][number],
+    withAttributes: boolean,
+  ): StoryEventPlayerViewModel => ({
+    id: player.id,
+    name: player.name,
+    role: player.role,
+    overall: overall(player.role, player.attrs),
+    detail: player.injuryWeeks > 0
+      ? `Injured for ${player.injuryWeeks} more week${player.injuryWeeks === 1 ? '' : 's'}`
+      : player.power !== undefined
+        ? `Licensed hero · ${starterIds.includes(player.id) ? 'Starting XI' : 'Squad player'}`
+        : starterIds.includes(player.id) ? 'Starting XI' : 'Squad player',
+    ...(player.power ? {
+      powerName: content.powers.powers.find(power => power.id === player.power)?.name ?? player.power,
+    } : {}),
+    ...(withAttributes ? { attributes: storyPlayerAttributes(player) } : {}),
+  });
   const resolvedChoice = pending.resolvedChoiceId === undefined
     ? undefined
     : event.choices.find(choice => choice.id === pending.resolvedChoiceId);
@@ -968,22 +1101,14 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
     categoryLabel: `${event.rarity} ${event.category}`,
     title: event.title,
     body: event.body,
-    ...(selected ? {
-      selectedPlayer: {
-        id: selected.id,
-        name: selected.name,
-        role: selected.role,
-        detail: selected.injuryWeeks > 0
-          ? `Injured for ${selected.injuryWeeks} more week${selected.injuryWeeks === 1 ? '' : 's'}`
-          : selected.power !== undefined
-            ? `Licensed hero · ${selectedIsStarter ? 'Starting XI' : 'Squad player'}`
-            : selectedIsStarter ? 'Starting XI' : 'Squad player',
-        ...(selected.power ? {
-          powerName: content.powers.powers.find(power => power.id === selected.power)?.name ?? selected.power,
-        } : {}),
-      },
-    } : {}),
+    ...(selected ? { selectedPlayer: storyPlayer(selected, true) } : {}),
     playerSelectionRequired: requiresPlayer,
+    ...(pending.playerLocked === true ? { playerLocked: true as const } : {}),
+    // Offered even when a player is already named: the manager may still change
+    // their mind, and an unlocked card that cannot be re-opened is a dead end.
+    playerChoices: requiresPlayer && pending.playerLocked !== true
+      ? squad.map(player => storyPlayer(player, false))
+      : [],
     choices: event.choices.map(choice => {
       const disabledReason = eventChoiceUnavailableReason(state, choice);
       return {
@@ -1062,6 +1187,9 @@ export function seasonEndViewModel(
   const renewalTermCap = expiredPlayer === undefined
     ? 3
     : maxRenewalTermSeasons(expiredPlayer, state.careerSeed);
+  const renewalBlockedReason = expiredPlayer === undefined || state.market === undefined
+    ? undefined
+    : careerRenewalBlockedReason(state, state.market, expiredPlayer.id);
   const prizeMoney = state.ledgers[state.ledgers.length - 1]?.lines
     .filter(line => line.kind === 'prize')
     .reduce((sum, line) => sum + line.amount, 0) ?? 0;
@@ -1187,9 +1315,14 @@ export function seasonEndViewModel(
         lookId: expiredPlayer.lookId,
         powerName: content.powers.powers.find(power => power.id === expiredPlayer.power)?.name,
         currentWeeklyWage: expiredPlayer.weeklyWage,
+        // The agent's real opening ask, not `renewalQuote`'s wage-times-four.
+        // The old quote ignored growth, fame, loyalty and personality, so the
+        // headline number the manager used to decide renew-versus-release
+        // measured 13-24% low on ordinary squads and 61% low on a grown hero —
+        // and then changed the instant they tapped "Meet the agent".
         quotedWeeklyWage: renewalTalks?.playerId === expiredPlayer.id
           ? renewalTalks.negotiation.weeklyAsk
-          : renewalQuote(expiredPlayer, 4),
+          : careerRenewalWeeklyAsk(state, expiredPlayer),
         isHeroWageCliff: expiredPlayer.power !== undefined && !expiredPlayer.onHeroWage,
         termOptions: contractTermOptions(renewalTermCap),
         // Clamped rather than trusted: the term is held in the store across
@@ -1199,8 +1332,12 @@ export function seasonEndViewModel(
         ...(renewalTermCap >= 3 ? {} : {
           shortTermReason: shortContractReason(expiredPlayer.age ?? 24, renewalTermCap),
         }),
-        decision: 'pending' as const,
-        requiresNegotiation: true,
+        // Replaces a hardcoded `decision: 'pending'` and
+        // `requiresNegotiation: true`, which made the whole quick-renew branch
+        // of the screen unreachable while leaving a permanently red PENDING chip
+        // over it. Both renew actions now disable together with a reason, rather
+        // than rendering enabled over an engine call that always throws.
+        ...(renewalBlockedReason === undefined ? {} : { renewalBlockedReason }),
         remainingExpiredCount: expiredPlayers.length,
       },
     } : {}),
@@ -1214,8 +1351,11 @@ export function seasonEndViewModel(
             playerName: expiredPlayer.name,
             playerRole: expiredPlayer.role,
             lookId: expiredPlayer.lookId,
-            openingWeeklyWage: expiredPlayer.weeklyWage,
-            wageStep: 50,
+            openingWeeklyWage: renewalOpeningOfferWage(
+              renewalTalks.negotiation.weeklyAsk,
+              RENEWAL_WAGE_STEP,
+            ),
+            wageStep: RENEWAL_WAGE_STEP,
             maxTermSeasons: Math.max(1, renewalTermCap) as 1 | 2 | 3,
             playerAge: expiredPlayer.age ?? 24,
           }),
@@ -1657,8 +1797,22 @@ export function settleWeeklyStory(state: GameState): GameState {
 }
 
 const SORTABLE_COLUMNS_TIP_ID = 'player-columns-are-sortable';
+/** The earliest the sortable-columns lesson may appear; it waits from here. */
 const SORTABLE_COLUMNS_TIP_SEASON = 1;
 const SORTABLE_COLUMNS_TIP_WEEK = 12;
+
+/**
+ * True once the register lesson is allowed to appear — Week 12 of the first
+ * season and every week after it, across season boundaries.
+ *
+ * It used to demand Week 12 exactly, so a career whose Week 12 carried an event
+ * or a busy desk lost the lesson for good: the manager was never told the
+ * columns sort, and nothing ever offered it again.
+ */
+function sortableColumnsTipEligible(state: GameState): boolean {
+  if (state.season > SORTABLE_COLUMNS_TIP_SEASON) return true;
+  return state.season === SORTABLE_COLUMNS_TIP_SEASON && state.week >= SORTABLE_COLUMNS_TIP_WEEK;
+}
 
 /** Roughly a third of eligible weeks, so the unscheduled tips stay finds rather than lectures. */
 const DESK_TIP_CHANCE_PERCENT = 35;
@@ -1677,17 +1831,16 @@ export function settleWeeklyTip(state: GameState): GameState {
 
   const blank: GameState = { ...state, deskTip: { season: state.season, week: state.week } };
   const unseen = unseenDeskTipIds(state, LAUNCH_CONTENT.tips.tips.map(tip => tip.id));
-  if (state.season === SORTABLE_COLUMNS_TIP_SEASON
-    && state.week === SORTABLE_COLUMNS_TIP_WEEK
-    && unseen.includes(SORTABLE_COLUMNS_TIP_ID)) {
+  if (sortableColumnsTipEligible(state) && unseen.includes(SORTABLE_COLUMNS_TIP_ID)) {
     return markDeskTipSeen(
       { ...state, deskTip: { season: state.season, week: state.week, tipId: SORTABLE_COLUMNS_TIP_ID } },
       SORTABLE_COLUMNS_TIP_ID,
     );
   }
 
-  // This lesson owns Week 12. Keeping it out of the random deck means a fresh
-  // career cannot be taught the rule early, or miss its promised week by luck.
+  // This lesson claims the first quiet week from Week 12 on, ahead of the deck.
+  // Keeping it out of the random draw means a fresh career cannot be taught the
+  // rule early, and the branch above means it can no longer be missed by luck.
   const randomizedUnseen = unseen.filter(tipId => tipId !== SORTABLE_COLUMNS_TIP_ID);
   if (randomizedUnseen.length === 0) return blank;
   if (deskTipRoll(state, '__desk_tip_chance__', 100) >= DESK_TIP_CHANCE_PERCENT) return blank;
@@ -2834,6 +2987,29 @@ function fixtureViewModel(
 
 function careerDivision(state: GameState): 1 | 2 | 3 | 4 | 5 {
   return state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+}
+
+/**
+ * The match-week announcement, or null on a quiet week.
+ *
+ * `activeCareerMatchday` is the whole test — it is the same call the desk uses
+ * for "This week", so the banner can never claim a fixture the club does not
+ * actually have. The competition is named the way every other screen names it:
+ * the division's own name (never "Division 5"), and the cup's single display
+ * name, so a rename can never leave this card behind.
+ */
+export function matchDayBannerViewModel(state: GameState): MatchDayBannerViewModel | null {
+  const matchday = activeCareerMatchday(state);
+  if (matchday === undefined) return null;
+  const competitionLabel = matchday.kind === 'national-cup'
+    ? CUP_DISPLAY_NAME
+    : DIVISION_NAMES[careerDivision(state)];
+  return {
+    id: `match-day-banner-${state.season}-${state.week}`,
+    competitionLabel,
+    headline: `${competitionLabel}: Match Day`,
+    accessibilityLabel: `${competitionLabel}. Match day.`,
+  };
 }
 
 function careerDivisionLabel(state: GameState): string {
