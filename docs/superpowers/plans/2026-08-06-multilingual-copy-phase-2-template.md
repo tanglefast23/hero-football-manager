@@ -17,7 +17,9 @@
 ## How to use this document
 
 This is a **template**, run once per locale in the order Spanish → Vietnamese →
-Portuguese → French → German → Indonesian. Substitute `<locale>` throughout.
+Portuguese → French → Indonesian → **German last**. Substitute `<locale>`
+throughout. German is last because it is the longest language and will surface
+any remaining layout ceilings — spec §7.3.
 
 The **first run is Spanish and it is the cost probe.** After it completes, stop
 and compare actual words, actual review cost and actual layout breakage against
@@ -321,6 +323,25 @@ test('a review batch caught enough of its canaries to be trusted', () => {
 discarded and it is re-reviewed with a different reviewer or a sharper prompt.
 The miss rate is recorded next to the verdicts and **reported** — if the number
 is bad, the audit's own claim collapses honestly instead of quietly.
+
+- [ ] **Step 3b: Guarantee canaries never ship**
+
+A canary is a deliberately broken translation. If one leaks into
+`content/i18n/<locale>.json` it is, by construction, the string nobody will
+flag. The mechanism must be structural, not procedural:
+
+- Canaries live **only** in the review batch files under
+  `content/i18n/review/batches/`, never in the catalog.
+- A gate asserts no shipped string matches a recorded canary text:
+
+```ts
+test('no canary text ever reached the shipped catalog', () => {
+  const canaries = new Set(loadAllCanaries('<locale>').map(c => c.text));
+  const leaked = Object.entries(loadCatalog('<locale>').strings)
+    .filter(([, value]) => canaries.has(value));
+  expect(leaked).toEqual([]);
+});
+```
 
 - [ ] **Step 4: Enforce coverage**
 

@@ -566,6 +566,10 @@ something.
 └─────────────────────────────────────┘
 ```
 
+- **The picker lists `ENABLED_LOCALES`, not all seven.** During Phase 1 that is
+  one row; each translation phase adds one. Offering a language whose catalog is
+  empty means offering a menu item that visibly does nothing — English fallback
+  makes that *safe*, not *honest*. The mock above is the finished state.
 - Each language is written **in itself**, never "Spanish".
 - **"Tiếng Việt" cannot render in Silkscreen** — it contains `ế` and `ệ`, two of
   the glyphs §4.1 proves are missing. That one row must draw in the Vietnamese
