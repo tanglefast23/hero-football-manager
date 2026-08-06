@@ -14,6 +14,7 @@ import { NegotiationPanel, useContractDraft } from './MarketScreen';
 import { useTapGuard } from '../use-tap-guard';
 import { PixelText } from '../components/PixelText';
 import { DesktopClamp, useDesktopContentStyle } from '../layout/DesktopClamp';
+import { useCopy } from '../../i18n';
 
 export interface SeasonEndScreenProps {
   viewModel: SeasonEndViewModel;
@@ -42,6 +43,7 @@ export function SeasonEndScreen({
   guideCopy,
   textScale = 1,
 }: SeasonEndScreenProps) {
+  const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const renewalDraft = useContractDraft(viewModel.renewalNegotiation);
   const wide = useLayoutMode() === 'twoColumn';
@@ -63,14 +65,14 @@ export function SeasonEndScreen({
       <ChalkboardBackdrop wide={wide} />
       <View className="flex-row items-center justify-between px-4 py-3">
         <View>
-          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Front office</Text>
-          <Text className="mt-1 font-pixel text-base uppercase text-white">Season review</Text>
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{t('titleLanding.frontOffice')}</Text>
+          <Text className="mt-1 font-pixel text-base uppercase text-white">{t('seasonEnd.seasonReview')}</Text>
         </View>
         <SettingsButton onPress={onOpenSettings} />
       </View>
       <ScrollView className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}>
         <View className="items-center py-3">
-          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Season complete</Text>
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{t('seasonEnd.seasonComplete')}</Text>
           <Text className="mt-2 font-pixel text-3xl uppercase tracking-wide text-white">{viewModel.seasonLabel}</Text>
           <View className="mt-4 rotate-2 border-2 border-red bg-red-light/25 px-5 py-3">
             <PixelText className="text-xl uppercase text-red-light">{viewModel.outcomeLabel}</PixelText>
@@ -99,7 +101,7 @@ export function SeasonEndScreen({
                   accessibilityLabel={`Buzz payout. Reached ${viewModel.clubBusinessSettlement.buzz.reached}. Club received ${formatCurrency(viewModel.clubBusinessSettlement.buzz.actualPayout)}. Reset to ${viewModel.clubBusinessSettlement.buzz.resetTo}.`}
                 >
                   <View className="flex-row flex-wrap items-center justify-between gap-2">
-                    <PixelText className="text-base uppercase text-ink">Buzz payout</PixelText>
+                    <PixelText className="text-base uppercase text-ink">{t('seasonEnd.buzzPayout')}</PixelText>
                     <StatusChip label="PAID" tone="success" />
                   </View>
                   <Text className="mt-2 text-sm leading-5 text-ink">
@@ -136,7 +138,7 @@ export function SeasonEndScreen({
                     </View>
                   ))}
                   <View className="flex-row flex-wrap items-center justify-between gap-2 border-t-2 border-ink pt-3">
-                    <PixelText className="text-sm uppercase text-ink/70">Objective bonuses</PixelText>
+                    <PixelText className="text-sm uppercase text-ink/70">{t('seasonEnd.objectiveBonuses')}</PixelText>
                     <Text className="font-mono text-lg text-ink">
                       {formatCurrency(viewModel.clubBusinessSettlement.objectiveBonusTotal)}
                     </Text>
@@ -276,7 +278,7 @@ export function SeasonEndScreen({
                   <PixelPortrait playerId={contract.playerId} role={contract.role} lookId={contract.lookId} expression={contract.isHeroWageCliff ? 'joy' : 'rest'} />
                 </View>
                 <View className="flex-1">
-                  <PixelText className="text-sm uppercase tracking-wide text-ink/50">Weekly wage request</PixelText>
+                  <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('seasonEnd.weeklyWageRequest')}</PixelText>
                   <View className="mt-2 flex-row items-center gap-2">
                     {contract.isHeroWageCliff ? (
                       <Text className="font-mono text-base text-ink/40 line-through">
@@ -293,7 +295,7 @@ export function SeasonEndScreen({
 
               {contract.isHeroWageCliff ? (
                 <View className="mt-3 border-2 border-gold-dark bg-gold/40 p-3">
-                  <PixelText className="text-sm uppercase tracking-wide text-gold-dark">The bargain years are over</PixelText>
+                  <PixelText className="text-sm uppercase tracking-wide text-gold-dark">{t('seasonEnd.theBargainYearsAreOver')}</PixelText>
                   <Text className="mt-1 text-sm leading-5 text-ink/60">
                     The awakening never changed this contract. Renewal does—and the agent knows exactly what a hero is worth.
                   </Text>
@@ -302,7 +304,7 @@ export function SeasonEndScreen({
 
               {contract.decision === 'pending' && !contract.requiresNegotiation ? (
                 <>
-                  <PixelText className="mt-4 text-sm uppercase tracking-wide text-ink/50">Contract length</PixelText>
+                  <PixelText className="mt-4 text-sm uppercase tracking-wide text-ink/50">{t('seasonEnd.contractLength')}</PixelText>
                   <View className="mt-2 flex-row gap-2">
                     {contract.termOptions.map(term => {
                       const selected = contract.selectedTerm === term;
@@ -398,8 +400,7 @@ export function SeasonEndScreen({
           />
           {!viewModel.canContinue ? (
             <PixelText className="mt-2 text-center text-sm uppercase tracking-wide text-red-light">
-              Resolve the expired contract first
-            </PixelText>
+              {t('seasonEnd.resolveTheExpiredContractFirst')}</PixelText>
           ) : null}
         </DesktopClamp>
       </View>

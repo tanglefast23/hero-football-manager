@@ -38,6 +38,7 @@ export function TitleLandingScreen({
   language,
   onLanguageChange,
 }: TitleLandingScreenProps) {
+  const t = useCopy();
   const { width, height } = useWindowDimensions();
   const isWide = layoutModeForWidth(width) === 'twoColumn' && height >= 600;
 
@@ -64,8 +65,7 @@ export function TitleLandingScreen({
             <View className="flex-row items-start justify-between">
               <View className="-rotate-2 border-2 border-ink bg-paper px-3 py-2">
                 <Text className="font-pixel text-xs uppercase text-pitch-ink">
-                  Small club · Big heroes
-                </Text>
+                  {t('titleLanding.smallClubBigHeroes')}</Text>
               </View>
               <View className={isWide
                 ? 'h-14 w-14 rotate-3 items-center justify-center border-[3px] border-ink bg-gold'
@@ -80,8 +80,7 @@ export function TitleLandingScreen({
                 ? 'font-pixel text-sm uppercase tracking-[4px] text-paper/80'
                 : 'font-pixel text-xs uppercase tracking-[3px] text-paper/80'}
               >
-                The beautiful game gets strange
-              </Text>
+                {t('titleLanding.theBeautifulGameGetsStrange')}</Text>
               <Text className={isWide
                 ? 'mt-4 font-pixel text-[68px] uppercase leading-[68px] tracking-tight text-white'
                 : 'mt-2 font-pixel text-[43px] uppercase leading-[44px] tracking-tight text-white'}
@@ -96,8 +95,7 @@ export function TitleLandingScreen({
                   ? 'font-pixel text-4xl uppercase text-white'
                   : 'font-pixel text-2xl uppercase text-white'}
                 >
-                  Manager!
-                </Text>
+                  {t('titleLanding.manager')}</Text>
               </View>
               <Text className={isWide
                 ? 'mt-7 max-w-lg font-mono text-base uppercase leading-7 text-paper/80'
@@ -139,6 +137,7 @@ function TitleMenu({
   readonly language: Locale;
   readonly onLanguageChange: (locale: Locale) => void;
 }) {
+  const t = useCopy();
   return (
     <View className="relative z-20">
       <View pointerEvents="none" className="absolute -top-[250px] left-0 right-0 z-20 h-[252px]">
@@ -146,7 +145,7 @@ function TitleMenu({
       </View>
       <View className="z-10 gap-2 border-[3px] border-ink bg-paper p-3">
         <View className="mb-1 flex-row items-center justify-between">
-          <Text className="font-pixel text-[10px] uppercase tracking-[1px] text-ink/60">Pick your boots</Text>
+          <Text className="font-pixel text-[10px] uppercase tracking-[1px] text-ink/60">{t('titleLanding.pickYourBoots')}</Text>
           {hasSavedCareer ? <StatusChip label="Save found" tone="success" /> : <StatusChip label="New file" tone="hero" />}
         </View>
         <View className="mb-1 flex-row justify-end">
@@ -171,7 +170,7 @@ function TitleMenu({
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Open settings"
+          accessibilityLabel={t('settings.open')}
           onPress={onSettings}
           className="min-h-12 flex-row items-center justify-between border-[3px] border-ink bg-white px-4 py-2"
           style={({ pressed }) => ({
@@ -290,7 +289,7 @@ export function TitleSettingsScreen({
               <View className="mt-5 gap-3">
                 <Pressable
                   accessibilityRole="switch"
-                  accessibilityLabel="Reduce motion"
+                  accessibilityLabel={t('settings.reduceMotion.label')}
                   accessibilityState={{ checked: preferences.reduceMotion }}
                   onPress={onToggleReduceMotion}
                   className={preferences.reduceMotion
@@ -299,7 +298,7 @@ export function TitleSettingsScreen({
                   style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
                 >
                   <View className="flex-1 pr-3">
-                    <Text className="font-pixel text-base uppercase text-ink">Reduce motion</Text>
+                    <Text className="font-pixel text-base uppercase text-ink">{t('settings.reduceMotion.label')}</Text>
                     <Text className="mt-1 text-sm text-ink/60">Stops count-ups, flashes, pulses, and decorative match trails.</Text>
                   </View>
                   <Text className="font-pixel text-lg text-ink">{preferences.reduceMotion ? 'ON' : 'OFF'}</Text>
@@ -312,7 +311,7 @@ export function TitleSettingsScreen({
                   style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
                 >
                   <View className="flex-1 pr-3">
-                    <Text className="font-pixel text-base uppercase text-ink">Match info position</Text>
+                    <Text className="font-pixel text-base uppercase text-ink">{t('titleLanding.matchInfoPosition')}</Text>
                     <Text className="mt-1 text-sm text-ink/60">Moves the carrier card and top controls together.</Text>
                   </View>
                   <Text className="font-pixel text-lg uppercase text-blue-dark">{preferences.hudSide}</Text>
@@ -343,14 +342,14 @@ export function TitleSettingsScreen({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Master audio ${volumePercent} percent`}
-                accessibilityHint="Cycles through 0, 25, 50, 75, and 100 percent"
+                accessibilityHint={t('titleLanding.a11y.cyclesThrough0255075And100Percent')}
                 onPress={onCycleVolume}
                 className="mt-5 border-2 border-ink bg-signal px-4 py-4"
                 style={({ pressed }) => ({ opacity: pressed ? 0.75 : undefined })}
               >
                 <View className="flex-row items-end justify-between">
                   <View>
-                    <PixelText className="text-sm uppercase tracking-[2px] text-ink/55">Tap to change</PixelText>
+                    <PixelText className="text-sm uppercase tracking-[2px] text-ink/55">{t('titleLanding.tapToChange')}</PixelText>
                     <Text className="mt-1 font-mono text-3xl text-ink">
                       {volumePercent === 0 ? 'MUTED' : `${volumePercent}%`}
                     </Text>
@@ -361,7 +360,7 @@ export function TitleSettingsScreen({
 
               <View className="mt-5 gap-2 border-t border-ink/20 pt-4">
                 <View className="flex-row items-center justify-between">
-                  <PixelText className="text-sm uppercase tracking-wide text-ink/60">Title theme</PixelText>
+                  <PixelText className="text-sm uppercase tracking-wide text-ink/60">{t('titleLanding.titleTheme')}</PixelText>
                   <StatusChip label="Heroes Start Here" selected />
                 </View>
                 <View className="flex-row items-center justify-between">
@@ -369,7 +368,7 @@ export function TitleSettingsScreen({
                   <StatusChip label="Clubhouse Dreams" />
                 </View>
                 <View className="flex-row items-center justify-between">
-                  <PixelText className="text-sm uppercase tracking-wide text-ink/60">Match day</PixelText>
+                  <PixelText className="text-sm uppercase tracking-wide text-ink/60">{t('titleLanding.matchDay')}</PixelText>
                   <StatusChip label="Match Day Heroes" />
                 </View>
               </View>
@@ -384,7 +383,7 @@ export function TitleSettingsScreen({
       <View className="mt-4">
         <ActionButton
           label="Open glossary"
-          accessibilityLabel="Open glossary"
+          accessibilityLabel={t('settings.glossary.open')}
           onPress={() => setShowGlossary(true)}
           variant="paper"
         />
@@ -400,7 +399,7 @@ export function TitleSettingsScreen({
       <View className="mt-4">
         <ActionButton
           label="Open privacy & support"
-          accessibilityLabel="Open privacy and support"
+          accessibilityLabel={t('settings.privacy.open')}
           onPress={() => setShowPrivacySupport(true)}
           variant="paper"
         />
@@ -419,7 +418,7 @@ export function TitleSettingsScreen({
           <View>
             <View className="flex-row items-center justify-between">
               <View>
-                <Text className="font-pixel text-xs uppercase tracking-[3px] text-gold-light">Front office</Text>
+                <Text className="font-pixel text-xs uppercase tracking-[3px] text-gold-light">{t('titleLanding.frontOffice')}</Text>
                 <Text className={wide
                   ? 'mt-2 font-pixel text-4xl uppercase text-white'
                   : 'mt-2 font-pixel text-3xl uppercase text-white'}

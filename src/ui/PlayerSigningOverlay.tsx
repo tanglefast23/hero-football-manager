@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel } from './components/Scorecard';
 import { PixelPortrait } from './components/PixelPortrait';
 import { playPositiveSfx } from '../render/management-sfx';
+import { useCopy } from '../i18n';
 
 export interface PlayerSigningConfirmation {
   playerId: string;
@@ -30,6 +31,7 @@ export function PlayerSigningOverlay({
   reduceMotion?: boolean;
   onClose: () => void;
 }) {
+  const t = useCopy();
   // Every signing is a receipt worth celebrating, not just the first one — an
   // arrival opening in silence read as a failed purchase. Keyed on who signed,
   // not on how: back-to-back signings swap the props without unmounting, and
@@ -78,7 +80,7 @@ export function PlayerSigningOverlay({
             <View className="mt-4">
               <ActionButton
                 label="Return to club  ▸"
-                accessibilityLabel="Close player signing confirmation"
+                accessibilityLabel={t('playerSigning.a11y.closePlayerSigningConfirmation')}
                 onPress={onClose}
               />
             </View>

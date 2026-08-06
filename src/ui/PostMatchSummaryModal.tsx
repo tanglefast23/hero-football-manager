@@ -10,6 +10,7 @@ import { SfxPressable as Pressable } from './components/SfxPressable';
 import type { PostMatchViewModel } from './models';
 import { ActionButton } from './components/Scorecard';
 import { FinancialReportBody } from './components/FinancialReportBody';
+import { useCopy } from '../i18n';
 
 export interface PostMatchSummaryModalProps {
   viewModel: PostMatchViewModel;
@@ -28,6 +29,7 @@ export function PostMatchSummaryModal({
   onDismiss,
   reduceMotion = false,
 }: PostMatchSummaryModalProps) {
+  const t = useCopy();
   useEffect(() => {
     playMatchStatementSfx();
     return () => stopMatchStatementSfx();
@@ -62,12 +64,12 @@ export function PostMatchSummaryModal({
           >
             <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
               <View className="flex-1 pr-3">
-                <Text className="font-pixel text-[12px] uppercase text-blue-dark">Back at the office</Text>
-                <Text className="mt-1 font-pixel text-[18px] uppercase text-ink">Financial report</Text>
+                <Text className="font-pixel text-[12px] uppercase text-blue-dark">{t('postMatchSummary.backAtTheOffice')}</Text>
+                <Text className="mt-1 font-pixel text-[18px] uppercase text-ink">{t('postMatchSummary.financialReport')}</Text>
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Close financial report"
+                accessibilityLabel={t('postMatchSummary.a11y.closeFinancialReport')}
                 onPress={handleDismiss}
                 className="h-11 w-11 items-center justify-center border-2 border-ink bg-white"
                 // Explicit points: h-11 is 38.5pt on native, under the 44pt
@@ -85,7 +87,7 @@ export function PostMatchSummaryModal({
             <View className="border-t-2 border-ink/20 bg-white p-3">
               <ActionButton
                 label="Continue  ▸"
-                accessibilityLabel="Continue past the financial report"
+                accessibilityLabel={t('postMatchSummary.a11y.continuePastTheFinancialReport')}
                 onPress={handleDismiss}
               />
             </View>

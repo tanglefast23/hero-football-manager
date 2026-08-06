@@ -19,7 +19,7 @@ import {
   maximumSafeTrainingRuns,
   riskyTrainingRunCount,
 } from './training-repeat';
-import { usePixelStyles, type LocaleFaces } from '../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 
 export interface TrainingDrillModalProps {
   playerId: string;
@@ -123,6 +123,7 @@ export function TrainingDrillModal({
   reduceMotion = false,
   saveWarning = null,
 }: TrainingDrillModalProps) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   // Phones get the bottom sheet; wide viewports get a centered dialog so the
   // picker never stretches across the whole desktop window.
@@ -441,7 +442,7 @@ export function TrainingDrillModal({
                 accessibilityLabel={`Save problem: ${saveWarning}`}
                 className="border-b-2 border-stamp bg-red-light px-4 py-2"
               >
-                <Text className="font-pixel text-sm uppercase text-stamp">Your club is not saving</Text>
+                <Text className="font-pixel text-sm uppercase text-stamp">{t('trainingDrill.yourClubIsNotSaving')}</Text>
                 <Text className="mt-1 text-xs leading-4 text-ink/70">{saveWarning}</Text>
               </View>
             ) : null}
@@ -582,7 +583,7 @@ export function TrainingDrillModal({
                   <Text className="font-pixel text-base uppercase text-red-dark">
                     OUT · {injuryWeeks} {injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
                   </Text>
-                  <Text className="mt-1 text-sm text-ink/70">No training until they recover.</Text>
+                  <Text className="mt-1 text-sm text-ink/70">{t('trainingDrill.noTrainingUntilTheyRecover')}</Text>
                 </View>
               ) : null}
             </ScrollView>
@@ -631,7 +632,7 @@ export function TrainingDrillModal({
               >
                 <View style={styles.injuryBackdrop}>
                   <View className="border-2 border-b-4 border-red-dark bg-red-light px-5 py-4">
-                    <Text className="text-center font-pixel text-xl uppercase text-red-dark">Pulled up!</Text>
+                    <Text className="text-center font-pixel text-xl uppercase text-red-dark">{t('trainingDrill.pulledUp')}</Text>
                     <Text className="mt-2 text-center font-pixel text-base uppercase text-ink">
                       OUT · {activeResult.injury.recoveryWeeks} {activeResult.injury.recoveryWeeks === 1 ? 'WEEK' : 'WEEKS'}
                     </Text>
@@ -666,8 +667,7 @@ export function TrainingDrillModal({
                   contentContainerStyle={styles.confirmScrollContent}
                 >
                   <PixelText className="text-sm uppercase tracking-wide text-blue-dark">
-                    Confirm training
-                  </PixelText>
+                    {t('trainingDrill.confirmTraining')}</PixelText>
                   <PixelText className="mt-1 text-xl uppercase text-ink" numberOfLines={2}>
                     {pendingConfirm.drillName}
                   </PixelText>
@@ -753,7 +753,7 @@ export function TrainingDrillModal({
                       </View>
                     ) : null}
                     <View className="flex-row items-center justify-between px-1">
-                      <Text className="text-sm text-ink/60">Training points</Text>
+                      <Text className="text-sm text-ink/60">{t('trainingDrill.trainingPoints')}</Text>
                       <Text className={pendingConfirm.affordable
                         ? 'font-mono text-sm text-ink'
                         : 'font-pixel text-sm text-stamp'}>
@@ -761,13 +761,13 @@ export function TrainingDrillModal({
                       </Text>
                     </View>
                     <View className="flex-row items-center justify-between px-1">
-                      <Text className="text-sm text-ink/60">Condition after</Text>
+                      <Text className="text-sm text-ink/60">{t('trainingDrill.conditionAfter')}</Text>
                       <Text className="font-mono text-sm text-ink">
                         {condition}% → {Math.max(0, condition - INSTANT_DRILL_CONDITION_COST * repeatCount)}%
                       </Text>
                     </View>
                     <View className="flex-row items-center justify-between px-1">
-                      <Text className="text-sm text-ink/60">Injury risk</Text>
+                      <Text className="text-sm text-ink/60">{t('trainingDrill.injuryRisk')}</Text>
                       <Text className={(injuryRiskPercent > 0
                         || selectedRiskyRuns > 0)
                         ? 'font-pixel text-sm text-stamp'
@@ -778,7 +778,7 @@ export function TrainingDrillModal({
                       </Text>
                     </View>
                     <View className="flex-row items-center justify-between px-1">
-                      <Text className="text-sm text-ink/60">SUPER chance</Text>
+                      <Text className="text-sm text-ink/60">{t('trainingDrill.superChance')}</Text>
                       <View className="flex-row items-center gap-1">
                         {/* Glyph-only ★ node — not in Silkscreen, deliberate system fallback. */}
                         <Text className="text-sm text-gold-dark">★</Text>
@@ -792,8 +792,7 @@ export function TrainingDrillModal({
                   <View className="mt-4 border-t-2 border-ink/20 pt-3">
                     <View className="mb-2 flex-row items-center justify-between">
                       <PixelText className="text-xs uppercase tracking-wide text-ink/60">
-                        Runs in a row
-                      </PixelText>
+                        {t('trainingDrill.runsInARow')}</PixelText>
                       <View className="border-2 border-blue-dark bg-blue-light px-2 py-1">
                         <PixelText className="text-sm text-blue-dark">{repeatCount}×</PixelText>
                       </View>
@@ -832,7 +831,7 @@ export function TrainingDrillModal({
                 <View className="flex-row gap-2 border-t-2 border-ink/20 px-4 py-3">
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Cancel training"
+                    accessibilityLabel={t('trainingDrill.a11y.cancelTraining')}
                     onPress={() => setPendingConfirm(null)}
                     className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
                     style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
@@ -889,11 +888,9 @@ export function TrainingDrillModal({
                 className="w-[88%] max-w-[420px] border-2 border-b-4 border-red-dark bg-paper p-4"
               >
                 <PixelText className="text-sm uppercase tracking-wide text-red-dark">
-                  Safety check
-                </PixelText>
+                  {t('trainingDrill.safetyCheck')}</PixelText>
                 <PixelText className="mt-2 text-xl uppercase leading-7 text-ink">
-                  High risk of injury. Continue?
-                </PixelText>
+                  {t('trainingDrill.highRiskOfInjuryContinue')}</PixelText>
                 <Text className="mt-3 text-sm leading-5 text-ink/70">
                   {selectedRiskyRuns} of {repeatCount} selected drills start below 30% condition. Each one rolls a fresh injury chance.
                 </Text>
@@ -935,7 +932,7 @@ export function TrainingDrillModal({
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Cancel and return to the number picker"
+                    accessibilityLabel={t('trainingDrill.a11y.cancelAndReturnToTheNumberPicker')}
                     onPress={() => setConfirmingHighRisk(false)}
                     className="min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
                   >

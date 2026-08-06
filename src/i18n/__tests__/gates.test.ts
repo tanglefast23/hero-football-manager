@@ -74,6 +74,18 @@ describe('i18n gates', () => {
     }
   });
 
+  test('gate 3b — no key holds a sentence fragment', () => {
+    // A label trailing off on a preposition or article is half a sentence, split
+    // across JSX by an emphasised span. Keyed as-is it forces every language
+    // into English word order. Compose it into one key with a placeholder.
+    const trailing = /\b(the|a|an|to|for|of|and|or|in|on|with|from|by|at)$/i;
+    const fragments = Object.entries(english())
+      .filter(([, value]) => trailing.test(value.trim()))
+      .map(([key, value]) => `${key}: ${JSON.stringify(value)}`);
+
+    expect(fragments).toEqual([]);
+  });
+
   test('gate 5c — every endonym renders in its OWN face', () => {
     // The picker draws each language's name in that language's face. If one of
     // them cannot be drawn, the control offering the fix is itself broken.

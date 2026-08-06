@@ -30,6 +30,7 @@ import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
 import { useTapGuard } from '../use-tap-guard';
+import { useCopy } from '../../i18n';
 
 export interface MarketScreenProps {
   readonly viewModel: MarketViewModel;
@@ -73,6 +74,7 @@ export function MarketScreen({
   requestedSection,
   requestedSectionToken,
 }: MarketScreenProps) {
+  const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const [section, setSection] = useState<MarketSectionId>(() => initialSection(viewModel));
   const [scrollDismissedGuideFocus, setScrollDismissedGuideFocus] = useState<AssistantGuideFocus>();
@@ -183,9 +185,8 @@ export function MarketScreen({
       <View className="flex-row items-end justify-between gap-3">
         <View className="flex-1">
           <Text className="font-pixel text-sm uppercase tracking-[2px] text-blue-dark">
-            Recruitment office
-          </Text>
-          <Text className="mt-1 font-pixel text-xl uppercase text-ink">Market docket</Text>
+            {t('market.recruitmentOffice')}</Text>
+          <Text className="mt-1 font-pixel text-xl uppercase text-ink">{t('market.marketDocket')}</Text>
         </View>
         <StatusChip label={viewModel.periodLabel} />
       </View>
@@ -299,6 +300,7 @@ function YouthDesk({
   onDeclineYouth,
   guideFocus,
 }: Pick<MarketScreenProps, 'viewModel' | 'onSignYouth' | 'onDeclineYouth' | 'guideFocus'>) {
+  const t = useCopy();
   const intake = viewModel.youth;
   if (intake === undefined) return null;
   return (
@@ -308,8 +310,8 @@ function YouthDesk({
       <View pointerEvents="none" className="absolute -right-10 bottom-4 h-32 w-32 rounded-full border-4 border-paper/10" />
       <View className="mb-3 flex-row items-end justify-between gap-3">
         <View className="flex-1">
-          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Pre-season academy intake</Text>
-          <Text className="mt-1 font-pixel text-lg uppercase text-white">Meet the next generation</Text>
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{t('market.pre-seasonAcademyIntake')}</Text>
+          <Text className="mt-1 font-pixel text-lg uppercase text-white">{t('market.meetTheNextGeneration')}</Text>
         </View>
         <StatusChip label={intake.rosterLabel} />
       </View>
@@ -371,7 +373,7 @@ function YouthDesk({
           ))}
           <ActionButton
             label="Decline remaining intake"
-            accessibilityLabel="Decline all remaining youth intake offers"
+            accessibilityLabel={t('market.a11y.declineAllRemainingYouthIntakeOffers')}
             variant="paper"
             disabled={!intake.canDecline}
             onPress={onDeclineYouth}
@@ -391,6 +393,7 @@ function ScoutingDesk({
 }: Pick<MarketScreenProps, 'viewModel' | 'onStartScoutMission' | 'onOpenScoutReport' | 'guideFocus'> & {
   southAmericaScoutActionRef: RefObject<View | null>;
 }) {
+  const t = useCopy();
   const status = viewModel.scouting.status;
   const scrollDismissTargetId = viewModel.scouting.choices.find(choice => (
     choice.regionLabel === 'South America'
@@ -423,7 +426,7 @@ function ScoutingDesk({
 
       {viewModel.scouting.reports.length > 0 ? (
         <View className="mt-5 gap-3">
-          <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">Scouting reports</Text>
+          <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">{t('market.scoutingReports')}</Text>
           {viewModel.scouting.reports.map((report, index) => (
             <Pressable
               key={report.playerId}
@@ -487,13 +490,13 @@ function ScoutingDesk({
                   </View>
                 ))}
               </View>
-              <Text className="mt-3 text-right font-pixel text-sm uppercase text-blue-dark">Full report · ranges shown</Text>
+              <Text className="mt-3 text-right font-pixel text-sm uppercase text-blue-dark">{t('market.fullReportRangesShown')}</Text>
             </Pressable>
           ))}
         </View>
       ) : (
         <View className="mt-5 gap-3">
-          <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">Mission slips</Text>
+          <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">{t('market.missionSlips')}</Text>
           {viewModel.scouting.choices.length === 0 ? (
             <EmptyDocket
               title="No missions on offer"
@@ -549,6 +552,7 @@ function TransferDesk({
   onTransferAction,
   guideFocus,
 }: Pick<MarketScreenProps, 'viewModel' | 'onTransferAction' | 'guideFocus'>) {
+  const t = useCopy();
   const guidedListing = guideFocus === 'transfer-list'
     ? viewModel.transfers.find(listing => listing.direction === 'SELL' && !listing.listed)
     : guideFocus === 'transfer-bid'
@@ -624,7 +628,7 @@ function TransferDesk({
                   <View className="mt-3 gap-2 border-t-2 border-ink/15 pt-3">
                     {listing.bids.length === 0 ? (
                       <View className="items-center border-2 border-dashed border-ink/25 bg-white/50 px-3 py-4">
-                        <PixelText className="text-sm uppercase text-ink/60">Listed · no bids yet</PixelText>
+                        <PixelText className="text-sm uppercase text-ink/60">{t('market.listedNoBidsYet')}</PixelText>
                         <Text className="mt-1 text-center text-sm leading-5 text-ink/55">
                           Rival clubs review the listing each week.
                         </Text>
@@ -662,6 +666,7 @@ function CoachDesk({
   viewModel,
   onHireCoach,
 }: Pick<MarketScreenProps, 'viewModel' | 'onHireCoach'>) {
+  const t = useCopy();
   return (
     <View>
       <SectionLabel
@@ -695,7 +700,7 @@ function CoachDesk({
                   </Text>
                   {coach.retiredLegend ? (
                     <View className="mt-2 self-start -rotate-2 border-2 border-gold-dark bg-white px-2 py-1">
-                      <PixelText className="text-sm uppercase text-gold-dark">Club legend</PixelText>
+                      <PixelText className="text-sm uppercase text-gold-dark">{t('market.clubLegend')}</PixelText>
                     </View>
                   ) : null}
                 </View>
@@ -715,14 +720,14 @@ function CoachDesk({
                     : ''}
                 </Text>
                 <View className="mt-2 border-t border-blue-dark/25 pt-2">
-                  <Text className="font-pixel text-sm uppercase text-blue-dark">As head coach</Text>
+                  <Text className="font-pixel text-sm uppercase text-blue-dark">{t('market.asHeadCoach')}</Text>
                   {coach.headEffectLabels.map(effect => (
                     <Text key={`head-${effect}`} className="mt-1 text-sm font-bold text-ink">{effect}</Text>
                   ))}
                 </View>
                 {coach.assistantSlotUnlocked ? (
                   <View className="mt-2 border-t border-blue-dark/25 pt-2">
-                    <Text className="font-pixel text-sm uppercase text-blue-dark">As assistant</Text>
+                    <Text className="font-pixel text-sm uppercase text-blue-dark">{t('market.asAssistant')}</Text>
                     {coach.assistantEffectLabels.map(effect => (
                       <Text key={`assistant-${effect}`} className="mt-1 text-sm text-ink/75">{effect}</Text>
                     ))}
@@ -826,6 +831,7 @@ export function NegotiationPanel({
   /** Omits the panel's own top margin — for use as a SectionFlow section, which owns inter-section spacing. Defaults to false so SeasonEndScreen is unaffected. */
   flush?: boolean;
 }) {
+  const t = useCopy();
   const { weeklyWage, setWeeklyWage, termSeasons, setTermSeasons, perk, setPerk, pitchCard, setPitchCard } = draft;
   // Talks allow three rounds and the panel re-renders in place after each one,
   // so a double-tap spends two of them on the identical offer — and a third
@@ -872,7 +878,7 @@ export function NegotiationPanel({
       {open ? (
         <>
           <View className="mt-4">
-            <Text className="font-pixel text-sm uppercase text-stamp">1 · Weekly wage</Text>
+            <Text className="font-pixel text-sm uppercase text-stamp">{t('market.1WeeklyWage')}</Text>
             <View className="mt-2 flex-row items-stretch gap-2">
               <Pressable
                 accessibilityRole="button"
@@ -901,7 +907,7 @@ export function NegotiationPanel({
           </View>
 
           <View className="mt-4">
-            <Text className="font-pixel text-sm uppercase text-stamp">2 · Contract term</Text>
+            <Text className="font-pixel text-sm uppercase text-stamp">{t('market.2ContractTerm')}</Text>
             <View className="mt-2 flex-row gap-2">
               {viewModel.termOptions.map(term => (
                 <Pressable
@@ -926,7 +932,7 @@ export function NegotiationPanel({
           </View>
 
           <View className="mt-4">
-            <Text className="font-pixel text-sm uppercase text-stamp">3 · One promise</Text>
+            <Text className="font-pixel text-sm uppercase text-stamp">{t('market.3OnePromise')}</Text>
             <View className="mt-2 flex-row flex-wrap gap-2">
               {viewModel.perks.map(option => (
                 <Pressable
@@ -1013,7 +1019,7 @@ export function NegotiationPanel({
         <View className="mt-4">
           <ActionButton
             label="Close agent file"
-            accessibilityLabel="Close completed contract negotiation"
+            accessibilityLabel={t('market.a11y.closeCompletedContractNegotiation')}
             variant={viewModel.status === 'ACCEPTED' ? 'confirm' : 'paper'}
             onPress={onClose}
           />

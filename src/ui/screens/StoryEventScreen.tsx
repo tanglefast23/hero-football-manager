@@ -12,6 +12,7 @@ import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
 import { PixelText } from '../components/PixelText';
 import { EventPixelConfetti, EventRewardArt } from '../components/EventRewardArt';
+import { useCopy } from '../../i18n';
 
 export interface StoryEventScreenProps {
   viewModel: StoryEventViewModel;
@@ -50,6 +51,7 @@ export function StoryEventScreen({
   guideCopy,
   textScale = 1,
 }: StoryEventScreenProps) {
+  const t = useCopy();
   const resolved = Boolean(viewModel.resolvedChoiceId && viewModel.outcomeText);
   const needsPlayer = viewModel.playerSelectionRequired && !viewModel.selectedPlayer;
   const reveal = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
@@ -172,8 +174,7 @@ export function StoryEventScreen({
               {riskyFailure ? (
                 <View className="mt-4 border-2 border-red-dark bg-red-light px-4 py-3">
                   <PixelText className="text-center text-lg uppercase text-red-dark">
-                    No bonus earned
-                  </PixelText>
+                    {t('storyEvent.noBonusEarned')}</PixelText>
                 </View>
               ) : null}
 
@@ -211,7 +212,7 @@ export function StoryEventScreen({
     <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
       <View className="flex-row items-center justify-between px-4 py-3">
         <View>
-          <Text className="font-pixel text-xs uppercase tracking-[2px] text-red-light">Story interruption</Text>
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-red-light">{t('storyEvent.storyInterruption')}</Text>
           <Text className="mt-1 font-pixel text-base uppercase text-white">{viewModel.categoryLabel}</Text>
         </View>
         <View className="flex-row items-center gap-2">
@@ -261,7 +262,7 @@ export function StoryEventScreen({
 
           {viewModel.playerSelectionRequired || viewModel.selectedPlayer ? (
             <View className="mt-5">
-              <Text className="mb-2 font-pixel text-xs uppercase tracking-[2px] text-gold-light">Player involved</Text>
+              <Text className="mb-2 font-pixel text-xs uppercase tracking-[2px] text-gold-light">{t('storyEvent.playerInvolved')}</Text>
               <Pressable
                 accessibilityRole={onSelectPlayer ? 'button' : 'text'}
                 accessibilityLabel={viewModel.selectedPlayer ? `Selected player ${viewModel.selectedPlayer.name}` : 'Choose a player for this event'}
@@ -275,13 +276,13 @@ export function StoryEventScreen({
                     <View className="flex-1"><PixelText className="text-base uppercase text-ink">{viewModel.selectedPlayer.name}</PixelText><Text className="mt-1 text-sm text-ink/60">{viewModel.selectedPlayer.detail}</Text></View>
                     {viewModel.selectedPlayer.powerName ? <StatusChip label={viewModel.selectedPlayer.powerName} tone="hero" /> : null}
                   </>
-                ) : <PixelText className="text-base uppercase text-ink">+ Choose player</PixelText>}
+                ) : <PixelText className="text-base uppercase text-ink">{t('storyEvent.choosePlayer')}</PixelText>}
               </Pressable>
             </View>
           ) : null}
 
           <View className="mt-6 gap-3">
-              <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Your call</Text>
+              <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{t('storyEvent.yourCall')}</Text>
               {viewModel.choices.map((choice, index) => {
                 const disabled = Boolean(choice.disabled || needsPlayer);
                 return (

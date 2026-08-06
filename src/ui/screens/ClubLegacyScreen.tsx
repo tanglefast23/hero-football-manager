@@ -16,6 +16,7 @@ import {
   TUTORIAL_TAP_CUE_WIDTH,
 } from '../tutorial-cue-position';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
+import { useCopy } from '../../i18n';
 
 export interface ClubLegacyScreenProps {
   viewModel: ClubLegacyViewModel;
@@ -32,6 +33,7 @@ export function ClubLegacyScreen({
   guided = false,
   onDismissGuidance,
 }: ClubLegacyScreenProps) {
+  const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const wide = useLayoutMode() === 'twoColumn';
   // Legends retire in a queue, and this choice is irreversible: without the
@@ -59,8 +61,8 @@ export function ClubLegacyScreen({
       <ChalkboardBackdrop wide={wide} />
       <View className="flex-row items-center justify-between px-4 py-3">
         <View className="flex-1">
-          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Club legacy</Text>
-          <Text className="mt-1 font-pixel text-lg uppercase text-white">A legend's next chapter</Text>
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{t('clubLegacy.clubLegacy')}</Text>
+          <Text className="mt-1 font-pixel text-lg uppercase text-white">{t('clubLegacy.aLegendsNextChapter')}</Text>
         </View>
         <View className="flex-row items-center gap-2">
           <StatusChip label={viewModel.seasonLabel} tone="hero" />

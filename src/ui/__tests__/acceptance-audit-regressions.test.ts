@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { ENGINE_VERSION } from '../../sim/match';
+import { loadCatalog } from '../../i18n';
 
 function source(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
@@ -38,7 +39,9 @@ describe('player-facing acceptance audit regressions', () => {
     expect(club).toContain('Build time ${entry.buildWeeks}');
     expect(club).toContain('entry.blockedReason');
     expect(club).toContain('entry.affordabilityShortfall > 0');
-    expect(notice).toContain('accessibilityLabel="Let them build. Close construction confirmation"');
+    expect(notice).toContain("t('facilityProjectNotice.a11y.letThemBuildCloseConfirmation')");
+    expect(loadCatalog('en').strings['facilityProjectNotice.a11y.letThemBuildCloseConfirmation'])
+      .toBe('Let them build. Close construction confirmation');
   });
 
   test('announces the Bert instruction on guided tabs and reserves cue space', () => {

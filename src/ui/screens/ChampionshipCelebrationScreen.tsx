@@ -34,6 +34,7 @@ import type {
   ChampionshipCelebrationPlayerViewModel,
   ChampionshipCelebrationViewModel,
 } from '../models';
+import { useCopy } from '../../i18n';
 
 const CUTSCENE_MS = 8_200;
 const REDUCED_MOTION_MS = 5_000;
@@ -54,6 +55,7 @@ export function ChampionshipCelebrationScreen({
   reduceMotion = false,
   onComplete,
 }: ChampionshipCelebrationScreenProps) {
+  const t = useCopy();
   const { width, height } = useWindowDimensions();
   const titleProgress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const tossProgress = useRef(new Animated.Value(0)).current;
@@ -308,12 +310,12 @@ export function ChampionshipCelebrationScreen({
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Skip league championship celebration"
+        accessibilityLabel={t('championshipCelebration.a11y.skipLeagueChampionshipCelebration')}
         onPress={completeOnce}
         style={({ pressed }) => [styles.skipButton, { opacity: pressed ? 0.65 : 1 }]}
       >
         {/* '›' is in Silkscreen; '▸' is not and rendered in the fallback face. */}
-        <Text className="font-pixel text-xs uppercase text-white">Skip ›</Text>
+        <Text className="font-pixel text-xs uppercase text-white">{t('championshipCelebration.skip')}</Text>
       </Pressable>
 
       <Animated.View pointerEvents="none" style={[styles.titleCard, titleStyle]}>
@@ -381,7 +383,7 @@ export function ChampionshipCelebrationScreen({
 
         <View style={styles.bertLabel}>
           <Text className="font-pixel text-[10px] uppercase text-white">{viewModel.assistantName}</Text>
-          <Text className="font-mono text-[8px] uppercase text-gold">Still here!</Text>
+          <Text className="font-mono text-[8px] uppercase text-gold">{t('championshipCelebration.stillHere')}</Text>
         </View>
         {/* Inboard of Bert: he owns the corner, and the staff line up along
             the touchline from him toward the squad. */}

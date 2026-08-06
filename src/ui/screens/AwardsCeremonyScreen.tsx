@@ -38,6 +38,7 @@ import type {
   AwardCeremonySpeakerViewModel,
   AwardCeremonyViewModel,
 } from '../models';
+import { useCopy } from '../../i18n';
 
 const SPRITE_SCALE = 4;
 /**
@@ -111,6 +112,7 @@ export function AwardsCeremonyScreen({
   initialStageIndex = 0,
   onComplete,
 }: AwardsCeremonyScreenProps) {
+  const t = useCopy();
   const reduce = useReducedMotion(reduceMotion);
   const stages = useMemo(() => awardCeremonyStages(viewModel), [viewModel]);
   const [stageIndex, setStageIndex] = useState(Math.max(0, initialStageIndex));
@@ -157,8 +159,7 @@ export function AwardsCeremonyScreen({
               {viewModel.seasonLabel}
             </PixelText>
             <PixelText className="mt-1 text-base uppercase text-paper">
-              Division Awards
-            </PixelText>
+              {t('awardsCeremony.divisionAwards')}</PixelText>
           </View>
         </View>
 
@@ -322,6 +323,7 @@ function PrizePanel({
   viewModel: AwardCeremonyViewModel;
   reduceMotion: boolean;
 }) {
+  const t = useCopy();
   const { prize } = viewModel;
   const counts = prizeCountsUp(prize);
   const total = prize.totalTrainingPoints;
@@ -352,14 +354,13 @@ function PrizePanel({
     <View accessible accessibilityLabel={prizeAccessibilityLabel(prize)} style={styles.board}>
       <View style={styles.boardTitle}>
         <PixelText className="text-[10px] uppercase tracking-[3px] text-ink/60">
-          Award prize
-        </PixelText>
+          {t('awardsCeremony.awardPrize')}</PixelText>
         {counts ? (
           <PixelText variant="data" className="mt-2 text-4xl text-ink">
             {shown} TP
           </PixelText>
         ) : (
-          <PixelText className="mt-2 text-2xl uppercase text-ink">Nothing this year</PixelText>
+          <PixelText className="mt-2 text-2xl uppercase text-ink">{t('awardsCeremony.nothingThisYear')}</PixelText>
         )}
       </View>
       <Text className="px-4 pb-5 pt-3 text-center text-sm leading-5 text-paper/80">

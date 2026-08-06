@@ -29,10 +29,18 @@ const area = file => {
 
 const slug = text => {
   const words = text.trim().replace(/[^\w\s-]/g, '').split(/\s+/).filter(Boolean);
-  return words.map((w, i) => {
-    const lower = w.toLowerCase();
-    return i === 0 ? lower : lower.charAt(0).toUpperCase() + lower.slice(1);
-  }).join('').slice(0, 40);
+  // Whole words only. A raw `.slice(0, 40)` cuts mid-word and leaves keys like
+  // `...ConstructionConfirmatio`, which reads as a typo forever.
+  const parts = [];
+  let length = 0;
+  for (const [index, word] of words.entries()) {
+    const lower = word.toLowerCase();
+    const piece = index === 0 ? lower : lower.charAt(0).toUpperCase() + lower.slice(1);
+    if (length + piece.length > 40 && parts.length > 0) break;
+    parts.push(piece);
+    length += piece.length;
+  }
+  return parts.join('');
 };
 
 function looksLikeProse(text) {

@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { loadCatalog } from '../../i18n';
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
@@ -38,7 +39,9 @@ describe('repeat-training presentation contract', () => {
     expect(modal).toContain('selected drills start below 30% condition');
     expect(modal).toContain('Continue anyway · {repeatCount}×');
     expect(modal).toContain('Continue with max safe · ${Math.min(repeatCount, maximumSafeRuns)}×');
-    expect(modal).toContain('Cancel and return to the number picker');
+    expect(modal).toContain("t('trainingDrill.a11y.cancelAndReturnToTheNumberPicker')");
+    expect(loadCatalog('en').strings['trainingDrill.a11y.cancelAndReturnToTheNumberPicker'])
+      .toBe('Cancel and return to the number picker');
     expect(modal).toContain('startTrainingBatch(pendingConfirm, saferRuns);');
   });
 });
@@ -99,7 +102,8 @@ describe('story-event result contract', () => {
 
     expect(screen).toContain("choice.tone === 'risky' ? 'border-stamp bg-red-light'");
     expect(screen).toContain('No bonus this time');
-    expect(screen).toContain('No bonus earned');
+    expect(screen).toContain("t('storyEvent.noBonusEarned')");
+    expect(loadCatalog('en').strings['storyEvent.noBonusEarned']).toBe('No bonus earned');
     expect(screen).toContain('<EventRewardArt');
     expect(screen).toContain('<EventPixelConfetti');
     expect(rewardArt).toContain("fans: 'supporters'");
