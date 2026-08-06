@@ -130,7 +130,7 @@ describe('player-controlled Hero Cup match flow', () => {
       score: { homeGoals: userWin.homeGoals, awayGoals: userWin.awayGoals },
     });
     expect(settled.ledgers).toHaveLength(1);
-    expect(settled.ledgers[0].lines).toContainEqual({
+    expect(settled.ledgers[0].lines).toContainEqual(expect.objectContaining({
       kind: 'prize',
       label: 'Hero Cup Play-in win',
       amount: 2_000,
@@ -139,7 +139,7 @@ describe('player-controlled Hero Cup match flow', () => {
         settled.season,
         1,
       ),
-    });
+    }));
     expect(settled.clubs.find(club => club.id === settled.userClubId)?.fans).toBe(
       afterLeague.clubs.find(club => club.id === afterLeague.userClubId)!.fans + 6,
     );

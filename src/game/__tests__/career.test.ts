@@ -162,10 +162,14 @@ describe('career season workflow', () => {
       amount: FIRST_D4_PROMOTION_RECRUITMENT_FUND,
       idempotencyKey: weeklySettlementAwardKeys.recruitmentFund(firstPromotion.userClubId),
     };
+    // `objectContaining`, because the line also carries the catalog key it
+    // renders through. This assertion is about the money and the idempotency
+    // key, not about the line having exactly four fields forever.
+    const fundLineMatch = expect.objectContaining(fundLine);
 
-    expect(firstPromotion.ledgers.at(-1)?.lines).toContainEqual(fundLine);
+    expect(firstPromotion.ledgers.at(-1)?.lines).toContainEqual(fundLineMatch);
     expect(firstPromotion.ledgers.flatMap(ledger => ledger.lines)
-      .filter(line => line.label === fundLine.label)).toEqual([fundLine]);
+      .filter(line => line.label === fundLine.label)).toEqual([fundLineMatch]);
     expect(repeatPromotion.ledgers.flatMap(ledger => ledger.lines)
       .filter(line => line.label === fundLine.label)).toEqual([]);
     const firstCash = firstPromotion.clubs.find(club => club.id === firstPromotion.userClubId)!.cash;
@@ -174,7 +178,7 @@ describe('career season workflow', () => {
 
     const restored = parseStoredGameState(serializeGameState(firstPromotion));
     expect(restored.clubs.find(club => club.id === restored.userClubId)?.cash).toBe(firstCash);
-    expect(restored.ledgers.at(-1)?.lines).toContainEqual(fundLine);
+    expect(restored.ledgers.at(-1)?.lines).toContainEqual(fundLineMatch);
   });
 
   it('adds supplied contributions to the persistent season stat lines', () => {
@@ -267,7 +271,7 @@ describe('career season workflow', () => {
     const gateRoll = matchdayVarianceRoll(settled.careerSeed, 1, 3, 'league-gate');
     const gateAmount = Math.round(1200 * (100 + gateRoll.percent) / 100);
     expect(settled.ledgers.at(-1)?.lines).toEqual([
-      {
+      expect.objectContaining({
         kind: 'tickets',
         label: 'League home gate',
         amount: gateAmount,
@@ -279,9 +283,9 @@ describe('career season workflow', () => {
           multiplierPercent: 100,
           facilityCount: 0,
         },
-      },
-      { kind: 'wages', label: 'Weekly wages', amount: -3200 },
-      { kind: 'subsidy', label: 'Season 1 wage subsidy', amount: 1600 },
+      }),
+      expect.objectContaining({ kind: 'wages', label: 'Weekly wages', amount: -3200 }),
+      expect.objectContaining({ kind: 'subsidy', label: 'Season 1 wage subsidy', amount: 1600 }),
     ]);
     expect(settled.clubs.find(club => club.id === state.userClubId)?.cash).toBe(20200 + gateAmount);
     expect(beforeMatchday.week).toBe(3);
@@ -348,8 +352,8 @@ describe('finances and two-season boundary', () => {
   it('pays the Season 1 wage subsidy but removes it in Season 2', () => {
     const seasonOneWeekTwo = advanceWeek(createCareer(makeSetup()));
     expect(seasonOneWeekTwo.ledgers[0].lines).toEqual([
-      { kind: 'wages', label: 'Weekly wages', amount: -3200 },
-      { kind: 'subsidy', label: 'Season 1 wage subsidy', amount: 1600 },
+      expect.objectContaining({ kind: 'wages', label: 'Weekly wages', amount: -3200 }),
+      expect.objectContaining({ kind: 'subsidy', label: 'Season 1 wage subsidy', amount: 1600 }),
     ]);
 
     // The season transition re-derives the wage bill from the post-aging
@@ -369,8 +373,8 @@ describe('finances and two-season boundary', () => {
     const userCash = state.clubs.find(club => club.id === state.userClubId)?.cash;
 
     expect(ledger.lines).toEqual([
-      { kind: 'wages', label: 'Weekly wages', amount: -3201 },
-      { kind: 'subsidy', label: 'Season 1 wage subsidy', amount: 1600 },
+      expect.objectContaining({ kind: 'wages', label: 'Weekly wages', amount: -3201 }),
+      expect.objectContaining({ kind: 'subsidy', label: 'Season 1 wage subsidy', amount: 1600 }),
     ]);
     expect(Number.isInteger(ledger.balanceAfter)).toBe(true);
     expect(Number.isInteger(userCash)).toBe(true);

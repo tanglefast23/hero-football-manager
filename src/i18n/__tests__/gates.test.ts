@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { ENABLED_LOCALES, LOCALES, loadCatalog, localeMeta } from '../index';
 import { faceFile, glyphSet, missingGlyphs } from '../glyph-coverage';
 import { faceForKey } from '../voice';
@@ -95,5 +97,22 @@ describe('i18n gates', () => {
       expect({ locale, missing: missingGlyphs(meta.endonym, covered) })
         .toEqual({ locale, missing: [] });
     }
+  });
+});
+
+describe('persisted labels resolve through the catalog', () => {
+  test('every labelKey a producer writes exists in the English catalog', () => {
+    // A producer that dual-writes a key nothing can resolve is worse than one
+    // that writes English only: the fallback still renders, so nothing looks
+    // broken, and the string silently never translates.
+    const sources = ['src/game/career.ts', 'src/game/player-requests.ts'];
+    const keys = sources.flatMap(file => {
+      const text = readFileSync(join(process.cwd(), file), 'utf8');
+      return [...text.matchAll(/labelKey: '([^']+)'/g)].map(match => match[1]!);
+    });
+
+    expect(keys.length).toBeGreaterThan(0);
+    const known = new Set(Object.keys(english()));
+    expect(keys.filter(key => !known.has(key))).toEqual([]);
   });
 });

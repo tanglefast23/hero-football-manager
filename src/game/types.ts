@@ -292,7 +292,22 @@ export type LedgerLineKind =
 
 export interface LedgerLine {
   kind: LedgerLineKind;
+  /**
+   * The English label, still required and still written on every new line.
+   *
+   * It is the fallback for careers saved before `labelKey` existed, and the
+   * safety net if a key is ever dropped from the catalog — so producers
+   * dual-write rather than switching over.
+   */
   label: string;
+  /** Catalog key for `label`, so a saved career renders in the player's language. */
+  labelKey?: string;
+  /**
+   * Values for the key's placeholders. RAW values only: `{ fee: 240000 }`, never
+   * `{ fee: '$240,000' }`. Formatting is a display concern, and pre-formatting
+   * would freeze one locale's separator into the save file.
+   */
+  labelParams?: Readonly<Record<string, string | number>>;
   amount: number;
   /** Stable identity for cash awards that must survive retries and reloads. */
   idempotencyKey?: string;
