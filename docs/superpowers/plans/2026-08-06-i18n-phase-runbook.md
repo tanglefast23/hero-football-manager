@@ -20,8 +20,8 @@ for what is done, what is next, and the exact commands.
 | 1.5 content keys | `claude/multilingual-copy-phase-2` | #96 | **merged** (`749949a`) |
 | 2 Spanish | `claude/i18n-phase-2-spanish` | #97 | **open** |
 | 3 Vietnamese | `claude/i18n-phase-3-vietnamese` | #98 | **open** |
-| 4 pt-BR/fr/id/de | `claude/i18n-phase-4-remaining` | — | **in progress** |
-| 5 long tail | `claude/i18n-phase-5-long-tail` | — | not started |
+| 4 pt-BR/fr/id/de | `claude/i18n-phase-4-remaining` | #99 | **open** |
+| 5 long tail | `claude/i18n-phase-5-long-tail` | — | **in progress** |
 
 ## The invariant that matters most
 
@@ -102,9 +102,30 @@ ceilings.
 **Plural rules already encoded** in `locales.ts`: `pt-BR` and `fr` put ZERO in
 the singular; `es` and `de` do not; `id` and `vi` have no plural marking.
 
-## Phase 5 — long tail
+## Phase 5 — long tail (current)
 
-Whatever prose remains uncovered once 2–4 are done.
+**606 content-prose keys** (events, tips, glossary, player requests) × 6
+languages = 3,636 strings. This is the largest single block of work in the whole
+project and it is NOT finished.
+
+**What is done:** gate 10 measures per-locale content coverage and holds a floor
+that may only rise, so the remainder is a number rather than a vibe. Spanish
+tips are translated (38 keys) as the worked example.
+
+**How to continue:** translate a surface at a time into `content/i18n/<locale>.json`
+using the same keys `contentStrings()` produces, then raise that locale's
+`COVERAGE_FLOOR` in `gates.test.ts`. Run `npx jest src/i18n` — it prints the
+coverage table.
+
+**Order by player value:** `onboarding` and early `event.*` first (a player
+meets them in the first session), then `tip.*`, then `glossary.*`, then the
+late-career events.
+
+**The trap this phase already sprang:** gates that MEASURE a translation
+(budget, placeholders, terminology) must use `englishAll()` — chrome plus
+content. Using chrome-only silently measures every content translation against
+an empty string, collapsing the budget to 2 characters. Key parity deliberately
+uses chrome-only, because content falls back by design.
 
 ## Commands
 

@@ -48,9 +48,10 @@
       "english": "Fan Shop",
       "englishPattern": "Fan Shop",
       "allowedForms": [
-        "Tienda del Club"
+        "Tienda del Club",
+        "Tiendas del Club"
       ],
-      "why": "'Tienda de Aficionados' is a translation; 'Tienda del Club' is what a ground actually calls it."
+      "why": "'Tienda de Aficionados' is a translation; 'Tienda del Club' is what a ground actually calls it. The plural is allowed because you can build three of them."
     },
     {
       "english": "Buzz",

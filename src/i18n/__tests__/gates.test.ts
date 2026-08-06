@@ -11,7 +11,26 @@ import {
   LEAGUE_HEADER_FONT_SIZE,
 } from '../../ui/league-table-columns';
 
+/**
+ * UI chrome only. This is the set a locale MUST translate in full, so it is what
+ * key parity and the fragment check run against.
+ */
 const english = () => loadCatalog('en').strings;
+
+/**
+ * Every English string a locale could be translating — chrome plus content
+ * prose, read from the files it is authored in.
+ *
+ * Gates that MEASURE a translation against its source (budget, placeholders,
+ * terminology) must use this. A source that only knows about chrome silently
+ * measures every content translation against an empty string, which is not a
+ * soft failure: the budget collapses to 2 characters and the placeholder check
+ * expects none. The first translated tip found exactly that.
+ *
+ * Parity deliberately does NOT use it: content prose falls back to English by
+ * design, and gate 10 tracks how much of it is done instead.
+ */
+const englishAll = () => ({ ...contentStrings(), ...loadCatalog('en').strings });
 const translated = () => ENABLED_LOCALES.filter(locale => locale !== 'en');
 
 const placeholders = (value: string) =>
@@ -32,7 +51,7 @@ describe('i18n gates', () => {
     // character count is a poor proxy for pixel width. Layout safety comes from
     // the measured advance tables. This keeps the translation honest about
     // "succinct always".
-    const source = english();
+    const source = englishAll();
     for (const locale of translated()) {
       const ceiling = localeMeta(locale).expansion;
       for (const [key, value] of Object.entries(loadCatalog(locale).strings)) {
@@ -48,7 +67,7 @@ describe('i18n gates', () => {
   test('gate 4 — placeholders match the English source exactly', () => {
     // A dropped {player} is a silent content bug: the string still renders, it
     // just stops naming anyone.
-    const source = english();
+    const source = englishAll();
     for (const locale of translated()) {
       for (const [key, value] of Object.entries(loadCatalog(locale).strings)) {
         expect({ locale, key, placeholders: placeholders(value) })
@@ -124,7 +143,7 @@ describe('persisted labels resolve through the catalog', () => {
     expect(keys.length).toBeGreaterThan(0);
     // Both English sources: chrome keys from en.json, content keys derived from
     // the content files. A producer may legitimately reference either.
-    const known = new Set([...Object.keys(english()), ...Object.keys(contentStrings())]);
+    const known = new Set(Object.keys(englishAll()));
     // Template keys are built from a content id at runtime, so check the prefix
     // resolves for every id rather than the literal `${...}` text.
     const dynamic = keys.filter(key => key.includes('$'));
@@ -202,7 +221,7 @@ describe('gate 9 — locked terminology', () => {
     // because a substring check on it false-positives constantly on Spanish
     // inflection and German compounding — and a gate that cries wolf gets
     // switched off.
-    const source = english();
+    const source = englishAll();
     for (const locale of ENABLED_LOCALES.filter(l => l !== 'en')) {
       const glossary = loadGlossary(locale);
       const strings = loadCatalog(locale).strings;
@@ -238,3 +257,38 @@ function loadGlossary(locale: string): Glossary {
     readFileSync(join(process.cwd(), `content/i18n/glossary/${locale}.json`), 'utf8'),
   ) as Glossary;
 }
+
+describe('gate 10 — content-prose coverage is measured, not assumed', () => {
+  /**
+   * How much of each locale's content prose is translated.
+   *
+   * Content keys resolve through English when a locale has not translated them,
+   * which is correct behaviour and completely silent — a French player sees a
+   * French menu and an English event, and nothing fails. That silence is the
+   * problem: without a number, "the long tail" stays a vibe rather than a
+   * quantity, and nobody can tell 5% done from 95% done.
+   *
+   * These floors may only ever RISE. Raising one is how a batch of long-tail
+   * translation gets recorded as landed.
+   */
+  const COVERAGE_FLOOR: Readonly<Record<string, number>> = {
+    es: 6, 'pt-BR': 0, fr: 0, id: 0, de: 0, vi: 0,
+  };
+
+  test('every locale meets its recorded content-prose floor', () => {
+    const contentKeys = Object.keys(contentStrings());
+    expect(contentKeys.length).toBeGreaterThan(0);
+
+    const report: Record<string, string> = {};
+    for (const locale of ENABLED_LOCALES.filter(l => l !== 'en')) {
+      const translated = loadCatalog(locale).strings;
+      const done = contentKeys.filter(key => key in translated).length;
+      const percent = Math.floor((done / contentKeys.length) * 100);
+      report[locale] = `${done}/${contentKeys.length} (${percent}%)`;
+      expect({ locale, percent }).toMatchObject({ locale });
+      expect(percent).toBeGreaterThanOrEqual(COVERAGE_FLOOR[locale] ?? 0);
+    }
+    // eslint-disable-next-line no-console
+    console.log('content prose coverage:', report);
+  });
+});
