@@ -204,8 +204,7 @@ export function SeasonEndScreen({
               className="bg-gold-light"
             >
               <Text className="text-sm leading-5 text-ink/60">
-                These rewards stay unlocked even if the club is relegated later.
-              </Text>
+                {t('seasonEnd.theseRewardsStayUnlocked')}</Text>
               <View className="mt-3 gap-2">
                 {viewModel.promotionRewards.items.map((reward, index) => (
                   <View key={reward.title} className="border-2 border-ink bg-white p-3">
@@ -345,8 +344,7 @@ export function SeasonEndScreen({
                     />
                   </View>
                   <Text className="mt-2 text-center text-sm text-ink/50">
-                    Renewal raises weekly payroll; it does not require an upfront fee.
-                  </Text>
+                    {t('seasonEnd.renewalRaisesWeeklyPayroll')}</Text>
                 </>
               ) : contract.requiresNegotiation && viewModel.renewalNegotiation === undefined ? (
                 <>
@@ -366,8 +364,7 @@ export function SeasonEndScreen({
                     />
                   </View>
                   <Text className="mt-2 text-center text-sm text-ink/50">
-                    Three negotiation rounds. Mood, promises, and one-use pitch cards all matter.
-                  </Text>
+                    {t('seasonEnd.threeNegotiationRoundsMood')}</Text>
                 </>
               ) : viewModel.renewalNegotiation === undefined ? (
                 <View className="mt-3 flex-row gap-2">

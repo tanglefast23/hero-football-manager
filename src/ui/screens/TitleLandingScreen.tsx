@@ -101,8 +101,7 @@ export function TitleLandingScreen({
                 ? 'mt-7 max-w-lg font-mono text-base uppercase leading-7 text-paper/80'
                 : 'mt-4 max-w-sm font-mono text-sm uppercase leading-5 text-paper/80'}
               >
-                Train a tiny club. Discover impossible players. Make match-day legends.
-              </Text>
+                {t('titleLanding.trainATinyClub')}</Text>
             </View>
           </View>
 
@@ -299,7 +298,7 @@ export function TitleSettingsScreen({
                 >
                   <View className="flex-1 pr-3">
                     <Text className="font-pixel text-base uppercase text-ink">{t('settings.reduceMotion.label')}</Text>
-                    <Text className="mt-1 text-sm text-ink/60">Stops count-ups, flashes, pulses, and decorative match trails.</Text>
+                    <Text className="mt-1 text-sm text-ink/60">{t('titleLanding.stopsCount-upsFlashesPulses')}</Text>
                   </View>
                   <Text className="font-pixel text-lg text-ink">{preferences.reduceMotion ? 'ON' : 'OFF'}</Text>
                 </Pressable>
@@ -312,7 +311,7 @@ export function TitleSettingsScreen({
                 >
                   <View className="flex-1 pr-3">
                     <Text className="font-pixel text-base uppercase text-ink">{t('titleLanding.matchInfoPosition')}</Text>
-                    <Text className="mt-1 text-sm text-ink/60">Moves the carrier card and top controls together.</Text>
+                    <Text className="mt-1 text-sm text-ink/60">{t('titleLanding.movesTheCarrierCard')}</Text>
                   </View>
                   <Text className="font-pixel text-lg uppercase text-blue-dark">{preferences.hudSide}</Text>
                 </Pressable>
@@ -336,8 +335,7 @@ export function TitleSettingsScreen({
   const audioPanel = (
     <PaperPanel kicker="Master mix" title="Game audio" stamp={`${volumePercent}%`}>
               <Text className="text-base leading-5 text-ink/65">
-                One master level keeps the opening, clubhouse, match music, and sound effects balanced together.
-              </Text>
+                {t('titleLanding.oneMasterLevelKeeps')}</Text>
 
               <Pressable
                 accessibilityRole="button"
@@ -378,8 +376,7 @@ export function TitleSettingsScreen({
   const glossaryPanel = (
     <PaperPanel kicker="Club handbook" title="Glossary" stamp="A–Z">
       <Text className="text-base leading-5 text-ink/65">
-        Look up football terms, player development, club systems, match controls, and hero mechanics.
-      </Text>
+        {t('titleLanding.lookUpFootballTerms')}</Text>
       <View className="mt-4">
         <ActionButton
           label="Open glossary"
@@ -394,8 +391,7 @@ export function TitleSettingsScreen({
   const privacySupportPanel = (
     <PaperPanel kicker="About this build" title="Privacy & Support" stamp="No tracking">
       <Text className="text-base leading-5 text-ink/65">
-        Read how local saves work, view the open-source notice, or contact support.
-      </Text>
+        {t('titleLanding.readHowLocalSaves')}</Text>
       <View className="mt-4">
         <ActionButton
           label="Open privacy & support"

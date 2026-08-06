@@ -880,8 +880,7 @@ function SponsorBusinessSection({
               <View className="mt-3 border-2 border-dashed border-ink/30 bg-paper p-3">
                 <PixelText className="text-sm uppercase text-ink">{t('clubFinances.incomeProtected')}</PixelText>
                 <Text className="mt-1 text-sm leading-5 text-ink/70">
-                  Your current sponsor income continues. New offers arrive next pre-season.
-                </Text>
+                  {t('clubFinances.yourCurrentSponsorIncome')}</Text>
               </View>
             ) : null
           ) : (
@@ -1342,8 +1341,7 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
         {viewModel.coachingStaff.length === 0 ? (
           <PaperPanel kicker="Vacancy" title="The touchline needs a voice" stamp="OPEN">
             <Text className="text-sm leading-5 text-ink/70">
-              Hire a head coach to improve specialist training and guide Hero Gauge growth.
-            </Text>
+              {t('clubFinances.hireAHeadCoach')}</Text>
             {onOpenCoachMarket ? (
               <View className="mt-3">
                 <ActionButton
@@ -1548,7 +1546,7 @@ function GroundsSection({
                 <PixelText className="mt-1 text-base uppercase text-ink">
                   {viewModel.facilities.activeProject.name} · {viewModel.facilities.activeProject.weeksRemaining}W left
                 </PixelText>
-                <Text className="mt-1 text-sm text-ink/70">Only one construction or upgrade project can run at a time.</Text>
+                <Text className="mt-1 text-sm text-ink/70">{t('clubFinances.onlyOneConstructionOr')}</Text>
               </View>
             </View>
           ) : null}
@@ -2262,8 +2260,7 @@ function LegacyTrainingGroundSection({
             <View className="flex-1">
               <PixelText className="text-base uppercase text-ink">{t('clubFinances.trainingGroundLevel1')}</PixelText>
               <Text className="mt-2 text-sm leading-4 text-ink/70">
-                A proper weekly practice base. Small, dependable improvement without adding another management chore.
-              </Text>
+                {t('clubFinances.aProperWeeklyPractice')}</Text>
             </View>
           </View>
           <View className="mt-3 flex-row gap-2">
@@ -2292,7 +2289,7 @@ function LegacyTrainingGroundSection({
           {facility.underConstruction ? (
             <View className="mt-3 border-2 border-b-4 border-amber-800 bg-amber-100 p-3">
               <Text className="text-center font-pixel text-base uppercase text-amber-900">{t('clubFinances.sportsFacilityInConstruction')}</Text>
-              <Text className="mt-2 text-center text-sm text-ink/65">Benefits start when the next weekly settlement completes the work.</Text>
+              <Text className="mt-2 text-center text-sm text-ink/65">{t('clubFinances.benefitsStartWhenThe')}</Text>
             </View>
           ) : null}
           {!facility.built && !facility.underConstruction && !facility.affordable ? (

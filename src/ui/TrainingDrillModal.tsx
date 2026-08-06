@@ -637,8 +637,7 @@ export function TrainingDrillModal({
                       OUT · {activeResult.injury.recoveryWeeks} {activeResult.injury.recoveryWeeks === 1 ? 'WEEK' : 'WEEKS'}
                     </Text>
                     <Text className="mt-2 text-center text-sm text-ink/70">
-                      The drill still counted — then something went twang.
-                    </Text>
+                      {t('trainingDrill.theDrillStillCounted')}</Text>
                   </View>
                 </View>
               </Pressable>
@@ -823,8 +822,7 @@ export function TrainingDrillModal({
                       </ScrollView>
                     )}
                     <Text className="mt-2 text-xs leading-4 text-ink/55">
-                      Each run keeps its own SUPER roll, injury roll and result reveal.
-                    </Text>
+                      {t('trainingDrill.eachRunKeepsIts')}</Text>
                   </View>
                 </ScrollView>
 

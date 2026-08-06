@@ -75,8 +75,7 @@ export function PlayerSigningOverlay({
               </Text>
             </View>
             <Text className="mt-4 text-center text-base leading-5 text-ink/65">
-              The transfer is complete. Your new player is ready for selection.
-            </Text>
+              {t('playerSigning.theTransferIsComplete')}</Text>
             <View className="mt-4">
               <ActionButton
                 label="Return to club  ▸"

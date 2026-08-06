@@ -691,8 +691,7 @@ function RosterSection({
           <View className="items-center px-4 py-8">
             <PixelText className="text-base uppercase text-ink">{t('squadTraining.noPlayersRegistered')}</PixelText>
             <Text className="mt-2 text-center text-sm leading-5 text-ink/55">
-              Sign a player from the market to start training.
-            </Text>
+              {t('squadTraining.signAPlayerFrom')}</Text>
           </View>
         ) : sortedPlayers.map((player) => {
           const selected = player.id === selectedPlayerId;
@@ -965,7 +964,7 @@ function PlayerFileSection({
           <Text className="font-pixel text-base uppercase text-red-dark">
             OUT · {selectedPlayer.injuryWeeks} {selectedPlayer.injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
           </Text>
-          <Text className="mt-1 text-sm text-ink/70">Unavailable for match selection while recovering.</Text>
+          <Text className="mt-1 text-sm text-ink/70">{t('squadTraining.unavailableForMatchSelection')}</Text>
         </View>
       ) : selectedPlayer.awayWeeks > 0 ? (
         // Gold, not red: leave is a consequence the manager chose, and keeping
@@ -975,8 +974,7 @@ function PlayerFileSection({
             ON LEAVE · {selectedPlayer.awayWeeks} {selectedPlayer.awayWeeks === 1 ? 'WEEK' : 'WEEKS'}
           </Text>
           <Text className="mt-1 text-sm text-ink/70">
-            Away on a granted request. Cannot be selected or trained.
-          </Text>
+            {t('squadTraining.awayOnAGranted')}</Text>
         </View>
       ) : null}
       <View className="flex-row gap-2">

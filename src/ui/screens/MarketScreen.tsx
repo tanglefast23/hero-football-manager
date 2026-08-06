@@ -630,8 +630,7 @@ function TransferDesk({
                       <View className="items-center border-2 border-dashed border-ink/25 bg-white/50 px-3 py-4">
                         <PixelText className="text-sm uppercase text-ink/60">{t('market.listedNoBidsYet')}</PixelText>
                         <Text className="mt-1 text-center text-sm leading-5 text-ink/55">
-                          Rival clubs review the listing each week.
-                        </Text>
+                          {t('market.rivalClubsReviewThe')}</Text>
                       </View>
                     ) : listing.bids.map((bid, index) => (
                       <View key={bid.id} className="flex-row items-center gap-3 border-2 border-ink bg-paper px-3 py-2">
@@ -741,7 +740,7 @@ function CoachDesk({
                   {coach.currentRole ?? coach.blockedReason ?? 'Available to hire.'}
                 </Text>
                 {!coach.assistantSlotUnlocked ? (
-                  <Text className="text-sm font-bold text-blue-dark">Build the Coaching Office to open the assistant desk.</Text>
+                  <Text className="text-sm font-bold text-blue-dark">{t('market.buildTheCoachingOffice')}</Text>
                 ) : null}
                 <View className="flex-row justify-end gap-2">
                   <SmallAction
@@ -953,7 +952,7 @@ export function NegotiationPanel({
           </View>
 
           <View className="mt-4">
-            <Text className="font-pixel text-sm uppercase text-stamp">4 · Pitch card · optional</Text>
+            <Text className="font-pixel text-sm uppercase text-stamp">{t('market.4PitchCardOptional')}</Text>
             <View className="mt-2 gap-2">
               {viewModel.cards.length === 0 ? (
                 <EmptyDocket
@@ -1012,8 +1011,7 @@ export function NegotiationPanel({
             />
           </View>
           <Text className="mt-2 text-center text-sm text-ink/50">
-            Three rounds maximum. An offer below half their ask ends talks immediately.
-          </Text>
+            {t('market.threeRoundsMaximumAn')}</Text>
         </>
       ) : (
         <View className="mt-4">

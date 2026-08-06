@@ -210,7 +210,7 @@ export function ClubHomeScreen({
           <View className="gap-2">
             {viewModel.alerts.length === 0 && visibleNotes.length === 0 ? (
               <PaperPanel>
-                <Text className="text-ink/60" style={scaledBody(textScale)}>Desk clear. The board is suspiciously quiet.</Text>
+                <Text className="text-ink/60" style={scaledBody(textScale)}>{t('clubHome.deskClearTheBoard')}</Text>
               </PaperPanel>
             ) : null}
             {viewModel.alerts.map(alert => {

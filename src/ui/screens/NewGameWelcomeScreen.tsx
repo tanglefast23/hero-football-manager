@@ -169,8 +169,7 @@ export function NewGameWelcomeScreen({
         </View>
         <View className="mt-3 border-t-2 border-ink/15 pt-3">
           <Text className="text-sm leading-4 text-ink/65">
-            Bert is on duty. The inbox will surface the three things worth your attention.
-          </Text>
+            {t('newGameWelcome.bertIsOnDuty')}</Text>
         </View>
       </View>
     </View>

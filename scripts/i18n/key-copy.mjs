@@ -18,7 +18,12 @@ import fs from 'fs';
 import path from 'path';
 import ts from 'typescript';
 
-const MAX_WORDS = 5;
+// Whole labels and one-line sentences. Longer prose split across JSX is still
+// out of scope — that needs composing by hand.
+const MAX_WORDS = 14;
+// The slug names the thing in a few words even when the string is a sentence.
+// A key echoing a whole sentence becomes a lie the first time it is reworded.
+const MAX_SLUG_WORDS = 4;
 const CATALOG = 'content/i18n/en.json';
 
 const area = file => {
@@ -33,7 +38,7 @@ const slug = text => {
   // `...ConstructionConfirmatio`, which reads as a typo forever.
   const parts = [];
   let length = 0;
-  for (const [index, word] of words.entries()) {
+  for (const [index, word] of words.slice(0, MAX_SLUG_WORDS).entries()) {
     const lower = word.toLowerCase();
     const piece = index === 0 ? lower : lower.charAt(0).toUpperCase() + lower.slice(1);
     if (length + piece.length > 40 && parts.length > 0) break;

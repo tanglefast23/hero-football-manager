@@ -4,6 +4,7 @@ import { playFacilityCompleteSfx } from '../../render/management-sfx';
 import type { FacilityCompletionViewModel } from '../models';
 import { ManagementSprite } from './ManagementSprite';
 import { StatusChip } from './Scorecard';
+import { useCopy } from '../../i18n';
 
 export function FacilityCompletionCard({
   completion,
@@ -12,6 +13,7 @@ export function FacilityCompletionCard({
   completion: FacilityCompletionViewModel;
   reduceMotion?: boolean;
 }) {
+  const t = useCopy();
   const entrance = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export function FacilityCompletionCard({
       }}
     >
       <View className="flex-row items-center justify-between border-b-2 border-gold-dark bg-signal px-3 py-2">
-        <Text className="font-pixel text-base uppercase text-ink">Works complete!</Text>
+        <Text className="font-pixel text-base uppercase text-ink">{t('facilityCompletionCard.worksComplete')}</Text>
         <StatusChip label={`Level ${completion.level}`} tone="success" />
       </View>
       <View className="flex-row items-center gap-4 p-4">

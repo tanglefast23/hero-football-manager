@@ -307,8 +307,7 @@ export function FixtureMatchDayScreen({
         {viewModel.heroes.length === 0 ? (
           <PaperPanel kicker="Permit office" title="No heroes registered" stamp="Ordinary football">
             <Text className="text-base leading-6 text-ink/65">
-              Eleven regular players. No powers. Remember how this feels.
-            </Text>
+              {t('fixtureMatchDay.elevenRegularPlayersNo')}</Text>
           </PaperPanel>
         ) : viewModel.heroes.map(hero => (
           <PaperPanel key={hero.playerId} className={hero.licensed ? 'bg-gold-light' : undefined}>

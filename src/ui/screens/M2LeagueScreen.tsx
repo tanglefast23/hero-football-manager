@@ -261,7 +261,7 @@ export function M2LeagueScreen({
               );
             })}
           </View>
-          <Text className="mt-2 text-xs text-ink/50">P played · GD goal difference · Pts points</Text>
+          <Text className="mt-2 text-xs text-ink/50">{t('m2League.pPlayedGdGoal')}</Text>
         </View>
       ),
     },
@@ -278,8 +278,7 @@ export function M2LeagueScreen({
           {viewModel.leagueFixtures.length === 0 ? (
             <PaperPanel title="Schedule pending" kicker={viewModel.seasonLabel}>
               <Text className="text-sm leading-5 text-ink/60">
-                Your league schedule will appear here when the competition office publishes it.
-              </Text>
+                {t('m2League.yourLeagueScheduleWill')}</Text>
             </PaperPanel>
           ) : (
             <View className="gap-2">
@@ -346,8 +345,7 @@ export function M2LeagueScreen({
                     {viewModel.cup.championName}
                   </Text>
                   <Text className="mt-2 text-sm leading-5 text-ink/65">
-                    Their road to the trophy is recorded round by round below.
-                  </Text>
+                    {t('m2League.theirRoadToThe')}</Text>
                 </View>
               ) : (
                 <View className="mb-4 border-2 border-b-4 border-blue-dark bg-blue-light p-3">

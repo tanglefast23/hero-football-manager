@@ -35,8 +35,7 @@ export function GlossaryPanel({
         <PixelText className="text-sm uppercase tracking-[3px] text-blue-dark">{t('glossary.clubHandbook')}</PixelText>
         <Text className="mt-1 font-pixel text-2xl uppercase text-ink">Glossary</Text>
         <Text className="mt-2 text-sm leading-5 text-ink/60">
-          Plain-language definitions for football, management, training, and hero mechanics.
-        </Text>
+          {t('glossary.plain-languageDefinitionsForFootball')}</Text>
         <TextInput
           accessibilityLabel={t('glossary.a11y.searchGlossary')}
           autoCapitalize="none"
