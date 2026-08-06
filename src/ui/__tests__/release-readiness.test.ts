@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { qaRootRoutesEnabled } from '../release-surface';
+import { DEVELOPER_MODE_AVAILABLE, qaRootRoutesEnabled } from '../release-surface';
 
 function source(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
@@ -13,6 +13,27 @@ describe('App Store release surface', () => {
     expect(qaRootRoutesEnabled(false, 'web')).toBe(true);
     expect(qaRootRoutesEnabled(false, 'ios')).toBe(false);
     expect(qaRootRoutesEnabled(false, 'android')).toBe(false);
+  });
+
+  test('keeps the release preflight able to read the Developer Mode switch', () => {
+    // The switch is hand-flipped, so the preflight is the only thing that stops
+    // an archive shipping the save/load rail. It reads the declaration by
+    // pattern: reword the constant and the guard must still find it, or the
+    // release passes with Developer Mode silently on.
+    const guard = /export const DEVELOPER_MODE_AVAILABLE: boolean = (true|false);/;
+    expect(guard.exec(source('src/ui/release-surface.ts'))?.[1])
+      .toBe(String(DEVELOPER_MODE_AVAILABLE));
+    expect(source('scripts/release/check-config.mjs')).toContain(guard.source);
+  });
+
+  test('gates the developer save rail on the switch rather than on __DEV__', () => {
+    // Developer Mode has to survive a build where __DEV__ is false — a static
+    // web export or TestFlight — which is the whole point of the switch.
+    const app = source('App.tsx');
+    expect(app).toContain('developerMode={DEVELOPER_MODE_AVAILABLE ? preferences.developerMode : undefined}');
+    expect(app).toContain('onToggleDeveloperMode={DEVELOPER_MODE_AVAILABLE ? toggleDeveloperMode : undefined}');
+    expect(app).not.toContain('__DEV__ ? preferences.developerMode');
+    expect(app).not.toContain('__DEV__ && preferences.developerMode');
   });
 
   test('ships one adaptive iPhone and iPad configuration', () => {

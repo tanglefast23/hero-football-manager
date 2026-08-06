@@ -17,6 +17,21 @@ if (activeQaVariables.length > 0) {
   failures.push(`QA environment variables are set: ${activeQaVariables.join(', ')}`);
 }
 
+// Developer Mode is on in every ordinary build, so the one thing standing
+// between an archive and a player-visible save/load rail is a hand-flipped
+// constant. Read it rather than trust it was remembered.
+const releaseSurface = readFileSync(resolve('src/ui/release-surface.ts'), 'utf8');
+const developerModeAvailable = /export const DEVELOPER_MODE_AVAILABLE: boolean = (true|false);/
+  .exec(releaseSurface);
+if (developerModeAvailable === null) {
+  failures.push('DEVELOPER_MODE_AVAILABLE could not be read from src/ui/release-surface.ts');
+} else if (developerModeAvailable[1] !== 'false') {
+  failures.push(
+    'DEVELOPER_MODE_AVAILABLE must be false for a release'
+    + ' — it ships the Settings toggle and the developer save/load rail',
+  );
+}
+
 const config = JSON.parse(readFileSync(resolve('app.json'), 'utf8')).expo;
 if (config.orientation !== 'portrait') failures.push('expo.orientation must be portrait for iPhone');
 if (config.ios?.supportsTablet !== true) failures.push('expo.ios.supportsTablet must be true');
@@ -31,5 +46,5 @@ if (failures.length > 0) {
   for (const failure of failures) console.error(`- ${failure}`);
   process.exitCode = 1;
 } else {
-  console.log('Release preflight passed: iPhone portrait, adaptive iPad, build number, encryption declaration, and no QA flags.');
+  console.log('Release preflight passed: iPhone portrait, adaptive iPad, build number, encryption declaration, no QA flags, and Developer Mode off.');
 }
