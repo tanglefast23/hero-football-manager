@@ -363,7 +363,7 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
    * translation gets recorded as landed.
    */
   const COVERAGE_FLOOR: Readonly<Record<string, number>> = {
-    es: 33, 'pt-BR': 33, fr: 33, id: 33, de: 33, vi: 33,
+    es: 52, 'pt-BR': 52, fr: 52, id: 52, de: 52, vi: 52,
   };
 
   test('every locale meets its recorded content-prose floor', () => {
