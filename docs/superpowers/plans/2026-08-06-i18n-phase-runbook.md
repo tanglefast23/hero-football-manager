@@ -19,8 +19,8 @@ for what is done, what is next, and the exact commands.
 | 0–1 engineering | `claude/multilingual-copy-translation-bbe9c8` | #94 | **merged** (`1593b9d`) |
 | 1.5 content keys | `claude/multilingual-copy-phase-2` | #96 | **merged** (`749949a`) |
 | 2 Spanish | `claude/i18n-phase-2-spanish` | #97 | **open** |
-| 3 Vietnamese | `claude/i18n-phase-3-vietnamese` | — | **in progress** |
-| 4 pt-BR/fr/id/de | `claude/i18n-phase-4-remaining` | — | not started |
+| 3 Vietnamese | `claude/i18n-phase-3-vietnamese` | #98 | **open** |
+| 4 pt-BR/fr/id/de | `claude/i18n-phase-4-remaining` | — | **in progress** |
 | 5 long tail | `claude/i18n-phase-5-long-tail` | — | not started |
 
 ## The invariant that matters most
@@ -85,9 +85,22 @@ font grounds.
 **Column short forms** (`col.league.*`): `#`, `ST` (số trận), `T` (thắng),
 `H` (hòa), `B` (bại), `HS` (hiệu số), `Đ` (điểm).
 
-## Phase 4 — pt-BR, fr, id, then **de last**
+## Phase 4 — pt-BR, fr, id, then **de last** (current)
 
-German last: longest language, surfaces any remaining layout ceilings.
+German last: longest language (1.30 budget), surfaces any remaining layout
+ceilings.
+
+**Per locale:** glossary → `col.*` short forms → translate all keys → add to
+`ENABLED_LOCALES` → run gates → fix what they say.
+
+**Column short forms:**
+- `pt-BR`: `#`, `J`, `V`, `E`, `D`, `SG`, `PTS`
+- `fr`: `#`, `J`, `G`, `N`, `P`, `DB`, `PTS`
+- `id`: `#`, `M`, `M`→use `MN`, `S`, `K`, `SG`, `PTS`
+- `de`: `#`, `SP`, `S`, `U`, `N`, `TD`, `PKT`
+
+**Plural rules already encoded** in `locales.ts`: `pt-BR` and `fr` put ZERO in
+the singular; `es` and `de` do not; `id` and `vi` have no plural marking.
 
 ## Phase 5 — long tail
 
