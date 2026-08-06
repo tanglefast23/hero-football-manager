@@ -86,8 +86,13 @@ export function ClubLegacyScreen({
             </View>
           </View>
           <Text className="mt-4 text-base leading-6 text-ink/70">
-            After {viewModel.seasonsAtClub} season{viewModel.seasonsAtClub === 1 ? '' : 's'} at the club,
-            {' '}{viewModel.playerName} has earned a permanent place in its story.
+            {/* Plural siblings rather than a ternary: the ternary encodes
+                English's rule, and pt-BR and French put zero in the singular. */}
+            {t('clubLegacy.seasonsAtClub', {
+              n: viewModel.seasonsAtClub,
+              count: viewModel.seasonsAtClub,
+              player: viewModel.playerName,
+            })}
           </Text>
           <PixelText className="mt-2 text-sm uppercase text-ink/50">
             {viewModel.personality} · {viewModel.queueLabel}
@@ -179,7 +184,9 @@ export function ClubLegacyScreen({
               </View>
               {viewModel.formerPlayerTotal > viewModel.formerPlayers.length ? (
                 <PixelText className="mt-3 text-sm uppercase text-ink/50">
-                  {viewModel.formerPlayerTotal - viewModel.formerPlayers.length} more in the archive
+                  {t('clubLegacy.moreInArchive', {
+                    count: viewModel.formerPlayerTotal - viewModel.formerPlayers.length,
+                  })}
                 </PixelText>
               ) : null}
             </PaperPanel>

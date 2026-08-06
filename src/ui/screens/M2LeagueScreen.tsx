@@ -434,6 +434,7 @@ function CupRoundCard({
   round: M2CupRoundViewModel;
   onOpenCupFixture?: (fixtureId: string) => void;
 }) {
+  const t = useCopy();
   const complete = round.completedCount === round.matchCount;
   const outcomeTone = round.userOutcome === 'Eliminated'
     ? 'danger' as const
@@ -456,7 +457,9 @@ function CupRoundCard({
             <Text className="font-pixel text-sm uppercase text-blue-dark">Round {round.round}</Text>
             <Text className="mt-1 font-pixel text-lg uppercase text-ink">{round.label}</Text>
             <Text className="mt-1 font-mono text-sm text-ink/50">
-              {round.completedCount}/{round.matchCount} matches complete
+              {t('m2League.matchesComplete', {
+                done: round.completedCount, total: round.matchCount,
+              })}
             </Text>
           </View>
           {round.userOutcome ? <StatusChip label={round.userOutcome} tone={outcomeTone} /> : <StatusChip label={round.statusLabel} />}
@@ -465,7 +468,7 @@ function CupRoundCard({
         {round.byes.length > 0 ? (
           <View className="mb-3 border-2 border-dashed border-ink/30 bg-white p-2">
             <Text className="font-pixel text-sm uppercase text-ink/50">
-              Through with a bye · {round.byes.length}
+              {t('m2League.throughWithBye', { count: round.byes.length })}
             </Text>
             <View className="mt-2 flex-row flex-wrap gap-1">
               {round.byes.map(bye => (
@@ -487,7 +490,7 @@ function CupRoundCard({
         {!round.drawn ? (
           <View className="border-2 border-dashed border-ink/20 bg-paper px-3 py-3">
             <Text className="text-sm leading-5 text-ink/50">
-              {round.matchCount} {round.matchCount === 1 ? 'tie' : 'ties'} · opponents confirmed after the previous round
+              {t('m2League.tiesPending', { n: round.matchCount, count: round.matchCount })}
             </Text>
           </View>
         ) : (

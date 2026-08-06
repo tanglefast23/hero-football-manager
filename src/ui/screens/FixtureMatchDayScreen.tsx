@@ -280,7 +280,9 @@ export function FixtureMatchDayScreen({
               <View className="flex-1 pr-2">
                 <PixelText className="text-base uppercase text-ink" numberOfLines={1}>{player.name}</PixelText>
                 <Text className="mt-1 font-mono text-[12px] text-ink/60">
-                  {player.role} · Rating {player.overall} · Condition {player.condition}%
+                  {t('fixtureMatchDay.playerLine', {
+                    role: player.role, rating: player.overall, condition: player.condition,
+                  })}
                 </Text>
                 <MatchdayConditionStamp condition={player.condition} compact />
               </View>
@@ -338,7 +340,7 @@ export function FixtureMatchDayScreen({
       ) : null}
       {!viewModel.licenseReady ? (
         <PixelText className="mt-3 text-center text-[12px] uppercase tracking-wide text-red-light">
-          License every starting hero before starting the match · limit {viewModel.heroLimit}
+          {t('fixtureMatchDay.licenseWarning', { limit: viewModel.heroLimit })}
         </PixelText>
       ) : null}
     </View>

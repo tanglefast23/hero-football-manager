@@ -317,7 +317,7 @@ export function ClubHomeScreen({
                       <PixelPortrait playerId={viewModel.boardResolution.soldPlayer.id} role={viewModel.boardResolution.soldPlayer.role} lookId={viewModel.boardResolution.soldPlayer.lookId} expression="rest" />
                     </View>
                     <Text className="mt-2 text-center text-sm font-bold text-ink" numberOfLines={1}>{viewModel.boardResolution.soldPlayer.name}</Text>
-                    <Text className="mt-1 text-center font-mono text-sm text-stamp">Sold · {formatCurrency(viewModel.boardResolution.soldPlayer.fee)}</Text>
+                    <Text className="mt-1 text-center font-mono text-sm text-stamp">{t('clubHome.soldFor', { fee: formatCurrency(viewModel.boardResolution.soldPlayer.fee) })}</Text>
                   </View>
                   <Text className="font-mono text-2xl font-bold text-ink">→</Text>
                   <View className="flex-1 items-center border-2 border-pitch-dark bg-white p-2">
@@ -368,7 +368,13 @@ export function ClubHomeScreen({
           />
           <PaperPanel kicker="Board deadline" title="Reach the target. Avoid a forced sale." stamp="Career continues" className="bg-red-light">
             <Text className="text-ink/70" style={scaledBody(textScale, 14, 20)}>
-              Reach {viewModel.boardUltimatum.targetLabel} before the deadline. If you miss it, the board sells one candidate shown below at a {viewModel.boardUltimatum.candidates[0]?.discountPercent ?? 30}% discount. Your protected player is untouchable, and your career continues either way.
+              {/* One sentence, one key. Split across JSX it would force every
+                  language into English word order, and the target and discount
+                  do not sit in the same place in all of them. */}
+              {t('clubHome.boardUltimatumBody', {
+                target: viewModel.boardUltimatum.targetLabel,
+                discount: viewModel.boardUltimatum.candidates[0]?.discountPercent ?? 30,
+              })}
             </Text>
             <View className="mt-3 flex-row gap-2">
               <Metric label="Cash needed" value={formatCurrency(viewModel.boardUltimatum.cashNeeded)} tone="negative" />
@@ -398,7 +404,11 @@ export function ClubHomeScreen({
                         {candidate.isHero ? <StatusChip label="Hero" tone="hero" /> : null}
                       </View>
                       <Text className="mt-1 font-mono text-sm text-ink/65">
-                        {candidate.role} · {formatCurrency(candidate.weeklyWage)}/wk · forced-sale fee {formatCurrency(candidate.forcedSaleFee)}
+                        {t('clubHome.candidateTerms', {
+                          role: candidate.role,
+                          wage: formatCurrency(candidate.weeklyWage),
+                          fee: formatCurrency(candidate.forcedSaleFee),
+                        })}
                       </Text>
                     </View>
                     <Text className={protectedPlayer
