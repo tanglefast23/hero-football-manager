@@ -74,7 +74,7 @@ describe('management feedback sounds', () => {
     playTrainingStatDing();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(29);
+    expect(mockPlayers).toHaveLength(31);
     const trainingDing = mockPlayers[1];
     expect(mockPlayers.every(player => player.volume === 0.5)).toBe(true);
     expect(trainingDing.seekTo).toHaveBeenCalledWith(0);
@@ -89,7 +89,7 @@ describe('management feedback sounds', () => {
     playMatchStatementSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(29);
+    expect(mockPlayers).toHaveLength(31);
     expect(mockPlayers[0].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
@@ -137,7 +137,7 @@ describe('management feedback sounds', () => {
     playUiClickSfx();
     await Promise.resolve();
 
-    const uiClickPool = [mockPlayers[2], mockPlayers[23], mockPlayers[24], mockPlayers[25]];
+    const uiClickPool = [mockPlayers[2], mockPlayers[25], mockPlayers[26], mockPlayers[27]];
     // One press, one rewind, one play — on a voice of its own, so four quick
     // presses never share a playhead.
     expect(uiClickPool.every(player => player.seekTo.mock.calls.length === 1)).toBe(true);
@@ -171,7 +171,7 @@ describe('management feedback sounds', () => {
     playDrillProgressSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(29);
+    expect(mockPlayers).toHaveLength(31);
     const progress = mockPlayers[18];
     expect(progress.seekTo).toHaveBeenCalledWith(0);
     expect(progress.play).toHaveBeenCalledTimes(1);
@@ -203,7 +203,7 @@ describe('management feedback sounds', () => {
     playManagementActionSfx('success');
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(29);
+    expect(mockPlayers).toHaveLength(31);
     expect(mockPlayers[13].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[13].play).toHaveBeenCalledTimes(1);
   });
@@ -212,7 +212,7 @@ describe('management feedback sounds', () => {
     playPositiveSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(29);
+    expect(mockPlayers).toHaveLength(31);
     // 'positive' is appended last, so it owns the final player slot.
     const positive = mockPlayers[16];
     expect(positive.seekTo).toHaveBeenCalledWith(0);
@@ -235,7 +235,7 @@ describe('management feedback sounds', () => {
 
     playSuperTrainingYaySfx();
     await Promise.resolve();
-    expect(mockPlayers).toHaveLength(29);
+    expect(mockPlayers).toHaveLength(31);
     expect(mockPlayers[20].play).toHaveBeenCalledTimes(1);
   });
 
@@ -279,9 +279,9 @@ describe('management feedback sounds', () => {
     await Promise.resolve();
 
     // Same catalog rebuilt in the same order — every index above stays valid.
-    expect(mockPlayers).toHaveLength(58);
+    expect(mockPlayers).toHaveLength(62);
     expect(mockPlayers[16].release).toHaveBeenCalledTimes(1);
-    const rebuiltPositive = mockPlayers[29 + 16];
+    const rebuiltPositive = mockPlayers[31 + 16];
     expect(rebuiltPositive.seekTo).toHaveBeenCalledWith(0);
     await Promise.resolve();
     expect(rebuiltPositive.play).toHaveBeenCalledTimes(1);
@@ -296,10 +296,10 @@ describe('management feedback sounds', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(58);
+    expect(mockPlayers).toHaveLength(62);
     // The rebuilt pool starts from a fresh cursor, so the retry lands on the
     // rebuilt catalog's own ui-click voice.
-    const rebuiltUiClick = mockPlayers[29 + 2];
+    const rebuiltUiClick = mockPlayers[31 + 2];
     expect(rebuiltUiClick.seekTo).toHaveBeenCalledWith(0);
     await Promise.resolve();
     expect(rebuiltUiClick.play).toHaveBeenCalledTimes(1);
@@ -312,8 +312,8 @@ describe('management feedback sounds', () => {
     playStatStepSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(29);
-    const statStepPool = [mockPlayers[17], mockPlayers[26], mockPlayers[27], mockPlayers[28]];
+    expect(mockPlayers).toHaveLength(31);
+    const statStepPool = [mockPlayers[17], mockPlayers[28], mockPlayers[29], mockPlayers[30]];
     expect(statStepPool.every(player => player.seekTo.mock.calls.length === 1)).toBe(true);
     expect(statStepPool.every(player => player.play.mock.calls.length === 1)).toBe(true);
 

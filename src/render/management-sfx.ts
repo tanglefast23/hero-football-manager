@@ -15,7 +15,9 @@ type ExplicitManagementSfxKey =
   | 'drill-progress'
   | 'drill-gain-reveal'
   | 'super-training-yay'
-  | 'super-celebration';
+  | 'super-celebration'
+  | 'match-day-bugle'
+  | 'quick-result-faceoff';
 
 export type ManagementActionCue =
   | 'select'
@@ -88,6 +90,14 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // sound was never the thing that was wrong. What was wrong is the crowd wash
   // that used to start underneath it; see `playSuperTrainingSfx`.
   'super-celebration': require('../../assets/audio/sfx/level-up.m4a'),
+  // The tannoy call under the match-day banner. Trimmed to 3.55s with a short
+  // fade so the bugle and the card leave the desk together.
+  // Appended last so existing player indices stay stable.
+  'match-day-bugle': require('../../assets/audio/sfx/match-day-bugle.m4a'),
+  // The horn under the Quick Result face-off. Trimmed to 2.3s with a fade so
+  // it lands inside the 2s scene and dies with it.
+  // Appended last so existing player indices stay stable.
+  'quick-result-faceoff': require('../../assets/audio/sfx/quick-result-faceoff.m4a'),
 };
 
 const players = new Map<ManagementSfxKey, AudioPlayer>();
@@ -328,6 +338,38 @@ export function playPositiveSfx(): void {
 /** Softer cue for a destructive commit — confirms the tap without celebrating it. */
 export function playDangerSfx(): void {
   playManagementSfx('danger');
+}
+
+/** The horn under the Quick Result face-off. */
+export function playQuickResultFaceOffSfx(): void {
+  playManagementSfx('quick-result-faceoff');
+}
+
+/** The scene is skippable, so the horn has to be cuttable — see the bugle below. */
+export function stopQuickResultFaceOffSfx(): void {
+  try {
+    players.get('quick-result-faceoff')?.pause();
+  } catch (error) {
+    warnOnce('quick result face-off stop failed', error);
+  }
+}
+
+/** The tannoy bugle under the match-day banner. */
+export function playMatchDayBugleSfx(): void {
+  playManagementSfx('match-day-bugle');
+}
+
+/**
+ * The banner can be dismissed before the call finishes, and a bugle ringing on
+ * over the team sheet is the loudest kind of stale — the same argument as the
+ * SUPER jingle above.
+ */
+export function stopMatchDayBugleSfx(): void {
+  try {
+    players.get('match-day-bugle')?.pause();
+  } catch (error) {
+    warnOnce('match day bugle stop failed', error);
+  }
 }
 
 /** Short semantic cues shared by management screens; presentation-only and fail-soft. */

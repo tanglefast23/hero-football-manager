@@ -34,6 +34,7 @@ import {
 } from './src/persistence';
 import { MatchScreen, type PowerCutInQaEntry } from './src/render/MatchScreen';
 import { PowerEffectPreview } from './src/render/PowerEffectPreview';
+import { QuickResultFaceOff } from './src/render/QuickResultFaceOff';
 import {
   powerMatchShowcaseAway,
   powerMatchShowcaseHome,
@@ -99,6 +100,7 @@ import {
   M2LeagueScreen,
   ManagementShell,
   MarketScreen,
+  MatchDayBanner,
   NewGameWelcomeScreen,
   PostMatchLedgerScreen,
   PostMatchSummaryModal,
@@ -999,6 +1001,19 @@ function GameApp() {
     setHapticsEnabled(preferences.hapticsEnabled);
   }, [preferences.hapticsEnabled]);
 
+  /**
+   * The face-off is decoration, and decoration must never be able to strand a
+   * settled match. `quickResult` only ever sets this screen in the same `set()`
+   * that supplies the scene, so the pair below is unreachable by construction —
+   * this is a self-heal for a state that should not exist, not a flow. It hands
+   * straight on to the screen the result was going to open (`completeFaceOff`
+   * falls back to the post-match ledger when even that was lost).
+   */
+  useEffect(() => {
+    if (store.screen === 'faceoff' && store.faceOff === null) store.completeFaceOff();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.screen, store.faceOff]);
+
   useEffect(() => {
     if (store.screen !== 'season-end' || store.career === null) return;
     const cueKey = `${store.career.careerSeed}:${store.career.season}:${store.career.phase}`;
@@ -1784,6 +1799,14 @@ function GameApp() {
         onOpenSettings={() => setGlobalSettingsOpen(true)}
       />
     );
+  } else if (store.screen === 'faceoff' && store.faceOff !== null) {
+    screen = (
+      <QuickResultFaceOff
+        faceOff={store.faceOff}
+        reduceMotion={reduceMotion}
+        onDone={store.completeFaceOff}
+      />
+    );
   } else if (store.screen === 'postmatch' && store.postMatch !== null) {
     screen = (
       <PostMatchLedgerScreen
@@ -2294,6 +2317,7 @@ function GameApp() {
           || !store.persistenceReady
           || store.persistenceLoadError !== null
           || store.screen === 'watched'
+          || store.screen === 'faceoff'
           || store.screen === 'awakening'
         ) ? 'light' : 'dark'}
       />
@@ -2306,6 +2330,19 @@ function GameApp() {
         >
         <View className="flex-1" {...bertBriefingBackgroundProps(bertBriefingVisible)}>
         {screen}
+        {/* The match week announces itself the moment the desk appears, the
+            same way the Financial Report announces a surge. Held back until
+            the manager is actually ON the desk: the week review runs first,
+            and a bugle over it would be two announcements at once. */}
+        {store.screen === 'management' && store.matchDayBanner !== null ? (
+          <MatchDayBanner
+            key={store.matchDayBanner.id}
+            headline={store.matchDayBanner.headline}
+            accessibilityLabel={store.matchDayBanner.accessibilityLabel}
+            reduceMotion={reduceMotion}
+            onShown={store.dismissMatchDayBanner}
+          />
+        ) : null}
         {/* Not a FeedbackNotice: that one is dismissible and auto-hides. An
             unsaved career must keep saying so until a save actually succeeds. */}
         {store.saveWarning !== null && (

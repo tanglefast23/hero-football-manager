@@ -104,6 +104,7 @@ import type {
   LeagueTableViewModel,
   ManagerNoteViewModel,
   IncomeGenerationViewModel,
+  MatchDayBannerViewModel,
   MatchDayViewModel,
   FulltimeReactionViewModel,
   PostMatchViewModel,
@@ -114,7 +115,7 @@ import type {
   TrainingSlotStatOption,
   WeeklyReviewViewModel,
 } from '../ui';
-import { divisionTierLabel } from '../game/pyramid';
+import { CUP_DISPLAY_NAME, DIVISION_NAMES, divisionTierLabel } from '../game/pyramid';
 import { careerDifficulty } from '../game/difficulty';
 import { isAvailableForSelection } from '../game/lineup';
 import { playerLoyalty } from '../game/loyalty';
@@ -2916,6 +2917,29 @@ function fixtureViewModel(
 
 function careerDivision(state: GameState): 1 | 2 | 3 | 4 | 5 {
   return state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+}
+
+/**
+ * The match-week announcement, or null on a quiet week.
+ *
+ * `activeCareerMatchday` is the whole test — it is the same call the desk uses
+ * for "This week", so the banner can never claim a fixture the club does not
+ * actually have. The competition is named the way every other screen names it:
+ * the division's own name (never "Division 5"), and the cup's single display
+ * name, so a rename can never leave this card behind.
+ */
+export function matchDayBannerViewModel(state: GameState): MatchDayBannerViewModel | null {
+  const matchday = activeCareerMatchday(state);
+  if (matchday === undefined) return null;
+  const competitionLabel = matchday.kind === 'national-cup'
+    ? CUP_DISPLAY_NAME
+    : DIVISION_NAMES[careerDivision(state)];
+  return {
+    id: `match-day-banner-${state.season}-${state.week}`,
+    competitionLabel,
+    headline: `${competitionLabel}: Match Day`,
+    accessibilityLabel: `${competitionLabel}. Match day.`,
+  };
 }
 
 function careerDivisionLabel(state: GameState): string {

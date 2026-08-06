@@ -98,11 +98,19 @@ import { HALF_TICKS } from '../sim/geometry';
 import { envelopeFrom } from '../sim/match';
 import { mulberry32 } from '../sim/rng';
 import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
-import type { ManagementTab, PostMatchViewModel, WeeklyReviewViewModel } from '../ui';
+import type {
+  ManagementTab,
+  MatchDayBannerViewModel,
+  PostMatchViewModel,
+  QuickResultFaceOffViewModel,
+  WeeklyReviewViewModel,
+} from '../ui';
 import { createLaunchCareerSetup, generateCareerSeed, reconcileLaunchRoster } from './launch';
 import { cachedRivalResults, clearRivalResultCache } from './rival-result-cache';
+import { quickResultFaceOffViewModel } from './quick-result-faceoff';
 import { careerMarketScoutOptions } from './market-source-adapter';
 import {
+  matchDayBannerViewModel,
   postMatchViewModel,
   reconcileHomeAssistantInbox,
   settleWeeklyStory,
@@ -198,6 +206,11 @@ export type M1Screen =
   | 'event'
   | 'matchday'
   | 'watched'
+  // The Quick Result face-off, shown between the settled match and whatever
+  // screen the result was going to open. A dedicated screen rather than an
+  // overlay so the awakening's beat timers and the ledger's slot animation
+  // cannot start underneath a scene the manager is still watching.
+  | 'faceoff'
   | 'postmatch'
   | 'week-review'
   | 'legacy'
@@ -276,6 +289,25 @@ interface M1Store {
    * about the club, and it must not survive a reload.
    */
   inboxDutyReminder: readonly AssistantInboxGuideSequenceId[] | null;
+  /**
+   * The match-week announcement waiting to land on the desk, or null.
+   *
+   * App state, not career state, for the same reason as the reminder above: it
+   * is a reaction to one press, it is shown once, and a reload must not replay
+   * the bugle for a week the manager has already been working in all evening.
+   */
+  matchDayBanner: MatchDayBannerViewModel | null;
+  /**
+   * The Quick Result face-off waiting to be watched, and the screen it is
+   * standing in front of.
+   *
+   * App state, never persisted — the same argument as `inboxDutyReminder` and
+   * `matchDayBanner`. The match itself was settled and saved before this was
+   * ever set, so losing it to a reload costs a two-second animation and
+   * nothing else.
+   */
+  faceOff: QuickResultFaceOffViewModel | null;
+  pendingPostFaceOffScreen: M1Screen | null;
   selectedContractTerm: 1 | 2 | 3;
   error: string | null;
   notice: StoreNotice | null;
@@ -308,6 +340,8 @@ interface M1Store {
   completeCupGiantKillingCelebration: () => void;
   /** Sends Bert away after he has refused an Advance Week. */
   dismissInboxDutyReminder: () => void;
+  dismissMatchDayBanner: () => void;
+  completeFaceOff: () => void;
   /** Removes a product card after its current-week conversation is complete. */
   dismissInboxProduct: (
     alertId: string,
@@ -394,6 +428,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
   postMatchOverlay: null,
   weekReview: null,
   inboxDutyReminder: null,
+  matchDayBanner: null,
+  faceOff: null,
+  pendingPostFaceOffScreen: null,
   selectedContractTerm: 1,
   error: null,
   notice: null,
@@ -415,6 +452,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatch: null,
         postMatchOverlay: null,
         weekReview: null,
+        matchDayBanner: null,
+        faceOff: null,
+        pendingPostFaceOffScreen: null,
         persistenceLoadError: null,
         rawExportRequired: false,
         rawExportSucceeded: false,
@@ -502,6 +542,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       postMatch: null,
       postMatchOverlay: null,
       weekReview: null,
+      matchDayBanner: null,
+      faceOff: null,
+      pendingPostFaceOffScreen: null,
       error: null,
     });
   },
@@ -538,6 +581,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       postMatch: null,
       postMatchOverlay: null,
       weekReview: null,
+      matchDayBanner: null,
+      faceOff: null,
+      pendingPostFaceOffScreen: null,
       error: null,
       notice: { tone: 'info', message: 'Restored the backup save.' },
     });
@@ -564,6 +610,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatchOverlay: null,
         weekReview: null,
         inboxDutyReminder: null,
+        matchDayBanner: null,
+        faceOff: null,
+        pendingPostFaceOffScreen: null,
         error: null,
         notice: { tone: 'info', message: `Loaded developer save ${slotLabel}.` },
       });
@@ -613,6 +662,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatchOverlay: null,
         weekReview: null,
         inboxDutyReminder: null,
+        matchDayBanner: null,
+        faceOff: null,
+        pendingPostFaceOffScreen: null,
         error: null,
       });
       queueNewCareerSave(get, set, career, replacedCareer);
@@ -630,6 +682,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       postMatch: null,
       postMatchOverlay: null,
       weekReview: null,
+      matchDayBanner: null,
+      faceOff: null,
+      pendingPostFaceOffScreen: null,
       error: null,
     });
   },
@@ -754,6 +809,29 @@ export const useM1Store = create<M1Store>((set, get) => ({
     // Nothing to persist: the refusal lives and dies with the press that caused
     // it, and the duties themselves are already recorded on the career.
     set({ inboxDutyReminder: null });
+  },
+
+  dismissMatchDayBanner() {
+    // Same argument: the card announced the week, the week is on the desk, and
+    // nothing about the club changed by showing it.
+    set({ matchDayBanner: null });
+  },
+
+  /**
+   * Hands the manager on to the screen the result was always going to open.
+   *
+   * Deliberately does NOT save or touch the career: everything durable was
+   * settled and queued inside `quickResult` before this screen was ever shown.
+   * The guard makes a double-fire harmless — the scene's own timer and a tap
+   * can land in the same frame, and two advances would skip a screen.
+   */
+  completeFaceOff() {
+    if (get().screen !== 'faceoff') return;
+    set({
+      screen: get().pendingPostFaceOffScreen ?? 'postmatch',
+      faceOff: null,
+      pendingPostFaceOffScreen: null,
+    });
   },
 
   dismissInboxProduct(alertId, scope = 'current-week') {
@@ -921,8 +999,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const weekReview = next.phase === 'manage' && next.week !== career.week
         ? weeklyReviewViewModel(career, next)
         : null;
+      // Announced on arrival at a new week that has a fixture, and only then:
+      // the week review comes first, so the card is waiting on the desk behind
+      // it rather than competing with it. A week that merely CONTAINS the
+      // matchday phase (the same week, one press later) is already past its
+      // announcement, so the week must actually have changed.
+      const matchDayBanner = next.week !== career.week
+        ? matchDayBannerViewModel(next)
+        : get().matchDayBanner;
       set({
         career: next,
+        matchDayBanner,
         screen: weekReview !== null
           ? 'week-review'
           : next.phase === 'matchday'
@@ -1005,12 +1092,43 @@ export const useM1Store = create<M1Store>((set, get) => ({
         [],
         production.powerFiredPlayerIds,
       );
+      const destination = awakening.awakened ? 'awakening' as const : 'postmatch' as const;
+      /**
+       * The face-off, built from the PRE-SETTLEMENT capture at the top of this
+       * call — `teams`, `fixture` and `before.userClubId`.
+       *
+       * `currentMatchday` must NOT be re-entered here. Two ways that breaks,
+       * both silently: on a league-only week the career has left
+       * `phase: 'matchday'` and it throws, turning a decorative scene into a
+       * crash on a settled match; and on a week where a cup tie shares the
+       * calendar the career is STILL on matchday for the cup, so it would hand
+       * back the cup's teams and name the wrong two players for this league
+       * fixture.
+       *
+       * The verdict comes from `postMatch.result.outcomeLabel` rather than the
+       * goals, because a cup tie level after ninety minutes is settled on
+       * penalties — reading the score would call every shoot-out a draw.
+       */
+      const userIsHome = fixture.homeClubId === before.userClubId;
+      const clubTeam = teams[userIsHome ? fixture.homeClubId : fixture.awayClubId];
+      const opponentTeam = teams[userIsHome ? fixture.awayClubId : fixture.homeClubId];
+      const faceOff = clubTeam === undefined || opponentTeam === undefined
+        ? null
+        : quickResultFaceOffViewModel({
+            clubTeam,
+            opponentTeam,
+            outcomeLabel: postMatch.result.outcomeLabel,
+          });
       set({
         career: next,
         postMatch,
         postMatchOverlay: null,
         weekReview: null,
-        screen: awakening.awakened ? 'awakening' : 'postmatch',
+        // A scene that could not be built is simply not shown: the settled
+        // result reaches the manager either way.
+        screen: faceOff === null ? destination : 'faceoff',
+        faceOff,
+        pendingPostFaceOffScreen: faceOff === null ? null : destination,
         watchedMatch: null,
         error: null,
       });
@@ -2478,6 +2596,9 @@ function queueNewCareerSave(
         postMatch: null,
         postMatchOverlay: null,
         weekReview: null,
+        matchDayBanner: null,
+        faceOff: null,
+        pendingPostFaceOffScreen: null,
       });
       if (replacedCareerPersisted) clearSaveFailures(set);
       else recordSaveFailure(get, set);

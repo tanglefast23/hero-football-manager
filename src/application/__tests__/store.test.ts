@@ -71,6 +71,16 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career?.phase).toBe('matchday');
 
     useM1Store.getState().quickResult();
+    // The career's very first match settles behind the face-off exactly like
+    // any other: the scene sits AHEAD of the settlement -> awakening -> ledger
+    // chain and never inside it, so the first hero's reveal is already waiting
+    // by the time the card is tapped away.
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'faceoff',
+      pendingPostFaceOffScreen: 'awakening',
+    });
+    useM1Store.getState().completeFaceOff();
+
     expect(useM1Store.getState().screen).toBe('awakening');
     expect(useM1Store.getState().career?.onboarding?.stage).toBe('reveal');
     expect(useM1Store.getState().career?.week).toBe(4);
@@ -846,6 +856,9 @@ describe('M1 app store integration', () => {
         } else {
           break;
         }
+      } else if (current.screen === 'faceoff') {
+        // Quick Result opens the face-off first; the manager taps through it.
+        current.completeFaceOff();
       } else if (
         current.screen === 'management'
         || current.screen === 'postmatch'
@@ -1676,6 +1689,10 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
       current.quickResult();
       continue;
     }
+    if (current.screen === 'faceoff') {
+      current.completeFaceOff();
+      continue;
+    }
     if (current.screen === 'postmatch') {
       current.continueAfterMatch();
       continue;
@@ -1738,6 +1755,7 @@ describe('financial report reveals', () => {
       const state = useM1Store.getState();
       if (state.screen === 'matchday') return;
       if (state.screen === 'week-review') { state.continueWeekReview(); continue; }
+      if (state.screen === 'faceoff') { state.completeFaceOff(); continue; }
       if (state.screen === 'postmatch') { state.continueAfterMatch(); continue; }
       if (state.screen !== 'management') {
         throw new Error(`advanceToNextMatchday stopped on the ${state.screen} screen`);
@@ -1778,6 +1796,10 @@ describe('financial report reveals', () => {
     postMatch: PostMatchViewModel;
     career: GameState;
   } {
+    // Quick Result now opens the face-off ahead of the awakening/ledger chain.
+    if (useM1Store.getState().screen === 'faceoff') {
+      useM1Store.getState().completeFaceOff();
+    }
     if (useM1Store.getState().screen === 'awakening') {
       useM1Store.getState().continueAfterAwakening();
     }
