@@ -147,7 +147,7 @@ import { guidedFirstFacilityAllowsPlacement } from './src/ui/concierge-targets';
 import { facilityAdjacencyPresentation } from './src/ui/facility-adjacency';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { useRivalPreload } from './src/ui/use-rival-preload';
-import { qaRootRoutesEnabled } from './src/ui/release-surface';
+import { DEVELOPER_MODE_AVAILABLE, qaRootRoutesEnabled } from './src/ui/release-surface';
 import { supportEmailUrl, SUPPORT_EMAIL } from './src/release/support';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
 import { useM1Store } from './src/application/store';
@@ -648,7 +648,7 @@ function GameApp() {
     savePreferences({ ...current, cutInMode: current.cutInMode === 'full' ? 'banner' : 'full' });
   }, [savePreferences]);
   const toggleDeveloperMode = useCallback(() => {
-    if (!__DEV__) return;
+    if (!DEVELOPER_MODE_AVAILABLE) return;
     const current = preferencesRef.current;
     const developerMode = !current.developerMode;
     if (!developerMode) setDeveloperManualSaveSelecting(false);
@@ -704,7 +704,7 @@ function GameApp() {
       const advancedCareer = useM1Store.getState().career;
       const developerRepository = developerSaveRepositoryRef.current;
       if (
-        __DEV__
+        DEVELOPER_MODE_AVAILABLE
         && preferencesRef.current.developerMode
         && advancedCareer !== null
         && developerRepository !== null
@@ -776,7 +776,7 @@ function GameApp() {
     const repository = developerSaveRepositoryRef.current;
     const career = useM1Store.getState().career;
     setDeveloperManualSaveSelecting(false);
-    if (!__DEV__ || !preferencesRef.current.developerMode || repository === null || career === null) return;
+    if (!DEVELOPER_MODE_AVAILABLE || !preferencesRef.current.developerMode || repository === null || career === null) return;
     // Capture the object now, before the queued write starts: manual means this
     // exact moment, even if another ordinary save lands while SQLite is busy.
     const snapshot = career;
@@ -790,7 +790,7 @@ function GameApp() {
   const loadDeveloperSlot = useCallback((slot: DeveloperSaveSlot) => {
     const repository = developerSaveRepositoryRef.current;
     const careerSeed = useM1Store.getState().career?.careerSeed;
-    if (!__DEV__ || repository === null || careerSeed === undefined) return;
+    if (!DEVELOPER_MODE_AVAILABLE || repository === null || careerSeed === undefined) return;
     queueDeveloperSaveTask(async () => {
       const snapshot = await repository.load(slot, careerSeed);
       if (snapshot === null) throw new Error(`Developer save ${slot} is empty.`);
@@ -1113,7 +1113,7 @@ function GameApp() {
           createCareerRepository(database),
           createReplayRepository(database),
           createPreferencesRepository(database),
-          __DEV__ ? createDeveloperSaveRepository(database) : Promise.resolve(null),
+          DEVELOPER_MODE_AVAILABLE ? createDeveloperSaveRepository(database) : Promise.resolve(null),
         ]);
         return {
           careerRepository,
@@ -1155,7 +1155,7 @@ function GameApp() {
   }, [bootAttempt, store.initializePersistence]);
 
   useEffect(() => {
-    if (!__DEV__) return;
+    if (!DEVELOPER_MODE_AVAILABLE) return;
     const repository = developerSaveRepositoryRef.current;
     const careerSeed = store.career?.careerSeed;
     setDeveloperManualSaveSelecting(false);
@@ -1943,7 +1943,7 @@ function GameApp() {
         keyboardShortcutsEnabled={!guideOverlayVisible}
         onOpenLedger={() => store.setActiveTab('club')}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
-        developerSaveSummaries={__DEV__ && preferences.developerMode
+        developerSaveSummaries={DEVELOPER_MODE_AVAILABLE && preferences.developerMode
           ? developerSaveSummaries
           : undefined}
         developerManualSaveSelecting={developerManualSaveSelecting}
@@ -2380,7 +2380,7 @@ function GameApp() {
           highContrast={preferences.highContrast}
           colorSafeKits={preferences.colorSafeKits}
           cutInMode={preferences.cutInMode}
-          developerMode={__DEV__ ? preferences.developerMode : undefined}
+          developerMode={DEVELOPER_MODE_AVAILABLE ? preferences.developerMode : undefined}
           assistantMode={store.career === null
             ? undefined
             : store.career.assistantMode ?? 'teacher'}
@@ -2402,7 +2402,7 @@ function GameApp() {
           onToggleColorSafeKits={toggleColorSafeKits}
           onToggleCutInMode={toggleCutInMode}
           onEmailSupport={emailSupport}
-          onToggleDeveloperMode={__DEV__ ? toggleDeveloperMode : undefined}
+          onToggleDeveloperMode={DEVELOPER_MODE_AVAILABLE ? toggleDeveloperMode : undefined}
           onSetAssistantMode={store.career === null ? undefined : handleSetAssistantMode}
           onGlossaryOpenChange={setGlobalGlossaryOpen}
           onPrivacySupportOpenChange={setGlobalPrivacySupportOpen}
