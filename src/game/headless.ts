@@ -10,7 +10,7 @@ import { renewCareerPlayer } from './squad';
 import { mulberry32 } from '../sim/rng';
 import type { CareerSetup, GameState } from './types';
 
-export interface FullCareerBalanceSummary {
+interface FullCareerBalanceSummary {
   completedSeasons: number;
   endingCash: number;
   minimumBalance: number;

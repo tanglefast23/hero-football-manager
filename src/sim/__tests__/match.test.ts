@@ -8,10 +8,16 @@ describe('match skeleton', () => {
   it('creates 22 players with correct fire policies', () => {
     const m = createMatch(42, ROVERS, UNITED);
     expect(m.players).toHaveLength(22);
-    expect(m.players[10].firePolicy).toBe('SAVE_FOR_TAP');   // your hero
+    // Auto-fire is the only shipped mode, so both teams default to it (m2.1).
+    expect(m.players[10].firePolicy).toBe('FIRE_WHEN_READY'); // your hero
     expect(m.players[14].firePolicy).toBe('FIRE_WHEN_READY'); // rival hero
     expect(m.ball.kind).toBe('held');
     expect(m.events[0]).toMatchObject({ kind: 'KICKOFF', half: 1 });
+
+    // SAVE_FOR_TAP remains available as explicit test instrumentation only.
+    const instrumented = createMatch(42, ROVERS, UNITED, { homePolicy: 'SAVE_FOR_TAP' });
+    expect(instrumented.players[10].firePolicy).toBe('SAVE_FOR_TAP');
+    expect(instrumented.players[14].firePolicy).toBe('FIRE_WHEN_READY');
   });
 
   it('uses supplied starting condition and defaults legacy match players to fresh', () => {
@@ -156,6 +162,32 @@ describe('match skeleton', () => {
     expect(env.opts?.homePolicy).toBe('SAVE_FOR_TAP');
     expect(env.opts?.awayPolicy).toBe('FIRE_WHEN_READY');
     const replayed = runReplay(env);
+    expect(replayed.events).toEqual(m.events);
+    expect(replayed.score).toEqual(m.score);
+  });
+
+  it('replays a recorded substitute-of-a-substitute byte-identically (same slot twice)', () => {
+    const bench = ['hb1', 'hb2'].map(id => ({
+      id,
+      name: `Bench ${id}`,
+      role: 'MID' as const,
+      attrs: { pac: 60, sho: 45, pas: 60, def: 50, tec: 55, sta: 65, ref: 10 },
+    }));
+    const m = createMatch(11, { ...ROVERS, bench }, UNITED, { controlledTeam: 0 });
+    // Live play holds at most the next tick's input, so substituting the same
+    // slot twice across a match records cleanly; the replay must accept it too.
+    queueInput(m, { tick: 2, kind: 'SUBSTITUTE', player: 5, replacementId: 'hb1' });
+    while (m.tick < 2) tick(m);
+    queueInput(m, { tick: 3, kind: 'SUBSTITUTE', player: 5, replacementId: 'hb2' });
+    while (m.phase !== 'fulltime') tick(m);
+
+    const substitutions = m.events.filter(e => e.kind === 'SUBSTITUTION');
+    expect(substitutions).toEqual([
+      expect.objectContaining({ t: 2, player: 5, inPlayerId: 'hb1' }),
+      expect.objectContaining({ t: 3, player: 5, outPlayerId: 'hb1', inPlayerId: 'hb2' }),
+    ]);
+
+    const replayed = runReplay(envelopeFrom(m));
     expect(replayed.events).toEqual(m.events);
     expect(replayed.score).toEqual(m.score);
   });

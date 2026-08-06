@@ -44,7 +44,6 @@ export interface MatchRailHeroTile {
   /** 0–1 share of the Zone threshold. */
   heat: number;
   status: RailHeroStatus;
-  zoneSecondsLeft: number | null;
 }
 
 export interface MatchControlRailProps {

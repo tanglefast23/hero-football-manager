@@ -19,6 +19,13 @@ function reserve(id: string, role: PlayerDef['role'], rating = 80): PlayerDef {
   };
 }
 
+function uniform(player: PlayerDef, rating: number): PlayerDef {
+  return {
+    ...player,
+    attrs: { pac: rating, sho: rating, pas: rating, def: rating, tec: rating, sta: rating, ref: rating },
+  };
+}
+
 function withBench(team: TeamDef, prefix: string): TeamDef {
   return {
     ...team,
@@ -198,10 +205,6 @@ describe('deterministic automatic coaching', () => {
   });
 
   it('accepts the exact three-point improvement, rejects less, and breaks bench ties by ID', () => {
-    const uniform = (player: PlayerDef, rating: number): PlayerDef => ({
-      ...player,
-      attrs: { pac: rating, sho: rating, pas: rating, def: rating, tec: rating, sta: rating, ref: rating },
-    });
     const exactAway: TeamDef = {
       ...UNITED,
       players: UNITED.players.map((player, index) => index === 1 ? uniform(player, 50) : player),
@@ -219,6 +222,63 @@ describe('deterministic automatic coaching', () => {
     setCheckpoint(below, AUTO_SUBSTITUTION_TICKS[0]);
     applyAutomaticCoaching(below);
     expect(below.players[12].def.id).toBe('u1');
+  });
+
+  it('does not cascade substitutions through an exhausted bench (m2.1 freshness gate)', () => {
+    const home: TeamDef = {
+      ...ROVERS,
+      players: ROVERS.players.map((player, index) => (
+        index === 5 ? { ...player, startingCondition: 28 }
+          : index === 8 ? { ...player, startingCondition: 29 }
+            : player
+      )),
+      bench: [22, 23, 24, 25, 26].map((startingCondition, index) => ({
+        ...reserve(`tired-mid-${index}`, 'MID'),
+        startingCondition,
+      })),
+    };
+    const match = createMatch(7, home, UNITED);
+
+    for (let i = 0; i < 6; i += 1) tick(match);
+
+    expect(match.events.filter(event => event.kind === 'SUBSTITUTION')).toEqual([]);
+    expect(match.substitutionsUsed).toEqual([0, 0]);
+  });
+
+  it('still makes an immediate emergency substitution when the reserve is genuinely fresh', () => {
+    const home: TeamDef = {
+      ...ROVERS,
+      players: ROVERS.players.map((player, index) => (
+        index === 5 ? { ...player, startingCondition: 28 } : player
+      )),
+      bench: [reserve('fresh-mid', 'MID')],
+    };
+    const match = createMatch(7, home, UNITED);
+
+    tick(match);
+
+    expect(match.players[5].def.id).toBe('fresh-mid');
+    expect(match.players[5].condition).toBeGreaterThan(99); // entered fresh, minus one tick of drain
+    expect(match.substitutionsUsed).toEqual([1, 0]);
+  });
+
+  it('rates a scheduled replacement at his real entry condition, not a hardcoded 100', () => {
+    // A fresh 48-rated reserve sits exactly on the three-point margin over a
+    // tired 50-rated starter (see the boundary test above). The same reserve
+    // arriving at 90 condition must fall below it.
+    const away: TeamDef = {
+      ...UNITED,
+      players: UNITED.players.map((player, index) => index === 1 ? uniform(player, 50) : player),
+      bench: [{ ...reserve('worn-def', 'DEF', 48), startingCondition: 90 }],
+    };
+    const match = createMatch(10, ROVERS, away, { controlledTeam: 0 });
+    match.players[12].condition = 60;
+    setCheckpoint(match, AUTO_SUBSTITUTION_TICKS[0]);
+
+    applyAutomaticCoaching(match);
+
+    expect(match.players[12].def.id).toBe('u1');
+    expect(match.substitutionsUsed).toEqual([0, 0]);
   });
 
   it.each([

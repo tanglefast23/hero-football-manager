@@ -17,13 +17,13 @@ import {
 } from './entities';
 import { contestProbability, ratingD64 } from './contest';
 
-export const WINDUP_TICKS = 15;
+const WINDUP_TICKS = 15;
 export const TAP_STRENGTH = 1.0;
-export const ARMED_STRENGTH = 0.9;
+const ARMED_STRENGTH = 0.9;
 export const CONTEXT_AUTO_STRENGTH = 0.85;
-export const LAPSE_STRENGTH = 0.75;
+const LAPSE_STRENGTH = 0.75;
 export const ARM_WINDOW_TICKS = 20;
-export const GAUGE_TRICKLE = 0.02;
+const GAUGE_TRICKLE = 0.02;
 export const MAX_ZONES_PER_PLAYER = 3;
 const STRENGTH_WINDUP_TICKS = 5;
 const PORTAL_WINDUP_TICKS = 1;
@@ -53,7 +53,7 @@ const GK_ZONE_HEAT_THRESHOLD = 5;
 // windup telegraph is the counterplay window, not a free pass to escape it).
 // The charge starts from a broad enough range to create repeated defender
 // opportunities; its visible wind-up remains the counterplay window.
-export const PURSUIT_MULT = 1.65;
+const PURSUIT_MULT = 1.65;
 
 /** Heat cap. Heat can run well past 100 through ordinary involvement before an authored situation converts it into a Zone; it never gates firing once that Zone exists. */
 const GAUGE_CAP = 200;
@@ -197,7 +197,7 @@ function hasUsableTarget(state: MatchState, idx: number): boolean {
 // the power's useful context (Task 13 pre-flight, Issue A) so "I see a context"
 // and "someone is close enough to catch fire" can never drift apart, the same
 // guarantee STRENGTH_LOCK_RANGE gives Super Strength.
-export const TORCH_IGNITE_RANGE = 1400;
+const TORCH_IGNITE_RANGE = 1400;
 const FIRE_FULL_MATCHUP_ADVANTAGE_D64 = 158; // 1.08x
 const FIRE_SATURATED_MATCHUP_ADVANTAGE_D64 = 538; // 1.30x
 const FIRE_MIN_MARKER_TICKS = 4;
@@ -1193,7 +1193,7 @@ function spawnDecoyClone(
   state.decoyClones[team] = clone;
 }
 
-export type DecoyPopReason = Extract<MatchState['events'][number], { kind: 'DECOY_POP' }>['reason'];
+type DecoyPopReason = Extract<MatchState['events'][number], { kind: 'DECOY_POP' }>['reason'];
 
 /** Removes a reserved clone exactly once and leaves a carried ball loose. */
 export function dismissDecoyClone(

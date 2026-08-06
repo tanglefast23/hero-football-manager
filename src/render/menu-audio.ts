@@ -22,6 +22,14 @@ export function menuThemeForScreen(screen: M1Screen, awakeningBeat: number): Men
   if (screen === 'event' || screen === 'legacy' || (screen === 'awakening' && awakeningBeat >= 2)) {
     return 'event';
   }
+  // The season boundary was the one ceremony read in silence: the award
+  // reveals and the season-review card only had their success stings, no bed
+  // under them. They take the event theme — the ceremonial reveal bed the
+  // awakening and career events already use — rather than a new asset. The
+  // championship/endgame celebrations stay null on purpose: those screens play
+  // the celebration anthem through celebration-audio.ts, and a bed here would
+  // loop underneath it.
+  if (screen === 'awards-ceremony' || screen === 'season-end') return 'event';
   return null;
 }
 
@@ -308,10 +316,6 @@ export function initMenuAudio(): void {
 
 export function playAdvanceWeekSfx(): void {
   playMenuSfx('advance-week');
-}
-
-export function playPlanLockedSfx(): void {
-  playMenuSfx('plan-locked');
 }
 
 export function playLeagueChampionsSfx(): void {

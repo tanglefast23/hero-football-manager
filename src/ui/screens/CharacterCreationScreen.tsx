@@ -157,12 +157,20 @@ export function CharacterCreationScreen({
                   ? 'min-h-14 border-2 border-ink bg-blue px-3 py-3'
                   : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-3'}
               >
-                <Text className={selected
-                  ? 'font-pixel text-base text-white'
-                  : 'font-pixel text-base text-ink'}
-                >
-                  {selected ? '●' : '○'} {mode} ({label})
-                </Text>
+                <View className="flex-row items-center gap-2">
+                  {/* Glyph-only node: ●/○ are in neither Silkscreen weight, so
+                      the radio dot stands alone and falls back to the system
+                      face on purpose instead of flipping the label mid-string. */}
+                  <Text className={selected ? 'text-base text-white' : 'text-base text-ink'}>
+                    {selected ? '●' : '○'}
+                  </Text>
+                  <Text className={selected
+                    ? 'font-pixel text-base text-white'
+                    : 'font-pixel text-base text-ink'}
+                  >
+                    {mode} ({label})
+                  </Text>
+                </View>
               </Pressable>
             );
           })}
@@ -242,7 +250,11 @@ export function CharacterCreationScreen({
                   adjust(stat, -1);
                 }}
                 className="h-11 w-11 items-center justify-center border-2 border-ink bg-blue"
-                style={({ pressed }) => ({ opacity: pressed ? 0.65 : value <= CREATION_STAT_MIN ? 0.3 : 1 })}
+                // Static style array on purpose — layout must never live in a
+                // function-form style (the twice-hit iOS zero-height trap). The
+                // 44pt minimum is explicit points: h-11 is 38.5pt on native.
+                // SfxPressable supplies the pressed dim when no opacity is set.
+                style={[{ minWidth: 44, minHeight: 44 }, value <= CREATION_STAT_MIN ? { opacity: 0.3 } : null]}
               >
                 <Text className="font-mono text-2xl font-bold text-white">−</Text>
               </Pressable>
@@ -257,9 +269,10 @@ export function CharacterCreationScreen({
                   adjust(stat, 1);
                 }}
                 className="h-11 w-11 items-center justify-center border-2 border-ink bg-blue"
-                style={({ pressed }) => ({
-                  opacity: pressed ? 0.65 : value >= CREATION_STAT_MAX || pointsRemaining <= 0 ? 0.3 : 1,
-                })}
+                style={[
+                  { minWidth: 44, minHeight: 44 },
+                  value >= CREATION_STAT_MAX || pointsRemaining <= 0 ? { opacity: 0.3 } : null,
+                ]}
               >
                 <Text className="font-mono text-2xl font-bold text-white">+</Text>
               </Pressable>
@@ -281,7 +294,8 @@ export function CharacterCreationScreen({
         </Text>
       ) : null}
       <ActionButton
-        label="Sign the rookie  ▸"
+        // '›' is in Silkscreen; '▸' is not and rendered in the fallback face.
+        label="Sign the rookie  ›"
         accessibilityLabel={canSubmit
           ? 'Finish creating player'
           : 'Finish creating player. Tap to review missing requirements.'}
@@ -376,7 +390,10 @@ function AppearanceChoice({
           onPrevious();
         }}
         className="h-11 w-11 items-center justify-center border-2 border-ink bg-blue"
-        style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+        // Static style, not a function: layout in a function-form style is the
+        // twice-hit iOS zero-height trap. 44pt minimum in explicit points —
+        // h-11 is only 38.5pt on native; SfxPressable supplies the pressed dim.
+        style={{ minWidth: 44, minHeight: 44 }}
       >
         <Text className="font-pixel text-xl text-white">‹</Text>
       </Pressable>
@@ -396,7 +413,7 @@ function AppearanceChoice({
           onNext();
         }}
         className="h-11 w-11 items-center justify-center border-2 border-ink bg-blue"
-        style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+        style={{ minWidth: 44, minHeight: 44 }}
       >
         <Text className="font-pixel text-xl text-white">›</Text>
       </Pressable>

@@ -210,6 +210,13 @@ function PopSlot({
   })[0];
   const spriteScale = isGiant ? giantActor?.scale ?? 1 : 1;
   const baseScale = isGiant ? 3.4 : 4.1;
+  // Bitmap art rule (docs/11, and see snapSpriteScale in render/interpolate.ts):
+  // the drawn magnification must be a whole number, or nearest-neighbour
+  // sampling doubles some source rows and drops others. The giant's growth is
+  // folded into the sprite's own draw scale rather than applied as a fractional
+  // transform on top, so the COMBINED scale stays integral and GIANT_GK grows
+  // in pixel-perfect steps from his planted feet.
+  const drawScale = Math.max(1, Math.round(baseScale * spriteScale));
 
   return (
     <Animated.View
@@ -259,7 +266,8 @@ function PopSlot({
               : hero.power === 'FIRE_TORCH'
                 ? `${hero.targetSpriteKey}:ignited`
               : hero.targetSpriteKey}
-            scale={3.1}
+            // Integer magnification only — 3.1 sampled the pixel art unevenly.
+            scale={3}
           />
           {hero.power === 'WEB_TRAP' ? (
             <View pointerEvents="none" style={styles.webbedOverlay}>
@@ -310,9 +318,7 @@ function PopSlot({
         </View>
       ) : null}
 
-      <View style={{ transform: [{ scale: spriteScale }] }}>
-        <TitleMatchSprite spriteKey={hero.spriteKey} scale={baseScale} />
-      </View>
+      <TitleMatchSprite spriteKey={hero.spriteKey} scale={drawScale} />
     </Animated.View>
   );
 }

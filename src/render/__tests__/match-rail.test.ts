@@ -12,7 +12,6 @@ import {
   RAIL_HERO_TILE_CAP,
   RAIL_TIRED_ROWS,
   railHeroStatus,
-  zoneSecondsRemaining,
 } from '../match-rail';
 
 const railSource = () => readFileSync(join(process.cwd(), 'src/render/MatchControlRail.tsx'), 'utf8');
@@ -68,12 +67,16 @@ describe('desktop match control rail', () => {
     expect(railHeroStatus({ kind: 'active', untilTick: 90, strength: 1 })).toBe('firing');
   });
 
-  it('counts the Zone window down in whole seconds and only inside the Zone', () => {
-    expect(zoneSecondsRemaining({ kind: 'zone', remainingTicks: 70 })).toBe(7);
-    expect(zoneSecondsRemaining({ kind: 'zone', remainingTicks: 41 })).toBe(5);
-    expect(zoneSecondsRemaining({ kind: 'zone', remainingTicks: 0 })).toBe(0);
-    expect(zoneSecondsRemaining({ kind: 'idle' })).toBeNull();
-    expect(zoneSecondsRemaining({ kind: 'active', untilTick: 90, strength: 1 })).toBeNull();
+  it('ships no Zone-countdown plumbing — a Zone holds until its context arrives', () => {
+    // m1.27 removed the Zone countdown: sim `remainingTicks` never decrements
+    // while zoned, so any seconds-remaining field the rail carried would render
+    // a frozen fake '7s' timer. The plumbing (zoneSecondsRemaining /
+    // zoneSecondsLeft) was deleted end to end — pin it out like the manual-tap
+    // removal in automatic-power-ui.test.ts.
+    const rail = readFileSync(join(process.cwd(), 'src/render/match-rail.ts'), 'utf8');
+    expect(rail).not.toContain('zoneSecondsRemaining');
+    expect(railSource()).not.toContain('zoneSecondsLeft');
+    expect(matchSource()).not.toContain('zoneSecondsRemaining');
   });
 
   it('names the playstyle chips without renaming the engine mentalities', () => {

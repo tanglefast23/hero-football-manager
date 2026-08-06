@@ -30,7 +30,7 @@ import type { CareerPlayer, GameState, PlayerPersonality } from './types';
  */
 export type CareerLegendLegacyChoice = 'coach-candidate' | 'farewell';
 
-export interface CareerLegendLegacyTransaction {
+interface CareerLegendLegacyTransaction {
   readonly state: GameState;
   readonly resolvedPlayerId: string;
   readonly choice: CareerLegendLegacyChoice;

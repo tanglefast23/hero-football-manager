@@ -34,7 +34,7 @@ export interface PyramidClub {
   squad: PyramidPlayer[];
 }
 
-export interface PyramidDivision {
+interface PyramidDivision {
   level: DivisionLevel;
   clubs: PyramidClub[];
 }
@@ -57,12 +57,12 @@ export interface DivisionMovement {
   kind: 'promoted' | 'relegated';
 }
 
-export interface PyramidSeasonResolution {
+interface PyramidSeasonResolution {
   pyramid: LeaguePyramid;
   movements: DivisionMovement[];
 }
 
-export interface CupScore {
+interface CupScore {
   homeGoals: number;
   awayGoals: number;
 }
@@ -109,7 +109,7 @@ export interface RetirementAnnouncement {
   retirementAge: number;
 }
 
-export interface SeasonEndLifecycleResult {
+interface SeasonEndLifecycleResult {
   activePlayers: PyramidPlayer[];
   retiredPlayers: PyramidPlayer[];
   announcements: RetirementAnnouncement[];
@@ -123,7 +123,7 @@ export type CoachSpecialty =
   | 'Goalkeeping'
   | 'Motivator';
 
-export interface LegendCoachCandidate {
+interface LegendCoachCandidate {
   id: string;
   formerPlayerId: string;
   name: string;
@@ -131,7 +131,7 @@ export interface LegendCoachCandidate {
   loyaltyDiscountPercent: number;
 }
 
-export interface CoachLegacy {
+interface CoachLegacy {
   choice: 'coach-candidate';
   coachCandidate: LegendCoachCandidate;
 }
@@ -144,26 +144,26 @@ export interface CoachLegacy {
  * every legacy screen opened over a full roster and the transaction refused.
  * Removed rather than repaired — the roster cap is the older rule.
  */
-export type LegendLegacy = CoachLegacy;
+type LegendLegacy = CoachLegacy;
 
-export interface WellbeingUpdate {
+interface WellbeingUpdate {
   moraleDelta?: number;
   conditionDelta?: number;
 }
 
-export interface WellbeingState {
+interface WellbeingState {
   morale: number;
   condition: number;
   personality: PlayerPersonality;
   consecutiveLowMoraleWeeks: number;
 }
 
-export const CLUBS_PER_DIVISION = 10;
-export const PYRAMID_DIVISION_COUNT = 5;
+const CLUBS_PER_DIVISION = 10;
+const PYRAMID_DIVISION_COUNT = 5;
 /** How many clubs go up, and how many go down, at each end of a division. */
-export const PROMOTION_PLACES = 2;
-export const RELEGATION_PLACES = 2;
-export const NATIONAL_CUP_CLUB_COUNT = CLUBS_PER_DIVISION * PYRAMID_DIVISION_COUNT;
+const PROMOTION_PLACES = 2;
+const RELEGATION_PLACES = 2;
+const NATIONAL_CUP_CLUB_COUNT = CLUBS_PER_DIVISION * PYRAMID_DIVISION_COUNT;
 /**
  * The most famous a player can ever be, and the unit every fame threshold in
  * the game is quoted in.
@@ -205,7 +205,7 @@ export const CLUB_LEGEND_MIN_SEASONS = 5;
  * still a legend, just a patient one.
  */
 export const CLUB_LEGEND_MIN_FAME = 200;
-export const LOW_MORALE_THRESHOLD = 30;
+const LOW_MORALE_THRESHOLD = 30;
 /**
  * The ladder is a geography ladder — District, County, Regional, National,
  * Global — so the name alone tells the manager how high they have climbed.
@@ -869,7 +869,7 @@ function generateFocusedAttributes(
   return attrs;
 }
 
-export function averageSquadStrength(squad: readonly PyramidPlayer[]): number {
+function averageSquadStrength(squad: readonly PyramidPlayer[]): number {
   const total = squad.reduce((sum, player) => sum + roleOverall(player.role, player.attrs), 0);
   return Math.round(total / squad.length);
 }

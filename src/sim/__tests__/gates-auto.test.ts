@@ -19,7 +19,7 @@ describe('M0 acceptance suite (Task 13)', () => {
       const diffs: number[] = new Array(N);
       for (let seed = 1; seed <= N; seed++) {
         const firing = cachedHomeGoals(seed, { homePolicy: 'FIRE_WHEN_READY' });
-        const neverFiring = cachedHomeGoals(seed, {}); // default SAVE_FOR_TAP, no taps queued anywhere
+        const neverFiring = cachedHomeGoals(seed, { homePolicy: 'SAVE_FOR_TAP' }); // test instrumentation: never fires, no taps queued anywhere
         diffs[seed - 1] = firing - neverFiring;
       }
       const { mean, lower, upper } = bootstrapMeanCI95(diffs, BOOTSTRAP_RESAMPLES, BOOTSTRAP_SEED);

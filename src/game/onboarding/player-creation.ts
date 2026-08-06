@@ -20,7 +20,7 @@ export const CREATION_BASE_RATING = 50;
 export const CREATION_POINT_POOL = 15;
 export const CREATION_RATING_TOTAL =
   OUTFIELD_CREATION_STATS.length * CREATION_BASE_RATING + CREATION_POINT_POOL;
-export const CREATED_PLAYER_REF = 10;
+const CREATED_PLAYER_REF = 10;
 export const CREATED_PLAYER_ROOKIE_WAGE = 180;
 
 export const DEFAULT_CREATION_RATINGS: Readonly<OutfieldCreationRatings> = Object.freeze({

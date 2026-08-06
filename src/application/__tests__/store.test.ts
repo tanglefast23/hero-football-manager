@@ -1369,6 +1369,123 @@ describe('M1 app store integration', () => {
       .toContain(replacementId);
   });
 
+  it('never lets a withdrawn save task write a payload queued after a replacement', async () => {
+    startCreatedCareer(111);
+    const diskCareer = useM1Store.getState().career!;
+    useM1Store.setState(useM1Store.getInitialState(), true);
+
+    let durableCareer = diskCareer;
+    const savedStates: GameState[] = [];
+    const careerRepository = stubCareerRepository({
+      async load() { return durableCareer; },
+      async save(career) {
+        savedStates.push(career);
+        durableCareer = career;
+      },
+    });
+    await useM1Store.getState().initializePersistence(careerRepository);
+    await waitFor(() => !useM1Store.getState().saving);
+    savedStates.length = 0;
+
+    // Queue save A for the old career. Do not yield: it must still be waiting
+    // on the coalesced payload when the replacement withdraws it.
+    const { starterId, replacementId } = firstAvailableLineupSwap(useM1Store.getState().career!);
+    useM1Store.getState().swapStartingPlayer(starterId, replacementId);
+    useM1Store.getState().startNewCareer(222);
+    // Save B, queued for the replacement AFTER the withdrawal. Only its own
+    // task may write it: if the withdrawn task steals it, the replacement
+    // transaction sitting between them overwrites B on disk while memory's
+    // lastPersistedCareer says B is safe.
+    useM1Store.getState().completePlayerCreation({
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    const finalCareer = useM1Store.getState().career!;
+
+    await waitFor(() => !useM1Store.getState().saving);
+    await flushMicrotasks();
+
+    expect(useM1Store.getState().error).toBeNull();
+    expect(savedStates[savedStates.length - 1]).toBe(finalCareer);
+    expect(durableCareer).toBe(finalCareer);
+    expect(useM1Store.getState().lastPersistedCareer).toBe(finalCareer);
+  });
+
+  it('refuses an abandoned save even when the replacement reuses its seed', async () => {
+    startCreatedCareer(111);
+    const existingCareer = useM1Store.getState().career!;
+    useM1Store.setState(useM1Store.getInitialState(), true);
+
+    let armed = false;
+    let saveCalls = 0;
+    const savedStates: GameState[] = [];
+    const careerRepository = stubCareerRepository({
+      async load() { return existingCareer; },
+      async save(career) {
+        if (!armed) return;
+        saveCalls += 1;
+        // The first write checkpoints the replaced career; the second is the
+        // replacement itself, whose failure rolls play back onto the slot.
+        if (saveCalls === 2) throw new Error('replacement save failed');
+        savedStates.push(career);
+      },
+    });
+    await useM1Store.getState().initializePersistence(careerRepository);
+    await waitFor(() => !useM1Store.getState().saving);
+    armed = true;
+    const replacedCareer = useM1Store.getState().career!;
+
+    // Deliberately the same seed as the career being replaced: identity must
+    // not lean on seed uniqueness.
+    useM1Store.getState().startNewCareer(111);
+    useM1Store.getState().completePlayerCreation({
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+
+    await waitFor(() => useM1Store.getState().error?.includes('replacement save failed') ?? false);
+    await flushMicrotasks();
+
+    // The creation save queued for the abandoned replacement shares the
+    // preserved career's seed, and must still be refused.
+    expect(useM1Store.getState().career).toBe(replacedCareer);
+    expect(savedStates[savedStates.length - 1]).toBe(replacedCareer);
+    expect(useM1Store.getState().lastPersistedCareer).toBe(replacedCareer);
+  });
+
+  it('does not claim a reconciled backup restore is on disk before its save lands', async () => {
+    const pendingCareer = careerWithPendingAwakening(8912);
+    // A backup whose authored trigger no longer ships: reconciliation changes
+    // the restored state, so the raw backup bytes the repository copied into
+    // the live slot differ from what memory holds.
+    const staleBackup: GameState = {
+      ...pendingCareer,
+      awakening: {
+        ...pendingCareer.awakening,
+        pending: {
+          ...pendingCareer.awakening.pending!,
+          triggerId: 'trigger-cut-from-the-build',
+        },
+      },
+    };
+    useM1Store.setState(useM1Store.getInitialState(), true);
+
+    const repository = stubCareerRepository({
+      async load() { throw new Error('career save is corrupt'); },
+      async restoreBackup() { return staleBackup; },
+      async save() { throw new Error('disk is full'); },
+    });
+    await useM1Store.getState().initializePersistence(repository);
+    await useM1Store.getState().restoreBackupSave();
+
+    expect(useM1Store.getState().career?.awakening.pending?.triggerId)
+      .toBe(loadLaunchContent().onboarding.triggers[0].id);
+    await waitFor(() => useM1Store.getState().saveWarning !== null);
+    // The reconciliation save failed, so disk still holds the pre-reconcile
+    // backup; memory must not claim the reconciled shape is persisted.
+    expect(useM1Store.getState().lastPersistedCareer).toBeNull();
+  });
+
   it('keeps the saved new career when replay cleanup fails', async () => {
     startCreatedCareer(111);
     const existingCareer = useM1Store.getState().career!;

@@ -21,7 +21,6 @@ const EXEMPT = new Set([
   'NewGameWelcomeScreen.tsx',
   'CharacterCreationScreen.tsx',
   'WeeklyReviewScreen.tsx',
-  'HirePitchScreen.tsx',
   'StoryEventScreen.tsx',
   'ClubFinancesScreen.tsx',
   // Not a scrolling screen: a panel rendered inside SquadTrainingScreen's

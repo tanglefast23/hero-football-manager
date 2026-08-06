@@ -24,13 +24,13 @@ export type Mentality = typeof MENTALITIES[number];
 export const ENERGY_USE_MODES = ['SAVE_ENERGY', 'BALANCED', 'ALL_OUT'] as const;
 export type EnergyUse = typeof ENERGY_USE_MODES[number];
 
-export const ENERGY_DRAIN_MULTIPLIER: Readonly<Record<EnergyUse, number>> = {
+const ENERGY_DRAIN_MULTIPLIER: Readonly<Record<EnergyUse, number>> = {
   SAVE_ENERGY: 0.60,
   BALANCED: 1.00,
   ALL_OUT: 1.65,
 };
 
-export const ENERGY_MOVEMENT_MULTIPLIER: Readonly<Record<EnergyUse, number>> = {
+const ENERGY_MOVEMENT_MULTIPLIER: Readonly<Record<EnergyUse, number>> = {
   SAVE_ENERGY: 0.90,
   BALANCED: 1.00,
   ALL_OUT: 1.12,

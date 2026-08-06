@@ -383,6 +383,15 @@ export function teardownAudio(): void {
   sfxPlayers.clear();
   themePlayer = null;
   fireLoopPlayer = null;
+  // The wanted-flags must not outlive the match that set them. A match that
+  // reached fulltime with a Fire Torch hero still ablaze tore down through
+  // this path with `fireWanted` stuck true, and the next match's
+  // background→foreground resume (or a session recovery) restarted the
+  // crackle loop over a pitch with no fire on it. `themeWanted` is reset for
+  // the same reason rather than relying on every caller pairing stopTheme()
+  // with teardownAudio().
+  themeWanted = false;
+  fireWanted = false;
   ready = false;
   initAttempted = false; // allow the next mount to retry init
   lastRecoveryAt = 0;

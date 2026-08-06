@@ -1,5 +1,5 @@
 import { loadLaunchContent } from '../../content';
-import { activeCareerMatchday, advanceWeek, completeMatchday, createCareer } from '../career';
+import { activeCareerMatchday, advanceWeek, completeMatchday, createCareer, startNextSeason } from '../career';
 import {
   buildCareerTeamDef,
   buildTrainingGround,
@@ -348,5 +348,51 @@ describe('career squad integration', () => {
     expect(released.lineups[0].playerIds).toContain(coverId);
     // The real proof: the repaired lineup still builds a legal match team.
     expect(() => buildCareerTeamDef(released, CLUB_IDS[0])).not.toThrow();
+  });
+
+  it('releases an expired starter with no cover by promoting an emergency youth', () => {
+    // The fixture squad holds exactly one goalkeeper. The old guard threw here,
+    // and once renewal is also locked out for the season (a walked-away agent,
+    // loyalty below 30) the expired-contract gate could never clear — a
+    // permanent season-end lock in a game whose canon is fail-soft, never game
+    // over. The academy now sends a role-correct emergency youth instead, the
+    // same relief a board-forced sale uses.
+    const keeperId = `${CLUB_IDS[0]}-p0`;
+    const ended = advanceWeek({ ...career(), week: 30 as const });
+    expect(ended.phase).toBe('season-end');
+
+    const released = releaseCareerPlayer(ended, keeperId);
+
+    const youth = released.players.find(player => (
+      player.clubId === CLUB_IDS[0]
+      && !ended.players.some(existing => existing.id === player.id)
+    ));
+    expect(youth).toMatchObject({ role: 'GK', contractSeasonsRemaining: 2 });
+    expect(released.players.some(player => player.id === keeperId)).toBe(false);
+    expect(released.lineups[0].playerIds[0]).toBe(youth!.id);
+    expect(released.clubs[0].weeklyWages).toBe(1300 - 100 + youth!.weeklyWage);
+    expect(() => buildCareerTeamDef(released, CLUB_IDS[0])).not.toThrow();
+    // Same state, same relief: the replacement is deterministic.
+    expect(releaseCareerPlayer(ended, keeperId).players.some(player => player.id === youth!.id))
+      .toBe(true);
+  });
+
+  it('unblocks the season transition after a forced release with no cover', () => {
+    const keeperId = `${CLUB_IDS[0]}-p0`;
+    const ended = advanceWeek({ ...career(), week: 30 as const });
+    // Every other expired deal is renewed, so the keeper alone holds the gate.
+    const onlyKeeperExpired: GameState = {
+      ...ended,
+      players: ended.players.map(player => (
+        player.clubId === CLUB_IDS[0] && player.id !== keeperId
+          ? { ...player, contractSeasonsRemaining: 1 }
+          : player
+      )),
+    };
+    expect(() => startNextSeason(onlyKeeperExpired)).toThrow('expired contract');
+
+    const released = releaseCareerPlayer(onlyKeeperExpired, keeperId);
+
+    expect(startNextSeason(released).season).toBe(2);
   });
 });

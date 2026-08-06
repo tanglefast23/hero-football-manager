@@ -9,7 +9,7 @@ import {
 } from './promotion-progression';
 import type { CareerTrainingDrill, GameState } from './types';
 
-export interface TrainingPath {
+interface TrainingPath {
   /** The tier-1 drill id, used as the stable path identifier. */
   readonly pathId: string;
   readonly attribute: keyof Attrs;

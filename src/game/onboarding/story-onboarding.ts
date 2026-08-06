@@ -1,4 +1,4 @@
-import type { PowerId, TeamDef } from '../../sim/types';
+import type { TeamDef } from '../../sim/types';
 import { developmentPotentialCeiling } from '../archetype-caps';
 import { compareIds } from '../ordering';
 import { assignDistinctPlayerLooks, createdAppearanceLookId } from '../player-appearance';
@@ -11,7 +11,7 @@ import {
   type CreatedPlayerDraft,
 } from './player-creation';
 
-export const CREATED_PLAYER_ID_SUFFIX = 'created-player';
+const CREATED_PLAYER_ID_SUFFIX = 'created-player';
 
 export function beginStoryOnboarding(state: GameState): GameState {
   if (state.phase !== 'manage' || state.season !== 1 || state.week !== 1) {
@@ -174,10 +174,6 @@ export function withoutPowers(team: TeamDef): TeamDef {
 export function createdPlayer(state: GameState): CareerPlayer | undefined {
   const id = state.onboarding?.createdPlayerId;
   return id === undefined ? undefined : state.players.find(player => player.id === id);
-}
-
-export function onboardingPower(state: GameState): PowerId | undefined {
-  return state.onboarding?.awakenedPower;
 }
 
 function firstUserFixture(state: GameState): LeagueFixture {

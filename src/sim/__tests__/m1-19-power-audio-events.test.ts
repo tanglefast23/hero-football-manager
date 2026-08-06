@@ -13,7 +13,8 @@ function matchWith(power: PowerId, slot = 10): { match: MatchState; hero: number
       power: idx === slot ? power : undefined,
     })),
   };
-  return { match: createMatch(119, home, UNITED), hero: slot };
+  // SAVE_FOR_TAP keeps rigged activations at tap semantics (m2.1 default flip).
+  return { match: createMatch(119, home, UNITED, { homePolicy: 'SAVE_FOR_TAP' }), hero: slot };
 }
 
 function impacts(match: MatchState, power: PowerId) {

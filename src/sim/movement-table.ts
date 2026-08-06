@@ -10,8 +10,8 @@ import { clamp, dist, GOAL_CENTER_X, PITCH_W, PITCH_H, type Vec } from './geomet
 
 export const GRID_COLS: number = tables.grid.cols;
 export const GRID_ROWS: number = tables.grid.rows;
-export const CELL_W: number = PITCH_W / GRID_COLS;
-export const CELL_H: number = PITCH_H / GRID_ROWS;
+const CELL_W: number = PITCH_W / GRID_COLS;
+const CELL_H: number = PITCH_H / GRID_ROWS;
 
 /** Turnover blend length: targets lerp old-phase → new-phase over this many ticks. */
 export const BLEND_TICKS = 10;

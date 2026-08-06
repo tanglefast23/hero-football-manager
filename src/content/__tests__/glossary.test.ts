@@ -19,4 +19,29 @@ describe('launch glossary', () => {
     expect(definition('Energy Use')).toContain('condition');
     expect(entries.length).toBeGreaterThanOrEqual(40);
   });
+
+  it('teaches the instant tap-to-train system, never the removed weekly slots', () => {
+    // Training moved to instant tap-resolved drills (trainPlayerInstantly,
+    // 2026-07-24). The glossary shipped for weeks still teaching the old
+    // weekly-slot plan — "picking a stat commits immediately and repeats every
+    // week until you change it" — so pin the semantics, not a phrasing: the
+    // training entries must describe drills resolving on the tap, and no entry
+    // anywhere may claim a drill commits, schedules, or repeats week over week.
+    const categories = loadLaunchContent().glossary.categories;
+    const training = categories.find(category => category.id === 'training');
+    if (training === undefined) throw new Error('training glossary category missing');
+
+    const trainingText = training.entries
+      .map(entry => `${entry.term} ${entry.definition}`.toLowerCase())
+      .join(' ');
+    expect(trainingText).toMatch(/tap|instant/);
+    expect(trainingText).toContain('training points');
+
+    for (const entry of categories.flatMap(category => category.entries)) {
+      const text = `${entry.term}: ${entry.definition}`;
+      expect(text).not.toMatch(/weekly plan/i);
+      expect(text).not.toMatch(/repeats? (?:it )?every week/i);
+      expect(text).not.toMatch(/training slot/i);
+    }
+  });
 });

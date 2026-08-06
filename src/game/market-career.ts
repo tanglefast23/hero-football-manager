@@ -58,13 +58,13 @@ import {
 } from './board-ultimatum';
 import { highestDivisionReached } from './promotion-progression';
 
-export const DEFAULT_COACH_CONTENT_UNLOCK_IDS = [
+const DEFAULT_COACH_CONTENT_UNLOCK_IDS = [
   'formation:4-3-3',
 ] as const;
 
 export type CareerCoachRole = 'HEAD' | 'ASSISTANT';
 
-export const ASSISTANT_COACH_WAGE_PERCENT = 50;
+const ASSISTANT_COACH_WAGE_PERCENT = 50;
 
 /** The candidate quote is the head-coach wage; assistants are half price. */
 export function coachWeeklyWageForRole(
@@ -79,7 +79,7 @@ export function coachWeeklyWageForRole(
     : Math.round(coach.weeklyWage * ASSISTANT_COACH_WAGE_PERCENT / 100);
 }
 
-export interface CareerTransferBid {
+interface CareerTransferBid {
   readonly id: string;
   readonly playerId: string;
   readonly buyerClubId: string;
@@ -88,21 +88,21 @@ export interface CareerTransferBid {
   readonly madeWeek: number;
 }
 
-export interface CareerTransferListing {
+interface CareerTransferListing {
   readonly playerId: string;
   readonly listedSeason: number;
   readonly listedWeek: number;
   readonly bids: readonly CareerTransferBid[];
 }
 
-export interface CareerTransferTalks {
+interface CareerTransferTalks {
   readonly playerId: string;
   readonly transferQuote: TransferQuote;
   readonly negotiation: ContractNegotiation;
   readonly consequenceApplied?: boolean;
 }
 
-export interface CareerRenewalTalks {
+interface CareerRenewalTalks {
   readonly playerId: string;
   readonly negotiation: ContractNegotiation;
   readonly consequenceApplied?: boolean;
@@ -141,12 +141,12 @@ export interface CareerMarketState {
   readonly abandonedRenewalNegotiationIds?: readonly string[];
 }
 
-export interface CareerMarketTransaction {
+interface CareerMarketTransaction {
   readonly state: GameState;
   readonly market: CareerMarketState;
 }
 
-export interface CareerTransferTarget {
+interface CareerTransferTarget {
   readonly player: CareerPlayer;
   readonly sellingClubDivision: number;
   readonly active: boolean;
@@ -271,7 +271,7 @@ export function resolveCareerScoutClock(
   state: GameState,
   market: CareerMarketState,
 ): CareerMarketState {
-  const currentMarket = expireCareerTransferListings(state, market);
+  const currentMarket = expireCareerTransferTalks(state, expireCareerTransferListings(state, market));
   const mission = currentMarket.activeScoutMission;
   if (mission === undefined || absoluteCareerWeek(state) < mission.dueWeek) return currentMarket;
   const result = resolveScoutMission(
@@ -297,6 +297,34 @@ export function expireCareerTransferListings(
   const active = listings.filter(listing => listingBelongsToCurrentWindow(state, listing));
   if (active.length === listings.length) return market;
   return { ...market, transferListings: active };
+}
+
+/**
+ * Drops transfer talks whose registration window has closed, exactly as
+ * `expireCareerTransferListings` drops saved bids. The quote and the negotiated
+ * wage were both rolled from the week talks opened, so window-1 talks completing
+ * in the mid-season window would sign at pre-season prices.
+ */
+function expireCareerTransferTalks(
+  state: Pick<GameState, 'season' | 'week'>,
+  market: CareerMarketState,
+): CareerMarketState {
+  const talks = market.transferTalks;
+  if (talks === undefined || talksBelongToCurrentWindow(state, talks)) return market;
+  return { ...market, transferTalks: undefined };
+}
+
+/** The opening week is embedded in the negotiation id, so the quote's window is recoverable. */
+function talksBelongToCurrentWindow(
+  state: Pick<GameState, 'season' | 'week'>,
+  talks: CareerTransferTalks,
+): boolean {
+  const opened = /^transfer-s(\d+)-w(\d+)-/.exec(talks.negotiation.id);
+  if (opened === null) return false;
+  return listingBelongsToCurrentWindow(state, {
+    listedSeason: Number(opened[1]),
+    listedWeek: Number(opened[2]),
+  });
 }
 
 function transferNegotiationId(state: GameState, playerId: string): string {
@@ -405,6 +433,11 @@ export function completeCareerTransfer(
   const talks = market.transferTalks;
   if (talks?.negotiation.status !== 'ACCEPTED' || talks.negotiation.acceptedOffer === undefined) {
     throw new Error('a transfer requires an accepted player contract');
+  }
+  // Belt over the weekly expiry clock: a stale save could still hand this a
+  // deal priced in an earlier window.
+  if (!talksBelongToCurrentWindow(state, talks)) {
+    throw new Error('these talks expired with their transfer window; reopen them at the current price');
   }
   const target = careerTransferTarget(state, talks.playerId);
   if (target === undefined) {
@@ -615,6 +648,7 @@ export function listCareerPlayer(
   }
   // Validate that accepting a future bid cannot strand the starting eleven.
   replaceTransferredStarter(state, player);
+  assertUserSaleKeepsSquadCover(state, player);
   const bids = state.clubs
     .filter(club => club.id !== state.userClubId)
     .map(club => ({ club, quote: sellingQuoteForBuyer(state, player, club.id, division) }))
@@ -643,20 +677,6 @@ export function listCareerPlayer(
         bids,
       },
     ],
-  };
-}
-
-export function unlistCareerPlayer(
-  market: CareerMarketState,
-  playerId: string,
-): CareerMarketState {
-  const listings = market.transferListings ?? [];
-  if (!listings.some(listing => listing.playerId === playerId)) {
-    throw new Error(`player ${playerId} is not transfer-listed`);
-  }
-  return {
-    ...market,
-    transferListings: listings.filter(listing => listing.playerId !== playerId),
   };
 }
 
@@ -725,6 +745,7 @@ function completeCareerPlayerSale(
   if (buyer === undefined) throw new Error(`unknown buying club ${buyerClubId}`);
   if (quote.playerId !== playerId) throw new Error('the transfer bid does not match the listed player');
   if (buyer.cash < quote.fee) throw new Error('the buying club cannot afford the transfer fee');
+  assertUserSaleKeepsSquadCover(state, player);
   const lineups = replaceTransferredStarter(state, player);
   const transferredState: GameState = {
       ...state,
@@ -867,7 +888,7 @@ export function dismissCareerCoach(
   };
 }
 
-export function careerCoachHasUnlockedContent(
+function careerCoachHasUnlockedContent(
   market: CareerMarketState,
   contentId: string,
 ): boolean {
@@ -1249,6 +1270,36 @@ function playerStatTotal(player: CareerPlayer): number {
 function isEligibleTransferReplacement(candidate: CareerPlayer): boolean {
   return isAvailableForSelection(candidate)
     && !(candidate.power !== undefined && !candidate.licensed);
+}
+
+/**
+ * A user sale must leave the eleven coverable, or the career dead-ends later:
+ * an expired starting keeper with no spare cannot be released at season end,
+ * and an injured starter on a bare eleven has no legal lineup repair. The rule
+ * mirrors what lineup repair actually needs — after the sale (and any starter
+ * replacement it triggers), one eligible spare goalkeeper and one eligible
+ * outfield substitute must remain outside the eleven. The seller-side template
+ * check (`sellerCanSpare`) is deliberately weaker; AI clubs never repair
+ * injuries or resolve expired contracts, the user club does.
+ */
+function assertUserSaleKeepsSquadCover(state: GameState, player: CareerPlayer): void {
+  const postSaleLineup = replaceTransferredStarter(state, player)
+    .find(lineup => lineup.clubId === state.userClubId);
+  if (postSaleLineup === undefined) return;
+  const starters = new Set(postSaleLineup.playerIds);
+  const spares = state.players.filter(candidate => (
+    candidate.clubId === state.userClubId
+    && candidate.id !== player.id
+    && !starters.has(candidate.id)
+    && isEligibleTransferReplacement(candidate)
+  ));
+  const covered = spares.some(candidate => candidate.role === 'GK')
+    && spares.some(candidate => candidate.role !== 'GK');
+  if (!covered) {
+    throw new Error(
+      `Selling ${player.name} would leave the eleven without matchday cover. Keep a spare goalkeeper and an outfield substitute.`,
+    );
+  }
 }
 
 function replaceTransferredStarter(state: GameState, player: CareerPlayer) {

@@ -63,7 +63,7 @@ export const DIVISION_AWARD_PRIZE_TAPER_PERCENT: readonly number[] = Object.free
 
 const LOWEST_DIVISION = 5;
 
-export interface DivisionAwardPrizeQuery {
+interface DivisionAwardPrizeQuery {
   /** The completed season's recap, which carries the podiums this reads. */
   readonly recap: SeasonRecap;
   readonly userClubId: string;

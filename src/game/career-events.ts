@@ -3,11 +3,12 @@ import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import type { GameState } from './types';
 import { LAUNCH_POWER_IDS } from './power-catalog';
 import { compareIds } from './ordering';
+import { recordCashTransaction } from './cash-transactions';
 import { recordFanGain } from './fan-growth';
 
 const POWER_IDS: ReadonlySet<PowerId> = new Set(LAUNCH_POWER_IDS);
 
-export interface CareerEventPlayerEffect {
+interface CareerEventPlayerEffect {
   playerId: string;
   moraleDelta?: number;
   injuryWeeks?: number;
@@ -15,7 +16,7 @@ export interface CareerEventPlayerEffect {
   attributeDelta?: number;
 }
 
-export interface CareerEventOutcomeApplication {
+interface CareerEventOutcomeApplication {
   moneyDelta?: number;
   trainingPointDelta?: number;
   fanDelta?: number;
@@ -23,7 +24,7 @@ export interface CareerEventOutcomeApplication {
   playerEffect?: CareerEventPlayerEffect;
 }
 
-export interface CareerEventResolutionPresentation {
+interface CareerEventResolutionPresentation {
   outcomeIndex: number;
   risky: boolean;
   success: boolean;
@@ -109,16 +110,16 @@ function awakeningPowerWeight(powerId: PowerId, attrs: Readonly<Attrs>): number 
  * authored recognition story in `content/events.json`; a build that ships
  * without that story just skips the beat.
  */
-export interface CareerMilestone {
+interface CareerMilestone {
   readonly id: string;
   readonly flag: string;
   readonly eventId: string;
 }
 
 /** Flag namespace the engine fills in; no authored outcome produces these. */
-export const CAREER_MILESTONE_FLAG_PREFIX = 'milestone:';
+const CAREER_MILESTONE_FLAG_PREFIX = 'milestone:';
 
-export const CAREER_MILESTONE_STATEMENT_MARGIN = 3;
+const CAREER_MILESTONE_STATEMENT_MARGIN = 3;
 export const CAREER_MILESTONE_UNBEATEN_RUN = 4;
 export const CAREER_MILESTONE_PUSH_SEASON_WINS = 8;
 export const CAREER_MILESTONE_CROWD = 1000;
@@ -338,7 +339,22 @@ export function applyCareerEventOutcome(
       }),
     },
   };
-  return withCareerMilestoneRecognition(recordFanGain(resolved, fans - club.fans), presentation);
+  // Event money used to move the balance silently: invisible in the money
+  // history and missing from the pre-M4 recap fallback, which reconstructs a
+  // season's opening cash from ledgers plus these transactions. Recorded after
+  // the balance moves, like every other one-off spend, so `balanceAfter` is
+  // stamped from the settled figure. The store gates choices via `minMoney`
+  // and the weekly cash floor bounds any authored setback, so no extra clamp
+  // belongs here — a forced outcome must always be able to resolve.
+  const recorded = moneyDelta === 0
+    ? resolved
+    : recordCashTransaction(resolved, {
+        kind: 'event',
+        label: 'Story event',
+        amount: moneyDelta,
+        referenceId: state.pendingEvent.eventId,
+      });
+  return withCareerMilestoneRecognition(recordFanGain(recorded, fans - club.fans), presentation);
 }
 
 /**

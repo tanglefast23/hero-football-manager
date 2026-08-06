@@ -19,12 +19,12 @@ export interface FocusDrill {
   readonly gains: Readonly<Partial<Attrs>>;
 }
 
-export interface TrainingResources {
+interface TrainingResources {
   readonly money: number;
   readonly tp: number;
 }
 
-export interface TrainingResult {
+interface TrainingResult {
   readonly players: ProgressionPlayer[];
   readonly resources: TrainingResources;
 }

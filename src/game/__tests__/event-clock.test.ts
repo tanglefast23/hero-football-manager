@@ -21,14 +21,15 @@ describe('weekly event clock', () => {
     });
   });
 
-  it('guarantees an event on the eighth consecutive eventless week', () => {
-    const seventhMiss = rollWeeklyEvent({ weeksWithoutEvent: 6, riskyChoices: 2 }, 99);
-    expect(seventhMiss).toEqual({
+  it('guarantees an event on the sixth consecutive eventless week', () => {
+    // The default mirrors content/events.json's guaranteeAfterDryWeeks: 6.
+    const fifthMiss = rollWeeklyEvent({ weeksWithoutEvent: 4, riskyChoices: 2 }, 99);
+    expect(fifthMiss).toEqual({
       offered: false,
-      state: { weeksWithoutEvent: 7, riskyChoices: 2 },
+      state: { weeksWithoutEvent: 5, riskyChoices: 2 },
     });
 
-    const guaranteed = rollWeeklyEvent(seventhMiss.state, 99);
+    const guaranteed = rollWeeklyEvent(fifthMiss.state, 99);
     expect(guaranteed).toEqual({
       offered: true,
       state: { weeksWithoutEvent: 0, riskyChoices: 2 },

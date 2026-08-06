@@ -41,7 +41,6 @@ jest.mock('expo-audio', () => ({
 import {
   menuThemeForScreen,
   playAdvanceWeekSfx,
-  playPlanLockedSfx,
   playLeagueChampionsSfx,
   setMenuMasterVolume,
   setMenuTheme,
@@ -93,6 +92,19 @@ describe('non-match music ownership', () => {
     expect(menuThemeForScreen('awakening', 1)).toBeNull();
     expect(menuThemeForScreen('awakening', 2)).toBe('event');
     expect(menuThemeForScreen('awakening', 3)).toBe('event');
+  });
+
+  it('lays the event bed under the season awards ceremony and review', () => {
+    // The season boundary used to be the one ceremony read in silence — only
+    // its success stings played. It shares the event reveal bed rather than
+    // shipping a new asset.
+    expect(menuThemeForScreen('awards-ceremony', 1)).toBe('event');
+    expect(menuThemeForScreen('season-end', 1)).toBe('event');
+    // The title celebrations stay bed-less on purpose: they play the
+    // celebration anthem via celebration-audio.ts, and a menu bed here would
+    // loop underneath it.
+    expect(menuThemeForScreen('championship-celebration', 1)).toBeNull();
+    expect(menuThemeForScreen('endgame-celebration', 1)).toBeNull();
   });
 
   it('hands off exclusively from opening to management to event music', () => {
@@ -204,16 +216,6 @@ describe('non-match music ownership', () => {
 
     expect(mockPlayers[3].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[3].play).toHaveBeenCalledTimes(1);
-  });
-
-  it('rewinds and plays the plan-locked chime on demand', async () => {
-    setMenuTheme('management');
-
-    playPlanLockedSfx();
-    await Promise.resolve();
-
-    expect(mockPlayers[4].seekTo).toHaveBeenCalledWith(0);
-    expect(mockPlayers[4].play).toHaveBeenCalledTimes(1);
   });
 
   it('plays the league-title fanfare once and can stop it when the scene is skipped', async () => {

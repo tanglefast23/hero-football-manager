@@ -6,9 +6,10 @@ Portrait, one-handed, thumb-first. The design language follows the house rules (
 
 - **60% neutral**: warm cream surfaces (dark mode: deep navy-charcoal) — the "clubhouse" canvas.
 - **30% structure**: dark ink text/borders; pitch-green reserved for match surfaces.
-- **10% accent**: **hero gold** — used *only* for hero/power elements (gauges, license slots, awakening moments, HE currency). The accent literally means "hero"; nothing else may use it. Semantic red/green only for money deltas and win/loss.
+- **10% accent**: **hero gold** — used *only* for hero/power elements (gauges, license slots, awakening moments). The accent literally means "hero"; nothing else may use it. Semantic red/green only for money deltas and win/loss.
 - **Accessible green**: pitch-dark remains the turf/art shadow. Small semantic green copy and dark green UI stages use `pitch-ink` (`#265b30`), which keeps normal text at AA contrast against white, paper, pitch-light, and gold-light.
 - **Action colour carries meaning, not decoration** (the shared families live in [11-art-style.md](11-art-style.md)): **blue** confirm/primary and neutral action · **red** cancel/destructive · **gold** hero/reward only · **grey** disabled. Button faces are the one place the palette is allowed to shout against the calm cream canvas; blue is therefore the primary-action colour across management screens (Advance Week, confirms, guided cards) and is not a second brand accent competing with gold. Violet is retired from the UI palette (2026-07-24).
+- **User-facing numbers read as things the manager receives**: name the player or thing and show the result — never surface a raw negative modifier or penalty label (no "Fans −3").
 - Pixel-art portraits and icons on clean flat UI (the Kairosoft contrast: crunchy sprites, calm chrome).
 - Type: one UI sans (4 sizes: 13/15/18/24) + monospace for numerals. Weights: regular + bold only.
 
@@ -16,7 +17,7 @@ Portrait, one-handed, thumb-first. The design language follows the house rules (
 
 Bottom tab bar, 5 tabs; a persistent **Advance Week ▸** button lives above it on every management screen (the Kairosoft heartbeat button).
 
-1. **Home** — club hub: next fixture card, cash/TP/HE strip, alerts (renewals due, event waiting, injuries), league position snippet.
+1. **Home** — club hub: next fixture card, cash/TP strip, alerts (renewals due, event waiting, injuries), league position snippet.
 2. **Squad** — roster list (sortable chips) → Player Card (large portrait with customization/paper-doll layers, raw stats, exact Archetype/Position/Potential training bonuses, contract, morale, and power panel). Stats have no personal cap; a value of 999 is labelled as the universal maximum.
 3. **Club** — facilities grid (build/upgrade/move with adjacency glows), staff (coach card, hire market), finances (ledger, sponsors, loan status).
 4. **Market** — scouting missions, transfer listings, negotiation flow (mood face + Pitch Cards), youth intake.
@@ -38,7 +39,7 @@ Only relevant club notes appear below development: skipped focus training names 
 
 ## Feel (juice budget — restrained but present)
 
-Haptics: power fired (heavy), goal (success), full gauge (light tick). Count-up tickers on money. Sprite squash-and-stretch on kicks. Confetti on promotion. No screen-shake spam; compact pixel effects are the spectacle ration and the pitch remains readable.
+Haptics: power fired (heavy), goal (success), full gauge (light tick). Count-up tickers on money. Confetti on promotion. No screen-shake spam; compact pixel effects are the spectacle ration and the pitch remains readable.
 
 ### Interaction feedback contract
 

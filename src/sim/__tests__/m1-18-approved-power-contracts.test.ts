@@ -37,7 +37,8 @@ function matchWith(power: PowerId, slot: number, bench: PlayerDef[] = []): Match
     ...UNITED,
     players: UNITED.players.map(player => ({ ...player, attrs: { ...player.attrs }, power: undefined })),
   };
-  return createMatch(1818, home, away);
+  // SAVE_FOR_TAP keeps rigged activations at tap semantics (m2.1 default flip).
+  return createMatch(1818, home, away, { homePolicy: 'SAVE_FOR_TAP' });
 }
 
 function forceArrival(match: MatchState): void {

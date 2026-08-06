@@ -1725,6 +1725,10 @@ function GroundsSection({
                       {building.status === 'construction' ? (
                         <ManagementSprite
                           spriteKey="facility:worksite"
+                          // Grid cells can measure narrower than the 32px art;
+                          // the cell cannot grow (it is a % of the plot), so a
+                          // sub-32 width accepts ManagementSprite's explicit
+                          // sub-1x downscale rather than overflowing the cell.
                           width={Math.max(24, Math.min(56, Math.min(artWidth, artHeight)))}
                           accessibilityLabel={`${building.name} construction`}
                         />
@@ -1864,6 +1868,9 @@ function GroundsSection({
                     setRelocatingBuildingId(null);
                   }}
                   className="h-11 w-11 items-center justify-center border-2 border-ink bg-paper"
+                  // Explicit points: h-11 is 38.5pt on native, under the 44pt
+                  // touch-target contract — see ActionButton's minHeight.
+                  style={{ minWidth: 44, minHeight: 44 }}
                 >
                   <Text className="font-pixel text-base text-ink">×</Text>
                 </Pressable>

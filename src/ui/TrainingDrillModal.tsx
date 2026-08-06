@@ -8,7 +8,7 @@ import { DrillSceneOverlay, drillActivityId } from '../render/DrillSceneOverlay'
 import { BertFullBody } from './BertFullBody';
 import { energyBand } from '../render/match-energy-ui';
 import { INSTANT_DRILL_CONDITION_COST } from '../game/training';
-import { playDrillResultSfx, playSuperTrainingSfx, playManagementActionSfx } from '../render/management-sfx';
+import { playDrillResultSfx, playSuperTrainingSfx, playManagementActionSfx, playTrainingStatDing } from '../render/management-sfx';
 import { playManagementHaptic } from '../render/haptics';
 import { useLayoutMode } from './layout/use-layout-mode';
 import type { DrillResultViewModel, TrainingSlotStatOption } from './models';
@@ -246,6 +246,9 @@ export function TrainingDrillModal({
         ? 'injury'
         : null;
     setStage(next);
+    // The doc-08 promise: the "+N Stat" reveal plays a short ding as the gain
+    // lands. A SUPER result skips it — its celebration owns the moment.
+    if (next === 'reveal') playTrainingStatDing();
     // The OUT card is the worst news the training loop delivers and it used to
     // arrive in silence, with the cue landing on the tap that dismissed it —
     // the drama mute, the paperwork loud.
@@ -421,6 +424,9 @@ export function TrainingDrillModal({
                 accessibilityLabel={`Close training for ${playerName}`}
                 onPress={dismiss}
                 className="h-11 w-11 items-center justify-center border-2 border-ink bg-white"
+                // Explicit points: h-11 is 38.5pt on native, under the 44pt
+                // touch-target contract — see ActionButton's minHeight.
+                style={{ minWidth: 44, minHeight: 44 }}
               >
                 <Text className="font-pixel text-lg text-ink">×</Text>
               </Pressable>
@@ -439,9 +445,13 @@ export function TrainingDrillModal({
             ) : null}
 
             <View className="flex-row flex-wrap items-center gap-2 border-b border-ink/20 bg-white px-4 py-2">
-              <View className="border border-gold-dark bg-gold-light px-2 py-1">
+              <View className="flex-row items-center gap-1 border border-gold-dark bg-gold-light px-2 py-1">
+                {/* Glyph-only node: ★ is in neither Silkscreen weight, so it
+                    stands alone and falls back to the system face on purpose —
+                    typed inside the pixel string it flipped the face mid-word. */}
+                <Text className="text-sm text-ink">★</Text>
                 <Text className="font-pixel text-sm uppercase text-ink">
-                  ★ SUPER chance {superChancePercent}%
+                  SUPER chance {superChancePercent}%
                 </Text>
               </View>
               {owedHere ? (
@@ -767,7 +777,11 @@ export function TrainingDrillModal({
                     </View>
                     <View className="flex-row items-center justify-between px-1">
                       <Text className="text-sm text-ink/60">SUPER chance</Text>
-                      <Text className="font-mono text-sm text-gold-dark">★ {superChancePercent}% each</Text>
+                      <View className="flex-row items-center gap-1">
+                        {/* Glyph-only ★ node — not in Silkscreen, deliberate system fallback. */}
+                        <Text className="text-sm text-gold-dark">★</Text>
+                        <Text className="font-mono text-sm text-gold-dark">{superChancePercent}% each</Text>
+                      </View>
                     </View>
                   </View>
 
@@ -1032,8 +1046,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 1,
   },
   repeatOptionText: {
-    fontFamily: 'PixelFont',
+    // The loaded Silkscreen bold cut — 'PixelFont' was never registered, so iOS
+    // silently fell back to San Francisco. Tabular numerals per the doc-11
+    // numerals rule (same pattern as SubstitutionBoard's counter).
+    fontFamily: 'Silkscreen_700Bold',
     fontSize: 16,
+    fontVariant: ['tabular-nums'],
     color: '#77737f',
   },
   repeatOptionTextSelected: {
