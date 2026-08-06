@@ -15,7 +15,7 @@ function career(): GameState {
   });
 }
 
-/** Season-2 week-5 or later, with sidecars kept in step. See the engine tests. */
+/** Season 2 or later, with sidecars kept in step. See the engine tests. */
 function atStartWeek(state: GameState, week = 5): GameState {
   return {
     ...state,
@@ -46,8 +46,12 @@ function withPending(state: GameState, requestId: string, costAmount?: number): 
 }
 
 describe('playerRequestViewModel', () => {
-  it('is unavailable before the start week, so the tab row never renders', () => {
-    expect(playerRequestViewModel(atStartWeek(career(), 4)).available).toBe(false);
+  it('is unavailable before the start season, so the tab row never renders', () => {
+    // Season 1 is the whole of the gate now: the tab opens in season 2 week 1,
+    // because nothing about wanting a new car depends on the league being in
+    // session. Costs the pre-season cannot collect are filtered per request in
+    // `advancePlayerRequests` instead of by silencing the feature for a month.
+    expect(playerRequestViewModel(career()).available).toBe(false);
   });
 
   it('is unavailable for a career with no baked catalog', () => {

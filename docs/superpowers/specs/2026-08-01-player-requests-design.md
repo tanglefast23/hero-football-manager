@@ -4,7 +4,7 @@
 **Status:** approved design, amended after audit 2026-08-01, ready for planning
 **Scope:** one cycle, self-contained
 
-From season 2 week 5, players start asking the manager for things. A second tab
+From season 2, players start asking the manager for things. A second tab
 on the Squad screen carries the ask; granting it costs money, weeks, or fresh
 legs, and refusing it costs the player's regard. A new per-player **loyalty**
 score records that regard and spends it at the negotiating table.
@@ -81,8 +81,19 @@ weeks, so Bert's briefing lands as *"that is what those were for"* rather than
 
 ## 3. Who asks, and how often
 
-The clock starts at **season 2, week 5**, the week Bert's briefing is delivered.
+The clock starts at **season 2, week 1**, and Bert's briefing is delivered on the
+same trigger — the guide reads the tuning, so the two cannot drift.
 One pending request at a time; no new roll opens while one is unanswered.
+
+It started at week 5, the week league football resumes, which made the whole
+pre-season silent. Nothing about wanting a new car depends on the league being
+in session, and 21 of the 30 requests cost money or training weeks, which are
+charged in any week. The 9 whose price IS denominated in football — leave, and
+squad condition — are filtered per request instead: see `costIsCollectable` in
+`src/game/player-requests.ts`, which withholds a request when no fixture falls
+in the window its cost would occupy. That also closed a live hole at the other
+end of the calendar, where leave granted after the last league round, or once
+the club was out of the Cup, cost nothing at all and still bought loyalty.
 
 ### Eligibility
 
@@ -144,6 +155,20 @@ roll happens before `minWeeks` dry weeks, and the chance ramps from
 | **Chairman** | 6–10 weeks | 4–8 weeks |
 
 `baseChancePercent` is 25. Owning stars is what makes the dressing room noisy.
+
+**Amended 2026-08-06.** These numbers are unchanged, but they used to bite
+twice. The floor is a cooldown between requests — "he asked six weeks ago, give
+it a rest" — and `startNextSeason` reset `weeksSinceRequest` to 0, which turned
+it into a second, unrelated barrier at the start of every season. Because the
+floor is longer than the four-week pre-season, that barrier silenced the
+pre-season permanently, in every season, for a feature whose costs are mostly
+money. The clock now carries across the break: a club that went quiet for the
+last ten weeks of a season has served the wait and can be asked in week 1, while
+one asked in week 28 still waits. Effects and leave are still dropped, both
+being measured in weeks against a season that has ended.
+
+Measured over three seeds and six seasons: 13–14 asks, 2–3 a season, ask-to-ask
+gaps averaging 10–11 weeks, and a pre-season ask in roughly one season in three.
 
 ---
 

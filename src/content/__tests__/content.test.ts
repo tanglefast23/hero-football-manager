@@ -515,7 +515,7 @@ describe('validated M1 launch content', () => {
           focus: 'sponsor-buzz',
           objective: 'REVIEW THE BUZZ METER.',
           body: [
-            "We're famous enough to have a proper social media following now. Goals, wins and hero moments build Buzz. It pays out twice each season.",
+            "We're famous enough to have a proper social media following now. Goals, wins and hero moments build Buzz. It cashes out in Week 15 and Week 30 — a full meter pays a month's sponsor money on top.",
           ],
         }],
       });

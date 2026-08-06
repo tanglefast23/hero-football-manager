@@ -1,4 +1,4 @@
-import { generateSeasonFixtures } from './schedule';
+import { CUP_SETTLEMENT_WEEKS, generateSeasonFixtures } from './schedule';
 import { applyVariancePercent, matchdayVarianceRoll } from './finance-variance';
 import {
   BASE_WEEKLY_TRAINING_POINTS,
@@ -94,22 +94,10 @@ const UINT32_MAX = 4294967295;
  * building and still leaves operating room instead of shrinking by $5,000.
  */
 const EMERGENCY_LOAN_FLOOR = 15_000;
-/**
- * The week each Hero Cup round settles, chosen to land on weeks the league
- * calendar leaves empty so a cup tie is its own event instead of a second match
- * bolted onto a league week. `leagueWeekForRound` fills weeks 3–28 in season 1
- * and 5–28 from season 2 on, which leaves these empty weeks:
- *
- *   season 1:  1 2   6   9   12    15    18    21    24 27 29 30
- *   season 2+: 1 2 3 4 8       12       16       20  24 27 29 30
- *
- * Only 12, 24, 27, 29 and 30 are free in every season, so no six-week set can
- * be empty in all of them. This set is empty for the whole of season 1 and
- * doubles up only twice (weeks 6 and 18) from season 2 on — the fewest possible
- * without opening in weeks 1–2, before the league has even kicked off, or
- * settling the final in week 30 alongside the season-end transition.
- */
-export const CUP_SETTLEMENT_WEEKS = [6, 12, 18, 24, 27, 29] as const;
+// Re-exported from its home in `schedule.ts`, which owns the season calendar.
+// `player-requests.ts` needs the same weeks to know whether a cost priced in
+// missed matches can be collected, and this module already imports that one.
+export { CUP_SETTLEMENT_WEEKS } from './schedule';
 
 /**
  * Long enough after the first cup match that a board has names on it rather
