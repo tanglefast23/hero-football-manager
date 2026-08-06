@@ -1057,6 +1057,42 @@ export function gridStadiumStandLevel(grid: FacilityGridState | undefined): numb
   return gridStadiumStands(grid).level;
 }
 
+/**
+ * What the club's money buildings are currently worth, as multipliers.
+ *
+ * The accounts office shows these as percentages rather than cash: a Stand is
+ * not worth "$600", it is worth half the gate again, and what that pays
+ * depends on the division the club is in when it is read. One derivation,
+ * reused by the panel that explains them, so the copy can never drift from the
+ * settlement above it.
+ */
+export interface CommercialFacilitySummary {
+  readonly standLevel: number;
+  readonly standCount: number;
+  /** Percent added to the home gate by every operational stand level together. */
+  readonly gateBonusPercent: number;
+  readonly shopLevel: number;
+  readonly shopCount: number;
+  /** The adjacency bonus already earned on merchandise; 0 when none is active. */
+  readonly merchAdjacencyPercent: number;
+}
+
+export function commercialFacilitySummary(state: GameState): CommercialFacilitySummary {
+  const grid = state.facilities.grid;
+  const stands = gridStadiumStands(grid);
+  const shops = gridFanShops(grid);
+  return {
+    standLevel: stands.level,
+    standCount: stands.count,
+    gateBonusPercent: stands.level * STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL,
+    shopLevel: shops.level,
+    shopCount: shops.count,
+    merchAdjacencyPercent: grid === undefined || shops.level === 0
+      ? 0
+      : facilityEffects(grid).merchIncomeBonusPercent,
+  };
+}
+
 function gridFanShops(grid: FacilityGridState | undefined): { level: number; count: number } {
   if (grid === undefined) return { level: 0, count: 0 };
   let level = 0;
@@ -1752,6 +1788,9 @@ function validateNonnegativeInteger(value: number, label: string): void {
     throw new Error(`${label} must be a nonnegative integer`);
   }
 }
+
+/** The share of the club's supporters who turn up and pay, in percent. */
+export const GATE_ATTENDANCE_PERCENT = 60;
 
 function sixtyPercentOf(value: number): number {
   const fans = requireSafeInteger(value, 'ticket attendance fan count');

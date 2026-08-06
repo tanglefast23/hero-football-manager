@@ -16,6 +16,7 @@ import type {
   SponsorOfferViewModel,
   SponsorSlotViewModel,
   TrainingGroundDecisionViewModel,
+  IncomeGenerationViewModel,
   TrainingPointIncomeViewModel,
 } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
@@ -541,6 +542,13 @@ export function ClubFinancesScreen({
       key: 'training-points',
       weight: 3 + viewModel.trainingPointIncome.rows.length,
       node: <TrainingPointIncomeSection income={viewModel.trainingPointIncome} />,
+    },
+    // The mirror of the section above it: that one is where next week's TP
+    // comes from, this is where next week's money comes from.
+    {
+      key: 'income-generation',
+      weight: 3 + viewModel.incomeGeneration.rows.length,
+      node: <IncomeGenerationSection income={viewModel.incomeGeneration} />,
     },
   ];
 
@@ -1267,6 +1275,45 @@ function TrainingPointIncomeSection({ income }: { readonly income: TrainingPoint
           <PixelText className="flex-1 pr-3 text-sm uppercase text-ink">Per week</PixelText>
           <Text className="font-mono text-lg text-ink">{income.total}</Text>
         </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Where the money comes from, as multipliers rather than as amounts.
+ *
+ * The statement above says what the club banked last week; nothing said why it
+ * was that number, or what would make it bigger. Unbuilt commercial buildings
+ * keep a row — greyed, with the worth they WOULD have — because the panel is
+ * read as often for "how do I earn more" as for "what do I own".
+ */
+function IncomeGenerationSection({ income }: { readonly income: IncomeGenerationViewModel }) {
+  return (
+    <View>
+      <SectionLabel eyebrow="Income generation" title="Bringing in revenue" />
+      <View className="border-2 border-ink bg-white">
+        {income.rows.map(row => (
+          <View
+            key={row.id}
+            accessible
+            accessibilityRole="text"
+            accessibilityLabel={`${row.label}, ${row.effect}. ${row.detail}`}
+            className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2 last:border-b-0"
+          >
+            <View className="flex-1 pr-3">
+              <Text className={row.owned ? 'text-base text-ink' : 'text-base text-ink/45'}>
+                {row.label}
+              </Text>
+              <Text className="mt-0.5 text-xs leading-4 text-ink/60">{row.detail}</Text>
+            </View>
+            <Text className={row.owned
+              ? 'font-mono text-base text-pitch-ink'
+              : 'font-mono text-base text-ink/40'}>
+              {row.effect}
+            </Text>
+          </View>
+        ))}
       </View>
     </View>
   );

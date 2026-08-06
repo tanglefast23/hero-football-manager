@@ -719,6 +719,7 @@ export interface ClubFinancesViewModel {
   coachingStaff: readonly CoachStaffMemberViewModel[];
   facilities: ClubFacilityGridViewModel;
   trainingPointIncome: TrainingPointIncomeViewModel;
+  incomeGeneration: IncomeGenerationViewModel;
   /** Absent until D4 managed sponsorship or Season 3 Buzz becomes visible. */
   sponsorship?: ClubSponsorshipViewModel;
 }
@@ -739,6 +740,29 @@ export interface TrainingPointIncomeViewModel {
     points: number;
   }[];
   total: number;
+}
+
+/**
+ * What the club owns that brings money IN, and what each one is worth.
+ *
+ * Deliberately percentages and multipliers rather than cash. A Stadium Stand is
+ * worth half the gate again whatever division the club is in, and printing one
+ * week's dollars would date the moment the club is promoted — the multiplier is
+ * the durable fact, and the statement above already shows the week's money.
+ * Sponsorship is the exception the shape allows for: it is a payment, not a
+ * multiplier, so its row says when it arrives instead.
+ */
+export interface IncomeGenerationViewModel {
+  rows: readonly {
+    id: string;
+    label: string;
+    /** What it acts on, in one line. */
+    detail: string;
+    /** The headline worth: "+150%", "×3", "Every 4 weeks". */
+    effect: string;
+    /** Rows for things the club has yet to build read back as prospects. */
+    owned: boolean;
+  }[];
 }
 
 export interface StoryEventPlayerViewModel {
