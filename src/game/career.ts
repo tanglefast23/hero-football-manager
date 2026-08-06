@@ -930,9 +930,7 @@ function settlementAwards(
         awards.push({
           line: {
             kind: 'sponsor',
-            label: state.difficulty === 'CHAIRMAN'
-              ? 'Chairman sponsor target'
-              : 'Monthly sponsor fee',
+            label: 'Local advertising (monthly)',
             amount: sponsorIncome,
             idempotencyKey: weeklySettlementAwardKeys.sponsorMonth(
               state.userClubId,

@@ -515,7 +515,7 @@ describe('validated M1 launch content', () => {
           focus: 'sponsor-buzz',
           objective: 'REVIEW THE BUZZ METER.',
           body: [
-            "We're famous enough to have a proper social media following now. Goals, wins and hero moments build Buzz. Sponsors pay it out twice each season.",
+            "We're famous enough to have a proper social media following now. Goals, wins and hero moments build Buzz. It pays out twice each season.",
           ],
         }],
       });
@@ -527,5 +527,16 @@ describe('validated M1 launch content', () => {
     const bodies = intro?.pages.flatMap(page => page.body) ?? [];
 
     expect(bodies.some(line => line.includes('Training Pitch'))).toBe(false);
+  });
+
+  test('explains local advertising in the club glossary', () => {
+    const club = loadLaunchContent().glossary.categories
+      .find(category => category.id === 'club');
+    const entry = club?.entries.find(term => term.term === 'Local advertising');
+    expect(entry?.definition).toContain('every fourth week');
+    expect(entry?.definition).toContain('Division 4');
+
+    const money = club?.entries.find(term => term.term === 'Money');
+    expect(money?.definition).toContain('advertising');
   });
 });

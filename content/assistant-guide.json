@@ -462,7 +462,7 @@
       "id": "sponsor-buzz",
       "inbox": {
         "title": "THE CLUB IS TRENDING",
-        "detail": "The team has a real following now, and sponsors are watching."
+        "detail": "The team has a real following now, and it is starting to pay."
       },
       "destination": "club-finances",
       "pages": [
@@ -470,7 +470,7 @@
           "kicker": "A proper following",
           "title": "People are talking",
           "body": [
-            "We're famous enough to have a proper social media following now. Goals, wins and hero moments build Buzz. Sponsors pay it out twice each season."
+            "We're famous enough to have a proper social media following now. Goals, wins and hero moments build Buzz. It pays out twice each season."
           ],
           "focus": "sponsor-buzz",
           "objective": "REVIEW THE BUZZ METER.",
