@@ -2,9 +2,15 @@
   "schemaVersion": 1,
   "locale": "en",
   "strings": {
-    "settings.language.title": "Language",
-    "settings.language.kicker": "Choose your language",
+    "creation.language.kicker": "Before you sign",
     "creation.language.title": "Language",
-    "creation.language.kicker": "Before you sign"
+    "formation.3-4-3.blurb": "All-out attack",
+    "formation.3-5-2.blurb": "Midfield shield",
+    "formation.4-3-3.blurb": "Wide attack",
+    "formation.4-4-2.blurb": "Balanced lines",
+    "formation.4-5-1.blurb": "Crowd midfield",
+    "formation.5-3-2.blurb": "Deep counter",
+    "settings.language.kicker": "Choose your language",
+    "settings.language.title": "Language"
   }
 }

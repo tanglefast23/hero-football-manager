@@ -5,9 +5,8 @@ import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
 import { ChalkboardBackdrop, PaperSticker } from '../components/ChalkboardStage';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { FormationDiagram } from '../components/FormationDiagram';
-import { FORMATION_LABELS } from '../../sim/tactics';
 import { LanguageButton } from '../components/LanguageButton';
-import type { Locale } from '../../i18n';
+import { useCopy, type Locale } from '../../i18n';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import type { AppPreferences } from '../../persistence';
 import type { GlossaryCatalog } from '../../content';
@@ -230,6 +229,7 @@ export function TitleSettingsScreen({
   onBack,
   backLabel = 'Back to title',
 }: TitleSettingsScreenProps) {
+  const t = useCopy();
   const [showGlossary, setShowGlossary] = useState(false);
   const [showPrivacySupport, setShowPrivacySupport] = useState(false);
   const wide = useLayoutMode() === 'twoColumn';
@@ -274,7 +274,7 @@ export function TitleSettingsScreen({
             <FormationDiagram formation={formation} compact />
             <Text className="mt-2 font-pixel text-sm text-ink">{formation}</Text>
             <PixelText className="mt-1 text-center text-xs uppercase text-ink/50" numberOfLines={2}>
-              {FORMATION_LABELS[formation]}
+              {t(`formation.${formation}.blurb`)}
             </PixelText>
           </Pressable>
         ))}

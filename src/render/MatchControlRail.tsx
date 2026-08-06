@@ -17,7 +17,6 @@ import {
 import { availableMatchSpeeds, type MatchSpeed } from './match-speed';
 import {
   ENERGY_USE_MODES,
-  FORMATION_LABELS,
   MENTALITIES,
   type EnergyUse,
   type FormationId,
@@ -27,7 +26,7 @@ import {
   PowerTitleTakeover,
   type PowerTitleTakeoverProps,
 } from './PowerTitleTakeover';
-import { usePixelStyles, type LocaleFaces } from '../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 
 export interface MatchRailTiredPlayer {
   id: string;
@@ -132,6 +131,7 @@ export function MatchControlRail({
   powerTakeover,
 }: MatchControlRailProps) {
   const styles = usePixelStyles(makeStyles);
+  const t = useCopy();
   const teamBand = energyBand(teamEnergy);
   if (powerTakeover !== undefined) {
     return (
@@ -188,7 +188,7 @@ export function MatchControlRail({
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>FORMATION ({FORMATION_LABELS[formation].toUpperCase()})</Text>
+          <Text style={styles.cardTitle}>FORMATION ({t(`formation.${formation}.blurb`).toUpperCase()})</Text>
           <View style={styles.chipRow}>
             {formations.map((option) => {
               const selected = formation === option;
@@ -196,7 +196,7 @@ export function MatchControlRail({
                 <SfxPressable
                   key={option}
                   accessibilityRole="button"
-                  accessibilityLabel={`Formation ${option}, ${FORMATION_LABELS[option]}`}
+                  accessibilityLabel={`Formation ${option}, ${t(`formation.${option}.blurb`)}`}
                   accessibilityState={{ selected, disabled: coachingDisabled }}
                   disabled={coachingDisabled}
                   style={[
