@@ -108,11 +108,14 @@ describe('first-hire screen copy', () => {
   });
 
   it('parks the caret in the name field on desktop only', () => {
-    // A pointer platform AND the wide layout: `wide` is only a width test, so
-    // width alone would pop the on-screen keyboard over a landscape iPad.
+    // A hovering pointer AND the wide layout. `Platform.OS === 'web'` plus
+    // `wide` was not enough: a landscape iPad is both, and it opened this
+    // screen with the on-screen keyboard already over the form and the name
+    // field already selected.
     expect(source).toContain(
-      "if (Platform.OS !== 'web' || !wide || typeof document === 'undefined') return;",
+      "if (!hasHoverPointer() || !wide || typeof document === 'undefined') return;",
     );
+    expect(source).not.toContain("Platform.OS !== 'web' || !wide");
     // Focused by id, not by ref: NativeWind's wrapper never hands a ref down to
     // the input, so ref.current stays null and the caret never lands.
     // `id`, not the legacy `nativeID` — react-native-web drops the latter and

@@ -684,10 +684,16 @@ function RosterSection({
               <TutorialTapCue
                 label="Condition"
                 detail="Too low and they risk injury. You're okay for now."
+                // `bottom`, not the fixed `top: -ABOVE_OFFSET` the one-line cues
+                // use: this detail wraps to four lines on a narrow column, and a
+                // fixed offset let the taller bubble sit ON the header it is
+                // naming, with its arrow pointing past it into the first roster
+                // row. Anchoring the bubble's bottom to the header's top keeps
+                // the arrow on the header at every wrap.
                 style={{
                   left: '50%',
                   marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                  top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                  bottom: '100%',
                 }}
               />
             ) : null}

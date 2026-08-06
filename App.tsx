@@ -1478,6 +1478,13 @@ function GameApp() {
     : boardFinanceBriefing(store.career, openedBoardFinanceAlertId);
   const bertNotice = store.notice?.speaker === 'bert' ? store.notice : undefined;
   /**
+   * Whether the Financial Report modal is up. Named once because two places
+   * need it: the modal itself, and everything that must not start behind it.
+   */
+  const postMatchSummaryVisible = store.screen === 'management'
+    && store.postMatch !== null
+    && store.postMatchOverlay === 'summary';
+  /**
    * Whether Bert's guide is covering the screen.
    *
    * Declared once and used both to render the overlay and to suspend keyboard
@@ -1499,7 +1506,12 @@ function GameApp() {
     || boardFinanceMessage !== undefined
     || bertNotice !== undefined
   )
-    && signingWalkOn === null;
+    && signingWalkOn === null
+    // The Financial Report owns the screen while it is up. Bert used to walk on
+    // and start talking underneath it, so a lesson the manager was meant to
+    // read played out dimmed behind the modal and was over by the time they
+    // tapped Continue. Every briefing waits for the report to be dismissed.
+    && !postMatchSummaryVisible;
   const bertBriefingVisible = guideOverlayVisible || store.inboxDutyReminder !== null;
   const assistantObjective = store.career === null
     ? null
@@ -2780,15 +2792,13 @@ function GameApp() {
             }}
           />
         ) : null}
-        {store.screen === 'management'
-          && store.postMatch !== null
-          && store.postMatchOverlay === 'summary' ? (
-            <PostMatchSummaryModal
-              viewModel={store.postMatch}
-              reduceMotion={reduceMotion}
-              onDismiss={store.dismissPostMatchSummary}
-            />
-          ) : null}
+        {postMatchSummaryVisible && store.postMatch !== null ? (
+          <PostMatchSummaryModal
+            viewModel={store.postMatch}
+            reduceMotion={reduceMotion}
+            onDismiss={store.dismissPostMatchSummary}
+          />
+        ) : null}
         </View>
         <ConfirmationSheet
           confirmation={pendingConfirmation}
