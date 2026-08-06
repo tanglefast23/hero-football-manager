@@ -42,9 +42,11 @@ describe('content prose as catalog keys', () => {
     expect(overlap).toEqual([]);
   });
 
-  test('a locale with no translation still shows the English content', () => {
-    const request = loadLaunchContent().playerRequests.requests[0]!;
-    expect(copyFor('vi')(`playerRequest.${request.id}.title`)).toBe(request.title);
+  test('an untranslated content key still shows the English', () => {
+    // Player requests are translated now, so they no longer demonstrate this.
+    // A late-career event does — and that is exactly the state gate 10 measures.
+    const event = loadLaunchContent().events.events.at(-1)!;
+    expect(copyFor('vi')(`event.${event.id}.body`)).toBe(event.body);
   });
 });
 
