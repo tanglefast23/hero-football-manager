@@ -103,7 +103,7 @@ import {
   SPONSOR_OFFER_EXPIRY_WEEK,
   SPONSOR_OFFER_LAST_WEEK,
   SPONSOR_PAYMENT_WEEKS,
-  submitCareerRenewalOffer,
+  signCareerRenewalAtAsk,
   submitCareerTransferOffer,
   trainPlayerInstantly,
   userCareerRosterCount,
@@ -1297,28 +1297,29 @@ function renewExpiringPlayers(state: GameState): GameState {
     if (maxTerm === 0) continue;
     const market = next.market;
     if (market === undefined) throw new Error('long-career renewal policy lost its market');
-    let opened: NonNullable<GameState['market']>;
+    // Signs at the agent's ask with no promise, which is what the shipped
+    // "Sign now" button does. This used to open talks and offer the ask with a
+    // hard-coded JERSEY_10, copied from the old dead `renewPlayer`. That promise
+    // takes the number 10 shirt off whoever wears it, so a squad cannot share
+    // it: once renewals started refusing a second concurrent #10 promise, a
+    // harness renewing everybody this way threw on its second player.
     try {
-      opened = beginCareerRenewalTalks(next, market, player.id);
+      const transaction = signCareerRenewalAtAsk(
+        next,
+        market,
+        player.id,
+        Math.min(2, maxTerm) as 1 | 2 | 3,
+      );
+      next = { ...transaction.state, market: transaction.market };
     } catch (error) {
+      // A player who will not re-sign leaves; the harness models a manager who
+      // keeps whoever will stay, not one who can force a signature.
       if (error instanceof Error && error.message.includes('will not re-sign')) {
         next = releaseCareerPlayer(next, player.id);
         continue;
       }
       throw error;
     }
-    const talks = opened.renewalTalks;
-    if (talks === undefined) throw new Error(`long-career renewal talks did not open for ${player.id}`);
-    const offered = submitCareerRenewalOffer(next, opened, {
-      weeklyWage: talks.negotiation.weeklyAsk,
-      termSeasons: Math.min(2, maxTerm),
-      perk: 'JERSEY_10',
-    });
-    if (offered.renewalTalks?.negotiation.status !== 'ACCEPTED') {
-      throw new Error(`long-career at-ask renewal was not accepted for ${player.id}`);
-    }
-    const transaction = completeCareerRenewal(next, offered);
-    next = { ...transaction.state, market: transaction.market };
   }
   return next;
 }
