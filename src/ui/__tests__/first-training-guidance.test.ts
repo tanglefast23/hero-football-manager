@@ -19,8 +19,10 @@ describe('first training guidance', () => {
     expect(source).not.toContain('slotNumber');
     expect(source).not.toContain('label="Tap the number"');
     // Position is a labelled, sortable column again — "Pos" fits the role cell
-    // where the old spelled-out "Role" did not.
-    expect(source).toContain('<SquadSortHeader label="Pos" sortKey="role"');
+    // where the old spelled-out "Role" did not. The label reads from the
+    // catalog now, so every locale has to pick a short form that fits; i18n
+    // gate 8b measures each one against this column.
+    expect(source).toContain("<SquadSortHeader label={t('col.squad.role')} sortKey=\"role\"");
     // Condition is still a sortable column, now spelled out and sharing its
     // width with the row cell beneath it.
     expect(source).toContain('sortKey="condition"');

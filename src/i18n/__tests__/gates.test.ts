@@ -10,8 +10,34 @@ import {
   LEAGUE_COLUMN_WIDTH,
   LEAGUE_HEADER_FONT_SIZE,
 } from '../../ui/league-table-columns';
+import {
+  HEADER_FONT_SIZE as REGISTER_HEADER_FONT_SIZE,
+  HEADER_MIN_GUTTER as REGISTER_MIN_GUTTER,
+  REGISTER_COLUMN_WIDTH,
+  SORT_ARROW_GAP,
+  SORT_ARROW_WIDTH,
+} from '../../ui/squad-register-columns';
 
+/**
+ * UI chrome only. This is the set a locale MUST translate in full, so it is what
+ * key parity and the fragment check run against.
+ */
 const english = () => loadCatalog('en').strings;
+
+/**
+ * Every English string a locale could be translating — chrome plus content
+ * prose, read from the files it is authored in.
+ *
+ * Gates that MEASURE a translation against its source (budget, placeholders,
+ * terminology) must use this. A source that only knows about chrome silently
+ * measures every content translation against an empty string, which is not a
+ * soft failure: the budget collapses to 2 characters and the placeholder check
+ * expects none. The first translated tip found exactly that.
+ *
+ * Parity deliberately does NOT use it: content prose falls back to English by
+ * design, and gate 10 tracks how much of it is done instead.
+ */
+const englishAll = () => ({ ...contentStrings(), ...loadCatalog('en').strings });
 const translated = () => ENABLED_LOCALES.filter(locale => locale !== 'en');
 
 const placeholders = (value: string) =>
@@ -32,12 +58,18 @@ describe('i18n gates', () => {
     // character count is a poor proxy for pixel width. Layout safety comes from
     // the measured advance tables. This keeps the translation honest about
     // "succinct always".
-    const source = english();
+    const source = englishAll();
     for (const locale of translated()) {
       const ceiling = localeMeta(locale).expansion;
       for (const [key, value] of Object.entries(loadCatalog(locale).strings)) {
         if (key.startsWith('col.')) continue; // layout tokens, sized by measurement
-        const limit = Math.ceil((source[key]?.length ?? 0) * ceiling) + 2;
+        // A percentage is the wrong instrument for a short label. "Fans" is four
+        // characters; x1.25 + 2 allows seven, and there is no seven-character
+        // Spanish word for it — "Aficionados" is simply what it is called. The
+        // rule exists to stop sprawl in sentences, so short sources get a flat
+        // allowance instead of a proportional one that rounds to nothing.
+        const english = source[key]?.length ?? 0;
+        const limit = Math.max(Math.ceil(english * ceiling) + 2, english + 8);
         expect({ locale, key, length: value.length, limit })
           .toMatchObject({ locale, key });
         expect(value.length).toBeLessThanOrEqual(limit);
@@ -48,7 +80,7 @@ describe('i18n gates', () => {
   test('gate 4 — placeholders match the English source exactly', () => {
     // A dropped {player} is a silent content bug: the string still renders, it
     // just stops naming anyone.
-    const source = english();
+    const source = englishAll();
     for (const locale of translated()) {
       for (const [key, value] of Object.entries(loadCatalog(locale).strings)) {
         expect({ locale, key, placeholders: placeholders(value) })
@@ -83,16 +115,50 @@ describe('i18n gates', () => {
     }
   });
 
-  test('gate 3b — no key holds a sentence fragment', () => {
-    // A label trailing off on a preposition or article is half a sentence, split
-    // across JSX by an emphasised span. Keyed as-is it forces every language
-    // into English word order. Compose it into one key with a placeholder.
-    const trailing = /\b(the|a|an|to|for|of|and|or|in|on|with|from|by|at)$/i;
-    const fragments = Object.entries(english())
-      .filter(([, value]) => trailing.test(value.trim()))
-      .map(([key, value]) => `${key}: ${JSON.stringify(value)}`);
+  test('gate 3b — no key holds a sentence fragment, in any language', () => {
+    // A label trailing off on a preposition is half a sentence. Keyed as-is it
+    // forces every language into English word order, and reads as a typo
+    // wherever it lands.
+    //
+    // Two things this got wrong first time round, both worth keeping written
+    // down. The list has to be PER LANGUAGE — an English-only one let a French
+    // "Sang-froid du" through, the same mistake invisible to an English regex.
+    // And it must compare whole TOKENS, not use `\b`: JavaScript's word
+    // boundary treats "ñ" and "í" as non-word characters, so /\bo$/ happily
+    // matched "año" and /\ba$/ matched "energía".
+    //
+    // Only unambiguous prepositions and definite articles are listed.
+    // Conjunctions and indefinite articles ("y", "or", "una") legitimately end
+    // real phrases, and a gate that cries wolf gets switched off.
+    const TRAILING: Readonly<Record<string, readonly string[]>> = {
+      en: ['the', 'a', 'an', 'to', 'for', 'of', 'in', 'on', 'with', 'from', 'by', 'at'],
+      es: ['el', 'la', 'los', 'las', 'de', 'del', 'al', 'para', 'por', 'con', 'en'],
+      'pt-BR': ['o', 'os', 'as', 'de', 'do', 'da', 'para', 'por', 'com', 'em', 'no', 'na'],
+      fr: ['le', 'les', 'de', 'du', 'des', 'à', 'au', 'aux', 'pour', 'par', 'avec', 'en'],
+      // German separable verbs park their particle at the end, so "an", "mit",
+      // "auf", "zu" and "in" all finish perfectly good sentences — "Ruf mich
+      // nicht an" is complete. Only articles and prepositions that can never be
+      // a separable prefix are listed.
+      de: ['der', 'die', 'das', 'von', 'für'],
+      id: ['di', 'ke', 'dari', 'untuk', 'dengan', 'yang', 'pada'],
+      // Vietnamese is analytic and its function words double as content words,
+      // so a trailing-token check would fire constantly. Its fragments are
+      // caught by the in-context review instead.
+    };
 
-    expect(fragments).toEqual([]);
+    const lastToken = (value: string) =>
+      value.trim().replace(/[.!?:;,"“”«»]+$/u, '').split(/\s+/).at(-1)?.toLowerCase() ?? '';
+
+    for (const locale of ENABLED_LOCALES) {
+      const trailing = TRAILING[locale];
+      if (trailing === undefined) continue;
+      const strings = locale === 'en' ? english() : loadCatalog(locale).strings;
+      const fragments = Object.entries(strings)
+        .filter(([, value]) => trailing.includes(lastToken(value)))
+        .map(([key, value]) => `${key}: ${JSON.stringify(value)}`);
+
+      expect({ locale, fragments }).toEqual({ locale, fragments: [] });
+    }
   });
 
   test('gate 5c — every endonym renders in its OWN face', () => {
@@ -124,7 +190,7 @@ describe('persisted labels resolve through the catalog', () => {
     expect(keys.length).toBeGreaterThan(0);
     // Both English sources: chrome keys from en.json, content keys derived from
     // the content files. A producer may legitimately reference either.
-    const known = new Set([...Object.keys(english()), ...Object.keys(contentStrings())]);
+    const known = new Set(Object.keys(englishAll()));
     // Template keys are built from a content id at runtime, so check the prefix
     // resolves for every id rather than the literal `${...}` text.
     const dynamic = keys.filter(key => key.includes('$'));
@@ -134,6 +200,50 @@ describe('persisted labels resolve through the catalog', () => {
       const prefix = template.slice(0, template.indexOf('$'));
       expect({ template, matches: [...known].some(key => key.startsWith(prefix)) })
         .toEqual({ template, matches: true });
+    }
+  });
+});
+
+describe('gate 8b — squad register headers fit, in every enabled locale', () => {
+  /**
+   * The register is the screen a manager spends the most time on, and its four
+   * fixed columns are sized in points around measured English abbreviations.
+   * A translated header is therefore a layout risk, not just a copy one — and
+   * "Cond" has no four-letter equivalent in German.
+   *
+   * The labels are typed in title case and uppercased by the stylesheet, so
+   * what is measured is the uppercased form. Measuring the typed one would
+   * understate every label, because Silkscreen's lowercase is narrower.
+   */
+  const COLUMNS = {
+    role: { phone: 'col.squad.role', wide: 'col.squad.role' },
+    overall: { phone: 'col.squad.overall', wide: 'col.squad.score' },
+    potential: { phone: 'col.squad.potential', wide: 'col.squad.potentialLong' },
+    condition: { phone: 'col.squad.condition', wide: 'col.squad.conditionLong' },
+  } as const;
+
+  /** The arrow is part of every column, drawn or not: see the widths file. */
+  const demandOf = (label: string, family: string, fontSize: number) =>
+    advanceEm(label.toUpperCase(), family) * fontSize * HEADER_MAX_FONT_MULTIPLIER
+      + SORT_ARROW_GAP + SORT_ARROW_WIDTH + REGISTER_MIN_GUTTER;
+
+  test('every locale s register header fits its column', () => {
+    for (const locale of ENABLED_LOCALES) {
+      const strings = loadCatalog(locale).strings;
+      // The register's headers are drawn bold, and Silkscreen Bold is wider
+      // than its regular cut — measuring the data face understates every label
+      // by about a sixth, which is exactly the margin these columns run on.
+      const family = localeMeta(locale).faces.display;
+      for (const [column, keys] of Object.entries(COLUMNS)) {
+        for (const layout of ['phone', 'wide'] as const) {
+          const label = strings[keys[layout]] ?? english()[keys[layout]]!;
+          const width = REGISTER_COLUMN_WIDTH[layout][column as keyof typeof COLUMNS];
+          const demand = demandOf(label, family, REGISTER_HEADER_FONT_SIZE[layout]);
+          expect({ locale, layout, column, label, demand: Math.ceil(demand * 10) / 10, width })
+            .toMatchObject({ locale, layout, column });
+          expect(demand).toBeLessThanOrEqual(width);
+        }
+      }
     }
   });
 });
@@ -202,7 +312,7 @@ describe('gate 9 — locked terminology', () => {
     // because a substring check on it false-positives constantly on Spanish
     // inflection and German compounding — and a gate that cries wolf gets
     // switched off.
-    const source = english();
+    const source = englishAll();
     for (const locale of ENABLED_LOCALES.filter(l => l !== 'en')) {
       const glossary = loadGlossary(locale);
       const strings = loadCatalog(locale).strings;
@@ -238,3 +348,43 @@ function loadGlossary(locale: string): Glossary {
     readFileSync(join(process.cwd(), `content/i18n/glossary/${locale}.json`), 'utf8'),
   ) as Glossary;
 }
+
+describe('gate 10 — content-prose coverage is measured, not assumed', () => {
+  /**
+   * How much of each locale's content prose is translated.
+   *
+   * Content keys resolve through English when a locale has not translated them,
+   * which is correct behaviour and completely silent — a French player sees a
+   * French menu and an English event, and nothing fails. That silence is the
+   * problem: without a number, "the long tail" stays a vibe rather than a
+   * quantity, and nobody can tell 5% done from 95% done.
+   *
+   * These floors may only ever RISE. Raising one is how a batch of long-tail
+   * translation gets recorded as landed.
+   *
+   * They are all at 100 now, which changes what this gate is for: it stops
+   * measuring progress and starts guarding completeness. New content prose —
+   * an event, a tip, a glossary entry — fails this gate until every locale has
+   * it, so English can no longer leak into six languages unnoticed.
+   */
+  const COVERAGE_FLOOR: Readonly<Record<string, number>> = {
+    es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100,
+  };
+
+  test('every locale meets its recorded content-prose floor', () => {
+    const contentKeys = Object.keys(contentStrings());
+    expect(contentKeys.length).toBeGreaterThan(0);
+
+    const report: Record<string, string> = {};
+    for (const locale of ENABLED_LOCALES.filter(l => l !== 'en')) {
+      const translated = loadCatalog(locale).strings;
+      const done = contentKeys.filter(key => key in translated).length;
+      const percent = Math.floor((done / contentKeys.length) * 100);
+      report[locale] = `${done}/${contentKeys.length} (${percent}%)`;
+      expect({ locale, percent }).toMatchObject({ locale });
+      expect(percent).toBeGreaterThanOrEqual(COVERAGE_FLOOR[locale] ?? 0);
+    }
+    // eslint-disable-next-line no-console
+    console.log('content prose coverage:', report);
+  });
+});

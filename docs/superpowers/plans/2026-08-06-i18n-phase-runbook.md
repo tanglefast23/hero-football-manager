@@ -18,10 +18,14 @@ for what is done, what is next, and the exact commands.
 | --- | --- | --- | --- |
 | 0–1 engineering | `claude/multilingual-copy-translation-bbe9c8` | #94 | **merged** (`1593b9d`) |
 | 1.5 content keys | `claude/multilingual-copy-phase-2` | #96 | **merged** (`749949a`) |
-| 2 Spanish | `claude/i18n-phase-2-spanish` | #97 | **open** |
-| 3 Vietnamese | `claude/i18n-phase-3-vietnamese` | #98 | **open** |
-| 4 pt-BR/fr/id/de | `claude/i18n-phase-4-remaining` | — | **in progress** |
-| 5 long tail | `claude/i18n-phase-5-long-tail` | — | not started |
+| 2 Spanish | `claude/i18n-phase-2-spanish` | #97 | **merged** (`034f417`) |
+| 3 Vietnamese | `claude/i18n-phase-3-vietnamese` | #98 | **superseded — close it** |
+| 4 pt-BR/fr/id/de | `claude/i18n-phase-4-remaining` | #99 | **merged** (`aed2bc7`) |
+| 5 long tail | `claude/i18n-phase-5-long-tail` | #100 | **content complete** |
+
+**#98 must be CLOSED, not merged.** #99 was stacked on it and squash-merged, so
+every commit #98 carries is already in `main`. `git diff main #98` is deletions
+only: merging it would roll back four locales.
 
 ## The invariant that matters most
 
@@ -29,7 +33,7 @@ for what is done, what is next, and the exact commands.
 picker. Widening it is the LAST step of a phase, after that locale's strings
 exist and pass. Widening it early turns every gate red at once.
 
-## Phase 2 — Spanish (current)
+## Phase 2 — Spanish (done)
 
 1. **Column short forms + advances.** Hard blocker on any non-English locale.
    - `col.*` keys for the league table (`# P W D L GD PTS`) and squad register.
@@ -66,7 +70,7 @@ Casual, spoken, short. Where a faithful translation busts the character budget,
 **rewrite shorter in the target language** — never translate literally and let
 it sprawl.
 
-## Phase 3 — Vietnamese (current)
+## Phase 3 — Vietnamese (done)
 
 Same steps as Phase 2. Third, not last, because it is the one that can fail on
 font grounds.
@@ -85,7 +89,7 @@ font grounds.
 **Column short forms** (`col.league.*`): `#`, `ST` (số trận), `T` (thắng),
 `H` (hòa), `B` (bại), `HS` (hiệu số), `Đ` (điểm).
 
-## Phase 4 — pt-BR, fr, id, then **de last** (current)
+## Phase 4 — pt-BR, fr, id, then **de last** (done)
 
 German last: longest language (1.30 budget), surfaces any remaining layout
 ceilings.
@@ -102,9 +106,30 @@ ceilings.
 **Plural rules already encoded** in `locales.ts`: `pt-BR` and `fr` put ZERO in
 the singular; `es` and `de` do not; `id` and `vi` have no plural marking.
 
-## Phase 5 — long tail
+## Phase 5 — long tail (content complete)
 
-Whatever prose remains uncovered once 2–4 are done.
+**606 content-prose keys** (50 events, 19 tips, 62 glossary entries, 32 player
+requests) × 6 languages = 3,636 strings. All of them are translated: gate 10
+reports **100% for every locale**.
+
+Because the floors are all at 100, gate 10 changed job. It no longer measures
+progress; it guards completeness. Adding an event, a tip or a glossary entry now
+fails the gate until all six languages have it, so English cannot leak back in.
+
+**Also landed in this phase, outside the original scope:** the squad register's
+column headers (`Pos`, `Name`/`Player`, `OVR`/`Score`, `POT`/`Potential`,
+`Cond`/`Condition`) were typed English literals in `SquadTrainingScreen`. They
+are `col.squad.*` keys now, with gate 8b measuring each translation against the
+fixed column it has to fit — in the **bold** cut, since the register draws its
+headers bold and the regular face understates every label by about a sixth.
+
+**What is still owed:** device QA. No language has been looked at on a phone.
+
+**The trap this phase already sprang:** gates that MEASURE a translation
+(budget, placeholders, terminology) must use `englishAll()` — chrome plus
+content. Using chrome-only silently measures every content translation against
+an empty string, collapsing the budget to 2 characters. Key parity deliberately
+uses chrome-only, because content falls back by design.
 
 ## Commands
 

@@ -18,15 +18,34 @@ function screenSource(): string {
   return readFileSync(join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'), 'utf8');
 }
 
-/** The labels the register renders, phone and wide, per fixed column. */
-const LABELS = {
-  role: { phone: 'Pos', wide: 'Pos' },
-  overall: { phone: 'OVR', wide: 'Score' },
-  potential: { phone: 'POT', wide: 'Potential' },
-  condition: { phone: 'Cond', wide: 'Condition' },
+/**
+ * The catalog keys each fixed column renders, phone and wide.
+ *
+ * The labels themselves are read out of the English catalog rather than typed
+ * here: they are translated now, and a second hand-typed copy of a string that
+ * lives in a file is a copy that goes stale. What this file still owns is the
+ * ENGLISH arithmetic — every other locale is measured by gate 8b, which has the
+ * font parser and does not need a hand-measured advance per language.
+ */
+const LABEL_KEYS = {
+  role: { phone: 'col.squad.role', wide: 'col.squad.role' },
+  overall: { phone: 'col.squad.overall', wide: 'col.squad.score' },
+  potential: { phone: 'col.squad.potential', wide: 'col.squad.potentialLong' },
+  condition: { phone: 'col.squad.condition', wide: 'col.squad.conditionLong' },
 } as const;
 
-type ColumnKey = keyof typeof LABELS;
+const englishStrings: Record<string, string> = JSON.parse(
+  readFileSync(join(process.cwd(), 'content/i18n/en.json'), 'utf8'),
+).strings;
+
+const LABELS = Object.fromEntries(
+  Object.entries(LABEL_KEYS).map(([column, keys]) => [
+    column,
+    { phone: englishStrings[keys.phone]!, wide: englishStrings[keys.wide]! },
+  ]),
+) as Record<keyof typeof LABEL_KEYS, { phone: string; wide: string }>;
+
+type ColumnKey = keyof typeof LABEL_KEYS;
 const COLUMNS = Object.keys(LABELS) as ColumnKey[];
 
 describe('squad register column widths', () => {
@@ -65,17 +84,28 @@ describe('squad register column widths', () => {
     }
   });
 
-  it('measures every label the register actually renders', () => {
+  it('reads every header out of the catalog rather than typing it', () => {
+    // A literal here is a header that stays English in six other languages,
+    // which is the whole failure this test exists to catch. The register is the
+    // screen a manager stares at longest.
     const source = screenSource();
-    const labels = [...source.matchAll(/<SquadSortHeader[\s\S]{0,120}?label=(?:"([^"]+)"|\{wideColumns \? '([^']+)' : '([^']+)'\})/g)]
-      .flatMap(match => [match[1], match[2], match[3]])
-      .filter((label): label is string => label !== undefined);
+    const labels = [...source.matchAll(/<SquadSortHeader[\s\S]{0,160}?label=\{([^}]*)\}/g)]
+      .map(match => match[1]!);
 
-    expect(labels.length).toBeGreaterThanOrEqual(7);
+    expect(labels.length).toBeGreaterThanOrEqual(5);
     for (const label of labels) {
-      // The name column is the flexible one and never constrains a width.
-      if (label === 'Name' || label === 'Player') continue;
-      expect(HEADER_LABEL_ADVANCE_EM[label]).toBeDefined();
+      expect(label).toMatch(/^t\(/);
+      expect(label).toContain("'col.squad.");
+    }
+    // No `label="…"` form survives, in this component or any sibling header.
+    expect(source).not.toMatch(/<SquadSortHeader[\s\S]{0,160}?label="/);
+  });
+
+  it('measures every English label the register renders', () => {
+    for (const keys of Object.values(LABEL_KEYS)) {
+      for (const key of [keys.phone, keys.wide]) {
+        expect(HEADER_LABEL_ADVANCE_EM[englishStrings[key]!]).toBeDefined();
+      }
     }
   });
 

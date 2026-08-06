@@ -1,5 +1,6 @@
 import { contentStrings, glossaryTermSlug } from '../content-strings';
 import { copyFor } from '../use-copy';
+import { resolveCopy } from '../resolve';
 import { loadLaunchContent } from '../../content';
 
 describe('content prose as catalog keys', () => {
@@ -42,9 +43,18 @@ describe('content prose as catalog keys', () => {
     expect(overlap).toEqual([]);
   });
 
-  test('a locale with no translation still shows the English content', () => {
-    const request = loadLaunchContent().playerRequests.requests[0]!;
-    expect(copyFor('vi')(`playerRequest.${request.id}.title`)).toBe(request.title);
+  test('a content key added ahead of its translation still shows the English', () => {
+    // This used to point at a real untranslated event. Every one of them is
+    // translated now, so it pointed at nothing and passed by accident of
+    // coverage. What it has to prove is what the resolver does when new content
+    // lands before its translations — the normal state of a content edit, and
+    // not something a finished catalog can demonstrate on its own.
+    //
+    // So it builds that state instead of hunting for it: an English string the
+    // locale catalogs have never seen resolves to the English.
+    const key = 'event.written-today-translated-tomorrow.body';
+    const english = { [key]: 'A brand new event nobody has translated yet.' };
+    expect(resolveCopy('vi', {}, english, key)).toBe(english[key]);
   });
 });
 
