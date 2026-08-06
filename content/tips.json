@@ -92,6 +92,11 @@
       "id": "league-prize-grows-per-division",
       "title": "Prize money scales with the division",
       "body": "Winning your division pays $20,000 in D5, plus $10,000 for each division above, up to $60,000 in D1. Runners-up take half, so promotion pays twice over."
+    },
+    {
+      "id": "tap-a-stat-to-train-it",
+      "title": "Tap a stat to train it",
+      "body": "The + button is not the only way in. Select a player, then tap the attribute you want on their file — PAC, SHO, DEF — and the drill for that stat opens straight away."
     }
   ]
 }
