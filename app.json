@@ -8,6 +8,8 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
+      "requireFullScreen": false,
+      "buildNumber": "1",
       "bundleIdentifier": "com.tanglefast.herofootballmanager",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false

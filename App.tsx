@@ -2,7 +2,7 @@ import './global.css';
 import { playerRequestViewModel } from './src/application/player-request-view-model';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LogBox, Platform, Share, Text, View } from 'react-native';
+import { Linking, LogBox, Platform, Share, Text, View } from 'react-native';
 import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -141,6 +141,8 @@ import { guidedFirstFacilityAllowsPlacement } from './src/ui/concierge-targets';
 import { facilityAdjacencyPresentation } from './src/ui/facility-adjacency';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { useRivalPreload } from './src/ui/use-rival-preload';
+import { qaRootRoutesEnabled } from './src/ui/release-surface';
+import { supportEmailUrl, SUPPORT_EMAIL } from './src/release/support';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
 import { useM1Store } from './src/application/store';
 import { ScreenErrorBoundary } from './src/ui/ScreenErrorBoundary';
@@ -219,37 +221,31 @@ const QUICK_TRAIN_LESSON_WEEK = 6;
 
 export default function App() {
   const previewTriggerId = process.env.EXPO_PUBLIC_AWAKENING_PREVIEW_ID;
-  // The dev harness: one flag and one build for every registered feature, so
-  // switching between them is a tap instead of a three-minute static export.
-  // Flag-only rather than `__DEV__ &&`, for the reason the reels below give:
-  // the review runs on a static web export, where `__DEV__` is false. A build
-  // without the flag inlines `undefined` here and the branch is dead code.
-  if (process.env.EXPO_PUBLIC_DEV_HARNESS === '1') {
-    return <DevHarnessApp />;
-  }
-  if (process.env.EXPO_PUBLIC_POWER_MATCH_QA === '1') {
-    return <PowerMatchQaApp />;
-  }
-  if (__DEV__ && process.env.EXPO_PUBLIC_POWER_CUTIN_QA === '1') {
-    return <PowerCutInQaApp />;
-  }
-  // The explicit build flag also supports a static web export, so art review
-  // never depends on opening a saved career or matching its replay baseline.
-  if (process.env.EXPO_PUBLIC_POWER_ART_QA === '1') {
-    return <PowerArtQaApp />;
-  }
-  if (__DEV__ && process.env.EXPO_PUBLIC_AWAKENING_ART_QA === '1') {
-    return <AwakeningArtQaApp triggerId={previewTriggerId ?? 'magic-sponge'} />;
-  }
-  // The ceremony only plays at a season boundary, so reviewing it in a career
-  // costs a whole simulated season. This reaches any board, and the prize, cold.
-  // Flag-only like the power art reel above, and for the same reason: the review
-  // has to run on a static web export, where `__DEV__` is false.
-  if (process.env.EXPO_PUBLIC_AWARDS_CEREMONY_QA === '1') {
-    return <AwardsCeremonyQaApp />;
-  }
-  if (__DEV__ && previewTriggerId) {
-    return <AwakeningReviewApp triggerId={previewTriggerId} />;
+  // QA roots are available in development and static web review exports, where
+  // __DEV__ is false. Native Release builds always continue to the real game,
+  // even if a QA flag is accidentally present in the bundling environment.
+  if (qaRootRoutesEnabled(__DEV__, Platform.OS)) {
+    if (process.env.EXPO_PUBLIC_DEV_HARNESS === '1') {
+      return <DevHarnessApp />;
+    }
+    if (process.env.EXPO_PUBLIC_POWER_MATCH_QA === '1') {
+      return <PowerMatchQaApp />;
+    }
+    if (process.env.EXPO_PUBLIC_POWER_CUTIN_QA === '1') {
+      return <PowerCutInQaApp />;
+    }
+    if (process.env.EXPO_PUBLIC_POWER_ART_QA === '1') {
+      return <PowerArtQaApp />;
+    }
+    if (process.env.EXPO_PUBLIC_AWAKENING_ART_QA === '1') {
+      return <AwakeningArtQaApp triggerId={previewTriggerId ?? 'magic-sponge'} />;
+    }
+    if (process.env.EXPO_PUBLIC_AWARDS_CEREMONY_QA === '1') {
+      return <AwardsCeremonyQaApp />;
+    }
+    if (previewTriggerId) {
+      return <AwakeningReviewApp triggerId={previewTriggerId} />;
+    }
   }
   return (
     <ScreenErrorBoundary
@@ -540,6 +536,7 @@ function GameApp() {
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const [globalGlossaryOpen, setGlobalGlossaryOpen] = useState(false);
+  const [globalPrivacySupportOpen, setGlobalPrivacySupportOpen] = useState(false);
   const [globalHallOfFameOpen, setGlobalHallOfFameOpen] = useState(false);
   const [settingsSaveError, setSettingsSaveError] = useState<string | null>(null);
   const [moneyGuideAnchor, setMoneyGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
@@ -651,6 +648,12 @@ function GameApp() {
     if (!developerMode) setDeveloperManualSaveSelecting(false);
     savePreferences({ ...current, developerMode });
   }, [savePreferences]);
+  const emailSupport = useCallback(() => {
+    setSettingsSaveError(null);
+    void Linking.openURL(supportEmailUrl()).catch(() => {
+      setSettingsSaveError(`Mail could not open. Email ${SUPPORT_EMAIL} directly.`);
+    });
+  }, []);
   const saveAutoSubs = useCallback((autoSubs: boolean) => {
     savePreferences({ ...preferencesRef.current, autoSubs });
   }, [savePreferences]);
@@ -1647,6 +1650,8 @@ function GameApp() {
         onToggleHighContrast={toggleHighContrast}
         onToggleColorSafeKits={toggleColorSafeKits}
         onToggleCutInMode={toggleCutInMode}
+        onEmailSupport={emailSupport}
+        supportError={settingsSaveError}
         accessibilityCopy={content.assistantGuide.m4Fiction.accessibility}
         difficultyLabel={store.career?.difficulty ?? (store.career ? 'COZY' : undefined)}
         onBack={() => setLandingView('title')}
@@ -2323,6 +2328,7 @@ function GameApp() {
           open={globalSettingsOpen}
           glossary={content.glossary}
           glossaryOpen={globalGlossaryOpen}
+          privacySupportOpen={globalPrivacySupportOpen}
           volume={devVolume}
           reduceMotion={preferences.reduceMotion}
           hudSide={preferences.hudSide}
@@ -2352,13 +2358,16 @@ function GameApp() {
           onToggleHighContrast={toggleHighContrast}
           onToggleColorSafeKits={toggleColorSafeKits}
           onToggleCutInMode={toggleCutInMode}
+          onEmailSupport={emailSupport}
           onToggleDeveloperMode={__DEV__ ? toggleDeveloperMode : undefined}
           onSetAssistantMode={store.career === null ? undefined : handleSetAssistantMode}
           onGlossaryOpenChange={setGlobalGlossaryOpen}
+          onPrivacySupportOpenChange={setGlobalPrivacySupportOpen}
           onOpenChange={open => {
             setGlobalSettingsOpen(open);
             if (!open) {
               setGlobalGlossaryOpen(false);
+              setGlobalPrivacySupportOpen(false);
               setGlobalHallOfFameOpen(false);
               setSettingsSaveError(null);
             }

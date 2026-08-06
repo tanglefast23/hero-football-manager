@@ -42,6 +42,7 @@
     "web": "expo start --web",
     "phone": "sh scripts/phone-dev-server.sh",
     "export:web": "expo export --platform web && node scripts/web/fix-worker-bundles.mjs",
+    "release:check": "node scripts/release/check-config.mjs",
     "postinstall": "setup-skia-web",
     "format": "prettier --write \"App.tsx\" \"src/**/*.{ts,tsx}\" \"scripts/**/*.mjs\"",
     "format:check": "prettier --check \"App.tsx\" \"src/**/*.{ts,tsx}\" \"scripts/**/*.mjs\"",

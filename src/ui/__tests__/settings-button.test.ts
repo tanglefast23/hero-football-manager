@@ -56,6 +56,7 @@ describe('SettingsButton', () => {
       open: true,
       glossary: { schemaVersion: 1, categories: [{ id: 'players', title: 'Players', entries: [{ term: 'Fame', definition: 'Renown.' }] }] },
       glossaryOpen: false,
+      privacySupportOpen: false,
       volume: 1,
       reduceMotion: false,
       hudSide: 'left',
@@ -74,8 +75,10 @@ describe('SettingsButton', () => {
       onToggleHighContrast: jest.fn(),
       onToggleColorSafeKits: jest.fn(),
       onToggleCutInMode: jest.fn(),
+      onEmailSupport: jest.fn(),
       onSetAssistantMode,
       onGlossaryOpenChange: jest.fn(),
+      onPrivacySupportOpenChange: jest.fn(),
       onOpenChange: jest.fn(),
     });
     const alert = findByAccessibilityRole(element, 'alert');
@@ -98,6 +101,7 @@ describe('SettingsButton', () => {
       open: true,
       glossary: { schemaVersion: 1 as const, categories: [] },
       glossaryOpen: false,
+      privacySupportOpen: false,
       volume: 1 as const,
       reduceMotion: false,
       hudSide: 'left' as const,
@@ -114,11 +118,14 @@ describe('SettingsButton', () => {
       onToggleHighContrast: jest.fn(),
       onToggleColorSafeKits: jest.fn(),
       onToggleCutInMode: jest.fn(),
+      onEmailSupport: jest.fn(),
       onGlossaryOpenChange: jest.fn(),
+      onPrivacySupportOpenChange: jest.fn(),
       onOpenChange: jest.fn(),
     };
 
     expect(findByAccessibilityLabel(SettingsOverlay(common), 'Developer mode')).toBeUndefined();
+    expect(findByAccessibilityLabel(SettingsOverlay(common), 'Open privacy and support')).toBeDefined();
 
     const debug = SettingsOverlay({
       ...common,

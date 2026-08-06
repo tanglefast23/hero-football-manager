@@ -21,7 +21,7 @@ describe('squad training two-column layout', () => {
     expect(source).not.toContain('selectedPlayerStatOptions?.length');
   });
 
-  it('keeps the internal 600pt roster breakpoint independent of the 960pt layout breakpoint', () => {
+  it('keeps the internal 600pt roster breakpoint independent of the app layout breakpoint', () => {
     expect(source).toContain('const wideColumns = width >= 600;');
     expect(source).toContain('useWindowDimensions');
   });

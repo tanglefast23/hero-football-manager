@@ -14,7 +14,7 @@ export const MATCH_RAIL_GUTTER = 16;
 
 /**
  * Extra space above the rail. The desktop layout also covers landscape tablets
- * (TWO_COLUMN_MIN_WIDTH is 960), which have a status bar the match screen draws
+ * (at TWO_COLUMN_MIN_WIDTH), which have a status bar the match screen draws
  * under — the phone scorebar reserves 56 for the same reason.
  */
 export const MATCH_RAIL_TOP_INSET = 24;

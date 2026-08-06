@@ -11,6 +11,7 @@ import type { HallOfFameViewModel } from './models';
 import { volumeThumbLeft } from './volume-slider-thumb';
 import { PixelText } from './components/PixelText';
 import type { AssistantMode } from '../game/types';
+import { PrivacySupportPanel } from './PrivacySupportPanel';
 
 /** Snap a raw 0–1 gesture position to the nearest supported volume level. */
 function snapVolume(raw: number): DevVolume {
@@ -100,6 +101,7 @@ export interface SettingsOverlayProps {
   open: boolean;
   glossary: GlossaryCatalog;
   glossaryOpen: boolean;
+  privacySupportOpen: boolean;
   volume: DevVolume;
   reduceMotion: boolean;
   hudSide: HudSide;
@@ -132,6 +134,7 @@ export interface SettingsOverlayProps {
   onExportSave?: () => void;
   /** Replaces the career, so the caller is expected to confirm first. */
   onImportSave?: () => void;
+  onEmailSupport: () => void;
   onVolumeChange: (v: DevVolume) => void;
   onToggleReduceMotion: () => void;
   onToggleHudSide: () => void;
@@ -142,6 +145,7 @@ export interface SettingsOverlayProps {
   onToggleCutInMode: () => void;
   onToggleDeveloperMode?: () => void;
   onGlossaryOpenChange: (open: boolean) => void;
+  onPrivacySupportOpenChange: (open: boolean) => void;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -177,6 +181,7 @@ export function SettingsOverlay({
   open,
   glossary,
   glossaryOpen,
+  privacySupportOpen,
   volume,
   reduceMotion,
   hudSide,
@@ -198,6 +203,7 @@ export function SettingsOverlay({
   saveFileBusy = false,
   onExportSave,
   onImportSave,
+  onEmailSupport,
   onVolumeChange,
   onToggleReduceMotion,
   onToggleHudSide,
@@ -208,14 +214,16 @@ export function SettingsOverlay({
   onToggleCutInMode,
   onToggleDeveloperMode,
   onGlossaryOpenChange,
+  onPrivacySupportOpenChange,
   onOpenChange,
 }: SettingsOverlayProps) {
   const setOpenState = (next: boolean) => {
+    if (!next) onPrivacySupportOpenChange(false);
     onOpenChange(next);
   };
   // Both sub-pages want the wider panel: a record read in a column two words
   // across is not a record anybody reads.
-  const subPageOpen = glossaryOpen || (hallOfFameOpen && hallOfFame !== undefined);
+  const subPageOpen = privacySupportOpen || glossaryOpen || (hallOfFameOpen && hallOfFame !== undefined);
 
   return (
     <Modal
@@ -244,7 +252,13 @@ export function SettingsOverlay({
               : 'w-full max-w-sm border-2 border-b-4 border-ink bg-paper p-5'}
             style={{ height: '88%' }}
           >
-            {glossaryOpen ? (
+            {privacySupportOpen ? (
+              <PrivacySupportPanel
+                onBack={() => onPrivacySupportOpenChange(false)}
+                onEmailSupport={onEmailSupport}
+                supportError={saveError}
+              />
+            ) : glossaryOpen ? (
               <GlossaryPanel content={glossary} onBack={() => onGlossaryOpenChange(false)} />
             ) : hallOfFameOpen && hallOfFame !== undefined ? (
               <HallOfFameScreen
@@ -364,6 +378,15 @@ export function SettingsOverlay({
               >
                 <Text className="font-pixel text-sm uppercase text-ink">Glossary</Text>
                 <Text className="font-pixel text-base text-blue-dark">A–Z ›</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open privacy and support"
+                onPress={() => onPrivacySupportOpenChange(true)}
+                className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
+              >
+                <Text className="font-pixel text-sm uppercase text-ink">Privacy &amp; Support</Text>
+                <Text className="font-pixel text-base text-blue-dark">LEGAL ›</Text>
               </Pressable>
               {hallOfFame === undefined ? null : (
                 <Pressable

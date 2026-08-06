@@ -776,7 +776,7 @@ export interface ContractDraft {
  * Holds the in-progress contract offer for whichever screen renders the panel.
  *
  * It lives in the parent because `MarketScreen` renders `NegotiationPanel` from
- * two different JSX trees — one per layout mode — so crossing the 960px
+ * two different JSX trees — one per layout mode — so crossing the wide-layout
  * breakdown point unmounts and remounts the panel. Owning the draft here means
  * dragging a desktop window wider mid-negotiation no longer silently discards
  * the wage, term, promise, and pitch card the user had dialled in.
