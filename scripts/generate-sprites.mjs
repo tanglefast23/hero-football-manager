@@ -38,7 +38,7 @@ writeFileSync(out, `${JSON.stringify({ cell: PLAYER_CELL, palette: PLAYER_PALETT
 console.log(`wrote ${Object.keys(sprites).length} base sprites for ${FIELD_PLAYER_LOOKS.length + GOALKEEPER_LOOKS.length + CREATED_PLAYER_LOOKS.length} unique player looks`);
 
 function validateSprites() {
-  if (Object.keys(PLAYER_PALETTE).length > 24) throw new Error('player palette exceeds 24 keys');
+  if (Object.keys(PLAYER_PALETTE).length > 26) throw new Error('player palette exceeds 26 keys');
   for (const [key, rows] of Object.entries(sprites)) {
     const isBall = key === 'ball';
     const height = isBall ? 6 : PLAYER_CELL.h;

@@ -5,19 +5,31 @@
 export const PLAYER_CELL = { w: 24, h: 30 };
 export const PORTRAIT_CELL = { w: 24, h: 29 };
 
-// 23 colours + transparency: the existing mobile atlas budget.
+// 24 colours + transparency. The budget was 23 until hair moved onto a ramp of
+// its own; the near-black slots were paid for by retiring H (#8a5a30) and
+// J (#a9743d), which sat dE 8.4 from m. Only h survives of the old hair browns,
+// and only for the handful of looks separateHairFromSkin has to leave alone.
 export const PLAYER_PALETTE = {
   '.': null,
   K: '#241f2e',
   d: '#8a4f38', m: '#a86a42', n: '#cf9268', S: '#eab48c', L: '#f7d7ba',
-  h: '#6a4326', H: '#8a5a30', J: '#a9743d',
+  h: '#6a4326',
   g: '#7d7887', G: '#b9b4c2',
   F: '#ff6a00',
   o: '#7a2731', r: '#c22f2c', R: '#e8433f', E: '#f2938c',
   b: '#2f55b8', B: '#3f6fd8', C: '#a3c8f0',
   w: '#d9d5cf', W: '#ffffff',
   T: '#1d9e75', A: '#ba7517',
+  x: '#241a17', y: '#3d2a22', z: '#534537',
 };
+
+// Hair and skin used to be drawn from one set of browns: h was both the
+// dark-hair base and the shadow on the darkest skin, so a fringe, a beard, or
+// dreadlocks over a face read as the face being mottled rather than as hair.
+// Every head is drawn in the browns below and then moved onto the near-black
+// ramp by separateHairFromSkin, which is what x/y/z exist for.
+const HAIR_ONLY_RAMP = { h: 'x', H: 'y', J: 'z' };
+const SKIN_KEYS = ['d', 'm', 'n', 'S', 'L'];
 
 const SKIN = {
   fair: { sh: 'n', base: 'S', hi: 'L' },
@@ -32,6 +44,10 @@ const SKIN = {
   created5: { sh: 'h', base: 'h', hi: 'd' },
 };
 
+// h/H/J below are the pre-separation browns, not palette colours: every head
+// that has a face under its hair leaves here on x/y/z instead. A look that
+// keeps them has to be one separateHairFromSkin skips, or generate-sprites.mjs
+// fails validation on the retired key.
 const HAIR = {
   // Natural black: a black mass with sparse warm highlights so it stays
   // readable against the dark outline without appearing brown overall.
@@ -169,6 +185,12 @@ const REVIEWED_ASIAN_FIELD_LOOKS = {
   },
 };
 
+// Face 5's beady eyes left Kit Rowan with no eye whites at all, which under a
+// full beard read as a blank slab rather than a face.
+const REVIEWED_FACE_BY_ID = {
+  f13: { eyes: 'normal' },
+};
+
 const CURATED_HAIR_COLOUR_BY_ID = {
   // Bright, intentionally dyed looks.
   f27: 'hotpink',
@@ -191,6 +213,7 @@ const CURATED_HAIR_COLOUR_BY_ID = {
 const baseFieldPlayerLooks = generatedFieldPlayerLooks.map(look => ({
   ...look,
   ...(REVIEWED_ASIAN_FIELD_LOOKS[look.id] ?? {}),
+  ...(REVIEWED_FACE_BY_ID[look.id] ?? {}),
   ...(CURATED_HAIR_COLOUR_BY_ID[look.id]
     ? { hair: CURATED_HAIR_COLOUR_BY_ID[look.id] }
     : {}),
@@ -335,6 +358,26 @@ function outline(g) {
   add.forEach(([x, y]) => { g[y][x] = 'K'; });
 }
 
+/**
+ * Moves a head off the shared browns and onto the hair-only ramp, so hair drawn
+ * over a face reads as hair. The substitution is per look and needs no mask:
+ * within one look every h/H/J pixel belongs to the same feature, so wherever it
+ * sits it can move. The exception is a look whose face holds no skin tone at
+ * all — c212's whole head is drawn in h — because there the brown IS the skin
+ * and recolouring it would blacken the face. Those looks keep the old brown,
+ * which is the only reason h is still a palette colour.
+ * Guarded by src/render/sprites/__tests__/hair-skin-separation.test.ts.
+ */
+function separateHairFromSkin(g) {
+  const faceKeys = new Set();
+  for (let y = 7; y <= 14 && y < g.length; y += 1) for (const key of g[y]) faceKeys.add(key);
+  if (!SKIN_KEYS.some(key => faceKeys.has(key))) return;
+  for (const row of g) for (let x = 0; x < row.length; x += 1) {
+    const moved = HAIR_ONLY_RAMP[row[x]];
+    if (moved !== undefined) row[x] = moved;
+  }
+}
+
 function face(g, sk, variantIndex, expression = 'rest', appearance = {}) {
   const variant = FACE_VARIANTS[variantIndex % FACE_VARIANTS.length];
   const shape = appearance.shape ?? variant.shape;
@@ -436,7 +479,9 @@ function feature(g, kind, hs, sk) {
     case 'blondtips': cap(g, hs); rect(g, 8, 2, 15, 2, 'W'); set(g, 7, 3, 'W'); set(g, 16, 3, 'W'); break;
     case 'beard': cap(g, hs); rect(g, 6, 11, 17, 14, hs.b); rect(g, 10, 12, 13, 12, 'K'); break;
     case 'enforcer': rect(g, 6, 2, 17, 5, hs.b); rect(g, 5, 12, 18, 14, sk.sh); for (let x = 6; x <= 16; x += 2) set(g, x, 13, hs.d); break;
-    case 'moustache': cap(g, hs); rect(g, 9, 11, 14, 11, hs.d); set(g, 9, 12, hs.b); set(g, 14, 12, hs.b); break;
+    // Drawn in hs.b rather than hs.d: on the darkest skin an ink moustache plus
+    // the mouth below it read as one black slab across half the face.
+    case 'moustache': cap(g, hs); rect(g, 9, 11, 14, 11, hs.b); rect(g, 6, 11, 7, 12, hs.b); rect(g, 6, 12, 9, 12, hs.b); rect(g, 7, 13, 8, 13, hs.b); rect(g, 16, 11, 17, 12, hs.b); rect(g, 14, 12, 17, 12, hs.b); rect(g, 15, 13, 16, 13, hs.b); set(g, 15, 11, sk.base); break;
     case 'tuft': rect(g, 8, 3, 15, 6, hs.b); rect(g, 11, 0, 12, 2, hs.b); break;
     case 'round': cap(g, hs); set(g, 7, 11, 'E'); set(g, 16, 11, 'E'); break;
     case 'slatecrop': rect(g, 6, 3, 17, 6, hs.b); rect(g, 7, 3, 10, 4, hs.l); break;
@@ -539,13 +584,19 @@ function feature(g, kind, hs, sk) {
   }
 }
 
+// The pitch is vertical and players run toward or away from the camera, so the
+// stride runs along that axis: the leg columns never move, the near foot
+// reaches row 29, and the trailing boot sits one row higher over the outline
+// that becomes its sole edge. Boots stay inside their own shin columns — an
+// overhanging boot is a side-profile shoe, and two mirrored read duck-footed.
 function legs(g, frame, sk) {
-  const [left, right] = frame === 1 ? [8, 14] : [9, 13];
-  rect(g, left, 26, left + 1, 27, sk.base); rect(g, right, 26, right + 1, 27, sk.base);
-  set(g, left, 27, sk.sh); set(g, right + 1, 27, sk.sh);
-  rect(g, left, 28, left + 1, 28, 'W'); rect(g, right, 28, right + 1, 28, 'W');
-  rect(g, left - 1, 29, left + 1, 29, 'W'); rect(g, right, 29, right + 2, 29, 'W');
-  set(g, left - 1, 29, 'w'); set(g, right + 2, 29, 'w');
+  const [left, right] = [9, 13];
+  const near = frame === 1 ? right : left;
+  const trailing = frame === 1 ? left : right;
+  rect(g, left, 26, left + 1, 26, sk.base); rect(g, right, 26, right + 1, 26, sk.base);
+  rect(g, near, 27, near + 1, 27, sk.base); set(g, near === left ? left : right + 1, 27, sk.sh);
+  rect(g, near, 28, near + 1, 29, 'W');
+  rect(g, trailing, 27, trailing + 1, 28, 'W');
 }
 
 const CREATED_KIT_ACCENTS = ['W', 'C', 'A', 'T'];
@@ -613,7 +664,7 @@ export function makePortrait(look, expression) {
   const g = grid(PORTRAIT_CELL.h);
   const sk = SKIN[look.skin]; const hs = HAIR[look.hair];
   face(g, sk, look.face, expression, look); feature(g, look.feature, hs, sk); portraitBust(g, look.role, look.kitAccent);
-  outline(g);
+  separateHairFromSkin(g); outline(g);
   return g.map(row => row.join(''));
 }
 
@@ -623,6 +674,6 @@ export function makeMatchPlayer(look, side, frame, ready) {
   face(g, sk, look.face, 'rest', look); feature(g, look.feature, hs, sk);
   if (look.role === 'goalkeeper') goalkeeperBody(g, side, frame, sk, ready);
   else fieldBody(g, side, look.build, frame, sk, look.kitAccent);
-  outline(g);
+  separateHairFromSkin(g); outline(g);
   return g.map(row => row.join(''));
 }

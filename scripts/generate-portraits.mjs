@@ -58,7 +58,7 @@ function launchLookAssignments(clubs) {
 }
 
 function validateSprites(candidateSprites) {
-  if (Object.keys(PLAYER_PALETTE).length > 24) throw new Error('player palette exceeds 24 keys');
+  if (Object.keys(PLAYER_PALETTE).length > 26) throw new Error('player palette exceeds 26 keys');
   const structuralLooks = careerLooks.map(look => (
     `${look.role}|${look.feature}|${look.face}|${look.build}|${look.eyes ?? ''}|${look.mouth ?? ''}`
   ));
