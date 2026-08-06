@@ -222,6 +222,13 @@ export interface LocaleMeta {
   /** Thousands separator. The game's `$` is fictional and never localises. */
   groupSeparator: string;
   faces: LocaleFaces;
+  /**
+   * How much longer than English this language is allowed to run, before the
+   * `+2` slack. Gate 3 reads it; the spec's §1 budget is the source of the
+   * numbers. It lives here so there is one table, not a constant in the gate
+   * that drifts from the registry.
+   */
+  expansion: number;
 }
 
 const SILKSCREEN: LocaleFaces = {
@@ -240,13 +247,13 @@ const HANDJET: LocaleFaces = {
 };
 
 const META: Readonly<Record<Locale, LocaleMeta>> = {
-  en: { endonym: 'English', pluralRule: 'oneOther', groupSeparator: ',', faces: SILKSCREEN },
-  es: { endonym: 'Español', pluralRule: 'oneOther', groupSeparator: '.', faces: SILKSCREEN },
-  'pt-BR': { endonym: 'Português (Brasil)', pluralRule: 'zeroIsOne', groupSeparator: '.', faces: SILKSCREEN },
+  en: { endonym: 'English', pluralRule: 'oneOther', groupSeparator: ',', faces: SILKSCREEN, expansion: 1 },
+  es: { endonym: 'Español', pluralRule: 'oneOther', groupSeparator: '.', faces: SILKSCREEN, expansion: 1.25 },
+  'pt-BR': { endonym: 'Português (Brasil)', pluralRule: 'zeroIsOne', groupSeparator: '.', faces: SILKSCREEN, expansion: 1.25 },
   fr: { endonym: 'Français', pluralRule: 'zeroIsOne', groupSeparator: ' ', faces: SILKSCREEN },
-  de: { endonym: 'Deutsch', pluralRule: 'oneOther', groupSeparator: '.', faces: SILKSCREEN },
-  id: { endonym: 'Bahasa Indonesia', pluralRule: 'none', groupSeparator: '.', faces: SILKSCREEN },
-  vi: { endonym: 'Tiếng Việt', pluralRule: 'none', groupSeparator: '.', faces: HANDJET },
+  de: { endonym: 'Deutsch', pluralRule: 'oneOther', groupSeparator: '.', faces: SILKSCREEN, expansion: 1.3 },
+  id: { endonym: 'Bahasa Indonesia', pluralRule: 'none', groupSeparator: '.', faces: SILKSCREEN, expansion: 1.2 },
+  vi: { endonym: 'Tiếng Việt', pluralRule: 'none', groupSeparator: '.', faces: HANDJET, expansion: 1.15 },
 };
 
 export function localeMeta(locale: Locale): LocaleMeta {
@@ -745,20 +752,22 @@ test('language defaults to English', () => {
 });
 
 test('a version-9 row migrates forward and gains English', async () => {
-  const db = await openTestDatabase();
-  await seedPreferencesRow(db, 9, { ...rowWithoutLanguage });
+  const database = new FakePersistenceDatabase();
+  database.preferencesRow = { slot: 1, schema_version: 9, payload: JSON.stringify(V9_ROW_LITERAL) };
 
-  const loaded = await createPreferencesRepository(db).load();
+  const loaded = await createPreferencesRepository(database).load();
 
   expect(loaded.language).toBe('en');
-  const row = await db.getFirstAsync<{ schema_version: number }>(
-    'SELECT schema_version FROM preferences WHERE slot = 1',
-  );
-  expect(row?.schema_version).toBe(10);
+  expect(database.preferencesRow?.schema_version).toBe(10);
 });
 
-test('an unknown language tag is rejected rather than silently kept', () => {
-  expect(() => PreferencesSchema.parse({ ...validPreferences, language: 'pt' })).toThrow();
+test('an unknown language tag is rejected rather than silently kept', async () => {
+  const database = new FakePersistenceDatabase();
+  database.preferencesRow = {
+    slot: 1, schema_version: 10,
+    payload: JSON.stringify({ ...V9_ROW_LITERAL, language: 'pt' }),
+  };
+  await expect(createPreferencesRepository(database).load()).rejects.toThrow();
 });
 ```
 
@@ -812,14 +821,43 @@ Add to `AppPreferences`:
 
 Add `language: 'en'` to `DEFAULT_APP_PREFERENCES`, and the rung:
 
+**Match the shape of the rungs that already exist** — there is no
+`persistMigrated` helper and no `parsedRow` variable in this file. Every rung is
+hand-written in the form at `preferences-repository.ts:348-366`:
+
 ```ts
 if (row.schema_version === DEVELOPER_MODE_PREFERENCES_SCHEMA_VERSION) {
-  return persistMigrated(
-    { ...parsedRow, language: DEFAULT_APP_PREFERENCES.language },
-    PREFERENCES_SCHEMA_VERSION,
-  );
+  const legacy = DeveloperModePreferencesSchema.safeParse(decoded);
+  if (!legacy.success) {
+    throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+  }
+  const migrated: AppPreferences = {
+    ...legacy.data,
+    formationPresets: [...legacy.data.formationPresets],
+    seenPowerCutIns: [...legacy.data.seenPowerCutIns],
+    squadSort: legacy.data.squadSort === null ? null : { ...legacy.data.squadSort },
+    language: DEFAULT_APP_PREFERENCES.language,
+  };
+  await database.runAsync(UPSERT_SQL, [PRIMARY_SLOT, PREFERENCES_SCHEMA_VERSION, JSON.stringify(migrated)]);
+  return migrated;
 }
 ```
+
+- [ ] **Step 3c: Add `language` to all eight existing rungs**
+
+Each older rung builds a full `AppPreferences` literal, so every one of them now
+needs `language: DEFAULT_APP_PREFERENCES.language`. `tsc` will list them — treat
+the type errors as the checklist rather than hunting by eye.
+
+- [ ] **Step 3d: Update the eight `toBe(9)` assertions**
+
+`src/persistence/__tests__/preferences-repository.test.ts` asserts
+`expect(database.preferencesRow?.schema_version).toBe(9)` in eight places (e.g.
+`:52`). All become `toBe(10)`. The tests use `FakePersistenceDatabase` with
+`database.preferencesRow = {...}` — **not** `openTestDatabase` /
+`seedPreferencesRow`, which do not exist. Note also that `PreferencesSchema` is
+module-private (`:88`), so a test cannot import it; assert through
+`createPreferencesRepository(db).load()` instead.
 
 - [ ] **Step 3b: Replace fixture-by-spread with literal fixtures**
 
@@ -876,11 +914,34 @@ SQLite (Task 6) and read `preferences.language` in the hook, but never wrote the
 setter, never loaded the value into app state, and never persisted a change. The
 picker in Task 15 would have toggled nothing. The wiring is this task.
 
-**One source of truth.** `GameApp` already owns preferences, loads them
-asynchronously and queues saves (`App.tsx:481`, `:576`, `:1110`). Do **not** add
-a second Zustand locale slice — it would need bidirectional sync and the two
-copies would drift across the async load. The active locale is read from the
-preferences object that already exists.
+**Ground truth, because two earlier drafts got this wrong.** Preferences are
+**App-level React state**, not a Zustand slice:
+
+```ts
+// App.tsx:485
+const [preferences, setPreferences] = useState<AppPreferences>(DEFAULT_APP_PREFERENCES);
+```
+
+The Zustand store is exported as **`useM1Store`** (`store.ts:374`), not
+`useStore`, and it has **no `preferences` field at all**. Any hook written
+against `useStore(state => state.preferences.language)` fails twice over.
+
+So the locale reaches deep consumers — the match screen, power takeovers, the
+substitution board — through a **React context fed from that existing state**,
+not through the store and not by prop-drilling through twenty components:
+
+```ts
+// src/i18n/locale-context.tsx
+const LocaleContext = createContext<Locale>('en');
+export const LocaleProvider = LocaleContext.Provider;
+export const useLocale = () => useContext(LocaleContext);
+```
+
+**Boot sequence, stated because it is observable:** preferences load
+asynchronously from SQLite, so the locale is `'en'` for the first frames and
+flips once the row arrives. That is acceptable — the pre-picker screens are
+English anyway — but it must be a deliberate choice rather than a surprise, and
+the provider must not remount the tree when it flips.
 
 - [ ] **Step 1: Write the failing test for the pure core**
 
@@ -940,16 +1001,15 @@ export function facesFor(locale: Locale): LocaleFaces {
 }
 ```
 
-The hooks read the preference `GameApp` already holds, through the existing
-preferences context:
+The hooks read the context:
 
 ```ts
 export function useCopy(): CopyFn {
-  return copyFor(usePreferences().language);
+  return copyFor(useLocale());
 }
 
 export function useFaces(): LocaleFaces {
-  return facesFor(usePreferences().language);
+  return facesFor(useLocale());
 }
 ```
 
@@ -958,24 +1018,45 @@ export function useFaces(): LocaleFaces {
 In `App.tsx`, beside the existing preference setters:
 
 ```ts
+// App.tsx, beside the other preference setters
 const setLanguage = useCallback((language: Locale) => {
-  setPreferences(current => ({ ...current, language }));   // queues the SQLite save
-}, [setPreferences]);
+  setPreferences(current => {
+    const next = { ...current, language };
+    void savePreferences(next);          // the existing persistence path
+    return next;
+  });
+}, []);
 ```
 
-The picker (Task 15) takes `setLanguage` as a prop. Nothing else changes: the
-preference is already loaded on boot and already persisted by the existing
-queue, so language inherits both for free — which is exactly why it should not
-have its own slice.
+and wrap the tree once:
 
-- [ ] **Step 5: Decide what the picker lists**
+```tsx
+<LocaleProvider value={preferences.language}>
+  <View style={vars({ '--font-display': faces.display, '--font-data': faces.data })} className="flex-1">
+    {/* existing tree */}
+  </View>
+</LocaleProvider>
+```
 
-The picker lists **`LOCALES`**, not `ENABLED_LOCALES` — the seven languages are
-the product promise, and a locale mid-translation still renders through English
-fallback rather than breaking. `ENABLED_LOCALES` governs **CI gates only**.
-Write this down in `locales.ts` next to both constants, because the two names
-are easy to confuse and picking the wrong one either hides finished languages or
-gates nothing.
+The picker (Task 15) takes `setLanguage` as a prop. Language inherits boot-load
+and persistence from the machinery `preferences` already has, which is the whole
+reason not to give it a separate store slice.
+
+- [ ] **Step 5: Decide what the picker lists — and fix the spec to match**
+
+The picker lists **`ENABLED_LOCALES`**, not `LOCALES`. Spec §7.1 already says
+so, and offering a language whose catalog is empty means offering a menu item
+that visibly does nothing — English fallback makes it *safe*, not *honest*.
+
+`LOCALES` is the full seven-language type union and the target set for gates and
+tests; `ENABLED_LOCALES` is what has actually shipped. In Phase 1 that is
+`['en']`, so the picker shows one row — correct, because one language is what
+exists. Task 17's Vietnamese smoke test works through the temporary widening it
+already prescribes.
+
+Write the distinction in `locales.ts` next to both constants: the names are easy
+to confuse, and picking the wrong one either hides finished languages or ships
+dead menu rows.
 
 - [ ] **Step 6: Run the test and watch it pass**
 
@@ -1206,7 +1287,10 @@ Expected: PASS. Record the current `ENGINE_VERSION`.
 
 - [ ] **Step 2: Move the blurbs**
 
-`src/sim/tactics.ts:46-50` holds the only user-facing English in the sim ring:
+`FORMATION_LABELS` at `src/sim/tactics.ts:45-52` holds the only user-facing
+English in the sim ring. **There are six entries, not five** — an earlier draft
+of this plan quoted only through `:50` and missed the last one, whose hyphenated
+"All-out" also evades a prose grep:
 
 ```ts
 '4-4-2': 'Balanced lines',
@@ -1214,11 +1298,25 @@ Expected: PASS. Record the current `ENGINE_VERSION`.
 '3-5-2': 'Midfield shield',
 '5-3-2': 'Deep counter',
 '4-5-1': 'Crowd midfield',
+'3-4-3': 'All-out attack',      // <- the one that gets missed
 ```
 
-Delete that map from `tactics.ts`. The ring keeps only `FormationId`. Add the
-five strings to `content/i18n/en.json` as `formation.4-4-2.blurb` and siblings,
-and resolve them at the UI call sites with `t()`.
+Missing it is not cosmetic: `3-4-3` is in `DEFAULT_FORMATION_PRESETS`
+(`tactics.ts:15-19`) and `COACHING_FORMATION_IDS` (`:8-13`), so a player sees the
+raw key `formation.3-4-3.blurb` on the title screen and the match rail.
+
+Delete the map from `tactics.ts`; the ring keeps only `FormationId`. Add all six
+strings to `content/i18n/en.json` as `formation.<id>.blurb` and resolve them at
+the call sites: `TitleLandingScreen.tsx:257`, `MatchControlRail.tsx:189,197`,
+`MatchScreen.tsx:1335,2130`. All are display-only, which is why the replay
+should not move.
+
+- [ ] **Step 2b: Fix the source-text assertion that depends on the map**
+
+`src/render/__tests__/match-rail.test.ts:182` asserts on source text containing
+`FORMATION_LABELS[formation].toUpperCase()`. Deleting the map breaks it. Update
+the assertion to the new `t()` call rather than deleting the test — it exists to
+pin that the rail shows a formation label at all.
 
 - [ ] **Step 3: Run the golden replay again**
 
@@ -1252,11 +1350,14 @@ Ids must exist before any outcome is translated.
 
 - [ ] **Step 1: Write the failing test**
 
+**Outcomes nest under `choices`, not under the event.** The shape is
+`events[].choices[].outcomes[]` (`src/content/schemas.ts:458-462`); a test
+reading `event.outcomes` throws on undefined.
+
 ```ts
-test('every event outcome carries a unique id', () => {
-  const events = loadLaunchContent().events.events;
-  for (const event of events) {
-    const ids = event.outcomes.map(o => o.id);
+test('every event outcome carries an id unique within its event', () => {
+  for (const event of loadLaunchContent().events.events) {
+    const ids = event.choices.flatMap(choice => choice.outcomes.map(o => o.id));
     expect(ids.every(Boolean)).toBe(true);
     expect(new Set(ids).size).toBe(ids.length);
   }
@@ -1270,11 +1371,14 @@ Expected: FAIL — `id` undefined
 
 - [ ] **Step 3: Add ids to the schema and the data**
 
-In `src/content/schemas.ts`, add `id: idSchema` to the outcome object. Then add
-a stable id to every outcome in `content/events.json`, derived from the event id
-and the outcome's role — `derby-night.success`, `derby-night.setback` — not from
-its index, because an index-derived id would reintroduce the exact fragility
-this task removes.
+In `src/content/schemas.ts`, add `id: idSchema` to `EventOutcomeSchema`. Then
+add a stable id to every outcome in `content/events.json`.
+
+**The id must include the choice**, because an event can have several risky
+choices each with a success and a setback outcome — so `derby-night.success` is
+not unique. Derive it as `<eventId>.<choiceId>.<role>`, e.g.
+`giant-spider-arrives.adopt-spider.success`. Never derive from the array index:
+that is the fragility this task exists to remove.
 
 - [ ] **Step 4: Run the test and watch it pass**
 
@@ -1295,7 +1399,8 @@ git commit -m "feat(i18n): give every event outcome a stable id"
 **Files:**
 - Modify: `src/persistence/game-state-codec.ts` (lines per the table below)
 - Modify: `src/game/career.ts`, `src/game/player-requests.ts`, `src/game/cup-giant-killing.ts`, `src/game/season-recap.ts`, `src/game/career-events.ts`
-- Test: `src/persistence/__tests__/game-state-codec.test.ts`
+- Modify: the producer-side **types** (`LedgerLine`, `CashTransaction`, `SeasonRecapAward`) so the dual-write typechecks
+- Test: `src/persistence/__tests__/i18n-label-codec.test.ts` (**new file** — codec tests here are split per feature; there is no `game-state-codec.test.ts`)
 
 | # | Surface | Codec line | Schema |
 | --- | --- | --- | --- |
@@ -1345,9 +1450,15 @@ describe('persisted copy carries keys as well as English', () => {
 });
 ```
 
+**Use the fixtures that exist.** None of `newCareer`, `advanceOneWeek`,
+`signSponsor`, `legacySaveFixture`, `seasonRecapFor` or `parseCareerState` exist
+in this repo. Follow the pattern in `ledger-idempotency-codec.test.ts` and
+`m2-game-state-codec.test.ts`: build a state literal, round-trip it through the
+codec's own encode/decode, and assert on the result.
+
 - [ ] **Step 2: Run it and watch it fail**
 
-Run: `npx jest src/persistence/__tests__/game-state-codec.test.ts`
+Run: `npx jest src/persistence/__tests__/i18n-label-codec.test.ts`
 Expected: FAIL — `labelKey` undefined
 
 - [ ] **Step 3: Add optional sibling fields to all 11 surfaces**
@@ -1521,7 +1632,7 @@ For each batch: replace the literal with `t()`, add the key to `en.json`, run
 
 Task 3 built `formatInteger` / `formatMoney` but nothing calls them yet. Convert
 `view-models.ts:560`, `event-selection.ts:189`, `player-request-view-model.ts:111`
-and the four in `store.ts`. A helper nobody calls changes nothing, and these
+and the **five** in `store.ts`. A helper nobody calls changes nothing, and these
 sites vary by device locale today.
 
 While converting, check that `labelParams` carry **raw numbers** — formatting
@@ -1568,7 +1679,7 @@ describe('i18n gates', () => {
     for (const locale of ENABLED_LOCALES.filter(l => l !== 'en')) {
       for (const [key, value] of Object.entries(loadCatalog(locale).strings)) {
         if (key.startsWith('col.')) continue;      // layout tokens, exempt
-        const ceiling = Math.ceil((en[key]?.length ?? 0) * EXPANSION[locale]) + 2;
+        const ceiling = Math.ceil((en[key]?.length ?? 0) * localeMeta(locale).expansion) + 2;
         expect({ key, len: value.length }).toMatchObject({ len: expect.any(Number) });
         expect(value.length).toBeLessThanOrEqual(ceiling);
       }
@@ -1620,8 +1731,11 @@ test('gate 5 — every string renders in a face that has its glyphs', () => {
   for (const locale of ENABLED_LOCALES) {
     const faces = localeMeta(locale).faces;
     for (const [key, value] of Object.entries(loadCatalog(locale).strings)) {
-      if (voiceOf(key) === 'body') continue;             // system sans, any glyph
-      const covered = glyphSet(faceFile(faces[voiceOf(key)]));
+      const voice = voiceOf(key);
+      if (voice === 'body') continue;                    // system sans, any glyph
+      // Check the face the key is actually drawn in — display and data are
+      // different files, and only checking `display` would miss data-voice copy.
+      const covered = glyphSet(faceFile(faces[voice]));
       const missing = [...value].filter(ch => !covered.has(ch.codePointAt(0)!));
       expect({ key, missing }).toEqual({ key, missing: [] });
     }
@@ -1643,11 +1757,29 @@ Gate 5b is not optional decoration — it is what catches a separator like U+202
 that Silkscreen lacks, without anyone reading a French screenshot. Separators
 live in code, not in the catalog, so gate 5 alone cannot see them.
 
-`faceFile(family)` maps a family name to its TTF under
-`node_modules/@expo-google-fonts/`. A node Jest test may read it: `roots` limits
-test *discovery*, not filesystem access. `glyphSet` parses the TTF `cmap`, the
-same technique `league-table-columns.ts` uses for advances — put both in
-`src/i18n/glyph-coverage.ts`.
+**This tooling does not exist yet and has to be written.** An earlier draft said
+"the same technique `league-table-columns.ts` uses" — but that file holds
+*hand-recorded numbers* from an offline measurement (`:26-47`), not reusable
+code. There is no TTF parser anywhere in the repo.
+
+So `src/i18n/glyph-coverage.ts` is real new work, and needs its own tests:
+
+- `faceFile(family)` maps `'Handjet_700Bold'` →
+  `node_modules/@expo-google-fonts/handjet/700Bold/Handjet_700Bold.ttf`.
+- `glyphSet(ttfPath)` parses the `cmap` table and returns the covered
+  codepoints. It must handle **format 4 and format 12** — Handjet's 1,322
+  glyphs and Silkscreen's 226 both fit format 4 today, but a format-12 face
+  would silently return an empty set and make the gate pass on everything.
+  Assert non-emptiness as a guard.
+- A unit test pinning known answers: Silkscreen covers `é` and not `ế`; Handjet
+  covers both. Those two facts are the whole basis of §4.1, so they are worth a
+  regression test.
+
+The same parser serves `scripts/i18n/measure-advances.mjs` in Phase 2, which
+also needs `hmtx` — write it with that in mind.
+
+A node Jest test may read from `node_modules`: `roots` limits test *discovery*,
+not filesystem access.
 
 - [ ] **Step 3b: Gate 6 is a TypeScript AST check, NOT ESLint**
 
@@ -1730,18 +1862,19 @@ git commit -m "feat(i18n): CI gates for key parity, budget, placeholders, glyphs
 - [ ] **Step 1: Write the failing test for the pure view-model**
 
 ```ts
-test('lists every locale by its own endonym, active one first-marked', () => {
-  const rows = languagePanelRows('en');
-  expect(rows.map(r => r.endonym)).toEqual([
-    'English', 'Español', 'Português (Brasil)', 'Français', 'Deutsch',
-    'Bahasa Indonesia', 'Tiếng Việt',
-  ]);
+test('lists the enabled locales by their own endonyms, active one marked', () => {
+  const rows = languagePanelRows('en', ['en', 'es', 'vi']);
+  expect(rows.map(r => r.endonym)).toEqual(['English', 'Español', 'Tiếng Việt']);
   expect(rows.find(r => r.selected)?.locale).toBe('en');
 });
 
-test('the Vietnamese row carries its own face in every locale', () => {
+test('in phase 1 only English is offered', () => {
+  expect(languagePanelRows('en', ENABLED_LOCALES).map(r => r.locale)).toEqual(['en']);
+});
+
+test('the Vietnamese row carries its own face whatever the active locale', () => {
   for (const active of LOCALES) {
-    const vi = languagePanelRows(active).find(r => r.locale === 'vi')!;
+    const vi = languagePanelRows(active, ['en', 'vi']).find(r => r.locale === 'vi')!;
     expect(vi.face).toBe('Handjet_700Bold');
   }
 });
