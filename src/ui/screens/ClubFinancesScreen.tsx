@@ -1136,6 +1136,14 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
             <PixelText className="text-right text-sm uppercase tracking-wide text-ink/70">Amount</PixelText>
           </View>
           {viewModel.ledger.map(line => {
+            // The list runs newest first, so the head row names the week just
+            // settled. Only that week keeps the white paper; the weeks behind
+            // it sit back on cream, which turns a wall of identical rows into
+            // "this week, then history" at a glance.
+            const currentWeek = line.periodLabel === viewModel.ledger[0]?.periodLabel;
+            const rowClass = currentWeek
+              ? 'min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2'
+              : 'min-h-11 flex-row items-center border-b border-ink/10 bg-paper px-3 py-2';
             const amountClass = line.kind === 'income'
               ? 'text-pitch-ink'
               : line.kind === 'expense'
@@ -1160,7 +1168,7 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
                   accessible
                   accessibilityRole="text"
                   accessibilityLabel={accessibilityLabel}
-                  className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2"
+                  className={rowClass}
                 >
                   {content}
                 </View>
@@ -1172,8 +1180,7 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
                 accessibilityRole="button"
                 accessibilityLabel={accessibilityLabel}
                 onPress={() => onOpenLedgerLine(line.id)}
-                className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2"
-                style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+                className={rowClass}
               >
                 {content}
               </Pressable>
