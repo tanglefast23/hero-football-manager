@@ -540,3 +540,25 @@ describe('validated M1 launch content', () => {
     expect(money?.definition).toContain('advertising');
   });
 });
+
+describe('event outcome ids', () => {
+  test('every outcome carries an id, unique within its event', () => {
+    for (const event of loadLaunchContent().events.events) {
+      const paths = event.choices.flatMap(choice =>
+        choice.outcomes.map(outcome => `${choice.id}.${outcome.id}`));
+      expect({ event: event.id, missing: paths.filter(p => p.endsWith('.undefined')) })
+        .toEqual({ event: event.id, missing: [] });
+      expect({ event: event.id, count: new Set(paths).size })
+        .toEqual({ event: event.id, count: paths.length });
+    }
+  });
+
+  test('a risky choice names its two branches by role, not by position', () => {
+    for (const event of loadLaunchContent().events.events) {
+      for (const choice of event.choices.filter(c => c.risky)) {
+        expect({ event: event.id, ids: choice.outcomes.map(o => o.id) })
+          .toEqual({ event: event.id, ids: ['success', 'setback'] });
+      }
+    }
+  });
+});
