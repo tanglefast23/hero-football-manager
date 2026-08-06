@@ -110,9 +110,14 @@ export function FinancialStatement({
 
   // Zero is the resting value, never a request: mounting must not skip the
   // reveal the panel exists to play.
+  //
+  // `skipAll`, not `tap`: a tap on the panel lands one group and moves on,
+  // which is the reveal walking forward. The caller bumping this signal is on
+  // their way out and wants the numbers they never got to see — the net total
+  // most of all — so this ends the whole statement in one beat.
   useEffect(() => {
     if (skipSignal === 0) return;
-    runtimeRef.current?.dispatch({ type: 'tap' });
+    runtimeRef.current?.dispatch({ type: 'skipAll' });
   }, [skipSignal]);
 
   // Through a ref so an inline callback from the caller cannot re-fire this on

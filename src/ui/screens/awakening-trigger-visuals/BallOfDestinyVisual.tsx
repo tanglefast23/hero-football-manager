@@ -25,14 +25,19 @@ const BALL_OF_DESTINY_BLOCKS: readonly AwakeningPixelBlock[] = [
   [9, 19, 8, 1, palette.greyBase],
   [6, 7, 6, 2, palette.white],
 
-  // Classic central pentagon, surrounding panels, and short seam pixels.
+  // Classic central pentagon, surrounding panels, and short seam pixels. The
+  // surrounding panels are ink, like the middle one: in grey they read as
+  // smudges on a white ball rather than as the black panels of a football.
+  // Each is held one pixel inside the face so the cream rim survives — a panel
+  // that reaches the outline just thickens it and the ball stops looking round.
   [11, 8, 5, 2, palette.ink],
   [10, 10, 7, 5, palette.ink],
   [12, 15, 3, 2, palette.ink],
-  [5, 9, 3, 4, palette.greyShadow],
-  [16, 6, 4, 3, palette.greyShadow],
-  [17, 14, 4, 3, palette.greyShadow],
-  [6, 15, 4, 3, palette.greyShadow],
+  [11, 5, 4, 2, palette.ink],
+  [6, 10, 3, 3, palette.ink],
+  [17, 7, 3, 3, palette.ink],
+  [17, 15, 3, 2, palette.ink],
+  [7, 15, 3, 2, palette.ink],
   [8, 10, 2, 1, palette.greyBase],
   [16, 10, 2, 1, palette.greyBase],
   [9, 14, 2, 1, palette.greyBase],

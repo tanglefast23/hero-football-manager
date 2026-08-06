@@ -46,12 +46,27 @@ const ENTRANCE_MS = 640;
 const STRIKE_START_MS = 2_300;
 const STRIKE_MS = 1_100;
 /**
+ * A drawn face-off has no one to strike past, so the ball is passed instead:
+ * three passes, so it ends at the far player rather than back where it began —
+ * a rally with no winner, which is what a draw is.
+ */
+const DRAW_PASSES = 3;
+const DRAW_PASS_MS = 420;
+/**
  * The beat after the ball has finished travelling. The strike is the scene's
  * punchline, so the manager gets half a second to read where the ball went
- * before the next screen takes over.
+ * before the next screen takes over. A draw ends on a still pitch with nothing
+ * to read, so it holds longer.
  */
 const POST_STRIKE_HOLD_MS = 500;
-export const FACE_OFF_MS = STRIKE_START_MS + STRIKE_MS + POST_STRIKE_HOLD_MS;
+const DRAW_HOLD_MS = 1_000;
+
+/** How long the whole scene runs, which depends on how the ball finishes. */
+export function faceOffDurationMs(strike: QuickResultFaceOffViewModel['strike']): number {
+  return strike === 'bounce'
+    ? STRIKE_START_MS + DRAW_PASS_MS * DRAW_PASSES + DRAW_HOLD_MS
+    : STRIKE_START_MS + STRIKE_MS + POST_STRIKE_HOLD_MS;
+}
 export const FACE_OFF_REDUCED_MOTION_MS = 2_400;
 /** The drill stage's cadence, so the two scenes idle at the same speed. */
 const IDLE_FRAME_MS = 130;
@@ -92,7 +107,9 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
 
   useEffect(() => {
     playQuickResultFaceOffSfx();
-    const duration = reduceMotion ? FACE_OFF_REDUCED_MOTION_MS : FACE_OFF_MS;
+    const duration = reduceMotion
+      ? FACE_OFF_REDUCED_MOTION_MS
+      : faceOffDurationMs(faceOff.strike);
     const hold = setTimeout(finishOnce, duration);
 
     if (reduceMotion) {
@@ -120,7 +137,7 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
       // over the Financial Report is the loudest kind of stale.
       stopQuickResultFaceOffSfx();
     };
-  }, [entrance, finishOnce, reduceMotion]);
+  }, [entrance, faceOff.strike, finishOnce, reduceMotion]);
 
   const [club, opponent] = faceOff.sides;
   const clubVisualId = useMemo(
@@ -170,6 +187,14 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
   const elapsedMs = useSharedValue(0);
   const startedAt = useSharedValue(-1);
   const strikeCode = useSharedValue(STRIKE_CODE[faceOff.strike]);
+  /**
+   * Which foot a drawn face-off starts at, 0 for the club and 1 for the
+   * opponent. A draw has no winner to hand the ball to, so the side is drawn
+   * once per scene — read only when the strike is `bounce`. Presentation only:
+   * the result was simulated, settled and saved long before this mounted, so
+   * an unseeded coin flip here cannot reach anything that is replayed.
+   */
+  const drawStartSide = useSharedValue(Math.random() < 0.5 ? 0 : 1);
   const geometry = useSharedValue({ clubX, opponentX, stageY, playerScale, ballScale });
 
   useEffect(() => {
@@ -196,34 +221,53 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
     const halfPlayerW = 12 * ps;
     const halfPlayerH = 15 * ps;
     const halfBall = 3 * bs;
-    const centre = (left + right) / 2;
-    const reach = (right - left) / 2;
-    // 0 until the strike begins, then 0..1 across it. Under Reduce Motion the
-    // clock never runs, so the ball simply rests in the middle.
-    const t = Math.max(0, Math.min(1, (elapsedMs.value - STRIKE_START_MS) / STRIKE_MS));
+    const span = right - left;
     const code = strikeCode.value;
+    // Where a ball at a player's feet sits: just off the boot, on the side
+    // facing the other player. The ball waits on the winner's foot rather than
+    // in the middle, so the strike reads as that player kicking THEIR ball.
+    const restOffset = halfPlayerW * 0.8 + halfBall;
+    const clubRest = left + restOffset;
+    const opponentRest = right - restOffset;
+    // 0 until the strike begins, then 0..1 across the ball's travel. Under
+    // Reduce Motion the clock never runs, so the ball simply rests at the foot
+    // it started on and the scene is a still frame.
+    const travelMs = code === 2 ? DRAW_PASS_MS * DRAW_PASSES : STRIKE_MS;
+    const t = Math.max(0, Math.min(1, (elapsedMs.value - STRIKE_START_MS) / travelMs));
+    // Which pass of a drawn rally is in flight, and how far through it is.
+    const pass = Math.min(DRAW_PASSES - 1, Math.floor(t * DRAW_PASSES));
+    const passT = t * DRAW_PASSES - pass;
+    // Passes alternate, so an even pass leaves the foot the rally started on.
+    const passFromClub = (drawStartSide.value === 0) === (pass % 2 === 0);
 
     if (index === 2) {
-      let x = centre;
+      let x = clubRest;
       if (code === 0) {
-        // Club won: struck left to right, past the opponent and off the edge.
-        x = centre + t * (reach * 2.4);
+        // Club won: struck off its own boot, past the opponent, off the edge.
+        x = clubRest + t * (right + span * 0.6 - clubRest);
       } else if (code === 1) {
-        x = centre - t * (reach * 2.4);
-      } else if (t > 0) {
-        // Drawn: two full traversals between the pair, finishing in the middle.
-        x = centre + Math.sin(t * Math.PI * 2) * reach * 0.9;
+        x = opponentRest - t * (opponentRest - (left - span * 0.6));
+      } else {
+        // Drawn: passed foot to foot, ending wherever the last pass landed.
+        const from = passFromClub ? clubRest : opponentRest;
+        const to = passFromClub ? opponentRest : clubRest;
+        x = from + (to - from) * passT;
       }
       transform.set(bs, 0, x - halfBall, y + halfPlayerH - halfBall);
       return;
     }
 
-    // A small lunge on whoever struck it — the atlas has no kicking frame, so
-    // the shove into the ball is all the body language available.
-    const lunging = (code === 0 && index === 0) || (code === 1 && index === 1);
-    const lunge = lunging ? Math.sin(Math.min(t, 0.5) * Math.PI * 2) * 10 : 0;
-    const towards = index === 0 ? 1 : -1;
-    const anchorX = index === 0 ? left : right;
+    // A small lunge on whoever is striking — the atlas has no kicking frame, so
+    // the shove into the ball is all the body language available. In a rally
+    // that is whoever the ball is leaving, which changes with every pass.
+    const isClub = index === 0;
+    const lunging = code === 2
+      ? isClub === passFromClub
+      : (code === 0 && isClub) || (code === 1 && !isClub);
+    const lungeT = code === 2 ? passT : t;
+    const lunge = lunging ? Math.sin(Math.min(lungeT, 0.5) * Math.PI * 2) * 10 : 0;
+    const towards = isClub ? 1 : -1;
+    const anchorX = isClub ? left : right;
     transform.set(ps, 0, anchorX + lunge * towards - halfPlayerW, y - halfPlayerH);
   });
 

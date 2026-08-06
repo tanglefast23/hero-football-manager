@@ -30,7 +30,13 @@ for (const side of ['r', 'u']) for (const look of CREATED_PLAYER_LOOKS) {
   sprites[`${side}:${look.id}:run0`] = makeMatchPlayer(look, side, 0);
   sprites[`${side}:${look.id}:run1`] = makeMatchPlayer(look, side, 1);
 }
-sprites.ball = ['.KKKK.', 'KWWWWK', 'KWKKWK', 'KWWWWK', 'KWWWWK', '.KKKK.'];
+// Six pixels across leaves a 4x4 interior, so the centre panel plus opposite
+// corner partials is the most football a ball this size can carry: the corners
+// were already cut by the outline, so filling them thickens the ring on the
+// diagonal rather than squaring the ball off, and the other two stay white so
+// it still reads light. All four corners filled makes a dark ring at 3.1x.
+// Anything more than this needs an 8x8 sprite and a matching scale drop.
+sprites.ball = ['.KKKK.', 'KKWWWK', 'KWKKWK', 'KWKKWK', 'KWWWKK', '.KKKK.'];
 
 validateSprites();
 const out = resolve(dirname(fileURLToPath(import.meta.url)), '../src/render/sprites/sprites.json');

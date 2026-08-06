@@ -78,7 +78,10 @@ const CALLOUT_ART = {
     [5, 14, 14, 1, P.ink, 0.28],
     [6, 2, 12, 12, P.greyShadow], [5, 5, 14, 6, P.greyShadow],
     [7, 3, 10, 10, P.cream], [6, 6, 12, 4, P.cream], [8, 3, 5, 2, P.white],
-    [10, 6, 4, 4, P.ink], [7, 10, 3, 2, P.greyBase], [15, 4, 2, 3, P.greyBase],
+    // Centre panel plus four around the rim, all ink. In grey the outer two
+    // read as scuffs and the icon was a white ball with a single black square.
+    [10, 6, 4, 4, P.ink], [10, 3, 3, 2, P.ink], [15, 4, 2, 3, P.ink],
+    [7, 10, 3, 2, P.ink], [14, 10, 3, 2, P.ink],
   ],
   confetti: [
     [3, 14, 18, 1, P.ink, 0.28],

@@ -127,6 +127,14 @@ export type MachineEvent =
     }
   | { type: 'stampSettled'; generation: number }
   | { type: 'tap' }
+  /**
+   * Ends the whole reveal at once: every row on its final amount, the net on
+   * its total, the stamp down. `tap` deliberately lands only the group under
+   * the cursor — a tap on the panel means "next", and walking the statement a
+   * beat at a time is the reveal. This is the other request, the one the
+   * report's own Continue button makes: "I am leaving, show me the total."
+   */
+  | { type: 'skipAll' }
   | { type: 'bannerShown'; rowId: string };
 
 export type MachineCommand =
@@ -595,6 +603,53 @@ export function reduce(
       }
       const advanced = scheduleAdvance(config, next);
       return { state: advanced.state, commands: [...commands, ...advanced.commands] };
+    }
+
+    case 'skipAll': {
+      if (state.status === 'reportComplete') return { state, commands: [] };
+      // Generation bumped so every scheduled spin/advance timer still in flight
+      // reduces to nothing, exactly as `tap` does.
+      const surged = config.rows.filter(isSurged);
+      return {
+        state: {
+          ...state,
+          generation: state.generation + 1,
+          rows: state.rows.map((row, index) => ({
+            ...row,
+            phase: 'complete',
+            shownValue: config.rows[index].amount,
+            settleKey: row.settleKey + 1,
+            settleMode: 'instant',
+          })),
+          net: {
+            phase: 'complete',
+            shownValue: config.netAmount,
+            settleKey: state.net.settleKey + 1,
+            settleMode: 'instant',
+          },
+          stampPhase: 'complete',
+          status: 'reportComplete',
+          cursor: { kind: 'done' },
+          // Surge banners are information, not decoration (spec §4): skipping
+          // the animation must not skip a number the manager never saw.
+          bannerQueue: [
+            ...state.bannerQueue,
+            ...surged
+              .filter(row => !state.bannersEnqueued.includes(row.id))
+              .map(row => ({
+                rowId: row.id,
+                kind: bannerKind(row),
+                bonusAmount: surgeBonusAmount(row),
+              })),
+          ],
+          bannersEnqueued: surged.map(row => row.id),
+        },
+        commands: [
+          { type: 'stopSpin' },
+          { type: 'stopSurgeBed' },
+          { type: 'playThunk' },
+        ],
+      };
     }
 
     case 'bannerShown': {

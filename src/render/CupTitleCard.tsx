@@ -111,6 +111,8 @@ export function CupTitleCard({ card, onDone }: CupTitleCardProps) {
           <View style={styles.ball}>
             <View style={[styles.ballPatch, styles.ballPatchCenter]} />
             <View style={[styles.ballPatch, styles.ballPatchTop]} />
+            <View style={[styles.ballPatch, styles.ballPatchUpperLeft]} />
+            <View style={[styles.ballPatch, styles.ballPatchRight]} />
             <View style={[styles.ballPatch, styles.ballPatchBottom]} />
           </View>
         </Animated.View>
@@ -158,11 +160,18 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
     borderWidth: 2,
     borderColor: '#241f2e',
     backgroundColor: '#f4f1ea',
+    // The rim panels are placed to hang over the edge, so the circle has to
+    // crop them; without this they render as squares poking out of the ball.
+    overflow: 'hidden',
   },
+  // A centre panel and four straddling the rim, spaced around it — three spots
+  // on a 24pt disc read as a spotted egg rather than as a football.
   ballPatch: { position: 'absolute', width: 6, height: 6, backgroundColor: '#241f2e' },
   ballPatchCenter: { top: 7, left: 7 },
-  ballPatchTop: { top: 0, left: 13 },
-  ballPatchBottom: { bottom: 1, left: 2 },
+  ballPatchTop: { top: -2, left: 8 },
+  ballPatchUpperLeft: { top: 3, left: -2 },
+  ballPatchRight: { top: 6, left: 15 },
+  ballPatchBottom: { bottom: -1, left: 4 },
   plaque: {
     overflow: 'hidden',
     alignItems: 'center',

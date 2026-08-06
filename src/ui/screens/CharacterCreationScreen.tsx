@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Platform, ScrollView, Text, TextInput, View } from 'react-native';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
@@ -23,6 +23,7 @@ import { PixelPortrait } from '../components/PixelPortrait';
 import { playManagementHaptic } from '../../render/haptics';
 import { formatChoiceValue, stepChoice } from '../appearance-stepper';
 import { useLayoutMode } from '../layout/use-layout-mode';
+import { hasHoverPointer } from '../pointer-capability';
 import { PixelText } from '../components/PixelText';
 import { useCopy } from '../../i18n';
 
@@ -79,17 +80,17 @@ export function CharacterCreationScreen({
 
   /**
    * Desktop opens with the caret already in the registration card, so a player
-   * who arrives knowing the name can just type it. Gated on a pointer platform
-   * as well as the wide layout — `wide` is only a width test, so a landscape
-   * iPad would otherwise throw the on-screen keyboard over the form before the
-   * player has chosen anything.
+   * who arrives knowing the name can just type it. Gated on a real hovering
+   * pointer, not on `Platform.OS === 'web'` plus `wide`: both of those are true
+   * on a landscape iPad, which threw the on-screen keyboard over the form and
+   * pre-selected the name field before the player had chosen anything.
    *
    * `preventScroll` rather than a plain `autoFocus`: a browser scrolls a freshly
    * focused field into view, which would push the "Your first hire" header off
    * the top of a short window on load.
    */
   useEffect(() => {
-    if (Platform.OS !== 'web' || !wide || typeof document === 'undefined') return;
+    if (!hasHoverPointer() || !wide || typeof document === 'undefined') return;
     document.getElementById(NAME_FIELD_ID)?.focus({ preventScroll: true });
   }, [wide]);
   const hasValidName = name.trim().length >= 2;

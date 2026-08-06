@@ -19,12 +19,20 @@ const N = 32; // native authoring resolution for every concept
 
 // ---------------------------------------------------------------------------
 // Concept A — Caped Ball
-// The ball IS the hero: chunky outlined soccer ball (center pentagon +
-// rim-straddling partials + shade crescent — the round-2 geometry that read
-// well) wearing a red hero cape, knotted at the top-left rim, billowing off
-// to the left with a pointed trailing edge. 3-step cape ramp: light-red
-// highlight, red base, dark-red underside. Navy background, single-pixel
-// gold sparks. 8 colors.
+// The ball IS the hero: chunky outlined soccer ball (center pentagon + five
+// rim-straddling partials + shade crescent) wearing a red hero cape, knotted
+// at the top-left rim, billowing off to the left with a pointed trailing edge.
+// 3-step cape ramp: light-red highlight, red base, dark-red underside. Navy
+// background, single-pixel gold sparks. 8 colors.
+//
+// Patch layout (owner note 2026-08-06: it needed to read as a real football,
+// not a white ball with one spot). Six patches, spaced around the ball like a
+// truncated icosahedron does: the center pentagon, then partials straddling
+// the rim at up-left, up-right, right, lower-right and lower-left. The left
+// rim carries none because the cape covers it — which is also what a cape
+// would really do. Every partial merges with the outline where it crosses the
+// edge; that IS the read at 32px, an inboard spot with a one-pixel white gap
+// just looks like noise.
 // ---------------------------------------------------------------------------
 const CONCEPT_A = {
   palette: {
@@ -53,14 +61,14 @@ const CONCEPT_A = {
     'nnnnnKPPPRRRRKwwwwwwwwKKKwwKnnnn',
     'nnnKPPPRRRRRKKwwwwwwwwwwwKKKKnnn',
     'nKPPPRRRRRRDKwwwwwwwwwwwwwwwKnnn',
-    'nKPPRRRRRRDKKwwwwwwwwwwwwwwwKKnn',
-    'KRRRRRRRRDDKwwwwwwwKKwwwwwwwwKnn',
-    'KRRRRRRRDDDKwwwwwwKKKKwwwwwssKnn',
+    'nKPPRRRRRRDKKwwwwwwwwwwKKKKwKKnn',
+    'KRRRRRRRRDDKwwwwwwwKKwwKKKKwwKnn',
+    'KRRRRRRRDDDKwwwwwwKKKKwwKKKssKnn',
     'KRRRRRRDDDKKwwwwwKKKKKKwwwsssKnn',
     'KRRRRRDDKnnKwwwwwKKKKKKwwwsssKnn',
-    'KRRDDDDKnnnKwwwwwwKKKKwwwssssKnn',
-    'KDKnKDKnnnnKKwwwwwwwwwwwwsssKKnn',
-    'nnnnnnnnnnnnKwwwwwwwwwwwssssKnnn',
+    'KRRDDDDKnnnKwwwwwwKKKKwwKKKssKnn',
+    'KDKnKDKnnnnKKwwwwwwwwwwKKKssKKnn',
+    'nnnnnnnnnnnnKwwwwwwwwwwKKKssKnnn',
     'nnnnnnnnnnnnKKwwwKKKwwwssssKKnnn',
     'nnnnnnnnnnnnnKwwKKKKwwsssssKnnnn',
     'nnnnnnnnnnnnnnKKwKKKsssssKKnnnnn',
@@ -320,19 +328,35 @@ function main() {
   // deterministic. Exact x32 nearest-neighbor upscale, opaque-verified twice
   // (pre-encode and re-parsed from disk) — iOS icons must have no alpha.
   // -------------------------------------------------------------------------
-  const shippedPath = path.join(__dirname, '..', '..', 'assets', 'icon.png');
   const shippedNative = rasterizeRows(CONCEPT_A.rows, CONCEPT_A.palette);
-  const shipped = upscaleNearest(shippedNative, N, 1024);
-  assertOpaque(shipped, 'assets/icon.png pre-encode');
-  writeFileSync(shippedPath, encodePNG(1024, 1024, shipped));
-  const shippedDecoded = decodePNG(readFileSync(shippedPath));
-  if (shippedDecoded.width !== 1024 || shippedDecoded.height !== 1024) {
-    throw new Error(`${shippedPath}: expected 1024x1024, got ${shippedDecoded.width}x${shippedDecoded.height}`);
-  }
-  for (let i = 3; i < shippedDecoded.pixels.length; i += 4) {
-    if (shippedDecoded.pixels[i] !== 255) throw new Error(`${shippedPath}: non-opaque pixel on re-parse at byte ${i}`);
-  }
-  console.log(`Exported shipped icon (Concept A "Caped Ball", user pick 2026-07-18) -> ${shippedPath}`);
+  const writeShipped = (relativePath, size) => {
+    const filePath = path.join(__dirname, '..', '..', ...relativePath);
+    const upscaled = upscaleNearest(shippedNative, N, size);
+    assertOpaque(upscaled, `${relativePath.join('/')} pre-encode`);
+    writeFileSync(filePath, encodePNG(size, size, upscaled));
+    const decoded = decodePNG(readFileSync(filePath));
+    if (decoded.width !== size || decoded.height !== size) {
+      throw new Error(`${filePath}: expected ${size}x${size}, got ${decoded.width}x${decoded.height}`);
+    }
+    for (let i = 3; i < decoded.pixels.length; i += 4) {
+      if (decoded.pixels[i] !== 255) throw new Error(`${filePath}: non-opaque pixel on re-parse at byte ${i}`);
+    }
+    return filePath;
+  };
+
+  // The native app icon, plus the iPad PWA's home-screen and manifest icons.
+  // They were once cut from assets/icon.png by hand with `sips`, which both
+  // resampled the pixel art smooth and let them fall a redraw behind; taking
+  // all four off the same 32x32 map with the same nearest-neighbour upscale
+  // keeps every surface showing the same ball.
+  const shippedPaths = [
+    writeShipped(['assets', 'icon.png'], 1024),
+    writeShipped(['public', 'apple-touch-icon.png'], 180),
+    writeShipped(['public', 'icon-192.png'], 192),
+    writeShipped(['public', 'icon-512.png'], 512),
+  ];
+  console.log('Exported shipped icon (Concept A "Caped Ball", user pick 2026-07-18):');
+  console.log(shippedPaths.map(filePath => `  ${filePath}`).join('\n'));
 }
 
 main();
