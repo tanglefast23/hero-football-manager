@@ -234,7 +234,13 @@ export function trainPlayerInstantly(
    * been allowed to run ahead", and left §6's drift rail measuring nothing.
    * `displayedValue` applies the ceiling on the way out instead.
    */
-  const displayMultiplier = keeperDisplayLadderMultiplier(state, pathId);
+  // `drill.id`, not `pathId`. `pathId` is the TIER-1 drill id, so the resolve was
+  // banking the display bonus at tier 1's ratio however far the path had been
+  // upgraded, while the preview a few lines up used the owned tier's. Every
+  // keeper tier being exactly half its outfield reference made both come out at
+  // 2 and hid it; the first ladder where the halving is not exact would have
+  // promised +7 on the card and banked +8.
+  const displayMultiplier = keeperDisplayLadderMultiplier(state, drill.id);
   const displayBonusBefore = attribute === 'ref' ? player.refDisplayBonus ?? 0 : 0;
   const displayBonusAfter = displayMultiplier <= 1
     ? displayBonusBefore

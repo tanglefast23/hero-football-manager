@@ -25,6 +25,6 @@ describe('training paths', () => {
       'sprints',
     );
     expect(bought.id).toBe('sprints-iii');
-    expect(bought.gains.pac).toBe(10);
+    expect(bought.gains.pac).toBe(11);
   });
 });

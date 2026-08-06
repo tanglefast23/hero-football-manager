@@ -317,7 +317,7 @@ export function awardsCeremonyQaNote(
   if (target === 'prize') {
     const { prize } = viewModel;
     return prizeCountsUp(prize)
-      ? `${prize.boardsWon} of 4 boards · counts up to ${prize.totalTrainingPoints} TP`
+      ? `${prize.boardsWon} of 4 boards · counts up to $${prize.totalMoney.toLocaleString('en-US')}`
       : 'No board won · states the barren season instead of counting to zero';
   }
   const beat = viewModel.beats.find(candidate => candidate.categoryId === target);

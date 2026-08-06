@@ -165,6 +165,31 @@ describe('launch career adapter', () => {
     expect(reconcileLaunchRoster(migrated, content)).toStrictEqual(migrated);
   });
 
+  it('rebases a drill catalog left behind by a balance retune', () => {
+    // `trainingRules.focusDrills` is baked into the save, so a gains retune that
+    // only reached New Game would never be felt in the career actually being
+    // played. Tier II here carries the pre-retune +6.
+    const content = loadLaunchContent();
+    const current = createCareer(createLaunchCareerSetup(20260806, undefined, content));
+    const stale = {
+      ...current,
+      trainingRules: {
+        focusDrills: current.trainingRules!.focusDrills.map(drill => (
+          drill.id === 'sprints-ii' ? { ...drill, gains: { pac: 6 } } : drill
+        )),
+      },
+    };
+
+    const rebased = reconcileLaunchRoster(stale, content);
+
+    const shipped = content.training.focusDrills.find(drill => drill.id === 'sprints-ii')!;
+    expect(rebased.trainingRules!.focusDrills.find(drill => drill.id === 'sprints-ii')?.gains)
+      .toEqual(shipped.gains);
+    // And a catalog that already matches is left alone, so resuming a current
+    // save is not a write every time.
+    expect(reconcileLaunchRoster(rebased, content)).toStrictEqual(rebased);
+  });
+
   it('marks an established full career without restoring departed launch players', () => {
     const content = loadLaunchContent();
     const current = createCareer(createLaunchCareerSetup(

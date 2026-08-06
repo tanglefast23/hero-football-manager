@@ -107,17 +107,22 @@ describe('story-event result contract', () => {
   });
 });
 
-describe('veteran match-speed contract', () => {
-  it('keeps 3x out of Seasons 1-2 and introduces it once through Bert in Season 3', () => {
+describe('match-speed contract', () => {
+  it('offers every speed from the first match, with nothing to unlock', () => {
     const app = source('App.tsx');
     const match = source('src/render/MatchScreen.tsx');
     const rail = source('src/render/MatchControlRail.tsx');
 
-    expect(app).toContain('store.career.season >= 3');
-    expect(app).toContain('maximumSpeed={store.career.season >= 3 ? 3 : 2}');
-    expect(app).toContain('pausedExternally={globalSettingsOpen || tripleSpeedIntroVisible}');
-    expect(app).toContain('3× match speed is now an option.');
-    expect(app).toContain('You’re a veteran coach now');
+    // No cap at the call site: MatchScreen's own default is the full set, so a
+    // watched match opens with 1x, 2x and 3x all selectable in Season 1.
+    expect(app).not.toContain('maximumSpeed=');
+    expect(match).toContain('maximumSpeed = 3');
+    // The season-3 unlock and Bert's briefing for it are gone together — a
+    // celebration for something already available reads as a bug.
+    expect(app).not.toContain('tripleSpeedIntroVisible');
+    expect(app).not.toContain('3× match speed is now an option.');
+    expect(app).toContain('pausedExternally={globalSettingsOpen}');
+    // The cap still exists as a mechanism; the power demo caps itself at 1x.
     expect(match).toContain('nextMatchSpeed(speed, maximumSpeed)');
     expect(rail).toContain('availableMatchSpeeds(maximumSpeed).map');
   });

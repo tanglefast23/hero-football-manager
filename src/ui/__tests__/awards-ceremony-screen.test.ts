@@ -18,6 +18,7 @@ import {
   prizeDetailLine,
   prizeStageIndex,
   stageAccessibilityLabel,
+  stageAutoplayMs,
   stageBeat,
 } from '../awards-ceremony-stage';
 import type {
@@ -69,19 +70,19 @@ function ceremony(overrides: Partial<AwardCeremonyViewModel> = {}): AwardCeremon
       beat({ categoryId: 'passesCompleted', boardLabel: 'Midfielders', metricLabel: 'Passes' }),
       beat({ categoryId: 'goals', boardLabel: 'Strikers', metricLabel: 'Goals' }),
     ],
-    prize: { totalTrainingPoints: 210, perCategoryTrainingPoints: 120, boardsWon: 2 },
+    prize: { totalMoney: 9_240, perCategoryMoney: 5_280, boardsWon: 2 },
     ...overrides,
   };
 }
 
 describe('awardCeremonyStages', () => {
-  it('stages a board as its card, then one placing at a time, then the walk-on', () => {
+  it('stages a board as its card, then the whole podium, then the walk-on', () => {
     const stages = awardCeremonyStages(ceremony({ beats: [beat()] }));
 
+    // The top three arrive together. One stage per name meant a tap per name,
+    // four boards deep, before the ceremony paid anything.
     expect(stages).toEqual([
       { kind: 'board', beatIndex: 0, revealed: 0 },
-      { kind: 'placing', beatIndex: 0, revealed: 1 },
-      { kind: 'placing', beatIndex: 0, revealed: 2 },
       { kind: 'placing', beatIndex: 0, revealed: 3 },
       { kind: 'walk-on', beatIndex: 0, revealed: 3 },
       { kind: 'result', beatIndex: 0, revealed: 3 },
@@ -89,15 +90,12 @@ describe('awardCeremonyStages', () => {
     ]);
   });
 
-  /**
-   * The reveal is the whole point. A podium that appeared complete would be a
-   * table; third, then second, then first is what makes the last name land.
-   */
+  /** He speaks over a finished podium, never over an empty one. */
   it('never reveals the walk-on before the placings below him', () => {
     const stages = awardCeremonyStages(ceremony({ beats: [beat()] }));
     const walkOn = stages.findIndex(stage => stage.kind === 'walk-on');
 
-    expect(stages.slice(0, walkOn).map(stage => stage.revealed)).toEqual([0, 1, 2, 3]);
+    expect(stages.slice(0, walkOn).map(stage => stage.revealed)).toEqual([0, 3]);
   });
 
   /**
@@ -114,7 +112,7 @@ describe('awardCeremonyStages', () => {
     }));
 
     expect(rivalBoard.map(stage => stage.kind)).toEqual([
-      'board', 'placing', 'placing', 'placing', 'result', 'prize',
+      'board', 'placing', 'result', 'prize',
     ]);
   });
 
@@ -130,7 +128,7 @@ describe('awardCeremonyStages', () => {
     }));
 
     expect(beaten.map(stage => stage.kind)).toEqual([
-      'board', 'placing', 'placing', 'placing', 'walk-on', 'result', 'prize',
+      'board', 'placing', 'walk-on', 'result', 'prize',
     ]);
     expect(beaten).toEqual(awardCeremonyStages(ceremony({ beats: [beat()] })));
   });
@@ -149,6 +147,44 @@ describe('awardCeremonyStages', () => {
     expect(stages.filter(stage => stage.kind === 'board')).toHaveLength(4);
     expect(stages.filter(stage => stage.kind === 'prize')).toHaveLength(1);
     expect(stages[stages.length - 1]!.kind).toBe('prize');
+  });
+});
+
+describe('playing itself', () => {
+  const stages = awardCeremonyStages(ceremony());
+
+  it('holds every stage but the walk-on and the prize on a clock', () => {
+    // The walk-on hands over when the sprite stops talking, and the prize is
+    // the screen the manager came for — neither is on a timer.
+    for (const stage of stages) {
+      const hold = stageAutoplayMs(stage);
+      if (stage.kind === 'walk-on' || stage.kind === 'prize') {
+        expect(hold).toBeNull();
+      } else {
+        expect(hold).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('gives the podium longer than its title card', () => {
+    const board = stages.find(stage => stage.kind === 'board')!;
+    const podium = stages.find(stage => stage.kind === 'placing')!;
+
+    expect(stageAutoplayMs(podium)!).toBeGreaterThan(stageAutoplayMs(board)!);
+  });
+
+  it('shortens every hold under reduced motion rather than removing it', () => {
+    // Skipping straight to the prize would drop the result the ceremony exists
+    // to show, so reduced motion hurries it instead of cutting it.
+    const board = stages.find(stage => stage.kind === 'board')!;
+
+    expect(stageAutoplayMs(board, true)!).toBeLessThan(stageAutoplayMs(board)!);
+    expect(stageAutoplayMs(board, true)!).toBeGreaterThan(0);
+    expect(stageAutoplayMs(stages.find(stage => stage.kind === 'prize'), true)).toBeNull();
+  });
+
+  it('has nothing to hold when there is no stage', () => {
+    expect(stageAutoplayMs(undefined)).toBeNull();
   });
 });
 
@@ -209,17 +245,19 @@ describe('podium rendering', () => {
   const viewModel = ceremony({ beats: [beat()] });
   const stages = awardCeremonyStages(viewModel);
 
-  it('reads first at the top while arriving from the bottom', () => {
-    const afterTwo = podiumRows(viewModel.beats[0]!, stages[2]!);
-
-    expect(afterTwo.map(row => row.position)).toEqual([2, 3]);
-    expect(podiumRows(viewModel.beats[0]!, stages[3]!).map(row => row.position))
+  it('reads first at the top once the whole podium has landed', () => {
+    // Nothing stands on the title card; the next stage brings all three.
+    expect(podiumRows(viewModel.beats[0]!, stages[0]!)).toHaveLength(0);
+    expect(podiumRows(viewModel.beats[0]!, stages[1]!).map(row => row.position))
       .toEqual([1, 2, 3]);
   });
 
-  it('names the placing that has just landed, and only on a placing stage', () => {
-    expect(arrivingPlacing(viewModel.beats[0]!, stages[1]!)?.position).toBe(3);
-    expect(arrivingPlacing(viewModel.beats[0]!, stages[4]!)).toBeUndefined();
+  it('names the winner as the arrival, and only on a placing stage', () => {
+    // The whole podium lands at once, so the placing that "arrives" is the one
+    // the reveal is about: first place, at the top of the board.
+    expect(arrivingPlacing(viewModel.beats[0]!, stages[1]!)?.position).toBe(1);
+    expect(arrivingPlacing(viewModel.beats[0]!, stages[0]!)).toBeUndefined();
+    expect(arrivingPlacing(viewModel.beats[0]!, stages[3]!)).toBeUndefined();
   });
 
   it('reads a row as position, player, club and value', () => {
@@ -254,9 +292,12 @@ describe('what the ceremony says out loud', () => {
       .toBe('Keepers, Saves. And the award goes to…');
   });
 
-  it('reads the podium as far as it has been revealed', () => {
-    expect(stageAccessibilityLabel(viewModel, stages[2]!))
-      .toBe('Keepers, Saves. 2. Player 2, Quartz FC, 28 saves. 3. Player 3, Quartz FC, 27 saves.');
+  it('reads the whole podium once it has landed, and the bare board before', () => {
+    expect(stageAccessibilityLabel(viewModel, stages[0]!))
+      .toBe('Keepers, Saves. And the award goes to…');
+    expect(stageAccessibilityLabel(viewModel, stages[1]!))
+      .toBe('Keepers, Saves. 1. Player 1, Quartz FC, 29 saves. Your player.'
+        + ' 2. Player 2, Quartz FC, 28 saves. 3. Player 3, Quartz FC, 27 saves.');
   });
 
   it('reads the whole podium while the walk-on speaks', () => {
@@ -277,7 +318,7 @@ describe('what the ceremony says out loud', () => {
 
   it('reads the prize on the last stage', () => {
     expect(stageAccessibilityLabel(viewModel, stages[prizeStageIndex(stages)]!))
-      .toContain('210 Training Points');
+      .toContain('$9,240');
   });
 });
 
@@ -303,6 +344,24 @@ describe('what the ceremony has to fit on a small phone', () => {
     expect(screen).toContain('+ SKIP_BUTTON_HEIGHT * SKIP_CONTROL_COUNT');
     expect(screen).toContain('controlBand: { height: SKIP_CONTROL_BAND }');
     expect(screen).toContain('<View style={styles.controlBand} />');
+  });
+
+  /**
+   * The podium is a card, and cards stop at the two-column content width. Left
+   * unbounded it ran the full width of a desktop window and stretched a
+   * three-name table across two thousand pixels.
+   */
+  it('stops the ceremony column at the two-column content width', () => {
+    expect(screen).toContain('const CEREMONY_MAX_WIDTH = 1180;');
+    expect(screen).toContain('maxWidth: CEREMONY_MAX_WIDTH');
+    expect(screen).toContain("alignSelf: 'center'");
+  });
+
+  it('plays the ceremony on a clock the tap only hurries', () => {
+    expect(screen).toContain('const hold = stageAutoplayMs(stage, reduce);');
+    expect(screen).toContain('const timer = setTimeout(advance, hold);');
+    expect(screen).toContain('return () => clearTimeout(timer);');
+    expect(screen).toContain("'Tap to skip ahead'");
   });
 
   it('places the skip row from the same constants the band is measured from', () => {
@@ -368,13 +427,13 @@ describe('what the ceremony has to fit on a small phone', () => {
 describe('the prize count-up', () => {
   it('climbs from zero to the total across the count-up window', () => {
     expect(prizeCountValue(210, 0)).toBe(0);
-    expect(prizeCountValue(210, PRIZE_COUNT_UP_MS)).toBe(210);
+    expect(prizeCountValue(9_240, PRIZE_COUNT_UP_MS)).toBe(9_240);
     expect(prizeCountValue(210, PRIZE_COUNT_UP_MS / 2)).toBeGreaterThan(0);
     expect(prizeCountValue(210, PRIZE_COUNT_UP_MS / 2)).toBeLessThan(210);
   });
 
   it('holds the total once the window has passed, and never goes backwards', () => {
-    expect(prizeCountValue(210, PRIZE_COUNT_UP_MS * 4)).toBe(210);
+    expect(prizeCountValue(9_240, PRIZE_COUNT_UP_MS * 4)).toBe(9_240);
     expect(prizeCountProgress(-50)).toBe(0);
     expect(prizeCountProgress(Number.NaN)).toBe(0);
   });
@@ -384,15 +443,15 @@ describe('the prize count-up', () => {
    * the banked total and never rebuilds it from the per-board rate.
    */
   it('shows the tapered total rather than the rate times the boards won', () => {
-    const prize = { totalTrainingPoints: 210, perCategoryTrainingPoints: 120, boardsWon: 2 };
+    const prize = { totalMoney: 9_240, perCategoryMoney: 5_280, boardsWon: 2 };
 
-    expect(prizeCountValue(prize.totalTrainingPoints, PRIZE_COUNT_UP_MS)).toBe(210);
+    expect(prizeCountValue(prize.totalMoney, PRIZE_COUNT_UP_MS)).toBe(9_240);
     expect(prizeDetailLine(prize)).toContain('2 boards');
     expect(prizeDetailLine(prize)).not.toContain('240');
   });
 
   it('states a barren season plainly instead of counting to zero', () => {
-    const prize = { totalTrainingPoints: 0, perCategoryTrainingPoints: 120, boardsWon: 0 };
+    const prize = { totalMoney: 0, perCategoryMoney: 5_280, boardsWon: 0 };
 
     expect(prizeCountsUp(prize)).toBe(false);
     expect(prizeDetailLine(prize)).toContain('No board went to the club');
@@ -401,9 +460,9 @@ describe('the prize count-up', () => {
 
   it('reads the total out for a screen reader when there is one', () => {
     expect(prizeAccessibilityLabel({
-      totalTrainingPoints: 120,
-      perCategoryTrainingPoints: 120,
+      totalMoney: 5_280,
+      perCategoryMoney: 5_280,
       boardsWon: 1,
-    })).toContain('120 Training Points');
+    })).toContain('$5,280');
   });
 });

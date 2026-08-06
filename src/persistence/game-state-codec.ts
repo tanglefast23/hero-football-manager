@@ -754,6 +754,7 @@ const pendingEventSchema = z
   .object({
     eventId: nonemptyString,
     selectedPlayerId: nonemptyString.optional(),
+    playerLocked: z.literal(true).optional(),
     resolvedChoiceId: nonemptyString.optional(),
     outcomeText: nonemptyString.optional(),
     resolvedOutcomeIndex: nonnegativeInteger.optional(),
@@ -1153,7 +1154,7 @@ const divisionAwardsSchema = z.object({
  * boards exist, so four is the ceiling, and each may only be claimed once.
  */
 const divisionAwardPrizeSchema = z.object({
-  trainingPoints: nonnegativeInteger,
+  money: nonnegativeInteger,
   categoriesWon: z
     .array(z.enum(['goals', 'passesCompleted', 'tacklesWon', 'saves']))
     .max(4)

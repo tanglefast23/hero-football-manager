@@ -175,6 +175,12 @@ export interface MarketNegotiationViewModel {
   readonly shortTermReason?: string;
   readonly initialWeeklyWage: number;
   readonly wageStep: number;
+  /**
+   * The lowest weekly wage that still counts as an offer. Below it the agent
+   * walks out on the spot, so the screen names the figure rather than letting
+   * the manager discover it by ending the talks.
+   */
+  readonly walkOutWeeklyWage: number;
   readonly lastOutcomeLabel?: string;
 }
 

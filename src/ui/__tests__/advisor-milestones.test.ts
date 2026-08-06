@@ -7,7 +7,7 @@ const NO_CONTEXT: AdvisorMilestoneContext = {
   viewingSquad: false,
   viewingHome: false,
   viewingFinances: false,
-  watchingMatch: false,
+  viewingShutMarket: false,
   lowConditionMatchday: false,
 };
 
@@ -67,13 +67,13 @@ describe('silently banking lessons an Advisor has already lived through', () => 
       enteredManagement: true,
       viewingSquad: true,
       viewingFinances: true,
-      watchingMatch: true,
+      viewingShutMarket: true,
       lowConditionMatchday: true,
     })).toEqual(expect.arrayContaining([
       'condition-warning-seen',
       'quick-train-seen',
       'facility-combo-gym-dorm-seen',
-      'triple-speed-seen',
+      'transfer-window-seen',
       'match-condition-warning-seen',
       'first-fans-seen',
       'first-fans-ledger-seen',

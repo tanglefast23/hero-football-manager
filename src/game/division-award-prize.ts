@@ -2,14 +2,15 @@ import { AWARD_CATEGORIES } from './division-leaders';
 import type { AwardCategoryId, DivisionAwardPrize, SeasonRecap } from './types';
 
 /**
- * What one division award is worth to a club entering the bottom tier.
+ * What one division award is worth, in Training Points, to a club entering the
+ * bottom tier. This is now a sizing unit rather than the payout: the board pays
+ * the cash equivalent (see `divisionAwardPrizeCashPerCategory`).
  *
- * Paid in Training Points rather than cash, because docs/06-economy.md gives
- * each currency exactly one job: money is capacity, TP is improvement. The award
- * exists to help close a strength gap, which is improvement. Cash would also
- * make this the only reward in the game that quietly relieves the board
- * ultimatum, and a reward for individual brilliance should not be able to pay
- * off the chairman.
+ * It used to pay in TP, on the docs/06-economy.md rule that money is capacity
+ * and TP is improvement. Paying cash does put an individual-brilliance reward
+ * where it can help settle a board ultimatum, which the TP form deliberately
+ * could not. That is the owner's call; the taper below still aims the money at
+ * the club that won one board rather than the club that swept all four.
  *
  * Measured against the mini balance harness (200 seeds, season 1, Level-1
  * Training Pitch): 50.1 TP/week, 1,504 across the thirty-week season. One board
@@ -89,18 +90,44 @@ export function divisionAwardPrizePerCategory(targetDivision: number): number {
 }
 
 /**
+ * What the club pays, in cash, for one Training Point.
+ *
+ * Taken from the only place the game already sells TP for money: coaching. A
+ * level-1 head coach turns $400 a week into 12 TP a week ($33 each) and a
+ * level-1 assistant turns the same $400 into 6 ($67 each). $40 sits at the
+ * cheap end of that market, so converting an award at this rate hands the club
+ * a little less than it would have paid to hire the same improvement.
+ */
+export const TRAINING_POINT_CASH_VALUE = 40;
+
+/**
+ * The approved uplift for moving this prize off TP and onto cash. Held apart
+ * from the rate so the conversion and the balance decision stay separable.
+ */
+export const DIVISION_AWARD_PRIZE_UPLIFT_PERCENT = 110;
+
+/** One board's cash value for a club entering `targetDivision`. */
+export function divisionAwardPrizeCashPerCategory(targetDivision: number): number {
+  return Math.round(
+    divisionAwardPrizePerCategory(targetDivision)
+    * TRAINING_POINT_CASH_VALUE
+    * DIVISION_AWARD_PRIZE_UPLIFT_PERCENT
+    / 100,
+  );
+}
+
+/**
  * The tapered total for winning `boardsWon` boards in one season.
  *
- * ROUNDING: each board's share is rounded to a whole TP on its own — half up,
- * via `Math.round` — and the rounded shares are then summed. Rounding per board
- * rather than once at the end is what lets a screen show the breakdown
- * (120 + 90 + 60 + 30) and have it add up to the total the club was paid. At the
- * shipped rates nothing rounds at all: every rate is a multiple of 20 and every
- * multiplier is a quarter. The rule is stated because a future retune to, say,
- * 130 would start exercising it.
+ * ROUNDING: each board's share is rounded to a whole dollar on its own — half
+ * up, via `Math.round` — and the rounded shares are then summed. Rounding per
+ * board rather than once at the end is what lets a screen show the breakdown
+ * and have it add up to the total the club was paid. At the shipped rates
+ * nothing rounds at all: every division rate is a multiple of 20 TP, the cash
+ * rate is 40, the uplift is a tenth and every multiplier is a quarter.
  */
 export function divisionAwardPrizeTotal(targetDivision: number, boardsWon: number): number {
-  const perCategory = divisionAwardPrizePerCategory(targetDivision);
+  const perCategory = divisionAwardPrizeCashPerCategory(targetDivision);
   if (!Number.isInteger(boardsWon) || boardsWon < 0) {
     throw new Error(`cannot pay for ${boardsWon} boards`);
   }
@@ -146,7 +173,7 @@ export function divisionAwardPrize(query: DivisionAwardPrizeQuery): DivisionAwar
     : (Object.keys(AWARD_CATEGORIES) as AwardCategoryId[])
       .filter(category => (awards[category] ?? [])[0]?.clubId === query.userClubId);
   return {
-    trainingPoints: divisionAwardPrizeTotal(query.targetDivision, categoriesWon.length),
+    money: divisionAwardPrizeTotal(query.targetDivision, categoriesWon.length),
     categoriesWon,
   };
 }

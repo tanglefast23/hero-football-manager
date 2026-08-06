@@ -155,6 +155,32 @@ function deterministicPotential(
 }
 
 /** Adds content-pack reserve players to careers created before 16-player clubs. */
+/**
+ * Whether a save's baked drill catalog still matches the shipped one.
+ *
+ * Compared field by field rather than by JSON string: key order in a persisted
+ * object is whatever the codec happened to write, and a reordered but identical
+ * catalog would otherwise be rebased on every single load — which would set
+ * `changed` forever and cost a write every resume.
+ */
+function sameFocusDrills(
+  saved: CareerSetup['trainingRules'] extends infer Rules
+    ? Rules extends { focusDrills: infer Drills } ? Drills : never
+    : never,
+  shipped: typeof saved,
+): boolean {
+  if (saved.length !== shipped.length) return false;
+  return shipped.every((drill, index) => {
+    const current = saved[index];
+    if (current === undefined) return false;
+    if (current.id !== drill.id) return false;
+    if (current.tpCost !== drill.tpCost || current.moneyCost !== drill.moneyCost) return false;
+    const keys = Object.keys(drill.gains) as Array<keyof typeof drill.gains>;
+    if (keys.length !== Object.keys(current.gains).length) return false;
+    return keys.every(key => current.gains[key] === drill.gains[key]);
+  });
+}
+
 export function reconcileLaunchRoster(
   state: GameState,
   content: LaunchContent = loadLaunchContent(),
@@ -187,9 +213,23 @@ export function reconcileLaunchRoster(
     legacyReserveWages.set(`${club.id}-p13`, 304 + index * 8);
   });
 
+  /**
+   * A retuned drill ladder has to reach the career already in progress.
+   *
+   * `trainingRules.focusDrills` is baked into the save, so a balance change to
+   * the gains would otherwise only ever be felt on a New Game — the one save the
+   * owner is actually playing would keep the old numbers for the rest of its
+   * life. Compared here, BEFORE the early return below, because that return
+   * fires whenever nothing else changed and a comparison made after it would
+   * never rebase a save that already carries a `trainingRules` field.
+   */
+  const staleTrainingRules = state.trainingRules !== undefined
+    && launch.trainingRules !== undefined
+    && !sameFocusDrills(state.trainingRules.focusDrills, launch.trainingRules.focusDrills);
   let changed = state.launchRosterVersion !== LAUNCH_ROSTER_VERSION
     || missing.length > 0
     || state.trainingRules === undefined
+    || staleTrainingRules
     || state.playerRequestRules === undefined
     || state.sponsorRules === undefined
     || savedAwakening === undefined
@@ -296,7 +336,8 @@ export function reconcileLaunchRoster(
         }
       : state.facilities,
     players,
-    ...(state.trainingRules === undefined && launch.trainingRules !== undefined
+    ...((state.trainingRules === undefined || staleTrainingRules)
+      && launch.trainingRules !== undefined
       ? {
           trainingRules: {
             focusDrills: launch.trainingRules.focusDrills.map(drill => ({

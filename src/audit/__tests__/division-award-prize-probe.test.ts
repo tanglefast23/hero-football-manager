@@ -29,6 +29,8 @@ import { loadLaunchContent } from '../../content';
 import { runMiniBalanceHarness, type MiniBalanceScenario } from '../../game/balance';
 import {
   DIVISION_AWARD_PRIZE_TAPER_PERCENT,
+  TRAINING_POINT_CASH_VALUE,
+  divisionAwardPrizeCashPerCategory,
   divisionAwardPrizePerCategory,
   divisionAwardPrizeTotal,
 } from '../../game/division-award-prize';
@@ -80,7 +82,7 @@ test('division award prize against a season of TP income', () => {
     '',
     `taper: ${DIVISION_AWARD_PRIZE_TAPER_PERCENT.join('% / ')}% of the division rate`,
     '',
-    'boards won, as TP (share of the measured season):',
+    'boards won, as cash (TP-equivalent share of the measured season):',
     'div | rate | 1 board | 2 boards | 3 boards | sweep | sweep/L2 | sweep/L3',
   ];
   for (const division of DIVISIONS) {
@@ -89,9 +91,9 @@ test('division award prize against a season of TP income', () => {
     lines.push([
       `D${division}`,
       String(divisionAwardPrizePerCategory(division)),
-      ...totals.map(total => `${total} (${share(total, measuredSeason)})`),
-      share(sweep, seasonAtPitchLevel(2)),
-      share(sweep, seasonAtPitchLevel(3)),
+      ...totals.map(total => `$${total} (${share(total / TRAINING_POINT_CASH_VALUE, measuredSeason)})`),
+      share(sweep / TRAINING_POINT_CASH_VALUE, seasonAtPitchLevel(2)),
+      share(sweep / TRAINING_POINT_CASH_VALUE, seasonAtPitchLevel(3)),
     ].join(' | '));
   }
   // eslint-disable-next-line no-console
@@ -101,8 +103,10 @@ test('division award prize against a season of TP income', () => {
   // property the taper exists to create, so a probe run that silently stopped
   // tapering would fail here instead of printing a reassuring table.
   for (const division of DIVISIONS) {
+    // Cash against cash: the payout moved off TP, so the per-category TP rate
+    // is a sizing unit now and comparing the two would be comparing currencies.
     expect(divisionAwardPrizeTotal(division, 4))
-      .toBeLessThan(divisionAwardPrizePerCategory(division) * 4);
+      .toBeLessThan(divisionAwardPrizeCashPerCategory(division) * 4);
   }
 });
 

@@ -1,7 +1,7 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { runHeadlessFullCareer } from '../headless';
 import { keeperDisplayLadderMultiplier } from '../training-paths';
-import { trainPlayerInstantly } from '../training';
+import { instantTrainingPreview, trainPlayerInstantly } from '../training';
 import type { CareerPlayer, GameState } from '../types';
 
 /**
@@ -62,6 +62,51 @@ describe('keeperDisplayLadderMultiplier', () => {
     for (const pathId of ['sprints', 'rondo', 'circuit', 'finishing', 'duels', 'first-touch']) {
       expect(keeperDisplayLadderMultiplier(state, pathId)).toBe(1);
     }
+  });
+});
+
+/**
+ * The resolve used to read the multiplier off the TIER-1 drill id while the
+ * preview read it off the owned tier's. Every shipped keeper tier is exactly
+ * half its outfield reference, so both came out at 2 and the split was
+ * invisible — until a ladder whose halving is not exact made them disagree.
+ *
+ * This pins them together on a deliberately non-exact-half tier, injected here
+ * rather than taken from content so the guard survives any future retune.
+ */
+describe('preview and resolve read the same tier', () => {
+  /** Tier II at 7 outfield against 4 keeper: a ratio of 1.75, not 2. */
+  function unevenTierTwo(state: GameState): GameState {
+    const focusDrills = (state.trainingRules?.focusDrills ?? []).map(drill => {
+      if (drill.id === 'sprints-ii') return { ...drill, gains: { pac: 7 } };
+      if (drill.id === 'keeper-drills-ii') return { ...drill, gains: { ref: 4 } };
+      return drill;
+    });
+    return {
+      ...state,
+      trainingRules: { ...state.trainingRules!, focusDrills },
+      ownedTrainingTiers: { ...state.ownedTrainingTiers, 'keeper-drills': 2 },
+    };
+  }
+
+  it('agrees on a tier whose keeper gain is not exactly half', () => {
+    const base = careerState(4_411);
+    const gk = keeper(base);
+    const state = unevenTierTwo(aged(base, gk.id, 26));
+
+    expect(keeperDisplayLadderMultiplier(state, 'keeper-drills-ii')).toBe(7 / 4);
+    // The tier-1 id still reports 2 — which is exactly what the resolve used to
+    // use, and why the two paths could disagree.
+    expect(keeperDisplayLadderMultiplier(state, 'keeper-drills')).toBe(2);
+
+    const preview = instantTrainingPreview(state, gk.id, 'keeper-drills');
+    const res = trainPlayerInstantly(state, gk.id, 'keeper-drills');
+
+    // SUPER is a roll the preview never makes, and clearing the pity timer only
+    // disables the pity half of it — so the comparison is made on the result,
+    // not assumed away in the setup.
+    expect(res.isSuper).toBe(false);
+    expect(res.displayedAfter).toBe(preview.adjustedAfter);
   });
 });
 

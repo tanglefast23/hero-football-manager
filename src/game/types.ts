@@ -204,6 +204,12 @@ interface ResolvedCareerEvent {
 interface PendingCareerEvent {
   eventId: string;
   selectedPlayerId?: string;
+  /**
+   * The player was inherited from the chapter that opened this story, so the
+   * manager may read him but not swap him. A rival bidding for Ravi Chan on
+   * Monday cannot be met on deadline day by handing them Ed Stone instead.
+   */
+  playerLocked?: true;
   resolvedChoiceId?: string;
   outcomeText?: string;
   /** Stable content outcome identity for save/reload-safe success presentation. */
@@ -440,7 +446,8 @@ export interface DivisionAwardPlacement {
 
 /** What the four division boards paid, in Training Points. */
 export interface DivisionAwardPrize {
-  trainingPoints: number;
+  /** Paid in cash since the awards moved off Training Points. */
+  money: number;
   categoriesWon: AwardCategoryId[];
 }
 

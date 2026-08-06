@@ -1722,7 +1722,7 @@ function progressJourneyEvent(current: ReturnType<typeof useM1Store.getState>): 
   }
   const viewModel = storyEventViewModel(career, loadLaunchContent());
   if (viewModel.playerSelectionRequired && viewModel.selectedPlayer === undefined) {
-    current.selectEventPlayer();
+    current.selectEventPlayer(viewModel.playerChoices[0]!.id);
     return;
   }
   const choice = viewModel.choices.find(candidate => !candidate.disabled && candidate.tone === 'safe')

@@ -833,6 +833,8 @@ export function NegotiationPanel({
   const guardTap = useTapGuard();
 
   const open = viewModel.status === 'OPEN';
+  /** The offer on the table is below what the agent will hear out. */
+  const walksOut = weeklyWage < viewModel.walkOutWeeklyWage;
   const moodClass = viewModel.mood === 'ANGRY' || viewModel.mood === 'UNHAPPY'
     ? 'border-red-dark bg-red-light'
     : viewModel.mood === 'PLEASED' || viewModel.mood === 'THRILLED'
@@ -999,15 +1001,31 @@ export function NegotiationPanel({
             ) : null}
             <ActionButton
               // '›' is in Silkscreen; '▸' is not and rendered in the fallback face.
-              label="Make the offer ›"
-              accessibilityLabel={`Offer ${formatCurrency(weeklyWage)} per week for ${termSeasons} seasons`}
+              label={walksOut ? 'They will walk out ›' : 'Make the offer ›'}
+              accessibilityLabel={walksOut
+                ? `Offer ${formatCurrency(weeklyWage)} per week. That is below the`
+                  + ` ${formatCurrency(viewModel.walkOutWeeklyWage)} they will consider, so the agent`
+                  + ' ends talks and the player loses morale.'
+                : `Offer ${formatCurrency(weeklyWage)} per week for ${termSeasons} seasons`}
               variant="confirm"
               onPress={() => guardTap(() => onSubmitContractOffer({ weeklyWage, termSeasons, perk }, pitchCard))}
             />
           </View>
-          <Text className="mt-2 text-center text-sm text-ink/50">
-            Three rounds maximum. An offer below half their ask ends talks immediately.
-          </Text>
+          {/* The rule, at the moment it applies, with the number in it. It used
+              to be one line of grey print saying "below half their ask" — the
+              half was never worked out for the manager, so the first they knew
+              of it was the talks being over and the player sulking. */}
+          {walksOut ? (
+            <Text className="mt-2 text-center text-sm font-bold text-stamp">
+              {`${formatCurrency(weeklyWage)} is an insult. They walk out below `}
+              {formatCurrency(viewModel.walkOutWeeklyWage)}
+              {' / wk, and the player takes it personally.'}
+            </Text>
+          ) : (
+            <Text className="mt-2 text-center text-sm text-ink/50">
+              {`Three rounds maximum. Below ${formatCurrency(viewModel.walkOutWeeklyWage)} / wk they walk out.`}
+            </Text>
+          )}
         </>
       ) : (
         <View className="mt-4">

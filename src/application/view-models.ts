@@ -82,6 +82,7 @@ import {
   type CareerPlayer,
   type FacilityLevel,
   type FacilityType,
+  compareIds,
   type GameState,
   type LedgerLineKind,
   type PlacedFacility,
@@ -105,6 +106,7 @@ import type {
   FulltimeReactionViewModel,
   PostMatchViewModel,
   SeasonEndViewModel,
+  StoryEventPlayerViewModel,
   StoryEventViewModel,
   SquadTrainingViewModel,
   TrainingPointIncomeViewModel,
@@ -942,6 +944,21 @@ function facilitiesShareEdge(first: PlacedFacility, second: PlacedFacility): boo
   return (horizontalContact && verticalOverlap) || (verticalContact && horizontalOverlap);
 }
 
+/**
+ * The card's stat block. Display values, matching the register: a keeper's
+ * Reflexes reads ahead of the stored number so the halved Keeper Drills ladder
+ * looks like the outfield one, and a story card that disagreed with the squad
+ * screen would read as two different players.
+ */
+function storyPlayerAttributes(
+  player: GameState['players'][number],
+): StoryEventPlayerViewModel['attributes'] {
+  return (Object.keys(player.attrs) as Array<keyof typeof player.attrs>).map(attribute => ({
+    label: attribute.toUpperCase(),
+    value: displayedAttributeValue(player, attribute),
+  }));
+}
+
 export function storyEventViewModel(state: GameState, content: LaunchContent): StoryEventViewModel {
   const pending = state.pendingEvent;
   if (pending === undefined) throw new Error('there is no pending story event');
@@ -950,9 +967,37 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
   const selected = pending.selectedPlayerId === undefined
     ? undefined
     : state.players.find(player => player.id === pending.selectedPlayerId);
-  const selectedIsStarter = selected === undefined ? false : state.lineups
-    .find(lineup => lineup.clubId === state.userClubId)?.playerIds.includes(selected.id) === true;
+  const starterIds = state.lineups
+    .find(lineup => lineup.clubId === state.userClubId)?.playerIds ?? [];
   const requiresPlayer = event.trigger.requiresPlayer === true;
+  // Starters first, then by rating: the manager is usually deciding about
+  // someone who plays, and within that the number is what the choice turns on.
+  const squad = state.players
+    .filter(player => player.clubId === state.userClubId)
+    .slice()
+    .sort((left, right) => (
+      Number(!starterIds.includes(left.id)) - Number(!starterIds.includes(right.id))
+      || overall(right.role, right.attrs) - overall(left.role, left.attrs)
+      || compareIds(left.id, right.id)
+    ));
+  const storyPlayer = (
+    player: GameState['players'][number],
+    withAttributes: boolean,
+  ): StoryEventPlayerViewModel => ({
+    id: player.id,
+    name: player.name,
+    role: player.role,
+    overall: overall(player.role, player.attrs),
+    detail: player.injuryWeeks > 0
+      ? `Injured for ${player.injuryWeeks} more week${player.injuryWeeks === 1 ? '' : 's'}`
+      : player.power !== undefined
+        ? `Licensed hero · ${starterIds.includes(player.id) ? 'Starting XI' : 'Squad player'}`
+        : starterIds.includes(player.id) ? 'Starting XI' : 'Squad player',
+    ...(player.power ? {
+      powerName: content.powers.powers.find(power => power.id === player.power)?.name ?? player.power,
+    } : {}),
+    ...(withAttributes ? { attributes: storyPlayerAttributes(player) } : {}),
+  });
   const resolvedChoice = pending.resolvedChoiceId === undefined
     ? undefined
     : event.choices.find(choice => choice.id === pending.resolvedChoiceId);
@@ -968,22 +1013,14 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
     categoryLabel: `${event.rarity} ${event.category}`,
     title: event.title,
     body: event.body,
-    ...(selected ? {
-      selectedPlayer: {
-        id: selected.id,
-        name: selected.name,
-        role: selected.role,
-        detail: selected.injuryWeeks > 0
-          ? `Injured for ${selected.injuryWeeks} more week${selected.injuryWeeks === 1 ? '' : 's'}`
-          : selected.power !== undefined
-            ? `Licensed hero · ${selectedIsStarter ? 'Starting XI' : 'Squad player'}`
-            : selectedIsStarter ? 'Starting XI' : 'Squad player',
-        ...(selected.power ? {
-          powerName: content.powers.powers.find(power => power.id === selected.power)?.name ?? selected.power,
-        } : {}),
-      },
-    } : {}),
+    ...(selected ? { selectedPlayer: storyPlayer(selected, true) } : {}),
     playerSelectionRequired: requiresPlayer,
+    ...(pending.playerLocked === true ? { playerLocked: true as const } : {}),
+    // Offered even when a player is already named: the manager may still change
+    // their mind, and an unlocked card that cannot be re-opened is a dead end.
+    playerChoices: requiresPlayer && pending.playerLocked !== true
+      ? squad.map(player => storyPlayer(player, false))
+      : [],
     choices: event.choices.map(choice => {
       const disabledReason = eventChoiceUnavailableReason(state, choice);
       return {
@@ -1657,8 +1694,22 @@ export function settleWeeklyStory(state: GameState): GameState {
 }
 
 const SORTABLE_COLUMNS_TIP_ID = 'player-columns-are-sortable';
+/** The earliest the sortable-columns lesson may appear; it waits from here. */
 const SORTABLE_COLUMNS_TIP_SEASON = 1;
 const SORTABLE_COLUMNS_TIP_WEEK = 12;
+
+/**
+ * True once the register lesson is allowed to appear — Week 12 of the first
+ * season and every week after it, across season boundaries.
+ *
+ * It used to demand Week 12 exactly, so a career whose Week 12 carried an event
+ * or a busy desk lost the lesson for good: the manager was never told the
+ * columns sort, and nothing ever offered it again.
+ */
+function sortableColumnsTipEligible(state: GameState): boolean {
+  if (state.season > SORTABLE_COLUMNS_TIP_SEASON) return true;
+  return state.season === SORTABLE_COLUMNS_TIP_SEASON && state.week >= SORTABLE_COLUMNS_TIP_WEEK;
+}
 
 /** Roughly a third of eligible weeks, so the unscheduled tips stay finds rather than lectures. */
 const DESK_TIP_CHANCE_PERCENT = 35;
@@ -1677,17 +1728,16 @@ export function settleWeeklyTip(state: GameState): GameState {
 
   const blank: GameState = { ...state, deskTip: { season: state.season, week: state.week } };
   const unseen = unseenDeskTipIds(state, LAUNCH_CONTENT.tips.tips.map(tip => tip.id));
-  if (state.season === SORTABLE_COLUMNS_TIP_SEASON
-    && state.week === SORTABLE_COLUMNS_TIP_WEEK
-    && unseen.includes(SORTABLE_COLUMNS_TIP_ID)) {
+  if (sortableColumnsTipEligible(state) && unseen.includes(SORTABLE_COLUMNS_TIP_ID)) {
     return markDeskTipSeen(
       { ...state, deskTip: { season: state.season, week: state.week, tipId: SORTABLE_COLUMNS_TIP_ID } },
       SORTABLE_COLUMNS_TIP_ID,
     );
   }
 
-  // This lesson owns Week 12. Keeping it out of the random deck means a fresh
-  // career cannot be taught the rule early, or miss its promised week by luck.
+  // This lesson claims the first quiet week from Week 12 on, ahead of the deck.
+  // Keeping it out of the random draw means a fresh career cannot be taught the
+  // rule early, and the branch above means it can no longer be missed by luck.
   const randomizedUnseen = unseen.filter(tipId => tipId !== SORTABLE_COLUMNS_TIP_ID);
   if (randomizedUnseen.length === 0) return blank;
   if (deskTipRoll(state, '__desk_tip_chance__', 100) >= DESK_TIP_CHANCE_PERCENT) return blank;

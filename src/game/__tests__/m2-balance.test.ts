@@ -34,9 +34,13 @@ describe('M2 deterministic management balance rails', () => {
     // division, then moved again under the approved opening-income retune. The
     // measured sampled peak is now 113,256.
     expect(summary.minimumBalance).toBeGreaterThanOrEqual(-335_000);
-    // 118k preserves the previous roughly four-percent headroom without opening
-    // the older, over-wide 125k corridor.
-    expect(summary.maximumBalance).toBeLessThanOrEqual(118_000);
+    // The approved global wage cut moved this rail hard. Measured peaks:
+    // 113,256 at no cut, 131,950 at 4%, 135,714 at 5% — roughly 4,700 of
+    // six-season peak cash for every one percent off the wage bill, because a
+    // passive club banks the saving every week and never spends it. 137k keeps
+    // the usual four percent headroom over the shipped 4% figure. If the
+    // opening ever reads rich rather than survivable, start here.
+    expect(summary.maximumBalance).toBeLessThanOrEqual(137_000);
     expect(summary.minimumWeeklyNet).toBeGreaterThanOrEqual(-15_000);
     expect(summary.maximumWeeklyNet).toBeLessThanOrEqual(40_000);
     expect(Number.isSafeInteger(summary.endingCash)).toBe(true);

@@ -1,5 +1,10 @@
 import { compareIds } from './ordering';
 
+// The window rule is career-facing: the UI has to explain a shut desk, not just
+// be refused by it. Re-exported here so the game barrel carries it alongside
+// the transfer calls it gates.
+export { isTransferWindowOpen } from './market';
+
 import {
   buyingTransferQuote,
   CAREER_CLUB_FAME_CEILING,
@@ -163,7 +168,14 @@ export function applyCareerNegotiationConsequence(
   if (talks === undefined || consequence === undefined || talks.consequenceApplied === true) {
     return { state, market };
   }
-  const target = careerTransferTarget(state, talks.playerId);
+  // A renewal is talks with the club's OWN player, and `careerTransferTarget`
+  // deliberately skips the user's club — it exists to find someone to buy. Used
+  // for both kinds it threw `unknown negotiation player <yourPlayer>` the moment
+  // a renewal produced a consequence, which is exactly when an insulting offer
+  // had just been made and the morale hit was owed.
+  const target = kind === 'renewal'
+    ? careerSquadNegotiationTarget(state, talks.playerId)
+    : careerTransferTarget(state, talks.playerId);
   if (target === undefined) throw new Error(`unknown negotiation player ${talks.playerId}`);
   const nextMorale = Math.max(0, Math.min(100, target.player.morale + consequence.moraleDelta));
   const nextState = target.active
@@ -1019,6 +1031,23 @@ export function careerTransferTarget(
     }
   }
   return undefined;
+}
+
+/**
+ * The club's own player, for renewal talks. Always active — a player being
+ * renewed is on the roster by definition, so there is no pyramid squad to
+ * search and no selling division to report.
+ */
+function careerSquadNegotiationTarget(
+  state: GameState,
+  playerId: string,
+): CareerTransferTarget | undefined {
+  const player = state.players.find(candidate => (
+    candidate.id === playerId && candidate.clubId === state.userClubId
+  ));
+  return player === undefined
+    ? undefined
+    : { player, sellingClubDivision: 5, active: true };
 }
 
 function allCareerTransferTargets(state: GameState): CareerTransferTarget[] {

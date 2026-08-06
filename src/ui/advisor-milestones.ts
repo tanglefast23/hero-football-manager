@@ -16,8 +16,8 @@ export interface AdvisorMilestoneContext {
   readonly viewingHome: boolean;
   /** The manager has reached the ledger the crowd lesson would point at. */
   readonly viewingFinances: boolean;
-  /** A watched match has opened after 3x speed became available. */
-  readonly watchingMatch: boolean;
+  /** The recruitment office is open, holding reports, with the window shut. */
+  readonly viewingShutMarket: boolean;
   /** Match day currently contains a below-peak starter. */
   readonly lowConditionMatchday: boolean;
 }
@@ -69,7 +69,7 @@ export function advisorMilestonesToBank(
       if (presentation !== undefined) add(presentation.milestone);
     }
   }
-  if (context.watchingMatch && state.season >= 3) add('triple-speed-seen');
+  if (context.viewingShutMarket) add('transfer-window-seen');
   if (context.lowConditionMatchday) add('match-condition-warning-seen');
   if (context.viewingHome && hasEverGainedFans(state)) add('first-fans-seen');
   if (context.viewingFinances && hasEverGainedFans(state)) {

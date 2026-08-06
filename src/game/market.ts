@@ -340,6 +340,22 @@ export function playerValuation(player: ValuationPlayer, sellingClubDivision: nu
 }
 
 /**
+ * Global wage relief, applied to every generated wage.
+ *
+ * The opening was reading as too tight across the board, and the wage bill is
+ * the pressure that never lets up. Held as one factor rather than folded into
+ * the anchors so the curve above stays the documented one and this stays a
+ * balance decision that can be read, tuned, or reversed on its own.
+ *
+ * The authored launch rosters in `content/clubs.json` carry the same 4% cut.
+ *
+ * Started at 5%, which pushed the six-season passive-club cash peak from
+ * 113,256 to 135,714 — a fifth richer for a twentieth off the wage bill,
+ * because a passive club banks the saving every week and never spends it.
+ */
+const GLOBAL_WAGE_SCALE = 0.96;
+
+/**
  * Rebased generated-player wage curve. Seven-stat average is compared with the
  * division's support rating, so rival growth and star premiums remain visible
  * without charging the user twice for the ladder's larger raw numbers.
@@ -358,7 +374,7 @@ export function generatedPlayerWeeklyWage(
   const division = divisionValue as DivisionLevel;
   const total = ATTR_NAMES.reduce((sum, attribute) => sum + attrs[attribute], 0);
   const wage = checkedRound(
-    DIVISION_WEEKLY_WAGE_ANCHORS[division] * total
+    GLOBAL_WAGE_SCALE * DIVISION_WEEKLY_WAGE_ANCHORS[division] * total
       / (DIVISION_SUPPORT_STRENGTHS[division] * ATTR_NAMES.length),
     'division-anchored weekly wage',
   );
@@ -573,6 +589,20 @@ export function pitchCardAffinity(
 }
 
 /** Pitch influence is clamped here so even restored or migrated state cannot exceed +/-20%. */
+/**
+ * The lowest weekly wage the agent will still talk about.
+ *
+ * Below this the offer is an insult: talks end on the spot, the player loses
+ * morale and the club loses reputation. Exported because the screen has to say
+ * the number BEFORE the offer is sent — the rule used to be enforced silently
+ * and explained only in small print under the button, so the first a manager
+ * knew of it was the talks being over.
+ */
+export function insultingOfferFloor(weeklyAsk: number): number {
+  assertPositiveSafeInteger(weeklyAsk, 'weekly contract ask');
+  return Math.ceil(weeklyAsk / 2);
+}
+
 export function effectiveContractAsk(weeklyAsk: number, pitchInfluencePercent: number): number {
   assertPositiveSafeInteger(weeklyAsk, 'weekly contract ask');
   if (!Number.isSafeInteger(pitchInfluencePercent)) {
@@ -629,7 +659,7 @@ export function submitContractOffer(
   const effectiveAsk = effectiveContractAsk(negotiation.weeklyAsk, pitchInfluencePercent);
   const effectiveOffer = contractOfferValue(offer);
   const round = negotiation.round + 1;
-  const insulting = offer.weeklyWage < negotiation.weeklyAsk / 2;
+  const insulting = offer.weeklyWage < insultingOfferFloor(negotiation.weeklyAsk);
   const accepted = !insulting && effectiveOffer >= effectiveAsk;
   const finalRejection = !insulting && !accepted && round === 3;
   const outcome: ContractRoundRecord['outcome'] = insulting

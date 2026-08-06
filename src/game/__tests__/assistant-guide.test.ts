@@ -57,15 +57,6 @@ describe('assistant guide milestones', () => {
     expect(twice).toBe(once);
   });
 
-  test('records the Season 3 speed introduction only once per career', () => {
-    const state = createCareer(createLaunchCareerSetup(8_431));
-    const once = completeAssistantGuideMilestone(state, 'triple-speed-seen');
-    const twice = completeAssistantGuideMilestone(once, 'triple-speed-seen');
-
-    expect(hasAssistantGuideMilestone(once, 'triple-speed-seen')).toBe(true);
-    expect(twice).toBe(once);
-  });
-
   test('persists M2 firsts in insertion order and completes them idempotently', () => {
     const state = createCareer(createLaunchCareerSetup(844));
     const queued = queueAssistantGuideSequences(state, [

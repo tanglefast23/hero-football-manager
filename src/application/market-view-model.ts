@@ -2,6 +2,7 @@ import {
   buyingTransferQuote,
   isCoachCandidateEligible,
   isTransferWindowOpen,
+  insultingOfferFloor,
   scoutMissionCost,
   sellingTransferQuote,
   type CoachCandidate,
@@ -557,6 +558,7 @@ export function marketNegotiationViewModel(
     }),
     initialWeeklyWage: previousOffer ?? source.openingWeeklyWage,
     wageStep,
+    walkOutWeeklyWage: insultingOfferFloor(negotiation.weeklyAsk),
     ...(lastOutcome === undefined
       ? {}
       : { lastOutcomeLabel: outcomeLabel(lastOutcome) }),

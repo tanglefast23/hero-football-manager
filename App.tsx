@@ -133,6 +133,7 @@ import {
   hasEverGainedFans,
   isFirstOnboardingFixture,
   isFullyCappedPlayer,
+  isTransferWindowOpen,
   leagueStandings,
   hasAssistantGuideMilestone,
   type AssistantMode,
@@ -1231,7 +1232,10 @@ function GameApp() {
       viewingFinances: store.screen === 'management'
         && store.activeTab === 'club'
         && clubOfficeTab === 'finances',
-      watchingMatch: store.screen === 'watched',
+      viewingShutMarket: store.screen === 'management'
+        && store.activeTab === 'market'
+        && (career.market?.scoutReports.length ?? 0) > 0
+        && !isTransferWindowOpen(career.week),
       lowConditionMatchday,
     });
     for (const milestone of milestones) store.completeGuideMilestone(milestone);
@@ -1316,11 +1320,6 @@ function GameApp() {
     && store.postMatch?.result.cupExit === true
     && store.career !== null
     && !hasAssistantGuideMilestone(store.career, 'first-cup-exit-seen');
-  const tripleSpeedIntroVisible = careerTeaches
-    && store.screen === 'watched'
-    && store.career !== null
-    && store.career.season >= 3
-    && !hasAssistantGuideMilestone(store.career, 'triple-speed-seen');
   /**
    * Bert's one lesson on the crowd, in two beats on two screens.
    *
@@ -1343,6 +1342,25 @@ function GameApp() {
     && store.career !== null
     && hasAssistantGuideMilestone(store.career, 'first-fans-seen')
     && !hasAssistantGuideMilestone(store.career, 'first-fans-ledger-seen');
+  /**
+   * Why a scouted player is still not signable.
+   *
+   * The scouting report reads like a purchase order — it is the only thing that
+   * puts a player on the Deals tab — so holding one while the desk says SHUT
+   * looks like the report failed rather than like the calendar. He explains the
+   * two windows once, on the screen that is refusing.
+   *
+   * Declared below the Cup beats on purpose: those are mode-independent, and
+   * two tests read the slice between them to prove no `careerTeaches` gate has
+   * crept in there.
+   */
+  const transferWindowLessonVisible = careerTeaches
+    && store.screen === 'management'
+    && store.activeTab === 'market'
+    && store.career !== null
+    && (store.career.market?.scoutReports.length ?? 0) > 0
+    && !isTransferWindowOpen(store.career.week)
+    && !hasAssistantGuideMilestone(store.career, 'transfer-window-seen');
   /**
    * The signing that is walking onto the screen, if one is.
    *
@@ -1384,7 +1402,7 @@ function GameApp() {
     || cupGiantKillingCelebration !== undefined
     || cupExitConsolationVisible
     || facilityComboReveal !== undefined
-    || tripleSpeedIntroVisible
+    || transferWindowLessonVisible
     || fansLessonVisible
     || fansLedgerTourVisible
     || boardFinanceMessage !== undefined
@@ -1727,8 +1745,7 @@ function GameApp() {
         colorSafeKits={preferences.colorSafeKits}
         autoSubs={preferences.autoSubs}
         onAutoSubsChange={saveAutoSubs}
-        pausedExternally={globalSettingsOpen || tripleSpeedIntroVisible}
-        maximumSpeed={store.career.season >= 3 ? 3 : 2}
+        pausedExternally={globalSettingsOpen}
         firstMatchTutorial={careerTeaches && isFirstOnboardingFixture(
           store.career,
           store.watchedMatch.fixture.id,
@@ -2452,20 +2469,21 @@ function GameApp() {
             reduceMotion={reduceMotion}
             onDone={() => store.completeGuideMilestone(facilityComboReveal.milestone)}
           />
-        ) : guideOverlayVisible && tripleSpeedIntroVisible ? (
+        ) : guideOverlayVisible && transferWindowLessonVisible ? (
           <BertBriefingWalkOn
-            key="triple-speed-intro"
+            key="transfer-window"
             content={content.assistantGuide}
             customMessage={{
-              title: '3× speed unlocked',
+              title: 'The desk is shut',
               body: [
-                '3× match speed is now an option.',
-                'You’re a veteran coach now. You can manage the team even when the action moves this fast.',
+                'That report is yours to keep — scouting a player is what lets you open talks for him at all, and he waits on the Deals tab until you do.',
+                'Registrations only happen inside a transfer window: Weeks 1 to 4, then Weeks 17 and 18. Outside them the desk refuses every deal, however much you offer.',
+                'So scout now and decide now. Walk in on the first day of the window with the name already chosen and the money already put aside.',
               ],
             }}
             navigationAnchor={navigationGuideAnchor}
             reduceMotion={reduceMotion}
-            onDone={() => store.completeGuideMilestone('triple-speed-seen')}
+            onDone={() => store.completeGuideMilestone('transfer-window-seen')}
           />
         ) : guideOverlayVisible && fansLessonVisible ? (
           <BertBriefingWalkOn
