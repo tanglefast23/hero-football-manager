@@ -72,7 +72,7 @@ Additional sponsor and Buzz income is paired with higher upgrade prices while ev
 |---|---|
 | Starting cash / squad | 45,000 · 15/17 players after creating the rookie; head-coach vacancy filled through the market |
 | Player wage (D5) | 150–400/wk (squad ≈ 3,200/wk) |
-| Coach wage | 500/wk (Lv1) |
+| Coach wage | 400/wk per level (Lv1 400 → Lv5 2,000); an assistant costs half the same figure, so 200/wk at Lv1 |
 | Season 1 subsidy | League pays 50% of wages |
 | Sponsor (D5, 1 slot) | 2,000/mo + 3,000–5,000 objective |
 | Home gate (500 fans) | ≈ 1,200/match |

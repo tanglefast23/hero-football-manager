@@ -3,6 +3,7 @@ import { compareIds } from './ordering';
 import {
   buyingTransferQuote,
   CAREER_CLUB_FAME_CEILING,
+  COACH_WAGE_PER_LEVEL,
   generatedPlayerWeeklyWage,
   generateCoachMarket,
   isCoachCandidateEligible,
@@ -1444,7 +1445,7 @@ function progressEmployedCoach(
     : coach.level;
   const loyaltyPercent = 100 - coach.loyaltyDiscountPercent;
   const headCoachWage = Math.round(
-    (checkedMultiply(500, level, `${label} base wage`) * loyaltyPercent) / 100,
+    (checkedMultiply(COACH_WAGE_PER_LEVEL, level, `${label} base wage`) * loyaltyPercent) / 100,
   );
   const weeklyWage = coachWeeklyWageForRole({ weeklyWage: headCoachWage }, role);
   return { coach: { ...coach, level, weeklyWage }, seasonsEmployed };

@@ -4,6 +4,7 @@ import { advanceFacilityConstruction, buildCareerFacility, buildCareerTeamDef, c
 import { leagueStandings } from '../career';
 import { startNextFullCareerSeason } from '../full-career';
 import { clubSquadStrength } from '../m2-career';
+import { COACH_WAGE_PER_LEVEL } from '../market';
 import {
   applyCareerNegotiationConsequence,
   acceptCareerTransferBid,
@@ -771,7 +772,7 @@ describe('career market integration', () => {
     expect(yearOne.headCoachSeasonsEmployed).toBe(1);
     expect(yearTwo.headCoach?.level).toBe(Math.min(5, (hired.headCoach?.level ?? 0) + 1));
     expect(yearTwo.headCoach?.weeklyWage).toBe(
-      Math.round(500 * yearTwo.headCoach!.level
+      Math.round(COACH_WAGE_PER_LEVEL * yearTwo.headCoach!.level
         * (100 - yearTwo.headCoach!.loyaltyDiscountPercent) / 100),
     );
     expect(yearTwo.headCoachSeasonsEmployed).toBe(2);
@@ -885,10 +886,14 @@ describe('career market integration', () => {
     const yearOne = refreshCareerMarketForNewSeason({ ...withOffice, season: 2 }, hired);
     const yearTwo = refreshCareerMarketForNewSeason({ ...withOffice, season: 3 }, yearOne);
 
-    expect(yearOne.assistantCoach?.weeklyWage)
-      .toBe(coachWeeklyWageForRole({ weeklyWage: 500 * yearOne.assistantCoach!.level }, 'ASSISTANT'));
-    expect(yearTwo.assistantCoach?.weeklyWage)
-      .toBe(coachWeeklyWageForRole({ weeklyWage: 500 * yearTwo.assistantCoach!.level }, 'ASSISTANT'));
+    expect(yearOne.assistantCoach?.weeklyWage).toBe(coachWeeklyWageForRole(
+      { weeklyWage: COACH_WAGE_PER_LEVEL * yearOne.assistantCoach!.level },
+      'ASSISTANT',
+    ));
+    expect(yearTwo.assistantCoach?.weeklyWage).toBe(coachWeeklyWageForRole(
+      { weeklyWage: COACH_WAGE_PER_LEVEL * yearTwo.assistantCoach!.level },
+      'ASSISTANT',
+    ));
   });
 
   test('measures contract growth from the stored signing attributes', () => {

@@ -563,7 +563,7 @@ describe('contract negotiation', () => {
     expect(legend).toMatchObject({
       name: 'Ari Flint',
       level: 4,
-      weeklyWage: 1500,
+      weeklyWage: 1200,
       specialties: ['ATTACK', 'MOTIVATOR'],
       loyaltyDiscountPercent: 25,
     });
