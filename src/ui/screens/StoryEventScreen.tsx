@@ -128,6 +128,7 @@ export function StoryEventScreen({
           category={viewModel.category}
           success={riskySuccess}
           reduceMotion={reduceMotion}
+          sceneLayout="stage"
           className="flex-1"
         >
           {riskySuccess ? <EventPixelConfetti progress={rewardReveal} reduceMotion={reduceMotion} /> : null}
@@ -137,9 +138,16 @@ export function StoryEventScreen({
             contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', padding: 16, paddingTop: 72 }}
             showsVerticalScrollIndicator={false}
           >
+            {/* Style-only wrapper. NativeWind silently drops `className` on an
+                Animated view, which is why this panel had no paper, no border
+                and no 600pt cap on a desktop — the outcome text, the red bar
+                and the continue button all ran the full width of the screen.
+                The classes live on the plain View inside. */}
             <Animated.View
-              className={panelClass}
               style={{
+                width: '100%',
+                maxWidth: 600,
+                alignSelf: 'center',
                 opacity: reveal,
                 transform: [{
                   translateY: reveal.interpolate({
@@ -150,6 +158,7 @@ export function StoryEventScreen({
                 }],
               }}
             >
+              <View className={panelClass}>
               <Text className={riskySuccess
                 ? 'font-pixel text-xs uppercase tracking-[3px] text-gold'
                 : riskyFailure
@@ -200,6 +209,7 @@ export function StoryEventScreen({
                   onPress={onContinue}
                 />
               </View>
+              </View>
             </Animated.View>
           </ScrollView>
         </EventArtwork>
@@ -225,6 +235,7 @@ export function StoryEventScreen({
           artKey={viewModel.artKey}
           category={viewModel.category}
           reduceMotion={reduceMotion}
+          sceneLayout="stage"
           className="h-64 justify-end border-y-[3px] border-ink"
         >
           <View className="bg-ink/85 px-5 py-4">
