@@ -50,7 +50,8 @@
       "english": "Fan Shop",
       "englishPattern": "Fan Shop",
       "allowedForms": [
-        "Boutique du Club"
+        "Boutique du Club",
+        "Boutiques du Club"
       ],
       "why": "Ce qu'un stade appelle vraiment sa boutique."
     },

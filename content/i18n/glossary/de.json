@@ -48,7 +48,8 @@
       "english": "Fan Shop",
       "englishPattern": "Fan Shop",
       "allowedForms": [
-        "Fanshop"
+        "Fanshop",
+        "Fanshops"
       ],
       "why": "Steht so an jedem deutschen Stadion."
     },

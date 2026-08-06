@@ -50,7 +50,8 @@
       "english": "Fan Shop",
       "englishPattern": "Fan Shop",
       "allowedForms": [
-        "Loja do Clube"
+        "Loja do Clube",
+        "Lojas do Clube"
       ],
       "why": "É como um estádio realmente chama."
     },
