@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "locale": "en",
+  "strings": {
+    "settings.language.title": "Language",
+    "settings.language.kicker": "Choose your language",
+    "creation.language.title": "Language",
+    "creation.language.kicker": "Before you sign"
+  }
+}
