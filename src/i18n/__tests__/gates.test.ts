@@ -3,6 +3,13 @@ import { join } from 'path';
 import { ENABLED_LOCALES, LOCALES, contentStrings, loadCatalog, localeMeta } from '../index';
 import { faceFile, glyphSet, missingGlyphs } from '../glyph-coverage';
 import { faceForKey } from '../voice';
+import { advanceEm } from '../advance';
+import {
+  COLUMN_MIN_GUTTER,
+  HEADER_MAX_FONT_MULTIPLIER,
+  LEAGUE_COLUMN_WIDTH,
+  LEAGUE_HEADER_FONT_SIZE,
+} from '../../ui/league-table-columns';
 
 const english = () => loadCatalog('en').strings;
 const translated = () => ENABLED_LOCALES.filter(locale => locale !== 'en');
@@ -130,3 +137,104 @@ describe('persisted labels resolve through the catalog', () => {
     }
   });
 });
+
+describe('gate 8 — column headers fit, in every enabled locale', () => {
+  const COLUMNS = {
+    position: 'col.league.position',
+    played: 'col.league.played',
+    won: 'col.league.won',
+    drawn: 'col.league.drawn',
+    lost: 'col.league.lost',
+    goalDifference: 'col.league.goalDifference',
+    points: 'col.league.points',
+  } as const;
+
+  /** The header's own size cap and gutter, from league-table-columns.ts. */
+  const demandOf = (label: string, family: string) =>
+    advanceEm(label, family) * LEAGUE_HEADER_FONT_SIZE * HEADER_MAX_FONT_MULTIPLIER
+      + COLUMN_MIN_GUTTER;
+
+  test('every locale s header fits its column', () => {
+    // Measured against the real font, not counted in characters: Silkscreen is
+    // proportional, so "PJ" and "SP" are not the same width even though both
+    // are two letters.
+    for (const locale of ENABLED_LOCALES) {
+      const strings = loadCatalog(locale).strings;
+      const family = localeMeta(locale).faces.data;
+      for (const [column, key] of Object.entries(COLUMNS)) {
+        const label = strings[key] ?? english()[key]!;
+        const width = LEAGUE_COLUMN_WIDTH[column as keyof typeof LEAGUE_COLUMN_WIDTH];
+        expect({ locale, column, label, demand: Math.ceil(demandOf(label, family) * 10) / 10, width })
+          .toMatchObject({ locale, column });
+        expect(demandOf(label, family)).toBeLessThanOrEqual(width);
+      }
+    }
+  });
+
+  test('no locale widens the row beyond what English already needs', () => {
+    // Per-column fitting is necessary but not sufficient: the fixed columns
+    // collectively crowd out the flexible club-name column, which is the one
+    // that pays for every fixed-width increase.
+    //
+    // This is a REGRESSION guard, not an absolute fit claim. The seven-column
+    // row is already 300pt of fixed width and gutters before a club name, which
+    // is tight on a 320pt phone — but that is English's own pre-existing
+    // squeeze, shipped today, and not something localisation introduced. What
+    // localisation must not do is make it worse: `LEAGUE_COLUMN_WIDTH` is a max
+    // across locales, so a long header in one language silently widens the
+    // table in all of them, English included.
+    const fixed = Object.values(LEAGUE_COLUMN_WIDTH).reduce((sum, width) => sum + width, 0);
+    const gutters = COLUMN_MIN_GUTTER * (Object.keys(LEAGUE_COLUMN_WIDTH).length - 1);
+
+    // The width English alone requires. Raising this is a deliberate layout
+    // decision that belongs in review, not a side effect of adding a language.
+    const ENGLISH_ROW_BUDGET = 300;
+
+    expect({ fixed, gutters, total: fixed + gutters })
+      .toMatchObject({ fixed, gutters });
+    expect(fixed + gutters).toBeLessThanOrEqual(ENGLISH_ROW_BUDGET);
+  });
+});
+
+describe('gate 9 — locked terminology', () => {
+  test('every coined term uses an approved form in every enabled locale', () => {
+    // Scope is coined terms ONLY. Ordinary football vocabulary stays advisory,
+    // because a substring check on it false-positives constantly on Spanish
+    // inflection and German compounding — and a gate that cries wolf gets
+    // switched off.
+    const source = english();
+    for (const locale of ENABLED_LOCALES.filter(l => l !== 'en')) {
+      const glossary = loadGlossary(locale);
+      const strings = loadCatalog(locale).strings;
+      const offenders: string[] = [];
+
+      for (const term of glossary.terms) {
+        const pattern = new RegExp(term.englishPattern);
+        for (const [key, value] of Object.entries(strings)) {
+          if (!pattern.test(source[key] ?? '')) continue;
+          if (!term.allowedForms.some(form => value.includes(form))) {
+            offenders.push(`${key}: ${JSON.stringify(value)} lacks ${term.allowedForms.join(' / ')}`);
+          }
+        }
+      }
+      expect({ locale, offenders }).toEqual({ locale, offenders: [] });
+    }
+  });
+
+  test('the check is not vacuous — the glossary and the catalog both have content', () => {
+    for (const locale of ENABLED_LOCALES.filter(l => l !== 'en')) {
+      expect(loadGlossary(locale).terms.length).toBeGreaterThan(0);
+      expect(Object.keys(loadCatalog(locale).strings).length).toBeGreaterThan(0);
+    }
+  });
+});
+
+interface Glossary {
+  terms: { english: string; englishPattern: string; allowedForms: string[] }[];
+}
+
+function loadGlossary(locale: string): Glossary {
+  return JSON.parse(
+    readFileSync(join(process.cwd(), `content/i18n/glossary/${locale}.json`), 'utf8'),
+  ) as Glossary;
+}

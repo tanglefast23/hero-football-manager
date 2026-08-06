@@ -26,15 +26,23 @@ const TABLE_COLUMN_EXPLAINER: Readonly<Record<LeagueColumn, string>> = {
 
 const TABLE_HEADERS: readonly {
   column: Exclude<LeagueColumn, 'position'>;
-  label: string;
+  /**
+   * The `col.*` key, not the label.
+   *
+   * These are layout tokens rather than prose: each one has to fit a fixed cell
+   * whose width was measured from the font, so a locale DECLARES a short form
+   * (Spanish "PJ", German "SP") instead of translating "Played" and hoping.
+   * `gates.test.ts` measures every locale's forms against the columns.
+   */
+  key: string;
   name: string;
 }[] = [
-  { column: 'played', label: 'P', name: 'Played' },
-  { column: 'won', label: 'W', name: 'Won' },
-  { column: 'drawn', label: 'D', name: 'Drawn' },
-  { column: 'lost', label: 'L', name: 'Lost' },
-  { column: 'goalDifference', label: 'GD', name: 'Goal difference' },
-  { column: 'points', label: 'PTS', name: 'Points' },
+  { column: 'played', key: 'col.league.played', name: 'Played' },
+  { column: 'won', key: 'col.league.won', name: 'Won' },
+  { column: 'drawn', key: 'col.league.drawn', name: 'Drawn' },
+  { column: 'lost', key: 'col.league.lost', name: 'Lost' },
+  { column: 'goalDifference', key: 'col.league.goalDifference', name: 'Goal difference' },
+  { column: 'points', key: 'col.league.points', name: 'Points' },
 ];
 
 /** Points, not rem-based classes. See league-table-columns.ts. */
@@ -102,7 +110,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
               <PixelText className="flex-1 text-[12px] uppercase text-ink/50">Club</PixelText>
               {TABLE_HEADERS.map(header => (
                 <InfoTip
-                  key={header.label}
+                  key={header.key}
                   text={TABLE_COLUMN_EXPLAINER[header.column]}
                   align="right"
                   style={tableColumns[header.column]}
@@ -113,7 +121,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
                     maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
                     numberOfLines={1}
                   >
-                    {header.label}
+                    {t(header.key)}
                   </Text>
                 </InfoTip>
               ))}

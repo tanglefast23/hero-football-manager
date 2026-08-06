@@ -26,9 +26,15 @@
 export const LEAGUE_HEADER_ADVANCE_EM: Readonly<Record<string, number>> = {
   '#': 0.875,
   P: 0.75,
-  W: 1.0,
+  // 0.875, not 1.0. The original hand-typed table used Silkscreen BOLD's
+  // advance for W and an overstated 0.75 for L, which is what a per-string
+  // parser found the moment a second locale needed measuring. Both erred wide,
+  // so nothing clipped — but a table that claims to be measured has to be.
+  // `src/i18n/advance.ts` now reads these out of the TTF and a test pins this
+  // map against it, so the two can never disagree again.
+  W: 0.875,
   D: 0.75,
-  L: 0.75,
+  L: 0.625,
   GD: 1.5,
   PTS: 2.125,
 };

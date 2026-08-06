@@ -5,8 +5,11 @@ describe('locale registry', () => {
     expect(LOCALES).toEqual(['en', 'es', 'pt-BR', 'fr', 'de', 'id', 'vi']);
   });
 
-  test('only English is enabled until a translation phase completes', () => {
-    expect(ENABLED_LOCALES).toEqual(['en']);
+  test('a locale is enabled only once its phase is complete', () => {
+    // Widening this is the LAST step of a translation phase, never the first:
+    // every quality gate runs against it, so widening early turns them all red
+    // at once and the real failures get lost in the noise.
+    expect(ENABLED_LOCALES).toEqual(['en', 'es']);
   });
 
   test('every locale names itself in its own language', () => {

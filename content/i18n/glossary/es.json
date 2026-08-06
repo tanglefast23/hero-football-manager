@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "locale": "es",
+  "terms": [
+    {
+      "english": "Hero License",
+      "englishPattern": "Hero Licen[cs]e",
+      "allowedForms": [
+        "Licencia de Héroe",
+        "Licencias de Héroe"
+      ],
+      "why": "Keeps Héroe capitalised so it reads as the game's own noun, not a description."
+    },
+    {
+      "english": "the Zone",
+      "englishPattern": "\\bthe Zone\\b",
+      "allowedForms": [
+        "la Zona"
+      ],
+      "why": "Short, and 'entrar en la Zona' is how a commentator would say it."
+    },
+    {
+      "english": "Heat",
+      "englishPattern": "\\bHeat\\b",
+      "allowedForms": [
+        "Calor"
+      ],
+      "why": "Literal, and it stays a noun the player learns rather than a metaphor that drifts."
+    },
+    {
+      "english": "Awakening",
+      "englishPattern": "\\bAwakening\\b",
+      "allowedForms": [
+        "Despertar"
+      ],
+      "why": "The moment a player becomes a hero. 'Despertar' carries the same one-off, irreversible sense."
+    },
+    {
+      "english": "Training Points",
+      "englishPattern": "Training Points?",
+      "allowedForms": [
+        "Puntos de Entreno",
+        "Punto de Entreno"
+      ],
+      "why": "'Entreno' is the everyday word; 'entrenamiento' is the formal one, and two characters too long for the labels that carry it."
+    },
+    {
+      "english": "Fan Shop",
+      "englishPattern": "Fan Shop",
+      "allowedForms": [
+        "Tienda del Club"
+      ],
+      "why": "'Tienda de Aficionados' is a translation; 'Tienda del Club' is what a ground actually calls it."
+    },
+    {
+      "english": "Buzz",
+      "englishPattern": "\\bBuzz\\b",
+      "allowedForms": [
+        "Ambiente"
+      ],
+      "why": "'Expectación' is correct but 11 characters, and it broke the copy budget on every label that carries it. 'Ambiente' is what a ground actually says about a club people are talking about."
+    },
+    {
+      "english": "Superpower",
+      "englishPattern": "[Ss]uperpowers?",
+      "allowedForms": [
+        "Superpoder",
+        "Superpoderes",
+        "superpoder",
+        "superpoderes"
+      ],
+      "why": "Unlike Hero License or the Zone, this is a common noun in both languages — English writes it lowercase mid-sentence too, so Spanish must be allowed to. What is locked is the WORD, not its case."
+    }
+  ]
+}
