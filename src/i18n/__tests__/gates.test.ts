@@ -10,6 +10,13 @@ import {
   LEAGUE_COLUMN_WIDTH,
   LEAGUE_HEADER_FONT_SIZE,
 } from '../../ui/league-table-columns';
+import {
+  HEADER_FONT_SIZE as REGISTER_HEADER_FONT_SIZE,
+  HEADER_MIN_GUTTER as REGISTER_MIN_GUTTER,
+  REGISTER_COLUMN_WIDTH,
+  SORT_ARROW_GAP,
+  SORT_ARROW_WIDTH,
+} from '../../ui/squad-register-columns';
 
 /**
  * UI chrome only. This is the set a locale MUST translate in full, so it is what
@@ -197,6 +204,50 @@ describe('persisted labels resolve through the catalog', () => {
   });
 });
 
+describe('gate 8b — squad register headers fit, in every enabled locale', () => {
+  /**
+   * The register is the screen a manager spends the most time on, and its four
+   * fixed columns are sized in points around measured English abbreviations.
+   * A translated header is therefore a layout risk, not just a copy one — and
+   * "Cond" has no four-letter equivalent in German.
+   *
+   * The labels are typed in title case and uppercased by the stylesheet, so
+   * what is measured is the uppercased form. Measuring the typed one would
+   * understate every label, because Silkscreen's lowercase is narrower.
+   */
+  const COLUMNS = {
+    role: { phone: 'col.squad.role', wide: 'col.squad.role' },
+    overall: { phone: 'col.squad.overall', wide: 'col.squad.score' },
+    potential: { phone: 'col.squad.potential', wide: 'col.squad.potentialLong' },
+    condition: { phone: 'col.squad.condition', wide: 'col.squad.conditionLong' },
+  } as const;
+
+  /** The arrow is part of every column, drawn or not: see the widths file. */
+  const demandOf = (label: string, family: string, fontSize: number) =>
+    advanceEm(label.toUpperCase(), family) * fontSize * HEADER_MAX_FONT_MULTIPLIER
+      + SORT_ARROW_GAP + SORT_ARROW_WIDTH + REGISTER_MIN_GUTTER;
+
+  test('every locale s register header fits its column', () => {
+    for (const locale of ENABLED_LOCALES) {
+      const strings = loadCatalog(locale).strings;
+      // The register's headers are drawn bold, and Silkscreen Bold is wider
+      // than its regular cut — measuring the data face understates every label
+      // by about a sixth, which is exactly the margin these columns run on.
+      const family = localeMeta(locale).faces.display;
+      for (const [column, keys] of Object.entries(COLUMNS)) {
+        for (const layout of ['phone', 'wide'] as const) {
+          const label = strings[keys[layout]] ?? english()[keys[layout]]!;
+          const width = REGISTER_COLUMN_WIDTH[layout][column as keyof typeof COLUMNS];
+          const demand = demandOf(label, family, REGISTER_HEADER_FONT_SIZE[layout]);
+          expect({ locale, layout, column, label, demand: Math.ceil(demand * 10) / 10, width })
+            .toMatchObject({ locale, layout, column });
+          expect(demand).toBeLessThanOrEqual(width);
+        }
+      }
+    }
+  });
+});
+
 describe('gate 8 — column headers fit, in every enabled locale', () => {
   const COLUMNS = {
     position: 'col.league.position',
@@ -312,7 +363,7 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
    * translation gets recorded as landed.
    */
   const COVERAGE_FLOOR: Readonly<Record<string, number>> = {
-    es: 33, 'pt-BR': 27, fr: 27, id: 27, de: 27, vi: 27,
+    es: 33, 'pt-BR': 33, fr: 33, id: 33, de: 33, vi: 33,
   };
 
   test('every locale meets its recorded content-prose floor', () => {

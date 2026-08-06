@@ -649,10 +649,10 @@ function RosterSection({
           className="flex-row items-center border-b border-ink/20 px-2"
           style={styles.sortHeaderBar}
         >
-          <SquadSortHeader label="Pos" sortKey="role" sort={squadSort} columnStyle={columns.role} labelSize={headerLabelSize} onSort={setSquadSort} />
-          <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" labelSize={headerLabelSize} onSort={setSquadSort} />
+          <SquadSortHeader label={t('col.squad.role')} sortKey="role" sort={squadSort} columnStyle={columns.role} labelSize={headerLabelSize} onSort={setSquadSort} />
+          <SquadSortHeader label={t(wideColumns ? 'col.squad.player' : 'col.squad.name')} sortKey="player" sort={squadSort} widthClass="flex-1" labelSize={headerLabelSize} onSort={setSquadSort} />
           <SquadSortHeader
-            label={wideColumns ? 'Score' : 'OVR'}
+            label={t(wideColumns ? 'col.squad.score' : 'col.squad.overall')}
             sortKey="overall"
             sort={squadSort}
             columnStyle={columns.overall}
@@ -671,9 +671,9 @@ function RosterSection({
               />
             ) : null}
           />
-          <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} columnStyle={columns.potential} labelSize={headerLabelSize} align="right" onSort={setSquadSort} />
+          <SquadSortHeader label={t(wideColumns ? 'col.squad.potentialLong' : 'col.squad.potential')} sortKey="potential" sort={squadSort} columnStyle={columns.potential} labelSize={headerLabelSize} align="right" onSort={setSquadSort} />
           <SquadSortHeader
-            label={wideColumns ? 'Condition' : 'Cond'}
+            label={t(wideColumns ? 'col.squad.conditionLong' : 'col.squad.condition')}
             sortKey="condition"
             sort={squadSort}
             columnStyle={columns.condition}
