@@ -992,7 +992,9 @@ function ActiveSponsorCard({ slot, chairmanPercent }: {
         </Text>
         {chairmanPercent === undefined ? null : (
           <Text className="mt-1 text-sm font-bold text-blue-dark">
-            Club receives {formatCurrency(slot.actualMonthlyFee)} / month · {chairmanPercent}%
+            {t('clubFinances.clubReceivesPerMonth', {
+              amount: formatCurrency(slot.actualMonthlyFee), percent: chairmanPercent,
+            })}
           </Text>
         )}
       </View>
@@ -1007,7 +1009,7 @@ function ActiveSponsorCard({ slot, chairmanPercent }: {
           </Text>
           {chairmanPercent === undefined ? null : (
             <Text className="mt-1 text-sm text-blue-dark">
-              Club receives {formatCurrency(slot.actualBonus ?? 0)}
+              {t('clubFinances.clubReceives', { amount: formatCurrency(slot.actualBonus ?? 0) })}
             </Text>
           )}
         </View>
@@ -1110,7 +1112,7 @@ function BuzzCard({ buzz, focusTargetRef }: {
         {t('clubFinances.atTodaysRate', { amount: formatCurrency(buzz.pendingPayout) })}
       </Text>
       {buzz.lastSettlementLabel === undefined ? null : (
-        <Text className="mt-2 text-sm leading-5 text-ink/70">Last payout · {buzz.lastSettlementLabel}</Text>
+        <Text className="mt-2 text-sm leading-5 text-ink/70">{t('clubFinances.lastPayout', { when: buzz.lastSettlementLabel })}</Text>
       )}
     </View>
   );
@@ -1385,7 +1387,7 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
                       })}
                     </Text>
                     <Text className="mt-1 font-mono text-sm text-ink">
-                      {formatCurrency(coach.weeklyWage)} / week
+                      {t('clubFinances.perWeekAmount', { amount: formatCurrency(coach.weeklyWage) })}
                     </Text>
                   </View>
                 </View>

@@ -473,7 +473,7 @@ function ScoutingDesk({
                       and falls back to the system face on purpose — typed inside
                       the pixel-font string it flipped the face mid-word. */}
                   <Text className="text-sm text-ink">★</Text>
-                  <Text className="font-pixel text-sm uppercase text-ink">Confirmed · {report.powerLabel}</Text>
+                  <Text className="font-pixel text-sm uppercase text-ink">{t('market.confirmedPower', { power: report.powerLabel })}</Text>
                 </View>
               ) : null}
               {report.rumorLabel ? (
@@ -580,7 +580,7 @@ function TransferDesk({
                 <View className="flex-1">
                   <Text className="text-lg font-bold text-ink" numberOfLines={1}>{listing.playerName}</Text>
                   <Text className="mt-1 font-pixel text-sm uppercase text-ink/60">
-                    {listing.role} · Age {listing.age}
+                    {t('market.roleAndAge', { role: listing.role, age: listing.age })}
                   </Text>
                   <Text className="mt-1 font-pixel text-sm uppercase text-gold-dark">
                     Potential {listing.potentialLabel}
@@ -891,7 +891,7 @@ export function NegotiationPanel({
                 <Text className="font-mono text-2xl font-bold text-ink">−</Text>
               </Pressable>
               <View className="h-12 flex-1 items-center justify-center border-2 border-ink bg-white">
-                <Text className="font-mono text-xl text-ink">{formatCurrency(weeklyWage)} / wk</Text>
+                <Text className="font-mono text-xl text-ink">{t('market.perWeekAmount', { amount: formatCurrency(weeklyWage) })}</Text>
               </View>
               <Pressable
                 accessibilityRole="button"

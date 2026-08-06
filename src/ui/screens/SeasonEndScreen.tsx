@@ -105,7 +105,11 @@ export function SeasonEndScreen({
                     <StatusChip label="PAID" tone="success" />
                   </View>
                   <Text className="mt-2 text-sm leading-5 text-ink">
-                    Reached {viewModel.clubBusinessSettlement.buzz.reached} · Club received {formatCurrency(viewModel.clubBusinessSettlement.buzz.actualPayout)} · Reset to {viewModel.clubBusinessSettlement.buzz.resetTo}
+                    {t('seasonEnd.buzzSettlement', {
+                      reached: viewModel.clubBusinessSettlement.buzz.reached,
+                      amount: formatCurrency(viewModel.clubBusinessSettlement.buzz.actualPayout),
+                      resetTo: viewModel.clubBusinessSettlement.buzz.resetTo,
+                    })}
                   </Text>
                 </View>
               ) : null}
@@ -133,7 +137,7 @@ export function SeasonEndScreen({
                         ? 'mt-2 font-mono text-base text-pitch-ink'
                         : 'mt-2 font-mono text-base text-red-dark'}
                       >
-                        Club received {formatCurrency(result.actualBonus)}
+                        {t('seasonEnd.clubReceived', { amount: formatCurrency(result.actualBonus) })}
                       </Text>
                     </View>
                   ))}
