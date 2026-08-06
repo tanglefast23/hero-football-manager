@@ -45,28 +45,17 @@ substring check on those fails constantly on German compounding
 (`Innenverteidiger` inside `Innenverteidigerposition`) and Spanish inflection
 (`portero`/`porteros`), and a gate that cries wolf gets switched off.
 
-- [ ] **Step 1: Write the failing test**
+**Order matters: author the glossary now, but the CI assertion lands with Task 3.**
+Running the gate before any translation exists makes it iterate over an empty
+`strings` map — a vacuous pass that looks like coverage and proves nothing. Write
+the glossary here; enable the test once the first batch is translated.
 
-```ts
-test('<locale> renders every coined term in an approved form', () => {
-  const glossary = loadGlossary('<locale>');
-  const strings = loadCatalog('<locale>').strings;
+- [ ] **Step 1: Author the glossary**
 
-  for (const entry of glossary.terms) {
-    for (const [key, value] of Object.entries(strings)) {
-      if (!entry.englishPattern.test(loadCatalog('en').strings[key] ?? '')) continue;
-      const usesApproved = entry.allowedForms.some(form => value.includes(form));
-      expect({ key, term: entry.english, value }).toMatchObject({ key });
-      expect(usesApproved).toBe(true);
-    }
-  }
-});
-```
-
-- [ ] **Step 2: Author the glossary**
-
-Each entry declares its **allowed surface forms including inflections**, which
-is what makes the check unambiguous:
+Each entry declares its **allowed surface forms including inflections**, plus the
+English pattern that identifies which source strings the rule applies to. Both
+fields are required — an earlier draft's test read `entry.englishPattern` while
+the JSON only carried `english`, which would not have run at all:
 
 ```json
 {
@@ -75,17 +64,49 @@ is what makes the check unambiguous:
   "terms": [
     {
       "english": "Hero License",
+      "englishPattern": "Hero Licen[cs]e",
       "allowedForms": ["Licencia de Héroe", "Licencias de Héroe"],
       "why": "Keeps 'Héroe' capitalised so it reads as the game's noun, not a description."
     },
     {
       "english": "the Zone",
+      "englishPattern": "\\bthe Zone\\b",
       "allowedForms": ["la Zona"],
       "why": "Short, and 'entrar en la Zona' is how a commentator would say it."
     }
   ]
 }
 ```
+
+- [ ] **Step 2: Write the gate (enable after Task 3's first batch)**
+
+```ts
+test('<locale> renders every coined term in an approved form', () => {
+  const glossary = loadGlossary('<locale>');
+  const en = loadCatalog('en').strings;
+  const strings = loadCatalog('<locale>').strings;
+
+  // Guard against the vacuous pass: this test is meaningless on an empty catalog.
+  expect(Object.keys(strings).length).toBeGreaterThan(0);
+
+  const offenders: string[] = [];
+  for (const entry of glossary.terms) {
+    const pattern = new RegExp(entry.englishPattern);
+    for (const [key, value] of Object.entries(strings)) {
+      if (!pattern.test(en[key] ?? '')) continue;
+      if (!entry.allowedForms.some(form => value.includes(form))) {
+        offenders.push(`${key}: "${value}" (expected one of ${entry.allowedForms.join(' / ')})`);
+      }
+    }
+  }
+  expect(offenders).toEqual([]);
+});
+```
+
+`includes` on a declared surface form is deliberate and safe **because the scope
+is coined terms only**. It would be wrong for ordinary football vocabulary,
+where German compounding and Spanish inflection defeat substring matching —
+which is exactly why those stay advisory (above) rather than asserted.
 
 - [ ] **Step 3: Run and commit**
 
@@ -217,8 +238,16 @@ model's translation just produces a green tick. Coverage alone proves the review
 - [ ] **Step 1: Seed canaries into each review batch**
 
 `seed-canaries.mjs` injects deliberately broken strings, shuffled in and
-indistinguishable from real work, at roughly **5% of batch size**. Each canary
-breaks one thing a reviewer is supposed to catch:
+indistinguishable from real work, at roughly **5% of batch size**.
+
+**Full canary coverage is mandatory for Spanish and sampled thereafter.** The
+first locale is where the reviewer's miss rate is unknown and worth measuring
+properly. Once Spanish has produced a number, later locales run canaries on a
+sample of batches — enough to detect a reviewer regression, not enough to double
+the cost of every language. If Spanish's miss rate is bad, that is a finding
+about the whole approach and it surfaces before five more languages pay for it.
+
+Each canary breaks one thing a reviewer is supposed to catch:
 
 | Canary kind | Example (es) |
 | --- | --- |
@@ -241,9 +270,14 @@ the screen the string appears on. It returns one verdict per string:
 | `wrong` | Meaning changed, off-glossary, placeholder misused | rewrite, re-review |
 | `long` | Correct but will not fit its cell | shorten in-language, re-review |
 
-Verdicts land in `content/i18n/review/<locale>.json` with a one-line reason and
-the **hash of the English source reviewed**, so a later English copy change
-staleness-marks exactly the affected strings rather than the whole language.
+Verdicts land in `content/i18n/review/<locale>.json` with a one-line reason and a
+hash of **everything the verdict depended on** — the key, the English source, the
+translated string itself, the glossary version, and the screen context.
+
+Hashing only the English leaves a hole: a translation could be edited after
+approval and keep its `ok`, because the English never moved. Including the target
+string closes it; including the glossary version re-opens strings when
+terminology changes rather than grandfathering them.
 
 - [ ] **Step 3: Score the canaries and void bad batches**
 
@@ -269,7 +303,7 @@ test('no enabled locale ships a string without an ok verdict', () => {
     const review = loadReview(locale);
     const stale = Object.entries(loadCatalog(locale).strings).filter(([key]) => {
       const entry = review[key];
-      return entry?.verdict !== 'ok' || entry.englishHash !== hashEnglish(key);
+      return entry?.verdict !== 'ok' || entry.hash !== reviewHash(locale, key);
     });
     expect(stale).toEqual([]);
   }
