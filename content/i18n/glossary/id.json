@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "locale": "id",
+  "terms": [
+    {
+      "english": "Hero License",
+      "englishPattern": "Hero Licen[cs]e",
+      "allowedForms": [
+        "Lisensi Pahlawan"
+      ],
+      "why": "'Pahlawan' adalah kata sehari-hari untuk hero."
+    },
+    {
+      "english": "the Zone",
+      "englishPattern": "\\bthe Zone\\b",
+      "allowedForms": [
+        "Zona"
+      ],
+      "why": "Pendek, dan sudah dipakai di komik Indonesia."
+    },
+    {
+      "english": "Heat",
+      "englishPattern": "\\bHeat\\b",
+      "allowedForms": [
+        "Panas"
+      ],
+      "why": "Satu kata, dan tetap terasa seperti meter yang mengisi."
+    },
+    {
+      "english": "Awakening",
+      "englishPattern": "\\bAwakening\\b",
+      "allowedForms": [
+        "Kebangkitan",
+        "kebangkitan"
+      ],
+      "why": "Momen sekali seumur hidup — persis seperti di sini."
+    },
+    {
+      "english": "Training Points",
+      "englishPattern": "Training [Pp]oints?",
+      "allowedForms": [
+        "Poin Latihan"
+      ],
+      "why": "Dua kata, jelas, dan muat di label mana pun."
+    },
+    {
+      "english": "Fan Shop",
+      "englishPattern": "Fan Shop",
+      "allowedForms": [
+        "Toko Klub"
+      ],
+      "why": "Yang benar-benar tertulis di stadion."
+    },
+    {
+      "english": "Buzz",
+      "englishPattern": "\\bBuzz\\b",
+      "allowedForms": [
+        "Gaung"
+      ],
+      "why": "Gaung klub di kota — persis yang diukur meternya."
+    },
+    {
+      "english": "Superpower",
+      "englishPattern": "[Ss]uperpowers?",
+      "allowedForms": [
+        "Kekuatan Super",
+        "kekuatan super"
+      ],
+      "why": "Istilah komik yang sudah baku."
+    }
+  ]
+}

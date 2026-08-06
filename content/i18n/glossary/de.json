@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "locale": "de",
+  "terms": [
+    {
+      "english": "Hero License",
+      "englishPattern": "Hero Licen[cs]e",
+      "allowedForms": [
+        "Heldenlizenz"
+      ],
+      "why": "Ein Wort statt drei — Deutsch ist die längste Sprache hier, und das Label muss passen."
+    },
+    {
+      "english": "the Zone",
+      "englishPattern": "\\bthe Zone\\b",
+      "allowedForms": [
+        "die Zone",
+        "Zone"
+      ],
+      "why": "'In der Zone' sagt jeder Kommentator."
+    },
+    {
+      "english": "Heat",
+      "englishPattern": "\\bHeat\\b",
+      "allowedForms": [
+        "Hitze"
+      ],
+      "why": "Kurz, und die Anzeige füllt sich weiter wie im Englischen."
+    },
+    {
+      "english": "Awakening",
+      "englishPattern": "\\bAwakening\\b",
+      "allowedForms": [
+        "Erwachen"
+      ],
+      "why": "Der einmalige, nicht umkehrbare Moment."
+    },
+    {
+      "english": "Training Points",
+      "englishPattern": "Training [Pp]oints?",
+      "allowedForms": [
+        "Trainingspunkte",
+        "Trainingspunkt"
+      ],
+      "why": "Ein Kompositum, aber das kürzeste korrekte."
+    },
+    {
+      "english": "Fan Shop",
+      "englishPattern": "Fan Shop",
+      "allowedForms": [
+        "Fanshop"
+      ],
+      "why": "Steht so an jedem deutschen Stadion."
+    },
+    {
+      "english": "Buzz",
+      "englishPattern": "\\bBuzz\\b",
+      "allowedForms": [
+        "Wirbel"
+      ],
+      "why": "Der Wirbel um den Verein — kürzer als 'Aufmerksamkeit' und näher dran."
+    },
+    {
+      "english": "Superpower",
+      "englishPattern": "[Ss]uperpowers?",
+      "allowedForms": [
+        "Superkraft",
+        "Superkräfte",
+        "superkraft",
+        "superkräfte"
+      ],
+      "why": "Gattungsname in beiden Sprachen, also ist nur das Wort festgelegt, nicht die Schreibung."
+    }
+  ]
+}

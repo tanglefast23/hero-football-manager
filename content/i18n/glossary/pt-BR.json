@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "locale": "pt-BR",
+  "terms": [
+    {
+      "english": "Hero License",
+      "englishPattern": "Hero Licen[cs]e",
+      "allowedForms": [
+        "Licença de Herói",
+        "Licenças de Herói"
+      ],
+      "why": "Mantém Herói maiúsculo: é o substantivo do jogo, não uma descrição."
+    },
+    {
+      "english": "the Zone",
+      "englishPattern": "\\bthe Zone\\b",
+      "allowedForms": [
+        "a Zona",
+        "Zona"
+      ],
+      "why": "'Entrar na Zona' é como um narrador diria."
+    },
+    {
+      "english": "Heat",
+      "englishPattern": "\\bHeat\\b",
+      "allowedForms": [
+        "Calor"
+      ],
+      "why": "Uma palavra, e mantém a metáfora do medidor enchendo."
+    },
+    {
+      "english": "Awakening",
+      "englishPattern": "\\bAwakening\\b",
+      "allowedForms": [
+        "Despertar",
+        "despertar"
+      ],
+      "why": "Carrega o mesmo sentido único e irreversível."
+    },
+    {
+      "english": "Training Points",
+      "englishPattern": "Training [Pp]oints?",
+      "allowedForms": [
+        "Pontos de Treino",
+        "Ponto de Treino"
+      ],
+      "why": "'Treino' é a palavra do dia a dia; 'treinamento' é a formal e longa demais."
+    },
+    {
+      "english": "Fan Shop",
+      "englishPattern": "Fan Shop",
+      "allowedForms": [
+        "Loja do Clube"
+      ],
+      "why": "É como um estádio realmente chama."
+    },
+    {
+      "english": "Buzz",
+      "englishPattern": "\\bBuzz\\b",
+      "allowedForms": [
+        "Clima"
+      ],
+      "why": "'Tem clima' é o que se diz de um clube de que todos falam. Curto, e não é jargão."
+    },
+    {
+      "english": "Superpower",
+      "englishPattern": "[Ss]uperpowers?",
+      "allowedForms": [
+        "Superpoder",
+        "Superpoderes",
+        "superpoder",
+        "superpoderes"
+      ],
+      "why": "Substantivo comum nos dois idiomas, então a caixa não é travada — só a palavra."
+    }
+  ]
+}

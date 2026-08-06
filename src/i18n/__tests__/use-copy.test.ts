@@ -6,15 +6,16 @@ describe('copyFor', () => {
     expect(copyFor('en')('settings.language.title')).toBe('Language');
   });
 
-  test('a locale with an empty catalog still resolves through English', () => {
-    // German has no catalog yet. Vietnamese does, so it is no longer the
-    // example — that is what finishing a translation phase looks like.
-    expect(copyFor('de')('settings.language.title')).toBe('Language');
-  });
-
-  test('a translated locale returns its own copy, not the English fallback', () => {
-    expect(copyFor('vi')('settings.language.title')).toBe('Ngôn ngữ');
+  test('every shipped locale returns its own copy, not the English fallback', () => {
+    // There is no untranslated locale left to demonstrate fallback with, which
+    // is what finishing the translation phases looks like. Fallback itself is
+    // still covered by the resolver's own tests.
     expect(copyFor('es')('settings.language.title')).toBe('Idioma');
+    expect(copyFor('pt-BR')('settings.language.title')).toBe('Idioma');
+    expect(copyFor('fr')('settings.language.title')).toBe('Langue');
+    expect(copyFor('de')('settings.language.title')).toBe('Sprache');
+    expect(copyFor('id')('settings.language.title')).toBe('Bahasa');
+    expect(copyFor('vi')('settings.language.title')).toBe('Ngôn ngữ');
   });
 
   test('a key nobody has authored returns the key', () => {
