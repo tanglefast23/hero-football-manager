@@ -9,9 +9,15 @@ describe('squad potential labels', () => {
     );
 
     expect(source).toContain('useWindowDimensions');
-    expect(source).toContain("wideColumns ? 'Score' : 'OVR'");
-    expect(source).toContain("wideColumns ? 'Potential' : 'POT'");
-    expect(source).toContain("wideColumns ? 'Condition' : 'Cond'");
+    // The wide/phone split is still the point of this assertion; the labels
+    // themselves moved into the catalog as `col.squad.*`, so the check is that
+    // the screen still picks a different KEY per layout rather than that it
+    // types a different English word. squad-register-columns.test.ts owns the
+    // "no literal label survives" half, and i18n gate 8b measures the
+    // translations against the columns they have to fit.
+    expect(source).toContain("t(wideColumns ? 'col.squad.score' : 'col.squad.overall')");
+    expect(source).toContain("t(wideColumns ? 'col.squad.potentialLong' : 'col.squad.potential')");
+    expect(source).toContain("t(wideColumns ? 'col.squad.conditionLong' : 'col.squad.condition')");
     // The + button speaks for itself; the clipped "Train" header is gone.
     expect(source).not.toContain('>Train</PixelText>');
     expect(source).toContain('player.potentialGrade');
