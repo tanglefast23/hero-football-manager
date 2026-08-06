@@ -10,7 +10,27 @@
     "formation.4-4-2.blurb": "Balanced lines",
     "formation.4-5-1.blurb": "Crowd midfield",
     "formation.5-3-2.blurb": "Deep counter",
+    "settings.close": "Close settings",
+    "settings.colorSafeKits.label": "Color-safe kits",
+    "settings.developerMode.label": "Developer mode",
+    "settings.difficulty.title": "Career difficulty",
+    "settings.exportSave.hint": "Export save to a file",
+    "settings.exportSave.label": "Export save",
+    "settings.glossary.open": "Open glossary",
+    "settings.hallOfFame.label": "Hall of Fame",
+    "settings.highContrast.label": "High contrast",
+    "settings.importSave.hint": "Import a save file, replacing this career",
+    "settings.importSave.label": "Import save",
     "settings.language.kicker": "Choose your language",
-    "settings.language.title": "Language"
+    "settings.language.title": "Language",
+    "settings.matchInfo.label": "Match info",
+    "settings.open": "Open settings",
+    "settings.powerLabels.label": "Power labels",
+    "settings.privacy.label": "Privacy & Support",
+    "settings.privacy.open": "Open privacy and support",
+    "settings.reduceMotion.label": "Reduce motion",
+    "settings.textSize.label": "Text size",
+    "settings.volume.hint": "Swipe up or down to adjust in 25 percent steps",
+    "settings.volume.label": "Master volume"
   }
 }

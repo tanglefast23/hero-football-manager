@@ -29,7 +29,7 @@ const EXEMPT = [
  * Where the extraction has reached. Lower this as batches land; never raise it.
  * Zero means Task 13 is done.
  */
-const MAX_REMAINING = 338;
+const MAX_REMAINING = 314;
 
 function sourceFiles(dir: string, found: string[] = []): string[] {
   if (!fs.existsSync(dir)) return found;

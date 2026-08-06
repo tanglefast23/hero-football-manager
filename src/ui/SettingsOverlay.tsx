@@ -4,7 +4,7 @@ import { ActionButton } from './components/Scorecard';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import { adjustDevVolume, DEV_VOLUME_LEVELS, devVolumePercent, type DevVolume } from '../render/dev-volume';
 import type { CutInMode, HudSide, TextScale } from '../persistence';
-import { ENABLED_LOCALES, localeMeta, type Locale } from '../i18n';
+import { ENABLED_LOCALES, localeMeta, useCopy, type Locale } from '../i18n';
 import type { GlossaryCatalog } from '../content';
 import { GlossaryPanel } from './GlossaryPanel';
 import { HallOfFameScreen } from './screens/HallOfFameScreen';
@@ -26,6 +26,7 @@ function snapVolume(raw: number): DevVolume {
 
 /** A chunky pixel volume slider — track + blue fill + thumb, draggable via PanResponder. */
 function VolumeSlider({ value, onChange }: { value: DevVolume; onChange: (v: DevVolume) => void }) {
+  const t = useCopy();
   const widthRef = useRef(0);
   const [trackWidth, setTrackWidth] = useState(0);
   // The PanResponder is built once, so calling `onChange` directly would capture
@@ -61,8 +62,8 @@ function VolumeSlider({ value, onChange }: { value: DevVolume; onChange: (v: Dev
       <View
         accessible
         accessibilityRole="adjustable"
-        accessibilityLabel="Master volume"
-        accessibilityHint="Swipe up or down to adjust in 25 percent steps"
+        accessibilityLabel={t('settings.volume.label')}
+        accessibilityHint={t('settings.volume.hint')}
         accessibilityValue={{ min: 0, max: 100, now: devVolumePercent(value), text: `${devVolumePercent(value)} percent` }}
         accessibilityActions={[
           { name: 'increment', label: 'Increase volume' },
@@ -159,11 +160,12 @@ export function SettingsButton({
   onPress: () => void;
   variant?: 'paper' | 'match';
 }) {
+  const t = useCopy();
   const match = variant === 'match';
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Open settings"
+      accessibilityLabel={t('settings.open')}
       hitSlop={8}
       onPress={onPress}
       className={match
@@ -222,6 +224,7 @@ export function SettingsOverlay({
   onPrivacySupportOpenChange,
   onOpenChange,
 }: SettingsOverlayProps) {
+  const t = useCopy();
   const setOpenState = (next: boolean) => {
     if (!next) onPrivacySupportOpenChange(false);
     onOpenChange(next);
@@ -292,7 +295,7 @@ export function SettingsOverlay({
             <View className="my-4 h-0.5 bg-ink/15" />
             {difficultyLabel ? (
               <View accessible accessibilityRole="text" accessibilityLabel={`Career difficulty ${difficultyLabel}`} className="mb-4 flex-row items-center justify-between border-2 border-gold-dark bg-gold-light px-3 py-2">
-                <Text className="font-pixel text-sm uppercase text-ink">Career difficulty</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">{t('settings.difficulty.title')}</Text>
                 <Text className="font-pixel text-base text-gold-dark">{difficultyLabel}</Text>
               </View>
             ) : null}
@@ -301,27 +304,27 @@ export function SettingsOverlay({
               {developerMode !== undefined && onToggleDeveloperMode !== undefined ? (
                 <Pressable
                   accessibilityRole="switch"
-                  accessibilityLabel="Developer mode"
+                  accessibilityLabel={t('settings.developerMode.label')}
                   accessibilityState={{ checked: developerMode }}
                   onPress={onToggleDeveloperMode}
                   className={developerMode
                     ? 'min-h-12 flex-row items-center justify-between border-2 border-gold-dark bg-gold-light px-3 py-2'
                     : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}
                 >
-                  <Text className="font-pixel text-sm uppercase text-ink">Developer mode</Text>
+                  <Text className="font-pixel text-sm uppercase text-ink">{t('settings.developerMode.label')}</Text>
                   <Text className="font-pixel text-base text-ink">{developerMode ? 'ON' : 'OFF'}</Text>
                 </Pressable>
               ) : null}
               <Pressable
                 accessibilityRole="switch"
-                accessibilityLabel="Reduce motion"
+                accessibilityLabel={t('settings.reduceMotion.label')}
                 accessibilityState={{ checked: reduceMotion }}
                 onPress={onToggleReduceMotion}
                 className={reduceMotion
                   ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2'
                   : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}
               >
-                <Text className="font-pixel text-sm uppercase text-ink">Reduce motion</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">{t('settings.reduceMotion.label')}</Text>
                 <Text className="font-pixel text-base text-ink">{reduceMotion ? 'ON' : 'OFF'}</Text>
               </Pressable>
               <Pressable
@@ -335,7 +338,7 @@ export function SettingsOverlay({
                 <Text className="font-pixel text-base text-ink">{hapticsEnabled ? 'ON' : 'OFF'}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel={`Text size ${Math.round(textScale * 100)} percent`} onPress={onCycleTextScale} className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2">
-                <Text className="font-pixel text-sm uppercase text-ink">Text size</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">{t('settings.textSize.label')}</Text>
                 <Text className="font-pixel text-base text-blue-dark">{textScale === 1 ? 'SYSTEM' : textScale === 1.15 ? 'ROOMY' : 'LARGE'}</Text>
               </Pressable>
               {/* Hidden while one language has shipped: a row that cycles
@@ -378,14 +381,14 @@ export function SettingsOverlay({
                   </Text>
                 </Pressable>
               ) : null}
-              <Pressable accessibilityRole="switch" accessibilityLabel="High contrast" accessibilityState={{ checked: highContrast }} onPress={onToggleHighContrast} className={highContrast ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2' : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}>
-                <Text className="font-pixel text-sm uppercase text-ink">High contrast</Text><Text className="font-pixel text-base text-ink">{highContrast ? 'ON' : 'OFF'}</Text>
+              <Pressable accessibilityRole="switch" accessibilityLabel={t('settings.highContrast.label')} accessibilityState={{ checked: highContrast }} onPress={onToggleHighContrast} className={highContrast ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2' : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}>
+                <Text className="font-pixel text-sm uppercase text-ink">{t('settings.highContrast.label')}</Text><Text className="font-pixel text-base text-ink">{highContrast ? 'ON' : 'OFF'}</Text>
               </Pressable>
-              <Pressable accessibilityRole="switch" accessibilityLabel="Color-safe kits" accessibilityState={{ checked: colorSafeKits }} onPress={onToggleColorSafeKits} className={colorSafeKits ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2' : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}>
-                <Text className="font-pixel text-sm uppercase text-ink">Color-safe kits</Text><Text className="font-pixel text-base text-ink">{colorSafeKits ? 'ON' : 'OFF'}</Text>
+              <Pressable accessibilityRole="switch" accessibilityLabel={t('settings.colorSafeKits.label')} accessibilityState={{ checked: colorSafeKits }} onPress={onToggleColorSafeKits} className={colorSafeKits ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2' : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}>
+                <Text className="font-pixel text-sm uppercase text-ink">{t('settings.colorSafeKits.label')}</Text><Text className="font-pixel text-base text-ink">{colorSafeKits ? 'ON' : 'OFF'}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel={`Power labels ${cutInMode === 'full' ? 'player card' : 'banner'}`} onPress={onToggleCutInMode} className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2">
-                <Text className="font-pixel text-sm uppercase text-ink">Power labels</Text><Text className="font-pixel text-base uppercase text-blue-dark">{cutInMode === 'full' ? 'PLAYER' : 'BANNER'}</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">{t('settings.powerLabels.label')}</Text><Text className="font-pixel text-base uppercase text-blue-dark">{cutInMode === 'full' ? 'PLAYER' : 'BANNER'}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -393,12 +396,12 @@ export function SettingsOverlay({
                 onPress={onToggleHudSide}
                 className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
               >
-                <Text className="font-pixel text-sm uppercase text-ink">Match info</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">{t('settings.matchInfo.label')}</Text>
                 <Text className="font-pixel text-base uppercase text-blue-dark">{hudSide}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Open glossary"
+                accessibilityLabel={t('settings.glossary.open')}
                 onPress={() => onGlossaryOpenChange(true)}
                 className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
               >
@@ -407,11 +410,11 @@ export function SettingsOverlay({
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Open privacy and support"
+                accessibilityLabel={t('settings.privacy.open')}
                 onPress={() => onPrivacySupportOpenChange(true)}
                 className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
               >
-                <Text className="font-pixel text-sm uppercase text-ink">Privacy &amp; Support</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">{t('settings.privacy.label')}</Text>
                 <Text className="font-pixel text-base text-blue-dark">LEGAL ›</Text>
               </Pressable>
               {hallOfFame === undefined ? null : (
@@ -423,7 +426,7 @@ export function SettingsOverlay({
                   onPress={() => onHallOfFameOpenChange?.(true)}
                   className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
                 >
-                  <Text className="font-pixel text-sm uppercase text-ink">Hall of Fame</Text>
+                  <Text className="font-pixel text-sm uppercase text-ink">{t('settings.hallOfFame.label')}</Text>
                   {/* Says which it is before it is opened, and opens either way:
                       the locked page is what explains what finishes the climb. */}
                   <Text className="font-pixel text-base uppercase text-blue-dark">
@@ -437,13 +440,13 @@ export function SettingsOverlay({
                 {onExportSave === undefined ? null : (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Export save to a file"
+                    accessibilityLabel={t('settings.exportSave.hint')}
                     accessibilityState={{ disabled: saveFileBusy }}
                     disabled={saveFileBusy}
                     onPress={onExportSave}
                     className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
                   >
-                    <Text className="font-pixel text-sm uppercase text-ink">Export save</Text>
+                    <Text className="font-pixel text-sm uppercase text-ink">{t('settings.exportSave.label')}</Text>
                     <Text className="font-pixel text-base uppercase text-blue-dark">
                       {saveFileBusy ? 'WORKING' : 'SHARE ›'}
                     </Text>
@@ -452,13 +455,13 @@ export function SettingsOverlay({
                 {onImportSave === undefined ? null : (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Import a save file, replacing this career"
+                    accessibilityLabel={t('settings.importSave.hint')}
                     accessibilityState={{ disabled: saveFileBusy }}
                     disabled={saveFileBusy}
                     onPress={onImportSave}
                     className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
                   >
-                    <Text className="font-pixel text-sm uppercase text-ink">Import save</Text>
+                    <Text className="font-pixel text-sm uppercase text-ink">{t('settings.importSave.label')}</Text>
                     {/* Says what it costs: an import overwrites the live career. */}
                     <Text className="font-pixel text-base uppercase text-blue-dark">
                       {saveFileBusy ? 'WORKING' : 'REPLACE ›'}
@@ -478,7 +481,7 @@ export function SettingsOverlay({
               </View>
             )}
             <View className="mt-6">
-              <ActionButton label="Done" accessibilityLabel="Close settings" onPress={() => setOpenState(false)} variant="primary" />
+              <ActionButton label="Done" accessibilityLabel={t('settings.close')} onPress={() => setOpenState(false)} variant="primary" />
             </View>
             </ScrollView>
             )}

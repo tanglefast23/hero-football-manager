@@ -1,3 +1,12 @@
+// These tests call the components as plain functions, so there is no React
+// dispatcher and `useContext` returns null. Only the context lookup is stubbed:
+// `t` still resolves through the real English catalog, so assertions on
+// accessibility labels keep testing the copy that actually ships.
+jest.mock('../../i18n', () => {
+  const actual = jest.requireActual('../../i18n');
+  return { ...actual, useLocale: () => 'en', useCopy: () => actual.copyFor('en') };
+});
+
 jest.mock('react-native', () => ({
   Modal: 'Modal',
   PanResponder: { create: jest.fn() },
