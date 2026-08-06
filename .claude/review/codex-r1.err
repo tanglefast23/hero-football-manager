@@ -12136,3 +12136,1806 @@ src/sim/engine.ts:1057:    return { kind: 'shoot', values };
 src/sim/engine.ts:1063:  if (inAttackingHalf && (carrier.powerState.kind === 'winding' || carrier.powerState.kind === 'active')
 
 2026-08-06T07:49:45.825182Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 93 column 5
+**Analyzing formation descriptions and replay rules**
+**Defining localization testing requirements**
+
+I’m outlining the need for localization tests that run the same career seed across all locales to confirm consistent state serialization (aside from device preferences). There’s a missing CI gate here that would catch locale-induced nondeterminism, and I’m mapping how `ENGINE_VERSION` relates only to match replay—not career saves. I’m thinking through how to turn the spec’s conflicting parts into feasible test plans and suggesting clarifications on severity and implementability.
+**Analyzing test setup and requirements**
+exec
+/bin/zsh -lc "rg -n '\"nativewind\"|node_modules/nativewind|version.*4\\.2' package-lock.json | head -30" in /Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/.claude/worktrees/multilingual-copy-translation-bbe9c8
+ succeeded in 119ms:
+22:        "nativewind": "^4.2.6",
+1384:      "version": "0.4.2",
+1484:      "version": "2.4.2",
+3668:      "version": "4.28.6",
+5354:      "version": "4.2.11",
+7370:      "version": "1.4.2",
+7718:      "version": "2.4.2",
+8270:    "node_modules/nativewind": {
+8271:      "version": "4.2.6",
+8471:      "version": "7.4.2",
+8525:      "version": "2.4.2",
+8787:      "version": "4.2.0",
+8982:      "version": "4.2.0",
+9105:      "version": "4.2.0",
+9132:      "version": "2.4.2",
+9714:      "version": "0.14.2",
+9744:      "version": "1.4.2",
+10270:      "version": "4.2.3",
+
+2026-08-06T07:50:06.259419Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 93 column 5
+**Inspecting package and docs**
+web search: 
+web search: site:github.com/nativewind/nativewind "fontFamily" "var(--" ...
+**Reviewing variable font compatibility**
+**Analyzing preferences schema migration**
+**Analyzing schema defaults and compatibility**
+**Reviewing schema versioning and content translation**
+**Assessing internationalization phases and risks**
+**Handling locale loading and fallback strategies**
+**Analyzing font loading strategy**
+**Reviewing localization and typography details**
+exec
+/bin/zsh -lc "nl -ba src/ui/screens/SquadTrainingScreen.tsx | sed -n '620,680p'; nl -ba src/ui/screens/SquadTrainingScreen.tsx | sed -n '1135,1205p'" in /Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/.claude/worktrees/multilingual-copy-translation-bbe9c8
+ succeeded in 0ms:
+   620	  return (
+   621	    <View>
+   622	      <SectionLabel
+   623	        eyebrow="Team register"
+   624	        title={`${viewModel.players.length} players`}
+   625	        right={<StatusChip label={`${trainingPoints} TP`} />}
+   626	      />
+   627	      <View className={guidePlayers
+   628	        ? 'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'
+   629	        : conditionCueShowing || guideOverallSort
+   630	          ? 'relative mt-20 border-2 border-ink bg-white'
+   631	          : 'border-2 border-ink bg-white'}>
+   632	        {guidePlayers && !playerGuideDismissed ? (
+   633	          <TutorialTapCue
+   634	            label="Tap +"
+   635	            detail="Train a player"
+   636	            style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+   637	          />
+   638	        ) : null}
+   639	        <View className="flex-row items-center border-b border-ink/20 px-2">
+   640	          <SquadSortHeader label="Pos" sortKey="role" sort={squadSort} columnStyle={columns.role} labelSize={headerLabelSize} onSort={setSquadSort} />
+   641	          <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" labelSize={headerLabelSize} onSort={setSquadSort} />
+   642	          <SquadSortHeader
+   643	            label={wideColumns ? 'Score' : 'OVR'}
+   644	            sortKey="overall"
+   645	            sort={squadSort}
+   646	            columnStyle={columns.overall}
+   647	            labelSize={headerLabelSize}
+   648	            align="right"
+   649	            onSort={setSquadSort}
+   650	            tutorialCue={guideOverallSort ? (
+   651	              <TutorialTapCue
+   652	                label="Tap here"
+   653	                detail="To sort"
+   654	                style={{
+   655	                  left: '50%',
+   656	                  marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+   657	                  top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+   658	                }}
+   659	              />
+   660	            ) : null}
+   661	          />
+   662	          <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} columnStyle={columns.potential} labelSize={headerLabelSize} align="right" onSort={setSquadSort} />
+   663	          <SquadSortHeader
+   664	            label={wideColumns ? 'Condition' : 'Cond'}
+   665	            sortKey="condition"
+   666	            sort={squadSort}
+   667	            columnStyle={columns.condition}
+   668	            labelSize={headerLabelSize}
+   669	            align="right"
+   670	            onSort={setSquadSort}
+   671	            tutorialCue={conditionCueShowing ? (
+   672	              <TutorialTapCue
+   673	                label="Condition"
+   674	                detail="Too low and they risk injury. You're okay for now."
+   675	                style={{
+   676	                  left: '50%',
+   677	                  marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+   678	                  top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+   679	                }}
+   680	              />
+  1135	 * is what lets squad-register-columns.ts prove the widths hold.
+  1136	 *
+  1137	 * Two stacked borders with transparent sides, the way the speech bubble draws
+  1138	 * its tail — the same trick, and the only way to fill a triangle without an
+  1139	 * image or a canvas.
+  1140	 */
+  1141	function SquadSortArrow({ direction }: { direction: 'ascending' | 'descending' }) {
+  1142	  return <View style={direction === 'descending' ? styles.sortArrowDown : styles.sortArrowUp} />;
+  1143	}
+  1144	
+  1145	function SquadSortHeader({
+  1146	  label,
+  1147	  sortKey,
+  1148	  sort,
+  1149	  widthClass,
+  1150	  columnStyle,
+  1151	  labelSize,
+  1152	  align = 'left',
+  1153	  onSort,
+  1154	  tutorialCue,
+  1155	}: {
+  1156	  label: string;
+  1157	  sortKey: SquadSortKey;
+  1158	  sort: SquadSort | null;
+  1159	  /** For the one flexible column; every fixed column passes columnStyle. */
+  1160	  widthClass?: string;
+  1161	  columnStyle?: ViewStyle;
+  1162	  /** Font-size utility for the label; phones step down so four fit in a row. */
+  1163	  labelSize: string;
+  1164	  align?: 'left' | 'right';
+  1165	  onSort: (key: SquadSortKey) => void;
+  1166	  tutorialCue?: ReactNode;
+  1167	}) {
+  1168	  const direction = sort?.key === sortKey ? sort.direction : null;
+  1169	  const nextDirection = direction === null
+  1170	    ? 'descending'
+  1171	    : direction === 'descending'
+  1172	      ? 'ascending'
+  1173	      : 'default order';
+  1174	  return (
+  1175	    <InfoTip
+  1176	      text={COLUMN_EXPLAINER[sortKey]}
+  1177	      align={align}
+  1178	      className={widthClass}
+  1179	      style={columnStyle}
+  1180	      accessibilityLabel={`Sort by ${label}, ${direction ?? 'default order'}. Next: ${nextDirection}. ${COLUMN_EXPLAINER[sortKey]}`}
+  1181	      onPress={() => onSort(sortKey)}
+  1182	    >
+  1183	    <View
+  1184	      className={`relative min-h-11 w-full flex-row items-center ${align === 'right' ? 'justify-end' : 'justify-start'}`}
+  1185	      // The gap the column widths are sized around, in points rather than in a
+  1186	      // utility class: `gap-1` is 3.5pt on native, not 4.
+  1187	      style={styles.sortHeaderRow}
+  1188	    >
+  1189	      {tutorialCue}
+  1190	      <PixelText
+  1191	        // A step down from the row values so the spelled-out words fit their
+  1192	        // column with the sort arrow — headers label the data, they aren't it.
+  1193	        className={direction === null
+  1194	          ? `${labelSize} uppercase text-ink/50`
+  1195	          : `${labelSize} uppercase text-blue-dark`}
+  1196	        // Capped, because the column under it cannot grow with the reader's
+  1197	        // text size and a header that outgrows its column paints over the one
+  1198	        // beside it. The full sentence is on the accessibility label.
+  1199	        maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
+  1200	        // Shrinks before the arrow does, so at a text size beyond anything
+  1201	        // measured here the label gives up a letter rather than the arrow
+  1202	        // disappearing — losing which way a column is sorted is worse.
+  1203	        style={styles.sortHeaderLabel}
+  1204	        numberOfLines={1}
+  1205	        ellipsizeMode="clip"
+
+**Noting label clipping and inspecting initialization**
+exec
+/bin/zsh -lc "rg -n \"createPreferencesRepository|setPreferences\\(|preferencesRepositoryRef|fontsLoaded|fontError\" App.tsx | head -120; nl -ba App.tsx | sed -n '790,900p'; nl -ba App.tsx | sed -n '2260,2325p'" in /Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/.claude/worktrees/multilingual-copy-translation-bbe9c8
+ succeeded in 0ms:
+21:  createPreferencesRepository,
+293:  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+297:      {!fontsLoaded ? <LoadingScreen /> : <>
+364:  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+367:      {!fontsLoaded ? <LoadingScreen /> : (
+394:  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+398:      {!fontsLoaded ? <LoadingScreen /> : (
+429:  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+432:  if (!fontsLoaded) return <LoadingScreen />;
+452:  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+456:      {!fontsLoaded ? <LoadingScreen /> : (
+467:  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+471:      {!fontsLoaded ? <LoadingScreen /> : (
+540:  const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+562:  const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
+582:    setPreferences(next);
+584:    const repository = preferencesRepositoryRef.current;
+1100:          createPreferencesRepository(database),
+1116:        preferencesRepositoryRef.current = repositories.preferencesRepository;
+1118:        setPreferences(repositories.preferences);
+1589:  if (!fontsLoaded && !fontError && bootError === null) {
+2292:          (!fontsLoaded && !fontError && bootError === null)
+2668:  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+2723:      {!fontsLoaded ? <LoadingScreen /> : (
+   790	    const careerSeed = useM1Store.getState().career?.careerSeed;
+   791	    if (!__DEV__ || repository === null || careerSeed === undefined) return;
+   792	    queueDeveloperSaveTask(async () => {
+   793	      const snapshot = await repository.load(slot, careerSeed);
+   794	      if (snapshot === null) throw new Error(`Developer save ${slot} is empty.`);
+   795	      useM1Store.getState().restoreDeveloperSave(snapshot, slot);
+   796	      setDeveloperSaveError(null);
+   797	    });
+   798	  }, [queueDeveloperSaveTask]);
+   799	
+   800	  const pressDeveloperSaveSlot = useCallback((slot: DeveloperSaveSlot) => {
+   801	    const manual = (DEVELOPER_MANUAL_SAVE_SLOTS as readonly string[]).includes(slot);
+   802	    if (developerManualSaveSelecting) {
+   803	      if (manual) saveDeveloperManualSlot(slot as DeveloperManualSaveSlot);
+   804	      return;
+   805	    }
+   806	    const summary = developerSaveSummaries.find(candidate => candidate.slot === slot);
+   807	    if (summary === undefined) return;
+   808	    requestConfirmation({
+   809	      title: `Load developer save ${slot}?`,
+   810	      detail: `Return this career to Season ${summary.season}, Week ${summary.week}. The current career will be replaced by that saved point.`,
+   811	      confirmLabel: 'Load saved point',
+   812	      tone: 'danger',
+   813	      onConfirm: () => loadDeveloperSlot(slot),
+   814	    });
+   815	  }, [
+   816	    developerManualSaveSelecting,
+   817	    developerSaveSummaries,
+   818	    loadDeveloperSlot,
+   819	    requestConfirmation,
+   820	    saveDeveloperManualSlot,
+   821	  ]);
+   822	
+   823	  const buildTrainingGroundWithSfx = useCallback(() => {
+   824	    const before = useM1Store.getState().career?.facilities.grid?.construction;
+   825	    useM1Store.getState().buildFacility();
+   826	    const after = useM1Store.getState().career?.facilities.grid?.construction;
+   827	    if (after !== undefined && after !== before) showStartedFacilityProject();
+   828	  }, [showStartedFacilityProject]);
+   829	
+   830	  const buildClubFacilityWithFeedback = useCallback((type: FacilityProjectNoticeModel['type'], x: number, y: number) => {
+   831	    if (
+   832	      visibleConciergeFocus === 'facility-grid'
+   833	      && !guidedFirstFacilityAllowsPlacement(type, x, y)
+   834	    ) return;
+   835	    const before = useM1Store.getState().career?.facilities.grid?.construction;
+   836	    useM1Store.getState().buildClubFacility(type, { x, y });
+   837	    const after = useM1Store.getState().career?.facilities.grid?.construction;
+   838	    if (after !== undefined && after !== before) {
+   839	      setConciergeFocus(null);
+   840	      showStartedFacilityProject();
+   841	    }
+   842	  }, [showStartedFacilityProject, visibleConciergeFocus]);
+   843	
+   844	  const upgradeClubFacilityWithFeedback = useCallback((buildingId: string) => {
+   845	    const before = useM1Store.getState().career?.facilities.grid?.construction;
+   846	    useM1Store.getState().upgradeClubFacility(buildingId);
+   847	    const after = useM1Store.getState().career?.facilities.grid?.construction;
+   848	    if (after !== undefined && after !== before) showStartedFacilityProject();
+   849	  }, [showStartedFacilityProject]);
+   850	
+   851	  const hireCoachWithFeedback = useCallback((coachId: string, role: 'HEAD' | 'ASSISTANT' = 'HEAD') => {
+   852	    const careerBefore = useM1Store.getState().career;
+   853	    if (careerBefore === null || careerBefore.market === undefined) return;
+   854	    const candidate = marketViewModel(careerMarketViewModelSource(careerBefore)).coaches.find(
+   855	      coach => coach.id === coachId,
+   856	    );
+   857	    if (candidate === undefined) return;
+   858	    useM1Store.getState().hireCoach(coachId, role);
+   859	    const marketAfter = useM1Store.getState().career?.market;
+   860	    const hired = role === 'HEAD' ? marketAfter?.headCoach : marketAfter?.assistantCoach;
+   861	    if (hired?.id !== coachId) return;
+   862	    playTransactionConfirmSfx();
+   863	    playManagementHaptic('success');
+   864	    setConciergeFocus(null);
+   865	    setCoachOverlay({
+   866	      mode: 'hired',
+   867	      coach: {
+   868	        role,
+   869	        portraitId: candidate.portraitId,
+   870	        name: candidate.name,
+   871	        age: candidate.age,
+   872	        level: candidate.level,
+   873	        specialtyLabels: candidate.specialtyLabels,
+   874	        effectLabels: role === 'HEAD' ? candidate.headEffectLabels : candidate.assistantEffectLabels,
+   875	        weeklyWage: candidate.weeklyWage,
+   876	      },
+   877	    });
+   878	  }, []);
+   879	
+   880	  const beginCoachDismissal = useCallback((role: 'HEAD' | 'ASSISTANT' = 'HEAD') => {
+   881	    const career = useM1Store.getState().career;
+   882	    if (career === null) return;
+   883	    const staff = clubFinancesViewModel(career).coachingStaff;
+   884	    const coach = staff.find(candidate => candidate.role === role);
+   885	    if (coach === undefined) return;
+   886	    setCoachOverlay({
+   887	      mode: 'confirm-dismiss',
+   888	      coach: {
+   889	        role,
+   890	        portraitId: coach.portraitId,
+   891	        name: coach.name,
+   892	        age: coach.age,
+   893	        level: coach.level,
+   894	        specialtyLabels: coach.specialtyLabels,
+   895	        effectLabels: coach.effectLabels,
+   896	        weeklyWage: coach.weeklyWage,
+   897	        severanceCost: coach.severanceCost,
+   898	      },
+   899	    });
+   900	  }, []);
+  2260	              else if (alertId.startsWith('retirement-announcement-')) {
+  2261	                store.notify('Final season confirmed. Plan the farewell now; the legacy choice arrives after retirement.');
+  2262	              }
+  2263	              else store.notify('This alert is resolved from the season review.');
+  2264	            }}
+  2265	            onOpenLeague={() => store.setActiveTab('league')}
+  2266	            onProtectBoardCandidate={playerId => performManagementAction(
+  2267	              () => store.protectBoardCandidate(playerId),
+  2268	              'select',
+  2269	              'select',
+  2270	            )}
+  2271	            guideAlertId={visibleAssistantObjectiveTarget === 'training-ground-alert'
+  2272	              ? 'training-ground'
+  2273	              : visibleConciergeFocus === 'retirement'
+  2274	                ? home.alerts.find(alert => alert.id.startsWith('retirement-announcement-'))?.id
+  2275	                : undefined}
+  2276	            focusGuidedAlert={assistantObjective?.target === 'training-ground-alert'}
+  2277	            // Only once he is off screen: while he is still talking the row is
+  2278	            // under a dimmed pane anyway, and a third highlight would compete
+  2279	            // with the spotlight he is standing in.
+  2280	            glowGuidedAlert={!guideOverlayVisible}
+  2281	            guideBoard={visibleConciergeFocus === 'board-ultimatum' || visibleConciergeFocus === 'board-protection'}
+  2282	          />
+  2283	        )}
+  2284	      </ManagementShell>
+  2285	    );
+  2286	  }
+  2287	
+  2288	  return (
+  2289	    <SafeAreaProvider>
+  2290	      <StatusBar
+  2291	        style={(
+  2292	          (!fontsLoaded && !fontError && bootError === null)
+  2293	          || bootError !== null
+  2294	          || !store.persistenceReady
+  2295	          || store.persistenceLoadError !== null
+  2296	          || store.screen === 'watched'
+  2297	          || store.screen === 'awakening'
+  2298	        ) ? 'light' : 'dark'}
+  2299	      />
+  2300	      <View className="flex-1 bg-ink">
+  2301	        <View
+  2302	          className="flex-1"
+  2303	          accessibilityElementsHidden={pendingConfirmation !== null}
+  2304	          importantForAccessibility={pendingConfirmation === null ? 'auto' : 'no-hide-descendants'}
+  2305	          {...confirmationBackgroundProps(pendingConfirmation !== null)}
+  2306	        >
+  2307	        <View className="flex-1" {...bertBriefingBackgroundProps(bertBriefingVisible)}>
+  2308	        {screen}
+  2309	        {/* Not a FeedbackNotice: that one is dismissible and auto-hides. An
+  2310	            unsaved career must keep saying so until a save actually succeeds. */}
+  2311	        {store.saveWarning !== null && (
+  2312	          <SaveWarningBanner
+  2313	            message={store.saveWarning}
+  2314	            blocked={store.saveBlocked}
+  2315	            onRetry={store.retrySave}
+  2316	          />
+  2317	        )}
+  2318	        {developerSaveError ? (
+  2319	          <FeedbackNotice
+  2320	            message={developerSaveError}
+  2321	            tone="error"
+  2322	            onDismiss={() => setDeveloperSaveError(null)}
+  2323	          />
+  2324	        ) : store.error ? (
+  2325	          <FeedbackNotice message={store.error} tone="error" onDismiss={store.clearError} />
+
+**Requesting specific lines for boot**
+exec
+/bin/zsh -lc "nl -ba App.tsx | sed -n '1060,1140p'; nl -ba App.tsx | sed -n '1575,1610p'" in /Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/.claude/worktrees/multilingual-copy-translation-bbe9c8
+ succeeded in 0ms:
+  1060	    // ~1s to cold start, and a runtime float shift would send every installed
+  1061	    // copy to an error screen instead of their save. The assert returns what it
+  1062	    // verified so logging it costs no extra match.
+  1063	    if (__DEV__) {
+  1064	      try {
+  1065	        console.info(`HERMES_GOLDEN_OK ${assertRuntimeGoldenReplay()}`);
+  1066	      } catch (error) {
+  1067	        setBootError(error instanceof Error ? error.message : String(error));
+  1068	        return () => {
+  1069	          active = false;
+  1070	        };
+  1071	      }
+  1072	    }
+  1073	    // Deadline for the whole boot chain. Firing does not abort the native
+  1074	    // work — nothing can — it just routes to BootFailure so the player gets
+  1075	    // Retry / Start Fresh instead of an eternal spinner. Retry reuses the
+  1076	    // cached native connection (expo-sqlite's default useNewConnection:false),
+  1077	    // so a fired timeout never leaks connections.
+  1078	    const bootTimeout = setTimeout(() => {
+  1079	      if (active) {
+  1080	        setBootError('The saved game data did not finish opening. Retrying may fix this.');
+  1081	      }
+  1082	    }, BOOT_TIMEOUT_MS);
+  1083	    void openDatabaseAsync(DATABASE_NAME)
+  1084	      .then(async database => {
+  1085	        // Migrate once up front. Each repository migrates defensively on its
+  1086	        // own, and three of those racing on a fresh database would all read the
+  1087	        // pre-migration version and then each try to apply migration 5 — an
+  1088	        // ALTER TABLE ADD COLUMN, which is not idempotent. With the schema
+  1089	        // already current their internal calls read the version and do nothing,
+  1090	        // so the three builds are free to overlap.
+  1091	        await migrateDatabase(database);
+  1092	        const [
+  1093	          careerRepository,
+  1094	          replayRepository,
+  1095	          preferencesRepository,
+  1096	          developerSaveRepository,
+  1097	        ] = await Promise.all([
+  1098	          createCareerRepository(database),
+  1099	          createReplayRepository(database),
+  1100	          createPreferencesRepository(database),
+  1101	          __DEV__ ? createDeveloperSaveRepository(database) : Promise.resolve(null),
+  1102	        ]);
+  1103	        return {
+  1104	          careerRepository,
+  1105	          replayRepository,
+  1106	          preferencesRepository,
+  1107	          developerSaveRepository,
+  1108	        };
+  1109	      })
+  1110	      .then(async repositories => ({
+  1111	        ...repositories,
+  1112	        ...(await loadPreferencesFailSoft(repositories.preferencesRepository)),
+  1113	      }))
+  1114	      .then(async repositories => {
+  1115	        if (!active) return undefined;
+  1116	        preferencesRepositoryRef.current = repositories.preferencesRepository;
+  1117	        developerSaveRepositoryRef.current = repositories.developerSaveRepository;
+  1118	        setPreferences(repositories.preferences);
+  1119	        await store.initializePersistence(
+  1120	          repositories.careerRepository,
+  1121	          repositories.replayRepository,
+  1122	        );
+  1123	        if (active && repositories.warning !== undefined) {
+  1124	          store.notify(repositories.warning);
+  1125	        }
+  1126	        // A boot that outlived its deadline but then finished is a success:
+  1127	        // clear the timeout's failure message so the player lands in the game
+  1128	        // instead of a stale BootFailure over a fully loaded save.
+  1129	        if (active) setBootError(null);
+  1130	        return undefined;
+  1131	      })
+  1132	      .catch(error => {
+  1133	        if (active) setBootError(error instanceof Error ? error.message : String(error));
+  1134	      })
+  1135	      .finally(() => clearTimeout(bootTimeout));
+  1136	    return () => {
+  1137	      active = false;
+  1138	      clearTimeout(bootTimeout);
+  1139	    };
+  1140	  }, [bootAttempt, store.initializePersistence]);
+  1575	      : destination === 'squad'
+  1576	        ? 'squad'
+  1577	        : destination === 'club-facilities' || destination === 'club-finances'
+  1578	          ? 'club'
+  1579	          : destination === 'league-cup' || destination === 'league-leaders'
+  1580	            ? 'league'
+  1581	            : 'home';
+  1582	    store.setActiveTab(tab);
+  1583	    playManagementActionSfx('card');
+  1584	    playManagementHaptic('select');
+  1585	  }, [store.setActiveTab]);
+  1586	
+  1587	  let screen;
+  1588	  let lowConditionMatchdayStarter: ReturnType<typeof matchdayConditionWarningPlayer> = null;
+  1589	  if (!fontsLoaded && !fontError && bootError === null) {
+  1590	    screen = <LoadingScreen />;
+  1591	  } else if (bootError !== null) {
+  1592	    // A boot failure means the repository itself never opened, so
+  1593	    // discardUnreadableSave (which needs a working repository) cannot run. Without
+  1594	    // a database-level reset this branch was Retry-forever on a downgrade or a
+  1595	    // corrupt file.
+  1596	    screen = (
+  1597	      <BootFailure
+  1598	        message={bootError}
+  1599	        onRetry={() => setBootAttempt(attempt => attempt + 1)}
+  1600	        onStartFresh={() => {
+  1601	          void resetCareerDatabase({
+  1602	            openDatabase: () => openDatabaseAsync(DATABASE_NAME),
+  1603	            deleteDatabaseFile: () => deleteDatabaseAsync(DATABASE_NAME),
+  1604	          })
+  1605	            .then(() => setBootAttempt(attempt => attempt + 1))
+  1606	            // This is the last way out of an unopenable database. If the reset
+  1607	            // itself fails there is nothing behind it, so say so — an unhandled
+  1608	            // rejection here reads as a button that does nothing, forever.
+  1609	            .catch(error => setBootError(
+  1610	              `The save could not be deleted. ${error instanceof Error ? error.message : String(error)}`,
+
+**Analyzing font loading and preferences**
+**Detailing font and locale issues with file citation**
+**Reviewing font citation and memory usage**
+exec
+/bin/zsh -lc 'rg -n "title: nonemptyString|body: nonemptyString|outcomeText: nonemptyString|cupResult: nonemptyString|title: nonemptyString|line: nonemptyString|offerLine: nonemptyString|labelTemplate: nonemptyString" src/persistence/game-state-codec.ts' in /Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/.claude/worktrees/multilingual-copy-translation-bbe9c8
+ succeeded in 0ms:
+431:      title: nonemptyString,
+432:      line: nonemptyString,
+458:    offerLine: nonemptyString,
+483:    labelTemplate: nonemptyString,
+510:  offerLine: nonemptyString,
+527:  offerLine: nonemptyString,
+758:    outcomeText: nonemptyString.optional(),
+1176:  cupResult: nonemptyString,
+1346:      title: nonemptyString,
+1347:      body: nonemptyString,
+
+exec
+/bin/zsh -lc "rg -n \"fontFamily:\\s*['\\\"]Silkscreen_|const PIXEL(_BOLD)?\\s*=\\s*['\\\"]Silkscreen_\" src --glob '*.{ts,tsx}' --glob '"'!**/__tests__/**'"' | wc -l" in /Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/.claude/worktrees/multilingual-copy-translation-bbe9c8
+exec
+/bin/zsh -lc "rg -l \"fontFamily:\\s*['\\\"]Silkscreen_|const PIXEL(_BOLD)?\\s*=\\s*['\\\"]Silkscreen_\" src --glob '*.{ts,tsx}' --glob '"'!**/__tests__/**'"' | wc -l" in /Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/.claude/worktrees/multilingual-copy-translation-bbe9c8
+ succeeded in 0ms:
+      26
+
+ succeeded in 0ms:
+      76
+
+**Reviewing references and i18n concerns**
+**Analyzing locale and save compatibility**
+exec
+/bin/zsh -lc "nl -ba src/application/store.ts | sed -n '1288,1310p'; nl -ba src/application/market-source-adapter.ts | sed -n '100,120p'; nl -ba src/ui/squad-sort.ts | sed -n '45,70p'; nl -ba src/game/ordering.ts | sed -n '1,60p'" in /Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/.claude/worktrees/multilingual-copy-translation-bbe9c8
+ succeeded in 0ms:
+  1288	    });
+  1289	  },
+  1290	
+  1291	  selectEventPlayer() {
+  1292	    guarded(set, () => {
+  1293	      const career = requireCareer(get());
+  1294	      if (career.pendingEvent === undefined) throw new Error('there is no active event');
+  1295	      const lineup = career.lineups.find(candidate => candidate.clubId === career.userClubId);
+  1296	      if (lineup === undefined) throw new Error('the user club has no lineup');
+  1297	      const candidates = career.players
+  1298	        .filter(player =>
+  1299	          player.clubId === career.userClubId,
+  1300	        )
+  1301	        .sort((left, right) => (
+  1302	          Number(!lineup.playerIds.includes(left.id)) - Number(!lineup.playerIds.includes(right.id))
+  1303	          || left.name.localeCompare(right.name)
+  1304	        ));
+  1305	      if (candidates.length === 0) throw new Error('no eligible user-club player is available');
+  1306	      const currentIndex = candidates.findIndex(player => player.id === career.pendingEvent?.selectedPlayerId);
+  1307	      const player = candidates[(currentIndex + 1) % candidates.length];
+  1308	      const next = selectCareerEventPlayer(career, player.id);
+  1309	      set({ career: next, error: null });
+  1310	      queueCareerSave(get, set, next);
+   100	  const sellListings = state.players
+   101	    .filter(player => (
+   102	      playerSalesUnlocked
+   103	      &&
+   104	      player.clubId === state.userClubId
+   105	      && player.contractSeasonsRemaining > 0
+   106	    ))
+   107	    .map(player => {
+   108	      const saved = savedSellListings.get(player.id);
+   109	      const bestBid = saved === undefined
+   110	        ? undefined
+   111	        : [...saved.bids].sort((left, right) => (
+   112	          right.quote.fee - left.quote.fee || left.id.localeCompare(right.id)
+   113	        ))[0];
+   114	      return transferListing(
+   115	        player,
+   116	        'SELL',
+   117	        division,
+   118	        true,
+   119	        saved !== undefined,
+   120	        bestBid?.quote,
+    45	    .map((player, defaultIndex) => ({ player, defaultIndex }))
+    46	    .sort((left, right) => {
+    47	      const comparison = comparePlayers(left.player, right.player, sort.key);
+    48	      return comparison === 0
+    49	        ? left.defaultIndex - right.defaultIndex
+    50	        : comparison * multiplier;
+    51	    })
+    52	    .map(entry => entry.player);
+    53	}
+    54	
+    55	function comparePlayers(
+    56	  left: SortableSquadPlayer,
+    57	  right: SortableSquadPlayer,
+    58	  key: SquadSortKey,
+    59	): number {
+    60	  if (key === 'player') return left.name.localeCompare(right.name);
+    61	  if (key === 'role') return left.role.localeCompare(right.role);
+    62	  if (key === 'overall') return left.overall - right.overall;
+    63	  if (key === 'potential') {
+    64	    // Sorted by the grade the column prints. It used to key on the SUPER
+    65	    // chance, which stayed on raw potential when the grade moved to growth
+    66	    // speed — two different measurements, so a sorted POT column read as
+    67	    // unordered. Players sharing a letter keep their default order.
+    68	    return POTENTIAL_GRADES.indexOf(left.potentialGrade)
+    69	      - POTENTIAL_GRADES.indexOf(right.potentialGrade);
+    70	  }
+     1	/**
+     2	 * The game ring's tiebreaks, in one place.
+     3	 *
+     4	 * Everything here is a total order over data the ring already holds, so a sort
+     5	 * never depends on the order rows happened to arrive in.
+     6	 */
+     7	
+     8	/**
+     9	 * Orders two internal identifiers — club, player, or fixture.
+    10	 *
+    11	 * DELIBERATELY NOT `String.prototype.localeCompare`. That method is
+    12	 * host-defined: its collation table comes from the JavaScript engine's own
+    13	 * locale data, so Hermes on device need not order the same two strings the way
+    14	 * V8 does under Jest. `src/game/` and `src/sim/` must produce byte-identical
+    15	 * results from the same seed on every platform (see CLAUDE.md), and these
+    16	 * comparisons decide real outcomes — which club is promoted, which player takes
+    17	 * a podium, which bid is accepted. A comparator that can disagree across engines
+    18	 * is a cross-platform determinism hazard even while every shipped ID is a
+    19	 * lowercase ASCII slug and the two orderings happen to agree.
+    20	 *
+    21	 * Plain `<`/`>` compares UTF-16 code units, which the language pins.
+    22	 *
+    23	 * Please do not "improve" this back to `localeCompare`. These are internal
+    24	 * slugs, never text a player reads, so there is no human-facing ordering for a
+    25	 * locale to get right. Display lists that a person reads alphabetically are a
+    26	 * different problem and belong in the UI ring.
+    27	 */
+    28	export function compareIds(left: string, right: string): number {
+    29	  return left < right ? -1 : left > right ? 1 : 0;
+    30	}
+    31	
+    32	/** The fields the league table's order is decided by, and only those. */
+    33	interface StandingsOrder {
+    34	  readonly clubId: string;
+    35	  readonly points: number;
+    36	  readonly goalDifference: number;
+    37	  readonly goalsFor: number;
+    38	}
+    39	
+    40	/**
+    41	 * The league table's order, and the only definition of it.
+    42	 *
+    43	 * Points, then goal difference, then goals for, then the club ID so the table
+    44	 * is total. Shared rather than reimplemented because two functions decide the
+    45	 * same thing from it: `leagueStandings` drives promotion, relegation and prize
+    46	 * money, and `finalPosition` writes the finish into the season recap that the
+    47	 * awards ceremony prices its prize against. They disagreed once — the recap
+    48	 * tiebroke with `localeCompare` — which is a ceremony framing a promotion the
+    49	 * transition never grants.
+    50	 */
+    51	export function compareStandings(left: StandingsOrder, right: StandingsOrder): number {
+    52	  if (left.points !== right.points) return left.points > right.points ? -1 : 1;
+    53	  if (left.goalDifference !== right.goalDifference) {
+    54	    return left.goalDifference > right.goalDifference ? -1 : 1;
+    55	  }
+    56	  if (left.goalsFor !== right.goalsFor) return left.goalsFor > right.goalsFor ? -1 : 1;
+    57	  return compareIds(left.clubId, right.clubId);
+    58	}
+
+**Analyzing localeCompare effects**
+**Reviewing user scanning intentions**
+**Identifying schema version issues**
+**Analyzing season recap and font issues**
+**Analyzing font clipping risks**
+**Reviewing lint and localization gaps**
+**Assessing quality audit risks**
+**Reviewing localization scope and issues**
+web search: 
+web search: site:unicode.org/cldr/charts latest supplemental language_plural_rules Portuguese 0 1 one French ...
+2026-08-06T07:52:40.499823Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 93 column 5
+**Analyzing plural category issues**
+**Summarizing revision plan**
+**Summarizing code references and fixes**
+**Reviewing runtime aliasing and testing setup**
+**Reviewing localization and formatting details**
+**Assessing number formatting and determinism**
+**Summarizing audit findings**
+**Planning audit details and final verdict**
+
+I’m organizing audit points around plural rules and static tests, aiming for a concise but thorough critique with about 10 findings. I’m noting no code changes were made and preparing to finalize with a clear "VERDICT: REVISE" statement.
+**Annotating specification references**
+**Analyzing language version and translation handling**
+**Reviewing font and style handling**
+**Analyzing picker and testing challenges**
+**Reviewing enforcement and testing notes**
+**Analyzing spec gaps and state management**
+**Summarizing key findings and priorities**
+**Detailing field mappings and preferences behavior**
+exec
+/bin/zsh -lc "rg -n \"function loadPreferencesFailSoft|loadPreferencesFailSoft\" App.tsx src; nl -ba App.tsx | sed -n '1140,1188p'" in /Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/.claude/worktrees/multilingual-copy-translation-bbe9c8
+ succeeded in 0ms:
+App.tsx:158:  loadPreferencesFailSoft,
+App.tsx:1112:        ...(await loadPreferencesFailSoft(repositories.preferencesRepository)),
+src/application/__tests__/preferences.test.ts:5:import { loadPreferencesFailSoft, markPowerCutInSeen, rememberCompletedClimb } from '../preferences';
+src/application/__tests__/preferences.test.ts:15:    const result = await loadPreferencesFailSoft(repository);
+src/application/__tests__/preferences.test.ts:44:    const result = await loadPreferencesFailSoft(repository);
+src/application/preferences.ts:24:export async function loadPreferencesFailSoft(
+  1140	  }, [bootAttempt, store.initializePersistence]);
+  1141	
+  1142	  useEffect(() => {
+  1143	    if (!__DEV__) return;
+  1144	    const repository = developerSaveRepositoryRef.current;
+  1145	    const careerSeed = store.career?.careerSeed;
+  1146	    setDeveloperManualSaveSelecting(false);
+  1147	    if (repository === null || careerSeed === undefined) {
+  1148	      setDeveloperSaveSummaries([]);
+  1149	      return;
+  1150	    }
+  1151	    let active = true;
+  1152	    void repository.list(careerSeed)
+  1153	      .then(summaries => {
+  1154	        if (!active) return;
+  1155	        setDeveloperSaveSummaries(summaries);
+  1156	        setDeveloperSaveError(null);
+  1157	      })
+  1158	      .catch(error => {
+  1159	        if (!active) return;
+  1160	        const detail = error instanceof Error ? error.message : String(error);
+  1161	        setDeveloperSaveSummaries([]);
+  1162	        setDeveloperSaveError(`Developer saves could not be read. ${detail}`);
+  1163	      });
+  1164	    return () => {
+  1165	      active = false;
+  1166	    };
+  1167	  }, [store.career?.careerSeed]);
+  1168	
+  1169	  const finishWatchedMatch = useCallback((result: MatchState) => {
+  1170	    store.finishWatchedMatch(result);
+  1171	  }, [store.finishWatchedMatch]);
+  1172	
+  1173	  const handleSetAssistantMode = useCallback((assistantMode: AssistantMode) => {
+  1174	    if (assistantMode === 'advisor') {
+  1175	      setRequestedAssistantSequenceId(null);
+  1176	      setConciergeFocus(null);
+  1177	      setManagerTipGuideRequest(null);
+  1178	      setActiveGuideFocus(undefined);
+  1179	      setDismissedAssistantObjectiveKey(null);
+  1180	      setMarketSectionRequest(null);
+  1181	      setOpenedBoardFinanceAlertId(null);
+  1182	    }
+  1183	    store.setAssistantMode(assistantMode);
+  1184	  }, [store.setAssistantMode]);
+  1185	
+  1186	  const beginNewCareer = useCallback((assistantMode?: AssistantMode) => {
+  1187	    const begin = () => {
+  1188	      setLandingView('title');
+
+warning: Skill descriptions were shortened to fit the 2% skills context budget. Codex can still see every skill, but some descriptions are shorter. Disable unused skills or plugins to leave more room for the rest.
+context compacted
+2026-08-06T07:55:36.513633Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 93 column 5
+**Continuing detailed critique preparation**
+**Verifying sources and repository state**
+codex
+I’ve finished the cross-check. The main blockers are concrete: the save migration model omits several persisted English fields, the proposed preferences migration would reject legacy rows as written, and the font/layout gates don’t cover how this app actually renders text. I’m tightening the citations and separating true release blockers from lower-risk design debt now.
+exec
+/bin/zsh -lc "nl -ba docs/superpowers/specs/2026-08-06-multilingual-copy-design.md | sed -n '166,262p;298,305p;395,508p'
+nl -ba src/persistence/preferences-repository.ts | sed -n '1,170p;350,385p'
+nl -ba src/persistence/game-state-codec.ts | sed -n '400,535p;745,770p;1125,1190p;1275,1352p;2750,2790p'
+nl -ba src/game/types.ts | sed -n '195,220p;285,305p;370,392p;455,472p;510,565p;655,700p;745,785p;822,850p'" in /Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/.claude/worktrees/multilingual-copy-translation-bbe9c8
+ succeeded in 0ms:
+   166	
+   167	A `useCopy()` hook backed by a Zustand slice, seeded from the persisted
+   168	`language` preference:
+   169	
+   170	```ts
+   171	const t = useCopy();
+   172	t('creation.stat.pac.label');           // "TEMPO"
+   173	t('market.bid.confirm', { club, player, fee });
+   174	```
+   175	
+   176	Missing key in a non-English catalog falls back to English rather than showing
+   177	the raw key. In development it also warns, and CI treats a missing key as a
+   178	failure (§8).
+   179	
+   180	### 3.3 Content JSON, and the single source of English
+   181	
+   182	`content/*.json` carries ~1,270 translatable prose strings — events, tips,
+   183	glossary, ceremony lines, coach reactions. These already have stable ids, so a
+   184	translation is keyed off that id (`event.derby-night.body`) rather than
+   185	duplicating the whole file per locale. `content/clubs.json` is club and player
+   186	**names** and is not translated.
+   187	
+   188	**There must be exactly one English source, or the two will drift.** Content
+   189	prose keeps living in `content/*.json` where it is authored today; the English
+   190	catalog does **not** duplicate it by hand. Concretely:
+   191	
+   192	- `content/i18n/en.json` is **generated, never hand-edited.** A build script
+   193	  extracts it from the two English sources — the content files (by id) and the
+   194	  keyed strings lifted out of TS/TSX — and writes the merged catalog. It carries
+   195	  a `DO NOT EDIT` header and CI fails if regenerating it produces a diff.
+   196	- The six translated catalogs **are** hand-authored, against the generated
+   197	  English.
+   198	- So editing English copy means editing `content/*.json` or the call site, never
+   199	  `en.json`. That keeps one place to change a sentence and makes "the English
+   200	  changed, these translations are now stale" a mechanical diff (§9.2).
+   201	
+   202	Without this rule, a writer fixes a tip in `tips.json`, the catalog still holds
+   203	the old English, and every translation is silently reviewed against text the
+   204	game no longer shows.
+   205	
+   206	### 3.4 Number formatting
+   207	
+   208	The same Hermes caution that rules out `Intl.PluralRules` (§3.1) rules out
+   209	`Intl.NumberFormat`. The formatting helper is **hand-rolled**: group digits in
+   210	threes and pick the separator from a seven-entry table (`.` for `de`, `es`,
+   211	`pt-BR`, `id`, `vi`; `,` for `en`; thin space for `fr`). Seven locales do not
+   212	justify a polyfill, and a hand-rolled grouper is trivially unit-testable in the
+   213	node Jest environment.
+   214	
+   215	This replaces the mix of `toLocaleString('en-US')`, `toLocaleString('en-GB')`
+   216	(`player-request-view-model.ts:111`), and unpinned `toLocaleString()`
+   217	(`view-models.ts:560`, `event-selection.ts:189`, `store.ts` ×4) — the last of
+   218	which already varies by *device* locale today and is a live bug regardless of
+   219	this project.
+   220	
+   221	Formatting happens at the UI edge only, on the raw values in `labelParams`
+   222	(§4.3). It must never run inside a match tick or anywhere its output could
+   223	reach a deterministic log.
+   224	
+   225	---
+   226	
+   227	## 4. The three hard constraints
+   228	
+   229	### 4.1 Vietnamese does not render in the game's font
+   230	
+   231	Measured from the shipped TTF: Silkscreen maps **226 glyphs**, Latin-1 plus a
+   232	handful of punctuation. Every Vietnamese letter with a stacked or below-base
+   233	diacritic is absent — `ế ộ ữ ạ ằ ọ đ ơ ư` and ~125 more. The combining marks
+   234	Vietnamese needs (`U+0323` dot below, `U+0309` hook above, `U+031B` horn) are
+   235	absent too, so even composed rendering fails.
+   236	
+   237	iOS would silently substitute the system face **per glyph**, producing words
+   238	that switch typeface mid-syllable. Unacceptable.
+   239	
+   240	**Chosen approach: a second pixel face for Vietnamese only.** Two Google Fonts
+   241	were verified to cover the full Vietnamese subset by parsing their `cmap`:
+   242	
+   243	| Font | Glyphs | Weights shipped | Also covers | Look |
+   244	| --- | --- | --- | --- | --- |
+   245	| VT323 | 568 | **400 only** | Turkish | Solid-stroke bitmap terminal, monospace |
+   246	| **Handjet** | 1322 | **400 + 700** (100–900 available) | Turkish, Cyrillic, Greek | Dot-matrix, variable |
+   247	
+   248	**Recommendation: Handjet**, and the reason is structural rather than aesthetic.
+   249	`PixelText.tsx` defines two type voices — `display` is Silkscreen **Bold**,
+   250	`data` is Silkscreen **Regular** — and states outright that a bold request on
+   251	the regular cut "produces synthetic faux-bold, which smears a 1-bit bitmap
+   252	font." VT323 ships a single weight, so choosing it would collapse both voices
+   253	into one face for Vietnamese alone and silently delete a distinction the art
+   254	bible treats as load-bearing. `@expo-google-fonts/handjet` ships
+   255	`Handjet_400Regular` and `Handjet_700Bold` as static cuts, mirroring Silkscreen
+   256	one-for-one, and static cuts sidestep React Native's poor variable-axis support.
+   257	
+   258	Handjet's Cyrillic and Greek coverage is free headroom if a future language
+   259	wants them.
+   260	
+   261	**Consequence for §4.2: Handjet is not monospace.** An earlier draft leaned on
+   262	VT323 being monospace to collapse Vietnamese to a single advance constant. That
+   298	
+   299	This does not violate `PixelText.tsx`'s rule against mixing `style` and
+   300	`className` for one visual property. `fontFamily` is still set only by the
+   301	className pipeline; `vars()` supplies the *value* the class resolves against and
+   302	never sets `fontFamily` itself.
+   303	
+   304	**Swap mechanism, part 2: the 13 files `vars()` cannot reach.** An earlier draft
+   305	claimed the swap was "one line and no call-site churn." That was wrong, and it
+   395	   budget, because they are layout tokens wearing words.
+   396	2. **Extend the advance maps to cover every one of those strings, per face** —
+   397	   Silkscreen for the five Latin locales, Handjet for `vi`. Handjet is not
+   398	   monospace, so `vi` needs a full per-string table, not a single constant.
+   399	3. **Recompute `LEAGUE_COLUMN_WIDTH` and its squad-register equivalent as the
+   400	   max across enabled locales,** and assert in Jest that every enabled locale's
+   401	   headers fit. This is gate 8 in §8, and it is what turns "we remembered to
+   402	   measure it" into something CI can prove.
+   403	4. Beyond the measured tables, the soft-clipping cells — `w-28` stat labels and
+   404	   `w-16` stepper values (`CharacterCreationScreen.tsx:44`),
+   405	   `numberOfLines={1}` headers, HUD chips, buttons — have no advance tables at
+   406	   all and are covered only by the budget and device QA. Where a cell genuinely
+   407	   cannot hold a language, the layout changes for every language, not just that
+   408	   one. Strings that live in fixed cells are the candidates for
+   409	   advance-measured ceilings rather than character ceilings, if device QA shows
+   410	   the budget is not catching them.
+   411	
+   412	### 4.3 English is baked into save files
+   413	
+   414	**Eleven** persisted surfaces carry English prose through the zod codec into
+   415	SQLite. Early drafts of this spec claimed four, then seven; the council found
+   416	the rest. The number is stated precisely because an implementer who works from a
+   417	short list ships a game that still renders English from whatever the list
+   418	missed.
+   419	
+   420	| # | Surface | Codec | Schema | Notes |
+   421	| --- | --- | --- | --- | --- |
+   422	| 1 | Ledger line `label` | `:190` | `.passthrough()` | Built in `game/career.ts:836-1004` |
+   423	| 2 | Cash transaction `label` | `:185` | `.passthrough()` | Also fed from `game/player-requests.ts:422` via `definition.title` |
+   424	| 3 | Season recap award `label`, `detail` | `:1132` | `.passthrough()` | |
+   425	| 4 | Sponsor objective snapshot `label` | `:495` | **`strictObject`** | |
+   426	| 5 | Sponsor contract snapshot `offerLine` | `:510` | **`strictObject`** | Carries `sponsorContentId` (`:508`) — id lookup works |
+   427	| 6 | Sponsor offer snapshot `offerLine` | `:527` | **`strictObject`** | Carries `sponsorContentId` (`:525`) |
+   428	| 7 | Sponsor **rules** `brands[].offerLine`, `objectives[].labelTemplate` | `:458`, `:483`; snapshotted whole at `:1283` | **`strictObject`** | Content copied into the save |
+   429	| 8 | `pendingEvent.outcomeText` | `:758` | optional | Resolved event prose. Sibling `resolvedOutcomeIndex` (`:759`) already persists — the key fix is nearly free |
+   430	| 9 | `pendingCupGiantKillingCelebrations[].title`, `.body` | `:1343-1348` | `.passthrough()` | Four authored Bert speeches from `game/cup-giant-killing.ts:17-46`, persisted whole |
+   431	| 10 | `seasonRecap.cupResult` | `:1176` | free string | Mixes `'Not entered'` / `'Winners'` / `'Entered'` with round labels (`game/season-recap.ts:247-257`); rendered as a panel **title** at `SeasonEndScreen.tsx:166` |
+   432	| 11 | `playerRequestRules.requests[].title`, `.line` | `:429-436` | `.passthrough()` | Content rules copied into the save |
+   433	
+   434	`sponsorName` and club names on these schemas are names, not prose, and are not
+   435	translated (§10).
+   436	
+   437	**One rendering rule covers all eleven:** a persisted snapshot renders through a
+   438	content-id or key lookup; the stored English is the legacy fallback for careers
+   439	saved before this change. Surfaces 5–7 and 11 already persist the content id
+   440	they came from, so their lookup needs no new field at all — only a renderer that
+   441	prefers the id over the frozen string.
+   442	
+   443	`seasonRecap.cupResult` (10) is the awkward one: it is a *denormalised* string
+   444	that mixes an outcome word with a round label, and §3's claim that "cup round
+   445	labels are already an enum" covers `rounds[].label` but not this sibling. It
+   446	becomes a `{ outcome, round }` pair rendered at the UI.
+   447	
+   448	**Two rules the implementation must not get wrong:**
+   449	
+   450	1. **Always dual-write.** `label` stays `nonemptyString` and stays **required**.
+   451	   New rows write the English `label` *and* `labelKey` + `labelParams`. A writer
+   452	   that emits only keys fails validation on its own schema. The UI prefers
+   453	   `labelKey` and falls back to `label`.
+   454	2. **`labelParams` carries raw values, never formatted text.** Store
+   455	   `{ fee: 240000 }`, not `{ fee: "$240,000" }`. Formatting is a display concern
+   456	   (§3.4) — preformatting freezes one locale's thousands separator and currency
+   457	   placement into SQLite, which is the exact bug this section exists to prevent.
+   458	   Note `career.ts:836-1004` shows `labelParams` must also carry *names* —
+   459	   sponsor, player, facility — and that `FACILITY_CATALOG[...].name` needs keys
+   460	   of its own.
+   461	
+   462	**On schema versions, precisely.** Adding *optional* `labelKey` / `labelParams`
+   463	fields to the four `strictObject` schemas requires new schema declarations but
+   464	**no `GAME_SCHEMA_VERSION` bump and no migration rung** — old saves parse
+   465	unchanged, because nothing has to be synthesised for them (the ladder at
+   466	`game-state-codec.ts:2764-2786` exists for that case, and this is not that
+   467	case). An earlier draft said "needs a codec schema bump", which was ambiguous
+   468	and is corrected here.
+   469	
+   470	Do **not** relax those `strictObject` schemas to `.passthrough()` to avoid
+   471	thinking about it. Silently dropping unknown keys is worse than a declaration.
+   472	
+   473	**Event outcomes have no ids, and that is a trap.** Outcomes in
+   474	`content/events.json` are anonymous weighted entries (`weight`, `text`,
+   475	`successHeadline`) with no `id`. Keying their translations by array index means
+   476	a future reordering silently reassigns every translated outcome to the wrong
+   477	event branch — a corruption that no CI gate above would catch, because every
+   478	key would still resolve. **Add explicit `id` fields to event outcomes in
+   479	Phase 1**, before any outcome is translated. A frozen-order CI assertion is the
+   480	weaker alternative and should only be taken if adding ids proves to break
+   481	something.
+   482	
+   483	## 5. The language picker
+   484	
+   485	**Primary placement: the sign-your-first-player screen**
+   486	(`CharacterCreationScreen`). It already hosts a difficulty radio group in a
+   487	`PaperPanel`, so a Language panel sits alongside it with the same furniture:
+   488	
+   489	```
+   490	┌ Language ────────────────── English ┐
+   491	│  ● English                          │
+   492	│  ○ Español                          │
+   493	│  ○ Português (Brasil)               │
+   494	│  ○ Français                         │
+   495	│  ○ Deutsch                          │
+   496	│  ○ Bahasa Indonesia                 │
+   497	│  ○ Tiếng Việt                       │
+   498	└─────────────────────────────────────┘
+   499	```
+   500	
+   501	- Each language is written **in itself**, never "Spanish".
+   502	- **"Tiếng Việt" cannot render in Silkscreen** — it contains `ế` and `ệ`, two of
+   503	  the glyphs §4.1 proves are missing. That one row must draw in the Vietnamese
+   504	  face (or the `body` face) **in every locale**, or the picker itself exhibits
+   505	  the mid-word typeface substitution this whole section exists to prevent. The
+   506	  row is a per-language literal, so it carries its own face rather than
+   507	  inheriting the active one.
+   508	- English is preselected. First launch may *suggest* the device language by
+     1	import { z } from 'zod';
+     2	import {
+     3	  COACHING_FORMATION_IDS,
+     4	  DEFAULT_FORMATION_PRESETS,
+     5	  FORMATION_IDS,
+     6	  isFormationId,
+     7	  type FormationId,
+     8	} from '../sim/tactics';
+     9	import type { PersistenceDatabase } from './database';
+    10	import type { PowerId } from '../sim/types';
+    11	import { migrateDatabase } from './migrations';
+    12	
+    13	const PREFERENCES_SCHEMA_VERSION = 9;
+    14	const LEGACY_PREFERENCES_SCHEMA_VERSION = 1;
+    15	const M2_PREFERENCES_SCHEMA_VERSION = 2;
+    16	const M4_PREFERENCES_SCHEMA_VERSION = 3;
+    17	const CUT_IN_HISTORY_PREFERENCES_SCHEMA_VERSION = 4;
+    18	const MANAGER_TIPS_PREFERENCES_SCHEMA_VERSION = 5;
+    19	const AUTO_SUBS_PREFERENCES_SCHEMA_VERSION = 6;
+    20	const SQUAD_SORT_PREFERENCES_SCHEMA_VERSION = 7;
+    21	const CLIMB_COMPLETED_PREFERENCES_SCHEMA_VERSION = 8;
+    22	const PRIMARY_SLOT = 1;
+    23	
+    24	export type MasterVolume = 0 | 0.25 | 0.5 | 0.75 | 1;
+    25	export type HudSide = 'left' | 'right';
+    26	export type TextScale = 1 | 1.15 | 1.3;
+    27	export type CutInMode = 'full' | 'banner';
+    28	export const SQUAD_SORT_KEYS = ['role', 'player', 'overall', 'potential', 'condition'] as const;
+    29	export type SquadSortKey = (typeof SQUAD_SORT_KEYS)[number];
+    30	export type SquadSortDirection = 'descending' | 'ascending';
+    31	
+    32	/** How the squad list is ordered. Null is the roster's own order. */
+    33	export interface SquadSort {
+    34	  key: SquadSortKey;
+    35	  direction: SquadSortDirection;
+    36	}
+    37	
+    38	export interface AppPreferences {
+    39	  formationPresets: [FormationId, FormationId, FormationId];
+    40	  autoPowers: boolean;
+    41	  masterVolume: MasterVolume;
+    42	  reduceMotion: boolean;
+    43	  hudSide: HudSide;
+    44	  hapticsEnabled: boolean;
+    45	  textScale: TextScale;
+    46	  highContrast: boolean;
+    47	  colorSafeKits: boolean;
+    48	  cutInMode: CutInMode;
+    49	  /** Device-level proof used to offer the veteran-only new-career choice. */
+    50	  climbCompleted: boolean;
+    51	  seenPowerCutIns: PowerId[];
+    52	  /** Bench cover during a watched match, remembered between matches. */
+    53	  autoSubs: boolean;
+    54	  /** Squad list ordering, remembered between visits and between sessions. */
+    55	  squadSort: SquadSort | null;
+    56	  /** Debug-build-only switch for developer save controls. */
+    57	  developerMode: boolean;
+    58	}
+    59	
+    60	export const DEFAULT_APP_PREFERENCES: AppPreferences = {
+    61	  formationPresets: [...DEFAULT_FORMATION_PRESETS],
+    62	  autoPowers: false,
+    63	  masterVolume: 1,
+    64	  reduceMotion: false,
+    65	  hudSide: 'left',
+    66	  hapticsEnabled: true,
+    67	  textScale: 1,
+    68	  highContrast: false,
+    69	  colorSafeKits: true,
+    70	  cutInMode: 'full',
+    71	  climbCompleted: false,
+    72	  seenPowerCutIns: [],
+    73	  autoSubs: false,
+    74	  squadSort: null,
+    75	  developerMode: false,
+    76	};
+    77	
+    78	const FormationSchema = z.enum(FORMATION_IDS);
+    79	// Retired ids stay parseable so an older install's settings row still loads;
+    80	// they are dropped on the way through rather than rejected.
+    81	const RETIRED_POWER_IDS = ['MAGNET_TOUCH'] as const;
+    82	const PowerIdSchema = z.enum([
+    83	  'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
+    84	  'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+    85	  'RALLY_CRY', 'ICE_RINK', 'SHADOW_MARK', 'GRAVITY_WELL', 'GIANT_GK', 'GUST',
+    86	]);
+    87	const StoredPowerIdSchema = z.enum([...PowerIdSchema.options, ...RETIRED_POWER_IDS]);
+    88	const PreferencesSchema = z.strictObject({
+    89	  formationPresets: z.tuple([FormationSchema, FormationSchema, FormationSchema])
+    90	    .refine(values => new Set(values).size === 3, 'formation presets must be unique'),
+    91	  autoPowers: z.boolean(),
+    92	  masterVolume: z.union([z.literal(0), z.literal(0.25), z.literal(0.5), z.literal(0.75), z.literal(1)]),
+    93	  reduceMotion: z.boolean(),
+    94	  hudSide: z.enum(['left', 'right']),
+    95	  hapticsEnabled: z.boolean(),
+    96	  textScale: z.union([z.literal(1), z.literal(1.15), z.literal(1.3)]),
+    97	  highContrast: z.boolean(),
+    98	  colorSafeKits: z.boolean(),
+    99	  cutInMode: z.enum(['full', 'banner']),
+   100	  climbCompleted: z.boolean(),
+   101	  seenPowerCutIns: z.array(StoredPowerIdSchema).max(20)
+   102	    .transform(ids => ids.filter((id): id is z.infer<typeof PowerIdSchema> => (
+   103	      !(RETIRED_POWER_IDS as readonly string[]).includes(id)
+   104	    )))
+   105	    .refine(values => new Set(values).size === values.length, 'seen power cut-ins must be unique'),
+   106	  autoSubs: z.boolean(),
+   107	  squadSort: z.union([
+   108	    z.null(),
+   109	    z.strictObject({
+   110	      key: z.enum(SQUAD_SORT_KEYS),
+   111	      direction: z.enum(['descending', 'ascending']),
+   112	    }),
+   113	  ]),
+   114	  developerMode: z.boolean(),
+   115	});
+   116	const LegacyPreferencesSchema = PreferencesSchema.pick({
+   117	  formationPresets: true,
+   118	  autoPowers: true,
+   119	  masterVolume: true,
+   120	});
+   121	const M2PreferencesSchema = PreferencesSchema.pick({
+   122	  formationPresets: true,
+   123	  autoPowers: true,
+   124	  masterVolume: true,
+   125	  reduceMotion: true,
+   126	  hudSide: true,
+   127	});
+   128	const RetiredTipsShape = { managerTipsEnabled: z.boolean() };
+   129	const M4PreferencesSchema = PreferencesSchema.omit({
+   130	  seenPowerCutIns: true,
+   131	  autoSubs: true,
+   132	  squadSort: true,
+   133	  climbCompleted: true,
+   134	  developerMode: true,
+   135	});
+   136	const CutInHistoryPreferencesSchema = PreferencesSchema.omit({
+   137	  autoSubs: true,
+   138	  squadSort: true,
+   139	  climbCompleted: true,
+   140	  developerMode: true,
+   141	});
+   142	const ManagerTipsPreferencesSchema = PreferencesSchema
+   143	  .omit({ autoSubs: true, squadSort: true, climbCompleted: true, developerMode: true })
+   144	  .extend(RetiredTipsShape);
+   145	const AutoSubsPreferencesSchema = PreferencesSchema
+   146	  .omit({ squadSort: true, climbCompleted: true, developerMode: true })
+   147	  .extend(RetiredTipsShape);
+   148	const SquadSortPreferencesSchema = PreferencesSchema
+   149	  .omit({ climbCompleted: true, developerMode: true })
+   150	  .extend(RetiredTipsShape);
+   151	const ClimbCompletedPreferencesSchema = PreferencesSchema.omit({ developerMode: true });
+   152	
+   153	const UPSERT_SQL = `
+   154	  INSERT INTO app_preferences (slot, schema_version, preferences_json)
+   155	  VALUES (?, ?, ?)
+   156	  ON CONFLICT(slot) DO UPDATE SET
+   157	    schema_version = excluded.schema_version,
+   158	    preferences_json = excluded.preferences_json
+   159	`;
+   160	const LOAD_SQL = `
+   161	  SELECT schema_version, preferences_json
+   162	  FROM app_preferences
+   163	  WHERE slot = ?
+   164	`;
+   165	
+   166	interface StoredPreferencesRow {
+   167	  schema_version: unknown;
+   168	  preferences_json: unknown;
+   169	}
+   170	
+   350	        if (!legacy.success) {
+   351	          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+   352	        }
+   353	        const migrated: AppPreferences = {
+   354	          ...legacy.data,
+   355	          formationPresets: [...legacy.data.formationPresets],
+   356	          seenPowerCutIns: [...legacy.data.seenPowerCutIns],
+   357	          squadSort: legacy.data.squadSort === null ? null : { ...legacy.data.squadSort },
+   358	          developerMode: DEFAULT_APP_PREFERENCES.developerMode,
+   359	        };
+   360	        await database.runAsync(UPSERT_SQL, [
+   361	          PRIMARY_SLOT,
+   362	          PREFERENCES_SCHEMA_VERSION,
+   363	          JSON.stringify(migrated),
+   364	        ]);
+   365	        return migrated;
+   366	      }
+   367	      if (row.schema_version !== PREFERENCES_SCHEMA_VERSION) {
+   368	        throw new Error('Saved settings use an unsupported or corrupt format.');
+   369	      }
+   370	      const parsed = PreferencesSchema.safeParse(decoded);
+   371	      if (!parsed.success) throw new Error(`Saved settings are invalid: ${parsed.error.issues[0]?.message ?? 'unknown error'}`);
+   372	      return clonePreferences(parsed.data);
+   373	    },
+   374	    async save(preferences) {
+   375	      const parsed = PreferencesSchema.parse(preferences);
+   376	      await database.runAsync(UPSERT_SQL, [PRIMARY_SLOT, PREFERENCES_SCHEMA_VERSION, JSON.stringify(parsed)]);
+   377	    },
+   378	  };
+   379	}
+   380	
+   381	function clonePreferences(preferences: AppPreferences): AppPreferences {
+   382	  return {
+   383	    ...preferences,
+   384	    formationPresets: [...preferences.formationPresets],
+   385	    seenPowerCutIns: [...preferences.seenPowerCutIns],
+   400	/**
+   401	 * The baked player-request catalog.
+   402	 *
+   403	 * Deliberately loose — `.passthrough()` on the request entries, no re-check of
+   404	 * cost shapes. `src/content/schemas.ts` is the authority on what a valid
+   405	 * catalog is and validates it at load; repeating those rules here would be a
+   406	 * second copy to keep in step, and the only thing this file actually needs to
+   407	 * guarantee is that what comes back off disk is the shape the engine reads.
+   408	 */
+   409	const playerRequestRulesSchema = z
+   410	  .object({
+   411	    schemaVersion: z.literal(1),
+   412	    tuning: z
+   413	      .object({
+   414	        startSeason: positiveInteger,
+   415	        startWeek: positiveInteger,
+   416	        baseChancePercent: positiveInteger,
+   417	        starFameThreshold: nonnegativeInteger,
+   418	        starGoalRank: positiveInteger,
+   419	        minSeasonsAtClub: nonnegativeInteger,
+   420	        answerWeeks: positiveInteger,
+   421	        cadence: z.record(z.string(), z.object({
+   422	          minWeeks: positiveInteger,
+   423	          guaranteeWeeks: positiveInteger,
+   424	          starMinWeeks: positiveInteger,
+   425	          starGuaranteeWeeks: positiveInteger,
+   426	        }).passthrough()),
+   427	      })
+   428	      .passthrough(),
+   429	    requests: z.array(z.object({
+   430	      id: nonemptyString,
+   431	      title: nonemptyString,
+   432	      line: nonemptyString,
+   433	      art: z.array(nonemptyString),
+   434	      cost: z.object({ kind: nonemptyString }).passthrough(),
+   435	      grantBonus: z.object({ kind: nonemptyString }).passthrough().optional(),
+   436	    }).passthrough()),
+   437	  })
+   438	  .passthrough();
+   439	
+   440	const sponsorProfileIdSchema = z.enum(['STEADY', 'BALANCED', 'BOLD']);
+   441	const sponsorObjectiveLevelSchema = z.enum(['EASY', 'NORMAL', 'HARD']);
+   442	const sponsorObjectiveKindSchema = z.enum([
+   443	  'LEAGUE_WINS',
+   444	  'LEAGUE_GOALS',
+   445	  'LEAGUE_FINISH',
+   446	]);
+   447	const sponsorSlotSchema = z.union([z.literal(0), z.literal(1), z.literal(2)]);
+   448	const sponsorBonusPercentByObjectiveSchema = z.strictObject({
+   449	  LEAGUE_WINS: nonnegativeInteger.optional(),
+   450	  LEAGUE_GOALS: nonnegativeInteger.optional(),
+   451	  LEAGUE_FINISH: nonnegativeInteger.optional(),
+   452	});
+   453	
+   454	const sponsorRulesSchema = z.strictObject({
+   455	  brands: z.array(z.strictObject({
+   456	    id: nonemptyString,
+   457	    name: nonemptyString,
+   458	    offerLine: nonemptyString,
+   459	  })),
+   460	  profiles: z.strictObject({
+   461	    STEADY: z.strictObject({
+   462	      monthlyPercent: positiveInteger,
+   463	      objectiveLevel: sponsorObjectiveLevelSchema,
+   464	      bonusPercent: nonnegativeInteger,
+   465	      bonusPercentByObjective: sponsorBonusPercentByObjectiveSchema.optional(),
+   466	    }),
+   467	    BALANCED: z.strictObject({
+   468	      monthlyPercent: positiveInteger,
+   469	      objectiveLevel: sponsorObjectiveLevelSchema,
+   470	      bonusPercent: nonnegativeInteger,
+   471	      bonusPercentByObjective: sponsorBonusPercentByObjectiveSchema.optional(),
+   472	    }),
+   473	    BOLD: z.strictObject({
+   474	      monthlyPercent: positiveInteger,
+   475	      objectiveLevel: sponsorObjectiveLevelSchema,
+   476	      bonusPercent: nonnegativeInteger,
+   477	      bonusPercentByObjective: sponsorBonusPercentByObjectiveSchema.optional(),
+   478	    }),
+   479	  }),
+   480	  objectives: z.array(z.strictObject({
+   481	    id: nonemptyString,
+   482	    kind: sponsorObjectiveKindSchema,
+   483	    labelTemplate: nonemptyString,
+   484	    targets: z.strictObject({
+   485	      EASY: positiveInteger,
+   486	      NORMAL: positiveInteger,
+   487	      HARD: positiveInteger,
+   488	    }),
+   489	    chairmanDelta: safeInteger,
+   490	  })),
+   491	});
+   492	
+   493	const sponsorObjectiveSnapshotSchema = z.strictObject({
+   494	  kind: sponsorObjectiveKindSchema,
+   495	  label: nonemptyString,
+   496	  target: positiveInteger,
+   497	  nominalBonus: nonnegativeInteger,
+   498	});
+   499	
+   500	const sponsorObjectiveOutcomeSchema = z.strictObject({
+   501	  met: z.boolean(),
+   502	  settledSeason: positiveInteger,
+   503	  actualBonus: nonnegativeInteger,
+   504	});
+   505	
+   506	const sponsorContractSnapshotSchema = z.strictObject({
+   507	  contractId: nonemptyString,
+   508	  sponsorContentId: nonemptyString,
+   509	  sponsorName: nonemptyString,
+   510	  offerLine: nonemptyString,
+   511	  season: positiveInteger,
+   512	  slot: sponsorSlotSchema,
+   513	  nominalMonthlyFee: nonnegativeInteger,
+   514	  profile: sponsorProfileIdSchema.optional(),
+   515	  objective: sponsorObjectiveSnapshotSchema.optional(),
+   516	  provisional: z.boolean(),
+   517	  signedSeason: positiveInteger.optional(),
+   518	  signedWeek: positiveInteger.optional(),
+   519	  replacedContinuity: z.boolean().optional(),
+   520	  objectiveOutcome: sponsorObjectiveOutcomeSchema.optional(),
+   521	});
+   522	
+   523	const sponsorOfferSnapshotSchema = z.strictObject({
+   524	  offerId: nonemptyString,
+   525	  sponsorContentId: nonemptyString,
+   526	  sponsorName: nonemptyString,
+   527	  offerLine: nonemptyString,
+   528	  season: positiveInteger,
+   529	  slot: sponsorSlotSchema,
+   530	  profile: sponsorProfileIdSchema,
+   531	  nominalMonthlyFee: nonnegativeInteger,
+   532	  objective: sponsorObjectiveSnapshotSchema,
+   533	});
+   534	
+   535	const sponsorshipStateSchema = z.strictObject({
+   745	
+   746	const eventClockSchema = z
+   747	  .object({
+   748	    weeksWithoutEvent: nonnegativeInteger,
+   749	    riskyChoices: nonnegativeInteger,
+   750	  })
+   751	  .passthrough();
+   752	
+   753	const pendingEventSchema = z
+   754	  .object({
+   755	    eventId: nonemptyString,
+   756	    selectedPlayerId: nonemptyString.optional(),
+   757	    resolvedChoiceId: nonemptyString.optional(),
+   758	    outcomeText: nonemptyString.optional(),
+   759	    resolvedOutcomeIndex: nonnegativeInteger.optional(),
+   760	    resolvedRisky: z.boolean().optional(),
+   761	    resolvedSuccess: z.boolean().optional(),
+   762	    resolvedNextEventId: nonemptyString.optional(),
+   763	  })
+   764	  .passthrough();
+   765	
+   766	const pendingAwakeningSchema = z
+   767	  .object({
+   768	    fixtureId: nonemptyString,
+   769	    playerId: nonemptyString,
+   770	    power: powerIdSchema,
+  1125	    fansLost: nonnegativeInteger,
+  1126	  }).passthrough(),
+  1127	]);
+  1128	
+  1129	const seasonRecapAwardSchema = z.object({
+  1130	  playerId: nonemptyString,
+  1131	  playerName: nonemptyString,
+  1132	  label: nonemptyString,
+  1133	  detail: nonemptyString,
+  1134	}).passthrough();
+  1135	
+  1136	const divisionAwardPlacementSchema = z.object({
+  1137	  playerId: nonemptyString,
+  1138	  playerName: nonemptyString,
+  1139	  clubId: nonemptyString,
+  1140	  value: nonnegativeInteger,
+  1141	}).passthrough();
+  1142	
+  1143	/** One podium per category, and a podium is three deep. */
+  1144	const divisionAwardsSchema = z.object({
+  1145	  goals: z.array(divisionAwardPlacementSchema).max(3),
+  1146	  passesCompleted: z.array(divisionAwardPlacementSchema).max(3),
+  1147	  tacklesWon: z.array(divisionAwardPlacementSchema).max(3),
+  1148	  saves: z.array(divisionAwardPlacementSchema).max(3),
+  1149	}).passthrough();
+  1150	
+  1151	/**
+  1152	 * The grant, not the projection: written once by the season transition. Four
+  1153	 * boards exist, so four is the ceiling, and each may only be claimed once.
+  1154	 */
+  1155	const divisionAwardPrizeSchema = z.object({
+  1156	  trainingPoints: nonnegativeInteger,
+  1157	  categoriesWon: z
+  1158	    .array(z.enum(['goals', 'passesCompleted', 'tacklesWon', 'saves']))
+  1159	    .max(4)
+  1160	    .refine(value => new Set(value).size === value.length, 'must not repeat a category'),
+  1161	}).passthrough();
+  1162	
+  1163	const seasonRecapSchema = z.object({
+  1164	  season: positiveInteger,
+  1165	  division: positiveInteger.refine(value => value <= 5, 'must be at most 5'),
+  1166	  finalPosition: positiveInteger.refine(value => value <= 10, 'must be at most 10'),
+  1167	  played: nonnegativeInteger,
+  1168	  won: nonnegativeInteger,
+  1169	  drawn: nonnegativeInteger,
+  1170	  lost: nonnegativeInteger,
+  1171	  goalsFor: nonnegativeInteger,
+  1172	  goalsAgainst: nonnegativeInteger,
+  1173	  cashChange: safeInteger,
+  1174	  closingCash: safeInteger,
+  1175	  trainingCapsReached: nonnegativeInteger,
+  1176	  cupResult: nonemptyString,
+  1177	  memorableEventId: nonemptyString.optional(),
+  1178	  topScorer: seasonRecapAwardSchema.optional(),
+  1179	  playerOfSeason: seasonRecapAwardSchema.optional(),
+  1180	  youngPlayer: seasonRecapAwardSchema.optional(),
+  1181	  heroOfSeason: seasonRecapAwardSchema.optional(),
+  1182	  divisionAwards: divisionAwardsSchema.optional(),
+  1183	  divisionAwardPrize: divisionAwardPrizeSchema.optional(),
+  1184	}).passthrough();
+  1185	
+  1186	const divisionLevel = positiveInteger.refine(value => value <= 5, 'must be at most 5');
+  1187	const leaguePosition = positiveInteger.refine(value => value <= 10, 'must be at most 10');
+  1188	
+  1189	/**
+  1190	 * The record written once, at the summit.
+  1275	    assistantMode: z.enum(['teacher', 'advisor']).optional(),
+  1276	    clubs: z.array(clubSchema).length(10),
+  1277	    fixtures: z.array(fixtureSchema),
+  1278	    players: z.array(playerSchema),
+  1279	    lineups: z.array(lineupSchema),
+  1280	    facilities: facilitiesSchema,
+  1281	    trainingRules: trainingRulesSchema.optional(),
+  1282	    playerRequestRules: playerRequestRulesSchema.optional(),
+  1283	    sponsorRules: sponsorRulesSchema.optional(),
+  1284	    eventClock: eventClockSchema,
+  1285	    eventFlags: z.array(nonemptyString),
+  1286	    resolvedEventIds: z.array(nonemptyString),
+  1287	    resolvedEventHistory: z.array(z.object({
+  1288	      eventId: nonemptyString,
+  1289	      season: positiveInteger,
+  1290	      week: positiveInteger,
+  1291	    }).passthrough()).optional(),
+  1292	    pendingEvent: pendingEventSchema.optional(),
+  1293	    // Optional at decode time so pre-cutscene schema-1 saves can be upgraded
+  1294	    // by the application reconciliation pass without being treated as corrupt.
+  1295	    awakening: awakeningSchema.optional(),
+  1296	    onboarding: onboardingSchema.optional(),
+  1297	    trainingPoints: nonnegativeInteger,
+  1298	    // Optional so a save written before drill upgrades became a purchase still
+  1299	    // loads; every path it does not name is owned at tier 1.
+  1300	    ownedTrainingTiers: z.record(
+  1301	      nonemptyString,
+  1302	      z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
+  1303	    ).optional(),
+  1304	    totalInstantDrills: nonnegativeInteger.optional(),
+  1305	    ledgers: z.array(ledgerSchema),
+  1306	    seasonOpeningCash: safeInteger.optional(),
+  1307	    cashTransactions: z.array(cashTransactionSchema).optional(),
+  1308	    // Absent on saves written before ids became a counter; the recorder seeds
+  1309	    // it from the history length those saves minted their ids with.
+  1310	    cashTransactionIdCounter: nonnegativeInteger.optional(),
+  1311	    seasonStatLines: z.array(seasonStatLineSchema).optional(),
+  1312	    // `'m1-slice'` was a second, finite career mode that no longer exists. The
+  1313	    // value stays legal on read so saves written while it did are still
+  1314	    // decodable; `parseStoredGameState` normalises it and the launch
+  1315	    // reconciliation pass builds the M2 sidecars such a save never had.
+  1316	    careerMode: z.enum(['m1-slice', 'full']).optional(),
+  1317	    m2: m2CareerSchema.optional(),
+  1318	    market: careerMarketSchema.optional(),
+  1319	    youthIntake: youthIntakeSchema.optional(),
+  1320	    retiredPlayers: z.array(playerSchema).optional(),
+  1321	    pendingLegacyPlayerIds: z.array(nonemptyString).optional(),
+  1322	    retirementAnnouncements: z.array(z.object({
+  1323	      playerId: nonemptyString,
+  1324	      playerName: nonemptyString,
+  1325	      announcedInSeason: positiveInteger,
+  1326	      retirementAge: positiveInteger.refine(value => value >= 33 && value <= 38, 'must be from 33 to 38'),
+  1327	    }).passthrough()).optional(),
+  1328	    seasonRecaps: z.array(seasonRecapSchema).optional(),
+  1329	    hallOfFame: hallOfFameSchema.optional(),
+  1330	    playerRequests: playerRequestStateSchema.optional(),
+  1331	    financialSafety: z.object({
+  1332	      consecutiveNegativeWeeks: nonnegativeInteger,
+  1333	      emergencyLoanUsed: z.boolean(),
+  1334	      loan: z.object({
+  1335	        originalAmount: positiveInteger,
+  1336	        remainingBalance: nonnegativeInteger,
+  1337	        repaymentStartsSeason: positiveInteger,
+  1338	        remainingWeeks: nonnegativeInteger,
+  1339	      }).passthrough().optional(),
+  1340	      boardUltimatum: boardUltimatumSchema.optional(),
+  1341	      latestBoardResolution: boardUltimatumResolutionSchema.optional(),
+  1342	    }).passthrough().optional(),
+  1343	    pendingCupGiantKillingCelebrations: z.array(z.object({
+  1344	      fixtureId: nonemptyString,
+  1345	      divisionGap: positiveInteger,
+  1346	      title: nonemptyString,
+  1347	      body: nonemptyString,
+  1348	    }).passthrough()).optional(),
+  1349	    clubBusiness: clubBusinessStateSchema,
+  1350	  })
+  1351	  .passthrough()
+  1352	  .superRefine((state, context) => {
+  2750	  return Object.prototype.hasOwnProperty.call(value, key);
+  2751	}
+  2752	
+  2753	/**
+  2754	 * The save-upgrade ladder, ordered by ascending `to`.
+  2755	 *
+  2756	 * Schema 2 deliberately has no schema-1 rung: the honest division ladder
+  2757	 * changes every persisted rival. Development policy permits the break, while
+  2758	 * refusing here prevents a half-old/half-new pyramid from loading silently.
+  2759	 *
+  2760	 * To add a version: raise `GAME_SCHEMA_VERSION` in `src/game/types.ts` and append
+  2761	 * `{ to: <new version>, up }` here. Anything the new schema requires must be
+  2762	 * synthesised by `up`, because an old save will not carry it.
+  2763	 */
+  2764	const GAME_STATE_MIGRATIONS: readonly GameStateMigration[] = [
+  2765	  {
+  2766	    to: 3,
+  2767	    // Player requests added `loyalty`, `awayWeeks` and `playerRequests`, and
+  2768	    // every one of them is optional — loyalty is derived from the career seed
+  2769	    // whenever the field is absent (`src/game/loyalty.ts`), and the request
+  2770	    // state is defaulted during reconciliation. A schema-2 save is therefore
+  2771	    // already a valid schema-3 save and needs nothing synthesised.
+  2772	    //
+  2773	    // The rung still has to exist: the ladder refuses a missing boundary
+  2774	    // outright, so without it every save written before this feature would fail
+  2775	    // to load rather than upgrade.
+  2776	    up: state => state,
+  2777	  },
+  2778	  {
+  2779	    to: 4,
+  2780	    up: migrateSchema3To4,
+  2781	  },
+  2782	  {
+  2783	    to: 5,
+  2784	    up: migrateSchema4To5,
+  2785	  },
+  2786	];
+  2787	
+  2788	function readSchemaVersion(value: unknown, stored: boolean): number {
+  2789	  if (!isRecord(value) || !Number.isSafeInteger(value.schemaVersion)) {
+  2790	    if (stored)
+   195	  storySettledWeek?: number;
+   196	}
+   197	
+   198	interface ResolvedCareerEvent {
+   199	  eventId: string;
+   200	  season: number;
+   201	  week: number;
+   202	}
+   203	
+   204	interface PendingCareerEvent {
+   205	  eventId: string;
+   206	  selectedPlayerId?: string;
+   207	  resolvedChoiceId?: string;
+   208	  outcomeText?: string;
+   209	  /** Stable content outcome identity for save/reload-safe success presentation. */
+   210	  resolvedOutcomeIndex?: number;
+   211	  resolvedRisky?: boolean;
+   212	  resolvedSuccess?: boolean;
+   213	  /** Optional content-authored follow-up offered before the management week advances. */
+   214	  resolvedNextEventId?: string;
+   215	}
+   216	
+   217	interface PendingCareerAwakening {
+   218	  fixtureId: string;
+   219	  playerId: string;
+   220	  power: PowerId;
+   285	  | 'facilities'
+   286	  | 'wages'
+   287	  | 'subsidy'
+   288	  | 'emergency-loan'
+   289	  | 'board-sale'
+   290	  | 'loan-repayment'
+   291	  | 'board-rescue';
+   292	
+   293	export interface LedgerLine {
+   294	  kind: LedgerLineKind;
+   295	  label: string;
+   296	  amount: number;
+   297	  /** Stable identity for cash awards that must survive retries and reloads. */
+   298	  idempotencyKey?: string;
+   299	  /** Present only on varied income lines from report-eligible settlements. */
+   300	  reveal?: LedgerLineReveal;
+   301	}
+   302	
+   303	/**
+   304	 * Saved breakdown of a varied income line, written once at settlement so the
+   305	 * Financial Report replays saved truth and never recomputes money at display
+   370	  | 'coach-dismissal'
+   371	  | 'player-request'
+   372	  | 'event'
+   373	  | 'balance-adjustment';
+   374	
+   375	/**
+   376	 * Immediate M2 cash movements live beside weekly ledgers so buying something
+   377	 * never fabricates or changes a settled week. This is deliberately plain JSON.
+   378	 */
+   379	export interface CashTransaction {
+   380	  id: string;
+   381	  season: number;
+   382	  week: number;
+   383	  kind: CashTransactionKind;
+   384	  label: string;
+   385	  amount: number;
+   386	  balanceAfter: number;
+   387	  referenceId?: string;
+   388	}
+   389	
+   390	/** One player's countable actions in a single finished match. */
+   391	export interface PlayerMatchContribution {
+   392	  playerId: string;
+   455	  };
+   456	  /** Active four-week fail-soft intervention. Optional for all pre-M2 saves. */
+   457	  boardUltimatum?: BoardUltimatumState;
+   458	  /** Most recent outcome, retained so the office can explain what happened. */
+   459	  latestBoardResolution?: BoardUltimatumResolution;
+   460	}
+   461	
+   462	export interface CupGiantKillingCelebration {
+   463	  fixtureId: string;
+   464	  divisionGap: number;
+   465	  title: string;
+   466	  body: string;
+   467	}
+   468	
+   469	export interface BoardSaleCandidate {
+   470	  playerId: string;
+   471	  marketValue: number;
+   472	  forcedSaleFee: number;
+   510	  playerId: string;
+   511	  playerName: string;
+   512	  announcedInSeason: number;
+   513	  retirementAge: number;
+   514	}
+   515	
+   516	export interface SeasonRecapAward {
+   517	  playerId: string;
+   518	  playerName: string;
+   519	  label: string;
+   520	  detail: string;
+   521	}
+   522	
+   523	export interface SeasonRecap {
+   524	  season: number;
+   525	  division: number;
+   526	  finalPosition: number;
+   527	  played: number;
+   528	  won: number;
+   529	  drawn: number;
+   530	  lost: number;
+   531	  goalsFor: number;
+   532	  goalsAgainst: number;
+   533	  cashChange: number;
+   534	  closingCash: number;
+   535	  trainingCapsReached: number;
+   536	  cupResult: string;
+   537	  memorableEventId?: string;
+   538	  topScorer?: SeasonRecapAward;
+   539	  playerOfSeason?: SeasonRecapAward;
+   540	  youngPlayer?: SeasonRecapAward;
+   541	  heroOfSeason?: SeasonRecapAward;
+   542	  /**
+   543	   * Top three per category, denormalised at the season transition.
+   544	   *
+   545	   * The bridge to the awards ceremony. Raw stat rows for rivals are pruned once
+   546	   * a division change regenerates their clubs, so anything the ceremony needs
+   547	   * must be captured here while the players still exist.
+   548	   */
+   549	  divisionAwards?: Record<AwardCategoryId, DivisionAwardPlacement[]>;
+   550	  /**
+   551	   * What those podiums paid, stamped by the season transition that granted it.
+   552	   *
+   553	   * Absent means the transition has not run yet, not that nothing was won. The
+   554	   * ceremony is presented BEFORE the transition, so it shows a projection it
+   555	   * recomputes from `divisionAwards`; this field is the record of the grant,
+   556	   * written afterwards, and it exists so the two can be compared instead of
+   557	   * silently disagreeing. A season that won nothing is stamped with a zero.
+   558	   */
+   559	  divisionAwardPrize?: DivisionAwardPrize;
+   560	}
+   561	
+   562	/** One division title, stamped with the season it was taken. */
+   563	export interface HallOfFameTitle {
+   564	  season: number;
+   565	  division: number;
+   655	  | { readonly kind: 'DRILL_PLAYER'; readonly multiplierPercent: number; readonly weeks: number }
+   656	  | { readonly kind: 'DRILL_SQUAD'; readonly multiplierPercent: number; readonly weeks: number };
+   657	
+   658	type PlayerRequestGrantBonus =
+   659	  | { readonly kind: 'CONDITION_SQUAD'; readonly amount: number }
+   660	  | { readonly kind: 'MORALE_SQUAD'; readonly amount: number };
+   661	
+   662	export interface PlayerRequestDefinition {
+   663	  readonly id: string;
+   664	  readonly title: string;
+   665	  readonly line: string;
+   666	  readonly art: readonly [string, string];
+   667	  readonly cost: PlayerRequestCost;
+   668	  readonly grantBonus?: PlayerRequestGrantBonus;
+   669	}
+   670	
+   671	interface PlayerRequestCadence {
+   672	  readonly minWeeks: number;
+   673	  readonly guaranteeWeeks: number;
+   674	  readonly starMinWeeks: number;
+   675	  readonly starGuaranteeWeeks: number;
+   676	}
+   677	
+   678	interface PlayerRequestTuning {
+   679	  readonly startSeason: number;
+   680	  readonly startWeek: number;
+   681	  readonly baseChancePercent: number;
+   682	  readonly starFameThreshold: number;
+   683	  readonly starGoalRank: number;
+   684	  readonly minSeasonsAtClub: number;
+   685	  readonly answerWeeks: number;
+   686	  readonly cadence: Readonly<Record<DifficultyMode, PlayerRequestCadence>>;
+   687	}
+   688	
+   689	export interface PlayerRequestCatalog {
+   690	  readonly tuning: PlayerRequestTuning;
+   691	  readonly requests: readonly PlayerRequestDefinition[];
+   692	}
+   693	
+   694	export type PlayerRequestResolution = 'GRANTED' | 'REFUSED' | 'LAPSED';
+   695	
+   696	interface PendingPlayerRequest {
+   697	  requestId: string;
+   698	  playerId: string;
+   699	  askedSeason: number;
+   700	  askedWeek: number;
+   745	}
+   746	
+   747	/** Whether Bert teaches this career or limits himself to real club business. */
+   748	export type AssistantMode = 'teacher' | 'advisor';
+   749	
+   750	export interface GameState {
+   751	  schemaVersion: number;
+   752	  /** Marks launch-content roster migrations that have already been applied. */
+   753	  launchRosterVersion?: number;
+   754	  careerSeed: number;
+   755	  userClubId: string;
+   756	  season: number;
+   757	  week: number;
+   758	  phase: GamePhase;
+   759	  /** Old saves omit this and are treated as Cozy. */
+   760	  difficulty?: DifficultyMode;
+   761	  /** Old saves omit this and are taught, exactly as they were. */
+   762	  assistantMode?: AssistantMode;
+   763	  clubs: ClubState[];
+   764	  fixtures: LeagueFixture[];
+   765	  players: CareerPlayer[];
+   766	  lineups: ClubLineupState[];
+   767	  facilities: FacilityState;
+   768	  trainingRules?: TrainingRules;
+   769	  /** Baked request catalog; absent means requests never open for this career. */
+   770	  playerRequestRules?: PlayerRequestCatalog;
+   771	  /** Baked sponsor catalog; restored by launch reconciliation when absent. */
+   772	  sponsorRules?: SponsorRules;
+   773	  eventClock: CareerEventState;
+   774	  eventFlags: string[];
+   775	  resolvedEventIds: string[];
+   776	  /** Season-stamped history used by recaps; absent on pre-M4 saves. */
+   777	  resolvedEventHistory?: ResolvedCareerEvent[];
+   778	  pendingEvent?: PendingCareerEvent;
+   779	  /** This week's manager's-tip decision. Absent on saves written before tips. */
+   780	  deskTip?: DeskTipState;
+   781	  awakening: CareerAwakeningState;
+   782	  /** Optional only so pre-onboarding internal M1 saves remain loadable. */
+   783	  onboarding?: CareerOnboardingState;
+   784	  trainingPoints: number;
+   785	  /**
+   822	  /** M2 sidecars are plain data and defaulted during application reconciliation. */
+   823	  m2?: M2CareerState;
+   824	  market?: CareerMarketState;
+   825	  youthIntake?: YouthIntakeState;
+   826	  retiredPlayers?: CareerPlayer[];
+   827	  pendingLegacyPlayerIds?: string[];
+   828	  /** Current final-season notices presented after a season transition. */
+   829	  retirementAnnouncements?: CareerRetirementAnnouncement[];
+   830	  /** Immutable snapshots used by the season-review presentation. */
+   831	  seasonRecaps?: SeasonRecap[];
+   832	  /**
+   833	   * Written once, when both trophies are in. Absent means the climb is not
+   834	   * finished — or was finished before the record existed, which no career can
+   835	   * be given retroactively.
+   836	   */
+   837	  hallOfFame?: HallOfFameRecord;
+   838	  financialSafety?: FinancialSafetyState;
+   839	  /** Absent on saves written before player requests; defaulted on reconciliation. */
+   840	  playerRequests?: PlayerRequestState;
+   841	  /** Persisted FIFO until Bert has delivered every post-Cup giant-killing walk-on. */
+   842	  pendingCupGiantKillingCelebrations?: CupGiantKillingCelebration[];
+   843	  /** Schema-4 audience and managed-sponsorship state. */
+   844	  clubBusiness: ClubBusinessState;
+   845	}
+   846	
+   847	export interface LeagueStanding {
+   848	  position: number;
+   849	  clubId: string;
+   850	  played: number;
+
+2026-08-06T07:55:53.517970Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 93 column 5
+**Verifying updated specification**
+**Assessing spec and repo status**
+codex
+The spec changed underneath the review: its current section 4.3 now explicitly lists eleven persisted-English surfaces and incorporates several issues that were absent in the version I first read. I’m re-auditing the current file, so the verdict reflects what is actually on disk rather than stale review notes.

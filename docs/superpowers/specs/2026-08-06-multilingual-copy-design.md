@@ -149,8 +149,18 @@ every other content file:
 - Plurals use explicit sibling keys (`.one` / `.other`) resolved by an
   `Intl.PluralRules`-free hand-rolled selector — Hermes' `Intl` coverage varies
   by platform and the game must behave the same on both. The six target
-  languages need only three rules: Germanic/Romance one-vs-other, French
-  (0 and 1 both singular), and Indonesian/Vietnamese (no plural marking at all).
+  languages need exactly three rules:
+
+  | Rule | Locales | Behaviour |
+  | --- | --- | --- |
+  | `n === 1` singular | `es`, `de`, `en` | 0 takes `.other` |
+  | `n === 0 \|\| n === 1` singular | `fr`, **`pt-BR`** | 0 takes `.one` |
+  | no plural marking | `id`, `vi` | always `.other`, one form |
+
+  Brazilian Portuguese belongs with French, not with Spanish — CLDR treats
+  `pt` as `i = 0 or 1 → one`, so "0 jogadores" is wrong and "0 jogador" is
+  right. An earlier draft grouped it as "Germanic/Romance one-vs-other" and
+  would have shipped that bug in every zero-count string.
 
 ### 3.2 Runtime
 
@@ -228,21 +238,37 @@ iOS would silently substitute the system face **per glyph**, producing words
 that switch typeface mid-syllable. Unacceptable.
 
 **Chosen approach: a second pixel face for Vietnamese only.** Two Google Fonts
-were verified to cover the full Vietnamese subset:
+were verified to cover the full Vietnamese subset by parsing their `cmap`:
 
-| Font | Glyphs | Also covers | Look |
-| --- | --- | --- | --- |
-| **VT323** | 568 | Turkish | Solid-stroke bitmap terminal, monospace |
-| **Handjet** | 1322 | Turkish, Cyrillic, Greek | Dot-matrix, variable axes |
+| Font | Glyphs | Weights shipped | Also covers | Look |
+| --- | --- | --- | --- | --- |
+| VT323 | 568 | **400 only** | Turkish | Solid-stroke bitmap terminal, monospace |
+| **Handjet** | 1322 | **400 + 700** (100–900 available) | Turkish, Cyrillic, Greek | Dot-matrix, variable |
 
-Recommendation: **VT323**, because its solid-block strokes sit closer to
-Silkscreen than Handjet's dot-matrix rendering. Final call is a visual QA gate
-during implementation — build one Vietnamese screen in each and look at it.
-Handjet's Cyrillic and Greek coverage is worth noting as future headroom if
-Russian or Greek is ever added.
+**Recommendation: Handjet**, and the reason is structural rather than aesthetic.
+`PixelText.tsx` defines two type voices — `display` is Silkscreen **Bold**,
+`data` is Silkscreen **Regular** — and states outright that a bold request on
+the regular cut "produces synthetic faux-bold, which smears a 1-bit bitmap
+font." VT323 ships a single weight, so choosing it would collapse both voices
+into one face for Vietnamese alone and silently delete a distinction the art
+bible treats as load-bearing. `@expo-google-fonts/handjet` ships
+`Handjet_400Regular` and `Handjet_700Bold` as static cuts, mirroring Silkscreen
+one-for-one, and static cuts sidestep React Native's poor variable-axis support.
 
-**Swap mechanism.** `font-pixel` and `font-mono` are used directly at hundreds
-of call sites, so the swap must not touch them. NativeWind v4 exports `vars()`,
+Handjet's Cyrillic and Greek coverage is free headroom if a future language
+wants them.
+
+**Consequence for §4.2: Handjet is not monospace.** An earlier draft leaned on
+VT323 being monospace to collapse Vietnamese to a single advance constant. That
+shortcut dies with VT323 — `vi` needs a full per-string advance table, measured
+from Handjet's `hmtx`, exactly like Silkscreen's.
+
+What remains open is only the aesthetic call: Handjet renders as separated dots
+where Silkscreen renders solid blocks. Phase 0 renders one real Vietnamese
+screen and confirms it reads as the same game. If it does not, the fallback is
+VT323 **and** an explicit decision to accept one weight for Vietnamese.
+
+**Swap mechanism, part 1: the className sites.** NativeWind v4 exports `vars()`,
 so the two Tailwind families are redefined against CSS custom properties and a
 single root-level `vars()` call rebinds them per locale:
 
@@ -261,7 +287,7 @@ single root-level `vars()` call rebinds them per locale:
 - At render time `runtime/native/resolve-value.ts:85` resolves that descriptor
   against the variables `vars()` injected (`runtime/native/api.ts:116`).
 
-So the whole change is one line of `tailwind.config.js`:
+So the className half is one line of `tailwind.config.js`:
 
 ```js
 fontFamily: { mono: ['var(--font-data)'], pixel: ['var(--font-display)'] },
@@ -270,19 +296,46 @@ fontFamily: { mono: ['var(--font-data)'], pixel: ['var(--font-display)'] },
 plus one `vars()` wrapper at the app root. Every existing `font-pixel` and
 `font-mono` class keeps working untouched, and the swap is live — no relaunch.
 
-Worth being precise about one thing, because `PixelText.tsx` warns that mixing
-`style` and `className` for one visual property "lets either win unpredictably
-on native": this does **not** do that. `fontFamily` is still set only by the
-className pipeline. The `vars()` call supplies the *value* the class resolves
-against; it never sets `fontFamily` itself. The house rule holds.
+This does not violate `PixelText.tsx`'s rule against mixing `style` and
+`className` for one visual property. `fontFamily` is still set only by the
+className pipeline; `vars()` supplies the *value* the class resolves against and
+never sets `fontFamily` itself.
 
-The spike is therefore demoted from a gate to a **smoke test** in Phase 1 —
-render one Vietnamese string on a device and confirm the face changed — since
-source-tracing can be wrong in ways only a device shows.
+**Swap mechanism, part 2: the 13 files `vars()` cannot reach.** An earlier draft
+claimed the swap was "one line and no call-site churn." That was wrong, and it
+was wrong in the worst place. **70 raw `fontFamily: 'Silkscreen_*'` literals
+across 23 files** bypass NativeWind entirely — they are module-scope constants
+feeding `StyleSheet.create`, evaluated once at import, so no runtime rebinding
+can touch them. Ten of those files are `src/ui/dev-harness/` and are exempt
+(§8 gate 6). **Thirteen are player-facing, and they include the match screen:**
 
-Family-name aliasing (registering VT323 as `Silkscreen_700Bold`) is retained
-only as a documented fallback. It costs a relaunch on language change and is
-not needed unless the smoke test fails.
+```
+src/render/CupTitleCard.tsx            src/ui/components/CupBracket.tsx
+src/render/DrillSceneOverlay.tsx       src/ui/components/DrillGainReveal.tsx
+src/render/FirstMatchCoachingModal.tsx src/ui/components/EventRewardArt.tsx
+src/render/match-screen-styles.ts      src/ui/components/TitlePlayerPopScene.tsx
+src/ui/PowerAcquiredDemoModal.tsx      src/ui/screens/AwakeningCutsceneScreen.tsx
+src/ui/TrainingDrillModal.tsx          src/ui/screens/AwakeningArtQaScreen.tsx
+                                       src/ui/screens/PowerArtQaScreen.tsx
+```
+
+Left alone, a Vietnamese player gets correct type everywhere except the
+substitution board, power takeovers, cup cards, the awakening cutscene and the
+first-match coaching modal — i.e. the game's biggest moments.
+
+These 13 files convert to a `useFaces()` hook returning `{ display, data }` from
+the locale store, with their style objects built in render instead of at module
+scope. It is mechanical, it is bounded, and it is an explicit work item in the
+plan rather than something extraction discovers halfway through. The two
+`*ArtQaScreen` files are QA surfaces and may be exempted if that proves cheaper.
+
+**Family-name aliasing is rejected, not held in reserve.** Registering Handjet
+under the `Silkscreen_*` names would fix all 70 sites at once, but it forces an
+app relaunch on every language change — contradicting the live switch §5
+promises — and expo-font will not re-register a family mid-session. If the
+Phase 1 device smoke test contradicts the source trace above, the thing that
+changes is §5's promise, and that is a decision to bring back rather than a
+silent downgrade.
 
 **Rejected: patching Silkscreen.** Silkscreen is OFL 1.1 with no reserved font
 name, so modification is permitted, and it already composes accented letters
@@ -301,107 +354,131 @@ string they have not measured. `CharacterCreationScreen` puts stat labels in a
 reader's iOS text size, and NativeWind's `rem` is 14pt so every `w-` class is
 87.5% of its browser value.
 
-**The failure mode is a crash, not a clip.** `leagueHeaderWidthDemand` and
-`leagueCellWidthDemand` **throw** on any string absent from their advance maps
-(`league-table-columns.ts:114`, `:123`, and the same pattern at
-`squad-register-columns.ts:115`). A German `PKT` header that nobody measured
-does not overflow — it redboxes. `squadRegisterHeaderWidthDemand` behaves the
-same way.
+**Two reviewers disagreed about the failure mode here, so it was checked.** The
+answer: `leagueHeaderWidthDemand` and `leagueCellWidthDemand` **throw** on any
+string absent from their advance maps (`league-table-columns.ts:114`, `:123`,
+same pattern at `squad-register-columns.ts:115`) — but they are imported *only*
+by `src/ui/__tests__/league-table-columns.test.ts`. Nothing calls them at
+runtime.
 
-**And the character budget is not a width check.** Silkscreen is proportional:
-`W` is 1.0em and `P` is 0.75em (`LEAGUE_HEADER_ADVANCE_EM`). A German string can
-sit comfortably under `len × 1.30 + 2` and still overrun its column, or sit over
-the ceiling and fit fine. §1's budget enforces *succinctness*, which is a copy
-goal; it is not, and must not be sold as, a layout guarantee. The earlier claim
-that it was "the only thing standing between the translation and a clipped
-league table" was wrong and is withdrawn.
+So there is **no production redbox**. What ships is:
 
-So the mitigations are not a preference order. Items 1 and 2 are **hard
-dependencies of Phase 2** — no non-English table header or squad-register
-header ships before both are done:
+- **In Jest:** adding a locale header without measuring it *throws*, which is a
+  useful hard failure and the reason gate 8 works at all.
+- **On device:** the UI lays out against the static `LEAGUE_COLUMN_WIDTH`
+  constants (`league-table-columns.ts:91`), which are sized to the **English**
+  headers. A longer German header does not crash — it wraps or clips, exactly
+  the bug the file's own header comment records ("PTS" breaking to "PT" over a
+  lone "S").
+
+**The load-bearing consequence:** those constants must stop meaning "wide enough
+for English" and start meaning **"wide enough for the widest enabled locale."**
+Every column width becomes a max across all enabled locales' measured short
+forms, recomputed whenever a locale is enabled. That is a change to shared
+layout, so it affects the English game too — English columns may get wider — and
+that is correct and intended (§4.2 item 4: one layout, seven fills).
+
+**The character budget is not a width check.** Silkscreen is proportional: `W`
+is 1.0em and `P` is 0.75em (`LEAGUE_HEADER_ADVANCE_EM`); the squad register
+records the same trap (`squad-register-columns.ts:24-39`). A German string can
+sit under `len × 1.30 + 2` and still overrun its column, or sit over the ceiling
+and fit fine. §1's budget enforces *succinctness*, a copy goal. It is not, and
+must not be sold as, a layout guarantee.
+
+So the mitigations are not a preference order. Items 1–3 are **hard dependencies
+of Phase 2** — no non-English table or register header ships before all three:
 
 1. **Per-locale short forms for every advance-mapped string, declared not
    translated.** Table and register headers stay 1–3 characters in every
    language (`PTS` → `PKT` in German, `PTS` in Spanish, `Đ` in Vietnamese).
-   These live in the catalog under a `col.*` namespace that the copy budget
-   does not apply to, because they are layout tokens wearing words.
-2. **Extend the advance maps to cover every one of those strings, per face.**
-   The measurement script that produced the existing em values gets rerun
-   against Silkscreen for the five Latin locales and against the Vietnamese face
-   for `vi`. VT323 is monospace, so `vi` collapses to a single advance constant
-   rather than a per-string table.
-3. A Jest gate asserting that every `col.*` string in every locale has a
-   measured advance **and** fits its column — this is gate 8 in §8, and it is
-   what turns "we remembered to measure it" into something CI can prove.
-4. Beyond the measured tables, the soft-clipping cells (`w-28` stat labels,
-   `w-16` stepper values, `numberOfLines={1}` headers): where a cell genuinely
+   These live in the catalog under a `col.*` namespace exempt from the §1 copy
+   budget, because they are layout tokens wearing words.
+2. **Extend the advance maps to cover every one of those strings, per face** —
+   Silkscreen for the five Latin locales, Handjet for `vi`. Handjet is not
+   monospace, so `vi` needs a full per-string table, not a single constant.
+3. **Recompute `LEAGUE_COLUMN_WIDTH` and its squad-register equivalent as the
+   max across enabled locales,** and assert in Jest that every enabled locale's
+   headers fit. This is gate 8 in §8, and it is what turns "we remembered to
+   measure it" into something CI can prove.
+4. Beyond the measured tables, the soft-clipping cells — `w-28` stat labels and
+   `w-16` stepper values (`CharacterCreationScreen.tsx:44`),
+   `numberOfLines={1}` headers, HUD chips, buttons — have no advance tables at
+   all and are covered only by the budget and device QA. Where a cell genuinely
    cannot hold a language, the layout changes for every language, not just that
-   one — one layout, seven fills.
+   one. Strings that live in fixed cells are the candidates for
+   advance-measured ceilings rather than character ceilings, if device QA shows
+   the budget is not catching them.
 
 ### 4.3 English is baked into save files
 
-Seven persisted surfaces carry English prose through the zod codec into SQLite —
-not the four an earlier draft of this spec claimed, and four of them are
-`strictObject`, not one:
+**Eleven** persisted surfaces carry English prose through the zod codec into
+SQLite. Early drafts of this spec claimed four, then seven; the council found
+the rest. The number is stated precisely because an implementer who works from a
+short list ships a game that still renders English from whatever the list
+missed.
 
-| Surface | Codec | Schema kind | Fix |
-| --- | --- | --- | --- |
-| Ledger line `label` | `:190` | `.passthrough()` | Sibling `labelKey` + `labelParams` |
-| Cash transaction `label` | `:185` | `.passthrough()` | Same |
-| Season recap award `label`, `detail` | `:1132` | `.passthrough()` | Same |
-| Sponsor objective snapshot `label` | `:495` | **`strictObject`** | Sibling fields + version bump |
-| Sponsor contract snapshot `offerLine` | `:510` | **`strictObject`** | Same |
-| Sponsor offer snapshot `offerLine` | `:527` | **`strictObject`** | Same |
-| Sponsor rules `brands[].offerLine`, `objectives[].labelTemplate` | `:458`, `:483` | **`strictObject`** | Same — note this is *content* copied into the save |
+| # | Surface | Codec | Schema | Notes |
+| --- | --- | --- | --- | --- |
+| 1 | Ledger line `label` | `:190` | `.passthrough()` | Built in `game/career.ts:836-1004` |
+| 2 | Cash transaction `label` | `:185` | `.passthrough()` | Also fed from `game/player-requests.ts:422` via `definition.title` |
+| 3 | Season recap award `label`, `detail` | `:1132` | `.passthrough()` | |
+| 4 | Sponsor objective snapshot `label` | `:495` | **`strictObject`** | |
+| 5 | Sponsor contract snapshot `offerLine` | `:510` | **`strictObject`** | Carries `sponsorContentId` (`:508`) — id lookup works |
+| 6 | Sponsor offer snapshot `offerLine` | `:527` | **`strictObject`** | Carries `sponsorContentId` (`:525`) |
+| 7 | Sponsor **rules** `brands[].offerLine`, `objectives[].labelTemplate` | `:458`, `:483`; snapshotted whole at `:1283` | **`strictObject`** | Content copied into the save |
+| 8 | `pendingEvent.outcomeText` | `:758` | optional | Resolved event prose. Sibling `resolvedOutcomeIndex` (`:759`) already persists — the key fix is nearly free |
+| 9 | `pendingCupGiantKillingCelebrations[].title`, `.body` | `:1343-1348` | `.passthrough()` | Four authored Bert speeches from `game/cup-giant-killing.ts:17-46`, persisted whole |
+| 10 | `seasonRecap.cupResult` | `:1176` | free string | Mixes `'Not entered'` / `'Winners'` / `'Entered'` with round labels (`game/season-recap.ts:247-257`); rendered as a panel **title** at `SeasonEndScreen.tsx:166` |
+| 11 | `playerRequestRules.requests[].title`, `.line` | `:429-436` | `.passthrough()` | Content rules copied into the save |
 
 `sponsorName` and club names on these schemas are names, not prose, and are not
 translated (§10).
 
-**The sponsor rules row is the nasty one.** `sponsorRulesSchema` persists a copy
-of `content/sponsors.json` into the career, so English sponsor patter and
-objective templates are frozen at the moment the career was created. Those
-records need keys at snapshot time, and `labelTemplate` — English prose with
-placeholders — has to become a key before it is ever snapshotted, or the
-snapshot preserves English forever.
+**One rendering rule covers all eleven:** a persisted snapshot renders through a
+content-id or key lookup; the stored English is the legacy fallback for careers
+saved before this change. Surfaces 5–7 and 11 already persist the content id
+they came from, so their lookup needs no new field at all — only a renderer that
+prefers the id over the frozen string.
+
+`seasonRecap.cupResult` (10) is the awkward one: it is a *denormalised* string
+that mixes an outcome word with a round label, and §3's claim that "cup round
+labels are already an enum" covers `rounds[].label` but not this sibling. It
+becomes a `{ outcome, round }` pair rendered at the UI.
 
 **Two rules the implementation must not get wrong:**
 
-1. **Always dual-write.** `label` stays `nonemptyString` and stays **required**
-   in the codec. New rows write the English `label` *and* `labelKey` +
-   `labelParams`. A writer that emits only keys fails validation on its own
-   schema. The UI prefers `labelKey` and falls back to `label`; the stored
-   English is the fallback for pre-change careers and the safety net if a key is
-   ever dropped from the catalog.
+1. **Always dual-write.** `label` stays `nonemptyString` and stays **required**.
+   New rows write the English `label` *and* `labelKey` + `labelParams`. A writer
+   that emits only keys fails validation on its own schema. The UI prefers
+   `labelKey` and falls back to `label`.
 2. **`labelParams` carries raw values, never formatted text.** Store
-   `{ fee: 240000 }`, not `{ fee: "$240,000" }`. Formatting is a display
-   concern and belongs at the UI edge — preformatting freezes one locale's
-   thousands separator and currency placement into SQLite, which is the exact
-   bug this section exists to prevent.
+   `{ fee: 240000 }`, not `{ fee: "$240,000" }`. Formatting is a display concern
+   (§3.4) — preformatting freezes one locale's thousands separator and currency
+   placement into SQLite, which is the exact bug this section exists to prevent.
+   Note `career.ts:836-1004` shows `labelParams` must also carry *names* —
+   sponsor, player, facility — and that `FACILITY_CATALOG[...].name` needs keys
+   of its own.
 
-Do **not** relax the four `strictObject` schemas to `.passthrough()` to dodge the
-version bump. Silently dropping unknown keys is worse than a deliberate ladder
-entry; take the bump.
+**On schema versions, precisely.** Adding *optional* `labelKey` / `labelParams`
+fields to the four `strictObject` schemas requires new schema declarations but
+**no `GAME_SCHEMA_VERSION` bump and no migration rung** — old saves parse
+unchanged, because nothing has to be synthesised for them (the ladder at
+`game-state-codec.ts:2764-2786` exists for that case, and this is not that
+case). An earlier draft said "needs a codec schema bump", which was ambiguous
+and is corrected here.
 
-Because three of the four already pass through unknown keys, new fields land
-without a version bump; only the sponsor snapshot forces one. Rendering prefers
-`labelKey` when present and falls back to the stored `label`, so a career saved
-before this change keeps working and shows its historical rows in English while
-everything new is localised. That is honest and it never loses data.
+Do **not** relax those `strictObject` schemas to `.passthrough()` to avoid
+thinking about it. Silently dropping unknown keys is worse than a declaration.
 
-Cup round labels are already a `z.enum(['Play-in', 'Round of 32', …])` — a key
-list wearing English clothes. They render through a lookup with no schema
-change.
-
-**Related pre-existing bug worth fixing here:** several `toLocaleString()` calls
-are unpinned (`view-models.ts:560`, `event-selection.ts:189`, `store.ts` ×4)
-and already vary by device locale — a German device shows `1.234` where an
-American one shows `1,234`. All number formatting gets routed through one
-helper that takes the game language, not the device locale.
-
-Money stays `$`. The currency is fictional and the symbol is part of the game's
-look; only grouping separators localise.
-
----
+**Event outcomes have no ids, and that is a trap.** Outcomes in
+`content/events.json` are anonymous weighted entries (`weight`, `text`,
+`successHeadline`) with no `id`. Keying their translations by array index means
+a future reordering silently reassigns every translated outcome to the wrong
+event branch — a corruption that no CI gate above would catch, because every
+key would still resolve. **Add explicit `id` fields to event outcomes in
+Phase 1**, before any outcome is translated. A frozen-order CI assertion is the
+weaker alternative and should only be taken if adding ids proves to break
+something.
 
 ## 5. The language picker
 
@@ -422,6 +499,12 @@ look; only grouping separators localise.
 ```
 
 - Each language is written **in itself**, never "Spanish".
+- **"Tiếng Việt" cannot render in Silkscreen** — it contains `ế` and `ệ`, two of
+  the glyphs §4.1 proves are missing. That one row must draw in the Vietnamese
+  face (or the `body` face) **in every locale**, or the picker itself exhibits
+  the mid-word typeface substitution this whole section exists to prevent. The
+  row is a per-language literal, so it carries its own face rather than
+  inheriting the active one.
 - English is preselected. First launch may *suggest* the device language by
   scrolling it into view, but never auto-applies it — the owner asked for
   English as the default and a silently-Spanish first launch is worse than a
@@ -432,17 +515,32 @@ look; only grouping separators localise.
   tapping expands the list. On the phone layout this keeps the screen from
   growing a seventh scroll section.
 
+**A non-English player reads several English screens first, and that is
+accepted.** Title → story → assistant-mode choice → welcome all render before
+`CharacterCreationScreen` (`App.tsx:1640-1687`). The owner asked for the picker
+on the signing screen, so that is where it goes; the consequence is recorded
+here rather than discovered later. If it grates in device QA, the cheap fix is a
+globe icon on the title screen writing the same preference — noted as a
+follow-up, not built speculatively.
+
 **Secondary placement: Settings.** `SettingsOverlay` gets the same control, so
 the choice is changeable mid-career and is not a one-time trap.
 
 **Persistence.** A `language: Locale` field on `AppPreferences`, defaulting to
 `'en'`. `PREFERENCES_SCHEMA_VERSION` in
 [`preferences-repository.ts:13`](src/persistence/preferences-repository.ts) is
-**already 9**, so this bumps it to **10** and adds
-`LANGUAGE_PREFERENCES_SCHEMA_VERSION = 9` to the migration ladder alongside the
-eight existing constants, defaulting `language` to `'en'` on every older row.
-Note that `PreferencesSchema` is a `z.strictObject` — a new field without the
-matching schema entry fails validation outright rather than being ignored.
+**already 9**, so this bumps it to **10**.
+
+Naming matters here and is easy to get backwards. The existing ladder names each
+constant after the feature *added at* that version, and the rung parses rows
+that already have it — `CLIMB_COMPLETED_PREFERENCES_SCHEMA_VERSION = 8`
+(`:21`, used at `:151`) handles rows that have `climbCompleted`. The version-9
+rung therefore parses rows that have `developerMode` but **not** `language`, so
+it is named after `developerMode`, not after language. The new constant is what
+`PREFERENCES_SCHEMA_VERSION` becomes: `10`.
+
+`PreferencesSchema` is a `z.strictObject`, so a new field without a matching
+schema entry fails validation outright rather than being ignored.
 
 It is a device preference, not a career preference — one player, one language,
 across careers.
@@ -524,8 +622,9 @@ late-career events, the full coach-reaction pool, the glossary, blame lines.
 
 ### 7.3 The phases
 
-**Phase 0 — decide the Vietnamese face.** Render Vietnamese in VT323 and
-Handjet at the game's real sizes and pick one (§11 decision 1). The `vars()`
+**Phase 0 — decide the Vietnamese face.** Render Vietnamese in Handjet (400 and
+700) and VT323 at the game's real sizes and pick one (§11 decision 1). Handjet
+is the recommendation; the check is aesthetic, not structural. The `vars()`
 mechanism no longer needs a spike (§4.1); it needs a device smoke test, which
 rides along in Phase 1.
 
@@ -542,6 +641,13 @@ This is the phase that must not regress anything, so its exit criteria are hard:
 - Gate 6 (no hardcoded prose) reports zero violations outside the exempt paths.
 - Device pass over the five length-sensitive screens (§8) in English, confirming
   nothing moved.
+- **The 13 raw-`fontFamily` files (§4.1) converted to `useFaces()`**, and the
+  device smoke test confirming a locale switch changes the face on the match
+  screen — not just on className-styled chrome.
+- **Explicit `id` fields added to event outcomes** in `content/events.json`
+  (§4.3), before any outcome is translated.
+- `CFBundleLocalizations` set in `app.json` (§10.1), so the one native rebuild
+  this project needs happens here.
 
 **Phase 2 — Spanish end-to-end, plus the layout work.** The cost probe. Includes
 the §4.2 hard dependencies — per-locale `col.*` short forms and extended advance
@@ -556,9 +662,10 @@ set, or reduce the quality machinery — not after five more languages are half
 done.
 
 **Phase 3 — Vietnamese.** Third, not last, because it is the one that can fail
-on font grounds, and failing early is cheaper. VT323 is monospace and Silkscreen
-is not, so **every advance-mapped width shifts for `vi` alone**; re-measurement
-is critical path here, not a follow-up.
+on font grounds, and failing early is cheaper. Handjet has different advances
+from Silkscreen, so **every advance-mapped width shifts for `vi` alone** and
+`LEAGUE_COLUMN_WIDTH` widens to the max across enabled locales (§4.2);
+re-measurement is critical path here, not a follow-up.
 
 **Phase 4 — Portuguese, French, German, Indonesian.** German last within the
 group; it is the longest and will surface any remaining layout ceilings.
@@ -611,10 +718,22 @@ All locale-scoped gates run against `ENABLED_LOCALES` only (§7.1).
    for column advances. Catches a stray `ı`, a smart quote, or an em dash that
    Silkscreen does not have.
 6. **No hardcoded prose — an ESLint job, not a Jest test.** A rule over
-   `src/ui/`, `src/application/` and `App.tsx` rejecting JSX text nodes and
-   prose literals outside the catalog. It needs TSX AST access that the node
-   Jest suite cannot provide, so it runs as its own CI step. Developer-mode,
-   `src/ui/dev-harness/` and `src/audit/` strings are exempt and stay English.
+   `src/ui/`, **`src/render/`**, `src/application/` and `App.tsx` rejecting JSX
+   text nodes and prose literals outside the catalog. It needs TSX AST access
+   that the node Jest suite cannot provide, so it runs as its own CI step.
+   `src/ui/dev-harness/`, `src/audit/` and developer-mode strings are exempt and
+   stay English.
+
+   `src/render/` is called out because an earlier draft omitted it while §6's
+   own table counts 358 strings across 59 render-ring files. Left out, the
+   substitution board, power takeovers and coaching modals could keep hardcoded
+   English forever and still pass CI.
+
+   **The rule must also cover accessibility props.** There are **343**
+   `accessibilityLabel` / `accessibilityHint` strings outside tests and the dev
+   harness. They are props, not JSX text nodes, so a naive rule is structurally
+   blind to them — and the result is VoiceOver reading English to players in six
+   languages. They are in scope, and they count toward the §6 totals.
 7. **Golden replay still matches, or the bump is deliberate.** The earlier
    wording — "localisation must not touch `ENGINE_VERSION`" — was a prohibition
    dressed as a test, and prohibitions do not catch anything. The real gate is
@@ -775,14 +894,31 @@ which the catalog format makes a one-line data change rather than a code edit.
 - Locale-specific currency, date, or calendar systems. The game's week/season
   clock is fictional.
 
+### 10.1 Two native changes that are IN scope, and cost a rebuild
+
+Both are easy to mistake for store metadata. Neither is.
+
+- **`CFBundleLocalizations` in `app.json`.** Without it iOS reports the app as
+  English-only and the App Store page does not list the seven languages, however
+  well the in-app picker works. This is app config, not listing copy.
+- **`expo-localization`, if the picker suggests the device language.** It is not
+  in `package.json` today, so adding it is a new native dependency — which per
+  this project's own phone-dev rules means a rebuild, not a Metro reload. If
+  Open Decision 3 lands on "do not suggest", this dependency is not needed at
+  all; that is a point in favour of not suggesting.
+
+Both land in Phase 1 so the single rebuild covers them together.
+
 ---
 
 ## 11. Open decisions
 
-1. **VT323 vs Handjet** for Vietnamese — open. Resolved by the Phase 0 visual
-   gate: render Vietnamese at real game sizes in both and pick. VT323 is the
-   recommendation (solid strokes, closer to Silkscreen); Handjet's Cyrillic and
-   Greek coverage is the argument for it if a future language wants them.
+1. **VT323 vs Handjet** for Vietnamese — **Handjet recommended**, on structural
+   grounds: it ships 400 and 700 cuts and so preserves the game's two type
+   voices, where VT323's single weight would collapse them (§4.1). What remains
+   open is purely aesthetic — Handjet's dots versus Silkscreen's solid blocks —
+   and Phase 0 settles it by rendering one real Vietnamese screen. Choosing
+   VT323 anyway means consciously accepting one weight for Vietnamese.
 2. ~~`vars()` vs family-name aliasing~~ — **closed.** `vars()` is verified
    working on native by source-tracing `react-native-css-interop@0.2.6` (§4.1).
    Family-name aliasing is rejected as a product path, not held as a fallback:
