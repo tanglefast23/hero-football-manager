@@ -7,6 +7,9 @@ import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Silkscreen_400Regular, Silkscreen_700Bold } from '@expo-google-fonts/silkscreen';
+import { Handjet_400Regular, Handjet_700Bold } from '@expo-google-fonts/handjet';
+import { vars } from 'nativewind';
+import { LocaleProvider, facesFor, type Locale } from './src/i18n';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   loadLaunchContent,
@@ -290,7 +293,7 @@ function PowerMatchQaApp() {
   const powerMatchQa = useMemo(() => ({
     power: power.id,
   }), [power.id]);
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
 
   return (
     <SafeAreaProvider>
@@ -361,7 +364,7 @@ function PowerMatchQaApp() {
 }
 
 function PowerCutInQaApp() {
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
   return (
     <SafeAreaProvider>
       {!fontsLoaded ? <LoadingScreen /> : (
@@ -391,7 +394,7 @@ function PowerArtQaApp() {
   const powerCount = powers.length;
   const powerIndex = selectedPowerIndex % powerCount;
   const power = powers[powerIndex];
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
 
   return (
     <SafeAreaProvider>
@@ -426,7 +429,7 @@ function AwakeningArtQaApp({ triggerId }: { triggerId: string }) {
   });
   const triggerCount = content.onboarding.triggers.length;
   const triggerIndex = Math.min(selectedTriggerIndex, triggerCount - 1);
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
   const trigger = content.onboarding.triggers[triggerIndex];
 
   if (!fontsLoaded) return <LoadingScreen />;
@@ -449,7 +452,7 @@ function AwakeningArtQaApp({ triggerId }: { triggerId: string }) {
 }
 
 function AwardsCeremonyQaApp() {
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
 
   return (
     <SafeAreaProvider>
@@ -464,7 +467,7 @@ function AwardsCeremonyQaApp() {
 }
 
 function DevHarnessApp() {
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
 
   return (
     <SafeAreaProvider>
@@ -537,7 +540,7 @@ function GameApp() {
   // The navigation press creates the new cue; its own pointer-up must not also
   // count as the "next tap" that dismisses it.
   const skipNextGuidanceDismissRef = useRef(false);
-  const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const [globalGlossaryOpen, setGlobalGlossaryOpen] = useState(false);
   const [globalPrivacySupportOpen, setGlobalPrivacySupportOpen] = useState(false);
@@ -615,6 +618,9 @@ function GameApp() {
   }, [savePreferences]);
   const setVolume = useCallback((masterVolume: DevVolume) => {
     savePreferences({ ...preferencesRef.current, masterVolume });
+  }, [savePreferences]);
+  const setLanguage = useCallback((language: Locale) => {
+    savePreferences({ ...preferencesRef.current, language });
   }, [savePreferences]);
   const toggleReduceMotion = useCallback(() => {
     const current = preferencesRef.current;
@@ -2285,7 +2291,13 @@ function GameApp() {
     );
   }
 
+  // Silkscreen cannot draw Vietnamese, so `vi` renders in Handjet. Binding both
+  // faces to CSS variables here is what lets every `font-pixel` / `font-mono`
+  // class in the app follow the language without being touched.
+  const faces = facesFor(preferences.language);
+
   return (
+    <LocaleProvider value={preferences.language}>
     <SafeAreaProvider>
       <StatusBar
         style={(
@@ -2297,7 +2309,10 @@ function GameApp() {
           || store.screen === 'awakening'
         ) ? 'light' : 'dark'}
       />
-      <View className="flex-1 bg-ink">
+      <View
+        className="flex-1 bg-ink"
+        style={vars({ '--font-display': faces.display, '--font-data': faces.data })}
+      >
         <View
           className="flex-1"
           accessibilityElementsHidden={pendingConfirmation !== null}
@@ -2655,6 +2670,7 @@ function GameApp() {
         />
       </View>
     </SafeAreaProvider>
+    </LocaleProvider>
   );
 }
 
@@ -2665,7 +2681,7 @@ function AwakeningReviewApp({ triggerId }: { triggerId: string }) {
     return requestedIndex >= 0 ? requestedIndex : 0;
   });
   const trigger = content.onboarding.triggers[triggerIndex];
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
   const [previewBeat, setPreviewBeat] = useState<1 | 2 | 3>(1);
   const nextTriggerIndex = (triggerIndex + 1) % content.onboarding.triggers.length;
 

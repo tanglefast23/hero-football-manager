@@ -39,10 +39,23 @@ module.exports = {
         sky: '#a3c8f0', // light blue — eyebrows / accents on dark
       },
       fontFamily: {
-        // Silkscreen bitmap pixel font — the game's display/label voice.
-        // Loaded at runtime in App.tsx via @expo-google-fonts/silkscreen.
-        mono: ['Silkscreen_400Regular'],
-        pixel: ['Silkscreen_700Bold'],
+        // Resolved at runtime from the `vars()` call at the app root, so the
+        // language picker swaps the face live without touching the hundreds of
+        // `font-pixel` / `font-mono` call sites. Faces are loaded in App.tsx.
+        //
+        // Silkscreen maps 226 glyphs — Latin-1 only — so Vietnamese renders in
+        // Handjet instead. Verified against react-native-css-interop 0.2.6:
+        // `font-family` is in `validProperties`
+        // (css-to-rn/parseDeclaration.ts:174), so a `var()` value arrives as an
+        // unparsed declaration, routes through `parseUnparsed` to a runtime var
+        // descriptor, and is resolved by runtime/native/resolve-value.ts
+        // against the variables `vars()` injected. This works on native, not
+        // only on web.
+        //
+        // The fallbacks are what the variables resolve to before the provider
+        // mounts, and what a non-NativeWind consumer would see.
+        mono: ['var(--font-data, Silkscreen_400Regular)'],
+        pixel: ['var(--font-display, Silkscreen_700Bold)'],
       },
     },
   },
