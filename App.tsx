@@ -1651,6 +1651,8 @@ function GameApp() {
     screen = (
       <TitleLandingScreen
         hasSavedCareer={store.hasSavedCareer}
+        language={preferences.language}
+        onLanguageChange={setLanguage}
         reduceMotion={reduceMotion}
         onStory={() => setLandingView('story')}
         onSettings={() => setLandingView('settings')}
@@ -1701,8 +1703,6 @@ function GameApp() {
       <CharacterCreationScreen
         initialDifficulty={store.career.difficulty ?? 'CHAIRMAN'}
         onComplete={completeRookieCreation}
-        language={preferences.language}
-        onLanguageChange={setLanguage}
       />
     );
   } else if (

@@ -6,6 +6,8 @@ import { ChalkboardBackdrop, PaperSticker } from '../components/ChalkboardStage'
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { FormationDiagram } from '../components/FormationDiagram';
 import { FORMATION_LABELS } from '../../sim/tactics';
+import { LanguageButton } from '../components/LanguageButton';
+import type { Locale } from '../../i18n';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import type { AppPreferences } from '../../persistence';
 import type { GlossaryCatalog } from '../../content';
@@ -20,6 +22,13 @@ export interface TitleLandingScreenProps {
   reduceMotion?: boolean;
   onStory: () => void;
   onSettings: () => void;
+  /**
+   * Language lives here because this is the screen every player lands on, every
+   * launch — so it is reachable before the first decision, without hunting
+   * through Settings.
+   */
+  language: Locale;
+  onLanguageChange: (locale: Locale) => void;
 }
 
 export function TitleLandingScreen({
@@ -27,6 +36,8 @@ export function TitleLandingScreen({
   reduceMotion = false,
   onStory,
   onSettings,
+  language,
+  onLanguageChange,
 }: TitleLandingScreenProps) {
   const { width, height } = useWindowDimensions();
   const isWide = layoutModeForWidth(width) === 'twoColumn' && height >= 600;
@@ -104,6 +115,8 @@ export function TitleLandingScreen({
               reduceMotion={reduceMotion}
               onStory={onStory}
               onSettings={onSettings}
+              language={language}
+              onLanguageChange={onLanguageChange}
             />
           </View>
         </View>
@@ -117,11 +130,15 @@ function TitleMenu({
   reduceMotion,
   onStory,
   onSettings,
+  language,
+  onLanguageChange,
 }: {
   readonly hasSavedCareer: boolean;
   readonly reduceMotion: boolean;
   readonly onStory: () => void;
   readonly onSettings: () => void;
+  readonly language: Locale;
+  readonly onLanguageChange: (locale: Locale) => void;
 }) {
   return (
     <View className="relative z-20">
@@ -132,6 +149,9 @@ function TitleMenu({
         <View className="mb-1 flex-row items-center justify-between">
           <Text className="font-pixel text-[10px] uppercase tracking-[1px] text-ink/60">Pick your boots</Text>
           {hasSavedCareer ? <StatusChip label="Save found" tone="success" /> : <StatusChip label="New file" tone="hero" />}
+        </View>
+        <View className="mb-1 flex-row justify-end">
+          <LanguageButton value={language} onChange={onLanguageChange} />
         </View>
         <Pressable
           accessibilityRole="button"
