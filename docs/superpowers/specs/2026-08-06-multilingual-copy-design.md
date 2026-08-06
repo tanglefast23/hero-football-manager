@@ -197,11 +197,39 @@ single root-level `vars()` call rebinds them per locale:
 <View style={vars({ '--font-display': displayFace, '--font-data': dataFace })}>
 ```
 
-This needs a **spike before the plan is committed**: confirm `fontFamily`
-resolves through a CSS variable on iOS native, not just on web. If it does not,
-the fallback is registering VT323 under the family names `Silkscreen_700Bold` /
-`Silkscreen_400Regular` at boot — same zero-call-site-churn result, but a
-language change then requires an app relaunch.
+**This is verified, not hoped for.** Traced through
+`react-native-css-interop@0.2.6`, which NativeWind v4 wraps:
+
+- `font-family: var(--font-display)` reaches the compiler as an **unparsed**
+  declaration, and `isValid()` accepts it because `"font-family"` is in
+  `validProperties` (`css-to-rn/parseDeclaration.ts:174`).
+- It routes to `parseUnparsed` (`:344`), whose `case "var"` (`:1683`) emits a
+  runtime var descriptor rather than a literal.
+- At render time `runtime/native/resolve-value.ts:85` resolves that descriptor
+  against the variables `vars()` injected (`runtime/native/api.ts:116`).
+
+So the whole change is one line of `tailwind.config.js`:
+
+```js
+fontFamily: { mono: ['var(--font-data)'], pixel: ['var(--font-display)'] },
+```
+
+plus one `vars()` wrapper at the app root. Every existing `font-pixel` and
+`font-mono` class keeps working untouched, and the swap is live — no relaunch.
+
+Worth being precise about one thing, because `PixelText.tsx` warns that mixing
+`style` and `className` for one visual property "lets either win unpredictably
+on native": this does **not** do that. `fontFamily` is still set only by the
+className pipeline. The `vars()` call supplies the *value* the class resolves
+against; it never sets `fontFamily` itself. The house rule holds.
+
+The spike is therefore demoted from a gate to a **smoke test** in Phase 1 —
+render one Vietnamese string on a device and confirm the face changed — since
+source-tracing can be wrong in ways only a device shows.
+
+Family-name aliasing (registering VT323 as `Silkscreen_700Bold`) is retained
+only as a documented fallback. It costs a relaunch on language change and is
+not needed unless the smoke test fails.
 
 **Rejected: patching Silkscreen.** Silkscreen is OFL 1.1 with no reserved font
 name, so modification is permitted, and it already composes accented letters
@@ -220,16 +248,42 @@ string they have not measured. `CharacterCreationScreen` puts stat labels in a
 reader's iOS text size, and NativeWind's `rem` is 14pt so every `w-` class is
 87.5% of its browser value.
 
-Mitigations, in order of preference:
+**The failure mode is a crash, not a clip.** `leagueHeaderWidthDemand` and
+`leagueCellWidthDemand` **throw** on any string absent from their advance maps
+(`league-table-columns.ts:114`, `:123`, and the same pattern at
+`squad-register-columns.ts:115`). A German `PKT` header that nobody measured
+does not overflow — it redboxes. `squadRegisterHeaderWidthDemand` behaves the
+same way.
 
-1. The §1 character budget, enforced in CI. This prevents most of it.
-2. Short forms for the worst offenders — table headers stay 1–3 characters in
-   every language (`PTS` → `PKT` in German, `PTS` in Spanish, `Đ` in
-   Vietnamese), declared per locale rather than translated.
-3. Re-measure the advance tables per face. VT323 is monospace, which makes the
-   Vietnamese measurement a single number rather than a per-string table.
-4. Where a cell genuinely cannot hold a language, the layout changes for every
-   language, not just that one — one layout, seven fills.
+**And the character budget is not a width check.** Silkscreen is proportional:
+`W` is 1.0em and `P` is 0.75em (`LEAGUE_HEADER_ADVANCE_EM`). A German string can
+sit comfortably under `len × 1.30 + 2` and still overrun its column, or sit over
+the ceiling and fit fine. §1's budget enforces *succinctness*, which is a copy
+goal; it is not, and must not be sold as, a layout guarantee. The earlier claim
+that it was "the only thing standing between the translation and a clipped
+league table" was wrong and is withdrawn.
+
+So the mitigations are not a preference order. Items 1 and 2 are **hard
+dependencies of Phase 2** — no non-English table header or squad-register
+header ships before both are done:
+
+1. **Per-locale short forms for every advance-mapped string, declared not
+   translated.** Table and register headers stay 1–3 characters in every
+   language (`PTS` → `PKT` in German, `PTS` in Spanish, `Đ` in Vietnamese).
+   These live in the catalog under a `col.*` namespace that the copy budget
+   does not apply to, because they are layout tokens wearing words.
+2. **Extend the advance maps to cover every one of those strings, per face.**
+   The measurement script that produced the existing em values gets rerun
+   against Silkscreen for the five Latin locales and against the Vietnamese face
+   for `vi`. VT323 is monospace, so `vi` collapses to a single advance constant
+   rather than a per-string table.
+3. A Jest gate asserting that every `col.*` string in every locale has a
+   measured advance **and** fits its column — this is gate 8 in §8, and it is
+   what turns "we remembered to measure it" into something CI can prove.
+4. Beyond the measured tables, the soft-clipping cells (`w-28` stat labels,
+   `w-16` stepper values, `numberOfLines={1}` headers): where a cell genuinely
+   cannot hold a language, the layout changes for every language, not just that
+   one — one layout, seven fills.
 
 ### 4.3 English is baked into save files
 
