@@ -4,6 +4,7 @@ import { leagueStandings } from '../career';
 import {
   DIVISION_AWARD_PRIZE_TAPER_PERCENT,
   divisionAwardPrize,
+  divisionAwardPrizeCashPerCategory,
   divisionAwardPrizePerCategory,
   divisionAwardPrizeTotal,
 } from '../division-award-prize';
@@ -33,7 +34,7 @@ describe('divisionAwardPrize', () => {
       targetDivision: 5,
     });
 
-    expect(prize).toEqual({ trainingPoints: 0, categoriesWon: [] });
+    expect(prize).toEqual({ money: 0, categoriesWon: [] });
   });
 
   test('one board pays the entered division rate once', () => {
@@ -43,7 +44,7 @@ describe('divisionAwardPrize', () => {
       targetDivision: 5,
     });
 
-    expect(prize).toEqual({ trainingPoints: 120, categoriesWon: ['tacklesWon'] });
+    expect(prize).toEqual({ money: divisionAwardPrizeCashPerCategory(5), categoriesWon: ['tacklesWon'] });
   });
 
   test('a sweep pays the tapered total, not four full rates', () => {
@@ -53,7 +54,7 @@ describe('divisionAwardPrize', () => {
       targetDivision: 5,
     });
 
-    expect(prize.trainingPoints).toBe(120 + 90 + 60 + 30);
+    expect(prize.money).toBe(divisionAwardPrizeTotal(5, 4));
     expect(prize.categoriesWon).toEqual(CATEGORIES);
   });
 
@@ -69,7 +70,7 @@ describe('divisionAwardPrize', () => {
       targetDivision: 4,
     });
 
-    expect(forwards.trainingPoints).toBe(spine.trainingPoints);
+    expect(forwards.money).toBe(spine.money);
   });
 
   test('a rival top placing pays nothing, even with our man second', () => {
@@ -82,7 +83,7 @@ describe('divisionAwardPrize', () => {
       targetDivision: 5,
     });
 
-    expect(prize).toEqual({ trainingPoints: 120, categoriesWon: ['goals'] });
+    expect(prize).toEqual({ money: divisionAwardPrizeCashPerCategory(5), categoriesWon: ['goals'] });
   });
 
   test('a save written before the boards existed pays nothing', () => {
@@ -92,7 +93,7 @@ describe('divisionAwardPrize', () => {
       recap: withoutAwards,
       userClubId: USER_CLUB,
       targetDivision: 5,
-    })).toEqual({ trainingPoints: 0, categoriesWon: [] });
+    })).toEqual({ money: 0, categoriesWon: [] });
   });
 
   /**
@@ -114,7 +115,7 @@ describe('divisionAwardPrize', () => {
 
     // The three surviving boards are still paid; only the absent one is skipped.
     expect(prize.categoriesWon).toEqual(['passesCompleted', 'tacklesWon', 'saves']);
-    expect(prize.trainingPoints).toBe(divisionAwardPrizeTotal(5, 3));
+    expect(prize.money).toBe(divisionAwardPrizeTotal(5, 3));
   });
 
   test('a record with every category missing pays a zero, not an error', () => {
@@ -124,7 +125,7 @@ describe('divisionAwardPrize', () => {
     };
 
     expect(divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 5 }))
-      .toEqual({ trainingPoints: 0, categoriesWon: [] });
+      .toEqual({ money: 0, categoriesWon: [] });
   });
 
   test('the same sweep is worth more promoted than relegated', () => {
@@ -133,9 +134,9 @@ describe('divisionAwardPrize', () => {
     const promoted = divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 3 });
     const relegated = divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 5 });
 
-    expect(promoted.trainingPoints).toBeGreaterThan(relegated.trainingPoints);
-    expect(promoted.trainingPoints).toBe(divisionAwardPrizeTotal(3, CATEGORIES.length));
-    expect(relegated.trainingPoints).toBe(divisionAwardPrizeTotal(5, CATEGORIES.length));
+    expect(promoted.money).toBeGreaterThan(relegated.money);
+    expect(promoted.money).toBe(divisionAwardPrizeTotal(3, CATEGORIES.length));
+    expect(relegated.money).toBe(divisionAwardPrizeTotal(5, CATEGORIES.length));
   });
 
   test('every tier of the pyramid is priced, and nothing outside it is', () => {
@@ -169,9 +170,12 @@ describe('divisionAwardPrize', () => {
 });
 
 describe('the diminishing-returns curve', () => {
-  test('pays the shipped D5 totals', () => {
+  test('pays the shipped D5 cash totals', () => {
+    // 120 TP a board at D5, converted at $40 and lifted a tenth: $5,280 for the
+    // first, then the 75/50/25 taper on the same figure.
+    expect(divisionAwardPrizeCashPerCategory(5)).toBe(5_280);
     expect([0, 1, 2, 3, 4].map(count => divisionAwardPrizeTotal(5, count)))
-      .toEqual([0, 120, 210, 270, 300]);
+      .toEqual([0, 5_280, 9_240, 11_880, 13_200]);
   });
 
   /**
@@ -211,8 +215,10 @@ describe('banking the prize at the season transition', () => {
     // The club went up, so paying the played division would be a different
     // number: this is what pins the rate to the division being entered.
     expect(entered).toBeLessThan(recapBefore.division);
-    expect(next.trainingPoints - state.trainingPoints)
+    expect(userCash(next) - userCash(state))
       .toBe(divisionAwardPrizeTotal(entered, 1));
+    // TP is untouched now that the board pays cash.
+    expect(next.trainingPoints).toBe(state.trainingPoints);
   });
 
   test('the granted figure is recorded on the season it was won in', () => {
@@ -222,13 +228,13 @@ describe('banking the prize at the season transition', () => {
 
     const stamped = next.seasonRecaps!.find(recap => recap.season === state.season)!;
     expect(stamped.divisionAwardPrize).toEqual({
-      trainingPoints: divisionAwardPrizeTotal(currentUserDivision(next.m2!), 2),
+      money: divisionAwardPrizeTotal(currentUserDivision(next.m2!), 2),
       categoriesWon: ['goals', 'saves'],
     });
     // The taper has to survive the trip through the transition, not just the
     // pure function: two boards must bank less than two full rates.
-    expect(stamped.divisionAwardPrize!.trainingPoints)
-      .toBeLessThan(divisionAwardPrizePerCategory(currentUserDivision(next.m2!)) * 2);
+    expect(stamped.divisionAwardPrize!.money)
+      .toBeLessThan(divisionAwardPrizeCashPerCategory(currentUserDivision(next.m2!)) * 2);
   });
 
   test('a season that won nothing is stamped with a zero rather than left blank', () => {
@@ -238,11 +244,16 @@ describe('banking the prize at the season transition', () => {
 
     const next = promoteAndStartNextSeason(state);
 
-    expect(next.trainingPoints).toBe(state.trainingPoints);
+    expect(userCash(next)).toBe(userCash(state));
     expect(next.seasonRecaps!.find(recap => recap.season === state.season)!.divisionAwardPrize)
-      .toEqual({ trainingPoints: 0, categoriesWon: [] });
+      .toEqual({ money: 0, categoriesWon: [] });
   });
 });
+
+/** The user club's cash, which is where the boards now pay. */
+function userCash(state: GameState): number {
+  return state.clubs.find(club => club.id === state.userClubId)!.cash;
+}
 
 function promoteAndStartNextSeason(state: GameState): GameState {
   const rows = leagueStandings(state);

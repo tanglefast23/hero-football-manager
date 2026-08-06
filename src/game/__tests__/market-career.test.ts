@@ -9,6 +9,7 @@ import {
   applyCareerNegotiationConsequence,
   acceptCareerTransferBid,
   beginCareerRenewalTalks,
+  submitCareerRenewalOffer,
   beginCareerTransferTalks,
   closeCareerRenewalTalks,
   closeCareerTransferTalks,
@@ -939,6 +940,38 @@ describe('career market integration', () => {
     expect(applied.market.clubFameAdjustment).toBe(-2);
     expect(applied.market.transferTalks?.consequenceApplied).toBe(true);
     expect(repeated).toEqual(applied);
+  });
+
+  test('applies an insulting renewal consequence to the club’s own player', () => {
+    // The renewal path used to resolve the player with the TRANSFER lookup,
+    // which deliberately skips the user's club. Every insulting renewal offer
+    // therefore threw `unknown negotiation player <yourPlayer>` at exactly the
+    // moment the morale hit was owed, stranding the season-end screen.
+    const initial = createCareer(createLaunchCareerSetup(20260806));
+    const expiring = initial.players.find(player => player.clubId === initial.userClubId)!;
+    const seasonEnd = {
+      ...initial,
+      phase: 'season-end' as const,
+      players: initial.players.map(player => (
+        player.id === expiring.id
+          ? { ...player, contractSeasonsRemaining: 0, loyalty: 80 }
+          : player
+      )),
+    };
+    const talks = beginCareerRenewalTalks(seasonEnd, seasonEnd.market!, expiring.id);
+    const insulted = submitCareerRenewalOffer(talks, {
+      weeklyWage: 1,
+      termSeasons: 1,
+      perk: 'JERSEY_10',
+    });
+
+    const applied = applyCareerNegotiationConsequence(seasonEnd, insulted, 'renewal');
+
+    expect(applied.state.players.find(player => player.id === expiring.id)?.morale)
+      .toBe(Math.max(0, expiring.morale - 10));
+    expect(applied.market.renewalTalks?.consequenceApplied).toBe(true);
+    expect(applyCareerNegotiationConsequence(applied.state, applied.market, 'renewal'))
+      .toEqual(applied);
   });
 
   test('retains paid scouting work when the preseason coach market refreshes', () => {

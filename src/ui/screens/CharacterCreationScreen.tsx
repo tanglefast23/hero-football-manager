@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
@@ -43,6 +43,15 @@ export interface CharacterCreationScreenProps {
  */
 const STEPPER_MAX_FONT_SIZE_MULTIPLIER = 1.2;
 
+/**
+ * The name field is focused by id rather than by ref: every styled element on
+ * this screen is wrapped by NativeWind's cssInterop component, which does not
+ * hand a ref down to the underlying input, so `ref.current` stays null. `id` and
+ * not `nativeID`: react-native-web no longer forwards the legacy prop, and the
+ * rendered input carried no id at all until this was switched over.
+ */
+const NAME_FIELD_ID = 'created-player-name';
+
 const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }> = {
   pac: { label: 'PACE', detail: 'Burst and recovery runs' },
   sho: { label: 'SHOOTING', detail: 'Finishing and striking' },
@@ -65,6 +74,22 @@ export function CharacterCreationScreen({
   const [difficulty, setDifficulty] = useState<DifficultyMode>(initialDifficulty);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const pointsRemaining = useMemo(() => creationPointsRemaining(ratings), [ratings]);
+
+  /**
+   * Desktop opens with the caret already in the registration card, so a player
+   * who arrives knowing the name can just type it. Gated on a pointer platform
+   * as well as the wide layout — `wide` is only a width test, so a landscape
+   * iPad would otherwise throw the on-screen keyboard over the form before the
+   * player has chosen anything.
+   *
+   * `preventScroll` rather than a plain `autoFocus`: a browser scrolls a freshly
+   * focused field into view, which would push the "Your first hire" header off
+   * the top of a short window on load.
+   */
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !wide || typeof document === 'undefined') return;
+    document.getElementById(NAME_FIELD_ID)?.focus({ preventScroll: true });
+  }, [wide]);
   const hasValidName = name.trim().length >= 2;
   const canSubmit = hasValidName && pointsRemaining === 0;
   const pointLabel = pointsRemaining === 1 ? 'point' : 'points';
@@ -179,6 +204,7 @@ export function CharacterCreationScreen({
 
       <PaperPanel kicker="Registration card" title="Name" stamp="Required" className="mt-5">
         <TextInput
+          id={NAME_FIELD_ID}
           accessibilityLabel="Created player name"
           value={name}
           onChangeText={setName}

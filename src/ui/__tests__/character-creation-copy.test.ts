@@ -104,4 +104,19 @@ describe('first-hire screen copy', () => {
     expect(source).not.toContain('disabled={!canSubmit}');
     expect(source).not.toContain('Points can stay unspent.');
   });
+
+  it('parks the caret in the name field on desktop only', () => {
+    // A pointer platform AND the wide layout: `wide` is only a width test, so
+    // width alone would pop the on-screen keyboard over a landscape iPad.
+    expect(source).toContain(
+      "if (Platform.OS !== 'web' || !wide || typeof document === 'undefined') return;",
+    );
+    // Focused by id, not by ref: NativeWind's wrapper never hands a ref down to
+    // the input, so ref.current stays null and the caret never lands.
+    // `id`, not the legacy `nativeID` — react-native-web drops the latter and
+    // the input rendered with no id at all, so getElementById found nothing.
+    expect(source).toContain('id={NAME_FIELD_ID}');
+    expect(source).not.toContain('nativeID={NAME_FIELD_ID}');
+    expect(source).toContain('document.getElementById(NAME_FIELD_ID)?.focus({ preventScroll: true })');
+  });
 });

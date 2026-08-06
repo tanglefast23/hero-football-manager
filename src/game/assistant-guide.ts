@@ -63,12 +63,16 @@ export type AssistantGuideMilestone =
   | 'match-condition-warning-seen'
   /** The Quick Train lesson: tap an attribute to train it. Shown once. */
   | 'quick-train-seen'
+  /**
+   * Why a scouted player cannot be signed today. Said once, the first time the
+   * manager is holding reports with the registration desk shut — the report is
+   * the permission to negotiate, and the window is when negotiating is allowed.
+   */
+  | 'transfer-window-seen'
   /** One concise discovery line per secret facility pairing. */
   | 'facility-combo-gym-dorm-seen'
   | 'facility-combo-fan-shop-stadium-seen'
   | 'facility-combo-medical-training-pitch-seen'
-  /** Bert introduces the veteran-only 3× watched-match speed once. */
-  | 'triple-speed-seen'
   /**
    * Bert takes the sting out of the first Cup exit, then never mentions it
    * again — being knocked out is the ordinary shape of a knockout competition,
@@ -125,10 +129,10 @@ const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
   'condition-warning-seen': 'guide:bert:condition-warning-seen',
   'match-condition-warning-seen': 'guide:bert:match-condition-warning-seen',
   'quick-train-seen': 'guide:bert:quick-train-seen',
+  'transfer-window-seen': 'guide:bert:transfer-window-seen',
   'facility-combo-gym-dorm-seen': 'guide:bert:facility-combo-gym-dorm-seen',
   'facility-combo-fan-shop-stadium-seen': 'guide:bert:facility-combo-fan-shop-stadium-seen',
   'facility-combo-medical-training-pitch-seen': 'guide:bert:facility-combo-medical-training-pitch-seen',
-  'triple-speed-seen': 'guide:bert:triple-speed-seen',
   'first-cup-exit-seen': 'guide:bert:first-cup-exit-seen',
   'first-fans-seen': 'guide:bert:first-fans-seen',
   'first-fans-ledger-seen': 'guide:bert:first-fans-ledger-seen',

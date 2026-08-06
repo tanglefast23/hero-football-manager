@@ -361,7 +361,7 @@ interface M1Store {
   returnToTitleFromEnding: () => void;
   completeAwardsCeremony: () => void;
   chooseLegacy: (choice: CareerLegendLegacyChoice) => void;
-  selectEventPlayer: () => void;
+  selectEventPlayer: (playerId: string) => void;
   chooseEvent: (choiceId: string) => void;
   continueAfterEvent: () => void;
   toggleHeroLicense: (playerId: string) => void;
@@ -1406,24 +1406,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
-  selectEventPlayer() {
+  /**
+   * Names the player this story is about.
+   *
+   * Takes the id outright rather than cycling to the next name. Cycling made
+   * the choice a lottery: the manager tapped through the squad one at a time
+   * with no way to compare them, and the card only ever described whoever the
+   * last tap happened to land on.
+   */
+  selectEventPlayer(playerId) {
     guarded(set, () => {
       const career = requireCareer(get());
       if (career.pendingEvent === undefined) throw new Error('there is no active event');
-      const lineup = career.lineups.find(candidate => candidate.clubId === career.userClubId);
-      if (lineup === undefined) throw new Error('the user club has no lineup');
-      const candidates = career.players
-        .filter(player =>
-          player.clubId === career.userClubId,
-        )
-        .sort((left, right) => (
-          Number(!lineup.playerIds.includes(left.id)) - Number(!lineup.playerIds.includes(right.id))
-          || left.name.localeCompare(right.name)
-        ));
-      if (candidates.length === 0) throw new Error('no eligible user-club player is available');
-      const currentIndex = candidates.findIndex(player => player.id === career.pendingEvent?.selectedPlayerId);
-      const player = candidates[(currentIndex + 1) % candidates.length];
-      const next = selectCareerEventPlayer(career, player.id);
+      const next = selectCareerEventPlayer(career, playerId);
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -1474,7 +1469,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
         if (followUp !== undefined
           && (followUp.trigger.repeatable === true
             || !dismissed.resolvedEventIds.includes(followUp.id))) {
-          const next = offerCareerEvent(dismissed, followUp.id);
+          // The next chapter is about the same player, so it inherits him and
+          // locks him in. Without this the follow-up re-picked, and a deadline
+          // day that opened about Ravi Chan closed about Ed Stone.
+          const next = offerCareerEvent(dismissed, followUp.id, pending.selectedPlayerId);
           set({ career: next, screen: 'event', weekReview: null, error: null });
           queueCareerSave(get, set, next);
           return;

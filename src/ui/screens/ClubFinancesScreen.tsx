@@ -696,14 +696,13 @@ interface CashPositionSectionProps {
 
 function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps) {
   return (
-    <View className={guideFocus === 'emergency-loan' ? 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
-        {guideFocus === 'emergency-loan' ? (
-          <TutorialTapCue
-            label="Bert says"
-            detail="Review the loan and recurring costs"
-            style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
-          />
-        ) : null}
+    // Lit, but never a stop. This panel used to carry a "Bert says · Review the
+    // loan" tap cue and 80pt of clearance for it, which broke his loan briefing
+    // in half: he explained the bailout, the tutorial waited for a tap, and only
+    // then reached the part about building something that earns. He talks
+    // straight through to the facility board now, and the highlight just says
+    // which panel he means.
+    <View className={guideFocus === 'emergency-loan' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
         <PaperPanel kicker="Cash position" title="The board’s bottom line" stamp="Current">
           <View className="flex-row gap-2">
             <Metric label="Balance" value={formatCurrency(viewModel.resources.money)} />
@@ -853,11 +852,11 @@ function SponsorBusinessSection({
           </View>
           <StatusChip label={`Next · ${sponsorship.nextPaymentLabel}`} tone="info" />
         </View>
-        {sponsorship.chairmanPercent === undefined ? null : (
-          <Text className="mt-2 text-sm leading-5 text-ink/70">
-            Contract total {formatCurrency(sponsorship.nominalMonthlyIncome)}. On Chairman, the club receives {sponsorship.chairmanPercent}%.
-          </Text>
-        )}
+        {/* One number, and it is the club's. The contract total and the
+            Chairman percentage used to sit here, which told the manager the
+            difficulty was taking a cut of every sponsor — a penalty shown as a
+            penalty. The payment above is what arrives; nothing else is theirs
+            to act on. */}
       </View>
 
       <ScreenTabs
@@ -962,16 +961,10 @@ function ActiveSponsorCard({ slot, chairmanPercent }: {
     : slot.objectiveStatus === 'FAILED' ? 'danger' as const : 'normal' as const;
   const accessibilityLabel = [
     `${slot.sponsorName}. ${slot.provisional ? 'Continuity sponsor' : 'Active sponsor'}.`,
-    `Contract value ${formatCurrency(slot.nominalMonthlyFee)} per month.`,
-    chairmanPercent === undefined
-      ? undefined
-      : `On Chairman, the club receives ${formatCurrency(slot.actualMonthlyFee)} per month.`,
+    `Contract value ${formatCurrency(slot.actualMonthlyFee)} per month.`,
     slot.objectiveLabel === undefined ? undefined : `Objective: ${slot.objectiveLabel}.`,
     slot.objectiveProgressLabel === undefined ? undefined : `${slot.objectiveProgressLabel}.`,
-    slot.nominalBonus === undefined ? undefined : `Contract bonus: ${formatCurrency(slot.nominalBonus)}.`,
-    chairmanPercent === undefined || slot.actualBonus === undefined
-      ? undefined
-      : `Club receives ${formatCurrency(slot.actualBonus)}.`,
+    slot.actualBonus === undefined ? undefined : `Contract bonus: ${formatCurrency(slot.actualBonus)}.`,
   ].filter(Boolean).join(' ');
   return (
     <View
@@ -989,13 +982,8 @@ function ActiveSponsorCard({ slot, chairmanPercent }: {
       </View>
       <View className="mt-3 border-t border-ink/20 pt-3">
         <Text className="font-mono text-base text-ink">
-          Contract {formatCurrency(slot.nominalMonthlyFee)} / month
+          Contract {formatCurrency(slot.actualMonthlyFee)} / month
         </Text>
-        {chairmanPercent === undefined ? null : (
-          <Text className="mt-1 text-sm font-bold text-blue-dark">
-            Club receives {formatCurrency(slot.actualMonthlyFee)} / month · {chairmanPercent}%
-          </Text>
-        )}
       </View>
       {slot.objectiveLabel === undefined ? null : (
         <View className="mt-3 border-2 border-ink/20 bg-paper p-3">
@@ -1004,13 +992,8 @@ function ActiveSponsorCard({ slot, chairmanPercent }: {
             <Text className="mt-1 font-mono text-sm text-ink/70">{slot.objectiveProgressLabel}</Text>
           )}
           <Text className="mt-2 font-mono text-sm text-ink">
-            Target bonus {formatCurrency(slot.nominalBonus ?? 0)}
+            Target bonus {formatCurrency(slot.actualBonus ?? 0)}
           </Text>
-          {chairmanPercent === undefined ? null : (
-            <Text className="mt-1 text-sm text-blue-dark">
-              Club receives {formatCurrency(slot.actualBonus ?? 0)}
-            </Text>
-          )}
         </View>
       )}
     </View>
@@ -1026,16 +1009,10 @@ function SponsorOfferCard({ offer, slot, chairmanPercent, onReview }: {
   const accessibilityLabel = [
     `Review ${offer.sponsorName} for ${slot.slotLabel}.`,
     `${offer.profileLabel} offer.`,
-    `Contract value ${formatCurrency(offer.nominalMonthlyFee)} per month.`,
-    chairmanPercent === undefined
-      ? undefined
-      : `On Chairman, the club receives ${formatCurrency(offer.actualMonthlyFee)} per month.`,
+    `Contract value ${formatCurrency(offer.actualMonthlyFee)} per month.`,
     `Objective: ${offer.objectiveLabel}.`,
-    `Contract bonus ${formatCurrency(offer.nominalBonus)}.`,
-    chairmanPercent === undefined
-      ? undefined
-      : `Club receives ${formatCurrency(offer.actualBonus)}.`,
-  ].filter(Boolean).join(' ');
+    `Contract bonus ${formatCurrency(offer.actualBonus)}.`,
+  ].join(' ');
   return (
     <View className="border-2 border-b-4 border-ink bg-white p-4">
       <View className="flex-row flex-wrap items-start justify-between gap-2">
@@ -1047,22 +1024,12 @@ function SponsorOfferCard({ offer, slot, chairmanPercent, onReview }: {
       </View>
       <View className="mt-3 gap-1 border-t border-ink/20 pt-3">
         <Text className="font-mono text-base text-ink">
-          Contract {formatCurrency(offer.nominalMonthlyFee)} / month
+          Contract {formatCurrency(offer.actualMonthlyFee)} / month
         </Text>
-        {chairmanPercent === undefined ? null : (
-          <Text className="text-sm font-bold text-blue-dark">
-            Club receives {formatCurrency(offer.actualMonthlyFee)} / month · {chairmanPercent}%
-          </Text>
-        )}
         <Text className="mt-2 text-sm font-bold leading-5 text-ink">{offer.objectiveLabel}</Text>
         <Text className="font-mono text-sm text-ink">
-          Target bonus {formatCurrency(offer.nominalBonus)}
+          Target bonus {formatCurrency(offer.actualBonus)}
         </Text>
-        {chairmanPercent === undefined ? null : (
-          <Text className="text-sm text-blue-dark">
-            Club receives {formatCurrency(offer.actualBonus)}
-          </Text>
-        )}
       </View>
       {onReview === undefined ? null : (
         <View className="mt-4">

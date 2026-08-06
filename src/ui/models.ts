@@ -818,6 +818,15 @@ export interface StoryEventPlayerViewModel {
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   detail: string;
   powerName?: string;
+  /** Role-weighted rating, so the choice can be made on more than a name. */
+  overall: number;
+  /** The six outfield attributes plus REF, in register order, for the card. */
+  attributes?: readonly StoryEventPlayerAttributeViewModel[];
+}
+
+export interface StoryEventPlayerAttributeViewModel {
+  label: string;
+  value: number;
 }
 
 export interface StoryEventChoiceViewModel {
@@ -855,6 +864,13 @@ export interface StoryEventViewModel {
   body: string;
   selectedPlayer?: StoryEventPlayerViewModel;
   playerSelectionRequired: boolean;
+  /**
+   * Inherited from an earlier chapter, so the picker is closed. The manager
+   * answered for this player once already; the story is not re-castable.
+   */
+  playerLocked?: true;
+  /** Every squad player this story could be about, best rated first. */
+  playerChoices: readonly StoryEventPlayerViewModel[];
   choices: readonly StoryEventChoiceViewModel[];
   resolvedChoiceId?: string;
   resolvedRisky?: boolean;
@@ -1167,14 +1183,15 @@ export interface AwardCeremonyBeatViewModel {
 }
 
 export interface AwardCeremonyPrizeViewModel {
-  readonly totalTrainingPoints: number;
+  /** Cash. The boards used to pay Training Points; the board writes a cheque now. */
+  readonly totalMoney: number;
   /**
    * What ONE board is worth at the division the club is entering.
    *
    * Context for the total, not a factor of it: the prize tapers per board, so
    * `total` is not this figure times `boardsWon`.
    */
-  readonly perCategoryTrainingPoints: number;
+  readonly perCategoryMoney: number;
   readonly boardsWon: number;
 }
 

@@ -79,14 +79,19 @@ describe('validated M1 launch content', () => {
     // contested on every opposing shot, so a uniform ladder priced it at roughly
     // 14x the value per TP of every other drill. See
     // docs/superpowers/reports/2026-07-30-real-player-balance-findings.md.
+    // Each rung is strictly cheaper per point than the one below: 2.50, 2.14,
+    // 1.91, 1.75, 1.64 TP per point against 10/15/21/28/36 TP. Tier II used to
+    // match tier I exactly, so the $3,000 upgrade bought no extra throughput.
     expect(Object.fromEntries(drillPaths)).toEqual({
-      sprints: [4, 6, 10, 14, 18],
-      finishing: [4, 6, 10, 14, 18],
-      rondo: [4, 6, 10, 14, 18],
-      duels: [4, 6, 10, 14, 18],
-      'first-touch': [4, 6, 10, 14, 18],
-      circuit: [4, 6, 10, 14, 18],
-      'keeper-drills': [2, 3, 5, 7, 9],
+      sprints: [4, 7, 11, 16, 22],
+      finishing: [4, 7, 11, 16, 22],
+      rondo: [4, 7, 11, 16, 22],
+      duels: [4, 7, 11, 16, 22],
+      'first-touch': [4, 7, 11, 16, 22],
+      circuit: [4, 7, 11, 16, 22],
+      // No longer exactly half at every rung — 7 and 11 do not halve — so the
+      // display multiplier is 2, 1.75, 1.833, 2, 2 rather than a flat 2.
+      'keeper-drills': [2, 4, 6, 8, 11],
     });
     expect(content.events.events).toHaveLength(50);
     expect(new Set(content.events.events.map(event => event.category))).toEqual(new Set([
@@ -253,7 +258,7 @@ describe('validated M1 launch content', () => {
 
     const wrongTierAmount = cloneContent(loadLaunchContent());
     wrongTierAmount.training.focusDrills[1].gains.pac = 10;
-    expect(() => parseLaunchContent(wrongTierAmount)).toThrow(/must grant exactly \+6 PAC/);
+    expect(() => parseLaunchContent(wrongTierAmount)).toThrow(/must grant exactly \+7 PAC/);
 
     const unknownTier = cloneContent(loadLaunchContent());
     unknownTier.training.focusDrills[2].id = 'sprints-vi';
@@ -494,7 +499,9 @@ describe('validated M1 launch content', () => {
           focus: 'sponsor-desk',
           objective: 'REVIEW THE SPONSOR OFFERS.',
           body: [
-            "We've moved up in the divisions, boss. Bigger sponsors are interested now. Compare the monthly money and the season target, then choose who gets a slot.",
+            // He names the shape of the choice, not just that there is one: all
+            // three pay monthly, and the target is what separates them.
+            "Three want the slot, boss. All pay monthly, but each carries a season target: Steady's is easy and pays little, Bold's is hard and pays big. Read the target before the money.",
           ],
         }],
       });
