@@ -216,8 +216,11 @@ describe('substitution board layout', () => {
     // toward the bench slid under the bench column, which paints after it.
     expect(source).toContain('columnCarrying');
     expect(source).toContain("drag?.kind === 'field' ? styles.columnCarrying : null");
-    expect(source).toContain('onPointerEnter={() => setHovered(true)}');
-    expect(source).toContain('onPointerLeave={() => setHovered(false)}');
+    // Asked for only where a pointer can hover: a tablet's tap-time synthetic
+    // hover has no leave, and left a tapped card lifted for the rest of the match.
+    expect(source).toContain('const pointerHover = hasHoverPointer();');
+    expect(source).toContain('onPointerEnter={pointerHover ? () => setHovered(true) : undefined}');
+    expect(source).toContain('onPointerLeave={pointerHover ? () => setHovered(false) : undefined}');
     expect(source).toContain('cardHovered');
     // Rest, hover, carried — one value, so two animations cannot fight.
     expect(source).toContain('outputRange: [1, 1.02, 1.06]');

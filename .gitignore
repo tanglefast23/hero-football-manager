@@ -49,3 +49,6 @@ yarn-error.*
 
 # Superpowers brainstorming visual companion sessions
 .superpowers/
+
+# Council-review scratch output — transient, never part of the source.
+.claude/review/

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
+import { hasHoverPointer } from '../pointer-capability';
 
 /**
  * Long enough that an unhurried tap still counts as a tap. RN suppresses
@@ -73,6 +74,7 @@ export function InfoTip({
 }: InfoTipProps) {
   const [shown, setShown] = useState(false);
   const { width } = useWindowDimensions();
+  const pointer = hasHoverPointer();
   const linger = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearLinger = useCallback(() => {
@@ -118,8 +120,12 @@ export function InfoTip({
         accessibilityRole={onPress === undefined ? 'text' : 'button'}
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={text}
-        onPointerEnter={() => setShown(true)}
-        onPointerLeave={hide}
+        // Hover opens the bubble only where a pointer can hover. A tablet's
+        // browser is 'web' but has no cursor to move away, and its tap-time
+        // synthetic hover left this bubble open over the roster; a touch screen
+        // gets the hold below instead, which retires itself.
+        onPointerEnter={pointer ? () => setShown(true) : undefined}
+        onPointerLeave={pointer ? hide : undefined}
         onLongPress={showForTouch}
         onPress={() => {
           hide();
