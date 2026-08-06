@@ -18,3 +18,4 @@ export { pluralSuffix, type PluralSuffix } from './plural';
 export { resolveCopy, type CopyParams } from './resolve';
 export { copyFor, facesFor, type CopyFn } from './use-copy';
 export { LocaleProvider, useCopy, useFaces, useLocale } from './locale-context';
+export { pixelStylesFor, usePixelStyles } from './use-pixel-styles';

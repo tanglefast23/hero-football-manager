@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
+import { usePixelStyles, type LocaleFaces } from '../../i18n';
 import { Canvas, Rect } from '@shopify/react-native-skia';
 import type { StoryEventRewardViewModel } from '../models';
 import {
@@ -31,6 +32,7 @@ export function EventRewardArt({
   celebrate: boolean;
   reduceMotion?: boolean;
 }) {
+  const styles = usePixelStyles(makeStyles);
   const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const spriteId = SPRITE_BY_KIND[reward.kind];
   const runs = useMemo(() => eventSpriteRuns(spriteId), [spriteId]);
@@ -159,7 +161,7 @@ export function EventPixelConfetti({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   card: {
     minWidth: 132,
     flexGrow: 1,
@@ -186,7 +188,7 @@ const styles = StyleSheet.create({
   label: {
     marginTop: 7,
     textAlign: 'center',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 14,
     lineHeight: 19,
     textTransform: 'uppercase',
