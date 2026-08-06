@@ -1,5 +1,6 @@
 import {
   COACH_FAME_GATES,
+  COACH_WAGE_PER_LEVEL,
   legendCoachLevel,
   type CoachCandidate,
   type CoachSpecialty as MarketCoachSpecialty,
@@ -167,7 +168,7 @@ function legacyCoachToMarketCandidate(
   legend: PyramidPlayer,
 ): CoachCandidate {
   const level = legendCoachLevel(legend.fame);
-  const baseWage = checkedMultiply(500, level, 'club-legend coach wage');
+  const baseWage = checkedMultiply(COACH_WAGE_PER_LEVEL, level, 'club-legend coach wage');
   const weeklyWage = Math.round(baseWage * (100 - legacy.loyaltyDiscountPercent) / 100);
   const requiredFame = COACH_FAME_GATES[level];
   return {

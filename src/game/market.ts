@@ -762,6 +762,27 @@ const PERSONALITIES: readonly PlayerPersonality[] = [
 export const COACH_FAME_GATES = [0, 0, 100, 250, 500, 900] as const;
 
 /**
+ * A head coach's weekly wage per level, the one number the whole staff bill
+ * scales from.
+ *
+ * Every coach price in the game is this times the coach's level, so the ladder
+ * runs $400 / $800 / $1,200 / $1,600 / $2,000 a week from level 1 to 5, and an
+ * assistant costs half of the same figure (`ASSISTANT_COACH_WAGE_PERCENT`) —
+ * $200 for a level 1. Loyalty discounts come off the top of that.
+ *
+ * It was 500, which put the level 1 head coach the manager is told to hire in
+ * their first weeks at $500/week against $45,000 of starting cash, before any
+ * player wages. Lowering it to 400 keeps the entire ladder in proportion while
+ * making that first hire, and the assistant that follows the Coaching Office,
+ * affordable earlier.
+ *
+ * Exported because four call sites price coaches — the market, both retired
+ * legend paths, and the yearly re-price on season rollover — and four copies of
+ * the same literal is exactly the kind of thing that drifts.
+ */
+export const COACH_WAGE_PER_LEVEL = 400;
+
+/**
  * The guard on the summed club total, raised with the player ceiling.
  *
  * A defensive clamp against corrupted data, not a balance value — nothing in
@@ -846,7 +867,7 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
     const specialties = legend.specialties === undefined
       ? pickCoachSpecialties(mulberry32(mixSeed(marketSeed, `legend:${legend.playerId}`)))
       : [legend.specialties[0], legend.specialties[1]] as const;
-    const baseWage = checkedMultiply(500, level, 'legend coach wage');
+    const baseWage = checkedMultiply(COACH_WAGE_PER_LEVEL, level, 'legend coach wage');
     result.push({
       id: `legend-${legend.playerId}`,
       portraitId: `legend-${legend.playerId}`,
@@ -880,7 +901,7 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
       age: identity.age,
       specialties: pickCoachSpecialties(random),
       level,
-      weeklyWage: checkedMultiply(500, level, 'coach weekly wage'),
+      weeklyWage: checkedMultiply(COACH_WAGE_PER_LEVEL, level, 'coach weekly wage'),
       personality: PERSONALITIES[randomInteger(random, PERSONALITIES.length)],
       requiredDivision: 6 - level,
       requiredFame: COACH_FAME_GATES[level],
