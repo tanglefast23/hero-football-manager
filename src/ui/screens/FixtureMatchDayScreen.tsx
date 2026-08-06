@@ -14,6 +14,7 @@ import {
   matchdayConditionStatus,
   type MatchdayConditionStatus,
 } from '../matchday-condition';
+import { useCopy } from '../../i18n';
 
 /**
  * Three pixels per sprite pixel: a 72x87 face, which fits a w-28 pitch cell
@@ -91,6 +92,7 @@ export function FixtureMatchDayScreen({
   quickResultDisabled = false,
   onOpenSettings,
 }: FixtureMatchDayScreenProps) {
+  const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
   const fixture = viewModel.fixture;
   const licensedCount = viewModel.heroes.filter(hero => hero.licensed).length;
@@ -164,8 +166,7 @@ export function FixtureMatchDayScreen({
     <View className="mt-6">
       <StageSection eyebrow="Team sheet" title="Starting eleven" right={<StatusChip label={viewModel.formationLabel} />} />
       <Text className="mb-3 text-sm leading-5 text-paper/75">
-        To change starters, tap the starter and the replacement. Every change is saved for future matches.
-      </Text>
+        {t('fixtureMatchDay.toChangeStartersTap')}</Text>
       {/* Every starter is identified by their face and name. Phone cells share
           the full row rather than stopping at 64pt, so the space that used to
           sit around the grid now belongs to names. */}
@@ -279,7 +280,9 @@ export function FixtureMatchDayScreen({
               <View className="flex-1 pr-2">
                 <PixelText className="text-base uppercase text-ink" numberOfLines={1}>{player.name}</PixelText>
                 <Text className="mt-1 font-mono text-[12px] text-ink/60">
-                  {player.role} · Rating {player.overall} · Condition {player.condition}%
+                  {t('fixtureMatchDay.playerLine', {
+                    role: player.role, rating: player.overall, condition: player.condition,
+                  })}
                 </Text>
                 <MatchdayConditionStamp condition={player.condition} compact />
               </View>
@@ -305,8 +308,7 @@ export function FixtureMatchDayScreen({
         {viewModel.heroes.length === 0 ? (
           <PaperPanel kicker="Permit office" title="No heroes registered" stamp="Ordinary football">
             <Text className="text-base leading-6 text-ink/65">
-              Eleven regular players. No powers. Remember how this feels.
-            </Text>
+              {t('fixtureMatchDay.elevenRegularPlayersNo')}</Text>
           </PaperPanel>
         ) : viewModel.heroes.map(hero => (
           <PaperPanel key={hero.playerId} className={hero.licensed ? 'bg-gold-light' : undefined}>
@@ -334,13 +336,11 @@ export function FixtureMatchDayScreen({
       </View>
       {viewModel.heroes.length > 0 ? (
         <Text className="mt-3 text-sm leading-5 text-paper/75">
-          Owned heroes without a license must remain on the bench. Licensed heroes fire their
-          powers automatically at the right moment in both watched and Quick Result matches.
-        </Text>
+          {t('fixtureMatchDay.ownedHeroesWithoutA')}</Text>
       ) : null}
       {!viewModel.licenseReady ? (
         <PixelText className="mt-3 text-center text-[12px] uppercase tracking-wide text-red-light">
-          License every starting hero before starting the match · limit {viewModel.heroLimit}
+          {t('fixtureMatchDay.licenseWarning', { limit: viewModel.heroLimit })}
         </PixelText>
       ) : null}
     </View>
@@ -355,7 +355,7 @@ export function FixtureMatchDayScreen({
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Return to club management"
+          accessibilityLabel={t('fixtureMatchDay.a11y.returnToClubManagement')}
           onPress={onBack}
           className="min-h-11 min-w-11 items-center justify-center border-2 border-paper/40"
           style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
@@ -363,7 +363,7 @@ export function FixtureMatchDayScreen({
           <Text className="font-pixel text-[18px] text-paper">‹</Text>
         </Pressable>
         <View className="flex-1 px-3">
-          <Text className="text-center font-pixel text-[10px] uppercase tracking-[2px] text-gold-light">Match-day docket</Text>
+          <Text className="text-center font-pixel text-[10px] uppercase tracking-[2px] text-gold-light">{t('fixtureMatchDay.match-dayDocket')}</Text>
           <Text className="mt-1 text-center font-pixel text-base uppercase text-white">{fixture.competition}</Text>
         </View>
         <View className="flex-row items-center gap-2">
@@ -401,7 +401,7 @@ export function FixtureMatchDayScreen({
           <View className="flex-1">
             <ActionButton
               label="Quick result"
-              accessibilityLabel="Simulate this match with quick result"
+              accessibilityLabel={t('fixtureMatchDay.a11y.simulateThisMatchWithQuickResult')}
               onPress={() => handOffFixture(onQuickResult)}
               disabled={quickResultDisabled || handedOff || !viewModel.licenseReady}
               variant="paper"
@@ -410,7 +410,7 @@ export function FixtureMatchDayScreen({
           <View className="flex-1">
             <ActionButton
               label={wide ? 'Play match  ▸' : 'Play  ▸'}
-              accessibilityLabel="Play match"
+              accessibilityLabel={t('fixtureMatchDay.a11y.playMatch')}
               onPress={() => handOffFixture(onWatchMatch)}
               disabled={watchDisabled || handedOff || !viewModel.licenseReady}
             />

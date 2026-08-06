@@ -24,6 +24,7 @@ import { playManagementHaptic } from '../../render/haptics';
 import { formatChoiceValue, stepChoice } from '../appearance-stepper';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { useCopy } from '../../i18n';
 
 export interface CharacterCreationScreenProps {
   initialDifficulty: DifficultyMode;
@@ -65,6 +66,7 @@ export function CharacterCreationScreen({
   initialDifficulty,
   onComplete,
 }: CharacterCreationScreenProps) {
+  const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
   const [name, setName] = useState('');
   const [ratings, setRatings] = useState<OutfieldCreationRatings>({
@@ -163,7 +165,7 @@ export function CharacterCreationScreen({
         {/* A radio reports its state as `checked`, not `selected` — the latter
             becomes aria-selected on web, which role="radio" does not expose, so
             a screen reader announced neither option as chosen. */}
-        <View accessibilityRole="radiogroup" accessibilityLabel="Career pressure" className="gap-3">
+        <View accessibilityRole="radiogroup" accessibilityLabel={t('characterCreation.a11y.careerPressure')} className="gap-3">
           {([
             ['CHAIRMAN', 'Expert mode'],
             ['COZY', 'Casual mode'],
@@ -205,7 +207,7 @@ export function CharacterCreationScreen({
       <PaperPanel kicker="Registration card" title="Name" stamp="Required" className="mt-5">
         <TextInput
           id={NAME_FIELD_ID}
-          accessibilityLabel="Created player name"
+          accessibilityLabel={t('characterCreation.a11y.createdPlayerName')}
           value={name}
           onChangeText={setName}
           placeholder="Type a player name"
@@ -219,7 +221,7 @@ export function CharacterCreationScreen({
             the row wraps instead of running the wage off the edge. */}
         <View className="mt-3 flex-row flex-wrap items-center justify-between gap-2">
           <StatusChip label="Position: FWD" selected />
-          <PixelText className="shrink text-sm uppercase text-ink/50">$180 / week · 1 season</PixelText>
+          <PixelText className="shrink text-sm uppercase text-ink/50">{t('creation.rookieTerms')}</PixelText>
         </View>
       </PaperPanel>
     </>
@@ -344,14 +346,13 @@ export function CharacterCreationScreen({
       <View className={wide ? 'w-full max-w-[1180px] self-center px-10 pt-6' : 'px-5 py-4'}>
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
-            <Text className="font-pixel text-xs uppercase tracking-[3px] text-gold-light">Club file 00</Text>
+            <Text className="font-pixel text-xs uppercase tracking-[3px] text-gold-light">{t('characterCreation.clubFile00')}</Text>
             <View className="mt-2 flex-row flex-wrap items-center gap-2">
               <Text className={wide
                 ? 'font-pixel text-4xl uppercase text-white'
                 : 'font-pixel text-2xl uppercase text-white'}
               >
-                Your first
-              </Text>
+                {t('characterCreation.yourFirst')}</Text>
               <StickerWord text="hire" wide={wide} />
             </View>
           </View>

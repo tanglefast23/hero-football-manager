@@ -120,7 +120,6 @@ import {
 import {
   DEFAULT_FORMATION_PRESETS,
   ENERGY_USE_MODES,
-  FORMATION_LABELS,
   nextFormation,
   nextMentality,
   type EnergyUse,
@@ -152,7 +151,8 @@ import {
 import { chargeMeter } from './hero-charge-meter';
 import { HeroChargeMeter } from './HeroChargeMeter';
 import { teamKitColor } from './team-kit-ui';
-import { CARRIER_CARD_CONTENT_WIDTH, styles } from './match-screen-styles';
+import { CARRIER_CARD_CONTENT_WIDTH, useMatchScreenStyles } from './match-screen-styles';
+import { useCopy } from '../i18n';
 import {
   initAudio,
   playForEvent,
@@ -388,6 +388,10 @@ export function MatchScreen({
   onOpenSettings: () => void;
   onDone: (state: MatchState) => void;
 }) {
+  // The sheet names pixel faces directly, so it is rebuilt when the language
+  // changes — Silkscreen cannot draw Vietnamese.
+  const styles = useMatchScreenStyles();
+  const t = useCopy();
   const seenPowerCutInsRef = useRef(new Set<PowerId>(seenPowerCutIns));
   for (const power of seenPowerCutIns) seenPowerCutInsRef.current.add(power);
   const onPowerCutInSeenRef = useRef(onPowerCutInSeen);
@@ -1332,7 +1336,7 @@ export function MatchScreen({
         if (e.kind === 'FORMATION_CHANGED' && e.team === controlledTeam) {
           bannerRef.current = appendBannerNewestFour(bannerRef.current, {
             id: `formation:${e.t}`,
-            text: `${e.formation} · ${FORMATION_LABELS[e.formation].toUpperCase()}`,
+            text: `${e.formation} · ${t(`formation.${e.formation}.blurb`).toUpperCase()}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
             subject: 'formation',
@@ -2127,7 +2131,7 @@ export function MatchScreen({
     queueInput(match, { tick: match.tick + 1, kind: 'SET_FORMATION', formation });
     pushInputBanner(
       `formation-input:${match.tick}`,
-      `${formation} · ${FORMATION_LABELS[formation].toUpperCase()}`,
+      `${formation} · ${t(`formation.${formation}.blurb`).toUpperCase()}`,
       'formation',
     );
   };

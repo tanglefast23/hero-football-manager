@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AssistantGuideFocusSchema } from '../../content/schemas';
+import { loadCatalog } from '../../i18n';
 
 function source(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
@@ -57,7 +58,12 @@ describe('the insulting-offer warning', () => {
     expect(market).not.toContain('An offer below half their ask ends talks immediately.');
     expect(market).toContain('const walksOut = weeklyWage < viewModel.walkOutWeeklyWage;');
     expect(market).toContain("label={walksOut ? 'They will walk out ›' : 'Make the offer ›'}");
-    expect(market).toContain('is an insult. They walk out below ');
+    // The warning moved into the copy catalog with the wage and the floor as
+    // placeholders. Asserting the key and the English keeps the guarantee —
+    // that the manager is told the number before the talks end, not after.
+    expect(market).toContain("t('market.walkOutInsult'");
+    expect(loadCatalog('en').strings['market.walkOutInsult'])
+      .toContain('is an insult. They walk out below');
   });
 
   it('derives the floor from the rule the engine enforces', () => {

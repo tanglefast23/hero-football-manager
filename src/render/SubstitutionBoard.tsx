@@ -9,7 +9,9 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 import { SfxPressable } from '../ui/components/SfxPressable';
+import { hasHoverPointer } from '../ui/pointer-capability';
 import { TutorialTapCue } from '../ui/TutorialTapCue';
 import {
   TUTORIAL_TAP_CUE_RESERVED_SPACE,
@@ -106,6 +108,8 @@ export function SubstitutionBoard({
   onCancel,
   onSave,
 }: SubstitutionBoardProps) {
+  const t = useCopy();
+  const styles = usePixelStyles(makeStyles);
   const { width } = useWindowDimensions();
   const wide = width >= WIDE_BOARD_MIN_WIDTH;
   const [plan, setPlan] = useState<SubstitutionPlan>(EMPTY_SUBSTITUTION_PLAN);
@@ -583,7 +587,7 @@ export function SubstitutionBoard({
         <View style={styles.actions}>
           <LozengeButton
             label="CANCEL"
-            accessibilityLabel="Cancel and close without substituting"
+            accessibilityLabel={t('substitutionBoard.a11y.cancelAndCloseWithout')}
             tone="grey"
             // The board's full-screen scroll/responder stack can cancel the
             // completed web press after the button has already received focus.
@@ -596,7 +600,7 @@ export function SubstitutionBoard({
           />
           <LozengeButton
             label="RESET"
-            accessibilityLabel="Reset the board, put everyone back, and restore the automatic substitution setting"
+            accessibilityLabel={t('substitutionBoard.a11y.resetTheBoardPut')}
             tone="grey"
             disabled={staged === 0 && !autoChanged}
             onPress={reset}
@@ -641,6 +645,7 @@ function LozengeButton({
   onPressIn?: () => void;
   onPress: () => void;
 }) {
+  const styles = usePixelStyles(makeStyles);
   const face = disabled ? styles.faceDisabled : tone === 'blue' ? styles.faceBlue : styles.faceGrey;
   const gloss = disabled ? styles.glossDisabled : tone === 'blue' ? styles.glossBlue : styles.glossGrey;
   return (
@@ -732,9 +737,11 @@ function DragCard({
   style: object | readonly object[];
   children: React.ReactNode;
 }) {
+  const styles = usePixelStyles(makeStyles);
   const offset = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const [lifted, setLifted] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const pointerHover = hasHoverPointer();
   const liftedRef = useRef(false);
   /**
    * The responder is built once, so it must never read props directly: the plan
@@ -825,10 +832,11 @@ function DragCard({
     <Shell
       ref={registerCard(id)}
       {...(dragEnabled ? responder.panHandlers : { onPress: tap })}
-      // Hover is a pointer affordance and simply never fires on a touch screen,
-      // so the board loses nothing there.
-      onPointerEnter={() => setHovered(true)}
-      onPointerLeave={() => setHovered(false)}
+      // Hover is a pointer affordance, and asked for only where a pointer can
+      // hover: a tablet browser reports a synthetic hover on tap whose leave
+      // never arrives, which left a tapped card standing lifted for good.
+      onPointerEnter={pointerHover ? () => setHovered(true) : undefined}
+      onPointerLeave={pointerHover ? () => setHovered(false) : undefined}
       accessible
       focusable
       accessibilityRole="button"
@@ -908,8 +916,9 @@ function compactName(name: string, compact: boolean): string {
 // action; grey is disabled and secondary. Position names use the user's four
 // requested hues as a redundant cue, while the smaller role suffix stays neutral.
 // Type is Silkscreen at the doc's four sizes (13/15/18/24), two weights.
-const PIXEL_BOLD = 'Silkscreen_700Bold';
-const PIXEL = 'Silkscreen_400Regular';
+// The faces are no longer constants here: Silkscreen cannot draw Vietnamese, so
+// they come from the active language via `usePixelStyles`. Everything else in
+// the sheet below is unchanged.
 const INK = '#241f2e';
 const PAPER = '#f4f1ea';
 const POSITION_NAME_STYLE = {
@@ -919,7 +928,7 @@ const POSITION_NAME_STYLE = {
   MID: { color: '#5b3a91' },
 } as const satisfies Readonly<Record<SubstitutionFieldPlayer['role'], { color: string }>>;
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   overlay: {
     position: 'absolute',
     top: 0,
@@ -955,11 +964,11 @@ const styles = StyleSheet.create({
   titleBlock: { minWidth: 0 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   headerControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  eyebrow: { color: '#6b6675', fontFamily: PIXEL, fontSize: 13, letterSpacing: 1 },
-  title: { flexShrink: 1, color: INK, fontFamily: PIXEL_BOLD, fontSize: 24, letterSpacing: 1, marginTop: 4 },
+  eyebrow: { color: '#6b6675', fontFamily: faces.data, fontSize: 13, letterSpacing: 1 },
+  title: { flexShrink: 1, color: INK, fontFamily: faces.display, fontSize: 24, letterSpacing: 1, marginTop: 4 },
   titleNarrow: { fontSize: 18 },
-  hint: { flex: 1, color: '#6b6675', fontFamily: PIXEL, fontSize: 13, letterSpacing: 0.6 },
-  counter: { color: INK, fontFamily: PIXEL_BOLD, fontSize: 18, fontVariant: ['tabular-nums'] },
+  hint: { flex: 1, color: '#6b6675', fontFamily: faces.data, fontSize: 13, letterSpacing: 0.6 },
+  counter: { color: INK, fontFamily: faces.display, fontSize: 18, fontVariant: ['tabular-nums'] },
   counterSpent: { color: '#a83440' },
   autoSub: {
     minHeight: 40,
@@ -972,7 +981,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   autoSubOn: { backgroundColor: '#a3c8f0' },
-  autoSubText: { color: INK, fontFamily: PIXEL_BOLD, fontSize: 15 },
+  autoSubText: { color: INK, fontFamily: faces.display, fontSize: 15 },
   columns: { flexDirection: 'row', gap: 16 },
   columnsStacked: { gap: 16 },
   column: {
@@ -986,9 +995,9 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   fieldColumn: { flexGrow: 1.15 },
-  columnTitle: { color: INK, fontFamily: PIXEL_BOLD, fontSize: 15, letterSpacing: 1 },
-  columnHint: { color: '#9a95a4', fontFamily: PIXEL, fontSize: 13, letterSpacing: 0.6, marginTop: -4 },
-  emptyBench: { color: '#9a95a4', fontFamily: PIXEL, fontSize: 13, paddingVertical: 12 },
+  columnTitle: { color: INK, fontFamily: faces.display, fontSize: 15, letterSpacing: 1 },
+  columnHint: { color: '#9a95a4', fontFamily: faces.data, fontSize: 13, letterSpacing: 0.6, marginTop: -4 },
+  emptyBench: { color: '#9a95a4', fontFamily: faces.data, fontSize: 13, paddingVertical: 12 },
   // Two names per row on a phone, so a whole squad fits without scrolling.
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   guidedFieldList: { paddingTop: TUTORIAL_TAP_CUE_RESERVED_SPACE },
@@ -1109,7 +1118,7 @@ const styles = StyleSheet.create({
   },
   dropHintLabel: {
     color: '#f4f1ea',
-    fontFamily: PIXEL_BOLD,
+    fontFamily: faces.display,
     fontSize: 12,
     letterSpacing: 1,
     paddingHorizontal: 8,
@@ -1124,18 +1133,18 @@ const styles = StyleSheet.create({
   /** Raised so the card being carried out of it clears the other column. */
   columnCarrying: { zIndex: 30 },
   cardCopy: { minWidth: 0 },
-  name: { fontFamily: PIXEL_BOLD, fontSize: 15 },
-  nameSwapped: { fontFamily: PIXEL_BOLD, fontSize: 15 },
-  nameDimmed: { fontFamily: PIXEL_BOLD, fontSize: 15 },
-  role: { color: '#6b6675', fontFamily: PIXEL_BOLD, fontSize: 13, letterSpacing: 0.5 },
-  roleDimmed: { color: '#9a95a4', fontFamily: PIXEL_BOLD, fontSize: 13, letterSpacing: 0.5 },
-  meta: { color: '#6b6675', fontFamily: PIXEL, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
-  metaSwapped: { color: '#3f6fb5', fontFamily: PIXEL, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
-  metaBlocked: { color: '#a83440', fontFamily: PIXEL, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
-  metaDimmed: { color: '#9a95a4', fontFamily: PIXEL, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
+  name: { fontFamily: faces.display, fontSize: 15 },
+  nameSwapped: { fontFamily: faces.display, fontSize: 15 },
+  nameDimmed: { fontFamily: faces.display, fontSize: 15 },
+  role: { color: '#6b6675', fontFamily: faces.display, fontSize: 13, letterSpacing: 0.5 },
+  roleDimmed: { color: '#9a95a4', fontFamily: faces.display, fontSize: 13, letterSpacing: 0.5 },
+  meta: { color: '#6b6675', fontFamily: faces.data, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
+  metaSwapped: { color: '#3f6fb5', fontFamily: faces.data, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
+  metaBlocked: { color: '#a83440', fontFamily: faces.data, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
+  metaDimmed: { color: '#9a95a4', fontFamily: faces.data, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
   energyTrack: { height: 6, marginTop: 6, backgroundColor: '#d9d3e0', overflow: 'hidden' },
   energyFill: { height: 6 },
-  note: { color: '#6b6675', fontFamily: PIXEL, fontSize: 13, letterSpacing: 0.6, lineHeight: 20 },
+  note: { color: '#6b6675', fontFamily: faces.data, fontSize: 13, letterSpacing: 0.6, lineHeight: 20 },
   noteSpent: { color: '#a83440' },
   actions: { flexDirection: 'row', gap: 12 },
   button: {
@@ -1161,7 +1170,7 @@ const styles = StyleSheet.create({
   glossDisabled: { backgroundColor: '#d9d3e0' },
   buttonLabel: {
     color: PAPER,
-    fontFamily: PIXEL_BOLD,
+    fontFamily: faces.display,
     fontSize: 13,
     letterSpacing: 1,
     textShadowColor: INK,

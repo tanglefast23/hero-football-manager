@@ -4,6 +4,7 @@ import { PixelPortrait } from '../ui/components/PixelPortrait';
 import type { PortraitRole } from '../ui/pixel-portrait-model';
 import { ENERGY_FILL_COLORS, energyBand } from './match-energy-ui';
 import { playUiClickSfx } from './management-sfx';
+import { usePixelStyles, type LocaleFaces } from '../i18n';
 
 export interface FirstMatchCoachingModalPlayer {
   readonly id: string;
@@ -33,6 +34,7 @@ export function FirstMatchCoachingModal({
   reduceMotion,
   onContinue,
 }: FirstMatchCoachingModalProps) {
+  const styles = usePixelStyles(makeStyles);
   const [buttonPressed, setButtonPressed] = useState(false);
   return (
     <Modal
@@ -99,7 +101,7 @@ export function FirstMatchCoachingModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: 'center',
@@ -168,7 +170,7 @@ const styles = StyleSheet.create({
   energyValue: {
     // Never pair fontFamily with fontWeight: synthetic bold smears the bitmap
     // font. Bold weight comes from the authored 700 face instead.
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     color: '#241f2e',
     fontSize: 14,
   },
@@ -198,7 +200,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 3,
   },
   buttonText: {
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     color: '#f4f1ea',
     fontSize: 16,
     letterSpacing: 1.2,

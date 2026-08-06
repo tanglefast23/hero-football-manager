@@ -179,7 +179,10 @@ describe('desktop match control rail', () => {
     // The formation's shape note rides in its heading, the way TEAM ENERGY
     // already carries its mode — the rail has to fit more hero tiles as the
     // licence cap grows, and a spare caption row is the cheapest thing to give up.
-    expect(source).toContain('FORMATION ({FORMATION_LABELS[formation].toUpperCase()})');
+    // The blurb now comes from the copy catalog rather than a map in the sim
+    // ring — it is display text, and a pure ring must not hold copy that
+    // changes with the player's language.
+    expect(source).toContain('FORMATION ({t(`formation.${formation}.blurb`).toUpperCase()})');
     expect(source).not.toContain(
       'ONE POWER TILE PER FIELDED HERO — THE RAIL GROWS TO 4 TILES WITH THE HERO LICENSE CAP.',
     );

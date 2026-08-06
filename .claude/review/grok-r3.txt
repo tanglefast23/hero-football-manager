@@ -1,0 +1,19 @@
+**Phased ship vs “all keys × all locales”**
+Gate 1 requires every English key in all six catalogs. Phase 2 is Spanish-only; Phase 5 still holds events/tips. Either CI blocks every partial ship, or you fill five locales with English stubs that pass presence and fail quality/glyph/budget noise. Fix: ship **enabled locales** only; missing keys allowed only as English fallback for unenabled languages; quality gates run only on enabled locales.
+
+**“No half-English” is false under the phase plan**
+Phase 1–4 can leave ~1,440 content strings English while chrome is translated. That is half-English. Either drop the claim, or move high-visibility narrative (onboarding, first-match events, Bert critical path) into Phase 2 so a Spanish stop point is coherent for a real play session, not just Settings + menus.
+
+**Dual English source of truth will drift**
+~1,440 prose strings stay in `content/*.json`; catalogs also hold English via extraction. Unclear which wins when they disagree. Extraction lag = missing-key CI or runtime English that is not the content authoring source. Pick one: **content JSON is English source**, `en.json` is generated in CI, or content carries locale maps and catalogs die for that subset. Dual manual truth will break.
+
+**Number formatting underspecified next to the Hermes call-out**
+Plurals avoid `Intl` because Hermes varies by platform, but unpinned `toLocaleString` is fixed by “one helper that takes game language” with no stated implementation. If that helper is `Intl.NumberFormat`, you reintroduced the same risk class. Specify hand-rolled grouping for the seven locales (or a tested polyfill) and that **params are pre-formatted at the UI edge**, never raw device-locale numbers.
+
+**§9 is enforceable paperwork; quality is mostly theatre — cut scope**
+CI can require `ok` + English hash match; it cannot require good copy. LLM “native speaker” review and whole-catalog blind back-translation will rubber-stamp or thrash short UI chrome, cost ~18k verdicts × rewrites, and still miss idiom. Keep: glossary for **coined terms** (exact/allowlist, not every football word), §8.4 in-context sample, hash-invalidate on English change. Cut: full-catalog blind back-translation; optional LLM review only on long prose (`event.*`, Bert), not every label.
+
+**Orphan-key hard-fail + dynamic keys underspecified**
+Keys like `event.<id>.*` are content-driven, not static `t('…')` literals. A naive reference graph either flags live content keys as orphans or misses dead ones. Static orphan-as-failure fights data-driven content. Require a **content-graph allowlist** (ids from `content/*.json` generate legal key prefixes) or demote orphans to warning until that graph exists.
+
+REVISE

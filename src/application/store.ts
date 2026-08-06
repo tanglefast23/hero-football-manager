@@ -182,6 +182,79 @@ let careerSaveGeneration = 0;
 let careerLineage = 0;
 
 /**
+ * How many writes are in flight that a queue-jumping career save must not
+ * overlap: the ones spanning several statements (a career replacement, a
+ * discard, a backup restore). Two single-statement UPSERTs may interleave
+ * safely — SQLite serialises statements on the connection — but a sequence that
+ * only makes sense as a whole must not have another writer land in the middle,
+ * and a replacement in particular would then write its older state *after* the
+ * newer one and lose a week.
+ */
+let exclusiveSaveDepth = 0;
+
+async function withExclusiveSave<T>(task: () => Promise<T>): Promise<T> {
+  exclusiveSaveDepth += 1;
+  try {
+    return await task();
+  } finally {
+    exclusiveSaveDepth -= 1;
+  }
+}
+
+/**
+ * Writes a queued career save immediately, ahead of the save queue, and then
+ * waits for the queue to settle.
+ *
+ * For the web build on a tablet: iOS kills a hidden web app without warning, and
+ * a career write can be sitting in the serial queue behind something long (a
+ * replay write, or the four rival matches fulltime sims — measured at 571ms).
+ * Waiting for the queue would not help, because the chain runs at its own pace
+ * either way; the only thing that shortens the window is doing the write now.
+ * The payload is withdrawn first, so the task already queued for it recognises
+ * that its state has been written and does nothing.
+ *
+ * Best-effort by design: the app can still be killed mid-write, which is what
+ * the save-failure warning exists for. The point is that the exposure is one
+ * statement rather than a long task plus a statement.
+ */
+export async function flushPendingCareerSave(): Promise<void> {
+  const snapshot = pendingCareerSave;
+  const get = () => useM1Store.getState();
+  const set = (partial: Partial<M1Store>) => useM1Store.setState(partial);
+  const repository = get().repository;
+  if (
+    snapshot !== null
+    && repository !== null
+    && exclusiveSaveDepth === 0
+    && snapshot.lineage === careerLineage
+    && get().persistenceLoadError === null
+  ) {
+    pendingCareerSave = null;
+    try {
+      await repository.save(snapshot.state);
+      clearSaveFailures(set);
+      if (get().career === snapshot.state) {
+        set({ hasSavedCareer: true, lastPersistedCareer: snapshot.state });
+      }
+    } catch {
+      // Re-queue rather than hand the payload back. The task that owned this
+      // generation has already run and returned, so a payload put back on its own
+      // would have no owner — and `queueCareerSave` coalesces into an existing
+      // payload without enqueueing, so every later action would join a write that
+      // never happens. Queueing gives the state a fresh generation and a task,
+      // and that task owns the outcome: counting the failure here as well would
+      // score one bad write twice and pause the season a failure early.
+      if (pendingCareerSave === null && snapshot.lineage === careerLineage) {
+        queueCareerSave(get, set, snapshot.state);
+      } else {
+        recordSaveFailure(get, set);
+      }
+    }
+  }
+  await saveQueue;
+}
+
+/**
  * Marks every career state queued so far as belonging to a replaced lineage.
  * Called wherever the store swaps the live career wholesale (new career,
  * backup/developer restore, boot, discard, and the failed-replacement
@@ -521,7 +594,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       return;
     }
     try {
-      await repository.delete();
+      // One transaction across both generations, so no queue-jumping save may
+      // land inside it.
+      await withExclusiveSave(() => repository.delete());
     } catch (error) {
       set({
         persistenceLoadError: `Save could not be deleted: ${errorMessage(error)}`,
@@ -561,7 +636,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
     let written: GameState;
     let restored: GameState;
     try {
-      written = await repository.restoreBackup();
+      // Promotes the backup into the live slot in several steps; a save landing
+      // between them would be written over by the promotion.
+      written = await withExclusiveSave(() => repository.restoreBackup());
       restored = reconcileLoadedCareer(written);
     } catch (error) {
       set({ persistenceLoadError: `Backup could not be restored: ${errorMessage(error)}` });
@@ -2576,7 +2653,10 @@ function queueNewCareerSave(
     : `m1-career-${replacedCareer.careerSeed}`;
   enqueueSave(
     set,
-    async () => {
+    // Exclusive: the checkpoint, the replacement write and the replay cleanup
+    // only mean anything as one sequence. A queue-jumping save landing between
+    // them would be overwritten by the replacement write that follows it.
+    () => withExclusiveSave(async () => {
       // A replacement may be requested in the same turn as an ordinary save.
       // That older task no longer owns its coalesced payload once we withdraw
       // it above, so first checkpoint the exact career the player is replacing.
@@ -2604,7 +2684,7 @@ function queueNewCareerSave(
           },
         });
       }
-    },
+    }),
     'New career could not be saved',
     () => {
       clearSaveFailures(set);

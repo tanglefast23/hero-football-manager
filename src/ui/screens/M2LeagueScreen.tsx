@@ -72,6 +72,7 @@ const leagueColumns = StyleSheet.create({
   points: { width: LEAGUE_COLUMN_WIDTH.points, flexShrink: 0 },
 });
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
+import { useCopy } from '../../i18n';
 
 export interface M2LeagueScreenProps {
   viewModel: M2LeagueViewModel;
@@ -96,6 +97,7 @@ export function M2LeagueScreen({
   guideSubTab,
   onGuideSubTabAnchorChange,
 }: M2LeagueScreenProps) {
+  const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const summary = viewModel.selectedDivisionSummary;
   const layoutMode = useLayoutMode();
@@ -174,8 +176,7 @@ export function M2LeagueScreen({
                 : `Preview only. Your fixtures and table remain in ${viewModel.activeTable.divisionLabel}.`}
             </Text>
             <Text className="mt-2 text-xs leading-4 text-ink/50">
-              Squad strength uses player attributes only. Form, condition, tactics, coaches, and hero powers can still change results.
-            </Text>
+              {t('m2League.squadStrengthUsesPlayer')}</Text>
           </PaperPanel>
         </View>
       ),
@@ -259,7 +260,7 @@ export function M2LeagueScreen({
               );
             })}
           </View>
-          <Text className="mt-2 text-xs text-ink/50">P played · GD goal difference · Pts points</Text>
+          <Text className="mt-2 text-xs text-ink/50">{t('m2League.pPlayedGdGoal')}</Text>
         </View>
       ),
     },
@@ -276,8 +277,7 @@ export function M2LeagueScreen({
           {viewModel.leagueFixtures.length === 0 ? (
             <PaperPanel title="Schedule pending" kicker={viewModel.seasonLabel}>
               <Text className="text-sm leading-5 text-ink/60">
-                Your league schedule will appear here when the competition office publishes it.
-              </Text>
+                {t('m2League.yourLeagueScheduleWill')}</Text>
             </PaperPanel>
           ) : (
             <View className="gap-2">
@@ -332,24 +332,22 @@ export function M2LeagueScreen({
           {!viewModel.cup.available ? (
             <PaperPanel kicker={viewModel.cup.seasonLabel} title={viewModel.cup.currentRoundLabel} stamp="PENDING">
               <Text className="text-sm leading-5 text-ink/60">
-                The competition office will draw 50 clubs into a play-in, then a clean 32-club bracket.
-              </Text>
+                {t('m2League.theCompetitionOfficeWill')}</Text>
             </PaperPanel>
           ) : (
             <>
               {viewModel.cup.championName ? (
                 <View className="mb-4 border-2 border-b-4 border-gold-dark bg-gold-light p-4">
-                  <Text className="font-pixel text-sm uppercase text-gold-dark">Cup champions</Text>
+                  <Text className="font-pixel text-sm uppercase text-gold-dark">{t('m2League.cupChampions')}</Text>
                   <Text className="mt-1 font-pixel text-xl uppercase text-ink">
                     {viewModel.cup.championName}
                   </Text>
                   <Text className="mt-2 text-sm leading-5 text-ink/65">
-                    Their road to the trophy is recorded round by round below.
-                  </Text>
+                    {t('m2League.theirRoadToThe')}</Text>
                 </View>
               ) : (
                 <View className="mb-4 border-2 border-b-4 border-blue-dark bg-blue-light p-3">
-                  <Text className="font-pixel text-sm uppercase text-blue-dark">Current desk</Text>
+                  <Text className="font-pixel text-sm uppercase text-blue-dark">{t('m2League.currentDesk')}</Text>
                   <Text className="mt-1 text-base font-bold text-ink">{viewModel.cup.currentRoundLabel}</Text>
                 </View>
               )}
@@ -403,7 +401,7 @@ export function M2LeagueScreen({
           <View className="mb-5">
             <View className="flex-row items-end justify-between gap-3">
               <View className="flex-1">
-                <Text className="font-pixel text-sm uppercase text-blue-dark">Competition office</Text>
+                <Text className="font-pixel text-sm uppercase text-blue-dark">{t('leagueTable.competitionOffice')}</Text>
                 <Text className="mt-1 font-pixel text-xl uppercase text-ink">{viewModel.title}</Text>
               </View>
               <View className="items-end gap-1">
@@ -436,6 +434,7 @@ function CupRoundCard({
   round: M2CupRoundViewModel;
   onOpenCupFixture?: (fixtureId: string) => void;
 }) {
+  const t = useCopy();
   const complete = round.completedCount === round.matchCount;
   const outcomeTone = round.userOutcome === 'Eliminated'
     ? 'danger' as const
@@ -458,7 +457,9 @@ function CupRoundCard({
             <Text className="font-pixel text-sm uppercase text-blue-dark">Round {round.round}</Text>
             <Text className="mt-1 font-pixel text-lg uppercase text-ink">{round.label}</Text>
             <Text className="mt-1 font-mono text-sm text-ink/50">
-              {round.completedCount}/{round.matchCount} matches complete
+              {t('m2League.matchesComplete', {
+                done: round.completedCount, total: round.matchCount,
+              })}
             </Text>
           </View>
           {round.userOutcome ? <StatusChip label={round.userOutcome} tone={outcomeTone} /> : <StatusChip label={round.statusLabel} />}
@@ -467,7 +468,7 @@ function CupRoundCard({
         {round.byes.length > 0 ? (
           <View className="mb-3 border-2 border-dashed border-ink/30 bg-white p-2">
             <Text className="font-pixel text-sm uppercase text-ink/50">
-              Through with a bye · {round.byes.length}
+              {t('m2League.throughWithBye', { count: round.byes.length })}
             </Text>
             <View className="mt-2 flex-row flex-wrap gap-1">
               {round.byes.map(bye => (
@@ -489,7 +490,7 @@ function CupRoundCard({
         {!round.drawn ? (
           <View className="border-2 border-dashed border-ink/20 bg-paper px-3 py-3">
             <Text className="text-sm leading-5 text-ink/50">
-              {round.matchCount} {round.matchCount === 1 ? 'tie' : 'ties'} · opponents confirmed after the previous round
+              {t('m2League.tiesPending', { n: round.matchCount, count: round.matchCount })}
             </Text>
           </View>
         ) : (

@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { loadCatalog } from '../../i18n';
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
@@ -12,7 +13,9 @@ describe('repeat-training presentation contract', () => {
     expect(modal).toContain('snapToInterval={REPEAT_PICKER_CELL_WIDTH}');
     expect(modal).toContain('snapToAlignment="start"');
     expect(modal).not.toContain('repeatPickerWidth');
-    expect(modal).toContain('Each run keeps its own SUPER roll, injury roll and result reveal.');
+    expect(modal).toContain("t('trainingDrill.eachRunKeepsIts')");
+    expect(loadCatalog('en').strings['trainingDrill.eachRunKeepsIts'])
+      .toBe('Each run keeps its own SUPER roll, injury roll and result reveal.');
     expect(modal).toContain('batch.remaining > 0');
     expect(modal).toContain('onTrainDrill(playerId, nextBatch.pathId);');
   });
@@ -35,10 +38,14 @@ describe('repeat-training presentation contract', () => {
     const modal = source('src/ui/TrainingDrillModal.tsx');
 
     expect(modal).toContain('riskyTrainingRunCount(condition, repeatCount)');
-    expect(modal).toContain('selected drills start below 30% condition');
-    expect(modal).toContain('Continue anyway · {repeatCount}×');
+    expect(loadCatalog('en').strings['trainingDrill.riskyRunsBody'])
+      .toContain('selected drills start below 30% condition');
+    expect(loadCatalog('en').strings['trainingDrill.continueAnyway'])
+      .toBe('Continue anyway · {count}×');
     expect(modal).toContain('Continue with max safe · ${Math.min(repeatCount, maximumSafeRuns)}×');
-    expect(modal).toContain('Cancel and return to the number picker');
+    expect(modal).toContain("t('trainingDrill.a11y.cancelAndReturnToTheNumberPicker')");
+    expect(loadCatalog('en').strings['trainingDrill.a11y.cancelAndReturnToTheNumberPicker'])
+      .toBe('Cancel and return to the number picker');
     expect(modal).toContain('startTrainingBatch(pendingConfirm, saferRuns);');
   });
 });
@@ -99,7 +106,8 @@ describe('story-event result contract', () => {
 
     expect(screen).toContain("choice.tone === 'risky' ? 'border-stamp bg-red-light'");
     expect(screen).toContain('No bonus this time');
-    expect(screen).toContain('No bonus earned');
+    expect(screen).toContain("t('storyEvent.noBonusEarned')");
+    expect(loadCatalog('en').strings['storyEvent.noBonusEarned']).toBe('No bonus earned');
     expect(screen).toContain('<EventRewardArt');
     expect(screen).toContain('<EventPixelConfetti');
     expect(rewardArt).toContain("fans: 'supporters'");

@@ -1,0 +1,143 @@
+Reading the full offloaded spec so the review covers the truncated middle.Continuing the evidence section for missed surfaces and remaining details.# Council review: Multilingual copy design
+
+Hard critique. Findings ordered by severity.
+
+---
+
+**1. Measured-width tables will crash, not merely clip — character budget does not save you**
+
+`leagueHeaderWidthDemand` / `leagueCellWidthDemand` throw on any string missing from the advance maps (`league-table-columns.ts` evidence: `throw new Error(\`No measured Silkscreen advance for the header "${label}"\`)`). Localised headers (`PKT`, `Đ`, etc.) that are not pre-entered into `LEAGUE_HEADER_ADVANCE_EM` will redbox in production.
+
+§1 then overclaims: the character ceiling is “the only thing standing between the translation and a clipped league table.” That is wrong on two counts. (a) Character length is a poor proxy for Silkscreen, which is proportional (evidence: advances vary — `W` 1.0em vs `P` 0.75em). German can pass `len * 1.30 + 2` and still overflow a column. (b) The real failure mode is throw-on-unmeasured, not soft clip. Mitigations 2–3 (per-locale short forms + re-measure, including VT323 monospace unit width) are **mandatory before any non-English table header ships**, not “in order of preference” after a CI character check. Same for squad-register columns and any other advance map. Until that is stated as a hard dependency of Phase 2, this design does not safely deliver even Spanish.
+
+---
+
+**2. Vietnamese font swap via NativeWind `vars()` is the wrong bet; the documented fallback breaks the product promise**
+
+`PixelText.tsx` is explicit: React Native does not inherit `fontFamily` through `View`, and fonts must be applied via `className`, never mixed with `style`, because “mixing the two for one visual property lets either win unpredictably on native.” The proposed root `vars({ '--font-display': … })` puts font resolution on a CSS custom property on a `View`. On web that may work; on iOS native, `fontFamily` resolving through CSS variables is exactly the spike the spec hopes passes — and it is the path most likely to fail or to behave inconsistently with NativeWind’s class pipeline.
+
+The fallback — load VT323 under the family names `Silkscreen_700Bold` / `Silkscreen_400Regular` — collides with `@expo-google-fonts/silkscreen` registration and **requires relaunch on language change**. That directly contradicts §5: Settings mid-career switch and “re-renders the screen immediately.” You cannot promise live language change and then make the Vietnamese path a cold restart.
+
+Sound approach, already sitting in the codebase: drive face selection at the **single chokepoint** (`PixelText` variants `display`/`data`), reading the locale preference. Hundreds of `font-pixel` class sites stay untouched if the utility classes themselves stay, *or* if `PixelText` sets the native `fontFamily` from a locale map without CSS vars. Phase 0 should spike **PixelText + expo-font**, not `vars()` first. Treat family-name hijacking as rejected, not fallback.
+
+Also: VT323 is monospace; Silkscreen is not. Every width table and every “data” column alignment assumption shifts for `vi` only. Spec mentions re-measure; it must be in the critical path for Phase 3, not optional.
+
+---
+
+**3. Phase 1 “English-only plumbing” is a high-regression surface, under-defended**
+
+~3,662 TS/TSX candidate strings plus ~1,270 content strings, with ~25% noise and a 2,944-line `App.tsx` lump, will not “look identical and behave identically” without strong regression harnesses. §8 gate 6 (no hardcoded prose) only helps *after* extraction is complete; during extraction it is noise. Missing from the plan:
+
+- Golden English catalog hash / snapshot of every key→English string so accidental rewording during keying is caught.
+- Explicit inventory of **application-layer** English that is not `sim`/`game` but still not UI: `store.ts` toast/message templates, `view-models.ts` settlement strings, `event-selection.ts` requirement lines (evidence grep). These are still locale-dependent if left as English builders, and if moved carelessly they can change message timing or content shape without touching `ENGINE_VERSION`.
+
+Without those, seven languages are reachable only after a long period of half-extracted, English-regressing main. Phase 1 is correctly ordered; its exit criteria are too soft.
+
+---
+
+**4. Save path: `labelKey`/`labelParams` is mostly safe; several holes remain**
+
+**Safe:** Ledger line, cash transaction, and season recap award schemas are `.passthrough()` with required `label: nonemptyString`. Adding optional siblings will load old saves. Prefer-key, fall-back-label for historical rows is honest.
+
+**Must tighten:**
+
+- **Dual-write rule is underspecified.** New rows must still write a non-empty English `label` (or any stable fallback string) forever, because `label` stays required in the codec. If implementers stop writing `label` and only write keys, old readers or any code that still displays `label` break. Spec should say: always write `label` (English snapshot) + `labelKey`/`labelParams`; UI prefers key.
+
+- **`offerLine` is asserted in the §4.3 table but does not appear on `sponsorObjectiveSnapshotSchema` in the evidence** (only `kind`, `label`, `target`, `nominalBonus`). Either the field lives elsewhere (and needs the same key treatment) or the table is wrong. Fix the inventory before coding.
+
+- **`labelTemplate` on sponsor objectives** (strictObject in content/codec path) is English prose. If snapshots copy the resolved template into `label` only, keys must be applied at snapshot time. Spec mentions snapshot `label` but not the template source of truth.
+
+- **Missed or under-specified English-in-state surfaces:** anything that persists human-readable `message` / toast / walk-on / board-notice text into career SQLite (if any); cup rounds are handled as enums (good); formation display strings in `src/sim/tactics.ts` are not save labels but are pure-ring English the UI must stop consuming as final copy. Also confirm division awards and any other recap blobs that only store names/values (fine) vs prose (not fine).
+
+- **Sponsor `strictObject` schema bump:** correct that only this forces a version ladder entry; do not “passthrough-wash” it without a deliberate codec version — silent strip of unknown keys is worse than a bump.
+
+Preferences `language` + `strictObject` + version 9→10 is correct and careful.
+
+---
+
+**5. Determinism / `ENGINE_VERSION`**
+
+Architecture direction is right: no locale in `src/sim` / `src/game`; keys + params only; UI resolves. That keeps seed → byte-identical results if key emission does not change control flow or RNG order.
+
+Risks the spec underplays:
+
+- **Any** change that removes or reorders side effects while “just extracting strings” (e.g. building a label used to allocate an array, or branching on English text) needs a replay check. “Must not touch `ENGINE_VERSION`” is a goal, not a free pass — gate 7 should be “golden replay still matches *or* explicit version decision,” not “localisation must not touch version” as if extraction cannot force it.
+- `src/sim/tactics.ts` formation blurbs (`'Balanced lines'`, etc.) are user-facing English in the pure ring. Safe pattern: keep ids only in pure ring; move blurbs to catalog. If those strings participate in any logged input or snapshot outside UI, inventory them.
+- Hand-rolled plurals and number formatting must stay **UI/view-model only**. Pinning `toLocaleString` to game language (fixing unpinned calls in view-models/store/event-selection) is correct for display consistency and is not an engine concern — unless any of those strings are written into deterministic logs. Keep formatters out of match tick paths.
+
+Net: low inherent engine risk if extraction is disciplined; medium process risk because the rule is stated as a prohibition rather than a verification.
+
+---
+
+**6. CI gates vs this Jest setup**
+
+Implementable **as node tests under `src/**/__tests__`**, importing catalogs and pure helpers:
+
+| Gate | Verdict |
+| --- | --- |
+| Missing keys / key parity | Yes |
+| Character budget | Yes (weak as layout proof; fine as succinctness gate) |
+| Placeholder parity | Yes |
+| Glyph coverage via TTF `cmap` | Yes if pure font parse (no RN) |
+| Width-table snapshots per locale | Yes; must use real short-form strings + advances |
+| Golden replay | Existing harness; do not invent RN tests |
+
+**Problematic:**
+
+- **Orphan keys (gate 2):** Hard-fail on “nothing references” is not reliably implementable with `t(\`event.${id}.body\`)` and content-id-driven keys. Static grep will false-positive orphans or force unnatural `t('literal')`-only APIs. Soften to: every catalog key is either statically referenced or declared in an allowlist of dynamic prefixes (`event.`, `bert.`, …) derived from content ids. As written, this gate is aspirational and will either block legitimate catalogs or be gamed.
+
+- **No hardcoded prose (gate 6):** Not a Jest concern; needs ESLint (or similar) over TSX. Jest cannot require `react-native`; do not put this in the unit suite. Fine as a separate CI job.
+
+- **`content/` lives outside `roots: ['<rootDir>/src']`:** Tests can still import JSON if the loader path is wired; many projects use a small `src/i18n/__tests__` that `fs.readFileSync`s `content/i18n`. Spec should say “node test in src that reads content,” not imply catalogs are under Jest roots.
+
+Gates 1, 3–5, 8 are real. Gate 2 as stated is over-specified. Gate 6 is real but not Jest.
+
+---
+
+**7. Translation quality (§9 / misnumbered 8.x) — mostly theatre, with a few real levers**
+
+Blunt: “independent model as native speaker,” per-string `ok` verdicts, and blind LLM back-translation will produce inspectable JSON and a green CI box. They will not produce native quality. Models rubber-stamp fluent wrong football register, miss regional register, and back-translate their own mistakes into something that diffs clean enough to pass a soft semantic check. Recording `ok` against an English source hash enforces **process coverage**, not correctness — empty calories with ceremony.
+
+**Actually enforceable and worth keeping:**
+
+- Locked terminology glossary + machine check that coined terms and key football lemmas only appear in approved forms.
+- Placeholder parity, glyph coverage, dual-key presence.
+- Small human-or-screenshot spot-check (the 20-string in-context pass) — honest scale.
+- Ship-then-fix-from-reports, which the catalog format supports.
+
+**Cut or demote:** mandatory per-string LLM review loop as a ship gate; blind back-translation as CI. Keep as optional tooling for translators if you want, not as proof.
+
+The section’s own §8.5 honesty (“not a native-speaker sign-off”) is correct; the surrounding gates pretend otherwise. Do not market this as quality assurance equal to the balance harness.
+
+---
+
+**8. Scope: cut hard**
+
+**Cut / defer:**
+
+1. **Languages after Spanish until cost is measured.** Spec already says Spanish is the cost probe — then still schedules PT, FR, DE, ID, VI and full Phase 5 long tail as if the probe cannot fail. Plan: Phase 1 + ES only as the committed ship; others are sequential options after word-cost and layout pain are known. Vietnamese as risk spike (font) can stay a Phase 0/3 spike without committing full copy.
+2. **LLM per-string review + back-translation as CI.** Keep glossary lock + automated structural gates.
+3. **Hard-fail orphan keys** until the key namespace and dynamic-id scheme are stable post-extraction.
+4. **`vars()`-first font strategy.** Replace with PixelText/locale face map; kill relaunch-on-swap fallback as a product path.
+5. **Character budget as layout safety.** Keep as succinctness policy; layout safety = measured advances + short-form tables + locale snapshots.
+
+**Keep:** UI-edge resolution; save dual fields; preferences language; pinned number formatting; cup enum lookup; no Arabic/Chinese/RTL; names untranslated; phasing with Spanish first; Phase 0 font/visual spike (retargeted).
+
+**Missing that should be added, not cut:** dual-write rule for `label`; complete persisted-prose inventory including `offerLine`/`labelTemplate`/store messages; advance-map update as a Phase 2 blocker; English catalog snapshot for Phase 1; soften orphan-key gate; PixelText as font chokepoint.
+
+---
+
+## Cross-check against your eight questions
+
+1. **Correctness:** Pipeline can work; as written it will regress English during extraction and can crash on unmeasured table strings. Not safe for seven languages without the layout/font/application-layer fixes above.
+2. **Saves:** Sibling keys on passthrough schemas are safe; dual-write and `offerLine`/template inventory are incomplete; historical English fallback is fine.
+3. **Determinism:** Sound if pure rings only emit keys and extraction does not change control flow; verify golden replay rather than forbid version bumps by fiat.
+4. **Vietnamese font:** `vars()` on native is shaky and fights `PixelText`’s own rules; relaunch alias breaks Settings; PixelText-centric swap is the viable design.
+5. **Clipping:** Character budget insufficient; throw-on-unmeasured is the real bug; short forms + re-measure are required.
+6. **CI:** Most structural gates fit node Jest; orphan-key hard-fail and RN lint do not, as specified.
+7. **Quality audit:** Glossary + structure = real; LLM full-catalog `ok` = theatre.
+8. **Cut:** Multi-language commitment before Spanish cost, LLM quality CI, orphan hard-fail, `vars()`-first, budget-as-layout.
+
+---
+
+REVISE

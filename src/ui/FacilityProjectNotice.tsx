@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { FacilityTypeViewModel } from './models';
 import { ActionButton, PaperPanel, StatusChip } from './components/Scorecard';
 import { ManagementSprite } from './components/ManagementSprite';
+import { useCopy } from '../i18n';
 
 export interface FacilityProjectNoticeModel {
   type: FacilityTypeViewModel;
@@ -22,6 +23,7 @@ export function FacilityProjectNotice({
   reduceMotion?: boolean;
   onClose: () => void;
 }) {
+  const t = useCopy();
   return (
     <Modal
       visible
@@ -59,20 +61,18 @@ export function FacilityProjectNotice({
               </View>
               <View className="mx-3 mt-4 self-stretch border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-3">
                 <Text className="text-center font-pixel text-xs uppercase tracking-widest text-blue-dark">
-                  When complete
-                </Text>
+                  {t('facilityProjectNotice.whenComplete')}</Text>
                 <Text className="mt-2 text-center font-pixel text-base uppercase leading-5 text-ink">
                   {project.benefitLabel}
                 </Text>
               </View>
             </View>
             <Text className="mt-4 text-center text-base leading-5 text-ink/65">
-              One club works crew is now assigned.
-            </Text>
+              {t('facilityProjectNotice.oneClubWorksCrew')}</Text>
             <View className="mt-4">
               <ActionButton
                 label="Let them build  ▸"
-                accessibilityLabel="Let them build. Close construction confirmation"
+                accessibilityLabel={t('facilityProjectNotice.a11y.letThemBuildCloseConfirmation')}
                 onPress={onClose}
               />
             </View>

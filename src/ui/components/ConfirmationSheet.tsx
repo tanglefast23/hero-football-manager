@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton } from './Scorecard';
+import { useCopy } from '../../i18n';
 
 export interface ConfirmationRequest {
   readonly title: string;
@@ -45,6 +46,7 @@ export function ConfirmationSheet({
   onCancel,
   onConfirm,
 }: ConfirmationSheetProps) {
+  const t = useCopy();
   const headingRef = useRef<Text>(null);
   const headingFocusFrameRef = useRef<number | null>(null);
   const headingFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -169,7 +171,7 @@ export function ConfirmationSheet({
           style={{ zIndex: 1 }}
           {...webDialogLabelProps()}
         >
-          <Text className="font-pixel text-sm uppercase text-red-dark">Confirm club decision</Text>
+          <Text className="font-pixel text-sm uppercase text-red-dark">{t('confirmationSheet.confirmClubDecision')}</Text>
           <Text
             ref={headingRef}
             nativeID="club-confirmation-heading"
@@ -184,7 +186,7 @@ export function ConfirmationSheet({
             <View className="flex-1">
               <ActionButton
                 label="Cancel"
-                accessibilityLabel="Cancel decision"
+                accessibilityLabel={t('confirmationSheet.a11y.cancelDecision')}
                 variant="paper"
                 pressSfx="click"
                 onPress={cancel}

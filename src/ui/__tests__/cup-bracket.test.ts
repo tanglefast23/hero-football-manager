@@ -11,6 +11,7 @@ import {
   cupBracketLayout,
 } from '../cup-bracket';
 import type { M2CupFixtureViewModel, M2CupRoundViewModel } from '../m2-league-models';
+import { loadCatalog } from '../../i18n';
 
 function fixture(home: string, away: string, played = false): M2CupFixtureViewModel {
   return {
@@ -195,7 +196,8 @@ describe('narrow bracket bands', () => {
     const bracket = readFileSync(join(process.cwd(), 'src/ui/components/CupBracket.tsx'), 'utf8');
     const league = readFileSync(join(process.cwd(), 'src/ui/screens/M2LeagueScreen.tsx'), 'utf8');
     expect(bracket).toContain('championName === undefined ? null : (');
-    expect(bracket).toContain('Hero Cup winners');
+    expect(bracket).toContain("t('cupBracket.heroCupWinners')");
+    expect(loadCatalog('en').strings['cupBracket.heroCupWinners']).toContain('Hero Cup winners');
     expect(bracket).toContain('WINNERS FROM ABOVE');
     expect(league).toContain('championName={viewModel.cup.championName}');
     // The wide tree stays one band.

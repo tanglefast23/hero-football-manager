@@ -17,6 +17,7 @@ import {
   speechBubbleStyles,
 } from '../speech-bubble';
 import type { FulltimeReactionViewModel } from '../models';
+import { useCopy } from '../../i18n';
 
 export interface PostMatchLedgerScreenProps {
   viewModel: PostMatchViewModel;
@@ -33,6 +34,7 @@ export function PostMatchLedgerScreen({
   onOpenSettings,
   textScale = 1,
 }: PostMatchLedgerScreenProps) {
+  const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const { result } = viewModel;
   const resultTone = result.outcomeLabel === 'WIN'
@@ -45,8 +47,8 @@ export function PostMatchLedgerScreen({
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
         <View>
-          <PixelText className="text-[12px] uppercase tracking-[2px] text-blue-dark">Match complete</PixelText>
-          <PixelText className="mt-1 text-base uppercase text-ink">Full-time report</PixelText>
+          <PixelText className="text-[12px] uppercase tracking-[2px] text-blue-dark">{t('postMatchLedger.matchComplete')}</PixelText>
+          <PixelText className="mt-1 text-base uppercase text-ink">{t('postMatchLedger.full-timeReport')}</PixelText>
         </View>
         <SettingsButton onPress={onOpenSettings} />
       </View>
@@ -122,7 +124,7 @@ export function PostMatchLedgerScreen({
         <DesktopClamp>
           <ActionButton
             label="Back to the office  ▸"
-            accessibilityLabel="Continue to the Home screen and review the financial report"
+            accessibilityLabel={t('postMatchLedger.a11y.continueToTheHome')}
             onPress={onContinue}
           />
         </DesktopClamp>

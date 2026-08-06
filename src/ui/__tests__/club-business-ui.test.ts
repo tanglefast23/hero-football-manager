@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { loadCatalog } from '../../i18n';
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 const screen = read('src/ui/screens/ClubFinancesScreen.tsx');
@@ -85,7 +86,8 @@ describe('Club Business phone and accessibility contracts', () => {
     expect(seasonEnd).toContain('viewModel.clubBusinessSettlement');
     expect(seasonEnd).toContain('Season-end payday');
     expect(seasonEnd).toContain("label={result.met ? 'TARGET MET' : 'TARGET MISSED'}");
-    expect(seasonEnd).toContain('Club received {formatCurrency(result.actualBonus)}');
+    expect(seasonEnd).toContain("t('seasonEnd.clubReceived', { amount: formatCurrency(result.actualBonus) })");
+    expect(loadCatalog('en').strings['seasonEnd.clubReceived']).toBe('Club received {amount}');
     expect(seasonEnd).toContain('viewModel.clubBusinessSettlement.buzz.actualPayout');
   });
 

@@ -41,6 +41,7 @@ import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { ScreenTabs, type ScreenTab } from '../components/ScreenTabs';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { useCopy } from '../../i18n';
 
 const FACILITY_GUIDE_TARGET_TOP = 170;
 const FACILITY_PLACEMENT_PLUS_SIZE = 16;
@@ -128,6 +129,7 @@ export function ClubFinancesScreen({
   reduceMotion = false,
   focusSponsorSummaryToken,
 }: ClubFinancesScreenProps) {
+  const t = useCopy();
   const facility = viewModel.trainingGround;
   const facilities = viewModel.facilities;
   const scrollViewportRef = useRef<View>(null);
@@ -670,7 +672,7 @@ export function ClubFinancesScreen({
       <View className="mb-5">
         <View className="flex-row items-start justify-between gap-3">
           <View className="min-w-0 flex-1">
-            <PixelText className="text-sm uppercase text-blue-dark">Club office</PixelText>
+            <PixelText className="text-sm uppercase text-blue-dark">{t('clubFinances.clubOffice')}</PixelText>
             <PixelText className="mt-1 text-xl uppercase leading-7 text-ink" numberOfLines={2}>
               {viewModel.clubName}
             </PixelText>
@@ -808,6 +810,7 @@ function SponsorBusinessSection({
   sponsorBuzzAccessibilityRef,
   onGuideTargetLayout,
 }: SponsorBusinessSectionProps) {
+  const t = useCopy();
   const selected = sponsorship.slots.find(slot => slot.slot === selectedSlot)
     ?? sponsorship.slots[0];
   const guidedDesk = guideFocus === 'sponsor-desk' || guideFocus === 'sponsor-summary';
@@ -827,8 +830,9 @@ function SponsorBusinessSection({
         />
         <PaperPanel kicker="Local advertising" title="The crowd is talking" stamp="LIVE">
           <Text className="text-sm leading-5 text-ink/70">
-            Your pitchside boards pay {formatCurrency(sponsorship.actualMonthlyIncome)} each month.
-            Wins, goals and hero moments now make them worth more twice a season.
+            {t('clubFinances.boardsPayBody', {
+              amount: formatCurrency(sponsorship.actualMonthlyIncome),
+            })}
           </Text>
           {sponsorship.buzz === undefined ? null : (
             <BuzzCard buzz={sponsorship.buzz} focusTargetRef={sponsorBuzzAccessibilityRef} />
@@ -850,9 +854,9 @@ function SponsorBusinessSection({
       <View className="mb-3 border-2 border-ink bg-white p-3">
         <View className="flex-row flex-wrap items-start justify-between gap-2">
           <View className="min-w-0 flex-1">
-            <PixelText className="text-sm uppercase text-ink">Portfolio payment</PixelText>
+            <PixelText className="text-sm uppercase text-ink">{t('clubFinances.portfolioPayment')}</PixelText>
             <Text className="mt-1 font-mono text-xl text-ink">
-              {formatCurrency(sponsorship.actualMonthlyIncome)} / month
+              {t('clubFinances.perMonth', { amount: formatCurrency(sponsorship.actualMonthlyIncome) })}
             </Text>
           </View>
           <StatusChip label={`Next · ${sponsorship.nextPaymentLabel}`} tone="info" />
@@ -887,10 +891,9 @@ function SponsorBusinessSection({
           {!sponsorship.offerWindowOpen || selected.offers.length === 0 ? (
             selected.provisional ? (
               <View className="mt-3 border-2 border-dashed border-ink/30 bg-paper p-3">
-                <PixelText className="text-sm uppercase text-ink">Income protected</PixelText>
+                <PixelText className="text-sm uppercase text-ink">{t('clubFinances.incomeProtected')}</PixelText>
                 <Text className="mt-1 text-sm leading-5 text-ink/70">
-                  Your current sponsor income continues. New offers arrive next pre-season.
-                </Text>
+                  {t('clubFinances.yourCurrentSponsorIncome')}</Text>
               </View>
             ) : null
           ) : (
@@ -956,6 +959,7 @@ function ActiveSponsorCard({ slot, chairmanPercent }: {
   readonly slot: SponsorSlotViewModel;
   readonly chairmanPercent?: number;
 }) {
+  const t = useCopy();
   const statusLabel = slot.provisional
     ? 'CONTINUITY'
     : slot.objectiveStatus === 'MET'
@@ -987,7 +991,7 @@ function ActiveSponsorCard({ slot, chairmanPercent }: {
       </View>
       <View className="mt-3 border-t border-ink/20 pt-3">
         <Text className="font-mono text-base text-ink">
-          Contract {formatCurrency(slot.actualMonthlyFee)} / month
+          {t('clubFinances.contractPerMonth', { amount: formatCurrency(slot.actualMonthlyFee) })}
         </Text>
       </View>
       {slot.objectiveLabel === undefined ? null : (
@@ -997,7 +1001,7 @@ function ActiveSponsorCard({ slot, chairmanPercent }: {
             <Text className="mt-1 font-mono text-sm text-ink/70">{slot.objectiveProgressLabel}</Text>
           )}
           <Text className="mt-2 font-mono text-sm text-ink">
-            Target bonus {formatCurrency(slot.actualBonus ?? 0)}
+            {t('clubFinances.targetBonus', { amount: formatCurrency(slot.actualBonus ?? 0) })}
           </Text>
         </View>
       )}
@@ -1011,6 +1015,7 @@ function SponsorOfferCard({ offer, slot, chairmanPercent, onReview }: {
   readonly chairmanPercent?: number;
   readonly onReview?: (offer: SponsorOfferViewModel, slot: SponsorSlotViewModel) => void;
 }) {
+  const t = useCopy();
   const accessibilityLabel = [
     `Review ${offer.sponsorName} for ${slot.slotLabel}.`,
     `${offer.profileLabel} offer.`,
@@ -1029,11 +1034,11 @@ function SponsorOfferCard({ offer, slot, chairmanPercent, onReview }: {
       </View>
       <View className="mt-3 gap-1 border-t border-ink/20 pt-3">
         <Text className="font-mono text-base text-ink">
-          Contract {formatCurrency(offer.actualMonthlyFee)} / month
+          {t('clubFinances.contractPerMonth', { amount: formatCurrency(offer.actualMonthlyFee) })}
         </Text>
         <Text className="mt-2 text-sm font-bold leading-5 text-ink">{offer.objectiveLabel}</Text>
         <Text className="font-mono text-sm text-ink">
-          Target bonus {formatCurrency(offer.actualBonus)}
+          {t('clubFinances.targetBonus', { amount: formatCurrency(offer.actualBonus) })}
         </Text>
       </View>
       {onReview === undefined ? null : (
@@ -1053,14 +1058,15 @@ function BuzzCard({ buzz, focusTargetRef }: {
   readonly buzz: NonNullable<ClubSponsorshipViewModel['buzz']>;
   readonly focusTargetRef: RefObject<View | null>;
 }) {
+  const t = useCopy();
   return (
     <View
       className="mt-3 border-2 border-b-4 border-ink bg-gold-light p-4"
     >
       <View className="flex-row flex-wrap items-start justify-between gap-2">
         <View className="min-w-0 flex-1">
-          <PixelText className="text-base uppercase text-ink">Club Buzz</PixelText>
-          <Text className="mt-1 text-sm text-ink/70">Next payout · {buzz.nextPayoutLabel}</Text>
+          <PixelText className="text-base uppercase text-ink">{t('clubFinances.clubBuzz')}</PixelText>
+          <Text className="mt-1 text-sm text-ink/70">{t('clubFinances.nextPayout', { when: buzz.nextPayoutLabel })}</Text>
         </View>
         <StatusChip label={`${buzz.value} / 100`} tone="hero" />
       </View>
@@ -1069,17 +1075,17 @@ function BuzzCard({ buzz, focusTargetRef }: {
         collapsable={false}
         accessible
         accessibilityRole="progressbar"
-        accessibilityLabel="Club Buzz progress"
+        accessibilityLabel={t('clubFinances.a11y.clubBuzzProgress')}
         accessibilityValue={{ min: 0, max: 100, now: buzz.value, text: `${buzz.value} of 100` }}
         className="mt-3 h-6 overflow-hidden border-2 border-ink bg-white"
       >
         <View className="h-full bg-gold" style={{ width: `${buzz.value}%` }} />
       </View>
       <Text className="mt-3 font-mono text-base text-ink">
-        At today's rate · {formatCurrency(buzz.pendingPayout)}
+        {t('clubFinances.atTodaysRate', { amount: formatCurrency(buzz.pendingPayout) })}
       </Text>
       {buzz.lastSettlementLabel === undefined ? null : (
-        <Text className="mt-2 text-sm leading-5 text-ink/70">Last payout · {buzz.lastSettlementLabel}</Text>
+        <Text className="mt-2 text-sm leading-5 text-ink/70">{t('clubFinances.lastPayout', { when: buzz.lastSettlementLabel })}</Text>
       )}
     </View>
   );
@@ -1177,6 +1183,7 @@ interface RecentTransactionsSectionProps {
 }
 
 function RecentTransactionsSection({ viewModel }: RecentTransactionsSectionProps) {
+  const t = useCopy();
   return (
     <View>
           <SectionLabel eyebrow="One offs" title="Signings and purchases" />
@@ -1195,7 +1202,10 @@ function RecentTransactionsSection({ viewModel }: RecentTransactionsSectionProps
                 <View className="flex-1 pr-3">
                   <Text className="text-base font-bold text-ink">{transaction.label}</Text>
                   <Text className="font-mono text-xs uppercase text-ink/70">
-                    {transaction.periodLabel} · Balance {formatCurrency(transaction.balanceAfter)}
+                    {t('clubFinances.periodAndBalance', {
+                      period: transaction.periodLabel,
+                      amount: formatCurrency(transaction.balanceAfter),
+                    })}
                   </Text>
                 </View>
                 <Text className={`font-mono text-base ${transaction.kind === 'income' ? 'text-pitch-ink' : 'text-red-dark'}`}>
@@ -1217,6 +1227,7 @@ function RecentTransactionsSection({ viewModel }: RecentTransactionsSectionProps
  * shape as the statement above it so the two read as one habit.
  */
 function TrainingPointIncomeSection({ income }: { readonly income: TrainingPointIncomeViewModel }) {
+  const t = useCopy();
   return (
     <View>
       <SectionLabel eyebrow="Training points" title="What earns them" />
@@ -1244,7 +1255,7 @@ function TrainingPointIncomeSection({ income }: { readonly income: TrainingPoint
           accessibilityLabel={`Total, ${income.total} training points a week`}
           className="min-h-11 flex-row items-center bg-paper px-3 py-2"
         >
-          <PixelText className="flex-1 pr-3 text-sm uppercase text-ink">Per week</PixelText>
+          <PixelText className="flex-1 pr-3 text-sm uppercase text-ink">{t('clubFinances.perWeek')}</PixelText>
           <Text className="font-mono text-lg text-ink">{income.total}</Text>
         </View>
       </View>
@@ -1296,6 +1307,7 @@ function IncomeGenerationSection({ income }: { readonly income: IncomeGeneration
  * run. The grid above shows where they are; this says what they are for.
  */
 function FacilityRegisterSection({ facilities }: { readonly facilities: ClubFacilityGridViewModel }) {
+  const t = useCopy();
   return (
     // No margin of its own: SectionFlow already spaces every section by gap-6.
     <View>
@@ -1315,7 +1327,7 @@ function FacilityRegisterSection({ facilities }: { readonly facilities: ClubFaci
           >
             <View className="flex-1 pr-3">
               <Text className="text-base font-bold text-ink">
-                {building.name} · Level {building.level}
+                {t('clubFinances.nameAndLevel', { name: building.name, level: building.level })}
               </Text>
               <Text className="mt-1 text-sm leading-5 text-ink/70">
                 {building.status === 'operational'
@@ -1334,7 +1346,7 @@ function FacilityRegisterSection({ facilities }: { readonly facilities: ClubFaci
           accessibilityLabel={`Total upkeep, ${formatCurrency(facilities.weeklyUpkeep)} a week`}
           className="min-h-11 flex-row items-center bg-paper px-3 py-2"
         >
-          <PixelText className="flex-1 pr-3 text-sm uppercase text-ink">Running cost</PixelText>
+          <PixelText className="flex-1 pr-3 text-sm uppercase text-ink">{t('clubFinances.runningCost')}</PixelText>
           <Text className="font-mono text-lg text-red-dark">
             {formatCurrency(-facilities.weeklyUpkeep)}/wk
           </Text>
@@ -1351,6 +1363,7 @@ interface CoachingStaffSectionProps {
 }
 
 function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: CoachingStaffSectionProps) {
+  const t = useCopy();
   return (
     <View>
         <SectionLabel
@@ -1361,13 +1374,12 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
         {viewModel.coachingStaff.length === 0 ? (
           <PaperPanel kicker="Vacancy" title="The touchline needs a voice" stamp="OPEN">
             <Text className="text-sm leading-5 text-ink/70">
-              Hire a head coach to improve specialist training and guide Hero Gauge growth.
-            </Text>
+              {t('clubFinances.hireAHeadCoach')}</Text>
             {onOpenCoachMarket ? (
               <View className="mt-3">
                 <ActionButton
                   label="Open coach market"
-                  accessibilityLabel="Open the coach market"
+                  accessibilityLabel={t('clubFinances.a11y.openTheCoachMarket')}
                   onPress={onOpenCoachMarket}
                 />
               </View>
@@ -1389,10 +1401,12 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
                     <Text className="font-pixel text-sm uppercase text-blue-dark">{coach.roleLabel}</Text>
                     <Text className="mt-1 text-lg font-bold text-ink" numberOfLines={1}>{coach.name}</Text>
                     <Text className="mt-1 text-sm text-ink/70">
-                      Age {coach.age} · {coach.personalityLabel} · Level {coach.level}
+                      {t('clubFinances.coachLine', {
+                        age: coach.age, personality: coach.personalityLabel, level: coach.level,
+                      })}
                     </Text>
                     <Text className="mt-1 font-mono text-sm text-ink">
-                      {formatCurrency(coach.weeklyWage)} / week
+                      {t('clubFinances.perWeekAmount', { amount: formatCurrency(coach.weeklyWage) })}
                     </Text>
                   </View>
                 </View>
@@ -1409,7 +1423,9 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
                   ))}
                 </View>
                 <Text className="mt-2 text-sm text-ink/70">
-                  Employed {coach.seasonsEmployed} season{coach.seasonsEmployed === 1 ? '' : 's'} · Dismissal costs one weekly wage.
+                  {t('clubFinances.coachEmployed', {
+                    n: coach.seasonsEmployed, count: coach.seasonsEmployed,
+                  })}
                 </Text>
                 {onDismissCoach ? (
                   <View className="mt-3">
@@ -1426,7 +1442,7 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
             {onOpenCoachMarket ? (
               <ActionButton
                 label="Review coach market"
-                accessibilityLabel="Review the coach market"
+                accessibilityLabel={t('clubFinances.a11y.reviewTheCoachMarket')}
                 onPress={onOpenCoachMarket}
               />
             ) : null}
@@ -1525,6 +1541,7 @@ function GroundsSection({
   incomeFacilityBuildTargetRef,
   scrollToIncomeFacilities,
 }: GroundsSectionProps) {
+  const t = useCopy();
   const facilities = viewModel.facilities;
   return (
     <View
@@ -1556,23 +1573,25 @@ function GroundsSection({
           stamp={`${formatCurrency(viewModel.facilities.weeklyUpkeep)}/wk`}
         >
           <Text className="mb-3 text-sm leading-4 text-ink/70">
-            Pick a building from the menu below, then tap any + square to drop it. Put useful pairs edge-to-edge to discover bonuses.
-          </Text>
+            {t('clubFinances.pickABuildingFrom')}</Text>
           {viewModel.facilities.activeProject ? (
             <View className="mb-3 flex-row items-center gap-3 border-2 border-b-4 border-amber-800 bg-amber-100 p-3">
-              <ManagementSprite spriteKey="facility:worksite" width={54} accessibilityLabel="Active construction site" />
+              <ManagementSprite spriteKey="facility:worksite" width={54} accessibilityLabel={t('clubFinances.a11y.activeConstructionSite')} />
               <View className="min-w-0 flex-1">
-                <Text className="font-pixel text-sm uppercase text-amber-900">Works crew busy</Text>
+                <Text className="font-pixel text-sm uppercase text-amber-900">{t('clubFinances.worksCrewBusy')}</Text>
                 <PixelText className="mt-1 text-base uppercase text-ink">
-                  {viewModel.facilities.activeProject.name} · {viewModel.facilities.activeProject.weeksRemaining}W left
+                  {t('clubFinances.projectWeeksLeft', {
+                    name: viewModel.facilities.activeProject.name,
+                    weeks: viewModel.facilities.activeProject.weeksRemaining,
+                  })}
                 </PixelText>
-                <Text className="mt-1 text-sm text-ink/70">Only one construction or upgrade project can run at a time.</Text>
+                <Text className="mt-1 text-sm text-ink/70">{t('clubFinances.onlyOneConstructionOr')}</Text>
               </View>
             </View>
           ) : null}
           {facilities.activeAdjacencies.length > 0 ? (
             <View className="mb-3 border-2 border-pitch-dark bg-pitch-light px-3 py-2">
-              <Text className="font-pixel text-sm uppercase text-ink">Pair bonus active!</Text>
+              <Text className="font-pixel text-sm uppercase text-ink">{t('clubFinances.pairBonusActive')}</Text>
               <Text className="mt-1 text-sm leading-4 text-ink/70">
                 {facilities.activeAdjacencies.map(facilityAdjacencyLabel).join(' · ')}
               </Text>
@@ -1826,7 +1845,7 @@ function GroundsSection({
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Cancel placement"
+                accessibilityLabel={t('clubFinances.a11y.cancelPlacement')}
                 onPress={cancelPlacement}
                 className="min-h-11 items-center justify-center border-2 border-blue-dark bg-white px-3"
               >
@@ -1836,8 +1855,7 @@ function GroundsSection({
           ) : (
             <View className="mt-3 border-2 border-dashed border-ink/30 bg-paper px-3 py-2">
               <Text className="text-sm text-ink/70">
-                Pick a building from the <Text className="font-bold text-ink">Build menu</Text> below to start. Every available starting square shows a +.
-              </Text>
+                {t('clubFinances.pickABuildingFrom')}<Text className="font-bold text-ink">{t('clubFinances.buildMenu')}</Text> {t('clubFinances.belowToStartEvery')}</Text>
             </View>
           )}
 
@@ -1851,7 +1869,7 @@ function GroundsSection({
                 />
               </View>
               <View className="flex-1">
-                <PixelText className="text-sm uppercase text-ink">What it does</PixelText>
+                <PixelText className="text-sm uppercase text-ink">{t('clubFinances.whatItDoes')}</PixelText>
                 <Text className="mt-1 text-sm text-ink/80">{facilityBenefit(placementType)}</Text>
               </View>
             </View>
@@ -1865,7 +1883,9 @@ function GroundsSection({
                 </View>
                 <View className="flex-1">
                   <PixelText className="text-base uppercase text-ink">
-                    {selectedBuilding.name} · Level {selectedBuilding.level}
+                    {t('clubFinances.nameAndLevel', {
+                      name: selectedBuilding.name, level: selectedBuilding.level,
+                    })}
                   </PixelText>
                   <Text className="mt-1 text-sm text-ink/70">
                     {selectedBuilding.status === 'operational'
@@ -1877,18 +1897,20 @@ function GroundsSection({
                   </Text>
                   {selectedBuilding.nextLevelEffectLabel ? (
                     <PixelText className="mt-1 text-xs uppercase leading-4 text-ink/70">
-                      Next level · {selectedBuilding.nextLevelEffectLabel}
+                      {t('clubFinances.nextLevel', { effect: selectedBuilding.nextLevelEffectLabel })}
                     </PixelText>
                   ) : null}
                   {selectedBuilding.activeAdjacencyIds.length > 0 ? (
                     <PixelText className="mt-2 text-xs uppercase text-pitch-ink">
-                      Active combo · {selectedBuilding.activeAdjacencyIds.map(facilityAdjacencyLabel).join(' · ')}
+                      {t('clubFinances.activeCombo', {
+                        combos: selectedBuilding.activeAdjacencyIds.map(facilityAdjacencyLabel).join(' · '),
+                      })}
                     </PixelText>
                   ) : null}
                 </View>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Close selected facility"
+                  accessibilityLabel={t('clubFinances.a11y.closeSelectedFacility')}
                   onPress={() => {
                     setSelectedBuildingId(null);
                     setRelocatingBuildingId(null);
@@ -2014,7 +2036,7 @@ function GroundsSection({
               }
             }}
           >
-            <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/70">Build menu</PixelText>
+            <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/70">{t('clubFinances.buildMenu')}</PixelText>
             {buildMenuReminder !== null ? (
               <Text
                 accessibilityLiveRegion="polite"
@@ -2057,8 +2079,7 @@ function GroundsSection({
                         className="w-full border-2 border-b-4 border-gold-dark bg-gold-light px-3 py-3"
                       >
                         <PixelText className="text-sm uppercase tracking-wide text-ink">
-                          Bert says
-                        </PixelText>
+                          {t('clubFinances.bertSays')}</PixelText>
                         <Text className="mt-1 text-sm leading-5 text-ink">
                           {viewModel.facilities.activeProject === undefined
                             ? 'Fan Shops earn every week and Stadium Stands boost home-match income. You can build up to 3 of each; every other facility is limited to 1.'
@@ -2181,8 +2202,7 @@ function GroundsSection({
                       {adjacencyGuidance !== undefined && entry.available ? (
                         <View className="mt-2 border-t border-pitch-dark/25 pt-2">
                           <PixelText className="text-xs uppercase tracking-wide text-pitch-ink">
-                            Known combo
-                          </PixelText>
+                            {t('clubFinances.knownCombo')}</PixelText>
                           <Text className="mt-1 text-xs leading-4 text-ink/65">
                             {adjacencyGuidance}
                           </Text>
@@ -2205,11 +2225,10 @@ function GroundsSection({
           </View>
 
           <View className="mt-4 border-t-2 border-ink/20 pt-3">
-            <PixelText className="text-sm uppercase tracking-wide text-ink/70">Facility pair bonuses</PixelText>
+            <PixelText className="text-sm uppercase tracking-wide text-ink/70">{t('clubFinances.facilityPairBonuses')}</PixelText>
             {viewModel.facilities.discoveredAdjacencies.length === 0 ? (
               <Text className="mt-2 text-sm leading-4 text-ink/70">
-                No pairings discovered yet. Some facilities hide a bonus when the right pair shares an edge. Corners do not count.
-              </Text>
+                {t('clubFinances.noPairingsDiscoveredYet')}</Text>
             ) : viewModel.facilities.discoveredAdjacencies.map(adjacency => {
               const presentation = facilityAdjacencyPresentation(adjacency);
               const active = viewModel.facilities.activeAdjacencies.includes(adjacency);
@@ -2225,7 +2244,7 @@ function GroundsSection({
                           {presentation.effectLabel}
                         </Text>
                         <Text className="mt-1 text-sm leading-4 text-ink/70">
-                          Why it works: {presentation.rationale}
+                          {t('clubFinances.whyItWorks', { reason: presentation.rationale })}
                         </Text>
                       </>
                     ) : null}
@@ -2258,6 +2277,7 @@ function LegacyTrainingGroundSection({
   onTrainingGroundLayout,
   onBuildTrainingGround,
 }: LegacyTrainingGroundSectionProps) {
+  const t = useCopy();
   return (
     <View ref={trainingGroundRef} collapsable={false} onLayout={onTrainingGroundLayout}>
         <SectionLabel eyebrow="One big call" title="Training Ground" right={<StatusChip label="Facility 01" />} />
@@ -2275,10 +2295,9 @@ function LegacyTrainingGroundSection({
               />
             </View>
             <View className="flex-1">
-              <PixelText className="text-base uppercase text-ink">Training Ground · Level 1</PixelText>
+              <PixelText className="text-base uppercase text-ink">{t('clubFinances.trainingGroundLevel1')}</PixelText>
               <Text className="mt-2 text-sm leading-4 text-ink/70">
-                A proper weekly practice base. Small, dependable improvement without adding another management chore.
-              </Text>
+                {t('clubFinances.aProperWeeklyPractice')}</Text>
             </View>
           </View>
           <View className="mt-3 flex-row gap-2">
@@ -2286,7 +2305,9 @@ function LegacyTrainingGroundSection({
             <Metric label="Weekly return" value={`+${facility.weeklyTrainingPoints} TP`} tone="positive" />
           </View>
           <PixelText className="mt-3 text-sm uppercase tracking-wide text-ink/70">
-            M1 offer: {formatCurrency(facility.cost)} cost · +{facility.weeklyTrainingPoints} TP every week
+            {t('clubFinances.m1Offer', {
+              cost: formatCurrency(facility.cost), points: facility.weeklyTrainingPoints,
+            })}
           </PixelText>
           {!facility.built && !facility.underConstruction ? (
             <View className={guideTrainingGround ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}>
@@ -2298,7 +2319,7 @@ function LegacyTrainingGroundSection({
               ) : null}
               <ActionButton
                 label="Approve build · $8,000 · 2 weeks"
-                accessibilityLabel="Build the Training Ground for $8,000"
+                accessibilityLabel={t('clubFinances.a11y.buildTheTrainingGroundFor8000')}
                 onPress={onBuildTrainingGround}
                 disabled={!facility.affordable}
               />
@@ -2306,14 +2327,13 @@ function LegacyTrainingGroundSection({
           ) : null}
           {facility.underConstruction ? (
             <View className="mt-3 border-2 border-b-4 border-amber-800 bg-amber-100 p-3">
-              <Text className="text-center font-pixel text-base uppercase text-amber-900">Sports facility in construction!</Text>
-              <Text className="mt-2 text-center text-sm text-ink/65">Benefits start when the next weekly settlement completes the work.</Text>
+              <Text className="text-center font-pixel text-base uppercase text-amber-900">{t('clubFinances.sportsFacilityInConstruction')}</Text>
+              <Text className="mt-2 text-center text-sm text-ink/65">{t('clubFinances.benefitsStartWhenThe')}</Text>
             </View>
           ) : null}
           {!facility.built && !facility.underConstruction && !facility.affordable ? (
             <PixelText className="mt-2 text-center text-sm uppercase tracking-wide text-red-dark">
-              Insufficient balance
-            </PixelText>
+              {t('clubFinances.insufficientBalance')}</PixelText>
           ) : null}
         </PaperPanel>
     </View>

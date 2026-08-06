@@ -14,6 +14,7 @@ import {
 } from '../render/power-match-showcase';
 import type { PowerId } from '../sim/types';
 import { ActionButton } from './components/Scorecard';
+import { usePixelStyles, type LocaleFaces } from '../i18n';
 
 export interface PowerAcquiredDemoModalProps {
   visible: boolean;
@@ -45,6 +46,7 @@ export function PowerAcquiredDemoModal({
   onClose,
   onContinue,
 }: PowerAcquiredDemoModalProps) {
+  const styles = usePixelStyles(makeStyles);
   const [replayKey, setReplayKey] = useState(0);
   const [frozen, setFrozen] = useState(false);
   const home = useMemo(
@@ -157,7 +159,7 @@ export function PowerAcquiredDemoModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#16121f',
@@ -200,14 +202,14 @@ const styles = StyleSheet.create({
   },
   kicker: {
     color: '#c8862a',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 10,
     letterSpacing: 1.6,
   },
   powerName: {
     marginTop: 4,
     color: '#241f2e',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 22,
     lineHeight: 28,
     textTransform: 'uppercase',

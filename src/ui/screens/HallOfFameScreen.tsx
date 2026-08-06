@@ -2,6 +2,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { ActionButton } from '../components/Scorecard';
 import { PixelText } from '../components/PixelText';
 import type { HallOfFameStatViewModel, HallOfFameViewModel } from '../models';
+import { useCopy } from '../../i18n';
 
 export interface HallOfFameScreenProps {
   viewModel: HallOfFameViewModel;
@@ -26,6 +27,7 @@ export function HallOfFameScreen({
   onBack,
   backLabel = 'Back to settings',
 }: HallOfFameScreenProps) {
+  const t = useCopy();
   return (
     <View className="min-h-0 flex-1">
       {/* The completed record is summarised on the header, so a screen reader
@@ -94,7 +96,7 @@ export function HallOfFameScreen({
               </View>
             )}
 
-            <Text className="mb-2 mt-6 font-pixel text-base uppercase text-blue-dark">The climb</Text>
+            <Text className="mb-2 mt-6 font-pixel text-base uppercase text-blue-dark">{t('hallOfFame.theClimb')}</Text>
             <View className="border-2 border-ink bg-white">
               {viewModel.tiers.map((tier, index) => (
                 <View

@@ -15,6 +15,7 @@ import { PixelText } from './components/PixelText';
 import { InfoTip } from './components/InfoTip';
 import { useGuideAnchor } from './use-guide-anchor';
 import type { DeveloperSaveSlot, DeveloperSaveSummary } from '../persistence';
+import { useCopy } from '../i18n';
 
 const TABS: ReadonlyArray<{
   id: ManagementTab; label: string; glyph: string; available: boolean; tip: string;
@@ -235,6 +236,7 @@ export function ManagementShell({
   onPressDeveloperSaveSlot,
   onToggleDeveloperManualSave,
 }: ManagementShellProps) {
+  const t = useCopy();
   const headerLine = managementHeaderLine(seasonLabel, weekLabel);
   const dismissFrameRef = useRef<number | null>(null);
   const dismissGuidanceAfterPress = useCallback(() => {
@@ -323,7 +325,7 @@ export function ManagementShell({
             {onOpenLedger ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Open the club ledger"
+                accessibilityLabel={t('managementShell.a11y.openTheClubLedger')}
                 onPress={onOpenLedger}
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
               >
@@ -358,7 +360,7 @@ export function ManagementShell({
               {onOpenLedger ? (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Open the club ledger"
+                  accessibilityLabel={t('managementShell.a11y.openTheClubLedger')}
                   onPress={onOpenLedger}
                   style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
                 >
@@ -394,7 +396,7 @@ export function ManagementShell({
               className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
               style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
             >
-              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">Bert's job</Text>
+              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">{t('managementShell.bertsJob')}</Text>
               <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">{guideObjective}</Text>
               <Text className="font-mono text-lg font-bold text-ink">›</Text>
             </Pressable>
@@ -404,7 +406,7 @@ export function ManagementShell({
               accessibilityLabel={`Bert's current job: ${guideObjective}`}
               className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
             >
-              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">Bert's job</Text>
+              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">{t('managementShell.bertsJob')}</Text>
               <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">{guideObjective}</Text>
             </View>
           )

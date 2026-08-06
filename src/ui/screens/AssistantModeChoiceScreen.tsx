@@ -6,6 +6,7 @@ import { BertFullBody } from '../BertFullBody';
 import { ChalkboardBackdrop } from '../components/ChalkboardStage';
 import { ActionButton } from '../components/Scorecard';
 import { useLayoutMode } from '../layout/use-layout-mode';
+import { useCopy } from '../../i18n';
 
 export interface AssistantModeChoiceScreenProps {
   onChoose: (mode: AssistantMode) => void;
@@ -17,6 +18,7 @@ export function AssistantModeChoiceScreen({
   onChoose,
   onBack,
 }: AssistantModeChoiceScreenProps) {
+  const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
 
   return (
@@ -74,7 +76,7 @@ export function AssistantModeChoiceScreen({
           <View className={wide ? 'mt-7 w-48' : 'mt-6'}>
             <ActionButton
               label="‹ Back"
-              accessibilityLabel="Back to the new game screen"
+              accessibilityLabel={t('assistantModeChoice.a11y.back')}
               onPress={onBack}
               variant="paper"
               pressSfx="click"

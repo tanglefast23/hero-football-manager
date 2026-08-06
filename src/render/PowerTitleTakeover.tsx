@@ -11,6 +11,7 @@ import Animated, {
 import type { PowerId } from '../sim/types';
 import { powerCutInPresentation } from './power-cut-in';
 import { KIT_PANEL_BORDER_COLOR, KIT_PANEL_TEXT_COLOR } from './team-kit-ui';
+import { usePixelStyles, type LocaleFaces } from '../i18n';
 
 const INTRO_OVERSHOOT = 1.06;
 const OUTRO_DELAY_MS = 1100;
@@ -48,6 +49,7 @@ export function PowerTitleTakeover({
   accessibilityLabel,
   onDismiss,
 }: PowerTitleTakeoverProps) {
+  const styles = usePixelStyles(makeStyles);
   const presentation = powerCutInPresentation(power);
   const intro = useSharedValue(1);
   const titleReveal = useSharedValue(1);
@@ -191,10 +193,8 @@ export function PowerTitleTakeover({
   );
 }
 
-const PIXEL = 'Silkscreen_400Regular';
-const PIXEL_BOLD = 'Silkscreen_700Bold';
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   pressable: { width: '100%', flex: 1 },
   pressableMobile: { minHeight: 150 },
   pressableMobileCompact: { minHeight: 124 },
@@ -229,13 +229,13 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: KIT_PANEL_TEXT_COLOR,
-    fontFamily: PIXEL_BOLD,
+    fontFamily: faces.display,
     fontSize: 10,
     letterSpacing: 1.5,
   },
   glyph: {
     color: KIT_PANEL_TEXT_COLOR,
-    fontFamily: PIXEL_BOLD,
+    fontFamily: faces.display,
     fontSize: 34,
     lineHeight: 40,
     marginTop: 4,
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   titleWrap: { width: '100%' },
   title: {
     color: KIT_PANEL_TEXT_COLOR,
-    fontFamily: PIXEL_BOLD,
+    fontFamily: faces.display,
     fontSize: 27,
     lineHeight: 31,
     letterSpacing: 1,
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   titleDesktop: { fontSize: 33, lineHeight: 40, letterSpacing: 1.5 },
   playerName: {
     color: KIT_PANEL_TEXT_COLOR,
-    fontFamily: PIXEL_BOLD,
+    fontFamily: faces.display,
     fontSize: 12,
     letterSpacing: 1,
     marginTop: 5,
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   playerNameCompact: { fontSize: 10, marginTop: 2 },
   additional: {
     color: KIT_PANEL_TEXT_COLOR,
-    fontFamily: PIXEL,
+    fontFamily: faces.data,
     fontSize: 9,
     letterSpacing: 0.8,
     marginTop: 5,
