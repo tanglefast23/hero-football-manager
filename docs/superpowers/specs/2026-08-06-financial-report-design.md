@@ -57,9 +57,11 @@ A row passes through: **spin** (digit reels cycle) → **base land** (digits set
 | Surge spin | 650 ms (500 × 1.3) | Replaces the 500 ms spin on surged rows |
 | Net row spin | 650 ms | Always the last row |
 | Stamp slam | 250 ms | After net lands; rotate −8° → 4°, scale 1.4 → 1.0 |
-| Banner hold | 2000 ms | Auto-dismiss; banners queue FIFO |
+| Banner hold | 3000 ms | Auto-dismiss; banners queue FIFO (owner revision 2026-08-06, up from 2000) |
 
 Rows not yet started show their label with a dimmed `$•••` placeholder at final width, so nothing shifts.
+
+**Paired reveals for long ledgers (owner revision 2026-08-06):** statements with 8+ rows reveal their constant rows two at a time — one shared spin, both landing together on one thunk — while every reveal-carrying row (league gate, cup gate, merch) keeps its solo spotlight. Within each consecutive run of constant rows, rows pair in order and an odd run leaves its last row solo. A tap completes the whole current pair. Short statements are untouched.
 
 ### Digit reels
 
@@ -160,7 +162,7 @@ final           = afterMultiplier + adjacency
 
 ### Callout banners
 
-- After a surged row lands, a banner pops over the panel: pop-in (scale 0.2 → 1.0 with slight rotation), hold 2 s, fade. It never blocks touches, and later rows keep spinning beneath it.
+- After a surged row lands, a banner pops over the panel: pop-in (scale 0.2 → 1.0 with slight rotation), hold 3 s, fade. **The card shrink-wraps its content** (centered, padding only — never spanning the panel), and **shows the surge's extra money beside the headline** (e.g. "+$590"), computed against a typical 0% week by recovering the pre-variance base from the stored reveal (exact for the shipped bands; `surgeBonusAmount`, unit-tested). It never blocks touches, and later rows keep spinning beneath it.
 - **EXTREME ATTENDANCE!** (gate surge, league or cup): a pixel crowd strip — five chibi fans, arms up, confetti pixels — drawn as Skia sprite runs in the style of `event-pixel-art.ts`.
 - **TRENDING MERCHANDISE!** (merch surge): 4–5 toys drawn from a set of **10 merch sprites**: scarf, mini ball, foam finger, bobblehead, plush mascot, snow-globe stadium, boot keychain, jersey, trading-card pack, club mug. The subset is picked deterministically from season + week.
 - Banners queue FIFO **in ledger order**, arbitrary length: a league/cup double-header plus merch can legally produce three. Each holds 2 s.
@@ -305,3 +307,5 @@ Reconstruction invariant (enforced by settlement tests): gate `amount = base + f
 | Reveal shape | Discriminated union by source; identity values explicit; adjacencyPercent persisted | Council round 1 (Codex) |
 | Malformed/inconsistent reveals | Fail-soft `sanitizeLedgerReveals` strips only the reveal; never bricks the save | Council round 2 (Codex) |
 | Skip semantics | Skipped surge still enqueues one banner; tap-completed net row plays one thunk | Council round 2 (Codex) |
+| Banner sizing + bonus | Shrink-wrapped card showing the surge's extra money beside the headline; hold 3 s | Owner (post-review, 2026-08-06) |
+| Paired reveals | 8+ rows: constant rows reveal two at a time (odd tail solo); reveal rows stay solo | Owner (post-review, 2026-08-06) |

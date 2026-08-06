@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, View } from 'react-native';
 import { Canvas, Rect } from '@shopify/react-native-skia';
 import { PixelText } from './PixelText';
+import { formatCurrency } from './Scorecard';
 import {
   CROWD_SPRITE_IDS,
   FINANCE_SPRITE_CELL,
@@ -21,6 +22,8 @@ import {
 export interface SurgeBannerEvent {
   rowId: string;
   kind: 'attendance' | 'merch';
+  /** What the surge added versus a typical week — shown beside the headline. */
+  bonusAmount: number;
 }
 
 export interface SurgeBannerProps {
@@ -31,9 +34,11 @@ export interface SurgeBannerProps {
   reduceMotion: boolean;
 }
 
-const HOLD_MS = 2000;
+const HOLD_MS = 3000;
 const FADE_MS = 200;
 const SPRITE_PX = FINANCE_SPRITE_CELL * FINANCE_SPRITE_SCALE;
+/** The surged row's permanent tint — the banner's bonus wears the same fire. */
+const BONUS_COLOR = '#b45309';
 
 export function SurgeBanner({
   queue,
@@ -88,16 +93,20 @@ export function SurgeBanner({
     : pickMerchToys(settlementSeason, settlementWeek);
   const headline = attendance ? 'Extreme attendance!' : 'Trending merchandise!';
 
+  const bonusLabel = head.bonusAmount > 0 ? `+${formatCurrency(head.bonusAmount)}` : null;
+
   return (
-    <View pointerEvents="none" className="absolute inset-x-4 top-1/4">
+    // items-center: the card shrink-wraps its content instead of spanning the
+    // panel (owner revision, 2026-08-06).
+    <View pointerEvents="none" className="absolute inset-x-4 top-1/4 items-center">
       {/* NativeWind ignores className on Animated views: the animated wrapper
           is style-only and the plain View inside carries the card look. */}
       <Animated.View
         accessibilityRole="alert"
-        accessibilityLabel={headline}
+        accessibilityLabel={bonusLabel === null ? headline : `${headline} ${bonusLabel} extra`}
         style={{ opacity, transform: [{ rotate: '-3deg' }, { scale }] }}
       >
-        <View className="items-center border-2 border-b-4 border-ink bg-paper px-3 py-3">
+        <View className="items-center border-2 border-b-4 border-ink bg-paper px-4 py-3">
           <View style={{ flexDirection: 'row', gap: 4 }}>
           {sprites.map(spriteId => (
             <Canvas key={spriteId} style={{ width: SPRITE_PX, height: SPRITE_PX }}>
@@ -114,13 +123,20 @@ export function SurgeBanner({
             </Canvas>
           ))}
         </View>
-          <PixelText
-            className={attendance
-              ? 'mt-2 text-base uppercase text-red-dark'
-              : 'mt-2 text-base uppercase text-pitch-ink'}
-          >
-            {headline}
-          </PixelText>
+          <View className="mt-2 flex-row items-center" style={{ gap: 8 }}>
+            <PixelText
+              className={attendance
+                ? 'text-base uppercase text-red-dark'
+                : 'text-base uppercase text-pitch-ink'}
+            >
+              {headline}
+            </PixelText>
+            {bonusLabel === null ? null : (
+              <PixelText className="text-base uppercase" style={{ color: BONUS_COLOR }}>
+                {bonusLabel}
+              </PixelText>
+            )}
+          </View>
         </View>
       </Animated.View>
     </View>

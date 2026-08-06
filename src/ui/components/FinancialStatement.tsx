@@ -114,6 +114,7 @@ export function FinancialStatement({
       type: 'amountSettled',
       generation: runtime.getState().generation,
       target: 'net',
+      index: 0,
       settleKey,
     });
   }, []);

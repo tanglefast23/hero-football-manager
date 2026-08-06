@@ -2,11 +2,17 @@ import type { LedgerLineReveal } from '../game/types';
 
 /**
  * The Financial Report's reveal sequencer as a pure reducer (spec §4): rows
- * spin and land one at a time, multiplied rows walk their chip/odometer/
+ * spin and land in reveal groups, multiplied rows walk their chip/odometer/
  * adjacency beats, the net row slams the stamp, and a tap completes the
- * current row atomically. No React, no timers, no audio — the machine consumes
- * events and RETURNS commands; the runtime executes them. That is what makes
- * the riskiest logic in the feature testable headless.
+ * current group atomically. No React, no timers, no audio — the machine
+ * consumes events and RETURNS commands; the runtime executes them. That is
+ * what makes the riskiest logic in the feature testable headless.
+ *
+ * Reveal groups: short statements reveal one row at a time. From
+ * PAIRING_THRESHOLD rows, the money-star rows (anything carrying a reveal)
+ * still reveal solo while runs of constant rows reveal two at a time, a lone
+ * odd row closing a run by itself — a long sponsor-week ledger stays brisk
+ * without stealing the gate's spotlight (owner revision, 2026-08-06).
  *
  * Cancellation: every `start`/`tap` bumps `generation` BEFORE emitting
  * `schedule` commands (which embed the new generation); a `timer`,
@@ -36,6 +42,9 @@ export const DEFAULT_MACHINE_TIMINGS: MachineTimings = {
   adjacencyMs: 150,
   stampMs: 250,
 };
+
+/** Ledgers at or past this row count reveal their constant rows in pairs. */
+export const PAIRING_THRESHOLD = 8;
 
 export interface MachineRow {
   id: string;
@@ -76,13 +85,15 @@ interface NetRuntime {
 }
 
 export type MachineCursor =
-  | { kind: 'row'; index: number }
+  | { kind: 'group'; index: number }
   | { kind: 'net' }
   | { kind: 'done' };
 
 export interface BannerEvent {
   rowId: string;
   kind: 'attendance' | 'merch';
+  /** What the surge added versus a typical 0% week — the banner's headline number. */
+  bonusAmount: number;
 }
 
 export interface MachineState {
@@ -92,16 +103,28 @@ export interface MachineState {
   stampPhase: 'hidden' | 'slamming' | 'complete';
   status: 'running' | 'reportComplete';
   cursor: MachineCursor;
+  /** Reveal order: each group is one or two row indices revealed together. */
+  groups: readonly (readonly number[])[];
   bannerQueue: readonly BannerEvent[];
   bannersEnqueued: readonly string[];
 }
 
-export type MachineTarget = { target: 'row'; index: number } | { target: 'net' };
-
 export type MachineEvent =
   | { type: 'start' }
-  | ({ type: 'timer'; generation: number; expectPhase: RowPhase | 'advance' } & MachineTarget)
-  | ({ type: 'amountSettled'; generation: number; settleKey: number } & MachineTarget)
+  | {
+      type: 'timer';
+      generation: number;
+      expectPhase: RowPhase | 'advance';
+      target: 'group' | 'net';
+      index: number; // group index; ignored for net
+    }
+  | {
+      type: 'amountSettled';
+      generation: number;
+      settleKey: number;
+      target: 'row' | 'net';
+      index: number; // row index; ignored for net
+    }
   | { type: 'stampSettled'; generation: number }
   | { type: 'tap' }
   | { type: 'bannerShown'; rowId: string };
@@ -118,6 +141,55 @@ export function slotPhaseForRow(phase: RowPhase): 'pending' | 'spinning' | 'sett
   if (phase === 'pending') return 'pending';
   if (phase === 'spinning') return 'spinning';
   return 'settled';
+}
+
+/**
+ * Reveal order for a statement: singleton groups for every row below the
+ * pairing threshold; at or above it, reveal-carrying rows stay solo and each
+ * consecutive run of constant rows pairs up, odd tail solo.
+ */
+export function buildRevealGroups(rows: readonly MachineRow[]): (readonly number[])[] {
+  if (rows.length < PAIRING_THRESHOLD) {
+    return rows.map((_row, index) => [index]);
+  }
+  const groups: number[][] = [];
+  let run: number[] = [];
+  const flushRun = () => {
+    for (let cursor = 0; cursor + 1 < run.length; cursor += 2) {
+      groups.push([run[cursor], run[cursor + 1]]);
+    }
+    if (run.length % 2 === 1) groups.push([run[run.length - 1]]);
+    run = [];
+  };
+  rows.forEach((row, index) => {
+    if (row.reveal !== undefined) {
+      flushRun();
+      groups.push([index]);
+    } else {
+      run.push(index);
+    }
+  });
+  flushRun();
+  return groups;
+}
+
+/**
+ * What the surge added versus a typical (0%) week, recovered from the stored
+ * reveal. The pre-variance base is not persisted, but the rounding round-trip
+ * recovers it exactly for the shipped bands.
+ */
+export function surgeBonusAmount(row: MachineRow): number {
+  const reveal = row.reveal;
+  if (reveal === undefined || !reveal.surge) return 0;
+  const raw = Math.round(reveal.base * 100 / (100 + reveal.variancePercent));
+  if (reveal.source === 'merch') {
+    const zeroAfterMultiplier = raw * reveal.multiplierTimes;
+    const zeroAmount = zeroAfterMultiplier
+      + Math.floor(zeroAfterMultiplier * reveal.adjacencyPercent / 100);
+    return row.amount - zeroAmount;
+  }
+  const zeroAmount = raw + Math.floor(raw * (reveal.multiplierPercent - 100) / 100);
+  return row.amount - zeroAmount;
 }
 
 function isSurged(row: MachineRow): boolean {
@@ -152,6 +224,7 @@ function multipliedValue(row: MachineRow): number {
 }
 
 export function createMachine(config: MachineConfig): MachineState {
+  const groups = buildRevealGroups(config.rows);
   if (config.reduceMotion) {
     // Everything lands instantly; surged banners still queue (spec §4 — they
     // are information, not decoration).
@@ -168,7 +241,12 @@ export function createMachine(config: MachineConfig): MachineState {
       stampPhase: 'complete',
       status: 'reportComplete',
       cursor: { kind: 'done' },
-      bannerQueue: surged.map(row => ({ rowId: row.id, kind: bannerKind(row) })),
+      groups,
+      bannerQueue: surged.map(row => ({
+        rowId: row.id,
+        kind: bannerKind(row),
+        bonusAmount: surgeBonusAmount(row),
+      })),
       bannersEnqueued: surged.map(row => row.id),
     };
   }
@@ -183,7 +261,8 @@ export function createMachine(config: MachineConfig): MachineState {
     net: { phase: 'pending', shownValue: 0, settleKey: 0, settleMode: 'instant' },
     stampPhase: 'hidden',
     status: 'running',
-    cursor: config.rows.length > 0 ? { kind: 'row', index: 0 } : { kind: 'net' },
+    cursor: groups.length > 0 ? { kind: 'group', index: 0 } : { kind: 'net' },
+    groups,
     bannerQueue: [],
     bannersEnqueued: [],
   };
@@ -205,7 +284,11 @@ function enqueueBanner(state: MachineState, row: MachineRow): MachineState {
   if (!isSurged(row) || state.bannersEnqueued.includes(row.id)) return state;
   return {
     ...state,
-    bannerQueue: [...state.bannerQueue, { rowId: row.id, kind: bannerKind(row) }],
+    bannerQueue: [...state.bannerQueue, {
+      rowId: row.id,
+      kind: bannerKind(row),
+      bonusAmount: surgeBonusAmount(row),
+    }],
     bannersEnqueued: [...state.bannersEnqueued, row.id],
   };
 }
@@ -213,10 +296,11 @@ function enqueueBanner(state: MachineState, row: MachineRow): MachineState {
 /** Starts spinning whatever the cursor points at; done cursors finish silently. */
 function enterCursor(config: MachineConfig, state: MachineState): Reduction {
   const commands: MachineCommand[] = [];
-  if (state.cursor.kind === 'row') {
-    const index = state.cursor.index;
-    const row = config.rows[index];
-    const surge = isSurged(row);
+  if (state.cursor.kind === 'group') {
+    const groupIndex = state.cursor.index;
+    const group = state.groups[groupIndex];
+    if (group === undefined) return { state, commands: [] };
+    const surge = group.some(rowIndex => isSurged(config.rows[rowIndex]));
     const spinMs = surge
       ? Math.round(config.timings.rowSpinMs * config.timings.surgeSpinFactor)
       : config.timings.rowSpinMs;
@@ -225,16 +309,30 @@ function enterCursor(config: MachineConfig, state: MachineState): Reduction {
     commands.push({
       type: 'schedule',
       afterMs: spinMs,
-      event: { type: 'timer', generation: state.generation, target: 'row', index, expectPhase: 'base' },
+      event: {
+        type: 'timer',
+        generation: state.generation,
+        target: 'group',
+        index: groupIndex,
+        expectPhase: 'base',
+      },
     });
-    return { state: withRow(state, index, { phase: 'spinning' }), commands };
+    let next = state;
+    for (const rowIndex of group) next = withRow(next, rowIndex, { phase: 'spinning' });
+    return { state: next, commands };
   }
   if (state.cursor.kind === 'net') {
     commands.push({ type: 'playSpin' });
     commands.push({
       type: 'schedule',
       afterMs: config.timings.netSpinMs,
-      event: { type: 'timer', generation: state.generation, target: 'net', expectPhase: 'base' },
+      event: {
+        type: 'timer',
+        generation: state.generation,
+        target: 'net',
+        index: 0,
+        expectPhase: 'base',
+      },
     });
     return {
       state: { ...state, net: { ...state.net, phase: 'spinning' } },
@@ -244,37 +342,53 @@ function enterCursor(config: MachineConfig, state: MachineState): Reduction {
   return { state, commands: [] };
 }
 
-/** Advances the cursor past `index` and schedules the next row's entrance. */
-function scheduleAdvance(
-  config: MachineConfig,
-  state: MachineState,
-): Reduction {
-  const nextCursor: MachineCursor = state.cursor.kind === 'row'
-    ? (state.cursor.index + 1 < config.rows.length
-      ? { kind: 'row', index: state.cursor.index + 1 }
+/** Advances the cursor past the current group and schedules the next entrance. */
+function scheduleAdvance(config: MachineConfig, state: MachineState): Reduction {
+  const nextCursor: MachineCursor = state.cursor.kind === 'group'
+    ? (state.cursor.index + 1 < state.groups.length
+      ? { kind: 'group', index: state.cursor.index + 1 }
       : { kind: 'net' })
     : { kind: 'done' };
   const advanced: MachineState = { ...state, cursor: nextCursor };
   if (nextCursor.kind === 'done') {
     return { state: advanced, commands: [] };
   }
-  const target: MachineTarget = nextCursor.kind === 'row'
-    ? { target: 'row', index: nextCursor.index }
-    : { target: 'net' };
   return {
     state: advanced,
     commands: [{
       type: 'schedule',
       afterMs: config.timings.interRowMs,
-      event: { type: 'timer', generation: state.generation, expectPhase: 'advance', ...target },
+      event: {
+        type: 'timer',
+        generation: state.generation,
+        target: nextCursor.kind === 'group' ? 'group' : 'net',
+        index: nextCursor.kind === 'group' ? nextCursor.index : 0,
+        expectPhase: 'advance',
+      },
     }],
   };
 }
 
-/** The row's landing beat: thunk, surge stop + banner, then the next sub-phase. */
+/** The current group's indices, or undefined when the cursor is off rows. */
+function currentGroup(state: MachineState): readonly number[] | undefined {
+  return state.cursor.kind === 'group' ? state.groups[state.cursor.index] : undefined;
+}
+
+/**
+ * A settled base beat for one row of the current group: thunk on the group's
+ * first land, surge stop + banner for surged rows, sub-phase walk for
+ * multiplied rows, advance once every row in the group is complete.
+ */
 function settleRowBase(config: MachineConfig, state: MachineState, index: number): Reduction {
   const row = config.rows[index];
-  const commands: MachineCommand[] = [{ type: 'playThunk' }];
+  const group = currentGroup(state) ?? [index];
+  const partnersComplete = group.every(rowIndex => (
+    rowIndex === index || state.rows[rowIndex].phase === 'complete'
+  ));
+  const firstLandOfGroup = group.every(rowIndex => (
+    rowIndex === index || state.rows[rowIndex].phase !== 'complete'
+  )) || group.length === 1;
+  const commands: MachineCommand[] = firstLandOfGroup ? [{ type: 'playThunk' }] : [];
   let next = state;
   if (isSurged(row)) {
     commands.push({ type: 'stopSurgeBed' });
@@ -285,7 +399,13 @@ function settleRowBase(config: MachineConfig, state: MachineState, index: number
     commands.push({
       type: 'schedule',
       afterMs: config.timings.chipMs,
-      event: { type: 'timer', generation: next.generation, target: 'row', index, expectPhase: 'multiplied' },
+      event: {
+        type: 'timer',
+        generation: next.generation,
+        target: 'group',
+        index: next.cursor.kind === 'group' ? next.cursor.index : 0,
+        expectPhase: 'multiplied',
+      },
     });
     return { state: next, commands };
   }
@@ -299,6 +419,9 @@ function settleRowBase(config: MachineConfig, state: MachineState, index: number
     return { state: next, commands };
   }
   next = withRow(next, index, { phase: 'complete' });
+  if (!partnersComplete) {
+    return { state: next, commands };
+  }
   const advanced = scheduleAdvance(config, next);
   return { state: advanced.state, commands: [...commands, ...advanced.commands] };
 }
@@ -337,26 +460,32 @@ export function reduce(
           commands: [{ type: 'stopSpin' }],
         };
       }
-      const row = state.rows[event.index];
-      if (row === undefined) return { state, commands: [] };
+      const group = state.groups[event.index];
+      if (group === undefined) return { state, commands: [] };
       if (event.expectPhase === 'base') {
-        if (row.phase !== 'spinning') return { state, commands: [] };
-        return {
-          state: withRow(state, event.index, {
+        if (!group.every(rowIndex => state.rows[rowIndex].phase === 'spinning')) {
+          return { state, commands: [] };
+        }
+        let next = state;
+        for (const rowIndex of group) {
+          next = withRow(next, rowIndex, {
             phase: 'base',
-            shownValue: baseValue(config.rows[event.index]),
-            settleKey: row.settleKey + 1,
+            shownValue: baseValue(config.rows[rowIndex]),
+            settleKey: state.rows[rowIndex].settleKey + 1,
             settleMode: 'land',
-          }),
-          commands: [{ type: 'stopSpin' }],
-        };
+          });
+        }
+        return { state: next, commands: [{ type: 'stopSpin' }] };
       }
       if (event.expectPhase === 'multiplied') {
-        if (row.phase !== 'chip') return { state, commands: [] };
+        // Multiplied rows are always singleton groups.
+        const rowIndex = group[0];
+        const row = state.rows[rowIndex];
+        if (row === undefined || row.phase !== 'chip') return { state, commands: [] };
         return {
-          state: withRow(state, event.index, {
+          state: withRow(state, rowIndex, {
             phase: 'multiplied',
-            shownValue: multipliedValue(config.rows[event.index]),
+            shownValue: multipliedValue(config.rows[rowIndex]),
             settleKey: row.settleKey + 1,
             settleMode: 'odometer',
           }),
@@ -452,16 +581,18 @@ export function reduce(
           commands,
         };
       }
-      const index = state.cursor.index;
-      const source = config.rows[index];
+      const group = state.groups[state.cursor.index] ?? [];
       let next: MachineState = { ...state, generation };
-      next = withRow(next, index, {
-        phase: 'complete',
-        shownValue: source.amount,
-        settleKey: state.rows[index].settleKey + 1,
-        settleMode: 'instant',
-      });
-      next = enqueueBanner(next, source);
+      for (const rowIndex of group) {
+        const source = config.rows[rowIndex];
+        next = withRow(next, rowIndex, {
+          phase: 'complete',
+          shownValue: source.amount,
+          settleKey: state.rows[rowIndex].settleKey + 1,
+          settleMode: 'instant',
+        });
+        next = enqueueBanner(next, source);
+      }
       const advanced = scheduleAdvance(config, next);
       return { state: advanced.state, commands: [...commands, ...advanced.commands] };
     }

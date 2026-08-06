@@ -1,8 +1,10 @@
 import {
   DEFAULT_MACHINE_TIMINGS,
+  buildRevealGroups,
   createMachine,
   reduce,
   slotPhaseForRow,
+  surgeBonusAmount,
 } from '../financial-statement-machine';
 import type {
   MachineCommand,
@@ -97,15 +99,19 @@ class Harness {
   /** The digit reels report a settle through the shell; simulate it. */
   settleCurrent(): void {
     const cursor = this.state.cursor;
-    if (cursor.kind === 'row') {
-      const row = this.state.rows[cursor.index];
-      this.dispatch({
-        type: 'amountSettled',
-        generation: this.state.generation,
-        target: 'row',
-        index: cursor.index,
-        settleKey: row.settleKey,
-      });
+    if (cursor.kind === 'group') {
+      const group = this.state.groups[cursor.index];
+      for (const rowIndex of group) {
+        const row = this.state.rows[rowIndex];
+        if (row.phase === 'pending' || row.phase === 'spinning' || row.phase === 'complete') continue;
+        this.dispatch({
+          type: 'amountSettled',
+          generation: this.state.generation,
+          target: 'row',
+          index: rowIndex,
+          settleKey: this.state.rows[rowIndex].settleKey,
+        });
+      }
       return;
     }
     if (cursor.kind === 'net') {
@@ -113,6 +119,7 @@ class Harness {
         type: 'amountSettled',
         generation: this.state.generation,
         target: 'net',
+        index: 0,
         settleKey: this.state.net.settleKey,
       });
       return;
@@ -172,7 +179,7 @@ describe('financial statement machine', () => {
     const stale: MachineEvent = {
       type: 'timer',
       generation: harness.state.generation - 1,
-      target: 'row',
+      target: 'group',
       index: 0,
       expectPhase: 'base',
     };
@@ -346,6 +353,80 @@ describe('financial statement machine', () => {
     expect(harness.state.bannerQueue).toHaveLength(3);
     harness.dispatch({ type: 'bannerShown', rowId: 'league' });
     expect(harness.state.bannerQueue.map(banner => banner.rowId)).toEqual(['cup', 'merch']);
+  });
+
+  it('keeps every row solo below the pairing threshold', () => {
+    const rows = [gateRow('gate'), plainRow('a', 1), plainRow('b', 2), merchRow('merch')];
+    expect(buildRevealGroups(rows)).toEqual([[0], [1], [2], [3]]);
+  });
+
+  it('pairs constant runs at the threshold while reveal rows stay solo', () => {
+    const rows = [
+      gateRow('gate'),        // 0: solo (reveal)
+      plainRow('s1', 100),    // 1 ┐ pair
+      plainRow('s2', 200),    // 2 ┘
+      plainRow('s3', 300),    // 3: odd tail of the run, solo
+      merchRow('merch'),      // 4: solo (reveal)
+      plainRow('c1', -10),    // 5 ┐ pair
+      plainRow('c2', -20),    // 6 ┘
+      plainRow('c3', -30),    // 7 ┐ pair
+      plainRow('c4', -40),    // 8 ┘
+    ];
+    expect(buildRevealGroups(rows)).toEqual([[0], [1, 2], [3], [4], [5, 6], [7, 8]]);
+  });
+
+  it('reveals a pair together with one spin and one thunk', () => {
+    const rows = [
+      gateRow('gate'),
+      plainRow('a', 100), plainRow('b', 200), plainRow('c', 300), plainRow('d', 400),
+      plainRow('e', -100), plainRow('f', -200), plainRow('g', -300),
+    ];
+    const harness = new Harness(config(rows));
+    harness.dispatch({ type: 'start' });
+    harness.runToCompletion();
+    // Groups: [gate], [a,b], [c,d], [e,f], [g] = 5 groups + net = 6 spins.
+    expect(harness.countCommands('playSpin')).toBe(6);
+    // One thunk per group land + net land + stamp = 5 + 2 = 7.
+    expect(harness.countCommands('playThunk')).toBe(7);
+    expect(harness.state.rows.every(row => row.phase === 'complete')).toBe(true);
+  });
+
+  it('completes both rows of a pair on one tap with one thunk', () => {
+    const rows = [
+      plainRow('a', 100), plainRow('b', 200), plainRow('c', 300), plainRow('d', 400),
+      plainRow('e', -100), plainRow('f', -200), plainRow('g', -300), plainRow('h', -400),
+    ];
+    const harness = new Harness(config(rows));
+    harness.dispatch({ type: 'start' });
+    const before = harness.countCommands('playThunk');
+    harness.dispatch({ type: 'tap' }); // completes the [a,b] pair
+    expect(harness.state.rows[0].phase).toBe('complete');
+    expect(harness.state.rows[1].phase).toBe('complete');
+    expect(harness.state.rows[2].phase).toBe('pending');
+    expect(harness.countCommands('playThunk')).toBe(before + 1);
+  });
+
+  it('recovers the surge bonus exactly from the stored reveal', () => {
+    // Gate: raw 2000 at +15% -> base 2300; x200% -> amount 4600; zero week 4000.
+    expect(surgeBonusAmount(gateRow('gate', {
+      base: 2300, variancePercent: 15, surge: true, multiplierPercent: 200,
+    }))).toBe(600);
+    // Merch: raw 250 at +20% -> base 300; x3 + 10% adjacency -> 990; zero week 825.
+    expect(surgeBonusAmount(merchRow('merch', {
+      base: 300, variancePercent: 20, surge: true, multiplierTimes: 3, adjacencyPercent: 10,
+      adjacencyAmount: Math.floor(300 * 3 * 10 / 100),
+    }))).toBe(165);
+    // Non-surged rows contribute no banner number.
+    expect(surgeBonusAmount(gateRow('flat'))).toBe(0);
+  });
+
+  it('carries the bonus amount on queued banners', () => {
+    const state = createMachine(config([
+      gateRow('gate', { base: 2300, variancePercent: 15, surge: true, multiplierPercent: 200 }),
+    ], true));
+    expect(state.bannerQueue).toEqual([
+      { rowId: 'gate', kind: 'attendance', bonusAmount: 600 },
+    ]);
   });
 
   it('maps row phases onto slot phases', () => {
