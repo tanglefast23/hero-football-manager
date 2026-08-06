@@ -402,7 +402,12 @@ export interface CashTransaction {
   season: number;
   week: number;
   kind: CashTransactionKind;
+  /** English, still required — the fallback for careers saved before `labelKey`. */
   label: string;
+  /** Catalog key for `label`, so an old career renders in the player's language. */
+  labelKey?: string;
+  /** Raw values for the key's placeholders. Never pre-formatted text. */
+  labelParams?: Readonly<Record<string, string | number>>;
   amount: number;
   balanceAfter: number;
   referenceId?: string;
@@ -484,6 +489,14 @@ export interface FinancialSafetyState {
 export interface CupGiantKillingCelebration {
   fixtureId: string;
   divisionGap: number;
+  /**
+   * English title and body, persisted whole.
+   *
+   * `divisionGap` already identifies which of the four authored speeches this
+   * is, so the UI resolves `cupUpset.<gap>.title` / `.body` and falls back to
+   * these for celebrations queued before the catalog existed. No new field is
+   * needed — the key is derivable from data the save already carries.
+   */
   title: string;
   body: string;
 }

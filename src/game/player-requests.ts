@@ -500,6 +500,9 @@ export function resolvePlayerRequest(
     : recordCashTransaction(charged, {
         kind: 'player-request',
         label: definition.title,
+        // The request's own content id, so the ledger row renders from the
+        // catalog rather than from the English frozen into the save.
+        labelKey: `playerRequest.${definition.id}.title`,
         amount: -cost,
         referenceId: pending.requestId,
       });

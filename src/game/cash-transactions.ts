@@ -6,7 +6,12 @@ import type {
 
 interface CashTransactionInput {
   readonly kind: CashTransactionKind;
+  /** English, always written — the fallback for careers saved before `labelKey`. */
   readonly label: string;
+  /** Catalog key for `label`, so an old career renders in the player's language. */
+  readonly labelKey?: string;
+  /** Raw values for the key's placeholders. Never pre-formatted text. */
+  readonly labelParams?: Readonly<Record<string, string | number>>;
   readonly amount: number;
   readonly referenceId?: string;
 }
@@ -39,6 +44,8 @@ export function recordCashTransaction(
     week: state.week,
     kind: input.kind,
     label: input.label,
+    ...(input.labelKey === undefined ? {} : { labelKey: input.labelKey }),
+    ...(input.labelParams === undefined ? {} : { labelParams: input.labelParams }),
     amount: input.amount,
     balanceAfter: club.cash,
     ...(input.referenceId === undefined ? {} : { referenceId: input.referenceId }),

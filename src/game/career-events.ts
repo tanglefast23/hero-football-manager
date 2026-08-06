@@ -375,6 +375,7 @@ export function applyCareerEventOutcome(
     : recordCashTransaction(resolved, {
         kind: 'event',
         label: 'Story event',
+        labelKey: 'ledger.storyEvent',
         amount: moneyDelta,
         referenceId: state.pendingEvent.eventId,
       });
