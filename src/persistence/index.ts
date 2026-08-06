@@ -56,6 +56,11 @@ export {
 } from './errors';
 export { migrateDatabase, PERSISTENCE_SCHEMA_VERSION } from './migrations';
 export {
+  persistentStorageGrant,
+  requestPersistentStorage,
+  type PersistentStorageGrant,
+} from './persistent-storage';
+export {
   createReplayRepository,
   type ReplayRepository,
   type StoredReplayEnvelope,

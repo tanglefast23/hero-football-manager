@@ -1,6 +1,7 @@
 import { useState, type ComponentProps, type ReactNode } from 'react';
-import { Platform, Pressable as NativePressable, Text, View, type ViewStyle } from 'react-native';
+import { Pressable as NativePressable, Text, View, type ViewStyle } from 'react-native';
 import { playManagementActionSfx, playStatStepSfx, playUiClickSfx } from '../../render/management-sfx';
+import { hasHoverPointer } from '../pointer-capability';
 
 type NativePressableProps = ComponentProps<typeof NativePressable>;
 type SfxPressableProps = NativePressableProps & {
@@ -12,22 +13,13 @@ type SfxPressableProps = NativePressableProps & {
   pressSfx?: 'click' | 'stat-step' | 'warning';
   /**
    * One short line explaining what this control does, shown on mouse hover.
-   * Pointer-only by design: a tap has no hover phase, so this never fires on a
-   * phone and never blocks a touch.
+   * Pointer-only by design: it never appears on a touch screen, where a tap has
+   * no hover phase to open it and nothing to close it again.
    */
   tip?: string;
   /** Which side of the control the tip opens on. Defaults to above. */
   tipSide?: 'top' | 'bottom';
 };
-
-/**
- * Hover and cursor only exist where there is a pointer. Resolved lazily rather
- * than at module scope: several UI tests mock react-native without `Platform`,
- * and evaluating it on import would break them at load time.
- */
-function hasPointer(): boolean {
-  return Platform?.OS === 'web';
-}
 
 /**
  * True when a resolved style already dims the surface itself. Style arrays
@@ -70,18 +62,20 @@ export function SfxPressable({
 }: SfxPressableProps) {
   const [pressed, setPressed] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const pointer = hasPointer();
+  const pointer = hasHoverPointer();
   const showTip = pointer && hovered && !pressed && tip !== undefined && tip.length > 0;
 
   return (
     <NativePressable
       {...props}
       disabled={disabled}
-      onHoverIn={event => {
+      // Left unwired without a hovering pointer, so a caller's own hover work
+      // (the facilities grid previews a footprint from it) cannot latch either.
+      onHoverIn={!pointer ? undefined : event => {
         setHovered(true);
         onHoverIn?.(event);
       }}
-      onHoverOut={event => {
+      onHoverOut={!pointer ? undefined : event => {
         setHovered(false);
         onHoverOut?.(event);
       }}
@@ -90,7 +84,11 @@ export function SfxPressable({
         onPressIn?.(event);
       }}
       onPressOut={event => {
+        // A completed press ends the hover too. A touch screen that reports a
+        // hovering pointer anyway still gets no stuck tip: the synthetic hover
+        // arrives with the touch, and this clears it when the finger lifts.
         setPressed(false);
+        setHovered(false);
         onPressOut?.(event);
       }}
       onPress={onPress == null ? undefined : event => {
@@ -139,7 +137,7 @@ export function HoverTipAnchor({ tip, className, children }: {
   children: ReactNode;
 }) {
   const [hovered, setHovered] = useState(false);
-  const pointer = hasPointer();
+  const pointer = hasHoverPointer();
   const showTip = pointer && hovered && tip !== undefined && tip.length > 0;
 
   return (
@@ -148,6 +146,9 @@ export function HoverTipAnchor({ tip, className, children }: {
       style={showTip ? hoverTipTopLayer : hoverTipAnchor}
       onPointerEnter={pointer ? () => setHovered(true) : undefined}
       onPointerLeave={pointer ? () => setHovered(false) : undefined}
+      // Same net as the pressable above: the release of a press ends the hover,
+      // so a touch that reported itself as a pointer cannot leave the tip open.
+      onPointerUp={pointer ? () => setHovered(false) : undefined}
     >
       {children}
       {showTip ? <HoverTip text={tip} side="top" /> : null}
