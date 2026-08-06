@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index",
   "dependencies": {
+    "@expo-google-fonts/handjet": "^0.4.2",
     "@expo-google-fonts/silkscreen": "^0.4.2",
     "@shopify/react-native-skia": "2.6.2",
     "expo": "~57.0.7",
