@@ -155,5 +155,8 @@ in [the scale-invariant attributes master spec](docs/superpowers/plans/2026-07-2
 - Sprite squash-and-stretch on kicks — cut 2026-08-05 (struck from doc 08's juice budget): the Atlas batched renderer only applies uniform RSXform scale, so it cannot express non-uniform squash. If revived, ship it as pre-authored squashed/stretched kick frames selected on PASS/SHOT events — a frame swap fits the Atlas pipeline
 - Final mix balance — decide during M4 polish
 - PC input mapping and landscape layouts — decide at the PC port spike
-- Localization beyond English — post-launch
+- ~~Localization beyond English — post-launch~~ **Reversed 2026-08-06.** Seven
+  languages are now in build: English plus Spanish, Portuguese (BR), French,
+  German, Indonesian and Vietnamese. See
+  `docs/superpowers/specs/2026-08-06-multilingual-copy-design.md`.
 - Android release timing — after iOS beta feedback

@@ -12,7 +12,8 @@
       "buildNumber": "1",
       "bundleIdentifier": "com.tanglefast.herofootballmanager",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleLocalizations": ["en", "es", "pt-BR", "fr", "de", "id", "vi"]
       }
     },
     "web": {
