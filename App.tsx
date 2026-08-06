@@ -9,7 +9,7 @@ import { useFonts } from 'expo-font';
 import { Silkscreen_400Regular, Silkscreen_700Bold } from '@expo-google-fonts/silkscreen';
 import { Handjet_400Regular, Handjet_700Bold } from '@expo-google-fonts/handjet';
 import { vars } from 'nativewind';
-import { LocaleProvider, facesFor, type Locale } from './src/i18n';
+import { ENABLED_LOCALES, LocaleProvider, facesFor, type Locale } from './src/i18n';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   loadLaunchContent,
@@ -621,6 +621,14 @@ function GameApp() {
   }, [savePreferences]);
   const setLanguage = useCallback((language: Locale) => {
     savePreferences({ ...preferencesRef.current, language });
+  }, [savePreferences]);
+  // Settings has room for one row, not seven, so it steps through the shipped
+  // languages rather than opening a second picker.
+  const cycleLanguage = useCallback(() => {
+    const current = preferencesRef.current;
+    const at = ENABLED_LOCALES.indexOf(current.language);
+    const next = ENABLED_LOCALES[(at + 1) % ENABLED_LOCALES.length] ?? 'en';
+    savePreferences({ ...current, language: next });
   }, [savePreferences]);
   const toggleReduceMotion = useCallback(() => {
     const current = preferencesRef.current;
@@ -1693,6 +1701,8 @@ function GameApp() {
       <CharacterCreationScreen
         initialDifficulty={store.career.difficulty ?? 'CHAIRMAN'}
         onComplete={completeRookieCreation}
+        language={preferences.language}
+        onLanguageChange={setLanguage}
       />
     );
   } else if (
@@ -2355,6 +2365,8 @@ function GameApp() {
           hudSide={preferences.hudSide}
           hapticsEnabled={preferences.hapticsEnabled}
           textScale={preferences.textScale}
+          language={preferences.language}
+          onCycleLanguage={cycleLanguage}
           highContrast={preferences.highContrast}
           colorSafeKits={preferences.colorSafeKits}
           cutInMode={preferences.cutInMode}

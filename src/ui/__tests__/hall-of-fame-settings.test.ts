@@ -83,6 +83,8 @@ function overlay(overrides: Partial<SettingsOverlayProps>) {
     hudSide: 'left',
     hapticsEnabled: true,
     textScale: 1,
+    language: 'en' as const,
+    onCycleLanguage: () => {},
     highContrast: false,
     colorSafeKits: true,
     cutInMode: 'full',

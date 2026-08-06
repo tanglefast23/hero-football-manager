@@ -4,6 +4,7 @@ import { ActionButton } from './components/Scorecard';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import { adjustDevVolume, DEV_VOLUME_LEVELS, devVolumePercent, type DevVolume } from '../render/dev-volume';
 import type { CutInMode, HudSide, TextScale } from '../persistence';
+import { ENABLED_LOCALES, localeMeta, type Locale } from '../i18n';
 import type { GlossaryCatalog } from '../content';
 import { GlossaryPanel } from './GlossaryPanel';
 import { HallOfFameScreen } from './screens/HallOfFameScreen';
@@ -107,6 +108,8 @@ export interface SettingsOverlayProps {
   hudSide: HudSide;
   hapticsEnabled: boolean;
   textScale: TextScale;
+  language: Locale;
+  onCycleLanguage: () => void;
   highContrast: boolean;
   colorSafeKits: boolean;
   cutInMode: CutInMode;
@@ -187,6 +190,8 @@ export function SettingsOverlay({
   hudSide,
   hapticsEnabled,
   textScale,
+  language,
+  onCycleLanguage,
   highContrast,
   colorSafeKits,
   cutInMode,
@@ -333,6 +338,27 @@ export function SettingsOverlay({
                 <Text className="font-pixel text-sm uppercase text-ink">Text size</Text>
                 <Text className="font-pixel text-base text-blue-dark">{textScale === 1 ? 'SYSTEM' : textScale === 1.15 ? 'ROOMY' : 'LARGE'}</Text>
               </Pressable>
+              {/* Hidden while one language has shipped: a row that cycles
+                  through a single option is a control that does nothing. It
+                  appears as soon as a second locale is enabled. The value draws
+                  in that language's own face, because the endonyms are exactly
+                  the strings the active face may not have glyphs for. */}
+              {ENABLED_LOCALES.length > 1 ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Language ${localeMeta(language).endonym}`}
+                  onPress={onCycleLanguage}
+                  className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
+                >
+                  <Text className="font-pixel text-sm uppercase text-ink">Language</Text>
+                  <Text
+                    className="text-base text-blue-dark"
+                    style={{ fontFamily: localeMeta(language).faces.display }}
+                  >
+                    {localeMeta(language).endonym}
+                  </Text>
+                </Pressable>
+              ) : null}
               {assistantMode !== undefined && onSetAssistantMode !== undefined ? (
                 <Pressable
                   accessibilityRole="button"

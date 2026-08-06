@@ -24,10 +24,19 @@ import { playManagementHaptic } from '../../render/haptics';
 import { formatChoiceValue, stepChoice } from '../appearance-stepper';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { LanguagePanel } from '../components/LanguagePanel';
+import type { Locale } from '../../i18n';
 
 export interface CharacterCreationScreenProps {
   initialDifficulty: DifficultyMode;
   onComplete: (draft: CreatedPlayerDraft) => void;
+  /**
+   * The picker lives here because this is the first screen with a decision on
+   * it, and changing the language re-renders it immediately — so the choice
+   * demonstrates itself rather than promising something.
+   */
+  language: Locale;
+  onLanguageChange: (locale: Locale) => void;
 }
 
 /**
@@ -55,6 +64,8 @@ const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }>
 export function CharacterCreationScreen({
   initialDifficulty,
   onComplete,
+  language,
+  onLanguageChange,
 }: CharacterCreationScreenProps) {
   const wide = useLayoutMode() === 'twoColumn';
   const [name, setName] = useState('');
@@ -196,6 +207,8 @@ export function CharacterCreationScreen({
           <PixelText className="shrink text-sm uppercase text-ink/50">$180 / week · 1 season</PixelText>
         </View>
       </PaperPanel>
+
+      <LanguagePanel value={language} onChange={onLanguageChange} className="mt-5" />
     </>
   );
 
