@@ -316,7 +316,10 @@ function PowerMatchQaApp() {
             </Pressable>
             <View className="flex-1 items-center">
               <Text className="font-pixel text-[10px] uppercase tracking-widest text-gold">
-                Live match · {String(powerIndex + 1).padStart(2, '0')} / {String(powerCount).padStart(2, '0')}
+                {t('app.liveMatchCount', {
+                  index: String(powerIndex + 1).padStart(2, '0'),
+                  total: String(powerCount).padStart(2, '0'),
+                })}
               </Text>
               <Text numberOfLines={1} className="font-pixel text-base uppercase text-paper">{power.name}</Text>
             </View>
@@ -2850,7 +2853,7 @@ function BootFailure({
       <View className="w-full border-2 border-stamp bg-paper p-5">
         <Text className="font-pixel text-lg uppercase text-stamp">{t('app.weCouldNotOpen')}</Text>
         <Text className="mt-3 text-sm leading-5 text-ink/70">{t('app.yourSavedCareerHas')}</Text>
-        <Text className="mt-2 text-xs leading-4 text-ink/50">Technical detail: {message}</Text>
+        <Text className="mt-2 text-xs leading-4 text-ink/50">{t('app.technicalDetail', { detail: message })}</Text>
         <BootFailureButton
           tone="primary"
           label="Retry"

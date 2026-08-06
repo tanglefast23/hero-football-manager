@@ -306,7 +306,7 @@ export function StoryEventScreen({
                   </Pressable>
                 );
               })}
-              {needsPlayer ? <PixelText className="text-center text-sm uppercase tracking-wide text-red-light">Choose a player before making this call</PixelText> : null}
+              {needsPlayer ? <PixelText className="text-center text-sm uppercase tracking-wide text-red-light">{t('storyEvent.chooseAPlayerFirst')}</PixelText> : null}
             </View>
         </View>
       </ScrollView>

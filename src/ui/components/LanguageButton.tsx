@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { SfxPressable } from './SfxPressable';
 import { languagePanelRows } from '../language-panel-rows';
-import { localeMeta, type Locale } from '../../i18n';
+import { useCopy, localeMeta, type Locale } from '../../i18n';
 
 export interface LanguageButtonProps {
   value: Locale;
@@ -24,6 +24,7 @@ export interface LanguageButtonProps {
  * language before choosing it, not step past it.
  */
 export function LanguageButton({ value, onChange, className }: LanguageButtonProps) {
+  const t = useCopy();
   const [open, setOpen] = useState(false);
   const rows = languagePanelRows(value);
   const current = localeMeta(value);
@@ -56,7 +57,7 @@ export function LanguageButton({ value, onChange, className }: LanguageButtonPro
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close language picker"
+          accessibilityLabel={t('languageButton.a11y.closePicker')}
           onPress={() => {
             setOpen(false);
           }}

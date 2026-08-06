@@ -320,7 +320,7 @@ export function ChampionshipCelebrationScreen({
 
       <Animated.View pointerEvents="none" style={[styles.titleCard, titleStyle]}>
         <Text className="text-center font-pixel text-xs uppercase tracking-[4px] text-gold">
-          {viewModel.seasonLabel} · Final whistle
+          {t('championshipCelebration.finalWhistle', { season: viewModel.seasonLabel })}
         </Text>
         <Text
           className="mt-2 text-center font-pixel text-4xl uppercase leading-[42px] text-white"
@@ -331,7 +331,7 @@ export function ChampionshipCelebrationScreen({
         </Text>
         <View className="mt-3 self-center border-2 border-gold bg-ink/80 px-4 py-2">
           <Text className="text-center font-pixel text-sm uppercase text-gold">
-            {viewModel.clubName} · Champions
+            {t('championshipCelebration.champions', { club: viewModel.clubName })}
           </Text>
         </View>
       </Animated.View>

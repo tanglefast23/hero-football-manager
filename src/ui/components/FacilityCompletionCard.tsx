@@ -60,7 +60,7 @@ export function FacilityCompletionCard({
           />
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="font-pixel text-lg uppercase text-ink">{completion.name} is open!</Text>
+          <Text className="font-pixel text-lg uppercase text-ink">{t('facilityCompletion.isOpen', { name: completion.name })}</Text>
           <Text className="mt-2 text-sm leading-5 text-ink/65">
             {completion.kind === 'BUILD'
               ? 'Construction is finished. Its benefit is active; upkeep starts with the next weekly settlement.'

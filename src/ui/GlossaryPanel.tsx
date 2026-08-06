@@ -57,7 +57,7 @@ export function GlossaryPanel({
       >
         {categories.length === 0 ? (
           <View className="border-2 border-ink/25 bg-paper-dark px-3 py-4">
-            <Text className="text-center text-sm font-bold text-ink/60">No glossary terms match “{query.trim()}”.</Text>
+            <Text className="text-center text-sm font-bold text-ink/60">{t('glossary.noMatches', { query: query.trim() })}</Text>
           </View>
         ) : categories.map(category => (
           <View key={category.id} className="mb-6">

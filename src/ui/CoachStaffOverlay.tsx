@@ -79,7 +79,7 @@ export function CoachStaffOverlay({
               </View>
               <Text className="mt-3 font-pixel text-xl uppercase text-ink">{coach.name}</Text>
               <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
-                {roleLabel} · Age {coach.age} · Level {coach.level}
+                {t('coachStaff.coachLine', { role: roleLabel, age: coach.age, level: coach.level })}
               </Text>
             </View>
 

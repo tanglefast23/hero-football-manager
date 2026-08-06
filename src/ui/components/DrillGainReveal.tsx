@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SfxPressable as Pressable } from './SfxPressable';
 import { playDrillGainRevealSfx } from '../../render/management-sfx';
-import { usePixelStyles, type LocaleFaces } from '../../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
 
 export const DRILL_GAIN_REVEAL_MS = 1_400;
 const REDUCED_MOTION_GAIN_REVEAL_MS = 700;
@@ -25,6 +25,7 @@ export function DrillGainReveal({
   reduceMotion = false,
   onComplete,
 }: DrillGainRevealProps) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const punch = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const burst = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
@@ -120,7 +121,7 @@ export function DrillGainReveal({
           ]}
         >
           <View style={styles.plate}>
-            <Text style={styles.kicker}>Session gain</Text>
+            <Text style={styles.kicker}>{t('drillGain.sessionGain')}</Text>
             <Text adjustsFontSizeToFit numberOfLines={1} style={styles.headline}>
               {gainLabel.toUpperCase()}
             </Text>

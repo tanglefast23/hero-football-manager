@@ -26,6 +26,7 @@ import { PaperPanel, formatCurrency } from './Scorecard';
 import { PixelText } from './PixelText';
 import { SlotAmount } from './SlotAmount';
 import { SurgeBanner } from './SurgeBanner';
+import { useCopy } from '../../i18n';
 
 /**
  * The star of the Financial Report: the statement whose rows reveal
@@ -54,6 +55,7 @@ export function FinancialStatement({
   settlementWeek,
   reduceMotion,
 }: FinancialStatementProps) {
+  const t = useCopy();
   const config = useMemo<MachineConfig>(() => ({
     rows: lines.map(line => ({
       id: line.id,
@@ -163,8 +165,7 @@ export function FinancialStatement({
               : netAmount > 0
                 ? 'text-base uppercase text-pitch-ink'
                 : 'text-base uppercase text-blue-dark'}>
-              Net cash change
-            </PixelText>
+              {t('financialStatement.netCashChange')}</PixelText>
             <SlotAmount
               value={netRuntime.shownValue}
               finalValue={netAmount}

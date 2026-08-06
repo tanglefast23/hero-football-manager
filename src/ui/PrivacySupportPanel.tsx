@@ -20,7 +20,7 @@ export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: Pr
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 4 }}>
       <Text className="font-pixel text-2xl uppercase text-ink">{t('settings.privacy.label')}</Text>
       <Text className="mt-2 text-sm leading-5 text-ink/60">
-        Hero Football Manager · Version {version} ({build})
+        {t('privacySupport.versionLine', { version, build })}
       </Text>
 
       {supportError ? (

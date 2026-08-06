@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { loadCatalog } from '../../i18n';
 
 describe('first-hire screen copy', () => {
   const source = readFileSync(join(process.cwd(), 'src/ui/screens/CharacterCreationScreen.tsx'), 'utf8');
@@ -50,7 +51,8 @@ describe('first-hire screen copy', () => {
 
   it('keeps the registration terms inside the card', () => {
     expect(source).toContain('flex-row flex-wrap items-center justify-between gap-2');
-    expect(source).toContain('$180 / week · 1 season');
+    expect(source).toContain("t('creation.rookieTerms')");
+    expect(loadCatalog('en').strings['creation.rookieTerms']).toBe('$180 / week · 1 season');
   });
 
   it('labels the registration panel simply', () => {

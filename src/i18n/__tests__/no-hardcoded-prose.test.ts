@@ -30,10 +30,10 @@ const EXEMPT = [
 ];
 
 /**
- * Where the extraction has reached. Lower this as batches land; never raise it.
- * Zero means Task 13 is done.
+ * Zero. The extraction is complete, so this is now a plain assertion rather than
+ * a ratchet: any new hardcoded player-facing string fails the build.
  */
-const MAX_REMAINING = 23;
+const MAX_REMAINING = 0;
 
 function sourceFiles(dir: string, found: string[] = []): string[] {
   if (!fs.existsSync(dir)) return found;

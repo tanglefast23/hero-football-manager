@@ -956,7 +956,7 @@ function PlayerFileSection({
         <View className="flex-1">
           <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.playerIdentity')}</PixelText>
           <PixelText className="mt-1 text-lg uppercase text-ink">{selectedPlayer.role} · {selectedPlayer.archetype}</PixelText>
-          <Text className="mt-1 text-sm text-ink/60">{selectedPlayer.personality} · Fame {selectedPlayer.fame}</Text>
+          <Text className="mt-1 text-sm text-ink/60">{t('squadTraining.personalityAndFame', { personality: selectedPlayer.personality, fame: selectedPlayer.fame })}</Text>
         </View>
       </View>
       {selectedPlayer.injuryWeeks > 0 ? (

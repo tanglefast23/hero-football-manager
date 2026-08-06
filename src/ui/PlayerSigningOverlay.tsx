@@ -71,7 +71,7 @@ export function PlayerSigningOverlay({
                 {player.playerName}
               </Text>
               <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
-                {player.role} · First-team signing
+                {t('playerSigning.firstTeamSigning', { role: player.role })}
               </Text>
             </View>
             <Text className="mt-4 text-center text-base leading-5 text-ink/65">

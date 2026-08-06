@@ -12,7 +12,7 @@ import { livePowerEffectActors } from '../../render/live-power-effect-actors';
 import { PowerEffectScene } from '../../render/PowerEffectScene';
 import { powerEffectDescriptor } from '../../render/power-effect-descriptors';
 import { TitleMatchSprite } from './TitleMatchSprite';
-import { usePixelStyles, type LocaleFaces } from '../../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
 
 interface PopHero {
   readonly spriteKey: string;
@@ -98,6 +98,7 @@ export function TitlePlayerPopScene({
 }: {
   readonly reduceMotion?: boolean;
 }) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [appearance, setAppearance] = useState(0);
@@ -118,7 +119,7 @@ export function TitlePlayerPopScene({
 
   return (
     <View
-      accessibilityLabel="Superpowered football players popping onto the title screen while using their powers"
+      accessibilityLabel={t('titlePlayerPop.a11y.scene')}
       style={styles.scene}
     >
       <PopSlot

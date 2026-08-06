@@ -195,7 +195,7 @@ export function CharacterCreationScreen({
             the row wraps instead of running the wage off the edge. */}
         <View className="mt-3 flex-row flex-wrap items-center justify-between gap-2">
           <StatusChip label="Position: FWD" selected />
-          <PixelText className="shrink text-sm uppercase text-ink/50">$180 / week · 1 season</PixelText>
+          <PixelText className="shrink text-sm uppercase text-ink/50">{t('creation.rookieTerms')}</PixelText>
         </View>
       </PaperPanel>
     </>

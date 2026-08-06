@@ -47,7 +47,7 @@ export function PostMatchBuzzCard({ buzz, className = '' }: {
       {buzz.payout === undefined ? null : (
         <View className="mt-3 border-2 border-ink bg-white px-3 py-2">
           <Text className="text-sm font-bold text-ink">
-            Buzz paid out {formatCurrency(buzz.payout)} · reset to 0
+            {t('postMatchBuzz.paidOut', { amount: formatCurrency(buzz.payout) })}
           </Text>
         </View>
       )}
