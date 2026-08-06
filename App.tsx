@@ -565,6 +565,8 @@ function GameApp() {
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
   const developerSaveRepositoryRef = useRef<DeveloperSaveRepository | null>(null);
   const developerSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  /** `seed:season:week` of the career position the autosave rotation is at. */
+  const developerSavedPositionRef = useRef<string | null>(null);
   const preferencesSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const preferencesRef = useRef(preferences);
   preferencesRef.current = preferences;
@@ -700,21 +702,13 @@ function GameApp() {
     useM1Store.getState().advanceCareer();
     const after = useM1Store.getState().career?.week;
     const boardResolutionAfter = useM1Store.getState().career?.financialSafety?.latestBoardResolution;
+    // The developer autosave is NOT taken here. A match week leaves this
+    // callback with the week unchanged — advanceCareer routes to the matchday
+    // screen and the week turns over later, when the result settles — so a save
+    // hung off this press skipped every week the club played in, which is most
+    // of them. It watches the career's own week instead; see the effect below.
     if (before !== undefined && after !== undefined && after !== before) {
       playAdvanceWeekSfx();
-      const advancedCareer = useM1Store.getState().career;
-      const developerRepository = developerSaveRepositoryRef.current;
-      if (
-        DEVELOPER_MODE_AVAILABLE
-        && preferencesRef.current.developerMode
-        && advancedCareer !== null
-        && developerRepository !== null
-      ) {
-        queueDeveloperSaveTask(async () => {
-          setDeveloperSaveSummaries(await developerRepository.saveNextWeek(advancedCareer));
-          setDeveloperSaveError(null);
-        });
-      }
     }
     if (boardResolutionAfter !== undefined && boardResolutionAfter.id !== boardResolutionBefore) {
       if (boardResolutionAfter.kind === 'TARGET_MET') {
@@ -726,7 +720,7 @@ function GameApp() {
         setTimeout(() => playManagementActionSfx('success'), 280);
       }
     }
-  }, [queueDeveloperSaveTask]);
+  }, []);
 
   const showStartedFacilityProject = useCallback(() => {
     const career = useM1Store.getState().career;
@@ -796,6 +790,9 @@ function GameApp() {
       const snapshot = await repository.load(slot, careerSeed);
       if (snapshot === null) throw new Error(`Developer save ${slot} is empty.`);
       useM1Store.getState().restoreDeveloperSave(snapshot, slot);
+      // Arriving at a loaded week is not playing through one: claim the
+      // position so the autosave watcher does not spend a slot on it.
+      developerSavedPositionRef.current = `${snapshot.careerSeed}:${snapshot.season}:${snapshot.week}`;
       setDeveloperSaveError(null);
     });
   }, [queueDeveloperSaveTask]);
@@ -1181,6 +1178,37 @@ function GameApp() {
       active = false;
     };
   }, [store.career?.careerSeed]);
+
+  /**
+   * One developer autosave per week the career actually turns over, wherever
+   * that turn happens — the Advance Week press on a quiet week, the settled
+   * result on a match week, the roll into a new season. Hanging it off the
+   * Advance Week press missed every match week, which is why a season eleven
+   * weeks deep had only filled three of the five rotating slots.
+   *
+   * The first position seen for a career is never written: that is a boot, a
+   * loaded slot, or developer mode being switched on mid-career — the manager
+   * is already there, so it is not a week they played through, and saving it
+   * would spend a rotation slot on the slot they just loaded.
+   */
+  useEffect(() => {
+    if (!DEVELOPER_MODE_AVAILABLE) return;
+    const career = store.career;
+    const repository = developerSaveRepositoryRef.current;
+    if (!preferences.developerMode || career === null || repository === null) {
+      developerSavedPositionRef.current = null;
+      return;
+    }
+    const position = `${career.careerSeed}:${career.season}:${career.week}`;
+    if (developerSavedPositionRef.current === position) return;
+    const first = developerSavedPositionRef.current === null;
+    developerSavedPositionRef.current = position;
+    if (first) return;
+    queueDeveloperSaveTask(async () => {
+      setDeveloperSaveSummaries(await repository.saveNextWeek(career));
+      setDeveloperSaveError(null);
+    });
+  }, [store.career, preferences.developerMode, queueDeveloperSaveTask]);
 
   const finishWatchedMatch = useCallback((result: MatchState) => {
     store.finishWatchedMatch(result);

@@ -28,7 +28,7 @@ import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 
 /**
  * The Quick Result face-off: the club's best outfielder, the opponent's best
- * outfielder, and a large VS between them, for two seconds.
+ * outfielder, and a large VS between them, for about four seconds.
  *
  * Presentation only. The match was simulated, settled and saved before this
  * mounted; the scene reads a decided result and hands on to whatever screen
@@ -40,12 +40,18 @@ import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
  * the ball's travel plus a small lunge rather than by a leg swing.
  */
 
-export const FACE_OFF_MS = 2_000;
-export const FACE_OFF_REDUCED_MOTION_MS = 1_200;
-/** Entrance, hold, strike, fade — the four beats of the 2s scene. */
-const ENTRANCE_MS = 320;
-const STRIKE_START_MS = 1_150;
-const STRIKE_MS = 550;
+/** Entrance, hold, strike, settle — the four beats of the scene. */
+const ENTRANCE_MS = 640;
+const STRIKE_START_MS = 2_300;
+const STRIKE_MS = 1_100;
+/**
+ * The beat after the ball has finished travelling. The strike is the scene's
+ * punchline, so the manager gets half a second to read where the ball went
+ * before the next screen takes over.
+ */
+const POST_STRIKE_HOLD_MS = 500;
+export const FACE_OFF_MS = STRIKE_START_MS + STRIKE_MS + POST_STRIKE_HOLD_MS;
+export const FACE_OFF_REDUCED_MOTION_MS = 2_400;
 /** The drill stage's cadence, so the two scenes idle at the same speed. */
 const IDLE_FRAME_MS = 130;
 /** Matches DrillSceneOverlay: never drawn raw, always through snapSpriteScale. */
