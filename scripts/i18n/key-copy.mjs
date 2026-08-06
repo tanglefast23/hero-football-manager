@@ -73,10 +73,12 @@ for (const file of process.argv.slice(2)) {
     if (ts.isJsxText(node) && looksLikeProse(node.text)) {
       const siblings = node.parent?.children ?? [];
       const beside = siblings.some(c => ts.isJsxExpression(c));
-      const text = node.text.trim();
-      if (!beside && text.split(/\s+/).length <= MAX_WORDS && !text.includes('\n')) {
-        const english = text.replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ');
-        const key = byEnglish.get(english) ?? `${a}.${slug(text)}`;
+      // JSX collapses interior whitespace when it renders, so a label wrapped
+      // across source lines is one string to the player and must be one key.
+      const flat = node.text.replace(/\s+/g, ' ').trim();
+      if (!beside && flat.split(' ').length <= MAX_WORDS) {
+        const english = flat.replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ');
+        const key = byEnglish.get(english) ?? `${a}.${slug(flat)}`;
         edits.push({ start: node.getStart(sf), end: node.getEnd(), key, english,
                      replacement: `{t('${key}')}` });
       }

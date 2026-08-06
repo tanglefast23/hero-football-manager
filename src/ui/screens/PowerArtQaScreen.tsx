@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
-import { usePixelStyles, type LocaleFaces } from '../../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
 
 interface PowerArtQaScreenProps {
   readonly index: number;
@@ -30,6 +30,7 @@ export function PowerArtQaScreen({
   onReplay,
   onNext,
 }: PowerArtQaScreenProps) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const { width, height } = useWindowDimensions();
   const compact = height < 760 || width < 680;
@@ -80,9 +81,9 @@ export function PowerArtQaScreen({
         </View>
 
         <View style={[styles.navigation, { width: stageWidth }]}>
-          <ReviewButton label="◂ PREVIOUS" accessibilityLabel="Show previous power" onPress={onPrevious} />
+          <ReviewButton label="◂ PREVIOUS" accessibilityLabel={t('powerArtQa.a11y.showPreviousPower')} onPress={onPrevious} />
           <ReviewButton label="↻ REPLAY" accessibilityLabel={`Replay ${name} animation`} onPress={onReplay} hero />
-          <ReviewButton label="NEXT ▸" accessibilityLabel="Show next power" onPress={onNext} />
+          <ReviewButton label="NEXT ▸" accessibilityLabel={t('powerArtQa.a11y.showNextPower')} onPress={onNext} />
         </View>
       </View>
     </SafeAreaView>

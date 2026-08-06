@@ -178,8 +178,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
           {viewModel.leagueFixtures.length === 0 ? (
             <PaperPanel title="Schedule pending" kicker={viewModel.seasonLabel}>
               <Text className="text-sm leading-5 text-ink/60">
-                Your league schedule will appear here when the competition office publishes it.
-              </Text>
+                {t('m2League.yourLeagueScheduleWill')}</Text>
             </PaperPanel>
           ) : (
             <View className="gap-2">

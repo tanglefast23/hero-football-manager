@@ -69,6 +69,8 @@
     "confirmationSheet.confirmClubDecision": "Confirm club decision",
     "creation.language.kicker": "Before you sign",
     "creation.language.title": "Language",
+    "endgameCelebration.continue": "Continue ›",
+    "endgameCelebration.finish": "Finish ›",
     "facilityCompletionCard.worksComplete": "Works complete!",
     "facilityProjectNotice.a11y.letThemBuildCloseConfirmation": "Let them build. Close construction confirmation",
     "facilityProjectNotice.whenComplete": "When complete",
@@ -137,6 +139,8 @@
     "postMatchSummary.a11y.continuePastTheFinancialReport": "Continue past the financial report",
     "postMatchSummary.backAtTheOffice": "Back at the office",
     "postMatchSummary.financialReport": "Financial report",
+    "powerArtQa.a11y.showNextPower": "Show next power",
+    "powerArtQa.a11y.showPreviousPower": "Show previous power",
     "privacySupport.a11y.backToSettings": "Back to settings",
     "privacySupport.a11y.emailHeroFootballManagerSupport": "Email Hero Football Manager support",
     "screenErrorBoundary.a11y.returnToTheTitleScreen": "Return to the title screen",
@@ -187,6 +191,8 @@
     "storyEvent.playerInvolved": "Player involved",
     "storyEvent.storyInterruption": "Story interruption",
     "storyEvent.yourCall": "Your call",
+    "substitutionBoard.a11y.cancelAndCloseWithout": "Cancel and close without substituting",
+    "substitutionBoard.a11y.resetTheBoardPut": "Reset the board, put everyone back, and restore the automatic substitution setting",
     "titleLanding.a11y.cyclesThrough0255075And100Percent": "Cycles through 0, 25, 50, 75, and 100 percent",
     "titleLanding.frontOffice": "Front office",
     "titleLanding.lookUpFootballTerms": "Look up football terms, player development, club systems, match controls, and hero mechanics.",
@@ -217,6 +223,8 @@
     "trainingDrill.superChance": "SUPER chance",
     "trainingDrill.theDrillStillCounted": "The drill still counted — then something went twang.",
     "trainingDrill.trainingPoints": "Training points",
-    "trainingDrill.yourClubIsNotSaving": "Your club is not saving"
+    "trainingDrill.yourClubIsNotSaving": "Your club is not saving",
+    "weeklyReview.cashMovement": "Cash movement",
+    "weeklyReview.weeklyReview": "Weekly review"
   }
 }

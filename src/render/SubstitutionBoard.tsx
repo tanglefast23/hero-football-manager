@@ -9,7 +9,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { usePixelStyles, type LocaleFaces } from '../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 import { SfxPressable } from '../ui/components/SfxPressable';
 import { TutorialTapCue } from '../ui/TutorialTapCue';
 import {
@@ -107,6 +107,7 @@ export function SubstitutionBoard({
   onCancel,
   onSave,
 }: SubstitutionBoardProps) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const { width } = useWindowDimensions();
   const wide = width >= WIDE_BOARD_MIN_WIDTH;
@@ -585,7 +586,7 @@ export function SubstitutionBoard({
         <View style={styles.actions}>
           <LozengeButton
             label="CANCEL"
-            accessibilityLabel="Cancel and close without substituting"
+            accessibilityLabel={t('substitutionBoard.a11y.cancelAndCloseWithout')}
             tone="grey"
             // The board's full-screen scroll/responder stack can cancel the
             // completed web press after the button has already received focus.
@@ -598,7 +599,7 @@ export function SubstitutionBoard({
           />
           <LozengeButton
             label="RESET"
-            accessibilityLabel="Reset the board, put everyone back, and restore the automatic substitution setting"
+            accessibilityLabel={t('substitutionBoard.a11y.resetTheBoardPut')}
             tone="grey"
             disabled={staged === 0 && !autoChanged}
             onPress={reset}
