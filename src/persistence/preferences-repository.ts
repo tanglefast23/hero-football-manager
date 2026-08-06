@@ -6,11 +6,12 @@ import {
   isFormationId,
   type FormationId,
 } from '../sim/tactics';
+import { LOCALES, type Locale } from '../i18n/locales';
 import type { PersistenceDatabase } from './database';
 import type { PowerId } from '../sim/types';
 import { migrateDatabase } from './migrations';
 
-const PREFERENCES_SCHEMA_VERSION = 9;
+const PREFERENCES_SCHEMA_VERSION = 10;
 const LEGACY_PREFERENCES_SCHEMA_VERSION = 1;
 const M2_PREFERENCES_SCHEMA_VERSION = 2;
 const M4_PREFERENCES_SCHEMA_VERSION = 3;
@@ -19,6 +20,9 @@ const MANAGER_TIPS_PREFERENCES_SCHEMA_VERSION = 5;
 const AUTO_SUBS_PREFERENCES_SCHEMA_VERSION = 6;
 const SQUAD_SORT_PREFERENCES_SCHEMA_VERSION = 7;
 const CLIMB_COMPLETED_PREFERENCES_SCHEMA_VERSION = 8;
+// Named for what version 9 already had, matching every constant above it:
+// this rung parses rows that carry `developerMode` but not `language`.
+const DEVELOPER_MODE_PREFERENCES_SCHEMA_VERSION = 9;
 const PRIMARY_SLOT = 1;
 
 export type MasterVolume = 0 | 0.25 | 0.5 | 0.75 | 1;
@@ -55,6 +59,12 @@ export interface AppPreferences {
   squadSort: SquadSort | null;
   /** Debug-build-only switch for developer save controls. */
   developerMode: boolean;
+  /**
+   * Device-wide UI language. One player, one language, across every career —
+   * deliberately not career state, so a saved game renders in whatever language
+   * is chosen later.
+   */
+  language: Locale;
 }
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
@@ -73,6 +83,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   autoSubs: false,
   squadSort: null,
   developerMode: false,
+  language: 'en',
 };
 
 const FormationSchema = z.enum(FORMATION_IDS);
@@ -85,7 +96,7 @@ const PowerIdSchema = z.enum([
   'RALLY_CRY', 'ICE_RINK', 'SHADOW_MARK', 'GRAVITY_WELL', 'GIANT_GK', 'GUST',
 ]);
 const StoredPowerIdSchema = z.enum([...PowerIdSchema.options, ...RETIRED_POWER_IDS]);
-const PreferencesSchema = z.strictObject({
+const V9PreferencesSchema = z.strictObject({
   formationPresets: z.tuple([FormationSchema, FormationSchema, FormationSchema])
     .refine(values => new Set(values).size === 3, 'formation presets must be unique'),
   autoPowers: z.boolean(),
@@ -113,12 +124,28 @@ const PreferencesSchema = z.strictObject({
   ]),
   developerMode: z.boolean(),
 });
-const LegacyPreferencesSchema = PreferencesSchema.pick({
+
+/**
+ * The live schema, and the ONLY thing that may extend `V9PreferencesSchema`.
+ *
+ * Every legacy schema below is derived from V9 with `.omit()` / `.pick()`, so
+ * they must keep pointing at the frozen shape. Extending V9 in place instead
+ * would silently add the new field to all of them, which makes a genuine older
+ * row fail validation — and the fail-soft path answers that by discarding the
+ * row and resetting every setting the player has. The existing migration tests
+ * would not catch it either: they build their fixtures by spreading
+ * `DEFAULT_APP_PREFERENCES`, so the fixtures quietly acquire the new field too.
+ */
+const PreferencesSchema = V9PreferencesSchema.extend({
+  language: z.enum(LOCALES),
+});
+
+const LegacyPreferencesSchema = V9PreferencesSchema.pick({
   formationPresets: true,
   autoPowers: true,
   masterVolume: true,
 });
-const M2PreferencesSchema = PreferencesSchema.pick({
+const M2PreferencesSchema = V9PreferencesSchema.pick({
   formationPresets: true,
   autoPowers: true,
   masterVolume: true,
@@ -126,29 +153,29 @@ const M2PreferencesSchema = PreferencesSchema.pick({
   hudSide: true,
 });
 const RetiredTipsShape = { managerTipsEnabled: z.boolean() };
-const M4PreferencesSchema = PreferencesSchema.omit({
+const M4PreferencesSchema = V9PreferencesSchema.omit({
   seenPowerCutIns: true,
   autoSubs: true,
   squadSort: true,
   climbCompleted: true,
   developerMode: true,
 });
-const CutInHistoryPreferencesSchema = PreferencesSchema.omit({
+const CutInHistoryPreferencesSchema = V9PreferencesSchema.omit({
   autoSubs: true,
   squadSort: true,
   climbCompleted: true,
   developerMode: true,
 });
-const ManagerTipsPreferencesSchema = PreferencesSchema
+const ManagerTipsPreferencesSchema = V9PreferencesSchema
   .omit({ autoSubs: true, squadSort: true, climbCompleted: true, developerMode: true })
   .extend(RetiredTipsShape);
-const AutoSubsPreferencesSchema = PreferencesSchema
+const AutoSubsPreferencesSchema = V9PreferencesSchema
   .omit({ squadSort: true, climbCompleted: true, developerMode: true })
   .extend(RetiredTipsShape);
-const SquadSortPreferencesSchema = PreferencesSchema
+const SquadSortPreferencesSchema = V9PreferencesSchema
   .omit({ climbCompleted: true, developerMode: true })
   .extend(RetiredTipsShape);
-const ClimbCompletedPreferencesSchema = PreferencesSchema.omit({ developerMode: true });
+const ClimbCompletedPreferencesSchema = V9PreferencesSchema.omit({ developerMode: true });
 
 const UPSERT_SQL = `
   INSERT INTO app_preferences (slot, schema_version, preferences_json)
@@ -205,6 +232,7 @@ export async function createPreferencesRepository(
           autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
+          language: DEFAULT_APP_PREFERENCES.language,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -231,6 +259,7 @@ export async function createPreferencesRepository(
           autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
+          language: DEFAULT_APP_PREFERENCES.language,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -252,6 +281,7 @@ export async function createPreferencesRepository(
           autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
+          language: DEFAULT_APP_PREFERENCES.language,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -273,6 +303,7 @@ export async function createPreferencesRepository(
           autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
+          language: DEFAULT_APP_PREFERENCES.language,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -295,6 +326,7 @@ export async function createPreferencesRepository(
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
+          language: DEFAULT_APP_PREFERENCES.language,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -316,6 +348,7 @@ export async function createPreferencesRepository(
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
+          language: DEFAULT_APP_PREFERENCES.language,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -337,6 +370,7 @@ export async function createPreferencesRepository(
           squadSort: legacy.data.squadSort === null ? null : { ...legacy.data.squadSort },
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
+          language: DEFAULT_APP_PREFERENCES.language,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -356,6 +390,26 @@ export async function createPreferencesRepository(
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
           squadSort: legacy.data.squadSort === null ? null : { ...legacy.data.squadSort },
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
+          language: DEFAULT_APP_PREFERENCES.language,
+        };
+        await database.runAsync(UPSERT_SQL, [
+          PRIMARY_SLOT,
+          PREFERENCES_SCHEMA_VERSION,
+          JSON.stringify(migrated),
+        ]);
+        return migrated;
+      }
+      if (row.schema_version === DEVELOPER_MODE_PREFERENCES_SCHEMA_VERSION) {
+        const legacy = V9PreferencesSchema.safeParse(decoded);
+        if (!legacy.success) {
+          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+        }
+        const migrated: AppPreferences = {
+          ...legacy.data,
+          formationPresets: [...legacy.data.formationPresets],
+          seenPowerCutIns: [...legacy.data.seenPowerCutIns],
+          squadSort: legacy.data.squadSort === null ? null : { ...legacy.data.squadSort },
+          language: DEFAULT_APP_PREFERENCES.language,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
