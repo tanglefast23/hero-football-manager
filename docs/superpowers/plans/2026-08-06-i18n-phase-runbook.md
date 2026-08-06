@@ -17,10 +17,10 @@ for what is done, what is next, and the exact commands.
 | Phase | Branch | PR | State |
 | --- | --- | --- | --- |
 | 0–1 engineering | `claude/multilingual-copy-translation-bbe9c8` | #94 | **merged** (`1593b9d`) |
-| 1.5 content keys | `claude/multilingual-copy-phase-2` | #96 | **open** |
-| 2 Spanish | `claude/i18n-phase-2-spanish` | — | **in progress** |
-| 3 Vietnamese | `claude/i18n-phase-3-vietnamese` | — | not started |
-| 4 pt-BR/fr/id/de | `claude/i18n-phase-4-remaining` | — | not started |
+| 1.5 content keys | `claude/multilingual-copy-phase-2` | #96 | **merged** (`749949a`) |
+| 2 Spanish | `claude/i18n-phase-2-spanish` | #97 | **open** |
+| 3 Vietnamese | `claude/i18n-phase-3-vietnamese` | #98 | **open** |
+| 4 pt-BR/fr/id/de | `claude/i18n-phase-4-remaining` | — | **in progress** |
 | 5 long tail | `claude/i18n-phase-5-long-tail` | — | not started |
 
 ## The invariant that matters most
@@ -66,14 +66,41 @@ Casual, spoken, short. Where a faithful translation busts the character budget,
 **rewrite shorter in the target language** — never translate literally and let
 it sprawl.
 
-## Phase 3 — Vietnamese
+## Phase 3 — Vietnamese (current)
 
-Same steps. Third, not last, because it is the one that can fail on font
-grounds. Handjet is not monospace, so `vi` needs its own full advance table.
+Same steps as Phase 2. Third, not last, because it is the one that can fail on
+font grounds.
 
-## Phase 4 — pt-BR, fr, id, then **de last**
+**What is different for `vi`:**
+- It renders in **Handjet**, not Silkscreen. Gate 5 checks each locale against
+  its OWN face, so a glyph Silkscreen lacks is fine here and a glyph Handjet
+  lacks is a failure.
+- Handjet has different advances, so gate 8 measures `col.*` against Handjet.
+  If a Vietnamese header does not fit, the fix is a shorter short-form, not a
+  wider column — widening is a max across locales and would widen English too.
+- Vietnamese has no plural marking (`pluralRule: 'none'`), so `.one` / `.other`
+  siblings both take `.other`. Write one form.
+- Expansion budget is 1.15, the tightest of the six.
 
-German last: longest language, surfaces any remaining layout ceilings.
+**Column short forms** (`col.league.*`): `#`, `ST` (số trận), `T` (thắng),
+`H` (hòa), `B` (bại), `HS` (hiệu số), `Đ` (điểm).
+
+## Phase 4 — pt-BR, fr, id, then **de last** (current)
+
+German last: longest language (1.30 budget), surfaces any remaining layout
+ceilings.
+
+**Per locale:** glossary → `col.*` short forms → translate all keys → add to
+`ENABLED_LOCALES` → run gates → fix what they say.
+
+**Column short forms:**
+- `pt-BR`: `#`, `J`, `V`, `E`, `D`, `SG`, `PTS`
+- `fr`: `#`, `J`, `G`, `N`, `P`, `DB`, `PTS`
+- `id`: `#`, `M`, `M`→use `MN`, `S`, `K`, `SG`, `PTS`
+- `de`: `#`, `SP`, `S`, `U`, `N`, `TD`, `PKT`
+
+**Plural rules already encoded** in `locales.ts`: `pt-BR` and `fr` put ZERO in
+the singular; `es` and `de` do not; `id` and `vi` have no plural marking.
 
 ## Phase 5 — long tail
 

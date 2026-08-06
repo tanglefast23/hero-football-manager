@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "locale": "fr",
+  "terms": [
+    {
+      "english": "Hero License",
+      "englishPattern": "Hero Licen[cs]e",
+      "allowedForms": [
+        "Licence de Héros",
+        "Licences de Héros"
+      ],
+      "why": "Garde Héros en majuscule : c'est le nom propre du jeu."
+    },
+    {
+      "english": "the Zone",
+      "englishPattern": "\\bthe Zone\\b",
+      "allowedForms": [
+        "la Zone",
+        "Zone"
+      ],
+      "why": "'Entrer dans la Zone' est ce qu'un commentateur dirait."
+    },
+    {
+      "english": "Heat",
+      "englishPattern": "\\bHeat\\b",
+      "allowedForms": [
+        "Chaleur"
+      ],
+      "why": "Garde la métaphore de la jauge qui se remplit."
+    },
+    {
+      "english": "Awakening",
+      "englishPattern": "\\bAwakening\\b",
+      "allowedForms": [
+        "Éveil",
+        "éveil"
+      ],
+      "why": "Le mot pour un basculement unique et irréversible."
+    },
+    {
+      "english": "Training Points",
+      "englishPattern": "Training [Pp]oints?",
+      "allowedForms": [
+        "Points d'Entraînement",
+        "Point d'Entraînement"
+      ],
+      "why": "Le terme exact ; l'abréviation PE porte le reste."
+    },
+    {
+      "english": "Fan Shop",
+      "englishPattern": "Fan Shop",
+      "allowedForms": [
+        "Boutique du Club"
+      ],
+      "why": "Ce qu'un stade appelle vraiment sa boutique."
+    },
+    {
+      "english": "Buzz",
+      "englishPattern": "\\bBuzz\\b",
+      "allowedForms": [
+        "Ferveur"
+      ],
+      "why": "La ferveur autour du club — ce que la jauge mesure vraiment."
+    },
+    {
+      "english": "Superpower",
+      "englishPattern": "[Ss]uperpowers?",
+      "allowedForms": [
+        "Superpouvoir",
+        "Superpouvoirs",
+        "superpouvoir",
+        "superpouvoirs"
+      ],
+      "why": "Nom commun dans les deux langues : la casse n'est pas verrouillée."
+    }
+  ]
+}
