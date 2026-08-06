@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -39,6 +39,27 @@ export function PostMatchSummaryModal({
     stopAllFinancialReportSfx();
     onDismiss();
   }, [onDismiss]);
+
+  /**
+   * Continue spends its first press on the reveal, not on the exit.
+   *
+   * Pressing it mid-count used to leave the report outright, which cost the
+   * manager the one number they were waiting for — the reveal is the report,
+   * and the button that ends it should not also be the only way to see the end
+   * of it. So while the statement is still counting, Continue lands the reels
+   * (the same beat as tapping the statement) and the next press leaves.
+   * The close button and the backdrop still leave immediately: those mean
+   * "get me out", not "get on with it".
+   */
+  const [statementRunning, setStatementRunning] = useState(false);
+  const [skipSignal, setSkipSignal] = useState(0);
+  const handleContinue = useCallback(() => {
+    if (statementRunning) {
+      setSkipSignal(signal => signal + 1);
+      return;
+    }
+    handleDismiss();
+  }, [handleDismiss, statementRunning]);
 
   return (
     <Modal
@@ -81,14 +102,21 @@ export function PostMatchSummaryModal({
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
-              <FinancialReportBody viewModel={viewModel} reduceMotion={reduceMotion} />
+              <FinancialReportBody
+                viewModel={viewModel}
+                reduceMotion={reduceMotion}
+                skipSignal={skipSignal}
+                onStatementRunningChange={setStatementRunning}
+              />
             </ScrollView>
 
             <View className="border-t-2 border-ink/20 bg-white p-3">
               <ActionButton
                 label="Continue  ▸"
-                accessibilityLabel={t('postMatchSummary.a11y.continuePastTheFinancialReport')}
-                onPress={handleDismiss}
+                accessibilityLabel={statementRunning
+                  ? t('postMatchSummary.a11y.showTheRestOfTheStatement')
+                  : t('postMatchSummary.a11y.continuePastTheFinancialReport')}
+                onPress={handleContinue}
               />
             </View>
           </View>

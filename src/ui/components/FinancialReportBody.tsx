@@ -19,9 +19,17 @@ import { PostMatchBuzzCard } from './PostMatchBuzzCard';
 export interface FinancialReportBodyProps {
   viewModel: PostMatchViewModel;
   reduceMotion: boolean;
+  /** Passed straight to the statement — see FinancialStatementProps. */
+  skipSignal?: number;
+  onStatementRunningChange?: (running: boolean) => void;
 }
 
-export function FinancialReportBody({ viewModel, reduceMotion }: FinancialReportBodyProps) {
+export function FinancialReportBody({
+  viewModel,
+  reduceMotion,
+  skipSignal,
+  onStatementRunningChange,
+}: FinancialReportBodyProps) {
   return (
     <View>
       <FinancialStatement
@@ -30,6 +38,10 @@ export function FinancialReportBody({ viewModel, reduceMotion }: FinancialReport
         settlementSeason={viewModel.settlementSeason}
         settlementWeek={viewModel.settlementWeek}
         reduceMotion={reduceMotion}
+        {...(skipSignal === undefined ? {} : { skipSignal })}
+        {...(onStatementRunningChange === undefined
+          ? {}
+          : { onRunningChange: onStatementRunningChange })}
       />
 
       <EntranceView delayMs={0} reduceMotion={reduceMotion} className="mt-6">

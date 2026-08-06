@@ -4,10 +4,12 @@ import {
   completeMatchday,
   createCareer,
   CUP_DISPLAY_NAME,
+  DEFAULT_CREATION_RATINGS,
   DIVISION_NAMES,
 } from '../../game';
 import type { GameState } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
+import { useM1Store } from '../store';
 import { matchDayBannerViewModel } from '../view-models';
 
 /**
@@ -74,6 +76,51 @@ describe('matchDayBannerViewModel', () => {
     // Seed 2 draws a Play-in tie inside the first eight weeks.
     const weeks = walkWeeks(2, 10);
     expect(weeks.some(week => week.headline === `${CUP_DISPLAY_NAME}: Match Day`)).toBe(true);
+  });
+
+  /**
+   * The regression this file was missing: everything above tests the view
+   * model, and the view model was never wrong. The bug was in who asked it.
+   * Settling a match rolls the calendar into the next week, so back-to-back
+   * fixture weeks arrived without ever passing through the Advance Week press
+   * the announcement used to hang off — and went silent.
+   */
+  it('announces the next fixture week the club settles into after a match', () => {
+    useM1Store.setState(useM1Store.getInitialState(), true);
+    useM1Store.getState().startNewCareer(2);
+    useM1Store.getState().completePlayerCreation({
+      name: 'Back To Back',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    const started = useM1Store.getState().career!;
+    const userFixtures = started.fixtures.filter(fixture => (
+      fixture.season === started.season
+      && (fixture.homeClubId === started.userClubId || fixture.awayClubId === started.userClubId)
+    ));
+    const played = userFixtures[0];
+    const next = userFixtures.find(fixture => fixture.week > played.week + 1);
+    expect(next).toBeDefined();
+
+    useM1Store.setState({
+      career: {
+        ...started,
+        week: played.week,
+        phase: 'matchday',
+        // Pull a later fixture onto the week this match settles into, so the
+        // manager leaves one match week straight into another.
+        fixtures: started.fixtures.map(fixture => (
+          fixture.id === next!.id ? { ...fixture, week: played.week + 1 } : fixture
+        )),
+      },
+      screen: 'matchday',
+      matchDayBanner: null,
+    });
+
+    useM1Store.getState().quickResult();
+
+    expect(useM1Store.getState().career).toMatchObject({ week: played.week + 1 });
+    expect(useM1Store.getState().matchDayBanner?.id)
+      .toBe(`match-day-banner-${started.season}-${played.week + 1}`);
   });
 
   it('keys the card to the week, so one week can only announce itself once', () => {
