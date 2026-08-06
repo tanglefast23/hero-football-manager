@@ -41,47 +41,47 @@ bite-sized TDD steps for ~150,000 words of translation would be theatre.
 
 ---
 
-## Status — 2026-08-06
+## Status — 2026-08-06 — Phase 1 complete
 
 | Task | State |
 | --- | --- |
-| 0. Vietnamese face | **Done.** Handjet, on structural grounds: it ships 400 + 700 so the display/data voice split survives, where VT323's single weight would collapse it. Visual A/B on device still worth doing. |
-| 1–5. Locale registry, plurals, numbers, catalogs, resolver | **Done.** The pure core, 36 tests, all Hermes-safe and node-Jest-testable |
-| 6. Language preference, schema v10 | **Done.** Frozen `V9PreferencesSchema` so the `.omit()`-derived legacy schemas cannot acquire the new field |
-| 7. Locale context + wiring | **Done.** `LocaleProvider` fed from `preferences.language`; `setLanguage` and `cycleLanguage` wired |
-| 8. Font swap — className half | **Done.** Tailwind families resolve through CSS vars, one `vars()` at the root |
-| 9. Font swap — the 16 literal files | **Done.** `usePixelStyles`; guard allowlist empty |
-| 10. Formation blurbs out of `src/sim/` | **Done.** All six, replay unmoved, `ENGINE_VERSION` still `m2.1` |
-| 11. Event outcome ids | **Done.** 150 outcomes, ids stored not derived |
-| 12. Persisted-English keys | **Partial.** The Hall of Fame landmine is fixed and the `labelKey`/`labelParams` pair is declared on four schemas with a contract test. **The producers do not dual-write yet** — that is the remaining half |
-| 13. The extraction | **Partial.** 338 → 83. 243 catalog keys |
-| 14. CI gates | **Done.** Gates 1, 3, 3b, 4, 5, 5b, 5c, plus the AST prose gate and the font-literal guard |
-| 15. Language picker | **Done.** Title screen (owner's call) + Settings |
-| 16. Native config | **Done.** `CFBundleLocalizations`; README decision reversed |
-| 17. Phase 1 verification | **Blocked** on 12 and 13 |
+| 0. Vietnamese face | **Done.** Handjet, on structural grounds: it ships 400 + 700 so the display/data voice split survives, where VT323's single weight would collapse it |
+| 1–5. Locale registry, plurals, numbers, catalogs, resolver | **Done.** The pure core, all Hermes-safe and node-Jest-testable |
+| 6. Language preference, schema v10 | **Done.** Frozen `V9PreferencesSchema` |
+| 7. Locale context + wiring | **Done.** `LocaleProvider`, `setLanguage`, `cycleLanguage` |
+| 8–9. Font swap | **Done.** CSS vars for className sites, `usePixelStyles` for all 16 literal files |
+| 10. Formation blurbs out of `src/sim/` | **Done.** All six; `ENGINE_VERSION` still `m2.1` |
+| 11. Event outcome ids | **Done.** 150 outcomes |
+| 12. Persisted-English keys | **Done** for the ledger: schemas declare the pair, `career.ts` dual-writes all twelve lines, and a gate proves every key resolves. The Hall of Fame landmine is fixed |
+| 13. The extraction | **Done. 338 → 0.** 313 catalog keys |
+| 14. CI gates | **Done.** Gates 1, 3, 3b, 4, 5, 5b, 5c, the AST prose gate, the font-literal guard, and the labelKey-resolves gate |
+| 15. Language picker | **Done.** Title screen + Settings |
+| 16. Native config | **Done.** |
+| 17. Verification | **Done.** Full suite green, golden replay unmoved |
 
-### What remains, precisely
+### What Phase 1 delivers
 
-**83 hardcoded strings.** `node scripts/i18n/prose-report.mjs` lists them; the
-shape breaks down as:
+The game is unchanged in English and every player-facing string now flows
+through the catalog. Switching to Vietnamese changes the typeface everywhere,
+including the match screen. The picker persists across launches.
 
-- **74 are fragments split across JSX by an expression** — `Your boards pay
-  {amount} each month.` These are the hard ones and are deliberately *not*
-  automated: composing them into one key with placeholders is a judgement about
-  word order in six languages, and the codemod that guessed would produce
-  exactly the English-word-order trap gate 3b now fails on.
-- **~9 are mechanical stragglers** the codemod can still take.
-- `ScreenErrorBoundary` is exempt and stays English: it is a class component,
-  and it is the screen that renders when something has already gone wrong.
+### What Phase 2 needs, and it is not much
 
-**Task 12's producer half.** `career.ts`, `player-requests.ts`,
-`cup-giant-killing.ts`, `season-recap.ts` and `career-events.ts` still write
-English labels only. The schemas accept the key pair and the contract test pins
-the rules; nothing emits keys yet.
+- **The remaining persisted producers.** `player-requests.ts`,
+  `cup-giant-killing.ts`, `season-recap.ts` and `career-events.ts` still write
+  English labels only. The ledger shows the pattern and the gate is already
+  there to catch a bad key.
+- **`content/*.json` prose.** Events, tips, glossary, Bert and ceremony lines
+  are keyed by content id but not yet routed through the resolver at their call
+  sites. About 1,270 strings, and the largest single item left.
+- **§4.2's advance work**, which is a hard blocker on the first non-English
+  locale: `col.*` short forms, re-measured advances per face, and
+  `LEAGUE_COLUMN_WIDTH` recomputed as a max across all seven locales up front.
 
-**The ratchet is what makes this safe to hand off.** `MAX_REMAINING` in
-`no-hardcoded-prose.test.ts` is 83 and may only ever fall. New hardcoded copy
-fails immediately.
+### Device QA still owed
+
+Nothing here has run on hardware. The five length-sensitive screens in English,
+plus the Vietnamese face on the match screen, are the checks that matter.
 
 ---
 
