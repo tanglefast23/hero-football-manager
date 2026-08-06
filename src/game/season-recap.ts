@@ -85,10 +85,22 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
     ...(latestResolvedEvent === undefined ? {} : { memorableEventId: latestResolvedEvent }),
     // A Golden Boot for nobody is worse than no Golden Boot at all.
     ...(topScorerGoals === 0 || sortedScorers[0] === undefined ? {} : {
-      topScorer: award(sortedScorers[0], 'Golden Boot', `${topScorerGoals} goals`, topScorerGoals),
+      topScorer: award(
+        sortedScorers[0],
+        'Golden Boot',
+        `${topScorerGoals} goals`,
+        topScorerGoals,
+        'recap.award.goldenBoot',
+      ),
     }),
     ...(sortedPlayers[0] === undefined ? {} : {
-      playerOfSeason: award(sortedPlayers[0], 'Player of the Season', 'Goals, form, morale, and development'),
+      playerOfSeason: award(
+        sortedPlayers[0],
+        'Player of the Season',
+        'Goals, form, morale, and development',
+        undefined,
+        'recap.award.playerOfTheSeason',
+      ),
     }),
     ...(young === undefined ? {} : {
       youngPlayer: award(young, 'Young Player', `Age ${young.age ?? 21} breakout season`),
@@ -191,6 +203,7 @@ function award(
   label: string,
   detail: string,
   goals?: number,
+  labelKey?: string,
 ): SeasonRecapAward {
   return {
     playerId: player.id,
@@ -198,6 +211,7 @@ function award(
     label,
     detail,
     ...(goals === undefined ? {} : { goals }),
+    ...(labelKey === undefined ? {} : { labelKey }),
   };
 }
 

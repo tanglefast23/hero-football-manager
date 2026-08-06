@@ -266,7 +266,10 @@ export function StoryEventScreen({
             className="bg-ink/85 px-5 py-4"
           >
             <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold">{viewModel.categoryLabel}</Text>
-            <Text className="mt-2 font-pixel text-2xl uppercase leading-8 text-paper">{viewModel.title}</Text>
+            {/* Resolved from the event's own content id, so the story reads in the
+                    player's language. The view model still carries the English
+                    for anything that has not been translated yet. */}
+            <Text className="mt-2 font-pixel text-2xl uppercase leading-8 text-paper">{t(`event.${viewModel.id}.title`)}</Text>
           </View>
         </EventArtwork>
 
@@ -282,7 +285,7 @@ export function StoryEventScreen({
           title="What happened"
           className="border-x-0 border-t-0"
         >
-          <Text className="text-ink/70" style={scaledBody(textScale)}>{viewModel.body}</Text>
+          <Text className="text-ink/70" style={scaledBody(textScale)}>{t(`event.${viewModel.id}.body`)}</Text>
         </PaperPanel>
 
         <View className="w-full max-w-[720px] self-center p-4">
@@ -383,7 +386,7 @@ export function StoryEventScreen({
                       <Text className={choice.tone === 'risky' ? 'font-mono text-base text-stamp' : 'font-mono text-base text-blue-dark'}>{String(index + 1).padStart(2, '0')}</Text>
                     </View>
                     <View className="flex-1">
-                      <View className="flex-row items-center justify-between gap-2"><PixelText className="flex-1 text-base uppercase text-ink">{choice.label}</PixelText><StatusChip label={choice.tone} tone={choice.tone === 'risky' ? 'danger' : 'info'} /></View>
+                      <View className="flex-row items-center justify-between gap-2"><PixelText className="flex-1 text-base uppercase text-ink">{t(`event.${viewModel.id}.${choice.id}.label`)}</PixelText><StatusChip label={choice.tone} tone={choice.tone === 'risky' ? 'danger' : 'info'} /></View>
                       <Text className="mt-1 text-sm leading-5 text-ink/60">{choice.detail}</Text>
                       <Text className={choice.disabledReason ? 'mt-2 text-sm font-bold text-stamp' : choice.tone === 'risky' ? 'mt-2 text-sm font-bold text-stamp' : 'mt-2 text-sm font-bold text-blue-dark'}>{choice.disabledReason ?? choice.consequenceHint}</Text>
                     </View>

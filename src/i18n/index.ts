@@ -3,6 +3,7 @@
 // imported directly by the tests that use it.
 export { CatalogSchema, type Catalog } from './catalog-schema';
 export { formatInteger, formatMoney } from './format-number';
+export { contentStrings, glossaryTermSlug } from './content-strings';
 export { loadCatalog } from './load-catalogs';
 export {
   ENABLED_LOCALES,

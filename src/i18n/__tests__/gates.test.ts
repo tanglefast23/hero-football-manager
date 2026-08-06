@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { ENABLED_LOCALES, LOCALES, loadCatalog, localeMeta } from '../index';
+import { ENABLED_LOCALES, LOCALES, contentStrings, loadCatalog, localeMeta } from '../index';
 import { faceFile, glyphSet, missingGlyphs } from '../glyph-coverage';
 import { faceForKey } from '../voice';
 
@@ -108,11 +108,25 @@ describe('persisted labels resolve through the catalog', () => {
     const sources = ['src/game/career.ts', 'src/game/player-requests.ts'];
     const keys = sources.flatMap(file => {
       const text = readFileSync(join(process.cwd(), file), 'utf8');
-      return [...text.matchAll(/labelKey: '([^']+)'/g)].map(match => match[1]!);
+      return [
+        ...[...text.matchAll(/labelKey: '([^']+)'/g)].map(match => match[1]!),
+        ...[...text.matchAll(/labelKey: `([^`]+)`/g)].map(match => match[1]!),
+      ];
     });
 
     expect(keys.length).toBeGreaterThan(0);
-    const known = new Set(Object.keys(english()));
-    expect(keys.filter(key => !known.has(key))).toEqual([]);
+    // Both English sources: chrome keys from en.json, content keys derived from
+    // the content files. A producer may legitimately reference either.
+    const known = new Set([...Object.keys(english()), ...Object.keys(contentStrings())]);
+    // Template keys are built from a content id at runtime, so check the prefix
+    // resolves for every id rather than the literal `${...}` text.
+    const dynamic = keys.filter(key => key.includes('$'));
+    const literal = keys.filter(key => !key.includes('$'));
+    expect(literal.filter(key => !known.has(key))).toEqual([]);
+    for (const template of dynamic) {
+      const prefix = template.slice(0, template.indexOf('$'));
+      expect({ template, matches: [...known].some(key => key.startsWith(prefix)) })
+        .toEqual({ template, matches: true });
+    }
   });
 });

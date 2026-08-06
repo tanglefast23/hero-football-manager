@@ -1,3 +1,4 @@
+import { contentStrings } from './content-strings';
 import { loadCatalog } from './load-catalogs';
 import { localeMeta, type Locale, type LocaleFaces } from './locales';
 import { resolveCopy, type CopyParams } from './resolve';
@@ -12,10 +13,20 @@ export type CopyFn = (key: string, params?: CopyParams) => string;
  * `testEnvironment` is `node` and `require('react-native')` throws. Keeping the
  * logic outside the hook is what makes any of it testable.
  */
+/**
+ * English comes from two places, and deliberately so: UI chrome from `en.json`,
+ * content prose from the content files it is authored in. Neither duplicates
+ * the other, so there is nothing to keep in sync. Chrome wins a collision,
+ * because a chrome key is the one someone wrote on purpose.
+ */
+function englishStrings(): Readonly<Record<string, string>> {
+  return { ...contentStrings(), ...loadCatalog('en').strings };
+}
+
 export function copyFor(locale: Locale): CopyFn {
-  const strings = loadCatalog(locale).strings;
-  const fallback = locale === 'en' ? strings : loadCatalog('en').strings;
-  return (key, params) => resolveCopy(locale, strings, fallback, key, params);
+  const english = englishStrings();
+  const strings = locale === 'en' ? english : loadCatalog(locale).strings;
+  return (key, params) => resolveCopy(locale, strings, english, key, params);
 }
 
 export function facesFor(locale: Locale): LocaleFaces {

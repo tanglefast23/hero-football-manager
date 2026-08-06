@@ -3,7 +3,7 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 import type { GlossaryCatalog } from '../content';
 import { ActionButton } from './components/Scorecard';
 import { PixelText } from './components/PixelText';
-import { useCopy } from '../i18n';
+import { useCopy, glossaryTermSlug } from '../i18n';
 
 export interface GlossaryPanelProps {
   content: GlossaryCatalog;
@@ -61,7 +61,7 @@ export function GlossaryPanel({
           </View>
         ) : categories.map(category => (
           <View key={category.id} className="mb-6">
-            <Text className="mb-2 font-pixel text-base uppercase text-blue-dark">{category.title}</Text>
+            <Text className="mb-2 font-pixel text-base uppercase text-blue-dark">{t(`glossary.${category.id}.title`)}</Text>
             <View className="border-2 border-ink bg-white">
               {category.entries.map((entry, index) => (
                 <View
@@ -70,8 +70,8 @@ export function GlossaryPanel({
                     ? 'px-3 py-3'
                     : 'border-b border-ink/15 px-3 py-3'}
                 >
-                  <Text className="text-base font-bold text-ink">{entry.term}</Text>
-                  <Text className="mt-1 text-sm leading-5 text-ink/65">{entry.definition}</Text>
+                  <Text className="text-base font-bold text-ink">{t(`glossary.${category.id}.${glossaryTermSlug(entry.term)}.term`)}</Text>
+                  <Text className="mt-1 text-sm leading-5 text-ink/65">{t(`glossary.${category.id}.${glossaryTermSlug(entry.term)}.definition`)}</Text>
                 </View>
               ))}
             </View>
