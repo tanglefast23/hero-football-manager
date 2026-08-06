@@ -36,10 +36,12 @@ ceiling(locale) = ceil(len(english) * expansion[locale]) + 2
 expansion = { es: 1.25, pt-BR: 1.25, fr: 1.25, de: 1.30, id: 1.20, vi: 1.15 }
 ```
 
-This does double duty. It enforces "succinct always", and it is the only thing
-standing between the translation and a clipped league table (§4.2). Where a
-faithful translation cannot fit, the answer is to **rewrite shorter in the
-target language**, never to translate literally and let it overflow.
+This is a **copy rule, not a layout guarantee** — Silkscreen is proportional, so
+character count is a poor proxy for pixel width, and layout safety comes from
+the measured advance tables in §4.2 instead. What the budget does is keep the
+translation honest about "succinct always": where a faithful translation will
+not fit the budget, the answer is to **rewrite shorter in the target language**,
+never to translate literally and let it sprawl.
 
 Additional voice rules, applied to every locale:
 
@@ -109,6 +111,20 @@ locale-dependent behaviour in a ring that has to produce byte-identical results
 from a seed), and it is what makes a saved career render in whatever language
 the player later switches to.
 
+**The three layers that emit English, and what each becomes:**
+
+| Layer | Examples | Becomes |
+| --- | --- | --- |
+| Pure sim (`src/sim/`) | `tactics.ts:46–50` formation blurbs — `'Balanced lines'`, `'Wide attack'`, `'Midfield shield'`, `'Deep counter'`, `'Crowd midfield'` | Display-only maps; the ring keeps `FormationId` and the blurb map moves to the catalog. No behaviour changes, so no `ENGINE_VERSION` bump — but see §8 gate 7 |
+| Pure game (`src/game/`) | `career.ts` ledger labels, `management.ts` shortfall sentences, `promotion-progression.ts` drill titles | `labelKey` + `labelParams` |
+| Application (`src/application/`) | `store.ts:1482–1776` toasts, `view-models.ts:560` settlement lines, `event-selection.ts:189` requirement lines | `labelKey` + `labelParams` — these are the easiest to forget because they are not "UI" and not "pure ring" |
+
+That application layer is the one an extraction pass skips by accident. It is
+called out here so it gets its own inventory item in the plan rather than being
+swept up under "the UI".
+
+`src/sim/teams.ts` club names stay English — they are names (§10).
+
 ### 3.1 Catalog format
 
 One file per locale, `content/i18n/<locale>.json`, zod-validated at load like
@@ -151,13 +167,50 @@ Missing key in a non-English catalog falls back to English rather than showing
 the raw key. In development it also warns, and CI treats a missing key as a
 failure (§8).
 
-### 3.3 Content JSON
+### 3.3 Content JSON, and the single source of English
 
-`content/*.json` carries ~1,440 prose strings — events, tips, glossary,
-ceremony lines, coach reactions. These already have stable ids, so the
-translation lives beside them keyed off that id (`event.derby-night.body`)
-rather than duplicating the whole file per locale. `content/clubs.json` is
-club and player **names** and is not translated.
+`content/*.json` carries ~1,270 translatable prose strings — events, tips,
+glossary, ceremony lines, coach reactions. These already have stable ids, so a
+translation is keyed off that id (`event.derby-night.body`) rather than
+duplicating the whole file per locale. `content/clubs.json` is club and player
+**names** and is not translated.
+
+**There must be exactly one English source, or the two will drift.** Content
+prose keeps living in `content/*.json` where it is authored today; the English
+catalog does **not** duplicate it by hand. Concretely:
+
+- `content/i18n/en.json` is **generated, never hand-edited.** A build script
+  extracts it from the two English sources — the content files (by id) and the
+  keyed strings lifted out of TS/TSX — and writes the merged catalog. It carries
+  a `DO NOT EDIT` header and CI fails if regenerating it produces a diff.
+- The six translated catalogs **are** hand-authored, against the generated
+  English.
+- So editing English copy means editing `content/*.json` or the call site, never
+  `en.json`. That keeps one place to change a sentence and makes "the English
+  changed, these translations are now stale" a mechanical diff (§9.2).
+
+Without this rule, a writer fixes a tip in `tips.json`, the catalog still holds
+the old English, and every translation is silently reviewed against text the
+game no longer shows.
+
+### 3.4 Number formatting
+
+The same Hermes caution that rules out `Intl.PluralRules` (§3.1) rules out
+`Intl.NumberFormat`. The formatting helper is **hand-rolled**: group digits in
+threes and pick the separator from a seven-entry table (`.` for `de`, `es`,
+`pt-BR`, `id`, `vi`; `,` for `en`; thin space for `fr`). Seven locales do not
+justify a polyfill, and a hand-rolled grouper is trivially unit-testable in the
+node Jest environment.
+
+This replaces the mix of `toLocaleString('en-US')`, `toLocaleString('en-GB')`
+(`player-request-view-model.ts:111`), and unpinned `toLocaleString()`
+(`view-models.ts:560`, `event-selection.ts:189`, `store.ts` ×4) — the last of
+which already varies by *device* locale today and is a live bug regardless of
+this project.
+
+Formatting happens at the UI edge only, on the raw values in `labelParams`
+(§4.3). It must never run inside a match tick or anywhere its output could
+reach a deterministic log.
 
 ---
 
@@ -287,14 +340,47 @@ header ships before both are done:
 
 ### 4.3 English is baked into save files
 
-Four persisted surfaces carry English prose through the zod codec into SQLite:
+Seven persisted surfaces carry English prose through the zod codec into SQLite —
+not the four an earlier draft of this spec claimed, and four of them are
+`strictObject`, not one:
 
-| Surface | Schema | Fix |
-| --- | --- | --- |
-| Ledger line `label` | `.passthrough()` | Add sibling `labelKey` + `labelParams`; keep `label` as the legacy fallback |
-| Cash transaction `label` | `.passthrough()` | Same |
-| Season recap award `label`/`detail` | `.passthrough()` | Same |
-| Sponsor objective snapshot `label`, `offerLine` | `strictObject` | Needs a codec schema bump |
+| Surface | Codec | Schema kind | Fix |
+| --- | --- | --- | --- |
+| Ledger line `label` | `:190` | `.passthrough()` | Sibling `labelKey` + `labelParams` |
+| Cash transaction `label` | `:185` | `.passthrough()` | Same |
+| Season recap award `label`, `detail` | `:1132` | `.passthrough()` | Same |
+| Sponsor objective snapshot `label` | `:495` | **`strictObject`** | Sibling fields + version bump |
+| Sponsor contract snapshot `offerLine` | `:510` | **`strictObject`** | Same |
+| Sponsor offer snapshot `offerLine` | `:527` | **`strictObject`** | Same |
+| Sponsor rules `brands[].offerLine`, `objectives[].labelTemplate` | `:458`, `:483` | **`strictObject`** | Same — note this is *content* copied into the save |
+
+`sponsorName` and club names on these schemas are names, not prose, and are not
+translated (§10).
+
+**The sponsor rules row is the nasty one.** `sponsorRulesSchema` persists a copy
+of `content/sponsors.json` into the career, so English sponsor patter and
+objective templates are frozen at the moment the career was created. Those
+records need keys at snapshot time, and `labelTemplate` — English prose with
+placeholders — has to become a key before it is ever snapshotted, or the
+snapshot preserves English forever.
+
+**Two rules the implementation must not get wrong:**
+
+1. **Always dual-write.** `label` stays `nonemptyString` and stays **required**
+   in the codec. New rows write the English `label` *and* `labelKey` +
+   `labelParams`. A writer that emits only keys fails validation on its own
+   schema. The UI prefers `labelKey` and falls back to `label`; the stored
+   English is the fallback for pre-change careers and the safety net if a key is
+   ever dropped from the catalog.
+2. **`labelParams` carries raw values, never formatted text.** Store
+   `{ fee: 240000 }`, not `{ fee: "$240,000" }`. Formatting is a display
+   concern and belongs at the UI edge — preformatting freezes one locale's
+   thousands separator and currency placement into SQLite, which is the exact
+   bug this section exists to prevent.
+
+Do **not** relax the four `strictObject` schemas to `.passthrough()` to dodge the
+version bump. Silently dropping unknown keys is worse than a deliberate ladder
+entry; take the bump.
 
 Because three of the four already pass through unknown keys, new fields land
 without a version bump; only the sponsor snapshot forces one. Rendering prefers
@@ -407,70 +493,139 @@ natural part of Phase 1 rather than a separate refactor.
 
 ## 7. Phasing
 
-Every phase ships something that works. Nothing is left half-English at a
-stopping point.
+### 7.1 Enabled locales, not "all locales"
 
-**Phase 0 — spikes.** Confirm the `vars()` font swap works on iOS native.
-Confirm VT323 renders Vietnamese legibly at the game's sizes. Both are
-throwaway branches; both gate the plan.
+A language is either **enabled** or it is not shipped. `ENABLED_LOCALES` is a
+single constant; the picker (§5) lists exactly what is in it, and every CI
+quality gate runs against exactly what is in it. An unenabled locale may hold a
+partial catalog with no consequence.
 
-**Phase 1 — plumbing, English only.** Catalog format, zod schema, `useCopy()`,
-the `language` preference, the picker on both screens, the CI gates. The
-English catalog is populated by extraction. At the end of this phase the game
-looks identical and behaves identically, but every string flows through the
-lookup. This is the phase that must not regress anything.
+This exists because the alternative is broken. Gate 1 ("every English key exists
+in all six catalogs") plus a phase plan where Spanish lands before German means
+either CI blocks every partial ship, or five catalogs get stuffed with English
+stubs that pass the presence check and then fail the budget and glyph checks as
+noise. Enabled-locale gating is what makes phasing and CI able to coexist.
 
-**Phase 2 — first language end-to-end (Spanish).** Proves the pipeline, the
-character budget, and the layout fixes against a real translation before five
-more are committed. Spanish because it is the highest-value and a middling
-expansion factor — if Spanish fits, French and Portuguese will.
+### 7.2 A phase is a playable stop, not a coat of paint
 
-**Phase 3 — Vietnamese.** Second, not last, because it is the one that can fail
-on font grounds. Failing early is cheaper.
+An earlier draft claimed "nothing is left half-English at a stopping point."
+That was false: translating the chrome while ~1,270 content strings stayed
+English would leave a Spanish player reading English event prose in their first
+session. The honest version of the promise:
 
-**Phase 4 — Portuguese, French, German, Indonesian.** German last within this
+> **A stopping point is coherent for a full play session, in the order a player
+> meets the game.** Chrome and narrative move together, not chrome first.
+
+Concretely, that pulls the *first-session* narrative forward out of the long
+tail: `onboarding.json`, the first-match and early-season entries in
+`events.json`, and Bert's critical-path lines in `assistant-guide.json` ship
+with Phase 2, not Phase 5. What stays in the long tail is genuinely long-tail —
+late-career events, the full coach-reaction pool, the glossary, blame lines.
+
+### 7.3 The phases
+
+**Phase 0 — decide the Vietnamese face.** Render Vietnamese in VT323 and
+Handjet at the game's real sizes and pick one (§11 decision 1). The `vars()`
+mechanism no longer needs a spike (§4.1); it needs a device smoke test, which
+rides along in Phase 1.
+
+**Phase 1 — plumbing, English only.** Catalog schema, the `en.json` generator,
+`useCopy()`, the hand-rolled formatter (§3.4), the `language` preference, the
+picker on both screens, the CI gates, and the extraction itself. At the end the
+game looks and behaves identically but every string flows through the lookup.
+This is the phase that must not regress anything, so its exit criteria are hard:
+
+- `npx tsc --noEmit` and the full Jest suite pass, including the golden replay.
+- **An English catalog snapshot test.** Every key→English pair is committed as a
+  snapshot, so a later keying pass cannot silently reword copy. Regenerating
+  `en.json` must produce no diff.
+- Gate 6 (no hardcoded prose) reports zero violations outside the exempt paths.
+- Device pass over the five length-sensitive screens (§8) in English, confirming
+  nothing moved.
+
+**Phase 2 — Spanish end-to-end, plus the layout work.** The cost probe. Includes
+the §4.2 hard dependencies — per-locale `col.*` short forms and extended advance
+maps — because they block any non-English header. Includes the first-session
+narrative per §7.2. Spanish because it is the highest-value target with a
+middling expansion factor: if Spanish fits, French and Portuguese will.
+
+**Go/no-go after Phase 2.** Measure actual words, actual review cost, and actual
+layout breakage against the §6 estimate. If Spanish costs materially more than a
+sixth of the budget, the scope conversation happens here — reduce the language
+set, or reduce the quality machinery — not after five more languages are half
+done.
+
+**Phase 3 — Vietnamese.** Third, not last, because it is the one that can fail
+on font grounds, and failing early is cheaper. VT323 is monospace and Silkscreen
+is not, so **every advance-mapped width shifts for `vi` alone**; re-measurement
+is critical path here, not a follow-up.
+
+**Phase 4 — Portuguese, French, German, Indonesian.** German last within the
 group; it is the longest and will surface any remaining layout ceilings.
 
-**Phase 5 — long tail.** Events, tips, glossary, ceremony lines, coach and
-blame lines, Bert's full script. Largest word count, lowest per-string risk.
+**Phase 5 — long tail.** Late-career events, the full coach and blame pools,
+glossary, remaining ceremony lines. Largest word count, lowest per-string risk.
 
 Within each translation phase, work goes screen by screen so a partial phase is
 still coherent.
 
-**Every translation phase is: lock the glossary (§8.1) → translate → independent
-per-string review (§8.2) → blind back-translation (§8.3) → in-context spot-check
-(§8.4).** A phase is not done when the strings exist; it is done when every
-string in it carries an `ok` verdict. Phase 2 runs this loop on Spanish first
-precisely so the cost of the quality pass is measured on one language before six
-are committed to it.
+**Every translation phase is: lock the glossary (§9.1) → translate → audit
+(§9.2) → in-context spot-check (§9.4).** A phase is not done when the strings
+exist; it is done when every string in it carries an `ok` verdict.
 
 ---
 
 ## 8. Testing and CI
 
 The balance harness and golden-replay conventions already establish that this
-project gates on assertions rather than eyeballs. Localisation gets the same:
+project gates on assertions rather than eyeballs. Localisation gets the same —
+but only where a gate can actually be enforced. Three of the eight below were
+over-specified in an earlier draft and are corrected here.
 
-1. **No missing keys.** Every key used by `t()` exists in the English catalog;
-   every English key exists in all six others. Fails the build.
-2. **No orphan keys.** A key in a catalog that nothing references is a failure,
-   not a warning — it means copy moved and the translation did not.
-3. **Character budget.** Every string in every locale is within its §1 ceiling.
+**Where they run.** Jest is `testEnvironment: node` with `roots: ['<rootDir>/src']`
+and no jsdom, and `require('react-native')` throws. Gates 1–5, 7 and 8 are pure
+data checks — catalog JSON, TTF `cmap` parsing, arithmetic — so they live in
+`src/i18n/__tests__/` and reach the catalogs with `fs.readFileSync` on
+`content/i18n/`. The `roots` setting limits *test discovery*, not what a test may
+read. Gate 6 is not a Jest concern at all.
+
+All locale-scoped gates run against `ENABLED_LOCALES` only (§7.1).
+
+1. **No missing keys.** Every key a call site can request exists in the English
+   catalog, and every English key exists in every *enabled* locale.
+2. **No orphan keys — softened, and here is why.** A pure static reference graph
+   cannot see `` t(`event.${id}.body`) ``, so hard-failing on "nothing
+   references this key" would either flag every live content key as dead or push
+   the API toward literal-only calls. Instead: a catalog key is legal if it is
+   either statically referenced **or** matches a prefix in a declared
+   **dynamic-key registry** — `event.<id>.*`, `bert.<id>.*`, `tip.<id>.*`, and
+   so on, whose legal ids are generated from `content/*.json` itself. A key
+   matching neither is the failure. Until that registry exists (Phase 1), this
+   gate is a **warning**, not a build break.
+3. **Character budget.** Every string within its §1 ceiling. This is a
+   *succinctness* gate. It is explicitly **not** a layout proof — see §4.2.
 4. **Placeholder parity.** A translated string uses exactly the placeholders its
    English source uses. A dropped `{player}` is a silent content bug.
 5. **Glyph coverage.** Every character in a locale's catalog exists in that
-   locale's font, checked against the TTF `cmap` — the same measurement
-   technique already used for column advances. This is what catches a stray `ı`
-   or a smart quote that Silkscreen does not have.
-6. **No hardcoded prose.** A lint rule over `src/ui/` and `App.tsx` rejecting
-   JSX text nodes and prose string literals outside the catalog. Scoped to
-   player-facing files; developer-mode and QA-harness strings are exempt and
-   stay English.
-7. **Golden replay unaffected.** Localisation must not touch `ENGINE_VERSION`.
-   If a sim change is needed to remove a sentence from `src/sim/`, that is a
-   version decision and gets called out, not slipped in.
-8. **Snapshot per locale** for the two measured-width tables, so a translation
-   that would clip fails in Jest rather than on Joe's phone.
+   locale's font, checked against the TTF `cmap` — the technique already used
+   for column advances. Catches a stray `ı`, a smart quote, or an em dash that
+   Silkscreen does not have.
+6. **No hardcoded prose — an ESLint job, not a Jest test.** A rule over
+   `src/ui/`, `src/application/` and `App.tsx` rejecting JSX text nodes and
+   prose literals outside the catalog. It needs TSX AST access that the node
+   Jest suite cannot provide, so it runs as its own CI step. Developer-mode,
+   `src/ui/dev-harness/` and `src/audit/` strings are exempt and stay English.
+7. **Golden replay still matches, or the bump is deliberate.** The earlier
+   wording — "localisation must not touch `ENGINE_VERSION`" — was a prohibition
+   dressed as a test, and prohibitions do not catch anything. The real gate is
+   the existing golden-replay snapshot: it either matches or it does not. If
+   extraction changes control flow or RNG consumption (building a label that
+   sized an array, branching on English text), the snapshot fails and that
+   forces the version decision CLAUDE.md already requires. Expected outcome is
+   no bump; the gate is what proves it rather than assuming it.
+8. **Width tables per locale.** Every `col.*` string in every enabled locale has
+   a measured advance **and** fits its column, for that locale's face. This is
+   the gate that makes §4.2 real rather than remembered.
 
 Device QA per language: onboarding through first match, the league table, the
 squad register, the financial report, and Settings — the five screens where
@@ -480,86 +635,133 @@ length and glyph coverage bite.
 
 ## 9. Translation quality
 
-The CI gates in §7 prove a translation is *present, sized, and renderable*.
-None of them prove it is *good*. A string can pass every check and still read
-like a manual, invert a meaning, or call a goalkeeper the wrong thing on
-alternating screens. Quality needs its own pass, and every string gets one.
+The gates in §8 prove a translation is *present, sized, and renderable*. None of
+them prove it is *good*. A string can pass every check and still read like a
+manual, invert a meaning, or call a goalkeeper two different things on two
+screens.
 
-### 8.1 Terminology is locked before translation starts
+**The council pushed back hard on this section, and the pushback was fair.** The
+objection: an LLM asked to review another LLM's translation will rubber-stamp
+fluent-but-wrong copy, and recording an `ok` verdict against a source hash
+proves *coverage*, not *correctness* — paperwork with a green tick. That is a
+real failure mode and the previous draft did not answer it.
 
-The single largest quality lever across 2,000 strings is consistency, and
-consistency cannot be recovered after the fact. Before any phase-2+ translation
-begins, each language gets a **term glossary**: roughly 80 entries covering
-football vocabulary (goalkeeper, centre-back, clean sheet, matchday, transfer
-fee, wages, squad, fixture), the game's own coined nouns (Heat, the Zone, Hero
-License, Awakening, Training Points, Fan Shop, Buzz), and the recurring UI verbs
-(sign, release, license, swap, advance, build).
+The answer is not to delete the audit — auditing every string once is a stated
+requirement — but to (a) measure whether the reviewer is actually catching
+anything, (b) stop treating the weakest checks as merge blockers, and (c) be
+plain about what the whole thing is worth.
 
-It lives at `content/i18n/glossary/<locale>.json`, is decided once with reasons
-recorded, and is machine-checked: if the glossary says `es` renders "Hero
-License" as "Licencia de Héroe", CI fails any Spanish string that renders it
-another way. The game's coined terms are the ones players learn, so an
-inconsistent one is worse than an awkward one.
+### 9.1 Locked terminology — the strongest lever, and the one that really works
 
-### 8.2 Every string is audited at least once, by a different reviewer
+Consistency across ~2,500 strings cannot be recovered after the fact. Before any
+phase-2+ translation, each enabled locale gets a glossary at
+`content/i18n/glossary/<locale>.json`.
 
-No string ships on the word of whoever wrote it. Each translated string passes
-a review by an independent reviewer — a different model, prompted as a native
-speaker of that language who follows football and plays management games, and
-given the target string, the English source, the glossary, and the screen it
-appears on.
+**Scoped to coined terms, not to football vocabulary at large.** The game's own
+nouns — Heat, the Zone, Hero License, Awakening, Training Points, Fan Shop,
+Buzz, Superpower — are what players learn and what must never wobble. Roughly
+20 entries, not 80.
 
-The reviewer returns a verdict per string:
+Ordinary football words (goalkeeper, clean sheet, matchday) stay *advisory*: a
+recommended rendering recorded for the translator, not a CI assertion. A
+substring check on those would fail constantly on Spanish and German inflection
+and compounding — `Innenverteidiger` inside `Innenverteidigerposition`,
+`portero` versus `porteros` — and a gate that cries wolf gets switched off.
+
+Each coined term declares its **allowed surface forms** (including inflections)
+per locale, and CI fails a string that renders a coined term any other way. That
+is a narrow, unambiguous, genuinely enforceable check.
+
+### 9.2 Every string is audited once, by a different reviewer
+
+Each translated string is reviewed by an independent reviewer — a different
+model from the one that authored it, prompted as a native speaker of that
+language who follows football and plays management games, given the target
+string, the English source, the glossary, and the screen the string appears on.
 
 | Verdict | Meaning | Action |
 | --- | --- | --- |
 | `ok` | Ships as written | none |
 | `stiff` | Correct but reads written, not spoken | rewrite, re-review |
-| `wrong` | Meaning changed, term off-glossary, or placeholder misused | rewrite, re-review |
+| `wrong` | Meaning changed, term off-glossary, placeholder misused | rewrite, re-review |
 | `long` | Correct but will not fit its cell | shorten in-language, re-review |
 
-Anything not `ok` is rewritten and goes back through review. Verdicts are
-recorded per string in `content/i18n/review/<locale>.json` alongside the
-reviewer's one-line reason, so the audit is inspectable rather than a claim —
-and so a later copy change to the English source can invalidate exactly the
-strings it affects rather than the whole language.
+Verdicts land in `content/i18n/review/<locale>.json` with the reviewer's
+one-line reason and the **hash of the English source** they judged. When English
+copy changes, exactly the affected strings go stale rather than the whole
+language.
 
-Coverage is a CI gate of its own: **no locale ships with a string lacking an
-`ok` verdict against the current English source hash.** That is what makes
-"audited at least once" enforceable instead of aspirational.
+**Coverage is a gate: no enabled locale ships with a string lacking an `ok`
+verdict against the current English hash.** That is what makes "audited at least
+once" enforceable. It is a coverage gate and it is labelled as one — it asserts
+the review happened, not that the copy is good.
 
-### 8.3 Blind back-translation catches meaning drift
+### 9.3 Canaries — the check that makes 9.2 more than paperwork
 
-Review by a fluent reader is good at register and bad at inversions — a
-confident, natural sentence that says the opposite of the source reads fine.
-So a second, cheap check runs over the whole catalog: a reviewer that sees
-**only the translated string**, with no access to the English, writes what it
-means in English. That back-translation is diffed against the source.
+This is the answer to "the reviewer will just rubber-stamp it."
 
-This is where dropped negations, swapped subjects ("you sign him" → "he signs
-you"), and mistranslated football idiom surface. Flagged strings go to the §8.2
-loop. It is run per locale after translation and again before release.
+Each review batch is seeded with **canaries**: strings deliberately broken in
+ways the reviewer is supposed to catch — a negation dropped, a coined term
+swapped for an off-glossary synonym, register flipped to formal (`usted`, `Sie`,
+`Anda`), a placeholder removed, a literal calque no native speaker would say.
+They are shuffled in and indistinguishable from real work.
 
-### 8.4 Register spot-check, in context
+The reviewer never learns which are canaries. Afterwards:
 
-Twenty strings per language, sampled across the screens where voice matters
-most — Bert's lines, button labels, the post-match report, event prose — are
-reviewed **on a screenshot of the actual screen**, not in a list. Out of
-context, "Free" is a fine translation; on the transfer screen it should mean
-"available", and only the screenshot shows that.
+- **A canary marked `ok` is a miss.** Miss rate is computed per batch and
+  recorded next to the verdicts.
+- **A batch missing more than 20% of its canaries is void.** Its `ok` verdicts
+  are discarded and the batch is re-reviewed with a different reviewer or a
+  sharper prompt.
 
-This is the pass that catches what the automated gates structurally cannot, and
-it is deliberately small enough to actually happen for all six languages.
+This converts an unmeasurable worry into a measured false-negative rate. If the
+rate is bad, the number says so and the spec's own claim about the audit
+collapses honestly instead of quietly. Roughly 5% canaries per batch is enough
+to be statistically useful without much cost.
 
-### 8.5 What this does not claim
+### 9.4 Register spot-check, in context
 
-None of the above is a native-speaker sign-off, and the spec should not pretend
-otherwise. It is a layered machine audit: locked terminology, an independent
-per-string review, a blind back-translation, and an in-context sample. That
-catches the failure modes that make a translation embarrassing. It will not
-catch every regionalism, and the honest plan is to ship, then fix on player
-reports — which the catalog format makes a one-line change rather than a code
-edit.
+Twenty strings per language, sampled across the screens where voice matters most
+— Bert's lines, button labels, the post-match report, event prose — reviewed
+**on a screenshot of the actual screen**, not in a list. Out of context, "Free"
+is a fine translation of "Free"; on the transfer screen it means "available",
+and only the screenshot shows that.
+
+This catches what the automated gates structurally cannot, and it is small
+enough to actually happen for all six languages.
+
+### 9.5 Back-translation — tooling, demoted from a gate
+
+A blind back-translation (reviewer sees only the translated string, writes what
+it means in English, diff against the source) does catch inversions and dropped
+negations. But as a whole-catalog merge blocker over ~15,000 strings it is
+expensive, it thrashes on short UI chrome where "Save" back-translates a dozen
+defensible ways, and a model that mistranslated a string will often
+back-translate its own error into something that diffs clean.
+
+So it runs **on long prose only** — `event.*`, `bert.*`, tips, ceremony lines —
+where the signal is real and the string is long enough for a diff to mean
+something. It produces a triage list, not a build failure. Short chrome is
+covered by §9.2 plus placeholder parity.
+
+### 9.6 What this is worth
+
+Being plain, because the previous draft was not: this is a layered machine
+audit, not a native-speaker sign-off. Ranked by how much they actually buy:
+
+1. **Locked coined terms** (§9.1) — genuinely enforceable, catches the most
+   player-visible class of error.
+2. **Placeholder parity, glyph coverage, width tables** (§8) — structural, and
+   they either pass or they do not.
+3. **Canary-validated per-string review** (§9.2–9.3) — worth what the measured
+   miss rate says it is worth, and no more. That number gets reported.
+4. **In-context spot-check** (§9.4) — small, high-yield, honest about its scale.
+5. **Back-translation on prose** (§9.5) — useful triage, weakest evidence.
+
+It will not catch every regionalism, and it should not be described to anyone as
+equivalent to the balance harness — that gate measures a closed system, this one
+estimates a human judgement. The plan is to ship, then fix on player reports,
+which the catalog format makes a one-line data change rather than a code edit.
 
 ---
 
@@ -577,9 +779,20 @@ edit.
 
 ## 11. Open decisions
 
-1. **VT323 vs Handjet** for Vietnamese — resolved by the Phase 0 visual gate.
-2. **`vars()` vs family-name aliasing** for the font swap — resolved by the
-   Phase 0 native spike.
+1. **VT323 vs Handjet** for Vietnamese — open. Resolved by the Phase 0 visual
+   gate: render Vietnamese at real game sizes in both and pick. VT323 is the
+   recommendation (solid strokes, closer to Silkscreen); Handjet's Cyrillic and
+   Greek coverage is the argument for it if a future language wants them.
+2. ~~`vars()` vs family-name aliasing~~ — **closed.** `vars()` is verified
+   working on native by source-tracing `react-native-css-interop@0.2.6` (§4.1).
+   Family-name aliasing is rejected as a product path, not held as a fallback:
+   it forces a relaunch on language change, which contradicts the live switch
+   §5 promises. If the Phase 1 device smoke test somehow fails, the thing that
+   changes is §5's promise — and that is a decision to bring back to Joe, not a
+   silent downgrade.
 3. **Whether the first-launch picker suggests the device language.** Spec says
-   scroll-into-view but do not auto-apply; this is reversible and cheap either
-   way.
+   scroll-into-view but do not auto-apply; reversible and cheap either way.
+4. **Whether Phase 5's long tail gets the full §9 quality machine** or a lighter
+   pass. Deliberately deferred to the post-Phase-2 go/no-go (§7.3), when the
+   measured cost of one language exists and the decision can be made on a
+   number instead of a guess.
