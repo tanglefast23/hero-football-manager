@@ -135,8 +135,10 @@ describe('the card is wired into the live match without skipping any of it', () 
   it('dresses the card in the pixel bible, not a fresh look', () => {
     const card = source('src/render/CupTitleCard.tsx');
 
-    // Silkscreen bold, uppercase; ink canvas, ink-soft face, hero gold accent.
-    expect(card).toContain("fontFamily: 'Silkscreen_700Bold'");
+    // The display voice (Silkscreen bold, or the locale's equivalent — the face
+    // is resolved per language now, since Silkscreen cannot draw Vietnamese),
+    // uppercase; ink canvas, ink-soft face, hero gold accent.
+    expect(card).toContain('fontFamily: faces.display');
     expect(card).toContain("backgroundColor: 'rgba(36, 31, 46, 0.95)'");
     expect(card).toContain("backgroundColor: '#3a3350'");
     expect(card).toContain("color: '#edb54a'");

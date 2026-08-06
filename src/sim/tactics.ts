@@ -42,14 +42,11 @@ export interface TeamTactics {
   energyUse: EnergyUse;
 }
 
-export const FORMATION_LABELS: Readonly<Record<FormationId, string>> = {
-  '4-4-2': 'Balanced lines',
-  '4-3-3': 'Wide attack',
-  '3-5-2': 'Midfield shield',
-  '5-3-2': 'Deep counter',
-  '4-5-1': 'Crowd midfield',
-  '3-4-3': 'All-out attack',
-};
+// The formation blurbs used to live here as English strings. They are display
+// copy, not simulation data, so they moved to the copy catalog
+// (`formation.<id>.blurb`) — a pure ring must not hold text that changes with
+// the player's language. The ring keeps `FormationId`, which is what it
+// actually reasons about.
 
 type NormalizedPoint = readonly [number, number];
 

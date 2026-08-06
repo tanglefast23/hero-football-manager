@@ -8,6 +8,7 @@ import { SettingsButton } from '../SettingsOverlay';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { useCopy } from '../../i18n';
 
 export interface NewGameWelcomeScreenProps {
   hasSavedCareer: boolean;
@@ -59,6 +60,7 @@ export function NewGameWelcomeScreen({
   onBackToTitle,
   onOpenSettings,
 }: NewGameWelcomeScreenProps) {
+  const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
 
   const masthead = showOpeningBrief ? (
@@ -72,7 +74,7 @@ export function NewGameWelcomeScreen({
         </View>
         {/* Board stamp — full red tint, hand-applied tilt */}
         <View className="rotate-2 border-2 border-b-4 border-red bg-red-light/30 px-3 py-1.5">
-          <Text className="font-pixel text-sm uppercase text-red-light">Board approved</Text>
+          <Text className="font-pixel text-sm uppercase text-red-light">{t('newGameWelcome.boardApproved')}</Text>
         </View>
       </View>
 
@@ -80,8 +82,7 @@ export function NewGameWelcomeScreen({
         ? 'mt-9 font-pixel text-sm uppercase tracking-[4px] text-gold-light'
         : 'mt-6 font-pixel text-xs uppercase tracking-[3px] text-gold-light'}
       >
-        A club in crisis
-      </Text>
+        {t('newGameWelcome.aClubInCrisis')}</Text>
 
       <View className="mt-3 gap-1">
         <MastheadLine text="THE KEYS" wide={wide} />
@@ -94,9 +95,7 @@ export function NewGameWelcomeScreen({
         ? 'mt-6 max-w-lg font-mono text-base uppercase leading-7 text-paper/80'
         : 'mt-4 max-w-sm font-mono text-sm uppercase leading-5 text-paper/80'}
       >
-        A tiny ground. A nervous board. One blank registration card with your name waiting.
-        Build the club they will talk about for decades.
-      </Text>
+        {t('newGameWelcome.aTinyGroundA')}</Text>
     </>
   ) : hasSavedCareer ? (
     <>
@@ -107,7 +106,7 @@ export function NewGameWelcomeScreen({
           <Text className="font-pixel text-2xl text-ink">HF</Text>
         </View>
         <View className="-rotate-2 border-2 border-b-4 border-pitch-light bg-pitch-light/25 px-3 py-1.5">
-          <Text className="font-pixel text-sm uppercase text-pitch-light">File ready</Text>
+          <Text className="font-pixel text-sm uppercase text-pitch-light">{t('newGameWelcome.fileReady')}</Text>
         </View>
       </View>
 
@@ -115,8 +114,7 @@ export function NewGameWelcomeScreen({
         ? 'mt-9 font-pixel text-sm uppercase tracking-[4px] text-gold-light'
         : 'mt-6 font-pixel text-xs uppercase tracking-[3px] text-gold-light'}
       >
-        The touchline kept your coat
-      </Text>
+        {t('newGameWelcome.theTouchlineKeptYourCoat')}</Text>
 
       <View className="mt-3 gap-1">
         <MastheadLine text="WELCOME" wide={wide} />
@@ -127,8 +125,7 @@ export function NewGameWelcomeScreen({
         ? 'mt-6 max-w-lg font-mono text-base uppercase leading-7 text-paper/80'
         : 'mt-4 max-w-sm font-mono text-sm uppercase leading-5 text-paper/80'}
       >
-        The squad has been pretending not to watch the clock. Your club is exactly where you left it.
-      </Text>
+        {t('newGameWelcome.theSquadHasBeen')}</Text>
     </>
   ) : null;
 
@@ -160,7 +157,7 @@ export function NewGameWelcomeScreen({
       <View className="border-2 border-ink bg-white p-4">
         <View className="flex-row items-center justify-between gap-3">
           <View className="flex-1">
-            <Text className="font-pixel text-xs uppercase tracking-[2px] text-red-dark">Saved career</Text>
+            <Text className="font-pixel text-xs uppercase tracking-[2px] text-red-dark">{t('newGameWelcome.savedCareer')}</Text>
             <Text className="mt-1 font-pixel text-lg uppercase text-ink">
               {savedCareerLabel ?? 'Club file ready'}
             </Text>
@@ -169,8 +166,7 @@ export function NewGameWelcomeScreen({
         </View>
         <View className="mt-3 border-t-2 border-ink/15 pt-3">
           <Text className="text-sm leading-4 text-ink/65">
-            Bert is on duty. The inbox will surface the three things worth your attention.
-          </Text>
+            {t('newGameWelcome.bertIsOnDuty')}</Text>
         </View>
       </View>
     </View>
@@ -181,7 +177,7 @@ export function NewGameWelcomeScreen({
       {hasSavedCareer && onContinueCareer ? (
         <ActionButton
           label={savedCareerLabel ? `Continue · ${savedCareerLabel}` : 'Continue career'}
-          accessibilityLabel="Continue saved career"
+          accessibilityLabel={t('newGameWelcome.a11y.continueSavedCareer')}
           onPress={onContinueCareer}
           variant="paper"
         />
@@ -199,12 +195,12 @@ export function NewGameWelcomeScreen({
       {onOpenAccessibility ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Open accessibility settings"
+          accessibilityLabel={t('newGameWelcome.a11y.openAccessibilitySettings')}
           onPress={onOpenAccessibility}
           className="min-h-11 items-center justify-center"
           style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
         >
-          <PixelText className="text-sm uppercase tracking-widest text-paper/75">Accessibility & controls</PixelText>
+          <PixelText className="text-sm uppercase tracking-widest text-paper/75">{t('newGameWelcome.accessibilityControls')}</PixelText>
         </Pressable>
       ) : null}
     </View>
@@ -222,12 +218,12 @@ export function NewGameWelcomeScreen({
             {onBackToTitle ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Back to title"
+                accessibilityLabel={t('newGameWelcome.a11y.backToTitle')}
                 onPress={onBackToTitle}
                 className="min-h-11 justify-center"
                 style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
               >
-                <Text className="font-pixel text-sm uppercase tracking-[2px] text-paper/75">‹ Title</Text>
+                <Text className="font-pixel text-sm uppercase tracking-[2px] text-paper/75">{t('newGameWelcome.title')}</Text>
               </Pressable>
             ) : <View />}
             <SettingsButton onPress={onOpenSettings} />

@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, Metric, PaperPanel, formatCurrency } from './components/Scorecard';
 import { FacilitySprite } from './components/FacilitySprite';
 import type { ClubFacilityBuildingViewModel, ClubFacilityCatalogViewModel } from './models';
+import { useCopy } from '../i18n';
 
 /**
  * The two orders that spend money from the grid. A move charges a relocation
@@ -27,6 +28,7 @@ export function FacilityPlacementConfirmation({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const t = useCopy();
   const { x, y } = placement;
   const cellLabel = `Column ${x + 1}, row ${y + 1}`;
   const order = placement.kind === 'build'
@@ -107,7 +109,7 @@ export function FacilityPlacementConfirmation({
               />
               <ActionButton
                 label="Pick another spot"
-                accessibilityLabel="Cancel this placement and keep choosing"
+                accessibilityLabel={t('facilityPlacementConfirmation.a11y.cancelThisPlacementAnd')}
                 variant="paper"
                 onPress={onCancel}
               />

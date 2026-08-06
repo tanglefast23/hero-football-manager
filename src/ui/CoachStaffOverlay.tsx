@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, Metric, PaperPanel, formatCurrency } from './components/Scorecard';
 import { ManagementSprite } from './components/ManagementSprite';
 import { PixelText } from './components/PixelText';
+import { useCopy } from '../i18n';
 
 export interface CoachOverlayCoach {
   role: 'HEAD' | 'ASSISTANT';
@@ -31,6 +32,7 @@ export function CoachStaffOverlay({
   onConfirm,
   onClose,
 }: CoachStaffOverlayProps) {
+  const t = useCopy();
   const isDismissConfirmation = mode === 'confirm-dismiss';
   const roleLabel = coach.role === 'HEAD' ? 'Head coach' : 'Assistant coach';
   const roleLabelLower = coach.role === 'HEAD' ? 'head coach' : 'assistant coach';
@@ -77,7 +79,7 @@ export function CoachStaffOverlay({
               </View>
               <Text className="mt-3 font-pixel text-xl uppercase text-ink">{coach.name}</Text>
               <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
-                {roleLabel} · Age {coach.age} · Level {coach.level}
+                {t('coachStaff.coachLine', { role: roleLabel, age: coach.age, level: coach.level })}
               </Text>
             </View>
 
@@ -133,7 +135,7 @@ export function CoachStaffOverlay({
               ) : (
                 <ActionButton
                   label="Return home"
-                  accessibilityLabel="Close coach confirmation and return home"
+                  accessibilityLabel={t('coachStaff.a11y.closeCoachConfirmationAndReturnHome')}
                   onPress={onClose}
                 />
               )}

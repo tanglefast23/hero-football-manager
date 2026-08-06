@@ -50,15 +50,21 @@ function divisionLabel(division: number): string {
 /**
  * How many goals a season's Golden Boot was worth.
  *
- * `buildSeasonRecap` writes this as `"22 goals"` and keeps the number nowhere
- * else — `SeasonRecapAward` carries only strings. Reading it back is a real
- * coupling to a display string, so it is pinned by a test that runs the shipped
- * recap builder and reads the result through this function. A detail this
- * cannot parse counts zero rather than throwing: a career must never be unable
- * to reach its own record.
+ * `buildSeasonRecap` now persists the count as `award.goals`, so this reads a
+ * number and never a sentence. The regex is the **legacy path only**, for
+ * recaps saved before that field existed.
+ *
+ * It used to be the only path, which made a display string load-bearing: the
+ * detail reads "22 goals", so any rewording — and every translation — would
+ * silently zero a career's top-scorer total. Nothing would have caught it,
+ * because the copy stayed perfectly valid.
+ *
+ * A detail this cannot parse still counts zero rather than throwing: a career
+ * must never be unable to reach its own record.
  */
-export function goldenBootGoals(detail: string): number {
-  const match = /^(\d+) goals$/.exec(detail);
+export function goldenBootGoals(award: { detail: string; goals?: number }): number {
+  if (typeof award.goals === 'number') return award.goals;
+  const match = /^(\d+) goals$/.exec(award.detail);
   return match === null ? 0 : Number(match[1]);
 }
 
@@ -329,7 +335,7 @@ function careerTopScorer(recaps: readonly SeasonRecap[]): HallOfFameScorer | und
     const award = recap.topScorer;
     if (award === undefined) continue;
     const existing = byPlayer.get(award.playerId);
-    const goals = goldenBootGoals(award.detail);
+    const goals = goldenBootGoals(award);
     if (existing === undefined) {
       byPlayer.set(award.playerId, {
         playerId: award.playerId,

@@ -25,6 +25,7 @@ import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
 import { playerLookId } from './sprites/player-look';
 import { snapSpriteScale } from './interpolate';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
+import { usePixelStyles, type LocaleFaces } from '../i18n';
 
 /**
  * The Quick Result face-off: the club's best outfielder, the opponent's best
@@ -71,6 +72,7 @@ export interface QuickResultFaceOffProps {
 }
 
 export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResultFaceOffProps) {
+  const styles = usePixelStyles(makeStyles);
   const { width, height, scale: devicePixelRatio } = useWindowDimensions();
   const [idleFrame, setIdleFrame] = useState(0);
   const entrance = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
@@ -299,7 +301,7 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   overlay: {
     position: 'absolute',
     top: 0,
@@ -316,7 +318,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   versusText: {
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 64,
     lineHeight: 76,
     color: '#f4f1ea',
@@ -326,7 +328,7 @@ const styles = StyleSheet.create({
   },
   nameplate: { position: 'absolute', alignItems: 'center', paddingHorizontal: 8 },
   playerName: {
-    fontFamily: 'Silkscreen_400Regular',
+    fontFamily: faces.data,
     fontSize: 15,
     lineHeight: 20,
     color: '#f4f1ea',
@@ -335,14 +337,14 @@ const styles = StyleSheet.create({
     textShadowRadius: 0,
   },
   clubName: {
-    fontFamily: 'Silkscreen_400Regular',
+    fontFamily: faces.data,
     fontSize: 11,
     lineHeight: 16,
     color: 'rgba(244, 241, 234, 0.7)',
   },
   skipHint: { position: 'absolute', right: 16, bottom: 20 },
   skipHintText: {
-    fontFamily: 'Silkscreen_400Regular',
+    fontFamily: faces.data,
     fontSize: 11,
     color: 'rgba(244, 241, 234, 0.75)',
   },

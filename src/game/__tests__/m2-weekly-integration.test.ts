@@ -105,17 +105,17 @@ describe('M2 weekly sidecars', () => {
     market = hireCareerCoach(withOffice, market, assistant.id, 'ASSISTANT');
     const settled = advanceWeek({ ...withOffice, market });
 
-    expect(settled.ledgers[0].lines).toContainEqual({
+    expect(settled.ledgers[0].lines).toContainEqual(expect.objectContaining({
       kind: 'wages',
       label: 'Coaching staff wages',
       amount: -(market.headCoach!.weeklyWage + market.assistantCoach!.weeklyWage),
-    });
-    expect(settled.ledgers[0].lines).toContainEqual({
+    }));
+    expect(settled.ledgers[0].lines).toContainEqual(expect.objectContaining({
       kind: 'subsidy',
       label: 'Season 1 wage subsidy',
       amount: Math.floor((withOffice.clubs.find(club => club.id === initial.userClubId)!.weeklyWages
         + market.headCoach!.weeklyWage + market.assistantCoach!.weeklyWage) / 2),
-    });
+    }));
   });
 
   test('warns on negative cash, issues the one emergency loan, and schedules repayment', () => {
@@ -139,11 +139,11 @@ describe('M2 weekly sidecars', () => {
         remainingWeeks: 30,
       },
     });
-    expect(state.ledgers[3].lines).toContainEqual({
+    expect(state.ledgers[3].lines).toContainEqual(expect.objectContaining({
       kind: 'emergency-loan',
       label: 'Board emergency loan',
       amount: state.financialSafety!.loan!.originalAmount,
-    });
+    }));
     // The property, not just the number: the week the loan lands the club can
     // afford the stand Bert points at and still keep an operating buffer.
     const rescuedCash = state.clubs.find(club => club.id === state.userClubId)!.cash;
@@ -165,11 +165,11 @@ describe('M2 weekly sidecars', () => {
       },
     };
     const repaid = advanceWeek(repaymentState);
-    expect(repaid.ledgers[0].lines).toContainEqual({
+    expect(repaid.ledgers[0].lines).toContainEqual(expect.objectContaining({
       kind: 'loan-repayment',
       label: 'Emergency loan repayment',
       amount: -734,
-    });
+    }));
     expect(repaid.financialSafety?.loan).toMatchObject({
       remainingBalance: 21_266,
       remainingWeeks: 29,
@@ -216,11 +216,11 @@ describe('M2 weekly sidecars', () => {
     expect(state.players.find(player => player.id === protectedId)?.clubId).toBe(state.userClubId);
     expect(state.players.find(player => player.id === resolution.playerId)?.clubId)
       .toBe(resolution.buyerClubId);
-    expect(state.ledgers.at(-1)?.lines).toContainEqual({
+    expect(state.ledgers.at(-1)?.lines).toContainEqual(expect.objectContaining({
       kind: 'board-sale',
       label: `Board-enforced sale · ${resolution.playerId}`,
       amount: resolution.fee,
-    });
+    }));
     expect(state.financialSafety?.boardUltimatum).toBeUndefined();
   });
 
@@ -343,11 +343,11 @@ describe('M2 weekly sidecars', () => {
 
     expect(baseIncome).toBe(Math.floor((club.fans * 3) / 2));
     expect(adjacencyIncome).toBe(baseIncome + Math.floor(baseIncome / 10));
-    expect(advanceWeek(adjacentState).ledgers[0].lines).toContainEqual({
+    expect(advanceWeek(adjacentState).ledgers[0].lines).toContainEqual(expect.objectContaining({
       kind: 'merch',
       label: 'Fan Shop merchandise',
       amount: adjacencyIncome,
-    });
+    }));
   });
 
   test('adds the full weekly income from three separately built Fan Shops', () => {

@@ -444,6 +444,16 @@ const EventEffectSchema = z.discriminatedUnion('type', [
 
 const EventOutcomeSchema = z.strictObject({
   weight: z.number().int().min(1).max(1000),
+  /**
+   * Stable within its choice, and the anchor for this outcome's translations
+   * (`event.<eventId>.<choiceId>.<outcomeId>.text`).
+   *
+   * Required rather than optional, and stored rather than derived from the
+   * array position: keying a translation by index means a later reorder
+   * silently reassigns every translated outcome to the wrong branch, and every
+   * key would still resolve — so no other gate would catch it.
+   */
+  id: idSchema,
   text: displayNameSchema,
   /** Bespoke banner for the risky-success cutscene; required on every risky win. */
   successHeadline: displayNameSchema.optional(),

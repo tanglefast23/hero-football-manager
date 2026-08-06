@@ -7,6 +7,9 @@ import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Silkscreen_400Regular, Silkscreen_700Bold } from '@expo-google-fonts/silkscreen';
+import { Handjet_400Regular, Handjet_700Bold } from '@expo-google-fonts/handjet';
+import { vars } from 'nativewind';
+import { useCopy, ENABLED_LOCALES, LocaleProvider, facesFor, type Locale } from './src/i18n';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   loadLaunchContent,
@@ -281,6 +284,7 @@ const POWER_CUT_IN_QA_ENTRIES: readonly PowerCutInQaEntry[] = [
 ];
 
 function PowerMatchQaApp() {
+  const t = useCopy();
   const content = useMemo(loadLaunchContent, []);
   const powers = content.powers.powers;
   const [selectedPowerIndex, setSelectedPowerIndex] = useState(0);
@@ -293,7 +297,7 @@ function PowerMatchQaApp() {
   const powerMatchQa = useMemo(() => ({
     power: power.id,
   }), [power.id]);
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
 
   return (
     <SafeAreaProvider>
@@ -304,18 +308,21 @@ function PowerMatchQaApp() {
           <View className="flex-row items-center gap-2">
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Show previous power in a live match"
+              accessibilityLabel={t('app.a11y.showPreviousPowerInALiveMatch')}
               className="min-h-11 items-center justify-center border-2 border-b-4 border-ink bg-paper px-3"
               onPress={() => {
                 setSelectedPowerIndex((powerIndex - 1 + powerCount) % powerCount);
                 setReplayKey(key => key + 1);
               }}
             >
-              <Text className="font-pixel text-xs uppercase text-ink">‹ Prev</Text>
+              <Text className="font-pixel text-xs uppercase text-ink">{t('app.prev')}</Text>
             </Pressable>
             <View className="flex-1 items-center">
               <Text className="font-pixel text-[10px] uppercase tracking-widest text-gold">
-                Live match · {String(powerIndex + 1).padStart(2, '0')} / {String(powerCount).padStart(2, '0')}
+                {t('app.liveMatchCount', {
+                  index: String(powerIndex + 1).padStart(2, '0'),
+                  total: String(powerCount).padStart(2, '0'),
+                })}
               </Text>
               <Text numberOfLines={1} className="font-pixel text-base uppercase text-paper">{power.name}</Text>
             </View>
@@ -329,14 +336,14 @@ function PowerMatchQaApp() {
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Show next power in a live match"
+              accessibilityLabel={t('app.a11y.showNextPowerInALiveMatch')}
               className="min-h-11 items-center justify-center border-2 border-b-4 border-ink bg-paper px-3"
               onPress={() => {
                 setSelectedPowerIndex((powerIndex + 1) % powerCount);
                 setReplayKey(key => key + 1);
               }}
             >
-              <Text className="font-pixel text-xs uppercase text-ink">Next ›</Text>
+              <Text className="font-pixel text-xs uppercase text-ink">{t('app.next')}</Text>
             </Pressable>
           </View>
           <Text className="mt-1 text-center font-pixel text-[10px] leading-4 text-paper/80">
@@ -364,7 +371,7 @@ function PowerMatchQaApp() {
 }
 
 function PowerCutInQaApp() {
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
   return (
     <SafeAreaProvider>
       {!fontsLoaded ? <LoadingScreen /> : (
@@ -394,7 +401,7 @@ function PowerArtQaApp() {
   const powerCount = powers.length;
   const powerIndex = selectedPowerIndex % powerCount;
   const power = powers[powerIndex];
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
 
   return (
     <SafeAreaProvider>
@@ -429,7 +436,7 @@ function AwakeningArtQaApp({ triggerId }: { triggerId: string }) {
   });
   const triggerCount = content.onboarding.triggers.length;
   const triggerIndex = Math.min(selectedTriggerIndex, triggerCount - 1);
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
   const trigger = content.onboarding.triggers[triggerIndex];
 
   if (!fontsLoaded) return <LoadingScreen />;
@@ -452,7 +459,7 @@ function AwakeningArtQaApp({ triggerId }: { triggerId: string }) {
 }
 
 function AwardsCeremonyQaApp() {
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
 
   return (
     <SafeAreaProvider>
@@ -467,7 +474,7 @@ function AwardsCeremonyQaApp() {
 }
 
 function DevHarnessApp() {
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
 
   return (
     <SafeAreaProvider>
@@ -540,7 +547,7 @@ function GameApp() {
   // The navigation press creates the new cue; its own pointer-up must not also
   // count as the "next tap" that dismisses it.
   const skipNextGuidanceDismissRef = useRef(false);
-  const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const [globalGlossaryOpen, setGlobalGlossaryOpen] = useState(false);
   const [globalPrivacySupportOpen, setGlobalPrivacySupportOpen] = useState(false);
@@ -618,6 +625,17 @@ function GameApp() {
   }, [savePreferences]);
   const setVolume = useCallback((masterVolume: DevVolume) => {
     savePreferences({ ...preferencesRef.current, masterVolume });
+  }, [savePreferences]);
+  const setLanguage = useCallback((language: Locale) => {
+    savePreferences({ ...preferencesRef.current, language });
+  }, [savePreferences]);
+  // Settings has room for one row, not seven, so it steps through the shipped
+  // languages rather than opening a second picker.
+  const cycleLanguage = useCallback(() => {
+    const current = preferencesRef.current;
+    const at = ENABLED_LOCALES.indexOf(current.language);
+    const next = ENABLED_LOCALES[(at + 1) % ENABLED_LOCALES.length] ?? 'en';
+    savePreferences({ ...current, language: next });
   }, [savePreferences]);
   const toggleReduceMotion = useCallback(() => {
     const current = preferencesRef.current;
@@ -1670,6 +1688,8 @@ function GameApp() {
     screen = (
       <TitleLandingScreen
         hasSavedCareer={store.hasSavedCareer}
+        language={preferences.language}
+        onLanguageChange={setLanguage}
         reduceMotion={reduceMotion}
         onStory={() => setLandingView('story')}
         onSettings={() => setLandingView('settings')}
@@ -2325,7 +2345,13 @@ function GameApp() {
     );
   }
 
+  // Silkscreen cannot draw Vietnamese, so `vi` renders in Handjet. Binding both
+  // faces to CSS variables here is what lets every `font-pixel` / `font-mono`
+  // class in the app follow the language without being touched.
+  const faces = facesFor(preferences.language);
+
   return (
+    <LocaleProvider value={preferences.language}>
     <SafeAreaProvider>
       <StatusBar
         style={(
@@ -2338,7 +2364,10 @@ function GameApp() {
           || store.screen === 'awakening'
         ) ? 'light' : 'dark'}
       />
-      <View className="flex-1 bg-ink">
+      <View
+        className="flex-1 bg-ink"
+        style={vars({ '--font-display': faces.display, '--font-data': faces.data })}
+      >
         <View
           className="flex-1"
           accessibilityElementsHidden={pendingConfirmation !== null}
@@ -2394,6 +2423,8 @@ function GameApp() {
           hudSide={preferences.hudSide}
           hapticsEnabled={preferences.hapticsEnabled}
           textScale={preferences.textScale}
+          language={preferences.language}
+          onCycleLanguage={cycleLanguage}
           highContrast={preferences.highContrast}
           colorSafeKits={preferences.colorSafeKits}
           cutInMode={preferences.cutInMode}
@@ -2710,6 +2741,7 @@ function GameApp() {
         />
       </View>
     </SafeAreaProvider>
+    </LocaleProvider>
   );
 }
 
@@ -2720,7 +2752,7 @@ function AwakeningReviewApp({ triggerId }: { triggerId: string }) {
     return requestedIndex >= 0 ? requestedIndex : 0;
   });
   const trigger = content.onboarding.triggers[triggerIndex];
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
   const [previewBeat, setPreviewBeat] = useState<1 | 2 | 3>(1);
   const nextTriggerIndex = (triggerIndex + 1) % content.onboarding.triggers.length;
 
@@ -2795,15 +2827,16 @@ function AwakeningReviewApp({ triggerId }: { triggerId: string }) {
 }
 
 function LoadingScreen() {
+  const t = useCopy();
   return (
     <SafeAreaView className="flex-1 items-center justify-center bg-ink">
       <View
         accessible
         accessibilityRole="progressbar"
-        accessibilityLabel="Opening club files"
+        accessibilityLabel={t('app.a11y.openingClubFiles')}
         className="-rotate-2 border-2 border-signal px-5 py-4"
       >
-        <Text className="font-pixel text-lg uppercase tracking-widest text-signal">Opening club files…</Text>
+        <Text className="font-pixel text-lg uppercase tracking-widest text-signal">{t('app.openingClubFiles')}</Text>
       </View>
     </SafeAreaView>
   );
@@ -2861,6 +2894,7 @@ function BootFailure({
   onExportRaw?: () => void;
   onRestoreBackup?: { season: number; week: number; onRestore: () => void };
 }) {
+  const t = useCopy();
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   // Armed is a dangerous state to leave lying around: the save is one tap from
   // deletion, and the arming tap may have been a misfire. It expires on its own.
@@ -2872,13 +2906,13 @@ function BootFailure({
   return (
     <SafeAreaView className="flex-1 items-center justify-center bg-ink px-6">
       <View className="w-full border-2 border-stamp bg-paper p-5">
-        <Text className="font-pixel text-lg uppercase text-stamp">We could not open your club</Text>
-        <Text className="mt-3 text-sm leading-5 text-ink/70">Your saved career has not been changed. Try again.</Text>
-        <Text className="mt-2 text-xs leading-4 text-ink/50">Technical detail: {message}</Text>
+        <Text className="font-pixel text-lg uppercase text-stamp">{t('app.weCouldNotOpen')}</Text>
+        <Text className="mt-3 text-sm leading-5 text-ink/70">{t('app.yourSavedCareerHas')}</Text>
+        <Text className="mt-2 text-xs leading-4 text-ink/50">{t('app.technicalDetail', { detail: message })}</Text>
         <BootFailureButton
           tone="primary"
           label="Retry"
-          accessibilityLabel="Retry opening club files"
+          accessibilityLabel={t('app.a11y.retryOpeningClubFiles')}
           onPress={() => {
             setConfirmingDiscard(false);
             onRetry();
@@ -2896,7 +2930,7 @@ function BootFailure({
           <BootFailureButton
             tone="paper"
             label="Export raw save"
-            accessibilityLabel="Export the unchanged raw saved career"
+            accessibilityLabel={t('app.a11y.exportTheUnchangedRawSavedCareer')}
             onPress={onExportRaw}
           />
         )}
@@ -2929,6 +2963,7 @@ function SaveWarningBanner({
   blocked: boolean;
   onRetry: () => void;
 }) {
+  const t = useCopy();
   // top-0 sat the alert text under the notch/Dynamic Island; pad by the real
   // inset so the first line is always readable.
   const insets = useSafeAreaInsets();
@@ -2940,13 +2975,13 @@ function SaveWarningBanner({
       className="absolute inset-x-0 top-0 border-b-4 border-stamp bg-red-light px-4 py-3"
       style={{ paddingTop: insets.top + 12 }}
     >
-      <Text className="font-pixel text-sm uppercase text-stamp">Your club is not saving</Text>
+      <Text className="font-pixel text-sm uppercase text-stamp">{t('trainingDrill.yourClubIsNotSaving')}</Text>
       <Text className="mt-1 text-xs leading-4 text-ink/70">{message}</Text>
       {blocked && (
         <BootFailureButton
           tone="primary"
           label="Try saving again"
-          accessibilityLabel="Try saving your career again"
+          accessibilityLabel={t('app.a11y.trySavingYourCareerAgain')}
           onPress={onRetry}
         />
       )}

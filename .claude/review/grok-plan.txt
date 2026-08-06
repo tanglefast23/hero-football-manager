@@ -1,0 +1,22 @@
+Reading the full request file so I can audit both plans completely.**Phase 1 bulk extraction is not an executable plan**
+Task 13 is ~3000 strings / 247 files plus a 2944-line `App.tsx`, but steps are “replace literal → add key → commit.” No key-naming scheme, no rule for nested/dynamic copy (`event.<id>.*`), no completeness check until Task 14’s ESLint rule (itself unspecified beyond “no prose”), and no working `generate-en-catalog.mjs` algorithm—yet exit criteria require `en.json` regenerates with zero diff. An engineer following steps literally stalls or ships a partial catalog and invents the generator.
+
+**Content JSON stays a second English source**
+Architecture says every player-facing string flows through the catalog; pure/game layers emit `labelKey`/`labelParams`. Plan only dual-writes 11 persisted surfaces and moves five formation blurbs. `events.json` gains outcome `id`s but never stops being the live English for outcomes, and nothing routes UI to `t('event…')`. Phase 2 will translate catalog keys while the app still reads content prose → dual source, silent drift, failed “identical plumbing” goal.
+
+**Language preference is read but never fully written**
+Task 6 adds `language` to preferences SQLite; Task 7’s `useCopy` reads `state.preferences.language`; Task 8 needs `language` at the `vars()` root; Task 15 builds a panel. Missing: store field + `setLanguage`, load from repository into Zustand, persist on change, and whether the picker lists `LOCALES` or `ENABLED_LOCALES`. Following the plan leaves a dead control or an in-memory-only toggle.
+
+**`formatInteger`/`formatMoney` are orphaned**
+Task 3 correctly bans `Intl` and documents bare `toLocaleString()` bugs, but no task replaces those call sites or states that `{n}`/`fee` params must be pre-formatted (resolver only `String(value)`). Numbers stay device-locale until someone notices. Also: French `groupSeparator: ' '` (U+202F) is outside Silkscreen’s Latin-1 cmap—when `fr` enables, money/tables can tofu; gate 5 only checks catalog strings, not formatter output.
+
+**Phase 2 glossary gate is decorative / broken as written**
+Task 1 runs before any translation; empty `strings` makes the loop a no-op so the test passes. Authored JSON has `english` + `allowedForms`, but the test uses `entry.englishPattern`. Substring `includes` on inflected forms will false-positive/negative on real Spanish/German. Not a real TDD step—fix after Task 3 or cut the CI assert to coined-term keys only.
+
+**Canary review pipeline is overbuilt relative to what agents can run**
+Different-model reviewer, 5% seeded canaries, 20% void threshold, englishHash staleness, batch re-review: strong QA idea, weak implementation plan. No prompt contracts, no deterministic script I/O, no CI hook beyond hand-waved JSON. High build cost for process theatre. Keep coverage + englishHash; run canaries as a manual Spanish cost-probe ritual, not a green-bar requirement for every locale.
+
+**What works (do not cut)**
+Pure core (locales, plural, numbers, resolve, catalog zod, `copyFor`/`facesFor`) is real Hermes/Jest-safe TDD. Task 9’s 13 raw-`fontFamily` files + match-screen smoke is load-bearing. Task 11 outcome ids before translate is correct. Dual-write optional `labelKey` without `GAME_SCHEMA_VERSION` is sound. Phase 2 layout/advances (esp. Handjet for `vi`) is the right hard blocker. Early Spanish cost probe is wise.
+
+REVISE

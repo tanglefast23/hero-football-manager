@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { loadCatalog } from '../../i18n';
 
 describe('cross-platform destructive confirmation and retained guidance', () => {
   const appSource = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
@@ -81,7 +82,12 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     expect(appSource).not.toContain('guideObjective={visibleAssistantObjective');
     expect(shell).toContain("accessibilityLabel={`Bert's current job: ${guideObjective}`}");
     expect(shell).toContain('{guideObjective}</Text>');
-    expect(shell).toContain("Bert's job");
+    // The label moved into the copy catalog, so the shell holds the key and the
+    // catalog holds the English. Asserting both keeps the original guarantee —
+    // that this eyebrow still reads "Bert's job" — rather than weakening it to
+    // "some key is present".
+    expect(shell).toContain("t('managementShell.bertsJob')");
+    expect(loadCatalog('en').strings['managementShell.bertsJob']).toBe("Bert's job");
   });
 
   it('never dismisses guidance before the press it collides with has landed', () => {

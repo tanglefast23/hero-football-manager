@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
 
 interface PowerArtQaScreenProps {
   readonly index: number;
@@ -29,6 +30,8 @@ export function PowerArtQaScreen({
   onReplay,
   onNext,
 }: PowerArtQaScreenProps) {
+  const t = useCopy();
+  const styles = usePixelStyles(makeStyles);
   const { width, height } = useWindowDimensions();
   const compact = height < 760 || width < 680;
   const stageWidth = Math.min(width - (compact ? 24 : 72), 920);
@@ -78,9 +81,9 @@ export function PowerArtQaScreen({
         </View>
 
         <View style={[styles.navigation, { width: stageWidth }]}>
-          <ReviewButton label="◂ PREVIOUS" accessibilityLabel="Show previous power" onPress={onPrevious} />
+          <ReviewButton label="◂ PREVIOUS" accessibilityLabel={t('powerArtQa.a11y.showPreviousPower')} onPress={onPrevious} />
           <ReviewButton label="↻ REPLAY" accessibilityLabel={`Replay ${name} animation`} onPress={onReplay} hero />
-          <ReviewButton label="NEXT ▸" accessibilityLabel="Show next power" onPress={onNext} />
+          <ReviewButton label="NEXT ▸" accessibilityLabel={t('powerArtQa.a11y.showNextPower')} onPress={onNext} />
         </View>
       </View>
     </SafeAreaView>
@@ -98,6 +101,7 @@ function ReviewButton({
   readonly hero?: boolean;
   readonly onPress: () => void;
 }) {
+  const styles = usePixelStyles(makeStyles);
   return (
     <Pressable
       accessibilityRole="button"
@@ -114,7 +118,7 @@ function ReviewButton({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#121019',
@@ -174,13 +178,13 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     color: '#d9ff60',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 12,
     letterSpacing: 1,
   },
   title: {
     color: '#f7f0dc',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 38,
     lineHeight: 43,
     marginTop: 4,
@@ -201,13 +205,13 @@ const styles = StyleSheet.create({
   },
   counterLabel: {
     color: '#24131b',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 9,
     textAlign: 'center',
   },
   counter: {
     color: '#ffffff',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 17,
     textAlign: 'center',
   },
@@ -267,7 +271,7 @@ const styles = StyleSheet.create({
   },
   liveText: {
     color: '#f7f0dc',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 9,
   },
   infoRail: {
@@ -282,7 +286,7 @@ const styles = StyleSheet.create({
   },
   tag: {
     color: '#d7cfe4',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 9,
     borderColor: '#5d526e',
     borderWidth: 2,
@@ -328,7 +332,7 @@ const styles = StyleSheet.create({
   },
   navigationText: {
     color: '#f7f0dc',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 12,
     textAlign: 'center',
   },

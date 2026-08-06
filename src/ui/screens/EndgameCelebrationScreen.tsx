@@ -62,6 +62,7 @@ import type {
   EndgameCelebrationPlayerViewModel,
   EndgameCelebrationViewModel,
 } from '../models';
+import { useCopy } from '../../i18n';
 
 /**
  * The end of the climb, in three shapes.
@@ -445,6 +446,7 @@ function TrophyScene({
   reduceMotion: boolean;
   onDone: () => void;
 }) {
+  const t = useCopy();
   const { width } = useWindowDimensions();
   const jump = useRef(new Animated.Value(0)).current;
   const summit = viewModel.kind === 'global-league';
@@ -575,7 +577,7 @@ function TrophyScene({
         style={styles.control}
       >
         {/* '›' is in Silkscreen; '▸' is not and rendered in the fallback face. */}
-        <PixelText className="text-xs uppercase text-white">Continue ›</PixelText>
+        <PixelText className="text-xs uppercase text-white">{t('endgameCelebration.continue')}</PixelText>
       </SfxPressable>
     </ScrollView>
     </CelebrationSafeArea>
@@ -898,6 +900,7 @@ function StaticFarewell({
   viewModel: EndgameCelebrationViewModel;
   onDone: () => void;
 }) {
+  const t = useCopy();
   return (
     <View style={styles.farewell}>
       <ScrollView style={styles.farewellList} contentContainerStyle={styles.farewellScroll}>
@@ -926,7 +929,7 @@ function StaticFarewell({
         onPress={onDone}
         style={styles.control}
       >
-        <PixelText className="text-xs uppercase text-white">Finish ›</PixelText>
+        <PixelText className="text-xs uppercase text-white">{t('endgameCelebration.finish')}</PixelText>
       </SfxPressable>
     </View>
   );

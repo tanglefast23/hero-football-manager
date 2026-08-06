@@ -2,6 +2,7 @@ import { ScrollView, Text, View } from 'react-native';
 import appConfig from '../../app.json';
 import { SUPPORT_EMAIL } from '../release/support';
 import { ActionButton, PaperPanel } from './components/Scorecard';
+import { useCopy } from '../i18n';
 
 export interface PrivacySupportPanelProps {
   onBack: () => void;
@@ -11,14 +12,15 @@ export interface PrivacySupportPanelProps {
 
 /** Player-visible privacy, support, build, and license information. */
 export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: PrivacySupportPanelProps) {
+  const t = useCopy();
   const version = appConfig.expo.version;
   const build = appConfig.expo.ios.buildNumber;
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 4 }}>
-      <Text className="font-pixel text-2xl uppercase text-ink">Privacy &amp; Support</Text>
+      <Text className="font-pixel text-2xl uppercase text-ink">{t('settings.privacy.label')}</Text>
       <Text className="mt-2 text-sm leading-5 text-ink/60">
-        Hero Football Manager · Version {version} ({build})
+        {t('privacySupport.versionLine', { version, build })}
       </Text>
 
       {supportError ? (
@@ -35,22 +37,19 @@ export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: Pr
       <View className="mt-5 gap-5">
         <PaperPanel kicker="Your game stays yours" title="Privacy" stamp="No tracking">
           <Text className="text-base leading-6 text-ink/70">
-            Hero Football Manager does not require an account and does not use ads, analytics, or tracking. The game does not send your gameplay or personal information to the developer.
-          </Text>
+            {t('privacySupport.heroFootballManagerDoes')}</Text>
           <Text className="mt-3 text-base leading-6 text-ink/70">
-            Your preferences, player and club names, and career save stay on this device. A save file leaves the app only when you deliberately choose Export Save and select where to share it. You can delete the career in the game, and deleting the app removes its local data from the device.
-          </Text>
+            {t('privacySupport.yourPreferencesPlayerAnd')}</Text>
         </PaperPanel>
 
         <PaperPanel kicker="Need a hand?" title="Support" stamp="Email">
           <Text className="text-base leading-6 text-ink/70">
-            Tell us what happened, which device you use, and the game version shown above. Never include passwords or other private account information.
-          </Text>
+            {t('privacySupport.tellUsWhatHappened')}</Text>
           <Text selectable className="mt-3 font-mono text-base text-blue-dark">{SUPPORT_EMAIL}</Text>
           <View className="mt-4">
             <ActionButton
               label="Email support"
-              accessibilityLabel="Email Hero Football Manager support"
+              accessibilityLabel={t('privacySupport.a11y.emailHeroFootballManagerSupport')}
               onPress={onEmailSupport}
               variant="paper"
             />
@@ -59,13 +58,12 @@ export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: Pr
 
         <PaperPanel kicker="Open-source notice" title="Silkscreen" stamp="OFL 1.1">
           <Text className="text-sm leading-5 text-ink/65">
-            Silkscreen font copyright The Silkscreen Project Authors. Licensed under the SIL Open Font License, Version 1.1.
-          </Text>
+            {t('privacySupport.silkscreenFontCopyrightThe')}</Text>
         </PaperPanel>
       </View>
 
       <View className="mt-6">
-        <ActionButton label="‹  Back to settings" accessibilityLabel="Back to settings" onPress={onBack} variant="primary" />
+        <ActionButton label="‹  Back to settings" accessibilityLabel={t('privacySupport.a11y.backToSettings')} onPress={onBack} variant="primary" />
       </View>
     </ScrollView>
   );

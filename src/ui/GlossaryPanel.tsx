@@ -3,6 +3,7 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 import type { GlossaryCatalog } from '../content';
 import { ActionButton } from './components/Scorecard';
 import { PixelText } from './components/PixelText';
+import { useCopy } from '../i18n';
 
 export interface GlossaryPanelProps {
   content: GlossaryCatalog;
@@ -15,6 +16,7 @@ export function GlossaryPanel({
   onBack,
   backLabel = 'Back to settings',
 }: GlossaryPanelProps) {
+  const t = useCopy();
   const [query, setQuery] = useState('');
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const categories = useMemo(() => content.categories.flatMap(category => {
@@ -30,13 +32,12 @@ export function GlossaryPanel({
   return (
     <View className="min-h-0 flex-1">
       <View className="border-b-2 border-ink pb-4">
-        <PixelText className="text-sm uppercase tracking-[3px] text-blue-dark">Club handbook</PixelText>
+        <PixelText className="text-sm uppercase tracking-[3px] text-blue-dark">{t('glossary.clubHandbook')}</PixelText>
         <Text className="mt-1 font-pixel text-2xl uppercase text-ink">Glossary</Text>
         <Text className="mt-2 text-sm leading-5 text-ink/60">
-          Plain-language definitions for football, management, training, and hero mechanics.
-        </Text>
+          {t('glossary.plain-languageDefinitionsForFootball')}</Text>
         <TextInput
-          accessibilityLabel="Search glossary"
+          accessibilityLabel={t('glossary.a11y.searchGlossary')}
           autoCapitalize="none"
           autoCorrect={false}
           clearButtonMode="while-editing"
@@ -56,7 +57,7 @@ export function GlossaryPanel({
       >
         {categories.length === 0 ? (
           <View className="border-2 border-ink/25 bg-paper-dark px-3 py-4">
-            <Text className="text-center text-sm font-bold text-ink/60">No glossary terms match “{query.trim()}”.</Text>
+            <Text className="text-center text-sm font-bold text-ink/60">{t('glossary.noMatches', { query: query.trim() })}</Text>
           </View>
         ) : categories.map(category => (
           <View key={category.id} className="mb-6">

@@ -30,6 +30,7 @@ describe('fail-soft app preferences', () => {
       autoSubs: false,
       squadSort: null,
       developerMode: false,
+      language: 'en',
     });
     expect(saved).toEqual(result.preferences);
     expect(result.warning).toContain('reset to defaults');

@@ -6,6 +6,7 @@ import {
   playSuperTrainingYaySfx,
   stopSuperCelebrationSfx,
 } from '../../render/management-sfx';
+import { useCopy } from '../../i18n';
 
 const CONFETTI_COLORS = ['#f6c744', '#d94f52', '#5b3a91', '#f4f1ea', '#63c56b', '#62b5e5'];
 /** A SUPER session is the rarest thing in a training week; it gets held. */
@@ -31,6 +32,7 @@ export function SuperTrainingCelebration({
   reduceMotion = false,
   onComplete,
 }: SuperTrainingCelebrationProps) {
+  const t = useCopy();
   const confettiProgress = useRef(new Animated.Value(0)).current;
   const fireworkProgress = useRef(FIREWORK_DELAYS_MS.map(() => new Animated.Value(0))).current;
   const titleProgress = useRef(new Animated.Value(0)).current;
@@ -161,8 +163,7 @@ export function SuperTrainingCelebration({
           ]}
         >
           <Text className="text-center font-pixel text-3xl uppercase text-gold" style={styles.titleGlow}>
-            Super training
-          </Text>
+            {t('superTraining.title')}</Text>
           <Text className="text-center font-pixel text-3xl uppercase text-gold" style={styles.titleGlow}>
             session!
           </Text>

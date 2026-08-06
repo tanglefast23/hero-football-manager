@@ -48,12 +48,14 @@ const tableColumns = StyleSheet.create({
   points: { width: LEAGUE_COLUMN_WIDTH.points, flexShrink: 0 },
 });
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
+import { useCopy } from '../../i18n';
 
 export interface LeagueTableScreenProps {
   viewModel: LeagueTableViewModel;
 }
 
 export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
+  const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const pointsFromTop = viewModel.leaderPoints - viewModel.userPoints;
   const layoutMode = useLayoutMode();
@@ -70,8 +72,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
             <Metric label="Matches played" value={`${viewModel.matchesPlayed}/${viewModel.matchesTotal}`} />
           </View>
           <Text className="mt-3 text-sm leading-4 text-ink/55">
-            Calculated from played fixtures only. Ties sort by goal difference, goals scored, then the league tiebreaker.
-          </Text>
+            {t('leagueTable.tiebreakNote')}</Text>
         </PaperPanel>
       ),
     },
@@ -153,11 +154,11 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
           <View className="mt-4 flex-row items-center gap-4 border-2 border-ink bg-white px-3 py-3">
             <View className="flex-row items-center gap-2">
               <View className="h-3 w-3 bg-blue" />
-              <Text className="text-sm text-ink/60">Your club</Text>
+              <Text className="text-sm text-ink/60">{t('leagueTable.yourClub')}</Text>
             </View>
             <View className="flex-row items-center gap-2">
               <View className="h-3 w-3 bg-pitch-light" />
-              <Text className="text-sm text-ink/60">Promotion place</Text>
+              <Text className="text-sm text-ink/60">{t('leagueTable.promotionPlace')}</Text>
             </View>
           </View>
         </View>
@@ -176,8 +177,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
           {viewModel.leagueFixtures.length === 0 ? (
             <PaperPanel title="Schedule pending" kicker={viewModel.seasonLabel}>
               <Text className="text-sm leading-5 text-ink/60">
-                Your league schedule will appear here when the competition office publishes it.
-              </Text>
+                {t('m2League.yourLeagueScheduleWill')}</Text>
             </PaperPanel>
           ) : (
             <View className="gap-2">
@@ -198,7 +198,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
         header={
           <View className="mb-5 flex-row items-end justify-between">
             <View>
-              <PixelText className="text-[12px] uppercase text-blue-dark">Competition office</PixelText>
+              <PixelText className="text-[12px] uppercase text-blue-dark">{t('leagueTable.competitionOffice')}</PixelText>
               <PixelText className="mt-1 text-[18px] uppercase text-ink">{viewModel.divisionLabel}</PixelText>
             </View>
             <View className="items-end gap-1">

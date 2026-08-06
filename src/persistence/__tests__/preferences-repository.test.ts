@@ -7,6 +7,34 @@ import {
 } from '../preferences-repository';
 import { FakePersistenceDatabase } from './fake-database';
 
+/**
+ * Written out rather than spread from `DEFAULT_APP_PREFERENCES`.
+ *
+ * A fixture built by spreading the defaults silently acquires every field
+ * added to them later, so it stops representing the version it claims to be
+ * and the migration it is supposed to exercise is never actually run. That is
+ * how a required new field can reach a device and reset real players'
+ * settings with the suite still green — see the comment on
+ * `V9PreferencesSchema`.
+ */
+const V9_ROW_LITERAL = {
+  formationPresets: ['4-4-2', '3-4-3', '5-3-2'],
+  autoPowers: false,
+  masterVolume: 1,
+  reduceMotion: false,
+  hudSide: 'left',
+  hapticsEnabled: true,
+  textScale: 1,
+  highContrast: false,
+  colorSafeKits: true,
+  cutInMode: 'full',
+  climbCompleted: false,
+  seenPowerCutIns: [],
+  autoSubs: false,
+  squadSort: null,
+  developerMode: false,
+} as const;
+
 describe('app preferences repository', () => {
   it('loads manual powers and the three coverage formations by default', async () => {
     const repository = await createPreferencesRepository(new FakePersistenceDatabase());
@@ -49,7 +77,7 @@ describe('app preferences repository', () => {
       autoPowers: true,
       masterVolume: 0.75,
     });
-    expect(database.preferencesRow?.schema_version).toBe(9);
+    expect(database.preferencesRow?.schema_version).toBe(10);
   });
 
   it('migrates schema-2 preferences with M4 accessibility defaults', async () => {
@@ -73,7 +101,7 @@ describe('app preferences repository', () => {
       reduceMotion: true,
       hudSide: 'right',
     });
-    expect(database.preferencesRow?.schema_version).toBe(9);
+    expect(database.preferencesRow?.schema_version).toBe(10);
   });
 
   it('migrates schema-3 M4 preferences with an empty persistent cut-in history', async () => {
@@ -85,7 +113,7 @@ describe('app preferences repository', () => {
       climbCompleted: _climbCompleted,
       developerMode: _developerMode,
       ...m4Preferences
-    } = DEFAULT_APP_PREFERENCES;
+    } = V9_ROW_LITERAL;
     database.preferencesRow = {
       schema_version: 3,
       preferences_json: JSON.stringify({ ...m4Preferences, cutInMode: 'banner' }),
@@ -96,7 +124,7 @@ describe('app preferences repository', () => {
       ...DEFAULT_APP_PREFERENCES,
       cutInMode: 'banner',
     });
-    expect(database.preferencesRow?.schema_version).toBe(9);
+    expect(database.preferencesRow?.schema_version).toBe(10);
   });
 
   it('migrates schema-4 preferences with manager tips enabled', async () => {
@@ -107,7 +135,7 @@ describe('app preferences repository', () => {
       climbCompleted: _climbCompleted,
       developerMode: _developerMode,
       ...schema4Preferences
-    } = DEFAULT_APP_PREFERENCES;
+    } = V9_ROW_LITERAL;
     database.preferencesRow = {
       schema_version: 4,
       preferences_json: JSON.stringify(schema4Preferences),
@@ -115,7 +143,7 @@ describe('app preferences repository', () => {
     const repository = await createPreferencesRepository(database);
 
     await expect(repository.load()).resolves.toEqual(DEFAULT_APP_PREFERENCES);
-    expect(database.preferencesRow?.schema_version).toBe(9);
+    expect(database.preferencesRow?.schema_version).toBe(10);
   });
 
   it('migrates schema-5 preferences with bench cover off, keeping the rest', async () => {
@@ -126,7 +154,7 @@ describe('app preferences repository', () => {
       climbCompleted: _climbCompleted,
       developerMode: _developerMode,
       ...schema5Base
-    } = DEFAULT_APP_PREFERENCES;
+    } = V9_ROW_LITERAL;
     const schema5Preferences = { ...schema5Base, managerTipsEnabled: true };
     database.preferencesRow = {
       schema_version: 5,
@@ -144,7 +172,7 @@ describe('app preferences repository', () => {
       seenPowerCutIns: ['GRAVITY_WELL'],
       autoSubs: false,
     });
-    expect(database.preferencesRow?.schema_version).toBe(9);
+    expect(database.preferencesRow?.schema_version).toBe(10);
   });
 
   it('migrates schema-6 preferences to the roster order the club has not chosen yet', async () => {
@@ -154,7 +182,7 @@ describe('app preferences repository', () => {
       climbCompleted: _climbCompleted,
       developerMode: _developerMode,
       ...schema6Base
-    } = DEFAULT_APP_PREFERENCES;
+    } = V9_ROW_LITERAL;
     const schema6Preferences = { ...schema6Base, managerTipsEnabled: true };
     database.preferencesRow = {
       schema_version: 6,
@@ -167,7 +195,7 @@ describe('app preferences repository', () => {
       autoSubs: true,
       squadSort: null,
     });
-    expect(database.preferencesRow?.schema_version).toBe(9);
+    expect(database.preferencesRow?.schema_version).toBe(10);
   });
 
   it('keeps the roster ordering the manager picked', async () => {
@@ -268,7 +296,7 @@ describe('app preferences repository', () => {
     const preferences = await repository.load();
     expect(preferences.climbCompleted).toBe(false);
     expect('managerTipsEnabled' in preferences).toBe(false);
-    expect(database.preferencesRow?.schema_version).toBe(9);
+    expect(database.preferencesRow?.schema_version).toBe(10);
   });
 
   it('round-trips a completed climb', async () => {
@@ -280,9 +308,10 @@ describe('app preferences repository', () => {
     expect((await repository.load()).climbCompleted).toBe(true);
   });
 
+
   it('migrates a version 8 row with Developer Mode safely off', async () => {
     const database = new FakePersistenceDatabase();
-    const { developerMode: _developerMode, ...schema8Preferences } = DEFAULT_APP_PREFERENCES;
+    const { developerMode: _developerMode, ...schema8Preferences } = V9_ROW_LITERAL;
     database.preferencesRow = {
       schema_version: 8,
       preferences_json: JSON.stringify(schema8Preferences),
@@ -291,6 +320,42 @@ describe('app preferences repository', () => {
     const repository = await createPreferencesRepository(database);
 
     await expect(repository.load()).resolves.toEqual(DEFAULT_APP_PREFERENCES);
-    expect(database.preferencesRow?.schema_version).toBe(9);
+    expect(database.preferencesRow?.schema_version).toBe(10);
+  });
+
+  it('migrates a version 9 row to English without disturbing anything else', async () => {
+    const database = new FakePersistenceDatabase();
+    database.preferencesRow = {
+      schema_version: 9,
+      preferences_json: JSON.stringify({
+        ...V9_ROW_LITERAL,
+        masterVolume: 0.5,
+        hudSide: 'right',
+        textScale: 1.3,
+      }),
+    };
+
+    const repository = await createPreferencesRepository(database);
+    const loaded = await repository.load();
+
+    // The point of the frozen V9 schema: a real version-9 row keeps every
+    // setting the player chose and merely gains a language.
+    expect(loaded.language).toBe('en');
+    expect(loaded.masterVolume).toBe(0.5);
+    expect(loaded.hudSide).toBe('right');
+    expect(loaded.textScale).toBe(1.3);
+    expect(database.preferencesRow?.schema_version).toBe(10);
+  });
+
+  it('rejects a language tag we do not ship rather than quietly keeping it', async () => {
+    const database = new FakePersistenceDatabase();
+    database.preferencesRow = {
+      schema_version: 10,
+      preferences_json: JSON.stringify({ ...V9_ROW_LITERAL, language: 'pt' }),
+    };
+
+    const repository = await createPreferencesRepository(database);
+
+    await expect(repository.load()).rejects.toThrow();
   });
 });

@@ -49,6 +49,7 @@ import { LOYALTY_NO_RENEWAL_THRESHOLD, LOYALTY_WARNING_THRESHOLD } from '../../g
 import { GUIDED_ALERT_GLOW } from '../guidance-glow';
 import { SquadRequestsPanel } from './SquadRequestsPanel';
 import type { PlayerRequestViewModel } from '../../application/player-request-view-model';
+import { useCopy } from '../../i18n';
 
 /**
  * The roster reads condition on the same three bands as the drill popup and
@@ -227,6 +228,7 @@ export function SquadTrainingScreen({
   squadSort,
   onChangeSquadSort,
 }: SquadTrainingScreenProps) {
+  const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const { width } = useWindowDimensions();
   const wideColumns = width >= 600;
@@ -487,8 +489,8 @@ export function SquadTrainingScreen({
         onTouchCancel={forgetPlayerGuideTouch}
       >
         <View className="mb-6">
-          <PixelText className="text-sm uppercase tracking-[2px] text-blue-dark">Squad room</PixelText>
-          <PixelText className="mt-1 text-xl uppercase text-ink">Roster & training</PixelText>
+          <PixelText className="text-sm uppercase tracking-[2px] text-blue-dark">{t('squadTraining.squadRoom')}</PixelText>
+          <PixelText className="mt-1 text-xl uppercase text-ink">{t('squadTraining.rosterTraining')}</PixelText>
         </View>
 
         {/* Drawn like the league's division selector so the two read as one
@@ -609,6 +611,7 @@ function RosterSection({
   onSelectPlayer,
   onPressTrainingBadge,
 }: RosterSectionProps) {
+  const t = useCopy();
   // The lesson is about the column, so it only needs to know that some player
   // triggered it — not which row they are on.
   const conditionCueShowing = conditionCuePlayerId !== null;
@@ -695,10 +698,9 @@ function RosterSection({
         </View>
         {sortedPlayers.length === 0 ? (
           <View className="items-center px-4 py-8">
-            <PixelText className="text-base uppercase text-ink">No players registered</PixelText>
+            <PixelText className="text-base uppercase text-ink">{t('squadTraining.noPlayersRegistered')}</PixelText>
             <Text className="mt-2 text-center text-sm leading-5 text-ink/55">
-              Sign a player from the market to start training.
-            </Text>
+              {t('squadTraining.signAPlayerFrom')}</Text>
           </View>
         ) : sortedPlayers.map((player) => {
           const selected = player.id === selectedPlayerId;
@@ -878,6 +880,7 @@ function DrillShopSection({ upgrades, money, onBuy }: DrillShopSectionProps) {
       />
       <View className="border-2 border-ink bg-white">
         {upgrades.map(upgrade => {
+  const t = useCopy();
           const owned = `${upgrade.drillName} · +${upgrade.ownedGain} for ${upgrade.ownedTpCost} TP`;
           const maxed = upgrade.nextTier === undefined;
           const buyable = !maxed && upgrade.blockedReason === undefined;
@@ -903,7 +906,7 @@ function DrillShopSection({ upgrades, money, onBuy }: DrillShopSectionProps) {
               </View>
               {maxed ? (
                 <View className="h-11 w-24 items-center justify-center border border-ink/20 bg-paper-dark">
-                  <PixelText className="text-sm uppercase text-ink/40">Tier 5</PixelText>
+                  <PixelText className="text-sm uppercase text-ink/40">{t('squadTraining.tier5')}</PixelText>
                 </View>
               ) : (
                 <Pressable
@@ -948,6 +951,7 @@ function PlayerFileSection({
   onTrainAttribute,
   guideQuickTrain = false,
 }: PlayerFileSectionProps) {
+  const t = useCopy();
   return (
     <PaperPanel
       kicker="Player file"
@@ -959,9 +963,9 @@ function PlayerFileSection({
           <PixelPortrait playerId={selectedPlayer.id} role={selectedPlayer.role} lookId={selectedPlayer.lookId} />
         </View>
         <View className="flex-1">
-          <PixelText className="text-sm uppercase tracking-wide text-ink/50">Player identity</PixelText>
+          <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.playerIdentity')}</PixelText>
           <PixelText className="mt-1 text-lg uppercase text-ink">{selectedPlayer.role} · {selectedPlayer.archetype}</PixelText>
-          <Text className="mt-1 text-sm text-ink/60">{selectedPlayer.personality} · Fame {selectedPlayer.fame}</Text>
+          <Text className="mt-1 text-sm text-ink/60">{t('squadTraining.personalityAndFame', { personality: selectedPlayer.personality, fame: selectedPlayer.fame })}</Text>
         </View>
       </View>
       {selectedPlayer.injuryWeeks > 0 ? (
@@ -969,7 +973,7 @@ function PlayerFileSection({
           <Text className="font-pixel text-base uppercase text-red-dark">
             OUT · {selectedPlayer.injuryWeeks} {selectedPlayer.injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
           </Text>
-          <Text className="mt-1 text-sm text-ink/70">Unavailable for match selection while recovering.</Text>
+          <Text className="mt-1 text-sm text-ink/70">{t('squadTraining.unavailableForMatchSelection')}</Text>
         </View>
       ) : selectedPlayer.awayWeeks > 0 ? (
         // Gold, not red: leave is a consequence the manager chose, and keeping
@@ -979,8 +983,7 @@ function PlayerFileSection({
             ON LEAVE · {selectedPlayer.awayWeeks} {selectedPlayer.awayWeeks === 1 ? 'WEEK' : 'WEEKS'}
           </Text>
           <Text className="mt-1 text-sm text-ink/70">
-            Away on a granted request. Cannot be selected or trained.
-          </Text>
+            {t('squadTraining.awayOnAGranted')}</Text>
         </View>
       ) : null}
       <View className="flex-row gap-2">
@@ -1085,8 +1088,7 @@ function PlayerFileSection({
         ) : null}
         <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/50">Attributes</PixelText>
         <Text className="mb-3 text-xs leading-4 text-ink/55">
-          PAC pace · SHO shooting · PAS passing · DEF defense · TEC technique · STA stamina · REF goalkeeping
-        </Text>
+          {t('squadTraining.pacPaceShoShooting')}</Text>
         <View className="flex-row flex-wrap gap-2">
           {selectedPlayer.attributes
             .filter(attribute => selectedPlayer.role === 'GK'

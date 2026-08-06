@@ -130,6 +130,26 @@ const merchRevealSchema = z.object({
  * Consumed only by `sanitizeLedgerReveals` — deliberately NOT wired into the
  * state schema, so a malformed reveal can never fail whole-save validation.
  */
+
+/**
+ * The key-and-parameters pair that sits beside every persisted English label.
+ *
+ * Optional on purpose. Careers saved before this existed keep rendering their
+ * stored English, and adding an optional field to a `strictObject` needs the
+ * declaration but no `GAME_SCHEMA_VERSION` bump and no migration rung — the
+ * ladder exists for synthesising missing data, and nothing here has to be
+ * synthesised.
+ *
+ * Parameters hold RAW values (`{ fee: 240000 }`), never formatted text
+ * (`{ fee: "$240,000" }`). Formatting is a display concern; pre-formatting would
+ * freeze one locale's separator and currency placement into the save file,
+ * which is the exact bug this pair exists to prevent.
+ */
+const labelKeySchema = nonemptyString.optional();
+const labelParamsSchema = z
+  .record(z.string(), z.union([z.string(), z.number()]))
+  .optional();
+
 const ledgerLineRevealSchema = z.discriminatedUnion('source', [
   gateRevealSchema,
   merchRevealSchema,
@@ -153,6 +173,8 @@ const ledgerLineSchema = z
       'board-rescue',
     ]),
     label: nonemptyString,
+    labelKey: labelKeySchema,
+    labelParams: labelParamsSchema,
     amount: safeInteger,
     idempotencyKey: nonemptyString.optional(),
   })
@@ -188,6 +210,8 @@ const cashTransactionSchema = z.object({
     'balance-adjustment',
   ]),
   label: nonemptyString,
+  labelKey: labelKeySchema,
+  labelParams: labelParamsSchema,
   amount: safeInteger.refine(value => value !== 0, 'must be non-zero'),
   // Signed, like `ledgerSchema` above. Every kind here used to be a purchase,
   // which a club can only make with money, so the balance left after one was
@@ -493,6 +517,8 @@ const sponsorRulesSchema = z.strictObject({
 const sponsorObjectiveSnapshotSchema = z.strictObject({
   kind: sponsorObjectiveKindSchema,
   label: nonemptyString,
+  labelKey: labelKeySchema,
+  labelParams: labelParamsSchema,
   target: positiveInteger,
   nominalBonus: nonnegativeInteger,
 });
@@ -1132,6 +1158,15 @@ const seasonRecapAwardSchema = z.object({
   playerName: nonemptyString,
   label: nonemptyString,
   detail: nonemptyString,
+  labelKey: labelKeySchema,
+  labelParams: labelParamsSchema,
+  /**
+   * The Golden Boot's goal count, persisted so nothing has to parse it back out
+   * of `detail`. `hall-of-fame.ts` used to recover it with a regex over the
+   * English sentence, which made a display string load-bearing — translating it
+   * zeroed a career's top-scorer total silently.
+   */
+  goals: nonnegativeInteger.optional(),
 }).passthrough();
 
 const divisionAwardPlacementSchema = z.object({

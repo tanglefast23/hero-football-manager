@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { usePixelStyles, type LocaleFaces } from '../i18n';
 import { ENERGY_FILL_COLORS } from './match-energy-ui';
 import { MATCH_RAIL_GUTTER, MATCH_RAIL_TOP_INSET, MATCH_RAIL_WIDTH } from './match-rail';
 import { KIT_PANEL_BORDER_COLOR, KIT_PANEL_TEXT_COLOR } from './team-kit-ui';
@@ -23,7 +24,16 @@ export const CARRIER_CARD_CONTENT_WIDTH =
 // #d94f52 / #a83440 (rival threat), grey-dark #6b6675 (structure). Interactive
 // chrome (Track A) uses an ink outline with a thicker bottom edge as the
 // raised "lip"; gold is reserved for hero/power moments per docs/08.
-export const styles = StyleSheet.create({
+/**
+ * MatchScreen's StyleSheet, built per language.
+ *
+ * It names pixel faces directly rather than through a NativeWind class, so the
+ * CSS-variable swap at the app root cannot reach it — a module-scope sheet is
+ * evaluated once at import. `useMatchScreenStyles()` rebuilds it when the
+ * language changes; `usePixelStyles` caches per locale so this runs once per
+ * language, not once per render.
+ */
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   root: { flex: 1, backgroundColor: '#241f2e' },
   rootHighContrast: { backgroundColor: '#09070d' },
   firstMatchGuideOverlay: { zIndex: 20, elevation: 20 },
@@ -67,7 +77,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  scoreText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 18, fontVariant: ['tabular-nums'] },
+  scoreText: { fontFamily: faces.display, color: '#f4f1ea', fontSize: 18, fontVariant: ['tabular-nums'] },
   scoreTextFlash: { color: '#f7d894' },
   // Top-right controls: small beveled buttons (same Track-A recipe as the bug).
   controls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -83,7 +93,7 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 4,
     borderRadius: 4,
   },
-  ctrlText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 16 },
+  ctrlText: { fontFamily: faces.display, color: '#f4f1ea', fontSize: 16 },
   bannerStack: {
     position: 'absolute',
     zIndex: 8,
@@ -98,7 +108,7 @@ export const styles = StyleSheet.create({
   banner: {
     textAlign: 'center',
     color: '#edb54a',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 18,
     backgroundColor: '#241f2edd',
     borderWidth: 2,
@@ -126,9 +136,9 @@ export const styles = StyleSheet.create({
   carrierCardLeft: { left: 8 },
   carrierCardRight: { right: 8 },
   carrierLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  carrierName: { fontFamily: 'Silkscreen_700Bold', flex: 1, color: KIT_PANEL_TEXT_COLOR, fontSize: 11 },
+  carrierName: { fontFamily: faces.display, flex: 1, color: KIT_PANEL_TEXT_COLOR, fontSize: 11 },
   carrierEnergy: {
-    fontFamily: 'Silkscreen_400Regular',
+    fontFamily: faces.data,
     color: KIT_PANEL_TEXT_COLOR,
     fontSize: 10,
     fontVariant: ['tabular-nums'],
@@ -205,14 +215,14 @@ export const styles = StyleSheet.create({
     backgroundColor: '#a3c8f066',
   },
   coachCopy: { flexShrink: 1, alignItems: 'flex-start' },
-  coachLabel: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8 },
+  coachLabel: { fontFamily: faces.display, color: '#bcb7c4', fontSize: 8 },
   coachLabelGuided: { color: '#f4f1ea' },
-  coachValue: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 11, marginTop: 3 },
+  coachValue: { fontFamily: faces.display, color: '#f4f1ea', fontSize: 11, marginTop: 3 },
   coachValueGuided: { color: '#f4f1ea' },
   mentalityIcon: { color: '#70b879', fontSize: 28, fontWeight: 'bold' },
   swapIcon: { color: '#77a4d8', fontSize: 30, fontWeight: 'bold' },
   swapIconGuided: { color: '#f4f1ea' },
-  tiredValue: { fontFamily: 'Silkscreen_400Regular', color: '#edb54a', fontSize: 9 },
+  tiredValue: { fontFamily: faces.data, color: '#edb54a', fontSize: 9 },
   energyUseRow: {
     backgroundColor: '#2d283c',
     borderWidth: 2,
@@ -233,7 +243,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 2,
     marginBottom: 3,
   },
-  energyUseTitle: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8, letterSpacing: 0.6 },
+  energyUseTitle: { fontFamily: faces.display, color: '#bcb7c4', fontSize: 8, letterSpacing: 0.6 },
   teamEnergy: {
     color: '#65b96e',
     fontSize: 9,
@@ -259,7 +269,7 @@ export const styles = StyleSheet.create({
   energySegmentSave: { backgroundColor: '#35618e' },
   energySegmentBalanced: { backgroundColor: '#4f6753' },
   energySegmentAllOut: { backgroundColor: '#a83440' },
-  energySegmentText: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 9, textAlign: 'center' },
+  energySegmentText: { fontFamily: faces.display, color: '#bcb7c4', fontSize: 9, textAlign: 'center' },
   energySegmentTextSelected: { color: '#f4f1ea' },
   cancelButton: {
     flex: 1,
@@ -272,9 +282,13 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 4,
     borderBottomColor: '#16121f',
   },
-  cancelText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 12 },
+  cancelText: { fontFamily: faces.display, color: '#f4f1ea', fontSize: 12 },
   selectionPlaceholder: {
     color: '#bcb7c4',
     fontSize: 10,
   },
 });
+
+export function useMatchScreenStyles() {
+  return usePixelStyles(makeStyles);
+}

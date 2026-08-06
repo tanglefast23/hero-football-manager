@@ -138,11 +138,11 @@ describe('facility weekly integration', () => {
     expect(settled.trainingPoints).toBe(
       built.trainingPoints + BASE_WEEKLY_TRAINING_POINTS * 3 + TRAINING_PITCH_TP_PER_LEVEL,
     );
-    expect(settled.ledgers[2].lines).toContainEqual({
+    expect(settled.ledgers[2].lines).toContainEqual(expect.objectContaining({
       kind: 'facilities',
       label: 'Facility upkeep',
       amount: -100,
-    });
+    }));
     const weeklyNets = settled.ledgers.slice(0, 3).map(ledger => (
       ledger.lines.reduce((total, line) => total + line.amount, 0)
     ));

@@ -12,6 +12,7 @@ import { livePowerEffectActors } from '../../render/live-power-effect-actors';
 import { PowerEffectScene } from '../../render/PowerEffectScene';
 import { powerEffectDescriptor } from '../../render/power-effect-descriptors';
 import { TitleMatchSprite } from './TitleMatchSprite';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
 
 interface PopHero {
   readonly spriteKey: string;
@@ -97,6 +98,8 @@ export function TitlePlayerPopScene({
 }: {
   readonly reduceMotion?: boolean;
 }) {
+  const t = useCopy();
+  const styles = usePixelStyles(makeStyles);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [appearance, setAppearance] = useState(0);
   const showNextHero = useCallback(() => {
@@ -116,7 +119,7 @@ export function TitlePlayerPopScene({
 
   return (
     <View
-      accessibilityLabel="Superpowered football players popping onto the title screen while using their powers"
+      accessibilityLabel={t('titlePlayerPop.a11y.scene')}
       style={styles.scene}
     >
       <PopSlot
@@ -147,6 +150,7 @@ function PopSlot({
   readonly hero: PopHero;
   readonly onComplete: () => void;
 }) {
+  const styles = usePixelStyles(makeStyles);
   const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const appearanceStartedAtMs = useRef(elapsedMs).current;
@@ -323,7 +327,7 @@ function PopSlot({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   scene: {
     height: 250,
     overflow: 'visible',
@@ -445,7 +449,7 @@ const styles = StyleSheet.create({
   },
   powerBubbleText: {
     color: '#241f2e',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: faces.display,
     fontSize: 14,
     textAlign: 'center',
   },

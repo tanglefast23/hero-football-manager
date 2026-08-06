@@ -821,7 +821,7 @@ function settlementLines(
     const gate = homeGateIncomeWithReveal(state, userClub, 'ticket revenue', 'league-gate');
     lines.push({
       kind: 'tickets',
-      label: 'League home gate',
+      label: 'League home gate', labelKey: 'ledger.leagueHomeGate',
       amount: gate.amount,
       ...(gate.reveal === undefined ? {} : { reveal: gate.reveal }),
     });
@@ -849,7 +849,7 @@ function settlementLines(
   if (trainingMoneyCost > 0) {
     lines.push({
       kind: 'training',
-      label: 'Weekly focus training',
+      label: 'Weekly focus training', labelKey: 'ledger.weeklyFocusTraining',
       amount: checkedMultiply(trainingMoneyCost, -1, 'weekly training expense'),
     });
   }
@@ -858,7 +858,7 @@ function settlementLines(
   if (merchandise.amount > 0) {
     lines.push({
       kind: 'merch',
-      label: 'Fan Shop merchandise',
+      label: 'Fan Shop merchandise', labelKey: 'ledger.fanShopMerchandise',
       amount: merchandise.amount,
       ...(merchandise.reveal === undefined ? {} : { reveal: merchandise.reveal }),
     });
@@ -870,14 +870,14 @@ function settlementLines(
   if (facilityUpkeep > 0) {
     lines.push({
       kind: 'facilities',
-      label: 'Facility upkeep',
+      label: 'Facility upkeep', labelKey: 'ledger.facilityUpkeep',
       amount: checkedMultiply(facilityUpkeep, -1, 'weekly facility expense'),
     });
   }
 
   lines.push({
     kind: 'wages',
-    label: 'Weekly wages',
+    label: 'Weekly wages', labelKey: 'ledger.weeklyWages',
     amount: checkedMultiply(userClub.weeklyWages, -1, 'weekly wage expense'),
   });
 
@@ -885,7 +885,7 @@ function settlementLines(
   if (coachWage !== 0) {
     lines.push({
       kind: 'wages',
-      label: 'Coaching staff wages',
+      label: 'Coaching staff wages', labelKey: 'ledger.coachingStaffWages',
       amount: coachWage,
     });
   }
@@ -899,7 +899,7 @@ function settlementLines(
     );
     lines.push({
       kind: 'subsidy',
-      label: 'Season 1 wage subsidy',
+      label: 'Season 1 wage subsidy', labelKey: 'ledger.seasonOneWageSubsidy',
       amount: requireSafeInteger(
         Math.floor(requireSafeInteger(totalWageBill, 'weekly wages') * subsidyPercent / 100),
         'wage subsidy',
@@ -948,7 +948,7 @@ function settlementAwards(
         awards.push({
           line: {
             kind: 'sponsor',
-            label: 'Local advertising (monthly)',
+            label: 'Local advertising (monthly)', labelKey: 'ledger.localAdvertisingMonthly',
             amount: sponsorIncome,
             idempotencyKey: weeklySettlementAwardKeys.sponsorMonth(
               state.userClubId,
@@ -989,7 +989,7 @@ function settlementAwards(
       awards.push({
         line: {
           kind: 'subsidy',
-          label: 'County League recruitment fund',
+          label: 'County League recruitment fund', labelKey: 'ledger.countyLeagueRecruitmentFund',
           amount: FIRST_D4_PROMOTION_RECRUITMENT_FUND,
           idempotencyKey: weeklySettlementAwardKeys.recruitmentFund(state.userClubId),
         },
@@ -1387,7 +1387,7 @@ function resolveFinancialSafety(
     const repayment = Math.ceil(loan.remainingBalance / loan.remainingWeeks);
     lines.push({
       kind: 'loan-repayment',
-      label: 'Emergency loan repayment',
+      label: 'Emergency loan repayment', labelKey: 'ledger.emergencyLoanRepayment',
       amount: -repayment,
     });
     loan = {
@@ -1424,7 +1424,7 @@ function resolveFinancialSafety(
     );
     lines.push({
       kind: 'emergency-loan',
-      label: 'Board emergency loan',
+      label: 'Board emergency loan', labelKey: 'ledger.boardEmergencyLoan',
       amount,
     });
     balanceAfter = checkedAdd(balanceAfter, amount, 'emergency loan balance');
@@ -1490,7 +1490,7 @@ function resolveFinancialSafety(
     const rescue = checkedAdd(rules.cashFloor, -balanceAfter, 'board rescue amount');
     lines.push({
       kind: 'board-rescue',
-      label: 'Board rescue package',
+      label: 'Board rescue package', labelKey: 'ledger.boardRescuePackage',
       amount: rescue,
     });
     balanceAfter = rules.cashFloor;

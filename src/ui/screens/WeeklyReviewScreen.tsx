@@ -20,6 +20,7 @@ import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
 import { countUpValue } from '../count-up';
 import { PixelText } from '../components/PixelText';
+import { useCopy } from '../../i18n';
 
 export interface WeeklyReviewScreenProps {
   viewModel: WeeklyReviewViewModel;
@@ -36,6 +37,7 @@ export function WeeklyReviewScreen({
   reduceMotion = false,
   textScale = 1,
 }: WeeklyReviewScreenProps) {
+  const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
   const [balanceAnimationsComplete, setBalanceAnimationsComplete] = useState(reduceMotion);
   const balanceAnimationsStarted = reduceMotion || animationsReady;
@@ -64,7 +66,7 @@ export function WeeklyReviewScreen({
 
   const cashMovement = (
     <View className="flex-row items-center justify-between border-2 border-ink bg-ink px-3 py-2.5">
-      <Text className="font-pixel text-[12px] uppercase text-paper/75">Cash movement</Text>
+      <Text className="font-pixel text-[12px] uppercase text-paper/75">{t('weeklyReview.cashMovement')}</Text>
       <Text className="font-mono text-base text-paper">
         {formatCurrency(viewModel.cashBefore)} →{' '}
         <AnimatedCount
@@ -101,7 +103,7 @@ export function WeeklyReviewScreen({
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
         <View className={wide ? 'w-full max-w-[1180px] self-center px-4 pb-7 pt-4' : 'w-full px-4 pb-7 pt-4'}>
           <View className="border-b-2 border-paper/15 pb-3">
-            <Text className="font-pixel text-[10px] uppercase tracking-[2px] text-gold-light">Weekly review</Text>
+            <Text className="font-pixel text-[10px] uppercase tracking-[2px] text-gold-light">{t('weeklyReview.weeklyReview')}</Text>
             <Text className="mt-1 font-pixel text-[18px] uppercase text-white">{viewModel.completedWeekLabel}</Text>
             <Text className="mt-2 font-pixel text-[12px] uppercase text-paper/75">{viewModel.clubName}</Text>
           </View>
