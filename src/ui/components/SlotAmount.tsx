@@ -41,8 +41,15 @@ const TONE_COLORS: Record<SlotTone, string> = {
   expense: '#a83440',
   neutral: '#241f2e',
 };
-const SURGE_SETTLED_COLOR = '#b45309';
-const SURGE_FLICKER = ['#b45309', '#dc2626', '#f59e0b'];
+/**
+ * Surge is the best news on the statement, so it may not borrow the palette's
+ * warning end. The old amber/red pair read as a loss — the one thing a surged
+ * income line is not — so the surge now speaks in blue and glows instead.
+ */
+const SURGE_SETTLED_COLOR = '#5a8fd6';
+const SURGE_GLOW_COLOR = '#a3c8f0';
+const SURGE_GLOW_RADIUS = 7;
+const SURGE_FLICKER = ['#5a8fd6', '#a3c8f0', '#3f6fb5'];
 /** 55% alpha suffix for spinning digits (reduced saturation until the land). */
 const SPIN_ALPHA = '8C';
 
@@ -79,6 +86,15 @@ export function SlotAmount({
   const sizing = formatCurrency(finalValue, true);
   const color = surgeSettled ? SURGE_SETTLED_COLOR : TONE_COLORS[tone];
   const fontClass = surgeSettled ? 'font-pixel' : 'font-mono';
+  // The halo that makes a surged total read as lit rather than merely tinted.
+  // Null for every ordinary row, so nothing else on the statement pays for it.
+  const glow = surgeSettled
+    ? {
+        textShadowColor: SURGE_GLOW_COLOR,
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: SURGE_GLOW_RADIUS,
+      }
+    : null;
 
   const reels = useRef<Animated.Value[]>([]).current;
   const loops = useRef<Animated.CompositeAnimation[]>([]).current;
@@ -194,7 +210,7 @@ export function SlotAmount({
       <View style={{ alignItems: 'flex-end' }}>
         <Text
           className={fontClass}
-          style={{ fontSize, lineHeight, color, opacity: phase === 'pending' ? 0 : 1 }}
+          style={{ fontSize, lineHeight, color, opacity: phase === 'pending' ? 0 : 1, ...glow }}
           importantForAccessibility="no"
         >
           {sizing}
@@ -248,7 +264,7 @@ export function SlotAmount({
               <Text
                 key={`static-${charIndex}`}
                 className={fontClass}
-                style={{ fontSize, lineHeight, color: digitColor }}
+                style={{ fontSize, lineHeight, color: digitColor, ...glow }}
               >
                 {char}
               </Text>
@@ -272,6 +288,7 @@ export function SlotAmount({
                       height: lineHeight,
                       color: digitColor,
                       textAlign: 'center',
+                      ...glow,
                     }}
                   >
                     {trackChar}
