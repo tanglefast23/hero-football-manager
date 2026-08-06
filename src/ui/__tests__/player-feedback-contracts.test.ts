@@ -38,8 +38,10 @@ describe('repeat-training presentation contract', () => {
     const modal = source('src/ui/TrainingDrillModal.tsx');
 
     expect(modal).toContain('riskyTrainingRunCount(condition, repeatCount)');
-    expect(modal).toContain('selected drills start below 30% condition');
-    expect(modal).toContain('Continue anyway · {repeatCount}×');
+    expect(loadCatalog('en').strings['trainingDrill.riskyRunsBody'])
+      .toContain('selected drills start below 30% condition');
+    expect(loadCatalog('en').strings['trainingDrill.continueAnyway'])
+      .toBe('Continue anyway · {count}×');
     expect(modal).toContain('Continue with max safe · ${Math.min(repeatCount, maximumSafeRuns)}×');
     expect(modal).toContain("t('trainingDrill.a11y.cancelAndReturnToTheNumberPicker')");
     expect(loadCatalog('en').strings['trainingDrill.a11y.cancelAndReturnToTheNumberPicker'])

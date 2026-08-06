@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { loadCatalog } from '../../i18n';
 
 describe('training stat option rendering', () => {
   it('greys out unusable drills and shows the live gamble state', () => {
@@ -21,19 +22,26 @@ describe('training stat option rendering', () => {
     // Greyed the same either way.
     expect(source).toContain('className={disabled || unaffordable');
     // A promised player's owed drills block everyone else with their reminder.
-    expect(source).toContain('reminds you');
-    expect(source).toContain('Train {promiseGate.playerName} instead');
+    expect(loadCatalog('en').strings['trainingDrill.remindsYou']).toContain('reminds you');
+    expect(source).toContain("t('trainingDrill.trainInstead', { player: promiseGate.playerName })");
+    expect(loadCatalog('en').strings['trainingDrill.trainInstead'])
+      .toBe('Train {player} instead');
     expect(source).toContain('{option.currentValue} {option.shortCode}');
     expect(source).not.toContain('{option.cap}');
 
     // The gamble is honest and visible: SUPER chance and the tap-time injury
     // risk both render in the popup header strip.
-    expect(source).toContain('SUPER chance {superChancePercent}%');
-    expect(source).toContain('{injuryRiskPercent}% injury risk');
+    expect(source).toContain("t('trainingDrill.superChancePercent', { percent: superChancePercent })");
+    expect(loadCatalog('en').strings['trainingDrill.superChancePercent'])
+      .toBe('SUPER chance {percent}%');
+    expect(source).toContain("t('trainingDrill.injuryRiskPercent', { percent: injuryRiskPercent })");
+    expect(loadCatalog('en').strings['trainingDrill.injuryRiskPercent'])
+      .toBe('{percent}% injury risk');
 
     // Confirmation presents both parts as net changes: the authored +5 first,
     // then why this particular player can receive more (or less).
-    expect(source).toContain('Base {pendingConfirm.label}');
+    expect(source).toContain("t('trainingDrill.basePerDrill', { label: pendingConfirm.label })");
+    expect(loadCatalog('en').strings['trainingDrill.basePerDrill']).toBe('Base {label} / drill');
     expect(source).toContain(
       'pendingConfirm.baseValueAfter - pendingConfirm.currentValue',
     );

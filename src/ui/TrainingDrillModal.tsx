@@ -454,13 +454,13 @@ export function TrainingDrillModal({
                     typed inside the pixel string it flipped the face mid-word. */}
                 <Text className="text-sm text-ink">★</Text>
                 <Text className="font-pixel text-sm uppercase text-ink">
-                  SUPER chance {superChancePercent}%
+                  {t('trainingDrill.superChancePercent', { percent: superChancePercent })}
                 </Text>
               </View>
               {owedHere ? (
                 <View className="border-2 border-blue-dark bg-blue-light px-2 py-1">
                   <Text className="font-pixel text-sm uppercase text-blue-dark">
-                    Promise · {promiseGate.remaining} owed
+                    {t('trainingDrill.promiseOwed', { count: promiseGate.remaining })}
                   </Text>
                 </View>
               ) : null}
@@ -478,7 +478,12 @@ export function TrainingDrillModal({
                     ? 'font-pixel text-sm uppercase text-stamp'
                     : 'font-pixel text-sm uppercase text-gold-dark'}
                   >
-                    ⚠ {injuryRiskPercent}% injury risk
+                    {/* Glyph-only node: ⚠ is in neither Silkscreen weight, so it
+                        stands alone and falls back to the system face rather than
+                        flipping the label's typeface mid-string. Keeping it inside
+                        the translated string is what the glyph gate caught. */}
+                    <Text>⚠ </Text>
+                    {t('trainingDrill.injuryRiskPercent', { percent: injuryRiskPercent })}
                   </Text>
                 </View>
               ) : null}
@@ -488,10 +493,12 @@ export function TrainingDrillModal({
               {blockedByPromise ? (
                 <View className="border-2 border-b-4 border-blue-dark bg-blue-light p-4">
                   <Text className="font-pixel text-sm uppercase text-blue-dark">
-                    {promiseGate.playerName} reminds you
+                    {t('trainingDrill.remindsYou', { player: promiseGate.playerName })}
                   </Text>
                   <Text className="mt-2 text-base font-bold text-ink">
-                    “Boss! You promised me the next {promiseGate.remaining} drill{promiseGate.remaining === 1 ? '' : 's'}.”
+                    {t('trainingDrill.promiseQuote', {
+                      n: promiseGate.remaining, count: promiseGate.remaining,
+                    })}
                   </Text>
                   {onSwitchToPromised !== undefined ? (
                     <Pressable
@@ -502,7 +509,9 @@ export function TrainingDrillModal({
                       style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
                     >
                       <Text className="font-pixel text-base uppercase text-white">
-                        Train {promiseGate.playerName} instead ▸
+                        {t('trainingDrill.trainInstead', { player: promiseGate.playerName })}
+                        {/* ▸ is not in Silkscreen either — same deliberate fallback. */}
+                        <Text> ▸</Text>
                       </Text>
                     </Pressable>
                   ) : null}
@@ -679,7 +688,7 @@ export function TrainingDrillModal({
                   <View className="mt-3 gap-2">
                     <View className="flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-2">
                       <PixelText className="text-sm uppercase text-ink">
-                        Base {pendingConfirm.label} / drill
+                        {t('trainingDrill.basePerDrill', { label: pendingConfirm.label })}
                       </PixelText>
                       <Text className="font-pixel text-base text-ink">
                         +{pendingConfirm.baseValueAfter - pendingConfirm.currentValue}
@@ -781,7 +790,7 @@ export function TrainingDrillModal({
                       <View className="flex-row items-center gap-1">
                         {/* Glyph-only ★ node — not in Silkscreen, deliberate system fallback. */}
                         <Text className="text-sm text-gold-dark">★</Text>
-                        <Text className="font-mono text-sm text-gold-dark">{superChancePercent}% each</Text>
+                        <Text className="font-mono text-sm text-gold-dark">{t('trainingDrill.percentEach', { percent: superChancePercent })}</Text>
                       </View>
                     </View>
                   </View>
@@ -890,7 +899,9 @@ export function TrainingDrillModal({
                 <PixelText className="mt-2 text-xl uppercase leading-7 text-ink">
                   {t('trainingDrill.highRiskOfInjuryContinue')}</PixelText>
                 <Text className="mt-3 text-sm leading-5 text-ink/70">
-                  {selectedRiskyRuns} of {repeatCount} selected drills start below 30% condition. Each one rolls a fresh injury chance.
+                  {t('trainingDrill.riskyRunsBody', {
+                    risky: selectedRiskyRuns, total: repeatCount,
+                  })}
                 </Text>
 
                 <View className="mt-4 gap-2">
@@ -901,7 +912,7 @@ export function TrainingDrillModal({
                     className="min-h-12 items-center justify-center border-2 border-b-4 border-red-dark bg-red px-3"
                   >
                     <PixelText className="text-center text-sm uppercase text-white">
-                      Continue anyway · {repeatCount}×
+                      {t('trainingDrill.continueAnyway', { count: repeatCount })}
                     </PixelText>
                   </Pressable>
                   <Pressable
