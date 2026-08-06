@@ -4,7 +4,7 @@
 
 **Goal:** Take one locale from empty catalog to shipped, with every string audited at least once.
 
-**Architecture:** Translate against the generated English catalog, enforce voice and terminology mechanically, audit every string with an independent reviewer whose accuracy is itself measured, then enable the locale.
+**Architecture:** Translate against the English catalog (hand-authored chrome in `en.json` plus content prose read by id from `content/*.json`), enforce voice and terminology mechanically, audit every string with an independent reviewer whose accuracy is itself measured, then enable the locale.
 
 **Tech Stack:** As Phase 1, plus the review tooling in `scripts/i18n/`.
 
@@ -149,25 +149,52 @@ existing values. Silkscreen for the five Latin locales, **Handjet for `vi`** —
 Handjet is not monospace, so `vi` needs a full per-string table, not one
 constant.
 
-- [ ] **Step 3: Widen the shared column constants**
+- [ ] **Step 3: Compute the SEVEN-locale maxima now, not per locale**
 
 `LEAGUE_COLUMN_WIDTH` stops meaning "wide enough for English" and starts meaning
-**"wide enough for the widest enabled locale."** This changes shared layout, so
-English columns may get wider too. That is correct and intended — one layout,
-seven fills.
+"wide enough for the widest locale."
 
-- [ ] **Step 4: Write the gate**
+**Compute it across all seven at once, on this first run**, even though only
+Spanish is enabled. If each locale widens the shared constants as it lands,
+enabling German in Phase 4 silently changes the *English* game's layout — a
+regression that arrives months after the change that caused it, in a language
+nobody was testing. Doing it once up front costs one measurement pass and makes
+English layout stable for the rest of the project.
+
+- [ ] **Step 4: Write the gate — columns AND the row**
+
+Per-column fitting is necessary but not sufficient. Because the widths are
+maxima, the fixed columns can collectively crowd out the flexible one:
+`squad-register-columns.ts:96` explicitly relies on the club/player column paying
+for every fixed-width increase, and the league table already has seven
+non-shrinking columns (`LeagueTableScreen.tsx:40`).
 
 ```ts
-test('gate 8 — every col.* string fits its column in every enabled locale', () => {
-  for (const locale of ENABLED_LOCALES) {
+test('gate 8a — every col.* string fits its column in every locale', () => {
+  for (const locale of LOCALES) {
     for (const [key, width] of Object.entries(LEAGUE_COLUMN_WIDTH)) {
       const label = loadCatalog(locale).strings[`col.league.${key}`];
+      expect({ locale, key }).toMatchObject({ locale });
       expect(leagueHeaderWidthDemand(label, locale)).toBeLessThanOrEqual(width);
     }
   }
 });
+
+test('gate 8b — the whole row still fits the narrowest supported screen', () => {
+  for (const layout of ['phone', 'wide'] as const) {
+    const fixed = Object.values(LEAGUE_COLUMN_WIDTH).reduce((a, b) => a + b, 0);
+    const demand = fixed
+      + LEAGUE_ROW_PADDING
+      + COLUMN_MIN_GUTTER * (Object.keys(LEAGUE_COLUMN_WIDTH).length - 1)
+      + MIN_CLUB_NAME_WIDTH;
+    expect({ layout, demand }).toMatchObject({ layout });
+    expect(demand).toBeLessThanOrEqual(CONTENT_WIDTH[layout]);
+  }
+});
 ```
+
+Gate 8a alone goes green while the row overflows and the club name is crushed to
+nothing — which is the failure a player actually sees.
 
 - [ ] **Step 5: Run and commit**
 
