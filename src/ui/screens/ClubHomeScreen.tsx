@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
+import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
 import { EmptyDocket } from '../components/EmptyDocket';
 import { PixelPortrait } from '../components/PixelPortrait';
 import type { ClubAlertViewModel, HomeViewModel } from '../models';
@@ -326,9 +326,20 @@ export function ClubHomeScreen({
                     <Text className="mt-1 text-center font-mono text-sm text-pitch-ink">Age {viewModel.boardResolution.replacementPlayer.age} · {formatCurrency(viewModel.boardResolution.replacementPlayer.weeklyWage)}/wk</Text>
                   </View>
                 </View>
+                {/* Aftermath reads as things that happened to the club, never a
+                    raw modifier — docs/08: no "Fans −3", no bare "-8" morale.
+                    (U+2212 is also missing from Silkscreen, so a typed minus
+                    rendered in the system fallback face.) The fans tile only
+                    appears when fans actually walked, so "−0" cannot render. */}
                 <View className="mt-3 flex-row gap-2">
-                  <Metric label="Fans" value={`−${viewModel.boardResolution.fansLost ?? 0}`} tone="negative" />
-                  <Metric label="Squad morale" value={`${viewModel.boardResolution.moraleDelta ?? 0}`} tone="negative" />
+                  {(viewModel.boardResolution.fansLost ?? 0) > 0 ? (
+                    <Metric
+                      label="Fans walked away"
+                      value={formatCompactNumber(viewModel.boardResolution.fansLost ?? 0)}
+                      tone="negative"
+                    />
+                  ) : null}
+                  <Metric label="Squad mood" value="Shaken" tone="negative" />
                 </View>
               </>
             ) : null}

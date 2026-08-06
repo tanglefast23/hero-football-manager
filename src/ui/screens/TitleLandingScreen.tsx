@@ -12,6 +12,8 @@ import type { GlossaryCatalog } from '../../content';
 import { GlossaryPanel } from '../GlossaryPanel';
 import { TitlePlayerPopScene } from '../components/TitlePlayerPopScene';
 import { PixelText } from '../components/PixelText';
+import { layoutModeForWidth } from '../layout/layout-mode';
+import { PrivacySupportPanel } from '../PrivacySupportPanel';
 
 export interface TitleLandingScreenProps {
   hasSavedCareer: boolean;
@@ -27,7 +29,7 @@ export function TitleLandingScreen({
   onSettings,
 }: TitleLandingScreenProps) {
   const { width, height } = useWindowDimensions();
-  const isWide = width >= 900 && height >= 600;
+  const isWide = layoutModeForWidth(width) === 'twoColumn' && height >= 600;
 
   return (
     <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
@@ -45,10 +47,10 @@ export function TitleLandingScreen({
       >
         <View
           className={isWide
-            ? 'w-full max-w-[1180px] flex-1 flex-row items-center justify-between gap-20 px-12 py-10'
+            ? 'w-full max-w-[1180px] flex-1 flex-row items-center justify-between gap-12 px-12 py-10'
             : 'w-full max-w-[480px] flex-1 justify-between px-5 py-5'}
         >
-          <View className={isWide ? 'w-[54%] max-w-[620px]' : 'relative'}>
+          <View className={isWide ? 'min-w-0 max-w-[620px] flex-1' : 'relative'}>
             <View className="flex-row items-start justify-between">
               <View className="-rotate-2 border-2 border-ink bg-paper px-3 py-2">
                 <Text className="font-pixel text-xs uppercase text-pitch-ink">
@@ -181,6 +183,8 @@ export interface TitleSettingsScreenProps {
   onToggleHighContrast: () => void;
   onToggleColorSafeKits: () => void;
   onToggleCutInMode: () => void;
+  onEmailSupport: () => void;
+  supportError?: string | null;
   accessibilityCopy?: { title: string; body: string };
   difficultyLabel?: 'COZY' | 'CHAIRMAN';
   onBack: () => void;
@@ -199,12 +203,15 @@ export function TitleSettingsScreen({
   onToggleHighContrast,
   onToggleColorSafeKits,
   onToggleCutInMode,
+  onEmailSupport,
+  supportError,
   accessibilityCopy,
   difficultyLabel,
   onBack,
   backLabel = 'Back to title',
 }: TitleSettingsScreenProps) {
   const [showGlossary, setShowGlossary] = useState(false);
+  const [showPrivacySupport, setShowPrivacySupport] = useState(false);
   const wide = useLayoutMode() === 'twoColumn';
   const volumePercent = Math.round(preferences.masterVolume * 100);
   if (showGlossary) {
@@ -212,6 +219,19 @@ export function TitleSettingsScreen({
       <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
         <View className="flex-1 px-5 py-6">
           <GlossaryPanel content={glossary} onBack={() => setShowGlossary(false)} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+  if (showPrivacySupport) {
+    return (
+      <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
+        <View className="flex-1 px-5 py-6">
+          <PrivacySupportPanel
+            onBack={() => setShowPrivacySupport(false)}
+            onEmailSupport={onEmailSupport}
+            supportError={supportError}
+          />
         </View>
       </SafeAreaView>
     );
@@ -352,6 +372,22 @@ export function TitleSettingsScreen({
     </PaperPanel>
   );
 
+  const privacySupportPanel = (
+    <PaperPanel kicker="About this build" title="Privacy & Support" stamp="No tracking">
+      <Text className="text-base leading-5 text-ink/65">
+        Read how local saves work, view the open-source notice, or contact support.
+      </Text>
+      <View className="mt-4">
+        <ActionButton
+          label="Open privacy & support"
+          accessibilityLabel="Open privacy and support"
+          onPress={() => setShowPrivacySupport(true)}
+          variant="paper"
+        />
+      </View>
+    </PaperPanel>
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
       <ChalkboardBackdrop wide={wide} />
@@ -384,6 +420,7 @@ export function TitleSettingsScreen({
                 <View className="flex-1 gap-6">
                   {accessibilityPanel}
                   {glossaryPanel}
+                  {privacySupportPanel}
                 </View>
               </View>
             ) : (
@@ -393,6 +430,7 @@ export function TitleSettingsScreen({
                 {difficultyPanel}
                 {audioPanel}
                 {glossaryPanel}
+                {privacySupportPanel}
               </View>
             )}
           </View>

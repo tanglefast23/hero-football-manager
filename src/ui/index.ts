@@ -36,7 +36,6 @@ export * from './screens/ChampionshipCelebrationScreen';
 export * from './screens/AwardsCeremonyScreen';
 export * from './screens/AssistantModeChoiceScreen';
 export * from './screens/FixtureMatchDayScreen';
-export * from './screens/HirePitchScreen';
 export * from './screens/LeagueTableScreen';
 export * from './screens/M2LeagueScreen';
 export * from './screens/MarketScreen';

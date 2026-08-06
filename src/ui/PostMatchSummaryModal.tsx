@@ -62,16 +62,19 @@ export function PostMatchSummaryModal({
           >
             <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
               <View className="flex-1 pr-3">
-                <Text className="font-pixel text-sm uppercase text-blue-dark">Back at the office</Text>
-                <Text className="mt-1 font-pixel text-xl uppercase text-ink">Financial report</Text>
+                <Text className="font-pixel text-[12px] uppercase text-blue-dark">Back at the office</Text>
+                <Text className="mt-1 font-pixel text-[18px] uppercase text-ink">Financial report</Text>
               </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Close financial report"
                 onPress={handleDismiss}
                 className="h-11 w-11 items-center justify-center border-2 border-ink bg-white"
+                // Explicit points: h-11 is 38.5pt on native, under the 44pt
+                // touch-target contract — see ActionButton's minHeight.
+                style={{ minWidth: 44, minHeight: 44 }}
               >
-                <Text className="font-pixel text-lg text-ink">×</Text>
+                <Text className="font-pixel text-[16px] text-ink">×</Text>
               </Pressable>
             </View>
 

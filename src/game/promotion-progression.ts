@@ -3,7 +3,7 @@ import { currentUserDivision, type M2CareerState } from './m2-career';
 import { divisionTierLabel, type DivisionLevel } from './pyramid';
 import type { GameState } from './types';
 
-export interface PromotionReward {
+interface PromotionReward {
   readonly title: string;
   readonly detail: string;
 }
@@ -131,7 +131,7 @@ export function maxCareerFacilityLevel(state: GameState): FacilityLevel {
   return highest <= 2 ? 3 : 2;
 }
 
-export function facilityLevelUnlockDivision(level: FacilityLevel): DivisionLevel {
+function facilityLevelUnlockDivision(level: FacilityLevel): DivisionLevel {
   return level <= 2 ? 5 : 2;
 }
 
@@ -161,7 +161,7 @@ export function trainingDrillUpgradeCost(tier: TrainingDrillTier): number {
 }
 
 /** One division per tier: D5 owns tier 1, D4 sells tier 2, and so on to D1. */
-export function trainingDrillUnlockDivision(tier: TrainingDrillTier): DivisionLevel {
+function trainingDrillUnlockDivision(tier: TrainingDrillTier): DivisionLevel {
   return (6 - tier) as DivisionLevel;
 }
 
@@ -186,7 +186,7 @@ export function trainingDrillBlockedReason(
  * the runner-up's. D5 keeps the numbers the opening ramp was measured on; the
  * climb is what funds the drill shop, which is the point of charging for it.
  */
-export const LEAGUE_PRIZE_STEP_PER_DIVISION = 10_000;
+const LEAGUE_PRIZE_STEP_PER_DIVISION = 10_000;
 
 export function leaguePrizeMoney(division: DivisionLevel, position: number): number {
   if (position > 2) return 0;

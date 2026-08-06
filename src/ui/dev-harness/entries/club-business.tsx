@@ -43,9 +43,9 @@ type ClubBusinessCaseId =
 
 const CASES: readonly { id: ClubBusinessCaseId; label: string; note: string }[] = [
   { id: 'd5-locked', label: 'D5 locked', note: 'Season 2: no managed Sponsor Desk or Buzz.' },
-  { id: 'd5-buzz-0', label: 'D5 Buzz 0', note: 'Season 3 basic sponsor; managed offers stay locked.' },
+  { id: 'd5-buzz-0', label: 'D5 Buzz 0', note: 'Season 3 local advertising; managed offers stay locked.' },
   { id: 'd5-buzz-64', label: 'Buzz 64', note: 'A useful mid-half payout estimate.' },
-  { id: 'd5-buzz-100', label: 'Buzz 100', note: 'The capped meter and maximum basic-sponsor payout.' },
+  { id: 'd5-buzz-100', label: 'Buzz 100', note: 'The capped meter and maximum Buzz payout.' },
   { id: 'd5-after-payout', label: 'After pay', note: 'Meter reset with the durable settlement summary.' },
   { id: 'd4-offers', label: 'D4 offers', note: 'First managed season: one slot and three offers.' },
   { id: 'd4-continuity', label: 'D4 late', note: 'Week 8 continuity income with the offer window closed.' },

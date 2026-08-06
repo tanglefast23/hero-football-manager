@@ -2,7 +2,7 @@ import { compareIds } from './ordering';
 
 export type PlayerVisualRole = 'GK' | 'DEF' | 'MID' | 'FWD';
 
-export interface PlayerAppearanceIdentity {
+interface PlayerAppearanceIdentity {
   readonly id: string;
   readonly role: PlayerVisualRole;
   readonly lookId?: string;
@@ -12,7 +12,7 @@ export const FIELD_PLAYER_LOOK_COUNT = 168;
 export const GOALKEEPER_LOOK_COUNT = 25;
 export const CREATED_PLAYER_LOOK_COUNT = 240;
 
-export interface CreatedAppearanceChoice {
+interface CreatedAppearanceChoice {
   readonly skinTone: 0 | 1 | 2 | 3 | 4 | 5;
   readonly hairstyle: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   readonly kitAccent: 0 | 1 | 2 | 3;
@@ -112,17 +112,6 @@ export function nextDistinctPlayerLook(
     .filter(candidate => candidate.lookId !== undefined)
     .map(candidate => candidate.lookId!));
   return firstAvailableLook(generatedPlayerLookId(player.id, player.role), player.role, used);
-}
-
-export function nextDistinctPlayerLookFromPreferred(
-  player: Pick<PlayerAppearanceIdentity, 'id' | 'role'>,
-  preferredLookId: string,
-  activePlayers: readonly PlayerAppearanceIdentity[],
-): string {
-  const used = new Set(activePlayers
-    .filter(candidate => candidate.lookId !== undefined)
-    .map(candidate => candidate.lookId!));
-  return firstAvailableLook(preferredLookId, player.role, used);
 }
 
 export function stablePlayerLookHash(value: string): number {

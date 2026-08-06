@@ -32,7 +32,17 @@ export const ManagementSprite = memo(function ManagementSprite({
   const sourceWidth = rows[0]?.length ?? 1;
   const sourceHeight = rows.length;
   const runs = useMemo(() => pixelRuns(rows, resolvedKey), [rows, resolvedKey]);
-  const scale = width / sourceWidth;
+  // Bitmap art must land on whole points: a fractional scale doubles some
+  // source rows and drops others, and fractional per-run heights rasterize with
+  // hairline AA seams between adjacent runs (PixelPortrait rounds its scale for
+  // the same reason). `width` is a maximum — the art renders at the largest
+  // whole multiple that fits and is centered in the requested box. A slot
+  // narrower than the source art keeps a continuous sub-1x downscale: no whole
+  // multiple can fit, and clipping would be worse.
+  const scale = width >= sourceWidth
+    ? Math.floor(width / sourceWidth)
+    : width / sourceWidth;
+  const offsetX = Math.floor((width - sourceWidth * scale) / 2);
   return (
     <View
       accessible={accessibilityLabel !== undefined}
@@ -45,7 +55,7 @@ export const ManagementSprite = memo(function ManagementSprite({
           key={run.id}
           style={{
             position: 'absolute',
-            left: run.x * scale,
+            left: offsetX + run.x * scale,
             top: run.y * scale,
             width: run.length * scale,
             height: scale,

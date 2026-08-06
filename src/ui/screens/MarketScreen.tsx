@@ -465,13 +465,18 @@ function ScoutingDesk({
                 </View>
               </View>
               {report.powerLabel ? (
-                <View className="mt-3 border-2 border-gold-dark bg-gold-light px-3 py-2">
-                  <Text className="font-pixel text-sm uppercase text-ink">★ Confirmed · {report.powerLabel}</Text>
+                <View className="mt-3 flex-row items-center gap-1.5 border-2 border-gold-dark bg-gold-light px-3 py-2">
+                  {/* Glyph-only node: ★ is not in Silkscreen, so it stands alone
+                      and falls back to the system face on purpose — typed inside
+                      the pixel-font string it flipped the face mid-word. */}
+                  <Text className="text-sm text-ink">★</Text>
+                  <Text className="font-pixel text-sm uppercase text-ink">Confirmed · {report.powerLabel}</Text>
                 </View>
               ) : null}
               {report.rumorLabel ? (
-                <View className="mt-3 border-2 border-gold-dark bg-gold-light px-3 py-2">
-                  <Text className="font-pixel text-sm uppercase text-ink">★ {report.rumorLabel}</Text>
+                <View className="mt-3 flex-row items-center gap-1.5 border-2 border-gold-dark bg-gold-light px-3 py-2">
+                  <Text className="text-sm text-ink">★</Text>
+                  <Text className="font-pixel text-sm uppercase text-ink">{report.rumorLabel}</Text>
                 </View>
               ) : null}
               <View className="mt-3 flex-row flex-wrap gap-1.5">
@@ -584,7 +589,10 @@ function TransferDesk({
                 </View>
               </View>
               <View className="p-3">
-                {listing.powerLabel ? <StatusChip label={`★ ${listing.powerLabel}`} tone="hero" /> : null}
+                {/* No ★ prefix: the glyph is missing from Silkscreen and flipped
+                    the chip to the system face mid-string; the gold hero tone
+                    already marks the power. */}
+                {listing.powerLabel ? <StatusChip label={listing.powerLabel} tone="hero" /> : null}
                 <View className={listing.powerLabel ? 'mt-3 flex-row gap-2' : 'flex-row gap-2'}>
                   <Metric label="Valuation" value={formatCurrency(listing.valuation)} />
                   <Metric
@@ -768,7 +776,7 @@ export interface ContractDraft {
  * Holds the in-progress contract offer for whichever screen renders the panel.
  *
  * It lives in the parent because `MarketScreen` renders `NegotiationPanel` from
- * two different JSX trees — one per layout mode — so crossing the 960px
+ * two different JSX trees — one per layout mode — so crossing the wide-layout
  * breakdown point unmounts and remounts the panel. Owning the draft here means
  * dragging a desktop window wider mid-negotiation no longer silently discards
  * the wage, term, promise, and pitch card the user had dialled in.
@@ -871,6 +879,9 @@ export function NegotiationPanel({
                 accessibilityLabel={`Reduce weekly wage by ${formatCurrency(viewModel.wageStep)}`}
                 onPress={() => setWeeklyWage(value => Math.max(viewModel.wageStep, value - viewModel.wageStep))}
                 className="h-12 w-12 items-center justify-center border-2 border-b-4 border-ink bg-paper-dark"
+                // Explicit points: h-12 is 42pt on native, under the 44pt
+                // touch-target contract — see ActionButton's minHeight.
+                style={{ minWidth: 44, minHeight: 44 }}
               >
                 <Text className="font-mono text-2xl font-bold text-ink">−</Text>
               </Pressable>
@@ -882,6 +893,7 @@ export function NegotiationPanel({
                 accessibilityLabel={`Increase weekly wage by ${formatCurrency(viewModel.wageStep)}`}
                 onPress={() => setWeeklyWage(value => value + viewModel.wageStep)}
                 className="h-12 w-12 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light"
+                style={{ minWidth: 44, minHeight: 44 }}
               >
                 <Text className="font-mono text-2xl font-bold text-ink">+</Text>
               </Pressable>
@@ -986,7 +998,8 @@ export function NegotiationPanel({
               />
             ) : null}
             <ActionButton
-              label="Make the offer ▸"
+              // '›' is in Silkscreen; '▸' is not and rendered in the fallback face.
+              label="Make the offer ›"
               accessibilityLabel={`Offer ${formatCurrency(weeklyWage)} per week for ${termSeasons} seasons`}
               variant="confirm"
               onPress={() => guardTap(() => onSubmitContractOffer({ weeklyWage, termSeasons, perk }, pitchCard))}

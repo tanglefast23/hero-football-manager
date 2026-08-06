@@ -16,10 +16,10 @@ import {
   isStoryYouthUnlocked,
 } from './story-progression';
 
-export const YOUTH_INTAKE_SCHEMA_VERSION = 1;
+const YOUTH_INTAKE_SCHEMA_VERSION = 1;
 export const BASE_ROSTER_CAPACITY = 16;
 
-export interface YouthIntakeOffer {
+interface YouthIntakeOffer {
   readonly player: CareerPlayer;
   readonly signingBonus: number;
 }
@@ -34,7 +34,7 @@ export interface YouthIntakeState {
   readonly declined: boolean;
 }
 
-export interface YouthIntakeTransaction {
+interface YouthIntakeTransaction {
   readonly state: GameState;
   readonly intake: YouthIntakeState;
   readonly signedPlayerId?: string;
@@ -163,7 +163,7 @@ export function reconcileStoryYouthIntake(state: GameState): GameState {
 }
 
 /** Clears stale offers as soon as the career moves beyond pre-season Week 4. */
-export function expireYouthIntakeWindow(state: GameState): GameState {
+function expireYouthIntakeWindow(state: GameState): GameState {
   const intake = state.youthIntake;
   if (intake === undefined || intake.status === 'CLOSED' || isYouthIntakeWindowOpen(state)) {
     return state;

@@ -26,17 +26,17 @@ import type {
   PlayerPersonality,
 } from './types';
 
-export const M2_CAREER_SCHEMA_VERSION = 2;
+const M2_CAREER_SCHEMA_VERSION = 2;
 const UINT32_MAX = 4294967295;
 const ATTR_KEYS = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
 
-export interface M2UserClubIdentity {
+interface M2UserClubIdentity {
   id: string;
   name: string;
   squadStrength: number;
 }
 
-export interface M2CareerInitialization {
+interface M2CareerInitialization {
   careerSeed: number;
   userClub: M2UserClubIdentity;
 }
@@ -54,12 +54,12 @@ export interface M2CareerState {
   nationalCups: NationalCup[];
 }
 
-export interface M2PromotionResolution {
+interface M2PromotionResolution {
   state: M2CareerState;
   movements: DivisionMovement[];
 }
 
-export interface ActiveDivisionSnapshot {
+interface ActiveDivisionSnapshot {
   readonly clubs: GameState['clubs'];
   readonly players: GameState['players'];
 }
@@ -77,7 +77,7 @@ export type StructuralCareerPlayer = CareerPlayer & {
   retirementAnnouncementSeason?: number;
 };
 
-export interface M2CareerPlayer extends Omit<
+interface M2CareerPlayer extends Omit<
   CareerPlayer,
   | 'age'
   | 'archetype'
@@ -100,13 +100,13 @@ export interface M2CareerPlayer extends Omit<
   retirementAnnouncementSeason?: number;
 }
 
-export interface M2CareerLifecycleResult {
+interface M2CareerLifecycleResult {
   activePlayers: M2CareerPlayer[];
   retiredPlayers: M2CareerPlayer[];
   announcements: RetirementAnnouncement[];
 }
 
-export interface EndlessCareerSeasonTransitionPlan {
+interface EndlessCareerSeasonTransitionPlan {
   nextSeason: number;
   division: DivisionLevel;
   /** Pyramid after every non-user club receives this season's single growth step. */
@@ -433,12 +433,12 @@ export function resolveM2CareerPlayerLifecycle(
  * faces a field that pulls away faster; the default reproduces Cozy exactly, so
  * callers that do not care are unaffected.
  */
-export interface OpponentGrowthRules {
+interface OpponentGrowthRules {
   opponentGrowthPercent: number;
   opponentGrowthAttributeCap: number;
 }
 
-export const DEFAULT_OPPONENT_GROWTH: OpponentGrowthRules = {
+const DEFAULT_OPPONENT_GROWTH: OpponentGrowthRules = {
   opponentGrowthPercent: 3,
   opponentGrowthAttributeCap: 700,
 };
@@ -711,7 +711,7 @@ function currentClubStrength(club: PyramidClub): number {
  * Mostly ±6%, with a 6.5% 2.5x tail and a 1.5% 7x giant tail. The distribution
  * is a percentage, so rebasing attributes never makes the Cup window inert.
  */
-export function deterministicCupPerformanceBasisPoints(
+function deterministicCupPerformanceBasisPoints(
   careerSeed: number,
   season: number,
   round: number,

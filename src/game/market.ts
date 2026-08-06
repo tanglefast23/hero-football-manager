@@ -65,7 +65,7 @@ export interface ScoutablePlayer {
   readonly contractSeasonsRemaining: number;
 }
 
-export interface ScoutMissionSetup {
+interface ScoutMissionSetup {
   readonly careerSeed: number;
   readonly missionId: string;
   /** Monotonic career week, rather than the displayed 1-30 season week. */
@@ -87,12 +87,12 @@ export interface ScoutMission {
   readonly scoutOfficeLevel: number;
 }
 
-export interface ScoutedRange {
+interface ScoutedRange {
   readonly minimum: number;
   readonly maximum: number;
 }
 
-export type ScoutedAttributeRanges = {
+type ScoutedAttributeRanges = {
   readonly [Attribute in keyof Attrs]: ScoutedRange;
 };
 
@@ -287,7 +287,7 @@ export interface ValuationPlayer {
   readonly contractSeasonsRemaining: number;
 }
 
-export interface TransferQuoteContext {
+interface TransferQuoteContext {
   readonly careerSeed: number;
   readonly season: number;
   readonly week: number;
@@ -403,7 +403,7 @@ export interface ContractOffer {
   readonly perk: ContractPerk;
 }
 
-export interface ContractNegotiationSetup {
+interface ContractNegotiationSetup {
   readonly careerSeed: number;
   readonly negotiationId: string;
   readonly playerId: string;
@@ -411,7 +411,7 @@ export interface ContractNegotiationSetup {
   readonly weeklyAsk: number;
 }
 
-export interface ContractRoundRecord {
+interface ContractRoundRecord {
   readonly round: number;
   readonly offer: ContractOffer;
   readonly pitchCard?: PitchCard;
@@ -422,7 +422,7 @@ export interface ContractRoundRecord {
   readonly outcome: 'COUNTER' | 'ACCEPTED' | 'INSULTED' | 'WALKED_AWAY';
 }
 
-export interface NegotiationConsequence {
+interface NegotiationConsequence {
   readonly moraleDelta: number;
   readonly clubFameDelta: number;
 }
@@ -443,14 +443,14 @@ export interface ContractNegotiation {
   readonly consequence?: NegotiationConsequence;
 }
 
-export interface RenewalAskPlayer {
+interface RenewalAskPlayer {
   readonly weeklyWage: number;
   readonly personality: PlayerPersonality;
   readonly power?: PowerId;
   readonly onHeroWage: boolean;
 }
 
-export interface RenewalAskFactors {
+interface RenewalAskFactors {
   readonly growthSinceSigningPercent: number;
   readonly famePercent: number;
   readonly heroMultiplier: number;
@@ -681,7 +681,7 @@ export type CoachSpecialty =
   | 'GOALKEEPING'
   | 'MOTIVATOR';
 
-export interface RetiredLegendCoachInput {
+interface RetiredLegendCoachInput {
   readonly playerId: string;
   readonly name: string;
   readonly personality: PlayerPersonality;
@@ -707,7 +707,7 @@ export interface CoachCandidate {
   readonly retiredLegendPlayerId?: string;
 }
 
-export interface CoachMarketSetup {
+interface CoachMarketSetup {
   readonly careerSeed: number;
   readonly season: number;
   readonly division: number;

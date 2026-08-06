@@ -65,8 +65,8 @@
       "id": "training",
       "title": "Training & staff",
       "entries": [
-        { "term": "Weekly plan", "definition": "Up to 3 players, each training one stat. Picking a stat commits immediately and repeats every week until you change it." },
-        { "term": "Focus drill", "definition": "The stat a player trains, costing Training Points only. Once a player is maxed out on their chosen stat, swap in a new player." },
+        { "term": "Instant drill", "definition": "Training resolves the moment you tap a drill: the stat gain, any SUPER bonus, and any injury gamble land immediately. Nothing is scheduled and nothing repeats — every drill is a separate tap." },
+        { "term": "Focus drill", "definition": "A single-stat drill, costing Training Points per tap. Each stat's path has five purchasable tiers; higher tiers cost more TP for a bigger gain." },
         { "term": "Training Points (TP)", "definition": "The improvement currency. Your best completed Training Pitch adds 28 TP per level at each weekly settlement once it opens. Coaches and upgrades can add more. Match results do not create TP." },
         { "term": "Training Pitch", "definition": "Your first guided grounds project. Its $8,000 cost is included in the starting budget; you choose where to place it. Once open, it creates 28 TP per level each week." },
         { "term": "Coach specialty", "definition": "The areas a coach improves. Matching a specialty to a drill or attribute increases training gains over time." },
@@ -103,7 +103,8 @@
       "id": "club",
       "title": "Club & competitions",
       "entries": [
-        { "term": "Money", "definition": "The club-capacity currency used for wages, transfers, facilities, scouting, and events. It is earned from sponsors, tickets, prizes, and player sales." },
+        { "term": "Money", "definition": "The club-capacity currency used for wages, transfers, facilities, scouting, and events. It is earned from advertising, tickets, sponsors, prizes, and player sales." },
+        { "term": "Local advertising", "definition": "Money from the hoardings around your pitch, paid every fourth week. It is a fixed amount while your club is in Division 5. Reach Division 4 and real sponsors take the boards over, replacing it with deals you choose." },
         { "term": "Fans", "definition": "Supporters who affect home attendance and ticket income. Club events can grow or shrink the fanbase." },
         { "term": "Facility", "definition": "A building placed on club grounds that adds a lasting benefit and usually a weekly upkeep cost. You may build up to three Fan Shops and three Stadium Stands; every other facility is limited to one." },
         { "term": "Upkeep", "definition": "The recurring weekly Money cost of running a facility." },

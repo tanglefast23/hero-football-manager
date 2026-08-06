@@ -14,6 +14,7 @@ import { useFrameCallback, useSharedValue, type FrameInfo } from 'react-native-r
 import { SfxPressable as Pressable } from '../ui/components/SfxPressable';
 import { playDrillProgressSfx, stopDrillProgressSfx } from './management-sfx';
 import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
+import { snapSpriteScale } from './interpolate';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playerLookId } from './sprites/player-look';
 
@@ -25,6 +26,12 @@ const COUNT_START_MS = 300;
 export const COUNT_UP_MS = 1_400;
 const STAGE_HEIGHT = 200;
 const FALLBACK_SPRITE = 24;
+// Nominal stage magnifications, sized for the ~200pt stage. Never drawn raw:
+// docs/11 requires on-screen pixel art at integer multiples of the source, so
+// each is snapped through snapSpriteScale (one source texel -> a whole number
+// of device pixels) before it reaches the atlas transforms below.
+const NOMINAL_PLAYER_SCALE = 4.1;
+const NOMINAL_BALL_SCALE = 3.1;
 
 export type DrillActivityId =
   | 'sprints'
@@ -220,10 +227,21 @@ function DrillAtlasStage({
   reduceMotion: boolean;
 }) {
   const [spriteFrame, setSpriteFrame] = useState(0);
+  const { scale: devicePixelRatio } = useWindowDimensions();
   const elapsed = useSharedValue(0);
   const startedAt = useSharedValue(-1);
   const stageWidth = useSharedValue(width);
   const activityCode = useSharedValue(ACTIVITY_CODE[activityId]);
+  // Snapped on the JS thread, crossed into the worklet as shared values (the
+  // stageWidth pattern above): pitchScale 1 because the RSXform scale maps
+  // source pixels straight to dp here — snapSpriteScale then makes
+  // scale * dpr a whole number of device pixels.
+  const playerMagnification = useSharedValue(
+    snapSpriteScale(1, NOMINAL_PLAYER_SCALE, devicePixelRatio).drawScale,
+  );
+  const ballMagnification = useSharedValue(
+    snapSpriteScale(1, NOMINAL_BALL_SCALE, devicePixelRatio).drawScale,
+  );
 
   useEffect(() => {
     stageWidth.value = width;
@@ -231,6 +249,10 @@ function DrillAtlasStage({
   useEffect(() => {
     activityCode.value = ACTIVITY_CODE[activityId];
   }, [activityCode, activityId]);
+  useEffect(() => {
+    playerMagnification.value = snapSpriteScale(1, NOMINAL_PLAYER_SCALE, devicePixelRatio).drawScale;
+    ballMagnification.value = snapSpriteScale(1, NOMINAL_BALL_SCALE, devicePixelRatio).drawScale;
+  }, [ballMagnification, devicePixelRatio, playerMagnification]);
 
   useEffect(() => {
     if (reduceMotion) return undefined;
@@ -277,7 +299,7 @@ function DrillAtlasStage({
     const isBall = index === 1;
     const code = activityCode.value;
     const laneWidth = stageWidth.value;
-    const playerScale = 4.1;
+    const playerScale = playerMagnification.value;
     const playerWidth = 24 * playerScale;
     const playerHeight = 30 * playerScale;
     const baseX = (laneWidth - playerWidth) / 2;
@@ -323,7 +345,7 @@ function DrillAtlasStage({
       return;
     }
 
-    const ballScale = 3.1;
+    const ballScale = ballMagnification.value;
     const groundY = baseY + playerHeight - 6 * ballScale;
     let ballX = laneWidth / 2;
     let ballY = groundY;

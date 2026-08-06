@@ -9,7 +9,7 @@ import {
 } from './pyramid';
 import type { CareerPlayer, GameState } from './types';
 
-export const WEEKLY_CONDITION_RECOVERY = 12;
+const WEEKLY_CONDITION_RECOVERY = 12;
 export const OVERTRAINING_CONDITION_THRESHOLD = 30;
 
 /**
@@ -22,7 +22,7 @@ export const OVERTRAINING_CONDITION_THRESHOLD = 30;
  */
 export const DORM_CONDITION_RECOVERY_PER_LEVEL = 4;
 
-export interface WeeklyPlayerWellbeingContext {
+interface WeeklyPlayerWellbeingContext {
   /** Results played outside the league fixture list, such as a Cup tie. */
   readonly additionalMatchOutcomes?: readonly WeeklyMatchOutcome[];
   /**
@@ -34,13 +34,13 @@ export interface WeeklyPlayerWellbeingContext {
 
 export type WeeklyMatchOutcome = 'win' | 'draw' | 'loss';
 
-export interface WeeklyMatchParticipation {
+interface WeeklyMatchParticipation {
   readonly fixtureId: string;
   readonly outcome: WeeklyMatchOutcome;
   readonly participantPlayerIds: readonly string[];
 }
 
-export interface WeeklyPlayerWellbeingResult {
+interface WeeklyPlayerWellbeingResult {
   readonly players: CareerPlayer[];
   readonly matchOutcome?: WeeklyMatchOutcome;
 }
@@ -261,7 +261,7 @@ export function gridMedicalBayLevel(grid: FacilityGridState | undefined): number
 }
 
 /** The best operational Dorm wins; a second Dorm is not a second bonus. */
-export function gridDormLevel(grid: FacilityGridState | undefined): number {
+function gridDormLevel(grid: FacilityGridState | undefined): number {
   if (grid === undefined) return 0;
   let level = 0;
   for (const building of grid.buildings) {

@@ -4,7 +4,7 @@ import type {
   GameState,
 } from './types';
 
-export interface CashTransactionInput {
+interface CashTransactionInput {
   readonly kind: CashTransactionKind;
   readonly label: string;
   readonly amount: number;
@@ -28,8 +28,13 @@ export function recordCashTransaction(
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
   if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
   const history = state.cashTransactions ?? [];
+  // Monotonic across the career rather than derived from the history's length,
+  // so ids stay unique even if old entries are ever pruned. Saves written
+  // before the counter existed seed it from the length that minted their
+  // existing ids, which reproduces exactly the ids they would have issued.
+  const issued = Math.max(state.cashTransactionIdCounter ?? 0, history.length) + 1;
   const transaction: CashTransaction = {
-    id: `cash-transaction-${history.length + 1}`,
+    id: `cash-transaction-${issued}`,
     season: state.season,
     week: state.week,
     kind: input.kind,
@@ -38,5 +43,9 @@ export function recordCashTransaction(
     balanceAfter: club.cash,
     ...(input.referenceId === undefined ? {} : { referenceId: input.referenceId }),
   };
-  return { ...state, cashTransactions: [...history, transaction] };
+  return {
+    ...state,
+    cashTransactions: [...history, transaction],
+    cashTransactionIdCounter: issued,
+  };
 }

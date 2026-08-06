@@ -2,7 +2,7 @@ import './global.css';
 import { playerRequestViewModel } from './src/application/player-request-view-model';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LogBox, Platform, Share, Text, View } from 'react-native';
+import { Linking, LogBox, Platform, Share, Text, View } from 'react-native';
 import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -145,6 +145,8 @@ import { guidedFirstFacilityAllowsPlacement } from './src/ui/concierge-targets';
 import { facilityAdjacencyPresentation } from './src/ui/facility-adjacency';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { useRivalPreload } from './src/ui/use-rival-preload';
+import { qaRootRoutesEnabled } from './src/ui/release-surface';
+import { supportEmailUrl, SUPPORT_EMAIL } from './src/release/support';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
 import { useM1Store } from './src/application/store';
 import { ScreenErrorBoundary } from './src/ui/ScreenErrorBoundary';
@@ -206,6 +208,13 @@ appText.defaultProps = {
 LogBox.ignoreLogs([/Packager status check returned unexpected result/]);
 
 const DATABASE_NAME = 'hero-football-manager.db';
+/**
+ * Boot opens the database, migrates, and builds four repositories — seconds at
+ * worst on a cold device. Far past that, the open has hung, and without a
+ * deadline the player sits on the loading spinner forever with no way to reach
+ * the BootFailure screen's Retry / Start Fresh options.
+ */
+const BOOT_TIMEOUT_MS = 15_000;
 type LandingView = 'title' | 'story' | 'settings' | 'assistant-mode';
 
 /**
@@ -216,41 +225,45 @@ const QUICK_TRAIN_LESSON_WEEK = 6;
 
 export default function App() {
   const previewTriggerId = process.env.EXPO_PUBLIC_AWAKENING_PREVIEW_ID;
-  // The dev harness: one flag and one build for every registered feature, so
-  // switching between them is a tap instead of a three-minute static export.
-  // Flag-only rather than `__DEV__ &&`, for the reason the reels below give:
-  // the review runs on a static web export, where `__DEV__` is false. A build
-  // without the flag inlines `undefined` here and the branch is dead code.
-  if (process.env.EXPO_PUBLIC_DEV_HARNESS === '1') {
-    return <DevHarnessApp />;
-  }
-  if (process.env.EXPO_PUBLIC_POWER_MATCH_QA === '1') {
-    return <PowerMatchQaApp />;
-  }
-  if (__DEV__ && process.env.EXPO_PUBLIC_POWER_CUTIN_QA === '1') {
-    return <PowerCutInQaApp />;
-  }
-  // The explicit build flag also supports a static web export, so art review
-  // never depends on opening a saved career or matching its replay baseline.
-  if (process.env.EXPO_PUBLIC_POWER_ART_QA === '1') {
-    return <PowerArtQaApp />;
-  }
-  if (__DEV__ && process.env.EXPO_PUBLIC_AWAKENING_ART_QA === '1') {
-    return <AwakeningArtQaApp triggerId={previewTriggerId ?? 'magic-sponge'} />;
-  }
-  // The ceremony only plays at a season boundary, so reviewing it in a career
-  // costs a whole simulated season. This reaches any board, and the prize, cold.
-  // Flag-only like the power art reel above, and for the same reason: the review
-  // has to run on a static web export, where `__DEV__` is false.
-  if (process.env.EXPO_PUBLIC_AWARDS_CEREMONY_QA === '1') {
-    return <AwardsCeremonyQaApp />;
-  }
-  if (__DEV__ && previewTriggerId) {
-    return <AwakeningReviewApp triggerId={previewTriggerId} />;
+  // QA roots are available in development and static web review exports, where
+  // __DEV__ is false. Native Release builds always continue to the real game,
+  // even if a QA flag is accidentally present in the bundling environment.
+  if (qaRootRoutesEnabled(__DEV__, Platform.OS)) {
+    if (process.env.EXPO_PUBLIC_DEV_HARNESS === '1') {
+      return <DevHarnessApp />;
+    }
+    if (process.env.EXPO_PUBLIC_POWER_MATCH_QA === '1') {
+      return <PowerMatchQaApp />;
+    }
+    if (process.env.EXPO_PUBLIC_POWER_CUTIN_QA === '1') {
+      return <PowerCutInQaApp />;
+    }
+    if (process.env.EXPO_PUBLIC_POWER_ART_QA === '1') {
+      return <PowerArtQaApp />;
+    }
+    if (process.env.EXPO_PUBLIC_AWAKENING_ART_QA === '1') {
+      return <AwakeningArtQaApp triggerId={previewTriggerId ?? 'magic-sponge'} />;
+    }
+    if (process.env.EXPO_PUBLIC_AWARDS_CEREMONY_QA === '1') {
+      return <AwardsCeremonyQaApp />;
+    }
+    if (previewTriggerId) {
+      return <AwakeningReviewApp triggerId={previewTriggerId} />;
+    }
   }
   return (
     <ScreenErrorBoundary
-      onRecover={() => useM1Store.setState({ screen: 'welcome', error: null, activeTab: 'home' })}
+      onRecover={() => useM1Store.setState({
+        screen: 'welcome',
+        error: null,
+        activeTab: 'home',
+        // Overlay state that survives the remount must not haunt the title
+        // screen: a crash while Bert's desk reminder was up would otherwise
+        // recover with his lecture floating over the landing view, and a stale
+        // watched match holds live-match props no screen consumes.
+        inboxDutyReminder: null,
+        watchedMatch: null,
+      })}
     >
       <GameApp />
     </ScreenErrorBoundary>
@@ -527,6 +540,7 @@ function GameApp() {
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const [globalGlossaryOpen, setGlobalGlossaryOpen] = useState(false);
+  const [globalPrivacySupportOpen, setGlobalPrivacySupportOpen] = useState(false);
   const [globalHallOfFameOpen, setGlobalHallOfFameOpen] = useState(false);
   const [settingsSaveError, setSettingsSaveError] = useState<string | null>(null);
   const [moneyGuideAnchor, setMoneyGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
@@ -551,6 +565,10 @@ function GameApp() {
   const preferencesSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const preferencesRef = useRef(preferences);
   preferencesRef.current = preferences;
+  // Read inside savePreferences (a deps-free callback), so a ref rather than
+  // the state value: it must see whether the sheet is open at failure time.
+  const globalSettingsOpenRef = useRef(globalSettingsOpen);
+  globalSettingsOpenRef.current = globalSettingsOpen;
   const lastSeasonReviewCueRef = useRef<string | null>(null);
   const devVolume = preferences.masterVolume as DevVolume;
   const reduceMotion = useReducedMotion(preferences.reduceMotion);
@@ -573,6 +591,14 @@ function GameApp() {
       .catch(error => {
         const detail = error instanceof Error ? error.message : String(error);
         setSettingsSaveError(`Settings were not saved. ${detail}`);
+        // Preference writes also land outside the settings sheet — a cut-in
+        // first view mid-match, the climb-completed stamp on a career change.
+        // The inline error label only renders inside SettingsOverlay, so when
+        // the sheet is closed surface the failure as a dismissible notice
+        // instead of losing it silently.
+        if (!globalSettingsOpenRef.current) {
+          useM1Store.getState().notify(`Settings were not saved. ${detail}`);
+        }
       });
   }, []);
 
@@ -626,6 +652,12 @@ function GameApp() {
     if (!developerMode) setDeveloperManualSaveSelecting(false);
     savePreferences({ ...current, developerMode });
   }, [savePreferences]);
+  const emailSupport = useCallback(() => {
+    setSettingsSaveError(null);
+    void Linking.openURL(supportEmailUrl()).catch(() => {
+      setSettingsSaveError(`Mail could not open. Email ${SUPPORT_EMAIL} directly.`);
+    });
+  }, []);
   const saveAutoSubs = useCallback((autoSubs: boolean) => {
     savePreferences({ ...preferencesRef.current, autoSubs });
   }, [savePreferences]);
@@ -1038,6 +1070,16 @@ function GameApp() {
         };
       }
     }
+    // Deadline for the whole boot chain. Firing does not abort the native
+    // work — nothing can — it just routes to BootFailure so the player gets
+    // Retry / Start Fresh instead of an eternal spinner. Retry reuses the
+    // cached native connection (expo-sqlite's default useNewConnection:false),
+    // so a fired timeout never leaks connections.
+    const bootTimeout = setTimeout(() => {
+      if (active) {
+        setBootError('The saved game data did not finish opening. Retrying may fix this.');
+      }
+    }, BOOT_TIMEOUT_MS);
     void openDatabaseAsync(DATABASE_NAME)
       .then(async database => {
         // Migrate once up front. Each repository migrates defensively on its
@@ -1081,13 +1123,19 @@ function GameApp() {
         if (active && repositories.warning !== undefined) {
           store.notify(repositories.warning);
         }
+        // A boot that outlived its deadline but then finished is a success:
+        // clear the timeout's failure message so the player lands in the game
+        // instead of a stale BootFailure over a fully loaded save.
+        if (active) setBootError(null);
         return undefined;
       })
       .catch(error => {
         if (active) setBootError(error instanceof Error ? error.message : String(error));
-      });
+      })
+      .finally(() => clearTimeout(bootTimeout));
     return () => {
       active = false;
+      clearTimeout(bootTimeout);
     };
   }, [bootAttempt, store.initializePersistence]);
 
@@ -1608,6 +1656,8 @@ function GameApp() {
         onToggleHighContrast={toggleHighContrast}
         onToggleColorSafeKits={toggleColorSafeKits}
         onToggleCutInMode={toggleCutInMode}
+        onEmailSupport={emailSupport}
+        supportError={settingsSaveError}
         accessibilityCopy={content.assistantGuide.m4Fiction.accessibility}
         difficultyLabel={store.career?.difficulty ?? (store.career ? 'COZY' : undefined)}
         onBack={() => setLandingView('title')}
@@ -1878,7 +1928,7 @@ function GameApp() {
         onToggleDeveloperManualSave={() => {
           setDeveloperManualSaveSelecting(selecting => !selecting);
         }}
-        advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ▸'}
+        advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ›'}
         // `saveBlocked` already refuses the advance in the store; the button has
         // to say so too, or the only feedback for a paused season is a toast
         // repeating what the warning banner above it already says.
@@ -2284,6 +2334,7 @@ function GameApp() {
           open={globalSettingsOpen}
           glossary={content.glossary}
           glossaryOpen={globalGlossaryOpen}
+          privacySupportOpen={globalPrivacySupportOpen}
           volume={devVolume}
           reduceMotion={preferences.reduceMotion}
           hudSide={preferences.hudSide}
@@ -2313,13 +2364,16 @@ function GameApp() {
           onToggleHighContrast={toggleHighContrast}
           onToggleColorSafeKits={toggleColorSafeKits}
           onToggleCutInMode={toggleCutInMode}
+          onEmailSupport={emailSupport}
           onToggleDeveloperMode={__DEV__ ? toggleDeveloperMode : undefined}
           onSetAssistantMode={store.career === null ? undefined : handleSetAssistantMode}
           onGlossaryOpenChange={setGlobalGlossaryOpen}
+          onPrivacySupportOpenChange={setGlobalPrivacySupportOpen}
           onOpenChange={open => {
             setGlobalSettingsOpen(open);
             if (!open) {
               setGlobalGlossaryOpen(false);
+              setGlobalPrivacySupportOpen(false);
               setGlobalHallOfFameOpen(false);
               setSettingsSaveError(null);
             }

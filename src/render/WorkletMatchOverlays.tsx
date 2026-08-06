@@ -595,7 +595,10 @@ function WorkletFlameLayer({
     const width = ringRadius * 1.7;
     const height = ringRadius * 2.6;
     const count = 5;
-    for (let player = 0; player < 22; player += 1) {
+    // RENDER_PLAYER_COUNT (not 22) so the decoy slots are covered like every
+    // sibling worklet: a decoy clone that inherits ignited/active status must
+    // draw its flames, not just its status tint.
+    for (let player = 0; player < RENDER_PLAYER_COUNT; player += 1) {
       const status = statuses.value[player];
       const fireCaster = (fireTorchMask & (1 << player)) !== 0;
       if (status !== STATUS_IGNITED && !(status === STATUS_ACTIVE && fireCaster)) continue;

@@ -16,13 +16,13 @@ export const POTENTIAL_GRADES = [
 
 export type PotentialGrade = (typeof POTENTIAL_GRADES)[number];
 
-export interface PotentialGradeBand {
+interface PotentialGradeBand {
   readonly grade: PotentialGrade;
   readonly minimum: number;
   readonly maximum: number;
 }
 
-export const POTENTIAL_GRADE_BANDS: readonly PotentialGradeBand[] = [
+const POTENTIAL_GRADE_BANDS: readonly PotentialGradeBand[] = [
   { grade: 'E-', minimum: 1, maximum: 57 },
   { grade: 'E', minimum: 58, maximum: 60 },
   { grade: 'E+', minimum: 61, maximum: 63 },
@@ -48,7 +48,7 @@ const POTENTIAL_TIER_CEILING_RANGES: Readonly<Record<1 | 2 | 3 | 4 | 5, readonly
   5: [94, 99],
 };
 
-export interface PotentialProfile {
+interface PotentialProfile {
   readonly id: string;
   readonly role: Role;
   readonly attrs: Readonly<Attrs>;
@@ -109,7 +109,7 @@ export const POSITION_TRAINING_ATTRIBUTES: Readonly<
   FWD: ['sho', 'pac', 'tec'],
 };
 
-export const POSITION_TRAINING_BONUS_PERCENT = 5;
+const POSITION_TRAINING_BONUS_PERCENT = 5;
 
 export function positionTrainingBonusPercent(
   role: Role,
@@ -169,23 +169,6 @@ export function remainingDevelopmentPotential(
   }, 0);
 }
 
-/**
- * Legacy helper retained for callers outside the full career. Archetypes no
- * longer impose a personal ceiling; only the universal safety ceiling remains.
- */
-export function capArchetypeTrainingGain(
-  _archetype: PlayerArchetype | undefined,
-  _attribute: keyof Attrs,
-  currentValue: number,
-  proposedValue: number,
-): number {
-  assertAttributeValue(currentValue, 'current attribute');
-  if (!Number.isSafeInteger(proposedValue)) {
-    throw new Error('proposed training attribute must be a safe integer');
-  }
-  return Math.min(MAX_PLAYER_ATTRIBUTE, Math.max(currentValue, proposedValue));
-}
-
 /** Current rating from the six attributes that the player's role can actually use. */
 export function roleOverall(role: Role, attrs: Readonly<Attrs>): number {
   const attributes = roleAttributes(role);
@@ -199,7 +182,7 @@ export function roleOverall(role: Role, attrs: Readonly<Attrs>): number {
 
 
 /** Stable fine-grained ceiling for legacy players that only persisted a 1–5 potential tier. */
-export function deterministicPotentialCeiling(
+function deterministicPotentialCeiling(
   playerId: string,
   potential: 1 | 2 | 3 | 4 | 5,
 ): number {
@@ -215,7 +198,7 @@ export function deterministicPotentialCeiling(
 }
 
 /** Minimum projected-overall room retained when a player is created or migrated. */
-export function minimumDevelopmentHeadroom(age: number): number {
+function minimumDevelopmentHeadroom(age: number): number {
   if (!Number.isSafeInteger(age) || age < 1 || age > 99) {
     throw new Error('player age must be an integer from 1 to 99');
   }

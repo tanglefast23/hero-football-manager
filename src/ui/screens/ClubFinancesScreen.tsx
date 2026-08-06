@@ -711,7 +711,7 @@ function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps
           </View>
           <View className="mt-2 flex-row">
             <Metric
-              label="Match, sponsor & prize"
+              label="Match, deals & prize"
               value={viewModel.variableIncome.detail === undefined
                 ? formatCurrency(viewModel.variableIncome.amount, true)
                 : `${formatCurrency(viewModel.variableIncome.amount)} (${viewModel.variableIncome.detail})`}
@@ -813,10 +813,10 @@ function SponsorBusinessSection({
           targetRef={sponsorBuzzTargetRef}
           onLayout={onGuideTargetLayout}
         />
-        <PaperPanel kicker="Basic sponsor" title="The crowd is talking" stamp="LIVE">
+        <PaperPanel kicker="Local advertising" title="The crowd is talking" stamp="LIVE">
           <Text className="text-sm leading-5 text-ink/70">
-            Your basic sponsor pays {formatCurrency(sponsorship.actualMonthlyIncome)} each month.
-            Wins, goals and hero moments now make that deal worth more twice a season.
+            Your pitchside boards pay {formatCurrency(sponsorship.actualMonthlyIncome)} each month.
+            Wins, goals and hero moments now make them worth more twice a season.
           </Text>
           {sponsorship.buzz === undefined ? null : (
             <BuzzCard buzz={sponsorship.buzz} focusTargetRef={sponsorBuzzAccessibilityRef} />
@@ -1127,7 +1127,7 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
         {viewModel.ledger.length === 0 ? (
           <EmptyDocket
             title="Nothing yet"
-            detail="Wages, gate receipts, sponsor money and upkeep land here as each week is played."
+            detail="Wages, gate receipts, upkeep and every payment land here as each week is played."
           />
         ) : (
         <View className="border-2 border-ink bg-white">
@@ -1725,6 +1725,10 @@ function GroundsSection({
                       {building.status === 'construction' ? (
                         <ManagementSprite
                           spriteKey="facility:worksite"
+                          // Grid cells can measure narrower than the 32px art;
+                          // the cell cannot grow (it is a % of the plot), so a
+                          // sub-32 width accepts ManagementSprite's explicit
+                          // sub-1x downscale rather than overflowing the cell.
                           width={Math.max(24, Math.min(56, Math.min(artWidth, artHeight)))}
                           accessibilityLabel={`${building.name} construction`}
                         />
@@ -1864,6 +1868,9 @@ function GroundsSection({
                     setRelocatingBuildingId(null);
                   }}
                   className="h-11 w-11 items-center justify-center border-2 border-ink bg-paper"
+                  // Explicit points: h-11 is 38.5pt on native, under the 44pt
+                  // touch-target contract — see ActionButton's minHeight.
+                  style={{ minWidth: 44, minHeight: 44 }}
                 >
                   <Text className="font-pixel text-base text-ink">×</Text>
                 </Pressable>

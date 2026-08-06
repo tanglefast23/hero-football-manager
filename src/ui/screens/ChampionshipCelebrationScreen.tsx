@@ -312,7 +312,8 @@ export function ChampionshipCelebrationScreen({
         onPress={completeOnce}
         style={({ pressed }) => [styles.skipButton, { opacity: pressed ? 0.65 : 1 }]}
       >
-        <Text className="font-pixel text-xs uppercase text-white">Skip ▸</Text>
+        {/* '›' is in Silkscreen; '▸' is not and rendered in the fallback face. */}
+        <Text className="font-pixel text-xs uppercase text-white">Skip ›</Text>
       </Pressable>
 
       <Animated.View pointerEvents="none" style={[styles.titleCard, titleStyle]}>

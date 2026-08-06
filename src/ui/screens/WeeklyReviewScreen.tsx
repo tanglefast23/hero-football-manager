@@ -64,7 +64,7 @@ export function WeeklyReviewScreen({
 
   const cashMovement = (
     <View className="flex-row items-center justify-between border-2 border-ink bg-ink px-3 py-2.5">
-      <Text className="font-pixel text-sm uppercase text-paper/75">Cash movement</Text>
+      <Text className="font-pixel text-[12px] uppercase text-paper/75">Cash movement</Text>
       <Text className="font-mono text-base text-paper">
         {formatCurrency(viewModel.cashBefore)} →{' '}
         <AnimatedCount
@@ -101,9 +101,9 @@ export function WeeklyReviewScreen({
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
         <View className={wide ? 'w-full max-w-[1180px] self-center px-4 pb-7 pt-4' : 'w-full px-4 pb-7 pt-4'}>
           <View className="border-b-2 border-paper/15 pb-3">
-            <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Weekly review</Text>
-            <Text className="mt-1 font-pixel text-xl uppercase text-white">{viewModel.completedWeekLabel}</Text>
-            <Text className="mt-2 font-pixel text-sm uppercase text-paper/75">{viewModel.clubName}</Text>
+            <Text className="font-pixel text-[10px] uppercase tracking-[2px] text-gold-light">Weekly review</Text>
+            <Text className="mt-1 font-pixel text-[18px] uppercase text-white">{viewModel.completedWeekLabel}</Text>
+            <Text className="mt-2 font-pixel text-[12px] uppercase text-paper/75">{viewModel.clubName}</Text>
           </View>
 
           {viewModel.facilityCompletion ? (
@@ -169,7 +169,7 @@ function WeeklyBalanceCard({
 }) {
   return (
     <View className="min-w-0 flex-1 border-2 border-b-4 border-ink bg-white px-3 py-2">
-      <PixelText className="text-right text-sm uppercase text-ink/50">{label}</PixelText>
+      <PixelText className="text-right text-[12px] uppercase text-ink/50">{label}</PixelText>
       <AnimatedBalanceAmount
         from={startingAmount}
         to={currentAmount}
@@ -178,7 +178,7 @@ function WeeklyBalanceCard({
         kind={kind}
       />
       <View className="mt-2 border-t border-ink/20 pt-2">
-        <PixelText className="text-right text-sm uppercase text-ink/50">
+        <PixelText className="text-right text-[12px] uppercase text-ink/50">
           {kind === 'money' ? 'Net' : 'Net TP'}
         </PixelText>
         <AnimatedNetAmount amount={netAmount} started={started} complete={complete} kind={kind} />
@@ -213,12 +213,15 @@ function AnimatedNetAmount({
         accessible
         accessibilityLabel={`Net ${amount < 0 ? 'minus' : amount > 0 ? 'plus' : ''} ${Math.abs(amount)} ${kind === 'money' ? 'dollars' : 'training points'}`}
         className={amount < 0
-          ? 'mt-1 text-right font-mono text-xl text-stamp'
-          : 'mt-1 text-right font-mono text-xl text-pitch-ink'}
+          ? 'mt-1 text-right font-mono text-[18px] text-stamp'
+          : 'mt-1 text-right font-mono text-[18px] text-pitch-ink'}
         numberOfLines={1}
         adjustsFontSizeToFit
       >
-        {displayAmount > 0 ? '+' : displayAmount < 0 ? '−' : ''}
+        {/* ASCII hyphen on purpose: Silkscreen has no U+2212 glyph, and a true
+            minus flips this one character to the system fallback face mid-string
+            — see formatCompactNumber in components/Scorecard.tsx. */}
+        {displayAmount > 0 ? '+' : displayAmount < 0 ? '-' : ''}
         {kind === 'money' ? '$' : ''}
         {formatCompactNumber(Math.abs(displayAmount))}
         {kind === 'training-points' ? ' TP' : ''}
@@ -257,7 +260,7 @@ function AnimatedBalanceAmount({
     >
       <Text
         accessibilityLabel={`${kind === 'money' ? 'Money' : 'Training points'} ${from} to ${to}`}
-        className={`mt-1 text-right font-mono text-xl ${movementClass}`}
+        className={`mt-1 text-right font-mono text-[18px] ${movementClass}`}
         numberOfLines={1}
         adjustsFontSizeToFit
       >

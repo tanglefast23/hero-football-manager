@@ -97,8 +97,8 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
             className="border-2 border-ink bg-white"
           >
             <View className="flex-row border-b border-ink/20 px-2 py-2">
-              <Text style={tableColumns.position} className="font-mono text-sm text-ink/50">#</Text>
-              <PixelText className="flex-1 text-sm uppercase text-ink/50">Club</PixelText>
+              <Text style={tableColumns.position} className="font-mono text-[12px] text-ink/50">#</Text>
+              <PixelText className="flex-1 text-[12px] uppercase text-ink/50">Club</PixelText>
               {TABLE_HEADERS.map(header => (
                 <InfoTip
                   key={header.label}
@@ -108,7 +108,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
                   accessibilityLabel={`${header.name}. ${TABLE_COLUMN_EXPLAINER[header.column]}`}
                 >
                   <Text
-                    className="w-full text-right font-mono text-sm text-ink/50"
+                    className="w-full text-right font-mono text-[12px] text-ink/50"
                     maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
                     numberOfLines={1}
                   >
@@ -139,11 +139,11 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
                       <Text className={row.isUserClub ? 'text-sm font-bold text-ink' : 'text-sm font-bold text-pitch-ink'}>↑</Text>
                     ) : null}
                   </View>
-                  <Text style={tableColumns.played} className={`text-right font-mono text-sm ${secondaryText}`} numberOfLines={1}>{row.played}</Text>
-                  <Text style={tableColumns.won} className={`text-right font-mono text-sm ${secondaryText}`} numberOfLines={1}>{row.won}</Text>
-                  <Text style={tableColumns.drawn} className={`text-right font-mono text-sm ${secondaryText}`} numberOfLines={1}>{row.drawn}</Text>
-                  <Text style={tableColumns.lost} className={`text-right font-mono text-sm ${secondaryText}`} numberOfLines={1}>{row.lost}</Text>
-                  <Text style={tableColumns.goalDifference} className={`text-right font-mono text-sm ${secondaryText}`} numberOfLines={1}>{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>
+                  <Text style={tableColumns.played} className={`text-right font-mono text-[12px] ${secondaryText}`} numberOfLines={1}>{row.played}</Text>
+                  <Text style={tableColumns.won} className={`text-right font-mono text-[12px] ${secondaryText}`} numberOfLines={1}>{row.won}</Text>
+                  <Text style={tableColumns.drawn} className={`text-right font-mono text-[12px] ${secondaryText}`} numberOfLines={1}>{row.drawn}</Text>
+                  <Text style={tableColumns.lost} className={`text-right font-mono text-[12px] ${secondaryText}`} numberOfLines={1}>{row.lost}</Text>
+                  <Text style={tableColumns.goalDifference} className={`text-right font-mono text-[12px] ${secondaryText}`} numberOfLines={1}>{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>
                   <Text style={tableColumns.points} className={`text-right font-mono text-base ${primaryText}`} numberOfLines={1}>{row.points}</Text>
                 </View>
               );
@@ -198,12 +198,12 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
         header={
           <View className="mb-5 flex-row items-end justify-between">
             <View>
-              <PixelText className="text-sm uppercase text-blue-dark">Competition office</PixelText>
-              <PixelText className="mt-1 text-xl uppercase text-ink">{viewModel.divisionLabel}</PixelText>
+              <PixelText className="text-[12px] uppercase text-blue-dark">Competition office</PixelText>
+              <PixelText className="mt-1 text-[18px] uppercase text-ink">{viewModel.divisionLabel}</PixelText>
             </View>
             <View className="items-end gap-1">
               <StatusChip label={viewModel.seasonLabel} />
-              <Text className="font-mono text-sm text-ink/50">{viewModel.weekLabel}</Text>
+              <Text className="font-mono text-[12px] text-ink/50">{viewModel.weekLabel}</Text>
             </View>
           </View>
         }

@@ -20,12 +20,12 @@ import {
 import { dismissCareerCoach } from './market-career';
 import type { GameState } from './types';
 
-export interface CareerFacilityTransaction extends FacilityTransaction {
+interface CareerFacilityTransaction extends FacilityTransaction {
   readonly state: GameState;
 }
 
 /** Everything the confirmation needs to explain one staffed-office closure. */
-export interface StaffedCoachingOfficeClosureConfirmation {
+interface StaffedCoachingOfficeClosureConfirmation {
   readonly buildingId: string;
   readonly assistantId: string;
   readonly assistantName: string;
@@ -39,7 +39,7 @@ export interface StaffedCoachingOfficeClosureConfirmation {
   readonly canConfirm: boolean;
 }
 
-export interface StaffedCoachingOfficeClosureTransaction {
+interface StaffedCoachingOfficeClosureTransaction {
   readonly state: GameState;
   readonly confirmation: StaffedCoachingOfficeClosureConfirmation;
 }
@@ -225,7 +225,7 @@ export function closeStaffedCareerCoachingOffice(
   };
 }
 
-export interface CareerTrainingUpgradeTransaction {
+interface CareerTrainingUpgradeTransaction {
   readonly state: GameState;
   readonly offer: TrainingUpgradeOffer;
 }

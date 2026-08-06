@@ -13,8 +13,8 @@ import type {
 } from './types';
 
 export const BOARD_ULTIMATUM_WEEKS = 4;
-export const BOARD_FORCED_SALE_DISCOUNT_PERCENT = 30 as const;
-export const BOARD_FORCED_SALE_MORALE_DELTA = -8 as const;
+const BOARD_FORCED_SALE_DISCOUNT_PERCENT = 30 as const;
+const BOARD_FORCED_SALE_MORALE_DELTA = -8 as const;
 
 export type BoardForcedSaleResolution = Extract<
   BoardUltimatumResolution,

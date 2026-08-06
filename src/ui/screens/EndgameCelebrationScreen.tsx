@@ -574,7 +574,8 @@ function TrophyScene({
         onPress={onDone}
         style={styles.control}
       >
-        <PixelText className="text-xs uppercase text-white">Continue ▸</PixelText>
+        {/* '›' is in Silkscreen; '▸' is not and rendered in the fallback face. */}
+        <PixelText className="text-xs uppercase text-white">Continue ›</PixelText>
       </SfxPressable>
     </ScrollView>
     </CelebrationSafeArea>
@@ -925,7 +926,7 @@ function StaticFarewell({
         onPress={onDone}
         style={styles.control}
       >
-        <PixelText className="text-xs uppercase text-white">Finish ▸</PixelText>
+        <PixelText className="text-xs uppercase text-white">Finish ›</PixelText>
       </SfxPressable>
     </View>
   );

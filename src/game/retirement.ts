@@ -23,10 +23,10 @@ const MAX_CONTRACT_TERM_SEASONS = 3;
 const DEFAULT_PERSONALITY: PlayerPersonality = 'Professional';
 const DEFAULT_AGE = 24;
 
-export type RetirementPlayer = Pick<CareerPlayer, 'id'>
+type RetirementPlayer = Pick<CareerPlayer, 'id'>
   & Partial<Pick<CareerPlayer, 'age' | 'personality' | 'retirementAnnouncementSeason'>>;
 
-export function retirementAgeFor(player: RetirementPlayer, careerSeed: number): number {
+function retirementAgeFor(player: RetirementPlayer, careerSeed: number): number {
   return retirementAnnouncementAge(
     { id: player.id, personality: player.personality ?? DEFAULT_PERSONALITY },
     careerSeed,

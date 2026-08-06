@@ -8,6 +8,8 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
+      "requireFullScreen": false,
+      "buildNumber": "1",
       "bundleIdentifier": "com.tanglefast.herofootballmanager",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -21,7 +23,16 @@
     "plugins": [
       "expo-sqlite",
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "resizeMode": "contain",
+          "imageWidth": 200,
+          "backgroundColor": "#101418"
+        }
+      ]
     ]
   }
 }

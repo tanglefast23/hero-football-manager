@@ -35,25 +35,26 @@ export function completeChampionshipCelebration(state: GameState): GameState {
   };
 }
 
+/**
+ * TOTAL BY CONSTRUCTION, for the reason `careerAwardCeremonyViewModel` gives:
+ * the screen sits inside the season transition and its own completion is the
+ * only way off it, so a thrown view model would strand the save. A damaged or
+ * hand-built state that reports a pending title while missing its club, squad
+ * or fixtures keeps the parade copy and a stand-in star rather than crashing
+ * on every relaunch.
+ */
 export function championshipCelebrationViewModel(
   state: GameState,
   assistantName: string,
 ): ChampionshipCelebrationViewModel {
-  if (!hasPendingChampionshipCelebration(state)) {
-    throw new Error('there is no pending league championship celebration');
-  }
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const clubName = state.clubs.find(candidate => candidate.id === state.userClubId)?.name
+    ?? 'Your club';
   const squad = rosterForClub(state, state.userClubId);
-  if (squad.length === 0) throw new Error('the champions have no players to celebrate');
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
-  if (lineup === undefined) throw new Error('the champions have no starting lineup');
   const finalFixture = state.fixtures
     .filter(fixture => fixture.status === 'played'
       && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId))
     .sort((left, right) => right.week - left.week || compareIds(right.id, left.id))[0];
-  if (finalFixture === undefined) throw new Error('the champions have no completed fixture');
-  const spriteSide = finalFixture.homeClubId === state.userClubId ? 'r' : 'u';
+  const spriteSide = finalFixture?.awayClubId === state.userClubId ? 'u' : 'r';
 
   // Summed across competitions: a player now owns one row per competition, and
   // the striker being paraded scored his cup goals for this club too.
@@ -68,8 +69,7 @@ export function championshipCelebrationViewModel(
     if (left.attrs.sho !== right.attrs.sho) return right.attrs.sho - left.attrs.sho;
     return compareIds(left.id, right.id);
   });
-  const star = sorted[0]!;
-  const starGoals = goalsByPlayerId.get(star.id) ?? 0;
+  const star = sorted[0];
   const playerViewModel = (player: CareerPlayer) => {
     return {
       id: player.id,
@@ -79,18 +79,29 @@ export function championshipCelebrationViewModel(
       spriteKey: `${spriteSide}:${playerLookId(player.id, player.role, player.lookId)}:run0`,
     };
   };
+  // A club with nobody left still parades: the screen's shape requires a star,
+  // so an unnamed captain stands in for him.
+  const starViewModel = star === undefined
+    ? {
+        id: 'championship-celebration-star',
+        name: 'Your captain',
+        role: 'FWD' as const,
+        isHero: false,
+        spriteKey: `${spriteSide}:${playerLookId('championship-celebration-star', 'FWD')}:run0`,
+      }
+    : playerViewModel(star);
 
   return {
     seasonLabel: `Season ${state.season}`,
-    clubName: club.name,
+    clubName,
     assistantName,
     star: {
-      ...playerViewModel(star),
-      goals: starGoals,
+      ...starViewModel,
+      goals: star === undefined ? 0 : goalsByPlayerId.get(star.id) ?? 0,
       hasRecordedGoals: goalsByPlayerId.size > 0,
     },
     squad: squad
-      .filter(player => player.id !== star.id)
+      .filter(player => player.id !== star?.id)
       .sort((left, right) => compareIds(left.id, right.id))
       .map(playerViewModel),
     coaches: celebrationCoaches(state),

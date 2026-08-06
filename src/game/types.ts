@@ -9,7 +9,7 @@ import type { ClubBusinessState, SponsorRules } from './club-business-types';
 export const GAME_SCHEMA_VERSION = 5;
 export const SEASON_WEEKS = 30;
 
-export type GamePhase = 'manage' | 'matchday' | 'season-end' | 'complete';
+type GamePhase = 'manage' | 'matchday' | 'season-end' | 'complete';
 export type DifficultyMode = 'COZY' | 'CHAIRMAN';
 
 export interface CreatedPlayerAppearance {
@@ -58,7 +58,7 @@ export interface CareerTrainingDrill {
   gains: Partial<Attrs>;
 }
 
-export interface TrainingRules {
+interface TrainingRules {
   /** Full focus-drill catalog, baked in so the pure engine can resolve tiers. */
   focusDrills: CareerTrainingDrill[];
 }
@@ -177,13 +177,13 @@ export interface ClubLineupState {
   playerIds: string[];
 }
 
-export interface FacilityState {
+interface FacilityState {
   trainingGroundBuilt: boolean;
   /** Optional only while schema-1 M1 saves are reconciled into M2. */
   grid?: FacilityGridState;
 }
 
-export interface CareerEventState {
+interface CareerEventState {
   weeksWithoutEvent: number;
   riskyChoices: number;
   /**
@@ -195,13 +195,13 @@ export interface CareerEventState {
   storySettledWeek?: number;
 }
 
-export interface ResolvedCareerEvent {
+interface ResolvedCareerEvent {
   eventId: string;
   season: number;
   week: number;
 }
 
-export interface PendingCareerEvent {
+interface PendingCareerEvent {
   eventId: string;
   selectedPlayerId?: string;
   resolvedChoiceId?: string;
@@ -214,7 +214,7 @@ export interface PendingCareerEvent {
   resolvedNextEventId?: string;
 }
 
-export interface PendingCareerAwakening {
+interface PendingCareerAwakening {
   fixtureId: string;
   playerId: string;
   power: PowerId;
@@ -222,20 +222,20 @@ export interface PendingCareerAwakening {
   firstHero: boolean;
 }
 
-export interface CareerAwakeningState {
+interface CareerAwakeningState {
   matchesSinceLastAwakening: number;
   usedTriggerIds: string[];
   pending?: PendingCareerAwakening;
 }
 
-export type OnboardingStage =
+type OnboardingStage =
   | 'create-player'
   | 'first-match'
   | 'collapse'
   | 'reveal'
   | 'complete';
 
-export interface CareerOnboardingState {
+interface CareerOnboardingState {
   stage: OnboardingStage;
   createdPlayerId?: string;
   firstFixtureId?: string;
@@ -244,12 +244,12 @@ export interface CareerOnboardingState {
   awakenedPower?: PowerId;
 }
 
-export interface FixtureScore {
+interface FixtureScore {
   homeGoals: number;
   awayGoals: number;
 }
 
-export type FixtureStatus = 'scheduled' | 'played';
+type FixtureStatus = 'scheduled' | 'played';
 
 export interface LeagueFixture {
   id: string;
@@ -369,6 +369,7 @@ export type CashTransactionKind =
   | 'coach-hiring'
   | 'coach-dismissal'
   | 'player-request'
+  | 'event'
   | 'balance-adjustment';
 
 /**
@@ -505,7 +506,7 @@ export type BoardUltimatumResolution =
       fansLost: number;
     };
 
-export interface CareerRetirementAnnouncement {
+interface CareerRetirementAnnouncement {
   playerId: string;
   playerName: string;
   announcedInSeason: number;
@@ -593,7 +594,7 @@ export interface HallOfFameScorer {
 }
 
 /** The most famous man in the squad when the climb ended. */
-export interface HallOfFameStar {
+interface HallOfFameStar {
   playerId: string;
   playerName: string;
   fame: number;
@@ -654,7 +655,7 @@ export type PlayerRequestCost =
   | { readonly kind: 'DRILL_PLAYER'; readonly multiplierPercent: number; readonly weeks: number }
   | { readonly kind: 'DRILL_SQUAD'; readonly multiplierPercent: number; readonly weeks: number };
 
-export type PlayerRequestGrantBonus =
+type PlayerRequestGrantBonus =
   | { readonly kind: 'CONDITION_SQUAD'; readonly amount: number }
   | { readonly kind: 'MORALE_SQUAD'; readonly amount: number };
 
@@ -667,14 +668,14 @@ export interface PlayerRequestDefinition {
   readonly grantBonus?: PlayerRequestGrantBonus;
 }
 
-export interface PlayerRequestCadence {
+interface PlayerRequestCadence {
   readonly minWeeks: number;
   readonly guaranteeWeeks: number;
   readonly starMinWeeks: number;
   readonly starGuaranteeWeeks: number;
 }
 
-export interface PlayerRequestTuning {
+interface PlayerRequestTuning {
   readonly startSeason: number;
   readonly startWeek: number;
   readonly baseChancePercent: number;
@@ -692,7 +693,7 @@ export interface PlayerRequestCatalog {
 
 export type PlayerRequestResolution = 'GRANTED' | 'REFUSED' | 'LAPSED';
 
-export interface PendingPlayerRequest {
+interface PendingPlayerRequest {
   requestId: string;
   playerId: string;
   askedSeason: number;
@@ -714,7 +715,7 @@ export interface PendingPlayerRequest {
  * writing one from a request would destroy whatever was agreed at the
  * negotiating table.
  */
-export type RequestEffectKind = 'DRILL_PLAYER' | 'DRILL_SQUAD';
+type RequestEffectKind = 'DRILL_PLAYER' | 'DRILL_SQUAD';
 
 export interface ActiveRequestEffect {
   kind: RequestEffectKind;
@@ -725,7 +726,7 @@ export interface ActiveRequestEffect {
   multiplierPercent?: number;
 }
 
-export interface ResolvedPlayerRequest {
+interface ResolvedPlayerRequest {
   requestId: string;
   playerId: string;
   season: number;
@@ -794,6 +795,14 @@ export interface GameState {
   seasonOpeningCash?: number;
   /** Immediate M2 purchases and sales; weekly settlement remains in ledgers. */
   cashTransactions?: CashTransaction[];
+  /**
+   * Highest cash-transaction id ever issued. Kept separately from the history
+   * so ids stay unique for the life of the career: an id derived from the
+   * history's length would repeat the moment old entries were ever pruned, and
+   * persistence requires every id to be unique. Absent on older saves, which
+   * seed it from the length that produced their existing ids.
+   */
+  cashTransactionIdCounter?: number;
   /**
    * Absent on saves written before division-leader tracking. Those saves keep
    * loading, but their goal history does not survive: `seasonGoalTallies` is

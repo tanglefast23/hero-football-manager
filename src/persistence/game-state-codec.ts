@@ -184,6 +184,7 @@ const cashTransactionSchema = z.object({
     'coach-hiring',
     'coach-dismissal',
     'player-request',
+    'event',
     'balance-adjustment',
   ]),
   label: nonemptyString,
@@ -947,11 +948,13 @@ const m2CareerSchema = z.object({
 const marketPersonalitySchema = z.enum([
   'FIERY', 'LOYAL', 'GREEDY', 'JOKER', 'PROFESSIONAL', 'TIMID',
 ]);
+// Passthrough like every other career-codec object: a field added to a focus
+// later must survive a round trip instead of being silently stripped on load.
 const scoutFocusSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('POSITION'), role: z.enum(['GK', 'DEF', 'MID', 'FWD']) }),
-  z.object({ kind: z.literal('AGE'), minimumAge: positiveInteger, maximumAge: positiveInteger }),
-  z.object({ kind: z.literal('ELITE_PROSPECT') }),
-  z.object({ kind: z.literal('RUMORED_HERO') }),
+  z.object({ kind: z.literal('POSITION'), role: z.enum(['GK', 'DEF', 'MID', 'FWD']) }).passthrough(),
+  z.object({ kind: z.literal('AGE'), minimumAge: positiveInteger, maximumAge: positiveInteger }).passthrough(),
+  z.object({ kind: z.literal('ELITE_PROSPECT') }).passthrough(),
+  z.object({ kind: z.literal('RUMORED_HERO') }).passthrough(),
 ]);
 const scoutMissionSchema = z.object({
   id: nonemptyString,
@@ -1302,6 +1305,9 @@ const gameStateSchema = z
     ledgers: z.array(ledgerSchema),
     seasonOpeningCash: safeInteger.optional(),
     cashTransactions: z.array(cashTransactionSchema).optional(),
+    // Absent on saves written before ids became a counter; the recorder seeds
+    // it from the history length those saves minted their ids with.
+    cashTransactionIdCounter: nonnegativeInteger.optional(),
     seasonStatLines: z.array(seasonStatLineSchema).optional(),
     // `'m1-slice'` was a second, finite career mode that no longer exists. The
     // value stays legal on read so saves written while it did are still

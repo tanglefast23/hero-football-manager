@@ -21,7 +21,7 @@ export interface ManagerMatchPreferences {
   readonly autoSubs: boolean;
 }
 
-export interface QuickMatchPolicy extends ManagerMatchPreferences {
+interface QuickMatchPolicy extends ManagerMatchPreferences {
   readonly userClubId: string;
 }
 
@@ -34,7 +34,7 @@ export interface ProductionFixtureResult {
   readonly powerFiredPlayerIds: readonly string[];
 }
 
-export interface QuickFixtureMatch {
+interface QuickFixtureMatch {
   result: FixtureResult;
   replay: ReplayEnvelope;
   /** Present for the production user path; rival/background resolution omits it. */
@@ -102,7 +102,7 @@ export function quickMatchForFixture(
 }
 
 /** A goal credited to whoever was actually wearing the shirt at the time. */
-export interface MatchGoal {
+interface MatchGoal {
   readonly playerId: string;
   readonly name: string;
   /** Tick the goal went in, for a match-clock label. */
@@ -195,7 +195,7 @@ export function goalsFrom(match: MatchState): MatchGoal[] {
   return goals.reverse();
 }
 
-export function fixtureResultFromMatch(fixture: LeagueFixture, match: MatchState): FixtureResult {
+function fixtureResultFromMatch(fixture: LeagueFixture, match: MatchState): FixtureResult {
   const scorerPlayerIds = goalsFrom(match).map(goal => goal.playerId);
   const contributions = contributionsFrom(match);
   return {

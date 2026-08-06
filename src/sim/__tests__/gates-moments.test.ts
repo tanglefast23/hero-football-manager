@@ -26,7 +26,8 @@ describe('M0 acceptance suite (Task 13)', () => {
     const OWN_Y = Math.round(PITCH_H * 0.85);    // deep in the defensive third
 
     function shotsAfterSpeedTap(seed: number, attackingHalf: boolean): number {
-      const m = createMatch(seed, ROVERS, UNITED);
+      // SAVE_FOR_TAP: the tap is the instrument under test (m2.1 default flip).
+      const m = createMatch(seed, ROVERS, UNITED, { homePolicy: 'SAVE_FOR_TAP' });
       m.ball = { kind: 'held', by: SPEEDSTER };
       m.players[SPEEDSTER].pos = { x: GOAL_CENTER_X, y: attackingHalf ? ATTACK_Y : OWN_Y };
       m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
@@ -55,7 +56,7 @@ describe('M0 acceptance suite (Task 13)', () => {
 
     it('FIRE_TORCH: a marker inside the ignite radius catches fire; alone, nobody does', () => {
       function fires(markerNearby: boolean): boolean {
-        const m = createMatch(1, ROVERS, UNITED);
+        const m = createMatch(1, ROVERS, UNITED, { homePolicy: 'SAVE_FOR_TAP' });
         m.ball = { kind: 'held', by: TORCH };
         m.players[TORCH].pos = { x: GOAL_CENTER_X, y: 4000 }; // attacking run, still far from a valuable shot
         if (markerNearby) {
@@ -71,7 +72,7 @@ describe('M0 acceptance suite (Task 13)', () => {
     });
 
     it('SUPER_STRENGTH (structural note): a contextual auto-fire locks a target at 0.85 — the separate no-target gate proves it cannot lapse-fire', () => {
-      const m = createMatch(42, ROVERS, UNITED);
+      const m = createMatch(42, ROVERS, UNITED, { homePolicy: 'SAVE_FOR_TAP' });
       m.ball = { kind: 'held', by: SPEEDSTER };
       m.players[SPEEDSTER].pos = { x: GOAL_CENTER_X, y: PITCH_H / 2 };
       m.players[RIVAL].pos = { ...m.players[SPEEDSTER].pos };

@@ -18,7 +18,7 @@ import type {
   PlayerSeasonStatLine,
 } from './types';
 
-export interface RequestCadence {
+interface RequestCadence {
   readonly minWeeks: number;
   readonly guaranteeWeeks: number;
   readonly starMinWeeks: number;
@@ -149,7 +149,7 @@ export function weightForPlayer(
   return weight;
 }
 
-export interface EligibilityContext {
+interface EligibilityContext {
   readonly lastAskingPlayerId?: string;
   /**
    * Seasons, not weeks. `CareerPlayer` has `seasonsAtClub` and no finer tenure,
@@ -159,6 +159,15 @@ export interface EligibilityContext {
   readonly minSeasonsAtClub: number;
   /** True when the drawn request would take the player away from matches. */
   readonly absence: boolean;
+  /**
+   * Whether the starting eleven survives this player's leave. Optional because
+   * the answer needs the whole game state, which pure pool tests do not have;
+   * `advancePlayerRequests` always supplies it, via the exact lineup-repair
+   * path a granted absence runs. Without it, a bare-eleven roster — reachable
+   * through player sales — could be OFFERED a leave request whose grant throws
+   * inside lineup repair.
+   */
+  readonly lineupSurvivesAbsence?: (player: CareerPlayer) => boolean;
 }
 
 /**
@@ -191,6 +200,9 @@ export function eligibleAskers(
     // Sending away the only fit keeper leaves no legal XI, so the request is
     // never offered rather than being offered and then failing to apply.
     if (context.absence && player.role === 'GK' && fitKeepers.length <= 1) return false;
+    // The same rule for every starter: a leave the lineup cannot repair is
+    // never offered rather than being offered and then throwing on Grant.
+    if (context.absence && context.lineupSurvivesAbsence?.(player) === false) return false;
     return true;
   });
 }
@@ -221,7 +233,7 @@ export function totalAskerWeight(
   );
 }
 
-export interface RequestPricingContext {
+interface RequestPricingContext {
   readonly playerWeeklyWage: number;
   readonly squadWeeklyWageBill: number;
 }
@@ -255,14 +267,14 @@ export function absenceWeeksFor(authoredWeeks: number, difficulty: DifficultyMod
   return difficulty === 'COZY' ? Math.min(1, authoredWeeks) : authoredWeeks;
 }
 
-export type RequestTarget = 'PLAYER' | 'SQUAD';
+type RequestTarget = 'PLAYER' | 'SQUAD';
 
-export interface RequestDelta {
+interface RequestDelta {
   readonly loyalty: number;
   readonly morale: number;
 }
 
-export interface RequestDeltas {
+interface RequestDeltas {
   /** Applied to the asking player alone, on top of any squad delta. */
   readonly asker: RequestDelta;
   /** Applied to every user-club player, the asker included. */
@@ -587,11 +599,13 @@ export function advancePlayerRequests(state: GameState, openRequests: boolean): 
   const chance = requestChancePercent(weeksSince, cadence, hasStar, tuning.baseChancePercent);
   if (deterministicCareerEventRoll(context, 'request:open', 0, 100) >= chance) return next;
 
+  const stateAtDraw = next;
   const base = {
     ...(next.playerRequests!.lastAskingPlayerId === undefined
       ? {}
       : { lastAskingPlayerId: next.playerRequests!.lastAskingPlayerId }),
     minSeasonsAtClub: tuning.minSeasonsAtClub,
+    lineupSurvivesAbsence: (player: CareerPlayer) => lineupSurvivesLeave(stateAtDraw, player),
   };
   const drawn = catalog.requests[
     deterministicCareerEventRoll(context, 'request:pick', 1, catalog.requests.length)
@@ -643,6 +657,27 @@ export function advancePlayerRequests(state: GameState, openRequests: boolean): 
       warned: false,
     },
   });
+}
+
+/**
+ * Whether granting this player leave still leaves a legal eleven — a dry run of
+ * the exact repair a granted absence performs (`resolvePlayerRequest` calls
+ * `repairCareerLineupForInjuries`), so eligibility and application can never
+ * disagree. Non-starters return true untouched; deterministic because the
+ * repair itself is.
+ */
+function lineupSurvivesLeave(state: GameState, player: CareerPlayer): boolean {
+  try {
+    repairCareerLineupForInjuries({
+      ...state,
+      players: state.players.map(candidate => candidate.id === player.id
+        ? { ...candidate, awayWeeks: (candidate.awayWeeks ?? 0) + 1 }
+        : candidate),
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function withRequests(state: GameState, requests: PlayerRequestState): GameState {

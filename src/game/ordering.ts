@@ -30,7 +30,7 @@ export function compareIds(left: string, right: string): number {
 }
 
 /** The fields the league table's order is decided by, and only those. */
-export interface StandingsOrder {
+interface StandingsOrder {
   readonly clubId: string;
   readonly points: number;
   readonly goalDifference: number;

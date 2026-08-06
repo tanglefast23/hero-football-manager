@@ -30,7 +30,8 @@ function matchWith(power: PowerId): { match: MatchState; hero: number } {
       power: index === slot ? power : undefined,
     })),
   };
-  return { match: createMatch(20260721, home, UNITED), hero: slot };
+  // SAVE_FOR_TAP keeps rigged Zones inert so each test fires its power itself.
+  return { match: createMatch(20260721, home, UNITED, { homePolicy: 'SAVE_FOR_TAP' }), hero: slot };
 }
 
 function prepareActivation(match: MatchState, hero: number, power: PowerId): void {

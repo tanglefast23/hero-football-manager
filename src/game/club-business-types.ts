@@ -1,14 +1,14 @@
 export type SponsorProfileId = 'STEADY' | 'BALANCED' | 'BOLD';
-export type SponsorObjectiveLevel = 'EASY' | 'NORMAL' | 'HARD';
+type SponsorObjectiveLevel = 'EASY' | 'NORMAL' | 'HARD';
 export type SponsorObjectiveKind = 'LEAGUE_WINS' | 'LEAGUE_GOALS' | 'LEAGUE_FINISH';
 
-export interface SponsorBrandDefinition {
+interface SponsorBrandDefinition {
   readonly id: string;
   readonly name: string;
   readonly offerLine: string;
 }
 
-export interface SponsorProfileDefinition {
+interface SponsorProfileDefinition {
   readonly monthlyPercent: number;
   readonly objectiveLevel: SponsorObjectiveLevel;
   /** Default objective bonus, retained for old schema-4 rules and common families. */
@@ -17,7 +17,7 @@ export interface SponsorProfileDefinition {
   readonly bonusPercentByObjective?: Readonly<Partial<Record<SponsorObjectiveKind, number>>>;
 }
 
-export interface SponsorObjectiveDefinition {
+interface SponsorObjectiveDefinition {
   readonly id: string;
   readonly kind: SponsorObjectiveKind;
   readonly labelTemplate: string;
@@ -39,7 +39,7 @@ export interface SponsorObjectiveSnapshot {
   readonly nominalBonus: number;
 }
 
-export interface SponsorObjectiveOutcome {
+interface SponsorObjectiveOutcome {
   readonly met: boolean;
   readonly settledSeason: number;
   readonly actualBonus: number;

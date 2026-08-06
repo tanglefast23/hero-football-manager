@@ -1,5 +1,6 @@
 import { currentUserDivision } from '../game/m2-career';
 import { isFacilityOperational } from '../game/facilities';
+import { isAvailableForSelection } from '../game/lineup';
 import {
   careerTransferTarget,
   type CareerMarketState,
@@ -102,7 +103,6 @@ export function careerMarketViewModelSource(
       &&
       player.clubId === state.userClubId
       && player.contractSeasonsRemaining > 0
-      && hasTransferReplacement(state, player)
     ))
     .map(player => {
       const saved = savedSellListings.get(player.id);
@@ -123,6 +123,7 @@ export function careerMarketViewModelSource(
           buyerName: state.clubs.find(club => club.id === bid.buyerClubId)?.name ?? bid.buyerClubId,
           quote: bid.quote,
         })),
+        saleBlockedReason(state, player),
       );
     });
   const transferListings = [...buyListings, ...sellListings].sort((left, right) => {
@@ -303,6 +304,7 @@ function transferListing(
   listed = false,
   savedQuote?: NonNullable<CareerMarketState['transferListings']>[number]['bids'][number]['quote'],
   bids?: TransferListingSource['bids'],
+  saleBlockedReason?: string,
 ): TransferListingSource {
   return {
     player: {
@@ -316,6 +318,7 @@ function transferListing(
     direction,
     sellingClubDivision,
     listed,
+    ...(saleBlockedReason === undefined ? {} : { saleBlockedReason }),
     ...(savedQuote === undefined ? {} : { savedQuote }),
     ...(bids === undefined ? {} : { bids }),
   };
@@ -335,20 +338,51 @@ function valuationPlayer(player: CareerPlayer): ValuationPlayer {
   };
 }
 
-function hasTransferReplacement(state: GameState, player: CareerPlayer): boolean {
+/**
+ * Mirrors market-career's `isEligibleTransferReplacement`: fit, present (no
+ * injury weeks AND no away weeks), and not a bench-locked unlicensed hero.
+ */
+function isEligibleCoverPlayer(candidate: CareerPlayer): boolean {
+  return isAvailableForSelection(candidate)
+    && !(candidate.power !== undefined && !candidate.licensed);
+}
+
+/**
+ * Mirror of the sale path's cover rule (`assertUserSaleKeepsSquadCover` plus
+ * `replaceTransferredStarter` in src/game/market-career.ts): after the sale —
+ * and any starter replacement it triggers — one eligible spare goalkeeper and
+ * one eligible outfield substitute must remain outside the eleven. The reason
+ * is carried on the listing rather than used as a filter, so the sell action
+ * renders disabled with copy instead of erroring on use or vanishing entirely.
+ */
+function saleBlockedReason(state: GameState, player: CareerPlayer): string | undefined {
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
-  if (lineup === undefined || !lineup.playerIds.includes(player.id)) return true;
-  const starters = new Set(lineup.playerIds);
-  return state.players.some(candidate => (
+  if (lineup === undefined) return undefined;
+  const eligibleSpares = (starters: ReadonlySet<string>) => state.players.filter(candidate => (
     candidate.clubId === state.userClubId
     && candidate.id !== player.id
     && !starters.has(candidate.id)
-    && candidate.injuryWeeks === 0
-    && (
-      candidate.role === player.role
-      || (candidate.role !== 'GK' && player.role !== 'GK')
-    )
+    && isEligibleCoverPlayer(candidate)
   ));
+  let starters = new Set(lineup.playerIds);
+  if (starters.has(player.id)) {
+    const benchSpares = eligibleSpares(starters);
+    const replacement = benchSpares.find(candidate => candidate.role === player.role)
+      ?? (player.role === 'GK'
+        ? undefined
+        : benchSpares.find(candidate => candidate.role !== 'GK'));
+    if (replacement === undefined) {
+      return 'A sale needs a fit replacement ready to step into the eleven.';
+    }
+    starters = new Set(lineup.playerIds.map(id => id === player.id ? replacement.id : id));
+  }
+  const spares = eligibleSpares(starters);
+  const covered = spares.some(candidate => candidate.role === 'GK')
+    && spares.some(candidate => candidate.role !== 'GK');
+  if (!covered) {
+    return 'Keep a spare goalkeeper and an outfield substitute for matchday cover.';
+  }
+  return undefined;
 }
 
 function divisionForClub(state: GameState, clubId: string, fallback: number): number {

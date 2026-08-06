@@ -9,13 +9,13 @@ A cozy, Kairosoft-style soccer club management sim where some of your players ar
 
 - **Tests:** `npm test` (Jest; the full deterministic seed sweeps can take ~7 minutes — the pure `src/sim`/`src/render` logic is fully headless-testable). **Types:** `npx tsc --noEmit`. There is no lint script — that's intentional, don't add one.
 - **Metro:** `npx expo start` (defaults to port 8081; pass `--port 8082` to run a second bundler alongside another checkout). The dev app reads its bundle location from the shake-menu setting, which persists; the `-RCT_jsLocation` launch arg does not.
-- **Power live-match review (development only):** `EXPO_PUBLIC_POWER_MATCH_QA=1 npx expo start --web --port 8092`. This runs every launch power one at a time through the real `MatchScreen`, real Atlas players, contextual engine activation, team-colour control-area title, audio, and production effect art. Each scenario briefly holds its authored best-use match situation, then auto-fires at the normal contextual-auto strength. The power has no review timeout: if its best context is not present, it stays banked until that context appears. Previous, Restart, and Next controls cycle and replay the catalog.
+- **Power live-match review (development native or static web only):** `EXPO_PUBLIC_POWER_MATCH_QA=1 npx expo start --web --port 8092`. This runs every launch power one at a time through the real `MatchScreen`, real Atlas players, contextual engine activation, team-colour control-area title, audio, and production effect art. Each scenario briefly holds its authored best-use match situation, then auto-fires at the normal contextual-auto strength. The power has no review timeout: if its best context is not present, it stays banked until that context appears. Previous, Restart, and Next controls cycle and replay the catalog. Native Release builds ignore every QA-root flag.
 - **Power effect-art review (web, development only):** `EXPO_PUBLIC_POWER_ART_QA=1 npx expo start --web --port 8092`. This lighter review reel reuses the production effect layer, but deliberately uses a simplified pitch and demo actors; it is not a live match replay.
-- **Dev Harness (development only):** `EXPO_PUBLIC_DEV_HARNESS=1 npx expo start` — the front door for reviewing any screen. See [Dev Harness](#dev-harness) below.
+- **Dev Harness (development native or static web only):** `EXPO_PUBLIC_DEV_HARNESS=1 npx expo start` — the front door for reviewing any screen. Native Release builds ignore the flag. See [Dev Harness](#dev-harness) below.
 - **Awards ceremony review (development only):** `EXPO_PUBLIC_AWARDS_CEREMONY_QA=1 npx expo start`. Superseded by the Dev Harness, kept working for now. The division awards ceremony plays once a season, so this drives the real `AwardsCeremonyScreen` against fabricated podiums instead: pick a case (mixed / sweep / thin / nothing won), jump straight to any board or to the prize, and toggle reduced motion. Hide the control panel to see the layout untouched.
 - **Simulator:** `npx expo start` then press `i`, or build directly with the XcodeBuildMCP CLI (`simulator build-and-run --scheme HeroFootballManager --workspace-path ios/HeroFootballManager.xcworkspace`). Relaunch pointed at a specific bundler with `xcrun simctl launch <udid> com.tanglefast.herofootballmanager -RCT_jsLocation localhost:8082`.
 - **Native builds** (needed after any icon/audio/native-dep change — Metro can't hot-load native resources): local `xcodebuild` with cloud signing via the ASC API key. `security find-identity` showing 0 local certs is NORMAL (signing is cloud-based); `expo run:ios` fails its local-cert pre-check, so don't use it. Export `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8` for CocoaPods. Device install: wireless (needs the one-time cabled network-pairing toggle) or the TestFlight upload pipeline.
-    - **Engine version discipline:** any replay-affecting `src/sim` change bumps `ENGINE_VERSION` in `src/sim/match.ts` and regenerates the golden snapshot (`npx jest src/sim/__tests__/parity-replay.test.ts -u`) in the same commit. Current engine: **m2.0**.
+    - **Engine version discipline:** any replay-affecting `src/sim` change bumps `ENGINE_VERSION` in `src/sim/match.ts` and regenerates the golden snapshot (`npx jest src/sim/__tests__/parity-replay.test.ts -u`) in the same commit. Current engine: **m2.1**.
 
 ## Dev Harness
 
@@ -38,7 +38,7 @@ npx serve dist
 
 `--clear` is not optional: a cached transform keeps the previous flag inlined and you will debug a stale bundle.
 
-The flag is the only way in. A build without it inlines `undefined` at the check in `App()`, so the branch is dead code and no route a player can reach leads here.
+The flag is the only way in. `App()` also refuses all QA roots on native Release builds, so an accidentally exported flag still cannot replace the real App Store game. Static web review exports continue to accept the flag even though `__DEV__` is false.
 
 **Deep links**
 
@@ -121,7 +121,7 @@ Research reports (source material, written by research agents):
 | Buzz | Season 3 unlocks Buzz from wins, goals, and distinct hero power moments; it pays sponsor cash at Weeks 15 and 30, then resets |
 | Currencies | Money + Training Points (TP) — each with exactly one job |
 | Contract talks | Offer/counter with mood meter; a light card mini-game influences (max ±20%) but never fully decides |
-| Superpower acquisition | Risky chance events (wage stays locked until renewal) + rare expensive pre-powered signings |
+| Superpower acquisition | Flat 10% post-match awakening check (3-match cooldown, wage stays locked until renewal) + rare expensive pre-powered signings; chance events never award powers *(corrected 2026-08-05 — this entry previously described the rejected risky-chance-event design)* |
 | Hero field limit | "Hero License" slots: 2 on the pitch at start, up to 4 via club prestige; squad ownership uncapped |
 | Salaries | Weekly wages for everyone; raises at contract renewal; hero-rate renewals (×3–5) after awakening |
 | Players | Fictional, procedurally generated (no licensing risk); gentle aging with retirement and a legacy system |
@@ -152,6 +152,7 @@ in [the scale-invariant attributes master spec](docs/superpowers/plans/2026-07-2
 
 ## Deliberately deferred (not forgotten)
 
+- Sprite squash-and-stretch on kicks — cut 2026-08-05 (struck from doc 08's juice budget): the Atlas batched renderer only applies uniform RSXform scale, so it cannot express non-uniform squash. If revived, ship it as pre-authored squashed/stretched kick frames selected on PASS/SHOT events — a frame swap fits the Atlas pipeline
 - Final mix balance — decide during M4 polish
 - PC input mapping and landscape layouts — decide at the PC port spike
 - Localization beyond English — post-launch

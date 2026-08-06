@@ -10,8 +10,10 @@ describe('M2 game-state codec', () => {
   test('round-trips the full pyramid, cup, market, youth intake, facilities, and lifecycle metadata', () => {
     const initial = createCareer(createLaunchCareerSetup(20260719));
     const built = buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state;
+    // Not the reserve keeper: listing the only spare goalkeeper is now blocked.
     const listedPlayer = built.players.find(player => (
       player.clubId === built.userClubId
+      && player.role !== 'GK'
       && !built.lineups.find(lineup => lineup.clubId === built.userClubId)?.playerIds.includes(player.id)
     ))!;
     const transferListings = listCareerPlayer(
@@ -35,6 +37,19 @@ describe('M2 game-state codec', () => {
         assistantCoachSeasonsEmployed: 0,
         transferListings,
       },
+      cashTransactions: [
+        ...built.cashTransactions!,
+        {
+          id: 'tx-event-1',
+          season: built.season,
+          week: built.week,
+          kind: 'event' as const,
+          label: 'Giant spider adopted',
+          amount: -1200,
+          balanceAfter: built.clubs[0].cash - 1200,
+          referenceId: 'giant-spider-arrives',
+        },
+      ],
     };
 
     const restored = parseStoredGameState(serializeGameState(state));
@@ -46,7 +61,8 @@ describe('M2 game-state codec', () => {
     expect(restored.youthIntake).toEqual(state.youthIntake);
     expect(restored.youthIntake?.offers.length).toBeGreaterThanOrEqual(1);
     expect(restored.cashTransactions).toEqual(state.cashTransactions);
-    expect(restored.cashTransactions).toHaveLength(1);
+    expect(restored.cashTransactions).toHaveLength(2);
+    expect(restored.cashTransactions![1].kind).toBe('event');
     expect(restored.players[0]).toMatchObject({
       motivatorMoraleRemainderHalfPoints: 125,
       coachTrainingBonusRemainders: { sho: 30, sta: 75 },

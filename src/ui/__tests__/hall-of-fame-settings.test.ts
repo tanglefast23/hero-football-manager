@@ -77,6 +77,7 @@ function overlay(overrides: Partial<SettingsOverlayProps>) {
     open: true,
     glossary: { schemaVersion: 1, categories: [] },
     glossaryOpen: false,
+    privacySupportOpen: false,
     volume: 1,
     reduceMotion: false,
     hudSide: 'left',
@@ -94,8 +95,10 @@ function overlay(overrides: Partial<SettingsOverlayProps>) {
     onToggleHighContrast: jest.fn(),
     onToggleColorSafeKits: jest.fn(),
     onToggleCutInMode: jest.fn(),
+    onEmailSupport: jest.fn(),
     onSetAssistantMode: jest.fn(),
     onGlossaryOpenChange: jest.fn(),
+    onPrivacySupportOpenChange: jest.fn(),
     onOpenChange: jest.fn(),
     ...overrides,
   });

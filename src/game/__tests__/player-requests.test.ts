@@ -227,6 +227,33 @@ describe('eligibleAskers', () => {
     expect(eligibleAskers(squad, { minSeasonsAtClub: 0, absence: true }).map(c => c.id))
       .toEqual([]);
   });
+
+  it('excludes a starter whose absence the lineup cannot survive', () => {
+    // A bare-eleven roster can reach here through player sales. Granting leave
+    // to any starter then throws inside lineup repair, so the ask must never be
+    // offered in the first place.
+    const squad = [player({ id: 'starter' }), player({ id: 'reserve' })];
+
+    const ids = eligibleAskers(squad, {
+      minSeasonsAtClub: 0,
+      absence: true,
+      lineupSurvivesAbsence: candidate => candidate.id !== 'starter',
+    }).map(candidate => candidate.id);
+
+    expect(ids).toEqual(['reserve']);
+  });
+
+  it('ignores the lineup check for a request that keeps the player home', () => {
+    const squad = [player({ id: 'starter' }), player({ id: 'reserve' })];
+
+    const ids = eligibleAskers(squad, {
+      minSeasonsAtClub: 0,
+      absence: false,
+      lineupSurvivesAbsence: () => false,
+    }).map(candidate => candidate.id);
+
+    expect(ids).toEqual(['starter', 'reserve']);
+  });
 });
 
 describe('pickAsker', () => {
@@ -773,6 +800,30 @@ describe('advancePlayerRequests', () => {
 
     expect(next.playerRequests!.pending).toBeDefined();
     expect(next.playerRequests!.weeksSinceRequest).toBe(41);
+  });
+
+  it('never offers a bare-eleven squad a leave request it cannot survive', () => {
+    // With no bench at all, every player is a starter with no replacement, so
+    // every absence request would throw inside lineup repair on Grant. A
+    // catalog of nothing but absence requests must therefore open nothing.
+    const base = tickingCareer();
+    const starters = new Set(
+      base.lineups.find(lineup => lineup.clubId === base.userClubId)!.playerIds,
+    );
+    const bareEleven: GameState = {
+      ...atSeason(base, 3),
+      week: 10,
+      players: base.players.filter(candidate => (
+        candidate.clubId !== base.userClubId || starters.has(candidate.id)
+      )),
+      playerRequestRules: {
+        ...CATALOG,
+        requests: CATALOG.requests.filter(request => request.cost.kind === 'ABSENCE'),
+      },
+      playerRequests: { ...DEFAULT_PLAYER_REQUEST_STATE, weeksSinceRequest: 40 },
+    };
+
+    expect(advancePlayerRequests(bareEleven, true).playerRequests!.pending).toBeUndefined();
   });
 
   it('is save-stable: the same week resolves to the same asker and request', () => {

@@ -119,7 +119,7 @@ export type OutReason = 'ko' | 'ignited' | 'redcard';
  * is locked at launch; movement and contact resolution advance from this same
  * state on every deterministic tick.
  */
-export interface SlideTackleState {
+interface SlideTackleState {
   targetIdx: number;
   startTick: number;
   untilTick: number;
@@ -313,7 +313,7 @@ export type MatchInput =
   | { tick: number; kind: 'SUBSTITUTE'; player: number; replacementId: string };
 
 export interface MatchOpts {
-  homePolicy?: FirePolicy;   // default SAVE_FOR_TAP
+  homePolicy?: FirePolicy;   // default FIRE_WHEN_READY (SAVE_FOR_TAP is explicit test instrumentation)
   awayPolicy?: FirePolicy;   // default FIRE_WHEN_READY
   controlledTeam?: 0 | 1;   // watched side; enables replay-recorded coaching inputs
   homeFormation?: FormationId;
