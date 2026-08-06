@@ -229,6 +229,7 @@
     "postMatchLedger.matchComplete": "Partido terminado",
     "postMatchSummary.a11y.closeFinancialReport": "Cerrar el informe económico",
     "postMatchSummary.a11y.continuePastTheFinancialReport": "Pasar del informe económico",
+    "postMatchSummary.a11y.showTheRestOfTheStatement": "Ver el resto del informe",
     "postMatchSummary.backAtTheOffice": "De vuelta en la oficina",
     "postMatchSummary.financialReport": "Informe económico",
     "powerArtQa.a11y.showNextPower": "Siguiente poder",
