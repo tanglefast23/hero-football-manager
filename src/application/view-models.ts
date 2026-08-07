@@ -6,6 +6,12 @@ import {
   type LaunchContent,
 } from '../content';
 import { adjacencyDescription, copyOrEnglish, facilityName, resolveRingCopy } from './copy-fallback';
+import {
+  archetypeName,
+  coachSpecialtyName,
+  personalityName,
+  trainingModifierLabel,
+} from './name-copy';
 import { managerNotes } from './manager-notes';
 import { eventOfferForWeek } from './event-selection';
 import {
@@ -207,8 +213,12 @@ export function clubLegacyViewModel(
     playerName: legend.name,
     role: legend.role,
     lookId: legend.lookId,
+    // The id and the word are separate fields on purpose: the id is persisted
+    // and switched on, the label is drawn. See `name-copy.ts`.
     archetype: legend.archetype ?? 'All-Rounder',
+    archetypeLabel: archetypeName(t, legend.archetype ?? 'All-Rounder'),
     personality: legend.personality ?? 'Professional',
+    personalityLabel: personalityName(t, legend.personality ?? 'Professional'),
     fame: legend.fame ?? 0,
     seasonsAtClub: legend.seasonsAtClub ?? 0,
     isHero: legend.power !== undefined,
@@ -306,12 +316,16 @@ export function awakeningCutsceneViewModel(
       ? t('awakening.licenseActive')
       : t('awakening.licenseAwaiting'),
     continueLabel: pending.firstHero
-      ? 'BEGIN THE HERO ERA  ▸'
+      // Spoken, never drawn: the visible button is `powerAcquiredDemo.continue`
+      // and this reaches only the accessibility label. The `▸` went with the
+      // English — a screen reader announces U+25B8 as "black right-pointing
+      // small triangle", which is decoration read aloud as furniture.
+      ? t('awakening.continue.heroEra')
       : state.phase === 'season-end' || state.phase === 'complete'
-        ? 'CONTINUE TO SEASON REVIEW  ▸'
+        ? t('awakening.continue.seasonReview')
         : hasPostMatchReport
-          ? 'CONTINUE TO MATCH REPORT  ▸'
-          : 'RETURN TO THE OFFICE  ▸',
+          ? t('awakening.continue.matchReport')
+          : t('awakening.continue.office'),
   };
 }
 
@@ -923,9 +937,10 @@ function coachingStaffViewModels(state: GameState, t: CopyFn): readonly CoachSta
       portraitId: state.market.headCoach.portraitId ?? state.market.headCoach.id,
       name: state.market.headCoach.name,
       age: state.market.headCoach.age ?? 45,
-      personalityLabel: readableLabel(state.market.headCoach.personality),
+      personalityLabel: personalityName(t, state.market.headCoach.personality),
       level: state.market.headCoach.level,
-      specialtyLabels: state.market.headCoach.specialties.map(readableLabel) as [string, string],
+      specialtyLabels: state.market.headCoach.specialties
+        .map(specialty => coachSpecialtyName(t, specialty)) as [string, string],
       effectLabels: coachRoleEffectLabels(state.market.headCoach, 'HEAD', t),
       weeklyWage: state.market.headCoach.weeklyWage,
       seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
@@ -938,9 +953,10 @@ function coachingStaffViewModels(state: GameState, t: CopyFn): readonly CoachSta
       portraitId: state.market.assistantCoach.portraitId ?? state.market.assistantCoach.id,
       name: state.market.assistantCoach.name,
       age: state.market.assistantCoach.age ?? 45,
-      personalityLabel: readableLabel(state.market.assistantCoach.personality),
+      personalityLabel: personalityName(t, state.market.assistantCoach.personality),
       level: state.market.assistantCoach.level,
-      specialtyLabels: state.market.assistantCoach.specialties.map(readableLabel) as [string, string],
+      specialtyLabels: state.market.assistantCoach.specialties
+        .map(specialty => coachSpecialtyName(t, specialty)) as [string, string],
       effectLabels: coachRoleEffectLabels(state.market.assistantCoach, 'ASSISTANT', t),
       weeklyWage: state.market.assistantCoach.weeklyWage,
       seasonsEmployed: state.market.assistantCoachSeasonsEmployed ?? 0,
@@ -2871,8 +2887,13 @@ export function squadTrainingViewModel(
         canTrain: isAvailableForSelection(player),
         isStarter: starterIds.has(player.id),
         age: player.age ?? 24,
+        // The player file draws `archetypeLabel`, but `archetype` is what
+        // `archetypeDevelopmentSummary` looks its training bonus up by — a
+        // translated id lands every player on the "+ BALANCED" fallback.
         archetype: player.archetype ?? 'All-Rounder',
+        archetypeLabel: archetypeName(t, player.archetype ?? 'All-Rounder'),
         personality: player.personality ?? 'Professional',
+        personalityLabel: personalityName(t, player.personality ?? 'Professional'),
         morale: player.morale,
         loyalty: playerLoyalty(player, state.careerSeed),
         fame: player.fame ?? 0,
@@ -2927,7 +2948,10 @@ export function squadTrainingViewModel(
             currentValue,
             baseValueAfter: preview.baseAfter,
             trainingAdjustment: preview.adjustment,
-            trainingModifiers: preview.modifiers,
+            trainingModifiers: preview.modifiers.map(modifier => ({
+              label: trainingModifierLabel(t, modifier),
+              helps: modifier.helps,
+            })),
             // The stored value, never the displayed one: a keeper whose card
             // has stalled at 999 may still have real room to train.
             atSafetyCeiling: selectedPlayer.attrs[path.attribute] >= 999,
@@ -3850,8 +3874,4 @@ function requireUserClub(state: GameState) {
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
   if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
   return club;
-}
-
-function readableLabel(value: string): string {
-  return value.charAt(0) + value.slice(1).toLowerCase();
 }

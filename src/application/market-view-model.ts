@@ -28,6 +28,14 @@ import { divisionTierLabelWith, type DivisionLevel } from '../game/pyramid';
 import { contractTermOptions, shortContractReasonCopy } from '../game/retirement';
 import { resolveRingCopy } from './copy-fallback';
 import {
+  archetypeName,
+  coachSpecialtyName,
+  personalityName,
+  powerDisplayName,
+  readableToken,
+  scoutRegionName,
+} from './name-copy';
+import {
   playerPotentialGrade,
   POTENTIAL_GRADES,
   superTrainingChancePercent,
@@ -344,7 +352,7 @@ export function marketViewModel(
           ),
           ...(report.power === undefined
             ? {}
-            : { powerLabel: identity?.powerName ?? readableId(report.power) }),
+            : { powerLabel: identity?.powerName ?? powerDisplayName(t, report.power) }),
           ...(report.rumoredHeroLead === true && report.power === undefined
             ? { rumorLabel: t('market.heroRumorLooksReal') }
             : {}),
@@ -385,12 +393,12 @@ export function marketViewModel(
         level: candidate.level,
         levelLabel: `Lv${candidate.level}`,
         specialtyLabels: [
-          readableId(candidate.specialties[0]),
-          readableId(candidate.specialties[1]),
+          coachSpecialtyName(t, candidate.specialties[0]),
+          coachSpecialtyName(t, candidate.specialties[1]),
         ],
         headEffectLabels: coachRoleEffectLabels(candidate, 'HEAD', t),
         assistantEffectLabels: coachRoleEffectLabels(candidate, 'ASSISTANT', t),
-        personalityLabel: readableId(candidate.personality),
+        personalityLabel: personalityName(t, candidate.personality),
         weeklyWage: candidate.weeklyWage,
         headWeeklyWage,
         assistantWeeklyWage,
@@ -404,7 +412,7 @@ export function marketViewModel(
           : {}),
         ...(candidate.unlockId === undefined
           ? {}
-          : { unlockLabel: t('market.teachesUnlock', { unlock: unlockName(candidate.unlockId) }) }),
+          : { unlockLabel: t('market.teachesUnlock', { unlock: unlockName(candidate.unlockId, t) }) }),
         available: headAvailable || assistantAvailable,
         headAvailable,
         assistantAvailable,
@@ -477,7 +485,7 @@ function youthIntakeViewModel(
         role: offer.player.role,
         lookId: offer.player.lookId,
         ageLabel: t('market.ageLabel', { age: offer.player.age }),
-        archetypeLabel: offer.player.archetype,
+        archetypeLabel: archetypeName(t, offer.player.archetype),
         potentialLabel: exactPotentialLabel(offer.player.id, offer.player.potential),
         stats: youthStatLine(offer.player.role, offer.player.attrs),
         signingBonus: offer.signingBonus,
@@ -528,7 +536,7 @@ function scoutingStatus(
   }
   return {
     kind: 'IN_PROGRESS',
-    headline: t('market.scoutTripInProgress', { region: regionLabel(mission.region) }),
+    headline: t('market.scoutTripInProgress', { region: scoutRegionName(t, mission.region) }),
     detail: source.activeScoutMissionFeeWaived === true
       ? t('market.scoutBriefFeeWaived', { focus: focusLabel(mission.focus, t) })
       : t('market.scoutBriefPaid', {
@@ -554,7 +562,7 @@ function scoutingChoice(
   return {
     id: option.id,
     region: option.region,
-    regionLabel: option.regionLabel ?? regionLabel(option.region),
+    regionLabel: option.regionLabel ?? scoutRegionName(t, option.region),
     focusLabel: focusLabel(option.focus, t),
     detail: option.detail ?? focusDetail(option.focus, t),
     cost,
@@ -786,7 +794,7 @@ export function marketNegotiationViewModel(
     playerRole: source.playerRole ?? 'MID',
     lookId: source.lookId,
     personality: negotiation.personality,
-    personalityLabel: readableId(negotiation.personality),
+    personalityLabel: personalityName(t, negotiation.personality),
     status: negotiation.status,
     mood: negotiation.mood,
     moodFace: mood.face,
@@ -878,24 +886,23 @@ function focusDetail(focus: ScoutFocus, t: CopyFn): string {
   return t('market.focusHeroDetail');
 }
 
-function regionLabel(region: ScoutRegion): string {
-  return readableId(region);
-}
-
-/** Formation unlocks keep their shape ("4-3-3"); other unlocks read as words. */
-function unlockName(unlockId: string): string {
+/**
+ * Formation unlocks keep their shape ("4-3-3"), which is the same in every
+ * language. `DEFAULT_COACH_CONTENT_UNLOCK_IDS` holds exactly one id today and
+ * it is a formation, so the second branch is the shape a future drill unlock
+ * would take: `drill:duels-3` resolves through the drill's own content key, and
+ * only an id neither table knows falls through to the prettifier.
+ */
+function unlockName(unlockId: string, t: CopyFn): string {
   const formation = /^formation[-_:]?(.+)$/i.exec(unlockId);
-  return formation === null ? readableId(unlockId) : formation[1];
-}
-
-function readableId(value: string): string {
-  return value
-    .replace(/^formation[-_:]?/i, '')
-    .replace(/^drill[-_:]?/i, '')
-    .split(/[_-]/g)
-    .filter(Boolean)
-    .map(word => `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`)
-    .join(' ');
+  if (formation !== null) return formation[1];
+  const drill = /^drill[-_:]?(.+)$/i.exec(unlockId);
+  if (drill !== null) {
+    const key = `drill.${drill[1]}.name`;
+    const resolved = t(key);
+    if (resolved !== key) return resolved;
+  }
+  return readableToken(unlockId);
 }
 
 function formatMoney(value: number): string {

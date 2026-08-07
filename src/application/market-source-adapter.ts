@@ -24,6 +24,7 @@ import {
   isStoryYouthUnlocked,
 } from '../game/story-progression';
 import { copyFor, type CopyFn } from '../i18n';
+import { powerDisplayName } from './name-copy';
 import type { MarketSectionId } from '../ui/market-models';
 import type {
   MarketViewModelSource,
@@ -154,7 +155,7 @@ export function careerMarketViewModelSource(
         ? {}
         : {
           powerName: t('market.powerAndTier', {
-            power: readableId(player.power),
+            power: powerDisplayName(t, player.power),
             tier: player.powerTier ?? 1,
           }),
         }),
@@ -335,7 +336,7 @@ function transferListing(
       ...(revealPower && player.power !== undefined
         ? {
           powerName: t('market.powerAndTier', {
-            power: readableId(player.power),
+            power: powerDisplayName(t, player.power),
             tier: player.powerTier ?? 1,
           }),
         }
@@ -487,12 +488,6 @@ function marketCursor(careerSeed: number, season: number, week: number): number 
   value = Math.imul(value ^ (value >>> 16), 0x7feb352d) >>> 0;
   value = Math.imul(value ^ (value >>> 15), 0x846ca68b) >>> 0;
   return (value ^ (value >>> 16)) >>> 0;
-}
-
-function readableId(value: string): string {
-  return value.split('_').map(word => (
-    `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`
-  )).join(' ');
 }
 
 function stableTextCompare(left: string, right: string): number {

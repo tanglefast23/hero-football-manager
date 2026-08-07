@@ -388,11 +388,14 @@ export function AwakeningCutsceneScreen({
       ? `${viewModel.triggerCopy} ${viewModel.omenCopy}`
       : viewModel.revealCopy;
   const focusY = centerY - (beat === 3 ? 70 : 0);
+  // Keyed under `awakening.`, beside the beat kickers they sit under, because
+  // that namespace already classifies `display` — these four are pixel type in
+  // a bordered chip, and the glyph gate has to check them against that face.
   const tapHint = !advanceReady
-    ? 'TAP TO SKIP'
+    ? t('awakening.tapToSkip')
     : beat === 3
-      ? viewModel.firstHero ? 'HERO #1' : 'NEW HERO'
-      : 'TAP TO CONTINUE';
+      ? viewModel.firstHero ? t('awakening.firstHero') : t('awakening.newHero')
+      : t('awakening.tapToContinue');
   /**
    * One tap, two jobs. Mid-beat it jumps to the end of what is playing rather
    * than fast-forwarding through it: at 3x the hobble and the huddle are a blur,
@@ -444,7 +447,7 @@ export function AwakeningCutsceneScreen({
             the cutscene. */}
         <View style={styles.header} pointerEvents="none">
           <View>
-            <Text style={styles.eyebrow}>FINAL WHISTLE · AWAKENING</Text>
+            <Text style={styles.eyebrow}>{t('awakening.eyebrow')}</Text>
             <Text style={styles.fixture}>{viewModel.fixtureLabel}</Text>
           </View>
           <View style={styles.counter}>
@@ -489,7 +492,7 @@ export function AwakeningCutsceneScreen({
             />
           </Canvas>
           <View style={styles.fullTimeBug}>
-            <Text style={styles.fullTimeText}>FULL TIME</Text>
+            <Text style={styles.fullTimeText}>{t('awakening.fullTime')}</Text>
           </View>
           {beat === 2 ? (
             <View style={styles.biteCallout}>
@@ -537,7 +540,7 @@ export function AwakeningCutsceneScreen({
             {beat === 3 ? <Text style={styles.powerName}>{viewModel.powerName}</Text> : null}
             {beat === 3 ? (
               <View style={styles.powerDescriptionCard}>
-                <Text style={styles.powerDescriptionLabel}>WHAT IT DOES</Text>
+                <Text style={styles.powerDescriptionLabel}>{t('awakening.whatItDoes')}</Text>
                 <Text style={styles.powerDescription}>{viewModel.powerDescription}</Text>
               </View>
             ) : null}
@@ -547,7 +550,7 @@ export function AwakeningCutsceneScreen({
             {beat === 3 ? (
               <View style={styles.heroFooter}>
                 <Text style={styles.license}>{viewModel.licenseLabel}</Text>
-                <AwakeningCta label="WATCH EXAMPLE ›" reduceMotion={reduceMotion} />
+                <AwakeningCta label={t('awakening.watchExample')} reduceMotion={reduceMotion} />
               </View>
             ) : null}
           </View>

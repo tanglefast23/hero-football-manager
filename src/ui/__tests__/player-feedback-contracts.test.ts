@@ -66,13 +66,13 @@ describe('new power explanation contract', () => {
     expect(viewModels).toContain(
       'powerDescription: copyOrEnglish(t, `powerEffect.${powerSlug}.description`, power.description)',
     );
-    expect(awakening).toContain('WHAT IT DOES');
+    expect(awakening).toContain("t('awakening.whatItDoes')");
     expect(awakening).toContain('description={viewModel.powerDescription}');
     expect(awakening).toContain('<PowerAcquiredDemoModal');
     // The button opens a scripted demo of the power, not the manager's own
     // match, so it says what it actually shows. It breathes in size on the
     // halo's own value, so the one thing left to tap is the one thing moving.
-    expect(awakening).toContain('WATCH EXAMPLE');
+    expect(awakening).toContain("t('awakening.watchExample')");
     expect(awakening).toContain('outputRange: reduceMotion ? [1, 1] : [1, CTA_PULSE_MAX_SCALE]');
     expect(awakening).toContain('style={[styles.ctaChip, { transform: [{ scale }] }]}');
     expect(demo).toContain('<MatchScreen');

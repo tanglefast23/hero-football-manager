@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { ENABLED_LOCALES, loadCatalog } from '../../i18n';
 import { PITCH_H, PITCH_W } from '../../sim/geometry';
 import { awakeningViewportHeight } from '../screens/awakening-progression';
 
@@ -54,9 +55,34 @@ describe('awakening cutscene framing', () => {
     expect(source).toContain('skipBeatRef.current = () => {');
     // The picture is a tap target too, not just the text panel underneath it.
     expect(source).toContain('style={StyleSheet.absoluteFill}');
-    expect(source).toContain("'TAP TO SKIP'");
+    // The hint the skip tap is offered by. It was the literal 'TAP TO SKIP'
+    // until the cut-scene was keyed; what this pins is that the hint still
+    // exists, not which language it is in.
+    expect(source).toContain("t('awakening.tapToSkip')");
     // Nothing may be disabled while a beat plays, or the skip tap goes nowhere.
     expect(source).not.toContain('disabled={!advanceReady}');
+  });
+
+  /**
+   * The four labels on the tap chip. They were typed English in the component
+   * — the last strings on this screen that were — and a component literal is
+   * invisible to every i18n gate: nothing fails, the cut-scene just plays in
+   * English inside a German career.
+   */
+  it('takes its tap hints from the catalog, in every language', () => {
+    const source = sceneSource();
+
+    for (const literal of ['TAP TO SKIP', 'TAP TO CONTINUE', 'HERO #1', 'NEW HERO']) {
+      expect({ literal, hardcoded: source.includes(`'${literal}'`) })
+        .toEqual({ literal, hardcoded: false });
+    }
+    const keys = ['tapToSkip', 'tapToContinue', 'firstHero', 'newHero'];
+    for (const key of keys) expect(source).toContain(`t('awakening.${key}')`);
+    for (const locale of ENABLED_LOCALES) {
+      const strings = loadCatalog(locale).strings;
+      expect({ locale, missing: keys.filter(key => strings[`awakening.${key}`] === undefined) })
+        .toEqual({ locale, missing: [] });
+    }
   });
 
   it('would have put the old anchor off screen on a desktop window', () => {

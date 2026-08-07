@@ -1,5 +1,6 @@
 import type { EventCatalog } from '../content';
 import { copyFor, type CopyFn } from '../i18n';
+import { facilityNameFromId, personalityName } from './name-copy';
 import {
   deterministicCareerEventRoll,
   currentUserDivision,
@@ -274,15 +275,20 @@ function requirementFailure(
       building.type === requirements.requiredFacility && isFacilityOperational(grid, building.id)
     ));
     if (!built) {
+      // The raw id used to be dashed-into-words here, so a translated sentence
+      // asked a German manager for a "training pitch". The building already has
+      // a name in six languages under `facility.name.*`.
       return t('storyEvent.requiresFacility', {
-        facility: requirements.requiredFacility.replaceAll('-', ' '),
+        facility: facilityNameFromId(t, requirements.requiredFacility),
       });
     }
   }
   const roster = state.players.filter(player => player.clubId === state.userClubId);
   if (requirements.requiredPersonality !== undefined
     && !roster.some(player => player.personality === requirements.requiredPersonality)) {
-    return t('storyEvent.requiresPersonality', { personality: requirements.requiredPersonality });
+    return t('storyEvent.requiresPersonality', {
+      personality: personalityName(t, requirements.requiredPersonality),
+    });
   }
   if (requirements.requiresHero === true && !roster.some(player => player.power !== undefined)) {
     return t('storyEvent.requiresHero');

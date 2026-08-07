@@ -8,7 +8,7 @@ import type {
 import type { PotentialGrade } from '../game/archetype-caps';
 import type { AwardCategoryId, LedgerLineReveal } from '../game/types';
 import type { PowerId, Role } from '../sim/types';
-import type { TrainingModifier } from '../game/training';
+
 
 export type ManagementTab = 'home' | 'squad' | 'club' | 'market' | 'league';
 
@@ -427,7 +427,14 @@ export interface SquadPlayerViewModel {
   canTrain: boolean;
   isStarter: boolean;
   age: number;
+  /**
+   * The persisted archetype ID, not a word. `archetypeDevelopmentSummary` looks
+   * its training bonus up by this, so it must never carry a translation — draw
+   * `archetypeLabel` instead.
+   */
   archetype: string;
+  /** The archetype's name in the player's language. */
+  archetypeLabel: string;
   potentialGrade: PotentialGrade;
   /** Chance the next drill is a SUPER (1.5x) session, from the potential grade. */
   superChancePercent: number;
@@ -436,7 +443,10 @@ export interface SquadPlayerViewModel {
   /** Tap-time injury gamble at current condition; 0 above the fatigue line. */
   injuryRiskPercent: number;
   positionTrainingLabel: string;
+  /** The persisted personality ID; `personalityExplainer` keys off it. */
   personality: string;
+  /** The personality's name in the player's language. */
+  personalityLabel: string;
   morale: number;
   /** How much they want to stay, 0-100. Decides the price of the next contract. */
   loyalty: number;
@@ -493,6 +503,12 @@ export interface CoachStaffMemberViewModel {
   severanceCost: number;
 }
 
+/** One resolved bonus name on the drill confirmation card. */
+export interface TrainingModifierLabel {
+  readonly label: string;
+  readonly helps: boolean;
+}
+
 export interface TrainingSlotStatOption {
   pathId: string;
   /** Display label for the stat, e.g. "Defense". */
@@ -511,9 +527,15 @@ export interface TrainingSlotStatOption {
   baseValueAfter: number;
   /** Signed whole-point difference from player and club training modifiers. */
   trainingAdjustment: number;
-  /** Active modifiers grouped for the confirmation card. */
-  /** Each influence on this drill's result, with the direction it pushes. */
-  trainingModifiers: readonly TrainingModifier[];
+  /**
+   * Each influence on this drill's result, with the direction it pushes.
+   *
+   * Already resolved to words. `src/game/training.ts` emits a kind and a token
+   * instead of a sentence — it may not reach the catalog — and the view model
+   * turns the pair into the player's language, so the modal draws what it is
+   * handed rather than knowing which bonuses exist.
+   */
+  trainingModifiers: readonly TrainingModifierLabel[];
   /** True at the invisible 999 safety ceiling; never shown as a number. */
   atSafetyCeiling: boolean;
   /** False when the TP bank cannot cover this drill right now. */
@@ -1143,8 +1165,11 @@ export interface ClubLegacyViewModel {
   playerName: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   lookId?: string;
+  /** Persisted IDs; the chips draw the two labels beside them. */
   archetype: string;
+  archetypeLabel: string;
   personality: string;
+  personalityLabel: string;
   fame: number;
   seasonsAtClub: number;
   /** True when the legend played with a power. A hero's farewell reads differently. */
