@@ -155,10 +155,10 @@ import { copyFor, type CopyFn, type CopyParams } from '../i18n';
  * the locale arrives by injection instead: `setStoreCopy` points this at the
  * active language, and until something calls it every message reads English.
  *
- * NOT YET WIRED. `App.tsx` already holds the language (`preferences.language`,
- * the same value it feeds `LocaleProvider`) and is the one place that should
- * call `setStoreCopy` when it changes; that call site is outside this file and
- * is still to be made. Nothing breaks in the meantime — English is the default.
+ * `App.tsx` is the one caller: it holds the language (`preferences.language`,
+ * the same value it feeds `LocaleProvider`) and calls `setStoreCopy` during
+ * render, so the very first action of a frame already speaks the right
+ * language. Until it runs, English is the default.
  */
 let storeCopyFn: CopyFn | undefined;
 
@@ -1103,7 +1103,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // card is already on the desk when the manager first sees the new week.
       const next = settleWeeklyTip(settleWeeklyStory(withMilestone));
       const weekReview = next.phase === 'manage' && next.week !== career.week
-        ? weeklyReviewViewModel(career, next)
+        ? weeklyReviewViewModel(career, next, t)
         : null;
       // Announced on arrival at a new week that has a fixture, and only then:
       // the week review comes first, so the card is waiting on the desk behind
@@ -1193,6 +1193,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         userResult,
         [],
         production.powerFiredPlayerIds,
+        t,
       );
       const destination = awakening.awakened ? 'awakening' as const : 'postmatch' as const;
       /**
@@ -1220,7 +1221,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
             clubTeam,
             opponentTeam,
             outcomeLabel: postMatch.result.outcomeLabel,
-          });
+          }, t);
       set({
         career: next,
         postMatch,
@@ -1327,6 +1328,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         supplied,
         highlights,
         production.powerFiredPlayerIds,
+        t,
       );
       set({
         career: next,
@@ -1950,7 +1952,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       const market = requireMarket(career);
-      const option = careerMarketScoutOptions(career).find(candidate => candidate.id === optionId);
+      const option = careerMarketScoutOptions(career, t).find(candidate => candidate.id === optionId);
       if (option === undefined) throw new Error(`unknown scouting brief ${optionId}`);
       const transaction = startCareerScoutMission(
         career,
@@ -2315,7 +2317,7 @@ function resolveContentEvent(state: GameState, choiceId: string): GameState {
   if (event.trigger.requiresPlayer === true && pending.selectedPlayerId === undefined) {
     throw new Error('choose a player before resolving this event');
   }
-  const unavailableReason = eventChoiceUnavailableReason(state, choice);
+  const unavailableReason = eventChoiceUnavailableReason(state, choice, t);
   if (unavailableReason !== undefined) throw new Error(unavailableReason);
 
   const total = choice.outcomes.reduce((sum, candidate) => sum + candidate.weight, 0);
@@ -2461,7 +2463,7 @@ function matchDayBannerOnArrival(
   waiting: MatchDayBannerViewModel | null,
 ): MatchDayBannerViewModel | null {
   if (next.week === before.week && next.season === before.season) return waiting;
-  return matchDayBannerViewModel(next);
+  return matchDayBannerViewModel(next, t);
 }
 
 function seasonBoundaryScreen(career: GameState): M1Screen {

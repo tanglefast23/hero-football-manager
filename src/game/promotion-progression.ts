@@ -57,7 +57,13 @@ const TRAINING_DRILL_UPGRADE_COST: Readonly<Record<Exclude<TrainingDrillTier, 1>
   5: 40_000,
 };
 
-/** `<key>.title` and `<key>.detail`, so a reward names one catalog entry. */
+/**
+ * `<key>.title` and `<key>.detail`, so a reward names one catalog entry.
+ *
+ * @i18n-fallback — the English arrives here as arguments and is kept beside the
+ * keys as the fallback. `src/game` may not import `src/i18n`, so the UI resolves
+ * `titleKey`/`detailKey` and only falls back to these words if a key is missing.
+ */
 function reward(key: string, title: string, detail: string): PromotionReward {
   return { title, detail, titleKey: `${key}.title`, detailKey: `${key}.detail` };
 }

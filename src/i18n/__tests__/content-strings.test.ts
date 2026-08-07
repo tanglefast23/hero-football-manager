@@ -1,4 +1,4 @@
-import { contentStrings, glossaryTermSlug } from '../content-strings';
+import { contentStrings, glossaryTermSlug, powerCopySlug, proseSlug } from '../content-strings';
 import { copyFor } from '../use-copy';
 import { resolveCopy } from '../resolve';
 import { loadLaunchContent } from '../../content';
@@ -68,6 +68,65 @@ describe('the story and glossary screens read the keys that exist', () => {
         const key = `event.${event.id}.${choice.id}.label`;
         expect({ key, present: strings[key] !== undefined }).toEqual({ key, present: true });
       }
+    }
+  });
+
+  test('every key a briefing beat builds resolves', () => {
+    // The walk-on is the only thing that draws Bert now, and it builds its keys
+    // from the sequence id and the paragraph's position. A key that stops
+    // matching does not fail anywhere — the beat quietly reverts to English —
+    // so the match has to be asserted here.
+    const strings = contentStrings();
+    for (const sequence of loadLaunchContent().assistantGuide.sequences) {
+      sequence.pages.forEach((page, pageIndex) => {
+        page.body.forEach((paragraph, bodyIndex) => {
+          const key = `bert.guide.${sequence.id}.page${pageIndex + 1}.body${bodyIndex + 1}`;
+          expect({ key, text: strings[key] }).toEqual({ key, text: paragraph });
+        });
+      });
+      if (sequence.inbox === undefined) continue;
+      expect(strings[`bert.guide.${sequence.id}.inbox.title`]).toBe(sequence.inbox.title);
+      expect(strings[`bert.guide.${sequence.id}.inbox.detail`]).toBe(sequence.inbox.detail);
+    }
+  });
+
+  test('every spoken pool line is reachable by the slug its speaker builds', () => {
+    // These pools have no ids: the key is the sentence. Two lines that slugged
+    // the same would silently share one translation, and the schema's
+    // uniqueness check works on the raw text, not the slug.
+    const strings = contentStrings();
+    const content = loadLaunchContent();
+    const pools: [string, readonly string[]][] = [
+      ['ceremony.winner', content.awardCeremonyLines.winner],
+      ['ceremony.runnerUp', content.awardCeremonyLines.runnerUp],
+      ['coach.blame', content.fulltimeBlameLines.lines],
+      ...Object.entries(content.fulltimeCoachLines)
+        .filter((entry): entry is [string, string[]] => Array.isArray(entry[1]))
+        .map(([pool, lines]): [string, readonly string[]] => [`coach.fulltime.${pool}`, lines]),
+    ];
+
+    for (const [namespace, lines] of pools) {
+      const keys = lines.map(line => `${namespace}.${proseSlug(line)}`);
+      expect({ namespace, unique: new Set(keys).size }).toEqual({ namespace, unique: lines.length });
+      lines.forEach((line, index) => {
+        expect({ key: keys[index]!, text: strings[keys[index]!] })
+          .toEqual({ key: keys[index]!, text: line });
+      });
+    }
+  });
+
+  test('a power name and its description share one slug', () => {
+    // Names were translated first and live in `en.json`; descriptions arrived
+    // later and live here. Two spellings of the same power would put them in
+    // different namespaces and translate only half of it.
+    const strings = contentStrings();
+    const catalog = require('../../../content/i18n/en.json').strings as Record<string, string>;
+    for (const power of loadLaunchContent().powers.powers) {
+      const slug = powerCopySlug(power.id);
+      expect({ id: power.id, name: catalog[`powerEffect.${slug}.name`] })
+        .toEqual({ id: power.id, name: power.name });
+      expect({ id: power.id, description: strings[`powerEffect.${slug}.description`] })
+        .toEqual({ id: power.id, description: power.description });
     }
   });
 

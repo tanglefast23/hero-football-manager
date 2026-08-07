@@ -60,7 +60,12 @@ describe('new power explanation contract', () => {
     const match = source('src/render/MatchScreen.tsx');
     const showcase = source('src/render/power-match-showcase.ts');
 
-    expect(viewModels).toContain('powerDescription: power.description');
+    // The description still comes from `powers.json`; it is now read through
+    // the catalog so a translated locale gets a translated sentence, with the
+    // authored English as the fallback.
+    expect(viewModels).toContain(
+      'powerDescription: copyOrEnglish(t, `powerEffect.${powerSlug}.description`, power.description)',
+    );
     expect(awakening).toContain('WHAT IT DOES');
     expect(awakening).toContain('description={viewModel.powerDescription}');
     expect(awakening).toContain('<PowerAcquiredDemoModal');

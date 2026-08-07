@@ -66,7 +66,8 @@ function MatchdayConditionStamp({
   compact?: boolean;
   showValue?: boolean;
 }) {
-  const status = matchdayConditionStatus(condition);
+  const t = useCopy();
+  const status = matchdayConditionStatus(condition, t);
   if (status === null) return null;
   const style = CONDITION_STAMP_STYLE[status.kind];
   return (
@@ -188,7 +189,7 @@ export function FixtureMatchDayScreen({
               ? 'my-3 flex-row justify-center gap-4'
               : 'my-1.5 flex-row justify-center gap-1'}>
               {players.map(player => {
-                const conditionStatus = matchdayConditionStatus(player.condition);
+                const conditionStatus = matchdayConditionStatus(player.condition, t);
                 const selected = player.id === selectedStarterId;
                 const cardClass = selected
                   ? (wide ? 'w-28 items-center border-2 border-blue-dark bg-blue-light p-2' : 'min-w-0 max-w-24 flex-1 items-center border-2 border-blue-dark bg-blue-light px-0.5 py-1')
@@ -266,7 +267,7 @@ export function FixtureMatchDayScreen({
       />
       <View className="gap-2">
         {viewModel.bench.map(player => {
-          const conditionStatus = matchdayConditionStatus(player.condition);
+          const conditionStatus = matchdayConditionStatus(player.condition, t);
           const roleMismatch = selectedStarter !== undefined
             && (player.role === 'GK') !== (selectedStarter.formationRole === 'GK');
           const disabled = selectedStarter === undefined || !player.canStart || roleMismatch;

@@ -61,7 +61,7 @@ export function PlayerWalkOnWelcome({
     ? Math.max(0, viewportHeight - navigationAnchor.y)
     : FALLBACK_GROUND_OFFSET;
 
-  const line = arrivalLine(player);
+  const line = arrivalLine(player, t);
 
   return (
     <CharacterSpeechOverlay

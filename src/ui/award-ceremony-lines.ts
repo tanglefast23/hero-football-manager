@@ -1,6 +1,7 @@
 import awardCeremonyLinesJson from '../../content/award-ceremony-lines.json';
 import type { AwardCategoryId } from '../game/types';
 import type { AwardCeremonySpeechTone } from './models';
+import { copyFor, proseSlug, type CopyFn } from '../i18n';
 
 /**
  * What the players say on the rostrum at the end of a season.
@@ -56,6 +57,7 @@ export interface AwardCeremonySpeech {
 export function awardCeremonySpeeches(
   speakers: readonly AwardCeremonySpeaker[],
   season: number,
+  t: CopyFn = copyFor('en'),
 ): AwardCeremonySpeech[] {
   const claimed: Record<AwardCeremonySpeechTone, Set<number>> = {
     winner: new Set(),
@@ -63,14 +65,23 @@ export function awardCeremonySpeeches(
   };
 
   return speakers.map(speaker => {
-    const pool = speaker.tone === 'winner' ? WINNER_CEREMONY_LINES : RUNNER_UP_CEREMONY_LINES;
+    const winning = speaker.tone === 'winner';
+    const pool = winning ? WINNER_CEREMONY_LINES : RUNNER_UP_CEREMONY_LINES;
+    // The draw stays on the English pool: which line a player gets is decided
+    // by the index, so translating first would make the same season deal
+    // different speeches in different languages.
+    const line = pool[claimLineIndex(
+      ceremonyKey(speaker.playerId, season, speaker.category),
+      pool.length,
+      claimed[speaker.tone],
+    )];
+    // Neither pool has ids — the sentence itself is the key, so rewriting a
+    // line retires its translation instead of inheriting the neighbour's.
+    const key = `ceremony.${winning ? 'winner' : 'runnerUp'}.${proseSlug(line)}`;
+    const translated = t(key);
     return {
       category: speaker.category,
-      line: pool[claimLineIndex(
-        ceremonyKey(speaker.playerId, season, speaker.category),
-        pool.length,
-        claimed[speaker.tone],
-      )],
+      line: translated === key ? line : translated,
     };
   });
 }

@@ -551,8 +551,23 @@ interface CareerRetirementAnnouncement {
 export interface SeasonRecapAward {
   playerId: string;
   playerName: string;
+  /** English, still required — the fallback for recaps saved before `labelKey`. */
   label: string;
+  /**
+   * English, still required, and NEVER replaced in the save.
+   *
+   * `hall-of-fame.ts` recovers a legacy recap's goal count by parsing this
+   * sentence, so a translated value written here would zero a career's
+   * top-scorer total. The screen translates it; the save does not.
+   */
   detail: string;
+  /**
+   * Catalog key for `label`. `detail` has no key of its own: it is always
+   * `${labelKey}.detail`, so the pair cannot drift apart.
+   */
+  labelKey?: string;
+  /** Raw values for the key's placeholders. Never pre-formatted text. */
+  labelParams?: Readonly<Record<string, string | number>>;
   /**
    * The Golden Boot's goal count as a number.
    *
@@ -580,6 +595,13 @@ export interface SeasonRecap {
   closingCash: number;
   trainingCapsReached: number;
   cupResult: string;
+  /**
+   * Catalog key for `cupResult`, on the three authored outcomes only.
+   *
+   * Absent when the club went out at a named round, because that value is the
+   * round's own label and is keyed where the bracket is built.
+   */
+  cupResultKey?: string;
   memorableEventId?: string;
   topScorer?: SeasonRecapAward;
   playerOfSeason?: SeasonRecapAward;

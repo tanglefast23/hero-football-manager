@@ -92,17 +92,34 @@ export function contractTermOptions(maxTerm: number): readonly (1 | 2 | 3)[] {
 }
 
 /**
+ * One sentence in both halves: the English this ring writes, and the catalog
+ * key the screen renders instead.
+ *
+ * `src/game` is a pure ring and may not import `src/i18n`, so copy leaves it as
+ * data and is resolved at the UI edge — the same dual write `LedgerLine.label`
+ * uses. The English stays as the fallback for a key the catalog no longer has.
+ */
+export interface RetirementCopy {
+  readonly text: string;
+  readonly textKey: string;
+  /** Raw values for the key's placeholders. Never pre-formatted text. */
+  readonly textParams?: Readonly<Record<string, string | number>>;
+}
+
+/**
  * Squad-card status, or undefined while retirement is far enough away that the
  * card stays quiet. Deliberately narrower than the contract table, which is
  * allowed to be candid at any age.
  */
-export function retirementCardLabel(
+export function retirementCardCopy(
   player: RetirementPlayer,
   careerSeed: number,
-): string | undefined {
-  if (player.retirementAnnouncementSeason !== undefined) return 'Final season, retires in summer';
+): RetirementCopy | undefined {
+  if (player.retirementAnnouncementSeason !== undefined) {
+    return { text: 'Final season, retires in summer', textKey: 'retirement.finalSeason' };
+  }
   return seasonsBeforeRetirement(player, careerSeed) === 1
-    ? 'Considering retirement in 1 year'
+    ? { text: 'Considering retirement in 1 year', textKey: 'retirement.consideringInOneYear' }
     : undefined;
 }
 
@@ -146,8 +163,17 @@ export function assertContractTermFitsCareer(
 /**
  * The line under a capped term selector. Explains the short deal as the player's
  * own judgement rather than as a rule the UI is imposing.
+ *
+ * The term is a plural key rather than an interpolated "1 year" / "N years"
+ * fragment: a language whose plural rules differ cannot rebuild the sentence
+ * from a phrase that was already inflected in English.
  */
-export function shortContractReason(age: number, maxTerm: number): string {
+export function shortContractReasonCopy(age: number, maxTerm: number): RetirementCopy {
+  /** @i18n-fallback English source for the `retirement.shortContract` plural. */
   const years = maxTerm === 1 ? '1 year' : `${maxTerm} years`;
-  return `He'll only put his name to ${years}. At ${age} he reckons that's about all he has left in him.`;
+  return {
+    text: `He'll only put his name to ${years}. At ${age} he reckons that's about all he has left in him.`,
+    textKey: 'retirement.shortContract',
+    textParams: { n: maxTerm, count: maxTerm, age },
+  };
 }

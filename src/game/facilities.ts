@@ -742,6 +742,11 @@ function checkedAdd(left: number, right: number, label: string): number {
   return result;
 }
 
+/**
+ * @i18n-fallback — `name` arrives as an argument and is kept beside the
+ * `nameKey` this attaches from `FACILITY_NAME_KEYS`. The UI draws the key; these
+ * words are the fallback and the source the translations were written from.
+ */
 function facility(
   type: FacilityType,
   name: string,

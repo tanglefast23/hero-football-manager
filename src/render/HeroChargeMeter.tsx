@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { useCopy } from '../i18n';
 import {
   CHARGE_BAND_WIDTH,
   CHARGE_FILL_COLOR,
@@ -23,6 +24,7 @@ export interface HeroChargeMeterProps {
  * again once the power is spent.
  */
 export function HeroChargeMeter({ meter, trackWidth, reduceMotion }: HeroChargeMeterProps) {
+  const t = useCopy();
   const slide = useRef(new Animated.Value(0)).current;
   const ready = meter.state === 'ready';
 
@@ -53,7 +55,7 @@ export function HeroChargeMeter({ meter, trackWidth, reduceMotion }: HeroChargeM
   return (
     <View
       accessible
-      accessibilityLabel={chargeMeterAccessibilityLabel(meter)}
+      accessibilityLabel={chargeMeterAccessibilityLabel(meter, t)}
       style={styles.track}
     >
       {ready ? (

@@ -17,8 +17,9 @@ import {
   type ValuationPlayer,
   contractPerkPercent,
 } from '../game/market';
-import { divisionTierLabel, type DivisionLevel } from '../game/pyramid';
-import { contractTermOptions, shortContractReason } from '../game/retirement';
+import { divisionTierLabelWith, type DivisionLevel } from '../game/pyramid';
+import { contractTermOptions, shortContractReasonCopy } from '../game/retirement';
+import { resolveRingCopy } from './copy-fallback';
 import {
   playerPotentialGrade,
   POTENTIAL_GRADES,
@@ -269,7 +270,7 @@ export function marketViewModel(
   return {
     sections: [...unlockedSections],
     periodLabel: `S${source.season} · W${source.week}`,
-    divisionLabel: divisionTierLabel(source.division),
+    divisionLabel: divisionTierLabelWith(source.division, t),
     cash: source.cash,
     window: {
       open: transferWindowOpen,
@@ -353,8 +354,8 @@ export function marketViewModel(
           readableId(candidate.specialties[0]),
           readableId(candidate.specialties[1]),
         ],
-        headEffectLabels: coachRoleEffectLabels(candidate, 'HEAD'),
-        assistantEffectLabels: coachRoleEffectLabels(candidate, 'ASSISTANT'),
+        headEffectLabels: coachRoleEffectLabels(candidate, 'HEAD', t),
+        assistantEffectLabels: coachRoleEffectLabels(candidate, 'ASSISTANT', t),
         personalityLabel: readableId(candidate.personality),
         weeklyWage: candidate.weeklyWage,
         headWeeklyWage,
@@ -529,9 +530,9 @@ function scoutingChoice(
     ...(busy
       ? { blockedReason: t('market.scoutBusy') }
       : heroLocked
-        ? { blockedReason: t('market.scoutHeroLocked', { division: divisionTierLabel(3) }) }
+        ? { blockedReason: t('market.scoutHeroLocked', { division: divisionTierLabelWith(3, t) }) }
         : eliteLocked
-          ? { blockedReason: t('market.scoutEliteLocked', { division: divisionTierLabel(2) }) }
+          ? { blockedReason: t('market.scoutEliteLocked', { division: divisionTierLabelWith(2, t) }) }
         : !affordable
           ? { blockedReason: t('market.scoutNotEnoughMoney') }
           : {}),
@@ -671,7 +672,7 @@ export function marketNegotiationViewModel(
     perks: perkViewModels(t),
     termOptions: contractTermOptions(maxTermSeasons),
     ...(maxTermSeasons >= 3 || source.playerAge === undefined ? {} : {
-      shortTermReason: shortContractReason(source.playerAge, maxTermSeasons),
+      shortTermReason: resolveRingCopy(t, shortContractReasonCopy(source.playerAge, maxTermSeasons)),
     }),
     initialWeeklyWage: previousOffer ?? source.openingWeeklyWage,
     wageStep,

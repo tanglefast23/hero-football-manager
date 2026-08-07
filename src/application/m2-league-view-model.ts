@@ -138,7 +138,7 @@ export function m2LeagueViewModel(
       statLines: source.statLines ?? [],
       userClubId: source.career.userClubId,
       clubNames,
-    }),
+    }, t),
   };
 }
 

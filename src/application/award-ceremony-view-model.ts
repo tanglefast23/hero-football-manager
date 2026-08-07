@@ -81,7 +81,7 @@ export function awardCeremonyViewModel(
     if (speaking === undefined) return [];
     return [{ category: categoryId, playerId: speaking.playerId, tone: speechTone(speaking) }];
   });
-  const lines = new Map(awardCeremonySpeeches(speakers, source.recap.season)
+  const lines = new Map(awardCeremonySpeeches(speakers, source.recap.season, t)
     .map(speech => [speech.category, speech.line]));
 
   const beats: AwardCeremonyBeatViewModel[] = podiums.map(({ categoryId, placings }) => {

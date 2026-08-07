@@ -92,7 +92,7 @@ describe('the card is wired into the live match without skipping any of it', () 
   it('holds kickoff from the first render, not from an effect', () => {
     const screen = source('src/render/MatchScreen.tsx');
 
-    expect(screen).toContain('const [titleCard] = useState(() => cupTitleCard(cupRoundLabel, reduceMotion));');
+    expect(screen).toContain('const [titleCard] = useState(() => cupTitleCard(cupRoundLabel, reduceMotion, t));');
     expect(screen).toContain('const [paused, setPaused] = useState(titleCard !== null);');
     expect(screen).toContain('const pausedRef = useRef(titleCard !== null);');
     expect(screen).toContain("if (titleCard !== null) automaticPauseReasonsRef.current.add('title-card');");

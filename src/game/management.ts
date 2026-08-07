@@ -1,5 +1,6 @@
 import {
   FACILITY_CATALOG,
+  FACILITY_NAME_KEYS,
   buildFacility,
   closeFacility,
   createFacilityGrid,
@@ -22,6 +23,20 @@ import type { GameState } from './types';
 
 interface CareerFacilityTransaction extends FacilityTransaction {
   readonly state: GameState;
+}
+
+/**
+ * The placeholders a facility cash line needs, in both halves.
+ *
+ * `facility` is the English name, which is what the persisted `label` reads and
+ * what the line falls back to. `facilityKey` is a param whose VALUE is itself a
+ * catalog key: this ring cannot translate the building's name, so it names it
+ * and the screen resolves the two together. Facility names are translated
+ * everywhere else in the game, and leaving one English inside an otherwise
+ * translated sentence is the exact defect that put keys beside `DIVISION_NAMES`.
+ */
+function facilityLabelParams(type: FacilityType): Readonly<Record<string, string>> {
+  return { facility: FACILITY_CATALOG[type].name, facilityKey: FACILITY_NAME_KEYS[type] };
 }
 
 /** Everything the confirmation needs to explain one staffed-office closure. */
@@ -67,6 +82,8 @@ export function buildCareerFacility(
     state: recordCashTransaction(applied.state, {
       kind: 'facility-build',
       label: `${FACILITY_CATALOG[type].name} construction started`,
+      labelKey: 'cashTransaction.facilityBuild',
+      labelParams: facilityLabelParams(type),
       amount: -transaction.cost,
       referenceId: building.id,
     }),
@@ -100,6 +117,8 @@ export function upgradeCareerFacility(
     state: recordCashTransaction(applied.state, {
       kind: 'facility-upgrade',
       label: `${FACILITY_CATALOG[building.type].name} Level ${targetLevel} upgrade started`,
+      labelKey: 'cashTransaction.facilityUpgrade',
+      labelParams: { ...facilityLabelParams(building.type), level: targetLevel },
       amount: -transaction.cost,
       referenceId: building.id,
     }),
@@ -126,6 +145,8 @@ export function relocateCareerFacility(
     state: recordCashTransaction(applied.state, {
       kind: 'facility-relocation',
       label: `Relocated ${FACILITY_CATALOG[building.type].name}`,
+      labelKey: 'cashTransaction.facilityRelocated',
+      labelParams: facilityLabelParams(building.type),
       amount: -transaction.cost,
       referenceId: building.id,
     }),
@@ -163,6 +184,8 @@ export function closeCareerFacility(
     state: recordCashTransaction(applied.state, {
       kind: 'facility-closure',
       label: `Closed ${FACILITY_CATALOG[building.type].name}`,
+      labelKey: 'cashTransaction.facilityClosed',
+      labelParams: facilityLabelParams(building.type),
       amount: refund,
       referenceId: building.id,
     }),
@@ -211,6 +234,8 @@ export function closeStaffedCareerCoachingOffice(
     : recordCashTransaction(facilityApplied.state, {
         kind: 'facility-closure',
         label: `Closed ${FACILITY_CATALOG['coaching-office'].name}`,
+        labelKey: 'cashTransaction.facilityClosed',
+        labelParams: facilityLabelParams('coaching-office'),
         amount: confirmation.facilityRefund,
         referenceId: buildingId,
       });
@@ -256,6 +281,11 @@ export function purchaseCareerTrainingUpgrade(
     state: recordCashTransaction(paid, {
       kind: 'training-upgrade',
       label: `${trainingPathLabel(pathId)} Tier ${offer.tier} drill bought`,
+      labelKey: 'cashTransaction.drillTierBought',
+      // TODO(i18n): `path` is the English drill-path name. Unlike facilities,
+      // `training-paths.ts` has no key table beside its `TRAINING_PATHS` labels,
+      // so there is no key to name here yet; adding one belongs with that file.
+      labelParams: { path: trainingPathLabel(pathId), tier: offer.tier },
       amount: -offer.cost,
       referenceId: offer.drillId,
     }),

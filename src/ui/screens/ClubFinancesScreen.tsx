@@ -1965,7 +1965,7 @@ function GroundsSection({
               </View>
               <View className="flex-1">
                 <PixelText className="text-sm uppercase text-ink">{t('clubFinances.whatItDoes')}</PixelText>
-                <Text className="mt-1 text-sm text-ink/80">{facilityBenefit(placementType)}</Text>
+                <Text className="mt-1 text-sm text-ink/80">{facilityBenefit(placementType, t)}</Text>
               </View>
             </View>
           ) : null}

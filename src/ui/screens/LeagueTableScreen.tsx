@@ -41,16 +41,16 @@ const TABLE_HEADERS: readonly {
   /** The unabbreviated name, spoken by the screen reader — never drawn. */
   nameKey: string;
 }[] = [
-  { column: 'played', key: 'col.league.played', nameKey: 'leagueTable.headerName.played' },
-  { column: 'won', key: 'col.league.won', nameKey: 'leagueTable.headerName.won' },
-  { column: 'drawn', key: 'col.league.drawn', nameKey: 'leagueTable.headerName.drawn' },
-  { column: 'lost', key: 'col.league.lost', nameKey: 'leagueTable.headerName.lost' },
+  { column: 'played', key: 'col.league.played', nameKey: 'leagueTable.a11y.headerName.played' },
+  { column: 'won', key: 'col.league.won', nameKey: 'leagueTable.a11y.headerName.won' },
+  { column: 'drawn', key: 'col.league.drawn', nameKey: 'leagueTable.a11y.headerName.drawn' },
+  { column: 'lost', key: 'col.league.lost', nameKey: 'leagueTable.a11y.headerName.lost' },
   {
     column: 'goalDifference',
     key: 'col.league.goalDifference',
-    nameKey: 'leagueTable.headerName.goalDifference',
+    nameKey: 'leagueTable.a11y.headerName.goalDifference',
   },
-  { column: 'points', key: 'col.league.points', nameKey: 'leagueTable.headerName.points' },
+  { column: 'points', key: 'col.league.points', nameKey: 'leagueTable.a11y.headerName.points' },
 ];
 
 /** Points, not rem-based classes. See league-table-columns.ts. */

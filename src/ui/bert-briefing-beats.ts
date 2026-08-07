@@ -2,6 +2,7 @@ import type {
   AssistantGuideContent,
   AssistantGuideFocus,
 } from '../content/schemas';
+import { copyFor, type CopyFn } from '../i18n';
 
 /**
  * A briefing sequence, flattened into the beats Bert speaks.
@@ -30,18 +31,35 @@ export interface BriefingBeat {
  */
 export const MAX_BRIEFING_BEATS = 8;
 
+/**
+ * `t` defaults to English so the dev harness and the beat tests keep their
+ * existing call shape. The English it resolves to is the same sentence the
+ * content file holds — `contentStrings()` reads it from there rather than
+ * duplicating it — so an untranslated locale and no locale produce identical
+ * beats.
+ */
 export function briefingBeats(
   content: AssistantGuideContent,
   sequenceId: string,
+  t: CopyFn = copyFor('en'),
 ): readonly BriefingBeat[] {
   const sequence = content.sequences.find(candidate => candidate.id === sequenceId);
   if (sequence === undefined) return [];
 
   const beats: BriefingBeat[] = [];
   sequence.pages.forEach((page, pageIndex) => {
-    for (const paragraph of page.body) {
-      beats.push({ text: paragraph, focus: page.focus, kind: 'body', pageIndex });
-    }
+    page.body.forEach((paragraph, bodyIndex) => {
+      const key = `bert.guide.${sequence.id}.page${pageIndex + 1}.body${bodyIndex + 1}`;
+      const translated = t(key);
+      beats.push({
+        // A key with no entry resolves to itself; the authored paragraph is
+        // what belongs on screen in that case, not `bert.guide.…`.
+        text: translated === key ? paragraph : translated,
+        focus: page.focus,
+        kind: 'body',
+        pageIndex,
+      });
+    });
   });
   return beats;
 }

@@ -80,7 +80,7 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
     // Cap-free development plus instant drills retired cap notices entirely;
     // the persisted recap field stays for old saves and always reads zero now.
     trainingCapsReached: 0,
-    cupResult: cupResult(state),
+    ...cupResult(state),
     divisionAwards: divisionAwards(state),
     ...(latestResolvedEvent === undefined ? {} : { memorableEventId: latestResolvedEvent }),
     // A Golden Boot for nobody is worse than no Golden Boot at all.
@@ -89,8 +89,9 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
         sortedScorers[0],
         'Golden Boot',
         `${topScorerGoals} goals`,
-        topScorerGoals,
         'recap.award.goldenBoot',
+        { goals: topScorerGoals },
+        topScorerGoals,
       ),
     }),
     ...(sortedPlayers[0] === undefined ? {} : {
@@ -98,15 +99,26 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
         sortedPlayers[0],
         'Player of the Season',
         'Goals, form, morale, and development',
-        undefined,
         'recap.award.playerOfTheSeason',
       ),
     }),
     ...(young === undefined ? {} : {
-      youngPlayer: award(young, 'Young Player', `Age ${young.age ?? 21} breakout season`),
+      youngPlayer: award(
+        young,
+        'Young Player',
+        `Age ${young.age ?? 21} breakout season`,
+        'recap.award.youngPlayer',
+        { age: young.age ?? 21 },
+      ),
     }),
     ...(hero === undefined ? {} : {
-      heroOfSeason: award(hero, 'Hero of the Season', `${hero.power!.replaceAll('_', ' ')} made the difference`),
+      heroOfSeason: award(
+        hero,
+        'Hero of the Season',
+        `${hero.power!.replaceAll('_', ' ')} made the difference`,
+        'recap.award.heroOfSeason',
+        { power: hero.power!.replaceAll('_', ' ') },
+      ),
     }),
   };
 }
@@ -198,20 +210,28 @@ export function latestSeasonRecap(state: GameState): SeasonRecap | undefined {
   return state.seasonRecaps?.find(candidate => candidate.season === state.season);
 }
 
+/**
+ * @i18n-fallback `label` and `detail` are the English source for `labelKey` and
+ * `${labelKey}.detail`, passed as arguments so this helper can attach the key.
+ * The English also stays in the save, because `hall-of-fame.ts` parses a legacy
+ * recap's `detail` for its goal count.
+ */
 function award(
   player: CareerPlayer,
   label: string,
   detail: string,
+  labelKey: string,
+  labelParams?: Readonly<Record<string, string | number>>,
   goals?: number,
-  labelKey?: string,
 ): SeasonRecapAward {
   return {
     playerId: player.id,
     playerName: player.name,
     label,
     detail,
+    labelKey,
+    ...(labelParams === undefined ? {} : { labelParams }),
     ...(goals === undefined ? {} : { goals }),
-    ...(labelKey === undefined ? {} : { labelKey }),
   };
 }
 
@@ -269,14 +289,23 @@ function finalPosition(state: GameState): number {
   return rows.length;
 }
 
-function cupResult(state: GameState): string {
+/**
+ * @i18n-fallback English beside `cupResultKey`, which the screen renders
+ * instead. The named-round branch carries no key: that value is the bracket's
+ * own round label, keyed where the bracket is built.
+ */
+function cupResult(state: GameState): Pick<SeasonRecap, 'cupResult' | 'cupResultKey'> {
   const cup = state.m2?.nationalCups.find(candidate => candidate.season === state.season);
-  if (cup === undefined) return 'Not entered';
-  if (cup.championClubId === state.userClubId) return 'Winners';
+  if (cup === undefined) return { cupResult: 'Not entered', cupResultKey: 'recap.cupNotEntered' };
+  if (cup.championClubId === state.userClubId) {
+    return { cupResult: 'Winners', cupResultKey: 'recap.cupWinners' };
+  }
   const lastRound = cup.rounds
     .filter(round => round.fixtures.some(fixture => (
       fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId
     )))
     .at(-1);
-  return lastRound?.label ?? 'Entered';
+  return lastRound?.label === undefined
+    ? { cupResult: 'Entered', cupResultKey: 'recap.cupEntered' }
+    : { cupResult: lastRound.label };
 }

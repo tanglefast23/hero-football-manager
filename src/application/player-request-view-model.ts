@@ -13,6 +13,7 @@ import type {
   PlayerRequestResolution,
 } from '../game/types';
 import { copyFor, type CopyFn } from '../i18n';
+import { copyOrEnglish } from './copy-fallback';
 
 /**
  * English copy, for every caller that has not threaded a locale through yet.
@@ -80,7 +81,7 @@ export function playerRequestViewModel(
     : (state.playerRequests?.history ?? []).map((entry, index) => ({
         key: `${entry.requestId}-${entry.season}-${entry.week}-${index}`,
         label: t('playerRequests.historyStamp', {
-          title: requestDefinition(catalog, entry.requestId).title,
+          title: requestTitle(t, requestDefinition(catalog, entry.requestId)),
           season: entry.season,
           week: entry.week,
         }),
@@ -107,8 +108,11 @@ export function playerRequestViewModel(
       playerName: player?.name ?? t('playerRequests.aPlayer'),
       playerRole: player?.role ?? 'MID',
       ...(player?.lookId === undefined ? {} : { lookId: player.lookId }),
-      title: definition.title,
-      line: definition.line,
+      title: requestTitle(t, definition),
+      // The walk-on speaks this. `contentStrings` flattens every request into
+      // `playerRequest.<id>.line`, the same key `src/game/player-requests.ts`
+      // already stamps on the ledger, so `player-requests.json` is the fallback.
+      line: copyOrEnglish(t, `playerRequest.${definition.id}.line`, definition.line),
       artKey: `request-${definition.id}`,
       grantLabel: grantLabel(definition, pending.costAmount, difficulty, t),
       // The minus signs are U+2212, which Silkscreen cannot draw — they are
@@ -121,6 +125,11 @@ export function playerRequestViewModel(
       weeksToAnswer: Math.max(0, catalog.tuning.answerWeeks - (state.week - pending.askedWeek)),
     },
   };
+}
+
+/** The request's headline, in the player's language. */
+function requestTitle(t: CopyFn, definition: PlayerRequestDefinition): string {
+  return copyOrEnglish(t, `playerRequest.${definition.id}.title`, definition.title);
 }
 
 /** What the Grant button costs, in the manager's own terms. */

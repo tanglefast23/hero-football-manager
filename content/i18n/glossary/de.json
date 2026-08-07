@@ -71,6 +71,14 @@
         "superkräfte"
       ],
       "why": "Gattungsname in beiden Sprachen, also ist nur das Wort festgelegt, nicht die Schreibung."
+    },
+    {
+      "english": "Fame",
+      "englishPattern": "(?<!Hall of )\\bFame\\b",
+      "allowedForms": [
+        "Ruhm"
+      ],
+      "why": "Ruhm is the stat and Ruhmeshalle the room, so one word carries both. Lower case is not listed: it is a noun."
     }
   ]
 }

@@ -541,7 +541,7 @@ export function MatchScreen({
   // A Hero Cup tie opens on a title card; a league fixture arrives with no
   // `cupRoundLabel` and gets none. Decided once, at mount: flipping Reduce
   // Motion from the settings overlay must not restyle a card already playing.
-  const [titleCard] = useState(() => cupTitleCard(cupRoundLabel, reduceMotion));
+  const [titleCard] = useState(() => cupTitleCard(cupRoundLabel, reduceMotion, t));
   const [titleCardShowing, setTitleCardShowing] = useState(titleCard !== null);
   // Starts paused behind the card so the very first RAF frame simulates
   // nothing. The clock is held, not skipped — the loop keeps `last` current
@@ -2025,7 +2025,7 @@ export function MatchScreen({
     ending: primaryPowerCutIn.outroStartedAt !== undefined,
     reduceMotion,
     skippable: powerCutInPolicy.skippable,
-    accessibilityLabel: powerCutInAccessibilityLabel(powerCutIns),
+    accessibilityLabel: powerCutInAccessibilityLabel(powerCutIns, t),
     onDismiss: dismissPowerTakeover,
   };
   const tutorialTiredStarter = firstMatchTiredPlayerRef.current === null
@@ -2178,7 +2178,7 @@ export function MatchScreen({
       const player = match.players[index];
       const power = player.def.power;
       if (!power) return [];
-      const presentation = powerCutInPresentation(power);
+      const presentation = powerCutInPresentation(power, t);
       return [{
         id: player.def.id,
         name: player.def.name,

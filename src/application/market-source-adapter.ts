@@ -194,7 +194,7 @@ export function careerMarketViewModelSource(
     cash: userClub.cash,
     unlockedSections,
     scoutOfficeLevel: scoutOfficeLevel(state),
-    scoutOptions: scoutingUnlocked ? careerMarketScoutOptions(state) : [],
+    scoutOptions: scoutingUnlocked ? careerMarketScoutOptions(state, t) : [],
     firstScoutFavorAvailable: market.nextMissionNumber === 1,
     ...(market.activeScoutMission === undefined
       ? {}

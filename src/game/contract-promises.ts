@@ -281,6 +281,16 @@ function promisedReplacementSlot(
  * screen announces a promotion's new Hero License two panels above the renewal
  * that would be checked against the old cap. Only the caller knows the standings.
  */
+// TODO(i18n): all six sentences are returned bare and reach the player only as
+// an exception message, so there is nowhere to hang a key on the way out. Both
+// call sites — `submitCareerTransferContractOffer` (market-career.ts) and
+// `submitCareerRenewalContractOffer` (market-career.ts) — do
+// `throw new Error(blocked)`, `guarded()` in `application/store.ts` copies
+// `error.message` into `store.error`, and App.tsx renders that string in a
+// `FeedbackNotice`. Translating them therefore means giving the ring a typed
+// error that carries `{ key, params }` and teaching `errorMessage()` to resolve
+// it — a change to the whole error channel, not to this function. No view model
+// reads this value today, so keying it here alone would translate nothing.
 export function careerContractPromiseBlockedReason(
   state: GameState,
   player: CareerPlayer,

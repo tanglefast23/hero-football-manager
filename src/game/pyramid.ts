@@ -212,6 +212,11 @@ const LOW_MORALE_THRESHOLD = 30;
  * Every rung is a League for the same reason: the only word that changes is
  * the one carrying the meaning.
  */
+/**
+ * @i18n-fallback — the English division names. `DIVISION_NAME_KEYS` below is the
+ * half the UI actually draws; these stay as the fallback and as the source the
+ * translations were written from.
+ */
 export const DIVISION_NAMES: Readonly<Record<DivisionLevel, string>> = {
   1: 'Global League',
   2: 'National League',

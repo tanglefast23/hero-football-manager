@@ -1,4 +1,4 @@
-import { copyFor, type CopyFn } from '../i18n';
+import { copyFor, powerCopySlug, type CopyFn } from '../i18n';
 import type { PowerId } from '../sim/types';
 
 export interface PowerEffectBeat {
@@ -34,33 +34,6 @@ const beat = (id: string, label: string, startMs: number, endMs: number): PowerE
   startMs,
   endMs,
 });
-
-/**
- * The catalog segment for each power's spoken copy.
- *
- * Spelled out rather than derived from the id, because a key a translator sees
- * should be readable and stable, and `SUPER_SPEED` → `superSpeed` is exactly the
- * kind of derivation that quietly renames every key the day an id changes.
- */
-const COPY_SLUG: Record<PowerId, string> = {
-  SUPER_SPEED: 'superSpeed',
-  BLINK_RUN: 'blinkRun',
-  THUNDER_STRIKE: 'thunderStrike',
-  FIRE_TORCH: 'fireTorch',
-  PHASE_RUN: 'phaseRun',
-  PORTAL_PASS: 'portalPass',
-  DECOY_DOUBLE: 'decoyDouble',
-  FUTURE_SIGHT: 'futureSight',
-  SUPER_STRENGTH: 'superStrength',
-  WEB_TRAP: 'webTrap',
-  ELASTIC_KEEPER: 'elasticKeeper',
-  RALLY_CRY: 'rallyCry',
-  ICE_RINK: 'iceRink',
-  SHADOW_MARK: 'shadowMark',
-  GRAVITY_WELL: 'gravityWell',
-  GIANT_GK: 'giantGk',
-  GUST: 'gust',
-};
 
 /**
  * One production visual contract for cut-ins, the match overlay, and the
@@ -207,7 +180,7 @@ export function powerEffectDescriptor(
   }
   const cached = byPower.get(power);
   if (cached !== undefined) return cached;
-  const slug = COPY_SLUG[power];
+  const slug = powerCopySlug(power);
   const descriptor: PowerEffectDescriptor = {
     ...POWER_EFFECT_DESCRIPTORS[power],
     name: t(`powerEffect.${slug}.name`),

@@ -12,7 +12,8 @@ import { useFonts } from 'expo-font';
 const HFMSilkscreen_400Regular = require('./assets/fonts/HFMSilkscreen_400Regular.ttf');
 const HFMSilkscreen_700Bold = require('./assets/fonts/HFMSilkscreen_700Bold.ttf');
 import { vars } from 'nativewind';
-import { useCopy, ENABLED_LOCALES, LocaleProvider, facesFor, type CopyFn, type Locale } from './src/i18n';
+import { useCopy, useLocale, ENABLED_LOCALES, LocaleProvider, facesFor, deviceLocale, type CopyFn, type Locale } from './src/i18n';
+import { LanguageOfferCard } from './src/ui/LanguageOfferCard';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   loadLaunchContent,
@@ -139,6 +140,7 @@ import {
   careerCoachUnlockedFormationIds,
   clubSquadStrength,
   cupMismatchWarning as pendingCupMismatchWarning,
+  cupUpsetCopyKey,
   hasActiveCareerContractPromise,
   hasAssistantGuideSequenceCompleted,
   hasEverGainedFans,
@@ -155,12 +157,14 @@ import { SettingsOverlay } from './src/ui/SettingsOverlay';
 import type { TutorialAnchorLayout } from './src/ui/tutorial-cue-position';
 import { guidedFirstFacilityAllowsPlacement } from './src/ui/concierge-targets';
 import { facilityAdjacencyPresentation } from './src/ui/facility-adjacency';
+import { assistantFiction } from './src/ui/assistant-fiction';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { useRivalPreload } from './src/ui/use-rival-preload';
 import { useSuspendFlush } from './src/ui/use-suspend-flush';
 import { DEVELOPER_MODE_AVAILABLE, qaRootRoutesEnabled } from './src/ui/release-surface';
 import { supportEmailUrl, SUPPORT_EMAIL } from './src/release/support';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
+import { copyOrEnglish } from './src/application/copy-fallback';
 import { setStoreCopy, useM1Store } from './src/application/store';
 import { ScreenErrorBoundary } from './src/ui/ScreenErrorBoundary';
 import {
@@ -510,6 +514,10 @@ function DevHarnessApp() {
 
 function GameApp() {
   const t = useCopy();
+  // `useCopy` returns a fresh closure every render, so anything memoised on the
+  // active language depends on this instead. It is the whole of what `t` is
+  // derived from, so a memo keyed on it cannot go stale.
+  const locale = useLocale();
   const store = useM1Store();
   const content = useMemo(loadLaunchContent, []);
   const [bootError, setBootError] = useState<string | null>(null);
@@ -603,6 +611,14 @@ function GameApp() {
   // rebuild every memoised handler on each render just to look a string up.
   const copyRef = useRef(t);
   copyRef.current = t;
+  /**
+   * The language the device asked for, held until the player answers.
+   *
+   * Not persisted: it is a question, and `languageOffered` records that the
+   * question was asked. A crash before answering simply asks again, which is
+   * the harmless direction to fail in.
+   */
+  const [languageOffer, setLanguageOffer] = useState<Locale | null>(null);
   // The store is a Zustand module with no React context, so it cannot read the
   // locale the way a component does — it takes the catalog by injection. This
   // is the one call site, and without it every `store.notify` and every guarded
@@ -663,6 +679,10 @@ function GameApp() {
   }, [savePreferences]);
   const setVolume = useCallback((masterVolume: DevVolume) => {
     savePreferences({ ...preferencesRef.current, masterVolume });
+  }, [savePreferences]);
+  const answerLanguageOffer = useCallback((language: Locale) => {
+    setLanguageOffer(null);
+    savePreferences({ ...preferencesRef.current, language, languageOffered: true });
   }, [savePreferences]);
   const setLanguage = useCallback((language: Locale) => {
     savePreferences({ ...preferencesRef.current, language });
@@ -793,7 +813,7 @@ function GameApp() {
   const showStartedFacilityProject = useCallback(() => {
     const career = useM1Store.getState().career;
     if (career === null) return;
-    const activeProject = clubFinancesViewModel(career).facilities.activeProject;
+    const activeProject = clubFinancesViewModel(career, copyRef.current).facilities.activeProject;
     const building = career.facilities.grid?.buildings.find(candidate => (
       candidate.id === activeProject?.buildingId
     ));
@@ -922,7 +942,10 @@ function GameApp() {
   const hireCoachWithFeedback = useCallback((coachId: string, role: 'HEAD' | 'ASSISTANT' = 'HEAD') => {
     const careerBefore = useM1Store.getState().career;
     if (careerBefore === null || careerBefore.market === undefined) return;
-    const candidate = marketViewModel(careerMarketViewModelSource(careerBefore)).coaches.find(
+    const candidate = marketViewModel(
+      careerMarketViewModelSource(careerBefore, undefined, copyRef.current),
+      copyRef.current,
+    ).coaches.find(
       coach => coach.id === coachId,
     );
     if (candidate === undefined) return;
@@ -951,7 +974,7 @@ function GameApp() {
   const beginCoachDismissal = useCallback((role: 'HEAD' | 'ASSISTANT' = 'HEAD') => {
     const career = useM1Store.getState().career;
     if (career === null) return;
-    const staff = clubFinancesViewModel(career).coachingStaff;
+    const staff = clubFinancesViewModel(career, copyRef.current).coachingStaff;
     const coach = staff.find(candidate => candidate.role === role);
     if (coach === undefined) return;
     setCoachOverlay({
@@ -1022,7 +1045,10 @@ function GameApp() {
     const careerBefore = useM1Store.getState().career;
     const offer = careerBefore?.market === undefined
       ? undefined
-      : marketViewModel(careerMarketViewModelSource(careerBefore)).youth?.offers.find(candidate => (
+      : marketViewModel(
+        careerMarketViewModelSource(careerBefore, undefined, copyRef.current),
+        copyRef.current,
+      ).youth?.offers.find(candidate => (
         candidate.playerId === playerId
       ));
     useM1Store.getState().signYouth(playerId);
@@ -1208,13 +1234,28 @@ function GameApp() {
       })
       .then(async repositories => ({
         ...repositories,
-        ...(await loadPreferencesFailSoft(repositories.preferencesRepository)),
+        ...(await loadPreferencesFailSoft(repositories.preferencesRepository, copyRef.current)),
       }))
       .then(async repositories => {
         if (!active) return undefined;
         preferencesRepositoryRef.current = repositories.preferencesRepository;
         developerSaveRepositoryRef.current = repositories.developerSaveRepository;
-        setPreferences(repositories.preferences);
+        // Open in the device's language, once ever, before anything is drawn.
+        //
+        // Done here rather than in an effect so the very first frame is already
+        // correct: an effect would paint English, then swap, and the swap is
+        // more jarring than the language.
+        //
+        // Gated on BOTH flags. `languageOffered` stops a player who chose
+        // English from being asked again every launch; `language === 'en'`
+        // protects anyone who already picked something — an existing install
+        // that deliberately chose German must not be re-routed by its phone.
+        const stored = repositories.preferences;
+        const detected = stored.languageOffered || stored.language !== 'en'
+          ? undefined
+          : deviceLocale();
+        setPreferences(detected === undefined ? stored : { ...stored, language: detected });
+        if (detected !== undefined) setLanguageOffer(detected);
         await store.initializePersistence(
           repositories.careerRepository,
           repositories.replayRepository,
@@ -1358,6 +1399,7 @@ function GameApp() {
         career,
         content,
         preferences.formationPresets[0],
+        copyRef.current,
       ).lineup) !== null;
     const milestones = advisorMilestonesToBank(career, {
       enteredManagement: store.screen === 'management',
@@ -1427,11 +1469,46 @@ function GameApp() {
     : leagueGuideFocus === 'division-leaders'
       ? 'leaders' as const
       : undefined;
-  const cupGiantKillingCelebration = store.career
+  const savedCupGiantKilling = store.career
     ?.pendingCupGiantKillingCelebrations?.[0];
-  const cupMismatchWarning = store.screen === 'matchday' && store.career !== null
-    ? pendingCupMismatchWarning(store.career)
-    : undefined;
+  // The celebration is persisted whole, in the English the game ring wrote. Its
+  // saved `divisionGap` names which of the four speeches it is, so the catalog
+  // key is recovered from the save rather than stored beside it.
+  const cupGiantKillingCelebration = useMemo(
+    () => savedCupGiantKilling === undefined ? undefined : {
+      ...savedCupGiantKilling,
+      title: copyOrEnglish(
+        t,
+        cupUpsetCopyKey(savedCupGiantKilling.divisionGap, 'title'),
+        savedCupGiantKilling.title,
+      ),
+      body: copyOrEnglish(
+        t,
+        cupUpsetCopyKey(savedCupGiantKilling.divisionGap, 'body'),
+        savedCupGiantKilling.body,
+      ),
+    },
+    [savedCupGiantKilling, locale],
+  );
+  // Built in the pure game ring, which cannot know the language: every line
+  // arrives with its catalog key and raw params beside the English, and they are
+  // resolved here. Memoised because `BertBriefingWalkOn` keys his beats — and
+  // the voice tick that plays them — on this object's identity.
+  const cupMismatchWarning = useMemo(
+    () => {
+      const warning = store.screen === 'matchday' && store.career !== null
+        ? pendingCupMismatchWarning(store.career)
+        : undefined;
+      return warning === undefined ? undefined : {
+        ...warning,
+        title: copyOrEnglish(t, warning.titleKey, warning.title),
+        body: warning.bodyLines.map(
+          line => copyOrEnglish(t, line.textKey, line.text, line.textParams),
+        ),
+      };
+    },
+    [store.screen, store.career, locale],
+  );
   const facilityComboReveal = !careerTeaches || store.screen !== 'management' || store.career === null
     ? undefined
     : store.career.facilities.grid?.discoveredAdjacencies
@@ -1518,7 +1595,7 @@ function GameApp() {
     || openedBoardFinanceAlertId === null
     || store.career === null
     ? undefined
-    : boardFinanceBriefing(store.career, openedBoardFinanceAlertId);
+    : boardFinanceBriefing(store.career, openedBoardFinanceAlertId, t);
   const bertNotice = store.notice?.speaker === 'bert' ? store.notice : undefined;
   /**
    * Whether the Financial Report modal is up. Named once because two places
@@ -1628,13 +1705,16 @@ function GameApp() {
           store.career,
           content,
           store.selectedPlayerId,
+          t,
         )),
-    [store.career, content, store.selectedPlayerId],
+    // `locale`, not `t`: `useCopy` hands back a fresh closure every render, so
+    // depending on it would redo the whole roster pass on each one.
+    [store.career, content, store.selectedPlayerId, locale],
   );
 
   const playerRequestVm = useMemo(
-    () => (store.career === null ? undefined : playerRequestViewModel(store.career)),
-    [store.career],
+    () => (store.career === null ? undefined : playerRequestViewModel(store.career, t)),
+    [store.career, locale],
   );
   const [requestStage, setRequestStage] = useState<'walk-on' | 'card' | null>(null);
   // A resolved or cancelled request must take its overlay with it. Without this
@@ -1828,7 +1908,7 @@ function GameApp() {
         onToggleCutInMode={toggleCutInMode}
         onEmailSupport={emailSupport}
         supportError={settingsSaveError}
-        accessibilityCopy={content.assistantGuide.m4Fiction.accessibility}
+        accessibilityCopy={assistantFiction(content.assistantGuide, 'accessibility', t)}
         difficultyLabel={store.career?.difficulty ?? (store.career ? 'COZY' : undefined)}
         onBack={() => setLandingView('title')}
       />
@@ -1867,7 +1947,7 @@ function GameApp() {
     screen = (
       <AwakeningCutsceneScreen
         key={pendingAwakeningKey ?? undefined}
-        viewModel={awakeningCutsceneViewModel(store.career, content, store.postMatch !== null)}
+        viewModel={awakeningCutsceneViewModel(store.career, content, store.postMatch !== null, t)}
         reduceMotion={reduceMotion}
         onBeatChange={setAwakeningBeat}
         onContinue={store.continueAfterAwakening}
@@ -1912,6 +1992,7 @@ function GameApp() {
       store.career,
       content,
       preferences.formationPresets[0],
+      t,
     );
     if (careerTeaches && !hasAssistantGuideMilestone(store.career, 'match-condition-warning-seen')) {
       lowConditionMatchdayStarter = matchdayConditionWarningPlayer(matchday.lineup);
@@ -1983,7 +2064,7 @@ function GameApp() {
   } else if (store.screen === 'event' && store.career.pendingEvent !== undefined) {
     screen = (
       <StoryEventScreen
-        viewModel={storyEventViewModel(store.career, content)}
+        viewModel={storyEventViewModel(store.career, content, t)}
         onChoose={store.chooseEvent}
         onSelectPlayer={store.selectEventPlayer}
         onContinue={store.continueAfterEvent}
@@ -1991,14 +2072,14 @@ function GameApp() {
         reduceMotion={reduceMotion}
         guideCopy={!careerTeaches || store.career.eventFlags.includes('m4:event-guide-seen')
           ? undefined
-          : content.assistantGuide.m4Fiction.events}
+          : assistantFiction(content.assistantGuide, 'events', t)}
         textScale={preferences.textScale}
       />
     );
   } else if (store.screen === 'legacy') {
     screen = (
       <ClubLegacyScreen
-        viewModel={clubLegacyViewModel(store.career)}
+        viewModel={clubLegacyViewModel(store.career, t)}
         onChoose={choice => {
           setConciergeFocus(null);
           store.chooseLegacy(choice);
@@ -2014,6 +2095,7 @@ function GameApp() {
         viewModel={championshipCelebrationViewModel(
           store.career,
           content.assistantGuide.assistant.name,
+          t,
         )}
         reduceMotion={reduceMotion}
         onComplete={store.completeChampionshipCelebration}
@@ -2025,6 +2107,9 @@ function GameApp() {
         viewModel={endgameCelebrationViewModel(
           store.career,
           content.assistantGuide.assistant.name,
+          // The default: the pending celebration this career actually earned.
+          undefined,
+          t,
         )}
         reduceMotion={reduceMotion}
         onComplete={store.completeEndgameCelebration}
@@ -2035,14 +2120,14 @@ function GameApp() {
   } else if (store.screen === 'awards-ceremony') {
     screen = (
       <AwardsCeremonyScreen
-        viewModel={careerAwardCeremonyViewModel(store.career)}
+        viewModel={careerAwardCeremonyViewModel(store.career, t)}
         lookIds={awardCeremonyLookIds(store.career)}
         reduceMotion={reduceMotion}
         onComplete={store.completeAwardsCeremony}
       />
     );
   } else if (store.screen === 'season-end') {
-    const season = seasonEndViewModel(store.career, content, store.selectedContractTerm);
+    const season = seasonEndViewModel(store.career, content, store.selectedContractTerm, t);
     screen = (
       <SeasonEndScreen
         viewModel={season}
@@ -2073,12 +2158,12 @@ function GameApp() {
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         guideCopy={!careerTeaches || store.career.eventFlags.includes('m4:season-recap-guide-seen')
           ? undefined
-          : content.assistantGuide.m4Fiction.seasonRecap}
+          : assistantFiction(content.assistantGuide, 'seasonRecap', t)}
         textScale={preferences.textScale}
       />
     );
   } else {
-    const home = homeViewModel(store.career);
+    const home = homeViewModel(store.career, t);
     screen = (
       <ManagementShell
         clubName={home.clubName}
@@ -2178,13 +2263,13 @@ function GameApp() {
           />
         ) : store.activeTab === 'club' ? (
           <ClubFinancesScreen
-            viewModel={clubFinancesViewModel(store.career)}
+            viewModel={clubFinancesViewModel(store.career, t)}
             activeTab={clubOfficeTab}
             onSelectTab={setClubOfficeTab}
             onBuildTrainingGround={buildTrainingGroundWithSfx}
             onBuildFacility={buildClubFacilityWithFeedback}
             onUpgradeFacility={buildingId => {
-              const finances = clubFinancesViewModel(useM1Store.getState().career!);
+              const finances = clubFinancesViewModel(useM1Store.getState().career!, t);
               const building = finances.facilities.buildings.find(candidate => candidate.id === buildingId);
               requestConfirmation({
                 title: `Upgrade ${building?.name ?? 'facility'}?`,
@@ -2200,7 +2285,7 @@ function GameApp() {
             )}
             onCloseFacility={buildingId => {
               const career = useM1Store.getState().career!;
-              const finances = clubFinancesViewModel(career);
+              const finances = clubFinancesViewModel(career, t);
               const building = finances.facilities.buildings.find(candidate => candidate.id === buildingId);
               const staffedOffice = building?.type === 'coaching-office'
                 && career.market?.assistantCoach !== undefined
@@ -2271,7 +2356,7 @@ function GameApp() {
           />
         ) : store.activeTab === 'market' && store.career.market !== undefined ? (
           <MarketScreen
-            viewModel={marketViewModel(careerMarketViewModelSource(store.career))}
+            viewModel={marketViewModel(careerMarketViewModelSource(store.career, undefined, t), t)}
             onStartScoutMission={optionId => performManagementAction(
               () => store.startScoutMission(optionId),
               'dispatch',
@@ -2286,7 +2371,7 @@ function GameApp() {
                 performManagementAction(() => store.actOnTransfer(playerId, direction), 'card', 'select');
                 return;
               }
-              const market = marketViewModel(careerMarketViewModelSource(store.career!));
+              const market = marketViewModel(careerMarketViewModelSource(store.career!, undefined, t), t);
               const listing = market.transfers.find(candidate => (
                 candidate.playerId === playerId && candidate.direction === 'SELL'
               ));
@@ -2310,7 +2395,7 @@ function GameApp() {
             }}
             onHireCoach={(coachId, role) => {
               const career = useM1Store.getState().career!;
-              const market = marketViewModel(careerMarketViewModelSource(career));
+              const market = marketViewModel(careerMarketViewModelSource(career, undefined, t), t);
               const coach = market.coaches.find(candidate => candidate.id === coachId);
               const current = role === 'HEAD' ? career.market?.headCoach : career.market?.assistantCoach;
               const roleLabel = role === 'HEAD' ? 'head coach' : 'assistant coach';
@@ -2362,7 +2447,7 @@ function GameApp() {
               statLines: store.career.seasonStatLines ?? [],
               week: store.career.week,
               phase: store.career.phase,
-            })}
+            }, t)}
             onSelectDivision={setSelectedLeagueDivision}
             onSelectCupSeason={season => {
               setConciergeFocus(null);
@@ -2376,7 +2461,10 @@ function GameApp() {
             onGuideSubTabAnchorChange={setLeagueSubTabGuideAnchor}
           />
         ) : store.activeTab === 'league' ? (
-          <LeagueTableScreen viewModel={leagueTableViewModel(store.career)} reduceMotion={reduceMotion} />
+          <LeagueTableScreen
+            viewModel={leagueTableViewModel(store.career, t)}
+            reduceMotion={reduceMotion}
+          />
         ) : (
           <ClubHomeScreen
             viewModel={home}
@@ -2498,6 +2586,13 @@ function GameApp() {
         className="flex-1 bg-ink"
         style={vars({ '--font-display': faces.display, '--font-data': faces.data })}
       >
+        {/* Inside the provider on purpose: the card announces the language it
+            just switched to, so it has to render in it. */}
+        <LanguageOfferCard
+          offered={languageOffer}
+          onKeep={() => answerLanguageOffer(languageOffer ?? 'en')}
+          onUseEnglish={() => answerLanguageOffer('en')}
+        />
         <View
           className="flex-1"
           accessibilityElementsHidden={pendingConfirmation !== null}
@@ -2568,9 +2663,9 @@ function GameApp() {
           assistantMode={store.career === null
             ? undefined
             : store.career.assistantMode ?? 'teacher'}
-          accessibilityCopy={content.assistantGuide.m4Fiction.accessibility}
+          accessibilityCopy={assistantFiction(content.assistantGuide, 'accessibility', t)}
           // No career, no record to open — not even a locked one.
-          hallOfFame={store.career === null ? undefined : hallOfFameViewModel(store.career)}
+          hallOfFame={store.career === null ? undefined : hallOfFameViewModel(store.career, t)}
           hallOfFameOpen={globalHallOfFameOpen}
           onHallOfFameOpenChange={setGlobalHallOfFameOpen}
           difficultyLabel={store.career?.onboarding?.stage === 'create-player'

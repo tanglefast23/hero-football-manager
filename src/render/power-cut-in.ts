@@ -1,5 +1,13 @@
+import { copyFor, type CopyFn } from '../i18n';
 import type { PowerId } from '../sim/types';
 import { powerEffectDescriptor } from './power-effect-descriptors';
+
+/** The same lazy shape the sibling render modules use. */
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 export interface PowerCutInPresentation {
   name: string;
@@ -33,8 +41,11 @@ const GLYPHS: Record<PowerId, string> = {
   GUST: '≋',
 };
 
-export function powerCutInPresentation(power: PowerId): PowerCutInPresentation {
-  const effect = powerEffectDescriptor(power);
+export function powerCutInPresentation(
+  power: PowerId,
+  t: CopyFn = englishCopy(),
+): PowerCutInPresentation {
+  const effect = powerEffectDescriptor(power, t);
   return { name: effect.name, glyph: GLYPHS[power], color: effect.primary };
 }
 
@@ -98,14 +109,19 @@ export function powerTakeoverShouldRemain(elapsedMs: number): boolean {
   return elapsedMs < POWER_TAKEOVER_POST_POWER_MS;
 }
 
-export function powerCutInAccessibilityLabel(entries: readonly PowerCutInLabelEntry[]): string {
+export function powerCutInAccessibilityLabel(
+  entries: readonly PowerCutInLabelEntry[],
+  t: CopyFn = englishCopy(),
+): string {
   const powers = entries
     .map(entry => {
-      const effect = powerEffectDescriptor(entry.power);
+      const effect = powerEffectDescriptor(entry.power, t);
       return `${effect.name}, ${entry.playerName}. ${effect.accessibilityLabel}`;
     })
     .join('. ');
-  return `${powers}${powerCutInGroupPolicy(entries).skippable ? '. Tap to skip.' : ''}`;
+  return powerCutInGroupPolicy(entries).skippable
+    ? t('matchScreen.a11y.tapToSkip', { label: powers })
+    : powers;
 }
 
 // ---------------------------------------------------------------------------
