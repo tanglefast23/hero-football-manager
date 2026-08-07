@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import type { LedgerLineReveal } from '../../../game/types';
-import type { PostMatchLedgerLineViewModel, PostMatchViewModel } from '../../models';
+import type {
+  LedgerIconViewModel,
+  PostMatchLedgerLineViewModel,
+  PostMatchViewModel,
+} from '../../models';
 import { FinancialReportBody } from '../../components/FinancialReportBody';
 import { SfxPressable as Pressable } from '../../components/SfxPressable';
 import type { DevHarnessEntry } from '../registry';
@@ -47,6 +51,16 @@ function gateLine(base: number, options: GateOptions = {}): PostMatchLedgerLineV
     amount,
     kind: 'income',
     reveal,
+    // Mirrors `ledgerLineIcons`: the strip is the view model's job now, so a
+    // harness case that skipped it would review a row the game never draws.
+    ...(reveal.facilityCount < 1 ? {} : {
+      icons: [{
+        id: 'stands',
+        kind: 'facility' as const,
+        facility: 'stadium-stand' as const,
+        count: reveal.facilityCount,
+      }],
+    }),
   };
 }
 
@@ -81,22 +95,52 @@ function merchLine(base: number, options: MerchOptions = {}): PostMatchLedgerLin
     amount,
     kind: 'income',
     reveal,
+    icons: [{
+      id: 'shops',
+      kind: 'facility' as const,
+      facility: 'fan-shop' as const,
+      count: reveal.facilityCount,
+    }],
   };
 }
 
 function plainLine(
   label: string,
   amount: number,
+  icons?: readonly LedgerIconViewModel[],
   kind: PostMatchLedgerLineViewModel['kind'] = amount >= 0 ? 'income' : 'expense',
 ): PostMatchLedgerLineViewModel {
   lineCounter += 1;
-  return { id: `plain-${lineCounter}`, label, amount, kind };
+  return {
+    id: `plain-${lineCounter}`,
+    label,
+    amount,
+    kind,
+    ...(icons === undefined ? {} : { icons }),
+  };
 }
 
+/**
+ * The dressed spending rows, at the widths that actually stress the strip: a
+ * grounds past the six-icon cap, a full squad behind one `×18`, and both
+ * coaches. Portrait ids are real sheet entries — a missing one falls back to
+ * the worksite sprite and would hide a broken key.
+ */
 const CONSTANT_TAIL: readonly (() => PostMatchLedgerLineViewModel)[] = [
-  () => plainLine('Facility upkeep', -230),
-  () => plainLine('Weekly wages', -2703),
-  () => plainLine('Coaching staff wages', -750),
+  () => plainLine('Facility upkeep', -230, [
+    { id: 'b1', kind: 'facility', facility: 'training-pitch', level: 2 },
+    { id: 'b2', kind: 'facility', facility: 'fan-shop', level: 1 },
+    { id: 'b3', kind: 'facility', facility: 'stadium-stand', level: 3 },
+    { id: 'b4', kind: 'facility', facility: 'gym', level: 1 },
+    { id: 'b5', kind: 'facility', facility: 'medical-bay', level: 1 },
+    { id: 'b6', kind: 'facility', facility: 'dorm', level: 1 },
+    { id: 'b7', kind: 'facility', facility: 'scout-office', level: 1 },
+  ]),
+  () => plainLine('Weekly wages', -2703, [{ id: 'squad', kind: 'player', count: 18 }]),
+  () => plainLine('Coaching staff wages', -750, [
+    { id: 'head', kind: 'coach', portraitId: 'amara-okafor' },
+    { id: 'assistant', kind: 'coach', portraitId: 'kwame-boateng' },
+  ]),
   () => plainLine('Season 1 wage subsidy', 1381),
 ];
 
@@ -204,7 +248,7 @@ const CASES: readonly HarnessCase[] = [
     label: 'Zero-fan gate',
     note: 'A $0 gate line carries no reveal and never surges.',
     build: () => reportCase([
-      plainLine('League home gate', 0, 'neutral'),
+      plainLine('League home gate', 0, undefined, 'neutral'),
       ...CONSTANT_TAIL.map(make => make()),
     ]),
   },
@@ -220,7 +264,7 @@ const CASES: readonly HarnessCase[] = [
       plainLine('Grid & Girder objective bonus', 750),
       plainLine('Hero Cup Play-in win', 2000),
       plainLine('Media buzz payout', 640),
-      plainLine('Loan repayment', -500, 'expense'),
+      plainLine('Loan repayment', -500, undefined, 'expense'),
       ...CONSTANT_TAIL.map(make => make()),
     ]),
   },

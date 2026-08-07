@@ -21,8 +21,8 @@ import type {
 } from '../financial-statement-machine';
 import { createStatementRuntime } from '../financial-statement-runtime';
 import type { StatementRuntime } from '../financial-statement-runtime';
-import type { FacilityTypeViewModel, PostMatchLedgerLineViewModel } from '../models';
-import { FacilitySprite } from './FacilitySprite';
+import type { PostMatchLedgerLineViewModel } from '../models';
+import { LedgerRowIcons } from './LedgerRowIcons';
 import { PaperPanel, formatCurrency } from './Scorecard';
 import { PixelText } from './PixelText';
 import { SlotAmount } from './SlotAmount';
@@ -282,21 +282,15 @@ function StatementRow({
     >
       {washActive ? <SweepingWash /> : null}
       <View className="flex-row items-center">
-        <View className="min-w-0 flex-1 flex-row items-center">
-          <Text className="shrink text-base text-ink">
-            {line.label}
-            {suffixFor(reveal, t) === null ? null : (
-              <Text className="text-ink/60">{suffixFor(reveal, t)}</Text>
-            )}
-          </Text>
-          {/* The building the money came from, at the size of the words. The
-              count already says how many, so one sprite names the place — a
-              sprite per stand would repeat the number in pictures. */}
-          {facilitySpriteFor(reveal) === null ? null : (
-            <View className="ml-2 shrink-0">
-              <FacilitySprite type={facilitySpriteFor(reveal)!} size={16} showLevel={false} />
-            </View>
-          )}
+        {/* The label and its pictures wrap together as one run. A single Text
+            plus a floating sprite pinned the building to the right edge the
+            moment the label took two lines, where it read as part of the
+            amount. The written count ("· 3 shops") is gone from the screen —
+            `🏪×3` is the same fact in less space — but VoiceOver still hears
+            it through `rowAccessibilityLabel`, which has no icons to read. */}
+        <View className="min-w-0 flex-1 flex-row flex-wrap items-center">
+          <Text className="text-base text-ink">{line.label}</Text>
+          {line.icons === undefined ? null : <LedgerRowIcons icons={line.icons} />}
         </View>
         {chipVisible ? <MultiplierChip reveal={reveal!} reduceMotion={reduceMotion} /> : null}
         <SlotAmount
@@ -328,29 +322,18 @@ function hasMultiplierBeat(reveal: LedgerLineReveal): boolean {
 }
 
 /**
- * UI-only label suffix from the reveal — the persisted label stays clean.
+ * "2 shops" / "1 stand", spoken only.
  *
- * Both sides count from one. The shop line used to stay bare below two shops,
- * so a manager who had built one Fan Shop saw merchandise money with nothing
- * naming where it came from while the gate line beside it said "1 stand".
+ * It used to print beside the label too, until the icon strip started drawing
+ * the same count as `🏪×3` and the row said it twice. Both sides still count
+ * from one: a manager with a single Fan Shop needs the building named as much
+ * as one with three, and VoiceOver reads no sprites at all.
  */
-function suffixFor(reveal: LedgerLineReveal | undefined, t: CopyFn): string | null {
-  if (reveal === undefined || reveal.facilityCount < 1) return null;
-  return ` · ${facilityCount(reveal, t)}`;
-}
-
-/** "2 shops" / "1 stand" — the same phrase the row shows and speaks. */
 function facilityCount(reveal: LedgerLineReveal, t: CopyFn): string {
   const key = reveal.source === 'merch'
     ? 'financialStatement.shopCount'
     : 'financialStatement.standCount';
   return t(key, { n: reveal.facilityCount, count: reveal.facilityCount });
-}
-
-/** The facility sprite that belongs beside the count, if the row has one. */
-function facilitySpriteFor(reveal: LedgerLineReveal | undefined): FacilityTypeViewModel | null {
-  if (reveal === undefined || reveal.facilityCount < 1) return null;
-  return reveal!.source === 'merch' ? 'fan-shop' : 'stadium-stand';
 }
 
 /**
@@ -427,7 +410,13 @@ function MultiplierChip({ reveal, reduceMotion }: { reveal: LedgerLineReveal; re
     animation.start();
     return () => animation.stop();
   }, [progress, reduceMotion]);
-  const label = reveal.source === 'merch' ? `×${reveal.multiplierTimes}` : `×${reveal.multiplierPercent}%`;
+  // Both chips speak percent. A shop line used to read "×3" beside a stand
+  // line reading "×200%", so the two multipliers on one statement looked like
+  // two different kinds of arithmetic — and the shop, on the larger multiple,
+  // looked like the smaller number.
+  const label = reveal.source === 'merch'
+    ? `×${reveal.multiplierTimes * 100}%`
+    : `×${reveal.multiplierPercent}%`;
   return (
     // NativeWind does not process className on Animated views, so the
     // animated wrapper is style-only and a plain View carries the look.
