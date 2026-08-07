@@ -14,6 +14,8 @@ import { useKeyBindings } from './use-key-bindings';
 import { PixelText } from './components/PixelText';
 import { InfoTip } from './components/InfoTip';
 import { useGuideAnchor } from './use-guide-anchor';
+import { useCountUpNumber } from './use-count-up-number';
+import { IdleAttract } from './components/IdleAttract';
 import type { DeveloperSaveSlot, DeveloperSaveSummary } from '../persistence';
 import { useCopy } from '../i18n';
 
@@ -54,7 +56,16 @@ function abbrev(n: number): string {
   return formatCompactNumber(n);
 }
 
-function ResourceChip({ glyph, name, explainer, value, money = false, tone, onPress }: {
+function ResourceChip({
+  glyph,
+  name,
+  explainer,
+  value,
+  money = false,
+  tone,
+  reduceMotion = false,
+  onPress,
+}: {
   glyph: string;
   name: string;
   /** What the glyph buys, for the manager who has never been told what TP is. */
@@ -69,6 +80,7 @@ function ResourceChip({ glyph, name, explainer, value, money = false, tone, onPr
    */
   money?: boolean;
   tone?: 'hero';
+  reduceMotion?: boolean;
   /**
    * The InfoTip anchor's inner Pressable claims the touch responder, so a tap
    * on the chip face never reaches the shell's "open the ledger" Pressable
@@ -78,6 +90,10 @@ function ResourceChip({ glyph, name, explainer, value, money = false, tone, onPr
 }) {
   const t = useCopy();
   const hero = tone === 'hero';
+  // The chip face rolls to the new figure; the spoken label states the real
+  // one. A screen reader must not have to wait out an animation, and the
+  // rolling value is presentation, not the number the player is being told.
+  const shownValue = useCountUpNumber(value, reduceMotion);
   const spoken = t('managementShell.a11y.resourceChip', {
     name,
     value: money ? formatCurrency(value) : formatCompactNumber(value),
@@ -103,7 +119,7 @@ function ResourceChip({ glyph, name, explainer, value, money = false, tone, onPr
         {glyph}
       </Text>
       <Text maxFontSizeMultiplier={1.2} adjustsFontSizeToFit numberOfLines={1} className={hero ? 'font-mono text-sm text-gold-dark' : 'font-mono text-sm text-ink'}>
-        {abbrev(value)}
+        {abbrev(shownValue)}
       </Text>
     </View>
     </InfoTip>
@@ -198,6 +214,8 @@ export interface ManagementShellProps {
   onOpenSettings?: () => void;
   advanceWeekLabel?: string;
   advanceWeekDisabled?: boolean;
+  /** Resource figures land on their new value instead of rolling to it. */
+  reduceMotion?: boolean;
   /**
    * Desktop key shortcuts, on by default. The shell cannot see an overlay a
    * screen renders over it, so a caller that owns the keyboard for a while
@@ -246,6 +264,7 @@ export function ManagementShell({
   onAdvanceWeek,
   onOpenLedger,
   onOpenSettings,
+  reduceMotion = false,
   advanceWeekLabel,
   advanceWeekDisabled = false,
   keyboardShortcutsEnabled = true,
@@ -312,9 +331,9 @@ export function ManagementShell({
         onLayout={moneyGuideAnchor.scheduleMeasurement}
         className={guideFocus === 'money' ? 'border-2 border-blue-dark bg-blue-light p-1' : undefined}
       >
-        <ResourceChip glyph="$" name={t('managementShell.money')} explainer={t('managementShell.moneyExplainer')} money value={resources.money} onPress={openLedgerFromChip} />
+        <ResourceChip glyph="$" name={t('managementShell.money')} explainer={t('managementShell.moneyExplainer')} money value={resources.money} reduceMotion={reduceMotion} onPress={openLedgerFromChip} />
       </View>
-      <ResourceChip glyph="TP" name={t('managementShell.trainingPoints')} explainer={t('managementShell.trainingPointsExplainer')} value={resources.trainingPoints} onPress={openLedgerFromChip} />
+      <ResourceChip glyph="TP" name={t('managementShell.trainingPoints')} explainer={t('managementShell.trainingPointsExplainer')} value={resources.trainingPoints} reduceMotion={reduceMotion} onPress={openLedgerFromChip} />
     </View>
   );
 
@@ -448,19 +467,28 @@ export function ManagementShell({
               style={styles.advanceCue}
             />
           ) : null}
-          <ActionButton
-            label={advanceWeek}
-            accessibilityLabel={guideTarget === 'advance-week'
-              // Strip either arrow glyph: App still passes labels with '▸'.
-              ? t('managementShell.a11y.bertSaysReadTheDesk', {
-                action: advanceWeek.replace(/[▸›]/g, '').trim(),
-              })
-              : advanceWeek.replace(/[▸›]/g, '').trim()}
-            onPress={onAdvanceWeek}
-            disabled={advanceWeekDisabled}
-            compact
-            maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
-          />
+          {/* Once the desk is clear and nothing has moved for a few seconds,
+              the week itself is the only thing left to do — so it asks. It
+              waits while Bert still has a job for the player, because two
+              things competing for attention is worse than none. */}
+          <IdleAttract
+            active={!advanceWeekDisabled && !reduceMotion && guideTarget !== 'advance-week'}
+            restartKey={`${weekLabel}|${activeTab}|${guideObjective ?? ''}`}
+          >
+            <ActionButton
+              label={advanceWeek}
+              accessibilityLabel={guideTarget === 'advance-week'
+                // Strip either arrow glyph: App still passes labels with '▸'.
+                ? t('managementShell.a11y.bertSaysReadTheDesk', {
+                  action: advanceWeek.replace(/[▸›]/g, '').trim(),
+                })
+                : advanceWeek.replace(/[▸›]/g, '').trim()}
+              onPress={onAdvanceWeek}
+              disabled={advanceWeekDisabled}
+              compact
+              maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
+            />
+          </IdleAttract>
         </HoverTipAnchor>
         <View
           ref={navigationGuideAnchor.anchorRef}

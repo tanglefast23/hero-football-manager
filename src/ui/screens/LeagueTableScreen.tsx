@@ -1,5 +1,8 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { Metric, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
+import { LeagueTableRow } from '../components/LeagueTableRow';
+import { takeLeagueRowShifts } from '../league-table-motion';
 import { EmptyDocket } from '../components/EmptyDocket';
 import { LeagueFixtureRow } from '../components/LeagueFixtureRow';
 import type { LeagueTableViewModel } from '../models';
@@ -65,13 +68,30 @@ import { useCopy } from '../../i18n';
 
 export interface LeagueTableScreenProps {
   viewModel: LeagueTableViewModel;
+  /** Rows settle into place instead of sliding when motion is reduced. */
+  reduceMotion?: boolean;
 }
 
-export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
+export function LeagueTableScreen({ viewModel, reduceMotion = false }: LeagueTableScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const pointsFromTop = viewModel.leaderPoints - viewModel.userPoints;
   const layoutMode = useLayoutMode();
+  // The standings the player is about to see, compared with the ones they last
+  // saw, so rows can slide in from their old places. Read once per distinct
+  // table — re-opening the same week correctly animates nothing.
+  const shiftsRef = useRef<Map<string, number>>(new Map());
+  const shiftKeyRef = useRef<string | undefined>(undefined);
+  const shiftKey = `${viewModel.divisionLabel}|${viewModel.seasonLabel}|${viewModel.weekLabel}`;
+  if (shiftKeyRef.current !== shiftKey) {
+    shiftKeyRef.current = shiftKey;
+    shiftsRef.current = takeLeagueRowShifts(viewModel.divisionLabel, viewModel.rows);
+  }
+  const [rowHeight, setRowHeight] = useState(0);
+  const handleRowLayout = (event: LayoutChangeEvent) => {
+    const measured = event.nativeEvent.layout.height;
+    setRowHeight(current => (Math.abs(current - measured) < 0.5 ? current : measured));
+  };
 
   const sections: FlowSection[] = [
     {
@@ -158,8 +178,15 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
               const primaryText = row.isUserClub ? 'text-ink' : 'text-ink';
               const secondaryText = row.isUserClub ? 'text-ink/70' : 'text-ink/65';
               return (
-                <View
+                <LeagueTableRow
                   key={row.clubId}
+                  rowsMoved={shiftsRef.current.get(row.clubId) ?? 0}
+                  rowHeight={rowHeight}
+                  reduceMotion={reduceMotion}
+                  standingsKey={shiftKey}
+                  onLayout={row.position === 1 ? handleRowLayout : undefined}
+                >
+                <View
                   accessible
                   accessibilityLabel={t('leagueTable.a11y.row', {
                     position: row.position,
@@ -187,6 +214,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
                   <Text style={tableColumns.goalDifference} className={`text-right font-mono text-[12px] ${secondaryText}`} numberOfLines={1}>{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>
                   <Text style={tableColumns.points} className={`text-right font-mono text-base ${primaryText}`} numberOfLines={1}>{row.points}</Text>
                 </View>
+                </LeagueTableRow>
               );
             })}
           </View>

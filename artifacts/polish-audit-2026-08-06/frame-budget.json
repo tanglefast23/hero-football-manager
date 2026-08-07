@@ -1,0 +1,20 @@
+{
+  "node": "v22.23.1",
+  "commit": "96f45b1f",
+  "watchedMatch": {
+    "count": 2002,
+    "meanMs": 0.27,
+    "p99Ms": 3.43,
+    "worstMs": 16.86,
+    "totalMs": 539.99
+  },
+  "pump": {
+    "count": 1004,
+    "meanMs": 1.41,
+    "p99Ms": 10.05,
+    "worstMs": 13.49,
+    "totalMs": 1414.17,
+    "ticksPerBurst": 8
+  },
+  "coldWorstCase4xMs": 1092.76
+}

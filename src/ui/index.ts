@@ -1,5 +1,6 @@
 export * from './BertBriefingWalkOn';
 export * from './BertFullBody';
+export * from './league-table-motion';
 export * from './MatchdayConditionWarning';
 export * from './matchday-condition';
 export * from './TutorialSpotlight';

@@ -33,6 +33,21 @@ function setsOpacity(style: unknown): boolean {
 }
 
 /**
+ * Whether the caller already moves this surface itself.
+ *
+ * A dozen buttons author their own press travel — the title screen's play
+ * button drops 3px, the league rows 2px, the settings toggle 1px — and those
+ * distances are chosen against each button's own border weight. The shared
+ * depress is a floor for everything else, so it stands aside wherever a caller
+ * has already said how far its surface should move.
+ */
+function setsTransform(style: unknown): boolean {
+  if (style == null || typeof style !== 'object') return false;
+  if (Array.isArray(style)) return style.some(setsTransform);
+  return (style as ViewStyle).transform != null;
+}
+
+/**
  * Shared management interaction surface. It gives every custom button/card a
  * short tap cue, a visible pressed state, and — on desktop — a pointer cursor,
  * a hover lift, and an optional explanatory tip, while preserving its own
@@ -109,6 +124,11 @@ export function SfxPressable({
           tip !== undefined ? hoverTipAnchor : undefined,
           resolved,
           pressed && !setsOpacity(resolved) ? { opacity: 0.7 } : undefined,
+          // The press has to be felt, not just seen dimmer. Dimming alone reads
+          // as "this went away"; moving the surface under the finger reads as
+          // "this took the press". It lands with the touch and leaves with it,
+          // so nothing is queued and nothing can be left depressed.
+          pressed && !disabled && !setsTransform(resolved) ? pressDepress : undefined,
           // A mouse gets a cursor and a 1px lift so the UI stops feeling dead.
           pointer && !disabled ? pointerCursor : undefined,
           pointer && hovered && !pressed && !disabled ? hoverLift : undefined,
@@ -162,6 +182,16 @@ export function HoverTipAnchor({ tip, className, children }: {
  */
 const pointerCursor = { cursor: 'pointer' } as ViewStyle;
 const hoverLift: ViewStyle = { transform: [{ translateY: -1 }] };
+/**
+ * The pressed surface: one pixel down, three percent smaller.
+ *
+ * Every management button in the game is drawn with a thick bottom border, so
+ * travelling a single pixel down reads as that lip compressing — the same
+ * mechanism a physical key uses. The values are deliberately small: this fires
+ * on press-in and is removed on press-out with no tween, so anything larger
+ * would snap rather than depress.
+ */
+const pressDepress: ViewStyle = { transform: [{ translateY: 1 }, { scale: 0.97 }] };
 const hoverTipAnchor: ViewStyle = { position: 'relative' };
 // Raise the host, not only the absolute bubble. A child's z-index is trapped in
 // its parent's paint order, which is why later roster text appeared over tips.
