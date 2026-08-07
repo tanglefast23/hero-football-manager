@@ -1,6 +1,7 @@
 export * from './BertBriefingWalkOn';
 export * from './BertFullBody';
 export * from './league-table-motion';
+export * from './motion';
 export * from './MatchdayConditionWarning';
 export * from './matchday-condition';
 export * from './TutorialSpotlight';
@@ -29,6 +30,7 @@ export * from './components/FacilityCompletionCard';
 export * from './components/ConfirmationSheet';
 export * from './components/PostMatchBuzzCard';
 export * from './components/MatchDayBanner';
+export * from './components/ScreenTransition';
 export * from './screens/ClubHomeScreen';
 export * from './screens/ClubLegacyScreen';
 export * from './screens/ClubFinancesScreen';

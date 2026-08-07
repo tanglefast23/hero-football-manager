@@ -12,6 +12,8 @@
  * un-animated table and nothing else. Nothing here reaches the save.
  */
 
+import { MOTION_MS } from './motion';
+
 /** Division key -> clubId -> position, as the player last saw it. */
 const lastSeenPositions = new Map<string, Map<string, number>>();
 
@@ -73,8 +75,9 @@ export function forgetLeagueRowPositions(): void {
 /**
  * Settle time for a row sliding into its new place.
  *
- * Long enough to be followed by eye (a table can reshuffle by several places
- * at once), short enough that the standings are readable before the player has
- * finished reaching for the next control.
+ * EMPHATIC: a table reshuffle is a beat the player is meant to watch land, not
+ * a state flip to get out of the way. Long enough to follow by eye when a club
+ * moves several places, short enough that the standings are readable before the
+ * player has finished reaching for the next control.
  */
-export const LEAGUE_ROW_SETTLE_MS = 420;
+export const LEAGUE_ROW_SETTLE_MS = MOTION_MS.EMPHATIC;

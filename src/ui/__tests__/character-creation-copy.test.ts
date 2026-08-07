@@ -92,9 +92,14 @@ describe('first-hire screen copy', () => {
     );
     const pressInBody = /onPressIn=\{event => \{([\s\S]*?)onPressIn\?\.\(event\);/.exec(pressable)?.[1];
     const pressBody = /onPress=\{onPress == null \? undefined : event => \{([\s\S]*?)onPress\(event\);/.exec(pressable)?.[1];
-    expect(pressInBody).not.toContain('playStatStepSfx()');
-    expect(pressBody).toContain("if (pressSfx === 'stat-step') playStatStepSfx();");
-    expect(pressBody?.match(/playStatStepSfx\(\)/g)).toHaveLength(1);
+    // The stepper is heard as the finger goes down, and the completed press
+    // keeps an owner of its own because a keyboard activation has no press-in
+    // phase to cue from. Both routes go through the one helper below, so an
+    // activation cannot make the sound twice however it arrived.
+    expect(pressInBody).toContain('cueGate.pressIn(pressSfx);');
+    expect(pressBody).toContain('cueGate.press(pressSfx);');
+    expect(pressable).toContain("if (pressSfx === 'stat-step') playStatStepSfx();");
+    expect(pressable.match(/playStatStepSfx\(\)/g)).toHaveLength(1);
   });
 
   it('enters creation with one short navigation click and no trailing celebration', () => {

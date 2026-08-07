@@ -1,7 +1,7 @@
 import './global.css';
 import { playerRequestViewModel } from './src/application/player-request-view-model';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { isValidElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Linking, LogBox, Platform, Share, Text, View } from 'react-native';
 import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
@@ -112,6 +112,7 @@ import {
   NewGameWelcomeScreen,
   PostMatchLedgerScreen,
   PostMatchSummaryModal,
+  ScreenTransition,
   SeasonEndScreen,
   SquadTrainingScreen,
   StoryEventScreen,
@@ -2467,6 +2468,18 @@ function GameApp() {
   // these variables, and because the voice split (display vs data) is real.
   const faces = facesFor(preferences.language);
 
+  // The chain above picks exactly one component per branch, so the component it
+  // picked IS that screen's identity. Deriving a parallel key from `store.screen`
+  // would be a second routing table to keep in step with the first, and would
+  // miss what this gets for free: the two loading branches are one screen to the
+  // eye, and the four welcome views are four.
+  const screenKey: unknown = isValidElement(screen) ? screen.type : screen;
+  // The watched match and the face-off both drive a Skia canvas from a frame
+  // loop. Holding one on screen while the next screen builds asks the device for
+  // another 150ms of drawing at the exact moment it is busiest, so those two cut
+  // instead of dissolving — in both directions, since either would hold them.
+  const screenDrivesAFrameLoop = screenKey === MatchScreen || screenKey === QuickResultFaceOff;
+
   return (
     <LocaleProvider value={preferences.language}>
     <SafeAreaProvider>
@@ -2492,7 +2505,13 @@ function GameApp() {
           {...confirmationBackgroundProps(pendingConfirmation !== null)}
         >
         <View className="flex-1" {...bertBriefingBackgroundProps(bertBriefingVisible)}>
-        {screen}
+        <ScreenTransition
+          screenKey={screenKey}
+          reduceMotion={reduceMotion}
+          animated={!screenDrivesAFrameLoop}
+        >
+          {screen}
+        </ScreenTransition>
         {/* The match week announces itself the moment the desk appears, the
             same way the Financial Report announces a surge. Held back until
             the manager is actually ON the desk: the week review runs first,

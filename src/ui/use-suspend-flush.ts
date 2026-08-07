@@ -3,6 +3,20 @@ import { Platform } from 'react-native';
 import { flushPendingCareerSave } from '../application/store';
 
 /**
+ * True only where the page-lifecycle events the hook below listens for actually
+ * exist. React Native defines a global `window` but no `document`, and a static
+ * web export prerenders in Node with neither, so both targets are asked for by
+ * capability rather than inferred from the platform — the discipline
+ * audio-lifecycle.ts and pointer-capability.ts already follow.
+ */
+function hasPageLifecycleDom(): boolean {
+  const page = typeof document === 'undefined' ? undefined : document;
+  const view = typeof window === 'undefined' ? undefined : window;
+  return typeof page?.addEventListener === 'function'
+    && typeof view?.addEventListener === 'function';
+}
+
+/**
  * Writes any queued career save the moment the app is hidden. Web only.
  *
  * iOS can kill a backgrounded web app — the game installed to an iPad home
@@ -19,8 +33,10 @@ import { flushPendingCareerSave } from '../application/store';
 export function useSuspendFlush(): void {
   useEffect(() => {
     // Platform is resolved here, not at module scope: several UI tests mock
-    // react-native without it (the trap documented on SfxPressable).
-    if (Platform?.OS !== 'web' || typeof document === 'undefined') return undefined;
+    // react-native without it (the trap documented on SfxPressable). It is a
+    // cheap first read, not the safety check — 'web' still covers a prerender
+    // with no DOM, so both listener targets are feature-detected below.
+    if (Platform?.OS !== 'web' || !hasPageLifecycleDom()) return undefined;
 
     const flush = () => {
       // Fire and forget: a hidden page may not get to finish, and there is

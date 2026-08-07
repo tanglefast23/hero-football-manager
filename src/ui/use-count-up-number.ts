@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { MOTION_MS } from './motion';
 
 /**
  * How long a resource takes to travel from its old value to its new one.
@@ -10,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
  * runs on the busiest chrome in the game, and a long roll would still be
  * counting when the next screen arrives.
  */
-export const RESOURCE_ROLL_MS = 520;
+export const RESOURCE_ROLL_MS = MOTION_MS.SETTLE;
 
 /**
  * A number that travels to its new value instead of jumping to it.
