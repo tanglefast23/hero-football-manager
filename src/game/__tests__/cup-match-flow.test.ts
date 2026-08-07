@@ -271,7 +271,14 @@ describe('player-controlled Hero Cup match flow', () => {
         kind: 'tickets',
         label: 'Hero Cup Play-in home gate',
         labelKey: 'ledger.cupHomeGate',
-        labelParams: { cup: 'Hero Cup', round: 'Play-in' },
+        // Each English param is paired with its catalog key, so the app ring
+        // swaps in the translated cup and round before interpolating.
+        labelParams: {
+          cup: 'Hero Cup',
+          cupKey: 'm2League.heroCup',
+          round: 'Play-in',
+          roundKey: 'm2League.cupRound.playIn',
+        },
         amount: expectedGate,
         reveal: {
           source: 'cup-gate',

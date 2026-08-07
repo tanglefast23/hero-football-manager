@@ -3422,8 +3422,9 @@
     "matchScreen.playstyleMode.balanced": "ÉQUILIBRÉ",
     "matchScreen.playstyleMode.attack": "ATTAQUE",
     "matchScreen.playstyleMode.protect": "DÉFENSE",
-    "matchRail.playstyleChip.balanced": "ÉQUILIBRÉ",
-    "matchRail.playstyleChip.attack": "PRESSING",
-    "matchRail.playstyleChip.protect": "BÉTON"
+    "ledger.buzzPayoutFirstHalf": "Ferveur · Première moitié",
+    "ledger.buzzPayoutSeasonEnd": "Ferveur · Fin de saison",
+    "ledger.cupChampions": "Vainqueur de la {cup}",
+    "ledger.cupRoundWin": "Victoire · {cup} {round}"
   }
 }

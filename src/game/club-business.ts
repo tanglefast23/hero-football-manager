@@ -29,6 +29,7 @@ interface AppliedBuzzWeek {
     readonly half: 1 | 2;
     readonly idempotencyKey: string;
     readonly label: string;
+    readonly labelKey: string;
   };
 }
 
@@ -195,7 +196,10 @@ export function applyBuzzImpacts(
       amount: payout,
       half,
       idempotencyKey: `buzz/${season}/half-${half}`,
+      // Dual-written like every other ledger line: the English is the save
+      // fallback, the key is what a translated statement renders.
       label: half === 1 ? 'Buzz payout · First half' : 'Buzz payout · Season end',
+      labelKey: half === 1 ? 'ledger.buzzPayoutFirstHalf' : 'ledger.buzzPayoutSeasonEnd',
     },
   };
 }

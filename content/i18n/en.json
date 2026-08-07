@@ -1391,9 +1391,6 @@
     "matchRail.formationTitle": "FORMATION ({blurb})",
     "matchRail.heroPowers": "HERO POWERS",
     "matchRail.mostTiredOnThePitch": "MOST TIRED ON THE PITCH",
-    "matchRail.playstyleChip.attack": "PRESS",
-    "matchRail.playstyleChip.balanced": "BALANCED",
-    "matchRail.playstyleChip.protect": "PARK BUS",
     "matchRail.statusLive": "LIVE",
     "matchRail.statusZone": "ZONE",
     "matchRail.substitutionsLeft": "SUBSTITUTIONS · {count} LEFT",
@@ -2301,6 +2298,10 @@
     "weeklyReview.startWeek": "Start {week}",
     "weeklyReview.trainingPoints": "Training points",
     "weeklyReview.weeklyReview": "Weekly review",
-    "weeklyReview.weeklyStatement": "Weekly statement"
+    "weeklyReview.weeklyStatement": "Weekly statement",
+    "ledger.buzzPayoutFirstHalf": "Buzz payout · First half",
+    "ledger.buzzPayoutSeasonEnd": "Buzz payout · Season end",
+    "ledger.cupChampions": "{cup} champions",
+    "ledger.cupRoundWin": "{cup} {round} win"
   }
 }

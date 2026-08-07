@@ -277,6 +277,32 @@ export function divisionTierLabelWith(
  */
 export const CUP_DISPLAY_NAME = 'Hero Cup';
 
+/**
+ * @i18n-fallback — the catalog keys for the cup's name and its round names.
+ *
+ * The same dual write as `DIVISION_NAME_KEYS`: `src/game` may not import
+ * `src/i18n`, so it emits the key beside the English and the app ring resolves
+ * the pair. Every one of these strings was already translated in all six
+ * locales — the bug was that only the M2 bracket screen looked them up, so the
+ * match title card, the desk notes, the club home fixture line and the ledger
+ * all injected an English "Quarter-final" into an otherwise translated
+ * sentence.
+ *
+ * The `m2League.` prefix is where these keys were first authored and is kept
+ * deliberately: renaming them would mean re-translating six rounds in six
+ * languages to buy nothing but a tidier namespace.
+ */
+export const CUP_NAME_KEY = 'm2League.heroCup';
+
+export const CUP_ROUND_NAME_KEYS: Readonly<Record<NationalCupRound['label'], string>> = {
+  'Play-in': 'm2League.cupRound.playIn',
+  'Round of 32': 'm2League.cupRound.roundOf32',
+  'Round of 16': 'm2League.cupRound.roundOf16',
+  'Quarter-final': 'm2League.cupRound.quarterFinal',
+  'Semi-final': 'm2League.cupRound.semiFinal',
+  Final: 'm2League.cupRound.final',
+};
+
 const UINT32_RANGE = 4294967296;
 const SQUAD_ROLES: readonly Role[] = [
   'GK', 'GK',

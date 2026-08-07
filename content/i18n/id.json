@@ -3422,8 +3422,9 @@
     "matchScreen.playstyleMode.balanced": "SEIMBANG",
     "matchScreen.playstyleMode.attack": "SERANG",
     "matchScreen.playstyleMode.protect": "BERTAHAN",
-    "matchRail.playstyleChip.balanced": "SEIMBANG",
-    "matchRail.playstyleChip.attack": "PRESSING",
-    "matchRail.playstyleChip.protect": "PARKIR BUS"
+    "ledger.buzzPayoutFirstHalf": "Gaung · Paruh pertama",
+    "ledger.buzzPayoutSeasonEnd": "Gaung · Akhir musim",
+    "ledger.cupChampions": "Juara {cup}",
+    "ledger.cupRoundWin": "Menang · {cup} {round}"
   }
 }

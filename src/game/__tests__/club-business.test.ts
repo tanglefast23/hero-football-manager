@@ -162,6 +162,7 @@ describe('Buzz earnings and twice-season payout', () => {
       half: 1,
       idempotencyKey: 'buzz/3/half-1',
       label: 'Buzz payout · First half',
+      labelKey: 'ledger.buzzPayoutFirstHalf',
     });
     expect(applied.buzz.value).toBe(0);
     expect(applied.buzz.lastSettlementSummary).toMatchObject({

@@ -1,20 +1,16 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { mentalityChipLabel, mentalityLabel } from '../match-mentality-ui';
+import { mentalityLabel } from '../match-mentality-ui';
 import { MENTALITIES } from '../../sim/tactics';
 import { ENABLED_LOCALES, copyFor, loadCatalog } from '../../i18n';
 
 const sourceOf = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
 describe('playstyle copy', () => {
-  test('keeps the signed-off English on both surfaces', () => {
+  test('keeps the signed-off English, one vocabulary on both layouts', () => {
     expect(mentalityLabel('BALANCED')).toBe('BALANCED');
     expect(mentalityLabel('ATTACK')).toBe('ATTACK');
     expect(mentalityLabel('PROTECT')).toBe('PROTECT');
-    // The rail names the same three tactics the way a fan would.
-    expect(mentalityChipLabel('BALANCED')).toBe('BALANCED');
-    expect(mentalityChipLabel('ATTACK')).toBe('PRESS');
-    expect(mentalityChipLabel('PROTECT')).toBe('PARK BUS');
   });
 
   test('translates in every enabled locale, and never falls back to English', () => {
@@ -25,7 +21,7 @@ describe('playstyle copy', () => {
       const t = copyFor(locale);
       const strings = loadCatalog(locale).strings;
       for (const mentality of MENTALITIES) {
-        for (const label of [mentalityLabel(mentality, t), mentalityChipLabel(mentality, t)]) {
+        for (const label of [mentalityLabel(mentality, t)]) {
           // Not the enum, not the key, and actually present in this catalog.
           expect({ locale, mentality, label })
             .toMatchObject({ locale, mentality });

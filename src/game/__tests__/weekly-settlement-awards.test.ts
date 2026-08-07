@@ -20,6 +20,15 @@ describe('weekly settlement awards', () => {
       line: {
         kind: 'prize',
         label: 'Hero Cup Play-in win',
+        // Dual-written, like the league prize beside it. Until this landed the
+        // cup line had no key at all, so a cup run paid out in English forever.
+        labelKey: 'ledger.cupRoundWin',
+        labelParams: {
+          cup: 'Hero Cup',
+          cupKey: 'm2League.heroCup',
+          round: 'Play-in',
+          roundKey: 'm2League.cupRound.playIn',
+        },
         amount: 2_000,
         idempotencyKey: 'cup-round:user-club:s2:r1',
       },

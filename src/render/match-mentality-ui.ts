@@ -22,26 +22,16 @@ const MENTALITY_LABEL_KEYS: Readonly<Record<Mentality, string>> = {
   PROTECT: 'matchScreen.playstyleMode.protect',
 };
 
-/**
- * The desktop rail's own chip copy, which is deliberately not the same words.
- *
- * The phone HUD cycles one button through the plain three (`ATTACK`,
- * `PROTECT`); the rail has room for three chips and names the tactics the way a
- * fan would (`PRESS`, `PARK BUS`). Both were signed off, so both are keyed
- * rather than one being quietly rewritten into the other.
- */
-const MENTALITY_CHIP_LABEL_KEYS: Readonly<Record<Mentality, string>> = {
-  BALANCED: 'matchRail.playstyleChip.balanced',
-  ATTACK: 'matchRail.playstyleChip.attack',
-  PROTECT: 'matchRail.playstyleChip.protect',
-};
 
-/** The phone HUD's playstyle word — "BALANCED", "ATTACK", "PROTECT". */
+/**
+ * The playstyle word the player reads — "BALANCED", "ATTACK", "PROTECT".
+ *
+ * One vocabulary on both layouts. The desktop rail used to carry its own
+ * fan-speak set ("PRESS", "PARK BUS") while the banner that fires when you tap
+ * a chip said "PLAYSTYLE · ATTACK" — so on a wide screen the control and its
+ * own confirmation named the same tactic differently, at the same moment.
+ * Owner's call, 2026-08-07: the rail says what the banner says.
+ */
 export function mentalityLabel(mentality: Mentality, t: CopyFn = englishCopy()): string {
   return t(MENTALITY_LABEL_KEYS[mentality]);
-}
-
-/** The desktop rail's chip word — "BALANCED", "PRESS", "PARK BUS". */
-export function mentalityChipLabel(mentality: Mentality, t: CopyFn = englishCopy()): string {
-  return t(MENTALITY_CHIP_LABEL_KEYS[mentality]);
 }

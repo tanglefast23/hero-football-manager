@@ -3422,8 +3422,9 @@
     "matchScreen.playstyleMode.balanced": "NORMAL",
     "matchScreen.playstyleMode.attack": "ANGRIFF",
     "matchScreen.playstyleMode.protect": "DEFENSIV",
-    "matchRail.playstyleChip.balanced": "NORMAL",
-    "matchRail.playstyleChip.attack": "PRESSING",
-    "matchRail.playstyleChip.protect": "MAUERN"
+    "ledger.buzzPayoutFirstHalf": "Wirbel · Erste Hälfte",
+    "ledger.buzzPayoutSeasonEnd": "Wirbel · Saisonende",
+    "ledger.cupChampions": "{cup}-Sieger",
+    "ledger.cupRoundWin": "Sieg · {cup} {round}"
   }
 }
