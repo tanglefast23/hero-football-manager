@@ -112,6 +112,7 @@ Research reports (source material, written by research agents):
 | Career structure | Climb from D5 · District League to D1 · Global League; win **both** D1 and the Hero Cup to complete the main journey, then continue endlessly; the career record is kept in the Hall of Fame |
 | Business model | Paid app, ~$0.99, no IAP at launch; economy balanced purely for fun |
 | Art direction | B+ "heroic chibi" pixel art + comic FX layer + broadcast match dressing |
+| Character homages | Three caricature sets sit at the end of the field-look pool: 19 football legends (f140–f158), 9 current stars (f159–f167), and 15 superheroes (f168–f182, on the wider `hero` build). Each exaggerates one generic cue — a hairstyle, a beard, a cowl, a visor — and never a costume: the uniform is always the club kit. Real names live only in `SUPERHERO_HOMAGE_IDENTITIES` and the preview scripts as development references; in-game identities are fictional. Contact sheets in `art/*-preview.svg` |
 | Opening music | **“Heroes Start Here”** — original 128 BPM title-screen fanfare and seamless chiptune loop |
 | Match music | **“Match Day Heroes”** — original 128 BPM heroic stadium-chiptune loop; the official watched-match theme |
 | Management music | **“Clubhouse Dreams”** — original 112 BPM warm chiptune loop for training, squad, transfers, facilities, and finances |

@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SUPERHERO_HOMAGE_IDENTITIES } from './player-art-roster.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const portraits = json('src/render/sprites/portraits.json');
@@ -195,11 +196,36 @@ writeFootballReferencePreview({
   ],
 });
 
-function writeFootballReferencePreview({ filename, title, subtitle, columns, looks }) {
+// Driven off the exported identities rather than a second hand-typed list, so
+// the sheet can never disagree with the roster about who f173 is.
+writeFootballReferencePreview({
+  filename: 'superhero-homage-preview.svg',
+  title: '15 SUPERHERO SILHOUETTE HOMAGES',
+  subtitle: 'DEVELOPMENT REFERENCES ONLY · FICTIONAL IN-GAME IDENTITIES · HERO BUILD · REST · JOY · MATCH',
+  columns: 5,
+  looks: SUPERHERO_HOMAGE_IDENTITIES.map(hero => ({
+    id: hero.id,
+    name: hero.name.toUpperCase(),
+    cue: `${hero.cue} · ${hero.power.replace(/_/g, ' ')}`,
+  })),
+  // The whole point of the hero build is that it reads bigger on the pitch, and
+  // a sheet of heroes alone cannot show that — every card is the same size.
+  comparison: [
+    { id: 'f09', label: 'SLIM' },
+    { id: 'f00', label: 'NORMAL' },
+    { id: 'f02', label: 'MUSCULAR' },
+    { id: 'f168', label: 'HERO' },
+    { id: 'f176', label: 'HERO' },
+    { id: 'f180', label: 'HERO' },
+  ],
+});
+
+function writeFootballReferencePreview({ filename, title, subtitle, columns, looks, comparison }) {
   const card = { w: 300, h: 210 };
   const width = 24 + columns * card.w;
   const rows = Math.ceil(looks.length / columns);
-  const height = 84 + rows * card.h + 20;
+  const stripHeight = comparison === undefined ? 0 : 190;
+  const height = 84 + rows * card.h + 20 + stripHeight;
   const previewParts = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
     '<rect width="100%" height="100%" fill="#f4f1ea"/>',
@@ -225,6 +251,18 @@ function writeFootballReferencePreview({ filename, title, subtitle, columns, loo
     previewParts.push(`<text x="${x + 144}" y="${y + 178}" text-anchor="middle" font-family="monospace" font-size="9" fill="#6b6675">JOY</text>`);
     previewParts.push(`<text x="${x + 240}" y="${y + 178}" text-anchor="middle" font-family="monospace" font-size="9" fill="#6b6675">MATCH</text>`);
   });
+  if (comparison !== undefined) {
+    const stripY = 84 + rows * card.h + 12;
+    previewParts.push(`<rect x="24" y="${stripY}" width="${width - 48}" height="166" fill="#ffffff" stroke="#241f2e" stroke-width="3"/>`);
+    previewParts.push(`<text x="44" y="${stripY + 28}" font-family="monospace" font-size="13" font-weight="bold" fill="#241f2e">SAME SCALE — THE HERO BUILD BESIDE THE THREE ORDINARY BUILDS</text>`);
+    const slot = Math.floor((width - 88) / comparison.length);
+    comparison.forEach((entry, index) => {
+      const x = 44 + index * slot;
+      previewParts.push(`<rect x="${x}" y="${stripY + 42}" width="96" height="90" fill="${entry.label === 'HERO' ? '#f7d894' : '#a3c8f0'}"/>`);
+      previewParts.push(sprite(match.sprites[`r:${entry.id}:run0`], match.palette, x + 12, stripY + 44, 3));
+      previewParts.push(`<text x="${x + 48}" y="${stripY + 152}" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="${entry.label === 'HERO' ? '#c22f2c' : '#6b6675'}">${entry.label} · ${entry.id.toUpperCase()}</text>`);
+    });
+  }
   previewParts.push('</svg>');
   const previewOutput = resolve(root, `art/${filename}`);
   writeFileSync(previewOutput, `${previewParts.join('\n')}\n`);

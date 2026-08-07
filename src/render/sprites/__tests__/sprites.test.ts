@@ -45,8 +45,8 @@ describe('large career match-sprite roster', () => {
 
   it('loads every base and derived action frame', () => {
     const sheet = fullSheet;
-    expect(BASE_KEYS).toHaveLength(1745);
-    expect(SLIDE_KEYS).toHaveLength(3860);
+    expect(BASE_KEYS).toHaveLength(1865);
+    expect(SLIDE_KEYS).toHaveLength(4160);
     for (const key of [...BASE_KEYS, ...SLIDE_KEYS]) expect(sheet.sprites).toHaveProperty(key);
     const webbedKeys = BASE_KEYS
       .filter(key => key !== 'ball')

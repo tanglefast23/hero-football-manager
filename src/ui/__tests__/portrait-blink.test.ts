@@ -110,8 +110,16 @@ describe('blinkRows', () => {
       const blinking = rest.filter(([, rows]) => blinkRows(rows) !== null);
       // 333 of 433 before dark eyes were synthesised. Regenerating the sheet may
       // move this — update it deliberately, don't loosen the assertion.
-      expect(rest).toHaveLength(433);
-      expect(blinking).toHaveLength(408);
+      //
+      // 419 of 448 since the fifteen superhero looks landed: eleven of them
+      // blink, and the four that do not are all correct refusals. Toni Starke's
+      // faceplate, Scott Somers' visor, and Tchalo Adaku's panther mask put no
+      // pupil in the eye band at all — the same case as f112's glasses above.
+      // Bruno Bannor's gamma-green head is drawn in `T`, which is not on the
+      // skin ramp, so there is no skin colour to close the lid with and
+      // declining is the fail-safe.
+      expect(rest).toHaveLength(448);
+      expect(blinking).toHaveLength(419);
     });
   });
 });

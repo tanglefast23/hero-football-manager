@@ -8,7 +8,7 @@ interface PlayerAppearanceIdentity {
   readonly lookId?: string;
 }
 
-export const FIELD_PLAYER_LOOK_COUNT = 168;
+export const FIELD_PLAYER_LOOK_COUNT = 183;
 export const GOALKEEPER_LOOK_COUNT = 25;
 export const CREATED_PLAYER_LOOK_COUNT = 240;
 

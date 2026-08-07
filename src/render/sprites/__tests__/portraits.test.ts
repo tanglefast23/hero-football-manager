@@ -14,15 +14,15 @@ const IDS = [...manifest.field, ...manifest.goalkeeper, ...manifest.created];
 const EXPRESSIONS = ['rest', 'joy', 'ko'] as const;
 
 describe('career player portrait roster', () => {
-  it('ships 193 roster looks plus every paper-doll combination with all three expressions', () => {
-    expect(manifest.field).toHaveLength(168);
+  it('ships 208 roster looks plus every paper-doll combination with all three expressions', () => {
+    expect(manifest.field).toHaveLength(183);
     expect(manifest.goalkeeper).toHaveLength(25);
     expect(manifest.created).toHaveLength(240);
     expect(manifest.field).toHaveLength(FIELD_PLAYER_LOOK_COUNT);
     expect(manifest.goalkeeper).toHaveLength(GOALKEEPER_LOOK_COUNT);
     expect(manifest.created).toHaveLength(CREATED_PLAYER_LOOK_COUNT);
-    expect(IDS).toHaveLength(433);
-    expect(Object.keys(sheet.sprites)).toHaveLength(1299);
+    expect(IDS).toHaveLength(448);
+    expect(Object.keys(sheet.sprites)).toHaveLength(1344);
     const resting = IDS.map(id => JSON.stringify(sheet.sprites[`${id}:rest`]));
     expect(new Set(resting).size).toBe(IDS.length);
     for (const id of IDS) {

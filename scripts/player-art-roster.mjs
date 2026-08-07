@@ -42,6 +42,11 @@ const SKIN = {
   created3: { sh: 'd', base: 'm', hi: 'n' },
   created4: { sh: 'h', base: 'd', hi: 'm' },
   created5: { sh: 'h', base: 'h', hi: 'd' },
+  // The one non-human ramp, for the gamma-mutated hero. It reuses the existing
+  // teal/blue keys rather than buying palette slots, which is also why it sits
+  // outside SKIN_KEYS: separateHairFromSkin cannot see it as skin, so a gamma
+  // head must be drawn in a hair ramp whose keys are all live palette colours.
+  gamma: { sh: 'b', base: 'T', hi: 'C' },
 };
 
 // h/H/J below are the pre-separation browns, not palette colours: every head
@@ -253,9 +258,59 @@ const FOOTBALL_HOMAGE_FIELD_LOOKS = [
   { id: 'f167', role: 'field', skin: 'fair', hair: 'brown', feature: 'star-sidecropstubble', build: 'muscular', face: 4 },
 ];
 
+// Superhero caricatures, on the same footing as the football homages above:
+// development references only, fictional in-game identities. No costume or trade
+// dress is copied — the uniform is always the club kit — and each look
+// exaggerates one generic cue (a cowl, a visor, a hairstyle, a beard) on the
+// wider 'hero' build and face box.
+const SUPERHERO_HOMAGE_FIELD_LOOKS = [
+  { id: 'f168', role: 'field', skin: 'fair', hair: 'dark', feature: 'hero-cowl', build: 'hero', shape: 'hero', face: 4, mouth: 'grit' },
+  { id: 'f169', role: 'field', skin: 'fair', hair: 'dark', feature: 'hero-spitcurl', build: 'hero', shape: 'hero', face: 0, mouth: 'toothsmile' },
+  { id: 'f170', role: 'field', skin: 'brown', hair: 'black', feature: 'hero-tiara', build: 'hero', shape: 'hero', face: 3 },
+  { id: 'f171', role: 'field', skin: 'warm', hair: 'dark', feature: 'hero-boltcrown', build: 'hero', shape: 'hero', face: 0, mouth: 'toothsmile' },
+  { id: 'f172', role: 'field', skin: 'warm', hair: 'black', feature: 'hero-webmask', build: 'hero', shape: 'hero', face: 0, mouth: 'smile' },
+  { id: 'f173', role: 'field', skin: 'brown', hair: 'platinum', feature: 'hero-faceplate', build: 'hero', shape: 'hero', face: 4 },
+  { id: 'f174', role: 'field', skin: 'fair', hair: 'blond', feature: 'hero-winghelm', build: 'hero', shape: 'hero', face: 1, mouth: 'grit' },
+  { id: 'f175', role: 'field', skin: 'fair', hair: 'blond', feature: 'hero-thundermane', build: 'hero', shape: 'hero', face: 4, mouth: 'toothsmile' },
+  { id: 'f176', role: 'field', skin: 'gamma', hair: 'black', feature: 'hero-gammamop', build: 'hero', shape: 'hero', face: 1, eyes: 'beady', mouth: 'grit' },
+  { id: 'f177', role: 'field', skin: 'warm', hair: 'black', feature: 'hero-clawpeaks', build: 'hero', shape: 'hero', face: 1, mouth: 'grit' },
+  { id: 'f178', role: 'field', skin: 'brown', hair: 'brown', feature: 'hero-visor', build: 'hero', shape: 'hero', face: 2 },
+  { id: 'f179', role: 'field', skin: 'fair', hair: 'grey', feature: 'hero-sorcerer', build: 'hero', shape: 'hero', face: 4 },
+  { id: 'f180', role: 'field', skin: 'deep', hair: 'black', feature: 'hero-pantherhood', build: 'hero', shape: 'hero', face: 3 },
+  { id: 'f181', role: 'field', skin: 'warm', hair: 'blond', feature: 'hero-tidemane', build: 'hero', shape: 'hero', face: 4, eyes: 'narrow' },
+  { id: 'f182', role: 'field', skin: 'fair', hair: 'blond', feature: 'hero-greenhood', build: 'hero', shape: 'hero', face: 2, mouth: 'smile' },
+];
+
+/**
+ * The named identities behind the fifteen looks above.
+ *
+ * `reference` is a development note, never shown in game — the same convention
+ * the football homages use in generate-roster-preview.mjs. `name` is the
+ * fictional in-game identity, deliberately a near-miss on the civilian name.
+ * `power` is the catalogue power the look is drawn to suit.
+ */
+export const SUPERHERO_HOMAGE_IDENTITIES = [
+  { id: 'f168', name: 'Bruce Wain', reference: 'Batman / Bruce Wayne', power: 'SHADOW_MARK', cue: 'EARED COWL + EYE SLITS' },
+  { id: 'f169', name: 'Clark Kentley', reference: 'Superman / Clark Kent', power: 'FIRE_TORCH', cue: 'SPIT CURL' },
+  { id: 'f170', name: 'Dinah Prince', reference: 'Wonder Woman / Diana Prince', power: 'GRAVITY_WELL', cue: 'GOLD TIARA + LONG HAIR' },
+  { id: 'f171', name: 'Barry Allan', reference: 'The Flash / Barry Allen', power: 'SUPER_SPEED', cue: 'WINGED BOLT HOOD' },
+  { id: 'f172', name: 'Pete Parkin', reference: 'Spider-Man / Peter Parker', power: 'WEB_TRAP', cue: 'WEBBED MASK' },
+  { id: 'f173', name: 'Toni Starke', reference: 'Iron Man / Tony Stark', power: 'BLINK_RUN', cue: 'GOLD FACEPLATE' },
+  { id: 'f174', name: 'Steve Rodgers', reference: 'Captain America / Steve Rogers', power: 'RALLY_CRY', cue: 'WINGED HELM' },
+  { id: 'f175', name: 'Don Blaker', reference: 'Thor / Donald Blake', power: 'THUNDER_STRIKE', cue: 'BLOND MANE + BEARD' },
+  { id: 'f176', name: 'Bruno Bannor', reference: 'Hulk / Bruce Banner', power: 'SUPER_STRENGTH', cue: 'GAMMA SKIN + HEAVY MOP' },
+  { id: 'f177', name: 'James Howlitt', reference: 'Wolverine / James Howlett', power: 'PHASE_RUN', cue: 'TWIN PEAKS + MUTTONCHOPS' },
+  { id: 'f178', name: 'Scott Somers', reference: 'Cyclops / Scott Summers', power: 'THUNDER_STRIKE', cue: 'RED VISOR' },
+  { id: 'f179', name: 'Stefan Strangeway', reference: 'Doctor Strange / Stephen Strange', power: 'PORTAL_PASS', cue: 'GREY TEMPLES + GOATEE' },
+  { id: 'f180', name: 'Tchalo Adaku', reference: 'Black Panther / T’Challa', power: 'SHADOW_MARK', cue: 'PANTHER MASK' },
+  { id: 'f181', name: 'Arthur Currey', reference: 'Aquaman / Arthur Curry', power: 'ICE_RINK', cue: 'LONG HAIR + FULL BEARD' },
+  { id: 'f182', name: 'Oliver Quinn', reference: 'Green Arrow / Oliver Queen', power: 'FUTURE_SIGHT', cue: 'GREEN HOOD + GOATEE' },
+];
+
 export const FIELD_PLAYER_LOOKS = [
   ...baseFieldPlayerLooks,
   ...FOOTBALL_HOMAGE_FIELD_LOOKS,
+  ...SUPERHERO_HOMAGE_FIELD_LOOKS,
 ];
 
 const CREATED_HAIRSTYLES = [
@@ -310,6 +365,7 @@ export const GOALKEEPER_LOOKS = [
 
 export const PLAYER_LOOK_MANIFEST = {
   field: FIELD_PLAYER_LOOKS.map(look => look.id),
+  heroes: SUPERHERO_HOMAGE_IDENTITIES.map(({ id, name, power }) => ({ id, name, power })),
   goalkeeper: GOALKEEPER_LOOKS.map(look => look.id),
   created: CREATED_PLAYER_LOOKS.map(look => look.id),
   legacy: {
@@ -389,7 +445,13 @@ function face(g, sk, variantIndex, expression = 'rest', appearance = {}) {
         ? { left: 6, right: 17, top: 4, bottom: 14 }
         : shape === 'long'
           ? { left: 6, right: 17, top: 4, bottom: 15 }
-          : { left: 6, right: 17, top: 5, bottom: 13 };
+          // The hero box is 'long' widened one column each side. Same top and
+          // bottom on purpose: the eye and mouth rows below are absolute, and
+          // 'long' already proves them against a top of 4 and a bottom of 15.
+          // The three rows of jaw under the mouth are the heroic chin.
+          : shape === 'hero'
+            ? { left: 5, right: 18, top: 4, bottom: 15 }
+            : { left: 6, right: 17, top: 5, bottom: 13 };
   rect(g, bounds.left, bounds.top, bounds.right, bounds.bottom, sk.base);
   set(g, bounds.left, bounds.top, '.'); set(g, bounds.right, bounds.top, '.');
   set(g, bounds.left, bounds.bottom, '.'); set(g, bounds.right, bounds.bottom, '.');
@@ -452,6 +514,15 @@ function cap(g, hs, top = 2) {
   rect(g, 6, top + 2, 17, 6, hs.b); rect(g, 8, top, 15, top + 1, hs.b);
   rect(g, 7, top + 1, 16, top + 1, hs.b); rect(g, 7, top + 1, 9, top + 2, hs.l);
   rect(g, 6, 6, 17, 6, hs.d); set(g, 6, 7, hs.b); set(g, 17, 7, hs.b);
+}
+
+// cap() is cut for the 12-wide classic head. A hero head is 14 wide, so the
+// same hairline drawn at cap()'s width leaves two bare skin columns at the
+// temples. This is that hairline, two columns wider.
+function heroCap(g, hs, top = 2) {
+  rect(g, 5, top + 2, 18, 6, hs.b); rect(g, 7, top, 16, top + 1, hs.b);
+  rect(g, 6, top + 1, 17, top + 1, hs.b); rect(g, 6, top + 1, 8, top + 2, hs.l);
+  rect(g, 5, 6, 18, 6, hs.d); set(g, 5, 7, hs.b); set(g, 18, 7, hs.b);
 }
 
 function curls(g, hs, left = 5, right = 18) {
@@ -580,6 +651,118 @@ function feature(g, kind, hs, sk) {
     case 'star-blondlowpony': cap(g, hs); rect(g, 18, 7, 20, 13, hs.b); rect(g, 19, 12, 21, 16, hs.b); rect(g, 20, 14, 21, 16, hs.l); line(g, 7, 2, 13, 1, hs.l); break;
     case 'star-texturedfade': rect(g, 7, 4, 16, 6, hs.d); for (let x = 7; x <= 16; x += 3) { rect(g, x, 1, x + 1, 5, hs.b); set(g, x, 1, hs.l); } set(g, 6, 6, sk.sh); set(g, 17, 6, sk.sh); break;
     case 'star-sidecropstubble': cap(g, hs); line(g, 11, 2, 11, 6, sk.base); line(g, 7, 2, 10, 3, hs.l); rect(g, 6, 12, 7, 13, hs.d); rect(g, 16, 12, 17, 13, hs.d); rect(g, 9, 14, 14, 14, hs.d); break;
+    // Superhero homages. Same one-move-per-look rule as the football set, on the
+    // wider hero head. Two families: open-face looks paint no face at all and
+    // let the stock eyes (rows 8-9) and mouth (row 12) through, while masked
+    // looks paint their own eyes over rows 7-10 and stop at or above row 11 so
+    // the mouth and the bare jaw still read — which is also what keeps a skin
+    // pixel inside rows 7-14 for separateHairFromSkin.
+    // The slits are cut, not painted: leaving x 7-9 and 14-16 open on rows 8-9
+    // lets the stock eyes through, so joy and KO still change this face. Filling
+    // them with flat white made all three expressions the same portrait.
+    case 'hero-cowl':
+      rect(g, 5, 3, 18, 7, 'K'); rect(g, 4, 5, 4, 10, 'K'); rect(g, 19, 5, 19, 10, 'K');
+      rect(g, 5, 8, 6, 10, 'K'); rect(g, 10, 8, 13, 10, 'K'); rect(g, 17, 8, 18, 10, 'K');
+      rect(g, 7, 10, 9, 10, 'K'); rect(g, 14, 10, 16, 10, 'K');
+      rect(g, 6, 1, 7, 3, 'K'); rect(g, 16, 1, 17, 3, 'K');
+      rect(g, 6, 4, 9, 4, 'g');
+      break;
+    // The hairline is lifted off the brow first, so the forelock below it has
+    // bare forehead to fall against. Drawn straight onto row 6 it merged with
+    // the hairline and the look read as a plain dark cap.
+    case 'hero-spitcurl':
+      heroCap(g, hs); rect(g, 7, 6, 16, 6, sk.base);
+      rect(g, 9, 5, 13, 5, hs.b); rect(g, 10, 6, 13, 6, hs.b); rect(g, 11, 7, 12, 7, hs.b);
+      set(g, 9, 5, hs.l); set(g, 10, 6, hs.l);
+      break;
+    case 'hero-tiara':
+      heroCap(g, hs); rect(g, 4, 6, 6, 16, hs.b); rect(g, 17, 6, 19, 16, hs.b);
+      rect(g, 5, 12, 6, 16, hs.d); rect(g, 17, 12, 18, 16, hs.d);
+      rect(g, 5, 5, 18, 5, 'A'); set(g, 11, 5, 'R'); set(g, 12, 5, 'R'); set(g, 6, 5, 'W');
+      break;
+    // Deep red, not the kit's own red: the home shirt is R, so a hood in R made
+    // the head vanish into the torso. `o` reads as a separate garment against
+    // both kits, and the gold gets the room to carry the silhouette.
+    case 'hero-boltcrown':
+      rect(g, 5, 2, 18, 7, 'o'); rect(g, 6, 3, 10, 4, 'r');
+      rect(g, 4, 4, 4, 8, 'o'); rect(g, 19, 4, 19, 8, 'o');
+      rect(g, 2, 4, 4, 5, 'A'); set(g, 2, 3, 'A'); set(g, 5, 6, 'A');
+      rect(g, 19, 4, 21, 5, 'A'); set(g, 21, 3, 'A'); set(g, 18, 6, 'A');
+      rect(g, 10, 5, 13, 5, 'A'); set(g, 12, 6, 'A'); set(g, 11, 4, 'A');
+      break;
+    // Bottom row 11, not 12: the stock mouth and the bare jaw below it are what
+    // keep this look inside the separation rule, mask or no mask.
+    // Mask base `r`, a shade under the home shirt's `R`, so the head still
+    // separates from the torso in the home kit. The webbing has to be dense
+    // enough to read as webbing rather than as one stray line.
+    case 'hero-webmask':
+      rect(g, 5, 2, 18, 11, 'r'); rect(g, 4, 5, 4, 10, 'r'); rect(g, 19, 5, 19, 10, 'r');
+      rect(g, 16, 3, 18, 11, 'o'); rect(g, 19, 6, 19, 10, 'o');
+      rect(g, 11, 2, 12, 11, 'K'); rect(g, 6, 3, 17, 3, 'K'); rect(g, 7, 11, 16, 11, 'K');
+      set(g, 7, 2, 'K'); set(g, 16, 2, 'K'); set(g, 5, 5, 'K'); set(g, 18, 5, 'K');
+      set(g, 6, 10, 'K'); set(g, 17, 10, 'K');
+      rect(g, 6, 6, 10, 9, 'W'); rect(g, 13, 6, 17, 9, 'W');
+      set(g, 6, 6, 'K'); set(g, 6, 9, 'K'); set(g, 17, 6, 'K'); set(g, 17, 9, 'K');
+      set(g, 10, 6, 'K'); set(g, 13, 6, 'K');
+      break;
+    case 'hero-faceplate':
+      rect(g, 5, 3, 18, 11, 'A'); rect(g, 4, 6, 4, 10, 'A'); rect(g, 19, 6, 19, 10, 'A');
+      rect(g, 6, 3, 11, 4, 'W'); rect(g, 16, 4, 18, 11, 'g'); rect(g, 6, 11, 17, 11, 'g');
+      rect(g, 7, 8, 10, 9, 'C'); rect(g, 13, 8, 16, 9, 'C');
+      break;
+    case 'hero-winghelm':
+      rect(g, 5, 3, 18, 7, 'b'); rect(g, 6, 2, 17, 2, 'B'); rect(g, 6, 3, 10, 3, 'B');
+      rect(g, 4, 5, 4, 13, 'b'); rect(g, 19, 5, 19, 13, 'b'); rect(g, 8, 14, 15, 14, 'b');
+      rect(g, 3, 5, 5, 6, 'W'); rect(g, 18, 5, 20, 6, 'W');
+      break;
+    case 'hero-thundermane':
+      heroCap(g, hs); rect(g, 4, 6, 6, 16, hs.b); rect(g, 17, 6, 19, 16, hs.b);
+      rect(g, 5, 6, 18, 6, 'G'); set(g, 4, 9, hs.l); set(g, 19, 11, hs.l);
+      rect(g, 7, 13, 16, 15, hs.b); rect(g, 5, 12, 6, 14, hs.d); rect(g, 17, 12, 18, 14, hs.d);
+      break;
+    // The one look separateHairFromSkin skips: gamma green is not in SKIN_KEYS,
+    // so the head keeps its authored hair keys. hs.l ('h') must therefore land
+    // inside rows 7-14 — the temple strands below — or hair-skin-separation's
+    // drawn-in-a-hair-key contract fails.
+    case 'hero-gammamop':
+      rect(g, 4, 1, 19, 7, hs.b); rect(g, 6, 1, 10, 2, hs.l);
+      rect(g, 4, 7, 5, 9, hs.b); rect(g, 18, 7, 19, 9, hs.b);
+      set(g, 5, 8, hs.l); set(g, 18, 8, hs.l);
+      rect(g, 6, 7, 17, 7, hs.d);
+      break;
+    case 'hero-clawpeaks':
+      rect(g, 5, 3, 18, 6, hs.b); rect(g, 5, 1, 8, 4, hs.b); rect(g, 15, 1, 18, 4, hs.b);
+      set(g, 6, 1, hs.l); set(g, 16, 1, hs.l); rect(g, 9, 4, 14, 5, sk.base);
+      rect(g, 4, 7, 6, 13, hs.b); rect(g, 17, 7, 19, 13, hs.b);
+      set(g, 5, 12, hs.d); set(g, 18, 12, hs.d);
+      break;
+    case 'hero-visor':
+      heroCap(g, hs); rect(g, 6, 2, 10, 3, hs.l); rect(g, 11, 2, 11, 6, sk.base);
+      rect(g, 5, 7, 18, 9, 'r'); rect(g, 4, 8, 4, 9, 'r'); rect(g, 19, 8, 19, 9, 'r');
+      rect(g, 6, 8, 17, 8, 'R'); rect(g, 5, 7, 18, 7, 'o');
+      break;
+    case 'hero-sorcerer':
+      heroCap(g, hs); rect(g, 5, 5, 6, 9, 'G'); rect(g, 17, 5, 18, 9, 'G');
+      rect(g, 8, 11, 15, 11, hs.d); rect(g, 10, 13, 13, 15, hs.d);
+      set(g, 9, 13, hs.b); set(g, 14, 13, hs.b);
+      break;
+    case 'hero-pantherhood':
+      rect(g, 5, 2, 18, 11, 'K'); rect(g, 4, 5, 4, 11, 'K'); rect(g, 19, 5, 19, 11, 'K');
+      rect(g, 6, 1, 8, 2, 'K'); rect(g, 15, 1, 17, 2, 'K'); rect(g, 6, 3, 10, 3, 'g');
+      rect(g, 7, 7, 10, 10, 'G'); rect(g, 13, 7, 16, 10, 'G');
+      rect(g, 8, 8, 9, 9, 'K'); rect(g, 14, 8, 15, 9, 'K');
+      break;
+    case 'hero-tidemane':
+      heroCap(g, hs); rect(g, 4, 4, 6, 16, hs.b); rect(g, 17, 4, 19, 16, hs.b);
+      set(g, 4, 8, hs.l); set(g, 19, 10, hs.l);
+      rect(g, 6, 11, 17, 15, hs.b); rect(g, 5, 10, 6, 13, hs.d); rect(g, 17, 10, 18, 13, hs.d);
+      rect(g, 8, 11, 15, 11, hs.d); rect(g, 10, 12, 13, 12, 'K');
+      break;
+    case 'hero-greenhood':
+      rect(g, 4, 1, 19, 6, 'T'); rect(g, 4, 6, 6, 14, 'T'); rect(g, 17, 6, 19, 14, 'T');
+      rect(g, 17, 1, 19, 6, 'b'); rect(g, 18, 6, 19, 14, 'b'); rect(g, 7, 6, 16, 6, 'b');
+      rect(g, 10, 13, 13, 15, hs.b); set(g, 9, 13, hs.d); set(g, 14, 13, hs.d);
+      break;
     default: cap(g, hs); break;
   }
 }
@@ -589,6 +772,12 @@ function feature(g, kind, hs, sk) {
 // reaches row 29, and the trailing boot sits one row higher over the outline
 // that becomes its sole edge. Boots stay inside their own shin columns — an
 // overhanging boot is a side-profile shoe, and two mirrored read duck-footed.
+// Heroes keep the standard shin columns despite their wider torso. The columns
+// are a sheet-wide invariant, not a per-look choice — foot-direction.test.ts
+// holds every run frame to one shin geometry so no boot can overhang its own
+// shin, and the derived slide poses and rear-view sole swap both key off the
+// same columns. Broad shoulders over an ordinary stance is also the shape the
+// genre actually draws.
 function legs(g, frame, sk) {
   const [left, right] = [9, 13];
   const near = frame === 1 ? right : left;
@@ -606,12 +795,15 @@ function fieldBody(g, side, build, frame, sk, kitAccent) {
   let left = 7; let right = 16;
   if (build === 'muscular') { left = 6; right = 17; }
   if (build === 'slim') { left = 8; right = 15; }
+  // Two columns wider than muscular, which is as far as the cell goes: the
+  // deltoid caps land at 3 and 20 and the outline still has 2 and 21 to sit in.
+  if (build === 'hero') { left = 5; right = 18; }
   rect(g, left, 16, right, 23, kit.base); rect(g, left, 16, right, 16, kit.hi);
   rect(g, left, 17, left + 1, 22, kit.hi); rect(g, right, 18, right, 23, kit.sh);
   rect(g, left, 23, right, 23, kit.sh); rect(g, 10, 16, 13, 16, kit.sh);
   rect(g, left - 1, 16, left - 1, 18, kit.base); rect(g, right + 1, 16, right + 1, 18, kit.base);
   rect(g, left - 1, 19, left - 1, 21, sk.base); rect(g, right + 1, 19, right + 1, 21, sk.base);
-  if (build === 'muscular') { set(g, left - 2, 17, kit.base); set(g, right + 2, 17, kit.base); set(g, left - 2, 18, sk.base); set(g, right + 2, 18, sk.base); }
+  if (build === 'muscular' || build === 'hero') { set(g, left - 2, 17, kit.base); set(g, right + 2, 17, kit.base); set(g, left - 2, 18, sk.base); set(g, right + 2, 18, sk.base); }
   const accent = CREATED_KIT_ACCENTS[kitAccent];
   if (accent !== undefined) {
     rect(g, left, 16, right, 16, accent);
@@ -642,10 +834,14 @@ function goalkeeperBody(g, side, frame, sk, ready) {
   }
 }
 
-function portraitBust(g, role, kitAccent) {
+function portraitBust(g, role, kitAccent, build) {
   const kit = role === 'goalkeeper'
     ? { sh: 'K', base: 'T', hi: 'T' }
     : { sh: 'r', base: 'R', hi: 'E' };
+  // A hero jaw runs x 5-18 at row 15, and the ordinary collar is x 9-14 at row
+  // 16 — a wide head on a pin neck. Widening only these two rows keeps the
+  // shoulders at rows 18+ exactly where every other portrait's sit.
+  if (build === 'hero') { rect(g, 7, 16, 16, 16, kit.base); rect(g, 4, 17, 19, 17, kit.base); }
   rect(g, 9, 16, 14, 16, kit.base); rect(g, 7, 17, 16, 17, kit.base);
   rect(g, 5, 18, 18, 18, kit.base); rect(g, 3, 19, 20, 19, kit.base);
   rect(g, 2, 20, 21, 28, kit.base); rect(g, 2, 20, 3, 27, kit.hi);
@@ -663,7 +859,7 @@ function portraitBust(g, role, kitAccent) {
 export function makePortrait(look, expression) {
   const g = grid(PORTRAIT_CELL.h);
   const sk = SKIN[look.skin]; const hs = HAIR[look.hair];
-  face(g, sk, look.face, expression, look); feature(g, look.feature, hs, sk); portraitBust(g, look.role, look.kitAccent);
+  face(g, sk, look.face, expression, look); feature(g, look.feature, hs, sk); portraitBust(g, look.role, look.kitAccent, look.build);
   separateHairFromSkin(g); outline(g);
   return g.map(row => row.join(''));
 }
