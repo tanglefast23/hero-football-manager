@@ -144,10 +144,12 @@ import {
   hasActiveCareerContractPromise,
   hasAssistantGuideSequenceCompleted,
   hasEverGainedFans,
+  inheritedSquad,
   isFirstOnboardingFixture,
   isFullyCappedPlayer,
   isTransferWindowOpen,
   leagueStandings,
+  userClubName,
   hasAssistantGuideMilestone,
   type AssistantMode,
   staffedCoachingOfficeClosureConfirmation,
@@ -1960,6 +1962,9 @@ function GameApp() {
     screen = (
       <CharacterCreationScreen
         initialDifficulty={store.career.difficulty ?? 'CHAIRMAN'}
+        defaultClubName={userClubName(store.career)}
+        roster={inheritedSquad(store.career)}
+        reduceMotion={reduceMotion}
         onComplete={completeRookieCreation}
       />
     );

@@ -13,10 +13,13 @@ import {
   createdAppearanceLookId,
   type CreatedPlayerAppearance,
   type DifficultyMode,
+  TYPED_NAME_MAX_LENGTH,
   type CreatedPlayerDraft,
+  type InheritedSquadMember,
   type OutfieldCreationRatings,
   type OutfieldCreationStat,
 } from '../../game';
+import { RosterRenameModal } from '../RosterRenameModal';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
 import { ChalkboardBackdrop, StickerWord } from '../components/ChalkboardStage';
 import { PixelPortrait } from '../components/PixelPortrait';
@@ -29,7 +32,12 @@ import { useCopy } from '../../i18n';
 
 export interface CharacterCreationScreenProps {
   initialDifficulty: DifficultyMode;
+  /** The club's own name, pre-filled into the optional team-name field. */
+  defaultClubName: string;
+  /** The squad already on the books, offered for renaming. */
+  roster: readonly InheritedSquadMember[];
   onComplete: (draft: CreatedPlayerDraft) => void;
+  reduceMotion?: boolean;
 }
 
 /**
@@ -53,6 +61,7 @@ const STEPPER_MAX_FONT_SIZE_MULTIPLIER = 1.2;
  * rendered input carried no id at all until this was switched over.
  */
 const NAME_FIELD_ID = 'created-player-name';
+const CLUB_FIELD_ID = 'created-club-name';
 
 const DIFFICULTY_LABEL_KEY: Record<DifficultyMode, string> = {
   CHAIRMAN: 'characterCreation.expertMode',
@@ -98,11 +107,18 @@ function statPrefix(name: string, code: string): readonly [string, string] {
 
 export function CharacterCreationScreen({
   initialDifficulty,
+  defaultClubName,
+  roster,
   onComplete,
+  reduceMotion = false,
 }: CharacterCreationScreenProps) {
   const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
   const [name, setName] = useState('');
+  const [clubName, setClubName] = useState(defaultClubName);
+  const [rosterNames, setRosterNames] = useState<Readonly<Record<string, string>>>({});
+  const [renamingRoster, setRenamingRoster] = useState(false);
+  const renamedCount = Object.keys(rosterNames).length;
   const [ratings, setRatings] = useState<OutfieldCreationRatings>({
     ...DEFAULT_CREATION_RATINGS,
   });
@@ -277,6 +293,44 @@ export function CharacterCreationScreen({
           <StatusChip label={t('characterCreation.positionFwd')} selected />
           <PixelText className="shrink text-sm uppercase text-ink/50">{t('creation.rookieTerms')}</PixelText>
         </View>
+
+        {/* The club and the squad it already has, under the one name that is
+            actually required. Both ship filled in, so a manager who wants the
+            club as written can walk past the whole block. */}
+        <View className="mt-6 border-t-2 border-ink/15 pt-4">
+          <PixelText className="text-sm uppercase text-ink/50">{t('characterCreation.teamName')}</PixelText>
+          <TextInput
+            id={CLUB_FIELD_ID}
+            accessibilityLabel={t('characterCreation.a11y.teamName')}
+            value={clubName}
+            onChangeText={setClubName}
+            placeholder={defaultClubName}
+            placeholderTextColor="#6B665D"
+            autoCapitalize="words"
+            autoCorrect={false}
+            maxLength={TYPED_NAME_MAX_LENGTH}
+            className="mt-2 min-h-12 border-2 border-ink bg-paper-dark px-3 py-2 text-base font-bold text-ink"
+          />
+          <View className="mt-3 flex-row items-center gap-2">
+            <View className="flex-1">
+              <ActionButton
+                label={t('characterCreation.renameRoster')}
+                accessibilityLabel={t('characterCreation.a11y.renameRoster')}
+                variant="paper"
+                compact
+                onPress={() => {
+                  setRenamingRoster(true);
+                }}
+              />
+            </View>
+            {renamedCount > 0 ? (
+              <StatusChip
+                label={t('characterCreation.renamedCount', { n: renamedCount, count: renamedCount })}
+                tone="success"
+              />
+            ) : null}
+          </View>
+        </View>
       </PaperPanel>
     </>
   );
@@ -401,7 +455,16 @@ export function CharacterCreationScreen({
             return;
           }
           playManagementHaptic('commit');
-          onComplete({ name, ratings, appearance, difficulty });
+          onComplete({
+            name,
+            ratings,
+            appearance,
+            difficulty,
+            // Blank or unchanged means "leave the club alone" — the engine
+            // drops an undefined name rather than writing one over itself.
+            clubName: clubName.trim() === '' ? undefined : clubName,
+            rosterNames,
+          });
         }}
       />
     </>
@@ -452,6 +515,21 @@ export function CharacterCreationScreen({
           {signRookie}
         </View>
       )}
+
+      {renamingRoster ? (
+        <RosterRenameModal
+          roster={roster}
+          renames={rosterNames}
+          reduceMotion={reduceMotion}
+          onSave={saved => {
+            setRosterNames(saved);
+            setRenamingRoster(false);
+          }}
+          onCancel={() => {
+            setRenamingRoster(false);
+          }}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

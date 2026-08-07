@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { ENABLED_LOCALES, LOCALES, contentStrings, loadCatalog, loadGlossary, localeMeta } from '../index';
 import { faceFile, glyphSet, missingGlyphs } from '../glyph-coverage';
+import { scannedFiles } from '../hardcoded-prose';
 import { faceForKey } from '../voice';
 import { budgetClass, copyBudget } from '../copy-budget';
 import { advanceEm } from '../advance';
@@ -183,6 +184,30 @@ describe('i18n gates', () => {
       expect({ locale, missing: missingGlyphs(meta.endonym, covered) })
         .toEqual({ locale, missing: [] });
     }
+  });
+});
+
+describe('gate 1b — every key the source asks for exists', () => {
+  test('no t() call names a key the English catalog has never heard of', () => {
+    // A missing key does not fail, it renders. `resolveCopy` falls back to the
+    // key itself, so a typo or a key that was renamed in the catalog but not in
+    // the source ships as `rosterRename.a11y.close` drawn on the button — a
+    // real one, caught by reading a screen rather than by CI. Nothing else in
+    // this file looks at the direction source → catalog.
+    //
+    // Literal keys only. Template keys (`glossary.${id}.term`) are built at
+    // runtime and are covered by the content-prose floors instead.
+    const known = new Set(Object.keys(englishAll()));
+    const missing: string[] = [];
+    for (const file of scannedFiles()) {
+      const text = readFileSync(join(process.cwd(), file), 'utf8');
+      for (const match of text.matchAll(/\bt\(\s*'([a-zA-Z0-9_.]+)'/g)) {
+        const key = match[1]!;
+        if (known.has(key) || known.has(`${key}.one`) || known.has(`${key}.other`)) continue;
+        missing.push(`${file}: ${key}`);
+      }
+    }
+    expect(missing).toEqual([]);
   });
 });
 

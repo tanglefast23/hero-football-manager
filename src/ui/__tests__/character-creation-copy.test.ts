@@ -129,6 +129,28 @@ describe('first-hire screen copy', () => {
     expect(source).not.toContain('Points can stay unspent.');
   });
 
+  it('offers the club its own name, pre-filled and optional', () => {
+    const strings = loadCatalog('en').strings;
+    expect(strings['characterCreation.teamName']).toBe('Team name (optional)');
+    // Pre-filled with the club's own name, so a manager who likes it walks past
+    // the field; the placeholder repeats it for anyone who clears it.
+    expect(source).toContain('useState(defaultClubName)');
+    expect(source).toContain('placeholder={defaultClubName}');
+    // Blank means "leave it alone" — the engine drops an undefined name rather
+    // than writing the default over itself.
+    expect(source).toContain("clubName: clubName.trim() === '' ? undefined : clubName,");
+  });
+
+  it('opens the rename sheet from the registration card and carries its result', () => {
+    expect(loadCatalog('en').strings['characterCreation.renameRoster']).toBe('Rename roster');
+    expect(source).toContain("t('characterCreation.renameRoster')");
+    expect(source).toContain('<RosterRenameModal');
+    // Saved renames survive a reopen, so a second visit edits rather than
+    // starting the whole squad again.
+    expect(source).toContain('renames={rosterNames}');
+    expect(source).toContain('rosterNames,');
+  });
+
   it('parks the caret in the name field on desktop only', () => {
     // A hovering pointer AND the wide layout. `Platform.OS === 'web'` plus
     // `wide` was not enough: a landscape iPad is both, and it opened this
@@ -145,5 +167,38 @@ describe('first-hire screen copy', () => {
     expect(source).toContain('id={NAME_FIELD_ID}');
     expect(source).not.toContain('nativeID={NAME_FIELD_ID}');
     expect(source).toContain('document.getElementById(NAME_FIELD_ID)?.focus({ preventScroll: true })');
+  });
+});
+
+describe('roster rename sheet', () => {
+  const source = readFileSync(join(process.cwd(), 'src/ui/RosterRenameModal.tsx'), 'utf8');
+
+  it('empties a field on its first tap and never again', () => {
+    // The whole point of the sheet is that renaming costs one tap and a word.
+    // Clearing on EVERY focus would wipe a finished name the moment a finger
+    // landed back on it, so the clear is one-shot per field.
+    expect(source).toContain('if (cleared[player.id] === true) return;');
+    expect(source).toContain("setDrafts(current => ({ ...current, [player.id]: '' }));");
+    // The name it dropped stays visible, so nothing is lost by tapping in.
+    expect(source).toContain('placeholder={player.name}');
+  });
+
+  it('keeps a blank field s original name and reports only real changes', () => {
+    expect(source).toContain('if (typed.length > 0 && typed !== player.name) saved[player.id] = typed;');
+  });
+
+  it('blocks the save on a name too short to print, and says so', () => {
+    expect(loadCatalog('en').strings['rosterRename.tooShort'])
+      .toBe('Every name needs at least {min} characters.');
+    expect(source).toContain('typed.length > 0 && typed.length < TYPED_NAME_MIN_LENGTH');
+    expect(source).toContain('setSaveAttempted(true);');
+  });
+
+  it('offers both a save and a way out', () => {
+    const strings = loadCatalog('en').strings;
+    expect(strings['rosterRename.save']).toBe('Save');
+    expect(strings['rosterRename.cancel']).toBe('Cancel');
+    expect(source).toContain("t('rosterRename.save')");
+    expect(source).toContain("t('rosterRename.cancel')");
   });
 });
