@@ -125,6 +125,39 @@ describe('weekly review view model', () => {
     });
   });
 
+  it('draws the squad on the wage row and every building on the upkeep row', () => {
+    const fresh = createCareer(createLaunchCareerSetup(4242));
+    const built = buildCareerFacility(fresh, 'fan-shop', { x: 5, y: 1 }).state;
+    // Week one raises the shop; the second settlement is the first with it open.
+    const before = advanceWeek(built);
+    const after = advanceWeek(before);
+    const review = weeklyReviewViewModel(before, after);
+
+    const wages = review.ledger.find(line => line.label === 'Weekly wages')!;
+    const squadSize = after.players.filter(player => player.clubId === after.userClubId).length;
+    expect(wages.icons).toEqual([{ id: 'squad', kind: 'player', count: squadSize }]);
+
+    const upkeep = review.ledger.find(line => line.label === 'Facility upkeep')!;
+    expect(upkeep.icons).toEqual([
+      { id: expect.any(String), kind: 'facility', facility: 'fan-shop', level: 1 },
+    ]);
+
+    const merch = review.ledger.find(line => line.label === 'Fan Shop merchandise')!;
+    expect(merch.icons).toEqual([{ id: 'shops', kind: 'facility', facility: 'fan-shop', count: 1 }]);
+  });
+
+  it('leaves a row bare when the club owns nothing to draw', () => {
+    const before = createCareer(createLaunchCareerSetup(4243));
+    const after = advanceWeek(before);
+    const review = weeklyReviewViewModel(before, after);
+
+    // No shop, no buildings, no coach: only the wage row has anything to show.
+    expect(review.ledger.some(line => line.label === 'Facility upkeep')).toBe(false);
+    expect(review.ledger.some(line => line.label === 'Fan Shop merchandise')).toBe(false);
+    const advertising = review.ledger.find(line => line.label.startsWith('Local advertising'));
+    expect(advertising?.icons).toBeUndefined();
+  });
+
   // "uses the real facility and coach TP when explaining an unfunded plan" was
   // deleted: it relied on a per-trainee training MONEY cost (400) to make the
   // plan unaffordable despite ample TP. Training money is always 0 now, and

@@ -20,6 +20,7 @@ import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
 import { countUpValue } from '../count-up';
 import { PixelText } from '../components/PixelText';
+import { LedgerRowIcons } from '../components/LedgerRowIcons';
 import { useCopy } from '../../i18n';
 
 export interface WeeklyReviewScreenProps {
@@ -88,7 +89,12 @@ export function WeeklyReviewScreen({
     >
       {viewModel.ledger.map(line => (
         <View key={line.id} className="flex-row items-center border-b border-ink/10 py-2.5 last:border-b-0">
-          <Text className="flex-1 text-ink" style={scaledBody(textScale)}>{line.label}</Text>
+          {/* Wrapping, so a long label carries its icons onto the next line
+              instead of pinning them against the amount. */}
+          <View className="min-w-0 flex-1 flex-row flex-wrap items-center">
+            <Text className="text-ink" style={scaledBody(textScale)}>{line.label}</Text>
+            {line.icons === undefined ? null : <LedgerRowIcons icons={line.icons} />}
+          </View>
           <Text className={line.amount < 0
             ? 'font-mono text-base text-stamp'
             : line.amount > 0
