@@ -2,9 +2,13 @@
 // targets, loop flags, and descriptions. Shared by gen-sfx.mjs, gen-music.mjs,
 // verify.mjs, and art/audio-preview.html's data — so nothing drifts out of sync.
 
-// targetDb: peak level each sound is normalized to (dBFS). Establishes the
-// loudness hierarchy: goal-fanfare loudest (-1, the ceiling), crowd-ambient
-// quietest (-14). Everything else falls between by narrative importance.
+// targetDb: peak level each sound is normalized to (dBFS) as it comes out of
+// the synth. It is a ceiling, not a loudness: peak says nothing about how loud
+// a sound is, and these values put a 2s fanfare and a 60ms tap ~15dB apart at
+// the same -1dBFS. What ships is set afterwards by
+// scripts/audio/normalize-levels.mjs, which measures loudness and levels every
+// asset to one target per class — so RE-RUN THAT PASS after regenerating, or
+// the generated files go back to being peak-matched and unevenly loud.
 export const SFX_CATALOG = [
   // -- Match core --
   { name: 'kickoff-whistle', group: 'Match', minMs: 250, maxMs: 550, targetDb: -2, desc: 'Two-tone ref whistle, kickoff' },

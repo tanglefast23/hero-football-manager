@@ -11,7 +11,7 @@
  * snapshot to refresh.
  */
 import { loadLaunchContent } from '../../content';
-import { BASE_WEEKLY_TRAINING_POINTS } from '../../game';
+import { BASE_WEEKLY_TRAINING_POINTS, coachWeeklyTrainingPoints } from '../../game';
 import {
   JOE_OBSERVED_COACH_POLICY,
   JOE_OBSERVED_NO_COACH_POLICY,
@@ -69,9 +69,10 @@ describe('opening sentinel', () => {
         expect(run.skippedIntents).toBe(0);
         expect(run.opener.powersActive).toBe(false);
         // The whole pre-kickoff bank: the launch grant plus two weekly
-        // settlements, each 24 base and 12 more once a Level 1 coach is hired.
+        // settlements, each the baseline plus a Level 1 coach once hired.
         expect(run.tpSpent + run.tpBanked).toBe(
-          LAUNCH_TP + (BASE_WEEKLY_TRAINING_POINTS + (usesCoach(policy.id) ? 12 : 0)) * 2,
+          LAUNCH_TP + (BASE_WEEKLY_TRAINING_POINTS
+            + (usesCoach(policy.id) ? coachWeeklyTrainingPoints(1, 'HEAD') : 0)) * 2,
         );
       }
     },
@@ -81,10 +82,10 @@ describe('opening sentinel', () => {
     // Tap counts follow from the bank, so they move whenever the launch grant
     // does. Asserted as absolutes because a silent change in how much
     // preparation the opener allows is exactly what this sentinel is for.
-    expect(byArm.get('ordinary')!.every(run => run.tapCount === 9 && run.tpBanked === 12)).toBe(true);
-    expect(byArm.get('smart-breadth')!.every(run => run.tapCount === 10 && run.tpBanked === 2)).toBe(true);
-    expect(byArm.get('smart-extra-fwd')!.every(run => run.tapCount === 10)).toBe(true);
-    expect(byArm.get('joe-observed-no-coach')!.every(run => run.tapCount === 7)).toBe(true);
+    expect(byArm.get('ordinary')!.every(run => run.tapCount === 8 && run.tpBanked === 4)).toBe(true);
+    expect(byArm.get('smart-breadth')!.every(run => run.tapCount === 8 && run.tpBanked === 4)).toBe(true);
+    expect(byArm.get('smart-extra-fwd')!.every(run => run.tapCount === 8)).toBe(true);
+    expect(byArm.get('joe-observed-no-coach')!.every(run => run.tapCount === 6)).toBe(true);
     expect(byArm.get('no-training')!.every(run => (
       run.tapCount === 0 && run.tpBanked === LAUNCH_TP + BASE_WEEKLY_TRAINING_POINTS * 2
     ))).toBe(true);
@@ -129,13 +130,24 @@ describe('opening sentinel', () => {
     // previously (10.2% Ordinary, 10.8% Smart) now predate the tree they
     // describe. They are deliberately not restated: re-derive them from
     // real-player-opening-probe before quoting a rate again.
+    // Updated 2026-08-07 for the owner-approved 20% cut to every TP grant in the
+    // game (`TRAINING_POINT_SCALE_PERCENT`): the weekly baseline, the Training
+    // Pitch, the coaches, the launch grant, and the one-off event rewards. The
+    // pre-kickoff bank falls from 102 to 84 TP with a coach and from 78 to 64
+    // without, so every coached arm taps eight times instead of nine or ten and
+    // the uncoached arm six instead of seven.
+    //
+    // Every arm now loses the opener on all eight seeds bar three scattered
+    // draws. That is the contract's direction — at most 5% wins, at least 90%
+    // losses — held more firmly than before, but eight seeds still cannot
+    // measure a rate: re-derive one from real-player-opening-probe.
     expect(digests).toEqual({
-      ordinary: 'LLLLWLLL',
-      'smart-breadth': 'LLDLWLLL',
+      ordinary: 'LLLLLLLL',
+      'smart-breadth': 'LLLLLLLL',
       'smart-extra-fwd': 'LLLLLLLL',
-      'smart-concentration': 'LLLLLLLL',
-      'joe-observed-coach': 'LLDLLLWL',
-      'joe-observed-no-coach': 'LLLLLLLL',
+      'smart-concentration': 'LLLLLDLL',
+      'joe-observed-coach': 'LLLLLLLL',
+      'joe-observed-no-coach': 'LLLDLDLL',
       'no-training': 'LLLLLLLL',
     });
   });

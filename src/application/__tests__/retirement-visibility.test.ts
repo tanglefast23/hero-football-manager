@@ -146,7 +146,7 @@ describe('signing term cap', () => {
       state: {
         id: 'neg-1',
         playerId: player.id,
-        personality: 'Professional',
+        personality: 'PROFESSIONAL',
         status: 'OPEN',
         mood: 'NEUTRAL',
         round: 0,
@@ -173,7 +173,7 @@ describe('signing term cap', () => {
       state: {
         id: 'neg-2',
         playerId: player.id,
-        personality: 'Professional',
+        personality: 'PROFESSIONAL',
         status: 'OPEN',
         mood: 'NEUTRAL',
         round: 0,

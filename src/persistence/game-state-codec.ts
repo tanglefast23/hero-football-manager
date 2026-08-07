@@ -1063,6 +1063,11 @@ const transferQuoteSchema = z.object({
 }).passthrough();
 const negotiationSchema = z.object({
   id: nonemptyString,
+  // Optional because talks saved before the agent had a mood carry no seed.
+  // Declared rather than left to `passthrough` so the round trip is explicit:
+  // this is what the per-round wobble is derived from, and a save that loses it
+  // negotiates flat instead of crashing on the next offer.
+  careerSeed: nonnegativeInteger.optional(),
   playerId: nonemptyString,
   personality: marketPersonalitySchema,
   weeklyAsk: positiveInteger,

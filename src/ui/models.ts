@@ -1186,6 +1186,40 @@ export interface ChampionshipCelebrationViewModel {
 }
 
 /**
+ * One block of the season podium: a club that finished in the top three, and
+ * the player who stands on its step.
+ *
+ * The figure is the club's own highest-overall player, so each step is a face
+ * the manager has actually played against rather than an anonymous marker.
+ */
+export interface SeasonPodiumPlaceViewModel {
+  readonly position: 1 | 2 | 3;
+  readonly clubName: string;
+  readonly isUserClub: boolean;
+  readonly points: number;
+  readonly playerId: string;
+  readonly playerName: string;
+  readonly role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  readonly isHero: boolean;
+  readonly lookId: string;
+}
+
+/**
+ * The medal ceremony a club gets for finishing second or third.
+ *
+ * `places` is always the three steps in table order — first, second, third —
+ * and the screen arranges them tallest-in-the-middle. `userPosition` is which
+ * of them is ours, and the only thing the headline reads.
+ */
+export interface SeasonPodiumViewModel {
+  readonly seasonLabel: string;
+  readonly headline: string;
+  readonly clubName: string;
+  readonly userPosition: 2 | 3;
+  readonly places: readonly SeasonPodiumPlaceViewModel[];
+}
+
+/**
  * The three moments that mark the end of the main climb.
  *
  * `global-league` and `cup-winners` are the halfway houses — one trophy in, one

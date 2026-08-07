@@ -16,7 +16,14 @@ import {
   type TransferQuote,
   type ValuationPlayer,
   contractPerkPercent,
+  requiredWeeklyWage,
+  FINAL_NEGOTIATION_ROUND,
+  type PitchCard,
+  type PlayerPersonality,
 } from '../game/market';
+import { loadLaunchContent } from '../content';
+import { copyOrEnglish } from './copy-fallback';
+import { proseSlug } from '../i18n/content-strings';
 import { divisionTierLabelWith, type DivisionLevel } from '../game/pyramid';
 import { contractTermOptions, shortContractReasonCopy } from '../game/retirement';
 import { resolveRingCopy } from './copy-fallback';
@@ -223,12 +230,23 @@ const PERK_COPY_KEYS: readonly {
 ];
 
 /** Built per call rather than once at module load, because `t` decides the words. */
-function perkViewModels(t: CopyFn): readonly ContractPerkViewModel[] {
+const KNOWN_PERSONALITIES: readonly string[] = [
+  'FIERY', 'LOYAL', 'GREEDY', 'JOKER', 'PROFESSIONAL', 'TIMID',
+];
+
+function isKnownPersonality(personality: PlayerPersonality): boolean {
+  return KNOWN_PERSONALITIES.includes(personality);
+}
+
+function perkViewModels(
+  t: CopyFn,
+  personality: PlayerPersonality,
+): readonly ContractPerkViewModel[] {
   return PERK_COPY_KEYS.map(perk => ({
     id: perk.id,
     label: t(perk.label),
     detail: t(perk.detail),
-    gradeLabel: perkGradeLabel(perk.id, t),
+    gradeLabel: perkGradeLabel(perk.id, t, personality),
   }));
 }
 
@@ -241,8 +259,24 @@ function perkViewModels(t: CopyFn): readonly ContractPerkViewModel[] {
  * number before — a scouting label promised "+8% training" for two releases
  * after the bonus was deleted.
  */
-function perkGradeLabel(perk: ContractPerk, t: CopyFn): string {
-  const percent = contractPerkPercent(perk);
+function perkGradeLabel(
+  perk: ContractPerk,
+  t: CopyFn,
+  personality: PlayerPersonality,
+): string {
+  // Graded for THIS player, not in the abstract. The agent scores a promise by
+  // what his client thinks of it, so a panel grading by the flat ladder would
+  // award an A to a guaranteed start the GREEDY man across the table rates
+  // below a shirt number — the same hand-copied-number defect this function was
+  // written to prevent, one layer up.
+  //
+  // Falls back to the flat ladder rather than throwing. The engine is right to
+  // reject an unknown personality, but this is a BADGE: a malformed or migrated
+  // save reaching here must render a slightly generic grade, not take down the
+  // negotiation screen the manager is standing on.
+  const percent = isKnownPersonality(personality)
+    ? contractPerkPercent(perk, personality)
+    : contractPerkPercent(perk);
   if (percent >= 10) return t('market.perkGradeA');
   if (percent >= 8) return t('market.perkGradeB');
   if (percent >= 6) return t('market.perkGradeC');
@@ -625,6 +659,74 @@ function scoutPotentialLabel(
   return `${lowGrade}–${highGrade}`;
 }
 
+const AGENT_FINAL_LINES = loadLaunchContent().agentFinalLines.lines;
+
+/** FNV-1a, the same mixer the other line pools draw with. */
+function hashString(value: string): number {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash >>> 0;
+}
+const NEGOTIATION_PERKS: readonly ContractPerk[] = [
+  'GUARANTEED_STARTER', 'CAPTAINCY', 'TRAINING_PRIORITY', 'JERSEY_10',
+];
+
+/**
+ * The lookup key for one shape of offer.
+ *
+ * Exported so the panel and this file cannot disagree about it. A key built
+ * twice is a key that goes stale once, and the value behind it is the number
+ * the screen promises will be accepted.
+ */
+export function offerQuoteKey(
+  termSeasons: number,
+  perk: ContractPerk,
+  pitchCard?: PitchCard,
+): string {
+  return pitchCard === undefined
+    ? `${termSeasons}:${perk}`
+    : `${termSeasons}:${perk}:${pitchCard}`;
+}
+
+/**
+ * Every wage the manager could be told to offer, precomputed.
+ *
+ * A table rather than a function on the view model, because view models here
+ * are plain data — they are snapshotted, compared and serialised in tests, and
+ * a closure in one would break all three. The combinatorics are tiny: at most
+ * three terms times four promises times four card choices.
+ */
+function requiredWageQuotes(
+  negotiation: ContractNegotiation,
+  termOptions: readonly (1 | 2 | 3)[],
+): Record<string, number> {
+  const quotes: Record<string, number> = {};
+  const cards: (PitchCard | undefined)[] = [
+    undefined,
+    ...negotiation.pitchCards.filter(card => !negotiation.usedPitchCards.includes(card)),
+  ];
+  try {
+    for (const term of termOptions) {
+      for (const perk of NEGOTIATION_PERKS) {
+        for (const card of cards) {
+          quotes[offerQuoteKey(term, perk, card)] = requiredWeeklyWage(negotiation, term, perk, card);
+        }
+      }
+    }
+  } catch {
+    // The engine is right to reject a malformed negotiation, but this is a
+    // READOUT. A save whose shape has drifted must render the panel with a dash
+    // where the number goes and let the manager close the talks — not take down
+    // the screen they are standing on. The panel already handles a missing
+    // quote, so an empty table is a complete answer rather than a hidden one.
+    return {};
+  }
+  return quotes;
+}
+
 export function marketNegotiationViewModel(
   source: NegotiationViewSource,
   t: CopyFn = englishCopy(),
@@ -637,6 +739,46 @@ export function marketNegotiationViewModel(
   const maxTermSeasons = source.maxTermSeasons ?? 3;
   const leverage = negotiation.pitchInfluencePercent;
   const lastOutcome = negotiation.history.at(-1)?.outcome;
+  /**
+   * The agent's closing position, present only in the last round.
+   *
+   * Locked to the term and promise the manager last put on the table rather
+   * than tracking a live draft. He is naming ONE number and leaving; a figure
+   * that slid around under a set of dials would not be an ultimatum, it would
+   * be a fourth round wearing an ultimatum's clothes.
+   *
+   * Absent before the last round and absent once talks are over, so the panel's
+   * whole take-it-or-leave-it branch hangs off one optional field.
+   */
+  const finalDemand = negotiation.status !== 'OPEN'
+    || negotiation.round + 1 !== FINAL_NEGOTIATION_ROUND
+    ? undefined
+    : (() => {
+        const termSeasons = (lastOffer?.termSeasons ?? maxTermSeasons) as 1 | 2 | 3;
+        const perk = lastOffer?.perk ?? 'GUARANTEED_STARTER';
+        // Same reasoning as the quote table: a demand that cannot be priced is
+        // no demand, and the panel falls back to the ordinary offer form rather
+        // than crashing on the last round of a drifted save.
+        const quoted = requiredWageQuotes(negotiation, [termSeasons])[
+          offerQuoteKey(termSeasons, perk)
+        ];
+        if (quoted === undefined) return undefined;
+        const weeklyWage = quoted;
+        // Seeded on the negotiation, so re-rendering the panel — or reloading
+        // the save — does not hand the same agent a different personality
+        // halfway through his own sentence.
+        const authored = AGENT_FINAL_LINES[
+          hashString(`agent-final:${negotiation.id}`) % AGENT_FINAL_LINES.length
+        ]!;
+        return {
+          weeklyWage,
+          termSeasons,
+          perk,
+          line: copyOrEnglish(t, `agent.final.${proseSlug(authored)}`, authored, {
+            wage: formatMoney(weeklyWage),
+          }),
+        };
+      })();
   return {
     id: negotiation.id,
     playerId: negotiation.playerId,
@@ -669,7 +811,7 @@ export function marketNegotiationViewModel(
         affinity: affinity === 1 ? 'LOVED' : affinity === -1 ? 'HATED' : 'NEUTRAL',
       } satisfies PitchCardViewModel;
     }),
-    perks: perkViewModels(t),
+    perks: perkViewModels(t, negotiation.personality),
     termOptions: contractTermOptions(maxTermSeasons),
     ...(maxTermSeasons >= 3 || source.playerAge === undefined ? {} : {
       shortTermReason: resolveRingCopy(t, shortContractReasonCopy(source.playerAge, maxTermSeasons)),
@@ -677,6 +819,11 @@ export function marketNegotiationViewModel(
     initialWeeklyWage: previousOffer ?? source.openingWeeklyWage,
     wageStep,
     walkOutWeeklyWage: insultingOfferFloor(negotiation.weeklyAsk),
+    requiredWeeklyWageByOffer: requiredWageQuotes(
+      negotiation,
+      contractTermOptions(maxTermSeasons),
+    ),
+    ...(finalDemand === undefined ? {} : { finalDemand }),
     ...(lastOutcome === undefined
       ? {}
       : { lastOutcomeLabel: outcomeLabel(lastOutcome, t) }),

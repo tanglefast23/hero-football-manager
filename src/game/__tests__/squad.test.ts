@@ -71,6 +71,22 @@ function career(): GameState {
   return createCareer(setup());
 }
 
+/**
+ * The season-end state, reached the only way the calendar allows.
+ *
+ * Week 30 is the final league round, so advancing into it opens a matchday
+ * rather than settling the season. The season ends when that match is played.
+ */
+function playedToSeasonEnd(state: GameState = career()): GameState {
+  const opened = advanceWeek({ ...state, week: 30 as const });
+  const matchday = activeCareerMatchday(opened);
+  if (matchday === undefined) throw new Error('week 30 must hold the season finale');
+  return completeMatchday(
+    opened,
+    matchday.fixtures.map(fixture => ({ fixtureId: fixture.id, homeGoals: 1, awayGoals: 1 })),
+  );
+}
+
 describe('away players', () => {
   function withAway(state: GameState, playerId: string, weeks: number): GameState {
     return {
@@ -254,7 +270,7 @@ describe('career squad integration', () => {
     expect(() => buildTrainingGround(built)).toThrow(/Training Pitch is already built/);
 
     // Each week banks the club's unconditional baseline; only the pitch's own
-    // +28 waits for construction to finish.
+    // per-level TP waits for construction to finish.
     const stillBuilding = advanceWeek(built);
     expect(stillBuilding.week).toBe(2);
     expect(stillBuilding.trainingPoints).toBe(100 + BASE_WEEKLY_TRAINING_POINTS);
@@ -303,8 +319,7 @@ describe('career squad integration', () => {
 
   it('expires contracts at season end and applies the hero wage cliff only on renewal', () => {
     const heroId = `${CLUB_IDS[0]}-p9`;
-    const atFinalWeek = { ...career(), week: 30 as const };
-    const ended = advanceWeek(atFinalWeek);
+    const ended = playedToSeasonEnd();
     expect(ended.phase).toBe('season-end');
     expect(ended.players.find(player => player.id === heroId)?.contractSeasonsRemaining).toBe(0);
     expect(ended.players.find(player => player.id === heroId)?.weeklyWage).toBe(100);
@@ -324,7 +339,7 @@ describe('career squad integration', () => {
     // Barring every powered player trapped the expired starter on the books.
     const heroId = `${CLUB_IDS[0]}-p9`;
     const coverId = `${CLUB_IDS[0]}-p12`;
-    const ended = advanceWeek({ ...career(), week: 30 as const });
+    const ended = playedToSeasonEnd();
     // p12 takes the licence the released p9 gives up, so the club never holds
     // more licensed heroes than the cap allows, and keeps a year on his deal —
     // a replacement whose own contract has expired is ineligible for its own
@@ -358,7 +373,7 @@ describe('career squad integration', () => {
     // over. The academy now sends a role-correct emergency youth instead, the
     // same relief a board-forced sale uses.
     const keeperId = `${CLUB_IDS[0]}-p0`;
-    const ended = advanceWeek({ ...career(), week: 30 as const });
+    const ended = playedToSeasonEnd();
     expect(ended.phase).toBe('season-end');
 
     const released = releaseCareerPlayer(ended, keeperId);
@@ -379,7 +394,7 @@ describe('career squad integration', () => {
 
   it('unblocks the season transition after a forced release with no cover', () => {
     const keeperId = `${CLUB_IDS[0]}-p0`;
-    const ended = advanceWeek({ ...career(), week: 30 as const });
+    const ended = playedToSeasonEnd();
     // Every other expired deal is renewed, so the keeper alone holds the gate.
     const onlyKeeperExpired: GameState = {
       ...ended,

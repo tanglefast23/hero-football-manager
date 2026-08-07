@@ -36,6 +36,7 @@ import type { DevHarnessEntry } from '../registry';
 const AUTHORED_EXPRESSION_RUNS: readonly string[] = Object.freeze([
   'management-intro',
   'desk-intro',
+  'expired-contract',
   'head-coach-market',
   'head-coach-hire',
   'coaching-office',
@@ -80,6 +81,7 @@ const AUTHORED_EXPRESSION_RUNS: readonly string[] = Object.freeze([
 const SEQUENCE_LABELS: Readonly<Record<string, string>> = Object.freeze({
   'management-intro': 'INTRO',
   'desk-intro': 'DESK',
+  'expired-contract': 'RENEW',
   'head-coach-market': 'COACHES',
   'head-coach-hire': 'HEAD',
   'coaching-office': 'OFFICE',
@@ -184,8 +186,18 @@ const BEAT_GROUPS: readonly BeatGroup[] = Object.freeze([
   {
     id: 'late',
     label: 'Late',
-    note: 'Years in: retirements, the legacy choice, and the board losing patience',
-    sequenceIds: ['retirement', 'club-legacy', 'board-ultimatum', 'board-protection'],
+    note: 'Season-end and years in: renewals, retirements, legacy, and the board losing patience',
+    sequenceIds: [
+      // Grouped with the other season-end beats rather than with the opening
+      // pair it sits beside in the content file: a reviewer checking renewal
+      // copy is checking the review screen, and retirement is the next card on
+      // it.
+      'expired-contract',
+      'retirement',
+      'club-legacy',
+      'board-ultimatum',
+      'board-protection',
+    ],
   },
 ]);
 

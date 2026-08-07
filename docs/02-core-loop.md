@@ -16,8 +16,10 @@ Session math: a match week ≈ 3–6 minutes (watched) or ~90 seconds (simmed). 
 | Phase | Weeks | What happens |
 |---|---|---|
 | Pre-season | 4 | Contract renewals, sponsor negotiations, friendlies, 1–2 scouting windows |
-| League + Cup | 24 | 18 league matches (10-team division, home/away) + Hero Cup knockout rounds woven between; transfer window mid-season (2 weeks) |
-| Post-season | 2 | Prize money, awards (Golden Boot, Hero of the Season), aging & retirements, promotion/relegation, season recap |
+| League + Cup | 26 | 18 league matches (10-team division, home/away) + Hero Cup knockout rounds woven between; transfer window mid-season (2 weeks) |
+| Post-season | — | Prize money, awards (Golden Boot, Hero of the Season), aging & retirements, promotion/relegation, season recap |
+
+The last league round is pinned to **Week 30**, so every season ends on a match and the post-season settles the moment the manager walks off that pitch. It has no weeks of its own: the season used to finish in Week 28 and leave two dead weeks the manager still had to advance through.
 
 ## The pyramid (long-term goal ladder)
 

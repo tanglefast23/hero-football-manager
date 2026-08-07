@@ -1,8 +1,10 @@
 import {
+  CUP_SETTLEMENT_WEEKS,
   generateSeasonFixtures,
   leagueWeekForRound,
   pinOpeningLeagueOpponents,
 } from '../schedule';
+import { SEASON_WEEKS } from '../types';
 
 const CLUB_IDS = Array.from({ length: 10 }, (_, index) => `club-${index + 1}`);
 
@@ -54,7 +56,7 @@ describe('generateSeasonFixtures', () => {
     );
 
     expect(weeks.slice(0, 3)).toEqual([3, 4, 5]);
-    expect(weeks[17]).toBe(28);
+    expect(weeks[17]).toBe(30);
     expect(new Set(weeks).size).toBe(18);
     expect(weeks.every((week, index) => index === 0 || week > weeks[index - 1])).toBe(true);
 
@@ -71,12 +73,30 @@ describe('generateSeasonFixtures', () => {
     );
 
     expect(weeks[0]).toBe(5);
-    expect(weeks[17]).toBe(28);
+    expect(weeks[17]).toBe(30);
     expect(new Set(weeks).size).toBe(18);
 
     const fixtures = generateSeasonFixtures(CLUB_IDS, 2, 12345);
     for (const fixture of fixtures) {
       expect(fixture.week).toBe(weeks[fixture.round - 1]);
+    }
+  });
+
+  test('ends every season on Week 30, so the last week is the finale', () => {
+    // The pin is what stops Week 30 being a dead week the manager still has to
+    // advance through while the desk offers a match that does not exist.
+    for (const season of [1, 2, 7]) {
+      const weeks = Array.from(
+        { length: 18 },
+        (_, index) => leagueWeekForRound(index + 1, season),
+      );
+      expect(weeks[17]).toBe(SEASON_WEEKS);
+      // Rounds 1–17 keep the spread they had before the pin, which is what
+      // leaves the cup weeks alone.
+      expect(weeks[16]).toBe(26);
+      expect(weeks.includes(28)).toBe(false);
+      expect(CUP_SETTLEMENT_WEEKS.filter(week => weeks.includes(week)))
+        .toEqual(season === 1 ? [] : [6, 18]);
     }
   });
 

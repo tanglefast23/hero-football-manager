@@ -6,6 +6,7 @@ import { weeklyAmbientTrainingPoints } from '../career';
 import { instantTrainingPreview } from '../training';
 import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../career';
+import { TRAINING_PITCH_TP_PER_LEVEL } from '../facilities';
 import type { FacilityType, PlacedFacility } from '../facilities';
 import type { GameState } from '../types';
 
@@ -75,8 +76,12 @@ describe('the boost reaches the number, not just the record', () => {
     const pointsBefore = weeklyAmbientTrainingPoints(before);
     const pointsAfter = weeklyAmbientTrainingPoints(after);
     expect(pointsAfter).toBeGreaterThan(pointsBefore);
-    // Level 2 contributes 56 TP; +20% is 67, so the week gains 11.
-    expect(pointsAfter - pointsBefore).toBe(11);
+    // Derived from the constant rather than written out, because every weekly
+    // TP source is scaled by TRAINING_POINT_SCALE_PERCENT and a literal would
+    // go stale the next time that dial moves.
+    const pitchContribution = 2 * TRAINING_PITCH_TP_PER_LEVEL;
+    expect(pointsAfter - pointsBefore)
+      .toBe(Math.round(pitchContribution * 1.2) - pitchContribution);
   });
 
   it('takes points away again when the story goes badly', () => {

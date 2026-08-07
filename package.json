@@ -46,6 +46,8 @@
     "release:check": "node scripts/release/check-config.mjs",
     "build:fonts": "node scripts/fonts/generate-vi-marks.mjs && node scripts/fonts/build-vietnamese-face.mjs",
     "qa:ipad": "node scripts/qa/ipad-pwa-audit.mjs",
+    "audio:levels": "node scripts/audio/normalize-levels.mjs",
+    "audio:levels:check": "node scripts/audio/normalize-levels.mjs --check",
     "postinstall": "setup-skia-web",
     "format": "prettier --write \"App.tsx\" \"src/**/*.{ts,tsx}\" \"scripts/**/*.mjs\"",
     "format:check": "prettier --check \"App.tsx\" \"src/**/*.{ts,tsx}\" \"scripts/**/*.mjs\"",

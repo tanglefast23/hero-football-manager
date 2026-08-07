@@ -3,6 +3,7 @@ import {
   cappedCoachBoost,
   careerCoachTrainingModifiers,
   careerCoachWeeklyTrainingPoints,
+  coachWeeklyTrainingPoints,
   coachMotivatorStrengthHalfLevels,
 } from '../coach-weekly';
 import type { CoachBoosts, CoachCandidate, CoachSpecialty } from '../market';
@@ -90,18 +91,22 @@ describe('coach training boosts', () => {
 
 describe('coach weekly training points with boosts', () => {
   it('adds the boost to what the level already produces', () => {
-    // A level-3 head is 10 + 2×3 = 16.
-    expect(careerCoachWeeklyTrainingPoints(market(coach(3, ['ATTACK', 'FITNESS'])))).toBe(16);
+    // Derived, not hardcoded: every weekly TP source is scaled by
+    // TRAINING_POINT_SCALE_PERCENT, so a literal here would break the next time
+    // that dial moves and would say nothing about the boost either way.
+    const base = coachWeeklyTrainingPoints(3, 'HEAD');
+    expect(careerCoachWeeklyTrainingPoints(market(coach(3, ['ATTACK', 'FITNESS'])))).toBe(base);
     expect(careerCoachWeeklyTrainingPoints(
       market(coach(3, ['ATTACK', 'FITNESS'], { weeklyTp: 2 })),
-    )).toBe(18);
+    )).toBe(base + 2);
   });
 
   it('never lets a coach cost the club training points', () => {
-    // A level-1 assistant is 6; a −4 boost leaves 2, not a negative.
+    // The boost is bigger than the whole contribution, so the floor decides.
+    const base = coachWeeklyTrainingPoints(1, 'ASSISTANT');
     expect(careerCoachWeeklyTrainingPoints(
       market(undefined, coach(1, ['ATTACK', 'FITNESS'], { weeklyTp: -4 })),
-    )).toBe(2);
+    )).toBe(Math.max(0, base - 4));
   });
 });
 

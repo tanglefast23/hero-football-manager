@@ -15,7 +15,10 @@ import type { AwardCategoryId, DivisionAwardPrize, SeasonRecap } from './types';
  * Measured against the mini balance harness (200 seeds, season 1, Level-1
  * Training Pitch): 50.1 TP/week, 1,504 across the thirty-week season. One board
  * is 8.0% of that — about two and a half weeks, or a dozen focus drills at 6-15
- * TP each — and one board is the case this number is tuned for.
+ * TP each — and one board is the case this number is tuned for. Those figures
+ * predate the 2026-08-07 cut of every weekly TP source to 80%: the same season
+ * now earns about a fifth less, so one board is worth proportionally more weeks
+ * than the 8.0% above. Re-measure before quoting a share again.
  *
  * Re-run the measurement with
  * `src/audit/__tests__/division-award-prize-probe.test.ts` rather than trusting
@@ -93,10 +96,11 @@ export function divisionAwardPrizePerCategory(targetDivision: number): number {
  * What the club pays, in cash, for one Training Point.
  *
  * Taken from the only place the game already sells TP for money: coaching. A
- * level-1 head coach turns $400 a week into 12 TP a week ($33 each) and a
- * level-1 assistant turns the same $400 into 6 ($67 each). $40 sits at the
- * cheap end of that market, so converting an award at this rate hands the club
- * a little less than it would have paid to hire the same improvement.
+ * level-1 head coach turns $400 a week into 10 TP a week ($40 each) and a
+ * level-1 assistant turns the same $400 into 5 ($80 each). $40 now sits exactly
+ * at the head coach's rate rather than below it — the 2026-08-07 cut of every
+ * weekly TP source to 80% moved the coach market, not this constant, so an
+ * award converts at par with hiring instead of a little under it.
  */
 export const TRAINING_POINT_CASH_VALUE = 40;
 

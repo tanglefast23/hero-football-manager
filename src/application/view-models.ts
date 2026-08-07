@@ -69,6 +69,7 @@ import {
   SPONSOR_PAYMENT_WEEKS,
   trainingPathAttribute,
   cappedCoachBoost,
+  coachMotivatorBonusPercent,
   coachTrainingBonusPercent,
   coachWeeklyTrainingPointsWithBoosts,
   FACILITY_NAME_KEYS,
@@ -1211,36 +1212,43 @@ export function storyEventViewModel(
   ): StoryEventCoachViewModel | undefined => {
     const coach = role === 'HEAD' ? state.market?.headCoach : state.market?.assistantCoach;
     if (coach === undefined) return undefined;
-    const specialties = coach.specialties.map(specialty => t(`coachStaff.specialty.${specialty}`));
+    // The same keys the staff screen uses, so the card cannot drift into
+    // describing a coach differently from the screen that hired him.
+    const specialties = coach.specialties.map(readableLabel);
     const trainingPercent = coachTrainingBonusPercent(coach.level, role)
       + cappedCoachBoost(coach.boosts, 'trainingPercent');
+    const trainingBoost = cappedCoachBoost(coach.boosts, 'trainingPercent');
+    const tpBoost = cappedCoachBoost(coach.boosts, 'weeklyTp');
     const earned = [
-      cappedCoachBoost(coach.boosts, 'trainingPercent') === 0
+      trainingBoost === 0
         ? undefined
-        : t('storyEvent.coachEarnedTraining', {
-            amount: `${cappedCoachBoost(coach.boosts, 'trainingPercent') > 0 ? '+' : ''}${cappedCoachBoost(coach.boosts, 'trainingPercent')}`,
+        : t('coachStaff.effectTraining', {
+            stats: specialties.join(', '),
+            percent: `${trainingBoost > 0 ? '+' : ''}${trainingBoost}%`,
           }),
-      cappedCoachBoost(coach.boosts, 'weeklyTp') === 0
+      tpBoost === 0
         ? undefined
-        : t('storyEvent.coachEarnedTp', {
-            amount: `${cappedCoachBoost(coach.boosts, 'weeklyTp') > 0 ? '+' : ''}${cappedCoachBoost(coach.boosts, 'weeklyTp')}`,
-          }),
+        : t('coachStaff.effectTpWeekly', { points: `${tpBoost > 0 ? '+' : ''}${tpBoost}` }),
     ].filter((line): line is string => line !== undefined);
     return {
       role,
       roleLabel: t(role === 'HEAD' ? 'coachStaff.headCoach' : 'coachStaff.assistantCoach'),
       name: coach.name,
-      levelLabel: t('coachStaff.levelValue', { level: coach.level }),
+      levelLabel: t('facilityCompletionCard.level', { level: coach.level }),
       specialtyLabels: specialties,
-      trainingLine: t('storyEvent.coachTrainingLine', {
-        percent: trainingPercent,
-        specialties: specialties.join(', '),
+      trainingLine: t('coachStaff.effectTraining', {
+        stats: specialties.join(', '),
+        percent: `${trainingPercent}%`,
       }),
-      trainingPointsLine: t('storyEvent.coachTpLine', {
-        amount: coachWeeklyTrainingPointsWithBoosts(coach, role),
+      trainingPointsLine: t('coachStaff.effectTpWeekly', {
+        points: coachWeeklyTrainingPointsWithBoosts(coach, role),
       }),
       ...(coach.specialties.includes('MOTIVATOR')
-        ? { motivatorLine: t('storyEvent.coachMotivatorLine') }
+        ? {
+            motivatorLine: t('coachStaff.effectMotivator', {
+              percent: `${coachMotivatorBonusPercent(coach.level, role)}%`,
+            }),
+          }
         : {}),
       ...(earned.length === 0 ? {} : { earnedLine: earned.join(' · ') }),
     };
@@ -1258,7 +1266,7 @@ export function storyEventViewModel(
     .map(building => ({
       buildingId: building.id,
       name: t(FACILITY_NAME_KEYS[building.type]),
-      levelLabel: t('clubFinances.facilityLevel', { level: building.level }),
+      levelLabel: t('facilityCompletionCard.level', { level: building.level }),
       effectLabel: facilityEffectLabel(building.type, building.level, t),
     }));
   const selectedFacility = pending.selectedFacilityId === undefined
@@ -2377,6 +2385,8 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
     })
     : undefined;
   const isCurrentGameWeek = currentMatchday !== undefined;
+  const isSeasonFinale = currentMatchday !== undefined
+    && isSeasonFinaleLeagueWeek(state, currentMatchday.kind);
   const boardUltimatum = state.financialSafety?.boardUltimatum;
   const rosterById = new Map(roster.map(player => [player.id, player]));
   const latestBoardResolution = state.financialSafety?.latestBoardResolution;
@@ -2522,7 +2532,7 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
     nextMatchTimingLabel: nextFixture === undefined
       ? state.phase === 'complete' ? t('clubHome.complete') : t('clubHome.seasonEnd')
       : isCurrentGameWeek
-        ? t('clubHome.thisWeek')
+        ? isSeasonFinale ? t('clubHome.finalGame') : t('clubHome.thisWeek')
         : t('clubHome.nextMatchInWeeks', {
           n: nextFixture.week - state.week,
           count: nextFixture.week - state.week,
@@ -3566,13 +3576,26 @@ function careerDivision(state: GameState): 1 | 2 | 3 | 4 | 5 {
 }
 
 /**
+ * Whether this week's match is the one that closes the season.
+ *
+ * The final league round is pinned to the season's last week, so "last league
+ * round" and "last week of the season" are the same week and one check covers
+ * both. A cup tie landing on it would still not be the league finale, which is
+ * why the competition is part of the test.
+ */
+function isSeasonFinaleLeagueWeek(state: GameState, kind: 'league' | 'national-cup'): boolean {
+  return kind === 'league' && state.week === SEASON_WEEKS;
+}
+
+/**
  * The match-week announcement, or null on a quiet week.
  *
  * `activeCareerMatchday` is the whole test — it is the same call the desk uses
  * for "This week", so the banner can never claim a fixture the club does not
  * actually have. The competition is named the way every other screen names it:
  * the division's own name (never "Division 5"), and the cup's single display
- * name, so a rename can never leave this card behind.
+ * name, so a rename can never leave this card behind. The season's last week
+ * announces itself as the final game rather than another match day.
  */
 export function matchDayBannerViewModel(
   state: GameState,
@@ -3586,12 +3609,20 @@ export function matchDayBannerViewModel(
     // every other key bakes it into a longer sentence.
     ? t('m2League.heroCup')
     : t(DIVISION_NAME_KEYS[careerDivision(state)]);
+  const isFinale = isSeasonFinaleLeagueWeek(state, matchday.kind);
   return {
     id: `match-day-banner-${state.season}-${state.week}`,
     competitionLabel,
+    // The two flags are independent: the season's last week can itself be a
+    // cup tie, and it should read as the final game AND draw the cabinet.
     isCup,
-    headline: t('matchDayBanner.headline', { competition: competitionLabel }),
-    accessibilityLabel: t('matchDayBanner.a11y.matchDay', { competition: competitionLabel }),
+    headline: t(isFinale ? 'matchDayBanner.finalGame' : 'matchDayBanner.headline', {
+      competition: competitionLabel,
+    }),
+    accessibilityLabel: t(
+      isFinale ? 'matchDayBanner.a11y.finalGame' : 'matchDayBanner.a11y.matchDay',
+      { competition: competitionLabel },
+    ),
   };
 }
 

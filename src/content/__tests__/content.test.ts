@@ -399,6 +399,7 @@ describe('validated M1 launch content', () => {
     expect(content.assistantGuide.sequences.map(sequence => sequence.id)).toEqual([
       'management-intro',
       'desk-intro',
+      'expired-contract',
       'head-coach-market',
       'head-coach-hire',
       'coaching-office',
@@ -460,7 +461,13 @@ describe('validated M1 launch content', () => {
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'head-coach-market')
       ?.inbox?.title).toBe('HIRE A COACH');
-    const m2Sequences = content.assistantGuide.sequences.slice(2);
+    // Selected by identity, not by position. This used to be `slice(2)`, which
+    // silently meant "everything after the two M1 briefings" — so inserting a
+    // third screen-delivered sequence anywhere near the front reclassified it
+    // as an inbox guide and demanded an inbox row it will never have.
+    const screenDelivered = ['management-intro', 'desk-intro', 'expired-contract'];
+    const m2Sequences = content.assistantGuide.sequences
+      .filter(sequence => !screenDelivered.includes(sequence.id));
     expect(m2Sequences).toHaveLength(27);
     expect(m2Sequences.every(sequence => (
       sequence.inbox !== undefined

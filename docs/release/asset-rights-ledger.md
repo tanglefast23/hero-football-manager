@@ -32,6 +32,7 @@ for this game and that no third-party visual assets were used.
 | Supplied body-fall recording | `body-fall.m4a`; the design note identifies an owner-supplied `wet_thud.webm`; Joe confirms commercial/public-use authorization | Cleared by owner confirmation (2026-08-06) |
 | Bert supplied recording | `dialogue2.m4a` and derivative `bert-voice-dialogue2.m4a`; source comments call it supplied; Joe confirms commercial/public-use authorization | Cleared by owner confirmation (2026-08-06) |
 | Other supplied/recorded cues | `awakening-angels.m4a`, `awakening-harps.m4a`, `flame-loop.m4a`, celebration/farewell music, and any M4A not reproducible from the checked-in synthesis scripts; Joe confirms commercial/public-use authorization | Cleared by owner confirmation (2026-08-06) |
+| Season-boundary arcade theme | `assets/audio/music/awards-theme.m4a`, a 16-bar loop cut from the owner-supplied `8-bit-arcade-mode-158814.webm` | Needs owner confirmation of the source's commercial/public-use terms (added 2026-08-07) |
 
 ## Third-party software asset
 

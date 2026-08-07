@@ -7,7 +7,7 @@ import type { AudioPlayer, AudioSource } from 'expo-audio';
 import type { M1Screen } from '../application/store';
 import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
 
-export type MenuTheme = 'opening' | 'management' | 'event' | null;
+export type MenuTheme = 'opening' | 'management' | 'event' | 'awards' | null;
 type MenuSfx = 'advance-week' | 'plan-locked' | 'league-champions';
 
 export function menuThemeForScreen(screen: M1Screen, awakeningBeat: number): MenuTheme {
@@ -29,14 +29,17 @@ export function menuThemeForScreen(screen: M1Screen, awakeningBeat: number): Men
   if (screen === 'event' || screen === 'legacy' || (screen === 'awakening' && awakeningBeat >= 2)) {
     return 'event';
   }
-  // The season boundary was the one ceremony read in silence: the award
-  // reveals and the season-review card only had their success stings, no bed
-  // under them. They take the event theme — the ceremonial reveal bed the
-  // awakening and career events already use — rather than a new asset. The
-  // championship/endgame celebrations stay null on purpose: those screens play
-  // the celebration anthem through celebration-audio.ts, and a bed here would
-  // loop underneath it.
-  if (screen === 'awards-ceremony' || screen === 'season-end') return 'event';
+  // The season boundary gets its own arcade bed, unbroken across all three of
+  // its screens. It starts on the podium — the medal ceremony a second or third
+  // place finish plays — carries through the awards that follow and the season
+  // review after them, and stops the moment the next season's desk arrives, so
+  // the boundary reads as one ceremony rather than three cards each starting
+  // their own music. The championship/endgame celebrations stay null on
+  // purpose: those screens play the celebration anthem through
+  // celebration-audio.ts, and a bed here would loop underneath it.
+  if (screen === 'season-podium' || screen === 'awards-ceremony' || screen === 'season-end') {
+    return 'awards';
+  }
   return null;
 }
 
@@ -44,6 +47,11 @@ const MENU_SOURCES: Record<Exclude<MenuTheme, null>, AudioSource> = {
   opening: require('../../assets/audio/music/opening-theme.m4a'),
   management: require('../../assets/audio/music/management-theme.m4a'),
   event: require('../../assets/audio/music/event-theme.m4a'),
+  // Cut to a seamless 16-bar loop (33.39s at 115 BPM, the point where the
+  // track's opening phrase turns over) with a 150ms equal-power crossfade at
+  // the wrap. The source runs 2:18; shipping the whole thing would cost ~1.1MB
+  // for material the boundary never reaches.
+  awards: require('../../assets/audio/music/awards-theme.m4a'),
 };
 const MENU_SFX_SOURCES: Record<MenuSfx, AudioSource> = {
   'advance-week': require('../../assets/audio/sfx/advance-week.m4a'),

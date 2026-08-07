@@ -24,6 +24,7 @@ import {
   renewalOpeningOfferWage,
   startContractNegotiation,
   submitContractOffer,
+  type PlayerPersonality,
 } from '../market';
 import { loyaltyRenewalPercent } from '../loyalty';
 import { hasActiveCareerContractPromise } from '../contract-promises';
@@ -282,21 +283,45 @@ describe('promise grades (D1)', () => {
    * the failure mode this repo has already shipped once, when a scouting label
    * kept promising "+8% training" for two releases after the bonus was deleted.
    */
-  it('grades every promise from the percentage the agent actually values', () => {
-    const grades = new Map(
-      marketNegotiationViewModel({
-        state: startContractNegotiation({
-          careerSeed: 7, negotiationId: 'g', playerId: 'p',
-          personality: 'PROFESSIONAL', weeklyAsk: 1000,
-        }),
-        playerName: 'Test', openingWeeklyWage: 700,
-      }).perks.map(perk => [perk.id, perk.gradeLabel]),
-    );
+  const gradesFor = (personality: PlayerPersonality) => new Map(
+    marketNegotiationViewModel({
+      state: startContractNegotiation({
+        careerSeed: 7, negotiationId: 'g', playerId: 'p',
+        personality, weeklyAsk: 1000,
+      }),
+      playerName: 'Test', openingWeeklyWage: 700,
+    }).perks.map(perk => [perk.id, perk.gradeLabel]),
+  );
 
-    expect(grades.get('GUARANTEED_STARTER')).toBe('A · Huge');
-    expect(grades.get('CAPTAINCY')).toBe('B · Big');
-    expect(grades.get('TRAINING_PRIORITY')).toBe('C · Solid');
-    expect(grades.get('JERSEY_10')).toBe('D · Small');
+  it('grades every promise from the percentage the agent actually values', () => {
+    // A TIMID player wants the shirt and the starting place and does not want
+    // the armband, so his ladder is not the flat one. Asserting the flat ladder
+    // here is what this test did before promises became personal, and it would
+    // now be asserting a grade the agent disagrees with.
+    const timid = gradesFor('TIMID');
+    expect(timid.get('GUARANTEED_STARTER')).toBe('A · Huge');
+    expect(timid.get('CAPTAINCY')).toBe('D · Small');
+    // 6 base + 2 for a man who likes being worked on = 8, which is a B.
+    expect(timid.get('TRAINING_PRIORITY')).toBe('B · Big');
+    expect(timid.get('JERSEY_10')).toBe('D · Small');
+  });
+
+  it('grades the same promise differently for different men', () => {
+    // The whole point of reading your player. If these ever agree, the panel is
+    // back to quoting one ladder at everybody.
+    expect(gradesFor('FIERY').get('CAPTAINCY'))
+      .not.toBe(gradesFor('TIMID').get('CAPTAINCY'));
+  });
+
+  it('never grades a promise as worthless, even for the mercenary', () => {
+    // GREEDY discounts every promise. The badge still has to name a grade — a
+    // blank or an F would read as "this button does nothing", and it does.
+    const greedy = gradesFor('GREEDY');
+    const perks = ['GUARANTEED_STARTER', 'CAPTAINCY', 'TRAINING_PRIORITY', 'JERSEY_10'] as const;
+    for (const perk of perks) {
+      expect({ perk, grade: greedy.get(perk) }).toMatchObject({ perk });
+      expect(greedy.get(perk)).toBeTruthy();
+    }
   });
 
   it('ranks the grades in the same order the engine prices them', () => {

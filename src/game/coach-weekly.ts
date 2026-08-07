@@ -5,6 +5,7 @@ import {
   type CareerMarketState,
 } from './market-career';
 import { COACH_BOOST_CAPS, type CoachBoosts, type CoachSpecialty } from './market';
+import { scaledTrainingPoints } from './training-point-income';
 
 const TRAINING_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
 
@@ -26,12 +27,24 @@ export function cappedCoachBoost(
   return Math.max(-cap, Math.min(cap, raw));
 }
 
-/** Stable weekly TP created by one employed coach. */
+/**
+ * Stable weekly TP created by one employed coach.
+ *
+ * The full rates are 10 + 2×level for a head coach and 5 + level for an
+ * assistant; `TRAINING_POINT_SCALE_PERCENT` then cuts both by 20%
+ * alongside the baseline and the Training Pitch, so hiring never becomes the
+ * cheap way around a weekly income the rest of the game just lowered.
+ *
+ * A story's boost is added on top of the scaled figure, in
+ * `coachWeeklyTrainingPointsWithBoosts` — it is a change to this coach, not
+ * another lever on the club's weekly income, so the 20% cut does not apply
+ * to it twice.
+ */
 export function coachWeeklyTrainingPoints(level: number, role: CareerCoachRole): number {
   validateCoachLevel(level, role === 'HEAD' ? 'head coach' : 'assistant coach');
-  return role === 'HEAD'
+  return scaledTrainingPoints(role === 'HEAD'
     ? 10 + checkedMultiply(level, 2, 'head coach TP')
-    : 5 + level;
+    : 5 + level);
 }
 
 /** Weekly TP including whatever a story has permanently changed about him. */

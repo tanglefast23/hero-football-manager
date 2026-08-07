@@ -1,4 +1,6 @@
+import { useCallback, useRef } from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import type { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ContractOffer, PitchCard } from '../../game/market';
 import { ActionButton, Metric, PaperPanel, StatusChip, formatCurrency } from '../components/Scorecard';
@@ -14,6 +16,8 @@ import { NegotiationPanel, useContractDraft } from './MarketScreen';
 import { useTapGuard } from '../use-tap-guard';
 import { PixelText } from '../components/PixelText';
 import { DesktopClamp, useDesktopContentStyle } from '../layout/DesktopClamp';
+import { AgentFinalDemandGate } from '../AgentFinalDemandGate';
+import { isExpiredContractRevealed } from '../expired-contract-reveal';
 import { useCopy } from '../../i18n';
 
 export interface SeasonEndScreenProps {
@@ -26,6 +30,16 @@ export interface SeasonEndScreenProps {
   onCloseRenewal: () => void;
   onPrimaryAction: () => void;
   onOpenSettings: () => void;
+  /**
+   * Fires the first time the expired-contract section is genuinely on screen.
+   *
+   * The season review is a long page and the renewal queue is the last thing on
+   * it, so a lesson raised on arrival would be delivered over the league table
+   * about a card the manager has not reached. Reported upward rather than owned
+   * here because whether it is worth saying is a career question — Teacher
+   * mode, once per career — and this screen holds neither.
+   */
+  onExpiredContractVisible?: () => void;
   guideCopy?: { title: string; body: string };
   textScale?: TextScale;
 }
@@ -40,6 +54,7 @@ export function SeasonEndScreen({
   onCloseRenewal,
   onPrimaryAction,
   onOpenSettings,
+  onExpiredContractVisible,
   guideCopy,
   textScale = 1,
 }: SeasonEndScreenProps) {
@@ -52,6 +67,42 @@ export function SeasonEndScreen({
   // manager never saw.
   const guardTap = useTapGuard();
   const contract = viewModel.expiredContract;
+  /*
+   * Three measurements decide whether the renewal queue has been reached, and
+   * all three live in refs rather than state. Storing the scroll offset in
+   * state would repaint the whole review — league table, awards, settlement —
+   * on every frame of a flick, for a value nothing above draws.
+   */
+  const revealedExpiredContractRef = useRef(false);
+  const viewportHeightRef = useRef(0);
+  const expiredContractTopRef = useRef<number | undefined>(undefined);
+  const scrollOffsetRef = useRef(0);
+  const checkExpiredContractReached = useCallback(() => {
+    if (revealedExpiredContractRef.current || onExpiredContractVisible === undefined) return;
+    if (!isExpiredContractRevealed({
+      sectionTop: expiredContractTopRef.current,
+      viewportHeight: viewportHeightRef.current,
+      scrollOffset: scrollOffsetRef.current,
+    })) return;
+    revealedExpiredContractRef.current = true;
+    onExpiredContractVisible();
+  }, [onExpiredContractVisible]);
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+    viewportHeightRef.current = event.nativeEvent.layoutMeasurement.height;
+    checkExpiredContractReached();
+  }, [checkExpiredContractReached]);
+  // A tall desktop window can show the queue without a scroll ever happening,
+  // and no scroll event means no `layoutMeasurement`. The two layouts supply
+  // the same pair of numbers from the other direction.
+  const handleScrollViewLayout = useCallback((event: LayoutChangeEvent) => {
+    viewportHeightRef.current = event.nativeEvent.layout.height;
+    checkExpiredContractReached();
+  }, [checkExpiredContractReached]);
+  const handleExpiredContractLayout = useCallback((event: LayoutChangeEvent) => {
+    expiredContractTopRef.current = event.nativeEvent.layout.y;
+    checkExpiredContractReached();
+  }, [checkExpiredContractReached]);
   // The season-end fanfare is owned by App.tsx, keyed per career/season so it
   // fires exactly once. Do not add a second cue here.
   const outcomeTone = viewModel.outcomeLabel === 'CHAMPIONS' || viewModel.outcomeLabel === 'PROMOTED'
@@ -70,7 +121,15 @@ export function SeasonEndScreen({
         </View>
         <SettingsButton onPress={onOpenSettings} />
       </View>
-      <ScrollView className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}
+        onLayout={handleScrollViewLayout}
+        onScroll={handleScroll}
+        // Frequent enough that Bert arrives as the section clears the fold
+        // rather than a beat after it, and still far short of every frame.
+        scrollEventThrottle={64}
+      >
         <View className="items-center py-3">
           <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{t('seasonEnd.seasonComplete')}</Text>
           <Text className="mt-2 font-pixel text-3xl uppercase tracking-wide text-white">{viewModel.seasonLabel}</Text>
@@ -282,7 +341,7 @@ export function SeasonEndScreen({
         </View>
 
         {contract ? (
-          <View className="mt-6">
+          <View className="mt-6" onLayout={handleExpiredContractLayout}>
             <StageSection
               eyebrow={t('seasonEnd.beforeTheDoorsClose')}
               title={t('seasonEnd.expiredContracts', {
@@ -430,6 +489,9 @@ export function SeasonEndScreen({
           ) : null}
         </DesktopClamp>
       </View>
+      {/* Root-level, not inside the panel: the overlay fills its parent, and
+          the renewal card lives halfway down a scroll view. */}
+      <AgentFinalDemandGate negotiation={viewModel.renewalNegotiation} />
     </SafeAreaView>
   );
 }

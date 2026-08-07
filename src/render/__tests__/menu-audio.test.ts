@@ -48,6 +48,19 @@ import {
   teardownMenuAudio,
 } from '../menu-audio';
 
+/**
+ * `initMenuAudio` builds every music player then every SFX player, in the order
+ * the two source maps declare them, so a player's identity here is its index.
+ * Named once because adding a single cue used to shift every later assertion in
+ * the file — see the management-sfx suite for the same trap.
+ */
+const MUSIC = { opening: 0, management: 1, event: 2, awards: 3 } as const;
+const SFX = { advanceWeek: 4, planLocked: 5, leagueChampions: 6 } as const;
+const PLAYERS_PER_BUILD = 7;
+/** The same player after a session death rebuilt the whole set. */
+const rebuilt = (index: number): number => PLAYERS_PER_BUILD + index;
+const MUSIC_INDEXES = Object.values(MUSIC);
+
 describe('non-match music ownership', () => {
   beforeEach(() => {
     jest.useFakeTimers();
@@ -92,8 +105,8 @@ describe('non-match music ownership', () => {
     setMenuTheme(fulltimeTheme);
     setMenuTheme(officeTheme);
 
-    expect(mockPlayers[0].pause).toHaveBeenCalledTimes(1);
-    expect(mockPlayers[1].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MUSIC.opening].pause).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MUSIC.management].play).toHaveBeenCalledTimes(1);
   });
 
   it('lays the event bed under the awakening from the bite onwards', () => {
@@ -106,12 +119,22 @@ describe('non-match music ownership', () => {
     expect(menuThemeForScreen('awakening', 3)).toBe('event');
   });
 
-  it('lays the event bed under the season awards ceremony and review', () => {
+  it('carries one arcade bed across the awards ceremony and the season review', () => {
     // The season boundary used to be the one ceremony read in silence — only
-    // its success stings played. It shares the event reveal bed rather than
-    // shipping a new asset.
-    expect(menuThemeForScreen('awards-ceremony', 1)).toBe('event');
-    expect(menuThemeForScreen('season-end', 1)).toBe('event');
+    // its success stings played. All three of its screens now share a dedicated
+    // bed, and it must be the SAME theme on every one: returning different ones
+    // would cut the music off and restart it at each handover.
+    expect(menuThemeForScreen('awards-ceremony', 1)).toBe('awards');
+    expect(menuThemeForScreen('season-end', 1)).toBe('awards');
+    // The podium opens the ceremony, so the bed has to start there or the
+    // music arrives a screen late and the medal scene plays in silence.
+    expect(menuThemeForScreen('season-podium', 1)).toBe('awards');
+    expect(menuThemeForScreen('season-podium', 1)).toBe(menuThemeForScreen('awards-ceremony', 1));
+    // The new season's desk drops it for the ordinary office bed, and a club
+    // legend on the way there gets the event bed — either way the ceremony
+    // music ends with the ceremony.
+    expect(menuThemeForScreen('management', 1)).toBe('management');
+    expect(menuThemeForScreen('legacy', 1)).toBe('event');
     // The title celebrations stay bed-less on purpose: they play the
     // celebration anthem via celebration-audio.ts, and a menu bed here would
     // loop underneath it.
@@ -119,35 +142,58 @@ describe('non-match music ownership', () => {
     expect(menuThemeForScreen('endgame-celebration', 1)).toBeNull();
   });
 
-  it('hands off exclusively from opening to management to event music', () => {
+  it('hands off exclusively from opening to management to event to awards music', () => {
     setMenuTheme('opening');
 
-    expect(mockPlayers).toHaveLength(6);
-    expect(mockPlayers.slice(0, 3).every(player => player.loop)).toBe(true);
-    expect(mockPlayers.slice(3).every(player => !player.loop)).toBe(true);
-    expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
-    expect(mockPlayers[1].play).not.toHaveBeenCalled();
-    expect(mockPlayers[2].play).not.toHaveBeenCalled();
+    expect(mockPlayers).toHaveLength(PLAYERS_PER_BUILD);
+    expect(MUSIC_INDEXES.every(i => mockPlayers[i].loop)).toBe(true);
+    expect(mockPlayers.slice(MUSIC_INDEXES.length).every(player => !player.loop)).toBe(true);
+    expect(mockPlayers[MUSIC.opening].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MUSIC.management].play).not.toHaveBeenCalled();
+    expect(mockPlayers[MUSIC.event].play).not.toHaveBeenCalled();
+    expect(mockPlayers[MUSIC.awards].play).not.toHaveBeenCalled();
 
     setMenuTheme('management');
 
-    expect(mockPlayers[0].pause).toHaveBeenCalledTimes(1);
-    expect(mockPlayers[1].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MUSIC.opening].pause).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MUSIC.management].play).toHaveBeenCalledTimes(1);
 
     setMenuTheme('event');
-    expect(mockPlayers[1].pause).toHaveBeenCalledTimes(1);
-    expect(mockPlayers[2].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MUSIC.management].pause).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MUSIC.event].play).toHaveBeenCalledTimes(1);
+
+    // The boundary bed takes over from whatever was playing and stops it — the
+    // manager never hears two themes at once at the end of a season.
+    setMenuTheme('awards');
+    expect(mockPlayers[MUSIC.event].pause).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MUSIC.awards].play).toHaveBeenCalledTimes(1);
 
     setMenuTheme(null);
-    expect(mockPlayers[2].pause).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MUSIC.awards].pause).toHaveBeenCalledTimes(1);
+  });
+
+  it('never restarts the boundary bed between the awards and the review', () => {
+    // Both screens ask for the same theme, and `setMenuTheme` is a no-op when
+    // it already owns the music — so the loop runs unbroken across the handover
+    // instead of seeking back to bar one halfway through the ceremony.
+    setMenuTheme(menuThemeForScreen('awards-ceremony', 1));
+    setMenuTheme(menuThemeForScreen('season-end', 1));
+
+    expect(mockPlayers[MUSIC.awards].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MUSIC.awards].pause).not.toHaveBeenCalled();
+
+    setMenuTheme(menuThemeForScreen('management', 1));
+
+    expect(mockPlayers[MUSIC.awards].pause).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MUSIC.management].play).toHaveBeenCalledTimes(1);
   });
 
   it('shares the selected master level while preserving the music mix', () => {
     setMenuMasterVolume(0.5);
     setMenuTheme('opening');
 
-    expect(mockPlayers.slice(0, 3).every(player => player.volume === 0.25)).toBe(true);
-    expect(mockPlayers[3].volume).toBe(0.5);
+    expect(MUSIC_INDEXES.every(i => mockPlayers[i].volume === 0.25)).toBe(true);
+    expect(mockPlayers[SFX.advanceWeek].volume).toBe(0.5);
     expect(setAudioModeAsync).toHaveBeenCalledWith({ playsInSilentMode: false });
 
     setMenuMasterVolume(0);
@@ -167,12 +213,12 @@ describe('non-match music ownership', () => {
 
     setMenuTheme('management');
     setMenuMasterVolume(1);
-    expect(mockPlayers.slice(0, 3).every(player => player.volume === 0.5)).toBe(true);
+    expect(MUSIC_INDEXES.every(i => mockPlayers[i].volume === 0.5)).toBe(true);
   });
 
   it('recovers the active theme if a native player stops at the end', async () => {
     setMenuTheme('management');
-    const management = mockPlayers[1];
+    const management = mockPlayers[MUSIC.management];
     management.play.mockClear();
     management.playing = false;
     management.currentTime = management.duration;
@@ -190,22 +236,22 @@ describe('non-match music ownership', () => {
     setMenuTheme('opening');
     // iOS kills the session server while backgrounded: the next native call
     // throws "Session lookup failed" and the old player can never play again.
-    mockPlayers[1].play.mockImplementation(() => {
+    mockPlayers[MUSIC.management].play.mockImplementation(() => {
       throw new Error('Session lookup failed');
     });
 
     setMenuTheme('management');
 
-    expect(mockPlayers).toHaveLength(12);
-    expect(mockPlayers[7].play).toHaveBeenCalledTimes(1);
-    expect(mockPlayers.slice(6, 9).every(player => player.loop)).toBe(true);
+    expect(mockPlayers).toHaveLength(PLAYERS_PER_BUILD * 2);
+    expect(mockPlayers[rebuilt(MUSIC.management)].play).toHaveBeenCalledTimes(1);
+    expect(MUSIC_INDEXES.every(i => mockPlayers[rebuilt(i)].loop)).toBe(true);
     expect(setAudioModeAsync).toHaveBeenCalledTimes(2);
   });
 
   it('recovers a dead SFX player, then replays both the theme and the cue', async () => {
     setMenuTheme('management');
-    mockPlayers[1].play.mockClear();
-    mockPlayers[3].seekTo.mockImplementation(() =>
+    mockPlayers[MUSIC.management].play.mockClear();
+    mockPlayers[SFX.advanceWeek].seekTo.mockImplementation(() =>
       Promise.reject(new Error('Unable to find the native shared object')));
 
     playAdvanceWeekSfx();
@@ -213,11 +259,11 @@ describe('non-match music ownership', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(12);
-    expect(mockPlayers[7].play).toHaveBeenCalledTimes(1);
-    expect(mockPlayers[9].seekTo).toHaveBeenCalledWith(0);
+    expect(mockPlayers).toHaveLength(PLAYERS_PER_BUILD * 2);
+    expect(mockPlayers[rebuilt(MUSIC.management)].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[rebuilt(SFX.advanceWeek)].seekTo).toHaveBeenCalledWith(0);
     await Promise.resolve();
-    expect(mockPlayers[9].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[rebuilt(SFX.advanceWeek)].play).toHaveBeenCalledTimes(1);
   });
 
   it('rewinds and plays the advance-week SFX on demand', async () => {
@@ -226,8 +272,8 @@ describe('non-match music ownership', () => {
     playAdvanceWeekSfx();
     await Promise.resolve();
 
-    expect(mockPlayers[3].seekTo).toHaveBeenCalledWith(0);
-    expect(mockPlayers[3].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[SFX.advanceWeek].seekTo).toHaveBeenCalledWith(0);
+    expect(mockPlayers[SFX.advanceWeek].play).toHaveBeenCalledTimes(1);
   });
 
   it('plays the league-title fanfare once and can stop it when the scene is skipped', async () => {
@@ -236,11 +282,11 @@ describe('non-match music ownership', () => {
     playLeagueChampionsSfx();
     await Promise.resolve();
 
-    expect(mockPlayers[5].loop).toBe(false);
-    expect(mockPlayers[5].seekTo).toHaveBeenCalledWith(0);
-    expect(mockPlayers[5].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[SFX.leagueChampions].loop).toBe(false);
+    expect(mockPlayers[SFX.leagueChampions].seekTo).toHaveBeenCalledWith(0);
+    expect(mockPlayers[SFX.leagueChampions].play).toHaveBeenCalledTimes(1);
 
     stopLeagueChampionsSfx();
-    expect(mockPlayers[5].pause).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[SFX.leagueChampions].pause).toHaveBeenCalledTimes(1);
   });
 });

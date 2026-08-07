@@ -84,11 +84,11 @@ describe('career coach weekly effects', () => {
 
   test('creates stable weekly TP from employed head and assistant coaches', () => {
     const market = marketWithCoach(['ATTACK', 'FITNESS'], 3);
-    expect(careerCoachWeeklyTrainingPoints(market)).toBe(16);
+    expect(careerCoachWeeklyTrainingPoints(market)).toBe(13);
     expect(careerCoachWeeklyTrainingPoints({
       ...market,
       assistantCoach: { ...market.headCoach!, id: 'assistant-test', level: 2 },
-    })).toBe(23);
+    })).toBe(19);
     expect(careerCoachWeeklyTrainingPoints({ ...market, headCoach: undefined })).toBe(0);
   });
 

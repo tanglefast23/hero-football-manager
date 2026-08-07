@@ -10,6 +10,7 @@ import {
   expireSponsorOfferWindow,
   generateSponsorOffers,
   potentialTierForDivision,
+  scaledTrainingPoints,
 } from '../game';
 import {
   assignDistinctPlayerLooks,
@@ -52,7 +53,9 @@ export function createLaunchCareerSetup(
     seed,
     userClubId,
     launchRosterVersion: LAUNCH_ROSTER_VERSION,
-    startingTrainingPoints: 30,
+    // The launch grant rides the same 80% scale as every other TP source, so a
+    // fresh career opens with 24 rather than 30 — see `training-point-income.ts`.
+    startingTrainingPoints: scaledTrainingPoints(30),
     trainingRules: {
       focusDrills: content.training.focusDrills.map(drill => ({
         id: drill.id, moneyCost: drill.moneyCost, tpCost: drill.tpCost, gains: { ...drill.gains },

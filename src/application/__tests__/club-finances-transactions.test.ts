@@ -6,6 +6,7 @@ import {
   buildCareerFacility,
   createCareer,
   relocateCareerFacility,
+  TRAINING_PITCH_TP_PER_LEVEL,
   type FacilityGridState,
 } from '../../game';
 
@@ -393,10 +394,12 @@ describe('club finances immediate transaction history', () => {
     const withPitch = buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state;
     const viewModel = clubFinancesViewModel(withPitch);
 
+    const expected = `+${TRAINING_PITCH_TP_PER_LEVEL} TP per completed level`;
+
     expect(viewModel.facilities.catalog.find(entry => entry.type === 'training-pitch')?.effectLabel)
-      .toContain('+28 TP per completed level');
+      .toContain(expected);
     expect(viewModel.facilities.buildings.find(building => building.type === 'training-pitch')?.effectLabel)
-      .toContain('+28 TP per completed level');
+      .toContain(expected);
   });
 
   /**
