@@ -176,6 +176,7 @@ export const OnboardingContentSchema = z.strictObject({
 export const AssistantGuideSequenceIdSchema = z.enum([
   'management-intro',
   'desk-intro',
+  'expired-contract',
   'head-coach-market',
   'head-coach-hire',
   'coaching-office',
@@ -274,6 +275,25 @@ const AssistantGuidePageSchema = z.strictObject({
   }
 });
 
+/**
+ * The sequences Bert delivers by walking onto the screen that raised them, as
+ * opposed to the ones the weekly desk hands out.
+ *
+ * Membership is by exclusion, so adding an id to the enum cannot silently opt it
+ * out of the inbox rules — a new sequence is an inbox sequence unless it is
+ * named here.
+ */
+const SCREEN_DELIVERED_SEQUENCE_IDS = [
+  'management-intro',
+  'desk-intro',
+  'expired-contract',
+] as const satisfies readonly z.infer<typeof AssistantGuideSequenceIdSchema>[];
+
+const INBOX_DELIVERED_SEQUENCE_IDS: ReadonlySet<string> = new Set(
+  AssistantGuideSequenceIdSchema.options
+    .filter(id => !(SCREEN_DELIVERED_SEQUENCE_IDS as readonly string[]).includes(id)),
+);
+
 const AssistantGuideSequenceSchema = z.strictObject({
   id: AssistantGuideSequenceIdSchema,
   inbox: z.strictObject({
@@ -283,13 +303,23 @@ const AssistantGuideSequenceSchema = z.strictObject({
   destination: AssistantGuideDestinationSchema.optional(),
   pages: z.array(AssistantGuidePageSchema).min(1).max(4),
 }).superRefine((sequence, context) => {
-  const m1Sequence = sequence.id === 'management-intro'
-    || sequence.id === 'desk-intro';
-  if (!m1Sequence && sequence.inbox === undefined) {
-    addIssue(context, ['inbox'], 'M2 assistant guides require inbox copy');
+  if (INBOX_DELIVERED_SEQUENCE_IDS.has(sequence.id)) {
+    if (sequence.inbox === undefined) {
+      addIssue(context, ['inbox'], 'M2 assistant guides require inbox copy');
+    }
+    if (sequence.destination === undefined) {
+      addIssue(context, ['destination'], 'M2 assistant guides require a destination');
+    }
+    return;
   }
-  if (!m1Sequence && sequence.destination === undefined) {
-    addIssue(context, ['destination'], 'M2 assistant guides require a destination');
+  // A sequence Bert delivers by walking onto the screen that raised it has no
+  // desk row to title and nowhere to send you — it is already there. Requiring
+  // inbox copy would mean authoring a card nothing ever renders.
+  if (sequence.inbox !== undefined) {
+    addIssue(context, ['inbox'], 'screen-delivered assistant guides have no inbox row');
+  }
+  if (sequence.destination !== undefined) {
+    addIssue(context, ['destination'], 'screen-delivered assistant guides have no destination');
   }
 });
 
@@ -627,6 +657,33 @@ export const AwardCeremonyLinesSchema = z.strictObject({
  */
 const BLAME_LINE_POOL_SIZE = 20;
 
+/**
+ * The agent's closing ultimatum, one line per negotiation.
+ *
+ * Longer than a ceremony line because it is not shouted across a pitch — he is
+ * standing in front of the manager in the same bubble Bert speaks out of, and
+ * every line has to carry a number as well as an attitude. Bounded all the same
+ * so a translation cannot grow into a wall of text over a 104-pixel sprite.
+ */
+const MAX_AGENT_FINAL_LINE_LENGTH = 100;
+const AGENT_FINAL_LINE_POOL_SIZE = 15;
+
+export const AgentFinalLinesSchema = z.strictObject({
+  schemaVersion: ContentSchemaVersion,
+  lines: z.array(
+    z.string().trim().min(1).max(MAX_AGENT_FINAL_LINE_LENGTH),
+  ).length(AGENT_FINAL_LINE_POOL_SIZE),
+}).superRefine((pool, context) => {
+  addDuplicateIssues(pool.lines, context, ['lines'], 'agent final line');
+  // The whole point of the beat is that he names a figure. A line that lost its
+  // placeholder in a rewrite would deliver an ultimatum with no number in it.
+  pool.lines.forEach((line, index) => {
+    if (!line.includes('{wage}')) {
+      addIssue(context, ['lines', index], 'agent final lines must name the wage with {wage}');
+    }
+  });
+});
+
 export const FulltimeBlameLinesSchema = z.strictObject({
   schemaVersion: ContentSchemaVersion,
   lines: z.array(ceremonyLineSchema).length(BLAME_LINE_POOL_SIZE),
@@ -909,6 +966,7 @@ export const LaunchContentSchema = z.strictObject({
   assistantGuide: AssistantGuideContentSchema,
   awardCeremonyLines: AwardCeremonyLinesSchema,
   fulltimeBlameLines: FulltimeBlameLinesSchema,
+  agentFinalLines: AgentFinalLinesSchema,
   fulltimeCoachLines: FulltimeCoachLinesSchema,
   clubs: ClubCatalogSchema,
   glossary: GlossaryCatalogSchema,
@@ -1008,6 +1066,7 @@ export type AssistantGuideDestination = z.infer<typeof AssistantGuideDestination
 export type AssistantGuideContent = z.infer<typeof AssistantGuideContentSchema>;
 export type AwardCeremonyLines = z.infer<typeof AwardCeremonyLinesSchema>;
 export type FulltimeBlameLines = z.infer<typeof FulltimeBlameLinesSchema>;
+export type AgentFinalLines = z.infer<typeof AgentFinalLinesSchema>;
 export type FulltimeCoachLines = z.infer<typeof FulltimeCoachLinesSchema>;
 /** Which pool of the gaffer's lines an afternoon draws from. */
 export type FulltimeCoachLinePool = Exclude<keyof FulltimeCoachLines, 'schemaVersion'>;

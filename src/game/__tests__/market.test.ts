@@ -14,6 +14,7 @@ import {
   maxCoachLevelForClub,
   pitchCardAffinity,
   playerValuation,
+  MAX_RENEWAL_ASK_MULTIPLE,
   renewalContractAsk,
   resolveScoutMission,
   scoutAttributeRanges,
@@ -498,8 +499,44 @@ describe('contract negotiation', () => {
       { growthSinceSigningPercent: 0, famePercent: 0, heroMultiplier: 5, loyaltyPercent: 0 },
     );
 
-    expect(hero).toBe(ordinary * 4);
+    // The hero premium is still x4 of the ordinary ask in principle — 330 x 4
+    // is 1320 — but the whole ask is capped at five times the old wage, and
+    // 200 x 5 is where this one lands. The cap is deliberately BELOW the raw
+    // product here, because that is the case it exists for.
+    expect(ordinary).toBe(330);
+    expect(hero).toBe(200 * MAX_RENEWAL_ASK_MULTIPLE);
     expect(alreadyOnHeroRate).toBe(Math.round(hero * 1.2));
+  });
+
+  it('never asks more than five times the wage the club already pays', () => {
+    // The runaway this cap was added for: every factor at its documented
+    // maximum at once. Uncapped this is 100 x 4.0 x 2.0 x 1.2 x 1.2 x 4, or
+    // about 46x — presented to the manager as the awakening's doing, beside a
+    // struck-through $100, with nothing on screen to explain the rest.
+    const worstCase = renewalContractAsk(
+      {
+        weeklyWage: 100,
+        personality: 'GREEDY',
+        power: 'SUPER_SPEED',
+        onHeroWage: false,
+      },
+      {
+        growthSinceSigningPercent: 300,
+        famePercent: 100,
+        heroMultiplier: 5,
+        loyaltyPercent: 20,
+      },
+    );
+    expect(worstCase).toBe(100 * MAX_RENEWAL_ASK_MULTIPLE);
+
+    // And the cap must not become a floor. An ask that never reached the
+    // ceiling has to keep its own number, or every renewal in the game
+    // silently costs five times the old wage.
+    const modest = renewalContractAsk(
+      { weeklyWage: 100, personality: 'LOYAL', onHeroWage: false },
+      { growthSinceSigningPercent: 10, famePercent: 0, heroMultiplier: 4, loyaltyPercent: -10 },
+    );
+    expect(modest).toBeLessThan(100 * MAX_RENEWAL_ASK_MULTIPLE);
   });
 });
 

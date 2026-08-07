@@ -1,5 +1,6 @@
 import assistantGuideJson from '../../content/assistant-guide.json';
 import awardCeremonyLinesJson from '../../content/award-ceremony-lines.json';
+import agentFinalLinesJson from '../../content/agent-final-lines.json';
 import fulltimeBlameLinesJson from '../../content/fulltime-blame-lines.json';
 import fulltimeCoachLinesJson from '../../content/fulltime-coach-lines.json';
 import clubsJson from '../../content/clubs.json';
@@ -36,6 +37,7 @@ export function loadLaunchContent(): LaunchContent {
     assistantGuide: assistantGuideJson,
     awardCeremonyLines: awardCeremonyLinesJson,
     fulltimeBlameLines: fulltimeBlameLinesJson,
+    agentFinalLines: agentFinalLinesJson,
     fulltimeCoachLines: fulltimeCoachLinesJson,
     clubs: clubsJson,
     glossary: glossaryJson,

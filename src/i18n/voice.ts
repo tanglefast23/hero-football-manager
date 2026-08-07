@@ -25,6 +25,8 @@ const BODY_PREFIXES = [
   // same speech bubble Bert speaks out of (`src/ui/speech-bubble.tsx`), which
   // sets no `fontFamily` — platform sans, like every other paragraph.
   'coach.',
+  // The players' agent, in that same bubble, for the same reason.
+  'agent.',
 ];
 
 /** Numbers and anything that lines up in a column. */
