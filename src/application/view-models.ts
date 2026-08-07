@@ -965,6 +965,12 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
       const upgradeBlockedReason = blocked === undefined
         ? undefined
         : resolveRingCopy(t, blocked);
+      // The rung as data. The screen used to read it back out of the sentence
+      // with `/D[1-5]/`, which only worked while every translation kept an
+      // English-authored token.
+      const upgradeBlockedDivision = typeof blocked?.textParams?.divisionLevel === 'number'
+        ? blocked.textParams.divisionLevel
+        : undefined;
       return {
         id: building.id,
         type: building.type,
@@ -979,6 +985,7 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
         ...(upgradeCost === undefined ? {} : { upgradeCost }),
         ...(nextLevelEffectLabel === undefined ? {} : { nextLevelEffectLabel }),
         ...(upgradeBlockedReason === undefined ? {} : { upgradeBlockedReason }),
+        ...(upgradeBlockedDivision === undefined ? {} : { upgradeBlockedDivision }),
         canUpgrade: grid.construction === undefined
           && upgradeCost !== undefined
           && upgradeBlockedReason === undefined

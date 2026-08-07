@@ -104,14 +104,18 @@ describe('training copy reaches a non-English player', () => {
     const building = clubFinancesViewModel(atLevelTwo, de).facilities.buildings[0];
     expect(building.upgradeBlockedReason).toBe('Anlagen Stufe 3 gibt es ab D2 · Nationalliga.');
 
-    // `ClubFinancesScreen` reads the rung straight back out of the sentence —
-    // `upgradeBlockedReason.match(/D[1-5]/)` — to label the disabled button
-    // "Locked · D2". A translation that drops the `D2` leaves that button
-    // saying nothing useful, silently, so every locale is checked here.
+    // The disabled button's label comes from `upgradeBlockedDivision`, carried
+    // as a number, not from regexing the rung back out of the sentence. That is
+    // what this pins: the data half exists in every locale, so the button can
+    // never depend on a translation keeping an English-authored token.
     for (const locale of ENABLED_LOCALES) {
-      const sentence = clubFinancesViewModel(atLevelTwo, copyFor(locale))
-        .facilities.buildings[0].upgradeBlockedReason;
-      expect({ locale, rung: sentence?.match(/D[1-5]/)?.[0] })
+      const drawn = clubFinancesViewModel(atLevelTwo, copyFor(locale))
+        .facilities.buildings[0];
+      expect({ locale, division: drawn.upgradeBlockedDivision })
+        .toEqual({ locale, division: 2 });
+      // The sentence should still name the rung — it is how the player reads
+      // which division unlocks it — but nothing but the copy depends on it now.
+      expect({ locale, rung: drawn.upgradeBlockedReason?.match(/D[1-5]/)?.[0] })
         .toEqual({ locale, rung: 'D2' });
     }
   });

@@ -2105,8 +2105,9 @@ function GroundsSection({
                         ? t('clubFinances.crewBusy')
                         : selectedBuilding.upgradeBlockedReason !== undefined
                           ? t('clubFinances.lockedReason', {
-                            reason: selectedBuilding.upgradeBlockedReason.match(/D[1-5]/)?.[0]
-                              ?? t('clubFinances.lockedPromotion'),
+                            reason: selectedBuilding.upgradeBlockedDivision === undefined
+                              ? t('clubFinances.lockedPromotion')
+                              : `D${selectedBuilding.upgradeBlockedDivision}`,
                           })
                         : selectedBuilding.upgradeCost === undefined
                           ? t('clubFinances.maxLevel')

@@ -616,6 +616,17 @@ export interface ClubFacilityBuildingViewModel {
   nextLevelEffectLabel?: string;
   upgradeCost?: number;
   upgradeBlockedReason?: string;
+  /**
+   * The division the upgrade unlocks in, as a number.
+   *
+   * Carried as data because the button beside the reason needs the rung on its
+   * own, and the alternative was regexing `/D[1-5]/` back out of the sentence —
+   * which meant a translated string had to keep an English-authored token or
+   * the button silently lost its label. That is the same "prose as a control
+   * value" defect this whole sweep exists to remove; the ring already emits the
+   * level in `textParams`, so nothing had to be derived at all.
+   */
+  upgradeBlockedDivision?: number;
   canUpgrade: boolean;
   upgradeShortfall: number;
   relocationFee: number;
