@@ -1297,7 +1297,9 @@ export function storyEventViewModel(
     if (coach === undefined) return undefined;
     // The same keys the staff screen uses, so the card cannot drift into
     // describing a coach differently from the screen that hired him.
-    const specialties = coach.specialties.map(readableLabel);
+    // `readableLabel` was the second prettifier — it answered in English
+    // whatever the locale — and this card arrived after it was removed.
+    const specialties = coach.specialties.map(specialty => coachSpecialtyName(t, specialty));
     const trainingPercent = coachTrainingBonusPercent(coach.level, role)
       + cappedCoachBoost(coach.boosts, 'trainingPercent');
     const trainingBoost = cappedCoachBoost(coach.boosts, 'trainingPercent');
