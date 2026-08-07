@@ -1,4 +1,5 @@
 import type { CopyFn, CopyParams } from '../i18n';
+import { FACILITY_ADJACENCIES, FACILITY_CATALOG, type FacilityType } from '../game/facilities';
 
 /**
  * Resolves the catalog key a pure ring emitted, keeping its English if the key
@@ -68,4 +69,34 @@ function translatedParams(t: CopyFn, params: CopyParams): CopyParams {
     changed = true;
   }
   return changed ? substituted : params;
+}
+
+/**
+ * A facility's name in the player's language.
+ *
+ * `FACILITY_CATALOG` dual-writes `nameKey` beside `name`, and `facility.name.*`
+ * is translated in all six locales — but every consumer read the English half,
+ * so the build screen, the active project, the briefing and every store notice
+ * said "Gym" and "Medical Bay" inside otherwise translated sentences.
+ *
+ * A helper rather than eleven inline calls, because that is eleven chances to
+ * miss one, which is exactly how this shipped.
+ */
+export function facilityName(t: CopyFn, type: FacilityType): string {
+  const definition = FACILITY_CATALOG[type];
+  return copyOrEnglish(t, definition.nameKey, definition.name);
+}
+
+/**
+ * An adjacency bonus described in the player's language.
+ *
+ * Same defect: `descriptionKey` was added to `FACILITY_ADJACENCIES` for exactly
+ * this and never read, so a discovery notice announced its bonus in English.
+ * Falls through to the raw id for an adjacency the table does not know, which is
+ * what the previous implementation did.
+ */
+export function adjacencyDescription(t: CopyFn, id: string): string {
+  const adjacency = FACILITY_ADJACENCIES.find(candidate => candidate.id === id);
+  if (adjacency === undefined) return id;
+  return copyOrEnglish(t, adjacency.descriptionKey, adjacency.description);
 }

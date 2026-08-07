@@ -350,6 +350,24 @@ describe('gate 9 — locked terminology', () => {
       expect(Object.keys(loadCatalog(locale).strings).length).toBeGreaterThan(0);
     }
   });
+
+  test('every term still matches English, so none can be silently disarmed', () => {
+    // The gate above only ever inspects strings whose ENGLISH matches the term's
+    // pattern. A term that matches nothing therefore passes in perfect silence,
+    // in all six languages, forever.
+    //
+    // That is one English edit away at all times: rename "Fan Shop" to "Club
+    // Shop", or typo a pattern, and the term stops being enforced without a
+    // single test turning red. It is the same shape as the bug that started this
+    // workstream — a gate reporting zero because it was measuring nothing.
+    const source = Object.values(englishAll());
+    for (const locale of ENABLED_LOCALES.filter(l => l !== 'en')) {
+      const dead = loadGlossary(locale).terms
+        .filter(term => !source.some(value => new RegExp(term.englishPattern).test(value)))
+        .map(term => `${term.english} (/${term.englishPattern}/ matches no English string)`);
+      expect({ locale, dead }).toEqual({ locale, dead: [] });
+    }
+  });
 });
 
 describe('gate 10 — content-prose coverage is measured, not assumed', () => {
@@ -429,6 +447,13 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
       if (source === undefined) continue; // named by the test above
       keysBySource.set(source, [...(keysBySource.get(source) ?? []), key]);
     }
+
+    // A source that produces NO keys never enters the map, so the loop below
+    // never reaches its floor and the gate passes having checked nothing about
+    // it. `contentStrings()` builds these by hand, one loop per file — lose the
+    // tips loop and `tips.json` simply disappears from the report, at 0%
+    // translated, with CI green. Assert the map still covers every floor.
+    expect([...keysBySource.keys()].sort()).toEqual(Object.keys(COVERAGE_FLOOR).sort());
 
     const report: Record<string, Record<string, string>> = {};
     for (const locale of ENABLED_LOCALES.filter(l => l !== 'en')) {

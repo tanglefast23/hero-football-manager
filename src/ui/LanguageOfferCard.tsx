@@ -40,8 +40,13 @@ export function LanguageOfferCard({ offered, onKeep, onUseEnglish }: LanguageOff
   if (offered === null) return null;
   const language = localeMeta(offered).endonym;
 
+  // Dismissing keeps the language, it does not revert to English. Android back
+  // and a web Escape both land on `onRequestClose`, and they are reflexes rather
+  // than answers — the game has ALREADY switched by the time this card is drawn,
+  // so keeping is the no-op. Reverting would take a player who cannot read
+  // English and, on one stray keypress, put them in English for good.
   return (
-    <Modal transparent animationType="fade" visible onRequestClose={onUseEnglish}>
+    <Modal transparent animationType="fade" visible onRequestClose={onKeep}>
       <SafeAreaView className="flex-1 items-center justify-center bg-ink/70 px-6">
         <View className="w-full max-w-md">
           <PaperPanel

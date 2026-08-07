@@ -12,7 +12,7 @@ import { useFonts } from 'expo-font';
 const HFMSilkscreen_400Regular = require('./assets/fonts/HFMSilkscreen_400Regular.ttf');
 const HFMSilkscreen_700Bold = require('./assets/fonts/HFMSilkscreen_700Bold.ttf');
 import { vars } from 'nativewind';
-import { useCopy, useLocale, ENABLED_LOCALES, LocaleProvider, facesFor, deviceLocale, type CopyFn, type Locale } from './src/i18n';
+import { useCopy, useLocale, ENABLED_LOCALES, LocaleProvider, copyFor, facesFor, deviceLocale, type CopyFn, type Locale } from './src/i18n';
 import { LanguageOfferCard } from './src/ui/LanguageOfferCard';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -513,15 +513,32 @@ function DevHarnessApp() {
 }
 
 function GameApp() {
-  const t = useCopy();
-  // `useCopy` returns a fresh closure every render, so anything memoised on the
-  // active language depends on this instead. It is the whole of what `t` is
-  // derived from, so a memo keyed on it cannot go stale.
-  const locale = useLocale();
   const store = useM1Store();
   const content = useMemo(loadLaunchContent, []);
   const [bootError, setBootError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<AppPreferences>(DEFAULT_APP_PREFERENCES);
+  /**
+   * The active language, read from state rather than through `useCopy()`.
+   *
+   * This component RENDERS the `LocaleProvider` at the bottom of its own return,
+   * and React context only ever reaches descendants — a component never reads
+   * the provider it returns. So `useCopy()` and `useLocale()` here resolved the
+   * context DEFAULT, `'en'`, on every render and in every language.
+   *
+   * That is not a subtle degradation: `setStoreCopy(t)` fed the store an English
+   * translator, and every view model built in this body — home, finances,
+   * market, league, training, season end, Hall of Fame — rendered English in all
+   * seven languages. It is exactly the bug this workstream set out to fix, and
+   * no test could see it, because Jest cannot render components.
+   *
+   * `facesFor(preferences.language)` further down always read state directly and
+   * was always correct. This is the same source; now it is the only one.
+   *
+   * `t` is memoised because `copyFor` returns a fresh closure per call and
+   * several memos below key on its identity.
+   */
+  const locale = preferences.language;
+  const t = useMemo(() => copyFor(locale), [locale]);
   const [landingView, setLandingView] = useState<LandingView>('title');
   /**
    * The focus of the briefing beat Bert is currently speaking.
@@ -1251,9 +1268,16 @@ function GameApp() {
         // protects anyone who already picked something — an existing install
         // that deliberately chose German must not be re-routed by its phone.
         const stored = repositories.preferences;
-        const detected = stored.languageOffered || stored.language !== 'en'
+        const autoLanguage = stored.languageOffered || stored.language !== 'en'
           ? undefined
           : deviceLocale();
+        // English is deliberately in `AUTO_LOCALES` — it is what stops an
+        // English-first bilingual phone from falling through to its second
+        // language. But that also means `deviceLocale()` answers `'en'` for most
+        // players, and switching English to English is a no-op. Left unfiltered
+        // it showed nearly every fresh install a card announcing the game was
+        // "now in English", offering two buttons that did the same thing.
+        const detected = autoLanguage === 'en' ? undefined : autoLanguage;
         setPreferences(detected === undefined ? stored : { ...stored, language: detected });
         if (detected !== undefined) setLanguageOffer(detected);
         await store.initializePersistence(

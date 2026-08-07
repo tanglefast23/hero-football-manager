@@ -1,0 +1,8 @@
+{
+  "matchScreen.playstyleMode.balanced": "NORMAL",
+  "matchScreen.playstyleMode.attack": "ANGRIFF",
+  "matchScreen.playstyleMode.protect": "DEFENSIV",
+  "matchRail.playstyleChip.balanced": "NORMAL",
+  "matchRail.playstyleChip.attack": "PRESSING",
+  "matchRail.playstyleChip.protect": "MAUERN"
+}

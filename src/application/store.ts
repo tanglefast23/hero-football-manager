@@ -1,3 +1,4 @@
+import { adjacencyDescription, facilityName } from './copy-fallback';
 import { create } from 'zustand';
 import { loadLaunchContent } from '../content';
 import {
@@ -1837,7 +1838,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         // Glued rather than authored with a leading space: no catalog entry
         // carries edge whitespace, and a translator cannot be asked to keep it.
         : ` ${t('store.adjacencyDiscovered', {
-            adjacencies: transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', '),
+            adjacencies: transaction.newlyDiscoveredAdjacencies.map(id => adjacencyDescription(t, id)).join(', '),
           })}`;
       set({
         career: transaction.state,
@@ -1845,7 +1846,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         notice: {
           tone: 'success',
           message: t('store.facilityBuildStarted', {
-            facility: FACILITY_CATALOG[type].name,
+            facility: facilityName(t, type),
             discovery,
           }),
         },
@@ -1865,7 +1866,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         // Glued rather than authored with a leading space: no catalog entry
         // carries edge whitespace, and a translator cannot be asked to keep it.
         : ` ${t('store.adjacencyDiscovered', {
-            adjacencies: transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', '),
+            adjacencies: transaction.newlyDiscoveredAdjacencies.map(id => adjacencyDescription(t, id)).join(', '),
           })}`;
       set({
         career: transaction.state,
@@ -1873,7 +1874,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         notice: {
           tone: 'success',
           message: t('store.facilityUpgradeStarted', {
-            facility: FACILITY_CATALOG[building.type].name,
+            facility: facilityName(t, building.type),
             discovery,
           }),
         },
@@ -1894,7 +1895,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         // Glued rather than authored with a leading space: no catalog entry
         // carries edge whitespace, and a translator cannot be asked to keep it.
         : ` ${t('store.adjacencyDiscovered', {
-            adjacencies: transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', '),
+            adjacencies: transaction.newlyDiscoveredAdjacencies.map(id => adjacencyDescription(t, id)).join(', '),
           })}`;
       set({
         career: transaction.state,
@@ -1921,7 +1922,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           notice: {
             tone: 'info',
             message: t('store.coachingOfficeClosed', {
-              facility: FACILITY_CATALOG[building.type].name,
+              facility: facilityName(t, building.type),
               amount: `${net < 0 ? '-' : net > 0 ? '+' : ''}$${Math.abs(net).toLocaleString()}`,
             }),
           },
@@ -1937,9 +1938,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         notice: {
           tone: 'info',
           message: refund === 0
-            ? t('store.facilityClosed', { facility: FACILITY_CATALOG[building.type].name })
+            ? t('store.facilityClosed', { facility: facilityName(t, building.type) })
             : t('store.facilityClosedRefund', {
-                facility: FACILITY_CATALOG[building.type].name,
+                facility: facilityName(t, building.type),
                 amount: refund.toLocaleString(),
               }),
         },
@@ -2842,6 +2843,3 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function adjacencyDescription(value: string): string {
-  return FACILITY_ADJACENCIES.find(adjacency => adjacency.id === value)?.description ?? value;
-}

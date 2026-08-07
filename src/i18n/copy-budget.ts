@@ -25,11 +25,21 @@ export type BudgetClass = 'spoken' | 'prose' | 'boxed';
 /**
  * Keys read aloud rather than drawn.
  *
- * `.a11y.` is the convention across the whole catalog. A screen reader has no
+ * `.a11y` is the convention across the whole catalog. A screen reader has no
  * width, so the only wrong length here is one too short to be understood — a
  * clipped VoiceOver label is a worse bug than a long one.
+ *
+ * The segment is matched rather than the literal `.a11y.` it started as: nine
+ * keys append the qualifier to the segment instead of adding one, and a plain
+ * `includes('.a11y.')` missed every one of them — `hallOfFame.a11yTitle`,
+ * `hallOfFame.a11yLocked`, `hallOfFame.a11yCompletedIn`, `settings.language.a11y`,
+ * `settings.difficulty.a11y`, `settings.textSize.a11y` and the three
+ * `settings.powerLabels.a11y*`. They were taking the tight boxed ceiling, which
+ * is the exact "shortened for a width constraint that does not exist" bug this
+ * split exists to end, and being glyph-checked against a face nothing draws
+ * them in. `[A-Z]` catches the appended form and `$` the bare tail.
  */
-const isSpoken = (key: string): boolean => key.includes('.a11y.');
+const isSpoken = (key: string): boolean => /\.a11y(\.|[A-Z]|$)/.test(key);
 
 /**
  * Character speech, which shares the wrapping bubble Bert speaks out of.

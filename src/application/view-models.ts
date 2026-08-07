@@ -5,7 +5,7 @@ import {
   type GameEvent,
   type LaunchContent,
 } from '../content';
-import { copyOrEnglish, resolveRingCopy } from './copy-fallback';
+import { adjacencyDescription, copyOrEnglish, facilityName, resolveRingCopy } from './copy-fallback';
 import { managerNotes } from './manager-notes';
 import { eventOfferForWeek } from './event-selection';
 import {
@@ -514,14 +514,20 @@ export function clubFinancesViewModel(
     ? recurringProjectionLines.map((line, index) => ({
       id: `finance-projection-${index}`,
       periodLabel: `S${state.season} · W${state.week}`,
+      // Already translated: the projection lines are built right here with `t`.
       label: line.label,
       amount: line.amount,
       kind: ledgerLineKind(line.amount),
     }))
+    // `labelKey` is written onto every persisted ledger line and translated in
+    // all six catalogs, but this read used the raw English — so the projection
+    // rows above rendered in the player's language and then flipped to English
+    // the moment the first week settled. Same screen, two languages, on the
+    // strength of one word.
     : settledStatements.flatMap(entry => entry.lines.map((line, index) => ({
       id: `finance-${entry.season}-${entry.week}-${index}`,
       periodLabel: `S${entry.season} · W${entry.week}`,
-      label: line.label,
+      label: copyOrEnglish(t, line.labelKey, line.label, line.labelParams),
       amount: line.amount,
       kind: ledgerLineKind(line.amount),
     })));
@@ -959,7 +965,7 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
       return {
         id: building.id,
         type: building.type,
-        name: definition.name,
+        name: facilityName(t, building.type),
         level: building.level,
         x: building.x,
         y: building.y,
@@ -1000,7 +1006,7 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
         && definition.type !== 'training-pitch';
       return {
         type: definition.type,
-        name: definition.name,
+        name: facilityName(t, definition.type),
         builtCount,
         buildLimit,
         buildCost: definition.buildCost,
@@ -1043,7 +1049,7 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
     ...(grid.construction === undefined ? {} : {
       activeProject: {
         buildingId: grid.construction.buildingId,
-        name: FACILITY_CATALOG[grid.construction.type].name,
+        name: facilityName(t, grid.construction.type),
         benefitLabel: facilityEffectLabel(
           grid.construction.type,
           grid.construction.targetLevel,
@@ -1465,7 +1471,29 @@ export function seasonEndViewModel(
       : {
           promotionRewards: {
             divisionLabel: divisionTierLabelWith(promotedDivision, t),
-            items: newlyUnlockedRewards.map(reward => ({ ...reward })),
+            // The ring writes `titleKey`/`detailKey` beside the English and all
+            // 24 `promotion.*` entries are translated in every locale — but
+            // nothing resolved them, so the panel that celebrates a promotion
+            // was English in all seven languages.
+            //
+            // Money is formatted here rather than passed raw: the templates read
+            // "· {cost} each" with no currency symbol, so they expect a finished
+            // amount, and `src/game` may not know what a dollar looks like.
+            items: newlyUnlockedRewards.map(reward => {
+              const params = reward.params === undefined ? undefined : Object.fromEntries(
+                Object.entries(reward.params).map(([name, value]) => [
+                  name,
+                  (name === 'cost' || name === 'amount') && typeof value === 'number'
+                    ? formatMoney(value)
+                    : value,
+                ]),
+              );
+              return {
+                ...reward,
+                title: copyOrEnglish(t, reward.titleKey, reward.title, params),
+                detail: copyOrEnglish(t, reward.detailKey, reward.detail, params),
+              };
+            }),
           },
         }),
     ...(clubBusinessSettlement === undefined ? {} : { clubBusinessSettlement }),
@@ -1925,7 +1953,7 @@ export function boardFinanceBriefing(
     const activeProject = state.facilities.grid?.construction;
     const commercialAction = activeProject === undefined
       ? t('clubHome.briefingBuildAnother')
-      : t('clubHome.briefingCrewBusy', { facility: FACILITY_CATALOG[activeProject.type].name });
+      : t('clubHome.briefingCrewBusy', { facility: facilityName(t, activeProject.type) });
     return {
       title: t('clubHome.emergencyLoanTitle'),
       body: [
@@ -2916,7 +2944,7 @@ export function weeklyReviewViewModel(
       && fixture.week === after.week
       && (fixture.homeClubId === after.userClubId || fixture.awayClubId === after.userClubId),
     )[0];
-  const completedFacility = facilityCompletion(before, after);
+  const completedFacility = facilityCompletion(before, after, t);
 
   return {
     completedWeekLabel: t('weeklyReview.completedWeekLabel', { week: before.week }),
@@ -2934,7 +2962,7 @@ export function weeklyReviewViewModel(
       const icons = ledgerLineIcons(after, line);
       return {
         id: `weekly-review-${ledger.season}-${ledger.week}-${index}`,
-        label: line.label,
+        label: copyOrEnglish(t, line.labelKey, line.label, line.labelParams),
         amount: line.amount,
         kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
         ...(icons === undefined ? {} : { icons }),
@@ -2978,7 +3006,7 @@ export function postMatchViewModel(
   const outcomeLabel = cupWinnerClubId === undefined
     ? goalsFor > goalsAgainst ? 'WIN' : goalsFor < goalsAgainst ? 'LOSS' : 'DRAW'
     : cupWinnerClubId === before.userClubId ? 'WIN' : 'LOSS';
-  const completedFacility = facilityCompletion(before, after);
+  const completedFacility = facilityCompletion(before, after, t);
   const opponentClubId = isHome ? fixture.awayClubId : fixture.homeClubId;
   const pool = coachLinePool(before, {
     outcomeLabel,
@@ -3025,7 +3053,7 @@ export function postMatchViewModel(
       const icons = ledgerLineIcons(after, line);
       return {
         id: `${before.season}-${before.week}-${index}`,
-        label: line.label,
+        label: copyOrEnglish(t, line.labelKey, line.label, line.labelParams),
         amount: line.amount,
         kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
         ...(line.reveal === undefined ? {} : { reveal: line.reveal }),
@@ -3278,7 +3306,7 @@ function weekUpdates(
   const beforeLineup = before.lineups.find(lineup => lineup.clubId === before.userClubId);
   const afterLineup = after.lineups.find(lineup => lineup.clubId === after.userClubId);
   const updates: WeeklyReviewViewModel['updates'][number][] = [];
-  const completedFacility = facilityCompletion(before, after);
+  const completedFacility = facilityCompletion(before, after, t);
   if (completedFacility !== undefined) {
     updates.push({
       id: `facility-complete-${completedFacility.type}-${completedFacility.level}`,
@@ -3356,6 +3384,7 @@ function weekUpdates(
 function facilityCompletion(
   before: GameState,
   after: GameState,
+  t: CopyFn,
 ): WeeklyReviewViewModel['facilityCompletion'] {
   const project = before.facilities.grid?.construction;
   if (project === undefined || project.weeksRemaining !== 1) return undefined;
@@ -3365,7 +3394,7 @@ function facilityCompletion(
   if (building === undefined) return undefined;
   return {
     type: building.type,
-    name: FACILITY_CATALOG[building.type].name,
+    name: facilityName(t, building.type),
     level: building.level,
     kind: project.kind,
   };

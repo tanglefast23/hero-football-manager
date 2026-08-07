@@ -3406,6 +3406,24 @@
     "weeklyReview.startWeek": "Começar {week}",
     "weeklyReview.trainingPoints": "Pontos de Treino",
     "weeklyReview.weeklyReview": "Balanço da semana",
-    "weeklyReview.weeklyStatement": "Extrato da semana"
+    "weeklyReview.weeklyStatement": "Extrato da semana",
+    "award.board.goals": "Atacantes",
+    "award.board.passesCompleted": "Meio-campistas",
+    "award.board.saves": "Goleiros",
+    "award.board.tacklesWon": "Zagueiros",
+    "award.metric.goals": "Gols",
+    "award.metric.passesCompleted": "Passes",
+    "award.metric.saves": "Defesas",
+    "award.metric.tacklesWon": "Desarmes",
+    "award.metricInline.goals": "gols",
+    "award.metricInline.passesCompleted": "passes",
+    "award.metricInline.saves": "defesas",
+    "award.metricInline.tacklesWon": "desarmes",
+    "matchScreen.playstyleMode.balanced": "EQUILIBRADO",
+    "matchScreen.playstyleMode.attack": "ATAQUE",
+    "matchScreen.playstyleMode.protect": "DEFESA",
+    "matchRail.playstyleChip.balanced": "EQUILIBRADO",
+    "matchRail.playstyleChip.attack": "PRESSÃO",
+    "matchRail.playstyleChip.protect": "RETRANCA"
   }
 }

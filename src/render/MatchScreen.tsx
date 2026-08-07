@@ -148,6 +148,7 @@ import {
   energyBand,
   summarizeTeamEnergy,
 } from './match-energy-ui';
+import { mentalityLabel } from './match-mentality-ui';
 import { chargeMeter } from './hero-charge-meter';
 import { HeroChargeMeter } from './HeroChargeMeter';
 import { teamKitColor } from './team-kit-ui';
@@ -1353,7 +1354,7 @@ export function MatchScreen({
         if (e.kind === 'MENTALITY_CHANGED' && e.team === controlledTeam) {
           bannerRef.current = appendBannerNewestFour(bannerRef.current, {
             id: `mentality:${e.t}`,
-            text: `${t('matchScreen.playstyle')} · ${e.mentality}`,
+            text: `${t('matchScreen.playstyle')} · ${mentalityLabel(e.mentality, t)}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
             subject: 'mentality',
@@ -2149,7 +2150,7 @@ export function MatchScreen({
     queueInput(match, { tick: match.tick + 1, kind: 'SET_MENTALITY', mentality });
     pushInputBanner(
       `mentality-input:${match.tick}`,
-      `${t('matchScreen.playstyle')} · ${mentality}`,
+      `${t('matchScreen.playstyle')} · ${mentalityLabel(mentality, t)}`,
       'mentality',
     );
   };
@@ -2579,7 +2580,9 @@ export function MatchScreen({
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={t('matchScreen.a11y.playstyle', { playstyle: displayedMentality })}
+              accessibilityLabel={t('matchScreen.a11y.playstyle', {
+                playstyle: mentalityLabel(displayedMentality, t),
+              })}
               accessibilityState={{ disabled: coachingDisabled }}
               disabled={coachingDisabled}
               style={[
@@ -2595,7 +2598,7 @@ export function MatchScreen({
               <Text style={styles.mentalityIcon}>{displayedMentality === 'ATTACK' ? '▲' : displayedMentality === 'PROTECT' ? '▼' : '◆'}</Text>
               <View style={styles.coachCopy}>
                 <Text style={styles.coachLabel}>{t('matchScreen.playstyle')}</Text>
-                <Text style={styles.coachValue}>{displayedMentality}</Text>
+                <Text style={styles.coachValue}>{mentalityLabel(displayedMentality, t)}</Text>
               </View>
             </Pressable>
             <Pressable

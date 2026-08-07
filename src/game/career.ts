@@ -1472,11 +1472,21 @@ function resolveFinancialSafety(
           ? { ...boardUltimatum, weeksRemaining: 1 }
           : { ...refreshed, id: `${boardUltimatum.id}-refresh-s${state.season}-w${state.week}` };
       } else {
+        // The player's NAME, not their id. Both halves carried the raw
+        // `p-…` id, so the statement read "Board-enforced sale · p-abc123" —
+        // in English too, not only in translation. The board selling someone
+        // out from under you is the harshest moment the economy has; it should
+        // at least name them.
+        // Copied to a const first: `forcedSale` is a `let`, and TypeScript drops
+        // its narrowing inside the closure below.
+        const sale = forcedSale;
+        const soldName = state.players.find(player => player.id === sale.playerId)?.name
+          ?? sale.playerId;
         lines.push({
           kind: 'board-sale',
-          label: `Board-enforced sale · ${forcedSale.playerId}`,
+          label: `Board-enforced sale · ${soldName}`,
           labelKey: 'ledger.boardEnforcedSale',
-          labelParams: { player: forcedSale.playerId },
+          labelParams: { player: soldName },
           amount: forcedSale.fee,
         });
         balanceAfter = checkedAdd(balanceAfter, forcedSale.fee, 'board forced-sale balance');

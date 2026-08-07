@@ -216,9 +216,16 @@ describe('M2 weekly sidecars', () => {
     expect(state.players.find(player => player.id === protectedId)?.clubId).toBe(state.userClubId);
     expect(state.players.find(player => player.id === resolution.playerId)?.clubId)
       .toBe(resolution.buyerClubId);
+    // The player's NAME. This assertion used to pin `resolution.playerId`, which
+    // is how "Board-enforced sale · bramble-rovers-p16" reached the finances
+    // statement — in English as well as in translation. The test agreed with the
+    // bug, so nothing failed.
+    const soldName = state.players.find(player => player.id === resolution.playerId)?.name;
+    expect(soldName).toBeDefined();
     expect(state.ledgers.at(-1)?.lines).toContainEqual(expect.objectContaining({
       kind: 'board-sale',
-      label: `Board-enforced sale · ${resolution.playerId}`,
+      label: `Board-enforced sale · ${soldName}`,
+      labelParams: { player: soldName },
       amount: resolution.fee,
     }));
     expect(state.financialSafety?.boardUltimatum).toBeUndefined();

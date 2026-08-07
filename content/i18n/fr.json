@@ -3406,6 +3406,24 @@
     "weeklyReview.startWeek": "Lancer {week}",
     "weeklyReview.trainingPoints": "Points d'Entraînement",
     "weeklyReview.weeklyReview": "Bilan de la semaine",
-    "weeklyReview.weeklyStatement": "Relevé de la semaine"
+    "weeklyReview.weeklyStatement": "Relevé de la semaine",
+    "award.board.goals": "Attaquants",
+    "award.board.passesCompleted": "Milieux",
+    "award.board.saves": "Gardiens",
+    "award.board.tacklesWon": "Défenseurs",
+    "award.metric.goals": "Buts",
+    "award.metric.passesCompleted": "Passes",
+    "award.metric.saves": "Arrêts",
+    "award.metric.tacklesWon": "Tacles",
+    "award.metricInline.goals": "buts",
+    "award.metricInline.passesCompleted": "passes",
+    "award.metricInline.saves": "arrêts",
+    "award.metricInline.tacklesWon": "tacles",
+    "matchScreen.playstyleMode.balanced": "ÉQUILIBRÉ",
+    "matchScreen.playstyleMode.attack": "ATTAQUE",
+    "matchScreen.playstyleMode.protect": "DÉFENSE",
+    "matchRail.playstyleChip.balanced": "ÉQUILIBRÉ",
+    "matchRail.playstyleChip.attack": "PRESSING",
+    "matchRail.playstyleChip.protect": "BÉTON"
   }
 }

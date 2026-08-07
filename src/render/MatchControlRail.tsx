@@ -10,9 +10,9 @@ import {
   energyBand,
   type EnergyBand,
 } from './match-energy-ui';
+import { mentalityChipLabel } from './match-mentality-ui';
 import {
   MATCH_RAIL_WIDTH,
-  MENTALITY_CHIP_LABELS,
   type RailHeroStatus,
 } from './match-rail';
 import { availableMatchSpeeds, type MatchSpeed } from './match-speed';
@@ -234,7 +234,7 @@ export function MatchControlRail({
                   key={option}
                   accessibilityRole="button"
                   accessibilityLabel={t('matchRail.a11y.playstyle', {
-                    playstyle: MENTALITY_CHIP_LABELS[option],
+                    playstyle: mentalityChipLabel(option, t),
                   })}
                   accessibilityState={{ selected, disabled: coachingDisabled }}
                   disabled={coachingDisabled}
@@ -246,7 +246,7 @@ export function MatchControlRail({
                   onPress={() => onSelectMentality(option)}
                 >
                   <Text style={[styles.chipText, selected ? styles.chipTextSelected : null]}>
-                    {MENTALITY_CHIP_LABELS[option]}
+                    {mentalityChipLabel(option, t)}
                   </Text>
                 </SfxPressable>
               );

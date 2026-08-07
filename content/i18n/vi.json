@@ -3406,6 +3406,24 @@
     "weeklyReview.startWeek": "Bắt đầu {week}",
     "weeklyReview.trainingPoints": "Điểm Tập",
     "weeklyReview.weeklyReview": "Nhìn lại tuần",
-    "weeklyReview.weeklyStatement": "Bảng kê tuần"
+    "weeklyReview.weeklyStatement": "Bảng kê tuần",
+    "award.board.goals": "Tiền đạo",
+    "award.board.passesCompleted": "Tiền vệ",
+    "award.board.saves": "Thủ môn",
+    "award.board.tacklesWon": "Hậu vệ",
+    "award.metric.goals": "Bàn thắng",
+    "award.metric.passesCompleted": "Đường chuyền",
+    "award.metric.saves": "Cứu thua",
+    "award.metric.tacklesWon": "Tắc bóng",
+    "award.metricInline.goals": "bàn thắng",
+    "award.metricInline.passesCompleted": "đường chuyền",
+    "award.metricInline.saves": "cứu thua",
+    "award.metricInline.tacklesWon": "tắc bóng",
+    "matchScreen.playstyleMode.balanced": "CÂN BẰNG",
+    "matchScreen.playstyleMode.attack": "TẤN CÔNG",
+    "matchScreen.playstyleMode.protect": "PHÒNG NGỰ",
+    "matchRail.playstyleChip.balanced": "CÂN BẰNG",
+    "matchRail.playstyleChip.attack": "ÉP SÂN",
+    "matchRail.playstyleChip.protect": "ĐỔ BÊ TÔNG"
   }
 }

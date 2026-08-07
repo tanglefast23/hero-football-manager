@@ -7,12 +7,12 @@ import {
   MATCH_RAIL_GUTTER,
   MATCH_RAIL_TOP_INSET,
   MATCH_RAIL_WIDTH,
-  MENTALITY_CHIP_LABELS,
   mostTiredFirst,
   RAIL_HERO_TILE_CAP,
   RAIL_TIRED_ROWS,
   railHeroStatus,
 } from '../match-rail';
+import { mentalityChipLabel } from '../match-mentality-ui';
 import { ENABLED_LOCALES, loadCatalog } from '../../i18n';
 
 const railSource = () => readFileSync(join(process.cwd(), 'src/render/MatchControlRail.tsx'), 'utf8');
@@ -81,11 +81,16 @@ describe('desktop match control rail', () => {
   });
 
   it('names the playstyle chips without renaming the engine mentalities', () => {
-    expect(MENTALITY_CHIP_LABELS).toEqual({
-      BALANCED: 'BALANCED',
-      ATTACK: 'PRESS',
-      PROTECT: 'PARK BUS',
-    });
+    // Same signed-off chip copy as before, now resolved through the catalog so
+    // it translates. The engine identifiers are what the chips are keyed BY,
+    // and they are untouched — see match-mentality-ui.test.ts.
+    expect(mentalityChipLabel('BALANCED')).toBe('BALANCED');
+    expect(mentalityChipLabel('ATTACK')).toBe('PRESS');
+    expect(mentalityChipLabel('PROTECT')).toBe('PARK BUS');
+    // Nothing may draw the raw enum again: the rail is desktop's most-used
+    // control and it read English in all seven languages.
+    expect(railSource()).not.toContain('MENTALITY_CHIP_LABELS');
+    expect(railSource()).toContain('mentalityChipLabel(option, t)');
   });
 
   it('caps the rail at the Hero License field cap of four tiles', () => {

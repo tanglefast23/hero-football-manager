@@ -3406,6 +3406,24 @@
     "weeklyReview.startWeek": "Mulai {week}",
     "weeklyReview.trainingPoints": "Poin Latihan",
     "weeklyReview.weeklyReview": "Tinjauan mingguan",
-    "weeklyReview.weeklyStatement": "Laporan mingguan"
+    "weeklyReview.weeklyStatement": "Laporan mingguan",
+    "award.board.goals": "Penyerang",
+    "award.board.passesCompleted": "Gelandang",
+    "award.board.saves": "Kiper",
+    "award.board.tacklesWon": "Bek",
+    "award.metric.goals": "Gol",
+    "award.metric.passesCompleted": "Umpan",
+    "award.metric.saves": "Penyelamatan",
+    "award.metric.tacklesWon": "Tekel",
+    "award.metricInline.goals": "gol",
+    "award.metricInline.passesCompleted": "umpan",
+    "award.metricInline.saves": "penyelamatan",
+    "award.metricInline.tacklesWon": "tekel",
+    "matchScreen.playstyleMode.balanced": "SEIMBANG",
+    "matchScreen.playstyleMode.attack": "SERANG",
+    "matchScreen.playstyleMode.protect": "BERTAHAN",
+    "matchRail.playstyleChip.balanced": "SEIMBANG",
+    "matchRail.playstyleChip.attack": "PRESSING",
+    "matchRail.playstyleChip.protect": "PARKIR BUS"
   }
 }

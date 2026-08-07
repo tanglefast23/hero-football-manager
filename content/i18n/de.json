@@ -3406,6 +3406,24 @@
     "weeklyReview.startWeek": "{week} starten",
     "weeklyReview.trainingPoints": "Trainingspunkte",
     "weeklyReview.weeklyReview": "Wochenrückblick",
-    "weeklyReview.weeklyStatement": "Wochenabrechnung"
+    "weeklyReview.weeklyStatement": "Wochenabrechnung",
+    "award.board.goals": "Stürmer",
+    "award.board.passesCompleted": "Mittelfeld",
+    "award.board.saves": "Torhüter",
+    "award.board.tacklesWon": "Abwehr",
+    "award.metric.goals": "Tore",
+    "award.metric.passesCompleted": "Pässe",
+    "award.metric.saves": "Paraden",
+    "award.metric.tacklesWon": "Zweikämpfe",
+    "award.metricInline.goals": "Tore",
+    "award.metricInline.passesCompleted": "Pässe",
+    "award.metricInline.saves": "Paraden",
+    "award.metricInline.tacklesWon": "Zweikämpfe",
+    "matchScreen.playstyleMode.balanced": "NORMAL",
+    "matchScreen.playstyleMode.attack": "ANGRIFF",
+    "matchScreen.playstyleMode.protect": "DEFENSIV",
+    "matchRail.playstyleChip.balanced": "NORMAL",
+    "matchRail.playstyleChip.attack": "PRESSING",
+    "matchRail.playstyleChip.protect": "MAUERN"
   }
 }
