@@ -1,4 +1,8 @@
-import { FACILITY_CATALOG, type FacilityType } from '../../game/facilities';
+import {
+  FACILITY_CATALOG,
+  TRAINING_PITCH_TP_PER_LEVEL,
+  type FacilityType,
+} from '../../game/facilities';
 import { facilityBenefit } from '../facility-benefit';
 
 describe('facilityBenefit', () => {
@@ -28,7 +32,8 @@ describe('facilityBenefit', () => {
   });
 
   it('states the training pitch training-point bonus', () => {
-    expect(facilityBenefit('training-pitch')).toContain('+28 TP per completed level');
+    expect(facilityBenefit('training-pitch'))
+      .toContain(`+${TRAINING_PITCH_TP_PER_LEVEL} TP per completed level`);
     expect(facilityBenefit('training-pitch')).not.toContain('+10');
   });
 

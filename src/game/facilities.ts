@@ -1,3 +1,5 @@
+import { scaledTrainingPoints } from './training-point-income';
+
 export const FACILITY_GRID_WIDTH = 8;
 export const FACILITY_GRID_HEIGHT = 6;
 export const MAX_FACILITY_LEVEL = 3;
@@ -24,8 +26,14 @@ export const MAX_INCOME_FACILITY_COPIES = 3;
  *
  * Raising this makes the Pitch more decisive, not less; lowering it toward the
  * baseline makes the building optional again, which is what broke D5.
+ *
+ * The 28 measured above is the full rate; `TRAINING_POINT_SCALE_PERCENT`
+ * cuts it to 23 (2026-08-07, every weekly source 20% lower). A Level 2 pitch
+ * now banks 66 TP a week rather than the 80 in the table, so the promotion
+ * measured there arrives later — the table is kept because it is still the
+ * reason the Pitch, not the baseline, is the building that earns promotion.
  */
-export const TRAINING_PITCH_TP_PER_LEVEL = 28;
+export const TRAINING_PITCH_TP_PER_LEVEL = scaledTrainingPoints(28);
 
 /**
  * Training Points earned every week with no Training Pitch built at all.
@@ -50,8 +58,12 @@ export const TRAINING_PITCH_TP_PER_LEVEL = 28;
  * this toward the Pitch's own rate; a baseline large enough to promote on its
  * own would make the building optional, which is the trap that produced a
  * career earning zero TP forever in the first place.
+ *
+ * The 24 measured above is the full rate; `TRAINING_POINT_SCALE_PERCENT`
+ * cuts it to 20 (2026-08-07, every weekly source 20% lower). That is still
+ * above the zero-income trap and still nowhere near promoting on its own.
  */
-export const BASE_WEEKLY_TRAINING_POINTS = 24;
+export const BASE_WEEKLY_TRAINING_POINTS = scaledTrainingPoints(24);
 
 export type FacilityType =
   | 'training-pitch'

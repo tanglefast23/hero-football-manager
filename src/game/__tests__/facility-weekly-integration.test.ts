@@ -58,7 +58,7 @@ describe('facility weekly integration', () => {
         : candidate),
     };
 
-    expect(state.trainingPoints).toBe(30);
+    expect(state.trainingPoints).toBe(24);
     expect(state.facilities).toMatchObject({
       trainingGroundBuilt: false,
       grid: {

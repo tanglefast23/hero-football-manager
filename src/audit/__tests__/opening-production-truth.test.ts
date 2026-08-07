@@ -133,33 +133,33 @@ describe('opening TP timeline', () => {
     expect(state.trainingPoints).toBe(LAUNCH_TP + BASE_WEEKLY_TRAINING_POINTS * 2);
   });
 
-  it('adds 12 TP a settlement once a Level 1 head coach is hired in week 1', () => {
+  it('adds 10 TP a settlement once a Level 1 head coach is hired in week 1', () => {
     let state = freshCareer();
     const candidate = state.market!.coachCandidates[0];
     expect(candidate.level).toBe(1);
-    expect(coachWeeklyTrainingPoints(1, 'HEAD')).toBe(12);
+    expect(coachWeeklyTrainingPoints(1, 'HEAD')).toBe(10);
     state = { ...state, market: hireCareerCoach(state, state.market!, candidate.id) };
     state = advanceWeek(state);
-    expect(state.trainingPoints).toBe(LAUNCH_TP + 24 + 12);
+    expect(state.trainingPoints).toBe(LAUNCH_TP + 20 + 10);
     state = advanceWeek(state);
-    expect(state.trainingPoints).toBe(LAUNCH_TP + (24 + 12) * 2);
+    expect(state.trainingPoints).toBe(LAUNCH_TP + (20 + 10) * 2);
   });
 
   it('spends the opening bank as each arm intends', () => {
     const ordinary = runOpening({
       seed: SEED, difficulty: 'COZY', policy: ORDINARY_POLICY, creation: CREATION, content,
     });
-    expect(ordinary.tapCount).toBe(9);
-    expect(ordinary.tpSpent).toBe(90);
-    expect(ordinary.tpBanked).toBe(12);
+    expect(ordinary.tapCount).toBe(8);
+    expect(ordinary.tpSpent).toBe(80);
+    expect(ordinary.tpBanked).toBe(4);
     reconcileTrainingPoints(ordinary, LAUNCH_TP);
 
     const smart = runOpening({
       seed: SEED, difficulty: 'COZY', policy: SMART_BREADTH_POLICY, creation: CREATION, content,
     });
-    expect(smart.tapCount).toBe(10);
-    expect(smart.tpSpent).toBe(100);
-    expect(smart.tpBanked).toBe(2);
+    expect(smart.tapCount).toBe(8);
+    expect(smart.tpSpent).toBe(80);
+    expect(smart.tpBanked).toBe(4);
     reconcileTrainingPoints(smart, LAUNCH_TP);
   });
 });
@@ -182,7 +182,7 @@ describe('Training Pitch timing', () => {
 
     // Two weekly settlements have passed and neither included the Pitch's TP.
     expect(state.trainingPoints).toBe(LAUNCH_TP + BASE_WEEKLY_TRAINING_POINTS * 2);
-    expect(TRAINING_PITCH_TP_PER_LEVEL).toBe(28);
+    expect(TRAINING_PITCH_TP_PER_LEVEL).toBe(23);
 
     // The operational Pitch is the DEF drill multiplier: 1.25x at level 1.
     const defender = userStarters(state).find(player => player.role === 'DEF')!;

@@ -209,7 +209,7 @@ describe('M1 app store integration', () => {
       }),
       expect.objectContaining({
         id: 'call-groundskeeper',
-        consequenceHint: 'Guaranteed: +10 TP',
+        consequenceHint: 'Guaranteed: +8 TP',
         tone: 'safe',
       }),
     ]);
@@ -269,7 +269,7 @@ describe('M1 app store integration', () => {
     useM1Store.getState().chooseEvent('call-groundskeeper');
     const resolved = useM1Store.getState().career!;
     expect(useM1Store.getState().error).toBeNull();
-    expect(resolved.trainingPoints).toBe(beforeChoice.trainingPoints + 10);
+    expect(resolved.trainingPoints).toBe(beforeChoice.trainingPoints + 8);
     expect(resolved.eventFlags).not.toContain('spider-adopted');
   });
 
@@ -479,6 +479,12 @@ describe('M1 app store integration', () => {
    */
   it('runs the drills queued behind a skipped presentation', () => {
     startCreatedCareer(789);
+    // The 24 TP launch grant buys two drills, and this case is about the runs
+    // queued behind a skipped presentation, so top the bank up to three rather
+    // than shrink the batch under test.
+    useM1Store.setState({
+      career: { ...useM1Store.getState().career!, trainingPoints: 30 },
+    });
     const before = useM1Store.getState().career!;
     const playerId = 'bramble-rovers-created-player';
 
