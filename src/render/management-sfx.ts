@@ -405,10 +405,10 @@ function playManagementSfx(key: ManagementSfxKey): void {
       }
       warnOnce(label, error);
     };
-    const player = key === 'ui-click' || key === 'stat-step'
-      ? nextRapidPlayer(key)
-      : players.get(key);
+    const rapidKey = key === 'ui-click' || key === 'stat-step' ? key : undefined;
+    const player = rapidKey === undefined ? players.get(key) : nextRapidPlayer(rapidKey);
     if (player === undefined || masterVolume === 0) return;
+    if (rapidKey !== undefined) varyRapidPitch(rapidKey, player);
     // Every cue rewinds before it plays, rapid ones included. A voice parked at
     // the end of its clip ignores play() outright and the tap is silent, and JS
     // cannot know when a voice got there: playback begins some unmeasured time
@@ -435,6 +435,26 @@ function nextRapidPlayer(key: RapidManagementSfxKey): AudioPlayer | undefined {
   const cursor = rapidPlayerCursor.get(key) ?? 0;
   rapidPlayerCursor.set(key, (cursor + 1) % pool.length);
   return pool[cursor % pool.length];
+}
+
+/**
+ * Peak-to-peak pitch spread on the two cues a player hears hundreds of times a
+ * session. There is one tap sample, so without this every press is byte-
+ * identical and a run of them reads as a machine gun rather than a hand on a
+ * keyboard. ±4% is the width that stops the repetition registering while
+ * staying inside "same sound" — wider and the taps sound like different
+ * buttons. Only the rapid cues vary: a one-off confirmation should sound
+ * exactly the same every time so it stays recognisable.
+ */
+const RAPID_SFX_PITCH_SPREAD = 0.04;
+
+function varyRapidPitch(key: RapidManagementSfxKey, player: AudioPlayer): void {
+  const rate = 1 + (Math.random() * 2 - 1) * RAPID_SFX_PITCH_SPREAD;
+  try {
+    (player as unknown as { setPlaybackRate?: (rate: number) => void }).setPlaybackRate?.(rate);
+  } catch (error) {
+    warnOnce(`${key} pitch vary failed`, error);
+  }
 }
 
 export function teardownManagementSfx(): void {

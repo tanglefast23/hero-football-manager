@@ -100,6 +100,7 @@ import {
   AssistantModeChoiceScreen,
   ChampionshipCelebrationScreen,
   FixtureMatchDayScreen,
+  forgetLeagueRowPositions,
   LeagueTableScreen,
   M2LeagueScreen,
   ManagementShell,
@@ -1278,6 +1279,11 @@ function GameApp() {
   const beginNewCareer = useCallback((assistantMode?: AssistantMode) => {
     const begin = () => {
       setLandingView('title');
+      // A new club inherits none of the old one's standings. Without this, the
+      // first league table of a fresh career would slide rows against whatever
+      // the previous career's table looked like — motion describing a match
+      // this club never played.
+      forgetLeagueRowPositions();
       store.startNewCareer(undefined, assistantMode);
     };
     if (!store.hasSavedCareer) {
@@ -2332,7 +2338,7 @@ function GameApp() {
             onGuideSubTabAnchorChange={setLeagueSubTabGuideAnchor}
           />
         ) : store.activeTab === 'league' ? (
-          <LeagueTableScreen viewModel={leagueTableViewModel(store.career)} />
+          <LeagueTableScreen viewModel={leagueTableViewModel(store.career)} reduceMotion={reduceMotion} />
         ) : (
           <ClubHomeScreen
             viewModel={home}

@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  Animated,
+  Easing,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import {
   Atlas,
   Canvas,
@@ -102,6 +110,15 @@ export function DrillSceneOverlay({
   const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const pop = useRef(new Animated.Value(1)).current;
   const [countedValue, setCountedValue] = useState(reduceMotion ? after : before);
+  // The fill is a full-width bar slid in from the left behind a clipped track,
+  // which is what lets it animate on the native driver. It needs the track's
+  // measured width to know how far left "empty" is; until the first layout it
+  // sits one stage-width out, i.e. correctly invisible.
+  const [progressTrackWidth, setProgressTrackWidth] = useState(stageWidth);
+  const handleProgressTrackLayout = useCallback((event: LayoutChangeEvent) => {
+    const measured = event.nativeEvent.layout.width;
+    setProgressTrackWidth(current => (Math.abs(current - measured) < 0.5 ? current : measured));
+  }, []);
   const completedRef = useRef(false);
   const completeOnce = useCallback(() => {
     if (completedRef.current) return;
@@ -116,7 +133,11 @@ export function DrillSceneOverlay({
       toValue: 1,
       duration,
       easing: Easing.linear,
-      useNativeDriver: false,
+      // The fill slides in on translateX rather than growing a percentage
+      // width, so the one bar that runs for the whole drill scene stays off the
+      // JS thread — a width animation cannot use the native driver, and this
+      // was the only `useNativeDriver: false` left in the app.
+      useNativeDriver: true,
     });
     animation?.start();
 
@@ -197,12 +218,19 @@ export function DrillSceneOverlay({
           </Animated.Text>
         </View>
 
-        <View style={styles.progressTrack}>
+        <View style={styles.progressTrack} onLayout={handleProgressTrackLayout}>
           <Animated.View
             style={[
               styles.progressFill,
               isSuper && styles.progressFillSuper,
-              { width: progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) },
+              {
+                transform: [{
+                  translateX: progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-progressTrackWidth, 0],
+                  }),
+                }],
+              },
             ]}
           />
         </View>
@@ -445,7 +473,14 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   },
   // Green while it climbs and after it lands: the number itself is the gain.
   gainValue: { color: '#3f8a4a', fontFamily: faces.display, fontSize: 30 },
-  progressTrack: { height: 9, borderTopWidth: 2, borderColor: '#241f2e', backgroundColor: '#cfc8da' },
+  // `overflow: hidden` is what makes the slid-in fill read as a growing bar.
+  progressTrack: {
+    height: 9,
+    borderTopWidth: 2,
+    borderColor: '#241f2e',
+    backgroundColor: '#cfc8da',
+    overflow: 'hidden',
+  },
   progressFill: { width: '100%', height: '100%', backgroundColor: '#3972bd' },
   progressFillSuper: { backgroundColor: '#edb54a' },
 });
