@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AccessibilityInfo,
   Animated,
@@ -96,6 +96,61 @@ export interface CharacterSpeechOverlayProps {
 
 type Phase = 'arriving' | 'speaking' | 'leaving';
 
+interface RevealRecord {
+  lineIndex: number;
+  line: string;
+  count: number;
+}
+
+/**
+ * The letters themselves — the only thing that re-renders per keystroke.
+ *
+ * It reads the reveal straight out of the overlay's ref through
+ * `useSyncExternalStore`, so a character landing repaints this `<Text>` and
+ * nothing else. Everything expensive in the overlay — the sprite, the shadow,
+ * the bubble transform — sits above this boundary and stays put.
+ *
+ * Rendered inside the bubble's `<Text>`, so it returns bare text nodes and
+ * inherits that style; the unrevealed tail keeps its own dimmed style, which is
+ * what reserves the line's full width and stops the bubble reflowing per letter.
+ */
+function RevealingLine({
+  characters,
+  line,
+  lineIndex,
+  revealRef,
+  subscribe,
+  typing,
+}: {
+  characters: string[];
+  line: string;
+  lineIndex: number;
+  revealRef: { current: RevealRecord };
+  subscribe: (listener: () => void) => () => void;
+  typing: boolean;
+}) {
+  const getCount = useCallback(() => {
+    if (!typing) return characters.length;
+    const reveal = revealRef.current;
+    // A reveal belonging to a line we are no longer showing reads as nothing
+    // revealed, exactly as the old parent-side derivation did.
+    return reveal.lineIndex === lineIndex && reveal.line === line
+      ? Math.min(reveal.count, characters.length)
+      : 0;
+  }, [characters.length, line, lineIndex, revealRef, typing]);
+  const count = useSyncExternalStore(subscribe, getCount, getCount);
+  const visibleLine = characters.slice(0, count).join('');
+  const unrevealedLine = characters.slice(count).join('');
+  return (
+    <>
+      {visibleLine}
+      {unrevealedLine.length === 0 ? null : (
+        <Text style={styles.unrevealedText}>{unrevealedLine}</Text>
+      )}
+    </>
+  );
+}
+
 /**
  * A character walks in from the right, stops a fifth of the way across, and
  * says their piece one speech bubble at a time. Tapping anywhere advances;
@@ -138,7 +193,26 @@ export function CharacterSpeechOverlay({
     line,
     count: typewriter && !reduce ? 0 : lineCharacters.length,
   };
-  const [reveal, setReveal] = useState(initialReveal);
+  // WHY THE REVEAL IS NOT PARENT STATE. A typewriter commits once per character
+  // — every 10-30ms (`bertTypewriterStepMs`). Held as state up here, each of
+  // those commits re-rendered this whole overlay: the bubble, the ground
+  // shadow, the progress dots, and `renderCharacter`, which redraws the speaking
+  // character's sprite. On the web build that is the JS thread's own budget,
+  // because react-native-web forces `useNativeDriver` back to a JS fallback, so
+  // the walk-on springs are already running there too. Bert talking was one of
+  // the two places the game measurably stuttered.
+  //
+  // So the count lives in a ref and is published to one subscriber: the `<Text>`
+  // that actually draws the letters. The parent re-renders twice per LINE (see
+  // `lineComplete`) instead of once per character.
+  const revealListeners = useRef(new Set<() => void>()).current;
+  const subscribeToReveal = useCallback((listener: () => void) => {
+    revealListeners.add(listener);
+    return () => { revealListeners.delete(listener); };
+  }, [revealListeners]);
+  const emitReveal = useCallback(() => {
+    revealListeners.forEach(listener => { listener(); });
+  }, [revealListeners]);
   // Advancing reads this rather than the state value: two taps landing in the
   // same tick would both see a stale `lineIndex` and skip a line, and a skipped
   // line here is a rule the player is never told again.
@@ -146,6 +220,21 @@ export function CharacterSpeechOverlay({
   // The same protection applies to the reveal. Two quick taps may complete a
   // line and advance it, but can never jump over an unseen line.
   const revealRef = useRef(initialReveal);
+  /**
+   * Whether the line on screen has finished typing.
+   *
+   * The only part of the reveal the overlay itself needs: it decides the
+   * accessibility hint and arms the auto-advance. It flips at most twice per
+   * line — false when a line starts, true when it lands — which is why it can
+   * afford to be state when the character count cannot.
+   */
+  const [lineComplete, setLineComplete] = useState(initialReveal.count >= lineCharacters.length);
+  /** The one place the reveal is written. Publishes to the text, not the tree. */
+  const publishReveal = useCallback((next: typeof initialReveal) => {
+    revealRef.current = next;
+    emitReveal();
+    setLineComplete(next.count >= Array.from(next.line).length);
+  }, [emitReveal]);
   const doneRef = useRef(false);
   const pressableRef = useRef<View>(null);
 
@@ -235,9 +324,7 @@ export function CharacterSpeechOverlay({
     if (phase !== 'speaking') return undefined;
 
     const setRevealCount = (count: number) => {
-      const next = { lineIndex, line, count };
-      revealRef.current = next;
-      setReveal(next);
+      publishReveal({ lineIndex, line, count });
     };
 
     if (!typewriter || reduce) {
@@ -315,13 +402,11 @@ export function CharacterSpeechOverlay({
       ? activeReveal.count
       : 0;
     if (typewriter && !reduce && revealedCount < currentLineLength) {
-      const completed = {
+      publishReveal({
         lineIndex: currentLineIndex,
         line: currentLine,
         count: currentLineLength,
-      };
-      revealRef.current = completed;
-      setReveal(completed);
+      });
       return;
     }
 
@@ -329,13 +414,11 @@ export function CharacterSpeechOverlay({
     if (next < lines.length) {
       lineIndexRef.current = next;
       const nextLine = lines[next] ?? '';
-      const nextReveal = {
+      publishReveal({
         lineIndex: next,
         line: nextLine,
         count: typewriter && !reduce ? 0 : Array.from(nextLine).length,
-      };
-      revealRef.current = nextReveal;
-      setReveal(nextReveal);
+      });
       setLineIndex(next);
       return;
     }
@@ -381,12 +464,7 @@ export function CharacterSpeechOverlay({
     travel.setValue(restLeft);
   }, [phase, restLeft, travel]);
 
-  const revealedCharacterCount = !typewriter || reduce
-    ? lineCharacters.length
-    : reveal.lineIndex === lineIndex && reveal.line === line
-      ? Math.min(reveal.count, lineCharacters.length)
-      : 0;
-  const lineFullyRevealed = revealedCharacterCount >= lineCharacters.length;
+  const lineFullyRevealed = !typewriter || reduce ? true : lineComplete;
 
   // Auto-advance for a character who is remarking rather than briefing.
   useEffect(() => {
@@ -405,8 +483,6 @@ export function CharacterSpeechOverlay({
   }, []);
 
   const lastLine = lineIndex >= lines.length - 1;
-  const visibleLine = lineCharacters.slice(0, revealedCharacterCount).join('');
-  const unrevealedLine = lineCharacters.slice(revealedCharacterCount).join('');
 
   /**
    * Whether the bubble has reported its own size yet.
@@ -507,10 +583,14 @@ export function CharacterSpeechOverlay({
               fontSize: BUBBLE_FONT_SIZE * bubbleScale,
               lineHeight: BUBBLE_LINE_HEIGHT * bubbleScale,
             }]}>
-              {visibleLine}
-              {unrevealedLine.length === 0 ? null : (
-                <Text style={styles.unrevealedText}>{unrevealedLine}</Text>
-              )}
+              <RevealingLine
+                characters={lineCharacters}
+                line={line}
+                lineIndex={lineIndex}
+                revealRef={revealRef}
+                subscribe={subscribeToReveal}
+                typing={typewriter && !reduce}
+              />
             </Text>
             <SpeechBubbleTail left={tailLeft} />
           </Animated.View>
