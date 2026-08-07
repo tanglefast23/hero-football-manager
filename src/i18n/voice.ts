@@ -32,7 +32,39 @@ const BODY_PREFIXES = [
 /** Numbers and anything that lines up in a column. */
 const DATA_PREFIXES = ['col.', 'money.', 'stat.'];
 
+/**
+ * The leaves inside a body namespace that are nonetheless drawn in pixel type.
+ *
+ * A prefix cannot express "this namespace is prose EXCEPT its heading", and the
+ * story-event and glossary screens are exactly that: a pixel headline over a
+ * sans paragraph. Classifying the whole namespace `body` meant gate 5 never
+ * glyph-checked **206 of the 508** `event.*`/`glossary.*` strings — including
+ * the loudest line on the screen, the outcome headline. Nothing was broken when
+ * this was found (the shipped cmaps were parsed; zero missing glyphs), but one
+ * `…` typed into a Vietnamese event title would have shipped tofu with CI green.
+ *
+ * Every entry cites the render site it was READ FROM, not inferred from. That is
+ * the condition for keeping a hand-maintained model at all: an override without
+ * a citation is an assertion, and the first draft of this list — written by
+ * reasoning about key names rather than reading components — was missing the
+ * headline and the glossary category titles.
+ *
+ * The complement matters as much: `event.<id>.body`, the outcome `.text`, and
+ * the glossary `.term`/`.definition` are drawn in the platform sans and MUST
+ * stay `body`. Marking the namespace display would reject the em dashes and
+ * curly quotes that prose legitimately contains.
+ */
+const DISPLAY_LEAVES: readonly RegExp[] = [
+  /^event\.[^.]+\.title$/, //                  StoryEventScreen.tsx:277  font-pixel text-2xl
+  /^event\.[^.]+\.[^.]+\.label$/, //           StoryEventScreen.tsx:412  PixelText
+  /^event\.[^.]+\.[^.]+\.[^.]+\.headline$/, // StoryEventScreen.tsx:192  font-pixel text-2xl
+  /^glossary\.clubHandbook$/, //               GlossaryPanel.tsx:42      PixelText
+  /^glossary\.[^.]+\.title$/, //               GlossaryPanel.tsx:71      font-pixel
+];
+
 export function voiceOf(key: string): Voice {
+  // Checked BEFORE the prefixes, because these live inside body namespaces.
+  if (DISPLAY_LEAVES.some(leaf => leaf.test(key))) return 'display';
   if (BODY_PREFIXES.some(prefix => key.startsWith(prefix))) return 'body';
   if (DATA_PREFIXES.some(prefix => key.startsWith(prefix))) return 'data';
   return 'display';

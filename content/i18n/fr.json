@@ -3487,6 +3487,17 @@
     "ledger.buzzPayoutFirstHalf": "Ferveur · Première moitié",
     "ledger.buzzPayoutSeasonEnd": "Ferveur · Fin de saison",
     "ledger.cupChampions": "Vainqueur de la {cup}",
-    "ledger.cupRoundWin": "Victoire · {cup} {round}"
+    "ledger.cupRoundWin": "Victoire · {cup} {round}",
+    "storyEvent.rarity.common": "Commun",
+    "storyEvent.rarity.rare": "Rare",
+    "storyEvent.rarity.legendary": "Légendaire",
+    "storyEvent.category.mystery": "Mystère",
+    "storyEvent.category.club": "Club",
+    "storyEvent.category.media": "Presse",
+    "storyEvent.category.sponsor": "Sponsor",
+    "storyEvent.category.player": "Joueur",
+    "storyEvent.category.medical": "Médical",
+    "storyEvent.category.fan": "Supporters",
+    "storyEvent.rewardJoiner": " et "
   }
 }

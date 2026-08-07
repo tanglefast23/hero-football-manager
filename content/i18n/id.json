@@ -3487,6 +3487,17 @@
     "ledger.buzzPayoutFirstHalf": "Gaung · Paruh pertama",
     "ledger.buzzPayoutSeasonEnd": "Gaung · Akhir musim",
     "ledger.cupChampions": "Juara {cup}",
-    "ledger.cupRoundWin": "Menang · {cup} {round}"
+    "ledger.cupRoundWin": "Menang · {cup} {round}",
+    "storyEvent.rarity.common": "Umum",
+    "storyEvent.rarity.rare": "Langka",
+    "storyEvent.rarity.legendary": "Legendaris",
+    "storyEvent.category.mystery": "Misteri",
+    "storyEvent.category.club": "Klub",
+    "storyEvent.category.media": "Media",
+    "storyEvent.category.sponsor": "Sponsor",
+    "storyEvent.category.player": "Pemain",
+    "storyEvent.category.medical": "Medis",
+    "storyEvent.category.fan": "Suporter",
+    "storyEvent.rewardJoiner": " dan "
   }
 }

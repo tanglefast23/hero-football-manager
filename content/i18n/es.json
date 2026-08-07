@@ -3487,6 +3487,17 @@
     "ledger.buzzPayoutFirstHalf": "Ambiente · Primera mitad",
     "ledger.buzzPayoutSeasonEnd": "Ambiente · Fin de temporada",
     "ledger.cupChampions": "Campeón de {cup}",
-    "ledger.cupRoundWin": "Victoria · {cup} {round}"
+    "ledger.cupRoundWin": "Victoria · {cup} {round}",
+    "storyEvent.rarity.common": "Común",
+    "storyEvent.rarity.rare": "Raro",
+    "storyEvent.rarity.legendary": "Legendario",
+    "storyEvent.category.mystery": "Misterio",
+    "storyEvent.category.club": "Club",
+    "storyEvent.category.media": "Prensa",
+    "storyEvent.category.sponsor": "Patrocinio",
+    "storyEvent.category.player": "Jugador",
+    "storyEvent.category.medical": "Médico",
+    "storyEvent.category.fan": "Afición",
+    "storyEvent.rewardJoiner": " y "
   }
 }

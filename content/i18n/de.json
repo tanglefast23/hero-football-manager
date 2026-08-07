@@ -3487,6 +3487,17 @@
     "ledger.buzzPayoutFirstHalf": "Wirbel · Erste Hälfte",
     "ledger.buzzPayoutSeasonEnd": "Wirbel · Saisonende",
     "ledger.cupChampions": "{cup}-Sieger",
-    "ledger.cupRoundWin": "Sieg · {cup} {round}"
+    "ledger.cupRoundWin": "Sieg · {cup} {round}",
+    "storyEvent.rarity.common": "Häufig",
+    "storyEvent.rarity.rare": "Selten",
+    "storyEvent.rarity.legendary": "Legendär",
+    "storyEvent.category.mystery": "Mysterium",
+    "storyEvent.category.club": "Verein",
+    "storyEvent.category.media": "Presse",
+    "storyEvent.category.sponsor": "Sponsor",
+    "storyEvent.category.player": "Spieler",
+    "storyEvent.category.medical": "Medizin",
+    "storyEvent.category.fan": "Fans",
+    "storyEvent.rewardJoiner": " und "
   }
 }

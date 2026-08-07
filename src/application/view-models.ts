@@ -1324,7 +1324,15 @@ export function storyEventViewModel(
     artKey: event.art,
     category: event.category,
     weekLabel: `S${state.season} · W${state.week}`,
-    categoryLabel: `${event.rarity} ${event.category}`,
+    // Two independent tags, not an adjective phrase. Composed from keys rather
+    // than from the content enums, which were rendered raw as "RARE MYSTERY" in
+    // all six languages — invisible to every gate, because it had no key AND was
+    // built from data values rather than a string literal.
+    //
+    // The separator is what makes ten words enough instead of twenty-one pairs:
+    // "SELTEN · VEREIN" needs no agreement, where "seltener Verein" does. It is
+    // also already the house separator (`D5 · District League`).
+    categoryLabel: `${t(`storyEvent.rarity.${event.rarity}`)} · ${t(`storyEvent.category.${event.category}`)}`,
     title: copyOrEnglish(t, `event.${event.id}.title`, event.title),
     body: copyOrEnglish(t, `event.${event.id}.body`, event.body),
     ...(selected ? { selectedPlayer: storyPlayer(selected, true) } : {}),
@@ -3688,7 +3696,12 @@ function describeEventEffects(
   t: CopyFn,
   state: GameState,
 ): string {
-  return eventRewardLabels(effects, t, state).join(' and ') || t('storyEvent.unknownReward');
+  // The joiner is copy, not punctuation. Hardcoded `' and '` shipped English
+  // inside an otherwise translated consequence hint on 38 risky outcomes, in all
+  // six languages — invisible to both instruments, because it is composed from
+  // already-resolved values and never appears as a literal beside a key.
+  return eventRewardLabels(effects, t, state).join(t('storyEvent.rewardJoiner'))
+    || t('storyEvent.unknownReward');
 }
 
 function eventRewardLabels(

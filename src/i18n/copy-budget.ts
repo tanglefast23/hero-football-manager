@@ -55,6 +55,23 @@ const isSpeech = (key: string): boolean =>
   || key.startsWith('titlePlayerPop.bubble.')
   || key.startsWith('characterSpeech.');
 
+/**
+ * Note the coupling to `voiceOf`, which is easy to change by accident.
+ *
+ * When the pixel-drawn leaves inside `event.`/`glossary.` were reclassified
+ * `display` so the glyph gate would check them (see `voice.ts`), those 206
+ * strings moved from the `prose` ceiling to the strictly tighter `boxed` one as
+ * a side effect. That was measured before landing rather than discovered after:
+ * all 1,236 existing translations of those leaves pass the boxed formula, so the
+ * flip broke nothing.
+ *
+ * It is recorded because it is a real decision, not an accident: every FUTURE
+ * event title is now written against the tighter ceiling, on a heading that
+ * visibly wraps (`text-2xl leading-8`). Accepted on 2026-08-07. If a translator
+ * ever hits it on a title that genuinely needs the room, the right fix is to
+ * special-case these leaves here — not to loosen `boxed` for the chrome that
+ * really cannot reflow.
+ */
 export function budgetClass(key: string): BudgetClass {
   if (isSpoken(key)) return 'spoken';
   if (voiceOf(key) === 'body' || isSpeech(key)) return 'prose';

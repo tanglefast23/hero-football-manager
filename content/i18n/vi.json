@@ -3487,6 +3487,17 @@
     "ledger.buzzPayoutFirstHalf": "Sức Hút · Nửa đầu",
     "ledger.buzzPayoutSeasonEnd": "Sức Hút · Cuối mùa",
     "ledger.cupChampions": "Vô địch {cup}",
-    "ledger.cupRoundWin": "Thắng · {cup} {round}"
+    "ledger.cupRoundWin": "Thắng · {cup} {round}",
+    "storyEvent.rarity.common": "Thường",
+    "storyEvent.rarity.rare": "Hiếm",
+    "storyEvent.rarity.legendary": "Huyền Thoại",
+    "storyEvent.category.mystery": "Bí Ẩn",
+    "storyEvent.category.club": "CLB",
+    "storyEvent.category.media": "Truyền Thông",
+    "storyEvent.category.sponsor": "Tài Trợ",
+    "storyEvent.category.player": "Cầu Thủ",
+    "storyEvent.category.medical": "Y Tế",
+    "storyEvent.category.fan": "CĐV",
+    "storyEvent.rewardJoiner": " và "
   }
 }

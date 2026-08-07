@@ -3487,6 +3487,17 @@
     "ledger.buzzPayoutFirstHalf": "Clima · Primeiro turno",
     "ledger.buzzPayoutSeasonEnd": "Clima · Fim de temporada",
     "ledger.cupChampions": "Campeão da {cup}",
-    "ledger.cupRoundWin": "Vitória · {cup} {round}"
+    "ledger.cupRoundWin": "Vitória · {cup} {round}",
+    "storyEvent.rarity.common": "Comum",
+    "storyEvent.rarity.rare": "Raro",
+    "storyEvent.rarity.legendary": "Lendário",
+    "storyEvent.category.mystery": "Mistério",
+    "storyEvent.category.club": "Clube",
+    "storyEvent.category.media": "Imprensa",
+    "storyEvent.category.sponsor": "Patrocínio",
+    "storyEvent.category.player": "Jogador",
+    "storyEvent.category.medical": "Médico",
+    "storyEvent.category.fan": "Torcida",
+    "storyEvent.rewardJoiner": " e "
   }
 }

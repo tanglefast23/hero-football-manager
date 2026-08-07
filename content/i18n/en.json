@@ -2361,6 +2361,17 @@
     "ledger.buzzPayoutFirstHalf": "Buzz payout · First half",
     "ledger.buzzPayoutSeasonEnd": "Buzz payout · Season end",
     "ledger.cupChampions": "{cup} champions",
-    "ledger.cupRoundWin": "{cup} {round} win"
+    "ledger.cupRoundWin": "{cup} {round} win",
+    "storyEvent.rarity.common": "Common",
+    "storyEvent.rarity.rare": "Rare",
+    "storyEvent.rarity.legendary": "Legendary",
+    "storyEvent.category.mystery": "Mystery",
+    "storyEvent.category.club": "Club",
+    "storyEvent.category.media": "Media",
+    "storyEvent.category.sponsor": "Sponsor",
+    "storyEvent.category.player": "Player",
+    "storyEvent.category.medical": "Medical",
+    "storyEvent.category.fan": "Fan",
+    "storyEvent.rewardJoiner": " and "
   }
 }

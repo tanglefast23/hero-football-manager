@@ -93,7 +93,15 @@ describe('i18n gates', () => {
     const covered = new Map<string, ReadonlySet<number>>();
     for (const locale of ENABLED_LOCALES) {
       const faces = localeMeta(locale).faces;
-      for (const [key, value] of Object.entries(loadCatalog(locale).strings)) {
+      // English needs `englishAll()`, not the catalog. `loadCatalog('en')` is
+      // chrome ONLY — English content prose lives in `content/*.json` and
+      // reaches the app through `contentStrings()`. So for as long as this read
+      // the catalog, no English content string was EVER glyph-checked: a new
+      // event title carrying a `…` shipped tofu with CI green, which is this
+      // gate's whole reason for existing. The translated locales are unaffected
+      // — their catalogs already carry the content keys.
+      const strings = locale === 'en' ? englishAll() : loadCatalog(locale).strings;
+      for (const [key, value] of Object.entries(strings)) {
         const family = faceForKey(key, faces);
         if (family === null) continue; // body voice: platform sans, any glyph
         if (!covered.has(family)) covered.set(family, glyphSet(faceFile(family)));
