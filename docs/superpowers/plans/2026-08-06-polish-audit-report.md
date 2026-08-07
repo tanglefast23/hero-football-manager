@@ -12,22 +12,24 @@ Grok-audit the work. This document is therefore an audit **and** a fix log.
   `dist-harness` :4174 for `#/dev` states, `dist-verify` :4175 post-fix) driven through
   chrome-devtools; headless Node probes (jest); ffmpeg/ffprobe asset forensics; iOS Simulator
   Release build (`HFM-Polish-20260806`, UDID captured); a full played career on web.
-- **Unavailable:** the physical iPhone (`xctrace` reported it offline all session), so every
-  device-authoritative number — real frame pacing, hitches, thermal, battery, touch-to-pixel
-  latency in ms, haptic feel — is **unscored, not estimated**. ImageMagick is absent, so
+- **Device, added late (2026-08-07):** the owner plugged the phone in after the audit had been
+  written. One Instruments capture exists — iPhone 16 Pro Max, Debug over Metro, on **main
+  @ d34af335 (passes 1-2), not on pass 3** — showing zero main-thread hangs across 60s of a live
+  watched match with a goal in the window. Its per-frame table could not be exported
+  (`xctrace` segfaults on every display table of that trace), so hangs are all this tier has.
+- **Still unscored:** thermal, battery, touch-to-pixel latency in ms, haptic feel, the frame-time
+  distribution, and anything on min-spec (iPhone 12-class) hardware. ImageMagick is absent, so
   palette-drift counting was not run.
-- **Therefore unscored:** axis E's device tier, axis A's latency-in-ms and haptic-feel items,
-  axis C's palette-drift item.
 
 ## 8.1 Scorecard
 
 | Axis | Score | Tier | Justification | Blocker to +1 |
 |---|---|---|---|---|
-| A. Input feel | 8 / 10 | T2 web + T1 code | Pressed state fires on press-in and 129 Pressable sites route through one wrapper that also neutralises the function-style iOS trap; drill/advance taps showed first paint 62–75 ms (4–5 frames) after press-down on web. | Cues fire on press-**up** by deliberate design (`SfxPressable.tsx:93-102`) — sound trails the visual by the press duration. Device ms is unmeasured. |
-| B. Button juice | 8 / 10 | T2 + T1 | Confirmations, reveal cards and streak-pitched drill dings exist; taps now carry ±4% pitch spread, every shared button depresses under the finger, and the primary CTA breathes after 4s idle (this audit). | No press-down **sound** — the depress and the idle attract landed in pass 2, but every cue still trails its own visual by the length of the press. |
+| A. Input feel | 9 / 10 | T2 web + T1 code | Pressed state fires on press-in and 129 Pressable sites route through one wrapper that also neutralises the function-style iOS trap; drill/advance taps showed first paint 62–75 ms (4–5 frames) after press-down on web. | Device touch-to-pixel latency in ms is still unmeasured; the web figure (62-75 ms to first paint) is not a device number. |
+| B. Button juice | 8 / 10 | T2 + T1 | Confirmations, reveal cards and streak-pitched drill dings exist; taps now carry ±4% pitch spread, every shared button depresses under the finger, and the primary CTA breathes after 4s idle (this audit). | One sample per UI cue: pitch spread varies them, but there are no true variants, and the chunky-lip depress is a static snap rather than a spring. |
 | C. Pixel integrity | 9.5 / 10 | T2 + T3 + T1 | The snapping contract is honoured on **9/9** Skia Atlas draw paths (`PIXEL_ART_SAMPLING` = Nearest/no-mipmap everywhere; every placement through `snapDevicePixels`, magnification through `snapSpriteScale`). | Nothing left that this machine can reach: pass 3 found the gutter DOES exist (`ATLAS_GUTTER = 1`, loader.ts:202) and pinned it. Remaining doubt is real GPU sampling, which needs a device. |
-| D. Animation | 7 / 10 | T2 + T1 | Reduce Motion is genuinely plumbed through 67 files; league rows slide from their old positions and the HUD's money and TP roll rather than snap (this audit). | No shared timing table: 37 inline `duration:` literals across **26 distinct values** plus 31 scattered `*_MS` constants — the app has no single motion vocabulary. |
-| E. Performance | 8.5 / 10 | T2 + Node + **T4 device (partial)** | On device (iPhone 16 Pro Max, Debug over Metro): **zero main-thread hangs > 33 ms across 60 s of live match including a goal**. Web idle 25 s: mean 8.33 ms, p99 9.31 ms, **zero** frames > 33 ms. Sim tick cost mean 0.27 ms / p99 3.43 ms per 100 ms tick — ~3% of budget. The last JS-thread animation is gone (this audit). | The Release `.app` is **106 MB against a 60 MB canon budget**. Device tier is now partly scored — zero main-thread hangs across a live match with a goal — but the per-frame distribution could not be extracted (exporter segfault) and min-spec hardware is still unmeasured. |
+| D. Animation | 8 / 10 | T2 + T1 | Reduce Motion is genuinely plumbed through 67 files; league rows slide from their old positions and the HUD's money and TP roll rather than snap (this audit). | The vocabulary exists but is barely adopted — two constants use it. Until the scattered literals migrate, it documents an intention rather than enforcing one. |
+| E. Performance | 8 / 10 | T2 + Node + **T4 device (partial)** | On device (iPhone 16 Pro Max, Debug over Metro): **zero main-thread hangs > 33 ms across 60 s of live match including a goal**. Web idle 25 s: mean 8.33 ms, p99 9.31 ms, **zero** frames > 33 ms. Sim tick cost mean 0.27 ms / p99 3.43 ms per 100 ms tick — ~3% of budget. The last JS-thread animation is gone (this audit). | Three things at once: the hangs metric is **not** the canon frame metric (a GPU-side drop would not appear), the one device capture predates pass 3 and was taken on the fastest iPhone sold, and the 106 MB figure came from `du -sh` on a Release-**simulator** app — an IPA measurement is needed before calling it a budget failure. |
 | F. Football feel | 7 / 10 | T2 + T1 | Coach hire, drill runs and facility completion all have authored reveal beats; the rival-preload pump keeps the fulltime settle off the frame. | Speed tops out at 3× with **no skip / jump-to-next-event** once a match is running (`match-speed.ts`), so a watched match cannot be shortened mid-flight. |
 | G. Audio | 8 / 10 | T2 forensic | Every one of 94 cues now sits below −0.1 dBFS with loudness intact (this audit); pooled rapid cues seek-then-play, and the fixed-delay rewind bug is documented and rejected in code. | One sample per UI cue: pitch spread now varies them, but there are still no true variants, and mix-under-load has no measurement surface on this Mac. |
 | H. States & interruptions | 8 / 10 | T2 + T1 | A stale save produced a real, recoverable boot failure screen with Retry / Export raw save / Delete-and-start-fresh, and the two-step "TAP AGAIN TO DELETE" arming worked exactly as designed. Careers survive a hard reload (OPFS). | The delete confirmation gives no visible countdown or timeout on the armed state, and backgrounding mid-match is device-tier unverified. |
@@ -35,11 +37,13 @@ Grok-audit the work. This document is therefore an audit **and** a fix log.
 | J. Accessibility | 7 / 10 | T1 + T2 | Reduce Motion is honoured live (system subscription + preference), modals drop their entry animation, ceremony holds halve, the power tile suppresses its shell animation and sheen. | Kit colours are a **fixed red-vs-blue default** (`team-kit-ui.ts:11,13`) — the deuteranopia-adjacent pair — and separation depends on the player finding the colour-safe toggle. |
 | K. First 60 seconds | 8 / 10 | T2 | Title → story → created player → club office ran clean, and the first week is a guided chain that refuses to advance until the player has trained, built and hired — with a named reason each time. | No store screenshots or trailer exist yet, and the "wow" moment (a hero firing) sits several weeks behind the first session. |
 
-**Overall: 8.0 / 10 after pass 2** (7.6 as first measured). For this genre a 10 means: Retro Bowl's press-immediacy, Kairosoft's
+**Overall: 7.9 / 10 after pass 3** (7.6 as first measured). This is a judgement, not the mean of
+the rows — axes are not equally weighted, and E and K carry more of a launch than C does. For this genre a 10 means: Retro Bowl's press-immediacy, Kairosoft's
 per-week reward density, Duolingo's button physics and pitch ladder, Balatro's count-up
 choreography. This build's simulation, determinism and pixel discipline are already at that bar;
-what keeps it off 10 is that its *feedback vocabulary* is still thinner than its systems — one
-tap sample, no shared motion table, no press-down audio, and a 106 MB binary.
+what keeps it off 10 is one sample per UI cue, a motion vocabulary that exists but is barely
+adopted, a binary measured at 106 MB by the wrong instrument, and three headline feel features
+that have never been watched on a phone.
 
 ## 8.2 Findings and what happened to each
 
@@ -128,10 +132,10 @@ painted run ever touches a gutter texel.
 
 ## 8.3 The ten blockers between this build and a 10/10
 
-1. **106 MB binary against a 60 MB budget** (F6) — the only hard number that fails canon.
+1. **App size is unknown against its budget** (F6) — 106 MB came from `du -sh` on a Release-*simulator* app, which inflates. An IPA measurement is the actual next step; the budget may or may not be failing.
 2. **Device pacing is half-answered** — zero main-thread hangs through a live match with a goal, but the per-frame distribution could not be exported and min-spec hardware is still unmeasured.
-3. **No shared motion table** (F7) — 26 distinct durations is a vocabulary, not a system.
-4. **No press-down audio** — every cue trails its own visual by the length of the press.
+3. **The cold Quick Result path still stalls ~1092 ms** — the preload pump covers the watched match, not the player who taps straight through.
+4. **The motion vocabulary is barely adopted** — two constants use it; the 26 scattered literals remain.
 5. **The idle attract has never been watched running** (P3) — shipped on code-level confidence.
 6. **Kit colours default to red-vs-blue** (F8).
 7. **No mid-match skip** (F9).

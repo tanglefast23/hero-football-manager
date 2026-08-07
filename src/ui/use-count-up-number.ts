@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { MOTION_MS } from './motion';
 
 /**
  * How long a resource takes to travel from its old value to its new one.
@@ -10,8 +9,13 @@ import { MOTION_MS } from './motion';
  * makes the change itself the thing that catches the eye. Kept short — this
  * runs on the busiest chrome in the game, and a long roll would still be
  * counting when the next screen arrives.
+ *
+ * Deliberately NOT `MOTION_MS.SETTLE`. Adopting the vocabulary here would slow
+ * this 19%, and the table's own rule is that adoption should be a rounding of
+ * an existing number rather than a retune. 520 is the value that was measured
+ * on device; moving it needs its own verification, not a tidy import.
  */
-export const RESOURCE_ROLL_MS = MOTION_MS.SETTLE;
+export const RESOURCE_ROLL_MS = 520;
 
 /**
  * A number that travels to its new value instead of jumping to it.

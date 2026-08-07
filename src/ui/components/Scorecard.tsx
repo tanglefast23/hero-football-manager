@@ -135,7 +135,8 @@ export function ActionButton({
   // drops out — see the note on SfxPressable.
   const [pressed, setPressed] = useState(false);
   // One cue per activation, played on the way down. The rule and the reasoning
-  // behind the timestamp live in press-cue-gate.ts, shared with SfxPressable.
+  // behind the timestamp live in press-cue-gate.ts, which SfxPressable uses too
+  // — this button only differs in which cue it plays.
   const gateRef = useRef<PressCueGate | null>(null);
   const cueGate = (gateRef.current ??= createPressCueGate());
   const playCue = () => {

@@ -2,6 +2,7 @@ import { useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import { Pressable as NativePressable, Text, View, type ViewStyle } from 'react-native';
 import { playManagementActionSfx, playStatStepSfx, playUiClickSfx } from '../../render/management-sfx';
 import { hasHoverPointer } from '../pointer-capability';
+import { createPressCueGate, type PressCueGate } from '../press-cue-gate';
 
 type NativePressableProps = ComponentProps<typeof NativePressable>;
 type SfxPressableProps = NativePressableProps & {
@@ -53,69 +54,6 @@ function playPressCue(pressSfx: PressCue): void {
   if (pressSfx === 'stat-step') playStatStepSfx();
   else if (pressSfx === 'warning') playManagementActionSfx('warning');
   else playUiClickSfx();
-}
-
-/**
- * How recently a press phase must have been seen for a completed press to be
- * read as that same press finishing.
- *
- * React Native reports a press as press-in → press-out → press, so the gap this
- * has to bridge is release-to-activation — one frame when both arrive in the
- * same batch. The margin above that is for the web build, where they are two
- * separate DOM events: whatever blocks the main thread between them (and this
- * game still sims a league week synchronously) pushes the activation back, and
- * a press that outran the window is heard twice.
- *
- * It cannot simply be enormous, because it is equally how long an abandoned
- * press keeps its control quiet — a finger dragged off a button gets its
- * press-out and no press at all, and until the window lapses a keyboard
- * activation on that same button reads as the missing half of it. Being briefly
- * silent after a cancelled press is the cheaper of the two failures, which is
- * why the margin sits on this side.
- */
-const PRESS_PHASE_WINDOW_MS = 500;
-
-export type PressCueGate = {
-  pressIn: (pressSfx: PressCue) => void;
-  pressOut: () => void;
-  press: (pressSfx: PressCue) => void;
-};
-
-/**
- * One cue per activation, played as early as the platform allows.
- *
- * The sound belongs to the finger going down. Held until the release it stops
- * being the press and becomes a report on it, which is what made the whole UI
- * feel a beat behind the hand. So press-in cues.
- *
- * The completed press stays an owner as well, because React Native Web will not
- * promise every activation a press-in phase: a keyboard or synthetic activation
- * arrives as a bare press, and cueing on press-in alone once left the creation
- * steppers silent while their value still changed. It stands down only when a
- * press phase was seen a moment ago — exactly the case where the way down has
- * already cued.
- *
- * The record is a timestamp rather than a flag the release clears, because the
- * release runs *before* the press: a flag would already be gone by the time the
- * press consulted it and every tap would sound twice. Recording the release too
- * (not just the press-in) is what keeps a long hold to one cue — the gap this
- * has to span is release-to-activation, never the length of the hold.
- */
-export function createPressCueGate(): PressCueGate {
-  let lastPhaseAt = Number.NEGATIVE_INFINITY;
-  return {
-    pressIn(pressSfx) {
-      lastPhaseAt = Date.now();
-      playPressCue(pressSfx);
-    },
-    pressOut() {
-      lastPhaseAt = Date.now();
-    },
-    press(pressSfx) {
-      if (Date.now() - lastPhaseAt < PRESS_PHASE_WINDOW_MS) return;
-      playPressCue(pressSfx);
-    },
-  };
 }
 
 /**
@@ -173,7 +111,7 @@ export function SfxPressable({
         setPressed(true);
         // A surface with nothing to activate has nothing to answer for, so the
         // cue lives exactly where a press handler does.
-        if (onPress != null) cueGate.pressIn(pressSfx);
+        if (onPress != null) cueGate.pressIn(() => playPressCue(pressSfx));
         onPressIn?.(event);
       }}
       onPressOut={event => {
@@ -186,7 +124,7 @@ export function SfxPressable({
         onPressOut?.(event);
       }}
       onPress={onPress == null ? undefined : event => {
-        cueGate.press(pressSfx);
+        cueGate.press(() => playPressCue(pressSfx));
         onPress(event);
       }}
       style={(() => {

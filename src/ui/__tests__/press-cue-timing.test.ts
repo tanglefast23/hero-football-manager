@@ -41,8 +41,17 @@ jest.mock('react-native', () => ({
   Platform: { OS: 'ios' },
 }));
 
-import { createPressCueGate } from '../components/SfxPressable';
-import { setManagementSfxMasterVolume, teardownManagementSfx } from '../../render/management-sfx';
+import { createPressCueGate } from '../press-cue-gate';
+import {
+  playManagementActionSfx,
+  playStatStepSfx,
+  playUiClickSfx,
+  setManagementSfxMasterVolume,
+  teardownManagementSfx,
+} from '../../render/management-sfx';
+
+/** The routing SfxPressable hands the gate for its default cue. */
+const playClick = () => playUiClickSfx();
 
 // Catalog order, which the sound module builds its players in. The two rapid
 // cues own three further voices each at the end of the list, so a second press
@@ -78,7 +87,7 @@ describe('press cue timing', () => {
   it('sounds with the finger going down, and stays quiet when it lifts', async () => {
     const gate = createPressCueGate();
 
-    gate.pressIn('click');
+    gate.pressIn(playClick);
     await settle();
     // The point of the whole exercise: the press is already audible while the
     // finger is still on the button.
@@ -87,7 +96,7 @@ describe('press cue timing', () => {
 
     clock += 120;
     gate.pressOut();
-    gate.press('click');
+    gate.press(playClick);
     await settle();
 
     expect(totalPlays()).toBe(1);
@@ -100,7 +109,7 @@ describe('press cue timing', () => {
 
     // A keyboard or synthetic activation: React Native Web hands it straight to
     // the press handler, which is why that handler has to be an owner too.
-    gate.press('click');
+    gate.press(playClick);
     await settle();
 
     expect(totalPlays()).toBe(1);
@@ -111,12 +120,12 @@ describe('press cue timing', () => {
   it('keeps a button held down to a single cue', async () => {
     const gate = createPressCueGate();
 
-    gate.pressIn('click');
+    gate.pressIn(playClick);
     // Long past any window measured from the press-in. What the guard actually
     // measures is release-to-activation, so the hold's length cannot reach it.
     clock += 8_000;
     gate.pressOut();
-    gate.press('click');
+    gate.press(playClick);
     await settle();
 
     expect(totalPlays()).toBe(1);
@@ -127,10 +136,10 @@ describe('press cue timing', () => {
     const gate = createPressCueGate();
 
     for (let press = 0; press < 3; press += 1) {
-      gate.pressIn('click');
+      gate.pressIn(playClick);
       clock += 90;
       gate.pressOut();
-      gate.press('click');
+      gate.press(playClick);
       clock += 400;
     }
     await settle();
@@ -144,22 +153,22 @@ describe('press cue timing', () => {
 
     // Finger dragged off the button: press-in and press-out arrive, the press
     // never does, and nothing consumes the record of it.
-    gate.pressIn('click');
+    gate.pressIn(playClick);
     clock += 200;
     gate.pressOut();
     await settle();
     expect(totalPlays()).toBe(1);
 
     clock += 2_000;
-    gate.press('click');
+    gate.press(playClick);
     await settle();
 
     expect(totalPlays()).toBe(2);
   });
 
   it('routes each cue to its own sound', async () => {
-    createPressCueGate().pressIn('stat-step');
-    createPressCueGate().pressIn('warning');
+    createPressCueGate().pressIn(playStatStepSfx);
+    createPressCueGate().pressIn(() => playManagementActionSfx('warning'));
     await settle();
 
     expect(mockPlayers[STAT_STEP].play).toHaveBeenCalledTimes(1);

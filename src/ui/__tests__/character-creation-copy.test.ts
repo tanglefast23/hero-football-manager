@@ -96,8 +96,8 @@ describe('first-hire screen copy', () => {
     // keeps an owner of its own because a keyboard activation has no press-in
     // phase to cue from. Both routes go through the one helper below, so an
     // activation cannot make the sound twice however it arrived.
-    expect(pressInBody).toContain('cueGate.pressIn(pressSfx);');
-    expect(pressBody).toContain('cueGate.press(pressSfx);');
+    expect(pressInBody).toContain('cueGate.pressIn(() => playPressCue(pressSfx));');
+    expect(pressBody).toContain('cueGate.press(() => playPressCue(pressSfx));');
     expect(pressable).toContain("if (pressSfx === 'stat-step') playStatStepSfx();");
     expect(pressable.match(/playStatStepSfx\(\)/g)).toHaveLength(1);
   });
