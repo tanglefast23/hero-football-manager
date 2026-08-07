@@ -17,6 +17,16 @@
       "afterTruePeak": -6.5,
       "bytes": 150200
     },
+    "assets/audio/music/awards-theme.m4a": {
+      "class": "music",
+      "before": -20,
+      "beforeTruePeak": -5,
+      "gainDb": 0,
+      "limited": false,
+      "after": -20,
+      "afterTruePeak": -5,
+      "bytes": 280100
+    },
     "assets/audio/music/celebration-anthem.m4a": {
       "class": "music",
       "before": -21,
