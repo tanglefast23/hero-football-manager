@@ -199,7 +199,9 @@ describe('sponsor settlement integration', () => {
       },
     };
 
-    const settled = advanceWeek(ready);
+    // Week 30 is the league finale, so the objectives settle behind the last
+    // match of the season rather than behind a bare Advance Week press.
+    const settled = settleManageWeek(ready);
     const objectiveLines = settled.ledgers.flatMap(ledger => ledger.lines).filter(line => (
       line.idempotencyKey?.startsWith('sponsor-objective:')
     ));

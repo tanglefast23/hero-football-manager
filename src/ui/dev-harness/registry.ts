@@ -13,6 +13,7 @@ import { hallOfFameEntry } from './entries/hall-of-fame';
 import { playerRequestsEntry } from './entries/player-requests';
 import { promotionTransitionEntry } from './entries/promotion-transition';
 import { retirementLegacyEntry } from './entries/retirement-legacy';
+import { seasonPodiumEntry } from './entries/season-podium';
 import type { DevHarnessRoutableEntry } from './route';
 
 /**
@@ -67,6 +68,8 @@ export const DEV_HARNESS_ENTRIES: readonly DevHarnessEntry[] = Object.freeze([
   cupGiantKillingEntry,
   promotionTransitionEntry,
   retirementLegacyEntry,
+  // The order a season closes in: the podium, then the boards.
+  seasonPodiumEntry,
   awardsCeremonyEntry,
   endgameCelebrationEntry,
   hallOfFameEntry,

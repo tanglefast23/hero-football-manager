@@ -2278,6 +2278,8 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
     })
     : undefined;
   const isCurrentGameWeek = currentMatchday !== undefined;
+  const isSeasonFinale = currentMatchday !== undefined
+    && isSeasonFinaleLeagueWeek(state, currentMatchday.kind);
   const boardUltimatum = state.financialSafety?.boardUltimatum;
   const rosterById = new Map(roster.map(player => [player.id, player]));
   const latestBoardResolution = state.financialSafety?.latestBoardResolution;
@@ -2423,7 +2425,7 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
     nextMatchTimingLabel: nextFixture === undefined
       ? state.phase === 'complete' ? t('clubHome.complete') : t('clubHome.seasonEnd')
       : isCurrentGameWeek
-        ? t('clubHome.thisWeek')
+        ? isSeasonFinale ? t('clubHome.finalGame') : t('clubHome.thisWeek')
         : t('clubHome.nextMatchInWeeks', {
           n: nextFixture.week - state.week,
           count: nextFixture.week - state.week,
@@ -3467,13 +3469,26 @@ function careerDivision(state: GameState): 1 | 2 | 3 | 4 | 5 {
 }
 
 /**
+ * Whether this week's match is the one that closes the season.
+ *
+ * The final league round is pinned to the season's last week, so "last league
+ * round" and "last week of the season" are the same week and one check covers
+ * both. A cup tie landing on it would still not be the league finale, which is
+ * why the competition is part of the test.
+ */
+function isSeasonFinaleLeagueWeek(state: GameState, kind: 'league' | 'national-cup'): boolean {
+  return kind === 'league' && state.week === SEASON_WEEKS;
+}
+
+/**
  * The match-week announcement, or null on a quiet week.
  *
  * `activeCareerMatchday` is the whole test — it is the same call the desk uses
  * for "This week", so the banner can never claim a fixture the club does not
  * actually have. The competition is named the way every other screen names it:
  * the division's own name (never "Division 5"), and the cup's single display
- * name, so a rename can never leave this card behind.
+ * name, so a rename can never leave this card behind. The season's last week
+ * announces itself as the final game rather than another match day.
  */
 export function matchDayBannerViewModel(
   state: GameState,
@@ -3486,11 +3501,17 @@ export function matchDayBannerViewModel(
     // every other key bakes it into a longer sentence.
     ? t('m2League.heroCup')
     : t(DIVISION_NAME_KEYS[careerDivision(state)]);
+  const isFinale = isSeasonFinaleLeagueWeek(state, matchday.kind);
   return {
     id: `match-day-banner-${state.season}-${state.week}`,
     competitionLabel,
-    headline: t('matchDayBanner.headline', { competition: competitionLabel }),
-    accessibilityLabel: t('matchDayBanner.a11y.matchDay', { competition: competitionLabel }),
+    headline: t(isFinale ? 'matchDayBanner.finalGame' : 'matchDayBanner.headline', {
+      competition: competitionLabel,
+    }),
+    accessibilityLabel: t(
+      isFinale ? 'matchDayBanner.a11y.finalGame' : 'matchDayBanner.a11y.matchDay',
+      { competition: competitionLabel },
+    ),
   };
 }
 

@@ -15,6 +15,9 @@ const EXEMPT = new Set([
   'AwakeningCutsceneScreen.tsx',
   'ChampionshipCelebrationScreen.tsx',
   'EndgameCelebrationScreen.tsx',
+  // The other season-boundary cinematic: a stadium that fills the window, with
+  // the podium centred inside it. Clamping the stage would letterbox the crowd.
+  'SeasonPodiumScreen.tsx',
   'AwardsCeremonyScreen.tsx',
   'FixtureMatchDayScreen.tsx',
   'TitleLandingScreen.tsx',

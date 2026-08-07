@@ -29,14 +29,17 @@ export function menuThemeForScreen(screen: M1Screen, awakeningBeat: number): Men
   if (screen === 'event' || screen === 'legacy' || (screen === 'awakening' && awakeningBeat >= 2)) {
     return 'event';
   }
-  // The season boundary gets its own arcade bed, unbroken across both of its
-  // screens. It starts when the awards open, carries through the season review
-  // that follows, and stops the moment the next season's desk arrives — so the
-  // boundary reads as one ceremony rather than two cards sharing the event
-  // bed. The championship/endgame celebrations stay null on purpose: those
-  // screens play the celebration anthem through celebration-audio.ts, and a
-  // bed here would loop underneath it.
-  if (screen === 'awards-ceremony' || screen === 'season-end') return 'awards';
+  // The season boundary gets its own arcade bed, unbroken across all three of
+  // its screens. It starts on the podium — the medal ceremony a second or third
+  // place finish plays — carries through the awards that follow and the season
+  // review after them, and stops the moment the next season's desk arrives, so
+  // the boundary reads as one ceremony rather than three cards each starting
+  // their own music. The championship/endgame celebrations stay null on
+  // purpose: those screens play the celebration anthem through
+  // celebration-audio.ts, and a bed here would loop underneath it.
+  if (screen === 'season-podium' || screen === 'awards-ceremony' || screen === 'season-end') {
+    return 'awards';
+  }
   return null;
 }
 

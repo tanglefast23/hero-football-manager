@@ -8,6 +8,7 @@ import {
   CUP_DISPLAY_NAME,
   DEFAULT_CREATION_RATINGS,
   DIVISION_NAMES,
+  SEASON_WEEKS,
 } from '../../game';
 import type { GameState } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
@@ -78,6 +79,22 @@ describe('matchDayBannerViewModel', () => {
     // Seed 2 draws a Play-in tie inside the first eight weeks.
     const weeks = walkWeeks(2, 10);
     expect(weeks.some(week => week.headline === `${CUP_DISPLAY_NAME}: Match Day`)).toBe(true);
+  });
+
+  it('calls the last week of the season the final game, not another match day', () => {
+    // The final league round is pinned to Week 30, so the week that settles the
+    // season is itself a match. Announcing it as an ordinary match day would
+    // bury the one fixture that decides promotion.
+    const finale = { ...career(1), week: SEASON_WEEKS };
+    expect(activeCareerMatchday(finale)?.kind).toBe('league');
+    expect(matchDayBannerViewModel(finale)?.headline)
+      .toBe(`${DIVISION_NAMES[5]}: Final Game!`);
+  });
+
+  it('keeps the ordinary announcement for every other league week', () => {
+    const weeks = walkWeeks(1, 10);
+    expect(weeks.every(week => week.headline === null || !/Final Game/.test(week.headline)))
+      .toBe(true);
   });
 
   /**

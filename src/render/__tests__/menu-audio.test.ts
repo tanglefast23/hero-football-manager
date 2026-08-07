@@ -121,11 +121,15 @@ describe('non-match music ownership', () => {
 
   it('carries one arcade bed across the awards ceremony and the season review', () => {
     // The season boundary used to be the one ceremony read in silence — only
-    // its success stings played. Both of its screens now share a dedicated bed,
-    // and it must be the SAME theme on both: returning different ones would cut
-    // the music off and restart it as the awards hand over to the review.
+    // its success stings played. All three of its screens now share a dedicated
+    // bed, and it must be the SAME theme on every one: returning different ones
+    // would cut the music off and restart it at each handover.
     expect(menuThemeForScreen('awards-ceremony', 1)).toBe('awards');
     expect(menuThemeForScreen('season-end', 1)).toBe('awards');
+    // The podium opens the ceremony, so the bed has to start there or the
+    // music arrives a screen late and the medal scene plays in silence.
+    expect(menuThemeForScreen('season-podium', 1)).toBe('awards');
+    expect(menuThemeForScreen('season-podium', 1)).toBe(menuThemeForScreen('awards-ceremony', 1));
     // The new season's desk drops it for the ordinary office bed, and a club
     // legend on the way there gets the event bed — either way the ceremony
     // music ends with the ceremony.
