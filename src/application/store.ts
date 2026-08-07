@@ -1,4 +1,4 @@
-import { adjacencyDescription, facilityName } from './copy-fallback';
+import { adjacencyDescription, copyOrEnglish, facilityName } from './copy-fallback';
 import { create } from 'zustand';
 import { loadLaunchContent } from '../content';
 import {
@@ -70,6 +70,7 @@ import {
   resolvePlayerRequest as resolveCareerPlayerRequest,
   trainPlayerInstantly,
   trainingPathLabel,
+  trainingPathLabelKey,
   startNextSeason,
   startCareerScoutMission,
   submitCareerTransferOffer,
@@ -1801,7 +1802,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         notice: {
           tone: 'success',
           message: t('store.drillsUpgraded', {
-            path: trainingPathLabel(pathId),
+            path: copyOrEnglish(t, trainingPathLabelKey(pathId), trainingPathLabel(pathId)),
             tier: transaction.offer.tier,
           }),
         },

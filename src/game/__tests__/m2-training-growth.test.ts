@@ -154,8 +154,18 @@ describe('M2 player-specific instant training growth', () => {
 
     // Tier 1 is owned from the D5 start; tier 2 waits for the first promotion.
     expect(trainingDrillBlockedReason(initial, 'sprints')).toBeUndefined();
-    expect(trainingDrillBlockedReason(initial, 'sprints-ii'))
-      .toBe('Tier 2 drills unlock in D4 · County League.');
+    // Both halves: the English a developer reads in a thrown error, and the
+    // catalog key plus raw params a translated screen renders instead.
+    expect(trainingDrillBlockedReason(initial, 'sprints-ii')).toEqual({
+      text: 'Tier 2 drills unlock in D4 · County League.',
+      textKey: 'squadTraining.drillTierUnlocksIn',
+      textParams: {
+        tier: 2,
+        divisionLevel: 4,
+        divisionName: 'County League',
+        divisionNameKey: 'division.county',
+      },
+    });
 
     // The active pyramid is still Division 5: the stored best division keeps
     // an earned tier on the shelf after relegation.
@@ -165,7 +175,10 @@ describe('M2 player-specific instant training growth', () => {
     };
     expect(trainingDrillBlockedReason(reachedDivisionFour, 'sprints-ii')).toBeUndefined();
     expect(trainingDrillBlockedReason(reachedDivisionFour, 'sprints-iii'))
-      .toBe('Tier 3 drills unlock in D3 · Regional League.');
+      .toMatchObject({
+        text: 'Tier 3 drills unlock in D3 · Regional League.',
+        textParams: { tier: 3, divisionNameKey: 'division.regional' },
+      });
 
     const reachedDivisionTwo = {
       ...initial,
@@ -173,6 +186,9 @@ describe('M2 player-specific instant training growth', () => {
     };
     expect(trainingDrillBlockedReason(reachedDivisionTwo, 'sprints-iv')).toBeUndefined();
     expect(trainingDrillBlockedReason(reachedDivisionTwo, 'sprints-v'))
-      .toBe('Tier 5 drills unlock in D1 · Global League.');
+      .toMatchObject({
+        text: 'Tier 5 drills unlock in D1 · Global League.',
+        textParams: { tier: 5, divisionNameKey: 'division.global' },
+      });
   });
 });

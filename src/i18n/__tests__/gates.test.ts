@@ -191,7 +191,13 @@ describe('persisted labels resolve through the catalog', () => {
     // A producer that dual-writes a key nothing can resolve is worse than one
     // that writes English only: the fallback still renders, so nothing looks
     // broken, and the string silently never translates.
-    const sources = ['src/game/career.ts', 'src/game/player-requests.ts'];
+    const sources = [
+      'src/game/career.ts',
+      'src/game/player-requests.ts',
+      // The ledger's six cash-transaction lines. They were outside this gate
+      // while one of them still interpolated an English training-path name.
+      'src/game/management.ts',
+    ];
     const keys = sources.flatMap(file => {
       const text = readFileSync(join(process.cwd(), file), 'utf8');
       return [

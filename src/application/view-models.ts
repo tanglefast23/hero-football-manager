@@ -959,9 +959,12 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
       const nextLevelEffectLabel = building.level < 3
         ? facilityNextLevelEffectLabel(building.type, (building.level + 1) as FacilityLevel, t)
         : undefined;
-      const upgradeBlockedReason = building.level < 3
+      const blocked = building.level < 3
         ? facilityUpgradeBlockedReason(state, (building.level + 1) as FacilityLevel)
         : undefined;
+      const upgradeBlockedReason = blocked === undefined
+        ? undefined
+        : resolveRingCopy(t, blocked);
       return {
         id: building.id,
         type: building.type,
@@ -1026,7 +1029,7 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
           : 0,
         buildWeeks: definition.buildWeeks,
         ...(!definition.available
-          ? { blockedReason: 'Locked.' }
+          ? { blockedReason: t('clubFinances.facilityLocked') }
           : buildLimitReached
             ? { blockedReason: buildLimit === 1
               ? t('clubFinances.facilityAlreadyBuilt')
@@ -2789,7 +2792,7 @@ export function squadTrainingViewModel(
           const preview = instantTrainingPreview(state, selectedPlayer.id, path.pathId);
           return {
             pathId: path.pathId,
-            label: path.label,
+            label: copyOrEnglish(t, path.labelKey, path.label),
             shortCode: path.attribute.toUpperCase() as TrainingSlotStatOption['shortCode'],
             drillName: drillName(drill.id),
             tpCost: drill.tpCost,
@@ -2813,7 +2816,7 @@ export function squadTrainingViewModel(
         : content.training.focusDrills.find(candidate => candidate.id === offer.drillId);
       return {
         pathId: path.pathId,
-        label: path.label,
+        label: copyOrEnglish(t, path.labelKey, path.label),
         drillName: drillName(owned.id),
         ownedTier: trainingDrillTier(owned.id),
         // The upgrade panel sits on the same screen as the drill rows, so it
@@ -2825,7 +2828,9 @@ export function squadTrainingViewModel(
           nextGain: displayedDrillGain(state, next.id, next.gains[path.attribute] ?? 0),
           nextTpCost: next.tpCost,
           cost: offer.cost,
-          ...(offer.blockedReason === undefined ? {} : { blockedReason: offer.blockedReason }),
+          ...(offer.blockedReason === undefined
+            ? {}
+            : { blockedReason: resolveRingCopy(t, offer.blockedReason) }),
         }),
       };
     }),

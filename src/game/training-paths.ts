@@ -5,6 +5,7 @@ import {
   trainingDrillIdForTier,
   trainingDrillTier,
   trainingDrillUpgradeCost,
+  type BlockedCopy,
   type TrainingDrillTier,
 } from './promotion-progression';
 import type { CareerTrainingDrill, GameState } from './types';
@@ -13,25 +14,50 @@ interface TrainingPath {
   /** The tier-1 drill id, used as the stable path identifier. */
   readonly pathId: string;
   readonly attribute: keyof Attrs;
+  /**
+   * @i18n-fallback — English, and the source the translations were written from.
+   *
+   * `src/game` may not import `src/i18n`, so the name is written twice: this
+   * English, and `labelKey` beside it that the app ring resolves through
+   * `copyOrEnglish`. The same dual write as `DIVISION_NAME_KEYS` and
+   * `FACILITY_CATALOG.nameKey`. Without it the drill shop chips, the stat
+   * picker, the purchase toast and the ledger line all say "Pace" and
+   * "Reflexes" inside otherwise translated screens, in all seven languages.
+   */
   readonly label: string;
+  /**
+   * Keyed on the ATTRIBUTE rather than the path id, because the label is the
+   * attribute's name — a translator reading `trainingPath.ref` is naming the
+   * same thing `squadTraining.attribute.ref` explains at length. That key holds
+   * the long explainer and cannot be reused here: these are boxed chips.
+   */
+  readonly labelKey: string;
 }
 
 export const TRAINING_PATHS: readonly TrainingPath[] = [
-  { pathId: 'sprints', attribute: 'pac', label: 'Pace' },
-  { pathId: 'finishing', attribute: 'sho', label: 'Shooting' },
-  { pathId: 'rondo', attribute: 'pas', label: 'Passing' },
-  { pathId: 'duels', attribute: 'def', label: 'Defense' },
-  { pathId: 'first-touch', attribute: 'tec', label: 'Technique' },
-  { pathId: 'circuit', attribute: 'sta', label: 'Stamina' },
-  { pathId: 'keeper-drills', attribute: 'ref', label: 'Reflexes' },
+  { pathId: 'sprints', attribute: 'pac', label: 'Pace', labelKey: 'trainingPath.pac' },
+  { pathId: 'finishing', attribute: 'sho', label: 'Shooting', labelKey: 'trainingPath.sho' },
+  { pathId: 'rondo', attribute: 'pas', label: 'Passing', labelKey: 'trainingPath.pas' },
+  { pathId: 'duels', attribute: 'def', label: 'Defense', labelKey: 'trainingPath.def' },
+  { pathId: 'first-touch', attribute: 'tec', label: 'Technique', labelKey: 'trainingPath.tec' },
+  { pathId: 'circuit', attribute: 'sta', label: 'Stamina', labelKey: 'trainingPath.sta' },
+  { pathId: 'keeper-drills', attribute: 'ref', label: 'Reflexes', labelKey: 'trainingPath.ref' },
 ];
 
 const PATH_BY_ID = new Map(TRAINING_PATHS.map(path => [path.pathId, path]));
 
+/** English. Pair it with `trainingPathLabelKey` wherever a player will read it. */
 export function trainingPathLabel(pathId: string): string {
   const path = PATH_BY_ID.get(pathId);
   if (path === undefined) throw new Error(`unknown training path ${pathId}`);
   return path.label;
+}
+
+/** The catalog key for the same name, for `copyOrEnglish` at the app edge. */
+export function trainingPathLabelKey(pathId: string): string {
+  const path = PATH_BY_ID.get(pathId);
+  if (path === undefined) throw new Error(`unknown training path ${pathId}`);
+  return path.labelKey;
 }
 
 export function trainingPathAttribute(pathId: string): keyof Attrs {
@@ -127,8 +153,14 @@ export interface TrainingUpgradeOffer {
   readonly tier: TrainingDrillTier;
   readonly drillId: string;
   readonly cost: number;
-  /** Why the club cannot buy it right now; undefined when the purchase is legal. */
-  readonly blockedReason?: string;
+  /**
+   * Why the club cannot buy it right now; undefined when the purchase is legal.
+   *
+   * Both halves, as `RingCopy`: the app ring renders `textKey`, and
+   * `src/game/management.ts` throws `text` because an engine error message is
+   * not player-facing copy.
+   */
+  readonly blockedReason?: BlockedCopy;
 }
 
 /**
@@ -148,7 +180,13 @@ export function nextTrainingUpgradeOffer(
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
   if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
   const blockedReason = trainingDrillBlockedReason(state, drillId)
-    ?? (club.cash < cost ? 'Not enough money.' : undefined);
+    ?? (club.cash < cost
+      ? {
+        /** @i18n-fallback for `squadTraining.drillNotEnoughMoney`. */
+        text: 'Not enough money.',
+        textKey: 'squadTraining.drillNotEnoughMoney',
+      }
+      : undefined);
   return {
     pathId,
     tier,

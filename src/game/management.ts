@@ -16,6 +16,7 @@ import { facilityUpgradeBlockedReason } from './promotion-progression';
 import {
   nextTrainingUpgradeOffer,
   trainingPathLabel,
+  trainingPathLabelKey,
   type TrainingUpgradeOffer,
 } from './training-paths';
 import { dismissCareerCoach } from './market-career';
@@ -100,7 +101,10 @@ export function upgradeCareerFacility(
   if (current.level < 3) {
     const targetLevel = (current.level + 1) as 2 | 3;
     const blockedReason = facilityUpgradeBlockedReason(state, targetLevel);
-    if (blockedReason !== undefined) throw new Error(blockedReason);
+    // The English half: an engine error names an invariant break for a
+    // developer, and the screen has already refused the tap in the player's
+    // language before it can be reached.
+    if (blockedReason !== undefined) throw new Error(blockedReason.text);
   }
   const transaction = upgradeFacility(
     state.facilities.grid ?? createFacilityGrid(),
@@ -268,7 +272,7 @@ export function purchaseCareerTrainingUpgrade(
   if (offer === undefined) {
     throw new Error(`${trainingPathLabel(pathId)} already owns its best drill`);
   }
-  if (offer.blockedReason !== undefined) throw new Error(offer.blockedReason);
+  if (offer.blockedReason !== undefined) throw new Error(offer.blockedReason.text);
   const paid: GameState = {
     ...state,
     clubs: state.clubs.map(club => club.id === state.userClubId
@@ -282,10 +286,13 @@ export function purchaseCareerTrainingUpgrade(
       kind: 'training-upgrade',
       label: `${trainingPathLabel(pathId)} Tier ${offer.tier} drill bought`,
       labelKey: 'cashTransaction.drillTierBought',
-      // TODO(i18n): `path` is the English drill-path name. Unlike facilities,
-      // `training-paths.ts` has no key table beside its `TRAINING_PATHS` labels,
-      // so there is no key to name here yet; adding one belongs with that file.
-      labelParams: { path: trainingPathLabel(pathId), tier: offer.tier },
+      // `pathKey` names `path`, so the ledger draws the path in the player's
+      // language — the `<param>Key` pairing `translatedParams` applies.
+      labelParams: {
+        path: trainingPathLabel(pathId),
+        pathKey: trainingPathLabelKey(pathId),
+        tier: offer.tier,
+      },
       amount: -offer.cost,
       referenceId: offer.drillId,
     }),
