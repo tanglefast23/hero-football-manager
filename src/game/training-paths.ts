@@ -141,6 +141,61 @@ export function keeperDisplayLadderMultiplier(state: GameState, drillId: string)
   return referenceGain / ownGain;
 }
 
+/** The path that trains one attribute. One-to-one: seven attributes, seven paths. */
+export function trainingPathForAttribute(attribute: keyof Attrs): string {
+  const path = TRAINING_PATHS.find(candidate => candidate.attribute === attribute);
+  if (path === undefined) throw new Error(`no training path trains ${attribute}`);
+  return path.pathId;
+}
+
+/**
+ * What N sessions of the club's own best drill are worth, in attribute points.
+ *
+ * Read from the drill the club has actually bought rather than a ladder copied
+ * into the caller, for two reasons. The obvious one: a frozen table goes stale
+ * the day `content/training.json` moves. The one that would have shipped a bug:
+ * the keeper ladder is deliberately half the outfield one (2/4/6/8/11 against
+ * 4/7/11/16/22), because REF is the most leveraged attribute in the game — so a
+ * hardcoded outfield table would have doubled every keeper reward and re-opened
+ * exactly the leverage that ladder exists to price out.
+ *
+ * Base gain only. Facility multipliers, coach specialty scales, archetype
+ * modifiers and the SUPER roll all live in the drill pipeline; a story reward
+ * that compounded with them would scale with every other investment at once.
+ */
+export function trainingSessionPoints(
+  state: GameState,
+  attribute: keyof Attrs,
+  sessions: number,
+): number {
+  if (!Number.isSafeInteger(sessions)) throw new Error('training sessions must be a safe integer');
+  const drill = resolveTrainingDrillForPath(state, trainingPathForAttribute(attribute));
+  return sessions * (drill.gains[attribute] ?? 0);
+}
+
+/**
+ * The attribute points a story's authored sessions are worth to one player,
+ * floor included. This is the whole conversion, in one place, so the app ring
+ * and the audit harness cannot drift into computing it differently.
+ *
+ * A loss is capped at a quarter of what the player currently has. One session
+ * at a tier-5 club is 22 points and the attribute clamp bottoms out at 1 — not
+ * at the value he started with — so without this a youth on 35 PAC loses two
+ * thirds of it to a single card, which is not the "a little" the design
+ * promises. It never binds on a developed player: at 88 the quarter is 22, so
+ * a full session still lands.
+ */
+export function sessionAttributeDelta(
+  state: GameState,
+  player: { readonly attrs: Attrs },
+  attribute: keyof Attrs,
+  sessions: number,
+): number {
+  const points = trainingSessionPoints(state, attribute, sessions);
+  if (points >= 0) return points;
+  return -Math.min(Math.abs(points), Math.floor(player.attrs[attribute] / 4));
+}
+
 export function resolveTrainingDrillForPath(state: GameState, pathId: string): CareerTrainingDrill {
   const drillId = trainingDrillIdForTier(pathId, ownedTrainingTier(state, pathId));
   const drill = state.trainingRules?.focusDrills.find(candidate => candidate.id === drillId);

@@ -1,5 +1,10 @@
 import { coachMotivatorStrengthHalfLevels } from './coach-weekly';
-import { isFacilityOperational, type FacilityGridState } from './facilities';
+import {
+  cappedFacilityBoost,
+  isFacilityOperational,
+  type FacilityGridState,
+  type PlacedFacility,
+} from './facilities';
 import { growthSinceSigningPercent } from './market-career';
 import { renewalContractAsk, renewalFamePercent } from './market';
 import {
@@ -87,7 +92,9 @@ export function resolveWeeklyPlayerWellbeing(
   const motivatorStrengthHalfLevels = state.market === undefined
     ? 0
     : coachMotivatorStrengthHalfLevels(state.market);
-  const conditionDelta = weeklyConditionRecovery(gridDormLevel(state.facilities.grid));
+  const bestDorm = bestOperationalDorm(state.facilities.grid);
+  const conditionDelta = weeklyConditionRecovery(bestDorm?.level ?? 0)
+    + cappedFacilityBoost(bestDorm?.boosts, 'recoveryBonus');
 
   const players = state.players.map(player => {
     if (player.clubId !== state.userClubId) return player;
@@ -261,6 +268,22 @@ export function gridMedicalBayLevel(grid: FacilityGridState | undefined): number
 }
 
 /** The best operational Dorm wins; a second Dorm is not a second bonus. */
+/**
+ * The dorm whose level is read, so its own boost can be read from the same
+ * building. A percent would be useless here — the dorm gives 4 points a level,
+ * and a tenth of that rounds to zero — so its boost is flat points.
+ */
+function bestOperationalDorm(grid: FacilityGridState | undefined): PlacedFacility | undefined {
+  if (grid === undefined) return undefined;
+  let best: PlacedFacility | undefined;
+  for (const building of grid.buildings) {
+    if (building.type !== 'dorm') continue;
+    if (!isFacilityOperational(grid, building.id)) continue;
+    if (best === undefined || building.level > best.level) best = building;
+  }
+  return best;
+}
+
 function gridDormLevel(grid: FacilityGridState | undefined): number {
   if (grid === undefined) return 0;
   let level = 0;

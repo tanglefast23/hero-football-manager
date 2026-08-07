@@ -2649,6 +2649,7 @@ function GameApp() {
             key={store.matchDayBanner.id}
             headline={store.matchDayBanner.headline}
             accessibilityLabel={store.matchDayBanner.accessibilityLabel}
+            isCup={store.matchDayBanner.isCup}
             reduceMotion={reduceMotion}
             onShown={store.dismissMatchDayBanner}
           />

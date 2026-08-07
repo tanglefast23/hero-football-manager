@@ -4,15 +4,15 @@ import { compareIds } from '../ordering';
 import {
   CAREER_MILESTONES,
   CAREER_MILESTONE_CROWD,
-  CAREER_MILESTONE_PUSH_SEASON_WINS,
+  CAREER_MILESTONE_HEAVY_DEFEAT_MARGIN,
   CAREER_MILESTONE_UNBEATEN_RUN,
   applyCareerEventOutcome,
-  dismissCareerEvent,
+  drainPendingMilestone,
   earnedCareerMilestoneFlags,
   isCareerMilestoneEventId,
   offerCareerEvent,
-  pendingCareerMilestoneEventId,
   recordCareerMilestones,
+  seedPendingMilestones,
 } from '../career-events';
 import type { GameState } from '../types';
 
@@ -47,232 +47,222 @@ function withUserResults(
   };
 }
 
-function resolve(state: GameState, eventId: string): GameState {
-  return applyCareerEventOutcome(
-    offerCareerEvent(state, eventId),
-    'a-choice',
-    'Something happened and the week moved on.',
-    {},
-    { outcomeIndex: 0, risky: false, success: false },
-  );
+function career(): GameState {
+  return createCareer(createLaunchCareerSetup());
 }
 
-describe('career milestones derived from what the club did', () => {
-  const fresh = createCareer(createLaunchCareerSetup(41));
+describe('the milestone set', () => {
+  /**
+   * Four of the original seven were cut. Winning a game is Saturday, not an
+   * achievement, and "first hero goal", "three goals clear" and "eight wins in
+   * a season" were the same congratulation three more times.
+   */
+  it('recognises six beats a manager would actually retell', () => {
+    expect(CAREER_MILESTONES.map(milestone => milestone.id)).toEqual([
+      'hat-trick',
+      'unbeaten-four',
+      'first-cup-win',
+      'crowd-thousand',
+      'heavy-defeat',
+      'merch-surge',
+    ]);
+  });
+
+  it('no longer knows the four that were cut', () => {
+    for (const retired of [
+      'milestone-first-win',
+      'milestone-first-hero-goal',
+      'milestone-statement-win',
+      'milestone-promotion-push',
+    ]) {
+      expect(isCareerMilestoneEventId(retired)).toBe(false);
+    }
+  });
 
   it('earns nothing before a ball is kicked', () => {
-    expect(earnedCareerMilestoneFlags(fresh)).toEqual([]);
-    expect(pendingCareerMilestoneEventId(fresh)).toBeUndefined();
-    expect(recordCareerMilestones(fresh)).toBe(fresh);
+    expect(earnedCareerMilestoneFlags(career())).toEqual([]);
   });
 
-  it('reads a first win, a three-goal margin, and an unbeaten run off the results', () => {
-    const oneNarrowWin = withUserResults(fresh, [{ goalsFor: 1, goalsAgainst: 0 }]);
-    expect(earnedCareerMilestoneFlags(oneNarrowWin)).toEqual(['milestone:first-win']);
+  it('does not congratulate a club merely for winning', () => {
+    const won = withUserResults(career(), [{ goalsFor: 3, goalsAgainst: 0 }]);
+    expect(earnedCareerMilestoneFlags(won)).toEqual([]);
+  });
 
-    const thumping = withUserResults(fresh, [{ goalsFor: 4, goalsAgainst: 1 }]);
-    expect(earnedCareerMilestoneFlags(thumping)).toEqual([
-      'milestone:first-win',
-      'milestone:statement-win',
+  it('reads an unbeaten run off the results and resets it on a defeat', () => {
+    const draws = Array.from({ length: CAREER_MILESTONE_UNBEATEN_RUN }, () => ({
+      goalsFor: 1,
+      goalsAgainst: 1,
+    }));
+    expect(earnedCareerMilestoneFlags(withUserResults(career(), draws)))
+      .toContain('milestone:unbeaten-four');
+
+    const broken = [
+      { goalsFor: 1, goalsAgainst: 1 },
+      { goalsFor: 0, goalsAgainst: 1 },
+      { goalsFor: 1, goalsAgainst: 1 },
+      { goalsFor: 1, goalsAgainst: 1 },
+    ];
+    expect(earnedCareerMilestoneFlags(withUserResults(career(), broken)))
+      .not.toContain('milestone:unbeaten-four');
+  });
+
+  /** The first milestone that is not a celebration. */
+  it('remembers a hammering, and only at six', () => {
+    const five = withUserResults(career(), [{ goalsFor: 0, goalsAgainst: 5 }]);
+    expect(earnedCareerMilestoneFlags(five)).not.toContain('milestone:heavy-defeat');
+
+    const six = withUserResults(career(), [
+      { goalsFor: 0, goalsAgainst: CAREER_MILESTONE_HEAVY_DEFEAT_MARGIN },
     ]);
-
-    const unbeaten = withUserResults(fresh, Array.from(
-      { length: CAREER_MILESTONE_UNBEATEN_RUN },
-      () => ({ goalsFor: 1, goalsAgainst: 1 }),
-    ));
-    expect(earnedCareerMilestoneFlags(unbeaten)).toEqual(['milestone:unbeaten-four']);
+    expect(earnedCareerMilestoneFlags(six)).toContain('milestone:heavy-defeat');
   });
 
-  it('resets an unbeaten run on a defeat and needs the full run again', () => {
-    const brokenRun = withUserResults(fresh, [
-      { goalsFor: 1, goalsAgainst: 1 },
-      { goalsFor: 1, goalsAgainst: 1 },
-      { goalsFor: 1, goalsAgainst: 1 },
-      { goalsFor: 0, goalsAgainst: 2 },
-      { goalsFor: 1, goalsAgainst: 1 },
-    ]);
-    expect(earnedCareerMilestoneFlags(brokenRun)).toEqual([]);
-  });
-
-  it('earns the promotion push only once the season wins pile up', () => {
-    const nearly = withUserResults(fresh, Array.from(
-      { length: CAREER_MILESTONE_PUSH_SEASON_WINS - 1 },
-      () => ({ goalsFor: 1, goalsAgainst: 0 }),
-    ));
-    expect(earnedCareerMilestoneFlags(nearly)).not.toContain('milestone:promotion-push');
-
-    const push = withUserResults(fresh, Array.from(
-      { length: CAREER_MILESTONE_PUSH_SEASON_WINS },
-      () => ({ goalsFor: 1, goalsAgainst: 0 }),
-    ));
-    expect(earnedCareerMilestoneFlags(push)).toContain('milestone:promotion-push');
-  });
-
-  it('earns a hero goal only for a user-club player who owns a power', () => {
-    const hero = fresh.players.find(player => player.clubId === fresh.userClubId)!;
-    const scoredWithoutPower: GameState = {
-      ...fresh,
-      seasonStatLines: [{
-        season: 1,
-        playerId: hero.id,
-        clubId: hero.clubId,
-        competition: 'league',
-        goals: 3,
-        assists: 0,
-        tacklesWon: 0,
-        saves: 0,
-        passesCompleted: 0,
-      }],
+  it('earns the crowd milestone from the club the manager actually runs', () => {
+    const base = career();
+    const big: GameState = {
+      ...base,
+      clubs: base.clubs.map(club => (
+        club.id === base.userClubId ? { ...club, fans: CAREER_MILESTONE_CROWD } : club
+      )),
     };
-    expect(earnedCareerMilestoneFlags(scoredWithoutPower)).toEqual([]);
-
-    const awakened: GameState = {
-      ...scoredWithoutPower,
-      players: scoredWithoutPower.players.map(player => player.id === hero.id
-        ? { ...player, power: 'SUPER_SPEED' as const, licensed: true }
-        : player),
-    };
-    expect(earnedCareerMilestoneFlags(awakened)).toEqual(['milestone:first-hero-goal']);
-  });
-
-  it('earns the crowd milestone from the club the player actually runs', () => {
-    const packed: GameState = {
-      ...fresh,
-      clubs: fresh.clubs.map(club => ({ ...club, fans: CAREER_MILESTONE_CROWD })),
-    };
-    expect(earnedCareerMilestoneFlags(packed)).toEqual(['milestone:crowd-thousand']);
+    expect(earnedCareerMilestoneFlags(big)).toContain('milestone:crowd-thousand');
 
     const rivalsOnly: GameState = {
-      ...fresh,
-      clubs: fresh.clubs.map(club => club.id === fresh.userClubId
-        ? club
-        : { ...club, fans: CAREER_MILESTONE_CROWD * 10 }),
+      ...base,
+      clubs: base.clubs.map(club => (
+        club.id === base.userClubId ? club : { ...club, fans: 99_999 }
+      )),
     };
-    expect(earnedCareerMilestoneFlags(rivalsOnly)).toEqual([]);
+    expect(earnedCareerMilestoneFlags(rivalsOnly)).not.toContain('milestone:crowd-thousand');
   });
 
-  it('earns a cup milestone from a won Hero Cup tie', () => {
-    const cupWinner: GameState = {
-      ...fresh,
-      m2: {
-        ...(fresh.m2 as NonNullable<GameState['m2']>),
-        nationalCups: [{
-          careerSeed: fresh.careerSeed,
-          season: 1,
-          rounds: [{
-            number: 1,
-            label: 'Play-in',
-            entrantClubIds: [fresh.userClubId, 'ferrous-united'],
-            byeClubIds: [],
-            fixtures: [{
-              id: 's1-cup-r1-m01',
-              season: 1,
-              round: 1,
-              homeClubId: fresh.userClubId,
-              awayClubId: 'ferrous-united',
-              matchSeed: 12,
-              status: 'played',
-              score: { homeGoals: 2, awayGoals: 1 },
-              winnerClubId: fresh.userClubId,
-            }],
-          }],
-        }],
-      },
-    };
-    expect(earnedCareerMilestoneFlags(cupWinner)).toEqual(['milestone:first-cup-win']);
+  it('earns the merchandise beat from a surge the report actually showed', () => {
+    const base = career();
+    const quiet: GameState = {
+      ...base,
+      ledgers: [{ season: 1, week: 1, lines: [{ source: 'merch', amount: 100, reveal: { source: 'merch', base: 100, variancePercent: 4, surge: false, multiplierTimes: 1, facilityCount: 1 } }] }],
+    } as unknown as GameState;
+    expect(earnedCareerMilestoneFlags(quiet)).not.toContain('milestone:merch-surge');
+
+    const surged: GameState = {
+      ...base,
+      ledgers: [{ season: 1, week: 1, lines: [{ source: 'merch', amount: 100, reveal: { source: 'merch', base: 100, variancePercent: 15, surge: true, multiplierTimes: 1, facilityCount: 1 } }] }],
+    } as unknown as GameState;
+    expect(earnedCareerMilestoneFlags(surged)).toContain('milestone:merch-surge');
+  });
+
+  /**
+   * A fixture keeps only its score once the week is settled — the scorer list
+   * lives on the settlement result and is gone afterwards. So the hat-trick is
+   * banked when it happens and read back from the flag, never recomputed.
+   */
+  it('reads the hat-trick from its banked flag, because it cannot be recomputed', () => {
+    const banked: GameState = { ...career(), eventFlags: ['milestone:hat-trick'] };
+    expect(earnedCareerMilestoneFlags(banked)).toContain('milestone:hat-trick');
   });
 
   it('is deterministic: the same career state always earns the same flags', () => {
-    const played = withUserResults(fresh, [
-      { goalsFor: 3, goalsAgainst: 0 },
+    const state = withUserResults(career(), [
       { goalsFor: 1, goalsAgainst: 1 },
+      { goalsFor: 0, goalsAgainst: 6 },
     ]);
-    const first = earnedCareerMilestoneFlags(played);
-
-    for (let repeat = 0; repeat < 5; repeat += 1) {
-      expect(earnedCareerMilestoneFlags(played)).toEqual(first);
-      expect(earnedCareerMilestoneFlags(createCareer(createLaunchCareerSetup(41)))).toEqual([]);
-    }
-    expect(first).toEqual(['milestone:first-win', 'milestone:statement-win']);
+    expect(earnedCareerMilestoneFlags(state)).toEqual(earnedCareerMilestoneFlags(state));
   });
 });
 
-describe('milestone recognition rides the resolved-story chain', () => {
-  const won = withUserResults(createCareer(createLaunchCareerSetup(41)), [
-    { goalsFor: 3, goalsAgainst: 0 },
-  ]);
+describe('the recognition queue', () => {
+  const heavyDefeat = () => withUserResults(career(), [{ goalsFor: 0, goalsAgainst: 7 }]);
 
-  it('records the earned flags and follows the story with its recognition beat', () => {
-    const resolved = resolve(won, 'team-bbq');
-
-    expect(resolved.eventFlags).toEqual(['milestone:first-win', 'milestone:statement-win']);
-    expect(resolved.pendingEvent?.resolvedNextEventId).toBe('milestone-first-win');
+  it('queues a beat when its flag is banked', () => {
+    const recorded = recordCareerMilestones(heavyDefeat());
+    expect(recorded.eventFlags).toContain('milestone:heavy-defeat');
+    expect(recorded.pendingMilestones).toEqual([{ eventId: 'milestone-heavy-defeat' }]);
   });
 
-  it('never overwrites a chain the content author already wrote', () => {
-    const authored = applyCareerEventOutcome(
-      offerCareerEvent(won, 'hundredth-fan'),
-      'hundredth-fan-parade',
-      'The parade blocks one roundabout.',
-      { flags: ['hundredth-parade'] },
-      { outcomeIndex: 0, risky: true, success: true, nextEventId: 'community-mural' },
-    );
-
-    expect(authored.pendingEvent?.resolvedNextEventId).toBe('community-mural');
+  it('queues each beat once, however often the week is settled', () => {
+    const once = recordCareerMilestones(heavyDefeat());
+    const twice = recordCareerMilestones(once);
+    expect(twice.pendingMilestones).toEqual([{ eventId: 'milestone-heavy-defeat' }]);
   });
 
-  it('hands out one recognition per story instead of a stack of cards', () => {
-    const first = dismissCareerEvent(resolve(won, 'team-bbq'));
-    expect(first.resolvedEventIds).toContain('team-bbq');
-
-    // Resolving the recognition story itself must not chain into the next one.
-    const recognized = resolve(first, 'milestone-first-win');
-    expect(isCareerMilestoneEventId('milestone-first-win')).toBe(true);
-    expect(recognized.pendingEvent?.resolvedNextEventId).toBeUndefined();
-
-    // The remaining milestone is still queued for the next ordinary story.
-    const afterRecognition = dismissCareerEvent(recognized);
-    expect(pendingCareerMilestoneEventId(afterRecognition)).toBe('milestone-statement-win');
+  it('drains a beat once its card has been offered', () => {
+    const recorded = recordCareerMilestones(heavyDefeat());
+    expect(drainPendingMilestone(recorded, 'milestone-heavy-defeat').pendingMilestones).toEqual([]);
   });
 
-  it('keeps a banked milestone claimable after its evidence leaves the state', () => {
-    const banked = recordCareerMilestones(won);
-    expect(banked.eventFlags).toContain('milestone:first-win');
-
-    // Season rollover replaces `fixtures` with the new season's slate, so the
-    // live recompute forgets the win. Recognition must survive on the banked
-    // flag alone — recomputing from live state silently dropped any milestone
-    // whose story had not resolved before the season turned.
-    const rolledOver: GameState = {
-      ...banked,
-      fixtures: banked.fixtures.map(fixture => ({
-        ...fixture,
-        status: 'scheduled' as const,
-        score: undefined,
-      })),
+  /**
+   * The hat-trick card has no picker, so a beat pointing at a player who has
+   * left would be unanswerable. It is dropped rather than offered.
+   */
+  it('drops a queued beat whose player has left the club', () => {
+    const base = career();
+    const queued: GameState = {
+      ...base,
+      pendingMilestones: [
+        { eventId: 'milestone-hat-trick', selectedPlayerId: 'someone-who-left' },
+        { eventId: 'milestone-crowd-thousand' },
+      ],
     };
-    expect(earnedCareerMilestoneFlags(rolledOver)).not.toContain('milestone:first-win');
-    expect(pendingCareerMilestoneEventId(rolledOver)).toBe('milestone-first-win');
+    expect(drainPendingMilestone(queued, 'milestone-crowd-thousand').pendingMilestones).toEqual([]);
   });
 
-  it('stops offering a recognition story once it has been seen', () => {
+  it('seeds a save that banked a flag before the queue existed', () => {
+    const banked: GameState = { ...career(), eventFlags: ['milestone:crowd-thousand'] };
+    expect(seedPendingMilestones(banked).pendingMilestones)
+      .toEqual([{ eventId: 'milestone-crowd-thousand' }]);
+  });
+
+  it('never seeds a beat the manager has already seen', () => {
     const seen: GameState = {
-      ...won,
-      resolvedEventIds: CAREER_MILESTONES.map(milestone => milestone.eventId),
+      ...career(),
+      eventFlags: ['milestone:crowd-thousand'],
+      resolvedEventIds: ['milestone-crowd-thousand'],
     };
-    expect(pendingCareerMilestoneEventId(seen)).toBeUndefined();
-    expect(resolve(seen, 'team-bbq').pendingEvent?.resolvedNextEventId).toBeUndefined();
+    expect(seedPendingMilestones(seen).pendingMilestones).toEqual([]);
   });
 
-  it('leaves a plain test resolution without presentation data untouched', () => {
+  it('leaves an already-seeded queue alone', () => {
+    const queued: GameState = {
+      ...career(),
+      eventFlags: ['milestone:crowd-thousand'],
+      pendingMilestones: [],
+    };
+    expect(seedPendingMilestones(queued).pendingMilestones).toEqual([]);
+  });
+});
+
+describe('a story no longer drags a milestone along behind it', () => {
+  /**
+   * The defect this replaces: any resolved event with an earned-but-unseen
+   * milestone had that milestone written into its `resolvedNextEventId`, so the
+   * button said "Continue the story" and delivered an unrelated one — often
+   * straight off a failure screen.
+   */
+  it('never invents a follow-up the author did not write', () => {
+    const earned = recordCareerMilestones(withUserResults(career(), [
+      { goalsFor: 0, goalsAgainst: 8 },
+    ]));
     const resolved = applyCareerEventOutcome(
-      offerCareerEvent(won, 'team-bbq'),
-      'captain-cooks-bbq',
-      'The feast is magnificent.',
+      offerCareerEvent(earned, 'player-slump'),
+      'a-choice',
+      'Something happened and the week moved on.',
       {},
+      { outcomeIndex: 0, risky: false, success: false },
     );
 
     expect(resolved.pendingEvent?.resolvedNextEventId).toBeUndefined();
-    expect(resolved.eventFlags).toContain('milestone:first-win');
+    // The beat is not lost — it is waiting in its own lane instead.
+    expect(resolved.pendingMilestones).toEqual([{ eventId: 'milestone-heavy-defeat' }]);
+  });
+
+  it('still carries an authored chain', () => {
+    const resolved = applyCareerEventOutcome(
+      offerCareerEvent(career(), 'rival-bid-arrives'),
+      'a-choice',
+      'The bid lands.',
+      {},
+      { outcomeIndex: 0, risky: false, success: false, nextEventId: 'rival-bid-deadline-day' },
+    );
+    expect(resolved.pendingEvent?.resolvedNextEventId).toBe('rival-bid-deadline-day');
   });
 });

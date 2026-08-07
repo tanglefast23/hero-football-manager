@@ -206,6 +206,37 @@ export interface FacilityPosition {
   readonly y: number;
 }
 
+/**
+ * What a story has permanently changed about how well one building works.
+ *
+ * Deliberately four named fields rather than one "output" percent: the game's
+ * seven facility benefits are not the same kind of number. A percent of the
+ * dorm's "+4 recovery per level" rounds to nothing, and the medical bay's
+ * benefit is whole weeks of recovery, which no percentage can move by a
+ * sensible amount. Each field says which real formula it scales.
+ *
+ * Never `level` — that only ever goes up through building, and there is no
+ * downgrade concept anywhere in the game to borrow.
+ */
+export interface FacilityBoosts {
+  /** Percentage points on the Training Pitch's TP contribution. */
+  readonly tpBonusPercent?: number;
+  /** Percentage points on the *bonus part* of a training building's multiplier. */
+  readonly trainingBonusPercent?: number;
+  /** Flat points on the Dorm's weekly condition recovery. */
+  readonly recoveryBonus?: number;
+  /** Percentage points on this shop's or stand's own share of the income. */
+  readonly incomeBonusPercent?: number;
+}
+
+/** How far a story may ever move one building, in either direction. */
+export const FACILITY_BOOST_CAPS = {
+  tpBonusPercent: 20,
+  trainingBonusPercent: 20,
+  recoveryBonus: 3,
+  incomeBonusPercent: 20,
+} as const;
+
 export interface PlacedFacility extends FacilityPosition {
   readonly id: string;
   readonly type: FacilityType;
@@ -214,6 +245,19 @@ export interface PlacedFacility extends FacilityPosition {
   readonly capitalInvested: number;
   /** True only for facilities the club was founded with, never player-built. */
   readonly seeded?: true;
+  /** Absent on every building no story has touched, which is most of them. */
+  readonly boosts?: FacilityBoosts;
+}
+
+/** A story's change to one building, clamped to its cap wherever it is read. */
+export function cappedFacilityBoost(
+  boosts: FacilityBoosts | undefined,
+  facet: keyof typeof FACILITY_BOOST_CAPS,
+): number {
+  const raw = boosts?.[facet] ?? 0;
+  if (!Number.isSafeInteger(raw)) throw new Error(`facility ${facet} boost must be a safe integer`);
+  const cap = FACILITY_BOOST_CAPS[facet];
+  return Math.max(-cap, Math.min(cap, raw));
 }
 
 interface FacilityConstructionProject {

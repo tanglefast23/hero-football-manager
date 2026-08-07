@@ -4,21 +4,26 @@ import { Canvas, Rect } from '@shopify/react-native-skia';
 import { PixelText } from './PixelText';
 import {
   CROWD_SPRITE_IDS,
+  CUP_ROW_SPRITE_IDS,
   FINANCE_SPRITE_CELL,
   FINANCE_SPRITE_SCALE,
   financeSpriteRuns,
 } from '../finance-pixel-art';
-import { playMatchDayBugleSfx, stopMatchDayBugleSfx } from '../../render/management-sfx';
+import { playMatchDayCallSfx, stopMatchDayCallSfx } from '../../render/management-sfx';
 
 /**
  * The match-week callout: the same pixel card the Financial Report pops for
  * EXTREME ATTENDANCE, reused for the other half of the week. It lands once, as
- * the manager reaches the desk on a week with a fixture, holds for the bugle,
+ * the manager reaches the desk on a week with a fixture, holds for the call,
  * and goes.
  *
  * Deliberately the same shape and the same crowd as the surge banner — the game
  * only needs one visual language for "something is happening today", and a
  * second card style would make two announcements read as two systems.
+ *
+ * A Hero Cup week swaps the crowd for the cup cabinet and the fanfare for the
+ * tannoy bugle: same card, same width, same five sprites, so the competition is
+ * legible — and audible — before the line is read.
  *
  * It never blocks touches: the desk stays workable underneath while it holds.
  */
@@ -26,12 +31,14 @@ import { playMatchDayBugleSfx, stopMatchDayBugleSfx } from '../../render/managem
 export interface MatchDayBannerProps {
   headline: string;
   accessibilityLabel: string;
+  /** A cup tie draws trophies where a league week draws the crowd. */
+  isCup: boolean;
   /** Called once the card has finished — the caller clears it and it unmounts. */
   onShown: () => void;
   reduceMotion: boolean;
 }
 
-/** Long enough to read twice, and the length of the trimmed bugle call. */
+/** Long enough to read twice, and longer than either match-day call. */
 const HOLD_MS = 3300;
 const FADE_MS = 250;
 const SPRITE_PX = FINANCE_SPRITE_CELL * FINANCE_SPRITE_SCALE;
@@ -39,9 +46,11 @@ const SPRITE_PX = FINANCE_SPRITE_CELL * FINANCE_SPRITE_SCALE;
 export function MatchDayBanner({
   headline,
   accessibilityLabel,
+  isCup,
   onShown,
   reduceMotion,
 }: MatchDayBannerProps) {
+  const strip = isCup ? CUP_ROW_SPRITE_IDS : CROWD_SPRITE_IDS;
   const scale = useRef(new Animated.Value(0.2)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const onShownRef = useRef(onShown);
@@ -50,7 +59,7 @@ export function MatchDayBanner({
   useEffect(() => {
     let holdTimer: ReturnType<typeof setTimeout> | undefined;
     let animation: Animated.CompositeAnimation | undefined;
-    playMatchDayBugleSfx();
+    playMatchDayCallSfx(isCup);
     if (reduceMotion) {
       // Fully static for its hold — information, not decoration.
       scale.setValue(1);
@@ -79,10 +88,10 @@ export function MatchDayBanner({
       if (holdTimer !== undefined) clearTimeout(holdTimer);
       animation?.stop();
       // The card can leave early — a tab change, a tap into the fixture — and a
-      // bugle still playing over the team sheet is the loudest kind of stale.
-      stopMatchDayBugleSfx();
+      // call still playing over the team sheet is the loudest kind of stale.
+      stopMatchDayCallSfx();
     };
-  }, [reduceMotion, opacity, scale]);
+  }, [isCup, reduceMotion, opacity, scale]);
 
   return (
     // items-center: the card shrink-wraps its content instead of spanning the
@@ -97,8 +106,10 @@ export function MatchDayBanner({
       >
         <View className="items-center border-2 border-b-4 border-ink bg-paper px-4 py-3">
           <View style={{ flexDirection: 'row', gap: 4 }}>
-            {CROWD_SPRITE_IDS.map(spriteId => (
-              <Canvas key={spriteId} style={{ width: SPRITE_PX, height: SPRITE_PX }}>
+            {/* Keyed by slot, not by sprite: the cabinet repeats the small and
+                medium cups either side of the grand one. */}
+            {strip.map((spriteId, slot) => (
+              <Canvas key={`${slot}:${spriteId}`} style={{ width: SPRITE_PX, height: SPRITE_PX }}>
                 {financeSpriteRuns(spriteId).map(run => (
                   <Rect
                     key={run.id}

@@ -576,7 +576,13 @@ describe('career milestones recorded at settlement', () => {
 
     const settled = winUserMatch(state);
 
-    expect(settled.eventFlags).toEqual(['milestone:first-win', 'milestone:statement-win']);
+    // The fixture is won 3-0 with all three scored by one player, so the only
+    // milestone it earns is the hat-trick — banked here because the scorer list
+    // does not survive the week.
+    expect(settled.eventFlags).toEqual(['milestone:hat-trick']);
+    expect(settled.pendingMilestones).toEqual([
+      { eventId: 'milestone-hat-trick', selectedPlayerId: expect.any(String) },
+    ]);
   });
 
   it('records each milestone exactly once over a run of weeks', () => {

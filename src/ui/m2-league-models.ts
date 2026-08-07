@@ -70,6 +70,8 @@ export interface M2CupFixtureViewModel {
   readonly status: 'SCHEDULED' | 'PLAYED';
   readonly winnerName?: string;
   readonly involvesUserClub: boolean;
+  /** Which name in the tie is yours, so the bracket can weight it. */
+  readonly userSide?: 'home' | 'away';
   readonly userWon: boolean;
   readonly playableNow: boolean;
 }

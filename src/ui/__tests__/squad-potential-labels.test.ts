@@ -28,6 +28,45 @@ describe('squad potential labels', () => {
     expect(source).not.toContain('player.remainingPotential');
   });
 
+  /**
+   * The player file prints four numbers a manager is expected to act on and
+   * nothing on the card says what any of them do. Potential is the sharpest
+   * case: its value is wider than its box, so "C+ · 5% SU…" is all the card can
+   * ever show — the tip is the only place the full line exists.
+   */
+  it('explains condition, potential, fame and morale on the player file', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'),
+      'utf8',
+    );
+    const copy = JSON.parse(
+      readFileSync(join(process.cwd(), 'content/i18n/en.json'), 'utf8'),
+    ).strings as Record<string, string>;
+
+    for (const key of [
+      'squadTraining.column.condition',
+      'squadTraining.potentialTip',
+      'squadTraining.fameTip',
+      'squadTraining.moraleTip',
+    ]) {
+      expect(source).toContain(`text={t('${key}'`);
+      expect(copy[key]).toBeDefined();
+    }
+    // Hover is the desktop half; every tip also has a spoken label, because a
+    // phone and a screen reader never see a hover.
+    for (const key of [
+      'squadTraining.a11y.condition',
+      'squadTraining.a11y.potential',
+      'squadTraining.a11y.fame',
+      'squadTraining.a11y.morale',
+    ]) {
+      expect(source).toContain(`accessibilityLabel={t('${key}'`);
+      expect(copy[key]).toBeDefined();
+    }
+    // The clipped value is spelled out in full inside the bubble.
+    expect(copy['squadTraining.potentialTip']).toContain('{grade} · {percent}% SUPER');
+  });
+
   it('always reserves enough fixed space to show the full player position', () => {
     const source = readFileSync(
       join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'),

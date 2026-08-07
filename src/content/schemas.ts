@@ -442,13 +442,131 @@ const EventEffectSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('morale'), amount: z.number().int().min(-100).max(100) }),
   z.strictObject({ type: z.literal('fans'), amount: z.number().int().min(-10000).max(10000) }),
   z.strictObject({ type: z.literal('injury'), weeks: z.number().int().min(1).max(8) }),
+  /**
+   * A heal. `injury` can only ever lengthen an absence (it resolves through
+   * `max`), so shortening one needs its own effect and its own sign.
+   */
+  z.strictObject({ type: z.literal('injuryDelta'), weeks: z.number().int().min(-3).max(-1) }),
+  /**
+   * Squad-wide morale, said out loud.
+   *
+   * This used to be implicit: a `morale` effect on an event with no selected
+   * player fell through to every player at the club. Two different meanings on
+   * one type, distinguished by something the outcome never states. `morale` is
+   * now always the selected player; this is always the room.
+   */
+  z.strictObject({ type: z.literal('squadMorale'), amount: z.number().int().min(-100).max(100) }),
   z.strictObject({
     type: z.literal('statDelta'),
     attribute: AttributeSchema,
     amount: z.number().int().min(-10).max(10),
   }),
+  /**
+   * An attribute change measured in the club's own training sessions.
+   *
+   * A flat number cannot stay meaningful: the drill ladder runs +4 to +22 a
+   * session, so a fixed +2 is 0.7% of a season's training at tier 1 and 0.1% at
+   * tier 5 — it decays to noise exactly as the club grows into the content.
+   * Sessions hold their value as a fraction of a season at every tier.
+   *
+   * Resolved against the drill the club has actually bought, never a table
+   * copied into the engine — see `resolveSessionPoints`. Losses are capped at
+   * one session because two, at tier 5, is 44 points off a single attribute.
+   */
+  z.strictObject({
+    type: z.literal('statDeltaSessions'),
+    attribute: AttributeSchema,
+    sessions: z.number().int().min(-1).max(4),
+  }),
+  /**
+   * A permanent change to the coach the manager pointed at.
+   *
+   * `motivator` counts half-levels, not percent, because that is the shape of
+   * the plumbing — `coachMotivatorStrengthHalfLevels` returns an integer, two
+   * per head level and one per assistant level, and a percent field would have
+   * to be converted back and would round wrong.
+   */
+  z.strictObject({
+    type: z.literal('coachBoost'),
+    facet: z.enum(['training', 'tp', 'motivator']),
+    amount: z.number().int().min(-5).max(5),
+  }),
+  /**
+   * Retraining, not promotion: the coach swaps his second specialty for another
+   * one. Same count, same level — only *where* his bonus lands moves, so it can
+   * never be a power gain.
+   */
+  z.strictObject({
+    type: z.literal('coachSpecialty'),
+    to: z.enum(['ATTACK', 'DEFENSE', 'FITNESS', 'TECHNIQUE', 'GOALKEEPING', 'MOTIVATOR']),
+  }),
+  /**
+   * A permanent change to how well one building works. Four named effects
+   * rather than one "output" percent because the seven facility benefits are
+   * not the same kind of number — the dorm's is four points a level, which no
+   * sensible percentage can move.
+   */
+  z.strictObject({ type: z.literal('facilityTpBonus'), percent: z.number().int().min(-15).max(20) }),
+  z.strictObject({ type: z.literal('facilityTrainingBonus'), percent: z.number().int().min(-15).max(20) }),
+  z.strictObject({ type: z.literal('facilityRecoveryBonus'), amount: z.number().int().min(-2).max(3) }),
+  z.strictObject({ type: z.literal('facilityIncomeBonus'), percent: z.number().int().min(-15).max(20) }),
+  z.strictObject({ type: z.literal('loyalty'), amount: z.number().int().min(-25).max(25) }),
+  z.strictObject({ type: z.literal('condition'), amount: z.number().int().min(-30).max(30) }),
+  z.strictObject({ type: z.literal('fame'), amount: z.number().int().min(-50).max(50) }),
   z.strictObject({ type: z.literal('flag'), flag: idSchema, value: z.boolean() }),
 ]);
+
+/**
+ * Effect types the engine reads with `.find`, so a second one in the same
+ * outcome would be silently dropped rather than summed (`money`, `tp` and
+ * `fans` are summed and are deliberately absent from this list).
+ *
+ * Rejected at build time rather than summed at runtime: the shipped catalog
+ * has no duplicates, so the gate costs nothing and removes the whole class.
+ */
+const SINGULAR_EFFECT_TYPES = [
+  'morale',
+  'squadMorale',
+  'injury',
+  'injuryDelta',
+  'statDelta',
+  'loyalty',
+  'condition',
+  'fame',
+  'coachSpecialty',
+  'facilityTpBonus',
+  'facilityTrainingBonus',
+  'facilityRecoveryBonus',
+  'facilityIncomeBonus',
+] as const;
+
+/** Coach effects a story may point at, and the trigger each one requires. */
+const COACH_EFFECT_TYPES = ['coachBoost', 'coachSpecialty'] as const;
+
+/** Facility effects, which need a building to point at for the same reason. */
+const FACILITY_EFFECT_TYPES = [
+  'facilityTpBonus',
+  'facilityTrainingBonus',
+  'facilityRecoveryBonus',
+  'facilityIncomeBonus',
+] as const;
+
+/**
+ * Which building types actually read each facility effect.
+ *
+ * The failure this prevents is silent: a story that offers a dorm and pays a
+ * training bonus writes a field the dorm's benefit never reads, so the panel
+ * says the building improved and not one number moves. An event may only offer
+ * types that can read every effect it authors.
+ */
+const FACILITY_EFFECT_READERS: Readonly<Record<string, readonly string[]>> = {
+  facilityTpBonus: ['training-pitch'],
+  facilityTrainingBonus: [
+    'training-pitch', 'gym', 'tech-center', 'shooting-range', 'keeper-court',
+  ],
+  facilityRecoveryBonus: ['dorm'],
+  facilityIncomeBonus: ['fan-shop', 'stadium-stand'],
+};
 
 const EventOutcomeSchema = z.strictObject({
   weight: z.number().int().min(1).max(1000),
@@ -467,7 +585,12 @@ const EventOutcomeSchema = z.strictObject({
   successHeadline: displayNameSchema.optional(),
   effects: z.array(EventEffectSchema),
   nextEventId: idSchema.optional(),
-});
+}).refine(
+  outcome => SINGULAR_EFFECT_TYPES.every(type => (
+    outcome.effects.filter(effect => effect.type === type).length <= 1
+  )),
+  'an outcome may carry at most one effect of each singular type — the engine reads them with find(), so a second is dropped rather than summed',
+);
 
 const EventRequirementSchema = z.strictObject({
   minMoney: safeNonnegativeIntegerSchema.optional(),
@@ -520,6 +643,26 @@ export const GameEventSchema = z.strictObject({
     requiredPersonality: EventRequirementSchema.shape.requiredPersonality,
     requiresHero: z.boolean().optional(),
     requiresPlayer: z.boolean().optional(),
+    /** The one keeper story: the picker offers only goalkeepers. */
+    requiresPlayerRole: z.literal('GK').optional(),
+    /** The card asks the manager to point at the head coach or the assistant. */
+    requiresCoach: z.boolean().optional(),
+    /**
+     * The story is about the two of them disagreeing, so it needs both slots
+     * filled — which means it cannot appear before the Coaching Office is up.
+     */
+    requiresBothCoaches: z.boolean().optional(),
+    /**
+     * The card asks the manager to point at a building. The list narrows which
+     * types are offered; an event that admits several must map every one of
+     * them to an effect, or the picker could hand it a building it cannot act
+     * on. Scout Office and Coaching Office are not targetable — a shortlist
+     * size and a boolean unlock cannot take a percentage.
+     */
+    requiresFacility: z.array(z.enum([
+      'training-pitch', 'gym', 'tech-center', 'shooting-range', 'keeper-court',
+      'dorm', 'youth-field', 'fan-shop', 'stadium-stand',
+    ])).min(1).optional(),
     repeatable: z.boolean().optional(),
   }).superRefine((trigger, context) => {
     if (trigger.minWeek > trigger.maxWeek) addIssue(context, ['minWeek'], 'event minWeek must not exceed maxWeek');
@@ -530,6 +673,83 @@ export const GameEventSchema = z.strictObject({
   choices: z.array(EventChoiceSchema).min(2).max(3),
 }).superRefine((event, context) => {
   addDuplicateIssues(event.choices.map(choice => choice.id), context, ['choices'], 'choice ID');
+  /**
+   * A player effect needs a player, and the engine will not guess one.
+   *
+   * `morale`, `injury` and `statDelta` all land on the event's selected player.
+   * Before this rule, an event that authored one without `requiresPlayer` did
+   * not fail — `morale` quietly became a squad-wide effect and the other two
+   * were dropped on the floor. Both readings are now unreachable: squad morale
+   * is its own type, and this rejects the rest at build time.
+   */
+  const PLAYER_EFFECT_TYPES = [
+    'morale', 'injury', 'injuryDelta', 'statDelta', 'statDeltaSessions',
+    'loyalty', 'condition', 'fame',
+  ] as const;
+  /**
+   * A coach effect needs a coach, for the same reason a player effect needs a
+   * player: the engine will not guess which one the story meant.
+   */
+  event.choices.forEach((choice, choiceIndex) => {
+    choice.outcomes.forEach((outcome, outcomeIndex) => {
+      const facets = outcome.effects
+        .filter(effect => effect.type === 'coachBoost')
+        .map(effect => effect.type === 'coachBoost' ? effect.facet : '');
+      if (new Set(facets).size !== facets.length) {
+        addIssue(
+          context,
+          ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+          'an outcome may carry at most one coachBoost per facet',
+        );
+      }
+      const facilityEffect = outcome.effects.find(effect => (
+        (FACILITY_EFFECT_TYPES as readonly string[]).includes(effect.type)
+      ));
+      if (facilityEffect !== undefined && event.trigger.requiresFacility === undefined) {
+        addIssue(
+          context,
+          ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+          `a "${facilityEffect.type}" effect targets the selected building, so ${event.id} must set trigger.requiresFacility`,
+        );
+      }
+      const offered = event.trigger.requiresFacility ?? [];
+      for (const effect of outcome.effects) {
+        const readers = FACILITY_EFFECT_READERS[effect.type];
+        if (readers === undefined) continue;
+        const deaf = offered.filter(type => !readers.includes(type));
+        if (deaf.length === 0) continue;
+        addIssue(
+          context,
+          ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+          `${event.id} may offer ${deaf.join(', ')}, which cannot read a "${effect.type}" — the boost would be stored and never read`,
+        );
+      }
+      if (event.trigger.requiresCoach === true) return;
+      const coachEffect = outcome.effects.find(effect => (
+        (COACH_EFFECT_TYPES as readonly string[]).includes(effect.type)
+      ));
+      if (coachEffect === undefined) return;
+      addIssue(
+        context,
+        ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+        `a "${coachEffect.type}" effect targets the selected coach, so ${event.id} must set trigger.requiresCoach`,
+      );
+    });
+  });
+  if (event.trigger.requiresPlayer === true) return;
+  event.choices.forEach((choice, choiceIndex) => {
+    choice.outcomes.forEach((outcome, outcomeIndex) => {
+      const offender = outcome.effects.find(effect => (
+        (PLAYER_EFFECT_TYPES as readonly string[]).includes(effect.type)
+      ));
+      if (offender === undefined) return;
+      addIssue(
+        context,
+        ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+        `a "${offender.type}" effect targets the selected player, so ${event.id} must set trigger.requiresPlayer (use "squadMorale" for a club-wide mood change)`,
+      );
+    });
+  });
 });
 
 export const EventCatalogSchema = z.strictObject({

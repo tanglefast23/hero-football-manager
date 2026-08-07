@@ -43,6 +43,10 @@ import {
   advanceWeek,
   applyBuzzImpacts,
   applyCareerEventOutcome,
+  applyCoachEventEffect,
+  applyFacilityEventEffect,
+  drainPendingMilestone,
+  isCareerMilestoneEventId,
   beginCareerTransferTalks,
   beginCareerRenewalTalks,
   beginStoryOnboarding,
@@ -91,8 +95,12 @@ import {
   resolveNextClubLegendLegacy,
   resolvePostMatchAwakening,
   resolveTrainingDrillForPath,
+  sessionAttributeDelta,
   restoreCareerContractPromiseLineup,
   roleOverall,
+  isFacilityOperational,
+  selectCareerEventCoach,
+  selectCareerEventFacility,
   selectCareerEventPlayer,
   selectCareerLicensedHeroes,
   sellCareerPlayer,
@@ -645,6 +653,28 @@ function resolveManagedDeskStory(state: GameState): GameState {
         if (selected === undefined) throw new Error(`event ${event.id} has no eligible user player`);
         next = selectCareerEventPlayer(next, selected.id);
       }
+      /**
+       * The desk must point targeted stories at something, or the probe runs a
+       * catalog whose coach and building cards resolve to nothing and still
+       * reports a number. Head coach first, then assistant; lowest building id
+       * among the types the story admits, so the choice is deterministic.
+       */
+      if (event.trigger.requiresCoach === true && pending.selectedCoachRole === undefined) {
+        const role = next.market?.headCoach !== undefined ? 'HEAD' as const : 'ASSISTANT' as const;
+        next = selectCareerEventCoach(next, role);
+      }
+      if (event.trigger.requiresFacility !== undefined && pending.selectedFacilityId === undefined) {
+        const grid = next.facilities.grid;
+        const building = grid?.buildings
+          .filter(candidate => (
+            (event.trigger.requiresFacility as readonly string[]).includes(candidate.type)
+              && isFacilityOperational(grid, candidate.id)
+          ))
+          .slice()
+          .sort((left, right) => left.id.localeCompare(right.id))[0];
+        if (building === undefined) throw new Error(`event ${event.id} has no operational building`);
+        next = selectCareerEventFacility(next, building.id);
+      }
       const choice = event.choices.find(candidate => (
         candidate.risky !== true && eventChoiceUnavailableReason(next, candidate) === undefined
       )) ?? event.choices.find(candidate => eventChoiceUnavailableReason(next, candidate) === undefined);
@@ -668,7 +698,11 @@ function resolveManagedDeskStory(state: GameState): GameState {
       : content.events.events.find(candidate => candidate.id === resolved.resolvedNextEventId);
     next = followUp !== undefined
       && (followUp.trigger.repeatable === true || !dismissed.resolvedEventIds.includes(followUp.id))
-      ? offerCareerEvent(dismissed, followUp.id)
+      ? offerCareerEvent(dismissed, followUp.id, {
+          ...(resolved.selectedPlayerId === undefined ? {} : { playerId: resolved.selectedPlayerId }),
+          ...(resolved.selectedCoachRole === undefined ? {} : { coachRole: resolved.selectedCoachRole }),
+          ...(resolved.selectedFacilityId === undefined ? {} : { facilityId: resolved.selectedFacilityId }),
+        })
       : dismissed;
   }
   return next;
@@ -684,6 +718,14 @@ function resolveManagedEventChoice(state: GameState, choiceId: string): GameStat
   if (choice === undefined) throw new Error(`unknown long-career event choice ${choiceId}`);
   if (event.trigger.requiresPlayer === true && pending.selectedPlayerId === undefined) {
     throw new Error('choose a player before resolving this long-career event');
+  }
+  // Mirrors the store's own guards, so the instrument cannot resolve a targeted
+  // story the game would refuse to resolve.
+  if (event.trigger.requiresCoach === true && pending.selectedCoachRole === undefined) {
+    throw new Error('choose a coach before resolving this long-career event');
+  }
+  if (event.trigger.requiresFacility !== undefined && pending.selectedFacilityId === undefined) {
+    throw new Error('choose a facility before resolving this long-career event');
   }
   const unavailableReason = eventChoiceUnavailableReason(state, choice);
   if (unavailableReason !== undefined) throw new Error(unavailableReason);
@@ -715,13 +757,40 @@ function resolveManagedEventChoice(state: GameState, choiceId: string): GameStat
   const moneyDelta = sumEventEffect(outcome.effects, 'money');
   const trainingPointDelta = sumEventEffect(outcome.effects, 'tp');
   const fanDelta = sumEventEffect(outcome.effects, 'fans');
+  // Mirrors resolveContentEvent exactly. An instrument that applies different
+  // rules from the game still produces numbers, which is worse than one that
+  // is merely out of date — so these move in the same commit, always.
   const morale = outcome.effects.find(effect => effect.type === 'morale');
+  const squadMorale = outcome.effects.find(effect => effect.type === 'squadMorale');
   const injury = outcome.effects.find(effect => effect.type === 'injury');
+  const injuryHeal = outcome.effects.find(effect => effect.type === 'injuryDelta');
   const stat = outcome.effects.find(effect => effect.type === 'statDelta');
+  const statSessions = outcome.effects.find(effect => effect.type === 'statDeltaSessions');
+  const loyalty = outcome.effects.find(effect => effect.type === 'loyalty');
+  const condition = outcome.effects.find(effect => effect.type === 'condition');
+  const fame = outcome.effects.find(effect => effect.type === 'fame');
+  const coachBoosts = outcome.effects.filter(effect => effect.type === 'coachBoost');
+  const coachSpecialty = outcome.effects.find(effect => effect.type === 'coachSpecialty');
+  const coachRole = pending.selectedCoachRole;
+  const facilityId = pending.selectedFacilityId;
+  const FACILITY_EFFECT_FACETS = {
+    facilityTpBonus: 'tpBonusPercent',
+    facilityTrainingBonus: 'trainingBonusPercent',
+    facilityRecoveryBonus: 'recoveryBonus',
+    facilityIncomeBonus: 'incomeBonusPercent',
+  } as const;
   const flags = outcome.effects
     .filter(effect => effect.type === 'flag' && effect.value)
     .map(effect => effect.type === 'flag' ? effect.flag : '');
-  const hasPlayerEffect = playerId !== undefined && (morale || injury || stat);
+  const hasPlayerEffect = playerId !== undefined
+    && (morale || injury || injuryHeal || stat || statSessions || loyalty || condition || fame);
+  // Same resolution and the same proportional loss floor as resolveContentEvent.
+  const resolvedSessionDelta = (() => {
+    if (statSessions?.type !== 'statDeltaSessions' || playerId === undefined) return undefined;
+    const player = working.players.find(candidate => candidate.id === playerId);
+    if (player === undefined) return undefined;
+    return sessionAttributeDelta(working, player, statSessions.attribute, statSessions.sessions);
+  })();
   let next = applyCareerEventOutcome(working, choice.id, outcome.text, {
     moneyDelta,
     trainingPointDelta,
@@ -732,10 +801,18 @@ function resolveManagedEventChoice(state: GameState, choiceId: string): GameStat
         playerId,
         ...(morale?.type === 'morale' ? { moraleDelta: morale.amount } : {}),
         ...(injury?.type === 'injury' ? { injuryWeeks: injury.weeks } : {}),
+        ...(injuryHeal?.type === 'injuryDelta' ? { injuryWeeksDelta: injuryHeal.weeks } : {}),
         ...(stat?.type === 'statDelta' ? {
           attribute: stat.attribute,
           attributeDelta: stat.amount,
         } : {}),
+        ...(statSessions?.type === 'statDeltaSessions' && resolvedSessionDelta !== undefined ? {
+          attribute: statSessions.attribute,
+          attributeDelta: resolvedSessionDelta,
+        } : {}),
+        ...(loyalty?.type === 'loyalty' ? { loyaltyDelta: loyalty.amount } : {}),
+        ...(condition?.type === 'condition' ? { conditionDelta: condition.amount } : {}),
+        ...(fame?.type === 'fame' ? { fameDelta: fame.amount } : {}),
       },
     } : {}),
   }, {
@@ -744,15 +821,40 @@ function resolveManagedEventChoice(state: GameState, choiceId: string): GameStat
     success: choice.risky && outcomeIndex === 0,
     ...(outcome.nextEventId === undefined ? {} : { nextEventId: outcome.nextEventId }),
   });
-  if (morale?.type === 'morale' && playerId === undefined) {
+  // Coach and facility targets, mirroring resolveContentEvent. Without these
+  // the instrument would run a catalog whose coach and building stories did
+  // nothing at all, and still report a number.
+  if (coachRole !== undefined) {
+    for (const boost of coachBoosts) {
+      if (boost.type !== 'coachBoost') continue;
+      next = applyCoachEventEffect(next, coachRole, { facet: boost.facet, amount: boost.amount });
+    }
+    if (coachSpecialty?.type === 'coachSpecialty') {
+      next = applyCoachEventEffect(next, coachRole, { specialtyTo: coachSpecialty.to });
+    }
+  }
+  if (facilityId !== undefined) {
+    for (const effect of outcome.effects) {
+      const facet = FACILITY_EFFECT_FACETS[effect.type as keyof typeof FACILITY_EFFECT_FACETS];
+      if (facet === undefined) continue;
+      const amount = 'percent' in effect ? effect.percent : 'amount' in effect ? effect.amount : 0;
+      next = applyFacilityEventEffect(next, facilityId, facet, amount);
+    }
+  }
+  if (squadMorale?.type === 'squadMorale') {
     next = {
       ...next,
       players: next.players.map(player => player.clubId === next.userClubId
-        ? { ...player, morale: Math.max(0, Math.min(100, player.morale + morale.amount)) }
+        ? { ...player, morale: Math.max(0, Math.min(100, player.morale + squadMorale.amount)) }
         : player),
     };
   }
-  return { ...next, eventClock: { ...next.eventClock, weeksWithoutEvent: 0 } };
+  // Mirrors the store: a recognition beat does not reset the drought ramp.
+  const isMilestone = isCareerMilestoneEventId(pending.eventId);
+  const drained = isMilestone ? drainPendingMilestone(next, pending.eventId) : next;
+  return isMilestone
+    ? drained
+    : { ...drained, eventClock: { ...drained.eventClock, weeksWithoutEvent: 0 } };
 }
 
 function sumEventEffect(

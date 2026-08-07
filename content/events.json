@@ -30,7 +30,7 @@
               "text": "The spider becomes the club's famous mascot. Supporters share spider memes, pack the stands, and copy its tiny scarf.",
               "effects": [
                 {
-                  "type": "morale",
+                  "type": "squadMorale",
                   "amount": 10
                 },
                 {
@@ -136,78 +136,6 @@
       ]
     },
     {
-      "id": "lightning-storm-training",
-      "category": "mystery",
-      "rarity": "rare",
-      "art": "event-lightning-training",
-      "title": "Training in a Lightning Storm",
-      "body": "The squad votes to keep training while purple lightning marches toward the ground.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 10,
-        "maxWeek": 30
-      },
-      "choices": [
-        {
-          "id": "train-through-storm",
-          "label": "One last drill",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 45,
-              "id": "success",
-              "successHeadline": "Trained inside the thunder",
-              "text": "Every strike lands in rhythm with the drill. The squad finishes crackling with confidence.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 18
-                },
-                {
-                  "type": "morale",
-                  "amount": 6
-                },
-                {
-                  "type": "flag",
-                  "flag": "storm-drill",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 55,
-              "id": "setback",
-              "text": "The floodlights explode. Training ends with eleven people hiding under one tiny dugout.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": -500
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "cancel-storm-training",
-          "label": "Get everyone inside",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "Bert serves tea while the storm waters the pitch for free.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 3
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "mysterious-energy-salesman",
       "category": "mystery",
       "rarity": "rare",
@@ -248,7 +176,7 @@
               "text": "It tastes like warm cucumber. Everyone spends the afternoon burping in unison.",
               "effects": [
                 {
-                  "type": "morale",
+                  "type": "squadMorale",
                   "amount": -4
                 }
               ]
@@ -338,786 +266,8 @@
               "text": "The driver finds the training camp. Nobody mentions the moving curtains.",
               "effects": [
                 {
-                  "type": "morale",
+                  "type": "squadMorale",
                   "amount": 4
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "radioactive-pitch-repaint",
-      "category": "mystery",
-      "rarity": "rare",
-      "art": "event-radioactive-paint",
-      "title": "Radioactive Pitch Repaint",
-      "body": "The bargain line-marking paint glows beautifully after sunset and faintly during lunch.",
-      "trigger": {
-        "season": 2,
-        "minWeek": 2,
-        "maxWeek": 30
-      },
-      "choices": [
-        {
-          "id": "keep-glowing-lines",
-          "label": "Keep the glowing lines",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 45,
-              "id": "success",
-              "successHeadline": "Glow night is famous now",
-              "text": "Night matches become famous. Supporters arrive in glow paint and never miss a line call.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 180
-                },
-                {
-                  "type": "flag",
-                  "flag": "glowing-pitch",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 55,
-              "id": "setback",
-              "text": "The league inspector arrives wearing three dosimeters. Emergency repainting is not cheap.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": -1200
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "replace-glowing-lines",
-          "label": "Repaint it properly",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The pitch returns to an entirely reassuring shade of green.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 5
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "very-old-boot",
-      "category": "mystery",
-      "rarity": "rare",
-      "art": "event-old-boot",
-      "title": "A Very Old Boot",
-      "body": "A mud-caked boot falls from a sealed loft. It fits every player perfectly.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 8,
-        "maxWeek": 30
-      },
-      "choices": [
-        {
-          "id": "wear-old-boot",
-          "label": "Use it for shooting practice",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 40,
-              "id": "success",
-              "successHeadline": "The boot earns a cushion",
-              "text": "Every shot curls into the top corner. The boot earns its own velvet cushion.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 20
-                },
-                {
-                  "type": "morale",
-                  "amount": 5
-                },
-                {
-                  "type": "flag",
-                  "flag": "lucky-boot",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 60,
-              "id": "setback",
-              "text": "Every shot hits the same corner flag. The boot is returned to the loft facing the wall.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": -3
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "archive-old-boot",
-          "label": "Archive it safely",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The club historian identifies it as old, important, and extremely smelly.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 35
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "team-bbq",
-      "category": "club",
-      "rarity": "common",
-      "art": "event-team-bbq",
-      "title": "Team BBQ",
-      "body": "The captain volunteers to cook for everyone despite owning a single enormous spatula and no thermometer.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 3,
-        "maxWeek": 30,
-        "repeatable": true
-      },
-      "choices": [
-        {
-          "id": "captain-cooks-bbq",
-          "label": "Let the captain cook",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 65,
-              "id": "success",
-              "successHeadline": "Ceremonial grilled onions",
-              "text": "The feast is magnificent. Even the substitutes receive ceremonial grilled onions.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 9
-                },
-                {
-                  "type": "flag",
-                  "flag": "legendary-bbq",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 35,
-              "id": "setback",
-              "text": "The burgers are technically charcoal. Team bonding happens over takeaway menus.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": -450
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "hire-bbq-caterer",
-          "label": "Hire a local caterer",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "Nobody gets famous, sick, or hungry. A professional success.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": -250
-                },
-                {
-                  "type": "morale",
-                  "amount": 5
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "prank-war",
-      "category": "club",
-      "rarity": "common",
-      "art": "event-prank-war",
-      "title": "Prank War",
-      "body": "Every training cone has been replaced by a tiny traffic cone wearing a moustache.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 4,
-        "maxWeek": 30,
-        "requiredPersonality": "Joker"
-      },
-      "choices": [
-        {
-          "id": "manager-joins-pranks",
-          "label": "Join the prank war",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 55,
-              "id": "success",
-              "successHeadline": "The tactics board wins",
-              "text": "Your remote-controlled tactics board wins the war and the dressing room erupts.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 10
-                },
-                {
-                  "type": "flag",
-                  "flag": "prank-champion",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 45,
-              "id": "setback",
-              "text": "Your fake team sheet reaches the local paper. Bert spends all morning making corrections.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": -20
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "end-prank-war",
-          "label": "Call a truce",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The moustached cones are retained for morale purposes.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 3
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lost-mascot-costume",
-      "category": "club",
-      "rarity": "common",
-      "art": "event-lost-mascot",
-      "title": "The Mascot Is Missing",
-      "body": "The mascot costume is gone. A trail of oversized footprints leads toward the high street.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 5,
-        "maxWeek": 30
-      },
-      "choices": [
-        {
-          "id": "chase-mascot",
-          "label": "Launch a club-wide search",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 70,
-              "id": "success",
-              "successHeadline": "A parade all the way home",
-              "text": "The mascot leads a spontaneous parade back to the ground with hundreds of new supporters.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 120
-                },
-                {
-                  "type": "flag",
-                  "flag": "mascot-parade",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 30,
-              "id": "setback",
-              "text": "It was in the laundry room. The search party still submits mileage claims.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": -300
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "borrow-mascot",
-          "label": "Borrow the school mascot",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "A giant pencil entertains the crowd and asks to keep the shirt.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 30
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "kit-clash-fan-vote",
-      "category": "club",
-      "rarity": "common",
-      "art": "event-kit-clash",
-      "title": "Kit Clash",
-      "body": "Both teams arrive in almost identical colors. The supporters demand the right to design an emergency strip.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 6,
-        "maxWeek": 30
-      },
-      "choices": [
-        {
-          "id": "fan-designed-kit",
-          "label": "Let the fans design it",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 60,
-              "id": "success",
-              "successHeadline": "Lightning and turnips forever",
-              "text": "The lightning-and-turnip pattern becomes an instant cult classic.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 150
-                },
-                {
-                  "type": "money",
-                  "amount": 900
-                },
-                {
-                  "type": "flag",
-                  "flag": "cult-kit",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 40,
-              "id": "setback",
-              "text": "The winning design has seventeen colors and cannot legally be printed.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": -350
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "plain-emergency-kit",
-          "label": "Use plain white shirts",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The match proceeds. The laundry manager receives a quiet round of applause.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 2
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "rat-trophy-cabinet",
-      "category": "club",
-      "rarity": "common",
-      "art": "event-trophy-rat",
-      "title": "Rat in the Trophy Cabinet",
-      "body": "A very confident rat has moved into the empty space reserved for future silverware.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 2,
-        "maxWeek": 30
-      },
-      "choices": [
-        {
-          "id": "appoint-rat-curator",
-          "label": "Appoint it club curator",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 50,
-              "id": "success",
-              "successHeadline": "The curator wears a blazer",
-              "text": "The rat poses for photos in a tiny blazer and doubles museum attendance.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 90
-                },
-                {
-                  "type": "flag",
-                  "flag": "rat-curator",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 50,
-              "id": "setback",
-              "text": "It steals the ticket float and retires under the west stand.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": -420
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "relocate-trophy-rat",
-          "label": "Relocate it humanely",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The rat accepts a transfer to the groundskeeper's shed.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 4
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "local-paper-hero-expose",
-      "category": "media",
-      "rarity": "rare",
-      "art": "event-hero-expose",
-      "title": "Hero Exposé",
-      "body": "The local paper wants a behind-the-scenes day with the club's most unusual players.",
-      "trigger": {
-        "season": 2,
-        "minWeek": 3,
-        "maxWeek": 30
-      },
-      "choices": [
-        {
-          "id": "grant-hero-access",
-          "label": "Grant full access",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 55,
-              "id": "success",
-              "successHeadline": "Sponsors call before breakfast",
-              "text": "The feature is warm, funny, and shared everywhere. Sponsors start calling before breakfast.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 220
-                },
-                {
-                  "type": "money",
-                  "amount": 1600
-                },
-                {
-                  "type": "flag",
-                  "flag": "hero-expose-hit",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 45,
-              "id": "setback",
-              "text": "The headline focuses entirely on the dressing-room fire extinguisher budget.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": -4
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "controlled-hero-interview",
-          "label": "Offer a short interview",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The captain says all the right things and only one slightly strange thing.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 60
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "viral-goal-clip",
-      "category": "media",
-      "rarity": "common",
-      "art": "event-viral-goal",
-      "title": "The Goal Goes Viral",
-      "body": "A blurry clip of last weekend's goal has reached three million views and one confused astronomy forum.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 7,
-        "maxWeek": 30
-      },
-      "choices": [
-        {
-          "id": "remix-viral-goal",
-          "label": "Release the official remix",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 65,
-              "id": "success",
-              "successHeadline": "A brand new terrace anthem",
-              "text": "The remix becomes a terrace anthem. Even the referee hums it.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 170
-                },
-                {
-                  "type": "money",
-                  "amount": 1100
-                },
-                {
-                  "type": "flag",
-                  "flag": "viral-anthem",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 35,
-              "id": "setback",
-              "text": "The assistant coach's dance becomes the only part anyone remembers.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 2
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "thank-viral-fans",
-          "label": "Post a simple thank-you",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The supporters appreciate the message and ask for fewer hashtags next time.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 55
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "pundit-slams-tactics",
-      "category": "media",
-      "rarity": "common",
-      "art": "event-pundit-tactics",
-      "title": "Pundit Slams Your Tactics",
-      "body": "A television pundit calls your formation 'a cupboard falling down a staircase.'",
-      "trigger": {
-        "season": 1,
-        "minWeek": 8,
-        "maxWeek": 30
-      },
-      "choices": [
-        {
-          "id": "clap-back-pundit",
-          "label": "Clap back live on air",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 50,
-              "id": "success",
-              "successHeadline": "Clip of the week",
-              "text": "Your magnetic-board demonstration wins the studio and becomes the clip of the week.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 100
-                },
-                {
-                  "type": "morale",
-                  "amount": 5
-                },
-                {
-                  "type": "flag",
-                  "flag": "pundit-owned",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 50,
-              "id": "setback",
-              "text": "The magnets fall off. One rolls under the host's chair and remains there all segment.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": -3
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "ignore-pundit",
-          "label": "Pin it on the team-room wall",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The squad uses the quote as motivation and improves the cupboard.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 7
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "popup-sponsor",
-      "category": "sponsor",
-      "rarity": "common",
-      "art": "event-popup-sponsor",
-      "title": "A Pop-up Sponsor",
-      "body": "A local mattress shop offers quick cash if the team celebrates the next win by pretending to nap.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 4,
-        "maxWeek": 30
-      },
-      "choices": [
-        {
-          "id": "accept-nap-sponsor",
-          "label": "Accept the nap challenge",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 60,
-              "id": "success",
-              "successHeadline": "Mattresses and shirts both sell",
-              "text": "The synchronized celebration is perfect. Mattress sales and club shirts both surge.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": 2400
-                },
-                {
-                  "type": "fans",
-                  "amount": 70
-                },
-                {
-                  "type": "flag",
-                  "flag": "nap-celebration",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 40,
-              "id": "setback",
-              "text": "The team performs it after a draw. Nobody is certain whether the sponsor still owes you.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": 600
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "decline-nap-sponsor",
-          "label": "Keep celebrations normal",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "Bert files the offer under SOMETIMES MONEY IS TOO STRANGE.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 2
                 }
               ]
             }
@@ -1176,7 +326,7 @@
                   "amount": 900
                 },
                 {
-                  "type": "morale",
+                  "type": "squadMorale",
                   "amount": -2
                 }
               ]
@@ -1277,156 +427,6 @@
       ]
     },
     {
-      "id": "homesick-youth",
-      "category": "player",
-      "rarity": "common",
-      "art": "event-homesick-youth",
-      "title": "Homesick Youth",
-      "body": "A young player admits they miss home, their dog, and a very specific bakery.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 6,
-        "maxWeek": 30,
-        "requiresPlayer": true
-      },
-      "choices": [
-        {
-          "id": "bring-home-to-club",
-          "label": "Bring home to the clubhouse",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 75,
-              "id": "success",
-              "successHeadline": "The bakery moves in too",
-              "text": "The family, dog, and bakery arrive together. The whole club adopts the pastry.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 9
-                },
-                {
-                  "type": "fans",
-                  "amount": 40
-                },
-                {
-                  "type": "flag",
-                  "flag": "bakery-day",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 25,
-              "id": "setback",
-              "text": "The dog steals the tactics board. Training becomes an unusually joyful chase.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 4
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "grant-home-visit",
-          "label": "Pay for a weekend home",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The player returns smiling and carrying enough pastries for the bench.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": -300
-                },
-                {
-                  "type": "morale",
-                  "amount": 6
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lottery-win",
-      "category": "player",
-      "rarity": "rare",
-      "art": "event-lottery-win",
-      "title": "A Player Wins the Lottery",
-      "body": "A squad member arrives in a limousine that is far too long for the training-ground car park.",
-      "trigger": {
-        "season": 2,
-        "minWeek": 3,
-        "maxWeek": 30,
-        "requiresPlayer": true
-      },
-      "choices": [
-        {
-          "id": "lottery-team-gift",
-          "label": "Suggest one team gift",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 60,
-              "id": "success",
-              "successHeadline": "Every chair has a name",
-              "text": "They buy a recovery lounge and insist every chair has a name.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 25
-                },
-                {
-                  "type": "morale",
-                  "amount": 8
-                },
-                {
-                  "type": "flag",
-                  "flag": "lottery-lounge",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 40,
-              "id": "setback",
-              "text": "They buy a golden foghorn. It is powerful, useless, and now part of warmups.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 3
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "lottery-financial-advice",
-          "label": "Recommend financial advice",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The limousine is returned. The player keeps one tasteful velvet tracksuit.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 4
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "two-player-feud",
       "category": "player",
       "rarity": "common",
@@ -1500,306 +500,6 @@
       ]
     },
     {
-      "id": "agent-whispers",
-      "category": "player",
-      "rarity": "rare",
-      "art": "event-agent-whispers",
-      "title": "Agent Whispers",
-      "body": "An agent has been seen measuring curtains in the away dressing room and complimenting your best players.",
-      "trigger": {
-        "season": 2,
-        "minWeek": 8,
-        "maxWeek": 30,
-        "requiresPlayer": true
-      },
-      "choices": [
-        {
-          "id": "bait-whispering-agent",
-          "label": "Feed the agent a ridiculous rumor",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 65,
-              "id": "success",
-              "successHeadline": "They scouted a player who does not exist",
-              "text": "Rivals waste a week scouting your fictional seven-foot winger. Your squad finds it hilarious.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 7
-                },
-                {
-                  "type": "tp",
-                  "amount": 7
-                },
-                {
-                  "type": "flag",
-                  "flag": "phantom-winger",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 35,
-              "id": "setback",
-              "text": "The rumor appears in print with your name attached. The agent sends flowers.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": -25
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "warn-squad-about-agent",
-          "label": "Warn the squad directly",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The dressing room closes ranks and the curtain measurements stop.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 4
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "flu-wave",
-      "category": "medical",
-      "rarity": "common",
-      "art": "event-flu-wave",
-      "title": "Flu Wave",
-      "body": "Half the squad sounds like a brass band tuning up inside a cupboard.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 7,
-        "maxWeek": 26
-      },
-      "choices": [
-        {
-          "id": "experimental-flu-soup",
-          "label": "Try the physio's legendary soup",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 60,
-              "id": "success",
-              "successHeadline": "The soup cleared the drain",
-              "text": "The soup clears every nose and one blocked drain. Training resumes by lunch.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 14
-                },
-                {
-                  "type": "morale",
-                  "amount": 5
-                },
-                {
-                  "type": "flag",
-                  "flag": "miracle-soup",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 40,
-              "id": "setback",
-              "text": "It is mostly pepper. Everyone can breathe, but nobody can stop crying.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": -2
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "send-flu-squad-home",
-          "label": "Send everyone home",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The club closes for a quiet recovery day and comes back steadier.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 3
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "miracle-physio",
-      "category": "medical",
-      "rarity": "rare",
-      "art": "event-miracle-physio",
-      "title": "The Miracle Physio",
-      "body": "A traveling physio offers a one-day clinic using tape, tuning forks, and a small gong.",
-      "trigger": {
-        "season": 2,
-        "minWeek": 4,
-        "maxWeek": 28
-      },
-      "choices": [
-        {
-          "id": "book-miracle-clinic",
-          "label": "Book the full strange clinic",
-          "risky": true,
-          "requires": {
-            "minMoney": 700
-          },
-          "outcomes": [
-            {
-              "weight": 50,
-              "id": "success",
-              "successHeadline": "One gong empties the room",
-              "text": "The gong rings and the treatment room empties at a jog. Nobody understands it.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 22
-                },
-                {
-                  "type": "morale",
-                  "amount": 7
-                },
-                {
-                  "type": "flag",
-                  "flag": "gong-clinic",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 50,
-              "id": "setback",
-              "text": "The gong startles the kit manager and achieves little else.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": -700
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "book-standard-physio",
-          "label": "Book a standard check-up",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The physio writes a sensible report with no musical notation.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": -250
-                },
-                {
-                  "type": "tp",
-                  "amount": 8
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "ultras-ticket-prices",
-      "category": "fan",
-      "rarity": "common",
-      "art": "event-ultras-tickets",
-      "title": "Ultras Want Cheaper Tickets",
-      "body": "The supporters' group arrives with a banner, a spreadsheet, and surprisingly good handwriting.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 3,
-        "maxWeek": 30
-      },
-      "choices": [
-        {
-          "id": "ultras-community-day",
-          "label": "Offer one huge community day",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 70,
-              "id": "success",
-              "successHeadline": "Scarves enough to wrap the stand",
-              "text": "The ground fills with families, songs, and enough scarves to wrap the stand twice.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 160
-                },
-                {
-                  "type": "money",
-                  "amount": 500
-                },
-                {
-                  "type": "flag",
-                  "flag": "community-stand",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 30,
-              "id": "setback",
-              "text": "Rain arrives sideways. The few who stay sing even louder.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 25
-                },
-                {
-                  "type": "money",
-                  "amount": -400
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "ultras-price-freeze",
-          "label": "Promise a price freeze",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The banner comes down and the spreadsheet receives a respectful nod from Bert.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 70
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "hero-school-visit",
       "category": "fan",
       "rarity": "common",
@@ -1828,7 +528,7 @@
                   "amount": 190
                 },
                 {
-                  "type": "morale",
+                  "type": "squadMorale",
                   "amount": 8
                 },
                 {
@@ -1876,148 +576,6 @@
       ]
     },
     {
-      "id": "hundredth-fan",
-      "category": "fan",
-      "rarity": "common",
-      "art": "event-hundredth-fan",
-      "title": "The Hundredth Fan",
-      "body": "The ticket system identifies supporter number one hundred. They are extremely surprised by the marching band.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 2,
-        "maxWeek": 18
-      },
-      "choices": [
-        {
-          "id": "hundredth-fan-parade",
-          "label": "Hold the full parade",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 75,
-              "id": "success",
-              "successHeadline": "One roundabout, hundreds of followers",
-              "text": "The tiny parade blocks one roundabout and gains the club hundreds of curious followers.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 110
-                },
-                {
-                  "type": "flag",
-                  "flag": "hundredth-parade",
-                  "value": true
-                }
-              ],
-              "nextEventId": "community-mural"
-            },
-            {
-              "weight": 25,
-              "id": "setback",
-              "text": "The band arrives at the wrong house. That household becomes supporters anyway.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 25
-                },
-                {
-                  "type": "money",
-                  "amount": -120
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "hundredth-fan-shirt",
-          "label": "Present a signed shirt",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The supporter promises to bring ninety-nine friends eventually.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 40
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "training-drone",
-      "category": "club",
-      "rarity": "rare",
-      "art": "event-training-drone",
-      "title": "The Training Drone",
-      "body": "A sponsor demo drone starts collecting cones, bibs, and anything else that stops moving.",
-      "trigger": {
-        "season": 2,
-        "minWeek": 5,
-        "maxWeek": 30,
-        "requiredFacility": "training-pitch"
-      },
-      "choices": [
-        {
-          "id": "race-training-drone",
-          "label": "Turn it into a pressing drill",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 65,
-              "id": "success",
-              "successHeadline": "Every bib reclaimed",
-              "text": "The squad learns to swarm the drone and wins back every bib in record time.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 24
-                },
-                {
-                  "type": "flag",
-                  "flag": "drone-press",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 35,
-              "id": "setback",
-              "text": "The drone escapes with the captain's boot and invoices the club for delivery.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": -500
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "return-training-drone",
-          "label": "Return it to the sponsor",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The sponsor apologizes and sends a box of normal, non-flying cones.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 6
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "haunted-scoreboard",
       "category": "mystery",
       "rarity": "legendary",
@@ -2046,7 +604,7 @@
                   "amount": 30
                 },
                 {
-                  "type": "morale",
+                  "type": "squadMorale",
                   "amount": 8
                 },
                 {
@@ -2062,7 +620,7 @@
               "text": "The display was tomorrow's maintenance date. The tactical session becomes a useful laugh.",
               "effects": [
                 {
-                  "type": "morale",
+                  "type": "squadMorale",
                   "amount": 2
                 }
               ]
@@ -2082,301 +640,6 @@
                 {
                   "type": "tp",
                   "amount": 5
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "community-mural",
-      "category": "fan",
-      "rarity": "common",
-      "art": "event-community-mural",
-      "title": "The Community Mural",
-      "body": "Local artists offer to paint the stadium wall if the club supplies paint and one brave subject.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 2,
-        "maxWeek": 30
-      },
-      "choices": [
-        {
-          "id": "living-community-mural",
-          "label": "Paint the whole heroic story",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 70,
-              "id": "success",
-              "successHeadline": "The wall moves at dusk",
-              "text": "The finished mural seems to move in the evening light. Supporters make it a match-day landmark.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 175
-                },
-                {
-                  "type": "money",
-                  "amount": 650
-                },
-                {
-                  "type": "flag",
-                  "flag": "living-mural",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 30,
-              "id": "setback",
-              "text": "Rain turns the hero into a purple cloud. The artists promise this is still powerful.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": -500
-                },
-                {
-                  "type": "fans",
-                  "amount": 20
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "simple-community-mural",
-          "label": "Paint the club crest",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The crisp new crest becomes the most photographed wall in the district.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 65
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "milestone-first-win",
-      "category": "club",
-      "rarity": "common",
-      "art": "event-team-bbq",
-      "title": "The First Win",
-      "body": "The weekend result sheet is pinned to the office door. Somebody has drawn a small crown on it.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 2,
-        "maxWeek": 30,
-        "requiredFlag": "milestone:first-win"
-      },
-      "choices": [
-        {
-          "id": "open-the-clubhouse",
-          "label": "Open the clubhouse to everyone",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 70,
-              "id": "success",
-              "successHeadline": "The crown stays on the door",
-              "text": "Half the town squeezes in, the crowned sheet goes behind glass, and the squad walks taller all week.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 7
-                },
-                {
-                  "type": "fans",
-                  "amount": 90
-                },
-                {
-                  "type": "flag",
-                  "flag": "first-result-framed",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 30,
-              "id": "setback",
-              "text": "The urn runs dry after nine cups. Everyone stays anyway and drinks squash.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 3
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "back-to-work-after-first-win",
-          "label": "Enjoy it for ten minutes",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "Ten minutes of noise, then cones. The squad likes that you kept it short.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 8
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "milestone-first-hero-goal",
-      "category": "media",
-      "rarity": "common",
-      "art": "event-viral-goal",
-      "title": "A Hero Finally Scores",
-      "body": "The goal your hero has been threatening all season arrives, and three phones catch it from three useless angles.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 3,
-        "maxWeek": 30,
-        "requiredFlag": "milestone:first-hero-goal"
-      },
-      "choices": [
-        {
-          "id": "release-hero-goal-angles",
-          "label": "Publish all three angles",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 65,
-              "id": "success",
-              "successHeadline": "Three bad angles, one great goal",
-              "text": "Supporters stitch the shaky clips into one and the club account gains a following it did not earn.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 130
-                },
-                {
-                  "type": "money",
-                  "amount": 400
-                },
-                {
-                  "type": "flag",
-                  "flag": "hero-goal-montage",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 35,
-              "id": "setback",
-              "text": "All three angles are mostly the back of one steward's head. The steward is thrilled.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 25
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "hero-goal-quiet-note",
-          "label": "Put it on the noticeboard",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "A printed still goes up with the date underlined twice. It stays there all season.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 5
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "milestone-statement-win",
-      "category": "fan",
-      "rarity": "common",
-      "art": "event-ultras-tickets",
-      "title": "Three Goals Clear",
-      "body": "The supporters' group has already printed a banner about the margin. It is enormous and slightly damp.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 3,
-        "maxWeek": 30,
-        "requiredFlag": "milestone:statement-win"
-      },
-      "choices": [
-        {
-          "id": "hang-the-margin-banner",
-          "label": "Hang it over the tunnel",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 60,
-              "id": "success",
-              "successHeadline": "Every visiting side reads it first",
-              "text": "Visiting teams walk out under it all season and the terrace never lets them forget the number.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 120
-                },
-                {
-                  "type": "morale",
-                  "amount": 5
-                },
-                {
-                  "type": "flag",
-                  "flag": "tunnel-banner",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 40,
-              "id": "setback",
-              "text": "It falls on the referee during the warm-up. He takes it surprisingly well.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 2
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "store-the-margin-banner",
-          "label": "Keep it for a bigger day",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "It is folded into the store cupboard and labelled FOR LATER, WHEN IT MEANS MORE.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 40
                 }
               ]
             }
@@ -2448,7 +711,7 @@
               "text": "You name all eighteen of them, slowly, until the segment runs out of time.",
               "effects": [
                 {
-                  "type": "morale",
+                  "type": "squadMorale",
                   "amount": 6
                 }
               ]
@@ -2483,7 +746,7 @@
               "text": "Supporters detour past the ground just to look at it. The next opponent arrives and reads it twice.",
               "effects": [
                 {
-                  "type": "morale",
+                  "type": "squadMorale",
                   "amount": 7
                 },
                 {
@@ -2600,79 +863,6 @@
                 {
                   "type": "fans",
                   "amount": 55
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "milestone-promotion-push",
-      "category": "club",
-      "rarity": "rare",
-      "art": "event-community-mural",
-      "title": "The Push Is Real",
-      "body": "Someone has started painting the season's results down the tunnel wall, one match at a time, in club colors.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 8,
-        "maxWeek": 30,
-        "requiredFlag": "milestone:promotion-push"
-      },
-      "choices": [
-        {
-          "id": "finish-the-results-wall",
-          "label": "Let them paint the rest of the season",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 60,
-              "id": "success",
-              "successHeadline": "The wall runs out of room",
-              "text": "The wall fills faster than the painter expected and the squad checks it on the way out every single day.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 8
-                },
-                {
-                  "type": "fans",
-                  "amount": 110
-                },
-                {
-                  "type": "flag",
-                  "flag": "results-wall",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 40,
-              "id": "setback",
-              "text": "Two draws in a row get painted a suspicious shade of green. Nobody comments.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 2
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "cover-the-results-wall",
-          "label": "Ask them to wait for May",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "The painter agrees, then quietly primes the whole wall ready for one very good afternoon.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 9
                 }
               ]
             }
@@ -2906,151 +1096,6 @@
       ]
     },
     {
-      "id": "sponsor-bonus-cheque",
-      "category": "sponsor",
-      "rarity": "common",
-      "art": "event-hero-commercial",
-      "title": "An Unexpected Cheque",
-      "body": "The kit sponsor has done better than expected this quarter and wants to share it, loudly, in front of a camera.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 5,
-        "maxWeek": 30,
-        "repeatable": true
-      },
-      "choices": [
-        {
-          "id": "giant-cheque-photo",
-          "label": "Do the giant cheque photo",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 70,
-              "id": "success",
-              "successHeadline": "It took four people to hold it",
-              "text": "The cheque is the size of a door. The photograph runs everywhere and the sponsor asks about next year before lunch.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": 1400
-                },
-                {
-                  "type": "fans",
-                  "amount": 60
-                },
-                {
-                  "type": "flag",
-                  "flag": "giant-cheque",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 30,
-              "id": "setback",
-              "text": "The wind takes it across the car park. The money is fine; the cheque is not.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": 1000
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "quiet-bonus-transfer",
-          "label": "Ask them to just wire it",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "It arrives by Thursday with a note reading THANKS FOR NOT MAKING US HOLD A CHEQUE.",
-              "effects": [
-                {
-                  "type": "money",
-                  "amount": 1100
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "groundskeeper-award",
-      "category": "club",
-      "rarity": "common",
-      "art": "event-radioactive-paint",
-      "title": "Best Pitch in the Division",
-      "body": "The groundskeeper has won a small regional award and is pretending very hard not to care about it.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 6,
-        "maxWeek": 30
-      },
-      "choices": [
-        {
-          "id": "parade-the-groundskeeper",
-          "label": "Walk him round the pitch at half time",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 75,
-              "id": "success",
-              "successHeadline": "He waved with the wrong hand the whole way",
-              "text": "He walks the full lap, waves with the wrong hand throughout, and the ground stands up for him twice.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 85
-                },
-                {
-                  "type": "morale",
-                  "amount": 6
-                },
-                {
-                  "type": "flag",
-                  "flag": "groundskeeper-lap",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 25,
-              "id": "setback",
-              "text": "He refuses to leave the mower shed and accepts the applause through a window.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 3
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "buy-the-groundskeeper-tools",
-          "label": "Spend the prize on new tools",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "He returns with equipment nobody can name and a pitch that plays a yard faster.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 11
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "old-boy-comes-home",
       "category": "fan",
       "rarity": "rare",
@@ -3079,7 +1124,7 @@
                   "amount": 20
                 },
                 {
-                  "type": "morale",
+                  "type": "squadMorale",
                   "amount": 7
                 },
                 {
@@ -3095,7 +1140,7 @@
               "text": "He mostly tells stories. Excellent stories, and a warm afternoon for everyone.",
               "effects": [
                 {
-                  "type": "morale",
+                  "type": "squadMorale",
                   "amount": 5
                 }
               ]
@@ -3189,152 +1234,6 @@
                 {
                   "type": "tp",
                   "amount": 10
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "saturday-radio-hour",
-      "category": "media",
-      "rarity": "common",
-      "art": "event-hero-expose",
-      "title": "The Saturday Radio Hour",
-      "body": "Local radio wants an hour of build-up from the ground itself, with supporters allowed to phone in.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 4,
-        "maxWeek": 30,
-        "repeatable": true
-      },
-      "choices": [
-        {
-          "id": "open-the-phone-lines",
-          "label": "Let the supporters phone in",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 65,
-              "id": "success",
-              "successHeadline": "Forty minutes of pure affection",
-              "text": "Caller after caller says something kind and specific. The hour overruns and nobody at the station minds.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 125
-                },
-                {
-                  "type": "morale",
-                  "amount": 5
-                },
-                {
-                  "type": "flag",
-                  "flag": "radio-phone-in",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 35,
-              "id": "setback",
-              "text": "One caller talks for eleven minutes about parking. He is, in fairness, correct.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 30
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "radio-hour-preview-only",
-          "label": "Keep it to a match preview",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "A tidy, useful hour. Two hundred people learn where the ground actually is.",
-              "effects": [
-                {
-                  "type": "fans",
-                  "amount": 45
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "clean-bill-of-health",
-      "category": "medical",
-      "rarity": "common",
-      "art": "event-miracle-physio",
-      "title": "Nobody in the Treatment Room",
-      "body": "For the first time this season the physio has nothing to do and is visibly unsettled by it.",
-      "trigger": {
-        "season": 1,
-        "minWeek": 8,
-        "maxWeek": 30,
-        "repeatable": true
-      },
-      "choices": [
-        {
-          "id": "full-strength-session",
-          "label": "Use the full squad while you have it",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 65,
-              "id": "success",
-              "successHeadline": "Eighteen fit players in one session",
-              "text": "A whole squad in one session for once. The shape finally looks like the shape on the board.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 18
-                },
-                {
-                  "type": "morale",
-                  "amount": 4
-                },
-                {
-                  "type": "flag",
-                  "flag": "full-strength-week",
-                  "value": true
-                }
-              ]
-            },
-            {
-              "weight": 35,
-              "id": "setback",
-              "text": "Someone pulls up in the last ten minutes. The physio looks almost relieved.",
-              "effects": [
-                {
-                  "type": "tp",
-                  "amount": 6
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "give-the-squad-a-day",
-          "label": "Give everyone the day off",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "id": "only",
-              "text": "They come back on Thursday looking like a different team, in the good way.",
-              "effects": [
-                {
-                  "type": "morale",
-                  "amount": 7
                 }
               ]
             }
@@ -3523,7 +1422,7 @@
                   "amount": 115
                 },
                 {
-                  "type": "morale",
+                  "type": "squadMorale",
                   "amount": 5
                 },
                 {
@@ -3557,7 +1456,7 @@
               "text": "They sing anyway, all afternoon, and are hoarse and happy by full time.",
               "effects": [
                 {
-                  "type": "morale",
+                  "type": "squadMorale",
                   "amount": 4
                 }
               ]
@@ -3632,6 +1531,2616 @@
                 {
                   "type": "fans",
                   "amount": 70
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sprint-the-postman",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-sprint-race",
+      "title": "The Postman Says He Is Faster",
+      "body": "The postman has told the whole street he is quicker than your quickest player. Your quickest player has heard.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "race-the-postman",
+          "label": "Race him at half time",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "The postman is beaten by a street",
+              "text": "Four hundred people watch a professional footballer beat a postman, and cheer anyway.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "pac",
+                  "sessions": 3
+                },
+                {
+                  "type": "morale",
+                  "amount": 5
+                },
+                {
+                  "type": "fans",
+                  "amount": 60
+                },
+                {
+                  "type": "flag",
+                  "flag": "sprint-the-postman-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "He pulls up at forty metres, in front of everybody, holding his hamstring.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "pac",
+                  "sessions": -1
+                },
+                {
+                  "type": "injury",
+                  "weeks": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "time-him-privately",
+          "label": "Time him privately",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "A stopwatch, an empty pitch, no audience. The numbers improve quietly.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "pac",
+                  "sessions": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "crossbar-until-dark",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-crossbar",
+      "title": "Ten Off The Bar",
+      "body": "He wants to stay until he has hit the crossbar ten times. It is already dark.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "floodlights-stay-on",
+          "label": "Leave the floodlights on",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 55,
+              "id": "success",
+              "successHeadline": "The tenth one goes in off the underside",
+              "text": "Nine hundred shots later the tenth rings off the bar and he finally goes home.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "sho",
+                  "sessions": 4
+                },
+                {
+                  "type": "flag",
+                  "flag": "crossbar-until-dark-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 45,
+              "id": "setback",
+              "text": "Somewhere after the six hundredth his technique deserts him entirely.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "sho",
+                  "sessions": -1
+                },
+                {
+                  "type": "condition",
+                  "amount": -12
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ten-minutes-more",
+          "label": "Ten more minutes, then home",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "Ten minutes, four attempts, one clean strike to finish on.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "sho",
+                  "sessions": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-rondo-circle",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-rondo",
+      "title": "The Rondo Nobody Escapes",
+      "body": "The squad has invented a rondo where one player never gets out of the middle. He has been in there since Tuesday.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "leave-him-in",
+          "label": "Leave him in there all week",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "He starts reading the pass before it leaves the foot",
+              "text": "By Friday he is intercepting passes the passer has not decided to make yet.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "pas",
+                  "sessions": 3
+                },
+                {
+                  "type": "morale",
+                  "amount": 6
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-rondo-circle-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "By Friday he has stopped chasing it at all.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "pas",
+                  "sessions": -1
+                },
+                {
+                  "type": "morale",
+                  "amount": -8
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "rotate-properly",
+          "label": "Run it properly, everyone rotates",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "Everybody takes a turn in the middle and the drill works as designed.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "pas",
+                  "sessions": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mark-the-hero",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-marking",
+      "title": "Mark The Hero All Week",
+      "body": "Your defender has asked to spend the week marking the club's own hero in training. The hero finds this funny.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "every-session",
+          "label": "Every session, no help",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 55,
+              "id": "success",
+              "successHeadline": "By Thursday the hero asks him to stop",
+              "text": "The hero spends four days going nowhere and asks, on Thursday, whether he can mark somebody else.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "def",
+                  "sessions": 3
+                },
+                {
+                  "type": "morale",
+                  "amount": 6
+                },
+                {
+                  "type": "flag",
+                  "flag": "mark-the-hero-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 45,
+              "id": "setback",
+              "text": "Four days of being turned inside out in front of everyone.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "def",
+                  "sessions": -1
+                },
+                {
+                  "type": "morale",
+                  "amount": -10
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "half-an-hour-daily",
+          "label": "Half an hour a day",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "Half an hour is enough to learn something and not enough to be humiliated.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "def",
+                  "sessions": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "futsal-night",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-futsal",
+      "title": "The Futsal League Is A Player Short",
+      "body": "The Tuesday futsal league needs one more. The hall is small, the floor is concrete, the tackles are not.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "sign-up-for-the-run",
+          "label": "Sign him up for the whole run",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "He comes back with a first touch that did not exist in August",
+              "text": "Six weeks in a hall the size of a car park and his first touch is unrecognisable.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "tec",
+                  "sessions": 3
+                },
+                {
+                  "type": "fame",
+                  "amount": 8
+                },
+                {
+                  "type": "flag",
+                  "flag": "futsal-night-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "Concrete, a bad landing, and a physio who has opinions about futsal.",
+              "effects": [
+                {
+                  "type": "injury",
+                  "weeks": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "one-friendly-game",
+          "label": "One friendly game",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "One game, no scores kept, and a touch that is noticeably tidier by Thursday.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "tec",
+                  "sessions": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-double-session",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-double-session",
+      "title": "He Has Asked, In Writing",
+      "body": "He has asked to train twice a day. In writing. With a schedule attached, and a second schedule for the first schedule.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true,
+        "repeatable": true,
+        "requiredPersonality": "Professional"
+      },
+      "choices": [
+        {
+          "id": "both-all-week",
+          "label": "Both, all week",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 55,
+              "id": "success",
+              "successHeadline": "He finishes the week fitter than anyone at the club",
+              "text": "Ten sessions in five days, and on Saturday he is still running when everyone else has stopped.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "sta",
+                  "sessions": 4
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-double-session-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 45,
+              "id": "setback",
+              "text": "He trains himself into the treatment room by Wednesday afternoon.",
+              "effects": [
+                {
+                  "type": "condition",
+                  "amount": -15
+                },
+                {
+                  "type": "injury",
+                  "weeks": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "one-session-done-well",
+          "label": "One session, done well",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "One session, done properly, and a night's sleep at the end of it.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "sta",
+                  "sessions": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-penalty-gauntlet",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-penalties",
+      "title": "Forty Penalties, Right Now",
+      "body": "The squad has decided your keeper should face forty penalties. Your keeper has decided he agrees.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true,
+        "requiresPlayerRole": "GK"
+      },
+      "choices": [
+        {
+          "id": "all-forty",
+          "label": "All forty, no breaks",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "He saves the last one and lies down on the goal line",
+              "text": "By the thirtieth he has stopped diving early and started reading hips.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "ref",
+                  "sessions": 3
+                },
+                {
+                  "type": "morale",
+                  "amount": 6
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-penalty-gauntlet-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "By the thirtieth he has stopped reading anything and started guessing.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "ref",
+                  "sessions": -1
+                },
+                {
+                  "type": "morale",
+                  "amount": -8
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ten-then-stop",
+          "label": "Ten, then stop",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "Ten penalties, three saved, and everyone goes in before it gets silly.",
+              "effects": [
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "ref",
+                  "sessions": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hometown-testimonial",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-testimonial",
+      "title": "His First Club Wants Him Back",
+      "body": "The club that had him at eleven is holding a testimonial on Sunday. They would like him to play the whole ninety.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "play-the-whole-ninety",
+          "label": "Let him play the ninety",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 65,
+              "id": "success",
+              "successHeadline": "He gets a standing ovation from four hundred people",
+              "text": "Four hundred people who watched him grow up stand up when he comes off.",
+              "effects": [
+                {
+                  "type": "loyalty",
+                  "amount": 12
+                },
+                {
+                  "type": "fame",
+                  "amount": 8
+                },
+                {
+                  "type": "flag",
+                  "flag": "hometown-testimonial-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 35,
+              "id": "setback",
+              "text": "Twenty minutes in, on a pitch nobody has repaired since 1994, he limps off.",
+              "effects": [
+                {
+                  "type": "injury",
+                  "weeks": 2
+                },
+                {
+                  "type": "loyalty",
+                  "amount": 5
+                }
+              ],
+              "nextEventId": "the-old-club-calls"
+            }
+          ]
+        },
+        {
+          "id": "send-a-signed-shirt",
+          "label": "Send a signed shirt",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "The shirt is framed behind the bar by Monday lunchtime.",
+              "effects": [
+                {
+                  "type": "loyalty",
+                  "amount": 4
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "homesick-family-move",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-homesick",
+      "title": "He Misses A Specific Bakery",
+      "body": "A young player misses home. Not vaguely — he misses his mother, his dog, and one particular bakery by name.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "move-the-family",
+          "label": "Move the family near the ground",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 70,
+              "id": "success",
+              "successHeadline": "His mother is at every home game by October",
+              "text": "The club pays the deposit. By October his mother has a seat she considers hers.",
+              "effects": [
+                {
+                  "type": "loyalty",
+                  "amount": 14
+                },
+                {
+                  "type": "morale",
+                  "amount": 6
+                },
+                {
+                  "type": "money",
+                  "amount": -900
+                },
+                {
+                  "type": "flag",
+                  "flag": "homesick-family-move-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 30,
+              "id": "setback",
+              "text": "They come, they hate it, and they are gone again by the second month. The deposit does not come back.",
+              "effects": [
+                {
+                  "type": "morale",
+                  "amount": -6
+                },
+                {
+                  "type": "money",
+                  "amount": -400
+                }
+              ]
+            }
+          ],
+          "requires": {
+            "minMoney": 900
+          }
+        },
+        {
+          "id": "weekend-home",
+          "label": "Pay for a weekend home",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "Two days at home and a box of something from the bakery on the way back.",
+              "effects": [
+                {
+                  "type": "loyalty",
+                  "amount": 5
+                },
+                {
+                  "type": "money",
+                  "amount": -300
+                }
+              ]
+            }
+          ],
+          "requires": {
+            "minMoney": 300
+          }
+        }
+      ]
+    },
+    {
+      "id": "one-more-year-handshake",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-handshake",
+      "title": "His Agent Wants A Number",
+      "body": "His agent wants a number. He wants something else: to know he will play.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "promise-him-the-shirt",
+          "label": "Promise him the shirt",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "He signs before the agent finishes his coffee",
+              "text": "You say it plainly and he signs before his agent has finished the coffee.",
+              "effects": [
+                {
+                  "type": "loyalty",
+                  "amount": 15
+                },
+                {
+                  "type": "morale",
+                  "amount": 6
+                },
+                {
+                  "type": "flag",
+                  "flag": "one-more-year-handshake-won",
+                  "value": true
+                }
+              ],
+              "nextEventId": "the-promise-kept"
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "He repeats the promise to a local reporter, word for word, on the record.",
+              "effects": [
+                {
+                  "type": "loyalty",
+                  "amount": -10
+                },
+                {
+                  "type": "squadMorale",
+                  "amount": -6
+                }
+              ],
+              "nextEventId": "the-promise-broken"
+            }
+          ]
+        },
+        {
+          "id": "a-fair-word",
+          "label": "A fair word, no promises",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "You tell him what you honestly think, which is more than most managers offer.",
+              "effects": [
+                {
+                  "type": "loyalty",
+                  "amount": 5
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-cameras-want-him",
+      "category": "media",
+      "rarity": "common",
+      "art": "event-tv-day",
+      "title": "A Full Day With The Cameras",
+      "body": "A regional show wants a full day with your most watchable player. They have already written the title card.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "give-them-the-day",
+          "label": "Give them the whole day",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "The segment runs twice and the shop sells out of his number",
+              "text": "It runs twice in one weekend and the shop sells out of his number by Sunday.",
+              "effects": [
+                {
+                  "type": "fame",
+                  "amount": 20
+                },
+                {
+                  "type": "money",
+                  "amount": 600
+                },
+                {
+                  "type": "fans",
+                  "amount": 90
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-cameras-want-him-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "The edit finds every dropped pass and none of the good ones.",
+              "effects": [
+                {
+                  "type": "fame",
+                  "amount": 8
+                },
+                {
+                  "type": "morale",
+                  "amount": -8
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "twenty-minutes",
+          "label": "Twenty minutes at the ground",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "Twenty minutes, two good answers, and everyone is home by four.",
+              "effects": [
+                {
+                  "type": "fame",
+                  "amount": 8
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-specialist-camp",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-mountain-camp",
+      "title": "One Place Left In The Hills",
+      "body": "A recovery camp up in the hills has one place left this week. It is not cheap and the food is famously terrible.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "send-him-up-the-mountain",
+          "label": "Send him up the mountain",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 65,
+              "id": "success",
+              "successHeadline": "He comes back down looking like a different athlete",
+              "text": "Six days of thin air and terrible food, and he comes back down transformed.",
+              "effects": [
+                {
+                  "type": "condition",
+                  "amount": 22
+                },
+                {
+                  "type": "morale",
+                  "amount": 4
+                },
+                {
+                  "type": "money",
+                  "amount": -700
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-specialist-camp-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 35,
+              "id": "setback",
+              "text": "Altitude, bad sleep, worse food, and legs heavier than when he left.",
+              "effects": [
+                {
+                  "type": "money",
+                  "amount": -700
+                },
+                {
+                  "type": "condition",
+                  "amount": -6
+                }
+              ]
+            }
+          ],
+          "requires": {
+            "minMoney": 700
+          }
+        },
+        {
+          "id": "light-week-at-home",
+          "label": "A light week at home",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "A quiet week, no travel, and legs that feel like his own again.",
+              "effects": [
+                {
+                  "type": "condition",
+                  "amount": 8
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-badge-course",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-badge-course",
+      "title": "Six Tuesdays For A Certificate",
+      "body": "A coaching course runs Tuesdays for six weeks. Tuesday is a training day. The course does not care.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresCoach": true
+      },
+      "choices": [
+        {
+          "id": "send-him-properly",
+          "label": "Send him properly, miss the Tuesdays",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 65,
+              "id": "success",
+              "successHeadline": "He comes back running sessions nobody here has seen",
+              "text": "Six Tuesdays gone and he returns with sessions nobody at this level has run before.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "training",
+                  "amount": 5
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-badge-course-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 35,
+              "id": "setback",
+              "text": "Six Tuesdays gone, one laminated certificate, no visible difference.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "tp",
+                  "amount": -1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "evening-module",
+          "label": "Evening module only",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "He does the evenings, keeps his Tuesdays, and picks up two useful things.",
+              "effects": [
+                {
+                  "type": "tp",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-ladder-fortnight",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-ladder-fortnight",
+      "title": "A Fortnight Two Divisions Up",
+      "body": "A club two divisions above will let one of your staff shadow them for a fortnight. They have offered a camp bed.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresCoach": true
+      },
+      "choices": [
+        {
+          "id": "send-him-for-the-fortnight",
+          "label": "Send him for the fortnight",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "He comes home with a fortnight of somebody else's ideas",
+              "text": "Fourteen days of watching a better club work, and he brings all of it back.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "training",
+                  "amount": 5
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-ladder-fortnight-won",
+                  "value": true
+                }
+              ],
+              "nextEventId": "what-he-brought-back"
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "He returns with a system that needs eleven players this club does not have.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "training",
+                  "amount": -3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ask-for-the-notes",
+          "label": "Ask for their session notes instead",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "They send eleven pages. Four of them are usable here.",
+              "effects": [
+                {
+                  "type": "tp",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "assistant-takes-the-week",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-assistant-week",
+      "title": "Give Me The Week",
+      "body": "Your assistant has asked for one week running everything. Not a session. The whole week.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresCoach": true
+      },
+      "choices": [
+        {
+          "id": "give-him-the-week",
+          "label": "Give him the week",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "His weeks are worth more than they were on Monday",
+              "text": "Five days, his plan, and the squad arrives on Saturday sharper than it left.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "tp",
+                  "amount": 2
+                },
+                {
+                  "type": "squadMorale",
+                  "amount": 5
+                },
+                {
+                  "type": "flag",
+                  "flag": "assistant-takes-the-week-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "By Wednesday it is clear the week had no plan in it at all.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "tp",
+                  "amount": -1
+                },
+                {
+                  "type": "squadMorale",
+                  "amount": -6
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "give-him-a-session",
+          "label": "Give him a session",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "One session, his own plan, and it goes perfectly well.",
+              "effects": [
+                {
+                  "type": "tp",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-motivator-experiment",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-dark-room",
+      "title": "He Wants The Lights Off",
+      "body": "He wants to give the team talk in the dark. He has explained why twice and it has not helped.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresCoach": true
+      },
+      "choices": [
+        {
+          "id": "lights-off",
+          "label": "Lights off",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 55,
+              "id": "success",
+              "successHeadline": "Nobody says a word for a full minute afterwards",
+              "text": "Eleven grown men sit in the dark and afterwards nobody speaks for a full minute.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "motivator",
+                  "amount": 1
+                },
+                {
+                  "type": "squadMorale",
+                  "amount": 8
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-motivator-experiment-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 45,
+              "id": "setback",
+              "text": "Eleven grown men sit in the dark and cannot look at each other for a week.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "motivator",
+                  "amount": -1
+                },
+                {
+                  "type": "squadMorale",
+                  "amount": -6
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "lights-on-please",
+          "label": "Let him speak, lights on",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "He speaks well. The lights stay on. Everyone is slightly relieved.",
+              "effects": [
+                {
+                  "type": "squadMorale",
+                  "amount": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-keeper-week",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-keeper-retrain",
+      "title": "He Used To Keep Goal",
+      "body": "Your keeper works alone. One of your staff kept goal until his knees stopped him, and has said so out loud.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresCoach": true
+      },
+      "choices": [
+        {
+          "id": "retrain-him-properly",
+          "label": "Retrain him properly",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "He is a goalkeeping coach now, and the gloves came back out",
+              "text": "Three weeks of courses and the gloves come back out of the loft for good.",
+              "effects": [
+                {
+                  "type": "coachSpecialty",
+                  "to": "GOALKEEPING"
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-keeper-week-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "It turns out he remembers a great deal less than he told everybody.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "tp",
+                  "amount": -2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "an-hour-a-week",
+          "label": "An hour a week",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "An hour on Thursdays, which is an hour more than the keeper had.",
+              "effects": [
+                {
+                  "type": "tp",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "back-one-drill",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-two-drills",
+      "title": "Two Drills, One Week",
+      "body": "Head and assistant have designed the same drill differently and neither will move. Back one of them.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresCoach": true,
+        "requiresBothCoaches": true
+      },
+      "choices": [
+        {
+          "id": "run-the-one-you-backed",
+          "label": "Run the one you backed, all week",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 55,
+              "id": "success",
+              "successHeadline": "His drill is on the board on Monday and stays there",
+              "text": "You back one in front of the other, and by Friday nobody is arguing.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "training",
+                  "amount": 5
+                },
+                {
+                  "type": "flag",
+                  "flag": "back-one-drill-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 45,
+              "id": "setback",
+              "text": "It does not work, and everybody watched it not work, all week.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "training",
+                  "amount": -3
+                },
+                {
+                  "type": "squadMorale",
+                  "amount": -5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "split-the-week",
+          "label": "Split the week between them",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "Half a week each, no argument settled, no harm done.",
+              "effects": [
+                {
+                  "type": "tp",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-clipboard-fire",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-clipboard-fire",
+      "title": "Twelve Seasons And The Boiler",
+      "body": "Twelve seasons of session notes went up with the boiler on Sunday night. He is being very calm about it.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresCoach": true
+      },
+      "choices": [
+        {
+          "id": "rebuild-from-memory",
+          "label": "Rebuild the lot from memory",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 55,
+              "id": "success",
+              "successHeadline": "The rebuilt folder is better than the one that burned",
+              "text": "A month of evenings, and the new folder is sharper than the one that burned.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "tp",
+                  "amount": 2
+                },
+                {
+                  "type": "coachBoost",
+                  "facet": "training",
+                  "amount": 3
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-clipboard-fire-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 45,
+              "id": "setback",
+              "text": "Half of what he writes down turns out to be invention.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "training",
+                  "amount": -5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "print-the-file-copies",
+          "label": "Print what the club has on file",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "The club had four seasons backed up. He takes what he can get.",
+              "effects": [
+                {
+                  "type": "tp",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sports-science-salesman",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-laptop-salesman",
+      "title": "A Man With A Laptop",
+      "body": "A man with a laptop can measure eleven things nobody here has asked about. He is very confident about all eleven.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresCoach": true
+      },
+      "choices": [
+        {
+          "id": "buy-the-system",
+          "label": "Buy the system",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 55,
+              "id": "success",
+              "successHeadline": "One of the eleven numbers turns out to matter enormously",
+              "text": "Ten of the numbers mean nothing. The eleventh changes how the week is built.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "training",
+                  "amount": 5
+                },
+                {
+                  "type": "money",
+                  "amount": -900
+                },
+                {
+                  "type": "flag",
+                  "flag": "sports-science-salesman-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 45,
+              "id": "setback",
+              "text": "Eleven numbers, none of which ever mean anything. He keeps the deposit.",
+              "effects": [
+                {
+                  "type": "money",
+                  "amount": -300
+                },
+                {
+                  "type": "coachBoost",
+                  "facet": "tp",
+                  "amount": -2
+                }
+              ]
+            }
+          ],
+          "requires": {
+            "minMoney": 900
+          }
+        },
+        {
+          "id": "take-the-free-trial",
+          "label": "Take the free trial",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "Two weeks free, one useful chart, no invoice.",
+              "effects": [
+                {
+                  "type": "tp",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-grass-mix",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-grass-mix",
+      "title": "The Groundskeeper Has His Own Mix",
+      "body": "The groundskeeper has a grass mix of his own and a small regional award he believes justifies it.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresFacility": [
+          "training-pitch"
+        ]
+      },
+      "choices": [
+        {
+          "id": "lay-his-own-mix",
+          "label": "Let him lay his own",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "By September it is the best surface in the division",
+              "text": "By September visiting managers are asking what is in it. He will not say.",
+              "effects": [
+                {
+                  "type": "facilityTpBonus",
+                  "percent": 8
+                },
+                {
+                  "type": "fans",
+                  "amount": 40
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-grass-mix-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "It comes up in patches by October and the patches spread.",
+              "effects": [
+                {
+                  "type": "facilityTpBonus",
+                  "percent": -8
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "league-recommended-mix",
+          "label": "Buy the mix the league recommends",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "The league's mix goes down. It is fine. It is extremely fine.",
+              "effects": [
+                {
+                  "type": "facilityTpBonus",
+                  "percent": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "volunteer-work-party",
+      "category": "fan",
+      "rarity": "common",
+      "art": "event-work-party",
+      "title": "Forty Supporters And One Weekend",
+      "body": "Forty supporters have offered a weekend, a great deal of enthusiasm, and no qualifications whatsoever.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresFacility": [
+          "training-pitch",
+          "gym",
+          "tech-center",
+          "shooting-range",
+          "keeper-court"
+        ]
+      },
+      "choices": [
+        {
+          "id": "hand-them-the-keys",
+          "label": "Hand them the keys for the weekend",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "They finish on Sunday night and nobody wants to leave",
+              "text": "Forty people, two days, and on Sunday night nobody wants to go home.",
+              "effects": [
+                {
+                  "type": "facilityTrainingBonus",
+                  "percent": 10
+                },
+                {
+                  "type": "fans",
+                  "amount": 120
+                },
+                {
+                  "type": "flag",
+                  "flag": "volunteer-work-party-won",
+                  "value": true
+                }
+              ],
+              "nextEventId": "the-plaque"
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "It is charming, it is heartfelt, and a great deal of it is wrong.",
+              "effects": [
+                {
+                  "type": "facilityTrainingBonus",
+                  "percent": -5
+                },
+                {
+                  "type": "money",
+                  "amount": -400
+                }
+              ]
+            }
+          ],
+          "requires": {
+            "minMoney": 400
+          }
+        },
+        {
+          "id": "materials-hire-the-trade",
+          "label": "Accept materials, hire the trade",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "They buy the materials, a real firm does the work, everyone is happy.",
+              "effects": [
+                {
+                  "type": "facilityTrainingBonus",
+                  "percent": 3
+                },
+                {
+                  "type": "money",
+                  "amount": -500
+                }
+              ]
+            }
+          ],
+          "requires": {
+            "minMoney": 500
+          }
+        }
+      ]
+    },
+    {
+      "id": "donated-equipment",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-crate",
+      "title": "A Crate From A Club That Went Up",
+      "body": "A crate arrives from a club that has gone up. Nobody here can name half of what is in it.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresFacility": [
+          "gym",
+          "tech-center",
+          "shooting-range",
+          "keeper-court"
+        ]
+      },
+      "choices": [
+        {
+          "id": "install-all-of-it",
+          "label": "Install all of it",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "The machine nobody could name turns out to be the good one",
+              "text": "The machine nobody could name turns out to be the one everybody queues for.",
+              "effects": [
+                {
+                  "type": "facilityTrainingBonus",
+                  "percent": 10
+                },
+                {
+                  "type": "flag",
+                  "flag": "donated-equipment-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "Two machines nobody can use, permanently in the way.",
+              "effects": [
+                {
+                  "type": "facilityTrainingBonus",
+                  "percent": -5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "keep-what-you-know",
+          "label": "Keep what you recognise",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "The recognisable half goes in. The rest goes in the loft.",
+              "effects": [
+                {
+                  "type": "facilityTrainingBonus",
+                  "percent": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-sleep-room",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-sleep-room",
+      "title": "Blackout Blinds, No Screens After Ten",
+      "body": "The physio wants to change how the dorm works rather than what is in it. Blackout blinds. No screens after ten.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresFacility": [
+          "dorm"
+        ]
+      },
+      "choices": [
+        {
+          "id": "rebuild-the-whole-night",
+          "label": "Let her rebuild the whole night",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "They wake up on Saturday like a different squad",
+              "text": "Blinds, no screens, a fixed lights-out, and a squad that wakes up different.",
+              "effects": [
+                {
+                  "type": "facilityRecoveryBonus",
+                  "amount": 3
+                },
+                {
+                  "type": "squadMorale",
+                  "amount": 4
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-sleep-room-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "Nobody sleeps properly for a fortnight and everybody blames the blinds.",
+              "effects": [
+                {
+                  "type": "facilityRecoveryBonus",
+                  "amount": -2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "one-change-at-a-time",
+          "label": "One change at a time",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "The blinds go up. Nobody notices for a fortnight, then everybody does.",
+              "effects": [
+                {
+                  "type": "facilityRecoveryBonus",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "floodlight-night",
+      "category": "fan",
+      "rarity": "common",
+      "art": "event-floodlights",
+      "title": "A Friendly Under The Lights",
+      "body": "A friendly under lights, with the shop open late and the terrace choir invited. The lights are older than the choir.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresFacility": [
+          "stadium-stand",
+          "fan-shop"
+        ]
+      },
+      "choices": [
+        {
+          "id": "put-on-the-whole-night",
+          "label": "Put on the whole night",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "Nine hundred people stay behind after the whistle",
+              "text": "The lights hold, the choir sings, and nine hundred people stay behind afterwards.",
+              "effects": [
+                {
+                  "type": "facilityIncomeBonus",
+                  "percent": 10
+                },
+                {
+                  "type": "fans",
+                  "amount": 200
+                },
+                {
+                  "type": "money",
+                  "amount": 500
+                },
+                {
+                  "type": "flag",
+                  "flag": "floodlight-night-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "Half the lights fail at kickoff and the rest are not much better.",
+              "effects": [
+                {
+                  "type": "facilityIncomeBonus",
+                  "percent": -5
+                },
+                {
+                  "type": "money",
+                  "amount": -600
+                }
+              ]
+            }
+          ],
+          "requires": {
+            "minMoney": 600
+          }
+        },
+        {
+          "id": "open-the-shop-early",
+          "label": "Open the shop an hour early instead",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "An extra hour, a decent queue, no risk taken.",
+              "effects": [
+                {
+                  "type": "facilityIncomeBonus",
+                  "percent": 3
+                },
+                {
+                  "type": "fans",
+                  "amount": 50
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "what-he-brought-back",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-ladder-fortnight",
+      "title": "The Car Park Argument",
+      "body": "He is running their pressing drill and the squad is still arguing about it in the car park an hour later.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresCoach": true
+      },
+      "choices": [
+        {
+          "id": "rebuild-the-week",
+          "label": "Rebuild the week around it",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "The car park argument turns into how this club plays",
+              "text": "A fortnight later it is simply how this club plays, and nobody remembers arguing.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "training",
+                  "amount": 3
+                },
+                {
+                  "type": "squadMorale",
+                  "amount": 5
+                },
+                {
+                  "type": "flag",
+                  "flag": "what-he-brought-back-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "It does not survive contact with a Tuesday in November.",
+              "effects": [
+                {
+                  "type": "coachBoost",
+                  "facet": "training",
+                  "amount": -3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "keep-what-works",
+          "label": "Keep the half that works",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "Half of it stays, half of it quietly disappears, nobody mentions it.",
+              "effects": [
+                {
+                  "type": "tp",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-old-club-calls",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-testimonial",
+      "title": "His First Club Feels Responsible",
+      "body": "His first club knows the injury happened at their testimonial. Their chairman has phoned twice to say so.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "let-them-pay-the-specialist",
+          "label": "Let them pay for the specialist",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "He is back a fortnight early and they refuse the invoice",
+              "text": "They pay for the specialist, refuse to be reimbursed, and he is back a fortnight early.",
+              "effects": [
+                {
+                  "type": "injuryDelta",
+                  "weeks": -2
+                },
+                {
+                  "type": "loyalty",
+                  "amount": 8
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-old-club-calls-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "A second opinion, a third scan, and a longer wait than either club wanted.",
+              "effects": [
+                {
+                  "type": "injury",
+                  "weeks": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "accept-their-physio",
+          "label": "Accept their physio's help",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "Their physio drives over twice a week and will not take a fee.",
+              "effects": [
+                {
+                  "type": "injuryDelta",
+                  "weeks": -1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-plaque",
+      "category": "fan",
+      "rarity": "common",
+      "art": "event-plaque",
+      "title": "All Forty Names",
+      "body": "The work party would like their names on the wall. All forty of them. They have brought a list, alphabetised.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresFacility": [
+          "training-pitch",
+          "gym",
+          "tech-center",
+          "shooting-range",
+          "keeper-court"
+        ]
+      },
+      "choices": [
+        {
+          "id": "all-forty-names",
+          "label": "All forty names",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "Forty names in brass, and forty families who come to see them",
+              "text": "Forty names in brass, and forty families who turn up on the Saturday to find them.",
+              "effects": [
+                {
+                  "type": "fans",
+                  "amount": 200
+                },
+                {
+                  "type": "facilityTrainingBonus",
+                  "percent": 4
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-plaque-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "Three names are misspelled. In brass. Permanently.",
+              "effects": [
+                {
+                  "type": "fans",
+                  "amount": -40
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "one-plaque-one-line",
+          "label": "One plaque, one line",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "One line, well cast, screwed to the wall by the door.",
+              "effects": [
+                {
+                  "type": "fans",
+                  "amount": 60
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-promise-kept",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-handshake",
+      "title": "He Would Like It In Writing",
+      "body": "He has played every week since you gave him your word, and would like it in the contract rather than in June.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "put-it-in-writing",
+          "label": "Put it in writing",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "He signs a year longer than his agent advised",
+              "text": "It goes in the contract and he signs a year longer than his agent advised.",
+              "effects": [
+                {
+                  "type": "loyalty",
+                  "amount": 15
+                },
+                {
+                  "type": "morale",
+                  "amount": 5
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-promise-kept-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "He reads the clause properly and finds it says rather less than you did.",
+              "effects": [
+                {
+                  "type": "loyalty",
+                  "amount": -8
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "honour-what-was-said",
+          "label": "Honour what was said",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "You say it again, out loud, and he takes you at your word again.",
+              "effects": [
+                {
+                  "type": "loyalty",
+                  "amount": 6
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-promise-broken",
+      "category": "player",
+      "rarity": "common",
+      "art": "event-handshake",
+      "title": "The Cutting In His Agent's Folder",
+      "body": "He has not played. The local paper printed what you said, and his agent has kept the cutting.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 4,
+        "maxWeek": 30,
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "start-him-saturday",
+          "label": "Start him Saturday regardless",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "He plays like a man settling an argument",
+              "text": "He plays like a man settling an argument, and settles it.",
+              "effects": [
+                {
+                  "type": "loyalty",
+                  "amount": 12
+                },
+                {
+                  "type": "morale",
+                  "amount": 6
+                },
+                {
+                  "type": "flag",
+                  "flag": "the-promise-broken-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "He is not ready, and ninety minutes make that obvious to everybody.",
+              "effects": [
+                {
+                  "type": "loyalty",
+                  "amount": -12
+                },
+                {
+                  "type": "squadMorale",
+                  "amount": -8
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "admit-it-and-apologise",
+          "label": "Admit it and apologise",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "You say plainly that you were wrong, which helps more than it should.",
+              "effects": [
+                {
+                  "type": "loyalty",
+                  "amount": 4
+                },
+                {
+                  "type": "squadMorale",
+                  "amount": -4
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "milestone-hat-trick",
+      "category": "media",
+      "rarity": "common",
+      "art": "event-hat-trick",
+      "title": "Three In One Afternoon",
+      "body": "He took the match ball home. He has not put it down since, and the shop would quite like it back.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 1,
+        "maxWeek": 30,
+        "requiredFlag": "milestone:hat-trick",
+        "requiresPlayer": true
+      },
+      "choices": [
+        {
+          "id": "player-of-the-month",
+          "label": "Put him up for Player of the Month",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "They read his name out at the ground",
+              "text": "He wins it, and they read his name out at the ground before kickoff.",
+              "effects": [
+                {
+                  "type": "fame",
+                  "amount": 14
+                },
+                {
+                  "type": "morale",
+                  "amount": 8
+                },
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "sho",
+                  "sessions": 3
+                },
+                {
+                  "type": "flag",
+                  "flag": "milestone-hat-trick-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "He reads every word written about him and stops looking up.",
+              "effects": [
+                {
+                  "type": "morale",
+                  "amount": -8
+                },
+                {
+                  "type": "statDeltaSessions",
+                  "attribute": "pas",
+                  "sessions": -1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frame-it-for-the-clubhouse",
+          "label": "Frame it for the clubhouse wall",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "The ball goes on the wall above the bar, signed by everybody who was there.",
+              "effects": [
+                {
+                  "type": "morale",
+                  "amount": 6
+                },
+                {
+                  "type": "fame",
+                  "amount": 8
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "milestone-heavy-defeat",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-heavy-defeat",
+      "title": "Six",
+      "body": "The scoreboard operator turned it off with ten minutes left. Nobody asked him to turn it back on.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 1,
+        "maxWeek": 30,
+        "requiredFlag": "milestone:heavy-defeat"
+      },
+      "choices": [
+        {
+          "id": "watch-all-ninety",
+          "label": "Watch all ninety together, tomorrow",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 55,
+              "id": "success",
+              "successHeadline": "They find four things and fix three of them",
+              "text": "Two hours in a cold room, four things found, three of them fixed by Thursday.",
+              "effects": [
+                {
+                  "type": "squadMorale",
+                  "amount": 10
+                },
+                {
+                  "type": "tp",
+                  "amount": 8
+                },
+                {
+                  "type": "flag",
+                  "flag": "milestone-heavy-defeat-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 45,
+              "id": "setback",
+              "text": "The video does what the result did, only slower and with the lights on.",
+              "effects": [
+                {
+                  "type": "squadMorale",
+                  "amount": -10
+                },
+                {
+                  "type": "fans",
+                  "amount": -60
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "say-nothing-until-monday",
+          "label": "Say nothing until Monday",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "Nothing is said until Monday, which is its own kind of message.",
+              "effects": [
+                {
+                  "type": "squadMorale",
+                  "amount": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "milestone-merch-surge",
+      "category": "club",
+      "rarity": "common",
+      "art": "event-merch-surge",
+      "title": "It Sold Out",
+      "body": "The shop has sold out of something and the accountant would like you to know what. Four hundred mugs with the groundskeeper on them.",
+      "trigger": {
+        "season": 1,
+        "minWeek": 1,
+        "maxWeek": 30,
+        "requiredFlag": "milestone:merch-surge"
+      },
+      "choices": [
+        {
+          "id": "order-ten-times-as-many",
+          "label": "Order ten times as many",
+          "risky": true,
+          "outcomes": [
+            {
+              "weight": 60,
+              "id": "success",
+              "successHeadline": "He has started signing them",
+              "text": "The second batch goes in a fortnight and he has started signing them at the gate.",
+              "effects": [
+                {
+                  "type": "money",
+                  "amount": 1800
+                },
+                {
+                  "type": "fans",
+                  "amount": 160
+                },
+                {
+                  "type": "flag",
+                  "flag": "milestone-merch-surge-won",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "weight": 40,
+              "id": "setback",
+              "text": "Four thousand mugs. The groundskeeper has stopped coming in.",
+              "effects": [
+                {
+                  "type": "money",
+                  "amount": -900
+                },
+                {
+                  "type": "fans",
+                  "amount": -30
+                }
+              ]
+            }
+          ],
+          "requires": {
+            "minMoney": 900
+          }
+        },
+        {
+          "id": "reorder-the-same-again",
+          "label": "Reorder exactly the same number",
+          "risky": false,
+          "outcomes": [
+            {
+              "weight": 100,
+              "id": "only",
+              "text": "Another four hundred mugs. They go in a fortnight as well.",
+              "effects": [
+                {
+                  "type": "money",
+                  "amount": 400
+                },
+                {
+                  "type": "fans",
+                  "amount": 40
                 }
               ]
             }

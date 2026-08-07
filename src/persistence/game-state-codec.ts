@@ -358,6 +358,14 @@ const facilityGridSchema = z
       x: nonnegativeInteger,
       y: nonnegativeInteger,
       seeded: z.literal(true).optional(),
+      // Absent on every building no story has changed, and on every save
+      // written before stories could change one.
+      boosts: z.object({
+        tpBonusPercent: z.number().int().min(-20).max(20).optional(),
+        trainingBonusPercent: z.number().int().min(-20).max(20).optional(),
+        recoveryBonus: z.number().int().min(-3).max(3).optional(),
+        incomeBonusPercent: z.number().int().min(-20).max(20).optional(),
+      }).passthrough().optional(),
     }).passthrough()),
     discoveredAdjacencies: z.array(z.enum([
       'gym-dorm', 'fan-shop-stadium', 'medical-training-pitch',
@@ -1027,6 +1035,13 @@ const coachCandidateSchema = z.object({
     'ATTACK', 'DEFENSE', 'FITNESS', 'TECHNIQUE', 'GOALKEEPING', 'MOTIVATOR',
   ])]),
   level: divisionLevelSchema,
+  // Absent on every save written before stories could change a coach, and on
+  // every coach no story has touched. Absent means no boost.
+  boosts: z.object({
+    trainingPercent: z.number().int().min(-10).max(10).optional(),
+    weeklyTp: z.number().int().min(-4).max(4).optional(),
+    motivatorHalfLevels: z.number().int().min(-2).max(2).optional(),
+  }).passthrough().optional(),
   weeklyWage: nonnegativeInteger,
   personality: marketPersonalitySchema,
   requiredDivision: divisionLevelSchema,

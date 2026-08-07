@@ -141,6 +141,36 @@ describe('cup bracket rendering', () => {
     expect(bracket).toContain("textDecorationLine: 'line-through'");
   });
 
+  /**
+   * The tie was marked in the tree's own blue — the hue of every header and
+   * every connector — so "you are in this one" read as ordinary furniture. Gold
+   * appears nowhere else in the tree, and it is withdrawn the moment the run
+   * ends so a bright card can only ever mean a live run.
+   */
+  it('turns the manager\'s tie gold while the club is still in the cup', () => {
+    expect(bracket).toContain(
+      "const userStillIn = !rounds.some(round => round.userOutcomeKind === 'eliminated');",
+    );
+    expect(bracket).toContain('const live = tie.involvesUserClub && userStillIn;');
+    expect(bracket).toContain('live ? styles.tieUserLive : null');
+    expect(bracket).toContain("tieUserLive: { borderColor: '#c8862a', backgroundColor: '#f7d894' }");
+    // Bold is the half that survives being knocked out: the strike-through says
+    // you lost, the weight still says which name was yours.
+    expect(bracket).toContain("sideMine: { color: INK, fontWeight: 'bold' }");
+    expect(bracket).toContain("mine={tie.userSide === 'home'}");
+    expect(bracket).toContain("mine={tie.userSide === 'away'}");
+    // Colour is not a fact a screen reader can read.
+    expect(bracket).toContain("t('cupBracket.a11y.yourTie', { tie: tie_ })");
+    expect(loadCatalog('en').strings['cupBracket.a11y.yourTie']).toContain('{tie}');
+  });
+
+  it('names the side of the tie the manager is on', () => {
+    const layout = cupBracketLayout([
+      round(2, 'Round of 32', [{ ...fixture('Caped Ball FC', 'Iron United'), involvesUserClub: true, userSide: 'home' }]),
+    ]);
+    expect(layout.columns[0].ties[0]).toMatchObject({ involvesUserClub: true, userSide: 'home' });
+  });
+
   it('scrolls sideways rather than shrinking names to nothing', () => {
     expect(bracket).toContain('horizontal');
     expect(bracket).toContain('showsHorizontalScrollIndicator={false}');

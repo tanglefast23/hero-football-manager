@@ -134,7 +134,7 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
     }
 
     // Guards against the loop silently skipping everything and passing vacuously.
-    expect(checked.length + blocked.length).toBe(50);
+    expect(checked.length + blocked.length).toBe(54);
     expect(checked.length).toBeGreaterThanOrEqual(25);
   });
 });

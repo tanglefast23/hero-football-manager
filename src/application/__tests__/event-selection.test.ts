@@ -75,7 +75,7 @@ describe('M4 event selection', () => {
       week: 8,
       phase: 'manage' as const,
       eventClock: { weeksWithoutEvent: 0, riskyChoices: 0 },
-      resolvedEventHistory: [{ eventId: 'team-bbq', season: 1, week: 7 }],
+      resolvedEventHistory: [{ eventId: 'the-rondo-circle', season: 1, week: 7 }],
     };
 
     expect(eventOfferForWeek(state, content, { deskClear: true })).toEqual({
@@ -131,42 +131,76 @@ describe('M4 event selection', () => {
 
   it('enforces personality, facility, and money requirements from content', () => {
     const initial = createCareer(createLaunchCareerSetup(1));
-    const prank = content.events.find(event => event.id === 'prank-war')!;
-    const drone = content.events.find(event => event.id === 'training-drone')!;
-    const clinic = content.events.find(event => event.id === 'miracle-physio')!.choices[0];
-    const noJoker = {
+    // A player who submits a written training schedule, with a second schedule
+    // attached for the first one, is a Professional.
+    const doubleSession = content.events.find(event => event.id === 'the-double-session')!;
+    // A story about the pitch needs a pitch that is actually finished.
+    const grassMix = content.events.find(event => event.id === 'the-grass-mix')!;
+    const mountainCamp = content.events.find(event => event.id === 'the-specialist-camp')!;
+    const spendingChoice = mountainCamp.choices.find(choice => choice.risky)!;
+
+    const noProfessional = {
       ...initial,
       season: 2,
       week: 10,
       facilities: { trainingGroundBuilt: false, grid: createFacilityGrid() },
-      players: initial.players.map(player => ({ ...player, personality: 'Professional' as const })),
+      players: initial.players.map(player => ({ ...player, personality: 'Joker' as const })),
     };
-    expect(eventIsEligible(noJoker, prank)).toBe(false);
+    expect(eventIsEligible(noProfessional, doubleSession)).toBe(false);
     expect(eventIsEligible({
-      ...noJoker,
-      players: noJoker.players.map((player, index) => index === 0 ? { ...player, personality: 'Joker' as const } : player),
-    }, prank)).toBe(true);
-    expect(eventIsEligible(noJoker, drone)).toBe(false);
-    expect(eventIsEligible({ ...noJoker, facilities: { ...noJoker.facilities, trainingGroundBuilt: true } }, drone)).toBe(true);
+      ...noProfessional,
+      players: noProfessional.players.map((player, index) => (
+        index === 0 ? { ...player, personality: 'Professional' as const } : player
+      )),
+    }, doubleSession)).toBe(true);
+
+    // No operational training pitch, so the grass story is not in the deck.
+    expect(eventIsEligible(noProfessional, grassMix)).toBe(false);
+
     expect(eventChoiceUnavailableReason({
-      ...noJoker,
-      clubs: noJoker.clubs.map(club => club.id === noJoker.userClubId ? { ...club, cash: 699 } : club),
-    }, clinic)).toBe('Requires $700 cash');
+      ...noProfessional,
+      clubs: noProfessional.clubs.map(club => (
+        club.id === noProfessional.userClubId ? { ...club, cash: 699 } : club
+      )),
+    }, spendingChoice)).toBe('Requires $700 cash');
+  });
+
+  /**
+   * Every branch this feature authored that spends money declares what it needs.
+   * Without it a broke club is offered a choice it cannot pay for, and the
+   * engine tolerates the negative balance rather than refusing.
+   */
+  it('never offers a new spending branch the club cannot cover', () => {
+    const AUTHORED_SPENDERS = [
+      'homesick-family-move', 'the-specialist-camp', 'sports-science-salesman',
+      'volunteer-work-party', 'floodlight-night', 'milestone-merch-surge',
+    ];
+    for (const eventId of AUTHORED_SPENDERS) {
+      const event = content.events.find(candidate => candidate.id === eventId)!;
+      for (const choice of event.choices) {
+        const spend = Math.min(0, ...choice.outcomes.flatMap(outcome => outcome.effects.flatMap(
+          effect => effect.type === 'money' ? [effect.amount] : [],
+        )));
+        if (spend >= 0) continue;
+        expect({ eventId, choice: choice.id, minMoney: choice.requires?.minMoney })
+          .toMatchObject({ eventId, choice: choice.id, minMoney: -spend });
+      }
+    }
   });
 
   it('can re-offer an authored repeatable event after its dry-spell guarantee', () => {
     const initial = createCareer(createLaunchCareerSetup(88));
-    const barbecue = content.events.find(event => event.id === 'team-bbq')!;
-    const repeatableOnly = { ...content, events: [barbecue] };
+    const repeatable = content.events.find(event => event.id === 'the-double-session')!;
+    const repeatableOnly = { ...content, events: [repeatable] };
     const state = {
       ...initial,
       season: 2,
       week: 12,
       phase: 'manage' as const,
       eventClock: { weeksWithoutEvent: 8, riskyChoices: 0 },
-      resolvedEventIds: ['giant-spider-arrives', barbecue.id],
+      resolvedEventIds: ['giant-spider-arrives', repeatable.id],
     };
 
-    expect(eventOfferForWeek(state, repeatableOnly, { deskClear: true }).eventId).toBe(barbecue.id);
+    expect(eventOfferForWeek(state, repeatableOnly, { deskClear: true }).eventId).toBe(repeatable.id);
   });
 });

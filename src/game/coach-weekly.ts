@@ -4,7 +4,7 @@ import {
   type CareerCoachRole,
   type CareerMarketState,
 } from './market-career';
-import type { CoachSpecialty } from './market';
+import { COACH_BOOST_CAPS, type CoachBoosts, type CoachSpecialty } from './market';
 
 const TRAINING_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
 
@@ -15,12 +15,36 @@ export function coachTrainingBonusPercent(level: number, role: CareerCoachRole):
   return checkedMultiply(level, role === 'HEAD' ? 10 : 5, `${role.toLowerCase()} training bonus`);
 }
 
+/** A story's permanent change to one coach, clamped to its lifetime cap. */
+export function cappedCoachBoost(
+  boosts: CoachBoosts | undefined,
+  facet: keyof typeof COACH_BOOST_CAPS,
+): number {
+  const raw = boosts?.[facet] ?? 0;
+  if (!Number.isSafeInteger(raw)) throw new Error(`coach ${facet} boost must be a safe integer`);
+  const cap = COACH_BOOST_CAPS[facet];
+  return Math.max(-cap, Math.min(cap, raw));
+}
+
 /** Stable weekly TP created by one employed coach. */
 export function coachWeeklyTrainingPoints(level: number, role: CareerCoachRole): number {
   validateCoachLevel(level, role === 'HEAD' ? 'head coach' : 'assistant coach');
   return role === 'HEAD'
     ? 10 + checkedMultiply(level, 2, 'head coach TP')
     : 5 + level;
+}
+
+/** Weekly TP including whatever a story has permanently changed about him. */
+export function coachWeeklyTrainingPointsWithBoosts(
+  coach: { readonly level: number; readonly boosts?: CoachBoosts },
+  role: CareerCoachRole,
+): number {
+  // Floored at zero: a run of bad calls can cancel a coach's contribution, but
+  // it can never make employing him cost the club training points.
+  return Math.max(
+    0,
+    coachWeeklyTrainingPoints(coach.level, role) + cappedCoachBoost(coach.boosts, 'weeklyTp'),
+  );
 }
 
 /** Motivator strength in half-levels: a head level is 5%, an assistant level is 2.5%. */
@@ -30,12 +54,15 @@ export function coachMotivatorStrengthHalfLevels(market: CareerMarketState): num
         validatedCoachLevel(market.headCoach.level, 'head coach'),
         2,
         'head coach Motivator strength',
-      )
+      ) + cappedCoachBoost(market.headCoach.boosts, 'motivatorHalfLevels')
     : 0;
   const assistant = market.assistantCoach?.specialties.includes('MOTIVATOR') === true
     ? validatedCoachLevel(market.assistantCoach.level, 'assistant coach')
+      + cappedCoachBoost(market.assistantCoach.boosts, 'motivatorHalfLevels')
     : 0;
-  return head + assistant;
+  // A boost only counts on a coach who actually holds MOTIVATOR, and the total
+  // cannot go negative — the effect cancels his own strength, not the club's.
+  return Math.max(0, head + assistant);
 }
 
 export function coachMotivatorBonusPercent(level: number, role: CareerCoachRole): number {
@@ -79,10 +106,10 @@ export function careerCoachWeeklyTrainingPoints(market: CareerMarketState): numb
   const assistant = market.assistantCoach;
   if (head !== undefined) validateCoach(head.level, head.specialties, 'head coach');
   if (assistant !== undefined) validateCoach(assistant.level, assistant.specialties, 'assistant coach');
-  const headPoints = head === undefined ? 0 : coachWeeklyTrainingPoints(head.level, 'HEAD');
+  const headPoints = head === undefined ? 0 : coachWeeklyTrainingPointsWithBoosts(head, 'HEAD');
   const assistantPoints = assistant === undefined
     ? 0
-    : coachWeeklyTrainingPoints(assistant.level, 'ASSISTANT');
+    : coachWeeklyTrainingPointsWithBoosts(assistant, 'ASSISTANT');
   return headPoints + assistantPoints;
 }
 
@@ -118,13 +145,27 @@ export function careerCoachTrainingModifiers(
     ...(coach?.specialties ?? []),
     ...(assistant?.specialties ?? []),
   ]));
-  const gainScale = (attribute: TrainingAttribute): number => 100
-    + (coach?.specialties.includes(SPECIALTY_BY_ATTRIBUTE[attribute]) === true
-      ? specialtyBonusPercent
-      : 0)
-    + (assistant?.specialties.includes(SPECIALTY_BY_ATTRIBUTE[attribute]) === true
-      ? assistantBonusPercent
-      : 0);
+  /**
+   * Clamped into the band the validator will accept, not merely added.
+   *
+   * `applyCareerCoachTrainingModifier` **throws** outside 100..175, and a level-5
+   * head plus a level-5 assistant sharing a specialty already sums to exactly
+   * 175. A boost added on top would therefore throw on every training action
+   * from then on — permanently, because a boost cannot be removed. Clamping
+   * here is also the honest balance answer: a club already running two maxed
+   * specialists gains nothing more, and a negative bottoms out at "no coach
+   * benefit" rather than making a coached club worse than an uncoached one.
+   */
+  const gainScale = (attribute: TrainingAttribute): number => {
+    const coachMatches = coach?.specialties.includes(SPECIALTY_BY_ATTRIBUTE[attribute]) === true;
+    const assistantMatches = assistant?.specialties.includes(SPECIALTY_BY_ATTRIBUTE[attribute]) === true;
+    const raw = 100
+      + (coachMatches ? specialtyBonusPercent + cappedCoachBoost(coach?.boosts, 'trainingPercent') : 0)
+      + (assistantMatches
+        ? assistantBonusPercent + cappedCoachBoost(assistant?.boosts, 'trainingPercent')
+        : 0);
+    return Math.max(100, Math.min(175, raw));
+  };
 
   return {
     ...(coach === undefined ? {} : { coachId: coach.id }),

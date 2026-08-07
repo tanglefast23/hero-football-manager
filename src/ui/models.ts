@@ -233,6 +233,8 @@ export interface MatchDayBannerViewModel {
   id: string;
   /** The competition as the rest of the game names it — a division name, or the cup. */
   competitionLabel: string;
+  /** True on a Hero Cup tie: the card draws the cup cabinet instead of the crowd. */
+  isCup: boolean;
   /** The single line on the card. */
   headline: string;
   accessibilityLabel: string;
@@ -898,6 +900,40 @@ export interface StoryEventRewardViewModel {
   positive: boolean;
 }
 
+/**
+ * A coach on the story card, with what he actually provides.
+ *
+ * The bonuses are the point: a manager asked to gamble on a coach needs to see
+ * what he is gambling with, and the coach screens are two taps away.
+ */
+export interface StoryEventCoachViewModel {
+  role: 'HEAD' | 'ASSISTANT';
+  roleLabel: string;
+  name: string;
+  levelLabel: string;
+  /** ATTACK, FITNESS… as the market screen writes them. */
+  specialtyLabels: readonly string[];
+  /** "+20% training on Attack, Fitness" — the level's own contribution. */
+  trainingLine: string;
+  /** "+14 TP a week". */
+  trainingPointsLine: string;
+  /** Present only for a Motivator. */
+  motivatorLine?: string;
+  /** What earlier stories have already changed about him, if anything. */
+  earnedLine?: string;
+}
+
+/** A building on the story card, with the effect the manager would be moving. */
+export interface StoryEventFacilityViewModel {
+  buildingId: string;
+  name: string;
+  levelLabel: string;
+  /** The building's current benefit, in the words the facilities panel uses. */
+  effectLabel: string;
+  /** What earlier stories have already changed about it, if anything. */
+  earnedLine?: string;
+}
+
 export interface StoryEventViewModel {
   id: string;
   artKey: string;
@@ -915,6 +951,16 @@ export interface StoryEventViewModel {
   playerLocked?: true;
   /** Every squad player this story could be about, best rated first. */
   playerChoices: readonly StoryEventPlayerViewModel[];
+  selectedCoach?: StoryEventCoachViewModel;
+  coachSelectionRequired: boolean;
+  coachLocked?: true;
+  /** Head and assistant, whichever the club employs. */
+  coachChoices: readonly StoryEventCoachViewModel[];
+  selectedFacility?: StoryEventFacilityViewModel;
+  facilitySelectionRequired: boolean;
+  facilityLocked?: true;
+  /** Every operational building this story could be about. */
+  facilityChoices: readonly StoryEventFacilityViewModel[];
   choices: readonly StoryEventChoiceViewModel[];
   resolvedChoiceId?: string;
   resolvedRisky?: boolean;

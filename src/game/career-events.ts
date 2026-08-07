@@ -5,15 +5,26 @@ import { LAUNCH_POWER_IDS } from './power-catalog';
 import { compareIds } from './ordering';
 import { recordCashTransaction } from './cash-transactions';
 import { recordFanGain } from './fan-growth';
+import { adjustLoyalty, playerLoyalty } from './loyalty';
+import { COACH_BOOST_CAPS, type CoachSpecialty } from './market';
+import { FACILITY_BOOST_CAPS, isFacilityOperational } from './facilities';
+import { FAME_CEILING } from './pyramid';
 
 const POWER_IDS: ReadonlySet<PowerId> = new Set(LAUNCH_POWER_IDS);
 
 interface CareerEventPlayerEffect {
   playerId: string;
   moraleDelta?: number;
+  /** A setback, in weeks. Only ever lengthens the absence — see `applyPlayerEffect`. */
   injuryWeeks?: number;
+  /** A heal, in negative weeks. The only way an event can shorten an absence. */
+  injuryWeeksDelta?: number;
   attribute?: keyof Attrs;
+  /** Already resolved to points — sessions are converted before they get here. */
   attributeDelta?: number;
+  loyaltyDelta?: number;
+  conditionDelta?: number;
+  fameDelta?: number;
 }
 
 interface CareerEventOutcomeApplication {
@@ -119,20 +130,27 @@ interface CareerMilestone {
 /** Flag namespace the engine fills in; no authored outcome produces these. */
 const CAREER_MILESTONE_FLAG_PREFIX = 'milestone:';
 
-const CAREER_MILESTONE_STATEMENT_MARGIN = 3;
 export const CAREER_MILESTONE_UNBEATEN_RUN = 4;
-export const CAREER_MILESTONE_PUSH_SEASON_WINS = 8;
 export const CAREER_MILESTONE_CROWD = 1000;
+/** A defeat this size is the most memorable thing that happens to a small club. */
+export const CAREER_MILESTONE_HEAVY_DEFEAT_MARGIN = 6;
 
-/** Recognition order when a week earns more than one milestone at once. */
+/**
+ * Recognition order when a week earns more than one at once.
+ *
+ * Four of the original seven were cut (owner, 2026-08-07): winning a game is
+ * Saturday, not an achievement, and "first hero goal", "three goals clear" and
+ * "eight wins" were the same congratulation three more times. What replaced
+ * them are beats a manager would actually retell — a hat-trick, a hammering,
+ * and the first time the shop sold out.
+ */
 export const CAREER_MILESTONES: readonly CareerMilestone[] = [
-  { id: 'first-win', flag: 'milestone:first-win', eventId: 'milestone-first-win' },
-  { id: 'first-hero-goal', flag: 'milestone:first-hero-goal', eventId: 'milestone-first-hero-goal' },
-  { id: 'statement-win', flag: 'milestone:statement-win', eventId: 'milestone-statement-win' },
+  { id: 'hat-trick', flag: 'milestone:hat-trick', eventId: 'milestone-hat-trick' },
   { id: 'unbeaten-four', flag: 'milestone:unbeaten-four', eventId: 'milestone-unbeaten-run' },
   { id: 'first-cup-win', flag: 'milestone:first-cup-win', eventId: 'milestone-first-cup-win' },
   { id: 'crowd-thousand', flag: 'milestone:crowd-thousand', eventId: 'milestone-crowd-thousand' },
-  { id: 'promotion-push', flag: 'milestone:promotion-push', eventId: 'milestone-promotion-push' },
+  { id: 'heavy-defeat', flag: 'milestone:heavy-defeat', eventId: 'milestone-heavy-defeat' },
+  { id: 'merch-surge', flag: 'milestone:merch-surge', eventId: 'milestone-merch-surge' },
 ];
 
 interface UserLeagueResult {
@@ -145,40 +163,88 @@ interface UserLeagueResult {
 export function earnedCareerMilestoneFlags(state: GameState): string[] {
   const results = userLeagueResults(state);
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  const winsBySeason = new Map<number, number>();
   let unbeatenRun = 0;
   let longestUnbeatenRun = 0;
-  let bestMargin = 0;
+  let worstMargin = 0;
   for (const result of results) {
     const margin = result.goalsFor - result.goalsAgainst;
-    if (margin > bestMargin) bestMargin = margin;
-    if (margin > 0) winsBySeason.set(result.season, (winsBySeason.get(result.season) ?? 0) + 1);
+    if (margin < worstMargin) worstMargin = margin;
     unbeatenRun = margin >= 0 ? unbeatenRun + 1 : 0;
     if (unbeatenRun > longestUnbeatenRun) longestUnbeatenRun = unbeatenRun;
   }
-  const bestSeasonWins = [...winsBySeason.values()].reduce((best, wins) => Math.max(best, wins), 0);
-
   const earned = new Set<string>();
-  if (bestMargin > 0) earned.add('first-win');
-  if (heroHasScored(state)) earned.add('first-hero-goal');
-  if (bestMargin >= CAREER_MILESTONE_STATEMENT_MARGIN) earned.add('statement-win');
   if (longestUnbeatenRun >= CAREER_MILESTONE_UNBEATEN_RUN) earned.add('unbeaten-four');
   if (hasWonCupTie(state)) earned.add('first-cup-win');
   if ((club?.fans ?? 0) >= CAREER_MILESTONE_CROWD) earned.add('crowd-thousand');
-  if (bestSeasonWins >= CAREER_MILESTONE_PUSH_SEASON_WINS) earned.add('promotion-push');
+  if (worstMargin <= -CAREER_MILESTONE_HEAVY_DEFEAT_MARGIN) earned.add('heavy-defeat');
+  if (hasMerchSurged(state)) earned.add('merch-surge');
+  // The hat-trick is banked by settlement, not recomputed: a fixture keeps only
+  // its score, so the scorer list is gone by the time this runs.
+  if (state.eventFlags.includes('milestone:hat-trick')) earned.add('hat-trick');
 
   return CAREER_MILESTONES
     .filter(milestone => earned.has(milestone.id))
     .map(milestone => milestone.flag);
 }
 
-/** Appends any newly earned milestone flags. Idempotent and order-stable. */
+/**
+ * Appends any newly earned milestone flags, and queues the beats they earned.
+ *
+ * Idempotent and order-stable. The queue is what the weekly offer drains, so a
+ * career that earns three milestones in three weeks shows them one a week
+ * rather than stacking them behind whatever story happens to resolve next.
+ */
 export function recordCareerMilestones(state: GameState): GameState {
   const additions = earnedCareerMilestoneFlags(state)
     .filter(flag => !state.eventFlags.includes(flag));
-  return additions.length === 0
+  if (additions.length === 0) return state;
+  const eventFlags = [...state.eventFlags, ...additions];
+  const queued = state.pendingMilestones ?? [];
+  const newBeats = CAREER_MILESTONES
+    .filter(milestone => additions.includes(milestone.flag))
+    .filter(milestone => !state.resolvedEventIds.includes(milestone.eventId))
+    .filter(milestone => !queued.some(entry => entry.eventId === milestone.eventId))
+    .map(milestone => ({ eventId: milestone.eventId }));
+  return {
+    ...state,
+    eventFlags,
+    ...(newBeats.length === 0 ? {} : { pendingMilestones: [...queued, ...newBeats] }),
+  };
+}
+
+/**
+ * Takes a beat off the queue once its card has been offered.
+ *
+ * Also drops an entry whose carried player has left the club: the hat-trick
+ * card has no picker, so a card pointing at a departed scorer could never be
+ * resolved.
+ */
+export function drainPendingMilestone(state: GameState, eventId: string): GameState {
+  const queued = state.pendingMilestones;
+  if (queued === undefined || queued.length === 0) return state;
+  const remaining = queued.filter(entry => (
+    entry.eventId !== eventId
+      && (entry.selectedPlayerId === undefined || state.players.some(player => (
+        player.id === entry.selectedPlayerId && player.clubId === state.userClubId
+      )))
+  ));
+  return remaining.length === queued.length
     ? state
-    : { ...state, eventFlags: [...state.eventFlags, ...additions] };
+    : { ...state, pendingMilestones: remaining };
+}
+
+/**
+ * Seeds the queue once, for a career that banked a milestone flag before the
+ * queue existed. Restricted to milestones this build still ships, so a save
+ * carrying a retired recognition card cannot resurrect it.
+ */
+export function seedPendingMilestones(state: GameState): GameState {
+  if (state.pendingMilestones !== undefined) return state;
+  const owed = CAREER_MILESTONES
+    .filter(milestone => state.eventFlags.includes(milestone.flag))
+    .filter(milestone => !state.resolvedEventIds.includes(milestone.eventId))
+    .map(milestone => ({ eventId: milestone.eventId }));
+  return { ...state, pendingMilestones: owed };
 }
 
 /**
@@ -236,6 +302,19 @@ function userLeagueResults(state: GameState): UserLeagueResult[] {
 // earns "first hero goal" the week they awaken. Deterministic and harmless —
 // fixing it needs a per-row hero bit in the save, which the moment of a
 // just-awakened striker's recognition doesn't justify.
+/**
+ * The first TRENDING MERCHANDISE surge, read back off the banked ledger.
+ *
+ * The surge is already persisted as part of the Financial Report's reveal, so
+ * the milestone is a callback to a banner the manager has just watched rather
+ * than a new roll.
+ */
+function hasMerchSurged(state: GameState): boolean {
+  return (state.ledgers ?? []).some(ledger => ledger.lines.some(line => (
+    line.reveal?.source === 'merch' && line.reveal.surge === true
+  )));
+}
+
 function heroHasScored(state: GameState): boolean {
   const heroIds = new Set(state.players
     .filter(player => player.clubId === state.userClubId && player.power !== undefined)
@@ -260,10 +339,24 @@ function hasWonCupTie(state: GameState): boolean {
  * A player who has since left the club is dropped rather than carried, which
  * leaves the chapter choosing again instead of naming a stranger.
  */
+/**
+ * What a chapter inherits from the one that opened it.
+ *
+ * A sequel is about the same target its parent was about — the same player, the
+ * same coach, the same building — so the target travels with the offer and is
+ * locked. A target that has left the club, been fired or been closed is simply
+ * dropped, and the sequel opens unlocked rather than pointing at a ghost.
+ */
+export interface CarriedEventTarget {
+  readonly playerId?: string;
+  readonly coachRole?: 'HEAD' | 'ASSISTANT';
+  readonly facilityId?: string;
+}
+
 export function offerCareerEvent(
   state: GameState,
   eventId: string,
-  carriedPlayerId?: string,
+  carried?: string | CarriedEventTarget,
 ): GameState {
   if (state.phase !== 'manage') throw new Error('events can only interrupt the manage phase');
   if (state.pendingEvent !== undefined) throw new Error('another event is already pending');
@@ -273,16 +366,33 @@ export function offerCareerEvent(
   if (state.resolvedEventIds.includes(eventId)) {
     throw new Error(`event ${eventId} has already resolved`);
   }
-  const carried = carriedPlayerId === undefined
+  const target: CarriedEventTarget = typeof carried === 'string'
+    ? { playerId: carried }
+    : carried ?? {};
+
+  const player = target.playerId === undefined
     ? undefined
     : state.players.find(
-      candidate => candidate.id === carriedPlayerId && candidate.clubId === state.userClubId,
+      candidate => candidate.id === target.playerId && candidate.clubId === state.userClubId,
     );
+  const coach = target.coachRole === undefined
+    ? undefined
+    : (target.coachRole === 'HEAD' ? state.market?.headCoach : state.market?.assistantCoach);
+  const grid = state.facilities.grid;
+  const facility = target.facilityId === undefined || grid === undefined
+    ? undefined
+    : grid.buildings.find(building => (
+      building.id === target.facilityId && isFacilityOperational(grid, building.id)
+    ));
+
   return {
     ...state,
-    pendingEvent: carried === undefined
-      ? { eventId }
-      : { eventId, selectedPlayerId: carried.id, playerLocked: true },
+    pendingEvent: {
+      eventId,
+      ...(player === undefined ? {} : { selectedPlayerId: player.id, playerLocked: true as const }),
+      ...(coach === undefined ? {} : { selectedCoachRole: target.coachRole, coachLocked: true as const }),
+      ...(facility === undefined ? {} : { selectedFacilityId: facility.id, facilityLocked: true as const }),
+    },
   };
 }
 
@@ -299,6 +409,143 @@ export function selectCareerEventPlayer(state: GameState, playerId: string): Gam
   );
   if (player === undefined) throw new Error(`unknown user-club player ${playerId}`);
   return { ...state, pendingEvent: { ...state.pendingEvent, selectedPlayerId: playerId } };
+}
+
+/**
+ * Points the pending story at one of the two staff slots.
+ *
+ * The same rules as the player picker: not after the outcome has resolved, and
+ * not when the chapter inherited its coach from the story that opened it.
+ */
+export function selectCareerEventCoach(
+  state: GameState,
+  role: 'HEAD' | 'ASSISTANT',
+): GameState {
+  if (state.pendingEvent === undefined) throw new Error('there is no pending event');
+  if (state.pendingEvent.resolvedChoiceId !== undefined) {
+    throw new Error('the resolved event can no longer change coach');
+  }
+  if (state.pendingEvent.coachLocked === true) {
+    throw new Error('this chapter is already about a coach chosen earlier in the story');
+  }
+  const coach = role === 'HEAD' ? state.market?.headCoach : state.market?.assistantCoach;
+  if (coach === undefined) {
+    throw new Error(`the club employs no ${role === 'HEAD' ? 'head' : 'assistant'} coach`);
+  }
+  return { ...state, pendingEvent: { ...state.pendingEvent, selectedCoachRole: role } };
+}
+
+/**
+ * Points the pending story at one building.
+ *
+ * Refuses a building that is still going up: it pays no upkeep and grants no
+ * benefit until it is operational, so a story about the floodlights cannot be
+ * told about scaffolding.
+ */
+export function selectCareerEventFacility(state: GameState, buildingId: string): GameState {
+  if (state.pendingEvent === undefined) throw new Error('there is no pending event');
+  if (state.pendingEvent.resolvedChoiceId !== undefined) {
+    throw new Error('the resolved event can no longer change facility');
+  }
+  if (state.pendingEvent.facilityLocked === true) {
+    throw new Error('this chapter is already about a building chosen earlier in the story');
+  }
+  const grid = state.facilities.grid;
+  const building = grid?.buildings.find(candidate => candidate.id === buildingId);
+  if (grid === undefined || building === undefined) {
+    throw new Error(`unknown facility ${buildingId}`);
+  }
+  if (!isFacilityOperational(grid, buildingId)) {
+    throw new Error('that building is still under construction');
+  }
+  return { ...state, pendingEvent: { ...state.pendingEvent, selectedFacilityId: buildingId } };
+}
+
+/**
+ * Applies a story's permanent change to one building.
+ *
+ * Accumulates on the building's own record and clamps at the cap, so a run of
+ * good weeks cannot compound past the ceiling and a run of bad ones cannot
+ * make a building worse than not having it — the aggregators floor there.
+ */
+export function applyFacilityEventEffect(
+  state: GameState,
+  buildingId: string,
+  facet: keyof typeof FACILITY_BOOST_CAPS,
+  amount: number,
+): GameState {
+  const grid = state.facilities.grid;
+  if (grid === undefined) throw new Error('the career has no facility grid');
+  const target = grid.buildings.find(building => building.id === buildingId);
+  if (target === undefined) throw new Error(`unknown facility ${buildingId}`);
+  if (!isFacilityOperational(grid, buildingId)) {
+    throw new Error('a story cannot change a building that is still being built');
+  }
+  const cap = FACILITY_BOOST_CAPS[facet];
+  const current = target.boosts?.[facet] ?? 0;
+  const next = Math.max(-cap, Math.min(cap, current + amount));
+  return {
+    ...state,
+    facilities: {
+      ...state.facilities,
+      grid: {
+        ...grid,
+        buildings: grid.buildings.map(building => (
+          building.id === buildingId
+            ? { ...building, boosts: { ...building.boosts, [facet]: next } }
+            : building
+        )),
+      },
+    },
+  };
+}
+
+/**
+ * Applies a story's permanent change to one coach.
+ *
+ * Boosts accumulate on the coach record and are clamped where they are read
+ * (`cappedCoachBoost`), so content cannot author its way past a cap and a
+ * clamped total can never reach the training validator out of range.
+ */
+export function applyCoachEventEffect(
+  state: GameState,
+  role: 'HEAD' | 'ASSISTANT',
+  effect: { readonly facet?: 'training' | 'tp' | 'motivator'; readonly amount?: number; readonly specialtyTo?: CoachSpecialty },
+): GameState {
+  const market = state.market;
+  if (market === undefined) throw new Error('the career has no coach market');
+  const coach = role === 'HEAD' ? market.headCoach : market.assistantCoach;
+  if (coach === undefined) throw new Error(`no ${role} coach to change`);
+
+  let next = coach;
+  if (effect.facet !== undefined && effect.amount !== undefined) {
+    const key = effect.facet === 'training'
+      ? 'trainingPercent'
+      : effect.facet === 'tp' ? 'weeklyTp' : 'motivatorHalfLevels';
+    const cap = COACH_BOOST_CAPS[key];
+    const current = coach.boosts?.[key] ?? 0;
+    next = {
+      ...next,
+      boosts: { ...next.boosts, [key]: Math.max(-cap, Math.min(cap, current + effect.amount)) },
+    };
+  }
+  if (effect.specialtyTo !== undefined) {
+    // Retraining replaces the SECOND specialty. Swapping to one he already
+    // holds would leave him with a duplicate pair, which `validateCoach`
+    // rejects — so the picker refuses that coach and this is a belt-and-braces.
+    if (next.specialties.includes(effect.specialtyTo)) {
+      throw new Error('a coach cannot retrain into a specialty he already holds');
+    }
+    next = { ...next, specialties: [next.specialties[0], effect.specialtyTo] };
+  }
+
+  return {
+    ...state,
+    market: {
+      ...market,
+      ...(role === 'HEAD' ? { headCoach: next } : { assistantCoach: next }),
+    },
+  };
 }
 
 export function applyCareerEventOutcome(
@@ -379,7 +626,7 @@ export function applyCareerEventOutcome(
         amount: moneyDelta,
         referenceId: state.pendingEvent.eventId,
       });
-  return withCareerMilestoneRecognition(recordFanGain(recorded, fans - club.fans), presentation);
+  return recordCareerMilestones(recordFanGain(recorded, fans - club.fans));
 }
 
 /**
@@ -388,22 +635,20 @@ export function applyCareerEventOutcome(
  * never chains into another one, so a catch-up run arrives one beat per week
  * instead of as a stack of cards.
  */
-function withCareerMilestoneRecognition(
-  state: GameState,
-  presentation: CareerEventResolutionPresentation | undefined,
-): GameState {
-  const recorded = recordCareerMilestones(state);
-  const pending = recorded.pendingEvent;
-  if (presentation === undefined || pending === undefined) return recorded;
-  if (pending.resolvedNextEventId !== undefined) return recorded;
-  if (isCareerMilestoneEventId(pending.eventId)) return recorded;
-  const milestoneEventId = pendingCareerMilestoneEventId(recorded);
-  if (milestoneEventId === undefined) return recorded;
-  return {
-    ...recorded,
-    pendingEvent: { ...pending, resolvedNextEventId: milestoneEventId },
-  };
-}
+/**
+ * Milestones are no longer stapled to whatever story resolved last.
+ *
+ * The old `withCareerMilestoneRecognition` wrote an earned milestone into the
+ * just-resolved event's `resolvedNextEventId`, so the game appended an
+ * unrelated recognition card to any story — and the button, which can only ask
+ * "is there another card?", promised "Continue the story" and then delivered a
+ * different one, often straight off a failure screen.
+ *
+ * `resolvedNextEventId` is now authored-only, which makes that button true by
+ * construction. Recognition gets its own lane instead: `pendingMilestones` is
+ * drained by the weekly offer, one beat at a time, without rolling the weekly
+ * chance and without resetting the drought counter the random deck reads.
+ */
 
 export function dismissCareerEvent(state: GameState, markResolved = true): GameState {
   const pending = state.pendingEvent;
@@ -433,8 +678,26 @@ function applyPlayerEffect(
   );
   if (player === undefined) throw new Error(`unknown event player ${effect.playerId}`);
   const moraleDelta = safeDelta(effect.moraleDelta ?? 0, 'event morale');
-  const injuryWeeks = safeDelta(effect.injuryWeeks ?? player.injuryWeeks, 'event injury weeks');
-  if (injuryWeeks < 0) throw new Error('event injury weeks cannot be negative');
+  /**
+   * A setback can only ever make an absence longer.
+   *
+   * This used to assign the authored weeks outright, so a story that knocked a
+   * player out for one week *shortened* a four-week injury he was already
+   * carrying — a setback that healed him. Healing has its own effect
+   * (`injuryWeeksDelta`) precisely because `max` cannot express it.
+   */
+  const injurySetback = safeDelta(effect.injuryWeeks ?? 0, 'event injury weeks');
+  if (injurySetback < 0) throw new Error('event injury weeks cannot be negative');
+  const injuryHeal = safeDelta(effect.injuryWeeksDelta ?? 0, 'event injury heal');
+  if (injuryHeal > 0) throw new Error('event injury heal must be negative or zero');
+  const injuryWeeks = Math.max(
+    0,
+    safeAdd(Math.max(player.injuryWeeks, injurySetback), injuryHeal, 'event injury weeks'),
+  );
+
+  const loyaltyDelta = safeDelta(effect.loyaltyDelta ?? 0, 'event loyalty');
+  const conditionDelta = safeDelta(effect.conditionDelta ?? 0, 'event condition');
+  const fameDelta = safeDelta(effect.fameDelta ?? 0, 'event fame');
 
   return state.players.map(candidate => {
     if (candidate.id !== effect.playerId) return candidate;
@@ -452,7 +715,37 @@ function applyPlayerEffect(
     } else if (effect.attributeDelta !== undefined) {
       throw new Error('an event attribute delta requires an attribute');
     }
-    return { ...candidate, attrs, morale, injuryWeeks };
+    return {
+      ...candidate,
+      attrs,
+      morale,
+      injuryWeeks,
+      // Loyalty is absent until something moves it, and absent means "the value
+      // derived from the career seed" rather than zero. `playerLoyalty` is the
+      // only honest way to read it; a raw `?? 0` would silently demote every
+      // player the first time a story touched him.
+      ...(loyaltyDelta === 0
+        ? {}
+        : { loyalty: adjustLoyalty(playerLoyalty(candidate, state.careerSeed), loyaltyDelta) }),
+      ...(conditionDelta === 0
+        ? {}
+        : {
+            condition: Math.max(0, Math.min(100, safeAdd(
+              candidate.condition ?? 100,
+              conditionDelta,
+              'event condition',
+            ))),
+          }),
+      ...(fameDelta === 0
+        ? {}
+        : {
+            fame: Math.max(0, Math.min(FAME_CEILING, safeAdd(
+              candidate.fame ?? 0,
+              fameDelta,
+              'event fame',
+            ))),
+          }),
+    };
   });
 }
 
