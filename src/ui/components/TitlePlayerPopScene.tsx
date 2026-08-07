@@ -101,22 +101,10 @@ export function TitlePlayerPopScene({
 }) {
   const t = useCopy();
   const styles = usePixelStyles(makeStyles);
-  const [elapsedMs, setElapsedMs] = useState(0);
   const [appearance, setAppearance] = useState(0);
   const showNextHero = useCallback(() => {
     setAppearance(current => current + 1);
   }, []);
-
-  useEffect(() => {
-    if (reduceMotion) {
-      setElapsedMs(2_100);
-      return undefined;
-    }
-    const interval = setInterval(() => {
-      setElapsedMs(current => current + 90);
-    }, 90);
-    return () => clearInterval(interval);
-  }, [reduceMotion]);
 
   return (
     <View
@@ -128,7 +116,6 @@ export function TitlePlayerPopScene({
         appearance={appearance}
         left={SOLO_POSITIONS[appearance % SOLO_POSITIONS.length]}
         reduceMotion={reduceMotion}
-        elapsedMs={elapsedMs}
         hero={HERO_SEQUENCE[appearance % HERO_SEQUENCE.length]}
         onComplete={showNextHero}
       />
@@ -140,14 +127,12 @@ function PopSlot({
   appearance,
   left,
   reduceMotion,
-  elapsedMs,
   hero,
   onComplete,
 }: {
   readonly appearance: number;
   readonly left: `${number}%`;
   readonly reduceMotion: boolean;
-  readonly elapsedMs: number;
   readonly hero: PopHero;
   readonly onComplete: () => void;
 }) {
@@ -155,7 +140,6 @@ function PopSlot({
   const styles = usePixelStyles(makeStyles);
   const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const appearanceStartedAtMs = useRef(elapsedMs).current;
   const isGiant = hero.power === 'GIANT_GK';
 
   useEffect(() => {
@@ -192,38 +176,6 @@ function PopSlot({
     };
   }, [isGiant, onComplete, progress, reduceMotion]);
 
-  const duration = powerEffectDescriptor(hero.power).durationMs;
-  const heroElapsed = Math.max(0, elapsedMs - appearanceStartedAtMs);
-  const localElapsed = reduceMotion
-    ? Math.round(duration * 0.62)
-    : Math.min(duration, heroElapsed);
-  const effectElapsed = hero.power === 'FIRE_TORCH'
-    ? Math.max(2_850, localElapsed)
-    : hero.power === 'WEB_TRAP'
-      ? 2_580
-      : localElapsed;
-  const giantActor = livePowerEffectActors({
-    id: `title-${appearance}`,
-    power: hero.power,
-    player: appearance,
-    elapsedMs: localElapsed,
-    width: 196,
-    height: 204,
-    origin: { x: 72, y: 128 },
-    targets: [{ x: 150, y: 124 }],
-    direction: -1,
-    reduceMotion,
-  })[0];
-  const spriteScale = isGiant ? giantActor?.scale ?? 1 : 1;
-  const baseScale = isGiant ? 3.4 : 4.1;
-  // Bitmap art rule (docs/11, and see snapSpriteScale in render/interpolate.ts):
-  // the drawn magnification must be a whole number, or nearest-neighbour
-  // sampling doubles some source rows and drops others. The giant's growth is
-  // folded into the sprite's own draw scale rather than applied as a fractional
-  // transform on top, so the COMBINED scale stays integral and GIANT_GK grows
-  // in pixel-perfect steps from his planted feet.
-  const drawScale = Math.max(1, Math.round(baseScale * spriteScale));
-
   return (
     <Animated.View
       pointerEvents="none"
@@ -246,22 +198,6 @@ function PopSlot({
     >
       <View style={styles.powerBubble}>
         <Text style={styles.powerBubbleText}>{t(hero.powerLabelKey)}</Text>
-      </View>
-
-      <View style={styles.powerFx}>
-        <Canvas style={styles.powerCanvas}>
-          <PowerEffectScene
-            power={hero.power}
-            elapsedMs={effectElapsed}
-            width={196}
-            height={204}
-            origin={{ x: 72, y: 128 }}
-            targets={[{ x: 150, y: 124 }, { x: 166, y: 82 }]}
-            anchor={{ x: 112, y: 60 }}
-            tier={1}
-            reduceMotion={reduceMotion}
-          />
-        </Canvas>
       </View>
 
       {hero.targetSpriteKey ? (
@@ -324,8 +260,110 @@ function PopSlot({
         </View>
       ) : null}
 
-      <TitleMatchSprite spriteKey={hero.spriteKey} scale={drawScale} />
+      <PopHeroFx appearance={appearance} hero={hero} reduceMotion={reduceMotion} />
     </Animated.View>
+  );
+}
+
+/**
+ * The clock, and the only two things it draws.
+ *
+ * The pop scene's elapsed-time counter used to be `useState` on
+ * `TitlePlayerPopScene`, ticking every 90ms and passed down as a prop. That
+ * re-rendered all of `PopSlot` eleven times a second — the power-label bubble,
+ * the target sprite, and WEB_TRAP's and FIRE_TORCH's overlays, which are twenty
+ * or more `View`s each — to move a clock only these two elements read. It ran
+ * from the moment the app opened, because this is the title screen, and on web
+ * it shared the JS thread with every `Animated` driver in the app (react-native-web
+ * has no native animated module, so `useNativeDriver: true` falls back to JS).
+ *
+ * So the clock lives here instead, below everything static. It cannot be a
+ * Reanimated shared value: `PowerEffectScene` takes the number as a React prop
+ * and GIANT_GK's growth is JS arithmetic, so both are render-time, not style.
+ *
+ * `PopSlot` remounts for each appearance via its `key`, which is what lets this
+ * be a plain mount-local counter — the old code had to subtract an
+ * `appearanceStartedAtMs` snapshot to get the same number.
+ *
+ * A Fragment, not a `View`: `powerFx` is absolutely positioned and the hero
+ * sprite is `popSlot`'s only in-flow child, so wrapping them would change the
+ * scene's layout. Draw order is unaffected — both siblings carry explicit
+ * negative `zIndex`.
+ */
+function PopHeroFx({
+  appearance,
+  hero,
+  reduceMotion,
+}: {
+  readonly appearance: number;
+  readonly hero: PopHero;
+  readonly reduceMotion: boolean;
+}) {
+  const styles = usePixelStyles(makeStyles);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const isGiant = hero.power === 'GIANT_GK';
+
+  useEffect(() => {
+    // Reduced motion holds a single representative frame, so there is no clock
+    // to run at all. The old code still ticked one in the parent and then threw
+    // the value away in `localElapsed` below.
+    if (reduceMotion) return undefined;
+    const interval = setInterval(() => {
+      setElapsedMs(current => current + 90);
+    }, 90);
+    return () => clearInterval(interval);
+  }, [reduceMotion]);
+
+  const duration = powerEffectDescriptor(hero.power).durationMs;
+  const localElapsed = reduceMotion
+    ? Math.round(duration * 0.62)
+    : Math.min(duration, elapsedMs);
+  const effectElapsed = hero.power === 'FIRE_TORCH'
+    ? Math.max(2_850, localElapsed)
+    : hero.power === 'WEB_TRAP'
+      ? 2_580
+      : localElapsed;
+  const giantActor = livePowerEffectActors({
+    id: `title-${appearance}`,
+    power: hero.power,
+    player: appearance,
+    elapsedMs: localElapsed,
+    width: 196,
+    height: 204,
+    origin: { x: 72, y: 128 },
+    targets: [{ x: 150, y: 124 }],
+    direction: -1,
+    reduceMotion,
+  })[0];
+  const spriteScale = isGiant ? giantActor?.scale ?? 1 : 1;
+  const baseScale = isGiant ? 3.4 : 4.1;
+  // Bitmap art rule (docs/11, and see snapSpriteScale in render/interpolate.ts):
+  // the drawn magnification must be a whole number, or nearest-neighbour
+  // sampling doubles some source rows and drops others. The giant's growth is
+  // folded into the sprite's own draw scale rather than applied as a fractional
+  // transform on top, so the COMBINED scale stays integral and GIANT_GK grows
+  // in pixel-perfect steps from his planted feet.
+  const drawScale = Math.max(1, Math.round(baseScale * spriteScale));
+
+  return (
+    <>
+      <View style={styles.powerFx}>
+        <Canvas style={styles.powerCanvas}>
+          <PowerEffectScene
+            power={hero.power}
+            elapsedMs={effectElapsed}
+            width={196}
+            height={204}
+            origin={{ x: 72, y: 128 }}
+            targets={[{ x: 150, y: 124 }, { x: 166, y: 82 }]}
+            anchor={{ x: 112, y: 60 }}
+            tier={1}
+            reduceMotion={reduceMotion}
+          />
+        </Canvas>
+      </View>
+      <TitleMatchSprite spriteKey={hero.spriteKey} scale={drawScale} />
+    </>
   );
 }
 

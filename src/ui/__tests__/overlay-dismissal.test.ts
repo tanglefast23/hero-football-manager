@@ -90,6 +90,33 @@ describe('overlay dismissal', () => {
     expect(overlay).toContain('const next = lineIndexRef.current + 1');
   });
 
+  /**
+   * The typewriter commits once per character, every 10-30ms. Held as overlay
+   * state that repainted the sprite, the shadow and the dots on every letter —
+   * and on web `useNativeDriver` is a JS fallback, so the walk-on springs are
+   * already spending that same thread. Bert talking was one of two places the
+   * game measurably stuttered on iPad.
+   */
+  it('repaints only the letters while a character is typing', () => {
+    const overlay = source('src/ui/CharacterSpeechOverlay.tsx');
+
+    // The count is published to one subscriber, not set as overlay state.
+    expect(overlay).toContain('useSyncExternalStore');
+    expect(overlay).toContain('function RevealingLine');
+    expect(overlay).not.toContain('setReveal(');
+
+    // Only the per-line boundary is allowed to re-render the overlay itself.
+    expect(overlay).toContain('setLineComplete');
+
+    // The sprite must stay ABOVE the reveal boundary, or moving the state down
+    // bought nothing: `renderCharacter` runs in the overlay, never in the leaf.
+    const leaf = overlay.slice(
+      overlay.indexOf('function RevealingLine'),
+      overlay.indexOf('A character walks in from the right'),
+    );
+    expect(leaf).not.toContain('renderCharacter');
+  });
+
   it('holds the screen while Bert is on it', () => {
     const walkOn = source('src/ui/BertBriefingWalkOn.tsx');
     // The shared overlay is a plain Pressable, so the modal semantics the old
