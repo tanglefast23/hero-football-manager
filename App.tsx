@@ -103,6 +103,7 @@ import {
   AwakeningCutsceneScreen,
   AssistantModeChoiceScreen,
   ChampionshipCelebrationScreen,
+  SeasonPodiumScreen,
   FixtureMatchDayScreen,
   forgetLeagueRowPositions,
   LeagueTableScreen,
@@ -195,6 +196,7 @@ import type { AwakeningCutsceneViewModel, SquadTrainingViewModel } from './src/u
 import { AwakeningArtQaScreen } from './src/ui/screens/AwakeningArtQaScreen';
 import { PowerArtQaScreen } from './src/ui/screens/PowerArtQaScreen';
 import { championshipCelebrationViewModel } from './src/application/championship-celebration';
+import { seasonPodiumViewModel } from './src/application/season-podium';
 import { endgameCelebrationViewModel } from './src/application/endgame-celebration';
 import { hallOfFameViewModel } from './src/application/hall-of-fame';
 import { EndgameCelebrationScreen } from './src/ui/screens/EndgameCelebrationScreen';
@@ -2167,6 +2169,14 @@ function GameApp() {
         )}
         reduceMotion={reduceMotion}
         onComplete={store.completeChampionshipCelebration}
+      />
+    );
+  } else if (store.screen === 'season-podium') {
+    screen = (
+      <SeasonPodiumScreen
+        viewModel={seasonPodiumViewModel(store.career, t)}
+        reduceMotion={reduceMotion}
+        onComplete={store.completeSeasonPodium}
       />
     );
   } else if (store.screen === 'endgame-celebration') {

@@ -140,6 +140,10 @@ import {
   markAwardsCeremonyComplete,
 } from './awards-ceremony';
 import {
+  completeSeasonPodium as markSeasonPodiumComplete,
+  hasPendingSeasonPodium,
+} from './season-podium';
+import {
   endgameSupersedesLeagueTitle,
   markEndgameCelebrationComplete,
   pendingEndgameCelebration,
@@ -321,6 +325,9 @@ export type M1Screen =
   | 'week-review'
   | 'legacy'
   | 'championship-celebration'
+  // The medal ceremony for a season that finished second or third. Mutually
+  // exclusive with the parade above, which only a title fires.
+  | 'season-podium'
   // The end of the main climb: the first D1 title, the first Cup, and the true
   // ending when both are in. Once per career each, never per season.
   | 'endgame-celebration'
@@ -463,6 +470,7 @@ interface M1Store {
   dismissPostMatchSummary: () => void;
   continueWeekReview: () => void;
   completeChampionshipCelebration: () => void;
+  completeSeasonPodium: () => void;
   completeEndgameCelebration: () => void;
   returnToTitleFromEnding: () => void;
   completeAwardsCeremony: () => void;
@@ -1419,6 +1427,18 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const next = markChampionshipCelebrationComplete(career);
       // The title is celebrated first and the individual boards second, so the
       // ceremony is what the trophy hands off to — never the recap directly.
+      set({ career: next, screen: seasonBoundaryScreen(next), error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  completeSeasonPodium() {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      // Unconditional, for the reason the parade's own exit gives: this is the
+      // only way off the screen, so it must never refuse and strand a career on
+      // a watched cutscene.
+      const next = markSeasonPodiumComplete(career);
       set({ career: next, screen: seasonBoundaryScreen(next), error: null });
       queueCareerSave(get, set, next);
     });
@@ -2473,6 +2493,9 @@ function matchDayBannerOnArrival(
 
 function seasonBoundaryScreen(career: GameState): M1Screen {
   if (hasPendingChampionshipCelebration(career)) return 'championship-celebration';
+  // The same slot as the parade, and never at the same time as it: one fires on
+  // first place, the other on second and third.
+  if (hasPendingSeasonPodium(career)) return 'season-podium';
   // After the ordinary title, never before it. A D1 title that fires an endgame
   // moment suppresses the ordinary screen outright, so the only case where both
   // play is a lesser division's title in the season the Cup completed the pair

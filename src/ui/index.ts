@@ -46,6 +46,7 @@ export * from './screens/MarketScreen';
 export * from './screens/NewGameWelcomeScreen';
 export * from './screens/PostMatchLedgerScreen';
 export * from './screens/SeasonEndScreen';
+export * from './screens/SeasonPodiumScreen';
 export * from './screens/StoryEventScreen';
 export * from './screens/SquadTrainingScreen';
 export * from './screens/TitleLandingScreen';

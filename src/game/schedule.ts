@@ -1,5 +1,5 @@
 import { mulberry32 } from '../sim/rng';
-import type { LeagueFixture } from './types';
+import { SEASON_WEEKS, type LeagueFixture } from './types';
 import { compareIds } from './ordering';
 
 const CLUB_COUNT = 10;
@@ -7,22 +7,38 @@ const FIRST_LEG_ROUNDS = CLUB_COUNT - 1;
 const TOTAL_ROUNDS = FIRST_LEG_ROUNDS * 2;
 const OPENING_SEASON_FIRST_LEAGUE_WEEK = 3;
 const STANDARD_FIRST_LEAGUE_WEEK = 5;
-const LAST_LEAGUE_WEEK = 28;
+/**
+ * The last week the even spread may use. Rounds 1–17 are spaced across it
+ * exactly as before the finale was pinned, which is what keeps the cup calendar
+ * below unchanged.
+ */
+const LAST_SPREAD_LEAGUE_WEEK = 28;
+
+/**
+ * Every season ends on a league match.
+ *
+ * The final round is pinned to the season's last week rather than landing
+ * wherever the even spread puts it, so the table, promotion and relegation are
+ * settled the moment the manager walks off the pitch. Before the pin the league
+ * finished in Week 28 and Week 30 was a dead week that still had to be advanced
+ * through, with the desk offering a "Next match" that did not exist.
+ */
+const SEASON_FINALE_WEEK = SEASON_WEEKS;
 
 /**
  * The week each Hero Cup round settles, chosen to land on weeks the league
  * calendar leaves empty so a cup tie is its own event instead of a second match
- * bolted onto a league week. `leagueWeekForRound` fills weeks 3–28 in season 1
- * and 5–28 from season 2 on, which leaves these empty weeks:
+ * bolted onto a league week. `leagueWeekForRound` fills weeks 3–26 plus 30 in
+ * season 1 and 5–26 plus 30 from season 2 on, which leaves these empty weeks:
  *
- *   season 1:  1 2   6   9   12    15    18    21    24 27 29 30
- *   season 2+: 1 2 3 4 8       12       16       20  24 27 29 30
+ *   season 1:  1 2   6   9   12    15    18    21    24 27 28 29
+ *   season 2+: 1 2 3 4 8       12       16       20  24 27 28 29
  *
- * Only 12, 24, 27, 29 and 30 are free in every season, so no six-week set can
+ * Only 12, 24, 27, 28 and 29 are free in every season, so no six-week set can
  * be empty in all of them. This set is empty for the whole of season 1 and
  * doubles up only twice (weeks 6 and 18) from season 2 on — the fewest possible
  * without opening in weeks 1–2, before the league has even kicked off, or
- * settling the final in week 30 alongside the season-end transition.
+ * settling the final in week 30 on top of the league finale.
  *
  * Lives here rather than in `career.ts` because it is season-calendar data, and
  * because `player-requests.ts` reads it to decide whether a cost priced in
@@ -40,10 +56,12 @@ export function leagueWeekForRound(round: number, season: number): number {
     throw new Error('season must be a positive integer');
   }
 
+  if (round === TOTAL_ROUNDS) return SEASON_FINALE_WEEK;
+
   const firstLeagueWeek = season === 1
     ? OPENING_SEASON_FIRST_LEAGUE_WEEK
     : STANDARD_FIRST_LEAGUE_WEEK;
-  const weekSpan = LAST_LEAGUE_WEEK - firstLeagueWeek;
+  const weekSpan = LAST_SPREAD_LEAGUE_WEEK - firstLeagueWeek;
   return firstLeagueWeek + Math.floor(((round - 1) * weekSpan) / (TOTAL_ROUNDS - 1));
 }
 

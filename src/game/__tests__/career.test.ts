@@ -528,7 +528,7 @@ describe('Hero Cup settlement calendar', () => {
     expect(new Set(weeks).size).toBe(6);
     expect(weeks).toEqual([...weeks].sort((left, right) => left - right));
     // Never before the league has kicked off, and the final stays late enough to
-    // read as a final without colliding with the season-end transition.
+    // read as a final without colliding with the league finale in Week 30.
     expect(weeks[0]).toBeGreaterThan(2);
     expect(weeks[5]).toBe(SEASON_WEEKS - 1);
   });
@@ -542,7 +542,8 @@ describe('Hero Cup settlement calendar', () => {
     // Season 2 onward opens a fortnight later than season 1, so only these weeks
     // are empty in both calendars: six rounds cannot all avoid a league week
     // everywhere. The two that do share a week are the documented minimum.
-    expect(freeInEverySeason).toEqual([1, 2, 12, 24, 27, 29, 30]);
+    // Week 30 is not among them — it holds the league finale in every season.
+    expect(freeInEverySeason).toEqual([1, 2, 12, 24, 27, 28, 29]);
     expect(CUP_SETTLEMENT_WEEKS.filter(week => standard.has(week))).toEqual([6, 18]);
   });
 });
