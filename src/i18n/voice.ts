@@ -27,6 +27,14 @@ const BODY_PREFIXES = [
   'coach.',
   // The players' agent, in that same bubble, for the same reason.
   'agent.',
+  // Sponsor offer lines and objective sentences. The BRAND above them is the
+  // pixel line on the card (`ClubFinancesScreen.tsx:1040`, `:1085`,
+  // `SeasonEndScreen.tsx:148` — all `PixelText`) and stays English anyway, so
+  // nothing under this prefix is ever drawn in the pixel face: the offer line is
+  // a plain `<Text>` at ClubFinancesScreen.tsx:1041 and :1086, and the objective
+  // at :1052, :1094 and SeasonEndScreen.tsx:155. Defaulting them to `display`
+  // would glyph-gate advertising prose against a face it never renders in.
+  'sponsor.',
 ];
 
 /** Numbers and anything that lines up in a column. */

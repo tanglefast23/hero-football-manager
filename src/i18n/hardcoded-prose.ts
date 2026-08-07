@@ -185,7 +185,11 @@ function inDeveloperContext(node: ts.Node): boolean {
  *   - a helper that takes the English as ARGUMENTS and attaches the keys itself
  *     (`reward(key, title, detail)` in `promotion-progression.ts`);
  *   - a lookup table whose keys live in a SEPARATE const (`DIVISION_NAMES`
- *     beside `DIVISION_NAME_KEYS` in `pyramid.ts`).
+ *     beside `DIVISION_NAME_KEYS` in `pyramid.ts`);
+ *   - a producer whose keys are not in the object at all, because the record it
+ *     builds is persisted under a `z.strictObject` that has no room for them
+ *     (`createProvisionalSponsorPortfolio` in `sponsors.ts`, whose two strings
+ *     resolve through chrome keys chosen at the render boundary).
  *
  * Rather than teach the scanner to chase either, the code says so out loud:
  * put `@i18n-fallback` in the JSDoc of the function or the variable, and its
@@ -216,6 +220,12 @@ function inTaggedFallback(node: ts.Node, source: ts.SourceFile): boolean {
     }
     // A tagged table: `/** @i18n-fallback */ const DIVISION_NAMES = { … }`.
     if (ts.isVariableStatement(current) && tagged(current)) return true;
+    // A tagged producer: the literal sits INSIDE the tagged function rather
+    // than being passed into one. The call-expression rule above cannot see
+    // this shape — it only fires on a direct `identifier(...)` call — and the
+    // variable-statement rule cannot either, so a `function` that builds its
+    // English inline had no way to declare itself a deliberate fallback.
+    if (ts.isFunctionDeclaration(current) && tagged(current)) return true;
   }
   return false;
 }

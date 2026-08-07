@@ -105,7 +105,9 @@ import {
   type PlacedFacility,
   type AssistantInboxGuideSequenceId,
   type SponsorContractSnapshot,
+  type SponsorObjectiveSnapshot,
   type SponsorOfferSnapshot,
+  type SponsorProfileId,
 } from '../game';
 import type {
   AwakeningCutsceneViewModel,
@@ -685,6 +687,65 @@ function fourWeekOperatingOutlook(
   };
 }
 
+/**
+ * The content id the continuity placeholder carries.
+ *
+ * It matches no row in `sponsors.json` on purpose — "the deal you already have"
+ * is not a brand — so every lookup here has to fall through to chrome rather
+ * than assume a brand exists. Missing that is what would leave an old save
+ * reading English forever, since the persisted words are a perfectly readable
+ * fallback and nothing would look broken.
+ */
+const CONTINUITY_SPONSOR_ID = 'continuity';
+
+const SPONSOR_PROFILE_LABEL_KEYS: Readonly<Record<SponsorProfileId, string>> = {
+  STEADY: 'clubFinances.sponsorProfileSteady',
+  BALANCED: 'clubFinances.sponsorProfileBalanced',
+  BOLD: 'clubFinances.sponsorProfileBold',
+};
+
+/**
+ * A sponsor's name. English by product decision — a fictional sponsor is the
+ * same class of invented proper noun as `Bramble Rovers`, and translating twelve
+ * of them would buy no clarity — EXCEPT the continuity placeholder, which is UI
+ * chrome wearing a sponsor's slot.
+ */
+function sponsorNameCopy(
+  t: CopyFn,
+  contract: Pick<SponsorContractSnapshot, 'sponsorContentId' | 'sponsorName' | 'slot'>,
+  portfolioSlots: number,
+): string {
+  if (contract.sponsorContentId !== CONTINUITY_SPONSOR_ID) return contract.sponsorName;
+  return portfolioSlots <= 1
+    ? t('clubFinances.sponsorContinuityName')
+    : t('clubFinances.sponsorContinuityNameNumbered', { number: contract.slot + 1 });
+}
+
+/**
+ * The line under the name, resolved from the content id both the contract and
+ * the offer snapshot have carried since they were written.
+ *
+ * The persisted English stays the fallback, so a save signed before this existed
+ * still reads — and so does one whose brand an app update has removed.
+ */
+function sponsorOfferLineCopy(
+  t: CopyFn,
+  contract: Pick<SponsorContractSnapshot, 'sponsorContentId' | 'offerLine'>,
+): string {
+  return contract.sponsorContentId === CONTINUITY_SPONSOR_ID
+    ? t('clubFinances.sponsorContinuityTerms')
+    : copyOrEnglish(
+      t,
+      `sponsor.brand.${contract.sponsorContentId}.offerLine`,
+      contract.offerLine,
+    );
+}
+
+/** The season target, from the key the producer now writes beside the English. */
+function sponsorObjectiveCopy(t: CopyFn, objective: SponsorObjectiveSnapshot): string {
+  return copyOrEnglish(t, objective.labelKey, objective.label, objective.labelParams);
+}
+
 function clubSponsorshipViewModel(
   state: GameState,
   club: GameState['clubs'][number],
@@ -712,6 +773,12 @@ function clubSponsorshipViewModel(
   const nextSponsorPaymentWeek = SPONSOR_PAYMENT_WEEKS.find(week => week >= state.week);
 
   const slots = sponsorship.activeContracts.map(contract => {
+    // "Current Sponsor" only loses its number when the club has a single slot,
+    // which is what the producer decided from `capacity` when it wrote the
+    // English. A portfolio is one season's worth of contracts, so counting them
+    // recovers the same answer without parsing the persisted words back.
+    const portfolioSlots = sponsorship.activeContracts
+      .filter(candidate => candidate.season === contract.season).length;
     const progress = contract.objective === undefined
       ? undefined
       : sponsorObjectiveProgressFromFixtures(
@@ -726,13 +793,13 @@ function clubSponsorshipViewModel(
     return {
       slot: contract.slot,
       slotLabel: t('clubFinances.sponsorSlotLabel', { number: contract.slot + 1 }),
-      sponsorName: contract.sponsorName,
-      offerLine: contract.offerLine,
+      sponsorName: sponsorNameCopy(t, contract, portfolioSlots),
+      offerLine: sponsorOfferLineCopy(t, contract),
       provisional: contract.provisional,
       nominalMonthlyFee: contract.nominalMonthlyFee,
       actualMonthlyFee: actualByContract.get(contract.contractId) ?? 0,
       ...(contract.objective === undefined ? {} : {
-        objectiveLabel: contract.objective.label,
+        objectiveLabel: sponsorObjectiveCopy(t, contract.objective),
         objectiveProgressLabel: progress === undefined
           ? undefined
           : contract.objective.kind === 'LEAGUE_FINISH'
@@ -753,6 +820,7 @@ function clubSponsorshipViewModel(
           offer,
           sponsorship.activeContracts,
           sponsorPercent,
+          t,
         )),
     };
   });
@@ -787,6 +855,7 @@ function sponsorOfferViewModel(
   offer: SponsorOfferSnapshot,
   contracts: readonly SponsorContractSnapshot[],
   sponsorPercent: number,
+  t: CopyFn,
 ) {
   const hypothetical: SponsorContractSnapshot[] = contracts.map(contract => contract.slot === offer.slot
     ? {
@@ -809,14 +878,12 @@ function sponsorOfferViewModel(
   return {
     offerId: offer.offerId,
     sponsorName: offer.sponsorName,
-    offerLine: offer.offerLine,
+    offerLine: sponsorOfferLineCopy(t, offer),
     profile: offer.profile,
-    profileLabel: offer.profile === 'STEADY'
-      ? 'Steady'
-      : offer.profile === 'BALANCED' ? 'Balanced' : 'Bold',
+    profileLabel: t(SPONSOR_PROFILE_LABEL_KEYS[offer.profile]),
     nominalMonthlyFee: offer.nominalMonthlyFee,
     actualMonthlyFee,
-    objectiveLabel: offer.objective.label,
+    objectiveLabel: sponsorObjectiveCopy(t, offer.objective),
     nominalBonus: offer.objective.nominalBonus,
     actualBonus,
   };
@@ -1516,8 +1583,9 @@ export function seasonEndViewModel(
     .sort((left, right) => left.slot - right.slot || left.contractId.localeCompare(right.contractId))
     .map(contract => ({
       contractId: contract.contractId,
+      // The brand stays English by decision; the target beside it does not.
       sponsorName: contract.sponsorName,
-      objectiveLabel: contract.objective!.label,
+      objectiveLabel: sponsorObjectiveCopy(t, contract.objective!),
       met: contract.objectiveOutcome!.met,
       // This is deliberately the persisted settlement value. Recomputing from
       // nominal terms here could lie by a dollar after Chairman allocation.

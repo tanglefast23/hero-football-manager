@@ -33,12 +33,18 @@ import { loadLaunchContent } from '../content';
  *   in the shipped UI reads them any more (only `body` and `focus` survive, via
  *   `briefingBeats`). Keying them would put ~110 sentences nobody can see into
  *   the coverage denominator and ask six translators to write them.
- * - Everything in `sponsors.json`. `sponsorName` and `offerLine` are written
- *   into `SponsorContractSnapshot`, which is persisted, and `sponsorName` is
- *   copied again into every sponsor ledger line's `labelParams` — so a
- *   translated value freezes into the save in whatever language that season was
- *   played. `objectives[].labelTemplate` is persisted the same way through
- *   `sponsorRules`. See the TODO in `src/game/sponsors.ts`.
+ * - The twelve sponsor BRAND names in `sponsors.json`. A fictional sponsor is
+ *   the same class of invented proper noun as `Bramble Rovers`, and the owner's
+ *   rule for this workstream was that club and player names stay English. Their
+ *   offer lines and the objective templates beside them are keyed below —
+ *   advertising prose and a sentence with a number in it are not names.
+ *
+ *   Three separate audits stopped short of this file believing the sponsor work
+ *   needed a coordinated save-format change first. It did not:
+ *   `sponsorObjectiveSnapshotSchema` already accepts `labelKey`/`labelParams`,
+ *   and both the contract and offer snapshots carry `sponsorContentId`, so the
+ *   offer line is recoverable from content at render time with the persisted
+ *   English as its fallback. No migration, no schema version bump.
  */
 let cached: Readonly<Record<string, string>> | undefined;
 
@@ -135,6 +141,22 @@ export function contentStrings(): Readonly<Record<string, string>> {
 
   for (const drill of content.training.focusDrills) {
     put(`drill.${drill.id}.name`, drill.name);
+  }
+
+  /**
+   * Sponsors, minus the brand names — see the header for why those stay English.
+   *
+   * The objective keeps its `{target}` hole rather than being flattened once per
+   * target: the number is chosen at offer generation from the profile and the
+   * difficulty, so a per-target key family would be 3 × 3 × 2 strings saying the
+   * same thing. The producer writes `labelParams: { target }` beside the key and
+   * `copyOrEnglish` fills the hole at render.
+   */
+  for (const brand of content.sponsors.brands) {
+    put(`sponsor.brand.${brand.id}.offerLine`, brand.offerLine);
+  }
+  for (const objective of content.sponsors.objectives) {
+    put(`sponsor.objective.${objective.id}.label`, objective.labelTemplate);
   }
 
   /**

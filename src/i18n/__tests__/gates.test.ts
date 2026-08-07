@@ -230,6 +230,10 @@ describe('persisted labels resolve through the catalog', () => {
       // The ledger's six cash-transaction lines. They were outside this gate
       // while one of them still interpolated an English training-path name.
       'src/game/management.ts',
+      // The sponsor objective a signed deal carries for a whole season. It is
+      // written at OFFER generation, so an unguarded key would be wrong on
+      // three cards a week before it was ever wrong on a contract.
+      'src/game/sponsors.ts',
     ];
     const keys = sources.flatMap(file => {
       const text = readFileSync(join(process.cwd(), file), 'utf8');
@@ -451,6 +455,10 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
     'award-ceremony-lines.json': {},
     'powers.json': {},
     'training.json': {},
+    // Offer lines and objective templates only. The twelve brand names are
+    // deliberately not keyed — a fictional sponsor is an invented proper noun,
+    // like a club name — so this denominator is 15, not 27.
+    'sponsors.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
   };
 
   /**
@@ -474,6 +482,7 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
     'ceremony.': 'award-ceremony-lines.json',
     'powerEffect.': 'powers.json',
     'drill.': 'training.json',
+    'sponsor.': 'sponsors.json',
   };
 
   const sourceOf = (key: string): string | undefined => Object.entries(SOURCE_BY_PREFIX)

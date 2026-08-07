@@ -34,7 +34,24 @@ export interface SponsorRules {
 
 export interface SponsorObjectiveSnapshot {
   readonly kind: SponsorObjectiveKind;
+  /**
+   * The objective as a finished English sentence, kept as the fallback for a
+   * save written before `labelKey` existed — and for one whose sponsor content
+   * row an app update has since removed.
+   */
   readonly label: string;
+  /**
+   * Catalog key for `label`, so a signed deal renders in the player's language.
+   *
+   * Optional because it always was: `sponsorObjectiveSnapshotSchema` in
+   * `persistence/game-state-codec.ts` has accepted `labelKey`/`labelParams`
+   * since it was written, and the producer simply never filled them in. Adding
+   * them here is a compile-time change only — no migration, no
+   * `GAME_SCHEMA_VERSION` bump.
+   */
+  readonly labelKey?: string;
+  /** Raw values for the key's placeholders — `{ target: 8 }`, never `'8 wins'`. */
+  readonly labelParams?: Readonly<Record<string, string | number>>;
   readonly target: number;
   readonly nominalBonus: number;
 }
