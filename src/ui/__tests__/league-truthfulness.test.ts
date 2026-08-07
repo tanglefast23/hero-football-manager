@@ -1,6 +1,7 @@
 import { createCareer, CUP_SETTLEMENT_WEEKS } from '../../game';
 import { createLaunchCareerSetup } from '../../application/launch';
 import { homeViewModel, leagueTableViewModel } from '../../application/view-models';
+import { copyFor } from '../../i18n';
 
 describe('management UI truthfulness view models', () => {
   it('maps the current played fixtures into the full live league table', () => {
@@ -127,5 +128,19 @@ describe('management UI truthfulness view models', () => {
     expect(viewModel.nextMatchTimingLabel).toBe('This week');
     expect(viewModel.nextFixture.competition).toBe('Hero Cup · Play-in');
     expect(viewModel.nextFixture.id).toContain('-cup-');
+  });
+
+  /**
+   * The round came straight off the matchday as the engine's control value, so
+   * the line read "Heldenpokal · Play-in" — a translated sentence with an
+   * English word dropped into it. The cup's name was already localised, which
+   * is what made the seam so visible.
+   */
+  it('names the cup round in German on the German desk', () => {
+    const career = createCareer(createLaunchCareerSetup(3));
+    const cupWeek = CUP_SETTLEMENT_WEEKS[0];
+    const viewModel = homeViewModel({ ...career, week: cupWeek, phase: 'manage' }, copyFor('de'));
+
+    expect(viewModel.nextFixture.competition).toBe('Heldenpokal · Vorrunde');
   });
 });

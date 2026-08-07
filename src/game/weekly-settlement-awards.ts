@@ -1,4 +1,9 @@
-import { CUP_DISPLAY_NAME, type NationalCupRound } from './pyramid';
+import {
+  CUP_DISPLAY_NAME,
+  CUP_NAME_KEY,
+  CUP_ROUND_NAME_KEYS,
+  type NationalCupRound,
+} from './pyramid';
 import type {
   IdempotentLedgerLine,
   WeeklyLedger,
@@ -59,9 +64,20 @@ export function nationalCupRoundSettlementAwards(input: {
     awards: [{
       line: {
         kind: 'prize',
+        // Never keyed at all until now, unlike the league prize beside it — so
+        // a cup run paid out in English on the statement forever.
         label: input.roundLabel === 'Final'
           ? `${CUP_DISPLAY_NAME} champions`
           : `${CUP_DISPLAY_NAME} ${input.roundLabel} win`,
+        labelKey: input.roundLabel === 'Final'
+          ? 'ledger.cupChampions'
+          : 'ledger.cupRoundWin',
+        labelParams: {
+          cup: CUP_DISPLAY_NAME,
+          cupKey: CUP_NAME_KEY,
+          round: input.roundLabel,
+          roundKey: CUP_ROUND_NAME_KEYS[input.roundLabel],
+        },
         amount: CUP_PRIZE_BY_ROUND[input.roundLabel],
         idempotencyKey: weeklySettlementAwardKeys.cupRound(
           input.clubId,

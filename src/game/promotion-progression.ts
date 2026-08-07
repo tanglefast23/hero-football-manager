@@ -1,6 +1,11 @@
 import { MAX_FACILITY_LEVEL, type FacilityLevel } from './facilities';
 import { currentUserDivision, type M2CareerState } from './m2-career';
-import { divisionTierLabel, type DivisionLevel } from './pyramid';
+import {
+  DIVISION_NAMES,
+  DIVISION_NAME_KEYS,
+  divisionTierLabel,
+  type DivisionLevel,
+} from './pyramid';
 import type { GameState } from './types';
 
 /**
@@ -57,7 +62,13 @@ const TRAINING_DRILL_UPGRADE_COST: Readonly<Record<Exclude<TrainingDrillTier, 1>
   5: 40_000,
 };
 
-/** `<key>.title` and `<key>.detail`, so a reward names one catalog entry. */
+/**
+ * `<key>.title` and `<key>.detail`, so a reward names one catalog entry.
+ *
+ * @i18n-fallback — the English arrives here as arguments and is kept beside the
+ * keys as the fallback. `src/game` may not import `src/i18n`, so the UI resolves
+ * `titleKey`/`detailKey` and only falls back to these words if a key is missing.
+ */
 function reward(key: string, title: string, detail: string): PromotionReward {
   return { title, detail, titleKey: `${key}.title`, detailKey: `${key}.detail` };
 }
@@ -181,19 +192,52 @@ function facilityLevelUnlockDivision(level: FacilityLevel): DivisionLevel {
   return level <= 2 ? 5 : 2;
 }
 
-// TODO(i18n): this returns a bare sentence, so there is nowhere to hang a
-// `labelKey`. Translating it means returning `{ text, key, params }` and
-// updating both call sites — `src/application/view-models.ts` (renders it as a
-// `blockedReason`) and `src/game/management.ts` (rethrows it, so that one wants
-// the English `text`) — which is a coordinated change rather than a
-// self-contained extraction. Params would be `{ level, division }`, with the
-// division name coming from `DIVISION_NAME_KEYS`.
+/**
+ * One refusal in both halves: the English this ring writes, and the catalog key
+ * the screen renders instead.
+ *
+ * Structurally `RingCopy` in `src/application/copy-fallback.ts`, which resolves
+ * it — the interface cannot live there, because `src/game` may not import
+ * outward. The same dual write as `RenewalBlockedCopy` and `RetirementCopy`.
+ */
+export interface BlockedCopy {
+  readonly text: string;
+  readonly textKey: string;
+  /** Raw values for the key's placeholders. Never pre-formatted text. */
+  readonly textParams?: Readonly<Record<string, string | number>>;
+}
+
+/**
+ * The division a sentence names, in both halves.
+ *
+ * `divisionTierLabel` composes `D3 · Regional League` in English, and the
+ * translated half has to keep that shape — so the tier number and the name are
+ * separate placeholders and the name carries its own key. `translatedParams`
+ * pairs `<param>Key` with `<param>`, so `divisionNameKey` is what swaps the
+ * English name out; without it a translated sentence still ends in "County
+ * League", which is the exact defect that put `DIVISION_NAME_KEYS` beside
+ * `DIVISION_NAMES`.
+ */
+function divisionParams(level: DivisionLevel): Readonly<Record<string, string | number>> {
+  return {
+    divisionLevel: level,
+    divisionName: DIVISION_NAMES[level],
+    divisionNameKey: DIVISION_NAME_KEYS[level],
+  };
+}
+
 export function facilityUpgradeBlockedReason(
   state: GameState,
   targetLevel: FacilityLevel,
-): string | undefined {
+): BlockedCopy | undefined {
   if (targetLevel <= maxCareerFacilityLevel(state)) return undefined;
-  return `Level ${targetLevel} facilities unlock in ${divisionTierLabel(facilityLevelUnlockDivision(targetLevel))}.`;
+  const division = facilityLevelUnlockDivision(targetLevel);
+  return {
+    /** @i18n-fallback for `clubFinances.facilityLevelUnlocksIn`. */
+    text: `Level ${targetLevel} facilities unlock in ${divisionTierLabel(division)}.`,
+    textKey: 'clubFinances.facilityLevelUnlocksIn',
+    textParams: { level: targetLevel, ...divisionParams(division) },
+  };
 }
 
 export function trainingDrillTier(drillId: string): TrainingDrillTier {
@@ -223,19 +267,20 @@ function trainingDrillUnlockDivision(tier: TrainingDrillTier): DivisionLevel {
  * relegated club keeps everything it has already been offered — and everything
  * it has already paid for.
  */
-// TODO(i18n): as `facilityUpgradeBlockedReason` above — a bare sentence with no
-// place for a `labelKey`. Its one call site is `src/game/training-paths.ts`
-// (`drillShopOffer`), which forwards it as `blockedReason` alongside its own
-// untranslated "Not enough money."; both want keying in the same pass.
 export function trainingDrillBlockedReason(
   state: GameState,
   drillId: string,
-): string | undefined {
+): BlockedCopy | undefined {
   if (state.m2 === undefined) return undefined;
   const tier = trainingDrillTier(drillId);
   const requiredDivision = trainingDrillUnlockDivision(tier);
   if (highestDivisionReached(state) <= requiredDivision) return undefined;
-  return `Tier ${tier} drills unlock in ${divisionTierLabel(requiredDivision)}.`;
+  return {
+    /** @i18n-fallback for `squadTraining.drillTierUnlocksIn`. */
+    text: `Tier ${tier} drills unlock in ${divisionTierLabel(requiredDivision)}.`,
+    textKey: 'squadTraining.drillTierUnlocksIn',
+    textParams: { tier, ...divisionParams(requiredDivision) },
+  };
 }
 
 /**

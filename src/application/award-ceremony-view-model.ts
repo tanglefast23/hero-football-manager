@@ -14,6 +14,7 @@ import type {
   AwardCeremonyViewModel,
 } from '../ui/models';
 import { copyFor, type CopyFn } from '../i18n';
+import { copyOrEnglish } from './copy-fallback';
 
 let englishCopyFn: CopyFn | undefined;
 
@@ -81,7 +82,7 @@ export function awardCeremonyViewModel(
     if (speaking === undefined) return [];
     return [{ category: categoryId, playerId: speaking.playerId, tone: speechTone(speaking) }];
   });
-  const lines = new Map(awardCeremonySpeeches(speakers, source.recap.season)
+  const lines = new Map(awardCeremonySpeeches(speakers, source.recap.season, t)
     .map(speech => [speech.category, speech.line]));
 
   const beats: AwardCeremonyBeatViewModel[] = podiums.map(({ categoryId, placings }) => {
@@ -90,11 +91,17 @@ export function awardCeremonyViewModel(
     const line = lines.get(categoryId);
     return {
       categoryId,
-      boardLabel: category.boardLabel,
-      metricLabel: category.metricLabel,
+      // The pure ring writes the English and the key; the club reads whichever
+      // of the two its language has. See `AWARD_CATEGORIES`.
+      boardLabel: copyOrEnglish(t, category.boardLabelKey, category.boardLabel),
+      metricLabel: copyOrEnglish(t, category.metricLabelKey, category.metricLabel),
       placings: [...placings].reverse(),
       emptyLabel: t('awardsCeremony.noneRecordedThisSeason', {
-        metric: category.metricLabel.toLowerCase(),
+        metric: copyOrEnglish(
+          t,
+          category.metricInlineLabelKey,
+          category.metricLabel.toLowerCase(),
+        ),
       }),
       ...(speaking === undefined || line === undefined
         ? {}

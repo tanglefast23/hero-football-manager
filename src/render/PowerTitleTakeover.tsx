@@ -51,7 +51,7 @@ export function PowerTitleTakeover({
 }: PowerTitleTakeoverProps) {
   const t = useCopy();
   const styles = usePixelStyles(makeStyles);
-  const presentation = powerCutInPresentation(power);
+  const presentation = powerCutInPresentation(power, t);
   const intro = useSharedValue(1);
   const titleReveal = useSharedValue(1);
   const sheen = useSharedValue(1);

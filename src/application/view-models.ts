@@ -5,6 +5,7 @@ import {
   type GameEvent,
   type LaunchContent,
 } from '../content';
+import { adjacencyDescription, copyOrEnglish, facilityName, resolveRingCopy } from './copy-fallback';
 import { managerNotes } from './manager-notes';
 import { eventOfferForWeek } from './event-selection';
 import {
@@ -27,8 +28,8 @@ import {
   isConsideringRetirement,
   maxRenewalTermSeasons,
   maxSigningTermSeasons,
-  retirementCardLabel,
-  shortContractReason,
+  retirementCardCopy,
+  shortContractReasonCopy,
   fixturesForCurrentWeek,
   hasActiveCareerContractPromise,
   pendingTrainingPriorityHolder,
@@ -58,7 +59,7 @@ import {
   ownedTrainingTier,
   POSITION_TRAINING_ATTRIBUTES,
   reconcilePendingClubLegends,
-  careerRenewalBlockedReason,
+  careerRenewalBlockedReasonCopy,
   careerRenewalWeeklyAsk,
   resolveTrainingDrillForPath,
   rosterForClub,
@@ -120,7 +121,7 @@ import type {
   TrainingSlotStatOption,
   WeeklyReviewViewModel,
 } from '../ui';
-import { CUP_DISPLAY_NAME, DIVISION_NAMES, divisionTierLabel } from '../game/pyramid';
+import { cupRoundNameWith, DIVISION_NAME_KEYS, divisionTierLabelWith } from '../game/pyramid';
 import { careerDifficulty } from '../game/difficulty';
 import { isAvailableForSelection } from '../game/lineup';
 import { playerLoyalty } from '../game/loyalty';
@@ -136,7 +137,7 @@ import {
   trainingDrillTier,
 } from '../game/promotion-progression';
 import { renewalOpeningOfferWage } from '../game/market';
-import { copyFor, type CopyFn } from '../i18n';
+import { copyFor, powerCopySlug, proseSlug, type CopyFn } from '../i18n';
 
 /**
  * English copy, for every caller that has not threaded a locale through yet.
@@ -260,6 +261,19 @@ export function awakeningCutsceneViewModel(
   const fixture = state.fixtures.find(candidate => candidate.id === pending.fixtureId);
   if (fixture === undefined) throw new Error('the awakening fixture is missing');
   const fillName = (value: string) => value.split('{name}').join(player.name);
+  /**
+   * The cutscene's prose, in the reader's language, with the player's name put
+   * back in. English lives in `onboarding.json` and is what these keys fall
+   * back to, so the untranslated case renders exactly what the content file
+   * says — including its `{name}`, which is why the fallback is filled too.
+   */
+  const named = (key: string, authored: string) => copyOrEnglish(
+    t,
+    key,
+    fillName(authored),
+    { name: player.name },
+  );
+  const powerSlug = powerCopySlug(power.id);
 
   return {
     fixtureLabel: t('awakening.fixtureLabel', { season: fixture.season, week: fixture.week }),
@@ -268,17 +282,17 @@ export function awakeningCutsceneViewModel(
     role: player.role,
     lookId: player.lookId,
     powerId: pending.power,
-    powerName: power.name,
-    powerDescription: power.description,
-    limpCopy: fillName(content.onboarding.limp),
+    powerName: copyOrEnglish(t, `powerEffect.${powerSlug}.name`, power.name),
+    powerDescription: copyOrEnglish(t, `powerEffect.${powerSlug}.description`, power.description),
+    limpCopy: named('story.awakening.limp', content.onboarding.limp),
     triggerVisual: trigger.visual,
-    triggerKicker: trigger.kicker,
-    triggerTitle: trigger.title,
-    triggerCallout: trigger.callout,
-    triggerDetail: trigger.detail,
-    triggerCopy: fillName(trigger.copy),
-    omenCopy: fillName(copy.omen),
-    revealCopy: fillName(copy.reveal),
+    triggerKicker: copyOrEnglish(t, `awakening.trigger.${trigger.id}.kicker`, trigger.kicker),
+    triggerTitle: copyOrEnglish(t, `awakening.trigger.${trigger.id}.title`, trigger.title),
+    triggerCallout: copyOrEnglish(t, `awakening.trigger.${trigger.id}.callout`, trigger.callout),
+    triggerDetail: copyOrEnglish(t, `story.awakening.trigger.${trigger.id}.detail`, trigger.detail),
+    triggerCopy: named(`story.awakening.trigger.${trigger.id}.copy`, trigger.copy),
+    omenCopy: named(`story.awakening.power.${copy.powerId}.omen`, copy.omen),
+    revealCopy: named(`story.awakening.power.${copy.powerId}.reveal`, copy.reveal),
     firstHero: pending.firstHero,
     licenseLabel: player.licensed
       ? t('awakening.licenseActive')
@@ -500,14 +514,20 @@ export function clubFinancesViewModel(
     ? recurringProjectionLines.map((line, index) => ({
       id: `finance-projection-${index}`,
       periodLabel: `S${state.season} · W${state.week}`,
+      // Already translated: the projection lines are built right here with `t`.
       label: line.label,
       amount: line.amount,
       kind: ledgerLineKind(line.amount),
     }))
+    // `labelKey` is written onto every persisted ledger line and translated in
+    // all six catalogs, but this read used the raw English — so the projection
+    // rows above rendered in the player's language and then flipped to English
+    // the moment the first week settled. Same screen, two languages, on the
+    // strength of one word.
     : settledStatements.flatMap(entry => entry.lines.map((line, index) => ({
       id: `finance-${entry.season}-${entry.week}-${index}`,
       periodLabel: `S${entry.season} · W${entry.week}`,
-      label: line.label,
+      label: copyOrEnglish(t, line.labelKey, line.label, line.labelParams),
       amount: line.amount,
       kind: ledgerLineKind(line.amount),
     })));
@@ -531,7 +551,9 @@ export function clubFinancesViewModel(
       .map(transaction => ({
         id: transaction.id,
         periodLabel: `S${transaction.season} · W${transaction.week}`,
-        label: transaction.label,
+        // The English `label` is what the save holds; the key beside it is what
+        // the club reads. Old transactions carry no key and keep their English.
+        label: copyOrEnglish(t, transaction.labelKey, transaction.label, transaction.labelParams),
         amount: transaction.amount,
         balanceAfter: transaction.balanceAfter,
         kind: transaction.amount > 0 ? 'income' as const : 'expense' as const,
@@ -896,7 +918,7 @@ function coachingStaffViewModels(state: GameState, t: CopyFn): readonly CoachSta
       personalityLabel: readableLabel(state.market.headCoach.personality),
       level: state.market.headCoach.level,
       specialtyLabels: state.market.headCoach.specialties.map(readableLabel) as [string, string],
-      effectLabels: coachRoleEffectLabels(state.market.headCoach, 'HEAD'),
+      effectLabels: coachRoleEffectLabels(state.market.headCoach, 'HEAD', t),
       weeklyWage: state.market.headCoach.weeklyWage,
       seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
       severanceCost: state.market.headCoach.weeklyWage,
@@ -911,7 +933,7 @@ function coachingStaffViewModels(state: GameState, t: CopyFn): readonly CoachSta
       personalityLabel: readableLabel(state.market.assistantCoach.personality),
       level: state.market.assistantCoach.level,
       specialtyLabels: state.market.assistantCoach.specialties.map(readableLabel) as [string, string],
-      effectLabels: coachRoleEffectLabels(state.market.assistantCoach, 'ASSISTANT'),
+      effectLabels: coachRoleEffectLabels(state.market.assistantCoach, 'ASSISTANT', t),
       weeklyWage: state.market.assistantCoach.weeklyWage,
       seasonsEmployed: state.market.assistantCoachSeasonsEmployed ?? 0,
       severanceCost: state.market.assistantCoach.weeklyWage,
@@ -938,13 +960,22 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
       const nextLevelEffectLabel = building.level < 3
         ? facilityNextLevelEffectLabel(building.type, (building.level + 1) as FacilityLevel, t)
         : undefined;
-      const upgradeBlockedReason = building.level < 3
+      const blocked = building.level < 3
         ? facilityUpgradeBlockedReason(state, (building.level + 1) as FacilityLevel)
+        : undefined;
+      const upgradeBlockedReason = blocked === undefined
+        ? undefined
+        : resolveRingCopy(t, blocked);
+      // The rung as data. The screen used to read it back out of the sentence
+      // with `/D[1-5]/`, which only worked while every translation kept an
+      // English-authored token.
+      const upgradeBlockedDivision = typeof blocked?.textParams?.divisionLevel === 'number'
+        ? blocked.textParams.divisionLevel
         : undefined;
       return {
         id: building.id,
         type: building.type,
-        name: definition.name,
+        name: facilityName(t, building.type),
         level: building.level,
         x: building.x,
         y: building.y,
@@ -955,6 +986,7 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
         ...(upgradeCost === undefined ? {} : { upgradeCost }),
         ...(nextLevelEffectLabel === undefined ? {} : { nextLevelEffectLabel }),
         ...(upgradeBlockedReason === undefined ? {} : { upgradeBlockedReason }),
+        ...(upgradeBlockedDivision === undefined ? {} : { upgradeBlockedDivision }),
         canUpgrade: grid.construction === undefined
           && upgradeCost !== undefined
           && upgradeBlockedReason === undefined
@@ -985,7 +1017,7 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
         && definition.type !== 'training-pitch';
       return {
         type: definition.type,
-        name: definition.name,
+        name: facilityName(t, definition.type),
         builtCount,
         buildLimit,
         buildCost: definition.buildCost,
@@ -1005,7 +1037,7 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
           : 0,
         buildWeeks: definition.buildWeeks,
         ...(!definition.available
-          ? { blockedReason: 'Locked.' }
+          ? { blockedReason: t('clubFinances.facilityLocked') }
           : buildLimitReached
             ? { blockedReason: buildLimit === 1
               ? t('clubFinances.facilityAlreadyBuilt')
@@ -1028,7 +1060,7 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
     ...(grid.construction === undefined ? {} : {
       activeProject: {
         buildingId: grid.construction.buildingId,
-        name: FACILITY_CATALOG[grid.construction.type].name,
+        name: facilityName(t, grid.construction.type),
         benefitLabel: facilityEffectLabel(
           grid.construction.type,
           grid.construction.targetLevel,
@@ -1187,7 +1219,7 @@ export function storyEventViewModel(
           ? t('storyEvent.startingXi')
           : t('storyEvent.squadPlayer'),
     ...(player.power ? {
-      powerName: content.powers.powers.find(power => power.id === player.power)?.name ?? player.power,
+      powerName: powerDisplayName(content, player.power, t) ?? player.power,
     } : {}),
     ...(withAttributes ? { attributes: storyPlayerAttributes(player) } : {}),
   });
@@ -1198,14 +1230,20 @@ export function storyEventViewModel(
     ? undefined
     : resolvedChoice?.outcomes[pending.resolvedOutcomeIndex];
 
+  // The outcome's own key, which needs both ids. Undefined before a choice is
+  // resolved, and `copyOrEnglish` falls back to the saved English then.
+  const outcomeKey = resolvedChoice === undefined || resolvedOutcome === undefined
+    ? undefined
+    : `event.${event.id}.${resolvedChoice.id}.${resolvedOutcome.id}`;
+
   return {
     id: event.id,
     artKey: event.art,
     category: event.category,
     weekLabel: `S${state.season} · W${state.week}`,
     categoryLabel: `${event.rarity} ${event.category}`,
-    title: event.title,
-    body: event.body,
+    title: copyOrEnglish(t, `event.${event.id}.title`, event.title),
+    body: copyOrEnglish(t, `event.${event.id}.body`, event.body),
     ...(selected ? { selectedPlayer: storyPlayer(selected, true) } : {}),
     playerSelectionRequired: requiresPlayer,
     ...(pending.playerLocked === true ? { playerLocked: true as const } : {}),
@@ -1215,10 +1253,10 @@ export function storyEventViewModel(
       ? squad.map(player => storyPlayer(player, false))
       : [],
     choices: event.choices.map(choice => {
-      const disabledReason = eventChoiceUnavailableReason(state, choice);
+      const disabledReason = eventChoiceUnavailableReason(state, choice, t);
       return {
         id: choice.id,
-        label: choice.label,
+        label: copyOrEnglish(t, `event.${event.id}.${choice.id}.label`, choice.label),
         // The RISKY/SAFE stamp beside the label already names the tone, so this
         // line only has to say what each one pays.
         detail: choice.risky
@@ -1236,10 +1274,14 @@ export function storyEventViewModel(
       resolvedSuccess: pending.resolvedSuccess === true,
       outcomeTitle: pending.resolvedRisky === true
         ? pending.resolvedSuccess === true
-          ? resolvedOutcome?.successHeadline ?? t('storyEvent.outcomeRiskPaidOff')
+          ? resolvedOutcome?.successHeadline === undefined
+            ? t('storyEvent.outcomeRiskPaidOff')
+            : copyOrEnglish(t, `${outcomeKey}.headline`, resolvedOutcome.successHeadline)
           : t('storyEvent.outcomeGambleMissed')
         : t('storyEvent.outcomeDecisionComplete'),
-      outcomeText: pending.outcomeText,
+      // Written into the save in English by the pure ring; the key recovers the
+      // player's language without the save having to hold seven copies.
+      outcomeText: copyOrEnglish(t, outcomeKey === undefined ? undefined : `${outcomeKey}.text`, pending.outcomeText),
       outcomeRewards: resolvedOutcome === undefined
         ? []
         : eventRewardItems(resolvedOutcome.effects, t),
@@ -1249,7 +1291,9 @@ export function storyEventViewModel(
       ? {
           successCutscene: {
             artKey: `${event.art}-success`,
-            headline: resolvedOutcome.successHeadline ?? event.title.replace(/[!?]+$/, ''),
+            headline: resolvedOutcome.successHeadline === undefined
+              ? copyOrEnglish(t, `event.${event.id}.title`, event.title).replace(/[!?]+$/, '')
+              : copyOrEnglish(t, `${outcomeKey}.headline`, resolvedOutcome.successHeadline),
             rewards: eventRewardLabels(resolvedOutcome.effects, t),
             ...(pending.resolvedNextEventId === undefined ? {} : { hasFollowUp: true as const }),
           },
@@ -1295,9 +1339,12 @@ export function seasonEndViewModel(
   const renewalTermCap = expiredPlayer === undefined
     ? 3
     : maxRenewalTermSeasons(expiredPlayer, state.careerSeed);
-  const renewalBlockedReason = expiredPlayer === undefined || state.market === undefined
+  const renewalBlocked = expiredPlayer === undefined || state.market === undefined
     ? undefined
-    : careerRenewalBlockedReason(state, state.market, expiredPlayer.id);
+    : careerRenewalBlockedReasonCopy(state, state.market, expiredPlayer.id);
+  const renewalBlockedReason = renewalBlocked === undefined
+    ? undefined
+    : resolveRingCopy(t, renewalBlocked);
   const prizeMoney = state.ledgers[state.ledgers.length - 1]?.lines
     .filter(line => line.kind === 'prize')
     .reduce((sum, line) => sum + line.amount, 0) ?? 0;
@@ -1322,13 +1369,27 @@ export function seasonEndViewModel(
         const player = state.players.find(candidate => candidate.id === award.playerId);
         return player === undefined ? [] : [{
           ...award,
+          // The save keeps the English — `hall-of-fame.ts` parses a legacy
+          // recap's `detail` for its goal count — so the screen translates it
+          // here instead. `detail` has no key of its own; it is always the
+          // label's key plus `.detail`.
+          label: copyOrEnglish(t, award.labelKey, award.label, award.labelParams),
+          detail: copyOrEnglish(
+            t,
+            award.labelKey === undefined ? undefined : `${award.labelKey}.detail`,
+            award.detail,
+            award.labelParams,
+          ),
           role: player.role,
           ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
         }];
       });
-  const memorableEventTitle = recap?.memorableEventId === undefined
+  const memorableEvent = recap?.memorableEventId === undefined
     ? undefined
-    : content.events.events.find(event => event.id === recap.memorableEventId)?.title;
+    : content.events.events.find(event => event.id === recap.memorableEventId);
+  const memorableEventTitle = memorableEvent === undefined
+    ? undefined
+    : copyOrEnglish(t, `event.${memorableEvent.id}.title`, memorableEvent.title);
   const objectiveResults = state.clubBusiness.sponsorship.activeContracts
     .filter(contract => (
       contract.season === state.season
@@ -1369,7 +1430,7 @@ export function seasonEndViewModel(
   return {
     seasonLabel: t('seasonEnd.seasonLabel', {
       season: state.season,
-      division: divisionTierLabel(division),
+      division: divisionTierLabelWith(division, t),
     }),
     outcomeLabel,
     headline: outcomeLabel === 'CHAMPIONS'
@@ -1381,11 +1442,11 @@ export function seasonEndViewModel(
           : t('seasonEnd.headlineSafe'),
     summary: outcomeLabel === 'PROMOTED'
       ? t('seasonEnd.summaryPromoted', {
-        division: divisionTierLabel((division - 1) as 1 | 2 | 3 | 4),
+        division: divisionTierLabelWith((division - 1) as 1 | 2 | 3 | 4, t),
       })
       : outcomeLabel === 'RELEGATED'
         ? t('seasonEnd.summaryRelegated', {
-          division: divisionTierLabel((division + 1) as 2 | 3 | 4 | 5),
+          division: divisionTierLabelWith((division + 1) as 2 | 3 | 4 | 5, t),
         })
         : t('seasonEnd.summarySafe'),
     finalPosition: user.position,
@@ -1401,7 +1462,7 @@ export function seasonEndViewModel(
         cashChange: recap.cashChange,
         closingCash: recap.closingCash,
         trainingCapsReached: recap.trainingCapsReached,
-        cupResult: recap.cupResult,
+        cupResult: copyOrEnglish(t, recap.cupResultKey, recap.cupResult),
         ...(memorableEventTitle === undefined ? {} : { memorableEventTitle }),
         awards: recapAwards,
       },
@@ -1420,8 +1481,30 @@ export function seasonEndViewModel(
       ? {}
       : {
           promotionRewards: {
-            divisionLabel: divisionTierLabel(promotedDivision),
-            items: newlyUnlockedRewards.map(reward => ({ ...reward })),
+            divisionLabel: divisionTierLabelWith(promotedDivision, t),
+            // The ring writes `titleKey`/`detailKey` beside the English and all
+            // 24 `promotion.*` entries are translated in every locale — but
+            // nothing resolved them, so the panel that celebrates a promotion
+            // was English in all seven languages.
+            //
+            // Money is formatted here rather than passed raw: the templates read
+            // "· {cost} each" with no currency symbol, so they expect a finished
+            // amount, and `src/game` may not know what a dollar looks like.
+            items: newlyUnlockedRewards.map(reward => {
+              const params = reward.params === undefined ? undefined : Object.fromEntries(
+                Object.entries(reward.params).map(([name, value]) => [
+                  name,
+                  (name === 'cost' || name === 'amount') && typeof value === 'number'
+                    ? formatMoney(value)
+                    : value,
+                ]),
+              );
+              return {
+                ...reward,
+                title: copyOrEnglish(t, reward.titleKey, reward.title, params),
+                detail: copyOrEnglish(t, reward.detailKey, reward.detail, params),
+              };
+            }),
           },
         }),
     ...(clubBusinessSettlement === undefined ? {} : { clubBusinessSettlement }),
@@ -1431,7 +1514,7 @@ export function seasonEndViewModel(
         playerName: expiredPlayer.name,
         role: expiredPlayer.role,
         lookId: expiredPlayer.lookId,
-        powerName: content.powers.powers.find(power => power.id === expiredPlayer.power)?.name,
+        powerName: powerDisplayName(content, expiredPlayer.power, t),
         currentWeeklyWage: expiredPlayer.weeklyWage,
         // The agent's real opening ask, not `renewalQuote`'s wage-times-four.
         // The old quote ignored growth, fame, loyalty and personality, so the
@@ -1448,7 +1531,7 @@ export function seasonEndViewModel(
         // veteran queued behind him.
         selectedTerm: Math.min(selectedTerm, Math.max(1, renewalTermCap)) as 1 | 2 | 3,
         ...(renewalTermCap >= 3 ? {} : {
-          shortTermReason: shortContractReason(expiredPlayer.age ?? 24, renewalTermCap),
+          shortTermReason: resolveRingCopy(t, shortContractReasonCopy(expiredPlayer.age ?? 24, renewalTermCap)),
         }),
         // Replaces a hardcoded `decision: 'pending'` and
         // `requiresNegotiation: true`, which made the whole quick-renew branch
@@ -1476,7 +1559,7 @@ export function seasonEndViewModel(
             wageStep: RENEWAL_WAGE_STEP,
             maxTermSeasons: Math.max(1, renewalTermCap) as 1 | 2 | 3,
             playerAge: expiredPlayer.age ?? 24,
-          }),
+          }, t),
         }),
     sliceComplete,
     canContinue: sliceComplete || expiredPlayer === undefined,
@@ -1507,15 +1590,20 @@ export const DESK_STORY_ALERT_ID = 'story-event';
  * their way out of the week. Only quiet weeks are offered one, so this never
  * arrives on top of a full inbox.
  */
-function deskStoryAlert(state: GameState): ClubAlertViewModel | undefined {
+function deskStoryAlert(
+  state: GameState,
+  t: CopyFn = englishCopy(),
+): ClubAlertViewModel | undefined {
   const pending = state.pendingEvent;
   if (pending === undefined || pending.resolvedChoiceId !== undefined) return undefined;
   const event = LAUNCH_CONTENT.events.events.find(candidate => candidate.id === pending.eventId);
   if (event === undefined) return undefined;
+  // Same rule as `deskTipNote`: the catalog owns the sentence, `events.json`
+  // owns the English behind it.
   return {
     id: DESK_STORY_ALERT_ID,
-    title: event.title,
-    detail: event.body,
+    title: copyOrEnglish(t, `event.${event.id}.title`, event.title),
+    detail: copyOrEnglish(t, `event.${event.id}.body`, event.body),
     tone: 'event',
   };
 }
@@ -1876,7 +1964,7 @@ export function boardFinanceBriefing(
     const activeProject = state.facilities.grid?.construction;
     const commercialAction = activeProject === undefined
       ? t('clubHome.briefingBuildAnother')
-      : t('clubHome.briefingCrewBusy', { facility: FACILITY_CATALOG[activeProject.type].name });
+      : t('clubHome.briefingCrewBusy', { facility: facilityName(t, activeProject.type) });
     return {
       title: t('clubHome.emergencyLoanTitle'),
       body: [
@@ -2043,16 +2131,21 @@ function deskTipRoll(state: GameState, nonce: string, upperExclusive: number): n
 }
 
 /** The tip on this week's desk, written out in full like a Manager's Note. */
-function deskTipNote(state: GameState): ManagerNoteViewModel | undefined {
+function deskTipNote(
+  state: GameState,
+  t: CopyFn = englishCopy(),
+): ManagerNoteViewModel | undefined {
   const tipId = currentDeskTipId(state);
   if (tipId === undefined) return undefined;
   const tip = LAUNCH_CONTENT.tips.tips.find(candidate => candidate.id === tipId);
   if (tip === undefined) return undefined;
+  // `contentStrings` flattens every tip into `tip.<id>.title` / `.body`, so the
+  // English in `tips.json` is the fallback rather than the value.
   return {
     id: `tip:${tip.id}`,
     kind: 'tip',
-    title: tip.title,
-    detail: tip.body,
+    title: copyOrEnglish(t, `tip.${tip.id}.title`, tip.title),
+    detail: copyOrEnglish(t, `tip.${tip.id}.body`, tip.body),
     ...(tip.destination === undefined ? {} : { destination: tip.destination }),
   };
 }
@@ -2179,7 +2272,9 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
   const nextFixture = currentMatchday?.fixture ?? nextLeagueFixture;
   const nextFixtureCompetition = currentMatchday?.kind === 'national-cup'
     ? t('clubHome.heroCupRound', {
-      round: currentMatchday.cupRoundLabel ?? t('clubHome.knockoutTie'),
+      round: currentMatchday.cupRoundLabel === undefined
+        ? t('clubHome.knockoutTie')
+        : cupRoundNameWith(currentMatchday.cupRoundLabel, t),
     })
     : undefined;
   const isCurrentGameWeek = currentMatchday !== undefined;
@@ -2263,8 +2358,11 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
     }
     return {
       id: `assistant-guide:${sequenceId}`,
-      title: sequence.inbox.title,
-      detail: sequence.inbox.detail,
+      // Resolved here rather than in the row, because a PRODUCT alert also
+      // carries a `guideSequenceId` while keeping its own title — a screen that
+      // keyed off the id alone would relabel those rows with Bert's inbox copy.
+      title: copyOrEnglish(t, `bert.guide.${sequenceId}.inbox.title`, sequence.inbox.title),
+      detail: copyOrEnglish(t, `bert.guide.${sequenceId}.inbox.detail`, sequence.inbox.detail),
       tone: sequenceId === 'board-ultimatum' || sequenceId === 'board-protection'
         ? 'urgent'
         : 'event',
@@ -2287,9 +2385,9 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
   // A quiet week's own contents, in the order they earn attention: the story
   // that landed this week, the shop the club has not found yet, and only if
   // neither applies, the one-week build nudge.
-  const tipNote = deskTipNote(state);
-  const homeNotes = tipNote === undefined ? managerNotes(state) : [...managerNotes(state), tipNote];
-  const storyAlert = deskStoryAlert(state);
+  const tipNote = deskTipNote(state, t);
+  const homeNotes = tipNote === undefined ? managerNotes(state, t) : [...managerNotes(state, t), tipNote];
+  const storyAlert = deskStoryAlert(state, t);
   const quietWeekAlerts = scheduledAlerts.length > 0
     ? []
     : [storyAlert, drillShopAlert(state, t)].filter(
@@ -2318,9 +2416,9 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
     managerName: 'Boss',
     seasonLabel: t('clubHome.seasonLabel', {
       season: state.season,
-      division: divisionTierLabel(careerDivision(state)),
+      division: divisionTierLabelWith(careerDivision(state), t),
     }),
-    divisionLabel: divisionTierLabel(careerDivision(state)),
+    divisionLabel: divisionTierLabelWith(careerDivision(state), t),
     weekLabel: t('clubHome.weekLabel', { week: state.week }),
     nextMatchTimingLabel: nextFixture === undefined
       ? state.phase === 'complete' ? t('clubHome.complete') : t('clubHome.seasonEnd')
@@ -2341,14 +2439,14 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
       ? {
           id: 'season-complete',
           weekLabel: state.phase === 'complete' ? t('clubHome.complete') : t('clubHome.seasonEnd'),
-          competition: careerDivisionLabel(state),
+          competition: careerDivisionLabel(state, t),
           homeTeam: userClub.name,
           awayTeam: t('seasonEnd.seasonReview'),
           venueLabel: 'Boardroom',
           opponentHeroCount: 0,
           matchdayReady: false,
         }
-      : fixtureViewModel(state, nextFixture, nextFixtureCompetition),
+      : fixtureViewModel(state, nextFixture, t, nextFixtureCompetition),
     alerts,
     notes: homeNotes,
     ...(boardUltimatum === undefined ? {} : {
@@ -2450,7 +2548,7 @@ export function leagueTableViewModel(
     .sort((left, right) => left.week - right.week || left.round - right.round || left.id.localeCompare(right.id));
 
   return {
-    divisionLabel: careerDivisionLabel(state),
+    divisionLabel: careerDivisionLabel(state, t),
     seasonLabel: t('leagueTable.seasonLabel', { season: state.season }),
     weekLabel: t('leagueTable.weekLabel', { week: state.week }),
     matchesPlayed: seasonFixtures.filter(fixture => fixture.status === 'played').length,
@@ -2476,6 +2574,7 @@ export function leagueTableViewModel(
       state.userClubId,
       state.week,
       clubId => clubName(state, clubId),
+      t,
     )),
   };
 }
@@ -2494,7 +2593,9 @@ export function matchDayViewModel(
   if (lineup === undefined) throw new Error('the user club has no lineup');
   const roster = rosterForClub(state, state.userClubId);
   const playerById = new Map(roster.map(player => [player.id, player]));
-  const powerNames = new Map(content.powers.powers.map(power => [power.id, power.name]));
+  const powerNames = new Map(content.powers.powers.map(
+    power => [power.id, powerDisplayName(content, power.id, t) ?? power.name],
+  ));
   const lineupPlayers = lineup.playerIds.map(playerId => {
     const player = playerById.get(playerId);
     if (player === undefined) throw new Error(`lineup references unknown player ${playerId}`);
@@ -2506,9 +2607,12 @@ export function matchDayViewModel(
     fixture: fixtureViewModel(
       state,
       fixture,
+      t,
       matchday.kind === 'national-cup'
         ? t('fixtureMatchDay.heroCupRound', {
-          round: matchday.cupRoundLabel ?? t('fixtureMatchDay.knockoutTie'),
+          round: matchday.cupRoundLabel === undefined
+            ? t('fixtureMatchDay.knockoutTie')
+            : cupRoundNameWith(matchday.cupRoundLabel, t),
         })
         : undefined,
     ),
@@ -2594,8 +2698,15 @@ export function squadTrainingViewModel(
     ? 0
     : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
 
-  const drillName = (drillId: string): string =>
-    content.training.focusDrills.find(candidate => candidate.id === drillId)?.name ?? drillId;
+  // The drill's name is content, not save data: `trainingRules.focusDrills`
+  // bakes the id, costs and gains into the career and never the label, so a
+  // language change relabels every drill a save already owns.
+  const drillName = (drillId: string): string => {
+    const authored = content.training.focusDrills.find(candidate => candidate.id === drillId)?.name;
+    return authored === undefined
+      ? drillId
+      : copyOrEnglish(t, `drill.${drillId}.name`, authored);
+  };
 
   const selectedPlayer = selectedPlayerId === undefined
     ? undefined
@@ -2660,15 +2771,12 @@ export function squadTrainingViewModel(
         }),
         // Absent while retirement is more than a season away. The squad list
         // deliberately knows less than the negotiating table does.
-        ...(retirementCardLabel(player, state.careerSeed) === undefined ? {} : {
-          retirementLabel: retirementCardLabel(player, state.careerSeed),
-        }),
+        ...retirementLabelField(player, state.careerSeed, t),
         ...(player.shirtNumber === undefined ? {} : { shirtNumber: player.shirtNumber }),
         isCaptain: player.isCaptain === true,
         ...(player.power ? {
           powerName: t('squadTraining.powerAndTier', {
-            power: content.powers.powers.find(power => power.id === player.power)?.name
-              ?? player.power,
+            power: powerDisplayName(content, player.power, t) ?? player.power,
             tier: player.powerTier ?? 1,
           }),
         } : {}),
@@ -2694,7 +2802,7 @@ export function squadTrainingViewModel(
           const preview = instantTrainingPreview(state, selectedPlayer.id, path.pathId);
           return {
             pathId: path.pathId,
-            label: path.label,
+            label: copyOrEnglish(t, path.labelKey, path.label),
             shortCode: path.attribute.toUpperCase() as TrainingSlotStatOption['shortCode'],
             drillName: drillName(drill.id),
             tpCost: drill.tpCost,
@@ -2718,7 +2826,7 @@ export function squadTrainingViewModel(
         : content.training.focusDrills.find(candidate => candidate.id === offer.drillId);
       return {
         pathId: path.pathId,
-        label: path.label,
+        label: copyOrEnglish(t, path.labelKey, path.label),
         drillName: drillName(owned.id),
         ownedTier: trainingDrillTier(owned.id),
         // The upgrade panel sits on the same screen as the drill rows, so it
@@ -2730,7 +2838,9 @@ export function squadTrainingViewModel(
           nextGain: displayedDrillGain(state, next.id, next.gains[path.attribute] ?? 0),
           nextTpCost: next.tpCost,
           cost: offer.cost,
-          ...(offer.blockedReason === undefined ? {} : { blockedReason: offer.blockedReason }),
+          ...(offer.blockedReason === undefined
+            ? {}
+            : { blockedReason: resolveRingCopy(t, offer.blockedReason) }),
         }),
       };
     }),
@@ -2739,6 +2849,16 @@ export function squadTrainingViewModel(
       return holder === undefined ? {} : { trainingPromiseGate: holder };
     })(),
   };
+}
+
+/** Spread rather than returned, so an absent status writes no key at all. */
+function retirementLabelField(
+  player: CareerPlayer,
+  careerSeed: number,
+  t: CopyFn,
+): { retirementLabel?: string } {
+  const copy = retirementCardCopy(player, careerSeed);
+  return copy === undefined ? {} : { retirementLabel: resolveRingCopy(t, copy) };
 }
 
 function contractPromiseLabel(
@@ -2843,7 +2963,7 @@ export function weeklyReviewViewModel(
       && fixture.week === after.week
       && (fixture.homeClubId === after.userClubId || fixture.awayClubId === after.userClubId),
     )[0];
-  const completedFacility = facilityCompletion(before, after);
+  const completedFacility = facilityCompletion(before, after, t);
 
   return {
     completedWeekLabel: t('weeklyReview.completedWeekLabel', { week: before.week }),
@@ -2861,7 +2981,7 @@ export function weeklyReviewViewModel(
       const icons = ledgerLineIcons(after, line);
       return {
         id: `weekly-review-${ledger.season}-${ledger.week}-${index}`,
-        label: line.label,
+        label: copyOrEnglish(t, line.labelKey, line.label, line.labelParams),
         amount: line.amount,
         kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
         ...(icons === undefined ? {} : { icons }),
@@ -2869,7 +2989,7 @@ export function weeklyReviewViewModel(
     }),
     updates: weekUpdates(before, after, t),
     ...(completedFacility === undefined ? {} : { facilityCompletion: completedFacility }),
-    ...(nextFixture === undefined ? {} : { nextFixture: fixtureViewModel(after, nextFixture) }),
+    ...(nextFixture === undefined ? {} : { nextFixture: fixtureViewModel(after, nextFixture, t) }),
   };
 }
 
@@ -2905,7 +3025,7 @@ export function postMatchViewModel(
   const outcomeLabel = cupWinnerClubId === undefined
     ? goalsFor > goalsAgainst ? 'WIN' : goalsFor < goalsAgainst ? 'LOSS' : 'DRAW'
     : cupWinnerClubId === before.userClubId ? 'WIN' : 'LOSS';
-  const completedFacility = facilityCompletion(before, after);
+  const completedFacility = facilityCompletion(before, after, t);
   const opponentClubId = isHome ? fixture.awayClubId : fixture.homeClubId;
   const pool = coachLinePool(before, {
     outcomeLabel,
@@ -2917,7 +3037,7 @@ export function postMatchViewModel(
       ? {}
       : { cupTie: { opponentClubId, season: cupFixture.season } }),
   });
-  const reaction = fulltimeReaction(after, fixtureId, score, outcomeLabel, pool);
+  const reaction = fulltimeReaction(after, fixtureId, score, outcomeLabel, pool, t);
   const buzz = buzzPowerFiredPlayerIds === undefined || before.season < 3
     ? undefined
     : postMatchBuzzViewModel(
@@ -2932,8 +3052,8 @@ export function postMatchViewModel(
     result: {
       fixtureId,
       competition: cupRound === undefined
-        ? careerDivisionLabel(before)
-        : t('postMatchSummary.heroCupRound', { round: cupRound.label }),
+        ? careerDivisionLabel(before, t)
+        : t('postMatchSummary.heroCupRound', { round: cupRoundNameWith(cupRound.label, t) }),
       homeTeam: clubName(before, fixture.homeClubId),
       awayTeam: clubName(before, fixture.awayClubId),
       homeScore: score.homeGoals,
@@ -2952,7 +3072,7 @@ export function postMatchViewModel(
       const icons = ledgerLineIcons(after, line);
       return {
         id: `${before.season}-${before.week}-${index}`,
-        label: line.label,
+        label: copyOrEnglish(t, line.labelKey, line.label, line.labelParams),
         amount: line.amount,
         kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
         ...(line.reveal === undefined ? {} : { reveal: line.reveal }),
@@ -3109,6 +3229,7 @@ function fulltimeReaction(
   score: { homeGoals: number; awayGoals: number },
   outcomeLabel: 'WIN' | 'DRAW' | 'LOSS',
   pool: FulltimeCoachLinePool,
+  t: CopyFn,
 ): FulltimeReactionViewModel | undefined {
   const headCoach = state.market?.headCoach;
   if (headCoach === undefined) return undefined;
@@ -3136,7 +3257,7 @@ function fulltimeReaction(
       assistantName: assistant.name,
       // A second, independent draw: the roll decides whether he speaks, the line
       // decides what he says, and one must not narrow the other.
-      line: blamePool[hashString(`blame-line:${draw}`) % blamePool.length]!,
+      line: spokenLine('coach.blame', blamePool[hashString(`blame-line:${draw}`) % blamePool.length]!, t),
     };
   }
 
@@ -3146,8 +3267,43 @@ function fulltimeReaction(
     ...coach,
     // Keyed apart from the blame draw so the two pools cannot shadow each other:
     // the same match must be free to pick line 3 of either.
-    line: lines[hashString(`coach-line:${pool}:${draw}`) % lines.length]!,
+    line: spokenLine(
+      `coach.fulltime.${pool}`,
+      lines[hashString(`coach-line:${pool}:${draw}`) % lines.length]!,
+      t,
+    ),
   };
+}
+
+/**
+ * A line drawn from an anonymous pool, in the reader's language.
+ *
+ * The pools are bare arrays of sentences with no ids, so the key is derived
+ * from the English itself — rewriting a line produces a new, untranslated key
+ * rather than silently leaving the old translation attached to it.
+ */
+function spokenLine(namespace: string, line: string, t: CopyFn): string {
+  return copyOrEnglish(t, `${namespace}.${proseSlug(line)}`, line);
+}
+
+/**
+ * A power's name in the reader's language.
+ *
+ * `powerEffect.<slug>.name` is the catalog's own entry — the match overlay
+ * needs power names without loading the content catalog, so they were keyed
+ * into `en.json` rather than flattened out of `powers.json`. This joins the two
+ * so a screen reading the content catalog gets the same translated name the
+ * overlay draws, and falls back to the authored English if the id is unknown.
+ */
+function powerDisplayName(
+  content: LaunchContent,
+  powerId: string | undefined,
+  t: CopyFn,
+): string | undefined {
+  if (powerId === undefined) return undefined;
+  const authored = content.powers.powers.find(power => power.id === powerId)?.name;
+  if (authored === undefined) return undefined;
+  return copyOrEnglish(t, `powerEffect.${powerCopySlug(powerId)}.name`, authored);
 }
 
 /** FNV-1a, the same shape the game ring uses to turn an id into a stable draw. */
@@ -3169,7 +3325,7 @@ function weekUpdates(
   const beforeLineup = before.lineups.find(lineup => lineup.clubId === before.userClubId);
   const afterLineup = after.lineups.find(lineup => lineup.clubId === after.userClubId);
   const updates: WeeklyReviewViewModel['updates'][number][] = [];
-  const completedFacility = facilityCompletion(before, after);
+  const completedFacility = facilityCompletion(before, after, t);
   if (completedFacility !== undefined) {
     updates.push({
       id: `facility-complete-${completedFacility.type}-${completedFacility.level}`,
@@ -3247,6 +3403,7 @@ function weekUpdates(
 function facilityCompletion(
   before: GameState,
   after: GameState,
+  t: CopyFn,
 ): WeeklyReviewViewModel['facilityCompletion'] {
   const project = before.facilities.grid?.construction;
   if (project === undefined || project.weeksRemaining !== 1) return undefined;
@@ -3256,7 +3413,7 @@ function facilityCompletion(
   if (building === undefined) return undefined;
   return {
     type: building.type,
-    name: FACILITY_CATALOG[building.type].name,
+    name: facilityName(t, building.type),
     level: building.level,
     kind: project.kind,
   };
@@ -3280,7 +3437,10 @@ function lowercaseWeekCountLabel(weeks: number, t: CopyFn): string {
 function fixtureViewModel(
   state: GameState,
   fixture: GameState['fixtures'][number],
-  competition = careerDivisionLabel(state),
+  t: CopyFn = englishCopy(),
+  // Ahead of `competition` in the list because the default below reads it: a
+  // default parameter can only see the parameters declared before it.
+  competition = careerDivisionLabel(state, t),
 ): FixtureViewModel {
   const isHome = fixture.homeClubId === state.userClubId;
   const opponentId = isHome ? fixture.awayClubId : fixture.homeClubId;
@@ -3322,8 +3482,10 @@ export function matchDayBannerViewModel(
   const matchday = activeCareerMatchday(state);
   if (matchday === undefined) return null;
   const competitionLabel = matchday.kind === 'national-cup'
-    ? CUP_DISPLAY_NAME
-    : DIVISION_NAMES[careerDivision(state)];
+    // `m2League.heroCup` is the catalog's only standalone name for the cup;
+    // every other key bakes it into a longer sentence.
+    ? t('m2League.heroCup')
+    : t(DIVISION_NAME_KEYS[careerDivision(state)]);
   return {
     id: `match-day-banner-${state.season}-${state.week}`,
     competitionLabel,
@@ -3332,8 +3494,8 @@ export function matchDayBannerViewModel(
   };
 }
 
-function careerDivisionLabel(state: GameState): string {
-  return divisionTierLabel(careerDivision(state));
+function careerDivisionLabel(state: GameState, t: CopyFn = englishCopy()): string {
+  return divisionTierLabelWith(careerDivision(state), t);
 }
 
 function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {

@@ -13,7 +13,15 @@
       "bundleIdentifier": "com.tanglefast.herofootballmanager",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "CFBundleLocalizations": ["en", "es", "pt-BR", "fr", "de", "id", "vi"]
+        "CFBundleLocalizations": [
+          "en",
+          "es",
+          "pt-BR",
+          "fr",
+          "de",
+          "id",
+          "vi"
+        ]
       }
     },
     "web": {
@@ -33,7 +41,8 @@
           "imageWidth": 200,
           "backgroundColor": "#101418"
         }
-      ]
+      ],
+      "expo-localization"
     ]
   }
 }

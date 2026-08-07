@@ -6,7 +6,14 @@ import {
   type SeasonRecap,
 } from '../game';
 import type { AwardCeremonyViewModel } from '../ui/models';
+import { copyFor, type CopyFn } from '../i18n';
 import { awardCeremonyViewModel } from './award-ceremony-view-model';
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 const FLAG_PREFIX = 'ceremony:division-awards:season-';
 
@@ -48,7 +55,10 @@ export function markAwardsCeremonyComplete(state: GameState): GameState {
  * career with no route to the recap and no way to start the next season. A
  * missing recap therefore reads as four empty boards, not as an error.
  */
-export function careerAwardCeremonyViewModel(state: GameState): AwardCeremonyViewModel {
+export function careerAwardCeremonyViewModel(
+  state: GameState,
+  t: CopyFn = englishCopy(),
+): AwardCeremonyViewModel {
   const recap = latestSeasonRecap(state) ?? emptyRecap(state);
   const clubNames = new Map((state.m2?.pyramid.divisions ?? []).flatMap(division =>
     division.clubs.map(club => [club.id, club.name] as const),
@@ -58,7 +68,7 @@ export function careerAwardCeremonyViewModel(state: GameState): AwardCeremonyVie
     userClubId: state.userClubId,
     clubNames,
     targetDivision: targetDivision(recap),
-  });
+  }, t);
 }
 
 /**

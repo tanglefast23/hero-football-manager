@@ -1996,7 +1996,7 @@ function GroundsSection({
               </View>
               <View className="flex-1">
                 <PixelText className="text-sm uppercase text-ink">{t('clubFinances.whatItDoes')}</PixelText>
-                <Text className="mt-1 text-sm text-ink/80">{facilityBenefit(placementType)}</Text>
+                <Text className="mt-1 text-sm text-ink/80">{facilityBenefit(placementType, t)}</Text>
               </View>
             </View>
           ) : null}
@@ -2136,8 +2136,9 @@ function GroundsSection({
                         ? t('clubFinances.crewBusy')
                         : selectedBuilding.upgradeBlockedReason !== undefined
                           ? t('clubFinances.lockedReason', {
-                            reason: selectedBuilding.upgradeBlockedReason.match(/D[1-5]/)?.[0]
-                              ?? t('clubFinances.lockedPromotion'),
+                            reason: selectedBuilding.upgradeBlockedDivision === undefined
+                              ? t('clubFinances.lockedPromotion')
+                              : `D${selectedBuilding.upgradeBlockedDivision}`,
                           })
                         : selectedBuilding.upgradeCost === undefined
                           ? t('clubFinances.maxLevel')

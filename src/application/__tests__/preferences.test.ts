@@ -31,6 +31,9 @@ describe('fail-soft app preferences', () => {
       squadSort: null,
       developerMode: false,
       language: 'en',
+      // A reset row has genuinely never been offered the device's language,
+      // so the offer fires on the next launch. That is the intended repair.
+      languageOffered: false,
     });
     expect(saved).toEqual(result.preferences);
     expect(result.warning).toContain('reset to defaults');

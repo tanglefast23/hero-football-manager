@@ -47,7 +47,7 @@ describe('the board money rows', () => {
   it('rebuilds the message from the live career rather than the press', () => {
     // Both rows quote numbers that move every week. A copy captured when the
     // row was tapped would reintroduce the defect this replaces.
-    expect(app).toMatch(/boardFinanceMessage = !careerTeaches[\s\S]{0,220}openedBoardFinanceAlertId === null[\s\S]{0,160}boardFinanceBriefing\(store\.career, openedBoardFinanceAlertId\)/);
+    expect(app).toMatch(/boardFinanceMessage = !careerTeaches[\s\S]{0,220}openedBoardFinanceAlertId === null[\s\S]{0,160}boardFinanceBriefing\(store\.career, openedBoardFinanceAlertId, t\)/);
   });
 
   it('suspends the keyboard rail while the briefing covers the screen', () => {

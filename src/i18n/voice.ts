@@ -19,7 +19,13 @@ export type Voice = 'display' | 'data' | 'body';
  * Long-form prose namespaces. Everything else is chrome, and chrome is pixel
  * type.
  */
-const BODY_PREFIXES = ['event.', 'bert.', 'tip.', 'glossary.', 'story.', 'ceremony.'];
+const BODY_PREFIXES = [
+  'event.', 'bert.', 'tip.', 'glossary.', 'story.', 'ceremony.',
+  // The gaffer's full-time verdict and his blaming line. Both are drawn in the
+  // same speech bubble Bert speaks out of (`src/ui/speech-bubble.tsx`), which
+  // sets no `fontFamily` — platform sans, like every other paragraph.
+  'coach.',
+];
 
 /** Numbers and anything that lines up in a column. */
 const DATA_PREFIXES = ['col.', 'money.', 'stat.'];

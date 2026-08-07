@@ -2,6 +2,8 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { runHeadlessFullCareer } from '../headless';
 import { RETAINED_CUP_BRACKET_SEASONS } from '../m2-career';
 import { m2LeagueViewModel } from '../../application/m2-league-view-model';
+import { copyOrEnglish } from '../../application/copy-fallback';
+import { copyFor } from '../../i18n';
 import { serializeGameState } from '../../persistence/game-state-codec';
 
 /**
@@ -80,6 +82,33 @@ describe('Hero Cup bracket retention', () => {
 
     expect(offered).toEqual(browsable);
     expect(offered).toHaveLength(RETAINED_CUP_BRACKET_SEASONS);
+  });
+
+  /**
+   * The recap is denormalised into the save and read back by the SeasonEnd
+   * panel, which never sees the bracket — so the named-round branch shipping
+   * without a key put an English "Quarter-final" on that panel title in every
+   * language, for every season of every new career. Fourteen real seasons here
+   * guarantee several named-round exits to catch it with.
+   */
+  test('keys the cup result of every season, including the round it ended at', () => {
+    const de = copyFor('de');
+    const recaps = state.seasonRecaps ?? [];
+    const namedRounds = recaps.filter(recap => (
+      recap.cupResultKey?.startsWith('m2League.cupRound.') === true
+    ));
+
+    expect(recaps.length).toBe(14);
+    expect(namedRounds.length).toBeGreaterThan(0);
+    for (const recap of recaps) {
+      expect(recap.cupResultKey).toBeDefined();
+      // The English half stays the save's fallback and must not itself move.
+      const german = copyOrEnglish(de, recap.cupResultKey, recap.cupResult);
+      expect(german).not.toBe(recap.cupResultKey);
+    }
+    for (const recap of namedRounds) {
+      expect(copyOrEnglish(de, recap.cupResultKey, recap.cupResult)).not.toBe(recap.cupResult);
+    }
   });
 
   test('holds the save well under the unpruned size', () => {

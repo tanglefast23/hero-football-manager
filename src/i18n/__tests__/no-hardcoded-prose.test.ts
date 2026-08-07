@@ -11,7 +11,7 @@ import { allOffenders } from '../hardcoded-prose';
  * the honest measure of how much copy is still in the source, and `MAX_REMAINING`
  * is what stops it going back up. It returns to a hard zero when the sweep ends.
  */
-const MAX_REMAINING = 333;
+const MAX_REMAINING = 74;
 
 test('hardcoded player-facing prose only ever decreases', () => {
   const remaining = allOffenders().length;

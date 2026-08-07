@@ -1,5 +1,6 @@
 import {
   FACILITY_CATALOG,
+  FACILITY_NAME_KEYS,
   buildFacility,
   closeFacility,
   createFacilityGrid,
@@ -15,6 +16,7 @@ import { facilityUpgradeBlockedReason } from './promotion-progression';
 import {
   nextTrainingUpgradeOffer,
   trainingPathLabel,
+  trainingPathLabelKey,
   type TrainingUpgradeOffer,
 } from './training-paths';
 import { dismissCareerCoach } from './market-career';
@@ -22,6 +24,20 @@ import type { GameState } from './types';
 
 interface CareerFacilityTransaction extends FacilityTransaction {
   readonly state: GameState;
+}
+
+/**
+ * The placeholders a facility cash line needs, in both halves.
+ *
+ * `facility` is the English name, which is what the persisted `label` reads and
+ * what the line falls back to. `facilityKey` is a param whose VALUE is itself a
+ * catalog key: this ring cannot translate the building's name, so it names it
+ * and the screen resolves the two together. Facility names are translated
+ * everywhere else in the game, and leaving one English inside an otherwise
+ * translated sentence is the exact defect that put keys beside `DIVISION_NAMES`.
+ */
+function facilityLabelParams(type: FacilityType): Readonly<Record<string, string>> {
+  return { facility: FACILITY_CATALOG[type].name, facilityKey: FACILITY_NAME_KEYS[type] };
 }
 
 /** Everything the confirmation needs to explain one staffed-office closure. */
@@ -67,6 +83,8 @@ export function buildCareerFacility(
     state: recordCashTransaction(applied.state, {
       kind: 'facility-build',
       label: `${FACILITY_CATALOG[type].name} construction started`,
+      labelKey: 'cashTransaction.facilityBuild',
+      labelParams: facilityLabelParams(type),
       amount: -transaction.cost,
       referenceId: building.id,
     }),
@@ -83,7 +101,10 @@ export function upgradeCareerFacility(
   if (current.level < 3) {
     const targetLevel = (current.level + 1) as 2 | 3;
     const blockedReason = facilityUpgradeBlockedReason(state, targetLevel);
-    if (blockedReason !== undefined) throw new Error(blockedReason);
+    // The English half: an engine error names an invariant break for a
+    // developer, and the screen has already refused the tap in the player's
+    // language before it can be reached.
+    if (blockedReason !== undefined) throw new Error(blockedReason.text);
   }
   const transaction = upgradeFacility(
     state.facilities.grid ?? createFacilityGrid(),
@@ -100,6 +121,8 @@ export function upgradeCareerFacility(
     state: recordCashTransaction(applied.state, {
       kind: 'facility-upgrade',
       label: `${FACILITY_CATALOG[building.type].name} Level ${targetLevel} upgrade started`,
+      labelKey: 'cashTransaction.facilityUpgrade',
+      labelParams: { ...facilityLabelParams(building.type), level: targetLevel },
       amount: -transaction.cost,
       referenceId: building.id,
     }),
@@ -126,6 +149,8 @@ export function relocateCareerFacility(
     state: recordCashTransaction(applied.state, {
       kind: 'facility-relocation',
       label: `Relocated ${FACILITY_CATALOG[building.type].name}`,
+      labelKey: 'cashTransaction.facilityRelocated',
+      labelParams: facilityLabelParams(building.type),
       amount: -transaction.cost,
       referenceId: building.id,
     }),
@@ -163,6 +188,8 @@ export function closeCareerFacility(
     state: recordCashTransaction(applied.state, {
       kind: 'facility-closure',
       label: `Closed ${FACILITY_CATALOG[building.type].name}`,
+      labelKey: 'cashTransaction.facilityClosed',
+      labelParams: facilityLabelParams(building.type),
       amount: refund,
       referenceId: building.id,
     }),
@@ -211,6 +238,8 @@ export function closeStaffedCareerCoachingOffice(
     : recordCashTransaction(facilityApplied.state, {
         kind: 'facility-closure',
         label: `Closed ${FACILITY_CATALOG['coaching-office'].name}`,
+        labelKey: 'cashTransaction.facilityClosed',
+        labelParams: facilityLabelParams('coaching-office'),
         amount: confirmation.facilityRefund,
         referenceId: buildingId,
       });
@@ -243,7 +272,7 @@ export function purchaseCareerTrainingUpgrade(
   if (offer === undefined) {
     throw new Error(`${trainingPathLabel(pathId)} already owns its best drill`);
   }
-  if (offer.blockedReason !== undefined) throw new Error(offer.blockedReason);
+  if (offer.blockedReason !== undefined) throw new Error(offer.blockedReason.text);
   const paid: GameState = {
     ...state,
     clubs: state.clubs.map(club => club.id === state.userClubId
@@ -256,6 +285,14 @@ export function purchaseCareerTrainingUpgrade(
     state: recordCashTransaction(paid, {
       kind: 'training-upgrade',
       label: `${trainingPathLabel(pathId)} Tier ${offer.tier} drill bought`,
+      labelKey: 'cashTransaction.drillTierBought',
+      // `pathKey` names `path`, so the ledger draws the path in the player's
+      // language — the `<param>Key` pairing `translatedParams` applies.
+      labelParams: {
+        path: trainingPathLabel(pathId),
+        pathKey: trainingPathLabelKey(pathId),
+        tier: offer.tier,
+      },
       amount: -offer.cost,
       referenceId: offer.drillId,
     }),

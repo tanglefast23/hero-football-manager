@@ -33,7 +33,7 @@ import {
   leaguePrizeMoney,
 } from './promotion-progression';
 import { resolveWeeklyPlayerWellbeing, type WeeklyMatchOutcome } from './player-wellbeing';
-import { CUP_DISPLAY_NAME, FAME_CEILING } from './pyramid';
+import { CUP_DISPLAY_NAME, CUP_NAME_KEY, CUP_ROUND_NAME_KEYS, FAME_CEILING } from './pyramid';
 import type { NationalCup, NationalCupFixture, NationalCupResult } from './pyramid';
 import {
   cupGiantKillingCelebration,
@@ -581,6 +581,7 @@ function settleWeekResults(
         line: {
           kind: 'buzz',
           label: appliedBuzz.payout.label,
+          labelKey: appliedBuzz.payout.labelKey,
           amount: appliedBuzz.payout.amount,
           idempotencyKey: weeklySettlementAwardKeys.buzzHalf(
             state.userClubId,
@@ -842,7 +843,15 @@ function settlementLines(
       kind: 'tickets',
       label: `${CUP_DISPLAY_NAME} ${currentCupRound.label} home gate`,
       labelKey: 'ledger.cupHomeGate',
-      labelParams: { cup: CUP_DISPLAY_NAME, round: currentCupRound.label },
+      // `<param>Key` names `<param>`: the app ring swaps in the translated
+      // cup and round before interpolating, so a German statement stops
+      // reading "Heldenpokal Quarter-final".
+      labelParams: {
+        cup: CUP_DISPLAY_NAME,
+        cupKey: CUP_NAME_KEY,
+        round: currentCupRound.label,
+        roundKey: CUP_ROUND_NAME_KEYS[currentCupRound.label],
+      },
       amount: cupGate.amount,
       ...(cupGate.reveal === undefined ? {} : { reveal: cupGate.reveal }),
     });
@@ -1472,11 +1481,21 @@ function resolveFinancialSafety(
           ? { ...boardUltimatum, weeksRemaining: 1 }
           : { ...refreshed, id: `${boardUltimatum.id}-refresh-s${state.season}-w${state.week}` };
       } else {
+        // The player's NAME, not their id. Both halves carried the raw
+        // `p-…` id, so the statement read "Board-enforced sale · p-abc123" —
+        // in English too, not only in translation. The board selling someone
+        // out from under you is the harshest moment the economy has; it should
+        // at least name them.
+        // Copied to a const first: `forcedSale` is a `let`, and TypeScript drops
+        // its narrowing inside the closure below.
+        const sale = forcedSale;
+        const soldName = state.players.find(player => player.id === sale.playerId)?.name
+          ?? sale.playerId;
         lines.push({
           kind: 'board-sale',
-          label: `Board-enforced sale · ${forcedSale.playerId}`,
+          label: `Board-enforced sale · ${soldName}`,
           labelKey: 'ledger.boardEnforcedSale',
-          labelParams: { player: forcedSale.playerId },
+          labelParams: { player: soldName },
           amount: forcedSale.fee,
         });
         balanceAfter = checkedAdd(balanceAfter, forcedSale.fee, 'board forced-sale balance');

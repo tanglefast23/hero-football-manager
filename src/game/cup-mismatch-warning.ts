@@ -5,11 +5,30 @@ import type { CareerPlayer, GameState } from './types';
 
 const CUP_MISMATCH_WARNING_FLAG_PREFIX = 'story:bert:cup-mismatch-warning:';
 
+/** One briefing line: English, plus the catalog key the screen renders instead. */
+export interface CupMismatchWarningLine {
+  /**
+   * English, still written on every line.
+   *
+   * The pure ring cannot know the player's language, so it emits the key and
+   * raw params as data and keeps this as the fallback — the same dual write
+   * `LedgerLine.label` uses.
+   */
+  readonly text: string;
+  readonly textKey: string;
+  /** Raw values for the key's placeholders. Never pre-formatted text. */
+  readonly textParams: Readonly<Record<string, string>>;
+}
+
 export interface CupMismatchWarning {
   readonly fixtureId: string;
   readonly divisionGap: number;
   readonly title: string;
+  /** Catalog key for `title`. */
+  readonly titleKey: string;
   readonly body: readonly string[];
+  /** `body` again, index-aligned, carrying each line's key and params. */
+  readonly bodyLines: readonly CupMismatchWarningLine[];
   readonly starPlayer?: {
     readonly playerId: string;
     readonly playerName: string;
@@ -28,6 +47,10 @@ interface WarningCopy {
  * Four is the widest gap in the five-division pyramid. Keeping the final row as
  * the 4+ fallback means a future pyramid expansion cannot silently suppress the
  * rarest warning.
+ *
+ * @i18n-fallback English source, paired by tier with `cupMismatchCopyKey` below.
+ * The keys cannot live in this table because each row's body is a function of
+ * the opponent, so the two are kept in step by the shared tier index.
  */
 const WARNING_COPY_BY_TIER: Readonly<Record<2 | 3 | 4, WarningCopy>> = {
   2: {
@@ -46,6 +69,15 @@ const WARNING_COPY_BY_TIER: Readonly<Record<2 | 3 | 4, WarningCopy>> = {
     starBody: playerName => `${playerName} is their likeliest scorer. I would say double-mark them, but I do not want the other ten to feel ignored.`,
   },
 };
+
+/**
+ * `cupMismatch.<tier>.<part>`, mirroring `cupUpset.<gap>.<part>` on the matching
+ * post-win speech. The tier is already the identity of the row, so no second
+ * lookup table can drift out of step with the English one above.
+ */
+function cupMismatchCopyKey(tier: 2 | 3 | 4, part: 'title' | 'body' | 'star'): string {
+  return `cupMismatch.${tier}.${part}`;
+}
 
 /**
  * The once-per-tie flavour briefing shown over the match-day formation screen.
@@ -83,14 +115,26 @@ export function cupMismatchWarning(state: GameState): CupMismatchWarning | undef
     ? likeliestOpponentScorer(state, opponentClubId)
     : undefined;
 
+  const bodyLines: CupMismatchWarningLine[] = [
+    {
+      text: copy.body(opponent.name),
+      textKey: cupMismatchCopyKey(tier, 'body'),
+      textParams: { opponent: opponent.name },
+    },
+    ...(star === undefined ? [] : [{
+      text: copy.starBody(star.name),
+      textKey: cupMismatchCopyKey(tier, 'star'),
+      textParams: { player: star.name },
+    }]),
+  ];
+
   return {
     fixtureId: matchday.fixture.id,
     divisionGap,
     title: copy.title,
-    body: [
-      copy.body(opponent.name),
-      ...(star === undefined ? [] : [copy.starBody(star.name)]),
-    ],
+    titleKey: cupMismatchCopyKey(tier, 'title'),
+    body: bodyLines.map(line => line.text),
+    bodyLines,
     ...(star === undefined ? {} : {
       starPlayer: { playerId: star.id, playerName: star.name },
     }),

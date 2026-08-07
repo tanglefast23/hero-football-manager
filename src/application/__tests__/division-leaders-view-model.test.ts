@@ -11,6 +11,7 @@ import type {
   PlayerSeasonStatLine,
 } from '../../game/types';
 import type { Role } from '../../sim/types';
+import { copyFor, resolveCopy, type CopyFn } from '../../i18n';
 import { divisionLeadersViewModel } from '../division-leaders-view-model';
 import { m2LeagueViewModel } from '../m2-league-view-model';
 
@@ -36,6 +37,15 @@ const LINES: PlayerSeasonStatLine[] = [
   line('def', 'them', { tacklesWon: 22 }),
   line('keeper', 'me', { saves: 31 }),
 ];
+
+/** A locale holding exactly the given strings, and English for everything else. */
+function stubbedCopy(strings: Readonly<Record<string, string>>): CopyFn {
+  const english = copyFor('en');
+  return (key, params) => {
+    const resolved = resolveCopy('es', strings, {}, key, params);
+    return resolved === key ? english(key, params) : resolved;
+  };
+}
 
 function leaders(
   overrides: Partial<Parameters<typeof divisionLeadersViewModel>[0]> = {},
@@ -114,6 +124,39 @@ describe('divisionLeadersViewModel', () => {
 
     expect(view.boards.every(board => board.entries.length === 0)).toBe(true);
     expect(view.boards.every(board => board.emptyLabel.length > 0)).toBe(true);
+  });
+
+  /**
+   * Every other word on this screen translated and these four panels stayed
+   * English, because `AWARD_CATEGORIES` held only the English. The keys beside
+   * it are what this reads.
+   *
+   * Stubbed rather than run through `copyFor('es')`: what is under test is the
+   * wiring — whether the view model resolves the ring's key at all, or passes
+   * its English through — not whether a particular catalog has been filled in.
+   * The board left out of the stub is the other half of the same claim.
+   */
+  it('heads every board in the club language, and keeps English where a locale has none', () => {
+    const view = divisionLeadersViewModel({
+      season: 1,
+      players: PLAYERS,
+      statLines: [],
+      userClubId: 'me',
+      clubNames: CLUB_NAMES,
+    }, stubbedCopy({
+      'award.board.goals': 'Delanteros',
+      'award.metric.goals': 'Goles',
+      'award.metricInline.goals': 'goles',
+      'm2League.noneRecordedYetThisSeason': 'Aún sin {metric} esta temporada',
+    }));
+
+    expect([view.boards[0].boardLabel, view.boards[0].metricLabel])
+      .toEqual(['Delanteros', 'Goles']);
+    // The metric inside the sentence too — a translated line carrying an
+    // English noun is the same bug, one word smaller.
+    expect(view.boards[0].emptyLabel).toBe('Aún sin goles esta temporada');
+    expect([view.boards[1].boardLabel, view.boards[1].metricLabel])
+      .toEqual(['Midfielders', 'Passes']);
   });
 });
 

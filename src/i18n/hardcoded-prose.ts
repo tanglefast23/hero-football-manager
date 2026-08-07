@@ -165,13 +165,57 @@ function inDeveloperContext(node: ts.Node): boolean {
       // "ticket revenue" — and they are the single largest source of false
       // positives here, because the label is built at the call site rather than
       // inside the `throw`, so the throw-statement check above cannot see it.
-      if (/^(checked[A-Z]|safe[A-Z]|assert[A-Z]?|requireSafeInteger|require[A-Z]|validate[A-Z]|scaleByPercent)/
+      if (/^(checked[A-Z]|safe[A-Z]|assert[A-Z]?|requireSafeInteger|require[A-Z]|validate[A-Z]|scaleByPercent|percentOfMoney)/
         .test(callee)) return true;
     }
     if (ts.isImportDeclaration(current) || ts.isExportDeclaration(current)) return true;
     // A string in type position is a literal type, not copy.
     if (ts.isTypeNode(current)) return true;
     if (ts.isEnumDeclaration(current)) return true;
+  }
+  return false;
+}
+
+/**
+ * The marker a file uses to declare English as a deliberate fallback.
+ *
+ * `hasKeySibling` below only sees the shape `{ label, labelKey }`. Two real
+ * patterns in `src/game` hide the pairing from it:
+ *
+ *   - a helper that takes the English as ARGUMENTS and attaches the keys itself
+ *     (`reward(key, title, detail)` in `promotion-progression.ts`);
+ *   - a lookup table whose keys live in a SEPARATE const (`DIVISION_NAMES`
+ *     beside `DIVISION_NAME_KEYS` in `pyramid.ts`).
+ *
+ * Rather than teach the scanner to chase either, the code says so out loud:
+ * put `@i18n-fallback` in the JSDoc of the function or the variable, and its
+ * string literals stop counting. A tag is checkable and greppable — someone
+ * removing the key half has to also delete a comment that says why it is there.
+ * It is deliberately NOT satisfied by a plain `//` comment.
+ */
+const FALLBACK_TAG = '@i18n-fallback';
+
+/** Whether the declaration this literal lives inside is tagged as a fallback. */
+function inTaggedFallback(node: ts.Node, source: ts.SourceFile): boolean {
+  const text = source.getFullText();
+  const tagged = (candidate: ts.Node): boolean =>
+    (ts.getLeadingCommentRanges(text, candidate.getFullStart()) ?? [])
+      .some(range => text.slice(range.pos, range.end).includes(FALLBACK_TAG));
+
+  for (let current: ts.Node | undefined = node; current !== undefined; current = current.parent) {
+    // A call to a tagged helper: `reward('promotion.x', 'Title', 'Detail')`.
+    if (ts.isCallExpression(current) && ts.isIdentifier(current.expression)) {
+      const name = current.expression.text;
+      let found = false;
+      source.forEachChild(function walk(child) {
+        if (found) return;
+        if (ts.isFunctionDeclaration(child) && child.name?.text === name && tagged(child)) found = true;
+        ts.forEachChild(child, walk);
+      });
+      if (found) return true;
+    }
+    // A tagged table: `/** @i18n-fallback */ const DIVISION_NAMES = { … }`.
+    if (ts.isVariableStatement(current) && tagged(current)) return true;
   }
   return false;
 }
@@ -232,6 +276,7 @@ export function offendersIn(file: string): Offender[] {
     // An object literal's KEY is never copy; its value may be.
     if (ts.isPropertyAssignment(node.parent) && node.parent.name === node) return;
     if (hasKeySibling(node)) return;
+    if (inTaggedFallback(node, source)) return;
     const attribute = enclosingJsxAttribute(node);
     // Inside JSX, only whitelisted props render. Outside JSX — a view model, a
     // notification, a game-logic sentence — there is no prop to consult, and

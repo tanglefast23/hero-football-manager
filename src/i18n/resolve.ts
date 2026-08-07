@@ -14,11 +14,17 @@ function lookup(
   locale: Locale,
   params?: CopyParams,
 ): string | undefined {
-  const direct = strings[key];
+  // `hasOwn` rather than a bare index: catalogs are plain objects, so a key of
+  // `constructor` or `toString` would otherwise resolve to an inherited
+  // function, and the caller would go on to call `.replace` on it. Keys reach
+  // here from saves (`labelKey`) as well as from source, so a hand-edited save
+  // is enough to reach it.
+  const direct = Object.hasOwn(strings, key) ? strings[key] : undefined;
   if (direct !== undefined) return direct;
   const count = params?.n;
   if (typeof count !== 'number') return undefined;
-  return strings[`${key}.${pluralSuffix(locale, count)}`];
+  const plural = `${key}.${pluralSuffix(locale, count)}`;
+  return Object.hasOwn(strings, plural) ? strings[plural] : undefined;
 }
 
 /**

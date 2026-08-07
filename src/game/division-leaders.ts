@@ -11,17 +11,54 @@ interface AwardCategory {
   id: AwardCategoryId;
   /** Only this position line is eligible, so each line has one award to chase. */
   role: Role;
+  /**
+   * @i18n-fallback — English, and the source the translations were written from.
+   *
+   * `src/game` may not import `src/i18n`, so every label is written twice: the
+   * English here, and the catalog key beside it that the view models resolve
+   * through `copyOrEnglish`. The same dual write as `DIVISION_NAME_KEYS` and
+   * `LedgerLine.label`. Without it the League leaders board and the awards
+   * ceremony head every panel in English in all seven languages.
+   */
   boardLabel: string;
+  boardLabelKey: string;
   metricLabel: string;
+  metricLabelKey: string;
+  /**
+   * The metric as it reads INSIDE a sentence — "No goals recorded yet this
+   * season". English needs no second string for this, since lowercasing the
+   * heading gets there; German capitalises its nouns wherever they sit, so the
+   * sentence form cannot be derived from the heading and each language keys its
+   * own. The English fallback stays the lowercased heading.
+   */
+  metricInlineLabelKey: string;
 }
 
 export const AWARD_CATEGORIES: Readonly<Record<AwardCategoryId, AwardCategory>> = Object.freeze({
-  goals: { id: 'goals', role: 'FWD', boardLabel: 'Strikers', metricLabel: 'Goals' },
-  passesCompleted: {
-    id: 'passesCompleted', role: 'MID', boardLabel: 'Midfielders', metricLabel: 'Passes',
+  goals: {
+    id: 'goals', role: 'FWD',
+    boardLabel: 'Strikers', boardLabelKey: 'award.board.goals',
+    metricLabel: 'Goals', metricLabelKey: 'award.metric.goals',
+    metricInlineLabelKey: 'award.metricInline.goals',
   },
-  tacklesWon: { id: 'tacklesWon', role: 'DEF', boardLabel: 'Defenders', metricLabel: 'Tackles won' },
-  saves: { id: 'saves', role: 'GK', boardLabel: 'Keepers', metricLabel: 'Saves' },
+  passesCompleted: {
+    id: 'passesCompleted', role: 'MID',
+    boardLabel: 'Midfielders', boardLabelKey: 'award.board.passesCompleted',
+    metricLabel: 'Passes', metricLabelKey: 'award.metric.passesCompleted',
+    metricInlineLabelKey: 'award.metricInline.passesCompleted',
+  },
+  tacklesWon: {
+    id: 'tacklesWon', role: 'DEF',
+    boardLabel: 'Defenders', boardLabelKey: 'award.board.tacklesWon',
+    metricLabel: 'Tackles won', metricLabelKey: 'award.metric.tacklesWon',
+    metricInlineLabelKey: 'award.metricInline.tacklesWon',
+  },
+  saves: {
+    id: 'saves', role: 'GK',
+    boardLabel: 'Keepers', boardLabelKey: 'award.board.saves',
+    metricLabel: 'Saves', metricLabelKey: 'award.metric.saves',
+    metricInlineLabelKey: 'award.metricInline.saves',
+  },
 });
 
 export const PODIUM_SIZE = 3;

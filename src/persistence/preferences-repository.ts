@@ -65,6 +65,15 @@ export interface AppPreferences {
    * is chosen later.
    */
   language: Locale;
+  /**
+   * Whether the game has already offered the device's own language.
+   *
+   * One-shot, so the offer happens on a first launch and never again: a player
+   * who was shown Spanish and chose English must not be asked every time they
+   * open the game. It records that the QUESTION was asked, not the answer —
+   * `language` holds the answer.
+   */
+  languageOffered: boolean;
 }
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
@@ -84,6 +93,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   squadSort: null,
   developerMode: false,
   language: 'en',
+  languageOffered: false,
 };
 
 const FormationSchema = z.enum(FORMATION_IDS);
@@ -138,6 +148,16 @@ const V9PreferencesSchema = z.strictObject({
  */
 const PreferencesSchema = V9PreferencesSchema.extend({
   language: z.enum(LOCALES),
+  /**
+   * `.default()`, not a bare boolean, and that distinction is the whole point.
+   *
+   * A required field here makes every existing settings row fail validation,
+   * and the fail-soft path answers that by discarding the row and resetting
+   * every preference the player has — see the note above `PreferencesSchema`.
+   * With a default, an older row simply parses as "never offered", which is
+   * exactly what an older row means.
+   */
+  languageOffered: z.boolean().default(false),
 });
 
 const LegacyPreferencesSchema = V9PreferencesSchema.pick({
@@ -233,6 +253,7 @@ export async function createPreferencesRepository(
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
+          languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -260,6 +281,7 @@ export async function createPreferencesRepository(
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
+          languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -282,6 +304,7 @@ export async function createPreferencesRepository(
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
+          languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -304,6 +327,7 @@ export async function createPreferencesRepository(
           squadSort: DEFAULT_APP_PREFERENCES.squadSort,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
+          languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -327,6 +351,7 @@ export async function createPreferencesRepository(
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
+          languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -349,6 +374,7 @@ export async function createPreferencesRepository(
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
+          languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -371,6 +397,7 @@ export async function createPreferencesRepository(
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
+          languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -391,6 +418,7 @@ export async function createPreferencesRepository(
           squadSort: legacy.data.squadSort === null ? null : { ...legacy.data.squadSort },
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
+          languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -410,6 +438,7 @@ export async function createPreferencesRepository(
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
           squadSort: legacy.data.squadSort === null ? null : { ...legacy.data.squadSort },
           language: DEFAULT_APP_PREFERENCES.language,
+          languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,

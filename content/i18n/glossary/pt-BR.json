@@ -73,6 +73,15 @@
         "superpoderes"
       ],
       "why": "Substantivo comum nos dois idiomas, então a caixa não é travada — só a palavra."
+    },
+    {
+      "english": "Fame",
+      "englishPattern": "(?<!Hall of )\\bFame\\b",
+      "allowedForms": [
+        "Fama",
+        "fama"
+      ],
+      "why": "Matches the Hall da Fama the settings row already names, so the stat and the room share a word."
     }
   ]
 }

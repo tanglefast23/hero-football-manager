@@ -10,7 +10,7 @@ import {
   beginCareerTransferTalks,
   completeCareerTransfer,
   submitCareerTransferOffer,
-  careerRenewalBlockedReason,
+  careerRenewalBlockedReasonCopy,
   careerRenewalWeeklyAsk,
   closeCareerRenewalTalks,
   completeCareerRenewal,
@@ -176,11 +176,11 @@ describe('careerRenewalWeeklyAsk (P1-5)', () => {
   });
 });
 
-describe('careerRenewalBlockedReason (P1-6)', () => {
+describe('careerRenewalBlockedReasonCopy (P1-6)', () => {
   it('is absent for a player who will still talk', () => {
     const { state, player } = seasonEndWithExpired(9101);
 
-    expect(careerRenewalBlockedReason(state, state.market!, player.id)).toBeUndefined();
+    expect(careerRenewalBlockedReasonCopy(state, state.market!, player.id)).toBeUndefined();
   });
 
   it('reports an agent who has already ended talks this season', () => {
@@ -188,7 +188,7 @@ describe('careerRenewalBlockedReason (P1-6)', () => {
     const opened = beginCareerRenewalTalks(state, state.market!, player.id);
     const closed = closeCareerRenewalTalks(state, opened);
 
-    const reason = careerRenewalBlockedReason(state, closed, player.id);
+    const reason = careerRenewalBlockedReasonCopy(state, closed, player.id)?.text;
 
     expect(reason).toContain('ended talks for this season');
     expect(() => beginCareerRenewalTalks(state, closed, player.id)).toThrow();
@@ -203,7 +203,7 @@ describe('careerRenewalBlockedReason (P1-6)', () => {
         : candidate),
     };
 
-    const reason = careerRenewalBlockedReason(disloyal, disloyal.market!, player.id);
+    const reason = careerRenewalBlockedReasonCopy(disloyal, disloyal.market!, player.id)?.text;
 
     expect(reason).toContain('will not re-sign');
     expect(() => beginCareerRenewalTalks(disloyal, disloyal.market!, player.id)).toThrow();

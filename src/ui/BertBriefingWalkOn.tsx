@@ -88,7 +88,7 @@ export function BertBriefingWalkOn({
 
   const beats = useMemo(
     () => customMessage === undefined
-      ? briefingBeats(content, sequenceId ?? '')
+      ? briefingBeats(content, sequenceId ?? '', t)
       : (typeof customMessage.body === 'string'
           ? [customMessage.body]
           : customMessage.body
@@ -98,7 +98,7 @@ export function BertBriefingWalkOn({
           kind: 'body' as const,
           pageIndex,
         })),
-    [content, customMessage, sequenceId],
+    [content, customMessage, sequenceId, t],
   );
   const beat = beats[Math.min(beatIndex, Math.max(0, beats.length - 1))];
   const focus = beatFocus(beats, beatIndex);
@@ -139,7 +139,9 @@ export function BertBriefingWalkOn({
   return (
     <View
       accessibilityViewIsModal
-      accessibilityLabel={`${content.assistant.name}, ${content.assistant.role}`}
+      // His name is a name and stays as authored; his job title is copy, and
+      // `bert.role` carries the same English `assistant.role` holds.
+      accessibilityLabel={`${content.assistant.name}, ${t('bert.role')}`}
       style={StyleSheet.absoluteFill}
       {...bertDialogProps()}
     >

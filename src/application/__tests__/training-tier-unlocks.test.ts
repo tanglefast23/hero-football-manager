@@ -110,6 +110,10 @@ describe('training drill tier purchases', () => {
     expect(bought.cashTransactions?.at(-1)).toMatchObject({
       kind: 'training-upgrade',
       label: 'Pace Tier 2 drill bought',
+      labelKey: 'cashTransaction.drillTierBought',
+      // `pathKey` names `path`, so the ledger draws the path name in the
+      // player's language instead of an English word inside a German sentence.
+      labelParams: { path: 'Pace', pathKey: 'trainingPath.pac', tier: 2 },
       amount: -3_000,
       referenceId: 'sprints-ii',
     });

@@ -73,6 +73,15 @@
         "superpouvoirs"
       ],
       "why": "Nom commun dans les deux langues : la casse n'est pas verrouillée."
+    },
+    {
+      "english": "Fame",
+      "englishPattern": "(?<!Hall of )\\bFame\\b",
+      "allowedForms": [
+        "Notoriété",
+        "notoriété"
+      ],
+      "why": "How much of the country has heard of the club. \"Célébrité\" is about a person, not an institution."
     }
   ]
 }

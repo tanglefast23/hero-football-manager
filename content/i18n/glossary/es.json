@@ -71,6 +71,15 @@
         "superpoderes"
       ],
       "why": "Unlike Hero License or the Zone, this is a common noun in both languages — English writes it lowercase mid-sentence too, so Spanish must be allowed to. What is locked is the WORD, not its case."
+    },
+    {
+      "english": "Fame",
+      "englishPattern": "(?<!Hall of )\\bFame\\b",
+      "allowedForms": [
+        "Fama",
+        "fama"
+      ],
+      "why": "The plain word, and the one the Salon de la Fama name already leans on. Nothing shorter reads as a club statistic."
     }
   ]
 }

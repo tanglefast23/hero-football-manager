@@ -57,7 +57,8 @@ if (!GATED_LOCALES.includes(locale)) {
  * They are skipped for `en` and consumed for every other locale, which is
  * exactly their job: source in English, output per language.
  */
-const ENGLISH_SNAPSHOTS = /^(final-wave|final-wave-vi|vi-part-[ab]|delta|ui-tail-src)$/;
+const ENGLISH_SNAPSHOTS =
+  /^(final-wave|final-wave-vi|vi-part-[ab]|delta|ui-tail-src|rare-src|content-prose|bert-src)$/;
 
 /** Staging files belonging to this locale, and no other. */
 function stagingFiles() {
@@ -73,7 +74,20 @@ function stagingFiles() {
     .map(name => path.join(STAGING, name));
 }
 
-const files = stagingFiles();
+/**
+ * A REVISION layer: files that deliberately overwrite what an earlier pass set.
+ *
+ * `shorten.<locale>.json` is the copy-budget pass — it rewrites strings other
+ * staging files already produced, so a collision with them is the point, not a
+ * conflict. Ordinary staging files are still fatal against each other, because
+ * that really is two agents disagreeing and no rule can pick a winner.
+ *
+ * Sorted last so its values land last and win.
+ */
+const REVISIONS = /^shorten\./;
+
+const files = stagingFiles()
+  .sort((a, b) => Number(REVISIONS.test(path.basename(a))) - Number(REVISIONS.test(path.basename(b))));
 if (files.length === 0) {
   console.log(`no staging files for locale "${locale}" in ${STAGING}`);
   process.exit(0);
@@ -94,9 +108,10 @@ for (const file of files) {
       process.exit(1);
     }
     const prior = incoming.get(key);
-    if (prior !== undefined && prior.value !== value) {
+    const revising = REVISIONS.test(path.basename(file));
+    if (prior !== undefined && prior.value !== value && !revising) {
       collisions.push({ key, a: prior.file, b: path.basename(file) });
-    } else if (existing[key] !== undefined && existing[key] !== value) {
+    } else if (existing[key] !== undefined && existing[key] !== value && !revising) {
       collisions.push({ key, a: `${locale}.json (existing)`, b: path.basename(file) });
     } else if (existing[key] !== undefined) {
       alreadyPresent.push(key);

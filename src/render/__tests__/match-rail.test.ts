@@ -7,12 +7,12 @@ import {
   MATCH_RAIL_GUTTER,
   MATCH_RAIL_TOP_INSET,
   MATCH_RAIL_WIDTH,
-  MENTALITY_CHIP_LABELS,
   mostTiredFirst,
   RAIL_HERO_TILE_CAP,
   RAIL_TIRED_ROWS,
   railHeroStatus,
 } from '../match-rail';
+import { mentalityLabel } from '../match-mentality-ui';
 import { ENABLED_LOCALES, loadCatalog } from '../../i18n';
 
 const railSource = () => readFileSync(join(process.cwd(), 'src/render/MatchControlRail.tsx'), 'utf8');
@@ -81,11 +81,16 @@ describe('desktop match control rail', () => {
   });
 
   it('names the playstyle chips without renaming the engine mentalities', () => {
-    expect(MENTALITY_CHIP_LABELS).toEqual({
-      BALANCED: 'BALANCED',
-      ATTACK: 'PRESS',
-      PROTECT: 'PARK BUS',
-    });
+    // The rail shares the phone's words. It used to carry "PRESS"/"PARK BUS"
+    // while the banner a chip fires said "PLAYSTYLE · ATTACK" — one tactic
+    // under two names, both on screen at once on a wide layout.
+    expect(mentalityLabel('BALANCED')).toBe('BALANCED');
+    expect(mentalityLabel('ATTACK')).toBe('ATTACK');
+    expect(mentalityLabel('PROTECT')).toBe('PROTECT');
+    // Nothing may draw the raw enum again: the rail is desktop's most-used
+    // control and it read English in all seven languages.
+    expect(railSource()).not.toContain('MENTALITY_CHIP_LABELS');
+    expect(railSource()).toContain('mentalityLabel(option, t)');
   });
 
   it('caps the rail at the Hero License field cap of four tiles', () => {

@@ -516,6 +516,17 @@ opinion — see §6.5.
    column-width gate (8b) — the one that measures the **bold** cut. Additionally
    assert `advance(ơ) ∈ { advance(o), advance(o) + 125 }` and the same for every
    toned horned form, so §3's outcome is recorded rather than assumed.
+> **§6.5 SIGNED OFF (2026-08-07).** The owner, who reads Vietnamese, ran the
+> built font on a real device and confirmed it renders correctly. That releases
+> the last hold on this work: `vi` is in `ENABLED_LOCALES`, and it is now in
+> `AUTO_LOCALES` too, so a Vietnamese phone opens the game in Vietnamese.
+>
+> What that sign-off does and does not cover: it is a reader confirming the
+> letters are right on hardware, which is the question this gate was written to
+> answer. It is not a sweep of every screen at every type size and density —
+> §6.6's small-body-text case and the @3x/@2x comparison were never run
+> side by side. Those remain worth doing, but they are polish now, not a gate.
+
 5. **Tone legibility — the gate that matters.** Render `má mà mả mã mạ`,
    `ế ề ể ễ ệ` and `ớ ờ ở ỡ ợ` at the app's smallest shipped size and at the
    largest Dynamic Type multiplier the league/register headers already plan for

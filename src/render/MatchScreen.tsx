@@ -148,6 +148,7 @@ import {
   energyBand,
   summarizeTeamEnergy,
 } from './match-energy-ui';
+import { mentalityLabel } from './match-mentality-ui';
 import { chargeMeter } from './hero-charge-meter';
 import { HeroChargeMeter } from './HeroChargeMeter';
 import { teamKitColor } from './team-kit-ui';
@@ -541,7 +542,7 @@ export function MatchScreen({
   // A Hero Cup tie opens on a title card; a league fixture arrives with no
   // `cupRoundLabel` and gets none. Decided once, at mount: flipping Reduce
   // Motion from the settings overlay must not restyle a card already playing.
-  const [titleCard] = useState(() => cupTitleCard(cupRoundLabel, reduceMotion));
+  const [titleCard] = useState(() => cupTitleCard(cupRoundLabel, reduceMotion, t));
   const [titleCardShowing, setTitleCardShowing] = useState(titleCard !== null);
   // Starts paused behind the card so the very first RAF frame simulates
   // nothing. The clock is held, not skipped — the loop keeps `last` current
@@ -1353,7 +1354,7 @@ export function MatchScreen({
         if (e.kind === 'MENTALITY_CHANGED' && e.team === controlledTeam) {
           bannerRef.current = appendBannerNewestFour(bannerRef.current, {
             id: `mentality:${e.t}`,
-            text: `${t('matchScreen.playstyle')} · ${e.mentality}`,
+            text: `${t('matchScreen.playstyle')} · ${mentalityLabel(e.mentality, t)}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
             subject: 'mentality',
@@ -2025,7 +2026,7 @@ export function MatchScreen({
     ending: primaryPowerCutIn.outroStartedAt !== undefined,
     reduceMotion,
     skippable: powerCutInPolicy.skippable,
-    accessibilityLabel: powerCutInAccessibilityLabel(powerCutIns),
+    accessibilityLabel: powerCutInAccessibilityLabel(powerCutIns, t),
     onDismiss: dismissPowerTakeover,
   };
   const tutorialTiredStarter = firstMatchTiredPlayerRef.current === null
@@ -2149,7 +2150,7 @@ export function MatchScreen({
     queueInput(match, { tick: match.tick + 1, kind: 'SET_MENTALITY', mentality });
     pushInputBanner(
       `mentality-input:${match.tick}`,
-      `${t('matchScreen.playstyle')} · ${mentality}`,
+      `${t('matchScreen.playstyle')} · ${mentalityLabel(mentality, t)}`,
       'mentality',
     );
   };
@@ -2178,7 +2179,7 @@ export function MatchScreen({
       const player = match.players[index];
       const power = player.def.power;
       if (!power) return [];
-      const presentation = powerCutInPresentation(power);
+      const presentation = powerCutInPresentation(power, t);
       return [{
         id: player.def.id,
         name: player.def.name,
@@ -2579,7 +2580,9 @@ export function MatchScreen({
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={t('matchScreen.a11y.playstyle', { playstyle: displayedMentality })}
+              accessibilityLabel={t('matchScreen.a11y.playstyle', {
+                playstyle: mentalityLabel(displayedMentality, t),
+              })}
               accessibilityState={{ disabled: coachingDisabled }}
               disabled={coachingDisabled}
               style={[
@@ -2595,7 +2598,7 @@ export function MatchScreen({
               <Text style={styles.mentalityIcon}>{displayedMentality === 'ATTACK' ? '▲' : displayedMentality === 'PROTECT' ? '▼' : '◆'}</Text>
               <View style={styles.coachCopy}>
                 <Text style={styles.coachLabel}>{t('matchScreen.playstyle')}</Text>
-                <Text style={styles.coachValue}>{displayedMentality}</Text>
+                <Text style={styles.coachValue}>{mentalityLabel(displayedMentality, t)}</Text>
               </View>
             </Pressable>
             <Pressable

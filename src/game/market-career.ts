@@ -579,6 +579,18 @@ export function careerRenewalWeeklyAsk(state: GameState, player: CareerPlayer): 
 }
 
 /**
+ * One refusal in both halves: the English this ring writes, and the catalog key
+ * the season-end screen renders instead. `src/game` may not import `src/i18n`,
+ * so copy leaves the ring as data and the English stays as the fallback.
+ */
+export interface RenewalBlockedCopy {
+  readonly text: string;
+  readonly textKey: string;
+  /** Raw values for the key's placeholders. Never pre-formatted text. */
+  readonly textParams: Readonly<Record<string, string | number>>;
+}
+
+/**
  * Why this player cannot be re-signed at all this season, or undefined when they
  * can.
  *
@@ -587,24 +599,28 @@ export function careerRenewalWeeklyAsk(state: GameState, player: CareerPlayer): 
  * agent" button over both of them, so the only way to discover either was to tap
  * it and read a raw engine string in an error toast.
  */
-// TODO(i18n): both sentences are returned bare, so there is nowhere to hang a
-// `labelKey`. Translating them means returning `{ text, key, params }` and
-// updating `view-models.ts:1297`, which is a coordinated change rather than a
-// self-contained extraction.
-export function careerRenewalBlockedReason(
+export function careerRenewalBlockedReasonCopy(
   state: GameState,
   market: CareerMarketState,
   playerId: string,
-): string | undefined {
+): RenewalBlockedCopy | undefined {
   const player = state.players.find(candidate => (
     candidate.id === playerId && candidate.clubId === state.userClubId
   ));
   if (player === undefined) return undefined;
   if ((market.abandonedRenewalNegotiationIds ?? []).includes(renewalNegotiationId(state, playerId))) {
-    return `${player.name}'s agent has ended talks for this season. He can only leave now.`;
+    return {
+      text: `${player.name}'s agent has ended talks for this season. He can only leave now.`,
+      textKey: 'market.renewalAgentEndedTalks',
+      textParams: { player: player.name },
+    };
   }
   if (!willRenegotiate(playerLoyalty(player, state.careerSeed))) {
-    return `${player.name} has decided to move on and will not re-sign at any wage.`;
+    return {
+      text: `${player.name} has decided to move on and will not re-sign at any wage.`,
+      textKey: 'market.renewalWillNotResign',
+      textParams: { player: player.name },
+    };
   }
   return undefined;
 }

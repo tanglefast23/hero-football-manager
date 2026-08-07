@@ -1,8 +1,9 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { ENABLED_LOCALES, LOCALES, contentStrings, loadCatalog, localeMeta } from '../index';
+import { ENABLED_LOCALES, LOCALES, contentStrings, loadCatalog, loadGlossary, localeMeta } from '../index';
 import { faceFile, glyphSet, missingGlyphs } from '../glyph-coverage';
 import { faceForKey } from '../voice';
+import { budgetClass, copyBudget } from '../copy-budget';
 import { advanceEm } from '../advance';
 import {
   COLUMN_MIN_GUTTER,
@@ -56,21 +57,19 @@ describe('i18n gates', () => {
   test('gate 3 — every translation is inside its character budget', () => {
     // A copy rule, not a layout guarantee: Silkscreen is proportional, so
     // character count is a poor proxy for pixel width. Layout safety comes from
-    // the measured advance tables. This keeps the translation honest about
-    // "succinct always".
+    // the measured advance tables.
+    //
+    // The ceiling is per-KEY now, not per-locale — see `copy-budget.ts`. One
+    // number for the whole catalog was squeezing screen-reader labels, which
+    // have no width at all, by the same rule it applied to a chip in a border.
     const source = englishAll();
     for (const locale of translated()) {
-      const ceiling = localeMeta(locale).expansion;
       for (const [key, value] of Object.entries(loadCatalog(locale).strings)) {
         if (key.startsWith('col.')) continue; // layout tokens, sized by measurement
-        // A percentage is the wrong instrument for a short label. "Fans" is four
-        // characters; x1.25 + 2 allows seven, and there is no seven-character
-        // Spanish word for it — "Aficionados" is simply what it is called. The
-        // rule exists to stop sprawl in sentences, so short sources get a flat
-        // allowance instead of a proportional one that rounds to nothing.
-        const english = source[key]?.length ?? 0;
-        const limit = Math.max(Math.ceil(english * ceiling) + 2, english + 8);
-        expect({ locale, key, length: value.length, limit })
+        const english = source[key];
+        if (english === undefined) continue;
+        const limit = copyBudget(key, english, locale);
+        expect({ locale, key, class: budgetClass(key), length: value.length, limit })
           .toMatchObject({ locale, key });
         expect(value.length).toBeLessThanOrEqual(limit);
       }
@@ -192,7 +191,13 @@ describe('persisted labels resolve through the catalog', () => {
     // A producer that dual-writes a key nothing can resolve is worse than one
     // that writes English only: the fallback still renders, so nothing looks
     // broken, and the string silently never translates.
-    const sources = ['src/game/career.ts', 'src/game/player-requests.ts'];
+    const sources = [
+      'src/game/career.ts',
+      'src/game/player-requests.ts',
+      // The ledger's six cash-transaction lines. They were outside this gate
+      // while one of them still interpolated an English training-path name.
+      'src/game/management.ts',
+    ];
     const keys = sources.flatMap(file => {
       const text = readFileSync(join(process.cwd(), file), 'utf8');
       return [
@@ -351,17 +356,25 @@ describe('gate 9 — locked terminology', () => {
       expect(Object.keys(loadCatalog(locale).strings).length).toBeGreaterThan(0);
     }
   });
+
+  test('every term still matches English, so none can be silently disarmed', () => {
+    // The gate above only ever inspects strings whose ENGLISH matches the term's
+    // pattern. A term that matches nothing therefore passes in perfect silence,
+    // in all six languages, forever.
+    //
+    // That is one English edit away at all times: rename "Fan Shop" to "Club
+    // Shop", or typo a pattern, and the term stops being enforced without a
+    // single test turning red. It is the same shape as the bug that started this
+    // workstream — a gate reporting zero because it was measuring nothing.
+    const source = Object.values(englishAll());
+    for (const locale of ENABLED_LOCALES.filter(l => l !== 'en')) {
+      const dead = loadGlossary(locale).terms
+        .filter(term => !source.some(value => new RegExp(term.englishPattern).test(value)))
+        .map(term => `${term.english} (/${term.englishPattern}/ matches no English string)`);
+      expect({ locale, dead }).toEqual({ locale, dead: [] });
+    }
+  });
 });
-
-interface Glossary {
-  terms: { english: string; englishPattern: string; allowedForms: string[] }[];
-}
-
-function loadGlossary(locale: string): Glossary {
-  return JSON.parse(
-    readFileSync(join(process.cwd(), `content/i18n/glossary/${locale}.json`), 'utf8'),
-  ) as Glossary;
-}
 
 describe('gate 10 — content-prose coverage is measured, not assumed', () => {
   /**
@@ -376,27 +389,89 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
    * These floors may only ever RISE. Raising one is how a batch of long-tail
    * translation gets recorded as landed.
    *
-   * They are all at 100 now, which changes what this gate is for: it stops
-   * measuring progress and starts guarding completeness. New content prose —
-   * an event, a tip, a glossary entry — fails this gate until every locale has
-   * it, so English can no longer leak into six languages unnoticed.
+   * The floors are recorded PER SOURCE FILE rather than as one number over all
+   * content prose, because a single number cannot say both things at once. The
+   * four files below at 100 are finished, and 100 is what stops English leaking
+   * back into them: a new event or tip fails this gate until every locale has
+   * it. The files at 0 have only just been flattened into keys and have no
+   * translations yet — folded into one total they would have dragged the
+   * finished four off 100 and quietly retired the guard on all of them.
    */
-  const COVERAGE_FLOOR: Readonly<Record<string, number>> = {
-    es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100,
+  const COVERAGE_FLOOR: Readonly<Record<string, Readonly<Record<string, number>>>> = {
+    'events.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
+    'tips.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
+    'player-requests.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
+    'glossary.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
+    'assistant-guide.json': {},
+    'onboarding.json': {},
+    'fulltime-coach-lines.json': {},
+    'fulltime-blame-lines.json': {},
+    'award-ceremony-lines.json': {},
+    'powers.json': {},
+    'training.json': {},
   };
+
+  /**
+   * Which content file a key came from.
+   *
+   * Longest prefix wins, so `story.awakening.` is read as onboarding rather than
+   * being swallowed by a shorter neighbour. A key matching nothing is a bug in
+   * this table, not an unowned key, so the test fails rather than dropping it.
+   */
+  const SOURCE_BY_PREFIX: Readonly<Record<string, string>> = {
+    'event.': 'events.json',
+    'tip.': 'tips.json',
+    'playerRequest.': 'player-requests.json',
+    'glossary.': 'glossary.json',
+    'bert.': 'assistant-guide.json',
+    'awakening.': 'onboarding.json',
+    'story.awakening.': 'onboarding.json',
+    'coach.fulltime.': 'fulltime-coach-lines.json',
+    'coach.blame.': 'fulltime-blame-lines.json',
+    'ceremony.': 'award-ceremony-lines.json',
+    'powerEffect.': 'powers.json',
+    'drill.': 'training.json',
+  };
+
+  const sourceOf = (key: string): string | undefined => Object.entries(SOURCE_BY_PREFIX)
+    .filter(([prefix]) => key.startsWith(prefix))
+    .sort(([a], [b]) => b.length - a.length)[0]?.[1];
+
+  test('every content key belongs to a source file the floors know about', () => {
+    expect(Object.keys(contentStrings()).filter(key => sourceOf(key) === undefined)).toEqual([]);
+    expect(Object.keys(COVERAGE_FLOOR).sort())
+      .toEqual([...new Set(Object.values(SOURCE_BY_PREFIX))].sort());
+  });
 
   test('every locale meets its recorded content-prose floor', () => {
     const contentKeys = Object.keys(contentStrings());
     expect(contentKeys.length).toBeGreaterThan(0);
 
-    const report: Record<string, string> = {};
+    const keysBySource = new Map<string, string[]>();
+    for (const key of contentKeys) {
+      const source = sourceOf(key);
+      if (source === undefined) continue; // named by the test above
+      keysBySource.set(source, [...(keysBySource.get(source) ?? []), key]);
+    }
+
+    // A source that produces NO keys never enters the map, so the loop below
+    // never reaches its floor and the gate passes having checked nothing about
+    // it. `contentStrings()` builds these by hand, one loop per file — lose the
+    // tips loop and `tips.json` simply disappears from the report, at 0%
+    // translated, with CI green. Assert the map still covers every floor.
+    expect([...keysBySource.keys()].sort()).toEqual(Object.keys(COVERAGE_FLOOR).sort());
+
+    const report: Record<string, Record<string, string>> = {};
     for (const locale of ENABLED_LOCALES.filter(l => l !== 'en')) {
       const translated = loadCatalog(locale).strings;
-      const done = contentKeys.filter(key => key in translated).length;
-      const percent = Math.floor((done / contentKeys.length) * 100);
-      report[locale] = `${done}/${contentKeys.length} (${percent}%)`;
-      expect({ locale, percent }).toMatchObject({ locale });
-      expect(percent).toBeGreaterThanOrEqual(COVERAGE_FLOOR[locale] ?? 0);
+      report[locale] = {};
+      for (const [source, keys] of keysBySource) {
+        const done = keys.filter(key => key in translated).length;
+        const percent = Math.floor((done / keys.length) * 100);
+        report[locale][source] = `${done}/${keys.length} (${percent}%)`;
+        expect({ locale, source, percent }).toMatchObject({ locale, source });
+        expect(percent).toBeGreaterThanOrEqual(COVERAGE_FLOOR[source]?.[locale] ?? 0);
+      }
     }
     // eslint-disable-next-line no-console
     console.log('content prose coverage:', report);

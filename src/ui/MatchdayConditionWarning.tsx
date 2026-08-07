@@ -23,7 +23,7 @@ export function MatchdayConditionWarning({
   onDone,
 }: MatchdayConditionWarningProps) {
   const t = useCopy();
-  const line = useMemo(() => matchdayConditionWarningCopy(playerName), [playerName]);
+  const line = useMemo(() => matchdayConditionWarningCopy(playerName, t), [playerName, t]);
 
   useEffect(() => {
     playBertVoice(bertVoiceDurationMs(line));

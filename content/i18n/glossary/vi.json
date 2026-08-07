@@ -2,29 +2,85 @@
   "schemaVersion": 1,
   "locale": "vi",
   "terms": [
-    { "english": "Hero License", "englishPattern": "Hero Licen[cs]e",
-      "allowedForms": ["Giấy Phép Anh Hùng", "giấy phép anh hùng"],
-      "why": "'Anh hùng' is the heroic register; 'người hùng' reads as a news headline about a rescue." },
-    { "english": "the Zone", "englishPattern": "\\bthe Zone\\b",
-      "allowedForms": ["Vùng Bùng Nổ", "vùng bùng nổ"],
-      "why": "'Bùng nổ' carries the explosive, everything-clicks sense. A bare 'Vùng' would just mean 'area'." },
-    { "english": "Heat", "englishPattern": "\\bHeat\\b",
-      "allowedForms": ["Nhiệt"],
-      "why": "One syllable, and it keeps the meter-filling metaphor the English has." },
-    { "english": "Awakening", "englishPattern": "\\bAwakening\\b",
-      "allowedForms": ["Thức Tỉnh", "thức tỉnh"],
-      "why": "The standard word for a sudden, irreversible awakening — exactly the one-off moment this is." },
-    { "english": "Training Points", "englishPattern": "Training [Pp]oints?",
-      "allowedForms": ["Điểm Tập", "điểm tập"],
-      "why": "Two syllables. 'Điểm huấn luyện' is correct and far too long for the labels that carry it." },
-    { "english": "Fan Shop", "englishPattern": "Fan Shop",
-      "allowedForms": ["Cửa Hàng CLB", "cửa hàng CLB"],
-      "why": "CLB is the everyday abbreviation for câu lạc bộ, and every Vietnamese football fan reads it instantly." },
-    { "english": "Buzz", "englishPattern": "\\bBuzz\\b",
-      "allowedForms": ["Sức Hút", "sức hút"],
-      "why": "The pull a club has on the town's attention — what the meter is actually measuring." },
-    { "english": "Superpower", "englishPattern": "[Ss]uperpowers?",
-      "allowedForms": ["Siêu Năng Lực", "siêu năng lực"],
-      "why": "The established comic-book term. Case is not locked: it is a common noun in both languages." }
+    {
+      "english": "Hero License",
+      "englishPattern": "Hero Licen[cs]e",
+      "allowedForms": [
+        "Giấy Phép Anh Hùng",
+        "giấy phép anh hùng"
+      ],
+      "why": "'Anh hùng' is the heroic register; 'người hùng' reads as a news headline about a rescue."
+    },
+    {
+      "english": "the Zone",
+      "englishPattern": "\\bthe Zone\\b",
+      "allowedForms": [
+        "Vùng Bùng Nổ",
+        "vùng bùng nổ"
+      ],
+      "why": "'Bùng nổ' carries the explosive, everything-clicks sense. A bare 'Vùng' would just mean 'area'."
+    },
+    {
+      "english": "Heat",
+      "englishPattern": "\\bHeat\\b",
+      "allowedForms": [
+        "Nhiệt"
+      ],
+      "why": "One syllable, and it keeps the meter-filling metaphor the English has."
+    },
+    {
+      "english": "Awakening",
+      "englishPattern": "\\bAwakening\\b",
+      "allowedForms": [
+        "Thức Tỉnh",
+        "thức tỉnh"
+      ],
+      "why": "The standard word for a sudden, irreversible awakening — exactly the one-off moment this is."
+    },
+    {
+      "english": "Training Points",
+      "englishPattern": "Training [Pp]oints?",
+      "allowedForms": [
+        "Điểm Tập",
+        "điểm tập"
+      ],
+      "why": "Two syllables. 'Điểm huấn luyện' is correct and far too long for the labels that carry it."
+    },
+    {
+      "english": "Fan Shop",
+      "englishPattern": "Fan Shop",
+      "allowedForms": [
+        "Cửa Hàng CLB",
+        "cửa hàng CLB"
+      ],
+      "why": "CLB is the everyday abbreviation for câu lạc bộ, and every Vietnamese football fan reads it instantly."
+    },
+    {
+      "english": "Buzz",
+      "englishPattern": "\\bBuzz\\b",
+      "allowedForms": [
+        "Sức Hút",
+        "sức hút"
+      ],
+      "why": "The pull a club has on the town's attention — what the meter is actually measuring."
+    },
+    {
+      "english": "Superpower",
+      "englishPattern": "[Ss]uperpowers?",
+      "allowedForms": [
+        "Siêu Năng Lực",
+        "siêu năng lực"
+      ],
+      "why": "The established comic-book term. Case is not locked: it is a common noun in both languages."
+    },
+    {
+      "english": "Fame",
+      "englishPattern": "(?<!Hall of )\\bFame\\b",
+      "allowedForms": [
+        "Danh tiếng",
+        "danh tiếng"
+      ],
+      "why": "The ordinary word for a club being known. \"Uy tín\" is closer to trustworthiness, and it had drifted into three strings."
+    }
   ]
 }

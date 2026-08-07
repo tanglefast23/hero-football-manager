@@ -9,7 +9,7 @@ import type {
   NationalCupFixture,
   NationalCupRound,
 } from '../game/pyramid';
-import { divisionTierLabelWith } from '../game/pyramid';
+import { cupRoundNameWith, divisionTierLabelWith } from '../game/pyramid';
 import type {
   CareerPlayer,
   LeagueFixture,
@@ -45,23 +45,14 @@ function englishCopy(): CopyFn {
 /**
  * The bracket stage, as a player reads it.
  *
- * The stored `NationalCupRound['label']` stays an English literal union because
- * the engine compares it — `round.label === 'Final'` decides who is champion.
- * Translation happens here, at the presentation boundary, so the data keeps its
- * type and the screen still gets the stage in the player's language. Keyed by
- * the union so a new round cannot be added without a key to draw it with.
+ * This screen used to own a private copy of the round-key table, which is why
+ * it was the only place in the game that ever translated a round: everything
+ * else reached for the raw English label. The table now lives beside the labels
+ * themselves in `src/game/pyramid`, and this is a name for the shared lookup so
+ * the call sites below still read as this file's own vocabulary.
  */
-const CUP_ROUND_COPY_KEYS: Readonly<Record<NationalCupRound['label'], string>> = {
-  'Play-in': 'm2League.cupRound.playIn',
-  'Round of 32': 'm2League.cupRound.roundOf32',
-  'Round of 16': 'm2League.cupRound.roundOf16',
-  'Quarter-final': 'm2League.cupRound.quarterFinal',
-  'Semi-final': 'm2League.cupRound.semiFinal',
-  Final: 'm2League.cupRound.final',
-};
-
 function cupRoundLabel(label: NationalCupRound['label'], t: CopyFn): string {
-  return t(CUP_ROUND_COPY_KEYS[label]);
+  return cupRoundNameWith(label, t);
 }
 
 export interface M2LeagueViewModelSource {
@@ -138,7 +129,7 @@ export function m2LeagueViewModel(
       statLines: source.statLines ?? [],
       userClubId: source.career.userClubId,
       clubNames,
-    }),
+    }, t),
   };
 }
 

@@ -464,7 +464,7 @@ export function M2LeagueScreen({
               </View>
             </View>
             <ScreenTabs
-              tabs={subTabs.map(tab => ({ id: tab, label: subTabLabel(tab) }))}
+              tabs={subTabs.map(tab => ({ id: tab, label: subTabLabel(tab, t) }))}
               activeId={activeSubTab}
               onSelect={setSelectedSubTab}
               anchor={guideSubTab === undefined ? undefined : {

@@ -23,12 +23,18 @@ export function GlossaryPanel({
   const categories = useMemo(() => content.categories.flatMap(category => {
     const entries = normalizedQuery.length === 0
       ? category.entries
-      : category.entries.filter(entry => (
-          entry.term.toLocaleLowerCase().includes(normalizedQuery)
-          || entry.definition.toLocaleLowerCase().includes(normalizedQuery)
-        ));
+      // Searched in the language on screen, not in the English behind it: the
+      // panel draws the translated term and definition two lines below, so
+      // filtering on the source strings made a German query find nothing.
+      : category.entries.filter(entry => {
+          const slug = glossaryTermSlug(entry.term);
+          const term = t(`glossary.${category.id}.${slug}.term`);
+          const definition = t(`glossary.${category.id}.${slug}.definition`);
+          return term.toLocaleLowerCase().includes(normalizedQuery)
+            || definition.toLocaleLowerCase().includes(normalizedQuery);
+        });
     return entries.length === 0 ? [] : [{ ...category, entries }];
-  }), [content.categories, normalizedQuery]);
+  }), [content.categories, normalizedQuery, t]);
 
   return (
     <View className="min-h-0 flex-1">

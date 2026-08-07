@@ -60,19 +60,41 @@ const DIFFICULTY_LABEL_KEY: Record<DifficultyMode, string> = {
 };
 
 /**
- * The label stays a source literal: it is split at the third character so the
- * first three letters carry the bold cut, which only holds for the attribute
- * abbreviations the rest of the game already prints untranslated. The one-line
- * explanation underneath is prose, so it is a catalog key.
+ * The stat's name, and the three-letter code the rest of the game prints.
+ *
+ * The name used to be a source literal so it could be split at the third
+ * character — `PACE` drawn as **PAC**E, the bold prefix doubling as the squad
+ * table's abbreviation. That only works in a language whose word for the stat
+ * begins with its own English code, which is to say English. It shipped
+ * `PACE SHOOTING PASSING` untranslated on the create-a-player screen in all six
+ * other languages.
+ *
+ * The name is now a key. `statPrefix` below keeps the flourish where it still
+ * lines up and drops it cleanly where it does not, so English is unchanged and
+ * nothing else renders a half-bolded word.
  */
-const STAT_COPY: Record<OutfieldCreationStat, { label: string; detailKey: string }> = {
-  pac: { label: 'PACE', detailKey: 'characterCreation.stat.pac' },
-  sho: { label: 'SHOOTING', detailKey: 'characterCreation.stat.sho' },
-  pas: { label: 'PASSING', detailKey: 'characterCreation.stat.pas' },
-  def: { label: 'DEFENDING', detailKey: 'characterCreation.stat.def' },
-  tec: { label: 'TECHNIQUE', detailKey: 'characterCreation.stat.tec' },
-  sta: { label: 'STAMINA', detailKey: 'characterCreation.stat.sta' },
+const STAT_COPY: Record<OutfieldCreationStat, {
+  code: string; nameKey: string; detailKey: string;
+}> = {
+  pac: { code: 'PAC', nameKey: 'characterCreation.statName.pac', detailKey: 'characterCreation.stat.pac' },
+  sho: { code: 'SHO', nameKey: 'characterCreation.statName.sho', detailKey: 'characterCreation.stat.sho' },
+  pas: { code: 'PAS', nameKey: 'characterCreation.statName.pas', detailKey: 'characterCreation.stat.pas' },
+  def: { code: 'DEF', nameKey: 'characterCreation.statName.def', detailKey: 'characterCreation.stat.def' },
+  tec: { code: 'TEC', nameKey: 'characterCreation.statName.tec', detailKey: 'characterCreation.stat.tec' },
+  sta: { code: 'STA', nameKey: 'characterCreation.statName.sta', detailKey: 'characterCreation.stat.sta' },
 };
+
+/**
+ * Splits a stat name into a bold code and the rest, when the name actually
+ * starts with that code. Returns the whole name as one run when it does not —
+ * "Tốc độ" has no `PAC` to embolden, and bolding its first three letters would
+ * just look like a rendering fault.
+ */
+function statPrefix(name: string, code: string): readonly [string, string] {
+  return name.slice(0, code.length).toUpperCase() === code
+    ? [name.slice(0, code.length), name.slice(code.length)]
+    : ['', name];
+}
 
 export function CharacterCreationScreen({
   initialDifficulty,
@@ -289,8 +311,15 @@ export function CharacterCreationScreen({
             <View key={stat} className="min-h-20 flex-row items-center border-2 border-ink bg-white p-3">
               <View className="w-28 shrink-0">
                 <Text className="font-mono text-base text-blue-dark" numberOfLines={1} adjustsFontSizeToFit>
-                  <Text className="font-bold">{copy.label.slice(0, 3)}</Text>
-                  <Text className="font-normal">{copy.label.slice(3)}</Text>
+                  {(() => {
+                    const [bold, rest] = statPrefix(t(copy.nameKey), copy.code);
+                    return (
+                      <>
+                        {bold === '' ? null : <Text className="font-bold">{bold}</Text>}
+                        <Text className={bold === '' ? 'font-bold' : 'font-normal'}>{rest}</Text>
+                      </>
+                    );
+                  })()}
                 </Text>
                 <Text className="mt-1 text-sm leading-4 text-ink/45">{t(copy.detailKey)}</Text>
               </View>
@@ -303,7 +332,7 @@ export function CharacterCreationScreen({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('characterCreation.a11y.decreaseStat', {
-                  stat: copy.label,
+                  stat: t(copy.nameKey),
                   value,
                 })}
                 accessibilityState={{ disabled: value <= CREATION_STAT_MIN }}
@@ -325,7 +354,7 @@ export function CharacterCreationScreen({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('characterCreation.a11y.increaseStat', {
-                  stat: copy.label,
+                  stat: t(copy.nameKey),
                   value,
                 })}
                 accessibilityState={{ disabled: value >= CREATION_STAT_MAX || pointsRemaining <= 0 }}

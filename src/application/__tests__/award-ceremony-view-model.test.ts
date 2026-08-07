@@ -8,7 +8,17 @@ import {
   RUNNER_UP_CEREMONY_LINES,
   WINNER_CEREMONY_LINES,
 } from '../../ui/award-ceremony-lines';
+import { copyFor, resolveCopy, type CopyFn } from '../../i18n';
 import { awardCeremonyViewModel } from '../award-ceremony-view-model';
+
+/** A locale holding exactly the given strings, and English for everything else. */
+function stubbedCopy(strings: Readonly<Record<string, string>>): CopyFn {
+  const english = copyFor('en');
+  return (key, params) => {
+    const resolved = resolveCopy('de', strings, {}, key, params);
+    return resolved === key ? english(key, params) : resolved;
+  };
+}
 
 const CLUB_NAMES = new Map([
   ['me', 'Brambleroad'],
@@ -91,6 +101,38 @@ describe('awardCeremonyViewModel', () => {
       ['Midfielders', 'Passes'],
       ['Strikers', 'Goals'],
     ]);
+  });
+
+  /**
+   * The ceremony is the season's last screen and it was announcing every board
+   * in English, whatever language the rest of it spoke. `AWARD_CATEGORIES` now
+   * writes a catalog key beside each English label; this is the half that reads
+   * it.
+   *
+   * German is the case that forces the metric to be keyed twice: its nouns keep
+   * their capital inside a sentence, so lowercasing the heading is not the
+   * sentence form. Stubbed rather than run through `copyFor('de')` for the
+   * reason the League board's twin test gives — this is about the wiring, not
+   * about which catalog has been filled in yet.
+   */
+  it('announces every board in the club language', () => {
+    const beats = awardCeremonyViewModel({
+      recap: recap(),
+      userClubId: 'me',
+      clubNames: CLUB_NAMES,
+      targetDivision: 5,
+    }, stubbedCopy({
+      'award.board.saves': 'Torhüter',
+      'award.metric.saves': 'Paraden',
+      'award.metricInline.saves': 'Paraden',
+      'awardsCeremony.noneRecordedThisSeason': 'Keine {metric} in dieser Saison',
+    })).beats;
+
+    expect([beats[0].boardLabel, beats[0].metricLabel]).toEqual(['Torhüter', 'Paraden']);
+    // Not "keine paraden": the inline key exists so a language can keep its own
+    // casing instead of taking a lowercased heading.
+    expect(beats[0].emptyLabel).toBe('Keine Paraden in dieser Saison');
+    expect([beats[3].boardLabel, beats[3].metricLabel]).toEqual(['Strikers', 'Goals']);
   });
 
   it('reveals the podium third, second, then first', () => {

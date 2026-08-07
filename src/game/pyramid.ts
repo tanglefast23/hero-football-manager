@@ -212,6 +212,11 @@ const LOW_MORALE_THRESHOLD = 30;
  * Every rung is a League for the same reason: the only word that changes is
  * the one carrying the meaning.
  */
+/**
+ * @i18n-fallback — the English division names. `DIVISION_NAME_KEYS` below is the
+ * half the UI actually draws; these stay as the fallback and as the source the
+ * translations were written from.
+ */
 export const DIVISION_NAMES: Readonly<Record<DivisionLevel, string>> = {
   1: 'Global League',
   2: 'National League',
@@ -271,6 +276,53 @@ export function divisionTierLabelWith(
  * and to the whole game.
  */
 export const CUP_DISPLAY_NAME = 'Hero Cup';
+
+/**
+ * @i18n-fallback — the catalog keys for the cup's name and its round names.
+ *
+ * The same dual write as `DIVISION_NAME_KEYS`: `src/game` may not import
+ * `src/i18n`, so it emits the key beside the English and the app ring resolves
+ * the pair. Every one of these strings was already translated in all six
+ * locales — the bug was that only the M2 bracket screen looked them up, so the
+ * match title card, the desk notes, the club home fixture line and the ledger
+ * all injected an English "Quarter-final" into an otherwise translated
+ * sentence.
+ *
+ * The `m2League.` prefix is where these keys were first authored and is kept
+ * deliberately: renaming them would mean re-translating six rounds in six
+ * languages to buy nothing but a tidier namespace.
+ */
+export const CUP_NAME_KEY = 'm2League.heroCup';
+
+export const CUP_ROUND_NAME_KEYS: Readonly<Record<NationalCupRound['label'], string>> = {
+  'Play-in': 'm2League.cupRound.playIn',
+  'Round of 32': 'm2League.cupRound.roundOf32',
+  'Round of 16': 'm2League.cupRound.roundOf16',
+  'Quarter-final': 'm2League.cupRound.quarterFinal',
+  'Semi-final': 'm2League.cupRound.semiFinal',
+  Final: 'm2League.cupRound.final',
+};
+
+/**
+ * The bracket stage in the player's language, and the only way to read one.
+ *
+ * `NationalCupRound['label']` itself never changes: it is a control value —
+ * `round.label === 'Final'` decides the champion, and the stored cup record is
+ * matched against it to find the next round. So the label keys a name here
+ * instead of becoming one.
+ *
+ * Takes a bare lookup rather than `CopyFn`, exactly as `divisionTierLabelWith`
+ * does, so this file still imports nothing from `src/i18n`. Every screen that
+ * shows a round — the bracket, the desk notes, the club-home fixture line, the
+ * match title card, the post-match header — goes through this one function, so
+ * the next one cannot be added with its own private copy of the table.
+ */
+export function cupRoundNameWith(
+  label: NationalCupRound['label'],
+  translate: (key: string) => string,
+): string {
+  return translate(CUP_ROUND_NAME_KEYS[label]);
+}
 
 const UINT32_RANGE = 4294967296;
 const SQUAD_ROLES: readonly Role[] = [

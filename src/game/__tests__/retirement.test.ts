@@ -5,7 +5,7 @@ import {
   isConsideringRetirement,
   maxRenewalTermSeasons,
   maxSigningTermSeasons,
-  retirementCardLabel,
+  retirementCardCopy,
   seasonsBeforeRetirement,
 } from '../retirement';
 import type { PlayerPersonality } from '../types';
@@ -184,11 +184,11 @@ describe('contractTermOptions', () => {
   });
 });
 
-describe('retirementCardLabel', () => {
+describe('retirementCardCopy', () => {
   it('says nothing while retirement is more than one season away', () => {
     const player = lifecyclePlayer({ id: 'far', personality: 'Professional', age: 28 });
     expect(seasonsBeforeRetirement(player, SEED)).toBeGreaterThan(1);
-    expect(retirementCardLabel(player, SEED)).toBeUndefined();
+    expect(retirementCardCopy(player, SEED)).toBeUndefined();
     expect(isConsideringRetirement(player, SEED)).toBe(false);
   });
 
@@ -198,14 +198,14 @@ describe('retirementCardLabel', () => {
       // Age forward to the last season before the announcement rather than
       // guessing: the retirement age varies by personality and by id hash.
       const oneOut = { ...base, age: 28 + seasonsBeforeRetirement(base, SEED) - 1 };
-      expect(retirementCardLabel(oneOut, SEED)).toBe('Considering retirement in 1 year');
+      expect(retirementCardCopy(oneOut, SEED)?.text).toBe('Considering retirement in 1 year');
       expect(isConsideringRetirement(oneOut, SEED)).toBe(true);
     }
   });
 
   it('marks the final season once announced', () => {
     const player = lifecyclePlayer({ age: 36, retirementAnnouncementSeason: 4 });
-    expect(retirementCardLabel(player, SEED)).toBe('Final season, retires in summer');
+    expect(retirementCardCopy(player, SEED)?.text).toBe('Final season, retires in summer');
     expect(isConsideringRetirement(player, SEED)).toBe(false);
   });
 });

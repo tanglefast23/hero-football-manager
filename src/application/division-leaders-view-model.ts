@@ -5,6 +5,7 @@ import type {
   M2LeaderBoardViewModel,
 } from '../ui/m2-league-models';
 import { copyFor, type CopyFn } from '../i18n';
+import { copyOrEnglish } from './copy-fallback';
 
 let englishCopyFn: CopyFn | undefined;
 
@@ -59,10 +60,16 @@ export function divisionLeadersViewModel(
     }));
     return {
       categoryId,
-      boardLabel: category.boardLabel,
-      metricLabel: category.metricLabel,
+      // The pure ring writes the English and the key; the club reads whichever
+      // of the two its language has. See `AWARD_CATEGORIES`.
+      boardLabel: copyOrEnglish(t, category.boardLabelKey, category.boardLabel),
+      metricLabel: copyOrEnglish(t, category.metricLabelKey, category.metricLabel),
       emptyLabel: t('m2League.noneRecordedYetThisSeason', {
-        metric: category.metricLabel.toLowerCase(),
+        metric: copyOrEnglish(
+          t,
+          category.metricInlineLabelKey,
+          category.metricLabel.toLowerCase(),
+        ),
       }),
       entries,
     };

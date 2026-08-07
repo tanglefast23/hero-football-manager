@@ -1,5 +1,4 @@
 import { ZONE_HEAT_THRESHOLD } from '../sim/powers';
-import type { Mentality } from '../sim/tactics';
 import type { PowerState } from '../sim/types';
 
 /**
@@ -25,12 +24,11 @@ export const RAIL_TIRED_ROWS = 3;
 /** Hero License field cap — the rail never shows more power tiles than this. */
 export const RAIL_HERO_TILE_CAP = 4;
 
-/** Rail playstyle chip copy. The engine keeps its own mentality identifiers. */
-export const MENTALITY_CHIP_LABELS: Readonly<Record<Mentality, string>> = {
-  BALANCED: 'BALANCED',
-  ATTACK: 'PRESS',
-  PROTECT: 'PARK BUS',
-};
+// Rail playstyle chip copy used to be a literal table here ("PRESS", "PARK
+// BUS"). It is player-facing text, so it moved to the catalog — `mentalityLabel`
+// in `match-mentality-ui.ts` — and the rail now shares the phone's words, so a
+// chip and the banner it fires no longer name the same tactic differently. The
+// engine keeps its own mentality identifiers.
 
 /**
  * Most tired first, `condition` ascending. Sort is stable, so equally tired

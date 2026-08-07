@@ -67,6 +67,15 @@
         "kekuatan super"
       ],
       "why": "Istilah komik yang sudah baku."
+    },
+    {
+      "english": "Fame",
+      "englishPattern": "(?<!Hall of )\\bFame\\b",
+      "allowedForms": [
+        "Ketenaran",
+        "ketenaran"
+      ],
+      "why": "The standard noun. \"Pamor\" means prestige or aura, and it had drifted into three strings before this entry existed."
     }
   ]
 }

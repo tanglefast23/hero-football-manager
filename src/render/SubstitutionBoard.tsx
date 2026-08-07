@@ -147,9 +147,9 @@ export function SubstitutionBoard({
   const note = autoChanged
     ? t(
       draftAutoSubs ? 'substitutionBoard.noteAutoSubsOn' : 'substitutionBoard.noteAutoSubsOff',
-      { note: budgetNote(plan, substitutionsRemaining) },
+      { note: budgetNote(plan, substitutionsRemaining, t) },
     )
-    : budgetNote(plan, substitutionsRemaining);
+    : budgetNote(plan, substitutionsRemaining, t);
 
   const starterAt = useCallback(
     (slot: number) => field.find(player => player.index === slot),
@@ -494,7 +494,7 @@ export function SubstitutionBoard({
                           </>
                         ) : (
                           <Text style={styles.metaSwapped}>
-                            {filledShirtLabel(compactName(player.name, !wide))}
+                            {filledShirtLabel(compactName(player.name, !wide), t)}
                           </Text>
                         )}
                       </View>
