@@ -61,13 +61,13 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#f4f1ea',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 9,
     textAlign: 'center',
   },
   buttonTextSelected: {
     color: '#241f2e',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 9,
     textAlign: 'center',
   },
@@ -84,7 +84,7 @@ export const devHarnessControlStyles = StyleSheet.create({
   rowLabel: {
     width: 42,
     color: '#edb54a',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 8,
   },
 });

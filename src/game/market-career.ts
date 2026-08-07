@@ -269,6 +269,8 @@ export function startCareerScoutMission(
     : recordCashTransaction(chargedState, {
         kind: 'scouting',
         label: `Scouting mission · ${readableRegion(region)}`,
+        labelKey: 'cashTransaction.scoutingMission',
+        labelParams: { region: readableRegion(region) },
         amount: -mission.cost,
         referenceId: mission.id,
       });
@@ -531,6 +533,8 @@ export function completeCareerTransfer(
   const recordedState = recordCashTransaction(persistedState, {
       kind: 'transfer-buy',
       label: `Signed ${player.name}`,
+      labelKey: 'cashTransaction.signedPlayer',
+      labelParams: { player: player.name },
       amount: -talks.transferQuote.fee,
       referenceId: player.id,
     });
@@ -583,6 +587,10 @@ export function careerRenewalWeeklyAsk(state: GameState, player: CareerPlayer): 
  * agent" button over both of them, so the only way to discover either was to tap
  * it and read a raw engine string in an error toast.
  */
+// TODO(i18n): both sentences are returned bare, so there is nowhere to hang a
+// `labelKey`. Translating them means returning `{ text, key, params }` and
+// updating `view-models.ts:1297`, which is a coordinated change rather than a
+// self-contained extraction.
 export function careerRenewalBlockedReason(
   state: GameState,
   market: CareerMarketState,
@@ -972,6 +980,8 @@ function completeCareerPlayerSale(
   const recordedState = recordCashTransaction(transferredState, {
       kind: 'transfer-sell',
       label: `Sold ${player.name}`,
+      labelKey: 'cashTransaction.soldPlayer',
+      labelParams: { player: player.name },
       amount: quote.fee,
       referenceId: player.id,
     });
@@ -1074,6 +1084,8 @@ export function dismissCareerCoach(
     state: recordCashTransaction(dismissedState, {
       kind: 'coach-dismissal',
       label: `Severance · ${coach.name}`,
+      labelKey: 'cashTransaction.coachSeverance',
+      labelParams: { coach: coach.name },
       amount: -severance,
       referenceId: coach.id,
     }),

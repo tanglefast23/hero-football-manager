@@ -13,6 +13,13 @@ import type {
   AwardCeremonySpeechTone,
   AwardCeremonyViewModel,
 } from '../ui/models';
+import { copyFor, type CopyFn } from '../i18n';
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 /**
  * Reveal order, deliberately the reverse of the League board's.
@@ -51,6 +58,7 @@ export interface AwardCeremonyViewModelSource {
  */
 export function awardCeremonyViewModel(
   source: AwardCeremonyViewModelSource,
+  t: CopyFn = englishCopy(),
 ): AwardCeremonyViewModel {
   const podiums = REVEAL_ORDER.map(categoryId => ({
     categoryId,
@@ -85,7 +93,9 @@ export function awardCeremonyViewModel(
       boardLabel: category.boardLabel,
       metricLabel: category.metricLabel,
       placings: [...placings].reverse(),
-      emptyLabel: `No ${category.metricLabel.toLowerCase()} recorded this season`,
+      emptyLabel: t('awardsCeremony.noneRecordedThisSeason', {
+        metric: category.metricLabel.toLowerCase(),
+      }),
       ...(speaking === undefined || line === undefined
         ? {}
         : { speaker: { placing: speaking, tone: speechTone(speaking), line } }),
@@ -94,7 +104,7 @@ export function awardCeremonyViewModel(
   });
 
   return {
-    seasonLabel: `Season ${source.recap.season}`,
+    seasonLabel: t('endgameCelebration.seasonLabel', { season: source.recap.season }),
     beats,
     prize: {
       totalMoney: prize.money,

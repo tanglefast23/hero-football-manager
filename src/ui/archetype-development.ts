@@ -16,5 +16,5 @@ const ARCHETYPE_DEVELOPMENT: Readonly<Record<string, ArchetypeDevelopmentSummary
 
 export function archetypeDevelopmentSummary(archetype: string): ArchetypeDevelopmentSummary {
   return ARCHETYPE_DEVELOPMENT[archetype]
-    ?? { strengths: '+ BALANCED', weaknesses: '− UNKNOWN' };
+    ?? { strengths: '+ BALANCED', weaknesses: '- UNKNOWN' };
 }

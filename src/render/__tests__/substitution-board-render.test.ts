@@ -2,6 +2,10 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 const board = () => readFileSync(join(process.cwd(), 'src/render/SubstitutionBoard.tsx'), 'utf8');
+
+/** The desktop cue names both inputs; the labels themselves live in the catalog. */
+const GUIDE_LABEL_BOTH_WAYS =
+  /guideLabel=\{guided\s*\?\s*\(wide\s*\?\s*t\('substitutionBoard\.guideClickOrDrag'\)\s*:\s*t\('substitutionBoard\.guideTap'\)\)\s*:\s*undefined\}/;
 const matchScreen = () => readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
 const styles = () => readFileSync(join(process.cwd(), 'src/render/match-screen-styles.ts'), 'utf8');
 
@@ -22,9 +26,9 @@ describe('substitution board layout', () => {
   it('has two columns and nothing else — no bench furniture, no assistant', () => {
     const source = board();
 
-    expect(source).toContain('>FIELD<');
-    expect(source).toContain('>BENCH<');
-    expect(source).toContain('MOST TIRED FIRST');
+    expect(source).toContain("{t('substitutionBoard.fieldColumn')}");
+    expect(source).toContain("{t('substitutionBoard.benchColumn')}");
+    expect(source).toContain("t('substitutionBoard.mostTiredFirst')");
     // The pixel bench strip and Bert are both gone: every swap is a straight
     // trade, so there is no third zone and nothing to explain.
     expect(source).not.toContain('BenchArt');
@@ -100,7 +104,7 @@ describe('substitution board layout', () => {
     expect(source).toContain('accessibilityState={{ selected: picked }}');
     // aria-selected is invalid on role="button", so the web silently drops that
     // state — the label is the only place the pick is announced everywhere.
-    expect(source).toContain('accessibilityLabel={picked ? `${accessibilityLabel}, picked` : accessibilityLabel}');
+    expect(source).toContain("t('substitutionBoard.a11y.picked', { label: accessibilityLabel })");
     // Every card carries the action in a hint rather than burying "hold and
     // drag" in the name a screen reader reads out first.
     expect(source).toContain('accessibilityHint={picked?.id === id');
@@ -111,7 +115,7 @@ describe('substitution board layout', () => {
     expect(source).toContain('if (isEligible(current, source.id)) {');
     expect(source).toContain('resolveDrop(current, source.id);');
     expect(source).toContain('if (current.id === source.id) {');
-    expect(source).toContain("'TAP A PLAYER, THEN TAP THEIR REPLACEMENT'");
+    expect(source).toContain("t('substitutionBoard.hintPickAPlayer')");
   });
 
   it('keeps dragging as a wide pointer affordance only', () => {
@@ -164,7 +168,7 @@ describe('substitution board layout', () => {
     // very same responder that carries the drag.
     expect(source).toContain('if (still) {');
     expect(source).toMatch(/if \(still\) \{\s*pick\(from\);/);
-    expect(source).toContain("guideLabel={guided ? (wide ? 'Click or drag' : 'Tap') : undefined}");
+    expect(source).toMatch(GUIDE_LABEL_BOTH_WAYS);
     // Pressable supplied the pointer cursor on web; a dragged View has to ask.
     expect(source).toContain("cardPointer: { cursor: 'pointer' }");
     expect(source).toContain('dragEnabled ? styles.cardPointer : null');
@@ -176,7 +180,7 @@ describe('substitution board layout', () => {
     expect(source).toContain('guideFieldPlayer?: number;');
     expect(source).toContain('const guideCardId: CardId | null = guideFieldPlayer === undefined');
     expect(source).toContain('const guided = id === guideCardId;');
-    expect(source).toContain("guideLabel={guided ? (wide ? 'Click or drag' : 'Tap') : undefined}");
+    expect(source).toMatch(GUIDE_LABEL_BOTH_WAYS);
     expect(source).toContain('{...(dragEnabled ? responder.panHandlers : { onPress: tap })}');
     expect(source).toContain('onStartShouldSetPanResponder: () => latest.current.dragEnabled');
     expect(source).toContain('if (source.id === guideCardId || target === guideCardId)');
@@ -199,9 +203,9 @@ describe('substitution board layout', () => {
     expect(source).toContain('onDragMove: (source: DragSource, pageX: number, pageY: number) => {');
     expect(source).toContain('const over = cardAt(pageX, pageY);');
     expect(source).toContain('isEligible(source, over) ? over : null');
-    expect(source).toContain("hint={dropTarget === id ? 'SWAP' : null}");
+    expect(source).toContain("hint={dropTarget === id ? t('substitutionBoard.dropHintSwap') : null}");
     // Putting a leaver back is not a swap, so it says what it really does.
-    expect(source).toContain("hint={dropTarget === id ? 'KEEP ON' : null}");
+    expect(source).toContain("hint={dropTarget === id ? t('substitutionBoard.dropHintKeepOn') : null}");
     expect(source).toContain('dropHint:');
     // Text alone is not enough: the target itself has to read as chosen, and
     // has to out-shout the softer ring every eligible card already wears.
@@ -250,7 +254,7 @@ describe('substitution board layout', () => {
     const source = board();
 
     expect(source).toContain('cardDimmed');
-    expect(source).toContain('COMING OFF');
+    expect(source).toContain("t('substitutionBoard.comingOff')");
     // The player coming on keeps the old swapped-shirt cue: a dashed blue
     // frame and light tint, while ordinary field cards retain the solid frame.
     expect(source).toContain(': [styles.card, styles.cardSwapped]');
@@ -298,11 +302,11 @@ describe('substitution board layout', () => {
   it('offers cancel, reset and save', () => {
     const source = board();
 
-    expect(source).toContain('label="CANCEL"');
-    expect(source).toMatch(/label="CANCEL"[\s\S]*?onPressIn=\{\(\) => \{[\s\S]*?onCancel\(\);[\s\S]*?onPress=\{onCancel\}/);
-    expect(source).toContain('label="RESET"');
+    expect(source).toContain("label={t('substitutionBoard.cancel')}");
+    expect(source).toMatch(/label=\{t\('substitutionBoard\.cancel'\)\}[\s\S]*?onPressIn=\{\(\) => \{[\s\S]*?onCancel\(\);[\s\S]*?onPress=\{onCancel\}/);
+    expect(source).toContain("label={t('substitutionBoard.reset')}");
     // Just SAVE: the header counter says how many, the cards say which.
-    expect(source).toContain('label="SAVE"');
+    expect(source).toContain("label={t('substitutionBoard.save')}");
     expect(source).not.toContain('SAVE{staged');
     // Blue for confirm, grey for secondary and disabled (docs/08 colour meaning).
     expect(source).toContain('tone="blue"');

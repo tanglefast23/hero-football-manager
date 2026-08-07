@@ -11,7 +11,12 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     const beginNewCareerHandler = appSource.slice(start, end);
 
     expect(beginNewCareerHandler).toContain('requestConfirmation({');
-    expect(beginNewCareerHandler).toContain("confirmLabel: 'Erase and start over'");
+    // The label is catalog copy now; what matters here is still that the sheet
+    // carries a confirm label rather than falling back to a native Alert.
+    expect(beginNewCareerHandler)
+      .toContain("confirmLabel: copyRef.current('app.replaceSavedCareerConfirm')");
+    expect(loadCatalog('en').strings['app.replaceSavedCareerConfirm'])
+      .toBe('Erase and start over');
     expect(beginNewCareerHandler).not.toContain('Alert.alert');
   });
 
@@ -80,7 +85,12 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     expect(appSource).toContain('guideTarget={hideCoachHiringCues ? undefined : visibleAssistantObjectiveTarget}');
     expect(appSource).toContain('guideObjective={assistantObjective?.text}');
     expect(appSource).not.toContain('guideObjective={visibleAssistantObjective');
-    expect(shell).toContain("accessibilityLabel={`Bert's current job: ${guideObjective}`}");
+    // The spoken line moved into the catalog too, so the shell holds the key and
+    // still interpolates the live objective rather than announcing a fixed
+    // sentence. Its English is staged with the rest of the extraction.
+    expect(shell).toContain("t('managementShell.a11y.bertsCurrentJob', { objective: guideObjective })");
+    expect(loadCatalog('en').strings['managementShell.a11y.bertsCurrentJob'])
+      .toBe("Bert's current job: {objective}");
     expect(shell).toContain('{guideObjective}</Text>');
     // The label moved into the copy catalog, so the shell holds the key and the
     // catalog holds the English. Asserting both keeps the original guarantee —

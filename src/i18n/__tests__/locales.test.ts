@@ -42,15 +42,16 @@ describe('locale registry', () => {
     }
   });
 
-  test('only Vietnamese uses the second face, and it swaps both voices', () => {
-    expect(localeMeta('en').faces).toEqual({
-      display: 'Silkscreen_700Bold',
-      data: 'Silkscreen_400Regular',
-    });
-    expect(localeMeta('vi').faces).toEqual({
-      display: 'Handjet_700Bold',
-      data: 'Handjet_400Regular',
-    });
+  test('every locale names the one pixel family, in both voices', () => {
+    // The registry used to carry a second family for Vietnamese alone. It does
+    // not any more: `HFMSilkscreen` draws all seven languages, so a `vi` screen
+    // is pixel-identical to an English one except where a translation exists.
+    for (const locale of LOCALES) {
+      expect({ locale, faces: localeMeta(locale).faces }).toEqual({
+        locale,
+        faces: { display: 'HFMSilkscreen_700Bold', data: 'HFMSilkscreen_400Regular' },
+      });
+    }
   });
 
   test('every locale declares an expansion budget', () => {

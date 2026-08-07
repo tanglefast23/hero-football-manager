@@ -3,6 +3,13 @@ import type { ChampionshipCelebrationViewModel } from '../ui';
 import { playerLookId } from '../render/sprites/player-look';
 import { celebrationCoaches } from './celebration-staff';
 import { endgameSupersedesLeagueTitle } from './endgame-celebration';
+import { copyFor, type CopyFn } from '../i18n';
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 const FLAG_PREFIX = 'celebration:league-title:season-';
 
@@ -46,9 +53,10 @@ export function completeChampionshipCelebration(state: GameState): GameState {
 export function championshipCelebrationViewModel(
   state: GameState,
   assistantName: string,
+  t: CopyFn = englishCopy(),
 ): ChampionshipCelebrationViewModel {
   const clubName = state.clubs.find(candidate => candidate.id === state.userClubId)?.name
-    ?? 'Your club';
+    ?? t('endgameCelebration.yourClub');
   const squad = rosterForClub(state, state.userClubId);
   const finalFixture = state.fixtures
     .filter(fixture => fixture.status === 'played'
@@ -84,7 +92,7 @@ export function championshipCelebrationViewModel(
   const starViewModel = star === undefined
     ? {
         id: 'championship-celebration-star',
-        name: 'Your captain',
+        name: t('endgameCelebration.yourCaptain'),
         role: 'FWD' as const,
         isHero: false,
         spriteKey: `${spriteSide}:${playerLookId('championship-celebration-star', 'FWD')}:run0`,
@@ -92,7 +100,7 @@ export function championshipCelebrationViewModel(
     : playerViewModel(star);
 
   return {
-    seasonLabel: `Season ${state.season}`,
+    seasonLabel: t('endgameCelebration.seasonLabel', { season: state.season }),
     clubName,
     assistantName,
     star: {

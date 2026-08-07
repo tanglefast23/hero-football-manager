@@ -18,11 +18,16 @@ import type { ManagerTipDestination } from '../../content';
 import { InfoTip } from '../components/InfoTip';
 import { useCopy } from '../../i18n';
 
-/** The three letters on the form strip, which nothing else in the game defines. */
+/**
+ * The three letters on the form strip, which nothing else in the game defines.
+ *
+ * Catalog keys rather than English: this map is module scope, where no hook can
+ * run, so the lookup happens at the two render sites that already hold `t`.
+ */
 const FORM_EXPLAINER: Readonly<Record<'W' | 'D' | 'L', string>> = {
-  W: 'Won. Three points.',
-  D: 'Drawn. One point each.',
-  L: 'Lost. No points.',
+  W: 'clubHome.form.won',
+  D: 'clubHome.form.drawn',
+  L: 'clubHome.form.lost',
 };
 
 const HORIZONTAL_MARQUEE_BULBS = Array.from({ length: 12 }, (_, index) => index);
@@ -149,7 +154,7 @@ export function ClubHomeScreen({
       weight: 7,
       node: (
         <MatchWeekMarquee active={fixtureIsThisWeek}>
-          <PaperPanel kicker="Next match" title={fixture.competition} stamp={viewModel.nextMatchTimingLabel}>
+          <PaperPanel kicker={t('clubHome.nextMatch')} title={fixture.competition} stamp={viewModel.nextMatchTimingLabel}>
             <View className="border-y-2 border-ink py-4">
               <View className="flex-row items-center justify-between gap-2">
                 <PixelText
@@ -161,7 +166,7 @@ export function ClubHomeScreen({
                   {fixture.homeTeam}
                 </PixelText>
                 <View className="border-2 border-ink bg-ink px-3 py-2">
-                  <Text className="font-pixel text-base text-paper">VS</Text>
+                  <Text className="font-pixel text-base text-paper">{t('app.versus')}</Text>
                 </View>
                 <PixelText
                   className="flex-1 text-xl uppercase text-ink"
@@ -175,7 +180,10 @@ export function ClubHomeScreen({
               <View className="mt-3 flex-row justify-center gap-2">
                 <StatusChip label={fixture.venueLabel} />
                 <StatusChip
-                  label={`${fixture.opponentHeroCount} rival hero${fixture.opponentHeroCount === 1 ? '' : 'es'}`}
+                  label={t('clubHome.rivalHeroes', {
+                    n: fixture.opponentHeroCount,
+                    count: fixture.opponentHeroCount,
+                  })}
                   tone="hero"
                 />
               </View>
@@ -186,8 +194,13 @@ export function ClubHomeScreen({
             {fixture.matchdayReady ? (
               <View className="mt-4">
                 <ActionButton
-                  label="Prepare match day  ▸"
-                  accessibilityLabel={`Open match day for ${fixture.homeTeam} versus ${fixture.awayTeam}`}
+                  // '▸' is not in Silkscreen, so it stays outside the catalog
+                  // and keeps rendering in the fallback face.
+                  label={`${t('clubHome.prepareMatchDay')}  ▸`}
+                  accessibilityLabel={t('clubHome.a11y.openMatchDay', {
+                    home: fixture.homeTeam,
+                    away: fixture.awayTeam,
+                  })}
                   onPress={() => onOpenFixture(fixture.id)}
                   variant="action"
                 />
@@ -203,9 +216,9 @@ export function ClubHomeScreen({
       node: (
         <View>
           <SectionLabel
-            eyebrow="Inbox"
-            title="Needs your call"
-            right={<StatusChip label={`${viewModel.alerts.length} open`} tone={viewModel.alerts.length ? 'danger' : 'normal'} />}
+            eyebrow={t('clubHome.inbox')}
+            title={t('clubHome.needsYourCall')}
+            right={<StatusChip label={t('clubHome.openCount', { count: viewModel.alerts.length })} tone={viewModel.alerts.length ? 'danger' : 'normal'} />}
           />
           <View className="gap-2">
             {viewModel.alerts.length === 0 && visibleNotes.length === 0 ? (
@@ -232,14 +245,14 @@ export function ClubHomeScreen({
                 >
                   {guided ? (
                     <TutorialTapCue
-                      detail="Build the facility"
+                      detail={t('clubHome.buildTheFacility')}
                       style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
                     />
                   ) : null}
                   <View className="flex-1 pr-3">
                     <View className="flex-row items-center gap-2">
                       <PixelText className="flex-1 text-base uppercase text-ink">{alert.title}</PixelText>
-                      {alert.isHero ? <StatusChip label="Hero" tone="hero" /> : null}
+                      {alert.isHero ? <StatusChip label={t('clubHome.hero')} tone="hero" /> : null}
                     </View>
                     <Text className="mt-1 text-ink/70" style={scaledBody(textScale, 14, 18)} numberOfLines={2}>{alert.detail}</Text>
                   </View>
@@ -261,7 +274,7 @@ export function ClubHomeScreen({
                   accessible
                   accessibilityRole="summary"
                   accessibilityLabel={note.kind === 'tip'
-                    ? `Manager's tip. ${note.title}. ${note.detail}`
+                    ? t('clubHome.a11y.managersTipNote', { title: note.title, detail: note.detail })
                     : `${note.title}. ${note.detail}`}
                 >
                   {note.kind === 'tip' ? (
@@ -273,8 +286,15 @@ export function ClubHomeScreen({
                 {note.destination !== undefined && onOpenManagerTipDestination !== undefined ? (
                   <View className="mt-3">
                     <ActionButton
-                      label="Take me there  ▸"
-                      accessibilityLabel={`Take me to ${note.destination === 'drill-shop' ? 'the Drill Shop' : 'the sortable player columns'}`}
+                      // '▸' is not in Silkscreen, so it stays outside the
+                      // catalog and keeps rendering in the fallback face.
+                      label={`${t('clubHome.takeMeThere')}  ▸`}
+                      // One whole sentence per destination rather than a keyed
+                      // fragment dropped into a keyed frame: the destination
+                      // name does not sit at the end in every language.
+                      accessibilityLabel={note.destination === 'drill-shop'
+                        ? t('clubHome.a11y.takeMeToDrillShop')
+                        : t('clubHome.a11y.takeMeToPlayerColumns')}
                       onPress={() => {
                         if (note.destination !== undefined) {
                           onOpenManagerTipDestination(note.destination);
@@ -298,14 +318,14 @@ export function ClubHomeScreen({
       node: (
         <View>
           <SectionLabel
-            eyebrow="Boardroom aftermath"
+            eyebrow={t('clubHome.boardroomAftermath')}
             title={viewModel.boardResolution.headline}
-            right={<StatusChip label={viewModel.boardResolution.kind === 'TARGET_MET' ? 'Resolved' : 'Squad rebuilt'} tone="success" />}
+            right={<StatusChip label={viewModel.boardResolution.kind === 'TARGET_MET' ? t('clubHome.resolved') : t('clubHome.squadRebuilt')} tone="success" />}
           />
           <PaperPanel
-            kicker={viewModel.boardResolution.kind === 'TARGET_MET' ? 'Intervention closed' : 'Academy relief promotion'}
-            title={viewModel.boardResolution.kind === 'TARGET_MET' ? 'No sale required' : viewModel.boardResolution.replacementPlayer?.name}
-            stamp={viewModel.boardResolution.kind === 'TARGET_MET' ? 'Safe' : 'New youth'}
+            kicker={viewModel.boardResolution.kind === 'TARGET_MET' ? t('clubHome.interventionClosed') : t('clubHome.academyReliefPromotion')}
+            title={viewModel.boardResolution.kind === 'TARGET_MET' ? t('clubHome.noSaleRequired') : viewModel.boardResolution.replacementPlayer?.name}
+            stamp={viewModel.boardResolution.kind === 'TARGET_MET' ? t('clubHome.safe') : t('clubHome.newYouth')}
             className="bg-pitch-light"
           >
             <Text className="text-ink/70" style={scaledBody(textScale, 14, 20)}>{viewModel.boardResolution.detail}</Text>
@@ -325,23 +345,26 @@ export function ClubHomeScreen({
                       <PixelPortrait playerId={viewModel.boardResolution.replacementPlayer.id} role={viewModel.boardResolution.replacementPlayer.role} lookId={viewModel.boardResolution.replacementPlayer.lookId} expression="joy" />
                     </View>
                     <Text className="mt-2 text-center text-sm font-bold text-ink" numberOfLines={1}>{viewModel.boardResolution.replacementPlayer.name}</Text>
-                    <Text className="mt-1 text-center font-mono text-sm text-pitch-ink">Age {viewModel.boardResolution.replacementPlayer.age} · {formatCurrency(viewModel.boardResolution.replacementPlayer.weeklyWage)}/wk</Text>
+                    <Text className="mt-1 text-center font-mono text-sm text-pitch-ink">{t('clubHome.replacementTerms', {
+                      age: viewModel.boardResolution.replacementPlayer.age,
+                      wage: formatCurrency(viewModel.boardResolution.replacementPlayer.weeklyWage),
+                    })}</Text>
                   </View>
                 </View>
                 {/* Aftermath reads as things that happened to the club, never a
-                    raw modifier — docs/08: no "Fans −3", no bare "-8" morale.
+                    raw modifier — docs/08: no "Fans -3", no bare "-8" morale.
                     (U+2212 is also missing from Silkscreen, so a typed minus
                     rendered in the system fallback face.) The fans tile only
-                    appears when fans actually walked, so "−0" cannot render. */}
+                    appears when fans actually walked, so "-0" cannot render. */}
                 <View className="mt-3 flex-row gap-2">
                   {(viewModel.boardResolution.fansLost ?? 0) > 0 ? (
                     <Metric
-                      label="Fans walked away"
+                      label={t('clubHome.fansWalkedAway')}
                       value={formatCompactNumber(viewModel.boardResolution.fansLost ?? 0)}
                       tone="negative"
                     />
                   ) : null}
-                  <Metric label="Squad mood" value="Shaken" tone="negative" />
+                  <Metric label={t('clubHome.squadMood')} value={t('clubHome.shaken')} tone="negative" />
                 </View>
               </>
             ) : null}
@@ -356,17 +379,20 @@ export function ClubHomeScreen({
         <View className={guideBoard ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
           {guideBoard ? (
             <TutorialTapCue
-              label="Bert says"
-              detail="Protect one player"
+              label={t('clubHome.bertSays')}
+              detail={t('clubHome.protectOnePlayer')}
               style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
             />
           ) : null}
           <SectionLabel
-            eyebrow="Board intervention"
-            title="Protect one player"
-            right={<StatusChip label={`${viewModel.boardUltimatum.weeksRemaining} ${viewModel.boardUltimatum.weeksRemaining === 1 ? 'week' : 'weeks'}`} tone="danger" />}
+            eyebrow={t('clubHome.boardIntervention')}
+            title={t('clubHome.protectOnePlayer')}
+            right={<StatusChip label={t('clubHome.weeksRemaining', {
+              n: viewModel.boardUltimatum.weeksRemaining,
+              count: viewModel.boardUltimatum.weeksRemaining,
+            })} tone="danger" />}
           />
-          <PaperPanel kicker="Board deadline" title="Reach the target. Avoid a forced sale." stamp="Career continues" className="bg-red-light">
+          <PaperPanel kicker={t('clubHome.boardDeadline')} title={t('clubHome.reachTheTarget')} stamp={t('clubHome.careerContinues')} className="bg-red-light">
             <Text className="text-ink/70" style={scaledBody(textScale, 14, 20)}>
               {/* One sentence, one key. Split across JSX it would force every
                   language into English word order, and the target and discount
@@ -377,8 +403,8 @@ export function ClubHomeScreen({
               })}
             </Text>
             <View className="mt-3 flex-row gap-2">
-              <Metric label="Cash needed" value={formatCurrency(viewModel.boardUltimatum.cashNeeded)} tone="negative" />
-              <Metric label="Deadline" value={`${viewModel.boardUltimatum.weeksRemaining} wk`} />
+              <Metric label={t('clubHome.cashNeeded')} value={formatCurrency(viewModel.boardUltimatum.cashNeeded)} tone="negative" />
+              <Metric label={t('clubHome.deadline')} value={t('clubHome.deadlineWeeks', { count: viewModel.boardUltimatum.weeksRemaining })} />
             </View>
             <View className="mt-4 gap-2">
               {viewModel.boardUltimatum.candidates.map(candidate => {
@@ -387,7 +413,16 @@ export function ClubHomeScreen({
                   <Pressable
                     key={candidate.playerId}
                     accessibilityRole="radio"
-                    accessibilityLabel={`${candidate.playerName}, ${candidate.role}, wage ${formatCurrency(candidate.weeklyWage)}, forced sale fee ${formatCurrency(candidate.forcedSaleFee)}. ${protectedPlayer ? 'Protected' : 'Protect this player'}.`}
+                    // One whole sentence per state, so the closing clause is
+                    // free to move where the language needs it.
+                    accessibilityLabel={t(protectedPlayer
+                      ? 'clubHome.a11y.candidateProtected'
+                      : 'clubHome.a11y.candidateProtect', {
+                      player: candidate.playerName,
+                      role: candidate.role,
+                      wage: formatCurrency(candidate.weeklyWage),
+                      fee: formatCurrency(candidate.forcedSaleFee),
+                    })}
                     accessibilityState={{ selected: protectedPlayer }}
                     onPress={() => onProtectBoardCandidate(candidate.playerId)}
                     className={protectedPlayer
@@ -401,7 +436,7 @@ export function ClubHomeScreen({
                     <View className="flex-1">
                       <View className="flex-row items-center gap-2">
                         <Text className="flex-1 text-base font-bold text-ink" numberOfLines={1}>{candidate.playerName}</Text>
-                        {candidate.isHero ? <StatusChip label="Hero" tone="hero" /> : null}
+                        {candidate.isHero ? <StatusChip label={t('clubHome.hero')} tone="hero" /> : null}
                       </View>
                       <Text className="mt-1 font-mono text-sm text-ink/65">
                         {t('clubHome.candidateTerms', {
@@ -414,7 +449,7 @@ export function ClubHomeScreen({
                     <Text className={protectedPlayer
                       ? 'font-pixel text-sm uppercase text-blue-dark'
                       : 'font-pixel text-sm uppercase text-ink/45'}>
-                      {protectedPlayer ? 'Protected' : 'Protect'}
+                      {protectedPlayer ? t('clubHome.protected') : t('clubHome.protect')}
                     </Text>
                   </Pressable>
                 );
@@ -431,13 +466,13 @@ export function ClubHomeScreen({
         <View>
           <SectionLabel
             eyebrow={viewModel.divisionLabel}
-            title="Table snapshot"
+            title={t('clubHome.tableSnapshot')}
             right={<Text className="font-pixel text-sm uppercase text-blue-dark">{t('clubHome.table')}</Text>}
           />
           {viewModel.table.length === 0 ? (
             <EmptyDocket
-              title="Table not published"
-              detail="Standings appear once the division plays its first round."
+              title={t('clubHome.tableNotPublished')}
+              detail={t('clubHome.standingsAppearOnce')}
             />
           ) : (
           <Pressable
@@ -448,11 +483,11 @@ export function ClubHomeScreen({
             style={({ pressed }) => ({ opacity: pressed ? 0.75 : undefined })}
           >
             <View className="flex-row border-b-2 border-ink/20 px-3 py-2">
-              <Text className="w-8 font-mono text-sm text-ink/50">#</Text>
-              <PixelText className="flex-1 text-sm uppercase text-ink/50">Club</PixelText>
-              <Text className="w-8 text-right font-mono text-sm text-ink/50">P</Text>
-              <Text className="w-10 text-right font-mono text-sm text-ink/50">GD</Text>
-              <Text className="w-10 text-right font-mono text-sm text-ink/50">PTS</Text>
+              <Text className="w-8 font-mono text-sm text-ink/50">{t('col.league.position')}</Text>
+              <PixelText className="flex-1 text-sm uppercase text-ink/50">{t('col.league.club')}</PixelText>
+              <Text className="w-8 text-right font-mono text-sm text-ink/50">{t('col.league.played')}</Text>
+              <Text className="w-10 text-right font-mono text-sm text-ink/50">{t('col.league.goalDifference')}</Text>
+              <Text className="w-10 text-right font-mono text-sm text-ink/50">{t('col.league.points')}</Text>
             </View>
             {viewModel.table.map(row => {
               const isUser = row.clubName === viewModel.clubName;
@@ -498,8 +533,8 @@ export function ClubHomeScreen({
                     {viewModel.form.map((result, index) => (
                       <InfoTip
                         key={`${result}-${index}`}
-                        text={FORM_EXPLAINER[result]}
-                        accessibilityLabel={FORM_EXPLAINER[result]}
+                        text={t(FORM_EXPLAINER[result])}
+                        accessibilityLabel={t(FORM_EXPLAINER[result])}
                       >
                         <StatusChip
                           label={result}

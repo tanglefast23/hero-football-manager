@@ -1,5 +1,16 @@
 import type { AssistantMode } from '../game/types';
+import { copyFor, type CopyFn } from '../i18n';
 import type { BertMomentId } from './bert-poses';
+
+/**
+ * English copy, for every caller that has not threaded a locale through yet.
+ * The same lazy shape `application/view-models.ts` uses.
+ */
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 export interface AssistantModeOption {
   readonly mode: AssistantMode;
@@ -15,25 +26,29 @@ export interface AssistantModeChoiceCopy {
   readonly options: readonly [AssistantModeOption, AssistantModeOption];
 }
 
-export const ASSISTANT_MODE_CHOICE: AssistantModeChoiceCopy = {
-  kicker: 'Before you take the keys',
-  line: 'You have done this before. Do you want me explaining it again, or just staying out of your way?',
-  moment: 'sizing-you-up',
-  options: [
-    {
-      mode: 'teacher',
-      label: 'Teach me again',
-      detail: 'Bert explains every first and holds the opening weeks until the desk is clear.',
-      accessibilityLabel: 'Teach me again. Bert explains every first and holds the opening weeks until the desk is clear.',
-    },
-    {
-      mode: 'advisor',
-      label: 'Stay out of my way',
-      detail: 'No lessons, no arrows, no held weeks. He still brings you every decision.',
-      accessibilityLabel: 'Stay out of my way. No lessons, no arrows, no held weeks. He still brings you every decision.',
-    },
-  ],
-};
+/**
+ * The pose is structure, not copy, so it stays here; everything Bert says is
+ * joined on from the catalog. The VoiceOver label is the button's own two
+ * sentences read together, built rather than authored twice — a translator who
+ * revised one and not the other would leave the screen and the reader saying
+ * different things.
+ */
+const MOMENT: BertMomentId = 'sizing-you-up';
+
+function option(mode: AssistantMode, slug: string, t: CopyFn): AssistantModeOption {
+  const label = t(`assistantModeChoice.${slug}.label`);
+  const detail = t(`assistantModeChoice.${slug}.detail`);
+  return { mode, label, detail, accessibilityLabel: `${label}. ${detail}` };
+}
+
+export function assistantModeChoice(t: CopyFn = englishCopy()): AssistantModeChoiceCopy {
+  return {
+    kicker: t('assistantModeChoice.kicker'),
+    line: t('assistantModeChoice.line'),
+    moment: MOMENT,
+    options: [option('teacher', 'teacher', t), option('advisor', 'advisor', t)],
+  };
+}
 
 /** First careers stay on the shipped route; only proven devices are asked. */
 export function shouldAskAssistantMode(climbCompleted: boolean): boolean {

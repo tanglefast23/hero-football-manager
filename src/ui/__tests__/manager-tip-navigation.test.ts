@@ -10,7 +10,7 @@ describe("manager's tip navigation", () => {
     expect(home).toContain('showManagerTips');
     expect(home).toContain("note.kind !== 'tip'");
     expect(home).toContain('note.destination');
-    expect(home).toContain('label="Take me there  ▸"');
+    expect(home).toContain('label={`${t(\'clubHome.takeMeThere\')}  ▸`}');
     expect(home).toContain('onOpenManagerTipDestination(note.destination)');
   });
 
@@ -32,9 +32,9 @@ describe("manager's tip navigation", () => {
     expect(squad).toContain('managerTipGuideRequest');
     expect(squad).toContain("target === 'overall-sort'");
     expect(squad).toContain("target === 'drill-shop'");
-    expect(squad).toContain("label=\"Tap here\"");
-    expect(squad).toContain("detail=\"To sort\"");
-    expect(squad).toContain("detail=\"Drills unlock as you climb divisions\"");
+    expect(squad).toContain("label={t('squadTraining.tapHere')}");
+    expect(squad).toContain("detail={t('squadTraining.toSort')}");
+    expect(squad).toContain("detail={t('squadTraining.drillsUnlockAsYou')}");
     expect(squad).toContain('scrollRef.current?.scrollTo({ y: 0, animated: true })');
     expect(squad).toContain('setManagerTipGuideTarget(null)');
   });

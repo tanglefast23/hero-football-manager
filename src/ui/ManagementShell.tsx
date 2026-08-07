@@ -20,16 +20,16 @@ import type { DeveloperSaveSlot, DeveloperSaveSummary } from '../persistence';
 import { useCopy } from '../i18n';
 
 const TABS: ReadonlyArray<{
-  id: ManagementTab; label: string; glyph: string; available: boolean; tip: string;
+  id: ManagementTab; labelKey: string; glyph: string; available: boolean; tipKey: string;
 }> = [
-  { id: 'home', label: 'Home', glyph: '⌂', available: true, tip: 'Today\u2019s work: next fixture, inbox and the league table' },
-  { id: 'squad', label: 'Squad', glyph: '11', available: true, tip: 'Your eleven and the bench: train players and set the lineup' },
-  { id: 'club', label: 'Club', glyph: '▦', available: true, tip: 'Grounds, coaching staff and the books' },
-  { id: 'market', label: 'Market', glyph: '⇄', available: true, tip: 'Scout, sign, sell and hire coaches' },
-  { id: 'league', label: 'League', glyph: '≡', available: true, tip: 'Standings, fixtures and the cup' },
+  { id: 'home', labelKey: 'managementShell.tab.home', glyph: '⌂', available: true, tipKey: 'managementShell.tabTip.home' },
+  { id: 'squad', labelKey: 'managementShell.tab.squad', glyph: '11', available: true, tipKey: 'managementShell.tabTip.squad' },
+  { id: 'club', labelKey: 'managementShell.tab.club', glyph: '▦', available: true, tipKey: 'managementShell.tabTip.club' },
+  { id: 'market', labelKey: 'managementShell.tab.market', glyph: '⇄', available: true, tipKey: 'managementShell.tabTip.market' },
+  { id: 'league', labelKey: 'managementShell.tab.league', glyph: '≡', available: true, tipKey: 'managementShell.tabTip.league' },
 ];
 
-const ADVANCE_WEEK_TIP = 'Match day, wages and events · press Enter';
+const ADVANCE_WEEK_TIP_KEY = 'managementShell.advanceWeekTip';
 
 // Persistent chrome must not consume the screen when iOS Dynamic Type is at
 // its accessibility maximum. The full names remain available to assistive
@@ -56,12 +56,29 @@ function abbrev(n: number): string {
   return formatCompactNumber(n);
 }
 
-function ResourceChip({ glyph, name, explainer, value, tone, reduceMotion = false, onPress }: {
+function ResourceChip({
+  glyph,
+  name,
+  explainer,
+  value,
+  money = false,
+  tone,
+  reduceMotion = false,
+  onPress,
+}: {
   glyph: string;
   name: string;
   /** What the glyph buys, for the manager who has never been told what TP is. */
   explainer: string;
   value: number;
+  /**
+   * Whether the spoken figure is currency.
+   *
+   * A flag rather than `name === 'Money'`: the name is translated, so the old
+   * comparison read the wrong formatter the moment the chip stopped being
+   * English.
+   */
+  money?: boolean;
   tone?: 'hero';
   reduceMotion?: boolean;
   /**
@@ -71,16 +88,24 @@ function ResourceChip({ glyph, name, explainer, value, tone, reduceMotion = fals
    */
   onPress?: () => void;
 }) {
+  const t = useCopy();
   const hero = tone === 'hero';
-  // The chip face rolls to the new figure; the accessibility label states the
-  // real one. A screen reader must not have to wait out an animation, and the
+  // The chip face rolls to the new figure; the spoken label states the real
+  // one. A screen reader must not have to wait out an animation, and the
   // rolling value is presentation, not the number the player is being told.
   const shownValue = useCountUpNumber(value, reduceMotion);
+  const spoken = t('managementShell.a11y.resourceChip', {
+    name,
+    value: money ? formatCurrency(value) : formatCompactNumber(value),
+    explainer,
+  });
   return (
     <InfoTip
       text={explainer}
       align="right"
-      accessibilityLabel={`${name}: ${name === 'Money' ? formatCurrency(value) : formatCompactNumber(value)}. ${explainer}${onPress === undefined ? '' : ' Opens the club ledger.'}`}
+      accessibilityLabel={onPress === undefined
+        ? spoken
+        : `${spoken} ${t('managementShell.a11y.opensTheClubLedger')}`}
       onPress={onPress}
     >
     <View
@@ -112,6 +137,7 @@ function DeveloperSaveControls({
   onPressSlot: (slot: DeveloperSaveSlot) => void;
   onToggleManualSave: () => void;
 }) {
+  const t = useCopy();
   const bySlot = new Map(summaries.map(summary => [summary.slot, summary]));
   const slotButton = (slot: DeveloperSaveSlot, manual: boolean) => {
     const summary = bySlot.get(slot);
@@ -120,11 +146,18 @@ function DeveloperSaveControls({
     // frozen. That prevents a filled weekly slot from looking live while its
     // press is deliberately ignored by the manual-save flow.
     const enabled = choosingTarget || (!manualSaveSelecting && summary !== undefined);
+    const kind = t(manual ? 'managementShell.dev.manual' : 'managementShell.dev.weekly');
+    const kindLower = t(manual ? 'managementShell.dev.manualLower' : 'managementShell.dev.weeklyLower');
     const purpose = choosingTarget
-      ? `Save the current game to manual slot ${slot}`
+      ? t('managementShell.dev.a11y.saveToManualSlot', { slot })
       : summary === undefined
-        ? `${manual ? 'Manual' : 'Weekly'} save slot ${slot}, empty`
-        : `Load ${manual ? 'manual' : 'weekly'} save slot ${slot}, season ${summary.season}, week ${summary.week}`;
+        ? t('managementShell.dev.a11y.emptySlot', { kind, slot })
+        : t('managementShell.dev.a11y.loadSlot', {
+          kind: kindLower,
+          slot,
+          season: summary.season,
+          week: summary.week,
+        });
     return (
       <Pressable
         key={slot}
@@ -151,7 +184,9 @@ function DeveloperSaveControls({
       {DEVELOPER_AUTO_SLOT_LABELS.map(slot => slotButton(slot, false))}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={manualSaveSelecting ? 'Cancel manual save' : 'Choose a manual save slot'}
+        accessibilityLabel={manualSaveSelecting
+          ? t('managementShell.dev.a11y.cancelManualSave')
+          : t('managementShell.dev.a11y.chooseAManualSaveSlot')}
         onPress={onToggleManualSave}
         hitSlop={3}
         className={manualSaveSelecting
@@ -230,8 +265,7 @@ export function ManagementShell({
   onOpenLedger,
   onOpenSettings,
   reduceMotion = false,
-  // '›' is in Silkscreen; '▸' is not and rendered in the fallback face.
-  advanceWeekLabel = 'Advance Week  ›',
+  advanceWeekLabel,
   advanceWeekDisabled = false,
   keyboardShortcutsEnabled = true,
   guideFocus,
@@ -247,6 +281,8 @@ export function ManagementShell({
   onToggleDeveloperManualSave,
 }: ManagementShellProps) {
   const t = useCopy();
+  // '›' is in Silkscreen; '▸' is not and rendered in the fallback face.
+  const advanceWeek = advanceWeekLabel ?? t('managementShell.advanceWeek');
   const headerLine = managementHeaderLine(seasonLabel, weekLabel);
   const dismissFrameRef = useRef<number | null>(null);
   const dismissGuidanceAfterPress = useCallback(() => {
@@ -295,9 +331,9 @@ export function ManagementShell({
         onLayout={moneyGuideAnchor.scheduleMeasurement}
         className={guideFocus === 'money' ? 'border-2 border-blue-dark bg-blue-light p-1' : undefined}
       >
-        <ResourceChip glyph="$" name="Money" explainer="Cash. Wages come out of it every week, and it pays for facilities, transfers and coaches." value={resources.money} reduceMotion={reduceMotion} onPress={openLedgerFromChip} />
+        <ResourceChip glyph="$" name={t('managementShell.money')} explainer={t('managementShell.moneyExplainer')} money value={resources.money} reduceMotion={reduceMotion} onPress={openLedgerFromChip} />
       </View>
-      <ResourceChip glyph="TP" name="Training points" explainer="Training Points. Earned each week and spent on drills — the only thing that improves a player." value={resources.trainingPoints} reduceMotion={reduceMotion} onPress={openLedgerFromChip} />
+      <ResourceChip glyph="TP" name={t('managementShell.trainingPoints')} explainer={t('managementShell.trainingPointsExplainer')} value={resources.trainingPoints} reduceMotion={reduceMotion} onPress={openLedgerFromChip} />
     </View>
   );
 
@@ -359,11 +395,11 @@ export function ManagementShell({
             numberOfLines={1}
             adjustsFontSizeToFit
             accessibilityLabel={developerManualSaveSelecting
-              ? 'Choose manual save slot A through E'
+              ? t('managementShell.dev.a11y.chooseManualSaveSlotAThroughE')
               : headerLine.spoken}
             maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
           >
-            {developerManualSaveSelecting ? 'Choose A–E to save' : headerLine.visible}
+            {developerManualSaveSelecting ? t('managementShell.dev.chooseASlotToSave') : headerLine.visible}
           </Text>
           {developerControlsVisible ? (
             <View className="flex-row items-center gap-2">
@@ -401,7 +437,7 @@ export function ManagementShell({
           onGuideObjectivePress ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Bert's current job: ${guideObjective}`}
+              accessibilityLabel={t('managementShell.a11y.bertsCurrentJob', { objective: guideObjective })}
               onPress={onGuideObjectivePress}
               className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
               style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
@@ -413,7 +449,7 @@ export function ManagementShell({
           ) : (
             <View
               accessible
-              accessibilityLabel={`Bert's current job: ${guideObjective}`}
+              accessibilityLabel={t('managementShell.a11y.bertsCurrentJob', { objective: guideObjective })}
               className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
             >
               <Text className="font-mono text-xs font-bold uppercase text-blue-dark">{t('managementShell.bertsJob')}</Text>
@@ -422,12 +458,12 @@ export function ManagementShell({
           )
         ) : null}
         <HoverTipAnchor
-          tip={advanceWeekDisabled ? undefined : ADVANCE_WEEK_TIP}
+          tip={advanceWeekDisabled ? undefined : t(ADVANCE_WEEK_TIP_KEY)}
           className={guideTarget === 'advance-week' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
         >
           {guideTarget === 'advance-week' ? (
             <TutorialTapCue
-              detail="Advance week"
+              detail={t('managementShell.cueAdvanceWeek')}
               style={styles.advanceCue}
             />
           ) : null}
@@ -440,11 +476,13 @@ export function ManagementShell({
             restartKey={`${weekLabel}|${activeTab}|${guideObjective ?? ''}`}
           >
             <ActionButton
-              label={advanceWeekLabel}
+              label={advanceWeek}
               accessibilityLabel={guideTarget === 'advance-week'
                 // Strip either arrow glyph: App still passes labels with '▸'.
-                ? `Bert says: read the desk, then ${advanceWeekLabel.replace(/[▸›]/g, '').trim()}`
-                : advanceWeekLabel.replace(/[▸›]/g, '').trim()}
+                ? t('managementShell.a11y.bertSaysReadTheDesk', {
+                  action: advanceWeek.replace(/[▸›]/g, '').trim(),
+                })
+                : advanceWeek.replace(/[▸›]/g, '').trim()}
               onPress={onAdvanceWeek}
               disabled={advanceWeekDisabled}
               compact
@@ -469,18 +507,29 @@ export function ManagementShell({
                 ? 'squad'
                 : undefined;
             const guided = guideTab === tab.id;
+            const tabLabel = t(tab.labelKey);
             return (
               <Pressable
                 key={tab.id}
                 accessibilityRole="tab"
                 accessibilityLabel={guided
-                  ? `${tab.label} tab. Bert says: ${tab.id === 'squad' ? 'open Squad' : 'return Home'}`
-                  : tab.available ? `${tab.label} tab` : `${tab.label} tab, unavailable`}
+                  ? t('managementShell.a11y.guidedTab', {
+                    tab: tabLabel,
+                    instruction: tab.id === 'squad'
+                      ? t('managementShell.a11y.openSquad')
+                      : t('managementShell.a11y.returnHome'),
+                  })
+                  : tab.available
+                    ? t('managementShell.a11y.tab', { tab: tabLabel })
+                    : t('managementShell.a11y.tabUnavailable', { tab: tabLabel })}
                 accessibilityState={{ selected, disabled: !tab.available }}
                 disabled={!tab.available}
                 tip={tab.available
-                  ? `${tab.tip} · press ${tabNumberKey(index)}`
-                  : `${tab.label} is not available yet`}
+                  ? t('managementShell.tabTipWithKey', {
+                    tip: t(tab.tipKey),
+                    key: tabNumberKey(index),
+                  })
+                  : t('managementShell.tabNotAvailableYet', { tab: tabLabel })}
                 onPress={() => onTabChange(tab.id)}
                 className={guided
                   ? 'relative min-h-12 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light'
@@ -489,7 +538,9 @@ export function ManagementShell({
               >
                 {guided ? (
                   <TutorialTapCue
-                    detail={tab.id === 'squad' ? 'Open squad' : 'Return home'}
+                    detail={tab.id === 'squad'
+                      ? t('managementShell.cueOpenSquad')
+                      : t('managementShell.cueReturnHome')}
                     labelOffsetX={tab.id === 'home' ? 42 : 0}
                     style={styles.tabCue}
                   />
@@ -508,7 +559,7 @@ export function ManagementShell({
                   adjustsFontSizeToFit
                   maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
                 >
-                  {tab.label}
+                  {tabLabel}
                 </PixelText>
               </Pressable>
             );

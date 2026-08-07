@@ -2,12 +2,18 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadCatalog } from '../../i18n';
 
+const DIFFICULTY_KEY = {
+  CHAIRMAN: 'characterCreation.expertMode',
+  COZY: 'characterCreation.casualMode',
+} as const;
+
 describe('first-hire screen copy', () => {
   const source = readFileSync(join(process.cwd(), 'src/ui/screens/CharacterCreationScreen.tsx'), 'utf8');
 
   it('keeps difficulty labels simple', () => {
-    expect(source).toContain("['COZY', 'Casual mode']");
-    expect(source).toContain("['CHAIRMAN', 'Expert mode']");
+    const strings = loadCatalog('en').strings;
+    expect(strings[DIFFICULTY_KEY.COZY]).toBe('Casual mode');
+    expect(strings[DIFFICULTY_KEY.CHAIRMAN]).toBe('Expert mode');
     expect(source).not.toContain('First-season wage subsidy');
     expect(source).not.toContain('No wage subsidy');
   });
@@ -15,8 +21,7 @@ describe('first-hire screen copy', () => {
   it('leads with Chairman and offers Cozy as the alternative below it', () => {
     // Chairman is the default career, so it is the option the list opens on;
     // Cozy is the one you step down to. Order carries that, not just the label.
-    expect(source.indexOf("['CHAIRMAN', 'Expert mode']"))
-      .toBeLessThan(source.indexOf("['COZY', 'Casual mode']"));
+    expect(source.indexOf("'CHAIRMAN'")).toBeLessThan(source.indexOf("'COZY'"));
   });
 
   it('starts directly with player creation instead of a Bert note', () => {
@@ -56,12 +61,22 @@ describe('first-hire screen copy', () => {
   });
 
   it('labels the registration panel simply', () => {
-    expect(source).toContain('title="Name"');
+    expect(source).toContain("title={t('characterCreation.name')}");
+    expect(loadCatalog('en').strings['characterCreation.name']).toBe('Name');
     expect(source).not.toContain('Name on the shirt');
   });
 
   it('announces the current value on every stepper button', () => {
-    expect(source).toContain('currently ${value}');
+    const strings = loadCatalog('en').strings;
+    for (const key of [
+      'characterCreation.a11y.decreaseStat',
+      'characterCreation.a11y.increaseStat',
+      'characterCreation.a11y.previousChoice',
+      'characterCreation.a11y.nextChoice',
+    ]) {
+      expect(source).toContain(`t('${key}'`);
+      expect(strings[key]).toContain('currently {value}');
+    }
     // no stepper may announce itself without its value
     expect(source).not.toMatch(/accessibilityLabel=\{`(Previous|Next) \$\{label\}`\}/);
     expect(source).not.toMatch(/accessibilityLabel=\{`(Decrease|Increase) \$\{copy\.label\}`\}/);
@@ -99,7 +114,9 @@ describe('first-hire screen copy', () => {
 
   it('requires every creation point to be spent before signing', () => {
     expect(source).toContain('const canSubmit = hasValidName && pointsRemaining === 0;');
-    expect(source).toContain('Spend ${pointsRemaining} more ${pointLabel} before signing.');
+    expect(source).toContain("t('characterCreation.spendBeforeSigning'");
+    expect(loadCatalog('en').strings['characterCreation.spendBeforeSigning.other'])
+      .toBe('Spend {count} more points before signing.');
     expect(source).toContain('const [submitAttempted, setSubmitAttempted] = useState(false);');
     expect(source).toContain('!canSubmit && submitAttempted');
     expect(source).toContain('setSubmitAttempted(true);');

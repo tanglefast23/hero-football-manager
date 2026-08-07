@@ -8,9 +8,9 @@ const make = (faces: LocaleFaces) => ({
 
 describe('pixelStylesFor', () => {
   test('builds styles against the locale s faces', () => {
-    expect(pixelStylesFor(make, 'en').title.fontFamily).toBe('Silkscreen_700Bold');
-    expect(pixelStylesFor(make, 'vi').title.fontFamily).toBe('Handjet_700Bold');
-    expect(pixelStylesFor(make, 'vi').score.fontFamily).toBe('Handjet_400Regular');
+    expect(pixelStylesFor(make, 'en').title.fontFamily).toBe('HFMSilkscreen_700Bold');
+    expect(pixelStylesFor(make, 'vi').title.fontFamily).toBe('HFMSilkscreen_700Bold');
+    expect(pixelStylesFor(make, 'vi').score.fontFamily).toBe('HFMSilkscreen_400Regular');
   });
 
   test('returns the same object for the same factory and locale', () => {

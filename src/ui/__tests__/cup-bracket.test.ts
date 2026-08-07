@@ -198,7 +198,8 @@ describe('narrow bracket bands', () => {
     expect(bracket).toContain('championName === undefined ? null : (');
     expect(bracket).toContain("t('cupBracket.heroCupWinners')");
     expect(loadCatalog('en').strings['cupBracket.heroCupWinners']).toContain('Hero Cup winners');
-    expect(bracket).toContain('WINNERS FROM ABOVE');
+    expect(bracket).toContain("t('cupBracket.winnersFromAbove')");
+    expect(loadCatalog('en').strings['cupBracket.winnersFromAbove']).toBe('WINNERS FROM ABOVE');
     expect(league).toContain('championName={viewModel.cup.championName}');
     // The wide tree stays one band.
     expect(bracket).toContain("const narrow = useLayoutMode() !== 'twoColumn';");

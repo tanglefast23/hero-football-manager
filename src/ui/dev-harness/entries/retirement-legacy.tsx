@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     color: '#edb54a',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 12,
   },
   emptyBody: {
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
   },
   emptyQuote: {
     color: '#f4f1ea',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 9,
     lineHeight: 15,
   },
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   },
   failure: {
     color: '#edb54a',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 9,
   },
 });

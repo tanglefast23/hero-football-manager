@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 import { FORMATION_LAYOUTS, type FormationId } from '../../sim/tactics';
+import { useCopy } from '../../i18n';
 
 export function FormationDiagram({
   formation,
@@ -10,13 +11,14 @@ export function FormationDiagram({
   inverted?: boolean;
   compact?: boolean;
 }) {
+  const t = useCopy();
   const width = compact ? 48 : 66;
   const height = compact ? 62 : 84;
   const dot = compact ? 5 : 7;
   const points = [[0.5, 0.94] as const, ...FORMATION_LAYOUTS[formation]];
   return (
     <View
-      accessibilityLabel={`${formation} formation diagram`}
+      accessibilityLabel={t('formation.a11y.diagram', { formation })}
       style={{ width, height, borderWidth: 1, borderColor: inverted ? '#f4f1ea66' : '#241f2e55', backgroundColor: inverted ? '#3f8a4a' : '#78a875' }}
     >
       <View style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, backgroundColor: '#f4f1ea55' }} />

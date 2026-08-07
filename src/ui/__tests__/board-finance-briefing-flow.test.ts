@@ -111,8 +111,10 @@ describe('the money-making buildings', () => {
   it('lights every income card and says why', () => {
     expect(club).toContain("const guideIncomeFacilities = guideFocus === 'income-facilities';");
     expect(club).toContain('const guidedIncome = guideIncomeFacilities && isIncomeFacilityType(entry.type);');
-    expect(club).toContain('You can build up to 3 of each; every other facility is limited to 1.');
-    expect(club).toContain('Wait until construction finishes, then build another Fan Shop or Stadium Stand.');
+    // Both halves of Bert's line live in the catalog now — the free-crew hint
+    // and the one that names the job holding the works crew up.
+    expect(club).toContain("t('clubFinances.incomeFacilitiesHint')");
+    expect(club).toContain("t('clubFinances.incomeFacilitiesBusyHint', {");
     expect(club).toContain('viewModel.facilities.activeProject === undefined');
     // The same gold treatment the guided Coaching Office card wears, so the two
     // read as one instruction rather than two unrelated highlights.

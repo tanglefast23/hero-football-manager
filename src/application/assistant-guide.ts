@@ -242,8 +242,8 @@ const BLOCKING_INBOX_DUTIES: readonly AssistantInboxGuideSequenceId[] = [
   'youth-intake',
 ];
 
-export const OPENING_TRAINING_PITCH_BLOCKED_REASON = 'Build the Training Pitch first.';
-export const OPENING_TRAINING_PITCH_REMINDER = "Let's build the Training Pitch first. The other facilities will open up once it is underway.";
+export const OPENING_TRAINING_PITCH_BLOCKED_REASON_KEY = 'clubFinances.a11y.buildTheTrainingPitchFirst';
+export const OPENING_TRAINING_PITCH_REMINDER_KEY = 'clubFinances.openingTrainingPitchReminder';
 
 /**
  * The opening build is part of the Teacher path, not a momentary arrow state.

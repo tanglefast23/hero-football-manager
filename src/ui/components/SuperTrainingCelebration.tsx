@@ -102,7 +102,7 @@ export function SuperTrainingCelebration({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Super training session, ${gainLabel}. Tap to continue.`}
+      accessibilityLabel={t('superTraining.a11y.session', { gain: gainLabel })}
       onPress={completeOnce}
       style={StyleSheet.absoluteFill}
     >

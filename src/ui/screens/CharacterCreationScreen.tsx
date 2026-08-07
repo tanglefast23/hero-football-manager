@@ -54,13 +54,24 @@ const STEPPER_MAX_FONT_SIZE_MULTIPLIER = 1.2;
  */
 const NAME_FIELD_ID = 'created-player-name';
 
-const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }> = {
-  pac: { label: 'PACE', detail: 'Burst and recovery runs' },
-  sho: { label: 'SHOOTING', detail: 'Finishing and striking' },
-  pas: { label: 'PASSING', detail: 'Weight and vision' },
-  def: { label: 'DEFENDING', detail: 'Challenges and marking' },
-  tec: { label: 'TECHNIQUE', detail: 'Touch under pressure' },
-  sta: { label: 'STAMINA', detail: 'Late-match engine' },
+const DIFFICULTY_LABEL_KEY: Record<DifficultyMode, string> = {
+  CHAIRMAN: 'characterCreation.expertMode',
+  COZY: 'characterCreation.casualMode',
+};
+
+/**
+ * The label stays a source literal: it is split at the third character so the
+ * first three letters carry the bold cut, which only holds for the attribute
+ * abbreviations the rest of the game already prints untranslated. The one-line
+ * explanation underneath is prose, so it is a catalog key.
+ */
+const STAT_COPY: Record<OutfieldCreationStat, { label: string; detailKey: string }> = {
+  pac: { label: 'PACE', detailKey: 'characterCreation.stat.pac' },
+  sho: { label: 'SHOOTING', detailKey: 'characterCreation.stat.sho' },
+  pas: { label: 'PASSING', detailKey: 'characterCreation.stat.pas' },
+  def: { label: 'DEFENDING', detailKey: 'characterCreation.stat.def' },
+  tec: { label: 'TECHNIQUE', detailKey: 'characterCreation.stat.tec' },
+  sta: { label: 'STAMINA', detailKey: 'characterCreation.stat.sta' },
 };
 
 export function CharacterCreationScreen({
@@ -95,12 +106,17 @@ export function CharacterCreationScreen({
   }, [wide]);
   const hasValidName = name.trim().length >= 2;
   const canSubmit = hasValidName && pointsRemaining === 0;
-  const pointLabel = pointsRemaining === 1 ? 'point' : 'points';
   const submitBlockReason = hasValidName
-    ? `Spend ${pointsRemaining} more ${pointLabel} before signing.`
+    ? t('characterCreation.spendBeforeSigning', {
+      n: pointsRemaining,
+      count: pointsRemaining,
+    })
     : pointsRemaining === 0
-      ? 'Name the rookie to sign them.'
-      : `Name the rookie and spend ${pointsRemaining} more ${pointLabel} before signing.`;
+      ? t('characterCreation.nameTheRookie')
+      : t('characterCreation.nameAndSpendBeforeSigning', {
+        n: pointsRemaining,
+        count: pointsRemaining,
+      });
 
   function adjust(stat: OutfieldCreationStat, delta: -1 | 1): void {
     setRatings(current => {
@@ -124,7 +140,11 @@ export function CharacterCreationScreen({
 
   const identityPanels = (
     <>
-      <PaperPanel kicker="Paper doll" title="Choose their look" stamp="Saved">
+      <PaperPanel
+        kicker={t('characterCreation.paperDoll')}
+        title={t('characterCreation.chooseTheirLook')}
+        stamp={t('characterCreation.stampSaved')}
+      >
         {/* Portrait and steppers sit side by side only when there is room for
             readable stepper labels; phones stack them. */}
         <View className={wide ? 'flex-row items-center gap-4' : 'items-center gap-4'}>
@@ -141,19 +161,19 @@ export function CharacterCreationScreen({
           </View>
           <View className={wide ? 'min-w-0 flex-1 gap-2' : 'w-full gap-2'}>
             <AppearanceChoice
-              label="Skin tone"
+              label={t('characterCreation.skinTone')}
               value={formatChoiceValue(appearance.skinTone, APPEARANCE_OPTIONS.skinTone)}
               onPrevious={() => cycleAppearance('skinTone', -1, APPEARANCE_OPTIONS.skinTone)}
               onNext={() => cycleAppearance('skinTone', 1, APPEARANCE_OPTIONS.skinTone)}
             />
             <AppearanceChoice
-              label="Hair"
+              label={t('characterCreation.hair')}
               value={formatChoiceValue(appearance.hairstyle, APPEARANCE_OPTIONS.hairstyle)}
               onPrevious={() => cycleAppearance('hairstyle', -1, APPEARANCE_OPTIONS.hairstyle)}
               onNext={() => cycleAppearance('hairstyle', 1, APPEARANCE_OPTIONS.hairstyle)}
             />
             <AppearanceChoice
-              label="Kit accent"
+              label={t('characterCreation.kitAccent')}
               value={formatChoiceValue(appearance.kitAccent, APPEARANCE_OPTIONS.kitAccent)}
               onPrevious={() => cycleAppearance('kitAccent', -1, APPEARANCE_OPTIONS.kitAccent)}
               onNext={() => cycleAppearance('kitAccent', 1, APPEARANCE_OPTIONS.kitAccent)}
@@ -162,15 +182,21 @@ export function CharacterCreationScreen({
         </View>
       </PaperPanel>
 
-      <PaperPanel kicker="Career pressure" title="Choose difficulty" stamp={difficulty} className="mt-5">
+      <PaperPanel
+        kicker={t('characterCreation.a11y.careerPressure')}
+        title={t('characterCreation.chooseDifficulty')}
+        stamp={difficulty}
+        className="mt-5"
+      >
         {/* A radio reports its state as `checked`, not `selected` — the latter
             becomes aria-selected on web, which role="radio" does not expose, so
             a screen reader announced neither option as chosen. */}
         <View accessibilityRole="radiogroup" accessibilityLabel={t('characterCreation.a11y.careerPressure')} className="gap-3">
-          {([
-            ['CHAIRMAN', 'Expert mode'],
-            ['COZY', 'Casual mode'],
-          ] as const).map(([mode, label]) => {
+          {/* Chairman first: it is the default career, so it is the option the
+              list opens on, and Cozy is the one you step down to. The order
+              carries that meaning, which is why the test asserts it. */}
+          {(['CHAIRMAN', 'COZY'] as const).map(mode => {
+            const label = t(DIFFICULTY_LABEL_KEY[mode]);
             const selected = difficulty === mode;
             return (
               <Pressable
@@ -205,13 +231,18 @@ export function CharacterCreationScreen({
         </View>
       </PaperPanel>
 
-      <PaperPanel kicker="Registration card" title="Name" stamp="Required" className="mt-5">
+      <PaperPanel
+        kicker={t('characterCreation.registrationCard')}
+        title={t('characterCreation.name')}
+        stamp={t('characterCreation.stampRequired')}
+        className="mt-5"
+      >
         <TextInput
           id={NAME_FIELD_ID}
           accessibilityLabel={t('characterCreation.a11y.createdPlayerName')}
           value={name}
           onChangeText={setName}
-          placeholder="Type a player name"
+          placeholder={t('characterCreation.typeAPlayerName')}
           placeholderTextColor="#6B665D"
           autoCapitalize="words"
           autoCorrect={false}
@@ -221,7 +252,7 @@ export function CharacterCreationScreen({
         {/* The chip and the terms need 397px of Silkscreen on a 325px card, so
             the row wraps instead of running the wage off the edge. */}
         <View className="mt-3 flex-row flex-wrap items-center justify-between gap-2">
-          <StatusChip label="Position: FWD" selected />
+          <StatusChip label={t('characterCreation.positionFwd')} selected />
           <PixelText className="shrink text-sm uppercase text-ink/50">{t('creation.rookieTerms')}</PixelText>
         </View>
       </PaperPanel>
@@ -261,7 +292,7 @@ export function CharacterCreationScreen({
                   <Text className="font-bold">{copy.label.slice(0, 3)}</Text>
                   <Text className="font-normal">{copy.label.slice(3)}</Text>
                 </Text>
-                <Text className="mt-1 text-sm leading-4 text-ink/45">{copy.detail}</Text>
+                <Text className="mt-1 text-sm leading-4 text-ink/45">{t(copy.detailKey)}</Text>
               </View>
               <View className="mx-2 h-2 flex-1 overflow-hidden border border-ink/20 bg-ink/15">
                 <View
@@ -271,7 +302,10 @@ export function CharacterCreationScreen({
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Decrease ${copy.label}, currently ${value}`}
+                accessibilityLabel={t('characterCreation.a11y.decreaseStat', {
+                  stat: copy.label,
+                  value,
+                })}
                 accessibilityState={{ disabled: value <= CREATION_STAT_MIN }}
                 disabled={value <= CREATION_STAT_MIN}
                 pressSfx="stat-step"
@@ -285,12 +319,15 @@ export function CharacterCreationScreen({
                 // SfxPressable supplies the pressed dim when no opacity is set.
                 style={[{ minWidth: 44, minHeight: 44 }, value <= CREATION_STAT_MIN ? { opacity: 0.3 } : null]}
               >
-                <Text className="font-mono text-2xl font-bold text-white">−</Text>
+                <Text className="font-mono text-2xl font-bold text-white">-</Text>
               </Pressable>
               <Text className="w-12 text-center font-mono text-2xl text-ink">{value}</Text>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Increase ${copy.label}, currently ${value}`}
+                accessibilityLabel={t('characterCreation.a11y.increaseStat', {
+                  stat: copy.label,
+                  value,
+                })}
                 accessibilityState={{ disabled: value >= CREATION_STAT_MAX || pointsRemaining <= 0 }}
                 disabled={value >= CREATION_STAT_MAX || pointsRemaining <= 0}
                 pressSfx="stat-step"
@@ -324,10 +361,10 @@ export function CharacterCreationScreen({
       ) : null}
       <ActionButton
         // '›' is in Silkscreen; '▸' is not and rendered in the fallback face.
-        label="Sign the rookie  ›"
+        label={t('characterCreation.signTheRookie')}
         accessibilityLabel={canSubmit
-          ? 'Finish creating player'
-          : 'Finish creating player. Tap to review missing requirements.'}
+          ? t('characterCreation.a11y.finishCreatingPlayer')
+          : t('characterCreation.a11y.finishCreatingPlayerBlocked')}
         pressSfx={canSubmit ? 'positive' : 'click'}
         onPress={() => {
           if (!canSubmit) {
@@ -401,6 +438,7 @@ function AppearanceChoice({
   onPrevious: () => void;
   onNext: () => void;
 }) {
+  const t = useCopy();
   return (
     <View className="min-h-11 flex-row items-center justify-between gap-2 border-2 border-ink/30 bg-white px-2 py-2">
       <PixelText
@@ -412,7 +450,7 @@ function AppearanceChoice({
       </PixelText>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Previous ${label}, currently ${value}`}
+        accessibilityLabel={t('characterCreation.a11y.previousChoice', { label, value })}
         pressSfx="stat-step"
         onPress={() => {
           onPrevious();
@@ -435,7 +473,7 @@ function AppearanceChoice({
       </PixelText>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Next ${label}, currently ${value}`}
+        accessibilityLabel={t('characterCreation.a11y.nextChoice', { label, value })}
         pressSfx="stat-step"
         onPress={() => {
           onNext();

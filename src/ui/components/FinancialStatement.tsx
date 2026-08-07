@@ -27,7 +27,7 @@ import { PaperPanel, formatCurrency } from './Scorecard';
 import { PixelText } from './PixelText';
 import { SlotAmount } from './SlotAmount';
 import { SurgeBanner } from './SurgeBanner';
-import { useCopy } from '../../i18n';
+import { useCopy, type CopyFn } from '../../i18n';
 
 /**
  * The star of the Financial Report: the statement whose rows reveal
@@ -168,7 +168,10 @@ export function FinancialStatement({
   return (
     <View>
       <Pressable accessible={false} onPress={handleTap}>
-        <PaperPanel kicker="Accounts office" title="Match statement">
+        <PaperPanel
+          kicker={t('financialStatement.accountsOffice')}
+          title={t('financialStatement.matchStatement')}
+        >
           <View className="border-y border-ink/30">
             {lines.map((line, index) => (
               <StatementRow
@@ -184,7 +187,14 @@ export function FinancialStatement({
           <View
             accessible
             accessibilityRole="text"
-            accessibilityLabel={`Net cash change, ${netAmount > 0 ? 'plus ' : netAmount < 0 ? 'minus ' : ''}${formatCurrency(Math.abs(netAmount))}`}
+            accessibilityLabel={t(
+              netAmount > 0
+                ? 'financialStatement.a11y.netCashChangePlus'
+                : netAmount < 0
+                  ? 'financialStatement.a11y.netCashChangeMinus'
+                  : 'financialStatement.a11y.netCashChange',
+              { amount: formatCurrency(Math.abs(netAmount)) },
+            )}
             className={netAmount < 0
               ? 'mt-3 flex-row items-center justify-between border-2 border-red-dark bg-red-light px-3 py-3'
               : netAmount > 0
@@ -246,6 +256,7 @@ function StatementRow({
   reduceMotion: boolean;
   onSettled: (index: number, settleKey: number) => void;
 }) {
+  const t = useCopy();
   const reveal = line.reveal;
   const surge = reveal?.surge === true;
   const washActive = surge
@@ -265,7 +276,7 @@ function StatementRow({
     <View
       accessible
       accessibilityRole="text"
-      accessibilityLabel={rowAccessibilityLabel(line)}
+      accessibilityLabel={rowAccessibilityLabel(line, t)}
       className="border-b border-ink/10 py-3 last:border-b-0"
       style={washActive ? { backgroundColor: WASH_BASE, marginHorizontal: -6, paddingHorizontal: 6 } : undefined}
     >
@@ -274,8 +285,8 @@ function StatementRow({
         <View className="min-w-0 flex-1 flex-row items-center">
           <Text className="shrink text-base text-ink">
             {line.label}
-            {suffixFor(reveal) === null ? null : (
-              <Text className="text-ink/60">{suffixFor(reveal)}</Text>
+            {suffixFor(reveal, t) === null ? null : (
+              <Text className="text-ink/60">{suffixFor(reveal, t)}</Text>
             )}
           </Text>
           {/* The building the money came from, at the size of the words. The
@@ -305,7 +316,7 @@ function StatementRow({
       </View>
       {captionVisible && reveal?.source === 'merch' ? (
         <Text className="mt-1 text-right text-xs text-ink/60">
-          {`+${reveal.adjacencyPercent}% adjacency`}
+          {t('financialStatement.adjacencyCaption', { percent: reveal.adjacencyPercent })}
         </Text>
       ) : null}
     </View>
@@ -323,17 +334,22 @@ function hasMultiplierBeat(reveal: LedgerLineReveal): boolean {
  * so a manager who had built one Fan Shop saw merchandise money with nothing
  * naming where it came from while the gate line beside it said "1 stand".
  */
-function suffixFor(reveal: LedgerLineReveal | undefined): string | null {
+function suffixFor(reveal: LedgerLineReveal | undefined, t: CopyFn): string | null {
   if (reveal === undefined || reveal.facilityCount < 1) return null;
-  if (reveal.source === 'merch') {
-    return ` · ${reveal.facilityCount} shop${reveal.facilityCount === 1 ? '' : 's'}`;
-  }
-  return ` · ${reveal.facilityCount} stand${reveal.facilityCount === 1 ? '' : 's'}`;
+  return ` · ${facilityCount(reveal, t)}`;
+}
+
+/** "2 shops" / "1 stand" — the same phrase the row shows and speaks. */
+function facilityCount(reveal: LedgerLineReveal, t: CopyFn): string {
+  const key = reveal.source === 'merch'
+    ? 'financialStatement.shopCount'
+    : 'financialStatement.standCount';
+  return t(key, { n: reveal.facilityCount, count: reveal.facilityCount });
 }
 
 /** The facility sprite that belongs beside the count, if the row has one. */
 function facilitySpriteFor(reveal: LedgerLineReveal | undefined): FacilityTypeViewModel | null {
-  if (suffixFor(reveal) === null) return null;
+  if (reveal === undefined || reveal.facilityCount < 1) return null;
   return reveal!.source === 'merch' ? 'fan-shop' : 'stadium-stand';
 }
 
@@ -341,31 +357,61 @@ function facilitySpriteFor(reveal: LedgerLineReveal | undefined): FacilityTypeVi
  * Spec §12: the full math, available immediately — VoiceOver never waits for
  * reels, and identity reveals never narrate "times 1".
  */
-function rowAccessibilityLabel(line: PostMatchLedgerLineViewModel): string {
+function rowAccessibilityLabel(line: PostMatchLedgerLineViewModel, t: CopyFn): string {
   const money = (value: number) => formatCurrency(Math.abs(value));
-  const sign = line.amount > 0 ? 'plus ' : line.amount < 0 ? 'minus ' : '';
+  // "plus"/"minus" are spoken words, so the signed amount is a catalog string
+  // rather than a prefix glued onto a number.
+  const signed = line.amount === 0
+    ? money(line.amount)
+    : t(
+      line.amount > 0
+        ? 'financialStatement.a11y.plusAmount'
+        : 'financialStatement.a11y.minusAmount',
+      { amount: money(line.amount) },
+    );
   const reveal = line.reveal;
-  if (reveal === undefined) return `${line.label}, ${sign}${money(line.amount)}`;
-  const surgeNote = reveal.surge ? ' Surged this week.' : '';
+  if (reveal === undefined) {
+    return t('financialStatement.a11y.rowPlain', { label: line.label, amount: signed });
+  }
+  const surgeNote = reveal.surge ? ` ${t('financialStatement.a11y.surgedThisWeek')}` : '';
   // The count the sighted row shows, spoken the same way — a row that reads
   // "1 shop" on screen must not be announced as a bare amount.
-  const count = reveal.facilityCount >= 1
-    ? `, ${reveal.facilityCount} ${reveal.source === 'merch' ? 'shop' : 'stand'}${reveal.facilityCount === 1 ? '' : 's'}`
-    : '';
+  const count = reveal.facilityCount >= 1 ? `, ${facilityCount(reveal, t)}` : '';
   if (reveal.source === 'merch') {
     if (reveal.multiplierTimes < 2 && reveal.adjacencyAmount === 0) {
-      return `${line.label}${count}, ${sign}${money(line.amount)}.${surgeNote}`;
+      return t('financialStatement.a11y.rowAmount', {
+        label: line.label, count, amount: signed, surge: surgeNote,
+      });
     }
-    const times = reveal.multiplierTimes >= 2 ? `, times ${reveal.multiplierTimes}` : '';
-    const adjacency = reveal.adjacencyAmount > 0
-      ? `, plus ${reveal.adjacencyPercent} percent adjacency`
+    const times = reveal.multiplierTimes >= 2
+      ? `, ${t('financialStatement.a11y.timesFragment', { times: reveal.multiplierTimes })}`
       : '';
-    return `${line.label}${count}. Base ${money(reveal.base)}${times}${adjacency}, total ${money(line.amount)}.${surgeNote}`;
+    const adjacency = reveal.adjacencyAmount > 0
+      ? `, ${t('financialStatement.a11y.adjacencyFragment', { percent: reveal.adjacencyPercent })}`
+      : '';
+    return t('financialStatement.a11y.rowMerchBreakdown', {
+      label: line.label,
+      count,
+      base: money(reveal.base),
+      times,
+      adjacency,
+      total: money(line.amount),
+      surge: surgeNote,
+    });
   }
   if (reveal.multiplierPercent <= 100) {
-    return `${line.label}${count}, ${sign}${money(line.amount)}.${surgeNote}`;
+    return t('financialStatement.a11y.rowAmount', {
+      label: line.label, count, amount: signed, surge: surgeNote,
+    });
   }
-  return `${line.label}${count}. Base ${money(reveal.base)}, times ${reveal.multiplierPercent} percent, total ${money(line.amount)}.${surgeNote}`;
+  return t('financialStatement.a11y.rowBreakdown', {
+    label: line.label,
+    count,
+    base: money(reveal.base),
+    percent: reveal.multiplierPercent,
+    total: money(line.amount),
+    surge: surgeNote,
+  });
 }
 
 function MultiplierChip({ reveal, reduceMotion }: { reveal: LedgerLineReveal; reduceMotion: boolean }) {
@@ -448,6 +494,7 @@ function RecordedStamp({
   phase: 'hidden' | 'slamming' | 'complete';
   onSlammed: () => void;
 }) {
+  const t = useCopy();
   const progress = useRef(new Animated.Value(0)).current;
   const onSlammedRef = useRef(onSlammed);
   onSlammedRef.current = onSlammed;
@@ -476,7 +523,7 @@ function RecordedStamp({
     <View pointerEvents="none" className="absolute right-3 top-3">
       <Animated.View style={{ transform: [{ scale }, { rotate }] }}>
         <View className="border-2 border-b-4 border-stamp bg-red-light/40 px-2 py-1">
-          <Text className="font-pixel text-sm uppercase text-red-dark">Recorded</Text>
+          <Text className="font-pixel text-sm uppercase text-red-dark">{t('financialStatement.recorded')}</Text>
         </View>
       </Animated.View>
     </View>

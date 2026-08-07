@@ -35,20 +35,28 @@ export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: Pr
       ) : null}
 
       <View className="mt-5 gap-5">
-        <PaperPanel kicker="Your game stays yours" title="Privacy" stamp="No tracking">
+        <PaperPanel
+          kicker={t('privacySupport.privacyKicker')}
+          title={t('privacySupport.privacyTitle')}
+          stamp={t('privacySupport.privacyStamp')}
+        >
           <Text className="text-base leading-6 text-ink/70">
             {t('privacySupport.heroFootballManagerDoes')}</Text>
           <Text className="mt-3 text-base leading-6 text-ink/70">
             {t('privacySupport.yourPreferencesPlayerAnd')}</Text>
         </PaperPanel>
 
-        <PaperPanel kicker="Need a hand?" title="Support" stamp="Email">
+        <PaperPanel
+          kicker={t('privacySupport.supportKicker')}
+          title={t('privacySupport.supportTitle')}
+          stamp={t('privacySupport.supportStamp')}
+        >
           <Text className="text-base leading-6 text-ink/70">
             {t('privacySupport.tellUsWhatHappened')}</Text>
           <Text selectable className="mt-3 font-mono text-base text-blue-dark">{SUPPORT_EMAIL}</Text>
           <View className="mt-4">
             <ActionButton
-              label="Email support"
+              label={t('privacySupport.emailSupport')}
               accessibilityLabel={t('privacySupport.a11y.emailHeroFootballManagerSupport')}
               onPress={onEmailSupport}
               variant="paper"
@@ -56,14 +64,27 @@ export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: Pr
           </View>
         </PaperPanel>
 
-        <PaperPanel kicker="Open-source notice" title="Silkscreen" stamp="OFL 1.1">
+        {/* "OFL 1.1" is a licence identifier, not copy — it names the same
+            licence in every language, so it stays out of the catalog. The
+            typeface name does have a key, because Vietnamese ships the
+            HFMSilkscreen derivative and may want to say so. */}
+        <PaperPanel
+          kicker={t('privacySupport.openSourceKicker')}
+          title={t('privacySupport.openSourceTitle')}
+          stamp="OFL 1.1"
+        >
           <Text className="text-sm leading-5 text-ink/65">
             {t('privacySupport.silkscreenFontCopyrightThe')}</Text>
         </PaperPanel>
       </View>
 
       <View className="mt-6">
-        <ActionButton label="‹  Back to settings" accessibilityLabel={t('privacySupport.a11y.backToSettings')} onPress={onBack} variant="primary" />
+        <ActionButton
+          label={`‹  ${t('privacySupport.backToSettings')}`}
+          accessibilityLabel={t('privacySupport.a11y.backToSettings')}
+          onPress={onBack}
+          variant="primary"
+        />
       </View>
     </ScrollView>
   );

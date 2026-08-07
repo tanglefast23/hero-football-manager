@@ -220,8 +220,43 @@ export const DIVISION_NAMES: Readonly<Record<DivisionLevel, string>> = {
   5: 'District League',
 };
 
+/**
+ * Catalog keys for the division names, so the UI can draw them in the player's
+ * language.
+ *
+ * Keys rather than an injected `t`, because `src/game` is a pure ring and its
+ * architecture test forbids importing `src/i18n` — see
+ * `docs/superpowers/specs/2026-08-06-multilingual-copy-design.md` §3, "at the
+ * UI edge, never in the pure rings". `DIVISION_NAMES` stays as the English
+ * source and the fallback, the same dual-write `LedgerLine.label` uses.
+ *
+ * Four separate translators flagged these names appearing in English inside
+ * otherwise-translated sentences, which is what prompted this.
+ */
+export const DIVISION_NAME_KEYS: Readonly<Record<DivisionLevel, string>> = {
+  1: 'division.global',
+  2: 'division.national',
+  3: 'division.regional',
+  4: 'division.county',
+  5: 'division.district',
+};
+
+/** English. For a localised tier label use `divisionTierLabelWith`. */
 export function divisionTierLabel(level: DivisionLevel): string {
   return `D${level} · ${DIVISION_NAMES[level]}`;
+}
+
+/**
+ * The same label in the player's language.
+ *
+ * Takes a bare lookup function rather than `CopyFn` so this file imports
+ * nothing from `src/i18n`; `CopyFn` is structurally compatible.
+ */
+export function divisionTierLabelWith(
+  level: DivisionLevel,
+  translate: (key: string) => string,
+): string {
+  return `D${level} · ${translate(DIVISION_NAME_KEYS[level])}`;
 }
 
 /**

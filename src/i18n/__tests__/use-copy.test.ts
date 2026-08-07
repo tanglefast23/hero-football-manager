@@ -24,16 +24,16 @@ describe('copyFor', () => {
 });
 
 describe('facesFor', () => {
-  test('Latin locales keep Silkscreen', () => {
-    expect(facesFor('de').display).toBe('Silkscreen_700Bold');
-    expect(facesFor('es').data).toBe('Silkscreen_400Regular');
-  });
-
-  test('Vietnamese swaps both voices together', () => {
-    expect(facesFor('vi')).toEqual({
-      display: 'Handjet_700Bold',
-      data: 'Handjet_400Regular',
-    });
+  test('every locale draws from the one pixel family', () => {
+    // There is no per-language face swap any more: the Silkscreen derivative
+    // covers Vietnamese too, so choosing `vi` no longer redraws the whole UI —
+    // including the English still awaiting translation — in a different font.
+    for (const locale of LOCALES) {
+      expect({ locale, faces: facesFor(locale) }).toEqual({
+        locale,
+        faces: { display: 'HFMSilkscreen_700Bold', data: 'HFMSilkscreen_400Regular' },
+      });
+    }
   });
 
   test('every locale names two distinct faces, so the voice split survives', () => {

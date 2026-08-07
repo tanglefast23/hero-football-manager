@@ -11,18 +11,20 @@ export function PostMatchBuzzCard({ buzz, className = '' }: {
 }) {
   const t = useCopy();
   const breakdown = [
-    buzz.win > 0 ? `Win +${buzz.win}` : undefined,
-    buzz.goals > 0 ? `Goals +${buzz.goals}` : undefined,
-    buzz.heroMoments > 0 ? `Heroes +${buzz.heroMoments}` : undefined,
-  ].filter(Boolean).join(' · ') || 'No Buzz earned this match';
+    buzz.win > 0 ? t('postMatchBuzzCard.win', { points: buzz.win }) : undefined,
+    buzz.goals > 0 ? t('postMatchBuzzCard.goals', { points: buzz.goals }) : undefined,
+    buzz.heroMoments > 0 ? t('postMatchBuzzCard.heroes', { points: buzz.heroMoments }) : undefined,
+  ].filter(Boolean).join(' · ') || t('postMatchBuzzCard.noBuzzEarned');
   const capped = buzz.earned < buzz.rawEarned;
   const accessibilityLabel = [
-    `Club Buzz ${buzz.earned > 0 ? `plus ${buzz.earned}` : 'unchanged'}.`,
+    buzz.earned > 0
+      ? t('postMatchBuzzCard.a11y.clubBuzzPlus', { points: buzz.earned })
+      : t('postMatchBuzzCard.a11y.clubBuzzUnchanged'),
     breakdown.replaceAll('·', ','),
-    capped ? 'The 100 point cap limited this gain.' : undefined,
+    capped ? t('postMatchBuzzCard.a11y.capLimited') : undefined,
     buzz.payout === undefined
-      ? `Current Buzz ${buzz.valueAfter} of 100.`
-      : `Buzz paid out ${formatCurrency(buzz.payout)} and reset to zero.`,
+      ? t('postMatchBuzzCard.a11y.currentBuzz', { value: buzz.valueAfter })
+      : t('postMatchBuzzCard.a11y.paidOutAndReset', { amount: formatCurrency(buzz.payout) }),
   ].filter(Boolean).join(' ');
   return (
     <View

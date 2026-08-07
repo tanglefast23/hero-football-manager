@@ -85,10 +85,10 @@ export function NewGameWelcomeScreen({
         {t('newGameWelcome.aClubInCrisis')}</Text>
 
       <View className="mt-3 gap-1">
-        <MastheadLine text="THE KEYS" wide={wide} />
-        <MastheadLine text="ARE YOURS." wide={wide} />
-        <MastheadLine text="MAKE THEM" wide={wide} />
-        <StickerWord text="HEROES." wide={wide} />
+        <MastheadLine text={t('newGameWelcome.masthead.theKeys')} wide={wide} />
+        <MastheadLine text={t('newGameWelcome.masthead.areYours')} wide={wide} />
+        <MastheadLine text={t('newGameWelcome.masthead.makeThem')} wide={wide} />
+        <StickerWord text={t('newGameWelcome.masthead.heroes')} wide={wide} />
       </View>
 
       <Text className={wide
@@ -117,8 +117,8 @@ export function NewGameWelcomeScreen({
         {t('newGameWelcome.theTouchlineKeptYourCoat')}</Text>
 
       <View className="mt-3 gap-1">
-        <MastheadLine text="WELCOME" wide={wide} />
-        <StickerWord text="BACK." wide={wide} />
+        <MastheadLine text={t('newGameWelcome.masthead.welcome')} wide={wide} />
+        <StickerWord text={t('newGameWelcome.masthead.back')} wide={wide} />
       </View>
 
       <Text className={wide
@@ -137,15 +137,19 @@ export function NewGameWelcomeScreen({
         <View pointerEvents="none" className="absolute -top-[104px] right-5">
           <PixelPortrait playerId="welcome-brief-squad" role="FWD" expression="joy" />
         </View>
-        <PaperPanel kicker="Incoming file" title="Week one brief" stamp="Urgent">
+        <PaperPanel
+          kicker={t('newGameWelcome.brief.kicker')}
+          title={t('newGameWelcome.brief.title')}
+          stamp={t('newGameWelcome.brief.stamp')}
+        >
           <View className="gap-3">
-            <BriefRow index="01" title="Meet the squad" note="Fifteen players. Two open shirts. Zero heroes." />
+            <BriefRow index="01" title={t('newGameWelcome.brief.meetTheSquad')} note={t('newGameWelcome.brief.meetTheSquadNote')} />
             <View className="h-0.5 bg-ink/15" />
-            <BriefRow index="02" title="Survive the books" note="Every ticket, wage, and training point matters." />
+            <BriefRow index="02" title={t('newGameWelcome.brief.surviveTheBooks')} note={t('newGameWelcome.brief.surviveTheBooksNote')} />
             <View className="h-0.5 bg-ink/15" />
-            <BriefRow index="03" title="First match" note="No powers. Just eleven players and a before-picture.">
+            <BriefRow index="03" title={t('newGameWelcome.brief.firstMatch')} note={t('newGameWelcome.brief.firstMatchNote')}>
               <View className="mt-2 flex-row">
-                <StatusChip label="2 empty licenses" tone="hero" />
+                <StatusChip label={t('newGameWelcome.brief.emptyLicenses')} tone="hero" />
               </View>
             </BriefRow>
           </View>
@@ -159,10 +163,10 @@ export function NewGameWelcomeScreen({
           <View className="flex-1">
             <Text className="font-pixel text-xs uppercase tracking-[2px] text-red-dark">{t('newGameWelcome.savedCareer')}</Text>
             <Text className="mt-1 font-pixel text-lg uppercase text-ink">
-              {savedCareerLabel ?? 'Club file ready'}
+              {savedCareerLabel ?? t('newGameWelcome.clubFileReady')}
             </Text>
           </View>
-          <StatusChip label="Verified" tone="success" />
+          <StatusChip label={t('newGameWelcome.verified')} tone="success" />
         </View>
         <View className="mt-3 border-t-2 border-ink/15 pt-3">
           <Text className="text-sm leading-4 text-ink/65">
@@ -176,15 +180,24 @@ export function NewGameWelcomeScreen({
     <View className="gap-3">
       {hasSavedCareer && onContinueCareer ? (
         <ActionButton
-          label={savedCareerLabel ? `Continue · ${savedCareerLabel}` : 'Continue career'}
+          label={savedCareerLabel
+            ? t('newGameWelcome.continueNamed', { career: savedCareerLabel })
+            : t('newGameWelcome.continueCareer')}
           accessibilityLabel={t('newGameWelcome.a11y.continueSavedCareer')}
           onPress={onContinueCareer}
           variant="paper"
         />
       ) : null}
       <ActionButton
-        label={hasSavedCareer ? 'Start over · erase save' : 'Take the keys  ▸'}
-        accessibilityLabel={hasSavedCareer ? 'Replace saved career' : 'Start a new career'}
+        // The ▸ stays out of the catalog: Silkscreen has no glyph for it, so it
+        // draws through the system fallback and a translator must never inherit
+        // it as part of a word.
+        label={hasSavedCareer
+          ? t('newGameWelcome.startOver')
+          : `${t('newGameWelcome.takeTheKeys')}  ▸`}
+        accessibilityLabel={hasSavedCareer
+          ? t('newGameWelcome.a11y.replaceSavedCareer')
+          : t('newGameWelcome.a11y.startANewCareer')}
         onPress={onStartNewCareer}
         variant={hasSavedCareer ? 'danger' : 'hero'}
         // Starting a fresh file is navigation, not the successful signing yet.

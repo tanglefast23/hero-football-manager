@@ -10,8 +10,8 @@ describe('first training guidance', () => {
     // Instant training: one guided beat — tap any +, the drill happens now.
     expect(source).toContain('const guidePlayers = guideTraining;');
     expect(source).toContain("'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'");
-    expect(source).toContain('label="Tap +"');
-    expect(source).toContain('detail="Train a player"');
+    expect(source).toContain("label={t('squadTraining.tapPlus')}");
+    expect(source).toContain("detail={t('squadTraining.trainAPlayer')}");
     expect(source).toContain('onTouchStart={rememberPlayerGuideTouch}');
     expect(source).toContain('onTouchMove={dismissPlayerGuideAfterDrag}');
     expect(source).toContain('{guidePlayers && !playerGuideDismissed ? (');
@@ -40,7 +40,7 @@ describe('first training guidance', () => {
     expect(source).toContain('glowAssignmentButton ? styles.assignmentButtonGlow : null');
     expect(source).toContain('assignmentButtonGlow:');
     expect(source).toContain("boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)'");
-    expect(homeSource).toContain('detail="Build the facility"');
+    expect(homeSource).toContain("detail={t('clubHome.buildTheFacility')}");
     expect(guideContent).toContain(
       `"Let's build a Training Pitch which gives us more Training Points every week."`,
     );
@@ -66,8 +66,8 @@ describe('first training guidance', () => {
     expect(source).toContain('tutorialCue={conditionCueShowing ? (');
     expect(source).toContain("left: '50%',");
     expect(source).toContain('marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2');
-    expect(source).toContain('label="Condition"');
-    expect(source).toContain("detail=\"Too low and they risk injury. You're okay for now.\"");
+    expect(source).toContain("label={t('col.squad.conditionLong')}");
+    expect(source).toContain("detail={t('squadTraining.tooLowAndThey')}");
     expect(source).toContain('const conditionCueShowing = conditionCuePlayerId !== null;');
     // Global tap cleanup retires short-lived warnings, not the persistent
     // Quick Train lesson. That lesson ends only when an attribute is tapped.
@@ -96,13 +96,13 @@ describe('first training guidance', () => {
     expect(finances).toContain("guidedFacilityPhase === 'grid'");
     expect(finances).toContain('guidedFirstFacilityAllowsBuildType(entry.type)');
     expect(finances).toContain("entry.type === 'training-pitch'");
-    expect(finances).toContain('label="Tap here"');
-    expect(finances).toContain('detail="Training Pitch"');
+    expect(finances).toContain("label={t('clubFinances.tapHere')}");
+    expect(finances).toContain("detail={t('clubFinances.trainingPitchCue')}");
     expect(finances).not.toContain('detail="Choose Training Pitch"');
 
     // Second cue only appears once phase is 'grid'
     expect(finances).toContain("guidedFacilityPhase === 'grid'");
-    expect(finances).toContain('detail="Tap any + square"');
+    expect(finances).toContain("detail={t('clubFinances.tapAnyPlusSquare')}");
     expect(finances).toContain('left: facilityGridWidth / facilities.width / 2');
     expect(finances).not.toContain('glowing square');
 

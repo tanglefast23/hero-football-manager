@@ -13,6 +13,7 @@ import {
   RAIL_TIRED_ROWS,
   railHeroStatus,
 } from '../match-rail';
+import { ENABLED_LOCALES, loadCatalog } from '../../i18n';
 
 const railSource = () => readFileSync(join(process.cwd(), 'src/render/MatchControlRail.tsx'), 'utf8');
 const matchSource = () => readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
@@ -171,18 +172,43 @@ describe('desktop match control rail', () => {
   it('keeps the signed-off rail copy', () => {
     const source = railSource();
 
-    expect(source).toContain('SUBSTITUTIONS · {substitutionsRemaining} LEFT');
-    expect(source).toContain('MOST TIRED ON THE PITCH');
-    expect(source).toContain('SWAP OPENS THE BENCH · FRESH LEGS ENTER AT 100%');
-    expect(source).toContain('TEAM ENERGY ({ENERGY_USE_LABELS[energyUse]})');
-    expect(source).toContain('{teamEnergy}% AVERAGE · {tiredCount} TIRED (≤ 40%)');
+    // The sentences themselves now live in `content/i18n/en.json`; the rail owns
+    // which key goes where, and the catalog owns the words. Asserting the key
+    // and its English separately is what keeps both halves signed off.
+    const strings = loadCatalog('en').strings;
+    expect(source).toContain("t('matchRail.substitutionsLeft', { count: substitutionsRemaining })");
+    expect(strings['matchRail.substitutionsLeft']).toBe('SUBSTITUTIONS · {count} LEFT');
+    expect(source).toContain("t('matchRail.mostTiredOnThePitch')");
+    expect(strings['matchRail.mostTiredOnThePitch']).toBe('MOST TIRED ON THE PITCH');
+    expect(source).toContain("t('matchRail.swapOpensTheBench')");
+    expect(strings['matchRail.swapOpensTheBench'])
+      .toBe('SWAP OPENS THE BENCH · FRESH LEGS ENTER AT 100%');
+    expect(source).toContain("t('matchRail.teamEnergyTitle', { mode: energyUseLabel(energyUse, t) })");
+    expect(strings['matchRail.teamEnergyTitle']).toBe('TEAM ENERGY ({mode})');
+    expect(source).toContain("t('matchRail.energyCaption', {");
+    expect(strings['matchRail.energyCaption'])
+      .toBe('{percent}% AVERAGE · {tired} TIRED (UP TO {threshold}%)');
+    // `≤` has no glyph in the face, so it is not drawn at all — an earlier
+    // version appended it at the call site and it rendered through the system
+    // fallback. The param carries the NUMBER, so each language writes its own
+    // wording around it rather than inheriting an English phrase mid-sentence.
+    expect(source).toContain('threshold: TIRED_ENERGY_THRESHOLD,');
+    // Comments may name the character; nothing may DRAW it. Strip comments
+    // before asserting, or this test fails on the line explaining itself.
+    const drawn = source.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(drawn).not.toContain('≤');
+    for (const locale of ENABLED_LOCALES) {
+      expect({ locale, caption: loadCatalog(locale).strings['matchRail.energyCaption'] })
+        .toEqual({ locale, caption: expect.not.stringContaining('≤') });
+    }
     // The formation's shape note rides in its heading, the way TEAM ENERGY
     // already carries its mode — the rail has to fit more hero tiles as the
     // licence cap grows, and a spare caption row is the cheapest thing to give up.
     // The blurb now comes from the copy catalog rather than a map in the sim
     // ring — it is display text, and a pure ring must not hold copy that
     // changes with the player's language.
-    expect(source).toContain('FORMATION ({t(`formation.${formation}.blurb`).toUpperCase()})');
+    expect(source).toContain('blurb: t(`formation.${formation}.blurb`).toUpperCase(),');
+    expect(strings['matchRail.formationTitle']).toBe('FORMATION ({blurb})');
     expect(source).not.toContain(
       'ONE POWER TILE PER FIELDED HERO — THE RAIL GROWS TO 4 TILES WITH THE HERO LICENSE CAP.',
     );

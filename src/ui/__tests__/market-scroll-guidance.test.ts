@@ -16,7 +16,7 @@ describe('market scroll guidance', () => {
     const source = readFileSync(join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'), 'utf8');
 
     expect(source).toContain('MIN_GUIDE_SCROLL_DISTANCE = 24');
-    expect(source).toContain("choice.regionLabel === 'South America'");
+    expect(source).toContain("choice.region === 'SOUTH_AMERICA'");
     expect(source).toContain('const targetFullyVisible = targetY >= viewportY');
     expect(source).toContain("if (targetFullyVisible) dismissScrollGuide('scout-mission');");
   });

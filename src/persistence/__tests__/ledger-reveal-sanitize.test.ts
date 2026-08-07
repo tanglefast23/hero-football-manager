@@ -27,7 +27,7 @@ function storedCareer(): Record<string, unknown> & { ledgers: { lines: unknown[]
   return stored;
 }
 
-/** Reconstructs exactly: 1000 + floor(1000 × (200−100)/100) = 2000. */
+/** Reconstructs exactly: 1000 + floor(1000 × (200-100)/100) = 2000. */
 function gateLine(
   revealOverrides: Partial<Record<string, unknown>> = {},
   lineOverrides: Partial<Record<string, unknown>> = {},

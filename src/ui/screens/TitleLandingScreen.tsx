@@ -85,7 +85,7 @@ export function TitleLandingScreen({
                 ? 'mt-4 font-pixel text-[68px] uppercase leading-[68px] tracking-tight text-white'
                 : 'mt-2 font-pixel text-[43px] uppercase leading-[44px] tracking-tight text-white'}
               >
-                Hero{`\n`}Football
+                {t('titleLanding.titleHero')}{'\n'}{t('titleLanding.titleFootball')}
               </Text>
               <View className={isWide
                 ? '-mt-1 self-start -rotate-2 border-[3px] border-ink bg-blue px-5 py-2'
@@ -145,14 +145,16 @@ function TitleMenu({
       <View className="z-10 gap-2 border-[3px] border-ink bg-paper p-3">
         <View className="mb-1 flex-row items-center justify-between">
           <Text className="font-pixel text-[10px] uppercase tracking-[1px] text-ink/60">{t('titleLanding.pickYourBoots')}</Text>
-          {hasSavedCareer ? <StatusChip label="Save found" tone="success" /> : <StatusChip label="New file" tone="hero" />}
+          {hasSavedCareer ? <StatusChip label={t('titleLanding.saveFound')} tone="success" /> : <StatusChip label={t('titleLanding.newFile')} tone="hero" />}
         </View>
         <View className="mb-1 flex-row justify-end">
           <LanguageButton value={language} onChange={onLanguageChange} />
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={hasSavedCareer ? 'Open story and saved career options' : 'Open story mode'}
+          accessibilityLabel={hasSavedCareer
+            ? t('titleLanding.a11y.openStoryAndSavedCareerOptions')
+            : t('titleLanding.a11y.openStoryMode')}
           onPress={onStory}
           className="relative min-h-20 overflow-hidden border-[3px] border-ink bg-blue px-4 py-3"
           style={({ pressed }) => ({
@@ -161,9 +163,9 @@ function TitleMenu({
           })}
         >
           <View pointerEvents="none" className="absolute bottom-0 left-0 right-0 h-2 bg-blue-dark" />
-          <Text className="font-pixel text-2xl uppercase text-white">Story</Text>
+          <Text className="font-pixel text-2xl uppercase text-white">{t('titleLanding.story')}</Text>
           <Text className="mt-1 max-w-[82%] font-mono text-[10px] uppercase leading-4 text-white/75">
-            {hasSavedCareer ? 'Continue your club or begin again' : 'Take the keys to your first club'}
+            {hasSavedCareer ? t('titleLanding.continueYourClub') : t('titleLanding.takeTheKeys')}
           </Text>
           <Text className="absolute right-4 top-3 font-pixel text-4xl text-white">▸</Text>
         </Pressable>
@@ -179,7 +181,7 @@ function TitleMenu({
         >
           <View className="flex-row items-center gap-3">
             <Text className="font-pixel text-lg text-blue-dark">⚙</Text>
-            <Text className="font-pixel text-xs uppercase text-ink">Settings</Text>
+            <Text className="font-pixel text-xs uppercase text-ink">{t('titleLanding.settings')}</Text>
           </View>
           <Text className="font-pixel text-lg text-ink/45">›</Text>
         </Pressable>
@@ -225,13 +227,15 @@ export function TitleSettingsScreen({
   accessibilityCopy,
   difficultyLabel,
   onBack,
-  backLabel = 'Back to title',
+  backLabel,
 }: TitleSettingsScreenProps) {
   const t = useCopy();
   const [showGlossary, setShowGlossary] = useState(false);
   const [showPrivacySupport, setShowPrivacySupport] = useState(false);
   const wide = useLayoutMode() === 'twoColumn';
   const volumePercent = Math.round(preferences.masterVolume * 100);
+  // The default moved out of the parameter list because no hook can run there.
+  const backText = backLabel ?? t('titleLanding.backToTitle');
   if (showGlossary) {
     return (
       <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
@@ -255,7 +259,7 @@ export function TitleSettingsScreen({
     );
   }
   const formationsPanel = (
-    <PaperPanel kicker="Match-day kit" title="Three formations" stamp="Tap to swap">
+    <PaperPanel kicker={t('titleLanding.matchDayKit')} title={t('titleLanding.threeFormations')} stamp={t('titleLanding.tapToSwap')}>
       <Text className="text-base leading-5 text-ink/65">
         {t('titleLanding.theseAreTheThree')}</Text>
       <View className="mt-5 flex-row gap-2">
@@ -263,7 +267,7 @@ export function TitleSettingsScreen({
           <Pressable
             key={`${index}-${formation}`}
             accessibilityRole="button"
-            accessibilityLabel={`Formation slot ${index + 1}, ${formation}. Tap to replace.`}
+            accessibilityLabel={t('titleLanding.a11y.formationSlot', { slot: index + 1, formation })}
             onPress={() => onCycleFormation(index)}
             className="flex-1 items-center border-2 border-ink bg-paper-dark px-2 py-3"
             style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
@@ -280,9 +284,9 @@ export function TitleSettingsScreen({
   );
 
   const accessibilityPanel = (
-    <PaperPanel kicker="Accessibility" title="Comfort and reach" stamp="Saved">
+    <PaperPanel kicker={t('titleLanding.accessibility')} title={t('titleLanding.comfortAndReach')} stamp={t('titleLanding.saved')}>
               <Text className="text-base leading-5 text-ink/65">
-                {accessibilityCopy?.body ?? 'Reduce animated flourishes and put the live-match information where it is easiest to read.'}
+                {accessibilityCopy?.body ?? t('titleLanding.reduceAnimatedFlourishes')}
               </Text>
               <View className="mt-5 gap-3">
                 <Pressable
@@ -299,11 +303,15 @@ export function TitleSettingsScreen({
                     <Text className="font-pixel text-base uppercase text-ink">{t('settings.reduceMotion.label')}</Text>
                     <Text className="mt-1 text-sm text-ink/60">{t('titleLanding.stopsCount-upsFlashesPulses')}</Text>
                   </View>
-                  <Text className="font-pixel text-lg text-ink">{preferences.reduceMotion ? 'ON' : 'OFF'}</Text>
+                  <Text className="font-pixel text-lg text-ink">{t(preferences.reduceMotion ? 'settings.on' : 'settings.off')}</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Match information panel is on the ${preferences.hudSide}. Tap to move it.`}
+                  accessibilityLabel={t('titleLanding.a11y.matchInfoPanelSide', {
+                    side: t(preferences.hudSide === 'left'
+                      ? 'settings.matchInfo.left'
+                      : 'settings.matchInfo.right'),
+                  })}
                   onPress={onToggleHudSide}
                   className="min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3"
                   style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
@@ -314,30 +322,36 @@ export function TitleSettingsScreen({
                   </View>
                   <Text className="font-pixel text-lg uppercase text-blue-dark">{preferences.hudSide}</Text>
                 </Pressable>
-                <AccessibilityToggle label="Haptics" detail="Turns all touch feedback on or off." enabled={preferences.hapticsEnabled} onPress={onToggleHaptics} />
-                <AccessibilityChoice label="Text size" detail="Adds extra room to important story and review copy." value={preferences.textScale === 1 ? 'System' : preferences.textScale === 1.15 ? 'Roomy' : 'Large'} onPress={onCycleTextScale} />
-                <AccessibilityToggle label="High contrast" detail="Darkens match chrome and strengthens live-match contrast." enabled={preferences.highContrast} onPress={onToggleHighContrast} />
-                <AccessibilityToggle label="Color-safe kits" detail="Uses a high-separation blue and amber match pairing." enabled={preferences.colorSafeKits} onPress={onToggleColorSafeKits} />
-                <AccessibilityChoice label="Power labels" detail="Choose a bottom-left player card or a minimal match banner." value={preferences.cutInMode === 'full' ? 'PLAYER' : 'BANNER'} onPress={onToggleCutInMode} />
+                <AccessibilityToggle label={t('titleLanding.haptics')} detail={t('titleLanding.turnsAllTouchFeedback')} enabled={preferences.hapticsEnabled} onPress={onToggleHaptics} />
+                <AccessibilityChoice label={t('settings.textSize.label')} detail={t('titleLanding.addsExtraRoom')} value={t(preferences.textScale === 1
+                  ? 'settings.textSize.system'
+                  : preferences.textScale === 1.15
+                    ? 'settings.textSize.roomy'
+                    : 'settings.textSize.large')} onPress={onCycleTextScale} />
+                <AccessibilityToggle label={t('settings.highContrast.label')} detail={t('titleLanding.darkensMatchChrome')} enabled={preferences.highContrast} onPress={onToggleHighContrast} />
+                <AccessibilityToggle label={t('settings.colorSafeKits.label')} detail={t('titleLanding.usesAHighSeparation')} enabled={preferences.colorSafeKits} onPress={onToggleColorSafeKits} />
+                <AccessibilityChoice label={t('settings.powerLabels.label')} detail={t('titleLanding.chooseABottomLeft')} value={t(preferences.cutInMode === 'full'
+                  ? 'settings.powerLabels.player'
+                  : 'settings.powerLabels.banner')} onPress={onToggleCutInMode} />
               </View>
     </PaperPanel>
   );
 
   const difficultyPanel = difficultyLabel ? (
-    <PaperPanel kicker="Current career" title="Boardroom pressure" stamp={difficultyLabel}>
+    <PaperPanel kicker={t('titleLanding.currentCareer')} title={t('titleLanding.boardroomPressure')} stamp={t(difficultyLabel === 'CHAIRMAN' ? 'settings.difficulty.chairman' : 'settings.difficulty.cozy')}>
       <Text className="text-base leading-5 text-ink/65">
         {t('titleLanding.difficultyIsChosenWhen')}</Text>
     </PaperPanel>
   ) : null;
 
   const audioPanel = (
-    <PaperPanel kicker="Master mix" title="Game audio" stamp={`${volumePercent}%`}>
+    <PaperPanel kicker={t('titleLanding.masterMix')} title={t('titleLanding.gameAudio')} stamp={`${volumePercent}%`}>
               <Text className="text-base leading-5 text-ink/65">
                 {t('titleLanding.oneMasterLevelKeeps')}</Text>
 
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Master audio ${volumePercent} percent`}
+                accessibilityLabel={t('titleLanding.a11y.masterAudioPercent', { percent: volumePercent })}
                 accessibilityHint={t('titleLanding.a11y.cyclesThrough0255075And100Percent')}
                 onPress={onCycleVolume}
                 className="mt-5 border-2 border-ink bg-signal px-4 py-4"
@@ -357,27 +371,27 @@ export function TitleSettingsScreen({
               <View className="mt-5 gap-2 border-t border-ink/20 pt-4">
                 <View className="flex-row items-center justify-between">
                   <PixelText className="text-sm uppercase tracking-wide text-ink/60">{t('titleLanding.titleTheme')}</PixelText>
-                  <StatusChip label="Heroes Start Here" selected />
+                  <StatusChip label={t('titleLanding.trackHeroesStartHere')} selected />
                 </View>
                 <View className="flex-row items-center justify-between">
-                  <PixelText className="text-sm uppercase tracking-wide text-ink/60">Management</PixelText>
-                  <StatusChip label="Clubhouse Dreams" />
+                  <PixelText className="text-sm uppercase tracking-wide text-ink/60">{t('titleLanding.management')}</PixelText>
+                  <StatusChip label={t('titleLanding.trackClubhouseDreams')} />
                 </View>
                 <View className="flex-row items-center justify-between">
                   <PixelText className="text-sm uppercase tracking-wide text-ink/60">{t('titleLanding.matchDay')}</PixelText>
-                  <StatusChip label="Match Day Heroes" />
+                  <StatusChip label={t('titleLanding.trackMatchDayHeroes')} />
                 </View>
               </View>
     </PaperPanel>
   );
 
   const glossaryPanel = (
-    <PaperPanel kicker="Club handbook" title="Glossary" stamp="A–Z">
+    <PaperPanel kicker={t('titleLanding.clubHandbook')} title={t('titleLanding.glossary')} stamp={t('titleLanding.aToZ')}>
       <Text className="text-base leading-5 text-ink/65">
         {t('titleLanding.lookUpFootballTerms')}</Text>
       <View className="mt-4">
         <ActionButton
-          label="Open glossary"
+          label={t('settings.glossary.open')}
           accessibilityLabel={t('settings.glossary.open')}
           onPress={() => setShowGlossary(true)}
           variant="paper"
@@ -387,12 +401,12 @@ export function TitleSettingsScreen({
   );
 
   const privacySupportPanel = (
-    <PaperPanel kicker="About this build" title="Privacy & Support" stamp="No tracking">
+    <PaperPanel kicker={t('titleLanding.aboutThisBuild')} title={t('settings.privacy.label')} stamp={t('titleLanding.noTracking')}>
       <Text className="text-base leading-5 text-ink/65">
         {t('titleLanding.readHowLocalSaves')}</Text>
       <View className="mt-4">
         <ActionButton
-          label="Open privacy & support"
+          label={t('titleLanding.openPrivacySupport')}
           accessibilityLabel={t('settings.privacy.open')}
           onPress={() => setShowPrivacySupport(true)}
           variant="paper"
@@ -417,10 +431,10 @@ export function TitleSettingsScreen({
                   ? 'mt-2 font-pixel text-4xl uppercase text-white'
                   : 'mt-2 font-pixel text-3xl uppercase text-white'}
                 >
-                  Settings
+                  {t('titleLanding.settings')}
                 </Text>
               </View>
-              <PaperSticker text="Coach’s board" className="-rotate-3" />
+              <PaperSticker text={t('titleLanding.coachsBoard')} className="-rotate-3" />
             </View>
 
             {wide ? (
@@ -450,8 +464,8 @@ export function TitleSettingsScreen({
 
           <View className="mt-8">
             <ActionButton
-              label={`‹  ${backLabel}`}
-              accessibilityLabel={backLabel}
+              label={`‹  ${backText}`}
+              accessibilityLabel={backText}
               onPress={onBack}
               variant="paper"
             />

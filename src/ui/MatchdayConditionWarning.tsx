@@ -4,6 +4,7 @@ import { BertFullBody } from './BertFullBody';
 import { BERT_SPRITE_SIZE } from './bert-walk-frames';
 import { CharacterSpeechOverlay } from './CharacterSpeechOverlay';
 import { matchdayConditionWarningCopy } from './matchday-condition';
+import { useCopy } from '../i18n';
 
 const BERT_SCALE = 1.5;
 const BERT_BUBBLE_SCALE = 1.15;
@@ -21,6 +22,7 @@ export function MatchdayConditionWarning({
   reduceMotion = false,
   onDone,
 }: MatchdayConditionWarningProps) {
+  const t = useCopy();
   const line = useMemo(() => matchdayConditionWarningCopy(playerName), [playerName]);
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export function MatchdayConditionWarning({
       typewriter
       bubbleScale={BERT_BUBBLE_SCALE}
       mirrorSprite={false}
-      accessibilityLabel={`Bert says: ${line}`}
+      accessibilityLabel={t('clubHome.a11y.bertSays', { line })}
       onDone={onDone}
       renderCharacter={({ walking }) => (
         <BertFullBody

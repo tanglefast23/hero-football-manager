@@ -50,7 +50,7 @@ import {
 } from '../endgame-fireworks';
 import { grassTopFor, groundScene } from '../endgame-ground';
 import {
-  BERT_SIGNOFF_LINES,
+  bertSignoffLines,
   FINALE_BERT_MOMENT,
   FINALE_CELL,
   finaleStage,
@@ -565,14 +565,14 @@ function TrophyScene({
             {viewModel.star.name}
           </PixelText>
           <PixelText variant="data" className="mt-1 text-center text-[10px] uppercase text-ink/70">
-            {`Fame ${viewModel.star.fame}`}
+            {t('endgameCelebration.fame', { fame: viewModel.star.fame })}
           </PixelText>
         </View>
       )}
 
       <SfxPressable
         accessibilityRole="button"
-        accessibilityLabel="Continue"
+        accessibilityLabel={t('endgameCelebration.a11y.continue')}
         onPress={onDone}
         style={styles.control}
       >
@@ -744,9 +744,10 @@ function BertSignOff({
   bert: FinaleBert;
   onDone: () => void;
 }) {
+  const t = useCopy();
   return (
     <CharacterSpeechOverlay
-      lines={BERT_SIGNOFF_LINES}
+      lines={bertSignoffLines(t)}
       characterWidth={bert.boxWidth}
       // The DRAWN height, not the box's. A lying pose leaves the top third of a
       // box built for a standing man empty, and a bubble placed off the box
@@ -758,7 +759,7 @@ function BertSignOff({
       // down, and a bubble grown to match the star's would reach up over the
       // squad he is talking about.
       instant
-      accessibilityLabel={BERT_SIGNOFF_LINES.join(' ')}
+      accessibilityLabel={bertSignoffLines(t).join(' ')}
       onDone={onDone}
     >
       <LyingBert bert={bert} />
@@ -917,7 +918,7 @@ function StaticFarewell({
         <PixelText className="mb-3 mt-4 text-center text-sm uppercase text-gold">
           {viewModel.assistantName}
         </PixelText>
-        {BERT_SIGNOFF_LINES.map(line => (
+        {bertSignoffLines(t).map(line => (
           <View key={line} style={styles.farewellBubble}>
             <PixelText variant="body" className="text-sm leading-5 text-ink">{line}</PixelText>
           </View>
@@ -925,7 +926,7 @@ function StaticFarewell({
       </ScrollView>
       <SfxPressable
         accessibilityRole="button"
-        accessibilityLabel="Finish"
+        accessibilityLabel={t('endgameCelebration.a11y.finish')}
         onPress={onDone}
         style={styles.control}
       >

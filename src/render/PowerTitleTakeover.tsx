@@ -11,7 +11,7 @@ import Animated, {
 import type { PowerId } from '../sim/types';
 import { powerCutInPresentation } from './power-cut-in';
 import { KIT_PANEL_BORDER_COLOR, KIT_PANEL_TEXT_COLOR } from './team-kit-ui';
-import { usePixelStyles, type LocaleFaces } from '../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 
 const INTRO_OVERSHOOT = 1.06;
 const OUTRO_DELAY_MS = 1100;
@@ -49,6 +49,7 @@ export function PowerTitleTakeover({
   accessibilityLabel,
   onDismiss,
 }: PowerTitleTakeoverProps) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const presentation = powerCutInPresentation(power);
   const intro = useSharedValue(1);
@@ -118,7 +119,7 @@ export function PowerTitleTakeover({
     <Pressable
       accessibilityRole={skippable ? 'button' : 'text'}
       accessibilityLabel={accessibilityLabel}
-      accessibilityHint={skippable ? 'Tap to dismiss the power title' : undefined}
+      accessibilityHint={skippable ? t('matchScreen.a11y.dismissPowerTitle') : undefined}
       disabled={!skippable}
       onPress={onDismiss}
       style={[
@@ -184,7 +185,7 @@ export function PowerTitleTakeover({
           </Text>
           {additionalPowerCount > 0 ? (
             <Text style={styles.additional}>
-              +{additionalPowerCount} MORE {additionalPowerCount === 1 ? 'HERO' : 'HEROES'} LIVE
+              {t('matchScreen.moreHeroesLive', { n: additionalPowerCount })}
             </Text>
           ) : null}
         </View>

@@ -9,8 +9,10 @@ function source(path: string): string {
 
 describe('player-facing acceptance audit regressions', () => {
   test('opens the story with the intended 15 of 17 roster truth', () => {
+    // The sentence is catalog copy now; the brief still has to say it, so the
+    // guarantee moves to the key the row draws.
     expect(source('src/ui/screens/NewGameWelcomeScreen.tsx'))
-      .toContain('Fifteen players. Two open shirts. Zero heroes.');
+      .toContain("t('newGameWelcome.brief.meetTheSquadNote')");
   });
 
   test('resumes character creation from the saved career difficulty', () => {
@@ -27,7 +29,8 @@ describe('player-facing acceptance audit regressions', () => {
 
     expect(app).toContain("if (tone === 'error') return undefined;");
     expect(app).toContain('setTimeout(onDismiss, 4_000)');
-    expect(app).toContain('feedbackNoticeAccessibilityLabel(message)');
+    expect(app).toContain('feedbackNoticeAccessibilityLabel(message, t)');
+    expect(loadCatalog('en').strings['app.a11y.tapToDismiss']).toBe('{sentence} Tap to dismiss.');
     expect(app).toContain("/[.!?]$/.test(trimmed)");
   });
 
@@ -35,8 +38,14 @@ describe('player-facing acceptance audit regressions', () => {
     const club = source('src/ui/screens/ClubFinancesScreen.tsx');
     const notice = source('src/ui/FacilityProjectNotice.tsx');
 
-    expect(club).toContain('entry.width} by ${entry.height} footprint');
-    expect(club).toContain('Build time ${entry.buildWeeks}');
+    // The card's label is composed from catalog sentences now, so the guarantee
+    // is that the same facts are still passed in — footprint, build time, the
+    // blocked reason and the shortfall.
+    expect(club).toContain("t('clubFinances.a11y.facilityCard', {");
+    expect(club).toContain('width: entry.width,');
+    expect(club).toContain('height: entry.height,');
+    expect(club).toContain("t('clubFinances.a11y.buildTimeWeeks', {");
+    expect(club).toContain('n: entry.buildWeeks, count: entry.buildWeeks,');
     expect(club).toContain('entry.blockedReason');
     expect(club).toContain('entry.affordabilityShortfall > 0');
     expect(notice).toContain("t('facilityProjectNotice.a11y.letThemBuildCloseConfirmation')");
@@ -49,7 +58,16 @@ describe('player-facing acceptance audit regressions', () => {
     const squad = source('src/ui/screens/SquadTrainingScreen.tsx');
     const club = source('src/ui/screens/ClubFinancesScreen.tsx');
 
-    expect(shell).toContain('Bert says: ${tab.id === \'squad\' ? \'open Squad\' : \'return Home\'}');
+    // The instruction is catalog copy now; what this test still guards is that a
+    // guided tab announces the tab AND the per-tab instruction, and that the
+    // instruction still differs between Squad and Home.
+    expect(shell).toContain("t('managementShell.a11y.guidedTab'");
+    expect(shell).toContain("? t('managementShell.a11y.openSquad')");
+    expect(shell).toContain(": t('managementShell.a11y.returnHome')");
+    const strings = loadCatalog('en').strings;
+    expect(strings['managementShell.a11y.guidedTab']).toBe('{tab} tab. Bert says: {instruction}');
+    expect(strings['managementShell.a11y.openSquad']).toBe('open Squad');
+    expect(strings['managementShell.a11y.returnHome']).toBe('return Home');
     expect(squad).toContain("'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'");
     expect(club).toContain("'relative mt-20 border-2 border-blue-dark bg-blue-light p-1'");
   });
@@ -71,14 +89,17 @@ describe('player-facing acceptance audit regressions', () => {
     expect(summary).toContain('style={StyleSheet.absoluteFill}');
     // The row labels moved into the statement component with the reveal math;
     // every row still narrates itself rather than dissolving into the panel.
-    expect(statement).toContain('accessibilityLabel={rowAccessibilityLabel(line)}');
-    expect(statement).toContain("return `${line.label}, ${sign}${money(line.amount)}`;");
+    expect(statement).toContain('accessibilityLabel={rowAccessibilityLabel(line, t)}');
+    expect(statement).toContain(
+      "return t('financialStatement.a11y.rowPlain', { label: line.label, amount: signed });",
+    );
   });
 
   test('labels net training-point movement truthfully for positive and negative weeks', () => {
     const body = source('src/ui/components/FinancialReportBody.tsx');
 
-    expect(body).toContain('label="TP change"');
+    expect(body).toContain("label={t('financialReport.tpChange')}");
+    expect(loadCatalog('en').strings['financialReport.tpChange']).toBe('TP change');
     // The count-up formatter keeps the signed presentation the old
     // formatSignedCompactNumber call guaranteed.
     expect(body).toContain("format={amount => `${amount > 0 ? '+' : ''}${formatCompactNumber(amount)}`}");
@@ -103,7 +124,9 @@ describe('player-facing acceptance audit regressions', () => {
     expect(club).toContain('shared hover-tip host raises only the active cell');
     expect(club).toContain('zIndex: 3');
     expect(club).toContain('accessible={placementActive}');
-    expect(club).toContain("`${buildable ? 'Build at' : 'Blocked at'} column ${x + 1}, row ${y + 1}`");
+    expect(club).toContain("? 'clubFinances.a11y.buildAtColumnRow'");
+    expect(club).toContain(": 'clubFinances.a11y.blockedAtColumnRow'");
+    expect(club).toContain('{ column: x + 1, row: y + 1 },');
     expect(club).toContain("occupied\n                              ? 'transparent'");
     expect(club).toContain('width={artWidth}');
     expect(club).toContain('height={artHeight}');
@@ -115,7 +138,10 @@ describe('player-facing acceptance audit regressions', () => {
   test('exposes the current difficulty as informational text', () => {
     const settings = source('src/ui/SettingsOverlay.tsx');
 
-    expect(settings).toContain('accessibilityRole="text" accessibilityLabel={`Career difficulty ${difficultyLabel}`}');
+    // Still a non-interactive text row announcing the difficulty; the level is
+    // named from the catalog now, because COZY/CHAIRMAN is a code, not copy.
+    expect(settings).toContain('accessibilityRole="text" accessibilityLabel={t(\'settings.difficulty.a11y\', { level: difficultyName })}');
+    expect(settings).toContain("t(difficultyLabel === 'COZY' ? 'settings.difficulty.cozy' : 'settings.difficulty.chairman')");
   });
 
   test('marks the current match week and offers a button only when match day is ready', () => {
@@ -136,9 +162,15 @@ describe('player-facing acceptance audit regressions', () => {
   test('calls the active match option Play while retaining Quick Result', () => {
     const matchDay = source('src/ui/screens/FixtureMatchDayScreen.tsx');
 
-    expect(matchDay).toContain("label={wide ? 'Play match  ▸' : 'Play  ▸'}");
-    expect(matchDay).toContain('label="Quick result"');
-    expect(matchDay).not.toContain("label={wide ? 'Watch match  ▸' : 'Watch  ▸'}");
+    // The copy moved to the catalog, so the guarantee is checked in two parts:
+    // the screen asks for these keys, and the keys still say Play, not Watch.
+    expect(matchDay).toContain("t('fixtureMatchDay.playMatch')");
+    expect(matchDay).toContain("t('fixtureMatchDay.quickResult')");
+    const strings = loadCatalog('en').strings;
+    expect(strings['fixtureMatchDay.playMatch']).toBe('Play match');
+    expect(strings['fixtureMatchDay.play']).toBe('Play');
+    expect(strings['fixtureMatchDay.quickResult']).toBe('Quick result');
+    expect(strings['fixtureMatchDay.playMatch']).not.toMatch(/watch/i);
   });
 
   test('keeps the match-day docket free of redundant live-coaching and auto-context blocks', () => {

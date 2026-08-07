@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { TUTORIAL_TAP_CUE_WIDTH } from './tutorial-cue-position';
 import { useReducedMotion } from './use-reduced-motion';
+import { useCopy } from '../i18n';
 
 export interface TutorialTapCueProps {
   label?: string;
@@ -29,7 +30,7 @@ export interface TutorialTapCueProps {
 
 /** A non-blocking, Kairosoft-style prompt anchored beside the real control. */
 export function TutorialTapCue({
-  label = 'Tap here',
+  label,
   detail,
   direction = 'down',
   labelOffsetX = 0,
@@ -37,6 +38,8 @@ export function TutorialTapCue({
   reduceMotion = false,
   onDismiss,
 }: TutorialTapCueProps) {
+  const t = useCopy();
+  const cueLabel = label ?? t('matchScreen.tapHere');
   const bounce = useRef(new Animated.Value(0)).current;
   // This was the one perpetual animation Reduce Motion could not stop: the
   // cue loops for as long as the tutorial step is on screen.
@@ -80,7 +83,7 @@ export function TutorialTapCue({
         ]}
       >
         <View style={styles.labelFrame}>
-          <Text className="text-center font-pixel text-sm uppercase text-white">{label}</Text>
+          <Text className="text-center font-pixel text-sm uppercase text-white">{cueLabel}</Text>
           <Text className="mt-1 text-center font-mono text-[10px] uppercase text-white/90">
             {detail}
           </Text>
@@ -97,7 +100,7 @@ export function TutorialTapCue({
       <View pointerEvents="box-none" style={[styles.anchor, style]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${label}. ${detail}. Tap to dismiss.`}
+          accessibilityLabel={t('app.a11y.tapToDismiss', { sentence: `${cueLabel}. ${detail}.` })}
           onPress={onDismiss}
         >
           {cue}
@@ -109,7 +112,7 @@ export function TutorialTapCue({
   return (
     <View
       accessible
-      accessibilityLabel={`${label}. ${detail}`}
+      accessibilityLabel={`${cueLabel}. ${detail}`}
       accessibilityRole="text"
       pointerEvents="none"
       style={[styles.anchor, style]}

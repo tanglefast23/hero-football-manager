@@ -12,6 +12,7 @@ import {
   View,
   type LayoutChangeEvent,
 } from 'react-native';
+import { useCopy } from '../i18n';
 import { bertTypewriterStepMs } from './bert-typewriter';
 import {
   SPEECH_BUBBLE_FONT_SIZE,
@@ -123,6 +124,7 @@ export function CharacterSpeechOverlay({
   typewriter = false,
   focusOnMount = false,
 }: CharacterSpeechOverlayProps) {
+  const t = useCopy();
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const reduce = useReducedMotion(reduceMotion);
   const [phase, setPhase] = useState<Phase>(reduce || instant ? 'speaking' : 'arriving');
@@ -469,11 +471,11 @@ export function CharacterSpeechOverlay({
       ref={pressableRef}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? line}
-      accessibilityHint={!lineFullyRevealed
-        ? 'Tap anywhere to show the full line'
+      accessibilityHint={t(!lineFullyRevealed
+        ? 'characterSpeech.a11y.showFullLine'
         : lastLine
-          ? 'Tap anywhere to finish'
-          : 'Tap anywhere for the next line'}
+          ? 'awardsCeremony.a11y.tapAnywhereToFinish'
+          : 'characterSpeech.a11y.nextLine')}
       onPress={advance}
       style={StyleSheet.absoluteFill}
     >

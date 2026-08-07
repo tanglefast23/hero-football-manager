@@ -44,7 +44,7 @@ describe('squad table sorting', () => {
   /**
    * The POT column sorts by the letter it prints. It used to key on the SUPER
    * chance, which stayed on raw potential when the printed grade moved to
-   * growth speed — so a squad sorted by POT came back B, B−, C−, E, D+, and
+   * growth speed — so a squad sorted by POT came back B, B-, C-, E, D+, and
    * read as though the header did nothing.
    */
   it('orders the potential column by the grade it shows', () => {

@@ -22,12 +22,12 @@ describe('full-time report layout', () => {
 
     expect(source).not.toContain('border-stamp');
     expect(source).toContain("outcome === 'WIN'");
-    expect(source).toContain("? 'We Won!' : 'We Lost'");
+    expect(source).toContain("t('postMatchLedger.weWon') : t('postMatchLedger.weLost')");
     expect(source).toContain('text-pitch-ink');
     expect(source).toContain('text-red-dark');
     // A drawn match boxes nobody, so it still has to say so somewhere.
     expect(source).toContain('{result.winner === null ? (');
-    expect(source).toContain('>Draw<');
+    expect(source).toContain(">{t('postMatchLedger.draw')}<");
   });
 
   it('puts the touchline reaction below the result, not beside it', () => {
@@ -56,9 +56,14 @@ describe('full-time report layout', () => {
   it('reads the whole line to a screen reader, not just the picture', () => {
     const source = screen();
 
-    expect(source).toContain('accessibilityLabel={`${mood}. "${reaction.line}"`}');
-    expect(source).toContain('is blaming ${reaction.assistantName}');
-    expect(source).toContain('is in tears');
-    expect(source).toContain('is celebrating');
+    // Mood and line both reach the label through the catalog now; the four
+    // moods still have to be named, so each key is asserted by name.
+    expect(source).toContain(
+      "accessibilityLabel={t('postMatchLedger.a11y.coachReaction', { mood, line: reaction.line })}",
+    );
+    expect(source).toContain("t('postMatchLedger.a11y.coachIsBlaming'");
+    expect(source).toContain('assistant: reaction.assistantName');
+    expect(source).toContain("t('postMatchLedger.a11y.coachIsInTears'");
+    expect(source).toContain("t('postMatchLedger.a11y.coachIsCelebrating'");
   });
 });

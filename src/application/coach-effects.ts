@@ -5,6 +5,14 @@ import {
 } from '../game/coach-weekly';
 import type { CoachCandidate, CoachSpecialty } from '../game/market';
 import type { CareerCoachRole } from '../game/market-career';
+import { copyFor, type CopyFn } from '../i18n';
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
+
 
 const TRAINING_LABELS: Readonly<Record<Exclude<CoachSpecialty, 'MOTIVATOR'>, string>> = {
   ATTACK: 'SHO',
@@ -18,16 +26,20 @@ const TRAINING_LABELS: Readonly<Record<Exclude<CoachSpecialty, 'MOTIVATOR'>, str
 export function coachRoleEffectLabels(
   coach: Pick<CoachCandidate, 'level' | 'specialties'>,
   role: CareerCoachRole,
+  t: CopyFn = englishCopy(),
 ): string[] {
   const trainingBonusPercent = coachTrainingBonusPercent(coach.level, role);
   const motivatorBonusPercent = coachMotivatorBonusPercent(coach.level, role);
   return [
     ...coach.specialties.map(specialty => (
       specialty === 'MOTIVATOR'
-        ? `Morale loss −${formatPercent(motivatorBonusPercent)} · Hero Gauge +${formatPercent(motivatorBonusPercent)}`
-        : `${TRAINING_LABELS[specialty]} training +${formatPercent(trainingBonusPercent)}`
+        ? t('coachStaff.effectMotivator', { percent: formatPercent(motivatorBonusPercent) })
+        : t('coachStaff.effectTraining', {
+            stats: TRAINING_LABELS[specialty],
+            percent: formatPercent(trainingBonusPercent),
+          })
     )),
-    `+${coachWeeklyTrainingPoints(coach.level, role)} TP weekly`,
+    t('coachStaff.effectTpWeekly', { points: coachWeeklyTrainingPoints(coach.level, role) }),
   ];
 }
 

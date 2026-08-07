@@ -33,7 +33,7 @@ describe('Club coaching-staff view model', () => {
       specialtyLabels: ['Attack', 'Motivator'],
       effectLabels: [
         'SHO training +10%',
-        'Morale loss −5% · Hero Gauge +5%',
+        'Morale loss -5% · Hero Gauge +5%',
         '+12 TP weekly',
       ],
     })]);
@@ -57,7 +57,7 @@ describe('Club coaching-staff view model', () => {
         role: 'ASSISTANT',
         effectLabels: [
           'SHO training +5%',
-          'Morale loss −2.5% · Hero Gauge +2.5%',
+          'Morale loss -2.5% · Hero Gauge +2.5%',
           '+6 TP weekly',
         ],
       });
