@@ -121,7 +121,7 @@ import type {
   TrainingSlotStatOption,
   WeeklyReviewViewModel,
 } from '../ui';
-import { DIVISION_NAME_KEYS, divisionTierLabelWith } from '../game/pyramid';
+import { cupRoundNameWith, DIVISION_NAME_KEYS, divisionTierLabelWith } from '../game/pyramid';
 import { careerDifficulty } from '../game/difficulty';
 import { isAvailableForSelection } from '../game/lineup';
 import { playerLoyalty } from '../game/loyalty';
@@ -2261,7 +2261,9 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
   const nextFixture = currentMatchday?.fixture ?? nextLeagueFixture;
   const nextFixtureCompetition = currentMatchday?.kind === 'national-cup'
     ? t('clubHome.heroCupRound', {
-      round: currentMatchday.cupRoundLabel ?? t('clubHome.knockoutTie'),
+      round: currentMatchday.cupRoundLabel === undefined
+        ? t('clubHome.knockoutTie')
+        : cupRoundNameWith(currentMatchday.cupRoundLabel, t),
     })
     : undefined;
   const isCurrentGameWeek = currentMatchday !== undefined;
@@ -2596,7 +2598,9 @@ export function matchDayViewModel(
       t,
       matchday.kind === 'national-cup'
         ? t('fixtureMatchDay.heroCupRound', {
-          round: matchday.cupRoundLabel ?? t('fixtureMatchDay.knockoutTie'),
+          round: matchday.cupRoundLabel === undefined
+            ? t('fixtureMatchDay.knockoutTie')
+            : cupRoundNameWith(matchday.cupRoundLabel, t),
         })
         : undefined,
     ),
@@ -3034,7 +3038,7 @@ export function postMatchViewModel(
       fixtureId,
       competition: cupRound === undefined
         ? careerDivisionLabel(before, t)
-        : t('postMatchSummary.heroCupRound', { round: cupRound.label }),
+        : t('postMatchSummary.heroCupRound', { round: cupRoundNameWith(cupRound.label, t) }),
       homeTeam: clubName(before, fixture.homeClubId),
       awayTeam: clubName(before, fixture.awayClubId),
       homeScore: score.homeGoals,

@@ -596,10 +596,12 @@ export interface SeasonRecap {
   trainingCapsReached: number;
   cupResult: string;
   /**
-   * Catalog key for `cupResult`, on the three authored outcomes only.
+   * Catalog key for `cupResult` — the three authored outcomes and the named
+   * round the club went out at.
    *
-   * Absent when the club went out at a named round, because that value is the
-   * round's own label and is keyed where the bracket is built.
+   * Optional only for recaps saved before the named-round branch wrote one;
+   * every recap built now carries a key, and the screen falls back to the
+   * English beside it when an old save does not.
    */
   cupResultKey?: string;
   memorableEventId?: string;

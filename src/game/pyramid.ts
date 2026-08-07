@@ -303,6 +303,27 @@ export const CUP_ROUND_NAME_KEYS: Readonly<Record<NationalCupRound['label'], str
   Final: 'm2League.cupRound.final',
 };
 
+/**
+ * The bracket stage in the player's language, and the only way to read one.
+ *
+ * `NationalCupRound['label']` itself never changes: it is a control value —
+ * `round.label === 'Final'` decides the champion, and the stored cup record is
+ * matched against it to find the next round. So the label keys a name here
+ * instead of becoming one.
+ *
+ * Takes a bare lookup rather than `CopyFn`, exactly as `divisionTierLabelWith`
+ * does, so this file still imports nothing from `src/i18n`. Every screen that
+ * shows a round — the bracket, the desk notes, the club-home fixture line, the
+ * match title card, the post-match header — goes through this one function, so
+ * the next one cannot be added with its own private copy of the table.
+ */
+export function cupRoundNameWith(
+  label: NationalCupRound['label'],
+  translate: (key: string) => string,
+): string {
+  return translate(CUP_ROUND_NAME_KEYS[label]);
+}
+
 const UINT32_RANGE = 4294967296;
 const SQUAD_ROLES: readonly Role[] = [
   'GK', 'GK',

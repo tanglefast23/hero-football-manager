@@ -1,6 +1,7 @@
 import { divisionPodium } from './division-leaders';
 import { currentUserDivision } from './m2-career';
 import { compareIds, compareStandings } from './ordering';
+import { CUP_ROUND_NAME_KEYS } from './pyramid';
 import type {
   AwardCategoryId,
   CareerPlayer,
@@ -291,8 +292,14 @@ function finalPosition(state: GameState): number {
 
 /**
  * @i18n-fallback English beside `cupResultKey`, which the screen renders
- * instead. The named-round branch carries no key: that value is the bracket's
- * own round label, keyed where the bracket is built.
+ * instead.
+ *
+ * The named-round branch used to carry no key, on the reasoning that the round
+ * label is keyed where the bracket is built — but this value is denormalised
+ * into the save and read back by the SeasonEnd panel, which never sees the
+ * bracket. So every season of every new career put an English "Quarter-final"
+ * on the panel title in all six languages. `CUP_ROUND_NAME_KEYS` supplies the
+ * key; the English stays as the fallback for recaps written before it did.
  */
 function cupResult(state: GameState): Pick<SeasonRecap, 'cupResult' | 'cupResultKey'> {
   const cup = state.m2?.nationalCups.find(candidate => candidate.season === state.season);
@@ -307,5 +314,5 @@ function cupResult(state: GameState): Pick<SeasonRecap, 'cupResult' | 'cupResult
     .at(-1);
   return lastRound?.label === undefined
     ? { cupResult: 'Entered', cupResultKey: 'recap.cupEntered' }
-    : { cupResult: lastRound.label };
+    : { cupResult: lastRound.label, cupResultKey: CUP_ROUND_NAME_KEYS[lastRound.label] };
 }

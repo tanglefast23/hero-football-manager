@@ -1,6 +1,7 @@
 import { loadLaunchContent } from '../../content';
 import { CUP_SETTLEMENT_WEEKS, SEASON_WEEKS, createCareer, type GameState } from '../../game';
 import { isTransferWindowOpen } from '../../game/market';
+import { copyFor } from '../../i18n';
 import { createLaunchCareerSetup } from '../launch';
 import { managerNotes } from '../manager-notes';
 
@@ -185,6 +186,39 @@ describe("manager's notes", () => {
         .find(candidate => candidate.id === 'note:cup-round:6');
 
       expect(note?.detail).toContain('Hero Cup is yours');
+    });
+
+    /**
+     * The round is the one word in these notes that came out of the engine, and
+     * for that reason it was the one word that stayed English in every language:
+     * a German manager read "Heldenpokal, Round of 32 diese Woche". The label
+     * itself must not move — `nextCupRoundLabel` matches against it — so the
+     * assertion is that the sentence is German *and* the round inside it is too.
+     */
+    it('translates the round inside the German note, not just the sentence around it', () => {
+      const de = copyFor('de');
+      const state = cupCareer(20260916, 2, 'playing');
+      const week = CUP_SETTLEMENT_WEEKS[1];
+      const note = managerNotes({ ...state, week }, de)
+        .find(candidate => candidate.id === 'note:cup-round:2');
+
+      expect(note?.title).toBe('Notiz vom Trainer: Heldenpokal, Sechzehntelfinale diese Woche');
+      expect(note?.detail).toContain('Achtelfinale');
+      expect(note?.title).not.toContain('Round of 32');
+      expect(note?.detail).not.toContain('Round of 16');
+    });
+
+    it('translates the round in a German bye note too', () => {
+      const de = copyFor('de');
+      const state = cupCareer(20260917, 1, 'bye');
+      const note = managerNotes({ ...state, week: CUP_SETTLEMENT_WEEKS[0] }, de)
+        .find(candidate => candidate.id === 'note:cup-bye:1');
+
+      // The title names the round being sat out, the detail the one it resumes
+      // at — two different rounds, both of which used to arrive in English.
+      expect(note?.title).toBe('Notiz vom Trainer: Freilos im Pokal bis Vorrunde');
+      expect(note?.detail).toContain('Sechzehntelfinale');
+      expect(note?.detail).not.toContain('Round of 32');
     });
 
     it('goes quiet once the cup has a champion', () => {

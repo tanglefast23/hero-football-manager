@@ -8,6 +8,8 @@ import {
   cupTitleCard,
   type CupRoundLabel,
 } from '../cup-title-card';
+import { CUP_ROUND_NAME_KEYS } from '../../game/pyramid';
+import { copyFor } from '../../i18n';
 
 /**
  * A Record over the union, so adding a round to the bracket fails to compile
@@ -21,6 +23,8 @@ const ROUND_DISPLAY: Record<CupRoundLabel, string> = {
   'Semi-final': 'SEMI-FINAL',
   Final: 'FINAL',
 };
+
+const ROUND_KEYS = Object.keys(ROUND_DISPLAY) as CupRoundLabel[];
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
@@ -61,6 +65,28 @@ describe('the Hero Cup title card', () => {
 
   it('speaks the round in its written form, not the shouted one', () => {
     expect(cupTitleCard('Semi-final', false)!.accessibilityLabel).toBe('Hero Cup. Semi-final.');
+  });
+
+  /**
+   * The card drew `cupRoundLabel.toUpperCase()` — the engine's control value,
+   * which is English by design — so a German kickoff opened on "HELDENPOKAL /
+   * QUARTER-FINAL". Uppercasing now happens after the lookup, and the spoken
+   * form keeps the translated round's own casing.
+   */
+  it('names the round in the player\'s language, shouted and spoken', () => {
+    const de = copyFor('de');
+    const card = cupTitleCard('Quarter-final', false, de)!;
+
+    expect(card.title).toBe('HELDENPOKAL');
+    expect(card.roundLabel).toBe('VIERTELFINALE');
+    expect(card.accessibilityLabel).toBe('Heldenpokal. Viertelfinale.');
+  });
+
+  it.each(ROUND_KEYS)('draws round %s from the shared cup key table', (round) => {
+    const de = copyFor('de');
+
+    expect(cupTitleCard(round, false, de)!.roundLabel)
+      .toBe(de(CUP_ROUND_NAME_KEYS[round]).toUpperCase());
   });
 
   it('flies the ball in from off one edge and out past the other', () => {

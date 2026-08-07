@@ -1,4 +1,11 @@
-import { CUP_SETTLEMENT_WEEKS, SEASON_WEEKS, isStoryYouthUnlocked, type GameState } from '../game';
+import {
+  CUP_SETTLEMENT_WEEKS,
+  SEASON_WEEKS,
+  cupRoundNameWith,
+  isStoryYouthUnlocked,
+  type GameState,
+  type NationalCupRoundLabel,
+} from '../game';
 import { copyFor, type CopyFn } from '../i18n';
 import type { ManagerNoteViewModel } from '../ui/models';
 
@@ -120,10 +127,13 @@ function cupRoundNotes(state: GameState, t: CopyFn): ManagerNoteViewModel[] {
   if (round.byeClubIds.includes(state.userClubId)) {
     return [{
       id: `note:cup-bye:${round.number}`,
-      title: t('managerNotes.cupByeTitle', { round: round.label }),
+      title: t('managerNotes.cupByeTitle', { round: cupRoundNameWith(round.label, t) }),
       detail: nextRoundLabel === undefined || nextRoundWeek === undefined
         ? t('managerNotes.cupByeFinalDetail')
-        : t('managerNotes.cupByeDetail', { week: nextRoundWeek, round: nextRoundLabel }),
+        : t('managerNotes.cupByeDetail', {
+            week: nextRoundWeek,
+            round: cupRoundNameWith(nextRoundLabel, t),
+          }),
     }];
   }
 
@@ -143,12 +153,12 @@ function cupRoundNotes(state: GameState, t: CopyFn): ManagerNoteViewModel[] {
   const opening = t('managerNotes.cupFixtureOpening', { opponent, venue });
   return [{
     id: `note:cup-round:${round.number}`,
-    title: t('managerNotes.cupRoundTitle', { round: round.label }),
+    title: t('managerNotes.cupRoundTitle', { round: cupRoundNameWith(round.label, t) }),
     detail: nextRoundLabel === undefined || nextRoundWeek === undefined
       ? t('managerNotes.cupFinalDetail', { opening })
       : t('managerNotes.cupRoundDetail', {
           opening,
-          round: nextRoundLabel,
+          round: cupRoundNameWith(nextRoundLabel, t),
           week: nextRoundWeek,
         }),
   }];
@@ -167,9 +177,13 @@ function seasonEndNotes(state: GameState, t: CopyFn): ManagerNoteViewModel[] {
  * NOT copy. `label` is the round name persisted on the cup record, and this
  * finds the next one by matching against it — a translated entry here would
  * stop matching and every note would claim the club had reached the final.
- * The labels are data, and data stays English.
+ * The labels are data, and data stays English; `cupRoundNameWith` turns the
+ * one it returns into a word the player reads, at the interpolation.
  */
-function nextCupRoundLabel(label: string): string | undefined {
-  const order = ['Play-in', 'Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final'];
-  return order[order.indexOf(label) + 1];
+const CUP_ROUND_ORDER: readonly NationalCupRoundLabel[] = [
+  'Play-in', 'Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final',
+];
+
+function nextCupRoundLabel(label: NationalCupRoundLabel): NationalCupRoundLabel | undefined {
+  return CUP_ROUND_ORDER[CUP_ROUND_ORDER.indexOf(label) + 1];
 }

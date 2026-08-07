@@ -1,4 +1,5 @@
 import type { NationalCupRoundLabel } from '../game/career';
+import { cupRoundNameWith } from '../game/pyramid';
 import { copyFor, type CopyFn } from '../i18n';
 
 let englishCopyFn: CopyFn | undefined;
@@ -52,12 +53,16 @@ export function cupTitleCard(
   t: CopyFn = englishCopy(),
 ): CupTitleCardModel | null {
   if (cupRoundLabel === undefined) return null;
+  // The engine's label is a control value and stays English; the player reads
+  // the name it keys. Uppercasing after the lookup, not before, is what makes
+  // the card say VIERTELFINALE rather than QUARTER-FINAL over a German pitch.
+  const roundName = cupRoundNameWith(cupRoundLabel, t);
   return {
     title: t(CUP_TITLE_CARD_TITLE_KEY),
-    roundLabel: cupRoundLabel.toUpperCase(),
+    roundLabel: roundName.toUpperCase(),
     durationMs: reduceMotion ? CUP_TITLE_CARD_REDUCED_MOTION_MS : CUP_TITLE_CARD_MS,
     showBall: !reduceMotion,
-    accessibilityLabel: t('matchScreen.a11y.heroCupRound', { round: cupRoundLabel }),
+    accessibilityLabel: t('matchScreen.a11y.heroCupRound', { round: roundName }),
   };
 }
 
