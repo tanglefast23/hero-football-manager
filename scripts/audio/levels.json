@@ -1,0 +1,729 @@
+{
+  "target": {
+    "music": -20,
+    "sfx": -16,
+    "bed": -20
+  },
+  "ceilingDbtp": -1,
+  "generatedBy": "scripts/audio/normalize-levels.mjs",
+  "assets": {
+    "assets/audio/music/awakening-limp.m4a": {
+      "class": "music",
+      "before": -27,
+      "beforeTruePeak": -13.3,
+      "gainDb": 7,
+      "limited": false,
+      "after": -20,
+      "afterTruePeak": -6.5,
+      "bytes": 150200
+    },
+    "assets/audio/music/celebration-anthem.m4a": {
+      "class": "music",
+      "before": -21,
+      "beforeTruePeak": -5.2,
+      "gainDb": 1,
+      "limited": false,
+      "after": -19.9,
+      "afterTruePeak": -2.6,
+      "bytes": 1501847
+    },
+    "assets/audio/music/ending-farewell.m4a": {
+      "class": "music",
+      "before": -19.8,
+      "beforeTruePeak": -2.1,
+      "gainDb": 0,
+      "limited": false,
+      "after": -19.8,
+      "afterTruePeak": -2.1,
+      "bytes": 248859
+    },
+    "assets/audio/music/event-theme.m4a": {
+      "class": "music",
+      "before": -19.3,
+      "beforeTruePeak": -4.8,
+      "gainDb": -0.7,
+      "limited": false,
+      "after": -20,
+      "afterTruePeak": -5.5,
+      "bytes": 782324
+    },
+    "assets/audio/music/management-theme.m4a": {
+      "class": "music",
+      "before": -21.4,
+      "beforeTruePeak": -5,
+      "gainDb": 1.4,
+      "limited": false,
+      "after": -20,
+      "afterTruePeak": -3.6,
+      "bytes": 1147606
+    },
+    "assets/audio/music/match-theme.m4a": {
+      "class": "music",
+      "before": -19.6,
+      "beforeTruePeak": -4.9,
+      "gainDb": 0,
+      "limited": false,
+      "after": -19.6,
+      "afterTruePeak": -4.9,
+      "bytes": 806419
+    },
+    "assets/audio/music/opening-theme.m4a": {
+      "class": "music",
+      "before": -19.3,
+      "beforeTruePeak": -4.8,
+      "gainDb": -0.7,
+      "limited": false,
+      "after": -20,
+      "afterTruePeak": -5.5,
+      "bytes": 605255
+    },
+    "assets/audio/sfx/advance-week.m4a": {
+      "class": "sfx",
+      "before": -11.6,
+      "beforeTruePeak": -1.7,
+      "gainDb": -4.4,
+      "limited": false,
+      "after": -16.1,
+      "afterTruePeak": -6.1,
+      "bytes": 6736
+    },
+    "assets/audio/sfx/awakening-angels.m4a": {
+      "class": "sfx",
+      "before": -11.3,
+      "beforeTruePeak": -0.8,
+      "gainDb": -4.7,
+      "limited": false,
+      "after": -15.9,
+      "afterTruePeak": -5.3,
+      "bytes": 15795
+    },
+    "assets/audio/sfx/awakening-harps.m4a": {
+      "class": "sfx",
+      "before": -10.7,
+      "beforeTruePeak": -0.5,
+      "gainDb": -5.3,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -2.4,
+      "bytes": 7540
+    },
+    "assets/audio/sfx/back-button.m4a": {
+      "class": "sfx",
+      "before": -12,
+      "beforeTruePeak": -1.2,
+      "gainDb": -4.3,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -1.9,
+      "bytes": 7495
+    },
+    "assets/audio/sfx/bert-voice-dialogue2.m4a": {
+      "class": "sfx",
+      "before": -13.7,
+      "beforeTruePeak": -1.1,
+      "gainDb": -2.3,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -3.4,
+      "bytes": 126997
+    },
+    "assets/audio/sfx/blink-teleport.wav": {
+      "class": "sfx",
+      "before": -15.7,
+      "beforeTruePeak": -2.9,
+      "gainDb": 0,
+      "limited": false,
+      "after": -15.7,
+      "afterTruePeak": -2.9,
+      "bytes": 18566
+    },
+    "assets/audio/sfx/body-fall.m4a": {
+      "class": "sfx",
+      "before": -27.7,
+      "beforeTruePeak": -10.4,
+      "gainDb": 13,
+      "limited": true,
+      "after": -16.2,
+      "afterTruePeak": -1.1,
+      "bytes": 2720
+    },
+    "assets/audio/sfx/card-whistle.wav": {
+      "class": "sfx",
+      "before": -6.8,
+      "beforeTruePeak": -2,
+      "gainDb": -9.25,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -11.2,
+      "bytes": 8898
+    },
+    "assets/audio/sfx/crowd-jeer.wav": {
+      "class": "sfx",
+      "before": -19.6,
+      "beforeTruePeak": -3,
+      "gainDb": 3.6,
+      "limited": true,
+      "after": -16,
+      "afterTruePeak": -1.3,
+      "bytes": 52998
+    },
+    "assets/audio/sfx/crowd-ooh.wav": {
+      "class": "sfx",
+      "before": -13.6,
+      "beforeTruePeak": -2.8,
+      "gainDb": -2.4,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -5.2,
+      "bytes": 52998
+    },
+    "assets/audio/sfx/decoy-pop.wav": {
+      "class": "sfx",
+      "before": -17.8,
+      "beforeTruePeak": -4,
+      "gainDb": 1.75,
+      "limited": false,
+      "after": -16.2,
+      "afterTruePeak": -2.2,
+      "bytes": 9780
+    },
+    "assets/audio/sfx/drill-gain-reveal.m4a": {
+      "class": "sfx",
+      "before": -12.8,
+      "beforeTruePeak": -4.7,
+      "gainDb": -3.2,
+      "limited": false,
+      "after": -16.1,
+      "afterTruePeak": -8,
+      "bytes": 5869
+    },
+    "assets/audio/sfx/drill-progress.m4a": {
+      "class": "bed",
+      "before": -21,
+      "beforeTruePeak": -9,
+      "gainDb": 1,
+      "limited": false,
+      "after": -20.1,
+      "afterTruePeak": -7.7,
+      "bytes": 32675
+    },
+    "assets/audio/sfx/duel-scuff.wav": {
+      "class": "sfx",
+      "before": -32.1,
+      "beforeTruePeak": -13.4,
+      "gainDb": 18.4,
+      "limited": true,
+      "after": -17.2,
+      "afterTruePeak": -0.2,
+      "unreachable": true,
+      "bytes": 3606
+    },
+    "assets/audio/sfx/event-success-fanfare.m4a": {
+      "class": "sfx",
+      "before": -13,
+      "beforeTruePeak": -1.8,
+      "gainDb": -3,
+      "limited": false,
+      "after": -16.1,
+      "afterTruePeak": -4.8,
+      "bytes": 44438
+    },
+    "assets/audio/sfx/extinguisher-spray.wav": {
+      "class": "sfx",
+      "before": -9.7,
+      "beforeTruePeak": -1.9,
+      "gainDb": -6.3,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -8.2,
+      "bytes": 28744
+    },
+    "assets/audio/sfx/facility-complete.m4a": {
+      "class": "sfx",
+      "before": -14.9,
+      "beforeTruePeak": -2.6,
+      "gainDb": -1.1,
+      "limited": false,
+      "after": -15.9,
+      "afterTruePeak": -3.4,
+      "bytes": 64448
+    },
+    "assets/audio/sfx/flame-hit.wav": {
+      "class": "sfx",
+      "before": -3.3,
+      "beforeTruePeak": -0.1,
+      "gainDb": -12.7,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -12.8,
+      "bytes": 192078
+    },
+    "assets/audio/sfx/flame-loop.m4a": {
+      "class": "bed",
+      "before": -20.4,
+      "beforeTruePeak": -7,
+      "gainDb": 0,
+      "limited": false,
+      "after": -20.4,
+      "afterTruePeak": -7,
+      "bytes": 17524
+    },
+    "assets/audio/sfx/flame-up.wav": {
+      "class": "sfx",
+      "before": -8.8,
+      "beforeTruePeak": -0.8,
+      "gainDb": -7.2,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -8,
+      "bytes": 414046
+    },
+    "assets/audio/sfx/fulltime-whistle.wav": {
+      "class": "sfx",
+      "before": -6.4,
+      "beforeTruePeak": -2,
+      "gainDb": -9.6,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -11.6,
+      "bytes": 30512
+    },
+    "assets/audio/sfx/future-sight-intercept.wav": {
+      "class": "sfx",
+      "before": -16.5,
+      "beforeTruePeak": -2.3,
+      "gainDb": 0,
+      "limited": false,
+      "after": -16.5,
+      "afterTruePeak": -2.3,
+      "bytes": 15038
+    },
+    "assets/audio/sfx/future-sight-read.wav": {
+      "class": "sfx",
+      "before": -16.9,
+      "beforeTruePeak": -3,
+      "gainDb": 0.9,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -2.1,
+      "bytes": 24334
+    },
+    "assets/audio/sfx/giant-grow.wav": {
+      "class": "sfx",
+      "before": -11.3,
+      "beforeTruePeak": -2.1,
+      "gainDb": -4.7,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -6.8,
+      "bytes": 28744
+    },
+    "assets/audio/sfx/goal-celebration.m4a": {
+      "class": "sfx",
+      "before": -9.6,
+      "beforeTruePeak": -0.9,
+      "gainDb": -6.4,
+      "limited": false,
+      "after": -16.1,
+      "afterTruePeak": -7.2,
+      "bytes": 25020
+    },
+    "assets/audio/sfx/goal-crowd.m4a": {
+      "class": "sfx",
+      "before": -9.7,
+      "beforeTruePeak": -0.6,
+      "gainDb": -6.3,
+      "limited": false,
+      "after": -15.9,
+      "afterTruePeak": -6.8,
+      "bytes": 25992
+    },
+    "assets/audio/sfx/goal-fanfare.m4a": {
+      "class": "sfx",
+      "before": -6.7,
+      "beforeTruePeak": -0.4,
+      "gainDb": -9.3,
+      "limited": false,
+      "after": -15.9,
+      "afterTruePeak": -7,
+      "bytes": 19631
+    },
+    "assets/audio/sfx/goal-net-hit.m4a": {
+      "class": "sfx",
+      "before": -20.3,
+      "beforeTruePeak": -1.4,
+      "gainDb": 5.9,
+      "limited": true,
+      "after": -16,
+      "afterTruePeak": 3.2,
+      "unreachable": false,
+      "bytes": 9743
+    },
+    "assets/audio/sfx/grunt.wav": {
+      "class": "sfx",
+      "before": -24.9,
+      "beforeTruePeak": -6,
+      "gainDb": 11,
+      "limited": true,
+      "after": -18,
+      "afterTruePeak": -1.3,
+      "unreachable": true,
+      "bytes": 8898
+    },
+    "assets/audio/sfx/halftime-whistle.wav": {
+      "class": "sfx",
+      "before": -5.3,
+      "beforeTruePeak": -2,
+      "gainDb": -10.7,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -12.7,
+      "bytes": 39768
+    },
+    "assets/audio/sfx/ice-freeze.wav": {
+      "class": "sfx",
+      "before": -13.3,
+      "beforeTruePeak": -2.6,
+      "gainDb": -2.7,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -5.3,
+      "bytes": 26538
+    },
+    "assets/audio/sfx/ice-slide.wav": {
+      "class": "sfx",
+      "before": -14.2,
+      "beforeTruePeak": -2.2,
+      "gainDb": -1.8,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -4,
+      "bytes": 33154
+    },
+    "assets/audio/sfx/keeper-stretch.wav": {
+      "class": "sfx",
+      "before": -13.4,
+      "beforeTruePeak": -2.6,
+      "gainDb": -2.6,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -5.2,
+      "bytes": 22130
+    },
+    "assets/audio/sfx/kick-pass.wav": {
+      "class": "sfx",
+      "before": -21.3,
+      "beforeTruePeak": -5,
+      "gainDb": 9.11,
+      "limited": true,
+      "after": -16.3,
+      "afterTruePeak": -1.2,
+      "unreachable": true,
+      "bytes": 4048
+    },
+    "assets/audio/sfx/kick-shot.m4a": {
+      "class": "sfx",
+      "before": -18,
+      "beforeTruePeak": -2.1,
+      "gainDb": 4.01,
+      "limited": true,
+      "after": -16.4,
+      "afterTruePeak": -0.8,
+      "unreachable": true,
+      "bytes": 3919
+    },
+    "assets/audio/sfx/kickoff-whistle.m4a": {
+      "class": "sfx",
+      "before": -8.7,
+      "beforeTruePeak": -2.2,
+      "gainDb": -7.3,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -9.2,
+      "bytes": 9909
+    },
+    "assets/audio/sfx/league-champions.m4a": {
+      "class": "sfx",
+      "before": -14.6,
+      "beforeTruePeak": -3.3,
+      "gainDb": -1.4,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -4.8,
+      "bytes": 31132
+    },
+    "assets/audio/sfx/ledger-spin.wav": {
+      "class": "bed",
+      "before": -18,
+      "beforeTruePeak": -8.5,
+      "gainDb": -2,
+      "limited": false,
+      "after": -20,
+      "afterTruePeak": -10.5,
+      "bytes": 768078
+    },
+    "assets/audio/sfx/ledger-thunk.wav": {
+      "class": "sfx",
+      "before": -20.5,
+      "beforeTruePeak": -7.5,
+      "gainDb": 4.48,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -3,
+      "bytes": 71410
+    },
+    "assets/audio/sfx/level-up.m4a": {
+      "class": "sfx",
+      "before": -9.7,
+      "beforeTruePeak": -0.4,
+      "gainDb": -6.3,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -6.6,
+      "bytes": 34033
+    },
+    "assets/audio/sfx/match-day-bugle.m4a": {
+      "class": "sfx",
+      "before": -15,
+      "beforeTruePeak": -1,
+      "gainDb": -1,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -2.5,
+      "bytes": 45173
+    },
+    "assets/audio/sfx/match-statement-positive.m4a": {
+      "class": "sfx",
+      "before": -10.5,
+      "beforeTruePeak": -0.2,
+      "gainDb": -5.5,
+      "limited": false,
+      "after": -16.1,
+      "afterTruePeak": -5.6,
+      "bytes": 46745
+    },
+    "assets/audio/sfx/negative.m4a": {
+      "class": "sfx",
+      "before": -18.6,
+      "beforeTruePeak": -2.6,
+      "gainDb": 2.9,
+      "limited": true,
+      "after": -15.9,
+      "afterTruePeak": -1.2,
+      "bytes": 9400
+    },
+    "assets/audio/sfx/phase-shift.wav": {
+      "class": "sfx",
+      "before": -14.5,
+      "beforeTruePeak": -2.6,
+      "gainDb": -1.5,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -4.1,
+      "bytes": 19482
+    },
+    "assets/audio/sfx/plan-locked-chime.m4a": {
+      "class": "sfx",
+      "before": -11.8,
+      "beforeTruePeak": -1.4,
+      "gainDb": -4.2,
+      "limited": false,
+      "after": -16.1,
+      "afterTruePeak": -5.6,
+      "bytes": 32082
+    },
+    "assets/audio/sfx/portal-warp.wav": {
+      "class": "sfx",
+      "before": -13.4,
+      "beforeTruePeak": -2.4,
+      "gainDb": -2.6,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -5,
+      "bytes": 28744
+    },
+    "assets/audio/sfx/positive.m4a": {
+      "class": "sfx",
+      "before": -9.9,
+      "beforeTruePeak": -0.3,
+      "gainDb": -6.1,
+      "limited": false,
+      "after": -15.8,
+      "afterTruePeak": -6.1,
+      "bytes": 16664
+    },
+    "assets/audio/sfx/power-interrupt.wav": {
+      "class": "sfx",
+      "before": -15.1,
+      "beforeTruePeak": -2.3,
+      "gainDb": -0.94,
+      "limited": false,
+      "after": -15.9,
+      "afterTruePeak": -3.2,
+      "bytes": 13308
+    },
+    "assets/audio/sfx/quick-result-faceoff.m4a": {
+      "class": "sfx",
+      "before": -13.3,
+      "beforeTruePeak": -0.6,
+      "gainDb": -2.7,
+      "limited": false,
+      "after": -16.1,
+      "afterTruePeak": -3.4,
+      "bytes": 29618
+    },
+    "assets/audio/sfx/rally-drums.m4a": {
+      "class": "sfx",
+      "before": -14.2,
+      "beforeTruePeak": -0.6,
+      "gainDb": -1.8,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -1.9,
+      "bytes": 54906
+    },
+    "assets/audio/sfx/save-slap.wav": {
+      "class": "sfx",
+      "before": -18.4,
+      "beforeTruePeak": -1.7,
+      "gainDb": 5.09,
+      "limited": true,
+      "after": -16.4,
+      "afterTruePeak": -1,
+      "unreachable": true,
+      "bytes": 8458
+    },
+    "assets/audio/sfx/shadow-burrow.wav": {
+      "class": "sfx",
+      "before": -13,
+      "beforeTruePeak": -3,
+      "gainDb": -3,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -6,
+      "bytes": 28744
+    },
+    "assets/audio/sfx/shadow-emerge.wav": {
+      "class": "sfx",
+      "before": -19.8,
+      "beforeTruePeak": -2.1,
+      "gainDb": 5,
+      "limited": true,
+      "after": -16,
+      "afterTruePeak": -0.7,
+      "unreachable": false,
+      "bytes": 22128
+    },
+    "assets/audio/sfx/stat-step-tap-loud.m4a": {
+      "class": "sfx",
+      "before": -14.9,
+      "beforeTruePeak": -0.6,
+      "gainDb": -1.07,
+      "limited": true,
+      "after": -15.9,
+      "afterTruePeak": -1.7,
+      "bytes": 2022
+    },
+    "assets/audio/sfx/super-speed-whoosh.wav": {
+      "class": "sfx",
+      "before": -13.1,
+      "beforeTruePeak": -2.7,
+      "gainDb": -2.9,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -5.6,
+      "bytes": 19924
+    },
+    "assets/audio/sfx/super-strength-boom.wav": {
+      "class": "sfx",
+      "before": -14.8,
+      "beforeTruePeak": -1.5,
+      "gainDb": -1.2,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -2.7,
+      "bytes": 37562
+    },
+    "assets/audio/sfx/super-training-yay.m4a": {
+      "class": "sfx",
+      "before": -16.8,
+      "beforeTruePeak": -3.1,
+      "gainDb": 0.8,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -2.3,
+      "bytes": 11398
+    },
+    "assets/audio/sfx/tackle-thud.m4a": {
+      "class": "sfx",
+      "before": -13.2,
+      "beforeTruePeak": -2.6,
+      "gainDb": -2.77,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -5.3,
+      "bytes": 4015
+    },
+    "assets/audio/sfx/thunder-charge.wav": {
+      "class": "sfx",
+      "before": -10.9,
+      "beforeTruePeak": -1.7,
+      "gainDb": -5.1,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -6.8,
+      "bytes": 24774
+    },
+    "assets/audio/sfx/training-stat-ding.m4a": {
+      "class": "sfx",
+      "before": -14.7,
+      "beforeTruePeak": -0.1,
+      "gainDb": -1.3,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -1.4,
+      "bytes": 6657
+    },
+    "assets/audio/sfx/ui-tap.wav": {
+      "class": "sfx",
+      "before": -22.7,
+      "beforeTruePeak": -2.4,
+      "gainDb": 7.4,
+      "limited": true,
+      "after": -20.1,
+      "afterTruePeak": -1.2,
+      "unreachable": true,
+      "bytes": 6132
+    },
+    "assets/audio/sfx/web-cast.wav": {
+      "class": "sfx",
+      "before": -19.2,
+      "beforeTruePeak": -2.9,
+      "gainDb": 4.87,
+      "limited": true,
+      "after": -16.3,
+      "afterTruePeak": -1.2,
+      "bytes": 15072
+    },
+    "assets/audio/sfx/web-spring.wav": {
+      "class": "sfx",
+      "before": -19.7,
+      "beforeTruePeak": -2.5,
+      "gainDb": 5.2,
+      "limited": true,
+      "after": -16.2,
+      "afterTruePeak": -1,
+      "bytes": 19924
+    },
+    "assets/audio/sfx/zone-enter.m4a": {
+      "class": "sfx",
+      "before": -12.7,
+      "beforeTruePeak": -2.5,
+      "gainDb": -3.3,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -5.6,
+      "bytes": 13232
+    }
+  }
+}
