@@ -565,6 +565,25 @@ function GameApp() {
    * clipped desk row it replaces.
    */
   const [openedBoardFinanceAlertId, setOpenedBoardFinanceAlertId] = useState<string | null>(null);
+  /**
+   * Whether the season review has scrolled far enough to show the renewal queue.
+   *
+   * Screen state rather than career state: the milestone underneath it is what
+   * makes the lesson once-per-career, and this only says the manager is looking
+   * at the section right now. It resets on its own when the screen unmounts.
+   */
+  const [expiredContractReached, setExpiredContractReached] = useState(false);
+  // Stable, so the screen's own scroll handler is not rebuilt on every render
+  // of the review — and idempotent, because the section reports itself on both
+  // a layout and a scroll.
+  const markExpiredContractReached = useCallback(() => setExpiredContractReached(true), []);
+  // Re-arms the scroll gate on the way out. Without this, a review left before
+  // Bert finished would bank nothing and the NEXT season's review would open
+  // already flagged as reached — the lesson arriving over the league table,
+  // which is the one thing the scroll gate exists to prevent.
+  useEffect(() => {
+    if (store.screen !== 'season-end') setExpiredContractReached(false);
+  }, [store.screen]);
   const careerTeaches = store.career === null || assistantTeaches(store.career);
   const visibleConciergeFocus = careerTeaches ? conciergeFocus : null;
   // A screen-wide tap retires floating coach marks without completing the job
@@ -1437,12 +1456,14 @@ function GameApp() {
         && (career.market?.scoutReports.length ?? 0) > 0
         && !isTransferWindowOpen(career.week),
       lowConditionMatchday,
+      viewingExpiredContract: store.screen === 'season-end' && expiredContractReached,
     });
     for (const milestone of milestones) store.completeGuideMilestone(milestone);
   }, [
     careerTeaches,
     clubOfficeTab,
     content,
+    expiredContractReached,
     preferences.formationPresets,
     store.activeTab,
     store.career,
@@ -1578,6 +1599,23 @@ function GameApp() {
     && hasAssistantGuideMilestone(store.career, 'first-fans-seen')
     && !hasAssistantGuideMilestone(store.career, 'first-fans-ledger-seen');
   /**
+   * The renewal queue, explained the first time a season review reaches one.
+   *
+   * Gated on the section being on screen rather than on the review opening: it
+   * is the last block on a long page, under the settlement, the recap, the
+   * promotion rewards and the full league table. Raised on arrival he would be
+   * talking about a card several screens below the fold.
+   *
+   * `expiredContract` is checked as well as the scroll flag because the queue
+   * empties as the manager works through it — renewing the last player must not
+   * leave Bert mid-lesson about a card that is no longer there.
+   */
+  const expiredContractLessonVisible = careerTeaches
+    && store.screen === 'season-end'
+    && expiredContractReached
+    && store.career !== null
+    && !hasAssistantGuideMilestone(store.career, 'expired-contract-seen');
+  /**
    * Why a scouted player is still not signable.
    *
    * The scouting report reads like a purchase order — it is the only thing that
@@ -1647,6 +1685,7 @@ function GameApp() {
     || transferWindowLessonVisible
     || fansLessonVisible
     || fansLedgerTourVisible
+    || expiredContractLessonVisible
     || boardFinanceMessage !== undefined
     || bertNotice !== undefined
   )
@@ -2180,6 +2219,7 @@ function GameApp() {
         })}
         onPrimaryAction={() => season.sliceComplete ? store.setActiveTab('home') : store.advanceCareer()}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
+        onExpiredContractVisible={markExpiredContractReached}
         guideCopy={!careerTeaches || store.career.eventFlags.includes('m4:season-recap-guide-seen')
           ? undefined
           : assistantFiction(content.assistantGuide, 'seasonRecap', t)}
@@ -2857,6 +2897,14 @@ function GameApp() {
             navigationAnchor={navigationGuideAnchor}
             reduceMotion={reduceMotion}
             onDone={() => store.completeGuideMilestone('first-fans-ledger-seen')}
+          />
+        ) : guideOverlayVisible && expiredContractLessonVisible ? (
+          <BertBriefingWalkOn
+            key="expired-contract"
+            content={content.assistantGuide}
+            sequenceId="expired-contract"
+            reduceMotion={reduceMotion}
+            onDone={() => store.completeGuideMilestone('expired-contract-seen')}
           />
         ) : null}
         {boardFinanceMessage !== undefined && openedBoardFinanceAlertId !== null ? (

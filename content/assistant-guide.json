@@ -91,6 +91,38 @@
       ]
     },
     {
+      "id": "expired-contract",
+      "pages": [
+        {
+          "kicker": "Before the doors close",
+          "title": "Contracts run out",
+          "body": [
+            "Every season ends here. Contracts run out, and nobody kicks a ball next year until you have settled each one."
+          ],
+          "focus": "assistant",
+          "buttonLabel": "Go on..."
+        },
+        {
+          "kicker": "Three doors",
+          "title": "Keep him or lose him",
+          "body": [
+            "Let him leave. Sign him at the price on the table. Or meet the agent and talk about that price."
+          ],
+          "focus": "assistant",
+          "buttonLabel": "And?"
+        },
+        {
+          "kicker": "My advice",
+          "title": "Always meet the agent",
+          "body": [
+            "If you want to keep him, always meet the agent. Signing now pays the full ask; talks give you three rounds to come in under it."
+          ],
+          "focus": "assistant",
+          "buttonLabel": "Got it"
+        }
+      ]
+    },
+    {
       "id": "head-coach-market",
       "inbox": {
         "title": "HIRE A COACH",

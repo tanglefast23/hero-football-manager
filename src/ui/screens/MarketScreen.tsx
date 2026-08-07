@@ -30,6 +30,8 @@ import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
 import { useTapGuard } from '../use-tap-guard';
+import { AgentFinalDemandGate } from '../AgentFinalDemandGate';
+import { offerQuoteKey } from '../../application/market-view-model';
 import { useCopy } from '../../i18n';
 
 export interface MarketScreenProps {
@@ -263,6 +265,9 @@ export function MarketScreen({
       >
         <SectionFlow mode={layoutMode} header={header} sections={sections} />
       </ScrollView>
+      {/* Outside the ScrollView: the overlay fills its parent, and the panel it
+          belongs to sits somewhere down a scrolling column. */}
+      <AgentFinalDemandGate negotiation={viewModel.negotiation} />
     </View>
   );
 }
@@ -877,6 +882,19 @@ export function NegotiationPanel({
   const open = viewModel.status === 'OPEN';
   /** The offer on the table is below what the agent will hear out. */
   const walksOut = weeklyWage < viewModel.walkOutWeeklyWage;
+  const finalDemand = viewModel.finalDemand;
+  /**
+   * The lowest wage that signs him with the draft exactly as it stands.
+   *
+   * Looked up rather than computed: the engine owns this number and the panel
+   * would otherwise be a second opinion on the one figure it is promising the
+   * manager will work. `undefined` only if a term or promise somehow falls
+   * outside the quoted set, in which case the readout shows a dash rather than
+   * inventing a wage.
+   */
+  const requiredWage = viewModel.requiredWeeklyWageByOffer[
+    offerQuoteKey(termSeasons, perk, pitchCard)
+  ];
   const moodClass = viewModel.mood === 'ANGRY' || viewModel.mood === 'UNHAPPY'
     ? 'border-red-dark bg-red-light'
     : viewModel.mood === 'PLEASED' || viewModel.mood === 'THRILLED'
@@ -926,8 +944,77 @@ export function NegotiationPanel({
         </View>
       ) : null}
 
-      {open ? (
+      {/* The final round is not an offer, it is an answer. He has named one
+          figure and the manager takes it or loses the player, so the wage
+          stepper, the term buttons, the promises and the cards all come off —
+          leaving three of them live beside a fixed number would read as levers
+          that still do something. */}
+      {open && finalDemand !== undefined ? (
+        <View className="mt-4">
+          <View className="border-2 border-stamp bg-red-light p-3">
+            <PixelText className="text-sm uppercase tracking-wide text-stamp">
+              {t('market.finalOffer')}
+            </PixelText>
+            <Text className="mt-2 text-sm leading-5 text-ink/80">{finalDemand.line}</Text>
+          </View>
+          <View className="mt-3 flex-row items-center justify-between border-2 border-ink bg-white px-3 py-3">
+            <PixelText className="text-sm uppercase text-ink/50">
+              {t('market.perWeek')}
+            </PixelText>
+            <Text className="font-mono text-2xl text-stamp">
+              {formatCurrency(finalDemand.weeklyWage)}
+            </Text>
+          </View>
+          <Text className="mt-2 text-center text-sm text-ink/50">
+            {t('market.finalTerms', {
+              seasons: finalDemand.termSeasons,
+              promise: viewModel.perks.find(entry => entry.id === finalDemand.perk)?.label
+                ?? finalDemand.perk,
+            })}
+          </Text>
+          <View className="mt-3">
+            <ActionButton
+              label={t('market.signAtTheirPrice', {
+                wage: formatCurrency(finalDemand.weeklyWage),
+              })}
+              accessibilityLabel={t('market.a11y.offerPerWeekForSeasons', {
+                wage: formatCurrency(finalDemand.weeklyWage),
+                seasons: finalDemand.termSeasons,
+              })}
+              variant="confirm"
+              onPress={() => guardTap(() => onSubmitContractOffer({
+                weeklyWage: finalDemand.weeklyWage,
+                termSeasons: finalDemand.termSeasons,
+                perk: finalDemand.perk,
+              }))}
+            />
+          </View>
+          <View className="mt-2">
+            <ActionButton
+              label={t('market.walkAway')}
+              accessibilityLabel={t('market.a11y.closeCompletedContractNegotiation')}
+              variant="paper"
+              onPress={onClose}
+            />
+          </View>
+        </View>
+      ) : open ? (
         <>
+          {/* The number the whole panel exists to show, above the stepper that
+              sets it. Every control below moves this one value, which is what
+              makes the term buttons and the promises legible as the discounts
+              they are rather than four unexplained percentages. */}
+          <View className="mt-4 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2">
+            <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink/60">
+              {t('market.wageNeeded')}
+            </PixelText>
+            <Text className={requiredWage !== undefined && weeklyWage >= requiredWage
+              ? 'font-mono text-xl text-pitch-ink'
+              : 'font-mono text-xl text-stamp'}
+            >
+              {requiredWage === undefined ? '—' : formatCurrency(requiredWage)}
+            </Text>
+          </View>
           <View className="mt-4">
             <Text className="font-pixel text-sm uppercase text-stamp">{t('market.1WeeklyWage')}</Text>
             <View className="mt-2 flex-row items-stretch gap-2">

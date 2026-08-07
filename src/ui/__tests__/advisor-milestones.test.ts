@@ -9,6 +9,7 @@ const NO_CONTEXT: AdvisorMilestoneContext = {
   viewingFinances: false,
   viewingShutMarket: false,
   lowConditionMatchday: false,
+  viewingExpiredContract: false,
 };
 
 describe('silently banking lessons an Advisor has already lived through', () => {

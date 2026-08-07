@@ -50,6 +50,8 @@ export type AssistantInboxGuideSequenceId = typeof M2_ASSISTANT_GUIDE_SEQUENCE_I
 export type AssistantGuideSequenceId =
   | 'management-intro'
   | 'desk-intro'
+  /** Delivered by the season review, not the weekly desk — see the milestone. */
+  | 'expired-contract'
   | AssistantInboxGuideSequenceId;
 
 export type AssistantGuideMilestone =
@@ -85,7 +87,15 @@ export type AssistantGuideMilestone =
    * a career that closes between them resumes on the board it still owes.
    */
   | 'first-fans-seen'
-  | 'first-fans-ledger-seen';
+  | 'first-fans-ledger-seen'
+  /**
+   * The first expired contract the season review ever puts in front of the
+   * manager. Every season ends with this queue, and the three doors out of it —
+   * release, sign at the ask, talk the ask down — are the only place in the
+   * game where walking away is one of the buttons. Said once, on the screen
+   * that is asking.
+   */
+  | 'expired-contract-seen';
 
 type AssistantInboxProductAlertPriority = 'urgent' | 'normal';
 
@@ -136,11 +146,16 @@ const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
   'first-cup-exit-seen': 'guide:bert:first-cup-exit-seen',
   'first-fans-seen': 'guide:bert:first-fans-seen',
   'first-fans-ledger-seen': 'guide:bert:first-fans-ledger-seen',
+  'expired-contract-seen': 'guide:bert:expired-contract-seen',
 };
 
 const MILESTONE_BY_SEQUENCE: Readonly<Partial<Record<AssistantGuideSequenceId, AssistantGuideMilestone>>> = {
   'management-intro': 'intro-complete',
   'desk-intro': 'desk-intro-complete',
+  // The three screen-delivered sequences all record completion as a milestone.
+  // Only the inbox ones carry a per-sequence flag, because only they have a
+  // queue that has to stop re-offering them.
+  'expired-contract': 'expired-contract-seen',
 };
 
 const M2_SEQUENCE_IDS = new Set<string>(M2_ASSISTANT_GUIDE_SEQUENCE_IDS);

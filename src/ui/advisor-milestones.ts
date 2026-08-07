@@ -20,6 +20,8 @@ export interface AdvisorMilestoneContext {
   readonly viewingShutMarket: boolean;
   /** Match day currently contains a below-peak starter. */
   readonly lowConditionMatchday: boolean;
+  /** The season review is showing a contract the manager has to settle. */
+  readonly viewingExpiredContract: boolean;
 }
 
 /**
@@ -70,6 +72,7 @@ export function advisorMilestonesToBank(
     }
   }
   if (context.viewingShutMarket) add('transfer-window-seen');
+  if (context.viewingExpiredContract) add('expired-contract-seen');
   if (context.lowConditionMatchday) add('match-condition-warning-seen');
   if (context.viewingHome && hasEverGainedFans(state)) add('first-fans-seen');
   if (context.viewingFinances && hasEverGainedFans(state)) {

@@ -19,6 +19,11 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   // needling, not admiring, so it must not be delivered warmly.
   'management-intro': ['hello', 'sizing-you-up', 'warning-money', 'shrugging', 'pointing-out'],
   'desk-intro': ['pointing-out', 'encouraging'],
+  // The season's last screen. He explains the ritual, counts the three doors
+  // out of it, then drops his voice for the part that is advice rather than
+  // rules — `confiding` is the only look that separates "here is how it works"
+  // from "here is what I would do", and this beat is the second one.
+  'expired-contract': ['explaining', 'listing', 'confiding'],
   'head-coach-market': ['explaining'],
   'head-coach-hire': ['listing'],
   'coaching-office': ['pointing-out'],

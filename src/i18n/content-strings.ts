@@ -154,6 +154,9 @@ export function contentStrings(): Readonly<Record<string, string>> {
   for (const line of content.fulltimeBlameLines.lines) {
     put(`coach.blame.${proseSlug(line)}`, line);
   }
+  for (const line of content.agentFinalLines.lines) {
+    put(`agent.final.${proseSlug(line)}`, line);
+  }
   for (const line of content.awardCeremonyLines.winner) {
     put(`ceremony.winner.${proseSlug(line)}`, line);
   }

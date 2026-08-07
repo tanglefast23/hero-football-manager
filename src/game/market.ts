@@ -445,6 +445,15 @@ interface NegotiationConsequence {
 
 export interface ContractNegotiation {
   readonly id: string;
+  /**
+   * Carried so a round's mood swing can be derived rather than rolled.
+   *
+   * `src/game` is a pure ring: no `Math.random`, same seed means byte-identical
+   * results. Storing the career seed on the negotiation is what lets the
+   * per-round wobble be a function of (seed, id, round) instead of a dice throw
+   * a reload could re-roll into a better price.
+   */
+  readonly careerSeed?: number;
   readonly playerId: string;
   readonly personality: PlayerPersonality;
   readonly weeklyAsk: number;
@@ -542,8 +551,34 @@ export function renewalContractAsk(
   if (player.power !== undefined && !player.onHeroWage) {
     ask = checkedRound(ask * factors.heroMultiplier, 'hero renewal ask');
   }
-  return ask;
+  // Everything above compounds, and compounding is what produced the number
+  // this cap exists to stop. Growth, fame, loyalty, personality and the hero
+  // premium each multiply the last, so a well-trained famous hero could ask
+  // 4.0 x 2.0 x 1.2 x 4 = 46x his old wage — and the screen presented that as
+  // the awakening's doing, beside a struck-through wage, with nothing on it to
+  // explain the other 11x.
+  //
+  // The ceiling is on the WHOLE ask rather than on any one factor, because no
+  // single factor was wrong: each is defensible and their product is not. This
+  // is the only number a player ever sees here, so it is the one that has to
+  // match what the game promises — a renewal costs up to five times the old
+  // deal, and never more, however the five is arrived at.
+  return Math.min(ask, checkedRound(
+    player.weeklyWage * MAX_RENEWAL_ASK_MULTIPLE,
+    'capped renewal ask',
+  ));
 }
+
+/**
+ * The most any renewal may ask, as a multiple of what the club already pays.
+ *
+ * Doc 06's "hero rates are 3-5x" is a statement about the number on the card,
+ * which is the only place a manager can read it. Before this cap that sentence
+ * described `heroMultiplier` alone — one term in a product of five — and the
+ * card routinely showed eight or nine times the old wage while every internal
+ * value stayed inside its documented range.
+ */
+export const MAX_RENEWAL_ASK_MULTIPLE = 5;
 
 export function dealPitchCards(careerSeed: number, negotiationId: string): PitchCard[] {
   assertUint32(careerSeed, 'negotiation career seed');
@@ -564,6 +599,7 @@ export function startContractNegotiation(
 
   return {
     id: setup.negotiationId,
+    careerSeed: setup.careerSeed,
     playerId: setup.playerId,
     personality: setup.personality,
     weeklyAsk: setup.weeklyAsk,
@@ -603,6 +639,62 @@ export function insultingOfferFloor(weeklyAsk: number): number {
   return Math.ceil(weeklyAsk / 2);
 }
 
+/**
+ * The most an agent's mood can move his price in a single round, either way.
+ *
+ * The reason this exists at all: a flat threshold makes every negotiation the
+ * same arithmetic problem, and solving arithmetic twice is not a game. A round
+ * that can come in under the number is a round you can get lucky in, and
+ * getting lucky is the only way "I talked him down" ever feels like something
+ * you did rather than something you calculated.
+ *
+ * Eight percent is sized against the wage step. On a mid-table ask the swing is
+ * a step or two — enough that the same offer genuinely lands differently, small
+ * enough that it never turns a considered offer into a coin toss.
+ */
+export const ASK_WOBBLE_PERCENT = 8;
+
+/**
+ * The round the agent stops moving and names his price.
+ *
+ * From here the wobble is off. Everything the final round says has to be true,
+ * because the manager is being asked to take it or leave it — a stated number
+ * that a hidden roll could still refuse would be the worst version of this
+ * screen, not the best one.
+ */
+export const FINAL_NEGOTIATION_ROUND = 3;
+
+/**
+ * How this round's agent is feeling, as signed percentage points on his ask.
+ *
+ * Derived from the career seed, the negotiation id and the round number, so it
+ * is stable under save-and-reload and different for every player, every season
+ * and every round. Rerolling it is impossible by construction: there is no
+ * state to reroll, only a pure function of three values the save already holds.
+ */
+export function askWobblePercent(
+  careerSeed: number | undefined,
+  negotiationId: string,
+  round: number,
+): number {
+  // A negotiation saved before the seed was carried has no mood to derive. It
+  // negotiates flat rather than throwing: the alternative is that reopening a
+  // save captured mid-talks crashes on the next offer, and a missing wobble is
+  // invisible where a crash is not. New negotiations always carry the seed —
+  // `startContractNegotiation` requires it.
+  if (careerSeed === undefined) return 0;
+  assertUint32(careerSeed, 'negotiation career seed');
+  assertNonEmptyString(negotiationId, 'negotiation ID');
+  if (!Number.isSafeInteger(round) || round < 1) {
+    throw new Error('negotiation round must be a positive integer');
+  }
+  // The final round is the agent's stated position, not a mood.
+  if (round >= FINAL_NEGOTIATION_ROUND) return 0;
+  const roll = mulberry32(mixSeed(careerSeed, `ask:${negotiationId}:r${round}`))();
+  const span = ASK_WOBBLE_PERCENT * 2 + 1;
+  return Math.floor(roll * span) - ASK_WOBBLE_PERCENT;
+}
+
 export function effectiveContractAsk(weeklyAsk: number, pitchInfluencePercent: number): number {
   assertPositiveSafeInteger(weeklyAsk, 'weekly contract ask');
   if (!Number.isSafeInteger(pitchInfluencePercent)) {
@@ -622,22 +714,144 @@ export function effectiveContractAsk(weeklyAsk: number, pitchInfluencePercent: n
  * is the one thing the panel has to state correctly — it is the only reason to
  * pick the promise that costs the squad the most.
  */
-export function contractPerkPercent(perk: ContractPerk): number {
-  validateContractPerk(perk);
+/**
+ * What each temperament thinks of each promise, in percentage points on top of
+ * the base ladder.
+ *
+ * The ladder alone made personality worth reading in exactly one place — the
+ * pitch cards — while the promises, which cost the squad far more, were priced
+ * identically for a mercenary and a homebody. Reading your player now pays
+ * twice: once for the card you play, once for the thing you promise.
+ *
+ * The signs are the character, not a spread:
+ * - GREEDY discounts everything that is not money. He is the one player for
+ *   whom promises are a weak lever, which is what makes him expensive.
+ * - FIERY wants the armband and hates being told he will merely play.
+ * - TIMID wants the security of the shirt and the starting place; the armband
+ *   is a burden he did not ask for.
+ * - PROFESSIONAL values the work — training priority — over the ceremony.
+ * - JOKER wants the number 10 on his back and very little else.
+ * - LOYAL is warmed by all of it, mildly. He was staying anyway.
+ */
+const PERK_PERSONALITY_BONUS: Readonly<
+  Record<PlayerPersonality, Readonly<Record<ContractPerk, number>>>
+> = {
+  GREEDY: { GUARANTEED_STARTER: -4, CAPTAINCY: -4, TRAINING_PRIORITY: -4, JERSEY_10: -2 },
+  FIERY: { GUARANTEED_STARTER: -2, CAPTAINCY: 4, TRAINING_PRIORITY: 0, JERSEY_10: 2 },
+  TIMID: { GUARANTEED_STARTER: 4, CAPTAINCY: -4, TRAINING_PRIORITY: 2, JERSEY_10: 0 },
+  PROFESSIONAL: { GUARANTEED_STARTER: 0, CAPTAINCY: 2, TRAINING_PRIORITY: 4, JERSEY_10: -2 },
+  JOKER: { GUARANTEED_STARTER: 0, CAPTAINCY: -2, TRAINING_PRIORITY: -2, JERSEY_10: 4 },
+  LOYAL: { GUARANTEED_STARTER: 2, CAPTAINCY: 2, TRAINING_PRIORITY: 2, JERSEY_10: 2 },
+};
+
+/**
+ * The base worth of a promise, before the player's own opinion of it.
+ *
+ * The order is the cost to the club, not the cost to the wage bill: a
+ * guaranteed start binds every team sheet for the length of the deal, the
+ * armband is taken off somebody else, training priority spends five drills, and
+ * a shirt number costs nothing at all. The biggest discount is the biggest
+ * handcuff, deliberately.
+ */
+function contractPerkBasePercent(perk: ContractPerk): number {
   if (perk === 'GUARANTEED_STARTER') return 10;
   if (perk === 'CAPTAINCY') return 8;
   if (perk === 'TRAINING_PRIORITY') return 6;
   return 4;
 }
 
-export function contractOfferValue(offer: ContractOffer): number {
+/**
+ * What a promise is worth to this player, as percentage points added to the
+ * wage on the table.
+ *
+ * Exported so the negotiation panel can grade the four promises from the same
+ * numbers the agent judges them by. A grade hand-written in the view model is a
+ * second opinion that drifts the first time these move, and the promise ladder
+ * is the one thing the panel has to state correctly.
+ *
+ * `personality` is optional so the grading call sites that have no player in
+ * hand still get the base ladder rather than a thrown error.
+ */
+export function contractPerkPercent(
+  perk: ContractPerk,
+  personality?: PlayerPersonality,
+): number {
+  validateContractPerk(perk);
+  const base = contractPerkBasePercent(perk);
+  if (personality === undefined) return base;
+  validatePersonality(personality);
+  // Floored at 1 rather than allowed to reach zero: a promise the club is
+  // genuinely bound by must always be worth something, or GREEDY players would
+  // present a promise button that provably does nothing.
+  return Math.max(1, base + PERK_PERSONALITY_BONUS[personality][perk]);
+}
+
+export function contractOfferValue(
+  offer: ContractOffer,
+  personality?: PlayerPersonality,
+): number {
   validateContractOffer(offer);
-  const termPercent = (offer.termSeasons - 1) * 3;
   return scaleByPercent(
     offer.weeklyWage,
-    100 + termPercent + contractPerkPercent(offer.perk),
+    contractOfferBonusPercent(offer.termSeasons, offer.perk, personality),
     'effective contract offer',
   );
+}
+
+/**
+ * The whole multiplier on a wage, as a percentage — term plus promise.
+ *
+ * Named once because three places need exactly this number and must not derive
+ * it separately: the acceptance test, the wage the panel tells the manager to
+ * offer, and the figure the agent names in his closing line. Two of those are
+ * shown to the player as promises about the third.
+ */
+export function contractOfferBonusPercent(
+  termSeasons: number,
+  perk: ContractPerk,
+  personality?: PlayerPersonality,
+): number {
+  return 100 + (termSeasons - 1) * 3 + contractPerkPercent(perk, personality);
+}
+
+/**
+ * The lowest weekly wage this negotiation would accept, right now.
+ *
+ * This is the number the screen exists to show. Before it, the panel reported
+ * mood, the walk-out floor and a leverage percentage, and left the manager to
+ * reconstruct the actual figure from three of them — which is not a puzzle, it
+ * is a hidden number. Every lever the manager can pull moves this one value, so
+ * showing it live is what makes the term buttons, the promises and the pitch
+ * cards legible as the discounts they are.
+ *
+ * `round` decides whether the agent's mood is in play. Passing the round he is
+ * ABOUT to answer is what makes this agree with `submitContractOffer`.
+ */
+export function requiredWeeklyWage(
+  negotiation: ContractNegotiation,
+  termSeasons: number,
+  perk: ContractPerk,
+  pitchCard?: PitchCard,
+): number {
+  validateNegotiation(negotiation);
+  validateContractPerk(perk);
+  const round = negotiation.round + 1;
+  const affinity = pitchCard === undefined
+    ? 0
+    : pitchCardAffinity(negotiation.personality, pitchCard);
+  const influence = Math.max(-20, Math.min(20,
+    negotiation.pitchInfluencePercent
+    + (affinity === 1 ? -10 : affinity === -1 ? 10 : 0)
+    + askWobblePercent(negotiation.careerSeed, negotiation.id, round)));
+  const ask = effectiveContractAsk(negotiation.weeklyAsk, influence);
+  const bonus = contractOfferBonusPercent(termSeasons, perk, negotiation.personality);
+  // Rounded UP: the acceptance test is `offer x bonus >= ask`, and a wage
+  // rounded down would be one dollar short of the number the screen just
+  // promised would work. Told to offer it, the manager must be accepted.
+  const needed = Math.ceil((ask * 100) / bonus);
+  // An offer below the insult line ends talks however well it scores, so the
+  // number shown can never be one that would get the manager thrown out.
+  return Math.max(needed, insultingOfferFloor(negotiation.weeklyAsk));
 }
 
 /**
@@ -696,9 +910,20 @@ export function submitContractOffer(
     -20,
     Math.min(20, negotiation.pitchInfluencePercent + pitchDelta),
   );
-  const effectiveAsk = effectiveContractAsk(negotiation.weeklyAsk, pitchInfluencePercent);
-  const effectiveOffer = contractOfferValue(offer);
   const round = negotiation.round + 1;
+  // The mood of the round rides on top of the cards, and is clamped with them:
+  // a hated card plus a bad mood must not push the ask past what the +/-20 cap
+  // was written to guarantee.
+  const wobbledInfluence = Math.max(
+    -20,
+    Math.min(20, pitchInfluencePercent + askWobblePercent(
+      negotiation.careerSeed,
+      negotiation.id,
+      round,
+    )),
+  );
+  const effectiveAsk = effectiveContractAsk(negotiation.weeklyAsk, wobbledInfluence);
+  const effectiveOffer = contractOfferValue(offer, negotiation.personality);
   const insulting = offer.weeklyWage < insultingOfferFloor(negotiation.weeklyAsk);
   const accepted = !insulting && effectiveOffer >= effectiveAsk;
   const finalRejection = !insulting && !accepted && round === 3;

@@ -209,6 +209,29 @@ export interface MarketNegotiationViewModel {
    * the manager discover it by ending the talks.
    */
   readonly walkOutWeeklyWage: number;
+  /**
+   * The lowest wage that signs him, for every shape of offer the panel can dial
+   * in. Keyed by `offerQuoteKey`.
+   *
+   * This is the number the screen exists to show. Without it the manager was
+   * bidding against a figure the view model deliberately withheld, from a
+   * slider seeded at 70% of it, with three attempts — which is not a
+   * negotiation, it is a guessing game with a hidden answer.
+   */
+  readonly requiredWeeklyWageByOffer: Readonly<Record<string, number>>;
+  /**
+   * The agent's closing position. Present only in the final round.
+   *
+   * Its presence IS the mode switch: when this is set the manager no longer
+   * makes an offer, they take this one or lose the player.
+   */
+  readonly finalDemand?: {
+    readonly weeklyWage: number;
+    readonly termSeasons: 1 | 2 | 3;
+    readonly perk: ContractPerk;
+    /** Already carrying the figure — one of fifteen authored ultimatums. */
+    readonly line: string;
+  };
   readonly lastOutcomeLabel?: string;
   /**
    * The offer that produced the current round, absent before the first one.
