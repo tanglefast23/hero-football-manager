@@ -1,4 +1,4 @@
-import type { TeamDef } from '../../sim/types';
+import type { Role, TeamDef } from '../../sim/types';
 import { developmentPotentialCeiling } from '../archetype-caps';
 import { compareIds } from '../ordering';
 import { assignDistinctPlayerLooks, createdAppearanceLookId } from '../player-appearance';
@@ -12,6 +12,38 @@ import {
 } from './player-creation';
 
 const CREATED_PLAYER_ID_SUFFIX = 'created-player';
+
+/** Sheet order for the rename list: back to front, the way a team sheet reads. */
+const ROSTER_ROLE_ORDER: Readonly<Record<Role, number>> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
+
+export interface InheritedSquadMember {
+  id: string;
+  name: string;
+  role: Role;
+}
+
+/**
+ * The squad already on the books when the manager arrives, for the rename sheet
+ * on the first-hire screen. The created player is deliberately absent: they do
+ * not exist yet, and their name is the field above the sheet.
+ */
+export function inheritedSquad(state: GameState): readonly InheritedSquadMember[] {
+  return state.players
+    .filter(player => player.clubId === state.userClubId)
+    .slice()
+    .sort((left, right) => (
+      ROSTER_ROLE_ORDER[left.role] - ROSTER_ROLE_ORDER[right.role]
+      || compareIds(left.id, right.id)
+    ))
+    .map(({ id, name, role }) => ({ id, name, role }));
+}
+
+/** The manager's own club, which the first-hire screen offers to rename. */
+export function userClubName(state: GameState): string {
+  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
+  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  return club.name;
+}
 
 export function beginStoryOnboarding(state: GameState): GameState {
   if (state.phase !== 'manage' || state.season !== 1 || state.week !== 1) {
@@ -66,7 +98,18 @@ export function addCreatedPlayer(state: GameState, draft: CreatedPlayerDraft): G
   if (state.onboarding?.stage !== 'create-player') {
     throw new Error('A player can only be created at the start of onboarding');
   }
-  const { name, attrs, appearance, difficulty } = validateCreatedPlayerDraft(draft);
+  const { name, attrs, appearance, difficulty, clubName, rosterNames } =
+    validateCreatedPlayerDraft(draft);
+  // A Map rather than the record itself: ids reach here from a draft, so a key
+  // like `constructor` would otherwise read an inherited function off the
+  // prototype and be assigned as somebody's name.
+  const renames = new Map(Object.entries(rosterNames));
+  const squadIds = new Set(
+    state.players.filter(player => player.clubId === state.userClubId).map(player => player.id),
+  );
+  for (const id of renames.keys()) {
+    if (!squadIds.has(id)) throw new Error(`Cannot rename ${id}: it is not on the manager's roster`);
+  }
   const playerId = `${state.userClubId}-${CREATED_PLAYER_ID_SUFFIX}`;
   if (state.players.some(player => player.id === playerId)) {
     throw new Error('The created player already exists');
@@ -123,10 +166,18 @@ export function addCreatedPlayer(state: GameState, draft: CreatedPlayerDraft): G
     ...state,
     difficulty,
     clubs: state.clubs.map(club => club.id === state.userClubId
-      ? { ...club, weeklyWages: safeAdd(club.weeklyWages, CREATED_PLAYER_ROOKIE_WAGE) }
+      ? {
+          ...club,
+          ...(clubName === undefined ? {} : { name: clubName }),
+          weeklyWages: safeAdd(club.weeklyWages, CREATED_PLAYER_ROOKIE_WAGE),
+        }
       : club),
     players: [
-      ...state.players.map(player => assignedById.get(player.id)!),
+      ...state.players.map(player => {
+        const assigned = assignedById.get(player.id)!;
+        const renamed = renames.get(assigned.id);
+        return renamed === undefined ? assigned : { ...assigned, name: renamed };
+      }),
       assignedById.get(created.id)!,
     ],
     lineups: state.lineups.map(candidate => candidate.clubId === state.userClubId

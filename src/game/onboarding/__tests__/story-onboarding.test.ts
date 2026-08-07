@@ -7,7 +7,9 @@ import {
   beginStoryOnboarding,
   completeFirstOnboardingMatch,
   createdPlayer,
+  inheritedSquad,
   isFirstOnboardingFixture,
+  userClubName,
 } from '../story-onboarding';
 
 function state(): GameState {
@@ -162,6 +164,73 @@ describe('story onboarding state machine', () => {
     });
     expect(revealed.players.filter(player => player.power)).toHaveLength(1);
     expect(completePostMatchAwakening(revealed).onboarding?.stage).toBe('complete');
+  });
+
+  it('offers the club name and the inherited squad to the first-hire screen', () => {
+    const begun = beginStoryOnboarding(state());
+    expect(userClubName(begun)).toBe('Rovers');
+    expect(inheritedSquad(begun)).toEqual([
+      { id: 'forward-two', name: 'Forward Two', role: 'FWD' },
+      { id: 'old-hero', name: 'Old Hero', role: 'FWD' },
+    ]);
+  });
+
+  it('renames the club and the squad the manager typed over', () => {
+    const created = addCreatedPlayer(beginStoryOnboarding(state()), {
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+      // Untidy on purpose: the engine trims and collapses whatever a keyboard
+      // produced, the same way it does for the rookie's own name.
+      clubName: '  Thistle  Town ',
+      rosterNames: { 'old-hero': 'Nia Bell', 'forward-two': '   ' },
+    });
+    expect(created.clubs[0].name).toBe('Thistle Town');
+    expect(created.players.find(player => player.id === 'old-hero')?.name).toBe('Nia Bell');
+    // A field left blank keeps the name it opened with.
+    expect(created.players.find(player => player.id === 'forward-two')?.name).toBe('Forward Two');
+  });
+
+  it('leaves the club alone when nothing was typed over it', () => {
+    const created = addCreatedPlayer(beginStoryOnboarding(state()), {
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+      clubName: '',
+      rosterNames: {},
+    });
+    expect(created.clubs[0].name).toBe('Rovers');
+  });
+
+  it('refuses a rename aimed at somebody outside the manager s own roster', () => {
+    expect(() => addCreatedPlayer(beginStoryOnboarding(state()), {
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+      rosterNames: { 'rival-striker': 'Nia Bell' },
+    })).toThrow('not on the manager');
+  });
+
+  it('refuses a club or squad name too short to print', () => {
+    const begun = beginStoryOnboarding(state());
+    expect(() => addCreatedPlayer(begun, {
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+      clubName: 'R',
+    })).toThrow('Club name');
+    expect(() => addCreatedPlayer(begun, {
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+      rosterNames: { 'old-hero': 'N' },
+    })).toThrow('old-hero');
+  });
+
+  it('refuses to read a name off the prototype chain', () => {
+    // Ids reach the engine from a draft, so `constructor` is a reachable key —
+    // and a plain record lookup would have handed back a function to assign as
+    // somebody's name.
+    expect(() => addCreatedPlayer(beginStoryOnboarding(state()), {
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+      rosterNames: { constructor: 'Nia Bell' },
+    })).toThrow('not on the manager');
   });
 
   it('refuses to make the avatar hero #1 if another user hero still exists', () => {
