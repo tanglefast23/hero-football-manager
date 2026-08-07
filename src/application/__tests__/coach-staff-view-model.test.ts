@@ -34,7 +34,7 @@ describe('Club coaching-staff view model', () => {
       effectLabels: [
         'SHO training +10%',
         'Morale loss -5% · Hero Gauge +5%',
-        '+12 TP weekly',
+        '+10 TP weekly',
       ],
     })]);
   });
@@ -58,7 +58,7 @@ describe('Club coaching-staff view model', () => {
         effectLabels: [
           'SHO training +5%',
           'Morale loss -2.5% · Hero Gauge +2.5%',
-          '+6 TP weekly',
+          '+5 TP weekly',
         ],
       });
   });

@@ -254,7 +254,7 @@ describe('career squad integration', () => {
     expect(() => buildTrainingGround(built)).toThrow(/Training Pitch is already built/);
 
     // Each week banks the club's unconditional baseline; only the pitch's own
-    // +28 waits for construction to finish.
+    // per-level TP waits for construction to finish.
     const stillBuilding = advanceWeek(built);
     expect(stillBuilding.week).toBe(2);
     expect(stillBuilding.trainingPoints).toBe(100 + BASE_WEEKLY_TRAINING_POINTS);

@@ -44,5 +44,6 @@ export * from './sponsors';
 export * from './story-progression';
 export * from './training';
 export * from './training-paths';
+export * from './training-point-income';
 export * from './types';
 export * from './youth-intake';

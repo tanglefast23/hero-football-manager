@@ -64,7 +64,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 10
+                  "amount": 8
                 }
               ]
             }
@@ -161,7 +161,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 18
+                  "amount": 15
                 },
                 {
                   "type": "morale",
@@ -233,7 +233,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 24
+                  "amount": 20
                 },
                 {
                   "type": "flag",
@@ -267,7 +267,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 6
+                  "amount": 5
                 }
               ]
             }
@@ -305,7 +305,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 20
+                  "amount": 16
                 },
                 {
                   "type": "flag",
@@ -407,7 +407,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 5
+                  "amount": 4
                 }
               ]
             }
@@ -441,7 +441,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 20
+                  "amount": 16
                 },
                 {
                   "type": "morale",
@@ -1045,7 +1045,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 7
+                  "amount": 6
                 }
               ]
             }
@@ -1234,7 +1234,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 8
+                  "amount": 7
                 },
                 {
                   "type": "flag",
@@ -1380,7 +1380,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 25
+                  "amount": 20
                 },
                 {
                   "type": "morale",
@@ -1487,7 +1487,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 8
+                  "amount": 7
                 },
                 {
                   "type": "morale",
@@ -1530,7 +1530,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 7
+                  "amount": 6
                 },
                 {
                   "type": "flag",
@@ -1598,7 +1598,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 14
+                  "amount": 12
                 },
                 {
                   "type": "morale",
@@ -1673,7 +1673,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 22
+                  "amount": 18
                 },
                 {
                   "type": "morale",
@@ -1715,7 +1715,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 8
+                  "amount": 7
                 }
               ]
             }
@@ -1975,7 +1975,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 24
+                  "amount": 20
                 },
                 {
                   "type": "flag",
@@ -2009,7 +2009,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 6
+                  "amount": 5
                 }
               ]
             }
@@ -2043,7 +2043,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 30
+                  "amount": 24
                 },
                 {
                   "type": "morale",
@@ -2081,7 +2081,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 5
+                  "amount": 4
                 }
               ]
             }
@@ -2230,7 +2230,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 8
+                  "amount": 7
                 }
               ]
             }
@@ -2415,7 +2415,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 10
+                  "amount": 8
                 },
                 {
                   "type": "flag",
@@ -2522,7 +2522,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 7
+                  "amount": 6
                 }
               ]
             }
@@ -2672,7 +2672,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 9
+                  "amount": 8
                 }
               ]
             }
@@ -2743,7 +2743,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 5
+                  "amount": 4
                 }
               ],
               "nextEventId": "rival-bid-deadline-day"
@@ -2863,7 +2863,7 @@
                 },
                 {
                   "type": "tp",
-                  "amount": 26
+                  "amount": 21
                 },
                 {
                   "type": "flag",
@@ -2897,7 +2897,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 8
+                  "amount": 7
                 }
               ]
             }
@@ -3042,7 +3042,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 11
+                  "amount": 9
                 }
               ]
             }
@@ -3076,7 +3076,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 20
+                  "amount": 16
                 },
                 {
                   "type": "morale",
@@ -3188,7 +3188,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 10
+                  "amount": 8
                 }
               ]
             }
@@ -3296,7 +3296,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 18
+                  "amount": 15
                 },
                 {
                   "type": "morale",
@@ -3316,7 +3316,7 @@
               "effects": [
                 {
                   "type": "tp",
-                  "amount": 6
+                  "amount": 5
                 }
               ]
             }

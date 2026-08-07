@@ -5,6 +5,7 @@ import {
   type CareerMarketState,
 } from './market-career';
 import type { CoachSpecialty } from './market';
+import { scaledTrainingPoints } from './training-point-income';
 
 const TRAINING_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
 
@@ -15,12 +16,19 @@ export function coachTrainingBonusPercent(level: number, role: CareerCoachRole):
   return checkedMultiply(level, role === 'HEAD' ? 10 : 5, `${role.toLowerCase()} training bonus`);
 }
 
-/** Stable weekly TP created by one employed coach. */
+/**
+ * Stable weekly TP created by one employed coach.
+ *
+ * The full rates are 10 + 2×level for a head coach and 5 + level for an
+ * assistant; `TRAINING_POINT_SCALE_PERCENT` then cuts both by 20%
+ * alongside the baseline and the Training Pitch, so hiring never becomes the
+ * cheap way around a weekly income the rest of the game just lowered.
+ */
 export function coachWeeklyTrainingPoints(level: number, role: CareerCoachRole): number {
   validateCoachLevel(level, role === 'HEAD' ? 'head coach' : 'assistant coach');
-  return role === 'HEAD'
+  return scaledTrainingPoints(role === 'HEAD'
     ? 10 + checkedMultiply(level, 2, 'head coach TP')
-    : 5 + level;
+    : 5 + level);
 }
 
 /** Motivator strength in half-levels: a head level is 5%, an assistant level is 2.5%. */
