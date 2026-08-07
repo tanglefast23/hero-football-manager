@@ -65,11 +65,14 @@ describe('first match coaching prompts', () => {
     const match = readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
 
     expect(app).toContain('firstMatchTutorial={careerTeaches && isFirstOnboardingFixture(');
-    expect(match).toContain('Swap in a fresh player to give them some rest.');
-    expect(match).toContain('is very tired');
+    // The words moved into the catalog, so the wiring is what this can still
+    // see here; the English itself is asserted by the i18n catalog gates.
+    expect(match).toContain("t('matchScreen.swapInAFreshPlayer')");
+    expect(match).toContain("t('matchScreen.playerIsVeryTired'");
+    expect(match).toContain("t('matchScreen.onePlayerIsVeryTired')");
     expect(match).toContain('firstMatchTiredPlayerRef.current = prompt.player;');
     expect(match).toContain('tutorialTiredStarter');
-    expect(match).toContain('detail="Swap players"');
+    expect(match).toContain("detail={t('matchScreen.swapPlayers')}");
     expect(match).not.toContain('Try a new strategy');
     expect(match).not.toContain('The other team is pulling away.');
   });
@@ -108,7 +111,8 @@ describe('first match coaching prompts', () => {
     expect(match).toContain('firstMatchTiredPlayerRef.current ?? undefined');
     expect(match).toContain('onGuideFieldPlayerAction={finishTiredPlayerTutorial}');
     // Desktop takes either, so the cue names both rather than the drag alone.
-    expect(board).toContain("wide ? 'Click or drag' : 'Tap'");
+    expect(board).toContain("t('substitutionBoard.guideClickOrDrag')");
+    expect(board).toContain("t('substitutionBoard.guideTap')");
     expect(board).toContain('const guided = id === guideCardId;');
     expect(board).toContain('guideLabel === undefined ? null : styles.cardGuided');
     expect(board).toContain('consumeGuide(source);');

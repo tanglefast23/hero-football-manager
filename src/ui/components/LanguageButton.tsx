@@ -33,7 +33,7 @@ export function LanguageButton({ value, onChange, className }: LanguageButtonPro
     <>
       <SfxPressable
         accessibilityRole="button"
-        accessibilityLabel={`Language: ${current.endonym}. Tap to change.`}
+        accessibilityLabel={t('languageButton.a11y.current', { language: current.endonym })}
         onPress={() => {
           setOpen(true);
         }}
@@ -65,11 +65,11 @@ export function LanguageButton({ value, onChange, className }: LanguageButtonPro
         >
           <View
             accessibilityRole="radiogroup"
-            accessibilityLabel="Language"
+            accessibilityLabel={t('creation.language.title')}
             className="w-full max-w-sm gap-2 border-[3px] border-ink bg-paper p-4"
           >
             <Text className="font-pixel mb-1 text-[10px] uppercase tracking-[1px] text-ink/60">
-              Language
+              {t('creation.language.title')}
             </Text>
             {rows.map(row => (
               <SfxPressable

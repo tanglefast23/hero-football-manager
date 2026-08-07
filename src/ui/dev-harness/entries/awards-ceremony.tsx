@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   stageLine: {
     color: '#9a95a4',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 9,
   },
 });

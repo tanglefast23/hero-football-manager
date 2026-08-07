@@ -1,11 +1,22 @@
+import { existsSync } from 'fs';
 import { faceFile, glyphSet, missingGlyphs } from '../glyph-coverage';
 import { LOCALES, localeMeta } from '../locales';
 
 describe('faceFile', () => {
-  test('maps a registered family name to its shipped TTF', () => {
+  test('maps a packaged family name to its shipped TTF', () => {
     expect(faceFile('Silkscreen_700Bold')).toMatch(
       /@expo-google-fonts\/silkscreen\/700Bold\/Silkscreen_700Bold\.ttf$/,
     );
+  });
+
+  test('maps the vendored derivative to assets/fonts', () => {
+    // The face the app actually renders is built into the repo, not installed,
+    // so `require.resolve` cannot find it. Resolving it relative to the module
+    // rather than to `process.cwd()` is what keeps this working from a worktree.
+    expect(faceFile('HFMSilkscreen_700Bold'))
+      .toMatch(/assets\/fonts\/HFMSilkscreen_700Bold\.ttf$/);
+    expect(existsSync(faceFile('HFMSilkscreen_700Bold'))).toBe(true);
+    expect(existsSync(faceFile('HFMSilkscreen_400Regular'))).toBe(true);
   });
 
   test('rejects a name that is not family_weight', () => {
@@ -29,7 +40,7 @@ describe('glyphSet', () => {
     expect(missingGlyphs('äöüß', silkscreen)).toEqual([]);
   });
 
-  test('Silkscreen cannot draw Vietnamese — the reason a second face exists', () => {
+  test('Silkscreen cannot draw Vietnamese — the reason the derivative exists', () => {
     expect(missingGlyphs('ếộữạằọđơư', silkscreen).length).toBe(9);
   });
 
@@ -39,12 +50,12 @@ describe('glyphSet', () => {
     expect(missingGlyphs(' ', silkscreen)).toEqual([' ']);
   });
 
-  test('Handjet draws the Vietnamese Silkscreen cannot, in both weights', () => {
-    // The other half of the font decision: Handjet was chosen over VT323
-    // because it ships 400 AND 700, preserving the display/data voice split
-    // that PixelText treats as load-bearing. Both cuts must cover Vietnamese,
-    // or only half the UI works.
-    for (const family of ['Handjet_400Regular', 'Handjet_700Bold']) {
+  test('the derivative draws the Vietnamese Silkscreen cannot, in both weights', () => {
+    // Both cuts, because PixelText treats the display/data voice split as
+    // load-bearing and forbids faux-bold on a bitmap face — a face that covered
+    // Vietnamese in one weight only would work for half the UI.
+    // The full 134-letter repertoire is gated in `vietnamese-face.test.ts`.
+    for (const family of ['HFMSilkscreen_400Regular', 'HFMSilkscreen_700Bold']) {
       const covered = glyphSet(faceFile(family));
       expect({ family, missing: missingGlyphs('ếộữạằọđơư', covered) })
         .toEqual({ family, missing: [] });

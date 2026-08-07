@@ -1,4 +1,5 @@
 import type { EventCatalog } from '../content';
+import { copyFor, type CopyFn } from '../i18n';
 import {
   deterministicCareerEventRoll,
   currentUserDivision,
@@ -9,6 +10,12 @@ import {
 export interface EventOfferForWeek {
   readonly eventId?: string;
   readonly eventClock: GameState['eventClock'];
+}
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
 }
 
 const RARITY_WEIGHT = {
@@ -157,10 +164,11 @@ export function eventIsEligible(
 export function eventChoiceUnavailableReason(
   state: GameState,
   choice: EventCatalog['events'][number]['choices'][number],
+  t: CopyFn = englishCopy(),
 ): string | undefined {
   const requirements = choice.requires;
   if (requirements === undefined) return undefined;
-  return requirementFailure(state, requirements);
+  return requirementFailure(state, requirements, t);
 }
 
 function requirementsMet(
@@ -183,23 +191,28 @@ function requirementFailure(
     requiredPersonality?: string;
     requiresHero?: boolean;
   },
+  t: CopyFn = englishCopy(),
 ): string | undefined {
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
   if (requirements.minMoney !== undefined && (club?.cash ?? 0) < requirements.minMoney) {
-    return `Requires $${requirements.minMoney.toLocaleString()} cash`;
+    return t('storyEvent.requiresCash', { amount: `$${requirements.minMoney.toLocaleString()}` });
   }
   if (requirements.requiredFacility !== undefined) {
     const legacyTrainingPitch = requirements.requiredFacility === 'training-pitch' && state.facilities.trainingGroundBuilt;
     const built = legacyTrainingPitch || state.facilities.grid?.buildings.some(building => building.type === requirements.requiredFacility);
-    if (!built) return `Requires ${requirements.requiredFacility.replaceAll('-', ' ')}`;
+    if (!built) {
+      return t('storyEvent.requiresFacility', {
+        facility: requirements.requiredFacility.replaceAll('-', ' '),
+      });
+    }
   }
   const roster = state.players.filter(player => player.clubId === state.userClubId);
   if (requirements.requiredPersonality !== undefined
     && !roster.some(player => player.personality === requirements.requiredPersonality)) {
-    return `Requires a ${requirements.requiredPersonality} player`;
+    return t('storyEvent.requiresPersonality', { personality: requirements.requiredPersonality });
   }
   if (requirements.requiresHero === true && !roster.some(player => player.power !== undefined)) {
-    return 'Requires a hero';
+    return t('storyEvent.requiresHero');
   }
   return undefined;
 }

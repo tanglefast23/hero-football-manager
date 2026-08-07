@@ -1,3 +1,11 @@
+import { copyFor, type CopyFn } from '../i18n';
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
+
 // The substitution board's rules, kept out of the component so they can be
 // tested headlessly.
 //
@@ -159,25 +167,38 @@ export function undoSwap(plan: SubstitutionPlan, index: number): SubstitutionPla
 }
 
 /** Copy for a swapped field card: who is on, and whose shirt they took. */
-export function filledShirtLabel(outgoingName: string): string {
-  return `ON FOR ${outgoingName.toUpperCase()}`;
+export function filledShirtLabel(outgoingName: string, t: CopyFn = englishCopy()): string {
+  return t('substitutionBoard.onFor', { player: outgoingName.toUpperCase() });
 }
 
-function countWord(count: number): string {
-  const words = ['no', 'one', 'two', 'three', 'four', 'five'];
-  return words[count] ?? String(count);
-}
+/**
+ * English counts to five in words on this note; other languages may not, so the
+ * whole sentence is one key per count rather than a word slotted into a frame.
+ */
+const BUDGET_NOTE_KEYS: readonly string[] = [
+  'substitutionBoard.budgetLeft1',
+  'substitutionBoard.budgetLeft2',
+  'substitutionBoard.budgetLeft3',
+  'substitutionBoard.budgetLeft4',
+  'substitutionBoard.budgetLeft5',
+];
 
 /**
  * The board's standing note. docs/08's feedback contract requires that anything
  * unavailable explains itself rather than silently refusing, so the board always
  * states what is left to spend instead of leaving a dead drag to be interpreted.
  */
-export function budgetNote(plan: SubstitutionPlan, substitutionsRemaining: number): string {
+export function budgetNote(
+  plan: SubstitutionPlan,
+  substitutionsRemaining: number,
+  t: CopyFn = englishCopy(),
+): string {
   const left = substitutionsRemaining - plan.swaps.length;
-  if (left <= 0) return 'No substitutions left this match.';
-  const word = countWord(left);
-  return `${word.charAt(0).toUpperCase()}${word.slice(1)} substitution${left === 1 ? '' : 's'} left.`;
+  if (left <= 0) return t('substitutionBoard.budgetNoneLeft');
+  const key = BUDGET_NOTE_KEYS[left - 1];
+  return key === undefined
+    ? t('substitutionBoard.budgetLeftCount', { n: left, count: left })
+    : t(key);
 }
 
 /**

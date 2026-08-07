@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     color: '#edb54a',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 16,
   },
   menuBlurb: {
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   group: { gap: 8 },
   groupName: {
     color: '#edb54a',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 9,
   },
   menuRow: {
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   },
   menuRowTitle: {
     color: '#f4f1ea',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 11,
   },
   menuRowSummary: {
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   },
   menuRowId: {
     color: '#9a95a4',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 8,
   },
   hostRoot: { flex: 1, backgroundColor: '#241f2e' },
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   barTitle: {
     flexShrink: 1,
     color: '#f4f1ea',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 9,
   },
   barNote: {

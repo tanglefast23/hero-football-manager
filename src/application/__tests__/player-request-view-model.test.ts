@@ -78,7 +78,7 @@ describe('playerRequestViewModel', () => {
     expect(model.glowing).toBe(true);
     // Default difficulty is Cozy, which caps leave at a single week.
     expect(model.pending!.grantLabel).toBe('Out 1 week');
-    expect(model.pending!.refuseLabel).toBe('−3 loyalty · −4 morale');
+    expect(model.pending!.refuseLabel).toBe('-3 loyalty · -4 morale');
     expect(model.pending!.artKey).toBe('request-bahamas-fortnight');
     expect(model.pending!.weeksToAnswer).toBe(CATALOG.tuning.answerWeeks);
   });
@@ -91,13 +91,13 @@ describe('playerRequestViewModel', () => {
     const model = playerRequestViewModel(state);
 
     expect(model.pending!.grantLabel).toBe('Out 2 weeks');
-    expect(model.pending!.refuseLabel).toBe('−5 loyalty · −8 morale');
+    expect(model.pending!.refuseLabel).toBe('-5 loyalty · -8 morale');
   });
 
   it('prints a money cost from the snapshot the request was opened with', () => {
     const model = playerRequestViewModel(withPending(atStartWeek(career()), 'gold-boots', 4200));
 
-    expect(model.pending!.grantLabel).toBe('−4,200');
+    expect(model.pending!.grantLabel).toBe('-4,200');
   });
 
   it('disables granting when the club cannot pay', () => {

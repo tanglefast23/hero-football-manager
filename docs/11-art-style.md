@@ -46,7 +46,10 @@ Face extras: soft skin outline `#6a4326`, nostril/crease `#b07a52`, grey hair `#
 
 ## Typography — the pixel font
 
-The game speaks in **one bitmap pixel font: Silkscreen** (`@expo-google-fonts/silkscreen`). Because it's a true pixel font, type reads as part of the art, not layered on top.
+The game speaks in **one bitmap pixel font: HFM Silkscreen** (`assets/fonts/`, built by
+`npm run build:fonts`). It is stock Silkscreen with 102 Vietnamese letters appended on the same
+grid — the original glyphs are byte-identical, so every other language looks exactly as it always
+did. Because it's a true pixel font, type reads as part of the art, not layered on top.
 
 - **Display / buttons / labels / headings / eyebrows:** Silkscreen **Bold**, uppercase, letter-spaced. This is the default voice — every button label, tab, title, stat label.
 - **Numerals & data** (money, stats, tables): Silkscreen with `tabular-nums` so digits align in columns.

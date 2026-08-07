@@ -3,15 +3,20 @@ import { join } from 'node:path';
 import { RUNNER_UP_CEREMONY_LINES, WINNER_CEREMONY_LINES } from '../award-ceremony-lines';
 import {
   MAX_ARRIVAL_LINE_LENGTH,
-  ROOKIE_ARRIVAL_LINE,
-  YOUTH_ARRIVAL_LINES,
   arrivalLine,
+  rookieArrivalLine,
+  youthArrivalLines,
 } from '../player-arrival-lines';
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
 /** Doubled from twenty, which halves how often a career hears a line twice. */
 const YOUTH_POOL_SIZE = 40;
+
+// The pools are catalog lookups now, so the English a player reads is resolved
+// rather than declared. Everything below still asserts against those sentences.
+const ROOKIE_ARRIVAL_LINE = rookieArrivalLine();
+const YOUTH_ARRIVAL_LINES = youthArrivalLines();
 
 /** The ids the academy actually issues — see youthIntakeOffers in youth-intake.ts. */
 function youthIds(seasons: number, offersPerIntake: number): string[] {

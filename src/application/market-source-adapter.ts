@@ -23,6 +23,7 @@ import {
   isStoryScoutingUnlocked,
   isStoryYouthUnlocked,
 } from '../game/story-progression';
+import { copyFor, type CopyFn } from '../i18n';
 import type { MarketSectionId } from '../ui/market-models';
 import type {
   MarketViewModelSource,
@@ -37,12 +38,23 @@ const ROTATING_REGIONS: readonly ScoutRegion[] = [
 ];
 
 /**
+ * English copy, for every caller that has not threaded a locale through yet.
+ * The same lazy shape `application/view-models.ts` uses.
+ */
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
+
+/**
  * Plain adapter for the application boundary. It derives display inputs only;
  * the career and market save objects are never mutated or enriched with UI data.
  */
 export function careerMarketViewModelSource(
   state: GameState,
   suppliedMarket?: CareerMarketState,
+  t: CopyFn = englishCopy(),
 ): MarketViewModelSource {
   const market = suppliedMarket ?? state.market;
   if (market === undefined) throw new Error('the career market has not been initialized');
@@ -92,6 +104,7 @@ export function careerMarketViewModelSource(
       }
       return transferListing(
         player,
+        t,
         'BUY',
         divisionForClub(state, player.clubId, division),
         report.power !== undefined,
@@ -113,6 +126,7 @@ export function careerMarketViewModelSource(
         ))[0];
       return transferListing(
         player,
+        t,
         'SELL',
         division,
         true,
@@ -123,7 +137,7 @@ export function careerMarketViewModelSource(
           buyerName: state.clubs.find(club => club.id === bid.buyerClubId)?.name ?? bid.buyerClubId,
           quote: bid.quote,
         })),
-        saleBlockedReason(state, player),
+        saleBlockedReason(state, player, t),
       );
     });
   const transferListings = [...buyListings, ...sellListings].sort((left, right) => {
@@ -138,7 +152,12 @@ export function careerMarketViewModelSource(
       lookId: player.lookId,
       ...(report.power === undefined || player.power === undefined
         ? {}
-        : { powerName: `${readableId(player.power)} · Tier ${player.powerTier ?? 1}` }),
+        : {
+          powerName: t('market.powerAndTier', {
+            power: readableId(player.power),
+            tier: player.powerTier ?? 1,
+          }),
+        }),
     };
   });
   const talks = market.transferTalks;
@@ -225,6 +244,7 @@ export function careerMarketViewModelSource(
 /** Promotion adds briefs without replacing the familiar searches below them. */
 export function careerMarketScoutOptions(
   state: Pick<GameState, 'careerSeed' | 'season' | 'week'> & Partial<Pick<GameState, 'm2'>>,
+  t: CopyFn = englishCopy(),
 ): ScoutMissionOptionSource[] {
   if (!Number.isInteger(state.careerSeed) || state.careerSeed < 0 || state.careerSeed > 4294967295) {
     throw new Error('market option career seed must be a uint32');
@@ -248,14 +268,14 @@ export function careerMarketScoutOptions(
       id: `scout-brief-s${state.season}-w${state.week}-local-youth`,
       region: 'LOCAL',
       focus: { kind: 'AGE', minimumAge: 16, maximumAge: 21 },
-      regionLabel: 'Local circuit',
-      detail: 'A lower-cost sweep for young players with room to grow.',
+      regionLabel: t('market.scoutBrief.localCircuit'),
+      detail: t('market.scoutBrief.localYouth'),
     },
     {
       id: `scout-brief-s${state.season}-w${state.week}-south_america-def`,
       region: 'SOUTH_AMERICA',
       focus: { kind: 'POSITION', role: 'DEF' },
-      detail: 'A focused search for a first-team DEF.',
+      detail: t('market.scoutBrief.firstTeamDefender'),
     },
   ];
   if (progressionDivision <= 4) options.push(
@@ -263,7 +283,7 @@ export function careerMarketScoutOptions(
       id: `scout-brief-s${state.season}-w${state.week}-${secondRegion.toLowerCase()}-prime`,
       region: secondRegion,
       focus: { kind: 'AGE', minimumAge: 22, maximumAge: 29 },
-      detail: 'Look for players already entering their best football years.',
+      detail: t('market.scoutBrief.primeYears'),
     },
   );
   if (progressionDivision <= 3) options.push(
@@ -271,14 +291,14 @@ export function careerMarketScoutOptions(
       id: `scout-brief-s${state.season}-w${state.week}-${heroRegion.toLowerCase()}-hero`,
       region: heroRegion,
       focus: { kind: 'RUMORED_HERO' },
-      detail: 'Follow the expensive power rumor. Most trails lead nowhere.',
+      detail: t('market.scoutBrief.powerRumor'),
     },
   );
   if (progressionDivision <= 2) options.push({
     id: `scout-brief-s${state.season}-w${state.week}-${eliteRegion.toLowerCase()}-elite`,
     region: eliteRegion,
     focus: { kind: 'ELITE_PROSPECT' },
-    detail: 'Target an exceptional young player with four- or five-star potential.',
+    detail: t('market.scoutBrief.eliteProspect'),
   });
   return options;
 }
@@ -298,6 +318,7 @@ function currentScoutResult(
 
 function transferListing(
   player: CareerPlayer,
+  t: CopyFn,
   direction: 'BUY' | 'SELL',
   sellingClubDivision: number,
   revealPower: boolean,
@@ -312,7 +333,12 @@ function transferListing(
       name: player.name,
       lookId: player.lookId,
       ...(revealPower && player.power !== undefined
-        ? { powerName: `${readableId(player.power)} · Tier ${player.powerTier ?? 1}` }
+        ? {
+          powerName: t('market.powerAndTier', {
+            power: readableId(player.power),
+            tier: player.powerTier ?? 1,
+          }),
+        }
         : {}),
     },
     direction,
@@ -355,7 +381,11 @@ function isEligibleCoverPlayer(candidate: CareerPlayer): boolean {
  * is carried on the listing rather than used as a filter, so the sell action
  * renders disabled with copy instead of erroring on use or vanishing entirely.
  */
-function saleBlockedReason(state: GameState, player: CareerPlayer): string | undefined {
+function saleBlockedReason(
+  state: GameState,
+  player: CareerPlayer,
+  t: CopyFn,
+): string | undefined {
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
   if (lineup === undefined) return undefined;
   const eligibleSpares = (starters: ReadonlySet<string>) => state.players.filter(candidate => (
@@ -372,7 +402,7 @@ function saleBlockedReason(state: GameState, player: CareerPlayer): string | und
         ? undefined
         : benchSpares.find(candidate => candidate.role !== 'GK'));
     if (replacement === undefined) {
-      return 'A sale needs a fit replacement ready to step into the eleven.';
+      return t('market.saleNeedsReplacement');
     }
     starters = new Set(lineup.playerIds.map(id => id === player.id ? replacement.id : id));
   }
@@ -380,7 +410,7 @@ function saleBlockedReason(state: GameState, player: CareerPlayer): string | und
   const covered = spares.some(candidate => candidate.role === 'GK')
     && spares.some(candidate => candidate.role !== 'GK');
   if (!covered) {
-    return 'Keep a spare goalkeeper and an outfield substitute for matchday cover.';
+    return t('market.saleNeedsCover');
   }
   return undefined;
 }

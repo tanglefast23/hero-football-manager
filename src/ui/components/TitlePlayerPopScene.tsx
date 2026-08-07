@@ -18,7 +18,8 @@ interface PopHero {
   readonly spriteKey: string;
   readonly name: string;
   readonly power: PowerId;
-  readonly powerLabel: string;
+  /** Catalog key for the speech bubble; the sprite and power are structure. */
+  readonly powerLabelKey: string;
   readonly targetSpriteKey?: string;
 }
 
@@ -27,40 +28,40 @@ const OUTFIELD_HEROES: readonly PopHero[] = [
     spriteKey: 'u:f12:run0',
     name: 'Zip Vela',
     power: 'SUPER_SPEED',
-    powerLabel: 'CATCH ME!',
+    powerLabelKey: 'titlePlayerPop.bubble.catchMe',
   },
   {
     spriteKey: 'u:f21:run0',
     name: 'Dario Flint',
     power: 'FIRE_TORCH',
-    powerLabel: 'FLAME ON!',
+    powerLabelKey: 'titlePlayerPop.bubble.flameOn',
     targetSpriteKey: 'r:f09:run0',
   },
   {
     spriteKey: 'u:f45:run0',
     name: 'Leo Quick',
     power: 'THUNDER_STRIKE',
-    powerLabel: 'FEEL THE THUNDER!',
+    powerLabelKey: 'titlePlayerPop.bubble.feelTheThunder',
     targetSpriteKey: 'r:f18:run0',
   },
   {
     spriteKey: 'u:f73:run0',
     name: 'Ty Brooks',
     power: 'BLINK_RUN',
-    powerLabel: 'MISS ME?',
+    powerLabelKey: 'titlePlayerPop.bubble.missMe',
   },
   {
     spriteKey: 'u:f31:run0',
     name: 'Ravi Chan',
     power: 'WEB_TRAP',
-    powerLabel: 'STUCK WITH ME!',
+    powerLabelKey: 'titlePlayerPop.bubble.stuckWithMe',
     targetSpriteKey: 'r:f27:run0',
   },
   {
     spriteKey: 'u:f57:run0',
     name: 'Bo Hedges',
     power: 'SUPER_STRENGTH',
-    powerLabel: 'MY BALL NOW!',
+    powerLabelKey: 'titlePlayerPop.bubble.myBallNow',
     targetSpriteKey: 'r:f34:run0',
   },
 ];
@@ -70,14 +71,14 @@ const KEEPER_HEROES: readonly PopHero[] = [
     spriteKey: 'u:g08:ready0',
     name: 'Mia Stretch',
     power: 'ELASTIC_KEEPER',
-    powerLabel: 'NOTHING GETS PAST ME!',
+    powerLabelKey: 'titlePlayerPop.bubble.nothingGetsPast',
     targetSpriteKey: 'r:f39:run0',
   },
   {
     spriteKey: 'u:g14:ready0',
     name: 'Gus Tower',
     power: 'GIANT_GK',
-    powerLabel: "YOU'RE ALL ANTS!",
+    powerLabelKey: 'titlePlayerPop.bubble.youreAllAnts',
   },
 ];
 
@@ -150,6 +151,7 @@ function PopSlot({
   readonly hero: PopHero;
   readonly onComplete: () => void;
 }) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -243,7 +245,7 @@ function PopSlot({
       ]}
     >
       <View style={styles.powerBubble}>
-        <Text style={styles.powerBubbleText}>{hero.powerLabel}</Text>
+        <Text style={styles.powerBubbleText}>{t(hero.powerLabelKey)}</Text>
       </View>
 
       <View style={styles.powerFx}>

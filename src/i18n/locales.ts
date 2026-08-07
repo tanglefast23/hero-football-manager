@@ -12,7 +12,21 @@
 export const LOCALES = ['en', 'es', 'pt-BR', 'fr', 'de', 'id', 'vi'] as const;
 export type Locale = (typeof LOCALES)[number];
 
-/** Widen as each language completes its translation phase. */
+/**
+ * Widen as each language completes its translation phase.
+ *
+ * All seven are live. `vi` was withdrawn for the duration of the copy sweep —
+ * the key-parity gate demands every enabled locale carry every key, and
+ * Vietnamese would have failed CI from the first extracted string until its
+ * last translated one, while its face was unresolved on top of that. Both are
+ * done: `HFMSilkscreen` draws all 134 Vietnamese letters, and the catalog is
+ * complete.
+ *
+ * If a language is ever withdrawn again, `scripts/merge-i18n-staging.js` keeps
+ * a `GATED_LOCALES` mirror of this list — a `.js` script cannot import this
+ * module, so the two have to move together. The drift fails safe: the script
+ * refuses to write a catalog no gate would check.
+ */
 export const ENABLED_LOCALES: readonly Locale[] = ['en', 'es', 'pt-BR', 'fr', 'id', 'de', 'vi'];
 
 /**
@@ -58,24 +72,28 @@ export interface LocaleMeta {
   expansion: number;
 }
 
-const SILKSCREEN: LocaleFaces = {
-  display: 'Silkscreen_700Bold',
-  data: 'Silkscreen_400Regular',
-};
-
 /**
- * Silkscreen maps 226 glyphs — Latin-1 only. Vietnamese needs 134 letters it
- * does not have (`ế ộ ữ ạ ằ ọ đ ơ ư` and the rest), and the combining marks to
- * compose them are absent too, so `vi` alone renders in Handjet.
+ * One pixel family, for every language.
  *
- * Handjet rather than VT323 because it ships matching 400 and 700 cuts.
- * `PixelText` treats the display/data split as load-bearing and forbids
- * faux-bold on a bitmap face; VT323's single weight would collapse both voices
- * into one for Vietnamese only.
+ * `HFMSilkscreen` is stock Silkscreen with 102 Vietnamese letters appended —
+ * built by `npm run build:fonts` into `assets/fonts/` from the coordinate table
+ * in `content/fonts/vi-marks.json`, per
+ * `docs/superpowers/specs/2026-08-06-vietnamese-pixel-diacritics.md`. Stock
+ * Silkscreen maps 226 glyphs, Latin-1 only, and cannot draw `ế ộ ữ ạ ằ ọ đ ơ ư`;
+ * the combining marks needed to compose them — breve, hook above, horn, dot
+ * below — are absent from its cmap too, so runtime composition was never an
+ * option either.
+ *
+ * Every locale points here, not only `vi`. Repointing Vietnamese alone would
+ * ship two Silkscreen lineages in one binary and let them drift, and the face
+ * swap is per-language: selecting Vietnamese would redraw the entire UI — most
+ * of it still untranslated English — in whichever second face was chosen. The
+ * derivative's original 227 glyphs are byte-identical to stock, which
+ * `src/i18n/__tests__/vietnamese-face.test.ts` proves rather than assumes.
  */
-const HANDJET: LocaleFaces = {
-  display: 'Handjet_700Bold',
-  data: 'Handjet_400Regular',
+const SILKSCREEN: LocaleFaces = {
+  display: 'HFMSilkscreen_700Bold',
+  data: 'HFMSilkscreen_400Regular',
 };
 
 const META: Readonly<Record<Locale, LocaleMeta>> = {
@@ -85,7 +103,7 @@ const META: Readonly<Record<Locale, LocaleMeta>> = {
   fr: { endonym: 'Français', pluralRule: 'zeroIsOne', groupSeparator: ' ', faces: SILKSCREEN, expansion: 1.25 },
   de: { endonym: 'Deutsch', pluralRule: 'oneOther', groupSeparator: '.', faces: SILKSCREEN, expansion: 1.3 },
   id: { endonym: 'Bahasa Indonesia', pluralRule: 'none', groupSeparator: '.', faces: SILKSCREEN, expansion: 1.2 },
-  vi: { endonym: 'Tiếng Việt', pluralRule: 'none', groupSeparator: '.', faces: HANDJET, expansion: 1.15 },
+  vi: { endonym: 'Tiếng Việt', pluralRule: 'none', groupSeparator: '.', faces: SILKSCREEN, expansion: 1.15 },
 };
 
 export function localeMeta(locale: Locale): LocaleMeta {

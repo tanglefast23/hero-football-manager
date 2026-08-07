@@ -71,7 +71,11 @@ export function ClubLegacyScreen({
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}>
-        <PaperPanel kicker="Retirement office" title={viewModel.playerName} stamp="Club legend">
+        <PaperPanel
+          kicker={t('clubLegacy.retirementOffice')}
+          title={viewModel.playerName}
+          stamp={t('clubLegacy.clubLegend')}
+        >
           <View className="flex-row items-center gap-4">
             <View className="overflow-hidden border-2 border-b-4 border-gold-dark bg-gold-light">
               <PixelPortrait playerId={viewModel.playerId} role={viewModel.role} lookId={viewModel.lookId} expression="joy" />
@@ -80,9 +84,9 @@ export function ClubLegacyScreen({
               <StatusChip label={viewModel.role} />
               {/* Same chip the board panel puts on a hero it is about to sell:
                   a powered player's farewell should never read like anyone's. */}
-              {viewModel.isHero ? <StatusChip label="Hero" tone="hero" /> : null}
+              {viewModel.isHero ? <StatusChip label={t('clubLegacy.hero')} tone="hero" /> : null}
               <StatusChip label={viewModel.archetype} tone="hero" />
-              <StatusChip label={`${viewModel.fame} fame`} tone="success" />
+              <StatusChip label={t('clubLegacy.fame', { fame: viewModel.fame })} tone="success" />
             </View>
           </View>
           <Text className="mt-4 text-base leading-6 text-ink/70">
@@ -100,7 +104,7 @@ export function ClubLegacyScreen({
         </PaperPanel>
 
         <View className="mt-6 gap-4">
-          <StageSection eyebrow="Your decision" title="How should the legacy continue?" />
+          <StageSection eyebrow={t('clubLegacy.yourDecision')} title={t('clubLegacy.howShouldTheLegacyContinue')} />
           {viewModel.choices.map((choice, index) => (
             <View
               key={choice.id}
@@ -109,7 +113,7 @@ export function ClubLegacyScreen({
             >
               {guided && index === 0 ? (
                 <TutorialTapCue
-                  detail="Choose the legacy"
+                  detail={t('clubLegacy.chooseTheLegacy')}
                   style={{
                     left: '50%',
                     marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -118,7 +122,9 @@ export function ClubLegacyScreen({
                 />
               ) : null}
               <PaperPanel
-                kicker={viewModel.choices.length === 1 ? 'The offer' : `Option ${index + 1}`}
+                kicker={viewModel.choices.length === 1
+                  ? t('clubLegacy.theOffer')
+                  : t('clubLegacy.option', { number: index + 1 })}
                 title={choice.label}
                 className="bg-blue-light"
               >
@@ -128,8 +134,14 @@ export function ClubLegacyScreen({
                   {choice.outcome}
                 </PixelText>
                 <ActionButton
-                  label={`Choose ${choice.label}  ▸`}
-                  accessibilityLabel={`Choose ${choice.label} for ${viewModel.playerName}. ${choice.outcome}`}
+                  // ▸ is not a Silkscreen glyph, so it stays out of the catalog
+                  // and is appended here.
+                  label={`${t('clubLegacy.choose', { choice: choice.label })}  ▸`}
+                  accessibilityLabel={t('clubLegacy.a11y.chooseForPlayer', {
+                    choice: choice.label,
+                    player: viewModel.playerName,
+                    outcome: choice.outcome,
+                  })}
                   onPress={() => guardTap(() => onChoose(choice.id))}
                   variant="action"
                 />
@@ -145,13 +157,18 @@ export function ClubLegacyScreen({
         {viewModel.formerPlayers.length === 0 ? null : (
           <View className="mt-6 gap-4">
             <StageSection
-              eyebrow="Club record"
-              title="Former players"
+              eyebrow={t('clubLegacy.clubRecord')}
+              title={t('clubLegacy.formerPlayers')}
             />
             <PaperPanel
-              kicker="Retired"
-              title={`${viewModel.formerPlayerTotal} ${viewModel.formerPlayerTotal === 1 ? 'name' : 'names'}`}
-              stamp="Club history"
+              kicker={t('clubLegacy.retired')}
+              // Plural siblings rather than a ternary, for the same reason
+              // `seasonsAtClub` uses them: the ternary encodes English's rule.
+              title={t('clubLegacy.formerPlayerCount', {
+                n: viewModel.formerPlayerTotal,
+                count: viewModel.formerPlayerTotal,
+              })}
+              stamp={t('clubLegacy.clubHistory')}
             >
               <View className="gap-2">
                 {viewModel.formerPlayers.map(former => (
@@ -159,7 +176,10 @@ export function ClubLegacyScreen({
                     key={former.playerId}
                     accessible
                     accessibilityRole="summary"
-                    accessibilityLabel={`${former.playerName}. ${former.detail}.${former.isHero ? ' Hero.' : ''}`}
+                    accessibilityLabel={t(
+                      former.isHero ? 'clubLegacy.a11y.formerHero' : 'clubLegacy.a11y.formerPlayer',
+                      { player: former.playerName, detail: former.detail },
+                    )}
                     className="flex-row items-center gap-3 border-2 border-ink/25 bg-white p-2"
                   >
                     <View className="overflow-hidden border-2 border-ink bg-paper-dark">
@@ -175,7 +195,7 @@ export function ClubLegacyScreen({
                         <Text className="flex-1 text-base font-bold text-ink" numberOfLines={1}>
                           {former.playerName}
                         </Text>
-                        {former.isHero ? <StatusChip label="Hero" tone="hero" /> : null}
+                        {former.isHero ? <StatusChip label={t('clubLegacy.hero')} tone="hero" /> : null}
                       </View>
                       <Text className="mt-1 font-mono text-sm text-ink/65">{former.detail}</Text>
                     </View>

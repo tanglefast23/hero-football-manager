@@ -16,6 +16,7 @@ jest.mock('react-native', () => ({
   View: 'View',
 }));
 
+import { copyFor } from '../../i18n';
 import { hallOfFameViewModel } from '../../application/hall-of-fame';
 import type { GameState, HallOfFameRecord } from '../../game/types';
 import type { HallOfFameViewModel } from '../models';
@@ -115,19 +116,26 @@ function overlay(overrides: Partial<SettingsOverlayProps>) {
   });
 }
 
+// The two labels are catalog copy — "Open the Hall of Fame" and "Hall of Fame,
+// locked until the climb is complete" — so they are looked up the same way the
+// row looks them up rather than duplicated as literals here.
+const t = copyFor('en');
+const OPEN_LABEL = t('settings.hallOfFame.a11y.open');
+const LOCKED_LABEL = t('settings.hallOfFame.a11y.locked');
+
 describe('the Hall of Fame row in Settings', () => {
   it('is hidden when there is no career to have a record', () => {
     const element = overlay({});
 
-    expect(findByAccessibilityLabel(element, 'Open the Hall of Fame')).toBeUndefined();
-    expect(findByAccessibilityLabel(element, 'Hall of Fame, locked until the climb is complete'))
+    expect(findByAccessibilityLabel(element, OPEN_LABEL)).toBeUndefined();
+    expect(findByAccessibilityLabel(element, LOCKED_LABEL))
       .toBeUndefined();
   });
 
   it('offers the locked page while the climb is unfinished', () => {
     const onHallOfFameOpenChange = jest.fn();
     const element = overlay({ hallOfFame: viewModel(), onHallOfFameOpenChange });
-    const row = findByAccessibilityLabel(element, 'Hall of Fame, locked until the climb is complete');
+    const row = findByAccessibilityLabel(element, LOCKED_LABEL);
 
     expect(row).toBeDefined();
     // It opens either way: the locked page is what explains what unlocks it.
@@ -138,8 +146,8 @@ describe('the Hall of Fame row in Settings', () => {
   it('offers the record once the climb is complete', () => {
     const element = overlay({ hallOfFame: viewModel(RECORD) });
 
-    expect(findByAccessibilityLabel(element, 'Open the Hall of Fame')).toBeDefined();
-    expect(findByAccessibilityLabel(element, 'Hall of Fame, locked until the climb is complete'))
+    expect(findByAccessibilityLabel(element, OPEN_LABEL)).toBeDefined();
+    expect(findByAccessibilityLabel(element, LOCKED_LABEL))
       .toBeUndefined();
   });
 

@@ -54,11 +54,15 @@ describe('column and personality explanations', () => {
       expect(screen).toContain(key);
     }
     // The personality copy is derived from market.ts, not invented: every entry
-    // names a pitch card it loves or hates, or a real renewal multiplier.
+    // names a pitch card it loves or hates, or a real renewal multiplier. The
+    // sentences themselves live in the catalog under `squadTraining.personality.*`
+    // — a module constant is built before any component runs, so the map holds
+    // keys and the component resolves them. The renewal percentages the copy
+    // promises are pinned against market.ts by the test below.
     expect(screen).toContain('const PERSONALITY_EXPLAINER');
-    expect(screen).toContain('Renews for about 10% less.');
-    expect(screen).toContain('renew for about 20% more');
-    expect(screen).toContain('personalityExplainer(selectedPlayer.personality)');
+    expect(screen).toContain("LOYAL: 'squadTraining.personality.loyal'");
+    expect(screen).toContain("GREEDY: 'squadTraining.personality.greedy'");
+    expect(screen).toContain('personalityExplainer(selectedPlayer.personality, t)');
   });
 
   it('keeps the renewal percentages honest against the market rules', () => {
@@ -119,7 +123,9 @@ describe('quick train', () => {
     // The box names the drill it buys, so the decision is made before the tap.
     expect(screen).toContain('statOptions?.find(candidate => candidate.shortCode === attribute.label)');
     expect(screen).toContain('onTrainAttribute(option.pathId)');
-    expect(screen).toContain('+{option.gain} · {option.tpCost} TP');
+    expect(screen).toContain(
+      "t('squadTraining.gainAndCost', { gain: option.gain, cost: option.tpCost })",
+    );
     // Both entry points propose; neither spends on the first tap.
     expect(modal).toContain('setPendingConfirm(option);');
     expect(modal).toContain('const chosen = pendingConfirm;');
@@ -147,11 +153,11 @@ describe('quick train', () => {
     // Desktop already shows the player file beside the roster, so only the
     // single-column layout needs the intermediate scroll instruction.
     expect(screen).toContain('&& (quickTrainNeedsPlayer || !wideColumns)');
-    expect(screen).toContain('label="Quick Train"');
-    expect(screen).toContain("? 'Tap a player to see their attributes'");
-    expect(screen).toContain(": 'Scroll down to Attributes'");
-    expect(screen).toContain('label="Tap an attribute"');
-    expect(screen).toContain('detail="Choose the stat you want to train"');
+    expect(screen).toContain("label={t('squadTraining.quickTrain')}");
+    expect(screen).toContain("? t('squadTraining.tapAPlayerTo')");
+    expect(screen).toContain(": t('squadTraining.scrollDownToAttributes')");
+    expect(screen).toContain("label={t('squadTraining.tapAnAttribute')}");
+    expect(screen).toContain("detail={t('squadTraining.chooseTheStatYou')}");
     // Unrelated taps cannot erase a once-per-career lesson before it is used.
     expect(screen).not.toContain('guideQuickTrainRef');
     expect(screen).not.toContain('quickTrainCueDismissed');

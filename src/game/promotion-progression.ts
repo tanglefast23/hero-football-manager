@@ -3,9 +3,31 @@ import { currentUserDivision, type M2CareerState } from './m2-career';
 import { divisionTierLabel, type DivisionLevel } from './pyramid';
 import type { GameState } from './types';
 
+/**
+ * Raw values for a key's placeholders, mirroring `LedgerLine.labelParams`.
+ *
+ * Never pre-formatted text: `{ cost: 3000 }`, not `{ cost: '$3,000' }`. This
+ * ring cannot know the player's language, so grouping separators are the UI's
+ * job — baking one in here would freeze English digit grouping into every
+ * translation.
+ */
+type RewardParams = Readonly<Record<string, string | number>>;
+
 interface PromotionReward {
+  /**
+   * English, still written on every reward.
+   *
+   * The catalog keys below are what a translated screen renders; this stays as
+   * the fallback if a key is ever dropped, and it is what the callers that have
+   * not adopted the keys yet still read.
+   */
   readonly title: string;
   readonly detail: string;
+  /** Catalog keys for `title` and `detail`, so the screen can render either. */
+  readonly titleKey: string;
+  readonly detailKey: string;
+  /** Raw values for the two keys' placeholders. */
+  readonly params?: RewardParams;
 }
 
 export const FIRST_D4_PROMOTION_RECRUITMENT_FUND = 15_000;
@@ -35,71 +57,95 @@ const TRAINING_DRILL_UPGRADE_COST: Readonly<Record<Exclude<TrainingDrillTier, 1>
   5: 40_000,
 };
 
+/** `<key>.title` and `<key>.detail`, so a reward names one catalog entry. */
+function reward(key: string, title: string, detail: string): PromotionReward {
+  return { title, detail, titleKey: `${key}.title`, detailKey: `${key}.detail` };
+}
+
 function drillTierReward(tier: Exclude<TrainingDrillTier, 1>): PromotionReward {
+  const cost = TRAINING_DRILL_UPGRADE_COST[tier];
   return {
-    title: `Tier ${tier} drills · $${TRAINING_DRILL_UPGRADE_COST[tier].toLocaleString('en-US')} each`,
-    detail: 'On sale in the squad room, one training path at a time. Reaching the division puts them on the shelf; the club still has to buy them.',
+    ...reward(
+      'promotion.drillTier',
+      `Tier ${tier} drills · $${cost.toLocaleString('en-US')} each`,
+      'On sale in the squad room, one training path at a time. Reaching the division puts them on the shelf; the club still has to buy them.',
+    ),
+    params: { tier, cost },
   };
 }
 
 const PROMOTION_REWARDS: Readonly<Record<1 | 2 | 3 | 4, readonly PromotionReward[]>> = {
   4: [
     {
-      title: 'Recruitment fund · $15,000',
-      detail: 'The board added $15,000 to club funds. Use it to recruit a player who can help the club survive the County League.',
+      ...reward(
+        'promotion.recruitmentFund',
+        `Recruitment fund · $${FIRST_D4_PROMOTION_RECRUITMENT_FUND.toLocaleString('en-US')}`,
+        `The board added $${FIRST_D4_PROMOTION_RECRUITMENT_FUND.toLocaleString('en-US')} to club funds. Use it to recruit a player who can help the club survive the County League.`,
+      ),
+      params: { amount: FIRST_D4_PROMOTION_RECRUITMENT_FUND },
     },
     drillTierReward(2),
     // No "Level 2 facilities" line: level 2 is now available from D5, so
     // advertising it here would promise a reward the club already has.
-    {
-      title: 'International scouting',
-      detail: 'A second overseas brief is added to each scouting shortlist.',
-    },
-    {
-      title: 'Level 2 coaches',
-      detail: 'County-level coaches will take the call once the club has enough Fame.',
-    },
+    reward(
+      'promotion.internationalScouting',
+      'International scouting',
+      'A second overseas brief is added to each scouting shortlist.',
+    ),
+    reward(
+      'promotion.levelTwoCoaches',
+      'Level 2 coaches',
+      'County-level coaches will take the call once the club has enough Fame.',
+    ),
   ],
   3: [
     drillTierReward(3),
-    {
-      title: 'Rumored Hero scouting',
-      detail: 'The scout can follow expensive leads for players who may already have powers.',
-    },
-    {
-      title: 'Third Hero License',
-      detail: 'Up to three licensed heroes may now start together.',
-    },
-    {
-      title: 'Level 3 coaches',
-      detail: 'Regional-level coaches will consider the club once its Fame is high enough.',
-    },
+    reward(
+      'promotion.rumoredHeroScouting',
+      'Rumored Hero scouting',
+      'The scout can follow expensive leads for players who may already have powers.',
+    ),
+    reward(
+      'promotion.thirdHeroLicense',
+      'Third Hero License',
+      'Up to three licensed heroes may now start together.',
+    ),
+    reward(
+      'promotion.levelThreeCoaches',
+      'Level 3 coaches',
+      'Regional-level coaches will consider the club once its Fame is high enough.',
+    ),
   ],
   2: [
     drillTierReward(4),
-    {
-      title: 'Level 3 facilities',
-      detail: 'The final upgrade tier is now available across the club grounds.',
-    },
-    {
-      title: 'Elite Prospect scouting',
-      detail: 'A new brief targets young players with four- or five-star potential.',
-    },
-    {
-      title: 'Level 4 coaches',
-      detail: 'National-level coaches will consider the club once its Fame is high enough.',
-    },
+    reward(
+      'promotion.levelThreeFacilities',
+      'Level 3 facilities',
+      'The final upgrade tier is now available across the club grounds.',
+    ),
+    reward(
+      'promotion.eliteProspectScouting',
+      'Elite Prospect scouting',
+      'A new brief targets young players with four- or five-star potential.',
+    ),
+    reward(
+      'promotion.levelFourCoaches',
+      'Level 4 coaches',
+      'National-level coaches will consider the club once its Fame is high enough.',
+    ),
   ],
   1: [
     drillTierReward(5),
-    {
-      title: 'Fourth Hero License',
-      detail: 'Up to four licensed heroes may now start together.',
-    },
-    {
-      title: 'Level 5 coaches',
-      detail: 'The best coaches in the game will consider the club once its Fame is high enough.',
-    },
+    reward(
+      'promotion.fourthHeroLicense',
+      'Fourth Hero License',
+      'Up to four licensed heroes may now start together.',
+    ),
+    reward(
+      'promotion.levelFiveCoaches',
+      'Level 5 coaches',
+      'The best coaches in the game will consider the club once its Fame is high enough.',
+    ),
   ],
 };
 
@@ -135,6 +181,13 @@ function facilityLevelUnlockDivision(level: FacilityLevel): DivisionLevel {
   return level <= 2 ? 5 : 2;
 }
 
+// TODO(i18n): this returns a bare sentence, so there is nowhere to hang a
+// `labelKey`. Translating it means returning `{ text, key, params }` and
+// updating both call sites — `src/application/view-models.ts` (renders it as a
+// `blockedReason`) and `src/game/management.ts` (rethrows it, so that one wants
+// the English `text`) — which is a coordinated change rather than a
+// self-contained extraction. Params would be `{ level, division }`, with the
+// division name coming from `DIVISION_NAME_KEYS`.
 export function facilityUpgradeBlockedReason(
   state: GameState,
   targetLevel: FacilityLevel,
@@ -170,6 +223,10 @@ function trainingDrillUnlockDivision(tier: TrainingDrillTier): DivisionLevel {
  * relegated club keeps everything it has already been offered — and everything
  * it has already paid for.
  */
+// TODO(i18n): as `facilityUpgradeBlockedReason` above — a bare sentence with no
+// place for a `labelKey`. Its one call site is `src/game/training-paths.ts`
+// (`drillShopOffer`), which forwards it as `blockedReason` alongside its own
+// untranslated "Not enough money."; both want keying in the same pass.
 export function trainingDrillBlockedReason(
   state: GameState,
   drillId: string,

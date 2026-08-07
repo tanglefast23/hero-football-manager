@@ -232,7 +232,10 @@ export function ChampionshipCelebrationScreen({
     <SafeAreaView
       className="flex-1 bg-ink"
       edges={['top', 'left', 'right', 'bottom']}
-      accessibilityLabel={`${viewModel.clubName} won the league. ${viewModel.star.name} is lifted by the team.`}
+      accessibilityLabel={t('championshipCelebration.a11y.wonTheLeague', {
+        club: viewModel.clubName,
+        star: viewModel.star.name,
+      })}
     >
       <View style={StyleSheet.absoluteFill}>
         <View style={styles.nightSky} />
@@ -376,8 +379,8 @@ export function ChampionshipCelebrationScreen({
           </Text>
           <Text className="mt-1 text-center font-pixel text-[10px] uppercase tracking-wider text-ink/70">
             {viewModel.star.hasRecordedGoals
-              ? `Golden boot · ${viewModel.star.goals} goal${viewModel.star.goals === 1 ? '' : 's'}`
-              : 'Season star'}
+              ? t('championshipCelebration.goldenBoot', { n: viewModel.star.goals })
+              : t('championshipCelebration.seasonStar')}
           </Text>
         </View>
 

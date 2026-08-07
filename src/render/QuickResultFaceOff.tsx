@@ -25,7 +25,7 @@ import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
 import { playerLookId } from './sprites/player-look';
 import { snapSpriteScale } from './interpolate';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
-import { usePixelStyles, type LocaleFaces } from '../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 
 /**
  * The Quick Result face-off: the club's best outfielder, the opponent's best
@@ -93,6 +93,7 @@ export interface QuickResultFaceOffProps {
 }
 
 export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResultFaceOffProps) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const { width, height, scale: devicePixelRatio } = useWindowDimensions();
   const [idleFrame, setIdleFrame] = useState(0);
@@ -279,7 +280,7 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${faceOff.accessibilityLabel} Tap to skip.`}
+      accessibilityLabel={t('matchScreen.a11y.tapToSkip', { label: faceOff.accessibilityLabel })}
       onPress={finishOnce}
       style={styles.overlay}
     >
@@ -317,7 +318,7 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
           },
         ]}
       >
-        <Text style={styles.versusText}>VS</Text>
+        <Text style={styles.versusText}>{t('app.versus')}</Text>
       </Animated.View>
 
       <Animated.View

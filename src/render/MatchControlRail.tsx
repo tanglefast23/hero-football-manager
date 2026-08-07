@@ -4,8 +4,9 @@ import { SettingsButton } from '../ui/SettingsOverlay';
 import { SfxPressable } from '../ui/components/SfxPressable';
 import {
   ENERGY_FILL_COLORS,
-  ENERGY_USE_ACCESSIBILITY,
-  ENERGY_USE_LABELS,
+  energyUseAccessibility,
+  energyUseLabel,
+  TIRED_ENERGY_THRESHOLD,
   energyBand,
   type EnergyBand,
 } from './match-energy-ui';
@@ -26,7 +27,7 @@ import {
   PowerTitleTakeover,
   type PowerTitleTakeoverProps,
 } from './PowerTitleTakeover';
-import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
+import { useCopy, usePixelStyles, type CopyFn, type LocaleFaces } from '../i18n';
 
 export interface MatchRailTiredPlayer {
   id: string;
@@ -162,7 +163,7 @@ export function MatchControlRail({
                 <SfxPressable
                   key={option}
                   accessibilityRole="button"
-                  accessibilityLabel={`Match speed ${option} times`}
+                  accessibilityLabel={t('matchRail.a11y.matchSpeed', { speed: option })}
                   accessibilityState={{ selected }}
                   style={[styles.chip, selected ? styles.chipSelected : null]}
                   onPress={() => onSelectSpeed(option)}
@@ -175,7 +176,9 @@ export function MatchControlRail({
             })}
             <SfxPressable
               accessibilityRole="button"
-              accessibilityLabel={paused ? 'Resume the match' : 'Pause the match'}
+              accessibilityLabel={paused
+                ? t('matchRail.a11y.resumeMatch')
+                : t('matchRail.a11y.pauseMatch')}
               accessibilityState={{ selected: paused }}
               style={[styles.chip, paused ? styles.chipSelected : null]}
               onPress={onTogglePause}
@@ -188,7 +191,11 @@ export function MatchControlRail({
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>FORMATION ({t(`formation.${formation}.blurb`).toUpperCase()})</Text>
+          <Text style={styles.cardTitle}>
+            {t('matchRail.formationTitle', {
+              blurb: t(`formation.${formation}.blurb`).toUpperCase(),
+            })}
+          </Text>
           <View style={styles.chipRow}>
             {formations.map((option) => {
               const selected = formation === option;
@@ -196,7 +203,10 @@ export function MatchControlRail({
                 <SfxPressable
                   key={option}
                   accessibilityRole="button"
-                  accessibilityLabel={`Formation ${option}, ${t(`formation.${option}.blurb`)}`}
+                  accessibilityLabel={t('matchRail.a11y.formation', {
+                    formation: option,
+                    blurb: t(`formation.${option}.blurb`),
+                  })}
                   accessibilityState={{ selected, disabled: coachingDisabled }}
                   disabled={coachingDisabled}
                   style={[
@@ -213,7 +223,9 @@ export function MatchControlRail({
               );
             })}
           </View>
-          <Text style={[styles.cardTitle, styles.cardTitleSpaced]}>PLAYSTYLE</Text>
+          <Text style={[styles.cardTitle, styles.cardTitleSpaced]}>
+            {t('matchScreen.playstyle')}
+          </Text>
           <View style={styles.chipRow}>
             {MENTALITIES.map((option) => {
               const selected = mentality === option;
@@ -221,7 +233,9 @@ export function MatchControlRail({
                 <SfxPressable
                   key={option}
                   accessibilityRole="button"
-                  accessibilityLabel={`Playstyle ${MENTALITY_CHIP_LABELS[option]}`}
+                  accessibilityLabel={t('matchRail.a11y.playstyle', {
+                    playstyle: MENTALITY_CHIP_LABELS[option],
+                  })}
                   accessibilityState={{ selected, disabled: coachingDisabled }}
                   disabled={coachingDisabled}
                   style={[
@@ -241,8 +255,10 @@ export function MatchControlRail({
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>SUBSTITUTIONS · {substitutionsRemaining} LEFT</Text>
-          <Text style={styles.caption}>MOST TIRED ON THE PITCH</Text>
+          <Text style={styles.cardTitle}>
+            {t('matchRail.substitutionsLeft', { count: substitutionsRemaining })}
+          </Text>
+          <Text style={styles.caption}>{t('matchRail.mostTiredOnThePitch')}</Text>
           {tiredPlayers.map((player, position) => {
             const band = energyBand(player.condition);
             const guided = guideSwap && position === 0;
@@ -271,7 +287,10 @@ export function MatchControlRail({
                 >
                   <SfxPressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Swap ${player.name}, ${Math.round(player.condition)} percent energy`}
+                    accessibilityLabel={t('matchRail.a11y.swap', {
+                      player: player.name,
+                      percent: Math.round(player.condition),
+                    })}
                     accessibilityState={{ disabled: swapDisabled }}
                     disabled={swapDisabled}
                     style={[
@@ -281,17 +300,19 @@ export function MatchControlRail({
                     ]}
                     onPress={onSwap}
                   >
-                    <Text style={styles.swapButtonText}>SWAP</Text>
+                    <Text style={styles.swapButtonText}>{t('matchScreen.swap')}</Text>
                   </SfxPressable>
                 </View>
               </View>
             );
           })}
-          <Text style={styles.caption}>SWAP OPENS THE BENCH · FRESH LEGS ENTER AT 100%</Text>
+          <Text style={styles.caption}>{t('matchRail.swapOpensTheBench')}</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>TEAM ENERGY ({ENERGY_USE_LABELS[energyUse]})</Text>
+          <Text style={styles.cardTitle}>
+            {t('matchRail.teamEnergyTitle', { mode: energyUseLabel(energyUse, t) })}
+          </Text>
           <View style={styles.energyTrackWide}>
             <View
               style={[
@@ -302,7 +323,16 @@ export function MatchControlRail({
             />
           </View>
           <Text style={styles.caption}>
-            {teamEnergy}% AVERAGE · {tiredCount} TIRED (≤ 40%)
+            {t('matchRail.energyCaption', {
+              percent: teamEnergy,
+              tired: tiredCount,
+              // The raw number, not a phrase: `≤` is absent from the face
+              // (measured) and drew through the system fallback, and an English
+              // "or less" baked into the param would surface mid-sentence in
+              // five other languages. Each locale writes its own wording around
+              // this number.
+              threshold: TIRED_ENERGY_THRESHOLD,
+            })}
           </Text>
           <View style={styles.chipRow}>
             {ENERGY_USE_MODES.map((mode) => {
@@ -311,7 +341,7 @@ export function MatchControlRail({
                 <SfxPressable
                   key={mode}
                   accessibilityRole="button"
-                  accessibilityLabel={`${ENERGY_USE_LABELS[mode]}. ${ENERGY_USE_ACCESSIBILITY[mode]}`}
+                  accessibilityLabel={`${energyUseLabel(mode, t)}. ${energyUseAccessibility(mode, t)}`}
                   accessibilityState={{ selected, disabled: coachingDisabled }}
                   disabled={coachingDisabled}
                   style={[
@@ -322,7 +352,7 @@ export function MatchControlRail({
                   onPress={() => onSelectEnergyUse(mode)}
                 >
                   <Text style={[styles.chipText, selected ? styles.chipTextSelected : null]}>
-                    {ENERGY_USE_LABELS[mode]}
+                    {energyUseLabel(mode, t)}
                   </Text>
                 </SfxPressable>
               );
@@ -331,7 +361,7 @@ export function MatchControlRail({
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>HERO POWERS</Text>
+          <Text style={styles.cardTitle}>{t('matchRail.heroPowers')}</Text>
           {heroTiles.map((tile) => (
             <View key={tile.id} style={styles.heroTile}>
               <Text style={[styles.heroGlyph, { color: tile.powerColor }]}>{tile.powerGlyph}</Text>
@@ -357,7 +387,7 @@ export function MatchControlRail({
                     tile.status === 'building' ? null : styles.heroStatusReady,
                   ]}
                 >
-                  {heroStatusText(tile)}
+                  {heroStatusText(tile, t)}
                 </Text>
               </View>
             </View>
@@ -368,12 +398,12 @@ export function MatchControlRail({
   );
 }
 
-function heroStatusText(tile: MatchRailHeroTile): string {
-  if (tile.status === 'firing') return 'LIVE';
+function heroStatusText(tile: MatchRailHeroTile, t: CopyFn): string {
+  if (tile.status === 'firing') return t('matchRail.statusLive');
   // m1.27 removed the Zone countdown from the sim: remainingTicks never
   // decrements, so a seconds readout would sit frozen at "7s" for the whole
   // hold. The tile states the phase instead of faking a timer.
-  if (tile.status === 'zone') return 'ZONE';
+  if (tile.status === 'zone') return t('matchRail.statusZone');
   return `${Math.round(tile.heat * 100)}%`;
 }
 

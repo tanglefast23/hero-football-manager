@@ -1,5 +1,12 @@
 import type { PowerState } from '../sim/types';
+import { copyFor, type CopyFn } from '../i18n';
 import { heatFraction } from './match-rail';
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 /**
  * Possession-card charge meter (2026-07-25). The bottom-corner carrier card
@@ -87,8 +94,11 @@ export function rainbowStripWidth(trackWidth: number): number {
   return rainbowStripBands(trackWidth).length * CHARGE_BAND_WIDTH;
 }
 
-export function chargeMeterAccessibilityLabel(meter: ChargeMeter): string {
-  if (meter.state === 'ready') return 'Power charged and ready';
-  if (meter.state === 'spent') return 'Power in use, charge reset';
-  return `Power charge ${Math.round(meter.fill * 100)}%`;
+export function chargeMeterAccessibilityLabel(
+  meter: ChargeMeter,
+  t: CopyFn = englishCopy(),
+): string {
+  if (meter.state === 'ready') return t('matchScreen.a11y.powerCharged');
+  if (meter.state === 'spent') return t('matchScreen.a11y.powerSpent');
+  return t('matchScreen.a11y.powerCharge', { percent: Math.round(meter.fill * 100) });
 }

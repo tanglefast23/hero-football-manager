@@ -41,7 +41,7 @@ import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { ScreenTabs, type ScreenTab } from '../components/ScreenTabs';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
-import { useCopy } from '../../i18n';
+import { useCopy, type CopyFn } from '../../i18n';
 
 const FACILITY_GUIDE_TARGET_TOP = 170;
 const FACILITY_PLACEMENT_PLUS_SIZE = 16;
@@ -80,11 +80,35 @@ function focusGuideTarget(target: View | null): void {
   if (handle !== null) AccessibilityInfo.setAccessibilityFocus(handle);
 }
 
+/**
+ * "Building · 2 weeks remaining" for a facility that is not open yet.
+ *
+ * One helper because the register and the selected-facility card print the same
+ * sentence, and the singular is a plural form in the catalog rather than a
+ * ternary in the source — English is the only language where dropping an "s"
+ * is the whole rule.
+ */
+function projectWeeksRemaining(
+  t: CopyFn,
+  status: ClubFacilityBuildingViewModel['status'],
+  // Optional on the view model, but only ever absent while the building is
+  // operational — which is the branch that never reaches here.
+  weeksRemaining: number | undefined,
+): string {
+  const weeks = weeksRemaining ?? 0;
+  return t(
+    status === 'construction'
+      ? 'clubFinances.buildingWeeksRemaining'
+      : 'clubFinances.upgradingWeeksRemaining',
+    { n: weeks, count: weeks },
+  );
+}
+
 /** Which board each section belongs to. Facility first — it is the one the desk sends you to. */
-const CLUB_OFFICE_TABS: readonly ScreenTab<ClubOfficeTab>[] = [
-  { id: 'facility', label: 'Facility', accessibilityLabel: 'Facility board' },
-  { id: 'staff', label: 'Staff', accessibilityLabel: 'Staff board' },
-  { id: 'finances', label: 'Finances', accessibilityLabel: 'Finances board' },
+const CLUB_OFFICE_TABS = (t: CopyFn): readonly ScreenTab<ClubOfficeTab>[] => [
+  { id: 'facility', label: t('clubFinances.tabFacility'), accessibilityLabel: t('clubFinances.a11y.facilityBoard') },
+  { id: 'staff', label: t('clubFinances.tabStaff'), accessibilityLabel: t('clubFinances.a11y.staffBoard') },
+  { id: 'finances', label: t('clubFinances.tabFinances'), accessibilityLabel: t('clubFinances.a11y.financesBoard') },
 ];
 
 export interface ClubFinancesScreenProps {
@@ -231,8 +255,8 @@ export function ClubFinancesScreen({
     // has to answer — docs/08: nothing refuses silently.
     if (!canPlaceAt(x, y)) {
       setPlacementRejection(cellIsOccupied(x, y)
-        ? 'That square is taken. Pick an empty one.'
-        : 'It does not fit here. Try a square with more room.');
+        ? t('clubFinances.squareTaken')
+        : t('clubFinances.squareDoesNotFit'));
       return;
     }
     setPlacementRejection(null);
@@ -249,7 +273,7 @@ export function ClubFinancesScreen({
       setPendingPlacement({ kind: 'build', catalog, x, y });
       setPreviewCell(null);
     }
-  }, [canPlaceAt, cellIsOccupied, facilities.catalog, guidedFirstFacility, relocatingBuilding, selectedBuildType]);
+  }, [canPlaceAt, cellIsOccupied, facilities.catalog, guidedFirstFacility, relocatingBuilding, selectedBuildType, t]);
 
   const confirmPendingPlacement = useCallback(() => {
     if (pendingPlacement === null) return;
@@ -679,7 +703,7 @@ export function ClubFinancesScreen({
           </View>
           <StatusChip label={viewModel.periodLabel} />
         </View>
-        <ScreenTabs tabs={CLUB_OFFICE_TABS} activeId={activeTab} onSelect={onSelectTab} />
+        <ScreenTabs tabs={CLUB_OFFICE_TABS(t)} activeId={activeTab} onSelect={onSelectTab} />
       </View>
         }
         sections={sections}
@@ -702,6 +726,7 @@ interface CashPositionSectionProps {
 }
 
 function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps) {
+  const t = useCopy();
   return (
     // Lit, but never a stop. This panel used to carry a "Bert says · Review the
     // loan" tap cue and 80pt of clearance for it, which broke his loan briefing
@@ -710,22 +735,26 @@ function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps
     // straight through to the facility board now, and the highlight just says
     // which panel he means.
     <View className={guideFocus === 'emergency-loan' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
-        <PaperPanel kicker="Cash position" title="The board’s bottom line" stamp="Current">
+        <PaperPanel
+          kicker={t('clubFinances.cashPosition')}
+          title={t('clubFinances.boardsBottomLine')}
+          stamp={t('clubFinances.stampCurrent')}
+        >
           <View className="flex-row gap-2">
-            <Metric label="Balance" value={formatCurrency(viewModel.resources.money)} />
+            <Metric label={t('clubFinances.balance')} value={formatCurrency(viewModel.resources.money)} />
             <Metric
-              label="Next four weeks · typical"
+              label={t('clubFinances.nextFourWeeksTypical')}
               value={formatCurrency(viewModel.operatingOutlook.net, true)}
               tone={viewModel.operatingOutlook.net < 0 ? 'negative' : 'positive'}
             />
           </View>
           <View className="mt-2 flex-row gap-2">
-            <Metric label="Four-week balance · typical" value={formatCurrency(viewModel.operatingOutlook.projectedBalance)} />
-            <Metric label="Fans" value={formatCompactNumber(viewModel.fans)} />
+            <Metric label={t('clubFinances.fourWeekBalanceTypical')} value={formatCurrency(viewModel.operatingOutlook.projectedBalance)} />
+            <Metric label={t('clubFinances.fans')} value={formatCompactNumber(viewModel.fans)} />
           </View>
           <View className="mt-2 flex-row">
             <Metric
-              label="Match, deals & prize"
+              label={t('clubFinances.matchDealsPrize')}
               value={viewModel.variableIncome.detail === undefined
                 ? formatCurrency(viewModel.variableIncome.amount, true)
                 : `${formatCurrency(viewModel.variableIncome.amount)} (${viewModel.variableIncome.detail})`}
@@ -768,12 +797,17 @@ function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps
  * with the accounts.
  */
 function EmergencyLoanSection({ loan }: { readonly loan: ClubLoanViewModel }) {
+  const t = useCopy();
   return (
     <View>
-      <PaperPanel kicker="Board loan" title="Emergency loan" stamp="Owed">
+      <PaperPanel
+        kicker={t('clubFinances.boardLoan')}
+        title={t('clubFinances.emergencyLoan')}
+        stamp={t('clubFinances.stampOwed')}
+      >
         <View className="flex-row gap-2">
-          <Metric label="Borrowed" value={formatCurrency(loan.originalAmount)} />
-          <Metric label="Still owed" value={formatCurrency(loan.remainingBalance)} tone="negative" />
+          <Metric label={t('clubFinances.borrowed')} value={formatCurrency(loan.originalAmount)} />
+          <Metric label={t('clubFinances.stillOwed')} value={formatCurrency(loan.remainingBalance)} tone="negative" />
         </View>
         <View className="mt-2 flex-row">
           <Metric label={loan.scheduleLabel} value={loan.scheduleValue} />
@@ -822,13 +856,17 @@ function SponsorBusinessSection({
         : undefined}
       >
         <SponsorHeading
-          title="Club Buzz"
-          eyebrow="Social following"
-          stamp="Season 3"
+          title={t('clubFinances.clubBuzz')}
+          eyebrow={t('clubFinances.socialFollowing')}
+          stamp={t('clubFinances.stampSeasonThree')}
           targetRef={sponsorBuzzTargetRef}
           onLayout={onGuideTargetLayout}
         />
-        <PaperPanel kicker="Local advertising" title="The crowd is talking" stamp="LIVE">
+        <PaperPanel
+          kicker={t('clubFinances.localAdvertising')}
+          title={t('clubFinances.theCrowdIsTalking')}
+          stamp={t('clubFinances.stampLive')}
+        >
           <Text className="text-sm leading-5 text-ink/70">
             {t('clubFinances.boardsPayBody', {
               amount: formatCurrency(sponsorship.actualMonthlyIncome),
@@ -845,9 +883,11 @@ function SponsorBusinessSection({
   return (
     <View className={guidedDesk ? 'border-2 border-blue-dark bg-blue-light p-1' : undefined}>
       <SponsorHeading
-        title="Sponsor Desk"
-        eyebrow="Club business"
-        stamp={`${sponsorship.slots.length} slot${sponsorship.slots.length === 1 ? '' : 's'}`}
+        title={t('clubFinances.sponsorDesk')}
+        eyebrow={t('clubFinances.clubBusiness')}
+        stamp={t('clubFinances.slotCount', {
+          n: sponsorship.slots.length, count: sponsorship.slots.length,
+        })}
         targetRef={sponsorDeskTargetRef}
         onLayout={onGuideTargetLayout}
       />
@@ -859,7 +899,7 @@ function SponsorBusinessSection({
               {t('clubFinances.perMonth', { amount: formatCurrency(sponsorship.actualMonthlyIncome) })}
             </Text>
           </View>
-          <StatusChip label={`Next · ${sponsorship.nextPaymentLabel}`} tone="info" />
+          <StatusChip label={t('clubFinances.nextPaymentChip', { when: sponsorship.nextPaymentLabel })} tone="info" />
         </View>
         {/* One number, and it is the club's. The contract total and the
             Chairman percentage used to sit here, which told the manager the
@@ -872,7 +912,9 @@ function SponsorBusinessSection({
         tabs={sponsorship.slots.map(slot => ({
           id: String(slot.slot),
           label: slot.slotLabel,
-          accessibilityLabel: `${slot.slotLabel}, ${slot.provisional ? 'needs a sponsor choice' : 'signed'}`,
+          accessibilityLabel: slot.provisional
+            ? t('clubFinances.a11y.slotNeedsChoice', { slot: slot.slotLabel })
+            : t('clubFinances.a11y.slotSigned', { slot: slot.slotLabel }),
         }))}
         activeId={String(selected?.slot ?? selectedSlot)}
         onSelect={id => onSelectSlot(Number(id))}
@@ -898,7 +940,10 @@ function SponsorBusinessSection({
             ) : null
           ) : (
             <View className="mt-4 gap-3">
-              <SectionLabel eyebrow="Offers" title={`Choose for ${selected.slotLabel}`} />
+              <SectionLabel
+                eyebrow={t('clubFinances.offers')}
+                title={t('clubFinances.chooseForSlot', { slot: selected.slotLabel })}
+              />
               {selected.offers.map(offer => (
                 <SponsorOfferCard
                   key={offer.offerId}
@@ -961,19 +1006,27 @@ function ActiveSponsorCard({ slot, chairmanPercent }: {
 }) {
   const t = useCopy();
   const statusLabel = slot.provisional
-    ? 'CONTINUITY'
+    ? t('clubFinances.statusContinuity')
     : slot.objectiveStatus === 'MET'
-      ? 'TARGET MET'
-      : slot.objectiveStatus === 'FAILED' ? 'TARGET MISSED' : 'ACTIVE';
+      ? t('clubFinances.statusTargetMet')
+      : slot.objectiveStatus === 'FAILED'
+        ? t('clubFinances.statusTargetMissed')
+        : t('clubFinances.statusActive');
   const statusTone = slot.objectiveStatus === 'MET'
     ? 'success' as const
     : slot.objectiveStatus === 'FAILED' ? 'danger' as const : 'normal' as const;
   const accessibilityLabel = [
-    `${slot.sponsorName}. ${slot.provisional ? 'Continuity sponsor' : 'Active sponsor'}.`,
-    `Contract value ${formatCurrency(slot.actualMonthlyFee)} per month.`,
-    slot.objectiveLabel === undefined ? undefined : `Objective: ${slot.objectiveLabel}.`,
+    slot.provisional
+      ? t('clubFinances.a11y.continuitySponsor', { sponsor: slot.sponsorName })
+      : t('clubFinances.a11y.activeSponsor', { sponsor: slot.sponsorName }),
+    t('clubFinances.a11y.contractValuePerMonth', { amount: formatCurrency(slot.actualMonthlyFee) }),
+    slot.objectiveLabel === undefined
+      ? undefined
+      : t('clubFinances.a11y.objective', { objective: slot.objectiveLabel }),
     slot.objectiveProgressLabel === undefined ? undefined : `${slot.objectiveProgressLabel}.`,
-    slot.actualBonus === undefined ? undefined : `Contract bonus: ${formatCurrency(slot.actualBonus)}.`,
+    slot.actualBonus === undefined
+      ? undefined
+      : t('clubFinances.a11y.contractBonusColon', { amount: formatCurrency(slot.actualBonus) }),
   ].filter(Boolean).join(' ');
   return (
     <View
@@ -1017,11 +1070,13 @@ function SponsorOfferCard({ offer, slot, chairmanPercent, onReview }: {
 }) {
   const t = useCopy();
   const accessibilityLabel = [
-    `Review ${offer.sponsorName} for ${slot.slotLabel}.`,
-    `${offer.profileLabel} offer.`,
-    `Contract value ${formatCurrency(offer.actualMonthlyFee)} per month.`,
-    `Objective: ${offer.objectiveLabel}.`,
-    `Contract bonus ${formatCurrency(offer.actualBonus)}.`,
+    t('clubFinances.a11y.reviewSponsorForSlot', {
+      sponsor: offer.sponsorName, slot: slot.slotLabel,
+    }),
+    t('clubFinances.a11y.profileOffer', { profile: offer.profileLabel }),
+    t('clubFinances.a11y.contractValuePerMonth', { amount: formatCurrency(offer.actualMonthlyFee) }),
+    t('clubFinances.a11y.objective', { objective: offer.objectiveLabel }),
+    t('clubFinances.a11y.contractBonus', { amount: formatCurrency(offer.actualBonus) }),
   ].join(' ');
   return (
     <View className="border-2 border-b-4 border-ink bg-white p-4">
@@ -1044,7 +1099,7 @@ function SponsorOfferCard({ offer, slot, chairmanPercent, onReview }: {
       {onReview === undefined ? null : (
         <View className="mt-4">
           <ActionButton
-            label="Review offer"
+            label={t('clubFinances.reviewOffer')}
             accessibilityLabel={accessibilityLabel}
             onPress={() => onReview(offer, slot)}
           />
@@ -1107,19 +1162,20 @@ interface ItemizedStatementSectionProps {
 }
 
 function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedStatementSectionProps) {
+  const t = useCopy();
   return (
     <View>
-        <SectionLabel eyebrow="Weekly" title="Expenses and income" />
+        <SectionLabel eyebrow={t('clubFinances.weekly')} title={t('clubFinances.expensesAndIncome')} />
         {viewModel.ledger.length === 0 ? (
           <EmptyDocket
-            title="Nothing yet"
-            detail="Wages, gate receipts, upkeep and every payment land here as each week is played."
+            title={t('clubFinances.nothingYet')}
+            detail={t('clubFinances.nothingYetDetail')}
           />
         ) : (
         <View className="border-2 border-ink bg-white">
           <View className="flex-row border-b border-ink/20 px-3 py-2">
-            <PixelText className="flex-1 text-sm uppercase tracking-wide text-ink/70">Entry</PixelText>
-            <PixelText className="text-right text-sm uppercase tracking-wide text-ink/70">Amount</PixelText>
+            <PixelText className="flex-1 text-sm uppercase tracking-wide text-ink/70">{t('clubFinances.columnEntry')}</PixelText>
+            <PixelText className="text-right text-sm uppercase tracking-wide text-ink/70">{t('clubFinances.columnAmount')}</PixelText>
           </View>
           {viewModel.ledger.map(line => {
             // The list runs newest first, so the head row names the week just
@@ -1135,7 +1191,10 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
               : line.kind === 'expense'
                 ? 'text-red-dark'
                 : 'text-ink';
-            const accessibilityLabel = `${line.periodLabel}, ${line.label}, ${line.amount > 0 ? 'plus ' : ''}${formatCurrency(line.amount)}`;
+            const accessibilityLabel = t(
+              line.amount > 0 ? 'clubFinances.a11y.ledgerRowPlus' : 'clubFinances.a11y.ledgerRow',
+              { period: line.periodLabel, label: line.label, amount: formatCurrency(line.amount) },
+            );
             const content = (
               <>
                 <View className="flex-1 pr-3">
@@ -1186,11 +1245,11 @@ function RecentTransactionsSection({ viewModel }: RecentTransactionsSectionProps
   const t = useCopy();
   return (
     <View>
-          <SectionLabel eyebrow="One offs" title="Signings and purchases" />
+          <SectionLabel eyebrow={t('clubFinances.oneOffs')} title={t('clubFinances.signingsAndPurchases')} />
           {viewModel.recentTransactions.length === 0 ? (
             <EmptyDocket
-              title="Nothing signed or built"
-              detail="Transfers, youth signings, coach hires and facility work land here. Wages, gate money, sponsor and prizes stay in the weekly list above."
+              title={t('clubFinances.nothingSignedOrBuilt')}
+              detail={t('clubFinances.nothingSignedOrBuiltDetail')}
             />
           ) : (
           <View className="border-2 border-ink bg-white">
@@ -1230,14 +1289,16 @@ function TrainingPointIncomeSection({ income }: { readonly income: TrainingPoint
   const t = useCopy();
   return (
     <View>
-      <SectionLabel eyebrow="Training points" title="What earns them" />
+      <SectionLabel eyebrow={t('clubFinances.trainingPoints')} title={t('clubFinances.whatEarnsThem')} />
       <View className="border-2 border-ink bg-white">
         {income.rows.map(row => (
           <View
             key={row.id}
             accessible
             accessibilityRole="text"
-            accessibilityLabel={`${row.label}, ${row.points} training points a week`}
+            accessibilityLabel={t('clubFinances.a11y.trainingPointsRow', {
+              label: row.label, points: row.points,
+            })}
             className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2"
           >
             <View className="flex-1 pr-3">
@@ -1252,7 +1313,7 @@ function TrainingPointIncomeSection({ income }: { readonly income: TrainingPoint
         <View
           accessible
           accessibilityRole="text"
-          accessibilityLabel={`Total, ${income.total} training points a week`}
+          accessibilityLabel={t('clubFinances.a11y.trainingPointsTotal', { points: income.total })}
           className="min-h-11 flex-row items-center bg-paper px-3 py-2"
         >
           <PixelText className="flex-1 pr-3 text-sm uppercase text-ink">{t('clubFinances.perWeek')}</PixelText>
@@ -1272,9 +1333,10 @@ function TrainingPointIncomeSection({ income }: { readonly income: TrainingPoint
  * read as often for "how do I earn more" as for "what do I own".
  */
 function IncomeGenerationSection({ income }: { readonly income: IncomeGenerationViewModel }) {
+  const t = useCopy();
   return (
     <View>
-      <SectionLabel eyebrow="Income generation" title="Bringing in revenue" />
+      <SectionLabel eyebrow={t('clubFinances.incomeGeneration')} title={t('clubFinances.bringingInRevenue')} />
       <View className="border-2 border-ink bg-white">
         {income.rows.map(row => (
           <View
@@ -1312,9 +1374,9 @@ function FacilityRegisterSection({ facilities }: { readonly facilities: ClubFaci
     // No margin of its own: SectionFlow already spaces every section by gap-6.
     <View>
       <SectionLabel
-        eyebrow="On the books"
-        title="What the club owns"
-        right={<StatusChip label={`${facilities.buildings.length} built`} />}
+        eyebrow={t('clubFinances.onTheBooks')}
+        title={t('clubFinances.whatTheClubOwns')}
+        right={<StatusChip label={t('clubFinances.builtCount', { count: facilities.buildings.length })} />}
       />
       <View className="border-2 border-ink bg-white">
         {facilities.buildings.map(building => (
@@ -1322,7 +1384,12 @@ function FacilityRegisterSection({ facilities }: { readonly facilities: ClubFaci
             key={building.id}
             accessible
             accessibilityRole="text"
-            accessibilityLabel={`${building.name}, Level ${building.level}. ${building.effectLabel}. ${formatCurrency(building.weeklyUpkeep)} a week.`}
+            accessibilityLabel={t('clubFinances.a11y.facilityRow', {
+              name: building.name,
+              level: building.level,
+              effect: building.effectLabel,
+              upkeep: formatCurrency(building.weeklyUpkeep),
+            })}
             className="flex-row items-start border-b border-ink/10 px-3 py-2"
           >
             <View className="flex-1 pr-3">
@@ -1332,7 +1399,7 @@ function FacilityRegisterSection({ facilities }: { readonly facilities: ClubFaci
               <Text className="mt-1 text-sm leading-5 text-ink/70">
                 {building.status === 'operational'
                   ? building.effectLabel
-                  : `${building.status === 'construction' ? 'Building' : 'Upgrading'} · ${building.weeksRemaining} week${building.weeksRemaining === 1 ? '' : 's'} remaining`}
+                  : projectWeeksRemaining(t, building.status, building.weeksRemaining)}
               </Text>
             </View>
             <Text className="font-mono text-base text-red-dark">
@@ -1343,12 +1410,14 @@ function FacilityRegisterSection({ facilities }: { readonly facilities: ClubFaci
         <View
           accessible
           accessibilityRole="text"
-          accessibilityLabel={`Total upkeep, ${formatCurrency(facilities.weeklyUpkeep)} a week`}
+          accessibilityLabel={t('clubFinances.a11y.totalUpkeepAWeek', {
+            amount: formatCurrency(facilities.weeklyUpkeep),
+          })}
           className="min-h-11 flex-row items-center bg-paper px-3 py-2"
         >
           <PixelText className="flex-1 pr-3 text-sm uppercase text-ink">{t('clubFinances.runningCost')}</PixelText>
           <Text className="font-mono text-lg text-red-dark">
-            {formatCurrency(-facilities.weeklyUpkeep)}/wk
+            {t('clubFinances.perWeekShort', { amount: formatCurrency(-facilities.weeklyUpkeep) })}
           </Text>
         </View>
       </View>
@@ -1367,18 +1436,22 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
   return (
     <View>
         <SectionLabel
-          eyebrow="Backroom staff"
-          title="Coaching staff"
+          eyebrow={t('clubFinances.backroomStaff')}
+          title={t('clubFinances.coachingStaff')}
           right={<StatusChip label={`${viewModel.coachingStaff.length} / 2`} selected={viewModel.coachingStaff.length > 0} />}
         />
         {viewModel.coachingStaff.length === 0 ? (
-          <PaperPanel kicker="Vacancy" title="The touchline needs a voice" stamp="OPEN">
+          <PaperPanel
+            kicker={t('clubFinances.vacancy')}
+            title={t('clubFinances.touchlineNeedsAVoice')}
+            stamp={t('clubFinances.stampOpen')}
+          >
             <Text className="text-sm leading-5 text-ink/70">
               {t('clubFinances.hireAHeadCoach')}</Text>
             {onOpenCoachMarket ? (
               <View className="mt-3">
                 <ActionButton
-                  label="Open coach market"
+                  label={t('clubFinances.openCoachMarket')}
                   accessibilityLabel={t('clubFinances.a11y.openTheCoachMarket')}
                   onPress={onOpenCoachMarket}
                 />
@@ -1394,7 +1467,7 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
                     <ManagementSprite
                       spriteKey={`coach:${coach.portraitId}:rest`}
                       width={72}
-                      accessibilityLabel={`${coach.name} coach portrait`}
+                      accessibilityLabel={t('clubFinances.a11y.coachPortrait', { name: coach.name })}
                     />
                   </View>
                   <View className="min-w-0 flex-1">
@@ -1430,8 +1503,10 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
                 {onDismissCoach ? (
                   <View className="mt-3">
                     <ActionButton
-                      label={`Dismiss · ${formatCurrency(coach.severanceCost)} severance`}
-                      accessibilityLabel={`Dismiss ${coach.name} with one week severance`}
+                      label={t('clubFinances.dismissSeverance', {
+                        amount: formatCurrency(coach.severanceCost),
+                      })}
+                      accessibilityLabel={t('clubFinances.a11y.dismissWithSeverance', { name: coach.name })}
                       variant="danger"
                       onPress={() => onDismissCoach(coach.role)}
                     />
@@ -1441,7 +1516,7 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
             ))}
             {onOpenCoachMarket ? (
               <ActionButton
-                label="Review coach market"
+                label={t('clubFinances.reviewCoachMarket')}
                 accessibilityLabel={t('clubFinances.a11y.reviewTheCoachMarket')}
                 onPress={onOpenCoachMarket}
               />
@@ -1557,20 +1632,26 @@ function GroundsSection({
         && guideFocus !== 'facility-grid'
         && guideFocus !== 'coaching-office' ? (
         <TutorialTapCue
-          label="Bert says"
-          detail={guideFocus === 'facility-upgrade' ? 'Review the upgrade' : 'Use the club grounds'}
+          label={t('clubFinances.bertSays')}
+          detail={guideFocus === 'facility-upgrade'
+            ? t('clubFinances.reviewTheUpgrade')
+            : t('clubFinances.useTheClubGrounds')}
           style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
         />
       ) : null}
         <SectionLabel
-          eyebrow="Club grounds"
-          title="Build the place around the team"
-          right={<StatusChip label={`${viewModel.facilities.buildings.filter(building => building.status === 'operational').length} open`} />}
+          eyebrow={t('clubFinances.clubGrounds')}
+          title={t('clubFinances.buildThePlaceAroundTheTeam')}
+          right={<StatusChip label={t('clubFinances.openCount', {
+            count: viewModel.facilities.buildings.filter(building => building.status === 'operational').length,
+          })} />}
         />
         <PaperPanel
-          kicker="8 x 6 grounds"
-          title="Facilities grid"
-          stamp={`${formatCurrency(viewModel.facilities.weeklyUpkeep)}/wk`}
+          kicker={t('clubFinances.eightBySixGrounds')}
+          title={t('clubFinances.facilitiesGrid')}
+          stamp={t('clubFinances.perWeekShort', {
+            amount: formatCurrency(viewModel.facilities.weeklyUpkeep),
+          })}
         >
           <Text className="mb-3 text-sm leading-4 text-ink/70">
             {t('clubFinances.pickABuildingFrom')}</Text>
@@ -1593,7 +1674,7 @@ function GroundsSection({
             <View className="mb-3 border-2 border-pitch-dark bg-pitch-light px-3 py-2">
               <Text className="font-pixel text-sm uppercase text-ink">{t('clubFinances.pairBonusActive')}</Text>
               <Text className="mt-1 text-sm leading-4 text-ink/70">
-                {facilities.activeAdjacencies.map(facilityAdjacencyLabel).join(' · ')}
+                {facilities.activeAdjacencies.map(id => facilityAdjacencyLabel(id, t)).join(' · ')}
               </Text>
             </View>
           ) : null}
@@ -1611,8 +1692,8 @@ function GroundsSection({
           >
             {guidedFirstFacility && guidedFacilityPhase === 'grid' && facilityGridWidth > 0 ? (
               <TutorialTapCue
-                label="Bert says"
-                detail="Tap any + square"
+                label={t('clubFinances.bertSays')}
+                detail={t('clubFinances.tapAnyPlusSquare')}
                 style={{
                   left: facilityGridWidth / facilities.width / 2,
                   marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -1651,7 +1732,12 @@ function GroundsSection({
                           accessible={placementActive}
                           accessibilityRole={placementActive ? 'button' : 'none'}
                           accessibilityLabel={placementActive
-                            ? `${buildable ? 'Build at' : 'Blocked at'} column ${x + 1}, row ${y + 1}`
+                            ? t(
+                              buildable
+                                ? 'clubFinances.a11y.buildAtColumnRow'
+                                : 'clubFinances.a11y.blockedAtColumnRow',
+                              { column: x + 1, row: y + 1 },
+                            )
                             : undefined}
                           disabled={!placementActive || !guideAllowsCell}
                           // A blocked square answers with the refusal cue, not
@@ -1667,8 +1753,8 @@ function GroundsSection({
                           onHoverOut={() => setPreviewCell(null)}
                           tip={placementActive
                             ? (buildable
-                              ? `Build here · column ${x + 1}, row ${y + 1}`
-                              : 'Blocked, the footprint does not fit here')
+                              ? t('clubFinances.buildHereColumnRow', { column: x + 1, row: y + 1 })
+                              : t('clubFinances.blockedFootprintDoesNotFit'))
                             : undefined}
                           style={{
                             flex: 1,
@@ -1736,7 +1822,12 @@ function GroundsSection({
                   <Pressable
                     key={building.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`${building.name}, level ${building.level}. ${building.effectLabel}${comboActive ? '. Active adjacency bonus' : ''}`}
+                    accessibilityLabel={t(
+                      comboActive
+                        ? 'clubFinances.a11y.facilityCellCombo'
+                        : 'clubFinances.a11y.facilityCell',
+                      { name: building.name, level: building.level, effect: building.effectLabel },
+                    )}
                     disabled={placementActive}
                     onPress={() => {
                       setSelectedBuildingId(building.id);
@@ -1775,7 +1866,9 @@ function GroundsSection({
                           // sub-32 width accepts ManagementSprite's explicit
                           // sub-1x downscale rather than overflowing the cell.
                           width={Math.max(24, Math.min(56, Math.min(artWidth, artHeight)))}
-                          accessibilityLabel={`${building.name} construction`}
+                          accessibilityLabel={t('clubFinances.a11y.facilityConstruction', {
+                            name: building.name,
+                          })}
                         />
                       ) : (
                         <FacilitySprite
@@ -1834,13 +1927,15 @@ function GroundsSection({
             <View className="mt-3 flex-row items-start justify-between gap-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
               <View className="flex-1">
                 <PixelText className="text-sm uppercase text-blue-dark">
-                  {relocatingBuildingId !== null ? `Moving · ${activeLabel}` : `Placing · ${activeLabel}`}
+                  {relocatingBuildingId !== null
+                    ? t('clubFinances.movingLabel', { name: activeLabel })
+                    : t('clubFinances.placingLabel', { name: activeLabel })}
                 </PixelText>
                 <Text className={placementRejection === null
                   ? 'mt-1 text-sm text-ink/70'
                   : 'mt-1 text-sm font-bold text-red-dark'}
                 >
-                  {placementRejection ?? 'Tap any + square above. A blue outline fits; red is blocked.'}
+                  {placementRejection ?? t('clubFinances.tapAnyPlusSquareAbove')}
                 </Text>
               </View>
               <Pressable
@@ -1849,7 +1944,7 @@ function GroundsSection({
                 onPress={cancelPlacement}
                 className="min-h-11 items-center justify-center border-2 border-blue-dark bg-white px-3"
               >
-                <PixelText className="text-sm uppercase text-blue-dark">Cancel</PixelText>
+                <PixelText className="text-sm uppercase text-blue-dark">{t('clubFinances.cancel')}</PixelText>
               </Pressable>
             </View>
           ) : (
@@ -1889,8 +1984,13 @@ function GroundsSection({
                   </PixelText>
                   <Text className="mt-1 text-sm text-ink/70">
                     {selectedBuilding.status === 'operational'
-                      ? `${formatCurrency(selectedBuilding.weeklyUpkeep)}/wk upkeep · ${formatCurrency(selectedBuilding.relocationFee)} to move`
-                      : `${selectedBuilding.status === 'construction' ? 'Building' : 'Upgrading'} · ${selectedBuilding.weeksRemaining} week${selectedBuilding.weeksRemaining === 1 ? '' : 's'} remaining`}
+                      ? t('clubFinances.upkeepAndMoveCost', {
+                        upkeep: formatCurrency(selectedBuilding.weeklyUpkeep),
+                        fee: formatCurrency(selectedBuilding.relocationFee),
+                      })
+                      : projectWeeksRemaining(
+                        t, selectedBuilding.status, selectedBuilding.weeksRemaining,
+                      )}
                   </Text>
                   <Text className="mt-2 text-sm font-bold leading-4 text-blue-dark">
                     {selectedBuilding.effectLabel}
@@ -1903,7 +2003,9 @@ function GroundsSection({
                   {selectedBuilding.activeAdjacencyIds.length > 0 ? (
                     <PixelText className="mt-2 text-xs uppercase text-pitch-ink">
                       {t('clubFinances.activeCombo', {
-                        combos: selectedBuilding.activeAdjacencyIds.map(facilityAdjacencyLabel).join(' · '),
+                        combos: selectedBuilding.activeAdjacencyIds
+                          .map(id => facilityAdjacencyLabel(id, t))
+                          .join(' · '),
                       })}
                     </PixelText>
                   ) : null}
@@ -1927,10 +2029,16 @@ function GroundsSection({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={selectedBuilding.status !== 'operational'
-                    ? `Cannot move ${selectedBuilding.name} while its project is active`
+                    ? t('clubFinances.a11y.cannotMoveProjectActive', { name: selectedBuilding.name })
                     : selectedBuilding.canRelocate
-                      ? `Move ${selectedBuilding.name} for ${formatCurrency(selectedBuilding.relocationFee)}`
-                      : `Cannot move ${selectedBuilding.name}. Need ${formatCurrency(selectedBuilding.relocationShortfall)} more`}
+                      ? t('clubFinances.a11y.moveForFee', {
+                        name: selectedBuilding.name,
+                        amount: formatCurrency(selectedBuilding.relocationFee),
+                      })
+                      : t('clubFinances.a11y.cannotMoveNeedMore', {
+                        name: selectedBuilding.name,
+                        amount: formatCurrency(selectedBuilding.relocationShortfall),
+                      })}
                   accessibilityState={{ disabled: selectedBuilding.status !== 'operational' || !selectedBuilding.canRelocate }}
                   disabled={selectedBuilding.status !== 'operational' || !selectedBuilding.canRelocate}
                   onPress={() => setRelocatingBuildingId(selectedBuilding.id)}
@@ -1942,25 +2050,35 @@ function GroundsSection({
                     ? 'text-center text-sm uppercase text-ink'
                     : 'text-center text-sm uppercase text-ink/35'}>
                     {selectedBuilding.status !== 'operational'
-                      ? 'Project active'
+                      ? t('clubFinances.projectActive')
                       : selectedBuilding.canRelocate
-                        ? `Move · ${formatCurrency(selectedBuilding.relocationFee)}`
-                        : `Need ${formatCurrency(selectedBuilding.relocationShortfall)}`}
+                        ? t('clubFinances.moveCost', {
+                          amount: formatCurrency(selectedBuilding.relocationFee),
+                        })
+                        : t('clubFinances.needAmount', {
+                          amount: formatCurrency(selectedBuilding.relocationShortfall),
+                        })}
                   </PixelText>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={selectedBuilding.upgradeCost === undefined
-                    ? `${selectedBuilding.name} is at maximum level`
+                    ? t('clubFinances.a11y.atMaximumLevel', { name: selectedBuilding.name })
                     : selectedBuilding.status !== 'operational'
-                      ? `Cannot upgrade ${selectedBuilding.name} while its project is active`
+                      ? t('clubFinances.a11y.cannotUpgradeProjectActive', { name: selectedBuilding.name })
                       : viewModel.facilities.activeProject !== undefined
-                        ? `Cannot upgrade ${selectedBuilding.name} while the construction crew is busy`
+                        ? t('clubFinances.a11y.cannotUpgradeCrewBusy', { name: selectedBuilding.name })
                         : selectedBuilding.upgradeBlockedReason !== undefined
                           ? selectedBuilding.upgradeBlockedReason
                         : selectedBuilding.canUpgrade
-                          ? `Upgrade ${selectedBuilding.name} for ${formatCurrency(selectedBuilding.upgradeCost)}`
-                          : `Cannot upgrade ${selectedBuilding.name}. Need ${formatCurrency(selectedBuilding.upgradeShortfall)} more`}
+                          ? t('clubFinances.a11y.upgradeForCost', {
+                            name: selectedBuilding.name,
+                            amount: formatCurrency(selectedBuilding.upgradeCost),
+                          })
+                          : t('clubFinances.a11y.cannotUpgradeNeedMore', {
+                            name: selectedBuilding.name,
+                            amount: formatCurrency(selectedBuilding.upgradeShortfall),
+                          })}
                   accessibilityState={{
                     disabled: !selectedBuilding.canUpgrade
                       || selectedBuilding.status !== 'operational'
@@ -1982,16 +2100,23 @@ function GroundsSection({
                     ? 'text-center text-sm uppercase text-ink/35'
                     : 'text-center text-sm uppercase text-white'}>
                     {selectedBuilding.status !== 'operational'
-                      ? 'Project active'
+                      ? t('clubFinances.projectActive')
                       : viewModel.facilities.activeProject !== undefined
-                        ? 'Crew busy'
+                        ? t('clubFinances.crewBusy')
                         : selectedBuilding.upgradeBlockedReason !== undefined
-                          ? `Locked · ${selectedBuilding.upgradeBlockedReason.match(/D[1-5]/)?.[0] ?? 'promotion'}`
+                          ? t('clubFinances.lockedReason', {
+                            reason: selectedBuilding.upgradeBlockedReason.match(/D[1-5]/)?.[0]
+                              ?? t('clubFinances.lockedPromotion'),
+                          })
                         : selectedBuilding.upgradeCost === undefined
-                          ? 'Max level'
+                          ? t('clubFinances.maxLevel')
                           : selectedBuilding.canUpgrade
-                            ? `Upgrade · ${formatCurrency(selectedBuilding.upgradeCost)}`
-                            : `Need ${formatCurrency(selectedBuilding.upgradeShortfall)}`}
+                            ? t('clubFinances.upgradeCost', {
+                              amount: formatCurrency(selectedBuilding.upgradeCost),
+                            })
+                            : t('clubFinances.needAmount', {
+                              amount: formatCurrency(selectedBuilding.upgradeShortfall),
+                            })}
                   </PixelText>
                 </Pressable>
               </View>
@@ -2006,8 +2131,11 @@ function GroundsSection({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={selectedBuilding.canClose
-                  ? `Close ${selectedBuilding.name} and recover ${formatCurrency(selectedBuilding.closeRefund)}`
-                  : `Cannot close ${selectedBuilding.name} while its project is active`}
+                  ? t('clubFinances.a11y.closeAndRecover', {
+                    name: selectedBuilding.name,
+                    amount: formatCurrency(selectedBuilding.closeRefund),
+                  })
+                  : t('clubFinances.a11y.cannotCloseProjectActive', { name: selectedBuilding.name })}
                 accessibilityState={{ disabled: !selectedBuilding.canClose }}
                 disabled={!selectedBuilding.canClose}
                 onPress={() => onCloseFacility?.(selectedBuilding.id)}
@@ -2019,8 +2147,10 @@ function GroundsSection({
                   ? 'text-center text-sm uppercase text-red-dark'
                   : 'text-center text-sm uppercase text-ink/35'}>
                   {selectedBuilding.canClose
-                    ? `Close · ${formatCurrency(selectedBuilding.closeRefund)} back`
-                    : 'Project active'}
+                    ? t('clubFinances.closeRefund', {
+                      amount: formatCurrency(selectedBuilding.closeRefund),
+                    })
+                    : t('clubFinances.projectActive')}
                 </PixelText>
               </Pressable>
             </View>
@@ -2051,20 +2181,49 @@ function GroundsSection({
               {viewModel.facilities.catalog.map(entry => {
                 const selected = selectedBuildType === entry.type;
                 const knownAdjacency = viewModel.facilities.discoveredAdjacencies
-                  .map(facilityAdjacencyPresentation)
+                  .map(id => facilityAdjacencyPresentation(id, t))
                   .find(presentation => presentation?.facilityTypes.includes(entry.type));
                 const adjacencyGuidance = knownAdjacency === undefined
                   ? undefined
                   : `${knownAdjacency.pairLabel} · ${knownAdjacency.effectLabel}`;
-                const adjacencyAccessibility = adjacencyGuidance === undefined
-                  ? ''
-                  : ` Known combo: ${adjacencyGuidance}.`;
                 const guideAllowsType = !guidedFirstFacility
                   || guidedFirstFacilityAllowsBuildType(entry.type);
                 const entryEnabled = entry.available && entry.affordable && guideAllowsType;
                 const openingPitchChoiceBlocked = entry.blockedByOpeningTrainingPitch
                   || !guideAllowsType;
                 const guidedIncome = guideIncomeFacilities && isIncomeFacilityType(entry.type);
+                // Sentence per catalog key, joined with a space — the same shape
+                // the sponsor cards use. Building it as one template would bake
+                // English clause order into every language.
+                const cardAccessibilityLabel = [
+                  t('clubFinances.a11y.facilityCard', {
+                    name: entry.name,
+                    built: entry.builtCount,
+                    limit: entry.buildLimit,
+                    effect: entry.effectLabel,
+                    width: entry.width,
+                    height: entry.height,
+                  }),
+                  t('clubFinances.a11y.buildTimeWeeks', {
+                    n: entry.buildWeeks, count: entry.buildWeeks,
+                  }),
+                  adjacencyGuidance === undefined
+                    ? undefined
+                    : t('clubFinances.a11y.knownComboIs', { combo: adjacencyGuidance }),
+                  guideAllowsType ? undefined : t('clubFinances.a11y.buildTheTrainingPitchFirst'),
+                  entry.available
+                    ? t('clubFinances.a11y.buildCostAndUpkeep', {
+                      cost: formatCurrency(entry.buildCost),
+                      upkeep: formatCurrency(entry.weeklyUpkeep),
+                    })
+                    : t('clubFinances.a11y.lockedSentence'),
+                  entry.blockedReason
+                    || (entry.available && !entry.affordable && entry.affordabilityShortfall > 0
+                      ? t('clubFinances.a11y.needMoreSentence', {
+                        amount: formatCurrency(entry.affordabilityShortfall),
+                      })
+                      : undefined),
+                ].filter(Boolean).join(' ');
                 return (
                   <Fragment key={entry.type}>
                     {/* The banner rides the same wrapping row as the cards it
@@ -2082,8 +2241,10 @@ function GroundsSection({
                           {t('clubFinances.bertSays')}</PixelText>
                         <Text className="mt-1 text-sm leading-5 text-ink">
                           {viewModel.facilities.activeProject === undefined
-                            ? 'Fan Shops earn every week and Stadium Stands boost home-match income. You can build up to 3 of each; every other facility is limited to 1.'
-                            : `The works crew is busy with ${viewModel.facilities.activeProject.name}. Wait until construction finishes, then build another Fan Shop or Stadium Stand. You can build up to 3 of each; every other facility is limited to 1.`}
+                            ? t('clubFinances.incomeFacilitiesHint')
+                            : t('clubFinances.incomeFacilitiesBusyHint', {
+                              name: viewModel.facilities.activeProject.name,
+                            })}
                         </Text>
                       </View>
                     ) : null}
@@ -2101,8 +2262,8 @@ function GroundsSection({
                         glow as the Train button and the same arrow. */}
                     {guideFocus === 'coaching-office' && entry.type === 'coaching-office' && !selected ? (
                       <TutorialTapCue
-                        label="Tap here"
-                        detail="Coaching Office"
+                        label={t('clubFinances.tapHere')}
+                        detail={t('clubFinances.coachingOfficeCue')}
                         style={{
                           left: '50%',
                           marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -2116,8 +2277,8 @@ function GroundsSection({
                         of the way on a tap for anyone who already knows. */}
                     {showCoachingOfficeScrollCue && entry.type === 'coaching-office' && selected ? (
                       <TutorialTapCue
-                        label="Scroll up"
-                        detail="Then tap a + square"
+                        label={t('clubFinances.scrollUp')}
+                        detail={t('clubFinances.thenTapAPlusSquare')}
                         direction="up"
                         style={{
                           left: '50%',
@@ -2131,8 +2292,8 @@ function GroundsSection({
                       && guidedFacilityPhase === 'build-menu'
                       && entry.type === 'training-pitch' ? (
                         <TutorialTapCue
-                          label="Tap here"
-                          detail="Training Pitch"
+                          label={t('clubFinances.tapHere')}
+                          detail={t('clubFinances.trainingPitchCue')}
                           style={{
                             left: '50%',
                             marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -2142,18 +2303,12 @@ function GroundsSection({
                       ) : null}
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`${entry.name}. ${entry.builtCount} of ${entry.buildLimit} built. ${entry.effectLabel}. ${entry.width} by ${entry.height} footprint. Build time ${entry.buildWeeks} week${entry.buildWeeks === 1 ? '' : 's'}.${adjacencyAccessibility} ${guideAllowsType ? '' : 'Build the Training Pitch first. '}${entry.available
-                        ? `Build cost ${formatCurrency(entry.buildCost)}. ${formatCurrency(entry.weeklyUpkeep)} per week upkeep.${entry.blockedReason
-                          ? ` ${entry.blockedReason}`
-                          : !entry.affordable && entry.affordabilityShortfall > 0
-                            ? ` Need ${formatCurrency(entry.affordabilityShortfall)} more.`
-                            : ''}`
-                        : `Locked.${entry.blockedReason ? ` ${entry.blockedReason}` : ''}`}`}
+                      accessibilityLabel={cardAccessibilityLabel}
                       accessibilityState={{ disabled: !entryEnabled, selected }}
                       disabled={!entryEnabled && !openingPitchChoiceBlocked}
                       onPress={() => {
                         if (openingPitchChoiceBlocked) {
-                          setBuildMenuReminder("Let's build the Training Pitch first. Once it is underway, the other facilities will be available.");
+                          setBuildMenuReminder(t('clubFinances.buildTrainingPitchFirstReminder'));
                           return;
                         }
                         setBuildMenuReminder(null);
@@ -2196,8 +2351,16 @@ function GroundsSection({
                         ? 'mt-1 font-mono text-sm text-ink/70'
                         : 'mt-1 font-mono text-sm text-ink/30'}>
                         {entry.available
-                          ? `${entry.builtCount}/${entry.buildLimit} built · ${entry.width}x${entry.height} · ${formatCurrency(entry.buildCost)} · ${entry.buildWeeks}W · ${formatCurrency(entry.weeklyUpkeep)}/wk`
-                          : 'Locked'}
+                          ? t('clubFinances.facilityCardStats', {
+                            built: entry.builtCount,
+                            limit: entry.buildLimit,
+                            width: entry.width,
+                            height: entry.height,
+                            cost: formatCurrency(entry.buildCost),
+                            weeks: entry.buildWeeks,
+                            upkeep: formatCurrency(entry.weeklyUpkeep),
+                          })
+                          : t('clubFinances.locked')}
                       </Text>
                       {adjacencyGuidance !== undefined && entry.available ? (
                         <View className="mt-2 border-t border-pitch-dark/25 pt-2">
@@ -2213,7 +2376,9 @@ function GroundsSection({
                       ) : null}
                       {entry.available && !entry.affordable && entry.affordabilityShortfall > 0 ? (
                         <PixelText className="mt-1 text-xs uppercase text-red-dark">
-                          Need {formatCurrency(entry.affordabilityShortfall)} more
+                          {t('clubFinances.needMoreAmount', {
+                            amount: formatCurrency(entry.affordabilityShortfall),
+                          })}
                         </PixelText>
                       ) : null}
                     </Pressable>
@@ -2230,7 +2395,7 @@ function GroundsSection({
               <Text className="mt-2 text-sm leading-4 text-ink/70">
                 {t('clubFinances.noPairingsDiscoveredYet')}</Text>
             ) : viewModel.facilities.discoveredAdjacencies.map(adjacency => {
-              const presentation = facilityAdjacencyPresentation(adjacency);
+              const presentation = facilityAdjacencyPresentation(adjacency, t);
               const active = viewModel.facilities.activeAdjacencies.includes(adjacency);
               return (
                 <View key={adjacency} className="mt-2 flex-row items-start gap-3 border border-ink/20 bg-white px-3 py-3">
@@ -2250,7 +2415,9 @@ function GroundsSection({
                     ) : null}
                   </View>
                   <StatusChip
-                    label={active ? 'Active' : 'Known'}
+                    label={active
+                      ? t('clubFinances.adjacencyActive')
+                      : t('clubFinances.adjacencyKnown')}
                     tone={active ? 'success' : 'normal'}
                   />
                 </View>
@@ -2280,18 +2447,28 @@ function LegacyTrainingGroundSection({
   const t = useCopy();
   return (
     <View ref={trainingGroundRef} collapsable={false} onLayout={onTrainingGroundLayout}>
-        <SectionLabel eyebrow="One big call" title="Training Ground" right={<StatusChip label="Facility 01" />} />
+        <SectionLabel
+          eyebrow={t('clubFinances.oneBigCall')}
+          title={t('clubFinances.trainingGround')}
+          right={<StatusChip label={t('clubFinances.facility01')} />}
+        />
         <PaperPanel
-          kicker="Works order"
-          title="Turn mud into momentum"
-          stamp={facility.built ? 'Built' : facility.underConstruction ? `${facility.weeksRemaining}W LEFT` : 'Decision'}
+          kicker={t('clubFinances.worksOrder')}
+          title={t('clubFinances.turnMudIntoMomentum')}
+          stamp={facility.built
+            ? t('clubFinances.stampBuilt')
+            : facility.underConstruction
+              ? t('clubFinances.stampWeeksLeft', { weeks: facility.weeksRemaining ?? 0 })
+              : t('clubFinances.stampDecision')}
         >
           <View className="flex-row items-center gap-4 border-y-2 border-ink py-4">
             <View className="items-center justify-center border-2 border-emerald-900 bg-pitch p-2">
               <ManagementSprite
                 spriteKey={facility.underConstruction ? 'facility:worksite' : 'facility:training-pitch:l1'}
                 width={58}
-                accessibilityLabel={facility.underConstruction ? 'Training Ground construction site' : 'Training Ground'}
+                accessibilityLabel={facility.underConstruction
+                  ? t('clubFinances.a11y.trainingGroundConstructionSite')
+                  : t('clubFinances.trainingGround')}
               />
             </View>
             <View className="flex-1">
@@ -2301,8 +2478,12 @@ function LegacyTrainingGroundSection({
             </View>
           </View>
           <View className="mt-3 flex-row gap-2">
-            <Metric label="Build cost" value={formatCurrency(facility.cost)} tone="negative" />
-            <Metric label="Weekly return" value={`+${facility.weeklyTrainingPoints} TP`} tone="positive" />
+            <Metric label={t('clubFinances.buildCost')} value={formatCurrency(facility.cost)} tone="negative" />
+            <Metric
+              label={t('clubFinances.weeklyReturn')}
+              value={t('clubFinances.plusTrainingPoints', { points: facility.weeklyTrainingPoints })}
+              tone="positive"
+            />
           </View>
           <PixelText className="mt-3 text-sm uppercase tracking-wide text-ink/70">
             {t('clubFinances.m1Offer', {
@@ -2313,12 +2494,12 @@ function LegacyTrainingGroundSection({
             <View className={guideTrainingGround ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}>
               {guideTrainingGround ? (
                 <TutorialTapCue
-                  detail="Build the facility"
+                  detail={t('clubFinances.buildTheFacility')}
                   style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
                 />
               ) : null}
               <ActionButton
-                label="Approve build · $8,000 · 2 weeks"
+                label={t('clubFinances.approveBuild')}
                 accessibilityLabel={t('clubFinances.a11y.buildTheTrainingGroundFor8000')}
                 onPress={onBuildTrainingGround}
                 disabled={!facility.affordable}

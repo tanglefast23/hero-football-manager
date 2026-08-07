@@ -21,6 +21,7 @@ import {
   stageAutoplayMs,
   stageBeat,
 } from '../awards-ceremony-stage';
+import { loadCatalog } from '../../i18n';
 import type {
   AwardCeremonyBeatViewModel,
   AwardCeremonyPlacingViewModel,
@@ -361,7 +362,8 @@ describe('what the ceremony has to fit on a small phone', () => {
     expect(screen).toContain('const hold = stageAutoplayMs(stage, reduce);');
     expect(screen).toContain('const timer = setTimeout(advance, hold);');
     expect(screen).toContain('return () => clearTimeout(timer);');
-    expect(screen).toContain("'Tap to skip ahead'");
+    expect(screen).toContain("t('awardsCeremony.tapToSkipAhead')");
+    expect(loadCatalog('en').strings['awardsCeremony.tapToSkipAhead']).toBe('Tap to skip ahead');
   });
 
   it('places the skip row from the same constants the band is measured from', () => {

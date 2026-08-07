@@ -6,12 +6,12 @@ describe('first facility placement guidance', () => {
     const source = readFileSync(join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'), 'utf8');
     const appSource = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
-    expect(source).toContain('label="Tap here"');
-    expect(source).toContain('detail="Training Pitch"');
-    expect(source).toContain('detail="Tap any + square"');
+    expect(source).toContain("label={t('clubFinances.tapHere')}");
+    expect(source).toContain("detail={t('clubFinances.trainingPitchCue')}");
+    expect(source).toContain("detail={t('clubFinances.tapAnyPlusSquare')}");
     expect(source).toContain('left: facilityGridWidth / facilities.width / 2');
     expect(source).toMatch(
-      /detail="Tap any \+ square"[\s\S]*?left: facilityGridWidth \/ facilities\.width \/ 2,[\s\S]*?bottom: '100%',/,
+      /detail=\{t\('clubFinances\.tapAnyPlusSquare'\)\}[\s\S]*?left: facilityGridWidth \/ facilities\.width \/ 2,[\s\S]*?bottom: '100%',/,
     );
     expect(source).not.toContain('glowing square');
     expect(source).not.toContain('Training Grounds · top left');
@@ -54,7 +54,7 @@ describe('first facility placement guidance', () => {
     // The viewport already scrolled the card into view, but nothing said which
     // of the eight cards to press.
     expect(finances).toContain("guideFocus === 'coaching-office' && entry.type === 'coaching-office'");
-    expect(finances).toContain('detail="Coaching Office"');
+    expect(finances).toContain("detail={t('clubFinances.coachingOfficeCue')}");
     expect(finances).toContain('styles.guidedFacilityGlow');
     expect(finances).toContain('border-gold-dark bg-gold-light/25');
     // Same gold as the first-training Train button, and it reserves the room

@@ -1,7 +1,7 @@
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { AssistantMode } from '../../game/types';
-import { ASSISTANT_MODE_CHOICE } from '../assistant-mode-choice';
+import { assistantModeChoice } from '../assistant-mode-choice';
 import { BertFullBody } from '../BertFullBody';
 import { ChalkboardBackdrop } from '../components/ChalkboardStage';
 import { ActionButton } from '../components/Scorecard';
@@ -19,6 +19,7 @@ export function AssistantModeChoiceScreen({
   onBack,
 }: AssistantModeChoiceScreenProps) {
   const t = useCopy();
+  const choice = assistantModeChoice(t);
   const wide = useLayoutMode() === 'twoColumn';
 
   return (
@@ -34,7 +35,7 @@ export function AssistantModeChoiceScreen({
             ? 'font-pixel text-sm uppercase tracking-[4px] text-gold-light'
             : 'font-pixel text-xs uppercase tracking-[3px] text-gold-light'}
           >
-            {ASSISTANT_MODE_CHOICE.kicker}
+            {choice.kicker}
           </Text>
 
           <View className={wide
@@ -43,23 +44,23 @@ export function AssistantModeChoiceScreen({
           >
             <BertFullBody
               pointing={false}
-              moment={ASSISTANT_MODE_CHOICE.moment}
+              moment={choice.moment}
               scale={wide ? 1 : 0.75}
             />
             <View
               accessible
               accessibilityRole="text"
-              accessibilityLabel={ASSISTANT_MODE_CHOICE.line}
+              accessibilityLabel={choice.line}
               className="mb-3 flex-1 border-2 border-b-4 border-ink bg-white p-4"
             >
               <Text className="text-base leading-6 text-ink">
-                {ASSISTANT_MODE_CHOICE.line}
+                {choice.line}
               </Text>
             </View>
           </View>
 
           <View className={wide ? 'mt-7 flex-row gap-5' : 'mt-6 gap-4'}>
-            {ASSISTANT_MODE_CHOICE.options.map(option => (
+            {choice.options.map(option => (
               <View key={option.mode} className={wide ? 'flex-1 gap-2' : 'gap-2'}>
                 <ActionButton
                   label={option.label}
@@ -75,7 +76,7 @@ export function AssistantModeChoiceScreen({
 
           <View className={wide ? 'mt-7 w-48' : 'mt-6'}>
             <ActionButton
-              label="‹ Back"
+              label={t('assistantModeChoice.back')}
               accessibilityLabel={t('assistantModeChoice.a11y.back')}
               onPress={onBack}
               variant="paper"

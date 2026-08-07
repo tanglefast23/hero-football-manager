@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
   },
   countLine: {
     color: '#9a95a4',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 9,
   },
   note: {

@@ -54,7 +54,7 @@ export function WeeklyReviewScreen({
 
   const moneyCard = (
     <WeeklyBalanceCard
-      label="Money"
+      label={t('weeklyReview.money')}
       startingAmount={viewModel.cashBefore}
       currentAmount={viewModel.cashAfter}
       netAmount={viewModel.netAmount}
@@ -81,7 +81,11 @@ export function WeeklyReviewScreen({
   );
 
   const statement = (
-    <PaperPanel kicker="Accounts office" title="Weekly statement" stamp="Recorded">
+    <PaperPanel
+      kicker={t('weeklyReview.accountsOffice')}
+      title={t('weeklyReview.weeklyStatement')}
+      stamp={t('weeklyReview.recorded')}
+    >
       {viewModel.ledger.map(line => (
         <View key={line.id} className="flex-row items-center border-b border-ink/10 py-2.5 last:border-b-0">
           <Text className="flex-1 text-ink" style={scaledBody(textScale)}>{line.label}</Text>
@@ -140,8 +144,10 @@ export function WeeklyReviewScreen({
               started — a dead button, since nothing here is worth holding a
               manager on. Skipping elsewhere is its own labelled control. */}
           <ActionButton
-            label={`Start ${viewModel.nextWeekLabel}  ▸`}
-            accessibilityLabel={`Finish the weekly review and start ${viewModel.nextWeekLabel}`}
+            // ▸ has no Silkscreen glyph, so it is appended here rather than
+            // baked into a catalog entry a translator would inherit.
+            label={`${t('weeklyReview.startWeek', { week: viewModel.nextWeekLabel })}  ▸`}
+            accessibilityLabel={t('weeklyReview.a11y.finishAndStart', { week: viewModel.nextWeekLabel })}
             onPress={onContinue}
           />
         </View>
@@ -169,6 +175,7 @@ function WeeklyBalanceCard({
   complete: boolean;
   kind: WeeklyBalanceKind;
 }) {
+  const t = useCopy();
   return (
     <View className="min-w-0 flex-1 border-2 border-b-4 border-ink bg-white px-3 py-2">
       <PixelText className="text-right text-[12px] uppercase text-ink/50">{label}</PixelText>
@@ -181,7 +188,7 @@ function WeeklyBalanceCard({
       />
       <View className="mt-2 border-t border-ink/20 pt-2">
         <PixelText className="text-right text-[12px] uppercase text-ink/50">
-          {kind === 'money' ? 'Net' : 'Net TP'}
+          {t(kind === 'money' ? 'weeklyReview.net' : 'weeklyReview.netTp')}
         </PixelText>
         <AnimatedNetAmount amount={netAmount} started={started} complete={complete} kind={kind} />
       </View>
@@ -200,6 +207,7 @@ function AnimatedNetAmount({
   complete: boolean;
   kind: WeeklyBalanceKind;
 }) {
+  const t = useCopy();
   const { value: displayAmount, impact } = useCelebratoryNumber(0, amount, started, complete, 850);
 
   return (
@@ -213,7 +221,13 @@ function AnimatedNetAmount({
     >
       <Text
         accessible
-        accessibilityLabel={`Net ${amount < 0 ? 'minus' : amount > 0 ? 'plus' : ''} ${Math.abs(amount)} ${kind === 'money' ? 'dollars' : 'training points'}`}
+        accessibilityLabel={t('weeklyReview.a11y.net', {
+          sign: amount < 0
+            ? t('weeklyReview.a11y.minus')
+            : amount > 0 ? t('weeklyReview.a11y.plus') : '',
+          amount: Math.abs(amount),
+          unit: t(kind === 'money' ? 'weeklyReview.a11y.dollars' : 'weeklyReview.a11y.trainingPoints'),
+        })}
         className={amount < 0
           ? 'mt-1 text-right font-mono text-[18px] text-stamp'
           : 'mt-1 text-right font-mono text-[18px] text-pitch-ink'}
@@ -245,6 +259,7 @@ function AnimatedBalanceAmount({
   complete: boolean;
   kind: WeeklyBalanceKind;
 }) {
+  const t = useCopy();
   const { value, impact } = useCelebratoryNumber(from, to, started, complete, 1050);
   const movementClass = to < from
     ? 'text-stamp'
@@ -261,7 +276,11 @@ function AnimatedBalanceAmount({
       }}
     >
       <Text
-        accessibilityLabel={`${kind === 'money' ? 'Money' : 'Training points'} ${from} to ${to}`}
+        accessibilityLabel={t('weeklyReview.a11y.balanceMovement', {
+          label: t(kind === 'money' ? 'weeklyReview.money' : 'weeklyReview.trainingPoints'),
+          from,
+          to,
+        })}
         className={`mt-1 text-right font-mono text-[18px] ${movementClass}`}
         numberOfLines={1}
         adjustsFontSizeToFit

@@ -164,8 +164,13 @@ describe('management shell wiring', () => {
   });
 
   it('shows the shortcut on hover so the keymap is discoverable', () => {
-    expect(shell).toContain('· press ${tabNumberKey(index)}');
-    expect(shell).toContain("'Match day, wages and events · press Enter'");
+    // Both tips are catalog copy now. The wiring this test guards is that the
+    // hover tip still carries the tab's number key, and that the advance button
+    // still has a tip at all.
+    expect(shell).toContain('key: tabNumberKey(index),');
+    expect(shell).toContain("t('managementShell.tabTipWithKey'");
+    expect(shell).toContain("const ADVANCE_WEEK_TIP_KEY = 'managementShell.advanceWeekTip';");
+    expect(shell).toContain('tip={advanceWeekDisabled ? undefined : t(ADVANCE_WEEK_TIP_KEY)}');
   });
 
   it('attaches one listener and removes it again', () => {

@@ -30,40 +30,53 @@ export function FacilityPlacementConfirmation({
 }) {
   const t = useCopy();
   const { x, y } = placement;
-  const cellLabel = `Column ${x + 1}, row ${y + 1}`;
+  const cellLabel = t('facilityPlacementConfirmation.cellLabel', { column: x + 1, row: y + 1 });
+  // '▸' is not in Silkscreen, so it stays outside the catalog and is appended
+  // to the translated words here.
   const order = placement.kind === 'build'
     ? {
-      kicker: 'Works order',
-      title: 'Approve this build?',
-      stamp: `${placement.catalog.buildWeeks} ${placement.catalog.buildWeeks === 1 ? 'week' : 'weeks'}`,
+      kicker: t('facilityPlacementConfirmation.buildKicker'),
+      title: t('facilityPlacementConfirmation.buildTitle'),
+      stamp: t('facilityPlacementConfirmation.buildWeeks', {
+        n: placement.catalog.buildWeeks,
+        count: placement.catalog.buildWeeks,
+      }),
       type: placement.catalog.type,
       level: 1 as const,
       name: placement.catalog.name,
       width: placement.catalog.width,
       height: placement.catalog.height,
-      costLabel: 'Cost now',
+      costLabel: t('facilityPlacementConfirmation.costNow'),
       cost: placement.catalog.buildCost,
       upkeep: placement.catalog.weeklyUpkeep,
       effectLabel: placement.catalog.effectLabel,
-      confirmLabel: 'Approve & start work  ▸',
-      confirmHint: `Approve building ${placement.catalog.name} at ${cellLabel} for ${formatCurrency(placement.catalog.buildCost)}`,
+      confirmLabel: `${t('facilityPlacementConfirmation.approveAndStartWork')}  ▸`,
+      confirmHint: t('facilityPlacementConfirmation.a11y.approveBuilding', {
+        building: placement.catalog.name,
+        cell: cellLabel,
+        cost: formatCurrency(placement.catalog.buildCost),
+      }),
     }
     : {
-      kicker: 'Removal order',
-      title: 'Move it here?',
+      kicker: t('facilityPlacementConfirmation.moveKicker'),
+      title: t('facilityPlacementConfirmation.moveTitle'),
       // A move is instant; there are no build weeks to serve.
-      stamp: 'Same day',
+      stamp: t('facilityPlacementConfirmation.sameDay'),
       type: placement.building.type,
       level: placement.building.level,
       name: placement.building.name,
       width: placement.building.width,
       height: placement.building.height,
-      costLabel: 'Fee now',
+      costLabel: t('facilityPlacementConfirmation.feeNow'),
       cost: placement.building.relocationFee,
       upkeep: placement.building.weeklyUpkeep,
       effectLabel: placement.building.effectLabel,
-      confirmLabel: 'Approve the move  ▸',
-      confirmHint: `Approve moving ${placement.building.name} to ${cellLabel} for ${formatCurrency(placement.building.relocationFee)}`,
+      confirmLabel: `${t('facilityPlacementConfirmation.approveTheMove')}  ▸`,
+      confirmHint: t('facilityPlacementConfirmation.a11y.approveMoving', {
+        building: placement.building.name,
+        cell: cellLabel,
+        cost: formatCurrency(placement.building.relocationFee),
+      }),
     };
 
   return (
@@ -93,7 +106,11 @@ export function FacilityPlacementConfirmation({
 
             <View className="mt-4 flex-row gap-2">
               <Metric label={order.costLabel} value={formatCurrency(order.cost)} tone="negative" />
-              <Metric label="Upkeep" value={`${formatCurrency(order.upkeep)}/wk`} tone="negative" />
+              <Metric
+                label={t('facilityPlacementConfirmation.upkeep')}
+                value={t('clubFinances.perWeekShort', { amount: formatCurrency(order.upkeep) })}
+                tone="negative"
+              />
             </View>
 
             <Text className="mt-3 text-center text-base leading-5 text-ink/65">
@@ -108,7 +125,7 @@ export function FacilityPlacementConfirmation({
                 onPress={onConfirm}
               />
               <ActionButton
-                label="Pick another spot"
+                label={t('facilityPlacementConfirmation.pickAnotherSpot')}
                 accessibilityLabel={t('facilityPlacementConfirmation.a11y.cancelThisPlacementAnd')}
                 variant="paper"
                 onPress={onCancel}

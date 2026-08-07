@@ -7,6 +7,7 @@ import { FinancialStatement } from './FinancialStatement';
 import { Metric, SectionLabel, formatCompactNumber } from './Scorecard';
 import { PixelText } from './PixelText';
 import { PostMatchBuzzCard } from './PostMatchBuzzCard';
+import { useCopy } from '../../i18n';
 
 /**
  * The Financial Report's inner composition — the statement star on top, then
@@ -30,6 +31,7 @@ export function FinancialReportBody({
   skipSignal,
   onStatementRunningChange,
 }: FinancialReportBodyProps) {
+  const t = useCopy();
   return (
     <View>
       <FinancialStatement
@@ -45,10 +47,13 @@ export function FinancialReportBody({
       />
 
       <EntranceView delayMs={0} reduceMotion={reduceMotion} className="mt-6">
-        <SectionLabel eyebrow="Dressing room" title="What moved" />
+        <SectionLabel
+          eyebrow={t('financialReport.dressingRoom')}
+          title={t('financialReport.whatMoved')}
+        />
         <View className="flex-row gap-2">
           <Metric
-            label="TP change"
+            label={t('financialReport.tpChange')}
             value={(
               <CountUpText
                 value={viewModel.trainingPointsGained}
@@ -60,7 +65,7 @@ export function FinancialReportBody({
             tone={viewModel.trainingPointsGained < 0 ? 'negative' : 'positive'}
           />
           <Metric
-            label="Fans"
+            label={t('financialReport.fans')}
             value={(
               <CountUpText
                 value={viewModel.fanDelta}
@@ -82,7 +87,10 @@ export function FinancialReportBody({
 
       {viewModel.updates.length > 0 ? (
         <View className="mt-5">
-          <SectionLabel eyebrow="Club desk" title="What needs attention" />
+          <SectionLabel
+            eyebrow={t('financialReport.clubDesk')}
+            title={t('financialReport.whatNeedsAttention')}
+          />
           <View className="gap-2">
             {viewModel.updates.map((update, index) => (
               <EntranceView

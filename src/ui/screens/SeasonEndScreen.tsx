@@ -75,34 +75,45 @@ export function SeasonEndScreen({
           <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{t('seasonEnd.seasonComplete')}</Text>
           <Text className="mt-2 font-pixel text-3xl uppercase tracking-wide text-white">{viewModel.seasonLabel}</Text>
           <View className="mt-4 rotate-2 border-2 border-red bg-red-light/25 px-5 py-3">
-            <PixelText className="text-xl uppercase text-red-light">{viewModel.outcomeLabel}</PixelText>
+            <PixelText className="text-xl uppercase text-red-light">
+              {t(`seasonEnd.outcome.${viewModel.outcomeLabel.toLowerCase()}`)}
+            </PixelText>
           </View>
           <Text className="mt-5 text-center font-pixel text-xl uppercase text-white">{viewModel.headline}</Text>
           <Text className="mt-2 max-w-sm text-center text-paper/75" style={scaledBody(textScale)}>{viewModel.summary}</Text>
           <View className="mt-4 flex-row gap-2">
-            <StatusChip label={`Finished #${viewModel.finalPosition}`} tone={outcomeTone} />
-            <StatusChip label={`Prize ${formatCurrency(viewModel.prizeMoney)}`} />
-            <StatusChip label={viewModel.difficultyLabel} tone="hero" />
+            <StatusChip label={t('seasonEnd.finishedPosition', { position: viewModel.finalPosition })} tone={outcomeTone} />
+            <StatusChip label={t('seasonEnd.prize', { amount: formatCurrency(viewModel.prizeMoney) })} />
+            <StatusChip
+              label={t(viewModel.difficultyLabel === 'CHAIRMAN'
+                ? 'settings.difficulty.chairman'
+                : 'settings.difficulty.cozy')}
+              tone="hero"
+            />
           </View>
         </View>
 
         {viewModel.clubBusinessSettlement ? (
           <View className="mt-6">
-            <StageSection eyebrow="Club Business" title="Season-end payday" />
+            <StageSection eyebrow={t('seasonEnd.clubBusiness')} title={t('seasonEnd.seasonEndPayday')} />
             <PaperPanel
-              kicker="Cash actually received"
-              title="Sponsors and Buzz"
+              kicker={t('seasonEnd.cashActuallyReceived')}
+              title={t('seasonEnd.sponsorsAndBuzz')}
               stamp={`+${formatCurrency(viewModel.clubBusinessSettlement.actualPayoutTotal)}`}
             >
               {viewModel.clubBusinessSettlement.buzz ? (
                 <View
                   className="border-2 border-ink bg-blue-light p-3"
                   accessible
-                  accessibilityLabel={`Buzz payout. Reached ${viewModel.clubBusinessSettlement.buzz.reached}. Club received ${formatCurrency(viewModel.clubBusinessSettlement.buzz.actualPayout)}. Reset to ${viewModel.clubBusinessSettlement.buzz.resetTo}.`}
+                  accessibilityLabel={t('seasonEnd.a11y.buzzPayout', {
+                    reached: viewModel.clubBusinessSettlement.buzz.reached,
+                    amount: formatCurrency(viewModel.clubBusinessSettlement.buzz.actualPayout),
+                    resetTo: viewModel.clubBusinessSettlement.buzz.resetTo,
+                  })}
                 >
                   <View className="flex-row flex-wrap items-center justify-between gap-2">
                     <PixelText className="text-base uppercase text-ink">{t('seasonEnd.buzzPayout')}</PixelText>
-                    <StatusChip label="PAID" tone="success" />
+                    <StatusChip label={t('seasonEnd.paid')} tone="success" />
                   </View>
                   <Text className="mt-2 text-sm leading-5 text-ink">
                     {t('seasonEnd.buzzSettlement', {
@@ -121,14 +132,23 @@ export function SeasonEndScreen({
                       key={result.contractId}
                       className="border-2 border-ink bg-white p-3"
                       accessible
-                      accessibilityLabel={`${result.sponsorName}. ${result.met ? 'Target met' : 'Target missed'}. Objective: ${result.objectiveLabel}. Club received ${formatCurrency(result.actualBonus)}.`}
+                      // One whole sentence per outcome: "target met" is not a
+                      // fragment that can be dropped into an English frame in
+                      // every language.
+                      accessibilityLabel={t(result.met
+                        ? 'seasonEnd.a11y.sponsorTargetMet'
+                        : 'seasonEnd.a11y.sponsorTargetMissed', {
+                        sponsor: result.sponsorName,
+                        objective: result.objectiveLabel,
+                        amount: formatCurrency(result.actualBonus),
+                      })}
                     >
                       <View className="flex-row flex-wrap items-start justify-between gap-2">
                         <PixelText className="min-w-0 flex-1 text-base uppercase text-ink">
                           {result.sponsorName}
                         </PixelText>
                         <StatusChip
-                          label={result.met ? 'TARGET MET' : 'TARGET MISSED'}
+                          label={result.met ? t('seasonEnd.targetMet') : t('seasonEnd.targetMissed')}
                           tone={result.met ? 'success' : 'danger'}
                         />
                       </View>
@@ -155,30 +175,30 @@ export function SeasonEndScreen({
 
         {viewModel.recap ? (
           <View className="mt-6">
-            <StageSection eyebrow="Season in numbers" title="The year in the cabinet" />
+            <StageSection eyebrow={t('seasonEnd.seasonInNumbers')} title={t('seasonEnd.theYearInTheCabinet')} />
             {guideCopy ? (
-              <PaperPanel kicker="Bert Rudge" title={guideCopy.title} stamp="Filed">
+              <PaperPanel kicker={t('seasonEnd.bertRudge')} title={guideCopy.title} stamp={t('seasonEnd.filed')}>
                 <Text className="text-ink/70" style={scaledBody(textScale)}>{guideCopy.body}</Text>
               </PaperPanel>
             ) : null}
             <View className={wide ? 'mt-3 flex-row gap-2' : 'mt-3 gap-2'}>
-              <Metric label="Record" value={viewModel.recap.record} />
-              <Metric label="Goals" value={viewModel.recap.goals} />
+              <Metric label={t('seasonEnd.record')} value={viewModel.recap.record} />
+              <Metric label={t('seasonEnd.goals')} value={viewModel.recap.goals} />
             </View>
             <View className="mt-2 flex-row gap-2">
-              <Metric label="Cash change" value={`${viewModel.recap.cashChange >= 0 ? '+' : ''}${formatCurrency(viewModel.recap.cashChange)}`} />
-              <Metric label="Closing cash" value={formatCurrency(viewModel.recap.closingCash)} />
+              <Metric label={t('seasonEnd.cashChange')} value={`${viewModel.recap.cashChange >= 0 ? '+' : ''}${formatCurrency(viewModel.recap.cashChange)}`} />
+              <Metric label={t('seasonEnd.closingCash')} value={formatCurrency(viewModel.recap.closingCash)} />
             </View>
-            <PaperPanel kicker="Cup and development" title={viewModel.recap.cupResult} stamp={`${viewModel.recap.trainingCapsReached} caps reached`} className="mt-3">
+            <PaperPanel kicker={t('seasonEnd.cupAndDevelopment')} title={viewModel.recap.cupResult} stamp={t('seasonEnd.capsReached', { count: viewModel.recap.trainingCapsReached })} className="mt-3">
               <Text className="text-sm leading-5 text-ink/60">
                 {viewModel.recap.memorableEventTitle
-                  ? `Club story of the year: ${viewModel.recap.memorableEventTitle}.`
-                  : 'No single club story took over the season.'}
+                  ? t('seasonEnd.clubStoryOfTheYear', { title: viewModel.recap.memorableEventTitle })
+                  : t('seasonEnd.noSingleClubStory')}
               </Text>
             </PaperPanel>
             {viewModel.recap.awards.length > 0 ? (
               <View className="mt-5">
-                <StageSection eyebrow="Club honours" title="Season awards" />
+                <StageSection eyebrow={t('seasonEnd.clubHonours')} title={t('seasonEnd.seasonAwards')} />
                 <View className="gap-3">
                   {viewModel.recap.awards.map(award => (
                     <View key={`${award.label}-${award.playerId}`} className="flex-row items-center gap-3 border-2 border-gold-dark bg-gold-light p-3">
@@ -200,11 +220,11 @@ export function SeasonEndScreen({
 
         {viewModel.promotionRewards ? (
           <View className="mt-6">
-            <StageSection eyebrow="Promotion rewards" title="New doors are open" />
+            <StageSection eyebrow={t('seasonEnd.promotionRewards')} title={t('seasonEnd.newDoorsAreOpen')} />
             <PaperPanel
-              kicker="Permanent club progress"
+              kicker={t('seasonEnd.permanentClubProgress')}
               title={viewModel.promotionRewards.divisionLabel}
-              stamp={`${viewModel.promotionRewards.items.length} unlocked`}
+              stamp={t('seasonEnd.unlockedCount', { count: viewModel.promotionRewards.items.length })}
               className="bg-gold-light"
             >
               <Text className="text-sm leading-5 text-ink/60">
@@ -229,14 +249,14 @@ export function SeasonEndScreen({
         ) : null}
 
         <View className="mt-6">
-          <StageSection eyebrow="Final whistle" title="League table" />
+          <StageSection eyebrow={t('seasonEnd.finalWhistle')} title={t('seasonEnd.leagueTable')} />
           <View className="border-2 border-ink bg-white">
             <View className="flex-row border-b border-ink/15 px-3 py-2">
-              <Text className="w-8 font-mono text-sm text-ink/50">#</Text>
-              <PixelText className="flex-1 text-sm uppercase text-ink/50">Club</PixelText>
-              <Text className="w-8 text-right font-mono text-sm text-ink/50">P</Text>
-              <Text className="w-12 text-right font-mono text-sm text-ink/50">GD</Text>
-              <Text className="w-12 text-right font-mono text-sm text-ink/50">PTS</Text>
+              <Text className="w-8 font-mono text-sm text-ink/50">{t('col.league.position')}</Text>
+              <PixelText className="flex-1 text-sm uppercase text-ink/50">{t('col.league.club')}</PixelText>
+              <Text className="w-8 text-right font-mono text-sm text-ink/50">{t('col.league.played')}</Text>
+              <Text className="w-12 text-right font-mono text-sm text-ink/50">{t('col.league.goalDifference')}</Text>
+              <Text className="w-12 text-right font-mono text-sm text-ink/50">{t('col.league.points')}</Text>
             </View>
             {viewModel.table.map(row => {
               const rowClass = row.isUserClub
@@ -264,14 +284,15 @@ export function SeasonEndScreen({
         {contract ? (
           <View className="mt-6">
             <StageSection
-              eyebrow="Before the doors close"
-              title={contract.remainingExpiredCount === 1
-                ? 'Expired contract'
-                : `${contract.remainingExpiredCount} expired contracts`}
-              right={<StatusChip label="Decision needed" tone="danger" />}
+              eyebrow={t('seasonEnd.beforeTheDoorsClose')}
+              title={t('seasonEnd.expiredContracts', {
+                n: contract.remainingExpiredCount,
+                count: contract.remainingExpiredCount,
+              })}
+              right={<StatusChip label={t('seasonEnd.decisionNeeded')} tone="danger" />}
             />
             <PaperPanel
-              kicker={contract.powerName ? 'Hero agent meeting' : 'Renewal meeting'}
+              kicker={contract.powerName ? t('seasonEnd.heroAgentMeeting') : t('seasonEnd.renewalMeeting')}
               title={contract.playerName}
               stamp={contract.powerName ?? contract.role}
               className={contract.isHeroWageCliff ? 'bg-gold-light' : undefined}
@@ -291,7 +312,7 @@ export function SeasonEndScreen({
                     <Text className="font-mono text-xl text-stamp">
                       {formatCurrency(contract.quotedWeeklyWage)}
                     </Text>
-                    {contract.isHeroWageCliff ? <StatusChip label="Hero rate" tone="hero" /> : null}
+                    {contract.isHeroWageCliff ? <StatusChip label={t('seasonEnd.heroRate')} tone="hero" /> : null}
                   </View>
                 </View>
               </View>
@@ -316,7 +337,7 @@ export function SeasonEndScreen({
                             <Pressable
                               key={term}
                               accessibilityRole="radio"
-                              accessibilityLabel={`${term} season contract`}
+                              accessibilityLabel={t('seasonEnd.a11y.seasonContract', { count: term })}
                               accessibilityState={{ selected }}
                               onPress={() => onSelectContractTerm(contract.playerId, term)}
                               className={selected
@@ -324,7 +345,7 @@ export function SeasonEndScreen({
                                 : 'min-h-11 flex-1 items-center justify-center border-2 border-ink/30 bg-paper-dark'}
                             >
                               <Text className="font-mono text-base text-ink">{term}</Text>
-                              <PixelText className="mt-1 text-sm uppercase text-ink/50">Season{term === 1 ? '' : 's'}</PixelText>
+                              <PixelText className="mt-1 text-sm uppercase text-ink/50">{t('seasonEnd.seasonUnit', { n: term })}</PixelText>
                             </Pressable>
                           );
                         })}
@@ -336,15 +357,21 @@ export function SeasonEndScreen({
                       )}
                       <View className="mt-3">
                         <ActionButton
-                          label={`Sign now · ${formatCurrency(contract.quotedWeeklyWage)}/wk`}
-                          accessibilityLabel={`Sign ${contract.playerName} for ${contract.selectedTerm} seasons at ${formatCurrency(contract.quotedWeeklyWage)} per week, the asking price, with no promise`}
+                          label={t('seasonEnd.signNow', { wage: formatCurrency(contract.quotedWeeklyWage) })}
+                          accessibilityLabel={t('seasonEnd.a11y.signPlayer', {
+                            player: contract.playerName,
+                            seasons: contract.selectedTerm,
+                            wage: formatCurrency(contract.quotedWeeklyWage),
+                          })}
                           onPress={() => guardTap(() => onRenewContract(contract.playerId, contract.selectedTerm))}
                         />
                       </View>
                       <View className="mt-2">
                         <ActionButton
-                          label="Meet the agent  ▸"
-                          accessibilityLabel={`Negotiate with ${contract.playerName}'s agent to pay less than the asking price`}
+                          // '▸' is not in Silkscreen, so it stays outside the
+                          // catalog and keeps rendering in the fallback face.
+                          label={`${t('seasonEnd.meetTheAgent')}  ▸`}
+                          accessibilityLabel={t('seasonEnd.a11y.negotiateWithAgent', { player: contract.playerName })}
                           onPress={() => onStartRenewal(contract.playerId)}
                           variant="paper"
                         />
@@ -362,8 +389,8 @@ export function SeasonEndScreen({
                   )}
                   <View className="mt-2">
                     <ActionButton
-                      label="Let player leave"
-                      accessibilityLabel={`Let ${contract.playerName} leave on a free transfer`}
+                      label={t('seasonEnd.letPlayerLeave')}
+                      accessibilityLabel={t('seasonEnd.a11y.letPlayerLeave', { player: contract.playerName })}
                       onPress={() => onReleaseContract(contract.playerId)}
                       variant="danger"
                     />
@@ -388,8 +415,12 @@ export function SeasonEndScreen({
       <View className="border-t-[6px] border-white bg-ink/25 p-3">
         <DesktopClamp>
           <ActionButton
-            label={viewModel.sliceComplete ? 'Finish career review  ▸' : 'Begin next season  ▸'}
-            accessibilityLabel={viewModel.sliceComplete ? 'Finish the career review' : 'Begin the next season'}
+            // '▸' is not in Silkscreen, so it stays outside the catalog and
+            // keeps rendering in the fallback face.
+            label={`${viewModel.sliceComplete ? t('seasonEnd.finishCareerReview') : t('seasonEnd.beginNextSeason')}  ▸`}
+            accessibilityLabel={viewModel.sliceComplete
+              ? t('seasonEnd.a11y.finishTheCareerReview')
+              : t('seasonEnd.a11y.beginTheNextSeason')}
             onPress={onPrimaryAction}
             disabled={!viewModel.canContinue}
           />

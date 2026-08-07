@@ -12,7 +12,7 @@ describe('staff and youth screen ownership', () => {
 
     expect(squad).not.toContain('title="Coaching staff"');
     expect(squad).not.toContain('viewModel.coachingStaff');
-    expect(club).toContain('title="Coaching staff"');
+    expect(club).toContain("title={t('clubFinances.coachingStaff')}");
     expect(club).toContain('viewModel.coachingStaff.map(coach =>');
     expect(club).toContain('coach.effectLabels.map(effect =>');
     expect(club).toContain('onDismissCoach(coach.role)');
@@ -22,6 +22,8 @@ describe('staff and youth screen ownership', () => {
     const market = source('src/ui/screens/MarketScreen.tsx');
 
     expect(market).not.toContain('detail="Review this youth"');
-    expect(market).toContain('accessibilityLabel={`Sign youth player ${offer.playerName}`}');
+    expect(market).toContain(
+      "accessibilityLabel={t('market.a11y.signYouthPlayer', { player: offer.playerName })}",
+    );
   });
 });

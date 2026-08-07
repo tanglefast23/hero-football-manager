@@ -1,6 +1,6 @@
 import { grassTopFor } from '../endgame-ground';
 import {
-  BERT_SIGNOFF_LINES,
+  bertSignoffLines,
   FINALE_BERT_MOMENT,
   FINALE_CELL,
   MAX_SIGNOFF_CHARACTERS,
@@ -179,14 +179,14 @@ describe('the last thing anybody says', () => {
    * in the foreground, four do not.
    */
   it('is two bubbles, and neither is tall enough to cover the pitch', () => {
-    expect(BERT_SIGNOFF_LINES).toHaveLength(2);
-    BERT_SIGNOFF_LINES.forEach(line => {
+    expect(bertSignoffLines()).toHaveLength(2);
+    bertSignoffLines().forEach(line => {
       expect(line.length).toBeLessThanOrEqual(MAX_SIGNOFF_CHARACTERS);
     });
   });
 
   it('thanks the player, names the man who made it, and points at the next one', () => {
-    const [thanks, next] = BERT_SIGNOFF_LINES;
+    const [thanks, next] = bertSignoffLines();
 
     expect(thanks).toContain('Joe Vu');
     expect(thanks).toContain('one man on his own');

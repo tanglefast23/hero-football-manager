@@ -86,9 +86,41 @@ export interface FacilityFootprint {
   readonly height: number;
 }
 
+/**
+ * Catalog keys for the building names, so the UI can draw them in the player's
+ * language.
+ *
+ * Keys rather than an injected `t`, because `src/game` is a pure ring and its
+ * architecture test forbids importing `src/i18n` — see
+ * `docs/superpowers/specs/2026-08-06-multilingual-copy-design.md` §3, "at the
+ * UI edge, never in the pure rings". `FacilityCatalogEntry.name` stays as the
+ * English source and the fallback, the same dual-write `LedgerLine.label` and
+ * `DIVISION_NAME_KEYS` use.
+ *
+ * A separate table rather than a twelfth argument to `facility()` below: the
+ * catalog rows are already long enough to hide a typo in, and a key that can be
+ * grepped as a set is what a coverage gate reads.
+ */
+export const FACILITY_NAME_KEYS: Readonly<Record<FacilityType, string>> = {
+  'training-pitch': 'facility.name.trainingPitch',
+  gym: 'facility.name.gym',
+  'tech-center': 'facility.name.techCenter',
+  'shooting-range': 'facility.name.shootingRange',
+  'keeper-court': 'facility.name.keeperCourt',
+  'medical-bay': 'facility.name.medicalBay',
+  dorm: 'facility.name.dorm',
+  'scout-office': 'facility.name.scoutOffice',
+  'coaching-office': 'facility.name.coachingOffice',
+  'youth-field': 'facility.name.youthField',
+  'fan-shop': 'facility.name.fanShop',
+  'stadium-stand': 'facility.name.stadiumStand',
+};
+
 interface FacilityCatalogEntry {
   readonly type: FacilityType;
   readonly name: string;
+  /** Catalog key for `name`, so a translated screen can render either. */
+  readonly nameKey: string;
   readonly footprint: FacilityFootprint;
   readonly buildCost: number;
   readonly buildWeeks: number;
@@ -137,6 +169,8 @@ interface FacilityAdjacencyDefinition {
   readonly first: FacilityType;
   readonly second: FacilityType;
   readonly description: string;
+  /** Catalog key for `description`, dual-written like `nameKey` above. */
+  readonly descriptionKey: string;
   readonly effects: FacilityEffects;
 }
 
@@ -146,6 +180,7 @@ export const FACILITY_ADJACENCIES: readonly FacilityAdjacencyDefinition[] = [
     first: 'gym',
     second: 'dorm',
     description: 'Gym + Dorm: +10% stamina training gains',
+    descriptionKey: 'facility.adjacency.gymDorm',
     effects: effects(10, 0, 0),
   },
   {
@@ -153,6 +188,7 @@ export const FACILITY_ADJACENCIES: readonly FacilityAdjacencyDefinition[] = [
     first: 'fan-shop',
     second: 'stadium-stand',
     description: 'Fan Shop + Stadium Stand: +10% merchandise income',
+    descriptionKey: 'facility.adjacency.fanShopStadium',
     effects: effects(0, 10, 0),
   },
   {
@@ -160,6 +196,7 @@ export const FACILITY_ADJACENCIES: readonly FacilityAdjacencyDefinition[] = [
     first: 'medical-bay',
     second: 'training-pitch',
     description: 'Medical Bay + Training Pitch: -20% injury risk',
+    descriptionKey: 'facility.adjacency.medicalTrainingPitch',
     effects: effects(0, 0, 20),
   },
 ];
@@ -721,6 +758,7 @@ function facility(
   return {
     type,
     name,
+    nameKey: FACILITY_NAME_KEYS[type],
     footprint: { width, height },
     buildCost,
     buildWeeks,

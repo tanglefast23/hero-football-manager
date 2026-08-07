@@ -41,23 +41,34 @@ export function FacilityProjectNotice({
         <Pressable accessible={false} className="absolute inset-0" onPress={onClose} />
         <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
           <PaperPanel
-            kicker="Works order approved"
+            kicker={t('facilityProjectNotice.worksOrderApproved')}
             title={project.kind === 'BUILD'
-              ? 'Sports facility in construction!'
-              : 'Facility upgrade in construction!'}
-            stamp={`${project.weeks} WK`}
+              ? t('facilityProjectNotice.buildTitle')
+              : t('facilityProjectNotice.upgradeTitle')}
+            stamp={t('facilityProjectNotice.stampWeeks', { weeks: project.weeks })}
           >
             <View className="items-center border-y-2 border-ink bg-gold-light py-4">
               <View className="border-2 border-b-4 border-ink bg-white p-3">
                 <ManagementSprite
                   spriteKey="facility:worksite"
                   width={128}
-                  accessibilityLabel={`${project.name} construction site`}
+                  accessibilityLabel={t('facilityProjectNotice.a11y.constructionSite', {
+                    name: project.name,
+                  })}
                 />
               </View>
               <Text className="mt-3 font-pixel text-lg uppercase text-ink">{project.name}</Text>
               <View className="mt-2">
-                <StatusChip label={`Level ${project.targetLevel} · ${weekLabel(project.weeks)}`} tone="hero" />
+                <StatusChip
+                  label={t('facilityProjectNotice.levelAndDuration', {
+                    level: project.targetLevel,
+                    duration: t('viewModels.weekCountLower', {
+                      n: project.weeks,
+                      count: project.weeks,
+                    }),
+                  })}
+                  tone="hero"
+                />
               </View>
               <View className="mx-3 mt-4 self-stretch border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-3">
                 <Text className="text-center font-pixel text-xs uppercase tracking-widest text-blue-dark">
@@ -71,7 +82,7 @@ export function FacilityProjectNotice({
               {t('facilityProjectNotice.oneClubWorksCrew')}</Text>
             <View className="mt-4">
               <ActionButton
-                label="Let them build  ▸"
+                label={`${t('facilityProjectNotice.letThemBuild')}  ▸`}
                 accessibilityLabel={t('facilityProjectNotice.a11y.letThemBuildCloseConfirmation')}
                 onPress={onClose}
               />
@@ -81,8 +92,4 @@ export function FacilityProjectNotice({
       </SafeAreaView>
     </Modal>
   );
-}
-
-function weekLabel(weeks: number): string {
-  return `${weeks} week${weeks === 1 ? '' : 's'}`;
 }

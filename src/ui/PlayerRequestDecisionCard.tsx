@@ -3,8 +3,7 @@ import { ActionButton, PaperPanel } from './components/Scorecard';
 import { EventPixelScene } from './components/EventPixelScene';
 import { PixelText } from './components/PixelText';
 import type { PendingRequestViewModel } from '../application/player-request-view-model';
-
-const UNAFFORDABLE_LABEL = 'Not enough in the books';
+import { useCopy } from '../i18n';
 
 /**
  * Grant or refuse, with both prices printed on the buttons.
@@ -25,13 +24,16 @@ export function PlayerRequestDecisionCard({
   onGrant: () => void;
   onRefuse: () => void;
 }) {
-  const grantDetail = request.canAfford ? request.grantLabel : UNAFFORDABLE_LABEL;
+  const t = useCopy();
+  const grantDetail = request.canAfford
+    ? request.grantLabel
+    : t('playerRequestCard.notEnoughInTheBooks');
 
   return (
     <Modal transparent animationType="fade" visible onRequestClose={onRefuse}>
       <View className="flex-1 items-center justify-center bg-ink/70 px-4">
         <PaperPanel
-          kicker={`${request.playerName} asks`}
+          kicker={t('playerRequestCard.asks', { player: request.playerName })}
           title={request.title}
           className="w-full max-w-[520px]"
         >
@@ -45,11 +47,11 @@ export function PlayerRequestDecisionCard({
           <View className="mt-4 flex-row gap-2">
             <View className="min-w-0 flex-1">
               <ActionButton
-                label="Grant"
+                label={t('playerRequestCard.grant')}
                 variant="primary"
                 disabled={!request.canAfford}
                 onPress={onGrant}
-                accessibilityLabel={`Grant. ${grantDetail}`}
+                accessibilityLabel={t('playerRequestCard.a11y.grant', { detail: grantDetail })}
               />
               <PixelText className="mt-1 text-center text-sm uppercase text-ink/60">
                 {grantDetail}
@@ -57,10 +59,12 @@ export function PlayerRequestDecisionCard({
             </View>
             <View className="min-w-0 flex-1">
               <ActionButton
-                label="Refuse"
+                label={t('playerRequestCard.refuse')}
                 variant="danger"
                 onPress={onRefuse}
-                accessibilityLabel={`Refuse. ${request.refuseLabel}`}
+                accessibilityLabel={t('playerRequestCard.a11y.refuse', {
+                  detail: request.refuseLabel,
+                })}
               />
               <PixelText className="mt-1 text-center text-sm uppercase text-stamp">
                 {request.refuseLabel}

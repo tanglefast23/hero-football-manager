@@ -6,10 +6,13 @@ import { AppState, Linking, LogBox, Platform, Share, Text, View } from 'react-na
 import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
-import { Silkscreen_400Regular, Silkscreen_700Bold } from '@expo-google-fonts/silkscreen';
-import { Handjet_400Regular, Handjet_700Bold } from '@expo-google-fonts/handjet';
+// The one pixel family, for all seven languages: stock Silkscreen with 102
+// Vietnamese letters appended. Built by `npm run build:fonts`; the original
+// glyphs are byte-identical to stock, so the six Latin languages are unchanged.
+const HFMSilkscreen_400Regular = require('./assets/fonts/HFMSilkscreen_400Regular.ttf');
+const HFMSilkscreen_700Bold = require('./assets/fonts/HFMSilkscreen_700Bold.ttf');
 import { vars } from 'nativewind';
-import { useCopy, ENABLED_LOCALES, LocaleProvider, facesFor, type Locale } from './src/i18n';
+import { useCopy, ENABLED_LOCALES, LocaleProvider, facesFor, type CopyFn, type Locale } from './src/i18n';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   loadLaunchContent,
@@ -156,7 +159,7 @@ import { useSuspendFlush } from './src/ui/use-suspend-flush';
 import { DEVELOPER_MODE_AVAILABLE, qaRootRoutesEnabled } from './src/ui/release-surface';
 import { supportEmailUrl, SUPPORT_EMAIL } from './src/release/support';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
-import { useM1Store } from './src/application/store';
+import { setStoreCopy, useM1Store } from './src/application/store';
 import { ScreenErrorBoundary } from './src/ui/ScreenErrorBoundary';
 import {
   currentAssistantObjective,
@@ -312,7 +315,7 @@ function PowerMatchQaApp() {
   const powerMatchQa = useMemo(() => ({
     power: power.id,
   }), [power.id]);
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
+  const [fontsLoaded] = useFonts({ HFMSilkscreen_400Regular, HFMSilkscreen_700Bold });
 
   return (
     <SafeAreaProvider>
@@ -343,7 +346,7 @@ function PowerMatchQaApp() {
             </View>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Restart ${power.name} live match scenario`}
+              accessibilityLabel={t('app.a11y.restartLiveMatchScenario', { power: power.name })}
               className="min-h-11 items-center justify-center border-2 border-b-4 border-ink bg-gold px-3"
               onPress={() => setReplayKey(key => key + 1)}
             >
@@ -386,7 +389,7 @@ function PowerMatchQaApp() {
 }
 
 function PowerCutInQaApp() {
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
+  const [fontsLoaded] = useFonts({ HFMSilkscreen_400Regular, HFMSilkscreen_700Bold });
   return (
     <SafeAreaProvider>
       {!fontsLoaded ? <LoadingScreen /> : (
@@ -416,7 +419,7 @@ function PowerArtQaApp() {
   const powerCount = powers.length;
   const powerIndex = selectedPowerIndex % powerCount;
   const power = powers[powerIndex];
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
+  const [fontsLoaded] = useFonts({ HFMSilkscreen_400Regular, HFMSilkscreen_700Bold });
 
   return (
     <SafeAreaProvider>
@@ -451,7 +454,7 @@ function AwakeningArtQaApp({ triggerId }: { triggerId: string }) {
   });
   const triggerCount = content.onboarding.triggers.length;
   const triggerIndex = Math.min(selectedTriggerIndex, triggerCount - 1);
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
+  const [fontsLoaded] = useFonts({ HFMSilkscreen_400Regular, HFMSilkscreen_700Bold });
   const trigger = content.onboarding.triggers[triggerIndex];
 
   if (!fontsLoaded) return <LoadingScreen />;
@@ -474,7 +477,7 @@ function AwakeningArtQaApp({ triggerId }: { triggerId: string }) {
 }
 
 function AwardsCeremonyQaApp() {
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
+  const [fontsLoaded] = useFonts({ HFMSilkscreen_400Regular, HFMSilkscreen_700Bold });
 
   return (
     <SafeAreaProvider>
@@ -489,7 +492,7 @@ function AwardsCeremonyQaApp() {
 }
 
 function DevHarnessApp() {
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
+  const [fontsLoaded] = useFonts({ HFMSilkscreen_400Regular, HFMSilkscreen_700Bold });
 
   return (
     <SafeAreaProvider>
@@ -504,6 +507,7 @@ function DevHarnessApp() {
 }
 
 function GameApp() {
+  const t = useCopy();
   const store = useM1Store();
   const content = useMemo(loadLaunchContent, []);
   const [bootError, setBootError] = useState<string | null>(null);
@@ -562,7 +566,7 @@ function GameApp() {
   // The navigation press creates the new cue; its own pointer-up must not also
   // count as the "next tap" that dismisses it.
   const skipNextGuidanceDismissRef = useRef(false);
-  const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
+  const [fontsLoaded, fontError] = useFonts({ HFMSilkscreen_400Regular, HFMSilkscreen_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const [globalGlossaryOpen, setGlobalGlossaryOpen] = useState(false);
   const [globalPrivacySupportOpen, setGlobalPrivacySupportOpen] = useState(false);
@@ -592,6 +596,20 @@ function GameApp() {
   const preferencesSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const preferencesRef = useRef(preferences);
   preferencesRef.current = preferences;
+  // `useCopy` returns a fresh closure every render, so the deps-free callbacks
+  // below read the catalog through a ref. Taking `t` as a dependency would
+  // rebuild every memoised handler on each render just to look a string up.
+  const copyRef = useRef(t);
+  copyRef.current = t;
+  // The store is a Zustand module with no React context, so it cannot read the
+  // locale the way a component does — it takes the catalog by injection. This
+  // is the one call site, and without it every `store.notify` and every guarded
+  // refusal reads English no matter which language is selected.
+  //
+  // Assigned during render rather than in an effect: the store can emit a
+  // notice from the very first action of a frame, and an effect would leave
+  // that first message English.
+  setStoreCopy(t);
   // Read inside savePreferences (a deps-free callback), so a ref rather than
   // the state value: it must see whether the sheet is open at failure time.
   const globalSettingsOpenRef = useRef(globalSettingsOpen);
@@ -617,14 +635,15 @@ function GameApp() {
       })
       .catch(error => {
         const detail = error instanceof Error ? error.message : String(error);
-        setSettingsSaveError(`Settings were not saved. ${detail}`);
+        const failure = copyRef.current('app.settingsWereNotSaved', { detail });
+        setSettingsSaveError(failure);
         // Preference writes also land outside the settings sheet — a cut-in
         // first view mid-match, the climb-completed stamp on a career change.
         // The inline error label only renders inside SettingsOverlay, so when
         // the sheet is closed surface the failure as a dismissible notice
         // instead of losing it silently.
         if (!globalSettingsOpenRef.current) {
-          useM1Store.getState().notify(`Settings were not saved. ${detail}`);
+          useM1Store.getState().notify(failure);
         }
       });
   }, []);
@@ -651,7 +670,21 @@ function GameApp() {
   const cycleLanguage = useCallback(() => {
     const current = preferencesRef.current;
     const at = ENABLED_LOCALES.indexOf(current.language);
-    const next = ENABLED_LOCALES[(at + 1) % ENABLED_LOCALES.length] ?? 'en';
+    // A save can hold a language that is no longer enabled — `vi` is withdrawn
+    // while its face is unresolved, and `isLocale`/the preferences schema both
+    // still accept it, so such a save loads and renders. Without this branch
+    // `indexOf` returns -1, `(-1 + 1) % n` is 0, and the tap silently lands on
+    // whatever happens to be first. Stepping to the first enabled language is
+    // the right outcome — there is nothing else to offer — but it should be a
+    // decision, not arithmetic.
+    //
+    // It IS a one-way door: once stepped off, a withdrawn language cannot be
+    // reached again from this control until it is re-enabled. Acceptable while
+    // the game is in development; revisit before the save-compatibility promise
+    // at TestFlight.
+    const next = at === -1
+      ? ENABLED_LOCALES[0] ?? 'en'
+      : ENABLED_LOCALES[(at + 1) % ENABLED_LOCALES.length] ?? 'en';
     savePreferences({ ...current, language: next });
   }, [savePreferences]);
   const toggleReduceMotion = useCallback(() => {
@@ -693,7 +726,7 @@ function GameApp() {
   const emailSupport = useCallback(() => {
     setSettingsSaveError(null);
     void Linking.openURL(supportEmailUrl()).catch(() => {
-      setSettingsSaveError(`Mail could not open. Email ${SUPPORT_EMAIL} directly.`);
+      setSettingsSaveError(copyRef.current('app.mailCouldNotOpen', { email: SUPPORT_EMAIL }));
     });
   }, []);
   const saveAutoSubs = useCallback((autoSubs: boolean) => {
@@ -722,7 +755,7 @@ function GameApp() {
       .then(task)
       .catch(error => {
         const detail = error instanceof Error ? error.message : String(error);
-        setDeveloperSaveError(`Developer save failed. ${detail}`);
+        setDeveloperSaveError(copyRef.current('app.dev.saveFailed', { detail }));
       });
   }, []);
 
@@ -811,7 +844,7 @@ function GameApp() {
     queueDeveloperSaveTask(async () => {
       setDeveloperSaveSummaries(await repository.saveManual(slot, snapshot));
       setDeveloperSaveError(null);
-      useM1Store.getState().notify(`Saved the current game to developer slot ${slot}.`, 'success');
+      useM1Store.getState().notify(copyRef.current('app.dev.savedToSlot', { slot }), 'success');
     });
   }, [queueDeveloperSaveTask]);
 
@@ -839,9 +872,12 @@ function GameApp() {
     const summary = developerSaveSummaries.find(candidate => candidate.slot === slot);
     if (summary === undefined) return;
     requestConfirmation({
-      title: `Load developer save ${slot}?`,
-      detail: `Return this career to Season ${summary.season}, Week ${summary.week}. The current career will be replaced by that saved point.`,
-      confirmLabel: 'Load saved point',
+      title: copyRef.current('app.dev.loadSaveTitle', { slot }),
+      detail: copyRef.current('app.dev.loadSaveDetail', {
+        season: summary.season,
+        week: summary.week,
+      }),
+      confirmLabel: copyRef.current('app.dev.loadSaveConfirm'),
       tone: 'danger',
       onConfirm: () => loadDeveloperSlot(slot),
     });
@@ -1133,7 +1169,7 @@ function GameApp() {
           armBootTimeout();
           return;
         }
-        setBootError('The saved game data did not finish opening. Retrying may fix this.');
+        setBootError(copyRef.current('app.bootTimeout'));
       }, BOOT_TIMEOUT_MS);
     };
     armBootTimeout();
@@ -1220,7 +1256,7 @@ function GameApp() {
         if (!active) return;
         const detail = error instanceof Error ? error.message : String(error);
         setDeveloperSaveSummaries([]);
-        setDeveloperSaveError(`Developer saves could not be read. ${detail}`);
+        setDeveloperSaveError(copyRef.current('app.dev.savesCouldNotBeRead', { detail }));
       });
     return () => {
       active = false;
@@ -1285,9 +1321,9 @@ function GameApp() {
       return;
     }
     requestConfirmation({
-      title: 'Replace saved career?',
-      detail: 'Starting over permanently erases the current career and its match replays.',
-      confirmLabel: 'Erase and start over',
+      title: copyRef.current('app.replaceSavedCareerTitle'),
+      detail: copyRef.current('app.replaceSavedCareerDetail'),
+      confirmLabel: copyRef.current('app.replaceSavedCareerConfirm'),
       tone: 'danger',
       onConfirm: begin,
     });
@@ -1392,7 +1428,7 @@ function GameApp() {
   const facilityComboReveal = !careerTeaches || store.screen !== 'management' || store.career === null
     ? undefined
     : store.career.facilities.grid?.discoveredAdjacencies
-        .map(facilityAdjacencyPresentation)
+        .map(id => facilityAdjacencyPresentation(id, t))
         .find(presentation => (
           presentation !== undefined
           && !hasAssistantGuideMilestone(store.career!, presentation.milestone)
@@ -1833,7 +1869,7 @@ function GameApp() {
   } else if (store.career === null) {
     screen = (
       <BootFailure
-        message="The saved career could not be loaded."
+        message={t('app.savedCareerCouldNotBeLoaded')}
         onRetry={() => setBootAttempt(attempt => attempt + 1)}
       />
     );
@@ -2062,7 +2098,7 @@ function GameApp() {
         onToggleDeveloperManualSave={() => {
           setDeveloperManualSaveSelecting(selecting => !selecting);
         }}
-        advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ›'}
+        advanceWeekLabel={store.saving ? t('app.saving') : t('managementShell.advanceWeek')}
         // `saveBlocked` already refuses the advance in the store; the button has
         // to say so too, or the only feedback for a paused season is a toast
         // repeating what the warning banner above it already says.
@@ -2419,9 +2455,9 @@ function GameApp() {
     );
   }
 
-  // Silkscreen cannot draw Vietnamese, so `vi` renders in Handjet. Binding both
-  // faces to CSS variables here is what lets every `font-pixel` / `font-mono`
-  // class in the app follow the language without being touched.
+  // Every language draws from the same pixel family now, so this binding no
+  // longer switches faces — it stays because `font-pixel` / `font-mono` read
+  // these variables, and because the voice split (display vs data) is real.
   const faces = facesFor(preferences.language);
 
   return (
@@ -2604,7 +2640,7 @@ function GameApp() {
             key={facilityComboReveal.id}
             content={content.assistantGuide}
             customMessage={{
-              title: `Secret combo · ${facilityComboReveal.pairLabel}`,
+              title: t('clubFinances.secretCombo', { pair: facilityComboReveal.pairLabel }),
               body: facilityComboReveal.discoveryCopy,
             }}
             navigationAnchor={navigationGuideAnchor}
@@ -2818,13 +2854,14 @@ function GameApp() {
 }
 
 function AwakeningReviewApp({ triggerId }: { triggerId: string }) {
+  const t = useCopy();
   const content = useMemo(loadLaunchContent, []);
   const [triggerIndex, setTriggerIndex] = useState(() => {
     const requestedIndex = content.onboarding.triggers.findIndex(candidate => candidate.id === triggerId);
     return requestedIndex >= 0 ? requestedIndex : 0;
   });
   const trigger = content.onboarding.triggers[triggerIndex];
-  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold, Handjet_400Regular, Handjet_700Bold });
+  const [fontsLoaded] = useFonts({ HFMSilkscreen_400Regular, HFMSilkscreen_700Bold });
   const [previewBeat, setPreviewBeat] = useState<1 | 2 | 3>(1);
   const nextTriggerIndex = (triggerIndex + 1) % content.onboarding.triggers.length;
 
@@ -2853,14 +2890,17 @@ function AwakeningReviewApp({ triggerId }: { triggerId: string }) {
   }, [previewBeat]);
 
   const viewModel: AwakeningCutsceneViewModel = {
-    fixtureLabel: `Review ${triggerIndex + 1}/${content.onboarding.triggers.length} · Full time`,
+    fixtureLabel: t('app.dev.awakeningReviewFixture', {
+      index: triggerIndex + 1,
+      total: content.onboarding.triggers.length,
+    }),
     playerId: 'r10',
     playerName: 'ZIP VELA',
     role: 'FWD',
     powerId: 'SUPER_STRENGTH',
     powerName: 'SUPER STRENGTH',
     powerDescription: content.powers.powers.find(power => power.id === 'SUPER_STRENGTH')?.description
-      ?? 'Charge a dangerous carrier, flatten them, and win the ball.',
+      ?? t('app.dev.awakeningReviewPowerDescription'),
     limpCopy: content.onboarding.limp.split('{name}').join('ZIP VELA'),
     triggerVisual: trigger.visual,
     triggerKicker: trigger.kicker,
@@ -2868,10 +2908,10 @@ function AwakeningReviewApp({ triggerId }: { triggerId: string }) {
     triggerCallout: trigger.callout,
     triggerDetail: trigger.detail,
     triggerCopy: trigger.copy.split('{name}').join('ZIP VELA'),
-    omenCopy: 'The turf dents beneath ZIP VELA’s palm. Everyone in the huddle feels the shock before they hear it.',
-    revealCopy: 'KRAK! ZIP VELA floats upright as the ground shudders. ZIP VELA is, quite suddenly, enormous.',
+    omenCopy: t('app.dev.awakeningReviewOmen', { name: 'ZIP VELA' }),
+    revealCopy: t('app.dev.awakeningReviewReveal', { name: 'ZIP VELA' }),
     firstHero: true,
-    licenseLabel: 'Hero license active',
+    licenseLabel: t('awakening.licenseActive'),
     continueLabel: triggerIndex === content.onboarding.triggers.length - 1
       ? 'RESTART SCENE REVIEW'
       : `NEXT SCENE · ${nextTriggerIndex + 1}/${content.onboarding.triggers.length}`,
@@ -2983,7 +3023,7 @@ function BootFailure({
         <Text className="mt-2 text-xs leading-4 text-ink/50">{t('app.technicalDetail', { detail: message })}</Text>
         <BootFailureButton
           tone="primary"
-          label="Retry"
+          label={t('app.retry')}
           accessibilityLabel={t('app.a11y.retryOpeningClubFiles')}
           onPress={() => {
             setConfirmingDiscard(false);
@@ -2993,15 +3033,21 @@ function BootFailure({
         {onRestoreBackup !== undefined && (
           <BootFailureButton
             tone="paper"
-            label={`Restore season ${onRestoreBackup.season} · week ${onRestoreBackup.week}`}
-            accessibilityLabel={`Restore the backup saved at season ${onRestoreBackup.season}, week ${onRestoreBackup.week}`}
+            label={t('app.restoreSeasonWeek', {
+              season: onRestoreBackup.season,
+              week: onRestoreBackup.week,
+            })}
+            accessibilityLabel={t('app.a11y.restoreTheBackup', {
+              season: onRestoreBackup.season,
+              week: onRestoreBackup.week,
+            })}
             onPress={onRestoreBackup.onRestore}
           />
         )}
         {onExportRaw !== undefined && (
           <BootFailureButton
             tone="paper"
-            label="Export raw save"
+            label={t('app.exportRawSave')}
             accessibilityLabel={t('app.a11y.exportTheUnchangedRawSavedCareer')}
             onPress={onExportRaw}
           />
@@ -3009,10 +3055,10 @@ function BootFailure({
         {onStartFresh !== undefined && (
           <BootFailureButton
             tone="paper"
-            label={confirmingDiscard ? 'Tap again to delete' : 'Delete save · start fresh'}
+            label={confirmingDiscard ? t('app.tapAgainToDelete') : t('app.deleteSaveStartFresh')}
             accessibilityLabel={confirmingDiscard
-              ? 'Confirm: delete the saved career and start fresh'
-              : 'Delete the saved career and start fresh'}
+              ? t('app.a11y.confirmDeleteSavedCareer')
+              : t('app.a11y.deleteSavedCareer')}
             onPress={() => (confirmingDiscard ? onStartFresh() : setConfirmingDiscard(true))}
           />
         )}
@@ -3043,7 +3089,7 @@ function SaveWarningBanner({
     <View
       accessible
       accessibilityRole="alert"
-      accessibilityLabel={`Save problem: ${message}`}
+      accessibilityLabel={t('app.a11y.saveProblem', { message })}
       className="absolute inset-x-0 top-0 border-b-4 border-stamp bg-red-light px-4 py-3"
       style={{ paddingTop: insets.top + 12 }}
     >
@@ -3052,7 +3098,7 @@ function SaveWarningBanner({
       {blocked && (
         <BootFailureButton
           tone="primary"
-          label="Try saving again"
+          label={t('app.trySavingAgain')}
           accessibilityLabel={t('app.a11y.trySavingYourCareerAgain')}
           onPress={onRetry}
         />
@@ -3070,6 +3116,7 @@ function FeedbackNotice({
   tone: 'error' | 'info' | 'success';
   onDismiss: () => void;
 }) {
+  const t = useCopy();
   useEffect(() => {
     if (tone === 'error') return undefined;
     const timer = setTimeout(onDismiss, 4_000);
@@ -3086,7 +3133,7 @@ function FeedbackNotice({
     <Pressable
       accessibilityRole={tone === 'error' ? 'alert' : 'button'}
       accessibilityLiveRegion={tone === 'error' ? 'assertive' : 'polite'}
-      accessibilityLabel={feedbackNoticeAccessibilityLabel(message)}
+      accessibilityLabel={feedbackNoticeAccessibilityLabel(message, t)}
       onPress={onDismiss}
       className={`absolute left-4 right-4 top-16 border-2 px-4 py-3 shadow-lg shadow-black/40 ${palette}`}
     >
@@ -3099,8 +3146,8 @@ function FeedbackNotice({
   );
 }
 
-function feedbackNoticeAccessibilityLabel(message: string): string {
+function feedbackNoticeAccessibilityLabel(message: string, t: CopyFn): string {
   const trimmed = message.trim();
   const sentence = /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
-  return `${sentence} Tap to dismiss.`;
+  return t('app.a11y.tapToDismiss', { sentence });
 }

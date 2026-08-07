@@ -14,9 +14,10 @@ export interface GlossaryPanelProps {
 export function GlossaryPanel({
   content,
   onBack,
-  backLabel = 'Back to settings',
+  backLabel,
 }: GlossaryPanelProps) {
   const t = useCopy();
+  const backButtonLabel = backLabel ?? t('privacySupport.backToSettings');
   const [query, setQuery] = useState('');
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const categories = useMemo(() => content.categories.flatMap(category => {
@@ -33,7 +34,7 @@ export function GlossaryPanel({
     <View className="min-h-0 flex-1">
       <View className="border-b-2 border-ink pb-4">
         <PixelText className="text-sm uppercase tracking-[3px] text-blue-dark">{t('glossary.clubHandbook')}</PixelText>
-        <Text className="mt-1 font-pixel text-2xl uppercase text-ink">Glossary</Text>
+        <Text className="mt-1 font-pixel text-2xl uppercase text-ink">{t('titleLanding.glossary')}</Text>
         <Text className="mt-2 text-sm leading-5 text-ink/60">
           {t('glossary.plain-languageDefinitionsForFootball')}</Text>
         <TextInput
@@ -42,7 +43,7 @@ export function GlossaryPanel({
           autoCorrect={false}
           clearButtonMode="while-editing"
           onChangeText={setQuery}
-          placeholder="Search a term or mechanic"
+          placeholder={t('glossary.searchPlaceholder')}
           placeholderTextColor="#8f8b96"
           value={query}
           className="mt-4 min-h-12 border-2 border-ink bg-white px-3 py-2 text-base text-ink"
@@ -81,8 +82,8 @@ export function GlossaryPanel({
 
       <View className="border-t border-ink/15 pt-3">
         <ActionButton
-          label={`‹  ${backLabel}`}
-          accessibilityLabel={backLabel}
+          label={`‹  ${backButtonLabel}`}
+          accessibilityLabel={backButtonLabel}
           onPress={onBack}
           variant="paper"
         />

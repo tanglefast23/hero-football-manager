@@ -4,6 +4,7 @@ import type {
   NegotiationStatus,
   PitchCard,
   PlayerPersonality,
+  ScoutRegion,
 } from '../game/market';
 
 export type MarketSectionId = 'YOUTH' | 'SCOUT' | 'TRANSFERS' | 'COACHES';
@@ -16,6 +17,11 @@ export interface MarketWindowViewModel {
 
 export interface ScoutMissionChoiceViewModel {
   readonly id: string;
+  /**
+   * The region CODE. `regionLabel` is drawn and will be translated, so anything
+   * that has to RECOGNISE a region matches on this instead.
+   */
+  readonly region: ScoutRegion;
   readonly regionLabel: string;
   readonly focusLabel: string;
   readonly detail: string;
@@ -104,7 +110,12 @@ export interface CoachCandidateViewModel {
   readonly headAvailable: boolean;
   readonly assistantAvailable: boolean;
   readonly assistantSlotUnlocked: boolean;
-  readonly currentRole?: 'Head coach' | 'Assistant';
+  /**
+   * A role code, not a label. It was the literal union `'Head coach' |
+   * 'Assistant'`, which a translated string cannot satisfy; the screen maps it
+   * to copy at render.
+   */
+  readonly currentRole?: 'HEAD' | 'ASSISTANT';
   readonly blockedReason?: string;
 }
 

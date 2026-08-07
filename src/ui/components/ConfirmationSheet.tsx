@@ -185,7 +185,7 @@ export function ConfirmationSheet({
           <View className="mt-5 flex-row gap-3">
             <View className="flex-1">
               <ActionButton
-                label="Cancel"
+                label={t('clubFinances.cancel')}
                 accessibilityLabel={t('confirmationSheet.a11y.cancelDecision')}
                 variant="paper"
                 pressSfx="click"
@@ -194,8 +194,8 @@ export function ConfirmationSheet({
             </View>
             <View className="flex-1">
               <ActionButton
-                label={confirmation?.confirmLabel ?? 'Confirm decision'}
-                accessibilityLabel={confirmation?.confirmLabel ?? 'Confirm decision'}
+                label={confirmation?.confirmLabel ?? t('confirmationSheet.confirmDecision')}
+                accessibilityLabel={confirmation?.confirmLabel ?? t('confirmationSheet.confirmDecision')}
                 variant={confirmation?.tone === 'danger'
                   ? 'danger'
                   : confirmation?.tone === 'hero' ? 'hero' : 'confirm'}

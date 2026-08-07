@@ -40,7 +40,7 @@ import { AwakeningTriggerCalloutIcon } from './awakening-trigger-visuals/Awakeni
 import { AwakeningTriggerVisual } from './awakening-trigger-visuals/AwakeningTriggerVisual';
 import { awakeningViewportHeight, nextAwakeningAction } from './awakening-progression';
 import { PowerAcquiredDemoModal } from '../PowerAcquiredDemoModal';
-import { usePixelStyles, type LocaleFaces } from '../../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
 
 const FOCUS_INDEX = 4;
 /** How far the CTA halo dips between breaths; never to nothing, so it still reads as lit. */
@@ -74,9 +74,13 @@ const REVEAL_FLASH_IN_MS = 40;
 const REVEAL_FLASH_OUT_MS = 220;
 const REVEAL_FLASH_OPACITY = 0.8;
 
-const BEAT_LABELS = {
-  1: { number: '01', kicker: 'THE HUSH', title: 'Something is wrong.' },
-  3: { number: '03', kicker: 'THE ASCENSION', title: 'A hero rises.' },
+/**
+ * The two authored beats' headings, as catalog segments. Beat 2 is the trigger's
+ * own copy and arrives on the view model instead.
+ */
+const BEAT_COPY = {
+  1: { number: '01', slug: 'hush' },
+  3: { number: '03', slug: 'ascension' },
 } as const;
 
 export interface AwakeningCutsceneScreenProps {
@@ -95,6 +99,7 @@ export function AwakeningCutsceneScreen({
   onContinue,
 }: AwakeningCutsceneScreenProps) {
   const styles = usePixelStyles(makeStyles);
+  const t = useCopy();
   const { width, height } = useWindowDimensions();
   const pitchScale = width / PITCH_W;
   const viewportHeight = awakeningViewportHeight(width, height);
@@ -369,7 +374,11 @@ export function AwakeningCutsceneScreen({
 
   const current = beat === 2
     ? { number: '02', kicker: viewModel.triggerKicker, title: viewModel.triggerTitle }
-    : BEAT_LABELS[beat];
+    : {
+      number: BEAT_COPY[beat].number,
+      kicker: t(`awakening.beat.${BEAT_COPY[beat].slug}.kicker`),
+      title: t(`awakening.beat.${BEAT_COPY[beat].slug}.title`),
+    };
   const triggerOffset = viewModel.triggerVisual === 'caterpillar'
     ? CATERPILLAR_FACE_OFFSET
     : { x: 0, y: 0 };
@@ -402,11 +411,19 @@ export function AwakeningCutsceneScreen({
     setBeat(action);
   };
   const storyAccessibilityLabel = beat < 3
-    ? `Awakening beat ${beat} of 3.`
-    : `${viewModel.playerName} awakened with ${viewModel.powerName}. ${viewModel.powerDescription} ${viewModel.revealCopy} ${viewModel.licenseLabel}.`;
+    ? t('awakening.a11y.beatOfThree', { beat })
+    : t('awakening.a11y.awakenedWith', {
+      player: viewModel.playerName,
+      power: viewModel.powerName,
+      description: viewModel.powerDescription,
+      reveal: viewModel.revealCopy,
+      license: viewModel.licenseLabel,
+    });
   const storyAccessibilityHint = advanceReady
-    ? beat < 3 ? 'Tap anywhere for the next beat' : 'Tap anywhere to watch a short demonstration'
-    : 'Tap anywhere to skip to the end of this beat';
+    ? beat < 3
+      ? t('awakening.a11y.tapForNextBeat')
+      : t('awakening.a11y.tapToWatchDemonstration')
+    : t('awakening.a11y.tapToSkipToEndOfBeat');
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right', 'bottom']}>

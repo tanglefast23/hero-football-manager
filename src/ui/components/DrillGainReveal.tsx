@@ -67,7 +67,7 @@ export function DrillGainReveal({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${gainLabel}. Tap to continue.`}
+      accessibilityLabel={t('drillGain.a11y.tapToContinue', { gain: gainLabel })}
       onPress={completeOnce}
       style={StyleSheet.absoluteFill}
     >

@@ -112,7 +112,7 @@ export function PostMatchSummaryModal({
 
             <View className="border-t-2 border-ink/20 bg-white p-3">
               <ActionButton
-                label="Continue  ▸"
+                label={t('postMatchSummary.continue')}
                 accessibilityLabel={statementRunning
                   ? t('postMatchSummary.a11y.showTheRestOfTheStatement')
                   : t('postMatchSummary.a11y.continuePastTheFinancialReport')}

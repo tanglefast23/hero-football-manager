@@ -16,8 +16,8 @@ describe('Club Business phone and accessibility contracts', () => {
   it('keeps the phone cash summary to two columns and preserves the club name', () => {
     const cashPanel = /function CashPositionSection[\s\S]*?function EmergencyLoanSection/.exec(screen)?.[0];
     expect(cashPanel).toBeDefined();
-    expect(cashPanel).toContain('<Metric label="Balance"');
-    expect(cashPanel).toMatch(/Next four weeks[\s\S]*?<\/View>\s*<View className="mt-2 flex-row gap-2">[\s\S]*?Four-week balance/);
+    expect(cashPanel).toContain("<Metric label={t('clubFinances.balance')}");
+    expect(cashPanel).toMatch(/clubFinances\.nextFourWeeksTypical[\s\S]*?<\/View>\s*<View className="mt-2 flex-row gap-2">[\s\S]*?clubFinances\.fourWeekBalanceTypical/);
     expect(cashPanel).toContain('<View className="mt-2 flex-row">');
     expect(screen).toMatch(/viewModel\.clubName[\s\S]{0,120}numberOfLines=\{2\}|numberOfLines=\{2\}[\s\S]{0,120}viewModel\.clubName/);
   });
@@ -84,8 +84,8 @@ describe('Club Business phone and accessibility contracts', () => {
 
   it('shows both target outcomes and the actual Week 30 cash before season rollover', () => {
     expect(seasonEnd).toContain('viewModel.clubBusinessSettlement');
-    expect(seasonEnd).toContain('Season-end payday');
-    expect(seasonEnd).toContain("label={result.met ? 'TARGET MET' : 'TARGET MISSED'}");
+    expect(seasonEnd).toContain("t('seasonEnd.seasonEndPayday')");
+    expect(seasonEnd).toContain("label={result.met ? t('seasonEnd.targetMet') : t('seasonEnd.targetMissed')}");
     expect(seasonEnd).toContain("t('seasonEnd.clubReceived', { amount: formatCurrency(result.actualBonus) })");
     expect(loadCatalog('en').strings['seasonEnd.clubReceived']).toBe('Club received {amount}');
     expect(seasonEnd).toContain('viewModel.clubBusinessSettlement.buzz.actualPayout');
@@ -93,7 +93,7 @@ describe('Club Business phone and accessibility contracts', () => {
 
   it('stacks the season record and full goals line on phones', () => {
     expect(seasonEnd).toContain("<View className={wide ? 'mt-3 flex-row gap-2' : 'mt-3 gap-2'}>");
-    expect(seasonEnd).toMatch(/Metric label="Record"[\s\S]*?Metric label="Goals"/);
+    expect(seasonEnd).toMatch(/Metric label={t\(.seasonEnd.record.\)}[\s\S]*?Metric label={t\(.seasonEnd.goals.\)}/);
   });
 
   it('reviews a real season-end transition plus failed and long-copy pressure states', () => {

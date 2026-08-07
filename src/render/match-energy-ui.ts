@@ -1,20 +1,37 @@
 import type { EnergyUse } from '../sim/tactics';
+import { copyFor, type CopyFn } from '../i18n';
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 export const TIRED_ENERGY_THRESHOLD = 40;
 
 export type EnergyBand = 'green' | 'amber' | 'red';
 
-export const ENERGY_USE_LABELS: Readonly<Record<EnergyUse, string>> = {
-  SAVE_ENERGY: 'SAVE ENERGY',
-  BALANCED: 'BALANCED',
-  ALL_OUT: 'ALL OUT',
+const ENERGY_USE_LABEL_KEYS: Readonly<Record<EnergyUse, string>> = {
+  SAVE_ENERGY: 'matchScreen.energyMode.saveEnergy',
+  BALANCED: 'matchScreen.energyMode.balanced',
+  ALL_OUT: 'matchScreen.energyMode.allOut',
 };
 
-export const ENERGY_USE_ACCESSIBILITY: Readonly<Record<EnergyUse, string>> = {
-  SAVE_ENERGY: 'Jog more and press less to conserve energy.',
-  BALANCED: 'Use normal movement and pressing effort.',
-  ALL_OUT: 'Press and recover harder at a much higher energy cost.',
+const ENERGY_USE_ACCESSIBILITY_KEYS: Readonly<Record<EnergyUse, string>> = {
+  SAVE_ENERGY: 'matchScreen.a11y.energyMode.saveEnergy',
+  BALANCED: 'matchScreen.a11y.energyMode.balanced',
+  ALL_OUT: 'matchScreen.a11y.energyMode.allOut',
 };
+
+/** The button word for an energy mode — "SAVE ENERGY", "BALANCED", "ALL OUT". */
+export function energyUseLabel(mode: EnergyUse, t: CopyFn = englishCopy()): string {
+  return t(ENERGY_USE_LABEL_KEYS[mode]);
+}
+
+/** What that mode does, for a screen reader. */
+export function energyUseAccessibility(mode: EnergyUse, t: CopyFn = englishCopy()): string {
+  return t(ENERGY_USE_ACCESSIBILITY_KEYS[mode]);
+}
 
 export function energyBand(condition: number): EnergyBand {
   if (condition <= 30) return 'red';

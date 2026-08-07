@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#5d526e',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 12,
   },
   panel: {
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   stageLine: {
     color: '#9a95a4',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 9,
   },
 });

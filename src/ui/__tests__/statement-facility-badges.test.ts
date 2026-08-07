@@ -12,8 +12,12 @@ describe('match statement facility badges', () => {
     // Fan Shop saw merchandise money with nothing naming where it came from.
     expect(source).toContain('if (reveal === undefined || reveal.facilityCount < 1) return null;');
     expect(source).not.toContain('if (reveal.multiplierTimes < 2) return null;');
-    expect(source).toContain("` · ${reveal.facilityCount} shop${reveal.facilityCount === 1 ? '' : 's'}`");
-    expect(source).toContain("` · ${reveal.facilityCount} stand${reveal.facilityCount === 1 ? '' : 's'}`");
+    // The noun and its plural moved into the catalog; the count still drives
+    // which form is spoken, and the separator stays in the source.
+    expect(source).toContain('return ` · ${facilityCount(reveal, t)}`;');
+    expect(source).toContain("? 'financialStatement.shopCount'");
+    expect(source).toContain(": 'financialStatement.standCount'");
+    expect(source).toContain('t(key, { n: reveal.facilityCount, count: reveal.facilityCount })');
   });
 
   it('puts the building beside its count', () => {
@@ -28,6 +32,8 @@ describe('match statement facility badges', () => {
     // The bare-amount branches used to drop the count entirely, so VoiceOver
     // announced a row that visibly read "1 shop" as just an amount.
     expect(source).toContain('const count = reveal.facilityCount >= 1');
-    expect(source).toContain('${line.label}${count}, ${sign}${money(line.amount)}.${surgeNote}');
+    // Same phrase on screen and in the label: both go through facilityCount.
+    expect(source).toContain('? `, ${facilityCount(reveal, t)}`');
+    expect(source).toContain("t('financialStatement.a11y.rowAmount', {");
   });
 });

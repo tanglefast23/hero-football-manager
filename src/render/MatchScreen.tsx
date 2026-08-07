@@ -143,8 +143,8 @@ import {
   railHeroStatus,
 } from './match-rail';
 import {
-  ENERGY_USE_ACCESSIBILITY,
-  ENERGY_USE_LABELS,
+  energyUseAccessibility,
+  energyUseLabel,
   energyBand,
   summarizeTeamEnergy,
 } from './match-energy-ui';
@@ -1131,7 +1131,9 @@ export function MatchScreen({
           const scorerName = e.by >= 0 && e.by < BASE_PLAYER_COUNT ? s.players[e.by].def.name : 'Unknown';
           bannerRef.current = appendNewestFour(bannerRef.current, {
             id: `goal:${e.t}:${e.by}`,
-            text: `⚡ GOAL! ${scorerName}`,
+            // '⚡' and '⚠' below are pictograms, not words: they stay in the
+            // source and only the sentence beside them comes from the catalog.
+            text: `⚡ ${t('matchScreen.bannerGoal', { player: scorerName })}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'gold',
           });
@@ -1323,14 +1325,20 @@ export function MatchScreen({
         }
         if (e.kind === 'HALF_TIME') {
           bannerRef.current = appendNewestFour(bannerRef.current, {
-            id: `half:${e.t}`, text: 'HALF TIME', untilTick: e.t + FLASH_TICKS, tone: 'blue',
+            id: `half:${e.t}`,
+            text: t('matchScreen.bannerHalfTime'),
+            untilTick: e.t + FLASH_TICKS,
+            tone: 'blue',
           });
         }
         if (e.kind === 'FULL_TIME') {
           // Sim ticks freeze at fulltime, so `s.tick <= untilTick` below
           // holds and this banner stays up for the whole end-of-match hold.
           bannerRef.current = appendNewestFour(bannerRef.current, {
-            id: `full:${e.t}`, text: 'FULL TIME', untilTick: e.t + FLASH_TICKS, tone: 'blue',
+            id: `full:${e.t}`,
+            text: t('matchScreen.bannerFullTime'),
+            untilTick: e.t + FLASH_TICKS,
+            tone: 'blue',
           });
         }
         if (e.kind === 'FORMATION_CHANGED' && e.team === controlledTeam) {
@@ -1345,7 +1353,7 @@ export function MatchScreen({
         if (e.kind === 'MENTALITY_CHANGED' && e.team === controlledTeam) {
           bannerRef.current = appendBannerNewestFour(bannerRef.current, {
             id: `mentality:${e.t}`,
-            text: `PLAYSTYLE · ${e.mentality}`,
+            text: `${t('matchScreen.playstyle')} · ${e.mentality}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
             subject: 'mentality',
@@ -1354,7 +1362,7 @@ export function MatchScreen({
         if (e.kind === 'ENERGY_USE_CHANGED' && e.team === controlledTeam) {
           bannerRef.current = appendBannerNewestFour(bannerRef.current, {
             id: `energy:${e.t}`,
-            text: `ENERGY USE · ${ENERGY_USE_LABELS[e.energyUse]}`,
+            text: `${t('matchScreen.energyUse')} · ${energyUseLabel(e.energyUse, t)}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
             subject: 'energy',
@@ -1364,7 +1372,7 @@ export function MatchScreen({
           const incoming = s.players[e.player].def.name;
           bannerRef.current = appendNewestFour(bannerRef.current, {
             id: `sub:${e.t}:${e.player}`,
-            text: `SUBSTITUTION · ${incoming} ON`,
+            text: t('matchScreen.bannerSubstitution', { player: incoming }),
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
           });
@@ -1441,7 +1449,7 @@ export function MatchScreen({
           if (s.players[e.player].team !== controlledTeam) {
             bannerRef.current = appendNewestFour(bannerRef.current, {
               id: `rival-zone:${e.t}:${e.player}`,
-              text: `⚠ ${firstName} IS HOT, KEEP THE BALL AWAY`,
+              text: `⚠ ${t('matchScreen.bannerRivalZone', { player: firstName })}`,
               untilTick: e.t + RIVAL_ZONE_BANNER_TICKS,
               tone: 'red',
             });
@@ -2023,11 +2031,12 @@ export function MatchScreen({
   const tutorialTiredStarter = firstMatchTiredPlayerRef.current === null
     ? null
     : playerAt(match, firstMatchTiredPlayerRef.current) ?? null;
+  const substitutionTally = `${substitutionsUsed}/${MAX_SUBSTITUTIONS}`;
   const swapSecondary = autoSubs
-    ? `AUTO · ${substitutionsUsed}/${MAX_SUBSTITUTIONS}`
+    ? t('matchScreen.swapAuto', { used: substitutionTally })
     : tiredCount > 0
-      ? `${tiredCount} TIRED · ${substitutionsUsed}/${MAX_SUBSTITUTIONS}`
-      : `${substitutionsUsed}/${MAX_SUBSTITUTIONS} USED`;
+      ? t('matchScreen.swapTired', { count: tiredCount, used: substitutionTally })
+      : t('matchScreen.swapUsed', { used: substitutionTally });
 
   const openSwap = () => {
     if (
@@ -2138,14 +2147,18 @@ export function MatchScreen({
   const selectMentality = (mentality: Mentality) => {
     if (mentality === displayedMentality) return;
     queueInput(match, { tick: match.tick + 1, kind: 'SET_MENTALITY', mentality });
-    pushInputBanner(`mentality-input:${match.tick}`, `PLAYSTYLE · ${mentality}`, 'mentality');
+    pushInputBanner(
+      `mentality-input:${match.tick}`,
+      `${t('matchScreen.playstyle')} · ${mentality}`,
+      'mentality',
+    );
   };
   const selectEnergyUse = (mode: EnergyUse) => {
     if (mode === displayedEnergyUse) return;
     queueInput(match, { tick: match.tick + 1, kind: 'SET_ENERGY_USE', energyUse: mode });
     pushInputBanner(
       `energy-input:${match.tick}`,
-      `ENERGY USE · ${ENERGY_USE_LABELS[mode]}`,
+      `${t('matchScreen.energyUse')} · ${energyUseLabel(mode, t)}`,
       'energy',
     );
   };
@@ -2177,9 +2190,9 @@ export function MatchScreen({
       }];
     })
     .slice(0, RAIL_HERO_TILE_CAP);
-  const railClockLine = `${match.half === 1 ? '1ST' : '2ND'} HALF · ${minute}'${
-    stoppage ? '+' : ''
-  }${paused ? ' · PAUSED' : ''}`;
+  const railClockLine = `${t(
+    match.half === 1 ? 'matchScreen.firstHalf' : 'matchScreen.secondHalf',
+  )} · ${minute}'${stoppage ? '+' : ''}${paused ? ` · ${t('matchScreen.paused')}` : ''}`;
 
   return (
     <View style={[styles.root, highContrast ? styles.rootHighContrast : null]}>
@@ -2187,7 +2200,7 @@ export function MatchScreen({
       {railLayout || presentationOnly ? null : (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={paused ? 'Resume match' : 'Pause match'}
+          accessibilityLabel={paused ? t('matchScreen.a11y.resumeMatch') : t('matchScreen.a11y.pauseMatch')}
           style={[
             styles.scorebar,
             compactHeight ? styles.scorebarCompact : null,
@@ -2214,7 +2227,7 @@ export function MatchScreen({
             <Pressable
               style={styles.ctrlButton}
               accessibilityRole="button"
-              accessibilityLabel={`Match speed ${speed} times. Tap for next speed.`}
+              accessibilityLabel={t('matchScreen.a11y.matchSpeed', { speed })}
               hitSlop={10}
               onPress={() => {
                 playUiClickSfx();
@@ -2545,7 +2558,7 @@ export function MatchScreen({
           <View style={styles.coachBar}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Formation ${displayedFormation}. Tap for next match formation.`}
+              accessibilityLabel={t('matchScreen.a11y.formation', { formation: displayedFormation })}
               accessibilityState={{ disabled: coachingDisabled }}
               disabled={coachingDisabled}
               style={[
@@ -2560,13 +2573,13 @@ export function MatchScreen({
             >
               <FormationDiagram formation={displayedFormation} compact inverted />
               <View style={styles.coachCopy}>
-                <Text style={styles.coachLabel}>FORMATION</Text>
+                <Text style={styles.coachLabel}>{t('matchScreen.formation')}</Text>
                 <Text style={styles.coachValue}>{displayedFormation}</Text>
               </View>
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Playstyle ${displayedMentality}. Tap for next playstyle.`}
+              accessibilityLabel={t('matchScreen.a11y.playstyle', { playstyle: displayedMentality })}
               accessibilityState={{ disabled: coachingDisabled }}
               disabled={coachingDisabled}
               style={[
@@ -2581,7 +2594,7 @@ export function MatchScreen({
             >
               <Text style={styles.mentalityIcon}>{displayedMentality === 'ATTACK' ? '▲' : displayedMentality === 'PROTECT' ? '▼' : '◆'}</Text>
               <View style={styles.coachCopy}>
-                <Text style={styles.coachLabel}>PLAYSTYLE</Text>
+                <Text style={styles.coachLabel}>{t('matchScreen.playstyle')}</Text>
                 <Text style={styles.coachValue}>{displayedMentality}</Text>
               </View>
             </Pressable>
@@ -2590,9 +2603,14 @@ export function MatchScreen({
               collapsable={false}
               onLayout={guideSwapButton ? scheduleSwapGuideMeasurement : undefined}
               accessibilityRole="button"
-              accessibilityLabel={`Swap players. ${tiredCount === 0 ? 'No tired players.' : `${tiredCount} tired players.`} ${substitutionsRemaining} substitutions remaining.`}
+              accessibilityLabel={t('matchScreen.a11y.swapPlayers', {
+                tired: tiredCount === 0
+                  ? t('matchScreen.a11y.noTiredPlayers')
+                  : t('matchScreen.a11y.tiredPlayers', { count: tiredCount }),
+                substitutions: substitutionsRemaining,
+              })}
               accessibilityHint={guideSwapButton
-                ? 'Opens the substitution page while the match remains paused.'
+                ? t('matchScreen.a11y.swapHint')
                 : undefined}
               accessibilityState={{ disabled: swapDisabled }}
               disabled={swapDisabled}
@@ -2615,7 +2633,7 @@ export function MatchScreen({
               <Text style={[styles.swapIcon, guideSwapButton ? styles.swapIconGuided : null]}>⇄</Text>
               <View style={styles.coachCopy}>
                 <Text style={[styles.coachLabel, guideSwapButton ? styles.coachLabelGuided : null]}>
-                  SWAP
+                  {t('matchScreen.swap')}
                 </Text>
                 <Text
                   numberOfLines={1}
@@ -2632,7 +2650,7 @@ export function MatchScreen({
           </View>
           <View style={[styles.energyUseRow, compactHeight ? styles.energyUseRowCompact : null]}>
             <View style={styles.energyUseHeader}>
-              <Text style={styles.energyUseTitle}>ENERGY USE</Text>
+              <Text style={styles.energyUseTitle}>{t('matchScreen.energyUse')}</Text>
               <Text
                 style={[
                   styles.teamEnergy,
@@ -2640,7 +2658,7 @@ export function MatchScreen({
                   teamEnergyBand === 'red' ? styles.energyTextLow : null,
                 ]}
               >
-                TEAM ENERGY {teamEnergy}%
+                {t('matchScreen.teamEnergy', { percent: teamEnergy })}
               </Text>
             </View>
             <View style={styles.energySegments}>
@@ -2650,7 +2668,7 @@ export function MatchScreen({
                   <Pressable
                     key={mode}
                     accessibilityRole="button"
-                    accessibilityLabel={`${ENERGY_USE_LABELS[mode]}. ${ENERGY_USE_ACCESSIBILITY[mode]}`}
+                    accessibilityLabel={`${energyUseLabel(mode, t)}. ${energyUseAccessibility(mode, t)}`}
                     accessibilityState={{ selected, disabled: coachingDisabled }}
                     disabled={coachingDisabled}
                     style={[
@@ -2668,7 +2686,7 @@ export function MatchScreen({
                     }}
                   >
                     <Text style={[styles.energySegmentText, selected ? styles.energySegmentTextSelected : null]}>
-                      {ENERGY_USE_LABELS[mode]}
+                      {energyUseLabel(mode, t)}
                     </Text>
                   </Pressable>
                 );
@@ -2690,8 +2708,8 @@ export function MatchScreen({
             />
           </View>
           <TutorialTapCue
-            label={railLayout ? 'Click here' : 'Tap here'}
-            detail="Swap players"
+            label={railLayout ? t('matchScreen.clickHere') : t('matchScreen.tapHere')}
+            detail={t('matchScreen.swapPlayers')}
             style={tutorialCuePositionAbove(swapGuideAnchor, width, height)}
           />
         </>
@@ -2713,10 +2731,10 @@ export function MatchScreen({
       {firstMatchTutorialStep === 'tired-modal' ? (
         <FirstMatchCoachingModal
           title={tutorialTiredStarter === null
-            ? 'One player is very tired'
-            : `${tutorialTiredStarter.def.name} is very tired`}
-          body="Swap in a fresh player to give them some rest."
-          buttonLabel="Show me"
+            ? t('matchScreen.onePlayerIsVeryTired')
+            : t('matchScreen.playerIsVeryTired', { player: tutorialTiredStarter.def.name })}
+          body={t('matchScreen.swapInAFreshPlayer')}
+          buttonLabel={t('matchScreen.showMe')}
           player={tutorialTiredStarter === null ? undefined : {
             id: tutorialTiredStarter.def.id,
             name: tutorialTiredStarter.def.name,

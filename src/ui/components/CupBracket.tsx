@@ -50,13 +50,13 @@ export function CupBracket({ rounds, championName }: CupBracketProps) {
       {bands.map((band, index) => (
         <View key={band.columns[0].round} style={index === 0 ? null : styles.bandGap}>
           {index > 0 ? (
-            <Text style={styles.bandNote}>WINNERS FROM ABOVE</Text>
+            <Text style={styles.bandNote}>{t('cupBracket.winnersFromAbove')}</Text>
           ) : null}
           <BracketBand layout={band} />
         </View>
       ))}
       {championName === undefined ? null : (
-        <View accessible accessibilityLabel={`${championName} won the Hero Cup`} style={styles.champion}>
+        <View accessible accessibilityLabel={t('cupBracket.a11y.wonTheHeroCup', { club: championName })} style={styles.champion}>
           <PixelText className="text-xs uppercase text-ink/60">{t('cupBracket.heroCupWinners')}</PixelText>
           <PixelText className="mt-1 text-lg uppercase text-ink" numberOfLines={1}>{championName}</PixelText>
         </View>
@@ -131,10 +131,17 @@ function BracketBand({ layout }: { layout: BracketLayout }) {
 }
 
 function TieCard({ tie, left }: { tie: BracketTie; left: number }) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const label = tie.placeholder
-    ? 'Winner to be decided'
-    : `${tie.homeName} versus ${tie.awayName}${tie.played ? `, ${tie.scoreLabel}` : ''}`;
+    ? t('cupBracket.winnerToBeDecided')
+    : tie.played
+      ? t('cupBracket.a11y.tiePlayed', {
+          home: tie.homeName,
+          away: tie.awayName,
+          score: tie.scoreLabel,
+        })
+      : t('cupBracket.a11y.tie', { home: tie.homeName, away: tie.awayName });
   return (
     <View
       accessible

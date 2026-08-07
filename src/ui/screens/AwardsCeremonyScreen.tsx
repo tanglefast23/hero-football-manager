@@ -158,10 +158,10 @@ export function AwardsCeremonyScreen({
         // The label carries the podium, not just the action: this control
         // covers the whole screen, and an accessible parent hides the rows
         // underneath it from VoiceOver.
-        accessibilityLabel={stageAccessibilityLabel(viewModel, stage)}
+        accessibilityLabel={stageAccessibilityLabel(viewModel, stage, t)}
         accessibilityHint={stage.kind === 'prize'
-          ? 'Tap anywhere to finish'
-          : 'The ceremony plays itself. Tap anywhere to move it along sooner.'}
+          ? t('awardsCeremony.a11y.tapAnywhereToFinish')
+          : t('awardsCeremony.a11y.ceremonyPlaysItself')}
         onPress={stage.kind === 'prize' ? onComplete : advance}
         // Static style only: a function-form style on a Pressable drops layout
         // properties on iOS, and this one has to fill the screen.
@@ -189,7 +189,9 @@ export function AwardsCeremonyScreen({
 
         <View style={styles.footer}>
           <PixelText className="text-[10px] uppercase tracking-[2px] text-paper/60">
-            {stage.kind === 'prize' ? 'Tap to finish' : 'Tap to skip ahead'}
+            {stage.kind === 'prize'
+              ? t('awardsCeremony.tapToFinish')
+              : t('awardsCeremony.tapToSkipAhead')}
           </PixelText>
         </View>
       </Pressable>
@@ -207,10 +209,18 @@ export function AwardsCeremonyScreen({
 
       <View style={styles.skipRow}>
         {walkOn ? (
-          <SkipButton label="Skip ▸" hint="Skip to the podium" onPress={skipWalkOn} />
+          <SkipButton
+            label={`${t('awardsCeremony.skip')} ▸`}
+            hint={t('awardsCeremony.a11y.skipToThePodium')}
+            onPress={skipWalkOn}
+          />
         ) : null}
         {stage.kind === 'prize' ? null : (
-          <SkipButton label="Skip all ▸▸" hint="Skip to the prize" onPress={skipCeremony} />
+          <SkipButton
+            label={`${t('awardsCeremony.skipAll')} ▸▸`}
+            hint={t('awardsCeremony.a11y.skipToThePrize')}
+            onPress={skipCeremony}
+          />
         )}
       </View>
     </SafeAreaView>
@@ -251,6 +261,7 @@ function BoardPanel({
   beat: AwardCeremonyBeatViewModel;
   stage: AwardCeremonyStage;
 }) {
+  const t = useCopy();
   const rows = podiumRows(beat, stage);
   const arriving = arrivingPlacing(beat, stage);
 
@@ -265,7 +276,7 @@ function BoardPanel({
 
       {rows.length === 0 ? (
         <Text className="px-4 py-6 text-center text-sm leading-5 text-paper/60">
-          {stage.kind === 'board' ? 'And the award goes to…' : beat.emptyLabel}
+          {stage.kind === 'board' ? t('awardsCeremony.andTheAwardGoesTo') : beat.emptyLabel}
         </Text>
       ) : (
         <View style={styles.podium}>
@@ -292,6 +303,7 @@ function PodiumRow({
   metricLabel: string;
   arriving: boolean;
 }) {
+  const t = useCopy();
   // One highlight per board, so the eye always knows where the beat is: the
   // name that has just landed carries the gold, the rest of the podium settles
   // back to paper — or to blue, which is the League board's mark for your own.
@@ -308,7 +320,7 @@ function PodiumRow({
   return (
     <View
       accessible
-      accessibilityLabel={placingRowLabel(placing, metricLabel)}
+      accessibilityLabel={placingRowLabel(placing, metricLabel, t)}
       // The floor is PODIUM_ROW_MIN_HEIGHT, spelled out because NativeWind
       // compiles class strings and cannot read a constant.
       className={`min-h-[68px] flex-row items-center border-2 border-b-4 px-3 py-2 ${surface}`}
@@ -369,7 +381,7 @@ function PrizePanel({
   }, [counts, reduceMotion, total]);
 
   return (
-    <View accessible accessibilityLabel={prizeAccessibilityLabel(prize)} style={styles.board}>
+    <View accessible accessibilityLabel={prizeAccessibilityLabel(prize, t)} style={styles.board}>
       <View style={styles.boardTitle}>
         <PixelText className="text-[10px] uppercase tracking-[3px] text-ink/60">
           {t('awardsCeremony.awardPrize')}</PixelText>
@@ -382,7 +394,7 @@ function PrizePanel({
         )}
       </View>
       <Text className="px-4 pb-5 pt-3 text-center text-sm leading-5 text-paper/80">
-        {prizeDetailLine(prize)}
+        {prizeDetailLine(prize, t)}
       </Text>
     </View>
   );
@@ -410,6 +422,7 @@ function AwardWalkOn({
   reduceMotion: boolean;
   onDone: () => void;
 }) {
+  const t = useCopy();
   const { placing, line } = speaker;
   // The board's own position line. A keeper board can only be topped by a
   // keeper, so the category is a better source for the sprite than any field
@@ -425,7 +438,7 @@ function AwardWalkOn({
       groundOffset={GROUND_OFFSET}
       autoAdvanceMs={Math.max(MIN_LINE_MS, line.length * MS_PER_CHARACTER)}
       reduceMotion={reduceMotion}
-      accessibilityLabel={`${placing.playerName} says: ${line}`}
+      accessibilityLabel={t('awardsCeremony.a11y.playerSays', { player: placing.playerName, line })}
       renderCharacter={({ phase, walking }) => (
         <CelebratingPlayer
           playerId={placing.playerId}

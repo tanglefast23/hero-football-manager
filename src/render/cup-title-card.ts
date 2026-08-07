@@ -1,4 +1,11 @@
 import type { NationalCupRoundLabel } from '../game/career';
+import { copyFor, type CopyFn } from '../i18n';
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 /**
  * The cup's own round type, re-exported (type only, no runtime import) so the
@@ -7,7 +14,7 @@ import type { NationalCupRoundLabel } from '../game/career';
 export type CupRoundLabel = NationalCupRoundLabel;
 
 /** The competition's player-facing name. */
-export const CUP_TITLE_CARD_TITLE = 'HERO CUP';
+export const CUP_TITLE_CARD_TITLE_KEY = 'matchScreen.cupTitleCardTitle';
 
 /** Ball crosses, card holds, whistle. */
 export const CUP_TITLE_CARD_MS = 2_600;
@@ -20,7 +27,7 @@ export const CUP_TITLE_CARD_REDUCED_MOTION_MS = 2_000;
 export const CUP_TITLE_CARD_BALL_MS = 1_100;
 
 export interface CupTitleCardModel {
-  /** Always CUP_TITLE_CARD_TITLE — the one big line. */
+  /** Always CUP_TITLE_CARD_TITLE_KEY — the one big line. */
   readonly title: string;
   /** The round, uppercased for the pixel font, e.g. "QUARTER-FINAL". */
   readonly roundLabel: string;
@@ -42,14 +49,15 @@ export interface CupTitleCardModel {
 export function cupTitleCard(
   cupRoundLabel: CupRoundLabel | undefined,
   reduceMotion: boolean,
+  t: CopyFn = englishCopy(),
 ): CupTitleCardModel | null {
   if (cupRoundLabel === undefined) return null;
   return {
-    title: CUP_TITLE_CARD_TITLE,
+    title: t(CUP_TITLE_CARD_TITLE_KEY),
     roundLabel: cupRoundLabel.toUpperCase(),
     durationMs: reduceMotion ? CUP_TITLE_CARD_REDUCED_MOTION_MS : CUP_TITLE_CARD_MS,
     showBall: !reduceMotion,
-    accessibilityLabel: `Hero Cup. ${cupRoundLabel}.`,
+    accessibilityLabel: t('matchScreen.a11y.heroCupRound', { round: cupRoundLabel }),
   };
 }
 

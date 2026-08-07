@@ -1,4 +1,5 @@
 import { countUpValue } from './count-up';
+import { copyFor, type CopyFn } from '../i18n';
 
 import type {
   AwardCeremonyBeatViewModel,
@@ -16,6 +17,16 @@ import type {
  */
 function formatPrizeMoney(value: number): string {
   return `$${Math.abs(Math.trunc(value)).toLocaleString('en-US')}`;
+}
+
+/**
+ * English copy, for every caller that has not threaded a locale through yet.
+ * The same lazy shape `application/view-models.ts` uses.
+ */
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
 }
 
 /**
@@ -238,10 +249,16 @@ export function podiumNameType(playerName: string): PodiumNameType {
 export function placingRowLabel(
   placing: AwardCeremonyPlacingViewModel,
   metricLabel: string,
+  t: CopyFn = englishCopy(),
 ): string {
-  const owner = placing.isUserPlayer ? ' Your player.' : '';
-  return `${placing.position}. ${placing.playerName}, ${placing.clubName}, `
-    + `${placing.value} ${metricLabel.toLowerCase()}.${owner}`;
+  const owner = placing.isUserPlayer ? ` ${t('awardsCeremony.a11y.yourPlayer')}` : '';
+  return t('awardsCeremony.a11y.placingRow', {
+    position: placing.position,
+    player: placing.playerName,
+    club: placing.clubName,
+    value: placing.value,
+    metric: metricLabel.toLowerCase(),
+  }) + owner;
 }
 
 /** Whether the prize screen has a number worth watching climb. */
@@ -268,18 +285,27 @@ export function prizeCountValue(total: number, elapsedMs: number): number {
  * `totalMoney` is quoted directly and never rebuilt from the per-board rate:
  * the prize tapers, so two boards pay less than twice one board.
  */
-export function prizeDetailLine(prize: AwardCeremonyPrizeViewModel): string {
-  if (!prizeCountsUp(prize)) {
-    return 'No board went to the club this season. Top one next year and the prize is yours.';
-  }
-  const boards = prize.boardsWon === 1 ? '1 board' : `${prize.boardsWon} boards`;
-  return `${boards} won · ${formatPrizeMoney(prize.perCategoryMoney)} for the first, less for each after.`;
+export function prizeDetailLine(
+  prize: AwardCeremonyPrizeViewModel,
+  t: CopyFn = englishCopy(),
+): string {
+  if (!prizeCountsUp(prize)) return t('awardsCeremony.noBoardWon');
+  return t('awardsCeremony.prizeDetail', {
+    boards: t('awardsCeremony.boardsWon', { n: prize.boardsWon, count: prize.boardsWon }),
+    amount: formatPrizeMoney(prize.perCategoryMoney),
+  });
 }
 
-export function prizeAccessibilityLabel(prize: AwardCeremonyPrizeViewModel): string {
+export function prizeAccessibilityLabel(
+  prize: AwardCeremonyPrizeViewModel,
+  t: CopyFn = englishCopy(),
+): string {
   return prizeCountsUp(prize)
-    ? `Award prize: ${formatPrizeMoney(prize.totalMoney)}. ${prizeDetailLine(prize)}`
-    : `Award prize: nothing. ${prizeDetailLine(prize)}`;
+    ? t('awardsCeremony.a11y.prizeAmount', {
+      amount: formatPrizeMoney(prize.totalMoney),
+      detail: prizeDetailLine(prize, t),
+    })
+    : t('awardsCeremony.a11y.prizeNothing', { detail: prizeDetailLine(prize, t) });
 }
 
 /**
@@ -294,12 +320,16 @@ export function prizeAccessibilityLabel(prize: AwardCeremonyPrizeViewModel): str
 export function stageAccessibilityLabel(
   viewModel: AwardCeremonyViewModel,
   stage: AwardCeremonyStage,
+  t: CopyFn = englishCopy(),
 ): string {
   const beat = stageBeat(viewModel, stage);
-  if (beat === undefined) return prizeAccessibilityLabel(viewModel.prize);
-  const board = `${beat.boardLabel}, ${beat.metricLabel}.`;
-  if (stage.kind === 'board') return `${board} And the award goes to…`;
+  if (beat === undefined) return prizeAccessibilityLabel(viewModel.prize, t);
+  const board = t('awardsCeremony.a11y.boardAndMetric', {
+    board: beat.boardLabel,
+    metric: beat.metricLabel,
+  });
+  if (stage.kind === 'board') return `${board} ${t('awardsCeremony.andTheAwardGoesTo')}`;
   const rows = podiumRows(beat, stage);
-  if (rows.length === 0) return `${board} ${beat.emptyLabel}.`;
-  return [board, ...rows.map(row => placingRowLabel(row, beat.metricLabel))].join(' ');
+  if (rows.length === 0) return t('awardsCeremony.a11y.boardEmpty', { board, empty: beat.emptyLabel });
+  return [board, ...rows.map(row => placingRowLabel(row, beat.metricLabel, t))].join(' ');
 }

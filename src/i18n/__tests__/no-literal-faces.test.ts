@@ -20,7 +20,7 @@ import path from 'path';
  *
  * That narrower guard would go green with the match screen still broken.
  */
-const FACE_LITERAL = /['"](Silkscreen|Handjet|VT323)_/;
+const FACE_LITERAL = /['"](HFMSilkscreen|Silkscreen|Handjet|VT323)_/;
 
 /**
  * `src/i18n/` legitimately names the families — it is where the mapping lives.
@@ -48,9 +48,8 @@ function sourceFiles(dir: string, found: string[] = []): string[] {
  *
  * This list may only ever shrink, and the test below enforces that: a new file
  * that hardcodes a face fails immediately, while the known remainder does not
- * hold CI red during the migration. Removing the last entry is what finishes
- * the Vietnamese font work — until then, these screens render Vietnamese in
- * Silkscreen, which cannot draw it.
+ * hold CI red during the migration. It is empty, which is what finished the
+ * conversion — every player-facing surface now reads its face from the locale.
  */
 const NOT_YET_CONVERTED: string[] = [];
 

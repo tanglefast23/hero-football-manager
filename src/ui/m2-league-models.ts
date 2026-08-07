@@ -81,6 +81,15 @@ export interface M2CupRoundHistoryViewModel {
   readonly completedCount: number;
   readonly statusLabel: string;
   readonly userOutcome?: string;
+  /**
+   * What the outcome IS, as opposed to what it says.
+   *
+   * The screen used to pick the chip's tone by string-comparing `userOutcome`,
+   * which quietly forced that string to stay English: translating it would have
+   * painted every knockout chip the same colour in all five other languages.
+   * Tone switches on this; `userOutcome` is now free to be copy.
+   */
+  readonly userOutcomeKind?: 'bye' | 'waiting' | 'advanced' | 'champion' | 'eliminated';
 }
 
 export interface M2CupByeViewModel {

@@ -6,6 +6,7 @@ import { playPositiveSfx } from '../render/management-sfx';
 import { arrivalLine } from './player-arrival-lines';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
 import type { PlayerSigningConfirmation } from './PlayerSigningOverlay';
+import { useCopy } from '../i18n';
 
 const SPRITE_SCALE = 4;
 /**
@@ -46,6 +47,7 @@ export function PlayerWalkOnWelcome({
   reduceMotion?: boolean;
   onDone: () => void;
 }) {
+  const t = useCopy();
   const { height: viewportHeight } = useWindowDimensions();
 
   useEffect(() => {
@@ -69,7 +71,7 @@ export function PlayerWalkOnWelcome({
       groundOffset={groundOffset}
       autoAdvanceMs={Math.max(MIN_LINE_MS, line.length * MS_PER_CHARACTER)}
       reduceMotion={reduceMotion}
-      accessibilityLabel={`${player.playerName} says: ${line}`}
+      accessibilityLabel={t('awardsCeremony.a11y.playerSays', { player: player.playerName, line })}
       onDone={onDone}
     >
       <WalkingPlayer player={player} />

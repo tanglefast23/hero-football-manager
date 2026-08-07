@@ -28,7 +28,7 @@ const BASE_ATTRS: Attrs = {
 };
 
 describe('open-ended player development', () => {
-  test('uses the exact E− through A+ potential bonus ladder', () => {
+  test('uses the exact E- through A+ potential bonus ladder', () => {
     expect(POTENTIAL_GRADES).toEqual([
       'E-', 'E', 'E+',
       'D-', 'D', 'D+',
