@@ -24,9 +24,9 @@ Grok-audit the work. This document is therefore an audit **and** a fix log.
 | Axis | Score | Tier | Justification | Blocker to +1 |
 |---|---|---|---|---|
 | A. Input feel | 8 / 10 | T2 web + T1 code | Pressed state fires on press-in and 129 Pressable sites route through one wrapper that also neutralises the function-style iOS trap; drill/advance taps showed first paint 62–75 ms (4–5 frames) after press-down on web. | Cues fire on press-**up** by deliberate design (`SfxPressable.tsx:93-102`) — sound trails the visual by the press duration. Device ms is unmeasured. |
-| B. Button juice | 7 / 10 | T2 + T1 | Confirmations, reveal cards and streak-pitched drill dings exist; taps now carry ±4% pitch spread (this audit). | No press-down **sound**, no chunky-lip depress, and no idle attract on the primary CTA — the game never invites a return after 4s of stillness. |
+| B. Button juice | 8 / 10 | T2 + T1 | Confirmations, reveal cards and streak-pitched drill dings exist; taps now carry ±4% pitch spread, every shared button depresses under the finger, and the primary CTA breathes after 4s idle (this audit). | No press-down **sound** — the depress and the idle attract landed in pass 2, but every cue still trails its own visual by the length of the press. |
 | C. Pixel integrity | 9 / 10 | T2 + T3 + T1 | The snapping contract is honoured on **9/9** Skia Atlas draw paths (`PIXEL_ART_SAMPLING` = Nearest/no-mipmap everywhere; every placement through `snapDevicePixels`, magnification through `snapSpriteScale`). | Atlas padding is not asserted anywhere — `generate-sprites.mjs` has no padding/extrusion and packing happens at runtime in `buildAtlas.ts`; nearest sampling hides it today but nothing pins it. |
-| D. Animation | 7 / 10 | T2 + T1 | Reduce Motion is genuinely plumbed through 67 files; league rows now slide from their old positions instead of teleporting (this audit). | No shared timing table: 37 inline `duration:` literals across **26 distinct values** plus 31 scattered `*_MS` constants — the app has no single motion vocabulary. |
+| D. Animation | 7 / 10 | T2 + T1 | Reduce Motion is genuinely plumbed through 67 files; league rows slide from their old positions and the HUD's money and TP roll rather than snap (this audit). | No shared timing table: 37 inline `duration:` literals across **26 distinct values** plus 31 scattered `*_MS` constants — the app has no single motion vocabulary. |
 | E. Performance | 8 / 10 | T2 + Node, **device unscored** | Web idle 25 s: mean 8.33 ms, p99 9.31 ms, **zero** frames > 33 ms. Sim tick cost mean 0.27 ms / p99 3.43 ms per 100 ms tick — ~3% of budget. The last JS-thread animation is gone (this audit). | The Release `.app` is **106 MB against a 60 MB canon budget**, and no device has confirmed frame pacing. |
 | F. Football feel | 7 / 10 | T2 + T1 | Coach hire, drill runs and facility completion all have authored reveal beats; the rival-preload pump keeps the fulltime settle off the frame. | Speed tops out at 3× with **no skip / jump-to-next-event** once a match is running (`match-speed.ts`), so a watched match cannot be shortened mid-flight. |
 | G. Audio | 8 / 10 | T2 forensic | Every one of 94 cues now sits below −0.1 dBFS with loudness intact (this audit); pooled rapid cues seek-then-play, and the fixed-delay rewind bug is documented and rejected in code. | One sample per UI cue: pitch spread now varies them, but there are still no true variants, and mix-under-load has no measurement surface on this Mac. |
@@ -35,11 +35,11 @@ Grok-audit the work. This document is therefore an audit **and** a fix log.
 | J. Accessibility | 7 / 10 | T1 + T2 | Reduce Motion is honoured live (system subscription + preference), modals drop their entry animation, ceremony holds halve, the power tile suppresses its shell animation and sheen. | Kit colours are a **fixed red-vs-blue default** (`team-kit-ui.ts:11,13`) — the deuteranopia-adjacent pair — and separation depends on the player finding the colour-safe toggle. |
 | K. First 60 seconds | 8 / 10 | T2 | Title → story → created player → club office ran clean, and the first week is a guided chain that refuses to advance until the player has trained, built and hired — with a named reason each time. | No store screenshots or trailer exist yet, and the "wow" moment (a hero firing) sits several weeks behind the first session. |
 
-**Overall: 7.6 / 10.** For this genre a 10 means: Retro Bowl's press-immediacy, Kairosoft's
+**Overall: 8.0 / 10 after pass 2** (7.6 as first measured). For this genre a 10 means: Retro Bowl's press-immediacy, Kairosoft's
 per-week reward density, Duolingo's button physics and pitch ladder, Balatro's count-up
 choreography. This build's simulation, determinism and pixel discipline are already at that bar;
-what keeps it off 10 is that its *feedback vocabulary* is thinner than its systems — one tap
-sound, no shared motion table, no press-down audio, no idle invitation, and a 106 MB binary.
+what keeps it off 10 is that its *feedback vocabulary* is still thinner than its systems — one
+tap sample, no shared motion table, no press-down audio, and a 106 MB binary.
 
 ## 8.2 Findings and what happened to each
 
@@ -70,13 +70,36 @@ sound, no shared motion table, no press-down audio, no idle invitation, and a 10
   pump. Fresh numbers: 1004 idle bursts of 8 ticks (mean 1.41 ms, p99 10.05 ms) spread across the
   watched match; the 1092 ms 4× figure is the **cold worst case** only (instant Quick Result).
 
+## 8.2c Pass 2 — the micro-interactions (added after the owner asked why only defects were fixed)
+
+Pass 1 fixed defects and *reported* the juice gaps. Pass 2 executes the top of that fix plan.
+
+| ID | Axis | What was missing | What landed | Verified |
+|---|---|---|---|---|
+| P1 | B | Press feedback across the 106 shared button sites was `opacity: 0.7` and nothing else — the surface never moved under the finger | A shared depress (`translateY 1`, `scale 0.97`) on the existing `pressed` state | **Live**: language button shows `translateY(1px) scale(0.97)` during press, clean on release |
+| P2 | D/F | Money and TP snapped to their new value on every week, drill and signing | `useCountUpNumber` rolls them over 520 ms on the same cubic ease-out as `count-up.ts`; skipped on mount and under Reduce Motion; lands exactly | **Live**: an $8,000 purchase sampled `$53k → 51.8 → 49.8 → 48.4 → 47.2 → 46.4 → 45.8 → 45.4 → 45.2 → $45k` |
+| P3 | B | Nothing ever invited a stalled player onward — the app had no inactivity timer at all | `IdleAttract`: after 4 s of stillness the enabled Advance Week button breathes (1.0 → 1.025, 1150 ms each way), reset by any action via `restartKey`, off under Reduce Motion / disabled / mid-tutorial | **Code-level only** — see below |
+
+**P1 nearly shipped a regression.** Grok's review caught it: a dozen buttons already author their
+own press travel (title screen 3 px, league rows 2 px, settings toggle 1 px) chosen against each
+button's border weight, and appending a shared transform silently overrode all of them. Fixed with
+a `setsTransform` guard mirroring the file's existing `setsOpacity` guard, then verified both
+ways live: the STORY button keeps its authored 3 px, the language button takes the shared depress.
+
+**P3 is the one honest gap in this pass.** The first-week tutorial gate could not be driven to an
+enabled Advance Week inside the session budget, so the attract was never observed firing. What was
+verified: it renders with an identity transform while inactive and does not disturb the button's
+layout (1024×44), its gating is plain boolean logic, and it mirrors the shipped pulse in
+`AwakeningCutsceneScreen` (`Animated.loop`, reduce-motion aware, cleaned up on unmount). It should
+be watched once on a real device before it is trusted.
+
 ## 8.3 The ten blockers between this build and a 10/10
 
 1. **106 MB binary against a 60 MB budget** (F6) — the only hard number that fails canon.
 2. **No device-verified frame pacing** — axis E cannot be closed from this machine.
 3. **No shared motion table** (F7) — 26 distinct durations is a vocabulary, not a system.
 4. **No press-down audio** — every cue trails its own visual by the length of the press.
-5. **No idle attract on the primary CTA** (F10) — the game never re-invites a stalled player.
+5. **The idle attract has never been watched running** (P3) — shipped on code-level confidence.
 6. **Kit colours default to red-vs-blue** (F8).
 7. **No mid-match skip** (F9).
 8. **One sample per UI cue** — pitch spread mitigates, true variants would close it.
@@ -89,13 +112,16 @@ sound, no shared motion table, no press-down audio, no idle invitation, and a 10
 clipping across 7 assets · F3 drill bar off the JS thread · F4 league rows that move · F5 tap
 pitch spread. Every one verified (below).
 
+**Done in pass 2** (see 8.2c): press depress across every shared button · rolling money/TP ·
+idle attract on Advance Week.
+
 **Next, in order:**
-1. **Press-down audio for navigation cues** (S, high delight) — the single biggest remaining
-   feel win; needs care with RN Web keyboard activation, which is why press-up was chosen.
-2. **Idle attract on Advance Week after ~4 s** (S) — one timer, one existing pulse pattern.
-3. **Shared motion table** (M) — collapse 26 durations into ~6 named steps, then migrate.
-4. **Asset-weight pass toward 60 MB** (M) — measure an IPA first; audio is the obvious candidate.
-5. **Colour-safe kits by default** (S, owner decision).
+1. **Press-down audio for navigation cues** (S, high delight) — the biggest remaining feel win;
+   needs care with RN Web keyboard activation, which is why press-up was chosen.
+2. **Shared motion table** (M) — collapse 26 durations into ~6 named steps, then migrate.
+3. **Asset-weight pass toward 60 MB** (M) — measure an IPA first; audio is the obvious candidate.
+4. **Colour-safe kits by default** (S, owner decision).
+5. **Watch the idle attract fire on a device** (S) — the one unobserved behaviour in pass 2.
 
 ## 8.5 Retest protocol (pre-registered, all passing)
 

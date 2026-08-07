@@ -2048,6 +2048,7 @@ function GameApp() {
         seasonLabel={home.seasonLabel}
         weekLabel={home.weekLabel}
         resources={home.resources}
+        reduceMotion={reduceMotion}
         activeTab={store.activeTab}
         onTabChange={tab => {
           setConciergeFocus(null);
