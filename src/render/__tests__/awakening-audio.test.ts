@@ -102,11 +102,16 @@ describe('awakening ascension audio', () => {
     expect(mockPlayers[1].play).toHaveBeenCalledTimes(1);
   });
 
-  it('respects the shared master-volume scale', () => {
+  it('respects the shared master-volume scale, holding the limp at music level', () => {
     setAwakeningMasterVolume(0.5);
     playAwakeningAscension();
 
-    expect(mockPlayers.every(player => player.volume === 0.5)).toBe(true);
+    const [angels, harps, limp] = mockPlayers;
+    expect(angels.volume).toBe(0.5);
+    expect(harps.volume).toBe(0.5);
+    // The limp is a music bed, so it carries the same 0.5 every other bed does
+    // rather than the SFX gain the two reveal cues play at.
+    expect(limp.volume).toBe(0.25);
     expect(setAudioModeAsync).toHaveBeenCalledWith({ playsInSilentMode: false });
 
     setAwakeningMasterVolume(0);

@@ -18,11 +18,14 @@ import { registerAudioOwner } from './audio-lifecycle';
  * the next one arrives, so a voice re-seeked on a timer plays only its first
  * sound. Keep it to a single seek per line.
  *
- * Rebuild after replacing the recording (it arrives ~14dB below every other
- * cue, so the peak has to be brought up or Bert is inaudible under the music):
- *   ffmpeg -y -i assets/audio/sfx/dialogue2.m4a -af volume=13.6dB \
+ * Rebuild after replacing the recording — the raw take arrives well below every
+ * other cue, so it has to be brought up or Bert is inaudible under the music:
+ *   ffmpeg -y -i assets/audio/sfx/dialogue2.m4a \
  *     -c:a aac -b:a 96k -ar 44100 -ac 1 \
  *     assets/audio/sfx/bert-voice-dialogue2.m4a
+ *   node scripts/audio/normalize-levels.mjs
+ * The gain is no longer hand-picked: the levels pass measures the copy and
+ * brings it to the same loudness as every other SFX cue.
  */
 const VOICE_SOURCE = require('../../assets/audio/sfx/bert-voice-dialogue2.m4a');
 /** Length of the clip, and the most any one line can consume of it. */

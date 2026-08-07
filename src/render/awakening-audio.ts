@@ -39,10 +39,18 @@ function clearHarpTimer(): void {
   harpTimer = null;
 }
 
-function setPlayerVolume(player: AudioPlayer | null, context: string): void {
+/**
+ * Matches `menu-audio` and `celebration-audio`: every music bed plays at half,
+ * under the effects. The limp is the one bed reached from outside those two
+ * modules, and playing it at the SFX gain put it 6dB above every other theme
+ * once the assets were levelled to one loudness per class.
+ */
+const MUSIC_VOLUME = 0.5;
+
+function setPlayerVolume(player: AudioPlayer | null, baseVolume: number, context: string): void {
   if (!player) return;
   try {
-    player.volume = masterVolume;
+    player.volume = baseVolume * masterVolume;
     // Programmatic volume is a no-op in browsers on iOS; `muted` is not.
     player.muted = masterVolume === 0;
   } catch (error) {
@@ -52,9 +60,13 @@ function setPlayerVolume(player: AudioPlayer | null, context: string): void {
 
 export function setAwakeningMasterVolume(volume: number): void {
   masterVolume = Math.max(0, Math.min(1, volume));
-  setPlayerVolume(angelsPlayer, 'angels');
-  setPlayerVolume(harpsPlayer, 'harps');
-  setPlayerVolume(limpPlayer, 'limp');
+  applyAwakeningVolumes();
+}
+
+function applyAwakeningVolumes(): void {
+  setPlayerVolume(angelsPlayer, 1, 'angels');
+  setPlayerVolume(harpsPlayer, 1, 'harps');
+  setPlayerVolume(limpPlayer, MUSIC_VOLUME, 'limp');
 }
 
 export function initAwakeningAudio(): void {
@@ -89,9 +101,7 @@ export function initAwakeningAudio(): void {
     }
 
     ready = angelsPlayer !== null || harpsPlayer !== null || limpPlayer !== null;
-    setPlayerVolume(angelsPlayer, 'angels');
-    setPlayerVolume(harpsPlayer, 'harps');
-    setPlayerVolume(limpPlayer, 'limp');
+    applyAwakeningVolumes();
   } catch (error) {
     angelsPlayer = null;
     harpsPlayer = null;

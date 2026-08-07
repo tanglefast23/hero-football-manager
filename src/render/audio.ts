@@ -124,8 +124,14 @@ const FIRE_LOOP_SOURCE: AudioSource = require('../../assets/audio/sfx/flame-loop
 // Music sits at half volume under the SFX (which play at the 1.0 ceiling) —
 // the mix balance, not a fix for the earlier silence (that was the seek/play
 // ordering in playForEvent). Tune here if the bed still competes.
+//
+// This is now the only thing in the mix that is chosen rather than measured:
+// scripts/audio/normalize-levels.mjs levels every asset to one loudness per
+// class (SFX -16 LUFS, music -20, beds -20), so a cue that feels wrong is a
+// balance decision to make here, not a file to re-record.
 const MUSIC_VOLUME = 0.5;
-// The fire crackle rides above the music bed but below the one-shot SFX.
+// The fire crackle is levelled as a bed, already 4 LU under the one-shots; this
+// puts it a little further down again, below the cues it burns underneath.
 const FIRE_LOOP_VOLUME = 0.7;
 // Multiplies the existing mix without changing its balance. The dev overlay
 // owns the five user-facing steps; keeping this as a plain 0..1 number makes
