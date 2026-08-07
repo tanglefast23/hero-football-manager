@@ -88,6 +88,7 @@ import {
   compareIds,
   type GameState,
   type LedgerLineKind,
+  type LedgerLineReveal,
   type PlacedFacility,
   type AssistantInboxGuideSequenceId,
   type SponsorContractSnapshot,
@@ -106,6 +107,7 @@ import type {
   LeagueTableViewModel,
   ManagerNoteViewModel,
   IncomeGenerationViewModel,
+  LedgerIconViewModel,
   MatchDayBannerViewModel,
   MatchDayViewModel,
   FulltimeReactionViewModel,
@@ -2749,6 +2751,75 @@ function contractPromiseLabel(
   return t('squadTraining.promiseShirt10');
 }
 
+/**
+ * The pictures beside a statement row: what the club actually paid for.
+ *
+ * Read from the settled state rather than persisted onto the ledger line,
+ * because both statements render the week they just settled — the one case
+ * where live state and saved truth agree. The exception is merchandise, which
+ * already carries `reveal.facilityCount` from settlement and is preferred when
+ * present, so a shop closed before the report opens cannot change history.
+ *
+ * Identical things collapse to one icon plus a count; things that differ get
+ * one icon each. That is why the upkeep row lists every building while the
+ * wage row is one player and a `×17` — seventeen identical heads would be a
+ * texture, not a fact.
+ */
+function ledgerLineIcons(
+  state: GameState,
+  line: { kind: LedgerLineKind; labelKey?: string; reveal?: LedgerLineReveal },
+): readonly LedgerIconViewModel[] | undefined {
+  if (line.kind === 'merch') {
+    const count = line.reveal?.source === 'merch'
+      ? line.reveal.facilityCount
+      : commercialFacilitySummary(state).shopCount;
+    if (count < 1) return undefined;
+    return [{ id: 'shops', kind: 'facility', facility: 'fan-shop', count }];
+  }
+
+  if (line.kind === 'tickets') {
+    const count = line.reveal?.source === 'merch'
+      ? 0
+      : line.reveal?.facilityCount ?? commercialFacilitySummary(state).standCount;
+    if (count < 1) return undefined;
+    return [{ id: 'stands', kind: 'facility', facility: 'stadium-stand', count }];
+  }
+
+  if (line.kind === 'facilities') {
+    const grid = state.facilities.grid;
+    if (grid === undefined) return undefined;
+    const icons = grid.buildings
+      .filter(building => isFacilityOperational(grid, building.id))
+      .map(building => ({
+        id: building.id,
+        kind: 'facility' as const,
+        facility: building.type,
+        level: building.level,
+      }));
+    return icons.length === 0 ? undefined : icons;
+  }
+
+  if (line.labelKey === 'ledger.weeklyWages') {
+    const count = rosterForClub(state, state.userClubId).length;
+    return count === 0 ? undefined : [{ id: 'squad', kind: 'player', count }];
+  }
+
+  if (line.labelKey === 'ledger.coachingStaffWages') {
+    const icons = [
+      { role: 'head', coach: state.market?.headCoach },
+      { role: 'assistant', coach: state.market?.assistantCoach },
+    ]
+      .flatMap(({ role, coach }) => (coach === undefined ? [] : [{
+        id: role,
+        kind: 'coach' as const,
+        portraitId: coach.portraitId ?? coach.id,
+      }]));
+    return icons.length === 0 ? undefined : icons;
+  }
+
+  return undefined;
+}
+
 export function weeklyReviewViewModel(
   before: GameState,
   after: GameState,
@@ -2786,12 +2857,16 @@ export function weeklyReviewViewModel(
     trainingPointsBefore: before.trainingPoints,
     trainingPointsAfter: after.trainingPoints,
     netTrainingPoints: after.trainingPoints - before.trainingPoints,
-    ledger: ledger.lines.map((line, index) => ({
-      id: `weekly-review-${ledger.season}-${ledger.week}-${index}`,
-      label: line.label,
-      amount: line.amount,
-      kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
-    })),
+    ledger: ledger.lines.map((line, index) => {
+      const icons = ledgerLineIcons(after, line);
+      return {
+        id: `weekly-review-${ledger.season}-${ledger.week}-${index}`,
+        label: line.label,
+        amount: line.amount,
+        kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
+        ...(icons === undefined ? {} : { icons }),
+      };
+    }),
     updates: weekUpdates(before, after, t),
     ...(completedFacility === undefined ? {} : { facilityCompletion: completedFacility }),
     ...(nextFixture === undefined ? {} : { nextFixture: fixtureViewModel(after, nextFixture) }),
@@ -2873,13 +2948,17 @@ export function postMatchViewModel(
             : score.awayGoals > score.homeGoals ? 'away' : null,
       cupExit: cupRound !== undefined && outcomeLabel === 'LOSS',
     },
-    ledger: (ledger?.lines ?? []).map((line, index) => ({
-      id: `${before.season}-${before.week}-${index}`,
-      label: line.label,
-      amount: line.amount,
-      kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
-      ...(line.reveal === undefined ? {} : { reveal: line.reveal }),
-    })),
+    ledger: (ledger?.lines ?? []).map((line, index) => {
+      const icons = ledgerLineIcons(after, line);
+      return {
+        id: `${before.season}-${before.week}-${index}`,
+        label: line.label,
+        amount: line.amount,
+        kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
+        ...(line.reveal === undefined ? {} : { reveal: line.reveal }),
+        ...(icons === undefined ? {} : { icons }),
+      };
+    }),
     settlementSeason: before.season,
     settlementWeek: before.week,
     netAmount: (ledger?.lines ?? []).reduce((sum, line) => sum + line.amount, 0),

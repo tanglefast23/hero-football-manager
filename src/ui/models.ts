@@ -312,11 +312,32 @@ export interface FulltimeReactionViewModel {
   assistantName?: string;
 }
 
+/**
+ * One picture on a statement row: what the money was actually spent on.
+ *
+ * Identical things collapse to one icon and a `count` — seventeen player icons
+ * is a crowd, not a number — while things that differ get one icon each, which
+ * is what makes the upkeep row readable as "these six buildings".
+ */
+export type LedgerIconViewModel =
+  | {
+      id: string;
+      kind: 'facility';
+      facility: FacilityTypeViewModel;
+      /** Absent on the collapsed merch badge, where the count carries the meaning. */
+      level?: 1 | 2 | 3;
+      count?: number;
+    }
+  | { id: string; kind: 'coach'; portraitId: string; count?: number }
+  | { id: string; kind: 'player'; count?: number };
+
 export interface LedgerLineViewModel {
   id: string;
   label: string;
   amount: number;
   kind: 'income' | 'expense' | 'neutral';
+  /** Statement rows only; the Finances ledger stays undressed. */
+  icons?: readonly LedgerIconViewModel[];
 }
 
 /** Post-match statement rows only: the Finances ledger stays undressed. */
