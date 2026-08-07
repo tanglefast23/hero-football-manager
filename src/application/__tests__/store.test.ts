@@ -282,13 +282,13 @@ describe('M1 app store integration', () => {
         phase: 'manage',
         week: 8,
         pendingEvent: {
-          eventId: 'hundredth-fan',
+          eventId: 'rival-bid-arrives',
           resolvedChoiceId: 'hundredth-fan-parade',
           outcomeText: 'The parade inspires a new stadium mural.',
           resolvedOutcomeIndex: 0,
           resolvedRisky: true,
           resolvedSuccess: true,
-          resolvedNextEventId: 'community-mural',
+          resolvedNextEventId: 'rival-bid-deadline-day',
         },
       },
       screen: 'event',
@@ -300,8 +300,8 @@ describe('M1 app store integration', () => {
       screen: 'event',
       career: {
         week: 8,
-        pendingEvent: { eventId: 'community-mural' },
-        resolvedEventIds: expect.arrayContaining(['hundredth-fan']),
+        pendingEvent: { eventId: 'rival-bid-deadline-day' },
+        resolvedEventIds: expect.arrayContaining(['rival-bid-arrives']),
       },
     });
   });
@@ -315,7 +315,7 @@ describe('M1 app store integration', () => {
         phase: 'manage',
         week: 8,
         pendingEvent: {
-          eventId: 'hundredth-fan',
+          eventId: 'rival-bid-arrives',
           resolvedChoiceId: 'hundredth-fan-parade',
           outcomeText: 'The parade inspires a new stadium mural.',
           resolvedOutcomeIndex: 0,
@@ -334,7 +334,7 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().error).toBeNull();
     expect(useM1Store.getState().screen).not.toBe('event');
     expect(useM1Store.getState().career?.pendingEvent).toBeUndefined();
-    expect(useM1Store.getState().career?.resolvedEventIds).toContain('hundredth-fan');
+    expect(useM1Store.getState().career?.resolvedEventIds).toContain('rival-bid-arrives');
   });
 
   /**
@@ -352,7 +352,7 @@ describe('M1 app store integration', () => {
         phase: 'manage',
         week: 8,
         pendingEvent: {
-          eventId: 'hundredth-fan',
+          eventId: 'rival-bid-arrives',
           resolvedChoiceId: 'hundredth-fan-parade',
           outcomeText: 'The parade inspires a new stadium mural.',
           resolvedOutcomeIndex: 0,
@@ -373,7 +373,7 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().screen).toBe('management');
     expect(useM1Store.getState().career?.week).toBe(8);
     expect(useM1Store.getState().career?.pendingEvent).toBeUndefined();
-    expect(useM1Store.getState().career?.resolvedEventIds).toContain('hundredth-fan');
+    expect(useM1Store.getState().career?.resolvedEventIds).toContain('rival-bid-arrives');
   });
 
   it('trains a player the moment a drill is tapped and reviews the week without it', () => {

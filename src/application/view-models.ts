@@ -68,6 +68,12 @@ import {
   SEASON_WEEKS,
   SPONSOR_PAYMENT_WEEKS,
   trainingPathAttribute,
+  cappedCoachBoost,
+  coachMotivatorBonusPercent,
+  coachTrainingBonusPercent,
+  coachWeeklyTrainingPointsWithBoosts,
+  FACILITY_NAME_KEYS,
+  trainingSessionPoints,
   TRAINING_PATHS,
   TRAINING_PITCH_TP_PER_LEVEL,
   BASE_WEEKLY_TRAINING_POINTS,
@@ -116,6 +122,8 @@ import type {
   SeasonEndViewModel,
   StoryEventPlayerViewModel,
   StoryEventViewModel,
+  StoryEventCoachViewModel,
+  StoryEventFacilityViewModel,
   SquadTrainingViewModel,
   TrainingPointIncomeViewModel,
   TrainingSlotStatOption,
@@ -1189,6 +1197,81 @@ export function storyEventViewModel(
   const starterIds = state.lineups
     .find(lineup => lineup.clubId === state.userClubId)?.playerIds ?? [];
   const requiresPlayer = event.trigger.requiresPlayer === true;
+  const requiresCoach = event.trigger.requiresCoach === true;
+  const requiresFacility = event.trigger.requiresFacility ?? [];
+
+  /**
+   * A coach card carries what the coach actually provides.
+   *
+   * The manager is being asked to gamble with a coach's output, and the screens
+   * that show it are two taps away — so the numbers come to the card rather
+   * than the manager going to find them.
+   */
+  const coachOption = (
+    role: 'HEAD' | 'ASSISTANT',
+  ): StoryEventCoachViewModel | undefined => {
+    const coach = role === 'HEAD' ? state.market?.headCoach : state.market?.assistantCoach;
+    if (coach === undefined) return undefined;
+    // The same keys the staff screen uses, so the card cannot drift into
+    // describing a coach differently from the screen that hired him.
+    const specialties = coach.specialties.map(readableLabel);
+    const trainingPercent = coachTrainingBonusPercent(coach.level, role)
+      + cappedCoachBoost(coach.boosts, 'trainingPercent');
+    const trainingBoost = cappedCoachBoost(coach.boosts, 'trainingPercent');
+    const tpBoost = cappedCoachBoost(coach.boosts, 'weeklyTp');
+    const earned = [
+      trainingBoost === 0
+        ? undefined
+        : t('coachStaff.effectTraining', {
+            stats: specialties.join(', '),
+            percent: `${trainingBoost > 0 ? '+' : ''}${trainingBoost}%`,
+          }),
+      tpBoost === 0
+        ? undefined
+        : t('coachStaff.effectTpWeekly', { points: `${tpBoost > 0 ? '+' : ''}${tpBoost}` }),
+    ].filter((line): line is string => line !== undefined);
+    return {
+      role,
+      roleLabel: t(role === 'HEAD' ? 'coachStaff.headCoach' : 'coachStaff.assistantCoach'),
+      name: coach.name,
+      levelLabel: t('facilityCompletionCard.level', { level: coach.level }),
+      specialtyLabels: specialties,
+      trainingLine: t('coachStaff.effectTraining', {
+        stats: specialties.join(', '),
+        percent: `${trainingPercent}%`,
+      }),
+      trainingPointsLine: t('coachStaff.effectTpWeekly', {
+        points: coachWeeklyTrainingPointsWithBoosts(coach, role),
+      }),
+      ...(coach.specialties.includes('MOTIVATOR')
+        ? {
+            motivatorLine: t('coachStaff.effectMotivator', {
+              percent: `${coachMotivatorBonusPercent(coach.level, role)}%`,
+            }),
+          }
+        : {}),
+      ...(earned.length === 0 ? {} : { earnedLine: earned.join(' · ') }),
+    };
+  };
+  const coachOptions = [coachOption('HEAD'), coachOption('ASSISTANT')]
+    .filter((option): option is StoryEventCoachViewModel => option !== undefined);
+  const selectedCoach = pending.selectedCoachRole === undefined
+    ? undefined
+    : coachOptions.find(option => option.role === pending.selectedCoachRole);
+
+  const grid = state.facilities.grid;
+  const facilityOptions: StoryEventFacilityViewModel[] = (grid?.buildings ?? [])
+    .filter(building => (requiresFacility as readonly string[]).includes(building.type))
+    .filter(building => isFacilityOperational(grid!, building.id))
+    .map(building => ({
+      buildingId: building.id,
+      name: t(FACILITY_NAME_KEYS[building.type]),
+      levelLabel: t('facilityCompletionCard.level', { level: building.level }),
+      effectLabel: facilityEffectLabel(building.type, building.level, t),
+    }));
+  const selectedFacility = pending.selectedFacilityId === undefined
+    ? undefined
+    : facilityOptions.find(option => option.buildingId === pending.selectedFacilityId);
   // Starters first, then by rating: the manager is usually deciding about
   // someone who plays, and within that the number is what the choice turns on.
   const squad = state.players
@@ -1252,6 +1335,16 @@ export function storyEventViewModel(
     playerChoices: requiresPlayer && pending.playerLocked !== true
       ? squad.map(player => storyPlayer(player, false))
       : [],
+    ...(selectedCoach === undefined ? {} : { selectedCoach }),
+    coachSelectionRequired: requiresCoach,
+    ...(pending.coachLocked === true ? { coachLocked: true as const } : {}),
+    coachChoices: requiresCoach && pending.coachLocked !== true ? coachOptions : [],
+    ...(selectedFacility === undefined ? {} : { selectedFacility }),
+    facilitySelectionRequired: requiresFacility.length > 0,
+    ...(pending.facilityLocked === true ? { facilityLocked: true as const } : {}),
+    facilityChoices: requiresFacility.length > 0 && pending.facilityLocked !== true
+      ? facilityOptions
+      : [],
     choices: event.choices.map(choice => {
       const disabledReason = eventChoiceUnavailableReason(state, choice, t);
       return {
@@ -1262,7 +1355,7 @@ export function storyEventViewModel(
         detail: choice.risky
           ? t('storyEvent.choiceRiskyDetail')
           : t('storyEvent.choiceSafeDetail'),
-        consequenceHint: describeEventChoiceOutcome(choice, t),
+        consequenceHint: describeEventChoiceOutcome(choice, t, state),
         tone: choice.risky ? 'risky' as const : 'safe' as const,
         disabled: pending.resolvedChoiceId !== undefined || disabledReason !== undefined,
         ...(disabledReason === undefined ? {} : { disabledReason }),
@@ -1284,7 +1377,7 @@ export function storyEventViewModel(
       outcomeText: copyOrEnglish(t, outcomeKey === undefined ? undefined : `${outcomeKey}.text`, pending.outcomeText),
       outcomeRewards: resolvedOutcome === undefined
         ? []
-        : eventRewardItems(resolvedOutcome.effects, t),
+        : eventRewardItems(resolvedOutcome.effects, t, state),
       ...(pending.resolvedNextEventId === undefined ? {} : { outcomeHasFollowUp: true as const }),
     } : {}),
     ...(pending.resolvedRisky === true && pending.resolvedSuccess === true && resolvedOutcome !== undefined
@@ -1294,7 +1387,7 @@ export function storyEventViewModel(
             headline: resolvedOutcome.successHeadline === undefined
               ? copyOrEnglish(t, `event.${event.id}.title`, event.title).replace(/[!?]+$/, '')
               : copyOrEnglish(t, `${outcomeKey}.headline`, resolvedOutcome.successHeadline),
-            rewards: eventRewardLabels(resolvedOutcome.effects, t),
+            rewards: eventRewardLabels(resolvedOutcome.effects, t, state),
             ...(pending.resolvedNextEventId === undefined ? {} : { hasFollowUp: true as const }),
           },
         }
@@ -2057,7 +2150,21 @@ export function settleWeeklyStory(state: GameState): GameState {
       storySettledWeek: state.week,
     },
   };
-  return offer.eventId === undefined ? settled : offerCareerEvent(settled, offer.eventId);
+  if (offer.eventId === undefined) return settled;
+  /**
+   * A recognition beat about a person names that person.
+   *
+   * The hat-trick card carries the actual scorer, banked at settlement, and it
+   * has no picker — so the id has to travel with the offer. Without it the card
+   * would be a `requiresPlayer` story with an empty target, and the manager
+   * could point it at somebody who did not score.
+   */
+  const queued = (settled.pendingMilestones ?? []).find(entry => entry.eventId === offer.eventId);
+  return offerCareerEvent(
+    settled,
+    offer.eventId,
+    queued?.selectedPlayerId === undefined ? undefined : { playerId: queued.selectedPlayerId },
+  );
 }
 
 const SORTABLE_COLUMNS_TIP_ID = 'player-columns-are-sortable';
@@ -3496,7 +3603,8 @@ export function matchDayBannerViewModel(
 ): MatchDayBannerViewModel | null {
   const matchday = activeCareerMatchday(state);
   if (matchday === undefined) return null;
-  const competitionLabel = matchday.kind === 'national-cup'
+  const isCup = matchday.kind === 'national-cup';
+  const competitionLabel = isCup
     // `m2League.heroCup` is the catalog's only standalone name for the cup;
     // every other key bakes it into a longer sentence.
     ? t('m2League.heroCup')
@@ -3505,6 +3613,9 @@ export function matchDayBannerViewModel(
   return {
     id: `match-day-banner-${state.season}-${state.week}`,
     competitionLabel,
+    // The two flags are independent: the season's last week can itself be a
+    // cup tie, and it should read as the final game AND draw the cabinet.
+    isCup,
     headline: t(isFinale ? 'matchDayBanner.finalGame' : 'matchDayBanner.headline', {
       competition: competitionLabel,
     }),
@@ -3536,11 +3647,15 @@ function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {
     });
 }
 
-function describeEventChoiceOutcome(choice: GameEvent['choices'][number], t: CopyFn): string {
-  if (!choice.risky) return describeSafeOutcome(choice.outcomes[0]?.effects ?? [], t);
+function describeEventChoiceOutcome(
+  choice: GameEvent['choices'][number],
+  t: CopyFn,
+  state: GameState,
+): string {
+  if (!choice.risky) return describeSafeOutcome(choice.outcomes[0]?.effects ?? [], t, state);
   const success = choice.outcomes.find(outcome => outcome.effects.some(effect => effect.type !== 'flag'));
   if (success === undefined) return t('storyEvent.noGuaranteedReward');
-  const reward = describeEventEffects(success.effects, t);
+  const reward = describeEventEffects(success.effects, t, state);
   const hasEmptyFailure = choice.outcomes.some(outcome => outcome.effects.length === 0);
   return hasEmptyFailure
     ? t('storyEvent.riskyChanceOrNothing', { percent: success.weight, reward })
@@ -3550,6 +3665,7 @@ function describeEventChoiceOutcome(choice: GameEvent['choices'][number], t: Cop
 function describeSafeOutcome(
   effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
   t: CopyFn,
+  state: GameState,
 ): string {
   const effect = effects[0];
   if (effect?.type === 'tp') {
@@ -3560,30 +3676,56 @@ function describeSafeOutcome(
   if (effect?.type === 'money') {
     return t('storyEvent.guaranteedMoney', { amount: formatMoney(effect.amount, true) });
   }
+  // A safe branch whose reward is neither TP nor cash still says "guaranteed
+  // reward" rather than naming it. That is shipped behaviour and stays here;
+  // Phase 6 owns making the new effect types speak for themselves, where the
+  // wording can be changed once, deliberately, with its copy keys.
   return t('storyEvent.guaranteedReward');
 }
 
 function describeEventEffects(
   effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
   t: CopyFn,
+  state: GameState,
 ): string {
-  return eventRewardLabels(effects, t).join(' and ') || t('storyEvent.unknownReward');
+  return eventRewardLabels(effects, t, state).join(' and ') || t('storyEvent.unknownReward');
 }
 
 function eventRewardLabels(
   effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
   t: CopyFn,
+  state: GameState,
 ): string[] {
-  return eventRewardItems(effects, t).map(reward => reward.label);
+  return eventRewardItems(effects, t, state).map(reward => reward.label);
 }
 
+/**
+ * `state` is only here so a session-denominated attribute change can be shown
+ * as the points it is actually worth. "+3 sessions" is the authoring unit; the
+ * manager needs "+66 SHO", which depends on the drill tier this club owns.
+ */
 function eventRewardItems(
   effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
   t: CopyFn,
+  state: GameState,
 ): NonNullable<StoryEventViewModel['outcomeRewards']> {
   const rewards: NonNullable<StoryEventViewModel['outcomeRewards']>[number][] = [];
   const money = effects.reduce((sum, effect) => effect.type === 'money' ? sum + effect.amount : sum, 0);
-  const morale = effects.reduce((sum, effect) => effect.type === 'morale' ? sum + effect.amount : sum, 0);
+  /**
+   * Both moods land on the same row.
+   *
+   * The label has always read "squad morale", because until now that is the
+   * only kind an event could show. `squadMorale` is the explicit spelling of
+   * exactly that, so it reuses the key rather than inventing a second one — and
+   * counting it here is what stops a migrated event losing its reward row
+   * silently, since this reducer ignores every type it does not name.
+   */
+  const morale = effects.reduce(
+    (sum, effect) => effect.type === 'morale' || effect.type === 'squadMorale'
+      ? sum + effect.amount
+      : sum,
+    0,
+  );
   const fans = effects.reduce((sum, effect) => effect.type === 'fans' ? sum + effect.amount : sum, 0);
   const trainingPoints = effects.reduce((sum, effect) => effect.type === 'tp' ? sum + effect.amount : sum, 0);
   if (money !== 0) rewards.push({ label: formatMoney(money, true), kind: 'money', positive: money > 0 });
@@ -3610,11 +3752,51 @@ function eventRewardItems(
         positive: effect.amount > 0,
       });
     }
+    if (effect.type === 'statDeltaSessions' && effect.sessions !== 0) {
+      const points = trainingSessionPoints(state, effect.attribute, effect.sessions);
+      if (points !== 0) {
+        rewards.push({
+          label: `${points > 0 ? '+' : ''}${points} ${effect.attribute.toUpperCase()}`,
+          kind: 'stat',
+          positive: points > 0,
+        });
+      }
+    }
+    if (effect.type === 'loyalty' && effect.amount !== 0) {
+      rewards.push({
+        label: t('storyEvent.rewardLoyalty', { amount: `${effect.amount > 0 ? '+' : ''}${effect.amount}` }),
+        kind: 'stat',
+        positive: effect.amount > 0,
+      });
+    }
+    if (effect.type === 'condition' && effect.amount !== 0) {
+      rewards.push({
+        label: t('storyEvent.rewardCondition', { amount: `${effect.amount > 0 ? '+' : ''}${effect.amount}` }),
+        kind: 'stat',
+        positive: effect.amount > 0,
+      });
+    }
+    if (effect.type === 'fame' && effect.amount !== 0) {
+      rewards.push({
+        label: t('storyEvent.rewardFame', { amount: `${effect.amount > 0 ? '+' : ''}${effect.amount}` }),
+        kind: 'stat',
+        positive: effect.amount > 0,
+      });
+    }
     if (effect.type === 'injury') {
       rewards.push({
         label: t('storyEvent.rewardWeeksInjured', { n: effect.weeks, count: effect.weeks }),
         kind: 'injury',
         positive: false,
+      });
+    }
+    // A heal is the same row read the other way: weeks off the absence, not on.
+    if (effect.type === 'injuryDelta') {
+      const weeks = Math.abs(effect.weeks);
+      rewards.push({
+        label: t('storyEvent.rewardWeeksRecovered', { n: weeks, count: weeks }),
+        kind: 'injury',
+        positive: true,
       });
     }
   }

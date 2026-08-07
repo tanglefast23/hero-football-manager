@@ -93,14 +93,16 @@ describe('validated M1 launch content', () => {
       // display multiplier is 2, 1.75, 1.833, 2, 2 rather than a flat 2.
       'keeper-drills': [2, 4, 6, 8, 11],
     });
-    expect(content.events.events).toHaveLength(50);
+    expect(content.events.events).toHaveLength(54);
+    // 'medical' has no events since the flu-wave and physio cards were cut:
+    // both paid in TP and morale for a story about illness, and neither ever
+    // touched condition. The category stays in the schema for future content.
     expect(new Set(content.events.events.map(event => event.category))).toEqual(new Set([
       'mystery',
       'club',
       'media',
       'sponsor',
       'player',
-      'medical',
       'fan',
     ]));
     expect(content.events.events.every(event => event.choices.some(choice => choice.risky))).toBe(true);
@@ -115,14 +117,19 @@ describe('validated M1 launch content', () => {
     const successHeadlines = content.events.events.flatMap(event => event.choices
       .filter(choice => choice.risky)
       .map(choice => ({ event: event.title, headline: choice.outcomes[0].successHeadline })));
-    expect(successHeadlines).toHaveLength(50);
+    expect(successHeadlines).toHaveLength(54);
     for (const { event, headline } of successHeadlines) {
       expect(headline).toEqual(expect.any(String));
       expect(headline).not.toContain(event);
     }
-    expect(new Set(successHeadlines.map(entry => entry.headline)).size).toBe(50);
+    expect(new Set(successHeadlines.map(entry => entry.headline)).size).toBe(54);
     expect(content.events.events.some(event => event.trigger.requiresPlayer)).toBe(true);
-    expect(content.events.events.some(event => event.trigger.requiredFacility)).toBe(true);
+    // The singular `requiredFacility` was only ever used by the training drone,
+    // which is cut. Facility stories now name the types their picker may offer,
+    // which is what makes an "any building" story expressible at all.
+    expect(content.events.events.some(event => event.trigger.requiresFacility)).toBe(true);
+    expect(content.events.events.some(event => event.trigger.requiresCoach)).toBe(true);
+    expect(content.events.events.some(event => event.trigger.requiresPlayerRole === 'GK')).toBe(true);
     expect(content.events.events.some(event => event.trigger.requiredPersonality)).toBe(true);
     expect(content.events.events.some(event => event.trigger.requiresHero)).toBe(true);
     expect(content.events.events.some(event => event.choices.some(choice => choice.requires?.minMoney))).toBe(true);
@@ -167,14 +174,15 @@ describe('validated M1 launch content', () => {
       event => event.trigger.requiredFlag?.startsWith('milestone:') === true,
     );
 
-    expect(milestoneStories.map(event => event.id)).toEqual([
-      'milestone-first-win',
-      'milestone-first-hero-goal',
-      'milestone-statement-win',
-      'milestone-unbeaten-run',
-      'milestone-first-cup-win',
+    // Four of the original seven were cut and three authored to replace them:
+    // a hat-trick, a hammering, and the first time the shop sold out.
+    expect(milestoneStories.map(event => event.id).sort()).toEqual([
       'milestone-crowd-thousand',
-      'milestone-promotion-push',
+      'milestone-first-cup-win',
+      'milestone-hat-trick',
+      'milestone-heavy-defeat',
+      'milestone-merch-surge',
+      'milestone-unbeaten-run',
     ]);
     for (const milestone of CAREER_MILESTONES) {
       const story = events.find(event => event.id === milestone.eventId);
@@ -191,9 +199,13 @@ describe('validated M1 launch content', () => {
     )));
 
     expect(chains).toEqual(expect.arrayContaining([
-      ['hundredth-fan', 'community-mural'],
       ['rival-bid-arrives', 'rival-bid-deadline-day'],
       ['leaking-stand-roof', 'west-stand-reopening'],
+      // A sequel fires on one branch only, so a part two always means a
+      // specific thing happened — the testimonial one only after the injury.
+      ['hometown-testimonial', 'the-old-club-calls'],
+      ['one-more-year-handshake', 'the-promise-kept'],
+      ['one-more-year-handshake', 'the-promise-broken'],
     ]));
     // Every authored thread step is reachable by the flag its opener produces,
     // so a chain broken by a retired event still resolves from the weekly deck.
@@ -204,13 +216,26 @@ describe('validated M1 launch content', () => {
     // Good news the player can look forward to: stories whose every outcome
     // leaves the club no worse off than it started.
     const goodNews = events.filter(event => event.choices.every(choice => choice.outcomes.every(
-      outcome => outcome.effects.every(effect => (
-        effect.type === 'flag' || effect.type === 'injury'
-          ? effect.type === 'flag'
-          : effect.type === 'statDelta' ? effect.amount >= 0 : effect.amount >= 0
-      )),
+      outcome => outcome.effects.every(effect => {
+        // A flag is bookkeeping; an injury is the definition of worse off.
+        if (effect.type === 'flag') return true;
+        if (effect.type === 'injury') return false;
+        // A heal only ever shortens an absence, so it is never bad news even
+        // though its `weeks` are negative.
+        if (effect.type === 'injuryDelta') return true;
+        // Sessions carry their sign on a different field.
+        if (effect.type === 'statDeltaSessions') return effect.sessions >= 0;
+        // A specialty swap is lateral: same count, same level, different focus.
+        if (effect.type === 'coachSpecialty') return true;
+        // Facility effects carry their sign on `percent` or `amount`.
+        if ('percent' in effect) return effect.percent >= 0;
+        return effect.amount >= 0;
+      }),
     )));
-    expect(goodNews.length).toBeGreaterThanOrEqual(12);
+    // Fewer than before by design: a targeted story earns its reward against a
+    // real risk, so most of the new cards have a losing branch that costs the
+    // thing they were pointed at.
+    expect(goodNews.length).toBeGreaterThanOrEqual(9);
   });
 
   test('loads byte-identically and does not share mutable parsed objects', () => {

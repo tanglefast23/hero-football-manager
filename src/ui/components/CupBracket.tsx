@@ -40,6 +40,17 @@ export function CupBracket({ rounds, championName }: CupBracketProps) {
   const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const narrow = useLayoutMode() !== 'twoColumn';
+  /**
+   * Still in the cup, or already out.
+   *
+   * The tie you are in was always marked, but in the tree's own blue — the same
+   * hue as the headers and every connector — and it read as "a tie", not as
+   * "yours". Gold is the game's hero accent and appears nowhere else in the
+   * tree, so a live run is the one bright thing on the page. Once you are out
+   * the gold is withdrawn rather than left to lie: your tie stays findable in
+   * blue, but nothing on the tree still claims you are running.
+   */
+  const userStillIn = !rounds.some(round => round.userOutcomeKind === 'eliminated');
   // A phone gets the tree wrapped into bands rather than five columns it would
   // have to scroll sideways through, which hides the shape the bracket is for.
   const bands = narrow ? cupBracketBands(rounds, NARROW_BAND_COLUMNS) : [cupBracketLayout(rounds)];
@@ -52,7 +63,7 @@ export function CupBracket({ rounds, championName }: CupBracketProps) {
           {index > 0 ? (
             <Text style={styles.bandNote}>{t('cupBracket.winnersFromAbove')}</Text>
           ) : null}
-          <BracketBand layout={band} />
+          <BracketBand layout={band} userStillIn={userStillIn} />
         </View>
       ))}
       {championName === undefined ? null : (
@@ -65,7 +76,7 @@ export function CupBracket({ rounds, championName }: CupBracketProps) {
   );
 }
 
-function BracketBand({ layout }: { layout: BracketLayout }) {
+function BracketBand({ layout, userStillIn }: { layout: BracketLayout; userStillIn: boolean }) {
   const styles = usePixelStyles(makeStyles);
   const connectors = cupBracketConnectors(layout);
   return (
@@ -122,7 +133,7 @@ function BracketBand({ layout }: { layout: BracketLayout }) {
           })}
 
           {layout.columns.map(column => column.ties.map(tie => (
-            <TieCard key={tie.key} tie={tie} left={column.left} />
+            <TieCard key={tie.key} tie={tie} left={column.left} userStillIn={userStillIn} />
           )))}
         </View>
       </View>
@@ -130,10 +141,18 @@ function BracketBand({ layout }: { layout: BracketLayout }) {
   );
 }
 
-function TieCard({ tie, left }: { tie: BracketTie; left: number }) {
+function TieCard({
+  tie,
+  left,
+  userStillIn,
+}: {
+  tie: BracketTie;
+  left: number;
+  userStillIn: boolean;
+}) {
   const t = useCopy();
   const styles = usePixelStyles(makeStyles);
-  const label = tie.placeholder
+  const tie_ = tie.placeholder
     ? t('cupBracket.winnerToBeDecided')
     : tie.played
       ? t('cupBracket.a11y.tiePlayed', {
@@ -142,6 +161,10 @@ function TieCard({ tie, left }: { tie: BracketTie; left: number }) {
           score: tie.scoreLabel,
         })
       : t('cupBracket.a11y.tie', { home: tie.homeName, away: tie.awayName });
+  // Colour and weight are the sighted half of "this one is yours"; a screen
+  // reader gets the same fact said out loud, ahead of the names.
+  const label = tie.involvesUserClub ? t('cupBracket.a11y.yourTie', { tie: tie_ }) : tie_;
+  const live = tie.involvesUserClub && userStillIn;
   return (
     <View
       accessible
@@ -152,18 +175,21 @@ function TieCard({ tie, left }: { tie: BracketTie; left: number }) {
         tie.placeholder ? styles.tiePlaceholder : null,
         // Your own tie is the one you look for first.
         tie.involvesUserClub ? styles.tieUser : null,
+        live ? styles.tieUserLive : null,
       ]}
     >
       <TieSide
         name={tie.homeName}
         placeholder={tie.placeholder}
         beaten={tie.played && tie.winnerName !== undefined && tie.winnerName !== tie.homeName}
+        mine={tie.userSide === 'home'}
       />
       <View style={styles.tieDivider} />
       <TieSide
         name={tie.awayName}
         placeholder={tie.placeholder}
         beaten={tie.played && tie.winnerName !== undefined && tie.winnerName !== tie.awayName}
+        mine={tie.userSide === 'away'}
       />
       {tie.played && tie.scoreLabel.length > 0 ? (
         <View style={styles.score}>
@@ -175,12 +201,28 @@ function TieCard({ tie, left }: { tie: BracketTie; left: number }) {
 }
 
 /** The loser greys out, so a finished tie reads at a glance without a score. */
-function TieSide({ name, placeholder, beaten }: { name: string; placeholder: boolean; beaten: boolean }) {
+function TieSide({
+  name,
+  placeholder,
+  beaten,
+  mine,
+}: {
+  name: string;
+  placeholder: boolean;
+  beaten: boolean;
+  /** Your club, weighted so the eye finds it before it reads the tie. */
+  mine: boolean;
+}) {
   const styles = usePixelStyles(makeStyles);
   return (
     <Text
       numberOfLines={1}
-      style={[styles.side, placeholder ? styles.sidePlaceholder : null, beaten ? styles.sideBeaten : null]}
+      style={[
+        styles.side,
+        placeholder ? styles.sidePlaceholder : null,
+        beaten ? styles.sideBeaten : null,
+        mine ? styles.sideMine : null,
+      ]}
     >
       {name}
     </Text>
@@ -221,10 +263,15 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   },
   tiePlaceholder: { borderColor: '#9a95a4', backgroundColor: '#f4f1ea' },
   tieUser: { borderColor: '#3f6fb5', backgroundColor: '#a3c8f0' },
+  /** Still running: gold, and the only gold fill in the tree. */
+  tieUserLive: { borderColor: '#c8862a', backgroundColor: '#f7d894' },
   tieDivider: { height: 1, backgroundColor: '#241f2e22', marginVertical: 2 },
   side: { color: INK, fontSize: 12, lineHeight: 16 },
   sidePlaceholder: { color: '#9a95a4' },
   sideBeaten: { color: '#9a95a4', textDecorationLine: 'line-through' },
+  // Last, so your own name keeps its weight in the tie you went out in — the
+  // strike-through says you lost; the weight still says which one was you.
+  sideMine: { color: INK, fontWeight: 'bold' },
   score: {
     position: 'absolute',
     right: -2,

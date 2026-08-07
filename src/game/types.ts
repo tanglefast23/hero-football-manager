@@ -195,6 +195,17 @@ interface CareerEventState {
   storySettledWeek?: number;
 }
 
+/**
+ * A milestone earned but not yet shown, waiting for the next clear desk.
+ *
+ * Only the hat-trick carries a player: a milestone about a person names that
+ * person, and every other recognition beat is about the club.
+ */
+export interface PendingCareerMilestone {
+  eventId: string;
+  selectedPlayerId?: string;
+}
+
 interface ResolvedCareerEvent {
   eventId: string;
   season: number;
@@ -210,6 +221,14 @@ interface PendingCareerEvent {
    * Monday cannot be met on deadline day by handing them Ed Stone instead.
    */
   playerLocked?: true;
+  /** Which of the two staff slots the manager pointed at. */
+  selectedCoachRole?: 'HEAD' | 'ASSISTANT';
+  /** Inherited from the opening chapter, for the same reason as `playerLocked`. */
+  coachLocked?: true;
+  /** Which building the manager pointed at. */
+  selectedFacilityId?: string;
+  /** Inherited from the opening chapter, for the same reason as `playerLocked`. */
+  facilityLocked?: true;
   resolvedChoiceId?: string;
   outcomeText?: string;
   /** Stable content outcome identity for save/reload-safe success presentation. */
@@ -853,6 +872,8 @@ export interface GameState {
   resolvedEventIds: string[];
   /** Season-stamped history used by recaps; absent on pre-M4 saves. */
   resolvedEventHistory?: ResolvedCareerEvent[];
+  /** Earned recognition beats waiting for a clear desk, in CAREER_MILESTONES order. */
+  pendingMilestones?: PendingCareerMilestone[];
   pendingEvent?: PendingCareerEvent;
   /** This week's manager's-tip decision. Absent on saves written before tips. */
   deskTip?: DeskTipState;

@@ -3,6 +3,8 @@ import { copyFor, type CopyFn } from '../i18n';
 import {
   deterministicCareerEventRoll,
   currentUserDivision,
+  isCareerMilestoneEventId,
+  isFacilityOperational,
   rollWeeklyEvent,
   type GameState,
 } from '../game';
@@ -83,6 +85,24 @@ export function eventOfferForWeek(
     return { eventClock: { ...state.eventClock } };
   }
 
+  /**
+   * Recognition has its own lane, ahead of the random deck.
+   *
+   * A milestone was earned, not drawn, so it does not roll the weekly chance —
+   * otherwise a hero's goal in week 9 could be congratulated in week 15. It
+   * also leaves `weeksWithoutEvent` alone: the drought ramp keeps climbing
+   * underneath, so a run of milestones delays the random story rather than
+   * starving it, and the deck fires as soon as the queue empties.
+   *
+   * Unlike the Giant Spider one-shot above, this waits for a clear desk and
+   * never resets the counter. Those two differences are the whole design.
+   */
+  const milestone = (state.pendingMilestones ?? [])
+    .find(entry => catalog.events.some(event => event.id === entry.eventId));
+  if (milestone !== undefined) {
+    return { eventId: milestone.eventId, eventClock: { ...state.eventClock } };
+  }
+
   const weeklyRoll = deterministicCareerEventRoll(
     eventRollContext(state),
     '__weekly_event__',
@@ -94,6 +114,10 @@ export function eventOfferForWeek(
 
   const candidates = catalog.events
     .filter(event => event.id !== 'giant-spider-arrives')
+    // Recognition has its own lane above. Milestone cards carry a `requiredFlag`
+    // that the club has by definition once earned, so without this they would
+    // also sit in the random deck and could be drawn out of queue order.
+    .filter(event => !isCareerMilestoneEventId(event.id))
     .filter(event => eventIsEligible(state, event))
     .filter(event => event.trigger.repeatable === true || !state.resolvedEventIds.includes(event.id))
     .sort((left, right) => left.id.localeCompare(right.id));
@@ -158,7 +182,45 @@ export function eventIsEligible(
     && (trigger.requiredFlag === undefined || state.eventFlags.includes(trigger.requiredFlag))
     && (trigger.minDivision === undefined || division >= trigger.minDivision)
     && (trigger.maxDivision === undefined || division <= trigger.maxDivision)
+    && targetableNow(state, trigger)
     && requirementsMet(state, trigger);
+}
+
+/**
+ * A targeted story leaves the deck rather than arriving as a card the manager
+ * cannot answer.
+ *
+ * An event that asks for a coach at a club with no staff, or for a building the
+ * club has not finished, would otherwise be drawn and then sit with every
+ * choice disabled — which reads as a bug, not as a locked opportunity.
+ */
+function targetableNow(
+  state: GameState,
+  trigger: EventCatalog['events'][number]['trigger'],
+): boolean {
+  if (trigger.requiresCoach === true) {
+    const market = state.market;
+    if (market?.headCoach === undefined && market?.assistantCoach === undefined) return false;
+  }
+  if (trigger.requiresBothCoaches === true) {
+    const market = state.market;
+    if (market?.headCoach === undefined || market?.assistantCoach === undefined) return false;
+  }
+  if (trigger.requiresFacility !== undefined) {
+    const grid = state.facilities.grid;
+    const usable = grid?.buildings.some(building => (
+      (trigger.requiresFacility as readonly string[]).includes(building.type)
+        && isFacilityOperational(grid, building.id)
+    )) ?? false;
+    if (!usable) return false;
+  }
+  if (trigger.requiresPlayerRole === 'GK') {
+    const hasKeeper = state.players.some(player => (
+      player.clubId === state.userClubId && player.role === 'GK'
+    ));
+    if (!hasKeeper) return false;
+  }
+  return true;
 }
 
 export function eventChoiceUnavailableReason(
@@ -199,7 +261,18 @@ function requirementFailure(
   }
   if (requirements.requiredFacility !== undefined) {
     const legacyTrainingPitch = requirements.requiredFacility === 'training-pitch' && state.facilities.trainingGroundBuilt;
-    const built = legacyTrainingPitch || state.facilities.grid?.buildings.some(building => building.type === requirements.requiredFacility);
+    const grid = state.facilities.grid;
+    /**
+     * Built means finished, not started.
+     *
+     * A `BUILD` project's building already exists in the grid at level 1 while
+     * the scaffolding is up — it pays no upkeep and grants no benefit until it
+     * is operational. Testing only for existence let a story about the pitch
+     * fire at a pitch nobody could train on yet.
+     */
+    const built = legacyTrainingPitch || grid?.buildings.some(building => (
+      building.type === requirements.requiredFacility && isFacilityOperational(grid, building.id)
+    ));
     if (!built) {
       return t('storyEvent.requiresFacility', {
         facility: requirements.requiredFacility.replaceAll('-', ' '),

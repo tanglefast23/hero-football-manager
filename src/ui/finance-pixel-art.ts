@@ -1,11 +1,11 @@
 import { mulberry32 } from '../sim/rng';
 
 /**
- * 8-bit art for the Financial Report's surge banners: a cheering crowd strip
- * for EXTREME ATTENDANCE! and a shelf of club merchandise for TRENDING
- * MERCHANDISE! Sprites are 16x16 character grids over the docs/11 bible
- * palette, drawn with chunky ink outlines like the cast portraits — the same
- * format as `event-pixel-art.ts`.
+ * 8-bit art for the desk's callout cards: a cheering crowd strip for EXTREME
+ * ATTENDANCE!, a shelf of club merchandise for TRENDING MERCHANDISE!, and a
+ * trophy cabinet for the Hero Cup match-day card. Sprites are 16x16 character
+ * grids over the docs/11 bible palette, drawn with chunky ink outlines like
+ * the cast portraits — the same format as `event-pixel-art.ts`.
  */
 
 export const FINANCE_SPRITE_CELL = 16;
@@ -49,6 +49,29 @@ export const CROWD_SPRITE_IDS = [
   'fan-cheer-e',
 ] as const;
 
+/**
+ * The Hero Cup's own strip: three cup sizes, drawn to one shelf line so the
+ * row reads as a cabinet rather than three loose objects.
+ */
+export const CUP_SPRITE_IDS = [
+  'cup-small',
+  'cup-medium',
+  'cup-grand',
+] as const;
+
+/**
+ * The cabinet as the match-day card draws it — small, medium, grand, medium,
+ * small. Five sprites, so a cup week and a league week are the same card at
+ * the same width, with the grand cup where the crowd's middle fan was.
+ */
+export const CUP_ROW_SPRITE_IDS: readonly FinanceSpriteId[] = [
+  'cup-small',
+  'cup-medium',
+  'cup-grand',
+  'cup-medium',
+  'cup-small',
+];
+
 export const MERCH_TOY_IDS = [
   'toy-scarf',
   'toy-ball',
@@ -64,6 +87,7 @@ export const MERCH_TOY_IDS = [
 
 export type FinanceSpriteId =
   | typeof CROWD_SPRITE_IDS[number]
+  | typeof CUP_SPRITE_IDS[number]
   | typeof MERCH_TOY_IDS[number];
 
 const SPRITE_ROWS: Readonly<Record<FinanceSpriteId, readonly string[]>> = {
@@ -156,6 +180,62 @@ const SPRITE_ROWS: Readonly<Record<FinanceSpriteId, readonly string[]>> = {
     '....KVVVVK......',
     '....KK..KK......',
     '....KK..KK......',
+    '................',
+  ],
+
+  // -- The cup cabinet: three sizes, all standing on row 14 ------------------
+  'cup-small': [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '....KKKKKKKK....',
+    '....KGLLLLGK....',
+    '...KKGLLLLGKK...',
+    '...KGKGLLGKGK...',
+    '....KKGLLGKK....',
+    '.....KGLLGK.....',
+    '......KGGK......',
+    '.....KGGGGK.....',
+    '....KggggggK....',
+    '....KKKKKKKK....',
+    '................',
+  ],
+  'cup-medium': [
+    '................',
+    '................',
+    '................',
+    '....KKKKKKKK....',
+    '....KGLLLLGK....',
+    '...KKGLLLLGKK...',
+    '...KGKGLLGKGK...',
+    '....KKGLLGKK....',
+    '.....KGLLGK.....',
+    '......KGGK......',
+    '......KGGK......',
+    '.....KGGGGK.....',
+    '....KGGGGGGK....',
+    '....KggggggK....',
+    '....KKKKKKKK....',
+    '................',
+  ],
+  'cup-grand': [
+    '................',
+    '...KKKKKKKKKK...',
+    '...KGWLLLLLGK...',
+    '..KKGLLLLLLGKK..',
+    '..KGKGLLLLGKGK..',
+    '..KGKGLLLLGKGK..',
+    '...KKGLLLLGKK...',
+    '....KGLLLLGK....',
+    '.....KGLLGK.....',
+    '......KGGK......',
+    '......KGGK......',
+    '.....KGGGGK.....',
+    '....KGGGGGGK....',
+    '...KgggggggGK...',
+    '...KKKKKKKKKK...',
     '................',
   ],
 

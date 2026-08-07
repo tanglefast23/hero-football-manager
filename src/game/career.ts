@@ -5,11 +5,13 @@ import {
   FACILITY_CATALOG,
   TRAINING_PITCH_TP_PER_LEVEL,
   advanceFacilityConstruction,
+  cappedFacilityBoost,
   createFacilityGrid,
   facilityEffects,
   isFacilityOperational,
   weeklyFacilityUpkeep,
   type FacilityGridState,
+  type PlacedFacility,
 } from './facilities';
 import { difficultyRules } from './difficulty';
 import { recordCareerMilestones } from './career-events';
@@ -292,6 +294,17 @@ export function completeMatchday(
   }
   validateResults(state, scheduledFixtures, results);
 
+  /**
+   * A hat-trick can only be seen here, while the result is still in hand.
+   *
+   * `scorerPlayerIds` lives on the settlement result; the persisted fixture
+   * keeps only the score, and the scorer list is folded into season totals and
+   * dropped. So this is banked as a flag at the moment it happens — a later
+   * re-scan has nothing to read. User-club scorers only: a rival's hat-trick is
+   * not the manager's milestone.
+   */
+  const hatTrickScorerId = hatTrickScorer(state, scheduledFixtures, results);
+
   const resultByFixtureId = new Map(results.map(result => [result.fixtureId, result]));
   const fixtures = state.fixtures.map(fixture => {
     const result = resultByFixtureId.get(fixture.id);
@@ -340,6 +353,20 @@ export function completeMatchday(
     fixtures,
     players,
     seasonStatLines,
+    // Banked now, because the scorer list does not survive the week.
+    ...(hatTrickScorerId === undefined ? {} : {
+      eventFlags: state.eventFlags.includes('milestone:hat-trick')
+        ? state.eventFlags
+        : [...state.eventFlags, 'milestone:hat-trick'],
+      pendingMilestones: (state.pendingMilestones ?? []).some(
+        entry => entry.eventId === 'milestone-hat-trick',
+      ) || state.resolvedEventIds.includes('milestone-hat-trick')
+        ? state.pendingMilestones
+        : [
+            ...(state.pendingMilestones ?? []),
+            { eventId: 'milestone-hat-trick', selectedPlayerId: hatTrickScorerId },
+          ],
+    }),
     ...(pendingImpact === undefined ? {} : {
       clubBusiness: {
         ...state.clubBusiness,
@@ -459,6 +486,35 @@ interface SettleCurrentWeekOptions {
   readonly cupAlreadyResolved?: boolean;
   readonly additionalMatchOutcomes?: readonly WeeklyMatchOutcome[];
   readonly awards?: WeeklySettlementAwards;
+}
+
+/** The user-club player who scored three or more in one of this week's fixtures. */
+function hatTrickScorer(
+  state: GameState,
+  scheduled: readonly LeagueFixture[],
+  results: readonly FixtureResult[],
+): string | undefined {
+  const userFixtureIds = new Set(scheduled
+    .filter(fixture => (
+      fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId
+    ))
+    .map(fixture => fixture.id));
+  const squad = new Set(state.players
+    .filter(player => player.clubId === state.userClubId)
+    .map(player => player.id));
+  for (const result of results) {
+    if (!userFixtureIds.has(result.fixtureId)) continue;
+    const goals = new Map<string, number>();
+    for (const scorerId of result.scorerPlayerIds ?? []) {
+      if (!squad.has(scorerId)) continue;
+      goals.set(scorerId, (goals.get(scorerId) ?? 0) + 1);
+    }
+    const scorer = [...goals.entries()]
+      .filter(([, count]) => count >= 3)
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))[0];
+    if (scorer !== undefined) return scorer[0];
+  }
+  return undefined;
 }
 
 function settleCurrentWeek(state: GameState, options: SettleCurrentWeekOptions = {}): GameState {
@@ -1046,14 +1102,20 @@ const STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL = 50;
 function gridStadiumStands(grid: FacilityGridState | undefined): { level: number; count: number } {
   if (grid === undefined) return { level: 0, count: 0 };
   let level = 0;
+  let weighted = 0;
   let count = 0;
   for (const building of grid.buildings) {
     if (building.type !== 'stadium-stand') continue;
     if (!isFacilityOperational(grid, building.id)) continue;
+    // Levels stack across up to three copies, so a story's boost has to raise
+    // only the share of the building it happened to. Weighting each level by
+    // its own building's boost and rounding the total keeps the downstream
+    // integer arithmetic intact.
+    weighted += building.level * (100 + cappedFacilityBoost(building.boosts, 'incomeBonusPercent')) / 100;
     level = checkedAdd(level, building.level, 'combined Stadium Stand level');
     count += 1;
   }
-  return { level, count };
+  return { level: Math.max(0, Math.round(weighted)), count };
 }
 
 /** Every operational stand level adds to the home gate across up to three stands. */
@@ -1100,14 +1162,20 @@ export function commercialFacilitySummary(state: GameState): CommercialFacilityS
 function gridFanShops(grid: FacilityGridState | undefined): { level: number; count: number } {
   if (grid === undefined) return { level: 0, count: 0 };
   let level = 0;
+  let weighted = 0;
   let count = 0;
   for (const building of grid.buildings) {
     if (building.type !== 'fan-shop') continue;
     if (!isFacilityOperational(grid, building.id)) continue;
+    // Levels stack across up to three copies, so a story's boost has to raise
+    // only the share of the building it happened to. Weighting each level by
+    // its own building's boost and rounding the total keeps the downstream
+    // integer arithmetic intact.
+    weighted += building.level * (100 + cappedFacilityBoost(building.boosts, 'incomeBonusPercent')) / 100;
     level = checkedAdd(level, building.level, 'combined Fan Shop level');
     count += 1;
   }
-  return { level, count };
+  return { level: Math.max(0, Math.round(weighted)), count };
 }
 
 function rawGateBase(userClub: ClubState, label: string): number {
@@ -1580,18 +1648,33 @@ function deterministicPenaltyWinner(state: GameState, fixture: NationalCupFixtur
 
 export function weeklyAmbientTrainingPoints(state: GameState): number {
   const grid = state.facilities.grid;
+  /**
+   * The best operational pitch wins, and its own boost travels with it.
+   *
+   * Reading the boost off the *same* building the level came from is the whole
+   * trick: a build limit of one means there is never any ambiguity, and a
+   * boost stored on a building nobody reads would leave a save that looks
+   * improved while the numbers never move.
+   */
+  const bestPitch = grid?.buildings
+    .filter(building => (
+      building.type === 'training-pitch' && isFacilityOperational(grid, building.id)
+    ))
+    .reduce<PlacedFacility | undefined>(
+      (best, building) => (best === undefined || building.level > best.level ? building : best),
+      undefined,
+    );
   const trainingPitchLevel = grid === undefined
     ? (state.facilities.trainingGroundBuilt ? 1 : 0)
-    : grid.buildings
-      .filter(building => (
-        building.type === 'training-pitch' && isFacilityOperational(grid, building.id)
-      ))
-      .reduce((maximum, building) => Math.max(maximum, building.level), 0);
-  const facilityPoints = checkedMultiply(
+    : bestPitch?.level ?? 0;
+  const rawFacilityPoints = checkedMultiply(
     trainingPitchLevel,
     TRAINING_PITCH_TP_PER_LEVEL,
     'facility training points',
   );
+  const facilityPoints = Math.max(0, Math.round(
+    rawFacilityPoints * (100 + cappedFacilityBoost(bestPitch?.boosts, 'tpBonusPercent')) / 100,
+  ));
   const coachPoints = state.market === undefined ? 0 : careerCoachWeeklyTrainingPoints(state.market);
   // The baseline is unconditional: a club can run drills on whatever field it
   // has. Without it a career with no Training Pitch earned nothing, forever.

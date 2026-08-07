@@ -17,7 +17,8 @@ type ExplicitManagementSfxKey =
   | 'super-training-yay'
   | 'super-celebration'
   | 'match-day-bugle'
-  | 'quick-result-faceoff';
+  | 'quick-result-faceoff'
+  | 'match-day-fanfare';
 
 export type ManagementActionCue =
   | 'select'
@@ -98,6 +99,12 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // it lands inside the 2s scene and dies with it.
   // Appended last so existing player indices stay stable.
   'quick-result-faceoff': require('../../assets/audio/sfx/quick-result-faceoff.m4a'),
+  // The league week's call: a 2.2s layered heroic sting, level-matched to the
+  // bugle (-18.7 LUFS) so the two match-day cues differ in character, not in
+  // volume. The bugle above is now the Hero Cup's — a tannoy call is the rarer,
+  // more ceremonial of the two, so the cup keeps it.
+  // Appended last so existing player indices stay stable.
+  'match-day-fanfare': require('../../assets/audio/sfx/match-day-fanfare.m4a'),
 };
 
 const players = new Map<ManagementSfxKey, AudioPlayer>();
@@ -127,7 +134,7 @@ let lastRecoveryAt = 0;
  * revived, so recovery releases the whole catalog and rebuilds it through the
  * normal init — same cue order, same pool sizes, so every player index stays
  * where the tests pin it. The cooldown keeps a device whose audio is genuinely
- * broken fail-soft instead of rebuilding 29 players on every tap.
+ * broken fail-soft instead of rebuilding 32 players on every tap.
  */
 function tryRecoverManagementSfx(): boolean {
   const now = Date.now();
@@ -354,21 +361,28 @@ export function stopQuickResultFaceOffSfx(): void {
   }
 }
 
-/** The tannoy bugle under the match-day banner. */
-export function playMatchDayBugleSfx(): void {
-  playManagementSfx('match-day-bugle');
+/**
+ * The call under the match-day banner. The competition picks it: a league week
+ * gets the layered fanfare, a Hero Cup tie the tannoy bugle — the same split
+ * the card's art makes, so the week announces itself twice over.
+ */
+export function playMatchDayCallSfx(isCup: boolean): void {
+  playManagementSfx(isCup ? 'match-day-bugle' : 'match-day-fanfare');
 }
 
 /**
- * The banner can be dismissed before the call finishes, and a bugle ringing on
- * over the team sheet is the loudest kind of stale — the same argument as the
- * SUPER jingle above.
+ * The banner can be dismissed before the call finishes, and a fanfare ringing
+ * on over the team sheet is the loudest kind of stale — the same argument as
+ * the SUPER jingle above. Both cues are stopped rather than the one that
+ * played: pausing an idle player costs nothing, and it cannot be the cue that
+ * gets stranded when the card's competition changes underneath it.
  */
-export function stopMatchDayBugleSfx(): void {
+export function stopMatchDayCallSfx(): void {
   try {
+    players.get('match-day-fanfare')?.pause();
     players.get('match-day-bugle')?.pause();
   } catch (error) {
-    warnOnce('match day bugle stop failed', error);
+    warnOnce('match day call stop failed', error);
   }
 }
 

@@ -986,6 +986,30 @@ interface RetiredLegendCoachInput {
   readonly specialties?: readonly [CoachSpecialty, CoachSpecialty];
 }
 
+/**
+ * What a story has permanently changed about one coach.
+ *
+ * Additive on top of his level, and it travels with him: firing a coach you
+ * have invested a fortnight's course in loses the investment, which is what
+ * makes the choice a choice. Caps are enforced where they are applied, not by
+ * trusting content — see `COACH_BOOST_CAPS`.
+ */
+export interface CoachBoosts {
+  /** Percentage points on his specialty training bonus. One head level is 10. */
+  readonly trainingPercent?: number;
+  /** Weekly Training Points, on top of the level's own contribution. */
+  readonly weeklyTp?: number;
+  /** Motivator strength in half-levels, matching the shape of the plumbing. */
+  readonly motivatorHalfLevels?: number;
+}
+
+/** One head-coach level in each direction, and no further, for a coach's whole career. */
+export const COACH_BOOST_CAPS = {
+  trainingPercent: 10,
+  weeklyTp: 4,
+  motivatorHalfLevels: 2,
+} as const;
+
 export interface CoachCandidate {
   readonly id: string;
   readonly portraitId?: string;
@@ -993,6 +1017,7 @@ export interface CoachCandidate {
   readonly age?: number;
   readonly specialties: readonly [CoachSpecialty, CoachSpecialty];
   readonly level: number;
+  readonly boosts?: CoachBoosts;
   readonly weeklyWage: number;
   readonly personality: PlayerPersonality;
   readonly requiredDivision: number;

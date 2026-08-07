@@ -9,6 +9,10 @@ import {
   addCreatedPlayer,
   applyCareerNegotiationConsequence,
   applyCareerEventOutcome,
+  applyCoachEventEffect,
+  applyFacilityEventEffect,
+  drainPendingMilestone,
+  isCareerMilestoneEventId,
   beginStoryOnboarding,
   beginCareerTransferTalks,
   beginCareerRenewalTalks,
@@ -82,6 +86,7 @@ import {
   type InstantDrillResolution,
   type CareerLegendLegacyChoice,
   type AssistantGuideSequenceId,
+  sessionAttributeDelta,
   type AssistantInboxGuideSequenceId,
   type AssistantMode,
   type GameState,
@@ -1604,7 +1609,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
           // The next chapter is about the same player, so it inherits him and
           // locks him in. Without this the follow-up re-picked, and a deadline
           // day that opened about Ravi Chan closed about Ed Stone.
-          const next = offerCareerEvent(dismissed, followUp.id, pending.selectedPlayerId);
+          // The next chapter is about the same target this one was about —
+          // player, coach or building — and it is locked so the story cannot be
+          // re-cast halfway through.
+          const next = offerCareerEvent(dismissed, followUp.id, {
+            ...(pending.selectedPlayerId === undefined ? {} : { playerId: pending.selectedPlayerId }),
+            ...(pending.selectedCoachRole === undefined ? {} : { coachRole: pending.selectedCoachRole }),
+            ...(pending.selectedFacilityId === undefined ? {} : { facilityId: pending.selectedFacilityId }),
+          });
           set({ career: next, screen: 'event', weekReview: null, error: null });
           queueCareerSave(get, set, next);
           return;
@@ -2342,6 +2354,12 @@ function resolveContentEvent(state: GameState, choiceId: string): GameState {
   if (event.trigger.requiresPlayer === true && pending.selectedPlayerId === undefined) {
     throw new Error('choose a player before resolving this event');
   }
+  if (event.trigger.requiresCoach === true && pending.selectedCoachRole === undefined) {
+    throw new Error('choose a coach before resolving this event');
+  }
+  if (event.trigger.requiresFacility !== undefined && pending.selectedFacilityId === undefined) {
+    throw new Error('choose a facility before resolving this event');
+  }
   const unavailableReason = eventChoiceUnavailableReason(state, choice, t);
   if (unavailableReason !== undefined) throw new Error(unavailableReason);
 
@@ -2367,16 +2385,52 @@ function resolveContentEvent(state: GameState, choiceId: string): GameState {
   const moneyDelta = sumEffect(outcome.effects, 'money');
   const trainingPointDelta = sumEffect(outcome.effects, 'tp');
   const fanDelta = sumEffect(outcome.effects, 'fans');
+  // Singular by schema rule: a second effect of any of these types fails the
+  // content gate, so `find` cannot silently drop one.
   const morale = outcome.effects.find(effect => effect.type === 'morale');
+  const squadMorale = outcome.effects.find(effect => effect.type === 'squadMorale');
   const injury = outcome.effects.find(effect => effect.type === 'injury');
+  const injuryHeal = outcome.effects.find(effect => effect.type === 'injuryDelta');
   const stat = outcome.effects.find(effect => effect.type === 'statDelta');
+  const statSessions = outcome.effects.find(effect => effect.type === 'statDeltaSessions');
+  const loyalty = outcome.effects.find(effect => effect.type === 'loyalty');
+  const condition = outcome.effects.find(effect => effect.type === 'condition');
+  const fame = outcome.effects.find(effect => effect.type === 'fame');
+  const coachBoosts = outcome.effects.filter(effect => effect.type === 'coachBoost');
+  const coachSpecialty = outcome.effects.find(effect => effect.type === 'coachSpecialty');
+  const coachRole = pending.selectedCoachRole;
+  const facilityId = pending.selectedFacilityId;
+  const FACILITY_EFFECT_FACETS = {
+    facilityTpBonus: 'tpBonusPercent',
+    facilityTrainingBonus: 'trainingBonusPercent',
+    facilityRecoveryBonus: 'recoveryBonus',
+    facilityIncomeBonus: 'incomeBonusPercent',
+  } as const;
   const flags = outcome.effects
     .filter(effect => effect.type === 'flag' && effect.value)
     .map(effect => effect.type === 'flag' ? effect.flag : '');
   // Every authored risky branch stores its success first and its comic setback
   // second. Persisting the outcome index makes the cutscene save/reload safe.
   const riskySuccess = choice.risky && outcomeIndex === 0;
-  const hasPlayerEffect = playerId !== undefined && (morale || injury || stat);
+  const hasPlayerEffect = playerId !== undefined
+    && (morale || injury || injuryHeal || stat || statSessions || loyalty || condition || fame);
+  /**
+   * Sessions become points against the drill this club owns, then a loss is
+   * floored proportionally.
+   *
+   * The floor exists for one shape: a −1-session loss at a tier-5 club is −22,
+   * and the attribute clamp bottoms out at 1 rather than at the player's
+   * starting value — so a youth prospect with 35 PAC could lose two thirds of
+   * it to a single card. A quarter of what he actually has is still a sting,
+   * and it leaves a developed player's loss untouched (at 88 SHO the quarter is
+   * 22, so the full −22 lands).
+   */
+  const resolvedSessionDelta = (() => {
+    if (statSessions?.type !== 'statDeltaSessions' || playerId === undefined) return undefined;
+    const player = working.players.find(candidate => candidate.id === playerId);
+    if (player === undefined) return undefined;
+    return sessionAttributeDelta(working, player, statSessions.attribute, statSessions.sessions);
+  })();
   let next = applyCareerEventOutcome(working, choice.id, outcome.text, {
     moneyDelta,
     trainingPointDelta,
@@ -2387,10 +2441,18 @@ function resolveContentEvent(state: GameState, choiceId: string): GameState {
         playerId,
         ...(morale?.type === 'morale' ? { moraleDelta: morale.amount } : {}),
         ...(injury?.type === 'injury' ? { injuryWeeks: injury.weeks } : {}),
+        ...(injuryHeal?.type === 'injuryDelta' ? { injuryWeeksDelta: injuryHeal.weeks } : {}),
         ...(stat?.type === 'statDelta' ? {
           attribute: stat.attribute,
           attributeDelta: stat.amount,
         } : {}),
+        ...(statSessions?.type === 'statDeltaSessions' && resolvedSessionDelta !== undefined ? {
+          attribute: statSessions.attribute,
+          attributeDelta: resolvedSessionDelta,
+        } : {}),
+        ...(loyalty?.type === 'loyalty' ? { loyaltyDelta: loyalty.amount } : {}),
+        ...(condition?.type === 'condition' ? { conditionDelta: condition.amount } : {}),
+        ...(fame?.type === 'fame' ? { fameDelta: fame.amount } : {}),
       },
     } : {}),
   }, {
@@ -2399,18 +2461,54 @@ function resolveContentEvent(state: GameState, choiceId: string): GameState {
     success: riskySuccess,
     ...(outcome.nextEventId === undefined ? {} : { nextEventId: outcome.nextEventId }),
   });
-  if (morale?.type === 'morale' && playerId === undefined) {
+  // The building the manager pointed at, changed permanently.
+  if (facilityId !== undefined) {
+    for (const effect of outcome.effects) {
+      const facet = FACILITY_EFFECT_FACETS[effect.type as keyof typeof FACILITY_EFFECT_FACETS];
+      if (facet === undefined) continue;
+      const amount = 'percent' in effect ? effect.percent : 'amount' in effect ? effect.amount : 0;
+      next = applyFacilityEventEffect(next, facilityId, facet, amount);
+    }
+  }
+  // The coach the manager pointed at, changed permanently. Boosts accumulate
+  // and are clamped at the cap by `applyCoachEventEffect`.
+  if (coachRole !== undefined) {
+    for (const boost of coachBoosts) {
+      if (boost.type !== 'coachBoost') continue;
+      next = applyCoachEventEffect(next, coachRole, { facet: boost.facet, amount: boost.amount });
+    }
+    if (coachSpecialty?.type === 'coachSpecialty') {
+      next = applyCoachEventEffect(next, coachRole, { specialtyTo: coachSpecialty.to });
+    }
+  }
+  /**
+   * The room, said out loud.
+   *
+   * This used to fire on a `morale` effect whose event had selected no player —
+   * so one effect type meant two different things, chosen by something the
+   * outcome never stated, and an event that forgot `requiresPlayer` silently
+   * became club-wide. `squadMorale` is now the only way to move the squad, and
+   * the content gate rejects the old spelling.
+   */
+  if (squadMorale?.type === 'squadMorale') {
     next = {
       ...next,
       players: next.players.map(player => player.clubId === next.userClubId
-        ? { ...player, morale: Math.max(0, Math.min(100, player.morale + morale.amount)) }
+        ? { ...player, morale: Math.max(0, Math.min(100, player.morale + squadMorale.amount)) }
         : player),
     };
   }
-  return {
-    ...next,
-    eventClock: { ...next.eventClock, weeksWithoutEvent: 0 },
-  };
+  /**
+   * Resolving a recognition beat drains it, and — unlike a random story —
+   * leaves the drought counter alone. Zeroing it here would restart the ramp at
+   * 18% every time a milestone landed, which is the starvation the lane exists
+   * to avoid.
+   */
+  const isMilestone = isCareerMilestoneEventId(pending.eventId);
+  const drained = isMilestone ? drainPendingMilestone(next, pending.eventId) : next;
+  return isMilestone
+    ? drained
+    : { ...drained, eventClock: { ...drained.eventClock, weeksWithoutEvent: 0 } };
 }
 
 function sumEffect(

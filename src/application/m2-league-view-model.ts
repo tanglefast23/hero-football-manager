@@ -432,6 +432,9 @@ function cupFixture(
     status: fixture.status === 'played' ? 'PLAYED' : 'SCHEDULED',
     ...(winnerName === undefined ? {} : { winnerName }),
     involvesUserClub: fixture.homeClubId === userClubId || fixture.awayClubId === userClubId,
+    ...(fixture.homeClubId === userClubId
+      ? { userSide: 'home' as const }
+      : fixture.awayClubId === userClubId ? { userSide: 'away' as const } : {}),
     userWon: fixture.winnerClubId === userClubId,
     playableNow: roundIsPlayable
       && fixture.status === 'scheduled'

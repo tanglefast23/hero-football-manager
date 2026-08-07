@@ -28,12 +28,18 @@ function career(seed: number): GameState {
 /** Walks the career forward, playing every matchday, collecting one entry a week. */
 function walkWeeks(seed: number, weeks: number) {
   let state = career(seed);
-  const seen: { week: number; headline: string | null; hasFixture: boolean }[] = [];
+  const seen: {
+    week: number;
+    headline: string | null;
+    isCup: boolean | null;
+    hasFixture: boolean;
+  }[] = [];
   for (let step = 0; step < weeks * 4 && seen.length < weeks; step += 1) {
     if (state.phase !== 'manage') break;
     seen.push({
       week: state.week,
       headline: matchDayBannerViewModel(state)?.headline ?? null,
+      isCup: matchDayBannerViewModel(state)?.isCup ?? null,
       hasFixture: activeCareerMatchday(state) !== undefined,
     });
     state = advanceWeek(state);
@@ -95,6 +101,19 @@ describe('matchDayBannerViewModel', () => {
     const weeks = walkWeeks(1, 10);
     expect(weeks.every(week => week.headline === null || !/Final Game/.test(week.headline)))
       .toBe(true);
+  });
+
+  /**
+   * The card draws the cup cabinet instead of the crowd on a tie, so the flag
+   * has to track the competition exactly: a league week showing trophies would
+   * promise a cup run the club is not on.
+   */
+  it('flags the cup week, and only the cup week, for the cabinet art', () => {
+    const weeks = walkWeeks(2, 10).filter(week => week.headline !== null);
+    const cup = weeks.filter(week => week.headline === `${CUP_DISPLAY_NAME}: Match Day`);
+    expect(cup.length).toBeGreaterThan(0);
+    expect(cup.every(week => week.isCup)).toBe(true);
+    expect(weeks.filter(week => week.isCup === true)).toHaveLength(cup.length);
   });
 
   /**

@@ -1023,31 +1023,67 @@ function PlayerFileSection({
       ) : null}
       <View className="flex-row gap-2">
         <Metric label={t('squadTraining.currentRating')} value={String(selectedPlayer.overall)} />
-        <Metric
-          label={t('col.squad.conditionLong')}
-          value={`${selectedPlayer.condition}%`}
-          tone={energyBand(selectedPlayer.condition) === 'red' ? 'negative' : 'positive'}
-        />
+        {/* The four numbers a manager acts on but the card cannot define — and
+            potential's line is wider than its box, so its tip is also the only
+            place the full "{grade} · {percent}% SUPER" is readable. */}
+        <InfoTip
+          className="min-w-0 flex-1"
+          text={t('squadTraining.column.condition')}
+          accessibilityLabel={t('squadTraining.a11y.condition', {
+            condition: selectedPlayer.condition,
+          })}
+        >
+          <Metric
+            label={t('col.squad.conditionLong')}
+            value={`${selectedPlayer.condition}%`}
+            tone={energyBand(selectedPlayer.condition) === 'red' ? 'negative' : 'positive'}
+          />
+        </InfoTip>
         <Metric label={t('squadTraining.wagePerWeek')} value={formatCurrency(selectedPlayer.weeklyWage)} />
       </View>
       <View className="mt-2 flex-row gap-2">
         <Metric label={t('squadTraining.age')} value={String(selectedPlayer.age)} />
-        <Metric
-          label={t('col.squad.potentialLong')}
-          value={t('squadTraining.potentialAndSuper', {
+        <InfoTip
+          className="min-w-0 flex-1"
+          text={t('squadTraining.potentialTip', {
             grade: selectedPlayer.potentialGrade,
             percent: selectedPlayer.superChancePercent,
           })}
-          tone="positive"
-        />
-        <Metric label={t('squadTraining.fame')} value={String(selectedPlayer.fame)} />
+          accessibilityLabel={t('squadTraining.a11y.potential', {
+            grade: selectedPlayer.potentialGrade,
+            percent: selectedPlayer.superChancePercent,
+          })}
+        >
+          <Metric
+            label={t('col.squad.potentialLong')}
+            value={t('squadTraining.potentialAndSuper', {
+              grade: selectedPlayer.potentialGrade,
+              percent: selectedPlayer.superChancePercent,
+            })}
+            tone="positive"
+          />
+        </InfoTip>
+        <InfoTip
+          align="right"
+          className="min-w-0 flex-1"
+          text={t('squadTraining.fameTip')}
+          accessibilityLabel={t('squadTraining.a11y.fame', { fame: selectedPlayer.fame })}
+        >
+          <Metric label={t('squadTraining.fame')} value={String(selectedPlayer.fame)} />
+        </InfoTip>
       </View>
       {/* Morale and loyalty sit together because they are the same kind of
           number on two different clocks: morale swings on results and recovers
           on wins, loyalty only moves when the manager decides something and
           never recovers on its own. */}
       <View className="mt-2 flex-row items-center gap-2">
-        <Metric label={t('squadTraining.morale')} value={`${selectedPlayer.morale}%`} />
+        <InfoTip
+          className="min-w-0 flex-1"
+          text={t('squadTraining.moraleTip')}
+          accessibilityLabel={t('squadTraining.a11y.morale', { morale: selectedPlayer.morale })}
+        >
+          <Metric label={t('squadTraining.morale')} value={`${selectedPlayer.morale}%`} />
+        </InfoTip>
         <InfoTip
           align="right"
           className="min-w-0 flex-1"

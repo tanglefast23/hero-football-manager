@@ -2,9 +2,11 @@ import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { mulberry32 } from '../sim/rng';
 import {
   FACILITY_CATALOG,
+  cappedFacilityBoost,
   facilityEffects,
   isFacilityOperational,
   type FacilityType,
+  type PlacedFacility,
 } from './facilities';
 import { trainingMultiplierForAge } from './pyramid';
 import { careerCoachTrainingModifiers } from './coach-weekly';
@@ -558,7 +560,19 @@ function facilityTrainingMultiplier(
   state: GameState,
   attribute: keyof CareerPlayer['attrs'],
 ): number {
-  return FACILITY_TRAINING_MULTIPLIER[facilityTrainingLevel(state, attribute)] ?? 1;
+  const building = bestTrainingBuilding(state, attribute);
+  const base = FACILITY_TRAINING_MULTIPLIER[building?.level ?? 0] ?? 1;
+  const boost = cappedFacilityBoost(building?.boosts, 'trainingBonusPercent');
+  if (boost === 0) return base;
+  /**
+   * The bonus part only.
+   *
+   * Scaling the whole multiplier would let a −20% building drag a club *below*
+   * the 1.0 a club with no building at all gets — a story about a bad gym
+   * making your players worse than owning no gym. Scaling `base − 1` keeps the
+   * floor at exactly 1.0 and still moves the part the building actually earned.
+   */
+  return 1 + (base - 1) * (100 + boost) / 100;
 }
 
 function trainingFacilityType(
@@ -579,13 +593,29 @@ function facilityTrainingLevel(
   state: GameState,
   attribute: keyof CareerPlayer['attrs'],
 ): number {
+  return bestTrainingBuilding(state, attribute)?.level ?? 0;
+}
+
+/**
+ * The building whose level decides the multiplier — returned whole so its own
+ * boost is read from the same place, never from a different copy.
+ */
+function bestTrainingBuilding(
+  state: GameState,
+  attribute: keyof CareerPlayer['attrs'],
+): PlacedFacility | undefined {
   const facilityType = trainingFacilityType(attribute);
   const grid = state.facilities.grid;
-  // A building under construction trains nobody — the same rule the Medical
-  // Bay, dorm, and income lookups already follow.
-  return grid?.buildings
-    .filter(building => building.type === facilityType && isFacilityOperational(grid, building.id))
-    .reduce((maximum, building) => Math.max(maximum, building.level), 0) ?? 0;
+  if (grid === undefined) return undefined;
+  let best: PlacedFacility | undefined;
+  for (const building of grid.buildings) {
+    if (building.type !== facilityType) continue;
+    // A building under construction trains nobody — the same rule the Medical
+    // Bay, dorm, and income lookups already follow.
+    if (!isFacilityOperational(grid, building.id)) continue;
+    if (best === undefined || building.level > best.level) best = building;
+  }
+  return best;
 }
 
 function checkedAdd(left: number, right: number, label: string): number {

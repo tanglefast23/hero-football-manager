@@ -28,6 +28,8 @@ export interface BracketTie {
   readonly played: boolean;
   readonly winnerName?: string;
   readonly involvesUserClub: boolean;
+  /** Which side of the tie is yours, so the card can weight that one name. */
+  readonly userSide?: 'home' | 'away';
   /** A round that has not been drawn yet shows placeholders, not names. */
   readonly placeholder: boolean;
 }
@@ -75,6 +77,7 @@ function tieFrom(
     played: fixture.status === 'PLAYED',
     ...(fixture.winnerName === undefined ? {} : { winnerName: fixture.winnerName }),
     involvesUserClub: fixture.involvesUserClub,
+    ...(fixture.userSide === undefined ? {} : { userSide: fixture.userSide }),
     placeholder: false,
   };
 }
