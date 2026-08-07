@@ -84,11 +84,28 @@ export function resolveKeyBinding(
 }
 
 /**
+ * True only where the DOM this hook reads actually answers.
+ *
+ * React Native defines a global `window` but no `document`, and a static web
+ * export prerenders in Node with neither, so both are asked for by capability
+ * rather than inferred from the platform — the discipline audio-lifecycle.ts
+ * and pointer-capability.ts already follow. Without it the hook is one shared
+ * import away from throwing on a runtime that has no DOM.
+ */
+function hasKeyboardDom(): boolean {
+  const page = typeof document === 'undefined' ? undefined : document;
+  const view = typeof window === 'undefined' ? undefined : window;
+  return typeof page?.querySelector === 'function' && typeof view?.addEventListener === 'function';
+}
+
+/**
  * True while a react-native-web `Modal` is on screen. RNW only mounts modal
  * content while it is visible, so the ARIA attribute doubles as "a modal owns
  * the screen" — that keeps shortcuts from quietly acting on the screen behind.
+ * No DOM to ask means no modal, so shortcuts stay live rather than all lock.
  */
 function isModalOpen(): boolean {
+  if (!hasKeyboardDom()) return false;
   return document.querySelector('[aria-modal="true"]') !== null;
 }
 
@@ -109,8 +126,10 @@ export function useKeyBindings(bindings: KeyBindings, enabled = true): void {
   useEffect(() => {
     // Platform is resolved here, not at module scope: several UI tests mock
     // react-native without it and an import-time read breaks them at load
-    // (the same trap documented on SfxPressable).
-    if (Platform?.OS !== 'web' || typeof window === 'undefined') return undefined;
+    // (the same trap documented on SfxPressable). It is a cheap first read, not
+    // the safety check — 'web' still covers a prerender with no DOM at all, so
+    // the listener target is feature-detected before anything touches it.
+    if (Platform?.OS !== 'web' || !hasKeyboardDom()) return undefined;
 
     const onKeyDown = (event: KeyboardEvent) => {
       const action = resolveKeyBinding(event, latest.current.bindings, {

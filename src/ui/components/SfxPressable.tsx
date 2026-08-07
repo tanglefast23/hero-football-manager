@@ -1,7 +1,8 @@
-import { useState, type ComponentProps, type ReactNode } from 'react';
+import { useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import { Pressable as NativePressable, Text, View, type ViewStyle } from 'react-native';
 import { playManagementActionSfx, playStatStepSfx, playUiClickSfx } from '../../render/management-sfx';
 import { hasHoverPointer } from '../pointer-capability';
+import { createPressCueGate, type PressCueGate } from '../press-cue-gate';
 
 type NativePressableProps = ComponentProps<typeof NativePressable>;
 type SfxPressableProps = NativePressableProps & {
@@ -47,6 +48,14 @@ function setsTransform(style: unknown): boolean {
   return (style as ViewStyle).transform != null;
 }
 
+type PressCue = NonNullable<SfxPressableProps['pressSfx']>;
+
+function playPressCue(pressSfx: PressCue): void {
+  if (pressSfx === 'stat-step') playStatStepSfx();
+  else if (pressSfx === 'warning') playManagementActionSfx('warning');
+  else playUiClickSfx();
+}
+
 /**
  * Shared management interaction surface. It gives every custom button/card a
  * short tap cue, a visible pressed state, and — on desktop — a pointer cursor,
@@ -77,6 +86,10 @@ export function SfxPressable({
 }: SfxPressableProps) {
   const [pressed, setPressed] = useState(false);
   const [hovered, setHovered] = useState(false);
+  // One gate per control, so a keyboard activation here is judged by this
+  // button's own presses rather than by a tap somewhere else on the screen.
+  const gateRef = useRef<PressCueGate | null>(null);
+  const cueGate = (gateRef.current ??= createPressCueGate());
   const pointer = hasHoverPointer();
   const showTip = pointer && hovered && !pressed && tip !== undefined && tip.length > 0;
 
@@ -96,6 +109,9 @@ export function SfxPressable({
       }}
       onPressIn={event => {
         setPressed(true);
+        // A surface with nothing to activate has nothing to answer for, so the
+        // cue lives exactly where a press handler does.
+        if (onPress != null) cueGate.pressIn(() => playPressCue(pressSfx));
         onPressIn?.(event);
       }}
       onPressOut={event => {
@@ -104,16 +120,11 @@ export function SfxPressable({
         // arrives with the touch, and this clears it when the finger lifts.
         setPressed(false);
         setHovered(false);
+        cueGate.pressOut();
         onPressOut?.(event);
       }}
       onPress={onPress == null ? undefined : event => {
-        // Keep every cue on the completed press. React Native Web does not
-        // guarantee that a synthetic/keyboard activation has a press-in phase,
-        // which left creation steppers silent while their value still changed.
-        // One owner here also makes one completed activation exactly one cue.
-        if (pressSfx === 'stat-step') playStatStepSfx();
-        else if (pressSfx === 'warning') playManagementActionSfx('warning');
-        else playUiClickSfx();
+        cueGate.press(() => playPressCue(pressSfx));
         onPress(event);
       }}
       style={(() => {

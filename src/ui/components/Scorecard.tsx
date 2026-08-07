@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { playDangerSfx, playPositiveSfx, playUiClickSfx } from '../../render/management-sfx';
 import { PixelText } from './PixelText';
+import { createPressCueGate, type PressCueGate } from '../press-cue-gate';
 
 function cx(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
@@ -133,6 +134,16 @@ export function ActionButton({
   // bypasses NativeWind processing on native and the className layout silently
   // drops out — see the note on SfxPressable.
   const [pressed, setPressed] = useState(false);
+  // One cue per activation, played on the way down. The rule and the reasoning
+  // behind the timestamp live in press-cue-gate.ts, which SfxPressable uses too
+  // — this button only differs in which cue it plays.
+  const gateRef = useRef<PressCueGate | null>(null);
+  const cueGate = (gateRef.current ??= createPressCueGate());
+  const playCue = () => {
+    if (cue === 'positive') playPositiveSfx();
+    else if (cue === 'danger') playDangerSfx();
+    else playUiClickSfx();
+  };
 
   return (
     <Pressable
@@ -140,12 +151,20 @@ export function ActionButton({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
       disabled={disabled}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
+      onPressIn={() => {
+        setPressed(true);
+        cueGate.pressIn(playCue);
+      }}
+      onPressOut={() => {
+        setPressed(false);
+        cueGate.pressOut();
+      }}
       onPress={() => {
-        if (cue === 'positive') playPositiveSfx();
-        else if (cue === 'danger') playDangerSfx();
-        else playUiClickSfx();
+        // These are the game's largest buttons — Advance Week among them — so
+        // they cue on the way down like every SfxPressable does. Left on the
+        // completed press they would answer a beat later than the small
+        // controls around them, which reads as the big decisions being slower.
+        cueGate.press(playCue);
         onPress();
       }}
       className={cx(
