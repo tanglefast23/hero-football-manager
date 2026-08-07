@@ -147,7 +147,7 @@ describe('story onboarding state machine', () => {
       collapsed.lineups[0].playerIds,
       ['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'],
       ['glowing-caterpillar'],
-      { chancePercent: 10, minimumMatchesBetween: 3 },
+      { chancePercent: 10, secondInSeasonChancePercent: 2, maxPerSeason: 2, minimumMatchesBetween: 3 },
     ).state;
     const avatar = createdPlayer(revealed);
     expect(revealed.onboarding).toMatchObject({
@@ -189,7 +189,7 @@ describe('story onboarding state machine', () => {
       collapsed.lineups[0].playerIds,
       ['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'],
       ['glowing-caterpillar'],
-      { chancePercent: 10, minimumMatchesBetween: 3 },
+      { chancePercent: 10, secondInSeasonChancePercent: 2, maxPerSeason: 2, minimumMatchesBetween: 3 },
     ))
       .toThrow('first hero');
   });

@@ -265,7 +265,7 @@ function StatementRow({
   const chipVisible = reveal !== undefined
     && hasMultiplierBeat(reveal)
     && ['chip', 'multiplied', 'adjacency', 'complete'].includes(runtime.phase);
-  const captionVisible = reveal?.source === 'merch'
+  const adjacencyBadgeVisible = reveal?.source === 'merch'
     && reveal.adjacencyAmount > 0
     && ['adjacency', 'complete'].includes(runtime.phase);
   const handleSettled = useCallback((settleKey: number) => {
@@ -297,8 +297,18 @@ function StatementRow({
               <FacilitySprite type={facilitySpriteFor(reveal)!} size={16} showLevel={false} />
             </View>
           )}
+          {/* Every bonus the buildings earned, beside the building that earned
+              it. They used to be split: the ×N chip rode next to the amount,
+              and the shop's adjacency was a grey caption on the line below,
+              which a manager with one shop read as no bonus at all. Each still
+              mounts on its own beat, so it animates in as its row calculates. */}
+          {chipVisible ? (
+            <BonusBadge label={multiplierLabel(reveal!)} reduceMotion={reduceMotion} />
+          ) : null}
+          {adjacencyBadgeVisible && reveal?.source === 'merch' ? (
+            <BonusBadge label={`+${reveal.adjacencyPercent}%`} reduceMotion={reduceMotion} />
+          ) : null}
         </View>
-        {chipVisible ? <MultiplierChip reveal={reveal!} reduceMotion={reduceMotion} /> : null}
         <SlotAmount
           value={runtime.shownValue}
           finalValue={line.amount}
@@ -314,11 +324,6 @@ function StatementRow({
           onSettled={handleSettled}
         />
       </View>
-      {captionVisible && reveal?.source === 'merch' ? (
-        <Text className="mt-1 text-right text-xs text-ink/60">
-          {t('financialStatement.adjacencyCaption', { percent: reveal.adjacencyPercent })}
-        </Text>
-      ) : null}
     </View>
   );
 }
@@ -414,7 +419,19 @@ function rowAccessibilityLabel(line: PostMatchLedgerLineViewModel, t: CopyFn): s
   });
 }
 
-function MultiplierChip({ reveal, reduceMotion }: { reveal: LedgerLineReveal; reduceMotion: boolean }) {
+/** "×3" for shops, "×150%" for stands — what the buildings multiplied by. */
+function multiplierLabel(reveal: LedgerLineReveal): string {
+  return reveal.source === 'merch' ? `×${reveal.multiplierTimes}` : `×${reveal.multiplierPercent}%`;
+}
+
+/**
+ * One bonus the club's buildings earned, riding beside the facility sprite.
+ *
+ * Mounted by its own beat rather than shown from the start, so it arrives with
+ * the numbers it explains: it slides in from the left of where it lands, which
+ * on a row that reads left-to-right reads as coming out of the sprite.
+ */
+function BonusBadge({ label, reduceMotion }: { label: string; reduceMotion: boolean }) {
   const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   useEffect(() => {
     if (reduceMotion) return undefined;
@@ -427,17 +444,16 @@ function MultiplierChip({ reveal, reduceMotion }: { reveal: LedgerLineReveal; re
     animation.start();
     return () => animation.stop();
   }, [progress, reduceMotion]);
-  const label = reveal.source === 'merch' ? `×${reveal.multiplierTimes}` : `×${reveal.multiplierPercent}%`;
   return (
     // NativeWind does not process className on Animated views, so the
     // animated wrapper is style-only and a plain View carries the look.
     <Animated.View
       style={{
         opacity: progress,
-        transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+        transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [-10, 0] }) }],
       }}
     >
-      <View className="mr-2 border-2 border-pitch-dark bg-pitch-light px-1">
+      <View className="ml-2 shrink-0 border-2 border-pitch-dark bg-pitch-light px-1">
         <Text className="font-mono text-xs text-pitch-ink">{label}</Text>
       </View>
     </Animated.View>

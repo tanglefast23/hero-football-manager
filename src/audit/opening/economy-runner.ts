@@ -224,6 +224,8 @@ function playPolicyMatchday(
       content.onboarding.triggers.map(trigger => trigger.id),
       {
         chancePercent: content.powers.awakening.postMatchChancePercent,
+        secondInSeasonChancePercent: content.powers.awakening.secondInSeasonChancePercent,
+        maxPerSeason: content.powers.awakening.maxPerSeason,
         minimumMatchesBetween: content.powers.awakening.minimumMatchesBetween,
       },
     );

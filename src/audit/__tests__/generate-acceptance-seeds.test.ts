@@ -88,7 +88,7 @@ function buildScenarios(): Scenario[] {
     revealLineup.playerIds,
     content.powers.powers.map(power => power.id),
     content.onboarding.triggers.map(trigger => trigger.id),
-    { chancePercent: 100, minimumMatchesBetween: 0 },
+    { chancePercent: 100, secondInSeasonChancePercent: 100, maxPerSeason: 99, minimumMatchesBetween: 0 },
   ).state;
 
   const base = auditCareer(7_210_100);

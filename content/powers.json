@@ -2,7 +2,9 @@
   "schemaVersion": 1,
   "awakening": {
     "postMatchChancePercent": 10,
-    "minimumMatchesBetween": 3
+    "minimumMatchesBetween": 3,
+    "secondInSeasonChancePercent": 2,
+    "maxPerSeason": 2
   },
   "powers": [
     {

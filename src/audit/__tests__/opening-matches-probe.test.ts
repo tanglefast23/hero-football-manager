@@ -39,6 +39,8 @@ const powerIds = content.powers.powers.map(power => power.id);
 const triggerIds = content.onboarding.triggers.map(trigger => trigger.id);
 const tuning = {
   chancePercent: content.powers.awakening.postMatchChancePercent,
+  secondInSeasonChancePercent: content.powers.awakening.secondInSeasonChancePercent,
+  maxPerSeason: content.powers.awakening.maxPerSeason,
   minimumMatchesBetween: content.powers.awakening.minimumMatchesBetween,
 };
 const SEEDS = positiveIntegerEnv('OPENING_MATCHES_SEEDS', 300);

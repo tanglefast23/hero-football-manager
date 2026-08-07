@@ -804,6 +804,10 @@ const awakeningSchema = z
   .object({
     matchesSinceLastAwakening: nonnegativeInteger,
     usedTriggerIds: z.array(nonemptyString).optional(),
+    seasonTally: z
+      .object({ season: positiveInteger, count: nonnegativeInteger })
+      .passthrough()
+      .optional(),
     pending: pendingAwakeningSchema.optional(),
   })
   .passthrough();

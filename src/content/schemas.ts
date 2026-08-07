@@ -115,6 +115,14 @@ export const PowerCatalogSchema = z.strictObject({
   schemaVersion: ContentSchemaVersion,
   awakening: z.strictObject({
     postMatchChancePercent: z.literal(10),
+    /**
+     * The roll once the season already has one hero. A second in the same
+     * season is meant to be a surprise, not the expected second half of the
+     * year, so it is a fifth of the first chance rather than a shade off it.
+     */
+    secondInSeasonChancePercent: z.literal(2),
+    /** Counting the campaign's guaranteed first hero: season 1 gets one more. */
+    maxPerSeason: z.literal(2),
     minimumMatchesBetween: z.literal(3),
   }),
   powers: z.array(PowerDefinitionSchema).length(17),

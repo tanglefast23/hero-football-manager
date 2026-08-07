@@ -12,7 +12,23 @@ import { isAvailableForSelection } from './lineup';
 
 interface PostMatchAwakeningTuning {
   chancePercent: number;
+  /** The roll once this season already has a hero — deliberately far smaller. */
+  secondInSeasonChancePercent: number;
+  /** Heroes a single season may produce, the guaranteed first one included. */
+  maxPerSeason: number;
   minimumMatchesBetween: number;
+}
+
+/**
+ * Heroes already awakened in the season being played.
+ *
+ * The tally carries the season it counted, so a tally left over from a
+ * finished season reads as zero without anything having to clear it on the
+ * boundary — and a save written before the cap existed reads the same way.
+ */
+export function awakeningsThisSeason(state: GameState): number {
+  const tally = state.awakening.seasonTally;
+  return tally?.season === state.season ? tally.count : 0;
 }
 
 interface PostMatchAwakeningResult {
@@ -50,6 +66,7 @@ export function resolvePostMatchAwakening(
 
   const firstHero = state.onboarding?.firstFixtureId === fixtureId
     && (state.onboarding.stage === 'first-match' || state.onboarding.stage === 'collapse');
+  const alreadyThisSeason = awakeningsThisSeason(state);
   const matchesSinceLastAwakening = state.awakening.matchesSinceLastAwakening + 1;
   const licensedCount = state.players.filter(candidate =>
     candidate.clubId === state.userClubId && candidate.licensed,
@@ -71,11 +88,23 @@ export function resolvePostMatchAwakening(
       },
       awakened: false,
     });
+    // A season the club has already filled is done producing heroes. The
+    // guaranteed opening hero counts, so season 1 has room for exactly one
+    // more — a squad does not turn into a super-team inside a single year.
+    if (alreadyThisSeason >= tuning.maxPerSeason) {
+      return nextWithoutAwakening();
+    }
     if (matchesSinceLastAwakening < tuning.minimumMatchesBetween) {
       return nextWithoutAwakening();
     }
+    // The second hero of a season rolls against a far smaller number than the
+    // first. Two in one year should read as a freak season, not as the shape
+    // every season has.
+    const chancePercent = alreadyThisSeason === 0
+      ? tuning.chancePercent
+      : tuning.secondInSeasonChancePercent;
     if (deterministicPostMatchAwakeningRoll(state.careerSeed, fixtureId, 0, 100)
-      >= tuning.chancePercent) {
+      >= chancePercent) {
       return nextWithoutAwakening();
     }
     const eligible = unique(participantIds).filter(id => state.players.some(player =>
@@ -142,6 +171,7 @@ export function resolvePostMatchAwakening(
     awakening: {
       matchesSinceLastAwakening: 0,
       usedTriggerIds,
+      seasonTally: { season: state.season, count: alreadyThisSeason + 1 },
       pending: { fixtureId, playerId, power, triggerId, firstHero },
     },
     ...(firstHero && state.onboarding ? {
@@ -166,6 +196,11 @@ export function completePostMatchAwakening(state: GameState): GameState {
     awakening: {
       matchesSinceLastAwakening: state.awakening.matchesSinceLastAwakening,
       usedTriggerIds: [...state.awakening.usedTriggerIds],
+      // Dropping the tally here would hand the season a fresh allowance every
+      // time a cutscene finished, which is every time one is spent.
+      ...(state.awakening.seasonTally === undefined
+        ? {}
+        : { seasonTally: { ...state.awakening.seasonTally } }),
     },
     ...(pending.firstHero && state.onboarding ? {
       onboarding: { ...state.onboarding, stage: 'complete' as const },
@@ -202,6 +237,14 @@ function validateTuning(tuning: PostMatchAwakeningTuning): void {
     || tuning.chancePercent < 0
     || tuning.chancePercent > 100) {
     throw new Error('post-match awakening chance must be an integer from 0 to 100');
+  }
+  if (!Number.isInteger(tuning.secondInSeasonChancePercent)
+    || tuning.secondInSeasonChancePercent < 0
+    || tuning.secondInSeasonChancePercent > tuning.chancePercent) {
+    throw new Error('second-in-season chance must be an integer from 0 to the first chance');
+  }
+  if (!Number.isSafeInteger(tuning.maxPerSeason) || tuning.maxPerSeason < 1) {
+    throw new Error('awakenings per season must be a positive safe integer');
   }
   if (!Number.isSafeInteger(tuning.minimumMatchesBetween)
     || tuning.minimumMatchesBetween < 0) {

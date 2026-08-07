@@ -43,7 +43,13 @@ import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 
 /** Entrance, hold, strike, settle — the four beats of the scene. */
 const ENTRANCE_MS = 640;
-const STRIKE_START_MS = 2_300;
+/**
+ * The wait before the strike, and so 200ms off the whole scene. It used to be
+ * 2,300 — exactly the horn's length, so the strike landed on the last frame of
+ * the sound. Nothing stops the horn at the strike, so it still plays out in
+ * full; its tail now runs 200ms into the ball's travel instead of ending on it.
+ */
+const STRIKE_START_MS = 2_100;
 const STRIKE_MS = 1_100;
 /**
  * A drawn face-off has no one to strike past, so the ball is passed instead:

@@ -6,6 +6,7 @@ import type { ManagementTab, ResourceSummaryViewModel } from './models';
 import { TutorialTapCue } from './TutorialTapCue';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
 import { SettingsButton } from './SettingsOverlay';
+import { FansGlyph } from './components/FansGlyph';
 import { HoverTipAnchor, SfxPressable as Pressable } from './components/SfxPressable';
 import { playUiClickSfx } from '../render/management-sfx';
 import { managementHeaderLine } from './management-header';
@@ -58,6 +59,7 @@ function abbrev(n: number): string {
 
 function ResourceChip({
   glyph,
+  icon,
   name,
   explainer,
   value,
@@ -66,7 +68,9 @@ function ResourceChip({
   reduceMotion = false,
   onPress,
 }: {
-  glyph: string;
+  /** Skipped when `icon` is given: the fans chip is drawn, not lettered. */
+  glyph?: string;
+  icon?: ReactNode;
   name: string;
   /** What the glyph buys, for the manager who has never been told what TP is. */
   explainer: string;
@@ -115,9 +119,11 @@ function ResourceChip({
     >
       {/* font-pixel is the authored bold face; font-mono + font-bold would
           synthetically embolden the bitmap font and smear these glyphs. */}
-      <Text maxFontSizeMultiplier={1.2} className={hero ? 'font-pixel text-xs text-gold-dark' : 'font-pixel text-xs text-blue-dark'}>
-        {glyph}
-      </Text>
+      {icon ?? (
+        <Text maxFontSizeMultiplier={1.2} className={hero ? 'font-pixel text-xs text-gold-dark' : 'font-pixel text-xs text-blue-dark'}>
+          {glyph}
+        </Text>
+      )}
       <Text maxFontSizeMultiplier={1.2} adjustsFontSizeToFit numberOfLines={1} className={hero ? 'font-mono text-sm text-gold-dark' : 'font-mono text-sm text-ink'}>
         {abbrev(shownValue)}
       </Text>
@@ -334,6 +340,10 @@ export function ManagementShell({
         <ResourceChip glyph="$" name={t('managementShell.money')} explainer={t('managementShell.moneyExplainer')} money value={resources.money} reduceMotion={reduceMotion} onPress={openLedgerFromChip} />
       </View>
       <ResourceChip glyph="TP" name={t('managementShell.trainingPoints')} explainer={t('managementShell.trainingPointsExplainer')} value={resources.trainingPoints} reduceMotion={reduceMotion} onPress={openLedgerFromChip} />
+      {/* Last of the three, and the only one drawn rather than lettered: fans
+          are not spent, they are what the gate and the merchandise are priced
+          off, so the chip names the crowd in the crowd's own art. */}
+      <ResourceChip icon={<FansGlyph />} name={t('managementShell.fans')} explainer={t('managementShell.fansExplainer')} value={resources.fans} reduceMotion={reduceMotion} onPress={openLedgerFromChip} />
     </View>
   );
 
