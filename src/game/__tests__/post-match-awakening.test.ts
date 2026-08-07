@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createLaunchCareerSetup } from '../../application/launch';
 import { advanceWeek, createCareer } from '../career';
 import { applyCareerContractPromise } from '../contract-promises';
@@ -16,7 +18,7 @@ import { LAUNCH_POWER_IDS } from '../power-catalog';
 
 const POWERS = ['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'] as const;
 const TRIGGERS = ['glowing-caterpillar', 'magic-sponge', 'runaway-sprinkler'] as const;
-const TUNING = { chancePercent: 10, minimumMatchesBetween: 3 } as const;
+const TUNING = { chancePercent: 10, secondInSeasonChancePercent: 2, maxPerSeason: 2, minimumMatchesBetween: 3 } as const;
 
 describe('automatic post-match awakenings', () => {
   it('guarantees the created player a random stat-fit power after match one', () => {
@@ -59,7 +61,7 @@ describe('automatic post-match awakenings', () => {
   it('cannot trigger until the third completed match after the previous awakening', () => {
     let state = playedUserFixture(createCareer(createLaunchCareerSetup(23)));
     const fixtureId = userFixture(state).id;
-    const forcedChance = { chancePercent: 100, minimumMatchesBetween: 3 } as const;
+    const forcedChance = { chancePercent: 100, secondInSeasonChancePercent: 100, maxPerSeason: 99, minimumMatchesBetween: 3 } as const;
 
     const first = resolvePostMatchAwakening(state, fixtureId, userLineup(state), POWERS, TRIGGERS, forcedChance);
     expect(first.awakened).toBe(false);
@@ -98,10 +100,138 @@ describe('automatic post-match awakenings', () => {
       .toBe(pending.power);
   });
 
+  /**
+   * A season produces at most two heroes, the campaign's guaranteed first one
+   * included, and the second is a long shot rather than the expected other
+   * half of the year. Without the cap a 10% roll every third match handed out
+   * two or more heroes in a third of seasons, and a squad turned super inside
+   * a couple of years.
+   */
+  describe('the season cap', () => {
+    const forced = {
+      chancePercent: 100, secondInSeasonChancePercent: 100, maxPerSeason: 2, minimumMatchesBetween: 0,
+    } as const;
+
+    /** Strips every power so the next roll always has someone to land on. */
+    function readyForAnother(state: GameState): GameState {
+      return {
+        ...state,
+        players: state.players.map(player => player.clubId === state.userClubId
+          ? { ...player, power: undefined, licensed: false }
+          : player),
+        awakening: { ...state.awakening, matchesSinceLastAwakening: 0, pending: undefined },
+      };
+    }
+
+    it('refuses a third hero in one season however many matches are played', () => {
+      let state = playedUserFixture(createCareer(createLaunchCareerSetup(53)));
+      const fixtureId = userFixture(state).id;
+
+      for (const expected of [true, true, false, false]) {
+        const result = resolvePostMatchAwakening(
+          readyForAnother(state), fixtureId, userLineup(state), POWERS, TRIGGERS, forced,
+        );
+        expect(result.awakened).toBe(expected);
+        state = result.awakened ? completePostMatchAwakening(result.state) : result.state;
+      }
+      expect(state.awakening.seasonTally).toEqual({ season: state.season, count: 2 });
+    });
+
+    it('counts the guaranteed opening hero, so season one has room for one more', () => {
+      const initial = playedUserFixture(createCareer(createLaunchCareerSetup(59)));
+      const playerId = userLineup(initial)[9];
+      const opening = resolvePostMatchAwakening(
+        {
+          ...initial,
+          onboarding: {
+            stage: 'first-match',
+            createdPlayerId: playerId,
+            firstFixtureId: userFixture(initial).id,
+          },
+        },
+        userFixture(initial).id, userLineup(initial), POWERS, TRIGGERS, forced,
+      );
+
+      expect(opening.state.awakening.seasonTally).toEqual({ season: initial.season, count: 1 });
+    });
+
+    it('starts the next season fresh without anything clearing the tally', () => {
+      const state = playedUserFixture(createCareer(createLaunchCareerSetup(61)));
+      const finished: GameState = {
+        ...state,
+        awakening: { ...state.awakening, seasonTally: { season: state.season - 1, count: 2 } },
+      };
+
+      const result = resolvePostMatchAwakening(
+        finished, userFixture(finished).id, userLineup(finished), POWERS, TRIGGERS, forced,
+      );
+
+      expect(result.awakened).toBe(true);
+      expect(result.state.awakening.seasonTally).toEqual({ season: state.season, count: 1 });
+    });
+
+    it('survives the cutscene it was spent on', () => {
+      let state = playedUserFixture(createCareer(createLaunchCareerSetup(67)));
+      const result = resolvePostMatchAwakening(
+        readyForAnother(state), userFixture(state).id, userLineup(state), POWERS, TRIGGERS, forced,
+      );
+      state = completePostMatchAwakening(result.state);
+
+      expect(state.awakening.seasonTally).toEqual({ season: state.season, count: 1 });
+    });
+
+    /**
+     * Every path that rebuilds `state.awakening` from its parts has to carry
+     * the tally, or the season quietly gets its allowance back. Two in the
+     * store did not: the content-drop fallback that retires a cutscene whose
+     * power copy this build no longer ships, and the legacy repair that
+     * rebuilds a first-hero cutscene for a save written before automatic
+     * awakenings. This is the shape test for all of them.
+     */
+    it('is carried by every rebuild of the awakening state', () => {
+      const rebuilds = readFileSync(
+        join(process.cwd(), 'src/application/store.ts'),
+        'utf8',
+      ).match(/awakening: \{\n(?:.*\n)*?\s*\},/g) ?? [];
+      const fromParts = rebuilds.filter(block => block.includes('usedTriggerIds'));
+
+      expect(fromParts.length).toBeGreaterThan(0);
+      for (const block of fromParts) {
+        expect(block).toContain('seasonTally');
+      }
+    });
+
+    it('rolls the second hero against the smaller chance', () => {
+      const base = playedUserFixture(createCareer(createLaunchCareerSetup(71)));
+      const fixtureId = userFixture(base).id;
+      // Bracket this fixture's roll rather than hunting a seed that happens to
+      // land between the shipped 10 and 2: the first chance clears it, the
+      // second does not, which is the whole behaviour under test.
+      const roll = deterministicPostMatchAwakeningRoll(base.careerSeed, fixtureId, 0, 100);
+      const bracketed = {
+        chancePercent: roll + 1,
+        secondInSeasonChancePercent: roll,
+        maxPerSeason: 2,
+        minimumMatchesBetween: 0,
+      } as const;
+
+      const withOne: GameState = {
+        ...base,
+        awakening: { ...base.awakening, seasonTally: { season: base.season, count: 1 } },
+      };
+      expect(resolvePostMatchAwakening(
+        base, fixtureId, userLineup(base), POWERS, TRIGGERS, bracketed,
+      ).awakened).toBe(true);
+      expect(resolvePostMatchAwakening(
+        withOne, fixtureId, userLineup(withOne), POWERS, TRIGGERS, bracketed,
+      ).awakened).toBe(false);
+    });
+  });
+
   it('uses every trigger once before allowing randomized repeats', () => {
     let state = playedUserFixture(createCareer(createLaunchCareerSetup(31)));
     const fixtureId = userFixture(state).id;
-    const forcedChance = { chancePercent: 100, minimumMatchesBetween: 0 } as const;
+    const forcedChance = { chancePercent: 100, secondInSeasonChancePercent: 100, maxPerSeason: 99, minimumMatchesBetween: 0 } as const;
     const seen: string[] = [];
 
     for (let index = 0; index < TRIGGERS.length; index += 1) {
@@ -171,7 +301,7 @@ describe('automatic post-match awakenings', () => {
       [targetId],
       POWERS,
       TRIGGERS,
-      { chancePercent: 100, minimumMatchesBetween: 3 },
+      { chancePercent: 100, secondInSeasonChancePercent: 100, maxPerSeason: 99, minimumMatchesBetween: 3 },
     );
 
     expect(result.state.players.find(player => player.id === targetId)).toMatchObject({
@@ -209,7 +339,7 @@ describe('automatic post-match awakenings', () => {
       [promisedId],
       POWERS,
       TRIGGERS,
-      { chancePercent: 100, minimumMatchesBetween: 3 },
+      { chancePercent: 100, secondInSeasonChancePercent: 100, maxPerSeason: 99, minimumMatchesBetween: 3 },
     );
 
     expect(result.awakened).toBe(false);
@@ -244,7 +374,7 @@ describe('automatic post-match awakenings', () => {
       [promisedId, safeId],
       POWERS,
       TRIGGERS,
-      { chancePercent: 100, minimumMatchesBetween: 3 },
+      { chancePercent: 100, secondInSeasonChancePercent: 100, maxPerSeason: 99, minimumMatchesBetween: 3 },
     );
 
     expect(awakening.awakened).toBe(true);
@@ -289,7 +419,7 @@ describe('automatic post-match awakenings', () => {
       [goalkeeperId],
       LAUNCH_POWER_IDS,
       TRIGGERS,
-      { chancePercent: 100, minimumMatchesBetween: 3 },
+      { chancePercent: 100, secondInSeasonChancePercent: 100, maxPerSeason: 99, minimumMatchesBetween: 3 },
     );
 
     expect(result.state.players.find(player => player.id === goalkeeperId)?.power)
@@ -331,7 +461,7 @@ describe('automatic post-match awakenings', () => {
       [secondTarget],
       ['RALLY_CRY'],
       TRIGGERS,
-      { chancePercent: 100, minimumMatchesBetween: 3 },
+      { chancePercent: 100, secondInSeasonChancePercent: 100, maxPerSeason: 99, minimumMatchesBetween: 3 },
     );
     expect(second.state.awakening.pending?.power).toBe('RALLY_CRY');
   });

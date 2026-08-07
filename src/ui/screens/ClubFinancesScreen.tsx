@@ -7,6 +7,7 @@ import { EmptyDocket } from '../components/EmptyDocket';
 import { FacilitySprite } from '../components/FacilitySprite';
 import type {
   ClubFacilityBuildingViewModel,
+  CoachStaffMemberViewModel,
   ClubFacilityGridViewModel,
   ClubFinancesViewModel,
   ClubLoanViewModel,
@@ -583,19 +584,34 @@ export function ClubFinancesScreen({
     },
   ];
 
-  const staffSections: FlowSection[] = [
-    {
+  // One section per coach, so a wide window puts the head coach and the
+  // assistant side by side — the pair is a comparison, and a single 1180pt-wide
+  // card was the whole board. The board label rides in the header instead of
+  // the first card, or the right column would start 44pt lower than the left.
+  const staffSections: FlowSection[] = viewModel.coachingStaff.length === 0
+    ? [{
       key: 'coaching-staff',
-      weight: viewModel.coachingStaff.length === 0 ? 4 : 3 + 4 * viewModel.coachingStaff.length,
-      node: (
-        <CoachingStaffSection
-          viewModel={viewModel}
-          onOpenCoachMarket={onOpenCoachMarket}
-          onDismissCoach={onDismissCoach}
-        />
-      ),
-    },
-  ];
+      weight: 4,
+      node: <CoachingVacancySection onOpenCoachMarket={onOpenCoachMarket} />,
+    }]
+    : [
+      ...viewModel.coachingStaff.map(coach => ({
+        key: `coach-${coach.role}`,
+        weight: 12,
+        node: <CoachCardSection coach={coach} onDismissCoach={onDismissCoach} />,
+      })),
+      ...(onOpenCoachMarket === undefined ? [] : [{
+        key: 'coach-market',
+        weight: 2,
+        node: (
+          <ActionButton
+            label={t('clubFinances.reviewCoachMarket')}
+            accessibilityLabel={t('clubFinances.a11y.reviewTheCoachMarket')}
+            onPress={onOpenCoachMarket}
+          />
+        ),
+      }]),
+    ];
 
   const facilitySections: FlowSection[] = [
     {
@@ -618,8 +634,6 @@ export function ClubFinancesScreen({
           previewCell={previewCell}
           setPreviewCell={setPreviewCell}
           placementRejection={placementRejection}
-          buildMenuReminder={buildMenuReminder}
-          setBuildMenuReminder={setBuildMenuReminder}
           facilityGridWidth={facilityGridWidth}
           setFacilityGridWidth={setFacilityGridWidth}
           selectedBuilding={selectedBuilding}
@@ -635,17 +649,51 @@ export function ClubFinancesScreen({
           onUpgradeFacility={onUpgradeFacility}
           onCloseFacility={onCloseFacility}
           facilityGuideGridTargetRef={facilityGuideGridTargetRef}
+          scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
+        />
+      ),
+    },
+    // Opens the second column on a wide screen. The grounds are the board —
+    // the grid on the left, and everything the manager does *to* it reading
+    // down the right: the menu to build from, the pairs found so far, the
+    // register and the legacy pitch. Asked for rather than estimated, so no
+    // content count can lift a build card up beside the grid.
+    {
+      key: 'build-menu',
+      weight: 4 + viewModel.facilities.catalog.length,
+      startsColumn: true,
+      node: (
+        <BuildMenuSection
+          viewModel={viewModel}
+          guideFocus={guideFocus}
+          guidedFirstFacility={guidedFirstFacility}
+          guidedFacilityPhase={guidedFacilityPhase}
+          selectedBuildType={selectedBuildType}
+          setSelectedBuildType={setSelectedBuildType}
+          setSelectedBuildingId={setSelectedBuildingId}
+          setRelocatingBuildingId={setRelocatingBuildingId}
+          buildMenuReminder={buildMenuReminder}
+          setBuildMenuReminder={setBuildMenuReminder}
           facilityGuideBuildTargetRef={facilityGuideBuildTargetRef}
           scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
           coachingOfficeBuildTargetRef={coachingOfficeBuildTargetRef}
           scrollToCoachingOffice={scrollToCoachingOffice}
-          showCoachingOfficeScrollCue={guideFocus === 'coaching-office' && !coachingOfficeScrollCueDismissed}
+          // Two columns put the grid beside the menu instead of above it, so
+          // there is nothing to scroll up to and the cue would be a lie.
+          showCoachingOfficeScrollCue={layoutMode === 'single'
+            && guideFocus === 'coaching-office'
+            && !coachingOfficeScrollCueDismissed}
           dismissCoachingOfficeScrollCue={dismissCoachingOfficeScrollCue}
           guideIncomeFacilities={guideIncomeFacilities}
           incomeFacilityBuildTargetRef={incomeFacilityBuildTargetRef}
           scrollToIncomeFacilities={scrollToIncomeFacilities}
         />
       ),
+    },
+    {
+      key: 'facility-pair-bonuses',
+      weight: 3 + 3 * viewModel.facilities.discoveredAdjacencies.length,
+      node: <FacilityPairBonusesSection facilities={viewModel.facilities} />,
     },
     ...(viewModel.facilities.buildings.length === 0 ? [] : [{
       key: 'facility-register',
@@ -704,6 +752,18 @@ export function ClubFinancesScreen({
           <StatusChip label={viewModel.periodLabel} />
         </View>
         <ScreenTabs tabs={CLUB_OFFICE_TABS(t)} activeId={activeTab} onSelect={onSelectTab} />
+        {/* The Staff board is a row of peer coach cards — one per column on a
+            wide window — so its label belongs to the board, not to the card
+            that happens to come first. */}
+        {activeTab === 'staff' ? (
+          <View className="mt-4">
+            <SectionLabel
+              eyebrow={t('clubFinances.backroomStaff')}
+              title={t('clubFinances.coachingStaff')}
+              right={<StatusChip label={`${viewModel.coachingStaff.length} / 2`} selected={viewModel.coachingStaff.length > 0} />}
+            />
+          </View>
+        ) : null}
       </View>
         }
         sections={sections}
@@ -1425,104 +1485,96 @@ function FacilityRegisterSection({ facilities }: { readonly facilities: ClubFaci
   );
 }
 
-interface CoachingStaffSectionProps {
-  viewModel: ClubFinancesViewModel;
-  onOpenCoachMarket?: () => void;
+/**
+ * The empty half of the staff board: no coach yet, and the only move is the
+ * market. The board label lives in the screen header, not here — the staff
+ * board is a row of peer cards, and a label inside the first one would drop
+ * the second column 44pt below the first.
+ */
+function CoachingVacancySection({ onOpenCoachMarket }: { readonly onOpenCoachMarket?: () => void }) {
+  const t = useCopy();
+  return (
+    <PaperPanel
+      kicker={t('clubFinances.vacancy')}
+      title={t('clubFinances.touchlineNeedsAVoice')}
+      stamp={t('clubFinances.stampOpen')}
+    >
+      <Text className="text-sm leading-5 text-ink/70">
+        {t('clubFinances.hireAHeadCoach')}</Text>
+      {onOpenCoachMarket ? (
+        <View className="mt-3">
+          <ActionButton
+            label={t('clubFinances.openCoachMarket')}
+            accessibilityLabel={t('clubFinances.a11y.openTheCoachMarket')}
+            onPress={onOpenCoachMarket}
+          />
+        </View>
+      ) : null}
+    </PaperPanel>
+  );
+}
+
+interface CoachCardSectionProps {
+  coach: CoachStaffMemberViewModel;
   onDismissCoach?: (role: 'HEAD' | 'ASSISTANT') => void;
 }
 
-function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: CoachingStaffSectionProps) {
+/** One coach, one section: head and assistant stand side by side on a wide
+ * window instead of stacking down a 1180pt-wide page. */
+function CoachCardSection({ coach, onDismissCoach }: CoachCardSectionProps) {
   const t = useCopy();
   return (
-    <View>
-        <SectionLabel
-          eyebrow={t('clubFinances.backroomStaff')}
-          title={t('clubFinances.coachingStaff')}
-          right={<StatusChip label={`${viewModel.coachingStaff.length} / 2`} selected={viewModel.coachingStaff.length > 0} />}
+    <View className="border-2 border-b-4 border-ink bg-white p-3">
+    <View className="flex-row items-start gap-3">
+      <View className="border-2 border-b-4 border-ink bg-blue-light px-2 pt-2">
+        <ManagementSprite
+          spriteKey={`coach:${coach.portraitId}:rest`}
+          width={72}
+          accessibilityLabel={t('clubFinances.a11y.coachPortrait', { name: coach.name })}
         />
-        {viewModel.coachingStaff.length === 0 ? (
-          <PaperPanel
-            kicker={t('clubFinances.vacancy')}
-            title={t('clubFinances.touchlineNeedsAVoice')}
-            stamp={t('clubFinances.stampOpen')}
-          >
-            <Text className="text-sm leading-5 text-ink/70">
-              {t('clubFinances.hireAHeadCoach')}</Text>
-            {onOpenCoachMarket ? (
-              <View className="mt-3">
-                <ActionButton
-                  label={t('clubFinances.openCoachMarket')}
-                  accessibilityLabel={t('clubFinances.a11y.openTheCoachMarket')}
-                  onPress={onOpenCoachMarket}
-                />
-              </View>
-            ) : null}
-          </PaperPanel>
-        ) : (
-          <View className="gap-3">
-            {viewModel.coachingStaff.map(coach => (
-              <View key={coach.id} className="border-2 border-b-4 border-ink bg-white p-3">
-                <View className="flex-row items-start gap-3">
-                  <View className="border-2 border-b-4 border-ink bg-blue-light px-2 pt-2">
-                    <ManagementSprite
-                      spriteKey={`coach:${coach.portraitId}:rest`}
-                      width={72}
-                      accessibilityLabel={t('clubFinances.a11y.coachPortrait', { name: coach.name })}
-                    />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <Text className="font-pixel text-sm uppercase text-blue-dark">{coach.roleLabel}</Text>
-                    <Text className="mt-1 text-lg font-bold text-ink" numberOfLines={1}>{coach.name}</Text>
-                    <Text className="mt-1 text-sm text-ink/70">
-                      {t('clubFinances.coachLine', {
-                        age: coach.age, personality: coach.personalityLabel, level: coach.level,
-                      })}
-                    </Text>
-                    <Text className="mt-1 font-mono text-sm text-ink">
-                      {t('clubFinances.perWeekAmount', { amount: formatCurrency(coach.weeklyWage) })}
-                    </Text>
-                  </View>
-                </View>
-                <View className="mt-3 flex-row gap-2">
-                  {coach.specialtyLabels.map(specialty => (
-                    <View key={specialty} className="flex-1 border-2 border-ink bg-paper px-2 py-2">
-                      <PixelText className="text-center text-sm uppercase text-ink">{specialty}</PixelText>
-                    </View>
-                  ))}
-                </View>
-                <View className="mt-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
-                  {coach.effectLabels.map(effect => (
-                    <Text key={effect} className="text-sm font-bold text-ink">{effect}</Text>
-                  ))}
-                </View>
-                <Text className="mt-2 text-sm text-ink/70">
-                  {t('clubFinances.coachEmployed', {
-                    n: coach.seasonsEmployed, count: coach.seasonsEmployed,
-                  })}
-                </Text>
-                {onDismissCoach ? (
-                  <View className="mt-3">
-                    <ActionButton
-                      label={t('clubFinances.dismissSeverance', {
-                        amount: formatCurrency(coach.severanceCost),
-                      })}
-                      accessibilityLabel={t('clubFinances.a11y.dismissWithSeverance', { name: coach.name })}
-                      variant="danger"
-                      onPress={() => onDismissCoach(coach.role)}
-                    />
-                  </View>
-                ) : null}
-              </View>
-            ))}
-            {onOpenCoachMarket ? (
-              <ActionButton
-                label={t('clubFinances.reviewCoachMarket')}
-                accessibilityLabel={t('clubFinances.a11y.reviewTheCoachMarket')}
-                onPress={onOpenCoachMarket}
-              />
-            ) : null}
-          </View>
-        )}
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="font-pixel text-sm uppercase text-blue-dark">{coach.roleLabel}</Text>
+        <Text className="mt-1 text-lg font-bold text-ink" numberOfLines={1}>{coach.name}</Text>
+        <Text className="mt-1 text-sm text-ink/70">
+          {t('clubFinances.coachLine', {
+            age: coach.age, personality: coach.personalityLabel, level: coach.level,
+          })}
+        </Text>
+        <Text className="mt-1 font-mono text-sm text-ink">
+          {t('clubFinances.perWeekAmount', { amount: formatCurrency(coach.weeklyWage) })}
+        </Text>
+      </View>
+    </View>
+    <View className="mt-3 flex-row gap-2">
+      {coach.specialtyLabels.map(specialty => (
+        <View key={specialty} className="flex-1 border-2 border-ink bg-paper px-2 py-2">
+          <PixelText className="text-center text-sm uppercase text-ink">{specialty}</PixelText>
+        </View>
+      ))}
+    </View>
+    <View className="mt-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
+      {coach.effectLabels.map(effect => (
+        <Text key={effect} className="text-sm font-bold text-ink">{effect}</Text>
+      ))}
+    </View>
+    <Text className="mt-2 text-sm text-ink/70">
+      {t('clubFinances.coachEmployed', {
+        n: coach.seasonsEmployed, count: coach.seasonsEmployed,
+      })}
+    </Text>
+    {onDismissCoach ? (
+      <View className="mt-3">
+        <ActionButton
+          label={t('clubFinances.dismissSeverance', {
+            amount: formatCurrency(coach.severanceCost),
+          })}
+          accessibilityLabel={t('clubFinances.a11y.dismissWithSeverance', { name: coach.name })}
+          variant="danger"
+          onPress={() => onDismissCoach(coach.role)}
+        />
+      </View>
+    ) : null}
     </View>
   );
 }
@@ -1544,8 +1596,6 @@ interface GroundsSectionProps {
   setPreviewCell: Dispatch<SetStateAction<{ x: number; y: number } | null>>;
   /** Why the last tapped square was refused, shown in place of the placement hint. */
   placementRejection: string | null;
-  buildMenuReminder: string | null;
-  setBuildMenuReminder: Dispatch<SetStateAction<string | null>>;
   facilityGridWidth: number;
   setFacilityGridWidth: Dispatch<SetStateAction<number>>;
   selectedBuilding?: ClubFacilityBuildingViewModel;
@@ -1561,16 +1611,7 @@ interface GroundsSectionProps {
   onUpgradeFacility?: (buildingId: string) => void;
   onCloseFacility?: (buildingId: string) => void;
   facilityGuideGridTargetRef: RefObject<View | null>;
-  facilityGuideBuildTargetRef: RefObject<View | null>;
   scrollFacilityGuideTargetIntoView: (phase: GuidedFirstFacilityPhase) => void;
-  coachingOfficeBuildTargetRef: RefObject<View | null>;
-  scrollToCoachingOffice: () => void;
-  showCoachingOfficeScrollCue: boolean;
-  dismissCoachingOfficeScrollCue: () => void;
-  /** Lights the Fan Shop and Stadium Stand after the board's loan lands. */
-  guideIncomeFacilities: boolean;
-  incomeFacilityBuildTargetRef: RefObject<View | null>;
-  scrollToIncomeFacilities: () => void;
 }
 
 function GroundsSection({
@@ -1589,8 +1630,6 @@ function GroundsSection({
   previewCell,
   setPreviewCell,
   placementRejection,
-  buildMenuReminder,
-  setBuildMenuReminder,
   facilityGridWidth,
   setFacilityGridWidth,
   selectedBuilding,
@@ -1606,15 +1645,7 @@ function GroundsSection({
   onUpgradeFacility,
   onCloseFacility,
   facilityGuideGridTargetRef,
-  facilityGuideBuildTargetRef,
   scrollFacilityGuideTargetIntoView,
-  coachingOfficeBuildTargetRef,
-  scrollToCoachingOffice,
-  showCoachingOfficeScrollCue,
-  dismissCoachingOfficeScrollCue,
-  guideIncomeFacilities,
-  incomeFacilityBuildTargetRef,
-  scrollToIncomeFacilities,
 }: GroundsSectionProps) {
   const t = useCopy();
   const facilities = viewModel.facilities;
@@ -2155,276 +2186,348 @@ function GroundsSection({
               </Pressable>
             </View>
           ) : null}
-
-          <View
-            ref={facilityGuideBuildTargetRef}
-            collapsable={false}
-            className="relative mt-4"
-            onLayout={() => {
-              if (guidedFirstFacility && guidedFacilityPhase === 'build-menu') {
-                scrollFacilityGuideTargetIntoView('build-menu');
-              }
-            }}
-          >
-            <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/70">{t('clubFinances.buildMenu')}</PixelText>
-            {buildMenuReminder !== null ? (
-              <Text
-                accessibilityLiveRegion="polite"
-                className="mb-3 border-2 border-gold-dark bg-gold-light px-3 py-3 text-sm font-bold leading-5 text-ink"
-              >
-                {buildMenuReminder}
-              </Text>
-            ) : null}
-            <View className={guidedFirstFacility && guidedFacilityPhase === 'build-menu'
-              ? 'mt-20 flex-row flex-wrap gap-2'
-              : 'flex-row flex-wrap gap-2'}>
-              {viewModel.facilities.catalog.map(entry => {
-                const selected = selectedBuildType === entry.type;
-                const knownAdjacency = viewModel.facilities.discoveredAdjacencies
-                  .map(id => facilityAdjacencyPresentation(id, t))
-                  .find(presentation => presentation?.facilityTypes.includes(entry.type));
-                const adjacencyGuidance = knownAdjacency === undefined
-                  ? undefined
-                  : `${knownAdjacency.pairLabel} · ${knownAdjacency.effectLabel}`;
-                const guideAllowsType = !guidedFirstFacility
-                  || guidedFirstFacilityAllowsBuildType(entry.type);
-                const entryEnabled = entry.available && entry.affordable && guideAllowsType;
-                const openingPitchChoiceBlocked = entry.blockedByOpeningTrainingPitch
-                  || !guideAllowsType;
-                const guidedIncome = guideIncomeFacilities && isIncomeFacilityType(entry.type);
-                // Sentence per catalog key, joined with a space — the same shape
-                // the sponsor cards use. Building it as one template would bake
-                // English clause order into every language.
-                const cardAccessibilityLabel = [
-                  t('clubFinances.a11y.facilityCard', {
-                    name: entry.name,
-                    built: entry.builtCount,
-                    limit: entry.buildLimit,
-                    effect: entry.effectLabel,
-                    width: entry.width,
-                    height: entry.height,
-                  }),
-                  t('clubFinances.a11y.buildTimeWeeks', {
-                    n: entry.buildWeeks, count: entry.buildWeeks,
-                  }),
-                  adjacencyGuidance === undefined
-                    ? undefined
-                    : t('clubFinances.a11y.knownComboIs', { combo: adjacencyGuidance }),
-                  guideAllowsType ? undefined : t('clubFinances.a11y.buildTheTrainingPitchFirst'),
-                  entry.available
-                    ? t('clubFinances.a11y.buildCostAndUpkeep', {
-                      cost: formatCurrency(entry.buildCost),
-                      upkeep: formatCurrency(entry.weeklyUpkeep),
-                    })
-                    : t('clubFinances.a11y.lockedSentence'),
-                  entry.blockedReason
-                    || (entry.available && !entry.affordable && entry.affordabilityShortfall > 0
-                      ? t('clubFinances.a11y.needMoreSentence', {
-                        amount: formatCurrency(entry.affordabilityShortfall),
-                      })
-                      : undefined),
-                ].filter(Boolean).join(' ');
-                return (
-                  <Fragment key={entry.type}>
-                    {/* The banner rides the same wrapping row as the cards it
-                        introduces rather than sitting at the top of the menu:
-                        these two are the last of twelve, so a heading up there
-                        would scroll off before the buildings it names arrive. */}
-                    {guidedIncome && entry.type === 'fan-shop' ? (
-                      <View
-                        ref={incomeFacilityBuildTargetRef}
-                        collapsable={false}
-                        onLayout={scrollToIncomeFacilities}
-                        className="w-full border-2 border-b-4 border-gold-dark bg-gold-light px-3 py-3"
-                      >
-                        <PixelText className="text-sm uppercase tracking-wide text-ink">
-                          {t('clubFinances.bertSays')}</PixelText>
-                        <Text className="mt-1 text-sm leading-5 text-ink">
-                          {viewModel.facilities.activeProject === undefined
-                            ? t('clubFinances.incomeFacilitiesHint')
-                            : t('clubFinances.incomeFacilitiesBusyHint', {
-                              name: viewModel.facilities.activeProject.name,
-                            })}
-                        </Text>
-                      </View>
-                    ) : null}
-                  <View
-                    ref={entry.type === 'coaching-office' ? coachingOfficeBuildTargetRef : undefined}
-                    collapsable={entry.type === 'coaching-office' ? false : undefined}
-                    className={guideFocus === 'coaching-office' && entry.type === 'coaching-office'
-                      ? 'relative mt-20 w-[48%]'
-                      : 'relative w-[48%]'}
-                    onLayout={entry.type === 'coaching-office' ? scrollToCoachingOffice : undefined}
-                  >
-                    {/* The inbox sends you here to build a Coaching Office, and the
-                        viewport already lands on it — but nothing said which of
-                        the eight cards to press. It wears the same gold tutorial
-                        glow as the Train button and the same arrow. */}
-                    {guideFocus === 'coaching-office' && entry.type === 'coaching-office' && !selected ? (
-                      <TutorialTapCue
-                        label={t('clubFinances.tapHere')}
-                        detail={t('clubFinances.coachingOfficeCue')}
-                        style={{
-                          left: '50%',
-                          marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                          top: -82,
-                        }}
-                      />
-                    ) : null}
-                    {/* Selecting the card arms the build, but the grid it drops
-                        onto is off the top of the screen — the tap looked like
-                        it did nothing. Points back up at the grid, and gets out
-                        of the way on a tap for anyone who already knows. */}
-                    {showCoachingOfficeScrollCue && entry.type === 'coaching-office' && selected ? (
-                      <TutorialTapCue
-                        label={t('clubFinances.scrollUp')}
-                        detail={t('clubFinances.thenTapAPlusSquare')}
-                        direction="up"
-                        style={{
-                          left: '50%',
-                          marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                          top: -92,
-                        }}
-                        onDismiss={dismissCoachingOfficeScrollCue}
-                      />
-                    ) : null}
-                    {guidedFirstFacility
-                      && guidedFacilityPhase === 'build-menu'
-                      && entry.type === 'training-pitch' ? (
-                        <TutorialTapCue
-                          label={t('clubFinances.tapHere')}
-                          detail={t('clubFinances.trainingPitchCue')}
-                          style={{
-                            left: '50%',
-                            marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                            top: -82,
-                          }}
-                        />
-                      ) : null}
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={cardAccessibilityLabel}
-                      accessibilityState={{ disabled: !entryEnabled, selected }}
-                      disabled={!entryEnabled && !openingPitchChoiceBlocked}
-                      onPress={() => {
-                        if (openingPitchChoiceBlocked) {
-                          setBuildMenuReminder(t('clubFinances.buildTrainingPitchFirstReminder'));
-                          return;
-                        }
-                        setBuildMenuReminder(null);
-                        setSelectedBuildType(selected ? null : entry.type);
-                        setSelectedBuildingId(null);
-                        setRelocatingBuildingId(null);
-                      }}
-                      className={selected
-                        ? 'min-h-36 w-full border-2 border-b-4 border-blue-dark bg-blue-light/30 p-2'
-                        : (guideFocus === 'coaching-office' && entry.type === 'coaching-office')
-                          || guidedIncome
-                          ? 'min-h-36 w-full border-2 border-b-4 border-gold-dark bg-gold-light/25 p-2'
-                          : entryEnabled
-                            ? 'min-h-36 w-full border-2 border-b-4 border-ink bg-white p-2'
-                            : 'min-h-36 w-full border-2 border-ink/20 bg-ink/5 p-2'}
-                      // Lit even when the club cannot afford it yet: the point
-                      // of the highlight is which buildings earn, and a shop
-                      // the manager has to save up for is still the answer.
-                      style={(guideFocus === 'coaching-office' && entry.type === 'coaching-office')
-                        || guidedIncome
-                        ? styles.guidedFacilityGlow
-                        : undefined}
-                    >
-                      <View className="mb-2 flex-row items-start gap-2">
-                        <View style={{ opacity: entryEnabled ? 1 : 0.35 }}>
-                          <FacilitySprite type={entry.type} size={32} showLevel={false} />
-                        </View>
-                        <PixelText className={entryEnabled
-                          ? 'flex-1 text-sm uppercase leading-4 text-ink'
-                          : 'flex-1 text-sm uppercase leading-4 text-ink/35'}>
-                          {entry.name}
-                        </PixelText>
-                      </View>
-                      <Text className={entryEnabled
-                        ? 'text-xs font-bold leading-4 text-blue-dark'
-                        : 'text-xs font-bold leading-4 text-ink/35'}>
-                        {entry.effectLabel}
-                      </Text>
-                      <Text className={entryEnabled
-                        ? 'mt-1 font-mono text-sm text-ink/70'
-                        : 'mt-1 font-mono text-sm text-ink/30'}>
-                        {entry.available
-                          ? t('clubFinances.facilityCardStats', {
-                            built: entry.builtCount,
-                            limit: entry.buildLimit,
-                            width: entry.width,
-                            height: entry.height,
-                            cost: formatCurrency(entry.buildCost),
-                            weeks: entry.buildWeeks,
-                            upkeep: formatCurrency(entry.weeklyUpkeep),
-                          })
-                          : t('clubFinances.locked')}
-                      </Text>
-                      {adjacencyGuidance !== undefined && entry.available ? (
-                        <View className="mt-2 border-t border-pitch-dark/25 pt-2">
-                          <PixelText className="text-xs uppercase tracking-wide text-pitch-ink">
-                            {t('clubFinances.knownCombo')}</PixelText>
-                          <Text className="mt-1 text-xs leading-4 text-ink/65">
-                            {adjacencyGuidance}
-                          </Text>
-                        </View>
-                      ) : null}
-                      {entry.blockedReason ? (
-                        <Text className="mt-1 text-xs font-bold text-red-dark">{entry.blockedReason}</Text>
-                      ) : null}
-                      {entry.available && !entry.affordable && entry.affordabilityShortfall > 0 ? (
-                        <PixelText className="mt-1 text-xs uppercase text-red-dark">
-                          {t('clubFinances.needMoreAmount', {
-                            amount: formatCurrency(entry.affordabilityShortfall),
-                          })}
-                        </PixelText>
-                      ) : null}
-                    </Pressable>
-                  </View>
-                  </Fragment>
-                );
-              })}
-            </View>
-          </View>
-
-          <View className="mt-4 border-t-2 border-ink/20 pt-3">
-            <PixelText className="text-sm uppercase tracking-wide text-ink/70">{t('clubFinances.facilityPairBonuses')}</PixelText>
-            {viewModel.facilities.discoveredAdjacencies.length === 0 ? (
-              <Text className="mt-2 text-sm leading-4 text-ink/70">
-                {t('clubFinances.noPairingsDiscoveredYet')}</Text>
-            ) : viewModel.facilities.discoveredAdjacencies.map(adjacency => {
-              const presentation = facilityAdjacencyPresentation(adjacency, t);
-              const active = viewModel.facilities.activeAdjacencies.includes(adjacency);
-              return (
-                <View key={adjacency} className="mt-2 flex-row items-start gap-3 border border-ink/20 bg-white px-3 py-3">
-                  <View className="min-w-0 flex-1">
-                    <PixelText className="text-sm uppercase text-ink">
-                      {presentation?.pairLabel ?? adjacency}
-                    </PixelText>
-                    {presentation ? (
-                      <>
-                        <Text className="mt-1 text-sm font-bold text-blue-dark">
-                          {presentation.effectLabel}
-                        </Text>
-                        <Text className="mt-1 text-sm leading-4 text-ink/70">
-                          {t('clubFinances.whyItWorks', { reason: presentation.rationale })}
-                        </Text>
-                      </>
-                    ) : null}
-                  </View>
-                  <StatusChip
-                    label={active
-                      ? t('clubFinances.adjacencyActive')
-                      : t('clubFinances.adjacencyKnown')}
-                    tone={active ? 'success' : 'normal'}
-                  />
-                </View>
-              );
-            })}
-          </View>
         </PaperPanel>
+    </View>
+  );
+}
+
+interface BuildMenuSectionProps {
+  viewModel: ClubFinancesViewModel;
+  guideFocus?: AssistantGuideFocus;
+  guidedFirstFacility: boolean;
+  guidedFacilityPhase: GuidedFirstFacilityPhase;
+  selectedBuildType: FacilityTypeViewModel | null;
+  setSelectedBuildType: Dispatch<SetStateAction<FacilityTypeViewModel | null>>;
+  setSelectedBuildingId: Dispatch<SetStateAction<string | null>>;
+  setRelocatingBuildingId: Dispatch<SetStateAction<string | null>>;
+  buildMenuReminder: string | null;
+  setBuildMenuReminder: Dispatch<SetStateAction<string | null>>;
+  facilityGuideBuildTargetRef: RefObject<View | null>;
+  scrollFacilityGuideTargetIntoView: (phase: GuidedFirstFacilityPhase) => void;
+  coachingOfficeBuildTargetRef: RefObject<View | null>;
+  scrollToCoachingOffice: () => void;
+  showCoachingOfficeScrollCue: boolean;
+  dismissCoachingOfficeScrollCue: () => void;
+  /** Lights the Fan Shop and Stadium Stand after the board's loan lands. */
+  guideIncomeFacilities: boolean;
+  incomeFacilityBuildTargetRef: RefObject<View | null>;
+  scrollToIncomeFacilities: () => void;
+}
+
+/**
+ * The catalog, lifted out of the grounds panel so a wide window can stand it
+ * beside the grid instead of below it. Its own board section on a phone too:
+ * the order down the page is unchanged, it just carries its own label now.
+ */
+function BuildMenuSection({
+  viewModel,
+  guideFocus,
+  guidedFirstFacility,
+  guidedFacilityPhase,
+  selectedBuildType,
+  setSelectedBuildType,
+  setSelectedBuildingId,
+  setRelocatingBuildingId,
+  buildMenuReminder,
+  setBuildMenuReminder,
+  facilityGuideBuildTargetRef,
+  scrollFacilityGuideTargetIntoView,
+  coachingOfficeBuildTargetRef,
+  scrollToCoachingOffice,
+  showCoachingOfficeScrollCue,
+  dismissCoachingOfficeScrollCue,
+  guideIncomeFacilities,
+  incomeFacilityBuildTargetRef,
+  scrollToIncomeFacilities,
+}: BuildMenuSectionProps) {
+  const t = useCopy();
+  return (
+    <View>
+      <SectionLabel
+        eyebrow={t('clubFinances.buildMenu')}
+        title={t('clubFinances.buildTheFacility')}
+      />
+      <View
+        ref={facilityGuideBuildTargetRef}
+        collapsable={false}
+        className="relative border-2 border-b-4 border-ink bg-white p-3"
+        onLayout={() => {
+          if (guidedFirstFacility && guidedFacilityPhase === 'build-menu') {
+            scrollFacilityGuideTargetIntoView('build-menu');
+          }
+        }}
+      >
+        {buildMenuReminder !== null ? (
+          <Text
+            accessibilityLiveRegion="polite"
+            className="mb-3 border-2 border-gold-dark bg-gold-light px-3 py-3 text-sm font-bold leading-5 text-ink"
+          >
+            {buildMenuReminder}
+          </Text>
+        ) : null}
+        <View className={guidedFirstFacility && guidedFacilityPhase === 'build-menu'
+          ? 'mt-20 flex-row flex-wrap gap-2'
+          : 'flex-row flex-wrap gap-2'}>
+          {viewModel.facilities.catalog.map(entry => {
+            const selected = selectedBuildType === entry.type;
+            const knownAdjacency = viewModel.facilities.discoveredAdjacencies
+              .map(id => facilityAdjacencyPresentation(id, t))
+              .find(presentation => presentation?.facilityTypes.includes(entry.type));
+            const adjacencyGuidance = knownAdjacency === undefined
+              ? undefined
+              : `${knownAdjacency.pairLabel} · ${knownAdjacency.effectLabel}`;
+            const guideAllowsType = !guidedFirstFacility
+              || guidedFirstFacilityAllowsBuildType(entry.type);
+            const entryEnabled = entry.available && entry.affordable && guideAllowsType;
+            const openingPitchChoiceBlocked = entry.blockedByOpeningTrainingPitch
+              || !guideAllowsType;
+            const guidedIncome = guideIncomeFacilities && isIncomeFacilityType(entry.type);
+            // Sentence per catalog key, joined with a space — the same shape
+            // the sponsor cards use. Building it as one template would bake
+            // English clause order into every language.
+            const cardAccessibilityLabel = [
+              t('clubFinances.a11y.facilityCard', {
+                name: entry.name,
+                built: entry.builtCount,
+                limit: entry.buildLimit,
+                effect: entry.effectLabel,
+                width: entry.width,
+                height: entry.height,
+              }),
+              t('clubFinances.a11y.buildTimeWeeks', {
+                n: entry.buildWeeks, count: entry.buildWeeks,
+              }),
+              adjacencyGuidance === undefined
+                ? undefined
+                : t('clubFinances.a11y.knownComboIs', { combo: adjacencyGuidance }),
+              guideAllowsType ? undefined : t('clubFinances.a11y.buildTheTrainingPitchFirst'),
+              entry.available
+                ? t('clubFinances.a11y.buildCostAndUpkeep', {
+                  cost: formatCurrency(entry.buildCost),
+                  upkeep: formatCurrency(entry.weeklyUpkeep),
+                })
+                : t('clubFinances.a11y.lockedSentence'),
+              entry.blockedReason
+                || (entry.available && !entry.affordable && entry.affordabilityShortfall > 0
+                  ? t('clubFinances.a11y.needMoreSentence', {
+                    amount: formatCurrency(entry.affordabilityShortfall),
+                  })
+                  : undefined),
+            ].filter(Boolean).join(' ');
+            return (
+              <Fragment key={entry.type}>
+                {/* The banner rides the same wrapping row as the cards it
+                    introduces rather than sitting at the top of the menu:
+                    these two are the last of twelve, so a heading up there
+                    would scroll off before the buildings it names arrive. */}
+                {guidedIncome && entry.type === 'fan-shop' ? (
+                  <View
+                    ref={incomeFacilityBuildTargetRef}
+                    collapsable={false}
+                    onLayout={scrollToIncomeFacilities}
+                    className="w-full border-2 border-b-4 border-gold-dark bg-gold-light px-3 py-3"
+                  >
+                    <PixelText className="text-sm uppercase tracking-wide text-ink">
+                      {t('clubFinances.bertSays')}</PixelText>
+                    <Text className="mt-1 text-sm leading-5 text-ink">
+                      {viewModel.facilities.activeProject === undefined
+                        ? t('clubFinances.incomeFacilitiesHint')
+                        : t('clubFinances.incomeFacilitiesBusyHint', {
+                          name: viewModel.facilities.activeProject.name,
+                        })}
+                    </Text>
+                  </View>
+                ) : null}
+              <View
+                ref={entry.type === 'coaching-office' ? coachingOfficeBuildTargetRef : undefined}
+                collapsable={entry.type === 'coaching-office' ? false : undefined}
+                className={guideFocus === 'coaching-office' && entry.type === 'coaching-office'
+                  ? 'relative mt-20 w-[48%]'
+                  : 'relative w-[48%]'}
+                onLayout={entry.type === 'coaching-office' ? scrollToCoachingOffice : undefined}
+              >
+                {/* The inbox sends you here to build a Coaching Office, and the
+                    viewport already lands on it — but nothing said which of
+                    the eight cards to press. It wears the same gold tutorial
+                    glow as the Train button and the same arrow. */}
+                {guideFocus === 'coaching-office' && entry.type === 'coaching-office' && !selected ? (
+                  <TutorialTapCue
+                    label={t('clubFinances.tapHere')}
+                    detail={t('clubFinances.coachingOfficeCue')}
+                    style={{
+                      left: '50%',
+                      marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                      top: -82,
+                    }}
+                  />
+                ) : null}
+                {/* Selecting the card arms the build, but the grid it drops
+                    onto is off the top of the screen — the tap looked like
+                    it did nothing. Points back up at the grid, and gets out
+                    of the way on a tap for anyone who already knows. */}
+                {showCoachingOfficeScrollCue && entry.type === 'coaching-office' && selected ? (
+                  <TutorialTapCue
+                    label={t('clubFinances.scrollUp')}
+                    detail={t('clubFinances.thenTapAPlusSquare')}
+                    direction="up"
+                    style={{
+                      left: '50%',
+                      marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                      top: -92,
+                    }}
+                    onDismiss={dismissCoachingOfficeScrollCue}
+                  />
+                ) : null}
+                {guidedFirstFacility
+                  && guidedFacilityPhase === 'build-menu'
+                  && entry.type === 'training-pitch' ? (
+                    <TutorialTapCue
+                      label={t('clubFinances.tapHere')}
+                      detail={t('clubFinances.trainingPitchCue')}
+                      style={{
+                        left: '50%',
+                        marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                        top: -82,
+                      }}
+                    />
+                  ) : null}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={cardAccessibilityLabel}
+                  accessibilityState={{ disabled: !entryEnabled, selected }}
+                  disabled={!entryEnabled && !openingPitchChoiceBlocked}
+                  onPress={() => {
+                    if (openingPitchChoiceBlocked) {
+                      setBuildMenuReminder(t('clubFinances.buildTrainingPitchFirstReminder'));
+                      return;
+                    }
+                    setBuildMenuReminder(null);
+                    setSelectedBuildType(selected ? null : entry.type);
+                    setSelectedBuildingId(null);
+                    setRelocatingBuildingId(null);
+                  }}
+                  className={selected
+                    ? 'min-h-36 w-full border-2 border-b-4 border-blue-dark bg-blue-light/30 p-2'
+                    : (guideFocus === 'coaching-office' && entry.type === 'coaching-office')
+                      || guidedIncome
+                      ? 'min-h-36 w-full border-2 border-b-4 border-gold-dark bg-gold-light/25 p-2'
+                      : entryEnabled
+                        ? 'min-h-36 w-full border-2 border-b-4 border-ink bg-white p-2'
+                        : 'min-h-36 w-full border-2 border-ink/20 bg-ink/5 p-2'}
+                  // Lit even when the club cannot afford it yet: the point
+                  // of the highlight is which buildings earn, and a shop
+                  // the manager has to save up for is still the answer.
+                  style={(guideFocus === 'coaching-office' && entry.type === 'coaching-office')
+                    || guidedIncome
+                    ? styles.guidedFacilityGlow
+                    : undefined}
+                >
+                  <View className="mb-2 flex-row items-start gap-2">
+                    <View style={{ opacity: entryEnabled ? 1 : 0.35 }}>
+                      <FacilitySprite type={entry.type} size={32} showLevel={false} />
+                    </View>
+                    <PixelText className={entryEnabled
+                      ? 'flex-1 text-sm uppercase leading-4 text-ink'
+                      : 'flex-1 text-sm uppercase leading-4 text-ink/35'}>
+                      {entry.name}
+                    </PixelText>
+                  </View>
+                  <Text className={entryEnabled
+                    ? 'text-xs font-bold leading-4 text-blue-dark'
+                    : 'text-xs font-bold leading-4 text-ink/35'}>
+                    {entry.effectLabel}
+                  </Text>
+                  <Text className={entryEnabled
+                    ? 'mt-1 font-mono text-sm text-ink/70'
+                    : 'mt-1 font-mono text-sm text-ink/30'}>
+                    {entry.available
+                      ? t('clubFinances.facilityCardStats', {
+                        built: entry.builtCount,
+                        limit: entry.buildLimit,
+                        width: entry.width,
+                        height: entry.height,
+                        cost: formatCurrency(entry.buildCost),
+                        weeks: entry.buildWeeks,
+                        upkeep: formatCurrency(entry.weeklyUpkeep),
+                      })
+                      : t('clubFinances.locked')}
+                  </Text>
+                  {adjacencyGuidance !== undefined && entry.available ? (
+                    <View className="mt-2 border-t border-pitch-dark/25 pt-2">
+                      <PixelText className="text-xs uppercase tracking-wide text-pitch-ink">
+                        {t('clubFinances.knownCombo')}</PixelText>
+                      <Text className="mt-1 text-xs leading-4 text-ink/65">
+                        {adjacencyGuidance}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {entry.blockedReason ? (
+                    <Text className="mt-1 text-xs font-bold text-red-dark">{entry.blockedReason}</Text>
+                  ) : null}
+                  {entry.available && !entry.affordable && entry.affordabilityShortfall > 0 ? (
+                    <PixelText className="mt-1 text-xs uppercase text-red-dark">
+                      {t('clubFinances.needMoreAmount', {
+                        amount: formatCurrency(entry.affordabilityShortfall),
+                      })}
+                    </PixelText>
+                  ) : null}
+                </Pressable>
+              </View>
+              </Fragment>
+            );
+          })}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * What the grounds have taught the manager so far. Sits under the build menu
+ * because the pairs are a reason to pick one card over another.
+ */
+function FacilityPairBonusesSection({ facilities }: { readonly facilities: ClubFacilityGridViewModel }) {
+  const t = useCopy();
+  return (
+    <View>
+      <SectionLabel
+        eyebrow={t('clubFinances.knownCombo')}
+        title={t('clubFinances.facilityPairBonuses')}
+      />
+      <View className="gap-2 border-2 border-b-4 border-ink bg-white p-3">
+        {facilities.discoveredAdjacencies.length === 0 ? (
+          <Text className="text-sm leading-4 text-ink/70">
+            {t('clubFinances.noPairingsDiscoveredYet')}</Text>
+        ) : facilities.discoveredAdjacencies.map(adjacency => {
+          const presentation = facilityAdjacencyPresentation(adjacency, t);
+          const active = facilities.activeAdjacencies.includes(adjacency);
+          return (
+            <View key={adjacency} className="flex-row items-start gap-3 border border-ink/20 bg-white px-3 py-3">
+              <View className="min-w-0 flex-1">
+                <PixelText className="text-sm uppercase text-ink">
+                  {presentation?.pairLabel ?? adjacency}
+                </PixelText>
+                {presentation ? (
+                  <>
+                    <Text className="mt-1 text-sm font-bold text-blue-dark">
+                      {presentation.effectLabel}
+                    </Text>
+                    <Text className="mt-1 text-sm leading-4 text-ink/70">
+                      {t('clubFinances.whyItWorks', { reason: presentation.rationale })}
+                    </Text>
+                  </>
+                ) : null}
+              </View>
+              <StatusChip
+                label={active
+                  ? t('clubFinances.adjacencyActive')
+                  : t('clubFinances.adjacencyKnown')}
+                tone={active ? 'success' : 'normal'}
+              />
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
 }

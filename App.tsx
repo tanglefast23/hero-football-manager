@@ -2515,8 +2515,17 @@ function GameApp() {
         {/* The match week announces itself the moment the desk appears, the
             same way the Financial Report announces a surge. Held back until
             the manager is actually ON the desk: the week review runs first,
-            and a bugle over it would be two announcements at once. */}
-        {store.screen === 'management' && store.matchDayBanner !== null ? (
+            and a bugle over it would be two announcements at once.
+
+            The Financial Report counts as "not on the desk yet". It renders
+            over the management screen rather than replacing it, so the screen
+            check alone let the bugle play behind the statement — the report
+            was still being read while the match week announced itself. The
+            banner is not dismissed meanwhile, just not mounted, so it lands
+            the moment Continue closes the report. */}
+        {store.screen === 'management'
+          && !postMatchSummaryVisible
+          && store.matchDayBanner !== null ? (
           <MatchDayBanner
             key={store.matchDayBanner.id}
             headline={store.matchDayBanner.headline}

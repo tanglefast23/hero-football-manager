@@ -101,6 +101,8 @@ const POWER_IDS = content.powers.powers.map(power => power.id);
 const TRIGGER_IDS = content.onboarding.triggers.map(trigger => trigger.id);
 const AWAKENING_TUNING = {
   chancePercent: content.powers.awakening.postMatchChancePercent,
+  secondInSeasonChancePercent: content.powers.awakening.secondInSeasonChancePercent,
+  maxPerSeason: content.powers.awakening.maxPerSeason,
   minimumMatchesBetween: content.powers.awakening.minimumMatchesBetween,
 };
 

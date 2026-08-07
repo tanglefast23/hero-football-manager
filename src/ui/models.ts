@@ -23,6 +23,11 @@ export type ClubOfficeTab = 'facility' | 'staff' | 'finances';
 export interface ResourceSummaryViewModel {
   money: number;
   trainingPoints: number;
+  /**
+   * Supporters. Not spendable like the other two, but it prices the home gate
+   * and the merchandise, so the HUD carries it beside the money it earns.
+   */
+  fans: number;
 }
 
 export interface FixtureViewModel {

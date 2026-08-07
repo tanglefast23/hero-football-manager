@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import {
   activeCareerMatchday,
   advanceWeek,
@@ -121,6 +123,19 @@ describe('matchDayBannerViewModel', () => {
     expect(useM1Store.getState().career).toMatchObject({ week: played.week + 1 });
     expect(useM1Store.getState().matchDayBanner?.id)
       .toBe(`match-day-banner-${started.season}-${played.week + 1}`);
+  });
+
+  /**
+   * The report renders over the management screen instead of replacing it, so
+   * `screen === 'management'` was true while the statement was still being
+   * read and the bugle played behind it. Held, not dropped: the card is still
+   * in the store, it just waits for Continue.
+   */
+  it('waits for the Financial Report to be dismissed before it announces', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    expect(app).toMatch(
+      /store\.screen === 'management'\s*\n\s*&& !postMatchSummaryVisible\s*\n\s*&& store\.matchDayBanner !== null/,
+    );
   });
 
   it('keys the card to the week, so one week can only announce itself once', () => {

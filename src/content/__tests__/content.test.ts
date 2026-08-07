@@ -325,6 +325,8 @@ describe('validated M1 launch content', () => {
     });
     expect(content.powers.awakening).toEqual({
       postMatchChancePercent: 10,
+      secondInSeasonChancePercent: 2,
+      maxPerSeason: 2,
       minimumMatchesBetween: 3,
     });
     expect(content.onboarding.limp).toContain('{name}');

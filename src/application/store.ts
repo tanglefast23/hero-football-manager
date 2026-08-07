@@ -26,6 +26,7 @@ import {
   assistantTeaches,
   clearAdvisorAssistantInboxSuppressions,
   completeMatchday,
+  awakeningsThisSeason,
   completePostMatchAwakening,
   completeCareerTransfer,
   completeCareerRenewal,
@@ -176,6 +177,8 @@ const awakeningPowerIds = launchContent.powers.powers.map(power => power.id);
 const awakeningTriggerIds = launchContent.onboarding.triggers.map(trigger => trigger.id);
 const awakeningTuning = {
   chancePercent: launchContent.powers.awakening.postMatchChancePercent,
+  secondInSeasonChancePercent: launchContent.powers.awakening.secondInSeasonChancePercent,
+  maxPerSeason: launchContent.powers.awakening.maxPerSeason,
   minimumMatchesBetween: launchContent.powers.awakening.minimumMatchesBetween,
 };
 let saveQueue = Promise.resolve();
@@ -2518,6 +2521,11 @@ function reconcilePendingAwakeningContent(state: GameState): GameState {
     awakening: {
       matchesSinceLastAwakening: state.awakening.matchesSinceLastAwakening,
       usedTriggerIds: [...state.awakening.usedTriggerIds],
+      // The hero was granted before this ran, so the season has still spent
+      // one. Dropping the cutscene must not hand the allowance back.
+      ...(state.awakening.seasonTally === undefined
+        ? {}
+        : { seasonTally: { ...state.awakening.seasonTally } }),
     },
     // Onboarding waits at `reveal` for this cutscene, and `advanceCareer` sends
     // the player back to it, so the stage has to move on with the drop.
@@ -2553,6 +2561,13 @@ function reconcileLegacyFirstAwakening(state: GameState): GameState {
       awakening: {
         matchesSinceLastAwakening: 0,
         usedTriggerIds: [awakeningTriggerIds[0]],
+        // The repaired save already has its opening hero, and that hero counts
+        // against the season cap like any other. Without this the rebuilt
+        // career would think season 1 had spent nothing.
+        seasonTally: {
+          season: state.season,
+          count: Math.max(1, awakeningsThisSeason(state)),
+        },
         pending: {
           fixtureId: onboarding.firstFixtureId,
           playerId: onboarding.createdPlayerId,

@@ -50,6 +50,35 @@ describe('match statement facility badges', () => {
     expect(strip).toContain('mr-3');
   });
 
+  /**
+   * The ×N chip used to ride beside the amount and the shop's adjacency was a
+   * grey caption on the line below — so a club with one Fan Shop, whose only
+   * bonus is the adjacency, read as having earned no bonus at all.
+   */
+  it('lands every bonus in the run with the buildings that earned it', () => {
+    const groupStart = source.indexOf('<View className="min-w-0 flex-1 flex-row flex-wrap items-center">');
+    const labelGroup = source.slice(groupStart, source.indexOf('<SlotAmount', groupStart));
+    expect(labelGroup).toContain('<LedgerRowIcons');
+    expect(labelGroup).toContain('<BonusBadge label={multiplierLabel(reveal!)}');
+    expect(labelGroup).toContain('<BonusBadge label={`+${reveal.adjacencyPercent}%`}');
+    // The caption below the row is gone, and with it its catalog key.
+    expect(source).not.toContain('adjacencyCaption');
+  });
+
+  it('states both multipliers in percent', () => {
+    // "×3" beside "×200%" read as two kinds of arithmetic, and left the shop
+    // on the larger multiple looking like the smaller number.
+    expect(source).toContain('`×${reveal.multiplierTimes * 100}%`');
+    expect(source).toContain('`×${reveal.multiplierPercent}%`');
+  });
+
+  it('mounts each badge on its own beat so it animates in with the numbers', () => {
+    // Mounted by the phase, not hidden by opacity: the entrance runs on mount.
+    expect(source).toContain("&& ['chip', 'multiplied', 'adjacency', 'complete'].includes(runtime.phase)");
+    expect(source).toContain("&& ['adjacency', 'complete'].includes(runtime.phase)");
+    expect(source).toMatch(/function BonusBadge[\s\S]{0,700}Animated\.timing/);
+  });
+
   it('speaks the same count it shows', () => {
     // The bare-amount branches used to drop the count entirely, so VoiceOver
     // announced a row that visibly read "1 shop" as just an amount.

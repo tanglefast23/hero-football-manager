@@ -521,6 +521,7 @@ export function clubFinancesViewModel(
     resources: {
       money: club.cash,
       trainingPoints: state.trainingPoints,
+      fans: club.fans,
     },
     ...(loan === undefined ? {} : { loan }),
     ledger: statement,
@@ -2334,6 +2335,7 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
     resources: {
       money: userClub.cash,
       trainingPoints: state.trainingPoints,
+      fans: userClub.fans,
     },
     nextFixture: nextFixture === undefined
       ? {
@@ -2603,6 +2605,7 @@ export function squadTrainingViewModel(
     resources: {
       money: club.cash,
       trainingPoints: state.trainingPoints,
+      fans: club.fans,
     },
     ...(createdPlayer === undefined ? {} : { createdPlayerId: createdPlayer.id }),
     players: orderedRoster.map(player => {
