@@ -14,7 +14,7 @@ import {
 } from '../render/power-match-showcase';
 import type { PowerId } from '../sim/types';
 import { ActionButton } from './components/Scorecard';
-import { usePixelStyles, type LocaleFaces } from '../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 
 export interface PowerAcquiredDemoModalProps {
   visible: boolean;
@@ -46,6 +46,7 @@ export function PowerAcquiredDemoModal({
   onClose,
   onContinue,
 }: PowerAcquiredDemoModalProps) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const [replayKey, setReplayKey] = useState(0);
   const [frozen, setFrozen] = useState(false);
@@ -118,18 +119,22 @@ export function PowerAcquiredDemoModal({
           {frozen ? (
             <View
               accessibilityViewIsModal
-              accessibilityLabel={`${playerName}'s ${powerName} match demonstration is complete. ${description}`}
+              accessibilityLabel={t('powerAcquiredDemo.a11y.demonstrationComplete', {
+                player: playerName,
+                power: powerName,
+                description,
+              })}
               style={styles.freezeOverlay}
             >
               <View style={styles.resultCard}>
-                <Text style={styles.kicker}>POWER SEEN IN A MATCH</Text>
+                <Text style={styles.kicker}>{t('powerAcquiredDemo.powerSeenInAMatch')}</Text>
                 <Text style={styles.powerName}>{powerName}</Text>
                 <Text style={styles.description}>{description}</Text>
                 <View style={styles.buttonRow}>
                   <View style={styles.button}>
                     <ActionButton
-                      label="REPLAY"
-                      accessibilityLabel={`Replay ${powerName} in the match`}
+                      label={t('powerAcquiredDemo.replay')}
+                      accessibilityLabel={t('powerAcquiredDemo.a11y.replay', { power: powerName })}
                       variant="paper"
                       pressSfx="click"
                       onPress={replay}
@@ -137,8 +142,11 @@ export function PowerAcquiredDemoModal({
                   </View>
                   <View style={styles.button}>
                     <ActionButton
-                      label="CONTINUE"
-                      accessibilityLabel={`${continueLabel}. Continue after the ${powerName} match demonstration`}
+                      label={t('powerAcquiredDemo.continue')}
+                      accessibilityLabel={t('powerAcquiredDemo.a11y.continue', {
+                        label: continueLabel,
+                        power: powerName,
+                      })}
                       onPress={onContinue}
                     />
                   </View>

@@ -17,7 +17,7 @@ import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
 import { snapSpriteScale } from './interpolate';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playerLookId } from './sprites/player-look';
-import { usePixelStyles, type LocaleFaces } from '../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 
 /** Per-drill sprite scene: fast enough to chain-tap, always tap-to-skip. */
 export const DRILL_SCENE_MS = 2_200;
@@ -96,6 +96,7 @@ export function DrillSceneOverlay({
   reduceMotion = false,
   onComplete,
 }: DrillSceneOverlayProps) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const { width: viewportWidth } = useWindowDimensions();
   const stageWidth = Math.min(460, Math.max(260, viewportWidth - 48));
@@ -163,15 +164,24 @@ export function DrillSceneOverlay({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${playerName} runs ${drillName}, plus ${after - before} ${shortCode}. Tap to continue.`}
+      accessibilityLabel={t('trainingDrill.a11y.drillScene', {
+        player: playerName,
+        drill: drillName,
+        gain: after - before,
+        stat: shortCode,
+      })}
       onPress={completeOnce}
       style={styles.overlay}
     >
       <View style={[styles.card, { width: stageWidth }]}>
         <View style={styles.titleHighlight} />
         <View style={styles.titleBar}>
-          <Text style={styles.kicker}>{isSuper ? '★ SUPER SESSION' : 'PUTTING IN THE WORK'}</Text>
-          <Text style={styles.timerLabel}>TAP TO SKIP</Text>
+          {/* The star is drawn from the system fallback face, as it always
+              was, so it stays out of the catalog and out of the glyph gate. */}
+          <Text style={styles.kicker}>{isSuper
+            ? `★ ${t('trainingDrill.superSession')}`
+            : t('trainingDrill.puttingInTheWork')}</Text>
+          <Text style={styles.timerLabel}>{t('trainingDrill.tapToSkip')}</Text>
         </View>
 
         <View style={styles.heading}>
@@ -228,6 +238,7 @@ function DrillAtlasStage({
   width: number;
   reduceMotion: boolean;
 }) {
+  const t = useCopy();
   const [spriteFrame, setSpriteFrame] = useState(0);
   const { scale: devicePixelRatio } = useWindowDimensions();
   const elapsed = useSharedValue(0);
@@ -384,7 +395,7 @@ function DrillAtlasStage({
   });
 
   return (
-    <Canvas style={{ width, height: STAGE_HEIGHT }} accessibilityLabel={`${playerName} on the training pitch`}>
+    <Canvas style={{ width, height: STAGE_HEIGHT }} accessibilityLabel={t('trainingDrill.a11y.onTheTrainingPitch', { player: playerName })}>
       <Fill color="#2d6a4f" />
       <Rect x={5} y={8} width={width - 10} height={STAGE_HEIGHT - 16} color="#3f8a4a" />
       <Atlas

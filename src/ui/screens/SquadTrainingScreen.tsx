@@ -49,7 +49,7 @@ import { LOYALTY_NO_RENEWAL_THRESHOLD, LOYALTY_WARNING_THRESHOLD } from '../../g
 import { GUIDED_ALERT_GLOW } from '../guidance-glow';
 import { SquadRequestsPanel } from './SquadRequestsPanel';
 import type { PlayerRequestViewModel } from '../../application/player-request-view-model';
-import { useCopy } from '../../i18n';
+import { useCopy, type CopyFn } from '../../i18n';
 
 /**
  * The roster reads condition on the same three bands as the drill popup and
@@ -68,33 +68,37 @@ const CONDITION_TONE: Readonly<Record<'green' | 'amber' | 'red', string>> = {
 /**
  * What each roster column actually means. The words are short because the
  * heading already names the thing — the tip answers "so what?", not "what?".
+ *
+ * The maps hold catalog keys rather than the sentences themselves: a module
+ * constant is built before any component runs, so it cannot reach `useCopy`.
+ * The prose lives in `content/i18n/en.json` under the same key names.
  */
 const PERSONALITY_EXPLAINER: Readonly<Record<string, string>> = {
   // Straight off market.ts: LOVED_PITCHES, HATED_PITCHES, and the renewal ask
   // multiplier. Nothing here is flavour — every line names a real effect.
-  FIERY: 'Wants trophies and straight talk in negotiations. Hometown sentiment turns them off.',
-  LOYAL: 'Moved by hometown ties and flattery, put off by money talk. Renews for about 10% less.',
-  GREEDY: 'Money and trophies, in that order. Hometown ties mean nothing, and they renew for about 20% more.',
-  JOKER: 'Warms to flattery and hometown ties. Blunt talk falls flat.',
-  PROFESSIONAL: 'Responds to straight talk and trophy promises. Flattery gets you nowhere.',
-  TIMID: 'Reassured by hometown ties and straight talk. Big trophy promises only spook them.',
+  FIERY: 'squadTraining.personality.fiery',
+  LOYAL: 'squadTraining.personality.loyal',
+  GREEDY: 'squadTraining.personality.greedy',
+  JOKER: 'squadTraining.personality.joker',
+  PROFESSIONAL: 'squadTraining.personality.professional',
+  TIMID: 'squadTraining.personality.timid',
 };
 
-function personalityExplainer(personality: string): string {
-  return PERSONALITY_EXPLAINER[personality.toUpperCase().replace('-', '_')]
-    ?? 'Shapes which arguments land in contract talks.';
+function personalityExplainer(personality: string, t: CopyFn): string {
+  return t(PERSONALITY_EXPLAINER[personality.toUpperCase().replace('-', '_')]
+    ?? 'squadTraining.personality.default');
 }
 
 const COLUMN_EXPLAINER: Readonly<Record<SquadSortKey, string>> = {
-  player: 'Name, position, and whether they start.',
-  role: 'Where they play: keeper, defence, midfield or attack.',
-  overall: 'Their ability right now, out of 99. It is what they bring to Saturday.',
+  player: 'squadTraining.column.player',
+  role: 'squadTraining.column.role',
+  overall: 'squadTraining.column.overall',
   // Was "A high grade trains faster and further", which was wrong twice over:
   // the grade contributed nothing to the ordinary gain, and the "further" was a
   // cap that cap-free development retired. It now measures what the column is
   // read for, so the words can finally match it.
-  potential: 'How fast they still improve. Age, position and archetype set most of it; the SUPER chance the rest.',
-  condition: 'Fresh legs. Training and matches drain it; low condition risks injury.',
+  potential: 'squadTraining.column.potential',
+  condition: 'squadTraining.column.condition',
 };
 
 /**
@@ -110,13 +114,13 @@ const COLUMN_EXPLAINER: Readonly<Record<SquadSortKey, string>> = {
  * question, knowing it decides whether the ball goes in is.
  */
 const ATTRIBUTE_EXPLAINER: Readonly<Record<string, string>> = {
-  PAC: 'Pace. How fast they cover ground, close a runner down, and reach a loose ball first.',
-  SHO: 'Shooting. How likely their efforts beat the keeper once they get a sight of goal.',
-  PAS: 'Passing. How reliably the ball reaches the teammate they meant to find.',
-  DEF: 'Defending. How often they win the tackle and break up the other side\'s move.',
-  TEC: 'Technique. Their touch under pressure — keeping the ball when someone is on them.',
-  STA: 'Stamina. How much of the match they play at full strength before tiring.',
-  REF: 'Reflexes. A keeper\'s shot-stopping. Contested on every effort they face, which is why it is trained on a shorter ladder.',
+  PAC: 'squadTraining.attribute.pac',
+  SHO: 'squadTraining.attribute.sho',
+  PAS: 'squadTraining.attribute.pas',
+  DEF: 'squadTraining.attribute.def',
+  TEC: 'squadTraining.attribute.tec',
+  STA: 'squadTraining.attribute.sta',
+  REF: 'squadTraining.attribute.ref',
 };
 
 const CONDITION_WARNING_DRILL = 3;
@@ -454,8 +458,8 @@ export function SquadTrainingScreen({
         >
           {managerTipGuideTarget === 'drill-shop' ? (
             <TutorialTapCue
-              label="Drill tiers"
-              detail="Drills unlock as you climb divisions"
+              label={t('squadTraining.drillTiers')}
+              detail={t('squadTraining.drillsUnlockAsYou')}
               style={{
                 left: '50%',
                 marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -502,12 +506,14 @@ export function SquadTrainingScreen({
             {(['drills', 'requests'] as const).map(tab => {
               const selected = tab === squadTab;
               const glowing = tab === 'requests' && requestViewModel.glowing && !selected;
-              const label = tab === 'drills' ? 'Drills' : 'Requests';
+              const label = tab === 'drills' ? t('squadTraining.tab.drills') : t('squadTraining.tab.requests');
               return (
                 <Pressable
                   key={tab}
                   accessibilityRole="tab"
-                  accessibilityLabel={glowing ? `${label} tab, one waiting` : `${label} tab`}
+                  accessibilityLabel={glowing
+                    ? t('squadTraining.a11y.tabOneWaiting', { tab: label })
+                    : t('squadTraining.a11y.tab', { tab: label })}
                   accessibilityState={{ selected }}
                   onPress={() => setSquadTab(tab)}
                   className={selected
@@ -623,9 +629,9 @@ function RosterSection({
   return (
     <View>
       <SectionLabel
-        eyebrow="Team register"
-        title={`${viewModel.players.length} players`}
-        right={<StatusChip label={`${trainingPoints} TP`} />}
+        eyebrow={t('squadTraining.teamRegister')}
+        title={t('squadTraining.playerCount', { n: viewModel.players.length, count: viewModel.players.length })}
+        right={<StatusChip label={t('squadTraining.trainingPoints', { count: trainingPoints })} />}
       />
       <View className={guidePlayers
         ? 'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'
@@ -634,8 +640,8 @@ function RosterSection({
           : 'border-2 border-ink bg-white'}>
         {guidePlayers && !playerGuideDismissed ? (
           <TutorialTapCue
-            label="Tap +"
-            detail="Train a player"
+            label={t('squadTraining.tapPlus')}
+            detail={t('squadTraining.trainAPlayer')}
             style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
           />
         ) : null}
@@ -661,8 +667,8 @@ function RosterSection({
             onSort={setSquadSort}
             tutorialCue={guideOverallSort ? (
               <TutorialTapCue
-                label="Tap here"
-                detail="To sort"
+                label={t('squadTraining.tapHere')}
+                detail={t('squadTraining.toSort')}
                 style={{
                   left: '50%',
                   marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -682,8 +688,8 @@ function RosterSection({
             onSort={setSquadSort}
             tutorialCue={conditionCueShowing ? (
               <TutorialTapCue
-                label="Condition"
-                detail="Too low and they risk injury. You're okay for now."
+                label={t('col.squad.conditionLong')}
+                detail={t('squadTraining.tooLowAndThey')}
                 // `bottom`, not the fixed `top: -ABOVE_OFFSET` the one-line cues
                 // use: this detail wraps to four lines on a narrow column, and a
                 // fixed offset let the taller bubble sit ON the header it is
@@ -741,8 +747,10 @@ function RosterSection({
             >
               {guideConciergePlayer ? (
                 <TutorialTapCue
-                  label="Bert says"
-                  detail={guideFocus === 'injury-lineup' ? 'Review injury and replacement' : 'Review this player'}
+                  label={t('squadTraining.bertSays')}
+                  detail={guideFocus === 'injury-lineup'
+                    ? t('squadTraining.reviewInjuryAndReplacement')
+                    : t('squadTraining.reviewThisPlayer')}
                   style={{
                     left: '50%',
                     marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -752,10 +760,10 @@ function RosterSection({
               ) : null}
               {guideQuickTrainPlayer ? (
                 <TutorialTapCue
-                  label="Quick Train"
+                  label={t('squadTraining.quickTrain')}
                   detail={quickTrainNeedsPlayer
-                    ? 'Tap a player to see their attributes'
-                    : 'Scroll down to Attributes'}
+                    ? t('squadTraining.tapAPlayerTo')
+                    : t('squadTraining.scrollDownToAttributes')}
                   style={{
                     left: '50%',
                     marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -765,7 +773,7 @@ function RosterSection({
               ) : null}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Open summary for ${player.name}`}
+                accessibilityLabel={t('squadTraining.a11y.openSummaryFor', { player: player.name })}
                 onPress={() => onSelectPlayer(player.id)}
                 className="min-h-11 flex-1 flex-row items-center"
                 style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
@@ -781,19 +789,19 @@ function RosterSection({
                   <Text className="text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
                   {player.injuryWeeks > 0 ? (
                     <Text className="mt-0.5 font-pixel text-sm uppercase text-red-dark" numberOfLines={1}>
-                      OUT · {player.injuryWeeks} {player.injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
+                      {t('squadTraining.outForWeeks', { n: player.injuryWeeks, count: player.injuryWeeks })}
                     </Text>
                   ) : player.isStarter ? (
                     // One word, because the name column is the row's only
                     // flexible cell: "Starting XI" clipped to "STARTI…" on a
                     // phone, which reads as a bug rather than an abbreviation.
                     <Text className="mt-0.5 font-pixel text-sm uppercase text-pitch-ink" numberOfLines={1}>
-                      Start
+                      {t('squadTraining.start')}
                     </Text>
                   ) : null}
                   {player.isCaptain || player.contractPromiseLabel ? (
                     <Text className="mt-0.5 font-pixel text-sm uppercase text-blue-dark" numberOfLines={1}>
-                      {[player.isCaptain ? 'Captain' : undefined, player.shirtNumber ? `#${player.shirtNumber}` : undefined, player.contractPromiseLabel].filter(Boolean).join(' · ')}
+                      {[player.isCaptain ? t('squadTraining.captain') : undefined, player.shirtNumber ? `#${player.shirtNumber}` : undefined, player.contractPromiseLabel].filter(Boolean).join(' · ')}
                     </Text>
                   ) : null}
                   <Text className="mt-1 text-sm text-ink/60" numberOfLines={1}>{player.contractLabel}</Text>
@@ -819,12 +827,15 @@ function RosterSection({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={player.injuryWeeks > 0
-                  ? `${player.name} is injured and cannot train`
+                  ? t('squadTraining.a11y.playerInjuredCannotTrain', { player: player.name })
                   : player.awayWeeks > 0
-                    ? `${player.name} is away and cannot train`
+                    ? t('squadTraining.a11y.playerAwayCannotTrain', { player: player.name })
                     : player.priorityDrillsRemaining !== undefined
-                      ? `Train ${player.name} now, ${player.priorityDrillsRemaining} promised drills owed`
-                      : `Train ${player.name} now`}
+                      ? t('squadTraining.a11y.trainNowPromisedDrills', {
+                        player: player.name,
+                        count: player.priorityDrillsRemaining,
+                      })
+                      : t('squadTraining.a11y.trainNow', { player: player.name })}
                 accessibilityState={{ disabled: !player.canTrain }}
                 disabled={!player.canTrain}
                 onPress={() => onPressTrainingBadge(player.id)}
@@ -877,17 +888,21 @@ interface DrillShopSectionProps {
  * upgrade would give or the one reason it cannot be bought.
  */
 function DrillShopSection({ upgrades, money, onBuy }: DrillShopSectionProps) {
+  const t = useCopy();
   return (
     <View>
       <SectionLabel
-        eyebrow="Drill shop"
-        title="Upgrade a path"
+        eyebrow={t('squadTraining.drillShop')}
+        title={t('squadTraining.upgradeAPath')}
         right={<StatusChip label={formatCurrency(money)} />}
       />
       <View className="border-2 border-ink bg-white">
         {upgrades.map(upgrade => {
-  const t = useCopy();
-          const owned = `${upgrade.drillName} · +${upgrade.ownedGain} for ${upgrade.ownedTpCost} TP`;
+          const owned = t('squadTraining.ownedDrillLine', {
+            drill: upgrade.drillName,
+            gain: upgrade.ownedGain,
+            cost: upgrade.ownedTpCost,
+          });
           const maxed = upgrade.nextTier === undefined;
           const buyable = !maxed && upgrade.blockedReason === undefined;
           return (
@@ -905,9 +920,13 @@ function DrillShopSection({ upgrades, money, onBuy }: DrillShopSectionProps) {
                     repeated the tier number and painted the whole column. */}
                 <Text className="mt-0.5 text-xs text-ink/55" numberOfLines={2}>
                   {maxed
-                    ? 'Best drill owned.'
+                    ? t('squadTraining.bestDrillOwned')
                     : upgrade.blockedReason
-                      ?? `Tier ${upgrade.nextTier} · +${upgrade.nextGain} for ${upgrade.nextTpCost} TP`}
+                      ?? t('squadTraining.nextTierLine', {
+                        tier: upgrade.nextTier ?? '',
+                        gain: upgrade.nextGain ?? '',
+                        cost: upgrade.nextTpCost ?? '',
+                      })}
                 </Text>
               </View>
               {maxed ? (
@@ -918,8 +937,16 @@ function DrillShopSection({ upgrades, money, onBuy }: DrillShopSectionProps) {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={buyable
-                    ? `Buy ${upgrade.label} Tier ${upgrade.nextTier} drill for ${formatCurrency(upgrade.cost ?? 0)}`
-                    : `${upgrade.label} Tier ${upgrade.nextTier} drill unavailable. ${upgrade.blockedReason ?? ''}`}
+                    ? t('squadTraining.a11y.buyDrill', {
+                      path: upgrade.label,
+                      tier: upgrade.nextTier ?? '',
+                      price: formatCurrency(upgrade.cost ?? 0),
+                    })
+                    : t('squadTraining.a11y.drillUnavailable', {
+                      path: upgrade.label,
+                      tier: upgrade.nextTier ?? '',
+                      reason: upgrade.blockedReason ?? '',
+                    })}
                   accessibilityState={{ disabled: !buyable }}
                   disabled={!buyable}
                   onPress={() => onBuy(upgrade.pathId)}
@@ -960,9 +987,11 @@ function PlayerFileSection({
   const t = useCopy();
   return (
     <PaperPanel
-      kicker="Player file"
+      kicker={t('squadTraining.playerFile')}
       title={selectedPlayer.name}
-      stamp={selectedPlayer.injuryWeeks > 0 ? 'OUT' : selectedPlayer.licensed ? 'Licensed' : selectedPlayer.role}
+      stamp={selectedPlayer.injuryWeeks > 0
+        ? t('squadTraining.out')
+        : selectedPlayer.licensed ? t('squadTraining.licensed') : selectedPlayer.role}
     >
       <View className="mb-4 flex-row items-center gap-4">
         <View className="border-2 border-b-4 border-ink bg-blue-light p-2">
@@ -977,7 +1006,7 @@ function PlayerFileSection({
       {selectedPlayer.injuryWeeks > 0 ? (
         <View className="mb-3 border-2 border-b-4 border-red-dark bg-red-light p-3">
           <Text className="font-pixel text-base uppercase text-red-dark">
-            OUT · {selectedPlayer.injuryWeeks} {selectedPlayer.injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
+            {t('squadTraining.outForWeeks', { n: selectedPlayer.injuryWeeks, count: selectedPlayer.injuryWeeks })}
           </Text>
           <Text className="mt-1 text-sm text-ink/70">{t('squadTraining.unavailableForMatchSelection')}</Text>
         </View>
@@ -986,44 +1015,50 @@ function PlayerFileSection({
         // red for injury alone means the two read apart at a glance.
         <View className="mb-3 border-2 border-b-4 border-gold-dark bg-gold-light p-3">
           <Text className="font-pixel text-base uppercase text-gold-dark">
-            ON LEAVE · {selectedPlayer.awayWeeks} {selectedPlayer.awayWeeks === 1 ? 'WEEK' : 'WEEKS'}
+            {t('squadTraining.onLeaveForWeeks', { n: selectedPlayer.awayWeeks, count: selectedPlayer.awayWeeks })}
           </Text>
           <Text className="mt-1 text-sm text-ink/70">
             {t('squadTraining.awayOnAGranted')}</Text>
         </View>
       ) : null}
       <View className="flex-row gap-2">
-        <Metric label="Current rating" value={String(selectedPlayer.overall)} />
+        <Metric label={t('squadTraining.currentRating')} value={String(selectedPlayer.overall)} />
         <Metric
-          label="Condition"
+          label={t('col.squad.conditionLong')}
           value={`${selectedPlayer.condition}%`}
           tone={energyBand(selectedPlayer.condition) === 'red' ? 'negative' : 'positive'}
         />
-        <Metric label="Wage / wk" value={formatCurrency(selectedPlayer.weeklyWage)} />
+        <Metric label={t('squadTraining.wagePerWeek')} value={formatCurrency(selectedPlayer.weeklyWage)} />
       </View>
       <View className="mt-2 flex-row gap-2">
-        <Metric label="Age" value={String(selectedPlayer.age)} />
+        <Metric label={t('squadTraining.age')} value={String(selectedPlayer.age)} />
         <Metric
-          label="Potential"
-          value={`${selectedPlayer.potentialGrade} · ${selectedPlayer.superChancePercent}% SUPER`}
+          label={t('col.squad.potentialLong')}
+          value={t('squadTraining.potentialAndSuper', {
+            grade: selectedPlayer.potentialGrade,
+            percent: selectedPlayer.superChancePercent,
+          })}
           tone="positive"
         />
-        <Metric label="Fame" value={String(selectedPlayer.fame)} />
+        <Metric label={t('squadTraining.fame')} value={String(selectedPlayer.fame)} />
       </View>
       {/* Morale and loyalty sit together because they are the same kind of
           number on two different clocks: morale swings on results and recovers
           on wins, loyalty only moves when the manager decides something and
           never recovers on its own. */}
       <View className="mt-2 flex-row items-center gap-2">
-        <Metric label="Morale" value={`${selectedPlayer.morale}%`} />
+        <Metric label={t('squadTraining.morale')} value={`${selectedPlayer.morale}%`} />
         <InfoTip
           align="right"
           className="min-w-0 flex-1"
-          text={`How much they want to stay. It sets the price of their next contract, and below ${LOYALTY_NO_RENEWAL_THRESHOLD} they will not re-sign at all.`}
-          accessibilityLabel={`Loyalty ${selectedPlayer.loyalty} out of 100. It sets the price of their next contract, and below ${LOYALTY_NO_RENEWAL_THRESHOLD} they will not re-sign at all.`}
+          text={t('squadTraining.loyaltyTip', { floor: LOYALTY_NO_RENEWAL_THRESHOLD })}
+          accessibilityLabel={t('squadTraining.a11y.loyalty', {
+            loyalty: selectedPlayer.loyalty,
+            floor: LOYALTY_NO_RENEWAL_THRESHOLD,
+          })}
         >
           <Metric
-            label="Loyalty"
+            label={t('squadTraining.loyalty')}
             value={String(selectedPlayer.loyalty)}
             tone={selectedPlayer.loyalty <= LOYALTY_WARNING_THRESHOLD ? 'negative' : 'normal'}
           />
@@ -1031,7 +1066,7 @@ function PlayerFileSection({
       </View>
       <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/20 pt-3">
         <View className="flex-1">
-          <PixelText className="text-sm uppercase tracking-wide text-ink/50">Contract</PixelText>
+          <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.contract')}</PixelText>
           <Text className="mt-1 text-base font-bold text-ink">{selectedPlayer.contractLabel}</Text>
           {selectedPlayer.retirementLabel === undefined ? null : (
             <Text className="mt-1 text-sm text-ink/60">{selectedPlayer.retirementLabel}</Text>
@@ -1041,14 +1076,14 @@ function PlayerFileSection({
       </View>
       {selectedPlayer.contractPromiseLabel || selectedPlayer.isCaptain || selectedPlayer.shirtNumber ? (
         <View className="mt-3 flex-row flex-wrap gap-2">
-          {selectedPlayer.isCaptain ? <StatusChip label="Captain" selected /> : null}
-          {selectedPlayer.shirtNumber ? <StatusChip label={`Shirt #${selectedPlayer.shirtNumber}`} /> : null}
+          {selectedPlayer.isCaptain ? <StatusChip label={t('squadTraining.captain')} selected /> : null}
+          {selectedPlayer.shirtNumber ? <StatusChip label={t('squadTraining.shirtNumber', { number: selectedPlayer.shirtNumber })} /> : null}
           {selectedPlayer.contractPromiseLabel ? <StatusChip label={selectedPlayer.contractPromiseLabel} selected /> : null}
         </View>
       ) : null}
       <View className="mt-3 border border-ink/20 bg-paper-dark/40 px-3 py-3">
         <View className="flex-row items-center justify-between gap-3">
-          <PixelText className="text-sm uppercase tracking-wide text-ink/50">Archetype</PixelText>
+          <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.archetype')}</PixelText>
           <View className="min-w-0 flex-1 items-end">
             <Text className="text-base font-bold text-ink">{selectedPlayer.archetype}</Text>
             <View className="mt-1 flex-row flex-wrap justify-end gap-x-2">
@@ -1058,21 +1093,24 @@ function PlayerFileSection({
           </View>
         </View>
         <View className="mt-2 flex-row items-center justify-between gap-3">
-          <PixelText className="text-sm uppercase tracking-wide text-ink/50">Position</PixelText>
+          <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.position')}</PixelText>
           <Text className="font-pixel text-sm text-blue-dark">{selectedPlayer.positionTrainingLabel}</Text>
         </View>
         <View className="mt-2 flex-row items-center justify-between gap-3">
-          <PixelText className="text-sm uppercase tracking-wide text-ink/50">Personality</PixelText>
+          <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.personality')}</PixelText>
           <InfoTip
             align="right"
-            text={personalityExplainer(selectedPlayer.personality)}
-            accessibilityLabel={`Personality: ${selectedPlayer.personality}. ${personalityExplainer(selectedPlayer.personality)}`}
+            text={personalityExplainer(selectedPlayer.personality, t)}
+            accessibilityLabel={t('squadTraining.a11y.personality', {
+              personality: selectedPlayer.personality,
+              explainer: personalityExplainer(selectedPlayer.personality, t),
+            })}
           >
             <Text className="text-base font-bold text-ink">{selectedPlayer.personality}</Text>
           </InfoTip>
         </View>
         <View className="mt-2 flex-row items-center justify-between gap-3">
-          <PixelText className="text-sm uppercase tracking-wide text-ink/50">Fame</PixelText>
+          <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.fame')}</PixelText>
           <Text className="font-mono text-base text-ink">{selectedPlayer.fame}</Text>
         </View>
       </View>
@@ -1083,8 +1121,8 @@ function PlayerFileSection({
       >
         {guideQuickTrain ? (
           <TutorialTapCue
-            label="Tap an attribute"
-            detail="Choose the stat you want to train"
+            label={t('squadTraining.tapAnAttribute')}
+            detail={t('squadTraining.chooseTheStatYou')}
             style={{
               left: '50%',
               marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -1092,7 +1130,7 @@ function PlayerFileSection({
             }}
           />
         ) : null}
-        <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/50">Attributes</PixelText>
+        <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.attributes')}</PixelText>
         <Text className="mb-3 text-xs leading-4 text-ink/55">
           {t('squadTraining.pacPaceShoShooting')}</Text>
         <View className="flex-row flex-wrap gap-2">
@@ -1113,10 +1151,21 @@ function PlayerFileSection({
                 // should not have to spend TP to find out what they bought.
                 <InfoTip
                   key={attribute.label}
-                  text={ATTRIBUTE_EXPLAINER[attribute.label]}
+                  text={t(ATTRIBUTE_EXPLAINER[attribute.label])}
                   accessibilityLabel={trainable
-                    ? `Train ${attribute.label}, currently ${attribute.value}. ${option.drillName} for ${option.tpCost} training points, plus ${option.gain}. ${ATTRIBUTE_EXPLAINER[attribute.label]}`
-                    : `${attribute.label} ${attribute.value}. ${ATTRIBUTE_EXPLAINER[attribute.label]}`}
+                    ? t('squadTraining.a11y.trainAttribute', {
+                      stat: attribute.label,
+                      value: attribute.value,
+                      drill: option.drillName,
+                      cost: option.tpCost,
+                      gain: option.gain,
+                      explainer: t(ATTRIBUTE_EXPLAINER[attribute.label]),
+                    })
+                    : t('squadTraining.a11y.attributeValue', {
+                      stat: attribute.label,
+                      value: attribute.value,
+                      explainer: t(ATTRIBUTE_EXPLAINER[attribute.label]),
+                    })}
                   className={trainable
                     ? 'min-w-[29%] flex-1 border-2 border-b-4 border-ink/40 bg-paper px-2 py-2'
                     : 'min-w-[29%] flex-1 border border-ink/20 bg-paper px-2 py-2'}
@@ -1129,7 +1178,7 @@ function PlayerFileSection({
                   </Text>
                   {trainable ? (
                     <Text className="mt-0.5 font-mono text-xs text-blue-dark" numberOfLines={1}>
-                      +{option.gain} · {option.tpCost} TP
+                      {t('squadTraining.gainAndCost', { gain: option.gain, cost: option.tpCost })}
                     </Text>
                   ) : null}
                 </InfoTip>
@@ -1182,19 +1231,31 @@ function SquadSortHeader({
   onSort: (key: SquadSortKey) => void;
   tutorialCue?: ReactNode;
 }) {
+  const t = useCopy();
   const direction = sort?.key === sortKey ? sort.direction : null;
+  const directionWord = direction === 'descending'
+    ? t('squadTraining.sortDescending')
+    : direction === 'ascending'
+      ? t('squadTraining.sortAscending')
+      : t('squadTraining.sortDefaultOrder');
   const nextDirection = direction === null
-    ? 'descending'
+    ? t('squadTraining.sortDescending')
     : direction === 'descending'
-      ? 'ascending'
-      : 'default order';
+      ? t('squadTraining.sortAscending')
+      : t('squadTraining.sortDefaultOrder');
+  const explainer = t(COLUMN_EXPLAINER[sortKey]);
   return (
     <InfoTip
-      text={COLUMN_EXPLAINER[sortKey]}
+      text={explainer}
       align={align}
       className={widthClass}
       style={columnStyle}
-      accessibilityLabel={`Sort by ${label}, ${direction ?? 'default order'}. Next: ${nextDirection}. ${COLUMN_EXPLAINER[sortKey]}`}
+      accessibilityLabel={t('squadTraining.a11y.sortBy', {
+        column: label,
+        direction: directionWord,
+        next: nextDirection,
+        explainer,
+      })}
       onPress={() => onSort(sortKey)}
     >
     <View

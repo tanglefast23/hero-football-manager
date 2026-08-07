@@ -1,4 +1,4 @@
-import { compareIds, DIVISION_NAMES, divisionTierLabel, rosterForClub } from '../game';
+import { compareIds, DIVISION_NAME_KEYS, divisionTierLabelWith, rosterForClub } from '../game';
 import type { DivisionLevel } from '../game/pyramid';
 import type {
   GameState,
@@ -8,6 +8,7 @@ import type {
   HallOfFameTitle,
   SeasonRecap,
 } from '../game/types';
+import { copyFor, type CopyFn } from '../i18n';
 import { highestFamePlayer, TRUE_ENDING_SEEN_FLAG } from './endgame-celebration';
 import type {
   HallOfFameHonourViewModel,
@@ -24,6 +25,13 @@ import type {
  * that record back. Nothing recomputes a career total at display time, because
  * by then it cannot: promotion regenerates rival rosters, the season transition
  * prunes stat rows, and a save reopened ten seasons later has no evidence left.
+ *
+ * WHICH HALF MAY BE TRANSLATED. Only the reading half. Everything
+ * `captureHallOfFameRecord` writes goes into the save and is read back for the
+ * life of the career, so its one piece of prose — the `Your club` fallback —
+ * stays English on purpose and takes no `t`. The view models below are built
+ * fresh on every render and never persisted, so all of their copy is catalog
+ * copy.
  */
 
 /**
@@ -33,18 +41,30 @@ import type {
  */
 const DIVISION_LEVELS: readonly DivisionLevel[] = [1, 2, 3, 4, 5];
 
+/**
+ * English copy, for every caller that has not threaded a locale through yet —
+ * the same parameter-with-a-default shape `view-models.ts` uses.
+ */
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
+
 function asDivisionLevel(division: number): DivisionLevel | undefined {
   return DIVISION_LEVELS.find(level => level === division);
 }
 
-function divisionName(division: number): string {
+function divisionName(division: number, t: CopyFn): string {
   const level = asDivisionLevel(division);
-  return level === undefined ? `Division ${division}` : DIVISION_NAMES[level];
+  return level === undefined
+    ? t('hallOfFame.divisionFallback', { division })
+    : t(DIVISION_NAME_KEYS[level]);
 }
 
-function divisionLabel(division: number): string {
+function divisionLabel(division: number, t: CopyFn): string {
   const level = asDivisionLevel(division);
-  return level === undefined ? `D${division}` : divisionTierLabel(level);
+  return level === undefined ? `D${division}` : divisionTierLabelWith(level, t);
 }
 
 /**
@@ -78,6 +98,11 @@ export function goldenBootGoals(award: { detail: string; goals?: number }): numb
  */
 export function captureHallOfFameRecord(state: GameState): HallOfFameRecord {
   const recaps = [...(state.seasonRecaps ?? [])].sort((left, right) => left.season - right.season);
+  // NOT catalog copy, deliberately. This is written into the save and read back
+  // as the club's name for the rest of the career, so a translated value would
+  // be baked into the record in whatever language the summit happened to be
+  // played in and would stay there after a language change. Club names stay
+  // English by product decision, and this stands in for one.
   const clubName = state.clubs.find(club => club.id === state.userClubId)?.name ?? 'Your club';
 
   let played = 0;
@@ -152,83 +177,91 @@ export function recordHallOfFame(state: GameState): GameState {
  * manager who taps it before the end is told what unlocks it, which is the only
  * place in the game that says the climb has an end at all.
  */
-export function hallOfFameViewModel(state: GameState): HallOfFameViewModel {
+export function hallOfFameViewModel(
+  state: GameState,
+  t: CopyFn = englishCopy(),
+): HallOfFameViewModel {
   const record = state.hallOfFame;
   if (record === undefined) {
     const lines = [
-      'Finish the climb to see your record.',
-      'Both trophies: the Global League and the Hero Cup.',
+      t('hallOfFame.lockedLead'),
+      t('hallOfFame.lockedCondition'),
     ];
     return {
       status: 'locked',
-      title: 'Hall of Fame',
-      kicker: 'Club records',
-      headline: 'Not written yet',
+      title: t('settings.hallOfFame.label'),
+      kicker: t('hallOfFame.clubRecords'),
+      headline: t('hallOfFame.notWrittenYet'),
       lines,
-      accessibilityLabel: `Hall of Fame, locked. ${lines.join(' ')}`,
+      accessibilityLabel: t('hallOfFame.a11yLocked', { lines: lines.join(' ') }),
     };
   }
 
-  const stats = recordStats(record);
-  const honours = recordHonours(record);
+  const stats = recordStats(record, t);
+  const honours = recordHonours(record, t);
   return {
     status: 'complete',
-    title: 'Hall of Fame',
-    kicker: 'Club records',
+    title: t('settings.hallOfFame.label'),
+    kicker: t('hallOfFame.clubRecords'),
     headline: record.clubName,
-    subheading: `The climb, completed in ${seasonCount(record.season)}`,
+    subheading: t('hallOfFame.completedIn', { seasons: seasonCount(record.season, t) }),
     stats,
     honours,
     // Defensive: the page cannot be reached without the Cup, so an empty list
     // means a record from a save the Cup history no longer backs. Better a
     // written line than an empty box that looks like a rendering fault.
-    honoursEmptyLabel: 'No trophy on record.',
-    tiers: record.tiers.map(tierViewModel),
+    honoursEmptyLabel: t('hallOfFame.honoursEmpty'),
+    tiers: record.tiers.map(tier => tierViewModel(tier, t)),
     accessibilityLabel: [
-      `${record.clubName} Hall of Fame.`,
-      `The climb, completed in ${seasonCount(record.season)}.`,
+      t('hallOfFame.a11yTitle', { club: record.clubName }),
+      t('hallOfFame.a11yCompletedIn', { seasons: seasonCount(record.season, t) }),
       ...stats.map(stat => `${stat.label}: ${stat.value}. ${stat.detail}`),
     ].join(' '),
   };
 }
 
 /** The headline numbers, in the order the page reads them. */
-function recordStats(record: HallOfFameRecord): HallOfFameStatViewModel[] {
+function recordStats(record: HallOfFameRecord, t: CopyFn): HallOfFameStatViewModel[] {
   const goalDifference = record.goalsFor - record.goalsAgainst;
   const stats: HallOfFameStatViewModel[] = [
     {
       id: 'seasons',
-      label: 'Seasons',
+      label: t('hallOfFame.statSeasons'),
       value: `${record.season}`,
-      detail: `Season 1 to season ${record.season}`,
+      detail: t('hallOfFame.statSeasonsDetail', { season: record.season }),
     },
     {
       id: 'record',
-      label: 'Won / Drawn / Lost',
+      label: t('hallOfFame.statRecord'),
       value: `${record.won} / ${record.drawn} / ${record.lost}`,
-      detail: `${record.played} league games played`,
+      detail: t('hallOfFame.statRecordDetail', { played: record.played }),
     },
     {
       id: 'goals',
-      label: 'Goals for / against',
+      label: t('hallOfFame.statGoals'),
       value: `${record.goalsFor} / ${record.goalsAgainst}`,
-      detail: `${goalDifference >= 0 ? '+' : ''}${goalDifference} goal difference`,
+      detail: t('hallOfFame.statGoalsDetail', {
+        difference: `${goalDifference >= 0 ? '+' : ''}${goalDifference}`,
+      }),
     },
     {
       id: 'titles',
-      label: 'Division titles',
+      label: t('hallOfFame.statTitles'),
       value: `${record.divisionTitles.length}`,
       detail: record.divisionTitles.length === 0
-        ? 'Promoted without a title'
+        ? t('hallOfFame.statTitlesEmpty')
         : record.divisionTitles.map(title => `D${title.division}`).join(' · '),
     },
     {
       id: 'cups',
-      label: 'Hero Cups',
+      label: t('hallOfFame.statCups'),
       value: `${record.cupWinSeasons.length}`,
       detail: record.cupWinSeasons.length === 0
-        ? 'None recorded'
-        : `Season${record.cupWinSeasons.length === 1 ? '' : 's'} ${record.cupWinSeasons.join(', ')}`,
+        ? t('hallOfFame.statCupsEmpty')
+        : t('hallOfFame.statCupsDetail', {
+            n: record.cupWinSeasons.length,
+            seasons: record.cupWinSeasons.join(', '),
+          }),
     },
   ];
 
@@ -236,42 +269,48 @@ function recordStats(record: HallOfFameRecord): HallOfFameStatViewModel[] {
     const scorer = record.topScorer;
     stats.push({
       id: 'top-scorer',
-      label: 'Top scorer',
+      label: t('hallOfFame.statTopScorer'),
       value: scorer.playerName,
       // Says what the number is a total OF. It counts the seasons he led the
       // club, which is what the save keeps, and claiming a career total it
       // cannot prove would be the easier and worse sentence.
-      detail: `${scorer.goals} goals across ${goldenBootCount(scorer.goldenBoots)}`,
+      detail: t('hallOfFame.statTopScorerDetail', {
+        goals: scorer.goals,
+        boots: goldenBootCount(scorer.goldenBoots, t),
+      }),
     });
   }
   if (record.star !== undefined) {
     const star = record.star;
     stats.push({
       id: 'star',
-      label: 'Most famous',
+      label: t('hallOfFame.statMostFamous'),
       value: star.playerName,
-      detail: `${star.fame} fame · ${seasonCount(star.seasonsAtClub)} at the club`,
+      detail: t('hallOfFame.statMostFamousDetail', {
+        fame: star.fame,
+        seasons: seasonCount(star.seasonsAtClub, t),
+      }),
     });
   }
   return stats;
 }
 
 /** Every trophy, oldest first, so the list reads as the climb happened. */
-function recordHonours(record: HallOfFameRecord): HallOfFameHonourViewModel[] {
+function recordHonours(record: HallOfFameRecord, t: CopyFn): HallOfFameHonourViewModel[] {
   const honours = [
     ...record.divisionTitles.map(title => ({
       id: `title-${title.season}`,
       season: title.season,
-      label: `Season ${title.season}`,
+      label: t('leagueTable.seasonLabel', { season: title.season }),
       // The D-number is left off: the climb ladder below carries it, and the
       // name is the part that says which trophy this was.
-      value: `${divisionName(title.division)} champions`,
+      value: t('hallOfFame.honourChampions', { division: divisionName(title.division, t) }),
     })),
     ...record.cupWinSeasons.map(season => ({
       id: `cup-${season}`,
       season,
-      label: `Season ${season}`,
-      value: 'Hero Cup winners',
+      label: t('leagueTable.seasonLabel', { season }),
+      value: t('cupBracket.heroCupWinners'),
     })),
   ];
   return honours
@@ -281,15 +320,18 @@ function recordHonours(record: HallOfFameRecord): HallOfFameHonourViewModel[] {
     .map(({ id, label, value }) => ({ id, label, value }));
 }
 
-function tierViewModel(tier: HallOfFameTier): HallOfFameTierViewModel {
+function tierViewModel(tier: HallOfFameTier, t: CopyFn): HallOfFameTierViewModel {
   return {
     division: tier.division,
-    label: divisionLabel(tier.division),
+    label: divisionLabel(tier.division, t),
     firstSeason: tier.firstSeason,
     seasons: tier.seasons,
     bestPosition: tier.bestPosition,
-    best: `Best ${ordinal(tier.bestPosition)}`,
-    detail: `Reached in season ${tier.firstSeason} · ${seasonCount(tier.seasons)}`,
+    best: t('hallOfFame.tierBest', { position: ordinal(tier.bestPosition) }),
+    detail: t('hallOfFame.tierDetail', {
+      season: tier.firstSeason,
+      seasons: seasonCount(tier.seasons, t),
+    }),
   };
 }
 
@@ -357,14 +399,20 @@ function careerTopScorer(recaps: readonly SeasonRecap[]): HallOfFameScorer | und
   ))[0];
 }
 
-function seasonCount(seasons: number): string {
-  return `${seasons} season${seasons === 1 ? '' : 's'}`;
+function seasonCount(seasons: number, t: CopyFn): string {
+  return t('viewModels.seasonCount', { n: seasons, count: seasons });
 }
 
-function goldenBootCount(boots: number): string {
-  return `${boots} Golden Boot season${boots === 1 ? '' : 's'}`;
+function goldenBootCount(boots: number, t: CopyFn): string {
+  return t('hallOfFame.goldenBootCount', { n: boots, count: boots });
 }
 
+/**
+ * English ordinal suffixes, left in the source. Every locale forms these
+ * differently and several do not use a suffix at all, so a `1st`/`2nd` table is
+ * not something a per-key catalog entry can express — it needs its own rule per
+ * language. Out of scope for a copy extraction; noted rather than half-done.
+ */
 function ordinal(position: number): string {
   const tens = position % 100;
   if (tens >= 11 && tens <= 13) return `${position}th`;

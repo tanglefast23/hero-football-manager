@@ -58,7 +58,7 @@
  * 4. STILL OPEN, and the reason this probe is worth keeping: `listed` remains
  *    14–15 of 16 by season 3 and `stale` remains 0. Nothing here fixed the
  *    morale collapse underneath, and the fix in (3) adds to it — three times
- *    the asks in a club that cannot afford them means mostly refusals, at −4
+ *    the asks in a club that cannot afford them means mostly refusals, at -4
  *    morale to the asker each. This manager never trains and never buys, so a
  *    played career should list fewer; that remains unmeasured.
  */

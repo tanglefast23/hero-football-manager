@@ -42,7 +42,9 @@ describe('repeat-training presentation contract', () => {
       .toContain('selected drills start below 30% condition');
     expect(loadCatalog('en').strings['trainingDrill.continueAnyway'])
       .toBe('Continue anyway · {count}×');
-    expect(modal).toContain('Continue with max safe · ${Math.min(repeatCount, maximumSafeRuns)}×');
+    expect(modal).toContain("t('trainingDrill.continueMaxSafe'");
+    expect(loadCatalog('en').strings['trainingDrill.continueMaxSafe'])
+      .toBe('Continue with max safe · {count}×');
     expect(modal).toContain("t('trainingDrill.a11y.cancelAndReturnToTheNumberPicker')");
     expect(loadCatalog('en').strings['trainingDrill.a11y.cancelAndReturnToTheNumberPicker'])
       .toBe('Cancel and return to the number picker');
@@ -71,10 +73,12 @@ describe('new power explanation contract', () => {
     expect(demo).toContain('<MatchScreen');
     expect(demo).toContain('powerMatchShowcaseHome(powerId, playerName)');
     expect(demo).toContain('onPowerShowcaseComplete');
-    expect(demo).toContain('label="REPLAY"');
+    expect(demo).toContain("label={t('powerAcquiredDemo.replay')}");
+    expect(loadCatalog('en').strings['powerAcquiredDemo.replay']).toBe('REPLAY');
     // Spelled out. "CONT" saved four characters on a button with a whole row to
     // itself, and read like a debug stub next to REPLAY.
-    expect(demo).toContain('label="CONTINUE"');
+    expect(demo).toContain("label={t('powerAcquiredDemo.continue')}");
+    expect(loadCatalog('en').strings['powerAcquiredDemo.continue']).toBe('CONTINUE');
     // Each power's clip runs on the seed that makes its own promise land.
     expect(demo).toContain('seed={powerMatchShowcaseSeed(powerId)}');
     expect(demo).toContain('presentationOnly');
@@ -105,7 +109,9 @@ describe('story-event result contract', () => {
     const sprites = source('src/ui/event-pixel-sprites.ts');
 
     expect(screen).toContain("choice.tone === 'risky' ? 'border-stamp bg-red-light'");
-    expect(screen).toContain('No bonus this time');
+    expect(screen).toContain("t('storyEvent.outcomeNoBonusThisTime')");
+    expect(loadCatalog('en').strings['storyEvent.outcomeNoBonusThisTime'])
+      .toBe('No bonus this time');
     expect(screen).toContain("t('storyEvent.noBonusEarned')");
     expect(loadCatalog('en').strings['storyEvent.noBonusEarned']).toBe('No bonus earned');
     expect(screen).toContain('<EventRewardArt');

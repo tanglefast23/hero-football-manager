@@ -17,7 +17,7 @@ import {
   speechBubbleStyles,
 } from '../speech-bubble';
 import type { FulltimeReactionViewModel } from '../models';
-import { useCopy } from '../../i18n';
+import { useCopy, type CopyFn } from '../../i18n';
 
 export interface PostMatchLedgerScreenProps {
   viewModel: PostMatchViewModel;
@@ -58,11 +58,12 @@ export function PostMatchLedgerScreen({
             which is no way to read your own club's name. The vertical run has
             the width to spell both out without crowding the score. */}
         <View className="items-center py-3">
-          <StatusChip label="Full time" tone={resultTone} />
+          <StatusChip label={t('postMatchLedger.fullTime')} tone={resultTone} />
           <PixelText className="mt-3 text-[12px] uppercase text-blue-dark">{result.competition}</PixelText>
 
           <TeamLine
             name={result.homeTeam}
+            t={t}
             outcome={result.winner === 'home' && result.outcomeLabel !== 'DRAW'
               ? result.outcomeLabel
               : null}
@@ -74,11 +75,12 @@ export function PostMatchLedgerScreen({
             <Text className="font-mono text-[26px] text-paper">{result.awayScore}</Text>
           </View>
           {result.winner === null ? (
-            <PixelText className="mt-3 text-base uppercase text-ink/70">Draw</PixelText>
+            <PixelText className="mt-3 text-base uppercase text-ink/70">{t('postMatchLedger.draw')}</PixelText>
           ) : null}
 
           <TeamLine
             name={result.awayTeam}
+            t={t}
             outcome={result.winner === 'away' && result.outcomeLabel !== 'DRAW'
               ? result.outcomeLabel
               : null}
@@ -86,7 +88,7 @@ export function PostMatchLedgerScreen({
         </View>
 
         {viewModel.reaction ? (
-          <FulltimeReaction reaction={viewModel.reaction} textScale={textScale} />
+          <FulltimeReaction reaction={viewModel.reaction} textScale={textScale} t={t} />
         ) : null}
 
         {viewModel.buzz === undefined ? null : (
@@ -95,7 +97,7 @@ export function PostMatchLedgerScreen({
 
         {viewModel.highlights.length ? (
           <View className="mt-6">
-            <SectionLabel eyebrow="Match tape" title="Highlights" />
+            <SectionLabel eyebrow={t('postMatchLedger.matchTape')} title={t('postMatchLedger.highlights')} />
             <View className="gap-2">
               {viewModel.highlights.map(highlight => (
                 <Pressable
@@ -123,7 +125,8 @@ export function PostMatchLedgerScreen({
       <View className="border-t-2 border-ink/20 bg-white p-3">
         <DesktopClamp>
           <ActionButton
-            label="Back to the office  ▸"
+            // '▸' is not in Silkscreen, so it stays outside the catalog.
+            label={`${t('postMatchLedger.backToTheOffice')}  ▸`}
             accessibilityLabel={t('postMatchLedger.a11y.continueToTheHome')}
             onPress={onContinue}
           />
@@ -141,9 +144,13 @@ export function PostMatchLedgerScreen({
 function TeamLine({
   name,
   outcome,
+  t,
 }: {
   name: string;
+  // `outcome` is the view model's discriminator, not copy: it is compared, and
+  // the words the player reads come out of the catalog below.
   outcome: 'WIN' | 'LOSS' | null;
+  t: CopyFn;
 }) {
   return (
     <View className="mt-4 items-center">
@@ -161,7 +168,7 @@ function TeamLine({
             ? 'mt-2 text-[18px] uppercase text-pitch-ink'
             : 'mt-2 text-[18px] uppercase text-red-dark'}
         >
-          {outcome === 'WIN' ? 'We Won!' : 'We Lost'}
+          {outcome === 'WIN' ? t('postMatchLedger.weWon') : t('postMatchLedger.weLost')}
         </PixelText>
       ) : null}
     </View>
@@ -183,20 +190,25 @@ function TeamLine({
 function FulltimeReaction({
   reaction,
   textScale,
+  t,
 }: {
   reaction: FulltimeReactionViewModel;
   textScale: TextScale;
+  t: CopyFn;
 }) {
   const blaming = reaction.pose === 'point' && reaction.assistantPortraitId !== undefined;
   const mood = reaction.pose === 'joy'
-    ? `${reaction.coachName} is celebrating`
+    ? t('postMatchLedger.a11y.coachIsCelebrating', { coach: reaction.coachName })
     : blaming
-      ? `${reaction.coachName} is blaming ${reaction.assistantName}`
+      ? t('postMatchLedger.a11y.coachIsBlaming', {
+        coach: reaction.coachName,
+        assistant: reaction.assistantName ?? '',
+      })
       : reaction.pose === 'cry'
-        ? `${reaction.coachName} is in tears`
+        ? t('postMatchLedger.a11y.coachIsInTears', { coach: reaction.coachName })
         // A draw leaves him at rest, so there is no mood to name — read out who
         // is talking and let the line carry the rest.
-        : `${reaction.coachName} on the result`;
+        : t('postMatchLedger.a11y.coachOnTheResult', { coach: reaction.coachName });
 
   return (
     <View className="mt-6 items-start">
@@ -215,7 +227,7 @@ function FulltimeReaction({
       <View
         accessible
         accessibilityRole="image"
-        accessibilityLabel={`${mood}. "${reaction.line}"`}
+        accessibilityLabel={t('postMatchLedger.a11y.coachReaction', { mood, line: reaction.line })}
         className="flex-row items-end gap-3"
       >
         <ManagementSprite spriteKey={`coach:${reaction.coachPortraitId}:${reaction.pose}`} width={COACH_SPRITE_WIDTH} />

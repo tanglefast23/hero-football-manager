@@ -1,11 +1,22 @@
 import { leagueStandings, rosterForClub, type CareerPlayer, type GameState } from '../game';
 import { playerLookId } from '../render/sprites/player-look';
 import { celebrationCoaches } from './celebration-staff';
+import { copyFor, type CopyFn } from '../i18n';
 import type {
   EndgameCelebrationKind,
   EndgameCelebrationPlayerViewModel,
   EndgameCelebrationViewModel,
 } from '../ui/models';
+
+/**
+ * English copy, for every caller that has not threaded a locale through yet.
+ * The same lazy shape `application/view-models.ts` uses.
+ */
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 /**
  * The end of the main climb, which takes BOTH trophies.
@@ -159,8 +170,10 @@ export function endgameCelebrationViewModel(
   state: GameState,
   assistantName: string,
   kind = pendingEndgameCelebration(state) ?? 'true-ending',
+  t: CopyFn = englishCopy(),
 ): EndgameCelebrationViewModel {
-  const clubName = state.clubs.find(club => club.id === state.userClubId)?.name ?? 'Your club';
+  const clubName = state.clubs.find(club => club.id === state.userClubId)?.name
+    ?? t('endgameCelebration.yourClub');
   const squad = rosterForClub(state, state.userClubId);
   const star = highestFamePlayer(squad);
   const spriteSide = finalFixtureSide(state);
@@ -174,12 +187,12 @@ export function endgameCelebrationViewModel(
     ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
   });
   const starViewModel = star === undefined ? undefined : toViewModel(star);
-  const starName = starViewModel?.name ?? 'Your captain';
-  const copy = celebrationCopy(kind, clubName, starName);
+  const starName = starViewModel?.name ?? t('endgameCelebration.yourCaptain');
+  const copy = celebrationCopy(kind, clubName, starName, t);
 
   return {
     kind,
-    seasonLabel: `Season ${state.season}`,
+    seasonLabel: t('endgameCelebration.seasonLabel', { season: state.season }),
     clubName,
     assistantName,
     headline: copy.headline,
@@ -224,39 +237,40 @@ function celebrationCopy(
   kind: EndgameCelebrationKind,
   clubName: string,
   starName: string,
+  t: CopyFn,
 ): EndgameCopy {
   if (kind === 'global-league') {
     return {
-      headline: 'GLOBAL LEAGUE CHAMPIONS',
-      subheading: `${clubName} · Top of the pyramid`,
+      headline: t('endgameCelebration.globalLeague.headline'),
+      subheading: t('endgameCelebration.globalLeague.subheading', { club: clubName }),
       lines: [
-        'There is no division above this one. The ladder is finished.',
-        `${starName} climbed every rung of it with you.`,
-        'One trophy is still out there. Win the Hero Cup and the climb is complete.',
+        t('endgameCelebration.globalLeague.noDivisionAbove'),
+        t('endgameCelebration.globalLeague.climbedEveryRung', { star: starName }),
+        t('endgameCelebration.globalLeague.oneTrophyLeft'),
       ],
     };
   }
   if (kind === 'cup-winners') {
     return {
-      headline: 'HERO CUP WINNERS',
-      subheading: `${clubName} · Knockout champions`,
+      headline: t('endgameCelebration.cupWinners.headline'),
+      subheading: t('endgameCelebration.cupWinners.subheading', { club: clubName }),
       lines: [
-        'Every round a single tie, every tie a single chance. You took all of them.',
-        `${starName} carried the run.`,
-        'The division is still the goal. Win D1 and the climb is complete.',
+        t('endgameCelebration.cupWinners.everyRoundASingleTie'),
+        t('endgameCelebration.cupWinners.carriedTheRun', { star: starName }),
+        t('endgameCelebration.cupWinners.divisionStillTheGoal'),
       ],
     };
   }
   return {
-    headline: 'THE CLIMB IS COMPLETE',
-    subheading: `${clubName} · Global League and Hero Cup`,
+    headline: t('endgameCelebration.trueEnding.headline'),
+    subheading: t('endgameCelebration.trueEnding.subheading', { club: clubName }),
     // One bubble per entry. He is talking to the manager, not to a camera.
     lines: [
-      'Boss. Before anyone else gets in here, thank you.',
-      'You made me the player I am. Every bit of it came out of your coaching.',
-      'We won the league. We won the Cup. I am glad we did.',
-      'But it is not the trophies I will carry. It is the mornings on the training pitch, and the one man who kept turning up for me.',
-      'Wherever this goes next, I got here with you. Thank you, boss.',
+      t('endgameCelebration.trueEnding.beforeAnyoneElse'),
+      t('endgameCelebration.trueEnding.youMadeMe'),
+      t('endgameCelebration.trueEnding.weWonBoth'),
+      t('endgameCelebration.trueEnding.notTheTrophies'),
+      t('endgameCelebration.trueEnding.whereverThisGoes'),
     ],
   };
 }

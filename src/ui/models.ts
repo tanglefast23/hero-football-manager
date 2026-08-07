@@ -445,7 +445,14 @@ export interface FocusDrillViewModel {
 export interface CoachStaffMemberViewModel {
   id: string;
   role: 'HEAD' | 'ASSISTANT';
-  roleLabel: 'Head coach' | 'Assistant coach';
+  /**
+   * Widened from the literal union `'Head coach' | 'Assistant coach'`: a
+   * translated label cannot satisfy a literal type. Nothing ever narrowed on
+   * it — the two consumers render it or compute their own — so the union was
+   * documentation rather than a constraint, and `role` above still carries the
+   * discriminant for anything that needs to branch.
+   */
+  roleLabel: string;
   portraitId: string;
   name: string;
   age: number;
@@ -982,6 +989,14 @@ export interface SeasonEndClubBusinessViewModel {
 
 export interface SeasonEndViewModel {
   seasonLabel: string;
+  /**
+   * A season-outcome CODE, not a label.
+   *
+   * It is compared (`outcomeLabel === 'PROMOTED'` decides the promoted division)
+   * AND was drawn raw on the season-end stamp, so the same literal was doing
+   * control-flow and copy at once. It stays the discriminator; the screen maps
+   * it through `seasonEnd.outcome.*`.
+   */
   outcomeLabel: 'CHAMPIONS' | 'PROMOTED' | 'SAFE' | 'RELEGATED';
   headline: string;
   summary: string;

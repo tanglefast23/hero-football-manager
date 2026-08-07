@@ -4,6 +4,13 @@ import type {
   M2DivisionLeadersViewModel,
   M2LeaderBoardViewModel,
 } from '../ui/m2-league-models';
+import { copyFor, type CopyFn } from '../i18n';
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 /**
  * Board order, deliberately the reverse of the awards ceremony's.
@@ -30,6 +37,7 @@ export interface DivisionLeadersViewModelSource {
 /** Ranks one board per position line for the League screen's leaders tab. */
 export function divisionLeadersViewModel(
   source: DivisionLeadersViewModelSource,
+  t: CopyFn = englishCopy(),
 ): M2DivisionLeadersViewModel {
   const boards: M2LeaderBoardViewModel[] = BOARD_ORDER.map(categoryId => {
     const category = AWARD_CATEGORIES[categoryId];
@@ -53,7 +61,9 @@ export function divisionLeadersViewModel(
       categoryId,
       boardLabel: category.boardLabel,
       metricLabel: category.metricLabel,
-      emptyLabel: `No ${category.metricLabel.toLowerCase()} recorded yet this season`,
+      emptyLabel: t('m2League.noneRecordedYetThisSeason', {
+        metric: category.metricLabel.toLowerCase(),
+      }),
       entries,
     };
   });

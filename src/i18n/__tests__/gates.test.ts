@@ -131,7 +131,11 @@ describe('i18n gates', () => {
     // Conjunctions and indefinite articles ("y", "or", "una") legitimately end
     // real phrases, and a gate that cries wolf gets switched off.
     const TRAILING: Readonly<Record<string, readonly string[]>> = {
-      en: ['the', 'a', 'an', 'to', 'for', 'of', 'in', 'on', 'with', 'from', 'by', 'at'],
+      // 'on' is deliberately absent, for the same reason German omits its
+      // separable-verb particles: English phrasal verbs park theirs at the end,
+      // so "turned on", "keep them on" and "KEEP ON" are complete. 'in' stays —
+      // it caught a real ambiguity ("Bids in", now "Taking bids").
+      en: ['the', 'a', 'an', 'to', 'for', 'of', 'in', 'with', 'from', 'by', 'at'],
       es: ['el', 'la', 'los', 'las', 'de', 'del', 'al', 'para', 'por', 'con', 'en'],
       'pt-BR': ['o', 'os', 'as', 'de', 'do', 'da', 'para', 'por', 'com', 'em', 'no', 'na'],
       fr: ['le', 'les', 'de', 'du', 'des', 'à', 'au', 'aux', 'pour', 'par', 'avec', 'en'],
@@ -146,6 +150,16 @@ describe('i18n gates', () => {
       // caught by the in-context review instead.
     };
 
+    /**
+     * A string that ends in terminal punctuation is a finished sentence, not a
+     * fragment — whatever its last word is. English strands prepositions at the
+     * end of relative clauses ("anything you've paid for."), and so do several
+     * of the other languages here. Without this, the gate rejects correct prose
+     * and the fix is always to mangle the sentence, which is the opposite of
+     * what it is for.
+     */
+    const isSentence = (value: string) => /[.!?]$/u.test(value.trim());
+
     const lastToken = (value: string) =>
       value.trim().replace(/[.!?:;,"“”«»]+$/u, '').split(/\s+/).at(-1)?.toLowerCase() ?? '';
 
@@ -154,7 +168,7 @@ describe('i18n gates', () => {
       if (trailing === undefined) continue;
       const strings = locale === 'en' ? english() : loadCatalog(locale).strings;
       const fragments = Object.entries(strings)
-        .filter(([, value]) => trailing.includes(lastToken(value)))
+        .filter(([, value]) => !isSentence(value) && trailing.includes(lastToken(value)))
         .map(([key, value]) => `${key}: ${JSON.stringify(value)}`);
 
       expect({ locale, fragments }).toEqual({ locale, fragments: [] });

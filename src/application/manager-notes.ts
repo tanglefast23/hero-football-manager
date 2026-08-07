@@ -1,4 +1,5 @@
 import { CUP_SETTLEMENT_WEEKS, SEASON_WEEKS, isStoryYouthUnlocked, type GameState } from '../game';
+import { copyFor, type CopyFn } from '../i18n';
 import type { ManagerNoteViewModel } from '../ui/models';
 
 /**
@@ -21,16 +22,32 @@ const PRESEASON_WINDOW_LAST_WEEK = 4;
 const MIDSEASON_WINDOW_FIRST_WEEK = 17;
 const MIDSEASON_WINDOW_LAST_WEEK = 18;
 
-export function managerNotes(state: GameState): ManagerNoteViewModel[] {
+/**
+ * English copy, for every caller that has not threaded a locale through yet —
+ * the same parameter-with-a-default shape `view-models.ts` uses, and for the
+ * same reason: a pure module cannot reach React context. Built once, because
+ * `copyFor` spreads the whole English catalog into a fresh object and these
+ * notes are rebuilt on every home-screen render.
+ */
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
+
+export function managerNotes(
+  state: GameState,
+  t: CopyFn = englishCopy(),
+): ManagerNoteViewModel[] {
   if (state.phase !== 'manage') return [];
   return [
-    ...transferWindowNotes(state),
-    ...cupRoundNotes(state),
-    ...seasonEndNotes(state),
+    ...transferWindowNotes(state, t),
+    ...cupRoundNotes(state, t),
+    ...seasonEndNotes(state, t),
   ];
 }
 
-function transferWindowNotes(state: GameState): ManagerNoteViewModel[] {
+function transferWindowNotes(state: GameState, t: CopyFn): ManagerNoteViewModel[] {
   // Legacy careers have no market screen, so the window is not a thing there.
   if (state.market === undefined) return [];
   const academyOpen = isStoryYouthUnlocked(state);
@@ -38,8 +55,15 @@ function transferWindowNotes(state: GameState): ManagerNoteViewModel[] {
   if (state.week === 1) {
     return [{
       id: 'note:transfer-window-open',
-      title: `Manager's Note: Transfer window open, weeks 1-${PRESEASON_WINDOW_LAST_WEEK}`,
-      detail: `A transfer window is the only stretch of the season when you are allowed to buy or sell players: Weeks 1-${PRESEASON_WINDOW_LAST_WEEK}, then Weeks ${MIDSEASON_WINDOW_FIRST_WEEK}-${MIDSEASON_WINDOW_LAST_WEEK}. Outside them the market refuses every bid, so the squad you have is the squad you keep.${academyOpen ? ' The academy intake closes on the same day as this one, so settle your squad now.' : ''}`,
+      title: t('managerNotes.windowOpenTitle', { lastWeek: PRESEASON_WINDOW_LAST_WEEK }),
+      detail: t('managerNotes.windowOpenDetail', {
+        preseasonLastWeek: PRESEASON_WINDOW_LAST_WEEK,
+        midseasonFirstWeek: MIDSEASON_WINDOW_FIRST_WEEK,
+        midseasonLastWeek: MIDSEASON_WINDOW_LAST_WEEK,
+        // Glued rather than authored with a leading space: no catalog entry
+        // carries edge whitespace, and a translator cannot be asked to keep it.
+        academy: academyOpen ? ` ${t('managerNotes.windowOpenAcademy')}` : '',
+      }),
     }];
   }
 
@@ -47,27 +71,30 @@ function transferWindowNotes(state: GameState): ManagerNoteViewModel[] {
     return [{
       id: 'note:preseason-windows-closing',
       title: academyOpen
-        ? "Manager's Note: Transfer and youth windows close this week"
-        : "Manager's Note: Transfer window closes this week",
+        ? t('managerNotes.windowsClosingTitle')
+        : t('managerNotes.windowClosingTitle'),
       detail: academyOpen
-        ? `Last week to sign, sell or take an academy prospect. Advance from here and both shut until the transfer window reopens in Week ${MIDSEASON_WINDOW_FIRST_WEEK}.`
-        : `Last week to sign or sell. Advance from here and the market shuts until Week ${MIDSEASON_WINDOW_FIRST_WEEK}.`,
+        ? t('managerNotes.windowsClosingDetail', { week: MIDSEASON_WINDOW_FIRST_WEEK })
+        : t('managerNotes.windowClosingDetail', { week: MIDSEASON_WINDOW_FIRST_WEEK }),
     }];
   }
 
   if (state.week === MIDSEASON_WINDOW_FIRST_WEEK) {
     return [{
       id: 'note:midseason-window-open',
-      title: `Manager's Note: Transfer window reopens, weeks ${MIDSEASON_WINDOW_FIRST_WEEK}-${MIDSEASON_WINDOW_LAST_WEEK}`,
-      detail: 'Two weeks to fix what the first half of the season exposed. The academy stays shut. This window is signings and sales only, and it is the last one before the season ends.',
+      title: t('managerNotes.midseasonWindowOpenTitle', {
+        firstWeek: MIDSEASON_WINDOW_FIRST_WEEK,
+        lastWeek: MIDSEASON_WINDOW_LAST_WEEK,
+      }),
+      detail: t('managerNotes.midseasonWindowOpenDetail'),
     }];
   }
 
   if (state.week === MIDSEASON_WINDOW_LAST_WEEK) {
     return [{
       id: 'note:midseason-window-closing',
-      title: "Manager's Note: Transfer window closes this week",
-      detail: 'Last chance to change the squad this season. Whoever is on the books when you advance is who finishes the run-in.',
+      title: t('managerNotes.windowClosingTitle'),
+      detail: t('managerNotes.midseasonWindowClosingDetail'),
     }];
   }
 
@@ -79,7 +106,7 @@ function transferWindowNotes(state: GameState): ManagerNoteViewModel[] {
  * manager does not need a weekly bulletin about a competition they are watching
  * from the outside.
  */
-function cupRoundNotes(state: GameState): ManagerNoteViewModel[] {
+function cupRoundNotes(state: GameState, t: CopyFn): ManagerNoteViewModel[] {
   const cup = state.m2?.nationalCups.find(candidate => candidate.season === state.season);
   if (cup === undefined || cup.championClubId !== undefined) return [];
   const round = cup.rounds.find(candidate => (
@@ -93,10 +120,10 @@ function cupRoundNotes(state: GameState): ManagerNoteViewModel[] {
   if (round.byeClubIds.includes(state.userClubId)) {
     return [{
       id: `note:cup-bye:${round.number}`,
-      title: `Manager's Note: Hero Cup bye through the ${round.label}`,
+      title: t('managerNotes.cupByeTitle', { round: round.label }),
       detail: nextRoundLabel === undefined || nextRoundWeek === undefined
-        ? 'You sit this round out and go straight through.'
-        : `You sit this round out. Your run starts in Week ${nextRoundWeek} in the ${nextRoundLabel}.`,
+        ? t('managerNotes.cupByeFinalDetail')
+        : t('managerNotes.cupByeDetail', { week: nextRoundWeek, round: nextRoundLabel }),
     }];
   }
 
@@ -106,29 +133,42 @@ function cupRoundNotes(state: GameState): ManagerNoteViewModel[] {
   if (fixture === undefined) return [];
 
   const opponentId = fixture.homeClubId === state.userClubId ? fixture.awayClubId : fixture.homeClubId;
-  const opponent = state.clubs.find(club => club.id === opponentId)?.name ?? 'your opponent';
+  const opponent = state.clubs.find(club => club.id === opponentId)?.name
+    ?? t('managerNotes.opponentFallback');
   // Name the ground rather than trailing "at home" after the opponent, which
   // reads as the opponent being the home side.
-  const venue = fixture.homeClubId === state.userClubId ? 'our stadium' : 'their stadium';
-  const opening = `Playing ${opponent} at ${venue}.`;
+  const venue = fixture.homeClubId === state.userClubId
+    ? t('managerNotes.venueHome')
+    : t('managerNotes.venueAway');
+  const opening = t('managerNotes.cupFixtureOpening', { opponent, venue });
   return [{
     id: `note:cup-round:${round.number}`,
-    title: `Manager's Note: Hero Cup ${round.label} this week`,
+    title: t('managerNotes.cupRoundTitle', { round: round.label }),
     detail: nextRoundLabel === undefined || nextRoundWeek === undefined
-      ? `${opening} Win it and the Hero Cup is yours, the biggest prize money and the biggest crowd of the season.`
-      : `${opening} Win and you reach the ${nextRoundLabel} in Week ${nextRoundWeek}, where the prize money and the fans both grow. Lose and your run is over. There is no second chance.`,
+      ? t('managerNotes.cupFinalDetail', { opening })
+      : t('managerNotes.cupRoundDetail', {
+          opening,
+          round: nextRoundLabel,
+          week: nextRoundWeek,
+        }),
   }];
 }
 
-function seasonEndNotes(state: GameState): ManagerNoteViewModel[] {
+function seasonEndNotes(state: GameState, t: CopyFn): ManagerNoteViewModel[] {
   if (state.week !== SEASON_WEEKS) return [];
   return [{
     id: 'note:season-final-week',
-    title: "Manager's Note: Final week of the season",
-    detail: 'Advancing from here settles the table, promotion and relegation, and every contract that runs out. Spend what you were saving for this season before it becomes next season.',
+    title: t('managerNotes.seasonFinalWeekTitle'),
+    detail: t('managerNotes.seasonFinalWeekDetail'),
   }];
 }
 
+/**
+ * NOT copy. `label` is the round name persisted on the cup record, and this
+ * finds the next one by matching against it — a translated entry here would
+ * stop matching and every note would claim the club had reached the final.
+ * The labels are data, and data stays English.
+ */
 function nextCupRoundLabel(label: string): string | undefined {
   const order = ['Play-in', 'Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final'];
   return order[order.indexOf(label) + 1];

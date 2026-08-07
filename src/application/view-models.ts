@@ -134,6 +134,21 @@ import {
   trainingDrillTier,
 } from '../game/promotion-progression';
 import { renewalOpeningOfferWage } from '../game/market';
+import { copyFor, type CopyFn } from '../i18n';
+
+/**
+ * English copy, for every caller that has not threaded a locale through yet.
+ *
+ * The same shape as the seeded PRNG the sim ring takes: a pure module cannot
+ * reach React context, so the dependency is a parameter with a default. Built
+ * once and reused — `copyFor` spreads the whole English catalog into a fresh
+ * object, and these view models are rebuilt on every screen render.
+ */
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 /** The negotiation panel's wage increment, and the grid the opening seed rounds to. */
 const RENEWAL_WAGE_STEP = 50;
@@ -142,7 +157,7 @@ import { leagueFixtureViewModel } from './m2-league-view-model';
 import { coachRoleEffectLabels } from './coach-effects';
 import {
   dueAssistantInboxGuideSequences,
-  OPENING_TRAINING_PITCH_BLOCKED_REASON,
+  OPENING_TRAINING_PITCH_BLOCKED_REASON_KEY,
   openingTrainingPitchRequired,
   reconcileSatisfiedAssistantGuideSequences,
 } from './assistant-guide';
@@ -160,7 +175,10 @@ const ASSISTANT_GUIDE_CONTENT = LAUNCH_CONTENT.assistantGuide;
  */
 const CLUB_LEGACY_ROLL_LIMIT = 12;
 
-export function clubLegacyViewModel(state: GameState): ClubLegacyViewModel {
+export function clubLegacyViewModel(
+  state: GameState,
+  t: CopyFn = englishCopy(),
+): ClubLegacyViewModel {
   const reconciled = reconcilePendingClubLegends(state);
   const legend = nextPendingClubLegend(reconciled);
   if (legend === undefined) throw new Error('there is no pending club-legend decision');
@@ -172,8 +190,8 @@ export function clubLegacyViewModel(state: GameState): ClubLegacyViewModel {
     .slice()
     .reverse();
   return {
-    seasonLabel: `Season ${state.season}`,
-    queueLabel: pendingCount === 1 ? 'Final legacy decision' : `${pendingCount} legacy decisions remain`,
+    seasonLabel: t('clubLegacy.seasonLabel', { season: state.season }),
+    queueLabel: t('clubLegacy.queueLabel', { n: pendingCount, count: pendingCount }),
     playerId: legend.id,
     playerName: legend.name,
     role: legend.role,
@@ -188,15 +206,15 @@ export function clubLegacyViewModel(state: GameState): ClubLegacyViewModel {
     choices: [
       {
         id: 'coach-candidate',
-        label: 'Join the staff',
-        detail: `${legend.name} begins a new career on the touchline, carrying hard-earned club knowledge into every session.`,
-        outcome: 'Adds a loyalty-discounted candidate to the coach market.',
+        label: t('clubLegacy.joinTheStaff'),
+        detail: t('clubLegacy.joinTheStaffDetail', { player: legend.name }),
+        outcome: t('clubLegacy.joinTheStaffOutcome'),
       },
       {
         id: 'farewell',
-        label: 'Let him go',
-        detail: `${legend.name} takes the applause, shakes every hand in the building and walks out of it. Some players are not coaches, and the club has no wage spare to find out.`,
-        outcome: 'No coach, no cost. The offer is not made twice.',
+        label: t('clubLegacy.letHimGo'),
+        detail: t('clubLegacy.letHimGoDetail', { player: legend.name }),
+        outcome: t('clubLegacy.letHimGoOutcome'),
       },
     ],
     formerPlayers: formerPlayers.slice(0, CLUB_LEGACY_ROLL_LIMIT).map(player => ({
@@ -205,20 +223,25 @@ export function clubLegacyViewModel(state: GameState): ClubLegacyViewModel {
       role: player.role,
       ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
       isHero: player.power !== undefined,
-      detail: `${player.role} · ${seasonCountLabel(player.seasonsAtClub ?? 0)} · ${player.fame ?? 0} fame`,
+      detail: t('clubLegacy.formerPlayerDetail', {
+        role: player.role,
+        seasons: seasonCountLabel(player.seasonsAtClub ?? 0, t),
+        fame: player.fame ?? 0,
+      }),
     })),
     formerPlayerTotal: formerPlayers.length,
   };
 }
 
-function seasonCountLabel(seasons: number): string {
-  return `${seasons} season${seasons === 1 ? '' : 's'}`;
+function seasonCountLabel(seasons: number, t: CopyFn): string {
+  return t('viewModels.seasonCount', { n: seasons, count: seasons });
 }
 
 export function awakeningCutsceneViewModel(
   state: GameState,
   content: LaunchContent,
   hasPostMatchReport = false,
+  t: CopyFn = englishCopy(),
 ): AwakeningCutsceneViewModel {
   const pending = state.awakening.pending;
   if (pending === undefined) throw new Error('there is no pending awakening cutscene');
@@ -237,7 +260,7 @@ export function awakeningCutsceneViewModel(
   const fillName = (value: string) => value.split('{name}').join(player.name);
 
   return {
-    fixtureLabel: `S${fixture.season} · W${fixture.week} · Full time`,
+    fixtureLabel: t('awakening.fixtureLabel', { season: fixture.season, week: fixture.week }),
     playerId: player.id,
     playerName: player.name,
     role: player.role,
@@ -255,7 +278,9 @@ export function awakeningCutsceneViewModel(
     omenCopy: fillName(copy.omen),
     revealCopy: fillName(copy.reveal),
     firstHero: pending.firstHero,
-    licenseLabel: player.licensed ? 'Hero license active' : 'Awaiting hero license',
+    licenseLabel: player.licensed
+      ? t('awakening.licenseActive')
+      : t('awakening.licenseAwaiting'),
     continueLabel: pending.firstHero
       ? 'BEGIN THE HERO ERA  ▸'
       : state.phase === 'season-end' || state.phase === 'complete'
@@ -291,13 +316,13 @@ function ledgerLineKind(amount: number): 'income' | 'expense' | 'neutral' {
  * no gate at all, so a bare `$0` there reads as a broken number rather than as
  * the plain fact that the club played somewhere else.
  */
-function variableIncomeViewModel(state: GameState): ClubVariableIncomeViewModel {
+function variableIncomeViewModel(state: GameState, t: CopyFn): ClubVariableIncomeViewModel {
   const settled = state.ledgers[state.ledgers.length - 1];
   const amount = (settled?.lines ?? [])
     .filter(line => VARIABLE_INCOME_KINDS.includes(line.kind))
     .reduce((sum, line) => sum + line.amount, 0);
   if (amount !== 0) return { amount };
-  if (settled === undefined) return { amount, detail: 'no match' };
+  if (settled === undefined) return { amount, detail: t('clubFinances.variableIncomeNoMatch') };
   // Cup ties live in the M2 sidecar, so `state.fixtures` is the league season
   // alone — exactly the fixture whose venue decides the ordinary gate.
   const fixture = state.fixtures.find(candidate => (
@@ -307,8 +332,10 @@ function variableIncomeViewModel(state: GameState): ClubVariableIncomeViewModel 
   ));
   // The league calendar leaves weeks empty — the season opens with two of them —
   // so "no match" is a distinct fact from "played away", and both beat a bare $0.
-  if (fixture === undefined) return { amount, detail: 'no match' };
-  if (fixture.awayClubId === state.userClubId) return { amount, detail: 'away game' };
+  if (fixture === undefined) return { amount, detail: t('clubFinances.variableIncomeNoMatch') };
+  if (fixture.awayClubId === state.userClubId) {
+    return { amount, detail: t('clubFinances.variableIncomeAwayGame') };
+  }
   // A home week that banked nothing is not a state the settlement can produce.
   // Saying nothing is honest; inventing a reason would not be.
   return { amount };
@@ -327,40 +354,63 @@ function incomeGenerationViewModel(
   state: GameState,
   club: ReturnType<typeof requireUserClub>,
   sponsorship: ReturnType<typeof clubSponsorshipViewModel>,
+  t: CopyFn,
 ): IncomeGenerationViewModel {
   const commercial = commercialFacilitySummary(state);
   const rows: IncomeGenerationViewModel['rows'] = [
     {
       id: 'income-gate',
-      label: 'Home gate',
-      detail: `Every home match. ${GATE_ATTENDANCE_PERCENT}% of your ${club.fans} supporters buy a ticket.`,
+      label: t('clubFinances.incomeGateLabel'),
+      detail: t('clubFinances.incomeGateDetail', {
+        percent: GATE_ATTENDANCE_PERCENT,
+        fans: club.fans,
+      }),
       // The weekly roll, stated as the swing the manager actually sees on the
       // statement — including the surge the Financial Report makes a banner of.
-      effect: '±10% a week',
+      effect: t('clubFinances.incomeGateEffect'),
       owned: true,
     },
     {
       id: 'income-stadium-stand',
       label: commercial.standCount === 0
-        ? 'Stadium Stand'
-        : `Stadium Stand · ${commercial.standCount === 1 ? 'Level ' + commercial.standLevel : commercial.standCount + ' built'}`,
+        ? t('clubFinances.incomeStandLabel')
+        : commercial.standCount === 1
+          ? t('clubFinances.incomeStandLabelLevel', { level: commercial.standLevel })
+          : t('clubFinances.incomeStandLabelBuilt', { count: commercial.standCount }),
       detail: commercial.standCount === 0
-        ? 'Not built. Every level adds half the gate again, up to three stands.'
-        : `Adds to every home gate. ${commercial.standLevel} level${commercial.standLevel === 1 ? '' : 's'} across ${commercial.standCount} stand${commercial.standCount === 1 ? '' : 's'}.`,
-      effect: commercial.standCount === 0 ? '+50% / level' : `+${commercial.gateBonusPercent}% gate`,
+        ? t('clubFinances.incomeStandDetailUnbuilt')
+        : t('clubFinances.incomeStandDetailBuilt', {
+          levels: t('viewModels.levelCount', {
+            n: commercial.standLevel,
+            count: commercial.standLevel,
+          }),
+          stands: t('viewModels.standCount', {
+            n: commercial.standCount,
+            count: commercial.standCount,
+          }),
+        }),
+      effect: commercial.standCount === 0
+        ? t('clubFinances.incomeStandEffectUnbuilt')
+        : t('clubFinances.incomeStandEffect', { percent: commercial.gateBonusPercent }),
       owned: commercial.standCount > 0,
     },
     {
       id: 'income-fan-shop',
       label: commercial.shopCount === 0
-        ? 'Fan Shop'
-        : `Fan Shop · ${commercial.shopCount === 1 ? 'Level ' + commercial.shopLevel : commercial.shopCount + ' built'}`,
+        ? t('clubFinances.incomeShopLabel')
+        : commercial.shopCount === 1
+          ? t('clubFinances.incomeShopLabelLevel', { level: commercial.shopLevel })
+          : t('clubFinances.incomeShopLabelBuilt', { count: commercial.shopCount }),
       detail: commercial.shopCount === 0
-        ? 'Not built. Merchandise every week, paid whether the club is home or away.'
+        ? t('clubFinances.incomeShopDetailUnbuilt')
         : commercial.merchAdjacencyPercent > 0
-          ? `Merchandise every week, plus a +${commercial.merchAdjacencyPercent}% neighbour bonus.`
-          : 'Merchandise every week, home or away.',
-      effect: commercial.shopCount === 0 ? '×1 / level' : `×${commercial.shopLevel} merch`,
+          ? t('clubFinances.incomeShopDetailAdjacency', {
+            percent: commercial.merchAdjacencyPercent,
+          })
+          : t('clubFinances.incomeShopDetailBuilt'),
+      effect: commercial.shopCount === 0
+        ? t('clubFinances.incomeShopEffectUnbuilt')
+        : t('clubFinances.incomeShopEffect', { level: commercial.shopLevel }),
       owned: commercial.shopCount > 0,
     },
   ];
@@ -374,17 +424,21 @@ function incomeGenerationViewModel(
       ...rows,
       ...(sponsorIncome <= 0 ? [] : [{
         id: 'income-sponsor',
-        label: managedSponsors ? 'Sponsors' : 'Local advertising',
+        label: managedSponsors
+          ? t('clubFinances.incomeSponsorLabel')
+          : t('clubFinances.incomeAdvertisingLabel'),
         detail: managedSponsors
-          ? `Signed deals, paid together. ${sponsorship?.nextPaymentLabel ?? 'Paid monthly.'}`
-          : 'A local backer pays the club a flat fee, whatever the results.',
-        effect: 'Every 4 weeks',
+          ? t('clubFinances.incomeSponsorDetail', {
+            payment: sponsorship?.nextPaymentLabel ?? t('clubFinances.incomeSponsorPaidMonthly'),
+          })
+          : t('clubFinances.incomeAdvertisingDetail'),
+        effect: t('clubFinances.incomeSponsorEffect'),
         owned: true,
       }]),
       ...(sponsorship?.buzz === undefined ? [] : [{
         id: 'income-buzz',
         label: 'Buzz',
-        detail: 'Earned by winning and by heroes. Paid on top of the sponsor money.',
+        detail: t('clubFinances.incomeBuzzDetail'),
         effect: `${sponsorship.buzz.value} / 100`,
         owned: true,
       }]),
@@ -392,9 +446,12 @@ function incomeGenerationViewModel(
   };
 }
 
-export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
+export function clubFinancesViewModel(
+  state: GameState,
+  t: CopyFn = englishCopy(),
+): ClubFinancesViewModel {
   const club = requireUserClub(state);
-  const sponsorship = clubSponsorshipViewModel(state, club);
+  const sponsorship = clubSponsorshipViewModel(state, club, t);
   const wageSubsidyPercent = difficultyRules(state).seasonOneWageSubsidyPercent;
   const latest = state.ledgers[state.ledgers.length - 1];
   const facilityUpkeep = state.facilities.grid === undefined
@@ -405,23 +462,23 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
   const recurringProjectionLines = [
     ...(merchandiseIncome === 0 ? [] : [{
       kind: 'merch' as const,
-      label: 'Fan Shop merchandise',
+      label: t('ledger.fanShopMerchandise'),
       amount: merchandiseIncome,
     }]),
-    { kind: 'wages' as const, label: 'Weekly wages', amount: -club.weeklyWages },
+    { kind: 'wages' as const, label: t('ledger.weeklyWages'), amount: -club.weeklyWages },
     ...(coachWage === 0 ? [] : [{
       kind: 'wages' as const,
-      label: 'Coaching staff wages',
+      label: t('ledger.coachingStaffWages'),
       amount: coachWage,
     }]),
     ...(facilityUpkeep === 0 ? [] : [{
       kind: 'facilities' as const,
-      label: 'Facility upkeep',
+      label: t('ledger.facilityUpkeep'),
       amount: -facilityUpkeep,
     }]),
     ...(state.season === 1 && wageSubsidyPercent > 0 ? [{
       kind: 'subsidy' as const,
-      label: 'Season 1 wage subsidy',
+      label: t('ledger.seasonOneWageSubsidy'),
       amount: Math.floor(
         (club.weeklyWages + Math.abs(coachWage)) * wageSubsidyPercent / 100,
       ),
@@ -432,6 +489,7 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     state,
     club,
     recurringProjectionLines,
+    t,
   );
   // Newest week first: the statement is read top-down like a bank statement,
   // and the week just settled is the one the manager came here to check.
@@ -455,7 +513,7 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     && state.facilities.grid.construction.kind === 'BUILD'
     ? state.facilities.grid.construction
     : undefined;
-  const loan = outstandingLoanViewModel(state);
+  const loan = outstandingLoanViewModel(state, t);
   return {
     periodLabel: latest ? `S${latest.season} · W${latest.week}` : `S${state.season} · W${state.week}`,
     resources: {
@@ -476,13 +534,15 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
         kind: transaction.amount > 0 ? 'income' as const : 'expense' as const,
       })),
     fans: club.fans,
-    variableIncome: variableIncomeViewModel(state),
-    incomeGeneration: incomeGenerationViewModel(state, club, sponsorship),
+    variableIncome: variableIncomeViewModel(state, t),
+    incomeGeneration: incomeGenerationViewModel(state, club, sponsorship, t),
     operatingOutlook,
     weeklyNet,
     projectedBalance: club.cash + weeklyNet,
     ...(state.season === 1 && wageSubsidyPercent > 0
-      ? { wageSubsidyLabel: `Season 1 support covers ${wageSubsidyPercent}% of weekly wages` }
+      ? {
+        wageSubsidyLabel: t('clubFinances.wageSubsidyLabel', { percent: wageSubsidyPercent }),
+      }
       : {}),
     trainingGround: {
       built: state.facilities.trainingGroundBuilt,
@@ -499,9 +559,9 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     // src/ui pass.
     legacyTrainingGroundVisible: false,
     clubName: club.name,
-    coachingStaff: coachingStaffViewModels(state),
-    facilities: facilityGridViewModel(state),
-    trainingPointIncome: trainingPointIncomeViewModel(state),
+    coachingStaff: coachingStaffViewModels(state, t),
+    facilities: facilityGridViewModel(state, t),
+    trainingPointIncome: trainingPointIncomeViewModel(state, t),
     ...(sponsorship === undefined ? {} : { sponsorship }),
   };
 }
@@ -510,6 +570,7 @@ function fourWeekOperatingOutlook(
   state: GameState,
   club: GameState['clubs'][number],
   recurringLines: readonly { readonly label: string; readonly amount: number }[],
+  t: CopyFn,
 ): ClubFinancesViewModel['operatingOutlook'] {
   if (state.phase === 'season-end' || state.phase === 'complete') {
     return { weeks: [], net: 0, projectedBalance: club.cash };
@@ -535,9 +596,9 @@ function fourWeekOperatingOutlook(
     ));
     if (leagueFixture?.homeClubId === state.userClubId) {
       net += gateIncome;
-      facts.push('Home league gate');
+      facts.push(t('clubFinances.outlookHomeLeagueGate'));
     } else if (leagueFixture?.awayClubId === state.userClubId) {
-      facts.push('Away league game · no gate');
+      facts.push(t('clubFinances.outlookAwayLeagueGame'));
     }
 
     const cupRound = cup?.rounds.find(round => CUP_SETTLEMENT_WEEKS[round.number - 1] === week);
@@ -546,17 +607,21 @@ function fourWeekOperatingOutlook(
     ));
     if (cupFixture?.homeClubId === state.userClubId) {
       net += gateIncome;
-      facts.push('Home Hero Cup gate');
+      facts.push(t('clubFinances.outlookHomeCupGate'));
     } else if (cupFixture?.awayClubId === state.userClubId) {
-      facts.push('Away Hero Cup tie · no gate');
+      facts.push(t('clubFinances.outlookAwayCupTie'));
     }
 
     if (SPONSOR_PAYMENT_WEEKS.includes(week as typeof SPONSOR_PAYMENT_WEEKS[number])) {
       net += sponsorIncome;
-      facts.push(managed ? 'Sponsor payment' : 'Advertising payment');
+      facts.push(managed
+        ? t('clubFinances.outlookSponsorPayment')
+        : t('clubFinances.outlookAdvertisingPayment'));
     }
     if (facts.length === 0) {
-      facts.push(managed ? 'No match or sponsor payment' : 'No match or advertising payment');
+      facts.push(managed
+        ? t('clubFinances.outlookNoSponsorPayment')
+        : t('clubFinances.outlookNoAdvertisingPayment'));
     }
     runningBalance += net;
     return {
@@ -576,6 +641,7 @@ function fourWeekOperatingOutlook(
 function clubSponsorshipViewModel(
   state: GameState,
   club: GameState['clubs'][number],
+  t: CopyFn,
 ): ClubFinancesViewModel['sponsorship'] {
   const sponsorship = state.clubBusiness.sponsorship;
   const managed = sponsorship.activeContracts.length > 0;
@@ -612,7 +678,7 @@ function clubSponsorshipViewModel(
       : contract.objectiveOutcome.met ? 'MET' as const : 'FAILED' as const;
     return {
       slot: contract.slot,
-      slotLabel: `Slot ${contract.slot + 1}`,
+      slotLabel: t('clubFinances.sponsorSlotLabel', { number: contract.slot + 1 }),
       sponsorName: contract.sponsorName,
       offerLine: contract.offerLine,
       provisional: contract.provisional,
@@ -623,7 +689,10 @@ function clubSponsorshipViewModel(
         objectiveProgressLabel: progress === undefined
           ? undefined
           : contract.objective.kind === 'LEAGUE_FINISH'
-            ? `Current place ${progress.value} · Target top ${progress.target}`
+            ? t('clubFinances.sponsorObjectiveLeaguePlace', {
+              place: progress.value,
+              target: progress.target,
+            })
             : `${progress.value} / ${progress.target}`,
         objectiveStatus,
         nominalBonus: contract.objective.nominalBonus,
@@ -645,9 +714,12 @@ function clubSponsorshipViewModel(
     : {
         value: state.clubBusiness.buzz.value,
         pendingPayout: Math.round(actualMonthlyIncome * state.clubBusiness.buzz.value / 100),
-        nextPayoutLabel: state.week <= 15 ? 'Week 15' : 'Week 30',
+        nextPayoutLabel: t('clubFinances.buzzNextPayoutWeek', { week: state.week <= 15 ? 15 : 30 }),
         ...(state.clubBusiness.buzz.lastSettlementSummary === undefined ? {} : {
-          lastSettlementLabel: `Reached ${state.clubBusiness.buzz.lastSettlementSummary.prePayoutValue} · Paid $${state.clubBusiness.buzz.lastSettlementSummary.payout.toLocaleString()} · Reset to 0`,
+          lastSettlementLabel: t('clubFinances.buzzLastSettlementLabel', {
+            reached: state.clubBusiness.buzz.lastSettlementSummary.prePayoutValue,
+            amount: `$${state.clubBusiness.buzz.lastSettlementSummary.payout.toLocaleString()}`,
+          }),
         }),
       };
   return {
@@ -656,8 +728,8 @@ function clubSponsorshipViewModel(
     actualMonthlyIncome,
     nominalMonthlyIncome,
     nextPaymentLabel: nextSponsorPaymentWeek === undefined
-      ? 'Next pre-season'
-      : `Week ${nextSponsorPaymentWeek}`,
+      ? t('clubFinances.sponsorNextPaymentPreSeason')
+      : t('clubFinances.sponsorNextPaymentWeek', { week: nextSponsorPaymentWeek }),
     ...(sponsorPercent === 100 ? {} : { chairmanPercent: sponsorPercent }),
     slots,
     ...(buzz === undefined ? {} : { buzz }),
@@ -726,7 +798,7 @@ function actualObjectiveBonuses(
  * re-derived, because two additions of the same figures is exactly how a
  * breakdown screen drifts from the thing it explains.
  */
-function trainingPointIncomeViewModel(state: GameState): TrainingPointIncomeViewModel {
+function trainingPointIncomeViewModel(state: GameState, t: CopyFn): TrainingPointIncomeViewModel {
   const grid = state.facilities.grid;
   const pitchLevel = grid === undefined
     ? (state.facilities.trainingGroundBuilt ? 1 : 0)
@@ -740,26 +812,26 @@ function trainingPointIncomeViewModel(state: GameState): TrainingPointIncomeView
   const rows = [
     {
       id: 'training-points-baseline',
-      label: 'Club baseline',
-      detail: 'Every club trains on whatever field it has',
+      label: t('clubFinances.tpBaselineLabel'),
+      detail: t('clubFinances.tpBaselineDetail'),
       points: BASE_WEEKLY_TRAINING_POINTS,
     },
     ...(pitchLevel === 0 ? [] : [{
       id: 'training-points-pitch',
-      label: `Training Pitch · Level ${pitchLevel}`,
-      detail: `${TRAINING_PITCH_TP_PER_LEVEL} per Level`,
+      label: t('clubFinances.tpPitchLabel', { level: pitchLevel }),
+      detail: t('clubFinances.tpPitchDetail', { points: TRAINING_PITCH_TP_PER_LEVEL }),
       points: pitchLevel * TRAINING_PITCH_TP_PER_LEVEL,
     }]),
     ...(head === undefined ? [] : [{
       id: 'training-points-head-coach',
       label: head.name,
-      detail: `Head coach · Level ${head.level}`,
+      detail: t('clubFinances.tpHeadCoachDetail', { level: head.level }),
       points: coachWeeklyTrainingPoints(head.level, 'HEAD'),
     }]),
     ...(assistant === undefined ? [] : [{
       id: 'training-points-assistant-coach',
       label: assistant.name,
-      detail: `Assistant coach · Level ${assistant.level}`,
+      detail: t('clubFinances.tpAssistantCoachDetail', { level: assistant.level }),
       points: coachWeeklyTrainingPoints(assistant.level, 'ASSISTANT'),
     }]),
   ];
@@ -783,27 +855,38 @@ function trainingPointIncomeViewModel(state: GameState): TrainingPointIncomeView
  * the exact figure is already on this screen the week it is taken — copying the
  * formula into a view model would be a second place for it to drift.
  */
-function outstandingLoanViewModel(state: GameState): ClubLoanViewModel | undefined {
+function outstandingLoanViewModel(state: GameState, t: CopyFn): ClubLoanViewModel | undefined {
   const loan = state.financialSafety?.loan;
   if (loan === undefined || loan.remainingBalance <= 0) return undefined;
   const repaying = state.season >= loan.repaymentStartsSeason;
   return {
     originalAmount: loan.originalAmount,
     remainingBalance: loan.remainingBalance,
-    scheduleLabel: repaying ? 'Weeks left' : 'Repayments begin',
-    scheduleValue: repaying ? `${loan.remainingWeeks}` : `Season ${loan.repaymentStartsSeason}`,
+    scheduleLabel: repaying
+      ? t('clubFinances.loanWeeksLeft')
+      : t('clubFinances.loanRepaymentsBegin'),
+    scheduleValue: repaying
+      ? `${loan.remainingWeeks}`
+      : t('clubFinances.loanRepaymentSeason', { season: loan.repaymentStartsSeason }),
     detail: repaying
-      ? 'A repayment leaves the balance every week until the debt clears. The board writes one loan per career, and this was it.'
-      : `Nothing is taken until Season ${loan.repaymentStartsSeason}. From then a repayment leaves the balance every week until the debt clears.`,
+      ? t('clubFinances.loanDetailRepaying')
+      : t('clubFinances.loanDetailPending', { season: loan.repaymentStartsSeason }),
   };
 }
 
-function coachingStaffViewModels(state: GameState): readonly CoachStaffMemberViewModel[] {
+/**
+ * `roleLabel` is deliberately still English. `CoachStaffMemberViewModel` types it
+ * as the literal union `'Head coach' | 'Assistant coach'`, so a catalog lookup
+ * cannot satisfy it without either widening that type in `src/ui/models.ts` or
+ * casting a translated string back to a literal it will not equal. Widening the
+ * field is the fix; it belongs with the pass that threads the live `t` in.
+ */
+function coachingStaffViewModels(state: GameState, t: CopyFn): readonly CoachStaffMemberViewModel[] {
   return [
     ...(state.market?.headCoach === undefined ? [] : [{
       id: state.market.headCoach.id,
       role: 'HEAD' as const,
-      roleLabel: 'Head coach' as const,
+      roleLabel: t('coachStaff.headCoach'),
       portraitId: state.market.headCoach.portraitId ?? state.market.headCoach.id,
       name: state.market.headCoach.name,
       age: state.market.headCoach.age ?? 45,
@@ -818,7 +901,7 @@ function coachingStaffViewModels(state: GameState): readonly CoachStaffMemberVie
     ...(state.market?.assistantCoach === undefined ? [] : [{
       id: state.market.assistantCoach.id,
       role: 'ASSISTANT' as const,
-      roleLabel: 'Assistant coach' as const,
+      roleLabel: t('coachStaff.assistantCoach'),
       portraitId: state.market.assistantCoach.portraitId ?? state.market.assistantCoach.id,
       name: state.market.assistantCoach.name,
       age: state.market.assistantCoach.age ?? 45,
@@ -833,7 +916,7 @@ function coachingStaffViewModels(state: GameState): readonly CoachStaffMemberVie
   ];
 }
 
-function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilities'] {
+function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewModel['facilities'] {
   const grid = state.facilities.grid ?? createFacilityGrid();
   const club = requireUserClub(state);
   const activeAdjacencies = activeFacilityAdjacencies(grid);
@@ -850,7 +933,7 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
         ? definition.upgradeCosts[building.level - 1]
         : undefined;
       const nextLevelEffectLabel = building.level < 3
-        ? facilityNextLevelEffectLabel(building.type, (building.level + 1) as FacilityLevel)
+        ? facilityNextLevelEffectLabel(building.type, (building.level + 1) as FacilityLevel, t)
         : undefined;
       const upgradeBlockedReason = building.level < 3
         ? facilityUpgradeBlockedReason(state, (building.level + 1) as FacilityLevel)
@@ -865,7 +948,7 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
         width: definition.footprint.width,
         height: definition.footprint.height,
         weeklyUpkeep: project?.kind === 'BUILD' ? 0 : definition.weeklyUpkeep[building.level - 1],
-        effectLabel: facilityEffectLabel(building.type, building.level),
+        effectLabel: facilityEffectLabel(building.type, building.level, t),
         ...(upgradeCost === undefined ? {} : { upgradeCost }),
         ...(nextLevelEffectLabel === undefined ? {} : { nextLevelEffectLabel }),
         ...(upgradeBlockedReason === undefined ? {} : { upgradeBlockedReason }),
@@ -906,7 +989,7 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
         width: definition.footprint.width,
         height: definition.footprint.height,
         weeklyUpkeep: definition.weeklyUpkeep[0],
-        effectLabel: facilityEffectLabel(definition.type, 1),
+        effectLabel: facilityEffectLabel(definition.type, 1, t),
         available: definition.available,
         affordable: definition.available
           && !buildLimitReached
@@ -922,14 +1005,17 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
           ? { blockedReason: 'Locked.' }
           : buildLimitReached
             ? { blockedReason: buildLimit === 1
-              ? 'Already built. Select it on the grid to upgrade or move it.'
-              : `Build limit reached · ${builtCount} of ${buildLimit} built.` }
+              ? t('clubFinances.facilityAlreadyBuilt')
+              : t('clubFinances.facilityBuildLimitReached', {
+                built: builtCount,
+                limit: buildLimit,
+              }) }
             : blockedByOpeningTrainingPitch
-              ? { blockedReason: OPENING_TRAINING_PITCH_BLOCKED_REASON }
+              ? { blockedReason: t(OPENING_TRAINING_PITCH_BLOCKED_REASON_KEY) }
               : grid.construction !== undefined
-                ? { blockedReason: 'Construction crew is already assigned.' }
+                ? { blockedReason: t('clubFinances.facilityCrewAssigned') }
                 : club.cash < definition.buildCost
-                  ? { blockedReason: 'Insufficient balance.' }
+                  ? { blockedReason: t('clubFinances.facilityInsufficientBalance') }
                   : {}),
       };
     }),
@@ -943,6 +1029,7 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
         benefitLabel: facilityEffectLabel(
           grid.construction.type,
           grid.construction.targetLevel,
+          t,
         ),
         kind: grid.construction.kind,
         weeksRemaining: grid.construction.weeksRemaining,
@@ -954,37 +1041,41 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
 }
 
 /** Every line states a real effect site in src/game — no facility says "nothing". */
-function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
-  const trainingEffect = (attributes: string): string => (
-    `+${TRAINING_BONUS_PERCENT[level]}% ${attributes} training`
-  );
+function facilityEffectLabel(type: FacilityType, level: FacilityLevel, t: CopyFn): string {
+  const trainingEffect = (attributes: string): string => t('clubFinances.facilityTrainingEffect', {
+    percent: TRAINING_BONUS_PERCENT[level],
+    attributes,
+  });
   if (type === 'training-pitch') {
-    return `+${TRAINING_PITCH_TP_PER_LEVEL} TP per completed level · +${TRAINING_BONUS_PERCENT[level]}% DEF training`;
+    return t('clubFinances.facilityPitchEffect', {
+      points: TRAINING_PITCH_TP_PER_LEVEL,
+      percent: TRAINING_BONUS_PERCENT[level],
+    });
   }
   if (type === 'gym') return trainingEffect('PAC + STA');
   if (type === 'tech-center') return trainingEffect('PAS + TEC');
   if (type === 'shooting-range') return trainingEffect('SHO');
   if (type === 'keeper-court') return trainingEffect('REF');
   if (type === 'medical-bay') {
-    return `Recovery -${level} week${level === 1 ? '' : 's'} · adjacency bonus available`;
+    return t('clubFinances.facilityMedicalEffect', { n: level, count: level });
   }
   if (type === 'dorm') {
-    return `+${level * 4} condition recovery weekly · adjacency bonus available`;
+    return t('clubFinances.facilityDormEffect', { amount: level * 4 });
   }
   if (type === 'scout-office') {
-    const names = `${2 + level} names per mission`;
+    const names = t('clubFinances.facilityScoutNames', { count: 2 + level });
     return level === 1
-      ? `${names} · broad stat ranges`
+      ? t('clubFinances.facilityScoutBroad', { names })
       : level === 2
-        ? `${names} · tighter stat ranges`
-        : `${names} · powers confirmed`;
+        ? t('clubFinances.facilityScoutTighter', { names })
+        : t('clubFinances.facilityScoutPowers', { names });
   }
-  if (type === 'coaching-office') return 'Unlocks the assistant coach position';
+  if (type === 'coaching-office') return t('clubFinances.facilityCoachingOfficeEffect');
   if (type === 'youth-field') {
-    return `Youth starting strength +${level * 5}`;
+    return t('clubFinances.facilityYouthEffect', { amount: level * 5 });
   }
-  if (type === 'fan-shop') return `Weekly merchandise scales with fans · x${level} from this shop`;
-  if (type === 'stadium-stand') return `+${level * 50}% home gate income from this stand`;
+  if (type === 'fan-shop') return t('clubFinances.facilityShopEffect', { level });
+  if (type === 'stadium-stand') return t('clubFinances.facilityStandEffect', { percent: level * 50 });
   throw new Error(`missing facility effect copy for ${type}`);
 }
 
@@ -994,11 +1085,12 @@ const TRAINING_BONUS_PERCENT: Readonly<Record<FacilityLevel, number>> = { 1: 25,
 function facilityNextLevelEffectLabel(
   type: FacilityType,
   nextLevel: FacilityLevel,
+  t: CopyFn,
 ): string | undefined {
   // The Coaching Office is a one-off unlock: its upgrades change nothing, so it
   // is the only facility with no next-level promise to show.
   if (type === 'coaching-office') return undefined;
-  return facilityEffectLabel(type, nextLevel);
+  return facilityEffectLabel(type, nextLevel, t);
 }
 
 function activeAdjacencyIdsForBuilding(
@@ -1047,7 +1139,11 @@ function storyPlayerAttributes(
   }));
 }
 
-export function storyEventViewModel(state: GameState, content: LaunchContent): StoryEventViewModel {
+export function storyEventViewModel(
+  state: GameState,
+  content: LaunchContent,
+  t: CopyFn = englishCopy(),
+): StoryEventViewModel {
   const pending = state.pendingEvent;
   if (pending === undefined) throw new Error('there is no pending story event');
   const event = content.events.events.find(candidate => candidate.id === pending.eventId);
@@ -1077,10 +1173,16 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
     role: player.role,
     overall: overall(player.role, player.attrs),
     detail: player.injuryWeeks > 0
-      ? `Injured for ${player.injuryWeeks} more week${player.injuryWeeks === 1 ? '' : 's'}`
+      ? t('storyEvent.playerInjured', { n: player.injuryWeeks, count: player.injuryWeeks })
       : player.power !== undefined
-        ? `Licensed hero · ${starterIds.includes(player.id) ? 'Starting XI' : 'Squad player'}`
-        : starterIds.includes(player.id) ? 'Starting XI' : 'Squad player',
+        ? t('storyEvent.licensedHero', {
+          status: starterIds.includes(player.id)
+            ? t('storyEvent.startingXi')
+            : t('storyEvent.squadPlayer'),
+        })
+        : starterIds.includes(player.id)
+          ? t('storyEvent.startingXi')
+          : t('storyEvent.squadPlayer'),
     ...(player.power ? {
       powerName: content.powers.powers.find(power => power.id === player.power)?.name ?? player.power,
     } : {}),
@@ -1117,9 +1219,9 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
         // The RISKY/SAFE stamp beside the label already names the tone, so this
         // line only has to say what each one pays.
         detail: choice.risky
-          ? 'Bigger reward, real chance of nothing.'
-          : 'Smaller reward, guaranteed.',
-        consequenceHint: describeEventChoiceOutcome(choice),
+          ? t('storyEvent.choiceRiskyDetail')
+          : t('storyEvent.choiceSafeDetail'),
+        consequenceHint: describeEventChoiceOutcome(choice, t),
         tone: choice.risky ? 'risky' as const : 'safe' as const,
         disabled: pending.resolvedChoiceId !== undefined || disabledReason !== undefined,
         ...(disabledReason === undefined ? {} : { disabledReason }),
@@ -1131,11 +1233,13 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
       resolvedSuccess: pending.resolvedSuccess === true,
       outcomeTitle: pending.resolvedRisky === true
         ? pending.resolvedSuccess === true
-          ? resolvedOutcome?.successHeadline ?? 'The risk paid off'
-          : 'The gamble missed'
-        : 'Decision complete',
+          ? resolvedOutcome?.successHeadline ?? t('storyEvent.outcomeRiskPaidOff')
+          : t('storyEvent.outcomeGambleMissed')
+        : t('storyEvent.outcomeDecisionComplete'),
       outcomeText: pending.outcomeText,
-      outcomeRewards: resolvedOutcome === undefined ? [] : eventRewardItems(resolvedOutcome.effects),
+      outcomeRewards: resolvedOutcome === undefined
+        ? []
+        : eventRewardItems(resolvedOutcome.effects, t),
       ...(pending.resolvedNextEventId === undefined ? {} : { outcomeHasFollowUp: true as const }),
     } : {}),
     ...(pending.resolvedRisky === true && pending.resolvedSuccess === true && resolvedOutcome !== undefined
@@ -1143,7 +1247,7 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
           successCutscene: {
             artKey: `${event.art}-success`,
             headline: resolvedOutcome.successHeadline ?? event.title.replace(/[!?]+$/, ''),
-            rewards: eventRewardLabels(resolvedOutcome.effects),
+            rewards: eventRewardLabels(resolvedOutcome.effects, t),
             ...(pending.resolvedNextEventId === undefined ? {} : { hasFollowUp: true as const }),
           },
         }
@@ -1155,6 +1259,7 @@ export function seasonEndViewModel(
   state: GameState,
   content: LaunchContent,
   selectedTerm: 1 | 2 | 3,
+  t: CopyFn = englishCopy(),
 ): SeasonEndViewModel {
   if (state.phase !== 'season-end' && state.phase !== 'complete') {
     throw new Error('the season has not ended');
@@ -1259,27 +1364,37 @@ export function seasonEndViewModel(
       };
 
   return {
-    seasonLabel: `Season ${state.season} · ${divisionTierLabel(division)}`,
+    seasonLabel: t('seasonEnd.seasonLabel', {
+      season: state.season,
+      division: divisionTierLabel(division),
+    }),
     outcomeLabel,
     headline: outcomeLabel === 'CHAMPIONS'
-      ? 'The club owns the country.'
+      ? t('seasonEnd.headlineChampions')
       : outcomeLabel === 'PROMOTED'
-        ? 'The climb continues.'
+        ? t('seasonEnd.headlinePromoted')
         : outcomeLabel === 'RELEGATED'
-          ? 'A hard landing. The rebuild starts now.'
-          : 'The board signs off on another year.',
+          ? t('seasonEnd.headlineRelegated')
+          : t('seasonEnd.headlineSafe'),
     summary: outcomeLabel === 'PROMOTED'
-      ? `A place in ${divisionTierLabel((division - 1) as 1 | 2 | 3 | 4)} is secured. Contracts and retirements resolve before the new fixtures arrive.`
+      ? t('seasonEnd.summaryPromoted', {
+        division: divisionTierLabel((division - 1) as 1 | 2 | 3 | 4),
+      })
       : outcomeLabel === 'RELEGATED'
-        ? `The club drops to ${divisionTierLabel((division + 1) as 2 | 3 | 4 | 5)}, but the endless career continues.`
-        : 'Contracts, player aging, retirement announcements, and the next national campaign now resolve.',
+        ? t('seasonEnd.summaryRelegated', {
+          division: divisionTierLabel((division + 1) as 2 | 3 | 4 | 5),
+        })
+        : t('seasonEnd.summarySafe'),
     finalPosition: user.position,
     prizeMoney,
     difficultyLabel: state.difficulty ?? 'COZY',
     ...(recap === undefined ? {} : {
       recap: {
         record: `${recap.won}W · ${recap.drawn}D · ${recap.lost}L`,
-        goals: `${recap.goalsFor} for · ${recap.goalsAgainst} against`,
+        goals: t('seasonEnd.recapGoals', {
+          scored: recap.goalsFor,
+          conceded: recap.goalsAgainst,
+        }),
         cashChange: recap.cashChange,
         closingCash: recap.closingCash,
         trainingCapsReached: recap.trainingCapsReached,
@@ -1372,12 +1487,14 @@ const BUILD_REMINDER_WEEK = 7;
  * The one-week "keep building" nudge. Its Week 7 gate is its read state: after
  * that week it retires whether or not the manager opened it.
  */
-const BUILD_REMINDER_ALERT: ClubAlertViewModel = {
-  id: 'build-reminder',
-  title: 'Keep building',
-  detail: 'Remember to construct new buildings every week if you have the finances to do so.',
-  tone: 'info',
-};
+function buildReminderAlert(t: CopyFn): ClubAlertViewModel {
+  return {
+    id: 'build-reminder',
+    title: t('clubHome.buildReminderTitle'),
+    detail: t('clubHome.buildReminderDetail'),
+    tone: 'info',
+  };
+}
 
 /** Tapping this card opens the story screen; Advance Week opens it regardless. */
 export const DESK_STORY_ALERT_ID = 'story-event';
@@ -1409,7 +1526,7 @@ function deskStoryAlert(state: GameState): ClubAlertViewModel | undefined {
  * with nothing else to read, and disappears for good the moment the club buys
  * any upgrade — the point is to teach that the shop exists, not to nag.
  */
-function drillShopAlert(state: GameState): ClubAlertViewModel | undefined {
+function drillShopAlert(state: GameState, t: CopyFn): ClubAlertViewModel | undefined {
   // The copy promises a promotion opened the shop, so only say it once one has.
   // Pre-M2 saves have no division record at all and never see this.
   if ((state.m2?.highestDivisionReached ?? 5) >= 5) return undefined;
@@ -1421,8 +1538,8 @@ function drillShopAlert(state: GameState): ClubAlertViewModel | undefined {
   if (offer === undefined) return undefined;
   return {
     id: `training-upgrade:tier-${offer.tier}`,
-    title: `Tier ${offer.tier} drills on sale`,
-    detail: `Promotion opened a stronger drill for every training path. ${formatMoney(offer.cost)} each, bought once and kept for the rest of the career. Every session on a tier ${offer.tier} drill adds more than the one you are running now. The shop is on the Squad screen.`,
+    title: t('clubHome.drillShopTitle', { tier: offer.tier }),
+    detail: t('clubHome.drillShopDetail', { cost: formatMoney(offer.cost), tier: offer.tier }),
     tone: 'info',
   };
 }
@@ -1444,7 +1561,10 @@ function isBuildReminderDue(state: GameState, alerts: readonly ClubAlertViewMode
 const RETIREMENT_FINAL_WEEKS = 3;
 
 /** Live, uncapped product alerts before Bert's weekly desk scheduler. */
-export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
+export function homeProductAlerts(
+  state: GameState,
+  t: CopyFn = englishCopy(),
+): ClubAlertViewModel[] {
   const roster = rosterForClub(state, state.userClubId);
   const expired = roster.filter(player => player.contractSeasonsRemaining === 0);
   const injured = roster
@@ -1509,8 +1629,11 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     // list can end the club.
     ...(negativeCashWeeks > 0 && !financialWarningDismissed ? [{
       id: 'financial-warning',
-      title: 'Board financial warning',
-      detail: `Cash has stayed negative for ${negativeCashWeeks} week${negativeCashWeeks === 1 ? '' : 's'}. Transfers and building are locked until the balance recovers.`,
+      title: t('clubHome.financialWarningTitle'),
+      detail: t('clubHome.financialWarningDetail', {
+        n: negativeCashWeeks,
+        count: negativeCashWeeks,
+      }),
       tone: 'urgent' as const,
     }] : []),
     // Kept even next to the warning above: the two carry different facts, what
@@ -1520,28 +1643,43 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     // debt rather than being the only place to read it.
     ...(loan !== undefined && loan.remainingBalance > 0 && !emergencyLoanDismissed ? [{
       id: 'emergency-loan',
-      title: 'Emergency loan active',
-      detail: `${formatMoney(loan.remainingBalance)} remains.`
-        + (state.season >= loan.repaymentStartsSeason
-          ? ` ${loan.remainingWeeks} week${loan.remainingWeeks === 1 ? '' : 's'} of repayments left.`
-          : ` Repayments begin in Season ${loan.repaymentStartsSeason}.`)
-        + ' The balance is on the finances screen.',
+      title: t('clubHome.emergencyLoanTitle'),
+      detail: state.season >= loan.repaymentStartsSeason
+        ? t('clubHome.emergencyLoanDetailRepaying', {
+          n: loan.remainingWeeks,
+          count: loan.remainingWeeks,
+          amount: formatMoney(loan.remainingBalance),
+        })
+        : t('clubHome.emergencyLoanDetailPending', {
+          amount: formatMoney(loan.remainingBalance),
+          season: loan.repaymentStartsSeason,
+        }),
       tone: 'info' as const,
     }] : []),
     ...(boardUltimatum === undefined ? [] : [{
       id: 'board-ultimatum',
-      title: `Board deadline · ${boardUltimatum.weeksRemaining} week${boardUltimatum.weeksRemaining === 1 ? '' : 's'}`,
-      detail: `Reach ${boardTargetLabel(boardUltimatum.targetCash)} or the board will sell one visible, unprotected candidate.`,
+      title: t('clubHome.boardDeadlineTitle', {
+        n: boardUltimatum.weeksRemaining,
+        count: boardUltimatum.weeksRemaining,
+      }),
+      detail: t('clubHome.boardDeadlineDetail', {
+        target: boardTargetLabel(boardUltimatum.targetCash, t),
+      }),
       tone: 'urgent' as const,
     }]),
     ...(!showBoardResolution || latestBoardResolution === undefined ? [] : [{
       id: boardResolutionAlertId!,
       title: latestBoardResolution.kind === 'TARGET_MET'
-        ? 'Board cash target met'
-        : 'Board sale completed',
+        ? t('clubHome.boardTargetMetTitle')
+        : t('clubHome.boardSaleCompletedTitle'),
       detail: latestBoardResolution.kind === 'TARGET_MET'
-        ? 'The intervention is closed. No player was sold.'
-        : `${state.players.find(player => player.id === latestBoardResolution.playerId)?.name ?? 'A player'} joined ${clubName(state, latestBoardResolution.buyerClubId)} for ${formatMoney(latestBoardResolution.fee)}.`,
+        ? t('clubHome.boardTargetMetDetail')
+        : t('clubHome.boardSaleCompletedDetail', {
+          player: state.players.find(player => player.id === latestBoardResolution.playerId)?.name
+            ?? t('clubHome.aPlayer'),
+          club: clubName(state, latestBoardResolution.buyerClubId),
+          fee: formatMoney(latestBoardResolution.fee),
+        }),
       tone: latestBoardResolution.kind === 'TARGET_MET' ? 'info' as const : 'urgent' as const,
     }]),
     // Stated in full, on purpose. A lapse charges exactly what a refusal
@@ -1549,7 +1687,7 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     // ignoring the tab is cheaper than deciding, which is the wrong lesson.
     ...(waitingRequest === undefined || state.playerRequestRules === undefined ? [] : [{
       id: 'player-request-waiting',
-      title: 'Still waiting',
+      title: t('clubHome.stillWaitingTitle'),
       detail: (() => {
         const asker = roster.find(player => player.id === waitingRequest.playerId);
         const cost = resolutionDeltas(
@@ -1557,9 +1695,11 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
           requestTarget(requestDefinition(state.playerRequestRules!, waitingRequest.requestId).cost),
           careerDifficulty(state),
         ).asker;
-        return `${asker?.name ?? 'A player'} is still waiting on an answer.`
-          + ` Leave it and you lose ${Math.abs(cost.loyalty)} loyalty`
-          + ` and ${Math.abs(cost.morale)} morale.`;
+        return t('clubHome.stillWaitingDetail', {
+          player: asker?.name ?? t('clubHome.aPlayer'),
+          loyalty: Math.abs(cost.loyalty),
+          morale: Math.abs(cost.morale),
+        });
       })(),
       tone: 'urgent' as const,
       destination: 'squad' as const,
@@ -1567,14 +1707,14 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     }]),
     ...(!state.facilities.trainingGroundBuilt && !trainingGroundUnderConstruction ? [{
       id: 'training-ground',
-      title: 'Build your Training Pitch',
-      detail: 'Your starting budget includes its $8,000 cost. Choose where it goes.',
+      title: t('clubHome.trainingPitchTitle'),
+      detail: t('clubHome.trainingPitchDetail'),
       tone: 'info' as const,
     }] : []),
     ...(expired.length > 0 ? [{
       id: 'renewals',
-      title: `${expired.length} contract${expired.length === 1 ? '' : 's'} expired`,
-      detail: 'Resolve these contracts before the next season can begin.',
+      title: t('clubHome.contractsExpiredTitle', { n: expired.length, count: expired.length }),
+      detail: t('clubHome.contractsExpiredDetail'),
       tone: 'urgent' as const,
     }] : []),
     // Retirement, in one row per beat rather than one row per player. Seven can
@@ -1584,34 +1724,58 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     ...(!showRetirementFarewell ? [] : [{
       id: retirementFarewellAlertId,
       title: justRetired.length === 1
-        ? `${justRetired[0].name} has retired`
-        : `${justRetired.length} players have retired`,
-      detail: `${namesWithOverflow(justRetired.map(player => player.name))}`
-        + ` ${justRetired.length === 1 ? 'played his' : 'played their'} last match for the club`
-        + ` in Season ${state.season - 1}.`,
+        ? t('clubHome.retiredOneTitle', { player: justRetired[0].name })
+        : t('clubHome.retiredManyTitle', { count: justRetired.length }),
+      detail: justRetired.length === 1
+        ? t('clubHome.retiredOneDetail', {
+          names: namesWithOverflow(justRetired.map(player => player.name), t),
+          season: state.season - 1,
+        })
+        : t('clubHome.retiredManyDetail', {
+          names: namesWithOverflow(justRetired.map(player => player.name), t),
+          season: state.season - 1,
+        }),
       tone: 'info' as const,
       ...(justRetired.some(player => player.power !== undefined) ? { isHero: true } : {}),
     }]),
     ...(finalWeeks.length === 0 ? [] : [{
       id: `retirement-final-weeks-${state.season}`,
       title: finalWeeks.length === 1
-        ? `${finalWeeks[0].name}'s last matches`
-        : `${finalWeeks.length} players play their last matches`,
-      detail: `${namesWithOverflow(finalWeeks.map(player => player.name))}`
-        + ` ${finalWeeks.length === 1 ? 'retires' : 'retire'} when the season ends`
-        + `, ${weekCountLabel(SEASON_WEEKS - state.week + 1).toLowerCase()} left.`,
+        ? t('clubHome.finalMatchesOneTitle', { player: finalWeeks[0].name })
+        : t('clubHome.finalMatchesManyTitle', { count: finalWeeks.length }),
+      detail: finalWeeks.length === 1
+        ? t('clubHome.finalMatchesOneDetail', {
+          names: namesWithOverflow(finalWeeks.map(player => player.name), t),
+          weeks: lowercaseWeekCountLabel(SEASON_WEEKS - state.week + 1, t),
+        })
+        : t('clubHome.finalMatchesManyDetail', {
+          names: namesWithOverflow(finalWeeks.map(player => player.name), t),
+          weeks: lowercaseWeekCountLabel(SEASON_WEEKS - state.week + 1, t),
+        }),
       tone: 'info' as const,
       ...(finalWeeks.some(player => player.power !== undefined) ? { isHero: true } : {}),
     }]),
     ...(retirementAnnouncements.length === 0 ? [] : [{
       id: `retirement-announcement-${state.season - 1}`,
       title: retirementAnnouncements.length === 1
-        ? `${retirementAnnouncements[0].playerName} announces final season`
-        : `${retirementAnnouncements.length} players announce final seasons`,
+        ? t('clubHome.retirementAnnouncedOneTitle', {
+          player: retirementAnnouncements[0].playerName,
+        })
+        : t('clubHome.retirementAnnouncedManyTitle', {
+          count: retirementAnnouncements.length,
+        }),
       detail: retirementAnnouncements.length === 1
-        ? `Age ${retirementAnnouncements[0].retirementAge} · retires after Season ${state.season}.`
-        : `${namesWithOverflow(retirementAnnouncements.map(announcement => announcement.playerName))}`
-          + ` retire after Season ${state.season}.`,
+        ? t('clubHome.retirementAnnouncedOneDetail', {
+          age: retirementAnnouncements[0].retirementAge,
+          season: state.season,
+        })
+        : t('clubHome.retirementAnnouncedManyDetail', {
+          names: namesWithOverflow(
+            retirementAnnouncements.map(announcement => announcement.playerName),
+            t,
+          ),
+          season: state.season,
+        }),
       tone: 'info' as const,
       ...(retirementAnnouncements.some(announcement => heroIds.has(announcement.playerId))
         ? { isHero: true }
@@ -1625,20 +1789,20 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
       .filter(player => isConsideringRetirement(player, state.careerSeed))
       .map(player => ({
         id: `retirement-considering-${state.season}-${player.id}`,
-        title: `${player.name} is thinking about retirement`,
-        detail: `Age ${player.age ?? 24} · one more season after this one. Plan the succession now.`,
+        title: t('clubHome.consideringRetirementTitle', { player: player.name }),
+        detail: t('clubHome.consideringRetirementDetail', { age: player.age ?? 24 }),
         tone: 'info' as const,
       })),
     ...injured.map(player => ({
       id: `injury-${player.id}`,
       title: `${player.name} · OUT`,
-      detail: `OUT · ${weekCountLabel(player.injuryWeeks)}, unavailable for selection.`,
+      detail: t('clubHome.injuredDetail', { weeks: weekCountLabel(player.injuryWeeks, t) }),
       tone: 'urgent' as const,
     })),
     ...transferRequests.map(player => ({
       id: `transfer-request-${player.id}`,
-      title: `${player.name} wants to leave`,
-      detail: 'Low morale has become a transfer request. Review the player and decide whether to sell.',
+      title: t('clubHome.wantsToLeaveTitle', { player: player.name }),
+      detail: t('clubHome.wantsToLeaveDetail'),
       tone: 'urgent' as const,
     })),
   ];
@@ -1668,6 +1832,7 @@ export interface BoardFinanceBriefingViewModel {
 export function boardFinanceBriefing(
   state: GameState,
   alertId: string,
+  t: CopyFn = englishCopy(),
 ): BoardFinanceBriefingViewModel | undefined {
   const safety = state.financialSafety;
   if (alertId === 'financial-warning') {
@@ -1679,23 +1844,25 @@ export function boardFinanceBriefing(
     // sale instead. Promising the wrong one is worse than promising nothing.
     const graceWeeks = difficultyRules(state).negativeWeeksBeforeIntervention - weeks;
     const consequence = safety?.emergencyLoanUsed === true
-      ? 'starts selling players'
-      : 'steps in with an emergency loan';
+      ? t('clubHome.briefingConsequenceSells')
+      : t('clubHome.briefingConsequenceLoan');
     return {
-      title: 'Board financial warning',
+      title: t('clubHome.financialWarningTitle'),
       body: [
-        `The club has been in the red for ${weeks} week${weeks === 1 ? '' : 's'}.`
-          + ` The balance is ${formatMoney(cash)}.`,
+        t('clubHome.briefingWeeksInTheRed', {
+          n: weeks,
+          count: weeks,
+          amount: formatMoney(cash),
+        }),
         graceWeeks > 0
-          ? 'Nothing can be bought while it stays there. No signings, no new building.'
-            + ` ${graceWeeks} more week${graceWeeks === 1 ? '' : 's'} in the red and the board ${consequence}.`
-          : 'Nothing can be bought while it stays there. No signings, no new building.'
-            + ' The board has run out of patience.',
-        'If you have the funds to do so, create a facility to help earn more income.'
-          + ' If not, the board is having an emergency meeting right now.',
-        "If you don't have enough to build anything, hold tight."
-          + " There's nothing else you need to do until the board decides what happens next."
-          + " You'll hear from them soon.",
+          ? t('clubHome.briefingLockedWithGrace', {
+            n: graceWeeks,
+            count: graceWeeks,
+            consequence,
+          })
+          : t('clubHome.briefingLockedOutOfPatience'),
+        t('clubHome.briefingBuildAdvice'),
+        t('clubHome.briefingHoldTight'),
       ],
     };
   }
@@ -1705,21 +1872,19 @@ export function boardFinanceBriefing(
     const repaying = state.season >= loan.repaymentStartsSeason;
     const activeProject = state.facilities.grid?.construction;
     const commercialAction = activeProject === undefined
-      ? 'Build another one now to create more income.'
-      : `The works crew is busy with the ${FACILITY_CATALOG[activeProject.type].name}.`
-        + ' Wait until that construction finishes, then build another money-making facility.';
+      ? t('clubHome.briefingBuildAnother')
+      : t('clubHome.briefingCrewBusy', { facility: FACILITY_CATALOG[activeProject.type].name });
     return {
-      title: 'Emergency loan active',
+      title: t('clubHome.emergencyLoanTitle'),
       body: [
-        `The board’s emergency loan landed. ${formatMoney(loan.remainingBalance)} of it still has to go back.`,
-        (repaying
-          ? `${loan.remainingWeeks} week${loan.remainingWeeks === 1 ? '' : 's'} of repayments left,`
-            + ' taken out of the club’s money every week.'
-          : `Repayments begin in Season ${loan.repaymentStartsSeason}.`)
-          + ' That was the club’s one automatic rescue. There is no second.',
-        'Fan Shops earn money every week, while Stadium Stands improve home-match income.'
-          + ' You can build up to three of each; every other facility is limited to one.'
-          + ` ${commercialAction}`,
+        t('clubHome.briefingLoanLanded', { amount: formatMoney(loan.remainingBalance) }),
+        repaying
+          ? t('clubHome.briefingLoanRepaying', {
+            n: loan.remainingWeeks,
+            count: loan.remainingWeeks,
+          })
+          : t('clubHome.briefingLoanPending', { season: loan.repaymentStartsSeason }),
+        t('clubHome.briefingCommercialAdvice', { action: commercialAction }),
       ],
     };
   }
@@ -1730,13 +1895,19 @@ export function boardFinanceBriefing(
  * A name list that fits one desk row, with the remainder counted rather than
  * dropped. Alert details render on two lines, so seven names do not fit.
  */
-function namesWithOverflow(names: readonly string[], shown = 3): string {
+function namesWithOverflow(names: readonly string[], t: CopyFn, shown = 3): string {
   if (names.length <= shown) {
     return names.length <= 1
       ? names[0] ?? ''
-      : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+      : t('viewModels.namesAnd', {
+        names: names.slice(0, -1).join(', '),
+        last: names[names.length - 1],
+      });
   }
-  return `${names.slice(0, shown).join(', ')} and ${names.length - shown} more`;
+  return t('viewModels.namesAndMore', {
+    names: names.slice(0, shown).join(', '),
+    count: names.length - shown,
+  });
 }
 
 /**
@@ -1748,8 +1919,10 @@ function namesWithOverflow(names: readonly string[], shown = 3): string {
  * raising it would change how hard the fail-soft economy bites — and only the
  * sentence is fixed. A future non-zero target still reads correctly.
  */
-function boardTargetLabel(targetCash: number): string {
-  return targetCash <= 0 ? 'a positive balance' : `${formatMoney(targetCash)} cash`;
+function boardTargetLabel(targetCash: number, t: CopyFn): string {
+  return targetCash <= 0
+    ? t('clubHome.boardTargetPositiveBalance')
+    : t('clubHome.boardTargetCash', { amount: formatMoney(targetCash) });
 }
 
 export function reconcileHomeAssistantInbox(state: GameState): GameState {
@@ -1984,7 +2157,7 @@ function standaloneInboxGuides(
   ));
 }
 
-export function homeViewModel(state: GameState): HomeViewModel {
+export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): HomeViewModel {
   const userClub = requireUserClub(state);
   const roster = rosterForClub(state, state.userClubId);
   // The engine owns the definition of a playable game week, including Global
@@ -2002,7 +2175,9 @@ export function homeViewModel(state: GameState): HomeViewModel {
     .sort((left, right) => left.week - right.week || left.round - right.round)[0];
   const nextFixture = currentMatchday?.fixture ?? nextLeagueFixture;
   const nextFixtureCompetition = currentMatchday?.kind === 'national-cup'
-    ? `Hero Cup · ${currentMatchday.cupRoundLabel ?? 'Knockout tie'}`
+    ? t('clubHome.heroCupRound', {
+      round: currentMatchday.cupRoundLabel ?? t('clubHome.knockoutTie'),
+    })
     : undefined;
   const isCurrentGameWeek = currentMatchday !== undefined;
   const boardUltimatum = state.financialSafety?.boardUltimatum;
@@ -2015,7 +2190,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
     );
   const assistantState = reconcileSatisfiedAssistantGuideSequences(state);
   const careerTeaches = assistantTeaches(assistantState);
-  const productAlerts = homeProductAlerts(assistantState);
+  const productAlerts = homeProductAlerts(assistantState, t);
   const dueGuides = dueAssistantInboxGuideSequences(assistantState);
   const inboxPlan = scheduleAssistantInboxWeek(assistantState, {
     dueGuideSequenceIds: standaloneInboxGuides(dueGuides, productAlerts),
@@ -2114,7 +2289,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
   const storyAlert = deskStoryAlert(state);
   const quietWeekAlerts = scheduledAlerts.length > 0
     ? []
-    : [storyAlert, drillShopAlert(state)].filter(
+    : [storyAlert, drillShopAlert(state, t)].filter(
         (alert): alert is ClubAlertViewModel => alert !== undefined,
       );
   const alerts = quietWeekAlerts.length > 0
@@ -2122,7 +2297,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
     : storyAlert !== undefined
       ? [storyAlert, ...scheduledAlerts]
       : isBuildReminderDue(state, scheduledAlerts)
-        ? [BUILD_REMINDER_ALERT]
+        ? [buildReminderAlert(t)]
         : scheduledAlerts;
 
   const standings = leagueStandings(state).map(row => ({
@@ -2138,14 +2313,20 @@ export function homeViewModel(state: GameState): HomeViewModel {
   return {
     clubName: userClub.name,
     managerName: 'Boss',
-    seasonLabel: `Season ${state.season} · ${divisionTierLabel(careerDivision(state))}`,
+    seasonLabel: t('clubHome.seasonLabel', {
+      season: state.season,
+      division: divisionTierLabel(careerDivision(state)),
+    }),
     divisionLabel: divisionTierLabel(careerDivision(state)),
-    weekLabel: `Week ${state.week} / 30`,
+    weekLabel: t('clubHome.weekLabel', { week: state.week }),
     nextMatchTimingLabel: nextFixture === undefined
-      ? state.phase === 'complete' ? 'Complete' : 'Season end'
+      ? state.phase === 'complete' ? t('clubHome.complete') : t('clubHome.seasonEnd')
       : isCurrentGameWeek
-        ? 'This week'
-        : `In ${weekCountLabel(nextFixture.week - state.week).toLowerCase()}`,
+        ? t('clubHome.thisWeek')
+        : t('clubHome.nextMatchInWeeks', {
+          n: nextFixture.week - state.week,
+          count: nextFixture.week - state.week,
+        }),
     isCurrentGameWeek,
     form: recentForm(state),
     resources: {
@@ -2155,10 +2336,10 @@ export function homeViewModel(state: GameState): HomeViewModel {
     nextFixture: nextFixture === undefined
       ? {
           id: 'season-complete',
-          weekLabel: state.phase === 'complete' ? 'Complete' : 'Season end',
+          weekLabel: state.phase === 'complete' ? t('clubHome.complete') : t('clubHome.seasonEnd'),
           competition: careerDivisionLabel(state),
           homeTeam: userClub.name,
-          awayTeam: 'Season review',
+          awayTeam: t('seasonEnd.seasonReview'),
           venueLabel: 'Boardroom',
           opponentHeroCount: 0,
           matchdayReady: false,
@@ -2171,7 +2352,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
         id: boardUltimatum.id,
         weeksRemaining: boardUltimatum.weeksRemaining,
         targetCash: boardUltimatum.targetCash,
-        targetLabel: boardTargetLabel(boardUltimatum.targetCash),
+        targetLabel: boardTargetLabel(boardUltimatum.targetCash, t),
         cashNeeded: Math.max(0, boardUltimatum.targetCash - userClub.cash),
         ...(boardUltimatum.protectedPlayerId === undefined
           || !rosterById.has(boardUltimatum.protectedPlayerId)
@@ -2198,8 +2379,8 @@ export function homeViewModel(state: GameState): HomeViewModel {
       boardResolution: latestBoardResolution.kind === 'TARGET_MET'
         ? {
             kind: 'TARGET_MET' as const,
-            headline: 'Cash target met',
-            detail: 'The board closes the intervention. The squad stays together.',
+            headline: t('clubHome.cashTargetMetHeadline'),
+            detail: t('clubHome.cashTargetMetDetail'),
           }
         : (() => {
             const sold = state.players.find(player => player.id === latestBoardResolution.playerId);
@@ -2211,15 +2392,21 @@ export function homeViewModel(state: GameState): HomeViewModel {
             // verdict is valid. Keep the durable money/outcome facts visible
             // and enrich only the player sides that still exist.
             const saleDetail = sold === undefined
-              ? `The board completed a forced sale to ${buyerName} for ${formatMoney(latestBoardResolution.fee)}`
-              : `${sold.name} joined ${buyerName}`;
+              ? t('clubHome.forcedSaleUnknownPlayer', {
+                club: buyerName,
+                fee: formatMoney(latestBoardResolution.fee),
+              })
+              : t('clubHome.forcedSalePlayer', { player: sold.name, club: buyerName });
             const replacementDetail = replacement === undefined
-              ? 'The academy filled the vacancy to keep a complete 16-player squad'
-              : `The academy promoted ${replacement.name} to keep a complete 16-player squad`;
+              ? t('clubHome.forcedSaleVacancyFilled')
+              : t('clubHome.forcedSaleAcademyPromoted', { player: replacement.name });
             return {
               kind: 'FORCED_SALE' as const,
-              headline: 'A hard sale and a new chance',
-              detail: `${saleDetail}. ${replacementDetail}.`,
+              headline: t('clubHome.forcedSaleHeadline'),
+              detail: t('clubHome.forcedSaleDetail', {
+                sale: saleDetail,
+                replacement: replacementDetail,
+              }),
               ...(sold === undefined ? {} : { soldPlayer: {
                 id: sold.id,
                 name: sold.name,
@@ -2245,7 +2432,10 @@ export function homeViewModel(state: GameState): HomeViewModel {
   };
 }
 
-export function leagueTableViewModel(state: GameState): LeagueTableViewModel {
+export function leagueTableViewModel(
+  state: GameState,
+  t: CopyFn = englishCopy(),
+): LeagueTableViewModel {
   const standings = leagueStandings(state);
   const user = standings.find(row => row.clubId === state.userClubId);
   if (user === undefined) throw new Error('the user club has no league standing');
@@ -2257,8 +2447,8 @@ export function leagueTableViewModel(state: GameState): LeagueTableViewModel {
 
   return {
     divisionLabel: careerDivisionLabel(state),
-    seasonLabel: `Season ${state.season}`,
-    weekLabel: `Week ${state.week} / 30`,
+    seasonLabel: t('leagueTable.seasonLabel', { season: state.season }),
+    weekLabel: t('leagueTable.weekLabel', { week: state.week }),
     matchesPlayed: seasonFixtures.filter(fixture => fixture.status === 'played').length,
     matchesTotal: seasonFixtures.length,
     userPosition: user.position,
@@ -2290,6 +2480,7 @@ export function matchDayViewModel(
   state: GameState,
   content: LaunchContent,
   formation: FormationId = '4-4-2',
+  t: CopyFn = englishCopy(),
 ): MatchDayViewModel {
   const matchday = activeCareerMatchday(state);
   if (matchday === undefined) throw new Error('the current matchday has no user fixture');
@@ -2312,12 +2503,18 @@ export function matchDayViewModel(
       state,
       fixture,
       matchday.kind === 'national-cup'
-        ? `Hero Cup · ${matchday.cupRoundLabel ?? 'Knockout tie'}`
+        ? t('fixtureMatchDay.heroCupRound', {
+          round: matchday.cupRoundLabel ?? t('fixtureMatchDay.knockoutTie'),
+        })
         : undefined,
     ),
     formationLabel: formation.replaceAll('-', '–'),
     selectedTacticId: 'balanced',
-    tactics: [{ id: 'balanced', label: 'Balanced', detail: 'A steady shape with equal attacking and defensive intent.' }],
+    tactics: [{
+      id: 'balanced',
+      label: 'Balanced',
+      detail: t('fixtureMatchDay.balancedTacticDetail'),
+    }],
     lineup: lineupPlayers.map((player, index) => {
       return {
         id: player.id,
@@ -2349,11 +2546,11 @@ export function matchDayViewModel(
         // Injury outranks leave for the label: a manager can act on an injury —
         // the Medical Bay shortens it — and can only wait out a granted holiday.
         ...(player.injuryWeeks > 0
-          ? { unavailableLabel: `OUT · ${weekCountLabel(player.injuryWeeks)}` }
+          ? { unavailableLabel: `OUT · ${weekCountLabel(player.injuryWeeks, t)}` }
           : (player.awayWeeks ?? 0) > 0
-            ? { unavailableLabel: `ON LEAVE · ${weekCountLabel(player.awayWeeks!)}` }
+            ? { unavailableLabel: `ON LEAVE · ${weekCountLabel(player.awayWeeks!, t)}` }
             : unlicensedHero
-              ? { unavailableLabel: 'Hero License required' }
+              ? { unavailableLabel: t('fixtureMatchDay.heroLicenseRequired') }
               : {}),
       };
     }),
@@ -2373,6 +2570,7 @@ export function squadTrainingViewModel(
   state: GameState,
   content: LaunchContent,
   selectedPlayerId: string | undefined,
+  t: CopyFn = englishCopy(),
 ): SquadTrainingViewModel {
   const club = requireUserClub(state);
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
@@ -2447,10 +2645,13 @@ export function squadTrainingViewModel(
         fame: player.fame ?? 0,
         weeklyWage: player.weeklyWage,
         contractLabel: player.contractSeasonsRemaining === 0
-          ? 'Expired, renewal due'
-          : `${player.contractSeasonsRemaining} season${player.contractSeasonsRemaining === 1 ? '' : 's'} left`,
+          ? t('squadTraining.contractExpiredRenewalDue')
+          : t('squadTraining.contractSeasonsLeft', {
+            n: player.contractSeasonsRemaining,
+            count: player.contractSeasonsRemaining,
+          }),
         ...(player.contractPromise === undefined ? {} : {
-          contractPromiseLabel: contractPromiseLabel(player.contractPromise.perk),
+          contractPromiseLabel: contractPromiseLabel(player.contractPromise.perk, t),
         }),
         // Absent while retirement is more than a season away. The squad list
         // deliberately knows less than the negotiating table does.
@@ -2460,7 +2661,11 @@ export function squadTrainingViewModel(
         ...(player.shirtNumber === undefined ? {} : { shirtNumber: player.shirtNumber }),
         isCaptain: player.isCaptain === true,
         ...(player.power ? {
-          powerName: `${content.powers.powers.find(power => power.id === player.power)?.name ?? player.power} · Tier ${player.powerTier ?? 1}`,
+          powerName: t('squadTraining.powerAndTier', {
+            power: content.powers.powers.find(power => power.id === player.power)?.name
+              ?? player.power,
+            tier: player.powerTier ?? 1,
+          }),
         } : {}),
         licensed: player.licensed,
         attributes: (Object.entries(player.attrs) as Array<[keyof typeof player.attrs, number]>).map(
@@ -2531,16 +2736,20 @@ export function squadTrainingViewModel(
   };
 }
 
-function contractPromiseLabel(perk: 'GUARANTEED_STARTER' | 'CAPTAINCY' | 'TRAINING_PRIORITY' | 'JERSEY_10'): string {
-  if (perk === 'GUARANTEED_STARTER') return 'Promise · Starting XI';
-  if (perk === 'CAPTAINCY') return 'Promise · Captaincy';
-  if (perk === 'TRAINING_PRIORITY') return 'Promise · Training priority';
-  return 'Promise · Shirt #10';
+function contractPromiseLabel(
+  perk: 'GUARANTEED_STARTER' | 'CAPTAINCY' | 'TRAINING_PRIORITY' | 'JERSEY_10',
+  t: CopyFn,
+): string {
+  if (perk === 'GUARANTEED_STARTER') return t('squadTraining.promiseStartingXi');
+  if (perk === 'CAPTAINCY') return t('squadTraining.promiseCaptaincy');
+  if (perk === 'TRAINING_PRIORITY') return t('squadTraining.promiseTrainingPriority');
+  return t('squadTraining.promiseShirt10');
 }
 
 export function weeklyReviewViewModel(
   before: GameState,
   after: GameState,
+  t: CopyFn = englishCopy(),
 ): WeeklyReviewViewModel {
   const clubBefore = requireUserClub(before);
   const clubAfter = requireUserClub(after);
@@ -2563,10 +2772,10 @@ export function weeklyReviewViewModel(
   const completedFacility = facilityCompletion(before, after);
 
   return {
-    completedWeekLabel: `Week ${before.week} complete`,
+    completedWeekLabel: t('weeklyReview.completedWeekLabel', { week: before.week }),
     nextWeekLabel: after.phase === 'season-end' || after.phase === 'complete'
-      ? 'Season review'
-      : `Week ${after.week}`,
+      ? t('seasonEnd.seasonReview')
+      : t('weeklyReview.nextWeekLabel', { week: after.week }),
     clubName: clubAfter.name,
     cashBefore: clubBefore.cash,
     cashAfter: clubAfter.cash,
@@ -2580,7 +2789,7 @@ export function weeklyReviewViewModel(
       amount: line.amount,
       kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
     })),
-    updates: weekUpdates(before, after),
+    updates: weekUpdates(before, after, t),
     ...(completedFacility === undefined ? {} : { facilityCompletion: completedFacility }),
     ...(nextFixture === undefined ? {} : { nextFixture: fixtureViewModel(after, nextFixture) }),
   };
@@ -2593,6 +2802,7 @@ export function postMatchViewModel(
   score: { homeGoals: number; awayGoals: number },
   highlights: PostMatchViewModel['highlights'] = [],
   buzzPowerFiredPlayerIds?: readonly string[],
+  t: CopyFn = englishCopy(),
 ): PostMatchViewModel {
   const leagueFixture = before.fixtures.find(candidate => candidate.id === fixtureId);
   const cupRound = before.m2?.nationalCups
@@ -2645,7 +2855,7 @@ export function postMatchViewModel(
       fixtureId,
       competition: cupRound === undefined
         ? careerDivisionLabel(before)
-        : `Hero Cup · ${cupRound.label}`,
+        : t('postMatchSummary.heroCupRound', { round: cupRound.label }),
       homeTeam: clubName(before, fixture.homeClubId),
       awayTeam: clubName(before, fixture.awayClubId),
       homeScore: score.homeGoals,
@@ -2674,7 +2884,7 @@ export function postMatchViewModel(
     fanDelta: requireUserClub(after).fans - requireUserClub(before).fans,
     ...(buzz === undefined ? {} : { buzz }),
     highlights,
-    updates: weekUpdates(before, after),
+    updates: weekUpdates(before, after, t),
     ...(completedFacility === undefined ? {} : { facilityCompletion: completedFacility }),
     ...(reaction === undefined ? {} : { reaction }),
   };
@@ -2868,7 +3078,11 @@ function hashString(value: string): number {
   return hash >>> 0;
 }
 
-function weekUpdates(before: GameState, after: GameState): WeeklyReviewViewModel['updates'] {
+function weekUpdates(
+  before: GameState,
+  after: GameState,
+  t: CopyFn,
+): WeeklyReviewViewModel['updates'] {
   const afterPlayers = new Map(after.players.map(player => [player.id, player]));
   const beforeLineup = before.lineups.find(lineup => lineup.clubId === before.userClubId);
   const afterLineup = after.lineups.find(lineup => lineup.clubId === after.userClubId);
@@ -2877,10 +3091,10 @@ function weekUpdates(before: GameState, after: GameState): WeeklyReviewViewModel
   if (completedFacility !== undefined) {
     updates.push({
       id: `facility-complete-${completedFacility.type}-${completedFacility.level}`,
-      title: `${completedFacility.name} complete!`,
+      title: t('weeklyReview.facilityCompleteTitle', { facility: completedFacility.name }),
       detail: completedFacility.kind === 'BUILD'
-        ? `The Level ${completedFacility.level} facility is now open.`
-        : `The Level ${completedFacility.level} upgrade is now active.`,
+        ? t('weeklyReview.facilityBuiltDetail', { level: completedFacility.level })
+        : t('weeklyReview.facilityUpgradedDetail', { level: completedFacility.level }),
       tone: 'positive',
     });
   }
@@ -2895,19 +3109,29 @@ function weekUpdates(before: GameState, after: GameState): WeeklyReviewViewModel
         : afterPlayers.get(replacementId);
       updates.push({
         id: `injury-${playerBefore.id}`,
-        title: `${playerBefore.name} ruled out`,
-        detail: `OUT · ${weekCountLabel(playerAfter.injuryWeeks)}.${replacement === undefined
-          ? ''
-          : ` ${replacement.name} has moved into the Starting XI.`}`,
+        title: t('weeklyReview.ruledOutTitle', { player: playerBefore.name }),
+        detail: replacement === undefined
+          ? t('weeklyReview.ruledOutDetail', {
+            weeks: weekCountLabel(playerAfter.injuryWeeks, t),
+          })
+          : t('weeklyReview.ruledOutDetailWithReplacement', {
+            weeks: weekCountLabel(playerAfter.injuryWeeks, t),
+            player: replacement.name,
+          }),
         tone: 'warning',
       });
     } else if (playerBefore.injuryWeeks > playerAfter.injuryWeeks) {
       updates.push({
         id: `injury-${playerBefore.id}`,
-        title: playerAfter.injuryWeeks === 0 ? `${playerBefore.name} cleared to play` : `${playerBefore.name} recovering`,
+        title: playerAfter.injuryWeeks === 0
+          ? t('weeklyReview.clearedToPlayTitle', { player: playerBefore.name })
+          : t('weeklyReview.recoveringTitle', { player: playerBefore.name }),
         detail: playerAfter.injuryWeeks === 0
-          ? 'The medical team has cleared the player for selection.'
-          : `${playerAfter.injuryWeeks} week${playerAfter.injuryWeeks === 1 ? '' : 's'} remaining.`,
+          ? t('weeklyReview.clearedToPlayDetail')
+          : t('weeklyReview.recoveringDetail', {
+            n: playerAfter.injuryWeeks,
+            count: playerAfter.injuryWeeks,
+          }),
         tone: 'positive',
       });
     }
@@ -2915,11 +3139,11 @@ function weekUpdates(before: GameState, after: GameState): WeeklyReviewViewModel
       updates.push({
         id: `contract-${playerBefore.id}`,
         title: playerAfter.contractSeasonsRemaining === 0
-          ? `${playerBefore.name} contract expired`
-          : `${playerBefore.name} entering final season`,
+          ? t('weeklyReview.contractExpiredTitle', { player: playerBefore.name })
+          : t('weeklyReview.finalSeasonTitle', { player: playerBefore.name }),
         detail: playerAfter.contractSeasonsRemaining === 0
-          ? 'A renewal decision is required before the next season.'
-          : 'Renewal terms will matter at the next season review.',
+          ? t('weeklyReview.contractExpiredDetail')
+          : t('weeklyReview.finalSeasonDetail'),
         tone: 'warning',
       });
     }
@@ -2930,8 +3154,8 @@ function weekUpdates(before: GameState, after: GameState): WeeklyReviewViewModel
   ) {
     updates.push({
       id: `event-${after.pendingEvent.eventId}`,
-      title: 'New club event',
-      detail: 'Something at the club needs your decision.',
+      title: t('weeklyReview.newClubEventTitle'),
+      detail: t('weeklyReview.newClubEventDetail'),
       tone: 'info',
     });
   }
@@ -2956,8 +3180,19 @@ function facilityCompletion(
   };
 }
 
-function weekCountLabel(weeks: number): string {
-  return `${weeks} ${weeks === 1 ? 'WEEK' : 'WEEKS'}`;
+/**
+ * "3 WEEKS", in the shouty register the availability chips use.
+ *
+ * The lowercase form is a sibling key rather than `.toLowerCase()` on this one:
+ * casing is not a transformation every language can apply to its own words, and
+ * German nouns in particular do not survive the round trip.
+ */
+function weekCountLabel(weeks: number, t: CopyFn): string {
+  return t('viewModels.weekCountUpper', { n: weeks, count: weeks });
+}
+
+function lowercaseWeekCountLabel(weeks: number, t: CopyFn): string {
+  return t('viewModels.weekCountLower', { n: weeks, count: weeks });
 }
 
 function fixtureViewModel(
@@ -2998,7 +3233,10 @@ function careerDivision(state: GameState): 1 | 2 | 3 | 4 | 5 {
  * the division's own name (never "Division 5"), and the cup's single display
  * name, so a rename can never leave this card behind.
  */
-export function matchDayBannerViewModel(state: GameState): MatchDayBannerViewModel | null {
+export function matchDayBannerViewModel(
+  state: GameState,
+  t: CopyFn = englishCopy(),
+): MatchDayBannerViewModel | null {
   const matchday = activeCareerMatchday(state);
   if (matchday === undefined) return null;
   const competitionLabel = matchday.kind === 'national-cup'
@@ -3007,8 +3245,8 @@ export function matchDayBannerViewModel(state: GameState): MatchDayBannerViewMod
   return {
     id: `match-day-banner-${state.season}-${state.week}`,
     competitionLabel,
-    headline: `${competitionLabel}: Match Day`,
-    accessibilityLabel: `${competitionLabel}. Match day.`,
+    headline: t('matchDayBanner.headline', { competition: competitionLabel }),
+    accessibilityLabel: t('matchDayBanner.a11y.matchDay', { competition: competitionLabel }),
   };
 }
 
@@ -3033,36 +3271,50 @@ function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {
     });
 }
 
-function describeEventChoiceOutcome(choice: GameEvent['choices'][number]): string {
-  if (!choice.risky) return describeSafeOutcome(choice.outcomes[0]?.effects ?? []);
+function describeEventChoiceOutcome(choice: GameEvent['choices'][number], t: CopyFn): string {
+  if (!choice.risky) return describeSafeOutcome(choice.outcomes[0]?.effects ?? [], t);
   const success = choice.outcomes.find(outcome => outcome.effects.some(effect => effect.type !== 'flag'));
-  if (success === undefined) return 'No guaranteed reward';
-  const reward = describeEventEffects(success.effects);
+  if (success === undefined) return t('storyEvent.noGuaranteedReward');
+  const reward = describeEventEffects(success.effects, t);
   const hasEmptyFailure = choice.outcomes.some(outcome => outcome.effects.length === 0);
-  return `${success.weight}% chance: ${reward}.${hasEmptyFailure ? ' Otherwise nothing.' : ''}`;
+  return hasEmptyFailure
+    ? t('storyEvent.riskyChanceOrNothing', { percent: success.weight, reward })
+    : t('storyEvent.riskyChance', { percent: success.weight, reward });
 }
 
-function describeSafeOutcome(effects: GameEvent['choices'][number]['outcomes'][number]['effects']): string {
+function describeSafeOutcome(
+  effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
+  t: CopyFn,
+): string {
   const effect = effects[0];
-  if (effect?.type === 'tp') return `Guaranteed: ${effect.amount >= 0 ? '+' : ''}${effect.amount} TP`;
-  if (effect?.type === 'money') return `Guaranteed: ${formatMoney(effect.amount, true)}`;
-  return 'Guaranteed reward';
+  if (effect?.type === 'tp') {
+    return t('storyEvent.guaranteedTp', {
+      amount: `${effect.amount >= 0 ? '+' : ''}${effect.amount}`,
+    });
+  }
+  if (effect?.type === 'money') {
+    return t('storyEvent.guaranteedMoney', { amount: formatMoney(effect.amount, true) });
+  }
+  return t('storyEvent.guaranteedReward');
 }
 
 function describeEventEffects(
   effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
+  t: CopyFn,
 ): string {
-  return eventRewardLabels(effects).join(' and ') || 'an unknown reward';
+  return eventRewardLabels(effects, t).join(' and ') || t('storyEvent.unknownReward');
 }
 
 function eventRewardLabels(
   effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
+  t: CopyFn,
 ): string[] {
-  return eventRewardItems(effects).map(reward => reward.label);
+  return eventRewardItems(effects, t).map(reward => reward.label);
 }
 
 function eventRewardItems(
   effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
+  t: CopyFn,
 ): NonNullable<StoryEventViewModel['outcomeRewards']> {
   const rewards: NonNullable<StoryEventViewModel['outcomeRewards']>[number][] = [];
   const money = effects.reduce((sum, effect) => effect.type === 'money' ? sum + effect.amount : sum, 0);
@@ -3071,12 +3323,12 @@ function eventRewardItems(
   const trainingPoints = effects.reduce((sum, effect) => effect.type === 'tp' ? sum + effect.amount : sum, 0);
   if (money !== 0) rewards.push({ label: formatMoney(money, true), kind: 'money', positive: money > 0 });
   if (morale !== 0) rewards.push({
-    label: `${morale > 0 ? '+' : ''}${morale} squad morale`,
+    label: t('storyEvent.rewardSquadMorale', { amount: `${morale > 0 ? '+' : ''}${morale}` }),
     kind: 'morale',
     positive: morale > 0,
   });
   if (fans !== 0) rewards.push({
-    label: `${fans > 0 ? '+' : ''}${fans} fans`,
+    label: t('storyEvent.rewardFans', { amount: `${fans > 0 ? '+' : ''}${fans}` }),
     kind: 'fans',
     positive: fans > 0,
   });
@@ -3095,7 +3347,7 @@ function eventRewardItems(
     }
     if (effect.type === 'injury') {
       rewards.push({
-        label: `${effect.weeks} week${effect.weeks === 1 ? '' : 's'} out injured`,
+        label: t('storyEvent.rewardWeeksInjured', { n: effect.weeks, count: effect.weeks }),
         kind: 'injury',
         positive: false,
       });
@@ -3105,7 +3357,7 @@ function eventRewardItems(
     rewards.length === 0
     && effects.some(effect => effect.type === 'flag' && effect.value)
   ) {
-    rewards.push({ label: 'Club story secured', kind: 'story', positive: true });
+    rewards.push({ label: t('storyEvent.rewardClubStorySecured'), kind: 'story', positive: true });
   }
   return rewards;
 }

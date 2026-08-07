@@ -25,7 +25,7 @@ function stringLiterals(line: string): string[] {
  * face — which smears a 1-bit bitmap font. `font-pixel` is the real bold cut.
  *
  * The survivors are glyph-only nodes whose character Silkscreen does not
- * contain (⌂ ▦ ⇄ ≡ ⚙ ★ ⌖ ▣ ○ − →). Those already fall back to the system face,
+ * contain (⌂ ▦ ⇄ ≡ ⚙ ★ ⌖ ▣ ○ - →). Those already fall back to the system face,
  * where `font-bold` is genuine weight rather than a synthetic smear, so
  * stripping it there would only thin them out.
  */

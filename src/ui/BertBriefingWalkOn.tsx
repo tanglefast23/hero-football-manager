@@ -10,6 +10,7 @@ import { TutorialTapCue } from './TutorialTapCue';
 import { BERT_SPRITE_SIZE } from './bert-walk-frames';
 import { CharacterSpeechOverlay } from './CharacterSpeechOverlay';
 import { tutorialCuePosition, type TutorialAnchorLayout } from './tutorial-cue-position';
+import { useCopy } from '../i18n';
 
 /**
  * Only used until the tab rail has measured itself — the same fallback, and the
@@ -81,6 +82,7 @@ export function BertBriefingWalkOn({
   onFocusChange,
   onDone,
 }: BertBriefingWalkOnProps) {
+  const t = useCopy();
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const [beatIndex, setBeatIndex] = useState(0);
 
@@ -148,7 +150,7 @@ export function BertBriefingWalkOn({
       />
 
       {moneyCuePosition ? (
-        <TutorialTapCue label="Look here" detail="Weekly money" direction="up" style={moneyCuePosition} />
+        <TutorialTapCue label={t('clubHome.lookHere')} detail={t('clubHome.weeklyMoney')} direction="up" style={moneyCuePosition} />
       ) : null}
 
       {focus === 'navigation' && navigationAnchor ? (

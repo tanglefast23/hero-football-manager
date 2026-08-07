@@ -6,6 +6,14 @@ import {
 import type { PowerId } from '../sim/types';
 import type { GameState } from '../game/types';
 import { TRUE_ENDING_SEEN_FLAG } from './endgame-celebration';
+import { copyFor, type CopyFn } from '../i18n';
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
+
 
 export interface LoadedPreferences {
   preferences: AppPreferences;
@@ -23,6 +31,7 @@ function defaultPreferences(): AppPreferences {
 /** Keeps a damaged settings row from blocking an otherwise healthy career. */
 export async function loadPreferencesFailSoft(
   repository: PreferencesRepository,
+  t: CopyFn = englishCopy(),
 ): Promise<LoadedPreferences> {
   try {
     return { preferences: await repository.load() };
@@ -32,12 +41,12 @@ export async function loadPreferencesFailSoft(
       await repository.save(preferences);
       return {
         preferences,
-        warning: 'Saved settings were damaged and have been reset to defaults.',
+        warning: t('settings.savedSettingsWereDamaged'),
       };
     } catch {
       return {
         preferences,
-        warning: 'Saved settings could not be read. Defaults are active for this session.',
+        warning: t('settings.savedSettingsCouldNotBeRead'),
       };
     }
   }

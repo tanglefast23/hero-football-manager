@@ -3,8 +3,6 @@
   "version": "1.0.0",
   "main": "index",
   "dependencies": {
-    "@expo-google-fonts/handjet": "^0.4.2",
-    "@expo-google-fonts/silkscreen": "^0.4.2",
     "@shopify/react-native-skia": "2.6.2",
     "expo": "~57.0.7",
     "expo-asset": "~57.0.6",
@@ -26,6 +24,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@expo-google-fonts/silkscreen": "^0.4.2",
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
     "babel-preset-expo": "~57.0.3",
@@ -44,6 +43,7 @@
     "phone": "sh scripts/phone-dev-server.sh",
     "export:web": "expo export --platform web && node scripts/web/fix-worker-bundles.mjs",
     "release:check": "node scripts/release/check-config.mjs",
+    "build:fonts": "node scripts/fonts/generate-vi-marks.mjs && node scripts/fonts/build-vietnamese-face.mjs",
     "qa:ipad": "node scripts/qa/ipad-pwa-audit.mjs",
     "postinstall": "setup-skia-web",
     "format": "prettier --write \"App.tsx\" \"src/**/*.{ts,tsx}\" \"scripts/**/*.mjs\"",

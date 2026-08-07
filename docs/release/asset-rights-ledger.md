@@ -38,6 +38,7 @@ for this game and that no third-party visual assets were used.
 | Asset | License evidence | Status |
 |---|---|---|
 | Silkscreen font | `node_modules/@expo-google-fonts/silkscreen/LICENSE_FONT`: Copyright 2001 The Silkscreen Project Authors; SIL Open Font License 1.1. Package wrapper is MIT. Commercial embedding is permitted when the copyright and license travel with each copy. | License compatible; retain the notice and verify it is present in the final distribution/support materials |
+| HFM Silkscreen (shipped face) | Derivative of the above: `assets/fonts/HFMSilkscreen_{400Regular,700Bold}.ttf`, built by `npm run build:fonts`. OFL 1.1 permits modification and renaming — the copyright line declares **no Reserved Font Name**. `assets/fonts/OFL.txt` ships beside the TTFs, name IDs 13/14 carry the licence, and name ID 0 retains the original copyright plus the derivation notice. | License compatible; `assets/fonts/OFL.txt` must be present in the archive alongside the TTFs |
 
 ## Before final archive
 

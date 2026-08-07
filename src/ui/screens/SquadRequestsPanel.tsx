@@ -5,6 +5,21 @@ import { PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
 import { PixelText } from '../components/PixelText';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import type { PlayerRequestViewModel } from '../../application/player-request-view-model';
+import type { PlayerRequestResolution } from '../../game/types';
+import { useCopy } from '../../i18n';
+
+/**
+ * The game's own resolution codes, mapped to the chip's words.
+ *
+ * A table rather than a ternary on the code: the code is a discriminator that
+ * `src/game` compares, and it only looked like copy because two of the three
+ * spellings happen to match the English chip.
+ */
+const RESOLUTION_KEY: Record<PlayerRequestResolution, string> = {
+  GRANTED: 'squadRequests.granted',
+  REFUSED: 'squadRequests.refused',
+  LAPSED: 'squadRequests.ignored',
+};
 
 /**
  * The Requests tab.
@@ -30,29 +45,34 @@ export function SquadRequestsPanel({
   onOpenRequest: () => void;
   reduceMotion?: boolean;
 }) {
+  const t = useCopy();
   const pending = viewModel.pending;
 
   return (
     <View>
       <SectionLabel
-        eyebrow="The dressing room"
-        title="Requests"
+        eyebrow={t('squadRequests.theDressingRoom')}
+        title={t('squadRequests.requests')}
         right={pending === undefined
           ? undefined
           : (
             <StatusChip
-              label={`${pending.weeksToAnswer} WK TO ANSWER`}
+              label={t('squadRequests.weeksToAnswer', { count: pending.weeksToAnswer })}
               tone={pending.weeksToAnswer <= 1 ? 'danger' : 'hero'}
             />
           )}
       />
 
       {pending === undefined ? (
-        <EmptyDocket title="No requests" detail={viewModel.emptyDetail} />
+        <EmptyDocket title={t('squadRequests.noRequests')} detail={viewModel.emptyDetail} />
       ) : (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${pending.playerName} asks: ${pending.title}. ${pending.line} Open to decide.`}
+          accessibilityLabel={t('squadRequests.a11y.pendingRequest', {
+            player: pending.playerName,
+            request: pending.title,
+            line: pending.line,
+          })}
           onPress={onOpenRequest}
           className="min-h-24 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light p-3"
           style={({ pressed }) => ({
@@ -81,13 +101,13 @@ export function SquadRequestsPanel({
         pending === undefined ? null : (
           <View className="mt-4">
             <EmptyDocket
-              title="Nothing decided yet"
-              detail="Answered or ignored, every request ends up here."
+              title={t('squadRequests.nothingDecidedYet')}
+              detail={t('squadRequests.nothingDecidedYetDetail')}
             />
           </View>
         )
       ) : (
-        <PaperPanel kicker="Recently" title="What you decided" className="mt-4">
+        <PaperPanel kicker={t('squadRequests.recently')} title={t('squadRequests.whatYouDecided')} className="mt-4">
           <View className="gap-2">
             {viewModel.history.slice(0, 6).map(entry => (
               <View
@@ -98,9 +118,7 @@ export function SquadRequestsPanel({
                   {entry.label}
                 </Text>
                 <StatusChip
-                  label={entry.resolution === 'GRANTED'
-                    ? 'GRANTED'
-                    : entry.resolution === 'REFUSED' ? 'REFUSED' : 'IGNORED'}
+                  label={t(RESOLUTION_KEY[entry.resolution])}
                   tone={entry.resolution === 'GRANTED' ? 'success' : 'danger'}
                 />
               </View>

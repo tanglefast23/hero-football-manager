@@ -16,6 +16,7 @@ jest.mock('react-native', () => ({
   View: 'View',
 }));
 
+import { copyFor } from '../../i18n';
 import { SettingsButton, SettingsOverlay } from '../SettingsOverlay';
 
 function findByAccessibilityRole(node: unknown, role: string): { props: Record<string, unknown> } | undefined {
@@ -97,9 +98,11 @@ describe('SettingsButton', () => {
     expect(alert?.props.accessibilityLiveRegion).toBe('assertive');
     expect(alert?.props.children).toBeDefined();
     expect(findByAccessibilityLabel(element, 'Open glossary')).toBeDefined();
+    // "Bert is teaching. Tap to have him stay out of your way." — catalog copy,
+    // so it is looked up rather than repeated as a literal here.
     const bertMode = findByAccessibilityLabel(
       element,
-      'Bert is teaching. Tap to have him stay out of your way.',
+      copyFor('en')('settings.assistant.a11y.teaching'),
     );
     expect(bertMode).toBeDefined();
     (bertMode?.props.onPress as (() => void) | undefined)?.();

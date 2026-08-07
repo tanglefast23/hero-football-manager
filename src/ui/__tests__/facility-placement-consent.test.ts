@@ -22,9 +22,11 @@ describe('facility placement consent and feedback', () => {
     expect(screen).not.toContain('onRelocateFacility?.(relocatingBuildingId, x, y)');
 
     // The panel names the fee it is about to take.
-    expect(panel).toContain("costLabel: 'Fee now'");
+    // The words are catalog keys now — '▸' stays in the source because
+    // Silkscreen has no glyph for it.
+    expect(panel).toContain("costLabel: t('facilityPlacementConfirmation.feeNow')");
     expect(panel).toContain('cost: placement.building.relocationFee');
-    expect(panel).toContain("confirmLabel: 'Approve the move  ▸'");
+    expect(panel).toContain("confirmLabel: `${t('facilityPlacementConfirmation.approveTheMove')}  ▸`");
   });
 
   it('answers a blocked square with a refusal cue and a reason', () => {
@@ -32,11 +34,11 @@ describe('facility placement consent and feedback', () => {
     const pressable = source('src/ui/components/SfxPressable.tsx');
 
     expect(screen).toContain("pressSfx={buildable ? 'click' : 'warning'}");
-    expect(screen).toContain("'That square is taken. Pick an empty one.'");
-    expect(screen).toContain("'It does not fit here. Try a square with more room.'");
+    expect(screen).toContain("t('clubFinances.squareTaken')");
+    expect(screen).toContain("t('clubFinances.squareDoesNotFit')");
     // The reason takes over the placement hint line rather than adding layout.
     expect(screen).toContain(
-      "{placementRejection ?? 'Tap any + square above. A blue outline fits; red is blocked.'}",
+      "{placementRejection ?? t('clubFinances.tapAnyPlusSquareAbove')}",
     );
     // Approving a square clears whatever the last refusal said.
     expect(screen).toContain('setPlacementRejection(null);');

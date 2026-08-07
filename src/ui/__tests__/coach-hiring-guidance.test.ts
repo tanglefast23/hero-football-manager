@@ -24,7 +24,10 @@ describe('coach hiring guidance', () => {
     );
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
-    expect(overlay).toContain('label="Return home"');
+    // The visible label is catalog copy now, so assert the key and the English
+    // behind it rather than a literal that has moved out of the component.
+    expect(overlay).toContain("label={t('coachStaff.returnHome')}");
+    expect(loadCatalog('en').strings['coachStaff.returnHome']).toBe('Return home');
     expect(overlay).toContain("t('coachStaff.a11y.closeCoachConfirmationAndReturnHome')");
     expect(loadCatalog('en').strings['coachStaff.a11y.closeCoachConfirmationAndReturnHome'])
       .toBe('Close coach confirmation and return home');

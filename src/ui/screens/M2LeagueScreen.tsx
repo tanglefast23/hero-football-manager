@@ -43,21 +43,28 @@ import { PixelText } from '../components/PixelText';
  */
 type StandingsColumn = Extract<LeagueColumn, 'position' | 'played' | 'goalDifference' | 'points'>;
 
-const LEAGUE_COLUMN_EXPLAINER: Readonly<Record<StandingsColumn, string>> = {
-  position: 'Where the club sits in the division right now.',
-  played: 'League matches played so far this season.',
-  goalDifference: 'Goals scored minus goals conceded. It separates clubs level on points.',
-  points: 'Three for a win, one for a draw. The top two are promoted.',
+const LEAGUE_COLUMN_EXPLAINER_KEY: Readonly<Record<StandingsColumn, string>> = {
+  position: 'm2League.explainer.position',
+  played: 'm2League.explainer.played',
+  goalDifference: 'm2League.explainer.goalDifference',
+  points: 'm2League.explainer.points',
 };
 
 const LEAGUE_TABLE_HEADERS: readonly {
   column: Exclude<StandingsColumn, 'position'>;
-  label: string;
-  name: string;
+  /**
+   * The `col.*` key, not the label — the same arrangement LeagueTableScreen
+   * uses. These are layout tokens rather than prose: each has to fit a cell
+   * whose width was measured from the font, so a locale declares a short form
+   * instead of translating "Played" and hoping.
+   */
+  key: string;
+  /** The spoken name, which has no width to fit. */
+  nameKey: string;
 }[] = [
-  { column: 'played', label: 'P', name: 'Played' },
-  { column: 'goalDifference', label: 'GD', name: 'Goal difference' },
-  { column: 'points', label: 'PTS', name: 'Points' },
+  { column: 'played', key: 'col.league.played', nameKey: 'm2League.columnName.played' },
+  { column: 'goalDifference', key: 'col.league.goalDifference', nameKey: 'm2League.columnName.goalDifference' },
+  { column: 'points', key: 'col.league.points', nameKey: 'm2League.columnName.points' },
 ];
 
 /**
@@ -126,13 +133,20 @@ export function M2LeagueScreen({
       weight: 13,
       node: (
         <View>
-          <SectionLabel eyebrow="The national ladder" title="Five divisions" />
+          <SectionLabel
+            eyebrow={t('m2League.theNationalLadder')}
+            title={t('m2League.fiveDivisions')}
+          />
           <View className="flex-row gap-1">
             {viewModel.divisions.map(division => (
               <Pressable
                 key={division.level}
                 accessibilityRole="button"
-                accessibilityLabel={`${division.label}, average club strength ${division.averageStrength}${division.userDivision ? ', your division' : ''}`}
+                accessibilityLabel={t('m2League.a11y.divisionButton', {
+                  division: division.label,
+                  strength: division.averageStrength,
+                  note: division.userDivision ? `, ${t('m2League.a11y.yourDivision')}` : '',
+                })}
                 accessibilityState={{ selected: division.selected }}
                 onPress={() => onSelectDivision(division.level)}
                 className={division.selected
@@ -146,34 +160,40 @@ export function M2LeagueScreen({
                 })}
               >
                 <Text className="font-pixel text-sm uppercase text-ink">{division.shortLabel}</Text>
-                <Text className="mt-1 font-mono text-xs text-ink/60">AVG {division.averageStrength}</Text>
+                <Text className="mt-1 font-mono text-xs text-ink/60">
+                  {t('m2League.averageStrengthShort', { strength: division.averageStrength })}
+                </Text>
               </Pressable>
             ))}
           </View>
 
           <PaperPanel
-            kicker={summary.userDivision ? 'Your division' : 'Division preview'}
+            kicker={summary.userDivision
+              ? t('m2League.yourDivision')
+              : t('m2League.divisionPreview')}
             title={summary.label}
-            stamp={summary.userDivision ? 'ACTIVE' : `AVG ${summary.averageStrength}`}
+            stamp={summary.userDivision
+              ? t('m2League.stampActive')
+              : t('m2League.averageStrengthShort', { strength: summary.averageStrength })}
             className="mt-4"
           >
             <View className="flex-row gap-2">
-              <Metric label="Clubs" value={String(summary.clubCount)} />
-              <Metric label="Average club strength" value={String(summary.averageStrength)} />
-              <Metric label="Club strength range" value={summary.strengthRangeLabel} />
+              <Metric label={t('m2League.clubs')} value={String(summary.clubCount)} />
+              <Metric label={t('m2League.averageClubStrength')} value={String(summary.averageStrength)} />
+              <Metric label={t('m2League.clubStrengthRange')} value={summary.strengthRangeLabel} />
             </View>
             <View className="mt-2 flex-row gap-2">
-              <Metric label="Your squad strength" value={String(summary.userSquadStrength)} />
+              <Metric label={t('m2League.yourSquadStrength')} value={String(summary.userSquadStrength)} />
               <Metric
-                label="Comparison"
+                label={t('m2League.comparison')}
                 value={summary.comparisonLabel}
                 tone={summary.comparisonTone === 'below' ? 'negative' : 'positive'}
               />
             </View>
             <Text className="mt-3 text-sm leading-5 text-ink/60">
               {summary.userDivision
-                ? 'You currently play here. Finish in the top two to earn promotion.'
-                : `Preview only. Your fixtures and table remain in ${viewModel.activeTable.divisionLabel}.`}
+                ? t('m2League.youCurrentlyPlayHere')
+                : t('m2League.previewOnly', { division: viewModel.activeTable.divisionLabel })}
             </Text>
             <Text className="mt-2 text-xs leading-4 text-ink/50">
               {t('m2League.squadStrengthUsesPlayer')}</Text>
@@ -188,12 +208,15 @@ export function M2LeagueScreen({
         <View>
           <SectionLabel
             eyebrow={viewModel.activeTable.divisionLabel}
-            title="Current standings"
+            title={t('m2League.currentStandings')}
             right={<StatusChip label={viewModel.activeTable.rulesLabel} tone="success" />}
           />
           <View
             accessible
-            accessibilityLabel={`${viewModel.activeTable.divisionLabel} live standings after ${viewModel.activeTable.matchesPlayed} matches`}
+            accessibilityLabel={t('m2League.a11y.liveStandings', {
+              division: viewModel.activeTable.divisionLabel,
+              matches: viewModel.activeTable.matchesPlayed,
+            })}
             className="border-2 border-b-4 border-ink bg-white"
           >
             {/* Every abbreviation here is tappable, because the legend under
@@ -202,21 +225,24 @@ export function M2LeagueScreen({
                 answers the same question at the header itself. */}
             <View className="flex-row border-b border-ink/20 px-2 py-2">
               <Text style={leagueColumns.position} className="font-mono text-sm text-ink/50">#</Text>
-              <PixelText className="flex-1 text-sm uppercase text-ink/50">Club</PixelText>
+              <PixelText className="flex-1 text-sm uppercase text-ink/50">{t('col.league.club')}</PixelText>
               {LEAGUE_TABLE_HEADERS.map(header => (
                 <InfoTip
-                  key={header.label}
-                  text={LEAGUE_COLUMN_EXPLAINER[header.column]}
+                  key={header.key}
+                  text={t(LEAGUE_COLUMN_EXPLAINER_KEY[header.column])}
                   align="right"
                   style={leagueColumns[header.column]}
-                  accessibilityLabel={`${header.name}. ${LEAGUE_COLUMN_EXPLAINER[header.column]}`}
+                  accessibilityLabel={t('m2League.a11y.columnExplainer', {
+                    name: t(header.nameKey),
+                    explainer: t(LEAGUE_COLUMN_EXPLAINER_KEY[header.column]),
+                  })}
                 >
                   <Text
                     className="w-full text-right font-mono text-sm text-ink/50"
                     maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
                     numberOfLines={1}
                   >
-                    {header.label}
+                    {t(header.key)}
                   </Text>
                 </InfoTip>
               ))}
@@ -233,7 +259,19 @@ export function M2LeagueScreen({
                 <View
                   key={row.clubId}
                   accessible
-                  accessibilityLabel={`${row.position}. ${row.clubName}.${row.isUserClub ? ' Your club.' : ''} Played ${row.played}, goal difference ${row.goalDifference}, ${row.points} points.${row.movement === 'PROMOTION' ? ' Promotion place.' : row.movement === 'RELEGATION' ? ' Relegation place.' : ''}`}
+                  accessibilityLabel={t('m2League.a11y.standingsRow', {
+                    position: row.position,
+                    club: row.clubName,
+                    you: row.isUserClub ? ` ${t('m2League.a11y.yourClub')}` : '',
+                    played: row.played,
+                    goalDifference: row.goalDifference,
+                    points: row.points,
+                    movement: row.movement === 'PROMOTION'
+                      ? ` ${t('m2League.a11y.promotionPlace')}`
+                      : row.movement === 'RELEGATION'
+                        ? ` ${t('m2League.a11y.relegationPlace')}`
+                        : '',
+                  })}
                   className={`min-h-11 flex-row items-center border-b border-ink/10 px-2 py-2 ${rowClass}`}
                 >
                   <Text style={leagueColumns.position} className="font-mono text-base text-ink" numberOfLines={1}>{row.position}</Text>
@@ -242,7 +280,9 @@ export function M2LeagueScreen({
                       {row.clubName}
                     </Text>
                     {row.isUserClub ? (
-                      <Text className="mr-1 font-pixel text-sm uppercase text-blue-dark">YOU</Text>
+                      <Text className="mr-1 font-pixel text-sm uppercase text-blue-dark">
+                        {t('m2League.you')}
+                      </Text>
                     ) : null}
                     {row.movement !== 'NONE' ? (
                       <Text className={row.movement === 'PROMOTION' ? 'text-sm font-bold text-pitch-ink' : 'text-sm font-bold text-stamp'}>
@@ -271,11 +311,13 @@ export function M2LeagueScreen({
         <View>
           <SectionLabel
             eyebrow={viewModel.activeTable.divisionLabel}
-            title="Fixtures & results"
-            right={<StatusChip label={`${viewModel.leagueFixtures.length} matches`} />}
+            title={t('m2League.fixturesAndResults')}
+            right={<StatusChip label={t('m2League.matchesCount', {
+              count: viewModel.leagueFixtures.length,
+            })} />}
           />
           {viewModel.leagueFixtures.length === 0 ? (
-            <PaperPanel title="Schedule pending" kicker={viewModel.seasonLabel}>
+            <PaperPanel title={t('m2League.schedulePending')} kicker={viewModel.seasonLabel}>
               <Text className="text-sm leading-5 text-ink/60">
                 {t('m2League.yourLeagueScheduleWill')}</Text>
             </PaperPanel>
@@ -300,8 +342,8 @@ export function M2LeagueScreen({
           className={guidedCup ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
         >
           <SectionLabel
-            eyebrow="All 50 clubs"
-            title="Hero Cup"
+            eyebrow={t('m2League.all50Clubs')}
+            title={t('m2League.heroCup')}
             right={<StatusChip label={viewModel.cup.statusLabel} tone={viewModel.cup.championName ? 'hero' : 'normal'} />}
           />
 
@@ -311,7 +353,12 @@ export function M2LeagueScreen({
                 <Pressable
                   key={option.season}
                   accessibilityRole="button"
-                  accessibilityLabel={`${option.label} Hero Cup${option.championName ? `, won by ${option.championName}` : ''}`}
+                  accessibilityLabel={t('m2League.a11y.cupSeasonButton', {
+                    season: option.label,
+                    note: option.championName
+                      ? `, ${t('m2League.a11y.wonBy', { champion: option.championName })}`
+                      : '',
+                  })}
                   accessibilityState={{ selected: option.selected, disabled: onSelectCupSeason === undefined }}
                   disabled={onSelectCupSeason === undefined}
                   onPress={() => onSelectCupSeason?.(option.season)}
@@ -330,7 +377,11 @@ export function M2LeagueScreen({
           ) : null}
 
           {!viewModel.cup.available ? (
-            <PaperPanel kicker={viewModel.cup.seasonLabel} title={viewModel.cup.currentRoundLabel} stamp="PENDING">
+            <PaperPanel
+              kicker={viewModel.cup.seasonLabel}
+              title={viewModel.cup.currentRoundLabel}
+              stamp={t('m2League.stampPending')}
+            >
               <Text className="text-sm leading-5 text-ink/60">
                 {t('m2League.theCompetitionOfficeWill')}</Text>
             </PaperPanel>
@@ -352,13 +403,16 @@ export function M2LeagueScreen({
                 </View>
               )}
 
-              <SectionLabel eyebrow={viewModel.cup.seasonLabel} title="Road to the final" />
+              <SectionLabel
+                eyebrow={viewModel.cup.seasonLabel}
+                title={t('m2League.roadToTheFinal')}
+              />
               {/* The bracket carries the shape of the road; the round cards
                   below it stay for the play-in and for tapping into a tie the
                   manager can actually play. */}
               <View
                 accessible
-                accessibilityLabel={`${viewModel.cup.seasonLabel} Hero Cup bracket`}
+                accessibilityLabel={t('m2League.a11y.cupBracket', { season: viewModel.cup.seasonLabel })}
                 className="mb-4 border-2 border-ink bg-white p-2"
               >
                 <CupBracket rounds={viewModel.cup.rounds} championName={viewModel.cup.championName} />
@@ -436,9 +490,9 @@ function CupRoundCard({
 }) {
   const t = useCopy();
   const complete = round.completedCount === round.matchCount;
-  const outcomeTone = round.userOutcome === 'Eliminated'
+  const outcomeTone = round.userOutcomeKind === 'eliminated'
     ? 'danger' as const
-    : round.userOutcome === 'Champion'
+    : round.userOutcomeKind === 'champion'
       ? 'hero' as const
       : 'success' as const;
   const railClass = !round.drawn ? 'bg-grey-light' : complete ? 'bg-grey' : 'bg-blue';
@@ -454,7 +508,9 @@ function CupRoundCard({
       >
         <View className="mb-3 flex-row items-center justify-between gap-2">
           <View className="flex-1">
-            <Text className="font-pixel text-sm uppercase text-blue-dark">Round {round.round}</Text>
+            <Text className="font-pixel text-sm uppercase text-blue-dark">
+              {t('m2League.roundNumber', { round: round.round })}
+            </Text>
             <Text className="mt-1 font-pixel text-lg uppercase text-ink">{round.label}</Text>
             <Text className="mt-1 font-mono text-sm text-ink/50">
               {t('m2League.matchesComplete', {
@@ -516,11 +572,19 @@ function CupTie({
   fixture: M2CupFixtureViewModel;
   onOpenCupFixture?: (fixtureId: string) => void;
 }) {
+  const t = useCopy();
   const disabled = onOpenCupFixture === undefined || !fixture.playableNow;
   return (
     <Pressable
       accessibilityRole={fixture.playableNow ? 'button' : 'text'}
-      accessibilityLabel={`${fixture.homeClubName} ${fixture.scoreLabel} ${fixture.awayClubName}${fixture.winnerName ? `, ${fixture.winnerName} advanced` : ''}`}
+      accessibilityLabel={t('m2League.a11y.cupTie', {
+        home: fixture.homeClubName,
+        score: fixture.scoreLabel,
+        away: fixture.awayClubName,
+        note: fixture.winnerName
+          ? `, ${t('m2League.a11y.advanced', { club: fixture.winnerName })}`
+          : '',
+      })}
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={() => onOpenCupFixture?.(fixture.id)}

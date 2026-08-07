@@ -9,7 +9,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
+import { useCopy, usePixelStyles, type CopyFn, type LocaleFaces } from '../i18n';
 import { SfxPressable } from '../ui/components/SfxPressable';
 import { hasHoverPointer } from '../ui/pointer-capability';
 import { TutorialTapCue } from '../ui/TutorialTapCue';
@@ -145,7 +145,10 @@ export function SubstitutionBoard({
   const autoChanged = draftAutoSubs !== autoSubs;
   const saveable = canSave(plan) || autoChanged;
   const note = autoChanged
-    ? `${budgetNote(plan, substitutionsRemaining)} Automatic substitutions will be turned ${draftAutoSubs ? 'on' : 'off'}.`
+    ? t(
+      draftAutoSubs ? 'substitutionBoard.noteAutoSubsOn' : 'substitutionBoard.noteAutoSubsOff',
+      { note: budgetNote(plan, substitutionsRemaining) },
+    )
     : budgetNote(plan, substitutionsRemaining);
 
   const starterAt = useCallback(
@@ -346,7 +349,7 @@ export function SubstitutionBoard({
       >
         <View style={styles.header}>
           <View style={styles.titleBlock}>
-            <Text style={styles.eyebrow}>MATCH PAUSED</Text>
+            <Text style={styles.eyebrow}>{t('substitutionBoard.matchPaused')}</Text>
             <View style={styles.titleRow}>
               <Text
                 adjustsFontSizeToFit
@@ -354,7 +357,7 @@ export function SubstitutionBoard({
                 numberOfLines={1}
                 style={[styles.title, wide ? null : styles.titleNarrow]}
               >
-                SUBSTITUTIONS
+                {t('substitutionBoard.title')}
               </Text>
               <Text style={[styles.counter, atLimit ? styles.counterSpent : null]}>
                 {substitutionsUsed + staged}/{MAX_SUBSTITUTIONS}
@@ -364,17 +367,25 @@ export function SubstitutionBoard({
           <View style={styles.headerControls}>
             <Text style={styles.hint}>
               {picked === null
-                ? 'TAP A PLAYER, THEN TAP THEIR REPLACEMENT'
-                : 'NOW TAP ANYONE LIT UP · TAP AGAIN TO CANCEL'}
+                ? t('substitutionBoard.hintPickAPlayer')
+                : t('substitutionBoard.hintPickAPartner')}
             </Text>
             <SfxPressable
               accessibilityRole="switch"
-              accessibilityLabel={`Automatic substitutions ${draftAutoSubs ? 'on' : 'off'}. Save to apply`}
+              accessibilityLabel={draftAutoSubs
+                ? t('substitutionBoard.a11y.autoSubsOnSaveToApply')
+                : t('substitutionBoard.a11y.autoSubsOffSaveToApply')}
               accessibilityState={{ checked: draftAutoSubs }}
               onPress={() => setDraftAutoSubs(enabled => !enabled)}
               style={[styles.autoSub, draftAutoSubs ? styles.autoSubOn : null]}
             >
-              <Text style={styles.autoSubText}>{draftAutoSubs ? '☑ AUTO' : '☐ AUTO'}</Text>
+              <Text style={styles.autoSubText}>
+                {/* The box glyphs stay out of the catalog: Silkscreen has
+                    neither U+2610 nor U+2611, so a key containing them fails
+                    gate 5. They draw through the system fallback, as the arrow
+                    on the match-day buttons already does. */}
+                {`${draftAutoSubs ? '\u2611' : '\u2610'} ${t('substitutionBoard.auto')}`}
+              </Text>
             </SfxPressable>
           </View>
         </View>
@@ -395,8 +406,8 @@ export function SubstitutionBoard({
               styles.fieldColumn,
               drag?.kind === 'field' ? styles.columnCarrying : null,
             ]}>
-              <Text style={styles.columnTitle}>FIELD</Text>
-              <Text style={styles.columnHint}>MOST TIRED FIRST</Text>
+              <Text style={styles.columnTitle}>{t('substitutionBoard.fieldColumn')}</Text>
+              <Text style={styles.columnHint}>{t('substitutionBoard.mostTiredFirst')}</Text>
               <View style={[
                 wide ? undefined : styles.grid,
                 guideCardId === null ? null : styles.guidedFieldList,
@@ -418,25 +429,41 @@ export function SubstitutionBoard({
                       }}
                       lit={active !== null && active.id !== id && isEligible(active, id)}
                       picked={picked?.id === id}
-                      hint={dropTarget === id ? 'SWAP' : null}
-                      guideLabel={guided ? (wide ? 'Click or drag' : 'Tap') : undefined}
-                      guideDetail={guided ? `Swap ${compactName(player.name, !wide)}` : undefined}
+                      hint={dropTarget === id ? t('substitutionBoard.dropHintSwap') : null}
+                      guideLabel={guided
+                        ? (wide
+                          ? t('substitutionBoard.guideClickOrDrag')
+                          : t('substitutionBoard.guideTap'))
+                        : undefined}
+                      guideDetail={guided
+                        ? t('substitutionBoard.guideSwapPlayer', {
+                          name: compactName(player.name, !wide),
+                        })
+                        : undefined}
                       compact={!wide}
                       dragEnabled={wide}
                       registerCard={registerCard}
                       {...dragProps}
                       accessibilityLabel={incoming === undefined
-                        ? `${player.name}, ${player.role}, ${Math.round(player.condition)} percent energy`
-                        : `${incoming.name}, ${incoming.role}, on for ${player.name}`}
+                        ? t('substitutionBoard.a11y.starterEnergy', {
+                          name: player.name,
+                          role: player.role,
+                          percent: Math.round(player.condition),
+                        })
+                        : t('substitutionBoard.a11y.replacementOnFor', {
+                          name: incoming.name,
+                          role: incoming.role,
+                          replaced: player.name,
+                        })}
                       accessibilityHint={guided
                         ? wide
-                          ? 'Click to select this player, or drag them onto a bench replacement'
-                          : 'Tap this player, then tap a bench replacement'
+                          ? t('substitutionBoard.a11y.hintGuidedWide')
+                          : t('substitutionBoard.a11y.hintGuidedNarrow')
                         : picked?.id === id
-                          ? 'Activate to put this player back'
+                          ? t('substitutionBoard.a11y.hintPutBack')
                           : incoming === undefined
-                            ? 'Activate, then activate a bench player to trade them'
-                            : `Activate, then activate ${player.name} on the bench to undo`}
+                            ? t('substitutionBoard.a11y.hintTradeWithBench')
+                            : t('substitutionBoard.a11y.hintUndoOnBench', { name: player.name })}
                       style={incoming === undefined
                         ? styles.card
                         : [styles.card, styles.cardSwapped]}
@@ -478,10 +505,10 @@ export function SubstitutionBoard({
             </View>
 
             <View style={[styles.column, drag !== null && drag.kind !== 'field' ? styles.columnCarrying : null]}>
-              <Text style={styles.columnTitle}>BENCH</Text>
-              <Text style={styles.columnHint}>FRESH LEGS ENTER AT 100%</Text>
+              <Text style={styles.columnTitle}>{t('substitutionBoard.benchColumn')}</Text>
+              <Text style={styles.columnHint}>{t('substitutionBoard.freshLegsEnterFull')}</Text>
               {rows.length === 0 ? (
-                <Text style={styles.emptyBench}>NOBODY LEFT ON THE BENCH.</Text>
+                <Text style={styles.emptyBench}>{t('substitutionBoard.benchEmpty')}</Text>
               ) : (
                 <View style={wide ? undefined : styles.grid}>
                   {rows.map(entry => {
@@ -500,15 +527,18 @@ export function SubstitutionBoard({
                           source={{ id, kind: 'sub', subId: entry.sub.id, isKeeper: entry.sub.role === 'GK' }}
                           lit={lit}
                           picked={picked?.id === id}
-                          hint={dropTarget === id ? 'SWAP' : null}
+                          hint={dropTarget === id ? t('substitutionBoard.dropHintSwap') : null}
                           compact={!wide}
                           dragEnabled={wide}
                           registerCard={registerCard}
                           {...dragProps}
-                          accessibilityLabel={`${entry.sub.name}, ${entry.sub.role}, fresh`}
+                          accessibilityLabel={t('substitutionBoard.a11y.benchPlayerFresh', {
+                            name: entry.sub.name,
+                            role: entry.sub.role,
+                          })}
                           accessibilityHint={picked?.id === id
-                            ? 'Activate to put this player back'
-                            : 'Activate, then activate a player on the field to trade them'}
+                            ? t('substitutionBoard.a11y.hintPutBack')
+                            : t('substitutionBoard.a11y.hintTradeWithField')}
                           style={styles.card}
                         >
                           <View style={styles.cardCopy}>
@@ -543,15 +573,18 @@ export function SubstitutionBoard({
                         source={{ id, kind: 'off', slot: entry.starter.index, isKeeper: entry.starter.role === 'GK' }}
                         lit={active !== null && active.id !== id && isEligible(active, id)}
                         picked={picked?.id === id}
-                        hint={dropTarget === id ? 'KEEP ON' : null}
+                        hint={dropTarget === id ? t('substitutionBoard.dropHintKeepOn') : null}
                         compact={!wide}
                         dragEnabled={wide}
                         registerCard={registerCard}
                         {...dragProps}
-                        accessibilityLabel={`${entry.starter.name}, ${entry.starter.role}, is coming off`}
+                        accessibilityLabel={t('substitutionBoard.a11y.starterComingOff', {
+                          name: entry.starter.name,
+                          role: entry.starter.role,
+                        })}
                         accessibilityHint={picked?.id === id
-                          ? 'Activate to put this player back'
-                          : 'Activate, then activate their shirt on the field to keep them on'}
+                          ? t('substitutionBoard.a11y.hintPutBack')
+                          : t('substitutionBoard.a11y.hintKeepShirtOn')}
                         style={[styles.card, styles.cardDimmed]}
                       >
                         <View style={styles.cardCopy}>
@@ -565,7 +598,7 @@ export function SubstitutionBoard({
                             {compactName(entry.starter.name, !wide)}
                             <Text style={styles.roleDimmed}> {entry.starter.role}</Text>
                           </Text>
-                          <Text style={styles.metaDimmed}>COMING OFF</Text>
+                          <Text style={styles.metaDimmed}>{t('substitutionBoard.comingOff')}</Text>
                         </View>
                       </DragCard>
                     );
@@ -586,7 +619,7 @@ export function SubstitutionBoard({
 
         <View style={styles.actions}>
           <LozengeButton
-            label="CANCEL"
+            label={t('substitutionBoard.cancel')}
             accessibilityLabel={t('substitutionBoard.a11y.cancelAndCloseWithout')}
             tone="grey"
             // The board's full-screen scroll/responder stack can cancel the
@@ -599,19 +632,20 @@ export function SubstitutionBoard({
             onPress={onCancel}
           />
           <LozengeButton
-            label="RESET"
+            label={t('substitutionBoard.reset')}
             accessibilityLabel={t('substitutionBoard.a11y.resetTheBoardPut')}
             tone="grey"
             disabled={staged === 0 && !autoChanged}
             onPress={reset}
           />
           <LozengeButton
-            label="SAVE"
-            accessibilityLabel={saveable
-              ? autoChanged
-                ? `Save automatic substitutions ${draftAutoSubs ? 'on' : 'off'}${staged > 0 ? ` and ${staged} substitution${staged === 1 ? '' : 's'}` : ''}`
-                : `Save ${staged} substitution${staged === 1 ? '' : 's'}`
-              : 'Nothing to save yet'}
+            label={t('substitutionBoard.save')}
+            accessibilityLabel={saveAccessibilityLabel(t, {
+              saveable,
+              autoChanged,
+              autoSubs: draftAutoSubs,
+              staged,
+            })}
             tone="blue"
             wide
             disabled={!saveable}
@@ -620,6 +654,40 @@ export function SubstitutionBoard({
         </View>
       </View>
     </View>
+  );
+}
+
+/**
+ * What Save announces.
+ *
+ * Six whole sentences rather than one assembled from clauses. The old label
+ * glued "and {n} substitutions" onto the middle of a sentence and pluralised it
+ * with a trailing `s`, which is a shape only English has — a translator handed
+ * those fragments cannot reorder them, and half the shipped languages need to.
+ */
+function saveAccessibilityLabel(
+  t: CopyFn,
+  { saveable, autoChanged, autoSubs, staged }: {
+    saveable: boolean;
+    autoChanged: boolean;
+    autoSubs: boolean;
+    staged: number;
+  },
+): string {
+  if (!saveable) return t('substitutionBoard.a11y.nothingToSaveYet');
+  if (!autoChanged) {
+    return t('substitutionBoard.a11y.saveSubstitutions', { n: staged, count: staged });
+  }
+  if (staged === 0) {
+    return t(autoSubs
+      ? 'substitutionBoard.a11y.saveAutoSubsOn'
+      : 'substitutionBoard.a11y.saveAutoSubsOff');
+  }
+  return t(
+    autoSubs
+      ? 'substitutionBoard.a11y.saveAutoSubsOnAndSwaps'
+      : 'substitutionBoard.a11y.saveAutoSubsOffAndSwaps',
+    { n: staged, count: staged },
   );
 }
 
@@ -737,6 +805,7 @@ function DragCard({
   style: object | readonly object[];
   children: React.ReactNode;
 }) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const offset = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const [lifted, setLifted] = useState(false);
@@ -844,7 +913,9 @@ function DragCard({
       // `aria-selected` is not valid on role="button", so the web drops the
       // accessibilityState below and a screen reader would never learn which
       // card is waiting for a partner.
-      accessibilityLabel={picked ? `${accessibilityLabel}, picked` : accessibilityLabel}
+      accessibilityLabel={picked
+        ? t('substitutionBoard.a11y.picked', { label: accessibilityLabel })
+        : accessibilityLabel}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ selected: picked }}
       // A wide dragged View still needs the explicit accessibility action.
@@ -870,7 +941,7 @@ function DragCard({
       {guideLabel === undefined ? null : (
         <TutorialTapCue
           label={guideLabel}
-          detail={guideDetail ?? 'Swap this player'}
+          detail={guideDetail ?? t('substitutionBoard.guideSwapThisPlayer')}
           style={styles.cardGuideCue}
         />
       )}

@@ -155,7 +155,9 @@ export function FixtureMatchDayScreen({
       </View>
       <View className="mt-3 items-center">
         <StatusChip
-          label={`${fixture.opponentHeroCount} rival hero${fixture.opponentHeroCount === 1 ? '' : 'es'} reported`}
+          label={t('fixtureMatchDay.rivalHeroesReported', {
+            n: fixture.opponentHeroCount, count: fixture.opponentHeroCount,
+          })}
           tone="danger"
         />
       </View>
@@ -164,7 +166,11 @@ export function FixtureMatchDayScreen({
 
   const teamSheet = (
     <View className="mt-6">
-      <StageSection eyebrow="Team sheet" title="Starting eleven" right={<StatusChip label={viewModel.formationLabel} />} />
+      <StageSection
+        eyebrow={t('fixtureMatchDay.teamSheet')}
+        title={t('fixtureMatchDay.startingEleven')}
+        right={<StatusChip label={viewModel.formationLabel} />}
+      />
       <Text className="mb-3 text-sm leading-5 text-paper/75">
         {t('fixtureMatchDay.toChangeStartersTap')}</Text>
       {/* Every starter is identified by their face and name. Phone cells share
@@ -198,7 +204,19 @@ export function FixtureMatchDayScreen({
                   <Pressable
                     key={player.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`${player.name}, ${player.role === player.formationRole ? `starting ${player.formationRole}` : `natural ${player.role}, starting ${player.formationRole}`}, shirt ${player.shirtNumber}, condition ${player.condition} percent${conditionStatus === null ? '' : `, ${conditionStatus.label}`}. Select to replace.`}
+                    accessibilityLabel={t('fixtureMatchDay.a11y.starterCard', {
+                      player: player.name,
+                      position: player.role === player.formationRole
+                        ? t('fixtureMatchDay.a11y.startingRole', { role: player.formationRole })
+                        : t('fixtureMatchDay.a11y.naturalStartingRole', {
+                          role: player.role, formationRole: player.formationRole,
+                        }),
+                      shirt: player.shirtNumber,
+                      condition: player.condition,
+                      // The separator is punctuation, not copy; the label it
+                      // introduces still comes from matchday-condition.
+                      status: conditionStatus === null ? '' : `, ${conditionStatus.label}`,
+                    })}
                     accessibilityState={{ selected }}
                     onPress={() => setSelectedStarterId(current => current === player.id ? null : player.id)}
                     className={cardClass}
@@ -240,8 +258,10 @@ export function FixtureMatchDayScreen({
   const bench = (
     <View className={wide ? undefined : 'mt-4'}>
       <StageSection
-        eyebrow="Selection bench"
-        title={selectedStarter === undefined ? 'Choose a starter' : `Replace ${selectedStarter.name}`}
+        eyebrow={t('fixtureMatchDay.selectionBench')}
+        title={selectedStarter === undefined
+          ? t('fixtureMatchDay.chooseAStarter')
+          : t('fixtureMatchDay.replacePlayer', { player: selectedStarter.name })}
         right={selectedStarter === undefined ? undefined : <StatusChip label={selectedStarter.formationRole} selected />}
       />
       <View className="gap-2">
@@ -252,13 +272,22 @@ export function FixtureMatchDayScreen({
           const disabled = selectedStarter === undefined || !player.canStart || roleMismatch;
           const statusLabel = player.unavailableLabel
             ?? (roleMismatch
-              ? selectedStarter?.formationRole === 'GK' ? 'GK only' : 'Outfield only'
-              : 'Ready');
+              ? selectedStarter?.formationRole === 'GK'
+                ? t('fixtureMatchDay.gkOnly')
+                : t('fixtureMatchDay.outfieldOnly')
+              : t('fixtureMatchDay.ready'));
           return (
             <Pressable
               key={player.id}
               accessibilityRole="button"
-              accessibilityLabel={`${player.name}, bench ${player.role}, rating ${player.overall}, condition ${player.condition} percent${conditionStatus === null ? '' : `, ${conditionStatus.label}`}. ${statusLabel}.`}
+              accessibilityLabel={t('fixtureMatchDay.a11y.benchCard', {
+                player: player.name,
+                role: player.role,
+                rating: player.overall,
+                condition: player.condition,
+                status: conditionStatus === null ? '' : `, ${conditionStatus.label}`,
+                availability: statusLabel,
+              })}
               accessibilityState={{ disabled }}
               disabled={disabled}
               onPress={() => swapWithBenchPlayer(player.id)}
@@ -300,13 +329,17 @@ export function FixtureMatchDayScreen({
   const heroLicenses = (
     <View className="mt-6">
       <StageSection
-        eyebrow="League permit"
-        title="Hero licenses"
+        eyebrow={t('fixtureMatchDay.leaguePermit')}
+        title={t('fixtureMatchDay.heroLicenses')}
         right={<StatusChip label={`${licensedCount} / ${viewModel.heroLimit}`} tone="hero" />}
       />
       <View className="gap-3">
         {viewModel.heroes.length === 0 ? (
-          <PaperPanel kicker="Permit office" title="No heroes registered" stamp="Ordinary football">
+          <PaperPanel
+            kicker={t('fixtureMatchDay.permitOffice')}
+            title={t('fixtureMatchDay.noHeroesRegistered')}
+            stamp={t('fixtureMatchDay.ordinaryFootball')}
+          >
             <Text className="text-base leading-6 text-ink/65">
               {t('fixtureMatchDay.elevenRegularPlayersNo')}</Text>
           </PaperPanel>
@@ -315,7 +348,7 @@ export function FixtureMatchDayScreen({
             <View className="flex-row items-center gap-3">
               <Pressable
                 accessibilityRole="checkbox"
-                accessibilityLabel={`${hero.playerName} hero license`}
+                accessibilityLabel={t('fixtureMatchDay.a11y.heroLicenseFor', { player: hero.playerName })}
                 accessibilityState={{ checked: hero.licensed }}
                 onPress={() => onToggleHeroLicense(hero.playerId)}
                 className={hero.licensed ? 'h-11 w-11 items-center justify-center border-2 border-gold-dark bg-gold' : 'h-11 w-11 items-center justify-center border-2 border-ink bg-paper-dark'}
@@ -400,7 +433,7 @@ export function FixtureMatchDayScreen({
         <View className={wide ? 'w-full max-w-[1180px] flex-row gap-2 self-center px-2' : 'flex-row gap-2'}>
           <View className="flex-1">
             <ActionButton
-              label="Quick result"
+              label={t('fixtureMatchDay.quickResult')}
               accessibilityLabel={t('fixtureMatchDay.a11y.simulateThisMatchWithQuickResult')}
               onPress={() => handOffFixture(onQuickResult)}
               disabled={quickResultDisabled || handedOff || !viewModel.licenseReady}
@@ -409,7 +442,10 @@ export function FixtureMatchDayScreen({
           </View>
           <View className="flex-1">
             <ActionButton
-              label={wide ? 'Play match  ▸' : 'Play  ▸'}
+              // The arrow stays out of the catalog: Silkscreen has no U+25B8
+              // (measured), so a key containing it would fail gate 5. It draws
+              // through the system fallback here, as it always has.
+              label={`${wide ? t('fixtureMatchDay.playMatch') : t('fixtureMatchDay.play')}  ▸`}
               accessibilityLabel={t('fixtureMatchDay.a11y.playMatch')}
               onPress={() => handOffFixture(onWatchMatch)}
               disabled={watchDisabled || handedOff || !viewModel.licenseReady}

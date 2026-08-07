@@ -4,7 +4,7 @@ import { PixelPortrait } from '../ui/components/PixelPortrait';
 import type { PortraitRole } from '../ui/pixel-portrait-model';
 import { ENERGY_FILL_COLORS, energyBand } from './match-energy-ui';
 import { playUiClickSfx } from './management-sfx';
-import { usePixelStyles, type LocaleFaces } from '../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 
 export interface FirstMatchCoachingModalPlayer {
   readonly id: string;
@@ -34,6 +34,7 @@ export function FirstMatchCoachingModal({
   reduceMotion,
   onContinue,
 }: FirstMatchCoachingModalProps) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const [buttonPressed, setButtonPressed] = useState(false);
   return (
@@ -61,7 +62,10 @@ export function FirstMatchCoachingModal({
               <View
                 style={styles.playerFacts}
                 accessible
-                accessibilityLabel={`${player.name}. Energy ${player.energyPercent} percent.`}
+                accessibilityLabel={t('matchScreen.a11y.playerEnergy', {
+                  player: player.name,
+                  percent: player.energyPercent,
+                })}
               >
                 <Text style={styles.playerName} numberOfLines={1}>{player.name}</Text>
                 <View style={styles.energyRow}>

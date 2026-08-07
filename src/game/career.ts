@@ -515,6 +515,8 @@ function settleWeekResults(
             line: {
               kind: 'sponsor' as const,
               label: `${payment.sponsorName} objective bonus`,
+              labelKey: 'ledger.sponsorObjectiveBonus',
+              labelParams: { sponsor: payment.sponsorName },
               amount: payment.actualAmount,
               idempotencyKey: weeklySettlementAwardKeys.sponsorObjective(
                 state.userClubId,
@@ -839,6 +841,8 @@ function settlementLines(
     lines.push({
       kind: 'tickets',
       label: `${CUP_DISPLAY_NAME} ${currentCupRound.label} home gate`,
+      labelKey: 'ledger.cupHomeGate',
+      labelParams: { cup: CUP_DISPLAY_NAME, round: currentCupRound.label },
       amount: cupGate.amount,
       ...(cupGate.reveal === undefined ? {} : { reveal: cupGate.reveal }),
     });
@@ -932,6 +936,8 @@ function settlementAwards(
           line: {
             kind: 'sponsor',
             label: `${payment.sponsorName} · Monthly sponsor`,
+            labelKey: 'ledger.monthlySponsor',
+            labelParams: { sponsor: payment.sponsorName },
             amount: payment.actualAmount,
             idempotencyKey: weeklySettlementAwardKeys.sponsorMonth(
               state.userClubId,
@@ -972,6 +978,7 @@ function settlementAwards(
         line: {
           kind: 'prize',
           label: position === 1 ? 'League champion prize' : 'League runner-up prize',
+          labelKey: position === 1 ? 'ledger.leagueChampionPrize' : 'ledger.leagueRunnerUpPrize',
           amount: prize,
           idempotencyKey: weeklySettlementAwardKeys.leaguePrize(
             state.userClubId,
@@ -1468,6 +1475,8 @@ function resolveFinancialSafety(
         lines.push({
           kind: 'board-sale',
           label: `Board-enforced sale · ${forcedSale.playerId}`,
+          labelKey: 'ledger.boardEnforcedSale',
+          labelParams: { player: forcedSale.playerId },
           amount: forcedSale.fee,
         });
         balanceAfter = checkedAdd(balanceAfter, forcedSale.fee, 'board forced-sale balance');

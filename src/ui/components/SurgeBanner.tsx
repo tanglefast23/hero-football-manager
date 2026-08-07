@@ -10,6 +10,7 @@ import {
   financeSpriteRuns,
   pickMerchToys,
 } from '../finance-pixel-art';
+import { useCopy } from '../../i18n';
 
 /**
  * The surge callout that pops over the statement (spec §7): EXTREME
@@ -52,6 +53,7 @@ export function SurgeBanner({
   onShown,
   reduceMotion,
 }: SurgeBannerProps) {
+  const t = useCopy();
   const head = queue[0];
   const headRowId = head?.rowId;
   const scale = useRef(new Animated.Value(0.2)).current;
@@ -96,7 +98,7 @@ export function SurgeBanner({
   const sprites = attendance
     ? [...CROWD_SPRITE_IDS]
     : pickMerchToys(settlementSeason, settlementWeek);
-  const headline = attendance ? 'Extreme attendance!' : 'Trending merchandise!';
+  const headline = t(attendance ? 'surgeBanner.extremeAttendance' : 'surgeBanner.trendingMerchandise');
 
   const bonusLabel = head.bonusAmount > 0 ? `+${formatCurrency(head.bonusAmount)}` : null;
 
@@ -108,7 +110,9 @@ export function SurgeBanner({
           is style-only and the plain View inside carries the card look. */}
       <Animated.View
         accessibilityRole="alert"
-        accessibilityLabel={bonusLabel === null ? headline : `${headline} ${bonusLabel} extra`}
+        accessibilityLabel={bonusLabel === null
+          ? headline
+          : t('surgeBanner.a11y.withBonus', { headline, amount: bonusLabel })}
         style={{ opacity, transform: [{ rotate: '-3deg' }, { scale }] }}
       >
         <View className="items-center border-2 border-b-4 border-ink bg-paper px-4 py-3">

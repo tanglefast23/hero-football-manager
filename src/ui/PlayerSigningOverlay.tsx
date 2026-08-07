@@ -56,9 +56,9 @@ export function PlayerSigningOverlay({
         <Pressable accessible={false} className="absolute inset-0" onPress={onClose} />
         <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
           <PaperPanel
-            kicker="Transfer complete"
-            title="Welcome to the club!"
-            stamp="SIGNED"
+            kicker={t('playerSigning.transferComplete')}
+            title={t('coachStaff.titleWelcome')}
+            stamp={t('playerSigning.signed')}
           >
             <View className="items-center border-y-2 border-ink bg-gold-light py-4">
               <View className="border-2 border-b-4 border-ink bg-white px-4 pt-3">
@@ -78,7 +78,7 @@ export function PlayerSigningOverlay({
               {t('playerSigning.theTransferIsComplete')}</Text>
             <View className="mt-4">
               <ActionButton
-                label="Return to club  ▸"
+                label={t('playerSigning.returnToClub')}
                 accessibilityLabel={t('playerSigning.a11y.closePlayerSigningConfirmation')}
                 onPress={onClose}
               />

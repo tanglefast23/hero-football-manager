@@ -6,6 +6,13 @@ import type {
 } from '../m2-league-models';
 import { PaperPanel } from './Scorecard';
 import { PixelText } from './PixelText';
+import { copyFor, useCopy, type CopyFn } from '../../i18n';
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 /** The strip stays hidden while there is nothing to switch between. */
 export function visibleSubTabs(available: readonly M2LeagueSubTab[]): M2LeagueSubTab[] {
@@ -27,19 +34,32 @@ export function resolveSubTab(
   return available.includes(requested) ? requested : 'league';
 }
 
-export function subTabLabel(tab: M2LeagueSubTab): string {
-  return tab === 'league' ? 'LEAGUE' : tab === 'cup' ? 'CUP' : 'LEADERS';
+export function subTabLabel(tab: M2LeagueSubTab, t: CopyFn = englishCopy()): string {
+  return t(tab === 'league'
+    ? 'm2League.tabLeague'
+    : tab === 'cup' ? 'm2League.tabCup' : 'm2League.tabLeaders');
 }
 
 /** Reads as "2. Gem Arrow, Quartz FC, 9 goals. Your player." */
-export function leaderRowLabel(entry: M2LeaderEntryViewModel, metricLabel: string): string {
-  const owner = entry.isUserPlayer ? ' Your player.' : '';
-  return `${entry.position}. ${entry.playerName}, ${entry.clubName}, `
-    + `${entry.value} ${metricLabel.toLowerCase()}.${owner}`;
+export function leaderRowLabel(
+  entry: M2LeaderEntryViewModel,
+  metricLabel: string,
+  t: CopyFn = englishCopy(),
+): string {
+  const owner = entry.isUserPlayer ? ` ${t('awardsCeremony.a11y.yourPlayer')}` : '';
+  return t('m2League.a11y.leaderRow', {
+    position: entry.position,
+    player: entry.playerName,
+    club: entry.clubName,
+    value: entry.value,
+    metric: metricLabel.toLowerCase(),
+    owner,
+  });
 }
 
 /** One position's race: five names, the user's own highlighted. */
 export function DivisionLeaderBoard({ board }: { board: M2LeaderBoardViewModel }) {
+  const t = useCopy();
   return (
     <PaperPanel kicker={board.boardLabel} title={board.metricLabel}>
       {board.entries.length === 0 ? (
@@ -50,7 +70,7 @@ export function DivisionLeaderBoard({ board }: { board: M2LeaderBoardViewModel }
             <View
               key={entry.playerId}
               accessible
-              accessibilityLabel={leaderRowLabel(entry, board.metricLabel)}
+              accessibilityLabel={leaderRowLabel(entry, board.metricLabel, t)}
               className={entry.isUserPlayer
                 ? 'min-h-11 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-2 py-2'
                 : 'min-h-11 flex-row items-center border-2 border-b-4 border-ink/40 bg-white px-2 py-2'}

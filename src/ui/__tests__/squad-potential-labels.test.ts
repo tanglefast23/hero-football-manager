@@ -21,7 +21,8 @@ describe('squad potential labels', () => {
     // The + button speaks for itself; the clipped "Train" header is gone.
     expect(source).not.toContain('>Train</PixelText>');
     expect(source).toContain('player.potentialGrade');
-    expect(source).toContain('${selectedPlayer.superChancePercent}% SUPER');
+    expect(source).toContain("t('squadTraining.potentialAndSuper', {");
+    expect(source).toContain('percent: selectedPlayer.superChancePercent,');
     expect(source).toContain('selectedPlayer.positionTrainingLabel');
     expect(source).not.toContain('Projected max ${selectedPlayer.projectedOverall}');
     expect(source).not.toContain('player.remainingPotential');

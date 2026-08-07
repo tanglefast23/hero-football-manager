@@ -43,8 +43,10 @@ module.exports = {
         // language picker swaps the face live without touching the hundreds of
         // `font-pixel` / `font-mono` call sites. Faces are loaded in App.tsx.
         //
-        // Silkscreen maps 226 glyphs — Latin-1 only — so Vietnamese renders in
-        // Handjet instead. Verified against react-native-css-interop 0.2.6:
+        // One family for all seven languages: `HFMSilkscreen` is stock
+        // Silkscreen with 102 Vietnamese letters appended (see
+        // docs/superpowers/specs/2026-08-06-vietnamese-pixel-diacritics.md).
+        // Verified against react-native-css-interop 0.2.6:
         // `font-family` is in `validProperties`
         // (css-to-rn/parseDeclaration.ts:174), so a `var()` value arrives as an
         // unparsed declaration, routes through `parseUnparsed` to a runtime var
@@ -54,8 +56,8 @@ module.exports = {
         //
         // The fallbacks are what the variables resolve to before the provider
         // mounts, and what a non-NativeWind consumer would see.
-        mono: ['var(--font-data, Silkscreen_400Regular)'],
-        pixel: ['var(--font-display, Silkscreen_700Bold)'],
+        mono: ['var(--font-data, HFMSilkscreen_400Regular)'],
+        pixel: ['var(--font-display, HFMSilkscreen_700Bold)'],
       },
     },
   },

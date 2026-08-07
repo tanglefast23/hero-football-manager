@@ -34,19 +34,23 @@ export function CoachStaffOverlay({
 }: CoachStaffOverlayProps) {
   const t = useCopy();
   const isDismissConfirmation = mode === 'confirm-dismiss';
-  const roleLabel = coach.role === 'HEAD' ? 'Head coach' : 'Assistant coach';
-  const roleLabelLower = coach.role === 'HEAD' ? 'head coach' : 'assistant coach';
+  const roleLabel = coach.role === 'HEAD'
+    ? t('coachStaff.headCoach')
+    : t('coachStaff.assistantCoach');
+  const roleLabelLower = coach.role === 'HEAD'
+    ? t('coachStaff.roleHeadLower')
+    : t('coachStaff.roleAssistantLower');
   const expression = mode === 'hired' ? 'joy' : 'rest';
   const kicker = mode === 'hired'
-    ? 'Contract signed'
+    ? t('coachStaff.kickerContractSigned')
     : mode === 'dismissed'
-      ? 'Staff change complete'
-      : 'Boardroom decision';
+      ? t('coachStaff.kickerStaffChangeComplete')
+      : t('coachStaff.kickerBoardroomDecision');
   const title = mode === 'hired'
-    ? 'Welcome to the club!'
+    ? t('coachStaff.titleWelcome')
     : mode === 'dismissed'
-      ? `${coach.name} has left the club`
-      : `Dismiss ${coach.name}?`;
+      ? t('coachStaff.titleHasLeft', { name: coach.name })
+      : t('coachStaff.titleDismiss', { name: coach.name });
 
   return (
     <Modal
@@ -68,13 +72,19 @@ export function CoachStaffOverlay({
           <Pressable accessible={false} className="absolute inset-0" onPress={onClose} />
         )}
         <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
-          <PaperPanel kicker={kicker} title={title} stamp={mode === 'hired' ? 'HIRED' : mode === 'dismissed' ? 'COMPLETE' : '1 WK'}>
+          <PaperPanel
+            kicker={kicker}
+            title={title}
+            stamp={mode === 'hired'
+              ? t('coachStaff.stampHired')
+              : mode === 'dismissed' ? t('coachStaff.stampComplete') : t('coachStaff.stampOneWeek')}
+          >
             <View className="items-center border-y-2 border-ink bg-blue-light py-4">
               <View className="border-2 border-b-4 border-ink bg-white px-4 pt-3">
                 <ManagementSprite
                   spriteKey={`coach:${coach.portraitId}:${expression}`}
                   width={96}
-                  accessibilityLabel={`${coach.name} coach portrait`}
+                  accessibilityLabel={t('coachStaff.a11y.coachPortrait', { name: coach.name })}
                 />
               </View>
               <Text className="mt-3 font-pixel text-xl uppercase text-ink">{coach.name}</Text>
@@ -84,9 +94,9 @@ export function CoachStaffOverlay({
             </View>
 
             <View className="mt-3 flex-row gap-2">
-              <Metric label="Weekly wage" value={formatCurrency(coach.weeklyWage)} />
+              <Metric label={t('coachStaff.weeklyWage')} value={formatCurrency(coach.weeklyWage)} />
               <Metric
-                label={isDismissConfirmation ? 'Severance' : 'Specialties'}
+                label={isDismissConfirmation ? t('coachStaff.severance') : t('coachStaff.specialties')}
                 value={isDismissConfirmation
                   ? formatCurrency(coach.severanceCost ?? coach.weeklyWage)
                   : String(coach.specialtyLabels.length)}
@@ -110,31 +120,35 @@ export function CoachStaffOverlay({
 
             <Text className="mt-4 text-center text-base leading-5 text-ink/65">
               {mode === 'hired'
-                ? `${coach.name} is now your ${roleLabelLower}.`
+                ? t('coachStaff.nowYourRole', { name: coach.name, role: roleLabelLower })
                 : mode === 'dismissed'
-                  ? `The ${roleLabelLower} position is vacant. You may now hire a replacement.`
-                  : `The club will pay one week of wages (${formatCurrency(coach.severanceCost ?? coach.weeklyWage)}) immediately.`}
+                  ? t('coachStaff.positionVacant', { role: roleLabelLower })
+                  : t('coachStaff.severanceNotice', {
+                    amount: formatCurrency(coach.severanceCost ?? coach.weeklyWage),
+                  })}
             </Text>
 
             <View className="mt-4 gap-2">
               {isDismissConfirmation ? (
                 <>
                   <ActionButton
-                    label={`Pay ${formatCurrency(coach.severanceCost ?? coach.weeklyWage)} & dismiss`}
-                    accessibilityLabel={`Pay one week severance and dismiss ${coach.name}`}
+                    label={t('coachStaff.payAndDismiss', {
+                      amount: formatCurrency(coach.severanceCost ?? coach.weeklyWage),
+                    })}
+                    accessibilityLabel={t('coachStaff.a11y.paySeveranceAndDismiss', { name: coach.name })}
                     variant="danger"
                     onPress={() => onConfirm?.()}
                   />
                   <ActionButton
-                    label="Keep current coach"
-                    accessibilityLabel={`Keep ${coach.name} as head coach`}
+                    label={t('coachStaff.keepCurrentCoach')}
+                    accessibilityLabel={t('coachStaff.a11y.keepAsHeadCoach', { name: coach.name })}
                     variant="paper"
                     onPress={onClose}
                   />
                 </>
               ) : (
                 <ActionButton
-                  label="Return home"
+                  label={t('coachStaff.returnHome')}
                   accessibilityLabel={t('coachStaff.a11y.closeCoachConfirmationAndReturnHome')}
                   onPress={onClose}
                 />

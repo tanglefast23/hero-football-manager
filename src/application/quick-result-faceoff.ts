@@ -5,6 +5,13 @@ import type {
   FaceOffStrike,
   QuickResultFaceOffViewModel,
 } from '../ui/models';
+import { copyFor, type CopyFn } from '../i18n';
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 /**
  * The Quick Result face-off, as pure data.
@@ -81,7 +88,7 @@ export function quickResultFaceOffViewModel(args: {
   clubTeam: TeamDef;
   opponentTeam: TeamDef;
   outcomeLabel: 'WIN' | 'DRAW' | 'LOSS';
-}): QuickResultFaceOffViewModel | null {
+}, t: CopyFn = englishCopy()): QuickResultFaceOffViewModel | null {
   const clubPlayer = bestOutfieldPlayer(args.clubTeam);
   const opponentPlayer = bestOutfieldPlayer(args.opponentTeam);
   if (clubPlayer === null || opponentPlayer === null) return null;
@@ -97,8 +104,11 @@ export function quickResultFaceOffViewModel(args: {
   return {
     sides,
     strike: faceOffStrike(args.outcomeLabel),
-    accessibilityLabel:
-      `${sides[0].playerName}, ${sides[0].clubName}, `
-      + `against ${sides[1].playerName}, ${sides[1].clubName}.`,
+    accessibilityLabel: t('matchScreen.a11y.faceOff', {
+      player: sides[0].playerName,
+      club: sides[0].clubName,
+      opponent: sides[1].playerName,
+      opponentClub: sides[1].clubName,
+    }),
   };
 }

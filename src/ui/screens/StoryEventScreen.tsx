@@ -126,15 +126,15 @@ export function StoryEventScreen({
   if (resolved) {
     const rewards = viewModel.outcomeRewards ?? [];
     const headline = riskySuccess
-      ? viewModel.successCutscene?.headline ?? viewModel.outcomeTitle ?? 'The risk paid off'
+      ? viewModel.successCutscene?.headline ?? viewModel.outcomeTitle ?? t('storyEvent.outcomeRiskPaidOff')
       : riskyFailure
-        ? 'No bonus this time'
-        : viewModel.outcomeTitle ?? 'Decision complete';
+        ? t('storyEvent.outcomeNoBonusThisTime')
+        : viewModel.outcomeTitle ?? t('storyEvent.outcomeDecisionComplete');
     const kicker = riskySuccess
-      ? 'RISK PAID OFF'
+      ? t('storyEvent.kickerRiskPaidOff')
       : riskyFailure
-        ? 'RISK MISSED'
-        : 'GUARANTEED RESULT';
+        ? t('storyEvent.kickerRiskMissed')
+        : t('storyEvent.kickerGuaranteedResult');
     const panelClass = riskySuccess
       ? 'w-full max-w-[600px] self-center border-[3px] border-b-[7px] border-gold bg-ink/95 px-5 pb-5 pt-4'
       : riskyFailure
@@ -223,11 +223,16 @@ export function StoryEventScreen({
               ) : null}
 
               <View className="mt-5">
+                {/* The arrow is appended here, never stored: Silkscreen has no
+                    U+25B8, so a catalog entry carrying it would fall back to a
+                    system glyph in every locale. */}
                 <ActionButton
-                  label={viewModel.outcomeHasFollowUp ? 'Continue the story  ▸' : 'Return to the office  ▸'}
+                  label={`${viewModel.outcomeHasFollowUp
+                    ? t('storyEvent.continueTheStory')
+                    : t('storyEvent.returnToTheOffice')}  ▸`}
                   accessibilityLabel={viewModel.outcomeHasFollowUp
-                    ? 'Continue to the follow-up story event'
-                    : 'Continue after the story event result'}
+                    ? t('storyEvent.a11y.continueToFollowUp')
+                    : t('storyEvent.a11y.continueAfterResult')}
                   onPress={onContinue}
                 />
               </View>
@@ -281,8 +286,8 @@ export function StoryEventScreen({
             headed "Your call", and a panel title that repeats the next
             heading spends a line saying nothing. */}
         <PaperPanel
-          kicker="Club report"
-          title="What happened"
+          kicker={t('storyEvent.clubReport')}
+          title={t('storyEvent.whatHappened')}
           className="border-x-0 border-t-0"
         >
           <Text className="text-ink/70" style={scaledBody(textScale)}>{t(`event.${viewModel.id}.body`)}</Text>
@@ -294,7 +299,11 @@ export function StoryEventScreen({
               below, and moving it here keeps the report flush with the band
               whether or not this is the career's first interruption. */}
           {guideCopy ? (
-            <PaperPanel kicker="Bert Rudge" title={guideCopy.title} stamp="No power effect">
+            <PaperPanel
+              kicker={t('storyEvent.bertRudge')}
+              title={guideCopy.title}
+              stamp={t('storyEvent.noPowerEffect')}
+            >
               <Text className="text-ink/70" style={scaledBody(textScale)}>{guideCopy.body}</Text>
             </PaperPanel>
           ) : null}
@@ -305,12 +314,17 @@ export function StoryEventScreen({
               <Pressable
                 accessibilityRole={pickerAvailable ? 'button' : 'text'}
                 accessibilityLabel={viewModel.selectedPlayer
-                  ? `${viewModel.selectedPlayer.name}, ${viewModel.selectedPlayer.role}, overall ${viewModel.selectedPlayer.overall}. ${
-                    viewModel.playerLocked === true
-                      ? 'Chosen earlier in this story.'
-                      : pickerOpen ? 'Close the squad list.' : 'Open the squad list to change.'
-                  }`
-                  : 'Choose a player for this event'}
+                  ? t('storyEvent.a11y.selectedPlayer', {
+                    name: viewModel.selectedPlayer.name,
+                    role: viewModel.selectedPlayer.role,
+                    overall: viewModel.selectedPlayer.overall,
+                    action: viewModel.playerLocked === true
+                      ? t('storyEvent.a11y.chosenEarlier')
+                      : pickerOpen
+                        ? t('storyEvent.a11y.closeSquadList')
+                        : t('storyEvent.a11y.openSquadList'),
+                  })
+                  : t('storyEvent.a11y.chooseAPlayerForThisEvent')}
                 disabled={!pickerAvailable}
                 onPress={() => setPickerOpen(open => !open)}
                 className={viewModel.selectedPlayer ? 'min-h-14 flex-row items-center border-2 border-gold bg-gold-light p-3' : 'min-h-14 items-center justify-center border-2 border-dashed border-ink/40 bg-white p-3'}
@@ -344,7 +358,12 @@ export function StoryEventScreen({
                       key={candidate.id}
                       accessibilityRole="button"
                       accessibilityState={{ selected: candidate.id === viewModel.selectedPlayer?.id }}
-                      accessibilityLabel={`${candidate.name}, ${candidate.role}, overall ${candidate.overall}, ${candidate.detail}`}
+                      accessibilityLabel={t('storyEvent.a11y.playerChoice', {
+                        name: candidate.name,
+                        role: candidate.role,
+                        overall: candidate.overall,
+                        detail: candidate.detail,
+                      })}
                       onPress={() => {
                         onSelectPlayer?.(candidate.id);
                         setPickerOpen(false);
@@ -376,7 +395,11 @@ export function StoryEventScreen({
                   <Pressable
                     key={choice.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`${choice.label}. ${choice.detail}. ${choice.consequenceHint}`}
+                    accessibilityLabel={t('storyEvent.a11y.choice', {
+                      label: choice.label,
+                      detail: choice.detail,
+                      hint: choice.consequenceHint,
+                    })}
                     accessibilityState={{ disabled }}
                     disabled={disabled}
                     onPress={() => onChoose(choice.id)}
@@ -386,7 +409,7 @@ export function StoryEventScreen({
                       <Text className={choice.tone === 'risky' ? 'font-mono text-base text-stamp' : 'font-mono text-base text-blue-dark'}>{String(index + 1).padStart(2, '0')}</Text>
                     </View>
                     <View className="flex-1">
-                      <View className="flex-row items-center justify-between gap-2"><PixelText className="flex-1 text-base uppercase text-ink">{t(`event.${viewModel.id}.${choice.id}.label`)}</PixelText><StatusChip label={choice.tone} tone={choice.tone === 'risky' ? 'danger' : 'info'} /></View>
+                      <View className="flex-row items-center justify-between gap-2"><PixelText className="flex-1 text-base uppercase text-ink">{t(`event.${viewModel.id}.${choice.id}.label`)}</PixelText><StatusChip label={choice.tone === 'risky' ? t('storyEvent.toneRisky') : t('storyEvent.toneSafe')} tone={choice.tone === 'risky' ? 'danger' : 'info'} /></View>
                       <Text className="mt-1 text-sm leading-5 text-ink/60">{choice.detail}</Text>
                       <Text className={choice.disabledReason ? 'mt-2 text-sm font-bold text-stamp' : choice.tone === 'risky' ? 'mt-2 text-sm font-bold text-stamp' : 'mt-2 text-sm font-bold text-blue-dark'}>{choice.disabledReason ?? choice.consequenceHint}</Text>
                     </View>

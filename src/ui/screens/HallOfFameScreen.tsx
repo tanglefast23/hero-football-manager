@@ -25,9 +25,10 @@ export interface HallOfFameScreenProps {
 export function HallOfFameScreen({
   viewModel,
   onBack,
-  backLabel = 'Back to settings',
+  backLabel,
 }: HallOfFameScreenProps) {
   const t = useCopy();
+  const backButtonLabel = backLabel ?? t('privacySupport.backToSettings');
   return (
     <View className="min-h-0 flex-1">
       {/* The completed record is summarised on the header, so a screen reader
@@ -75,7 +76,7 @@ export function HallOfFameScreen({
             <Text className="mb-2 font-pixel text-base uppercase text-blue-dark">{viewModel.headline}</Text>
             <StatList rows={viewModel.stats} />
 
-            <Text className="mb-2 mt-6 font-pixel text-base uppercase text-blue-dark">Honours</Text>
+            <Text className="mb-2 mt-6 font-pixel text-base uppercase text-blue-dark">{t('hallOfFame.honours')}</Text>
             {viewModel.honours.length === 0 ? (
               <View className="border-2 border-ink/25 bg-paper-dark px-3 py-4">
                 <Text className="text-center text-sm text-ink/60">{viewModel.honoursEmptyLabel}</Text>
@@ -119,8 +120,8 @@ export function HallOfFameScreen({
 
       <View className="border-t border-ink/15 pt-3">
         <ActionButton
-          label={`‹  ${backLabel}`}
-          accessibilityLabel={backLabel}
+          label={`‹  ${backButtonLabel}`}
+          accessibilityLabel={backButtonLabel}
           onPress={onBack}
           variant="paper"
         />

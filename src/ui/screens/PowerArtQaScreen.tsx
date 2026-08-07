@@ -60,7 +60,7 @@ export function PowerArtQaScreen({
         </View>
 
         <View
-          accessibilityLabel={`${name} animation preview. ${description}`}
+          accessibilityLabel={t('powerArtQa.a11y.animationPreview', { name, description })}
           style={[styles.stageFrame, { width: stageWidth, height: stageHeight }]}
         >
           <View pointerEvents="none" style={styles.stageCornerTop} />
@@ -82,7 +82,7 @@ export function PowerArtQaScreen({
 
         <View style={[styles.navigation, { width: stageWidth }]}>
           <ReviewButton label="◂ PREVIOUS" accessibilityLabel={t('powerArtQa.a11y.showPreviousPower')} onPress={onPrevious} />
-          <ReviewButton label="↻ REPLAY" accessibilityLabel={`Replay ${name} animation`} onPress={onReplay} hero />
+          <ReviewButton label="↻ REPLAY" accessibilityLabel={t('powerArtQa.a11y.replayAnimation', { name })} onPress={onReplay} hero />
           <ReviewButton label="NEXT ▸" accessibilityLabel={t('powerArtQa.a11y.showNextPower')} onPress={onNext} />
         </View>
       </View>

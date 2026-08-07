@@ -119,7 +119,7 @@ import {
   weeklyReviewViewModel,
 } from './view-models';
 import {
-  OPENING_TRAINING_PITCH_REMINDER,
+  OPENING_TRAINING_PITCH_REMINDER_KEY,
   openingTrainingPitchRequired,
   outstandingInboxDuties,
 } from './assistant-guide';
@@ -143,6 +143,33 @@ import {
   TRUE_ENDING_SEEN_FLAG,
 } from './endgame-celebration';
 import { recordHallOfFame } from './hall-of-fame';
+import { copyFor, type CopyFn, type CopyParams } from '../i18n';
+
+/**
+ * The store's own `t`.
+ *
+ * Every message below travels on `notice`, `error`, `saveWarning` or
+ * `persistenceLoadError`, all four of which are drawn on screen — so they are
+ * copy, and they need a language. A Zustand store cannot reach React context,
+ * and its actions have fixed signatures with nowhere to thread one through, so
+ * the locale arrives by injection instead: `setStoreCopy` points this at the
+ * active language, and until something calls it every message reads English.
+ *
+ * NOT YET WIRED. `App.tsx` already holds the language (`preferences.language`,
+ * the same value it feeds `LocaleProvider`) and is the one place that should
+ * call `setStoreCopy` when it changes; that call site is outside this file and
+ * is still to be made. Nothing breaks in the meantime — English is the default.
+ */
+let storeCopyFn: CopyFn | undefined;
+
+function t(key: string, params?: CopyParams): string {
+  return (storeCopyFn ??= copyFor('en'))(key, params);
+}
+
+/** Points the store's notices, errors and warnings at a language. */
+export function setStoreCopy(copy: CopyFn): void {
+  storeCopyFn = copy;
+}
 
 const launchContent = loadLaunchContent();
 const awakeningPowerIds = launchContent.powers.powers.map(power => power.id);
@@ -549,9 +576,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
         replayRepository: replayRepository ?? null,
         persistenceReady: true,
         backupSummary: await backupSummaryFailSoft(repository),
-        persistenceLoadError: `Save could not be loaded safely: ${errorMessage(error)}${
-          damaged ? ' The game database file also reports damage.' : ''
-        }`,
+        persistenceLoadError: t('store.saveLoadFailed', {
+          reason: errorMessage(error),
+          // Glued rather than authored with a leading space: no catalog entry
+          // carries edge whitespace, and a translator cannot be asked to keep it.
+          damage: damaged ? ` ${t('store.saveDatabaseDamaged')}` : '',
+        }),
         rawExportRequired: false,
         rawExportSucceeded: false,
       });
@@ -569,13 +599,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
       await share(fileName, raw.stateJson);
     } catch (error) {
       set({
-        persistenceLoadError: `Raw save export failed: ${errorMessage(error)} The save is unchanged; deletion stays blocked until export succeeds or the app is relaunched.`,
+        persistenceLoadError: t('store.rawExportFailed', { reason: errorMessage(error) }),
       });
       return;
     }
     set({
       rawExportSucceeded: true,
-      notice: { tone: 'info', message: 'Raw save exported. You can now start fresh if you choose.' },
+      notice: { tone: 'info', message: t('store.rawExportSucceeded') },
     });
   },
 
@@ -589,7 +619,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     if (repository === null || persistenceLoadError === null) return;
     if (rawExportRequired && !rawExportSucceeded) {
       set({
-        persistenceLoadError: 'Raw save export was requested but did not finish. The save has not been deleted.',
+        persistenceLoadError: t('store.rawExportUnfinished'),
       });
       return;
     }
@@ -599,7 +629,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       await withExclusiveSave(() => repository.delete());
     } catch (error) {
       set({
-        persistenceLoadError: `Save could not be deleted: ${errorMessage(error)}`,
+        persistenceLoadError: t('store.saveDeleteFailed', { reason: errorMessage(error) }),
       });
       return;
     }
@@ -641,7 +671,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       written = await withExclusiveSave(() => repository.restoreBackup());
       restored = reconcileLoadedCareer(written);
     } catch (error) {
-      set({ persistenceLoadError: `Backup could not be restored: ${errorMessage(error)}` });
+      set({ persistenceLoadError: t('store.backupRestoreFailed', { reason: errorMessage(error) }) });
       return;
     }
     retireCareerLineage();
@@ -663,7 +693,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       faceOff: null,
       pendingPostFaceOffScreen: null,
       error: null,
-      notice: { tone: 'info', message: 'Restored the backup save.' },
+      notice: { tone: 'info', message: t('store.backupRestored') },
     });
     clearSaveFailures(set);
     // Reconciliation may have changed the restored state; persist that shape.
@@ -692,7 +722,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         faceOff: null,
         pendingPostFaceOffScreen: null,
         error: null,
-        notice: { tone: 'info', message: `Loaded developer save ${slotLabel}.` },
+        notice: { tone: 'info', message: t('store.developerSaveLoaded', { slot: slotLabel }) },
       });
       clearSaveFailures(set);
       queueCareerSave(get, set, restored);
@@ -709,7 +739,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   startNewCareer(seed, assistantMode) {
     guarded(set, () => {
       if (get().persistenceLoadError !== null) {
-        throw new Error('Resolve the save-load error before replacing this career.');
+        throw new Error(t('store.replaceCareerBlocked'));
       }
       const replacedCareer = get().career;
       // Requests are attached here rather than inside createLaunchCareerSetup so
@@ -751,7 +781,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   continueCareer() {
     if (get().career === null) {
-      set({ error: 'No saved career is available.' });
+      set({ error: t('store.noSavedCareer') });
       return;
     }
     const career = get().career!;
@@ -819,7 +849,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     if (activeTab === 'market') {
       const career = get().career;
       if (career?.market === undefined) {
-        set({ error: 'The transfer market is unavailable in this career.' });
+        set({ error: t('store.marketUnavailable') });
         return;
       }
     }
@@ -926,7 +956,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   openMatchday() {
     const career = get().career;
     if (career?.phase !== 'matchday') {
-      set({ error: 'Advance to the fixture week before opening match day.' });
+      set({ error: t('store.matchDayNotYet') });
       return;
     }
     set({ screen: 'matchday', error: null });
@@ -935,7 +965,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   openCupFixture(fixtureId) {
     const career = get().career;
     if (career === null) {
-      set({ error: 'Start or load a career first.' });
+      set({ error: t('store.startOrLoadCareer') });
       return;
     }
     const matchday = activeCareerMatchday(career);
@@ -944,7 +974,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       || matchday?.kind !== 'national-cup'
       || matchday.fixture.id !== fixtureId
     ) {
-      set({ error: 'Finish this week’s league match first. Then the Cup Match Day will open.' });
+      set({ error: t('store.leagueMatchFirst') });
       return;
     }
     set({ screen: 'matchday', activeTab: 'league', error: null });
@@ -959,13 +989,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const screen = get().screen;
       if (screen !== 'management' && screen !== 'season-end') return;
       if (get().saveBlocked) {
-        throw new Error(
-          'The last few weeks could not be saved, so the season is paused. Free up space on your device, then try saving again.',
-        );
+        throw new Error(t('store.seasonPausedBySaveFailure'));
       }
       const career = requireCareer(get());
       if (career.onboarding?.stage === 'create-player') {
-        throw new Error('Create your player before entering the club office.');
+        throw new Error(t('store.createPlayerFirst'));
       }
       if (career.awakening.pending !== undefined || career.onboarding?.stage === 'reveal') {
         set({ screen: 'awakening', error: null });
@@ -976,7 +1004,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         && hasAssistantGuideMilestone(career, 'intro-complete')
         && !hasAssistantGuideMilestone(career, 'first-training-complete')
       ) {
-        throw new Error('Train a player before advancing the week.');
+        throw new Error(t('store.trainBeforeAdvancing'));
       }
       const guidedFirstWeek = assistantTeaches(career)
         && hasAssistantGuideMilestone(career, 'intro-complete')
@@ -985,7 +1013,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (guidedFirstWeek) {
         const activeTab = get().activeTab;
         if (activeTab !== 'home' && activeTab !== 'club') {
-          throw new Error('Return home and check your inbox before advancing the week.');
+          throw new Error(t('store.returnHomeAndCheckInbox'));
         }
         const trainingGroundStarted = career.facilities.trainingGroundBuilt
           || (
@@ -996,10 +1024,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
           && career.facilities.grid?.construction !== undefined
           && career.facilities.grid.construction.type !== 'training-pitch';
         if (!trainingGroundStarted && !recoveringWrongOpeningProject) {
-          throw new Error('Build the Training Ground from your inbox before advancing the week.');
+          throw new Error(t('store.buildTrainingGroundFirst'));
         }
         if (activeTab !== 'home') {
-          throw new Error('Return home before advancing the week.');
+          throw new Error(t('store.returnHomeBeforeAdvancing'));
         }
         if (
           !recoveringWrongOpeningProject
@@ -1010,7 +1038,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
             error: null,
             notice: {
               tone: 'info',
-              message: 'You still have 1 inbox item left to deal with first.',
+              message: t('store.inboxItemLeft'),
             },
           });
           return;
@@ -1109,9 +1137,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // watched-fixture identity check.)
       if (get().screen !== 'matchday') return;
       if (get().saveBlocked) {
-        throw new Error(
-          'The last few weeks could not be saved, so the season is paused. Free up space on your device, then try saving again.',
-        );
+        throw new Error(t('store.seasonPausedBySaveFailure'));
       }
       const before = requireCareer(get());
       assertLeagueCupCheckpointPersisted(get(), before);
@@ -1222,9 +1248,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // Matches saveBlocked's contract: once saving is broken the season is
       // paused, so no new match progress may start, only be retried/recovered.
       if (get().saveBlocked) {
-        throw new Error(
-          'The last few weeks could not be saved, so the season is paused. Free up space on your device, then try saving again.',
-        );
+        throw new Error(t('store.seasonPausedBySaveFailure'));
       }
       const career = requireCareer(get());
       assertLeagueCupCheckpointPersisted(get(), career);
@@ -1279,7 +1303,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         // Same rounding as the live match clock (MatchScreen): a goal's
         // post-match minute must match the minute shown when it went in.
         minuteLabel: `${Math.max(1, Math.min(90, Math.ceil((goal.tick / (HALF_TICKS * 2)) * 90)))}'`,
-        description: `${goal.name} scored`,
+        description: t('store.goalScored', { player: goal.name }),
       }));
       const isOnboardingMatch = isFirstOnboardingFixture(before, fixture.id);
       const completed = isOnboardingMatch
@@ -1334,7 +1358,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       && get().repository !== null
       && get().lastPersistedCareer !== career
     ) {
-      set({ notice: { tone: 'info', message: 'Saving the league result before the Cup tie…' } });
+      set({ notice: { tone: 'info', message: t('store.savingLeagueResult') } });
       await saveQueue;
       if (get().career !== career || get().lastPersistedCareer !== career) return;
     }
@@ -1530,9 +1554,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // Resolving a story writes the club's money, morale and roster, so it
       // honours the same saveBlocked pause as advanceCareer.
       if (get().saveBlocked) {
-        throw new Error(
-          'The last few weeks could not be saved, so the season is paused. Free up space on your device, then try saving again.',
-        );
+        throw new Error(t('store.seasonPausedBySaveFailure'));
       }
       const career = requireCareer(get());
       const pending = career.pendingEvent;
@@ -1593,7 +1615,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         .filter(id => id !== playerId);
       if (!player.licensed) {
         if (selected.length >= careerHeroLimit(career)) {
-          throw new Error('Unlicense one hero before assigning this permit.');
+          throw new Error(t('store.unlicenseFirst'));
         }
         selected.push(playerId);
       }
@@ -1678,8 +1700,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
           : {
               tone: 'success',
               message: actualSigned === undefined || actualSigned === signed.nominalMonthlyFee
-                ? `${signed.sponsorName} signed for $${signed.nominalMonthlyFee.toLocaleString()} per month.`
-                : `${signed.sponsorName} signed. Contract $${signed.nominalMonthlyFee.toLocaleString()} per month; the club receives $${actualSigned.toLocaleString()} on Chairman.`,
+                ? t('store.sponsorSigned', {
+                    sponsor: signed.sponsorName,
+                    amount: signed.nominalMonthlyFee.toLocaleString(),
+                  })
+                : t('store.sponsorSignedChairman', {
+                    sponsor: signed.sponsorName,
+                    nominal: signed.nominalMonthlyFee.toLocaleString(),
+                    actual: actualSigned.toLocaleString(),
+                  }),
             },
       });
       queueCareerSave(get, set, next);
@@ -1748,8 +1777,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
         ...(injuredAfter === undefined ? {} : {
           notice: {
             tone: 'info' as const,
-            message: `${injuredPlayer?.name ?? 'The player'} pulled up in training — out ${injuredAfter} `
-              + `${injuredAfter === 1 ? 'week' : 'weeks'}.`,
+            message: t('store.trainingInjury', {
+              player: injuredPlayer?.name ?? t('store.thePlayer'),
+              n: injuredAfter,
+              count: injuredAfter,
+            }),
           },
         }),
       });
@@ -1765,7 +1797,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
         error: null,
         notice: {
           tone: 'success',
-          message: `${trainingPathLabel(pathId)} drills upgraded to Tier ${transaction.offer.tier}.`,
+          message: t('store.drillsUpgraded', {
+            path: trainingPathLabel(pathId),
+            tier: transaction.offer.tier,
+          }),
         },
       });
       queueCareerSave(get, set, transaction.state);
@@ -1790,18 +1825,28 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (type !== 'training-pitch' && openingTrainingPitchRequired(career)) {
         set({
           error: null,
-          notice: { tone: 'info', message: OPENING_TRAINING_PITCH_REMINDER },
+          notice: { tone: 'info', message: t(OPENING_TRAINING_PITCH_REMINDER_KEY) },
         });
         return;
       }
       const transaction = buildCareerFacility(career, type, position);
       const discovery = transaction.newlyDiscoveredAdjacencies.length === 0
         ? ''
-        : ` Adjacency discovered: ${transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', ')}.`;
+        // Glued rather than authored with a leading space: no catalog entry
+        // carries edge whitespace, and a translator cannot be asked to keep it.
+        : ` ${t('store.adjacencyDiscovered', {
+            adjacencies: transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', '),
+          })}`;
       set({
         career: transaction.state,
         error: null,
-        notice: { tone: 'success', message: `${FACILITY_CATALOG[type].name} construction started.${discovery}` },
+        notice: {
+          tone: 'success',
+          message: t('store.facilityBuildStarted', {
+            facility: FACILITY_CATALOG[type].name,
+            discovery,
+          }),
+        },
       });
       queueCareerSave(get, set, transaction.state);
     });
@@ -1815,11 +1860,21 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const transaction = upgradeCareerFacility(career, buildingId);
       const discovery = transaction.newlyDiscoveredAdjacencies.length === 0
         ? ''
-        : ` Adjacency discovered: ${transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', ')}.`;
+        // Glued rather than authored with a leading space: no catalog entry
+        // carries edge whitespace, and a translator cannot be asked to keep it.
+        : ` ${t('store.adjacencyDiscovered', {
+            adjacencies: transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', '),
+          })}`;
       set({
         career: transaction.state,
         error: null,
-        notice: { tone: 'success', message: `${FACILITY_CATALOG[building.type].name} upgrade started.${discovery}` },
+        notice: {
+          tone: 'success',
+          message: t('store.facilityUpgradeStarted', {
+            facility: FACILITY_CATALOG[building.type].name,
+            discovery,
+          }),
+        },
       });
       queueCareerSave(get, set, transaction.state);
     });
@@ -1834,11 +1889,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
       );
       const discovery = transaction.newlyDiscoveredAdjacencies.length === 0
         ? ''
-        : ` Adjacency discovered: ${transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', ')}.`;
+        // Glued rather than authored with a leading space: no catalog entry
+        // carries edge whitespace, and a translator cannot be asked to keep it.
+        : ` ${t('store.adjacencyDiscovered', {
+            adjacencies: transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', '),
+          })}`;
       set({
         career: transaction.state,
         error: null,
-        notice: { tone: 'success', message: `Facility moved.${discovery}` },
+        notice: { tone: 'success', message: t('store.facilityMoved', { discovery }) },
       });
       queueCareerSave(get, set, transaction.state);
     });
@@ -1859,9 +1918,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
           error: null,
           notice: {
             tone: 'info',
-            message: `${FACILITY_CATALOG[building.type].name} closed and the assistant departed. ${
-              net < 0 ? '-' : net > 0 ? '+' : ''
-            }$${Math.abs(net).toLocaleString()} net cash.`,
+            message: t('store.coachingOfficeClosed', {
+              facility: FACILITY_CATALOG[building.type].name,
+              amount: `${net < 0 ? '-' : net > 0 ? '+' : ''}$${Math.abs(net).toLocaleString()}`,
+            }),
           },
         });
         queueCareerSave(get, set, transaction.state);
@@ -1875,8 +1935,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
         notice: {
           tone: 'info',
           message: refund === 0
-            ? `${FACILITY_CATALOG[building.type].name} closed.`
-            : `${FACILITY_CATALOG[building.type].name} closed. $${refund.toLocaleString()} recovered.`,
+            ? t('store.facilityClosed', { facility: FACILITY_CATALOG[building.type].name })
+            : t('store.facilityClosedRefund', {
+                facility: FACILITY_CATALOG[building.type].name,
+                amount: refund.toLocaleString(),
+              }),
         },
       });
       queueCareerSave(get, set, transaction.state);
@@ -1905,7 +1968,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
               notice: {
                 tone: 'info' as const,
                 speaker: 'bert' as const,
-                message: "We don't have enough money for this scouting trip. But because of our deep relationship with the scout, they'll do this one for free. Just this once — the next trip, when you're hooked, costs money.",
+                message: t('store.scoutTripFree'),
               },
             }
           : {}),
@@ -1917,10 +1980,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
   openScoutReport(playerId) {
     const career = get().career;
     if (career?.market?.scoutReports.some(report => report.playerId === playerId) !== true) {
-      set({ error: 'That scouting report is no longer available.' });
+      set({ error: t('store.scoutReportUnavailable') });
       return;
     }
-    set({ notice: { tone: 'info', message: 'This scouting report shows the full estimated ranges.' } });
+    set({ notice: { tone: 'info', message: t('store.scoutReportRanges') } });
   },
 
   actOnTransfer(playerId, direction, bidId) {
@@ -1955,7 +2018,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           error: null,
           notice: {
             tone: 'info',
-            message: `Player listed. ${bidCount} bid${bidCount === 1 ? '' : 's'} arrived in Transfers.`,
+            message: t('store.playerListed', { n: bidCount, count: bidCount }),
           },
         });
         queueCareerSave(get, set, next);
@@ -1972,7 +2035,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
         error: null,
         notice: {
           tone: 'success',
-          message: `${buyer?.name ?? 'The buying club'} signed the player for $${bid.quote.fee.toLocaleString()}.`,
+          message: t('store.transferSold', {
+            club: buyer?.name ?? t('store.theBuyingClub'),
+            fee: bid.quote.fee.toLocaleString(),
+          }),
         },
       });
       queueCareerSave(get, set, next);
@@ -1986,7 +2052,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({
         career: next,
         error: null,
-        notice: { tone: 'success', message: role === 'HEAD' ? 'Head coach hired.' : 'Assistant coach hired.' },
+        notice: {
+          tone: 'success',
+          message: role === 'HEAD' ? t('store.headCoachHired') : t('store.assistantCoachHired'),
+        },
       });
       queueCareerSave(get, set, next);
     });
@@ -1999,7 +2068,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({
         career: next,
         error: null,
-        notice: { tone: 'info', message: `${player?.name ?? 'Player'} is protected from a board sale.` },
+        notice: {
+          tone: 'info',
+          message: t('store.playerProtected', { player: player?.name ?? t('store.playerFallback') }),
+        },
       });
       queueCareerSave(get, set, next);
     });
@@ -2054,7 +2126,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           error: null,
           notice: {
             tone: 'success',
-            message: 'Transfer complete. The squad is now full; make room before the next signing.',
+            message: t('store.transferCompleteSquadFull'),
           },
         });
         queueCareerSave(get, set, next);
@@ -2065,7 +2137,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({
         career: next,
         error: consequence.market !== negotiatedMarket
-          ? 'The agent walked away. Player morale and club reputation fell.'
+          ? t('store.agentWalkedAway')
           : null,
       });
       queueCareerSave(get, set, next);
@@ -2105,7 +2177,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         career: next,
         selectedContractTerm: 1,
         error: null,
-        notice: { tone: 'success', message: 'Contract renewed at the asking price.' },
+        notice: { tone: 'success', message: t('store.contractRenewedAtAsk') },
       });
       queueCareerSave(get, set, next);
     });
@@ -2134,7 +2206,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           career: next,
           selectedContractTerm: 1,
           error: null,
-          notice: { tone: 'success', message: 'Contract renewed.' },
+          notice: { tone: 'success', message: t('store.contractRenewed') },
         });
         queueCareerSave(get, set, next);
         return;
@@ -2159,12 +2231,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
               // this deliberately no longer uses -- nothing failed, the manager
               // made a choice and it landed badly.
               tone: 'info' as const,
-              message: 'That offer caused real offence. Talks are over, and the squad heard about it.',
+              message: t('store.offerCausedOffence'),
             }
           : status === 'REJECTED'
             ? {
                 tone: 'info' as const,
-                message: 'Three rounds gone and the agent walked. No hard feelings.',
+                message: t('store.agentWalkedNoHardFeelings'),
               }
             : null,
       });
@@ -2510,7 +2582,7 @@ function assertLeagueCupCheckpointPersisted(
     && store.repository !== null
     && store.lastPersistedCareer !== career
   ) {
-    throw new Error('The league result is still saving. The Cup tie will open when it is safe.');
+    throw new Error(t('store.leagueResultStillSaving'));
   }
 }
 
@@ -2555,7 +2627,7 @@ function queueCareerSave(
       await repository.save(state);
       saved = state;
     },
-    'Save failed',
+    t('store.saveFailed'),
     () => {
       // A task that skipped (payload withdrawn, load error) proved nothing —
       // only an actual write may clear the failure streak.
@@ -2579,8 +2651,8 @@ function recordSaveFailure(
     // `error` is a dismissible toast, so it cannot carry this: the player would
     // wave it away and keep playing a career that exists only in memory.
     saveWarning: saveBlocked
-      ? 'Progress is not being saved and the season is paused. Free up space on your device, then try saving again.'
-      : 'Progress is not being saved. Anything since the last save is lost if the game closes.',
+      ? t('store.saveWarningBlocked')
+      : t('store.saveWarning'),
   });
 }
 
@@ -2626,7 +2698,7 @@ function queueReplaySave(
       if (get().persistenceLoadError !== null) return;
       await repository.save(careerId, fixture.id, sortOrder, replay);
     },
-    'Replay save failed',
+    t('store.replaySaveFailed'),
   );
 }
 
@@ -2680,12 +2752,12 @@ function queueNewCareerSave(
         set({
           notice: {
             tone: 'info',
-            message: `New career saved, but old match replays could not be cleared: ${errorMessage(error)}`,
+            message: t('store.replayCleanupFailed', { reason: errorMessage(error) }),
           },
         });
       }
     }),
-    'New career could not be saved',
+    t('store.newCareerSaveFailed'),
     () => {
       clearSaveFailures(set);
       if (get().career === career) set({ hasSavedCareer: true, lastPersistedCareer: career });

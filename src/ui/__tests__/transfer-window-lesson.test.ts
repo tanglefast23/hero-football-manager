@@ -57,7 +57,9 @@ describe('the insulting-offer warning', () => {
     // knew of it was the talks being over and the player sulking.
     expect(market).not.toContain('An offer below half their ask ends talks immediately.');
     expect(market).toContain('const walksOut = weeklyWage < viewModel.walkOutWeeklyWage;');
-    expect(market).toContain("label={walksOut ? 'They will walk out ›' : 'Make the offer ›'}");
+    expect(market).toContain(
+      "label={walksOut ? t('market.theyWillWalkOut') : t('market.makeTheOfferArrow')}",
+    );
     // The warning moved into the copy catalog with the wage and the floor as
     // placeholders. Asserting the key and the English keeps the guarantee —
     // that the manager is told the number before the talks end, not after.

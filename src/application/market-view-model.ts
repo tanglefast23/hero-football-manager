@@ -37,6 +37,19 @@ import type {
 } from '../ui/market-models';
 import { coachRoleEffectLabels } from './coach-effects';
 import { coachWeeklyWageForRole } from '../game/market-career';
+import { copyFor, type CopyFn } from '../i18n';
+
+/**
+ * English copy, for every caller that has not threaded a locale through yet.
+ *
+ * Matches `view-models.ts`: a pure module cannot reach React context, so the
+ * dependency is a parameter with a default, built once and reused.
+ */
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
 
 export interface ScoutMissionOptionSource {
   readonly id: string;
@@ -181,28 +194,42 @@ export interface MarketViewModelSource {
  * expensive to keep — a manager reading the letter alone would pick "A" and walk
  * into a locked lineup slot and a spent Hero License.
  */
-const PERKS: readonly ContractPerkViewModel[] = ([
+const PERK_COPY_KEYS: readonly {
+  readonly id: ContractPerk;
+  readonly label: string;
+  readonly detail: string;
+}[] = [
   {
     id: 'GUARANTEED_STARTER',
-    label: 'Starter',
-    detail: 'He starts every match. Lineups that drop him are refused.',
+    label: 'market.perkStarterLabel',
+    detail: 'market.perkStarterDetail',
   },
   {
     id: 'CAPTAINCY',
-    label: 'Captaincy',
-    detail: 'He takes the armband from your current captain.',
+    label: 'market.perkCaptaincyLabel',
+    detail: 'market.perkCaptaincyDetail',
   },
   {
     id: 'TRAINING_PRIORITY',
-    label: 'Training',
-    detail: 'Your next 5 drills all go to him. Nobody else trains.',
+    label: 'market.perkTrainingLabel',
+    detail: 'market.perkTrainingDetail',
   },
   {
     id: 'JERSEY_10',
-    label: 'Shirt #10',
-    detail: 'He takes the number 10 shirt.',
+    label: 'market.perkJerseyLabel',
+    detail: 'market.perkJerseyDetail',
   },
-] as const).map(perk => ({ ...perk, gradeLabel: perkGradeLabel(perk.id) }));
+];
+
+/** Built per call rather than once at module load, because `t` decides the words. */
+function perkViewModels(t: CopyFn): readonly ContractPerkViewModel[] {
+  return PERK_COPY_KEYS.map(perk => ({
+    id: perk.id,
+    label: t(perk.label),
+    detail: t(perk.detail),
+    gradeLabel: perkGradeLabel(perk.id, t),
+  }));
+}
 
 /**
  * Derived from `contractPerkPercent` rather than written down twice.
@@ -213,23 +240,26 @@ const PERKS: readonly ContractPerkViewModel[] = ([
  * number before — a scouting label promised "+8% training" for two releases
  * after the bonus was deleted.
  */
-function perkGradeLabel(perk: ContractPerk): string {
+function perkGradeLabel(perk: ContractPerk, t: CopyFn): string {
   const percent = contractPerkPercent(perk);
-  if (percent >= 10) return 'A · Huge';
-  if (percent >= 8) return 'B · Big';
-  if (percent >= 6) return 'C · Solid';
-  return 'D · Small';
+  if (percent >= 10) return t('market.perkGradeA');
+  if (percent >= 8) return t('market.perkGradeB');
+  if (percent >= 6) return t('market.perkGradeC');
+  return t('market.perkGradeD');
 }
 
-const CARD_COPY: Readonly<Record<string, { label: string; detail: string }>> = {
-  FLATTERY: { label: 'Flattery', detail: 'Tell them the terrace already sings their name.' },
-  TROPHY_PROMISE: { label: 'Trophy promise', detail: 'Sell the silverware dream.' },
-  HOMETOWN_TIES: { label: 'Hometown ties', detail: 'This club can feel like home.' },
-  MONEY_TALKS: { label: 'Money talks', detail: 'Keep it brisk and businesslike.' },
-  STRAIGHT_TALK: { label: 'Straight talk', detail: 'No theatre. Say exactly what you mean.' },
+const CARD_COPY_KEYS: Readonly<Record<string, { label: string; detail: string }>> = {
+  FLATTERY: { label: 'market.cardFlatteryLabel', detail: 'market.cardFlatteryDetail' },
+  TROPHY_PROMISE: { label: 'market.cardTrophyLabel', detail: 'market.cardTrophyDetail' },
+  HOMETOWN_TIES: { label: 'market.cardHometownLabel', detail: 'market.cardHometownDetail' },
+  MONEY_TALKS: { label: 'market.cardMoneyLabel', detail: 'market.cardMoneyDetail' },
+  STRAIGHT_TALK: { label: 'market.cardStraightLabel', detail: 'market.cardStraightDetail' },
 };
 
-export function marketViewModel(source: MarketViewModelSource): MarketViewModel {
+export function marketViewModel(
+  source: MarketViewModelSource,
+  t: CopyFn = englishCopy(),
+): MarketViewModel {
   const transferWindowOpen = isTransferWindowOpen(source.week);
   const unlockedSections = source.unlockedSections ?? ['YOUTH', 'SCOUT', 'TRANSFERS', 'COACHES'];
   const identities = new Map(
@@ -243,24 +273,24 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
     cash: source.cash,
     window: {
       open: transferWindowOpen,
-      label: transferWindowOpen ? 'Window open' : 'Window closed',
+      label: transferWindowOpen ? t('market.windowOpenLabel') : t('market.windowClosedLabel'),
       detail: transferWindowOpen
-        ? 'Deals may be registered this week.'
-        : 'Scout and plan now. Registrations reopen in pre-season or weeks 17-18.',
+        ? t('market.windowOpenDetail')
+        : t('market.windowClosedDetail'),
     },
     scouting: {
       officeLabel: source.scoutOfficeLevel === 0
-        ? 'No Scout Office'
-        : `Scout Office · Lv${source.scoutOfficeLevel}`,
+        ? t('market.noScoutOffice')
+        : t('market.scoutOfficeLevel', { level: source.scoutOfficeLevel }),
       precisionLabel: source.scoutOfficeLevel === 0
-        ? 'Broad estimates · 2 names per mission'
+        ? t('market.scoutPrecisionBroad2')
         : source.scoutOfficeLevel === 1
-          ? 'Broad estimates · 3 names per mission'
+          ? t('market.scoutPrecisionBroad3')
           : source.scoutOfficeLevel === 2
-            ? 'Improved estimates · 4 names per mission'
-            : 'Sharp estimates · powers confirmed · 5 names',
-      status: scoutingStatus(source),
-      choices: source.scoutOptions.map(option => scoutingChoice(source, option)),
+            ? t('market.scoutPrecisionImproved4')
+            : t('market.scoutPrecisionSharp5'),
+      status: scoutingStatus(source, t),
+      choices: source.scoutOptions.map(option => scoutingChoice(source, option, t)),
       reports: (source.scoutResult?.reports ?? []).map(report => {
         const identity = identities.get(report.playerId);
         const stats = report.role === 'GK'
@@ -271,7 +301,7 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
           playerName: identity?.name ?? report.playerId,
           role: report.role,
           lookId: identity?.lookId,
-          ageLabel: `Age ${report.age}`,
+          ageLabel: t('market.ageLabel', { age: report.age }),
           potentialLabel: scoutPotentialLabel(
             report.playerId,
             report.potentialRange.minimum,
@@ -281,7 +311,7 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
             ? {}
             : { powerLabel: identity?.powerName ?? readableId(report.power) }),
           ...(report.rumoredHeroLead === true && report.power === undefined
-            ? { rumorLabel: 'The hero rumor looks real' }
+            ? { rumorLabel: t('market.heroRumorLooksReal') }
             : {}),
           stats: stats.map(attribute => ({
             label: attribute.toUpperCase(),
@@ -290,7 +320,8 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
         } satisfies ScoutReportViewModel;
       }),
     },
-    transfers: source.transferListings.map(listing => transferListing(source, listing, transferWindowOpen)),
+    transfers: source.transferListings.map(listing =>
+      transferListing(source, listing, transferWindowOpen, t)),
     coaches: source.coachCandidates.slice(0, 3).map(candidate => {
       const eligible = isCoachCandidateEligible(
         candidate,
@@ -330,61 +361,79 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
         assistantWeeklyWage,
         retiredLegend: candidate.retiredLegendPlayerId !== undefined,
         ...(candidate.loyaltyDiscountPercent > 0
-          ? { loyaltyLabel: `${candidate.loyaltyDiscountPercent}% loyalty discount` }
+          ? {
+            loyaltyLabel: t('market.loyaltyDiscount', {
+              percent: candidate.loyaltyDiscountPercent,
+            }),
+          }
           : {}),
         ...(candidate.unlockId === undefined
           ? {}
-          : { unlockLabel: `Teaches ${unlockName(candidate.unlockId)}` }),
+          : { unlockLabel: t('market.teachesUnlock', { unlock: unlockName(candidate.unlockId) }) }),
         available: headAvailable || assistantAvailable,
         headAvailable,
         assistantAvailable,
         assistantSlotUnlocked,
+        // A role CODE, not a label — the screen turns it into copy. It used to
+        // be the literal union `'Head coach' | 'Assistant'`, which no
+        // translated string could satisfy.
         ...(candidate.id === headCoachId
-          ? { currentRole: 'Head coach' as const }
+          ? { currentRole: 'HEAD' as const }
           : candidate.id === source.assistantCoachId
-            ? { currentRole: 'Assistant' as const }
+            ? { currentRole: 'ASSISTANT' as const }
             : {}),
         ...(legacySingleHeadSource
-          ? { blockedReason: `Dismiss ${source.headCoach?.name ?? 'the current coach'} first.` }
+          ? { blockedReason: dismissCoachFirst(source, t) }
           : alreadyOnStaff
-          ? { blockedReason: 'Already on the coaching staff.' }
+          ? { blockedReason: t('market.alreadyOnCoachingStaff') }
           : !eligible
-            ? { blockedReason: 'Raise division and fame to make contact.' }
+            ? { blockedReason: t('market.raiseDivisionAndFame') }
             : !headAffordable && !assistantAffordable
-              ? { blockedReason: 'Cannot cover the first weekly wage.' }
+              ? { blockedReason: t('market.cannotCoverFirstWage') }
               : headAvailable || assistantAvailable
                 ? {}
                 : headCoachId !== undefined && !assistantSlotUnlocked
-                  ? { blockedReason: `Dismiss ${source.headCoach?.name ?? 'the current coach'} first.` }
-                  : { blockedReason: 'Both coaching roles are already filled.' }),
+                  ? { blockedReason: dismissCoachFirst(source, t) }
+                  : { blockedReason: t('market.bothCoachingRolesFilled') }),
       };
     }),
     ...(source.youthIntake === undefined || !unlockedSections.includes('YOUTH')
       ? {}
-      : { youth: youthIntakeViewModel(source.youthIntake, source.cash) }),
+      : { youth: youthIntakeViewModel(source.youthIntake, source.cash, t) }),
     ...(source.negotiation === undefined
       ? {}
-      : { negotiation: marketNegotiationViewModel(source.negotiation) }),
+      : { negotiation: marketNegotiationViewModel(source.negotiation, t) }),
   };
+}
+
+/** The one blocked reason built twice, so the fallback name is written once. */
+function dismissCoachFirst(source: MarketViewModelSource, t: CopyFn): string {
+  return t('market.dismissCoachFirst', {
+    coach: source.headCoach?.name ?? t('market.theCurrentCoach'),
+  });
 }
 
 function youthIntakeViewModel(
   intake: YouthIntakeViewSource,
   cash: number,
+  t: CopyFn,
 ): YouthIntakeViewModel {
   const hasRosterSpace = intake.rosterCount < intake.rosterCapacity;
   const isOpen = intake.status === 'OPEN';
   return {
     status: intake.status,
     headline: isOpen
-      ? 'Academy prospects have arrived'
+      ? t('market.youthHeadlineOpen')
       : intake.declined
-        ? 'This intake was declined'
-        : 'This intake is closed',
+        ? t('market.youthHeadlineDeclined')
+        : t('market.youthHeadlineClosed'),
     detail: isOpen
-      ? 'Offers remain on the desk through pre-season. Make roster space before signing if needed.'
-      : 'The academy will bring a fresh group next season.',
-    rosterLabel: `${intake.rosterCount}/${intake.rosterCapacity} rostered`,
+      ? t('market.youthDetailOpen')
+      : t('market.youthDetailClosed'),
+    rosterLabel: t('market.youthRosterLabel', {
+      count: intake.rosterCount,
+      capacity: intake.rosterCapacity,
+    }),
     offers: intake.offers.map(offer => {
       const affordable = cash >= offer.signingBonus;
       return {
@@ -392,7 +441,7 @@ function youthIntakeViewModel(
         playerName: offer.player.name,
         role: offer.player.role,
         lookId: offer.player.lookId,
-        ageLabel: `Age ${offer.player.age}`,
+        ageLabel: t('market.ageLabel', { age: offer.player.age }),
         archetypeLabel: offer.player.archetype,
         potentialLabel: exactPotentialLabel(offer.player.id, offer.player.potential),
         stats: youthStatLine(offer.player.role, offer.player.attrs),
@@ -400,11 +449,11 @@ function youthIntakeViewModel(
         weeklyWage: offer.player.weeklyWage,
         available: isOpen && hasRosterSpace && affordable,
         ...(!hasRosterSpace
-          ? { blockedReason: `Roster full · sell or release a player first.` }
+          ? { blockedReason: t('market.youthRosterFull') }
           : !affordable
-            ? { blockedReason: 'Cannot afford the signing bonus.' }
+            ? { blockedReason: t('market.youthCannotAffordBonus') }
             : !isOpen
-              ? { blockedReason: 'This intake is closed.' }
+              ? { blockedReason: t('market.youthIntakeClosed') }
               : {}),
       };
     }),
@@ -412,46 +461,53 @@ function youthIntakeViewModel(
   };
 }
 
-function scoutingStatus(source: MarketViewModelSource): MarketViewModel['scouting']['status'] {
+function scoutingStatus(
+  source: MarketViewModelSource,
+  t: CopyFn,
+): MarketViewModel['scouting']['status'] {
   if (source.scoutResult !== undefined) {
     return {
       kind: 'COMPLETED',
-      headline: `${source.scoutResult.reports.length} reports on the desk`,
-      detail: 'Open a scouting report to compare the estimated ability with the transfer price.',
-      progressLabel: 'Complete',
+      headline: t('market.scoutReportsOnDesk', { count: source.scoutResult.reports.length }),
+      detail: t('market.scoutReportsDetail'),
+      progressLabel: t('market.scoutProgressComplete'),
     };
   }
   const mission = source.activeScoutMission;
   if (mission === undefined) {
     return {
       kind: 'IDLE',
-      headline: 'The scout is waiting',
-      detail: 'Choose one region and one brief. Reports take two or three weeks.',
-      progressLabel: 'Ready',
+      headline: t('market.scoutIdleHeadline'),
+      detail: t('market.scoutIdleDetail'),
+      progressLabel: t('market.scoutProgressReady'),
     };
   }
   const weeksRemaining = Math.max(0, mission.dueWeek - source.currentCareerWeek);
   if (weeksRemaining === 0) {
     return {
       kind: 'READY',
-      headline: 'The scout is back',
-      detail: 'Finish this week to receive the new scouting reports.',
-      progressLabel: 'Report due',
+      headline: t('market.scoutReadyHeadline'),
+      detail: t('market.scoutReadyDetail'),
+      progressLabel: t('market.scoutProgressReportDue'),
     };
   }
   return {
     kind: 'IN_PROGRESS',
-    headline: `${regionLabel(mission.region)} trip in progress`,
+    headline: t('market.scoutTripInProgress', { region: regionLabel(mission.region) }),
     detail: source.activeScoutMissionFeeWaived === true
-      ? `${focusLabel(mission.focus)} brief · fee waived as a one-time favor.`
-      : `${focusLabel(mission.focus)} brief · paid ${formatMoney(mission.cost)}.`,
-    progressLabel: `${weeksRemaining} week${weeksRemaining === 1 ? '' : 's'} left`,
+      ? t('market.scoutBriefFeeWaived', { focus: focusLabel(mission.focus, t) })
+      : t('market.scoutBriefPaid', {
+        focus: focusLabel(mission.focus, t),
+        cost: formatMoney(mission.cost),
+      }),
+    progressLabel: t('market.scoutWeeksLeft', { n: weeksRemaining, count: weeksRemaining }),
   };
 }
 
 function scoutingChoice(
   source: MarketViewModelSource,
   option: ScoutMissionOptionSource,
+  t: CopyFn,
 ): ScoutMissionChoiceViewModel {
   const cost = scoutMissionCost(option.region, option.focus);
   const progressionDivision = source.highestDivisionReached ?? source.division;
@@ -462,21 +518,22 @@ function scoutingChoice(
   const feeWaived = !affordable && source.firstScoutFavorAvailable === true;
   return {
     id: option.id,
+    region: option.region,
     regionLabel: option.regionLabel ?? regionLabel(option.region),
-    focusLabel: focusLabel(option.focus),
-    detail: option.detail ?? focusDetail(option.focus),
+    focusLabel: focusLabel(option.focus, t),
+    detail: option.detail ?? focusDetail(option.focus, t),
     cost,
     feeWaived,
-    durationLabel: '2-3 weeks',
+    durationLabel: t('market.scoutDuration'),
     available: !busy && !heroLocked && !eliteLocked && (affordable || feeWaived),
     ...(busy
-      ? { blockedReason: 'Scout Sent' }
+      ? { blockedReason: t('market.scoutBusy') }
       : heroLocked
-        ? { blockedReason: `Rumored heroes unlock in ${divisionTierLabel(3)}.` }
+        ? { blockedReason: t('market.scoutHeroLocked', { division: divisionTierLabel(3) }) }
         : eliteLocked
-          ? { blockedReason: `Elite prospects unlock in ${divisionTierLabel(2)}.` }
+          ? { blockedReason: t('market.scoutEliteLocked', { division: divisionTierLabel(2) }) }
         : !affordable
-          ? { blockedReason: 'Not enough money.' }
+          ? { blockedReason: t('market.scoutNotEnoughMoney') }
           : {}),
   };
 }
@@ -485,6 +542,7 @@ function transferListing(
   source: MarketViewModelSource,
   listing: TransferListingSource,
   windowOpen: boolean,
+  t: CopyFn,
 ): TransferListingViewModel {
   const context = {
     careerSeed: source.careerSeed,
@@ -510,12 +568,14 @@ function transferListing(
     ...(listing.player.powerName === undefined ? {} : { powerLabel: listing.player.powerName }),
     valuation: quote.valuation,
     quote: quote.fee,
-    quoteLabel: listing.direction === 'BUY' ? 'Club asking' : 'Best bid',
+    quoteLabel: listing.direction === 'BUY'
+      ? t('market.quoteClubAsking')
+      : t('market.quoteBestBid'),
     actionLabel: listing.direction === 'BUY'
-      ? 'Open talks'
+      ? t('market.actionOpenTalks')
       : listing.listed === true
-        ? 'Accept bid'
-        : 'List player',
+        ? t('market.actionAcceptBid')
+        : t('market.actionListPlayer'),
     listed: listing.listed === true,
     bids: (listing.bids ?? []).map(bid => ({
       id: bid.id,
@@ -524,11 +584,11 @@ function transferListing(
     })),
     available: windowOpen && affordable && listing.saleBlockedReason === undefined,
     ...(!windowOpen
-      ? { blockedReason: 'Registration window closed.' }
+      ? { blockedReason: t('market.transferWindowClosed') }
       : listing.saleBlockedReason !== undefined
         ? { blockedReason: listing.saleBlockedReason }
         : !affordable
-          ? { blockedReason: 'Transfer fee exceeds current cash.' }
+          ? { blockedReason: t('market.transferFeeExceedsCash') }
           : {}),
   };
 }
@@ -566,11 +626,12 @@ function scoutPotentialLabel(
 
 export function marketNegotiationViewModel(
   source: NegotiationViewSource,
+  t: CopyFn = englishCopy(),
 ): MarketNegotiationViewModel {
   const negotiation = source.state;
   const lastOffer = negotiation.history.at(-1)?.offer;
   const previousOffer = lastOffer?.weeklyWage;
-  const mood = moodPresentation(negotiation.mood);
+  const mood = moodPresentation(negotiation.mood, t);
   const wageStep = source.wageStep ?? 50;
   const maxTermSeasons = source.maxTermSeasons ?? 3;
   const leverage = negotiation.pitchInfluencePercent;
@@ -588,26 +649,26 @@ export function marketNegotiationViewModel(
     moodFace: mood.face,
     moodLabel: mood.label,
     roundLabel: negotiation.status === 'OPEN'
-      ? `Round ${negotiation.round + 1} of 3`
+      ? t('market.negotiationRound', { round: negotiation.round + 1 })
       : negotiation.status === 'ACCEPTED'
-        ? 'Deal agreed'
-        : 'Talks ended',
+        ? t('market.negotiationDealAgreed')
+        : t('market.negotiationTalksEnded'),
     pitchLeverageLabel: leverage < 0
-      ? `Pitch lowers wage demand by ${Math.abs(leverage)}%`
+      ? t('market.pitchLowersWage', { percent: Math.abs(leverage) })
       : leverage > 0
-        ? `Pitch raises wage demand by ${leverage}%`
-        : 'Pitch does not change wage demand',
+        ? t('market.pitchRaisesWage', { percent: leverage })
+        : t('market.pitchNoWageChange'),
     cards: negotiation.pitchCards.map(card => {
       const affinity = pitchCardAffinity(negotiation.personality, card);
       return {
         id: card,
-        label: CARD_COPY[card].label,
-        detail: CARD_COPY[card].detail,
+        label: t(CARD_COPY_KEYS[card].label),
+        detail: t(CARD_COPY_KEYS[card].detail),
         used: negotiation.usedPitchCards.includes(card),
         affinity: affinity === 1 ? 'LOVED' : affinity === -1 ? 'HATED' : 'NEUTRAL',
       } satisfies PitchCardViewModel;
     }),
-    perks: PERKS,
+    perks: perkViewModels(t),
     termOptions: contractTermOptions(maxTermSeasons),
     ...(maxTermSeasons >= 3 || source.playerAge === undefined ? {} : {
       shortTermReason: shortContractReason(source.playerAge, maxTermSeasons),
@@ -617,7 +678,7 @@ export function marketNegotiationViewModel(
     walkOutWeeklyWage: insultingOfferFloor(negotiation.weeklyAsk),
     ...(lastOutcome === undefined
       ? {}
-      : { lastOutcomeLabel: outcomeLabel(lastOutcome) }),
+      : { lastOutcomeLabel: outcomeLabel(lastOutcome, t) }),
     ...(lastOffer === undefined ? {} : {
       lastOffer: {
         weeklyWage: lastOffer.weeklyWage,
@@ -628,33 +689,45 @@ export function marketNegotiationViewModel(
   };
 }
 
-function moodPresentation(mood: ContractNegotiation['mood']): { face: string; label: string } {
-  if (mood === 'ANGRY') return { face: 'ಠ_ಠ', label: 'Angry' };
-  if (mood === 'UNHAPPY') return { face: '>_<', label: 'Unhappy' };
-  if (mood === 'PLEASED') return { face: '^_^', label: 'Pleased' };
-  if (mood === 'THRILLED') return { face: '★_★', label: 'Thrilled' };
-  return { face: '•_•', label: 'Listening' };
+/** The face is kaomoji, not copy — it reads the same in every language. */
+function moodPresentation(
+  mood: ContractNegotiation['mood'],
+  t: CopyFn,
+): { face: string; label: string } {
+  if (mood === 'ANGRY') return { face: 'ಠ_ಠ', label: t('market.moodAngry') };
+  if (mood === 'UNHAPPY') return { face: '>_<', label: t('market.moodUnhappy') };
+  if (mood === 'PLEASED') return { face: '^_^', label: t('market.moodPleased') };
+  if (mood === 'THRILLED') return { face: '★_★', label: t('market.moodThrilled') };
+  return { face: '•_•', label: t('market.moodListening') };
 }
 
-function outcomeLabel(outcome: ContractNegotiation['history'][number]['outcome']): string {
-  if (outcome === 'ACCEPTED') return 'The agent shakes your hand.';
-  if (outcome === 'INSULTED') return 'The offer caused offence. Talks are over.';
-  if (outcome === 'WALKED_AWAY') return 'Three rounds passed. The agent walked.';
-  return 'Not enough yet. The agent is waiting for a better offer.';
+function outcomeLabel(
+  outcome: ContractNegotiation['history'][number]['outcome'],
+  t: CopyFn,
+): string {
+  if (outcome === 'ACCEPTED') return t('market.outcomeAccepted');
+  if (outcome === 'INSULTED') return t('market.outcomeInsulted');
+  if (outcome === 'WALKED_AWAY') return t('market.outcomeWalkedAway');
+  return t('market.outcomeRejected');
 }
 
-function focusLabel(focus: ScoutFocus): string {
-  if (focus.kind === 'POSITION') return `${focus.role} search`;
-  if (focus.kind === 'AGE') return `Age ${focus.minimumAge}-${focus.maximumAge}`;
-  if (focus.kind === 'ELITE_PROSPECT') return 'Elite prospect';
-  return 'Rumored hero';
+function focusLabel(focus: ScoutFocus, t: CopyFn): string {
+  if (focus.kind === 'POSITION') return t('market.focusPositionSearch', { role: focus.role });
+  if (focus.kind === 'AGE') {
+    return t('market.focusAgeRange', {
+      minimum: focus.minimumAge,
+      maximum: focus.maximumAge,
+    });
+  }
+  if (focus.kind === 'ELITE_PROSPECT') return t('market.focusEliteProspect');
+  return t('market.focusRumoredHero');
 }
 
-function focusDetail(focus: ScoutFocus): string {
-  if (focus.kind === 'POSITION') return `Look only for players who can fill ${focus.role}.`;
-  if (focus.kind === 'AGE') return 'Hunt within a specific point of the age curve.';
-  if (focus.kind === 'ELITE_PROSPECT') return 'Target young players with four- or five-star potential.';
-  return 'Expensive and usually wrong, but the rare hit arrives powered.';
+function focusDetail(focus: ScoutFocus, t: CopyFn): string {
+  if (focus.kind === 'POSITION') return t('market.focusPositionDetail', { role: focus.role });
+  if (focus.kind === 'AGE') return t('market.focusAgeDetail');
+  if (focus.kind === 'ELITE_PROSPECT') return t('market.focusEliteDetail');
+  return t('market.focusHeroDetail');
 }
 
 function regionLabel(region: ScoutRegion): string {

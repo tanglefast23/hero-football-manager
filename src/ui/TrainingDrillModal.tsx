@@ -221,10 +221,15 @@ export function TrainingDrillModal({
     onConditionWarningShown?.();
     playManagementActionSfx('warning');
     setNotice({
-      title: 'Bert has a word',
-      detail: `${playerName} is in the red. Push them again and you're gambling on an injury, and an injured player sits out for weeks.`,
+      title: t('trainingDrill.bertHasAWord'),
+      detail: t('trainingDrill.redConditionWarning', { player: playerName }),
       bert: true,
     });
+    // `t` is deliberately not a dependency. `useCopy` returns a fresh function
+    // every render, and this callback feeds `advanceStage`, whose identity the
+    // drill scene's animation effect depends on — listing it would restart that
+    // animation on any parent render. The language cannot change while a
+    // full-screen modal is open, so the captured `t` cannot go stale.
   }, [onConditionWarningShown, playerName]);
 
   /**
@@ -363,7 +368,7 @@ export function TrainingDrillModal({
     <Pressable
       key={runs}
       accessibilityRole="button"
-      accessibilityLabel={`Run this drill ${runs} time${runs === 1 ? '' : 's'} in a row`}
+      accessibilityLabel={t('trainingDrill.a11y.runThisDrill', { n: runs, count: runs })}
       accessibilityState={{ selected: repeatCount === runs }}
       onPress={() => selectRepeatCount(runs)}
       style={[
@@ -409,7 +414,9 @@ export function TrainingDrillModal({
           >
             <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
               <View className="flex-1 pr-3">
-                <Text className="font-pixel text-sm uppercase text-blue-dark">Drills</Text>
+                <Text className="font-pixel text-sm uppercase text-blue-dark">
+                  {t('trainingDrill.drills')}
+                </Text>
                 {/* The position rides with the name: which drills are worth
                     buying depends on where they play, and the popup covers the
                     roster row that would otherwise tell you. */}
@@ -419,12 +426,14 @@ export function TrainingDrillModal({
                 </Text>
               </View>
               <View className="mr-3 items-end">
-                <Text className="font-pixel text-sm uppercase text-ink/50">TP</Text>
+                <Text className="font-pixel text-sm uppercase text-ink/50">
+                  {t('trainingDrill.trainingPointsShort')}
+                </Text>
                 <Text className="font-pixel text-lg text-ink">{trainingPoints}</Text>
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Close training for ${playerName}`}
+                accessibilityLabel={t('trainingDrill.a11y.closeTrainingFor', { player: playerName })}
                 onPress={dismiss}
                 className="h-11 w-11 items-center justify-center border-2 border-ink bg-white"
                 // Explicit points: h-11 is 38.5pt on native, under the 44pt
@@ -439,7 +448,7 @@ export function TrainingDrillModal({
               <View
                 accessible
                 accessibilityRole="alert"
-                accessibilityLabel={`Save problem: ${saveWarning}`}
+                accessibilityLabel={t('trainingDrill.a11y.saveProblem', { message: saveWarning })}
                 className="border-b-2 border-stamp bg-red-light px-4 py-2"
               >
                 <Text className="font-pixel text-sm uppercase text-stamp">{t('trainingDrill.yourClubIsNotSaving')}</Text>
@@ -466,7 +475,7 @@ export function TrainingDrillModal({
               ) : null}
               <View className={conditionBadge.box}>
                 <Text className={conditionBadge.text}>
-                  Cond {condition}%
+                  {t('trainingDrill.conditionPercent', { condition })}
                 </Text>
               </View>
               {injuryRiskPercent > 0 ? (
@@ -503,7 +512,7 @@ export function TrainingDrillModal({
                   {onSwitchToPromised !== undefined ? (
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`Train ${promiseGate.playerName} instead`}
+                      accessibilityLabel={t('trainingDrill.trainInstead', { player: promiseGate.playerName })}
                       onPress={() => onSwitchToPromised(promiseGate.playerId)}
                       className="mt-3 min-h-11 items-center justify-center border-2 border-b-4 border-ink bg-blue px-4 py-2"
                       style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
@@ -527,12 +536,23 @@ export function TrainingDrillModal({
                     <Pressable
                       key={option.pathId}
                       accessibilityRole="button"
-                      accessibilityLabel={`Train ${playerName} in ${option.label} now`}
+                      accessibilityLabel={t('trainingDrill.a11y.trainStatNow', {
+                        player: playerName, stat: option.label,
+                      })}
                       accessibilityHint={injured
-                        ? `${playerName} is injured and cannot train.`
+                        ? t('trainingDrill.a11y.injuredCannotTrain', { player: playerName })
                         : unaffordable
-                          ? `Costs ${option.tpCost} training points. You have ${trainingPoints}.`
-                          : `${option.drillName}. Costs ${option.tpCost} training points and happens right away. Currently ${option.currentValue}.${injuryRiskPercent > 0 ? ` ${injuryRiskPercent} percent injury risk.` : ''}`}
+                          ? t('trainingDrill.a11y.costsTrainingPoints', {
+                            cost: option.tpCost, available: trainingPoints,
+                          })
+                          : t('trainingDrill.a11y.drillHint', {
+                            drill: option.drillName,
+                            cost: option.tpCost,
+                            value: option.currentValue,
+                            risk: injuryRiskPercent > 0
+                              ? ` ${t('trainingDrill.a11y.percentInjuryRisk', { percent: injuryRiskPercent })}`
+                              : '',
+                          })}
                       accessibilityState={{ disabled }}
                       disabled={disabled}
                       onPress={() => {
@@ -577,7 +597,9 @@ export function TrainingDrillModal({
                         </PixelText>
                         <Text className="mt-0.5 font-mono text-sm text-ink/60" numberOfLines={1}>
                           {option.currentValue} {option.shortCode}
-                          {!injured && !option.affordable && !option.atSafetyCeiling ? ' · Not enough TP' : ''}
+                          {!injured && !option.affordable && !option.atSafetyCeiling
+                            ? ` · ${t('trainingDrill.notEnoughTp')}`
+                            : ''}
                         </Text>
                       </View>
                       <Text className="font-mono text-base text-ink" numberOfLines={1}>
@@ -633,7 +655,9 @@ export function TrainingDrillModal({
             {stage === 'injury' && activeResult?.injury !== undefined ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`${playerName} got injured, out ${activeResult.injury.recoveryWeeks} weeks. Tap to continue.`}
+                accessibilityLabel={t('trainingDrill.a11y.gotInjured', {
+                  player: playerName, weeks: activeResult.injury.recoveryWeeks,
+                })}
                 // The cue now plays when the card appears; acknowledging it is
                 // an ordinary tap and takes the ordinary click.
                 onPress={advanceStage}
@@ -781,8 +805,12 @@ export function TrainingDrillModal({
                         ? 'font-pixel text-sm text-stamp'
                         : 'font-mono text-sm text-ink'}>
                         {selectedRiskyRuns > 0
-                          ? `${selectedRiskyRuns} of ${repeatCount} drills`
-                          : injuryRiskPercent > 0 ? `${injuryRiskPercent}% each drill` : 'None'}
+                          ? t('trainingDrill.riskyOfDrills', {
+                            risky: selectedRiskyRuns, total: repeatCount,
+                          })
+                          : injuryRiskPercent > 0
+                            ? t('trainingDrill.percentEachDrill', { percent: injuryRiskPercent })
+                            : t('trainingDrill.none')}
                       </Text>
                     </View>
                     <View className="flex-row items-center justify-between px-1">
@@ -843,13 +871,20 @@ export function TrainingDrillModal({
                     className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
                     style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
                   >
-                    <PixelText className="text-base uppercase text-ink">Cancel</PixelText>
+                    <PixelText className="text-base uppercase text-ink">
+                      {t('trainingDrill.cancel')}
+                    </PixelText>
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={pendingConfirm.affordable
-                      ? `Run ${pendingConfirm.drillName} ${repeatCount} time${repeatCount === 1 ? '' : 's'} for ${pendingConfirm.tpCost * repeatCount} training points`
-                      : `Not enough training points for ${pendingConfirm.drillName}`}
+                      ? t('trainingDrill.a11y.runDrillForPoints', {
+                        n: repeatCount,
+                        drill: pendingConfirm.drillName,
+                        count: repeatCount,
+                        cost: pendingConfirm.tpCost * repeatCount,
+                      })
+                      : t('trainingDrill.a11y.notEnoughPointsFor', { drill: pendingConfirm.drillName })}
                     accessibilityState={{ disabled: !pendingConfirm.affordable }}
                     disabled={!pendingConfirm.affordable}
                     onPress={() => {
@@ -872,7 +907,9 @@ export function TrainingDrillModal({
                       minimumFontScale={0.72}
                       numberOfLines={1}
                     >
-                      {pendingConfirm.affordable ? `Train ${repeatCount}×` : 'Not enough TP'}
+                      {pendingConfirm.affordable
+                        ? t('trainingDrill.trainTimes', { count: repeatCount })
+                        : t('trainingDrill.notEnoughTp')}
                     </PixelText>
                   </Pressable>
                 </View>
@@ -891,7 +928,9 @@ export function TrainingDrillModal({
               </Pressable>
               <View
                 accessibilityRole="alert"
-                accessibilityLabel={`High risk of injury. ${selectedRiskyRuns} of ${repeatCount} drills enter the injury-risk zone.`}
+                accessibilityLabel={t('trainingDrill.a11y.highRiskSummary', {
+                  risky: selectedRiskyRuns, total: repeatCount,
+                })}
                 className="w-[88%] max-w-[420px] border-2 border-b-4 border-red-dark bg-paper p-4"
               >
                 <PixelText className="text-sm uppercase tracking-wide text-red-dark">
@@ -907,7 +946,7 @@ export function TrainingDrillModal({
                 <View className="mt-4 gap-2">
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Continue all ${repeatCount} drills despite the injury risk`}
+                    accessibilityLabel={t('trainingDrill.a11y.continueAllDespiteRisk', { count: repeatCount })}
                     onPress={() => startTrainingBatch(pendingConfirm, repeatCount)}
                     className="min-h-12 items-center justify-center border-2 border-b-4 border-red-dark bg-red px-3"
                   >
@@ -918,8 +957,10 @@ export function TrainingDrillModal({
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={maximumSafeRuns > 0
-                      ? `Continue with the maximum safe number, ${Math.min(repeatCount, maximumSafeRuns)} drills`
-                      : 'No drills can be run without injury risk'}
+                      ? t('trainingDrill.a11y.continueMaxSafe', {
+                        count: Math.min(repeatCount, maximumSafeRuns),
+                      })
+                      : t('trainingDrill.a11y.noDrillsWithoutRisk')}
                     accessibilityState={{ disabled: maximumSafeRuns === 0 }}
                     disabled={maximumSafeRuns === 0}
                     onPress={() => {
@@ -935,8 +976,10 @@ export function TrainingDrillModal({
                       ? 'text-center text-sm uppercase text-white'
                       : 'text-center text-sm uppercase text-ink/35'}>
                       {maximumSafeRuns > 0
-                        ? `Continue with max safe · ${Math.min(repeatCount, maximumSafeRuns)}×`
-                        : 'No safe drills available'}
+                        ? t('trainingDrill.continueMaxSafe', {
+                          count: Math.min(repeatCount, maximumSafeRuns),
+                        })
+                        : t('trainingDrill.noSafeDrillsAvailable')}
                     </PixelText>
                   </Pressable>
                   <Pressable
@@ -945,7 +988,9 @@ export function TrainingDrillModal({
                     onPress={() => setConfirmingHighRisk(false)}
                     className="min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
                   >
-                    <PixelText className="text-sm uppercase text-ink">Cancel</PixelText>
+                    <PixelText className="text-sm uppercase text-ink">
+                      {t('trainingDrill.cancel')}
+                    </PixelText>
                   </Pressable>
                 </View>
               </View>
@@ -983,11 +1028,13 @@ export function TrainingDrillModal({
                   <Text className="mt-2 text-center text-sm leading-5 text-ink/75">{notice.detail}</Text>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Dismiss"
+                    accessibilityLabel={t('trainingDrill.a11y.dismiss')}
                     onPress={() => setNotice(null)}
                     className="mt-4 min-h-11 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-6"
                   >
-                    <PixelText className="text-base uppercase text-ink">Okay</PixelText>
+                    <PixelText className="text-base uppercase text-ink">
+                      {t('trainingDrill.okay')}
+                    </PixelText>
                   </Pressable>
                 </View>
               </View>

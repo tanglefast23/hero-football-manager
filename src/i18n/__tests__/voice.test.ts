@@ -19,8 +19,8 @@ describe('voiceOf', () => {
 
   test('a display key resolves to the locale s display face', () => {
     expect(faceForKey('settings.language.title', localeMeta('vi').faces))
-      .toBe('Handjet_700Bold');
+      .toBe('HFMSilkscreen_700Bold');
     expect(faceForKey('col.league.points', localeMeta('vi').faces))
-      .toBe('Handjet_400Regular');
+      .toBe('HFMSilkscreen_400Regular');
   });
 });

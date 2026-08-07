@@ -13,7 +13,7 @@ import {
   cupTitleBallFlight,
   type CupTitleCardModel,
 } from './cup-title-card';
-import { usePixelStyles, type LocaleFaces } from '../i18n';
+import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 
 /** Ball diameter in points, and how high the lob rises over the plaque. */
 const BALL_SIZE = 24;
@@ -41,6 +41,7 @@ export interface CupTitleCardProps {
  * plaque, still long enough to read. A tap skips straight to kickoff.
  */
 export function CupTitleCard({ card, onDone }: CupTitleCardProps) {
+  const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const { width } = useWindowDimensions();
   const narrow = width < 380;
@@ -75,7 +76,7 @@ export function CupTitleCard({ card, onDone }: CupTitleCardProps) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${card.accessibilityLabel} Tap to kick off.`}
+      accessibilityLabel={t('matchScreen.a11y.cupTitleCard', { label: card.accessibilityLabel })}
       onPress={finishOnce}
       style={styles.overlay}
     >

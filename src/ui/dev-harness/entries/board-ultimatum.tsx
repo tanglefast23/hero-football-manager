@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
   },
   failure: {
     color: '#edb54a',
-    fontFamily: 'Silkscreen_700Bold',
+    fontFamily: 'HFMSilkscreen_700Bold',
     fontSize: 9,
   },
 });

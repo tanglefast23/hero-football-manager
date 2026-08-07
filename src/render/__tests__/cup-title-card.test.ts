@@ -3,7 +3,7 @@ import { join } from 'path';
 import {
   CUP_TITLE_CARD_MS,
   CUP_TITLE_CARD_REDUCED_MOTION_MS,
-  CUP_TITLE_CARD_TITLE,
+  CUP_TITLE_CARD_TITLE_KEY,
   cupTitleBallFlight,
   cupTitleCard,
   type CupRoundLabel,
@@ -28,7 +28,7 @@ describe('the Hero Cup title card', () => {
   it('opens a cup tie under the competition name and its round', () => {
     const card = cupTitleCard('Quarter-final', false);
 
-    expect(CUP_TITLE_CARD_TITLE).toBe('HERO CUP');
+    expect(CUP_TITLE_CARD_TITLE_KEY).toBe('matchScreen.cupTitleCardTitle');
     expect(card).not.toBeNull();
     expect(card!.title).toBe('HERO CUP');
     expect(card!.roundLabel).toBe('QUARTER-FINAL');

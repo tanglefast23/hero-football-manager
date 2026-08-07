@@ -4,6 +4,7 @@ import { PLAYER_SPRITE_CELL, PlayerRunSprite } from '../render/PlayerRunSprite';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
 import type { PendingRequestViewModel } from '../application/player-request-view-model';
 import type { Role } from '../sim/types';
+import { useCopy } from '../i18n';
 
 const SPRITE_SCALE = 4;
 /** Used only until the tab rail has measured itself; its top edge is the floor. */
@@ -30,6 +31,7 @@ export function PlayerRequestWalkOn({
   reduceMotion?: boolean;
   onDone: () => void;
 }) {
+  const t = useCopy();
   const { height: viewportHeight } = useWindowDimensions();
   const groundOffset = navigationAnchor
     ? Math.max(0, viewportHeight - navigationAnchor.y)
@@ -43,7 +45,7 @@ export function PlayerRequestWalkOn({
       groundOffset={groundOffset}
       autoAdvanceMs={Math.max(MIN_LINE_MS, request.line.length * MS_PER_CHARACTER)}
       reduceMotion={reduceMotion}
-      accessibilityLabel={`${request.playerName} says: ${request.line}`}
+      accessibilityLabel={t('awardsCeremony.a11y.playerSays', { player: request.playerName, line: request.line })}
       onDone={onDone}
     >
       <View>

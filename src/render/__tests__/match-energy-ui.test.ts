@@ -2,8 +2,8 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
   ENERGY_FILL_COLORS,
-  ENERGY_USE_ACCESSIBILITY,
-  ENERGY_USE_LABELS,
+  energyUseAccessibility,
+  energyUseLabel,
   energyBand,
   summarizeTeamEnergy,
 } from '../match-energy-ui';
@@ -44,14 +44,12 @@ describe('match energy UI', () => {
   });
 
   test('keeps exact labels and explains the consequence of each effort choice', () => {
-    expect(ENERGY_USE_LABELS).toEqual({
-      SAVE_ENERGY: 'SAVE ENERGY',
-      BALANCED: 'BALANCED',
-      ALL_OUT: 'ALL OUT',
-    });
-    expect(ENERGY_USE_ACCESSIBILITY.SAVE_ENERGY).toContain('conserve energy');
-    expect(ENERGY_USE_ACCESSIBILITY.BALANCED).toContain('normal movement');
-    expect(ENERGY_USE_ACCESSIBILITY.ALL_OUT).toContain('higher energy cost');
+    expect(energyUseLabel('SAVE_ENERGY')).toBe('SAVE ENERGY');
+    expect(energyUseLabel('BALANCED')).toBe('BALANCED');
+    expect(energyUseLabel('ALL_OUT')).toBe('ALL OUT');
+    expect(energyUseAccessibility('SAVE_ENERGY')).toContain('conserve energy');
+    expect(energyUseAccessibility('BALANCED')).toContain('normal movement');
+    expect(energyUseAccessibility('ALL_OUT')).toContain('higher energy cost');
   });
 });
 

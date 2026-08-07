@@ -1,3 +1,11 @@
+import { copyFor, type CopyFn } from '../i18n';
+
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
+
 /**
  * The curtain call the true ending finishes on, and the last words in the game.
  *
@@ -41,10 +49,14 @@ import { BERT_SPRITE_SIZE } from './bert-walk-frames';
  * under them, four measure 114pt and stand in the celebration.
  * `MAX_SIGNOFF_CHARACTERS` is the ceiling that keeps them to three.
  */
-export const BERT_SIGNOFF_LINES: readonly string[] = Object.freeze([
-  'One last thing. This game was made by one man on his own, Joe Vu, and he thanks you very much.',
-  'People like you are what let him make the next one. Keep an eye out for it.',
+export const BERT_SIGNOFF_LINE_KEYS: readonly string[] = Object.freeze([
+  'endgameCelebration.signoff.madeByOneMan',
+  'endgameCelebration.signoff.keepAnEyeOut',
 ]);
+
+export function bertSignoffLines(t: CopyFn = englishCopy()): readonly string[] {
+  return BERT_SIGNOFF_LINE_KEYS.map(key => t(key));
+}
 
 /**
  * See `BERT_SIGNOFF_LINES`: past this his bubble takes a fourth line and starts

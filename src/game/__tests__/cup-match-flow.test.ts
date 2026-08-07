@@ -270,6 +270,8 @@ describe('player-controlled Hero Cup match flow', () => {
       {
         kind: 'tickets',
         label: 'Hero Cup Play-in home gate',
+        labelKey: 'ledger.cupHomeGate',
+        labelParams: { cup: 'Hero Cup', round: 'Play-in' },
         amount: expectedGate,
         reveal: {
           source: 'cup-gate',

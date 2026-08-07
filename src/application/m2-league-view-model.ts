@@ -9,7 +9,7 @@ import type {
   NationalCupFixture,
   NationalCupRound,
 } from '../game/pyramid';
-import { divisionTierLabel } from '../game/pyramid';
+import { divisionTierLabelWith } from '../game/pyramid';
 import type {
   CareerPlayer,
   LeagueFixture,
@@ -28,6 +28,41 @@ import type {
 } from '../ui/m2-league-models';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { divisionLeadersViewModel } from './division-leaders-view-model';
+import { copyFor, type CopyFn } from '../i18n';
+
+/**
+ * English copy, for every caller that has not threaded a locale through yet.
+ *
+ * Matches `view-models.ts`: a pure module cannot reach React context, so the
+ * dependency is a parameter with a default, built once and reused.
+ */
+let englishCopyFn: CopyFn | undefined;
+
+function englishCopy(): CopyFn {
+  return (englishCopyFn ??= copyFor('en'));
+}
+
+/**
+ * The bracket stage, as a player reads it.
+ *
+ * The stored `NationalCupRound['label']` stays an English literal union because
+ * the engine compares it — `round.label === 'Final'` decides who is champion.
+ * Translation happens here, at the presentation boundary, so the data keeps its
+ * type and the screen still gets the stage in the player's language. Keyed by
+ * the union so a new round cannot be added without a key to draw it with.
+ */
+const CUP_ROUND_COPY_KEYS: Readonly<Record<NationalCupRound['label'], string>> = {
+  'Play-in': 'm2League.cupRound.playIn',
+  'Round of 32': 'm2League.cupRound.roundOf32',
+  'Round of 16': 'm2League.cupRound.roundOf16',
+  'Quarter-final': 'm2League.cupRound.quarterFinal',
+  'Semi-final': 'm2League.cupRound.semiFinal',
+  Final: 'm2League.cupRound.final',
+};
+
+function cupRoundLabel(label: NationalCupRound['label'], t: CopyFn): string {
+  return t(CUP_ROUND_COPY_KEYS[label]);
+}
 
 export interface M2LeagueViewModelSource {
   readonly career: M2CareerState;
@@ -46,7 +81,10 @@ export interface M2LeagueViewModelSource {
 }
 
 /** Maps the sidecar pyramid and the live ten-club table into player-facing copy. */
-export function m2LeagueViewModel(source: M2LeagueViewModelSource): M2LeagueViewModel {
+export function m2LeagueViewModel(
+  source: M2LeagueViewModelSource,
+  t: CopyFn = englishCopy(),
+): M2LeagueViewModel {
   validateSeason(source.season);
   const userDivision = currentUserDivision(source.career);
   const userSquadStrength = source.userSquadStrength ?? source.career.pyramid.divisions
@@ -71,6 +109,7 @@ export function m2LeagueViewModel(source: M2LeagueViewModelSource): M2LeagueView
       selectedDivision,
       userDivision,
       userSquadStrength,
+      t,
     ));
   const selectedDivisionSummary = divisions.find(division => division.level === selectedDivision)!;
   const rows = activeTableRows(source, userDivision, clubNames);
@@ -78,20 +117,20 @@ export function m2LeagueViewModel(source: M2LeagueViewModelSource): M2LeagueView
   if (userRow === undefined) throw new Error('the active standings do not contain the user club');
 
   return {
-    title: 'League & Cup',
-    seasonLabel: `Season ${source.season}`,
+    title: t('m2League.title'),
+    seasonLabel: t('m2League.seasonLabel', { season: source.season }),
     userDivisionBadge: `D${userDivision} · #${userRow.position}`,
     selectedDivision,
     divisions,
     selectedDivisionSummary,
     activeTable: {
-      divisionLabel: divisionTierLabel(userDivision),
-      rulesLabel: movementRulesLabel(userDivision),
+      divisionLabel: divisionTierLabelWith(userDivision, t),
+      rulesLabel: movementRulesLabel(userDivision, t),
       matchesPlayed: userRow.played,
       rows,
     },
-    leagueFixtures: leagueFixtureHistory(source, clubNames),
-    cup: cupViewModel(source, clubNames),
+    leagueFixtures: leagueFixtureHistory(source, clubNames, t),
+    cup: cupViewModel(source, clubNames, t),
     availableTabs: availableSubTabs(source),
     leaders: divisionLeadersViewModel({
       season: source.season,
@@ -125,6 +164,7 @@ function divisionSummary(
   selectedDivision: DivisionLevel,
   userDivision: DivisionLevel,
   userSquadStrength: number,
+  t: CopyFn,
 ): M2DivisionSummaryViewModel {
   if (strengths.length !== 10 || strengths.some(strength =>
     !Number.isInteger(strength) || strength < 1 || strength > MAX_PLAYER_ATTRIBUTE
@@ -134,11 +174,11 @@ function divisionSummary(
   const total = strengths.reduce((sum, strength) => sum + strength, 0);
   const minimum = Math.min(...strengths);
   const maximum = Math.max(...strengths);
-  const comparison = strengthComparison(userSquadStrength, minimum, maximum);
+  const comparison = strengthComparison(userSquadStrength, minimum, maximum, t);
   return {
     level,
     shortLabel: `D${level}`,
-    label: divisionTierLabel(level),
+    label: divisionTierLabelWith(level, t),
     clubCount: strengths.length,
     averageStrength: Math.round(total / strengths.length),
     strengthRangeLabel: `${minimum}–${maximum}`,
@@ -154,14 +194,21 @@ function strengthComparison(
   userSquadStrength: number,
   minimum: number,
   maximum: number,
+  t: CopyFn,
 ): { label: string; tone: M2DivisionSummaryViewModel['comparisonTone'] } {
   if (userSquadStrength < minimum) {
-    return { label: `${minimum - userSquadStrength} below range`, tone: 'below' };
+    return {
+      label: t('m2League.strengthBelowRange', { count: minimum - userSquadStrength }),
+      tone: 'below',
+    };
   }
   if (userSquadStrength > maximum) {
-    return { label: `${userSquadStrength - maximum} above range`, tone: 'above' };
+    return {
+      label: t('m2League.strengthAboveRange', { count: userSquadStrength - maximum }),
+      tone: 'above',
+    };
   }
-  return { label: 'Within range', tone: 'competitive' };
+  return { label: t('m2League.strengthWithinRange'), tone: 'competitive' };
 }
 
 function validateStrength(value: number, label: string): void {
@@ -223,6 +270,7 @@ function activeTableRows(
 function cupViewModel(
   source: M2LeagueViewModelSource,
   clubNames: ReadonlyMap<string, string>,
+  t: CopyFn,
 ): M2NationalCupViewModel {
   // Only cups that still hold a bracket can be drawn on this tab. Seasons past
   // the retention window keep their champion for the record books but have
@@ -234,9 +282,9 @@ function cupViewModel(
     return {
       available: false,
       seasonOptions: [],
-      seasonLabel: `Season ${source.season}`,
-      statusLabel: 'Draw pending',
-      currentRoundLabel: 'Hero Cup not drawn',
+      seasonLabel: t('m2League.seasonLabel', { season: source.season }),
+      statusLabel: t('m2League.cupStatusDrawPending'),
+      currentRoundLabel: t('m2League.cupNotDrawn'),
       currentRoundFixtures: [],
       rounds: [],
       history: [],
@@ -259,6 +307,7 @@ function cupViewModel(
     clubNames,
     currentRound.number,
     roundIsPlayable,
+    t,
   );
 
   return {
@@ -272,15 +321,20 @@ function cupViewModel(
         ? {}
         : { championName: requireClubName(clubNames, cup.championClubId) }),
     })),
-    seasonLabel: `Season ${selectedCup.season}`,
-    statusLabel: championName === undefined ? 'Cup live' : 'Cup complete',
-    currentRoundLabel: championName === undefined ? currentRound.label : 'Final result',
+    seasonLabel: t('m2League.seasonLabel', { season: selectedCup.season }),
+    statusLabel: championName === undefined
+      ? t('m2League.cupStatusLive')
+      : t('m2League.cupStatusComplete'),
+    currentRoundLabel: championName === undefined
+      ? cupRoundLabel(currentRound.label, t)
+      : t('m2League.cupFinalResult'),
     currentRoundFixtures: currentRound.fixtures.map(fixture => cupFixture(
       fixture,
       currentRound,
       source.career.userClubId,
       clubNames,
       roundIsPlayable,
+      t,
     )),
     rounds,
     history: rounds
@@ -298,6 +352,7 @@ export function leagueFixtureViewModel(
   userClubId: string,
   currentWeek: number | undefined,
   clubName: (clubId: string) => string,
+  t: CopyFn = englishCopy(),
 ): M2LeagueFixtureViewModel {
   const userIsHome = fixture.homeClubId === userClubId;
   const opponentId = userIsHome ? fixture.awayClubId : fixture.homeClubId;
@@ -321,7 +376,7 @@ export function leagueFixtureViewModel(
   return {
     id: fixture.id,
     week: fixture.week,
-    weekLabel: `Week ${fixture.week}`,
+    weekLabel: t('m2League.weekLabel', { week: fixture.week }),
     homeClubName: clubName(fixture.homeClubId),
     awayClubName: clubName(fixture.awayClubId),
     opponentName: clubName(opponentId),
@@ -336,6 +391,7 @@ export function leagueFixtureViewModel(
 function leagueFixtureHistory(
   source: M2LeagueViewModelSource,
   clubNames: ReadonlyMap<string, string>,
+  t: CopyFn,
 ): M2LeagueFixtureViewModel[] {
   return (source.leagueFixtures ?? [])
     .filter(fixture => fixture.season === source.season && (
@@ -349,6 +405,7 @@ function leagueFixtureHistory(
       source.career.userClubId,
       source.week,
       clubId => requireClubName(clubNames, clubId),
+      t,
     ));
 }
 
@@ -367,6 +424,7 @@ function cupFixture(
   userClubId: string,
   clubNames: ReadonlyMap<string, string>,
   roundIsPlayable: boolean,
+  t: CopyFn,
 ): M2CupFixtureViewModel {
   const winnerName = fixture.winnerClubId === undefined
     ? undefined
@@ -374,7 +432,7 @@ function cupFixture(
   const drawn = fixture.score !== undefined && fixture.score.homeGoals === fixture.score.awayGoals;
   return {
     id: fixture.id,
-    roundLabel: round.label,
+    roundLabel: cupRoundLabel(round.label, t),
     homeClubName: requireClubName(clubNames, fixture.homeClubId),
     awayClubName: requireClubName(clubNames, fixture.awayClubId),
     scoreLabel: fixture.score === undefined
@@ -390,33 +448,48 @@ function cupFixture(
   };
 }
 
+/**
+ * `userOutcome` is copy; `userOutcomeKind` is the fact behind it.
+ *
+ * The screen used to pick the chip's tone by comparing the English string, so
+ * the string could not be translated without silently painting every knockout
+ * chip the same colour in five languages. The discriminator carries the meaning
+ * and the label carries the words.
+ */
 function cupRoundHistory(
   round: NationalCupRound,
   cup: NationalCup,
   userClubId: string,
+  t: CopyFn,
 ): M2CupRoundHistoryViewModel {
   const completedCount = round.fixtures.filter(fixture => fixture.status === 'played').length;
   const userFixture = round.fixtures.find(fixture =>
     fixture.homeClubId === userClubId || fixture.awayClubId === userClubId,
   );
-  let userOutcome: string | undefined;
+  let userOutcomeKind: M2CupRoundHistoryViewModel['userOutcomeKind'];
   if (round.byeClubIds.includes(userClubId)) {
-    userOutcome = 'Bye';
+    userOutcomeKind = 'bye';
   } else if (userFixture?.status === 'scheduled') {
-    userOutcome = 'Tie waiting';
+    userOutcomeKind = 'waiting';
   } else if (userFixture?.winnerClubId === userClubId) {
-    userOutcome = cup.championClubId === userClubId && round.label === 'Final'
-      ? 'Champion'
-      : 'Advanced';
+    userOutcomeKind = cup.championClubId === userClubId && round.label === 'Final'
+      ? 'champion'
+      : 'advanced';
   } else if (userFixture?.winnerClubId !== undefined) {
-    userOutcome = 'Eliminated';
+    userOutcomeKind = 'eliminated';
   }
+  const userOutcome = userOutcomeKind === undefined
+    ? undefined
+    : t(`m2League.outcome.${userOutcomeKind}`);
   return {
     round: round.number,
-    label: round.label,
+    label: cupRoundLabel(round.label, t),
     matchCount: round.fixtures.length,
+    ...(userOutcomeKind === undefined ? {} : { userOutcomeKind }),
     completedCount,
-    statusLabel: completedCount === round.fixtures.length ? 'Complete' : 'Live',
+    statusLabel: completedCount === round.fixtures.length
+      ? t('m2League.roundStatusComplete')
+      : t('m2League.roundStatusLive'),
     ...(userOutcome === undefined ? {} : { userOutcome }),
   };
 }
@@ -427,9 +500,10 @@ function cupRoundViewModel(
   userClubId: string,
   clubNames: ReadonlyMap<string, string>,
   roundIsPlayable: boolean,
+  t: CopyFn,
 ): M2CupRoundViewModel {
   return {
-    ...cupRoundHistory(round, cup, userClubId),
+    ...cupRoundHistory(round, cup, userClubId, t),
     drawn: true,
     active: round.fixtures.some(fixture => fixture.status === 'scheduled'),
     fixtures: round.fixtures.map(fixture => cupFixture(
@@ -438,6 +512,7 @@ function cupRoundViewModel(
       userClubId,
       clubNames,
       roundIsPlayable,
+      t,
     )),
     byes: round.byeClubIds.map(clubId => ({
       clubName: requireClubName(clubNames, clubId),
@@ -446,6 +521,10 @@ function cupRoundViewModel(
   };
 }
 
+/**
+ * The bracket's shape. `label` is the lookup into `CUP_ROUND_COPY_KEYS` rather
+ * than anything drawn — nothing here reaches a screen without `cupRoundLabel`.
+ */
 const CUP_ROAD: readonly {
   number: number;
   label: NationalCupRound['label'];
@@ -465,6 +544,7 @@ function cupRoadToFinal(
   clubNames: ReadonlyMap<string, string>,
   currentRoundNumber: number,
   roundIsPlayable: boolean,
+  t: CopyFn,
 ): M2CupRoundViewModel[] {
   return CUP_ROAD.map(stage => {
     const round = cup.rounds.find(candidate => candidate.number === stage.number);
@@ -475,14 +555,15 @@ function cupRoadToFinal(
         userClubId,
         clubNames,
         round.number === currentRoundNumber && roundIsPlayable,
+        t,
       );
     }
     return {
       round: stage.number,
-      label: stage.label,
+      label: cupRoundLabel(stage.label, t),
       matchCount: stage.matchCount,
       completedCount: 0,
-      statusLabel: 'Awaiting draw',
+      statusLabel: t('m2League.roundStatusAwaitingDraw'),
       drawn: false,
       active: false,
       fixtures: [],
@@ -491,10 +572,10 @@ function cupRoadToFinal(
   });
 }
 
-function movementRulesLabel(division: DivisionLevel): string {
-  if (division === 1) return 'Bottom 2 relegated';
-  if (division === 5) return 'Top 2 promoted';
-  return 'Top 2 up · Bottom 2 down';
+function movementRulesLabel(division: DivisionLevel, t: CopyFn): string {
+  if (division === 1) return t('m2League.rulesBottomTwoRelegated');
+  if (division === 5) return t('m2League.rulesTopTwoPromoted');
+  return t('m2League.rulesTopTwoUpBottomTwoDown');
 }
 
 function validateStandingNumbers(standing: LeagueStanding): void {
