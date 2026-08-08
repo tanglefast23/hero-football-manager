@@ -2548,6 +2548,7 @@ function GameApp() {
           <ClubHomeScreen
             viewModel={home}
             textScale={preferences.textScale}
+            reduceMotion={reduceMotion}
             onOpenFixture={store.openMatchday}
             onOpenManagerTipDestination={openManagerTipDestination}
             showManagerTips={careerTeaches}

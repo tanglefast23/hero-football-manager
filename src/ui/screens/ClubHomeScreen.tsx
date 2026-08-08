@@ -15,20 +15,8 @@ import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
 import type { ManagerTipDestination } from '../../content';
-import { InfoTip } from '../components/InfoTip';
+import { FormStrip } from '../components/FormStrip';
 import { useCopy } from '../../i18n';
-
-/**
- * The three letters on the form strip, which nothing else in the game defines.
- *
- * Catalog keys rather than English: this map is module scope, where no hook can
- * run, so the lookup happens at the two render sites that already hold `t`.
- */
-const FORM_EXPLAINER: Readonly<Record<'W' | 'D' | 'L', string>> = {
-  W: 'clubHome.form.won',
-  D: 'clubHome.form.drawn',
-  L: 'clubHome.form.lost',
-};
 
 const HORIZONTAL_MARQUEE_BULBS = Array.from({ length: 12 }, (_, index) => index);
 const VERTICAL_MARQUEE_BULBS = Array.from({ length: 7 }, (_, index) => index);
@@ -121,6 +109,8 @@ export interface ClubHomeScreenProps {
   /** Second-career players can hide optional tips without hiding calendar notes. */
   showManagerTips?: boolean;
   textScale?: TextScale;
+  /** Stills the form strip's cascade for a manager who asked for less motion. */
+  reduceMotion?: boolean;
 }
 
 export function ClubHomeScreen({
@@ -136,6 +126,7 @@ export function ClubHomeScreen({
   guideBoard = false,
   showManagerTips = true,
   textScale = 1,
+  reduceMotion = false,
 }: ClubHomeScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
@@ -517,35 +508,25 @@ export function ClubHomeScreen({
         mode={layoutMode}
         header={
           <>
+            {/* The greeting and the heading share a line; the strip gets the
+                whole width below them. Boxed into the right half it could only
+                ever hold four or five results — the row it fills is the point. */}
             <View className="flex-row items-end justify-between">
-              <View>
+              {/* Shrink, not flex-1: a gap or a grown column costs the greeting
+                  its single line at phone width, where it only just fits. */}
+              <View className="shrink">
                 <Text className="font-pixel text-sm uppercase text-blue-dark">{t('clubHome.goodMorningBoss')}</Text>
                 <PixelText className="mt-1 text-xl uppercase tracking-wide text-ink">{viewModel.managerName}</PixelText>
               </View>
-              <View className="items-end">
-                <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('clubHome.recentForm')}</PixelText>
-                {viewModel.form.length === 0 ? (
-                  <PixelText className="mt-2 text-sm uppercase tracking-wide text-ink/40">{t('clubHome.noGamesYet')}</PixelText>
-                ) : (
-                  <View className="mt-2 flex-row gap-1">
-                    {/* W, D and L are only obvious once you already know them.
-                        Hold one and it says so; the colour alone never did. */}
-                    {viewModel.form.map((result, index) => (
-                      <InfoTip
-                        key={`${result}-${index}`}
-                        text={t(FORM_EXPLAINER[result])}
-                        accessibilityLabel={t(FORM_EXPLAINER[result])}
-                      >
-                        <StatusChip
-                          label={result}
-                          tone={result === 'W' ? 'success' : result === 'L' ? 'danger' : 'normal'}
-                        />
-                      </InfoTip>
-                    ))}
-                  </View>
-                )}
-              </View>
+              <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('clubHome.recentForm')}</PixelText>
             </View>
+            {viewModel.form.length === 0 ? (
+              <PixelText className="mt-2 text-right text-sm uppercase tracking-wide text-ink/40">{t('clubHome.noGamesYet')}</PixelText>
+            ) : (
+              /* A trophy for a win, the letter for anything else. Neither is
+                 obvious on its own — hold one and it says so. */
+              <FormStrip results={viewModel.form} reduceMotion={reduceMotion} />
+            )}
             <View className="my-5 h-0.5 bg-ink/15" />
           </>
         }
