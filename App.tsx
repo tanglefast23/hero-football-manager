@@ -2166,7 +2166,10 @@ function GameApp() {
         viewModel={storyEventViewModel(store.career, content, t)}
         onChoose={store.chooseEvent}
         onSelectPlayer={store.selectEventPlayer}
+        onSelectCoach={store.selectEventCoach}
+        onSelectFacility={store.selectEventFacility}
         onContinue={store.continueAfterEvent}
+        onSkipUnavailable={store.skipUnavailableEvent}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         reduceMotion={reduceMotion}
         guideCopy={!careerTeaches || store.career.eventFlags.includes('m4:event-guide-seen')

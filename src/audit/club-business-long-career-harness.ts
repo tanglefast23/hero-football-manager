@@ -31,6 +31,11 @@ import {
 } from '../application/assistant-guide';
 import { eventChoiceUnavailableReason } from '../application/event-selection';
 import {
+  continueResolvedCareerEvent,
+  resolveCareerEventChoice,
+} from '../application/career-event-flow';
+import { careerEventTargetCandidates } from '../application/career-event-targets';
+import {
   homeViewModel,
   reconcileHomeAssistantInbox,
   settleWeeklyStory,
@@ -42,11 +47,6 @@ import {
   addCreatedPlayer,
   advanceWeek,
   applyBuzzImpacts,
-  applyCareerEventOutcome,
-  applyCoachEventEffect,
-  applyFacilityEventEffect,
-  drainPendingMilestone,
-  isCareerMilestoneEventId,
   beginCareerTransferTalks,
   beginCareerRenewalTalks,
   beginStoryOnboarding,
@@ -67,9 +67,7 @@ import {
   createCareer,
   currentUserDivision,
   declineYouthIntakeOffers,
-  deterministicCareerEventRoll,
   divisionSponsorAnchor,
-  dismissCareerEvent,
   FACILITY_ADJACENCIES,
   FACILITY_CATALOG,
   FACILITY_GRID_HEIGHT,
@@ -85,7 +83,6 @@ import {
   maxSigningTermSeasons,
   nextPendingClubLegend,
   nextTrainingUpgradeOffer,
-  offerCareerEvent,
   playerAttributeCaps,
   pendingImpactFromProduction,
   POSITION_TRAINING_ATTRIBUTES,
@@ -95,10 +92,8 @@ import {
   resolveNextClubLegendLegacy,
   resolvePostMatchAwakening,
   resolveTrainingDrillForPath,
-  sessionAttributeDelta,
   restoreCareerContractPromiseLineup,
   roleOverall,
-  isFacilityOperational,
   selectCareerEventCoach,
   selectCareerEventFacility,
   selectCareerEventPlayer,
@@ -641,17 +636,9 @@ function resolveManagedDeskStory(state: GameState): GameState {
 
     if (pending.resolvedChoiceId === undefined) {
       if (event.trigger.requiresPlayer === true && pending.selectedPlayerId === undefined) {
-        const lineupIds = new Set(userLineupIds(next));
-        const selected = next.players
-          .filter(player => player.clubId === next.userClubId)
-          .slice()
-          .sort((left, right) => (
-            Number(!lineupIds.has(left.id)) - Number(!lineupIds.has(right.id))
-            || left.name.localeCompare(right.name)
-            || left.id.localeCompare(right.id)
-          ))[0];
+        const selected = careerEventTargetCandidates(next, event).playerIds[0];
         if (selected === undefined) throw new Error(`event ${event.id} has no eligible user player`);
-        next = selectCareerEventPlayer(next, selected.id);
+        next = selectCareerEventPlayer(next, selected);
       }
       /**
        * The desk must point targeted stories at something, or the probe runs a
@@ -660,20 +647,14 @@ function resolveManagedDeskStory(state: GameState): GameState {
        * among the types the story admits, so the choice is deterministic.
        */
       if (event.trigger.requiresCoach === true && pending.selectedCoachRole === undefined) {
-        const role = next.market?.headCoach !== undefined ? 'HEAD' as const : 'ASSISTANT' as const;
+        const role = careerEventTargetCandidates(next, event).coachRoles[0];
+        if (role === undefined) throw new Error(`event ${event.id} has no eligible coach`);
         next = selectCareerEventCoach(next, role);
       }
       if (event.trigger.requiresFacility !== undefined && pending.selectedFacilityId === undefined) {
-        const grid = next.facilities.grid;
-        const building = grid?.buildings
-          .filter(candidate => (
-            (event.trigger.requiresFacility as readonly string[]).includes(candidate.type)
-              && isFacilityOperational(grid, candidate.id)
-          ))
-          .slice()
-          .sort((left, right) => left.id.localeCompare(right.id))[0];
-        if (building === undefined) throw new Error(`event ${event.id} has no operational building`);
-        next = selectCareerEventFacility(next, building.id);
+        const buildingId = careerEventTargetCandidates(next, event).facilityIds[0];
+        if (buildingId === undefined) throw new Error(`event ${event.id} has no operational building`);
+        next = selectCareerEventFacility(next, buildingId);
       }
       const choice = event.choices.find(candidate => (
         candidate.risky !== true && eventChoiceUnavailableReason(next, candidate) === undefined
@@ -682,7 +663,7 @@ function resolveManagedDeskStory(state: GameState): GameState {
       const guided = next.eventFlags.includes('m4:event-guide-seen')
         ? next
         : { ...next, eventFlags: [...next.eventFlags, 'm4:event-guide-seen'] };
-      next = resolveManagedEventChoice(guided, choice.id);
+      next = resolveCareerEventChoice(guided, content.events, choice.id);
     }
 
     const resolved = next.pendingEvent;
@@ -692,185 +673,9 @@ function resolveManagedDeskStory(state: GameState): GameState {
     const guided = next.eventFlags.includes('m4:event-guide-seen')
       ? next
       : { ...next, eventFlags: [...next.eventFlags, 'm4:event-guide-seen'] };
-    const dismissed = dismissCareerEvent(guided, event.trigger.repeatable !== true);
-    const followUp = resolved.resolvedNextEventId === undefined
-      ? undefined
-      : content.events.events.find(candidate => candidate.id === resolved.resolvedNextEventId);
-    next = followUp !== undefined
-      && (followUp.trigger.repeatable === true || !dismissed.resolvedEventIds.includes(followUp.id))
-      ? offerCareerEvent(dismissed, followUp.id, {
-          ...(resolved.selectedPlayerId === undefined ? {} : { playerId: resolved.selectedPlayerId }),
-          ...(resolved.selectedCoachRole === undefined ? {} : { coachRole: resolved.selectedCoachRole }),
-          ...(resolved.selectedFacilityId === undefined ? {} : { facilityId: resolved.selectedFacilityId }),
-        })
-      : dismissed;
+    next = continueResolvedCareerEvent(guided, content.events).state;
   }
   return next;
-}
-
-/** Exact production event outcome path; only the conservative choice policy differs. */
-function resolveManagedEventChoice(state: GameState, choiceId: string): GameState {
-  const pending = state.pendingEvent;
-  if (pending === undefined) throw new Error('there is no active long-career event');
-  const event = content.events.events.find(candidate => candidate.id === pending.eventId);
-  if (event === undefined) throw new Error(`unknown long-career event ${pending.eventId}`);
-  const choice = event.choices.find(candidate => candidate.id === choiceId);
-  if (choice === undefined) throw new Error(`unknown long-career event choice ${choiceId}`);
-  if (event.trigger.requiresPlayer === true && pending.selectedPlayerId === undefined) {
-    throw new Error('choose a player before resolving this long-career event');
-  }
-  // Mirrors the store's own guards, so the instrument cannot resolve a targeted
-  // story the game would refuse to resolve.
-  if (event.trigger.requiresCoach === true && pending.selectedCoachRole === undefined) {
-    throw new Error('choose a coach before resolving this long-career event');
-  }
-  if (event.trigger.requiresFacility !== undefined && pending.selectedFacilityId === undefined) {
-    throw new Error('choose a facility before resolving this long-career event');
-  }
-  const unavailableReason = eventChoiceUnavailableReason(state, choice);
-  if (unavailableReason !== undefined) throw new Error(unavailableReason);
-
-  const total = choice.outcomes.reduce((sum, candidate) => sum + candidate.weight, 0);
-  const outcomeIndex = weightedEventIndex(
-    choice.outcomes.map(candidate => candidate.weight),
-    deterministicCareerEventRoll({
-      careerSeed: state.careerSeed,
-      season: state.season,
-      week: state.week,
-      riskyChoices: state.eventClock.riskyChoices,
-    }, choiceId, 0, total),
-  );
-  const outcome = choice.outcomes[outcomeIndex];
-  if (outcome === undefined) throw new Error('the long-career event outcome did not resolve');
-  let working = state;
-  if (choice.risky) {
-    if (working.eventClock.riskyChoices === Number.MAX_SAFE_INTEGER) {
-      throw new Error('event risk counter exceeds the safe integer range');
-    }
-    working = {
-      ...working,
-      eventClock: { ...working.eventClock, riskyChoices: working.eventClock.riskyChoices + 1 },
-    };
-  }
-
-  const playerId = pending.selectedPlayerId;
-  const moneyDelta = sumEventEffect(outcome.effects, 'money');
-  const trainingPointDelta = sumEventEffect(outcome.effects, 'tp');
-  const fanDelta = sumEventEffect(outcome.effects, 'fans');
-  // Mirrors resolveContentEvent exactly. An instrument that applies different
-  // rules from the game still produces numbers, which is worse than one that
-  // is merely out of date — so these move in the same commit, always.
-  const morale = outcome.effects.find(effect => effect.type === 'morale');
-  const squadMorale = outcome.effects.find(effect => effect.type === 'squadMorale');
-  const injury = outcome.effects.find(effect => effect.type === 'injury');
-  const injuryHeal = outcome.effects.find(effect => effect.type === 'injuryDelta');
-  const stat = outcome.effects.find(effect => effect.type === 'statDelta');
-  const statSessions = outcome.effects.find(effect => effect.type === 'statDeltaSessions');
-  const loyalty = outcome.effects.find(effect => effect.type === 'loyalty');
-  const condition = outcome.effects.find(effect => effect.type === 'condition');
-  const fame = outcome.effects.find(effect => effect.type === 'fame');
-  const coachBoosts = outcome.effects.filter(effect => effect.type === 'coachBoost');
-  const coachSpecialty = outcome.effects.find(effect => effect.type === 'coachSpecialty');
-  const coachRole = pending.selectedCoachRole;
-  const facilityId = pending.selectedFacilityId;
-  const FACILITY_EFFECT_FACETS = {
-    facilityTpBonus: 'tpBonusPercent',
-    facilityTrainingBonus: 'trainingBonusPercent',
-    facilityRecoveryBonus: 'recoveryBonus',
-    facilityIncomeBonus: 'incomeBonusPercent',
-  } as const;
-  const flags = outcome.effects
-    .filter(effect => effect.type === 'flag' && effect.value)
-    .map(effect => effect.type === 'flag' ? effect.flag : '');
-  const hasPlayerEffect = playerId !== undefined
-    && (morale || injury || injuryHeal || stat || statSessions || loyalty || condition || fame);
-  // Same resolution and the same proportional loss floor as resolveContentEvent.
-  const resolvedSessionDelta = (() => {
-    if (statSessions?.type !== 'statDeltaSessions' || playerId === undefined) return undefined;
-    const player = working.players.find(candidate => candidate.id === playerId);
-    if (player === undefined) return undefined;
-    return sessionAttributeDelta(working, player, statSessions.attribute, statSessions.sessions);
-  })();
-  let next = applyCareerEventOutcome(working, choice.id, outcome.text, {
-    moneyDelta,
-    trainingPointDelta,
-    fanDelta,
-    flags,
-    ...(hasPlayerEffect ? {
-      playerEffect: {
-        playerId,
-        ...(morale?.type === 'morale' ? { moraleDelta: morale.amount } : {}),
-        ...(injury?.type === 'injury' ? { injuryWeeks: injury.weeks } : {}),
-        ...(injuryHeal?.type === 'injuryDelta' ? { injuryWeeksDelta: injuryHeal.weeks } : {}),
-        ...(stat?.type === 'statDelta' ? {
-          attribute: stat.attribute,
-          attributeDelta: stat.amount,
-        } : {}),
-        ...(statSessions?.type === 'statDeltaSessions' && resolvedSessionDelta !== undefined ? {
-          attribute: statSessions.attribute,
-          attributeDelta: resolvedSessionDelta,
-        } : {}),
-        ...(loyalty?.type === 'loyalty' ? { loyaltyDelta: loyalty.amount } : {}),
-        ...(condition?.type === 'condition' ? { conditionDelta: condition.amount } : {}),
-        ...(fame?.type === 'fame' ? { fameDelta: fame.amount } : {}),
-      },
-    } : {}),
-  }, {
-    outcomeIndex,
-    risky: choice.risky,
-    success: choice.risky && outcomeIndex === 0,
-    ...(outcome.nextEventId === undefined ? {} : { nextEventId: outcome.nextEventId }),
-  });
-  // Coach and facility targets, mirroring resolveContentEvent. Without these
-  // the instrument would run a catalog whose coach and building stories did
-  // nothing at all, and still report a number.
-  if (coachRole !== undefined) {
-    for (const boost of coachBoosts) {
-      if (boost.type !== 'coachBoost') continue;
-      next = applyCoachEventEffect(next, coachRole, { facet: boost.facet, amount: boost.amount });
-    }
-    if (coachSpecialty?.type === 'coachSpecialty') {
-      next = applyCoachEventEffect(next, coachRole, { specialtyTo: coachSpecialty.to });
-    }
-  }
-  if (facilityId !== undefined) {
-    for (const effect of outcome.effects) {
-      const facet = FACILITY_EFFECT_FACETS[effect.type as keyof typeof FACILITY_EFFECT_FACETS];
-      if (facet === undefined) continue;
-      const amount = 'percent' in effect ? effect.percent : 'amount' in effect ? effect.amount : 0;
-      next = applyFacilityEventEffect(next, facilityId, facet, amount);
-    }
-  }
-  if (squadMorale?.type === 'squadMorale') {
-    next = {
-      ...next,
-      players: next.players.map(player => player.clubId === next.userClubId
-        ? { ...player, morale: Math.max(0, Math.min(100, player.morale + squadMorale.amount)) }
-        : player),
-    };
-  }
-  // Mirrors the store: a recognition beat does not reset the drought ramp.
-  const isMilestone = isCareerMilestoneEventId(pending.eventId);
-  const drained = isMilestone ? drainPendingMilestone(next, pending.eventId) : next;
-  return isMilestone
-    ? drained
-    : { ...drained, eventClock: { ...drained.eventClock, weeksWithoutEvent: 0 } };
-}
-
-function sumEventEffect(
-  effects: (typeof content.events.events)[number]['choices'][number]['outcomes'][number]['effects'],
-  type: 'money' | 'tp' | 'fans',
-): number {
-  return effects.reduce((sum, effect) => effect.type === type ? sum + effect.amount : sum, 0);
-}
-
-function weightedEventIndex(weights: readonly number[], roll: number): number {
-  let cumulative = 0;
-  for (let index = 0; index < weights.length; index += 1) {
-    cumulative += weights[index];
-    if (roll < cumulative) return index;
-  }
-  throw new Error('weighted long-career event outcome did not resolve');
 }
 
 function hireCheapestAffordableHeadCoach(state: GameState): GameState {

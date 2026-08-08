@@ -2,6 +2,7 @@ import { loadLaunchContent } from '../../content';
 import { offerCareerEvent, type GameState } from '../../game';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
 import { reconcilePendingStoryEvent } from '../event-selection';
+import { careerEventTargetCandidates } from '../career-event-targets';
 import { useM1Store } from '../store';
 import { storyEventViewModel } from '../view-models';
 
@@ -34,6 +35,41 @@ function clubFans(state: GameState): number {
 }
 
 describe('M4 resolved events survive a reload without rerolling or double-paying', () => {
+  it('round-trips typed coach and facility targets and fails soft on malformed optional fields', () => {
+    const staged = awakenedCareerAtEvent(456, 'giant-spider-arrives');
+    const targeted: GameState = {
+      ...staged,
+      pendingEvent: {
+        eventId: 'the-plaque',
+        selectedCoachRole: 'ASSISTANT',
+        coachLocked: true,
+        selectedFacilityId: 'facility-1',
+        facilityLocked: true,
+      },
+    };
+    expect(
+      parseStoredGameState(serializeGameState(targeted)).pendingEvent,
+    ).toMatchObject({
+      selectedCoachRole: 'ASSISTANT',
+      coachLocked: true,
+      selectedFacilityId: 'facility-1',
+      facilityLocked: true,
+    });
+
+    const malformed = JSON.parse(serializeGameState(targeted)) as {
+      pendingEvent: Record<string, unknown>;
+    };
+    malformed.pendingEvent.selectedCoachRole = 'MANAGER';
+    malformed.pendingEvent.coachLocked = false;
+    malformed.pendingEvent.selectedFacilityId = '';
+    malformed.pendingEvent.facilityLocked = 'yes';
+    expect(
+      parseStoredGameState(JSON.stringify(malformed)).pendingEvent,
+    ).toEqual({
+      eventId: 'the-plaque',
+    });
+  });
+
   it('keeps the same outcome, rewards, and balances after a save/load round trip', () => {
     useM1Store.setState({ career: awakenedCareerAtEvent(456, 'giant-spider-arrives'), screen: 'event' });
     useM1Store.getState().chooseEvent('adopt-spider');
@@ -110,11 +146,12 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
       const staged = awakenedCareerAtEvent(456, event.id);
       useM1Store.setState({ career: staged, screen: 'event' });
       if (event.trigger.requiresPlayer === true) {
-        const squad = staged.players.filter(player => player.clubId === staged.userClubId);
-        useM1Store.getState().selectEventPlayer(squad[0]!.id);
+        const candidate = careerEventTargetCandidates(staged, event).playerIds[0];
+        if (candidate !== undefined) useM1Store.getState().selectEventPlayer(candidate);
       }
       useM1Store.getState().chooseEvent(risky.id);
-      if (useM1Store.getState().error !== null) {
+      if (useM1Store.getState().error !== null
+        || useM1Store.getState().career?.pendingEvent?.resolvedChoiceId === undefined) {
         blocked.push(event.id); // requirement-gated choice this career cannot take
         continue;
       }

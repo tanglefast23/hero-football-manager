@@ -468,6 +468,18 @@ export const TrainingCatalogSchema = z.strictObject({
 
 const EventEffectSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('money'), amount: z.number().int().min(-100000).max(100000) }),
+  /**
+   * Sell the selected player for one authored fee.
+   *
+   * This is not a `money` effect plus suggestive prose. The market transaction
+   * also moves the player, repairs the lineup, moves his wage, clears promises
+   * and requests, and records the transfer. Keeping that whole meaning in one
+   * effect prevents a card from paying a "fee" while the player stays put.
+   */
+  z.strictObject({
+    type: z.literal('playerSale'),
+    fee: z.number().int().min(1).max(100000),
+  }),
   z.strictObject({ type: z.literal('tp'), amount: z.number().int().min(-1000).max(1000) }),
   z.strictObject({ type: z.literal('morale'), amount: z.number().int().min(-100).max(100) }),
   z.strictObject({ type: z.literal('fans'), amount: z.number().int().min(-10000).max(10000) }),
@@ -555,6 +567,7 @@ const EventEffectSchema = z.discriminatedUnion('type', [
  * has no duplicates, so the gate costs nothing and removes the whole class.
  */
 const SINGULAR_EFFECT_TYPES = [
+  'playerSale',
   'morale',
   'squadMorale',
   'injury',
@@ -677,6 +690,8 @@ export const GameEventSchema = z.strictObject({
     requiresPlayerRole: z.literal('GK').optional(),
     /** The card asks the manager to point at the head coach or the assistant. */
     requiresCoach: z.boolean().optional(),
+    /** Optional staff-slot restriction for prose that explicitly names one role. */
+    requiresCoachRole: z.enum(['HEAD', 'ASSISTANT']).optional(),
     /**
      * The story is about the two of them disagreeing, so it needs both slots
      * filled — which means it cannot appear before the Coaching Office is up.
@@ -699,10 +714,21 @@ export const GameEventSchema = z.strictObject({
     if (trigger.minDivision !== undefined && trigger.maxDivision !== undefined && trigger.minDivision > trigger.maxDivision) {
       addIssue(context, ['minDivision'], 'event minDivision must not exceed maxDivision');
     }
+    if (trigger.requiresCoachRole !== undefined && trigger.requiresCoach !== true) {
+      addIssue(context, ['requiresCoachRole'], 'requiresCoachRole requires requiresCoach');
+    }
   }),
   choices: z.array(EventChoiceSchema).min(2).max(3),
 }).superRefine((event, context) => {
   addDuplicateIssues(event.choices.map(choice => choice.id), context, ['choices'], 'choice ID');
+  const targetKinds = [
+    event.trigger.requiresPlayer === true,
+    event.trigger.requiresCoach === true,
+    event.trigger.requiresFacility !== undefined,
+  ].filter(Boolean).length;
+  if (targetKinds > 1) {
+    addIssue(context, ['trigger'], 'an event may require only one target kind');
+  }
   /**
    * A player effect needs a player, and the engine will not guess one.
    *
@@ -713,6 +739,7 @@ export const GameEventSchema = z.strictObject({
    * is its own type, and this rejects the rest at build time.
    */
   const PLAYER_EFFECT_TYPES = [
+    'playerSale',
     'morale', 'injury', 'injuryDelta', 'statDelta', 'statDeltaSessions',
     'loyalty', 'condition', 'fame',
   ] as const;
@@ -722,6 +749,14 @@ export const GameEventSchema = z.strictObject({
    */
   event.choices.forEach((choice, choiceIndex) => {
     choice.outcomes.forEach((outcome, outcomeIndex) => {
+      if (outcome.effects.some(effect => effect.type === 'playerSale')
+        && outcome.effects.some(effect => effect.type === 'money')) {
+        addIssue(
+          context,
+          ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+          'a playerSale already pays its fee, so the same outcome must not also author a money effect',
+        );
+      }
       const facets = outcome.effects
         .filter(effect => effect.type === 'coachBoost')
         .map(effect => effect.type === 'coachBoost' ? effect.facet : '');
@@ -1295,6 +1330,26 @@ export const LaunchContentSchema = z.strictObject({
             ['events', 'events', eventIndex, 'choices', choiceIndex, 'outcomes', outcomeIndex, 'nextEventId'],
             `unknown next event ID ${outcome.nextEventId}`,
           );
+        }
+        if (outcome.nextEventId !== undefined) {
+          const followUp = content.events.events.find(candidate => candidate.id === outcome.nextEventId);
+          if (followUp !== undefined) {
+            const targetKind = (candidate: typeof event) => (
+              candidate.trigger.requiresPlayer === true ? 'player'
+                : candidate.trigger.requiresCoach === true ? 'coach'
+                  : candidate.trigger.requiresFacility !== undefined ? 'facility'
+                    : 'none'
+            );
+            const openerKind = targetKind(event);
+            const followUpKind = targetKind(followUp);
+            if (openerKind !== followUpKind && followUpKind !== 'none') {
+              addIssue(
+                context,
+                ['events', 'events', eventIndex, 'choices', choiceIndex, 'outcomes', outcomeIndex, 'nextEventId'],
+                `targeted follow-up ${followUp.id} must use the opener's target kind`,
+              );
+            }
+          }
         }
       });
     });

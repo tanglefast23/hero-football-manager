@@ -952,6 +952,8 @@ export interface StoryEventFacilityViewModel {
   levelLabel: string;
   /** The building's current benefit, in the words the facilities panel uses. */
   effectLabel: string;
+  /** Finished and currently producing its normal output. */
+  operationalStatus: string;
   /** What earlier stories have already changed about it, if anything. */
   earnedLine?: string;
 }
@@ -983,6 +985,8 @@ export interface StoryEventViewModel {
   facilityLocked?: true;
   /** Every operational building this story could be about. */
   facilityChoices: readonly StoryEventFacilityViewModel[];
+  /** Defensive only: offer/reconciliation normally removes this state. */
+  targetUnavailable: boolean;
   choices: readonly StoryEventChoiceViewModel[];
   resolvedChoiceId?: string;
   resolvedRisky?: boolean;

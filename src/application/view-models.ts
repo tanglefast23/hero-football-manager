@@ -15,6 +15,10 @@ import {
 import { managerNotes } from './manager-notes';
 import { eventOfferForWeek } from './event-selection';
 import {
+  careerEventTargetCandidates,
+  reconcilePendingCareerEvent,
+} from './career-event-targets';
+import {
   FACILITY_ADJACENCIES,
   FACILITY_CATALOG,
   activeCareerMatchday,
@@ -1286,6 +1290,7 @@ export function storyEventViewModel(
   const requiresPlayer = event.trigger.requiresPlayer === true;
   const requiresCoach = event.trigger.requiresCoach === true;
   const requiresFacility = event.trigger.requiresFacility ?? [];
+  const targetCandidates = careerEventTargetCandidates(state, event);
 
   /**
    * A coach card carries what the coach actually provides.
@@ -1318,6 +1323,11 @@ export function storyEventViewModel(
       tpBoost === 0
         ? undefined
         : t('coachStaff.effectTpWeekly', { points: `${tpBoost > 0 ? '+' : ''}${tpBoost}` }),
+      cappedCoachBoost(coach.boosts, 'motivatorHalfLevels') === 0
+        ? undefined
+        : t('storyEvent.rewardCoachMotivator', {
+            amount: `${cappedCoachBoost(coach.boosts, 'motivatorHalfLevels') > 0 ? '+' : ''}${cappedCoachBoost(coach.boosts, 'motivatorHalfLevels')}`,
+          }),
     ].filter((line): line is string => line !== undefined);
     return {
       role,
@@ -1342,7 +1352,7 @@ export function storyEventViewModel(
       ...(earned.length === 0 ? {} : { earnedLine: earned.join(' · ') }),
     };
   };
-  const coachOptions = [coachOption('HEAD'), coachOption('ASSISTANT')]
+  const coachOptions = targetCandidates.coachRoles.map(coachOption)
     .filter((option): option is StoryEventCoachViewModel => option !== undefined);
   const selectedCoach = pending.selectedCoachRole === undefined
     ? undefined
@@ -1350,13 +1360,31 @@ export function storyEventViewModel(
 
   const grid = state.facilities.grid;
   const facilityOptions: StoryEventFacilityViewModel[] = (grid?.buildings ?? [])
-    .filter(building => (requiresFacility as readonly string[]).includes(building.type))
-    .filter(building => isFacilityOperational(grid!, building.id))
+    .filter(building => targetCandidates.facilityIds.includes(building.id))
     .map(building => ({
       buildingId: building.id,
       name: t(FACILITY_NAME_KEYS[building.type]),
       levelLabel: t('facilityCompletionCard.level', { level: building.level }),
       effectLabel: facilityEffectLabel(building.type, building.level, t),
+      operationalStatus: t('storyEvent.facilityOperational'),
+      ...((() => {
+        const boosts = building.boosts;
+        const earned = [
+          boosts?.tpBonusPercent
+            ? t('storyEvent.rewardFacilityTp', { amount: signedAmount(boosts.tpBonusPercent) })
+            : undefined,
+          boosts?.trainingBonusPercent
+            ? t('storyEvent.rewardFacilityTraining', { amount: signedAmount(boosts.trainingBonusPercent) })
+            : undefined,
+          boosts?.recoveryBonus
+            ? t('storyEvent.rewardFacilityRecovery', { amount: signedAmount(boosts.recoveryBonus) })
+            : undefined,
+          boosts?.incomeBonusPercent
+            ? t('storyEvent.rewardFacilityIncome', { amount: signedAmount(boosts.incomeBonusPercent) })
+            : undefined,
+        ].filter((line): line is string => line !== undefined);
+        return earned.length === 0 ? {} : { earnedLine: earned.join(' · ') };
+      })()),
     }));
   const selectedFacility = pending.selectedFacilityId === undefined
     ? undefined
@@ -1365,6 +1393,7 @@ export function storyEventViewModel(
   // someone who plays, and within that the number is what the choice turns on.
   const squad = state.players
     .filter(player => player.clubId === state.userClubId)
+    .filter(player => targetCandidates.playerIds.includes(player.id))
     .slice()
     .sort((left, right) => (
       Number(!starterIds.includes(left.id)) - Number(!starterIds.includes(right.id))
@@ -1442,6 +1471,9 @@ export function storyEventViewModel(
     facilityChoices: requiresFacility.length > 0 && pending.facilityLocked !== true
       ? facilityOptions
       : [],
+    targetUnavailable: (requiresPlayer && targetCandidates.playerIds.length === 0)
+      || (requiresCoach && targetCandidates.coachRoles.length === 0)
+      || (requiresFacility.length > 0 && targetCandidates.facilityIds.length === 0),
     choices: event.choices.map(choice => {
       const disabledReason = eventChoiceUnavailableReason(state, choice, t);
       return {
@@ -2264,10 +2296,13 @@ export function settleWeeklyStory(state: GameState): GameState {
    * could point it at somebody who did not score.
    */
   const queued = (settled.pendingMilestones ?? []).find(entry => entry.eventId === offer.eventId);
-  return offerCareerEvent(
-    settled,
-    offer.eventId,
-    queued?.selectedPlayerId === undefined ? undefined : { playerId: queued.selectedPlayerId },
+  return reconcilePendingCareerEvent(
+    offerCareerEvent(
+      settled,
+      offer.eventId,
+      queued?.selectedPlayerId === undefined ? undefined : { playerId: queued.selectedPlayerId },
+    ),
+    LAUNCH_CONTENT.events,
   );
 }
 
@@ -3751,20 +3786,8 @@ function describeSafeOutcome(
   t: CopyFn,
   state: GameState,
 ): string {
-  const effect = effects[0];
-  if (effect?.type === 'tp') {
-    return t('storyEvent.guaranteedTp', {
-      amount: `${effect.amount >= 0 ? '+' : ''}${effect.amount}`,
-    });
-  }
-  if (effect?.type === 'money') {
-    return t('storyEvent.guaranteedMoney', { amount: formatMoney(effect.amount, true) });
-  }
-  // A safe branch whose reward is neither TP nor cash still says "guaranteed
-  // reward" rather than naming it. That is shipped behaviour and stays here;
-  // Phase 6 owns making the new effect types speak for themselves, where the
-  // wording can be changed once, deliberately, with its copy keys.
-  return t('storyEvent.guaranteedReward');
+  const reward = describeEventEffects(effects, t, state);
+  return t('storyEvent.guaranteedEffect', { reward });
 }
 
 function describeEventEffects(
@@ -3800,28 +3823,44 @@ function eventRewardItems(
 ): NonNullable<StoryEventViewModel['outcomeRewards']> {
   const rewards: NonNullable<StoryEventViewModel['outcomeRewards']>[number][] = [];
   const money = effects.reduce((sum, effect) => effect.type === 'money' ? sum + effect.amount : sum, 0);
-  /**
-   * Both moods land on the same row.
-   *
-   * The label has always read "squad morale", because until now that is the
-   * only kind an event could show. `squadMorale` is the explicit spelling of
-   * exactly that, so it reuses the key rather than inventing a second one — and
-   * counting it here is what stops a migrated event losing its reward row
-   * silently, since this reducer ignores every type it does not name.
-   */
-  const morale = effects.reduce(
-    (sum, effect) => effect.type === 'morale' || effect.type === 'squadMorale'
-      ? sum + effect.amount
-      : sum,
+  const playerMorale = effects.reduce(
+    (sum, effect) => effect.type === 'morale' ? sum + effect.amount : sum,
+    0,
+  );
+  const squadMorale = effects.reduce(
+    (sum, effect) => effect.type === 'squadMorale' ? sum + effect.amount : sum,
     0,
   );
   const fans = effects.reduce((sum, effect) => effect.type === 'fans' ? sum + effect.amount : sum, 0);
   const trainingPoints = effects.reduce((sum, effect) => effect.type === 'tp' ? sum + effect.amount : sum, 0);
   if (money !== 0) rewards.push({ label: formatMoney(money, true), kind: 'money', positive: money > 0 });
-  if (morale !== 0) rewards.push({
-    label: t('storyEvent.rewardSquadMorale', { amount: `${morale > 0 ? '+' : ''}${morale}` }),
+  const playerSale = effects.find(effect => effect.type === 'playerSale');
+  if (playerSale?.type === 'playerSale') {
+    const playerName = state.players.find(
+      player => player.id === state.pendingEvent?.selectedPlayerId,
+    )?.name;
+    rewards.push({
+      label: formatMoney(playerSale.fee, true),
+      kind: 'money',
+      positive: true,
+    });
+    rewards.push({
+      label: playerName === undefined
+        ? t('storyEvent.rewardLoseSelectedPlayer')
+        : t('storyEvent.rewardLosePlayer', { player: playerName }),
+      kind: 'stat',
+      positive: false,
+    });
+  }
+  if (playerMorale !== 0) rewards.push({
+    label: t('storyEvent.rewardPlayerMorale', { amount: signedAmount(playerMorale) }),
     kind: 'morale',
-    positive: morale > 0,
+    positive: playerMorale > 0,
+  });
+  if (squadMorale !== 0) rewards.push({
+    label: t('storyEvent.rewardSquadMorale', { amount: signedAmount(squadMorale) }),
+    kind: 'morale',
+    positive: squadMorale > 0,
   });
   if (fans !== 0) rewards.push({
     label: t('storyEvent.rewardFans', { amount: `${fans > 0 ? '+' : ''}${fans}` }),
@@ -3888,6 +3927,64 @@ function eventRewardItems(
         positive: true,
       });
     }
+    if (effect.type === 'coachBoost' && effect.amount !== 0) {
+      const key =
+        effect.facet === 'training'
+          ? 'storyEvent.rewardCoachTraining'
+          : effect.facet === 'tp'
+            ? 'storyEvent.rewardCoachTp'
+            : 'storyEvent.rewardCoachMotivator';
+      rewards.push({
+        label: t(key, { amount: signedAmount(effect.amount) }),
+        kind: 'stat',
+        positive: effect.amount > 0,
+      });
+    }
+    if (effect.type === 'coachSpecialty') {
+      rewards.push({
+        label: t('storyEvent.rewardCoachSpecialty', {
+          specialty: coachSpecialtyName(t, effect.to),
+        }),
+        kind: 'stat',
+        positive: true,
+      });
+    }
+    if (effect.type === 'facilityTpBonus' && effect.percent !== 0) {
+      rewards.push({
+        label: t('storyEvent.rewardFacilityTp', {
+          amount: signedAmount(effect.percent),
+        }),
+        kind: 'stat',
+        positive: effect.percent > 0,
+      });
+    }
+    if (effect.type === 'facilityTrainingBonus' && effect.percent !== 0) {
+      rewards.push({
+        label: t('storyEvent.rewardFacilityTraining', {
+          amount: signedAmount(effect.percent),
+        }),
+        kind: 'stat',
+        positive: effect.percent > 0,
+      });
+    }
+    if (effect.type === 'facilityRecoveryBonus' && effect.amount !== 0) {
+      rewards.push({
+        label: t('storyEvent.rewardFacilityRecovery', {
+          amount: signedAmount(effect.amount),
+        }),
+        kind: 'stat',
+        positive: effect.amount > 0,
+      });
+    }
+    if (effect.type === 'facilityIncomeBonus' && effect.percent !== 0) {
+      rewards.push({
+        label: t('storyEvent.rewardFacilityIncome', {
+          amount: signedAmount(effect.percent),
+        }),
+        kind: 'stat',
+        positive: effect.percent > 0,
+      });
+    }
   }
   if (
     rewards.length === 0
@@ -3910,6 +4007,10 @@ function formatMoney(value: number, signed = false): string {
   // U+2212 glyph, and money strings render in the pixel face.
   const sign = value < 0 ? '-' : signed && value > 0 ? '+' : '';
   return `${sign}$${Math.abs(Math.trunc(value)).toLocaleString('en-US')}`;
+}
+
+function signedAmount(value: number): string {
+  return `${value > 0 ? '+' : ''}${value}`;
 }
 
 function clubName(state: GameState, clubId: string): string {

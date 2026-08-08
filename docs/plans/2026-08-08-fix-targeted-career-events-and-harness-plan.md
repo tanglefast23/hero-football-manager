@@ -2,7 +2,7 @@
 title: "fix: Complete targeted career events in the game and Dev Harness"
 type: fix
 date: 2026-08-08
-status: approved-for-implementation
+status: implemented-with-baseline-exceptions
 supersedes: "The Phase 6 UI-complete claim in docs/superpowers/plans/2026-08-07-targeted-story-interruptions-plan.md"
 ---
 
@@ -276,13 +276,20 @@ follow-up id.
 
 ### Phase 0 — Isolate and record the baseline
 
-- [ ] Create the managed isolated worktree from verified `origin/main` SHA `b46a841d…`.
-- [ ] Copy this reviewed plan and its Grok audit into that worktree without touching the
+- [x] Create the managed isolated worktree from verified `origin/main` SHA `b46a841d…`.
+- [x] Copy this reviewed plan and its Grok audit into that worktree without touching the
   rival-intro checkout.
-- [ ] Record current targeted Jest results, typecheck, catalog counts, and the long-career
+- [x] Record current targeted Jest results, typecheck, catalog counts, and the long-career
   probe before changing code. A passing result is baseline evidence, not proof the target
   paths work.
-- [ ] Confirm the new branch/worktree has no unrelated diff.
+- [x] Confirm the new branch/worktree has no unrelated diff.
+
+Baseline evidence: 54 events (21 player-targeted, 9 coach-targeted, 6
+facility-targeted, 6 chain openers); 28 existing focused assertions passed; `npx tsc
+--noEmit` passed. The long-career probe already failed on both COZY and CHAIRMAN before
+this repair because its simulated lineup exceeded the three-licensed-hero cap. The
+isolated worktree began clean at `b46a841d…`; only this reviewed plan and its audit were
+then added.
 
 ### Phase 1 — Pin target rules and persistence with failing tests
 
@@ -520,3 +527,65 @@ actual game, the Dev Harness clearly exposes and truthfully resolves the same ev
 part two preserves its subject, all durable changes are visible and survive reload, and the
 full verification record is green or explicitly marks unavailable native QA as not
 verified. A passing test suite without those live paths is not sufficient.
+
+## Playtest correction addendum — transfer truth, plain copy, and target balance
+
+Visible Harness playtesting found three issues that must be corrected before this plan is
+done:
+
+1. `rival-bid-deadline-day` says the club takes a transfer fee, but its authored effects
+   currently add cash and morale without transferring the chosen player. Add one typed
+   `playerSale` effect carrying the fixed fee, resolve it through the existing player-sale
+   transaction path (including buyer cash, wages, lineup repair, listings, requests, and
+   transaction history), and allow this authored deal outside the ordinary market window.
+   The pre-choice consequence and result must show both `+$2,600` and dynamic copy such as
+   `Lose Gio Marsh`. If squad-cover or buyer-affordability rules make the sale impossible,
+   disable only that choice with an explicit reason; the alternative keep-player choice
+   remains available.
+2. Replace football-industry shorthand in `hometown-testimonial` and
+   `one-more-year-handshake`. The English source should say `childhood club`, `tribute
+   match`, `new contract`, and `regular playing time` directly. (`number` meant a salary
+   amount, not a shirt number; because that distinction was not recoverable from the card,
+   the contract setup must be rewritten rather than merely defining the word.) Extend this
+   into a complete review of all 54 event titles, setups, buttons, headlines, and results:
+   the setup names the situation, the button names the action, and the consequence names
+   what changes. Keep jokes only where they do not hide intent. Update every changed key in
+   all seven locale catalogs so no translated card retains superseded shorthand.
+3. Halve the authored success weight of every risky choice on the 9 coach-targeted and 6
+   facility-targeted events. Because weights are integer percentages summing to 100, round
+   an odd half down (`65 → 32`, `55 → 27`) and give the remainder to the setback. Do not
+   alter safe choices, player-targeted events, outcome effects, RNG consumption, or event
+   eligibility.
+
+Add focused gates proving the sale moves the exact carried player and records one $2,600
+transfer (without a duplicate money effect), an impossible sale is visibly unavailable,
+the two ambiguous English phrases cannot return, all 15 affected risky weights are exactly
+`floor(previous / 2)`, and all other event weights remain unchanged. Rebuild the visible
+Harness and replay the fee, childhood-club, new-contract, coach, and facility examples.
+
+## Implementation verification — 2026-08-08
+
+- The catalog remains 54 events: 21 player-targeted, 9 coach-targeted, 6
+  facility-targeted, and 6 chain openers.
+- The complete 54-event English copy was reviewed for plain intent. The 176 changed source
+  strings were updated in German, Spanish, French, Indonesian, Brazilian Portuguese, and
+  Vietnamese; i18n gates report 432/432 event strings in every locale, with placeholder,
+  glyph, and display-budget checks passing.
+- Focused content, transfer, shared-flow, and visible-Harness suites pass (67 tests), the
+  complete i18n group passes (140 tests), `npx tsc --noEmit` passes, and `git diff --check`
+  passes. After incorporating the concurrent contract-promise and rival-intro merges from
+  current `main`, 21 overlapping suites pass all 273 tests, including the shared store,
+  market, schema, localization, App, Harness, and pixel-baseline paths.
+- Before current `main` recalibrated its pixel-art baselines, the full suite completed with
+  412 passing suites, 1 skipped suite, and 3,911 passing tests; its only three failures were
+  those stale geometry counts. The corrected geometry suite now passes on the integrated
+  branch, and the final-commit workflow reruns typecheck and the complete suite as the
+  mandatory `main` merge gate.
+- The production-path long-career probe still stops in both COZY and CHAIRMAN when its
+  generated lineup exceeds the three-licensed-hero cap. The identical failure was captured
+  before implementation, so this repair did not introduce it.
+- Live browser QA on the rebuilt, muted Harness verified exact player carry, an explicit
+  `+$2,600 and Lose Gio Marsh` preview, the real sale and cash receipt, both rewritten player
+  stories, and the reduced coach/facility odds. The browser console contains only the known
+  React Native Web animation fallback warning.
+- Native touch, screen-reader, and large-text QA remain **NOT VERIFIED** in this pass.

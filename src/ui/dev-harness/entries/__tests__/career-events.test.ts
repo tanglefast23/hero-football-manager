@@ -1,191 +1,219 @@
 import { loadLaunchContent } from '../../../../content';
 import { storyEventViewModel } from '../../../../application/view-models';
-import { selectCareerEventPlayer } from '../../../../game/career-events';
+import { eventChoiceUnavailableReason } from '../../../../application/event-selection';
+import { careerEventTargetCandidates } from '../../../../application/career-event-targets';
 import type { GameState } from '../../../../game/types';
-
-/**
- * Jest runs with `testEnvironment: 'node'` and no react-native preset, so the
- * real `react-native` module throws on require. The reel's career driving is
- * plain TypeScript sitting in the same file as its component — these stubs are
- * what let it be run at all, and nothing here renders.
- */
-jest.mock('react-native', () => ({
-  StyleSheet: { create: (styles: unknown) => styles },
-  Text: 'Text',
-  View: 'View',
-}));
-jest.mock('react-native-safe-area-context', () => ({
-  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-}));
-jest.mock('../../../screens/StoryEventScreen', () => ({ StoryEventScreen: () => null }));
-jest.mock('../../DevHarnessControls', () => ({
-  DevHarnessButton: () => null,
-  devHarnessControlStyles: { row: {}, rowLabel: {} },
-}));
-
-// The mocks above are hoisted over these imports by the ts-jest transformer.
 import {
+  careerEventCaseDefinitions,
   careerEventChanges,
   careerEventsCareer,
-  careerEventsEntry,
-  careerEventsForCase,
+  continueStoryEvent,
+  eventsForCase,
   offerStoryEvent,
+  readyStoryEvent,
   resolveStoryEventChoice,
-} from '../career-events';
+} from '../career-events-controller';
 
 const CONTENT = loadLaunchContent();
 const EVENTS = CONTENT.events.events;
-
 let base: GameState;
+
 beforeAll(() => {
   base = careerEventsCareer();
 });
 
-/** The story picker's own step: offer, then pick a player if the story needs one. */
 function offered(eventId: string): GameState {
-  const event = EVENTS.find(candidate => candidate.id === eventId);
+  const event = EVENTS.find((candidate) => candidate.id === eventId);
   if (event === undefined) throw new Error(`unknown event ${eventId}`);
-  const state = offerStoryEvent(base, eventId);
-  if (event.trigger.requiresPlayer !== true) return state;
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
-  const starter = state.players.find(player => (
-    player.clubId === state.userClubId && lineup?.playerIds.includes(player.id) === true
-  ));
-  if (starter === undefined) throw new Error('the reel career has no starting XI');
-  return selectCareerEventPlayer(state, starter.id);
+  return readyStoryEvent(offerStoryEvent(base, eventId), event);
 }
 
-describe('the career events reel', () => {
-  it('adds aggregate review cases without leaving any authored story unreachable', () => {
-    const caseIds = careerEventsEntry.cases.map(entry => entry.id);
-    const categoryIds = [...new Set(EVENTS.map(event => event.category))];
+describe('the career events Dev Harness controller', () => {
+  test('preserves category cases and adds complete interaction lanes', () => {
+    const cases = careerEventCaseDefinitions();
+    const caseIds = cases.map((entry) => entry.id);
     expect(new Set(caseIds).size).toBe(caseIds.length);
-    expect(caseIds.slice(0, 2)).toEqual(['all', 'two-part']);
-    expect(new Set(caseIds.slice(2))).toEqual(new Set(categoryIds));
-    expect(careerEventsForCase('all')).toEqual(EVENTS);
-
-    const categorizedEvents = categoryIds.flatMap(id => careerEventsForCase(id));
-    expect(categorizedEvents).toHaveLength(EVENTS.length);
-    expect(new Set(categorizedEvents.map(event => event.id))).toEqual(
-      new Set(EVENTS.map(event => event.id)),
+    expect(caseIds).toEqual(
+      expect.arrayContaining([
+        'all',
+        'target-player',
+        'target-coach',
+        'target-facility',
+        'two-part',
+        ...new Set(EVENTS.map((event) => event.category)),
+      ]),
     );
-
-    const expectedTwoPartIds = new Set(EVENTS.flatMap(event => {
-      const followUpIds = event.choices.flatMap(choice => choice.outcomes.flatMap(outcome => (
-        outcome.nextEventId === undefined ? [] : [outcome.nextEventId]
-      )));
-      return followUpIds.length === 0 ? [] : [event.id, ...followUpIds];
-    }));
-    expect(careerEventsForCase('two-part').map(event => event.id)).toEqual(
-      EVENTS.filter(event => expectedTwoPartIds.has(event.id)).map(event => event.id),
-    );
-    // Every case carries the line the menu row and the bar note are drawn from.
-    expect(careerEventsEntry.cases.every(entry => (entry.note ?? '').length > 0)).toBe(true);
+    expect(eventsForCase('all')).toHaveLength(54);
+    expect(eventsForCase('target-player')).toHaveLength(21);
+    expect(eventsForCase('target-coach')).toHaveLength(9);
+    expect(eventsForCase('target-facility')).toHaveLength(6);
+    expect(eventsForCase('two-part')).toHaveLength(6);
+    expect(cases.every((entry) => entry.note.length > 0)).toBe(true);
+    expect(cases.some((entry) => entry.note.includes('fifty'))).toBe(false);
   });
 
-  it('offers every authored story to the seeded career', () => {
+  test('keeps every category deep link exhaustive without losing a story', () => {
+    const categoryIds = [...new Set(EVENTS.map((event) => event.category))];
+    expect(categoryIds.flatMap(eventsForCase)).toHaveLength(EVENTS.length);
+  });
+
+  test('builds both staff roles and an operational target for every event', () => {
+    expect(base.market?.headCoach).toBeDefined();
+    expect(base.market?.assistantCoach).toBeDefined();
+    for (const event of EVENTS) {
+      const candidates = careerEventTargetCandidates(base, event);
+      if (event.trigger.requiresPlayer === true)
+        expect(candidates.playerIds.length).toBeGreaterThan(0);
+      if (event.trigger.requiresCoach === true)
+        expect(candidates.coachRoles.length).toBeGreaterThan(0);
+      if (event.trigger.requiresFacility !== undefined)
+        expect(candidates.facilityIds.length).toBeGreaterThan(0);
+    }
+  });
+
+  test('offers all 54 through the production builder and view model', () => {
     for (const event of EVENTS) {
       const state = offerStoryEvent(base, event.id);
       expect(state.pendingEvent?.eventId).toBe(event.id);
-      // The production builder has to accept it, or the reel shows nothing.
       expect(storyEventViewModel(state, CONTENT).title).toBe(event.title);
     }
   });
 
-  it('reaches both sides of every risky choice, on the real roll', () => {
+  test('resolves every available safe choice and both authored risky sides', () => {
     for (const event of EVENTS) {
-      const risky = event.choices.find(choice => choice.risky);
-      if (risky === undefined) throw new Error(`${event.id} has no risky choice`);
-      for (const [side, index] of [['success', 0], ['miss', 1]] as const) {
-        const resolved = resolveStoryEventChoice(offered(event.id), event, risky.id, side);
-        const pending = resolved.state.pendingEvent;
-        expect(pending?.resolvedChoiceId).toBe(risky.id);
-        expect(pending?.resolvedOutcomeIndex).toBe(index);
-        expect(pending?.resolvedRisky).toBe(true);
-        expect(pending?.resolvedSuccess).toBe(index === 0);
-        expect(pending?.outcomeText).toBe(risky.outcomes[index].text);
-        // The reel never invents a resolution: it only moves the manager's risky
-        // call count, so the roll it shows is one this career genuinely produces.
-        expect(resolved.note).toContain('real roll');
+      const ready = offered(event.id);
+      const safe = event.choices.find(
+        (choice) =>
+          !choice.risky &&
+          eventChoiceUnavailableReason(ready, choice) === undefined,
+      );
+      if (safe === undefined)
+        throw new Error(`${event.id} has no available safe choice`);
+      const safeResult = resolveStoryEventChoice(ready, event, safe.id, 'miss');
+      expect(safeResult.state.pendingEvent).toMatchObject({
+        resolvedChoiceId: safe.id,
+        resolvedOutcomeIndex: 0,
+        resolvedRisky: false,
+      });
+
+      const risky = event.choices.find(
+        (choice) =>
+          choice.risky &&
+          eventChoiceUnavailableReason(ready, choice) === undefined,
+      );
+      if (risky === undefined)
+        throw new Error(`${event.id} has no available risky choice`);
+      for (const [side, index] of [
+        ['success', 0],
+        ['miss', 1],
+      ] as const) {
+        const result = resolveStoryEventChoice(ready, event, risky.id, side);
+        expect(result.state.pendingEvent).toMatchObject({
+          resolvedChoiceId: risky.id,
+          resolvedOutcomeIndex: index,
+          resolvedRisky: true,
+          resolvedSuccess: index === 0,
+        });
+        expect(result.note).toContain('real roll');
       }
     }
   });
 
-  it('resolves the safe choice to its one authored outcome either way', () => {
-    for (const event of EVENTS) {
-      const safe = event.choices.find(choice => !choice.risky);
-      if (safe === undefined) throw new Error(`${event.id} has no safe choice`);
-      for (const side of ['success', 'miss'] as const) {
-        const resolved = resolveStoryEventChoice(offered(event.id), event, safe.id, side);
-        expect(resolved.state.pendingEvent?.resolvedOutcomeIndex).toBe(0);
-        expect(resolved.state.pendingEvent?.resolvedRisky).toBe(false);
-        expect(resolved.state.pendingEvent?.outcomeText).toBe(safe.outcomes[0].text);
-      }
+  test('keeps the exact target and lock across player, coach, and facility sequels', () => {
+    const examples = [
+      ['rival-bid-arrives', 'rival-bid-deadline-day', 'player'],
+      ['the-ladder-fortnight', 'what-he-brought-back', 'coach'],
+      ['volunteer-work-party', 'the-plaque', 'facility'],
+    ] as const;
+    for (const [openerId, followUpId, kind] of examples) {
+      const event = EVENTS.find((candidate) => candidate.id === openerId)!;
+      const ready = offered(openerId);
+      const choice = event.choices.find((candidate) =>
+        candidate.outcomes.some(
+          (outcome) => outcome.nextEventId === followUpId,
+        ),
+      )!;
+      const outcomeIndex = choice.outcomes.findIndex(
+        (outcome) => outcome.nextEventId === followUpId,
+      );
+      const resolved = resolveStoryEventChoice(
+        ready,
+        event,
+        choice.id,
+        outcomeIndex === 0 ? 'success' : 'miss',
+      ).state;
+      const continued = continueStoryEvent(resolved);
+      expect(continued.pendingEvent?.eventId).toBe(followUpId);
+      if (kind === 'player')
+        expect(continued.pendingEvent).toMatchObject({
+          selectedPlayerId: ready.pendingEvent?.selectedPlayerId,
+          playerLocked: true,
+        });
+      if (kind === 'coach')
+        expect(continued.pendingEvent).toMatchObject({
+          selectedCoachRole: ready.pendingEvent?.selectedCoachRole,
+          coachLocked: true,
+        });
+      if (kind === 'facility')
+        expect(continued.pendingEvent).toMatchObject({
+          selectedFacilityId: ready.pendingEvent?.selectedFacilityId,
+          facilityLocked: true,
+        });
     }
   });
 
-  it('settles the milestone backlog so a plain story does not chain into one', () => {
-    // The seeded career has earned milestones nothing in the harness ever
-    // acknowledges. Left alone, all fifty would chain into the same recognition
-    // beat and no card would ever show the plain end of a story.
-    const spider = EVENTS.find(event => event.id === 'giant-spider-arrives');
-    if (spider === undefined) throw new Error('the spider story is missing');
-    const resolved = resolveStoryEventChoice(
-      offered(spider.id),
-      spider,
-      spider.choices[0].id,
+  test('the receipt includes coach and facility durable boost facets', () => {
+    const coachEvent = EVENTS.find((event) => event.id === 'the-badge-course')!;
+    const coachBefore = offered(coachEvent.id);
+    const coachAfter = resolveStoryEventChoice(
+      coachBefore,
+      coachEvent,
+      coachEvent.choices.find((choice) => choice.risky)!.id,
       'success',
-    );
-    expect(resolved.state.pendingEvent?.resolvedNextEventId).toBeUndefined();
+    ).state;
+    expect(
+      careerEventChanges(coachBefore, coachAfter).some((line) =>
+        line.includes('trainingPercent'),
+      ),
+    ).toBe(true);
+
+    const facilityEvent = EVENTS.find((event) => event.id === 'the-grass-mix')!;
+    const facilityBefore = offered(facilityEvent.id);
+    const facilityAfter = resolveStoryEventChoice(
+      facilityBefore,
+      facilityEvent,
+      facilityEvent.choices.find((choice) => choice.risky)!.id,
+      'success',
+    ).state;
+    expect(
+      careerEventChanges(facilityBefore, facilityAfter).some((line) =>
+        line.includes('tpBonusPercent'),
+      ),
+    ).toBe(true);
   });
 
-  it('still follows an authored chain', () => {
-    const roof = EVENTS.find(event => event.id === 'leaking-stand-roof');
-    if (roof === undefined) throw new Error('the leaking roof story is missing');
-    const chaining = roof.choices.find(
-      choice => choice.outcomes.some(outcome => outcome.nextEventId !== undefined),
-    );
-    if (chaining === undefined) throw new Error('the leaking roof story chains nowhere');
-    const index = chaining.outcomes.findIndex(outcome => outcome.nextEventId !== undefined);
-    const resolved = resolveStoryEventChoice(
-      offered(roof.id),
-      roof,
-      chaining.id,
-      index === 0 ? 'success' : 'miss',
-    );
-    expect(resolved.state.pendingEvent?.resolvedNextEventId)
-      .toBe(chaining.outcomes[index].nextEventId);
+  test('the deadline receipt names the player who was sold', () => {
+    const event = EVENTS.find(
+      candidate => candidate.id === 'rival-bid-deadline-day',
+    )!;
+    const before = offered(event.id);
+    const playerId = before.pendingEvent?.selectedPlayerId;
+    const playerName = before.players.find(player => player.id === playerId)?.name;
+    if (playerName === undefined) throw new Error('deadline test has no player');
+    const after = resolveStoryEventChoice(
+      before,
+      event,
+      'take-the-deadline-fee',
+      'miss',
+    ).state;
+    const receipt = careerEventChanges(before, after);
+
+    expect(receipt.some(line => line.includes(`${playerName} sold to`))).toBe(true);
+    expect(receipt.some(line => line.includes('cash') && line.includes('+2600')))
+      .toBe(true);
   });
 
-  it('reports the effects that landed, including the ones the screen does not show', () => {
-    const spider = EVENTS.find(event => event.id === 'giant-spider-arrives');
-    if (spider === undefined) throw new Error('the spider story is missing');
-    const before = offered(spider.id);
-    const resolved = resolveStoryEventChoice(before, spider, 'adopt-spider', 'success');
-    const changes = careerEventChanges(before, resolved.state);
-
-    // The screen's chips carry the fans and the morale. Nothing on it names the
-    // flag that outcome also sets, so the reel has to.
-    expect(changes.some(line => line.startsWith('fans 506 → 606'))).toBe(true);
-    expect(changes.some(line => line === 'flags +spider-adopted')).toBe(true);
-    expect(storyEventViewModel(resolved.state, CONTENT).outcomeRewards)
-      .not.toContainEqual(expect.objectContaining({ label: expect.stringContaining('spider') }));
-  });
-
-  it('names the player a story landed on, which the screen calls squad morale', () => {
-    const slump = EVENTS.find(event => event.id === 'player-slump');
-    if (slump === undefined) throw new Error('the slump story is missing');
-    const before = offered(slump.id);
-    const player = before.players.find(
-      candidate => candidate.id === before.pendingEvent?.selectedPlayerId,
-    );
-    if (player === undefined) throw new Error('the slump story picked nobody');
-    const resolved = resolveStoryEventChoice(before, slump, slump.choices[0].id, 'success');
-    const changes = careerEventChanges(before, resolved.state);
-    expect(changes.some(line => line.startsWith(player.name))).toBe(true);
-  });
-
-  it('says nothing changed rather than showing an empty receipt', () => {
+  test('says nothing changed rather than showing an empty receipt', () => {
     const state = offered('giant-spider-arrives');
     expect(careerEventChanges(state, state)).toEqual(['nothing changed']);
   });

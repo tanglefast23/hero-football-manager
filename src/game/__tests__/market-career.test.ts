@@ -15,6 +15,8 @@ import {
   closeCareerTransferTalks,
   coachWeeklyWageForRole,
   careerCoachUnlockedFormationIds,
+  careerEventPlayerSaleBlocker,
+  completeCareerEventPlayerSale,
   completeCareerTransfer,
   createCareerMarketState,
   dismissCareerCoach,
@@ -596,6 +598,50 @@ describe('career market integration', () => {
     };
     expect(() => sellCareerPlayer(brokeBuyerState, state.market!, reserve.id, buyer.id))
       .toThrow('cannot afford');
+  });
+
+  test('uses the full sale transaction for an authored event outside the transfer window', () => {
+    const initial = { ...createCareer(createLaunchCareerSetup(4243)), week: 12 };
+    const lineup = initial.lineups.find(candidate => candidate.clubId === initial.userClubId)!;
+    const starters = new Set(lineup.playerIds);
+    const reserve = initial.players.find(player => (
+      player.clubId === initial.userClubId
+      && !starters.has(player.id)
+      && player.role !== 'GK'
+    ))!;
+    const clubBefore = initial.clubs.find(club => club.id === initial.userClubId)!;
+
+    expect(careerEventPlayerSaleBlocker(initial, reserve.id, 2600)).toBeUndefined();
+    const sold = completeCareerEventPlayerSale(initial, reserve.id, 2600);
+    const clubAfter = sold.clubs.find(club => club.id === sold.userClubId)!;
+
+    expect(sold.players.find(player => player.id === reserve.id)?.clubId)
+      .not.toBe(sold.userClubId);
+    expect(clubAfter.cash).toBe(clubBefore.cash + 2600);
+    expect(clubAfter.weeklyWages).toBe(clubBefore.weeklyWages - reserve.weeklyWage);
+    expect(sold.cashTransactions?.at(-1)).toMatchObject({
+      kind: 'transfer-sell',
+      label: `Sold ${reserve.name}`,
+      amount: 2600,
+    });
+    expect(sold.market).toBeDefined();
+  });
+
+  test('blocks an authored event sale when it would remove matchday cover', () => {
+    const state = { ...createCareer(createLaunchCareerSetup(4243)), week: 12 };
+    const starters = new Set(
+      state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds,
+    );
+    const backupKeeper = state.players.find(player => (
+      player.clubId === state.userClubId
+      && !starters.has(player.id)
+      && player.role === 'GK'
+    ))!;
+
+    expect(careerEventPlayerSaleBlocker(state, backupKeeper.id, 2600))
+      .toBe('squad-cover');
+    expect(() => completeCareerEventPlayerSale(state, backupKeeper.id, 2600))
+      .toThrow('squad-cover');
   });
 
   test('never fills a sold starter\'s shirt with an unlicensed hero', () => {
