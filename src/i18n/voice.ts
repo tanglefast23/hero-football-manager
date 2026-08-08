@@ -68,6 +68,15 @@ const DISPLAY_LEAVES: readonly RegExp[] = [
   /^event\.[^.]+\.[^.]+\.[^.]+\.headline$/, // StoryEventScreen.tsx:192  font-pixel text-2xl
   /^glossary\.clubHandbook$/, //               GlossaryPanel.tsx:42      PixelText
   /^glossary\.[^.]+\.title$/, //               GlossaryPanel.tsx:71      font-pixel
+  // Reached through a VIEW MODEL, not a `t()` call in the component — which is
+  // why the render-site scan that produced the five above reported zero of
+  // these. The scan looks for literals in a pixel neighbourhood; these arrive
+  // as `alert.title` / `note.title`, already resolved. The drift test in
+  // `display-leaves.test.ts` documents that exact blind spot, and it was still
+  // trusted over reading the screen. Found by an outside audit.
+  /^tip\.[^.]+\.title$/, //                   ClubHomeScreen.tsx:283    PixelText uppercase
+  /^bert\.guide\.[^.]+\.inbox\.title$/, //     ClubHomeScreen.tsx:254    PixelText uppercase
+  /^bert\.fiction\.[^.]+\.title$/, //         Scorecard.tsx:71          PixelText uppercase
 ];
 
 export function voiceOf(key: string): Voice {
