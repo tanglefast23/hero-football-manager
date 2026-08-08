@@ -23,6 +23,7 @@ import {
   buildCareerFacility,
   buildTrainingGround,
   completeCupMismatchWarning as markCupMismatchWarningComplete,
+  completeRivalHeroIntro as markRivalHeroIntroComplete,
   completeCupGiantKillingCelebration as markCupGiantKillingCelebrationComplete,
   completeFirstOnboardingMatch,
   completeAssistantGuideMilestone,
@@ -57,6 +58,7 @@ import {
   productionResultFromMatch,
   quickMatchForFixture,
   protectBoardUltimatumPlayer,
+  pendingRivalHeroIntro,
   purchaseCareerTrainingUpgrade,
   reconcilePendingClubLegends,
   closeCareerFacility,
@@ -95,6 +97,7 @@ import {
   type LeagueFixture,
   type ManagerMatchPreferences,
   type NationalCupRoundLabel,
+  type RivalHeroIntroHeroId,
 } from '../game';
 import type { PlayerRequestResolution } from '../game/types';
 import type { ContractOffer, PitchCard } from '../game/market';
@@ -455,6 +458,8 @@ interface M1Store {
   completeGuideMilestone: (milestone: AssistantGuideMilestone) => void;
   /** Sends Bert away after the current pre-match Cup mismatch warning. */
   completeCupMismatchWarning: () => void;
+  /** Finishes the expected rival's first-meeting taunt and saves it once. */
+  completeRivalHeroIntro: (heroId: RivalHeroIntroHeroId) => void;
   completeCupGiantKillingCelebration: () => void;
   /** Sends Bert away after he has refused an Advance Week. */
   dismissInboxDutyReminder: () => void;
@@ -864,6 +869,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
   },
 
   setActiveTab(activeTab) {
+    const current = get();
+    if (
+      current.screen === 'matchday'
+      && current.career !== null
+      && pendingRivalHeroIntro(current.career) !== undefined
+    ) return;
     if (activeTab === 'market') {
       const career = get().career;
       if (career?.market === undefined) {
@@ -918,6 +929,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
   completeCupMismatchWarning() {
     guarded(set, () => {
       const next = markCupMismatchWarningComplete(requireCareer(get()));
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  completeRivalHeroIntro(heroId) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const next = markRivalHeroIntroComplete(career, heroId);
+      if (next === career) return;
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -1158,6 +1179,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         throw new Error(t('store.seasonPausedBySaveFailure'));
       }
       const before = requireCareer(get());
+      if (pendingRivalHeroIntro(before) !== undefined) return;
       assertLeagueCupCheckpointPersisted(get(), before);
       const { kind, fixture, fixtures, teams } = currentMatchday(before);
       const quickMatch = quickMatchForFixture(fixture, teams, {
@@ -1264,12 +1286,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   watchMatch() {
     guarded(set, () => {
+      if (get().screen !== 'matchday') return;
       // Matches saveBlocked's contract: once saving is broken the season is
       // paused, so no new match progress may start, only be retried/recovered.
       if (get().saveBlocked) {
         throw new Error(t('store.seasonPausedBySaveFailure'));
       }
       const career = requireCareer(get());
+      if (pendingRivalHeroIntro(career) !== undefined) return;
       assertLeagueCupCheckpointPersisted(get(), career);
       const { fixture, teams, cupRoundLabel } = currentMatchday(career);
       const userIsFixtureHome = fixture.homeClubId === career.userClubId;
@@ -2979,4 +3003,3 @@ function guarded(set: (partial: Partial<M1Store>) => void, action: () => void): 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
-

@@ -94,6 +94,7 @@ import {
   PlayerWalkOnWelcome,
   PlayerRequestWalkOn,
   PlayerRequestDecisionCard,
+  RivalHeroIntroScreen,
   ClubHomeScreen,
   ClubLegacyScreen,
   BertBriefingWalkOn,
@@ -210,6 +211,7 @@ import { DevHarnessScreen } from './src/ui/dev-harness/DevHarnessScreen';
 import { m2LeagueViewModel } from './src/application/m2-league-view-model';
 import { marketViewModel } from './src/application/market-view-model';
 import { careerMarketViewModelSource } from './src/application/market-source-adapter';
+import { rivalHeroIntroViewModel } from './src/application/rival-hero-intro';
 
 // Dynamic Type still grows every player-facing label, but the simulator's
 // largest accessibility category is more than 3x and makes the fixed-width
@@ -1520,6 +1522,12 @@ function GameApp() {
       : undefined;
   const savedCupGiantKilling = store.career
     ?.pendingCupGiantKillingCelebrations?.[0];
+  const rivalHeroIntro = useMemo(
+    () => store.screen === 'matchday' && store.career !== null
+      ? rivalHeroIntroViewModel(store.career, content, t)
+      : undefined,
+    [store.screen, store.career, content, locale],
+  );
   // The celebration is persisted whole, in the English the game ring wrote. Its
   // saved `divisionGap` names which of the four speeches it is, so the catalog
   // key is recovered from the save rather than stored beside it.
@@ -1545,7 +1553,9 @@ function GameApp() {
   // the voice tick that plays them — on this object's identity.
   const cupMismatchWarning = useMemo(
     () => {
-      const warning = store.screen === 'matchday' && store.career !== null
+      const warning = rivalHeroIntro === undefined
+        && store.screen === 'matchday'
+        && store.career !== null
         ? pendingCupMismatchWarning(store.career)
         : undefined;
       return warning === undefined ? undefined : {
@@ -1556,7 +1566,7 @@ function GameApp() {
         ),
       };
     },
-    [store.screen, store.career, locale],
+    [rivalHeroIntro, store.screen, store.career, locale],
   );
   const facilityComboReveal = !careerTeaches || store.screen !== 'management' || store.career === null
     ? undefined
@@ -1694,6 +1704,7 @@ function GameApp() {
     || bertNotice !== undefined
   )
     && signingWalkOn === null
+    && rivalHeroIntro === undefined
     // The Financial Report owns the screen while it is up. Bert used to walk on
     // and start talking underneath it, so a lesson the manager was meant to
     // read played out dimmed behind the modal and was over by the time they
@@ -2058,52 +2069,63 @@ function GameApp() {
       />
     );
   } else if (store.screen === 'matchday') {
-    const matchday = matchDayViewModel(
-      store.career,
-      content,
-      preferences.formationPresets[0],
-      t,
-    );
-    if (careerTeaches && !hasAssistantGuideMilestone(store.career, 'match-condition-warning-seen')) {
-      lowConditionMatchdayStarter = matchdayConditionWarningPlayer(matchday.lineup);
+    if (rivalHeroIntro !== undefined) {
+      screen = (
+        <RivalHeroIntroScreen
+          key={rivalHeroIntro.heroId}
+          viewModel={rivalHeroIntro}
+          reduceMotion={reduceMotion}
+          onComplete={store.completeRivalHeroIntro}
+        />
+      );
+    } else {
+      const matchday = matchDayViewModel(
+        store.career,
+        content,
+        preferences.formationPresets[0],
+        t,
+      );
+      if (careerTeaches && !hasAssistantGuideMilestone(store.career, 'match-condition-warning-seen')) {
+        lowConditionMatchdayStarter = matchdayConditionWarningPlayer(matchday.lineup);
+      }
+      screen = (
+        <FixtureMatchDayScreen
+          viewModel={matchday}
+          onBack={() => store.setActiveTab('home')}
+          onToggleHeroLicense={playerId => {
+            const hero = matchday.heroes.find(candidate => candidate.playerId === playerId);
+            const willEnterLineup = hero?.licensed === false
+              && !matchday.lineup.some(player => player.id === playerId);
+            const toggle = () => performManagementAction(
+              () => store.toggleHeroLicense(playerId),
+              'hero',
+              'hero',
+            );
+            if (!willEnterLineup) {
+              toggle();
+              return;
+            }
+            requestConfirmation({
+              title: 'License and change the XI?',
+              detail: `${hero?.playerName ?? 'This hero'} is on the bench. Assigning the permit will move them into the Starting XI and bench an unlicensed hero.`,
+              confirmLabel: 'License and swap',
+              tone: 'hero',
+              onConfirm: toggle,
+            });
+          }}
+          onSwapStartingPlayer={(starterId, replacementId) => performManagementAction(
+            () => store.swapStartingPlayer(starterId, replacementId),
+            'select',
+            'select',
+          )}
+          onWatchMatch={store.watchMatch}
+          onQuickResult={() => store.quickResult({
+            initialFormation: preferences.formationPresets[0],
+          })}
+          onOpenSettings={() => setGlobalSettingsOpen(true)}
+        />
+      );
     }
-    screen = (
-      <FixtureMatchDayScreen
-        viewModel={matchday}
-        onBack={() => store.setActiveTab('home')}
-        onToggleHeroLicense={playerId => {
-          const hero = matchday.heroes.find(candidate => candidate.playerId === playerId);
-          const willEnterLineup = hero?.licensed === false
-            && !matchday.lineup.some(player => player.id === playerId);
-          const toggle = () => performManagementAction(
-            () => store.toggleHeroLicense(playerId),
-            'hero',
-            'hero',
-          );
-          if (!willEnterLineup) {
-            toggle();
-            return;
-          }
-          requestConfirmation({
-            title: 'License and change the XI?',
-            detail: `${hero?.playerName ?? 'This hero'} is on the bench. Assigning the permit will move them into the Starting XI and bench an unlicensed hero.`,
-            confirmLabel: 'License and swap',
-            tone: 'hero',
-            onConfirm: toggle,
-          });
-        }}
-        onSwapStartingPlayer={(starterId, replacementId) => performManagementAction(
-          () => store.swapStartingPlayer(starterId, replacementId),
-          'select',
-          'select',
-        )}
-        onWatchMatch={store.watchMatch}
-        onQuickResult={() => store.quickResult({
-          initialFormation: preferences.formationPresets[0],
-        })}
-        onOpenSettings={() => setGlobalSettingsOpen(true)}
-      />
-    );
   } else if (store.screen === 'faceoff' && store.faceOff !== null) {
     screen = (
       <QuickResultFaceOff
@@ -2642,11 +2664,12 @@ function GameApp() {
   // miss what this gets for free: the two loading branches are one screen to the
   // eye, and the four welcome views are four.
   const screenKey: unknown = isValidElement(screen) ? screen.type : screen;
-  // The watched match and the face-off both drive a Skia canvas from a frame
-  // loop. Holding one on screen while the next screen builds asks the device for
-  // another 150ms of drawing at the exact moment it is busiest, so those two cut
-  // instead of dissolving — in both directions, since either would hold them.
-  const screenDrivesAFrameLoop = screenKey === MatchScreen || screenKey === QuickResultFaceOff;
+  // Frame-loop screens must stop drawing at handover, and the rival intro must
+  // give the lineup a clean reveal after its final speech tap. Those three cut
+  // directly instead of remaining mounted through the ordinary dissolve.
+  const screenRequiresHardCut = screenKey === MatchScreen
+    || screenKey === QuickResultFaceOff
+    || screenKey === RivalHeroIntroScreen;
 
   return (
     <LocaleProvider value={preferences.language}>
@@ -2660,6 +2683,7 @@ function GameApp() {
           || store.screen === 'watched'
           || store.screen === 'faceoff'
           || store.screen === 'awakening'
+          || rivalHeroIntro !== undefined
         ) ? 'light' : 'dark'}
       />
       <View
@@ -2683,7 +2707,7 @@ function GameApp() {
         <ScreenTransition
           screenKey={screenKey}
           reduceMotion={reduceMotion}
-          animated={!screenDrivesAFrameLoop}
+          animated={!screenRequiresHardCut}
         >
           {screen}
         </ScreenTransition>
@@ -2719,7 +2743,7 @@ function GameApp() {
             onRetry={store.retrySave}
           />
         )}
-        {developerSaveError ? (
+        {rivalHeroIntro === undefined && (developerSaveError ? (
           <FeedbackNotice
             message={developerSaveError}
             tone="error"
@@ -2733,7 +2757,7 @@ function GameApp() {
             tone={store.notice.tone}
             onDismiss={store.clearNotice}
           />
-        ) : null}
+        ) : null)}
         <SettingsOverlay
           open={globalSettingsOpen}
           glossary={content.glossary}
@@ -2979,7 +3003,7 @@ function GameApp() {
             onDone={store.dismissInboxDutyReminder}
           />
         ) : null}
-        {!guideOverlayVisible && lowConditionMatchdayStarter !== null ? (
+        {!guideOverlayVisible && rivalHeroIntro === undefined && lowConditionMatchdayStarter !== null ? (
           <MatchdayConditionWarning
             key={lowConditionMatchdayStarter.id}
             playerName={lowConditionMatchdayStarter.name}

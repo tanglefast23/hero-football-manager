@@ -9,6 +9,7 @@ import glossaryJson from '../../content/glossary.json';
 import onboardingJson from '../../content/onboarding.json';
 import playerRequestsJson from '../../content/player-requests.json';
 import powersJson from '../../content/powers.json';
+import rivalHeroIntrosJson from '../../content/rival-hero-intros.json';
 import sponsorsJson from '../../content/sponsors.json';
 import tipsJson from '../../content/tips.json';
 import trainingJson from '../../content/training.json';
@@ -44,6 +45,7 @@ export function loadLaunchContent(): LaunchContent {
     onboarding: onboardingJson,
     playerRequests: playerRequestsJson,
     powers: powersJson,
+    rivalHeroIntros: rivalHeroIntrosJson,
     sponsors: sponsorsJson,
     tips: tipsJson,
     training: trainingJson,

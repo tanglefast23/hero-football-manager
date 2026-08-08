@@ -468,6 +468,7 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
     'agent-final-lines.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
     'award-ceremony-lines.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
     'powers.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
+    'rival-hero-intros.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
     'training.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
     // Offer lines and objective templates only. The twelve brand names are
     // deliberately not keyed — a fictional sponsor is an invented proper noun,
@@ -495,6 +496,7 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
     'agent.final.': 'agent-final-lines.json',
     'ceremony.': 'award-ceremony-lines.json',
     'powerEffect.': 'powers.json',
+    'rivalHeroIntro.': 'rival-hero-intros.json',
     'drill.': 'training.json',
     'sponsor.': 'sponsors.json',
   };
@@ -538,6 +540,7 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
     'agent-final-lines.json': 100,
     'award-ceremony-lines.json': 100,
     'powers.json': 100,
+    'rival-hero-intros.json': 100,
     'training.json': 100,
     'sponsors.json': 100,
   };

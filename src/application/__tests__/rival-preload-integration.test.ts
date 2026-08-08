@@ -7,6 +7,7 @@ import {
 } from '../../game';
 import { createPreloadPump } from '../rival-preload';
 import { cachedRivalResults, clearRivalResultCache, storeRivalResult } from '../rival-result-cache';
+import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 
 /**
  * Settling a week must not depend on whether the preload ran. These drive the
@@ -21,7 +22,7 @@ function startCareerAtMatchday(seed: number): GameState {
     name: 'Jo Rook',
     ratings: DEFAULT_CREATION_RATINGS,
   });
-  const career = useM1Store.getState().career!;
+  const career = withRivalHeroIntrosSeen(useM1Store.getState().career!);
   const fixture = career.fixtures.find(candidate => (
     candidate.season === 1
     && candidate.status === 'scheduled'

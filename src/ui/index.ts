@@ -13,6 +13,7 @@ export * from './PlayerSigningOverlay';
 export * from './PlayerWalkOnWelcome';
 export * from './PlayerRequestWalkOn';
 export * from './PlayerRequestDecisionCard';
+export * from './RivalHeroIntroScreen';
 export * from './CharacterSpeechOverlay';
 export * from './TutorialTapCue';
 export * from './ScreenErrorBoundary';
