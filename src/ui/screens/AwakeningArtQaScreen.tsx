@@ -79,7 +79,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   root: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#17131f',
+    backgroundColor: '#16121f',
     paddingHorizontal: 16,
   },
   header: {

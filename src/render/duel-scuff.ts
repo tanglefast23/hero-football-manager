@@ -15,7 +15,7 @@
 export const DUEL_SCUFF_TICKS = 3;
 
 /** Kicked-up dust cream, the same family as the shot-origin puff. */
-export const DUEL_SCUFF_COLOR = '#efeade';
+export const DUEL_SCUFF_COLOR = '#f4f1ea';
 export const DUEL_SCUFF_OPACITY = 0.8;
 
 /**

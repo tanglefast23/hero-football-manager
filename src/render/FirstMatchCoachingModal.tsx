@@ -143,7 +143,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   portraitFrame: {
     borderWidth: 2,
     borderColor: '#241f2e',
-    backgroundColor: '#bcd5ee',
+    backgroundColor: '#c8ddf0',
   },
   playerFacts: { flex: 1 },
   playerName: {
@@ -163,7 +163,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
     height: 12,
     borderWidth: 2,
     borderColor: '#241f2e',
-    backgroundColor: '#d9d5e0',
+    backgroundColor: '#d9d3e0',
   },
   energyFill: {
     height: '100%',

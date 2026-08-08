@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#3f8a4a',
   },
-  pitchStripe: { position: 'absolute', left: '24%', top: 0, bottom: 0, width: '25%', backgroundColor: '#4f9b59' },
+  pitchStripe: { position: 'absolute', left: '24%', top: 0, bottom: 0, width: '25%', backgroundColor: '#529f5b' },
   pitchLine: { position: 'absolute', left: 0, right: 0, top: '56%', height: 3, backgroundColor: 'rgba(244,241,234,0.75)' },
   centerCircle: { position: 'absolute', left: '32%', top: '35%', width: '36%', aspectRatio: 1, borderWidth: 3, borderColor: 'rgba(244,241,234,0.75)', borderRadius: 999 },
   floodlight: { position: 'absolute', top: 16, width: 84, height: 16, backgroundColor: '#f4f1ea', shadowColor: '#ffffff', shadowOpacity: 0.9, shadowRadius: 22 },

@@ -275,8 +275,8 @@ const styles = StyleSheet.create({
   // Silver, not the mid-grey he was drawn with. That grey was chosen against
   // the briefing card's pale panel; standing on a dimmed screen it sat within a
   // few points of the dim itself and his hair simply disappeared.
-  bertLeftHair: { position: 'absolute', left: 22, top: 22, width: 10, height: 27, backgroundColor: '#c9c4d6' },
-  bertRightHair: { position: 'absolute', right: 21, top: 22, width: 10, height: 27, backgroundColor: '#c9c4d6' },
+  bertLeftHair: { position: 'absolute', left: 22, top: 22, width: 10, height: 27, backgroundColor: '#c9c5d0' },
+  bertRightHair: { position: 'absolute', right: 21, top: 22, width: 10, height: 27, backgroundColor: '#c9c5d0' },
   bertBaldHighlight: { position: 'absolute', left: 40, top: 17, width: 21, height: 5, backgroundColor: '#f7d7ba' },
   bertLeftBrow: { position: 'absolute', left: 30, top: 41, width: 15, height: 7, backgroundColor: '#6a4326', transform: [{ rotate: '8deg' }] },
   bertRightBrow: { position: 'absolute', right: 29, top: 41, width: 15, height: 7, backgroundColor: '#6a4326', transform: [{ rotate: '-8deg' }] },

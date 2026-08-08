@@ -50,7 +50,7 @@ export function GlossaryPanel({
           clearButtonMode="while-editing"
           onChangeText={setQuery}
           placeholder={t('glossary.searchPlaceholder')}
-          placeholderTextColor="#8f8b96"
+          placeholderTextColor="#9a95a4"
           value={query}
           className="mt-4 min-h-12 border-2 border-ink bg-white px-3 py-2 text-base text-ink"
         />

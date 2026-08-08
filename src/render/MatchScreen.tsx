@@ -225,7 +225,7 @@ const FALLBACK_SPRITE = 24;
 // automatically and announce themselves only when they actually fire.
 const RIVAL_ZONE_BANNER_TICKS = 20;
 const COLOR_SAFE_HOME_KIT = {
-  o: '#6d4510',
+  o: '#6a4326',
   r: '#ba7517',
   R: '#edb54a',
   E: '#f7d894',
@@ -2299,7 +2299,7 @@ export function MatchScreen({
                   is whole device pixels (see interpolate.ts), so wrapping the
                   contents here cannot knock the sprites off the pixel grid. */}
               <Group transform={cameraTransform}>
-                <Pitch scale={scale} />
+                <Pitch scale={scale} devicePixelRatio={devicePixelRatio} />
                 {/* Web Trap is simulation geometry, so keep its fixed trigger circle
                     visible after the caster moves. Rival traps use the threat palette. */}
                 {activeWebTraps.map(trap => (
@@ -2331,7 +2331,7 @@ export function MatchScreen({
                     cx={t.x * scale}
                     cy={t.y * scale - ballVisualOffset(t.z, scale)}
                     r={Math.max(1.5, 6.5 - i)}
-                    color="#f4f7fa"
+                    color="#ffffff"
                     opacity={0.64 * (1 - i / BALL_FLIGHT_TRAIL_LEN)}
                   />
                 ))}
@@ -2345,14 +2345,14 @@ export function MatchScreen({
                   const cx = puff.x * scale;
                   const cy = puff.y * scale;
                   return [
-                    <Circle key="puff-body" cx={cx} cy={cy} r={9 + prog * 20} color="#efeade" opacity={Math.max(0, (1 - prog) * 0.6)} />,
+                    <Circle key="puff-body" cx={cx} cy={cy} r={9 + prog * 20} color="#f4f1ea" opacity={Math.max(0, (1 - prog) * 0.6)} />,
                     ...Array.from({ length: PUFF_RINGS }, (_, k) => (
                       <Circle
                         key={`puff-${k}`}
                         cx={cx}
                         cy={cy}
                         r={11 + prog * 28 + k * 6}
-                        color="#d8d2c4"
+                        color="#d9d5cf"
                         style="stroke"
                         strokeWidth={2.5}
                         opacity={Math.max(0, (1 - prog) * (0.62 - k * 0.16))}

@@ -2626,10 +2626,10 @@ function LegacyTrainingGroundSection({
 }
 
 function facilityColor(building: ClubFacilityBuildingViewModel): string {
-  if (building.type === 'training-pitch' || building.type === 'youth-field') return '#86C07A';
-  if (building.type === 'medical-bay') return '#F8C7C7';
+  if (building.type === 'training-pitch' || building.type === 'youth-field') return '#8fd98f';
+  if (building.type === 'medical-bay') return '#f7d7ba';
   if (building.type === 'fan-shop' || building.type === 'stadium-stand') return '#C8DDF0';
-  return '#F4E7C5';
+  return '#f7d7ba';
 }
 
 /**

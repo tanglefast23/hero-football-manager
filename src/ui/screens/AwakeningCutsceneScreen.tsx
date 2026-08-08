@@ -33,6 +33,7 @@ import {
 import { PITCH_H, PITCH_W } from '../../sim/geometry';
 import type { AwakeningCutsceneViewModel } from '../models';
 import { Pitch } from '../../render/Pitch';
+import { POWER_EFFECT_DESCRIPTORS } from '../../render/power-effect-descriptors';
 import { buildFallbackAtlas, buildSpriteAtlas } from '../../render/sprites/buildAtlas';
 import { playerLookId } from '../../render/sprites/player-look';
 import { PIXEL_ART_SAMPLING } from '../../render/pixel-art-sampling';
@@ -100,7 +101,7 @@ export function AwakeningCutsceneScreen({
 }: AwakeningCutsceneScreenProps) {
   const styles = usePixelStyles(makeStyles);
   const t = useCopy();
-  const { width, height } = useWindowDimensions();
+  const { width, height, scale: devicePixelRatio } = useWindowDimensions();
   const pitchScale = width / PITCH_W;
   const viewportHeight = awakeningViewportHeight(width, height);
   const [beat, setBeat] = useState<1 | 2 | 3>(initialBeat);
@@ -462,7 +463,7 @@ export function AwakeningCutsceneScreen({
               origin={{ x: centerX, y: centerY }}
               transform={cameraTransform}
             >
-              <Pitch scale={pitchScale} />
+              <Pitch scale={pitchScale} devicePixelRatio={devicePixelRatio} />
               {beat >= 2 ? <PowerOmen powerId={viewModel.powerId} x={centerX} y={focusY} reveal={beat === 3} /> : null}
               <Atlas
                 image={atlas.image as SkImage}
@@ -649,7 +650,10 @@ function PowerOmen({
     );
   }
   if (powerId === 'PORTAL_PASS' || powerId === 'PHASE_RUN' || powerId === 'ELASTIC_KEEPER') {
-    const color = powerId === 'PORTAL_PASS' ? '#b189d9' : powerId === 'PHASE_RUN' ? '#77a4d8' : '#65b96e';
+    // A power's colour has one source of truth (docs/11). These three rings
+    // used to carry their own hand-picked hues, which drifted off-palette and
+    // away from the same power's cut-in.
+    const color = POWER_EFFECT_DESCRIPTORS[powerId].primary;
     const stretch = powerId === 'ELASTIC_KEEPER' ? 1.55 : 1;
     return (
       <>
@@ -670,10 +674,13 @@ function PowerOmen({
   }
   if (powerId === 'FUTURE_SIGHT' || powerId === 'DECOY_DOUBLE') {
     const spread = reveal ? 42 : 24;
+    // The pair reads as the power's own two colours. Sharing one hard-coded
+    // pair across both powers made FUTURE_SIGHT and DECOY_DOUBLE identical.
+    const { primary, secondary } = POWER_EFFECT_DESCRIPTORS[powerId];
     return (
       <>
-        <Circle cx={x - spread} cy={y} r={reveal ? 24 : 14} color="#b189d9" opacity={0.35} />
-        <Circle cx={x + spread} cy={y} r={reveal ? 24 : 14} color="#77a4d8" opacity={0.35} />
+        <Circle cx={x - spread} cy={y} r={reveal ? 24 : 14} color={primary} opacity={0.35} />
+        <Circle cx={x + spread} cy={y} r={reveal ? 24 : 14} color={secondary} opacity={0.35} />
         <Line p1={{ x: x - spread, y }} p2={{ x: x + spread, y }} color="#f7d894" strokeWidth={reveal ? 6 : 3} opacity={0.8} />
       </>
     );
@@ -764,10 +771,10 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
     gap: 9,
     backgroundColor: '#181420ee',
     borderWidth: 2,
-    borderColor: '#e7ff7a',
+    borderColor: '#f7d894',
     padding: 10,
   },
-  biteLabel: { fontFamily: faces.display, color: '#e7ff7a', fontSize: 10, letterSpacing: 1 },
+  biteLabel: { fontFamily: faces.display, color: '#f7d894', fontSize: 10, letterSpacing: 1 },
   biteDetail: { marginTop: 3, color: '#f4f1ea', fontSize: 10 },
   storyPanel: {
     margin: 14,
@@ -787,7 +794,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   tapHint: { fontFamily: faces.data, color: '#6b6675', fontSize: 9, letterSpacing: 0.8 },
   heroInk: { color: '#241f2e' },
   beatTitle: { marginTop: 8, fontFamily: faces.display, color: '#241f2e', fontSize: 24, lineHeight: 28, textTransform: 'uppercase' },
-  powerName: { marginTop: 4, fontFamily: faces.display, color: '#fff8df', fontSize: 17, textTransform: 'uppercase', letterSpacing: 1 },
+  powerName: { marginTop: 4, fontFamily: faces.display, color: '#f4f1ea', fontSize: 17, textTransform: 'uppercase', letterSpacing: 1 },
   powerDescriptionCard: { marginTop: 10, borderWidth: 2, borderColor: '#3f6fb5', backgroundColor: '#a3c8f0', paddingHorizontal: 10, paddingVertical: 8 },
   powerDescriptionLabel: { color: '#3f6fb5', fontFamily: faces.display, fontSize: 8, letterSpacing: 1.4 },
   powerDescription: { marginTop: 4, color: '#241f2e', fontSize: 14, lineHeight: 19 },

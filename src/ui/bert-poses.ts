@@ -38,7 +38,7 @@ export const BERT_PALETTE = {
   skin: '#eab48c',
   skinShade: '#cf9268',
   skinLight: '#f7d7ba',
-  hair: '#c9c4d6',
+  hair: '#c9c5d0',
   brow: '#6a4326',
   jacket: '#3a3350',
   lapel: '#5b3a91',
@@ -46,8 +46,8 @@ export const BERT_PALETTE = {
   tie: '#d94f52',
   mouth: '#a83440',
   shadow: '#c9c5d0',
-  sweat: '#7fb7e8',
-  blush: '#e08a7a',
+  sweat: '#77a4d8',
+  blush: '#cf9268',
 } as const;
 
 const C = BERT_PALETTE;
@@ -307,7 +307,7 @@ const ARMS = {
   ],
   clipboard: (): BertPart[] => [
     part('left', 16, 'top', 104, 13, 32, C.jacket, 10),
-    part('left', 14, 'top', 118, 32, 24, '#c9a878'),
+    part('left', 14, 'top', 118, 32, 24, '#cf9268'),
     part('left', 22, 'top', 114, 16, 6, C.hair),
     part('right', 14, 'top', 101, 13, 42, C.jacket, -5),
     part('right', 15, 'top', 137, 13, 15, C.skinShade),

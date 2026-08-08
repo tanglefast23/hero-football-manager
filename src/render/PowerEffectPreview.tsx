@@ -68,7 +68,7 @@ export function PowerEffectPreview({
       </View>
       <View style={[styles.canvasFrame, { width: width - 12, height }] }>
         <Canvas style={{ width: width - 12, height }}>
-          <Fill color="#285b35" />
+          <Fill color="#265b30" />
           {pitchStripeXs.map((x, index) => (
             <Rect
               key={index}
@@ -118,9 +118,9 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     overflow: 'hidden',
     borderWidth: 3,
-    borderColor: '#17131f',
+    borderColor: '#16121f',
     borderRadius: 8,
-    backgroundColor: '#211b2b',
+    backgroundColor: '#241f2e',
   },
   header: {
     minHeight: 58,
@@ -129,14 +129,14 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     borderBottomWidth: 3,
-    borderBottomColor: '#17131f',
+    borderBottomColor: '#16121f',
     backgroundColor: '#312641',
   },
   colorChip: {
     width: 9,
     height: 34,
     borderWidth: 2,
-    borderColor: '#17131f',
+    borderColor: '#16121f',
   },
   titleBlock: {
     flex: 1,
@@ -164,8 +164,8 @@ const styles = StyleSheet.create({
     margin: 3,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#17131f',
-    backgroundColor: '#285b35',
+    borderColor: '#16121f',
+    backgroundColor: '#265b30',
   },
   timeline: {
     flexDirection: 'row',
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 5,
-    backgroundColor: '#17131f',
+    backgroundColor: '#16121f',
   },
   progressFill: {
     height: 5,

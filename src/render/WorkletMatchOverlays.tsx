@@ -82,9 +82,9 @@ interface FlameLayer {
 }
 
 const FLAME_LAYERS: readonly FlameLayer[] = [
-  { color: '#c0261e', heightScale: 1, widthScale: 1, opacity: 0.9 },
+  { color: '#c22f2c', heightScale: 1, widthScale: 1, opacity: 0.9 },
   { color: '#ff6a00', heightScale: 0.72, widthScale: 0.78, opacity: 0.95 },
-  { color: '#ffc23a', heightScale: 0.45, widthScale: 0.55, opacity: 0.9 },
+  { color: '#edb54a', heightScale: 0.45, widthScale: 0.55, opacity: 0.9 },
 ];
 
 // Radial speed lines for the speed powers. Sixteen fixed spokes, precomputed at
@@ -327,7 +327,7 @@ export function WorkletBallShadow({
   });
   const opacity = useDerivedValue(() => ballShadowOpacity(ballHeight.value));
 
-  return <Path path={shadow} color="#17371d" opacity={opacity} />;
+  return <Path path={shadow} color="#26512f" opacity={opacity} />;
 }
 
 /** Gameplay overlays share the Atlas worklet's interpolated player centers. */

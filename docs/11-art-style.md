@@ -44,6 +44,71 @@ Face extras: soft skin outline `#6a4326`, nostril/crease `#b07a52`, grey hair `#
 
 **Rule:** pick a ramp, use its four steps. A shape uses one family + ink + cream + at most one neutral for a contact shadow. Extend a ramp for more range; never invent a one-off colour.
 
+### Extended ramps — named 2026-08-08
+
+These already ship. They were authored correctly against the discipline above but had no name, so an audit read them as one-off colours. Named here so they are usable and enforceable.
+
+| Ramp | Values | Job |
+|---|---|---|
+| **Violet — power identity** | `#5b3a91` · `#9a63d6` · `#c9a6ec` | Magic/power FX and the character sprites that carry them. The one violet the 2026-07-24 retirement kept: **art track only, never UI chrome.** |
+| **Pitch — dark extension** | `#26512f` · `#31703f` (below `#3f8a4a`) · `#529f5b` (between base and light) | Night turf and mow-stripe gradients. With the core three this is a 5-step ramp travelling 133°→120° — **the only ramp in the game that meets the hue-shift rule.** |
+| **Ink-deep** | `#16121f` | The stage ground *below* ink: match-rail wells, overlay scrims, cut-in backdrops. Ink `#241f2e` is structure; this is the void behind it. Replaced four near-identical ad-hoc darks. |
+| **Night** | `#19142a` | Night sky on the celebration screens only. Distinct job from Ink-deep — do not merge them. |
+| **Flame** | `#ff6a00` | A single accent, not a ramp: fire, heat and hazard FX only, always against the gold ramp. Never a fill, never chrome. |
+
+### Sprite-sheet ramps — the art track's own set
+
+`src/render/sprites/portraits.json` carries a keyed palette (lowercase = shadow, uppercase = base/light) that the 193 player identities and every portrait draw from. It is **not** a rogue palette: kits and skin need more saturation and more steps than the UI families give, which is the "extend a ramp" case the rule above sanctions. Named here so it stops reading as 25 one-off colours.
+
+| Ramp | Keys | Values | Hue travel |
+|---|---|---|---|
+| **Kit red** | `o` `r` `R` `E` | `#7a2731` · `#c22f2c` · `#e8433f` · `#f2938c` | +11° |
+| **Kit blue** | `b` `B` `C` | `#2f55b8` · `#3f6fd8` · `#a3c8f0` | −12° |
+| **Leather / boot** | `x` `y` `z` | `#241a17` · `#3d2a22` · `#534537` | +16° |
+| **Skin, 5-step** | `d` `m` `n` `S` `L` | `#8a4f38` · `#a86a42` · `#cf9268` · `#eab48c` · `#f7d7ba` | +12° |
+| **Kit accents** | `T` `A` | `#1d9e75` teal · `#ba7517` amber | single values |
+
+**Every one of these meets the 8–15° hue-shift rule, while five of the seven master UI ramps do not.** The sprite sheet is the better-disciplined half of the game's colour; when the master ramps are ever re-derived, derive them from these.
+
+The brighter sprite-sheet `R`/`B`/`F` are also what the hero charge meter's rainbow bands wear, deliberately — a band in a HUD kit token would dissolve into the possession card behind it. That is load-bearing and covered by a test; do not "correct" those to the UI red and blue.
+
+**One source of truth per power.** A power's colours come from `POWER_EFFECT_DESCRIPTORS` (`src/render/power-effect-descriptors.ts`) and nowhere else. All 17 entries are palette-clean; any screen that needs a power's colour reads `primary`/`secondary`/`highlight` from it rather than picking its own.
+
+### The last seven — named 2026-08-08
+
+After the conformance pass, every colour the shipped game draws is canon except these, and each earns its place. Everything else that drifted was snapped into the ramps above (79 colours across 85 sites), same-hue-family only.
+
+| Named | Values | Job |
+|---|---|---|
+| **Celebration accents** | `#f6c744` gold · `#62b5e5` blue · `#63c56b` green | Confetti and fireworks. Deliberately brighter than the UI families so a fleck stays legible against a lit stage; used as one triad across all five celebration surfaces. |
+| **Energy readout** | `#65b96e` green · `#f06b6e` red | Energy band type on the dark match rail. The turf and UI reds cannot carry small copy at that size — the same reason `#265b30` exists. |
+| **Rail indigo** | `#49415f` | The match rail and cup-card panel ground: one step lighter than ink-soft, so a panel separates from the scrim without becoming grey. |
+| **Blue extension** | `#77a4d8` mid · `#c8ddf0` pale | The core blue ramp is only three steps; coaching overlays and drill scenes need a mid accent and a pale wash between `#a3c8f0` and cream. |
+| **Warm off-white** | `#d9d5cf` | The sprite sheet's own neutral — eye whites and bone, warm where `#d9d3e0` is cool. Paired with skin, never with UI chrome. |
+
+Two greens sit outside every turf ramp on purpose and are **not** turf: `#65b96e` (energy readout type — needs contrast the turf shadow can't give on a dark rail, same reason `#265b30` exists) and `#63c56b` (confetti/fireworks, deliberately brighter than pitch base). Both are legal; neither may be used on grass.
+
+### Club colours
+
+Each club in `content/clubs.json` carries a `primaryColor` / `secondaryColor` pair. **Nothing renders them yet** — the match paints fixed home/away kits from `src/render/team-kit-ui.ts` (`#d94f52` home, `#edb54a` colour-safe home, `#5a8fd6` away), and the only code that touches the club fields is the zod schema that validates them. They were re-derived onto the palette on 2026-08-08 anyway, so the day they are wired up they are already legal. Every pair keeps its club's original character; only the values moved.
+
+| Club | Primary | Secondary | Reads as |
+|---|---|---|---|
+| Bramble Rovers | `#31703F` | `#EDB54A` | bramble green / gold |
+| Ferrous United | `#6B6675` | `#E8433F` | iron grey / rust red |
+| Harbor Comets | `#2F55B8` | `#F4F1EA` | harbour blue / white |
+| Oakridge Owls | `#6A4326` | `#F7D894` | oak brown / wheat |
+| Neon Athletic | `#9A63D6` | `#A3C8F0` | neon violet / electric pale blue |
+| Meadow City | `#529F5B` | `#F7D894` | meadow green / pale gold |
+| Quartz FC | `#C9C5D0` | `#241F2E` | pale crystal / ink |
+| Thunder Borough | `#EDB54A` | `#16121F` | lightning gold / storm dark |
+| Cedar Crown | `#26512F` | `#BA7517` | cedar green / amber |
+| Moonlight Town | `#5B3A91` | `#C9A6EC` | deep violet / moon pale |
+
+Rules for adding a club: draw both values from the ramps above, keep **every primary unique** (that is the badge colour a player learns), and write hex **uppercase** — the schema regex is `^#[0-9A-F]{6}$` and rejects lowercase. Secondaries may repeat; real leagues are full of white and gold trim.
+
+> If per-club kits are ever painted on the pitch, they must not defeat the colour-safe home/away split — that system exists so the two teams stay apart by lightness when hue is unavailable, and it is covered by tests in `src/render/__tests__/team-kit-ui.test.ts`.
+
 ## Typography — the pixel font
 
 The game speaks in **one bitmap pixel font: HFM Silkscreen** (`assets/fonts/`, built by
@@ -129,8 +194,48 @@ Buildings, goals, and items obey the same outline + 4-value shading as character
 | File naming | `track/category/name@1x.png` — `art/player/striker_ko@1x.png`, `art/prop/goal_net@1x.png`, `ui/button/confirm.png`. |
 | Spacing | The 8-pt grid everywhere (`4 / 8 / 12 / 16 / 24 / 32`), per [08](08-ui-ux.md). |
 
+## Pixel Logic compliance
+
+Craft rules adopted 2026-08-08 from *Pixel Logic* (Michafrar), kept only where they add something the sections above don't already say. They govern *how a curve or a ramp is built*; the palette, outline colour and 4-value discipline above still bind.
+
+1. **Curves progress; they don't stumble.** A curve's step runs should *change* along it — `3,2,1` opening out, `1,2,3` closing in. Equal runs all the way down are a straight diagonal, not a curve. What a curve must never do is stumble: a **single-row step marooned between two runs of three or more** is the classic accidental jaggie, and the cure is redrawing the step, never a smoothing pixel.
+
+   *(First written as "never mix a 1px and a 2px step on one curve." That was wrong on the merits — it described a diagonal and condemned 62–75% of the cast, which is the medium, not a defect. The corrected rule finds 15 real jaggies in the portrait sheet across five identities and 106 in the match sheet; both are gated at an exact count.)*
+2. **One line weight per sprite family.** Every outline and interior limb break in the character set is **1px** and stays 1px whatever the kit colour — a red player and a blue player must have identical weight or their silhouettes stop matching at 1×. Thicker weights are a Track A privilege (the 2px button outline), not a per-sprite choice.
+3. **Hue-shift every *new* ramp.** A shadow is not just a darker base. Rotate ~8–15° per step in one consistent direction: **shadows toward the ink-plum end** (ink `#241f2e` is a violet, so shadows that lean plum harmonise with every outline in the game), **highlights toward warm**. This buys depth with no new families — extend a ramp by hue-shifting, never by introducing a colour.
+
+   **This binds new and extended ramps only. The seven master ramps are locked as they are**, and five of them do not meet it — measured shadow→light hue travel: Red **+10°**, Pitch **−9°**, Gold **+6°**, Wood **+5°**, Blue **−4°**, Skin **+4°**, Grey **+2°**. Re-deriving them would retouch every sprite, every kit and every golden snapshot to buy 4–10° that reads as nothing at 1×. The rule is a craft constraint for *building* a ramp, not a gate on the foundation.
+4. **Test at 1× on cream before export.** Every new sprite gets viewed at native size on `#f4f1ea`, alongside the rest of its set, before it ships. If it doesn't read instantly there, the fix is a bigger shape or a stronger silhouette — never more detail. Detail added below the readable threshold is cost with no payoff.
+5. **One pitch-line weight.** Pitch markings are a single stroke width across every pitch asset (`LINE_W = 2` in [Pitch.tsx](src/render/Pitch.tsx:24)); goalposts are deliberately the one exception at `POST_W = 4`, so the goal mouth reads at a glance. New pitch furniture uses `LINE_W`, not a new number.
+
+### What measuring these actually showed (2026-08-08)
+
+The sheets were measured, and three of the rules above needed scoping rather than enforcing. `src/render/sprites/__tests__/pixel-bible-geometry.test.ts` is the standing gate for the rest — outline colour, outline weight, and edge survival, run against **the background each sheet actually sits on** (portraits on cream, match sprites on pitch base; judging match sprites against cream invents thousands of failures that do not exist).
+
+- **Rule 1 holds, with one sanctioned exception.** All 177 `fontSize` declarations are integers. Three celebration surfaces put a soft halo *behind* crisp glyphs (`textShadowRadius` 7 in [EndgameCelebrationScreen](src/ui/screens/EndgameCelebrationScreen.tsx:138) and [SurgeBanner](src/ui/components/SurgeBanner.tsx:150), 2 in [ChampionshipCelebrationScreen](src/ui/screens/ChampionshipCelebrationScreen.tsx:571)). The glyph edges stay hard; the glow is what lets type survive the brightest art in the game. Allowed **only** for type over busy celebration scenes — never on chrome, never on the glyphs themselves.
+- **Rule 7 was mis-stated, not inapplicable.** Measuring "equal step runs" flagged 62–75% of curves, and I first read that as the rule not binding at 24×29. Review corrected it: equal runs describe a diagonal, and real curves *should* vary. Re-stated as "no single-row step marooned between two runs of 3+", it finds a short, nameable list instead — **15 in portraits, 106 in match sprites** — and is gated at those exact counts. The lesson generalises: when a conformance check condemns most of the corpus, suspect the check.
+- **Rule 2 was being measured in the wrong unit.** Sprites average 8.5–9.4 colours and peak at 13, which is correct: a character wears skin + hair + kit + ink at once. The four-value rule governs **one icon or one material**, not one cast member.
+- **Rule 8 has a real gap.** The 1px band dominates (72% portraits, 74% match sprites), but portraits carry an outline on only **79.5%** of their silhouette against the match sprites' **97.3%** — roughly a fifth of a portrait's edge is bare fill meeting the background. Fixing that is authoring work on the 1299-sprite sheet, not a code change.
+- **Rule 4 confirmed with evidence.** Zero pure-black entries in any of the five palettes; every outline is a dark tint.
+- **Rule 12 needs a size qualifier.** UI chrome is 96% clean at the canon 2px (367 `border-2` against 14 `border-4`). Every `borderWidth: 1` in the codebase is a sub-12px micro-element — an 8×8 progress dot, a 9×5 pip, a confetti fleck — where a 2px border would eat the element. **2px is the chrome weight; elements under ~12px use 1px.** The Don't-list ban on "thin 1px UI outlines" means buttons and panels, not pips.
+- **Rule 3 is gated at the only level a metric can honestly reach.** Whether a face exaggerates well is a judgment; whether the *cast* varies is measurable. Eye-band vs jaw-band ink across the 433 identities spans 0.67–4.5 (median 1.50), with only 7% showing no dominant feature — so the roster is genuinely pushed in different directions, not one head in recolours. The gate asserts that spread, and would fail if the cast collapsed toward a single template.
+
+**The rule-10 backlog is 291 pixels, and the gate holds an exact count per sheet — not a percentage.** A percentage budget was the first thing tried and it was wrong twice over: it let new debt hide behind a growing sheet, and it handed sheets a silent allowance. Under a 0.001 budget the portraits and match sprites read as clean while carrying 158 bad pixels between them. Absolute counts, zero tolerance for new ones:
+
+| Sheet | Known dissolving pixels | What |
+|---|---|---|
+| match sprites | 104 | `#ff6a00`, `#a3c8f0`, `#b9b4c2`, `#f2938c`, `#1d9e75` meeting turf |
+| management sprites | 116 | `#c5c1ca` ×80, `#fff5dc` ×36 meeting cream |
+| portraits | 54 | mostly `#ffffff` and `#a3c8f0` meeting cream |
+| event objects | 17 | incl. two pixels of cream fill on a cream backdrop — invisible at any size |
+| finance icons | 0 | clean |
+
+Fixing these is authoring work: the cure is an ink outline, not a colour swap, and patching pixels blind is how a silhouette dies. Lower a number when art is fixed; never raise one.
+
+**Rejected — selective anti-aliasing on button corners.** *Pixel Logic*'s selective-AA technique is for authored sprite art at high curvature; it does not transfer here. Track A buttons are not authored pixels — they are runtime views (`border-2 border-b-4 border-ink`), so there is no corner pixel to cushion, and where a radius does exist the platform already smooths it. Adding intermediate tones would also double every ramp and contradict the hard rules above (`no anti-aliasing`, `never blur pixel type`). **Jaggies are cured by rule 1, not by AA.** The hero-Zone glow and all FX frames are covered by the same ban — a soft-tinted chunky edge, never a feathered one.
+
 ## Do / don't
 
-**Do** — cream canvas, vibrant chunky buttons; thick 2px outlines and rounded corners on UI; Silkscreen pixel-font labels; on art, coloured outlines + 4-value bands + one character-giving exaggeration + a ground contact shadow; build an explicitly multicultural cast; break the thirds on faces; ship resting/joy/KO sets.
+**Do** — cream canvas, vibrant chunky buttons; thick 2px outlines and rounded corners on UI; Silkscreen pixel-font labels; on art, coloured outlines + 4-value bands + one character-giving exaggeration + a ground contact shadow; build an explicitly multicultural cast; break the thirds on faces; ship resting/joy/KO sets; hold one stair-step rhythm per curve; hue-shift a ramp instead of adding a colour; check every new sprite at 1× on cream.
 
-**Don't** — flat square tinted-rectangle buttons; thin 1px UI outlines; system font on labels; `#000000` outlines; smooth gradients or anti-aliasing; ethnicity-as-caricature or recolored clone faces; blueprint-flat sterile props; literal every-hole nets; mixed perspective in the menu set; bevel/gloss on sprites; one-off colours outside the palette.
+**Don't** — flat square tinted-rectangle buttons; thin 1px UI outlines; system font on labels; `#000000` outlines; smooth gradients or anti-aliasing (including "selective" AA on button corners); mixed 1px/2px steps on one curve; line weight that changes between two players in the same set; ethnicity-as-caricature or recolored clone faces; blueprint-flat sterile props; literal every-hole nets; mixed perspective in the menu set; bevel/gloss on sprites; one-off colours outside the palette.
