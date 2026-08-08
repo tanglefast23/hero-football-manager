@@ -188,6 +188,35 @@ describe('M4 event selection', () => {
     }
   });
 
+  it('never draws an authored follow-up from the random deck', () => {
+    const initial = createCareer(createLaunchCareerSetup(88));
+    const opener = content.events.find(
+      (event) => event.id === 'rival-bid-arrives',
+    )!;
+    const followUp = content.events.find(
+      (event) => event.id === 'rival-bid-deadline-day',
+    )!;
+    const state = {
+      ...initial,
+      season: 1,
+      week: 9,
+      phase: 'manage' as const,
+      eventFlags: ['rival-bid-rebuffed'],
+      eventClock: { weeksWithoutEvent: 8, riskyChoices: 0 },
+      resolvedEventIds: [opener.id],
+    };
+
+    expect(
+      eventOfferForWeek(
+        state,
+        { ...content, events: [opener, followUp] },
+        { deskClear: true },
+      ),
+    ).toEqual({
+      eventClock: { weeksWithoutEvent: 9, riskyChoices: 0 },
+    });
+  });
+
   it('can re-offer an authored repeatable event after its dry-spell guarantee', () => {
     const initial = createCareer(createLaunchCareerSetup(88));
     const repeatable = content.events.find(event => event.id === 'the-double-session')!;

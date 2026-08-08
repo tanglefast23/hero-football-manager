@@ -2,6 +2,7 @@ import type { EventCatalog } from '../content';
 import { copyFor, type CopyFn } from '../i18n';
 import { facilityNameFromId, personalityName } from './name-copy';
 import {
+  careerEventPlayerSaleBlocker,
   deterministicCareerEventRoll,
   currentUserDivision,
   isCareerMilestoneEventId,
@@ -9,6 +10,11 @@ import {
   rollWeeklyEvent,
   type GameState,
 } from '../game';
+import {
+  careerEventHasLegalTarget,
+  carriedOnlyCareerEventIds,
+  reconcilePendingCareerEvent,
+} from './career-event-targets';
 
 export interface EventOfferForWeek {
   readonly eventId?: string;
@@ -113,12 +119,16 @@ export function eventOfferForWeek(
   const weekly = rollWeeklyEvent(state.eventClock, weeklyRoll, catalog.tuning);
   if (!weekly.offered) return { eventClock: weekly.state };
 
+  const carriedOnly = carriedOnlyCareerEventIds(catalog);
   const candidates = catalog.events
     .filter(event => event.id !== 'giant-spider-arrives')
     // Recognition has its own lane above. Milestone cards carry a `requiredFlag`
     // that the club has by definition once earned, so without this they would
     // also sit in the random deck and could be drawn out of queue order.
     .filter(event => !isCareerMilestoneEventId(event.id))
+    // Authored chapters arrive only from their opener. Letting one sit in the
+    // random deck would either re-cast its target or show part two first.
+    .filter(event => !carriedOnly.has(event.id))
     .filter(event => eventIsEligible(state, event))
     .filter(event => event.trigger.repeatable === true || !state.resolvedEventIds.includes(event.id))
     .sort((left, right) => left.id.localeCompare(right.id));
@@ -163,10 +173,7 @@ export function reconcilePendingStoryEvent(
   state: GameState,
   catalog: EventCatalog,
 ): GameState {
-  const pending = state.pendingEvent;
-  if (pending === undefined) return state;
-  if (catalog.events.some(event => event.id === pending.eventId)) return state;
-  return { ...state, pendingEvent: undefined };
+  return reconcilePendingCareerEvent(state, catalog);
 }
 
 export function eventIsEligible(
@@ -183,45 +190,8 @@ export function eventIsEligible(
     && (trigger.requiredFlag === undefined || state.eventFlags.includes(trigger.requiredFlag))
     && (trigger.minDivision === undefined || division >= trigger.minDivision)
     && (trigger.maxDivision === undefined || division <= trigger.maxDivision)
-    && targetableNow(state, trigger)
+    && careerEventHasLegalTarget(state, event)
     && requirementsMet(state, trigger);
-}
-
-/**
- * A targeted story leaves the deck rather than arriving as a card the manager
- * cannot answer.
- *
- * An event that asks for a coach at a club with no staff, or for a building the
- * club has not finished, would otherwise be drawn and then sit with every
- * choice disabled — which reads as a bug, not as a locked opportunity.
- */
-function targetableNow(
-  state: GameState,
-  trigger: EventCatalog['events'][number]['trigger'],
-): boolean {
-  if (trigger.requiresCoach === true) {
-    const market = state.market;
-    if (market?.headCoach === undefined && market?.assistantCoach === undefined) return false;
-  }
-  if (trigger.requiresBothCoaches === true) {
-    const market = state.market;
-    if (market?.headCoach === undefined || market?.assistantCoach === undefined) return false;
-  }
-  if (trigger.requiresFacility !== undefined) {
-    const grid = state.facilities.grid;
-    const usable = grid?.buildings.some(building => (
-      (trigger.requiresFacility as readonly string[]).includes(building.type)
-        && isFacilityOperational(grid, building.id)
-    )) ?? false;
-    if (!usable) return false;
-  }
-  if (trigger.requiresPlayerRole === 'GK') {
-    const hasKeeper = state.players.some(player => (
-      player.clubId === state.userClubId && player.role === 'GK'
-    ));
-    if (!hasKeeper) return false;
-  }
-  return true;
 }
 
 export function eventChoiceUnavailableReason(
@@ -230,8 +200,29 @@ export function eventChoiceUnavailableReason(
   t: CopyFn = englishCopy(),
 ): string | undefined {
   const requirements = choice.requires;
-  if (requirements === undefined) return undefined;
-  return requirementFailure(state, requirements, t);
+  const requirementReason = requirements === undefined
+    ? undefined
+    : requirementFailure(state, requirements, t);
+  if (requirementReason !== undefined) return requirementReason;
+
+  const sale = choice.outcomes.flatMap(outcome => outcome.effects)
+    .find(effect => effect.type === 'playerSale');
+  const playerId = state.pendingEvent?.selectedPlayerId;
+  if (sale?.type !== 'playerSale' || playerId === undefined) return undefined;
+  const player = state.players.find(candidate => candidate.id === playerId);
+  const blocker = careerEventPlayerSaleBlocker(state, playerId, sale.fee);
+  if (blocker === 'squad-cover' && player !== undefined) {
+    return t('storyEvent.requiresSaleCover', { player: player.name });
+  }
+  if (blocker === 'no-buyer') {
+    return t('storyEvent.requiresSaleBuyer', {
+      amount: `$${sale.fee.toLocaleString()}`,
+    });
+  }
+  if (blocker !== undefined) {
+    return t('storyEvent.saleUnavailable');
+  }
+  return undefined;
 }
 
 function requirementsMet(

@@ -136,6 +136,34 @@ describe('validated M1 launch content', () => {
     expect(content.events.events.some(event => event.choices.some(choice => (
       choice.outcomes.some(outcome => outcome.nextEventId !== undefined)
     )))).toBe(true);
+    expect(content.events.events.filter(event => event.trigger.requiresPlayer === true)).toHaveLength(21);
+    expect(content.events.events.filter(event => event.trigger.requiresCoach === true)).toHaveLength(9);
+    expect(content.events.events.filter(event => event.trigger.requiresFacility !== undefined)).toHaveLength(6);
+    expect(content.events.events.filter(event => event.choices.some(choice => (
+      choice.outcomes.some(outcome => outcome.nextEventId !== undefined)
+    )))).toHaveLength(6);
+
+    const roleRestricted = content.events.events.filter(
+      event => event.trigger.requiresCoachRole !== undefined,
+    );
+    expect(roleRestricted).toHaveLength(1);
+    expect(roleRestricted[0]).toMatchObject({
+      id: 'assistant-takes-the-week',
+      trigger: { requiresCoach: true, requiresCoachRole: 'ASSISTANT' },
+    });
+
+    for (const event of content.events.events) {
+      const specialtyTargets = new Set(event.choices.flatMap(choice => (
+        choice.outcomes.flatMap(outcome => outcome.effects.flatMap(effect => (
+          effect.type === 'coachSpecialty' ? [effect.to] : []
+        )))
+      )));
+      // Target selection happens before the choice, so one event cannot ask
+      // the candidate rule to exclude two unrelated existing specialties.
+      expect({ eventId: event.id, specialtyTargets: [...specialtyTargets] })
+        .toMatchObject({ eventId: event.id });
+      expect(specialtyTargets.size).toBeLessThanOrEqual(1);
+    }
 
     for (const player of players) {
       expect(['GK', 'DEF', 'MID', 'FWD']).toContain(player.role);
@@ -207,11 +235,22 @@ describe('validated M1 launch content', () => {
       ['one-more-year-handshake', 'the-promise-kept'],
       ['one-more-year-handshake', 'the-promise-broken'],
     ]));
-    // Every authored thread step is reachable by the flag its opener produces,
-    // so a chain broken by a retired event still resolves from the weekly deck.
+    // Flags keep the causal content contract explicit even though follow-ups
+    // now enter only through their opener and never through the random deck.
     for (const followUpId of ['rival-bid-deadline-day', 'west-stand-reopening', 'terrace-choir-anthem']) {
       expect(events.find(event => event.id === followUpId)?.trigger.requiredFlag)
         .toEqual(expect.any(String));
+    }
+    const targetKind = (candidate: (typeof events)[number]) => (
+      candidate.trigger.requiresPlayer === true ? 'player'
+        : candidate.trigger.requiresCoach === true ? 'coach'
+          : candidate.trigger.requiresFacility !== undefined ? 'facility'
+            : 'none'
+    );
+    for (const [openerId, followUpId] of chains) {
+      const opener = events.find(event => event.id === openerId)!;
+      const followUp = events.find(event => event.id === followUpId)!;
+      expect([targetKind(opener), 'none']).toContain(targetKind(followUp));
     }
     // Good news the player can look forward to: stories whose every outcome
     // leaves the club no worse off than it started.
@@ -220,6 +259,7 @@ describe('validated M1 launch content', () => {
         // A flag is bookkeeping; an injury is the definition of worse off.
         if (effect.type === 'flag') return true;
         if (effect.type === 'injury') return false;
+        if (effect.type === 'playerSale') return false;
         // A heal only ever shortens an absence, so it is never bad news even
         // though its `weeks` are negative.
         if (effect.type === 'injuryDelta') return true;
@@ -316,6 +356,21 @@ describe('validated M1 launch content', () => {
     const badEventLink = cloneContent(loadLaunchContent());
     badEventLink.events.events[0].choices[0].outcomes[0].nextEventId = 'missing-event';
     expect(() => parseLaunchContent(badEventLink)).toThrow(/unknown next event ID/);
+
+    const mismatchedTargetChain = cloneContent(loadLaunchContent());
+    const westStand = mismatchedTargetChain.events.events.find(
+      (event) => event.id === 'west-stand-reopening',
+    )!;
+    westStand.trigger.requiresPlayer = true;
+    expect(() => parseLaunchContent(mismatchedTargetChain)).toThrow(
+      /targeted follow-up west-stand-reopening must use the opener's target kind/,
+    );
+
+    const roleWithoutCoach = cloneContent(loadLaunchContent());
+    roleWithoutCoach.events.events[0].trigger.requiresCoachRole = 'ASSISTANT';
+    expect(() => parseLaunchContent(roleWithoutCoach)).toThrow(
+      /requiresCoachRole requires requiresCoach/,
+    );
 
     const missingPower = cloneContent(loadLaunchContent());
     missingPower.powers.powers[1].id = 'SUPER_SPEED';
@@ -601,5 +656,124 @@ describe('event outcome ids', () => {
           .toEqual({ event: event.id, ids: ['success', 'setback'] });
       }
     }
+  });
+});
+
+describe('plain and truthful career event copy', () => {
+  test('the deadline fee is one real player sale, not cash beside suggestive prose', () => {
+    const content = loadLaunchContent();
+    const event = content.events.events.find(
+      candidate => candidate.id === 'rival-bid-deadline-day',
+    )!;
+    const sale = event.choices.find(
+      choice => choice.id === 'take-the-deadline-fee',
+    )!;
+
+    expect(sale.label).toBe('Accept $2,600 and sell him');
+    expect(sale.outcomes[0].effects).toEqual([
+      { type: 'playerSale', fee: 2600 },
+    ]);
+
+    const duplicateMoney = cloneContent(content);
+    duplicateMoney.events.events.find(
+      candidate => candidate.id === event.id,
+    )!.choices.find(choice => choice.id === sale.id)!.outcomes[0].effects.push({
+      type: 'money',
+      amount: 2600,
+    });
+    expect(() => parseLaunchContent(duplicateMoney)).toThrow(
+      /playerSale already pays its fee/,
+    );
+  });
+
+  test('keeps reviewed player-facing copy free of unexplained shorthand', () => {
+    const strings = loadLaunchContent().events.events.flatMap(event => [
+      event.title,
+      event.body,
+      ...event.choices.flatMap(choice => [
+        choice.label,
+        ...choice.outcomes.flatMap(outcome => [
+          outcome.successHeadline ?? '',
+          outcome.text,
+        ]),
+      ]),
+    ]);
+    const banned = [
+      'a real number on',
+      'the number is better',
+      'match them',
+      'cup tie',
+      'tactical session',
+      'voice-over',
+      'kit bundle',
+      'charts locally',
+      'pulls up at',
+      'the numbers improve',
+      'off the bar',
+      'rondo',
+      'turned inside out',
+      'whole run',
+      'had him at eleven',
+      'testimonial',
+      'play the ninety',
+      'wants a number',
+      'promise him the shirt',
+      'fortnight',
+      'shadow them',
+      'back one of them',
+      'rebuild the lot',
+      'lay his own',
+      'hire the trade',
+      'club that went up',
+      'rebuild the whole night',
+      'put on the whole night',
+      'refuse to be reimbursed',
+      "agent's cutting",
+      'put him up for',
+      'watch all ninety',
+      'go in a fortnight',
+    ];
+    const lower = strings.map(value => value.toLowerCase());
+
+    expect(banned.flatMap(phrase => lower.some(value => value.includes(phrase))
+      ? [phrase]
+      : [])).toEqual([]);
+  });
+
+  test('halves every risky coach and facility success chance, rounding down', () => {
+    const expected = new Map<string, number>([
+      ['the-badge-course', 32],
+      ['the-ladder-fortnight', 30],
+      ['assistant-takes-the-week', 30],
+      ['the-motivator-experiment', 27],
+      ['the-keeper-week', 30],
+      ['back-one-drill', 27],
+      ['the-clipboard-fire', 27],
+      ['sports-science-salesman', 27],
+      ['the-grass-mix', 30],
+      ['volunteer-work-party', 30],
+      ['donated-equipment', 30],
+      ['the-sleep-room', 30],
+      ['floodlight-night', 30],
+      ['what-he-brought-back', 30],
+      ['the-plaque', 30],
+    ]);
+    const targeted = loadLaunchContent().events.events.filter(event => (
+      event.trigger.requiresCoach === true
+      || event.trigger.requiresFacility !== undefined
+    ));
+
+    expect(targeted.map(event => event.id).sort())
+      .toEqual([...expected.keys()].sort());
+    for (const event of targeted) {
+      const risky = event.choices.filter(choice => choice.risky);
+      expect(risky).toHaveLength(1);
+      const chance = expected.get(event.id)!;
+      expect(risky[0].outcomes.map(outcome => outcome.weight))
+        .toEqual([chance, 100 - chance]);
+    }
+    expect(loadLaunchContent().events.events.find(
+      event => event.id === 'hometown-testimonial',
+    )!.choices.find(choice => choice.risky)!.outcomes[0].weight).toBe(65);
   });
 });
