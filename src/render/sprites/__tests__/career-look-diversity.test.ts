@@ -11,7 +11,7 @@ function assignedLook(player: CareerPlayer): string {
 }
 
 describe('career roster visual diversity', () => {
-  it('gives all 160 launch players a distinct look', () => {
+  it('gives all 161 launch players a distinct look', () => {
     const career = createCareer(createLaunchCareerSetup(20260720));
     const coverage = career.clubs.map(club => {
       const roster = career.players.filter(player => player.clubId === club.id);
@@ -21,7 +21,8 @@ describe('career roster visual diversity', () => {
     const userCoverage = coverage.find(club => club.clubId === career.userClubId)!;
     expect(userCoverage.uniqueLooks).toBe(userCoverage.players);
     expect(Math.min(...coverage.map(club => club.uniqueLooks))).toBe(16);
-    expect(new Set(career.players.map(assignedLook)).size).toBe(160);
+    // 161 with the named D5 hero, who carries a reserved face of his own.
+    expect(new Set(career.players.map(assignedLook)).size).toBe(161);
   });
 
   it('keeps every club distinct and avoids obvious opponent repeats deep into an endless career', () => {

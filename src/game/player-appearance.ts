@@ -1,4 +1,5 @@
 import { compareIds } from './ordering';
+import { isSpecialHeroId } from './special-heroes';
 
 export type PlayerVisualRole = 'GK' | 'DEF' | 'MID' | 'FWD';
 
@@ -8,9 +9,30 @@ interface PlayerAppearanceIdentity {
   readonly lookId?: string;
 }
 
-export const FIELD_PLAYER_LOOK_COUNT = 168;
+export const FIELD_PLAYER_LOOK_COUNT = 183;
 export const GOALKEEPER_LOOK_COUNT = 25;
 export const CREATED_PLAYER_LOOK_COUNT = 240;
+
+/**
+ * The last fifteen field looks belong to the named superheroes, so a generated
+ * player never wears one: a face is an identity now, not a variation.
+ *
+ * Two counts, deliberately. `FIELD_PLAYER_LOOK_COUNT` is every look the atlas
+ * ships and is what `isPlayerLookIdForRole` validates against — it has to keep
+ * accepting f168-f182, because the characters carry them and saves persist them.
+ * `ASSIGNABLE_FIELD_LOOK_COUNT` is the prefix the allocator is allowed to walk.
+ * Conflating the two either hands Bruce Wain's cowl to a stranger or makes his
+ * own face fail validation on load.
+ */
+export const RESERVED_FIELD_LOOK_COUNT = 15;
+export const ASSIGNABLE_FIELD_LOOK_COUNT = FIELD_PLAYER_LOOK_COUNT - RESERVED_FIELD_LOOK_COUNT;
+
+export function isReservedFieldLook(lookId: string): boolean {
+  const match = /^f(\d+)$/.exec(lookId);
+  if (match === null) return false;
+  const index = Number(match[1]);
+  return index >= ASSIGNABLE_FIELD_LOOK_COUNT && index < FIELD_PLAYER_LOOK_COUNT;
+}
 
 interface CreatedAppearanceChoice {
   readonly skinTone: 0 | 1 | 2 | 3 | 4 | 5;
@@ -58,7 +80,7 @@ export function isPlayerLookIdForRole(lookId: string, role: PlayerVisualRole): b
   const index = Number(match[2]);
   return Number.isInteger(index)
     && index >= 0
-    && index < lookPoolSize(role)
+    && index < shippedLookCount(role)
     && lookId === formatPlayerLookId(role, index);
 }
 
@@ -87,6 +109,11 @@ export function assignDistinctPlayerLooks<T extends PlayerAppearanceIdentity>(
     if (player.lookId === undefined
       || !isPlayerLookIdForRole(player.lookId, player.role)
       || used.has(player.lookId)) continue;
+    // A reserved face is only ever legitimate on the character it belongs to.
+    // Without this an ordinary player who was assigned one before the faces
+    // were reserved would keep it forever, and the real hero would be pushed
+    // onto a stranger's head.
+    if (isReservedFieldLook(player.lookId) && !isSpecialHeroId(player.id)) continue;
     assigned.set(player.id, player.lookId);
     used.add(player.lookId);
   }
@@ -143,8 +170,14 @@ function firstAvailableLook(
   return formatPlayerLookId(role, preferredIndex);
 }
 
-function lookPoolSize(role: PlayerVisualRole): number {
+/** Every look the atlas ships. What a persisted ID is validated against. */
+function shippedLookCount(role: PlayerVisualRole): number {
   return role === 'GK' ? GOALKEEPER_LOOK_COUNT : FIELD_PLAYER_LOOK_COUNT;
+}
+
+/** What the allocator may walk. Stops short of the reserved character faces. */
+function lookPoolSize(role: PlayerVisualRole): number {
+  return role === 'GK' ? GOALKEEPER_LOOK_COUNT : ASSIGNABLE_FIELD_LOOK_COUNT;
 }
 
 function formatPlayerLookId(role: PlayerVisualRole, index: number): string {

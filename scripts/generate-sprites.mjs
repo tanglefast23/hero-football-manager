@@ -45,6 +45,17 @@ console.log(`wrote ${Object.keys(sprites).length} base sprites for ${FIELD_PLAYE
 
 function validateSprites() {
   if (Object.keys(PLAYER_PALETTE).length > 26) throw new Error('player palette exceeds 26 keys');
+  // The hero build and the hero face box are one decision, and `shape` is the
+  // half that is easy to leave off: a look with only `build: 'hero'` renders a
+  // 12-wide head on a 14-wide torso, which reads as a pinhead rather than as a
+  // bug. Neither the sprites nor the portraits can distinguish that from a
+  // deliberate `long` face after the fact, so the pairing is enforced here,
+  // where the data is, and the sheets simply cannot be generated without it.
+  for (const look of FIELD_PLAYER_LOOKS) {
+    if ((look.build === 'hero') !== (look.shape === 'hero')) {
+      throw new Error(`${look.id} sets only one of build:'hero' and shape:'hero'`);
+    }
+  }
   for (const [key, rows] of Object.entries(sprites)) {
     const isBall = key === 'ball';
     const height = isBall ? 6 : PLAYER_CELL.h;

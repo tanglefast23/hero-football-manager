@@ -167,7 +167,99 @@
     "f164",
     "f165",
     "f166",
-    "f167"
+    "f167",
+    "f168",
+    "f169",
+    "f170",
+    "f171",
+    "f172",
+    "f173",
+    "f174",
+    "f175",
+    "f176",
+    "f177",
+    "f178",
+    "f179",
+    "f180",
+    "f181",
+    "f182"
+  ],
+  "heroes": [
+    {
+      "id": "f168",
+      "name": "Bruce Wain",
+      "power": "SHADOW_MARK"
+    },
+    {
+      "id": "f169",
+      "name": "Clark Kentley",
+      "power": "FIRE_TORCH"
+    },
+    {
+      "id": "f170",
+      "name": "Dinah Prince",
+      "power": "GRAVITY_WELL"
+    },
+    {
+      "id": "f171",
+      "name": "Barry Allan",
+      "power": "SUPER_SPEED"
+    },
+    {
+      "id": "f172",
+      "name": "Pete Parkin",
+      "power": "WEB_TRAP"
+    },
+    {
+      "id": "f173",
+      "name": "Toni Starke",
+      "power": "BLINK_RUN"
+    },
+    {
+      "id": "f174",
+      "name": "Steve Rodgers",
+      "power": "RALLY_CRY"
+    },
+    {
+      "id": "f175",
+      "name": "Don Blaker",
+      "power": "THUNDER_STRIKE"
+    },
+    {
+      "id": "f176",
+      "name": "Bruno Bannor",
+      "power": "SUPER_STRENGTH"
+    },
+    {
+      "id": "f177",
+      "name": "James Howlitt",
+      "power": "PHASE_RUN"
+    },
+    {
+      "id": "f178",
+      "name": "Scott Somers",
+      "power": "THUNDER_STRIKE"
+    },
+    {
+      "id": "f179",
+      "name": "Stefan Strangeway",
+      "power": "PORTAL_PASS"
+    },
+    {
+      "id": "f180",
+      "name": "Tchalo Adaku",
+      "power": "SHADOW_MARK"
+    },
+    {
+      "id": "f181",
+      "name": "Arthur Currey",
+      "power": "ICE_RINK"
+    },
+    {
+      "id": "f182",
+      "name": "Oliver Quinn",
+      "power": "FUTURE_SIGHT"
+    }
   ],
   "goalkeeper": [
     "g00",

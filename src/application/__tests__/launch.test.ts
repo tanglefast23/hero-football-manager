@@ -24,7 +24,9 @@ describe('launch career adapter', () => {
 
     expect(first).toEqual(second);
     expect(first.clubs).toHaveLength(10);
-    expect(first.players).toHaveLength(160);
+    // 161, not 160: the strongest D5 rival fields Barry Allan on top of its
+    // sixteen. See src/game/special-heroes.ts.
+    expect(first.players).toHaveLength(161);
     expect(first.players.filter(player => player.clubId === DEFAULT_USER_CLUB_ID)).toHaveLength(16);
     expect(first.lineups).toHaveLength(10);
     expect(Object.keys(buildCareerTeams(first))).toHaveLength(10);
@@ -147,7 +149,7 @@ describe('launch career adapter', () => {
     };
 
     const migrated = reconcileLaunchRoster(legacy, content);
-    expect(migrated.players).toHaveLength(160);
+    expect(migrated.players).toHaveLength(161);
     expect(migrated.players.filter(player => player.clubId === DEFAULT_USER_CLUB_ID)).toHaveLength(16);
     // The point is that migration restores the AUTHORED wage rather than the
     // inflated one the legacy save carried, so read it from content instead of

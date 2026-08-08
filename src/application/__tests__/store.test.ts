@@ -61,7 +61,7 @@ describe('M1 app store integration', () => {
       ratings: DEFAULT_CREATION_RATINGS,
     });
     expect(useM1Store.getState().screen).toBe('management');
-    expect(useM1Store.getState().career?.players).toHaveLength(159);
+    expect(useM1Store.getState().career?.players).toHaveLength(160);
     expect(useM1Store.getState().career?.onboarding?.stage).toBe('first-match');
     advanceToWeek(3);
     expect(useM1Store.getState().career?.week).toBe(3);

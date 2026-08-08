@@ -50,7 +50,15 @@ import {
   synchronizeM2ActiveDivision,
 } from './m2-career';
 import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
-import type { DivisionLevel, PyramidClub, PyramidPlayer } from './pyramid';
+import {
+  SPECIAL_UNATTACHED_CLUB_ID,
+  isSpecialHeroId,
+  scoutOnlySpecialHeroes,
+  specialHeroAttrs,
+  specialHeroTargetOverall,
+  type SpecialHero,
+} from './special-heroes';
+import { DIVISION_STRENGTH_BANDS, type DivisionLevel, type PyramidClub, type PyramidPlayer } from './pyramid';
 import { assertContractTermFitsCareer } from './retirement';
 import { assertUserCareerRosterSpace } from './youth-intake';
 import { isStoryScoutingUnlocked } from './story-progression';
@@ -1197,8 +1205,31 @@ export function careerCoachWeeklyWage(market: CareerMarketState): number {
   );
 }
 
+/**
+ * The four heroes who are on no club at all.
+ *
+ * They exist only as scouting leads, so they are materialised on demand rather
+ * than stored: once one is signed they live in `state.players` like anyone else
+ * and drop out of this list for good.
+ */
+function unattachedSpecialHeroes(state: GameState): CareerPlayer[] {
+  if (state.m2 === undefined) return [];
+  // The same gate rumoured-hero missions already carry, so a lead can never be
+  // offered for a division that cannot run the mission that finds it.
+  if (currentUserDivision(state.m2) > 3) return [];
+  const owned = new Set(state.players.map(player => player.id));
+  return scoutOnlySpecialHeroes()
+    .filter(hero => !owned.has(hero.id))
+    .map(hero => buildUnattachedSpecialHero(hero));
+}
+
 function scoutableCareerPlayers(state: GameState): ScoutablePlayer[] {
-  return allCareerTransferTargets(state).map(({ player }) => ({
+  const unattached: CareerTransferTarget[] = unattachedSpecialHeroes(state).map(player => ({
+    player,
+    sellingClubDivision: 1,
+    active: false,
+  }));
+  return [...allCareerTransferTargets(state), ...unattached].map(({ player }) => ({
       id: player.id,
       region: scoutRegion(player.id),
       role: player.role,
@@ -1230,6 +1261,14 @@ export function careerTransferTarget(
     };
   }
   if (state.m2 === undefined) return undefined;
+  const unattached = unattachedSpecialHeroes(state)
+    .find(candidate => candidate.id === playerId);
+  if (unattached !== undefined) {
+    // Priced at the top of the market: these are marquee signings, and there is
+    // no selling club to take the fee. The money leaving the user's account is
+    // the point.
+    return { player: unattached, sellingClubDivision: 1, active: false };
+  }
   for (const division of state.m2.pyramid.divisions) {
     for (const club of division.clubs) {
       if (club.id === state.userClubId) continue;
@@ -1281,6 +1320,11 @@ function allCareerTransferTargets(state: GameState): CareerTransferTarget[] {
       if (club.id === state.userClubId) continue;
       for (const player of club.squad) {
         if (seen.has(player.id)) continue;
+        // Belt over the brace in synchronizeM2ActiveDivision: a named hero is
+        // only ever buyable as a live active-division player or as one of the
+        // four unattached scout targets. Rebuilt from pyramid data they would
+        // arrive powerless, from the wrong club, at the wrong fee.
+        if (isSpecialHeroId(player.id)) continue;
         seen.add(player.id);
         targets.push({
           player: pyramidCareerPlayer(club, player, division.level),
@@ -1413,6 +1457,9 @@ const SELLER_LINEUP_TEMPLATE = [
  * scouts and buys from all season.
  */
 function sellerCanSpare(state: GameState, playerId: string): boolean {
+  // No selling club, so no squad to leave without cover. Stated rather than
+  // left to the fall-through below, which returns true for any unknown ID.
+  if (isSpecialHeroId(playerId) && !state.players.some(p => p.id === playerId)) return true;
   const activeSellerId = state.players
     .find(candidate => candidate.id === playerId && candidate.clubId !== state.userClubId)
     ?.clubId;
@@ -1726,4 +1773,51 @@ function checkedMultiply(left: number, right: number, label: string): number {
   const result = left * right;
   if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
   return result;
+}
+
+/**
+ * A scout-only hero, built at D1 marquee level.
+ *
+ * `count: 1, order: 1` because these four are never teammates — there is no club
+ * ranking for them to sit inside, so each is simply the top of the market.
+ */
+function buildUnattachedSpecialHero(hero: SpecialHero): CareerPlayer {
+  const base = DIVISION_STRENGTH_BANDS[1][1];
+  const attrs = specialHeroAttrs(hero.role, specialHeroTargetOverall(base, 1, 1));
+  const potential = 5;
+  return {
+    id: hero.id,
+    clubId: SPECIAL_UNATTACHED_CLUB_ID,
+    name: hero.name,
+    role: hero.role,
+    lookId: hero.lookId,
+    attrs,
+    power: hero.power,
+    powerTier: 3,
+    licensed: false,
+    weeklyWage: generatedPlayerWeeklyWage(attrs, 1),
+    onHeroWage: true,
+    contractSeasonsRemaining: 0,
+    morale: 70,
+    injuryWeeks: 0,
+    age: 26,
+    archetype: 'All-Rounder',
+    potential,
+    potentialCeiling: developmentPotentialCeiling({
+      id: hero.id,
+      role: hero.role,
+      attrs,
+      age: 26,
+      potential,
+    }),
+    consistency: 90,
+    personality: 'Professional',
+    condition: 100,
+    seasonsAtClub: 0,
+    fame: 0,
+    retirementAge: 36,
+    retirementAnnounced: false,
+    consecutiveLowMoraleWeeks: 0,
+    signingStatTotal: Object.values(attrs).reduce((sum, value) => sum + value, 0),
+  };
 }
