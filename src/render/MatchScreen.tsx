@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AppState, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Atlas, Canvas, Circle, Fill, Group, Rect, Skia, type SkColor, type SkImage, type SkRect, type SkRSXform } from '@shopify/react-native-skia';
 import {
   Easing as ReanimatedEasing,
@@ -104,6 +104,7 @@ import { Pitch } from './Pitch';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playHapticForEvent } from './haptics';
 import { FormationDiagram } from '../ui/components/FormationDiagram';
+import { SfxPressable as Pressable } from '../ui/components/SfxPressable';
 import { SettingsButton } from '../ui/SettingsOverlay';
 import { TutorialTapCue } from '../ui/TutorialTapCue';
 import { TutorialSpotlight } from '../ui/TutorialSpotlight';
@@ -2200,15 +2201,19 @@ export function MatchScreen({
       {/* Desktop replaces this bar with the rail scoreboard card. */}
       {railLayout || presentationOnly ? null : (
         <Pressable
+          immediatePress
           accessibilityRole="button"
           accessibilityLabel={paused ? t('matchScreen.a11y.resumeMatch') : t('matchScreen.a11y.pauseMatch')}
-          style={[
+          style={({ pressed }) => [
             styles.scorebar,
             compactHeight ? styles.scorebarCompact : null,
             hudSide === 'right' ? styles.scorebarFlipped : null,
+            // Scaling a full-width surface shifts both screen edges by almost
+            // 6px on a 390px phone. Keep this large target crisp: one pixel of
+            // key travel gives contact feedback without the sideways wobble.
+            pressed ? { opacity: 0.7, transform: [{ translateY: 1 }] } : null,
           ]}
           onPress={() => {
-            playUiClickSfx();
             toggleUserPause();
           }}
         >
@@ -2226,12 +2231,12 @@ export function MatchScreen({
           </View>
           <View style={styles.controls}>
             <Pressable
+              immediatePress
               style={styles.ctrlButton}
               accessibilityRole="button"
               accessibilityLabel={t('matchScreen.a11y.matchSpeed', { speed })}
               hitSlop={10}
               onPress={() => {
-                playUiClickSfx();
                 applySpeed(nextMatchSpeed(speed, maximumSpeed));
               }}
             >
@@ -2558,6 +2563,7 @@ export function MatchScreen({
         <View style={[styles.coachingDock, compactHeight ? styles.coachingDockCompact : null]}>
           <View style={styles.coachBar}>
             <Pressable
+              immediatePress
               accessibilityRole="button"
               accessibilityLabel={t('matchScreen.a11y.formation', { formation: displayedFormation })}
               accessibilityState={{ disabled: coachingDisabled }}
@@ -2568,7 +2574,6 @@ export function MatchScreen({
                 coachingDisabled ? styles.coachButtonDisabled : null,
               ]}
               onPress={() => {
-                playUiClickSfx();
                 selectFormation(nextFormation(displayedFormation, formationPresets));
               }}
             >
@@ -2579,6 +2584,7 @@ export function MatchScreen({
               </View>
             </Pressable>
             <Pressable
+              immediatePress
               accessibilityRole="button"
               accessibilityLabel={t('matchScreen.a11y.playstyle', {
                 playstyle: mentalityLabel(displayedMentality, t),
@@ -2591,7 +2597,6 @@ export function MatchScreen({
                 coachingDisabled ? styles.coachButtonDisabled : null,
               ]}
               onPress={() => {
-                playUiClickSfx();
                 selectMentality(nextMentality(displayedMentality));
               }}
             >
@@ -2602,6 +2607,7 @@ export function MatchScreen({
               </View>
             </Pressable>
             <Pressable
+              immediatePress
               ref={swapGuideTargetRef}
               collapsable={false}
               onLayout={guideSwapButton ? scheduleSwapGuideMeasurement : undefined}
@@ -2626,7 +2632,6 @@ export function MatchScreen({
                 guideSwapButton ? styles.coachButtonGuided : null,
               ]}
               onPress={() => {
-                playUiClickSfx();
                 openSwap();
               }}
             >
@@ -2669,6 +2674,7 @@ export function MatchScreen({
                 const selected = displayedEnergyUse === mode;
                 return (
                   <Pressable
+                    immediatePress
                     key={mode}
                     accessibilityRole="button"
                     accessibilityLabel={`${energyUseLabel(mode, t)}. ${energyUseAccessibility(mode, t)}`}
@@ -2684,7 +2690,6 @@ export function MatchScreen({
                       coachingDisabled ? styles.coachButtonDisabled : null,
                     ]}
                     onPress={() => {
-                      playUiClickSfx();
                       selectEnergyUse(mode);
                     }}
                   >

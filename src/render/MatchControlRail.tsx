@@ -161,6 +161,7 @@ export function MatchControlRail({
               const selected = !paused && speed === option;
               return (
                 <SfxPressable
+                  immediatePress
                   key={option}
                   accessibilityRole="button"
                   accessibilityLabel={t('matchRail.a11y.matchSpeed', { speed: option })}
@@ -175,6 +176,7 @@ export function MatchControlRail({
               );
             })}
             <SfxPressable
+              immediatePress
               accessibilityRole="button"
               accessibilityLabel={paused
                 ? t('matchRail.a11y.resumeMatch')
@@ -201,6 +203,7 @@ export function MatchControlRail({
               const selected = formation === option;
               return (
                 <SfxPressable
+                  immediatePress
                   key={option}
                   accessibilityRole="button"
                   accessibilityLabel={t('matchRail.a11y.formation', {
@@ -231,6 +234,7 @@ export function MatchControlRail({
               const selected = mentality === option;
               return (
                 <SfxPressable
+                  immediatePress
                   key={option}
                   accessibilityRole="button"
                   accessibilityLabel={t('matchRail.a11y.playstyle', {
@@ -286,6 +290,7 @@ export function MatchControlRail({
                   onLayout={guided ? onGuideSwapLayout : undefined}
                 >
                   <SfxPressable
+                    immediatePress
                     accessibilityRole="button"
                     accessibilityLabel={t('matchRail.a11y.swap', {
                       player: player.name,
@@ -339,6 +344,7 @@ export function MatchControlRail({
               const selected = energyUse === mode;
               return (
                 <SfxPressable
+                  immediatePress
                   key={mode}
                   accessibilityRole="button"
                   accessibilityLabel={`${energyUseLabel(mode, t)}. ${energyUseAccessibility(mode, t)}`}
