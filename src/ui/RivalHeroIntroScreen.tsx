@@ -87,6 +87,7 @@ export function RivalHeroIntroScreen({
   const screenReaderEnabled = rivalHeroScreenReaderTimingState(
     Platform.OS,
     detectedScreenReaderEnabled,
+    reduce,
   );
   const { width, height } = useWindowDimensions();
   const short = height < 480;

@@ -10,12 +10,15 @@ export const RIVAL_HERO_LAUGH_DELAY_MS = 1000;
  * React Native Web reports screen-reader support as enabled for every browser,
  * rather than detecting assistive technology. Using that placeholder result
  * would disable the signed-off three-second auto-advance for every web player.
+ * The existing Reduce Motion preference remains an explicit non-timed route
+ * for web players who need one.
  */
 export function rivalHeroScreenReaderTimingState(
   platform: string,
   detectedState: boolean | null,
+  reduceMotion: boolean,
 ): boolean | null {
-  return platform === 'web' ? false : detectedState;
+  return platform === 'web' ? reduceMotion : detectedState;
 }
 
 /** Absolute speech-beat time when the assigned laugh should begin. */
