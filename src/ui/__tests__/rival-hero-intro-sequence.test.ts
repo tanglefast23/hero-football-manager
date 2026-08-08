@@ -49,10 +49,18 @@ describe('rival hero intro sequence', () => {
   it('keeps the signed-off automatic timing on web', () => {
     // React Native Web reports `true` unconditionally, so it is not a real
     // screen-reader signal and must not strand every browser on the power card.
-    expect(rivalHeroScreenReaderTimingState('web', true)).toBe(false);
-    expect(rivalHeroScreenReaderTimingState('ios', true)).toBe(true);
-    expect(rivalHeroScreenReaderTimingState('android', false)).toBe(false);
-    expect(rivalHeroScreenReaderTimingState('ios', null)).toBeNull();
+    expect(rivalHeroScreenReaderTimingState('web', true, false)).toBe(false);
+    expect(rivalHeroScreenReaderTimingState('ios', true, false)).toBe(true);
+    expect(rivalHeroScreenReaderTimingState('android', false, false)).toBe(
+      false,
+    );
+    expect(rivalHeroScreenReaderTimingState('ios', null, false)).toBeNull();
+  });
+
+  it('uses Reduce Motion as the web non-timed accessibility route', () => {
+    expect(rivalHeroScreenReaderTimingState('web', true, true)).toBe(true);
+    expect(rivalHeroPowerAutoExitMs(true, true)).toBeUndefined();
+    expect(rivalHeroSpeechAutoExitMs(true, true)).toBeUndefined();
   });
 
   it('starts every possible Bert-length laugh before the fixed speech cut', () => {
