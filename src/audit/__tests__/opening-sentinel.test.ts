@@ -137,17 +137,29 @@ describe('opening sentinel', () => {
     // without, so every coached arm taps eight times instead of nine or ten and
     // the uncoached arm six instead of seven.
     //
-    // Every arm now loses the opener on all eight seeds bar three scattered
-    // draws. That is the contract's direction — at most 5% wins, at least 90%
-    // losses — held more firmly than before, but eight seeds still cannot
-    // measure a rate: re-derive one from real-player-opening-probe.
+    // Updated deliberately, 2026-08-08, for the named superheroes: the opening
+    // fixture is always against the division's strongest rival, and that club
+    // now fields Barry Allan. The three scattered draws this digest used to
+    // carry — one for smart-concentration, two for joe-observed-no-coach — are
+    // gone, so every arm loses the opener on all eight seeds.
+    //
+    // The direction of the contract is unchanged and now held more firmly: at
+    // most 5% wins, at least 90% losses. What moved is one fixture out of
+    // eighteen, and it moved the way adding a superpowered striker to the
+    // hardest club in the division should move it. Every other rail in
+    // src/audit, the training-leverage ones included, is untouched.
+    //
+    // Eight seeds still cannot measure a rate. The season-level question — does
+    // a manager who trains and builds still promote in season 2 — needs
+    // real-player-opening-probe, which is opt-in and slow, and has not been run
+    // for this change.
     expect(digests).toEqual({
       ordinary: 'LLLLLLLL',
       'smart-breadth': 'LLLLLLLL',
       'smart-extra-fwd': 'LLLLLLLL',
-      'smart-concentration': 'LLLLLDLL',
+      'smart-concentration': 'LLLLLLLL',
       'joe-observed-coach': 'LLLLLLLL',
-      'joe-observed-no-coach': 'LLLDLDLL',
+      'joe-observed-no-coach': 'LLLLLLLL',
       'no-training': 'LLLLLLLL',
     });
   });

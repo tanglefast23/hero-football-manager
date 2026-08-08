@@ -48,6 +48,11 @@ export const EXEMPT = [
   // A QA fixture list of invented club names. Club names stay English by
   // product decision anyway, so there is nothing here to translate twice over.
   /src\/ui\/awards-ceremony-qa\.ts$/,
+  // The fifteen named superheroes. "Barry Allan" is a person's name, not copy:
+  // it reads the same in every locale, exactly as the generated first- and
+  // last-name pools and the club names already do. The `reference` and `cue`
+  // fields beside them are development notes that never reach a screen.
+  /src\/game\/special-heroes\.ts$/,
   // ASCII-art sprite rows ("XX............XX") and pixel tables.
   /src\/ui\/endgame-fireworks\.ts$/,
   /src\/ui\/[a-z-]*pixel-art\.ts$/,

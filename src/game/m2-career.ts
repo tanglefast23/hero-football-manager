@@ -1,6 +1,7 @@
 import type { Attrs } from '../sim/types';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { roleOverall } from './archetype-caps';
+import { isSpecialHeroId } from './special-heroes';
 import { compareIds } from './ordering';
 import {
   advanceNationalCup,
@@ -209,7 +210,16 @@ export function synchronizeM2ActiveDivision(
   }
   const pyramidClubs = snapshot.clubs.map(club => {
     const squad = snapshot.players
-      .filter(player => player.clubId === club.id)
+      // Named superheroes never enter pyramid data — the user's own signings
+      // included. They belong to a division rather than a club, and are rebuilt
+      // for whichever club is strongest each season. Writing them here would let
+      // a relegated host carry a D1 character down to D4, would make next
+      // season's host ranking count last season's heroes, and would let
+      // `allCareerTransferTargets` offer a powerless copy rebuilt by
+      // `pyramidCareerPlayer` from the wrong tier. Nothing needs them here: the
+      // season transition rebuilds the user's squad from live state, never from
+      // the pyramid.
+      .filter(player => player.clubId === club.id && !isSpecialHeroId(player.id))
       .map(player => careerPlayerToPyramid(player));
     if (squad.length < 11) throw new Error(`club ${club.id} needs at least eleven players`);
     return {

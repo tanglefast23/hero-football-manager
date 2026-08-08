@@ -242,7 +242,17 @@ function rumoredHeroShortlist(
 ): ScoutablePlayer[] {
   const heroes = eligible.filter(candidate => candidate.power !== undefined);
   const ordinary = eligible.filter(candidate => candidate.power === undefined);
-  shuffleInPlace(heroes, random);
+  // Partitioned before the shuffle, not sorted after it: by division 3 the hero
+  // bucket holds dozens of generated opponents, so an unbiased pick would
+  // surface one of the four named characters almost never and "reachable"
+  // would be a claim the code does not support. The 25% rumour roll below still
+  // decides whether anything is found at all, so the find stays rare.
+  const named = heroes.filter(candidate => candidate.id.startsWith(SPECIAL_HERO_ID_PREFIX));
+  const generated = heroes.filter(candidate => !candidate.id.startsWith(SPECIAL_HERO_ID_PREFIX));
+  shuffleInPlace(named, random);
+  shuffleInPlace(generated, random);
+  heroes.length = 0;
+  heroes.push(...named, ...generated);
   shuffleInPlace(ordinary, random);
   const rumorIsReal = mulberry32(mixSeed(missionSeed, 'rumor-payoff'))() < 0.25;
   if (!rumorIsReal || heroes.length === 0) return ordinary.slice(0, shortlistSize);
@@ -360,6 +370,9 @@ const GLOBAL_WAGE_SCALE = 0.96;
  * division's support rating, so rival growth and star premiums remain visible
  * without charging the user twice for the ladder's larger raw numbers.
  */
+/** Ids of the fifteen named characters all share this prefix. */
+const SPECIAL_HERO_ID_PREFIX = 'special-';
+
 export function generatedPlayerWeeklyWage(
   attrs: Readonly<Attrs>,
   divisionValue: number,

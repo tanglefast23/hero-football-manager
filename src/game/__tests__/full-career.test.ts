@@ -7,6 +7,7 @@ import {
   tuneSquadToStrength,
 } from '../pyramid';
 import { runHeadlessFullCareer } from '../headless';
+import { isSpecialHeroId } from '../special-heroes';
 import { buildCareerTeamDef } from '../squad';
 import type { GameState } from '../types';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
@@ -44,20 +45,34 @@ describe('full M2 career clock', () => {
 
     expect(strengths.get(full.userClubId)).toBe(40);
     expect(Math.min(...strengths.values())).toBe(40);
-    // 51, not the 50 the pinning tuned it to: the opening fixture is sharpened
-    // afterwards with +5 on each of that one club's position attributes, which
-    // is worth about a point of squad strength. It was already the hardest of
-    // the five, so this raises the peak rather than reshaping the curve.
-    expect(Math.max(...strengths.values())).toBe(51);
+    // 52, not the 50 the pinning tuned it to. Two sharpenings land on the same
+    // club, and it was already the hardest of the five, so both raise the peak
+    // rather than reshaping the curve: the opening fixture gets +5 on each of
+    // that club's position attributes, worth about a point of squad strength,
+    // and the strongest rival in the division now fields Barry Allan, worth
+    // another.
+    expect(Math.max(...strengths.values())).toBe(52);
     expect(openingOpponents).toEqual([
-      { strength: 51, userIsHome: true },
+      { strength: 52, userIsHome: true },
       { strength: 45, userIsHome: false },
       { strength: 46, userIsHome: true },
       { strength: 43, userIsHome: false },
       { strength: 42, userIsHome: true },
     ]);
-    expect(full.players.filter(player => player.clubId !== full.userClubId && player.power !== undefined))
-      .toHaveLength(0);
+    // Rewritten deliberately, 2026-08-08. This used to assert zero, encoding
+    // the rule that D5 has no opponent heroes at all so the player's first
+    // awakening is the only power on the pitch.
+    //
+    // Half of that still holds and is asserted below: `generatedClubHeroCount`
+    // is still 0 for D5, so no *generated* rival awakens. What changed is that
+    // the division's strongest club now fields its named character. One power,
+    // owned by one man with a name, is a different thing from a league of
+    // anonymous heroes — which is why the second assertion checks he is a
+    // special rather than just counting to one.
+    const poweredRivals = full.players
+      .filter(player => player.clubId !== full.userClubId && player.power !== undefined);
+    expect(poweredRivals.map(player => player.name)).toEqual(['Barry Allan']);
+    expect(poweredRivals.every(player => isSpecialHeroId(player.id))).toBe(true);
   });
 
   test.each([
@@ -129,7 +144,9 @@ describe('full M2 career clock', () => {
     expect(next.clubs).toHaveLength(10);
     expect(next.players.filter(player => player.clubId === next.userClubId).length)
       .toBeGreaterThanOrEqual(11);
-    expect(next.players.filter(player => player.clubId !== next.userClubId)).toHaveLength(144);
+    // 145: nine generated clubs of sixteen, plus the division's named hero on
+    // whichever of them is strongest.
+    expect(next.players.filter(player => player.clubId !== next.userClubId)).toHaveLength(145);
     expect(next.fixtures).toHaveLength(90);
     expect(next.m2?.nationalCups.at(-1)?.season).toBe(2);
     expect(next.youthIntake).toMatchObject({ season: 2, status: 'OPEN' });
@@ -170,8 +187,13 @@ describe('full M2 career clock', () => {
     expect(averageCeiling(promotedOpponents)).toBeGreaterThan(averageCeiling(startingOpponents));
     for (const club of promoted.clubs) {
       if (club.id === promoted.userClubId) continue;
+      // The generic ramp is unchanged — still at most one generated hero per
+      // club at this tier. Named specials sit on top of it rather than inside
+      // it, which is what "additive" means, so they are counted separately.
       expect(promoted.players.filter(player => (
-        player.clubId === club.id && player.power !== undefined
+        player.clubId === club.id
+        && player.power !== undefined
+        && !isSpecialHeroId(player.id)
       )).length).toBeLessThanOrEqual(1);
       expect(() => buildCareerTeamDef(promoted, club.id)).not.toThrow();
     }

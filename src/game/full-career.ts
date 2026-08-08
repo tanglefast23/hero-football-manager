@@ -1,4 +1,4 @@
-import { developmentPotentialCeiling, potentialTierForDivision } from './archetype-caps';
+import { developmentPotentialCeiling, potentialTierForDivision, roleOverall } from './archetype-caps';
 import { assignDistinctPlayerLooks, nextDistinctPlayerLook } from './player-appearance';
 import { generateSeasonFixtures, pinOpeningLeagueOpponents } from './schedule';
 import { createCareerMarketState, refreshCareerMarketForNewSeason } from './market-career';
@@ -30,6 +30,13 @@ import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { recordFanGain } from './fan-growth';
 import { highestDivisionReached, recordHighestDivisionReached } from './promotion-progression';
 import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
+import {
+  isSpecialHeroId,
+  specialHeroAttrs,
+  specialHeroTargetOverall,
+  specialHeroesForDivision,
+  type SpecialHero,
+} from './special-heroes';
 import { prunedStatLines } from './season-recap';
 import {
   createProvisionalSponsorPortfolio,
@@ -205,9 +212,19 @@ export function startNextFullCareerSeason(
     ),
   };
   const season = transition.nextSeason;
-  const clubs = [userClub, ...generated.clubs];
-  const players = assignDistinctPlayerLooks([...activeUserPlayers, ...generated.players]);
-  const lineups = [userLineup, ...generated.lineups];
+  // The overlay runs over the joined roster, not `generated.players` alone: it
+  // has to see the user's squad to know which characters have already been
+  // signed away, or a bought hero quietly respawns on the new host.
+  const overlaid = overlayDivisionSpecials({
+    clubs: [userClub, ...generated.clubs],
+    players: [...activeUserPlayers, ...generated.players],
+    lineups: [userLineup, ...generated.lineups],
+    division: transition.division,
+    userClubId: state.userClubId,
+  });
+  const clubs = overlaid.clubs;
+  const players = assignDistinctPlayerLooks(overlaid.players);
+  const lineups = overlaid.lineups;
   const strengthByClubId = new Map<string, number>([
     [state.userClubId, clubSquadStrength(activeUserPlayers)],
     ...transition.generatedOpponentClubs.map(club => [club.id, club.squadStrength] as const),
@@ -403,9 +420,22 @@ function balanceOpeningDivision(state: GameState): GameState {
     balancedStrengths,
   );
   const fixtures = generateSeasonFixtures(scheduleClubIds, state.season, state.careerSeed);
+  // Last, on purpose. The ladder above, the pin and the first-opponent buff are
+  // the most carefully tuned numbers in the game, and none of them should see a
+  // special: the hero is added on top of a finished division, which is what
+  // makes "additive" literally true.
+  const overlaid = overlayDivisionSpecials({
+    clubs: state.clubs,
+    players: strengthenFirstOpponent(players, fixtures, state.userClubId),
+    lineups: state.lineups,
+    division: 5,
+    userClubId: state.userClubId,
+  });
   return {
     ...state,
-    players: strengthenFirstOpponent(players, fixtures, state.userClubId),
+    clubs: overlaid.clubs,
+    players: overlaid.players,
+    lineups: overlaid.lineups,
     fixtures,
   };
 }
@@ -558,6 +588,133 @@ export function divisionTicketPrice(division: DivisionLevel): number {
 
 export function divisionSponsorMonthlyFee(division: DivisionLevel): number {
   return ({ 5: 3_000, 4: 4_000, 3: 6_000, 2: 8_000, 1: 10_000 } as const)[division];
+}
+
+/**
+ * Puts the division's named superheroes on the strongest rival club.
+ *
+ * Called at both season starts and nowhere else. In season 1 it runs at the very
+ * end of `balanceOpeningDivision`, after the 42-50 strength ladder, the fixture
+ * pin and the first-opponent buff, so none of the opening's tuned numbers ever
+ * sees a special. From season 2 it runs straight after `generatedActiveDivision`
+ * and before looks are assigned.
+ *
+ * Rebuilding from scratch each season is the whole design: the heroes belong to
+ * the division, not to a club, so a club that is strongest this year fields them
+ * and a club that is relegated leaves them behind.
+ */
+function overlayDivisionSpecials(
+  input: {
+    clubs: readonly ClubState[];
+    players: readonly CareerPlayer[];
+    lineups: readonly ClubLineupState[];
+    division: DivisionLevel;
+    userClubId: string;
+  },
+): { clubs: ClubState[]; players: CareerPlayer[]; lineups: ClubLineupState[] } {
+  // Last season's specials arrive back through the pyramid round trip. They are
+  // dropped before anything is measured, so the host is picked on ordinary
+  // strength alone and a character can never be double-booked.
+  const carried = input.players.filter(player => (
+    !isSpecialHeroId(player.id) || player.clubId === input.userClubId
+  ));
+  const signedIds = new Set(carried
+    .filter(player => player.clubId === input.userClubId && isSpecialHeroId(player.id))
+    .map(player => player.id));
+  // A hero the user has bought is gone from the rival pool for the rest of the
+  // save. The host simply fields one fewer rather than being handed a stand-in.
+  const heroes = specialHeroesForDivision(input.division)
+    .filter(hero => !signedIds.has(hero.id));
+  if (heroes.length === 0) {
+    return { clubs: [...input.clubs], players: carried, lineups: [...input.lineups] };
+  }
+
+  const rivals = input.clubs.filter(club => club.id !== input.userClubId);
+  if (rivals.length === 0) {
+    return { clubs: [...input.clubs], players: carried, lineups: [...input.lineups] };
+  }
+  const strengthByClubId = new Map(rivals.map(club => {
+    const squad = carried.filter(player => player.clubId === club.id);
+    return [club.id, squad.length === 0 ? 0 : clubSquadStrength(squad)] as const;
+  }));
+  const hostId = rivals
+    .slice()
+    .sort((left, right) => (
+      strengthByClubId.get(right.id)! - strengthByClubId.get(left.id)!
+      || compareIds(left.id, right.id)
+    ))[0].id;
+
+  const hostSquad = carried.filter(player => player.clubId === hostId);
+  const base = Math.max(...hostSquad.map(player => roleOverall(player.role, player.attrs)));
+  const specials = heroes.map((hero, index) => buildSpecialHeroPlayer({
+    hero,
+    clubId: hostId,
+    division: input.division,
+    target: specialHeroTargetOverall(base, heroes.length, index + 1),
+  }));
+
+  // Specials come first in the HOST'S slice, because startingEleven takes the
+  // first N of each role in array order — an appended special becomes the sixth
+  // defender and never plays. They go LAST in the roster as a whole, so the
+  // global ordering every other caller sees is undisturbed: putting them at
+  // index 0 silently changed which player "the first rival forward" means.
+  const hostPlayers = [...specials, ...hostSquad];
+  const players = [...carried, ...specials];
+  const clubs = input.clubs.map(club => (club.id === hostId
+    ? {
+        ...club,
+        weeklyWages: hostPlayers.reduce(
+          (sum, player) => checkedAdd(sum, player.weeklyWage, 'special hero host wages'),
+          0,
+        ),
+      }
+    : club));
+  const lineups = input.lineups.map(lineup => (lineup.clubId === hostId
+    ? { clubId: hostId, playerIds: startingEleven(hostPlayers) }
+    : lineup));
+  return { clubs, players, lineups };
+}
+
+function buildSpecialHeroPlayer(
+  input: { hero: SpecialHero; clubId: string; division: DivisionLevel; target: number },
+): CareerPlayer {
+  const attrs = specialHeroAttrs(input.hero.role, input.target);
+  const potential = 5;
+  return {
+    id: input.hero.id,
+    clubId: input.clubId,
+    name: input.hero.name,
+    role: input.hero.role,
+    lookId: input.hero.lookId,
+    attrs,
+    power: input.hero.power,
+    powerTier: (input.division === 1 ? 3 : input.division <= 3 ? 2 : 1) as 1 | 2 | 3,
+    licensed: true,
+    weeklyWage: generatedPlayerWeeklyWage(attrs, input.division),
+    onHeroWage: true,
+    contractSeasonsRemaining: 3,
+    morale: 70,
+    injuryWeeks: 0,
+    age: 26,
+    archetype: 'All-Rounder',
+    potential,
+    potentialCeiling: developmentPotentialCeiling({
+      id: input.hero.id,
+      role: input.hero.role,
+      attrs,
+      age: 26,
+      potential,
+    }),
+    consistency: 90,
+    personality: 'Professional',
+    condition: 100,
+    seasonsAtClub: 0,
+    fame: 0,
+    retirementAge: 36,
+    retirementAnnounced: false,
+    consecutiveLowMoraleWeeks: 0,
+    signingStatTotal: Object.values(attrs).reduce((sum, value) => sum + value, 0),
+  };
 }
 
 function startingEleven(players: readonly CareerPlayer[]): string[] {
