@@ -175,6 +175,7 @@ function englishCopy(): CopyFn {
 /** The negotiation panel's wage increment, and the grid the opening seed rounds to. */
 const RENEWAL_WAGE_STEP = 50;
 import { marketNegotiationViewModel } from './market-view-model';
+import { projectedSeasonEndContractPromiseHeroLimit } from './contract-promise-projection';
 import { leagueFixtureViewModel } from './m2-league-view-model';
 import { coachRoleEffectLabels } from './coach-effects';
 import {
@@ -1517,6 +1518,7 @@ export function seasonEndViewModel(
       && !willRetireAtSeasonTransition(player, state.season))
     .sort((left, right) => left.id.localeCompare(right.id));
   const renewalTalks = state.market?.renewalTalks;
+  const projectedHeroLimit = projectedSeasonEndContractPromiseHeroLimit(state);
   // Open renewal talks pin their own player; otherwise the queue presents its
   // id-ordered head. Pinning `expiredPlayers[0]` unconditionally could park the
   // negotiation panel under the wrong name and locked the queue behind a player
@@ -1749,6 +1751,11 @@ export function seasonEndViewModel(
             wageStep: RENEWAL_WAGE_STEP,
             maxTermSeasons: Math.max(1, renewalTermCap) as 1 | 2 | 3,
             playerAge: expiredPlayer.age ?? 24,
+            contractPromiseContext: {
+              state,
+              player: expiredPlayer,
+              heroLimit: projectedHeroLimit,
+            },
           }, t),
         }),
     sliceComplete,

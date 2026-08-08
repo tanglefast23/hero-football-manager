@@ -18,6 +18,7 @@ import type { CareerPlayer, GameState } from '../game/types';
 import { maxSigningTermSeasons } from '../game/retirement';
 import { careerRosterCapacity } from '../game/youth-intake';
 import { highestDivisionReached } from '../game/promotion-progression';
+import { careerContractPromiseHeroLimit } from '../game/contract-promises';
 import {
   isStoryFeaturePacingActive,
   isStoryScoutingUnlocked,
@@ -181,6 +182,11 @@ export function careerMarketViewModelSource(
           // term has to cover the season in progress too.
           maxTermSeasons: maxSigningTermSeasons(player, state.careerSeed),
           playerAge: player.age ?? 24,
+          contractPromiseContext: {
+            state,
+            player,
+            heroLimit: careerContractPromiseHeroLimit(state),
+          },
         };
       })();
 

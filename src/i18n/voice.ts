@@ -27,6 +27,9 @@ const BODY_PREFIXES = [
   'coach.',
   // The players' agent, in that same bubble, for the same reason.
   'agent.',
+  // Disabled contract-promise explanations render as wrapping sans paragraphs
+  // under each row (`MarketScreen.tsx`), not in the pixel label above them.
+  'market.promiseBlocked',
   // Sponsor offer lines and objective sentences. The BRAND above them is the
   // pixel line on the card (`ClubFinancesScreen.tsx:1040`, `:1085`,
   // `SeasonEndScreen.tsx:148` — all `PixelText`) and stays English anyway, so
