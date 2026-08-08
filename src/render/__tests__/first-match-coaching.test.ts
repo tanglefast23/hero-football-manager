@@ -90,7 +90,7 @@ describe('first match coaching prompts', () => {
     expect(match).toContain('anchor={swapGuideAnchor}');
     expect(match).not.toContain('dismissFirstMatchCueAfterPress');
     expect(match).toMatch(
-      /onPress=\{\(\) => \{\s*playUiClickSfx\(\);\s*openSwap\(\);\s*\}\}/,
+      /<Pressable\s+immediatePress\s+ref=\{swapGuideTargetRef\}[\s\S]*?onPress=\{\(\) => \{\s*openSwap\(\);\s*\}\}/,
     );
     // The StyleSheet itself now lives beside the screen in match-screen-styles.
     const styles = readFileSync(
