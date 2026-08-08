@@ -2564,6 +2564,7 @@ export function MatchScreen({
           <View style={styles.coachBar}>
             <Pressable
               immediatePress
+              pressSfx="match-control"
               accessibilityRole="button"
               accessibilityLabel={t('matchScreen.a11y.formation', { formation: displayedFormation })}
               accessibilityState={{ disabled: coachingDisabled }}
@@ -2585,6 +2586,7 @@ export function MatchScreen({
             </Pressable>
             <Pressable
               immediatePress
+              pressSfx="match-control"
               accessibilityRole="button"
               accessibilityLabel={t('matchScreen.a11y.playstyle', {
                 playstyle: mentalityLabel(displayedMentality, t),
@@ -2608,6 +2610,7 @@ export function MatchScreen({
             </Pressable>
             <Pressable
               immediatePress
+              pressSfx="match-control"
               ref={swapGuideTargetRef}
               collapsable={false}
               onLayout={guideSwapButton ? scheduleSwapGuideMeasurement : undefined}
@@ -2675,6 +2678,7 @@ export function MatchScreen({
                 return (
                   <Pressable
                     immediatePress
+                    pressSfx="match-control"
                     key={mode}
                     accessibilityRole="button"
                     accessibilityLabel={`${energyUseLabel(mode, t)}. ${energyUseAccessibility(mode, t)}`}

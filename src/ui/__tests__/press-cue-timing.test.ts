@@ -44,6 +44,7 @@ jest.mock('react-native', () => ({
 import { createPressCueGate } from '../press-cue-gate';
 import {
   playManagementActionSfx,
+  playMatchControlSfx,
   playStatStepSfx,
   playUiClickSfx,
   setManagementSfxMasterVolume,
@@ -60,6 +61,7 @@ const playClick = () => playUiClickSfx();
 const UI_CLICK = 2;
 const WARNING = 15;
 const STAT_STEP = 17;
+const MATCH_CONTROL = 26;
 
 const totalPlays = () =>
   mockPlayers.reduce((count, player) => count + player.play.mock.calls.length, 0);
@@ -129,6 +131,22 @@ describe('press cue timing', () => {
     await settle();
 
     expect(totalPlays()).toBe(1);
+    expect(mockImpactAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it('plays one live-match whistle across press-in, release, and activation', async () => {
+    const gate = createPressCueGate();
+
+    gate.pressIn(playMatchControlSfx);
+    clock += 120;
+    gate.pressOut();
+    gate.press(playMatchControlSfx);
+    await settle();
+
+    expect(totalPlays()).toBe(1);
+    expect(mockPlayers[MATCH_CONTROL].seekTo).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MATCH_CONTROL].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[UI_CLICK].play).not.toHaveBeenCalled();
     expect(mockImpactAsync).toHaveBeenCalledTimes(1);
   });
 
