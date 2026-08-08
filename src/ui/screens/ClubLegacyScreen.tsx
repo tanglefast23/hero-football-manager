@@ -85,7 +85,10 @@ export function ClubLegacyScreen({
               {/* Same chip the board panel puts on a hero it is about to sell:
                   a powered player's farewell should never read like anyone's. */}
               {viewModel.isHero ? <StatusChip label={t('clubLegacy.hero')} tone="hero" /> : null}
-              <StatusChip label={viewModel.archetype} tone="hero" />
+              {/* The label, never `archetype` — that field is the persisted id
+                  the summary table is keyed by, and a chip is the one place a
+                  translated word belongs. */}
+              <StatusChip label={viewModel.archetypeLabel} tone="hero" />
               <StatusChip label={t('clubLegacy.fame', { fame: viewModel.fame })} tone="success" />
             </View>
           </View>

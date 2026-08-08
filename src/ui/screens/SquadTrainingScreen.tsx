@@ -50,6 +50,7 @@ import { GUIDED_ALERT_GLOW } from '../guidance-glow';
 import { SquadRequestsPanel } from './SquadRequestsPanel';
 import type { PlayerRequestViewModel } from '../../application/player-request-view-model';
 import { useCopy, type CopyFn } from '../../i18n';
+import { copyOrEnglish } from '../../application/copy-fallback';
 
 /**
  * The roster reads condition on the same three bands as the drill popup and
@@ -999,8 +1000,8 @@ function PlayerFileSection({
         </View>
         <View className="flex-1">
           <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.playerIdentity')}</PixelText>
-          <PixelText className="mt-1 text-lg uppercase text-ink">{selectedPlayer.role} · {selectedPlayer.archetype}</PixelText>
-          <Text className="mt-1 text-sm text-ink/60">{t('squadTraining.personalityAndFame', { personality: selectedPlayer.personality, fame: selectedPlayer.fame })}</Text>
+          <PixelText className="mt-1 text-lg uppercase text-ink">{selectedPlayer.role} · {selectedPlayer.archetypeLabel}</PixelText>
+          <Text className="mt-1 text-sm text-ink/60">{t('squadTraining.personalityAndFame', { personality: selectedPlayer.personalityLabel, fame: selectedPlayer.fame })}</Text>
         </View>
       </View>
       {selectedPlayer.injuryWeeks > 0 ? (
@@ -1121,10 +1122,10 @@ function PlayerFileSection({
         <View className="flex-row items-center justify-between gap-3">
           <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.archetype')}</PixelText>
           <View className="min-w-0 flex-1 items-end">
-            <Text className="text-base font-bold text-ink">{selectedPlayer.archetype}</Text>
+            <Text className="text-base font-bold text-ink">{selectedPlayer.archetypeLabel}</Text>
             <View className="mt-1 flex-row flex-wrap justify-end gap-x-2">
-              <Text className="font-pixel text-sm text-pitch-ink">{selectedArchetype?.strengths}</Text>
-              <Text className="font-pixel text-sm text-ink/50">{selectedArchetype?.weaknesses}</Text>
+              <Text className="font-pixel text-sm text-pitch-ink">{selectedArchetype === undefined ? null : copyOrEnglish(t, selectedArchetype.strengthsKey, selectedArchetype.strengths)}</Text>
+              <Text className="font-pixel text-sm text-ink/50">{selectedArchetype === undefined ? null : copyOrEnglish(t, selectedArchetype.weaknessesKey, selectedArchetype.weaknesses)}</Text>
             </View>
           </View>
         </View>
@@ -1138,11 +1139,11 @@ function PlayerFileSection({
             align="right"
             text={personalityExplainer(selectedPlayer.personality, t)}
             accessibilityLabel={t('squadTraining.a11y.personality', {
-              personality: selectedPlayer.personality,
+              personality: selectedPlayer.personalityLabel,
               explainer: personalityExplainer(selectedPlayer.personality, t),
             })}
           >
-            <Text className="text-base font-bold text-ink">{selectedPlayer.personality}</Text>
+            <Text className="text-base font-bold text-ink">{selectedPlayer.personalityLabel}</Text>
           </InfoTip>
         </View>
         <View className="mt-2 flex-row items-center justify-between gap-3">

@@ -75,7 +75,38 @@ export interface InstantDrillResolution {
  * band sets it false — every other entry is added to the list solely when it is
  * a bonus.
  */
+export type TrainingModifierKind =
+  | 'YOUTH'
+  | 'VETERAN'
+  | 'ROLE'
+  | 'ARCHETYPE'
+  | 'FACILITY'
+  | 'COACH';
+
 export interface TrainingModifier {
+  /**
+   * What this modifier IS, in a form no language owns.
+   *
+   * The drill card used to receive only `label`, built here — "Youth",
+   * "Prodigy", "Gym Lv2" — so a Vietnamese confirmation card listed its bonuses
+   * in English. This ring may not import `src/i18n` (see
+   * `src/game/__tests__/architecture.test.ts`), and it certainly may not call
+   * `facilityName()` in the application ring, so it emits the kind plus the
+   * token the kind needs and the view model looks the words up.
+   */
+  readonly kind: TrainingModifierKind;
+  /**
+   * The archetype id (`ARCHETYPE`), the facility type (`FACILITY`) or the role
+   * code (`ROLE`). Absent for the kinds that name no game object.
+   */
+  readonly token?: string;
+  /** Facility level, so `FACILITY` can render "Gym Lv2". */
+  readonly level?: number;
+  /**
+   * @i18n-fallback — English, for a consumer with no translator: the balance
+   * harness in `src/audit` reads these, and an old save's preview is rebuilt
+   * every time it is shown, so nothing persists this half.
+   */
   readonly label: string;
   readonly helps: boolean;
 }
@@ -492,25 +523,37 @@ function instantGrowthModifierLabels(
   // The only entry on this list that can cost the player anything. Every other
   // modifier below is pushed solely when it pays, so `helps` is false here and
   // nowhere else — which is exactly what the card colours on.
-  if (ageMultiplier > 1) modifiers.push({ label: 'Youth', helps: true });
-  if (ageMultiplier < 1) modifiers.push({ label: 'Veteran', helps: false });
+  if (ageMultiplier > 1) modifiers.push({ kind: 'YOUTH', label: 'Youth', helps: true });
+  if (ageMultiplier < 1) modifiers.push({ kind: 'VETERAN', label: 'Veteran', helps: false });
   if (positionTrainingBonusPercent(player.role, attribute) > 0) {
-    modifiers.push({ label: player.role, helps: true });
+    // The role CODE is the label. GK/DEF/MID/FWD are drawn untranslated
+    // everywhere else in the game — the register column, the squad chips — so
+    // translating them only here would make the same player two things at once.
+    modifiers.push({ kind: 'ROLE', token: player.role, label: player.role, helps: true });
   }
   if (archetypeTrainingBonusPercent(player.archetype, attribute) > 0) {
-    modifiers.push({ label: player.archetype ?? 'Archetype', helps: true });
+    modifiers.push({
+      kind: 'ARCHETYPE',
+      ...(player.archetype === undefined ? {} : { token: player.archetype }),
+      label: player.archetype ?? 'Archetype',
+      helps: true,
+    });
   }
   const facilityLevel = facilityTrainingLevel(state, attribute);
   if (facilityLevel > 0) {
+    const facilityType = trainingFacilityType(attribute);
     modifiers.push({
-      label: `${FACILITY_CATALOG[trainingFacilityType(attribute)].name} Lv${facilityLevel}`,
+      kind: 'FACILITY',
+      token: facilityType,
+      level: facilityLevel,
+      label: `${FACILITY_CATALOG[facilityType].name} Lv${facilityLevel}`,
       helps: true,
     });
   }
   const coachScale = state.market === undefined
     ? 100
     : careerCoachTrainingModifiers(state.market).gainScalePercentByAttribute[attribute];
-  if (coachScale > 100) modifiers.push({ label: 'Coach', helps: true });
+  if (coachScale > 100) modifiers.push({ kind: 'COACH', label: 'Coach', helps: true });
   return modifiers;
 }
 

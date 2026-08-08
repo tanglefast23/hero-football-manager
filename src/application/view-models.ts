@@ -6,6 +6,12 @@ import {
   type LaunchContent,
 } from '../content';
 import { adjacencyDescription, copyOrEnglish, facilityName, resolveRingCopy } from './copy-fallback';
+import {
+  archetypeName,
+  coachSpecialtyName,
+  personalityName,
+  trainingModifierLabel,
+} from './name-copy';
 import { managerNotes } from './manager-notes';
 import { eventOfferForWeek } from './event-selection';
 import {
@@ -99,7 +105,9 @@ import {
   type PlacedFacility,
   type AssistantInboxGuideSequenceId,
   type SponsorContractSnapshot,
+  type SponsorObjectiveSnapshot,
   type SponsorOfferSnapshot,
+  type SponsorProfileId,
 } from '../game';
 import type {
   AwakeningCutsceneViewModel,
@@ -207,8 +215,12 @@ export function clubLegacyViewModel(
     playerName: legend.name,
     role: legend.role,
     lookId: legend.lookId,
+    // The id and the word are separate fields on purpose: the id is persisted
+    // and switched on, the label is drawn. See `name-copy.ts`.
     archetype: legend.archetype ?? 'All-Rounder',
+    archetypeLabel: archetypeName(t, legend.archetype ?? 'All-Rounder'),
     personality: legend.personality ?? 'Professional',
+    personalityLabel: personalityName(t, legend.personality ?? 'Professional'),
     fame: legend.fame ?? 0,
     seasonsAtClub: legend.seasonsAtClub ?? 0,
     isHero: legend.power !== undefined,
@@ -306,12 +318,16 @@ export function awakeningCutsceneViewModel(
       ? t('awakening.licenseActive')
       : t('awakening.licenseAwaiting'),
     continueLabel: pending.firstHero
-      ? 'BEGIN THE HERO ERA  ▸'
+      // Spoken, never drawn: the visible button is `powerAcquiredDemo.continue`
+      // and this reaches only the accessibility label. The `▸` went with the
+      // English — a screen reader announces U+25B8 as "black right-pointing
+      // small triangle", which is decoration read aloud as furniture.
+      ? t('awakening.continue.heroEra')
       : state.phase === 'season-end' || state.phase === 'complete'
-        ? 'CONTINUE TO SEASON REVIEW  ▸'
+        ? t('awakening.continue.seasonReview')
         : hasPostMatchReport
-          ? 'CONTINUE TO MATCH REPORT  ▸'
-          : 'RETURN TO THE OFFICE  ▸',
+          ? t('awakening.continue.matchReport')
+          : t('awakening.continue.office'),
   };
 }
 
@@ -671,6 +687,65 @@ function fourWeekOperatingOutlook(
   };
 }
 
+/**
+ * The content id the continuity placeholder carries.
+ *
+ * It matches no row in `sponsors.json` on purpose — "the deal you already have"
+ * is not a brand — so every lookup here has to fall through to chrome rather
+ * than assume a brand exists. Missing that is what would leave an old save
+ * reading English forever, since the persisted words are a perfectly readable
+ * fallback and nothing would look broken.
+ */
+const CONTINUITY_SPONSOR_ID = 'continuity';
+
+const SPONSOR_PROFILE_LABEL_KEYS: Readonly<Record<SponsorProfileId, string>> = {
+  STEADY: 'clubFinances.sponsorProfileSteady',
+  BALANCED: 'clubFinances.sponsorProfileBalanced',
+  BOLD: 'clubFinances.sponsorProfileBold',
+};
+
+/**
+ * A sponsor's name. English by product decision — a fictional sponsor is the
+ * same class of invented proper noun as `Bramble Rovers`, and translating twelve
+ * of them would buy no clarity — EXCEPT the continuity placeholder, which is UI
+ * chrome wearing a sponsor's slot.
+ */
+function sponsorNameCopy(
+  t: CopyFn,
+  contract: Pick<SponsorContractSnapshot, 'sponsorContentId' | 'sponsorName' | 'slot'>,
+  portfolioSlots: number,
+): string {
+  if (contract.sponsorContentId !== CONTINUITY_SPONSOR_ID) return contract.sponsorName;
+  return portfolioSlots <= 1
+    ? t('clubFinances.sponsorContinuityName')
+    : t('clubFinances.sponsorContinuityNameNumbered', { number: contract.slot + 1 });
+}
+
+/**
+ * The line under the name, resolved from the content id both the contract and
+ * the offer snapshot have carried since they were written.
+ *
+ * The persisted English stays the fallback, so a save signed before this existed
+ * still reads — and so does one whose brand an app update has removed.
+ */
+function sponsorOfferLineCopy(
+  t: CopyFn,
+  contract: Pick<SponsorContractSnapshot, 'sponsorContentId' | 'offerLine'>,
+): string {
+  return contract.sponsorContentId === CONTINUITY_SPONSOR_ID
+    ? t('clubFinances.sponsorContinuityTerms')
+    : copyOrEnglish(
+      t,
+      `sponsor.brand.${contract.sponsorContentId}.offerLine`,
+      contract.offerLine,
+    );
+}
+
+/** The season target, from the key the producer now writes beside the English. */
+function sponsorObjectiveCopy(t: CopyFn, objective: SponsorObjectiveSnapshot): string {
+  return copyOrEnglish(t, objective.labelKey, objective.label, objective.labelParams);
+}
+
 function clubSponsorshipViewModel(
   state: GameState,
   club: GameState['clubs'][number],
@@ -698,6 +773,12 @@ function clubSponsorshipViewModel(
   const nextSponsorPaymentWeek = SPONSOR_PAYMENT_WEEKS.find(week => week >= state.week);
 
   const slots = sponsorship.activeContracts.map(contract => {
+    // "Current Sponsor" only loses its number when the club has a single slot,
+    // which is what the producer decided from `capacity` when it wrote the
+    // English. A portfolio is one season's worth of contracts, so counting them
+    // recovers the same answer without parsing the persisted words back.
+    const portfolioSlots = sponsorship.activeContracts
+      .filter(candidate => candidate.season === contract.season).length;
     const progress = contract.objective === undefined
       ? undefined
       : sponsorObjectiveProgressFromFixtures(
@@ -712,13 +793,13 @@ function clubSponsorshipViewModel(
     return {
       slot: contract.slot,
       slotLabel: t('clubFinances.sponsorSlotLabel', { number: contract.slot + 1 }),
-      sponsorName: contract.sponsorName,
-      offerLine: contract.offerLine,
+      sponsorName: sponsorNameCopy(t, contract, portfolioSlots),
+      offerLine: sponsorOfferLineCopy(t, contract),
       provisional: contract.provisional,
       nominalMonthlyFee: contract.nominalMonthlyFee,
       actualMonthlyFee: actualByContract.get(contract.contractId) ?? 0,
       ...(contract.objective === undefined ? {} : {
-        objectiveLabel: contract.objective.label,
+        objectiveLabel: sponsorObjectiveCopy(t, contract.objective),
         objectiveProgressLabel: progress === undefined
           ? undefined
           : contract.objective.kind === 'LEAGUE_FINISH'
@@ -739,6 +820,7 @@ function clubSponsorshipViewModel(
           offer,
           sponsorship.activeContracts,
           sponsorPercent,
+          t,
         )),
     };
   });
@@ -773,6 +855,7 @@ function sponsorOfferViewModel(
   offer: SponsorOfferSnapshot,
   contracts: readonly SponsorContractSnapshot[],
   sponsorPercent: number,
+  t: CopyFn,
 ) {
   const hypothetical: SponsorContractSnapshot[] = contracts.map(contract => contract.slot === offer.slot
     ? {
@@ -795,14 +878,12 @@ function sponsorOfferViewModel(
   return {
     offerId: offer.offerId,
     sponsorName: offer.sponsorName,
-    offerLine: offer.offerLine,
+    offerLine: sponsorOfferLineCopy(t, offer),
     profile: offer.profile,
-    profileLabel: offer.profile === 'STEADY'
-      ? 'Steady'
-      : offer.profile === 'BALANCED' ? 'Balanced' : 'Bold',
+    profileLabel: t(SPONSOR_PROFILE_LABEL_KEYS[offer.profile]),
     nominalMonthlyFee: offer.nominalMonthlyFee,
     actualMonthlyFee,
-    objectiveLabel: offer.objective.label,
+    objectiveLabel: sponsorObjectiveCopy(t, offer.objective),
     nominalBonus: offer.objective.nominalBonus,
     actualBonus,
   };
@@ -923,9 +1004,10 @@ function coachingStaffViewModels(state: GameState, t: CopyFn): readonly CoachSta
       portraitId: state.market.headCoach.portraitId ?? state.market.headCoach.id,
       name: state.market.headCoach.name,
       age: state.market.headCoach.age ?? 45,
-      personalityLabel: readableLabel(state.market.headCoach.personality),
+      personalityLabel: personalityName(t, state.market.headCoach.personality),
       level: state.market.headCoach.level,
-      specialtyLabels: state.market.headCoach.specialties.map(readableLabel) as [string, string],
+      specialtyLabels: state.market.headCoach.specialties
+        .map(specialty => coachSpecialtyName(t, specialty)) as [string, string],
       effectLabels: coachRoleEffectLabels(state.market.headCoach, 'HEAD', t),
       weeklyWage: state.market.headCoach.weeklyWage,
       seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
@@ -938,9 +1020,10 @@ function coachingStaffViewModels(state: GameState, t: CopyFn): readonly CoachSta
       portraitId: state.market.assistantCoach.portraitId ?? state.market.assistantCoach.id,
       name: state.market.assistantCoach.name,
       age: state.market.assistantCoach.age ?? 45,
-      personalityLabel: readableLabel(state.market.assistantCoach.personality),
+      personalityLabel: personalityName(t, state.market.assistantCoach.personality),
       level: state.market.assistantCoach.level,
-      specialtyLabels: state.market.assistantCoach.specialties.map(readableLabel) as [string, string],
+      specialtyLabels: state.market.assistantCoach.specialties
+        .map(specialty => coachSpecialtyName(t, specialty)) as [string, string],
       effectLabels: coachRoleEffectLabels(state.market.assistantCoach, 'ASSISTANT', t),
       weeklyWage: state.market.assistantCoach.weeklyWage,
       seasonsEmployed: state.market.assistantCoachSeasonsEmployed ?? 0,
@@ -1214,7 +1297,9 @@ export function storyEventViewModel(
     if (coach === undefined) return undefined;
     // The same keys the staff screen uses, so the card cannot drift into
     // describing a coach differently from the screen that hired him.
-    const specialties = coach.specialties.map(readableLabel);
+    // `readableLabel` was the second prettifier — it answered in English
+    // whatever the locale — and this card arrived after it was removed.
+    const specialties = coach.specialties.map(specialty => coachSpecialtyName(t, specialty));
     const trainingPercent = coachTrainingBonusPercent(coach.level, role)
       + cappedCoachBoost(coach.boosts, 'trainingPercent');
     const trainingBoost = cappedCoachBoost(coach.boosts, 'trainingPercent');
@@ -1324,7 +1409,15 @@ export function storyEventViewModel(
     artKey: event.art,
     category: event.category,
     weekLabel: `S${state.season} · W${state.week}`,
-    categoryLabel: `${event.rarity} ${event.category}`,
+    // Two independent tags, not an adjective phrase. Composed from keys rather
+    // than from the content enums, which were rendered raw as "RARE MYSTERY" in
+    // all six languages — invisible to every gate, because it had no key AND was
+    // built from data values rather than a string literal.
+    //
+    // The separator is what makes ten words enough instead of twenty-one pairs:
+    // "SELTEN · VEREIN" needs no agreement, where "seltener Verein" does. It is
+    // also already the house separator (`D5 · District League`).
+    categoryLabel: `${t(`storyEvent.rarity.${event.rarity}`)} · ${t(`storyEvent.category.${event.category}`)}`,
     title: copyOrEnglish(t, `event.${event.id}.title`, event.title),
     body: copyOrEnglish(t, `event.${event.id}.body`, event.body),
     ...(selected ? { selectedPlayer: storyPlayer(selected, true) } : {}),
@@ -1492,8 +1585,9 @@ export function seasonEndViewModel(
     .sort((left, right) => left.slot - right.slot || left.contractId.localeCompare(right.contractId))
     .map(contract => ({
       contractId: contract.contractId,
+      // The brand stays English by decision; the target beside it does not.
       sponsorName: contract.sponsorName,
-      objectiveLabel: contract.objective!.label,
+      objectiveLabel: sponsorObjectiveCopy(t, contract.objective!),
       met: contract.objectiveOutcome!.met,
       // This is deliberately the persisted settlement value. Recomputing from
       // nominal terms here could lie by a dollar after Chairman allocation.
@@ -2863,8 +2957,13 @@ export function squadTrainingViewModel(
         canTrain: isAvailableForSelection(player),
         isStarter: starterIds.has(player.id),
         age: player.age ?? 24,
+        // The player file draws `archetypeLabel`, but `archetype` is what
+        // `archetypeDevelopmentSummary` looks its training bonus up by — a
+        // translated id lands every player on the "+ BALANCED" fallback.
         archetype: player.archetype ?? 'All-Rounder',
+        archetypeLabel: archetypeName(t, player.archetype ?? 'All-Rounder'),
         personality: player.personality ?? 'Professional',
+        personalityLabel: personalityName(t, player.personality ?? 'Professional'),
         morale: player.morale,
         loyalty: playerLoyalty(player, state.careerSeed),
         fame: player.fame ?? 0,
@@ -2919,7 +3018,10 @@ export function squadTrainingViewModel(
             currentValue,
             baseValueAfter: preview.baseAfter,
             trainingAdjustment: preview.adjustment,
-            trainingModifiers: preview.modifiers,
+            trainingModifiers: preview.modifiers.map(modifier => ({
+              label: trainingModifierLabel(t, modifier),
+              helps: modifier.helps,
+            })),
             // The stored value, never the displayed one: a keeper whose card
             // has stalled at 999 may still have real room to train.
             atSafetyCeiling: selectedPlayer.attrs[path.attribute] >= 999,
@@ -3688,7 +3790,12 @@ function describeEventEffects(
   t: CopyFn,
   state: GameState,
 ): string {
-  return eventRewardLabels(effects, t, state).join(' and ') || t('storyEvent.unknownReward');
+  // The joiner is copy, not punctuation. Hardcoded `' and '` shipped English
+  // inside an otherwise translated consequence hint on 38 risky outcomes, in all
+  // six languages — invisible to both instruments, because it is composed from
+  // already-resolved values and never appears as a literal beside a key.
+  return eventRewardLabels(effects, t, state).join(t('storyEvent.rewardJoiner'))
+    || t('storyEvent.unknownReward');
 }
 
 function eventRewardLabels(
@@ -3837,8 +3944,4 @@ function requireUserClub(state: GameState) {
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
   if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
   return club;
-}
-
-function readableLabel(value: string): string {
-  return value.charAt(0) + value.slice(1).toLowerCase();
 }

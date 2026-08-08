@@ -15,6 +15,18 @@ Kairosoft-style soccer club management sim with superpowered players. iOS-first 
 - Balance changes must keep the CI balance-harness assertions passing (see `docs/09-tech-stack.md`).
 - Any replay-affecting sim change (behavior, tuning, or RNG consumption) must bump `ENGINE_VERSION` in `src/sim/match.ts`. The golden-replay snapshot update is the forcing reminder — never update that snapshot without a version decision.
 
+## New copy ships in all seven languages, or it does not ship
+
+The game ships in en, es, pt-BR, fr, de, id and vi. **Writing English copy is half the task; the other half is the same commit.** Never leave translation as a follow-up — it has been left twice and both times shipped English to six languages.
+
+- **Player-facing prose belongs in `content/*.json`**, not in a component. `contentStrings()` flattens it into keys, and gate 10 then holds every content file at **100% in all six locales**. Adding a Bert page, a story event or a coach line without translating it turns CI red with the file named.
+- **Chrome strings belong in `content/i18n/en.json`** and must appear in all six other catalogs — gate 1 is exact key parity, so a missing key fails immediately.
+- **`src/sim/` and `src/game/` may not import `src/i18n`.** A pure ring dual-writes: the English sentence plus a `labelKey`/`textKey` (and raw `labelParams` — never pre-formatted text). The app ring resolves the pair with `copyOrEnglish` / `resolveRingCopy`. Writing the key is not enough — **check a consumer actually reads it**, because a key nothing requests is the single most common defect in this codebase's history.
+- **Never translate an id.** Archetypes, personalities, specialties, mentalities and cup rounds are persisted enum values compared as control values; translating one at source breaks saves and replays. Add a display key and look it up.
+- **Deliberately English**: club and player names, fictional sponsor brands, stat codes (PAC/SHO/REF) and role codes (GK/DEF/MID/FWD). Everything else translates.
+- **Gate floors and ratchets only ever go UP.** If a coverage floor or the hardcoded-prose ceiling is in your way, the copy is untranslated — translate it. Lowering the number to go green defeats the only instrument that catches this, and has already happened once (`events.json` was dropped 100 → 38 to ship 264 untranslated strings). `gates.test.ts` now fails if a floor is below its recorded high-water mark.
+- **Vietnamese uses a custom pixel font** with 102 hand-built glyphs. Only use characters already present in `content/i18n/vi.json`; anything else renders as a blank box. Gate 5 checks this, but check yourself.
+
 ## Preview & QA hygiene (no background game audio)
 
 - The web build auto-plays looping music, and browser-pane tabs + `serve`/dev-server processes outlive your turn — a forgotten preview plays game audio through the Mac speakers indefinitely.

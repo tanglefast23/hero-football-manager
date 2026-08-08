@@ -119,17 +119,18 @@ export function sponsorBaselineShares(
  * Income-preserving placeholders created before the player chooses offers.
  * They carry no objective, so migration never invents a retroactive bonus.
  *
- * TODO(i18n): `sponsorName` and `offerLine` stay English DELIBERATELY. Both are
- * written into `SponsorContractSnapshot`, which is persisted, and `sponsorName`
- * is copied again into every monthly-sponsor and objective-bonus ledger line as
- * `labelParams.sponsor` (`career.ts`) — so a translated value is baked into the
- * save in whatever language the season happened to be played in and stays there
- * after a language change. Keying them is a coordinated change, not a local one:
- * `SponsorContractSnapshot` in `club-business-types.ts` has no `*Key` field, and
- * `sponsorContractSnapshotSchema` in `persistence/game-state-codec.ts` is a
- * `z.strictObject`, so writing one without widening the schema first makes the
- * save undecodable. Brand names and their authored offer lines are content, and
- * are not flattened by `contentStrings()` either.
+ * @i18n-fallback — these two strings are NOT a brand. `'continuity'` matches no
+ * row in `sponsors.json`, and the words are the UI's way of saying "the deal you
+ * already have", so they resolve through the CHROME keys
+ * `clubFinances.sponsorContinuityName` / `.sponsorContinuityNameNumbered` /
+ * `.sponsorContinuityTerms` — see `clubSponsorshipViewModel` in
+ * `application/view-models.ts`, which special-cases the id. Deliberately not
+ * synthetic content keys: the whole of `sponsors.json` is persisted per career
+ * as `sponsorRules`, so a fake brand row there would be a gameplay object, not
+ * copy. The English stays here because `sponsorContractSnapshotSchema` is a
+ * `z.strictObject` with no `*Key` field beside `sponsorName`/`offerLine`, and
+ * widening it would be the save-format change this work proved unnecessary —
+ * the resolution belongs at the render boundary instead.
  */
 export function createProvisionalSponsorPortfolio(
   nominalTotal: number,
@@ -256,7 +257,13 @@ export function generateSponsorOffers(
         nominalMonthlyFee,
         objective: {
           kind: objectiveDefinition.kind,
+          // The dual write, made at GENERATION rather than on accept: an
+          // unaccepted offer is drawn on the sponsor desk for four weeks, and a
+          // key written only when a deal is signed leaves every card the player
+          // is choosing between in English.
           label: objectiveDefinition.labelTemplate.replace('{target}', String(target)),
+          labelKey: `sponsor.objective.${objectiveDefinition.id}.label`,
+          labelParams: { target },
           target,
           nominalBonus,
         },

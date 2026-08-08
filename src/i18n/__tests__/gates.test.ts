@@ -93,12 +93,29 @@ describe('i18n gates', () => {
     const covered = new Map<string, ReadonlySet<number>>();
     for (const locale of ENABLED_LOCALES) {
       const faces = localeMeta(locale).faces;
-      for (const [key, value] of Object.entries(loadCatalog(locale).strings)) {
+      // English needs `englishAll()`, not the catalog. `loadCatalog('en')` is
+      // chrome ONLY — English content prose lives in `content/*.json` and
+      // reaches the app through `contentStrings()`. So for as long as this read
+      // the catalog, no English content string was EVER glyph-checked: a new
+      // event title carrying a `…` shipped tofu with CI green, which is this
+      // gate's whole reason for existing. The translated locales are unaffected
+      // — their catalogs already carry the content keys.
+      const strings = locale === 'en' ? englishAll() : loadCatalog(locale).strings;
+      for (const [key, value] of Object.entries(strings)) {
         const family = faceForKey(key, faces);
         if (family === null) continue; // body voice: platform sans, any glyph
         if (!covered.has(family)) covered.set(family, glyphSet(faceFile(family)));
         expect({ locale, key, missing: missingGlyphs(value, covered.get(family)!) })
           .toEqual({ locale, key, missing: [] });
+        // ...and the UPPERCASED form, because the stylesheet uppercases most
+        // display copy (`uppercase` on the class, `textTransform` in a few
+        // StyleSheets) while this gate only ever saw the string as authored. A
+        // character whose lower case is in the face and whose upper case is not
+        // would have shipped as tofu with the gate green — the shape of every
+        // bug in this workstream. Nothing fails this today; it is a hole being
+        // closed, not a fire being put out.
+        expect({ locale, key, upper: missingGlyphs(value.toUpperCase(), covered.get(family)!) })
+          .toEqual({ locale, key, upper: [] });
       }
     }
   });
@@ -222,6 +239,10 @@ describe('persisted labels resolve through the catalog', () => {
       // The ledger's six cash-transaction lines. They were outside this gate
       // while one of them still interpolated an English training-path name.
       'src/game/management.ts',
+      // The sponsor objective a signed deal carries for a whole season. It is
+      // written at OFFER generation, so an unguarded key would be wrong on
+      // three cards a week before it was ever wrong on a contract.
+      'src/game/sponsors.ts',
     ];
     const keys = sources.flatMap(file => {
       const text = readFileSync(join(process.cwd(), file), 'utf8');
@@ -423,26 +444,22 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
    * finished four off 100 and quietly retired the guard on all of them.
    */
   const COVERAGE_FLOOR: Readonly<Record<string, Readonly<Record<string, number>>>> = {
-    /**
-     * Was 100. The targeted-interruptions build cut 29 events and authored 33,
-     * and the new ones ship English-first — content prose falls back by design,
-     * which is exactly what this gate exists to measure rather than pretend
-     * about. The 21 kept events are still fully translated; the 33 new ones are
-     * roughly 267 strings per locale of outstanding work, and this floor moves
-     * back to 100 when that lands.
-     */
-    'events.json': { es: 38, 'pt-BR': 38, fr: 38, id: 38, de: 38, vi: 38 },
+    'events.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
     'tips.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
     'player-requests.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
     'glossary.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
-    'assistant-guide.json': {},
-    'onboarding.json': {},
-    'fulltime-coach-lines.json': {},
-    'fulltime-blame-lines.json': {},
-    'agent-final-lines.json': {},
-    'award-ceremony-lines.json': {},
-    'powers.json': {},
-    'training.json': {},
+    'assistant-guide.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
+    'onboarding.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
+    'fulltime-coach-lines.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
+    'fulltime-blame-lines.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
+    'agent-final-lines.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
+    'award-ceremony-lines.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
+    'powers.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
+    'training.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
+    // Offer lines and objective templates only. The twelve brand names are
+    // deliberately not keyed — a fictional sponsor is an invented proper noun,
+    // like a club name — so this denominator is 15, not 27.
+    'sponsors.json': { es: 100, 'pt-BR': 100, fr: 100, id: 100, de: 100, vi: 100 },
   };
 
   /**
@@ -466,6 +483,7 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
     'ceremony.': 'award-ceremony-lines.json',
     'powerEffect.': 'powers.json',
     'drill.': 'training.json',
+    'sponsor.': 'sponsors.json',
   };
 
   const sourceOf = (key: string): string | undefined => Object.entries(SOURCE_BY_PREFIX)
@@ -476,6 +494,38 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
     expect(Object.keys(contentStrings()).filter(key => sourceOf(key) === undefined)).toEqual([]);
     expect(Object.keys(COVERAGE_FLOOR).sort())
       .toEqual([...new Set(Object.values(SOURCE_BY_PREFIX))].sort());
+  });
+
+  /**
+   * Floors only ever go up.
+   *
+   * A floor is a ratchet, and a ratchet that can be wound back is a suggestion.
+   * `events.json` was dropped 100 -> 38 to ship 264 untranslated strings; that
+   * lowering was honestly documented and committed to being temporary, which is
+   * better than a silent one — and it still sat there until someone happened to
+   * ask whether new copy gets translated automatically. Nothing FORCED it back.
+   *
+   * So: 100 is the only legal floor, and an exception must be written down here
+   * with a reason. Adding an entry is a visible, arguable line in a diff instead
+   * of a number quietly edited in a table of thirteen identical numbers.
+   */
+  const FLOOR_EXCEPTIONS: Readonly<Record<string, string>> = {
+    // (empty — every content file is fully translated in every locale)
+  };
+
+  test('every content floor is 100, or carries a written exception', () => {
+    const belowFull: string[] = [];
+    for (const [source, floors] of Object.entries(COVERAGE_FLOOR)) {
+      if (FLOOR_EXCEPTIONS[source] !== undefined) continue;
+      for (const [locale, floor] of Object.entries(floors)) {
+        if (floor < 100) belowFull.push(`${source} ${locale}=${floor}`);
+      }
+    }
+    expect(belowFull).toEqual([]);
+    // The exception list must not outlive its reason: an entry for a file that
+    // is fully translated again is a stale licence to regress.
+    expect(Object.keys(FLOOR_EXCEPTIONS).filter(source => COVERAGE_FLOOR[source] === undefined))
+      .toEqual([]);
   });
 
   test('every locale meets its recorded content-prose floor', () => {
