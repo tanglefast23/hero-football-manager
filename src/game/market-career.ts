@@ -64,6 +64,7 @@ import { assertUserCareerRosterSpace } from './youth-intake';
 import { isStoryScoutingUnlocked } from './story-progression';
 import {
   applyCareerContractPromise,
+  ContractPromiseBlockedError,
   careerContractPromiseBlockedReason,
   careerContractPromiseHeroLimit,
   clearCareerContractPromise,
@@ -457,7 +458,7 @@ export function submitCareerTransferOffer(
       offer.perk,
       heroLimit ?? careerContractPromiseHeroLimit(state),
     );
-    if (blocked !== undefined) throw new Error(blocked);
+    if (blocked !== undefined) throw new ContractPromiseBlockedError(blocked);
   }
   return {
     ...market,
@@ -705,7 +706,7 @@ export function submitCareerRenewalOffer(
     offer.perk,
     heroLimit ?? careerContractPromiseHeroLimit(state),
   );
-  if (blocked !== undefined) throw new Error(blocked);
+  if (blocked !== undefined) throw new ContractPromiseBlockedError(blocked);
   return {
     ...market,
     renewalTalks: {
