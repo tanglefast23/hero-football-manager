@@ -82,6 +82,7 @@ import {
   teardownFinancialReportSfx,
 } from './src/render/financial-report-sfx';
 import { setBertVoiceMasterVolume, teardownBertVoice } from './src/render/bert-voice';
+import { setRivalHeroVoiceMasterVolume, teardownRivalHeroVoice } from './src/render/rival-hero-voice';
 import { playManagementHaptic, setHapticsEnabled } from './src/render/haptics';
 import { assertRuntimeGoldenReplay } from './src/sim/runtime-golden';
 import type { MatchState } from './src/sim/types';
@@ -1134,6 +1135,7 @@ function GameApp() {
     setManagementSfxMasterVolume(devVolume);
     setFinancialReportSfxMasterVolume(devVolume);
     setBertVoiceMasterVolume(devVolume);
+    setRivalHeroVoiceMasterVolume(devVolume);
     setAwakeningMasterVolume(devVolume);
     setCelebrationMasterVolume(devVolume);
   }, [devVolume]);
@@ -1179,6 +1181,7 @@ function GameApp() {
     teardownManagementSfx();
     teardownFinancialReportSfx();
     teardownBertVoice();
+    teardownRivalHeroVoice();
     teardownAwakeningAudio();
     teardownCelebrationAudio();
   }, []);
@@ -2681,6 +2684,13 @@ function GameApp() {
   const screenRequiresHardCut = screenKey === MatchScreen
     || screenKey === QuickResultFaceOff
     || screenKey === RivalHeroIntroScreen;
+  // Confirmations have first claim on focus. Otherwise, a save warning that
+  // has paused the career becomes the only interactive surface until Retry.
+  const blockingSaveWarningVisible = pendingConfirmation === null
+    && store.saveWarning !== null
+    && store.saveBlocked;
+  const backgroundInteractionBlocked = pendingConfirmation !== null
+    || blockingSaveWarningVisible;
 
   return (
     <LocaleProvider value={preferences.language}>
@@ -2710,9 +2720,10 @@ function GameApp() {
         />
         <View
           className="flex-1"
-          accessibilityElementsHidden={pendingConfirmation !== null}
-          importantForAccessibility={pendingConfirmation === null ? 'auto' : 'no-hide-descendants'}
-          {...confirmationBackgroundProps(pendingConfirmation !== null)}
+          pointerEvents={backgroundInteractionBlocked ? 'none' : 'auto'}
+          accessibilityElementsHidden={backgroundInteractionBlocked}
+          importantForAccessibility={backgroundInteractionBlocked ? 'no-hide-descendants' : 'auto'}
+          {...confirmationBackgroundProps(backgroundInteractionBlocked)}
         >
         <View className="flex-1" {...bertBriefingBackgroundProps(bertBriefingVisible)}>
         <ScreenTransition
@@ -2747,7 +2758,7 @@ function GameApp() {
         ) : null}
         {/* Not a FeedbackNotice: that one is dismissible and auto-hides. An
             unsaved career must keep saying so until a save actually succeeds. */}
-        {store.saveWarning !== null && (
+        {store.saveWarning !== null && !blockingSaveWarningVisible && (
           <SaveWarningBanner
             message={store.saveWarning}
             blocked={store.saveBlocked}
@@ -3090,6 +3101,13 @@ function GameApp() {
           />
         ) : null}
         </View>
+        {blockingSaveWarningVisible && store.saveWarning !== null && (
+          <SaveWarningBanner
+            message={store.saveWarning}
+            blocked
+            onRetry={store.retrySave}
+          />
+        )}
         <ConfirmationSheet
           confirmation={pendingConfirmation}
           reduceMotion={reduceMotion}
@@ -3341,14 +3359,18 @@ function SaveWarningBanner({
   const insets = useSafeAreaInsets();
   return (
     <View
-      accessible
-      accessibilityRole="alert"
-      accessibilityLabel={t('app.a11y.saveProblem', { message })}
+      accessibilityViewIsModal={blocked}
       className="absolute inset-x-0 top-0 border-b-4 border-stamp bg-red-light px-4 py-3"
       style={{ paddingTop: insets.top + 12 }}
     >
-      <Text className="font-pixel text-sm uppercase text-stamp">{t('trainingDrill.yourClubIsNotSaving')}</Text>
-      <Text className="mt-1 text-xs leading-4 text-ink/70">{message}</Text>
+      <View
+        accessible
+        accessibilityRole="alert"
+        accessibilityLabel={t('app.a11y.saveProblem', { message })}
+      >
+        <Text className="font-pixel text-sm uppercase text-stamp">{t('trainingDrill.yourClubIsNotSaving')}</Text>
+        <Text className="mt-1 text-xs leading-4 text-ink/70">{message}</Text>
+      </View>
       {blocked && (
         <BootFailureButton
           tone="primary"

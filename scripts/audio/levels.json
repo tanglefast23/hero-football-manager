@@ -602,6 +602,56 @@
       "afterTruePeak": -1.9,
       "bytes": 54906
     },
+    "assets/audio/sfx/rival-laugh-barry-allan.m4a": {
+      "class": "sfx",
+      "before": -16,
+      "beforeTruePeak": -8,
+      "gainDb": 0,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -8,
+      "bytes": 13316
+    },
+    "assets/audio/sfx/rival-laugh-bruce-wain.m4a": {
+      "class": "sfx",
+      "before": -16,
+      "beforeTruePeak": -5,
+      "gainDb": 0,
+      "limited": false,
+      "after": -16,
+      "afterTruePeak": -5,
+      "bytes": 38131
+    },
+    "assets/audio/sfx/rival-laugh-bruno-bannor.m4a": {
+      "class": "sfx",
+      "before": -16.1,
+      "beforeTruePeak": -7.2,
+      "gainDb": 0,
+      "limited": false,
+      "after": -16.1,
+      "afterTruePeak": -7.2,
+      "bytes": 37983
+    },
+    "assets/audio/sfx/rival-laugh-scott-somers.m4a": {
+      "class": "sfx",
+      "before": -16.1,
+      "beforeTruePeak": -7.9,
+      "gainDb": 0,
+      "limited": false,
+      "after": -16.1,
+      "afterTruePeak": -7.9,
+      "bytes": 37899
+    },
+    "assets/audio/sfx/rival-laugh-steve-rodgers.m4a": {
+      "class": "sfx",
+      "before": -16.1,
+      "beforeTruePeak": -9.9,
+      "gainDb": 0,
+      "limited": false,
+      "after": -16.1,
+      "afterTruePeak": -9.9,
+      "bytes": 37754
+    },
     "assets/audio/sfx/save-slap.wav": {
       "class": "sfx",
       "before": -18.4,

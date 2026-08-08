@@ -12,13 +12,13 @@ status: implemented
 Add a short, once-per-career reveal before Match Day whenever the live opponent currently
 owns one of the five division-headline rival heroes. The production scene keeps the hero
 centred near the bottom on their supplied pixel-art backdrop beneath a persistent localized
-`DIVISION RIVAL` banner, reveals their real Super Power in the existing animated title-card
-language, removes the card, then shows the selected funny taunt in the normal speech-bubble
-treatment. Five bookmarkable Dev Harness cases make the whole sequence replayable without
-advancing a career.
+`DIVISION RIVAL` banner and large player name, reveals their real Super Power in the existing
+animated title-card language while they demonstrate it, removes the card after three seconds,
+then shows the selected funny taunt for a second skippable three-second beat. Five bookmarkable
+Dev Harness cases make the whole sequence replayable without advancing a career.
 
 The full behavior is defined in
-`docs/superpowers/plans/2026-08-08-rival-hero-intro-cutscenes-spec.md` revision 6. This plan
+`docs/superpowers/plans/2026-08-08-rival-hero-intro-cutscenes-spec.md` revision 7. This plan
 does not expand the feature to other special heroes or the match simulation.
 
 ## Resolved owner decisions
@@ -30,6 +30,12 @@ does not expand the feature to other special heroes or the match simulation.
 - [x] Add a localized `DIVISION RIVAL` banner above the hero through both beats.
 - [x] Use the supplied 155 BPM hip-hop track as a dedicated `37.16s` rival-scene loop.
 - [x] Report Barry on the first tutorial team sheet while preserving its powerless match.
+- [x] Put the player's name between `DIVISION RIVAL` and the power card, with no duplicate
+      name inside the card.
+- [x] Demonstrate each rival's real power before speech, with whole-screen tap-to-skip and a
+      three-second automatic advance for both beats.
+- [x] Use Bert's dialogue chatter for every taunt, then play the fixed character laugh one
+      second after that chatter ends.
 
 ## Current behavior and seams
 
@@ -66,8 +72,9 @@ does not expand the feature to other special heroes or the match simulation.
   under the recommended Barry policy.
 - Keep Atlas batching for matches; the single out-of-match character continues to use the
   purpose-built `PlayerRunSprite`.
-- No new dependency, SFX index, haptic, currency, or additional background artwork beyond
-  the five owner-supplied assets and approved rival music cue.
+- No new dependency, haptic, currency, or additional background artwork beyond the five
+  owner-supplied assets. The only new audio is the approved rival music cue and five fixed
+  owner-supplied laugh derivatives.
 - Do not commit, push, deploy, or publish as part of this plan unless Joe separately asks.
 
 ## Implementation phases
@@ -150,14 +157,14 @@ one authored source.
       false), and clean up safely after unmount.
 - [x] Add a small pure sequence/timing module for `power → speech → done`, including the
       no-auto-advance policy under screen-reader use, rapid-tap protection, and restart-on-
-      foreground policy for an interrupted power beat. Backgrounding during speech may finish
-      the visual typewriter but must cancel any dismiss/complete side effect; foregrounding
-      remains on speech until an explicit tap/Back/escape. Cover both phases with focused node
-      tests and prove AppState transitions never call `completeRivalHeroIntro`.
+      foreground policy for an interrupted power beat. Both visible beats auto-advance after
+      three seconds for sighted play; backgrounding speech cancels its audio and timer, then
+      foregrounding restarts that full hold. Cover both phases with focused node tests and
+      prove AppState transitions never call `completeRivalHeroIntro` while hidden.
 - [x] Extend `CharacterSpeechOverlay` only where required:
   - optional `characterCentreRatio` with today's 0.8 placement as the default,
   - optional hidden-character mode so the rival screen can keep one parent-owned hero
-    mounted while reusing the canonical bubble/typewriter/tap behavior,
+    mounted while reusing the canonical bubble/tap treatment and opting into instant copy,
   - an opt-in safe-dismiss route so Android Back and accessibility escape call the same
     internal `advance` state machine as a tap.
     Existing call sites and visual placement must remain byte-for-byte equivalent in intent.
@@ -165,15 +172,19 @@ one authored source.
   - full-screen hero-specific supplied art from one typed static asset map, rendered without
     smoothing through shared portrait and landscape composition presets, with solid black
     only as a defensive render fallback,
-  - one integer-scaled `PlayerRunSprite`, centred and grounded near the bottom for both
-    phases on its existing stationary canonical frame,
-  - a localized pixel-comic `DIVISION RIVAL` banner above the hero that persists through
-    both beats and does not add a third phase or accessibility focus target,
+  - one integer-scaled `PlayerRunSprite`, centred and grounded near the bottom, translated
+    as a crisp unit for the power showcase and returned to centre for speech,
+  - a localized pixel-comic `DIVISION RIVAL` banner and large player name directly above
+    the card, persisting through both beats without adding a focus target,
   - `PowerTitleTakeover` with `ending={false}`, canonical power colour/name/glyph, and an
-    outer exit animation,
-  - a card timer of roughly 240 ms in + 1.4 s hold + 300 ms out, with tap-to-advance,
+    outer exit animation, with the duplicate player name hidden inside this scene only,
+  - a three-second power/card beat and three-second speech beat, each with whole-screen
+    tap-to-advance plus automatic advance,
+  - a production-effect showcase: Barry dashes left/right, Scott strikes a room console,
+    Steve rallies a nearby coach, Bruno pounds a heavy impact block, and Bruce shadow-marks
+    a stuffed teddy bear,
   - no timed dismissal while a screen reader is active,
-  - centred, instant `CharacterSpeechOverlay` bubble after the card is fully gone,
+  - centred, instant full-copy `CharacterSpeechOverlay` bubble after the card is fully gone,
   - Reduced Motion that preserves both information beats without spatial motion,
   - hardware Back and accessibility escape mapped through the same staged advance as taps,
   - `AppState` cancellation plus a full power-beat restart when the app resumes from the
@@ -184,6 +195,10 @@ one authored source.
     tap-to-finish hints,
   - explicit focus transfer on iOS/Android/web and decorative backdrop, sprite, rails,
     shadow, and duplicate visual text hidden from the accessibility tree.
+- [x] Add one static rival-voice owner with five character-matched laughs. Start Bert's
+      existing dialogue chatter with the speech bubble, start the assigned laugh one second
+      after the chatter stops, cancel queued audio when a tap skips the beat, respect master
+      volume/AppState, and release every player on root teardown.
 - [x] Add the owner-supplied hip-hop bed through the existing menu-audio owner:
   - trim its silent tail at the eight-bar `12.3866s` turnover,
   - crossfade 120 ms into the next downbeat and repeat the phrase three times for a
@@ -298,8 +313,12 @@ Verification notes (2026-08-08):
 - [x] All five supplied backdrops resolve through one typed hero-keyed mapping, retain crisp
       pixel rendering, use the same orientation-specific zoom/X/Y composition, and fall back
       safely to black.
-- [x] The localized `DIVISION RIVAL` banner remains above the hero through both beats without
-      creating a third phase or focus stop.
+- [x] The localized `DIVISION RIVAL` banner, large player name, and nameless power card form
+      one compact identity stack through both beats without creating a third phase or focus
+      stop.
+- [x] Every rival demonstrates their canonical power against the requested deterministic
+      target before speech; both beats auto-advance after three seconds and whole-screen taps
+      advance them sooner without skipping unseen content.
 - [x] All five production scenes are directly bookmarkable, replayable, and visually usable
       in the Dev Harness.
 - [x] Existing onboarding, Cup, audio, save, deterministic replay, and match results remain
@@ -308,6 +327,8 @@ Verification notes (2026-08-08):
       both simulated teams carry no powers for that fixture.
 - [x] The dedicated rival bed owns both cutscene beats, loops at `37.16s`, respects the menu
       master/lifecycle controls, and restores the underlying theme without overlap.
+- [x] Every taunt uses Bert's normal dialogue chatter, then its fixed rival laugh one second
+      after chatter ends; all five cues are normalized to the project's SFX target.
 
 ## Risks and mitigations
 

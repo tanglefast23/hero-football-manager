@@ -16,8 +16,8 @@ import {
   DEFAULT_CREATION_RATINGS,
   leagueStandings,
   offerCareerEvent,
-  startNextSeason,
   pendingRivalHeroIntro,
+  startNextSeason,
   type GameState,
 } from '../../game';
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
@@ -25,8 +25,8 @@ import type { PostMatchViewModel } from '../../ui';
 import { loadLaunchContent } from '../../content';
 import { awakeningCutsceneViewModel, clubFinancesViewModel, storyEventViewModel } from '../view-models';
 import { careerMarketScoutOptions } from '../market-source-adapter';
-import { copyFor } from '../../i18n';
 import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
+import { copyFor } from '../../i18n';
 
 describe('M1 app store integration', () => {
   beforeEach(() => {

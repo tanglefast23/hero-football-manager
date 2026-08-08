@@ -1,7 +1,7 @@
 # Spec — first-meeting rival hero intro cutscenes
 
 Date: 2026-08-08
-Status: revision 6 — owner-approved, implemented, and refined after live first-career review
+Status: revision 7 — owner-approved, implemented, and refined after live first-career review
 Builds on: `2026-08-08-special-heroes-spec.md`
 
 ## 1. The decision
@@ -10,12 +10,15 @@ The first time a career reaches Match Day against the club currently fielding on
 five division-headline rival heroes, a short character cutscene plays **before** the
 ordinary screen where the manager swaps starters and chooses Play or Quick Result.
 
-The cutscene has two beats:
+The cutscene has two skippable, three-second beats:
 
-1. The rival hero is already standing in the lower centre of the scene. A card above them
-   reveals their Super Power, animates in, holds, and animates away.
+1. The rival hero is already standing in the lower centre of the scene. `DIVISION RIVAL`,
+   the hero's name, and a card revealing their Super Power form one compact identity stack
+   above them. While the card holds, the hero demonstrates that power against an authored
+   prop or nearby coach; the card then animates away.
 2. With the hero still in the same place, the normal in-game speech bubble appears and the
-   hero delivers one funny, character-specific taunt.
+   hero delivers one funny, character-specific taunt with the normal dialogue chatter,
+   followed by their assigned laugh.
 
 The scene plays once per featured hero per career, not once per club or season. The rival
 heroes can change host clubs between seasons, so a club-based flag would replay a hero the
@@ -122,11 +125,23 @@ Selected: **1 — “I’ll be in your box before this speech bubble disappears.
   594557 (`12.3866s` at 48 kHz); a 120 ms wrap blends its decay into the next downbeat and
   three repeats produce a `37.16s` loop at the game's `-20 LUFS` music target. It begins
   with the scene, runs uninterrupted through both beats, and restores the underlying menu
-  theme when the taunt finishes. There is no voice clip or new SFX.
-- The hero sprite is visible immediately on its stationary canonical frame, centred
-  horizontally and grounded near the bottom. `PlayerRunSprite` has no front-facing frame,
-  and this feature does not authorize new sprite art. The hero does not walk on or change
-  position between beats.
+  theme when the taunt finishes.
+- The speech beat uses the same `bert-voice-dialogue2.m4a` chatter as Bert. Exactly one
+  normalized laugh is statically assigned to each featured rival. The laugh begins one
+  second after the dialogue chatter ends; it never loops.
+
+| Rival         | Fixed owner-supplied laugh              |
+| ------------- | --------------------------------------- |
+| Barry Allan   | `funny_evil_laugh_#3-1786192981720.wav` |
+| Scott Somers  | `evil_laugh_#3-1786192939712.wav`       |
+| Steve Rodgers | `evil_laugh_#1-1786192939712.wav`       |
+| Bruno Bannor  | `evil_laugh_#4-1786192939713.wav`       |
+| Bruce Wain    | `evil_laugh_#2-1786192939712.wav`       |
+
+- The hero sprite is visible immediately, centred horizontally and grounded near the
+  bottom. Its power-beat movement translates the canonical `PlayerRunSprite` as one crisp
+  integer-scaled unit rather than inventing new sprite frames. It returns to its centre mark
+  before speech.
 - Barry Allan is the guaranteed opponent in the career's first match, while that onboarding
   match deliberately suppresses every power for both clubs. The owner-approved policy is to
   keep this first-meeting cutscene and treat its Super Speed card as a character/power
@@ -134,44 +149,56 @@ Selected: **1 — “I’ll be in your box before this speech bubble disappears.
 
 ### 4.2 Power reveal beat
 
-- A bold localized pixel-comic banner reading `DIVISION RIVAL` sits above the character and
-  remains visible through both the power and speech beats. It is scene identity, not a
-  third timed beat and not part of the power card.
+- A compact localized pixel-comic banner reading `DIVISION RIVAL` sits just above the power
+  card. The hero's large bold pixel name sits between the banner and card. Both remain
+  visible through the speech beat; they are scene identity, not a third timed beat or an
+  extra focus stop.
 - The production hero look is rendered with `PlayerRunSprite`; no portrait substitute or
   hand-built harness art is allowed.
 - The production power presentation supplies the localized name, glyph, and canonical
-  power colour. The card says `SUPER POWER`, shows the glyph and power name, and names the
-  hero. It never says `POWER COMPLETE`.
+  power colour. The card says `SUPER POWER` and shows the glyph and power name. It does not
+  repeat the hero name and never says `POWER COMPLETE`.
 - The card sits above the hero without covering their face. It scales/fades upward into
-  place over about 240 ms, holds for about 1.4 seconds, and scales/fades away over about
-  300 ms. The speech bubble starts only after the card is gone.
-- Tapping during this beat skips the remaining hold and takes the same short exit into the
-  speech beat. Repeated taps cannot skip the taunt before it appears.
+  place over about 240 ms, shares a three-second showcase beat with the power action, and
+  scales/fades away over about 300 ms. The speech bubble starts only after the card is gone.
+- The five authored demonstrations are fixed and deterministic: Barry dashes left and right
+  with afterimages; Scott Thunder Strikes a room console; Steve's Rally Cry lifts a nearby
+  coach; Bruno pounds a heavy impact block; Bruce Shadow Marks a stuffed teddy bear. All
+  use the production `PowerEffectScene` colours and geometry used by the watched match.
+- Tapping anywhere during this beat skips the remaining showcase and takes the same short
+  card exit into speech. The card itself remains the single accessible action target.
+  Repeated taps during its exit are consumed and cannot skip a taunt that has not appeared.
 - With VoiceOver, TalkBack, or another screen reader enabled, the card does **not** time
   out. It remains until the player activates it, so focus cannot be stolen while the power
   announcement is still being read.
 - If the app backgrounds during the power beat, its timer and exit are cancelled. Returning
   to the active app restarts that power reveal from the beginning rather than landing on a
-  speech beat whose card the player never saw. Backgrounding during speech may finish the
-  visual typewriter, but never completes or dismisses the taunt.
+  speech beat whose card the player never saw. Backgrounding during speech cancels the
+  dialogue, laugh, and completion timer; foregrounding restarts the full three-second speech
+  hold without writing a completion flag while hidden.
 
 ### 4.3 Speech beat
 
-- The same mounted hero remains in the same place; there is no one-frame disappearance or
-  sprite reset between the card and bubble.
+- The same mounted hero returns to the centre mark; there is no one-frame disappearance or
+  replacement sprite between the card and bubble.
 - The existing `CharacterSpeechOverlay` treatment draws the hero name as the heading and
   the selected taunt as one bubble. Its default placement remains unchanged everywhere
   else; this scene opts into a new centre-position parameter.
-- The taunt uses the existing typewriter treatment. The first tap while text is typing
-  reveals the whole line. A later tap closes the scene. Reduced Motion shows the whole
-  line immediately, so one tap closes it.
+- The full taunt is visible immediately. The beat closes automatically after three seconds,
+  or immediately when the player taps anywhere, presses hardware Back, or uses the
+  accessibility escape gesture. One input therefore advances exactly one visible beat:
+  power showcase → speech → Match Day.
+- Speech starts Bert's ordinary dialogue chatter for the line's standard measured duration.
+  The rival's assigned laugh starts exactly one second after that chatter stops. Leaving the
+  speech beat before the laugh is due cancels it; a laugh that has already begun may finish
+  naturally over the hard cut to Match Day.
 - The completion flag is written only when the player finishes this speech beat. Closing
   the app during the card or speech leaves it unseen, so it replays on the next load of
   that same eligible Match Day.
 - This is a blocking story beat. It exposes no in-game Back, rail, calendar, or Settings
   control. Hardware Back and the accessibility escape gesture follow the same safe advance
-  rule as a tap: card → speech, typing → full line, full line → finish. An operating-system
-  close or process kill merely cancels it and writes no flag.
+  rule as a tap: card → speech → finish. An operating-system close or process kill merely
+  cancels it and writes no flag.
 
 ### 4.4 Handoff and ordering
 
@@ -360,7 +387,8 @@ Harness controls use static `minHeight` and add no separate audio behavior.
     through the power and speech beats.
 12. The localized Super Power card appears above the hero, animates in, holds, completely
     leaves, and only then reveals the speech bubble.
-13. The selected one-line taunt uses the normal speech bubble and typewriter/tap behavior.
+13. The selected one-line taunt uses the normal speech-bubble treatment, appears in full
+    immediately, and advances when the player taps anywhere.
 14. Reduced Motion preserves both pieces of information without spatial animation.
 15. Each hero uses the correct bundled 2048-square backdrop through one typed mapping and
     the same responsive zoom/anchor/hero coordinates as the other four; solid black remains
@@ -369,7 +397,8 @@ Harness controls use static `minHeight` and add no separate audio behavior.
     overlapping it; those resume in the defined order afterward.
 17. The `37.16s` rival theme replaces the ordinary menu bed for the complete cutscene,
     loops without a silent tail, respects master mute/lifecycle rules, and restores the
-    correct underlying theme afterward; no new SFX/haptic is added.
+    correct underlying theme afterward; Bert chatter and the five assigned laughs are the
+    only added scene SFX, and no haptic is added.
 18. No `src/sim` behavior, RNG use, replay output, or `ENGINE_VERSION` changes.
 19. All five production-backed scenes are bookmarkable and replayable in the Dev Harness.
 20. Focused tests, TypeScript, the full test suite, static export, and visual checks on
@@ -398,7 +427,8 @@ Harness controls use static `minHeight` and add no separate audio behavior.
 - New or replacement backdrop art beyond the five supplied assets.
 - Intro scenes for the other ten named specials.
 - Random or branching dialogue.
-- Voice acting, new SFX, or new haptics beyond the approved rival music bed.
+- New dialogue voice acting or haptics beyond Bert's existing chatter and the five approved
+  owner-supplied laughs.
 - A new persisted screen type or save migration.
 - Any match-engine, balance, power-behaviour, roster-placement, or transfer change.
 
