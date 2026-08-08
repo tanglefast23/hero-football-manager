@@ -1,11 +1,16 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { LONG_MESSAGE_MS } from '../../render/bert-voice';
 import {
+  RIVAL_HERO_LAUGH_DELAY_MS,
   RIVAL_HERO_POWER_EXIT_MS,
   RIVAL_HERO_POWER_HOLD_MS,
   RIVAL_HERO_POWER_INTRO_MS,
+  RIVAL_HERO_SPEECH_HOLD_MS,
   advanceRivalHeroIntroPhase,
+  rivalHeroLaughStartMs,
   rivalHeroPowerAutoExitMs,
+  rivalHeroSpeechAutoExitMs,
 } from '../rival-hero-intro-sequence';
 import {
   RIVAL_HERO_LANDSCAPE_COMPOSITION,
@@ -16,8 +21,10 @@ import {
 describe('rival hero intro sequence', () => {
   it('keeps the power readable before speech and consumes rapid exit taps', () => {
     expect(RIVAL_HERO_POWER_INTRO_MS).toBe(240);
-    expect(RIVAL_HERO_POWER_HOLD_MS).toBe(1400);
+    expect(RIVAL_HERO_POWER_HOLD_MS).toBe(2760);
     expect(RIVAL_HERO_POWER_EXIT_MS).toBe(300);
+    expect(RIVAL_HERO_SPEECH_HOLD_MS).toBe(3000);
+    expect(RIVAL_HERO_LAUGH_DELAY_MS).toBe(1000);
     expect(advanceRivalHeroIntroPhase('power')).toBe('power-exit');
     expect(advanceRivalHeroIntroPhase('power-exit')).toBe('power-exit');
     expect(advanceRivalHeroIntroPhase('speech')).toBe('done');
@@ -29,6 +36,19 @@ describe('rival hero intro sequence', () => {
     expect(rivalHeroPowerAutoExitMs(false, false)).toBeUndefined();
     expect(rivalHeroPowerAutoExitMs(false, true)).toBe(
       RIVAL_HERO_POWER_INTRO_MS + RIVAL_HERO_POWER_HOLD_MS,
+    );
+    expect(rivalHeroSpeechAutoExitMs(null, true)).toBeUndefined();
+    expect(rivalHeroSpeechAutoExitMs(true, true)).toBeUndefined();
+    expect(rivalHeroSpeechAutoExitMs(false, false)).toBeUndefined();
+    expect(rivalHeroSpeechAutoExitMs(false, true)).toBe(
+      RIVAL_HERO_SPEECH_HOLD_MS,
+    );
+  });
+
+  it('starts every possible Bert-length laugh before the fixed speech cut', () => {
+    expect(rivalHeroLaughStartMs(LONG_MESSAGE_MS)).toBe(2900);
+    expect(rivalHeroLaughStartMs(LONG_MESSAGE_MS)).toBeLessThan(
+      RIVAL_HERO_SPEECH_HOLD_MS,
     );
   });
 
@@ -45,14 +65,38 @@ describe('rival hero intro sequence', () => {
       'bruce-wain.png',
     ])
       expect(screen).toContain(asset);
-    expect(screen).toContain('<PlayerRunSprite');
+    expect(screen).toContain('<RivalHeroPowerShowcase');
     expect(screen).toContain('<PowerTitleTakeover');
     expect(screen).toContain('<CharacterSpeechOverlay');
+    expect(screen).toContain('showPlayerName={false}');
+    expect(screen).toContain('testID="rival-hero-power-tap-target"');
+    expect(screen).toContain('autoAdvanceMs={speechAutoExitMs}');
     expect(screen).toContain('{viewModel.title}');
     expect(screen).toContain("backgroundColor: '#000000'");
     expect(screen).toContain("imageRendering: 'pixelated'");
     expect(screen).toContain('screenReaderEnabled');
     expect(screen).toContain("phaseRef.current = 'power'");
+  });
+
+  it('stages all five authored power actions before the speech beat', () => {
+    const showcase = readFileSync(
+      join(process.cwd(), 'src/ui/RivalHeroPowerShowcase.tsx'),
+      'utf8',
+    );
+    for (const target of ['console', 'coach', 'impact-block', 'teddy']) {
+      expect(showcase).toContain(target);
+    }
+    for (const heroId of [
+      'special-f171',
+      'special-f178',
+      'special-f174',
+      'special-f176',
+      'special-f168',
+    ]) {
+      expect(showcase).toContain(heroId);
+    }
+    expect(showcase).toContain('<PowerEffectScene');
+    expect(showcase).toContain('walking={heroWalking}');
   });
 
   it('uses shared zoomed-out portrait and landscape stage marks for every rival', () => {

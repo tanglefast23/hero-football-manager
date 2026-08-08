@@ -39,6 +39,7 @@ export interface PowerTitleTakeoverProps {
   accessibilityHint?: string;
   focusOnMount?: boolean;
   onAccessibilityEscape?: () => void;
+  showPlayerName?: boolean;
   onDismiss: () => void;
 }
 
@@ -61,6 +62,7 @@ export function PowerTitleTakeover({
   accessibilityHint,
   focusOnMount = false,
   onAccessibilityEscape,
+  showPlayerName = true,
   onDismiss,
 }: PowerTitleTakeoverProps) {
   const t = useCopy();
@@ -212,12 +214,14 @@ export function PowerTitleTakeover({
               {presentation.name}
             </Text>
           </Animated.View>
-          <Text
-            numberOfLines={1}
-            style={[styles.playerName, compact && !desktop ? styles.playerNameCompact : null]}
-          >
-            {playerName}
-          </Text>
+          {showPlayerName ? (
+            <Text
+              numberOfLines={1}
+              style={[styles.playerName, compact && !desktop ? styles.playerNameCompact : null]}
+            >
+              {playerName}
+            </Text>
+          ) : null}
           {additionalPowerCount > 0 ? (
             <Text style={styles.additional}>
               {t('matchScreen.moreHeroesLive', { n: additionalPowerCount })}

@@ -6,6 +6,7 @@ import {
   Easing,
   Image,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -13,21 +14,33 @@ import {
   type ImageSourcePropType,
   type ImageStyle,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RivalHeroIntroViewModel } from '../application/rival-hero-intro';
 import type { CopyParams } from '../i18n';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 import type { RivalHeroIntroHeroId } from '../game/rival-hero-intro';
-import { PlayerRunSprite, PLAYER_SPRITE_CELL } from '../render/PlayerRunSprite';
+import { PLAYER_SPRITE_CELL } from '../render/PlayerRunSprite';
 import { PowerTitleTakeover } from '../render/PowerTitleTakeover';
+import {
+  bertVoiceDurationMs,
+  playBertVoice,
+  stopBertVoice,
+} from '../render/bert-voice';
 import { setRivalIntroMusicActive } from '../render/menu-audio';
 import { powerCutInPresentation } from '../render/power-cut-in';
+import {
+  cancelPendingRivalHeroLaugh,
+  playRivalHeroLaugh,
+  stopRivalHeroLaugh,
+} from '../render/rival-hero-voice';
 import { CharacterSpeechOverlay } from './CharacterSpeechOverlay';
+import { RivalHeroPowerShowcase } from './RivalHeroPowerShowcase';
 import { rivalHeroSceneComposition } from './rival-hero-intro-layout';
 import {
   RIVAL_HERO_POWER_EXIT_MS,
   advanceRivalHeroIntroPhase,
+  rivalHeroLaughStartMs,
   rivalHeroPowerAutoExitMs,
+  rivalHeroSpeechAutoExitMs,
   type RivalHeroIntroPhase,
 } from './rival-hero-intro-sequence';
 import { useReducedMotion } from './use-reduced-motion';
@@ -71,8 +84,8 @@ export function RivalHeroIntroScreen({
   const reduce = useReducedMotion(reduceMotion);
   const screenReaderEnabled = useScreenReaderEnabled();
   const { width, height } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
   const short = height < 480;
+  const compactIdentity = short || width < 520;
   const sceneComposition = rivalHeroSceneComposition(width, height);
   const backdropSize = Math.min(width, height) * sceneComposition.backdropZoom;
   const backdropLeft =
@@ -90,6 +103,7 @@ export function RivalHeroIntroScreen({
   const cardWidth = Math.min(Math.max(280, width - 24), 360);
   const cardHeight = short ? 124 : 176;
   const cardBottom = groundOffset + heroHeight + (short ? 16 : 34);
+  const identityBottom = cardBottom + cardHeight + (short ? 6 : 10);
 
   const [phase, setPhase] = useState<RivalHeroIntroPhase>('power');
   const phaseRef = useRef<RivalHeroIntroPhase>('power');
@@ -103,6 +117,7 @@ export function RivalHeroIntroScreen({
   const cardExit = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    stopRivalHeroLaugh();
     setRivalIntroMusicActive(true);
     return () => setRivalIntroMusicActive(false);
   }, []);
@@ -151,6 +166,10 @@ export function RivalHeroIntroScreen({
   }, [onComplete, viewModel.heroId]);
 
   const autoExitMs = rivalHeroPowerAutoExitMs(screenReaderEnabled, appActive);
+  const speechAutoExitMs = rivalHeroSpeechAutoExitMs(
+    screenReaderEnabled,
+    appActive,
+  );
   useEffect(() => {
     if (phase !== 'power' || autoExitMs === undefined) return undefined;
     const timer = setTimeout(beginPowerExit, autoExitMs);
@@ -158,10 +177,30 @@ export function RivalHeroIntroScreen({
   }, [autoExitMs, beginPowerExit, cardRunKey, phase]);
 
   useEffect(() => {
+    if (phase !== 'speech' || !appActive) return undefined;
+    stopRivalHeroLaugh();
+    const dialogueDurationMs = bertVoiceDurationMs(viewModel.taunt);
+    playBertVoice(dialogueDurationMs);
+    const laughTimer = setTimeout(
+      () => playRivalHeroLaugh(viewModel.heroId),
+      rivalHeroLaughStartMs(dialogueDurationMs),
+    );
+    return () => {
+      clearTimeout(laughTimer);
+      cancelPendingRivalHeroLaugh();
+      stopBertVoice();
+      // Once the non-looping one-shot has begun, the signed-off scene lets it
+      // finish over the hard Match Day cut.
+    };
+  }, [appActive, phase, viewModel.heroId, viewModel.taunt]);
+
+  useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
       const active = nextState === 'active';
       setAppActive(active);
       if (!active) {
+        stopBertVoice();
+        stopRivalHeroLaugh();
         if (phaseRef.current === 'power' || phaseRef.current === 'power-exit') {
           cardExit.stopAnimation();
           cardExit.setValue(0);
@@ -241,45 +280,53 @@ export function RivalHeroIntroScreen({
         style={styles.backdropShade}
       />
 
-      <View
-        accessible={false}
-        importantForAccessibility="no-hide-descendants"
-        pointerEvents="none"
-        style={[styles.rivalBanner, { top: insets.top + (short ? 8 : 14) }]}
-      >
-        <View style={[styles.ribbonWing, styles.ribbonWingLeft]} />
-        <View style={[styles.ribbonWing, styles.ribbonWingRight]} />
-        <Text
-          adjustsFontSizeToFit
-          numberOfLines={1}
-          style={styles.rivalBannerText}
-        >
-          {viewModel.title}
-        </Text>
-      </View>
+      {phase === 'power' ? (
+        <Pressable
+          accessible={false}
+          onPress={beginPowerExit}
+          style={styles.sceneTapTarget}
+          testID="rival-hero-power-tap-target"
+        />
+      ) : null}
+
+      <RivalHeroPowerShowcase
+        active={phase === 'power' || phase === 'power-exit'}
+        height={height}
+        heroCentreX={heroCentreX}
+        heroGroundOffset={groundOffset}
+        heroHeight={heroHeight}
+        heroScale={heroScale}
+        heroWidth={heroWidth}
+        reduceMotion={reduce}
+        runKey={cardRunKey}
+        viewModel={viewModel}
+        width={width}
+      />
 
       <View
         accessible={false}
         importantForAccessibility="no-hide-descendants"
         pointerEvents="none"
-        style={[
-          styles.hero,
-          {
-            bottom: groundOffset,
-            height: heroHeight,
-            left: heroCentreX,
-            marginLeft: -heroWidth / 2,
-            width: heroWidth,
-          },
-        ]}
+        style={[styles.identityStack, { bottom: identityBottom }]}
+        testID="rival-hero-identity"
       >
-        <PlayerRunSprite
-          playerId={viewModel.heroId}
-          lookId={viewModel.lookId}
-          role={viewModel.role}
-          scale={heroScale}
-          walking={false}
-        />
+        <View style={styles.rivalBanner}>
+          <View style={[styles.ribbonWing, styles.ribbonWingLeft]} />
+          <View style={[styles.ribbonWing, styles.ribbonWingRight]} />
+          <Text numberOfLines={1} style={styles.rivalBannerText}>
+            {viewModel.title}
+          </Text>
+        </View>
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.heroName,
+            compactIdentity ? styles.heroNameCompact : null,
+          ]}
+          testID="rival-hero-name"
+        >
+          {viewModel.name}
+        </Text>
       </View>
 
       {phase === 'power' || phase === 'power-exit' ? (
@@ -294,6 +341,7 @@ export function RivalHeroIntroScreen({
             },
             cardAnimatedStyle,
           ]}
+          testID="rival-hero-power-card"
         >
           <PowerTitleTakeover
             key={`${viewModel.heroId}:${cardRunKey}`}
@@ -308,6 +356,7 @@ export function RivalHeroIntroScreen({
             playerName={viewModel.name}
             power={viewModel.power}
             reduceMotion={reduce}
+            showPlayerName={false}
             skippable
             teamColor={presentation.color}
             compact={short}
@@ -319,6 +368,7 @@ export function RivalHeroIntroScreen({
         <CharacterSpeechOverlay
           accessibilityLabel={speechAccessibilityLabel}
           advanceSignal={speechAdvanceSignal}
+          autoAdvanceMs={speechAutoExitMs}
           bubbleScale={short ? 0.88 : 1}
           characterCentreRatio={0.5}
           characterHeight={heroHeight}
@@ -333,7 +383,6 @@ export function RivalHeroIntroScreen({
           mirrorSprite={false}
           onDone={finishSpeech}
           reduceMotion={reduce}
-          typewriter
         />
       ) : null}
     </View>
@@ -351,12 +400,22 @@ const makeStyles = (faces: LocaleFaces) =>
       ...ABSOLUTE_FILL,
       backgroundColor: 'rgba(10,7,18,0.24)',
     },
-    rivalBanner: {
+    sceneTapTarget: {
+      ...ABSOLUTE_FILL,
+      zIndex: 5,
+    },
+    identityStack: {
       position: 'absolute',
+      left: 10,
+      right: 10,
+      zIndex: 8,
+      alignItems: 'center',
+      gap: 5,
+    },
+    rivalBanner: {
       alignSelf: 'center',
       minWidth: 210,
       maxWidth: '84%',
-      zIndex: 8,
       borderWidth: 3,
       borderBottomWidth: 7,
       borderColor: '#edb54a',
@@ -373,6 +432,24 @@ const makeStyles = (faces: LocaleFaces) =>
       textAlign: 'center',
       textTransform: 'uppercase',
     },
+    heroName: {
+      width: '92%',
+      color: '#fff4cf',
+      fontFamily: faces.display,
+      fontSize: 30,
+      lineHeight: 36,
+      letterSpacing: 2.2,
+      textAlign: 'center',
+      textShadowColor: '#241f2e',
+      textShadowOffset: { width: 3, height: 3 },
+      textShadowRadius: 0,
+      textTransform: 'uppercase',
+    },
+    heroNameCompact: {
+      fontSize: 22,
+      lineHeight: 27,
+      letterSpacing: 1.6,
+    },
     ribbonWing: {
       position: 'absolute',
       bottom: -7,
@@ -381,14 +458,10 @@ const makeStyles = (faces: LocaleFaces) =>
       borderWidth: 3,
       borderColor: '#241f2e',
       backgroundColor: '#c22f2c',
-      zIndex: -1,
+      zIndex: 0,
     },
     ribbonWingLeft: { left: -17 },
     ribbonWingRight: { right: -17 },
-    hero: {
-      position: 'absolute',
-      zIndex: 3,
-    },
     powerCard: {
       position: 'absolute',
       zIndex: 6,
