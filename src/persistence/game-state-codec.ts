@@ -784,11 +784,34 @@ const eventClockSchema = z
   })
   .passthrough();
 
+/**
+ * These target fields were previously preserved only by `.passthrough()`.
+ * Treat malformed values as absent so one stale optional field cannot reject
+ * an otherwise recoverable career; semantic target repair runs after parsing.
+ */
+const failSoftCoachRole = z.preprocess(
+  (value) => (value === 'HEAD' || value === 'ASSISTANT' ? value : undefined),
+  z.enum(['HEAD', 'ASSISTANT']).optional(),
+);
+const failSoftTrue = z.preprocess(
+  (value) => (value === true ? true : undefined),
+  z.literal(true).optional(),
+);
+const failSoftNonemptyString = z.preprocess(
+  (value) =>
+    typeof value === 'string' && value.trim().length > 0 ? value : undefined,
+  nonemptyString.optional(),
+);
+
 const pendingEventSchema = z
   .object({
     eventId: nonemptyString,
     selectedPlayerId: nonemptyString.optional(),
     playerLocked: z.literal(true).optional(),
+    selectedCoachRole: failSoftCoachRole,
+    coachLocked: failSoftTrue,
+    selectedFacilityId: failSoftNonemptyString,
+    facilityLocked: failSoftTrue,
     resolvedChoiceId: nonemptyString.optional(),
     outcomeText: nonemptyString.optional(),
     resolvedOutcomeIndex: nonnegativeInteger.optional(),

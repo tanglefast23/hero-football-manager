@@ -26,31 +26,12 @@ describe("manager's tip navigation", () => {
     expect(app).toContain('managerTipGuideRequest={visibleManagerTipGuideRequest ?? undefined}');
   });
 
-  it('focuses the requested squad target and dismisses its cue on the next tap', () => {
+  it('focuses the requested drill-shop target and dismisses its cue on the next tap', () => {
     const squad = read('src/ui/screens/SquadTrainingScreen.tsx');
 
     expect(squad).toContain('managerTipGuideRequest');
-    expect(squad).toContain("target === 'overall-sort'");
     expect(squad).toContain("target === 'drill-shop'");
-    expect(squad).toContain("label={t('squadTraining.tapHere')}");
-    expect(squad).toContain("detail={t('squadTraining.toSort')}");
     expect(squad).toContain("detail={t('squadTraining.drillsUnlockAsYou')}");
-    expect(squad).toContain('scrollRef.current?.scrollTo({ y: 0, animated: true })');
     expect(squad).toContain('setManagerTipGuideTarget(null)');
-  });
-
-  it('claims the top of the register in the request frame, before any late layout', () => {
-    const squad = read('src/ui/screens/SquadTrainingScreen.tsx');
-
-    expect(squad).toContain('scrollRef.current?.scrollTo({ y: 0, animated: false })');
-  });
-
-  it('sorts the register highest-first from the cue and drops the selection', () => {
-    const squad = read('src/ui/screens/SquadTrainingScreen.tsx');
-
-    // The sort orders every player, so no selected row survives above it.
-    expect(squad).toContain('onSelectPlayer(undefined)');
-    expect(squad).toContain("const guidedSortTap = managerTipGuideTarget === 'overall-sort';");
-    expect(squad).toContain("? { key: 'overall', direction: 'descending' }");
   });
 });

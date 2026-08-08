@@ -284,9 +284,99 @@ describe('M1 app store integration', () => {
     expect(resolved.eventFlags).not.toContain('spider-adopted');
   });
 
+  it('validates exact player, coach, and facility selections and guards the no-target escape', () => {
+    startAwakenedCareer(456);
+    const career = useM1Store.getState().career!;
+    const nonKeeper = career.players.find(
+      (player) => player.clubId === career.userClubId && player.role !== 'GK',
+    )!;
+    useM1Store.setState({
+      career: { ...career, pendingEvent: { eventId: 'the-penalty-gauntlet' } },
+      screen: 'event',
+    });
+
+    useM1Store.getState().selectEventPlayer(nonKeeper.id);
+    expect(useM1Store.getState().error).toContain('not eligible');
+    expect(useM1Store.getState().career?.pendingEvent).toEqual({
+      eventId: 'the-penalty-gauntlet',
+    });
+    useM1Store.getState().skipUnavailableEvent();
+    expect(useM1Store.getState().error).toContain(
+      'still has an eligible target',
+    );
+
+    const assistant = career.market!.coachCandidates[0]!;
+    const staffed: GameState = {
+      ...career,
+      market: { ...career.market!, assistantCoach: assistant },
+      pendingEvent: { eventId: 'assistant-takes-the-week' },
+    };
+    useM1Store.setState({ career: staffed, screen: 'event', error: null });
+    useM1Store.getState().selectEventCoach('HEAD');
+    expect(useM1Store.getState().error).toContain('not eligible');
+    useM1Store.getState().selectEventCoach('ASSISTANT');
+    expect(useM1Store.getState().career?.pendingEvent).toMatchObject({
+      selectedCoachRole: 'ASSISTANT',
+    });
+
+    const grid = career.facilities.grid!;
+    const withGym: GameState = {
+      ...career,
+      facilities: {
+        ...career.facilities,
+        grid: {
+          ...grid,
+          construction: undefined,
+          buildings: [
+            ...grid.buildings,
+            {
+              id: 'store-test-gym',
+              type: 'gym',
+              level: 1,
+              x: 6,
+              y: 0,
+              capitalInvested: 1_000,
+            },
+          ],
+        },
+      },
+      pendingEvent: { eventId: 'donated-equipment' },
+    };
+    useM1Store.setState({ career: withGym, screen: 'event', error: null });
+    useM1Store.getState().selectEventFacility('missing-building');
+    expect(useM1Store.getState().error).toContain('not eligible');
+    useM1Store.getState().selectEventFacility('store-test-gym');
+    expect(useM1Store.getState().career?.pendingEvent).toMatchObject({
+      selectedFacilityId: 'store-test-gym',
+    });
+
+    const otherClubId = career.clubs.find(
+      (club) => club.id !== career.userClubId,
+    )!.id;
+    const noKeeper: GameState = {
+      ...career,
+      players: career.players.map((player) =>
+        player.clubId === career.userClubId && player.role === 'GK'
+          ? { ...player, clubId: otherClubId }
+          : player,
+      ),
+      pendingEvent: { eventId: 'the-penalty-gauntlet' },
+    };
+    useM1Store.setState({ career: noKeeper, screen: 'event', error: null });
+    useM1Store.getState().skipUnavailableEvent();
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'management',
+      error: null,
+      career: { pendingEvent: undefined },
+    });
+  });
+
   it('offers an authored follow-up event before advancing the week', () => {
     startAwakenedCareer(456);
     const career = useM1Store.getState().career!;
+    const selectedPlayer = career.players.find(
+      (player) => player.clubId === career.userClubId && player.role !== 'GK',
+    )!;
     useM1Store.setState({
       career: {
         ...career,
@@ -294,8 +384,10 @@ describe('M1 app store integration', () => {
         week: 8,
         pendingEvent: {
           eventId: 'rival-bid-arrives',
-          resolvedChoiceId: 'hundredth-fan-parade',
-          outcomeText: 'The parade inspires a new stadium mural.',
+          selectedPlayerId: selectedPlayer.id,
+          playerLocked: true,
+          resolvedChoiceId: 'listen-to-the-rival-bid',
+          outcomeText: 'The deadline is real.',
           resolvedOutcomeIndex: 0,
           resolvedRisky: true,
           resolvedSuccess: true,
@@ -1878,6 +1970,20 @@ function progressJourneyEvent(current: ReturnType<typeof useM1Store.getState>): 
   const viewModel = storyEventViewModel(career, loadLaunchContent());
   if (viewModel.playerSelectionRequired && viewModel.selectedPlayer === undefined) {
     current.selectEventPlayer(viewModel.playerChoices[0]!.id);
+    return;
+  }
+  if (
+    viewModel.coachSelectionRequired &&
+    viewModel.selectedCoach === undefined
+  ) {
+    current.selectEventCoach(viewModel.coachChoices[0]!.role);
+    return;
+  }
+  if (
+    viewModel.facilitySelectionRequired &&
+    viewModel.selectedFacility === undefined
+  ) {
+    current.selectEventFacility(viewModel.facilityChoices[0]!.buildingId);
     return;
   }
   const choice = viewModel.choices.find(candidate => !candidate.disabled && candidate.tone === 'safe')

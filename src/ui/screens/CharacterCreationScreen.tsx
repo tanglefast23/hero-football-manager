@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
+import { ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
@@ -114,6 +114,7 @@ export function CharacterCreationScreen({
 }: CharacterCreationScreenProps) {
   const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
+  const compactRosterLabel = useWindowDimensions().width < 430;
   const [name, setName] = useState('');
   const [clubName, setClubName] = useState(defaultClubName);
   const [rosterNames, setRosterNames] = useState<Readonly<Record<string, string>>>({});
@@ -311,23 +312,34 @@ export function CharacterCreationScreen({
             maxLength={TYPED_NAME_MAX_LENGTH}
             className="mt-2 min-h-12 border-2 border-ink bg-paper-dark px-3 py-2 text-base font-bold text-ink"
           />
-          <View className="mt-3 flex-row items-center gap-2">
-            <View className="flex-1">
-              <ActionButton
-                label={t('characterCreation.renameRoster')}
-                accessibilityLabel={t('characterCreation.a11y.renameRoster')}
-                variant="paper"
-                compact
-                onPress={() => {
-                  setRenamingRoster(true);
-                }}
-              />
+          <View className="mt-3 border-t-2 border-ink/15 pt-3">
+            <View className="flex-row items-center gap-2">
+              <PixelText
+                className={compactRosterLabel
+                  ? 'min-w-0 flex-1 text-xs uppercase leading-4 text-ink/50'
+                  : 'min-w-0 flex-1 text-sm uppercase text-ink/50'}
+              >
+                {t('characterCreation.teammateNames')}
+              </PixelText>
+              <View className="w-48 shrink-0">
+                <ActionButton
+                  label={t('characterCreation.renameRoster')}
+                  accessibilityLabel={t('characterCreation.a11y.renameRoster')}
+                  variant="paper"
+                  compact
+                  onPress={() => {
+                    setRenamingRoster(true);
+                  }}
+                />
+              </View>
             </View>
             {renamedCount > 0 ? (
-              <StatusChip
-                label={t('characterCreation.renamedCount', { n: renamedCount, count: renamedCount })}
-                tone="success"
-              />
+              <View className="mt-2 flex-row justify-end">
+                <StatusChip
+                  label={t('characterCreation.renamedCount', { n: renamedCount, count: renamedCount })}
+                  tone="success"
+                />
+              </View>
             ) : null}
           </View>
         </View>

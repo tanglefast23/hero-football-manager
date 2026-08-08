@@ -8,11 +8,6 @@ import {
   activeCareerMatchday,
   addCreatedPlayer,
   applyCareerNegotiationConsequence,
-  applyCareerEventOutcome,
-  applyCoachEventEffect,
-  applyFacilityEventEffect,
-  drainPendingMilestone,
-  isCareerMilestoneEventId,
   beginStoryOnboarding,
   beginCareerTransferTalks,
   beginCareerRenewalTalks,
@@ -40,11 +35,9 @@ import {
   signCareerRenewalAtAsk,
   createCareer,
   currentUserDivision,
-  deterministicCareerEventRoll,
   declineYouthIntakeOffers,
   dismissAssistantInboxProductForCurrentWeek,
   dismissAssistantInboxProductPermanently,
-  dismissCareerEvent,
   dismissCareerCoach,
   hireCareerCoach,
   listCareerPlayer,
@@ -54,7 +47,6 @@ import {
   difficultyRules,
   hasAssistantGuideMilestone,
   isFirstOnboardingFixture,
-  offerCareerEvent,
   nextPendingClubLegend,
   productionResultFromMatch,
   quickMatchForFixture,
@@ -72,6 +64,8 @@ import {
   resolveNextClubLegendLegacy,
   resolveMatchday,
   selectCareerEventPlayer,
+  selectCareerEventCoach,
+  selectCareerEventFacility,
   selectCareerLicensedHeroes,
   setCareerLineup,
   swapCareerLineupPlayer,
@@ -89,7 +83,6 @@ import {
   type InstantDrillResolution,
   type CareerLegendLegacyChoice,
   type AssistantGuideSequenceId,
-  sessionAttributeDelta,
   type AssistantInboxGuideSequenceId,
   type AssistantMode,
   type GameState,
@@ -135,11 +128,17 @@ import {
   openingTrainingPitchRequired,
   outstandingInboxDuties,
 } from './assistant-guide';
+import { reconcilePendingStoryEvent } from './event-selection';
 import {
-  eventChoiceUnavailableReason,
-  eventOfferForWeek,
-  reconcilePendingStoryEvent,
-} from './event-selection';
+  continueResolvedCareerEvent,
+  InvalidCareerEventTargetError,
+  resolveCareerEventChoice,
+} from './career-event-flow';
+import {
+  careerEventTargetCandidates,
+  reconcilePendingCareerEvent,
+  skipUnavailableCareerEvent,
+} from './career-event-targets';
 import {
   completeChampionshipCelebration as markChampionshipCelebrationComplete,
   hasPendingChampionshipCelebration,
@@ -488,8 +487,11 @@ interface M1Store {
   completeAwardsCeremony: () => void;
   chooseLegacy: (choice: CareerLegendLegacyChoice) => void;
   selectEventPlayer: (playerId: string) => void;
+  selectEventCoach: (role: 'HEAD' | 'ASSISTANT') => void;
+  selectEventFacility: (buildingId: string) => void;
   chooseEvent: (choiceId: string) => void;
   continueAfterEvent: () => void;
+  skipUnavailableEvent: () => void;
   toggleHeroLicense: (playerId: string) => void;
   swapStartingPlayer: (starterId: string, replacementId: string) => void;
   resolvePlayerRequest: (resolution: PlayerRequestResolution) => void;
@@ -809,8 +811,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({ error: t('store.noSavedCareer') });
       return;
     }
-    const career = get().career!;
+    const current = get().career!;
+    const career = reconcilePendingCareerEvent(current, launchContent.events);
     set({
+      career,
       screen: resumeScreen(career),
       postMatch: null,
       postMatchOverlay: null,
@@ -820,6 +824,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       pendingPostFaceOffScreen: null,
       error: null,
     });
+    if (career !== current) queueCareerSave(get, set, career);
   },
 
   setAssistantMode(assistantMode) {
@@ -892,7 +897,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
     if (career === null) return;
     // Settling the story here (not only on Advance Week) is what gets a card
     // onto the desk of a week the career reached through a match.
-    const next = settleWeeklyTip(settleWeeklyStory(reconcileHomeAssistantInbox(career)));
+    const next = reconcilePendingCareerEvent(
+      settleWeeklyTip(settleWeeklyStory(reconcileHomeAssistantInbox(career))),
+      launchContent.events,
+    );
     if (next === career) return;
     // A week reached through a match has no review to hand the story over, so
     // this is where its opening beat arrives: the desk has just come up and the
@@ -907,7 +915,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
   openDeskStory() {
     const career = get().career;
     if (career?.pendingEvent === undefined) return;
-    set({ screen: 'event', error: null });
+    const reconciled = reconcilePendingCareerEvent(
+      career,
+      launchContent.events,
+    );
+    set({
+      career: reconciled,
+      screen:
+        reconciled.pendingEvent === undefined
+          ? resumeScreen(reconciled)
+          : 'event',
+      error: null,
+    });
+    if (reconciled !== career) queueCareerSave(get, set, reconciled);
   },
 
   completeAssistantGuide(sequenceId) {
@@ -1121,7 +1141,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // A story already on the desk is this week's business. Advancing past an
       // unopened card would lose it, so the last press opens it instead.
       if (career.pendingEvent !== undefined) {
-        set({ screen: 'event', error: null });
+        const reconciled = reconcilePendingCareerEvent(
+          career,
+          launchContent.events,
+        );
+        set({
+          career: reconciled,
+          screen:
+            reconciled.pendingEvent === undefined
+              ? resumeScreen(reconciled)
+              : 'event',
+          error: null,
+        });
+        if (reconciled !== career) queueCareerSave(get, set, reconciled);
         return;
       }
 
@@ -1142,7 +1174,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
         : advanced;
       // Stories belong to the week being entered, not the one being left, so the
       // card is already on the desk when the manager first sees the new week.
-      const next = settleWeeklyTip(settleWeeklyStory(withMilestone));
+      const next = reconcilePendingCareerEvent(
+        settleWeeklyTip(settleWeeklyStory(withMilestone)),
+        launchContent.events,
+      );
       const weekReview = next.phase === 'manage' && next.week !== career.week
         ? weeklyReviewViewModel(career, next, t)
         : null;
@@ -1431,20 +1466,23 @@ export const useM1Store = create<M1Store>((set, get) => ({
   continueWeekReview() {
     guarded(set, () => {
       const career = requireCareer(get());
+      const reconciled = reconcilePendingCareerEvent(career, launchContent.events);
       set({
+        career: reconciled,
         weekReview: null,
-        screen: career.phase === 'season-end' || career.phase === 'complete'
-          ? seasonBoundaryScreen(career)
+        screen: reconciled.phase === 'season-end' || reconciled.phase === 'complete'
+          ? seasonBoundaryScreen(reconciled)
           // A story is the top of the week it was drawn for, not a toll on the
           // way out of it. The manager reads it on arrival and then has the
           // whole week to act on what it did, rather than meeting it as an
           // ambush on the Advance Week press seven days later.
-          : career.pendingEvent !== undefined
+          : reconciled.pendingEvent !== undefined
             ? 'event'
             : 'management',
         activeTab: 'home',
         error: null,
       });
+      if (reconciled !== career) queueCareerSave(get, set, reconciled);
     });
   },
 
@@ -1583,7 +1621,48 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       if (career.pendingEvent === undefined) throw new Error('there is no active event');
+      const event = launchContent.events.events.find(
+        candidate => candidate.id === career.pendingEvent?.eventId,
+      );
+      if (event === undefined
+        || !careerEventTargetCandidates(career, event).playerIds.includes(playerId)) {
+        throw new Error('that player is not eligible for this story');
+      }
       const next = selectCareerEventPlayer(career, playerId);
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  selectEventCoach(role) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      if (career.pendingEvent === undefined) throw new Error('there is no active event');
+      const event = launchContent.events.events.find(
+        candidate => candidate.id === career.pendingEvent?.eventId,
+      );
+      if (event === undefined
+        || !careerEventTargetCandidates(career, event).coachRoles.includes(role)) {
+        throw new Error('that coach is not eligible for this story');
+      }
+      const next = selectCareerEventCoach(career, role);
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  selectEventFacility(buildingId) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      if (career.pendingEvent === undefined) throw new Error('there is no active event');
+      const event = launchContent.events.events.find(
+        candidate => candidate.id === career.pendingEvent?.eventId,
+      );
+      if (event === undefined
+        || !careerEventTargetCandidates(career, event).facilityIds.includes(buildingId)) {
+        throw new Error('that facility is not eligible for this story');
+      }
+      const next = selectCareerEventFacility(career, buildingId);
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -1592,18 +1671,35 @@ export const useM1Store = create<M1Store>((set, get) => ({
   chooseEvent(choiceId) {
     guarded(set, () => {
       const career = requireCareer(get());
+      const reconciled = reconcilePendingCareerEvent(career, launchContent.events);
+      if (reconciled.pendingEvent === undefined) {
+        set({ career: reconciled, screen: resumeScreen(reconciled), error: null });
+        if (reconciled !== career) queueCareerSave(get, set, reconciled);
+        return;
+      }
       // Bert's safe-or-risky card is a one-time explanation, and picking a
       // choice is the proof it was read. Marking it here rather than only on
       // the way out means a career that is closed between the choice and the
       // outcome — or whose last save is coalesced away — never reopens with
       // the lesson still pending, and the manager is never taught the same
       // rule twice.
-      const seen = career.eventFlags.includes('m4:event-guide-seen')
-        ? career
-        : { ...career, eventFlags: [...career.eventFlags, 'm4:event-guide-seen'] };
-      const next = resolveContentEvent(seen, choiceId);
-      set({ career: next, error: null });
-      queueCareerSave(get, set, next);
+      const seen = reconciled.eventFlags.includes('m4:event-guide-seen')
+        ? reconciled
+        : { ...reconciled, eventFlags: [...reconciled.eventFlags, 'm4:event-guide-seen'] };
+      try {
+        const next = resolveCareerEventChoice(seen, launchContent.events, choiceId, t);
+        set({ career: next, error: null });
+        queueCareerSave(get, set, next);
+      } catch (error) {
+        if (!(error instanceof InvalidCareerEventTargetError)) throw error;
+        const repaired = reconcilePendingCareerEvent(reconciled, launchContent.events);
+        set({
+          career: repaired,
+          screen: repaired.pendingEvent === undefined ? resumeScreen(repaired) : 'event',
+          error: repaired.pendingEvent === undefined ? null : t('storyEvent.chooseTargetFirst'),
+        });
+        if (repaired !== career) queueCareerSave(get, set, repaired);
+      }
     });
   },
 
@@ -1617,53 +1713,41 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const career = requireCareer(get());
       const pending = career.pendingEvent;
       if (pending?.resolvedChoiceId === undefined) throw new Error('resolve the event before continuing');
-      const event = launchContent.events.events.find(candidate => candidate.id === pending.eventId);
       const guidedCareer = career.eventFlags.includes('m4:event-guide-seen')
         ? career
         : { ...career, eventFlags: [...career.eventFlags, 'm4:event-guide-seen'] };
-      const dismissed = dismissCareerEvent(guidedCareer, event?.trigger.repeatable !== true);
-      if (pending.resolvedNextEventId !== undefined) {
-        // A chained event this build no longer ships ends the chain. Throwing
-        // here left the player on an event screen whose only button could do
-        // nothing but throw again, with the dead chain saved.
-        const followUp = launchContent.events.events.find(
-          candidate => candidate.id === pending.resolvedNextEventId,
-        );
-        if (followUp !== undefined
-          && (followUp.trigger.repeatable === true
-            || !dismissed.resolvedEventIds.includes(followUp.id))) {
-          // The next chapter is about the same player, so it inherits him and
-          // locks him in. Without this the follow-up re-picked, and a deadline
-          // day that opened about Ravi Chan closed about Ed Stone.
-          // The next chapter is about the same target this one was about —
-          // player, coach or building — and it is locked so the story cannot be
-          // re-cast halfway through.
-          const next = offerCareerEvent(dismissed, followUp.id, {
-            ...(pending.selectedPlayerId === undefined ? {} : { playerId: pending.selectedPlayerId }),
-            ...(pending.selectedCoachRole === undefined ? {} : { coachRole: pending.selectedCoachRole }),
-            ...(pending.selectedFacilityId === undefined ? {} : { facilityId: pending.selectedFacilityId }),
-          });
-          set({ career: next, screen: 'event', weekReview: null, error: null });
-          queueCareerSave(get, set, next);
-          return;
-        }
+      const continuation = continueResolvedCareerEvent(guidedCareer, launchContent.events);
+      const next = continuation.state;
+      if (continuation.followed) {
+        set({ career: next, screen: 'event', weekReview: null, error: null });
+        queueCareerSave(get, set, next);
+        return;
       }
       // Answering a story hands the week back rather than spending it. The
       // story is read entering the week, so "Return to the office" now returns
       // to the office — the manager still has the week to trade, train and
       // build on whatever the story just did to the club.
       set({
-        career: dismissed,
-        screen: dismissed.phase === 'matchday'
+        career: next,
+        screen: next.phase === 'matchday'
           ? 'matchday'
-          : dismissed.phase === 'season-end' || dismissed.phase === 'complete'
-            ? seasonBoundaryScreen(dismissed)
+          : next.phase === 'season-end' || next.phase === 'complete'
+            ? seasonBoundaryScreen(next)
             : 'management',
         activeTab: 'home',
         weekReview: null,
         error: null,
       });
-      queueCareerSave(get, set, dismissed);
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  skipUnavailableEvent() {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const next = skipUnavailableCareerEvent(career, launchContent.events);
+      set({ career: next, screen: resumeScreen(next), weekReview: null, error: null });
+      queueCareerSave(get, set, next);
     });
   },
 
@@ -2375,208 +2459,6 @@ function requireMarket(state: GameState): NonNullable<GameState['market']> {
 
 function currentCareerDivision(state: GameState): number {
   return state.m2 === undefined ? 5 : currentUserDivision(state.m2);
-}
-
-function resolveContentEvent(state: GameState, choiceId: string): GameState {
-  const pending = state.pendingEvent;
-  if (pending === undefined) throw new Error('there is no active event');
-  const event = launchContent.events.events.find(candidate => candidate.id === pending.eventId);
-  if (event === undefined) throw new Error(`unknown event ${pending.eventId}`);
-  const choice = event.choices.find(candidate => candidate.id === choiceId);
-  if (choice === undefined) throw new Error(`unknown event choice ${choiceId}`);
-  if (event.trigger.requiresPlayer === true && pending.selectedPlayerId === undefined) {
-    throw new Error('choose a player before resolving this event');
-  }
-  if (event.trigger.requiresCoach === true && pending.selectedCoachRole === undefined) {
-    throw new Error('choose a coach before resolving this event');
-  }
-  if (event.trigger.requiresFacility !== undefined && pending.selectedFacilityId === undefined) {
-    throw new Error('choose a facility before resolving this event');
-  }
-  const unavailableReason = eventChoiceUnavailableReason(state, choice, t);
-  if (unavailableReason !== undefined) throw new Error(unavailableReason);
-
-  const total = choice.outcomes.reduce((sum, candidate) => sum + candidate.weight, 0);
-  const outcomeIndex = weightedIndex(
-    choice.outcomes.map(candidate => candidate.weight),
-    careerEventRoll(state, choiceId, 0, total),
-  );
-  const outcome = choice.outcomes[outcomeIndex];
-  let working = state;
-  if (choice.risky) {
-    if (working.eventClock.riskyChoices === Number.MAX_SAFE_INTEGER) {
-      throw new Error('event risk counter exceeds the safe integer range');
-    }
-    working = {
-      ...working,
-      eventClock: { ...working.eventClock, riskyChoices: working.eventClock.riskyChoices + 1 },
-    };
-  }
-  if (outcome === undefined) throw new Error('the event outcome did not resolve');
-
-  const playerId = pending.selectedPlayerId;
-  const moneyDelta = sumEffect(outcome.effects, 'money');
-  const trainingPointDelta = sumEffect(outcome.effects, 'tp');
-  const fanDelta = sumEffect(outcome.effects, 'fans');
-  // Singular by schema rule: a second effect of any of these types fails the
-  // content gate, so `find` cannot silently drop one.
-  const morale = outcome.effects.find(effect => effect.type === 'morale');
-  const squadMorale = outcome.effects.find(effect => effect.type === 'squadMorale');
-  const injury = outcome.effects.find(effect => effect.type === 'injury');
-  const injuryHeal = outcome.effects.find(effect => effect.type === 'injuryDelta');
-  const stat = outcome.effects.find(effect => effect.type === 'statDelta');
-  const statSessions = outcome.effects.find(effect => effect.type === 'statDeltaSessions');
-  const loyalty = outcome.effects.find(effect => effect.type === 'loyalty');
-  const condition = outcome.effects.find(effect => effect.type === 'condition');
-  const fame = outcome.effects.find(effect => effect.type === 'fame');
-  const coachBoosts = outcome.effects.filter(effect => effect.type === 'coachBoost');
-  const coachSpecialty = outcome.effects.find(effect => effect.type === 'coachSpecialty');
-  const coachRole = pending.selectedCoachRole;
-  const facilityId = pending.selectedFacilityId;
-  const FACILITY_EFFECT_FACETS = {
-    facilityTpBonus: 'tpBonusPercent',
-    facilityTrainingBonus: 'trainingBonusPercent',
-    facilityRecoveryBonus: 'recoveryBonus',
-    facilityIncomeBonus: 'incomeBonusPercent',
-  } as const;
-  const flags = outcome.effects
-    .filter(effect => effect.type === 'flag' && effect.value)
-    .map(effect => effect.type === 'flag' ? effect.flag : '');
-  // Every authored risky branch stores its success first and its comic setback
-  // second. Persisting the outcome index makes the cutscene save/reload safe.
-  const riskySuccess = choice.risky && outcomeIndex === 0;
-  const hasPlayerEffect = playerId !== undefined
-    && (morale || injury || injuryHeal || stat || statSessions || loyalty || condition || fame);
-  /**
-   * Sessions become points against the drill this club owns, then a loss is
-   * floored proportionally.
-   *
-   * The floor exists for one shape: a −1-session loss at a tier-5 club is −22,
-   * and the attribute clamp bottoms out at 1 rather than at the player's
-   * starting value — so a youth prospect with 35 PAC could lose two thirds of
-   * it to a single card. A quarter of what he actually has is still a sting,
-   * and it leaves a developed player's loss untouched (at 88 SHO the quarter is
-   * 22, so the full −22 lands).
-   */
-  const resolvedSessionDelta = (() => {
-    if (statSessions?.type !== 'statDeltaSessions' || playerId === undefined) return undefined;
-    const player = working.players.find(candidate => candidate.id === playerId);
-    if (player === undefined) return undefined;
-    return sessionAttributeDelta(working, player, statSessions.attribute, statSessions.sessions);
-  })();
-  let next = applyCareerEventOutcome(working, choice.id, outcome.text, {
-    moneyDelta,
-    trainingPointDelta,
-    fanDelta,
-    flags,
-    ...(hasPlayerEffect ? {
-      playerEffect: {
-        playerId,
-        ...(morale?.type === 'morale' ? { moraleDelta: morale.amount } : {}),
-        ...(injury?.type === 'injury' ? { injuryWeeks: injury.weeks } : {}),
-        ...(injuryHeal?.type === 'injuryDelta' ? { injuryWeeksDelta: injuryHeal.weeks } : {}),
-        ...(stat?.type === 'statDelta' ? {
-          attribute: stat.attribute,
-          attributeDelta: stat.amount,
-        } : {}),
-        ...(statSessions?.type === 'statDeltaSessions' && resolvedSessionDelta !== undefined ? {
-          attribute: statSessions.attribute,
-          attributeDelta: resolvedSessionDelta,
-        } : {}),
-        ...(loyalty?.type === 'loyalty' ? { loyaltyDelta: loyalty.amount } : {}),
-        ...(condition?.type === 'condition' ? { conditionDelta: condition.amount } : {}),
-        ...(fame?.type === 'fame' ? { fameDelta: fame.amount } : {}),
-      },
-    } : {}),
-  }, {
-    outcomeIndex,
-    risky: choice.risky,
-    success: riskySuccess,
-    ...(outcome.nextEventId === undefined ? {} : { nextEventId: outcome.nextEventId }),
-  });
-  // The building the manager pointed at, changed permanently.
-  if (facilityId !== undefined) {
-    for (const effect of outcome.effects) {
-      const facet = FACILITY_EFFECT_FACETS[effect.type as keyof typeof FACILITY_EFFECT_FACETS];
-      if (facet === undefined) continue;
-      const amount = 'percent' in effect ? effect.percent : 'amount' in effect ? effect.amount : 0;
-      next = applyFacilityEventEffect(next, facilityId, facet, amount);
-    }
-  }
-  // The coach the manager pointed at, changed permanently. Boosts accumulate
-  // and are clamped at the cap by `applyCoachEventEffect`.
-  if (coachRole !== undefined) {
-    for (const boost of coachBoosts) {
-      if (boost.type !== 'coachBoost') continue;
-      next = applyCoachEventEffect(next, coachRole, { facet: boost.facet, amount: boost.amount });
-    }
-    if (coachSpecialty?.type === 'coachSpecialty') {
-      next = applyCoachEventEffect(next, coachRole, { specialtyTo: coachSpecialty.to });
-    }
-  }
-  /**
-   * The room, said out loud.
-   *
-   * This used to fire on a `morale` effect whose event had selected no player —
-   * so one effect type meant two different things, chosen by something the
-   * outcome never stated, and an event that forgot `requiresPlayer` silently
-   * became club-wide. `squadMorale` is now the only way to move the squad, and
-   * the content gate rejects the old spelling.
-   */
-  if (squadMorale?.type === 'squadMorale') {
-    next = {
-      ...next,
-      players: next.players.map(player => player.clubId === next.userClubId
-        ? { ...player, morale: Math.max(0, Math.min(100, player.morale + squadMorale.amount)) }
-        : player),
-    };
-  }
-  /**
-   * Resolving a recognition beat drains it, and — unlike a random story —
-   * leaves the drought counter alone. Zeroing it here would restart the ramp at
-   * 18% every time a milestone landed, which is the starvation the lane exists
-   * to avoid.
-   */
-  const isMilestone = isCareerMilestoneEventId(pending.eventId);
-  const drained = isMilestone ? drainPendingMilestone(next, pending.eventId) : next;
-  return isMilestone
-    ? drained
-    : { ...drained, eventClock: { ...drained.eventClock, weeksWithoutEvent: 0 } };
-}
-
-function sumEffect(
-  effects: (typeof launchContent.events.events)[number]['choices'][number]['outcomes'][number]['effects'],
-  type: 'money' | 'tp' | 'fans',
-): number {
-  return effects.reduce((sum, effect) => effect.type === type ? sum + effect.amount : sum, 0);
-}
-
-function weightedIndex(weights: readonly number[], roll: number): number {
-  let cumulative = 0;
-  for (let index = 0; index < weights.length; index += 1) {
-    cumulative += weights[index];
-    if (roll < cumulative) return index;
-  }
-  throw new Error('weighted event outcome did not resolve');
-}
-
-function careerEventRoll(
-  state: GameState,
-  choiceId: string,
-  stream: number,
-  upperExclusive: number,
-): number {
-  return deterministicCareerEventRoll(
-    {
-      careerSeed: state.careerSeed,
-      season: state.season,
-      week: state.week,
-      riskyChoices: state.eventClock.riskyChoices,
-    },
-    choiceId,
-    stream,
-    upperExclusive,
-  );
 }
 
 function resumeScreen(career: GameState): M1Screen {

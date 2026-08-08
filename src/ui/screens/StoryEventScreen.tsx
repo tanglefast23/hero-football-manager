@@ -18,7 +18,10 @@ export interface StoryEventScreenProps {
   viewModel: StoryEventViewModel;
   onChoose: (choiceId: string) => void;
   onSelectPlayer?: (playerId: string) => void;
+  onSelectCoach?: (role: 'HEAD' | 'ASSISTANT') => void;
+  onSelectFacility?: (buildingId: string) => void;
   onContinue: () => void;
+  onSkipUnavailable?: () => void;
   onOpenSettings: () => void;
   reduceMotion?: boolean;
   guideCopy?: { title: string; body: string };
@@ -36,8 +39,12 @@ export interface StoryEventScreenProps {
  * call keeps the blank card: it is not an option, so it should not be one of
  * the two colours that mean "pick me".
  */
-function choiceClass(choice: StoryEventChoiceViewModel): string {
-  if (choice.disabled) return 'border-ink/20 bg-white opacity-40';
+function choiceClass(
+  choice: StoryEventChoiceViewModel,
+  targetBlocked: boolean,
+): string {
+  if (choice.disabled || targetBlocked)
+    return 'border-ink/20 bg-white opacity-40';
   return choice.tone === 'risky' ? 'border-stamp bg-red-light' : 'border-blue-dark bg-blue-light';
 }
 
@@ -45,7 +52,10 @@ export function StoryEventScreen({
   viewModel,
   onChoose,
   onSelectPlayer,
+  onSelectCoach,
+  onSelectFacility,
   onContinue,
+  onSkipUnavailable,
   onOpenSettings,
   reduceMotion = false,
   guideCopy,
@@ -54,7 +64,12 @@ export function StoryEventScreen({
   const t = useCopy();
   const resolved = Boolean(viewModel.resolvedChoiceId && viewModel.outcomeText);
   const needsPlayer = viewModel.playerSelectionRequired && !viewModel.selectedPlayer;
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const needsCoach =
+    viewModel.coachSelectionRequired && !viewModel.selectedCoach;
+  const needsFacility =
+    viewModel.facilitySelectionRequired && !viewModel.selectedFacility;
+  const needsTarget = needsPlayer || needsCoach || needsFacility;
+  const [pickerOpen, setPickerOpen] = useState<'player' | 'coach' | 'facility' | null>(null);
   /**
    * What the cards laid over the artwork actually take up, so the stage objects
    * can sit above them instead of behind them. Measured rather than guessed:
@@ -67,10 +82,18 @@ export function StoryEventScreen({
    * A locked card is read-only: the manager already answered for this player in
    * the chapter that opened the story. A resolved one is history.
    */
-  const pickerAvailable = onSelectPlayer !== undefined
+  const playerPickerAvailable = onSelectPlayer !== undefined
     && !resolved
     && viewModel.playerLocked !== true
     && viewModel.playerChoices.length > 0;
+  const coachPickerAvailable = onSelectCoach !== undefined
+    && !resolved
+    && viewModel.coachLocked !== true
+    && viewModel.coachChoices.length > 0;
+  const facilityPickerAvailable = onSelectFacility !== undefined
+    && !resolved
+    && viewModel.facilityLocked !== true
+    && viewModel.facilityChoices.length > 0;
   const reveal = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const rewardReveal = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const playedOutcomeKey = useRef<string | null>(null);
@@ -79,6 +102,10 @@ export function StoryEventScreen({
     : `${viewModel.id}:${viewModel.resolvedChoiceId ?? 'resolved'}`;
   const riskySuccess = viewModel.resolvedRisky === true && viewModel.resolvedSuccess === true;
   const riskyFailure = viewModel.resolvedRisky === true && viewModel.resolvedSuccess !== true;
+
+  useEffect(() => {
+    setPickerOpen(null);
+  }, [resolved, viewModel.id]);
 
   useEffect(() => {
     if (outcomeKey === null) return undefined;
@@ -125,9 +152,10 @@ export function StoryEventScreen({
 
   if (resolved) {
     const rewards = viewModel.outcomeRewards ?? [];
+    const emptyFailure = riskyFailure && rewards.length === 0;
     const headline = riskySuccess
       ? viewModel.successCutscene?.headline ?? viewModel.outcomeTitle ?? t('storyEvent.outcomeRiskPaidOff')
-      : riskyFailure
+      : emptyFailure
         ? t('storyEvent.outcomeNoBonusThisTime')
         : viewModel.outcomeTitle ?? t('storyEvent.outcomeDecisionComplete');
     const kicker = riskySuccess
@@ -201,7 +229,7 @@ export function StoryEventScreen({
                 {viewModel.outcomeText}
               </Text>
 
-              {riskyFailure ? (
+              {emptyFailure ? (
                 <View className="mt-4 border-2 border-red-dark bg-red-light px-4 py-3">
                   <PixelText className="text-center text-lg uppercase text-red-dark">
                     {t('storyEvent.noBonusEarned')}</PixelText>
@@ -312,7 +340,7 @@ export function StoryEventScreen({
             <View className="mt-5">
               <Text className="mb-2 font-pixel text-xs uppercase tracking-[2px] text-gold-light">{t('storyEvent.playerInvolved')}</Text>
               <Pressable
-                accessibilityRole={pickerAvailable ? 'button' : 'text'}
+                accessibilityRole={playerPickerAvailable ? 'button' : 'text'}
                 accessibilityLabel={viewModel.selectedPlayer
                   ? t('storyEvent.a11y.selectedPlayer', {
                     name: viewModel.selectedPlayer.name,
@@ -320,13 +348,13 @@ export function StoryEventScreen({
                     overall: viewModel.selectedPlayer.overall,
                     action: viewModel.playerLocked === true
                       ? t('storyEvent.a11y.chosenEarlier')
-                      : pickerOpen
+                      : pickerOpen === 'player'
                         ? t('storyEvent.a11y.closeSquadList')
                         : t('storyEvent.a11y.openSquadList'),
                   })
                   : t('storyEvent.a11y.chooseAPlayerForThisEvent')}
-                disabled={!pickerAvailable}
-                onPress={() => setPickerOpen(open => !open)}
+                disabled={!playerPickerAvailable}
+                onPress={() => setPickerOpen(open => open === 'player' ? null : 'player')}
                 className={viewModel.selectedPlayer ? 'min-h-14 flex-row items-center border-2 border-gold bg-gold-light p-3' : 'min-h-14 items-center justify-center border-2 border-dashed border-ink/40 bg-white p-3'}
               >
                 {viewModel.selectedPlayer ? (
@@ -351,7 +379,7 @@ export function StoryEventScreen({
                   ))}
                 </View>
               )}
-              {!pickerOpen || viewModel.playerChoices.length === 0 ? null : (
+              {pickerOpen !== 'player' || viewModel.playerChoices.length === 0 ? null : (
                 <View className="mt-2 border-2 border-ink bg-white">
                   {viewModel.playerChoices.map(candidate => (
                     <Pressable
@@ -366,7 +394,7 @@ export function StoryEventScreen({
                       })}
                       onPress={() => {
                         onSelectPlayer?.(candidate.id);
-                        setPickerOpen(false);
+                        setPickerOpen(null);
                       }}
                       className={candidate.id === viewModel.selectedPlayer?.id
                         ? 'min-h-12 flex-row items-center gap-3 border-b border-ink/15 bg-gold-light px-3 py-2'
@@ -387,10 +415,165 @@ export function StoryEventScreen({
             </View>
           ) : null}
 
+          {viewModel.coachSelectionRequired || viewModel.selectedCoach ? (
+            <View className="mt-5">
+              <Text className="mb-2 font-pixel text-xs uppercase tracking-[2px] text-gold-light">
+                {t('storyEvent.coachInvolved')}
+              </Text>
+              <Pressable
+                accessibilityRole={coachPickerAvailable ? 'button' : 'text'}
+                accessibilityLabel={viewModel.selectedCoach
+                  ? `${viewModel.selectedCoach.name}. ${viewModel.selectedCoach.roleLabel}. ${viewModel.selectedCoach.levelLabel}. ${viewModel.coachLocked === true ? t('storyEvent.a11y.chosenEarlier') : t('storyEvent.chooseCoach')}`
+                  : t('storyEvent.chooseCoach')}
+                disabled={!coachPickerAvailable}
+                onPress={() => setPickerOpen(open => open === 'coach' ? null : 'coach')}
+                className={viewModel.selectedCoach
+                  ? 'min-h-14 border-2 border-gold bg-gold-light p-3'
+                  : 'min-h-14 items-center justify-center border-2 border-dashed border-ink/40 bg-white p-3'}
+              >
+                {viewModel.selectedCoach ? (
+                  <>
+                    <View className="flex-row items-center gap-3">
+                      <View className="h-10 min-w-14 items-center justify-center border-2 border-ink bg-paper px-2">
+                        <Text className="font-pixel text-xs text-ink">
+                          {viewModel.selectedCoach.role === 'HEAD' ? 'HEAD' : 'ASST'}
+                        </Text>
+                      </View>
+                      <View className="min-w-0 flex-1">
+                        <PixelText className="text-base uppercase text-ink">{viewModel.selectedCoach.name}</PixelText>
+                        <Text className="mt-1 text-sm text-ink/60">
+                          {viewModel.selectedCoach.roleLabel} · {viewModel.selectedCoach.levelLabel}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text className="mt-2 text-sm text-ink/70">
+                      {viewModel.selectedCoach.specialtyLabels.join(' · ')}
+                    </Text>
+                    <Text className="mt-1 text-sm text-ink/70">
+                      {viewModel.selectedCoach.trainingLine} · {viewModel.selectedCoach.trainingPointsLine}
+                    </Text>
+                    {viewModel.selectedCoach.motivatorLine ? (
+                      <Text className="mt-1 text-sm text-ink/70">{viewModel.selectedCoach.motivatorLine}</Text>
+                    ) : null}
+                    {viewModel.selectedCoach.earnedLine ? (
+                      <Text className="mt-2 text-sm font-bold text-blue-dark">{viewModel.selectedCoach.earnedLine}</Text>
+                    ) : null}
+                  </>
+                ) : <PixelText className="text-base uppercase text-ink">{t('storyEvent.chooseCoach')}</PixelText>}
+              </Pressable>
+              {pickerOpen !== 'coach' || viewModel.coachChoices.length === 0 ? null : (
+                <View className="mt-2 border-2 border-ink bg-white">
+                  {viewModel.coachChoices.map(candidate => (
+                    <Pressable
+                      key={candidate.role}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: candidate.role === viewModel.selectedCoach?.role }}
+                      accessibilityLabel={`${candidate.name}. ${candidate.roleLabel}. ${candidate.levelLabel}`}
+                      onPress={() => {
+                        onSelectCoach?.(candidate.role);
+                        setPickerOpen(null);
+                      }}
+                      className={candidate.role === viewModel.selectedCoach?.role
+                        ? 'min-h-12 border-b border-ink/15 bg-gold-light px-3 py-2'
+                        : 'min-h-12 border-b border-ink/15 px-3 py-2'}
+                    >
+                      <View className="flex-row items-center gap-3">
+                        <Text className="font-pixel text-xs text-ink">{candidate.role === 'HEAD' ? 'HEAD' : 'ASST'}</Text>
+                        <Text className="min-w-0 flex-1 text-base text-ink" numberOfLines={1}>{candidate.name}</Text>
+                        <Text className="text-sm text-ink/60">{candidate.levelLabel}</Text>
+                      </View>
+                      <Text className="mt-1 text-sm text-ink/50" numberOfLines={2}>
+                        {candidate.specialtyLabels.join(' · ')} · {candidate.trainingLine} · {candidate.trainingPointsLine}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : null}
+
+          {viewModel.facilitySelectionRequired || viewModel.selectedFacility ? (
+            <View className="mt-5">
+              <Text className="mb-2 font-pixel text-xs uppercase tracking-[2px] text-gold-light">
+                {t('storyEvent.facilityInvolved')}
+              </Text>
+              <Pressable
+                accessibilityRole={facilityPickerAvailable ? 'button' : 'text'}
+                accessibilityLabel={viewModel.selectedFacility
+                  ? `${viewModel.selectedFacility.name}. ${viewModel.selectedFacility.levelLabel}. ${viewModel.selectedFacility.effectLabel}. ${viewModel.facilityLocked === true ? t('storyEvent.a11y.chosenEarlier') : t('storyEvent.chooseFacility')}`
+                  : t('storyEvent.chooseFacility')}
+                disabled={!facilityPickerAvailable}
+                onPress={() => setPickerOpen(open => open === 'facility' ? null : 'facility')}
+                className={viewModel.selectedFacility
+                  ? 'min-h-14 border-2 border-gold bg-gold-light p-3'
+                  : 'min-h-14 items-center justify-center border-2 border-dashed border-ink/40 bg-white p-3'}
+              >
+                {viewModel.selectedFacility ? (
+                  <>
+                    <View className="flex-row items-center justify-between gap-3">
+                      <View className="min-w-0 flex-1">
+                        <PixelText className="text-base uppercase text-ink">{viewModel.selectedFacility.name}</PixelText>
+                        <Text className="mt-1 text-sm text-ink/60">
+                          {viewModel.selectedFacility.levelLabel} · {viewModel.selectedFacility.operationalStatus}
+                        </Text>
+                      </View>
+                      <StatusChip label={viewModel.selectedFacility.operationalStatus} tone="success" />
+                    </View>
+                    <Text className="mt-2 text-sm text-ink/70">{viewModel.selectedFacility.effectLabel}</Text>
+                    {viewModel.selectedFacility.earnedLine ? (
+                      <Text className="mt-2 text-sm font-bold text-blue-dark">{viewModel.selectedFacility.earnedLine}</Text>
+                    ) : null}
+                  </>
+                ) : <PixelText className="text-base uppercase text-ink">{t('storyEvent.chooseFacility')}</PixelText>}
+              </Pressable>
+              {pickerOpen !== 'facility' || viewModel.facilityChoices.length === 0 ? null : (
+                <View className="mt-2 border-2 border-ink bg-white">
+                  {viewModel.facilityChoices.map(candidate => (
+                    <Pressable
+                      key={candidate.buildingId}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: candidate.buildingId === viewModel.selectedFacility?.buildingId }}
+                      accessibilityLabel={`${candidate.name}. ${candidate.levelLabel}. ${candidate.effectLabel}`}
+                      onPress={() => {
+                        onSelectFacility?.(candidate.buildingId);
+                        setPickerOpen(null);
+                      }}
+                      className={candidate.buildingId === viewModel.selectedFacility?.buildingId
+                        ? 'min-h-12 border-b border-ink/15 bg-gold-light px-3 py-2'
+                        : 'min-h-12 border-b border-ink/15 px-3 py-2'}
+                    >
+                      <View className="flex-row items-center justify-between gap-3">
+                        <Text className="min-w-0 flex-1 text-base text-ink" numberOfLines={1}>{candidate.name}</Text>
+                        <Text className="text-sm text-ink/60">{candidate.levelLabel}</Text>
+                      </View>
+                      <Text className="mt-1 text-sm text-ink/50" numberOfLines={2}>{candidate.effectLabel}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : null}
+
+          {viewModel.targetUnavailable ? (
+            <View className="mt-5 border-2 border-red-dark bg-red-light p-4">
+              <PixelText className="text-base uppercase text-red-dark">{t('storyEvent.noEligibleTarget')}</PixelText>
+              <Text className="mt-2 text-ink/70" style={scaledBody(textScale)}>{t('storyEvent.noEligibleTargetDetail')}</Text>
+              {onSkipUnavailable ? (
+                <View className="mt-4">
+                  <ActionButton
+                    label={`${t('storyEvent.returnToTheOffice')}  ▸`}
+                    accessibilityLabel={t('storyEvent.returnToTheOffice')}
+                    onPress={onSkipUnavailable}
+                  />
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
           <View className="mt-6 gap-3">
               <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{t('storyEvent.yourCall')}</Text>
               {viewModel.choices.map((choice, index) => {
-                const disabled = Boolean(choice.disabled || needsPlayer);
+                const disabled = Boolean(choice.disabled || needsTarget || viewModel.targetUnavailable);
                 return (
                   <Pressable
                     key={choice.id}
@@ -403,7 +586,7 @@ export function StoryEventScreen({
                     accessibilityState={{ disabled }}
                     disabled={disabled}
                     onPress={() => onChoose(choice.id)}
-                    className={`min-h-20 flex-row items-center border-2 p-3 ${choiceClass(choice)}`}
+                    className={`min-h-20 flex-row items-center border-2 p-3 ${choiceClass(choice, needsTarget || viewModel.targetUnavailable)}`}
                   >
                     <View className={choice.tone === 'risky' ? 'mr-3 h-10 w-10 items-center justify-center border-2 border-stamp' : 'mr-3 h-10 w-10 items-center justify-center border-2 border-blue-dark'}>
                       <Text className={choice.tone === 'risky' ? 'font-mono text-base text-stamp' : 'font-mono text-base text-blue-dark'}>{String(index + 1).padStart(2, '0')}</Text>
@@ -416,7 +599,9 @@ export function StoryEventScreen({
                   </Pressable>
                 );
               })}
-              {needsPlayer ? <PixelText className="text-center text-sm uppercase tracking-wide text-red-light">{t('storyEvent.chooseAPlayerFirst')}</PixelText> : null}
+              {needsTarget && !viewModel.targetUnavailable ? (
+                <PixelText className="text-center text-sm uppercase tracking-wide text-red-light">{t('storyEvent.chooseTargetFirst')}</PixelText>
+              ) : null}
             </View>
         </View>
       </ScrollView>

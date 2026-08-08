@@ -59,13 +59,13 @@
     },
     "assets/audio/music/management-theme.m4a": {
       "class": "music",
-      "before": -21.4,
-      "beforeTruePeak": -5,
-      "gainDb": 1.4,
+      "before": -20,
+      "beforeTruePeak": -3.6,
+      "gainDb": 0,
       "limited": false,
       "after": -20,
       "afterTruePeak": -3.6,
-      "bytes": 1147606
+      "bytes": 1176746
     },
     "assets/audio/music/match-theme.m4a": {
       "class": "music",

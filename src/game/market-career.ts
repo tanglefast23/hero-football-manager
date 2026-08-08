@@ -964,6 +964,66 @@ export function sellCareerPlayer(
   return completeCareerPlayerSale(state, market, playerId, buyerClubId, quote);
 }
 
+export type CareerEventPlayerSaleBlocker =
+  | 'market-unavailable'
+  | 'player-unavailable'
+  | 'squad-cover'
+  | 'no-buyer';
+
+/**
+ * Explains whether an authored story sale can complete before its button is
+ * pressed. The story itself is the offer, so this deliberately ignores the
+ * ordinary transfer-window gate while retaining every roster and cash guard.
+ */
+export function careerEventPlayerSaleBlocker(
+  state: GameState,
+  playerId: string,
+  fee: number,
+): CareerEventPlayerSaleBlocker | undefined {
+  if (state.market === undefined) return 'market-unavailable';
+  const player = state.players.find(candidate => (
+    candidate.id === playerId && candidate.clubId === state.userClubId
+  ));
+  if (player === undefined) return 'player-unavailable';
+  try {
+    assertUserSaleKeepsSquadCover(state, player);
+  } catch {
+    return 'squad-cover';
+  }
+  return careerEventSaleBuyer(state, fee) === undefined ? 'no-buyer' : undefined;
+}
+
+/**
+ * Completes the fixed-fee transfer promised by a career event. This reuses the
+ * market's one sale transaction instead of maintaining a second roster-removal
+ * path, and writes the returned market sidecar back into the career state.
+ */
+export function completeCareerEventPlayerSale(
+  state: GameState,
+  playerId: string,
+  fee: number,
+): GameState {
+  const blocker = careerEventPlayerSaleBlocker(state, playerId, fee);
+  if (blocker !== undefined) {
+    throw new Error(`career event player sale is blocked: ${blocker}`);
+  }
+  const buyer = careerEventSaleBuyer(state, fee)!;
+  const result = completeCareerPlayerSale(
+    state,
+    state.market!,
+    playerId,
+    buyer.id,
+    { playerId, valuation: fee, fee, bandPercent: 100 },
+  );
+  return { ...result.state, market: result.market };
+}
+
+function careerEventSaleBuyer(state: GameState, fee: number) {
+  return state.clubs
+    .filter(club => club.id !== state.userClubId && club.cash >= fee)
+    .sort((left, right) => compareIds(left.id, right.id))[0];
+}
+
 function completeCareerPlayerSale(
   state: GameState,
   market: CareerMarketState,

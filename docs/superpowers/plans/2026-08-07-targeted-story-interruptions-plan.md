@@ -404,3 +404,23 @@ Grok re-audited the finished implementation against the plan it had approved and
 
    The state fingerprint moves (`5fef5277:634851` → `4734806a:634991`) because the catalog changed, which is expected; every career-shaped number it drives does not.
 4. **Two owner calls are live in the code**, both one line to reverse: the proportional loss floor (a session loss takes at most a quarter of what the player has) and losses capped at one session.
+
+---
+
+## 13. Correction — production pickers and the visible Dev Harness (2026-08-08)
+
+The “What actually shipped” table above overstated two completion claims. Phase 6 added
+coach and facility data to the view model, but `StoryEventScreen` and `App.tsx` still wired
+only player selection. Phase 9 updated the headless long-career audit in `src/audit`; it did
+not update the browser Dev Harness entry shown at `#/dev/career-events`, which remained
+category-only, player-only, and backed by a private partial resolver.
+
+The completion repair is specified in
+[`docs/plans/2026-08-08-fix-targeted-career-events-and-harness-plan.md`](../../plans/2026-08-08-fix-targeted-career-events-and-harness-plan.md)
+and passed its pre-implementation Grok audit. The repaired production screen supports
+player, coach, and facility selection, combined target gating, read-only carried targets,
+and a guarded fail-soft exit. The weekly deck, picker, store, save reconciliation, browser
+Harness, and headless audit now share one legal-candidate authority; production and both
+Harnesses share one outcome/continuation path. The visible Harness adds `all`,
+`target-player`, `target-coach`, `target-facility`, and `two-part` lanes while preserving
+category bookmarks.

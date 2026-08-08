@@ -251,9 +251,7 @@ export function CharacterSpeechOverlay({
   const pressableRef = useRef<View>(null);
 
   useEffect(() => {
-    if (!focusOnMount || (Platform.OS !== 'web' && Platform.OS !== 'android')) {
-      return undefined;
-    }
+    if (!focusOnMount) return undefined;
     const frame = requestAnimationFrame(() => {
       const target = pressableRef.current;
       if (target === null) return;
