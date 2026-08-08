@@ -23,12 +23,6 @@
       "destination": "drill-shop"
     },
     {
-      "id": "player-columns-are-sortable",
-      "title": "Player columns are sortable",
-      "body": "Tap NAME, OVR, POT or COND in the Team Register to sort by it. Tap again to reverse. Tap a third time for the usual order.",
-      "destination": "overall-sort"
-    },
-    {
       "id": "cup-pays-more-than-the-league",
       "title": "The Hero Cup out-earns the league",
       "body": "A full cup run pays $48,000 and 212 fans, more than any league title. Wins and heroes also grow your following now, but the Cup remains the biggest crowd leap, so rest nobody in a cup week."

@@ -14,6 +14,7 @@ import type { GameState } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { useM1Store } from '../store';
 import { matchDayBannerViewModel } from '../view-models';
+import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 
 /**
  * The banner announces the week, so the only thing it can never do is announce
@@ -140,7 +141,7 @@ describe('matchDayBannerViewModel', () => {
     expect(next).toBeDefined();
 
     useM1Store.setState({
-      career: {
+      career: withRivalHeroIntrosSeen({
         ...started,
         week: played.week,
         phase: 'matchday',
@@ -149,7 +150,7 @@ describe('matchDayBannerViewModel', () => {
         fixtures: started.fixtures.map(fixture => (
           fixture.id === next!.id ? { ...fixture, week: played.week + 1 } : fixture
         )),
-      },
+      }),
       screen: 'matchday',
       matchDayBanner: null,
     });

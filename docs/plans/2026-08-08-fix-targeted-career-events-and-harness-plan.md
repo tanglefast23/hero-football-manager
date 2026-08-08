@@ -573,10 +573,14 @@ Harness and replay the fee, childhood-club, new-contract, coach, and facility ex
   glyph, and display-budget checks passing.
 - Focused content, transfer, shared-flow, and visible-Harness suites pass (67 tests), the
   complete i18n group passes (140 tests), `npx tsc --noEmit` passes, and `git diff --check`
-  passes.
-- The full suite completed with 412 passing suites, 1 skipped suite, and 3,911 passing
-  tests. Its only three failures are the same pre-existing pixel-art geometry baselines
-  recorded outside this repair; no artwork was changed.
+  passes. After incorporating the concurrent contract-promise and rival-intro merges from
+  current `main`, 21 overlapping suites pass all 273 tests, including the shared store,
+  market, schema, localization, App, Harness, and pixel-baseline paths.
+- Before current `main` recalibrated its pixel-art baselines, the full suite completed with
+  412 passing suites, 1 skipped suite, and 3,911 passing tests; its only three failures were
+  those stale geometry counts. The corrected geometry suite now passes on the integrated
+  branch, and the final-commit workflow reruns typecheck and the complete suite as the
+  mandatory `main` merge gate.
 - The production-path long-career probe still stops in both COZY and CHAIRMAN when its
   generated lineup exceeds the three-licensed-hero cap. The identical failure was captured
   before implementation, so this repair did not introduce it.

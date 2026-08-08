@@ -142,7 +142,13 @@ describe('first-hire screen copy', () => {
   });
 
   it('opens the rename sheet from the registration card and carries its result', () => {
-    expect(loadCatalog('en').strings['characterCreation.renameRoster']).toBe('Rename roster');
+    const strings = loadCatalog('en').strings;
+    expect(strings['characterCreation.teammateNames']).toBe("Teammate's Names (Optional):");
+    expect(strings['characterCreation.renameRoster']).toBe('Rename roster');
+    expect(source).toContain('<View className="mt-3 border-t-2 border-ink/15 pt-3">');
+    expect(source).toMatch(
+      /<View className="flex-row items-center gap-2">[\s\S]*?characterCreation\.teammateNames[\s\S]*?<ActionButton/,
+    );
     expect(source).toContain("t('characterCreation.renameRoster')");
     expect(source).toContain('<RosterRenameModal');
     // Saved renames survive a reopen, so a second visit edits rather than

@@ -12,6 +12,7 @@ import {
   queueAssistantGuideSequence,
   queueAssistantGuideSequences,
   scheduleAssistantInboxWeek,
+  shouldShowSquadSortHint,
   wasSponsorDeskIntroDeliveredBeforeCurrentWeek,
 } from '../assistant-guide';
 import { createLaunchCareerSetup } from '../../application/launch';
@@ -55,6 +56,20 @@ describe('assistant guide milestones', () => {
 
     expect(hasAssistantGuideMilestone(once, 'match-condition-warning-seen')).toBe(true);
     expect(twice).toBe(once);
+  });
+
+  test('offers the roster sort hint from Week 12 until any tap dismisses it forever', () => {
+    const career = createCareer(createLaunchCareerSetup(8_431));
+    const weekEleven = { ...career, season: 1, week: 11 };
+    const weekTwelve = { ...career, season: 1, week: 12 };
+
+    expect(shouldShowSquadSortHint(weekEleven)).toBe(false);
+    expect(shouldShowSquadSortHint(weekTwelve)).toBe(true);
+    expect(shouldShowSquadSortHint({ ...career, season: 2, week: 1 })).toBe(true);
+
+    const dismissed = completeAssistantGuideMilestone(weekTwelve, 'squad-sort-seen');
+    expect(shouldShowSquadSortHint(dismissed)).toBe(false);
+    expect(completeAssistantGuideMilestone(dismissed, 'squad-sort-seen')).toBe(dismissed);
   });
 
   test('persists M2 firsts in insertion order and completes them idempotently', () => {

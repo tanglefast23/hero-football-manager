@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "intros": [
+    {
+      "heroId": "special-f171",
+      "taunt": "I’ll be in your box before this speech bubble disappears."
+    },
+    {
+      "heroId": "special-f178",
+      "taunt": "My shooting coach said “keep your eyes on the ball.” I may have overdone it."
+    },
+    {
+      "heroId": "special-f174",
+      "taunt": "Team, assemble! Yes, even the substitute keeper."
+    },
+    {
+      "heroId": "special-f176",
+      "taunt": "Please don’t make me angry. The groundskeeper just fixed the goalposts."
+    },
+    {
+      "heroId": "special-f168",
+      "taunt": "My superpower is preparation. My backup superpower is an absurd transfer budget."
+    }
+  ]
+}
