@@ -281,7 +281,7 @@ export function CharacterCreationScreen({
           value={name}
           onChangeText={setName}
           placeholder={t('characterCreation.typeAPlayerName')}
-          placeholderTextColor="#6B665D"
+          placeholderTextColor="#6b6675"
           autoCapitalize="words"
           autoCorrect={false}
           maxLength={24}
@@ -305,7 +305,7 @@ export function CharacterCreationScreen({
             value={clubName}
             onChangeText={setClubName}
             placeholder={defaultClubName}
-            placeholderTextColor="#6B665D"
+            placeholderTextColor="#6b6675"
             autoCapitalize="words"
             autoCorrect={false}
             maxLength={TYPED_NAME_MAX_LENGTH}

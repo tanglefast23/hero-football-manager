@@ -54,8 +54,8 @@ export interface FinancialStatementProps {
 }
 
 const AMOUNT_COLORS = { income: '#265b30', expense: '#a83440', neutral: '#241f2e' };
-const WASH_BASE = '#fde68a';
-const WASH_SWEEP = '#fdba74';
+const WASH_BASE = '#f7d894';
+const WASH_SWEEP = '#eab48c';
 
 export function FinancialStatement({
   lines,

@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
   bubbleText: speechBubbleStyles.text,
   unrevealedText: { color: 'transparent' },
   bubbleHeading: {
-    color: '#c44536',
+    color: '#c22f2c',
     fontSize: BUBBLE_FONT_SIZE - 1,
     lineHeight: BUBBLE_LINE_HEIGHT - 2,
     fontWeight: 'bold',

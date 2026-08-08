@@ -1099,7 +1099,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   cardGuided: {
     borderColor: '#3f6fb5',
     borderWidth: 4,
-    backgroundColor: '#d8e8f7',
+    backgroundColor: '#c8ddf0',
     opacity: 1,
     zIndex: 50,
     elevation: 14,

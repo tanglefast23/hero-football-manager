@@ -11,7 +11,8 @@ import { EVENT_SPRITE_ROWS } from './event-pixel-sprites';
 export const EVENT_SPRITE_SCALE = 5;
 export const EVENT_SPRITE_CELL = 16;
 
-const PALETTE: Readonly<Record<string, string>> = {
+/** Exported so the pixel-bible gate can check these sprites like the sheets. */
+export const EVENT_PALETTE: Readonly<Record<string, string>> = {
   K: '#241f2e',
   k: '#3a3350',
   W: '#ffffff',
@@ -115,7 +116,7 @@ export function eventSpriteRuns(spriteId: string): EventPixelRun[] {
       runColor = undefined;
     };
     for (let x = 0; x < row.length; x += 1) {
-      const color = PALETTE[row[x]];
+      const color = EVENT_PALETTE[row[x]];
       if (color === undefined) {
         flush(x);
         continue;

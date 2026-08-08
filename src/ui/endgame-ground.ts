@@ -49,8 +49,8 @@ export const GRASS_PERCENT = 63;
  */
 export const SKY_BANDS: readonly { readonly end: number; readonly color: string }[] = Object.freeze([
   { end: 0.42, color: '#19142a' },
-  { end: 0.74, color: '#221b38' },
-  { end: 1, color: '#2e2447' },
+  { end: 0.74, color: '#241f2e' },
+  { end: 1, color: '#35234f' },
 ]);
 
 /**

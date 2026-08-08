@@ -137,7 +137,7 @@ export function RosterRenameModal({
                         setDrafts(current => ({ ...current, [player.id]: '' }));
                       }}
                       placeholder={player.name}
-                      placeholderTextColor="#6B665D"
+                      placeholderTextColor="#6b6675"
                       autoCapitalize="words"
                       autoCorrect={false}
                       maxLength={TYPED_NAME_MAX_LENGTH}
