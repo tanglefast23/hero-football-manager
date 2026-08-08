@@ -424,6 +424,7 @@
     "characterCreation.statName.sho": "TIRO",
     "characterCreation.statName.sta": "FÍSICO",
     "characterCreation.statName.tec": "TÉCNICA",
+    "characterCreation.teammateNames": "Nombres de compañeros (opcional):",
     "characterCreation.teamName": "Nombre del equipo (opcional)",
     "characterCreation.typeAPlayerName": "Escribe un nombre",
     "characterCreation.yourFirst": "Tu primero",

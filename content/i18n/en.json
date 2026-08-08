@@ -206,6 +206,7 @@
     "characterCreation.statName.sho": "SHOOTING",
     "characterCreation.statName.sta": "STAMINA",
     "characterCreation.statName.tec": "TECHNIQUE",
+    "characterCreation.teammateNames": "Teammate's Names (Optional):",
     "characterCreation.teamName": "Team name (optional)",
     "characterCreation.typeAPlayerName": "Type a player name",
     "characterCreation.yourFirst": "Your first",

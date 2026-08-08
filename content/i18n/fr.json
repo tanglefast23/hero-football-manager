@@ -424,6 +424,7 @@
     "characterCreation.statName.sho": "FRAPPE",
     "characterCreation.statName.sta": "ENDURANCE",
     "characterCreation.statName.tec": "TECHNIQUE",
+    "characterCreation.teammateNames": "Noms des coéquipiers (facultatif) :",
     "characterCreation.teamName": "Nom du club (facultatif)",
     "characterCreation.typeAPlayerName": "Tape un nom de joueur",
     "characterCreation.yourFirst": "Ton premier",

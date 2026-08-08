@@ -424,6 +424,7 @@
     "characterCreation.statName.sho": "SCHUSS",
     "characterCreation.statName.sta": "AUSDAUER",
     "characterCreation.statName.tec": "TECHNIK",
+    "characterCreation.teammateNames": "Namen der Teamkollegen (optional):",
     "characterCreation.teamName": "Teamname (optional)",
     "characterCreation.typeAPlayerName": "Spielernamen eintippen",
     "characterCreation.yourFirst": "Dein Erster",
