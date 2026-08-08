@@ -169,6 +169,7 @@ export function SettingsButton({
   const match = variant === 'match';
   return (
     <Pressable
+      immediatePress={match}
       accessibilityRole="button"
       accessibilityLabel={t('settings.open')}
       hitSlop={8}

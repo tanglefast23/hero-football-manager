@@ -1,5 +1,5 @@
 // Pure render constants for the hard-edged tackle debris paths.
-export const TACKLE_DUST_COLOR = '#c2a87a';
+export const TACKLE_DUST_COLOR = '#cf9268';
 export const TACKLE_DUST_OPACITY = 0.65;
 export const TACKLE_GRASS_COLOR = '#5cb85c';
 export const TACKLE_GRASS_OPACITY = 1;

@@ -185,23 +185,23 @@ function drop(
  * on, it sat close enough to the dim that his shoulders vanished and he read as
  * a floating head. The same mistake Bert's hair made, in the same place.
  */
-const SUIT = '#23222b';
-const SUIT_LIGHT = '#34333f';
+const SUIT = '#241f2e';
+const SUIT_LIGHT = '#3a3350';
 const SHIRT = '#f4f1ea';
-const GOLD = '#d8a944';
-const SKIN = '#e8b48f';
-const SKIN_SHADE = '#c9906a';
-const HAIR = '#191721';
-const LENS = '#12111a';
-const LEATHER = '#7a4a2c';
+const GOLD = '#edb54a';
+const SKIN = '#eab48c';
+const SKIN_SHADE = '#cf9268';
+const HAIR = '#16121f';
+const LENS = '#16121f';
+const LEATHER = '#6a4326';
 
 const styles = StyleSheet.create({
   frame: { alignItems: 'center', justifyContent: 'center' },
   sprite: { width: 104, height: 180 },
   groundShadow: { position: 'absolute', left: 18, bottom: 1, width: 70, height: 9, backgroundColor: '#c9c5d0' },
 
-  leftShoe: { position: 'absolute', left: 29, bottom: 6, width: 23, height: 9, backgroundColor: '#141118' },
-  rightShoe: { position: 'absolute', right: 25, bottom: 6, width: 23, height: 9, backgroundColor: '#141118' },
+  leftShoe: { position: 'absolute', left: 29, bottom: 6, width: 23, height: 9, backgroundColor: '#16121f' },
+  rightShoe: { position: 'absolute', right: 25, bottom: 6, width: 23, height: 9, backgroundColor: '#16121f' },
   leftLeg: { position: 'absolute', left: 33, bottom: 15, width: 17, height: 39, backgroundColor: SUIT },
   rightLeg: { position: 'absolute', right: 29, bottom: 15, width: 17, height: 39, backgroundColor: SUIT },
 
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   jacket: { position: 'absolute', left: 27, top: 88, width: 52, height: 52, backgroundColor: SUIT },
   shirt: { position: 'absolute', left: 44, top: 90, width: 17, height: 44, backgroundColor: SHIRT },
   tie: { position: 'absolute', left: 49, top: 99, width: 7, height: 33, backgroundColor: GOLD },
-  tieKnot: { position: 'absolute', left: 47, top: 93, width: 11, height: 8, backgroundColor: '#b98c30' },
+  tieKnot: { position: 'absolute', left: 47, top: 93, width: 11, height: 8, backgroundColor: '#c8862a' },
   leftLapel: { position: 'absolute', left: 34, top: 92, width: 16, height: 26, backgroundColor: SUIT_LIGHT, transform: [{ rotate: '16deg' }] },
   rightLapel: { position: 'absolute', right: 33, top: 92, width: 16, height: 26, backgroundColor: SUIT_LIGHT, transform: [{ rotate: '-16deg' }] },
   pocketSquare: { position: 'absolute', right: 34, top: 112, width: 10, height: 5, backgroundColor: GOLD },
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   // floor reads as luggage he has put down, which is the opposite of a man who
   // has come in to deliver one number and leave.
   hangingCase: { position: 'absolute', left: 9, top: 146, width: 32, height: 22, backgroundColor: LEATHER },
-  hangingCaseHandle: { position: 'absolute', left: 19, top: 141, width: 12, height: 6, backgroundColor: '#3a2416' },
+  hangingCaseHandle: { position: 'absolute', left: 19, top: 141, width: 12, height: 6, backgroundColor: '#3d2a22' },
   hangingCaseClasp: { position: 'absolute', left: 32, top: 154, width: 6, height: 5, backgroundColor: GOLD },
 
   presentingArm: { position: 'absolute', left: 10, top: 99, width: 28, height: 12, backgroundColor: SUIT, transform: [{ rotate: '-12deg' }] },
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   // Kept inside the 104-wide box. At left -6 it hung over the sprite's edge and
   // was clipped by the frame, which crops at exactly the sprite bounds.
   raisedCase: { position: 'absolute', left: 0, top: 105, width: 34, height: 26, backgroundColor: LEATHER },
-  raisedCaseHandle: { position: 'absolute', left: 11, top: 100, width: 13, height: 6, backgroundColor: '#3a2416' },
+  raisedCaseHandle: { position: 'absolute', left: 11, top: 100, width: 13, height: 6, backgroundColor: '#3d2a22' },
   raisedCaseClasp: { position: 'absolute', left: 11, top: 115, width: 7, height: 5, backgroundColor: GOLD },
 
   leftEar: { position: 'absolute', left: 21, top: 44, width: 11, height: 24, backgroundColor: SKIN_SHADE },
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   hairSlab: { position: 'absolute', left: 27, top: 12, width: 52, height: 20, backgroundColor: HAIR },
   // The part: a thin bright line raked across the slab, off centre. This is the
   // single detail that turns a black rectangle into slicked hair.
-  hairPart: { position: 'absolute', left: 58, top: 13, width: 4, height: 16, backgroundColor: '#3d3850', transform: [{ rotate: '9deg' }] },
+  hairPart: { position: 'absolute', left: 58, top: 13, width: 4, height: 16, backgroundColor: '#3a3350', transform: [{ rotate: '9deg' }] },
   hairPeak: { position: 'absolute', left: 44, top: 28, width: 16, height: 7, backgroundColor: HAIR },
   leftSideburn: { position: 'absolute', left: 27, top: 30, width: 7, height: 18, backgroundColor: HAIR },
   rightSideburn: { position: 'absolute', right: 26, top: 30, width: 7, height: 18, backgroundColor: HAIR },
@@ -257,9 +257,9 @@ const styles = StyleSheet.create({
   lensBridge: { position: 'absolute', left: 49, top: 48, width: 8, height: 3, backgroundColor: LENS },
   // One bright corner. Without it the lenses are two dead holes; with it they
   // are glass, and he is a man wearing sunglasses indoors on purpose.
-  leftLensGlint: { position: 'absolute', left: 34, top: 47, width: 6, height: 3, backgroundColor: '#6d6a86' },
+  leftLensGlint: { position: 'absolute', left: 34, top: 47, width: 6, height: 3, backgroundColor: '#6b6675' },
 
   nose: { position: 'absolute', left: 47, top: 57, width: 11, height: 14, backgroundColor: SKIN_SHADE },
   // A flat line, not Bert's open mouth. He is not pleased to be here either.
-  mouth: { position: 'absolute', left: 44, top: 78, width: 17, height: 4, backgroundColor: '#8f5f52' },
+  mouth: { position: 'absolute', left: 44, top: 78, width: 17, height: 4, backgroundColor: '#8a4f38' },
 });

@@ -1,5 +1,11 @@
 import { useRef, useState, type ComponentProps, type ReactNode } from 'react';
-import { Pressable as NativePressable, Text, View, type ViewStyle } from 'react-native';
+import {
+  Platform,
+  Pressable as NativePressable,
+  Text,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import { playManagementActionSfx, playStatStepSfx, playUiClickSfx } from '../../render/management-sfx';
 import { hasHoverPointer } from '../pointer-capability';
 import { createPressCueGate, type PressCueGate } from '../press-cue-gate';
@@ -20,6 +26,12 @@ type SfxPressableProps = NativePressableProps & {
   tip?: string;
   /** Which side of the control the tip opens on. Defaults to above. */
   tipSide?: 'top' | 'bottom';
+  /**
+   * Removes react-native-web's 50ms press-in delay for latency-sensitive
+   * controls. Native React Native already defaults to zero, so this is a web
+   * compatibility opt-in rather than a global interaction-policy change.
+   */
+  immediatePress?: boolean;
 };
 
 /**
@@ -79,6 +91,7 @@ export function SfxPressable({
   pressSfx = 'click',
   tip,
   tipSide = 'top',
+  immediatePress = false,
   style,
   children,
   disabled,
@@ -96,6 +109,7 @@ export function SfxPressable({
   return (
     <NativePressable
       {...props}
+      {...(immediatePress && Platform.OS === 'web' ? { delayPressIn: 0 } : {})}
       disabled={disabled}
       // Left unwired without a hovering pointer, so a caller's own hover work
       // (the facilities grid previews a footprint from it) cannot latch either.

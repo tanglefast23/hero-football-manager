@@ -424,7 +424,7 @@ function DrillAtlasStage({
 
   return (
     <Canvas style={{ width, height: STAGE_HEIGHT }} accessibilityLabel={t('trainingDrill.a11y.onTheTrainingPitch', { player: playerName })}>
-      <Fill color="#2d6a4f" />
+      <Fill color="#31703f" />
       <Rect x={5} y={8} width={width - 10} height={STAGE_HEIGHT - 16} color="#3f8a4a" />
       <Atlas
         image={atlas.image as SkImage}
@@ -453,8 +453,8 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 3,
     borderColor: '#241f2e',
-    backgroundColor: '#f5f1e7',
-    shadowColor: '#18131f',
+    backgroundColor: '#f4f1ea',
+    shadowColor: '#16121f',
     shadowOffset: { width: 6, height: 7 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -465,14 +465,14 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#3972bd',
+    backgroundColor: '#3f6fb5',
     paddingHorizontal: 14,
   },
   kicker: { color: '#ffffff', fontFamily: faces.display, fontSize: 15, letterSpacing: 1 },
-  timerLabel: { color: '#d9e9fb', fontFamily: faces.data, fontSize: 10 },
+  timerLabel: { color: '#c8ddf0', fontFamily: faces.data, fontSize: 10 },
   heading: { paddingHorizontal: 14, paddingBottom: 10, paddingTop: 12 },
   title: { color: '#241f2e', fontFamily: faces.display, fontSize: 18 },
-  drillList: { marginTop: 6, color: '#3972bd', fontFamily: faces.data, fontSize: 10, lineHeight: 16 },
+  drillList: { marginTop: 6, color: '#3f6fb5', fontFamily: faces.data, fontSize: 10, lineHeight: 16 },
   stageFrame: { marginHorizontal: 8, overflow: 'hidden', borderWidth: 2, borderColor: '#241f2e' },
   gainRow: {
     flexDirection: 'row',
@@ -489,9 +489,9 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
     height: 9,
     borderTopWidth: 2,
     borderColor: '#241f2e',
-    backgroundColor: '#cfc8da',
+    backgroundColor: '#c9c5d0',
     overflow: 'hidden',
   },
-  progressFill: { width: '100%', height: '100%', backgroundColor: '#3972bd' },
+  progressFill: { width: '100%', height: '100%', backgroundColor: '#3f6fb5' },
   progressFillSuper: { backgroundColor: '#edb54a' },
 });

@@ -1088,12 +1088,12 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderBottomWidth: 4,
-    borderColor: '#aaa7af',
+    borderColor: '#9a95a4',
     backgroundColor: '#ffffff',
   },
   repeatOptionSelected: {
-    borderColor: '#31578f',
-    backgroundColor: '#9fc3eb',
+    borderColor: '#2f55b8',
+    backgroundColor: '#a3c8f0',
   },
   repeatOptionWide: {
     width: 42,
@@ -1107,10 +1107,10 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
     fontFamily: faces.display,
     fontSize: 16,
     fontVariant: ['tabular-nums'],
-    color: '#77737f',
+    color: '#7d7887',
   },
   repeatOptionTextSelected: {
-    color: '#31578f',
+    color: '#2f55b8',
   },
   // Sits above the drill scene and the injury card: it is the newest thing the
   // player did, so it owns the popup until dismissed. These layers are siblings

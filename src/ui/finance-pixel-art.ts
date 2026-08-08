@@ -90,7 +90,8 @@ export type FinanceSpriteId =
   | typeof CUP_SPRITE_IDS[number]
   | typeof MERCH_TOY_IDS[number];
 
-const SPRITE_ROWS: Readonly<Record<FinanceSpriteId, readonly string[]>> = {
+/** Exported so the pixel-bible gate can check these sprites like the sheets. */
+export const SPRITE_ROWS: Readonly<Record<FinanceSpriteId, readonly string[]>> = {
   // -- The crowd: big-headed chibi fans, arms up, confetti overhead ---------
   'fan-cheer-a': [
     '..F.........G...',

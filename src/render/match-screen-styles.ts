@@ -35,7 +35,7 @@ export const CARRIER_CARD_CONTENT_WIDTH =
  */
 const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   root: { flex: 1, backgroundColor: '#241f2e' },
-  rootHighContrast: { backgroundColor: '#09070d' },
+  rootHighContrast: { backgroundColor: '#16121f' },
   firstMatchGuideOverlay: { zIndex: 20, elevation: 20 },
   // Desktop two-pane body: control rail then pitch, centred as ONE group so the
   // rail always sits directly left of the touchline. A flexed pitch pane
@@ -215,16 +215,16 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
     backgroundColor: '#a3c8f066',
   },
   coachCopy: { flexShrink: 1, alignItems: 'flex-start' },
-  coachLabel: { fontFamily: faces.display, color: '#bcb7c4', fontSize: 8 },
+  coachLabel: { fontFamily: faces.display, color: '#b9b4c2', fontSize: 8 },
   coachLabelGuided: { color: '#f4f1ea' },
   coachValue: { fontFamily: faces.display, color: '#f4f1ea', fontSize: 11, marginTop: 3 },
   coachValueGuided: { color: '#f4f1ea' },
-  mentalityIcon: { color: '#70b879', fontSize: 28, fontWeight: 'bold' },
+  mentalityIcon: { color: '#65b96e', fontSize: 28, fontWeight: 'bold' },
   swapIcon: { color: '#77a4d8', fontSize: 30, fontWeight: 'bold' },
   swapIconGuided: { color: '#f4f1ea' },
   tiredValue: { fontFamily: faces.data, color: '#edb54a', fontSize: 9 },
   energyUseRow: {
-    backgroundColor: '#2d283c',
+    backgroundColor: '#241f2e',
     borderWidth: 2,
     borderColor: '#6b6675',
     borderBottomWidth: 4,
@@ -243,7 +243,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
     paddingHorizontal: 2,
     marginBottom: 3,
   },
-  energyUseTitle: { fontFamily: faces.display, color: '#bcb7c4', fontSize: 8, letterSpacing: 0.6 },
+  energyUseTitle: { fontFamily: faces.display, color: '#b9b4c2', fontSize: 8, letterSpacing: 0.6 },
   teamEnergy: {
     color: '#65b96e',
     fontSize: 9,
@@ -266,10 +266,10 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   },
   energySegmentNarrow: { paddingHorizontal: 1 },
   energySegmentSelected: { borderColor: '#f4f1ea', borderBottomColor: '#f4f1ea' },
-  energySegmentSave: { backgroundColor: '#35618e' },
-  energySegmentBalanced: { backgroundColor: '#4f6753' },
+  energySegmentSave: { backgroundColor: '#2f55b8' },
+  energySegmentBalanced: { backgroundColor: '#31703f' },
   energySegmentAllOut: { backgroundColor: '#a83440' },
-  energySegmentText: { fontFamily: faces.display, color: '#bcb7c4', fontSize: 9, textAlign: 'center' },
+  energySegmentText: { fontFamily: faces.display, color: '#b9b4c2', fontSize: 9, textAlign: 'center' },
   energySegmentTextSelected: { color: '#f4f1ea' },
   cancelButton: {
     flex: 1,
@@ -284,7 +284,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   },
   cancelText: { fontFamily: faces.display, color: '#f4f1ea', fontSize: 12 },
   selectionPlaceholder: {
-    color: '#bcb7c4',
+    color: '#b9b4c2',
     fontSize: 10,
   },
 });

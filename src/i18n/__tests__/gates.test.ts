@@ -114,6 +114,19 @@ describe('i18n gates', () => {
         // would have shipped as tofu with the gate green — the shape of every
         // bug in this workstream. Nothing fails this today; it is a hole being
         // closed, not a fire being put out.
+        //
+        // Deliberately BROADER than the stylesheet: this asks for upper-case
+        // coverage on all 20,001 non-body keys, including screen-reader labels
+        // nothing draws at all. Mapping each key to its render site is the
+        // per-key knowledge this codebase does not have, and requiring both
+        // cases of a pixel face is cheap — the faces are Latin-1 plus the
+        // Vietnamese precomposed set, which carry both cases throughout. If
+        // this ever fails on a key that is genuinely never uppercased, narrow
+        // it to the leaves that are, rather than deleting the assertion.
+        //
+        // German ß is not a counterexample: `toUpperCase()` gives `SS`, which
+        // is exactly what `text-transform: uppercase` renders, so the check
+        // matches the browser rather than diverging from it.
         expect({ locale, key, upper: missingGlyphs(value.toUpperCase(), covered.get(family)!) })
           .toEqual({ locale, key, upper: [] });
       }
@@ -497,35 +510,67 @@ describe('gate 10 — content-prose coverage is measured, not assumed', () => {
   });
 
   /**
-   * Floors only ever go up.
+   * Floors only ever go up — and this time it is actually a ratchet.
    *
-   * A floor is a ratchet, and a ratchet that can be wound back is a suggestion.
-   * `events.json` was dropped 100 -> 38 to ship 264 untranslated strings; that
-   * lowering was honestly documented and committed to being temporary, which is
-   * better than a silent one — and it still sat there until someone happened to
-   * ask whether new copy gets translated automatically. Nothing FORCED it back.
+   * The first attempt at this was not one, and an audit said so. It asserted
+   * "every floor is 100 unless you write an exception", which reproduces the
+   * original regression in two lines instead of one, never notices a floor that
+   * is missing entirely, and had a staleness check whose comment described
+   * something the code did not do. All three are fixed here; the exception
+   * escape hatch is gone rather than tightened, because a hatch nobody can
+   * audit is worse than no hatch.
    *
-   * So: 100 is the only legal floor, and an exception must be written down here
-   * with a reason. Adding an entry is a visible, arguable line in a diff instead
-   * of a number quietly edited in a table of thirteen identical numbers.
+   * The high-water mark is the point. Lowering a floor now means editing THIS
+   * table too — a second, obvious, arguable line in the diff that says out loud
+   * "we are shipping less translated than we once did". It is still possible;
+   * it is no longer possible by accident, which is how `events.json` went
+   * 100 -> 38 and sat there.
    */
-  const FLOOR_EXCEPTIONS: Readonly<Record<string, string>> = {
-    // (empty — every content file is fully translated in every locale)
+  const FLOOR_HIGH_WATER: Readonly<Record<string, number>> = {
+    'events.json': 100,
+    'tips.json': 100,
+    'player-requests.json': 100,
+    'glossary.json': 100,
+    'assistant-guide.json': 100,
+    'onboarding.json': 100,
+    'fulltime-coach-lines.json': 100,
+    'fulltime-blame-lines.json': 100,
+    'agent-final-lines.json': 100,
+    'award-ceremony-lines.json': 100,
+    'powers.json': 100,
+    'training.json': 100,
+    'sponsors.json': 100,
   };
 
-  test('every content floor is 100, or carries a written exception', () => {
-    const belowFull: string[] = [];
-    for (const [source, floors] of Object.entries(COVERAGE_FLOOR)) {
-      if (FLOOR_EXCEPTIONS[source] !== undefined) continue;
-      for (const [locale, floor] of Object.entries(floors)) {
-        if (floor < 100) belowFull.push(`${source} ${locale}=${floor}`);
+  test('no floor is below its high-water mark, and none is missing', () => {
+    const regressions: string[] = [];
+    const locales = ENABLED_LOCALES.filter(locale => locale !== 'en');
+
+    for (const [source, mark] of Object.entries(FLOOR_HIGH_WATER)) {
+      const floors = COVERAGE_FLOOR[source];
+      if (floors === undefined) {
+        regressions.push(`${source}: has a high-water mark but no floor entry`);
+        continue;
+      }
+      // An EMPTY or partial map was the original defect: eight files sat at
+      // `{}` and were therefore never checked at all. `Object.entries({})` is
+      // zero iterations, so a floor loop alone reads that as "nothing wrong".
+      for (const locale of locales) {
+        const floor = floors[locale];
+        if (floor === undefined) regressions.push(`${source} ${locale}: no floor at all`);
+        else if (floor < mark) regressions.push(`${source} ${locale}: ${floor} < high-water ${mark}`);
       }
     }
-    expect(belowFull).toEqual([]);
-    // The exception list must not outlive its reason: an entry for a file that
-    // is fully translated again is a stale licence to regress.
-    expect(Object.keys(FLOOR_EXCEPTIONS).filter(source => COVERAGE_FLOOR[source] === undefined))
-      .toEqual([]);
+
+    // A high-water table that has stopped covering the floors is the same hole
+    // wearing the other hat.
+    for (const source of Object.keys(COVERAGE_FLOOR)) {
+      if (FLOOR_HIGH_WATER[source] === undefined) {
+        regressions.push(`${source}: has a floor but no high-water mark`);
+      }
+    }
+
+    expect(regressions).toEqual([]);
   });
 
   test('every locale meets its recorded content-prose floor', () => {

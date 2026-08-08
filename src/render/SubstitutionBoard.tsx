@@ -371,6 +371,7 @@ export function SubstitutionBoard({
                 : t('substitutionBoard.hintPickAPartner')}
             </Text>
             <SfxPressable
+              immediatePress
               accessibilityRole="switch"
               accessibilityLabel={draftAutoSubs
                 ? t('substitutionBoard.a11y.autoSubsOnSaveToApply')
@@ -626,7 +627,6 @@ export function SubstitutionBoard({
             // completed web press after the button has already received focus.
             // Cancel is safe to honour on contact and must never trap the user.
             onPressIn={() => {
-              playUiClickSfx();
               onCancel();
             }}
             onPress={onCancel}
@@ -718,6 +718,7 @@ function LozengeButton({
   const gloss = disabled ? styles.glossDisabled : tone === 'blue' ? styles.glossBlue : styles.glossGrey;
   return (
     <SfxPressable
+      immediatePress
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
@@ -1099,7 +1100,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   cardGuided: {
     borderColor: '#3f6fb5',
     borderWidth: 4,
-    backgroundColor: '#d8e8f7',
+    backgroundColor: '#c8ddf0',
     opacity: 1,
     zIndex: 50,
     elevation: 14,

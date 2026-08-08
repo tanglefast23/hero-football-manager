@@ -161,6 +161,7 @@ export function MatchControlRail({
               const selected = !paused && speed === option;
               return (
                 <SfxPressable
+                  immediatePress
                   key={option}
                   accessibilityRole="button"
                   accessibilityLabel={t('matchRail.a11y.matchSpeed', { speed: option })}
@@ -175,6 +176,7 @@ export function MatchControlRail({
               );
             })}
             <SfxPressable
+              immediatePress
               accessibilityRole="button"
               accessibilityLabel={paused
                 ? t('matchRail.a11y.resumeMatch')
@@ -201,6 +203,7 @@ export function MatchControlRail({
               const selected = formation === option;
               return (
                 <SfxPressable
+                  immediatePress
                   key={option}
                   accessibilityRole="button"
                   accessibilityLabel={t('matchRail.a11y.formation', {
@@ -231,6 +234,7 @@ export function MatchControlRail({
               const selected = mentality === option;
               return (
                 <SfxPressable
+                  immediatePress
                   key={option}
                   accessibilityRole="button"
                   accessibilityLabel={t('matchRail.a11y.playstyle', {
@@ -286,6 +290,7 @@ export function MatchControlRail({
                   onLayout={guided ? onGuideSwapLayout : undefined}
                 >
                   <SfxPressable
+                    immediatePress
                     accessibilityRole="button"
                     accessibilityLabel={t('matchRail.a11y.swap', {
                       player: player.name,
@@ -339,6 +344,7 @@ export function MatchControlRail({
               const selected = energyUse === mode;
               return (
                 <SfxPressable
+                  immediatePress
                   key={mode}
                   accessibilityRole="button"
                   accessibilityLabel={`${energyUseLabel(mode, t)}. ${energyUseAccessibility(mode, t)}`}
@@ -424,7 +430,7 @@ function textForBand(styles: RailStyles, band: EnergyBand) {
 }
 
 // Palette from the pixel-art bible (docs/11), matching MatchScreen's dock:
-// ink #241f2e, ink-soft #3a3350, card #2d283c, cream #f4f1ea, muted #bcb7c4,
+// ink #241f2e, ink-soft #3a3350, card #241f2e, cream #f4f1ea, muted #b9b4c2,
 // structure #6b6675, hero gold #edb54a / #c8862a, threat red #d94f52.
 //
 // Type is Silkscreen per docs/11 — the rail previously ran on the platform's
@@ -440,7 +446,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   },
   railContent: { gap: 16, paddingBottom: 24 },
   card: {
-    backgroundColor: '#2d283c',
+    backgroundColor: '#241f2e',
     borderWidth: 3,
     borderColor: '#6b6675',
     borderBottomWidth: 6,
@@ -451,9 +457,9 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
     paddingBottom: 16,
     gap: 12,
   },
-  cardTitle: { color: '#bcb7c4', fontFamily: faces.display, fontSize: 14, letterSpacing: 1 },
+  cardTitle: { color: '#b9b4c2', fontFamily: faces.display, fontSize: 14, letterSpacing: 1 },
   cardTitleSpaced: { marginTop: 8 },
-  caption: { color: '#8e88a0', fontFamily: faces.data, fontSize: 11, lineHeight: 16, letterSpacing: 0.8 },
+  caption: { color: '#9a95a4', fontFamily: faces.data, fontSize: 11, lineHeight: 16, letterSpacing: 0.8 },
   scoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   scoreBug: {
     flex: 1,
@@ -474,7 +480,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   },
   scoreTextFlash: { color: '#f7d894' },
   clockText: {
-    color: '#bcb7c4',
+    color: '#b9b4c2',
     fontFamily: faces.data,
     fontSize: 12,
     letterSpacing: 0.8,
@@ -497,7 +503,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   },
   chipSelected: { backgroundColor: '#49415f', borderColor: '#f4f1ea', borderBottomColor: '#f4f1ea' },
   chipText: {
-    color: '#bcb7c4',
+    color: '#b9b4c2',
     fontFamily: faces.display,
     fontSize: 13,
     letterSpacing: 0.5,
@@ -508,7 +514,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   tiredRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   tiredCopy: { flex: 1, minWidth: 0 },
   tiredName: { color: '#f4f1ea', fontFamily: faces.display, fontSize: 16 },
-  tiredRole: { color: '#bcb7c4', fontFamily: faces.data, fontSize: 11, marginTop: 4 },
+  tiredRole: { color: '#b9b4c2', fontFamily: faces.data, fontSize: 11, marginTop: 4 },
   tiredPercent: {
     width: 52,
     textAlign: 'right',
@@ -563,7 +569,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   heatFillReady: { backgroundColor: '#edb54a' },
   heroStatusColumn: { alignItems: 'center', gap: 8 },
   heroStatus: {
-    color: '#bcb7c4',
+    color: '#b9b4c2',
     fontFamily: faces.display,
     fontSize: 14,
     fontVariant: ['tabular-nums'],

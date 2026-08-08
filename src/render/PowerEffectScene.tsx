@@ -35,7 +35,7 @@ export interface PowerEffectSceneProps {
   showPlaceholderActors?: boolean;
 }
 
-const INK = '#161321';
+const INK = '#16121f';
 const RIVAL = '#d94f52';
 const HOME = '#5a8fd6';
 
@@ -139,7 +139,7 @@ function PixelActor({
   return (
     <Group opacity={opacity}>
       <Rect x={at.x - pixel * 1.5} y={at.y - pixel * 4.7} width={pixel * 3} height={pixel * 2.5} color={outline} antiAlias={false} />
-      <Rect x={at.x - pixel} y={at.y - pixel * 4.4} width={pixel * 2} height={pixel * 1.8} color="#f1b783" antiAlias={false} />
+      <Rect x={at.x - pixel} y={at.y - pixel * 4.4} width={pixel * 2} height={pixel * 1.8} color="#eab48c" antiAlias={false} />
       <Rect x={at.x - pixel * 2} y={at.y - pixel * 2.2} width={pixel * 4} height={pixel * 3} color={outline} antiAlias={false} />
       <Rect x={at.x - pixel * 1.5} y={at.y - pixel * 1.9} width={pixel * 3} height={pixel * 2.2} color={color} antiAlias={false} />
       <Rect x={at.x - pixel * 1.65} y={at.y + pixel * 0.4} width={pixel * 1.3} height={pixel * 2.3} color={outline} antiAlias={false} />
@@ -170,7 +170,7 @@ function DemoActors({
   );
   return (
     <Fragment>
-      <PixelActor at={origin} color={keeperPower ? '#64c879' : HOME} unit={unit} />
+      <PixelActor at={origin} color={keeperPower ? '#63c56b' : HOME} unit={unit} />
       {targets.map((target, index) => (
         <PixelActor key={index} at={target} color={isFriendlyTarget(index) ? HOME : RIVAL} unit={unit} opacity={0.96} />
       ))}

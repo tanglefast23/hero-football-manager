@@ -157,7 +157,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
   plateShadow: {
     paddingRight: 6,
     paddingBottom: 8,
-    backgroundColor: '#18131f',
+    backgroundColor: '#16121f',
   },
   plate: {
     alignItems: 'center',
@@ -168,7 +168,7 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
     paddingVertical: 16,
   },
   kicker: {
-    color: '#d9f0d2',
+    color: '#8fd98f',
     fontFamily: faces.data,
     fontSize: 10,
     letterSpacing: 2,
