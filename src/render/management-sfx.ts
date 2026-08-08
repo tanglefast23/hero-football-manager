@@ -18,7 +18,8 @@ type ExplicitManagementSfxKey =
   | 'super-celebration'
   | 'match-day-bugle'
   | 'quick-result-faceoff'
-  | 'match-day-fanfare';
+  | 'match-day-fanfare'
+  | 'match-control';
 
 export type ManagementActionCue =
   | 'select'
@@ -105,6 +106,12 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // more ceremonial of the two, so the cup keeps it.
   // Appended last so existing player indices stay stable.
   'match-day-fanfare': require('../../assets/audio/sfx/match-day-fanfare.m4a'),
+  // The supplied whistle and both footstep layers are sample-aligned in one
+  // render, so every live-match coaching press starts all three together instead
+  // of scheduling separate players a few milliseconds apart. It stays separate
+  // from `ui-click`, so speed, pause, settings, and management screens keep their
+  // existing cues.
+  'match-control': require('../../assets/audio/sfx/match-control-whistle.wav'),
 };
 
 const players = new Map<ManagementSfxKey, AudioPlayer>();
@@ -309,6 +316,12 @@ export function playMatchStatementSfx(): void {
 
 export function playUiClickSfx(): void {
   playManagementSfx('ui-click');
+  playTapHaptic();
+}
+
+/** Supplied three-layer cue for a live-match formation, playstyle, swap, or energy press. */
+export function playMatchControlSfx(): void {
+  playManagementSfx('match-control');
   playTapHaptic();
 }
 

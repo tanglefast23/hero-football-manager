@@ -29,6 +29,13 @@ flag them — don't.
   The rendered file keeps 240ms of silent tail so short taps stay reliable in
   browser media playback.
 
+## Live-match control cue
+
+- **`match-control-whistle.wav`** — a sample-aligned render of the 1-second
+  whistle and both 3-second footstep layers supplied on 2026-08-08. The three
+  originals are summed at unity and then levelled together as one cue, so they
+  all start together and keep their relative balance over the match music.
+
 ## Before deleting anything
 
 Assets go stale when a cue is repointed, and the `stat-step` cue has moved three

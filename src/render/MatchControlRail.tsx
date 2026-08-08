@@ -204,6 +204,7 @@ export function MatchControlRail({
               return (
                 <SfxPressable
                   immediatePress
+                  pressSfx="match-control"
                   key={option}
                   accessibilityRole="button"
                   accessibilityLabel={t('matchRail.a11y.formation', {
@@ -235,6 +236,7 @@ export function MatchControlRail({
               return (
                 <SfxPressable
                   immediatePress
+                  pressSfx="match-control"
                   key={option}
                   accessibilityRole="button"
                   accessibilityLabel={t('matchRail.a11y.playstyle', {
@@ -291,6 +293,7 @@ export function MatchControlRail({
                 >
                   <SfxPressable
                     immediatePress
+                    pressSfx="match-control"
                     accessibilityRole="button"
                     accessibilityLabel={t('matchRail.a11y.swap', {
                       player: player.name,
@@ -345,6 +348,7 @@ export function MatchControlRail({
               return (
                 <SfxPressable
                   immediatePress
+                  pressSfx="match-control"
                   key={mode}
                   accessibilityRole="button"
                   accessibilityLabel={`${energyUseLabel(mode, t)}. ${energyUseAccessibility(mode, t)}`}

@@ -6,7 +6,12 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { playManagementActionSfx, playStatStepSfx, playUiClickSfx } from '../../render/management-sfx';
+import {
+  playManagementActionSfx,
+  playMatchControlSfx,
+  playStatStepSfx,
+  playUiClickSfx,
+} from '../../render/management-sfx';
 import { hasHoverPointer } from '../pointer-capability';
 import { createPressCueGate, type PressCueGate } from '../press-cue-gate';
 
@@ -17,7 +22,7 @@ type SfxPressableProps = NativePressableProps & {
    * cannot honour the tap — an affirming click there reads as "done" when
    * nothing happened.
    */
-  pressSfx?: 'click' | 'stat-step' | 'warning';
+  pressSfx?: 'click' | 'match-control' | 'stat-step' | 'warning';
   /**
    * One short line explaining what this control does, shown on mouse hover.
    * Pointer-only by design: it never appears on a touch screen, where a tap has
@@ -65,6 +70,7 @@ type PressCue = NonNullable<SfxPressableProps['pressSfx']>;
 function playPressCue(pressSfx: PressCue): void {
   if (pressSfx === 'stat-step') playStatStepSfx();
   else if (pressSfx === 'warning') playManagementActionSfx('warning');
+  else if (pressSfx === 'match-control') playMatchControlSfx();
   else playUiClickSfx();
 }
 

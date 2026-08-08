@@ -89,9 +89,14 @@ describe('first match coaching prompts', () => {
     expect(match).toContain('<TutorialSpotlight');
     expect(match).toContain('anchor={swapGuideAnchor}');
     expect(match).not.toContain('dismissFirstMatchCueAfterPress');
-    expect(match).toMatch(
-      /<Pressable\s+immediatePress\s+ref=\{swapGuideTargetRef\}[\s\S]*?onPress=\{\(\) => \{\s*openSwap\(\);\s*\}\}/,
+    const swapTarget = match.indexOf('ref={swapGuideTargetRef}');
+    const swapPressable = match.slice(
+      match.lastIndexOf('<Pressable', swapTarget),
+      match.indexOf('</Pressable>', swapTarget),
     );
+    expect(swapPressable).toContain('pressSfx="match-control"');
+    expect(swapPressable).toMatch(/onPress=\{\(\) => \{\s*openSwap\(\);\s*\}\}/);
+    expect(swapPressable).not.toContain('playUiClickSfx');
     // The StyleSheet itself now lives beside the screen in match-screen-styles.
     const styles = readFileSync(
       join(process.cwd(), 'src/render/match-screen-styles.ts'),
