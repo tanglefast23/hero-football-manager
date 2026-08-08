@@ -7,7 +7,7 @@ import type { AudioPlayer, AudioSource } from 'expo-audio';
 import type { M1Screen } from '../application/store';
 import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
 
-export type MenuTheme = 'opening' | 'management' | 'event' | 'awards' | null;
+export type MenuTheme = 'opening' | 'management' | 'event' | 'awards' | 'rival' | null;
 type MenuSfx = 'advance-week' | 'plan-locked' | 'league-champions';
 
 export function menuThemeForScreen(screen: M1Screen, awakeningBeat: number): MenuTheme {
@@ -52,6 +52,9 @@ const MENU_SOURCES: Record<Exclude<MenuTheme, null>, AudioSource> = {
   // the wrap. The source runs 2:18; shipping the whole thing would cost ~1.1MB
   // for material the boundary never reaches.
   awards: require('../../assets/audio/music/awards-theme.m4a'),
+  // Three repeats of the owner-supplied 155 BPM eight-bar phrase: a 37.16s,
+  // -20 LUFS loop with its decay blended into the next downbeat.
+  rival: require('../../assets/audio/music/rival-intro-theme.m4a'),
 };
 const MENU_SFX_SOURCES: Record<MenuSfx, AudioSource> = {
   'advance-week': require('../../assets/audio/sfx/advance-week.m4a'),
@@ -67,6 +70,8 @@ const players = new Map<Exclude<MenuTheme, null>, AudioPlayer>();
 const sfxPlayers = new Map<MenuSfx, AudioPlayer>();
 const warned = new Set<string>();
 let activeTheme: MenuTheme = null;
+let requestedTheme: MenuTheme = null;
+let rivalIntroMusicActive = false;
 let masterVolume = 1;
 let ready = false;
 let initAttempted = false;
@@ -373,7 +378,8 @@ function playMenuSfx(key: MenuSfx): void {
   attempt(false);
 }
 
-export function setMenuTheme(theme: MenuTheme): void {
+function applyRequestedMenuTheme(): void {
+  const theme = rivalIntroMusicActive ? 'rival' : requestedTheme;
   if (theme === activeTheme) return;
 
   if (activeTheme !== null) {
@@ -394,6 +400,19 @@ export function setMenuTheme(theme: MenuTheme): void {
 
   initMenuAudio();
   playActiveTheme();
+}
+
+/** Records the ordinary screen bed underneath any temporary music override. */
+export function setMenuTheme(theme: MenuTheme): void {
+  requestedTheme = theme;
+  applyRequestedMenuTheme();
+}
+
+/** Owns the speakers for the mounted rival scene, then restores its screen bed. */
+export function setRivalIntroMusicActive(active: boolean): void {
+  if (rivalIntroMusicActive === active) return;
+  rivalIntroMusicActive = active;
+  applyRequestedMenuTheme();
 }
 
 export function teardownMenuAudio(): void {
@@ -420,6 +439,8 @@ export function teardownMenuAudio(): void {
   players.clear();
   sfxPlayers.clear();
   activeTheme = null;
+  requestedTheme = null;
+  rivalIntroMusicActive = false;
   ready = false;
   initAttempted = false;
   lastRecoveryAt = 0;

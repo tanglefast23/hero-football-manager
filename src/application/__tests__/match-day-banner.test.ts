@@ -8,6 +8,7 @@ import {
   CUP_DISPLAY_NAME,
   DEFAULT_CREATION_RATINGS,
   DIVISION_NAMES,
+  pendingRivalHeroIntro,
   SEASON_WEEKS,
 } from '../../game';
 import type { GameState } from '../../game';
@@ -154,6 +155,9 @@ describe('matchDayBannerViewModel', () => {
       matchDayBanner: null,
     });
 
+    const rivalIntro = pendingRivalHeroIntro(useM1Store.getState().career!);
+    expect(rivalIntro).toBeDefined();
+    useM1Store.getState().completeRivalHeroIntro(rivalIntro!.heroId);
     useM1Store.getState().quickResult();
 
     expect(useM1Store.getState().career).toMatchObject({ week: played.week + 1 });

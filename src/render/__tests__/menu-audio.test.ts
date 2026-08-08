@@ -42,6 +42,7 @@ import {
   menuThemeForScreen,
   playAdvanceWeekSfx,
   playLeagueChampionsSfx,
+  setRivalIntroMusicActive,
   setMenuMasterVolume,
   setMenuTheme,
   stopLeagueChampionsSfx,
@@ -54,9 +55,9 @@ import {
  * Named once because adding a single cue used to shift every later assertion in
  * the file — see the management-sfx suite for the same trap.
  */
-const MUSIC = { opening: 0, management: 1, event: 2, awards: 3 } as const;
-const SFX = { advanceWeek: 4, planLocked: 5, leagueChampions: 6 } as const;
-const PLAYERS_PER_BUILD = 7;
+const MUSIC = { opening: 0, management: 1, event: 2, awards: 3, rival: 4 } as const;
+const SFX = { advanceWeek: 5, planLocked: 6, leagueChampions: 7 } as const;
+const PLAYERS_PER_BUILD = 8;
 /** The same player after a session death rebuilt the whole set. */
 const rebuilt = (index: number): number => PLAYERS_PER_BUILD + index;
 const MUSIC_INDEXES = Object.values(MUSIC);
@@ -185,6 +186,24 @@ describe('non-match music ownership', () => {
     setMenuTheme(menuThemeForScreen('management', 1));
 
     expect(mockPlayers[MUSIC.awards].pause).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MUSIC.management].play).toHaveBeenCalledTimes(1);
+  });
+
+  it('plays the rival bed for the whole cutscene, then restores the latest screen theme', () => {
+    setMenuTheme('opening');
+    setRivalIntroMusicActive(true);
+
+    expect(mockPlayers[MUSIC.opening].pause).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[MUSIC.rival].play).toHaveBeenCalledTimes(1);
+
+    // A screen change underneath the cutscene records its new bed without
+    // interrupting the rival track mid-taunt.
+    setMenuTheme('management');
+    expect(mockPlayers[MUSIC.rival].pause).not.toHaveBeenCalled();
+    expect(mockPlayers[MUSIC.management].play).not.toHaveBeenCalled();
+
+    setRivalIntroMusicActive(false);
+    expect(mockPlayers[MUSIC.rival].pause).toHaveBeenCalledTimes(1);
     expect(mockPlayers[MUSIC.management].play).toHaveBeenCalledTimes(1);
   });
 

@@ -3658,8 +3658,6 @@ function fixtureViewModel(
 ): FixtureViewModel {
   const isHome = fixture.homeClubId === state.userClubId;
   const opponentId = isHome ? fixture.awayClubId : fixture.homeClubId;
-  const isPowerlessOpening = state.onboarding?.stage === 'first-match'
-    && state.onboarding.firstFixtureId === fixture.id;
   return {
     id: fixture.id,
     weekLabel: `W${fixture.week}`,
@@ -3667,11 +3665,12 @@ function fixtureViewModel(
     homeTeam: clubName(state, fixture.homeClubId),
     awayTeam: clubName(state, fixture.awayClubId),
     venueLabel: isHome ? 'Home' : 'Away',
-    opponentHeroCount: isPowerlessOpening
-      ? 0
-      : state.players.filter(
-          player => player.clubId === opponentId && player.power !== undefined && player.licensed,
-        ).length,
+    // The tutorial suppresses powers in the match, but Barry is still at the
+    // opponent club. Report the character who is there so this team sheet
+    // agrees with the rival introduction that just played.
+    opponentHeroCount: state.players.filter(
+      player => player.clubId === opponentId && player.power !== undefined && player.licensed,
+    ).length,
     matchdayReady: state.phase === 'matchday' && fixture.week === state.week,
   };
 }

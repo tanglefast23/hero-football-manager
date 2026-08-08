@@ -87,6 +87,16 @@
       "afterTruePeak": -5.5,
       "bytes": 605255
     },
+    "assets/audio/music/rival-intro-theme.m4a": {
+      "class": "music",
+      "before": -18.4,
+      "beforeTruePeak": -2.8,
+      "gainDb": -1.6,
+      "limited": false,
+      "after": -20,
+      "afterTruePeak": -4.1,
+      "bytes": 469567
+    },
     "assets/audio/sfx/advance-week.m4a": {
       "class": "sfx",
       "before": -11.6,
