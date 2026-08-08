@@ -4,6 +4,7 @@ import { createMatch, tick } from '../../sim/match';
 import { ROVERS, UNITED } from '../../sim/teams';
 import { DEFAULT_CREATION_RATINGS } from '../../game';
 import { useM1Store } from '../store';
+import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 
 /**
  * The store builds its own FixtureResult from a watched MatchState instead of
@@ -50,6 +51,9 @@ describe('watched match stat lines', () => {
     useM1Store.getState().completePlayerCreation({
       name: 'Jo Rook',
       ratings: DEFAULT_CREATION_RATINGS,
+    });
+    useM1Store.setState({
+      career: withRivalHeroIntrosSeen(useM1Store.getState().career!),
     });
     advanceToMatchday();
     useM1Store.getState().watchMatch();
