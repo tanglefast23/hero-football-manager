@@ -10,6 +10,7 @@ import {
   advanceRivalHeroIntroPhase,
   rivalHeroLaughStartMs,
   rivalHeroPowerAutoExitMs,
+  rivalHeroScreenReaderTimingState,
   rivalHeroSpeechAutoExitMs,
 } from '../rival-hero-intro-sequence';
 import {
@@ -43,6 +44,15 @@ describe('rival hero intro sequence', () => {
     expect(rivalHeroSpeechAutoExitMs(false, true)).toBe(
       RIVAL_HERO_SPEECH_HOLD_MS,
     );
+  });
+
+  it('keeps the signed-off automatic timing on web', () => {
+    // React Native Web reports `true` unconditionally, so it is not a real
+    // screen-reader signal and must not strand every browser on the power card.
+    expect(rivalHeroScreenReaderTimingState('web', true)).toBe(false);
+    expect(rivalHeroScreenReaderTimingState('ios', true)).toBe(true);
+    expect(rivalHeroScreenReaderTimingState('android', false)).toBe(false);
+    expect(rivalHeroScreenReaderTimingState('ios', null)).toBeNull();
   });
 
   it('starts every possible Bert-length laugh before the fixed speech cut', () => {

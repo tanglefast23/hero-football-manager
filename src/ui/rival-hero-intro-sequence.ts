@@ -6,6 +6,18 @@ export const RIVAL_HERO_POWER_EXIT_MS = 300;
 export const RIVAL_HERO_SPEECH_HOLD_MS = 3000;
 export const RIVAL_HERO_LAUGH_DELAY_MS = 1000;
 
+/**
+ * React Native Web reports screen-reader support as enabled for every browser,
+ * rather than detecting assistive technology. Using that placeholder result
+ * would disable the signed-off three-second auto-advance for every web player.
+ */
+export function rivalHeroScreenReaderTimingState(
+  platform: string,
+  detectedState: boolean | null,
+): boolean | null {
+  return platform === 'web' ? false : detectedState;
+}
+
 /** Absolute speech-beat time when the assigned laugh should begin. */
 export function rivalHeroLaughStartMs(dialogueDurationMs: number): number {
   return Math.max(0, dialogueDurationMs) + RIVAL_HERO_LAUGH_DELAY_MS;
