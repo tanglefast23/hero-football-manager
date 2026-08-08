@@ -102,7 +102,7 @@ describe('first training guidance', () => {
 
     // Second cue only appears once phase is 'grid'
     expect(finances).toContain("guidedFacilityPhase === 'grid'");
-    expect(finances).toContain("detail={t('clubFinances.tapAnyPlusSquare')}");
+    expect(finances).toContain("detail={t('clubFinances.placeYourBuilding')}");
     expect(finances).toContain('left: facilityGridWidth / facilities.width / 2');
     expect(finances).not.toContain('glowing square');
 

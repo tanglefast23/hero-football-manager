@@ -8,14 +8,16 @@ describe('first facility placement guidance', () => {
 
     expect(source).toContain("label={t('clubFinances.tapHere')}");
     expect(source).toContain("detail={t('clubFinances.trainingPitchCue')}");
-    expect(source).toContain("detail={t('clubFinances.tapAnyPlusSquare')}");
+    expect(source).toContain("detail={t('clubFinances.placeYourBuilding')}");
     expect(source).toContain('left: facilityGridWidth / facilities.width / 2');
     expect(source).toMatch(
-      /detail=\{t\('clubFinances\.tapAnyPlusSquare'\)\}[\s\S]*?left: facilityGridWidth \/ facilities\.width \/ 2,[\s\S]*?bottom: '100%',/,
+      /detail=\{t\('clubFinances\.placeYourBuilding'\)\}[\s\S]*?left: facilityGridWidth \/ facilities\.width \/ 2,[\s\S]*?bottom: '100%',/,
     );
     expect(source).not.toContain('glowing square');
     expect(source).not.toContain('Training Grounds · top left');
-    expect(source).toContain('scrollRef.current?.scrollTo({ y: targetY, animated: true });');
+    expect(source).toMatch(
+      /const scrollFacilityGuideTargetIntoView = useCallback\([\s\S]*?scrollRef\.current\?\.scrollTo\(\{ y: targetY, animated: !reduceMotion \}\);[\s\S]*?\}, \[guidedFirstFacility, reduceMotion\]\);/,
+    );
     expect(source).toContain('disabled={!placementActive || !guideAllowsCell}');
     expect(source).toContain('key={`facility-cell-${x}-${y}`}');
     expect(source).toContain("position: 'absolute',");
@@ -29,6 +31,24 @@ describe('first facility placement guidance', () => {
     );
     expect(appSource).toContain("visibleConciergeFocus === 'facility-grid'");
     expect(appSource).toContain('!guidedFirstFacilityAllowsPlacement(type, x, y)');
+  });
+
+  it('reveals the placement grid with a helper after any mobile build choice', () => {
+    const source = readFileSync(join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'), 'utf8');
+
+    expect(source).toMatch(
+      /const revealMobileFacilityPlacement = useCallback\([\s\S]*?if \(layoutMode !== 'single' \|\| facilityPlacementTargetRef\.current === null\) return;[\s\S]*?scrollToTarget\(\s*scrollRef,\s*scrollViewportRef,\s*facilityPlacementTargetRef,\s*latestScrollOffsetRef\.current,\s*12,\s*!reduceMotion,\s*\);\s*focusGuideTarget\(facilityPlacementFocusRef\.current\);[\s\S]*?\}, \[layoutMode, reduceMotion\]\);/,
+    );
+    expect(source).toContain("{t('clubFinances.placeYourBuilding')}");
+    expect(source).toContain('ref={facilityPlacementFocusRef}');
+    expect(source).toContain('accessibilityRole="header"');
+    expect(source).toContain('{...guideHeadingProps()}');
+    expect(source).toMatch(
+      /if \(Platform\.OS === 'web'\) \{[\s\S]*?\.focus\?\.\(\{ preventScroll: true \}\);\s*return;\s*\}\s*const handle = findNodeHandle\(target\);/,
+    );
+    expect(source).toContain('accessibilityLiveRegion="polite"');
+    expect(source).toContain('revealMobileFacilityPlacement();');
+    expect(source).toContain('nextBuildType !== null && !guidedFirstFacility');
   });
 
   it('scrolls coaching-office guidance to its build card without a grounds tooltip', () => {

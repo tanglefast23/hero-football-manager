@@ -666,6 +666,7 @@
     "clubFinances.perWeekShort": "{amount}/sem",
     "clubFinances.periodAndBalance": "{period} · Saldo {amount}",
     "clubFinances.pickABuildingFrom": "Escolha um prédio no menu abaixo e toque numa casa + pra soltar. Junte duplas úteis pra achar bônus.",
+    "clubFinances.placeYourBuilding": "Posicione seu prédio",
     "clubFinances.placingLabel": "Colocando · {name}",
     "clubFinances.plusTrainingPoints": "+{points} PT",
     "clubFinances.portfolioPayment": "Pagamento do pacote",

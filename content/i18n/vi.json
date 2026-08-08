@@ -666,6 +666,7 @@
     "clubFinances.perWeekShort": "{amount}/tuần",
     "clubFinances.periodAndBalance": "{period} · Số dư {amount}",
     "clubFinances.pickABuildingFrom": "Chọn công trình ở menu dưới rồi chạm ô + để đặt. Ghép cặp hợp nhau để mở thưởng.",
+    "clubFinances.placeYourBuilding": "Đặt công trình của sếp",
     "clubFinances.placingLabel": "Đang đặt · {name}",
     "clubFinances.plusTrainingPoints": "+{points} ĐT",
     "clubFinances.portfolioPayment": "Tiền tài trợ",

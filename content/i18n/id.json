@@ -666,6 +666,7 @@
     "clubFinances.perWeekShort": "{amount}/mg",
     "clubFinances.periodAndBalance": "{period} · Saldo {amount}",
     "clubFinances.pickABuildingFrom": "Pilih bangunan di menu bawah lalu ketuk kotak + buat menaruhnya. Dekatkan pasangan yang pas buat buka bonus.",
+    "clubFinances.placeYourBuilding": "Tempatkan bangunanmu",
     "clubFinances.placingLabel": "Menaruh · {name}",
     "clubFinances.plusTrainingPoints": "+{points} PL",
     "clubFinances.portfolioPayment": "Bayaran sponsor",

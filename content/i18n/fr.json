@@ -666,6 +666,7 @@
     "clubFinances.perWeekShort": "{amount}/sem",
     "clubFinances.periodAndBalance": "{period} · Solde {amount}",
     "clubFinances.pickABuildingFrom": "Choisis un bâtiment dans le menu puis touche une case + pour le poser. Colle les bonnes paires pour trouver des bonus.",
+    "clubFinances.placeYourBuilding": "Place ton bâtiment",
     "clubFinances.placingLabel": "Placement · {name}",
     "clubFinances.plusTrainingPoints": "+{points} PE",
     "clubFinances.portfolioPayment": "Versement du contrat",

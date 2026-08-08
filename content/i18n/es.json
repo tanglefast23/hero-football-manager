@@ -666,6 +666,7 @@
     "clubFinances.perWeekShort": "{amount}/sem",
     "clubFinances.periodAndBalance": "{period} · Saldo {amount}",
     "clubFinances.pickABuildingFrom": "Elige un edificio del menú de abajo y toca una casilla + para soltarlo. Junta parejas útiles para descubrir bonos.",
+    "clubFinances.placeYourBuilding": "Coloca tu edificio",
     "clubFinances.placingLabel": "Colocando · {name}",
     "clubFinances.plusTrainingPoints": "+{points} PE",
     "clubFinances.portfolioPayment": "Pago de cartera",

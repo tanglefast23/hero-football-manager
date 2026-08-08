@@ -666,6 +666,7 @@
     "clubFinances.perWeekShort": "{amount}/Wo",
     "clubFinances.periodAndBalance": "{period} · Stand {amount}",
     "clubFinances.pickABuildingFrom": "Wähl unten ein Gebäude und tipp ein +-Feld an. Stell gute Paare nebeneinander für Boni.",
+    "clubFinances.placeYourBuilding": "Platziere dein Gebäude",
     "clubFinances.placingLabel": "Platzieren · {name}",
     "clubFinances.plusTrainingPoints": "+{points} TP",
     "clubFinances.portfolioPayment": "Sponsorzahlung",

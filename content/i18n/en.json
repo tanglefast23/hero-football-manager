@@ -448,6 +448,7 @@
     "clubFinances.perWeekShort": "{amount}/wk",
     "clubFinances.periodAndBalance": "{period} · Balance {amount}",
     "clubFinances.pickABuildingFrom": "Pick a building from the menu below, then tap any + square to drop it. Put useful pairs edge-to-edge to discover bonuses.",
+    "clubFinances.placeYourBuilding": "Place your building",
     "clubFinances.placingLabel": "Placing · {name}",
     "clubFinances.plusTrainingPoints": "+{points} TP",
     "clubFinances.portfolioPayment": "Portfolio payment",
