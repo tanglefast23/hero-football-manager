@@ -202,6 +202,8 @@ export interface SquadTrainingScreenProps {
     target: ManagerTipDestination;
     token: number;
   };
+  /** Week 12 roster lesson. Any completed screen tap dismisses it permanently. */
+  showSortHint?: boolean;
   /** The saved roster ordering. Held by the app shell so it survives leaving the tab. */
   squadSort: SquadSort | null;
   onChangeSquadSort: (sort: SquadSort | null) => void;
@@ -230,6 +232,7 @@ export function SquadTrainingScreen({
   onOpenRequest,
   initialSquadTab = 'drills',
   managerTipGuideRequest,
+  showSortHint = false,
   squadSort,
   onChangeSquadSort,
 }: SquadTrainingScreenProps) {
@@ -280,15 +283,8 @@ export function SquadTrainingScreen({
     // selection. Keeping it left the open player file reading as a row pinned
     // above the order it was supposed to obey.
     onSelectPlayer(undefined);
-    // The tip promised a highest-first sort and the manager just did as it
-    // asked, so the guided tap lands there whatever order was saved before —
-    // and the cue it came from has now been used up.
-    const guidedSortTap = managerTipGuideTarget === 'overall-sort';
-    setManagerTipGuideTarget(null);
-    onChangeSquadSort(guidedSortTap && key === 'overall'
-      ? { key: 'overall', direction: 'descending' }
-      : nextSquadSort(squadSort, key));
-  }, [managerTipGuideTarget, onChangeSquadSort, onSelectPlayer, squadSort]);
+    onChangeSquadSort(nextSquadSort(squadSort, key));
+  }, [onChangeSquadSort, onSelectPlayer, squadSort]);
   const sortedPlayers = useMemo(
     () => sortSquadPlayers(viewModel.players, squadSort),
     [squadSort, viewModel.players],
@@ -371,23 +367,11 @@ export function SquadTrainingScreen({
     const { target } = managerTipGuideRequest;
     setManagerTipGuideTarget(target);
 
-    // The Team Register is the first section, so the top of the scroller is the
-    // target. Claim it in this frame, before any restored offset or late layout
-    // can leave the manager looking at a section they did not ask for; the
-    // animated pass below then settles it once the cue's space exists.
-    if (target === 'overall-sort') {
-      scrollRef.current?.scrollTo({ y: 0, animated: false });
-    }
-
     // Let the guide's reserved space lay out before measuring. The second frame
     // puts the target under the persistent HUD rather than under the tooltip.
     let secondFrame: number | null = null;
     const firstFrame = requestAnimationFrame(() => {
       secondFrame = requestAnimationFrame(() => {
-        if (target === 'overall-sort') {
-          scrollRef.current?.scrollTo({ y: 0, animated: true });
-          return;
-        }
         if (target === 'drill-shop') {
           drillShopRef.current?.measureInWindow((_x, y) => {
             scrollRef.current?.scrollTo({
@@ -427,7 +411,7 @@ export function SquadTrainingScreen({
           selectedPlayerId={selectedPlayerId}
           guideQuickTrain={guideQuickTrain}
           guideFocus={guideFocus}
-          guideOverallSort={managerTipGuideTarget === 'overall-sort'}
+          showSortHint={showSortHint}
           onSelectPlayer={onSelectPlayer}
           onPressTrainingBadge={handleTrainingBadgePress}
         />
@@ -593,7 +577,7 @@ interface RosterSectionProps {
   selectedPlayerId?: string;
   guideQuickTrain: boolean;
   guideFocus?: AssistantGuideFocus;
-  guideOverallSort: boolean;
+  showSortHint: boolean;
   onSelectPlayer: (playerId: string) => void;
   onPressTrainingBadge: (playerId: string) => void;
 }
@@ -614,14 +598,14 @@ function RosterSection({
   selectedPlayerId,
   guideQuickTrain,
   guideFocus,
-  guideOverallSort,
+  showSortHint,
   onSelectPlayer,
   onPressTrainingBadge,
 }: RosterSectionProps) {
   const t = useCopy();
   // The lesson is about the column, so it only needs to know that some player
   // triggered it — not which row they are on.
-  const conditionCueShowing = conditionCuePlayerId !== null;
+  const conditionCueShowing = conditionCuePlayerId !== null && !showSortHint;
   const selectedQuickTrainPlayer = sortedPlayers.find(player => player.id === selectedPlayerId);
   const quickTrainTargetPlayerId = selectedQuickTrainPlayer?.injuryWeeks === 0
     ? selectedQuickTrainPlayer.id
@@ -636,7 +620,7 @@ function RosterSection({
       />
       <View className={guidePlayers
         ? 'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'
-        : conditionCueShowing || guideOverallSort
+        : conditionCueShowing || showSortHint
           ? 'relative mt-20 border-2 border-ink bg-white'
           : 'border-2 border-ink bg-white'}>
         {guidePlayers && !playerGuideDismissed ? (
@@ -666,10 +650,10 @@ function RosterSection({
             labelSize={headerLabelSize}
             align="right"
             onSort={setSquadSort}
-            tutorialCue={guideOverallSort ? (
+            tutorialCue={showSortHint ? (
               <TutorialTapCue
                 label={t('squadTraining.tapHere')}
-                detail={t('squadTraining.toSort')}
+                detail={t('squadTraining.sortColumn')}
                 style={{
                   left: '50%',
                   marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -728,7 +712,7 @@ function RosterSection({
           const guideQuickTrainPlayer = guideQuickTrain
             && !guidePlayers
             && guideFocus === undefined
-            && !guideOverallSort
+            && !showSortHint
             && !conditionCueShowing
             && (quickTrainNeedsPlayer || !wideColumns)
             && player.id === quickTrainTargetPlayerId;

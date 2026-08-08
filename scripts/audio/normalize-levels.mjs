@@ -226,7 +226,16 @@ function encodeArgs(info) {
 }
 
 function render(file, out, gainDb, limit, info) {
-  const chain = [`volume=${gainDb.toFixed(2)}dB`];
+  const chain = [];
+  if (info.codec === 'aac') {
+    // AAC decoders expose the complete final 1024-sample packet even when the
+    // MP4 track declares a shorter, gapless duration. Without trimming back to
+    // that declared duration, every levelling pass bakes the filler into the
+    // next encode. That regression added 614 playable samples (27.8ms) to the
+    // management loop. Preserve the source's exact sample count before gain.
+    chain.push(`atrim=end_sample=${Math.round(info.duration * info.sampleRate)}`);
+  }
+  chain.push(`volume=${gainDb.toFixed(2)}dB`);
   if (limit) {
     // Held 0.3dB under the ceiling in the sample domain: alimiter is not
     // true-peak aware, and inter-sample peaks land above the samples it sees.

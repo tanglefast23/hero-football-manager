@@ -83,11 +83,14 @@ export const MUSIC_CATALOG = [
   {
     name: 'management-theme',
     group: 'Music',
-    minMs: 119000,
-    maxMs: 121000,
-    targetDb: -5,
+    minMs: 120000,
+    maxMs: 120000,
+    // The synth lands at the shipped -20 LUFS mix target without a second AAC
+    // encode. Re-encoding was what added 27.8ms of padding to this loop.
+    targetDb: -3.6,
     loop: true,
     loopFadeMs: 120,
+    loopPeriodMs: 120000,
     desc: 'Clubhouse Dreams — 112 BPM management loop with warm synth plucks, relaxed drums, and an optimistic training-day melody',
   },
   {

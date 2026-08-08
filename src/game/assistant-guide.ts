@@ -65,6 +65,8 @@ export type AssistantGuideMilestone =
   | 'match-condition-warning-seen'
   /** The Quick Train lesson: tap an attribute to train it. Shown once. */
   | 'quick-train-seen'
+  /** The Week 12 roster lesson: tap a column header to sort. Shown once. */
+  | 'squad-sort-seen'
   /**
    * Why a scouted player cannot be signed today. Said once, the first time the
    * manager is holding reports with the registration desk shut — the report is
@@ -139,6 +141,7 @@ const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
   'condition-warning-seen': 'guide:bert:condition-warning-seen',
   'match-condition-warning-seen': 'guide:bert:match-condition-warning-seen',
   'quick-train-seen': 'guide:bert:quick-train-seen',
+  'squad-sort-seen': 'guide:bert:squad-sort-seen',
   'transfer-window-seen': 'guide:bert:transfer-window-seen',
   'facility-combo-gym-dorm-seen': 'guide:bert:facility-combo-gym-dorm-seen',
   'facility-combo-fan-shop-stadium-seen': 'guide:bert:facility-combo-fan-shop-stadium-seen',
@@ -179,6 +182,16 @@ export function hasAssistantGuideMilestone(
   milestone: AssistantGuideMilestone,
 ): boolean {
   return state.eventFlags.includes(FLAG_BY_MILESTONE[milestone]);
+}
+
+export const SQUAD_SORT_HINT_WEEK = 12;
+
+/** Eligible from Season 1 Week 12 until the first completed Squad-screen tap. */
+export function shouldShowSquadSortHint(
+  state: Pick<GameState, 'eventFlags' | 'season' | 'week'>,
+): boolean {
+  if (hasAssistantGuideMilestone(state, 'squad-sort-seen')) return false;
+  return state.season > 1 || (state.season === 1 && state.week >= SQUAD_SORT_HINT_WEEK);
 }
 
 export function completeAssistantGuideMilestone(

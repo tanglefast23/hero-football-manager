@@ -20,6 +20,7 @@ import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 import type { RivalHeroIntroHeroId } from '../game/rival-hero-intro';
 import { PlayerRunSprite, PLAYER_SPRITE_CELL } from '../render/PlayerRunSprite';
 import { PowerTitleTakeover } from '../render/PowerTitleTakeover';
+import { setRivalIntroMusicActive } from '../render/menu-audio';
 import { powerCutInPresentation } from '../render/power-cut-in';
 import { CharacterSpeechOverlay } from './CharacterSpeechOverlay';
 import { rivalHeroSceneComposition } from './rival-hero-intro-layout';
@@ -100,6 +101,11 @@ export function RivalHeroIntroScreen({
   const [backdropFailed, setBackdropFailed] = useState(false);
   const completedRef = useRef(false);
   const cardExit = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    setRivalIntroMusicActive(true);
+    return () => setRivalIntroMusicActive(false);
+  }, []);
 
   const presentation = useMemo(
     () => powerCutInPresentation(viewModel.power, t),

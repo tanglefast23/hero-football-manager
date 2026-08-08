@@ -15,6 +15,7 @@ import { promotionTransitionEntry } from './entries/promotion-transition';
 import { retirementLegacyEntry } from './entries/retirement-legacy';
 import { rivalHeroIntroEntry } from './entries/rival-hero-intro';
 import { seasonPodiumEntry } from './entries/season-podium';
+import { squadSortHintEntry } from './entries/squad-sort-hint';
 import type { DevHarnessRoutableEntry } from './route';
 
 /**
@@ -65,6 +66,7 @@ export const DEV_HARNESS_ENTRIES: readonly DevHarnessEntry[] = Object.freeze([
   clubBusinessEntry,
   careerEventsEntry,
   playerRequestsEntry,
+  squadSortHintEntry,
   boardUltimatumEntry,
   cupMismatchWarningEntry,
   cupGiantKillingEntry,

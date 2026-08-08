@@ -827,7 +827,7 @@ export const GlossaryCatalogSchema = z.strictObject({
  * than becoming a second glossary — 200 rather than the old 400, because at
  * 400 the cards had grown into paragraphs nobody reads on a phone.
  */
-const ManagerTipDestinationSchema = z.enum(['drill-shop', 'overall-sort']);
+const ManagerTipDestinationSchema = z.enum(['drill-shop']);
 const ManagerTipSchema = z.strictObject({
   id: idSchema,
   title: displayNameSchema,

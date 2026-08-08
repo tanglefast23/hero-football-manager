@@ -1,6 +1,6 @@
 // Verifies every generated WAV against the catalog's declared bounds:
 // format (22050/16-bit/mono), duration, peak level, DC offset, loop-click
-// safety, and byte-for-byte regeneration determinism.
+// safety, encoded loop period, and byte-for-byte regeneration determinism.
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -59,13 +59,6 @@ function peakDb(samples, start = 0, end = samples.length) {
   return peak <= 0 ? -Infinity : 20 * Math.log10(peak);
 }
 
-function rmsDb(samples, start, end) {
-  let sum = 0;
-  for (let i = start; i < end; i++) sum += samples[i] * samples[i];
-  const rms = Math.sqrt(sum / (end - start));
-  return rms <= 0 ? -Infinity : 20 * Math.log10(rms);
-}
-
 function dcOffsetFraction(samples) {
   let sum = 0;
   for (let i = 0; i < samples.length; i++) sum += samples[i];
@@ -113,20 +106,49 @@ for (const entry of ALL) {
   if (dcFrac > 0.01) problems.push(`DC offset ${(dcFrac * 100).toFixed(2)}% of peak exceeds 1%`);
 
   if (entry.loop) {
-    const edgeN = Math.round(0.03 * fmt.sampleRate); // 30ms
-    const headDb = rmsDb(samples, 0, Math.min(edgeN, samples.length));
-    const tailDb = rmsDb(samples, Math.max(0, samples.length - edgeN), samples.length);
-    if (Number.isFinite(headDb) && Number.isFinite(tailDb)) {
-      const delta = Math.abs(headDb - tailDb);
-      if (delta > 3) problems.push(`loop edges differ by ${delta.toFixed(1)}dB (head ${headDb.toFixed(1)}, tail ${tailDb.toFixed(1)}) — click risk`);
+    // A downbeat is allowed to be louder than the end of the previous bar;
+    // comparing 30ms edge loudness rejected musically correct loops. A click
+    // is the instantaneous discontinuity at the join, so measure that instead.
+    const seamJump = Math.abs(samples[0] - samples[samples.length - 1]);
+    const seamLimit = Math.max(0.01, peakLinear(samples) * 0.03);
+    if (seamJump > seamLimit) {
+      problems.push(`loop seam jumps ${(seamJump * 100).toFixed(2)}%FS (limit ${(seamLimit * 100).toFixed(2)}%FS) — click risk`);
     }
-    // both near-silent is fine (nothing to click); only flag if not finite AND not both silent
+    if (entry.loopPeriodMs !== undefined) {
+      const toleranceMs = 1000 / fmt.sampleRate;
+      const delta = Math.abs(durationMs - entry.loopPeriodMs);
+      if (delta > toleranceMs) {
+        problems.push(`loop period ${durationMs.toFixed(3)}ms != ${entry.loopPeriodMs}ms`);
+      }
+    }
   }
 
   if (problems.length) {
     fail(entry.name, problems.join('; '));
   } else {
-    ok(entry.name, `${durationMs.toFixed(0)}ms, peak ${peak.toFixed(2)}dBFS, DC ${(dcFrac * 100).toFixed(2)}%${entry.loop ? ', loop edges OK' : ''}`);
+    ok(entry.name, `${durationMs.toFixed(0)}ms, peak ${peak.toFixed(2)}dBFS, DC ${(dcFrac * 100).toFixed(2)}%${entry.loop ? ', loop seam OK' : ''}`);
+  }
+}
+
+console.log('\n--- encoded loop periods ---');
+for (const entry of ALL.filter((candidate) => candidate.loopPeriodMs !== undefined)) {
+  checks++;
+  const path = join(entry.dir, `${entry.name}.m4a`);
+  try {
+    const raw = execFileSync('ffprobe', [
+      '-v', 'error', '-select_streams', 'a:0',
+      '-show_entries', 'stream=duration', '-of', 'json', path,
+    ], { encoding: 'utf8' });
+    const durationMs = Number(JSON.parse(raw).streams[0]?.duration) * 1000;
+    const toleranceMs = 1000 / SAMPLE_RATE;
+    const delta = Math.abs(durationMs - entry.loopPeriodMs);
+    if (!Number.isFinite(durationMs) || delta > toleranceMs) {
+      fail(entry.name, `encoded loop period ${durationMs.toFixed(3)}ms != ${entry.loopPeriodMs}ms — codec padding will be audible`);
+    } else {
+      ok(entry.name, `encoded loop period ${durationMs.toFixed(3)}ms (no playable codec padding)`);
+    }
+  } catch (error) {
+    fail(entry.name, `could not inspect encoded loop period (${error.message})`);
   }
 }
 

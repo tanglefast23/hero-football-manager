@@ -1,7 +1,7 @@
 # Spec — first-meeting rival hero intro cutscenes
 
 Date: 2026-08-08
-Status: revision 5 — owner-approved, implemented, and visually refined after Grok and repository-flow review
+Status: revision 6 — owner-approved, implemented, and refined after live first-career review
 Builds on: `2026-08-08-special-heroes-spec.md`
 
 ## 1. The decision
@@ -117,7 +117,12 @@ Selected: **1 — “I’ll be in your box before this speech bubble disappears.
   the intro rule re-evaluates against that Cup opponent before the second team sheet opens.
 - If a featured rival intro is pending, it replaces the ordinary Match Day screen. The
   lineup screen does not mount behind it and cannot receive an accidental tap.
-- The existing menu music continues. There is no new music switch, voice clip, or SFX.
+- The rival scene temporarily replaces the ordinary menu bed with the owner-supplied
+  `rival-intro-theme.m4a`. The source's audible eight-bar phrase turns over at sample
+  594557 (`12.3866s` at 48 kHz); a 120 ms wrap blends its decay into the next downbeat and
+  three repeats produce a `37.16s` loop at the game's `-20 LUFS` music target. It begins
+  with the scene, runs uninterrupted through both beats, and restores the underlying menu
+  theme when the taunt finishes. There is no voice clip or new SFX.
 - The hero sprite is visible immediately on its stationary canonical frame, centred
   horizontally and grounded near the bottom. `PlayerRunSprite` has no front-facing frame,
   and this feature does not authorize new sprite art. The hero does not walk on or change
@@ -219,7 +224,8 @@ Consequences:
 
 The scene is derived while the persisted application screen remains `matchday`; it is not
 a new saved `M1Screen`. This covers every current and future route into Match Day in one
-place and preserves the existing audio theme.
+place. The ordinary screen theme remains requested underneath the rival-music override, so
+the exact bed wanted by the resulting Match Day screen resumes when the cutscene unmounts.
 
 `watchMatch`, `quickResult`, and the Match Day path through `setActiveTab` independently
 refuse to proceed while an intro is pending. The visible buttons are absent during the
@@ -315,6 +321,8 @@ not require an `ENGINE_VERSION` bump or replay snapshot update.
   name without becoming a second focus target.
 - Decorative backdrop/card rails/shadows and the duplicate visual sprite are hidden from
   the accessibility tree. There is one meaningful focus target per beat.
+- The dedicated music loop follows the existing menu-audio master volume, browser unlock,
+  suspend/resume, recovery, and teardown rules. It never overlaps the opening bed.
 - No SFX table entry is added and no haptic is introduced.
 
 ## 9. Dev Harness
@@ -331,7 +339,8 @@ the normal registry, with five stable production-backed cases:
 Each case renders the production screen with the real canonical hero, power presentation,
 look, and validated taunt. It may not hand-build a look or power card. Entry-owned controls
 provide Replay and a Full Motion / Reduced Motion toggle without multiplying the five menu
-cases. Harness controls use static `minHeight` and add no audio.
+cases. The production screen owns the same rival music in both the career and Harness;
+Harness controls use static `minHeight` and add no separate audio behavior.
 
 ## 10. Acceptance criteria
 
@@ -358,7 +367,9 @@ cases. Harness controls use static `minHeight` and add no audio.
     only as the safe render fallback.
 16. A pending rival scene prevents Cup mismatch Bert and low-condition warnings from
     overlapping it; those resume in the defined order afterward.
-17. The existing menu audio continues and no new SFX/haptic is added.
+17. The `37.16s` rival theme replaces the ordinary menu bed for the complete cutscene,
+    loops without a silent tail, respects master mute/lifecycle rules, and restores the
+    correct underlying theme afterward; no new SFX/haptic is added.
 18. No `src/sim` behavior, RNG use, replay output, or `ENGINE_VERSION` changes.
 19. All five production-backed scenes are bookmarkable and replayable in the Dev Harness.
 20. Focused tests, TypeScript, the full test suite, static export, and visual checks on
@@ -379,13 +390,15 @@ cases. Harness controls use static `minHeight` and add no audio.
     hero B.
 27. A localized `DIVISION RIVAL` banner remains above the hero through the power and speech
     beats without adding a third focus stop or timed phase.
+28. The first tutorial team sheet reports Barry as one rival hero even though both match
+    teams remain powerless for that onboarding fixture.
 
 ## 11. Explicit non-goals
 
 - New or replacement backdrop art beyond the five supplied assets.
 - Intro scenes for the other ten named specials.
 - Random or branching dialogue.
-- Voice acting, new music, new SFX, or new haptics.
+- Voice acting, new SFX, or new haptics beyond the approved rival music bed.
 - A new persisted screen type or save migration.
 - Any match-engine, balance, power-behaviour, roster-placement, or transfer change.
 
@@ -396,3 +409,7 @@ cases. Harness controls use static `minHeight` and add no audio.
   that one match remains powerless for both clubs.
 - The five supplied 2048×2048 images are the production backdrops in §1.
 - Every scene carries the localized `DIVISION RIVAL` banner described in §4.2.
+- Every scene uses the owner-supplied 155 BPM hip-hop cue, cut to the `37.16s` loop described
+  in §4.1.
+- Barry remains visible as one reported rival on the tutorial team sheet even though the
+  match-only power suppression remains unchanged.

@@ -1,5 +1,7 @@
 import { createLaunchCareerSetup } from '../launch';
 import { useM1Store } from '../store';
+import { matchDayViewModel } from '../view-models';
+import { loadLaunchContent } from '../../content';
 import { createCareer } from '../../game/career';
 import { DEFAULT_CREATION_RATINGS } from '../../game/onboarding/player-creation';
 import {
@@ -63,7 +65,12 @@ describe('rival hero intro store flow', () => {
   });
 
   it('keeps the approved first tutorial match powerless after the teaser', () => {
-    useM1Store.setState({ career: openingMatchday(), screen: 'matchday' });
+    const career = openingMatchday();
+    expect(
+      matchDayViewModel(career, loadLaunchContent()).fixture.opponentHeroCount,
+    ).toBe(1);
+
+    useM1Store.setState({ career, screen: 'matchday' });
     useM1Store.getState().completeRivalHeroIntro('special-f171');
     useM1Store.getState().watchMatch();
 

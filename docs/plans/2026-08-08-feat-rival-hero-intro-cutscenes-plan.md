@@ -18,8 +18,8 @@ treatment. Five bookmarkable Dev Harness cases make the whole sequence replayabl
 advancing a career.
 
 The full behavior is defined in
-`docs/superpowers/plans/2026-08-08-rival-hero-intro-cutscenes-spec.md` revision 5. This plan
-does not expand the feature to other special heroes, new audio, or the match simulation.
+`docs/superpowers/plans/2026-08-08-rival-hero-intro-cutscenes-spec.md` revision 6. This plan
+does not expand the feature to other special heroes or the match simulation.
 
 ## Resolved owner decisions
 
@@ -28,6 +28,8 @@ does not expand the feature to other special heroes, new audio, or the match sim
       a teaser.
 - [x] Bundle the five owner-supplied 2048×2048 pixel-art backdrops.
 - [x] Add a localized `DIVISION RIVAL` banner above the hero through both beats.
+- [x] Use the supplied 155 BPM hip-hop track as a dedicated `37.16s` rival-scene loop.
+- [x] Report Barry on the first tutorial team sheet while preserving its powerless match.
 
 ## Current behavior and seams
 
@@ -58,14 +60,14 @@ does not expand the feature to other special heroes, new audio, or the match sim
 - Persist one flag per stable hero ID only after the taunt is finished. Duplicate completion
   is harmless; interruption writes nothing.
 - Keep `store.screen === 'matchday'`; do not add a persisted screen enum or save migration.
-- Preserve league-first double-header routing, Cup settlement, onboarding, menu audio, and
-  every existing Match Day entry route.
+- Preserve league-first double-header routing, Cup settlement, onboarding, and every
+  existing Match Day entry route; restore the underlying menu bed after the rival override.
 - Do not touch `src/sim`, RNG consumption, balance tuning, replay bytes, or `ENGINE_VERSION`
   under the recommended Barry policy.
 - Keep Atlas batching for matches; the single out-of-match character continues to use the
   purpose-built `PlayerRunSprite`.
-- No new dependency, SFX index, music cue, haptic, currency, or additional background
-  artwork beyond the five owner-supplied assets.
+- No new dependency, SFX index, haptic, currency, or additional background artwork beyond
+  the five owner-supplied assets and approved rival music cue.
 - Do not commit, push, deploy, or publish as part of this plan unless Joe separately asks.
 
 ## Implementation phases
@@ -182,6 +184,14 @@ one authored source.
     tap-to-finish hints,
   - explicit focus transfer on iOS/Android/web and decorative backdrop, sprite, rails,
     shadow, and duplicate visual text hidden from the accessibility tree.
+- [x] Add the owner-supplied hip-hop bed through the existing menu-audio owner:
+  - trim its silent tail at the eight-bar `12.3866s` turnover,
+  - crossfade 120 ms into the next downbeat and repeat the phrase three times for a
+    `37.16s`, `-20 LUFS` loop,
+  - override the ordinary screen bed only while the production rival screen is mounted,
+    including in the Dev Harness, then restore the latest requested theme.
+- [x] Keep the first onboarding simulation powerless while counting Barry's real opponent
+      membership on Home/Match Day instead of presenting the contradictory “0 rival heroes.”
 - [x] In `App.tsx`, derive the pending hero/view model before Cup mismatch copy, then select
       exactly one Match Day presentation in this order:
       `rival intro → Cup mismatch Bert → low-condition warning → lineup`.
@@ -294,6 +304,10 @@ Verification notes (2026-08-08):
       in the Dev Harness.
 - [x] Existing onboarding, Cup, audio, save, deterministic replay, and match results remain
       unchanged under the recommended Barry teaser policy.
+- [x] The first tutorial team sheet reports one rival hero, while focused tests still prove
+      both simulated teams carry no powers for that fixture.
+- [x] The dedicated rival bed owns both cutscene beats, loops at `37.16s`, respects the menu
+      master/lifecycle controls, and restores the underlying theme without overlap.
 
 ## Risks and mitigations
 

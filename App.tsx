@@ -151,6 +151,7 @@ import {
   isFullyCappedPlayer,
   isTransferWindowOpen,
   leagueStandings,
+  shouldShowSquadSortHint,
   userClubName,
   hasAssistantGuideMilestone,
   type AssistantMode,
@@ -591,6 +592,9 @@ function GameApp() {
     if (store.screen !== 'season-end') setExpiredContractReached(false);
   }, [store.screen]);
   const careerTeaches = store.career === null || assistantTeaches(store.career);
+  const squadSortHintVisible = careerTeaches
+    && store.career !== null
+    && shouldShowSquadSortHint(store.career);
   const visibleConciergeFocus = careerTeaches ? conciergeFocus : null;
   // A screen-wide tap retires floating coach marks without completing the job
   // they describe. The objective remains authoritative; only its cue is hidden.
@@ -1761,11 +1765,14 @@ function GameApp() {
     }
     setConciergeFocus(null);
     setManagerTipGuideRequest(null);
+    if (store.activeTab === 'squad' && squadSortHintVisible) {
+      store.completeGuideMilestone('squad-sort-seen');
+    }
     if (assistantObjectiveKey !== null) {
       setDismissedAssistantObjectiveKey(assistantObjectiveKey);
     }
     setTipDismissSequence(sequence => sequence + 1);
-  }, [assistantObjectiveKey]);
+  }, [assistantObjectiveKey, squadSortHintVisible, store.activeTab, store.completeGuideMilestone]);
   const hideCoachHiringCues = store.activeTab === 'market'
     && (
       visibleConciergeFocus === 'coach-market'
@@ -2347,6 +2354,7 @@ function GameApp() {
             guideFocus={visibleConciergeFocus ?? undefined}
             dismissTipsToken={tipDismissSequence}
             managerTipGuideRequest={visibleManagerTipGuideRequest ?? undefined}
+            showSortHint={squadSortHintVisible}
             reduceMotion={reduceMotion}
             drillPickerRequestToken={drillFocusToken ?? undefined}
             saveWarning={store.saveWarning}
