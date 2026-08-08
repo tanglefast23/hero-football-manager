@@ -40,6 +40,7 @@ import {
   advanceRivalHeroIntroPhase,
   rivalHeroLaughStartMs,
   rivalHeroPowerAutoExitMs,
+  rivalHeroScreenReaderTimingState,
   rivalHeroSpeechAutoExitMs,
   type RivalHeroIntroPhase,
 } from './rival-hero-intro-sequence';
@@ -82,7 +83,11 @@ export function RivalHeroIntroScreen({
   const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const reduce = useReducedMotion(reduceMotion);
-  const screenReaderEnabled = useScreenReaderEnabled();
+  const detectedScreenReaderEnabled = useScreenReaderEnabled();
+  const screenReaderEnabled = rivalHeroScreenReaderTimingState(
+    Platform.OS,
+    detectedScreenReaderEnabled,
+  );
   const { width, height } = useWindowDimensions();
   const short = height < 480;
   const compactIdentity = short || width < 520;
