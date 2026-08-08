@@ -137,6 +137,9 @@ import type {
   TrainingSlotStatOption,
   WeeklyReviewViewModel,
 } from '../ui';
+// Direct, not through the `../ui` barrel: that barrel drags in React Native
+// components, and this module is imported by headless harnesses.
+import { FORM_STRIP_MAX } from '../ui/form-strip';
 import { cupRoundNameWith, DIVISION_NAME_KEYS, divisionTierLabelWith } from '../game/pyramid';
 import { careerDifficulty } from '../game/difficulty';
 import { isAvailableForSelection } from '../game/lineup';
@@ -3739,7 +3742,9 @@ function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {
       (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId),
     )
     .sort((left, right) => right.season - left.season || right.week - left.week)
-    .slice(0, 5)
+    // A season's worth, because the strip fills whatever row it is given: a
+    // phone shows nine or ten of these and a desktop shows the lot.
+    .slice(0, FORM_STRIP_MAX)
     .reverse()
     .map(fixture => {
       const isHome = fixture.homeClubId === state.userClubId;
