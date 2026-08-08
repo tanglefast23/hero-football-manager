@@ -447,7 +447,7 @@ export function careerEventChanges(before: GameState, after: GameState): string[
   const gainedFlags = after.eventFlags.filter(flag => !before.eventFlags.includes(flag));
   if (gainedFlags.length > 0) lines.push(`flags +${gainedFlags.join(' +')}`);
   if (after.pendingEvent?.resolvedNextEventId !== undefined) lines.push(`chains into ${after.pendingEvent.resolvedNextEventId}`);
-  return lines.length === 0 ? ['outcome recorded'] : lines;
+  return lines.length === 0 ? ['nothing changed'] : lines;
 }
 
 function playerChangeLines(before: GameState, after: GameState): string[] {

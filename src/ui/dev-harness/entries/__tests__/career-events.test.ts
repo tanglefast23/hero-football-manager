@@ -28,7 +28,7 @@ import {
   careerEventChanges,
   careerEventsCareer,
   careerEventsEntry,
-  careerEventsForCategory,
+  careerEventsForCase,
   offerStoryEvent,
   resolveStoryEventChoice,
 } from '../career-events';
@@ -56,16 +56,34 @@ function offered(eventId: string): GameState {
 }
 
 describe('the career events reel', () => {
-  it('cuts the fifty into one case per category and leaves none unreachable', () => {
+  it('adds aggregate review cases without leaving any authored story unreachable', () => {
     const caseIds = careerEventsEntry.cases.map(entry => entry.id);
+    const categoryIds = [...new Set(EVENTS.map(event => event.category))];
     expect(new Set(caseIds).size).toBe(caseIds.length);
-    expect(new Set(EVENTS.map(event => event.category))).toEqual(new Set(caseIds));
-    expect(caseIds.flatMap(id => careerEventsForCategory(id)).length).toBe(EVENTS.length);
+    expect(caseIds.slice(0, 2)).toEqual(['all', 'two-part']);
+    expect(new Set(caseIds.slice(2))).toEqual(new Set(categoryIds));
+    expect(careerEventsForCase('all')).toEqual(EVENTS);
+
+    const categorizedEvents = categoryIds.flatMap(id => careerEventsForCase(id));
+    expect(categorizedEvents).toHaveLength(EVENTS.length);
+    expect(new Set(categorizedEvents.map(event => event.id))).toEqual(
+      new Set(EVENTS.map(event => event.id)),
+    );
+
+    const expectedTwoPartIds = new Set(EVENTS.flatMap(event => {
+      const followUpIds = event.choices.flatMap(choice => choice.outcomes.flatMap(outcome => (
+        outcome.nextEventId === undefined ? [] : [outcome.nextEventId]
+      )));
+      return followUpIds.length === 0 ? [] : [event.id, ...followUpIds];
+    }));
+    expect(careerEventsForCase('two-part').map(event => event.id)).toEqual(
+      EVENTS.filter(event => expectedTwoPartIds.has(event.id)).map(event => event.id),
+    );
     // Every case carries the line the menu row and the bar note are drawn from.
     expect(careerEventsEntry.cases.every(entry => (entry.note ?? '').length > 0)).toBe(true);
   });
 
-  it('offers every one of the fifty to the seeded career', () => {
+  it('offers every authored story to the seeded career', () => {
     for (const event of EVENTS) {
       const state = offerStoryEvent(base, event.id);
       expect(state.pendingEvent?.eventId).toBe(event.id);
