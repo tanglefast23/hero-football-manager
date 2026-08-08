@@ -31,7 +31,7 @@ import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
 import { useTapGuard } from '../use-tap-guard';
 import { AgentFinalDemandGate } from '../AgentFinalDemandGate';
-import { offerQuoteKey } from '../../application/market-view-model';
+import { contractDraftPerk, offerQuoteKey } from '../../application/market-view-model';
 import { useCopy } from '../../i18n';
 
 export interface MarketScreenProps {
@@ -813,13 +813,14 @@ export function useContractDraft(viewModel: MarketNegotiationViewModel | undefin
   const maxTerm = viewModel?.termOptions.at(-1) ?? 3;
   const [weeklyWage, setWeeklyWage] = useState(viewModel?.initialWeeklyWage ?? 0);
   const [termSeasons, setTermSeasons] = useState<1 | 2 | 3>(Math.min(2, maxTerm) as 1 | 2 | 3);
-  const [perk, setPerk] = useState<ContractPerk>('GUARANTEED_STARTER');
+  const [perk, setPerk] = useState<ContractPerk>(contractDraftPerk(viewModel));
   const [pitchCard, setPitchCard] = useState<PitchCard | undefined>();
 
   const id = viewModel?.id;
   const initialWeeklyWage = viewModel?.initialWeeklyWage;
   const lastTermSeasons = viewModel?.lastOffer?.termSeasons;
   const lastPerk = viewModel?.lastOffer?.perk;
+  const restoredPerk = contractDraftPerk(viewModel, lastPerk);
 
   // Two transitions, deliberately not one.
   //
@@ -838,8 +839,8 @@ export function useContractDraft(viewModel: MarketNegotiationViewModel | undefin
   useEffect(() => {
     if (id === undefined) return;
     setTermSeasons(lastTermSeasons ?? (Math.min(2, maxTerm) as 1 | 2 | 3));
-    setPerk(lastPerk ?? 'GUARANTEED_STARTER');
-  }, [id, lastTermSeasons, lastPerk, maxTerm]);
+    setPerk(restoredPerk);
+  }, [id, lastTermSeasons, maxTerm, restoredPerk]);
 
   // The wage tracks the agent's counter, and the pitch card MUST clear: cards
   // are one-use, and re-submitting a spent one throws in `submitContractOffer`.
@@ -895,6 +896,8 @@ export function NegotiationPanel({
   const requiredWage = viewModel.requiredWeeklyWageByOffer[
     offerQuoteKey(termSeasons, perk, pitchCard)
   ];
+  const selectedPerk = viewModel.perks.find(option => option.id === perk);
+  const selectedPerkBlocked = selectedPerk?.available === false;
   const moodClass = viewModel.mood === 'ANGRY' || viewModel.mood === 'UNHAPPY'
     ? 'border-red-dark bg-red-light'
     : viewModel.mood === 'PLEASED' || viewModel.mood === 'THRILLED'
@@ -1093,13 +1096,21 @@ export function NegotiationPanel({
                   accessibilityLabel={t('market.a11y.perkWorthToAgent', {
                     label: option.label,
                     grade: option.gradeLabel.replace(' · ', ', '),
-                    detail: option.detail,
+                    detail: option.blockedReason === undefined
+                      ? option.detail
+                      : `${option.detail} ${option.blockedReason}`,
                   })}
-                  accessibilityState={{ selected: perk === option.id }}
+                  accessibilityState={{
+                    selected: perk === option.id,
+                    disabled: !option.available,
+                  }}
+                  disabled={!option.available}
                   onPress={() => setPerk(option.id)}
-                  className={perk === option.id
-                    ? 'min-h-14 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
-                    : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'}
+                  className={!option.available
+                    ? 'min-h-14 border-2 border-ink/20 bg-ink/5 px-3 py-2 opacity-45'
+                    : perk === option.id
+                      ? 'min-h-14 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
+                      : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'}
                 >
                   <View className="flex-row items-center justify-between gap-3">
                     <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink">
@@ -1110,6 +1121,9 @@ export function NegotiationPanel({
                     </PixelText>
                   </View>
                   <Text className="mt-1 text-sm text-ink/60">{option.detail}</Text>
+                  {option.blockedReason === undefined ? null : (
+                    <Text className="mt-1 text-sm font-bold text-stamp">{option.blockedReason}</Text>
+                  )}
                 </Pressable>
               ))}
             </View>
@@ -1191,6 +1205,7 @@ export function NegotiationPanel({
                   seasons: termSeasons,
                 })}
               variant="confirm"
+              disabled={selectedPerkBlocked}
               onPress={() => guardTap(() => onSubmitContractOffer({ weeklyWage, termSeasons, perk }, pitchCard))}
             />
           </View>

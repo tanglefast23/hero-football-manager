@@ -179,6 +179,10 @@ export interface ContractPerkViewModel {
    * agent" and gives `detail` equal weight beside it.
    */
   readonly gradeLabel: string;
+  /** False when the career cannot honour this promise right now. */
+  readonly available: boolean;
+  /** Player-facing, localized explanation shown on a disabled row. */
+  readonly blockedReason?: string;
 }
 
 export interface MarketNegotiationViewModel {

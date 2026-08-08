@@ -1,4 +1,4 @@
-import { SAVE_FAILURE_BLOCK_LIMIT, useM1Store } from '../store';
+import { SAVE_FAILURE_BLOCK_LIMIT, setStoreCopy, useM1Store } from '../store';
 import {
   createCareerRepository,
   createReplayRepository,
@@ -10,9 +10,13 @@ import type { ReplayEnvelope } from '../../sim/types';
 import { createMatch, queueInput, runReplay, tick } from '../../sim/match';
 import {
   buildCareerFacility,
+  careerHeroLimit,
   completeAssistantGuideMilestone,
+  currentUserDivision,
   DEFAULT_CREATION_RATINGS,
+  leagueStandings,
   offerCareerEvent,
+  startNextSeason,
   type GameState,
 } from '../../game';
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
@@ -20,6 +24,7 @@ import type { PostMatchViewModel } from '../../ui';
 import { loadLaunchContent } from '../../content';
 import { awakeningCutsceneViewModel, clubFinancesViewModel, storyEventViewModel } from '../view-models';
 import { careerMarketScoutOptions } from '../market-source-adapter';
+import { copyFor } from '../../i18n';
 
 describe('M1 app store integration', () => {
   beforeEach(() => {
@@ -563,6 +568,124 @@ describe('M1 app store integration', () => {
         contractPromise: expect.objectContaining({ perk: 'TRAINING_PRIORITY' }),
         priorityDrillsRemaining: 5,
       });
+  });
+
+  it('lands a third-hero renewal during the D4 promotion review that unlocks license three', () => {
+    startCreatedCareer(20260808);
+    const initial = useM1Store.getState().career!;
+    const contractsReady: GameState = {
+      ...initial,
+      players: initial.players.map(player => player.clubId === initial.userClubId
+        ? { ...player, contractSeasonsRemaining: Math.max(2, player.contractSeasonsRemaining) }
+        : player),
+    };
+    const d4 = startNextSeason(completedSeasonForUser(contractsReady));
+    expect(currentUserDivision(d4.m2!)).toBe(4);
+    const userPlayers = d4.players.filter(player => player.clubId === d4.userClubId);
+    const licensedIds = new Set(userPlayers.slice(0, 2).map(player => player.id));
+    const target = userPlayers[2]!;
+    const promotionEnd = completedSeasonForUser({
+      ...d4,
+      market: { ...d4.market!, renewalTalks: undefined },
+      players: d4.players.map(player => {
+        if (player.id === target.id) {
+          return {
+            ...player,
+            age: 22,
+            contractSeasonsRemaining: 0,
+            power: 'FIRE_TORCH' as never,
+            licensed: false,
+            loyalty: 100,
+            retirementAnnounced: false,
+            retirementAnnouncementSeason: undefined,
+          };
+        }
+        if (licensedIds.has(player.id)) {
+          return {
+            ...player,
+            contractSeasonsRemaining: Math.max(1, player.contractSeasonsRemaining),
+            power: 'FIRE_TORCH' as never,
+            licensed: true,
+          };
+        }
+        return player.clubId === d4.userClubId
+          ? { ...player, licensed: false, contractSeasonsRemaining: Math.max(1, player.contractSeasonsRemaining) }
+          : player;
+      }),
+    });
+    expect(leagueStandings(promotionEnd).find(row => row.clubId === promotionEnd.userClubId)?.position)
+      .toBe(1);
+    expect(careerHeroLimit(promotionEnd)).toBe(2);
+    useM1Store.setState({ career: promotionEnd, error: null });
+
+    useM1Store.getState().startRenewal(target.id);
+    useM1Store.getState().submitRenewalOffer({
+      weeklyWage: 999_999,
+      termSeasons: 1,
+      perk: 'GUARANTEED_STARTER',
+    });
+
+    expect(useM1Store.getState().error).toBeNull();
+    expect(useM1Store.getState().career?.market?.renewalTalks).toBeUndefined();
+    expect(useM1Store.getState().career?.players.find(player => player.id === target.id))
+      .toMatchObject({
+        contractSeasonsRemaining: 1,
+        licensed: true,
+        contractPromise: expect.objectContaining({ perk: 'GUARANTEED_STARTER' }),
+      });
+  });
+
+  it('localizes the typed promise backstop if a blocked offer is submitted anyway', () => {
+    startCreatedCareer(20260809);
+    const initial = useM1Store.getState().career!;
+    const userPlayers = initial.players.filter(player => player.clubId === initial.userClubId);
+    const licensedIds = new Set(userPlayers.slice(0, 2).map(player => player.id));
+    const target = userPlayers[2]!;
+    const capped: GameState = {
+      ...initial,
+      phase: 'season-end',
+      players: initial.players.map(player => {
+        if (player.id === target.id) {
+          return {
+            ...player,
+            age: 22,
+            contractSeasonsRemaining: 0,
+            power: 'FIRE_TORCH' as never,
+            licensed: false,
+            loyalty: 100,
+            retirementAnnounced: false,
+            retirementAnnouncementSeason: undefined,
+          };
+        }
+        return licensedIds.has(player.id)
+          ? {
+              ...player,
+              contractSeasonsRemaining: Math.max(1, player.contractSeasonsRemaining),
+              power: 'FIRE_TORCH' as never,
+              licensed: true,
+            }
+          : player;
+      }),
+    };
+    const vietnamese = copyFor('vi');
+    setStoreCopy(vietnamese);
+    try {
+      useM1Store.setState({ career: capped, error: null });
+      useM1Store.getState().startRenewal(target.id);
+      useM1Store.getState().submitRenewalOffer({
+        weeklyWage: 999_999,
+        termSeasons: 1,
+        perk: 'GUARANTEED_STARTER',
+      });
+
+      expect(useM1Store.getState().error).toBe(
+        vietnamese('market.promiseBlockedHeroLicense', { player: target.name }),
+      );
+      expect(useM1Store.getState().error).not.toContain('No Hero License is free');
+      expect(useM1Store.getState().career?.market?.renewalTalks).toBeDefined();
+    } finally {
+      setStoreCopy(copyFor('en'));
+    }
   });
 
   it('surfaces a tap the bank cannot afford without advancing anything', () => {
@@ -1948,6 +2071,24 @@ function advanceToWeek(week: number): void {
   throw new Error(
     `advanceToWeek(${week}) stalled at week ${useM1Store.getState().career?.week}`,
   );
+}
+
+function completedSeasonForUser(state: GameState): GameState {
+  return {
+    ...state,
+    phase: 'season-end',
+    fixtures: state.fixtures.map(fixture => fixture.season === state.season
+      ? {
+          ...fixture,
+          status: 'played' as const,
+          score: fixture.homeClubId === state.userClubId
+            ? { homeGoals: 3, awayGoals: 0 }
+            : fixture.awayClubId === state.userClubId
+              ? { homeGoals: 0, awayGoals: 3 }
+              : { homeGoals: 0, awayGoals: 0 },
+        }
+      : fixture),
+  };
 }
 
 /**
