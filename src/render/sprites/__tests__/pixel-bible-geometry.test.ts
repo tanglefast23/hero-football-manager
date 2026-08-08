@@ -196,7 +196,7 @@ describe('portrait cast varies where it exaggerates (rule 3)', () => {
     .sort((a, b) => a - b);
 
   it('pushes different faces in different directions', () => {
-    expect(ratios).toHaveLength(433);
+    expect(ratios).toHaveLength(448);
     const p10 = ratios[Math.floor(ratios.length * 0.1)];
     const p90 = ratios[Math.floor(ratios.length * 0.9)];
     // A cast drawn to one template collapses this toward 1.
@@ -240,7 +240,7 @@ describe('the cast-spread metric can fail', () => {
     return eyes / (jaw || 1);
   };
 
-  it('rejects a roster of 433 copies of one face', () => {
+  it('rejects a roster of copies of one face', () => {
     const cloned = Object.keys(sheet.sprites)
       .filter((name) => name.endsWith(':rest'))
       .map(() => ratioOf(sheet.sprites['f00:rest']));
@@ -260,8 +260,8 @@ describe('the cast-spread metric can fail', () => {
  *
  * So the gate looks for the stumble: a single-row step marooned between two
  * runs of three or more. That is the classic accidental jaggie, and unlike the
- * old check it finds a short, nameable list — 15 in the portrait sheet across
- * five identities, 106 in the match sheet.
+ * old check it finds a short, nameable list — 18 in the portrait sheet and
+ * 110 in the match sheet on the expanded 448-face roster.
  */
 function maroonedSteps(rows: readonly string[]): number {
   const edge: (number | null)[] = [];
@@ -303,8 +303,8 @@ function maroonedSteps(rows: readonly string[]): number {
 }
 
 describe.each([
-  { name: 'portraits', sheet: portraitData as { sprites: Sprites }, known: 15 },
-  { name: 'match sprites', sheet: spriteData as { sprites: Sprites }, known: 106 },
+  { name: 'portraits', sheet: portraitData as { sprites: Sprites }, known: 18 },
+  { name: 'match sprites', sheet: spriteData as { sprites: Sprites }, known: 110 },
 ])('$name curves do not stumble (rule 7)', ({ sheet, known }) => {
   it('holds the known count of marooned single steps', () => {
     const total = Object.keys(sheet.sprites).reduce((sum, name) => sum + maroonedSteps(sheet.sprites[name]), 0);
