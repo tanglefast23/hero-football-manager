@@ -400,7 +400,10 @@ function managementBar(index, rng, clock) {
   } else {
     // Wind down naturally into the opening F chord when the file loops.
     if (cycle === 12) layers.push({ buf: sequenceBar(MANAGEMENT_HOOK[barInCycle], clock, warmPluck, { softer: true }), gain: 0.42 });
-    layers.push({ buf: managementDrums(rng, clock, { intensity: cycle === 12 ? 0.66 : 0.48, shaker: cycle === 12, fill: index === 55 }), gain: 0.44 });
+    // Put the final fill one bar before the boundary. The last bar can then
+    // release cleanly into the next F downbeat instead of carrying a tom tail
+    // through the wrap.
+    layers.push({ buf: managementDrums(rng, clock, { intensity: cycle === 12 ? 0.66 : 0.48, shaker: cycle === 12, fill: index === 54 }), gain: 0.44 });
   }
 
   return resize(mix(layers), clock.barN);
@@ -492,11 +495,23 @@ function buildTitleTheme() {
   return { bpm: clock.bpm, buffer: highpass(softClip(concat(bars), 1.05), 28) };
 }
 
-function buildManagementTheme() {
+function buildManagementTheme(loopFadeMs) {
   const clock = makeClock(112);
   const rng = mulberry32(4102);
   const bars = Array.from({ length: 56 }, (_, index) => managementBar(index, rng, clock));
-  return { bpm: clock.bpm, buffer: highpass(softClip(concat(bars), 1.02), 28) };
+  const fadeN = secondsToSamples(loopFadeMs / 1000);
+  // crossfadeLoop normally shortens a track by its overlap. Render the start
+  // of bar 57 as continuation material first, so removing the 120ms overlap
+  // leaves all 56 musical bars intact: exactly 120 seconds at 112 BPM. Bar 57
+  // is another quiet F downbeat, matching the opening without repeating a
+  // full bar. A linear blend avoids the +3dB bump an equal-power fade creates
+  // when two closely related musical phrases overlap.
+  const continuation = managementBar(56, rng, clock).subarray(0, fadeN);
+  return {
+    bpm: clock.bpm,
+    buffer: highpass(softClip(concat([...bars, continuation]), 1.02), 28),
+    loopCrossfade: 'linear',
+  };
 }
 
 function buildEventTheme() {
@@ -508,26 +523,30 @@ function buildEventTheme() {
 
 function writeM4a(wavPath, m4aPath) {
   try {
-    execFileSync('afconvert', ['-f', 'm4af', '-d', 'aac', '-b', '96000', wavPath, m4aPath], { stdio: 'pipe' });
-    return 'afconvert (-b 96000)';
+    // Encoding from the exact-length PCM source lets ffmpeg write a partial
+    // final AAC packet and keep the playable duration sample-accurate. The
+    // current macOS afconvert VBR fallback exposes its priming/filler samples
+    // in the track duration, which puts an audible pause into a native loop.
+    execFileSync(
+      'ffmpeg',
+      ['-y', '-v', 'error', '-i', wavPath, '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart', m4aPath],
+      { stdio: 'pipe' },
+    );
+    return 'ffmpeg (AAC 96k, sample-accurate duration)';
   } catch {
     try {
+      execFileSync('afconvert', ['-f', 'm4af', '-d', 'aac', '-b', '96000', wavPath, m4aPath], { stdio: 'pipe' });
+      return 'afconvert (-b 96000 fallback)';
+    } catch {
       execFileSync('afconvert', ['-f', 'm4af', '-d', 'aac', '-s', '3', '-q', '127', wavPath, m4aPath], { stdio: 'pipe' });
       return 'afconvert (VBR q127 fallback)';
-    } catch {
-      execFileSync(
-        'ffmpeg',
-        ['-y', '-v', 'error', '-i', wavPath, '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart', m4aPath],
-        { stdio: 'pipe' },
-      );
-      return 'ffmpeg (AAC 96k)';
     }
   }
 }
 
 function renderTrack(entry, built, outDir) {
   const fadeN = secondsToSamples(entry.loopFadeMs / 1000);
-  const looped = crossfadeLoop(built.buffer, fadeN);
+  const looped = crossfadeLoop(built.buffer, fadeN, built.loopCrossfade);
   const finalBuf = normalize(looped, entry.targetDb);
   const wavPath = join(outDir, `${entry.name}.wav`);
   const m4aPath = join(outDir, `${entry.name}.m4a`);
@@ -551,7 +570,7 @@ export function generateMenuMusic(outDir = OUT_DIR) {
   if (!openingEntry || !managementEntry || !eventEntry) throw new Error('menu music entries missing from MUSIC_CATALOG');
   return [
     renderTrack(openingEntry, buildTitleTheme(), outDir),
-    renderTrack(managementEntry, buildManagementTheme(), outDir),
+    renderTrack(managementEntry, buildManagementTheme(managementEntry.loopFadeMs), outDir),
     renderTrack(eventEntry, buildEventTheme(), outDir),
   ];
 }

@@ -2271,24 +2271,6 @@ export function settleWeeklyStory(state: GameState): GameState {
   );
 }
 
-const SORTABLE_COLUMNS_TIP_ID = 'player-columns-are-sortable';
-/** The earliest the sortable-columns lesson may appear; it waits from here. */
-const SORTABLE_COLUMNS_TIP_SEASON = 1;
-const SORTABLE_COLUMNS_TIP_WEEK = 12;
-
-/**
- * True once the register lesson is allowed to appear — Week 12 of the first
- * season and every week after it, across season boundaries.
- *
- * It used to demand Week 12 exactly, so a career whose Week 12 carried an event
- * or a busy desk lost the lesson for good: the manager was never told the
- * columns sort, and nothing ever offered it again.
- */
-function sortableColumnsTipEligible(state: GameState): boolean {
-  if (state.season > SORTABLE_COLUMNS_TIP_SEASON) return true;
-  return state.season === SORTABLE_COLUMNS_TIP_SEASON && state.week >= SORTABLE_COLUMNS_TIP_WEEK;
-}
-
 /** Roughly a third of eligible weeks, so the unscheduled tips stay finds rather than lectures. */
 const DESK_TIP_CHANCE_PERCENT = 35;
 
@@ -2306,21 +2288,10 @@ export function settleWeeklyTip(state: GameState): GameState {
 
   const blank: GameState = { ...state, deskTip: { season: state.season, week: state.week } };
   const unseen = unseenDeskTipIds(state, LAUNCH_CONTENT.tips.tips.map(tip => tip.id));
-  if (sortableColumnsTipEligible(state) && unseen.includes(SORTABLE_COLUMNS_TIP_ID)) {
-    return markDeskTipSeen(
-      { ...state, deskTip: { season: state.season, week: state.week, tipId: SORTABLE_COLUMNS_TIP_ID } },
-      SORTABLE_COLUMNS_TIP_ID,
-    );
-  }
-
-  // This lesson claims the first quiet week from Week 12 on, ahead of the deck.
-  // Keeping it out of the random draw means a fresh career cannot be taught the
-  // rule early, and the branch above means it can no longer be missed by luck.
-  const randomizedUnseen = unseen.filter(tipId => tipId !== SORTABLE_COLUMNS_TIP_ID);
-  if (randomizedUnseen.length === 0) return blank;
+  if (unseen.length === 0) return blank;
   if (deskTipRoll(state, '__desk_tip_chance__', 100) >= DESK_TIP_CHANCE_PERCENT) return blank;
 
-  const tipId = randomizedUnseen[deskTipRoll(state, '__desk_tip_pick__', randomizedUnseen.length)];
+  const tipId = unseen[deskTipRoll(state, '__desk_tip_pick__', unseen.length)];
   return markDeskTipSeen(
     { ...state, deskTip: { season: state.season, week: state.week, tipId } },
     tipId,
@@ -3665,8 +3636,6 @@ function fixtureViewModel(
 ): FixtureViewModel {
   const isHome = fixture.homeClubId === state.userClubId;
   const opponentId = isHome ? fixture.awayClubId : fixture.homeClubId;
-  const isPowerlessOpening = state.onboarding?.stage === 'first-match'
-    && state.onboarding.firstFixtureId === fixture.id;
   return {
     id: fixture.id,
     weekLabel: `W${fixture.week}`,
@@ -3674,11 +3643,12 @@ function fixtureViewModel(
     homeTeam: clubName(state, fixture.homeClubId),
     awayTeam: clubName(state, fixture.awayClubId),
     venueLabel: isHome ? 'Home' : 'Away',
-    opponentHeroCount: isPowerlessOpening
-      ? 0
-      : state.players.filter(
-          player => player.clubId === opponentId && player.power !== undefined && player.licensed,
-        ).length,
+    // The tutorial suppresses powers in the match, but Barry is still at the
+    // opponent club. Report the character who is there so this team sheet
+    // agrees with the rival introduction that just played.
+    opponentHeroCount: state.players.filter(
+      player => player.clubId === opponentId && player.power !== undefined && player.licensed,
+    ).length,
     matchdayReady: state.phase === 'matchday' && fixture.week === state.week,
   };
 }

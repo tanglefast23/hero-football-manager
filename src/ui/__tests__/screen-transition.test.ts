@@ -87,7 +87,7 @@ describe('App screen routing', () => {
     expect(app).toContain('<ScreenTransition');
     expect(app).toContain('screenKey={screenKey}');
     expect(app).toContain('reduceMotion={reduceMotion}');
-    expect(app).toContain('animated={!screenDrivesAFrameLoop}');
+    expect(app).toContain('animated={!screenRequiresHardCut}');
   });
 
   it('identifies a screen by the component the routing chain picked', () => {
@@ -97,10 +97,12 @@ describe('App screen routing', () => {
     expect(app).toContain('const screenKey: unknown = isValidElement(screen) ? screen.type : screen;');
   });
 
-  it('excludes the two screens that drive a Skia frame loop', () => {
+  it('excludes frame-loop screens and the blocking rival cutscene', () => {
     // The watched match and the face-off must not be held on screen after they
     // hand over: both keep drawing, and the moment they hand over is the moment
     // the next screen is doing its most expensive work.
-    expect(app).toContain('screenKey === MatchScreen || screenKey === QuickResultFaceOff');
+    expect(app).toContain('screenKey === MatchScreen');
+    expect(app).toContain('screenKey === QuickResultFaceOff');
+    expect(app).toContain('screenKey === RivalHeroIntroScreen');
   });
 });

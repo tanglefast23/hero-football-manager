@@ -827,7 +827,7 @@ export const GlossaryCatalogSchema = z.strictObject({
  * than becoming a second glossary — 200 rather than the old 400, because at
  * 400 the cards had grown into paragraphs nobody reads on a phone.
  */
-const ManagerTipDestinationSchema = z.enum(['drill-shop', 'overall-sort']);
+const ManagerTipDestinationSchema = z.enum(['drill-shop']);
 const ManagerTipSchema = z.strictObject({
   id: idSchema,
   title: displayNameSchema,
@@ -1182,6 +1182,32 @@ export const SponsorCatalogSchema = z.strictObject({
 
 export type SponsorCatalog = z.infer<typeof SponsorCatalogSchema>;
 
+/** The five division-headline rivals who receive a first-meeting scene. */
+export const RivalHeroIntroHeroIdSchema = z.enum([
+  'special-f171',
+  'special-f178',
+  'special-f174',
+  'special-f176',
+  'special-f168',
+]);
+
+const RivalHeroIntroSchema = z.strictObject({
+  heroId: RivalHeroIntroHeroIdSchema,
+  /** One compact speech bubble, not a branching dialogue tree. */
+  taunt: z.string().trim().min(1).max(160),
+});
+
+export const RivalHeroIntroCatalogSchema = z.strictObject({
+  schemaVersion: ContentSchemaVersion,
+  intros: z.array(RivalHeroIntroSchema).length(RivalHeroIntroHeroIdSchema.options.length),
+}).superRefine((catalog, context) => {
+  addDuplicateIssues(catalog.intros.map(intro => intro.heroId), context, ['intros'], 'rival hero ID');
+  const present = new Set(catalog.intros.map(intro => intro.heroId));
+  RivalHeroIntroHeroIdSchema.options.forEach(heroId => {
+    if (!present.has(heroId)) addIssue(context, ['intros'], `missing rival hero intro ${heroId}`);
+  });
+});
+
 export const LaunchContentSchema = z.strictObject({
   assistantGuide: AssistantGuideContentSchema,
   awardCeremonyLines: AwardCeremonyLinesSchema,
@@ -1193,6 +1219,7 @@ export const LaunchContentSchema = z.strictObject({
   onboarding: OnboardingContentSchema,
   powers: PowerCatalogSchema,
   playerRequests: PlayerRequestCatalogSchema,
+  rivalHeroIntros: RivalHeroIntroCatalogSchema,
   sponsors: SponsorCatalogSchema,
   tips: ManagerTipCatalogSchema,
   training: TrainingCatalogSchema,
@@ -1297,6 +1324,8 @@ export type EventCatalog = z.infer<typeof EventCatalogSchema>;
 export type GlossaryCatalog = z.infer<typeof GlossaryCatalogSchema>;
 export type ManagerTipDestination = z.infer<typeof ManagerTipDestinationSchema>;
 export type ManagerTipCatalog = z.infer<typeof ManagerTipCatalogSchema>;
+export type RivalHeroIntroHeroId = z.infer<typeof RivalHeroIntroHeroIdSchema>;
+export type RivalHeroIntroCatalog = z.infer<typeof RivalHeroIntroCatalogSchema>;
 export type LaunchContent = z.infer<typeof LaunchContentSchema>;
 
 function addDuplicateIssues(

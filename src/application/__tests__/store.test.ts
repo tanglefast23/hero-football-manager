@@ -17,6 +17,7 @@ import {
   leagueStandings,
   offerCareerEvent,
   startNextSeason,
+  pendingRivalHeroIntro,
   type GameState,
 } from '../../game';
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
@@ -25,6 +26,7 @@ import { loadLaunchContent } from '../../content';
 import { awakeningCutsceneViewModel, clubFinancesViewModel, storyEventViewModel } from '../view-models';
 import { careerMarketScoutOptions } from '../market-source-adapter';
 import { copyFor } from '../../i18n';
+import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 
 describe('M1 app store integration', () => {
   beforeEach(() => {
@@ -74,6 +76,10 @@ describe('M1 app store integration', () => {
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState()).toMatchObject({ screen: 'matchday' });
     expect(useM1Store.getState().career?.phase).toBe('matchday');
+
+    expect(pendingRivalHeroIntro(useM1Store.getState().career!))
+      .toMatchObject({ heroId: 'special-f171' });
+    useM1Store.getState().completeRivalHeroIntro('special-f171');
 
     useM1Store.getState().quickResult();
     // The career's very first match settles behind the face-off exactly like
@@ -949,7 +955,10 @@ describe('M1 app store integration', () => {
       } else if (current.screen === 'event') {
         progressJourneyEvent(current);
       } else if (current.screen === 'matchday') {
-        if (watchedMatches === 0) {
+        const rivalIntro = pendingRivalHeroIntro(career);
+        if (rivalIntro !== undefined) {
+          current.completeRivalHeroIntro(rivalIntro.heroId);
+        } else if (watchedMatches === 0) {
           current.watchMatch();
           const watched = useM1Store.getState().watchedMatch;
           if (watched === null) throw new Error('watched match context was not created');
@@ -1987,6 +1996,9 @@ function startCreatedCareer(seed: number): void {
     name: 'Jo Rook',
     ratings: DEFAULT_CREATION_RATINGS,
   });
+  const career = useM1Store.getState().career;
+  if (career === null) throw new Error('created career missing');
+  useM1Store.setState({ career: withRivalHeroIntrosSeen(career) });
 }
 
 function firstAvailableLineupSwap(career: GameState): { starterId: string; replacementId: string } {

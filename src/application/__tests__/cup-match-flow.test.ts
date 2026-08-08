@@ -10,6 +10,7 @@ import { MissingCareerBackupError } from '../../persistence';
 import { createMatch } from '../../sim/match';
 import { weeklySettlementAwardKeys } from '../../game/weekly-settlement-awards';
 import { useM1Store } from '../store';
+import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 
 const PLAY_IN_WEEK = CUP_SETTLEMENT_WEEKS[0];
 
@@ -26,7 +27,7 @@ describe('Hero Cup app routing', () => {
     });
     const career = useM1Store.getState().career!;
     useM1Store.setState({
-      career: { ...career, week: 3, phase: 'matchday' },
+      career: withRivalHeroIntrosSeen({ ...career, week: 3, phase: 'matchday' }),
       screen: 'matchday',
     });
 
@@ -118,7 +119,7 @@ describe('Hero Cup app routing', () => {
     const doubleHeaderRound = Math.min(...initial.fixtures
       .filter(fixture => fixture.season === initial.season && fixture.week > PLAY_IN_WEEK)
       .map(fixture => fixture.round));
-    const checkpoint = {
+    const checkpoint = withRivalHeroIntrosSeen({
       ...initial,
       week: PLAY_IN_WEEK,
       phase: 'matchday' as const,
@@ -127,7 +128,7 @@ describe('Hero Cup app routing', () => {
           ? { ...fixture, week: PLAY_IN_WEEK }
           : fixture
       )),
-    };
+    });
     let releaseSave: (() => void) | undefined;
     const repository = emptyCareerRepository({
       save: async () => new Promise<void>(resolve => { releaseSave = resolve; }),
@@ -184,7 +185,7 @@ describe('Hero Cup app routing', () => {
     const career = useM1Store.getState().career!;
 
     useM1Store.setState({
-      career: { ...career, week: 3, phase: 'matchday' },
+      career: withRivalHeroIntrosSeen({ ...career, week: 3, phase: 'matchday' }),
       screen: 'matchday',
     });
     useM1Store.getState().watchMatch();
@@ -343,7 +344,7 @@ function prepareCupTie(divisionGap: 1 | 2, winner: 'user' | 'opponent' = 'user')
       [opponentClubId]: (5 - divisionGap) as 3 | 4,
     },
   };
-  const prepared = {
+  const prepared = withRivalHeroIntrosSeen({
     ...career,
     week: PLAY_IN_WEEK,
     phase: 'matchday' as const,
@@ -377,7 +378,7 @@ function prepareCupTie(divisionGap: 1 | 2, winner: 'user' | 'opponent' = 'user')
         })),
       },
     },
-  };
+  });
   useM1Store.setState({ career: prepared, screen: 'matchday' });
   return prepared;
 }

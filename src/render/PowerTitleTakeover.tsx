@@ -1,5 +1,13 @@
-import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import {
+  AccessibilityInfo,
+  findNodeHandle,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -28,6 +36,9 @@ export interface PowerTitleTakeoverProps {
   reduceMotion: boolean;
   skippable: boolean;
   accessibilityLabel: string;
+  accessibilityHint?: string;
+  focusOnMount?: boolean;
+  onAccessibilityEscape?: () => void;
   onDismiss: () => void;
 }
 
@@ -47,6 +58,9 @@ export function PowerTitleTakeover({
   reduceMotion,
   skippable,
   accessibilityLabel,
+  accessibilityHint,
+  focusOnMount = false,
+  onAccessibilityEscape,
   onDismiss,
 }: PowerTitleTakeoverProps) {
   const t = useCopy();
@@ -56,6 +70,22 @@ export function PowerTitleTakeover({
   const titleReveal = useSharedValue(1);
   const sheen = useSharedValue(1);
   const outro = useSharedValue(0);
+  const pressableRef = useRef<View>(null);
+
+  useEffect(() => {
+    if (!focusOnMount) return undefined;
+    const frame = requestAnimationFrame(() => {
+      const target = pressableRef.current;
+      if (target === null) return;
+      if (Platform.OS === 'web') {
+        (target as unknown as { focus?: () => void }).focus?.();
+        return;
+      }
+      const handle = findNodeHandle(target);
+      if (handle !== null) AccessibilityInfo.setAccessibilityFocus(handle);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusOnMount, power, playerName]);
 
   useEffect(() => {
     if (reduceMotion) {
@@ -117,9 +147,14 @@ export function PowerTitleTakeover({
   const desktop = layout === 'desktop';
   return (
     <Pressable
+      ref={pressableRef}
       accessibilityRole={skippable ? 'button' : 'text'}
       accessibilityLabel={accessibilityLabel}
-      accessibilityHint={skippable ? t('matchScreen.a11y.dismissPowerTitle') : undefined}
+      accessibilityHint={skippable
+        ? accessibilityHint ?? t('matchScreen.a11y.dismissPowerTitle')
+        : undefined}
+      accessibilityViewIsModal={focusOnMount}
+      onAccessibilityEscape={onAccessibilityEscape}
       disabled={!skippable}
       onPress={onDismiss}
       style={[

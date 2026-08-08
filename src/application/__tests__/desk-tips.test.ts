@@ -13,7 +13,6 @@ import { homeViewModel, settleWeeklyTip } from '../view-models';
 describe("manager's tips", () => {
   const content = loadLaunchContent();
   const tipIds = content.tips.tips.map(tip => tip.id);
-  const sortableColumnsTipId = 'player-columns-are-sortable';
 
   /** A career whose guide queue is silent, so the desk is genuinely empty. */
   function deskClearCareer(seed: number): GameState {
@@ -68,26 +67,21 @@ describe("manager's tips", () => {
   });
 
   it('carries optional squad destinations from content onto actionable tips', () => {
-    const sortable = content.tips.tips.find(candidate => candidate.id === 'player-columns-are-sortable');
     const drillTiers = content.tips.tips.find(candidate => candidate.id === 'drill-tiers-are-permanent');
 
-    expect(sortable).toMatchObject({
-      title: 'Player columns are sortable',
-      destination: 'overall-sort',
-    });
     expect(drillTiers).toMatchObject({ destination: 'drill-shop' });
 
     const base = deskClearCareer(20261208);
     const home = homeViewModel({
       ...base,
-      deskTip: { season: base.season, week: base.week, tipId: sortable!.id },
+      deskTip: { season: base.season, week: base.week, tipId: drillTiers!.id },
     });
     expect(home.notes).toContainEqual({
-      id: `tip:${sortable!.id}`,
+      id: `tip:${drillTiers!.id}`,
       kind: 'tip',
-      title: sortable!.title,
-      detail: sortable!.body,
-      destination: 'overall-sort',
+      title: drillTiers!.title,
+      detail: drillTiers!.body,
+      destination: 'drill-shop',
     });
   });
 
@@ -106,64 +100,6 @@ describe("manager's tips", () => {
 
     expect(outcomes.some(tipId => tipId === undefined)).toBe(true);
     expect(outcomes.some(tipId => tipId !== undefined)).toBe(true);
-  });
-
-  it('reserves the sortable-column lesson for Week 12 and guarantees it there', () => {
-    for (let seed = 20261200; seed < 20261300; seed += 1) {
-      const clear = deskClearCareer(seed);
-      const weekEleven = settleWeeklyTip({ ...clear, week: 11, deskTip: undefined });
-      expect(weekEleven.deskTip?.tipId).not.toBe(sortableColumnsTipId);
-
-      const weekTwelve = settleWeeklyTip({ ...weekEleven, week: 12, deskTip: undefined });
-      expect(weekTwelve.deskTip?.tipId).toBe(sortableColumnsTipId);
-      expect(hasSeenDeskTip(weekTwelve, sortableColumnsTipId)).toBe(true);
-    }
-  });
-
-  it('waits for the next quiet week when Week 12 is busy', () => {
-    // Week 12 used to be the lesson's only chance: a career whose Week 12
-    // carried a story or a busy desk never learned that the columns sort.
-    const clear = deskClearCareer(20261210);
-    const busyTwelve = offerCareerEvent({ ...clear, week: 12 }, 'giant-spider-arrives');
-    expect(settleWeeklyTip(busyTwelve)).toBe(busyTwelve);
-
-    const busyThirteen = offerCareerEvent(
-      { ...busyTwelve, week: 13, pendingEvent: undefined, deskTip: undefined },
-      'giant-spider-arrives',
-    );
-    expect(settleWeeklyTip(busyThirteen)).toBe(busyThirteen);
-
-    const quietFourteen = settleWeeklyTip({
-      ...busyThirteen,
-      week: 14,
-      pendingEvent: undefined,
-      deskTip: undefined,
-    });
-    expect(quietFourteen.deskTip?.tipId).toBe(sortableColumnsTipId);
-  });
-
-  it('still delivers the sorting lesson in a later season', () => {
-    // Eligibility carries across the season boundary, so a first season that
-    // never went quiet after Week 12 does not swallow the lesson.
-    const clear = deskClearCareer(20261211);
-    const nextSeason = settleWeeklyTip({
-      ...clear,
-      season: 2,
-      week: 3,
-      deskTip: undefined,
-    });
-
-    expect(nextSeason.deskTip?.tipId).toBe(sortableColumnsTipId);
-  });
-
-  it('shows the Week 12 sorting lesson after that week\'s story is cleared', () => {
-    const clear = { ...deskClearCareer(20261209), week: 12 };
-    const withStory = offerCareerEvent(clear, 'giant-spider-arrives');
-
-    expect(settleWeeklyTip(withStory)).toBe(withStory);
-
-    const afterStory = settleWeeklyTip({ ...withStory, pendingEvent: undefined });
-    expect(afterStory.deskTip?.tipId).toBe(sortableColumnsTipId);
   });
 
   it('never repeats a tip in one career', () => {

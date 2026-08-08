@@ -255,19 +255,19 @@ export function normalize(buf, targetDb = -1) {
 }
 
 // Crossfades the tail into the head so the buffer loops without a click, then
-// trims the tail. Output is (buf.length - fadeSamples) long. Uses an
-// equal-power (sin/cos) curve rather than a linear one: linear crossfading of
-// two UNCORRELATED sources (noise, or a full mix at different musical
-// moments) loses energy in the middle of the fade because the signals don't
-// sum coherently — equal-power keeps gIn^2 + gOut^2 == 1 throughout, so
-// perceived loudness stays constant across the blend.
-export function crossfadeLoop(buf, fadeSamples) {
+// trims the tail. Output is (buf.length - fadeSamples) long. Equal-power is the
+// default for uncorrelated sources (noise, or different musical moments),
+// while the optional linear curve avoids a gain bump when the overlap contains
+// closely related copies of the same phrase.
+export function crossfadeLoop(buf, fadeSamples, curve = 'equalPower') {
   const fadeN = Math.min(fadeSamples, Math.floor(buf.length / 2));
   const tailStart = buf.length - fadeN;
   const out = buf.slice(0, tailStart);
   for (let i = 0; i < fadeN; i++) {
-    const w = (i / fadeN) * (Math.PI / 2);
-    out[i] = buf[i] * Math.sin(w) + buf[tailStart + i] * Math.cos(w);
+    const progress = i / fadeN;
+    const headGain = curve === 'linear' ? progress : Math.sin(progress * (Math.PI / 2));
+    const tailGain = curve === 'linear' ? 1 - progress : Math.cos(progress * (Math.PI / 2));
+    out[i] = buf[i] * headGain + buf[tailStart + i] * tailGain;
   }
   return out;
 }

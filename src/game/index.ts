@@ -21,6 +21,7 @@ export * from './loyalty';
 export * from './player-requests';
 export * from './pending-match-impact';
 export * from './retirement';
+export * from './rival-hero-intro';
 export * from './matchday';
 export * from './management';
 export * from './market-career';

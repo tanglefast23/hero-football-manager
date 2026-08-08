@@ -92,6 +92,14 @@ export interface CharacterSpeechOverlayProps {
   typewriter?: boolean;
   /** Give web keyboard and Android TalkBack focus to a blocking briefing. */
   focusOnMount?: boolean;
+  /** Horizontal centre as a fraction of the viewport; existing walk-ons use 0.8. */
+  characterCentreRatio?: number;
+  /** Keep placement and bubble behavior while a parent owns the visible sprite. */
+  hideCharacter?: boolean;
+  /** Route the platform accessibility escape gesture through the normal tap path. */
+  handleAccessibilityEscape?: boolean;
+  /** A changed value routes hardware Back through the same normal tap path. */
+  advanceSignal?: number;
 }
 
 type Phase = 'arriving' | 'speaking' | 'leaving';
@@ -178,6 +186,10 @@ export function CharacterSpeechOverlay({
   bubbleScale = 1,
   typewriter = false,
   focusOnMount = false,
+  characterCentreRatio = 1 - PENETRATION,
+  hideCharacter = false,
+  handleAccessibilityEscape = false,
+  advanceSignal,
 }: CharacterSpeechOverlayProps) {
   const t = useCopy();
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
@@ -239,9 +251,7 @@ export function CharacterSpeechOverlay({
   const pressableRef = useRef<View>(null);
 
   useEffect(() => {
-    if (!focusOnMount || (Platform.OS !== 'web' && Platform.OS !== 'android')) {
-      return undefined;
-    }
+    if (!focusOnMount) return undefined;
     const frame = requestAnimationFrame(() => {
       const target = pressableRef.current;
       if (target === null) return;
@@ -255,7 +265,7 @@ export function CharacterSpeechOverlay({
     return () => cancelAnimationFrame(frame);
   }, [focusOnMount]);
 
-  const restLeft = viewportWidth * (1 - PENETRATION) - characterWidth / 2;
+  const restLeft = viewportWidth * characterCentreRatio - characterWidth / 2;
   const offRight = viewportWidth + 24;
 
   const travel = useRef(new Animated.Value(reduce || instant ? restLeft : offRight)).current;
@@ -432,6 +442,13 @@ export function CharacterSpeechOverlay({
     setPhase('leaving');
   }, [instant, lines, onDone, phase, reduce, restLeft, travel, typewriter]);
 
+  const previousAdvanceSignalRef = useRef(advanceSignal);
+  useEffect(() => {
+    if (advanceSignal === undefined || previousAdvanceSignalRef.current === advanceSignal) return;
+    previousAdvanceSignalRef.current = advanceSignal;
+    advance();
+  }, [advance, advanceSignal]);
+
   // Announce the line to whoever is following along — the spotlight tracks it,
   // and the first line has to be reported as well as the ones tapped to.
   useEffect(() => {
@@ -552,6 +569,8 @@ export function CharacterSpeechOverlay({
         : lastLine
           ? 'awardsCeremony.a11y.tapAnywhereToFinish'
           : 'characterSpeech.a11y.nextLine')}
+      accessibilityViewIsModal={focusOnMount}
+      onAccessibilityEscape={handleAccessibilityEscape ? advance : undefined}
       onPress={advance}
       style={StyleSheet.absoluteFill}
     >
@@ -596,7 +615,7 @@ export function CharacterSpeechOverlay({
           </Animated.View>
         ) : null}
 
-        <Animated.View
+        {hideCharacter ? null : <Animated.View
           style={[
             styles.character,
             {
@@ -615,9 +634,9 @@ export function CharacterSpeechOverlay({
           ]}
         >
           {renderCharacter === undefined ? children : renderCharacter({ phase, walking })}
-        </Animated.View>
+        </Animated.View>}
 
-        <Animated.View
+        {hideCharacter ? null : <Animated.View
           style={[
             styles.groundShadow,
             {
@@ -626,7 +645,7 @@ export function CharacterSpeechOverlay({
               transform: [{ translateX: Animated.add(travel, characterWidth * 0.19) }],
             },
           ]}
-        />
+        />}
       </View>
 
       {lines.length > 1 ? (

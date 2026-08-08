@@ -35,7 +35,8 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     expect(bert).toContain("return { inert: true, 'aria-hidden': true };");
     expect(bert).toContain("Platform.OS === 'android'");
     expect(bert).toContain("importantForAccessibility: 'no-hide-descendants'");
-    expect(speech).toContain("Platform.OS !== 'web' && Platform.OS !== 'android'");
+    expect(speech).toContain("if (Platform.OS === 'web') {");
+    expect(speech).toContain('(target as unknown as { focus?: () => void }).focus?.();');
     expect(speech).toContain('AccessibilityInfo.setAccessibilityFocus(handle)');
     expect(bert).toContain('focusOnMount');
   });
