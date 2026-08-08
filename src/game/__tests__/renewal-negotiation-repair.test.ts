@@ -3,7 +3,7 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { seasonEndViewModel } from '../../application/view-models';
 import { marketNegotiationViewModel } from '../../application/market-view-model';
 import { loadLaunchContent } from '../../content';
-import { createCareer } from '../career';
+import { createCareer, startNextSeason } from '../career';
 import {
   applyCareerNegotiationConsequence,
   beginCareerRenewalTalks,
@@ -28,6 +28,7 @@ import {
 } from '../market';
 import { loyaltyRenewalPercent } from '../loyalty';
 import { hasActiveCareerContractPromise } from '../contract-promises';
+import { currentUserDivision } from '../m2-career';
 import type { CareerPlayer, GameState } from '../types';
 
 /** A season-end career whose named player has an expired contract. */
@@ -49,6 +50,70 @@ function seasonEndWithExpired(seed: number): { state: GameState; player: CareerP
       : candidate),
   };
   return { state, player: state.players.find(c => c.id === target.id)! };
+}
+
+function completedSeasonForUser(state: GameState): GameState {
+  return {
+    ...state,
+    phase: 'season-end',
+    fixtures: state.fixtures.map(fixture => fixture.season === state.season
+      ? {
+          ...fixture,
+          status: 'played' as const,
+          score: fixture.homeClubId === state.userClubId
+            ? { homeGoals: 3, awayGoals: 0 }
+            : fixture.awayClubId === state.userClubId
+              ? { homeGoals: 0, awayGoals: 3 }
+              : { homeGoals: 0, awayGoals: 0 },
+        }
+      : fixture),
+  };
+}
+
+/** A D4 promotion review with two licenses full and an expired third hero. */
+function d4PromotionWithExpiredHero(seed: number): { state: GameState; player: CareerPlayer } {
+  const initial = createCareer(createLaunchCareerSetup(seed));
+  const contractsReady: GameState = {
+    ...initial,
+    players: initial.players.map(player => player.clubId === initial.userClubId
+      ? { ...player, contractSeasonsRemaining: Math.max(2, player.contractSeasonsRemaining) }
+      : player),
+  };
+  const d4 = startNextSeason(completedSeasonForUser(contractsReady));
+  expect(currentUserDivision(d4.m2!)).toBe(4);
+  const userPlayers = d4.players.filter(player => player.clubId === d4.userClubId);
+  const licensedIds = new Set(userPlayers.slice(0, 2).map(player => player.id));
+  const target = userPlayers[2]!;
+  const state = completedSeasonForUser({
+    ...d4,
+    market: { ...d4.market!, renewalTalks: undefined },
+    players: d4.players.map(player => {
+      if (player.id === target.id) {
+        return {
+          ...player,
+          age: 22,
+          contractSeasonsRemaining: 0,
+          power: 'FIRE_TORCH' as never,
+          licensed: false,
+          loyalty: 100,
+          retirementAnnounced: false,
+          retirementAnnouncementSeason: undefined,
+        };
+      }
+      if (licensedIds.has(player.id)) {
+        return {
+          ...player,
+          contractSeasonsRemaining: Math.max(1, player.contractSeasonsRemaining),
+          power: 'FIRE_TORCH' as never,
+          licensed: true,
+        };
+      }
+      return player.clubId === d4.userClubId
+        ? { ...player, licensed: false, contractSeasonsRemaining: Math.max(1, player.contractSeasonsRemaining) }
+        : player;
+    }),
+  });
+  return { state, player: state.players.find(player => player.id === target.id)! };
 }
 
 describe('insulting renewal offers (P1-1)', () => {
@@ -249,6 +314,23 @@ describe('season-end view model wiring', () => {
     expect(view.renewalNegotiation!.initialWeeklyWage).toBeGreaterThanOrEqual(ask / 2);
     expect(view.renewalNegotiation!.initialWeeklyWage)
       .not.toBe(hero.players.find(c => c.id === player.id)!.weeklyWage);
+  });
+
+  it('uses the Hero License this promotion announces when presenting renewal promises', () => {
+    const { state, player } = d4PromotionWithExpiredHero(20260808);
+    const negotiating: GameState = {
+      ...state,
+      market: beginCareerRenewalTalks(state, state.market!, player.id),
+    };
+
+    const view = seasonEndViewModel(negotiating, loadLaunchContent(), 1);
+    const starter = view.renewalNegotiation?.perks.find(perk => (
+      perk.id === 'GUARANTEED_STARTER'
+    ));
+
+    expect(view.outcomeLabel).toBe('PROMOTED');
+    expect(view.promotionRewards?.items.map(item => item.title)).toContain('Third Hero License');
+    expect(starter).toMatchObject({ available: true });
   });
 
   it('carries the last offer so a counter cannot silently rewrite term and promise', () => {

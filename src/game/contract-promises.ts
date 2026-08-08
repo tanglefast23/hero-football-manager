@@ -281,22 +281,39 @@ function promisedReplacementSlot(
  * screen announces a promotion's new Hero License two panels above the renewal
  * that would be checked against the old cap. Only the caller knows the standings.
  */
-// TODO(i18n): all six sentences are returned bare and reach the player only as
-// an exception message, so there is nowhere to hang a key on the way out. Both
-// call sites — `submitCareerTransferContractOffer` (market-career.ts) and
-// `submitCareerRenewalContractOffer` (market-career.ts) — do
-// `throw new Error(blocked)`, `guarded()` in `application/store.ts` copies
-// `error.message` into `store.error`, and App.tsx renders that string in a
-// `FeedbackNotice`. Translating them therefore means giving the ring a typed
-// error that carries `{ key, params }` and teaching `errorMessage()` to resolve
-// it — a change to the whole error channel, not to this function. No view model
-// reads this value today, so keying it here alone would translate nothing.
+export interface ContractPromiseBlockedReason {
+  /** Finished English fallback for old or incomplete catalogs. */
+  readonly text: string;
+  readonly key: string;
+  /** Raw values only; the application ring owns interpolation and locale. */
+  readonly params: Readonly<Record<string, string | number>>;
+}
+
+/**
+ * Typed player-facing backstop for a promise that cannot be honoured.
+ *
+ * `message` stays the English fallback so headless callers and existing tests
+ * remain useful; the application store resolves `key` + `params` in the active
+ * locale instead of exposing that fallback as a bare toast.
+ */
+export class ContractPromiseBlockedError extends Error {
+  readonly key: string;
+  readonly params: Readonly<Record<string, string | number>>;
+
+  constructor(reason: ContractPromiseBlockedReason) {
+    super(reason.text);
+    this.name = 'ContractPromiseBlockedError';
+    this.key = reason.key;
+    this.params = reason.params;
+  }
+}
+
 export function careerContractPromiseBlockedReason(
   state: GameState,
   player: CareerPlayer,
   perk: CareerContractPerk,
   heroLimit: number,
-): string | undefined {
+): ContractPromiseBlockedReason | undefined {
   const squad = state.players.filter(candidate => (
     candidate.clubId === state.userClubId && candidate.id !== player.id
   ));
@@ -308,7 +325,11 @@ export function careerContractPromiseBlockedReason(
       candidate.clubId === state.userClubId && candidate.licensed
     )).length;
     if (licensed >= heroLimit) {
-      return `No Hero License is free. ${player.name} needs one to be promised a place.`;
+      return {
+        text: `No Hero License is free. ${player.name} needs one to be promised a place.`,
+        key: 'market.promiseBlockedHeroLicense',
+        params: { player: player.name },
+      };
     }
   }
 
@@ -317,13 +338,21 @@ export function careerContractPromiseBlockedReason(
   if (perk === 'CAPTAINCY') {
     const captain = holderOf('CAPTAINCY');
     if (captain !== undefined) {
-      return `${captain.name} was promised the captaincy until his contract ends.`;
+      return {
+        text: `${captain.name} was promised the captaincy until his contract ends.`,
+        key: 'market.promiseBlockedCaptaincy',
+        params: { player: captain.name },
+      };
     }
   }
   if (perk === 'JERSEY_10') {
     const wearer = holderOf('JERSEY_10');
     if (wearer !== undefined) {
-      return `${wearer.name} was promised the number 10 shirt until his contract ends.`;
+      return {
+        text: `${wearer.name} was promised the number 10 shirt until his contract ends.`,
+        key: 'market.promiseBlockedJersey10',
+        params: { player: wearer.name },
+      };
     }
   }
   if (perk === 'TRAINING_PRIORITY') {
@@ -332,7 +361,11 @@ export function careerContractPromiseBlockedReason(
       && (candidate.priorityDrillsRemaining ?? 0) > 0
     ));
     if (owed !== undefined) {
-      return `${owed.name} is still owed ${owed.priorityDrillsRemaining} drills.`;
+      return {
+        text: `${owed.name} is still owed ${owed.priorityDrillsRemaining} drills.`,
+        key: 'market.promiseBlockedTraining',
+        params: { player: owed.name, drills: owed.priorityDrillsRemaining ?? 0 },
+      };
     }
   }
 
@@ -347,10 +380,18 @@ export function careerContractPromiseBlockedReason(
     if (player.role === 'GK') {
       const promisedKeeper = promisedStarters.find(candidate => candidate.role === 'GK');
       if (promisedKeeper !== undefined) {
-        return `${promisedKeeper.name} already has the promised goalkeeper's shirt.`;
+        return {
+          text: `${promisedKeeper.name} already has the promised goalkeeper's shirt.`,
+          key: 'market.promiseBlockedGoalkeeper',
+          params: { player: promisedKeeper.name },
+        };
       }
     } else if (promisedStarters.filter(candidate => candidate.role !== 'GK').length >= 10) {
-      return 'Every outfield place in the XI is already promised.';
+      return {
+        text: 'Every outfield place in the XI is already promised.',
+        key: 'market.promiseBlockedOutfield',
+        params: {},
+      };
     }
   }
   return undefined;

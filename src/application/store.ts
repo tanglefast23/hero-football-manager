@@ -35,6 +35,7 @@ import {
   completePostMatchAwakening,
   completeCareerTransfer,
   completeCareerRenewal,
+  ContractPromiseBlockedError,
   signCareerRenewalAtAsk,
   createCareer,
   currentUserDivision,
@@ -155,6 +156,7 @@ import {
   TRUE_ENDING_SEEN_FLAG,
 } from './endgame-celebration';
 import { recordHallOfFame } from './hall-of-fame';
+import { projectedSeasonEndContractPromiseHeroLimit } from './contract-promise-projection';
 import { copyFor, type CopyFn, type CopyParams } from '../i18n';
 
 /**
@@ -2237,9 +2239,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
   submitRenewalOffer(offer, pitchCard) {
     guarded(set, () => {
       const career = requireCareer(get());
-      const negotiated = submitCareerRenewalOffer(career, requireMarket(career), offer, pitchCard);
+      const heroLimit = projectedSeasonEndContractPromiseHeroLimit(career);
+      const negotiated = submitCareerRenewalOffer(
+        career,
+        requireMarket(career),
+        offer,
+        pitchCard,
+        heroLimit,
+      );
       if (negotiated.renewalTalks?.negotiation.status === 'ACCEPTED') {
-        const transaction = completeCareerRenewal(career, negotiated);
+        const transaction = completeCareerRenewal(career, negotiated, heroLimit);
         const next = { ...transaction.state, market: transaction.market };
         set({
           career: next,
@@ -2977,6 +2986,8 @@ function guarded(set: (partial: Partial<M1Store>) => void, action: () => void): 
 }
 
 function errorMessage(error: unknown): string {
+  if (error instanceof ContractPromiseBlockedError) {
+    return copyOrEnglish(t, error.key, error.message, error.params);
+  }
   return error instanceof Error ? error.message : String(error);
 }
-

@@ -1,5 +1,5 @@
 import { createLaunchCareerSetup } from '../launch';
-import { marketViewModel } from '../market-view-model';
+import { contractDraftPerk, marketViewModel } from '../market-view-model';
 import {
   careerMarketScoutOptions,
   careerMarketViewModelSource,
@@ -15,6 +15,7 @@ import {
   type CareerMarketState,
 } from '../../game/market-career';
 import type { CareerPlayer, GameState } from '../../game/types';
+import { copyFor } from '../../i18n';
 
 function fullCareer(seed = 20260719): GameState {
   return createCareer(createLaunchCareerSetup(seed));
@@ -218,6 +219,45 @@ describe('career market view-model source adapter', () => {
       headWeeklyWage: source.coachCandidates[0].weeklyWage,
       assistantWeeklyWage: Math.round(source.coachCandidates[0].weeklyWage / 2),
     });
+  });
+
+  it('disables starting promises with a translated reason when the Hero Licenses are full', () => {
+    const initial = fullCareer(20260808);
+    const target = initial.players.find(player => player.clubId !== initial.userClubId)!;
+    const licensedIds = new Set(initial.players
+      .filter(player => player.clubId === initial.userClubId)
+      .slice(0, 2)
+      .map(player => player.id));
+    const state: GameState = {
+      ...initial,
+      players: initial.players.map(player => {
+        if (player.id === target.id) {
+          return { ...player, power: 'FIRE_TORCH' as never, licensed: false };
+        }
+        return licensedIds.has(player.id)
+          ? { ...player, power: 'FIRE_TORCH' as never, licensed: true }
+          : player;
+      }),
+    };
+    const poweredTarget = state.players.find(player => player.id === target.id)!;
+    const scouted: CareerMarketState = {
+      ...state.market!,
+      scoutReports: [exactReport(poweredTarget)],
+    };
+    const talks = beginCareerTransferTalks(state, scouted, poweredTarget.id, 5);
+    const t = copyFor('vi');
+
+    const visible = marketViewModel(careerMarketViewModelSource(state, talks, t), t);
+    const starter = visible.negotiation?.perks.find(perk => perk.id === 'GUARANTEED_STARTER');
+    const captaincy = visible.negotiation?.perks.find(perk => perk.id === 'CAPTAINCY');
+
+    expect(starter).toMatchObject({
+      available: false,
+      blockedReason: t('market.promiseBlockedHeroLicense', { player: poweredTarget.name }),
+    });
+    expect(captaincy).toMatchObject({ available: false });
+    expect(starter?.blockedReason).not.toContain('No Hero License is free');
+    expect(contractDraftPerk(visible.negotiation)).toBe('TRAINING_PRIORITY');
   });
 
   it('passes the employed head coach through so the shortlist can lock replacement hires', () => {

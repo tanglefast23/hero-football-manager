@@ -53,6 +53,11 @@ import type {
 } from '../ui/market-models';
 import { coachRoleEffectLabels } from './coach-effects';
 import { coachWeeklyWageForRole } from '../game/market-career';
+import {
+  careerContractPromiseBlockedReason,
+  type ContractPromiseBlockedReason,
+} from '../game/contract-promises';
+import type { CareerPlayer, GameState } from '../game/types';
 import { copyFor, type CopyFn } from '../i18n';
 
 /**
@@ -122,6 +127,12 @@ export interface NegotiationViewSource {
   readonly maxTermSeasons?: 1 | 2 | 3;
   /** Only needed to phrase the short-term line; omitted, the line is dropped. */
   readonly playerAge?: number;
+  /** Live career facts used to disable promises the club cannot honour. */
+  readonly contractPromiseContext?: {
+    readonly state: GameState;
+    readonly player: CareerPlayer;
+    readonly heroLimit: number;
+  };
 }
 
 export interface YouthIntakeViewSource {
@@ -249,13 +260,30 @@ function isKnownPersonality(personality: PlayerPersonality): boolean {
 function perkViewModels(
   t: CopyFn,
   personality: PlayerPersonality,
+  context?: NegotiationViewSource['contractPromiseContext'],
 ): readonly ContractPerkViewModel[] {
-  return PERK_COPY_KEYS.map(perk => ({
-    id: perk.id,
-    label: t(perk.label),
-    detail: t(perk.detail),
-    gradeLabel: perkGradeLabel(perk.id, t, personality),
-  }));
+  return PERK_COPY_KEYS.map(perk => {
+    const blocked = context === undefined
+      ? undefined
+      : careerContractPromiseBlockedReason(
+          context.state,
+          context.player,
+          perk.id,
+          context.heroLimit,
+        );
+    return {
+      id: perk.id,
+      label: t(perk.label),
+      detail: t(perk.detail),
+      gradeLabel: perkGradeLabel(perk.id, t, personality),
+      available: blocked === undefined,
+      ...(blocked === undefined ? {} : { blockedReason: blockedReasonCopy(t, blocked) }),
+    };
+  });
+}
+
+function blockedReasonCopy(t: CopyFn, blocked: ContractPromiseBlockedReason): string {
+  return copyOrEnglish(t, blocked.key, blocked.text, blocked.params);
 }
 
 /**
@@ -699,6 +727,21 @@ export function offerQuoteKey(
     : `${termSeasons}:${perk}:${pitchCard}`;
 }
 
+/** The saved choice when legal, otherwise the first promise this panel can submit. */
+export function contractDraftPerk(
+  viewModel: Pick<MarketNegotiationViewModel, 'perks'> | undefined,
+  preferred?: ContractPerk,
+): ContractPerk {
+  if (preferred !== undefined && (
+    viewModel === undefined
+    || viewModel.perks.some(perk => perk.id === preferred && perk.available)
+  )) return preferred;
+  return viewModel?.perks.find(perk => perk.available)?.id
+    ?? viewModel?.perks[0]?.id
+    ?? preferred
+    ?? 'GUARANTEED_STARTER';
+}
+
 /**
  * Every wage the manager could be told to offer, precomputed.
  *
@@ -819,7 +862,7 @@ export function marketNegotiationViewModel(
         affinity: affinity === 1 ? 'LOVED' : affinity === -1 ? 'HATED' : 'NEUTRAL',
       } satisfies PitchCardViewModel;
     }),
-    perks: perkViewModels(t, negotiation.personality),
+    perks: perkViewModels(t, negotiation.personality, source.contractPromiseContext),
     termOptions: contractTermOptions(maxTermSeasons),
     ...(maxTermSeasons >= 3 || source.playerAge === undefined ? {} : {
       shortTermReason: resolveRingCopy(t, shortContractReasonCopy(source.playerAge, maxTermSeasons)),
