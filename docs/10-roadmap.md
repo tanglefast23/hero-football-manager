@@ -71,7 +71,7 @@ The second existential question — "does *managing heroes* stay fun across seas
 ## M5 — Beta & launch (2 weeks)
 
 - TestFlight via the house local-Xcode pipeline; 2 feedback rounds.
-- Store listing (name decision, screenshots, $0.99), privacy labels (trivial: no data collected).
+- Store listing (name decision, screenshots, US$3.99), privacy labels (trivial: no data collected).
 - Launch iOS. Android + PC spike scheduling based on reception.
 
 ## Top risks

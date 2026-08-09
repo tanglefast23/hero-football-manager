@@ -2,7 +2,7 @@
 
 A cozy, Kairosoft-style soccer club management sim where some of your players are secretly superheroes. Manage a lower-league club — train players, balance the books, upgrade your grounds — and watch short, charming, auto-played matches where superpowers fire with comic-book spectacle. Build the squad, set the shape, and watch your heroes turn a match.
 
-**Platform:** iOS first (paid, ~$0.99), Android next, PC (Steam/web) later.
+**Platform:** iOS first (paid, US$3.99), Android next, PC (Steam/web) later.
 **Art:** "Heroic chibi" pixel art (B+) — big readable heads, taller bodies for real customization, comic-book effects when powers fire, broadcast-style match dressing.
 
 ## Running it (dev)
@@ -116,7 +116,7 @@ Research reports (source material, written by research agents):
 | Match involvement | Matches auto-play and powers always fire automatically in their authored context — there is no manual hero tap. The player's live controls are Formation, Playstyle, Swap, and Energy Use |
 | Match effort | Playstyle controls tactical intent; Save Energy / Balanced / All Out controls physical effort, movement, and condition drain without directly changing passing or shooting |
 | Career structure | Climb from D5 · District League to D1 · Global League; win **both** D1 and the Hero Cup to complete the main journey, then continue endlessly; the career record is kept in the Hall of Fame |
-| Business model | Paid app, ~$0.99, no IAP at launch; economy balanced purely for fun |
+| Business model | Paid app, US$3.99, no IAP at launch; economy balanced purely for fun |
 | Art direction | B+ "heroic chibi" pixel art + comic FX layer + broadcast match dressing |
 | Character homages | Three caricature sets sit at the end of the field-look pool: 19 football legends (f140–f158), 9 current stars (f159–f167), and 15 superheroes (f168–f182, on the wider `hero` build). Each exaggerates one generic cue — a hairstyle, a beard, a cowl, a visor — and never a costume: the uniform is always the club kit. Real names live only in `SUPERHERO_HOMAGE_IDENTITIES` and the preview scripts as development references; in-game identities are fictional. Contact sheets in `art/*-preview.svg` |
 | Opening music | **“Heroes Start Here”** — original 128 BPM title-screen fanfare and seamless chiptune loop |
