@@ -14,6 +14,9 @@ import {
 } from './player-art-roster.mjs';
 
 const sprites = {};
+const rearHeads = Object.fromEntries(FIELD_PLAYER_LOOKS.flatMap(look => (
+  look.rearHead === undefined ? [] : [[look.id, look.rearHead]]
+)));
 for (const side of ['r', 'u']) {
   for (const look of FIELD_PLAYER_LOOKS) {
     sprites[`${side}:${look.id}:run0`] = makeMatchPlayer(look, side, 0);
@@ -40,11 +43,21 @@ sprites.ball = ['.KKKK.', 'KKWWWK', 'KWKKWK', 'KWKKWK', 'KWWWKK', '.KKKK.'];
 
 validateSprites();
 const out = resolve(dirname(fileURLToPath(import.meta.url)), '../src/render/sprites/sprites.json');
-writeFileSync(out, `${JSON.stringify({ cell: PLAYER_CELL, palette: PLAYER_PALETTE, sprites }, null, 2)}\n`);
+writeFileSync(out, `${JSON.stringify({ cell: PLAYER_CELL, palette: PLAYER_PALETTE, rearHeads, sprites }, null, 2)}\n`);
 console.log(`wrote ${Object.keys(sprites).length} base sprites for ${FIELD_PLAYER_LOOKS.length + GOALKEEPER_LOOKS.length + CREATED_PLAYER_LOOKS.length} unique player looks`);
 
 function validateSprites() {
   if (Object.keys(PLAYER_PALETTE).length > 26) throw new Error('player palette exceeds 26 keys');
+  for (const [lookId, style] of Object.entries(rearHeads)) {
+    for (const token of [style.head, style.lower, ...(style.bands ?? []).map(band => band.token)]) {
+      if (!(token in PLAYER_PALETTE)) throw new Error(`${lookId} rear head uses ${token}`);
+    }
+    for (const band of style.bands ?? []) {
+      if (!Number.isInteger(band.row) || band.row < 7 || band.row > 12) {
+        throw new Error(`${lookId} rear head band row must be from 7 to 12`);
+      }
+    }
+  }
   // The hero build and the hero face box are one decision, and `shape` is the
   // half that is easy to leave off: a look with only `build: 'hero'` renders a
   // 12-wide head on a 14-wide torso, which reads as a pinhead rather than as a

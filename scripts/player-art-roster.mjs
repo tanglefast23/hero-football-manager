@@ -264,21 +264,26 @@ const FOOTBALL_HOMAGE_FIELD_LOOKS = [
 // exaggerates one generic cue (a cowl, a visor, a hairstyle, a beard) on the
 // wider 'hero' build and face box.
 const SUPERHERO_HOMAGE_FIELD_LOOKS = [
-  { id: 'f168', role: 'field', skin: 'fair', hair: 'dark', feature: 'hero-cowl', build: 'hero', shape: 'hero', face: 4, mouth: 'grit' },
-  { id: 'f169', role: 'field', skin: 'fair', hair: 'dark', feature: 'hero-spitcurl', build: 'hero', shape: 'hero', face: 0, mouth: 'toothsmile' },
-  { id: 'f170', role: 'field', skin: 'brown', hair: 'black', feature: 'hero-tiara', build: 'hero', shape: 'hero', face: 3 },
-  { id: 'f171', role: 'field', skin: 'warm', hair: 'dark', feature: 'hero-boltcrown', build: 'hero', shape: 'hero', face: 0, mouth: 'toothsmile' },
-  { id: 'f172', role: 'field', skin: 'warm', hair: 'black', feature: 'hero-webmask', build: 'hero', shape: 'hero', face: 0, mouth: 'smile' },
-  { id: 'f173', role: 'field', skin: 'brown', hair: 'platinum', feature: 'hero-faceplate', build: 'hero', shape: 'hero', face: 4 },
-  { id: 'f174', role: 'field', skin: 'fair', hair: 'blond', feature: 'hero-winghelm', build: 'hero', shape: 'hero', face: 1, mouth: 'grit' },
-  { id: 'f175', role: 'field', skin: 'fair', hair: 'blond', feature: 'hero-thundermane', build: 'hero', shape: 'hero', face: 4, mouth: 'toothsmile' },
-  { id: 'f176', role: 'field', skin: 'gamma', hair: 'black', feature: 'hero-gammamop', build: 'hero', shape: 'hero', face: 1, eyes: 'beady', mouth: 'grit' },
-  { id: 'f177', role: 'field', skin: 'warm', hair: 'black', feature: 'hero-clawpeaks', build: 'hero', shape: 'hero', face: 1, mouth: 'grit' },
-  { id: 'f178', role: 'field', skin: 'brown', hair: 'brown', feature: 'hero-visor', build: 'hero', shape: 'hero', face: 2 },
-  { id: 'f179', role: 'field', skin: 'fair', hair: 'grey', feature: 'hero-sorcerer', build: 'hero', shape: 'hero', face: 4 },
-  { id: 'f180', role: 'field', skin: 'deep', hair: 'black', feature: 'hero-pantherhood', build: 'hero', shape: 'hero', face: 3 },
-  { id: 'f181', role: 'field', skin: 'warm', hair: 'blond', feature: 'hero-tidemane', build: 'hero', shape: 'hero', face: 4, eyes: 'narrow' },
-  { id: 'f182', role: 'field', skin: 'fair', hair: 'blond', feature: 'hero-greenhood', build: 'hero', shape: 'hero', face: 2, mouth: 'smile' },
+  // `rearHead` is authored with the feature, because a pixel heuristic cannot
+  // tell black cowl fill from black outline or a visor from ordinary hair. The
+  // loader keeps rows 0-6 (ears, wings, tiara and crown silhouettes), fills the
+  // rear head through row 12, then the lower head through row 14. Bands are
+  // wrap-around details that remain visible from behind.
+  { id: 'f168', role: 'field', skin: 'fair', hair: 'dark', feature: 'hero-cowl', build: 'hero', shape: 'hero', face: 4, mouth: 'grit', rearHead: { head: 'K', lower: 'S' } },
+  { id: 'f169', role: 'field', skin: 'fair', hair: 'dark', feature: 'hero-spitcurl', build: 'hero', shape: 'hero', face: 0, mouth: 'toothsmile', rearHead: { head: 'x', lower: 'S' } },
+  { id: 'f170', role: 'field', skin: 'brown', hair: 'black', feature: 'hero-tiara', build: 'hero', shape: 'hero', face: 3, rearHead: { head: 'K', lower: 'm' } },
+  { id: 'f171', role: 'field', skin: 'warm', hair: 'dark', feature: 'hero-boltcrown', build: 'hero', shape: 'hero', face: 0, mouth: 'toothsmile', rearHead: { head: 'o', lower: 'n' } },
+  { id: 'f172', role: 'field', skin: 'warm', hair: 'black', feature: 'hero-webmask', build: 'hero', shape: 'hero', face: 0, mouth: 'smile', rearHead: { head: 'r', lower: 'n' } },
+  { id: 'f173', role: 'field', skin: 'brown', hair: 'platinum', feature: 'hero-faceplate', build: 'hero', shape: 'hero', face: 4, rearHead: { head: 'A', lower: 'A' } },
+  { id: 'f174', role: 'field', skin: 'fair', hair: 'blond', feature: 'hero-winghelm', build: 'hero', shape: 'hero', face: 1, mouth: 'grit', rearHead: { head: 'b', lower: 'S' } },
+  { id: 'f175', role: 'field', skin: 'fair', hair: 'blond', feature: 'hero-thundermane', build: 'hero', shape: 'hero', face: 4, mouth: 'toothsmile', rearHead: { head: 'z', lower: 'z' } },
+  { id: 'f176', role: 'field', skin: 'gamma', hair: 'black', feature: 'hero-gammamop', build: 'hero', shape: 'hero', face: 1, eyes: 'beady', mouth: 'grit', rearHead: { head: 'K', lower: 'T' } },
+  { id: 'f177', role: 'field', skin: 'warm', hair: 'black', feature: 'hero-clawpeaks', build: 'hero', shape: 'hero', face: 1, mouth: 'grit', rearHead: { head: 'K', lower: 'n' } },
+  { id: 'f178', role: 'field', skin: 'brown', hair: 'brown', feature: 'hero-visor', build: 'hero', shape: 'hero', face: 2, rearHead: { head: 'y', lower: 'm', bands: [{ row: 8, token: 'R' }, { row: 9, token: 'r' }] } },
+  { id: 'f179', role: 'field', skin: 'fair', hair: 'grey', feature: 'hero-sorcerer', build: 'hero', shape: 'hero', face: 4, rearHead: { head: 'g', lower: 'S' } },
+  { id: 'f180', role: 'field', skin: 'deep', hair: 'black', feature: 'hero-pantherhood', build: 'hero', shape: 'hero', face: 3, rearHead: { head: 'K', lower: 'd' } },
+  { id: 'f181', role: 'field', skin: 'warm', hair: 'blond', feature: 'hero-tidemane', build: 'hero', shape: 'hero', face: 4, eyes: 'narrow', rearHead: { head: 'z', lower: 'z' } },
+  { id: 'f182', role: 'field', skin: 'fair', hair: 'blond', feature: 'hero-greenhood', build: 'hero', shape: 'hero', face: 2, mouth: 'smile', rearHead: { head: 'T', lower: 'T' } },
 ];
 
 /**
