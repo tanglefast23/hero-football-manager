@@ -64,6 +64,8 @@ export interface ChunkyControlProps extends BaseProps {
   tone?: ChunkyControlTone;
   compact?: boolean;
   square?: boolean;
+  /** Keeps the unavailable look while still allowing a press to explain why. */
+  visuallyDisabled?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -77,11 +79,13 @@ export function ChunkyControl({
   compact = false,
   square = false,
   disabled = false,
+  visuallyDisabled = false,
   className,
   style,
   ...props
 }: ChunkyControlProps) {
-  const ramp = disabled
+  const unavailable = disabled || visuallyDisabled;
+  const ramp = unavailable
     ? { face: 'bg-grey', light: 'bg-grey-light', lip: 'bg-grey-dark' }
     : CHUNKY_CONTROL_RAMP[tone];
 
@@ -94,14 +98,14 @@ export function ChunkyControl({
         square ? 'rounded-none' : 'rounded-lg',
         compact ? 'py-2' : 'py-3',
         ramp.face,
-        disabled && 'opacity-60',
+        unavailable && 'opacity-60',
         className,
       )}
       style={[{ minHeight: 44 }, style]}
     >
       {({ pressed }) => (
         <>
-          {!pressed && !disabled ? (
+          {!pressed && !unavailable ? (
             <View
               pointerEvents="none"
               className={cx(

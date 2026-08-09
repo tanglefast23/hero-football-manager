@@ -1,4 +1,8 @@
 import { countUpValue } from '../count-up';
+import {
+  DRILL_PRESENTATION_SPEED,
+  drillPresentationMs,
+} from '../../render/drill-presentation-timing';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -16,6 +20,13 @@ describe('countUpValue', () => {
     );
     expect(frames).toEqual([...frames].sort((left, right) => left - right));
     expect(frames[2]).toBeGreaterThan(500);
+  });
+
+  it('runs non-player drill presentation beats 25% faster', () => {
+    expect(DRILL_PRESENTATION_SPEED).toBe(1.25);
+    expect(drillPresentationMs(2_200)).toBe(1_760);
+    expect(drillPresentationMs(1_400)).toBe(1_120);
+    expect(drillPresentationMs(3_400)).toBe(2_720);
   });
 
   it('keeps weekly money/TP animated, and drills counting up in the drill scene', () => {
@@ -53,9 +64,24 @@ describe('countUpValue', () => {
     // itself appears once, in the following full-screen result takeover.
     expect(scene).not.toContain('gainDelta');
     expect(scene).not.toContain('+{after - before} {shortCode}');
-    // Both possible result takeovers hold 0.2s longer than their previous
-    // 1.2s/3.2s durations.
-    expect(gainReveal).toContain('DRILL_GAIN_REVEAL_MS = 1_400');
-    expect(superCelebration).toContain('SUPER_CELEBRATION_MS = 3400');
+    // The count, scene, and both result takeovers share the 1.25x presentation
+    // clock. The stage keeps its own unscaled real-time player movement.
+    expect(scene).toContain('DRILL_SCENE_MS = drillPresentationMs(2_200)');
+    expect(scene).toContain('COUNT_UP_MS = drillPresentationMs(1_400)');
+    expect(scene).toContain(
+      'setInterval(() => setSpriteFrame((frame) => frame + 1), 130)',
+    );
+    expect(scene).toContain(
+      'elapsed.value = (info.timestamp - startedAt.value) / 1000',
+    );
+    expect(gainReveal).toContain(
+      'DRILL_GAIN_REVEAL_MS = drillPresentationMs(1_400)',
+    );
+    expect(superCelebration).toContain(
+      'SUPER_CELEBRATION_MS = drillPresentationMs(3_400)',
+    );
+    expect(popup).toContain(
+      'PRESENTATION_SETTLE_MS = drillPresentationMs(350)',
+    );
   });
 });

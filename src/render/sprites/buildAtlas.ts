@@ -130,8 +130,13 @@ export function buildSpriteAtlas(
     paintByColor.set(color, paint);
     return paint;
   };
-  const colorAt = (line: string, col: number): string | null | undefined =>
-    paletteOverrides?.[line[col]] ?? sheet.palette[line[col]];
+  const colorAt = (
+    key: string,
+    line: string,
+    row: number,
+    col: number,
+  ): string | null | undefined =>
+    atlasPixelColor(key, row, line[col], sheet.palette, paletteOverrides);
 
   for (const key of Object.keys(sheet.sprites)) {
     const { x: originX, y: originY } = layout.rectFor(key);
@@ -140,7 +145,7 @@ export function buildSpriteAtlas(
       const line = rows[row];
       let col = 0;
       while (col < line.length) {
-        const color = colorAt(line, col);
+        const color = colorAt(key, line, row, col);
         // "." (or any null palette entry) is transparent — leave unpainted
         if (!color) {
           col += 1;
@@ -150,7 +155,10 @@ export function buildSpriteAtlas(
         // Sprite rows are mostly flat bands, so this is a ~4-5x cut in draw calls
         // and produces byte-identical output.
         let run = 1;
-        while (col + run < line.length && colorAt(line, col + run) === color)
+        while (
+          col + run < line.length &&
+          colorAt(key, line, row, col + run) === color
+        )
           run += 1;
         canvas.drawRect(
           pixelRunRect(originX + col, originY + row, run),
@@ -172,6 +180,28 @@ export function buildSpriteAtlas(
   }
   atlasCache.set(cacheKey, built);
   return built;
+}
+
+/**
+ * Resolves one sprite pixel without letting a jersey palette recolour a face.
+ *
+ * Home-kit pixels occupy rows 16-23 in every authored player frame. Special
+ * heads reuse some of the same red/blue palette tokens above that boundary;
+ * applying overrides by token alone changed their helmets, masks, and hair.
+ */
+export function atlasPixelColor(
+  spriteKey: string,
+  row: number,
+  token: string,
+  palette: Readonly<Record<string, string | null>>,
+  paletteOverrides?: Readonly<Record<string, string>>,
+): string | null | undefined {
+  const isHomeJerseyPixel =
+    spriteKey.startsWith('r:') && row >= 16 && row <= 23;
+  return (
+    (isHomeJerseyPixel ? paletteOverrides?.[token] : undefined) ??
+    palette[token]
+  );
 }
 
 /**

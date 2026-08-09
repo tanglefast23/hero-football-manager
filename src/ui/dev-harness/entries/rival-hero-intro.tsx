@@ -17,7 +17,7 @@ const content = loadLaunchContent();
 export const RIVAL_HERO_INTRO_CASES = [
   {
     id: 'barry-allan',
-    label: 'Barry',
+    label: 'Larry',
     heroId: 'special-f171',
     note: 'D5 · Super Speed · tutorial teaser',
   },

@@ -102,6 +102,32 @@ describe('overlay dismissal', () => {
     expect(overlay).toContain('const next = lineIndexRef.current + 1');
   });
 
+  it('walks at double speed and uses the first entry tap only to present the speech', () => {
+    const overlay = source('src/ui/CharacterSpeechOverlay.tsx');
+
+    expect(overlay).toContain('const WALK_PX_PER_S = 248 * 2;');
+    expect(overlay).toContain(
+      '(!speechReadyRef.current && lineIndexRef.current === 0)',
+    );
+    expect(overlay).toContain('travel.setValue(restLeft);');
+    expect(overlay).toContain('markSpeechReady(true);');
+    expect(overlay).toContain("moveToPhase('leaving');");
+    expect(overlay).toContain('const animation = Animated.parallel([');
+  });
+
+  it('lets a tap finish later typing lines during their delivery pop', () => {
+    const overlay = source('src/ui/CharacterSpeechOverlay.tsx');
+    const entrySnapGuard = overlay.slice(
+      overlay.indexOf('const advance = useCallback'),
+      overlay.indexOf("if (activePhase === 'leaving')"),
+    );
+
+    expect(entrySnapGuard).toContain('lineIndexRef.current === 0');
+    expect(entrySnapGuard).not.toContain(
+      "activePhase === 'arriving' || !speechReadyRef.current",
+    );
+  });
+
   /**
    * The typewriter commits once per character, every 10-30ms. Held as overlay
    * state that repainted the sprite, the shadow and the dots on every letter —
@@ -155,7 +181,7 @@ describe('overlay dismissal', () => {
       /<CharacterSpeechOverlay[\s\S]*?\n\s+typewriter\n/,
     );
     expect(overlay).toContain("reduce || instant ? 'speaking' : 'arriving'");
-    expect(overlay).toContain('if (instant) {');
+    expect(overlay).toContain('if (instant || reduce || speechReady) {');
     expect(overlay).toContain('onDone();');
   });
 });

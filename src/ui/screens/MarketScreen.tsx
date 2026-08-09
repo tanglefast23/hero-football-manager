@@ -51,6 +51,10 @@ import {
   offerQuoteKey,
 } from '../../application/market-view-model';
 import { useCopy } from '../../i18n';
+import {
+  GuidanceDoubleFlash,
+  type GuidanceNudgeTarget,
+} from '../GuidanceDoubleFlash';
 
 export interface MarketScreenProps {
   readonly viewModel: MarketViewModel;
@@ -75,6 +79,9 @@ export interface MarketScreenProps {
   readonly requestedSectionToken?: number;
   readonly lockedSection?: MarketSectionId;
   readonly onBlockedSectionChange?: () => void;
+  readonly guidanceNudgeTarget?: GuidanceNudgeTarget;
+  readonly guidanceNudgeToken?: number;
+  readonly reduceMotion?: boolean;
 }
 
 const MIN_GUIDE_SCROLL_DISTANCE = 24;
@@ -111,6 +118,9 @@ export function MarketScreen({
   requestedSectionToken,
   lockedSection,
   onBlockedSectionChange,
+  guidanceNudgeTarget,
+  guidanceNudgeToken,
+  reduceMotion = false,
 }: MarketScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
@@ -330,6 +340,16 @@ export function MarketScreen({
           }
           setSection(nextSection);
         }}
+        flashTabId={
+          guidanceNudgeTarget === 'youth-intake' && section !== 'YOUTH'
+            ? 'YOUTH'
+            : guidanceNudgeTarget === 'head-coach-market' &&
+                section !== 'COACHES'
+              ? 'COACHES'
+              : undefined
+        }
+        flashToken={guidanceNudgeToken}
+        reduceMotion={reduceMotion}
       />
     </View>
   );
@@ -340,6 +360,9 @@ export function MarketScreen({
       onSignYouth={onSignYouth}
       onDeclineYouth={onDeclineYouth}
       guideFocus={visibleGuideFocus}
+      guidanceNudgeTarget={guidanceNudgeTarget}
+      guidanceNudgeToken={guidanceNudgeToken}
+      reduceMotion={reduceMotion}
     />
   ) : null;
   const scoutDesk = scoutSectionVisible ? (
@@ -359,7 +382,13 @@ export function MarketScreen({
     />
   ) : null;
   const coachDesk = coachSectionVisible ? (
-    <CoachDesk viewModel={viewModel} onHireCoach={onHireCoach} />
+    <CoachDesk
+      viewModel={viewModel}
+      onHireCoach={onHireCoach}
+      guidanceNudgeTarget={guidanceNudgeTarget}
+      guidanceNudgeToken={guidanceNudgeToken}
+      reduceMotion={reduceMotion}
+    />
   ) : null;
 
   /** Only the chosen board is on the desk, so its weight is the one that counts. */
@@ -480,15 +509,32 @@ function YouthDesk({
   onSignYouth,
   onDeclineYouth,
   guideFocus,
+  guidanceNudgeTarget,
+  guidanceNudgeToken,
+  reduceMotion,
 }: Pick<
   MarketScreenProps,
-  'viewModel' | 'onSignYouth' | 'onDeclineYouth' | 'guideFocus'
+  | 'viewModel'
+  | 'onSignYouth'
+  | 'onDeclineYouth'
+  | 'guideFocus'
+  | 'guidanceNudgeTarget'
+  | 'guidanceNudgeToken'
+  | 'reduceMotion'
 >) {
   const t = useCopy();
   const intake = viewModel.youth;
   if (intake === undefined) return null;
   return (
     <View className="relative overflow-hidden border-[3px] border-ink bg-pitch-ink p-4">
+      <GuidanceDoubleFlash
+        trigger={
+          guidanceNudgeTarget === 'youth-intake'
+            ? guidanceNudgeToken
+            : undefined
+        }
+        reduceMotion={reduceMotion}
+      />
       {/* The academy gets its own chalkboard stage inside the market desk. */}
       <View
         pointerEvents="none"
@@ -1065,8 +1111,21 @@ function TransferDesk({
 function CoachDesk({
   viewModel,
   onHireCoach,
-}: Pick<MarketScreenProps, 'viewModel' | 'onHireCoach'>) {
+  guidanceNudgeTarget,
+  guidanceNudgeToken,
+  reduceMotion,
+}: Pick<
+  MarketScreenProps,
+  | 'viewModel'
+  | 'onHireCoach'
+  | 'guidanceNudgeTarget'
+  | 'guidanceNudgeToken'
+  | 'reduceMotion'
+>) {
   const t = useCopy();
+  const firstAvailableHeadCoachId = viewModel.coaches.find(
+    (coach) => coach.headAvailable,
+  )?.id;
   return (
     <View>
       <SectionLabel
@@ -1215,6 +1274,13 @@ function CoachDesk({
                     })}
                     disabled={!coach.headAvailable}
                     onPress={() => onHireCoach(coach.id, 'HEAD')}
+                    flashToken={
+                      guidanceNudgeTarget === 'head-coach-market' &&
+                      coach.id === firstAvailableHeadCoachId
+                        ? guidanceNudgeToken
+                        : undefined
+                    }
+                    reduceMotion={reduceMotion}
                   />
                   <SmallAction
                     label={t('market.hireAsAssistant')}
@@ -1923,11 +1989,15 @@ function SmallAction({
   accessibilityLabel,
   disabled,
   onPress,
+  flashToken,
+  reduceMotion = false,
 }: {
   label: string;
   accessibilityLabel: string;
   disabled: boolean;
   onPress: () => void;
+  flashToken?: number;
+  reduceMotion?: boolean;
 }) {
   return (
     <Pressable
@@ -1938,13 +2008,14 @@ function SmallAction({
       onPress={onPress}
       className={
         disabled
-          ? 'min-h-11 min-w-24 items-center justify-center border-2 border-ink/20 bg-ink/5 px-3'
-          : 'min-h-11 min-w-24 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-3'
+          ? 'relative min-h-11 min-w-24 items-center justify-center border-2 border-ink/20 bg-ink/5 px-3'
+          : 'relative min-h-11 min-w-24 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-3'
       }
       style={({ pressed }) => ({
         transform: [{ translateY: pressed && !disabled ? 2 : 0 }],
       })}
     >
+      <GuidanceDoubleFlash trigger={flashToken} reduceMotion={reduceMotion} />
       <PixelText
         className={
           disabled

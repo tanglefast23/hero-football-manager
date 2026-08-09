@@ -31,7 +31,9 @@ import { useReducedMotion } from './use-reduced-motion';
 
 /** How far in from the right edge a character comes to rest. */
 const PENETRATION = 1 / 5;
-const WALK_PX_PER_S = 248;
+/** The original 248 px/s read as a wait. Walk-ons now cross the same distance
+ *  in half the time while keeping the authored linear stride. */
+const WALK_PX_PER_S = 248 * 2;
 /** Lean into the line, and stand back up before leaving. */
 const SPEAK_TILT_DEG = -6;
 const TILT_MS = 200;
@@ -205,9 +207,24 @@ export function CharacterSpeechOverlay({
   const { width: viewportWidth, height: viewportHeight } =
     useWindowDimensions();
   const reduce = useReducedMotion(reduceMotion);
-  const [phase, setPhase] = useState<Phase>(
-    reduce || instant ? 'speaking' : 'arriving',
-  );
+  const initialPhase: Phase = reduce || instant ? 'speaking' : 'arriving';
+  const [phase, setPhase] = useState<Phase>(initialPhase);
+  // A ref makes two fast taps observe each other's phase change even when React
+  // batches both events before the next render.
+  const phaseRef = useRef<Phase>(initialPhase);
+  const moveToPhase = useCallback((next: Phase) => {
+    phaseRef.current = next;
+    setPhase(next);
+  }, []);
+  // `speaking` starts before the settle/pop animation is complete. Keeping that
+  // visual readiness separate prevents a tap in the gap from dismissing a line
+  // the player has not seen yet.
+  const [speechReady, setSpeechReady] = useState(reduce || instant);
+  const speechReadyRef = useRef(reduce || instant);
+  const markSpeechReady = useCallback((ready: boolean) => {
+    speechReadyRef.current = ready;
+    setSpeechReady(ready);
+  }, []);
   const [lineIndex, setLineIndex] = useState(0);
   const [bubbleWidth, setBubbleWidth] = useState(0);
   const [bubbleHeight, setBubbleHeight] = useState(0);
@@ -317,18 +334,19 @@ export function CharacterSpeechOverlay({
       useNativeDriver: true,
     });
     animation.start(({ finished }) => {
-      if (finished) setPhase('speaking');
+      if (finished) moveToPhase('speaking');
     });
     return () => animation.stop();
-  }, [instant, offRight, phase, reduce, restLeft, travel, walkMs]);
+  }, [instant, moveToPhase, offRight, phase, reduce, restLeft, travel, walkMs]);
 
   // Lean in and pop the bubble once they are standing still; both reset between
   // lines so every paragraph gets the same little delivery.
   useEffect(() => {
     if (phase !== 'speaking') return undefined;
-    if (instant) {
+    if (instant || reduce || speechReady) {
       lean.setValue(1);
       pop.setValue(1);
+      if (!speechReady) markSpeechReady(true);
       return undefined;
     }
     lean.setValue(0);
@@ -350,9 +368,20 @@ export function CharacterSpeechOverlay({
         }),
       ]),
     ]);
-    animation.start();
+    animation.start(({ finished }) => {
+      if (finished) markSpeechReady(true);
+    });
     return () => animation.stop();
-  }, [instant, lean, lineIndex, phase, pop, reduce]);
+  }, [
+    instant,
+    lean,
+    lineIndex,
+    markSpeechReady,
+    phase,
+    pop,
+    reduce,
+    speechReady,
+  ]);
 
   // Type Bert's current line. The full invisible remainder stays in the Text
   // node below, so the bubble takes its final size once instead of twitching
@@ -391,7 +420,7 @@ export function CharacterSpeechOverlay({
     // the text with the bubble rather than typing several hidden characters.
     timer = setTimeout(
       revealNextCharacter,
-      instant || lineIndex > 0 ? 0 : SETTLE_MS,
+      instant || speechReadyRef.current || lineIndex > 0 ? 0 : SETTLE_MS,
     );
     return () => {
       if (timer !== null) clearTimeout(timer);
@@ -409,7 +438,9 @@ export function CharacterSpeechOverlay({
   // Leave.
   useEffect(() => {
     if (phase !== 'leaving') return undefined;
-    const animation = Animated.sequence([
+    // Stand up and leave together. A dismissal now starts visible movement in
+    // the same frame instead of spending 200 ms upright before walking.
+    const animation = Animated.parallel([
       Animated.timing(lean, {
         toValue: 0,
         duration: reduce ? 0 : TILT_MS,
@@ -430,14 +461,23 @@ export function CharacterSpeechOverlay({
   }, [lean, offRight, onDone, phase, reduce, restLeft, travel, walkMs]);
 
   const advance = useCallback(() => {
-    if (phase === 'arriving') {
-      // Never make the first tap a wasted one: skipping the walk should land
-      // them on their mark, not swallow the tap that was meant to read a line.
+    const activePhase = phaseRef.current;
+    if (
+      activePhase === 'arriving' ||
+      (!speechReadyRef.current && lineIndexRef.current === 0)
+    ) {
+      // The first tap during entry or the settle beat completes the whole
+      // presentation: character on mark, bubble open, speech ready to read.
+      // Later lines are already typing while their delivery pop completes, so
+      // their first tap must still finish the visible text instead of vanishing.
       travel.setValue(restLeft);
-      setPhase('speaking');
+      lean.setValue(1);
+      pop.setValue(1);
+      markSpeechReady(true);
+      if (activePhase === 'arriving') moveToPhase('speaking');
       return;
     }
-    if (phase === 'leaving') return;
+    if (activePhase === 'leaving') return;
 
     const currentLineIndex = lineIndexRef.current;
     const currentLine = lines[currentLineIndex] ?? '';
@@ -460,6 +500,7 @@ export function CharacterSpeechOverlay({
     const next = lineIndexRef.current + 1;
     if (next < lines.length) {
       lineIndexRef.current = next;
+      markSpeechReady(false);
       const nextLine = lines[next] ?? '';
       publishReveal({
         lineIndex: next,
@@ -476,8 +517,21 @@ export function CharacterSpeechOverlay({
       }
       return;
     }
-    setPhase('leaving');
-  }, [instant, lines, onDone, phase, reduce, restLeft, travel, typewriter]);
+    moveToPhase('leaving');
+  }, [
+    instant,
+    lean,
+    lines,
+    markSpeechReady,
+    moveToPhase,
+    onDone,
+    pop,
+    publishReveal,
+    reduce,
+    restLeft,
+    travel,
+    typewriter,
+  ]);
 
   const previousAdvanceSignalRef = useRef(advanceSignal);
   useEffect(() => {
@@ -504,8 +558,9 @@ export function CharacterSpeechOverlay({
   useEffect(() => {
     if (!reduce || phase !== 'arriving') return;
     travel.setValue(restLeft);
-    setPhase('speaking');
-  }, [phase, reduce, restLeft, travel]);
+    markSpeechReady(true);
+    moveToPhase('speaking');
+  }, [markSpeechReady, moveToPhase, phase, reduce, restLeft, travel]);
 
   /**
    * Keep them on their mark when the window changes size.
@@ -529,12 +584,20 @@ export function CharacterSpeechOverlay({
     if (
       autoAdvanceMs === undefined ||
       phase !== 'speaking' ||
+      !speechReady ||
       !lineFullyRevealed
     )
       return undefined;
     const timer = setTimeout(advance, autoAdvanceMs);
     return () => clearTimeout(timer);
-  }, [advance, autoAdvanceMs, lineFullyRevealed, lineIndex, phase]);
+  }, [
+    advance,
+    autoAdvanceMs,
+    lineFullyRevealed,
+    lineIndex,
+    phase,
+    speechReady,
+  ]);
 
   const onBubbleLayout = useCallback((event: LayoutChangeEvent) => {
     setBubbleWidth(event.nativeEvent.layout.width);
@@ -613,7 +676,7 @@ export function CharacterSpeechOverlay({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? line}
       accessibilityHint={t(
-        !lineFullyRevealed
+        !speechReady || !lineFullyRevealed
           ? 'characterSpeech.a11y.showFullLine'
           : lastLine
             ? 'awardsCeremony.a11y.tapAnywhereToFinish'

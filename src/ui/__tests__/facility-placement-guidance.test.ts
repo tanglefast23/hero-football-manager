@@ -57,14 +57,15 @@ describe('first facility placement guidance', () => {
     );
 
     expect(source).toMatchSource(
-      /const revealFacilityPlacement = useCallback\([\s\S]*?setFacilityPlacementHelperVisible\(true\);[\s\S]*?if \(layoutMode !== 'single' \|\| facilityPlacementTargetRef\.current === null\) return;[\s\S]*?scrollToTarget\(\s*scrollRef,\s*scrollViewportRef,\s*facilityPlacementTargetRef,\s*latestScrollOffsetRef\.current,\s*12,\s*!reduceMotion,\s*\);\s*focusGuideTarget\(facilityPlacementFocusRef\.current\);[\s\S]*?\}, \[layoutMode, reduceMotion\]\);/,
+      /const revealFacilityPlacement = useCallback\([\s\S]*?setFacilityPlacementHelperVisible\(true\);[\s\S]*?if \(guidedFirstFacility\) return;[\s\S]*?if \(layoutMode !== 'single' \|\| facilityPlacementTargetRef\.current === null\) return;[\s\S]*?scrollToTarget\(\s*scrollRef,\s*scrollViewportRef,\s*facilityPlacementTargetRef,\s*latestScrollOffsetRef\.current,\s*12,\s*!reduceMotion,\s*\);\s*focusGuideTarget\(facilityPlacementFocusRef\.current\);[\s\S]*?\}, \[guidedFirstFacility, layoutMode, reduceMotion\]\);/,
     );
-    expect(source).toContainSource("{t('clubFinances.tapHereToPlace')}");
+    expect(source).toContainSource("{t('clubFinances.buildHere')}");
     expect(source).toContainSource('ref={facilityPlacementFocusRef}');
     expect(source).toContainSource('accessibilityRole="header"');
     expect(source).toContainSource('{...guideHeadingProps()}');
     expect(source).toContainSource('pointerEvents="none"');
     expect(source).toContainSource('styles.facilityPlacementHelper');
+    expect(source).toContainSource('rounded-full');
     expect(source).toContainSource('styles.guidedFacilityGlow');
     expect(source).toContainSource('border-gold-dark bg-gold-light');
     expect(source).toContainSource(
@@ -74,22 +75,107 @@ describe('first facility placement guidance', () => {
       'onTouchStart={dismissFacilityPlacementHelper}',
     );
     expect(source).toContainSource(
-      'onPress={() => {\n                            dismissFacilityPlacementHelper();',
+      'onPress={() => {\n                            setHoveredCell(null);\n                            dismissFacilityPlacementHelper();',
     );
     expect(source).toMatchSource(
       /if \(Platform\.OS === 'web'\) \{[\s\S]*?\.focus\?\.\(\{ preventScroll: true \}\);\s*return;\s*\}\s*const handle = findNodeHandle\(target\);/,
     );
     expect(source).toContainSource('accessibilityLiveRegion="polite"');
     expect(source).toContainSource('revealFacilityPlacement();');
-    expect(source).toContainSource(
-      'nextBuildType !== null && !guidedFirstFacility',
-    );
     expect(source).not.toContainSource(
       "detail={t('clubFinances.thenTapAPlusSquare')}",
     );
     expect(source).toContainSource('showBuildPlacementHelper={');
+    expect(source).toContainSource(
+      'selectedBuildType !== null && facilityPlacementHelperVisible',
+    );
     expect(source).not.toMatchSource(
       /showBuildPlacementHelper=\{[\s\S]*?layoutMode === 'single'/,
+    );
+    expect(source).toContainSource(
+      'if (nextBuildType !== null) {\n                        revealFacilityPlacement();',
+    );
+    const helperStyle = source.slice(
+      source.indexOf('facilityPlacementHelper: {'),
+      source.indexOf('facilityPlacementHoverTip: {'),
+    );
+    expect(helperStyle).toContainSource("position: 'absolute'");
+    expect(helperStyle).toContainSource('top: 0');
+    expect(helperStyle).toContainSource('bottom: 0');
+    expect(helperStyle).toContainSource("alignItems: 'center'");
+    expect(helperStyle).toContainSource("justifyContent: 'center'");
+    expect(helperStyle).not.toContainSource('width:');
+  });
+
+  it('keeps the hover helper above the full grid and inside its horizontal edges', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'),
+      'utf8',
+    );
+
+    expect(source).not.toMatchSource(
+      /<Pressable[\s\S]*?tip=\{[\s\S]*?clubFinances\.buildHereColumnRow/,
+    );
+    expect(source).toContainSource('styles.facilityPlacementHoverTip');
+    expect(source).toContainSource('left: hoveredTipLeft');
+    expect(source).toContainSource('hoveredCell.y === 0');
+    expect(source).toContainSource('zIndex: 100');
+    expect(source).toContainSource('elevation: 30');
+    expect(source).toMatchSource(
+      /placementActive \|\|[\s\S]*?overflow-visible/,
+    );
+    expect(
+      source.indexOf('{placementActive && hoveredCell && hoveredTipWidth > 0'),
+    ).toBeGreaterThan(source.indexOf('facilities.buildings.map((building)'));
+  });
+
+  it('blocks the wrong Week 3 build at the card and again in the store', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'),
+      'utf8',
+    );
+    const appSource = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    const storeSource = readFileSync(
+      join(process.cwd(), 'src/application/store.ts'),
+      'utf8',
+    );
+
+    expect(source).toContainSource('const requiredBuildChoiceBlocked =');
+    expect(source).toContainSource(
+      'onRequiredBuildTypeBlocked?.(requiredBuildType);',
+    );
+    expect(appSource).toContainSource(
+      "store.notifyInboxDutyBlocked('coaching-office')",
+    );
+    expect(appSource).toContainSource(
+      't(`${inboxDutyCopyStem(store.inboxDutyReminder[0])}.body`)',
+    );
+    const english = JSON.parse(
+      readFileSync(join(process.cwd(), 'content/i18n/en.json'), 'utf8'),
+    ) as { strings: Record<string, string> };
+    expect(english.strings['inboxDuty.coachingOffice.body']).toContain(
+      'You need to build the Coaching Office this week.',
+    );
+    expect(storeSource).toContainSource(
+      "outstandingInboxDuties(career).includes('coaching-office')",
+    );
+    expect(storeSource).toContainSource(
+      "inboxDutyReminder: ['coaching-office']",
+    );
+  });
+
+  it('starts new construction without a second acknowledgement modal', () => {
+    const appSource = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+
+    expect(appSource).toContainSource(
+      'const showStartedFacilityProject = useCallback((showNotice = true)',
+    );
+    expect(appSource).toContainSource('if (!showNotice) return;');
+    expect(appSource).toMatchSource(
+      /buildClubFacilityWithFeedback[\s\S]*?showStartedFacilityProject\(false\)/,
+    );
+    expect(appSource).toMatchSource(
+      /upgradeClubFacilityWithFeedback[\s\S]*?showStartedFacilityProject\(\)/,
     );
   });
 

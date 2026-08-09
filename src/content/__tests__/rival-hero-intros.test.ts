@@ -28,7 +28,7 @@ describe('rival hero intro content', () => {
     ).toEqual([
       {
         heroId: 'special-f171',
-        name: 'Barry Allan',
+        name: 'Larry Alan',
         lookId: 'f171',
         power: 'SUPER_SPEED',
         division: 5,

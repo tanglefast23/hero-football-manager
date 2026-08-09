@@ -24,7 +24,7 @@ describe('launch career adapter', () => {
 
     expect(first).toEqual(second);
     expect(first.clubs).toHaveLength(10);
-    // 161, not 160: the strongest D5 rival fields Barry Allan on top of its
+    // 161, not 160: the strongest D5 rival fields Larry Alan on top of its
     // sixteen. See src/game/special-heroes.ts.
     expect(first.players).toHaveLength(161);
     expect(
@@ -57,6 +57,24 @@ describe('launch career adapter', () => {
           player.retirementAge !== undefined,
       ),
     ).toBe(true);
+  });
+
+  it('updates a saved special hero to the current canonical name and head', () => {
+    const current = createCareer(createLaunchCareerSetup());
+    const stale = {
+      ...current,
+      players: current.players.map((player) =>
+        player.id === 'special-f171'
+          ? { ...player, name: 'Barry Allan', lookId: 'f01' }
+          : player,
+      ),
+    };
+
+    const reconciled = reconcileLaunchRoster(stale);
+
+    expect(
+      reconciled.players.find((player) => player.id === 'special-f171'),
+    ).toMatchObject({ name: 'Larry Alan', lookId: 'f171' });
   });
 
   it('derives club wage totals from the content roster', () => {

@@ -6,6 +6,7 @@ import {
   playSuperTrainingYaySfx,
   stopSuperCelebrationSfx,
 } from '../../render/management-sfx';
+import { drillPresentationMs } from '../../render/drill-presentation-timing';
 import { useCopy } from '../../i18n';
 
 const CONFETTI_COLORS = [
@@ -17,10 +18,10 @@ const CONFETTI_COLORS = [
   '#62b5e5',
 ];
 /** A SUPER session is the rarest thing in a training week; it gets held. */
-export const SUPER_CELEBRATION_MS = 3400;
-const REDUCED_MOTION_SUPER_CELEBRATION_MS = 800;
+export const SUPER_CELEBRATION_MS = drillPresentationMs(3_400);
+const REDUCED_MOTION_SUPER_CELEBRATION_MS = drillPresentationMs(800);
 /** Four bursts, staggered — one shared clock made them all pop in unison. */
-const FIREWORK_DELAYS_MS = [0, 260, 620, 980] as const;
+const FIREWORK_DELAYS_MS = [0, 260, 620, 980].map(drillPresentationMs);
 
 export interface SuperTrainingCelebrationProps {
   /** The multiplied gain headline, e.g. "+5 PAC". */
@@ -30,7 +31,7 @@ export interface SuperTrainingCelebrationProps {
 }
 
 /**
- * ~2s absolute-fill takeover played inside the drill popup when a SUPER
+ * ~2.72s absolute-fill takeover played inside the drill popup when a SUPER
  * session lands: confetti, two fireworks, and the big animated words.
  * Tapping anywhere ends it early.
  */
@@ -63,7 +64,7 @@ export function SuperTrainingCelebration({
   useEffect(() => {
     playSuperCelebrationSfx();
     // A takeover closed without completing (the drill popup dismissed out from
-    // under it) must not leave 3.6s of celebration playing.
+    // under it) must not leave the celebration jingle playing.
     return () => stopSuperCelebrationSfx();
   }, []);
 
@@ -88,7 +89,7 @@ export function SuperTrainingCelebration({
           Animated.loop(
             Animated.timing(value, {
               toValue: 1,
-              duration: 700,
+              duration: drillPresentationMs(700),
               easing: Easing.out(Easing.quad),
               useNativeDriver: true,
             }),
@@ -99,8 +100,8 @@ export function SuperTrainingCelebration({
     );
     const title = Animated.spring(titleProgress, {
       toValue: 1,
-      friction: 5,
-      tension: 90,
+      friction: 6.25,
+      tension: 141,
       useNativeDriver: true,
     });
     confetti.start();

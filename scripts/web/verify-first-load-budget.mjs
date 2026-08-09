@@ -3,10 +3,10 @@ import { gzipSync } from 'node:zlib';
 import path from 'node:path';
 
 const DIST = path.resolve('dist');
-// Ratcheted from the measured English first load after the accepted startup
-// optimization. Both allowances are 5 KB above that artifact, so this remains
-// a regression guard rather than a historical ceiling the bundle can grow into.
-const RAW_BUDGET = 7_638_016;
+// Ratcheted from the measured English first load after the accepted guided-job
+// polish. The raw allowance is 5 KB above that artifact. The compressed build
+// remains below its existing limit, so keep that tighter ceiling unchanged.
+const RAW_BUDGET = 7_646_416;
 const GZIP_BUDGET = 1_256_212;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',

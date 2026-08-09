@@ -114,8 +114,11 @@ export function PaperPanel({
 interface ActionButtonProps {
   label: string;
   onPress: () => void;
+  onPressIn?: () => void;
   accessibilityLabel: string;
   disabled?: boolean;
+  /** Looks unavailable but still accepts a press that explains the blocker. */
+  visuallyDisabled?: boolean;
   variant?: ChunkyControlTone;
   compact?: boolean;
   /**
@@ -135,8 +138,10 @@ interface ActionButtonProps {
 export function ActionButton({
   label,
   onPress,
+  onPressIn,
   accessibilityLabel,
   disabled = false,
+  visuallyDisabled = false,
   variant = 'primary',
   compact = false,
   pressSfx,
@@ -152,7 +157,10 @@ export function ActionButton({
       : variant === 'paper'
         ? 'click'
         : 'positive');
-  const text = disabled ? 'text-paper' : CHUNKY_CONTROL_RAMP[variant].text;
+  const text =
+    disabled || visuallyDisabled
+      ? 'text-paper'
+      : CHUNKY_CONTROL_RAMP[variant].text;
 
   return (
     <ChunkyControl
@@ -160,7 +168,9 @@ export function ActionButton({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
       disabled={disabled}
+      visuallyDisabled={visuallyDisabled}
       onPress={onPress}
+      onPressIn={onPressIn}
       pressSfx={cue}
       compact={compact}
       tone={variant}
