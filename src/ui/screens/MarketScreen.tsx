@@ -73,6 +73,8 @@ export interface MarketScreenProps {
   readonly guideFocus?: AssistantGuideFocus;
   readonly requestedSection?: MarketSectionId;
   readonly requestedSectionToken?: number;
+  readonly lockedSection?: MarketSectionId;
+  readonly onBlockedSectionChange?: () => void;
 }
 
 const MIN_GUIDE_SCROLL_DISTANCE = 24;
@@ -107,11 +109,15 @@ export function MarketScreen({
   guideFocus,
   requestedSection,
   requestedSectionToken,
+  lockedSection,
+  onBlockedSectionChange,
 }: MarketScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const [section, setSection] = useState<MarketSectionId>(() =>
-    initialSection(viewModel),
+    lockedSection !== undefined && viewModel.sections.includes(lockedSection)
+      ? lockedSection
+      : initialSection(viewModel),
   );
   const [scrollDismissedGuideFocus, setScrollDismissedGuideFocus] =
     useState<AssistantGuideFocus>();
@@ -126,6 +132,8 @@ export function MarketScreen({
   const scoutSectionVisible = viewModel.sections.includes('SCOUT');
   const transferSectionVisible = viewModel.sections.includes('TRANSFERS');
   const coachSectionVisible = viewModel.sections.includes('COACHES');
+  const lockedSectionVisible =
+    lockedSection !== undefined && viewModel.sections.includes(lockedSection);
 
   const dismissScrollGuide = (focus: AssistantGuideFocus) => {
     setScrollDismissedGuideFocus(focus);
@@ -177,8 +185,15 @@ export function MarketScreen({
   };
 
   useEffect(() => {
+    if (lockedSection !== undefined && lockedSectionVisible) {
+      setSection(lockedSection);
+    }
+  }, [lockedSection, lockedSectionVisible]);
+
+  useEffect(() => {
+    if (lockedSection !== undefined) return;
     if (viewModel.negotiation !== undefined) setSection('TRANSFERS');
-  }, [viewModel.negotiation?.id]);
+  }, [lockedSection, viewModel.negotiation?.id]);
 
   useEffect(() => {
     if (!viewModel.sections.includes(section))
@@ -192,6 +207,7 @@ export function MarketScreen({
   }, [guideFocus]);
 
   useEffect(() => {
+    if (lockedSection !== undefined) return;
     if (guideFocus === 'youth-intake' && youthSectionVisible)
       setSection('YOUTH');
     else if (
@@ -216,6 +232,7 @@ export function MarketScreen({
   }, [
     coachSectionVisible,
     guideFocus,
+    lockedSection,
     scoutSectionVisible,
     transferSectionVisible,
     youthSectionVisible,
@@ -225,6 +242,7 @@ export function MarketScreen({
   const layoutMode = useLayoutMode();
 
   useEffect(() => {
+    if (lockedSection !== undefined) return;
     if (layoutMode !== 'single') return;
     if (requestedSection === 'YOUTH' && youthSectionVisible)
       setSection('YOUTH');
@@ -237,6 +255,7 @@ export function MarketScreen({
   }, [
     coachSectionVisible,
     layoutMode,
+    lockedSection,
     requestedSection,
     requestedSectionToken,
     scoutSectionVisible,
@@ -301,7 +320,17 @@ export function MarketScreen({
         </View>
         <StatusChip label={viewModel.periodLabel} />
       </View>
-      <ScreenTabs tabs={docketTabs} activeId={section} onSelect={setSection} />
+      <ScreenTabs
+        tabs={docketTabs}
+        activeId={section}
+        onSelect={(nextSection) => {
+          if (lockedSection !== undefined && nextSection !== lockedSection) {
+            onBlockedSectionChange?.();
+            return;
+          }
+          setSection(nextSection);
+        }}
+      />
     </View>
   );
 

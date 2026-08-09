@@ -55,6 +55,12 @@ export interface ClubAlertViewModel {
   tone: 'urgent' | 'event' | 'info';
   guideSequenceId?: AssistantGuideSequenceId;
   destination?: AssistantGuideDestination;
+  /** A blue opening job whose real game action must finish before the week moves. */
+  mustDoDutyId?:
+    | 'facility-placement'
+    | 'head-coach-market'
+    | 'youth-intake'
+    | 'coaching-office';
   /** Set on player-scoped alerts (e.g. a player waiting on a request) so taps can deep-link to that player. */
   playerId?: string;
   /**

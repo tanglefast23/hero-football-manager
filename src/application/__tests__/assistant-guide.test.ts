@@ -7,7 +7,11 @@ import { advanceFacilityConstruction } from '../../game/facilities';
 import { buildTrainingGround } from '../../game/squad';
 import { buildCareerFacility } from '../../game/management';
 import { hireCareerCoach } from '../../game/market-career';
-import { reconcileStoryYouthIntake } from '../../game/youth-intake';
+import {
+  declineYouthIntakeOffers,
+  reconcileStoryYouthIntake,
+  signYouthIntakeOffer,
+} from '../../game/youth-intake';
 import {
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
@@ -58,6 +62,22 @@ function completeOpeningPitch(state: GameState): GameState {
   return {
     ...started,
     facilities: { ...started.facilities, trainingGroundBuilt: true, grid },
+  };
+}
+
+function withOneRosterSpace(state: GameState): GameState {
+  const removed = state.players.find(
+    (player) => player.clubId === state.userClubId,
+  );
+  if (removed === undefined) throw new Error('user roster is empty');
+  return {
+    ...state,
+    players: state.players.filter((player) => player.id !== removed.id),
+    clubs: state.clubs.map((club) =>
+      club.id === state.userClubId
+        ? { ...club, weeklyWages: club.weeklyWages - removed.weeklyWage }
+        : club,
+    ),
   };
 }
 
@@ -576,7 +596,10 @@ describe('assistant guide application flow', () => {
       ),
     };
 
-    const weekTwo = reconcileStoryYouthIntake({ ...state, week: 2 });
+    const weekTwo = reconcileStoryYouthIntake({
+      ...withOneRosterSpace(state),
+      week: 2,
+    });
     expect(weekTwo.youthIntake).toMatchObject({ status: 'OPEN' });
     expect(dueAssistantInboxGuideSequences(weekTwo)).toContain('youth-intake');
     expect(dueAssistantInboxGuideSequences(weekTwo)).not.toContain(
@@ -601,7 +624,19 @@ describe('assistant guide application flow', () => {
       repairedWeekTwo,
       'youth-intake',
     );
-    const weekThree = { ...afterYouth, week: 3 };
+    expect(dueAssistantInboxGuideSequences(afterYouth)).toContain(
+      'youth-intake',
+    );
+    const signedYouth = signYouthIntakeOffer(
+      afterYouth,
+      afterYouth.youthIntake!,
+      afterYouth.youthIntake!.offers[0].player.id,
+    );
+    const weekThree = {
+      ...signedYouth.state,
+      youthIntake: signedYouth.intake,
+      week: 3,
+    };
     expect(dueAssistantInboxGuideSequences(weekThree)).toContain(
       'coaching-office',
     );
@@ -621,23 +656,36 @@ describe('assistant guide application flow', () => {
       ),
     };
 
-    // Week 1 must never be walled: the training pitch is due from the first
-    // morning, and refusing the opening Advance Week of every career is a much
-    // bigger change than teaching the desk.
+    // Reading Bert's card is not the task. The Training Pitch remains owed
+    // until its construction starts.
     expect(dueAssistantInboxGuideSequences(state)).toContain(
       'facility-placement',
     );
-    expect(outstandingInboxDuties(state)).toEqual([]);
+    expect(outstandingInboxDuties(state)).toEqual(['facility-placement']);
 
     state = completeOpeningPitch(state);
-    const weekTwo = reconcileStoryYouthIntake({ ...state, week: 2 });
+    const weekTwo = reconcileStoryYouthIntake({
+      ...withOneRosterSpace(state),
+      week: 2,
+    });
     expect(outstandingInboxDuties(weekTwo)).toEqual(['youth-intake']);
 
-    // Declining is a completion, so the gate can be cleared without spending.
+    // Dismissing Bert's briefing is not a signing and does not clear the job.
     const afterYouth = completeAssistantGuideSequence(weekTwo, 'youth-intake');
-    expect(outstandingInboxDuties(afterYouth)).toEqual([]);
+    expect(outstandingInboxDuties(afterYouth)).toEqual(['youth-intake']);
 
-    const weekThree = { ...afterYouth, week: 3 };
+    const youthSigning = signYouthIntakeOffer(
+      afterYouth,
+      afterYouth.youthIntake!,
+      afterYouth.youthIntake!.offers[0].player.id,
+    );
+    const signedYouth = {
+      ...youthSigning.state,
+      youthIntake: youthSigning.intake,
+    };
+    expect(outstandingInboxDuties(signedYouth)).toEqual([]);
+
+    const weekThree = { ...signedYouth, week: 3 };
     expect(outstandingInboxDuties(weekThree)).toEqual(['coaching-office']);
 
     // Starting construction clears it — the building joins the grid at once,
@@ -653,6 +701,31 @@ describe('assistant guide application flow', () => {
       outstandingInboxDuties({ ...weekThree, week: LAST_GATED_INBOX_WEEK + 1 }),
     ).toEqual([]);
     expect(outstandingInboxDuties({ ...weekThree, season: 2 })).toEqual([]);
+  });
+
+  it('does not resurrect an unusable Youth card in an older declined save', () => {
+    let state = createCareer(createLaunchCareerSetup(416));
+    state = {
+      ...completeOpeningPitch(state),
+      market: hireCareerCoach(
+        state,
+        state.market!,
+        state.market!.coachCandidates[0].id,
+      ),
+      week: 2,
+    };
+    state = reconcileStoryYouthIntake(withOneRosterSpace(state));
+    state = completeAssistantGuideSequence(state, 'youth-intake');
+    const declined = declineYouthIntakeOffers(state, state.youthIntake!);
+    const oldSave = reconcileSatisfiedAssistantGuideSequences({
+      ...declined.state,
+      youthIntake: declined.intake,
+    });
+
+    expect(dueAssistantInboxGuideSequences(oldSave)).not.toContain(
+      'youth-intake',
+    );
+    expect(outstandingInboxDuties(oldSave)).toEqual([]);
   });
 
   it('never holds the week open for a duty the club cannot pay for', () => {

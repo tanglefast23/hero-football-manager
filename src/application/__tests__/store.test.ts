@@ -31,6 +31,7 @@ import {
 import { careerMarketScoutOptions } from '../market-source-adapter';
 import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 import { copyFor } from '../../i18n';
+import { outstandingInboxDuties } from '../assistant-guide';
 
 describe('M1 app store integration', () => {
   beforeEach(() => {
@@ -579,6 +580,7 @@ describe('M1 app store integration', () => {
       before.trainingPoints - 20,
     );
 
+    finishOpeningInboxJobs();
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().screen).toBe('week-review');
     const review = useM1Store.getState().weekReview!;
@@ -641,6 +643,8 @@ describe('M1 app store integration', () => {
     career = completeAssistantGuideMilestone(career, 'first-training-complete');
     career = buildCareerFacility(career, 'gym', { x: 0, y: 0 }).state;
     useM1Store.setState({ career, activeTab: 'home', screen: 'management' });
+    const coachId = useM1Store.getState().career!.market!.coachCandidates[0].id;
+    useM1Store.getState().hireCoach(coachId, 'HEAD');
 
     useM1Store.getState().advanceCareer();
 
@@ -953,6 +957,7 @@ describe('M1 app store integration', () => {
 
   it('advances a week with no training and returns to the new week from the review', () => {
     startCreatedCareer(791);
+    finishOpeningInboxJobs();
 
     useM1Store.getState().advanceCareer();
 
@@ -1031,24 +1036,25 @@ describe('M1 app store integration', () => {
       .trainPlayer('bramble-rovers-created-player', 'sprints');
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(weekBefore);
-    expect(useM1Store.getState().error).toBe(
-      'Return home and check your inbox before advancing the week.',
-    );
+    expect(useM1Store.getState().inboxDutyReminder).toEqual([
+      'facility-placement',
+      'head-coach-market',
+    ]);
 
     useM1Store.getState().setActiveTab('home');
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(weekBefore);
-    expect(useM1Store.getState().error).toBe(
-      'Build the Training Ground from your inbox before advancing the week.',
+    expect(useM1Store.getState().inboxDutyReminder).toContain(
+      'facility-placement',
     );
 
     useM1Store.getState().setActiveTab('club');
     useM1Store.getState().buildFacility();
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(weekBefore);
-    expect(useM1Store.getState().error).toBe(
-      'Return home before advancing the week.',
-    );
+    expect(useM1Store.getState().inboxDutyReminder).toEqual([
+      'head-coach-market',
+    ]);
 
     useM1Store.getState().setActiveTab('home');
     const coachId = useM1Store.getState().career!.market!.coachCandidates[0].id;
@@ -1078,10 +1084,9 @@ describe('M1 app store integration', () => {
     useM1Store.getState().advanceCareer();
 
     expect(useM1Store.getState().career?.week).toBe(weekBefore);
-    expect(useM1Store.getState().notice).toEqual({
-      tone: 'info',
-      message: 'You still have 1 inbox item left to deal with first.',
-    });
+    expect(useM1Store.getState().inboxDutyReminder).toEqual([
+      'head-coach-market',
+    ]);
     expect(useM1Store.getState().career?.eventFlags).not.toContain(
       'guide:bert:desk-intro-complete',
     );
@@ -1113,9 +1118,9 @@ describe('M1 app store integration', () => {
     useM1Store.getState().hireCoach(coachId);
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(weekBefore);
-    expect(useM1Store.getState().error).toBe(
-      'Build the Training Ground from your inbox before advancing the week.',
-    );
+    expect(useM1Store.getState().inboxDutyReminder).toEqual([
+      'facility-placement',
+    ]);
 
     useM1Store.getState().setActiveTab('club');
     useM1Store.getState().buildClubFacility('training-pitch', { x: 0, y: 0 });
@@ -1601,6 +1606,8 @@ describe('M1 app store integration', () => {
     await waitFor(
       () => database.careerRow !== null && !useM1Store.getState().saving,
     );
+    finishOpeningInboxJobs();
+    await waitFor(() => !useM1Store.getState().saving);
 
     // The disk fills. The first failed week is a dismissible toast today, which
     // is how a player keeps advancing a career that only exists in memory.
@@ -2646,6 +2653,10 @@ function advanceToWeek(week: number): void {
       // raised — a player always dismisses it, and the next advanceCareer only
       // dispatches from there.
       if (state.screen === 'week-review') state.continueWeekReview();
+      const reached = useM1Store.getState().career;
+      if (reached !== null) {
+        finishOpeningInboxJobs(outstandingInboxDuties(reached));
+      }
       return;
     }
     if (state.screen === 'week-review') {
@@ -2690,23 +2701,63 @@ function completedSeasonForUser(state: GameState): GameState {
  * Answers whatever the opening weeks' desk just refused an Advance Week for,
  * and reports whether there was anything to answer.
  *
- * Declining the youth intake is the cheapest answer a manager has — it is free
- * and it closes the window — so a test that is not about the youth system can
- * clear the desk without disturbing the squad it is about to assert on. Any
- * other duty is loud rather than silently skipped: a helper that quietly
- * cleared an unexpected refusal would hide the next gate someone adds.
+ * It performs the same durable action the card requests. This prevents journey
+ * tests from hiding a regression by clearing a briefing flag or declining the
+ * youth choice instead of signing a player.
  */
 function answerRefusedDeskDuty(): boolean {
   const refused = useM1Store.getState().inboxDutyReminder;
   if (refused === null) return false;
   useM1Store.getState().dismissInboxDutyReminder();
-  if (!refused.includes('youth-intake')) {
-    throw new Error(
-      `the desk refused with ${refused.join(', ')}, which this helper cannot clear`,
-    );
-  }
-  useM1Store.getState().declineYouth();
+  finishOpeningInboxJobs(refused);
   return true;
+}
+
+function finishOpeningInboxJobs(
+  duties: readonly (
+    | 'facility-placement'
+    | 'head-coach-market'
+    | 'youth-intake'
+    | 'coaching-office'
+  )[] = ['facility-placement', 'head-coach-market'],
+): void {
+  for (const duty of duties) {
+    const current = useM1Store.getState();
+    const career = current.career;
+    if (career === null) throw new Error('opening job helper lost the career');
+    if (duty === 'facility-placement') {
+      const hasPitch =
+        career.facilities.trainingGroundBuilt ||
+        (career.facilities.grid?.buildings.some(
+          (building) => building.type === 'training-pitch',
+        ) ??
+          false);
+      if (!hasPitch && career.facilities.grid?.construction === undefined) {
+        current.buildClubFacility('training-pitch', { x: 0, y: 0 });
+      }
+    } else if (duty === 'head-coach-market') {
+      if (career.market?.headCoach === undefined) {
+        const coachId = career.market?.coachCandidates[0]?.id;
+        if (coachId === undefined)
+          throw new Error('opening job helper has no head coach candidate');
+        current.hireCoach(coachId, 'HEAD');
+      }
+    } else if (duty === 'youth-intake') {
+      const youthId = career.youthIntake?.offers[0]?.player.id;
+      if (youthId === undefined)
+        throw new Error('opening job helper has no youth offer');
+      current.signYouth(youthId);
+    } else if (
+      !(
+        career.facilities.grid?.buildings.some(
+          (building) => building.type === 'coaching-office',
+        ) ?? false
+      ) &&
+      career.facilities.grid?.construction === undefined
+    ) {
+      current.buildClubFacility('coaching-office', { x: 2, y: 0 });
+    }
+  }
 }
 
 function startAwakenedCareer(seed: number): void {

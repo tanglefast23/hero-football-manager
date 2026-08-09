@@ -88,6 +88,9 @@ describe('assistant mode presentation', () => {
     expect(
       home.alerts.some((alert) => alert.guideSequenceId !== undefined),
     ).toBe(false);
+    expect(home.alerts.some((alert) => alert.mustDoDutyId !== undefined)).toBe(
+      false,
+    );
   });
 });
 
@@ -130,6 +133,9 @@ function careerAfterOneWeek(mode: 'teacher' | 'advisor'): GameState {
     name: 'Jo Rook',
     ratings: DEFAULT_CREATION_RATINGS,
   });
+  useM1Store.getState().buildClubFacility('training-pitch', { x: 0, y: 0 });
+  const coachId = useM1Store.getState().career!.market!.coachCandidates[0].id;
+  useM1Store.getState().hireCoach(coachId, 'HEAD');
   useM1Store.getState().advanceCareer();
   expect(useM1Store.getState().inboxDutyReminder).toBeNull();
   useM1Store.getState().continueWeekReview();
@@ -350,7 +356,10 @@ function resolveSharedManagementDecisions(): void {
     career.youthIntake?.status === 'OPEN' &&
     dueAssistantInboxGuideSequences(career).includes('youth-intake')
   ) {
-    current.declineYouth();
+    const youthId = career.youthIntake.offers[0]?.player.id;
+    if (youthId === undefined)
+      throw new Error('managed mode parity youth offer disappeared');
+    current.signYouth(youthId);
     current = useM1Store.getState();
     career = current.career!;
   }
