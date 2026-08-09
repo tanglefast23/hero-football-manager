@@ -15,8 +15,8 @@ import {
 
 describe('stories on the desk', () => {
   const content = loadLaunchContent();
-  const spider = content.events.events.find(
-    (event) => event.id === 'giant-spider-arrives',
+  const story = content.events.events.find(
+    (event) => event.id === 'meteor-shard-center-circle',
   )!;
 
   /** A career whose guide queue is silent, so the desk is genuinely empty. */
@@ -68,7 +68,7 @@ describe('stories on the desk', () => {
   it('puts the offered story on the desk with its whole opening on the card', () => {
     const offered = offerCareerEvent(
       { ...deskClearCareer(20261003), week: 9 },
-      spider.id,
+      story.id,
     );
 
     const alerts = homeViewModel(offered).alerts;
@@ -76,8 +76,8 @@ describe('stories on the desk', () => {
     expect(alerts).toEqual([
       {
         id: DESK_STORY_ALERT_ID,
-        title: spider.title,
-        detail: spider.body,
+        title: story.title,
+        detail: story.body,
         tone: 'event',
       },
     ]);
@@ -89,7 +89,7 @@ describe('stories on the desk', () => {
       'build-reminder',
     ]);
 
-    const offered = offerCareerEvent(clear, spider.id);
+    const offered = offerCareerEvent(clear, story.id);
 
     expect(homeViewModel(offered).alerts.map((alert) => alert.id)).toEqual([
       DESK_STORY_ALERT_ID,
@@ -99,13 +99,13 @@ describe('stories on the desk', () => {
   it('leaves the desk once the story has been answered', () => {
     const offered = offerCareerEvent(
       { ...deskClearCareer(20261005), week: 9 },
-      spider.id,
+      story.id,
     );
     const resolved = {
       ...offered,
       pendingEvent: {
         ...offered.pendingEvent!,
-        resolvedChoiceId: spider.choices[0].id,
+        resolvedChoiceId: story.choices[0].id,
       },
     };
 

@@ -43,7 +43,7 @@ describe('the career events Dev Harness controller', () => {
         ...new Set(EVENTS.map((event) => event.category)),
       ]),
     );
-    expect(eventsForCase('all')).toHaveLength(54);
+    expect(eventsForCase('all')).toHaveLength(53);
     expect(eventsForCase('target-player')).toHaveLength(21);
     expect(eventsForCase('target-coach')).toHaveLength(9);
     expect(eventsForCase('target-facility')).toHaveLength(6);
@@ -220,7 +220,7 @@ describe('the career events Dev Harness controller', () => {
   });
 
   test('says nothing changed rather than showing an empty receipt', () => {
-    const state = offered('giant-spider-arrives');
+    const state = offered('meteor-shard-center-circle');
     expect(careerEventChanges(state, state)).toEqual(['nothing changed']);
   });
 });

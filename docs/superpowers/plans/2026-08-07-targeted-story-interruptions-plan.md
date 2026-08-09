@@ -67,12 +67,12 @@ The spec found five existing defects. Fixing them first means every later phase 
 
    | | events | outcomes |
    |---|---:|---:|
-   | kept — must migrate now | **10** | **13** |
+   | kept — must migrate now | **9** | **12** |
    | cut in Phase 7 — still in the file until then | **18** | **30** |
 
-   The 10 kept ones, in full, because a partial list silently breaks the rest: `giant-spider-arrives`, `mysterious-energy-salesman`, `abandoned-lab-field-trip`, `hero-commercial`, `hero-school-visit`, `haunted-scoreboard`, `old-boy-comes-home`, `terrace-choir-forms`, `milestone-unbeaten-run`, `milestone-first-cup-win`. (Not `crowd-thousand` — it has no `morale` effect — and not `terrace-choir-anthem`.)
+   The 9 kept ones, in full, because a partial list silently breaks the rest: `mysterious-energy-salesman`, `abandoned-lab-field-trip`, `hero-commercial`, `hero-school-visit`, `haunted-scoreboard`, `old-boy-comes-home`, `terrace-choir-forms`, `milestone-unbeaten-run`, `milestone-first-cup-win`. (Not `crowd-thousand` — it has no `morale` effect — and not `terrace-choir-anthem`.)
 
-   So Phase 1 does all three: migrate all 10 kept events to `squadMorale` **and** the 18 soon-cut ones (mechanical, and it keeps the catalog loadable at every commit), delete the fallback, and land the gate rule — see below for why the gate belongs here and not in Phase 7.
+   So Phase 1 does all three: migrate all 9 kept events to `squadMorale` **and** the 18 soon-cut ones (mechanical, and it keeps the catalog loadable at every commit), delete the fallback, and land the gate rule — see below for why the gate belongs here and not in Phase 7.
 
    **Two silent dependents that no green gate would catch.** Both were found by review, not by the suite:
 

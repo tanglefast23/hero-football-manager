@@ -199,7 +199,7 @@ function buildScenarios(): Scenario[] {
 
   const pendingEvent = offerCareerEvent(
     { ...atWeek(base, 7), pendingEvent: undefined },
-    'giant-spider-arrives',
+    'meteor-shard-center-circle',
   );
 
   const injuredPlayerId = userLineup.playerIds.find(

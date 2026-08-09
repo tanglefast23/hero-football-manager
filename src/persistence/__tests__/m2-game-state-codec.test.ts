@@ -52,10 +52,10 @@ describe('M2 game-state codec', () => {
           season: built.season,
           week: built.week,
           kind: 'event' as const,
-          label: 'Giant spider adopted',
+          label: 'Meteor shard displayed',
           amount: -1200,
           balanceAfter: built.clubs[0].cash - 1200,
-          referenceId: 'giant-spider-arrives',
+          referenceId: 'meteor-shard-center-circle',
         },
       ],
     };

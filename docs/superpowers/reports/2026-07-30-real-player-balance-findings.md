@@ -725,7 +725,7 @@ show:
   one Tier I drill and leaves 5, so the second tap that keeps the drill popup
   live and re-sequences it cannot happen. Twenty preserves it, but only buys
   about two points of win rate on its own.
-- **A harder opening delays the player's first win.** The spider mascot event's
+- **A harder opening delays the player's first win.** The old week-7 authored event's
   `hasFollowUp` was true because the club had banked `milestone:first-win` by its
   week 7-12 window. Cutting the opener harder removes it, so the first-win
   celebration lands later in the season.

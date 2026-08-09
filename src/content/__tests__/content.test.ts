@@ -118,7 +118,7 @@ describe('validated M1 launch content', () => {
       // display multiplier is 2, 1.75, 1.833, 2, 2 rather than a flat 2.
       'keeper-drills': [2, 4, 6, 8, 11],
     });
-    expect(content.events.events).toHaveLength(54);
+    expect(content.events.events).toHaveLength(53);
     // 'medical' has no events since the flu-wave and physio cards were cut:
     // both paid in TP and morale for a story about illness, and neither ever
     // touched condition. The category stays in the schema for future content.
@@ -152,13 +152,13 @@ describe('validated M1 launch content', () => {
           headline: choice.outcomes[0].successHeadline,
         })),
     );
-    expect(successHeadlines).toHaveLength(54);
+    expect(successHeadlines).toHaveLength(53);
     for (const { event, headline } of successHeadlines) {
       expect(headline).toEqual(expect.any(String));
       expect(headline).not.toContain(event);
     }
     expect(new Set(successHeadlines.map((entry) => entry.headline)).size).toBe(
-      54,
+      53,
     );
     expect(
       content.events.events.some((event) => event.trigger.requiresPlayer),
@@ -381,7 +381,7 @@ describe('validated M1 launch content', () => {
     // Fewer than before by design: a targeted story earns its reward against a
     // real risk, so most of the new cards have a losing branch that costs the
     // thing they were pointed at.
-    expect(goodNews.length).toBeGreaterThanOrEqual(9);
+    expect(goodNews.length).toBeGreaterThanOrEqual(8);
   });
 
   test('loads byte-identically and does not share mutable parsed objects', () => {
