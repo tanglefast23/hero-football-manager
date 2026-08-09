@@ -1525,6 +1525,9 @@ describe('M1 app store integration', () => {
       .exportUnreadableSave(async (fileName, contents) => {
         shared.push(fileName, contents);
       });
+    await useM1Store.getState().exportUnreadableSave(async () => {
+      throw new Error('second share was dismissed');
+    });
     await useM1Store.getState().discardUnreadableSave();
 
     expect(shared).toEqual(['hero-football-manager-raw-schema-1.json', raw]);

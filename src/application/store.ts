@@ -652,7 +652,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
   async exportUnreadableSave(share) {
     const { repository, persistenceLoadError } = get();
     if (repository === null || persistenceLoadError === null) return;
-    set({ rawExportRequired: true, rawExportSucceeded: false });
+    // A completed export stays valid. A later retry that is dismissed must not
+    // revoke the copy the player already saved and lock Start Fresh again.
+    set({ rawExportRequired: true });
     try {
       const raw = await repository.loadRaw();
       if (raw === null) throw new Error('the stored career row is missing');
