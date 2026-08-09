@@ -53,6 +53,7 @@ async function settleSeeks(): Promise<void> {
 
 describe('rival hero voice', () => {
   beforeEach(() => {
+    teardownRivalHeroVoice();
     mockPlayers.length = 0;
     pendingSeeks.length = 0;
     setRivalHeroVoiceMasterVolume(1);
@@ -62,12 +63,41 @@ describe('rival hero voice', () => {
     teardownRivalHeroVoice();
   });
 
-  it('loads one non-looping authored laugh for every headline rival', () => {
+  it('stores initial volume without creating laugh players', () => {
+    expect(mockPlayers).toHaveLength(0);
+
+    setRivalHeroVoiceMasterVolume(0.5);
+
+    expect(mockPlayers).toHaveLength(0);
+  });
+
+  it('first use loads one non-looping authored laugh for every headline rival', async () => {
+    playRivalHeroLaugh('special-f171');
+    await settleSeeks();
+
     expect(mockPlayers).toHaveLength(5);
     for (const player of mockPlayers) {
       expect(player.loop).toBe(false);
       expect(player.volume).toBe(1);
+      expect(player.muted).toBe(false);
     }
+  });
+
+  it('applies stored mute when first use creates players', () => {
+    setRivalHeroVoiceMasterVolume(0);
+
+    playRivalHeroLaugh('special-f171');
+
+    expect(mockPlayers).toHaveLength(5);
+    expect(mockPlayers.every((player) => player.volume === 0)).toBe(true);
+    expect(mockPlayers.every((player) => player.muted)).toBe(true);
+    expect(
+      mockPlayers.every((player) => player.seekTo.mock.calls.length === 0),
+    ).toBe(true);
+
+    setRivalHeroVoiceMasterVolume(0.4);
+    expect(mockPlayers.every((player) => player.volume === 0.4)).toBe(true);
+    expect(mockPlayers.every((player) => !player.muted)).toBe(true);
   });
 
   it.each([
@@ -121,6 +151,7 @@ describe('rival hero voice', () => {
   });
 
   it('releases every player during root teardown', () => {
+    playRivalHeroLaugh('special-f171');
     const currentPlayers = [...mockPlayers];
     teardownRivalHeroVoice();
     for (const player of currentPlayers) {

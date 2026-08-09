@@ -117,7 +117,8 @@ describe('iPad and installed web app guards', () => {
     // placeholders it substitutes have to survive.
     expect(html).toContainSource('%LANG_ISO_CODE%');
     expect(html).toContainSource('%WEB_TITLE%');
-    expect(html).toContainSource('<div id="root"></div>');
+    expect(html).toContainSource('<div id="root">');
+    expect(html).toContainSource('class="startup-shell"');
     expect(html).toContainSource('viewport-fit=cover');
     expect(html).toContainSource('name="apple-mobile-web-app-capable"');
     expect(html).toContainSource('name="theme-color"');
