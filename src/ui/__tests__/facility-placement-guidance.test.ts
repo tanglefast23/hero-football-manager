@@ -57,14 +57,15 @@ describe('first facility placement guidance', () => {
     );
 
     expect(source).toMatchSource(
-      /const revealFacilityPlacement = useCallback\([\s\S]*?setFacilityPlacementHelperVisible\(true\);[\s\S]*?if \(layoutMode !== 'single' \|\| facilityPlacementTargetRef\.current === null\) return;[\s\S]*?scrollToTarget\(\s*scrollRef,\s*scrollViewportRef,\s*facilityPlacementTargetRef,\s*latestScrollOffsetRef\.current,\s*12,\s*!reduceMotion,\s*\);\s*focusGuideTarget\(facilityPlacementFocusRef\.current\);[\s\S]*?\}, \[layoutMode, reduceMotion\]\);/,
+      /const revealFacilityPlacement = useCallback\([\s\S]*?setFacilityPlacementHelperVisible\(true\);[\s\S]*?if \(guidedFirstFacility\) return;[\s\S]*?if \(layoutMode !== 'single' \|\| facilityPlacementTargetRef\.current === null\) return;[\s\S]*?scrollToTarget\(\s*scrollRef,\s*scrollViewportRef,\s*facilityPlacementTargetRef,\s*latestScrollOffsetRef\.current,\s*12,\s*!reduceMotion,\s*\);\s*focusGuideTarget\(facilityPlacementFocusRef\.current\);[\s\S]*?\}, \[guidedFirstFacility, layoutMode, reduceMotion\]\);/,
     );
-    expect(source).toContainSource("{t('clubFinances.tapHereToPlace')}");
+    expect(source).toContainSource("{t('clubFinances.buildHere')}");
     expect(source).toContainSource('ref={facilityPlacementFocusRef}');
     expect(source).toContainSource('accessibilityRole="header"');
     expect(source).toContainSource('{...guideHeadingProps()}');
     expect(source).toContainSource('pointerEvents="none"');
     expect(source).toContainSource('styles.facilityPlacementHelper');
+    expect(source).toContainSource('rounded-full');
     expect(source).toContainSource('styles.guidedFacilityGlow');
     expect(source).toContainSource('border-gold-dark bg-gold-light');
     expect(source).toContainSource(
@@ -74,22 +75,44 @@ describe('first facility placement guidance', () => {
       'onTouchStart={dismissFacilityPlacementHelper}',
     );
     expect(source).toContainSource(
-      'onPress={() => {\n                            dismissFacilityPlacementHelper();',
+      'onPress={() => {\n                            setHoveredCell(null);\n                            dismissFacilityPlacementHelper();',
     );
     expect(source).toMatchSource(
       /if \(Platform\.OS === 'web'\) \{[\s\S]*?\.focus\?\.\(\{ preventScroll: true \}\);\s*return;\s*\}\s*const handle = findNodeHandle\(target\);/,
     );
     expect(source).toContainSource('accessibilityLiveRegion="polite"');
     expect(source).toContainSource('revealFacilityPlacement();');
-    expect(source).toContainSource(
-      'nextBuildType !== null && !guidedFirstFacility',
-    );
     expect(source).not.toContainSource(
       "detail={t('clubFinances.thenTapAPlusSquare')}",
     );
     expect(source).toContainSource('showBuildPlacementHelper={');
+    expect(source).toContainSource(
+      'selectedBuildType !== null && facilityPlacementHelperVisible',
+    );
     expect(source).not.toMatchSource(
       /showBuildPlacementHelper=\{[\s\S]*?layoutMode === 'single'/,
+    );
+    expect(source).toContainSource(
+      'if (nextBuildType !== null) {\n                        revealFacilityPlacement();',
+    );
+  });
+
+  it('keeps the hover helper above the full grid and inside its horizontal edges', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'),
+      'utf8',
+    );
+
+    expect(source).not.toMatchSource(
+      /<Pressable[\s\S]*?tip=\{[\s\S]*?clubFinances\.buildHereColumnRow/,
+    );
+    expect(source).toContainSource('styles.facilityPlacementHoverTip');
+    expect(source).toContainSource('left: hoveredTipLeft');
+    expect(source).toContainSource('hoveredCell.y === 0');
+    expect(source).toContainSource('zIndex: 100');
+    expect(source).toContainSource('elevation: 30');
+    expect(source).toMatchSource(
+      /placementActive \|\|[\s\S]*?overflow-visible/,
     );
   });
 

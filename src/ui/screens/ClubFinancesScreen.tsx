@@ -66,6 +66,8 @@ import { useCopy, type CopyFn } from '../../i18n';
 const FACILITY_GUIDE_TARGET_TOP = 170;
 const FACILITY_PLACEMENT_PLUS_SIZE = 16;
 const FACILITY_PLACEMENT_PLUS_THICKNESS = 4;
+const FACILITY_PLACEMENT_HOVER_TIP_WIDTH = 176;
+const FACILITY_PLACEMENT_HOVER_TIP_MARGIN = 8;
 
 /** Scrolls the ScrollView so the given target (a rendered View) is margin px
  * below the viewport top. Works regardless of column nesting because both
@@ -691,6 +693,9 @@ export function ClubFinancesScreen({
    */
   const revealFacilityPlacement = useCallback(() => {
     setFacilityPlacementHelperVisible(true);
+    // The opening lesson already owns the viewport and accessibility focus,
+    // but it uses the same immediate BUILD HERE marker as every later build.
+    if (guidedFirstFacility) return;
     if (layoutMode !== 'single' || facilityPlacementTargetRef.current === null)
       return;
     if (facilityPlacementScrollFrameRef.current !== null) {
@@ -708,7 +713,7 @@ export function ClubFinancesScreen({
       );
       focusGuideTarget(facilityPlacementFocusRef.current);
     });
-  }, [layoutMode, reduceMotion]);
+  }, [guidedFirstFacility, layoutMode, reduceMotion]);
 
   const financeSections: FlowSection[] = [
     {
@@ -906,9 +911,7 @@ export function ClubFinancesScreen({
           facilityPlacementTargetRef={facilityPlacementTargetRef}
           facilityPlacementFocusRef={facilityPlacementFocusRef}
           showBuildPlacementHelper={
-            selectedBuildType !== null &&
-            !guidedFirstFacility &&
-            facilityPlacementHelperVisible
+            selectedBuildType !== null && facilityPlacementHelperVisible
           }
           dismissFacilityPlacementHelper={dismissFacilityPlacementHelper}
           scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
@@ -2168,6 +2171,41 @@ function GroundsSection({
 }: GroundsSectionProps) {
   const t = useCopy();
   const facilities = viewModel.facilities;
+  const [hoveredCell, setHoveredCell] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const hoveredCellSize = facilityGridWidth / facilities.width;
+  const hoveredTipWidth = Math.min(
+    FACILITY_PLACEMENT_HOVER_TIP_WIDTH,
+    Math.max(0, facilityGridWidth - FACILITY_PLACEMENT_HOVER_TIP_MARGIN * 2),
+  );
+  const hoveredTipLeft =
+    hoveredCell === null
+      ? FACILITY_PLACEMENT_HOVER_TIP_MARGIN
+      : Math.min(
+          Math.max(
+            FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
+            (hoveredCell.x + 0.5) * hoveredCellSize - hoveredTipWidth / 2,
+          ),
+          Math.max(
+            FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
+            facilityGridWidth -
+              hoveredTipWidth -
+              FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
+          ),
+        );
+  const hoveredCellBuildable =
+    hoveredCell !== null &&
+    placementActive &&
+    (!guidedFirstFacility ||
+      guidedFirstFacilityAllowsPlacement(
+        selectedBuildType,
+        hoveredCell.x,
+        hoveredCell.y,
+      )) &&
+    !cellIsOccupied(hoveredCell.x, hoveredCell.y) &&
+    canPlaceAt(hoveredCell.x, hoveredCell.y);
   return (
     <View
       ref={groundsRef}
@@ -2260,7 +2298,8 @@ function GroundsSection({
             ref={facilityGuideGridTargetRef}
             collapsable={false}
             className={
-              guidedFirstFacility && guidedFacilityPhase === 'grid'
+              placementActive ||
+              (guidedFirstFacility && guidedFacilityPhase === 'grid')
                 ? 'relative overflow-visible border-2 border-ink bg-pitch-light'
                 : 'relative overflow-hidden border-2 border-ink bg-pitch-light'
             }
@@ -2279,10 +2318,10 @@ function GroundsSection({
                 collapsable={false}
                 accessible
                 accessibilityRole="header"
-                accessibilityLabel={t('clubFinances.tapHereToPlace')}
+                accessibilityLabel={t('clubFinances.buildHere')}
                 pointerEvents="none"
                 {...guideHeadingProps()}
-                className="border-2 border-b-4 border-gold-dark bg-gold-light px-3 py-3"
+                className="rounded-full border-2 border-b-4 border-gold-dark bg-gold-light px-4 py-2"
                 style={[
                   styles.guidedFacilityGlow,
                   styles.facilityPlacementHelper,
@@ -2292,7 +2331,7 @@ function GroundsSection({
                   accessibilityLiveRegion="polite"
                   className="text-center text-sm uppercase text-ink"
                 >
-                  {t('clubFinances.tapHereToPlace')}
+                  {t('clubFinances.buildHere')}
                 </PixelText>
               </View>
             ) : null}
@@ -2369,6 +2408,7 @@ function GroundsSection({
                           // the click that means the tap landed.
                           pressSfx={buildable ? 'click' : 'warning'}
                           onPress={() => {
+                            setHoveredCell(null);
                             dismissFacilityPlacementHelper();
                             handleGridCell(x, y);
                           }}
@@ -2377,18 +2417,14 @@ function GroundsSection({
                           // A mouse has a hover phase, so the fits/blocked footprint
                           // tracks the cursor instead of forcing a click-and-hold on
                           // every square to discover whether the building fits.
-                          onHoverIn={() => setPreviewCell({ x, y })}
-                          onHoverOut={() => setPreviewCell(null)}
-                          tip={
-                            placementActive
-                              ? buildable
-                                ? t('clubFinances.buildHereColumnRow', {
-                                    column: x + 1,
-                                    row: y + 1,
-                                  })
-                                : t('clubFinances.blockedFootprintDoesNotFit')
-                              : undefined
-                          }
+                          onHoverIn={() => {
+                            setHoveredCell({ x, y });
+                            setPreviewCell({ x, y });
+                          }}
+                          onHoverOut={() => {
+                            setHoveredCell(null);
+                            setPreviewCell(null);
+                          }}
                           style={{
                             flex: 1,
                             backgroundColor: occupied
@@ -2589,6 +2625,41 @@ function GroundsSection({
                   zIndex: 4,
                 }}
               />
+            ) : null}
+
+            {placementActive && hoveredCell && hoveredTipWidth > 0 ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.facilityPlacementHoverTip,
+                  {
+                    left: hoveredTipLeft,
+                    width: hoveredTipWidth,
+                    ...(hoveredCell.y === 0
+                      ? {
+                          top:
+                            hoveredCellSize +
+                            FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
+                        }
+                      : {
+                          bottom:
+                            facilityGridWidth *
+                              (facilities.height / facilities.width) -
+                            hoveredCell.y * hoveredCellSize +
+                            FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
+                        }),
+                  },
+                ]}
+              >
+                <Text className="font-mono text-[10px] leading-4 text-paper">
+                  {hoveredCellBuildable
+                    ? t('clubFinances.buildHereColumnRow', {
+                        column: hoveredCell.x + 1,
+                        row: hoveredCell.y + 1,
+                      })
+                    : t('clubFinances.blockedFootprintDoesNotFit')}
+                </Text>
+              </View>
             ) : null}
           </View>
         </View>
@@ -3164,10 +3235,9 @@ function BuildMenuSection({
                       setSelectedBuildType(nextBuildType);
                       setSelectedBuildingId(null);
                       setRelocatingBuildingId(null);
-                      // The opening lesson owns its more specific scroll
-                      // target. Every ordinary build shows the grid helper;
-                      // narrow layouts also scroll the grid into view.
-                      if (nextBuildType !== null && !guidedFirstFacility) {
+                      // Every build selection shows the same immediate grid
+                      // marker. The opening lesson keeps its own scroll target.
+                      if (nextBuildType !== null) {
                         revealFacilityPlacement();
                       }
                     }}
@@ -3485,18 +3555,25 @@ function facilityColor(building: ClubFacilityBuildingViewModel): string {
   return '#f7d7ba';
 }
 
-/**
- * The same gold the Train button wears during the first-training guide. Gold is
- * the tutorial voice here, not a hero accent — it is only ever on screen while
- * Bert is asking for a specific tap.
- */
+/** The temporary gold placement instruction and its grid-level hover label. */
 const styles = StyleSheet.create({
   facilityPlacementHelper: {
     position: 'absolute',
     top: 12,
-    left: 12,
-    right: 12,
+    left: '50%',
+    width: 144,
+    marginLeft: -72,
     zIndex: 30,
+  },
+  facilityPlacementHoverTip: {
+    position: 'absolute',
+    zIndex: 100,
+    elevation: 30,
+    borderWidth: 2,
+    borderColor: '#241f2e',
+    backgroundColor: '#241f2e',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   guidedFacilityGlow: {
     boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)',
