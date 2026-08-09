@@ -1493,6 +1493,73 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().error).toBeNull();
   });
 
+  it('exports the raw payload before reset and blocks deletion after a requested export fails', async () => {
+    let deleteCalls = 0;
+    const raw = '{"schemaVersion":1,"careerSeed":777}';
+    const careerRepository = stubCareerRepository({
+      async load() {
+        throw new Error('game state schema 1 is unsupported');
+      },
+      async loadRaw() {
+        return { schemaVersion: 1, stateJson: raw };
+      },
+      async delete() {
+        deleteCalls += 1;
+      },
+    });
+    await useM1Store.getState().initializePersistence(careerRepository);
+
+    await useM1Store.getState().exportUnreadableSave(async () => {
+      throw new Error('share sheet failed');
+    });
+    await useM1Store.getState().discardUnreadableSave();
+
+    expect(deleteCalls).toBe(0);
+    expect(useM1Store.getState().persistenceLoadError).toContain(
+      'has not been deleted',
+    );
+
+    const shared: string[] = [];
+    await useM1Store
+      .getState()
+      .exportUnreadableSave(async (fileName, contents) => {
+        shared.push(fileName, contents);
+      });
+    await useM1Store.getState().exportUnreadableSave(async () => {
+      throw new Error('second share was dismissed');
+    });
+    await useM1Store.getState().discardUnreadableSave();
+
+    expect(shared).toEqual(['hero-football-manager-raw-schema-1.json', raw]);
+    expect(deleteCalls).toBe(1);
+    expect(useM1Store.getState().persistenceLoadError).toBeNull();
+  });
+
+  it('leaves an incompatible save untouched when the recovery flow is relaunched or cancelled', async () => {
+    let deleteCalls = 0;
+    const repository = stubCareerRepository({
+      async load() {
+        throw new Error('game state schema 1 is unsupported');
+      },
+      async loadRaw() {
+        return { schemaVersion: 1, stateJson: '{"schemaVersion":1}' };
+      },
+      async delete() {
+        deleteCalls += 1;
+      },
+    });
+    await useM1Store.getState().initializePersistence(repository);
+    await useM1Store.getState().exportUnreadableSave(async () => {
+      throw new Error('cancelled');
+    });
+    expect(deleteCalls).toBe(0);
+
+    useM1Store.setState(useM1Store.getInitialState(), true);
+    await useM1Store.getState().initializePersistence(repository);
+    expect(useM1Store.getState().rawExportRequired).toBe(false);
+    expect(deleteCalls).toBe(0);
+  });
+
   it('never deletes a save that loaded cleanly', async () => {
     let deleteCalls = 0;
     const careerRepository = stubCareerRepository({

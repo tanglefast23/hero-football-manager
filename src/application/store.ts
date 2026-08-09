@@ -405,6 +405,8 @@ interface M1Store {
   repository: CareerRepository | null;
   replayRepository: ReplayRepository | null;
   persistenceLoadError: string | null;
+  rawExportRequired: boolean;
+  rawExportSucceeded: boolean;
   persistenceReady: boolean;
   saving: boolean;
   hasSavedCareer: boolean;
@@ -459,6 +461,9 @@ interface M1Store {
     replayRepository?: ReplayRepository,
   ) => Promise<void>;
   discardUnreadableSave: () => Promise<void>;
+  exportUnreadableSave: (
+    share: (fileName: string, contents: string) => Promise<void>,
+  ) => Promise<void>;
   restoreBackupSave: () => Promise<void>;
   /** Debug UI only: replaces the live career with an exact stored snapshot. */
   restoreDeveloperSave: (state: GameState, slotLabel: string) => void;
@@ -565,6 +570,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
   repository: null,
   replayRepository: null,
   persistenceLoadError: null,
+  rawExportRequired: false,
+  rawExportSucceeded: false,
   persistenceReady: false,
   saving: false,
   hasSavedCareer: false,
@@ -610,6 +617,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
         faceOff: null,
         pendingPostFaceOffScreen: null,
         persistenceLoadError: null,
+        rawExportRequired: false,
+        rawExportSucceeded: false,
         backupSummary: await backupSummaryFailSoft(repository),
         error: null,
       });
@@ -634,13 +643,51 @@ export const useM1Store = create<M1Store>((set, get) => ({
           // carries edge whitespace, and a translator cannot be asked to keep it.
           damage: damaged ? ` ${t('store.saveDatabaseDamaged')}` : '',
         }),
+        rawExportRequired: false,
+        rawExportSucceeded: false,
       });
     }
   },
 
-  async discardUnreadableSave() {
+  async exportUnreadableSave(share) {
     const { repository, persistenceLoadError } = get();
     if (repository === null || persistenceLoadError === null) return;
+    // A completed export stays valid. A later retry that is dismissed must not
+    // revoke the copy the player already saved and lock Start Fresh again.
+    set({ rawExportRequired: true });
+    try {
+      const raw = await repository.loadRaw();
+      if (raw === null) throw new Error('the stored career row is missing');
+      const fileName = `hero-football-manager-raw-schema-${raw.schemaVersion}.json`;
+      await share(fileName, raw.stateJson);
+    } catch (error) {
+      set({
+        persistenceLoadError: t('store.rawExportFailed', {
+          reason: errorMessage(error),
+        }),
+      });
+      return;
+    }
+    set({
+      rawExportSucceeded: true,
+      notice: { tone: 'info', message: t('store.rawExportSucceeded') },
+    });
+  },
+
+  async discardUnreadableSave() {
+    const {
+      repository,
+      persistenceLoadError,
+      rawExportRequired,
+      rawExportSucceeded,
+    } = get();
+    if (repository === null || persistenceLoadError === null) return;
+    if (rawExportRequired && !rawExportSucceeded) {
+      set({
+        persistenceLoadError: t('store.rawExportUnfinished'),
+      });
+      return;
+    }
     try {
       // One transaction across both generations, so no queue-jumping save may
       // land inside it.
@@ -657,6 +704,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
     retireCareerLineage();
     set({
       persistenceLoadError: null,
+      rawExportRequired: false,
+      rawExportSucceeded: false,
       career: null,
       hasSavedCareer: false,
       lastPersistedCareer: null,

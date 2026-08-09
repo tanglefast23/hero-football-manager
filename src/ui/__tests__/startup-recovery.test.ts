@@ -34,4 +34,17 @@ describe('startup recovery', () => {
       /browserDatabaseLock && reloadBrowserDocument\(\)[\s\S]*?onStartFresh={\s*browserDatabaseLock\s*\?\s*undefined/,
     );
   });
+
+  it('lets a player export an unreadable save before deleting it', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+
+    expect(app).toContainSource('onExportRaw={() => {');
+    expect(app).toContainSource(
+      'store.exportUnreadableSave(async (fileName, contents) => {',
+    );
+    expect(app).toContainSource(
+      'Share.share({ title: fileName, message: contents })',
+    );
+    expect(app).toContainSource("label={t('app.exportRawSave')}");
+  });
 });

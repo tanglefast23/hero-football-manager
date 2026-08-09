@@ -11,7 +11,15 @@ import {
   useRef,
   useState,
 } from 'react';
-import { AppState, Linking, LogBox, Platform, Text, View } from 'react-native';
+import {
+  AppState,
+  Linking,
+  LogBox,
+  Platform,
+  Share,
+  Text,
+  View,
+} from 'react-native';
 import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -2137,6 +2145,17 @@ function GameApp() {
         onStartFresh={() => {
           void store.discardUnreadableSave();
         }}
+        onExportRaw={() => {
+          void store.exportUnreadableSave(async (fileName, contents) => {
+            const result = await Share.share({
+              title: fileName,
+              message: contents,
+            });
+            if (result.action !== Share.sharedAction) {
+              throw new Error('the share sheet was dismissed');
+            }
+          });
+        }}
         onRestoreBackup={
           store.backupSummary === null
             ? undefined
@@ -3605,12 +3624,14 @@ function BootFailure({
   guidance,
   onRetry,
   onStartFresh,
+  onExportRaw,
   onRestoreBackup,
 }: {
   message: string;
   guidance?: string;
   onRetry: () => void;
   onStartFresh?: () => void;
+  onExportRaw?: () => void;
   onRestoreBackup?: { season: number; week: number; onRestore: () => void };
 }) {
   const t = useCopy();
@@ -3658,6 +3679,14 @@ function BootFailure({
               week: onRestoreBackup.week,
             })}
             onPress={onRestoreBackup.onRestore}
+          />
+        )}
+        {onExportRaw !== undefined && (
+          <BootFailureButton
+            tone="paper"
+            label={t('app.exportRawSave')}
+            accessibilityLabel={t('app.a11y.exportTheUnchangedRawSavedCareer')}
+            onPress={onExportRaw}
           />
         )}
         {onStartFresh !== undefined && (
