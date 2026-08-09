@@ -53,7 +53,9 @@ import {
   createReplayRepository,
   DEFAULT_APP_PREFERENCES,
   DEVELOPER_MANUAL_SAVE_SLOTS,
+  isBrowserDatabaseLockError,
   migrateDatabase,
+  reloadBrowserDocument,
   replaceFormationPreset,
   requestPersistentStorage,
   resetCareerDatabase,
@@ -2076,6 +2078,11 @@ function GameApp() {
     [store.setActiveTab],
   );
 
+  const browserDatabaseLock =
+    bootError !== null &&
+    Platform.OS === 'web' &&
+    isBrowserDatabaseLockError(bootError);
+
   let screen;
   let lowConditionMatchdayStarter: ReturnType<
     typeof matchdayConditionWarningPlayer
@@ -2090,22 +2097,34 @@ function GameApp() {
     screen = (
       <BootFailure
         message={bootError}
-        onRetry={() => setBootAttempt((attempt) => attempt + 1)}
-        onStartFresh={() => {
-          void resetCareerDatabase({
-            openDatabase: () => openDatabaseAsync(DATABASE_NAME),
-            deleteDatabaseFile: () => deleteDatabaseAsync(DATABASE_NAME),
-          })
-            .then(() => setBootAttempt((attempt) => attempt + 1))
-            // This is the last way out of an unopenable database. If the reset
-            // itself fails there is nothing behind it, so say so — an unhandled
-            // rejection here reads as a button that does nothing, forever.
-            .catch((error) =>
-              setBootError(
-                `The save could not be deleted. ${error instanceof Error ? error.message : String(error)}`,
-              ),
-            );
+        guidance={
+          browserDatabaseLock ? t('app.browserDatabaseInUse') : undefined
+        }
+        onRetry={() => {
+          // Expo SQLite caches the failed browser VFS. Re-running this effect
+          // cannot repair it; only a fresh document can create a new handle.
+          if (browserDatabaseLock && reloadBrowserDocument()) return;
+          setBootAttempt((attempt) => attempt + 1);
         }}
+        onStartFresh={
+          browserDatabaseLock
+            ? undefined
+            : () => {
+                void resetCareerDatabase({
+                  openDatabase: () => openDatabaseAsync(DATABASE_NAME),
+                  deleteDatabaseFile: () => deleteDatabaseAsync(DATABASE_NAME),
+                })
+                  .then(() => setBootAttempt((attempt) => attempt + 1))
+                  // This is the last way out of an unopenable database. If the reset
+                  // itself fails there is nothing behind it, so say so — an unhandled
+                  // rejection here reads as a button that does nothing, forever.
+                  .catch((error) =>
+                    setBootError(
+                      `The save could not be deleted. ${error instanceof Error ? error.message : String(error)}`,
+                    ),
+                  );
+              }
+        }
       />
     );
   } else if (!store.persistenceReady) {
@@ -3583,11 +3602,13 @@ function BootFailureButton({
 
 function BootFailure({
   message,
+  guidance,
   onRetry,
   onStartFresh,
   onRestoreBackup,
 }: {
   message: string;
+  guidance?: string;
   onRetry: () => void;
   onStartFresh?: () => void;
   onRestoreBackup?: { season: number; week: number; onRestore: () => void };
@@ -3610,6 +3631,9 @@ function BootFailure({
         <Text className="mt-3 text-sm leading-5 text-ink/70">
           {t('app.yourSavedCareerHas')}
         </Text>
+        {guidance !== undefined && (
+          <Text className="mt-3 text-sm leading-5 text-ink">{guidance}</Text>
+        )}
         <Text className="mt-2 text-xs leading-4 text-ink/50">
           {t('app.technicalDetail', { detail: message })}
         </Text>

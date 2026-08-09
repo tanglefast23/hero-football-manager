@@ -23,4 +23,15 @@ describe('startup recovery', () => {
       /reconciledAssistantInboxCareerRef\.current === career[\s\S]*?store\.reconcileAssistantInbox\(\);[\s\S]*?reconciledAssistantInboxCareerRef\.current = useM1Store\.getState\(\)\.career/,
     );
   });
+
+  it('reloads a locked web database instead of offering to delete a safe career', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+
+    expect(app).toMatch(
+      /browserDatabaseLock[\s\S]*?isBrowserDatabaseLockError\(bootError\)/,
+    );
+    expect(app).toMatch(
+      /browserDatabaseLock && reloadBrowserDocument\(\)[\s\S]*?onStartFresh={\s*browserDatabaseLock\s*\?\s*undefined/,
+    );
+  });
 });

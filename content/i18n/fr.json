@@ -30,6 +30,7 @@
     "app.a11y.tapToDismiss": "{sentence} Touche pour fermer.",
     "app.a11y.trySavingYourCareerAgain": "Réessayer de sauvegarder",
     "app.bootTimeout": "La sauvegarde n'a pas fini de s'ouvrir. Réessayer peut suffire.",
+    "app.browserDatabaseInUse": "Un autre onglet du jeu utilise encore les fichiers du club. Ferme les autres onglets Hero Football Manager, puis touche Réessayer. Ta sauvegarde est intacte.",
     "app.deleteSaveStartFresh": "Effacer · repartir de zéro",
     "app.dev.awakeningReviewFixture": "Revue {index}/{total} · Fin de match",
     "app.dev.awakeningReviewOmen": "La pelouse s'enfonce sous la paume de {name}. Tout le groupe sent le choc avant de l'entendre.",

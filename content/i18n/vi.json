@@ -30,6 +30,7 @@
     "app.a11y.tapToDismiss": "{sentence} Chạm để tắt.",
     "app.a11y.trySavingYourCareerAgain": "Thử lưu lại",
     "app.bootTimeout": "Dữ liệu bản lưu mở chưa xong. Thử lại có thể được.",
+    "app.browserDatabaseInUse": "Một tab game khác vẫn đang mở hồ sơ CLB. Hãy đóng mọi tab Hero Football Manager khác rồi nhấn Thử lại. Bản lưu của bạn vẫn an toàn.",
     "app.deleteSaveStartFresh": "Xóa bản lưu · chơi lại",
     "app.dev.awakeningReviewFixture": "Xem lại {index}/{total} · Hết giờ",
     "app.dev.awakeningReviewOmen": "Mặt cỏ lún xuống dưới bàn tay {name}. Cả nhóm cảm nhận cú chấn động trước khi nghe thấy.",

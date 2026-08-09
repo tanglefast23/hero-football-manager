@@ -30,6 +30,7 @@
     "app.a11y.tapToDismiss": "{sentence} Zum Schließen tippen.",
     "app.a11y.trySavingYourCareerAgain": "Nochmal speichern",
     "app.bootTimeout": "Der Spielstand ließ sich nicht ganz öffnen. Nochmal versuchen hilft vielleicht.",
+    "app.browserDatabaseInUse": "Ein anderer Spiel-Tab hat die Vereinsdateien noch geöffnet. Schließe alle anderen Hero-Football-Manager-Tabs und drücke dann Nochmal. Dein Spielstand ist sicher.",
     "app.deleteSaveStartFresh": "Löschen · neu anfangen",
     "app.dev.awakeningReviewFixture": "Prüfung {index}/{total} · Schluss",
     "app.dev.awakeningReviewOmen": "Der Rasen gibt unter {name}s Hand nach. Alle im Kreis spüren den Schlag, bevor sie ihn hören.",

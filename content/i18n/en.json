@@ -15,6 +15,7 @@
     "app.a11y.tapToDismiss": "{sentence} Tap to dismiss.",
     "app.a11y.trySavingYourCareerAgain": "Try saving your career again",
     "app.bootTimeout": "The saved game data did not finish opening. Retrying may fix this.",
+    "app.browserDatabaseInUse": "Another game tab still has the club files open. Close every other Hero Football Manager tab, then press Retry. Your save is safe.",
     "app.deleteSaveStartFresh": "Delete save · start fresh",
     "app.dev.awakeningReviewFixture": "Review {index}/{total} · Full time",
     "app.dev.awakeningReviewOmen": "The turf dents beneath {name}’s palm. Everyone in the huddle feels the shock before they hear it.",
