@@ -307,9 +307,9 @@ export function CharacterCreationScreen({
           accessibilityLabel={t('characterCreation.a11y.careerPressure')}
           className="gap-3"
         >
-          {/* Cozy first: it is the documented default and the safe choice for a
-              new manager. Chairman remains an explicit harder alternative. */}
-          {(['COZY', 'CHAIRMAN'] as const).map((mode) => {
+          {/* Chairman first: it is the default career, so the list opens on it.
+              Cozy remains the explicit lower-pressure alternative. */}
+          {(['CHAIRMAN', 'COZY'] as const).map((mode) => {
             const label = t(DIFFICULTY_LABEL_KEY[mode]);
             const selected = difficulty === mode;
             return (
