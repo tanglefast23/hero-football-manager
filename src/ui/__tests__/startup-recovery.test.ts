@@ -12,4 +12,12 @@ describe('startup recovery', () => {
       /<SafeAreaProvider>\s*<ScreenErrorBoundary[\s\S]*?<GameApp \/>[\s\S]*?<\/ScreenErrorBoundary>\s*<\/SafeAreaProvider>/,
     );
   });
+
+  it('does not reconcile the assistant inbox again for its own career update', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+
+    expect(app).toMatch(
+      /reconciledAssistantInboxCareerRef\.current === career[\s\S]*?store\.reconcileAssistantInbox\(\);[\s\S]*?reconciledAssistantInboxCareerRef\.current = useM1Store\.getState\(\)\.career/,
+    );
+  });
 });

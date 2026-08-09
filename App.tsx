@@ -1477,8 +1477,17 @@ function GameApp() {
     store.screen,
   ]);
 
+  // Reconciliation can replace the career object. Remember the action's output
+  // so this effect does not treat its own update as a new input and recurse
+  // until React stops the app with a maximum-update-depth error.
+  const reconciledAssistantInboxCareerRef = useRef(store.career);
   useEffect(() => {
-    if (store.career !== null) store.reconcileAssistantInbox();
+    const career = store.career;
+    if (career === null || reconciledAssistantInboxCareerRef.current === career) {
+      return;
+    }
+    store.reconcileAssistantInbox();
+    reconciledAssistantInboxCareerRef.current = useM1Store.getState().career;
   }, [store.career, store.reconcileAssistantInbox]);
 
   useEffect(() => {
