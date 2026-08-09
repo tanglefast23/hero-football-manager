@@ -195,18 +195,14 @@ describe('management shell wiring', () => {
     expect(shell).toContainSource('keyboardShortcutsEnabled');
   });
 
-  it('shows the shortcut on hover so the keymap is discoverable', () => {
-    // Both tips are catalog copy now. The wiring this test guards is that the
-    // hover tip still carries the tab's number key, and that the advance button
-    // still has a tip at all.
+  it('shows tab shortcuts on hover without covering Advance Week', () => {
+    // The tab rail keeps its discoverable number keys. Advance Week is the
+    // primary action and must stay clear of a tooltip even though Enter still
+    // activates it through the keymap above.
     expect(shell).toContainSource('key: tabNumberKey(index),');
     expect(shell).toContainSource("t('managementShell.tabTipWithKey'");
-    expect(shell).toContainSource(
-      "const ADVANCE_WEEK_TIP_KEY = 'managementShell.advanceWeekTip';",
-    );
-    expect(shell).toContainSource(
-      'tip={advanceWeekDisabled ? undefined : t(ADVANCE_WEEK_TIP_KEY)}',
-    );
+    expect(shell).not.toContainSource('managementShell.advanceWeekTip');
+    expect(shell).not.toContainSource('<HoverTipAnchor');
   });
 
   it('attaches one listener and removes it again', () => {

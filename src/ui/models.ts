@@ -37,7 +37,15 @@ export interface FixtureViewModel {
   awayTeam: string;
   venueLabel: string;
   opponentHeroCount: number;
+  opponentHeroes: readonly RivalHeroSummaryViewModel[];
   matchdayReady: boolean;
+}
+
+export interface RivalHeroSummaryViewModel {
+  id: string;
+  name: string;
+  role: Role;
+  lookId?: string;
 }
 
 export interface ClubAlertViewModel {
