@@ -3448,6 +3448,7 @@ export function homeViewModel(
             awayTeam: t('seasonEnd.seasonReview'),
             venueLabel: 'Boardroom',
             opponentHeroCount: 0,
+            opponentHeroes: [],
             matchdayReady: false,
           }
         : fixtureViewModel(state, nextFixture, t, nextFixtureCompetition),
@@ -4694,6 +4695,22 @@ function fixtureViewModel(
 ): FixtureViewModel {
   const isHome = fixture.homeClubId === state.userClubId;
   const opponentId = isHome ? fixture.awayClubId : fixture.homeClubId;
+  // A rival hero is a named character, not only a warning count. Carry the
+  // same identity and fixed look used by the intro and match sprite so the
+  // team sheet can show who the manager is about to face.
+  const opponentHeroes = state.players
+    .filter(
+      (player) =>
+        player.clubId === opponentId &&
+        player.power !== undefined &&
+        player.licensed,
+    )
+    .map((player) => ({
+      id: player.id,
+      name: player.name,
+      role: player.role,
+      lookId: player.lookId,
+    }));
   return {
     id: fixture.id,
     weekLabel: `W${fixture.week}`,
@@ -4704,12 +4721,8 @@ function fixtureViewModel(
     // The tutorial suppresses powers in the match, but Barry is still at the
     // opponent club. Report the character who is there so this team sheet
     // agrees with the rival introduction that just played.
-    opponentHeroCount: state.players.filter(
-      (player) =>
-        player.clubId === opponentId &&
-        player.power !== undefined &&
-        player.licensed,
-    ).length,
+    opponentHeroCount: opponentHeroes.length,
+    opponentHeroes,
     matchdayReady: state.phase === 'matchday' && fixture.week === state.week,
   };
 }

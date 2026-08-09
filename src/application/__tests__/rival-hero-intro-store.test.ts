@@ -66,9 +66,16 @@ describe('rival hero intro store flow', () => {
 
   it('keeps the approved first tutorial match powerless after the teaser', () => {
     const career = openingMatchday();
-    expect(
-      matchDayViewModel(career, loadLaunchContent()).fixture.opponentHeroCount,
-    ).toBe(1);
+    const fixture = matchDayViewModel(career, loadLaunchContent()).fixture;
+    expect(fixture.opponentHeroCount).toBe(1);
+    expect(fixture.opponentHeroes).toEqual([
+      {
+        id: 'special-f171',
+        name: 'Barry Allan',
+        role: 'FWD',
+        lookId: 'f171',
+      },
+    ]);
 
     useM1Store.setState({ career, screen: 'matchday' });
     useM1Store.getState().completeRivalHeroIntro('special-f171');

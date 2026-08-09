@@ -14,10 +14,7 @@ import { TutorialTapCue } from './TutorialTapCue';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
 import { SettingsButton } from './SettingsOverlay';
 import { FansGlyph } from './components/FansGlyph';
-import {
-  HoverTipAnchor,
-  SfxPressable as Pressable,
-} from './components/SfxPressable';
+import { SfxPressable as Pressable } from './components/SfxPressable';
 import { playUiClickSfx } from '../render/management-sfx';
 import { managementHeaderLine } from './management-header';
 import { managementKeyBindings, tabNumberKey } from './management-key-bindings';
@@ -73,8 +70,6 @@ const TABS: ReadonlyArray<{
     tipKey: 'managementShell.tabTip.league',
   },
 ];
-
-const ADVANCE_WEEK_TIP_KEY = 'managementShell.advanceWeekTip';
 
 // This one-line status header labels fixed desk data. Its complete sentence is
 // also exposed through accessibilityLabel. Player actions below are not capped:
@@ -636,8 +631,7 @@ export function ManagementShell({
               </View>
             )
           ) : null}
-          <HoverTipAnchor
-            tip={advanceWeekDisabled ? undefined : t(ADVANCE_WEEK_TIP_KEY)}
+          <View
             className={
               guideTarget === 'advance-week'
                 ? 'relative border-2 border-blue-dark bg-blue-light p-1'
@@ -677,7 +671,7 @@ export function ManagementShell({
                 compact
               />
             </IdleAttract>
-          </HoverTipAnchor>
+          </View>
           <View
             ref={navigationGuideAnchor.anchorRef}
             collapsable={false}

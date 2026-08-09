@@ -685,11 +685,11 @@ export function ClubFinancesScreen({
   const layoutMode = useLayoutMode();
 
   /**
-   * On a phone the build menu sits above the grounds. Arming a building moves
-   * the viewport to the grid and briefly marks the place to tap. Wide layouts
-   * already show the menu beside the grid and must not move the manager.
+   * Every build choice briefly marks the grid. On a phone the build menu sits
+   * above the grounds, so the same action also moves the viewport to the grid.
+   * Wide layouts already show both columns and must not move the manager.
    */
-  const revealMobileFacilityPlacement = useCallback(() => {
+  const revealFacilityPlacement = useCallback(() => {
     setFacilityPlacementHelperVisible(true);
     if (layoutMode !== 'single' || facilityPlacementTargetRef.current === null)
       return;
@@ -857,7 +857,7 @@ export function ClubFinancesScreen({
           scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
           coachingOfficeBuildTargetRef={coachingOfficeBuildTargetRef}
           scrollToCoachingOffice={scrollToCoachingOffice}
-          revealMobileFacilityPlacement={revealMobileFacilityPlacement}
+          revealFacilityPlacement={revealFacilityPlacement}
           guideIncomeFacilities={guideIncomeFacilities}
           incomeFacilityBuildTargetRef={incomeFacilityBuildTargetRef}
           scrollToIncomeFacilities={scrollToIncomeFacilities}
@@ -905,8 +905,7 @@ export function ClubFinancesScreen({
           facilityGuideGridTargetRef={facilityGuideGridTargetRef}
           facilityPlacementTargetRef={facilityPlacementTargetRef}
           facilityPlacementFocusRef={facilityPlacementFocusRef}
-          showMobileBuildPlacementHelper={
-            layoutMode === 'single' &&
+          showBuildPlacementHelper={
             selectedBuildType !== null &&
             !guidedFirstFacility &&
             facilityPlacementHelperVisible
@@ -2125,7 +2124,7 @@ interface GroundsSectionProps {
   facilityGuideGridTargetRef: RefObject<View | null>;
   facilityPlacementTargetRef: RefObject<View | null>;
   facilityPlacementFocusRef: RefObject<View | null>;
-  showMobileBuildPlacementHelper: boolean;
+  showBuildPlacementHelper: boolean;
   dismissFacilityPlacementHelper: () => void;
   scrollFacilityGuideTargetIntoView: (phase: GuidedFirstFacilityPhase) => void;
 }
@@ -2163,7 +2162,7 @@ function GroundsSection({
   facilityGuideGridTargetRef,
   facilityPlacementTargetRef,
   facilityPlacementFocusRef,
-  showMobileBuildPlacementHelper,
+  showBuildPlacementHelper,
   dismissFacilityPlacementHelper,
   scrollFacilityGuideTargetIntoView,
 }: GroundsSectionProps) {
@@ -2274,7 +2273,7 @@ function GroundsSection({
             onPointerMove={dismissFacilityPlacementHelper}
             onTouchStart={dismissFacilityPlacementHelper}
           >
-            {showMobileBuildPlacementHelper ? (
+            {showBuildPlacementHelper ? (
               <View
                 ref={facilityPlacementFocusRef}
                 collapsable={false}
@@ -2947,7 +2946,7 @@ interface BuildMenuSectionProps {
   scrollFacilityGuideTargetIntoView: (phase: GuidedFirstFacilityPhase) => void;
   coachingOfficeBuildTargetRef: RefObject<View | null>;
   scrollToCoachingOffice: () => void;
-  revealMobileFacilityPlacement: () => void;
+  revealFacilityPlacement: () => void;
   /** Lights the Fan Shop and Stadium Stand after the board's loan lands. */
   guideIncomeFacilities: boolean;
   incomeFacilityBuildTargetRef: RefObject<View | null>;
@@ -2974,7 +2973,7 @@ function BuildMenuSection({
   scrollFacilityGuideTargetIntoView,
   coachingOfficeBuildTargetRef,
   scrollToCoachingOffice,
-  revealMobileFacilityPlacement,
+  revealFacilityPlacement,
   guideIncomeFacilities,
   incomeFacilityBuildTargetRef,
   scrollToIncomeFacilities,
@@ -3166,9 +3165,10 @@ function BuildMenuSection({
                       setSelectedBuildingId(null);
                       setRelocatingBuildingId(null);
                       // The opening lesson owns its more specific scroll
-                      // target. Every ordinary mobile build uses the shared one.
+                      // target. Every ordinary build shows the grid helper;
+                      // narrow layouts also scroll the grid into view.
                       if (nextBuildType !== null && !guidedFirstFacility) {
-                        revealMobileFacilityPlacement();
+                        revealFacilityPlacement();
                       }
                     }}
                     className={

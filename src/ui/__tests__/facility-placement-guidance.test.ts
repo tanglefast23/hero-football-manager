@@ -50,14 +50,14 @@ describe('first facility placement guidance', () => {
     );
   });
 
-  it('reveals the placement grid with a helper after any mobile build choice', () => {
+  it('reveals the placement grid with a helper after every build choice', () => {
     const source = readFileSync(
       join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'),
       'utf8',
     );
 
     expect(source).toMatchSource(
-      /const revealMobileFacilityPlacement = useCallback\([\s\S]*?if \(layoutMode !== 'single' \|\| facilityPlacementTargetRef\.current === null\) return;[\s\S]*?scrollToTarget\(\s*scrollRef,\s*scrollViewportRef,\s*facilityPlacementTargetRef,\s*latestScrollOffsetRef\.current,\s*12,\s*!reduceMotion,\s*\);\s*focusGuideTarget\(facilityPlacementFocusRef\.current\);[\s\S]*?\}, \[layoutMode, reduceMotion\]\);/,
+      /const revealFacilityPlacement = useCallback\([\s\S]*?setFacilityPlacementHelperVisible\(true\);[\s\S]*?if \(layoutMode !== 'single' \|\| facilityPlacementTargetRef\.current === null\) return;[\s\S]*?scrollToTarget\(\s*scrollRef,\s*scrollViewportRef,\s*facilityPlacementTargetRef,\s*latestScrollOffsetRef\.current,\s*12,\s*!reduceMotion,\s*\);\s*focusGuideTarget\(facilityPlacementFocusRef\.current\);[\s\S]*?\}, \[layoutMode, reduceMotion\]\);/,
     );
     expect(source).toContainSource("{t('clubFinances.tapHereToPlace')}");
     expect(source).toContainSource('ref={facilityPlacementFocusRef}');
@@ -80,12 +80,16 @@ describe('first facility placement guidance', () => {
       /if \(Platform\.OS === 'web'\) \{[\s\S]*?\.focus\?\.\(\{ preventScroll: true \}\);\s*return;\s*\}\s*const handle = findNodeHandle\(target\);/,
     );
     expect(source).toContainSource('accessibilityLiveRegion="polite"');
-    expect(source).toContainSource('revealMobileFacilityPlacement();');
+    expect(source).toContainSource('revealFacilityPlacement();');
     expect(source).toContainSource(
       'nextBuildType !== null && !guidedFirstFacility',
     );
     expect(source).not.toContainSource(
       "detail={t('clubFinances.thenTapAPlusSquare')}",
+    );
+    expect(source).toContainSource('showBuildPlacementHelper={');
+    expect(source).not.toMatchSource(
+      /showBuildPlacementHelper=\{[\s\S]*?layoutMode === 'single'/,
     );
   });
 

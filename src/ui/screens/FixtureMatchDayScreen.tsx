@@ -188,15 +188,43 @@ export function FixtureMatchDayScreen({
           {fixture.awayTeam}
         </Text>
       </View>
-      <View className="mt-3 items-center">
-        <StatusChip
-          label={t('fixtureMatchDay.rivalHeroesReported', {
-            n: fixture.opponentHeroCount,
-            count: fixture.opponentHeroCount,
-          })}
-          tone="danger"
-        />
-      </View>
+      {fixture.opponentHeroes.length > 0 ? (
+        <View className="mt-3 flex-row flex-wrap justify-center gap-2">
+          {fixture.opponentHeroes.map((hero) => (
+            <View
+              key={hero.id}
+              accessible
+              accessibilityLabel={`${hero.name}. ${t(
+                'fixtureMatchDay.rivalHeroesReported',
+                { n: 1, count: 1 },
+              )}`}
+              className="flex-row items-center gap-2 border-2 border-red-dark bg-red-light px-2 py-1"
+            >
+              <View className="border-2 border-red-dark bg-paper">
+                <PixelPortrait
+                  playerId={hero.id}
+                  role={hero.role}
+                  lookId={hero.lookId}
+                  scale={PITCH_PORTRAIT_COMPACT_SCALE}
+                />
+              </View>
+              <PixelText className="max-w-40 text-sm uppercase text-ink">
+                {hero.name}
+              </PixelText>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View className="mt-3 items-center">
+          <StatusChip
+            label={t('fixtureMatchDay.rivalHeroesReported', {
+              n: 0,
+              count: 0,
+            })}
+            tone="danger"
+          />
+        </View>
+      )}
     </PaperPanel>
   );
 
