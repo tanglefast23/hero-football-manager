@@ -2283,7 +2283,7 @@ function GameApp() {
   } else if (store.screen === 'create-player' && store.career !== null) {
     screen = (
       <CharacterCreationScreen
-        initialDifficulty={store.career.difficulty ?? 'COZY'}
+        initialDifficulty={store.career.difficulty ?? 'CHAIRMAN'}
         defaultClubName={userClubName(store.career)}
         roster={inheritedSquad(store.career)}
         reduceMotion={reduceMotion}

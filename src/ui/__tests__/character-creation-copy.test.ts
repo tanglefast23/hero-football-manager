@@ -21,8 +21,8 @@ describe('first-hire screen copy', () => {
     expect(source).not.toContainSource('No wage subsidy');
   });
 
-  it('leads with the documented Cozy default and offers Chairman below it', () => {
-    expect(source.indexOf("['COZY', 'CHAIRMAN']")).toBeGreaterThanOrEqual(0);
+  it('leads with Chairman and offers Cozy below it', () => {
+    expect(source.indexOf("['CHAIRMAN', 'COZY']")).toBeGreaterThanOrEqual(0);
   });
 
   it('starts directly with player creation instead of a Bert note', () => {

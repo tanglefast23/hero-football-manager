@@ -21,9 +21,16 @@ const component = source.slice(
 );
 
 describe('slide-tackle debris', () => {
-  it('keeps dust at 65% and grass fully opaque', () => {
+  it('keeps dust at 65% and grass at 40% opacity', () => {
     expect(TACKLE_DUST_OPACITY).toBe(0.65);
-    expect(TACKLE_GRASS_OPACITY).toBe(1);
+    expect(TACKLE_GRASS_OPACITY).toBe(0.4);
+  });
+
+  it('makes grass 40% narrower and shifts both grass builders toward the feet', () => {
+    expect(component).toContain('sample.side + 12');
+    expect(component).toContain('blade.side + 12');
+    expect(component).toContain('Math.max(1, pixel * 0.6)');
+    expect(component).toContain('Math.max(1, pixel * 0.9)');
   });
 
   it('uses integer-sized pixel clusters rather than blurred geometry', () => {

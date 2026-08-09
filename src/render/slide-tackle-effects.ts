@@ -2,7 +2,7 @@
 export const TACKLE_DUST_COLOR = '#cf9268';
 export const TACKLE_DUST_OPACITY = 0.65;
 export const TACKLE_GRASS_COLOR = '#5cb85c';
-export const TACKLE_GRASS_OPACITY = 1;
+export const TACKLE_GRASS_OPACITY = 0.4;
 
 export const TACKLE_DUST_PIXELS = [
   { along: -13, side: -2, size: 5 },
