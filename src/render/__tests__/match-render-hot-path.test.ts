@@ -58,8 +58,8 @@ describe('per-tick Atlas inputs are interned, not rebuilt', () => {
 
 describe('the canvas is sized by layout, not by the match clock', () => {
   it('hands the Skia host view a memoised style object', () => {
-    expect(screen).not.toMatch(/<Canvas style=\{\{/);
-    expect(screen).toContain('<Canvas style={canvasStyle}>');
+    expect(screen).not.toMatch(/<RecoverableSkiaCanvas[\s\S]*?style=\{\{/);
+    expect(screen).toContain('style={canvasStyle}');
     expect(screen).toMatch(/const canvasStyle = useMemo\(.*\[pitchWidth, pitchH\]\)/s);
     expect(screen).toMatch(/const pitchFrameStyle = useMemo\(/);
   });

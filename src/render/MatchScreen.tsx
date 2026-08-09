@@ -2751,6 +2751,7 @@ export function MatchScreen({
       ) : null}
       {performanceNotice ? (
         <Pressable
+          immediatePress
           accessibilityRole="button"
           accessibilityLabel={t('matchScreen.performance.dismiss')}
           onPress={() => setPerformanceNotice(false)}
@@ -2996,6 +2997,7 @@ export function MatchScreen({
                 </Text>
                 <View style={styles.graphicsRecoveryButtons}>
                   <Pressable
+                    immediatePress
                     accessibilityRole="button"
                     onPress={reloadAfterGraphicsFailure}
                     style={styles.graphicsRecoveryButton}
@@ -3005,6 +3007,7 @@ export function MatchScreen({
                     </Text>
                   </Pressable>
                   <Pressable
+                    immediatePress
                     accessibilityRole="button"
                     onPress={finishAfterGraphicsFailure}
                     style={styles.graphicsRecoveryButtonPrimary}

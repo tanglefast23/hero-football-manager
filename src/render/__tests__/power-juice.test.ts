@@ -202,11 +202,12 @@ describe('renderer juice wiring', () => {
     expect(source).toContain('? POWER_JUICE_PUNCH_ZOOM\n        : 1;');
   });
 
-  it('gives Reduce Motion none of it', () => {
+  it('gives Reduce Motion and low-effects mode none of it', () => {
     const source = matchSource();
     const takeover = readFileSync(join(renderDir, 'PowerTitleTakeover.tsx'), 'utf8');
 
-    expect(source).toContain('const startJuice = (power: PowerId, player: number, now: number) => {\n      if (reduceMotion) return;');
+    expect(source).toContain('const suppressCosmeticEffects = reduceMotion || reducedEffects;');
+    expect(source).toContain('const startJuice = (power: PowerId, player: number, now: number) => {\n      if (suppressCosmeticEffects) return;');
     expect(takeover).toContain('reduceMotion ? null : shellStyle');
     expect(takeover).toContain('reduceMotion ? styles.sheenHidden : sheenStyle');
   });

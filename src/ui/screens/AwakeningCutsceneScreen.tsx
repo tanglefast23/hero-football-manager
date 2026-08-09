@@ -677,6 +677,7 @@ export function AwakeningCutsceneScreen({
                 </Text>
                 <View style={styles.graphicsRecoveryButtons}>
                   <Pressable
+                    immediatePress
                     accessibilityRole="button"
                     onPress={reloadAfterGraphicsFailure}
                     style={styles.graphicsRecoveryButton}
@@ -686,6 +687,7 @@ export function AwakeningCutsceneScreen({
                     </Text>
                   </Pressable>
                   <Pressable
+                    immediatePress
                     accessibilityRole="button"
                     onPress={retryAwakeningGraphics}
                     style={styles.graphicsRecoveryButtonPrimary}

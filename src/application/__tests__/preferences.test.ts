@@ -30,6 +30,7 @@ describe('fail-soft app preferences', () => {
       autoSubs: false,
       squadSort: null,
       developerMode: false,
+      performanceLimit: null,
       language: 'en',
       // A reset row has genuinely never been offered the device's language,
       // so the offer fires on the next launch. That is the intended repair.

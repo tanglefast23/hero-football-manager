@@ -42,7 +42,7 @@ describe('awakening cutscene framing', () => {
     expect(source).toContain('const SCENE_ANCHOR_RATIO = 0.8;');
     expect(source).not.toContain('const centerY = pitchHeight / 2;');
     // The canvas is the strip itself, so nothing is drawn where nothing is shown.
-    expect(source).toContain('<Canvas style={{ width, height: viewportHeight }}>');
+    expect(source).toContain('style={{ width, height: viewportHeight }}');
   });
 
   it('lets a tap skip the beat that is playing before it advances the story', () => {

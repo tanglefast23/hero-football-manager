@@ -33,8 +33,8 @@ describe('match button response contract', () => {
     expect(match).toContain(
       "import { SfxPressable as Pressable } from '../ui/components/SfxPressable';",
     );
-    expect(openings(match, 'Pressable')).toHaveLength(6);
-    expect(match.match(/\n {10,20}immediatePress\n/g) ?? []).toHaveLength(6);
+    expect(openings(match, 'Pressable')).toHaveLength(9);
+    expect(match.match(/\n\s+immediatePress\n/g) ?? []).toHaveLength(9);
     expect(match.match(/pressSfx="match-control"/g) ?? []).toHaveLength(4);
     for (const handler of [
       'selectFormation(nextFormation',

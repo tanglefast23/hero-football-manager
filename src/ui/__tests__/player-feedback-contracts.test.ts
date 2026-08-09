@@ -142,7 +142,7 @@ describe('match-speed contract', () => {
     expect(app).not.toContain('3× match speed is now an option.');
     expect(app).toContain('pausedExternally={globalSettingsOpen}');
     // The cap still exists as a mechanism; the power demo caps itself at 1x.
-    expect(match).toContain('nextMatchSpeed(speed, maximumSpeed)');
+    expect(match).toContain('nextMatchSpeed(speed, effectiveMaximumSpeed)');
     expect(rail).toContain('availableMatchSpeeds(maximumSpeed).map');
   });
 });
