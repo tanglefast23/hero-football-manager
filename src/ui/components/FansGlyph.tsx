@@ -48,7 +48,7 @@ export function FansGlyph() {
             height: FINANCE_SPRITE_CELL * SCALE,
           }}
         >
-          {financeSpriteRuns(spriteId).map(run => (
+          {financeSpriteRuns(spriteId).map((run) => (
             <View
               key={run.id}
               style={{

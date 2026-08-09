@@ -22,7 +22,11 @@
  */
 import { loadLaunchContent } from '../../content';
 import { kitOnlyPolicy, singlePathPolicies } from '../opening/policies';
-import { runOpening, type CreationRatings, type OpeningRun } from '../opening/runner';
+import {
+  runOpening,
+  type CreationRatings,
+  type OpeningRun,
+} from '../opening/runner';
 import { mean } from '../opening/stats';
 
 const content = loadLaunchContent();
@@ -34,8 +38,18 @@ const content = loadLaunchContent();
  * reliably signed. This is the slowest file in the suite at ~270s, but it runs
  * beside longer ones, so the wall clock is unchanged.
  */
-const SEEDS = Array.from({ length: 600 }, (_, index) => 4_000_000 + index * 7919);
-const CREATION: CreationRatings = { pac: 50, sho: 65, pas: 50, def: 50, tec: 50, sta: 50 };
+const SEEDS = Array.from(
+  { length: 600 },
+  (_, index) => 4_000_000 + index * 7919,
+);
+const CREATION: CreationRatings = {
+  pac: 50,
+  sho: 65,
+  pas: 50,
+  def: 50,
+  tec: 50,
+  sta: 50,
+};
 
 /**
  * Keeper training may buy at most this multiple of what an equal TP spend on
@@ -74,18 +88,27 @@ const MAXIMUM_KEEPER_LEVERAGE_RATIO = 10;
  * `real-player-opening-probe`. A single path should not be able to drag the
  * opening match out of a defeat on its own.
  */
-const MINIMUM_KEEPER_ARM_LOSS_RATE = 0.60;
+const MINIMUM_KEEPER_ARM_LOSS_RATE = 0.6;
 
 const KIT = { coach: 'none' as const, buildTrainingPitch: false };
 
 function runArm(policyId: string): OpeningRun[] {
-  const policy = policyId === 'kit-only'
-    ? kitOnlyPolicy(KIT)
-    : singlePathPolicies(KIT).find(candidate => candidate.id === `single-path-${policyId}-bare`);
+  const policy =
+    policyId === 'kit-only'
+      ? kitOnlyPolicy(KIT)
+      : singlePathPolicies(KIT).find(
+          (candidate) => candidate.id === `single-path-${policyId}-bare`,
+        );
   if (policy === undefined) throw new Error(`no policy for ${policyId}`);
-  return SEEDS.map(seed => runOpening({
-    seed, difficulty: 'COZY', policy, creation: CREATION, content,
-  }));
+  return SEEDS.map((seed) =>
+    runOpening({
+      seed,
+      difficulty: 'COZY',
+      policy,
+      creation: CREATION,
+      content,
+    }),
+  );
 }
 
 /**
@@ -104,28 +127,38 @@ function runArm(policyId: string): OpeningRun[] {
  * heavy defeat under every arm, so the striker's contribution nearly cancels
  * inside it and the denominator flips sign between samples.
  */
-function goalsPreventedPerShotFaced(arm: OpeningRun[], baselineGoalsAgainst: number): number {
-  const tpSpent = mean(arm.map(run => run.tpSpent));
+function goalsPreventedPerShotFaced(
+  arm: OpeningRun[],
+  baselineGoalsAgainst: number,
+): number {
+  const tpSpent = mean(arm.map((run) => run.tpSpent));
   if (tpSpent <= 0) throw new Error('a leverage arm must spend TP');
-  const shotsFaced = mean(arm.map(run => run.opener.opponentShots));
+  const shotsFaced = mean(arm.map((run) => run.opener.opponentShots));
   if (shotsFaced <= 0) throw new Error('the keeper arm must face shots');
-  const prevented = baselineGoalsAgainst - mean(arm.map(run => run.opener.goalsAgainst));
-  return ((prevented / shotsFaced) / tpSpent) * 100;
+  const prevented =
+    baselineGoalsAgainst - mean(arm.map((run) => run.opener.goalsAgainst));
+  return (prevented / shotsFaced / tpSpent) * 100;
 }
 
-function goalsCreatedPerShotTaken(arm: OpeningRun[], baselineGoalsFor: number): number {
-  const tpSpent = mean(arm.map(run => run.tpSpent));
+function goalsCreatedPerShotTaken(
+  arm: OpeningRun[],
+  baselineGoalsFor: number,
+): number {
+  const tpSpent = mean(arm.map((run) => run.tpSpent));
   if (tpSpent <= 0) throw new Error('a leverage arm must spend TP');
-  const shotsTaken = mean(arm.map(run => run.opener.userShots));
+  const shotsTaken = mean(arm.map((run) => run.opener.userShots));
   if (shotsTaken <= 0) throw new Error('the striker arm must take shots');
-  const created = mean(arm.map(run => run.opener.goalsFor)) - baselineGoalsFor;
-  return ((created / shotsTaken) / tpSpent) * 100;
+  const created =
+    mean(arm.map((run) => run.opener.goalsFor)) - baselineGoalsFor;
+  return (created / shotsTaken / tpSpent) * 100;
 }
 
 describe('training leverage rails', () => {
   const control = runArm('kit-only');
-  const baselineGoalsFor = mean(control.map(run => run.opener.goalsFor));
-  const baselineGoalsAgainst = mean(control.map(run => run.opener.goalsAgainst));
+  const baselineGoalsFor = mean(control.map((run) => run.opener.goalsFor));
+  const baselineGoalsAgainst = mean(
+    control.map((run) => run.opener.goalsAgainst),
+  );
   const keeper = runArm('keeper-drills');
   const finishing = runArm('finishing');
 
@@ -133,8 +166,10 @@ describe('training leverage rails', () => {
   const finishingLift = goalsCreatedPerShotTaken(finishing, baselineGoalsFor);
 
   it('spends the same TP on both arms, so the comparison is per-currency', () => {
-    expect(mean(keeper.map(run => run.tpSpent))).toBe(mean(finishing.map(run => run.tpSpent)));
-    expect(mean(control.map(run => run.tpSpent))).toBe(0);
+    expect(mean(keeper.map((run) => run.tpSpent))).toBe(
+      mean(finishing.map((run) => run.tpSpent)),
+    );
+    expect(mean(control.map((run) => run.tpSpent))).toBe(0);
   });
 
   it('keeps both arms positive, so the ratio means what it says', () => {
@@ -147,18 +182,21 @@ describe('training leverage rails', () => {
     const ratio = keeperLift / finishingLift;
     // eslint-disable-next-line no-console
     console.log(
-      `LEVERAGE RAIL prevented/shot-faced/100TP=${keeperLift.toFixed(4)}`
-      + ` created/shot-taken/100TP=${finishingLift.toFixed(4)}`
-      + ` ratio=${ratio.toFixed(2)} (max ${MAXIMUM_KEEPER_LEVERAGE_RATIO})`
-      + ` over ${SEEDS.length} paired seeds`,
+      `LEVERAGE RAIL prevented/shot-faced/100TP=${keeperLift.toFixed(4)}` +
+        ` created/shot-taken/100TP=${finishingLift.toFixed(4)}` +
+        ` ratio=${ratio.toFixed(2)} (max ${MAXIMUM_KEEPER_LEVERAGE_RATIO})` +
+        ` over ${SEEDS.length} paired seeds`,
     );
     expect(ratio).toBeLessThanOrEqual(MAXIMUM_KEEPER_LEVERAGE_RATIO);
   });
 
   it('leaves a keeper-only opening still losing most of the time', () => {
-    const lossRate = keeper.filter(run => run.opener.outcome === 'L').length / keeper.length;
+    const lossRate =
+      keeper.filter((run) => run.opener.outcome === 'L').length / keeper.length;
     // eslint-disable-next-line no-console
-    console.log(`LEVERAGE RAIL keeper-only opener loss rate ${(lossRate * 100).toFixed(1)}%`);
+    console.log(
+      `LEVERAGE RAIL keeper-only opener loss rate ${(lossRate * 100).toFixed(1)}%`,
+    );
     expect(lossRate).toBeGreaterThanOrEqual(MINIMUM_KEEPER_ARM_LOSS_RATE);
   });
 });

@@ -1,5 +1,9 @@
 import type { CopyFn, CopyParams } from '../i18n';
-import { FACILITY_ADJACENCIES, FACILITY_CATALOG, type FacilityType } from '../game/facilities';
+import {
+  FACILITY_ADJACENCIES,
+  FACILITY_CATALOG,
+  type FacilityType,
+} from '../game/facilities';
 
 /**
  * Resolves the catalog key a pure ring emitted, keeping its English if the key
@@ -19,7 +23,10 @@ export function copyOrEnglish(
   params?: CopyParams,
 ): string {
   if (key === undefined) return english;
-  const resolved = t(key, params === undefined ? undefined : translatedParams(t, params));
+  const resolved = t(
+    key,
+    params === undefined ? undefined : translatedParams(t, params),
+  );
   // A leftover `{placeholder}` means this value was saved with a key but
   // without the params that key needs — a recap or a ledger line written before
   // the producer started emitting them. `interpolate` leaves the hole visible on
@@ -61,8 +68,15 @@ function translatedParams(t: CopyFn, params: CopyParams): CopyParams {
   const substituted: Record<string, string | number> = { ...params };
   let changed = false;
   for (const [name, value] of Object.entries(params)) {
-    const target = name.endsWith('Key') ? name.slice(0, -'Key'.length) : undefined;
-    if (target === undefined || typeof value !== 'string' || params[target] === undefined) continue;
+    const target = name.endsWith('Key')
+      ? name.slice(0, -'Key'.length)
+      : undefined;
+    if (
+      target === undefined ||
+      typeof value !== 'string' ||
+      params[target] === undefined
+    )
+      continue;
     const resolved = t(value);
     if (resolved === value) continue;
     substituted[target] = resolved;
@@ -96,7 +110,9 @@ export function facilityName(t: CopyFn, type: FacilityType): string {
  * what the previous implementation did.
  */
 export function adjacencyDescription(t: CopyFn, id: string): string {
-  const adjacency = FACILITY_ADJACENCIES.find(candidate => candidate.id === id);
+  const adjacency = FACILITY_ADJACENCIES.find(
+    (candidate) => candidate.id === id,
+  );
   if (adjacency === undefined) return id;
   return copyOrEnglish(t, adjacency.descriptionKey, adjacency.description);
 }

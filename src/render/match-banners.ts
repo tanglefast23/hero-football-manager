@@ -15,8 +15,9 @@ export function appendBannerNewestFour<T extends SubjectedBanner>(
   banners: readonly T[],
   banner: T,
 ): T[] {
-  const kept = banner.subject === undefined
-    ? banners
-    : banners.filter(existing => existing.subject !== banner.subject);
+  const kept =
+    banner.subject === undefined
+      ? banners
+      : banners.filter((existing) => existing.subject !== banner.subject);
   return [...kept, banner].slice(-4);
 }

@@ -18,11 +18,14 @@ describe('the podium screen', () => {
   it('draws the steps 2 · 1 · 3, winner in the middle', () => {
     // Reversing this is invisible in a diff and wrong in every photograph of a
     // podium ever taken.
-    expect(SOURCE).toMatch(/BLOCK_ORDER[^=]*=\s*\[2,\s*1,\s*3\]/);
+    expect(SOURCE).toMatchSource(/BLOCK_ORDER[^=]*=\s*\[2,\s*1,\s*3\]/);
   });
 
   it('makes the winner s block the tallest and third place the shortest', () => {
-    const heights = /BLOCK_HEIGHT[^=]*=\s*\{\s*1:\s*(\d+),\s*2:\s*(\d+),\s*3:\s*(\d+)/.exec(SOURCE);
+    const heights =
+      /BLOCK_HEIGHT[^=]*=\s*\{\s*1:\s*(\d+),\s*2:\s*(\d+),\s*3:\s*(\d+)/.exec(
+        SOURCE,
+      );
     expect(heights).not.toBeNull();
     const [first, second, third] = heights!.slice(1).map(Number);
     expect(first).toBeGreaterThan(second);
@@ -35,7 +38,8 @@ describe('the podium screen', () => {
    * style-only, with the look on a plain View or Text inside it.
    */
   it('keeps every animated wrapper style-only', () => {
-    const animatedWithClassName = /<Animated\.(?:View|Text)[^>]*className=/s.exec(SOURCE);
+    const animatedWithClassName =
+      /<Animated\.(?:View|Text)[^>]*className=/s.exec(SOURCE);
     expect(animatedWithClassName?.[0] ?? null).toBeNull();
   });
 
@@ -44,7 +48,9 @@ describe('the podium screen', () => {
    * boundary. A bed started inside the screen would loop underneath that one.
    */
   it('starts no music bed of its own', () => {
-    expect(SOURCE).not.toMatch(/playCelebrationAnthem|setMenuTheme|playBed/);
+    expect(SOURCE).not.toMatchSource(
+      /playCelebrationAnthem|setMenuTheme|playBed/,
+    );
   });
 
   /**
@@ -55,18 +61,22 @@ describe('the podium screen', () => {
    */
   it('names three ordinal keys the catalog actually has', () => {
     const english = loadCatalog('en').strings;
-    const keys = [...SOURCE.matchAll(/'(seasonPodium\.[a-zA-Z.]+)'/g)].map(match => match[1]!);
+    const keys = [...SOURCE.matchAll(/'(seasonPodium\.[a-zA-Z.]+)'/g)].map(
+      (match) => match[1]!,
+    );
 
-    expect(keys).toEqual(expect.arrayContaining([
-      'seasonPodium.first',
-      'seasonPodium.second',
-      'seasonPodium.third',
-    ]));
-    expect(keys.filter(key => !(key in english))).toEqual([]);
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        'seasonPodium.first',
+        'seasonPodium.second',
+        'seasonPodium.third',
+      ]),
+    );
+    expect(keys.filter((key) => !(key in english))).toEqual([]);
   });
 
   it('can always be skipped, and ends itself if it is not', () => {
-    expect(SOURCE).toMatch(/onPress=\{completeOnce\}/);
-    expect(SOURCE).toMatch(/setTimeout\(completeOnce/);
+    expect(SOURCE).toMatchSource(/onPress=\{completeOnce\}/);
+    expect(SOURCE).toMatchSource(/setTimeout\(\s*completeOnce/);
   });
 });

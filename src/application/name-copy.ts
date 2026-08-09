@@ -54,7 +54,9 @@ export function readableToken(value: string): string {
     .replace(/^drill[-_:]?/i, '')
     .split(/[_-]/g)
     .filter(Boolean)
-    .map(word => `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`)
+    .map(
+      (word) => `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`,
+    )
     .join(' ');
 }
 
@@ -101,7 +103,9 @@ const SCOUT_REGION_NAME_KEYS: Readonly<Record<string, string>> = {
 
 export const ARCHETYPE_NAME_KEY_IDS = Object.keys(ARCHETYPE_NAME_KEYS);
 export const PERSONALITY_NAME_KEY_IDS = Object.keys(PERSONALITY_NAME_KEYS);
-export const COACH_SPECIALTY_NAME_KEY_IDS = Object.keys(COACH_SPECIALTY_NAME_KEYS);
+export const COACH_SPECIALTY_NAME_KEY_IDS = Object.keys(
+  COACH_SPECIALTY_NAME_KEYS,
+);
 export const SCOUT_REGION_NAME_KEY_IDS = Object.keys(SCOUT_REGION_NAME_KEYS);
 
 /** Every key this module can ask the catalog for, so a gate can check they exist. */
@@ -188,7 +192,10 @@ export function facilityNameFromId(t: CopyFn, facilityId: string): string {
  * from the pure ring. This is the boundary where both are reachable, so the
  * words are chosen here and the modal draws what it is handed.
  */
-export function trainingModifierLabel(t: CopyFn, modifier: TrainingModifier): string {
+export function trainingModifierLabel(
+  t: CopyFn,
+  modifier: TrainingModifier,
+): string {
   switch (modifier.kind) {
     case 'YOUTH':
       return t('trainingDrill.modifier.youth');
@@ -204,9 +211,9 @@ export function trainingModifierLabel(t: CopyFn, modifier: TrainingModifier): st
       return modifier.token === undefined
         ? modifier.label
         : t('trainingDrill.modifier.facilityLevel', {
-          facility: facilityNameFromId(t, modifier.token),
-          level: modifier.level ?? 1,
-        });
+            facility: facilityNameFromId(t, modifier.token),
+            level: modifier.level ?? 1,
+          });
     // The role code is deliberately untranslated — see the push site.
     case 'ROLE':
     default:

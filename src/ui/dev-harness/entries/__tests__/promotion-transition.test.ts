@@ -4,10 +4,16 @@ import { seasonEndViewModel } from '../../../../application/view-models';
 import { loadLaunchContent } from '../../../../content/load';
 import { leagueStandings } from '../../../../game/career';
 import { currentUserDivision } from '../../../../game/m2-career';
-import { divisionAfterFinish, type DivisionLevel } from '../../../../game/pyramid';
+import {
+  divisionAfterFinish,
+  type DivisionLevel,
+} from '../../../../game/pyramid';
 import { devHarnessCareerAtSeasonEnd } from '../../career';
 
-const ENTRY = join(process.cwd(), 'src/ui/dev-harness/entries/promotion-transition.tsx');
+const ENTRY = join(
+  process.cwd(),
+  'src/ui/dev-harness/entries/promotion-transition.tsx',
+);
 
 /**
  * `promotion-transition.tsx` imports react-native and Jest runs with
@@ -24,20 +30,25 @@ const source = readFileSync(ENTRY, 'utf8');
 
 function seedFromSource(): number {
   const match = /const LADDER_SEED = (\d+);/.exec(source);
-  if (match === null) throw new Error('promotion-transition.tsx no longer declares LADDER_SEED');
+  if (match === null)
+    throw new Error('promotion-transition.tsx no longer declares LADDER_SEED');
   return Number(match[1]);
 }
 
 function seasonsFromSource(): Map<string, number> {
   const seasons = new Map<string, number>();
-  for (const match of source.matchAll(/id: '([a-z-]+)',[\s\S]*?season: (\d+),/g)) {
+  for (const match of source.matchAll(
+    /id: '([a-z-]+)',[\s\S]*?season: (\d+),/g,
+  )) {
     seasons.set(match[1], Number(match[2]));
   }
   return seasons;
 }
 
 /** What each chip claims about the club's season, in the screen's own words. */
-const EXPECTED: Readonly<Record<string, { outcome: string; division: DivisionLevel; position: number }>> = {
+const EXPECTED: Readonly<
+  Record<string, { outcome: string; division: DivisionLevel; position: number }>
+> = {
   'first-up': { outcome: 'PROMOTED', division: 5, position: 1 },
   promoted: { outcome: 'PROMOTED', division: 4, position: 2 },
   safe: { outcome: 'SAFE', division: 3, position: 7 },
@@ -54,17 +65,25 @@ describe('the promotion and relegation reel', () => {
     expect([...seasons.keys()]).toEqual(Object.keys(EXPECTED));
   });
 
-  it.each(Object.keys(EXPECTED))('opens %s on the season it claims', caseId => {
-    const season = seasons.get(caseId)!;
-    const state = devHarnessCareerAtSeasonEnd(season, seed);
-    const expected = EXPECTED[caseId];
-    const division: DivisionLevel = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
-    const position = leagueStandings(state).find(row => row.clubId === state.userClubId)!.position;
+  it.each(Object.keys(EXPECTED))(
+    'opens %s on the season it claims',
+    (caseId) => {
+      const season = seasons.get(caseId)!;
+      const state = devHarnessCareerAtSeasonEnd(season, seed);
+      const expected = EXPECTED[caseId];
+      const division: DivisionLevel =
+        state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+      const position = leagueStandings(state).find(
+        (row) => row.clubId === state.userClubId,
+      )!.position;
 
-    expect(division).toBe(expected.division);
-    expect(position).toBe(expected.position);
-    expect(seasonEndViewModel(state, content, 1).outcomeLabel).toBe(expected.outcome);
-  });
+      expect(division).toBe(expected.division);
+      expect(position).toBe(expected.position);
+      expect(seasonEndViewModel(state, content, 1).outcomeLabel).toBe(
+        expected.outcome,
+      );
+    },
+  );
 
   /**
    * The review screen re-derives promotion and relegation from the position
@@ -72,14 +91,19 @@ describe('the promotion and relegation reel', () => {
    * reel prints both side by side and a reviewer would read the disagreement
    * as a bug in the pyramid rather than a second copy of it.
    */
-  it.each(Object.keys(EXPECTED))('agrees with the pyramid rule on %s', caseId => {
-    const expected = EXPECTED[caseId];
-    const next = divisionAfterFinish(expected.division, expected.position);
+  it.each(Object.keys(EXPECTED))(
+    'agrees with the pyramid rule on %s',
+    (caseId) => {
+      const expected = EXPECTED[caseId];
+      const next = divisionAfterFinish(expected.division, expected.position);
 
-    if (expected.outcome === 'PROMOTED') expect(next).toBe(expected.division - 1);
-    else if (expected.outcome === 'RELEGATED') expect(next).toBe(expected.division + 1);
-    else expect(next).toBe(expected.division);
-  });
+      if (expected.outcome === 'PROMOTED')
+        expect(next).toBe(expected.division - 1);
+      else if (expected.outcome === 'RELEGATED')
+        expect(next).toBe(expected.division + 1);
+      else expect(next).toBe(expected.division);
+    },
+  );
 
   /**
    * `cases` is read while the module is still evaluating, so anything it reads

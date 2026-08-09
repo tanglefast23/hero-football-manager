@@ -14,7 +14,7 @@ describe('webbed player sprite state', () => {
     expect(frame).toHaveLength(1);
     expect(frame[0][0]).toBe('.');
     expect(frame[0].at(-1)).toBe('.');
-    expect([...frame[0]].every(token => '.KgGwW'.includes(token))).toBe(true);
+    expect([...frame[0]].every((token) => '.KgGwW'.includes(token))).toBe(true);
     expect(frame[0]).not.toMatch(/[RS]/);
   });
 
@@ -24,10 +24,14 @@ describe('webbed player sprite state', () => {
       const ordinary = `r:f00:${frame}`;
       const webbed = webbedSpriteKey(ordinary);
       expect(sheet.sprites[webbed]).toBeDefined();
-      expect(sheet.sprites[webbed]).toHaveLength(sheet.sprites[ordinary].length);
-      expect(sheet.sprites[webbed].every(row => (
-        [...row].every(token => '.KgGwW'.includes(token))
-      ))).toBe(true);
+      expect(sheet.sprites[webbed]).toHaveLength(
+        sheet.sprites[ordinary].length,
+      );
+      expect(
+        sheet.sprites[webbed].every((row) =>
+          [...row].every((token) => '.KgGwW'.includes(token)),
+        ),
+      ).toBe(true);
     }
     expect(sheet.sprites[webbedSpriteKey('r:f00:slide0')]).toBeUndefined();
   });

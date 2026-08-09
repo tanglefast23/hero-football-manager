@@ -200,7 +200,7 @@ Craft rules adopted 2026-08-08 from *Pixel Logic* (Michafrar), kept only where t
 
 1. **Curves progress; they don't stumble.** A curve's step runs should *change* along it — `3,2,1` opening out, `1,2,3` closing in. Equal runs all the way down are a straight diagonal, not a curve. What a curve must never do is stumble: a **single-row step marooned between two runs of three or more** is the classic accidental jaggie, and the cure is redrawing the step, never a smoothing pixel.
 
-   *(First written as "never mix a 1px and a 2px step on one curve." That was wrong on the merits — it described a diagonal and condemned 62–75% of the cast, which is the medium, not a defect. The corrected rule finds 15 real jaggies in the portrait sheet across five identities and 106 in the match sheet; both are gated at an exact count.)*
+   *(First written as "never mix a 1px and a 2px step on one curve." That was wrong on the merits — it described a diagonal and condemned 62–75% of the cast, which is the medium, not a defect. The corrected rule found the real jaggies. The 2026-08-09 manual 1× contour pass removed them, and the gate now requires zero.)*
 2. **One line weight per sprite family.** Every outline and interior limb break in the character set is **1px** and stays 1px whatever the kit colour — a red player and a blue player must have identical weight or their silhouettes stop matching at 1×. Thicker weights are a Track A privilege (the 2px button outline), not a per-sprite choice.
 3. **Hue-shift every *new* ramp.** A shadow is not just a darker base. Rotate ~8–15° per step in one consistent direction: **shadows toward the ink-plum end** (ink `#241f2e` is a violet, so shadows that lean plum harmonise with every outline in the game), **highlights toward warm**. This buys depth with no new families — extend a ramp by hue-shifting, never by introducing a colour.
 
@@ -208,29 +208,31 @@ Craft rules adopted 2026-08-08 from *Pixel Logic* (Michafrar), kept only where t
 4. **Test at 1× on cream before export.** Every new sprite gets viewed at native size on `#f4f1ea`, alongside the rest of its set, before it ships. If it doesn't read instantly there, the fix is a bigger shape or a stronger silhouette — never more detail. Detail added below the readable threshold is cost with no payoff.
 5. **One pitch-line weight.** Pitch markings are a single stroke width across every pitch asset (`LINE_W = 2` in [Pitch.tsx](src/render/Pitch.tsx:24)); goalposts are deliberately the one exception at `POST_W = 4`, so the goal mouth reads at a glance. New pitch furniture uses `LINE_W`, not a new number.
 
-### What measuring these actually showed (2026-08-08)
+### What measuring these actually showed (2026-08-08, fixed 2026-08-09)
 
 The sheets were measured, and three of the rules above needed scoping rather than enforcing. `src/render/sprites/__tests__/pixel-bible-geometry.test.ts` is the standing gate for the rest — outline colour, outline weight, and edge survival, run against **the background each sheet actually sits on** (portraits on cream, match sprites on pitch base; judging match sprites against cream invents thousands of failures that do not exist).
 
 - **Rule 1 holds, with one sanctioned exception.** All 177 `fontSize` declarations are integers. Three celebration surfaces put a soft halo *behind* crisp glyphs (`textShadowRadius` 7 in [EndgameCelebrationScreen](src/ui/screens/EndgameCelebrationScreen.tsx:138) and [SurgeBanner](src/ui/components/SurgeBanner.tsx:150), 2 in [ChampionshipCelebrationScreen](src/ui/screens/ChampionshipCelebrationScreen.tsx:571)). The glyph edges stay hard; the glow is what lets type survive the brightest art in the game. Allowed **only** for type over busy celebration scenes — never on chrome, never on the glyphs themselves.
-- **Rule 7 was mis-stated, not inapplicable.** Measuring "equal step runs" flagged 62–75% of curves, and I first read that as the rule not binding at 24×29. Review corrected it: equal runs describe a diagonal, and real curves *should* vary. Re-stated as "no single-row step marooned between two runs of 3+", it finds a short, nameable list instead — **15 in portraits, 106 in match sprites** — and is gated at those exact counts. The lesson generalises: when a conformance check condemns most of the corpus, suspect the check.
+- **Rule 7 was mis-stated, not inapplicable.** Measuring "equal step runs" flagged 62–75% of curves, and I first read that as the rule not binding at 24×29. Review corrected it: equal runs describe a diagonal, and real curves *should* vary. Re-stated as "no single-row step marooned between two runs of 3+", it found a short, nameable list. Every item was redrawn manually at 1×; the gate now requires **zero** in portraits and match sprites. The lesson generalises: when a conformance check condemns most of the corpus, suspect the check.
 - **Rule 2 was being measured in the wrong unit.** Sprites average 8.5–9.4 colours and peak at 13, which is correct: a character wears skin + hair + kit + ink at once. The four-value rule governs **one icon or one material**, not one cast member.
-- **Rule 8 has a real gap.** The 1px band dominates (72% portraits, 74% match sprites), but portraits carry an outline on only **79.5%** of their silhouette against the match sprites' **97.3%** — roughly a fifth of a portrait's edge is bare fill meeting the background. Fixing that is authoring work on the 1299-sprite sheet, not a code change.
+- **Rule 8 now holds.** Portrait and match silhouettes have a complete 1px ink boundary, including authored closure where tall hair or a sole meets a sheet crop. The gate requires **100% outline coverage**; no fill can touch the display background.
 - **Rule 4 confirmed with evidence.** Zero pure-black entries in any of the five palettes; every outline is a dark tint.
 - **Rule 12 needs a size qualifier.** UI chrome is 96% clean at the canon 2px (367 `border-2` against 14 `border-4`). Every `borderWidth: 1` in the codebase is a sub-12px micro-element — an 8×8 progress dot, a 9×5 pip, a confetti fleck — where a 2px border would eat the element. **2px is the chrome weight; elements under ~12px use 1px.** The Don't-list ban on "thin 1px UI outlines" means buttons and panels, not pips.
 - **Rule 3 is gated at the only level a metric can honestly reach.** Whether a face exaggerates well is a judgment; whether the *cast* varies is measurable. Eye-band vs jaw-band ink across the 433 identities spans 0.67–4.5 (median 1.50), with only 7% showing no dominant feature — so the roster is genuinely pushed in different directions, not one head in recolours. The gate asserts that spread, and would fail if the cast collapsed toward a single template.
 
-**The rule-10 backlog is 291 pixels, and the gate holds an exact count per sheet — not a percentage.** A percentage budget was the first thing tried and it was wrong twice over: it let new debt hide behind a growing sheet, and it handed sheets a silent allowance. Under a 0.001 budget the portraits and match sprites read as clean while carrying 158 bad pixels between them. Absolute counts, zero tolerance for new ones:
+**The rule-10 backlog is zero pixels, and the gate holds every sheet at zero — not a percentage.** A percentage budget was the first thing tried and it was wrong twice over: it let new debt hide behind a growing sheet, and it handed sheets a silent allowance. The 2026-08-09 manual 1× pass closed every crop edge and object contour with ink:
 
 | Sheet | Known dissolving pixels | What |
 |---|---|---|
-| match sprites | 104 | `#ff6a00`, `#a3c8f0`, `#b9b4c2`, `#f2938c`, `#1d9e75` meeting turf |
-| management sprites | 116 | `#c5c1ca` ×80, `#fff5dc` ×36 meeting cream |
-| portraits | 54 | mostly `#ffffff` and `#a3c8f0` meeting cream |
-| event objects | 17 | incl. two pixels of cream fill on a cream backdrop — invisible at any size |
+| match sprites | 0 | clean against turf |
+| management sprites | 0 | clean against cream |
+| portraits | 0 | clean against cream |
+| event objects | 0 | clean against their authored backdrops |
 | finance icons | 0 | clean |
 
-Fixing these is authoring work: the cure is an ink outline, not a colour swap, and patching pixels blind is how a silhouette dies. Lower a number when art is fixed; never raise one.
+The cure was an ink outline and a manual contour redraw, not a colour swap. The gate lists the offending asset and pixel if debt returns; it has no allowance to raise.
+
+The five rival-intro backdrops are 8-bit indexed PNGs with 8–10 colours each. `scripts/images/index-png.mjs` verifies the 16-colour limit and byte-identical decoded pixels during conversion. `RivalHeroIntroScreen` draws them through Skia with `PIXEL_ART_SAMPLING`, so native and web both use nearest-neighbour filtering.
 
 **Rejected — selective anti-aliasing on button corners.** *Pixel Logic*'s selective-AA technique is for authored sprite art at high curvature; it does not transfer here. Track A buttons are not authored pixels — they are runtime views (`border-2 border-b-4 border-ink`), so there is no corner pixel to cushion, and where a radius does exist the platform already smooths it. Adding intermediate tones would also double every ramp and contradict the hard rules above (`no anti-aliasing`, `never blur pixel type`). **Jaggies are cured by rule 1, not by AA.** The hero-Zone glow and all FX frames are covered by the same ban — a soft-tinted chunky edge, never a feathered one.
 

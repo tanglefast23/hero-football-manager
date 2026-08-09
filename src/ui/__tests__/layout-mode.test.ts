@@ -1,10 +1,13 @@
-import { TWO_COLUMN_MIN_WIDTH, layoutModeForWidth } from '../layout/layout-mode';
+import {
+  TWO_COLUMN_MIN_WIDTH,
+  layoutModeForWidth,
+} from '../layout/layout-mode';
 
 describe('layoutModeForWidth', () => {
   it('keeps phones and portrait tablets single-column', () => {
-    expect(layoutModeForWidth(390)).toBe('single');   // iPhone
-    expect(layoutModeForWidth(834)).toBe('single');   // iPad portrait
-    expect(layoutModeForWidth(1032)).toBe('single');  // 13-inch iPad portrait
+    expect(layoutModeForWidth(390)).toBe('single'); // iPhone
+    expect(layoutModeForWidth(834)).toBe('single'); // iPad portrait
+    expect(layoutModeForWidth(1032)).toBe('single'); // 13-inch iPad portrait
     expect(layoutModeForWidth(TWO_COLUMN_MIN_WIDTH - 1)).toBe('single');
     expect(layoutModeForWidth(956)).toBe('single'); // iPhone Pro Max landscape web
   });

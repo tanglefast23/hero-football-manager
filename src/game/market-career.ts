@@ -33,7 +33,10 @@ import {
   type TransferQuote,
 } from './market';
 import type { CareerPlayer, GameState, PlayerPersonality } from './types';
-import { developmentPotentialCeiling, potentialTierForDivision } from './archetype-caps';
+import {
+  developmentPotentialCeiling,
+  potentialTierForDivision,
+} from './archetype-caps';
 import { recordCashTransaction } from './cash-transactions';
 import {
   LOYALTY_NO_RENEWAL_THRESHOLD,
@@ -58,7 +61,12 @@ import {
   specialHeroTargetOverall,
   type SpecialHero,
 } from './special-heroes';
-import { DIVISION_STRENGTH_BANDS, type DivisionLevel, type PyramidClub, type PyramidPlayer } from './pyramid';
+import {
+  DIVISION_STRENGTH_BANDS,
+  type DivisionLevel,
+  type PyramidClub,
+  type PyramidPlayer,
+} from './pyramid';
 import { assertContractTermFitsCareer } from './retirement';
 import { assertUserCareerRosterSpace } from './youth-intake';
 import { isStoryScoutingUnlocked } from './story-progression';
@@ -75,9 +83,7 @@ import {
 } from './board-ultimatum';
 import { highestDivisionReached } from './promotion-progression';
 
-const DEFAULT_COACH_CONTENT_UNLOCK_IDS = [
-  'formation:4-3-3',
-] as const;
+const DEFAULT_COACH_CONTENT_UNLOCK_IDS = ['formation:4-3-3'] as const;
 
 export type CareerCoachRole = 'HEAD' | 'ASSISTANT';
 
@@ -93,7 +99,7 @@ export function coachWeeklyWageForRole(
   }
   return role === 'HEAD'
     ? coach.weeklyWage
-    : Math.round(coach.weeklyWage * ASSISTANT_COACH_WAGE_PERCENT / 100);
+    : Math.round((coach.weeklyWage * ASSISTANT_COACH_WAGE_PERCENT) / 100);
 }
 
 interface CareerTransferBid {
@@ -174,9 +180,14 @@ export function applyCareerNegotiationConsequence(
   market: CareerMarketState,
   kind: 'transfer' | 'renewal',
 ): CareerMarketTransaction {
-  const talks = kind === 'transfer' ? market.transferTalks : market.renewalTalks;
+  const talks =
+    kind === 'transfer' ? market.transferTalks : market.renewalTalks;
   const consequence = talks?.negotiation.consequence;
-  if (talks === undefined || consequence === undefined || talks.consequenceApplied === true) {
+  if (
+    talks === undefined ||
+    consequence === undefined ||
+    talks.consequenceApplied === true
+  ) {
     return { state, market };
   }
   // A renewal is talks with the club's OWN player, and `careerTransferTarget`
@@ -185,17 +196,24 @@ export function applyCareerNegotiationConsequence(
   // a renewal produced a consequence, which is exactly when an insulting offer
   // had just been made and the morale hit was owed. The transfer path shares
   // this function and was always correct, which is why no test caught it.
-  const target = kind === 'renewal'
-    ? careerSquadNegotiationTarget(state, talks.playerId)
-    : careerTransferTarget(state, talks.playerId);
-  if (target === undefined) throw new Error(`unknown negotiation player ${talks.playerId}`);
-  const nextMorale = Math.max(0, Math.min(100, target.player.morale + consequence.moraleDelta));
+  const target =
+    kind === 'renewal'
+      ? careerSquadNegotiationTarget(state, talks.playerId)
+      : careerTransferTarget(state, talks.playerId);
+  if (target === undefined)
+    throw new Error(`unknown negotiation player ${talks.playerId}`);
+  const nextMorale = Math.max(
+    0,
+    Math.min(100, target.player.morale + consequence.moraleDelta),
+  );
   const nextState = target.active
     ? {
         ...state,
-        players: state.players.map(candidate => candidate.id === target.player.id
-          ? { ...candidate, morale: nextMorale }
-          : candidate),
+        players: state.players.map((candidate) =>
+          candidate.id === target.player.id
+            ? { ...candidate, morale: nextMorale }
+            : candidate,
+        ),
       }
     : updatePyramidPlayerMorale(state, target.player.id, nextMorale);
   const nextTalks = { ...talks, consequenceApplied: true };
@@ -269,9 +287,11 @@ export function startCareerScoutMission(
     ? state
     : {
         ...state,
-        clubs: state.clubs.map(candidate => candidate.id === state.userClubId
-          ? { ...candidate, cash: candidate.cash - mission.cost }
-          : candidate),
+        clubs: state.clubs.map((candidate) =>
+          candidate.id === state.userClubId
+            ? { ...candidate, cash: candidate.cash - mission.cost }
+            : candidate,
+        ),
       };
   const transactionState = feeWaived
     ? chargedState
@@ -298,9 +318,13 @@ export function resolveCareerScoutClock(
   state: GameState,
   market: CareerMarketState,
 ): CareerMarketState {
-  const currentMarket = expireCareerTransferTalks(state, expireCareerTransferListings(state, market));
+  const currentMarket = expireCareerTransferTalks(
+    state,
+    expireCareerTransferListings(state, market),
+  );
   const mission = currentMarket.activeScoutMission;
-  if (mission === undefined || absoluteCareerWeek(state) < mission.dueWeek) return currentMarket;
+  if (mission === undefined || absoluteCareerWeek(state) < mission.dueWeek)
+    return currentMarket;
   const result = resolveScoutMission(
     mission,
     absoluteCareerWeek(state),
@@ -321,7 +345,9 @@ export function expireCareerTransferListings(
   market: CareerMarketState,
 ): CareerMarketState {
   const listings = market.transferListings ?? [];
-  const active = listings.filter(listing => listingBelongsToCurrentWindow(state, listing));
+  const active = listings.filter((listing) =>
+    listingBelongsToCurrentWindow(state, listing),
+  );
   if (active.length === listings.length) return market;
   return { ...market, transferListings: active };
 }
@@ -337,7 +363,8 @@ function expireCareerTransferTalks(
   market: CareerMarketState,
 ): CareerMarketState {
   const talks = market.transferTalks;
-  if (talks === undefined || talksBelongToCurrentWindow(state, talks)) return market;
+  if (talks === undefined || talksBelongToCurrentWindow(state, talks))
+    return market;
   return { ...market, transferTalks: undefined };
 }
 
@@ -381,7 +408,9 @@ export function closeCareerTransferTalks(
     ...market,
     transferTalks: undefined,
     abandonedTransferNegotiationIds: [
-      ...(market.abandonedTransferNegotiationIds ?? []).filter(id => id.startsWith(weekPrefix)),
+      ...(market.abandonedTransferNegotiationIds ?? []).filter((id) =>
+        id.startsWith(weekPrefix),
+      ),
       talks.negotiation.id,
     ],
   };
@@ -394,15 +423,23 @@ export function beginCareerTransferTalks(
   division = 5,
 ): CareerMarketState {
   assertManagePhase(state);
-  if (!isTransferWindowOpen(state.week)) throw new Error('the transfer window is closed');
+  if (!isTransferWindowOpen(state.week))
+    throw new Error('the transfer window is closed');
   // Matches the renewal guard. Without it, closing a rejected negotiation and
   // reopening it dealt the same deterministic pitch cards at round 0, so the
   // three-round cap and the walk-away penalty could both be retried away.
-  if (market.transferTalks !== undefined) throw new Error('another transfer is already being negotiated');
-  if ((market.abandonedTransferNegotiationIds ?? []).includes(transferNegotiationId(state, playerId))) {
-    throw new Error('That agent has ended talks for this week. Try again next week.');
+  if (market.transferTalks !== undefined)
+    throw new Error('another transfer is already being negotiated');
+  if (
+    (market.abandonedTransferNegotiationIds ?? []).includes(
+      transferNegotiationId(state, playerId),
+    )
+  ) {
+    throw new Error(
+      'That agent has ended talks for this week. Try again next week.',
+    );
   }
-  if (!market.scoutReports.some(report => report.playerId === playerId)) {
+  if (!market.scoutReports.some((report) => report.playerId === playerId)) {
     throw new Error('a player must be scouted before transfer talks');
   }
   const target = careerTransferTarget(state, playerId, division);
@@ -411,7 +448,9 @@ export function beginCareerTransferTalks(
   }
   const player = target.player;
   if (!sellerCanSpare(state, playerId)) {
-    throw new Error(`${player.name}'s club has no other cover for that position and will not sell.`);
+    throw new Error(
+      `${player.name}'s club has no other cover for that position and will not sell.`,
+    );
   }
   const quote = buyingTransferQuote(valuationPlayer(player), {
     careerSeed: state.careerSeed,
@@ -419,7 +458,10 @@ export function beginCareerTransferTalks(
     week: state.week,
     sellingClubDivision: target.sellingClubDivision,
   });
-  const weeklyAsk = Math.max(1, Math.round(player.weeklyWage * (player.power ? 3.5 : 1.2)));
+  const weeklyAsk = Math.max(
+    1,
+    Math.round(player.weeklyWage * (player.power ? 3.5 : 1.2)),
+  );
   return {
     ...market,
     transferTalks: {
@@ -443,7 +485,8 @@ export function submitCareerTransferOffer(
   pitchCard?: PitchCard,
   heroLimit?: number,
 ): CareerMarketState {
-  if (market.transferTalks === undefined) throw new Error('there are no active transfer talks');
+  if (market.transferTalks === undefined)
+    throw new Error('there are no active transfer talks');
   // The same guard the renewal path runs, for the same reason: without it
   // `applyCareerContractPromise` is the first thing to notice an impossible
   // promise, and by then the agent has accepted -- so `guarded()` discards a
@@ -464,7 +507,11 @@ export function submitCareerTransferOffer(
     ...market,
     transferTalks: {
       ...market.transferTalks,
-      negotiation: submitContractOffer(market.transferTalks.negotiation, offer, pitchCard),
+      negotiation: submitContractOffer(
+        market.transferTalks.negotiation,
+        offer,
+        pitchCard,
+      ),
     },
   };
 }
@@ -474,15 +521,21 @@ export function completeCareerTransfer(
   market: CareerMarketState,
 ): CareerMarketTransaction {
   assertManagePhase(state);
-  if (!isTransferWindowOpen(state.week)) throw new Error('the transfer window is closed');
+  if (!isTransferWindowOpen(state.week))
+    throw new Error('the transfer window is closed');
   const talks = market.transferTalks;
-  if (talks?.negotiation.status !== 'ACCEPTED' || talks.negotiation.acceptedOffer === undefined) {
+  if (
+    talks?.negotiation.status !== 'ACCEPTED' ||
+    talks.negotiation.acceptedOffer === undefined
+  ) {
     throw new Error('a transfer requires an accepted player contract');
   }
   // Belt over the weekly expiry clock: a stale save could still hand this a
   // deal priced in an earlier window.
   if (!talksBelongToCurrentWindow(state, talks)) {
-    throw new Error('these talks expired with their transfer window; reopen them at the current price');
+    throw new Error(
+      'these talks expired with their transfer window; reopen them at the current price',
+    );
   }
   const target = careerTransferTarget(state, talks.playerId);
   if (target === undefined) {
@@ -492,15 +545,25 @@ export function completeCareerTransfer(
   // Re-checked at completion: another purchase between opening talks and
   // signing can take the club's remaining cover for this position.
   if (!sellerCanSpare(state, player.id)) {
-    throw new Error(`${player.name}'s club has no other cover for that position and will not sell.`);
+    throw new Error(
+      `${player.name}'s club has no other cover for that position and will not sell.`,
+    );
   }
   assertUserCareerRosterSpace(state);
   const buyer = userClub(state);
-  if (buyer.cash < talks.transferQuote.fee) throw new Error('the transfer fee is not affordable');
+  if (buyer.cash < talks.transferQuote.fee)
+    throw new Error('the transfer fee is not affordable');
   const offer = talks.negotiation.acceptedOffer;
   const sellerClubId = player.clubId;
-  const lineups = target.active ? replaceTransferredStarter(state, player) : state.lineups;
-  assertContractTermFitsCareer(player, offer.termSeasons, state.careerSeed, 'signing');
+  const lineups = target.active
+    ? replaceTransferredStarter(state, player)
+    : state.lineups;
+  assertContractTermFitsCareer(
+    player,
+    offer.termSeasons,
+    state.careerSeed,
+    'signing',
+  );
   const transferred: CareerPlayer = {
     ...player,
     clubId: state.userClubId,
@@ -515,43 +578,58 @@ export function completeCareerTransfer(
     seasonsAtClub: 0,
   };
   const transferredState: GameState = {
-      ...state,
-      clubs: state.clubs.map(club => {
-        if (club.id === state.userClubId) {
-          return {
-            ...club,
-            cash: club.cash - talks.transferQuote.fee,
-            weeklyWages: checkedAdd(club.weeklyWages, offer.weeklyWage, 'buyer weekly wages'),
-          };
-        }
-        if (club.id === sellerClubId) {
-          return {
-            ...club,
-            cash: checkedAdd(club.cash, talks.transferQuote.fee, 'seller cash'),
-            weeklyWages: checkedSubtract(club.weeklyWages, player.weeklyWage, 'seller weekly wages'),
-          };
-        }
-        return club;
-      }),
-      players: target.active
-        ? state.players.map(candidate => candidate.id === player.id ? transferred : candidate)
-        : [...state.players, transferred],
-      lineups,
-    };
-  const persistedState = persistCareerTransferInPyramid(transferredState, player);
+    ...state,
+    clubs: state.clubs.map((club) => {
+      if (club.id === state.userClubId) {
+        return {
+          ...club,
+          cash: club.cash - talks.transferQuote.fee,
+          weeklyWages: checkedAdd(
+            club.weeklyWages,
+            offer.weeklyWage,
+            'buyer weekly wages',
+          ),
+        };
+      }
+      if (club.id === sellerClubId) {
+        return {
+          ...club,
+          cash: checkedAdd(club.cash, talks.transferQuote.fee, 'seller cash'),
+          weeklyWages: checkedSubtract(
+            club.weeklyWages,
+            player.weeklyWage,
+            'seller weekly wages',
+          ),
+        };
+      }
+      return club;
+    }),
+    players: target.active
+      ? state.players.map((candidate) =>
+          candidate.id === player.id ? transferred : candidate,
+        )
+      : [...state.players, transferred],
+    lineups,
+  };
+  const persistedState = persistCareerTransferInPyramid(
+    transferredState,
+    player,
+  );
   const recordedState = recordCashTransaction(persistedState, {
-      kind: 'transfer-buy',
-      label: `Signed ${player.name}`,
-      labelKey: 'cashTransaction.signedPlayer',
-      labelParams: { player: player.name },
-      amount: -talks.transferQuote.fee,
-      referenceId: player.id,
-    });
+    kind: 'transfer-buy',
+    label: `Signed ${player.name}`,
+    labelKey: 'cashTransaction.signedPlayer',
+    labelParams: { player: player.name },
+    amount: -talks.transferQuote.fee,
+    referenceId: player.id,
+  });
   return {
     state: applyCareerContractPromise(recordedState, player.id, offer.perk),
     market: {
       ...market,
-      scoutReports: market.scoutReports.filter(report => report.playerId !== player.id),
+      scoutReports: market.scoutReports.filter(
+        (report) => report.playerId !== player.id,
+      ),
       transferTalks: undefined,
     },
   };
@@ -573,18 +651,26 @@ export const RENEWAL_HERO_MULTIPLIER = 4;
  * One function, two call sites: the quote on the card and the ask the agent
  * actually opens with can no longer drift apart.
  */
-export function careerRenewalWeeklyAsk(state: GameState, player: CareerPlayer): number {
-  return renewalContractAsk({
-    weeklyWage: player.weeklyWage,
-    personality: marketPersonality(player.personality),
-    ...(player.power === undefined ? {} : { power: player.power }),
-    onHeroWage: player.onHeroWage,
-  }, {
-    growthSinceSigningPercent: growthSinceSigningPercent(player),
-    famePercent: renewalFamePercent(player.fame ?? 0),
-    heroMultiplier: RENEWAL_HERO_MULTIPLIER,
-    loyaltyPercent: loyaltyRenewalPercent(playerLoyalty(player, state.careerSeed)),
-  });
+export function careerRenewalWeeklyAsk(
+  state: GameState,
+  player: CareerPlayer,
+): number {
+  return renewalContractAsk(
+    {
+      weeklyWage: player.weeklyWage,
+      personality: marketPersonality(player.personality),
+      ...(player.power === undefined ? {} : { power: player.power }),
+      onHeroWage: player.onHeroWage,
+    },
+    {
+      growthSinceSigningPercent: growthSinceSigningPercent(player),
+      famePercent: renewalFamePercent(player.fame ?? 0),
+      heroMultiplier: RENEWAL_HERO_MULTIPLIER,
+      loyaltyPercent: loyaltyRenewalPercent(
+        playerLoyalty(player, state.careerSeed),
+      ),
+    },
+  );
 }
 
 /**
@@ -613,11 +699,16 @@ export function careerRenewalBlockedReasonCopy(
   market: CareerMarketState,
   playerId: string,
 ): RenewalBlockedCopy | undefined {
-  const player = state.players.find(candidate => (
-    candidate.id === playerId && candidate.clubId === state.userClubId
-  ));
+  const player = state.players.find(
+    (candidate) =>
+      candidate.id === playerId && candidate.clubId === state.userClubId,
+  );
   if (player === undefined) return undefined;
-  if ((market.abandonedRenewalNegotiationIds ?? []).includes(renewalNegotiationId(state, playerId))) {
+  if (
+    (market.abandonedRenewalNegotiationIds ?? []).includes(
+      renewalNegotiationId(state, playerId),
+    )
+  ) {
     return {
       text: `${player.name}'s agent has ended talks for this season. He can only leave now.`,
       textKey: 'market.renewalAgentEndedTalks',
@@ -641,7 +732,8 @@ export function beginCareerRenewalTalks(
   playerId: string,
 ): CareerMarketState {
   assertSeasonEndPhase(state);
-  if (market.renewalTalks !== undefined) throw new Error('another renewal is already being negotiated');
+  if (market.renewalTalks !== undefined)
+    throw new Error('another renewal is already being negotiated');
   const player = expiredUserPlayer(state, playerId);
   assertCareerRenewalAllowed(state, market, playerId, player.name);
   return {
@@ -672,14 +764,23 @@ function assertCareerRenewalAllowed(
   playerId: string,
   playerName: string,
 ): void {
-  if ((market.abandonedRenewalNegotiationIds ?? []).includes(renewalNegotiationId(state, playerId))) {
-    throw new Error(`${playerName}'s agent has ended talks for this season. He can only leave now.`);
+  if (
+    (market.abandonedRenewalNegotiationIds ?? []).includes(
+      renewalNegotiationId(state, playerId),
+    )
+  ) {
+    throw new Error(
+      `${playerName}'s agent has ended talks for this season. He can only leave now.`,
+    );
   }
   // Below the threshold there is no number that buys them. The manager has
   // watched this fall on the player card all season and Bert said it would land
   // here, so it is a consequence rather than an ambush.
-  const player = state.players.find(candidate => candidate.id === playerId);
-  if (player !== undefined && !willRenegotiate(playerLoyalty(player, state.careerSeed))) {
+  const player = state.players.find((candidate) => candidate.id === playerId);
+  if (
+    player !== undefined &&
+    !willRenegotiate(playerLoyalty(player, state.careerSeed))
+  ) {
     throw new Error(
       `${playerName} will not re-sign. Loyalty below ${LOYALTY_NO_RENEWAL_THRESHOLD} ends talks before they start.`,
     );
@@ -693,7 +794,8 @@ export function submitCareerRenewalOffer(
   pitchCard?: PitchCard,
   heroLimit?: number,
 ): CareerMarketState {
-  if (market.renewalTalks === undefined) throw new Error('there are no active renewal talks');
+  if (market.renewalTalks === undefined)
+    throw new Error('there are no active renewal talks');
   // Validated here rather than at completion. `applyCareerContractPromise` used
   // to be the first thing that noticed an impossible promise, and by then the
   // agent had already accepted — so `guarded()` discarded the agreed deal and
@@ -711,7 +813,11 @@ export function submitCareerRenewalOffer(
     ...market,
     renewalTalks: {
       ...market.renewalTalks,
-      negotiation: submitContractOffer(market.renewalTalks.negotiation, offer, pitchCard),
+      negotiation: submitContractOffer(
+        market.renewalTalks.negotiation,
+        offer,
+        pitchCard,
+      ),
     },
   };
 }
@@ -732,7 +838,12 @@ function applyCareerRenewalTerms(
   perk: ContractOffer['perk'] | undefined,
   heroLimit?: number,
 ): GameState {
-  assertContractTermFitsCareer(player, termSeasons, state.careerSeed, 'renewal');
+  assertContractTermFitsCareer(
+    player,
+    termSeasons,
+    state.careerSeed,
+    'renewal',
+  );
   const wageDelta = weeklyWage - player.weeklyWage;
   // Season end only decrements the term; it never clears `contractPromise`, so
   // an expired player still carries the previous contract's promise, inert only
@@ -757,10 +868,21 @@ function applyCareerRenewalTerms(
   };
   const renewedState: GameState = {
     ...state,
-    clubs: state.clubs.map(club => club.id === state.userClubId
-      ? { ...club, weeklyWages: checkedAdd(club.weeklyWages, wageDelta, 'renewal payroll') }
-      : club),
-    players: state.players.map(candidate => candidate.id === player.id ? renewed : candidate),
+    clubs: state.clubs.map((club) =>
+      club.id === state.userClubId
+        ? {
+            ...club,
+            weeklyWages: checkedAdd(
+              club.weeklyWages,
+              wageDelta,
+              'renewal payroll',
+            ),
+          }
+        : club,
+    ),
+    players: state.players.map((candidate) =>
+      candidate.id === player.id ? renewed : candidate,
+    ),
   };
   return perk === undefined
     ? renewedState
@@ -821,7 +943,10 @@ export function signCareerRenewalAtAsk(
   // Talks open for somebody else are a different conversation and must not be
   // discarded. The player's own open talks are superseded: signing at the ask is
   // a deliberate end to that haggle.
-  if (market.renewalTalks !== undefined && market.renewalTalks.playerId !== playerId) {
+  if (
+    market.renewalTalks !== undefined &&
+    market.renewalTalks.playerId !== playerId
+  ) {
     throw new Error('another renewal is already being negotiated');
   }
   const player = expiredUserPlayer(state, playerId);
@@ -854,7 +979,9 @@ export function closeCareerRenewalTalks(
     ...market,
     renewalTalks: undefined,
     abandonedRenewalNegotiationIds: [
-      ...(market.abandonedRenewalNegotiationIds ?? []).filter(id => id.startsWith(seasonPrefix)),
+      ...(market.abandonedRenewalNegotiationIds ?? []).filter((id) =>
+        id.startsWith(seasonPrefix),
+      ),
       talks.negotiation.id,
     ],
   };
@@ -868,25 +995,35 @@ export function listCareerPlayer(
   division = 5,
 ): CareerMarketState {
   assertManagePhase(state);
-  if (!isTransferWindowOpen(state.week)) throw new Error('the transfer window is closed');
+  if (!isTransferWindowOpen(state.week))
+    throw new Error('the transfer window is closed');
   const currentMarket = expireCareerTransferListings(state, market);
   const player = userCareerPlayer(state, playerId);
   if (player.contractSeasonsRemaining < 1) {
     throw new Error('an expired player cannot be transfer-listed');
   }
-  if ((currentMarket.transferListings ?? []).some(listing => listing.playerId === playerId)) {
+  if (
+    (currentMarket.transferListings ?? []).some(
+      (listing) => listing.playerId === playerId,
+    )
+  ) {
     throw new Error(`${player.name} is already transfer-listed`);
   }
   // Validate that accepting a future bid cannot strand the starting eleven.
   replaceTransferredStarter(state, player);
   assertUserSaleKeepsSquadCover(state, player);
   const bids = state.clubs
-    .filter(club => club.id !== state.userClubId)
-    .map(club => ({ club, quote: sellingQuoteForBuyer(state, player, club.id, division) }))
-    .filter(candidate => candidate.club.cash >= candidate.quote.fee)
-    .sort((left, right) => (
-      right.quote.fee - left.quote.fee || compareIds(left.club.id, right.club.id)
-    ))
+    .filter((club) => club.id !== state.userClubId)
+    .map((club) => ({
+      club,
+      quote: sellingQuoteForBuyer(state, player, club.id, division),
+    }))
+    .filter((candidate) => candidate.club.cash >= candidate.quote.fee)
+    .sort(
+      (left, right) =>
+        right.quote.fee - left.quote.fee ||
+        compareIds(left.club.id, right.club.id),
+    )
     .slice(0, 3)
     .map(({ club, quote }) => ({
       id: `bid-s${state.season}-w${state.week}-${player.id}-${club.id}`,
@@ -896,7 +1033,8 @@ export function listCareerPlayer(
       madeSeason: state.season,
       madeWeek: state.week,
     }));
-  if (bids.length === 0) throw new Error('no club can afford to bid for this player');
+  if (bids.length === 0)
+    throw new Error('no club can afford to bid for this player');
   return {
     ...currentMarket,
     transferListings: [
@@ -918,12 +1056,14 @@ export function acceptCareerTransferBid(
   bidId: string,
 ): CareerMarketTransaction {
   assertManagePhase(state);
-  if (!isTransferWindowOpen(state.week)) throw new Error('the transfer window is closed');
-  const listing = (market.transferListings ?? []).find(candidate => (
-    candidate.bids.some(bid => bid.id === bidId)
-  ));
-  const bid = listing?.bids.find(candidate => candidate.id === bidId);
-  if (listing === undefined || bid === undefined) throw new Error(`unknown transfer bid ${bidId}`);
+  if (!isTransferWindowOpen(state.week))
+    throw new Error('the transfer window is closed');
+  const listing = (market.transferListings ?? []).find((candidate) =>
+    candidate.bids.some((bid) => bid.id === bidId),
+  );
+  const bid = listing?.bids.find((candidate) => candidate.id === bidId);
+  if (listing === undefined || bid === undefined)
+    throw new Error(`unknown transfer bid ${bidId}`);
   if (!listingBelongsToCurrentWindow(state, listing)) {
     throw new Error('the transfer bid has expired');
   }
@@ -938,8 +1078,9 @@ export function acceptCareerTransferBid(
     state: result.state,
     market: {
       ...result.market,
-      transferListings: (result.market.transferListings ?? [])
-        .filter(candidate => candidate.playerId !== listing.playerId),
+      transferListings: (result.market.transferListings ?? []).filter(
+        (candidate) => candidate.playerId !== listing.playerId,
+      ),
     },
   };
 }
@@ -953,22 +1094,25 @@ export function sellCareerPlayer(
   division = 5,
 ): CareerMarketTransaction {
   assertManagePhase(state);
-  if (!isTransferWindowOpen(state.week)) throw new Error('the transfer window is closed');
-  const player = state.players.find(candidate => (
-    candidate.id === playerId && candidate.clubId === state.userClubId
-  ));
-  if (player === undefined) throw new Error(`unknown user-club player ${playerId}`);
-  const buyer = state.clubs.find(club => club.id === buyerClubId && club.id !== state.userClubId);
-  if (buyer === undefined) throw new Error(`unknown buying club ${buyerClubId}`);
+  if (!isTransferWindowOpen(state.week))
+    throw new Error('the transfer window is closed');
+  const player = state.players.find(
+    (candidate) =>
+      candidate.id === playerId && candidate.clubId === state.userClubId,
+  );
+  if (player === undefined)
+    throw new Error(`unknown user-club player ${playerId}`);
+  const buyer = state.clubs.find(
+    (club) => club.id === buyerClubId && club.id !== state.userClubId,
+  );
+  if (buyer === undefined)
+    throw new Error(`unknown buying club ${buyerClubId}`);
   const quote = sellingQuoteForBuyer(state, player, buyerClubId, division);
   return completeCareerPlayerSale(state, market, playerId, buyerClubId, quote);
 }
 
 export type CareerEventPlayerSaleBlocker =
-  | 'market-unavailable'
-  | 'player-unavailable'
-  | 'squad-cover'
-  | 'no-buyer';
+  'market-unavailable' | 'player-unavailable' | 'squad-cover' | 'no-buyer';
 
 /**
  * Explains whether an authored story sale can complete before its button is
@@ -981,16 +1125,19 @@ export function careerEventPlayerSaleBlocker(
   fee: number,
 ): CareerEventPlayerSaleBlocker | undefined {
   if (state.market === undefined) return 'market-unavailable';
-  const player = state.players.find(candidate => (
-    candidate.id === playerId && candidate.clubId === state.userClubId
-  ));
+  const player = state.players.find(
+    (candidate) =>
+      candidate.id === playerId && candidate.clubId === state.userClubId,
+  );
   if (player === undefined) return 'player-unavailable';
   try {
     assertUserSaleKeepsSquadCover(state, player);
   } catch {
     return 'squad-cover';
   }
-  return careerEventSaleBuyer(state, fee) === undefined ? 'no-buyer' : undefined;
+  return careerEventSaleBuyer(state, fee) === undefined
+    ? 'no-buyer'
+    : undefined;
 }
 
 /**
@@ -1020,7 +1167,7 @@ export function completeCareerEventPlayerSale(
 
 function careerEventSaleBuyer(state: GameState, fee: number) {
   return state.clubs
-    .filter(club => club.id !== state.userClubId && club.cash >= fee)
+    .filter((club) => club.id !== state.userClubId && club.cash >= fee)
     .sort((left, right) => compareIds(left.id, right.id))[0];
 }
 
@@ -1032,44 +1179,63 @@ function completeCareerPlayerSale(
   quote: TransferQuote,
 ): CareerMarketTransaction {
   const player = userCareerPlayer(state, playerId);
-  const buyer = state.clubs.find(club => club.id === buyerClubId && club.id !== state.userClubId);
-  if (buyer === undefined) throw new Error(`unknown buying club ${buyerClubId}`);
-  if (quote.playerId !== playerId) throw new Error('the transfer bid does not match the listed player');
-  if (buyer.cash < quote.fee) throw new Error('the buying club cannot afford the transfer fee');
+  const buyer = state.clubs.find(
+    (club) => club.id === buyerClubId && club.id !== state.userClubId,
+  );
+  if (buyer === undefined)
+    throw new Error(`unknown buying club ${buyerClubId}`);
+  if (quote.playerId !== playerId)
+    throw new Error('the transfer bid does not match the listed player');
+  if (buyer.cash < quote.fee)
+    throw new Error('the buying club cannot afford the transfer fee');
   assertUserSaleKeepsSquadCover(state, player);
   const lineups = replaceTransferredStarter(state, player);
   const transferredState: GameState = {
-      ...state,
-      clubs: state.clubs.map(club => {
-        if (club.id === state.userClubId) {
-          return {
-            ...club,
-            cash: checkedAdd(club.cash, quote.fee, 'transfer sale cash'),
-            weeklyWages: checkedSubtract(club.weeklyWages, player.weeklyWage, 'seller weekly wages'),
-          };
-        }
-        if (club.id === buyerClubId) {
-          return {
-            ...club,
-            cash: checkedSubtract(club.cash, quote.fee, 'buyer transfer cash'),
-            weeklyWages: checkedAdd(club.weeklyWages, player.weeklyWage, 'buyer weekly wages'),
-          };
-        }
-        return club;
-      }),
-      players: state.players.map(candidate => candidate.id === player.id
-        ? { ...clearCareerContractPromise(candidate), clubId: buyerClubId, licensed: false }
-        : candidate),
-      lineups,
-    };
+    ...state,
+    clubs: state.clubs.map((club) => {
+      if (club.id === state.userClubId) {
+        return {
+          ...club,
+          cash: checkedAdd(club.cash, quote.fee, 'transfer sale cash'),
+          weeklyWages: checkedSubtract(
+            club.weeklyWages,
+            player.weeklyWage,
+            'seller weekly wages',
+          ),
+        };
+      }
+      if (club.id === buyerClubId) {
+        return {
+          ...club,
+          cash: checkedSubtract(club.cash, quote.fee, 'buyer transfer cash'),
+          weeklyWages: checkedAdd(
+            club.weeklyWages,
+            player.weeklyWage,
+            'buyer weekly wages',
+          ),
+        };
+      }
+      return club;
+    }),
+    players: state.players.map((candidate) =>
+      candidate.id === player.id
+        ? {
+            ...clearCareerContractPromise(candidate),
+            clubId: buyerClubId,
+            licensed: false,
+          }
+        : candidate,
+    ),
+    lineups,
+  };
   const recordedState = recordCashTransaction(transferredState, {
-      kind: 'transfer-sell',
-      label: `Sold ${player.name}`,
-      labelKey: 'cashTransaction.soldPlayer',
-      labelParams: { player: player.name },
-      amount: quote.fee,
-      referenceId: player.id,
-    });
+    kind: 'transfer-sell',
+    label: `Sold ${player.name}`,
+    labelKey: 'cashTransaction.soldPlayer',
+    labelParams: { player: player.name },
+    amount: quote.fee,
+    referenceId: player.id,
+  });
   return {
     // Cancels a pending request from the player who just left. Waiting for
     // settlement would leave the Requests tab offering Grant on someone who is
@@ -1079,8 +1245,9 @@ function completeCareerPlayerSale(
     ),
     market: {
       ...market,
-      transferListings: (market.transferListings ?? [])
-        .filter(listing => listing.playerId !== playerId),
+      transferListings: (market.transferListings ?? []).filter(
+        (listing) => listing.playerId !== playerId,
+      ),
     },
   };
 }
@@ -1090,8 +1257,11 @@ function listingBelongsToCurrentWindow(
   listing: Pick<CareerTransferListing, 'listedSeason' | 'listedWeek'>,
 ): boolean {
   if (state.season !== listing.listedSeason) return false;
-  return transferWindowNumber(state.week) !== undefined
-    && transferWindowNumber(state.week) === transferWindowNumber(listing.listedWeek);
+  return (
+    transferWindowNumber(state.week) !== undefined &&
+    transferWindowNumber(state.week) ===
+      transferWindowNumber(listing.listedWeek)
+  );
 }
 
 function transferWindowNumber(week: number): 1 | 2 | undefined {
@@ -1107,11 +1277,17 @@ export function hireCareerCoach(
   role: CareerCoachRole = 'HEAD',
 ): CareerMarketState {
   assertManagePhase(state);
-  const candidate = market.coachCandidates.find(coach => coach.id === coachId);
-  if (candidate === undefined) throw new Error(`unknown coach candidate ${coachId}`);
-  const currentCoach = role === 'HEAD' ? market.headCoach : market.assistantCoach;
+  const candidate = market.coachCandidates.find(
+    (coach) => coach.id === coachId,
+  );
+  if (candidate === undefined)
+    throw new Error(`unknown coach candidate ${coachId}`);
+  const currentCoach =
+    role === 'HEAD' ? market.headCoach : market.assistantCoach;
   if (currentCoach !== undefined && currentCoach.id !== candidate.id) {
-    throw new Error(`dismiss the current ${role === 'HEAD' ? 'head' : 'assistant'} coach before hiring another`);
+    throw new Error(
+      `dismiss the current ${role === 'HEAD' ? 'head' : 'assistant'} coach before hiring another`,
+    );
   }
   if (currentCoach?.id === candidate.id) {
     throw new Error(`${candidate.name} already fills that coaching role`);
@@ -1132,13 +1308,21 @@ export function hireCareerCoach(
   if (otherCoach?.id === candidate.id) {
     throw new Error('the same coach cannot fill both staff roles');
   }
-  const unlocks = candidate.unlockId === undefined
-    ? [...(market.unlockedCoachContentIds ?? [])]
-    : Array.from(new Set([...(market.unlockedCoachContentIds ?? []), candidate.unlockId]));
+  const unlocks =
+    candidate.unlockId === undefined
+      ? [...(market.unlockedCoachContentIds ?? [])]
+      : Array.from(
+          new Set([
+            ...(market.unlockedCoachContentIds ?? []),
+            candidate.unlockId,
+          ]),
+        );
   const employed = { ...candidate, weeklyWage };
   return {
     ...market,
-    coachCandidates: market.coachCandidates.filter(coach => coach.id !== coachId),
+    coachCandidates: market.coachCandidates.filter(
+      (coach) => coach.id !== coachId,
+    ),
     ...(role === 'HEAD'
       ? { headCoach: employed, headCoachSeasonsEmployed: 0 }
       : { assistantCoach: employed, assistantCoachSeasonsEmployed: 0 }),
@@ -1155,15 +1339,22 @@ export function dismissCareerCoach(
   assertManagePhase(state);
   const coach = role === 'HEAD' ? market.headCoach : market.assistantCoach;
   const roleLabel = role === 'HEAD' ? 'head' : 'assistant';
-  if (coach === undefined) throw new Error(`there is no ${roleLabel} coach to dismiss`);
+  if (coach === undefined)
+    throw new Error(`there is no ${roleLabel} coach to dismiss`);
   const club = userClub(state);
   const severance = coach.weeklyWage;
-  if (club.cash < severance) throw new Error('the club cannot afford the coach severance');
+  if (club.cash < severance)
+    throw new Error('the club cannot afford the coach severance');
   const dismissedState: GameState = {
     ...state,
-    clubs: state.clubs.map(candidate => candidate.id === state.userClubId
-      ? { ...candidate, cash: checkedSubtract(candidate.cash, severance, 'coach severance') }
-      : candidate),
+    clubs: state.clubs.map((candidate) =>
+      candidate.id === state.userClubId
+        ? {
+            ...candidate,
+            cash: checkedSubtract(candidate.cash, severance, 'coach severance'),
+          }
+        : candidate,
+    ),
   };
   return {
     state: recordCashTransaction(dismissedState, {
@@ -1178,7 +1369,10 @@ export function dismissCareerCoach(
       ...market,
       ...(role === 'HEAD'
         ? { headCoach: undefined, headCoachSeasonsEmployed: undefined }
-        : { assistantCoach: undefined, assistantCoachSeasonsEmployed: undefined }),
+        : {
+            assistantCoach: undefined,
+            assistantCoachSeasonsEmployed: undefined,
+          }),
     },
   };
 }
@@ -1193,10 +1387,12 @@ function careerCoachHasUnlockedContent(
   return (market.unlockedCoachContentIds ?? []).includes(contentId);
 }
 
-export function careerCoachUnlockedFormationIds(market: CareerMarketState): string[] {
+export function careerCoachUnlockedFormationIds(
+  market: CareerMarketState,
+): string[] {
   return (market.unlockedCoachContentIds ?? [])
-    .filter(id => id.startsWith('formation:'))
-    .map(id => id.slice('formation:'.length));
+    .filter((id) => id.startsWith('formation:'))
+    .map((id) => id.slice('formation:'.length));
 }
 
 /** Refreshes candidates while retaining and progressing the employed head coach. */
@@ -1207,21 +1403,23 @@ export function refreshCareerMarketForNewSeason(
   clubFame = 0,
 ): CareerMarketState {
   const unlockedContent = new Set(previous.unlockedCoachContentIds ?? []);
-  const employedPortraitIds = [previous.headCoach?.portraitId, previous.assistantCoach?.portraitId]
-    .filter((portraitId): portraitId is string => portraitId !== undefined);
+  const employedPortraitIds = [
+    previous.headCoach?.portraitId,
+    previous.assistantCoach?.portraitId,
+  ].filter((portraitId): portraitId is string => portraitId !== undefined);
   const refreshed = createCareerMarketState(
     state,
     division,
     clubFame,
     employedPortraitIds,
-    DEFAULT_COACH_CONTENT_UNLOCK_IDS.filter(id => !unlockedContent.has(id)),
+    DEFAULT_COACH_CONTENT_UNLOCK_IDS.filter((id) => !unlockedContent.has(id)),
   );
   const currentTransferTargetIds = new Set(
-    allCareerTransferTargets(state).map(target => target.player.id),
+    allCareerTransferTargets(state).map((target) => target.player.id),
   );
-  const scoutReports = previous.scoutReports.filter(report => (
-    currentTransferTargetIds.has(report.playerId)
-  ));
+  const scoutReports = previous.scoutReports.filter((report) =>
+    currentTransferTargetIds.has(report.playerId),
+  );
   const head = progressEmployedCoach(
     previous.headCoach,
     previous.headCoachSeasonsEmployed,
@@ -1240,7 +1438,10 @@ export function refreshCareerMarketForNewSeason(
     scoutReports,
     ...(head === undefined
       ? {}
-      : { headCoach: head.coach, headCoachSeasonsEmployed: head.seasonsEmployed }),
+      : {
+          headCoach: head.coach,
+          headCoachSeasonsEmployed: head.seasonsEmployed,
+        }),
     ...(assistant === undefined
       ? {}
       : {
@@ -1253,9 +1454,11 @@ export function refreshCareerMarketForNewSeason(
 }
 
 function readableRegion(region: ScoutRegion): string {
-  return region.toLowerCase().split('_').map(word => (
-    `${word.charAt(0).toUpperCase()}${word.slice(1)}`
-  )).join(' ');
+  return region
+    .toLowerCase()
+    .split('_')
+    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+    .join(' ');
 }
 
 export function careerCoachWeeklyWage(market: CareerMarketState): number {
@@ -1278,19 +1481,22 @@ function unattachedSpecialHeroes(state: GameState): CareerPlayer[] {
   // The same gate rumoured-hero missions already carry, so a lead can never be
   // offered for a division that cannot run the mission that finds it.
   if (currentUserDivision(state.m2) > 3) return [];
-  const owned = new Set(state.players.map(player => player.id));
+  const owned = new Set(state.players.map((player) => player.id));
   return scoutOnlySpecialHeroes()
-    .filter(hero => !owned.has(hero.id))
-    .map(hero => buildUnattachedSpecialHero(hero));
+    .filter((hero) => !owned.has(hero.id))
+    .map((hero) => buildUnattachedSpecialHero(hero));
 }
 
 function scoutableCareerPlayers(state: GameState): ScoutablePlayer[] {
-  const unattached: CareerTransferTarget[] = unattachedSpecialHeroes(state).map(player => ({
-    player,
-    sellingClubDivision: 1,
-    active: false,
-  }));
-  return [...allCareerTransferTargets(state), ...unattached].map(({ player }) => ({
+  const unattached: CareerTransferTarget[] = unattachedSpecialHeroes(state).map(
+    (player) => ({
+      player,
+      sellingClubDivision: 1,
+      active: false,
+    }),
+  );
+  return [...allCareerTransferTargets(state), ...unattached].map(
+    ({ player }) => ({
       id: player.id,
       region: scoutRegion(player.id),
       role: player.role,
@@ -1302,7 +1508,8 @@ function scoutableCareerPlayers(state: GameState): ScoutablePlayer[] {
         ? {}
         : { power: player.power, powerTier: player.powerTier ?? 1 }),
       contractSeasonsRemaining: player.contractSeasonsRemaining,
-    }));
+    }),
+  );
 }
 
 /** Resolves a scouted target from either the active division or the persistent pyramid. */
@@ -1311,19 +1518,22 @@ export function careerTransferTarget(
   playerId: string,
   fallbackDivision = 5,
 ): CareerTransferTarget | undefined {
-  const active = state.players.find(candidate => (
-    candidate.id === playerId && candidate.clubId !== state.userClubId
-  ));
+  const active = state.players.find(
+    (candidate) =>
+      candidate.id === playerId && candidate.clubId !== state.userClubId,
+  );
   if (active !== undefined) {
     return {
       player: active,
-      sellingClubDivision: pyramidDivisionForClub(state, active.clubId) ?? fallbackDivision,
+      sellingClubDivision:
+        pyramidDivisionForClub(state, active.clubId) ?? fallbackDivision,
       active: true,
     };
   }
   if (state.m2 === undefined) return undefined;
-  const unattached = unattachedSpecialHeroes(state)
-    .find(candidate => candidate.id === playerId);
+  const unattached = unattachedSpecialHeroes(state).find(
+    (candidate) => candidate.id === playerId,
+  );
   if (unattached !== undefined) {
     // Priced at the top of the market: these are marquee signings, and there is
     // no selling club to take the fee. The money leaving the user's account is
@@ -1333,7 +1543,7 @@ export function careerTransferTarget(
   for (const division of state.m2.pyramid.divisions) {
     for (const club of division.clubs) {
       if (club.id === state.userClubId) continue;
-      const player = club.squad.find(candidate => candidate.id === playerId);
+      const player = club.squad.find((candidate) => candidate.id === playerId);
       if (player !== undefined) {
         return {
           player: pyramidCareerPlayer(club, player, division.level),
@@ -1355,9 +1565,10 @@ function careerSquadNegotiationTarget(
   state: GameState,
   playerId: string,
 ): CareerTransferTarget | undefined {
-  const player = state.players.find(candidate => (
-    candidate.id === playerId && candidate.clubId === state.userClubId
-  ));
+  const player = state.players.find(
+    (candidate) =>
+      candidate.id === playerId && candidate.clubId === state.userClubId,
+  );
   return player === undefined
     ? undefined
     : { player, sellingClubDivision: 5, active: true };
@@ -1411,9 +1622,10 @@ function pyramidCareerPlayer(
     nextEligibleIndex += 1;
   }
   const heroCount = generatedClubHeroCount(club.id, division);
-  const power = eligibleIndex >= 0 && eligibleIndex < heroCount
-    ? generatedClubPower(club.id, eligibleIndex, player.role)
-    : undefined;
+  const power =
+    eligibleIndex >= 0 && eligibleIndex < heroCount
+      ? generatedClubPower(club.id, eligibleIndex, player.role)
+      : undefined;
   const potential = opponentPotential(player.id, division);
   return {
     id: player.id,
@@ -1424,7 +1636,10 @@ function pyramidCareerPlayer(
     attrs: { ...player.attrs },
     ...(power === undefined
       ? {}
-      : { power, powerTier: (division === 1 ? 3 : division <= 3 ? 2 : 1) as 1 | 2 | 3 }),
+      : {
+          power,
+          powerTier: (division === 1 ? 3 : division <= 3 ? 2 : 1) as 1 | 2 | 3,
+        }),
     licensed: power !== undefined,
     weeklyWage: generatedPlayerWeeklyWage(player.attrs, division),
     onHeroWage: power !== undefined,
@@ -1452,11 +1667,17 @@ function pyramidCareerPlayer(
     ...(player.retirementAnnouncementSeason === undefined
       ? {}
       : { retirementAnnouncementSeason: player.retirementAnnouncementSeason }),
-    signingStatTotal: Object.values(player.attrs).reduce((sum, value) => sum + value, 0),
+    signingStatTotal: Object.values(player.attrs).reduce(
+      (sum, value) => sum + value,
+      0,
+    ),
   };
 }
 
-function opponentPotential(playerId: string, division: DivisionLevel): 1 | 2 | 3 | 4 | 5 {
+function opponentPotential(
+  playerId: string,
+  division: DivisionLevel,
+): 1 | 2 | 3 | 4 | 5 {
   let value = 2166136261;
   for (let index = 0; index < playerId.length; index += 1) {
     value = Math.imul(value ^ playerId.charCodeAt(index), 16777619) >>> 0;
@@ -1464,10 +1685,13 @@ function opponentPotential(playerId: string, division: DivisionLevel): 1 | 2 | 3
   return potentialTierForDivision(division, value % 100);
 }
 
-function pyramidDivisionForClub(state: GameState, clubId: string): DivisionLevel | undefined {
-  return state.m2?.pyramid.divisions.find(division => (
-    division.clubs.some(club => club.id === clubId)
-  ))?.level;
+function pyramidDivisionForClub(
+  state: GameState,
+  clubId: string,
+): DivisionLevel | undefined {
+  return state.m2?.pyramid.divisions.find((division) =>
+    division.clubs.some((club) => club.id === clubId),
+  )?.level;
 }
 
 function updatePyramidPlayerMorale(
@@ -1475,18 +1699,21 @@ function updatePyramidPlayerMorale(
   playerId: string,
   morale: number,
 ): GameState {
-  if (state.m2 === undefined) throw new Error(`unknown negotiation player ${playerId}`);
+  if (state.m2 === undefined)
+    throw new Error(`unknown negotiation player ${playerId}`);
   return {
     ...state,
     m2: {
       ...state.m2,
       pyramid: {
         ...state.m2.pyramid,
-        divisions: state.m2.pyramid.divisions.map(division => ({
+        divisions: state.m2.pyramid.divisions.map((division) => ({
           ...division,
-          clubs: division.clubs.map(club => ({
+          clubs: division.clubs.map((club) => ({
             ...club,
-            squad: club.squad.map(player => player.id === playerId ? { ...player, morale } : player),
+            squad: club.squad.map((player) =>
+              player.id === playerId ? { ...player, morale } : player,
+            ),
           })),
         })),
       },
@@ -1520,20 +1747,30 @@ const SELLER_LINEUP_TEMPLATE = [
 function sellerCanSpare(state: GameState, playerId: string): boolean {
   // No selling club, so no squad to leave without cover. Stated rather than
   // left to the fall-through below, which returns true for any unknown ID.
-  if (isSpecialHeroId(playerId) && !state.players.some(p => p.id === playerId)) return true;
-  const activeSellerId = state.players
-    .find(candidate => candidate.id === playerId && candidate.clubId !== state.userClubId)
-    ?.clubId;
+  if (
+    isSpecialHeroId(playerId) &&
+    !state.players.some((p) => p.id === playerId)
+  )
+    return true;
+  const activeSellerId = state.players.find(
+    (candidate) =>
+      candidate.id === playerId && candidate.clubId !== state.userClubId,
+  )?.clubId;
   if (activeSellerId !== undefined) {
-    return coversLineupTemplate(state.players.filter(candidate => (
-      candidate.clubId === activeSellerId && candidate.id !== playerId
-    )));
+    return coversLineupTemplate(
+      state.players.filter(
+        (candidate) =>
+          candidate.clubId === activeSellerId && candidate.id !== playerId,
+      ),
+    );
   }
   if (state.m2 === undefined) return true;
   for (const division of state.m2.pyramid.divisions) {
     for (const club of division.clubs) {
-      if (!club.squad.some(candidate => candidate.id === playerId)) continue;
-      return coversLineupTemplate(club.squad.filter(candidate => candidate.id !== playerId));
+      if (!club.squad.some((candidate) => candidate.id === playerId)) continue;
+      return coversLineupTemplate(
+        club.squad.filter((candidate) => candidate.id !== playerId),
+      );
     }
   }
   return true;
@@ -1542,9 +1779,10 @@ function sellerCanSpare(state: GameState, playerId: string): boolean {
 function coversLineupTemplate(
   squad: ReadonlyArray<{ readonly role: CareerPlayer['role'] }>,
 ): boolean {
-  return SELLER_LINEUP_TEMPLATE.every(([role, needed]) => (
-    squad.filter(candidate => candidate.role === role).length >= needed
-  ));
+  return SELLER_LINEUP_TEMPLATE.every(
+    ([role, needed]) =>
+      squad.filter((candidate) => candidate.role === role).length >= needed,
+  );
 }
 
 function persistCareerTransferInPyramid(
@@ -1552,20 +1790,26 @@ function persistCareerTransferInPyramid(
   sourcePlayer: CareerPlayer,
 ): GameState {
   if (state.m2 === undefined) return state;
-  const sourceIsActive = state.clubs.some(club => club.id === sourcePlayer.clubId);
+  const sourceIsActive = state.clubs.some(
+    (club) => club.id === sourcePlayer.clubId,
+  );
   let m2 = state.m2;
   if (!sourceIsActive) {
     m2 = {
       ...m2,
       pyramid: {
         ...m2.pyramid,
-        divisions: m2.pyramid.divisions.map(division => ({
+        divisions: m2.pyramid.divisions.map((division) => ({
           ...division,
-          clubs: division.clubs.map(club => {
+          clubs: division.clubs.map((club) => {
             if (club.id !== sourcePlayer.clubId) return club;
-            const squad = club.squad.filter(player => player.id !== sourcePlayer.id);
+            const squad = club.squad.filter(
+              (player) => player.id !== sourcePlayer.id,
+            );
             if (squad.length === club.squad.length) {
-              throw new Error(`transfer source ${sourcePlayer.id} is missing from the pyramid`);
+              throw new Error(
+                `transfer source ${sourcePlayer.id} is missing from the pyramid`,
+              );
             }
             return { ...club, squad, squadStrength: clubSquadStrength(squad) };
           }),
@@ -1601,7 +1845,10 @@ export function growthSinceSigningPercent(player: CareerPlayer): number {
   if (!Number.isSafeInteger(baseline) || baseline < 1) {
     throw new Error('signing stat total must be a positive safe integer');
   }
-  return Math.min(300, Math.max(0, Math.floor(((currentTotal - baseline) * 100) / baseline)));
+  return Math.min(
+    300,
+    Math.max(0, Math.floor(((currentTotal - baseline) * 100) / baseline)),
+  );
 }
 
 function playerStatTotal(player: CareerPlayer): number {
@@ -1619,8 +1866,10 @@ function playerStatTotal(player: CareerPlayer): number {
  * match. Same rule as the board-ultimatum replacement.
  */
 function isEligibleTransferReplacement(candidate: CareerPlayer): boolean {
-  return isAvailableForSelection(candidate)
-    && !(candidate.power !== undefined && !candidate.licensed);
+  return (
+    isAvailableForSelection(candidate) &&
+    !(candidate.power !== undefined && !candidate.licensed)
+  );
 }
 
 /**
@@ -1633,19 +1882,25 @@ function isEligibleTransferReplacement(candidate: CareerPlayer): boolean {
  * check (`sellerCanSpare`) is deliberately weaker; AI clubs never repair
  * injuries or resolve expired contracts, the user club does.
  */
-function assertUserSaleKeepsSquadCover(state: GameState, player: CareerPlayer): void {
-  const postSaleLineup = replaceTransferredStarter(state, player)
-    .find(lineup => lineup.clubId === state.userClubId);
+function assertUserSaleKeepsSquadCover(
+  state: GameState,
+  player: CareerPlayer,
+): void {
+  const postSaleLineup = replaceTransferredStarter(state, player).find(
+    (lineup) => lineup.clubId === state.userClubId,
+  );
   if (postSaleLineup === undefined) return;
   const starters = new Set(postSaleLineup.playerIds);
-  const spares = state.players.filter(candidate => (
-    candidate.clubId === state.userClubId
-    && candidate.id !== player.id
-    && !starters.has(candidate.id)
-    && isEligibleTransferReplacement(candidate)
-  ));
-  const covered = spares.some(candidate => candidate.role === 'GK')
-    && spares.some(candidate => candidate.role !== 'GK');
+  const spares = state.players.filter(
+    (candidate) =>
+      candidate.clubId === state.userClubId &&
+      candidate.id !== player.id &&
+      !starters.has(candidate.id) &&
+      isEligibleTransferReplacement(candidate),
+  );
+  const covered =
+    spares.some((candidate) => candidate.role === 'GK') &&
+    spares.some((candidate) => candidate.role !== 'GK');
   if (!covered) {
     throw new Error(
       `Selling ${player.name} would leave the eleven without matchday cover. Keep a spare goalkeeper and an outfield substitute.`,
@@ -1654,27 +1909,42 @@ function assertUserSaleKeepsSquadCover(state: GameState, player: CareerPlayer): 
 }
 
 function replaceTransferredStarter(state: GameState, player: CareerPlayer) {
-  const lineup = state.lineups.find(candidate => candidate.clubId === player.clubId);
-  if (lineup === undefined || !lineup.playerIds.includes(player.id)) return state.lineups;
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === player.clubId,
+  );
+  if (lineup === undefined || !lineup.playerIds.includes(player.id))
+    return state.lineups;
   const starters = new Set(lineup.playerIds);
-  const replacement = state.players.find(candidate => (
+  const replacement =
+    state.players.find(
+      (candidate) =>
+        candidate.clubId === player.clubId &&
+        candidate.id !== player.id &&
+        !starters.has(candidate.id) &&
+        isEligibleTransferReplacement(candidate) &&
+        candidate.role === player.role,
+    ) ??
+    state.players.find(
+      (candidate) =>
+        candidate.clubId === player.clubId &&
+        candidate.id !== player.id &&
+        !starters.has(candidate.id) &&
+        isEligibleTransferReplacement(candidate) &&
+        candidate.role !== 'GK' &&
+        player.role !== 'GK',
+    );
+  if (replacement === undefined)
+    throw new Error('the selling club has no eligible lineup replacement');
+  return state.lineups.map((candidate) =>
     candidate.clubId === player.clubId
-    && candidate.id !== player.id
-    && !starters.has(candidate.id)
-    && isEligibleTransferReplacement(candidate)
-    && candidate.role === player.role
-  )) ?? state.players.find(candidate => (
-    candidate.clubId === player.clubId
-    && candidate.id !== player.id
-    && !starters.has(candidate.id)
-    && isEligibleTransferReplacement(candidate)
-    && candidate.role !== 'GK'
-    && player.role !== 'GK'
-  ));
-  if (replacement === undefined) throw new Error('the selling club has no eligible lineup replacement');
-  return state.lineups.map(candidate => candidate.clubId === player.clubId
-    ? { ...candidate, playerIds: candidate.playerIds.map(id => id === player.id ? replacement.id : id) }
-    : candidate);
+      ? {
+          ...candidate,
+          playerIds: candidate.playerIds.map((id) =>
+            id === player.id ? replacement.id : id,
+          ),
+        }
+      : candidate,
+  );
 }
 
 /**
@@ -1701,7 +1971,11 @@ export function scoutOfficeLevel(state: GameState): number {
  * lookup defaulted to 1, so the first $6,000 bought literally no change.
  */
 export function scoutShortlistSize(officeLevel: number): number {
-  if (!Number.isSafeInteger(officeLevel) || officeLevel < 0 || officeLevel > 3) {
+  if (
+    !Number.isSafeInteger(officeLevel) ||
+    officeLevel < 0 ||
+    officeLevel > 3
+  ) {
     throw new Error('Scout Office level must be an integer from 0 to 3');
   }
   return 2 + officeLevel;
@@ -1721,11 +1995,19 @@ function absoluteCareerWeek(state: Pick<GameState, 'season' | 'week'>): number {
 }
 
 function marketPersonality(personality?: PlayerPersonality): MarketPersonality {
-  return (personality ?? 'Professional').toUpperCase().replace('-', '_') as MarketPersonality;
+  return (personality ?? 'Professional')
+    .toUpperCase()
+    .replace('-', '_') as MarketPersonality;
 }
 
 function scoutRegion(playerId: string): ScoutRegion {
-  const regions: readonly ScoutRegion[] = ['LOCAL', 'EUROPE', 'SOUTH_AMERICA', 'AFRICA', 'ASIA'];
+  const regions: readonly ScoutRegion[] = [
+    'LOCAL',
+    'EUROPE',
+    'SOUTH_AMERICA',
+    'AFRICA',
+    'ASIA',
+  ];
   let hash = 0x811c9dc5;
   for (let index = 0; index < playerId.length; index += 1) {
     hash = Math.imul(hash ^ playerId.charCodeAt(index), 0x01000193);
@@ -1734,16 +2016,21 @@ function scoutRegion(playerId: string): ScoutRegion {
 }
 
 function userClub(state: GameState) {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
   return club;
 }
 
 function userCareerPlayer(state: GameState, playerId: string): CareerPlayer {
-  const player = state.players.find(candidate => (
-    candidate.id === playerId && candidate.clubId === state.userClubId
-  ));
-  if (player === undefined) throw new Error(`unknown user-club player ${playerId}`);
+  const player = state.players.find(
+    (candidate) =>
+      candidate.id === playerId && candidate.clubId === state.userClubId,
+  );
+  if (player === undefined)
+    throw new Error(`unknown user-club player ${playerId}`);
   return player;
 }
 
@@ -1767,15 +2054,28 @@ function sellingQuoteForBuyer(
 
 function hasCoachingOffice(state: GameState): boolean {
   const grid = state.facilities.grid;
-  return grid?.buildings.some(building => (
-    building.type === 'coaching-office' && isFacilityOperational(grid, building.id)
-  )) === true;
+  return (
+    grid?.buildings.some(
+      (building) =>
+        building.type === 'coaching-office' &&
+        isFacilityOperational(grid, building.id),
+    ) === true
+  );
 }
 
 function careerClubFame(state: GameState, market: CareerMarketState): number {
-  return Math.max(0, Math.min(CAREER_CLUB_FAME_CEILING, state.players
-    .filter(player => player.clubId === state.userClubId)
-    .reduce((sum, player) => checkedAdd(sum, player.fame ?? 0, 'club fame'), market.clubFameAdjustment ?? 0)));
+  return Math.max(
+    0,
+    Math.min(
+      CAREER_CLUB_FAME_CEILING,
+      state.players
+        .filter((player) => player.clubId === state.userClubId)
+        .reduce(
+          (sum, player) => checkedAdd(sum, player.fame ?? 0, 'club fame'),
+          market.clubFameAdjustment ?? 0,
+        ),
+    ),
+  );
 }
 
 /** @i18n-fallback Role labels below are developer-only overflow-check names. */
@@ -1791,49 +2091,61 @@ function progressEmployedCoach(
     1,
     `${label} seasons employed`,
   );
-  const level = seasonsEmployed % 2 === 0
-    ? Math.min(5, coach.level + 1)
-    : coach.level;
+  const level =
+    seasonsEmployed % 2 === 0 ? Math.min(5, coach.level + 1) : coach.level;
   const loyaltyPercent = 100 - coach.loyaltyDiscountPercent;
   const headCoachWage = Math.round(
-    (checkedMultiply(COACH_WAGE_PER_LEVEL, level, `${label} base wage`) * loyaltyPercent) / 100,
+    (checkedMultiply(COACH_WAGE_PER_LEVEL, level, `${label} base wage`) *
+      loyaltyPercent) /
+      100,
   );
-  const weeklyWage = coachWeeklyWageForRole({ weeklyWage: headCoachWage }, role);
+  const weeklyWage = coachWeeklyWageForRole(
+    { weeklyWage: headCoachWage },
+    role,
+  );
   return { coach: { ...coach, level, weeklyWage }, seasonsEmployed };
 }
 
 function assertManagePhase(state: GameState): void {
-  if (state.phase !== 'manage') throw new Error('market decisions require the manage phase');
+  if (state.phase !== 'manage')
+    throw new Error('market decisions require the manage phase');
 }
 
 function assertSeasonEndPhase(state: GameState): void {
-  if (state.phase !== 'season-end') throw new Error('renewal talks require the season-end phase');
+  if (state.phase !== 'season-end')
+    throw new Error('renewal talks require the season-end phase');
 }
 
 function expiredUserPlayer(state: GameState, playerId: string): CareerPlayer {
-  const player = state.players.find(candidate => (
-    candidate.id === playerId && candidate.clubId === state.userClubId
-  ));
-  if (player === undefined) throw new Error(`unknown user-club player ${playerId}`);
-  if (player.contractSeasonsRemaining !== 0) throw new Error('only an expired contract may be negotiated');
+  const player = state.players.find(
+    (candidate) =>
+      candidate.id === playerId && candidate.clubId === state.userClubId,
+  );
+  if (player === undefined)
+    throw new Error(`unknown user-club player ${playerId}`);
+  if (player.contractSeasonsRemaining !== 0)
+    throw new Error('only an expired contract may be negotiated');
   return player;
 }
 
 function checkedAdd(left: number, right: number, label: string): number {
   const result = left + right;
-  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(result))
+    throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }
 
 function checkedSubtract(left: number, right: number, label: string): number {
   const result = left - right;
-  if (!Number.isSafeInteger(result) || result < 0) throw new Error(`${label} is invalid`);
+  if (!Number.isSafeInteger(result) || result < 0)
+    throw new Error(`${label} is invalid`);
   return result;
 }
 
 function checkedMultiply(left: number, right: number, label: string): number {
   const result = left * right;
-  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(result))
+    throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }
 
@@ -1845,7 +2157,10 @@ function checkedMultiply(left: number, right: number, label: string): number {
  */
 function buildUnattachedSpecialHero(hero: SpecialHero): CareerPlayer {
   const base = DIVISION_STRENGTH_BANDS[1][1];
-  const attrs = specialHeroAttrs(hero.role, specialHeroTargetOverall(base, 1, 1));
+  const attrs = specialHeroAttrs(
+    hero.role,
+    specialHeroTargetOverall(base, 1, 1),
+  );
   const potential = 5;
   return {
     id: hero.id,
@@ -1880,6 +2195,9 @@ function buildUnattachedSpecialHero(hero: SpecialHero): CareerPlayer {
     retirementAge: 36,
     retirementAnnounced: false,
     consecutiveLowMoraleWeeks: 0,
-    signingStatTotal: Object.values(attrs).reduce((sum, value) => sum + value, 0),
+    signingStatTotal: Object.values(attrs).reduce(
+      (sum, value) => sum + value,
+      0,
+    ),
   };
 }

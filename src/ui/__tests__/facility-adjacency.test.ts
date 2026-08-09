@@ -16,10 +16,17 @@ describe('facility adjacency guidance', () => {
       expect(presentation?.effectLabel).toMatch(/10%|20%/);
       expect(presentation?.rationale.length).toBeGreaterThan(30);
       expect(presentation?.discoveryCopy.length).toBeLessThan(100);
-      expect(presentation?.facilityTypes).toEqual([adjacency.first, adjacency.second]);
+      expect(presentation?.facilityTypes).toEqual([
+        adjacency.first,
+        adjacency.second,
+      ]);
       expect(presentation?.milestone).toMatch(/^facility-combo-.+-seen$/);
-      expect(facilityAdjacencyLabel(adjacency.id)).toContain(presentation!.pairLabel);
-      expect(facilityAdjacencyLabel(adjacency.id)).toContain(presentation!.effectLabel);
+      expect(facilityAdjacencyLabel(adjacency.id)).toContain(
+        presentation!.pairLabel,
+      );
+      expect(facilityAdjacencyLabel(adjacency.id)).toContain(
+        presentation!.effectLabel,
+      );
     }
   });
 
@@ -30,7 +37,7 @@ describe('facility adjacency guidance', () => {
   });
 
   it('keeps the shipped adjacency IDs exhaustive', () => {
-    const ids = FACILITY_ADJACENCIES.map(adjacency => adjacency.id);
+    const ids = FACILITY_ADJACENCIES.map((adjacency) => adjacency.id);
     expect(ids).toEqual<FacilityAdjacencyId[]>([
       'gym-dorm',
       'fan-shop-stadium',

@@ -1,6 +1,10 @@
 // The sort is a saved preference, so its vocabulary lives with the other
 // persisted UI settings (textScale, hudSide, cutInMode) rather than here.
-export type { SquadSort, SquadSortDirection, SquadSortKey } from '../persistence';
+export type {
+  SquadSort,
+  SquadSortDirection,
+  SquadSortKey,
+} from '../persistence';
 import type { SquadSort, SquadSortKey } from '../persistence';
 import { POTENTIAL_GRADES, type PotentialGrade } from '../game/archetype-caps';
 
@@ -26,11 +30,17 @@ const OPENS_ASCENDING: Readonly<Record<SquadSortKey, boolean>> = {
   condition: false,
 };
 
-export function nextSquadSort(current: SquadSort | null, key: SquadSortKey): SquadSort | null {
+export function nextSquadSort(
+  current: SquadSort | null,
+  key: SquadSortKey,
+): SquadSort | null {
   const opening = OPENS_ASCENDING[key] ? 'ascending' : 'descending';
   if (current?.key !== key) return { key, direction: opening };
   if (current.direction === opening) {
-    return { key, direction: opening === 'ascending' ? 'descending' : 'ascending' };
+    return {
+      key,
+      direction: opening === 'ascending' ? 'descending' : 'ascending',
+    };
   }
   return null;
 }
@@ -49,7 +59,7 @@ export function sortSquadPlayers<T extends SortableSquadPlayer>(
         ? left.defaultIndex - right.defaultIndex
         : comparison * multiplier;
     })
-    .map(entry => entry.player);
+    .map((entry) => entry.player);
 }
 
 function comparePlayers(
@@ -65,8 +75,10 @@ function comparePlayers(
     // chance, which stayed on raw potential when the grade moved to growth
     // speed — two different measurements, so a sorted POT column read as
     // unordered. Players sharing a letter keep their default order.
-    return POTENTIAL_GRADES.indexOf(left.potentialGrade)
-      - POTENTIAL_GRADES.indexOf(right.potentialGrade);
+    return (
+      POTENTIAL_GRADES.indexOf(left.potentialGrade) -
+      POTENTIAL_GRADES.indexOf(right.potentialGrade)
+    );
   }
   return left.condition - right.condition;
 }

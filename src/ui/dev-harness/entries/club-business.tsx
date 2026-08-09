@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
-import { clubFinancesViewModel, seasonEndViewModel } from '../../../application/view-models';
+import {
+  clubFinancesViewModel,
+  seasonEndViewModel,
+} from '../../../application/view-models';
 import { loadLaunchContent } from '../../../content/load';
 import {
   acceptSponsorOffer,
@@ -17,7 +20,11 @@ import {
   type ConfirmationRequest,
 } from '../../components/ConfirmationSheet';
 import { formatCurrency } from '../../components/Scorecard';
-import type { ClubOfficeTab, SponsorOfferViewModel, SponsorSlotViewModel } from '../../models';
+import type {
+  ClubOfficeTab,
+  SponsorOfferViewModel,
+  SponsorSlotViewModel,
+} from '../../models';
 import { ClubFinancesScreen } from '../../screens/ClubFinancesScreen';
 import { SeasonEndScreen } from '../../screens/SeasonEndScreen';
 import { devHarnessCareerAtWeek } from '../career';
@@ -44,22 +51,86 @@ type ClubBusinessCaseId =
   | 'long-copy'
   | 'confirm-offer';
 
-const CASES: readonly { id: ClubBusinessCaseId; label: string; note: string }[] = [
-  { id: 'd5-locked', label: 'D5 locked', note: 'Season 2: no managed Sponsor Desk or Buzz.' },
-  { id: 'd5-buzz-0', label: 'D5 Buzz 0', note: 'Season 3 local advertising; managed offers stay locked.' },
-  { id: 'd5-buzz-64', label: 'Buzz 64', note: 'A useful mid-half payout estimate.' },
-  { id: 'd5-buzz-100', label: 'Buzz 100', note: 'The capped meter and maximum Buzz payout.' },
-  { id: 'd5-after-payout', label: 'After pay', note: 'Meter reset with the durable settlement summary.' },
-  { id: 'd4-offers', label: 'D4 offers', note: 'First managed season: one slot and three offers.' },
-  { id: 'd4-continuity', label: 'D4 late', note: 'Week 8 continuity income with the offer window closed.' },
-  { id: 'd3-offers', label: 'D3 offers', note: 'Two provisional slots, each with its own candidates.' },
-  { id: 'd3-partial', label: 'D3 partial', note: 'One signed slot and one still awaiting a choice.' },
-  { id: 'd2-offers', label: 'D2 offers', note: 'Three provisional slots without a nine-card wall.' },
-  { id: 'd2-partial', label: 'D2 partial', note: 'Two signed slots and one provisional slot.' },
-  { id: 'chairman-d2', label: 'Chairman', note: 'Exact nominal and 80% actual receipts.' },
-  { id: 'season-end-results', label: 'Season end', note: 'Real Week 30 path: met and missed targets plus the second Buzz payday.' },
-  { id: 'long-copy', label: 'Long copy', note: 'Longest sponsor, objective, and Chairman money pressure at 375pt.' },
-  { id: 'confirm-offer', label: 'Confirm', note: 'The real accessible sponsor-signing confirmation.' },
+const CASES: readonly {
+  id: ClubBusinessCaseId;
+  label: string;
+  note: string;
+}[] = [
+  {
+    id: 'd5-locked',
+    label: 'D5 locked',
+    note: 'Season 2: no managed Sponsor Desk or Buzz.',
+  },
+  {
+    id: 'd5-buzz-0',
+    label: 'D5 Buzz 0',
+    note: 'Season 3 local advertising; managed offers stay locked.',
+  },
+  {
+    id: 'd5-buzz-64',
+    label: 'Buzz 64',
+    note: 'A useful mid-half payout estimate.',
+  },
+  {
+    id: 'd5-buzz-100',
+    label: 'Buzz 100',
+    note: 'The capped meter and maximum Buzz payout.',
+  },
+  {
+    id: 'd5-after-payout',
+    label: 'After pay',
+    note: 'Meter reset with the durable settlement summary.',
+  },
+  {
+    id: 'd4-offers',
+    label: 'D4 offers',
+    note: 'First managed season: one slot and three offers.',
+  },
+  {
+    id: 'd4-continuity',
+    label: 'D4 late',
+    note: 'Week 8 continuity income with the offer window closed.',
+  },
+  {
+    id: 'd3-offers',
+    label: 'D3 offers',
+    note: 'Two provisional slots, each with its own candidates.',
+  },
+  {
+    id: 'd3-partial',
+    label: 'D3 partial',
+    note: 'One signed slot and one still awaiting a choice.',
+  },
+  {
+    id: 'd2-offers',
+    label: 'D2 offers',
+    note: 'Three provisional slots without a nine-card wall.',
+  },
+  {
+    id: 'd2-partial',
+    label: 'D2 partial',
+    note: 'Two signed slots and one provisional slot.',
+  },
+  {
+    id: 'chairman-d2',
+    label: 'Chairman',
+    note: 'Exact nominal and 80% actual receipts.',
+  },
+  {
+    id: 'season-end-results',
+    label: 'Season end',
+    note: 'Real Week 30 path: met and missed targets plus the second Buzz payday.',
+  },
+  {
+    id: 'long-copy',
+    label: 'Long copy',
+    note: 'Longest sponsor, objective, and Chairman money pressure at 375pt.',
+  },
+  {
+    id: 'confirm-offer',
+    label: 'Confirm',
+    note: 'The real accessible sponsor-signing confirmation.',
+  },
 ];
 
 interface BusinessCase {
@@ -78,34 +149,149 @@ interface BusinessCase {
 function caseConfiguration(caseId: ClubBusinessCaseId): BusinessCase {
   switch (caseId) {
     case 'd5-locked':
-      return { season: 2, week: 3, division: 5, highestDivisionReached: 5, difficulty: 'COZY', buzz: 0, signedSlots: 0 };
+      return {
+        season: 2,
+        week: 3,
+        division: 5,
+        highestDivisionReached: 5,
+        difficulty: 'COZY',
+        buzz: 0,
+        signedSlots: 0,
+      };
     case 'd5-buzz-0':
-      return { season: 3, week: 3, division: 5, highestDivisionReached: 5, difficulty: 'COZY', buzz: 0, signedSlots: 0 };
+      return {
+        season: 3,
+        week: 3,
+        division: 5,
+        highestDivisionReached: 5,
+        difficulty: 'COZY',
+        buzz: 0,
+        signedSlots: 0,
+      };
     case 'd5-buzz-64':
-      return { season: 3, week: 12, division: 5, highestDivisionReached: 5, difficulty: 'COZY', buzz: 64, signedSlots: 0 };
+      return {
+        season: 3,
+        week: 12,
+        division: 5,
+        highestDivisionReached: 5,
+        difficulty: 'COZY',
+        buzz: 64,
+        signedSlots: 0,
+      };
     case 'd5-buzz-100':
-      return { season: 3, week: 14, division: 5, highestDivisionReached: 5, difficulty: 'COZY', buzz: 100, signedSlots: 0 };
+      return {
+        season: 3,
+        week: 14,
+        division: 5,
+        highestDivisionReached: 5,
+        difficulty: 'COZY',
+        buzz: 100,
+        signedSlots: 0,
+      };
     case 'd5-after-payout':
-      return { season: 3, week: 16, division: 5, highestDivisionReached: 5, difficulty: 'COZY', buzz: 0, signedSlots: 0, afterPayout: true };
+      return {
+        season: 3,
+        week: 16,
+        division: 5,
+        highestDivisionReached: 5,
+        difficulty: 'COZY',
+        buzz: 0,
+        signedSlots: 0,
+        afterPayout: true,
+      };
     case 'd4-continuity':
-      return { season: 3, week: 8, division: 4, highestDivisionReached: 4, difficulty: 'COZY', buzz: 38, signedSlots: 0 };
+      return {
+        season: 3,
+        week: 8,
+        division: 4,
+        highestDivisionReached: 4,
+        difficulty: 'COZY',
+        buzz: 38,
+        signedSlots: 0,
+      };
     case 'd3-offers':
-      return { season: 3, week: 2, division: 3, highestDivisionReached: 3, difficulty: 'COZY', buzz: 46, signedSlots: 0 };
+      return {
+        season: 3,
+        week: 2,
+        division: 3,
+        highestDivisionReached: 3,
+        difficulty: 'COZY',
+        buzz: 46,
+        signedSlots: 0,
+      };
     case 'd3-partial':
-      return { season: 3, week: 2, division: 3, highestDivisionReached: 3, difficulty: 'COZY', buzz: 46, signedSlots: 1 };
+      return {
+        season: 3,
+        week: 2,
+        division: 3,
+        highestDivisionReached: 3,
+        difficulty: 'COZY',
+        buzz: 46,
+        signedSlots: 1,
+      };
     case 'd2-offers':
-      return { season: 4, week: 2, division: 2, highestDivisionReached: 2, difficulty: 'COZY', buzz: 71, signedSlots: 0 };
+      return {
+        season: 4,
+        week: 2,
+        division: 2,
+        highestDivisionReached: 2,
+        difficulty: 'COZY',
+        buzz: 71,
+        signedSlots: 0,
+      };
     case 'd2-partial':
-      return { season: 4, week: 2, division: 2, highestDivisionReached: 2, difficulty: 'COZY', buzz: 71, signedSlots: 2 };
+      return {
+        season: 4,
+        week: 2,
+        division: 2,
+        highestDivisionReached: 2,
+        difficulty: 'COZY',
+        buzz: 71,
+        signedSlots: 2,
+      };
     case 'chairman-d2':
-      return { season: 4, week: 2, division: 2, highestDivisionReached: 2, difficulty: 'CHAIRMAN', buzz: 71, signedSlots: 2 };
+      return {
+        season: 4,
+        week: 2,
+        division: 2,
+        highestDivisionReached: 2,
+        difficulty: 'CHAIRMAN',
+        buzz: 71,
+        signedSlots: 2,
+      };
     case 'season-end-results':
-      return { season: 4, week: 30, division: 3, highestDivisionReached: 3, difficulty: 'CHAIRMAN', buzz: 64, signedSlots: 2, seasonEnd: true };
+      return {
+        season: 4,
+        week: 30,
+        division: 3,
+        highestDivisionReached: 3,
+        difficulty: 'CHAIRMAN',
+        buzz: 64,
+        signedSlots: 2,
+        seasonEnd: true,
+      };
     case 'long-copy':
-      return { season: 4, week: 2, division: 2, highestDivisionReached: 2, difficulty: 'CHAIRMAN', buzz: 88, signedSlots: 0, longCopy: true };
+      return {
+        season: 4,
+        week: 2,
+        division: 2,
+        highestDivisionReached: 2,
+        difficulty: 'CHAIRMAN',
+        buzz: 88,
+        signedSlots: 0,
+        longCopy: true,
+      };
     case 'confirm-offer':
     case 'd4-offers':
-      return { season: 3, week: 2, division: 4, highestDivisionReached: 4, difficulty: 'COZY', buzz: 32, signedSlots: 0 };
+      return {
+        season: 3,
+        week: 2,
+        division: 4,
+        highestDivisionReached: 4,
+        difficulty: 'COZY',
+        buzz: 32,
+        signedSlots: 0,
+      };
   }
 }
 
@@ -114,30 +300,39 @@ function ClubBusinessReel({ caseId }: { readonly caseId: ClubBusinessCaseId }) {
   const [activeTab, setActiveTab] = useState<ClubOfficeTab>('finances');
   const reduceMotion = caseId !== 'confirm-offer';
   const viewModel = useMemo(() => clubFinancesViewModel(career), [career]);
-  const initialOffer = viewModel.sponsorship?.slots.flatMap(slot => (
-    slot.offers.map(offer => ({ offer, slot }))
-  ))[0];
+  const initialOffer = viewModel.sponsorship?.slots.flatMap((slot) =>
+    slot.offers.map((offer) => ({ offer, slot })),
+  )[0];
   const [pending, setPending] = useState<{
     readonly offer: SponsorOfferViewModel;
     readonly slot: SponsorSlotViewModel;
-  } | null>(() => caseId === 'confirm-offer' ? initialOffer ?? null : null);
-  const confirmation = pending === null ? null : sponsorConfirmation(pending.offer, pending.slot, () => {
-    setCareer(current => ({
-      ...current,
-      clubBusiness: {
-        ...current.clubBusiness,
-        sponsorship: acceptSponsorOffer(current.clubBusiness.sponsorship, {
-          offerId: pending.offer.offerId,
-          season: current.season,
-          week: current.week,
-        }),
-      },
-    }));
-  });
+  } | null>(() => (caseId === 'confirm-offer' ? (initialOffer ?? null) : null));
+  const confirmation =
+    pending === null
+      ? null
+      : sponsorConfirmation(pending.offer, pending.slot, () => {
+          setCareer((current) => ({
+            ...current,
+            clubBusiness: {
+              ...current.clubBusiness,
+              sponsorship: acceptSponsorOffer(
+                current.clubBusiness.sponsorship,
+                {
+                  offerId: pending.offer.offerId,
+                  season: current.season,
+                  week: current.week,
+                },
+              ),
+            },
+          }));
+        });
 
   return (
     <View className="flex-1 bg-paper">
-      <View className="flex-1" {...confirmationBackgroundProps(confirmation !== null)}>
+      <View
+        className="flex-1"
+        {...confirmationBackgroundProps(confirmation !== null)}
+      >
         <ClubFinancesScreen
           viewModel={viewModel}
           activeTab={activeTab}
@@ -160,10 +355,17 @@ function ClubBusinessReel({ caseId }: { readonly caseId: ClubBusinessCaseId }) {
   );
 }
 
-function ClubBusinessSeasonEndReel({ caseId }: { readonly caseId: ClubBusinessCaseId }) {
+function ClubBusinessSeasonEndReel({
+  caseId,
+}: {
+  readonly caseId: ClubBusinessCaseId;
+}) {
   const [career] = useState(() => businessCareer(caseId));
   const content = useMemo(() => loadLaunchContent(), []);
-  const viewModel = useMemo(() => seasonEndViewModel(career, content, 1), [career, content]);
+  const viewModel = useMemo(
+    () => seasonEndViewModel(career, content, 1),
+    [career, content],
+  );
 
   return (
     <SeasonEndScreen
@@ -208,7 +410,11 @@ function businessCareer(caseId: ClubBusinessCaseId): GameState {
   if (base.m2 === undefined || base.sponsorRules === undefined) {
     throw new Error('Club Business harness requires M2 and sponsor rules');
   }
-  const withDivision = moveUserClub(base, config.division, config.highestDivisionReached);
+  const withDivision = moveUserClub(
+    base,
+    config.division,
+    config.highestDivisionReached,
+  );
   const nominalAnchor = divisionSponsorAnchor(config.division);
   let sponsorship = createSeasonSponsorship({
     rules: base.sponsorRules,
@@ -220,9 +426,11 @@ function businessCareer(caseId: ClubBusinessCaseId): GameState {
     nominalAnchor,
   });
   for (let slot = 0; slot < config.signedSlots; slot += 1) {
-    const offer = sponsorship.offers.find(candidate => (
-      candidate.slot === slot && candidate.profile === (slot % 2 === 0 ? 'BALANCED' : 'STEADY')
-    ));
+    const offer = sponsorship.offers.find(
+      (candidate) =>
+        candidate.slot === slot &&
+        candidate.profile === (slot % 2 === 0 ? 'BALANCED' : 'STEADY'),
+    );
     if (offer !== undefined) {
       sponsorship = acceptSponsorOffer(sponsorship, {
         offerId: offer.offerId,
@@ -232,14 +440,20 @@ function businessCareer(caseId: ClubBusinessCaseId): GameState {
     }
   }
   if (config.week >= 5) {
-    sponsorship = expireSponsorOfferWindow(sponsorship, config.season, config.week);
+    sponsorship = expireSponsorOfferWindow(
+      sponsorship,
+      config.season,
+      config.week,
+    );
   }
   if (config.longCopy) {
     sponsorship = withLongCopyPressure(sponsorship);
   }
-  const clubs = withDivision.clubs.map(club => club.id === withDivision.userClubId
-    ? { ...club, cash: 67_450, sponsorMonthlyFee: nominalAnchor }
-    : club);
+  const clubs = withDivision.clubs.map((club) =>
+    club.id === withDivision.userClubId
+      ? { ...club, cash: 67_450, sponsorMonthlyFee: nominalAnchor }
+      : club,
+  );
 
   const ready: GameState = {
     ...withDivision,
@@ -248,7 +462,10 @@ function businessCareer(caseId: ClubBusinessCaseId): GameState {
     phase: 'manage',
     difficulty: config.difficulty,
     clubs,
-    fixtures: withDivision.fixtures.map(fixture => ({ ...fixture, season: config.season })),
+    fixtures: withDivision.fixtures.map((fixture) => ({
+      ...fixture,
+      season: config.season,
+    })),
     clubBusiness: {
       ...withDivision.clubBusiness,
       sponsorship,
@@ -280,7 +497,7 @@ function prepareRealSeasonEnd(state: GameState): GameState {
   let assignedUserWin = false;
   return {
     ...state,
-    fixtures: state.fixtures.map(fixture => {
+    fixtures: state.fixtures.map((fixture) => {
       const userIsHome = fixture.homeClubId === state.userClubId;
       const userIsAway = fixture.awayClubId === state.userClubId;
       const giveUserWin = !assignedUserWin && (userIsHome || userIsAway);
@@ -301,24 +518,27 @@ function prepareRealSeasonEnd(state: GameState): GameState {
       ...state.clubBusiness,
       sponsorship: {
         ...state.clubBusiness.sponsorship,
-        activeContracts: state.clubBusiness.sponsorship.activeContracts.map((contract, index) => ({
-          ...contract,
-          provisional: false,
-          objective: index === 0
-            ? {
-                kind: 'LEAGUE_WINS' as const,
-                label: 'Win 1 league match',
-                target: 1,
-                nominalBonus: 1_001,
-              }
-            : {
-                kind: 'LEAGUE_GOALS' as const,
-                label: 'Score 99 league goals',
-                target: 99,
-                nominalBonus: 999,
-              },
-          objectiveOutcome: undefined,
-        })),
+        activeContracts: state.clubBusiness.sponsorship.activeContracts.map(
+          (contract, index) => ({
+            ...contract,
+            provisional: false,
+            objective:
+              index === 0
+                ? {
+                    kind: 'LEAGUE_WINS' as const,
+                    label: 'Win 1 league match',
+                    target: 1,
+                    nominalBonus: 1_001,
+                  }
+                : {
+                    kind: 'LEAGUE_GOALS' as const,
+                    label: 'Score 99 league goals',
+                    target: 99,
+                    nominalBonus: 999,
+                  },
+            objectiveOutcome: undefined,
+          }),
+        ),
       },
       buzz: { value: state.clubBusiness.buzz.value },
       pendingUserMatchImpacts: [],
@@ -331,22 +551,24 @@ function withLongCopyPressure(
 ): GameState['clubBusiness']['sponsorship'] {
   return {
     ...sponsorship,
-    offers: sponsorship.offers.map(offer => (
+    offers: sponsorship.offers.map((offer) =>
       offer.slot === 0 && offer.profile === 'BOLD'
         ? {
             ...offer,
             sponsorName: 'Northstar Community Equipment Cooperative',
-            offerLine: 'Backing every fearless football story in the neighbourhood.',
+            offerLine:
+              'Backing every fearless football story in the neighbourhood.',
             // D2's largest authored Bold terms, with only the copy lengthened.
             nominalMonthlyFee: 2_400,
             objective: {
               ...offer.objective,
-              label: "Finish in the league's top 2 after a demanding 18-match campaign",
+              label:
+                "Finish in the league's top 2 after a demanding 18-match campaign",
               nominalBonus: 17_335,
             },
           }
-        : offer
-    )),
+        : offer,
+    ),
   };
 }
 
@@ -361,12 +583,23 @@ function moveUserClub(
       ? state
       : { ...state, m2: { ...state.m2, highestDivisionReached } };
   }
-  const source = state.m2.pyramid.divisions.find(candidate => candidate.level === 5);
-  const destination = state.m2.pyramid.divisions.find(candidate => candidate.level === division);
-  const user = source?.clubs.find(club => club.id === state.userClubId);
+  const source = state.m2.pyramid.divisions.find(
+    (candidate) => candidate.level === 5,
+  );
+  const destination = state.m2.pyramid.divisions.find(
+    (candidate) => candidate.level === division,
+  );
+  const user = source?.clubs.find((club) => club.id === state.userClubId);
   const displaced = destination?.clubs[0];
-  if (source === undefined || destination === undefined || user === undefined || displaced === undefined) {
-    throw new Error(`Club Business harness cannot move the user to D${division}`);
+  if (
+    source === undefined ||
+    destination === undefined ||
+    user === undefined ||
+    displaced === undefined
+  ) {
+    throw new Error(
+      `Club Business harness cannot move the user to D${division}`,
+    );
   }
   return {
     ...state,
@@ -375,21 +608,21 @@ function moveUserClub(
       highestDivisionReached,
       pyramid: {
         ...state.m2.pyramid,
-        divisions: state.m2.pyramid.divisions.map(candidate => {
+        divisions: state.m2.pyramid.divisions.map((candidate) => {
           if (candidate.level === 5) {
             return {
               ...candidate,
-              clubs: candidate.clubs.map(club => club.id === user.id
-                ? { ...displaced, division: 5 }
-                : club),
+              clubs: candidate.clubs.map((club) =>
+                club.id === user.id ? { ...displaced, division: 5 } : club,
+              ),
             };
           }
           if (candidate.level === division) {
             return {
               ...candidate,
-              clubs: candidate.clubs.map(club => club.id === displaced.id
-                ? { ...user, division }
-                : club),
+              clubs: candidate.clubs.map((club) =>
+                club.id === displaced.id ? { ...user, division } : club,
+              ),
             };
           }
           return candidate;
@@ -405,7 +638,10 @@ export const clubBusinessEntry: DevHarnessEntry = Object.freeze({
   title: 'Club Business',
   summary: 'Sponsor slots, offers, objectives, Buzz, and the signing question.',
   cases: Object.freeze(CASES),
-  render: (caseId: string) => caseId === 'season-end-results'
-    ? <ClubBusinessSeasonEndReel caseId={caseId} />
-    : <ClubBusinessReel caseId={caseId as ClubBusinessCaseId} />,
+  render: (caseId: string) =>
+    caseId === 'season-end-results' ? (
+      <ClubBusinessSeasonEndReel caseId={caseId} />
+    ) : (
+      <ClubBusinessReel caseId={caseId as ClubBusinessCaseId} />
+    ),
 });

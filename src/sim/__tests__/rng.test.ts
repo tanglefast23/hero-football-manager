@@ -10,7 +10,9 @@ describe('mulberry32', () => {
   it('different seeds diverge', () => {
     const a = mulberry32(1);
     const b = mulberry32(2);
-    expect(Array.from({ length: 10 }, a)).not.toEqual(Array.from({ length: 10 }, b));
+    expect(Array.from({ length: 10 }, a)).not.toEqual(
+      Array.from({ length: 10 }, b),
+    );
   });
 
   it('outputs stay in [0,1) with a sane mean', () => {

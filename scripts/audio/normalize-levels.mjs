@@ -31,7 +31,16 @@
  * own.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -93,8 +102,8 @@ const SOURCES_ONLY = new Set(['assets/audio/sfx/dialogue2.m4a']);
 // ITU-R BS.1770 K-weighting, as the two biquads the spec defines at 48kHz.
 const KWEIGHT = [
   'aresample=48000',
-  'biquad=b0=1.53512485958697:b1=-2.69169618940638:b2=1.19839281085285'
-    + ':a0=1:a1=-1.69065929318241:a2=0.73248077421585',
+  'biquad=b0=1.53512485958697:b1=-2.69169618940638:b2=1.19839281085285' +
+    ':a0=1:a1=-1.69065929318241:a2=0.73248077421585',
   'biquad=b0=1.0:b1=-2.0:b2=1.0:a0=1:a1=-1.99004745483398:a2=0.99007225036621',
 ].join(',');
 
@@ -109,18 +118,30 @@ const TRIM = [
 
 /** ffmpeg reports every measurement on stderr, so that — not the exit code — is the result. */
 function analyse(file, chain) {
-  const result = spawnSync('ffmpeg', [
-    '-nostdin', '-hide_banner', '-i', file, '-af', chain, '-f', 'null', '-',
-  ], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  const result = spawnSync(
+    'ffmpeg',
+    ['-nostdin', '-hide_banner', '-i', file, '-af', chain, '-f', 'null', '-'],
+    { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+  );
   return result.stderr ?? '';
 }
 
 function probe(file) {
-  const raw = execFileSync('ffprobe', [
-    '-v', 'error', '-select_streams', 'a:0',
-    '-show_entries', 'format=duration:stream=codec_name,channels,sample_rate,bit_rate',
-    '-of', 'json', file,
-  ], { encoding: 'utf8' });
+  const raw = execFileSync(
+    'ffprobe',
+    [
+      '-v',
+      'error',
+      '-select_streams',
+      'a:0',
+      '-show_entries',
+      'format=duration:stream=codec_name,channels,sample_rate,bit_rate',
+      '-of',
+      'json',
+      file,
+    ],
+    { encoding: 'utf8' },
+  );
   const json = JSON.parse(raw);
   const stream = json.streams[0];
   return {
@@ -148,8 +169,13 @@ function measure(file) {
   const info = probe(file);
 
   // Padded so ebur128 always has a full window to report, however short the cue.
-  const ebu = analyse(file, 'adelay=600:all=1,apad=pad_dur=1,ebur128=peak=true');
-  const momentary = [...ebu.matchAll(/M: *(-?\d+\.\d+)/g)].map((m) => Number(m[1]));
+  const ebu = analyse(
+    file,
+    'adelay=600:all=1,apad=pad_dur=1,ebur128=peak=true',
+  );
+  const momentary = [...ebu.matchAll(/M: *(-?\d+\.\d+)/g)].map((m) =>
+    Number(m[1]),
+  );
   const maxMomentary = momentary.length ? Math.max(...momentary) : null;
   const peakMatch = lastMatch(ebu, /Peak: *(-?\d+\.\d+)/g);
   const truePeak = peakMatch ? Number(peakMatch[1]) : null;
@@ -174,7 +200,8 @@ function measure(file) {
  */
 function perceivedLoudness(measured, cls) {
   if (cls === 'music') return measured.integrated;
-  if (measured.span >= MOMENTARY_WINDOW_S || measured.kRms === null) return measured.maxMomentary;
+  if (measured.span >= MOMENTARY_WINDOW_S || measured.kRms === null)
+    return measured.maxMomentary;
   const integration = Math.max(measured.span, MIN_INTEGRATION_S);
   const shortfall = 10 * Math.log10(measured.span / integration);
   // BS.1770 sums both channels of a stereo pair at unity, which astats' mean
@@ -201,7 +228,8 @@ function referencedAssets() {
   for (const file of sourceFiles(join(ROOT, 'src'))) {
     if (file.includes('__tests__')) continue;
     const text = readFileSync(file, 'utf8');
-    for (const m of text.matchAll(/assets\/audio\/(?:sfx|music)\/[\w.-]+/g)) found.add(m[0]);
+    for (const m of text.matchAll(/assets\/audio\/(?:sfx|music)\/[\w.-]+/g))
+      found.add(m[0]);
   }
   return [...found]
     .filter((p) => !SOURCES_ONLY.has(p) && existsSync(join(ROOT, p)))
@@ -220,9 +248,25 @@ function encodeArgs(info) {
     // Held at the source bitrate: this is a second generation either way, and
     // at these lengths the added loss is far below the levelling it buys.
     const kbps = Math.max(48, Math.round((info.bitRate ?? 96000) / 1000));
-    return ['-c:a', 'aac', '-b:a', `${kbps}k`, '-ar', String(info.sampleRate), '-ac', String(info.channels)];
+    return [
+      '-c:a',
+      'aac',
+      '-b:a',
+      `${kbps}k`,
+      '-ar',
+      String(info.sampleRate),
+      '-ac',
+      String(info.channels),
+    ];
   }
-  return ['-c:a', 'pcm_s16le', '-ar', String(info.sampleRate), '-ac', String(info.channels)];
+  return [
+    '-c:a',
+    'pcm_s16le',
+    '-ar',
+    String(info.sampleRate),
+    '-ac',
+    String(info.channels),
+  ];
 }
 
 function render(file, out, gainDb, limit, info) {
@@ -233,18 +277,31 @@ function render(file, out, gainDb, limit, info) {
     // that declared duration, every levelling pass bakes the filler into the
     // next encode. That regression added 614 playable samples (27.8ms) to the
     // management loop. Preserve the source's exact sample count before gain.
-    chain.push(`atrim=end_sample=${Math.round(info.duration * info.sampleRate)}`);
+    chain.push(
+      `atrim=end_sample=${Math.round(info.duration * info.sampleRate)}`,
+    );
   }
   chain.push(`volume=${gainDb.toFixed(2)}dB`);
   if (limit) {
     // Held 0.3dB under the ceiling in the sample domain: alimiter is not
     // true-peak aware, and inter-sample peaks land above the samples it sees.
     const linear = 10 ** ((CEILING - 0.3) / 20);
-    chain.push(`alimiter=limit=${linear.toFixed(6)}:attack=1:release=30:level=false:latency=true`);
+    chain.push(
+      `alimiter=limit=${linear.toFixed(6)}:attack=1:release=30:level=false:latency=true`,
+    );
   }
   execFileSync('ffmpeg', [
-    '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
-    '-i', file, '-af', chain.join(','), ...encodeArgs(info), out,
+    '-nostdin',
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-y',
+    '-i',
+    file,
+    '-af',
+    chain.join(','),
+    ...encodeArgs(info),
+    out,
   ]);
 }
 
@@ -339,10 +396,13 @@ for (const assetPath of assets) {
  * on target as far as the process can take them, so `--check` holds them to the
  * level the last pass recorded instead of to the class target.
  */
-const recorded = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')).assets : {};
+const recorded = existsSync(MANIFEST)
+  ? JSON.parse(readFileSync(MANIFEST, 'utf8')).assets
+  : {};
 function offTarget(row) {
   const entry = recorded[row.assetPath];
-  if (entry?.unreachable) return Math.abs(entry.after - row.loudness) > CHECK_TOLERANCE_LU;
+  if (entry?.unreachable)
+    return Math.abs(entry.after - row.loudness) > CHECK_TOLERANCE_LU;
   return Math.abs(row.gain) > CHECK_TOLERANCE_LU;
 }
 
@@ -350,23 +410,33 @@ const width = Math.max(...rows.map((r) => r.assetPath.length));
 console.log(`${'ASSET'.padEnd(width)}  CLS    NOW     GAIN    TP     ACTION`);
 for (const row of rows) {
   const action = check
-    ? (offTarget(row) ? 'OFF TARGET' : recorded[row.assetPath]?.unreachable ? 'ok (capped)' : 'ok')
-    : Math.abs(row.gain) < MIN_GAIN_DB ? 'skip (inaudible)'
-      : row.wouldPeak > CEILING ? `gain + limit ${(row.wouldPeak - CEILING).toFixed(1)}dB`
+    ? offTarget(row)
+      ? 'OFF TARGET'
+      : recorded[row.assetPath]?.unreachable
+        ? 'ok (capped)'
+        : 'ok'
+    : Math.abs(row.gain) < MIN_GAIN_DB
+      ? 'skip (inaudible)'
+      : row.wouldPeak > CEILING
+        ? `gain + limit ${(row.wouldPeak - CEILING).toFixed(1)}dB`
         : 'gain';
   console.log(
-    `${row.assetPath.padEnd(width)}  ${row.cls.padEnd(5)} `
-    + `${(row.loudness ?? NaN).toFixed(1).padStart(6)} `
-    + `${(row.gain >= 0 ? '+' : '') + row.gain.toFixed(1).padStart(5)} `
-    + `${(row.measured.truePeak ?? NaN).toFixed(1).padStart(5)}   ${action}`,
+    `${row.assetPath.padEnd(width)}  ${row.cls.padEnd(5)} ` +
+      `${(row.loudness ?? NaN).toFixed(1).padStart(6)} ` +
+      `${(row.gain >= 0 ? '+' : '') + row.gain.toFixed(1).padStart(5)} ` +
+      `${(row.measured.truePeak ?? NaN).toFixed(1).padStart(5)}   ${action}`,
   );
 }
 
 if (check) {
   const off = rows.filter(offTarget);
-  console.log(`\n${rows.length - off.length}/${rows.length} assets within ${CHECK_TOLERANCE_LU} LU of target.`);
+  console.log(
+    `\n${rows.length - off.length}/${rows.length} assets within ${CHECK_TOLERANCE_LU} LU of target.`,
+  );
   if (off.length) {
-    console.log(`${off.length} OFF TARGET — run without --check to level them.`);
+    console.log(
+      `${off.length} OFF TARGET — run without --check to level them.`,
+    );
     process.exit(1);
   }
   process.exit(0);
@@ -377,7 +447,12 @@ console.log(`\n${work.length} of ${rows.length} assets need levelling.`);
 if (dryRun) process.exit(0);
 
 const staging = mkdtempSync(join(tmpdir(), 'hfm-audio-levels-'));
-const manifest = { target: TARGETS, ceilingDbtp: CEILING, generatedBy: relative(ROOT, fileURLToPath(import.meta.url)), assets: {} };
+const manifest = {
+  target: TARGETS,
+  ceilingDbtp: CEILING,
+  generatedBy: relative(ROOT, fileURLToPath(import.meta.url)),
+  assets: {},
+};
 
 try {
   for (const row of rows) {
@@ -395,9 +470,11 @@ try {
       const solved = solve(file, out, row);
       renameSync(out, file);
       Object.assign(entry, solved, { bytes: statSync(file).size });
-      console.log(`  ${row.assetPath}  ${entry.before} -> ${entry.after} LUFS `
-        + `(${entry.gainDb >= 0 ? '+' : ''}${entry.gainDb}dB`
-        + `${entry.limited ? ', limited' : ''}${entry.unreachable ? ', target unreachable' : ''})`);
+      console.log(
+        `  ${row.assetPath}  ${entry.before} -> ${entry.after} LUFS ` +
+          `(${entry.gainDb >= 0 ? '+' : ''}${entry.gainDb}dB` +
+          `${entry.limited ? ', limited' : ''}${entry.unreachable ? ', target unreachable' : ''})`,
+      );
     } else {
       entry.after = entry.before;
       entry.afterTruePeak = row.measured.truePeak;

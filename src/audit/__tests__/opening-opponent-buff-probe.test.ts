@@ -24,16 +24,26 @@
  */
 import { loadLaunchContent } from '../../content';
 import type { DifficultyMode } from '../../game';
-import { ORDINARY_POLICY, SMART_BREADTH_POLICY, type OpeningPolicy } from '../opening/policies';
+import {
+  ORDINARY_POLICY,
+  SMART_BREADTH_POLICY,
+  type OpeningPolicy,
+} from '../opening/policies';
 import {
   productionLaunchTrainingPoints,
   reconcileTrainingPoints,
   runOpening,
   type CreationRatings,
 } from '../opening/runner';
-import { bootstrapProportion, mean, openerRailVerdict, percentile } from '../opening/stats';
+import {
+  bootstrapProportion,
+  mean,
+  openerRailVerdict,
+  percentile,
+} from '../opening/stats';
 
-const describeProbe = process.env.OPPONENT_BUFF_PROBE === '1' ? describe : describe.skip;
+const describeProbe =
+  process.env.OPPONENT_BUFF_PROBE === '1' ? describe : describe.skip;
 const content = loadLaunchContent();
 const LAUNCH_TP = productionLaunchTrainingPoints(content);
 
@@ -41,8 +51,22 @@ const SEEDS = Array.from(
   { length: positiveIntegerEnv('OPPONENT_BUFF_SEEDS', 300) },
   (_, index) => 4_000_000 + index * 7919,
 );
-const ORDINARY_CREATION: CreationRatings = { pac: 50, sho: 65, pas: 50, def: 50, tec: 50, sta: 50 };
-const SMART_CREATION: CreationRatings = { pac: 55, sho: 65, pas: 50, def: 35, tec: 60, sta: 50 };
+const ORDINARY_CREATION: CreationRatings = {
+  pac: 50,
+  sho: 65,
+  pas: 50,
+  def: 50,
+  tec: 50,
+  sta: 50,
+};
+const SMART_CREATION: CreationRatings = {
+  pac: 55,
+  sho: 65,
+  pas: 50,
+  def: 35,
+  tec: 60,
+  sta: 50,
+};
 const CANDIDATE_BUFFS = [0, 5, 10, 15, 20, 25];
 
 const CELLS: readonly {
@@ -51,8 +75,18 @@ const CELLS: readonly {
   difficulty: DifficultyMode;
   creation: CreationRatings;
 }[] = [
-  { label: 'Ordinary x Cozy', policy: ORDINARY_POLICY, difficulty: 'COZY', creation: ORDINARY_CREATION },
-  { label: 'Smart x Chairman', policy: SMART_BREADTH_POLICY, difficulty: 'CHAIRMAN', creation: SMART_CREATION },
+  {
+    label: 'Ordinary x Cozy',
+    policy: ORDINARY_POLICY,
+    difficulty: 'COZY',
+    creation: ORDINARY_CREATION,
+  },
+  {
+    label: 'Smart x Chairman',
+    policy: SMART_BREADTH_POLICY,
+    difficulty: 'CHAIRMAN',
+    creation: SMART_CREATION,
+  },
 ];
 
 describeProbe('opening opponent buff', () => {
@@ -67,7 +101,7 @@ describeProbe('opening opponent buff', () => {
 
     for (const cell of CELLS) {
       for (const buff of CANDIDATE_BUFFS) {
-        const runs = SEEDS.map(seed => {
+        const runs = SEEDS.map((seed) => {
           const run = runOpening({
             seed,
             difficulty: cell.difficulty,
@@ -79,24 +113,32 @@ describeProbe('opening opponent buff', () => {
           reconcileTrainingPoints(run, LAUNCH_TP);
           return run;
         });
-        const wins = bootstrapProportion(runs.map(run => run.opener.outcome === 'W'));
-        const draws = bootstrapProportion(runs.map(run => run.opener.outcome === 'D'));
-        const losses = bootstrapProportion(runs.map(run => run.opener.outcome === 'L'));
-        const goalDifferences = runs.map(run => run.opener.goalsFor - run.opener.goalsAgainst);
+        const wins = bootstrapProportion(
+          runs.map((run) => run.opener.outcome === 'W'),
+        );
+        const draws = bootstrapProportion(
+          runs.map((run) => run.opener.outcome === 'D'),
+        );
+        const losses = bootstrapProportion(
+          runs.map((run) => run.opener.outcome === 'L'),
+        );
+        const goalDifferences = runs.map(
+          (run) => run.opener.goalsFor - run.opener.goalsAgainst,
+        );
 
         lines.push(
-          `${cell.label.padEnd(18)}`
-          + ` ${String(buff).padStart(4)}`
-          + ` ${pct(wins.rate)} ${pct(draws.rate)} ${pct(losses.rate)}`
-          + `  [${pct(wins.lower95)},${pct(wins.upper95)}]`
-          + ` ${openerRailVerdict(wins, losses).padEnd(13)}`
-          + ` ${mean(runs.map(r => r.opener.goalsFor)).toFixed(2)}`
-          + `-${mean(runs.map(r => r.opener.goalsAgainst)).toFixed(2)}`
-          // The heavy-loss tail is the blowout guard: a candidate that reaches
-          // the rail by turning a teaching match into a rout is rejected.
-          + ` ${String(percentile(goalDifferences, 0.05)).padStart(5)}`
-          + ` ${mean(runs.map(r => r.opener.userShots)).toFixed(1)}`
-          + `/${mean(runs.map(r => r.opener.opponentShots)).toFixed(1)}`,
+          `${cell.label.padEnd(18)}` +
+            ` ${String(buff).padStart(4)}` +
+            ` ${pct(wins.rate)} ${pct(draws.rate)} ${pct(losses.rate)}` +
+            `  [${pct(wins.lower95)},${pct(wins.upper95)}]` +
+            ` ${openerRailVerdict(wins, losses).padEnd(13)}` +
+            ` ${mean(runs.map((r) => r.opener.goalsFor)).toFixed(2)}` +
+            `-${mean(runs.map((r) => r.opener.goalsAgainst)).toFixed(2)}` +
+            // The heavy-loss tail is the blowout guard: a candidate that reaches
+            // the rail by turning a teaching match into a rout is rejected.
+            ` ${String(percentile(goalDifferences, 0.05)).padStart(5)}` +
+            ` ${mean(runs.map((r) => r.opener.userShots)).toFixed(1)}` +
+            `/${mean(runs.map((r) => r.opener.opponentShots)).toFixed(1)}`,
         );
       }
       lines.push('');

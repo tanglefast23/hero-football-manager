@@ -59,7 +59,9 @@ function closeDarkEyes(rows: string[]): string[] | null {
   if (!SKIN_KEYS.has(skin)) return null;
   const pair = findDarkEyePair(rows);
   if (pair === null) return null;
-  return rows.map((row, y) => (y === pair.y ? fillRuns(row, pair.runs, skin) : row));
+  return rows.map((row, y) =>
+    y === pair.y ? fillRuns(row, pair.runs, skin) : row,
+  );
 }
 
 /**
@@ -76,7 +78,11 @@ function closeDarkEyes(rows: string[]): string[] | null {
  * hairline sit above the eyes: the lowest mirrored pair is the eyes.
  */
 function findDarkEyePair(rows: string[]): DarkEyePair | null {
-  for (let y = Math.min(EYE_BAND_BOTTOM, rows.length - 2); y >= EYE_BAND_TOP; y -= 1) {
+  for (
+    let y = Math.min(EYE_BAND_BOTTOM, rows.length - 2);
+    y >= EYE_BAND_TOP;
+    y -= 1
+  ) {
     const row = rows[y];
     if (row === undefined) continue;
     const runs: Array<[number, number]> = [];
@@ -84,21 +90,28 @@ function findDarkEyePair(rows: string[]): DarkEyePair | null {
       if (row[x] !== 'K') continue;
       let end = x;
       while (end + 1 < row.length && row[end + 1] === 'K') end += 1;
-      if (end - x + 1 <= MAX_EYE_WIDTH && isRingedBySkin(rows, y, x, end)) runs.push([x, end]);
+      if (end - x + 1 <= MAX_EYE_WIDTH && isRingedBySkin(rows, y, x, end))
+        runs.push([x, end]);
       x = end;
     }
     if (runs.length !== 2) continue;
     const [left, right] = runs;
     const mirror = row.length - 1;
     if (left[1] + 1 >= right[0]) continue;
-    if (left[0] + right[1] !== mirror || left[1] + right[0] !== mirror) continue;
+    if (left[0] + right[1] !== mirror || left[1] + right[0] !== mirror)
+      continue;
     return { y, runs };
   }
   return null;
 }
 
 /** True when every pixel bordering the run — sides, above, below, corners — is skin. */
-function isRingedBySkin(rows: string[], y: number, start: number, end: number): boolean {
+function isRingedBySkin(
+  rows: string[],
+  y: number,
+  start: number,
+  end: number,
+): boolean {
   for (let ry = y - 1; ry <= y + 1; ry += 1) {
     const row = rows[ry];
     if (row === undefined) return false;
@@ -110,10 +123,17 @@ function isRingedBySkin(rows: string[], y: number, start: number, end: number): 
   return true;
 }
 
-function fillRuns(row: string, runs: Array<[number, number]>, skin: string): string {
+function fillRuns(
+  row: string,
+  runs: Array<[number, number]>,
+  skin: string,
+): string {
   let filled = row;
   for (const [start, end] of runs) {
-    filled = filled.slice(0, start) + skin.repeat(end - start + 1) + filled.slice(end + 1);
+    filled =
+      filled.slice(0, start) +
+      skin.repeat(end - start + 1) +
+      filled.slice(end + 1);
   }
   return filled;
 }

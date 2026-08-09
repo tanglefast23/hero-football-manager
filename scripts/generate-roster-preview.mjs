@@ -38,30 +38,64 @@ playerIds.forEach((id, index) => {
   const x = playerOrigin.x + column * playerCard.w;
   const y = playerOrigin.y + row * playerCard.h;
   const goalkeeper = goalkeeperIds.includes(id);
-  parts.push(`<rect x="${x}" y="${y}" width="104" height="90" fill="#ffffff" stroke="#241f2e" stroke-width="2"/>`);
-  parts.push(`<rect x="${x + 4}" y="${y + 4}" width="96" height="66" fill="${goalkeeper ? '#f7d894' : '#a3c8f0'}"/>`);
-  parts.push(sprite(portraits.sprites[`${id}:rest`], portraits.palette, x + 5, y + 7, 2));
-  parts.push(sprite(match.sprites[`r:${id}:run0`], match.palette, x + 53, y + 6, 2));
-  parts.push(`<text x="${x + 52}" y="${y + 84}" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#241f2e">${id.toUpperCase()} · ${goalkeeper ? 'GK' : 'FIELD'}</text>`);
+  parts.push(
+    `<rect x="${x}" y="${y}" width="104" height="90" fill="#ffffff" stroke="#241f2e" stroke-width="2"/>`,
+  );
+  parts.push(
+    `<rect x="${x + 4}" y="${y + 4}" width="96" height="66" fill="${goalkeeper ? '#f7d894' : '#a3c8f0'}"/>`,
+  );
+  parts.push(
+    sprite(portraits.sprites[`${id}:rest`], portraits.palette, x + 5, y + 7, 2),
+  );
+  parts.push(
+    sprite(match.sprites[`r:${id}:run0`], match.palette, x + 53, y + 6, 2),
+  );
+  parts.push(
+    `<text x="${x + 52}" y="${y + 84}" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#241f2e">${id.toUpperCase()} · ${goalkeeper ? 'GK' : 'FIELD'}</text>`,
+  );
 });
 
-parts.push(`<text x="24" y="${coachOriginY - 42}" font-family="monospace" font-size="15" font-weight="bold" fill="#241f2e">COACHES — 32 UNIQUE STAFF, HIRING AGES 30–60</text>`);
-parts.push(`<text x="24" y="${coachOriginY - 18}" font-family="monospace" font-size="13" fill="#3f6fb5">13 TOUCHLINE WARDROBES · AGE-BAND DETAILS · NO PLAYER-PORTRAIT REUSE</text>`);
+parts.push(
+  `<text x="24" y="${coachOriginY - 42}" font-family="monospace" font-size="15" font-weight="bold" fill="#241f2e">COACHES — 32 UNIQUE STAFF, HIRING AGES 30–60</text>`,
+);
+parts.push(
+  `<text x="24" y="${coachOriginY - 18}" font-family="monospace" font-size="13" fill="#3f6fb5">13 TOUCHLINE WARDROBES · AGE-BAND DETAILS · NO PLAYER-PORTRAIT REUSE</text>`,
+);
 
 coachIdentities.forEach((coach, index) => {
   const column = index % coachColumns;
   const row = Math.floor(index / coachColumns);
   const x = 24 + column * coachCard.w;
   const y = coachOriginY + row * coachCard.h;
-  parts.push(`<rect x="${x}" y="${y}" width="160" height="92" fill="#ffffff" stroke="#241f2e" stroke-width="2"/>`);
-  parts.push(`<rect x="${x + 4}" y="${y + 4}" width="56" height="64" fill="#a3c8f0"/>`);
-  parts.push(sprite(coaches.sprites[`coach:${coach.id}:rest`], coaches.palette, x + 8, y + 6, 2));
-  parts.push(`<text x="${x + 66}" y="${y + 27}" font-family="monospace" font-size="11" font-weight="bold" fill="#241f2e">${escapeXml(coach.name.toUpperCase())}</text>`);
-  parts.push(`<text x="${x + 66}" y="${y + 47}" font-family="monospace" font-size="12" fill="#3f6fb5">AGE ${coach.age}</text>`);
-  parts.push(`<text x="${x + 66}" y="${y + 67}" font-family="monospace" font-size="8" fill="#6b6675">${coach.wardrobe.replaceAll('-', ' ').toUpperCase()}</text>`);
+  parts.push(
+    `<rect x="${x}" y="${y}" width="160" height="92" fill="#ffffff" stroke="#241f2e" stroke-width="2"/>`,
+  );
+  parts.push(
+    `<rect x="${x + 4}" y="${y + 4}" width="56" height="64" fill="#a3c8f0"/>`,
+  );
+  parts.push(
+    sprite(
+      coaches.sprites[`coach:${coach.id}:rest`],
+      coaches.palette,
+      x + 8,
+      y + 6,
+      2,
+    ),
+  );
+  parts.push(
+    `<text x="${x + 66}" y="${y + 27}" font-family="monospace" font-size="11" font-weight="bold" fill="#241f2e">${escapeXml(coach.name.toUpperCase())}</text>`,
+  );
+  parts.push(
+    `<text x="${x + 66}" y="${y + 47}" font-family="monospace" font-size="12" fill="#3f6fb5">AGE ${coach.age}</text>`,
+  );
+  parts.push(
+    `<text x="${x + 66}" y="${y + 67}" font-family="monospace" font-size="8" fill="#6b6675">${coach.wardrobe.replaceAll('-', ' ').toUpperCase()}</text>`,
+  );
 });
 
-parts.push(`<text x="24" y="${height - 28}" font-family="monospace" font-size="13" fill="#6b6675">STYLE BIBLE: 24×29 PORTRAITS · 24×30 MATCH SPRITES · HARD PIXELS · UPPER-LEFT LIGHT · SHARED PALETTE</text>`);
+parts.push(
+  `<text x="24" y="${height - 28}" font-family="monospace" font-size="13" fill="#6b6675">STYLE BIBLE: 24×29 PORTRAITS · 24×30 MATCH SPRITES · HARD PIXELS · UPPER-LEFT LIGHT · SHARED PALETTE</text>`,
+);
 parts.push('</svg>');
 
 const output = resolve(root, 'art/roster-diversity-preview.svg');
@@ -89,18 +123,56 @@ reviewedLooks.forEach((look, index) => {
   const row = Math.floor(index / 3);
   const x = 24 + column * 392;
   const y = 86 + row * 238;
-  reviewParts.push(`<rect x="${x}" y="${y}" width="376" height="220" fill="#ffffff" stroke="#241f2e" stroke-width="3"/>`);
+  reviewParts.push(
+    `<rect x="${x}" y="${y}" width="376" height="220" fill="#ffffff" stroke="#241f2e" stroke-width="3"/>`,
+  );
   for (const offset of [14, 128, 242]) {
-    reviewParts.push(`<rect x="${x + offset}" y="${y + 42}" width="104" height="128" fill="#a3c8f0"/>`);
+    reviewParts.push(
+      `<rect x="${x + offset}" y="${y + 42}" width="104" height="128" fill="#a3c8f0"/>`,
+    );
   }
-  reviewParts.push(sprite(portraits.sprites[`${look.id}:rest`], portraits.palette, x + 18, y + 48, 4));
-  reviewParts.push(sprite(portraits.sprites[`${look.id}:joy`], portraits.palette, x + 132, y + 48, 4));
-  reviewParts.push(sprite(match.sprites[`r:${look.id}:run0`], match.palette, x + 246, y + 46, 4));
-  reviewParts.push(`<text x="${x + 188}" y="${y + 28}" text-anchor="middle" font-family="monospace" font-size="15" font-weight="bold" fill="#241f2e">${look.id.toUpperCase()}</text>`);
-  reviewParts.push(`<text x="${x + 188}" y="${y + 194}" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#3f6fb5">${look.label}</text>`);
-  reviewParts.push(`<text x="${x + 66}" y="${y + 212}" text-anchor="middle" font-family="monospace" font-size="10" fill="#6b6675">REST</text>`);
-  reviewParts.push(`<text x="${x + 180}" y="${y + 212}" text-anchor="middle" font-family="monospace" font-size="10" fill="#6b6675">JOY</text>`);
-  reviewParts.push(`<text x="${x + 294}" y="${y + 212}" text-anchor="middle" font-family="monospace" font-size="10" fill="#6b6675">MATCH</text>`);
+  reviewParts.push(
+    sprite(
+      portraits.sprites[`${look.id}:rest`],
+      portraits.palette,
+      x + 18,
+      y + 48,
+      4,
+    ),
+  );
+  reviewParts.push(
+    sprite(
+      portraits.sprites[`${look.id}:joy`],
+      portraits.palette,
+      x + 132,
+      y + 48,
+      4,
+    ),
+  );
+  reviewParts.push(
+    sprite(
+      match.sprites[`r:${look.id}:run0`],
+      match.palette,
+      x + 246,
+      y + 46,
+      4,
+    ),
+  );
+  reviewParts.push(
+    `<text x="${x + 188}" y="${y + 28}" text-anchor="middle" font-family="monospace" font-size="15" font-weight="bold" fill="#241f2e">${look.id.toUpperCase()}</text>`,
+  );
+  reviewParts.push(
+    `<text x="${x + 188}" y="${y + 194}" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#3f6fb5">${look.label}</text>`,
+  );
+  reviewParts.push(
+    `<text x="${x + 66}" y="${y + 212}" text-anchor="middle" font-family="monospace" font-size="10" fill="#6b6675">REST</text>`,
+  );
+  reviewParts.push(
+    `<text x="${x + 180}" y="${y + 212}" text-anchor="middle" font-family="monospace" font-size="10" fill="#6b6675">JOY</text>`,
+  );
+  reviewParts.push(
+    `<text x="${x + 294}" y="${y + 212}" text-anchor="middle" font-family="monospace" font-size="10" fill="#6b6675">MATCH</text>`,
+  );
 });
 reviewParts.push('</svg>');
 const reviewOutput = resolve(root, 'art/player-redesign-preview.svg');
@@ -136,13 +208,39 @@ dyedLooks.forEach((look, index) => {
   const row = Math.floor(index / 7);
   const x = 24 + column * 196;
   const y = 84 + row * 184;
-  dyedParts.push(`<rect x="${x}" y="${y}" width="184" height="170" fill="#ffffff" stroke="#241f2e" stroke-width="3"/>`);
-  dyedParts.push(`<rect x="${x + 10}" y="${y + 38}" width="76" height="94" fill="#a3c8f0"/>`);
-  dyedParts.push(`<rect x="${x + 98}" y="${y + 38}" width="76" height="94" fill="#a3c8f0"/>`);
-  dyedParts.push(sprite(portraits.sprites[`${look.id}:rest`], portraits.palette, x + 12, y + 42, 3));
-  dyedParts.push(sprite(match.sprites[`r:${look.id}:run0`], match.palette, x + 100, y + 40, 3));
-  dyedParts.push(`<text x="${x + 92}" y="${y + 25}" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#241f2e">${look.id.toUpperCase()}</text>`);
-  dyedParts.push(`<text x="${x + 92}" y="${y + 153}" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#3f6fb5">${look.label}</text>`);
+  dyedParts.push(
+    `<rect x="${x}" y="${y}" width="184" height="170" fill="#ffffff" stroke="#241f2e" stroke-width="3"/>`,
+  );
+  dyedParts.push(
+    `<rect x="${x + 10}" y="${y + 38}" width="76" height="94" fill="#a3c8f0"/>`,
+  );
+  dyedParts.push(
+    `<rect x="${x + 98}" y="${y + 38}" width="76" height="94" fill="#a3c8f0"/>`,
+  );
+  dyedParts.push(
+    sprite(
+      portraits.sprites[`${look.id}:rest`],
+      portraits.palette,
+      x + 12,
+      y + 42,
+      3,
+    ),
+  );
+  dyedParts.push(
+    sprite(
+      match.sprites[`r:${look.id}:run0`],
+      match.palette,
+      x + 100,
+      y + 40,
+      3,
+    ),
+  );
+  dyedParts.push(
+    `<text x="${x + 92}" y="${y + 25}" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#241f2e">${look.id.toUpperCase()}</text>`,
+  );
+  dyedParts.push(
+    `<text x="${x + 92}" y="${y + 153}" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#3f6fb5">${look.label}</text>`,
+  );
 });
 dyedParts.push('</svg>');
 const dyedOutput = resolve(root, 'art/dyed-hair-preview.svg');
@@ -152,7 +250,8 @@ console.log(`wrote ${dyedOutput} (${dyedWidth}x${dyedHeight})`);
 writeFootballReferencePreview({
   filename: 'football-legends-preview.svg',
   title: '20 FOOTBALL-LEGEND SILHOUETTE HOMAGES',
-  subtitle: 'DEVELOPMENT REFERENCES ONLY · FICTIONAL IN-GAME IDENTITIES · REST · JOY · MATCH',
+  subtitle:
+    'DEVELOPMENT REFERENCES ONLY · FICTIONAL IN-GAME IDENTITIES · REST · JOY · MATCH',
   columns: 4,
   looks: [
     { id: 'f140', name: 'LIONEL MESSI', cue: 'CROP + BEARD' },
@@ -174,14 +273,20 @@ writeFootballReferencePreview({
     { id: 'f156', name: 'EUSÉBIO', cue: 'TIGHT CURL' },
     { id: 'f157', name: 'RONALDINHO', cue: 'HEADBAND + BRAIDS' },
     { id: 'f158', name: 'MARCO VAN BASTEN', cue: 'DUTCH SWEEP' },
-    { id: 'g24', name: 'LEV YASHIN', cue: 'BLACK KEEPER CAP', goalkeeper: true },
+    {
+      id: 'g24',
+      name: 'LEV YASHIN',
+      cue: 'BLACK KEEPER CAP',
+      goalkeeper: true,
+    },
   ],
 });
 
 writeFootballReferencePreview({
   filename: 'current-stars-preview.svg',
   title: '9 CURRENT-STAR SILHOUETTE HOMAGES',
-  subtitle: 'DEVELOPMENT REFERENCES ONLY · FICTIONAL IN-GAME IDENTITIES · REST · JOY · MATCH',
+  subtitle:
+    'DEVELOPMENT REFERENCES ONLY · FICTIONAL IN-GAME IDENTITIES · REST · JOY · MATCH',
   columns: 3,
   looks: [
     { id: 'f159', name: 'OUSMANE DEMBÉLÉ', cue: 'CLOSE FADE' },
@@ -201,9 +306,10 @@ writeFootballReferencePreview({
 writeFootballReferencePreview({
   filename: 'superhero-homage-preview.svg',
   title: '15 SUPERHERO SILHOUETTE HOMAGES',
-  subtitle: 'DEVELOPMENT REFERENCES ONLY · FICTIONAL IN-GAME IDENTITIES · HERO BUILD · REST · JOY · MATCH',
+  subtitle:
+    'DEVELOPMENT REFERENCES ONLY · FICTIONAL IN-GAME IDENTITIES · HERO BUILD · REST · JOY · MATCH',
   columns: 5,
-  looks: SUPERHERO_HOMAGE_IDENTITIES.map(hero => ({
+  looks: SUPERHERO_HOMAGE_IDENTITIES.map((hero) => ({
     id: hero.id,
     name: hero.name.toUpperCase(),
     cue: `${hero.cue} · ${hero.power.replace(/_/g, ' ')}`,
@@ -220,7 +326,14 @@ writeFootballReferencePreview({
   ],
 });
 
-function writeFootballReferencePreview({ filename, title, subtitle, columns, looks, comparison }) {
+function writeFootballReferencePreview({
+  filename,
+  title,
+  subtitle,
+  columns,
+  looks,
+  comparison,
+}) {
   const card = { w: 300, h: 210 };
   const width = 24 + columns * card.w;
   const rows = Math.ceil(looks.length / columns);
@@ -238,29 +351,83 @@ function writeFootballReferencePreview({ filename, title, subtitle, columns, loo
     const x = 24 + column * card.w;
     const y = 84 + row * card.h;
     const background = look.goalkeeper ? '#f7d894' : '#a3c8f0';
-    previewParts.push(`<rect x="${x}" y="${y}" width="288" height="196" fill="#ffffff" stroke="#241f2e" stroke-width="3"/>`);
+    previewParts.push(
+      `<rect x="${x}" y="${y}" width="288" height="196" fill="#ffffff" stroke="#241f2e" stroke-width="3"/>`,
+    );
     for (const offset of [10, 106, 202]) {
-      previewParts.push(`<rect x="${x + offset}" y="${y + 38}" width="76" height="94" fill="${background}"/>`);
+      previewParts.push(
+        `<rect x="${x + offset}" y="${y + 38}" width="76" height="94" fill="${background}"/>`,
+      );
     }
-    previewParts.push(sprite(portraits.sprites[`${look.id}:rest`], portraits.palette, x + 12, y + 42, 3));
-    previewParts.push(sprite(portraits.sprites[`${look.id}:joy`], portraits.palette, x + 108, y + 42, 3));
-    previewParts.push(sprite(match.sprites[`r:${look.id}:run0`], match.palette, x + 204, y + 40, 3));
-    previewParts.push(`<text x="${x + 144}" y="${y + 24}" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" fill="#241f2e">${escapeXml(`${look.name} · ${look.id.toUpperCase()}`)}</text>`);
-    previewParts.push(`<text x="${x + 144}" y="${y + 154}" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#3f6fb5">${escapeXml(look.cue)}</text>`);
-    previewParts.push(`<text x="${x + 48}" y="${y + 178}" text-anchor="middle" font-family="monospace" font-size="9" fill="#6b6675">REST</text>`);
-    previewParts.push(`<text x="${x + 144}" y="${y + 178}" text-anchor="middle" font-family="monospace" font-size="9" fill="#6b6675">JOY</text>`);
-    previewParts.push(`<text x="${x + 240}" y="${y + 178}" text-anchor="middle" font-family="monospace" font-size="9" fill="#6b6675">MATCH</text>`);
+    previewParts.push(
+      sprite(
+        portraits.sprites[`${look.id}:rest`],
+        portraits.palette,
+        x + 12,
+        y + 42,
+        3,
+      ),
+    );
+    previewParts.push(
+      sprite(
+        portraits.sprites[`${look.id}:joy`],
+        portraits.palette,
+        x + 108,
+        y + 42,
+        3,
+      ),
+    );
+    previewParts.push(
+      sprite(
+        match.sprites[`r:${look.id}:run0`],
+        match.palette,
+        x + 204,
+        y + 40,
+        3,
+      ),
+    );
+    previewParts.push(
+      `<text x="${x + 144}" y="${y + 24}" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" fill="#241f2e">${escapeXml(`${look.name} · ${look.id.toUpperCase()}`)}</text>`,
+    );
+    previewParts.push(
+      `<text x="${x + 144}" y="${y + 154}" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#3f6fb5">${escapeXml(look.cue)}</text>`,
+    );
+    previewParts.push(
+      `<text x="${x + 48}" y="${y + 178}" text-anchor="middle" font-family="monospace" font-size="9" fill="#6b6675">REST</text>`,
+    );
+    previewParts.push(
+      `<text x="${x + 144}" y="${y + 178}" text-anchor="middle" font-family="monospace" font-size="9" fill="#6b6675">JOY</text>`,
+    );
+    previewParts.push(
+      `<text x="${x + 240}" y="${y + 178}" text-anchor="middle" font-family="monospace" font-size="9" fill="#6b6675">MATCH</text>`,
+    );
   });
   if (comparison !== undefined) {
     const stripY = 84 + rows * card.h + 12;
-    previewParts.push(`<rect x="24" y="${stripY}" width="${width - 48}" height="166" fill="#ffffff" stroke="#241f2e" stroke-width="3"/>`);
-    previewParts.push(`<text x="44" y="${stripY + 28}" font-family="monospace" font-size="13" font-weight="bold" fill="#241f2e">SAME SCALE — THE HERO BUILD BESIDE THE THREE ORDINARY BUILDS</text>`);
+    previewParts.push(
+      `<rect x="24" y="${stripY}" width="${width - 48}" height="166" fill="#ffffff" stroke="#241f2e" stroke-width="3"/>`,
+    );
+    previewParts.push(
+      `<text x="44" y="${stripY + 28}" font-family="monospace" font-size="13" font-weight="bold" fill="#241f2e">SAME SCALE — THE HERO BUILD BESIDE THE THREE ORDINARY BUILDS</text>`,
+    );
     const slot = Math.floor((width - 88) / comparison.length);
     comparison.forEach((entry, index) => {
       const x = 44 + index * slot;
-      previewParts.push(`<rect x="${x}" y="${stripY + 42}" width="96" height="90" fill="${entry.label === 'HERO' ? '#f7d894' : '#a3c8f0'}"/>`);
-      previewParts.push(sprite(match.sprites[`r:${entry.id}:run0`], match.palette, x + 12, stripY + 44, 3));
-      previewParts.push(`<text x="${x + 48}" y="${stripY + 152}" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="${entry.label === 'HERO' ? '#c22f2c' : '#6b6675'}">${entry.label} · ${entry.id.toUpperCase()}</text>`);
+      previewParts.push(
+        `<rect x="${x}" y="${stripY + 42}" width="96" height="90" fill="${entry.label === 'HERO' ? '#f7d894' : '#a3c8f0'}"/>`,
+      );
+      previewParts.push(
+        sprite(
+          match.sprites[`r:${entry.id}:run0`],
+          match.palette,
+          x + 12,
+          stripY + 44,
+          3,
+        ),
+      );
+      previewParts.push(
+        `<text x="${x + 48}" y="${stripY + 152}" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="${entry.label === 'HERO' ? '#c22f2c' : '#6b6675'}">${entry.label} · ${entry.id.toUpperCase()}</text>`,
+      );
     });
   }
   previewParts.push('</svg>');
@@ -282,7 +449,10 @@ function sprite(rows, palette, originX, originY, scale) {
       let end = x + 1;
       while (end < row.length && row[end] === token) end += 1;
       const color = palette[token];
-      if (color) rects.push(`<rect x="${originX + x * scale}" y="${originY + y * scale}" width="${(end - x) * scale}" height="${scale}" fill="${color}"/>`);
+      if (color)
+        rects.push(
+          `<rect x="${originX + x * scale}" y="${originY + y * scale}" width="${(end - x) * scale}" height="${scale}" fill="${color}"/>`,
+        );
       x = end;
     }
   });
@@ -290,5 +460,8 @@ function sprite(rows, palette, originX, originY, scale) {
 }
 
 function escapeXml(value) {
-  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
 }

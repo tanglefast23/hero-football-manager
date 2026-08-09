@@ -18,7 +18,7 @@ function matchWith(power: PowerId, slot: number) {
 describe('hero-value well-tapped policy', () => {
   it.each(['ELASTIC_KEEPER', 'GIANT_GK'] as const)(
     '%s waits for the on-target shot instead of arming on a closing Zone',
-    power => {
+    (power) => {
       const match = matchWith(power, 0);
       match.players[0].powerState = { kind: 'zone', remainingTicks: 1 };
       match.ball = { kind: 'held', by: 20 };

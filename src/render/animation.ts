@@ -1,7 +1,10 @@
 // Pure render-animation decisions. These functions consume visual distance and
 // sim events but never write back to the deterministic match state.
 import type { Vec } from '../sim/geometry';
-import { slideTackleSpriteFrame, type SlideTackleSpriteFrame } from './sprites/slide-tackle';
+import {
+  slideTackleSpriteFrame,
+  type SlideTackleSpriteFrame,
+} from './sprites/slide-tackle';
 import type { PlayerSpriteFrame } from './sprites/slot-key';
 
 export const RUN_PHASE_DISTANCE = 110;
@@ -118,13 +121,20 @@ const smoothstep = (value: number) => {
  * Each run pose covers a fixed amount of pitch, so faster players cycle their
  * feet faster instead of skating farther during the same wall-clock interval.
  */
-export function runFrameForDistance(distance: number, moved: boolean): 'run0' | 'run1' {
+export function runFrameForDistance(
+  distance: number,
+  moved: boolean,
+): 'run0' | 'run1' {
   if (!moved) return 'run0';
-  return Math.floor(Math.max(0, distance) / RUN_PHASE_DISTANCE) % 2 === 0 ? 'run0' : 'run1';
+  return Math.floor(Math.max(0, distance) / RUN_PHASE_DISTANCE) % 2 === 0
+    ? 'run0'
+    : 'run1';
 }
 
 export function keeperReadyFrame(visualTick: number): 'ready0' | 'ready1' {
-  return Math.floor(Math.max(0, visualTick) / 5) % 2 === 0 ? 'ready0' : 'ready1';
+  return Math.floor(Math.max(0, visualTick) / 5) % 2 === 0
+    ? 'ready0'
+    : 'ready1';
 }
 
 export function isKeeperReady(ballDistanceSquared: number): boolean {
@@ -136,7 +146,10 @@ export function isKeeperReady(ballDistanceSquared: number): boolean {
  * Longer missed-tackle recoveries hold the low slide frames longer while the
  * plant, crouch, tuck, knee, rise, and stand beats keep their timing.
  */
-export function slideTackleFrameIndex(elapsed: number, duration: number): number {
+export function slideTackleFrameIndex(
+  elapsed: number,
+  duration: number,
+): number {
   const safeDuration = Math.max(SLIDE_TACKLE_TICKS, duration);
   const t = Math.max(0, elapsed);
   if (t < 1) return 0; // plant
@@ -155,10 +168,12 @@ export function slideTackleSpriteFrameForAction(
   action: Extract<PlayerActionAnimation, { kind: 'slide' }>,
   visualTick: number,
 ): SlideTackleSpriteFrame {
-  return slideTackleSpriteFrame(slideTackleFrameIndex(
-    visualTick - action.startTick,
-    action.untilTick - action.startTick,
-  ));
+  return slideTackleSpriteFrame(
+    slideTackleFrameIndex(
+      visualTick - action.startTick,
+      action.untilTick - action.startTick,
+    ),
+  );
 }
 
 /**
@@ -166,11 +181,16 @@ export function slideTackleSpriteFrameForAction(
  * rises. Forward travel is intentionally zero here: the deterministic player
  * coordinate now performs the lunge and remains at its landing position.
  */
-export function actionPose(action: PlayerActionAnimation | undefined, visualTick: number): ActionPose {
-  if (!action) return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
+export function actionPose(
+  action: PlayerActionAnimation | undefined,
+  visualTick: number,
+): ActionPose {
+  if (!action)
+    return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
 
   const elapsed = visualTick - action.startTick;
-  if (elapsed < 0) return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
+  if (elapsed < 0)
+    return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
 
   if (action.kind === 'knockdown') {
     // Held flat for the whole out window: drop in, hold prone, then rise over
@@ -179,14 +199,23 @@ export function actionPose(action: PlayerActionAnimation | undefined, visualTick
       return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
     }
     const drop = smoothstep(elapsed / KNOCKDOWN_DROP_TICKS);
-    const rise = smoothstep((visualTick - (action.untilTick - KNOCKDOWN_RISE_TICKS)) / KNOCKDOWN_RISE_TICKS);
+    const rise = smoothstep(
+      (visualTick - (action.untilTick - KNOCKDOWN_RISE_TICKS)) /
+        KNOCKDOWN_RISE_TICKS,
+    );
     const down = drop * (1 - rise);
-    return { active: true, rotation: action.rotation * down, anchorWeight: down, forwardOffset: 0 };
+    return {
+      active: true,
+      rotation: action.rotation * down,
+      anchorWeight: down,
+      forwardOffset: 0,
+    };
   }
 
   if (action.kind === 'stagger') {
     const push = staggerPush(elapsed);
-    if (push <= 0) return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
+    if (push <= 0)
+      return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
     return {
       active: true,
       rotation: action.rotation * push,
@@ -195,7 +224,10 @@ export function actionPose(action: PlayerActionAnimation | undefined, visualTick
     };
   }
 
-  const duration = action.kind === 'slide' ? action.untilTick - action.startTick : TACKLED_RECOVERY_TICKS;
+  const duration =
+    action.kind === 'slide'
+      ? action.untilTick - action.startTick
+      : TACKLED_RECOVERY_TICKS;
   if (elapsed >= duration) {
     return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
   }

@@ -1,11 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Easing,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { Canvas } from '@shopify/react-native-skia';
 import type { PowerId } from '../../sim/types';
 import { livePowerEffectActors } from '../../render/live-power-effect-actors';
@@ -103,7 +97,7 @@ export function TitlePlayerPopScene({
   const styles = usePixelStyles(makeStyles);
   const [appearance, setAppearance] = useState(0);
   const showNextHero = useCallback(() => {
-    setAppearance(current => current + 1);
+    setAppearance((current) => current + 1);
   }, []);
 
   return (
@@ -157,7 +151,9 @@ function PopSlot({
         mass: 0.75,
         useNativeDriver: true,
       }),
-      Animated.delay((isGiant ? 4_000 : 3_000) + Math.round(Math.random() * 500)),
+      Animated.delay(
+        (isGiant ? 4_000 : 3_000) + Math.round(Math.random() * 500),
+      ),
       Animated.timing(progress, {
         toValue: 0,
         duration: 280,
@@ -167,7 +163,10 @@ function PopSlot({
     ]);
     animation.start(({ finished }) => {
       if (!finished) return;
-      timer.current = setTimeout(onComplete, 1_150 + Math.round(Math.random() * 300));
+      timer.current = setTimeout(
+        onComplete,
+        1_150 + Math.round(Math.random() * 300),
+      );
     });
 
     return () => {
@@ -203,25 +202,24 @@ function PopSlot({
       {hero.targetSpriteKey ? (
         <View style={styles.targetSprite}>
           <TitleMatchSprite
-            spriteKey={hero.power === 'WEB_TRAP'
-              ? `${hero.targetSpriteKey}:webbed`
-              : hero.power === 'FIRE_TORCH'
-                ? `${hero.targetSpriteKey}:ignited`
-              : hero.targetSpriteKey}
+            spriteKey={
+              hero.power === 'WEB_TRAP'
+                ? `${hero.targetSpriteKey}:webbed`
+                : hero.power === 'FIRE_TORCH'
+                  ? `${hero.targetSpriteKey}:ignited`
+                  : hero.targetSpriteKey
+            }
             // Integer magnification only — 3.1 sampled the pixel art unevenly.
             scale={3}
           />
           {hero.power === 'WEB_TRAP' ? (
             <View pointerEvents="none" style={styles.webbedOverlay}>
-              {[0, 1, 2].map(band => (
+              {[0, 1, 2].map((band) => (
                 <View
                   key={band}
-                  style={[
-                    styles.webbedBand,
-                    { top: 20 + band * 21 },
-                  ]}
+                  style={[styles.webbedBand, { top: 20 + band * 21 }]}
                 >
-                  {[0, 1, 2, 3, 4, 5].map(segment => (
+                  {[0, 1, 2, 3, 4, 5].map((segment) => (
                     <View key={segment} style={styles.webbedSegment} />
                   ))}
                 </View>
@@ -260,7 +258,11 @@ function PopSlot({
         </View>
       ) : null}
 
-      <PopHeroFx appearance={appearance} hero={hero} reduceMotion={reduceMotion} />
+      <PopHeroFx
+        appearance={appearance}
+        hero={hero}
+        reduceMotion={reduceMotion}
+      />
     </Animated.View>
   );
 }
@@ -309,7 +311,7 @@ function PopHeroFx({
     // the value away in `localElapsed` below.
     if (reduceMotion) return undefined;
     const interval = setInterval(() => {
-      setElapsedMs(current => current + 90);
+      setElapsedMs((current) => current + 90);
     }, 90);
     return () => clearInterval(interval);
   }, [reduceMotion]);
@@ -318,11 +320,12 @@ function PopHeroFx({
   const localElapsed = reduceMotion
     ? Math.round(duration * 0.62)
     : Math.min(duration, elapsedMs);
-  const effectElapsed = hero.power === 'FIRE_TORCH'
-    ? Math.max(2_850, localElapsed)
-    : hero.power === 'WEB_TRAP'
-      ? 2_580
-      : localElapsed;
+  const effectElapsed =
+    hero.power === 'FIRE_TORCH'
+      ? Math.max(2_850, localElapsed)
+      : hero.power === 'WEB_TRAP'
+        ? 2_580
+        : localElapsed;
   const giantActor = livePowerEffectActors({
     id: `title-${appearance}`,
     power: hero.power,
@@ -335,7 +338,7 @@ function PopHeroFx({
     direction: -1,
     reduceMotion,
   })[0];
-  const spriteScale = isGiant ? giantActor?.scale ?? 1 : 1;
+  const spriteScale = isGiant ? (giantActor?.scale ?? 1) : 1;
   const baseScale = isGiant ? 3.4 : 4.1;
   // Bitmap art rule (docs/11, and see snapSpriteScale in render/interpolate.ts):
   // the drawn magnification must be a whole number, or nearest-neighbour
@@ -355,7 +358,10 @@ function PopHeroFx({
             width={196}
             height={204}
             origin={{ x: 72, y: 128 }}
-            targets={[{ x: 150, y: 124 }, { x: 166, y: 82 }]}
+            targets={[
+              { x: 150, y: 124 },
+              { x: 166, y: 82 },
+            ]}
             anchor={{ x: 112, y: 60 }}
             tier={1}
             reduceMotion={reduceMotion}
@@ -367,130 +373,131 @@ function PopHeroFx({
   );
 }
 
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  scene: {
-    height: 250,
-    overflow: 'visible',
-    position: 'relative',
-  },
-  popSlot: {
-    position: 'absolute',
-    zIndex: 2,
-    bottom: 12,
-    width: 196,
-    marginLeft: -98,
-    alignItems: 'center',
-  },
-  powerFx: {
-    position: 'absolute',
-    zIndex: -1,
-    left: 0,
-    top: -54,
-    transform: [{ scale: 1.4 }],
-  },
-  powerCanvas: {
-    width: 196,
-    height: 204,
-  },
-  targetSprite: {
-    position: 'absolute',
-    zIndex: -2,
-    right: 0,
-    bottom: 3,
-    opacity: 0.92,
-    transform: [{ rotate: '-3deg' }],
-  },
-  webbedOverlay: {
-    position: 'absolute',
-    inset: 0,
-    zIndex: 3,
-  },
-  webbedBand: {
-    position: 'absolute',
-    left: 1,
-    flexDirection: 'row',
-    transform: [{ rotate: '12deg' }],
-  },
-  webbedSegment: {
-    width: 9,
-    height: 5,
-    marginRight: 3,
-    borderWidth: 1,
-    borderColor: '#7d7887',
-    backgroundColor: '#ffffff',
-  },
-  webbedKnot: {
-    position: 'absolute',
-    left: 34,
-    top: 42,
-    width: 8,
-    height: 8,
-    borderWidth: 2,
-    borderColor: '#7d7887',
-    backgroundColor: '#ffffff',
-    transform: [{ rotate: '12deg' }],
-  },
-  ignitedOverlay: {
-    position: 'absolute',
-    inset: 0,
-    zIndex: 3,
-  },
-  flamePixel: {
-    position: 'absolute',
-    width: 20,
-    height: 26,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  flameTip: {
-    position: 'absolute',
-    top: 0,
-    width: 7,
-    height: 8,
-    backgroundColor: '#d94f52',
-  },
-  flameCrown: {
-    position: 'absolute',
-    top: 6,
-    width: 14,
-    height: 13,
-    borderWidth: 2,
-    borderColor: '#7a2731',
-    backgroundColor: '#ff6a00',
-  },
-  flameBase: {
-    position: 'absolute',
-    bottom: 0,
-    width: 20,
-    height: 10,
-    borderWidth: 2,
-    borderColor: '#7a2731',
-    backgroundColor: '#d94f52',
-  },
-  flameCore: {
-    zIndex: 2,
-    width: 7,
-    height: 11,
-    marginBottom: 3,
-    backgroundColor: '#f7d894',
-  },
-  powerBubble: {
-    position: 'absolute',
-    zIndex: 6,
-    top: -64,
-    minWidth: 108,
-    maxWidth: 188,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 4,
-    borderColor: '#241f2e',
-    backgroundColor: '#f7d894',
-    transform: [{ rotate: '-4deg' }],
-  },
-  powerBubbleText: {
-    color: '#241f2e',
-    fontFamily: faces.display,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    scene: {
+      height: 250,
+      overflow: 'visible',
+      position: 'relative',
+    },
+    popSlot: {
+      position: 'absolute',
+      zIndex: 2,
+      bottom: 12,
+      width: 196,
+      marginLeft: -98,
+      alignItems: 'center',
+    },
+    powerFx: {
+      position: 'absolute',
+      zIndex: -1,
+      left: 0,
+      top: -54,
+      transform: [{ scale: 1.4 }],
+    },
+    powerCanvas: {
+      width: 196,
+      height: 204,
+    },
+    targetSprite: {
+      position: 'absolute',
+      zIndex: -2,
+      right: 0,
+      bottom: 3,
+      opacity: 0.92,
+      transform: [{ rotate: '-3deg' }],
+    },
+    webbedOverlay: {
+      position: 'absolute',
+      inset: 0,
+      zIndex: 3,
+    },
+    webbedBand: {
+      position: 'absolute',
+      left: 1,
+      flexDirection: 'row',
+      transform: [{ rotate: '12deg' }],
+    },
+    webbedSegment: {
+      width: 9,
+      height: 5,
+      marginRight: 3,
+      borderWidth: 1,
+      borderColor: '#7d7887',
+      backgroundColor: '#ffffff',
+    },
+    webbedKnot: {
+      position: 'absolute',
+      left: 34,
+      top: 42,
+      width: 8,
+      height: 8,
+      borderWidth: 2,
+      borderColor: '#7d7887',
+      backgroundColor: '#ffffff',
+      transform: [{ rotate: '12deg' }],
+    },
+    ignitedOverlay: {
+      position: 'absolute',
+      inset: 0,
+      zIndex: 3,
+    },
+    flamePixel: {
+      position: 'absolute',
+      width: 20,
+      height: 26,
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+    },
+    flameTip: {
+      position: 'absolute',
+      top: 0,
+      width: 7,
+      height: 8,
+      backgroundColor: '#d94f52',
+    },
+    flameCrown: {
+      position: 'absolute',
+      top: 6,
+      width: 14,
+      height: 13,
+      borderWidth: 2,
+      borderColor: '#7a2731',
+      backgroundColor: '#ff6a00',
+    },
+    flameBase: {
+      position: 'absolute',
+      bottom: 0,
+      width: 20,
+      height: 10,
+      borderWidth: 2,
+      borderColor: '#7a2731',
+      backgroundColor: '#d94f52',
+    },
+    flameCore: {
+      zIndex: 2,
+      width: 7,
+      height: 11,
+      marginBottom: 3,
+      backgroundColor: '#f7d894',
+    },
+    powerBubble: {
+      position: 'absolute',
+      zIndex: 6,
+      top: -64,
+      minWidth: 108,
+      maxWidth: 188,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderWidth: 4,
+      borderColor: '#241f2e',
+      backgroundColor: '#f7d894',
+      transform: [{ rotate: '-4deg' }],
+    },
+    powerBubbleText: {
+      color: '#241f2e',
+      fontFamily: faces.display,
+      fontSize: 14,
+      textAlign: 'center',
+    },
+  });

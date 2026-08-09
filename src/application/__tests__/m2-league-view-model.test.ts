@@ -12,13 +12,17 @@ import { m2LeagueViewModel } from '../m2-league-view-model';
 const USER_CLUB = { id: 'user-club', name: 'Caped Ball FC', squadStrength: 47 };
 
 function standings(state: M2CareerState, userPosition = 3): LeagueStanding[] {
-  const division = state.pyramid.divisions.find(candidate =>
-    candidate.clubs.some(club => club.id === state.userClubId),
+  const division = state.pyramid.divisions.find((candidate) =>
+    candidate.clubs.some((club) => club.id === state.userClubId),
   )!;
   const ordered = [
-    ...division.clubs.filter(club => club.id !== state.userClubId),
+    ...division.clubs.filter((club) => club.id !== state.userClubId),
   ];
-  ordered.splice(userPosition - 1, 0, division.clubs.find(club => club.id === state.userClubId)!);
+  ordered.splice(
+    userPosition - 1,
+    0,
+    division.clubs.find((club) => club.id === state.userClubId)!,
+  );
   return ordered.map((club, index) => ({
     position: index + 1,
     clubId: club.id,
@@ -34,48 +38,55 @@ function standings(state: M2CareerState, userPosition = 3): LeagueStanding[] {
 }
 
 function homeWins(state: M2CareerState): NationalCupResult[] {
-  return state.nationalCups.at(-1)!.rounds.at(-1)!.fixtures.map(fixture => ({
-    fixtureId: fixture.id,
-    homeGoals: 1,
-    awayGoals: 0,
-    winnerClubId: fixture.homeClubId,
-  }));
+  return state.nationalCups
+    .at(-1)!
+    .rounds.at(-1)!
+    .fixtures.map((fixture) => ({
+      fixtureId: fixture.id,
+      homeGoals: 1,
+      awayGoals: 0,
+      winnerClubId: fixture.homeClubId,
+    }));
 }
 
 function userLeagueFixtures(state: M2CareerState, season = 2): LeagueFixture[] {
   const opponent = state.pyramid.divisions
-    .flatMap(division => division.clubs)
-    .find(club => club.id !== state.userClubId)!;
-  return [{
-    id: `s${season}-r1-user`,
-    season,
-    round: 1,
-    week: 2,
-    homeClubId: state.userClubId,
-    awayClubId: opponent.id,
-    matchSeed: 77,
-    status: 'played',
-    score: { homeGoals: 3, awayGoals: 1 },
-  }, {
-    id: `s${season}-r2-user`,
-    season,
-    round: 2,
-    week: 6,
-    homeClubId: opponent.id,
-    awayClubId: state.userClubId,
-    matchSeed: 78,
-    status: 'scheduled',
-  }, {
-    id: `s${season - 1}-old-user`,
-    season: season - 1,
-    round: 18,
-    week: 29,
-    homeClubId: state.userClubId,
-    awayClubId: opponent.id,
-    matchSeed: 76,
-    status: 'played',
-    score: { homeGoals: 0, awayGoals: 1 },
-  }];
+    .flatMap((division) => division.clubs)
+    .find((club) => club.id !== state.userClubId)!;
+  return [
+    {
+      id: `s${season}-r1-user`,
+      season,
+      round: 1,
+      week: 2,
+      homeClubId: state.userClubId,
+      awayClubId: opponent.id,
+      matchSeed: 77,
+      status: 'played',
+      score: { homeGoals: 3, awayGoals: 1 },
+    },
+    {
+      id: `s${season}-r2-user`,
+      season,
+      round: 2,
+      week: 6,
+      homeClubId: opponent.id,
+      awayClubId: state.userClubId,
+      matchSeed: 78,
+      status: 'scheduled',
+    },
+    {
+      id: `s${season - 1}-old-user`,
+      season: season - 1,
+      round: 18,
+      week: 29,
+      homeClubId: state.userClubId,
+      awayClubId: opponent.id,
+      matchSeed: 76,
+      status: 'played',
+      score: { homeGoals: 0, awayGoals: 1 },
+    },
+  ];
 }
 
 describe('m2LeagueViewModel', () => {
@@ -107,14 +118,21 @@ describe('m2LeagueViewModel', () => {
         matchesPlayed: 8,
       },
     });
-    expect(view.divisions.map(division => division.level)).toEqual([1, 2, 3, 4, 5]);
-    expect(view.divisions.map(division => division.averageStrength)[0])
-      .toBeGreaterThan(view.divisions.map(division => division.averageStrength)[4]);
+    expect(view.divisions.map((division) => division.level)).toEqual([
+      1, 2, 3, 4, 5,
+    ]);
+    expect(
+      view.divisions.map((division) => division.averageStrength)[0],
+    ).toBeGreaterThan(
+      view.divisions.map((division) => division.averageStrength)[4],
+    );
     expect(view.selectedDivisionSummary).toMatchObject({
       userSquadStrength: 47,
       comparisonTone: 'below',
     });
-    expect(view.selectedDivisionSummary.comparisonLabel).toMatch(/^\d+ below range$/);
+    expect(view.selectedDivisionSummary.comparisonLabel).toMatch(
+      /^\d+ below range$/,
+    );
     expect(view.activeTable.rows).toHaveLength(10);
     expect(view.activeTable.rows[2]).toMatchObject({
       clubId: USER_CLUB.id,
@@ -122,7 +140,11 @@ describe('m2LeagueViewModel', () => {
       isUserClub: true,
       movement: 'NONE',
     });
-    expect(view.activeTable.rows.slice(0, 2).every(row => row.movement === 'PROMOTION')).toBe(true);
+    expect(
+      view.activeTable.rows
+        .slice(0, 2)
+        .every((row) => row.movement === 'PROMOTION'),
+    ).toBe(true);
     expect(view.leagueFixtures).toEqual([
       expect.objectContaining({
         weekLabel: 'Week 2',
@@ -145,8 +167,12 @@ describe('m2LeagueViewModel', () => {
 
   it('uses the live squad rating when comparing the club with a division', () => {
     const career = initializeM2Career({ careerSeed: 551, userClub: USER_CLUB });
-    const district = career.pyramid.divisions.find(division => division.level === 5)!;
-    const minimum = Math.min(...district.clubs.map(club => club.squadStrength));
+    const district = career.pyramid.divisions.find(
+      (division) => division.level === 5,
+    )!;
+    const minimum = Math.min(
+      ...district.clubs.map((club) => club.squadStrength),
+    );
     const view = m2LeagueViewModel({
       career,
       season: 2,
@@ -168,7 +194,11 @@ describe('m2LeagueViewModel', () => {
       3,
     );
     career = advanceM2NationalCup(career, homeWins(career));
-    const view = m2LeagueViewModel({ career, season: 3, activeStandings: standings(career) });
+    const view = m2LeagueViewModel({
+      career,
+      season: 3,
+      activeStandings: standings(career),
+    });
 
     expect(view.cup).toMatchObject({
       available: true,
@@ -177,7 +207,9 @@ describe('m2LeagueViewModel', () => {
       currentRoundLabel: 'Round of 32',
     });
     expect(view.cup.currentRoundFixtures).toHaveLength(16);
-    expect(view.cup.currentRoundFixtures[0].homeClubName).not.toMatch(/^d\d-club/);
+    expect(view.cup.currentRoundFixtures[0].homeClubName).not.toMatch(
+      /^d\d-club/,
+    );
     expect(view.cup.history[0]).toMatchObject({
       label: 'Play-in',
       matchCount: 18,
@@ -195,7 +227,10 @@ describe('m2LeagueViewModel', () => {
       label: 'Play-in',
       active: false,
       fixtures: expect.arrayContaining([
-        expect.objectContaining({ status: 'PLAYED', winnerName: expect.any(String) }),
+        expect.objectContaining({
+          status: 'PLAYED',
+          winnerName: expect.any(String),
+        }),
       ]),
       byes: expect.arrayContaining([
         expect.objectContaining({ clubName: expect.any(String) }),
@@ -225,11 +260,17 @@ describe('m2LeagueViewModel', () => {
         initializeM2Career({ careerSeed: seed, userClub: USER_CLUB }),
         1,
       );
-      if (candidate.nationalCups[0].rounds[0].fixtures.some(fixture => (
-        fixture.homeClubId === USER_CLUB.id || fixture.awayClubId === USER_CLUB.id
-      ))) career = candidate;
+      if (
+        candidate.nationalCups[0].rounds[0].fixtures.some(
+          (fixture) =>
+            fixture.homeClubId === USER_CLUB.id ||
+            fixture.awayClubId === USER_CLUB.id,
+        )
+      )
+        career = candidate;
     }
-    if (career === undefined) throw new Error('expected a deterministic user play-in tie');
+    if (career === undefined)
+      throw new Error('expected a deterministic user play-in tie');
 
     const view = m2LeagueViewModel({
       career,
@@ -241,10 +282,17 @@ describe('m2LeagueViewModel', () => {
       phase: 'matchday',
       activeStandings: standings(career),
     });
-    const userFixture = view.cup.currentRoundFixtures.find(fixture => fixture.involvesUserClub);
+    const userFixture = view.cup.currentRoundFixtures.find(
+      (fixture) => fixture.involvesUserClub,
+    );
 
-    expect(userFixture).toMatchObject({ status: 'SCHEDULED', playableNow: true });
-    expect(view.cup.currentRoundFixtures.filter(fixture => fixture.playableNow)).toHaveLength(1);
+    expect(userFixture).toMatchObject({
+      status: 'SCHEDULED',
+      playableNow: true,
+    });
+    expect(
+      view.cup.currentRoundFixtures.filter((fixture) => fixture.playableNow),
+    ).toHaveLength(1);
   });
 
   it('shows a champion and preserves completed cup seasons in the selector', () => {
@@ -256,7 +304,11 @@ describe('m2LeagueViewModel', () => {
       career = advanceM2NationalCup(career, homeWins(career));
     }
     career = startM2NationalCup(career, 2);
-    const live = m2LeagueViewModel({ career, season: 2, activeStandings: standings(career) });
+    const live = m2LeagueViewModel({
+      career,
+      season: 2,
+      activeStandings: standings(career),
+    });
     const archive = m2LeagueViewModel({
       career,
       season: 2,
@@ -278,7 +330,7 @@ describe('m2LeagueViewModel', () => {
       championName: expect.any(String),
     });
     expect(archive.cup.currentRoundFixtures).toHaveLength(1);
-    expect(archive.cup.rounds.map(round => round.label)).toEqual([
+    expect(archive.cup.rounds.map((round) => round.label)).toEqual([
       'Play-in',
       'Round of 32',
       'Round of 16',
@@ -286,12 +338,18 @@ describe('m2LeagueViewModel', () => {
       'Semi-final',
       'Final',
     ]);
-    expect(archive.cup.rounds.flatMap(round => round.fixtures)).toHaveLength(49);
+    expect(archive.cup.rounds.flatMap((round) => round.fixtures)).toHaveLength(
+      49,
+    );
   });
 
   it('shows a useful empty cup state and rejects standings from the wrong division', () => {
     const career = initializeM2Career({ careerSeed: 17, userClub: USER_CLUB });
-    const empty = m2LeagueViewModel({ career, season: 1, activeStandings: standings(career) });
+    const empty = m2LeagueViewModel({
+      career,
+      season: 1,
+      activeStandings: standings(career),
+    });
     expect(empty.cup).toMatchObject({
       available: false,
       statusLabel: 'Draw pending',
@@ -299,8 +357,12 @@ describe('m2LeagueViewModel', () => {
     });
 
     const malformed = standings(career);
-    malformed[0] = { ...malformed[0], clubId: career.pyramid.divisions[0].clubs[0].id };
-    expect(() => m2LeagueViewModel({ career, season: 1, activeStandings: malformed }))
-      .toThrow('does not belong');
+    malformed[0] = {
+      ...malformed[0],
+      clubId: career.pyramid.divisions[0].clubs[0].id,
+    };
+    expect(() =>
+      m2LeagueViewModel({ career, season: 1, activeStandings: malformed }),
+    ).toThrow('does not belong');
   });
 });

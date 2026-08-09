@@ -57,7 +57,8 @@ import { renewCareerPlayer } from '../../game/squad';
 import { runMatch } from '../../sim/match';
 import type { Attrs } from '../../sim/types';
 
-const describeProbe = process.env.DIVISION_ENTRY_PROBE === '1' ? describe : describe.skip;
+const describeProbe =
+  process.env.DIVISION_ENTRY_PROBE === '1' ? describe : describe.skip;
 const content = loadLaunchContent();
 
 const SEEDS = Array.from(
@@ -66,12 +67,23 @@ const SEEDS = Array.from(
 );
 const SEASON_BUDGET = positiveIntegerEnv('DIVISION_ENTRY_SEASONS', 6);
 const ENTRY_MATCHES = 5;
-const ATTRS: readonly (keyof Attrs)[] = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'];
-const AWAKENING_POWER_IDS = content.powers.powers.map(power => power.id);
-const AWAKENING_TRIGGER_IDS = content.onboarding.triggers.map(trigger => trigger.id);
+const ATTRS: readonly (keyof Attrs)[] = [
+  'pac',
+  'sho',
+  'pas',
+  'def',
+  'tec',
+  'sta',
+  'ref',
+];
+const AWAKENING_POWER_IDS = content.powers.powers.map((power) => power.id);
+const AWAKENING_TRIGGER_IDS = content.onboarding.triggers.map(
+  (trigger) => trigger.id,
+);
 const AWAKENING_TUNING = {
   chancePercent: content.powers.awakening.postMatchChancePercent,
-  secondInSeasonChancePercent: content.powers.awakening.secondInSeasonChancePercent,
+  secondInSeasonChancePercent:
+    content.powers.awakening.secondInSeasonChancePercent,
   maxPerSeason: content.powers.awakening.maxPerSeason,
   minimumMatchesBetween: content.powers.awakening.minimumMatchesBetween,
 };
@@ -104,30 +116,38 @@ describeProbe('division entry scaling', () => {
     ];
     for (const row of rows) {
       lines.push(
-        `${String(row.seed).padStart(10)} ${String(row.season).padStart(6)}`
-        + ` ${String(row.division).padStart(4)}`
-        + ` ${row.squadMeanAtEntry.toFixed(1).padStart(7)}`
-        + ` ${row.fieldMeanAtEntry.toFixed(1).padStart(7)}`
-        + ` ${row.gapAtEntry.toFixed(1).padStart(7)}`
-        + `   ${row.firstFiveWins}-${row.firstFiveDraws}-${row.firstFiveLosses}`
-        + ` ${String(row.firstFiveGoalDifference).padStart(6)}`
-        + ` ${String(row.finalPosition).padStart(6)}`
-        + ` ${String(row.finalPoints).padStart(5)}`
-        + `  ${row.promoted ? 'YES' : 'no'}`,
+        `${String(row.seed).padStart(10)} ${String(row.season).padStart(6)}` +
+          ` ${String(row.division).padStart(4)}` +
+          ` ${row.squadMeanAtEntry.toFixed(1).padStart(7)}` +
+          ` ${row.fieldMeanAtEntry.toFixed(1).padStart(7)}` +
+          ` ${row.gapAtEntry.toFixed(1).padStart(7)}` +
+          `   ${row.firstFiveWins}-${row.firstFiveDraws}-${row.firstFiveLosses}` +
+          ` ${String(row.firstFiveGoalDifference).padStart(6)}` +
+          ` ${String(row.finalPosition).padStart(6)}` +
+          ` ${String(row.finalPoints).padStart(5)}` +
+          `  ${row.promoted ? 'YES' : 'no'}`,
       );
     }
 
-    lines.push('', 'entry gap by division (negative = arriving behind the field):');
+    lines.push(
+      '',
+      'entry gap by division (negative = arriving behind the field):',
+    );
     for (const division of [5, 4, 3, 2, 1]) {
-      const forDivision = rows.filter(row => row.division === division);
+      const forDivision = rows.filter((row) => row.division === division);
       if (forDivision.length === 0) continue;
-      const gap = forDivision.reduce((sum, row) => sum + row.gapAtEntry, 0) / forDivision.length;
+      const gap =
+        forDivision.reduce((sum, row) => sum + row.gapAtEntry, 0) /
+        forDivision.length;
       const wins = forDivision.reduce((sum, row) => sum + row.firstFiveWins, 0);
-      const losses = forDivision.reduce((sum, row) => sum + row.firstFiveLosses, 0);
+      const losses = forDivision.reduce(
+        (sum, row) => sum + row.firstFiveLosses,
+        0,
+      );
       lines.push(
-        `  D${division}: mean gap ${gap.toFixed(1)}`
-        + `  first-5 record ${wins}W/${forDivision.length * ENTRY_MATCHES - wins - losses}D/${losses}L`
-        + `  across ${forDivision.length} entries`,
+        `  D${division}: mean gap ${gap.toFixed(1)}` +
+          `  first-5 record ${wins}W/${forDivision.length * ENTRY_MATCHES - wins - losses}D/${losses}L` +
+          `  across ${forDivision.length} entries`,
       );
     }
     // eslint-disable-next-line no-console
@@ -138,8 +158,13 @@ describeProbe('division entry scaling', () => {
 
 function playCareer(seed: number): EntryRow[] {
   let state = addCreatedPlayer(
-    beginStoryOnboarding(createCareer(createLaunchCareerSetup(seed, undefined, content, 'COZY'))),
-    { name: 'Entry Probe', ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 } },
+    beginStoryOnboarding(
+      createCareer(createLaunchCareerSetup(seed, undefined, content, 'COZY')),
+    ),
+    {
+      name: 'Entry Probe',
+      ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 },
+    },
   );
   const rows: EntryRow[] = [];
 
@@ -160,7 +185,8 @@ function playCareer(seed: number): EntryRow[] {
         state = advanceWeek(state);
         continue;
       }
-      if (state.phase !== 'matchday') throw new Error(`unexpected phase ${state.phase}`);
+      if (state.phase !== 'matchday')
+        throw new Error(`unexpected phase ${state.phase}`);
       if (entry === undefined) {
         entry = {
           squad: squadMean(state, state.userClubId),
@@ -176,8 +202,9 @@ function playCareer(seed: number): EntryRow[] {
     }
 
     const table = leagueStandings(state);
-    const mine = table.find(row => row.clubId === state.userClubId);
-    if (mine === undefined) throw new Error('user club missing from its own table');
+    const mine = table.find((row) => row.clubId === state.userClubId);
+    if (mine === undefined)
+      throw new Error('user club missing from its own table');
     rows.push({
       seed,
       season,
@@ -185,9 +212,9 @@ function playCareer(seed: number): EntryRow[] {
       squadMeanAtEntry: entry?.squad ?? 0,
       fieldMeanAtEntry: entry?.field ?? 0,
       gapAtEntry: (entry?.squad ?? 0) - (entry?.field ?? 0),
-      firstFiveWins: results.filter(outcome => outcome === 'W').length,
-      firstFiveDraws: results.filter(outcome => outcome === 'D').length,
-      firstFiveLosses: results.filter(outcome => outcome === 'L').length,
+      firstFiveWins: results.filter((outcome) => outcome === 'W').length,
+      firstFiveDraws: results.filter((outcome) => outcome === 'D').length,
+      firstFiveLosses: results.filter((outcome) => outcome === 'L').length,
       firstFiveGoalDifference,
       finalPosition: mine.position,
       finalPoints: mine.points,
@@ -195,11 +222,12 @@ function playCareer(seed: number): EntryRow[] {
     });
 
     if (season === SEASON_BUDGET) break;
-    for (const player of state.players.filter(candidate => (
-      candidate.clubId === state.userClubId
-      && candidate.contractSeasonsRemaining === 0
-      && !willRetireAtSeasonTransition(candidate, state.season)
-    ))) {
+    for (const player of state.players.filter(
+      (candidate) =>
+        candidate.clubId === state.userClubId &&
+        candidate.contractSeasonsRemaining === 0 &&
+        !willRetireAtSeasonTransition(candidate, state.season),
+    )) {
       state = renewCareerPlayer(state, player.id, 4, 1);
     }
     state = startNextSeason(state);
@@ -208,24 +236,33 @@ function playCareer(seed: number): EntryRow[] {
 }
 
 function userDivision(state: GameState): number {
-  return state.m2?.pyramid.divisions
-    .find(division => division.clubs.some(club => club.id === state.userClubId))?.level ?? 5;
+  return (
+    state.m2?.pyramid.divisions.find((division) =>
+      division.clubs.some((club) => club.id === state.userClubId),
+    )?.level ?? 5
+  );
 }
 
 function squadMean(state: GameState, clubId: string): number {
   const team = buildCareerMatchTeams(state, [clubId])[clubId];
-  const perPlayer = team.players.map(player => (
-    ATTRS.reduce((sum, key) => sum + player.attrs[key], 0) / ATTRS.length
-  ));
+  const perPlayer = team.players.map(
+    (player) =>
+      ATTRS.reduce((sum, key) => sum + player.attrs[key], 0) / ATTRS.length,
+  );
   return perPlayer.reduce((left, right) => left + right, 0) / perPlayer.length;
 }
 
 function fieldMean(state: GameState, division: number): number {
-  const clubs = state.m2?.pyramid.divisions.find(candidate => candidate.level === division)?.clubs
-    ?? [];
-  const rivals = clubs.filter(club => club.id !== state.userClubId);
+  const clubs =
+    state.m2?.pyramid.divisions.find(
+      (candidate) => candidate.level === division,
+    )?.clubs ?? [];
+  const rivals = clubs.filter((club) => club.id !== state.userClubId);
   if (rivals.length === 0) return 0;
-  return rivals.reduce((sum, club) => sum + squadMean(state, club.id), 0) / rivals.length;
+  return (
+    rivals.reduce((sum, club) => sum + squadMean(state, club.id), 0) /
+    rivals.length
+  );
 }
 
 function playMatchday(state: GameState): {
@@ -234,20 +271,38 @@ function playMatchday(state: GameState): {
   goalDifference: number;
 } {
   const matchday = activeCareerMatchday(state);
-  if (matchday === undefined) throw new Error('matchday phase without an active fixture');
-  const clubIds = [...new Set(matchday.fixtures.flatMap(f => [f.homeClubId, f.awayClubId]))];
+  if (matchday === undefined)
+    throw new Error('matchday phase without an active fixture');
+  const clubIds = [
+    ...new Set(matchday.fixtures.flatMap((f) => [f.homeClubId, f.awayClubId])),
+  ];
   const teams = buildCareerMatchTeams(state, clubIds);
-  const played = completeMatchday(state, matchday.fixtures.map(fixture => {
-    const result = runMatch(fixture.matchSeed, teams[fixture.homeClubId], teams[fixture.awayClubId], [], {
-      homePolicy: 'FIRE_WHEN_READY',
-      awayPolicy: 'FIRE_WHEN_READY',
-    });
-    return { fixtureId: fixture.id, homeGoals: result.score[0], awayGoals: result.score[1] };
-  }));
+  const played = completeMatchday(
+    state,
+    matchday.fixtures.map((fixture) => {
+      const result = runMatch(
+        fixture.matchSeed,
+        teams[fixture.homeClubId],
+        teams[fixture.awayClubId],
+        [],
+        {
+          homePolicy: 'FIRE_WHEN_READY',
+          awayPolicy: 'FIRE_WHEN_READY',
+        },
+      );
+      return {
+        fixtureId: fixture.id,
+        homeGoals: result.score[0],
+        awayGoals: result.score[1],
+      };
+    }),
+  );
 
-  const userFixture = matchday.fixtures.find(fixture => (
-    fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId
-  ));
+  const userFixture = matchday.fixtures.find(
+    (fixture) =>
+      fixture.homeClubId === state.userClubId ||
+      fixture.awayClubId === state.userClubId,
+  );
   // A matchday the user sits out is real — a cup round they are not in — and
   // contributes no result rather than a 0-0.
   if (userFixture === undefined) return { state: played, goalDifference: 0 };
@@ -267,25 +322,40 @@ function playMatchday(state: GameState): {
   // and 16.7% draws, so no such stalemate exists.
   if (matchday.kind !== 'league') {
     return {
-      state: awakenHero(played, userFixture.id, side.players.map(player => player.id)),
+      state: awakenHero(
+        played,
+        userFixture.id,
+        side.players.map((player) => player.id),
+      ),
       goalDifference: 0,
     };
   }
 
-  const settled = played.fixtures.find(fixture => fixture.id === userFixture.id);
+  const settled = played.fixtures.find(
+    (fixture) => fixture.id === userFixture.id,
+  );
   if (settled === undefined) {
-    throw new Error(`league fixture ${userFixture.id} vanished from the played matchday`);
+    throw new Error(
+      `league fixture ${userFixture.id} vanished from the played matchday`,
+    );
   }
   if (settled.score === undefined) {
-    throw new Error(`league fixture ${userFixture.id} completed without a score`);
+    throw new Error(
+      `league fixture ${userFixture.id} completed without a score`,
+    );
   }
   const { score } = settled;
   const goalsFor = isHome ? score.homeGoals : score.awayGoals;
   const goalsAgainst = isHome ? score.awayGoals : score.homeGoals;
 
   return {
-    state: awakenHero(played, userFixture.id, side.players.map(player => player.id)),
-    outcome: goalsFor > goalsAgainst ? 'W' : goalsFor === goalsAgainst ? 'D' : 'L',
+    state: awakenHero(
+      played,
+      userFixture.id,
+      side.players.map((player) => player.id),
+    ),
+    outcome:
+      goalsFor > goalsAgainst ? 'W' : goalsFor === goalsAgainst ? 'D' : 'L',
     goalDifference: goalsFor - goalsAgainst,
   };
 }
@@ -311,7 +381,9 @@ function awakenHero(
   } catch {
     return onboarded; // no eligible candidate this week
   }
-  return next.awakening.pending === undefined ? next : completePostMatchAwakening(next);
+  return next.awakening.pending === undefined
+    ? next
+    : completePostMatchAwakening(next);
 }
 
 /**
@@ -328,20 +400,28 @@ function awakenHero(
  * which is why shorter budgets never saw it.
  */
 function licenseHeroes(state: GameState): GameState {
-  const powered = state.players.filter(player => (
-    player.clubId === state.userClubId && player.power !== undefined
-  ));
+  const powered = state.players.filter(
+    (player) =>
+      player.clubId === state.userClubId && player.power !== undefined,
+  );
   if (powered.length === 0) return state;
   const starting = new Set(
-    state.lineups.find(candidate => candidate.clubId === state.userClubId)?.playerIds ?? [],
+    state.lineups.find((candidate) => candidate.clubId === state.userClubId)
+      ?.playerIds ?? [],
   );
   const wanted = [...powered]
-    .sort((left, right) => Number(starting.has(right.id)) - Number(starting.has(left.id)))
+    .sort(
+      (left, right) =>
+        Number(starting.has(right.id)) - Number(starting.has(left.id)),
+    )
     .slice(0, careerHeroLimit(state))
-    .map(player => player.id);
-  const licensed = powered.filter(player => player.licensed).map(player => player.id);
-  const unchanged = wanted.length === licensed.length
-    && wanted.every(playerId => licensed.includes(playerId));
+    .map((player) => player.id);
+  const licensed = powered
+    .filter((player) => player.licensed)
+    .map((player) => player.id);
+  const unchanged =
+    wanted.length === licensed.length &&
+    wanted.every((playerId) => licensed.includes(playerId));
   return benchUnlicensedHeroes(
     unchanged ? state : selectCareerLicensedHeroes(state, wanted),
   );
@@ -351,28 +431,35 @@ function licenseHeroes(state: GameState): GameState {
 function benchUnlicensedHeroes(state: GameState): GameState {
   let current = state;
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    const lineup = current.lineups.find(candidate => candidate.clubId === current.userClubId);
+    const lineup = current.lineups.find(
+      (candidate) => candidate.clubId === current.userClubId,
+    );
     if (lineup === undefined) return current;
-    const roster = current.players.filter(player => player.clubId === current.userClubId);
-    const byId = new Map(roster.map(player => [player.id, player]));
-    const slot = lineup.playerIds.findIndex(playerId => {
+    const roster = current.players.filter(
+      (player) => player.clubId === current.userClubId,
+    );
+    const byId = new Map(roster.map((player) => [player.id, player]));
+    const slot = lineup.playerIds.findIndex((playerId) => {
       const player = byId.get(playerId);
-      return player !== undefined && player.power !== undefined && !player.licensed;
+      return (
+        player !== undefined && player.power !== undefined && !player.licensed
+      );
     });
     if (slot === -1) return current;
 
     const starter = byId.get(lineup.playerIds[slot])!;
     const selected = new Set(lineup.playerIds);
-    const eligible = roster.filter(candidate => (
-      !selected.has(candidate.id)
-      && candidate.injuryWeeks === 0
-      && candidate.power === undefined
-      && (slot === 0 ? candidate.role === 'GK' : candidate.role !== 'GK')
-    ));
+    const eligible = roster.filter(
+      (candidate) =>
+        !selected.has(candidate.id) &&
+        candidate.injuryWeeks === 0 &&
+        candidate.power === undefined &&
+        (slot === 0 ? candidate.role === 'GK' : candidate.role !== 'GK'),
+    );
     // Same role first so the formation survives the swap.
     const ordered = [
-      ...eligible.filter(candidate => candidate.role === starter.role),
-      ...eligible.filter(candidate => candidate.role !== starter.role),
+      ...eligible.filter((candidate) => candidate.role === starter.role),
+      ...eligible.filter((candidate) => candidate.role !== starter.role),
     ];
 
     let applied: GameState | undefined;
@@ -409,10 +496,17 @@ const DRILL_UPGRADE_CASH_RESERVE = 12_000;
 
 function buyDrillUpgrades(state: GameState): GameState {
   let next = state;
-  for (const pathId of ['finishing', 'duels', 'keeper-drills', 'rondo', 'first-touch']) {
+  for (const pathId of [
+    'finishing',
+    'duels',
+    'keeper-drills',
+    'rondo',
+    'first-touch',
+  ]) {
     const offer = nextTrainingUpgradeOffer(next, pathId);
     if (offer === undefined || offer.blockedReason !== undefined) continue;
-    const cash = next.clubs.find(club => club.id === next.userClubId)?.cash ?? 0;
+    const cash =
+      next.clubs.find((club) => club.id === next.userClubId)?.cash ?? 0;
     if (cash - offer.cost < DRILL_UPGRADE_CASH_RESERVE) continue;
     next = purchaseCareerTrainingUpgrade(next, pathId).state;
   }
@@ -422,9 +516,12 @@ function buyDrillUpgrades(state: GameState): GameState {
 function buildFacilities(state: GameState): GameState {
   const grid = state.facilities.grid;
   if (grid === undefined || grid.construction !== undefined) return state;
-  const pitch = grid.buildings.find(building => building.type === 'training-pitch');
+  const pitch = grid.buildings.find(
+    (building) => building.type === 'training-pitch',
+  );
   try {
-    if (pitch === undefined) return buildCareerFacility(state, 'training-pitch', { x: 0, y: 0 }).state;
+    if (pitch === undefined)
+      return buildCareerFacility(state, 'training-pitch', { x: 0, y: 0 }).state;
     if (pitch.level < 3) return upgradeCareerFacility(state, pitch.id).state;
   } catch {
     return state; // not affordable yet
@@ -435,20 +532,29 @@ function buildFacilities(state: GameState): GameState {
 /** The owner-approved "trains well" profile: one core per role, whole bank spent. */
 function trainWholeBank(state: GameState): GameState {
   let next = state;
-  const lineup = next.lineups.find(candidate => candidate.clubId === next.userClubId);
+  const lineup = next.lineups.find(
+    (candidate) => candidate.clubId === next.userClubId,
+  );
   if (lineup === undefined) return next;
   const starters = lineup.playerIds
-    .map(id => next.players.find(player => player.id === id))
-    .filter((player): player is NonNullable<typeof player> => player !== undefined
-      && player.injuryWeeks === 0);
+    .map((id) => next.players.find((player) => player.id === id))
+    .filter(
+      (player): player is NonNullable<typeof player> =>
+        player !== undefined && player.injuryWeeks === 0,
+    );
   const core = (['GK', 'DEF', 'MID', 'FWD'] as const)
-    .map(role => starters
-      .filter(player => player.role === role)
-      .sort((left, right) => (
-        roleOverall(right.role, right.attrs) - roleOverall(left.role, left.attrs)
-        || left.id.localeCompare(right.id)
-      ))[0])
-    .filter(player => player !== undefined);
+    .map(
+      (role) =>
+        starters
+          .filter((player) => player.role === role)
+          .sort(
+            (left, right) =>
+              roleOverall(right.role, right.attrs) -
+                roleOverall(left.role, left.attrs) ||
+              left.id.localeCompare(right.id),
+          )[0],
+    )
+    .filter((player) => player !== undefined);
   const pathByAttribute = {
     pac: 'sprints',
     sho: 'finishing',
@@ -463,11 +569,17 @@ function trainWholeBank(state: GameState): GameState {
   const order = [...core.slice(rotation), ...core.slice(0, rotation)];
   for (let index = 0; index < order.length; index += 1) {
     const player = order[index];
-    const attributes = player.role === 'GK' ? (['ref'] as const) : POSITION_TRAINING_ATTRIBUTES[player.role];
-    const attribute = attributes[(next.season * 30 + next.week + index) % attributes.length];
-    if (player.attrs[attribute] >= playerAttributeCaps(player)[attribute]) continue;
+    const attributes =
+      player.role === 'GK'
+        ? (['ref'] as const)
+        : POSITION_TRAINING_ATTRIBUTES[player.role];
+    const attribute =
+      attributes[(next.season * 30 + next.week + index) % attributes.length];
+    if (player.attrs[attribute] >= playerAttributeCaps(player)[attribute])
+      continue;
     const pathId = pathByAttribute[attribute];
-    if (resolveTrainingDrillForPath(next, pathId).tpCost > next.trainingPoints) continue;
+    if (resolveTrainingDrillForPath(next, pathId).tpCost > next.trainingPoints)
+      continue;
     try {
       next = trainPlayerInstantly(next, player.id, pathId).state;
     } catch {

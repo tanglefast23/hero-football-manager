@@ -23,7 +23,9 @@ jest.mock('react-native', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('../../../screens/ClubHomeScreen', () => ({ ClubHomeScreen: () => null }));
+jest.mock('../../../screens/ClubHomeScreen', () => ({
+  ClubHomeScreen: () => null,
+}));
 jest.mock('../../DevHarnessControls', () => ({
   DevHarnessButton: () => null,
   devHarnessControlStyles: { row: {}, rowLabel: {} },
@@ -44,10 +46,12 @@ function career(caseId: BoardUltimatumCaseId): GameState {
 }
 
 function isBoardRow(alertId: string): boolean {
-  return alertId === 'financial-warning'
-    || alertId === 'emergency-loan'
-    || alertId === 'board-ultimatum'
-    || alertId.startsWith('board-resolution');
+  return (
+    alertId === 'financial-warning' ||
+    alertId === 'emergency-loan' ||
+    alertId === 'board-ultimatum' ||
+    alertId.startsWith('board-resolution')
+  );
 }
 
 /**
@@ -60,14 +64,16 @@ function isTimeCriticalBoardRow(alertId: string): boolean {
 }
 
 function userCash(state: GameState): number {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
   if (club === undefined) throw new Error('the reel career has no user club');
   return club.cash;
 }
 
 describe('the board ultimatum reel', () => {
   it('registers one case per state of the escalation', () => {
-    expect(boardUltimatumEntry.cases.map(entry => entry.id)).toEqual([
+    expect(boardUltimatumEntry.cases.map((entry) => entry.id)).toEqual([
       'warning',
       'loan',
       'ultimatum',
@@ -75,7 +81,9 @@ describe('the board ultimatum reel', () => {
       'forced-sale',
     ]);
     // Every case carries the line the menu row and the bar note are drawn from.
-    expect(boardUltimatumEntry.cases.every(entry => (entry.note ?? '').length > 0)).toBe(true);
+    expect(
+      boardUltimatumEntry.cases.every((entry) => (entry.note ?? '').length > 0),
+    ).toBe(true);
   });
 
   it('builds every case, deterministically', () => {
@@ -91,7 +99,9 @@ describe('the board ultimatum reel', () => {
     expect(userCash(state)).toBeLessThan(0);
     expect(state.financialSafety?.emergencyLoanUsed).toBe(false);
     expect(state.financialSafety?.boardUltimatum).toBeUndefined();
-    expect(homeViewModel(state).alerts.map(alert => alert.id)).toContain('financial-warning');
+    expect(homeViewModel(state).alerts.map((alert) => alert.id)).toContain(
+      'financial-warning',
+    );
   });
 
   it('draws the loan on the terms the weekly settlement writes', () => {
@@ -101,9 +111,13 @@ describe('the board ultimatum reel', () => {
 
     expect(state.financialSafety?.emergencyLoanUsed).toBe(true);
     expect(loan?.originalAmount).toBe(rules.emergencyLoanAmount);
-    expect(loan?.remainingBalance).toBe(Math.ceil(rules.emergencyLoanAmount * 1.1));
+    expect(loan?.remainingBalance).toBe(
+      Math.ceil(rules.emergencyLoanAmount * 1.1),
+    );
     expect(loan?.repaymentStartsSeason).toBe(state.season + 1);
-    expect(homeViewModel(state).alerts.map(alert => alert.id)).toContain('emergency-loan');
+    expect(homeViewModel(state).alerts.map((alert) => alert.id)).toContain(
+      'emergency-loan',
+    );
   });
 
   /**
@@ -113,36 +127,54 @@ describe('the board ultimatum reel', () => {
   it('puts the engine’s own sale candidates on the block', () => {
     const state = career('ultimatum');
     const panel = homeViewModel(state).boardUltimatum;
-    const rosterIds = new Set(state.players
-      .filter(player => player.clubId === state.userClubId)
-      .map(player => player.id));
+    const rosterIds = new Set(
+      state.players
+        .filter((player) => player.clubId === state.userClubId)
+        .map((player) => player.id),
+    );
 
     expect(panel?.weeksRemaining).toBe(OPTIONS.weeksRemaining);
     expect(panel?.candidates.length).toBeGreaterThanOrEqual(3);
-    expect(panel?.candidates.every(candidate => rosterIds.has(candidate.playerId))).toBe(true);
-    expect(panel?.candidates.every(candidate => candidate.forcedSaleFee < candidate.marketValue)).toBe(true);
+    expect(
+      panel?.candidates.every((candidate) => rosterIds.has(candidate.playerId)),
+    ).toBe(true);
+    expect(
+      panel?.candidates.every(
+        (candidate) => candidate.forcedSaleFee < candidate.marketValue,
+      ),
+    ).toBe(true);
     expect(panel?.protectedPlayerId).toBeUndefined();
   });
 
   it('lets the deadline be shortened without changing who is on the block', () => {
-    const issued = boardUltimatumCareer('ultimatum', { ...OPTIONS, weeksRemaining: 4 });
-    const lastWeek = boardUltimatumCareer('ultimatum', { ...OPTIONS, weeksRemaining: 1 });
+    const issued = boardUltimatumCareer('ultimatum', {
+      ...OPTIONS,
+      weeksRemaining: 4,
+    });
+    const lastWeek = boardUltimatumCareer('ultimatum', {
+      ...OPTIONS,
+      weeksRemaining: 1,
+    });
 
     expect(issued.financialSafety?.boardUltimatum?.weeksRemaining).toBe(4);
     expect(lastWeek.financialSafety?.boardUltimatum?.weeksRemaining).toBe(1);
-    expect(lastWeek.financialSafety?.boardUltimatum?.candidates)
-      .toEqual(issued.financialSafety?.boardUltimatum?.candidates);
+    expect(lastWeek.financialSafety?.boardUltimatum?.candidates).toEqual(
+      issued.financialSafety?.boardUltimatum?.candidates,
+    );
   });
 
   /** The reel's Protect tap is the shipped reducer, not a local copy of it. */
   it('protects a candidate through the real reducer', () => {
     const state = career('ultimatum');
     const target = state.financialSafety?.boardUltimatum?.candidates[1];
-    if (target === undefined) throw new Error('the ultimatum has no second candidate');
+    if (target === undefined)
+      throw new Error('the ultimatum has no second candidate');
 
     const protectedState = protectBoardUltimatumPlayer(state, target.playerId);
 
-    expect(homeViewModel(protectedState).boardUltimatum?.protectedPlayerId).toBe(target.playerId);
+    expect(
+      homeViewModel(protectedState).boardUltimatum?.protectedPlayerId,
+    ).toBe(target.playerId);
     expect(() => protectBoardUltimatumPlayer(state, 'someone-else')).toThrow();
   });
 
@@ -164,10 +196,15 @@ describe('the board ultimatum reel', () => {
   it('moves the sold player out and the replacement in', () => {
     const state = career('forced-sale');
     const resolution = state.financialSafety?.latestBoardResolution;
-    if (resolution?.kind !== 'FORCED_SALE') throw new Error('the sold case has no forced sale');
+    if (resolution?.kind !== 'FORCED_SALE')
+      throw new Error('the sold case has no forced sale');
 
-    const sold = state.players.find(player => player.id === resolution.playerId);
-    const replacement = state.players.find(player => player.id === resolution.replacementPlayerId);
+    const sold = state.players.find(
+      (player) => player.id === resolution.playerId,
+    );
+    const replacement = state.players.find(
+      (player) => player.id === resolution.replacementPlayerId,
+    );
 
     expect(sold?.clubId).toBe(resolution.buyerClubId);
     expect(replacement?.clubId).toBe(state.userClubId);
@@ -206,17 +243,24 @@ describe('the board ultimatum reel', () => {
     // Sorted: the desk lays urgent-toned rows out above calm ones, so a forced
     // sale reads above the loan it paid off. What matters here is which rows
     // arrived, not the order they are stacked in.
-    const deadlineRows = (state: GameState) => homeViewModel(state).alerts
-      .filter(alert => isTimeCriticalBoardRow(alert.id))
-      .map(alert => alert.id)
-      .sort();
+    const deadlineRows = (state: GameState) =>
+      homeViewModel(state)
+        .alerts.filter((alert) => isTimeCriticalBoardRow(alert.id))
+        .map((alert) => alert.id)
+        .sort();
 
     for (const caseId of ['warning', 'ultimatum', 'forced-sale'] as const) {
-      const busy = boardUltimatumCareer(caseId, { ...OPTIONS, quietDesk: false });
-      const quiet = boardUltimatumCareer(caseId, { ...OPTIONS, quietDesk: true });
+      const busy = boardUltimatumCareer(caseId, {
+        ...OPTIONS,
+        quietDesk: false,
+      });
+      const quiet = boardUltimatumCareer(caseId, {
+        ...OPTIONS,
+        quietDesk: true,
+      });
       const produced = homeProductAlerts(busy)
-        .filter(alert => isTimeCriticalBoardRow(alert.id))
-        .map(alert => alert.id)
+        .filter((alert) => isTimeCriticalBoardRow(alert.id))
+        .map((alert) => alert.id)
         .sort();
 
       expect(produced.length).toBeGreaterThan(0);
@@ -237,14 +281,21 @@ describe('the board ultimatum reel', () => {
    * schedules as an ordinary row and the third slot goes back to the club.
    */
   it('leaves the deadline desk a slot for the club’s own business', () => {
-    const state = boardUltimatumCareer('ultimatum', { ...OPTIONS, quietDesk: false });
-    const rows = homeViewModel(state).alerts.map(alert => alert.id);
+    const state = boardUltimatumCareer('ultimatum', {
+      ...OPTIONS,
+      quietDesk: false,
+    });
+    const rows = homeViewModel(state).alerts.map((alert) => alert.id);
 
-    expect(rows.filter(isTimeCriticalBoardRow).sort())
-      .toEqual(['board-ultimatum', 'financial-warning']);
-    expect(rows.filter(id => !isBoardRow(id))).toHaveLength(1);
+    expect(rows.filter(isTimeCriticalBoardRow).sort()).toEqual([
+      'board-ultimatum',
+      'financial-warning',
+    ]);
+    expect(rows.filter((id) => !isBoardRow(id))).toHaveLength(1);
     // The row still exists and still queues; it is the slot that was freed.
-    expect(homeProductAlerts(state).map(alert => alert.id)).toContain('emergency-loan');
+    expect(homeProductAlerts(state).map((alert) => alert.id)).toContain(
+      'emergency-loan',
+    );
   });
 
   /**
@@ -253,8 +304,16 @@ describe('the board ultimatum reel', () => {
    * could not look up.
    */
   it('carries the outstanding balance on the finances screen instead', () => {
-    for (const caseId of ['loan', 'ultimatum', 'survived', 'forced-sale'] as const) {
-      const state = boardUltimatumCareer(caseId, { ...OPTIONS, quietDesk: false });
+    for (const caseId of [
+      'loan',
+      'ultimatum',
+      'survived',
+      'forced-sale',
+    ] as const) {
+      const state = boardUltimatumCareer(caseId, {
+        ...OPTIONS,
+        quietDesk: false,
+      });
       const loan = state.financialSafety?.loan;
 
       expect(clubFinancesViewModel(state).loan).toMatchObject({
@@ -271,8 +330,9 @@ describe('the board ultimatum reel', () => {
   /** A zero target is "clear the overdraft", not an unfilled placeholder. */
   it('asks for a positive balance rather than $0', () => {
     const panel = homeViewModel(career('ultimatum')).boardUltimatum;
-    const row = homeProductAlerts(career('ultimatum'))
-      .find(alert => alert.id === 'board-ultimatum');
+    const row = homeProductAlerts(career('ultimatum')).find(
+      (alert) => alert.id === 'board-ultimatum',
+    );
 
     expect(panel?.targetCash).toBe(0);
     expect(panel?.targetLabel).toBe('a positive balance');

@@ -40,19 +40,33 @@ describe('beaten challenge (TACKLE won:false, contact:true)', () => {
     // The target is 120 pitch units to the +x side (the presser standoff ring),
     // so the recoil must point the other way.
     const pose = tacklePoses(base).challenger;
-    expect(pose?.kind === 'stagger' && pose.direction).toEqual({ x: -1, y: -0 });
+    expect(pose?.kind === 'stagger' && pose.direction).toEqual({
+      x: -1,
+      y: -0,
+    });
     expect(pose?.kind === 'stagger' && pose.rotation).toBe(-STAGGER_LEAN);
   });
 
   it('marks the midpoint between the two bodies, so the mark reads as contact', () => {
     const pose = tacklePoses(base).challenger;
-    expect(pose?.kind === 'stagger' && pose.contact).toEqual({ x: 3060, y: 5000 });
+    expect(pose?.kind === 'stagger' && pose.contact).toEqual({
+      x: 3060,
+      y: 5000,
+    });
   });
 
   it('leans toward whichever side the shove lands on', () => {
-    const mirrored = tacklePoses({ ...base, target: { x: 2880, y: 5000 } }).challenger;
-    expect(mirrored?.kind === 'stagger' && mirrored.direction).toEqual({ x: 1, y: -0 });
-    expect(mirrored?.kind === 'stagger' && mirrored.rotation).toBe(STAGGER_LEAN);
+    const mirrored = tacklePoses({
+      ...base,
+      target: { x: 2880, y: 5000 },
+    }).challenger;
+    expect(mirrored?.kind === 'stagger' && mirrored.direction).toEqual({
+      x: 1,
+      y: -0,
+    });
+    expect(mirrored?.kind === 'stagger' && mirrored.rotation).toBe(
+      STAGGER_LEAN,
+    );
   });
 
   it('starts one tick early, matching the interpolated visual clock', () => {
@@ -81,7 +95,10 @@ describe('beaten challenge (TACKLE won:false, contact:true)', () => {
     const home = tacklePoses(stacked).challenger;
     expect(home?.kind === 'stagger' && home.direction).toEqual({ x: -0, y: 1 });
     const away = tacklePoses({ ...stacked, challengerTeam: 1 }).challenger;
-    expect(away?.kind === 'stagger' && away.direction).toEqual({ x: -0, y: -1 });
+    expect(away?.kind === 'stagger' && away.direction).toEqual({
+      x: -0,
+      y: -1,
+    });
   });
 });
 
@@ -131,7 +148,11 @@ describe('dropped challenger (TACKLE dropped:true)', () => {
 
   it('holds him down to the sim recovery tick so the get-up lands on it', () => {
     const pose = tacklePoses(droppedBase).challenger;
-    expect(pose).toMatchObject({ kind: 'knockdown', untilTick: 50, startTick: 41 });
+    expect(pose).toMatchObject({
+      kind: 'knockdown',
+      untilTick: 50,
+      startTick: 41,
+    });
   });
 
   it('adds no impact burst — those stay knockouts only', () => {
@@ -151,10 +172,17 @@ describe('dropped challenger (TACKLE dropped:true)', () => {
 
   it('leans the floored body the way it was beaten', () => {
     const pose = tacklePoses(droppedBase).challenger;
-    expect(pose?.kind === 'knockdown' && pose.anchor).toEqual({ x: 3000, y: 5000 });
-    const mirrored = tacklePoses({ ...droppedBase, target: { x: 2880, y: 5000 } }).challenger;
-    expect(pose?.kind === 'knockdown' && pose.rotation)
-      .not.toBe(mirrored?.kind === 'knockdown' && mirrored.rotation);
+    expect(pose?.kind === 'knockdown' && pose.anchor).toEqual({
+      x: 3000,
+      y: 5000,
+    });
+    const mirrored = tacklePoses({
+      ...droppedBase,
+      target: { x: 2880, y: 5000 },
+    }).challenger;
+    expect(pose?.kind === 'knockdown' && pose.rotation).not.toBe(
+      mirrored?.kind === 'knockdown' && mirrored.rotation,
+    );
   });
 });
 
@@ -166,7 +194,9 @@ describe('stagger pose envelope', () => {
     expect(staggerPush(STAGGER_TICKS * 0.25)).toBe(1);
     expect(staggerPush(STAGGER_TICKS)).toBe(0);
     // Monotonic release: no second bounce.
-    const release = [0.3, 0.5, 0.7, 0.9].map(t => staggerPush(STAGGER_TICKS * t));
+    const release = [0.3, 0.5, 0.7, 0.9].map((t) =>
+      staggerPush(STAGGER_TICKS * t),
+    );
     expect(release).toEqual([...release].sort((a, b) => b - a));
   });
 
@@ -192,7 +222,10 @@ describe('stagger pose envelope', () => {
   });
 
   it('is suppressed entirely by Reduce Motion, via the one guard in MatchScreen', () => {
-    const source = readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
+    const source = readFileSync(
+      join(process.cwd(), 'src/render/MatchScreen.tsx'),
+      'utf8',
+    );
     // Every tackle pose — and therefore the scuff, which is derived from the
     // stagger pose — hangs off this single guard.
     expect(source).toContain("if (!reduceMotion && e.kind === 'TACKLE') {");

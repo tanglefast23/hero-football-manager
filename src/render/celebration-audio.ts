@@ -63,7 +63,8 @@ export function initCelebrationAudio(): void {
   initAttempted = true;
   try {
     const audio = require('expo-audio') as typeof import('expo-audio');
-    audio.setAudioModeAsync({ playsInSilentMode: false })
+    audio
+      .setAudioModeAsync({ playsInSilentMode: false })
       .catch((error: unknown) => warnOnce('setAudioModeAsync failed', error));
 
     for (const [bed, source] of [
@@ -86,7 +87,10 @@ export function initCelebrationAudio(): void {
   } catch (error) {
     players.clear();
     ready = false;
-    warnOnce('init failed — celebration music disabled for this session', error);
+    warnOnce(
+      'init failed — celebration music disabled for this session',
+      error,
+    );
   }
 }
 
@@ -137,7 +141,8 @@ function start(bed: Bed, isRetry = false): void {
     warnOnce(label, error);
   };
   try {
-    player.seekTo(0)
+    player
+      .seekTo(0)
       .then(() => {
         // A later call may have taken the stage while the seek was in flight.
         if (activeBed !== bed) return;

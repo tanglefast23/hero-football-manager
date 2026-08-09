@@ -41,26 +41,36 @@ const CARRIER_SLOT: Record<PowerId, number> = {
 
 /** Powers that carry the match and must never quietly stop firing. */
 const RELIABLE: readonly PowerId[] = [
-  'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN',
+  'SUPER_SPEED',
+  'BLINK_RUN',
+  'THUNDER_STRIKE',
+  'FIRE_TORCH',
+  'PHASE_RUN',
 ];
 
 function soloHeroTeam(base: TeamDef, power: PowerId): TeamDef {
   const slot = CARRIER_SLOT[power];
   return {
     ...base,
-    players: base.players.map((player, index) => (
+    players: base.players.map((player, index) =>
       index === slot
         ? { ...player, power }
         : power === 'RALLY_CRY' && index === 9
           ? { ...player, power: 'SUPER_SPEED' as const }
-          : { ...player, power: undefined }
-    )),
+          : { ...player, power: undefined },
+    ),
   };
 }
 
-const MEASUREMENTS = new Map<PowerId, { firesPerMatch: number; matchShare: number }>();
+const MEASUREMENTS = new Map<
+  PowerId,
+  { firesPerMatch: number; matchShare: number }
+>();
 
-function measure(power: PowerId): { firesPerMatch: number; matchShare: number } {
+function measure(power: PowerId): {
+  firesPerMatch: number;
+  matchShare: number;
+} {
   const cached = MEASUREMENTS.get(power);
   if (cached !== undefined) return cached;
   const home = soloHeroTeam(ROVERS, power);
@@ -76,46 +86,60 @@ function measure(power: PowerId): { firesPerMatch: number; matchShare: number } 
       tick(match);
       guard += 1;
     }
-    const fired = match.events.filter(event => (
+    const fired = match.events.filter((event) =>
       power === 'PORTAL_PASS'
         ? event.kind === 'POWER_IMPACT' && event.power === power
-        : event.kind === 'POWER_FIRED' && (event as { power?: string }).power === power
-    )).length;
+        : event.kind === 'POWER_FIRED' &&
+          (event as { power?: string }).power === power,
+    ).length;
     fires += fired;
     if (fired > 0) matchesWithAFire += 1;
   }
-  const result = { firesPerMatch: fires / MATCHES, matchShare: matchesWithAFire / MATCHES };
+  const result = {
+    firesPerMatch: fires / MATCHES,
+    matchShare: matchesWithAFire / MATCHES,
+  };
   MEASUREMENTS.set(power, result);
   return result;
 }
 
 describe('power activation cadence', () => {
   it('covers every shipped launch power', () => {
-    expect(Object.keys(CARRIER_SLOT).sort()).toEqual([...LAUNCH_POWER_IDS].sort());
+    expect(Object.keys(CARRIER_SLOT).sort()).toEqual(
+      [...LAUNCH_POWER_IDS].sort(),
+    );
   });
 
-  it.each(LAUNCH_POWER_IDS)('%s is not a dead power on auto-fire', power => {
-    const { firesPerMatch, matchShare } = measure(power);
+  it.each(LAUNCH_POWER_IDS)(
+    '%s is not a dead power on auto-fire',
+    (power) => {
+      const { firesPerMatch, matchShare } = measure(power);
 
-    // Floor only. A power firing far more than another is a design choice.
-    expect(firesPerMatch).toBeGreaterThanOrEqual(0.35);
-    expect(matchShare).toBeGreaterThanOrEqual(0.4);
-  }, 30000);
+      // Floor only. A power firing far more than another is a design choice.
+      expect(firesPerMatch).toBeGreaterThanOrEqual(0.35);
+      expect(matchShare).toBeGreaterThanOrEqual(0.4);
+    },
+    30000,
+  );
 
-  it.each(RELIABLE)('%s stays a reliable every-match power', power => {
-    const { firesPerMatch, matchShare } = measure(power);
+  it.each(RELIABLE)(
+    '%s stays a reliable every-match power',
+    (power) => {
+      const { firesPerMatch, matchShare } = measure(power);
 
-    expect(firesPerMatch).toBeGreaterThanOrEqual(0.8);
-    // Context banking removes empty windows, but a quiet seed can still fail to
-    // generate the authored situation at all. The launch target is ~80%, so a
-    // 80% regression floor matches the approved launch target without turning
-    // expected seed variance into a false failure.
-    expect(matchShare).toBeGreaterThanOrEqual(0.8);
-  }, 30000);
+      expect(firesPerMatch).toBeGreaterThanOrEqual(0.8);
+      // Context banking removes empty windows, but a quiet seed can still fail to
+      // generate the authored situation at all. The launch target is ~80%, so a
+      // 80% regression floor matches the approved launch target without turning
+      // expected seed variance into a false failure.
+      expect(matchShare).toBeGreaterThanOrEqual(0.8);
+    },
+    30000,
+  );
 
   it.each(['ELASTIC_KEEPER', 'GIANT_GK'] as const)(
     '%s stays within the two-to-three opportunity keeper band',
-    power => {
+    (power) => {
       const { firesPerMatch } = measure(power);
       expect(firesPerMatch).toBeGreaterThanOrEqual(2);
       expect(firesPerMatch).toBeLessThanOrEqual(3);

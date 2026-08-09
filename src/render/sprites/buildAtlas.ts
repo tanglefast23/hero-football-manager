@@ -41,7 +41,9 @@ export interface SkiaSurfaceLike {
   makeImageSnapshot(): SkiaImageLike;
 }
 export interface SkiaApi {
-  Surface: { MakeOffscreen(width: number, height: number): SkiaSurfaceLike | null };
+  Surface: {
+    MakeOffscreen(width: number, height: number): SkiaSurfaceLike | null;
+  };
   Paint(): SkiaPaintLike;
   Color(value: string): unknown;
 }
@@ -80,9 +82,13 @@ function atlasCacheKey(
   paletteOverrides: Readonly<Record<string, string>> | undefined,
 ): string {
   const ids = visualIds === undefined ? '*' : visualIds.join('|');
-  const overrides = paletteOverrides === undefined
-    ? ''
-    : Object.keys(paletteOverrides).sort().map(key => `${key}=${paletteOverrides[key]}`).join(',');
+  const overrides =
+    paletteOverrides === undefined
+      ? ''
+      : Object.keys(paletteOverrides)
+          .sort()
+          .map((key) => `${key}=${paletteOverrides[key]}`)
+          .join(',');
   return `${ids}#${overrides}`;
 }
 
@@ -107,7 +113,9 @@ export function buildSpriteAtlas(
   const atlasH = layout.rows * layout.slotH;
   const surface = Skia.Surface.MakeOffscreen(atlasW, atlasH);
   if (!surface) {
-    throw new Error('buildSpriteAtlas: Skia.Surface.MakeOffscreen returned null');
+    throw new Error(
+      'buildSpriteAtlas: Skia.Surface.MakeOffscreen returned null',
+    );
   }
   const canvas = surface.getCanvas();
 
@@ -142,8 +150,12 @@ export function buildSpriteAtlas(
         // Sprite rows are mostly flat bands, so this is a ~4-5x cut in draw calls
         // and produces byte-identical output.
         let run = 1;
-        while (col + run < line.length && colorAt(line, col + run) === color) run += 1;
-        canvas.drawRect(pixelRunRect(originX + col, originY + row, run), paintFor(color));
+        while (col + run < line.length && colorAt(line, col + run) === color)
+          run += 1;
+        canvas.drawRect(
+          pixelRunRect(originX + col, originY + row, run),
+          paintFor(color),
+        );
         col += run;
       }
     }
@@ -169,10 +181,15 @@ export function buildSpriteAtlas(
  * which previously duplicated this construction (audit finding 14). Mirrors
  * buildSpriteAtlas's offscreen → non-texture flow and its plain-rect drawRect.
  */
-export function buildFallbackAtlas(Skia: SkiaApi, size: number): { image: unknown; rectFor: AtlasLayout['rectFor'] } {
+export function buildFallbackAtlas(
+  Skia: SkiaApi,
+  size: number,
+): { image: unknown; rectFor: AtlasLayout['rectFor'] } {
   const surface = Skia.Surface.MakeOffscreen(size, size);
   if (!surface) {
-    throw new Error('buildFallbackAtlas: Skia.Surface.MakeOffscreen returned null'); // Skia itself is broken — nothing could render anyway
+    throw new Error(
+      'buildFallbackAtlas: Skia.Surface.MakeOffscreen returned null',
+    ); // Skia itself is broken — nothing could render anyway
   }
   const canvas = surface.getCanvas();
   const paint = Skia.Paint();

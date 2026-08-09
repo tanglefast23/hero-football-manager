@@ -25,7 +25,9 @@ export const TRAINING_POINT_SCALE_PERCENT = 80;
  */
 export function scaledTrainingPoints(fullRate: number): number {
   if (!Number.isSafeInteger(fullRate) || fullRate < 0) {
-    throw new Error('weekly training point rate must be a non-negative safe integer');
+    throw new Error(
+      'weekly training point rate must be a non-negative safe integer',
+    );
   }
   return Math.ceil((fullRate * TRAINING_POINT_SCALE_PERCENT) / 100);
 }

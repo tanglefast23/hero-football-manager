@@ -1,16 +1,19 @@
-import { pendingImpactFromProduction, appendPendingUserMatchImpact } from '../pending-match-impact';
+import {
+  pendingImpactFromProduction,
+  appendPendingUserMatchImpact,
+} from '../pending-match-impact';
 import type { ProductionFixtureResult } from '../matchday';
 import type { GameState, LeagueFixture } from '../types';
 
 function careerState(): GameState {
   return {
-  userClubId: 'home',
-  players: [
-    player('hero', 'home', true),
-    player('starter', 'home'),
-    player('sub-hero', 'home', true),
-    player('away-player', 'away'),
-  ],
+    userClubId: 'home',
+    players: [
+      player('hero', 'home', true),
+      player('starter', 'home'),
+      player('sub-hero', 'home', true),
+      player('away-player', 'away'),
+    ],
   } as GameState;
 }
 
@@ -88,13 +91,15 @@ describe('durable production match impact', () => {
 
   it('uses the penalty winner for a tied Cup without counting shootout kicks as goals', () => {
     const state = careerState();
-    expect(pendingImpactFromProduction({
-      state,
-      fixture: fixture(),
-      production: production(1, 1),
-      competition: 'CUP',
-      cupWinnerClubId: 'home',
-    })).toMatchObject({
+    expect(
+      pendingImpactFromProduction({
+        state,
+        fixture: fixture(),
+        production: production(1, 1),
+        competition: 'CUP',
+        cupWinnerClubId: 'home',
+      }),
+    ).toMatchObject({
       outcome: 'WIN',
       regulationGoals: 1,
       settlementOrder: 1,
@@ -105,22 +110,26 @@ describe('durable production match impact', () => {
 
   it('rejects missing production truth instead of falling back to the saved XI', () => {
     const state = careerState();
-    expect(() => pendingImpactFromProduction({
-      state,
-      fixture: fixture(),
-      production: {
-        ...production(),
-        participantPlayerIds: ['away-player'],
-        powerFiredPlayerIds: [],
-      },
-      competition: 'LEAGUE',
-    })).toThrow(/outside the user club/);
-    expect(() => pendingImpactFromProduction({
-      state,
-      fixture: fixture(),
-      production: { ...production(), powerFiredPlayerIds: ['starter'] },
-      competition: 'LEAGUE',
-    })).toThrow(/is not a hero/);
+    expect(() =>
+      pendingImpactFromProduction({
+        state,
+        fixture: fixture(),
+        production: {
+          ...production(),
+          participantPlayerIds: ['away-player'],
+          powerFiredPlayerIds: [],
+        },
+        competition: 'LEAGUE',
+      }),
+    ).toThrow(/outside the user club/);
+    expect(() =>
+      pendingImpactFromProduction({
+        state,
+        fixture: fixture(),
+        production: { ...production(), powerFiredPlayerIds: ['starter'] },
+        competition: 'LEAGUE',
+      }),
+    ).toThrow(/is not a hero/);
   });
 
   it('makes an exact retry a no-op and rejects a conflicting duplicate fixture', () => {
@@ -132,7 +141,8 @@ describe('durable production match impact', () => {
       competition: 'LEAGUE',
     });
     expect(appendPendingUserMatchImpact([first], first)).toEqual([first]);
-    expect(() => appendPendingUserMatchImpact([first], { ...first, buzzGoals: 99 }))
-      .toThrow(/different pending match impact/);
+    expect(() =>
+      appendPendingUserMatchImpact([first], { ...first, buzzGoals: 99 }),
+    ).toThrow(/different pending match impact/);
   });
 });

@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { hasHoverPointer } from '../pointer-capability';
 
@@ -135,9 +141,13 @@ export function InfoTip({
         // Opacity only. A function-form style carrying layout on a Pressable
         // collapses it to zero height on iOS — a trap this codebase has hit
         // twice — so the box stays in className and only the fade lives here.
-        style={onPress === undefined
-          ? undefined
-          : ({ pressed }) => ({ opacity: pressed && !disabled ? 0.65 : undefined })}
+        style={
+          onPress === undefined
+            ? undefined
+            : ({ pressed }) => ({
+                opacity: pressed && !disabled ? 0.65 : undefined,
+              })
+        }
         delayLongPress={TOUCH_HOLD_MS}
       >
         {children}
@@ -154,7 +164,9 @@ export function InfoTip({
             narrow ? styles.bubbleNarrow : null,
           ]}
         >
-          <Text style={[styles.text, narrow ? styles.textNarrow : null]}>{text}</Text>
+          <Text style={[styles.text, narrow ? styles.textNarrow : null]}>
+            {text}
+          </Text>
         </View>
       ) : null}
     </View>

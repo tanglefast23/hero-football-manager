@@ -2,34 +2,34 @@
   "palette": {
     ".": null,
     "K": "#241f2e",
-    "k": "#3a3350",
-    "W": "#f4f1ea",
-    "C": "#f7d7ba",
-    "c": "#eab48c",
-    "D": "#6a4326",
-    "B": "#2f55b8",
-    "b": "#2f55b8",
-    "R": "#c22f2c",
-    "r": "#7a2731",
-    "G": "#65b96e",
-    "g": "#31703f",
-    "Y": "#edb54a",
-    "y": "#c8862a",
-    "P": "#9a63d6",
-    "p": "#5b3a91",
+    "k": "#493d50",
+    "W": "#fff5dc",
+    "C": "#f4e7c5",
+    "c": "#d4bd91",
+    "D": "#6f5033",
+    "B": "#315a86",
+    "b": "#1f3e63",
+    "R": "#bb4b45",
+    "r": "#74332f",
+    "G": "#65a86f",
+    "g": "#356840",
+    "Y": "#f2c94c",
+    "y": "#b88424",
+    "P": "#8c65a8",
+    "p": "#59446d",
     "S": "#f7d7ba",
-    "s": "#cf9268",
-    "M": "#b07a52",
-    "m": "#8a4f38",
+    "s": "#c98662",
+    "M": "#bd7c56",
+    "m": "#7f4935",
     "N": "#8a4f38",
-    "n": "#6a4326",
-    "H": "#3d2a22",
-    "h": "#241a17",
-    "A": "#c9c5d0"
+    "n": "#5c3329",
+    "H": "#43332e",
+    "h": "#241d1a",
+    "A": "#c5c1ca"
   },
   "sprites": {
     "coach:amara-okafor:rest": [
-      "......KAHAHAHAHAHK......",
+      "......KKKKKKKKKKKK......",
       "......KHHHHHHHHHHK......",
       "......KHHHHHHHHHHK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -60,7 +60,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:amara-okafor:joy": [
-      "......KAHAHAHAHAHK......",
+      "......KKKKKKKKKKKK......",
       "......KHHHHHHHHHHK......",
       "......KHHHHHHHHHHK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -91,7 +91,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:amara-okafor:cry": [
-      "......KAHAHAHAHAHK......",
+      "......KKKKKKKKKKKK......",
       "......KHHHHHHHHHHK......",
       "......KHHHHHHHHHHK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -122,7 +122,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:amara-okafor:point": [
-      "......KAHAHAHAHAHK......",
+      "......KKKKKKKKKKKK......",
       "......KHHHHHHHHHHK......",
       "......KHHHHHHHHHHK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -153,7 +153,7 @@
       ".....KKKKK....KKKK......"
     ],
     "coach:amara-okafor:field": [
-      "......KAHAHAHAHAHK......",
+      "......KKKKKKKKKKKK......",
       "......KHHHHHHHHHHK......",
       "......KHHHHHHHHHHK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -189,7 +189,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:amara-okafor:field-cheer": [
-      "......KAHAHAHAHAHK......",
+      "......KKKKKKKKKKKK......",
       "......KHHHHHHHHHHK......",
       "......KHHHHHHHHHHK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -421,7 +421,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:valentina-cruz:rest": [
-      "..............KHHHHK....",
+      "..............KKKKKK....",
       "..............KHHHHKK...",
       "......KKKKKKKKKHHHHHHK..",
       ".....KHHHHHHHHHHHHHHHK..",
@@ -452,7 +452,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:valentina-cruz:joy": [
-      "..............KHHHHK....",
+      "..............KKKKKK....",
       "..............KHHHHKK...",
       "......KKKKKKKKKHHHHHHK..",
       ".....KHHHHHHHHHHHHHHHK..",
@@ -483,7 +483,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:valentina-cruz:cry": [
-      "..............KHHHHK....",
+      "..............KKKKKK....",
       "..............KHHHHKK...",
       "......KKKKKKKKKHHHHHHK..",
       ".....KHHHHHHHHHHHHHHHK..",
@@ -514,7 +514,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:valentina-cruz:point": [
-      "..............KHHHHK....",
+      "..............KKKKKK....",
       "..............KHHHHKK...",
       "......KKKKKKKKKHHHHHHK..",
       ".....KHHHHHHHHHHHHHHHK..",
@@ -545,7 +545,7 @@
       ".....KKKKK....KKKK......"
     ],
     "coach:valentina-cruz:field": [
-      "..............KHHHHK....",
+      "..............KKKKKK....",
       "..............KHHHHKK...",
       "......KKKKKKKKKHHHHHHK..",
       ".....KHHHHHHHHHHHHHHHK..",
@@ -581,7 +581,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:valentina-cruz:field-cheer": [
-      "..............KHHHHK....",
+      "..............KKKKKK....",
       "..............KHHHHKK...",
       "......KKKKKKKKKHHHHHHK..",
       ".....KHHHHHHHHHHHHHHHK..",
@@ -617,7 +617,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:imani-adeyemi:rest": [
-      "........KppppppppK......",
+      "........KKKKKKKKKK......",
       ".....KKKKppppppppKK.....",
       "....KPPPPppppppppPPK....",
       "....KPPPPppppppppPYK....",
@@ -648,7 +648,7 @@
       ".....KKKKKKKKKKKKKK....."
     ],
     "coach:imani-adeyemi:joy": [
-      "........KppppppppK......",
+      "........KKKKKKKKKK......",
       ".....KKKKppppppppKK.....",
       "....KPPPPppppppppPPK....",
       "....KPPPPppppppppPYK....",
@@ -679,7 +679,7 @@
       ".....KKKKKKKKKKKKKK....."
     ],
     "coach:imani-adeyemi:cry": [
-      "........KppppppppK......",
+      "........KKKKKKKKKK......",
       ".....KKKKppppppppKK.....",
       "....KPPPPppppppppPPK....",
       "....KPPPPppppppppPYK....",
@@ -710,7 +710,7 @@
       ".....KKKKKKKKKKKKKK....."
     ],
     "coach:imani-adeyemi:point": [
-      "........KppppppppK......",
+      "........KKKKKKKKKK......",
       ".....KKKKppppppppKK.....",
       "....KPPPPppppppppPPK....",
       "....KPPPPppppppppPYK....",
@@ -741,7 +741,7 @@
       ".....KKKKKKKKKKKKK......"
     ],
     "coach:imani-adeyemi:field": [
-      "........KppppppppK......",
+      "........KKKKKKKKKK......",
       ".....KKKKppppppppKK.....",
       "....KPPPPppppppppPPK....",
       "....KPPPPppppppppPYK....",
@@ -777,7 +777,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:imani-adeyemi:field-cheer": [
-      "........KppppppppK......",
+      "........KKKKKKKKKK......",
       ".....KKKKppppppppKK.....",
       "....KPPPPppppppppPPK....",
       "....KPPPPppppppppPYK....",
@@ -1205,7 +1205,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:mateo-silva:rest": [
-      "....KKKDDDDDDDDDKK......",
+      "....KKKKKKKKKKKKKK......",
       "...KDDDDDDDDDDDDDDK.....",
       "...KDDDDDDDDDDDDDDK.....",
       "...KDDDDDDDDDDDDDDK.....",
@@ -1236,7 +1236,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:mateo-silva:joy": [
-      "....KKKDDDDDDDDDKK......",
+      "....KKKKKKKKKKKKKK......",
       "...KDDDDDDDDDDDDDDK.....",
       "...KDDDDDDDDDDDDDDK.....",
       "...KDDDDDDDDDDDDDDK.....",
@@ -1267,7 +1267,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:mateo-silva:cry": [
-      "....KKKDDDDDDDDDKK......",
+      "....KKKKKKKKKKKKKK......",
       "...KDDDDDDDDDDDDDDK.....",
       "...KDDDDDDDDDDDDDDK.....",
       "...KDDDDDDDDDDDDDDK.....",
@@ -1298,7 +1298,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:mateo-silva:point": [
-      "....KKKDDDDDDDDDKK......",
+      "....KKKKKKKKKKKKKK......",
       "...KDDDDDDDDDDDDDDK.....",
       "...KDDDDDDDDDDDDDDK.....",
       "...KDDDDDDDDDDDDDDK.....",
@@ -1329,7 +1329,7 @@
       ".....KKKKK....KKKK......"
     ],
     "coach:mateo-silva:field": [
-      "....KKKDDDDDDDDDKK......",
+      "....KKKKKKKKKKKKKK......",
       "...KDDDDDDDDDDDDDDK.....",
       "...KDDDDDDDDDDDDDDK.....",
       "...KDDDDDDDDDDDDDDK.....",
@@ -1365,7 +1365,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:mateo-silva:field-cheer": [
-      "....KKKDDDDDDDDDKK......",
+      "....KKKKKKKKKKKKKK......",
       "...KDDDDDDDDDDDDDDK.....",
       "...KDDDDDDDDDDDDDDK.....",
       "...KDDDDDDDDDDDDDDK.....",
@@ -1793,7 +1793,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:nia-thompson:rest": [
-      "........KHHHHHHHK.......",
+      "........KKKKKKKKK.......",
       "........KHHHHHHHK.......",
       "......KKKHHHHHHHKK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -1824,7 +1824,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:nia-thompson:joy": [
-      "........KHHHHHHHK.......",
+      "........KKKKKKKKK.......",
       "........KHHHHHHHK.......",
       "......KKKHHHHHHHKK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -1855,7 +1855,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:nia-thompson:cry": [
-      "........KHHHHHHHK.......",
+      "........KKKKKKKKK.......",
       "........KHHHHHHHK.......",
       "......KKKHHHHHHHKK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -1886,7 +1886,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:nia-thompson:point": [
-      "........KHHHHHHHK.......",
+      "........KKKKKKKKK.......",
       "........KHHHHHHHK.......",
       "......KKKHHHHHHHKK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -1917,7 +1917,7 @@
       ".....KKKKK....KKKK......"
     ],
     "coach:nia-thompson:field": [
-      "........KHHHHHHHK.......",
+      "........KKKKKKKKK.......",
       "........KHHHHHHHK.......",
       "......KKKHHHHHHHKK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -1953,7 +1953,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:nia-thompson:field-cheer": [
-      "........KHHHHHHHK.......",
+      "........KKKKKKKKK.......",
       "........KHHHHHHHK.......",
       "......KKKHHHHHHHKK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -2185,7 +2185,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:aiko-tanaka:rest": [
-      "......KAKKAKKAKKAK......",
+      "......KKKKKKKKKKKK......",
       "......KKKKKKKKKKKK......",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
@@ -2216,7 +2216,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:aiko-tanaka:joy": [
-      "......KAKKAKKAKKAK......",
+      "......KKKKKKKKKKKK......",
       "......KKKKKKKKKKKK......",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
@@ -2247,7 +2247,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:aiko-tanaka:cry": [
-      "......KAKKAKKAKKAK......",
+      "......KKKKKKKKKKKK......",
       "......KKKKKKKKKKKK......",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
@@ -2278,7 +2278,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:aiko-tanaka:point": [
-      "......KAKKAKKAKKAK......",
+      "......KKKKKKKKKKKK......",
       "......KKKKKKKKKKKK......",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
@@ -2309,7 +2309,7 @@
       ".....KKKKK....KKKK......"
     ],
     "coach:aiko-tanaka:field": [
-      "......KAKKAKKAKKAK......",
+      "......KKKKKKKKKKKK......",
       "......KKKKKKKKKKKK......",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
@@ -2345,7 +2345,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:aiko-tanaka:field-cheer": [
-      "......KAKKAKKAKKAK......",
+      "......KKKKKKKKKKKK......",
       "......KKKKKKKKKKKK......",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
@@ -3557,7 +3557,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:elena-petrova:rest": [
-      "...KAWWWWWWAAAK.........",
+      "...KKKKKKKKKKKK.........",
       "...KAWWWWWWAAAKKKKK.....",
       "...KAAAAAAAAAAAAAAAK....",
       "...KAAAAAAAAAAAAAAAK....",
@@ -3588,7 +3588,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:elena-petrova:joy": [
-      "...KAWWWWWWAAAK.........",
+      "...KKKKKKKKKKKK.........",
       "...KAWWWWWWAAAKKKKK.....",
       "...KAAAAAAAAAAAAAAAK....",
       "...KAAAAAAAAAAAAAAAK....",
@@ -3619,7 +3619,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:elena-petrova:cry": [
-      "...KAWWWWWWAAAK.........",
+      "...KKKKKKKKKKKK.........",
       "...KAWWWWWWAAAKKKKK.....",
       "...KAAAAAAAAAAAAAAAK....",
       "...KAAAAAAAAAAAAAAAK....",
@@ -3650,7 +3650,7 @@
       ".....KKKKK....KKKKK....."
     ],
     "coach:elena-petrova:point": [
-      "...KAWWWWWWAAAK.........",
+      "...KKKKKKKKKKKK.........",
       "...KAWWWWWWAAAKKKKK.....",
       "...KAAAAAAAAAAAAAAAK....",
       "...KAAAAAAAAAAAAAAAK....",
@@ -3681,7 +3681,7 @@
       ".....KKKKK....KKKK......"
     ],
     "coach:elena-petrova:field": [
-      "...KAWWWWWWAAAK.........",
+      "...KKKKKKKKKKKK.........",
       "...KAWWWWWWAAAKKKKK.....",
       "...KAAAAAAAAAAAAAAAK....",
       "...KAAAAAAAAAAAAAAAK....",
@@ -3717,7 +3717,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:elena-petrova:field-cheer": [
-      "...KAWWWWWWAAAK.........",
+      "...KKKKKKKKKKKK.........",
       "...KAWWWWWWAAAKKKKK.....",
       "...KAAAAAAAAAAAAAAAK....",
       "...KAAAAAAAAAAAAAAAK....",
@@ -4929,7 +4929,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:farah-rahimi:rest": [
-      ".........KHHHHHHK.......",
+      ".........KKKKKKKK.......",
       ".........KHHHHHHK.......",
       "......KKKKHHHHHHKK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -4960,7 +4960,7 @@
       ".....KKKKKKKKKKKKKK....."
     ],
     "coach:farah-rahimi:joy": [
-      ".........KHHHHHHK.......",
+      ".........KKKKKKKK.......",
       ".........KHHHHHHK.......",
       "......KKKKHHHHHHKK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -4991,7 +4991,7 @@
       ".....KKKKKKKKKKKKKK....."
     ],
     "coach:farah-rahimi:cry": [
-      ".........KHHHHHHK.......",
+      ".........KKKKKKKK.......",
       ".........KHHHHHHK.......",
       "......KKKKHHHHHHKK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -5022,7 +5022,7 @@
       ".....KKKKKKKKKKKKKK....."
     ],
     "coach:farah-rahimi:point": [
-      ".........KHHHHHHK.......",
+      ".........KKKKKKKK.......",
       ".........KHHHHHHK.......",
       "......KKKKHHHHHHKK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -5053,7 +5053,7 @@
       ".....KKKKKKKKKKKKK......"
     ],
     "coach:farah-rahimi:field": [
-      ".........KHHHHHHK.......",
+      ".........KKKKKKKK.......",
       ".........KHHHHHHK.......",
       "......KKKKHHHHHHKK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -5089,7 +5089,7 @@
       "....KKKKKKKKKKKKKKKK...."
     ],
     "coach:farah-rahimi:field-cheer": [
-      ".........KHHHHHHK.......",
+      ".........KKKKKKKK.......",
       ".........KHHHHHHK.......",
       "......KKKKHHHHHHKK......",
       ".....KHHHHHHHHHHHHK.....",
@@ -7606,8 +7606,8 @@
       "..........KWWWWRRRRRRRRRRRWWWWK.",
       "..........KWWRRRRWWWWWWWRRRRWWK.",
       "KKKKK.....KWWRRWWWRRRRRWWWRRWWK.",
-      "AAAAAK....KWWRRWWRRYYYRRWWRRWWK.",
-      "AAAAAK....KWWRRWWRRYYYRRWWRRWWK.",
+      "KAAAAK....KWWRRWWRRYYYRRWWRRWWK.",
+      "KAAAAK....KWWRRWWRRYYYRRWWRRWWK.",
       "KKKKKKKK..KWWRRWWRRYYYRRWWRRWWK.",
       "..KKWWWWKKKWWRRWWWRRRRRWWWRRWWK.",
       ".KWWWWWWWWKWWRRRRWWWWWWWRRRRWWK.",

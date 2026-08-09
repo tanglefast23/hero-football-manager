@@ -75,7 +75,9 @@ export const PRIZE_COUNT_UP_MS = 2_400;
  * and hands itself over when the sprite is done talking. The prize is the last
  * screen and never advances; it waits for the button.
  */
-export const STAGE_AUTOPLAY_MS: Readonly<Record<AwardCeremonyStageKind, number | null>> = {
+export const STAGE_AUTOPLAY_MS: Readonly<
+  Record<AwardCeremonyStageKind, number | null>
+> = {
   board: 1_100,
   placing: 2_200,
   'walk-on': null,
@@ -143,15 +145,16 @@ export function beatResultStageIndex(
 ): number {
   const stage = stages[index];
   if (stage === undefined || stage.kind === 'prize') return index;
-  const result = stages.findIndex(candidate => (
-    candidate.beatIndex === stage.beatIndex && candidate.kind === 'result'
-  ));
+  const result = stages.findIndex(
+    (candidate) =>
+      candidate.beatIndex === stage.beatIndex && candidate.kind === 'result',
+  );
   return result === -1 ? index : Math.max(result, index);
 }
 
 /** Where "skip the ceremony" lands: the prize, which is never skipped. */
 export function prizeStageIndex(stages: readonly AwardCeremonyStage[]): number {
-  const prize = stages.findIndex(stage => stage.kind === 'prize');
+  const prize = stages.findIndex((stage) => stage.kind === 'prize');
   return prize === -1 ? Math.max(0, stages.length - 1) : prize;
 }
 
@@ -185,7 +188,9 @@ export function arrivingPlacing(
   beat: AwardCeremonyBeatViewModel,
   stage: AwardCeremonyStage,
 ): AwardCeremonyPlacingViewModel | undefined {
-  return stage.kind === 'placing' ? beat.placings[stage.revealed - 1] : undefined;
+  return stage.kind === 'placing'
+    ? beat.placings[stage.revealed - 1]
+    : undefined;
 }
 
 /**
@@ -251,14 +256,18 @@ export function placingRowLabel(
   metricLabel: string,
   t: CopyFn = englishCopy(),
 ): string {
-  const owner = placing.isUserPlayer ? ` ${t('awardsCeremony.a11y.yourPlayer')}` : '';
-  return t('awardsCeremony.a11y.placingRow', {
-    position: placing.position,
-    player: placing.playerName,
-    club: placing.clubName,
-    value: placing.value,
-    metric: metricLabel.toLowerCase(),
-  }) + owner;
+  const owner = placing.isUserPlayer
+    ? ` ${t('awardsCeremony.a11y.yourPlayer')}`
+    : '';
+  return (
+    t('awardsCeremony.a11y.placingRow', {
+      position: placing.position,
+      player: placing.playerName,
+      club: placing.clubName,
+      value: placing.value,
+      metric: metricLabel.toLowerCase(),
+    }) + owner
+  );
 }
 
 /** Whether the prize screen has a number worth watching climb. */
@@ -291,7 +300,10 @@ export function prizeDetailLine(
 ): string {
   if (!prizeCountsUp(prize)) return t('awardsCeremony.noBoardWon');
   return t('awardsCeremony.prizeDetail', {
-    boards: t('awardsCeremony.boardsWon', { n: prize.boardsWon, count: prize.boardsWon }),
+    boards: t('awardsCeremony.boardsWon', {
+      n: prize.boardsWon,
+      count: prize.boardsWon,
+    }),
     amount: formatPrizeMoney(t, prize.perCategoryMoney),
   });
 }
@@ -303,9 +315,11 @@ export function prizeAccessibilityLabel(
   return prizeCountsUp(prize)
     ? t('awardsCeremony.a11y.prizeAmount', {
         amount: formatPrizeMoney(t, prize.totalMoney),
-      detail: prizeDetailLine(prize, t),
-    })
-    : t('awardsCeremony.a11y.prizeNothing', { detail: prizeDetailLine(prize, t) });
+        detail: prizeDetailLine(prize, t),
+      })
+    : t('awardsCeremony.a11y.prizeNothing', {
+        detail: prizeDetailLine(prize, t),
+      });
 }
 
 /**
@@ -328,8 +342,16 @@ export function stageAccessibilityLabel(
     board: beat.boardLabel,
     metric: beat.metricLabel,
   });
-  if (stage.kind === 'board') return `${board} ${t('awardsCeremony.andTheAwardGoesTo')}`;
+  if (stage.kind === 'board')
+    return `${board} ${t('awardsCeremony.andTheAwardGoesTo')}`;
   const rows = podiumRows(beat, stage);
-  if (rows.length === 0) return t('awardsCeremony.a11y.boardEmpty', { board, empty: beat.emptyLabel });
-  return [board, ...rows.map(row => placingRowLabel(row, beat.metricLabel, t))].join(' ');
+  if (rows.length === 0)
+    return t('awardsCeremony.a11y.boardEmpty', {
+      board,
+      empty: beat.emptyLabel,
+    });
+  return [
+    board,
+    ...rows.map((row) => placingRowLabel(row, beat.metricLabel, t)),
+  ].join(' ');
 }

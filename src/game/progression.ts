@@ -51,9 +51,14 @@ function assertUniqueIds(ids: readonly string[], label: string): void {
   }
 }
 
-function playersById(players: readonly ProgressionPlayer[]): ReadonlyMap<string, ProgressionPlayer> {
-  assertUniqueIds(players.map(player => player.id), 'Player');
-  return new Map(players.map(player => [player.id, player]));
+function playersById(
+  players: readonly ProgressionPlayer[],
+): ReadonlyMap<string, ProgressionPlayer> {
+  assertUniqueIds(
+    players.map((player) => player.id),
+    'Player',
+  );
+  return new Map(players.map((player) => [player.id, player]));
 }
 
 /**
@@ -84,19 +89,30 @@ export function selectLicensedHeroes(
   }
 
   const selected = new Set(selectedIds);
-  return players.map(player => ({ ...player, licensed: selected.has(player.id) }));
+  return players.map((player) => ({
+    ...player,
+    licensed: selected.has(player.id),
+  }));
 }
 
 /** Returns the simple M1 renewal ask. Negotiation modifiers arrive in M2. */
-export function renewalQuote(player: ProgressionPlayer, heroMultiplier: number): number {
-  if (!Number.isFinite(heroMultiplier) || heroMultiplier < 3 || heroMultiplier > 5) {
+export function renewalQuote(
+  player: ProgressionPlayer,
+  heroMultiplier: number,
+): number {
+  if (
+    !Number.isFinite(heroMultiplier) ||
+    heroMultiplier < 3 ||
+    heroMultiplier > 5
+  ) {
     throw new Error('Hero wage multiplier must be from 3 to 5');
   }
   assertNonNegativeInteger(player.weeklyWage, 'Weekly wage');
 
-  const quote = player.power && !player.onHeroWage
-    ? Math.round(player.weeklyWage * heroMultiplier)
-    : player.weeklyWage;
+  const quote =
+    player.power && !player.onHeroWage
+      ? Math.round(player.weeklyWage * heroMultiplier)
+      : player.weeklyWage;
 
   if (!Number.isFinite(quote) || quote > Number.MAX_SAFE_INTEGER) {
     throw new Error('Renewal quote exceeds the supported numeric range');
@@ -109,7 +125,11 @@ export function renewContract(
   heroMultiplier: number,
   termSeasons: number,
 ): ProgressionPlayer {
-  if (!Number.isSafeInteger(termSeasons) || termSeasons < 1 || termSeasons > 3) {
+  if (
+    !Number.isSafeInteger(termSeasons) ||
+    termSeasons < 1 ||
+    termSeasons > 3
+  ) {
     throw new Error('Contract term must be an integer from 1 to 3 seasons');
   }
   if (player.contractSeasonsRemaining !== 0) {
@@ -135,18 +155,24 @@ function validateDrill(drill: FocusDrill): void {
     if (!ATTR_NAME_SET.has(attribute)) {
       throw new Error(`Unknown attribute gain: ${attribute}`);
     }
-    assertNonNegativeInteger(gain as number, `${attribute} gain for drill ${drill.id}`);
+    assertNonNegativeInteger(
+      gain as number,
+      `${attribute} gain for drill ${drill.id}`,
+    );
   }
 }
 
 function validatePlayerAttrs(player: ProgressionPlayer): void {
   for (const attribute of ATTR_NAMES) {
     const value = player.attrs[attribute];
-    if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PLAYER_ATTRIBUTE) {
+    if (
+      !Number.isSafeInteger(value) ||
+      value < 1 ||
+      value > MAX_PLAYER_ATTRIBUTE
+    ) {
       throw new Error(
         `Player ${player.id} attribute ${attribute} must be from 1 to ${MAX_PLAYER_ATTRIBUTE}`,
       );
     }
   }
 }
-

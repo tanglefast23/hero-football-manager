@@ -4,6 +4,8 @@ export type AutomaticMatchPauseReason =
   | 'swap'
   | 'cut-in'
   | 'tutorial'
+  /** WebGL stopped drawing. The simulation must not continue behind a blank pitch. */
+  | 'graphics'
   /** The acquired-power match clip freezes on its final frame for replay/continue. */
   | 'showcase'
   /** A Hero Cup tie's opening title card holds kickoff until it clears. */

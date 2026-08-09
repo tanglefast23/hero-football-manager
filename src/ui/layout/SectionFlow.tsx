@@ -45,7 +45,7 @@ export function SectionFlow({ mode, header, sections }: SectionFlowProps) {
       <View className="w-full max-w-5xl self-center">
         {header}
         <View className="gap-6">
-          {sections.map(section => (
+          {sections.map((section) => (
             <View key={section.key}>{section.node}</View>
           ))}
         </View>
@@ -53,21 +53,24 @@ export function SectionFlow({ mode, header, sections }: SectionFlowProps) {
     );
   }
 
-  const forcedSplit = sections.findIndex(section => section.startsColumn === true);
-  const split = forcedSplit > 0
-    ? forcedSplit
-    : balancedSplitIndex(sections.map(section => section.weight));
+  const forcedSplit = sections.findIndex(
+    (section) => section.startsColumn === true,
+  );
+  const split =
+    forcedSplit > 0
+      ? forcedSplit
+      : balancedSplitIndex(sections.map((section) => section.weight));
   return (
     <View className="w-full max-w-5xl self-center">
       {header}
       <View className="flex-row gap-6">
         <View className="flex-1 gap-6">
-          {sections.slice(0, split).map(section => (
+          {sections.slice(0, split).map((section) => (
             <View key={section.key}>{section.node}</View>
           ))}
         </View>
         <View className="flex-1 gap-6">
-          {sections.slice(split).map(section => (
+          {sections.slice(split).map((section) => (
             <View key={section.key}>{section.node}</View>
           ))}
         </View>

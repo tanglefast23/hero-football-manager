@@ -28,7 +28,15 @@ import { ENABLED_LOCALES, type Locale } from './locales';
  * `docs/superpowers/specs/2026-08-06-vietnamese-pixel-diacritics.md`. So it
  * joins the rest.
  */
-export const AUTO_LOCALES: readonly Locale[] = ['en', 'es', 'pt-BR', 'fr', 'de', 'id', 'vi'];
+export const AUTO_LOCALES: readonly Locale[] = [
+  'en',
+  'es',
+  'pt-BR',
+  'fr',
+  'de',
+  'id',
+  'vi',
+];
 
 /**
  * Device tag prefixes that resolve to one of ours.
@@ -69,7 +77,11 @@ export function matchDeviceLocale(
     const subtag = tag.split(/[-_]/)[0]?.toLowerCase();
     if (subtag === undefined) continue;
     const locale = LANGUAGE_SUBTAG[subtag];
-    if (locale !== undefined && auto.includes(locale) && ENABLED_LOCALES.includes(locale)) {
+    if (
+      locale !== undefined &&
+      auto.includes(locale) &&
+      ENABLED_LOCALES.includes(locale)
+    ) {
       return locale;
     }
   }
@@ -89,12 +101,15 @@ export function deviceLanguageTags(): readonly string[] {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     const localization = require('expo-localization') as {
-      getLocales?: () => readonly { languageTag?: string; languageCode?: string }[];
+      getLocales?: () => readonly {
+        languageTag?: string;
+        languageCode?: string;
+      }[];
     };
     const locales = localization.getLocales?.() ?? [];
     return locales
-      .map(entry => entry.languageTag ?? entry.languageCode ?? '')
-      .filter(tag => tag.length > 0);
+      .map((entry) => entry.languageTag ?? entry.languageCode ?? '')
+      .filter((tag) => tag.length > 0);
   } catch {
     return [];
   }

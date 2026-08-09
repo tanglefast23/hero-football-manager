@@ -35,16 +35,51 @@ interface TrainingPath {
 }
 
 export const TRAINING_PATHS: readonly TrainingPath[] = [
-  { pathId: 'sprints', attribute: 'pac', label: 'Pace', labelKey: 'trainingPath.pac' },
-  { pathId: 'finishing', attribute: 'sho', label: 'Shooting', labelKey: 'trainingPath.sho' },
-  { pathId: 'rondo', attribute: 'pas', label: 'Passing', labelKey: 'trainingPath.pas' },
-  { pathId: 'duels', attribute: 'def', label: 'Defense', labelKey: 'trainingPath.def' },
-  { pathId: 'first-touch', attribute: 'tec', label: 'Technique', labelKey: 'trainingPath.tec' },
-  { pathId: 'circuit', attribute: 'sta', label: 'Stamina', labelKey: 'trainingPath.sta' },
-  { pathId: 'keeper-drills', attribute: 'ref', label: 'Reflexes', labelKey: 'trainingPath.ref' },
+  {
+    pathId: 'sprints',
+    attribute: 'pac',
+    label: 'Pace',
+    labelKey: 'trainingPath.pac',
+  },
+  {
+    pathId: 'finishing',
+    attribute: 'sho',
+    label: 'Shooting',
+    labelKey: 'trainingPath.sho',
+  },
+  {
+    pathId: 'rondo',
+    attribute: 'pas',
+    label: 'Passing',
+    labelKey: 'trainingPath.pas',
+  },
+  {
+    pathId: 'duels',
+    attribute: 'def',
+    label: 'Defense',
+    labelKey: 'trainingPath.def',
+  },
+  {
+    pathId: 'first-touch',
+    attribute: 'tec',
+    label: 'Technique',
+    labelKey: 'trainingPath.tec',
+  },
+  {
+    pathId: 'circuit',
+    attribute: 'sta',
+    label: 'Stamina',
+    labelKey: 'trainingPath.sta',
+  },
+  {
+    pathId: 'keeper-drills',
+    attribute: 'ref',
+    label: 'Reflexes',
+    labelKey: 'trainingPath.ref',
+  },
 ];
 
-const PATH_BY_ID = new Map(TRAINING_PATHS.map(path => [path.pathId, path]));
+const PATH_BY_ID = new Map(TRAINING_PATHS.map((path) => [path.pathId, path]));
 
 /** English. Pair it with `trainingPathLabelKey` wherever a player will read it. */
 export function trainingPathLabel(pathId: string): string {
@@ -76,10 +111,18 @@ export function trainingDrillPathId(drillId: string): string {
  * tier 1 everywhere, and saves written before upgrades were a purchase have no
  * record at all — both read as tier 1.
  */
-export function ownedTrainingTier(state: GameState, pathId: string): TrainingDrillTier {
-  if (!PATH_BY_ID.has(pathId)) throw new Error(`unknown training path ${pathId}`);
+export function ownedTrainingTier(
+  state: GameState,
+  pathId: string,
+): TrainingDrillTier {
+  if (!PATH_BY_ID.has(pathId))
+    throw new Error(`unknown training path ${pathId}`);
   const owned = state.ownedTrainingTiers?.[pathId] ?? 1;
-  if (!Number.isInteger(owned) || owned < 1 || owned > MAX_TRAINING_DRILL_TIER) {
+  if (
+    !Number.isInteger(owned) ||
+    owned < 1 ||
+    owned > MAX_TRAINING_DRILL_TIER
+  ) {
     throw new Error(`invalid owned training tier ${owned} for path ${pathId}`);
   }
   return owned as TrainingDrillTier;
@@ -122,9 +165,14 @@ const REFERENCE_OUTFIELD_PATH_ID = 'sprints';
  * only ever sweeps it *downward*; a hardcoded 2 would quietly stop meaning
  * "undo the halving" the first time those numbers move.
  */
-export function keeperDisplayLadderMultiplier(state: GameState, drillId: string): number {
+export function keeperDisplayLadderMultiplier(
+  state: GameState,
+  drillId: string,
+): number {
   const attribute = trainingPathAttribute(trainingDrillPathId(drillId));
-  const drill = state.trainingRules?.focusDrills.find(candidate => candidate.id === drillId);
+  const drill = state.trainingRules?.focusDrills.find(
+    (candidate) => candidate.id === drillId,
+  );
   const ownGain = drill?.gains[attribute] ?? 0;
   if (ownGain <= 0) return 1;
 
@@ -132,8 +180,11 @@ export function keeperDisplayLadderMultiplier(state: GameState, drillId: string)
     REFERENCE_OUTFIELD_PATH_ID,
     trainingDrillTier(drillId),
   );
-  const reference = state.trainingRules?.focusDrills.find(candidate => candidate.id === referenceId);
-  const referenceGain = reference?.gains[trainingPathAttribute(REFERENCE_OUTFIELD_PATH_ID)] ?? 0;
+  const reference = state.trainingRules?.focusDrills.find(
+    (candidate) => candidate.id === referenceId,
+  );
+  const referenceGain =
+    reference?.gains[trainingPathAttribute(REFERENCE_OUTFIELD_PATH_ID)] ?? 0;
   // A path that already matches the reference — every outfield path, and the
   // keeper's too if the ladders are ever equalised for real — returns 1 and no
   // display bonus is ever banked.
@@ -143,8 +194,11 @@ export function keeperDisplayLadderMultiplier(state: GameState, drillId: string)
 
 /** The path that trains one attribute. One-to-one: seven attributes, seven paths. */
 export function trainingPathForAttribute(attribute: keyof Attrs): string {
-  const path = TRAINING_PATHS.find(candidate => candidate.attribute === attribute);
-  if (path === undefined) throw new Error(`no training path trains ${attribute}`);
+  const path = TRAINING_PATHS.find(
+    (candidate) => candidate.attribute === attribute,
+  );
+  if (path === undefined)
+    throw new Error(`no training path trains ${attribute}`);
   return path.pathId;
 }
 
@@ -168,8 +222,12 @@ export function trainingSessionPoints(
   attribute: keyof Attrs,
   sessions: number,
 ): number {
-  if (!Number.isSafeInteger(sessions)) throw new Error('training sessions must be a safe integer');
-  const drill = resolveTrainingDrillForPath(state, trainingPathForAttribute(attribute));
+  if (!Number.isSafeInteger(sessions))
+    throw new Error('training sessions must be a safe integer');
+  const drill = resolveTrainingDrillForPath(
+    state,
+    trainingPathForAttribute(attribute),
+  );
   return sessions * (drill.gains[attribute] ?? 0);
 }
 
@@ -196,10 +254,19 @@ export function sessionAttributeDelta(
   return -Math.min(Math.abs(points), Math.floor(player.attrs[attribute] / 4));
 }
 
-export function resolveTrainingDrillForPath(state: GameState, pathId: string): CareerTrainingDrill {
-  const drillId = trainingDrillIdForTier(pathId, ownedTrainingTier(state, pathId));
-  const drill = state.trainingRules?.focusDrills.find(candidate => candidate.id === drillId);
-  if (drill === undefined) throw new Error(`no drill ${drillId} in the career catalog`);
+export function resolveTrainingDrillForPath(
+  state: GameState,
+  pathId: string,
+): CareerTrainingDrill {
+  const drillId = trainingDrillIdForTier(
+    pathId,
+    ownedTrainingTier(state, pathId),
+  );
+  const drill = state.trainingRules?.focusDrills.find(
+    (candidate) => candidate.id === drillId,
+  );
+  if (drill === undefined)
+    throw new Error(`no drill ${drillId} in the career catalog`);
   return drill;
 }
 
@@ -232,15 +299,19 @@ export function nextTrainingUpgradeOffer(
   const tier = (owned + 1) as Exclude<TrainingDrillTier, 1>;
   const drillId = trainingDrillIdForTier(pathId, tier);
   const cost = trainingDrillUpgradeCost(tier);
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
-  const blockedReason = trainingDrillBlockedReason(state, drillId)
-    ?? (club.cash < cost
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
+  const blockedReason =
+    trainingDrillBlockedReason(state, drillId) ??
+    (club.cash < cost
       ? {
-        /** @i18n-fallback for `squadTraining.drillNotEnoughMoney`. */
-        text: 'Not enough money.',
-        textKey: 'squadTraining.drillNotEnoughMoney',
-      }
+          /** @i18n-fallback for `squadTraining.drillNotEnoughMoney`. */
+          text: 'Not enough money.',
+          textKey: 'squadTraining.drillNotEnoughMoney',
+        }
       : undefined);
   return {
     pathId,

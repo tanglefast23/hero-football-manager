@@ -28,7 +28,11 @@ export type EventPixelSceneLayout = 'float' | 'stage';
 
 /** Stage scale by object count: three objects have to share the same width. */
 const STAGE_SCALE: Readonly<Record<number, number>> = { 1: 3, 2: 3, 3: 2.25 };
-const NARROW_STAGE_SCALE: Readonly<Record<number, number>> = { 1: 1.8, 2: 1.6, 3: 1.15 };
+const NARROW_STAGE_SCALE: Readonly<Record<number, number>> = {
+  1: 1.8,
+  2: 1.6,
+  3: 1.15,
+};
 /** Keeps the centred row from reading as a rigid line of stickers. */
 const STAGE_STAGGER_PX = 14;
 /** Clear air between the objects and the card that reserved the space. */
@@ -63,7 +67,7 @@ export function EventPixelScene({
   const stage = sceneLayout === 'stage';
   const scale = !stage
     ? 1
-    : (wide ? STAGE_SCALE : NARROW_STAGE_SCALE)[objectIds.length] ?? 1;
+    : ((wide ? STAGE_SCALE : NARROW_STAGE_SCALE)[objectIds.length] ?? 1);
   /**
    * Centring in the whole scene put the objects behind the outcome card, which
    * on a tall screen left two hats poking over its top edge. They centre in the
@@ -75,31 +79,37 @@ export function EventPixelScene({
    * reserves nothing rather than guessing.
    */
   const rowHeight = SPRITE_SIZE * scale + STAGE_STAGGER_PX * 2;
-  const reservedBottom = !stage || sceneHeight === 0
-    ? 0
-    : Math.max(0, Math.min(bottomInset + STAGE_CARD_GAP_PX, sceneHeight - rowHeight));
+  const reservedBottom =
+    !stage || sceneHeight === 0
+      ? 0
+      : Math.max(
+          0,
+          Math.min(bottomInset + STAGE_CARD_GAP_PX, sceneHeight - rowHeight),
+        );
   return (
     <View
       pointerEvents="none"
       className="absolute inset-0 overflow-hidden"
-      onLayout={event => setSceneHeight(event.nativeEvent.layout.height)}
+      onLayout={(event) => setSceneHeight(event.nativeEvent.layout.height)}
     >
       <View className="absolute -left-16 top-6 h-48 w-48 rounded-full border-4 border-paper/15" />
       <View className="absolute -right-14 bottom-2 h-40 w-40 rounded-full border-4 border-paper/10" />
       <View
-        style={stage
-          ? {
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: reservedBottom,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 24 * scale,
-            }
-          : undefined}
+        style={
+          stage
+            ? {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: reservedBottom,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 24 * scale,
+              }
+            : undefined
+        }
       >
         {objectIds.map((spriteId, index) => (
           <FloatingSprite
@@ -108,9 +118,12 @@ export function EventPixelScene({
             // Stage centres the row, so the hashed left/top become a small
             // vertical stagger instead of an absolute position.
             leftPercent={stage ? null : layout[index].leftPercent}
-            topOffset={stage
-              ? ((layout[index].topOffset % (STAGE_STAGGER_PX * 2)) - STAGE_STAGGER_PX)
-              : layout[index].topOffset}
+            topOffset={
+              stage
+                ? (layout[index].topOffset % (STAGE_STAGGER_PX * 2)) -
+                  STAGE_STAGGER_PX
+                : layout[index].topOffset
+            }
             rotationDeg={layout[index].rotationDeg}
             phase={layout[index].phase}
             scale={scale}
@@ -175,11 +188,16 @@ function FloatingSprite({
     <Animated.View
       style={{
         ...(leftPercent === null
-          // Centred by the parent row; `topOffset` is the float stagger.
-          ? { marginTop: topOffset }
+          ? // Centred by the parent row; `topOffset` is the float stagger.
+            { marginTop: topOffset }
           : { position: 'absolute', left: `${leftPercent}%`, top: topOffset }),
         transform: [
-          { translateY: bob.interpolate({ inputRange: [0, 1], outputRange: [0, 10] }) },
+          {
+            translateY: bob.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 10],
+            }),
+          },
           { rotate: `${rotationDeg}deg` },
           { scale: celebrate ? 1.15 : 1 },
         ],
@@ -193,7 +211,7 @@ function FloatingSprite({
           height: SPRITE_SIZE * scale,
         }}
       >
-        {runs.map(run => (
+        {runs.map((run) => (
           <Rect
             key={run.id}
             x={run.x * EVENT_SPRITE_SCALE * scale}

@@ -15,7 +15,10 @@ function staffedCareer2(season: number, week: number): GameState {
   }
   return {
     ...career,
-    market: { ...career.market, headCoach: career.market.headCoach ?? candidates[0] },
+    market: {
+      ...career.market,
+      headCoach: career.market.headCoach ?? candidates[0],
+    },
   };
 }
 
@@ -23,41 +26,60 @@ const staffedCareer = (week: number) => staffedCareer2(1, week);
 
 function userCupTies(career: GameState) {
   return (career.m2?.nationalCups ?? [])
-    .flatMap(cup => cup.rounds)
-    .flatMap(round => round.fixtures)
-    .filter(fixture => (
-      fixture.homeClubId === career.userClubId || fixture.awayClubId === career.userClubId
-    ));
+    .flatMap((cup) => cup.rounds)
+    .flatMap((round) => round.fixtures)
+    .filter(
+      (fixture) =>
+        fixture.homeClubId === career.userClubId ||
+        fixture.awayClubId === career.userClubId,
+    );
 }
 
 /** How many divisions above the club its opponent was, as the draw froze it. */
 function tiersAbove(career: GameState, fixtureId: string): number {
-  const tie = userCupTies(career).find(fixture => fixture.id === fixtureId);
+  const tie = userCupTies(career).find((fixture) => fixture.id === fixtureId);
   if (tie === undefined) throw new Error(`no user cup tie ${fixtureId}`);
-  const opponentClubId = tie.homeClubId === career.userClubId ? tie.awayClubId : tie.homeClubId;
-  const seeds = career.m2?.nationalCups
-    .find(cup => cup.rounds.some(round => round.fixtures.some(f => f.id === fixtureId)))
-    ?.seedDivisionByClubId;
+  const opponentClubId =
+    tie.homeClubId === career.userClubId ? tie.awayClubId : tie.homeClubId;
+  const seeds = career.m2?.nationalCups.find((cup) =>
+    cup.rounds.some((round) => round.fixtures.some((f) => f.id === fixtureId)),
+  )?.seedDivisionByClubId;
   const mine = seeds?.[career.userClubId];
   const theirs = seeds?.[opponentClubId];
-  if (mine === undefined || theirs === undefined) throw new Error('cup tie has no seeded divisions');
+  if (mine === undefined || theirs === undefined)
+    throw new Error('cup tie has no seeded divisions');
   return mine - theirs;
 }
 
 /** The only tie in this career at this week sitting the given divisions apart. */
 function tieByGap(career: GameState, gap: number): string {
-  const found = userCupTies(career).find(fixture => tiersAbove(career, fixture.id) === gap);
-  if (found === undefined) throw new Error(`no cup tie ${gap} divisions apart in this career`);
+  const found = userCupTies(career).find(
+    (fixture) => tiersAbove(career, fixture.id) === gap,
+  );
+  if (found === undefined)
+    throw new Error(`no cup tie ${gap} divisions apart in this career`);
   return found.id;
 }
 
-function lineFor(career: GameState, fixtureId: string, mine: number, theirs: number): string {
-  const tie = userCupTies(career).find(fixture => fixture.id === fixtureId)!;
-  const score = tie.homeClubId === career.userClubId
-    ? { homeGoals: mine, awayGoals: theirs }
-    : { homeGoals: theirs, awayGoals: mine };
-  const reaction = postMatchViewModel(career, career, fixtureId, score).reaction;
-  if (reaction === undefined) throw new Error('the gaffer said nothing about a cup tie');
+function lineFor(
+  career: GameState,
+  fixtureId: string,
+  mine: number,
+  theirs: number,
+): string {
+  const tie = userCupTies(career).find((fixture) => fixture.id === fixtureId)!;
+  const score =
+    tie.homeClubId === career.userClubId
+      ? { homeGoals: mine, awayGoals: theirs }
+      : { homeGoals: theirs, awayGoals: mine };
+  const reaction = postMatchViewModel(
+    career,
+    career,
+    fixtureId,
+    score,
+  ).reaction;
+  if (reaction === undefined)
+    throw new Error('the gaffer said nothing about a cup tie');
   return reaction.line;
 }
 
@@ -74,55 +96,74 @@ describe('what the gaffer says about a cup tie', () => {
   it('reads a tie by who it was against, whatever the margin', () => {
     // Same opponent, wildly different scorelines, one pool: a knockout is
     // remembered for who it was against, not for how heavy it got.
-    expect(content.fulltimeCoachLines.cupWinSlight).toContain(lineFor(levelWeek, level, 1, 0));
-    expect(content.fulltimeCoachLines.cupWinSlight).toContain(lineFor(levelWeek, level, 5, 0));
-    expect(content.fulltimeCoachLines.cupLossEven).toContain(lineFor(levelWeek, level, 0, 1));
-    expect(content.fulltimeCoachLines.cupLossEven).toContain(lineFor(levelWeek, level, 0, 5));
+    expect(content.fulltimeCoachLines.cupWinSlight).toContain(
+      lineFor(levelWeek, level, 1, 0),
+    );
+    expect(content.fulltimeCoachLines.cupWinSlight).toContain(
+      lineFor(levelWeek, level, 5, 0),
+    );
+    expect(content.fulltimeCoachLines.cupLossEven).toContain(
+      lineFor(levelWeek, level, 0, 1),
+    );
+    expect(content.fulltimeCoachLines.cupLossEven).toContain(
+      lineFor(levelWeek, level, 0, 5),
+    );
   });
 
   it('knows a giant when it beats one, and when it loses to one', () => {
-    expect(content.fulltimeCoachLines.cupWinGiant).toContain(lineFor(giantWeek, giant, 2, 1));
-    expect(content.fulltimeCoachLines.cupLossStrong).toContain(lineFor(giantWeek, giant, 1, 2));
+    expect(content.fulltimeCoachLines.cupWinGiant).toContain(
+      lineFor(giantWeek, giant, 2, 1),
+    );
+    expect(content.fulltimeCoachLines.cupLossStrong).toContain(
+      lineFor(giantWeek, giant, 1, 2),
+    );
   });
 
   it('takes a settled tie from the recorded winner, not from the score', () => {
     // By week 14 the cup has already had its say. A tie that is on the books as
     // a defeat stays a defeat even if the report is handed a winning scoreline.
     const settled = staffedCareer(14);
-    expect(content.fulltimeCoachLines.cupLossStrong)
-      .toContain(lineFor(settled, tieByGap(settled, 4), 4, 0));
+    expect(content.fulltimeCoachLines.cupLossStrong).toContain(
+      lineFor(settled, tieByGap(settled, 4), 4, 0),
+    );
   });
 
   it('boxes the recorded penalty winner when the Cup score is level', () => {
     const before = staffedCareer(6);
     const fixtureId = tieByGap(before, 0);
-    const fixture = userCupTies(before).find(candidate => candidate.id === fixtureId)!;
+    const fixture = userCupTies(before).find(
+      (candidate) => candidate.id === fixtureId,
+    )!;
     const winnerClubId = fixture.awayClubId;
     const after: GameState = {
       ...before,
       m2: {
         ...before.m2!,
-        nationalCups: before.m2!.nationalCups.map(cup => ({
+        nationalCups: before.m2!.nationalCups.map((cup) => ({
           ...cup,
-          rounds: cup.rounds.map(round => ({
+          rounds: cup.rounds.map((round) => ({
             ...round,
-            fixtures: round.fixtures.map(candidate => candidate.id === fixtureId
-              ? {
-                  ...candidate,
-                  status: 'played' as const,
-                  score: { homeGoals: 0, awayGoals: 0 },
-                  winnerClubId,
-                }
-              : candidate),
+            fixtures: round.fixtures.map((candidate) =>
+              candidate.id === fixtureId
+                ? {
+                    ...candidate,
+                    status: 'played' as const,
+                    score: { homeGoals: 0, awayGoals: 0 },
+                    winnerClubId,
+                  }
+                : candidate,
+            ),
           })),
         })),
       },
     };
 
-    expect(postMatchViewModel(before, after, fixtureId, {
-      homeGoals: 0,
-      awayGoals: 0,
-    }).result).toMatchObject({
+    expect(
+      postMatchViewModel(before, after, fixtureId, {
+        homeGoals: 0,
+        awayGoals: 0,
+      }).result,
+    ).toMatchObject({
       homeScore: 0,
       awayScore: 0,
       winner: 'away',
@@ -145,7 +186,9 @@ describe('what the gaffer says about a cup tie', () => {
   });
 
   it('gives the same tie the same line every time it is read', () => {
-    expect(lineFor(giantWeek, giant, 2, 1)).toBe(lineFor(giantWeek, giant, 2, 1));
+    expect(lineFor(giantWeek, giant, 2, 1)).toBe(
+      lineFor(giantWeek, giant, 2, 1),
+    );
   });
 
   describe('when an earlier cup is still on the state', () => {
@@ -163,36 +206,54 @@ describe('what the gaffer says about a cup tie', () => {
       const base = staffedCareer2(2, 10);
       // An unresolved tie, so the scoreline still decides the outcome and both
       // the win and the defeat pools can be reached on the same fixture.
-      const giant = userCupTies(base).find(fixture => (
-        fixture.season === 2
-        && fixture.winnerClubId === undefined
-        && tiersAbove(base, fixture.id) >= 2
-      ));
-      if (giant === undefined) throw new Error('season 2 has no unplayed tie against a bigger club');
-      const opponentClubId = giant.homeClubId === base.userClubId
-        ? giant.awayClubId
-        : giant.homeClubId;
-      const cups = base.m2!.nationalCups.map(cup => (cup.season !== 1 ? cup : {
-        ...cup,
-        seedDivisionByClubId: {
-          ...cup.seedDivisionByClubId!,
-          // Level with us in last season's cup, well above us in this one.
-          [opponentClubId]: base.m2!.nationalCups
-            .find(candidate => candidate.season === 1)!
-            .seedDivisionByClubId![base.userClubId]!,
-        },
-      }));
-      return { career: { ...base, m2: { ...base.m2!, nationalCups: cups } }, tie: giant.id };
+      const giant = userCupTies(base).find(
+        (fixture) =>
+          fixture.season === 2 &&
+          fixture.winnerClubId === undefined &&
+          tiersAbove(base, fixture.id) >= 2,
+      );
+      if (giant === undefined)
+        throw new Error('season 2 has no unplayed tie against a bigger club');
+      const opponentClubId =
+        giant.homeClubId === base.userClubId
+          ? giant.awayClubId
+          : giant.homeClubId;
+      const cups = base.m2!.nationalCups.map((cup) =>
+        cup.season !== 1
+          ? cup
+          : {
+              ...cup,
+              seedDivisionByClubId: {
+                ...cup.seedDivisionByClubId!,
+                // Level with us in last season's cup, well above us in this one.
+                [opponentClubId]: base.m2!.nationalCups.find(
+                  (candidate) => candidate.season === 1,
+                )!.seedDivisionByClubId![base.userClubId]!,
+              },
+            },
+      );
+      return {
+        career: { ...base, m2: { ...base.m2!, nationalCups: cups } },
+        tie: giant.id,
+      };
     }
 
     it('dates the tie by its own cup rather than the first map that mentions the club', () => {
       const { career, tie } = careerWithStaleSeeding();
       // Last season's cup would read this as a tie between equals. This season's
       // draw, the one actually being played, has them well above us.
-      expect(content.fulltimeCoachLines.cupWinGiant).toContain(lineFor(career, tie, 2, 1));
-      expect(content.fulltimeCoachLines.cupWinSlight).not.toContain(lineFor(career, tie, 2, 1));
-      expect(content.fulltimeCoachLines.cupLossStrong).toContain(lineFor(career, tie, 1, 2));
-      expect(content.fulltimeCoachLines.cupLossEven).not.toContain(lineFor(career, tie, 1, 2));
+      expect(content.fulltimeCoachLines.cupWinGiant).toContain(
+        lineFor(career, tie, 2, 1),
+      );
+      expect(content.fulltimeCoachLines.cupWinSlight).not.toContain(
+        lineFor(career, tie, 2, 1),
+      );
+      expect(content.fulltimeCoachLines.cupLossStrong).toContain(
+        lineFor(career, tie, 1, 2),
+      );
+      expect(content.fulltimeCoachLines.cupLossEven).not.toContain(
+        lineFor(career, tie, 1, 2),
+      );
     });
 
     it('does not contradict Bert about the same win', () => {
@@ -200,11 +261,16 @@ describe('what the gaffer says about a cup tie', () => {
       // Bert's giant-killing overlay on top of it. Keyed off different cups they
       // can disagree about the size of the upset in front of the manager.
       const { career, tie } = careerWithStaleSeeding();
-      const fixture = userCupTies(career).find(candidate => candidate.id === tie)!;
-      expect(cupGiantKillingCelebration(career, fixture, career.userClubId)).toBeDefined();
+      const fixture = userCupTies(career).find(
+        (candidate) => candidate.id === tie,
+      )!;
+      expect(
+        cupGiantKillingCelebration(career, fixture, career.userClubId),
+      ).toBeDefined();
       const line = lineFor(career, tie, 2, 1);
-      const gafferSeesAnUpset = content.fulltimeCoachLines.cupWinGiant.includes(line)
-        || content.fulltimeCoachLines.cupWinBetter.includes(line);
+      const gafferSeesAnUpset =
+        content.fulltimeCoachLines.cupWinGiant.includes(line) ||
+        content.fulltimeCoachLines.cupWinBetter.includes(line);
       expect(gafferSeesAnUpset).toBe(true);
     });
   });

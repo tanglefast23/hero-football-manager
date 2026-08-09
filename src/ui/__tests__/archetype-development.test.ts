@@ -4,16 +4,18 @@ import { loadCatalog } from '../../i18n';
 
 describe('archetype development summaries', () => {
   it('shows the exact training bonus for every roster archetype', () => {
-    expect([
-      'Speedster',
-      'Sniper',
-      'Playmaker',
-      'Anchor',
-      'Wall',
-      'Engine',
-      'All-Rounder',
-      'Prodigy',
-    ].map(archetype => archetypeDevelopmentSummary(archetype).strengths)).toEqual([
+    expect(
+      [
+        'Speedster',
+        'Sniper',
+        'Playmaker',
+        'Anchor',
+        'Wall',
+        'Engine',
+        'All-Rounder',
+        'Prodigy',
+      ].map((archetype) => archetypeDevelopmentSummary(archetype).strengths),
+    ).toEqual([
       '+15% PAC',
       '+15% SHO',
       '+15% PAS & TEC',
@@ -39,9 +41,11 @@ describe('archetype development summaries', () => {
     const fallback = archetypeDevelopmentSummary('no-such-archetype');
     expect(fallback.strengths).toBe('+ BALANCED');
 
-    const swallowed = PLAYER_ARCHETYPES.filter(archetype => (
-      archetypeDevelopmentSummary(archetype).strengthsKey === fallback.strengthsKey
-    ));
+    const swallowed = PLAYER_ARCHETYPES.filter(
+      (archetype) =>
+        archetypeDevelopmentSummary(archetype).strengthsKey ===
+        fallback.strengthsKey,
+    );
     expect(swallowed).toEqual([]);
     expect(PLAYER_ARCHETYPES.length).toBeGreaterThan(0);
   });
@@ -49,11 +53,11 @@ describe('archetype development summaries', () => {
   it('names a catalog key for every line it draws', () => {
     const english = loadCatalog('en').strings;
     const missing = [...PLAYER_ARCHETYPES, 'no-such-archetype']
-      .flatMap(archetype => {
+      .flatMap((archetype) => {
         const summary = archetypeDevelopmentSummary(archetype);
         return [summary.strengthsKey, summary.weaknessesKey];
       })
-      .filter(key => english[key] === undefined);
+      .filter((key) => english[key] === undefined);
     expect(missing).toEqual([]);
   });
 });

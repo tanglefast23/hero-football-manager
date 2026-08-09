@@ -26,15 +26,17 @@ export function persistentStorageGrant(): PersistentStorageGrant | null {
  */
 export async function requestPersistentStorage(): Promise<PersistentStorageGrant> {
   if (grant !== null) return grant;
-  const storage = typeof navigator === 'undefined' ? undefined : navigator.storage;
+  const storage =
+    typeof navigator === 'undefined' ? undefined : navigator.storage;
   if (storage?.persist === undefined) {
     return record('unsupported');
   }
   try {
     // `persisted()` first: asking again when it is already granted is pointless,
     // and on some browsers `persist()` is the call that can show a prompt.
-    const already = storage.persisted === undefined ? false : await storage.persisted();
-    return record(already || await storage.persist() ? 'granted' : 'refused');
+    const already =
+      storage.persisted === undefined ? false : await storage.persisted();
+    return record(already || (await storage.persist()) ? 'granted' : 'refused');
   } catch {
     return record('unsupported');
   }

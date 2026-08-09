@@ -9,7 +9,8 @@ function englishCopy(): CopyFn {
 
 export const MATCHDAY_CONDITION_WARNING_THRESHOLD = 80;
 
-export type MatchdayConditionStatusKind = 'below-peak' | 'fatigued' | 'exhausted';
+export type MatchdayConditionStatusKind =
+  'below-peak' | 'fatigued' | 'exhausted';
 
 export interface MatchdayConditionStatus {
   /**
@@ -21,7 +22,9 @@ export interface MatchdayConditionStatus {
   label: string;
 }
 
-const CONDITION_LABEL_KEYS: Readonly<Record<MatchdayConditionStatusKind, string>> = {
+const CONDITION_LABEL_KEYS: Readonly<
+  Record<MatchdayConditionStatusKind, string>
+> = {
   'below-peak': 'fixtureMatchDay.condition.belowPeak',
   fatigued: 'fixtureMatchDay.condition.fatigued',
   exhausted: 'fixtureMatchDay.condition.exhausted',
@@ -31,11 +34,14 @@ export function matchdayConditionStatus(
   condition: number,
   t: CopyFn = englishCopy(),
 ): MatchdayConditionStatus | null {
-  const kind: MatchdayConditionStatusKind | null = condition < 30
-    ? 'exhausted'
-    : condition < 50
-      ? 'fatigued'
-      : condition <= 80 ? 'below-peak' : null;
+  const kind: MatchdayConditionStatusKind | null =
+    condition < 30
+      ? 'exhausted'
+      : condition < 50
+        ? 'fatigued'
+        : condition <= 80
+          ? 'below-peak'
+          : null;
   return kind === null ? null : { kind, label: t(CONDITION_LABEL_KEYS[kind]) };
 }
 
@@ -51,9 +57,14 @@ export function matchdayConditionWarningPlayer(
   lineup: readonly LineupPlayerViewModel[],
 ): LineupPlayerViewModel | null {
   return lineup
-    .filter(player => player.condition <= MATCHDAY_CONDITION_WARNING_THRESHOLD)
+    .filter(
+      (player) => player.condition <= MATCHDAY_CONDITION_WARNING_THRESHOLD,
+    )
     .reduce<LineupPlayerViewModel | null>(
-      (lowest, player) => lowest === null || player.condition < lowest.condition ? player : lowest,
+      (lowest, player) =>
+        lowest === null || player.condition < lowest.condition
+          ? player
+          : lowest,
       null,
     );
 }

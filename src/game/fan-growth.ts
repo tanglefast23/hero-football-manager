@@ -13,11 +13,14 @@ export const FIRST_FAN_GAIN_FLAG = 'club:first-fan-gain';
 
 /** Records the first positive fan movement. Idempotent; a loss records nothing. */
 export function recordFanGain(state: GameState, gained: number): GameState {
-  if (gained <= 0 || state.eventFlags.includes(FIRST_FAN_GAIN_FLAG)) return state;
+  if (gained <= 0 || state.eventFlags.includes(FIRST_FAN_GAIN_FLAG))
+    return state;
   return { ...state, eventFlags: [...state.eventFlags, FIRST_FAN_GAIN_FLAG] };
 }
 
 /** True once the club has ever won a supporter. */
-export function hasEverGainedFans(state: Pick<GameState, 'eventFlags'>): boolean {
+export function hasEverGainedFans(
+  state: Pick<GameState, 'eventFlags'>,
+): boolean {
   return state.eventFlags.includes(FIRST_FAN_GAIN_FLAG);
 }

@@ -1,5 +1,9 @@
 import { useEffect, useMemo } from 'react';
-import { bertVoiceDurationMs, playBertVoice, stopBertVoice } from '../render/bert-voice';
+import {
+  bertVoiceDurationMs,
+  playBertVoice,
+  stopBertVoice,
+} from '../render/bert-voice';
 import { BertFullBody } from './BertFullBody';
 import { BERT_SPRITE_SIZE } from './bert-walk-frames';
 import { CharacterSpeechOverlay } from './CharacterSpeechOverlay';
@@ -23,7 +27,10 @@ export function MatchdayConditionWarning({
   onDone,
 }: MatchdayConditionWarningProps) {
   const t = useCopy();
-  const line = useMemo(() => matchdayConditionWarningCopy(playerName, t), [playerName, t]);
+  const line = useMemo(
+    () => matchdayConditionWarningCopy(playerName, t),
+    [playerName, t],
+  );
 
   useEffect(() => {
     playBertVoice(bertVoiceDurationMs(line));

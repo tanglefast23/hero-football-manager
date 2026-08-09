@@ -1,13 +1,16 @@
-import { useRef, useState, type ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { playDangerSfx, playPositiveSfx, playUiClickSfx } from '../../render/management-sfx';
+import type { ReactNode } from 'react';
+import { Text, View } from 'react-native';
 import { PixelText } from './PixelText';
-import { createPressCueGate, type PressCueGate } from '../press-cue-gate';
 import {
   formatIntegerForCopy,
   formatMoneyForCopy,
   type CopyFn,
 } from '../../i18n';
+import {
+  CHUNKY_CONTROL_RAMP,
+  ChunkyControl,
+  type ChunkyControlTone,
+} from './ChunkyControl';
 
 function cx(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
@@ -21,7 +24,11 @@ export function formatSignedCompactNumber(t: CopyFn, value: number): string {
   return formatIntegerForCopy(t, value, true);
 }
 
-export function formatCurrency(t: CopyFn, value: number, signed = false): string {
+export function formatCurrency(
+  t: CopyFn,
+  value: number,
+  signed = false,
+): string {
   return formatMoneyForCopy(t, value, signed);
 }
 
@@ -36,7 +43,14 @@ export interface PaperPanelProps {
 }
 
 /** Chunky pixel card: white face, thick ink outline with a deeper bottom edge. */
-export function PaperPanel({ children, title, kicker, stamp, className, tone = 'default' }: PaperPanelProps) {
+export function PaperPanel({
+  children,
+  title,
+  kicker,
+  stamp,
+  className,
+  tone = 'default',
+}: PaperPanelProps) {
   const attention = tone === 'attention';
   return (
     <View
@@ -52,22 +66,43 @@ export function PaperPanel({ children, title, kicker, stamp, className, tone = '
           is justify-end so a stamp without a kicker still lands right. */}
       {(kicker || title) && (
         <View className="mb-3">
-          {(kicker || stamp) ? (
+          {kicker || stamp ? (
             <View className="flex-row items-start justify-end gap-3">
               {kicker ? (
-                <Text className={cx('flex-1 font-pixel text-sm uppercase', attention ? 'text-gold-dark' : 'text-red-dark')}>
+                <Text
+                  className={cx(
+                    'flex-1 font-pixel text-sm uppercase',
+                    attention ? 'text-gold-dark' : 'text-red-dark',
+                  )}
+                >
                   {kicker}
                 </Text>
               ) : null}
               {stamp ? (
-                <View className={cx('border-2 border-b-4 px-2 py-1', attention ? 'border-gold-dark bg-gold' : 'border-stamp bg-red-light/40')}>
-                  <Text className={cx('font-pixel text-sm uppercase', attention ? 'text-ink' : 'text-red-dark')}>{stamp}</Text>
+                <View
+                  className={cx(
+                    'border-2 border-b-4 px-2 py-1',
+                    attention
+                      ? 'border-gold-dark bg-gold'
+                      : 'border-stamp bg-red-light/40',
+                  )}
+                >
+                  <Text
+                    className={cx(
+                      'font-pixel text-sm uppercase',
+                      attention ? 'text-ink' : 'text-red-dark',
+                    )}
+                  >
+                    {stamp}
+                  </Text>
                 </View>
               ) : null}
             </View>
           ) : null}
           {title ? (
-            <Text className="mt-1 font-pixel text-xl uppercase text-ink">{title}</Text>
+            <Text className="mt-1 font-pixel text-xl uppercase text-ink">
+              {title}
+            </Text>
           ) : null}
         </View>
       )}
@@ -76,23 +111,12 @@ export function PaperPanel({ children, title, kicker, stamp, className, tone = '
   );
 }
 
-// Beveled button ramps — full literal class strings so NativeWind can extract them.
-type ButtonVariant = 'primary' | 'confirm' | 'action' | 'hero' | 'danger' | 'paper';
-const BUTTON_RAMP: Record<ButtonVariant, { face: string; light: string; lip: string; text: string }> = {
-  primary: { face: 'bg-blue', light: 'bg-blue-light', lip: 'bg-blue-dark', text: 'text-ink' },
-  confirm: { face: 'bg-blue', light: 'bg-blue-light', lip: 'bg-blue-dark', text: 'text-ink' },
-  action: { face: 'bg-blue', light: 'bg-blue-light', lip: 'bg-blue-dark', text: 'text-ink' },
-  hero: { face: 'bg-gold', light: 'bg-gold-light', lip: 'bg-gold-dark', text: 'text-ink' },
-  danger: { face: 'bg-red-dark', light: 'bg-red', lip: 'bg-ink', text: 'text-paper' },
-  paper: { face: 'bg-paper', light: 'bg-white', lip: 'bg-paper-dark', text: 'text-ink' },
-};
-
 interface ActionButtonProps {
   label: string;
   onPress: () => void;
   accessibilityLabel: string;
   disabled?: boolean;
-  variant?: ButtonVariant;
+  variant?: ChunkyControlTone;
   compact?: boolean;
   /**
    * Large action buttons confirm or commit by default; use 'click' only for a
@@ -121,71 +145,38 @@ export function ActionButton({
   // celebratory signing chime, because every large button shared one default.
   // Intent is carried by the variant — destructive or merely neutral — so the
   // cue follows it.
-  const cue = pressSfx
-    ?? (variant === 'danger' ? 'danger' : variant === 'paper' ? 'click' : 'positive');
-  const ramp = disabled
-    ? { face: 'bg-grey', light: 'bg-grey-light', lip: 'bg-grey-dark', text: 'text-paper' }
-    : BUTTON_RAMP[variant];
-  // Pressed state is local so `style` stays a plain array. A callback style
-  // bypasses NativeWind processing on native and the className layout silently
-  // drops out — see the note on SfxPressable.
-  const [pressed, setPressed] = useState(false);
-  // One cue per activation, played on the way down. The rule and the reasoning
-  // behind the timestamp live in press-cue-gate.ts, which SfxPressable uses too
-  // — this button only differs in which cue it plays.
-  const gateRef = useRef<PressCueGate | null>(null);
-  const cueGate = (gateRef.current ??= createPressCueGate());
-  const playCue = () => {
-    if (cue === 'positive') playPositiveSfx();
-    else if (cue === 'danger') playDangerSfx();
-    else playUiClickSfx();
-  };
+  const cue =
+    pressSfx ??
+    (variant === 'danger'
+      ? 'danger'
+      : variant === 'paper'
+        ? 'click'
+        : 'positive');
+  const text = disabled ? 'text-paper' : CHUNKY_CONTROL_RAMP[variant].text;
 
   return (
-    <Pressable
+    <ChunkyControl
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
       disabled={disabled}
-      onPressIn={() => {
-        setPressed(true);
-        cueGate.pressIn(playCue);
-      }}
-      onPressOut={() => {
-        setPressed(false);
-        cueGate.pressOut();
-      }}
-      onPress={() => {
-        // These are the game's largest buttons — Advance Week among them — so
-        // they cue on the way down like every SfxPressable does. Left on the
-        // completed press they would answer a beat later than the small
-        // controls around them, which reads as the big decisions being slower.
-        cueGate.press(playCue);
-        onPress();
-      }}
-      className={cx(
-        'relative min-h-12 items-center justify-center overflow-hidden rounded-lg border-2 border-ink px-4',
-        ramp.face,
-        compact ? 'py-2.5' : 'py-3.5',
-        disabled && 'opacity-60',
-      )}
-      // Explicit points are the acceptance contract; utility rem conversion on
-      // web must never shrink a committing action below a 44pt touch target.
-      style={[{ minHeight: 44, transform: [{ translateY: pressed && !disabled ? 2 : 0 }] }]}
+      onPress={onPress}
+      pressSfx={cue}
+      compact={compact}
+      tone={variant}
+      className="items-center px-4"
     >
-      {/* bold top-third gloss — clipped to the rounded corners */}
-      {!pressed && !disabled ? (
-        <View pointerEvents="none" className={cx('absolute inset-x-0 top-0', compact ? 'h-4' : 'h-5', ramp.light)} />
-      ) : null}
-      {/* dark bottom lip — the raised depth */}
-      <View pointerEvents="none" className={cx('absolute inset-x-0 bottom-0 h-2', ramp.lip)} />
       <Text
-        className={cx('text-center font-pixel text-sm uppercase', ramp.text)}
-        style={{ textShadowColor: 'rgba(36,31,46,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 0 }}
+        className={cx('text-center font-pixel text-sm uppercase', text)}
+        style={{
+          textShadowColor: 'rgba(36,31,46,0.4)',
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 0,
+        }}
       >
         {label}
       </Text>
-    </Pressable>
+    </ChunkyControl>
   );
 }
 
@@ -197,19 +188,23 @@ interface MetricProps {
 }
 
 export function Metric({ label, value, tone = 'normal' }: MetricProps) {
-  const valueColor = tone === 'hero'
-    ? 'text-gold-dark'
-    : tone === 'positive'
-      ? 'text-pitch-ink'
-      : tone === 'negative'
-        ? 'text-red-dark'
-        : 'text-ink';
+  const valueColor =
+    tone === 'hero'
+      ? 'text-gold-dark'
+      : tone === 'positive'
+        ? 'text-pitch-ink'
+        : tone === 'negative'
+          ? 'text-red-dark'
+          : 'text-ink';
 
   return (
     <View className="min-w-0 flex-1 border-2 border-b-4 border-ink bg-white px-2 py-2">
       <PixelText className="text-sm uppercase text-ink/70">{label}</PixelText>
       {typeof value === 'string' ? (
-        <Text className={cx('mt-1 font-mono text-base', valueColor)} numberOfLines={1}>
+        <Text
+          className={cx('mt-1 font-mono text-base', valueColor)}
+          numberOfLines={1}
+        >
           {value}
         </Text>
       ) : (
@@ -231,8 +226,12 @@ export function SectionLabel({ eyebrow, title, right }: SectionLabelProps) {
   return (
     <View className="mb-3 flex-row items-end justify-between gap-3">
       <View className="flex-1">
-        <Text className="font-pixel text-sm uppercase text-blue-dark">{eyebrow}</Text>
-        <Text className="mt-1 font-pixel text-xl uppercase text-ink">{title}</Text>
+        <Text className="font-pixel text-sm uppercase text-blue-dark">
+          {eyebrow}
+        </Text>
+        <Text className="mt-1 font-pixel text-xl uppercase text-ink">
+          {title}
+        </Text>
       </View>
       {right}
     </View>
@@ -246,7 +245,11 @@ interface StatusChipProps {
   tone?: 'normal' | 'hero' | 'success' | 'danger' | 'info';
 }
 
-export function StatusChip({ label, selected = false, tone = 'normal' }: StatusChipProps) {
+export function StatusChip({
+  label,
+  selected = false,
+  tone = 'normal',
+}: StatusChipProps) {
   const palette = selected
     ? 'border-blue-dark bg-blue-light text-ink'
     : tone === 'hero'
@@ -261,7 +264,12 @@ export function StatusChip({ label, selected = false, tone = 'normal' }: StatusC
 
   return (
     <View className={cx('min-h-8 justify-center border-2 px-2 py-1', palette)}>
-      <PixelText className={cx('text-sm uppercase', palette.split(' ').find(c => c.startsWith('text-')))}>
+      <PixelText
+        className={cx(
+          'text-sm uppercase',
+          palette.split(' ').find((c) => c.startsWith('text-')),
+        )}
+      >
         {label}
       </PixelText>
     </View>

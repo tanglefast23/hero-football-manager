@@ -17,7 +17,11 @@ export const BOOTSTRAP_RESAMPLES = 1000;
  * sim's determinism guard doesn't scan it, but a CI computation that isn't
  * itself reproducible would make a failing gate impossible to debug.
  */
-export function bootstrapMeanCI95(sample: number[], resamples: number, seed: number): { mean: number; lower: number; upper: number } {
+export function bootstrapMeanCI95(
+  sample: number[],
+  resamples: number,
+  seed: number,
+): { mean: number; lower: number; upper: number } {
   const n = sample.length;
   const mean = sample.reduce((a, b) => a + b, 0) / n;
   const rng = mulberry32(seed);
@@ -29,7 +33,8 @@ export function bootstrapMeanCI95(sample: number[], resamples: number, seed: num
   }
   resampleMeans.sort((a, b) => a - b);
   const lower = resampleMeans[Math.floor(resamples * 0.025)];
-  const upper = resampleMeans[Math.min(resamples - 1, Math.floor(resamples * 0.975))];
+  const upper =
+    resampleMeans[Math.min(resamples - 1, Math.floor(resamples * 0.975))];
   return { mean, lower, upper };
 }
 

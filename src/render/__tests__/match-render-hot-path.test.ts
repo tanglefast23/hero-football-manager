@@ -13,7 +13,10 @@ import { join } from 'path';
  */
 const renderDir = join(process.cwd(), 'src/render');
 const screen = readFileSync(join(renderDir, 'MatchScreen.tsx'), 'utf8');
-const overlays = readFileSync(join(renderDir, 'WorkletMatchOverlays.tsx'), 'utf8');
+const overlays = readFileSync(
+  join(renderDir, 'WorkletMatchOverlays.tsx'),
+  'utf8',
+);
 
 /** The Atlas tint table, which resolves one colour per render slot per tick. */
 const colorTable = screen.slice(
@@ -26,11 +29,15 @@ describe('per-tick Atlas inputs are interned, not rebuilt', () => {
     expect(colorTable).not.toBe('');
     // Skia.Color is a CSS parser, not a lookup, and the table draws from a fixed
     // set of literals — so every raw call here was a parse per slot per tick.
-    expect(colorTable).not.toContain('Skia.Color(');
+    expect(colorTable).not.toContainSource('Skia.Color(');
     expect(colorTable.match(/skColor\(/g)!.length).toBeGreaterThanOrEqual(14);
-    expect(screen).toContain('const SK_COLOR_CACHE = new Map<string, SkColor>();');
+    expect(screen).toContainSource(
+      'const SK_COLOR_CACHE = new Map<string, SkColor>();',
+    );
     // Bounded, so a colour built from a continuous value can never grow it.
-    expect(screen).toContain('SK_COLOR_CACHE.size < SK_COLOR_CACHE_LIMIT');
+    expect(screen).toContainSource(
+      'SK_COLOR_CACHE.size < SK_COLOR_CACHE_LIMIT',
+    );
   });
 
   it('resolves all 25 sprite rects through the per-atlas rect cache', () => {
@@ -39,29 +46,38 @@ describe('per-tick Atlas inputs are interned, not rebuilt', () => {
       screen.indexOf('const colors: SkColor[] = useMemo('),
     );
     expect(spriteTable).not.toBe('');
-    expect(spriteTable).not.toContain('Skia.XYWHRect(');
-    expect(spriteTable).not.toContain('atlas.rectFor(');
-    expect(spriteTable).toContain('spriteRects');
+    expect(spriteTable).not.toContainSource('Skia.XYWHRect(');
+    expect(spriteTable).not.toContainSource('atlas.rectFor(');
+    expect(spriteTable).toContainSource('spriteRects');
     // Keyed by atlas, because rectFor's layout comes from the sheet it was
     // built from — a colour-safe toggle must not serve stale rects.
-    expect(screen).toContain('const spriteRects = useMemo(');
-    expect(screen).toMatch(/const spriteRects = useMemo\([\s\S]*?\}, \[atlas\]\);/);
+    expect(screen).toContainSource('const spriteRects = useMemo(');
+    expect(screen).toMatchSource(
+      /const spriteRects = useMemo\([\s\S]*?\}, \[atlas\]\);/,
+    );
   });
 
   it('keeps the three source cells stable for the life of an atlas', () => {
     // They are handed to the UI-thread worklets; fresh literals per render put
     // them in the worklet closure and churn its dependency list.
-    expect(screen).toMatch(/const \{ playerCell, actionCell, ballCell \} = useMemo\(/);
-    expect(screen).not.toContain('playerCell: { width: playerCell.w');
+    expect(screen).toMatchSource(
+      /const \{ playerCell, actionCell, ballCell \} = useMemo\(/,
+    );
+    expect(screen).not.toContainSource('playerCell: { width: playerCell.w');
   });
 });
 
 describe('the canvas is sized by layout, not by the match clock', () => {
   it('hands the Skia host view a memoised style object', () => {
-    expect(screen).not.toMatch(/<Canvas style=\{\{/);
-    expect(screen).toContain('<Canvas style={canvasStyle}>');
-    expect(screen).toMatch(/const canvasStyle = useMemo\(.*\[pitchWidth, pitchH\]\)/s);
-    expect(screen).toMatch(/const pitchFrameStyle = useMemo\(/);
+    expect(screen).not.toMatchSource(
+      /<RecoverableSkiaCanvas[\s\S]*?style=\{\{/,
+    );
+    expect(screen).toContainSource('<RecoverableSkiaCanvas');
+    expect(screen).toContainSource('style={canvasStyle}');
+    expect(screen).toMatchSource(
+      /const canvasStyle = useMemo\(.*\[pitchWidth, pitchH\],?\s*\)/s,
+    );
+    expect(screen).toMatchSource(/const pitchFrameStyle = useMemo\(/);
   });
 });
 
@@ -71,10 +87,12 @@ describe('overlay worklets close over stable values', () => {
     // closure values (useDerivedValue: `inputs = Object.values(updater.__closure)`).
     // A new array identity each tick therefore stopped and restarted one
     // UI-thread mapper per flame layer, every tick, for an unchanged cast.
-    expect(overlays).not.toContain('fireTorchPlayers');
-    expect(overlays).toContain('const fireCaster = (fireTorchMask & (1 << player)) !== 0;');
-    expect(screen).toContain('fireTorchMask |= 1 << index;');
-    expect(screen).toContain('fireTorchMask={fireTorchMask}');
+    expect(overlays).not.toContainSource('fireTorchPlayers');
+    expect(overlays).toContainSource(
+      'const fireCaster = (fireTorchMask & (1 << player)) !== 0;',
+    );
+    expect(screen).toContainSource('fireTorchMask |= 1 << index;');
+    expect(screen).toContainSource('fireTorchMask={fireTorchMask}');
   });
 
   it('passes the encore marker as two numbers, not the rebuilt object', () => {
@@ -83,8 +101,8 @@ describe('overlay worklets close over stable values', () => {
       overlays.indexOf('function WorkletDecoyRing('),
     );
     expect(bolt).not.toBe('');
-    expect(bolt).not.toContain('marker.');
-    expect(bolt).toContain('slot: number;');
-    expect(bolt).toContain('grantTick: number;');
+    expect(bolt).not.toContainSource('marker.');
+    expect(bolt).toContainSource('slot: number;');
+    expect(bolt).toContainSource('grantTick: number;');
   });
 });

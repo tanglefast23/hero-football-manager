@@ -47,17 +47,38 @@ function whistleTone(n, freq, rng, sampleRate = SAMPLE_RATE) {
   const freq0 = typeof freq === 'function' ? freq(0) : freq;
   const tone = oscTriangle(n, freq, sampleRate);
   const overtone = gainBuf(oscTriangle(n, freq3, sampleRate), 0.15);
-  const breath = gainBuf(bandpass(noiseWhite(n, rng), freq0 * 0.8, freq0 * 1.6, sampleRate), 0.12);
-  const env = adsr(n, { attack: 0.008, decay: 0.01, sustain: 0.95, release: 0.025, sampleRate });
-  return applyEnv(mix([{ buf: tone }, { buf: overtone }, { buf: breath }]), env);
+  const breath = gainBuf(
+    bandpass(noiseWhite(n, rng), freq0 * 0.8, freq0 * 1.6, sampleRate),
+    0.12,
+  );
+  const env = adsr(n, {
+    attack: 0.008,
+    decay: 0.01,
+    sustain: 0.95,
+    release: 0.025,
+    sampleRate,
+  });
+  return applyEnv(
+    mix([{ buf: tone }, { buf: overtone }, { buf: breath }]),
+    env,
+  );
 }
 
 // Percussive "knock": a pitch-dropping sine + a lowpassed noise burst on top.
 function thump(n, { baseFreq, pitchDrop, noiseAmt, cutoff, decay, rng }) {
-  const knock = oscSine(n, expGlide(baseFreq, baseFreq * pitchDrop, n / SAMPLE_RATE));
+  const knock = oscSine(
+    n,
+    expGlide(baseFreq, baseFreq * pitchDrop, n / SAMPLE_RATE),
+  );
   const knockEnv = applyEnv(knock, decayEnv(n, { attack: 0.001, decay }));
-  const noise = applyEnv(lowpass(noiseWhite(n, rng), cutoff), decayEnv(n, { attack: 0.001, decay: decay * 0.4 }));
-  return mix([{ buf: knockEnv, gain: 1 }, { buf: noise, gain: noiseAmt }]);
+  const noise = applyEnv(
+    lowpass(noiseWhite(n, rng), cutoff),
+    decayEnv(n, { attack: 0.001, decay: decay * 0.4 }),
+  );
+  return mix([
+    { buf: knockEnv, gain: 1 },
+    { buf: noise, gain: noiseAmt },
+  ]);
 }
 
 // Bell-ish single note: fundamental + two quiet, slightly-detuned harmonics.
@@ -77,7 +98,10 @@ function metallicPing(n, baseFreq, partialRatios) {
     const decay = 0.6 / (1 + i * 0.6);
     const g = 1 / (1 + i * 0.8);
     const tone = oscSine(n, baseFreq * ratio);
-    return { buf: applyEnv(tone, decayEnv(n, { attack: 0.001, decay })), gain: g };
+    return {
+      buf: applyEnv(tone, decayEnv(n, { attack: 0.001, decay })),
+      gain: g,
+    };
   });
   return mix(layers);
 }
@@ -113,7 +137,10 @@ function sweepBand(buf, loRange, hiRange, chunks = 10) {
     buf,
     (t) => {
       const f = Math.min(1, t / dur);
-      return [loRange[0] + (loRange[1] - loRange[0]) * f, hiRange[0] + (hiRange[1] - hiRange[0]) * f];
+      return [
+        loRange[0] + (loRange[1] - loRange[0]) * f,
+        hiRange[0] + (hiRange[1] - hiRange[0]) * f,
+      ];
     },
     chunks,
   );
@@ -135,7 +162,10 @@ function levelize(buf, cutoffHz, gainClamp) {
   const out = new Float32Array(buf.length);
   for (let i = 0; i < buf.length; i++) {
     const localRms = Math.sqrt(Math.max(smoothedPower[i], 1e-8));
-    const g = Math.min(gainClamp, Math.max(1 / gainClamp, targetRms / localRms));
+    const g = Math.min(
+      gainClamp,
+      Math.max(1 / gainClamp, targetRms / localRms),
+    );
     out[i] = buf[i] * g;
   }
   return out;
@@ -179,7 +209,14 @@ function genFulltimeWhistle(seed) {
 function genKickPass(seed) {
   const rng = mulberry32(seed);
   const n = secondsToSamples(0.09);
-  return thump(n, { baseFreq: 180, pitchDrop: 0.7, noiseAmt: 0.25, cutoff: 900, decay: 0.06, rng });
+  return thump(n, {
+    baseFreq: 180,
+    pitchDrop: 0.7,
+    noiseAmt: 0.25,
+    cutoff: 900,
+    decay: 0.06,
+    rng,
+  });
 }
 
 function genKickShot(seed) {
@@ -188,21 +225,53 @@ function genKickShot(seed) {
   // Leather "thwack" — a short bandpassed-noise snap, the foot striking the
   // ball. This attack transient is what reads as a hard STRIKE vs a soft pass.
   const thwackN = secondsToSamples(0.022);
-  const thwack = resize(applyEnv(bandpass(noiseWhite(thwackN, rng), 1400, 3800), decayEnv(thwackN, { attack: 0.0004, decay: 0.016 })), n);
+  const thwack = resize(
+    applyEnv(
+      bandpass(noiseWhite(thwackN, rng), 1400, 3800),
+      decayEnv(thwackN, { attack: 0.0004, decay: 0.016 }),
+    ),
+    n,
+  );
   // Deep bass punch — sine glide from higher, longer decay for weight/thunk.
-  const punch = applyEnv(oscSine(n, expGlide(160, 46, 0.11)), decayEnv(n, { attack: 0.001, decay: 0.17 }));
+  const punch = applyEnv(
+    oscSine(n, expGlide(160, 46, 0.11)),
+    decayEnv(n, { attack: 0.001, decay: 0.17 }),
+  );
   // Mid thump body.
-  const body = thump(n, { baseFreq: 130, pitchDrop: 0.55, noiseAmt: 0.35, cutoff: 1100, decay: 0.11, rng });
+  const body = thump(n, {
+    baseFreq: 130,
+    pitchDrop: 0.55,
+    noiseAmt: 0.35,
+    cutoff: 1100,
+    decay: 0.11,
+    rng,
+  });
   // softClip glues the layers and lifts RMS so the strike cuts over the music.
-  return softClip(mix([{ buf: thwack, gain: 0.75 }, { buf: body, gain: 0.7 }, { buf: punch, gain: 1.0 }]), 1.35);
+  return softClip(
+    mix([
+      { buf: thwack, gain: 0.75 },
+      { buf: body, gain: 0.7 },
+      { buf: punch, gain: 1.0 },
+    ]),
+    1.35,
+  );
 }
 
 function genBallBounce(seed) {
   const rng = mulberry32(seed);
   const n = secondsToSamples(0.05);
-  const click = applyEnv(highpass(noiseWhite(n, rng), 1200), decayEnv(n, { attack: 0.0005, decay: 0.02 }));
-  const tick = applyEnv(oscSine(n, 300), decayEnv(n, { attack: 0.0005, decay: 0.025 }));
-  return mix([{ buf: click, gain: 0.7 }, { buf: tick, gain: 0.5 }]);
+  const click = applyEnv(
+    highpass(noiseWhite(n, rng), 1200),
+    decayEnv(n, { attack: 0.0005, decay: 0.02 }),
+  );
+  const tick = applyEnv(
+    oscSine(n, 300),
+    decayEnv(n, { attack: 0.0005, decay: 0.025 }),
+  );
+  return mix([
+    { buf: click, gain: 0.7 },
+    { buf: tick, gain: 0.5 },
+  ]);
 }
 
 function genDuelScuff(seed) {
@@ -211,9 +280,18 @@ function genDuelScuff(seed) {
   // Studs skidding across turf, not a body landing: a band-limited scrape with a
   // very fast decay over a low pink-noise brush so it reads as two players
   // colliding rather than a click. Deliberately the quietest match sound.
-  const scrape = applyEnv(bandpass(noiseWhite(n, rng), 900, 4200), decayEnv(n, { attack: 0.002, decay: 0.05 }));
-  const brush = applyEnv(lowpass(noisePink(n, rng), 400), decayEnv(n, { attack: 0.001, decay: 0.03 }));
-  return mix([{ buf: scrape, gain: 0.6 }, { buf: brush, gain: 0.4 }]);
+  const scrape = applyEnv(
+    bandpass(noiseWhite(n, rng), 900, 4200),
+    decayEnv(n, { attack: 0.002, decay: 0.05 }),
+  );
+  const brush = applyEnv(
+    lowpass(noisePink(n, rng), 400),
+    decayEnv(n, { attack: 0.001, decay: 0.03 }),
+  );
+  return mix([
+    { buf: scrape, gain: 0.6 },
+    { buf: brush, gain: 0.4 },
+  ]);
 }
 
 function genDecoyPop(seed) {
@@ -224,7 +302,10 @@ function genDecoyPop(seed) {
   // football bouncing on turf.
   const clickN = secondsToSamples(0.025);
   const click = resize(
-    applyEnv(highpass(noiseWhite(clickN, rng), 1800), decayEnv(clickN, { attack: 0.0005, decay: 0.018 })),
+    applyEnv(
+      highpass(noiseWhite(clickN, rng), 1800),
+      decayEnv(clickN, { attack: 0.0005, decay: 0.018 }),
+    ),
     n,
   );
   const bubble = applyEnv(
@@ -235,11 +316,14 @@ function genDecoyPop(seed) {
     oscTriangle(n, expGlide(1500, 900, 0.08)),
     decayEnv(n, { attack: 0.001, decay: 0.07 }),
   );
-  return softClip(mix([
-    { buf: click, gain: 0.85 },
-    { buf: bubble, gain: 0.9 },
-    { buf: sparkle, gain: 0.18 },
-  ]), 1.1);
+  return softClip(
+    mix([
+      { buf: click, gain: 0.85 },
+      { buf: bubble, gain: 0.9 },
+      { buf: sparkle, gain: 0.18 },
+    ]),
+    1.1,
+  );
 }
 
 function genPostDing() {
@@ -251,7 +335,12 @@ function genNetSwish(seed) {
   const rng = mulberry32(seed);
   const n = secondsToSamples(0.35);
   const swept = sweepBand(noiseWhite(n, rng), [2200, 400], [4200, 1400], 10);
-  const env = adsr(n, { attack: 0.04, decay: 0.05, sustain: 0.45, release: 0.2 });
+  const env = adsr(n, {
+    attack: 0.04,
+    decay: 0.05,
+    sustain: 0.45,
+    release: 0.2,
+  });
   return applyEnv(swept, env);
 }
 
@@ -266,28 +355,38 @@ function genGoalFanfare(seed) {
       { buf: oscTriangle(noteN, note(name) * 2), gain: 0.25 },
     ]);
     const isLast = i === names.length - 1;
-    const buf = applyEnv(tone, decayEnv(noteN, { attack: 0.005, decay: isLast ? 0.5 : 0.16 }));
-    return { buf, gain: 0.9, offset: Math.round(i * noteDur * 0.85 * SAMPLE_RATE) };
+    const buf = applyEnv(
+      tone,
+      decayEnv(noteN, { attack: 0.005, decay: isLast ? 0.5 : 0.16 }),
+    );
+    return {
+      buf,
+      gain: 0.9,
+      offset: Math.round(i * noteDur * 0.85 * SAMPLE_RATE),
+    };
   });
   const totalN = secondsToSamples(1.3);
   const arp = resize(mix(layers), totalN);
-  const swell = applyEnv(bandpass(noisePink(totalN, rng), 400, 3000), adsr(totalN, { attack: 0.15, decay: 0.1, sustain: 0.5, release: 0.5 }));
-  return mix([{ buf: arp, gain: 1 }, { buf: swell, gain: 0.35 }]);
-}
-
-function genCrowdCheer(seed) {
-  const rng = mulberry32(seed);
-  const n = secondsToSamples(1.4);
-  const wobbled = wobbleBand(noisePink(n, rng), 1000, 500, 3.5, 900, 14);
-  const env = adsr(n, { attack: 0.1, decay: 0.15, sustain: 0.7, release: 0.4 });
-  return applyEnv(wobbled, env);
+  const swell = applyEnv(
+    bandpass(noisePink(totalN, rng), 400, 3000),
+    adsr(totalN, { attack: 0.15, decay: 0.1, sustain: 0.5, release: 0.5 }),
+  );
+  return mix([
+    { buf: arp, gain: 1 },
+    { buf: swell, gain: 0.35 },
+  ]);
 }
 
 function genCrowdOoh(seed) {
   const rng = mulberry32(seed);
   const n = secondsToSamples(1.2);
   const swept = sweepBand(noisePink(n, rng), [2200, 500], [3600, 1200], 14);
-  const env = adsr(n, { attack: 0.06, decay: 0.25, sustain: 0.4, release: 0.5 });
+  const env = adsr(n, {
+    attack: 0.06,
+    decay: 0.25,
+    sustain: 0.4,
+    release: 0.5,
+  });
   return applyEnv(swept, env);
 }
 
@@ -305,7 +404,11 @@ function genCrowdAmbient(seed) {
   const shaped = new Float32Array(n);
   for (let i = 0; i < n; i++) {
     const t = i / SAMPLE_RATE;
-    const mod = 0.75 + 0.15 * Math.sin(2 * Math.PI * 0.125 * t) + 0.08 * Math.sin(2 * Math.PI * 0.375 * t + 1.7) + 0.05 * Math.sin(2 * Math.PI * 0.25 * t + 0.4);
+    const mod =
+      0.75 +
+      0.15 * Math.sin(2 * Math.PI * 0.125 * t) +
+      0.08 * Math.sin(2 * Math.PI * 0.375 * t + 1.7) +
+      0.05 * Math.sin(2 * Math.PI * 0.25 * t + 0.4);
     shaped[i] = murmur[i] * mod;
   }
   return crossfadeLoop(shaped, fadeN);
@@ -314,7 +417,14 @@ function genCrowdAmbient(seed) {
 function genTackleThud(seed) {
   const rng = mulberry32(seed);
   const n = secondsToSamples(0.19);
-  return thump(n, { baseFreq: 90, pitchDrop: 0.55, noiseAmt: 0.6, cutoff: 700, decay: 0.13, rng });
+  return thump(n, {
+    baseFreq: 90,
+    pitchDrop: 0.55,
+    noiseAmt: 0.6,
+    cutoff: 700,
+    decay: 0.13,
+    rng,
+  });
 }
 
 function genGrunt(seed) {
@@ -328,9 +438,18 @@ function genGrunt(seed) {
 function genSaveSlap(seed) {
   const rng = mulberry32(seed);
   const n = secondsToSamples(0.19);
-  const slap = applyEnv(highpass(noiseWhite(n, rng), 2000), decayEnv(n, { attack: 0.001, decay: 0.05 }));
-  const low = applyEnv(oscSine(n, expGlide(110, 60, 0.15)), decayEnv(n, { attack: 0.001, decay: 0.12 }));
-  return mix([{ buf: slap, gain: 0.7 }, { buf: low, gain: 0.7 }]);
+  const slap = applyEnv(
+    highpass(noiseWhite(n, rng), 2000),
+    decayEnv(n, { attack: 0.001, decay: 0.05 }),
+  );
+  const low = applyEnv(
+    oscSine(n, expGlide(110, 60, 0.15)),
+    decayEnv(n, { attack: 0.001, decay: 0.12 }),
+  );
+  return mix([
+    { buf: slap, gain: 0.7 },
+    { buf: low, gain: 0.7 },
+  ]);
 }
 
 function genCardWhistle(seed) {
@@ -339,8 +458,16 @@ function genCardWhistle(seed) {
   const tone = oscTriangle(n, 3200);
   const overtone = gainBuf(oscTriangle(n, 3200 * 3), 0.2);
   const breath = gainBuf(bandpass(noiseWhite(n, rng), 2500, 5000), 0.1);
-  const env = adsr(n, { attack: 0.003, decay: 0.02, sustain: 0.8, release: 0.03 });
-  return applyEnv(mix([{ buf: tone }, { buf: overtone }, { buf: breath }]), env);
+  const env = adsr(n, {
+    attack: 0.003,
+    decay: 0.02,
+    sustain: 0.8,
+    release: 0.03,
+  });
+  return applyEnv(
+    mix([{ buf: tone }, { buf: overtone }, { buf: breath }]),
+    env,
+  );
 }
 
 function genCrowdJeer(seed) {
@@ -374,8 +501,14 @@ function genZoneEnter(seed) {
   }));
   const totalN = secondsToSamples(0.6);
   const arp = resize(mix(layers), totalN);
-  const sparkle = applyEnv(highpass(noiseWhite(totalN, rng), 6000), decayEnv(totalN, { attack: 0.01, decay: 0.25 }));
-  return mix([{ buf: arp, gain: 1 }, { buf: sparkle, gain: 0.12 }]);
+  const sparkle = applyEnv(
+    highpass(noiseWhite(totalN, rng), 6000),
+    decayEnv(totalN, { attack: 0.01, decay: 0.25 }),
+  );
+  return mix([
+    { buf: arp, gain: 1 },
+    { buf: sparkle, gain: 0.12 },
+  ]);
 }
 
 function genZoneExpire(seed) {
@@ -383,9 +516,18 @@ function genZoneExpire(seed) {
   const n = secondsToSamples(0.38);
   const tone = oscTriangle(n, expGlide(500, 120, 0.35));
   const soft = lowpass(tone, 1400);
-  const body = applyEnv(soft, adsr(n, { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.2 }));
-  const breath = applyEnv(lowpass(noiseWhite(n, rng), 500), decayEnv(n, { attack: 0.01, decay: 0.2 }));
-  return mix([{ buf: body, gain: 0.8 }, { buf: breath, gain: 0.15 }]);
+  const body = applyEnv(
+    soft,
+    adsr(n, { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.2 }),
+  );
+  const breath = applyEnv(
+    lowpass(noiseWhite(n, rng), 500),
+    decayEnv(n, { attack: 0.01, decay: 0.2 }),
+  );
+  return mix([
+    { buf: body, gain: 0.8 },
+    { buf: breath, gain: 0.15 },
+  ]);
 }
 
 function genWindupRiser(seed) {
@@ -394,7 +536,10 @@ function genWindupRiser(seed) {
   const n = secondsToSamples(dur);
   const tone = gainBuf(oscSaw(n, expGlide(220, 950, dur)), 0.5);
   const softened = lowpass(tone, 3000);
-  const risingTone = applyEnv(softened, adsr(n, { attack: 0.05, decay: 0, sustain: 0.8, release: 0.15 }));
+  const risingTone = applyEnv(
+    softened,
+    adsr(n, { attack: 0.05, decay: 0, sustain: 0.8, release: 0.15 }),
+  );
 
   const tickCount = 15;
   const tickLayers = [];
@@ -402,7 +547,10 @@ function genWindupRiser(seed) {
     const tNorm = (i / (tickCount - 1)) ** 0.6; // concave -> gaps shrink -> accelerating
     const startSample = Math.min(n - 1, Math.round(tNorm * dur * SAMPLE_RATE));
     const tickN = secondsToSamples(0.02);
-    const tick = applyEnv(highpass(noiseWhite(tickN, rng), 2000), decayEnv(tickN, { attack: 0.0005, decay: 0.015 }));
+    const tick = applyEnv(
+      highpass(noiseWhite(tickN, rng), 2000),
+      decayEnv(tickN, { attack: 0.0005, decay: 0.015 }),
+    );
     tickLayers.push({ buf: tick, gain: 0.5, offset: startSample });
   }
   return mix([{ buf: risingTone, gain: 1 }, ...tickLayers]);
@@ -413,9 +561,18 @@ function genPowerInterrupt(seed) {
   const n = secondsToSamples(0.3);
   const tone = oscSquare(n, expGlide(1200, 150, 0.28), 0.5); // duty != 0.5 biases DC (2*duty-1) — see oscSquare
   const gate = stutterGate(n, rng, 45, 0.12);
-  const stuttered = applyEnv(applyEnv(tone, decayEnv(n, { attack: 0.002, decay: 0.22 })), gate);
-  const noiseBurst = applyEnv(highpass(noiseWhite(n, rng), 1500), decayEnv(n, { attack: 0.001, decay: 0.05 }));
-  return mix([{ buf: stuttered, gain: 0.8 }, { buf: noiseBurst, gain: 0.3 }]);
+  const stuttered = applyEnv(
+    applyEnv(tone, decayEnv(n, { attack: 0.002, decay: 0.22 })),
+    gate,
+  );
+  const noiseBurst = applyEnv(
+    highpass(noiseWhite(n, rng), 1500),
+    decayEnv(n, { attack: 0.001, decay: 0.05 }),
+  );
+  return mix([
+    { buf: stuttered, gain: 0.8 },
+    { buf: noiseBurst, gain: 0.3 },
+  ]);
 }
 
 function genSuperSpeedWhoosh(seed) {
@@ -426,7 +583,12 @@ function genSuperSpeedWhoosh(seed) {
   const rising = sweepBand(noise.slice(0, half), [300, 900], [2200, 4500], 8);
   const falling = sweepBand(noise.slice(half), [900, 300], [4500, 1200], 8);
   const swept = resize(concat([rising, falling]), n);
-  const env = adsr(n, { attack: 0.08, decay: 0.05, sustain: 0.6, release: 0.15 });
+  const env = adsr(n, {
+    attack: 0.08,
+    decay: 0.05,
+    sustain: 0.6,
+    release: 0.15,
+  });
   return applyEnv(swept, env);
 }
 
@@ -484,25 +646,37 @@ function genPhaseShift(seed) {
     oscSine(n, expGlide(900, 180, 0.4)),
     adsr(n, { attack: 0.03, decay: 0.04, sustain: 0.45, release: 0.16 }),
   );
-  const air = applyEnv(swept, adsr(n, { attack: 0.025, decay: 0.04, sustain: 0.55, release: 0.14 }));
-  return mix([{ buf: air, gain: 0.65 }, { buf: hollow, gain: 0.4 }]);
+  const air = applyEnv(
+    swept,
+    adsr(n, { attack: 0.025, decay: 0.04, sustain: 0.55, release: 0.14 }),
+  );
+  return mix([
+    { buf: air, gain: 0.65 },
+    { buf: hollow, gain: 0.4 },
+  ]);
 }
 
 function genPortalWarp(seed) {
   const rng = mulberry32(seed);
   const n = secondsToSamples(0.65);
   const swirl = sweepBand(noiseWhite(n, rng), [250, 1800], [1700, 6200], 14);
-  const swirlEnv = applyEnv(swirl, adsr(n, { attack: 0.06, decay: 0.05, sustain: 0.5, release: 0.22 }));
+  const swirlEnv = applyEnv(
+    swirl,
+    adsr(n, { attack: 0.06, decay: 0.05, sustain: 0.5, release: 0.22 }),
+  );
   const whoomp = applyEnv(
     oscSine(n, expGlide(150, 48, 0.5)),
     decayEnv(n, { attack: 0.012, decay: 0.45 }),
   );
   const shield = chimeNote(n, note('C6'), 0.42);
-  return resize(mix([
-    { buf: swirlEnv, gain: 0.5 },
-    { buf: whoomp, gain: 0.7 },
-    { buf: shield, gain: 0.35, offset: secondsToSamples(0.16) },
-  ]), n);
+  return resize(
+    mix([
+      { buf: swirlEnv, gain: 0.5 },
+      { buf: whoomp, gain: 0.7 },
+      { buf: shield, gain: 0.35, offset: secondsToSamples(0.16) },
+    ]),
+    n,
+  );
 }
 
 function genFutureSightRead(seed) {
@@ -515,7 +689,11 @@ function genFutureSightRead(seed) {
       highpass(noiseWhite(tickN, rng), 3800),
       decayEnv(tickN, { attack: 0.0005, decay: 0.02 }),
     );
-    layers.push({ buf: tick, gain: 0.55 + i * 0.15, offset: secondsToSamples(0.1 * i) });
+    layers.push({
+      buf: tick,
+      gain: 0.55 + i * 0.15,
+      offset: secondsToSamples(0.1 * i),
+    });
   }
   const visionPing = chimeNote(secondsToSamples(0.34), note('E6'), 0.3);
   layers.push({ buf: visionPing, gain: 0.85, offset: secondsToSamples(0.21) });
@@ -528,7 +706,10 @@ function genFutureSightIntercept(seed) {
   const sweep = sweepBand(noiseWhite(n, rng), [5000, 500], [8500, 3000], 10);
   const air = applyEnv(sweep, decayEnv(n, { attack: 0.012, decay: 0.24 }));
   const catchPing = metallicPing(n, 920, [1, 2.6, 4.1]);
-  return mix([{ buf: air, gain: 0.55 }, { buf: catchPing, gain: 0.5 }]);
+  return mix([
+    { buf: air, gain: 0.55 },
+    { buf: catchPing, gain: 0.5 },
+  ]);
 }
 
 function genWebCast(seed) {
@@ -540,7 +721,10 @@ function genWebCast(seed) {
     oscTriangle(n, expGlide(780, 260, 0.28)),
     decayEnv(n, { attack: 0.001, decay: 0.2 }),
   );
-  return mix([{ buf: flick, gain: 0.5 }, { buf: twang, gain: 0.55 }]);
+  return mix([
+    { buf: flick, gain: 0.5 },
+    { buf: twang, gain: 0.55 },
+  ]);
 }
 
 function genWebSpring(seed) {
@@ -554,7 +738,10 @@ function genWebSpring(seed) {
     bandpass(noiseWhite(n, rng), 900, 5500),
     adsr(n, { attack: 0.005, decay: 0.06, sustain: 0.25, release: 0.22 }),
   );
-  return mix([{ buf: snap, gain: 0.8 }, { buf: fibers, gain: 0.45 }]);
+  return mix([
+    { buf: snap, gain: 0.8 },
+    { buf: fibers, gain: 0.45 },
+  ]);
 }
 
 function genKeeperStretch(seed) {
@@ -563,9 +750,18 @@ function genKeeperStretch(seed) {
   const up = oscTriangle(halfN, expGlide(170, 680, 0.23));
   const down = oscTriangle(halfN, expGlide(680, 220, 0.23));
   const n = halfN * 2;
-  const rubber = applyEnv(concat([up, down]), adsr(n, { attack: 0.01, decay: 0.04, sustain: 0.55, release: 0.12 }));
-  const squeak = applyEnv(highpass(noiseWhite(n, rng), 3200), decayEnv(n, { attack: 0.004, decay: 0.25 }));
-  return mix([{ buf: rubber, gain: 0.75 }, { buf: squeak, gain: 0.12 }]);
+  const rubber = applyEnv(
+    concat([up, down]),
+    adsr(n, { attack: 0.01, decay: 0.04, sustain: 0.55, release: 0.12 }),
+  );
+  const squeak = applyEnv(
+    highpass(noiseWhite(n, rng), 3200),
+    decayEnv(n, { attack: 0.004, decay: 0.25 }),
+  );
+  return mix([
+    { buf: rubber, gain: 0.75 },
+    { buf: squeak, gain: 0.12 },
+  ]);
 }
 
 function genIceFreeze(seed) {
@@ -587,12 +783,18 @@ function genIceSlide(seed) {
   const rng = mulberry32(seed);
   const n = secondsToSamples(0.75);
   const scrape = sweepBand(noiseWhite(n, rng), [4200, 1600], [8200, 4800], 16);
-  const glide = applyEnv(scrape, adsr(n, { attack: 0.03, decay: 0.04, sustain: 0.55, release: 0.22 }));
+  const glide = applyEnv(
+    scrape,
+    adsr(n, { attack: 0.03, decay: 0.04, sustain: 0.55, release: 0.22 }),
+  );
   const squeal = applyEnv(
     oscSine(n, expGlide(1400, 520, 0.68)),
     adsr(n, { attack: 0.05, decay: 0.06, sustain: 0.22, release: 0.22 }),
   );
-  return mix([{ buf: glide, gain: 0.5 }, { buf: squeal, gain: 0.24 }]);
+  return mix([
+    { buf: glide, gain: 0.5 },
+    { buf: squeal, gain: 0.24 },
+  ]);
 }
 
 function genShadowBurrow(seed) {
@@ -606,7 +808,13 @@ function genShadowBurrow(seed) {
     lowpass(noisePink(n, rng), 900),
     adsr(n, { attack: 0.01, decay: 0.07, sustain: 0.4, release: 0.2 }),
   );
-  return highpass(mix([{ buf: rumble, gain: 0.7 }, { buf: dirt, gain: 0.55 }]), 28);
+  return highpass(
+    mix([
+      { buf: rumble, gain: 0.7 },
+      { buf: dirt, gain: 0.55 },
+    ]),
+    28,
+  );
 }
 
 function genShadowEmerge(seed) {
@@ -621,7 +829,11 @@ function genShadowEmerge(seed) {
     decayEnv(n, { attack: 0.001, decay: 0.2 }),
   );
   const steal = metallicPing(n, 760, [1, 2.2, 3.7]);
-  return mix([{ buf: rise, gain: 0.65 }, { buf: burst, gain: 0.55 }, { buf: steal, gain: 0.28 }]);
+  return mix([
+    { buf: rise, gain: 0.65 },
+    { buf: burst, gain: 0.55 },
+    { buf: steal, gain: 0.28 },
+  ]);
 }
 
 function genGiantGrow(seed) {
@@ -633,12 +845,18 @@ function genGiantGrow(seed) {
   );
   const softened = lowpass(body, 1100);
   const chord = chordHit(secondsToSamples(0.42), ['C3', 'G3', 'C4'], 0.38);
-  const air = applyEnv(lowpass(noiseWhite(n, rng), 600), decayEnv(n, { attack: 0.02, decay: 0.45 }));
-  return softClip(mix([
-    { buf: softened, gain: 0.65 },
-    { buf: chord, gain: 0.55, offset: secondsToSamples(0.18) },
-    { buf: air, gain: 0.16 },
-  ]), 1.15);
+  const air = applyEnv(
+    lowpass(noiseWhite(n, rng), 600),
+    decayEnv(n, { attack: 0.02, decay: 0.45 }),
+  );
+  return softClip(
+    mix([
+      { buf: softened, gain: 0.65 },
+      { buf: chord, gain: 0.55, offset: secondsToSamples(0.18) },
+      { buf: air, gain: 0.16 },
+    ]),
+    1.15,
+  );
 }
 
 function genSuperStrengthBoom(seed) {
@@ -651,34 +869,71 @@ function genSuperStrengthBoom(seed) {
     const t = i / (stepCount - 1);
     const stepLen = secondsToSamples(0.09);
     const g = 0.3 + 0.5 * t;
-    const step = thump(stepLen, { baseFreq: 70, pitchDrop: 0.8, noiseAmt: 0.5, cutoff: 500, decay: 0.06, rng });
-    steps.push({ buf: step, gain: g, offset: Math.round(t * (stepDur - 0.09) * SAMPLE_RATE) });
+    const step = thump(stepLen, {
+      baseFreq: 70,
+      pitchDrop: 0.8,
+      noiseAmt: 0.5,
+      cutoff: 500,
+      decay: 0.06,
+      rng,
+    });
+    steps.push({
+      buf: step,
+      gain: g,
+      offset: Math.round(t * (stepDur - 0.09) * SAMPLE_RATE),
+    });
   }
   const rumble = mix(steps);
 
   const impactN = secondsToSamples(0.35);
   const impactKnock = oscSine(impactN, expGlide(70, 35, 0.3));
   const impactNoise = lowpass(noiseWhite(impactN, rng), 900);
-  const impactRaw = mix([{ buf: impactKnock, gain: 1.1 }, { buf: impactNoise, gain: 0.6 }]);
-  const impact = softClip(applyEnv(impactRaw, decayEnv(impactN, { attack: 0.001, decay: 0.28 })), 2.2);
+  const impactRaw = mix([
+    { buf: impactKnock, gain: 1.1 },
+    { buf: impactNoise, gain: 0.6 },
+  ]);
+  const impact = softClip(
+    applyEnv(impactRaw, decayEnv(impactN, { attack: 0.001, decay: 0.28 })),
+    2.2,
+  );
 
-  return mix([{ buf: rumble, gain: 1 }, { buf: impact, gain: 1, offset: stepN }]);
+  return mix([
+    { buf: rumble, gain: 1 },
+    { buf: impact, gain: 1, offset: stepN },
+  ]);
 }
 
 function genFireTorchIgnite(seed) {
   const rng = mulberry32(seed);
   const n = secondsToSamples(0.5);
-  const whoomp = applyEnv(lowpass(noiseWhite(n, rng), 500), adsr(n, { attack: 0.06, decay: 0.1, sustain: 0.4, release: 0.25 }));
-  const whoompTone = applyEnv(oscSine(n, expGlide(150, 90, 0.3)), decayEnv(n, { attack: 0.02, decay: 0.3 }));
+  const whoomp = applyEnv(
+    lowpass(noiseWhite(n, rng), 500),
+    adsr(n, { attack: 0.06, decay: 0.1, sustain: 0.4, release: 0.25 }),
+  );
+  const whoompTone = applyEnv(
+    oscSine(n, expGlide(150, 90, 0.3)),
+    decayEnv(n, { attack: 0.02, decay: 0.3 }),
+  );
 
   const crackles = [];
   for (let i = 0; i < 10; i++) {
     const startSample = Math.round(rng() * 0.85 * n);
     const cN = secondsToSamples(0.02 + rng() * 0.02);
-    const crackle = applyEnv(highpass(noiseWhite(cN, rng), 2500), decayEnv(cN, { attack: 0.0005, decay: 0.012 }));
-    crackles.push({ buf: crackle, gain: 0.35 + rng() * 0.3, offset: startSample });
+    const crackle = applyEnv(
+      highpass(noiseWhite(cN, rng), 2500),
+      decayEnv(cN, { attack: 0.0005, decay: 0.012 }),
+    );
+    crackles.push({
+      buf: crackle,
+      gain: 0.35 + rng() * 0.3,
+      offset: startSample,
+    });
   }
-  return mix([{ buf: whoomp, gain: 0.7 }, { buf: whoompTone, gain: 0.5 }, ...crackles]);
+  return mix([
+    { buf: whoomp, gain: 0.7 },
+    { buf: whoompTone, gain: 0.5 },
+    ...crackles,
+  ]);
 }
 
 function genExtinguisherSpray(seed) {
@@ -705,8 +960,12 @@ function genExtinguisherSpray(seed) {
   while (pos < n) gate[pos++] = 0;
   const wobble = noiseWhite(n, rng); // subtle jitter so the steady spray isn't perfectly flat
   const shaped = new Float32Array(n);
-  for (let i = 0; i < n; i++) shaped[i] = hiss[i] * gate[i] * (0.85 + 0.15 * wobble[i]);
-  return applyEnv(shaped, adsr(n, { attack: 0.005, decay: 0, sustain: 1, release: 0.05 }));
+  for (let i = 0; i < n; i++)
+    shaped[i] = hiss[i] * gate[i] * (0.85 + 0.15 * wobble[i]);
+  return applyEnv(
+    shaped,
+    adsr(n, { attack: 0.005, decay: 0, sustain: 1, release: 0.05 }),
+  );
 }
 
 function genMatchEndSting() {
@@ -714,7 +973,10 @@ function genMatchEndSting() {
   const chord2Len = secondsToSamples(0.7);
   const chord1 = chordHit(chord1Len, ['G4', 'B4', 'D5'], 0.3);
   const chord2 = chordHit(chord2Len, ['C4', 'E4', 'G4', 'C5'], 0.6);
-  return mix([{ buf: chord1, gain: 0.8 }, { buf: chord2, gain: 0.9, offset: secondsToSamples(0.32) }]);
+  return mix([
+    { buf: chord1, gain: 0.8 },
+    { buf: chord2, gain: 0.9, offset: secondsToSamples(0.32) },
+  ]);
 }
 
 // ---- driver ----
@@ -729,7 +991,6 @@ const GENERATORS = {
   'post-ding': genPostDing,
   'net-swish': genNetSwish,
   'goal-fanfare': genGoalFanfare,
-  'crowd-cheer': genCrowdCheer,
   'crowd-ooh': genCrowdOoh,
   'crowd-ambient': genCrowdAmbient,
   'tackle-thud': genTackleThud,
@@ -781,13 +1042,18 @@ export function generateAllSfx(outDir = OUT_DIR, only = []) {
     if (only.length > 0 && !only.includes(entry.name)) return;
     const gen = GENERATORS[entry.name];
     if (!gen) throw new Error(`no generator registered for "${entry.name}"`);
-    const seed = 1000 + index;
+    // Seed slot 9 belonged to the removed crowd-cheer asset. Preserve that gap
+    // so removing an unused catalog entry does not regenerate every later SFX.
+    const historicIndex = index >= 9 ? index + 1 : index;
+    const seed = 1000 + historicIndex;
     const finalBuf = normalize(gen(seed), entry.targetDb);
     const path = join(outDir, `${entry.name}.wav`);
     saveWav(path, finalBuf, SAMPLE_RATE);
     const ms = (finalBuf.length / SAMPLE_RATE) * 1000;
     results.push({ name: entry.name, ms, path });
-    console.log(`${entry.name}.wav  ${ms.toFixed(0)}ms  peak ${entry.targetDb}dBFS`);
+    console.log(
+      `${entry.name}.wav  ${ms.toFixed(0)}ms  peak ${entry.targetDb}dBFS`,
+    );
   });
   return results;
 }

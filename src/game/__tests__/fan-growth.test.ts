@@ -8,7 +8,11 @@ import {
   offerCareerEvent,
   selectCareerEventPlayer,
 } from '../career-events';
-import { FIRST_FAN_GAIN_FLAG, hasEverGainedFans, recordFanGain } from '../fan-growth';
+import {
+  FIRST_FAN_GAIN_FLAG,
+  hasEverGainedFans,
+  recordFanGain,
+} from '../fan-growth';
 import type { GameState } from '../types';
 
 /**
@@ -26,9 +30,9 @@ describe('first fan gain', () => {
     const first = recordFanGain(fresh(), 6);
 
     expect(hasEverGainedFans(first)).toBe(true);
-    expect(first.eventFlags.filter(flag => flag === FIRST_FAN_GAIN_FLAG)).toEqual([
-      FIRST_FAN_GAIN_FLAG,
-    ]);
+    expect(
+      first.eventFlags.filter((flag) => flag === FIRST_FAN_GAIN_FLAG),
+    ).toEqual([FIRST_FAN_GAIN_FLAG]);
     // Same state back, so a re-record cannot churn the save.
     expect(recordFanGain(first, 120)).toBe(first);
   });
@@ -90,9 +94,12 @@ describe('first fan gain', () => {
     // later that raises the count owes this call too — the only other file that
     // touches the number is board-ultimatum.ts, and it only ever subtracts.
     for (const name of ['career.ts', 'career-events.ts', 'full-career.ts']) {
-      expect(readFileSync(join(gameDir, name), 'utf8')).toContain('recordFanGain');
+      expect(readFileSync(join(gameDir, name), 'utf8')).toContain(
+        'recordFanGain',
+      );
     }
-    expect(readFileSync(join(gameDir, 'board-ultimatum.ts'), 'utf8'))
-      .toContain('fans: Math.max(0, club.fans - resolution.fansLost)');
+    expect(readFileSync(join(gameDir, 'board-ultimatum.ts'), 'utf8')).toContain(
+      'fans: Math.max(0, club.fans - resolution.fansLost)',
+    );
   });
 });

@@ -2,9 +2,8 @@ import type { DifficultyMode, GameState } from './types';
 
 /**
  * The mode a career plays at when it has no recorded difficulty: pre-difficulty
- * saves and the measurement fixtures that build a state directly. It is NOT the
- * new-game default — the first-hire picker leads with Chairman and always
- * commits a choice, so this never decides what a fresh career plays.
+ * saves, new careers before the first-hire picker commits its choice, and the
+ * measurement fixtures that build a state directly.
  *
  * Keep it Cozy. The balance rails read it as "the Cozy curve", so flipping it
  * silently re-points the Season-1 Cozy bankruptcy harness at Chairman.
@@ -70,15 +69,20 @@ const RULES: Record<DifficultyMode, DifficultyRules> = {
   },
 };
 
-export function careerDifficulty(state: Pick<GameState, 'difficulty'>): DifficultyMode {
+export function careerDifficulty(
+  state: Pick<GameState, 'difficulty'>,
+): DifficultyMode {
   return state.difficulty ?? DEFAULT_DIFFICULTY;
 }
 
-export function difficultyRules(state: Pick<GameState, 'difficulty'>): DifficultyRules {
+export function difficultyRules(
+  state: Pick<GameState, 'difficulty'>,
+): DifficultyRules {
   return RULES[careerDifficulty(state)];
 }
 
 export function validateDifficulty(value: DifficultyMode): DifficultyMode {
-  if (value !== 'COZY' && value !== 'CHAIRMAN') throw new Error(`unknown difficulty ${String(value)}`);
+  if (value !== 'COZY' && value !== 'CHAIRMAN')
+    throw new Error(`unknown difficulty ${String(value)}`);
   return value;
 }

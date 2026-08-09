@@ -41,10 +41,16 @@ export function HallOfFameScreen({
           : {})}
         className="border-b-2 border-ink pb-4"
       >
-        <PixelText className="text-sm uppercase tracking-[3px] text-blue-dark">{viewModel.kicker}</PixelText>
-        <Text className="mt-1 font-pixel text-2xl uppercase text-ink">{viewModel.title}</Text>
+        <PixelText className="text-sm uppercase tracking-[3px] text-blue-dark">
+          {viewModel.kicker}
+        </PixelText>
+        <Text className="mt-1 font-pixel text-2xl uppercase text-ink">
+          {viewModel.title}
+        </Text>
         <Text className="mt-2 text-sm leading-5 text-ink/60">
-          {viewModel.status === 'complete' ? viewModel.subheading : viewModel.headline}
+          {viewModel.status === 'complete'
+            ? viewModel.subheading
+            : viewModel.headline}
         </Text>
       </View>
 
@@ -63,9 +69,11 @@ export function HallOfFameScreen({
             {viewModel.lines.map((line, index) => (
               <Text
                 key={line}
-                className={index === 0
-                  ? 'text-base leading-6 text-ink'
-                  : 'mt-2 text-sm leading-5 text-ink/60'}
+                className={
+                  index === 0
+                    ? 'text-base leading-6 text-ink'
+                    : 'mt-2 text-sm leading-5 text-ink/60'
+                }
               >
                 {line}
               </Text>
@@ -73,44 +81,66 @@ export function HallOfFameScreen({
           </View>
         ) : (
           <View accessible={false}>
-            <Text className="mb-2 font-pixel text-base uppercase text-blue-dark">{viewModel.headline}</Text>
+            <Text className="mb-2 font-pixel text-base uppercase text-blue-dark">
+              {viewModel.headline}
+            </Text>
             <StatList rows={viewModel.stats} />
 
-            <Text className="mb-2 mt-6 font-pixel text-base uppercase text-blue-dark">{t('hallOfFame.honours')}</Text>
+            <Text className="mb-2 mt-6 font-pixel text-base uppercase text-blue-dark">
+              {t('hallOfFame.honours')}
+            </Text>
             {viewModel.honours.length === 0 ? (
               <View className="border-2 border-ink/25 bg-paper-dark px-3 py-4">
-                <Text className="text-center text-sm text-ink/60">{viewModel.honoursEmptyLabel}</Text>
+                <Text className="text-center text-sm text-ink/60">
+                  {viewModel.honoursEmptyLabel}
+                </Text>
               </View>
             ) : (
               <View className="border-2 border-gold-dark bg-gold-light">
                 {viewModel.honours.map((honour, index) => (
                   <View
                     key={honour.id}
-                    className={index === viewModel.honours.length - 1
-                      ? 'px-3 py-3'
-                      : 'border-b border-gold-dark/40 px-3 py-3'}
+                    className={
+                      index === viewModel.honours.length - 1
+                        ? 'px-3 py-3'
+                        : 'border-b border-gold-dark/40 px-3 py-3'
+                    }
                   >
-                    <Text className="font-pixel text-sm uppercase text-gold-dark">{honour.label}</Text>
-                    <Text className="mt-1 text-base font-bold text-ink">{honour.value}</Text>
+                    <Text className="font-pixel text-sm uppercase text-gold-dark">
+                      {honour.label}
+                    </Text>
+                    <Text className="mt-1 text-base font-bold text-ink">
+                      {honour.value}
+                    </Text>
                   </View>
                 ))}
               </View>
             )}
 
-            <Text className="mb-2 mt-6 font-pixel text-base uppercase text-blue-dark">{t('hallOfFame.theClimb')}</Text>
+            <Text className="mb-2 mt-6 font-pixel text-base uppercase text-blue-dark">
+              {t('hallOfFame.theClimb')}
+            </Text>
             <View className="border-2 border-ink bg-white">
               {viewModel.tiers.map((tier, index) => (
                 <View
                   key={tier.division}
-                  className={index === viewModel.tiers.length - 1
-                    ? 'px-3 py-3'
-                    : 'border-b border-ink/15 px-3 py-3'}
+                  className={
+                    index === viewModel.tiers.length - 1
+                      ? 'px-3 py-3'
+                      : 'border-b border-ink/15 px-3 py-3'
+                  }
                 >
                   {/* Same three lines as a stat row — name, figure, context —
                       so the ladder reads with the record above it. */}
-                  <Text className="text-base font-bold text-ink">{tier.label}</Text>
-                  <Text className="mt-1 font-mono text-base text-ink">{tier.best}</Text>
-                  <Text className="mt-1 text-sm leading-5 text-ink/65">{tier.detail}</Text>
+                  <Text className="text-base font-bold text-ink">
+                    {tier.label}
+                  </Text>
+                  <Text className="mt-1 font-mono text-base text-ink">
+                    {tier.best}
+                  </Text>
+                  <Text className="mt-1 text-sm leading-5 text-ink/65">
+                    {tier.detail}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -148,14 +178,20 @@ function StatList({ rows }: { rows: readonly HallOfFameStatViewModel[] }) {
       {rows.map((row, index) => (
         <View
           key={row.id}
-          className={index === rows.length - 1
-            ? 'px-3 py-3'
-            : 'border-b border-ink/15 px-3 py-3'}
+          className={
+            index === rows.length - 1
+              ? 'px-3 py-3'
+              : 'border-b border-ink/15 px-3 py-3'
+          }
         >
-          <Text className="font-pixel text-sm uppercase text-ink/60">{row.label}</Text>
+          <Text className="font-pixel text-sm uppercase text-ink/60">
+            {row.label}
+          </Text>
           {/* Monospace so the figures line up down the page. */}
           <Text className="mt-1 font-mono text-base text-ink">{row.value}</Text>
-          <Text className="mt-1 text-sm leading-5 text-ink/65">{row.detail}</Text>
+          <Text className="mt-1 text-sm leading-5 text-ink/65">
+            {row.detail}
+          </Text>
         </View>
       ))}
     </View>

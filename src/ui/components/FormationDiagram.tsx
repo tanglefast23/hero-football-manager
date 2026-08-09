@@ -19,10 +19,34 @@ export function FormationDiagram({
   return (
     <View
       accessibilityLabel={t('formation.a11y.diagram', { formation })}
-      style={{ width, height, borderWidth: 1, borderColor: inverted ? '#f4f1ea66' : '#241f2e55', backgroundColor: inverted ? '#3f8a4a' : '#65b96e' }}
+      style={{
+        width,
+        height,
+        borderWidth: 1,
+        borderColor: inverted ? '#f4f1ea66' : '#241f2e55',
+        backgroundColor: inverted ? '#3f8a4a' : '#65b96e',
+      }}
     >
-      <View style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, backgroundColor: '#f4f1ea55' }} />
-      <View style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 1, backgroundColor: '#f4f1ea55' }} />
+      <View
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: 0,
+          bottom: 0,
+          width: 1,
+          backgroundColor: '#f4f1ea55',
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: 0,
+          right: 0,
+          height: 1,
+          backgroundColor: '#f4f1ea55',
+        }}
+      />
       {points.map(([x, y], index) => (
         <View
           key={index}

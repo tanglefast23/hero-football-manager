@@ -1,7 +1,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
+const source = (path: string) =>
+  readFileSync(join(process.cwd(), path), 'utf8');
 
 describe('where the language control lives', () => {
   test('the title screen carries it, because every launch lands there', () => {
@@ -36,5 +37,12 @@ describe('where the language control lives', () => {
     expect(button).toContain('<ScrollView');
     expect(button).toContain('viewportHeight - 48');
     expect(button).toContain('flexShrink: 1');
+  });
+
+  test('uses the shared chunky control and an authored language icon', () => {
+    const button = source('src/ui/components/LanguageButton.tsx');
+    expect(button).toContain('<ChunkyControl');
+    expect(button).toContain('<PixelLanguageIcon');
+    expect(button).not.toContain('⌘');
   });
 });

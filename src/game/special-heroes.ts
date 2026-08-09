@@ -34,44 +34,166 @@ export interface SpecialHero {
 }
 
 export const SPECIAL_HERO_ROSTER: readonly SpecialHero[] = [
-  { id: 'special-f171', lookId: 'f171', name: 'Barry Allan', role: 'FWD', power: 'SUPER_SPEED', placement: 5, order: 1 },
-  { id: 'special-f178', lookId: 'f178', name: 'Scott Somers', role: 'FWD', power: 'THUNDER_STRIKE', placement: 4, order: 1 },
-  { id: 'special-f174', lookId: 'f174', name: 'Steve Rodgers', role: 'DEF', power: 'RALLY_CRY', placement: 3, order: 1 },
-  { id: 'special-f177', lookId: 'f177', name: 'James Howlitt', role: 'MID', power: 'PHASE_RUN', placement: 3, order: 2 },
-  { id: 'special-f176', lookId: 'f176', name: 'Bruno Bannor', role: 'DEF', power: 'SUPER_STRENGTH', placement: 2, order: 1 },
-  { id: 'special-f172', lookId: 'f172', name: 'Pete Parkin', role: 'MID', power: 'WEB_TRAP', placement: 2, order: 2 },
-  { id: 'special-f173', lookId: 'f173', name: 'Toni Starke', role: 'FWD', power: 'BLINK_RUN', placement: 2, order: 3 },
-  { id: 'special-f168', lookId: 'f168', name: 'Bruce Wain', role: 'DEF', power: 'SHADOW_MARK', placement: 1, order: 1 },
-  { id: 'special-f170', lookId: 'f170', name: 'Dinah Prince', role: 'MID', power: 'GRAVITY_WELL', placement: 1, order: 2 },
-  { id: 'special-f169', lookId: 'f169', name: 'Clark Kentley', role: 'FWD', power: 'FIRE_TORCH', placement: 1, order: 3 },
-  { id: 'special-f175', lookId: 'f175', name: 'Don Blaker', role: 'FWD', power: 'THUNDER_STRIKE', placement: 1, order: 4 },
-  { id: 'special-f179', lookId: 'f179', name: 'Stefan Strangeway', role: 'MID', power: 'PORTAL_PASS', placement: 'scout', order: 1 },
-  { id: 'special-f180', lookId: 'f180', name: 'Tchalo Adaku', role: 'DEF', power: 'SHADOW_MARK', placement: 'scout', order: 2 },
-  { id: 'special-f181', lookId: 'f181', name: 'Arthur Currey', role: 'MID', power: 'ICE_RINK', placement: 'scout', order: 3 },
-  { id: 'special-f182', lookId: 'f182', name: 'Oliver Quinn', role: 'DEF', power: 'FUTURE_SIGHT', placement: 'scout', order: 4 },
+  {
+    id: 'special-f171',
+    lookId: 'f171',
+    name: 'Barry Allan',
+    role: 'FWD',
+    power: 'SUPER_SPEED',
+    placement: 5,
+    order: 1,
+  },
+  {
+    id: 'special-f178',
+    lookId: 'f178',
+    name: 'Scott Somers',
+    role: 'FWD',
+    power: 'THUNDER_STRIKE',
+    placement: 4,
+    order: 1,
+  },
+  {
+    id: 'special-f174',
+    lookId: 'f174',
+    name: 'Steve Rodgers',
+    role: 'DEF',
+    power: 'RALLY_CRY',
+    placement: 3,
+    order: 1,
+  },
+  {
+    id: 'special-f177',
+    lookId: 'f177',
+    name: 'James Howlitt',
+    role: 'MID',
+    power: 'PHASE_RUN',
+    placement: 3,
+    order: 2,
+  },
+  {
+    id: 'special-f176',
+    lookId: 'f176',
+    name: 'Bruno Bannor',
+    role: 'DEF',
+    power: 'SUPER_STRENGTH',
+    placement: 2,
+    order: 1,
+  },
+  {
+    id: 'special-f172',
+    lookId: 'f172',
+    name: 'Pete Parkin',
+    role: 'MID',
+    power: 'WEB_TRAP',
+    placement: 2,
+    order: 2,
+  },
+  {
+    id: 'special-f173',
+    lookId: 'f173',
+    name: 'Toni Starke',
+    role: 'FWD',
+    power: 'BLINK_RUN',
+    placement: 2,
+    order: 3,
+  },
+  {
+    id: 'special-f168',
+    lookId: 'f168',
+    name: 'Bruce Wain',
+    role: 'DEF',
+    power: 'SHADOW_MARK',
+    placement: 1,
+    order: 1,
+  },
+  {
+    id: 'special-f170',
+    lookId: 'f170',
+    name: 'Dinah Prince',
+    role: 'MID',
+    power: 'GRAVITY_WELL',
+    placement: 1,
+    order: 2,
+  },
+  {
+    id: 'special-f169',
+    lookId: 'f169',
+    name: 'Clark Kentley',
+    role: 'FWD',
+    power: 'FIRE_TORCH',
+    placement: 1,
+    order: 3,
+  },
+  {
+    id: 'special-f175',
+    lookId: 'f175',
+    name: 'Don Blaker',
+    role: 'FWD',
+    power: 'THUNDER_STRIKE',
+    placement: 1,
+    order: 4,
+  },
+  {
+    id: 'special-f179',
+    lookId: 'f179',
+    name: 'Stefan Strangeway',
+    role: 'MID',
+    power: 'PORTAL_PASS',
+    placement: 'scout',
+    order: 1,
+  },
+  {
+    id: 'special-f180',
+    lookId: 'f180',
+    name: 'Tchalo Adaku',
+    role: 'DEF',
+    power: 'SHADOW_MARK',
+    placement: 'scout',
+    order: 2,
+  },
+  {
+    id: 'special-f181',
+    lookId: 'f181',
+    name: 'Arthur Currey',
+    role: 'MID',
+    power: 'ICE_RINK',
+    placement: 'scout',
+    order: 3,
+  },
+  {
+    id: 'special-f182',
+    lookId: 'f182',
+    name: 'Oliver Quinn',
+    role: 'DEF',
+    power: 'FUTURE_SIGHT',
+    placement: 'scout',
+    order: 4,
+  },
 ];
 
 /** The club id a scout-only special carries until somebody signs them. */
 export const SPECIAL_UNATTACHED_CLUB_ID = 'unattached';
 
-export const SPECIAL_HERO_LOOK_IDS: readonly string[] = SPECIAL_HERO_ROSTER.map(hero => hero.lookId);
+export const SPECIAL_HERO_LOOK_IDS: readonly string[] = SPECIAL_HERO_ROSTER.map(
+  (hero) => hero.lookId,
+);
 
-const SPECIAL_HERO_IDS = new Set(SPECIAL_HERO_ROSTER.map(hero => hero.id));
+const SPECIAL_HERO_IDS = new Set(SPECIAL_HERO_ROSTER.map((hero) => hero.id));
 
 export function isSpecialHeroId(playerId: string): boolean {
   return SPECIAL_HERO_IDS.has(playerId);
 }
 
-export function specialHeroesForDivision(division: DivisionLevel): readonly SpecialHero[] {
-  return SPECIAL_HERO_ROSTER
-    .filter(hero => hero.placement === division)
+export function specialHeroesForDivision(
+  division: DivisionLevel,
+): readonly SpecialHero[] {
+  return SPECIAL_HERO_ROSTER.filter((hero) => hero.placement === division)
     .slice()
     .sort((left, right) => left.order - right.order);
 }
 
 export function scoutOnlySpecialHeroes(): readonly SpecialHero[] {
-  return SPECIAL_HERO_ROSTER
-    .filter(hero => hero.placement === 'scout')
+  return SPECIAL_HERO_ROSTER.filter((hero) => hero.placement === 'scout')
     .slice()
     .sort((left, right) => left.order - right.order);
 }
@@ -81,13 +203,21 @@ const LEAD_OVER_BEST_ORDINARY = 8;
 /** Gap between consecutive specials at the same club, so the ranking is never a coin flip. */
 const GAP_BETWEEN_SPECIALS = 3;
 
-export function specialHeroTargetOverall(base: number, count: number, order: number): number {
-  if (!Number.isSafeInteger(base) || base < 1) throw new Error('special hero base overall must be a positive integer');
-  if (!Number.isSafeInteger(count) || count < 1) throw new Error('special hero count must be a positive integer');
+export function specialHeroTargetOverall(
+  base: number,
+  count: number,
+  order: number,
+): number {
+  if (!Number.isSafeInteger(base) || base < 1)
+    throw new Error('special hero base overall must be a positive integer');
+  if (!Number.isSafeInteger(count) || count < 1)
+    throw new Error('special hero count must be a positive integer');
   if (!Number.isSafeInteger(order) || order < 1 || order > count) {
     throw new Error('special hero order must be between 1 and the count');
   }
-  return base + LEAD_OVER_BEST_ORDINARY + GAP_BETWEEN_SPECIALS * (count - order);
+  return (
+    base + LEAD_OVER_BEST_ORDINARY + GAP_BETWEEN_SPECIALS * (count - order)
+  );
 }
 
 /**
@@ -99,7 +229,12 @@ export function specialHeroTargetOverall(base: number, count: number, order: num
  * the offsets sum to zero, applying them to a flat target leaves the mean, and
  * therefore the overall, exactly on target.
  */
-const ROLE_OFFSETS: Readonly<Record<Exclude<Role, 'GK'>, Readonly<Record<keyof Omit<Attrs, 'ref'>, number>>>> = {
+const ROLE_OFFSETS: Readonly<
+  Record<
+    Exclude<Role, 'GK'>,
+    Readonly<Record<keyof Omit<Attrs, 'ref'>, number>>
+  >
+> = {
   FWD: { pac: 10, sho: 16, pas: -4, def: -22, tec: 6, sta: -6 },
   MID: { pac: 0, sho: -14, pas: 16, def: -6, tec: 12, sta: -8 },
   DEF: { pac: 2, sho: -24, pas: -2, def: 20, tec: -4, sta: 8 },
@@ -111,7 +246,9 @@ const ROLE_OFFSETS: Readonly<Record<Exclude<Role, 'GK'>, Readonly<Record<keyof O
  * away* come off the back — so paying for a clamp sharpens the role's profile
  * instead of flattening it.
  */
-const ATTRIBUTES_BY_IMPORTANCE: Readonly<Record<Exclude<Role, 'GK'>, readonly (keyof Omit<Attrs, 'ref'>)[]>> = {
+const ATTRIBUTES_BY_IMPORTANCE: Readonly<
+  Record<Exclude<Role, 'GK'>, readonly (keyof Omit<Attrs, 'ref'>)[]>
+> = {
   FWD: ['sho', 'pac', 'tec', 'sta', 'pas', 'def'],
   MID: ['pas', 'tec', 'pac', 'sta', 'def', 'sho'],
   DEF: ['def', 'sta', 'pac', 'tec', 'pas', 'sho'],
@@ -128,9 +265,18 @@ const OUTFIELD_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta'] as const;
  * balance decision, so the invariant is asserted here in production rather than
  * only in a test.
  */
-export function specialHeroAttrs(role: Exclude<Role, 'GK'>, target: number): Attrs {
-  if (!Number.isSafeInteger(target) || target < 1 || target > MAX_PLAYER_ATTRIBUTE) {
-    throw new Error('special hero target overall must be a valid attribute value');
+export function specialHeroAttrs(
+  role: Exclude<Role, 'GK'>,
+  target: number,
+): Attrs {
+  if (
+    !Number.isSafeInteger(target) ||
+    target < 1 ||
+    target > MAX_PLAYER_ATTRIBUTE
+  ) {
+    throw new Error(
+      'special hero target overall must be a valid attribute value',
+    );
   }
   const offsets = ROLE_OFFSETS[role];
   const values = new Map<keyof Omit<Attrs, 'ref'>, number>();
@@ -163,7 +309,9 @@ export function specialHeroAttrs(role: Exclude<Role, 'GK'>, target: number): Att
     }
   }
   if (surplus !== 0) {
-    throw new Error(`special hero overall ${target} cannot be reached for a ${role}`);
+    throw new Error(
+      `special hero overall ${target} cannot be reached for a ${role}`,
+    );
   }
   const attrs: Attrs = {
     pac: values.get('pac')!,
@@ -178,7 +326,9 @@ export function specialHeroAttrs(role: Exclude<Role, 'GK'>, target: number): Att
   };
   const achieved = roleOverall(role, attrs);
   if (achieved !== target) {
-    throw new Error(`special hero overall landed on ${achieved}, not ${target}`);
+    throw new Error(
+      `special hero overall landed on ${achieved}, not ${target}`,
+    );
   }
   return attrs;
 }
@@ -188,11 +338,14 @@ export function validateSpecialHeroRoster(): void {
   const looks = new Set<string>();
   for (const hero of SPECIAL_HERO_ROSTER) {
     if (ids.has(hero.id)) throw new Error(`duplicate special hero ${hero.id}`);
-    if (looks.has(hero.lookId)) throw new Error(`duplicate special hero look ${hero.lookId}`);
+    if (looks.has(hero.lookId))
+      throw new Error(`duplicate special hero look ${hero.lookId}`);
     ids.add(hero.id);
     looks.add(hero.lookId);
     if (!powerIsCompatibleWithRole(hero.power, hero.role)) {
-      throw new Error(`${hero.name} cannot carry ${hero.power} as a ${hero.role}`);
+      throw new Error(
+        `${hero.name} cannot carry ${hero.power} as a ${hero.role}`,
+      );
     }
   }
 }

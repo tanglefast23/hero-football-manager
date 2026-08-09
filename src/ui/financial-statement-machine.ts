@@ -85,9 +85,7 @@ interface NetRuntime {
 }
 
 export type MachineCursor =
-  | { kind: 'group'; index: number }
-  | { kind: 'net' }
-  | { kind: 'done' };
+  { kind: 'group'; index: number } | { kind: 'net' } | { kind: 'done' };
 
 export interface BannerEvent {
   rowId: string;
@@ -145,7 +143,9 @@ export type MachineCommand =
   | { type: 'playSurgeIgnition' }
   | { type: 'stopSurgeBed' };
 
-export function slotPhaseForRow(phase: RowPhase): 'pending' | 'spinning' | 'settled' {
+export function slotPhaseForRow(
+  phase: RowPhase,
+): 'pending' | 'spinning' | 'settled' {
   if (phase === 'pending') return 'pending';
   if (phase === 'spinning') return 'spinning';
   return 'settled';
@@ -156,7 +156,9 @@ export function slotPhaseForRow(phase: RowPhase): 'pending' | 'spinning' | 'sett
  * pairing threshold; at or above it, reveal-carrying rows stay solo and each
  * consecutive run of constant rows pairs up, odd tail solo.
  */
-export function buildRevealGroups(rows: readonly MachineRow[]): (readonly number[])[] {
+export function buildRevealGroups(
+  rows: readonly MachineRow[],
+): (readonly number[])[] {
   if (rows.length < PAIRING_THRESHOLD) {
     return rows.map((_row, index) => [index]);
   }
@@ -189,14 +191,16 @@ export function buildRevealGroups(rows: readonly MachineRow[]): (readonly number
 export function surgeBonusAmount(row: MachineRow): number {
   const reveal = row.reveal;
   if (reveal === undefined || !reveal.surge) return 0;
-  const raw = Math.round(reveal.base * 100 / (100 + reveal.variancePercent));
+  const raw = Math.round((reveal.base * 100) / (100 + reveal.variancePercent));
   if (reveal.source === 'merch') {
     const zeroAfterMultiplier = raw * reveal.multiplierTimes;
-    const zeroAmount = zeroAfterMultiplier
-      + Math.floor(zeroAfterMultiplier * reveal.adjacencyPercent / 100);
+    const zeroAmount =
+      zeroAfterMultiplier +
+      Math.floor((zeroAfterMultiplier * reveal.adjacencyPercent) / 100);
     return row.amount - zeroAmount;
   }
-  const zeroAmount = raw + Math.floor(raw * (reveal.multiplierPercent - 100) / 100);
+  const zeroAmount =
+    raw + Math.floor((raw * (reveal.multiplierPercent - 100)) / 100);
   return row.amount - zeroAmount;
 }
 
@@ -211,7 +215,9 @@ function bannerKind(row: MachineRow): BannerEvent['kind'] {
 function hasMultiplierBeat(row: MachineRow): boolean {
   const reveal = row.reveal;
   if (reveal === undefined) return false;
-  return reveal.source === 'merch' ? reveal.multiplierTimes > 1 : reveal.multiplierPercent > 100;
+  return reveal.source === 'merch'
+    ? reveal.multiplierTimes > 1
+    : reveal.multiplierPercent > 100;
 }
 
 function hasAdjacencyBeat(row: MachineRow): boolean {
@@ -239,23 +245,28 @@ export function createMachine(config: MachineConfig): MachineState {
     const surged = config.rows.filter(isSurged);
     return {
       generation: 0,
-      rows: config.rows.map(row => ({
+      rows: config.rows.map((row) => ({
         phase: 'complete',
         shownValue: row.amount,
         settleKey: 0,
         settleMode: 'instant',
       })),
-      net: { phase: 'complete', shownValue: config.netAmount, settleKey: 0, settleMode: 'instant' },
+      net: {
+        phase: 'complete',
+        shownValue: config.netAmount,
+        settleKey: 0,
+        settleMode: 'instant',
+      },
       stampPhase: 'complete',
       status: 'reportComplete',
       cursor: { kind: 'done' },
       groups,
-      bannerQueue: surged.map(row => ({
+      bannerQueue: surged.map((row) => ({
         rowId: row.id,
         kind: bannerKind(row),
         bonusAmount: surgeBonusAmount(row),
       })),
-      bannersEnqueued: surged.map(row => row.id),
+      bannersEnqueued: surged.map((row) => row.id),
     };
   }
   return {
@@ -266,7 +277,12 @@ export function createMachine(config: MachineConfig): MachineState {
       settleKey: 0,
       settleMode: 'instant',
     })),
-    net: { phase: 'pending', shownValue: 0, settleKey: 0, settleMode: 'instant' },
+    net: {
+      phase: 'pending',
+      shownValue: 0,
+      settleKey: 0,
+      settleMode: 'instant',
+    },
     stampPhase: 'hidden',
     status: 'running',
     cursor: groups.length > 0 ? { kind: 'group', index: 0 } : { kind: 'net' },
@@ -281,10 +297,16 @@ interface Reduction {
   commands: readonly MachineCommand[];
 }
 
-function withRow(state: MachineState, index: number, patch: Partial<RowRuntime>): MachineState {
+function withRow(
+  state: MachineState,
+  index: number,
+  patch: Partial<RowRuntime>,
+): MachineState {
   return {
     ...state,
-    rows: state.rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)),
+    rows: state.rows.map((row, rowIndex) =>
+      rowIndex === index ? { ...row, ...patch } : row,
+    ),
   };
 }
 
@@ -292,11 +314,14 @@ function enqueueBanner(state: MachineState, row: MachineRow): MachineState {
   if (!isSurged(row) || state.bannersEnqueued.includes(row.id)) return state;
   return {
     ...state,
-    bannerQueue: [...state.bannerQueue, {
-      rowId: row.id,
-      kind: bannerKind(row),
-      bonusAmount: surgeBonusAmount(row),
-    }],
+    bannerQueue: [
+      ...state.bannerQueue,
+      {
+        rowId: row.id,
+        kind: bannerKind(row),
+        bonusAmount: surgeBonusAmount(row),
+      },
+    ],
     bannersEnqueued: [...state.bannersEnqueued, row.id],
   };
 }
@@ -308,7 +333,7 @@ function enterCursor(config: MachineConfig, state: MachineState): Reduction {
     const groupIndex = state.cursor.index;
     const group = state.groups[groupIndex];
     if (group === undefined) return { state, commands: [] };
-    const surge = group.some(rowIndex => isSurged(config.rows[rowIndex]));
+    const surge = group.some((rowIndex) => isSurged(config.rows[rowIndex]));
     const spinMs = surge
       ? Math.round(config.timings.rowSpinMs * config.timings.surgeSpinFactor)
       : config.timings.rowSpinMs;
@@ -326,7 +351,8 @@ function enterCursor(config: MachineConfig, state: MachineState): Reduction {
       },
     });
     let next = state;
-    for (const rowIndex of group) next = withRow(next, rowIndex, { phase: 'spinning' });
+    for (const rowIndex of group)
+      next = withRow(next, rowIndex, { phase: 'spinning' });
     return { state: next, commands };
   }
   if (state.cursor.kind === 'net') {
@@ -351,35 +377,43 @@ function enterCursor(config: MachineConfig, state: MachineState): Reduction {
 }
 
 /** Advances the cursor past the current group and schedules the next entrance. */
-function scheduleAdvance(config: MachineConfig, state: MachineState): Reduction {
-  const nextCursor: MachineCursor = state.cursor.kind === 'group'
-    ? (state.cursor.index + 1 < state.groups.length
-      ? { kind: 'group', index: state.cursor.index + 1 }
-      : { kind: 'net' })
-    : { kind: 'done' };
+function scheduleAdvance(
+  config: MachineConfig,
+  state: MachineState,
+): Reduction {
+  const nextCursor: MachineCursor =
+    state.cursor.kind === 'group'
+      ? state.cursor.index + 1 < state.groups.length
+        ? { kind: 'group', index: state.cursor.index + 1 }
+        : { kind: 'net' }
+      : { kind: 'done' };
   const advanced: MachineState = { ...state, cursor: nextCursor };
   if (nextCursor.kind === 'done') {
     return { state: advanced, commands: [] };
   }
   return {
     state: advanced,
-    commands: [{
-      type: 'schedule',
-      afterMs: config.timings.interRowMs,
-      event: {
-        type: 'timer',
-        generation: state.generation,
-        target: nextCursor.kind === 'group' ? 'group' : 'net',
-        index: nextCursor.kind === 'group' ? nextCursor.index : 0,
-        expectPhase: 'advance',
+    commands: [
+      {
+        type: 'schedule',
+        afterMs: config.timings.interRowMs,
+        event: {
+          type: 'timer',
+          generation: state.generation,
+          target: nextCursor.kind === 'group' ? 'group' : 'net',
+          index: nextCursor.kind === 'group' ? nextCursor.index : 0,
+          expectPhase: 'advance',
+        },
       },
-    }],
+    ],
   };
 }
 
 /** The current group's indices, or undefined when the cursor is off rows. */
 function currentGroup(state: MachineState): readonly number[] | undefined {
-  return state.cursor.kind === 'group' ? state.groups[state.cursor.index] : undefined;
+  return state.cursor.kind === 'group'
+    ? state.groups[state.cursor.index]
+    : undefined;
 }
 
 /**
@@ -387,16 +421,25 @@ function currentGroup(state: MachineState): readonly number[] | undefined {
  * first land, surge stop + banner for surged rows, sub-phase walk for
  * multiplied rows, advance once every row in the group is complete.
  */
-function settleRowBase(config: MachineConfig, state: MachineState, index: number): Reduction {
+function settleRowBase(
+  config: MachineConfig,
+  state: MachineState,
+  index: number,
+): Reduction {
   const row = config.rows[index];
   const group = currentGroup(state) ?? [index];
-  const partnersComplete = group.every(rowIndex => (
-    rowIndex === index || state.rows[rowIndex].phase === 'complete'
-  ));
-  const firstLandOfGroup = group.every(rowIndex => (
-    rowIndex === index || state.rows[rowIndex].phase !== 'complete'
-  )) || group.length === 1;
-  const commands: MachineCommand[] = firstLandOfGroup ? [{ type: 'playThunk' }] : [];
+  const partnersComplete = group.every(
+    (rowIndex) =>
+      rowIndex === index || state.rows[rowIndex].phase === 'complete',
+  );
+  const firstLandOfGroup =
+    group.every(
+      (rowIndex) =>
+        rowIndex === index || state.rows[rowIndex].phase !== 'complete',
+    ) || group.length === 1;
+  const commands: MachineCommand[] = firstLandOfGroup
+    ? [{ type: 'playThunk' }]
+    : [];
   let next = state;
   if (isSurged(row)) {
     commands.push({ type: 'stopSurgeBed' });
@@ -431,7 +474,10 @@ function settleRowBase(config: MachineConfig, state: MachineState, index: number
     return { state: next, commands };
   }
   const advanced = scheduleAdvance(config, next);
-  return { state: advanced.state, commands: [...commands, ...advanced.commands] };
+  return {
+    state: advanced.state,
+    commands: [...commands, ...advanced.commands],
+  };
 }
 
 export function reduce(
@@ -471,7 +517,9 @@ export function reduce(
       const group = state.groups[event.index];
       if (group === undefined) return { state, commands: [] };
       if (event.expectPhase === 'base') {
-        if (!group.every(rowIndex => state.rows[rowIndex].phase === 'spinning')) {
+        if (
+          !group.every((rowIndex) => state.rows[rowIndex].phase === 'spinning')
+        ) {
           return { state, commands: [] };
         }
         let next = state;
@@ -489,7 +537,8 @@ export function reduce(
         // Multiplied rows are always singleton groups.
         const rowIndex = group[0];
         const row = state.rows[rowIndex];
-        if (row === undefined || row.phase !== 'chip') return { state, commands: [] };
+        if (row === undefined || row.phase !== 'chip')
+          return { state, commands: [] };
         return {
           state: withRow(state, rowIndex, {
             phase: 'multiplied',
@@ -506,7 +555,10 @@ export function reduce(
     case 'amountSettled': {
       if (event.generation !== state.generation) return { state, commands: [] };
       if (event.target === 'net') {
-        if (state.net.phase !== 'base' || event.settleKey !== state.net.settleKey) {
+        if (
+          state.net.phase !== 'base' ||
+          event.settleKey !== state.net.settleKey
+        ) {
           return { state, commands: [] };
         }
         // Thunk #1; the shell animates the slam and reports stampSettled.
@@ -521,7 +573,8 @@ export function reduce(
       }
       const row = state.rows[event.index];
       const source = config.rows[event.index];
-      if (row === undefined || source === undefined) return { state, commands: [] };
+      if (row === undefined || source === undefined)
+        return { state, commands: [] };
       if (event.settleKey !== row.settleKey) return { state, commands: [] };
       if (row.phase === 'base') {
         return settleRowBase(config, state, event.index);
@@ -602,7 +655,10 @@ export function reduce(
         next = enqueueBanner(next, source);
       }
       const advanced = scheduleAdvance(config, next);
-      return { state: advanced.state, commands: [...commands, ...advanced.commands] };
+      return {
+        state: advanced.state,
+        commands: [...commands, ...advanced.commands],
+      };
     }
 
     case 'skipAll': {
@@ -635,14 +691,14 @@ export function reduce(
           bannerQueue: [
             ...state.bannerQueue,
             ...surged
-              .filter(row => !state.bannersEnqueued.includes(row.id))
-              .map(row => ({
+              .filter((row) => !state.bannersEnqueued.includes(row.id))
+              .map((row) => ({
                 rowId: row.id,
                 kind: bannerKind(row),
                 bonusAmount: surgeBonusAmount(row),
               })),
           ],
-          bannersEnqueued: surged.map(row => row.id),
+          bannersEnqueued: surged.map((row) => row.id),
         },
         commands: [
           { type: 'stopSpin' },
@@ -654,7 +710,8 @@ export function reduce(
 
     case 'bannerShown': {
       const head = state.bannerQueue[0];
-      if (head === undefined || head.rowId !== event.rowId) return { state, commands: [] };
+      if (head === undefined || head.rowId !== event.rowId)
+        return { state, commands: [] };
       return {
         state: { ...state, bannerQueue: state.bannerQueue.slice(1) },
         commands: [],

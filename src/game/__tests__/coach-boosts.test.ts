@@ -21,7 +21,11 @@ import type { CareerMarketState } from '../market-career';
  * dropping an assistant-only club below 100.
  */
 
-function coach(level: number, specialties: [CoachSpecialty, CoachSpecialty], boosts?: CoachBoosts): CoachCandidate {
+function coach(
+  level: number,
+  specialties: [CoachSpecialty, CoachSpecialty],
+  boosts?: CoachBoosts,
+): CoachCandidate {
   return {
     id: `coach-${level}-${specialties.join('-')}`,
     name: 'A Coach',
@@ -36,7 +40,10 @@ function coach(level: number, specialties: [CoachSpecialty, CoachSpecialty], boo
   };
 }
 
-function market(head?: CoachCandidate, assistant?: CoachCandidate): CareerMarketState {
+function market(
+  head?: CoachCandidate,
+  assistant?: CoachCandidate,
+): CareerMarketState {
   return {
     coachCandidates: [],
     ...(head === undefined ? {} : { headCoach: head }),
@@ -55,25 +62,42 @@ describe('coach training boosts', () => {
     );
     // 100 + 50 (head) + 25 (assistant) is already the 175 ceiling.
     expect(scaleFor(maxed)).toBe(175);
-    expect(() => applyCareerCoachTrainingModifier(10, 'sho', careerCoachTrainingModifiers(maxed)))
-      .not.toThrow();
+    expect(() =>
+      applyCareerCoachTrainingModifier(
+        10,
+        'sho',
+        careerCoachTrainingModifiers(maxed),
+      ),
+    ).not.toThrow();
   });
 
   it('does not throw when a negative boost would drop below the floor', () => {
-    const sulking = market(undefined, coach(1, ['ATTACK', 'FITNESS'], { trainingPercent: -10 }));
+    const sulking = market(
+      undefined,
+      coach(1, ['ATTACK', 'FITNESS'], { trainingPercent: -10 }),
+    );
     // 100 + 5 − 10 would be 95, which the validator rejects.
     expect(scaleFor(sulking)).toBe(100);
-    expect(() => applyCareerCoachTrainingModifier(10, 'sho', careerCoachTrainingModifiers(sulking)))
-      .not.toThrow();
+    expect(() =>
+      applyCareerCoachTrainingModifier(
+        10,
+        'sho',
+        careerCoachTrainingModifiers(sulking),
+      ),
+    ).not.toThrow();
   });
 
   it('applies the boost where it has room to land', () => {
-    const room = market(coach(2, ['ATTACK', 'FITNESS'], { trainingPercent: 5 }));
+    const room = market(
+      coach(2, ['ATTACK', 'FITNESS'], { trainingPercent: 5 }),
+    );
     expect(scaleFor(room)).toBe(125);
   });
 
   it('only pays the boost on the specialty the coach actually holds', () => {
-    const attacker = market(coach(2, ['ATTACK', 'FITNESS'], { trainingPercent: 5 }));
+    const attacker = market(
+      coach(2, ['ATTACK', 'FITNESS'], { trainingPercent: 5 }),
+    );
     const modifiers = careerCoachTrainingModifiers(attacker);
     expect(modifiers.gainScalePercentByAttribute.sho).toBe(125);
     // DEFENSE is not his, so neither the level bonus nor the boost applies.
@@ -81,10 +105,16 @@ describe('coach training boosts', () => {
   });
 
   it('caps a facet at one head-coach level however much content authors', () => {
-    expect(cappedCoachBoost({ trainingPercent: 30 }, 'trainingPercent')).toBe(10);
-    expect(cappedCoachBoost({ trainingPercent: -30 }, 'trainingPercent')).toBe(-10);
+    expect(cappedCoachBoost({ trainingPercent: 30 }, 'trainingPercent')).toBe(
+      10,
+    );
+    expect(cappedCoachBoost({ trainingPercent: -30 }, 'trainingPercent')).toBe(
+      -10,
+    );
     expect(cappedCoachBoost({ weeklyTp: 9 }, 'weeklyTp')).toBe(4);
-    expect(cappedCoachBoost({ motivatorHalfLevels: 9 }, 'motivatorHalfLevels')).toBe(2);
+    expect(
+      cappedCoachBoost({ motivatorHalfLevels: 9 }, 'motivatorHalfLevels'),
+    ).toBe(2);
     expect(cappedCoachBoost(undefined, 'trainingPercent')).toBe(0);
   });
 });
@@ -95,39 +125,55 @@ describe('coach weekly training points with boosts', () => {
     // TRAINING_POINT_SCALE_PERCENT, so a literal here would break the next time
     // that dial moves and would say nothing about the boost either way.
     const base = coachWeeklyTrainingPoints(3, 'HEAD');
-    expect(careerCoachWeeklyTrainingPoints(market(coach(3, ['ATTACK', 'FITNESS'])))).toBe(base);
-    expect(careerCoachWeeklyTrainingPoints(
-      market(coach(3, ['ATTACK', 'FITNESS'], { weeklyTp: 2 })),
-    )).toBe(base + 2);
+    expect(
+      careerCoachWeeklyTrainingPoints(market(coach(3, ['ATTACK', 'FITNESS']))),
+    ).toBe(base);
+    expect(
+      careerCoachWeeklyTrainingPoints(
+        market(coach(3, ['ATTACK', 'FITNESS'], { weeklyTp: 2 })),
+      ),
+    ).toBe(base + 2);
   });
 
   it('never lets a coach cost the club training points', () => {
     // The boost is bigger than the whole contribution, so the floor decides.
     const base = coachWeeklyTrainingPoints(1, 'ASSISTANT');
-    expect(careerCoachWeeklyTrainingPoints(
-      market(undefined, coach(1, ['ATTACK', 'FITNESS'], { weeklyTp: -4 })),
-    )).toBe(Math.max(0, base - 4));
+    expect(
+      careerCoachWeeklyTrainingPoints(
+        market(undefined, coach(1, ['ATTACK', 'FITNESS'], { weeklyTp: -4 })),
+      ),
+    ).toBe(Math.max(0, base - 4));
   });
 });
 
 describe('motivator boosts', () => {
   it('counts in half-levels, matching the plumbing', () => {
     // A level-2 head Motivator is 4 half-levels; +1 makes 5.
-    expect(coachMotivatorStrengthHalfLevels(market(coach(2, ['MOTIVATOR', 'ATTACK'])))).toBe(4);
-    expect(coachMotivatorStrengthHalfLevels(
-      market(coach(2, ['MOTIVATOR', 'ATTACK'], { motivatorHalfLevels: 1 })),
-    )).toBe(5);
+    expect(
+      coachMotivatorStrengthHalfLevels(
+        market(coach(2, ['MOTIVATOR', 'ATTACK'])),
+      ),
+    ).toBe(4);
+    expect(
+      coachMotivatorStrengthHalfLevels(
+        market(coach(2, ['MOTIVATOR', 'ATTACK'], { motivatorHalfLevels: 1 })),
+      ),
+    ).toBe(5);
   });
 
   it('ignores a motivator boost on a coach who is not a Motivator', () => {
-    expect(coachMotivatorStrengthHalfLevels(
-      market(coach(2, ['ATTACK', 'FITNESS'], { motivatorHalfLevels: 2 })),
-    )).toBe(0);
+    expect(
+      coachMotivatorStrengthHalfLevels(
+        market(coach(2, ['ATTACK', 'FITNESS'], { motivatorHalfLevels: 2 })),
+      ),
+    ).toBe(0);
   });
 
   it('cannot drive the club below no motivation at all', () => {
-    expect(coachMotivatorStrengthHalfLevels(
-      market(coach(1, ['MOTIVATOR', 'ATTACK'], { motivatorHalfLevels: -2 })),
-    )).toBe(0);
+    expect(
+      coachMotivatorStrengthHalfLevels(
+        market(coach(1, ['MOTIVATOR', 'ATTACK'], { motivatorHalfLevels: -2 })),
+      ),
+    ).toBe(0);
   });
 });

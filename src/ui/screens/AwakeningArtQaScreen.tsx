@@ -33,9 +33,14 @@ export function AwakeningArtQaScreen({
   const center = stageSize / 2;
 
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView
+      style={styles.root}
+      edges={['top', 'left', 'right', 'bottom']}
+    >
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>AWAKENING ART QA · {String(index + 1).padStart(2, '0')}/{total}</Text>
+        <Text style={styles.eyebrow}>
+          AWAKENING ART QA · {String(index + 1).padStart(2, '0')}/{total}
+        </Text>
         <Text style={styles.title}>{title}</Text>
       </View>
 
@@ -50,7 +55,9 @@ export function AwakeningArtQaScreen({
 
       <View style={styles.caption}>
         <Text style={styles.callout}>{callout}</Text>
-        <Text style={styles.note}>{t('awakeningArtQa.3InspectionNearest-neighbourPixels')}</Text>
+        <Text style={styles.note}>
+          {t('awakeningArtQa.3InspectionNearest-neighbourPixels')}
+        </Text>
       </View>
 
       <View style={styles.navigation}>
@@ -58,7 +65,10 @@ export function AwakeningArtQaScreen({
           accessibilityRole="button"
           accessibilityLabel={t('awakeningArtQa.a11y.previousTriggerArtwork')}
           onPress={onPrevious}
-          style={({ pressed }) => [styles.navigationButton, pressed ? styles.navigationPressed : null]}
+          style={({ pressed }) => [
+            styles.navigationButton,
+            pressed ? styles.navigationPressed : null,
+          ]}
         >
           <Text style={styles.navigationText}>◂ PREVIOUS</Text>
         </Pressable>
@@ -66,7 +76,10 @@ export function AwakeningArtQaScreen({
           accessibilityRole="button"
           accessibilityLabel={t('awakeningArtQa.a11y.nextTriggerArtwork')}
           onPress={onNext}
-          style={({ pressed }) => [styles.navigationButton, pressed ? styles.navigationPressed : null]}
+          style={({ pressed }) => [
+            styles.navigationButton,
+            pressed ? styles.navigationPressed : null,
+          ]}
         >
           <Text style={styles.navigationText}>NEXT ▸</Text>
         </Pressable>
@@ -75,78 +88,79 @@ export function AwakeningArtQaScreen({
   );
 }
 
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  root: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: '#16121f',
-    paddingHorizontal: 16,
-  },
-  header: {
-    width: '100%',
-    paddingBottom: 14,
-    paddingTop: 16,
-  },
-  eyebrow: {
-    color: '#d94f52',
-    fontFamily: faces.display,
-    fontSize: 13,
-    letterSpacing: 1,
-  },
-  title: {
-    color: '#f4f1ea',
-    fontSize: 28,
-    fontWeight: '900',
-    lineHeight: 32,
-    marginTop: 8,
-    textTransform: 'uppercase',
-  },
-  stage: {
-    borderColor: '#d94f52',
-    borderWidth: 3,
-    overflow: 'hidden',
-  },
-  caption: {
-    alignItems: 'center',
-    paddingVertical: 18,
-  },
-  callout: {
-    color: '#d9ff60',
-    fontFamily: faces.display,
-    fontSize: 17,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  note: {
-    color: '#9a95a4',
-    fontSize: 12,
-    letterSpacing: 0.5,
-    marginTop: 6,
-    textTransform: 'uppercase',
-  },
-  navigation: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 'auto',
-    width: '100%',
-  },
-  navigationButton: {
-    backgroundColor: '#5a8fd6',
-    borderBottomColor: '#3f6fb5',
-    borderColor: '#241f2e',
-    borderWidth: 3,
-    flex: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 16,
-  },
-  navigationPressed: {
-    borderBottomWidth: 1,
-    transform: [{ translateY: 2 }],
-  },
-  navigationText: {
-    color: '#ffffff',
-    fontFamily: faces.display,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    root: {
+      flex: 1,
+      alignItems: 'center',
+      backgroundColor: '#16121f',
+      paddingHorizontal: 16,
+    },
+    header: {
+      width: '100%',
+      paddingBottom: 14,
+      paddingTop: 16,
+    },
+    eyebrow: {
+      color: '#d94f52',
+      fontFamily: faces.display,
+      fontSize: 13,
+      letterSpacing: 1,
+    },
+    title: {
+      color: '#f4f1ea',
+      fontSize: 28,
+      fontWeight: '900',
+      lineHeight: 32,
+      marginTop: 8,
+      textTransform: 'uppercase',
+    },
+    stage: {
+      borderColor: '#d94f52',
+      borderWidth: 3,
+      overflow: 'hidden',
+    },
+    caption: {
+      alignItems: 'center',
+      paddingVertical: 18,
+    },
+    callout: {
+      color: '#d9ff60',
+      fontFamily: faces.display,
+      fontSize: 17,
+      textAlign: 'center',
+      textTransform: 'uppercase',
+    },
+    note: {
+      color: '#9a95a4',
+      fontSize: 12,
+      letterSpacing: 0.5,
+      marginTop: 6,
+      textTransform: 'uppercase',
+    },
+    navigation: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 'auto',
+      width: '100%',
+    },
+    navigationButton: {
+      backgroundColor: '#5a8fd6',
+      borderBottomColor: '#3f6fb5',
+      borderColor: '#241f2e',
+      borderWidth: 3,
+      flex: 1,
+      paddingHorizontal: 10,
+      paddingVertical: 16,
+    },
+    navigationPressed: {
+      borderBottomWidth: 1,
+      transform: [{ translateY: 2 }],
+    },
+    navigationText: {
+      color: '#ffffff',
+      fontFamily: faces.display,
+      fontSize: 14,
+      textAlign: 'center',
+    },
+  });

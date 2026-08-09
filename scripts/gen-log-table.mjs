@@ -13,17 +13,14 @@ if (!Number.isSafeInteger(K) || K < 1 || K > 200) {
 
 mkdirSync(outputDirectory, { recursive: true });
 
-const logValues = Array.from(
-  { length: 999 },
-  (_, index) => Math.round(D64 * K * Math.log(index + 1)),
+const logValues = Array.from({ length: 999 }, (_, index) =>
+  Math.round(D64 * K * Math.log(index + 1)),
 );
-const conditionValues = Array.from(
-  { length: 101 },
-  (_, condition) => Math.round(D64 * K * Math.log(0.75 + 0.25 * condition / 100)),
+const conditionValues = Array.from({ length: 101 }, (_, condition) =>
+  Math.round(D64 * K * Math.log(0.75 + (0.25 * condition) / 100)),
 );
-const resolveValues = Array.from(
-  { length: 101 },
-  (_, resolve) => Math.round(D64 * K * Math.log(0.9 + 0.1 * resolve / 100)),
+const resolveValues = Array.from({ length: 101 }, (_, resolve) =>
+  Math.round(D64 * K * Math.log(0.9 + (0.1 * resolve) / 100)),
 );
 
 const writeTable = (name, values) => {
@@ -33,4 +30,6 @@ const writeTable = (name, values) => {
 writeTable('log-table.json', logValues);
 writeTable('clog-table.json', conditionValues);
 writeTable('resolve-table.json', resolveValues);
-console.log(`wrote ${logValues.length} rating, ${conditionValues.length} condition, and ${resolveValues.length} Resolve entries at K=${K}`);
+console.log(
+  `wrote ${logValues.length} rating, ${conditionValues.length} condition, and ${resolveValues.length} Resolve entries at K=${K}`,
+);

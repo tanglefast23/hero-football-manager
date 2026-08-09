@@ -52,17 +52,29 @@ import {
   singlePathPolicies,
   type OpeningPolicy,
 } from '../opening/policies';
-import { runOpening, type CreationRatings, type OpeningRun } from '../opening/runner';
+import {
+  runOpening,
+  type CreationRatings,
+  type OpeningRun,
+} from '../opening/runner';
 import { mean } from '../opening/stats';
 
-const describeProbe = process.env.KEEPER_GAIN_PROBE === '1' ? describe : describe.skip;
+const describeProbe =
+  process.env.KEEPER_GAIN_PROBE === '1' ? describe : describe.skip;
 const baseContent = loadLaunchContent();
 
 const SEEDS = Array.from(
   { length: positiveIntegerEnv('KEEPER_GAIN_SEEDS', 150) },
   (_, index) => 4_000_000 + index * 7919,
 );
-const CREATION: CreationRatings = { pac: 50, sho: 65, pas: 50, def: 50, tec: 50, sta: 50 };
+const CREATION: CreationRatings = {
+  pac: 50,
+  sho: 65,
+  pas: 50,
+  def: 50,
+  tec: 50,
+  sta: 50,
+};
 const KIT = { coach: 'none' as const, buildTrainingPitch: false };
 
 /**
@@ -86,11 +98,17 @@ function contentWithKeeperGainScale(multiplier: number): LaunchContent {
     ...baseContent,
     training: {
       ...baseContent.training,
-      focusDrills: baseContent.training.focusDrills.map(drill => (
+      focusDrills: baseContent.training.focusDrills.map((drill) =>
         KEEPER_DRILL_IDS.includes(drill.id)
-          ? { ...drill, gains: { ...drill.gains, ref: scaledGain(drill.gains.ref ?? 0, multiplier) } }
-          : drill
-      )),
+          ? {
+              ...drill,
+              gains: {
+                ...drill.gains,
+                ref: scaledGain(drill.gains.ref ?? 0, multiplier),
+              },
+            }
+          : drill,
+      ),
     },
   };
 }
@@ -100,19 +118,25 @@ function scaledGain(base: number, multiplier: number): number {
 }
 
 function keeperLadder(multiplier: number): string {
-  return KEEPER_DRILL_IDS
-    .map(id => {
-      const drill = baseContent.training.focusDrills.find(candidate => candidate.id === id);
-      if (drill === undefined) throw new Error(`missing keeper drill ${id}`);
-      return scaledGain(drill.gains.ref ?? 0, multiplier);
-    })
-    .join('/');
+  return KEEPER_DRILL_IDS.map((id) => {
+    const drill = baseContent.training.focusDrills.find(
+      (candidate) => candidate.id === id,
+    );
+    if (drill === undefined) throw new Error(`missing keeper drill ${id}`);
+    return scaledGain(drill.gains.ref ?? 0, multiplier);
+  }).join('/');
 }
 
 function runArm(policy: OpeningPolicy, content: LaunchContent): OpeningRun[] {
-  return SEEDS.map(seed => runOpening({
-    seed, difficulty: 'COZY', policy, creation: CREATION, content,
-  }));
+  return SEEDS.map((seed) =>
+    runOpening({
+      seed,
+      difficulty: 'COZY',
+      policy,
+      creation: CREATION,
+      content,
+    }),
+  );
 }
 
 describeProbe('keeper drill gain sweep', () => {
@@ -126,44 +150,65 @@ describeProbe('keeper drill gain sweep', () => {
     ];
 
     const finishing = runArm(
-      singlePathPolicies(KIT).find(policy => policy.id === 'single-path-finishing-bare')!,
+      singlePathPolicies(KIT).find(
+        (policy) => policy.id === 'single-path-finishing-bare',
+      )!,
       baseContent,
     );
     const control = runArm(kitOnlyPolicy(KIT), baseContent);
-    const baselineGoalsFor = mean(control.map(run => run.opener.goalsFor));
-    const baselineGoalsAgainst = mean(control.map(run => run.opener.goalsAgainst));
-    const finishingLift = ((mean(finishing.map(run => run.opener.goalsFor)) - baselineGoalsFor)
-      / mean(finishing.map(run => run.tpSpent))) * 100;
+    const baselineGoalsFor = mean(control.map((run) => run.opener.goalsFor));
+    const baselineGoalsAgainst = mean(
+      control.map((run) => run.opener.goalsAgainst),
+    );
+    const finishingLift =
+      ((mean(finishing.map((run) => run.opener.goalsFor)) - baselineGoalsFor) /
+        mean(finishing.map((run) => run.tpSpent))) *
+      100;
 
     for (const multiplier of CANDIDATE_MULTIPLIERS) {
       const content = contentWithKeeperGainScale(multiplier);
       const keeper = runArm(
-        singlePathPolicies(KIT).find(policy => policy.id === 'single-path-keeper-drills-bare')!,
+        singlePathPolicies(KIT).find(
+          (policy) => policy.id === 'single-path-keeper-drills-bare',
+        )!,
         content,
       );
       const ordinary = runArm(ORDINARY_POLICY, content);
-      const tpSpent = mean(keeper.map(run => run.tpSpent));
-      const keeperLift = tpSpent === 0
-        ? 0
-        : ((baselineGoalsAgainst - mean(keeper.map(run => run.opener.goalsAgainst))) / tpSpent) * 100;
-      const refAfter = mean(keeper.map(run => {
-        const gain = run.statGains.find(candidate => candidate.attribute === 'ref');
-        return gain === undefined ? 46 : gain.after;
-      }));
+      const tpSpent = mean(keeper.map((run) => run.tpSpent));
+      const keeperLift =
+        tpSpent === 0
+          ? 0
+          : ((baselineGoalsAgainst -
+              mean(keeper.map((run) => run.opener.goalsAgainst))) /
+              tpSpent) *
+            100;
+      const refAfter = mean(
+        keeper.map((run) => {
+          const gain = run.statGains.find(
+            (candidate) => candidate.attribute === 'ref',
+          );
+          return gain === undefined ? 46 : gain.after;
+        }),
+      );
 
       lines.push(
-        `${multiplier.toFixed(2).padStart(5)}`
-        + ` ${keeperLadder(multiplier).padStart(12)}`
-        + ` ${mean(keeper.map(run => run.tapCount)).toFixed(1).padStart(5)}`
-        + ` ${refAfter.toFixed(0).padStart(9)}`
-        + ` ${keeperLift.toFixed(3).padStart(16)}`
-        + ` ${(keeperLift / finishingLift).toFixed(2).padStart(6)}`
-        + ` ${pct(rate(keeper, 'L')).padStart(13)}`
-        + ` ${pct(rate(ordinary, 'W')).padStart(12)}`
-        + ` ${pct(rate(ordinary, 'L')).padStart(12)}`,
+        `${multiplier.toFixed(2).padStart(5)}` +
+          ` ${keeperLadder(multiplier).padStart(12)}` +
+          ` ${mean(keeper.map((run) => run.tapCount))
+            .toFixed(1)
+            .padStart(5)}` +
+          ` ${refAfter.toFixed(0).padStart(9)}` +
+          ` ${keeperLift.toFixed(3).padStart(16)}` +
+          ` ${(keeperLift / finishingLift).toFixed(2).padStart(6)}` +
+          ` ${pct(rate(keeper, 'L')).padStart(13)}` +
+          ` ${pct(rate(ordinary, 'W')).padStart(12)}` +
+          ` ${pct(rate(ordinary, 'L')).padStart(12)}`,
       );
     }
-    lines.push('', `striker reference: goals created/100TP = ${finishingLift.toFixed(3)}`);
+    lines.push(
+      '',
+      `striker reference: goals created/100TP = ${finishingLift.toFixed(3)}`,
+    );
     // eslint-disable-next-line no-console
     console.log(lines.join('\n'));
     expect(CANDIDATE_MULTIPLIERS.length).toBeGreaterThan(0);
@@ -171,7 +216,9 @@ describeProbe('keeper drill gain sweep', () => {
 });
 
 function rate(runs: readonly OpeningRun[], outcome: 'W' | 'D' | 'L'): number {
-  return runs.filter(run => run.opener.outcome === outcome).length / runs.length;
+  return (
+    runs.filter((run) => run.opener.outcome === outcome).length / runs.length
+  );
 }
 
 function pct(value: number): string {

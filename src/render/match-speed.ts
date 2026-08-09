@@ -6,8 +6,10 @@ export type MatchSpeed = 1 | 2 | 3;
  */
 export const MATCH_SPEEDS: readonly MatchSpeed[] = [1, 2, 3];
 
-export function availableMatchSpeeds(maximum: MatchSpeed): readonly MatchSpeed[] {
-  return MATCH_SPEEDS.filter(speed => speed <= maximum);
+export function availableMatchSpeeds(
+  maximum: MatchSpeed,
+): readonly MatchSpeed[] {
+  return MATCH_SPEEDS.filter((speed) => speed <= maximum);
 }
 
 export function nextMatchSpeed(

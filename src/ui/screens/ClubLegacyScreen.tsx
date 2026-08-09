@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
-import { ChalkboardBackdrop, StageSection } from '../components/ChalkboardStage';
+import {
+  ChalkboardBackdrop,
+  StageSection,
+} from '../components/ChalkboardStage';
 import { PixelPortrait } from '../components/PixelPortrait';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import type { ClubLegacyChoiceViewModel, ClubLegacyViewModel } from '../models';
@@ -41,15 +44,24 @@ export function ClubLegacyScreen({
   const guardTap = useTapGuard();
   const dismissFrameRef = useRef<number | null>(null);
   const dismissGuidanceAfterPress = useCallback(() => {
-    if (!guided || onDismissGuidance === undefined || dismissFrameRef.current !== null) return;
+    if (
+      !guided ||
+      onDismissGuidance === undefined ||
+      dismissFrameRef.current !== null
+    )
+      return;
     dismissFrameRef.current = requestAnimationFrame(() => {
       dismissFrameRef.current = null;
       onDismissGuidance();
     });
   }, [guided, onDismissGuidance]);
-  useEffect(() => () => {
-    if (dismissFrameRef.current !== null) cancelAnimationFrame(dismissFrameRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (dismissFrameRef.current !== null)
+        cancelAnimationFrame(dismissFrameRef.current);
+    },
+    [],
+  );
 
   return (
     <SafeAreaView
@@ -61,8 +73,12 @@ export function ClubLegacyScreen({
       <ChalkboardBackdrop wide={wide} />
       <View className="flex-row items-center justify-between px-4 py-3">
         <View className="flex-1">
-          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{t('clubLegacy.clubLegacy')}</Text>
-          <Text className="mt-1 font-pixel text-lg uppercase text-white">{t('clubLegacy.aLegendsNextChapter')}</Text>
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">
+            {t('clubLegacy.clubLegacy')}
+          </Text>
+          <Text className="mt-1 font-pixel text-lg uppercase text-white">
+            {t('clubLegacy.aLegendsNextChapter')}
+          </Text>
         </View>
         <View className="flex-row items-center gap-2">
           <StatusChip label={viewModel.seasonLabel} tone="hero" />
@@ -70,7 +86,13 @@ export function ClubLegacyScreen({
         </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={[
+          { padding: 16, paddingBottom: 28 },
+          desktopContent,
+        ]}
+      >
         <PaperPanel
           kicker={t('clubLegacy.retirementOffice')}
           title={viewModel.playerName}
@@ -78,18 +100,28 @@ export function ClubLegacyScreen({
         >
           <View className="flex-row items-center gap-4">
             <View className="overflow-hidden border-2 border-b-4 border-gold-dark bg-gold-light">
-              <PixelPortrait playerId={viewModel.playerId} role={viewModel.role} lookId={viewModel.lookId} expression="joy" />
+              <PixelPortrait
+                playerId={viewModel.playerId}
+                role={viewModel.role}
+                lookId={viewModel.lookId}
+                expression="joy"
+              />
             </View>
             <View className="flex-1 flex-row flex-wrap gap-2">
               <StatusChip label={viewModel.role} />
               {/* Same chip the board panel puts on a hero it is about to sell:
                   a powered player's farewell should never read like anyone's. */}
-              {viewModel.isHero ? <StatusChip label={t('clubLegacy.hero')} tone="hero" /> : null}
+              {viewModel.isHero ? (
+                <StatusChip label={t('clubLegacy.hero')} tone="hero" />
+              ) : null}
               {/* The label, never `archetype` — that field is the persisted id
                   the summary table is keyed by, and a chip is the one place a
                   translated word belongs. */}
               <StatusChip label={viewModel.archetypeLabel} tone="hero" />
-              <StatusChip label={t('clubLegacy.fame', { fame: viewModel.fame })} tone="success" />
+              <StatusChip
+                label={t('clubLegacy.fame', { fame: viewModel.fame })}
+                tone="success"
+              />
             </View>
           </View>
           <Text className="mt-4 text-base leading-6 text-ink/70">
@@ -107,12 +139,23 @@ export function ClubLegacyScreen({
         </PaperPanel>
 
         <View className="mt-6 gap-4">
-          <StageSection eyebrow={t('clubLegacy.yourDecision')} title={t('clubLegacy.howShouldTheLegacyContinue')} />
+          <StageSection
+            eyebrow={t('clubLegacy.yourDecision')}
+            title={t('clubLegacy.howShouldTheLegacyContinue')}
+          />
           {viewModel.choices.map((choice, index) => (
             <View
               key={choice.id}
-              className={guided && index === 0 ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
-              style={guided && index === 0 ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
+              className={
+                guided && index === 0
+                  ? 'relative border-2 border-blue-dark bg-blue-light p-1'
+                  : 'relative'
+              }
+              style={
+                guided && index === 0
+                  ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE }
+                  : undefined
+              }
             >
               {guided && index === 0 ? (
                 <TutorialTapCue
@@ -125,13 +168,17 @@ export function ClubLegacyScreen({
                 />
               ) : null}
               <PaperPanel
-                kicker={viewModel.choices.length === 1
-                  ? t('clubLegacy.theOffer')
-                  : t('clubLegacy.option', { number: index + 1 })}
+                kicker={
+                  viewModel.choices.length === 1
+                    ? t('clubLegacy.theOffer')
+                    : t('clubLegacy.option', { number: index + 1 })
+                }
                 title={choice.label}
                 className="bg-blue-light"
               >
-                <Text className="text-base leading-6 text-ink/70">{choice.detail}</Text>
+                <Text className="text-base leading-6 text-ink/70">
+                  {choice.detail}
+                </Text>
                 <View className="my-3 border-t border-ink/20" />
                 <PixelText className="mb-3 text-sm uppercase leading-5 text-ink">
                   {choice.outcome}
@@ -174,13 +221,15 @@ export function ClubLegacyScreen({
               stamp={t('clubLegacy.clubHistory')}
             >
               <View className="gap-2">
-                {viewModel.formerPlayers.map(former => (
+                {viewModel.formerPlayers.map((former) => (
                   <View
                     key={former.playerId}
                     accessible
                     accessibilityRole="summary"
                     accessibilityLabel={t(
-                      former.isHero ? 'clubLegacy.a11y.formerHero' : 'clubLegacy.a11y.formerPlayer',
+                      former.isHero
+                        ? 'clubLegacy.a11y.formerHero'
+                        : 'clubLegacy.a11y.formerPlayer',
                       { player: former.playerName, detail: former.detail },
                     )}
                     className="flex-row items-center gap-3 border-2 border-ink/25 bg-white p-2"
@@ -195,12 +244,22 @@ export function ClubLegacyScreen({
                     </View>
                     <View className="flex-1">
                       <View className="flex-row items-center gap-2">
-                        <Text className="flex-1 text-base font-bold text-ink" numberOfLines={1}>
+                        <Text
+                          className="flex-1 text-base font-bold text-ink"
+                          numberOfLines={1}
+                        >
                           {former.playerName}
                         </Text>
-                        {former.isHero ? <StatusChip label={t('clubLegacy.hero')} tone="hero" /> : null}
+                        {former.isHero ? (
+                          <StatusChip
+                            label={t('clubLegacy.hero')}
+                            tone="hero"
+                          />
+                        ) : null}
                       </View>
-                      <Text className="mt-1 font-mono text-sm text-ink/65">{former.detail}</Text>
+                      <Text className="mt-1 font-mono text-sm text-ink/65">
+                        {former.detail}
+                      </Text>
                     </View>
                   </View>
                 ))}
@@ -208,7 +267,9 @@ export function ClubLegacyScreen({
               {viewModel.formerPlayerTotal > viewModel.formerPlayers.length ? (
                 <PixelText className="mt-3 text-sm uppercase text-ink/50">
                   {t('clubLegacy.moreInArchive', {
-                    count: viewModel.formerPlayerTotal - viewModel.formerPlayers.length,
+                    count:
+                      viewModel.formerPlayerTotal -
+                      viewModel.formerPlayers.length,
                   })}
                 </PixelText>
               ) : null}

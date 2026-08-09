@@ -1,7 +1,14 @@
 import { clamp, PITCH_H, PITCH_W, type Vec } from './geometry';
 
-export const FORMATION_IDS = ['4-4-2', '4-3-3', '3-5-2', '5-3-2', '4-5-1', '3-4-3'] as const;
-export type FormationId = typeof FORMATION_IDS[number];
+export const FORMATION_IDS = [
+  '4-4-2',
+  '4-3-3',
+  '3-5-2',
+  '5-3-2',
+  '4-5-1',
+  '3-4-3',
+] as const;
+export type FormationId = (typeof FORMATION_IDS)[number];
 
 // Only empirically validated shapes are offered in Settings. The engine keeps
 // the other IDs replay-compatible while their match behavior is tuned.
@@ -12,27 +19,27 @@ export const COACHING_FORMATION_IDS: readonly FormationId[] = [
   '3-4-3',
 ];
 
-export const DEFAULT_FORMATION_PRESETS: readonly [FormationId, FormationId, FormationId] = [
-  '4-4-2',
-  '3-4-3',
-  '5-3-2',
-];
+export const DEFAULT_FORMATION_PRESETS: readonly [
+  FormationId,
+  FormationId,
+  FormationId,
+] = ['4-4-2', '3-4-3', '5-3-2'];
 
 export const MENTALITIES = ['BALANCED', 'ATTACK', 'PROTECT'] as const;
-export type Mentality = typeof MENTALITIES[number];
+export type Mentality = (typeof MENTALITIES)[number];
 
 export const ENERGY_USE_MODES = ['SAVE_ENERGY', 'BALANCED', 'ALL_OUT'] as const;
-export type EnergyUse = typeof ENERGY_USE_MODES[number];
+export type EnergyUse = (typeof ENERGY_USE_MODES)[number];
 
 const ENERGY_DRAIN_MULTIPLIER: Readonly<Record<EnergyUse, number>> = {
-  SAVE_ENERGY: 0.60,
-  BALANCED: 1.00,
+  SAVE_ENERGY: 0.6,
+  BALANCED: 1.0,
   ALL_OUT: 1.65,
 };
 
 const ENERGY_MOVEMENT_MULTIPLIER: Readonly<Record<EnergyUse, number>> = {
-  SAVE_ENERGY: 0.90,
-  BALANCED: 1.00,
+  SAVE_ENERGY: 0.9,
+  BALANCED: 1.0,
   ALL_OUT: 1.12,
 };
 
@@ -54,36 +61,80 @@ type NormalizedPoint = readonly [number, number];
 // chosen layout changes that slot's positional job. The match is deliberately
 // arcade-readable: switching formation changes the ten dots the player sees,
 // without opening a role-assignment spreadsheet mid-match.
-export const FORMATION_LAYOUTS: Readonly<Record<FormationId, readonly NormalizedPoint[]>> = {
+export const FORMATION_LAYOUTS: Readonly<
+  Record<FormationId, readonly NormalizedPoint[]>
+> = {
   '4-4-2': [
-    [0.15, 0.78], [0.38, 0.80], [0.62, 0.80], [0.85, 0.78],
-    [0.15, 0.55], [0.38, 0.58], [0.62, 0.58], [0.85, 0.55],
-    [0.38, 0.30], [0.62, 0.30],
+    [0.15, 0.78],
+    [0.38, 0.8],
+    [0.62, 0.8],
+    [0.85, 0.78],
+    [0.15, 0.55],
+    [0.38, 0.58],
+    [0.62, 0.58],
+    [0.85, 0.55],
+    [0.38, 0.3],
+    [0.62, 0.3],
   ],
   '4-3-3': [
-    [0.15, 0.78], [0.38, 0.80], [0.62, 0.80], [0.85, 0.78],
-    [0.25, 0.56], [0.50, 0.59], [0.75, 0.56],
-    [0.84, 0.29], [0.16, 0.29], [0.50, 0.25],
+    [0.15, 0.78],
+    [0.38, 0.8],
+    [0.62, 0.8],
+    [0.85, 0.78],
+    [0.25, 0.56],
+    [0.5, 0.59],
+    [0.75, 0.56],
+    [0.84, 0.29],
+    [0.16, 0.29],
+    [0.5, 0.25],
   ],
   '3-5-2': [
-    [0.25, 0.80], [0.50, 0.82], [0.75, 0.80],
-    [0.09, 0.57], [0.30, 0.59], [0.50, 0.62], [0.70, 0.59], [0.91, 0.57],
-    [0.38, 0.29], [0.62, 0.29],
+    [0.25, 0.8],
+    [0.5, 0.82],
+    [0.75, 0.8],
+    [0.09, 0.57],
+    [0.3, 0.59],
+    [0.5, 0.62],
+    [0.7, 0.59],
+    [0.91, 0.57],
+    [0.38, 0.29],
+    [0.62, 0.29],
   ],
   '5-3-2': [
-    [0.09, 0.76], [0.30, 0.81], [0.50, 0.83], [0.70, 0.81], [0.91, 0.76],
-    [0.25, 0.58], [0.50, 0.61], [0.75, 0.58],
-    [0.38, 0.30], [0.62, 0.30],
+    [0.09, 0.76],
+    [0.3, 0.81],
+    [0.5, 0.83],
+    [0.7, 0.81],
+    [0.91, 0.76],
+    [0.25, 0.58],
+    [0.5, 0.61],
+    [0.75, 0.58],
+    [0.38, 0.3],
+    [0.62, 0.3],
   ],
   '4-5-1': [
-    [0.15, 0.79], [0.38, 0.81], [0.62, 0.81], [0.85, 0.79],
-    [0.09, 0.56], [0.30, 0.60], [0.50, 0.63], [0.70, 0.60], [0.91, 0.56],
-    [0.50, 0.28],
+    [0.15, 0.79],
+    [0.38, 0.81],
+    [0.62, 0.81],
+    [0.85, 0.79],
+    [0.09, 0.56],
+    [0.3, 0.6],
+    [0.5, 0.63],
+    [0.7, 0.6],
+    [0.91, 0.56],
+    [0.5, 0.28],
   ],
   '3-4-3': [
-    [0.25, 0.80], [0.50, 0.82], [0.75, 0.80],
-    [0.12, 0.57], [0.38, 0.60], [0.62, 0.60], [0.88, 0.57],
-    [0.16, 0.29], [0.50, 0.25], [0.84, 0.29],
+    [0.25, 0.8],
+    [0.5, 0.82],
+    [0.75, 0.8],
+    [0.12, 0.57],
+    [0.38, 0.6],
+    [0.62, 0.6],
+    [0.88, 0.57],
+    [0.16, 0.29],
+    [0.5, 0.25],
+    [0.84, 0.29],
   ],
 };
 
@@ -92,28 +143,58 @@ export const FORMATION_LAYOUTS: Readonly<Record<FormationId, readonly Normalized
 // formation changes line counts: a 3-4-3 should advance the right back on the
 // right and the right midfielder on the right, not send either across the
 // entire pitch just because the fourth display dot begins the midfield line.
-const FORMATION_ENGINE_ANCHORS: Readonly<Record<FormationId, readonly NormalizedPoint[]>> = {
+const FORMATION_ENGINE_ANCHORS: Readonly<
+  Record<FormationId, readonly NormalizedPoint[]>
+> = {
   '4-4-2': FORMATION_LAYOUTS['4-4-2'],
   '4-3-3': FORMATION_LAYOUTS['4-3-3'],
   '3-5-2': [
-    [0.25, 0.83], [0.50, 0.85], [0.75, 0.83], [0.88, 0.62],
-    [0.12, 0.62], [0.32, 0.62], [0.68, 0.62], [0.50, 0.68],
-    [0.38, 0.29], [0.62, 0.29],
+    [0.25, 0.83],
+    [0.5, 0.85],
+    [0.75, 0.83],
+    [0.88, 0.62],
+    [0.12, 0.62],
+    [0.32, 0.62],
+    [0.68, 0.62],
+    [0.5, 0.68],
+    [0.38, 0.29],
+    [0.62, 0.29],
   ],
   '5-3-2': [
-    [0.09, 0.82], [0.30, 0.86], [0.50, 0.88], [0.70, 0.86],
-    [0.25, 0.62], [0.50, 0.64], [0.75, 0.62], [0.91, 0.82],
-    [0.38, 0.30], [0.62, 0.30],
+    [0.09, 0.82],
+    [0.3, 0.86],
+    [0.5, 0.88],
+    [0.7, 0.86],
+    [0.25, 0.62],
+    [0.5, 0.64],
+    [0.75, 0.62],
+    [0.91, 0.82],
+    [0.38, 0.3],
+    [0.62, 0.3],
   ],
   '4-5-1': [
-    [0.15, 0.81], [0.38, 0.84], [0.62, 0.84], [0.85, 0.81],
-    [0.09, 0.58], [0.30, 0.61], [0.70, 0.61], [0.91, 0.58],
-    [0.50, 0.42], [0.50, 0.25],
+    [0.15, 0.81],
+    [0.38, 0.84],
+    [0.62, 0.84],
+    [0.85, 0.81],
+    [0.09, 0.58],
+    [0.3, 0.61],
+    [0.7, 0.61],
+    [0.91, 0.58],
+    [0.5, 0.42],
+    [0.5, 0.25],
   ],
   '3-4-3': [
-    [0.25, 0.72], [0.50, 0.74], [0.75, 0.72], [0.88, 0.52],
-    [0.12, 0.52], [0.38, 0.54], [0.62, 0.54], [0.84, 0.22],
-    [0.16, 0.24], [0.50, 0.20],
+    [0.25, 0.72],
+    [0.5, 0.74],
+    [0.75, 0.72],
+    [0.88, 0.52],
+    [0.12, 0.52],
+    [0.38, 0.54],
+    [0.62, 0.54],
+    [0.84, 0.22],
+    [0.16, 0.24],
+    [0.5, 0.2],
   ],
 };
 
@@ -127,13 +208,81 @@ export type FormationRole = 'GK' | 'DEF' | 'MID' | 'FWD';
  * simple groups; 5-3-2 is the important exception because fixed slot 8 drops
  * from right midfield into the fifth defensive position.
  */
-const FORMATION_SLOT_ROLES: Readonly<Record<FormationId, readonly Exclude<FormationRole, 'GK'>[]>> = {
-  '4-4-2': ['DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD'],
-  '4-3-3': ['DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'FWD', 'FWD', 'FWD'],
-  '3-5-2': ['DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD'],
-  '5-3-2': ['DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'DEF', 'FWD', 'FWD'],
-  '4-5-1': ['DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD'],
-  '3-4-3': ['DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD', 'FWD'],
+const FORMATION_SLOT_ROLES: Readonly<
+  Record<FormationId, readonly Exclude<FormationRole, 'GK'>[]>
+> = {
+  '4-4-2': [
+    'DEF',
+    'DEF',
+    'DEF',
+    'DEF',
+    'MID',
+    'MID',
+    'MID',
+    'MID',
+    'FWD',
+    'FWD',
+  ],
+  '4-3-3': [
+    'DEF',
+    'DEF',
+    'DEF',
+    'DEF',
+    'MID',
+    'MID',
+    'MID',
+    'FWD',
+    'FWD',
+    'FWD',
+  ],
+  '3-5-2': [
+    'DEF',
+    'DEF',
+    'DEF',
+    'MID',
+    'MID',
+    'MID',
+    'MID',
+    'MID',
+    'FWD',
+    'FWD',
+  ],
+  '5-3-2': [
+    'DEF',
+    'DEF',
+    'DEF',
+    'DEF',
+    'MID',
+    'MID',
+    'MID',
+    'DEF',
+    'FWD',
+    'FWD',
+  ],
+  '4-5-1': [
+    'DEF',
+    'DEF',
+    'DEF',
+    'DEF',
+    'MID',
+    'MID',
+    'MID',
+    'MID',
+    'MID',
+    'FWD',
+  ],
+  '3-4-3': [
+    'DEF',
+    'DEF',
+    'DEF',
+    'MID',
+    'MID',
+    'MID',
+    'MID',
+    'FWD',
+    'FWD',
+    'FWD',
+  ],
 };
 
 export function formationRoleForSlot(
@@ -141,13 +290,19 @@ export function formationRoleForSlot(
   engineSlot: number,
 ): FormationRole {
   if (!Number.isSafeInteger(engineSlot) || engineSlot < 0 || engineSlot > 10) {
-    throw new Error(`formation slot must be an integer from 0 to 10, got ${String(engineSlot)}`);
+    throw new Error(
+      `formation slot must be an integer from 0 to 10, got ${String(engineSlot)}`,
+    );
   }
-  return engineSlot === 0 ? 'GK' : FORMATION_SLOT_ROLES[formation][engineSlot - 1];
+  return engineSlot === 0
+    ? 'GK'
+    : FORMATION_SLOT_ROLES[formation][engineSlot - 1];
 }
 
 export function isFormationId(value: unknown): value is FormationId {
-  return typeof value === 'string' && FORMATION_IDS.includes(value as FormationId);
+  return (
+    typeof value === 'string' && FORMATION_IDS.includes(value as FormationId)
+  );
 }
 
 export function isMentality(value: unknown): value is Mentality {
@@ -155,16 +310,25 @@ export function isMentality(value: unknown): value is Mentality {
 }
 
 export function isEnergyUse(value: unknown): value is EnergyUse {
-  return typeof value === 'string' && ENERGY_USE_MODES.includes(value as EnergyUse);
+  return (
+    typeof value === 'string' && ENERGY_USE_MODES.includes(value as EnergyUse)
+  );
 }
 
 export function energyDrainMultiplier(mode: EnergyUse): number {
   return ENERGY_DRAIN_MULTIPLIER[mode];
 }
 
-export function energyMovementMultiplier(mode: EnergyUse, condition: number): number {
+export function energyMovementMultiplier(
+  mode: EnergyUse,
+  condition: number,
+): number {
   if (mode === 'ALL_OUT') {
-    return 1 + (ENERGY_MOVEMENT_MULTIPLIER.ALL_OUT - 1) * clamp(condition, 0, 100) / 100;
+    return (
+      1 +
+      ((ENERGY_MOVEMENT_MULTIPLIER.ALL_OUT - 1) * clamp(condition, 0, 100)) /
+        100
+    );
   }
   return ENERGY_MOVEMENT_MULTIPLIER[mode];
 }
@@ -173,7 +337,10 @@ export function nextMentality(current: Mentality): Mentality {
   return MENTALITIES[(MENTALITIES.indexOf(current) + 1) % MENTALITIES.length];
 }
 
-export function nextFormation(current: FormationId, presets: readonly FormationId[]): FormationId {
+export function nextFormation(
+  current: FormationId,
+  presets: readonly FormationId[],
+): FormationId {
   if (presets.length === 0) return current;
   const index = presets.indexOf(current);
   return presets[(index + 1 + presets.length) % presets.length];
@@ -192,8 +359,16 @@ export function formationTarget(
   const chosen = FORMATION_ENGINE_ANCHORS[formation][engineSlot - 1];
   const direction = team === 0 ? 1 : -1;
   const target = {
-    x: clamp(Math.round(baseTarget.x + (chosen[0] - base[0]) * PITCH_W * direction), 0, PITCH_W),
-    y: clamp(Math.round(baseTarget.y + (chosen[1] - base[1]) * PITCH_H * direction), 0, PITCH_H),
+    x: clamp(
+      Math.round(baseTarget.x + (chosen[0] - base[0]) * PITCH_W * direction),
+      0,
+      PITCH_W,
+    ),
+    y: clamp(
+      Math.round(baseTarget.y + (chosen[1] - base[1]) * PITCH_H * direction),
+      0,
+      PITCH_H,
+    ),
   };
   if (formation !== '3-4-3' || inPossession !== false) return target;
 
@@ -226,9 +401,17 @@ export function mentalityTarget(
     // Commit the whole block. The stronger out-of-possession step leaves real
     // counter space, so ATTACK is pressure plus risk rather than a free buff.
     const shift = inPossession
-      ? (slotLine === 'DEF' ? 260 : slotLine === 'MID' ? 460 : 650)
-      : (slotLine === 'DEF' ? 1050 : slotLine === 'MID' ? 800 : 500);
-    const width = inPossession ? 1.05 : 1.10;
+      ? slotLine === 'DEF'
+        ? 260
+        : slotLine === 'MID'
+          ? 460
+          : 650
+      : slotLine === 'DEF'
+        ? 1050
+        : slotLine === 'MID'
+          ? 800
+          : 500;
+    const width = inPossession ? 1.05 : 1.1;
     return {
       x: clamp(Math.round(centerX + (target.x - centerX) * width), 0, PITCH_W),
       y: clamp(Math.round(target.y + shift * teamForward), 0, PITCH_H),
@@ -238,11 +421,24 @@ export function mentalityTarget(
   // PROTECT forms a deep, narrow shell. It sacrifices outlets and shot volume
   // but closes the central lane instead of merely backing every player away.
   const shift = inPossession
-    ? (slotLine === 'DEF' ? 460 : slotLine === 'MID' ? 500 : 260)
-    : (slotLine === 'DEF' ? 760 : slotLine === 'MID' ? 700 : 420);
-  const compactness = slotLine === 'DEF' ? 0.74 : slotLine === 'MID' ? 0.82 : 0.92;
+    ? slotLine === 'DEF'
+      ? 460
+      : slotLine === 'MID'
+        ? 500
+        : 260
+    : slotLine === 'DEF'
+      ? 760
+      : slotLine === 'MID'
+        ? 700
+        : 420;
+  const compactness =
+    slotLine === 'DEF' ? 0.74 : slotLine === 'MID' ? 0.82 : 0.92;
   return {
-    x: clamp(Math.round(centerX + (target.x - centerX) * compactness), 0, PITCH_W),
+    x: clamp(
+      Math.round(centerX + (target.x - centerX) * compactness),
+      0,
+      PITCH_W,
+    ),
     y: clamp(Math.round(target.y - shift * teamForward), 0, PITCH_H),
   };
 }

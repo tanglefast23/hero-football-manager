@@ -5,16 +5,33 @@ import type { RuntimeAudio } from '../financial-statement-runtime';
 
 function fakeAudio(): RuntimeAudio & { calls: Record<string, number> } {
   const calls: Record<string, number> = {
-    playSpin: 0, stopSpin: 0, playThunk: 0, playSurgeIgnition: 0, stopSurgeBed: 0, stopAll: 0,
+    playSpin: 0,
+    stopSpin: 0,
+    playThunk: 0,
+    playSurgeIgnition: 0,
+    stopSurgeBed: 0,
+    stopAll: 0,
   };
   return {
     calls,
-    playSpin: () => { calls.playSpin += 1; },
-    stopSpin: () => { calls.stopSpin += 1; },
-    playThunk: () => { calls.playThunk += 1; },
-    playSurgeIgnition: () => { calls.playSurgeIgnition += 1; },
-    stopSurgeBed: () => { calls.stopSurgeBed += 1; },
-    stopAll: () => { calls.stopAll += 1; },
+    playSpin: () => {
+      calls.playSpin += 1;
+    },
+    stopSpin: () => {
+      calls.stopSpin += 1;
+    },
+    playThunk: () => {
+      calls.playThunk += 1;
+    },
+    playSurgeIgnition: () => {
+      calls.playSurgeIgnition += 1;
+    },
+    stopSurgeBed: () => {
+      calls.stopSurgeBed += 1;
+    },
+    stopAll: () => {
+      calls.stopAll += 1;
+    },
   };
 }
 
@@ -40,7 +57,7 @@ describe('financial statement runtime', () => {
     const runtime = createStatementRuntime({
       config: twoRowConfig(),
       audio,
-      onState: state => states.push(state.rows[0]?.phase ?? 'none'),
+      onState: (state) => states.push(state.rows[0]?.phase ?? 'none'),
     });
     runtime.dispatch({ type: 'start' });
     expect(runtime.getState().rows[0].phase).toBe('spinning');

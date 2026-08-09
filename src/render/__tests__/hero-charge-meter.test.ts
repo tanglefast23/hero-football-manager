@@ -13,15 +13,27 @@ import {
   rainbowStripBands,
   rainbowStripWidth,
 } from '../hero-charge-meter';
-import { AWAY_KIT_COLOR, HOME_KIT_COLOR, HOME_KIT_COLOR_SAFE } from '../team-kit-ui';
+import {
+  AWAY_KIT_COLOR,
+  HOME_KIT_COLOR,
+  HOME_KIT_COLOR_SAFE,
+} from '../team-kit-ui';
 
-const matchSource = () => readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
-const meterSource = () => readFileSync(join(process.cwd(), 'src/render/HeroChargeMeter.tsx'), 'utf8');
+const matchSource = () =>
+  readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
+const meterSource = () =>
+  readFileSync(join(process.cwd(), 'src/render/HeroChargeMeter.tsx'), 'utf8');
 
 describe('possession-card hero charge meter', () => {
   it('fills from banked Heat while the hero is building', () => {
-    expect(chargeMeter(0, { kind: 'idle' })).toEqual({ state: 'building', fill: 0 });
-    expect(chargeMeter(30, { kind: 'idle' })).toEqual({ state: 'building', fill: 0.5 });
+    expect(chargeMeter(0, { kind: 'idle' })).toEqual({
+      state: 'building',
+      fill: 0,
+    });
+    expect(chargeMeter(30, { kind: 'idle' })).toEqual({
+      state: 'building',
+      fill: 0.5,
+    });
     expect(chargeMeter(ZONE_HEAT_THRESHOLD, { kind: 'idle' })).toEqual({
       state: 'building',
       fill: 1,
@@ -46,11 +58,15 @@ describe('possession-card hero charge meter', () => {
       state: 'spent',
       fill: 0,
     });
-    expect(chargeMeter(0, { kind: 'winding', untilTick: 40, strength: 1 })).toEqual({
+    expect(
+      chargeMeter(0, { kind: 'winding', untilTick: 40, strength: 1 }),
+    ).toEqual({
       state: 'spent',
       fill: 0,
     });
-    expect(chargeMeter(0, { kind: 'active', untilTick: 90, strength: 1 })).toEqual({
+    expect(
+      chargeMeter(0, { kind: 'active', untilTick: 90, strength: 1 }),
+    ).toEqual({
       state: 'spent',
       fill: 0,
     });
@@ -92,15 +108,21 @@ describe('possession-card hero charge meter', () => {
     for (const trackWidth of [4, 48, 100, 134, 200, 400]) {
       const width = rainbowStripWidth(trackWidth);
       // Covers the track at both ends of the one-cycle travel.
-      expect(width).toBeGreaterThanOrEqual(trackWidth + CHARGE_RAINBOW_CYCLE_WIDTH);
+      expect(width).toBeGreaterThanOrEqual(
+        trackWidth + CHARGE_RAINBOW_CYCLE_WIDTH,
+      );
     }
   });
 
   it('repeats whole palette cycles so the loop has no visible seam', () => {
     const bands = rainbowStripBands(134);
     expect(bands.length % CHARGE_RAINBOW_BANDS.length).toBe(0);
-    expect(bands.slice(0, CHARGE_RAINBOW_BANDS.length)).toEqual([...CHARGE_RAINBOW_BANDS]);
-    expect(CHARGE_RAINBOW_CYCLE_WIDTH).toBe(CHARGE_RAINBOW_BANDS.length * CHARGE_BAND_WIDTH);
+    expect(bands.slice(0, CHARGE_RAINBOW_BANDS.length)).toEqual([
+      ...CHARGE_RAINBOW_BANDS,
+    ]);
+    expect(CHARGE_RAINBOW_CYCLE_WIDTH).toBe(
+      CHARGE_RAINBOW_BANDS.length * CHARGE_BAND_WIDTH,
+    );
   });
 
   it('keeps the on-device band width that reads as travelling colour, not shimmer', () => {
@@ -128,19 +150,28 @@ describe('possession-card hero charge meter', () => {
   });
 
   it('speaks the three states', () => {
-    expect(chargeMeterAccessibilityLabel(chargeMeter(30, { kind: 'idle' })))
-      .toBe('Power charge 50%');
-    expect(chargeMeterAccessibilityLabel(chargeMeter(0, { kind: 'zone', remainingTicks: 70 })))
-      .toBe('Power charged and ready');
-    expect(chargeMeterAccessibilityLabel(chargeMeter(0, { kind: 'active', untilTick: 9, strength: 1 })))
-      .toBe('Power in use, charge reset');
+    expect(
+      chargeMeterAccessibilityLabel(chargeMeter(30, { kind: 'idle' })),
+    ).toBe('Power charge 50%');
+    expect(
+      chargeMeterAccessibilityLabel(
+        chargeMeter(0, { kind: 'zone', remainingTicks: 70 }),
+      ),
+    ).toBe('Power charged and ready');
+    expect(
+      chargeMeterAccessibilityLabel(
+        chargeMeter(0, { kind: 'active', untilTick: 9, strength: 1 }),
+      ),
+    ).toBe('Power in use, charge reset');
   });
 
   it('shows the meter only for a hero carrier, and changes no engine state', () => {
     const source = matchSource();
 
     expect(source).toContain('{carrier.def.power ? (');
-    expect(source).toContain('meter={chargeMeter(carrier.gauge, carrier.powerState)}');
+    expect(source).toContain(
+      'meter={chargeMeter(carrier.gauge, carrier.powerState)}',
+    );
     expect(source).not.toContain('ENGINE_VERSION');
   });
 

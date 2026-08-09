@@ -9,7 +9,9 @@ const de = { 'a.hi': 'Hallo {name}' };
 
 describe('resolveCopy', () => {
   test('resolves and interpolates', () => {
-    expect(resolveCopy('de', de, en, 'a.hi', { name: 'Bert' })).toBe('Hallo Bert');
+    expect(resolveCopy('de', de, en, 'a.hi', { name: 'Bert' })).toBe(
+      'Hallo Bert',
+    );
   });
 
   test('falls back to English when the locale lacks the key', () => {
@@ -42,10 +44,14 @@ describe('resolveCopy', () => {
   });
 
   test('params never re-interpolate, so a name containing a placeholder is inert', () => {
-    expect(resolveCopy('en', en, en, 'a.hi', { name: '{name}' })).toBe('Hello {name}');
+    expect(resolveCopy('en', en, en, 'a.hi', { name: '{name}' })).toBe(
+      'Hello {name}',
+    );
   });
 
   test('a numeric param is stringified without locale formatting', () => {
-    expect(resolveCopy('en', { 'a.x': 'fee {fee}' }, en, 'a.x', { fee: 1240 })).toBe('fee 1240');
+    expect(
+      resolveCopy('en', { 'a.x': 'fee {fee}' }, en, 'a.x', { fee: 1240 }),
+    ).toBe('fee 1240');
   });
 });

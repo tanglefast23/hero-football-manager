@@ -2,13 +2,19 @@ import { managementHeaderLine } from '../management-header';
 
 describe('management header line', () => {
   test('drops the division tier name from the visible line but keeps the week', () => {
-    const line = managementHeaderLine('Season 1 · D5 · District League', 'Week 1 / 30');
+    const line = managementHeaderLine(
+      'Season 1 · D5 · District League',
+      'Week 1 / 30',
+    );
 
     expect(line.visible).toBe('Season 1 · D5 · Week 1 / 30');
   });
 
   test('speaks the full division name to assistive technology', () => {
-    const line = managementHeaderLine('Season 1 · D5 · District League', 'Week 1 / 30');
+    const line = managementHeaderLine(
+      'Season 1 · D5 · District League',
+      'Week 1 / 30',
+    );
 
     expect(line.spoken).toBe('Season 1 · D5 · District League · Week 1 / 30');
   });
@@ -30,7 +36,10 @@ describe('management header line', () => {
       [3, 'Regional League'],
       [5, 'District League'],
     ] as const) {
-      const line = managementHeaderLine(`Season 7 · D${level} · ${name}`, 'Week 30 / 30');
+      const line = managementHeaderLine(
+        `Season 7 · D${level} · ${name}`,
+        'Week 30 / 30',
+      );
 
       expect(line.visible).toBe(`Season 7 · D${level} · Week 30 / 30`);
       expect(line.visible).not.toContain(name);
@@ -44,7 +53,10 @@ describe('management header line', () => {
    * per character in the pixel face, so 34 characters is the ceiling.
    */
   test('fits the phone-width character budget at the widest realistic labels', () => {
-    const line = managementHeaderLine('Season 28 · D1 · Global League', 'Week 30 / 30');
+    const line = managementHeaderLine(
+      'Season 28 · D1 · Global League',
+      'Week 30 / 30',
+    );
 
     expect(line.visible.length).toBeLessThanOrEqual(34);
   });

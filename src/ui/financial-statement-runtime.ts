@@ -42,10 +42,14 @@ export function createStatementRuntime(options: {
   clearTimeoutFn?: (handle: TimerHandle) => void;
 }): StatementRuntime {
   const { config, audio, onState } = options;
-  const setTimeoutFn = options.setTimeoutFn
-    ?? ((callback: () => void, ms: number): TimerHandle => setTimeout(callback, ms));
-  const clearTimeoutFn = options.clearTimeoutFn
-    ?? ((handle: TimerHandle): void => clearTimeout(handle as Parameters<typeof clearTimeout>[0]));
+  const setTimeoutFn =
+    options.setTimeoutFn ??
+    ((callback: () => void, ms: number): TimerHandle =>
+      setTimeout(callback, ms));
+  const clearTimeoutFn =
+    options.clearTimeoutFn ??
+    ((handle: TimerHandle): void =>
+      clearTimeout(handle as Parameters<typeof clearTimeout>[0]));
 
   let state = createMachine(config);
   let disposed = false;
@@ -63,11 +67,21 @@ export function createStatementRuntime(options: {
           pending.add(handle);
           break;
         }
-        case 'playSpin': audio.playSpin(); break;
-        case 'stopSpin': audio.stopSpin(); break;
-        case 'playThunk': audio.playThunk(); break;
-        case 'playSurgeIgnition': audio.playSurgeIgnition(); break;
-        case 'stopSurgeBed': audio.stopSurgeBed(); break;
+        case 'playSpin':
+          audio.playSpin();
+          break;
+        case 'stopSpin':
+          audio.stopSpin();
+          break;
+        case 'playThunk':
+          audio.playThunk();
+          break;
+        case 'playSurgeIgnition':
+          audio.playSurgeIgnition();
+          break;
+        case 'stopSurgeBed':
+          audio.stopSurgeBed();
+          break;
       }
     }
   }

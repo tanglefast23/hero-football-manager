@@ -4,6 +4,12 @@ import { SUPPORT_EMAIL } from '../release/support';
 import { ActionButton, PaperPanel } from './components/Scorecard';
 import { useCopy } from '../i18n';
 
+// Keep the full OFL text in the native app bundle beside the two derived TTFs.
+// Metro only emits assets that have a module owner, so the license panel owns
+// the notice it tells the player about.
+const silkscreenLicenseAsset = require('../../assets/fonts/OFL.txt') as number;
+void silkscreenLicenseAsset;
+
 export interface PrivacySupportPanelProps {
   onBack: () => void;
   onEmailSupport: () => void;
@@ -11,14 +17,23 @@ export interface PrivacySupportPanelProps {
 }
 
 /** Player-visible privacy, support, build, and license information. */
-export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: PrivacySupportPanelProps) {
+export function PrivacySupportPanel({
+  onBack,
+  onEmailSupport,
+  supportError,
+}: PrivacySupportPanelProps) {
   const t = useCopy();
   const version = appConfig.expo.version;
   const build = appConfig.expo.ios.buildNumber;
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 4 }}>
-      <Text className="font-pixel text-2xl uppercase text-ink">{t('settings.privacy.label')}</Text>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 4 }}
+    >
+      <Text className="font-pixel text-2xl uppercase text-ink">
+        {t('settings.privacy.label')}
+      </Text>
       <Text className="mt-2 text-sm leading-5 text-ink/60">
         {t('privacySupport.versionLine', { version, build })}
       </Text>
@@ -30,7 +45,9 @@ export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: Pr
           accessibilityLiveRegion="assertive"
           className="mt-4 border-2 border-stamp bg-red-light px-3 py-2"
         >
-          <Text className="text-sm font-bold leading-5 text-ink">{supportError}</Text>
+          <Text className="text-sm font-bold leading-5 text-ink">
+            {supportError}
+          </Text>
         </View>
       ) : null}
 
@@ -41,9 +58,11 @@ export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: Pr
           stamp={t('privacySupport.privacyStamp')}
         >
           <Text className="text-base leading-6 text-ink/70">
-            {t('privacySupport.heroFootballManagerDoes')}</Text>
+            {t('privacySupport.heroFootballManagerDoes')}
+          </Text>
           <Text className="mt-3 text-base leading-6 text-ink/70">
-            {t('privacySupport.yourPreferencesPlayerAnd')}</Text>
+            {t('privacySupport.yourPreferencesPlayerAnd')}
+          </Text>
         </PaperPanel>
 
         <PaperPanel
@@ -52,12 +71,17 @@ export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: Pr
           stamp={t('privacySupport.supportStamp')}
         >
           <Text className="text-base leading-6 text-ink/70">
-            {t('privacySupport.tellUsWhatHappened')}</Text>
-          <Text selectable className="mt-3 font-mono text-base text-blue-dark">{SUPPORT_EMAIL}</Text>
+            {t('privacySupport.tellUsWhatHappened')}
+          </Text>
+          <Text selectable className="mt-3 font-mono text-base text-blue-dark">
+            {SUPPORT_EMAIL}
+          </Text>
           <View className="mt-4">
             <ActionButton
               label={t('privacySupport.emailSupport')}
-              accessibilityLabel={t('privacySupport.a11y.emailHeroFootballManagerSupport')}
+              accessibilityLabel={t(
+                'privacySupport.a11y.emailHeroFootballManagerSupport',
+              )}
               onPress={onEmailSupport}
               variant="paper"
             />
@@ -74,7 +98,8 @@ export function PrivacySupportPanel({ onBack, onEmailSupport, supportError }: Pr
           stamp="OFL 1.1"
         >
           <Text className="text-sm leading-5 text-ink/65">
-            {t('privacySupport.silkscreenFontCopyrightThe')}</Text>
+            {t('privacySupport.silkscreenFontCopyrightThe')}
+          </Text>
         </PaperPanel>
       </View>
 

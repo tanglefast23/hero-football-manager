@@ -20,29 +20,43 @@ export function GlossaryPanel({
   const backButtonLabel = backLabel ?? t('privacySupport.backToSettings');
   const [query, setQuery] = useState('');
   const normalizedQuery = query.trim().toLocaleLowerCase();
-  const categories = useMemo(() => content.categories.flatMap(category => {
-    const entries = normalizedQuery.length === 0
-      ? category.entries
-      // Searched in the language on screen, not in the English behind it: the
-      // panel draws the translated term and definition two lines below, so
-      // filtering on the source strings made a German query find nothing.
-      : category.entries.filter(entry => {
-          const slug = glossaryTermSlug(entry.term);
-          const term = t(`glossary.${category.id}.${slug}.term`);
-          const definition = t(`glossary.${category.id}.${slug}.definition`);
-          return term.toLocaleLowerCase().includes(normalizedQuery)
-            || definition.toLocaleLowerCase().includes(normalizedQuery);
-        });
-    return entries.length === 0 ? [] : [{ ...category, entries }];
-  }), [content.categories, normalizedQuery, t]);
+  const categories = useMemo(
+    () =>
+      content.categories.flatMap((category) => {
+        const entries =
+          normalizedQuery.length === 0
+            ? category.entries
+            : // Searched in the language on screen, not in the English behind it: the
+              // panel draws the translated term and definition two lines below, so
+              // filtering on the source strings made a German query find nothing.
+              category.entries.filter((entry) => {
+                const slug = glossaryTermSlug(entry.term);
+                const term = t(`glossary.${category.id}.${slug}.term`);
+                const definition = t(
+                  `glossary.${category.id}.${slug}.definition`,
+                );
+                return (
+                  term.toLocaleLowerCase().includes(normalizedQuery) ||
+                  definition.toLocaleLowerCase().includes(normalizedQuery)
+                );
+              });
+        return entries.length === 0 ? [] : [{ ...category, entries }];
+      }),
+    [content.categories, normalizedQuery, t],
+  );
 
   return (
     <View className="min-h-0 flex-1">
       <View className="border-b-2 border-ink pb-4">
-        <PixelText className="text-sm uppercase tracking-[3px] text-blue-dark">{t('glossary.clubHandbook')}</PixelText>
-        <Text className="mt-1 font-pixel text-2xl uppercase text-ink">{t('titleLanding.glossary')}</Text>
+        <PixelText className="text-sm uppercase tracking-[3px] text-blue-dark">
+          {t('glossary.clubHandbook')}
+        </PixelText>
+        <Text className="mt-1 font-pixel text-2xl uppercase text-ink">
+          {t('titleLanding.glossary')}
+        </Text>
         <Text className="mt-2 text-sm leading-5 text-ink/60">
-          {t('glossary.plain-languageDefinitionsForFootball')}</Text>
+          {t('glossary.plain-languageDefinitionsForFootball')}
+        </Text>
         <TextInput
           accessibilityLabel={t('glossary.a11y.searchGlossary')}
           autoCapitalize="none"
@@ -64,26 +78,42 @@ export function GlossaryPanel({
       >
         {categories.length === 0 ? (
           <View className="border-2 border-ink/25 bg-paper-dark px-3 py-4">
-            <Text className="text-center text-sm font-bold text-ink/60">{t('glossary.noMatches', { query: query.trim() })}</Text>
+            <Text className="text-center text-sm font-bold text-ink/60">
+              {t('glossary.noMatches', { query: query.trim() })}
+            </Text>
           </View>
-        ) : categories.map(category => (
-          <View key={category.id} className="mb-6">
-            <Text className="mb-2 font-pixel text-base uppercase text-blue-dark">{t(`glossary.${category.id}.title`)}</Text>
-            <View className="border-2 border-ink bg-white">
-              {category.entries.map((entry, index) => (
-                <View
-                  key={entry.term}
-                  className={index === category.entries.length - 1
-                    ? 'px-3 py-3'
-                    : 'border-b border-ink/15 px-3 py-3'}
-                >
-                  <Text className="text-base font-bold text-ink">{t(`glossary.${category.id}.${glossaryTermSlug(entry.term)}.term`)}</Text>
-                  <Text className="mt-1 text-sm leading-5 text-ink/65">{t(`glossary.${category.id}.${glossaryTermSlug(entry.term)}.definition`)}</Text>
-                </View>
-              ))}
+        ) : (
+          categories.map((category) => (
+            <View key={category.id} className="mb-6">
+              <Text className="mb-2 font-pixel text-base uppercase text-blue-dark">
+                {t(`glossary.${category.id}.title`)}
+              </Text>
+              <View className="border-2 border-ink bg-white">
+                {category.entries.map((entry, index) => (
+                  <View
+                    key={entry.term}
+                    className={
+                      index === category.entries.length - 1
+                        ? 'px-3 py-3'
+                        : 'border-b border-ink/15 px-3 py-3'
+                    }
+                  >
+                    <Text className="text-base font-bold text-ink">
+                      {t(
+                        `glossary.${category.id}.${glossaryTermSlug(entry.term)}.term`,
+                      )}
+                    </Text>
+                    <Text className="mt-1 text-sm leading-5 text-ink/65">
+                      {t(
+                        `glossary.${category.id}.${glossaryTermSlug(entry.term)}.definition`,
+                      )}
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
-          </View>
-        ))}
+          ))
+        )}
       </ScrollView>
 
       <View className="border-t border-ink/15 pt-3">

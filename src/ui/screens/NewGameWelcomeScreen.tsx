@@ -25,9 +25,11 @@ export interface NewGameWelcomeScreenProps {
 function MastheadLine({ text, wide }: { text: string; wide: boolean }) {
   return (
     <Text
-      className={wide
-        ? 'font-pixel text-[52px] uppercase leading-[54px] tracking-tight text-white'
-        : 'font-pixel text-[34px] uppercase leading-[37px] tracking-tight text-white'}
+      className={
+        wide
+          ? 'font-pixel text-[52px] uppercase leading-[54px] tracking-tight text-white'
+          : 'font-pixel text-[34px] uppercase leading-[37px] tracking-tight text-white'
+      }
     >
       {text}
     </Text>
@@ -35,7 +37,17 @@ function MastheadLine({ text, wide }: { text: string; wide: boolean }) {
 }
 
 /** One numbered line of the week-one dossier: chunky pixel number tile + copy. */
-function BriefRow({ index, title, note, children }: { index: string; title: string; note: string; children?: ReactNode }) {
+function BriefRow({
+  index,
+  title,
+  note,
+  children,
+}: {
+  index: string;
+  title: string;
+  note: string;
+  children?: ReactNode;
+}) {
   return (
     <View className="flex-row items-start gap-3">
       <View className="h-6 w-6 items-center justify-center bg-ink">
@@ -68,64 +80,102 @@ export function NewGameWelcomeScreen({
       <View className="flex-row items-start justify-between">
         {/* Club crest — a tilted enamel sticker on the chalkboard stage */}
         <View className="relative h-14 w-14 -rotate-2 items-center justify-center overflow-hidden border-2 border-ink bg-paper">
-          <View pointerEvents="none" className="absolute left-0 right-0 top-0 h-1.5 bg-white" />
-          <View pointerEvents="none" className="absolute bottom-0 left-0 right-0 h-1.5 bg-paper-dark" />
+          <View
+            pointerEvents="none"
+            className="absolute left-0 right-0 top-0 h-1.5 bg-white"
+          />
+          <View
+            pointerEvents="none"
+            className="absolute bottom-0 left-0 right-0 h-1.5 bg-paper-dark"
+          />
           <Text className="font-pixel text-2xl text-ink">HF</Text>
         </View>
         {/* Board stamp — full red tint, hand-applied tilt */}
         <View className="rotate-2 border-2 border-b-4 border-red bg-red-light/30 px-3 py-1.5">
-          <Text className="font-pixel text-sm uppercase text-red-light">{t('newGameWelcome.boardApproved')}</Text>
+          <Text className="font-pixel text-sm uppercase text-red-light">
+            {t('newGameWelcome.boardApproved')}
+          </Text>
         </View>
       </View>
 
-      <Text className={wide
-        ? 'mt-9 font-pixel text-sm uppercase tracking-[4px] text-gold-light'
-        : 'mt-6 font-pixel text-xs uppercase tracking-[3px] text-gold-light'}
+      <Text
+        className={
+          wide
+            ? 'mt-9 font-pixel text-sm uppercase tracking-[4px] text-gold-light'
+            : 'mt-6 font-pixel text-xs uppercase tracking-[3px] text-gold-light'
+        }
       >
-        {t('newGameWelcome.aClubInCrisis')}</Text>
+        {t('newGameWelcome.aClubInCrisis')}
+      </Text>
 
       <View className="mt-3 gap-1">
         <MastheadLine text={t('newGameWelcome.masthead.theKeys')} wide={wide} />
-        <MastheadLine text={t('newGameWelcome.masthead.areYours')} wide={wide} />
-        <MastheadLine text={t('newGameWelcome.masthead.makeThem')} wide={wide} />
+        <MastheadLine
+          text={t('newGameWelcome.masthead.areYours')}
+          wide={wide}
+        />
+        <MastheadLine
+          text={t('newGameWelcome.masthead.makeThem')}
+          wide={wide}
+        />
         <StickerWord text={t('newGameWelcome.masthead.heroes')} wide={wide} />
       </View>
 
-      <Text className={wide
-        ? 'mt-6 max-w-lg font-mono text-base uppercase leading-7 text-paper/80'
-        : 'mt-4 max-w-sm font-mono text-sm uppercase leading-5 text-paper/80'}
+      <Text
+        className={
+          wide
+            ? 'mt-6 max-w-lg font-mono text-base uppercase leading-7 text-paper/80'
+            : 'mt-4 max-w-sm font-mono text-sm uppercase leading-5 text-paper/80'
+        }
       >
-        {t('newGameWelcome.aTinyGroundA')}</Text>
+        {t('newGameWelcome.aTinyGroundA')}
+      </Text>
     </>
   ) : hasSavedCareer ? (
     <>
       <View className="flex-row items-start justify-between">
         <View className="relative h-14 w-14 rotate-1 items-center justify-center overflow-hidden border-2 border-ink bg-paper">
-          <View pointerEvents="none" className="absolute left-0 right-0 top-0 h-1.5 bg-white" />
-          <View pointerEvents="none" className="absolute bottom-0 left-0 right-0 h-1.5 bg-paper-dark" />
+          <View
+            pointerEvents="none"
+            className="absolute left-0 right-0 top-0 h-1.5 bg-white"
+          />
+          <View
+            pointerEvents="none"
+            className="absolute bottom-0 left-0 right-0 h-1.5 bg-paper-dark"
+          />
           <Text className="font-pixel text-2xl text-ink">HF</Text>
         </View>
         <View className="-rotate-2 border-2 border-b-4 border-pitch-light bg-pitch-light/25 px-3 py-1.5">
-          <Text className="font-pixel text-sm uppercase text-pitch-light">{t('newGameWelcome.fileReady')}</Text>
+          <Text className="font-pixel text-sm uppercase text-pitch-light">
+            {t('newGameWelcome.fileReady')}
+          </Text>
         </View>
       </View>
 
-      <Text className={wide
-        ? 'mt-9 font-pixel text-sm uppercase tracking-[4px] text-gold-light'
-        : 'mt-6 font-pixel text-xs uppercase tracking-[3px] text-gold-light'}
+      <Text
+        className={
+          wide
+            ? 'mt-9 font-pixel text-sm uppercase tracking-[4px] text-gold-light'
+            : 'mt-6 font-pixel text-xs uppercase tracking-[3px] text-gold-light'
+        }
       >
-        {t('newGameWelcome.theTouchlineKeptYourCoat')}</Text>
+        {t('newGameWelcome.theTouchlineKeptYourCoat')}
+      </Text>
 
       <View className="mt-3 gap-1">
         <MastheadLine text={t('newGameWelcome.masthead.welcome')} wide={wide} />
         <StickerWord text={t('newGameWelcome.masthead.back')} wide={wide} />
       </View>
 
-      <Text className={wide
-        ? 'mt-6 max-w-lg font-mono text-base uppercase leading-7 text-paper/80'
-        : 'mt-4 max-w-sm font-mono text-sm uppercase leading-5 text-paper/80'}
+      <Text
+        className={
+          wide
+            ? 'mt-6 max-w-lg font-mono text-base uppercase leading-7 text-paper/80'
+            : 'mt-4 max-w-sm font-mono text-sm uppercase leading-5 text-paper/80'
+        }
       >
-        {t('newGameWelcome.theSquadHasBeen')}</Text>
+        {t('newGameWelcome.theSquadHasBeen')}
+      </Text>
     </>
   ) : null;
 
@@ -135,7 +185,11 @@ export function NewGameWelcomeScreen({
         {/* A squad member peeks over the dossier; the panel is drawn after and
             covers the sprite's lower half, so only head and shoulders show. */}
         <View pointerEvents="none" className="absolute -top-[104px] right-5">
-          <PixelPortrait playerId="welcome-brief-squad" role="FWD" expression="joy" />
+          <PixelPortrait
+            playerId="welcome-brief-squad"
+            role="FWD"
+            expression="joy"
+          />
         </View>
         <PaperPanel
           kicker={t('newGameWelcome.brief.kicker')}
@@ -143,13 +197,28 @@ export function NewGameWelcomeScreen({
           stamp={t('newGameWelcome.brief.stamp')}
         >
           <View className="gap-3">
-            <BriefRow index="01" title={t('newGameWelcome.brief.meetTheSquad')} note={t('newGameWelcome.brief.meetTheSquadNote')} />
+            <BriefRow
+              index="01"
+              title={t('newGameWelcome.brief.meetTheSquad')}
+              note={t('newGameWelcome.brief.meetTheSquadNote')}
+            />
             <View className="h-0.5 bg-ink/15" />
-            <BriefRow index="02" title={t('newGameWelcome.brief.surviveTheBooks')} note={t('newGameWelcome.brief.surviveTheBooksNote')} />
+            <BriefRow
+              index="02"
+              title={t('newGameWelcome.brief.surviveTheBooks')}
+              note={t('newGameWelcome.brief.surviveTheBooksNote')}
+            />
             <View className="h-0.5 bg-ink/15" />
-            <BriefRow index="03" title={t('newGameWelcome.brief.firstMatch')} note={t('newGameWelcome.brief.firstMatchNote')}>
+            <BriefRow
+              index="03"
+              title={t('newGameWelcome.brief.firstMatch')}
+              note={t('newGameWelcome.brief.firstMatchNote')}
+            >
               <View className="mt-2 flex-row">
-                <StatusChip label={t('newGameWelcome.brief.emptyLicenses')} tone="hero" />
+                <StatusChip
+                  label={t('newGameWelcome.brief.emptyLicenses')}
+                  tone="hero"
+                />
               </View>
             </BriefRow>
           </View>
@@ -161,7 +230,9 @@ export function NewGameWelcomeScreen({
       <View className="border-2 border-ink bg-white p-4">
         <View className="flex-row items-center justify-between gap-3">
           <View className="flex-1">
-            <Text className="font-pixel text-xs uppercase tracking-[2px] text-red-dark">{t('newGameWelcome.savedCareer')}</Text>
+            <Text className="font-pixel text-xs uppercase tracking-[2px] text-red-dark">
+              {t('newGameWelcome.savedCareer')}
+            </Text>
             <Text className="mt-1 font-pixel text-lg uppercase text-ink">
               {savedCareerLabel ?? t('newGameWelcome.clubFileReady')}
             </Text>
@@ -170,7 +241,8 @@ export function NewGameWelcomeScreen({
         </View>
         <View className="mt-3 border-t-2 border-ink/15 pt-3">
           <Text className="text-sm leading-4 text-ink/65">
-            {t('newGameWelcome.bertIsOnDuty')}</Text>
+            {t('newGameWelcome.bertIsOnDuty')}
+          </Text>
         </View>
       </View>
     </View>
@@ -180,9 +252,11 @@ export function NewGameWelcomeScreen({
     <View className="gap-3">
       {hasSavedCareer && onContinueCareer ? (
         <ActionButton
-          label={savedCareerLabel
-            ? t('newGameWelcome.continueNamed', { career: savedCareerLabel })
-            : t('newGameWelcome.continueCareer')}
+          label={
+            savedCareerLabel
+              ? t('newGameWelcome.continueNamed', { career: savedCareerLabel })
+              : t('newGameWelcome.continueCareer')
+          }
           accessibilityLabel={t('newGameWelcome.a11y.continueSavedCareer')}
           onPress={onContinueCareer}
           variant="paper"
@@ -192,12 +266,16 @@ export function NewGameWelcomeScreen({
         // The ▸ stays out of the catalog: Silkscreen has no glyph for it, so it
         // draws through the system fallback and a translator must never inherit
         // it as part of a word.
-        label={hasSavedCareer
-          ? t('newGameWelcome.startOver')
-          : `${t('newGameWelcome.takeTheKeys')}  ▸`}
-        accessibilityLabel={hasSavedCareer
-          ? t('newGameWelcome.a11y.replaceSavedCareer')
-          : t('newGameWelcome.a11y.startANewCareer')}
+        label={
+          hasSavedCareer
+            ? t('newGameWelcome.startOver')
+            : `${t('newGameWelcome.takeTheKeys')}  ▸`
+        }
+        accessibilityLabel={
+          hasSavedCareer
+            ? t('newGameWelcome.a11y.replaceSavedCareer')
+            : t('newGameWelcome.a11y.startANewCareer')
+        }
         onPress={onStartNewCareer}
         variant={hasSavedCareer ? 'danger' : 'hero'}
         // Starting a fresh file is navigation, not the successful signing yet.
@@ -208,24 +286,34 @@ export function NewGameWelcomeScreen({
       {onOpenAccessibility ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t('newGameWelcome.a11y.openAccessibilitySettings')}
+          accessibilityLabel={t(
+            'newGameWelcome.a11y.openAccessibilitySettings',
+          )}
           onPress={onOpenAccessibility}
           className="min-h-11 items-center justify-center"
           style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
         >
-          <PixelText className="text-sm uppercase tracking-widest text-paper/75">{t('newGameWelcome.accessibilityControls')}</PixelText>
+          <PixelText className="text-sm uppercase tracking-widest text-paper/75">
+            {t('newGameWelcome.accessibilityControls')}
+          </PixelText>
         </Pressable>
       ) : null}
     </View>
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView
+      className="flex-1 bg-pitch-ink"
+      edges={['top', 'left', 'right', 'bottom']}
+    >
       <ChalkboardBackdrop wide={wide} />
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
-        <View className={wide
-          ? 'w-full max-w-[1180px] flex-1 self-center px-10 pb-8 pt-8'
-          : 'flex-1 px-5 pb-4 pt-6'}
+        <View
+          className={
+            wide
+              ? 'w-full max-w-[1180px] flex-1 self-center px-10 pb-8 pt-8'
+              : 'flex-1 px-5 pb-4 pt-6'
+          }
         >
           <View className="mb-5 flex-row items-center justify-between">
             {onBackToTitle ? (
@@ -234,11 +322,17 @@ export function NewGameWelcomeScreen({
                 accessibilityLabel={t('newGameWelcome.a11y.backToTitle')}
                 onPress={onBackToTitle}
                 className="min-h-11 justify-center"
-                style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+                style={({ pressed }) => ({
+                  opacity: pressed ? 0.65 : undefined,
+                })}
               >
-                <Text className="font-pixel text-sm uppercase tracking-[2px] text-paper/75">{t('newGameWelcome.title')}</Text>
+                <Text className="font-pixel text-sm uppercase tracking-[2px] text-paper/75">
+                  {t('newGameWelcome.title')}
+                </Text>
               </Pressable>
-            ) : <View />}
+            ) : (
+              <View />
+            )}
             <SettingsButton onPress={onOpenSettings} />
           </View>
 

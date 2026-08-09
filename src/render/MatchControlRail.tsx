@@ -11,10 +11,7 @@ import {
   type EnergyBand,
 } from './match-energy-ui';
 import { mentalityLabel } from './match-mentality-ui';
-import {
-  MATCH_RAIL_WIDTH,
-  type RailHeroStatus,
-} from './match-rail';
+import { MATCH_RAIL_WIDTH, type RailHeroStatus } from './match-rail';
 import { availableMatchSpeeds, type MatchSpeed } from './match-speed';
 import {
   ENERGY_USE_MODES,
@@ -27,7 +24,12 @@ import {
   PowerTitleTakeover,
   type PowerTitleTakeoverProps,
 } from './PowerTitleTakeover';
-import { useCopy, usePixelStyles, type CopyFn, type LocaleFaces } from '../i18n';
+import {
+  useCopy,
+  usePixelStyles,
+  type CopyFn,
+  type LocaleFaces,
+} from '../i18n';
 
 export interface MatchRailTiredPlayer {
   id: string;
@@ -147,7 +149,12 @@ export function MatchControlRail({
         <View style={styles.card}>
           <View style={styles.scoreRow}>
             <View style={styles.scoreBug}>
-              <Text style={[styles.scoreText, scoreFlash ? styles.scoreTextFlash : null]}>
+              <Text
+                style={[
+                  styles.scoreText,
+                  scoreFlash ? styles.scoreTextFlash : null,
+                ]}
+              >
                 <Text style={{ color: homeColor }}>{homeCode}</Text>
                 {` ${homeScore} – ${awayScore} `}
                 <Text style={{ color: awayColor }}>{awayCode}</Text>
@@ -164,12 +171,19 @@ export function MatchControlRail({
                   immediatePress
                   key={option}
                   accessibilityRole="button"
-                  accessibilityLabel={t('matchRail.a11y.matchSpeed', { speed: option })}
+                  accessibilityLabel={t('matchRail.a11y.matchSpeed', {
+                    speed: option,
+                  })}
                   accessibilityState={{ selected }}
                   style={[styles.chip, selected ? styles.chipSelected : null]}
                   onPress={() => onSelectSpeed(option)}
                 >
-                  <Text style={[styles.chipText, selected ? styles.chipTextSelected : null]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selected ? styles.chipTextSelected : null,
+                    ]}
+                  >
                     {option}x
                   </Text>
                 </SfxPressable>
@@ -178,14 +192,21 @@ export function MatchControlRail({
             <SfxPressable
               immediatePress
               accessibilityRole="button"
-              accessibilityLabel={paused
-                ? t('matchRail.a11y.resumeMatch')
-                : t('matchRail.a11y.pauseMatch')}
+              accessibilityLabel={
+                paused
+                  ? t('matchRail.a11y.resumeMatch')
+                  : t('matchRail.a11y.pauseMatch')
+              }
               accessibilityState={{ selected: paused }}
               style={[styles.chip, paused ? styles.chipSelected : null]}
               onPress={onTogglePause}
             >
-              <Text style={[styles.chipText, paused ? styles.chipTextSelected : null]}>
+              <Text
+                style={[
+                  styles.chipText,
+                  paused ? styles.chipTextSelected : null,
+                ]}
+              >
                 {paused ? '▶' : '❙❙'}
               </Text>
             </SfxPressable>
@@ -220,7 +241,12 @@ export function MatchControlRail({
                   ]}
                   onPress={() => onSelectFormation(option)}
                 >
-                  <Text style={[styles.chipText, selected ? styles.chipTextSelected : null]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selected ? styles.chipTextSelected : null,
+                    ]}
+                  >
                     {option}
                   </Text>
                 </SfxPressable>
@@ -251,7 +277,12 @@ export function MatchControlRail({
                   ]}
                   onPress={() => onSelectMentality(option)}
                 >
-                  <Text style={[styles.chipText, selected ? styles.chipTextSelected : null]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selected ? styles.chipTextSelected : null,
+                    ]}
+                  >
                     {mentalityLabel(option, t)}
                   </Text>
                 </SfxPressable>
@@ -262,23 +293,31 @@ export function MatchControlRail({
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
-            {t('matchRail.substitutionsLeft', { count: substitutionsRemaining })}
+            {t('matchRail.substitutionsLeft', {
+              count: substitutionsRemaining,
+            })}
           </Text>
-          <Text style={styles.caption}>{t('matchRail.mostTiredOnThePitch')}</Text>
+          <Text style={styles.caption}>
+            {t('matchRail.mostTiredOnThePitch')}
+          </Text>
           {tiredPlayers.map((player, position) => {
             const band = energyBand(player.condition);
             const guided = guideSwap && position === 0;
             return (
               <View key={player.id} style={styles.tiredRow}>
                 <View style={styles.tiredCopy}>
-                  <Text numberOfLines={1} style={styles.tiredName}>{player.name}</Text>
+                  <Text numberOfLines={1} style={styles.tiredName}>
+                    {player.name}
+                  </Text>
                   <Text style={styles.tiredRole}>{player.role}</Text>
                   <View style={styles.energyTrack}>
                     <View
                       style={[
                         styles.energyFill,
                         fillForBand(styles, band),
-                        { width: `${Math.max(0, Math.min(100, player.condition))}%` },
+                        {
+                          width: `${Math.max(0, Math.min(100, player.condition))}%`,
+                        },
                       ]}
                     />
                   </View>
@@ -308,7 +347,9 @@ export function MatchControlRail({
                     ]}
                     onPress={onSwap}
                   >
-                    <Text style={styles.swapButtonText}>{t('matchScreen.swap')}</Text>
+                    <Text style={styles.swapButtonText}>
+                      {t('matchScreen.swap')}
+                    </Text>
                   </SfxPressable>
                 </View>
               </View>
@@ -319,7 +360,9 @@ export function MatchControlRail({
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
-            {t('matchRail.teamEnergyTitle', { mode: energyUseLabel(energyUse, t) })}
+            {t('matchRail.teamEnergyTitle', {
+              mode: energyUseLabel(energyUse, t),
+            })}
           </Text>
           <View style={styles.energyTrackWide}>
             <View
@@ -361,7 +404,12 @@ export function MatchControlRail({
                   ]}
                   onPress={() => onSelectEnergyUse(mode)}
                 >
-                  <Text style={[styles.chipText, selected ? styles.chipTextSelected : null]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selected ? styles.chipTextSelected : null,
+                    ]}
+                  >
                     {energyUseLabel(mode, t)}
                   </Text>
                 </SfxPressable>
@@ -374,10 +422,17 @@ export function MatchControlRail({
           <Text style={styles.cardTitle}>{t('matchRail.heroPowers')}</Text>
           {heroTiles.map((tile) => (
             <View key={tile.id} style={styles.heroTile}>
-              <Text style={[styles.heroGlyph, { color: tile.powerColor }]}>{tile.powerGlyph}</Text>
+              <Text style={[styles.heroGlyph, { color: tile.powerColor }]}>
+                {tile.powerGlyph}
+              </Text>
               <View style={styles.heroCopy}>
-                <Text numberOfLines={1} style={styles.heroName}>{tile.name}</Text>
-                <Text numberOfLines={1} style={[styles.heroPower, { color: tile.powerColor }]}>
+                <Text numberOfLines={1} style={styles.heroName}>
+                  {tile.name}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.heroPower, { color: tile.powerColor }]}
+                >
                   {tile.powerName}
                 </Text>
                 <View style={styles.energyTrack}>
@@ -443,143 +498,189 @@ function textForBand(styles: RailStyles, band: EnergyBand) {
 // separate family here, and asking the platform to embolden a bitmap font
 // smears it. Everything is a step larger, on the 4/8 spacing grid.
 
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  rail: {
-    width: MATCH_RAIL_WIDTH,
-    alignSelf: 'stretch',
-  },
-  railContent: { gap: 16, paddingBottom: 24 },
-  card: {
-    backgroundColor: '#241f2e',
-    borderWidth: 3,
-    borderColor: '#6b6675',
-    borderBottomWidth: 6,
-    borderBottomColor: '#16121f',
-    borderRadius: 4,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  cardTitle: { color: '#b9b4c2', fontFamily: faces.display, fontSize: 14, letterSpacing: 1 },
-  cardTitleSpaced: { marginTop: 8 },
-  caption: { color: '#9a95a4', fontFamily: faces.data, fontSize: 11, lineHeight: 16, letterSpacing: 0.8 },
-  scoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  scoreBug: {
-    flex: 1,
-    backgroundColor: '#3a3350',
-    borderWidth: 3,
-    borderColor: '#241f2e',
-    borderBottomWidth: 6,
-    borderRadius: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  scoreText: {
-    color: '#f4f1ea',
-    fontFamily: faces.display,
-    fontSize: 26,
-    letterSpacing: 1,
-    fontVariant: ['tabular-nums'],
-  },
-  scoreTextFlash: { color: '#f7d894' },
-  clockText: {
-    color: '#b9b4c2',
-    fontFamily: faces.data,
-    fontSize: 12,
-    letterSpacing: 0.8,
-    marginTop: 8,
-    fontVariant: ['tabular-nums'],
-  },
-  chipRow: { flexDirection: 'row', gap: 12 },
-  chip: {
-    flex: 1,
-    minHeight: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3a3350',
-    borderWidth: 2,
-    borderColor: '#49415f',
-    borderBottomWidth: 4,
-    borderBottomColor: '#16121f',
-    borderRadius: 3,
-    paddingHorizontal: 8,
-  },
-  chipSelected: { backgroundColor: '#49415f', borderColor: '#f4f1ea', borderBottomColor: '#f4f1ea' },
-  chipText: {
-    color: '#b9b4c2',
-    fontFamily: faces.display,
-    fontSize: 13,
-    letterSpacing: 0.5,
-    textAlign: 'center',
-  },
-  chipTextSelected: { color: '#f4f1ea' },
-  disabled: { opacity: 0.38 },
-  tiredRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  tiredCopy: { flex: 1, minWidth: 0 },
-  tiredName: { color: '#f4f1ea', fontFamily: faces.display, fontSize: 16 },
-  tiredRole: { color: '#b9b4c2', fontFamily: faces.data, fontSize: 11, marginTop: 4 },
-  tiredPercent: {
-    width: 52,
-    textAlign: 'right',
-    color: '#65b96e',
-    fontFamily: faces.display,
-    fontSize: 15,
-    fontVariant: ['tabular-nums'],
-  },
-  energyTrack: { height: 6, backgroundColor: '#16121f', marginTop: 8, overflow: 'hidden' },
-  energyFill: { height: 6 },
-  energyTrackWide: { height: 12, backgroundColor: '#16121f', overflow: 'hidden', borderRadius: 2 },
-  energyFillWide: { height: 12 },
-  energyTextMedium: { color: '#edb54a' },
-  energyTextLow: { color: '#f06b6e' },
-  swapButton: {
-    minWidth: 92,
-    minHeight: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3a3350',
-    borderWidth: 2,
-    borderColor: '#6b6675',
-    borderBottomWidth: 4,
-    borderBottomColor: '#16121f',
-    borderRadius: 3,
-  },
-  swapButtonGuided: {
-    opacity: 1,
-    zIndex: 50,
-    elevation: 12,
-    backgroundColor: '#5a8fd6',
-    borderColor: '#a3c8f0',
-    borderBottomColor: '#3f6fb5',
-  },
-  swapButtonText: { color: '#f4f1ea', fontFamily: faces.display, fontSize: 14, letterSpacing: 0.5 },
-  heroTile: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#241f2e',
-    borderWidth: 2,
-    borderColor: '#49415f',
-    borderRadius: 3,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
-  heroGlyph: { width: 36, fontFamily: faces.display, fontSize: 26, textAlign: 'center' },
-  heroCopy: { flex: 1, minWidth: 0 },
-  heroName: { color: '#f4f1ea', fontFamily: faces.display, fontSize: 15 },
-  heroPower: { fontFamily: faces.data, fontSize: 11, marginTop: 4 },
-  heatFill: { height: 6, backgroundColor: '#c8862a' },
-  heatFillReady: { backgroundColor: '#edb54a' },
-  heroStatusColumn: { alignItems: 'center', gap: 8 },
-  heroStatus: {
-    color: '#b9b4c2',
-    fontFamily: faces.display,
-    fontSize: 14,
-    fontVariant: ['tabular-nums'],
-  },
-  heroStatusReady: { color: '#edb54a' },
-  energyFillGreen: { backgroundColor: ENERGY_FILL_COLORS.green },
-  energyFillAmber: { backgroundColor: ENERGY_FILL_COLORS.amber },
-  energyFillRed: { backgroundColor: ENERGY_FILL_COLORS.red },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    rail: {
+      width: MATCH_RAIL_WIDTH,
+      alignSelf: 'stretch',
+    },
+    railContent: { gap: 16, paddingBottom: 24 },
+    card: {
+      backgroundColor: '#241f2e',
+      borderWidth: 3,
+      borderColor: '#6b6675',
+      borderBottomWidth: 6,
+      borderBottomColor: '#16121f',
+      borderRadius: 4,
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      paddingBottom: 16,
+      gap: 12,
+    },
+    cardTitle: {
+      color: '#b9b4c2',
+      fontFamily: faces.display,
+      fontSize: 14,
+      letterSpacing: 1,
+    },
+    cardTitleSpaced: { marginTop: 8 },
+    caption: {
+      color: '#9a95a4',
+      fontFamily: faces.data,
+      fontSize: 11,
+      lineHeight: 16,
+      letterSpacing: 0.8,
+    },
+    scoreRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    scoreBug: {
+      flex: 1,
+      backgroundColor: '#3a3350',
+      borderWidth: 3,
+      borderColor: '#241f2e',
+      borderBottomWidth: 6,
+      borderRadius: 4,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    scoreText: {
+      color: '#f4f1ea',
+      fontFamily: faces.display,
+      fontSize: 26,
+      letterSpacing: 1,
+      fontVariant: ['tabular-nums'],
+    },
+    scoreTextFlash: { color: '#f7d894' },
+    clockText: {
+      color: '#b9b4c2',
+      fontFamily: faces.data,
+      fontSize: 12,
+      letterSpacing: 0.8,
+      marginTop: 8,
+      fontVariant: ['tabular-nums'],
+    },
+    chipRow: { flexDirection: 'row', gap: 12 },
+    chip: {
+      flex: 1,
+      minHeight: 56,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#3a3350',
+      borderWidth: 2,
+      borderColor: '#49415f',
+      borderBottomWidth: 4,
+      borderBottomColor: '#16121f',
+      borderRadius: 3,
+      paddingHorizontal: 8,
+    },
+    chipSelected: {
+      backgroundColor: '#49415f',
+      borderColor: '#f4f1ea',
+      borderBottomColor: '#f4f1ea',
+    },
+    chipText: {
+      color: '#b9b4c2',
+      fontFamily: faces.display,
+      fontSize: 13,
+      letterSpacing: 0.5,
+      textAlign: 'center',
+    },
+    chipTextSelected: { color: '#f4f1ea' },
+    disabled: { opacity: 0.38 },
+    tiredRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    tiredCopy: { flex: 1, minWidth: 0 },
+    tiredName: { color: '#f4f1ea', fontFamily: faces.display, fontSize: 16 },
+    tiredRole: {
+      color: '#b9b4c2',
+      fontFamily: faces.data,
+      fontSize: 11,
+      marginTop: 4,
+    },
+    tiredPercent: {
+      width: 52,
+      textAlign: 'right',
+      color: '#65b96e',
+      fontFamily: faces.display,
+      fontSize: 15,
+      fontVariant: ['tabular-nums'],
+    },
+    energyTrack: {
+      height: 6,
+      backgroundColor: '#16121f',
+      marginTop: 8,
+      overflow: 'hidden',
+    },
+    energyFill: { height: 6 },
+    energyTrackWide: {
+      height: 12,
+      backgroundColor: '#16121f',
+      overflow: 'hidden',
+      borderRadius: 2,
+    },
+    energyFillWide: { height: 12 },
+    energyTextMedium: { color: '#edb54a' },
+    energyTextLow: { color: '#f06b6e' },
+    swapButton: {
+      minWidth: 92,
+      minHeight: 56,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#3a3350',
+      borderWidth: 2,
+      borderColor: '#6b6675',
+      borderBottomWidth: 4,
+      borderBottomColor: '#16121f',
+      borderRadius: 3,
+    },
+    swapButtonGuided: {
+      opacity: 1,
+      zIndex: 50,
+      elevation: 12,
+      backgroundColor: '#5a8fd6',
+      borderColor: '#a3c8f0',
+      borderBottomColor: '#3f6fb5',
+    },
+    swapButtonText: {
+      color: '#f4f1ea',
+      fontFamily: faces.display,
+      fontSize: 14,
+      letterSpacing: 0.5,
+    },
+    heroTile: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: '#241f2e',
+      borderWidth: 2,
+      borderColor: '#49415f',
+      borderRadius: 3,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+    },
+    heroGlyph: {
+      width: 36,
+      fontFamily: faces.display,
+      fontSize: 26,
+      textAlign: 'center',
+    },
+    heroCopy: { flex: 1, minWidth: 0 },
+    heroName: { color: '#f4f1ea', fontFamily: faces.display, fontSize: 15 },
+    heroPower: { fontFamily: faces.data, fontSize: 11, marginTop: 4 },
+    heatFill: { height: 6, backgroundColor: '#c8862a' },
+    heatFillReady: { backgroundColor: '#edb54a' },
+    heroStatusColumn: { alignItems: 'center', gap: 8 },
+    heroStatus: {
+      color: '#b9b4c2',
+      fontFamily: faces.display,
+      fontSize: 14,
+      fontVariant: ['tabular-nums'],
+    },
+    heroStatusReady: { color: '#edb54a' },
+    energyFillGreen: { backgroundColor: ENERGY_FILL_COLORS.green },
+    energyFillAmber: { backgroundColor: ENERGY_FILL_COLORS.amber },
+    energyFillRed: { backgroundColor: ENERGY_FILL_COLORS.red },
+  });

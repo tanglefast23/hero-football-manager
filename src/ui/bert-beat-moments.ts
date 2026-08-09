@@ -17,7 +17,13 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   // "So. You're the new manager." / "Took a high-school team all the way to the
   // national championship, did you? Very impressive." — the second line is
   // needling, not admiring, so it must not be delivered warmly.
-  'management-intro': ['hello', 'sizing-you-up', 'warning-money', 'shrugging', 'pointing-out'],
+  'management-intro': [
+    'hello',
+    'sizing-you-up',
+    'warning-money',
+    'shrugging',
+    'pointing-out',
+  ],
   'desk-intro': ['pointing-out', 'encouraging'],
   // The season's last screen. He explains the ritual, counts the three doors
   // out of it, then drops his voice for the part that is advice rather than
@@ -74,7 +80,7 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   'first-transfer-request': ['disapproving'],
   // Gentle rather than grave. A career ending is sad, not a disaster, and
   // `bad-news` winces where `very-bad-news` would be covering its face.
-  'retirement': ['bad-news'],
+  retirement: ['bad-news'],
   // A legend's last decision is an honour to hand out, not a loss to absorb.
   'club-legacy': ['confiding'],
   // The board's four-week deadline, which is the hardest thing it ever says.
@@ -90,7 +96,12 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   // asking a broke manager to wait for the meeting rather than hunt for a dead
   // action. The loan is a rescue already spent, so `pointing-up` carries the
   // one detail that will not come again.
-  'board-financial-warning': ['warning-money', 'warning-hard', 'pointing-out', 'hold-on'],
+  'board-financial-warning': [
+    'warning-money',
+    'warning-hard',
+    'pointing-out',
+    'hold-on',
+  ],
   'board-emergency-loan': ['warning-money', 'pointing-up', 'pointing-out'],
 
   // Club Business arrives as three different moods: terms to compare, calm
@@ -121,7 +132,10 @@ const DEFAULT_RUN: readonly BertMomentId[] = [
 ];
 
 function defaultMoments(count: number): BertMomentId[] {
-  return Array.from({ length: count }, (_, index) => DEFAULT_RUN[index % DEFAULT_RUN.length]);
+  return Array.from(
+    { length: count },
+    (_, index) => DEFAULT_RUN[index % DEFAULT_RUN.length],
+  );
 }
 
 /**
@@ -136,14 +150,19 @@ function varyRepeats(moments: readonly BertMomentId[]): BertMomentId[] {
   const varied: BertMomentId[] = [];
   moments.forEach((moment, index) => {
     const previous = varied[index - 1];
-    if (previous === undefined || BERT_MOMENTS[previous].expression !== BERT_MOMENTS[moment].expression) {
+    if (
+      previous === undefined ||
+      BERT_MOMENTS[previous].expression !== BERT_MOMENTS[moment].expression
+    ) {
       varied.push(moment);
       return;
     }
-    const alternative = (Object.keys(BERT_MOMENTS) as BertMomentId[]).find(candidate => (
-      BERT_MOMENTS[candidate].expression === BERT_MOMENTS[moment].expression
-      && BERT_MOMENTS[candidate].posture !== BERT_MOMENTS[previous].posture
-    ));
+    const alternative = (Object.keys(BERT_MOMENTS) as BertMomentId[]).find(
+      (candidate) =>
+        BERT_MOMENTS[candidate].expression ===
+          BERT_MOMENTS[moment].expression &&
+        BERT_MOMENTS[candidate].posture !== BERT_MOMENTS[previous].posture,
+    );
     varied.push(alternative ?? moment);
   });
   return varied;
@@ -156,12 +175,16 @@ export function briefingMoments(
 ): BertMomentId[] {
   if (beats.length === 0) return [];
   const authored = AUTHORED[sequenceId];
-  const chosen = authored === undefined
-    ? defaultMoments(beats.length)
-    // Authored runs are matched to the copy as it stood. Copy outlives its
-    // pairing, so a longer sequence extends with the fallback rather than
-    // silently reusing the last look for everything after it.
-    : [...authored.slice(0, beats.length), ...defaultMoments(Math.max(0, beats.length - authored.length))];
+  const chosen =
+    authored === undefined
+      ? defaultMoments(beats.length)
+      : // Authored runs are matched to the copy as it stood. Copy outlives its
+        // pairing, so a longer sequence extends with the fallback rather than
+        // silently reusing the last look for everything after it.
+        [
+          ...authored.slice(0, beats.length),
+          ...defaultMoments(Math.max(0, beats.length - authored.length)),
+        ];
   return varyRepeats(chosen);
 }
 

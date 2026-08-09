@@ -26,7 +26,9 @@ describe('a seeded dev harness career', () => {
     const state = devHarnessCareerAtWeek(1, 1);
 
     expect(state.week).toBe(1);
-    expect(state.fixtures.every(fixture => fixture.status === 'scheduled')).toBe(true);
+    expect(
+      state.fixtures.every((fixture) => fixture.status === 'scheduled'),
+    ).toBe(true);
   });
 
   /** The whole point of a seed: one address, one career, every time. */
@@ -47,7 +49,9 @@ describe('a seeded dev harness career', () => {
     const state = devHarnessCareerAtWeek(1, 6);
 
     expect(state.ledgers.length).toBeGreaterThan(0);
-    expect(state.fixtures.some(fixture => fixture.status === 'played')).toBe(true);
+    expect(state.fixtures.some((fixture) => fixture.status === 'played')).toBe(
+      true,
+    );
   });
 
   it('caches, so a second request costs nothing', () => {
@@ -55,7 +59,7 @@ describe('a seeded dev harness career', () => {
     // a cached answer can come back at all.
     const first = devHarnessCareer({
       id: 'cache-probe',
-      stopAt: state => state.week === 3,
+      stopAt: (state) => state.week === 3,
     });
     const second = devHarnessCareer({
       id: 'cache-probe',
@@ -67,11 +71,13 @@ describe('a seeded dev harness career', () => {
 
   /** A stop that never fires is a bug in the entry, not a career to review. */
   it('throws rather than handing back a half-run career', () => {
-    expect(() => devHarnessCareer({
-      id: 'never-stops',
-      seasonBudget: 1,
-      stopAt: () => false,
-    })).toThrow('never reached its stopping point');
+    expect(() =>
+      devHarnessCareer({
+        id: 'never-stops',
+        seasonBudget: 1,
+        stopAt: () => false,
+      }),
+    ).toThrow('never reached its stopping point');
   });
 
   it('reaches the season boundary the season-end screens live at', () => {
@@ -79,8 +85,10 @@ describe('a seeded dev harness career', () => {
 
     expect(state.phase).toBe('season-end');
     expect(state.season).toBe(1);
-    const seasonOne = state.fixtures.filter(fixture => fixture.season === 1);
+    const seasonOne = state.fixtures.filter((fixture) => fixture.season === 1);
     expect(seasonOne.length).toBeGreaterThan(0);
-    expect(seasonOne.every(fixture => fixture.status === 'played')).toBe(true);
+    expect(seasonOne.every((fixture) => fixture.status === 'played')).toBe(
+      true,
+    );
   });
 });

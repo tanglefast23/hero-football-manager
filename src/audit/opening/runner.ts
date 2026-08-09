@@ -34,7 +34,15 @@ import { describeIntent, type OpeningIntent } from './intents';
 import { buildOpeningObservation } from './observation';
 import type { OpeningPolicy } from './policies';
 
-const ATTRIBUTE_KEYS: readonly (keyof Attrs)[] = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'];
+const ATTRIBUTE_KEYS: readonly (keyof Attrs)[] = [
+  'pac',
+  'sho',
+  'pas',
+  'def',
+  'tec',
+  'sta',
+  'ref',
+];
 
 /** The 15-point creation pool each profile spends, as the app would. */
 export interface CreationRatings {
@@ -151,16 +159,19 @@ const MAXIMUM_RATING = 999;
 function buffedOpponent(team: TeamDef, buff: number): TeamDef {
   if (buff === 0) return team;
   if (!Number.isSafeInteger(buff) || buff < 0) {
-    throw new Error('the opponent role buff must be a non-negative safe integer');
+    throw new Error(
+      'the opponent role buff must be a non-negative safe integer',
+    );
   }
   const buffPlayer = (player: TeamDef['players'][number]) => {
-    const attribute = player.role === 'FWD'
-      ? 'sho'
-      : player.role === 'DEF'
-        ? 'def'
-        : player.role === 'GK'
-          ? 'ref'
-          : undefined; // MID is deliberately unchanged
+    const attribute =
+      player.role === 'FWD'
+        ? 'sho'
+        : player.role === 'DEF'
+          ? 'def'
+          : player.role === 'GK'
+            ? 'ref'
+            : undefined; // MID is deliberately unchanged
     if (attribute === undefined) return player;
     return {
       ...player,
@@ -185,12 +196,16 @@ function buffedOpponent(team: TeamDef, buff: number): TeamDef {
  * runner separately asserts that a created career really opened on the granted
  * amount, so the check this feeds is still a check.
  */
-export function productionLaunchTrainingPoints(content?: LaunchContent): number {
-  return createLaunchCareerSetup(
-    undefined,
-    undefined,
-    content ?? loadLaunchContent(),
-  ).startingTrainingPoints ?? 0;
+export function productionLaunchTrainingPoints(
+  content?: LaunchContent,
+): number {
+  return (
+    createLaunchCareerSetup(
+      undefined,
+      undefined,
+      content ?? loadLaunchContent(),
+    ).startingTrainingPoints ?? 0
+  );
 }
 
 /** Plays weeks 1..N of a fresh career and resolves the first fixture. */
@@ -202,14 +217,18 @@ export function runOpening(options: OpeningRunOptions): OpeningRun {
     content,
     options.difficulty,
   );
-  const setup = options.startingTrainingPoints === undefined
-    ? launchSetup
-    : { ...launchSetup, startingTrainingPoints: options.startingTrainingPoints };
+  const setup =
+    options.startingTrainingPoints === undefined
+      ? launchSetup
+      : {
+          ...launchSetup,
+          startingTrainingPoints: options.startingTrainingPoints,
+        };
   const openingTrainingPoints = setup.startingTrainingPoints ?? 0;
-  let state = addCreatedPlayer(
-    beginStoryOnboarding(createCareer(setup)),
-    { name: options.playerName ?? 'Harness Rookie', ratings: { ...options.creation } },
-  );
+  let state = addCreatedPlayer(beginStoryOnboarding(createCareer(setup)), {
+    name: options.playerName ?? 'Harness Rookie',
+    ratings: { ...options.creation },
+  });
   if (state.trainingPoints !== openingTrainingPoints) {
     throw new Error(
       `career opened on ${state.trainingPoints} TP but the setup granted ${openingTrainingPoints}`,
@@ -246,17 +265,21 @@ export function runOpening(options: OpeningRunOptions): OpeningRun {
     });
   }
   if (state.phase !== 'matchday') {
-    throw new Error(`opening run reached phase ${state.phase} without a fixture`);
+    throw new Error(
+      `opening run reached phase ${state.phase} without a fixture`,
+    );
   }
 
   const kickoffCondition: Record<string, number> = {};
-  for (const player of state.players.filter(candidate => candidate.clubId === state.userClubId)) {
+  for (const player of state.players.filter(
+    (candidate) => candidate.clubId === state.userClubId,
+  )) {
     kickoffCondition[player.id] = player.condition ?? 100;
   }
   const statGains = diffAttributes(openingAttributes, state);
   const tpBanked = state.trainingPoints;
   const tpSpent = actions
-    .filter(record => record.completed && record.action.startsWith('train '))
+    .filter((record) => record.completed && record.action.startsWith('train '))
     .reduce((sum, record) => sum + (record.tpBefore - record.tpAfter), 0);
 
   const opener = playOpener(state, options.opponentRoleBuff ?? 0);
@@ -268,7 +291,9 @@ export function runOpening(options: OpeningRunOptions): OpeningRun {
     policyVersion: options.policy.version,
     actions,
     weeklyTp,
-    tapCount: actions.filter(record => record.completed && record.action.startsWith('train ')).length,
+    tapCount: actions.filter(
+      (record) => record.completed && record.action.startsWith('train '),
+    ).length,
     tpSpent,
     tpBanked,
     skippedIntents,
@@ -296,8 +321,12 @@ function applyIntent(
   try {
     if (intent.kind === 'hire-head-coach') {
       const market = state.market;
-      if (market === undefined) throw new Error('no career market to hire from');
-      const next: GameState = { ...state, market: hireCareerCoach(state, market, intent.coachId) };
+      if (market === undefined)
+        throw new Error('no career market to hire from');
+      const next: GameState = {
+        ...state,
+        market: hireCareerCoach(state, market, intent.coachId),
+      };
       return {
         state: next,
         record: {
@@ -310,7 +339,11 @@ function applyIntent(
     }
 
     if (intent.kind === 'build-facility') {
-      const next = buildCareerFacility(state, intent.facilityType, intent.position).state;
+      const next = buildCareerFacility(
+        state,
+        intent.facilityType,
+        intent.position,
+      ).state;
       return {
         state: next,
         record: {
@@ -322,13 +355,22 @@ function applyIntent(
       };
     }
 
-    const player = state.players.find(candidate => candidate.id === intent.playerId);
-    if (player === undefined) throw new Error(`unknown player ${intent.playerId}`);
+    const player = state.players.find(
+      (candidate) => candidate.id === intent.playerId,
+    );
+    if (player === undefined)
+      throw new Error(`unknown player ${intent.playerId}`);
     const drill = resolveTrainingDrillForPath(state, intent.pathId);
     if (drill.tpCost > state.trainingPoints) {
-      throw new Error(`training needs ${drill.tpCost} TP but only ${state.trainingPoints} are available`);
+      throw new Error(
+        `training needs ${drill.tpCost} TP but only ${state.trainingPoints} are available`,
+      );
     }
-    const resolution = trainPlayerInstantly(state, intent.playerId, intent.pathId);
+    const resolution = trainPlayerInstantly(
+      state,
+      intent.playerId,
+      intent.pathId,
+    );
     return {
       state: resolution.state,
       record: {
@@ -345,7 +387,9 @@ function applyIntent(
         conditionBefore: player.condition ?? 100,
         conditionAfter: resolution.conditionAfter,
         isSuper: resolution.isSuper,
-        ...(resolution.injury === undefined ? {} : { injuryWeeks: resolution.injury.recoveryWeeks }),
+        ...(resolution.injury === undefined
+          ? {}
+          : { injuryWeeks: resolution.injury.recoveryWeeks }),
       },
     };
   } catch (error) {
@@ -369,12 +413,12 @@ function applyIntent(
  */
 function playOpener(state: GameState, opponentRoleBuff: number): OpenerResult {
   const matchday = activeCareerMatchday(state);
-  if (matchday === undefined) throw new Error('matchday phase without an active fixture');
+  if (matchday === undefined)
+    throw new Error('matchday phase without an active fixture');
   const { fixture, fixtures } = matchday;
-  const built = buildCareerMatchTeams(
-    state,
-    [...new Set([fixture.homeClubId, fixture.awayClubId])],
-  );
+  const built = buildCareerMatchTeams(state, [
+    ...new Set([fixture.homeClubId, fixture.awayClubId]),
+  ]);
   const onboarding = isFirstOnboardingFixture(state, fixture.id);
   const stripped = onboarding
     ? {
@@ -387,7 +431,10 @@ function playOpener(state: GameState, opponentRoleBuff: number): OpenerResult {
   const opponentClubId = isHome ? fixture.awayClubId : fixture.homeClubId;
   const teams = {
     ...stripped,
-    [opponentClubId]: buffedOpponent(stripped[opponentClubId], opponentRoleBuff),
+    [opponentClubId]: buffedOpponent(
+      stripped[opponentClubId],
+      opponentRoleBuff,
+    ),
   };
   const userTeam = teams[isHome ? fixture.homeClubId : fixture.awayClubId];
   const opponentTeam = teams[isHome ? fixture.awayClubId : fixture.homeClubId];
@@ -398,17 +445,16 @@ function playOpener(state: GameState, opponentRoleBuff: number): OpenerResult {
   // the app can produce.
   completeMatchday(
     state,
-    fixtures.map(candidate => (
-      candidate.id === fixture.id ? quick.result : cheapScore(candidate)
-    )),
+    fixtures.map((candidate) =>
+      candidate.id === fixture.id ? quick.result : cheapScore(candidate),
+    ),
   );
 
   const goalsFor = isHome ? quick.result.homeGoals : quick.result.awayGoals;
   const goalsAgainst = isHome ? quick.result.awayGoals : quick.result.homeGoals;
   const userIndexIsHome = isHome;
-  const shotsBy = (home: boolean) => quick.replay === undefined
-    ? 0
-    : countShots(quick, home);
+  const shotsBy = (home: boolean) =>
+    quick.replay === undefined ? 0 : countShots(quick, home);
 
   return {
     fixtureId: fixture.id,
@@ -416,7 +462,8 @@ function playOpener(state: GameState, opponentRoleBuff: number): OpenerResult {
     isHome,
     goalsFor,
     goalsAgainst,
-    outcome: goalsFor > goalsAgainst ? 'W' : goalsFor === goalsAgainst ? 'D' : 'L',
+    outcome:
+      goalsFor > goalsAgainst ? 'W' : goalsFor === goalsAgainst ? 'D' : 'L',
     userStrength: lineupStrength(userTeam),
     opponentStrength: lineupStrength(opponentTeam),
     userShots: shotsBy(userIndexIsHome),
@@ -426,36 +473,53 @@ function playOpener(state: GameState, opponentRoleBuff: number): OpenerResult {
   };
 }
 
-function countShots(quick: ReturnType<typeof quickMatchForFixture>, home: boolean): number {
+function countShots(
+  quick: ReturnType<typeof quickMatchForFixture>,
+  home: boolean,
+): number {
   const events = quick.match.events ?? [];
-  return events.filter(event => (
-    event.kind === 'SHOT' && (home ? event.by < 11 : event.by >= 11)
-  )).length;
+  return events.filter(
+    (event) => event.kind === 'SHOT' && (home ? event.by < 11 : event.by >= 11),
+  ).length;
 }
 
 function cheapScore(fixture: { id: string; matchSeed: number }) {
   const random = mulberry32(fixture.matchSeed);
-  const roll = (value: number) => (value < 0.34 ? 0 : value < 0.68 ? 1 : value < 0.88 ? 2 : 3);
-  return { fixtureId: fixture.id, homeGoals: roll(random()), awayGoals: roll(random()) };
+  const roll = (value: number) =>
+    value < 0.34 ? 0 : value < 0.68 ? 1 : value < 0.88 ? 2 : 3;
+  return {
+    fixtureId: fixture.id,
+    homeGoals: roll(random()),
+    awayGoals: roll(random()),
+  };
 }
 
 function lineupStrength(team: TeamDef): number {
   const total = team.players.reduce(
-    (sum, player) => sum + ATTRIBUTE_KEYS.reduce((inner, key) => inner + player.attrs[key], 0),
+    (sum, player) =>
+      sum + ATTRIBUTE_KEYS.reduce((inner, key) => inner + player.attrs[key], 0),
     0,
   );
-  return Math.round((total / (team.players.length * ATTRIBUTE_KEYS.length)) * 100) / 100;
+  return (
+    Math.round((total / (team.players.length * ATTRIBUTE_KEYS.length)) * 100) /
+    100
+  );
 }
 
 function userCash(state: GameState): number {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
   return club.cash;
 }
 
 function snapshotAttributes(state: GameState): Map<string, Attrs> {
   const snapshot = new Map<string, Attrs>();
-  for (const player of state.players.filter(p => p.clubId === state.userClubId)) {
+  for (const player of state.players.filter(
+    (p) => p.clubId === state.userClubId,
+  )) {
     snapshot.set(player.id, { ...player.attrs });
   }
   return snapshot;
@@ -472,7 +536,9 @@ function diffAttributes(
     before: number;
     after: number;
   }[] = [];
-  for (const player of state.players.filter(p => p.clubId === state.userClubId)) {
+  for (const player of state.players.filter(
+    (p) => p.clubId === state.userClubId,
+  )) {
     const opening = before.get(player.id);
     if (opening === undefined) continue;
     for (const key of ATTRIBUTE_KEYS) {
@@ -495,7 +561,10 @@ function diffAttributes(
  * A mismatch means something moved TP outside the recorded actions, which
  * invalidates the run rather than merely logging a warning.
  */
-export function reconcileTrainingPoints(run: OpeningRun, openingTrainingPoints: number): void {
+export function reconcileTrainingPoints(
+  run: OpeningRun,
+  openingTrainingPoints: number,
+): void {
   let expected = openingTrainingPoints;
   for (const week of run.weeklyTp) {
     if (week.opening !== expected) {
@@ -506,10 +575,14 @@ export function reconcileTrainingPoints(run: OpeningRun, openingTrainingPoints: 
     expected = week.closing;
   }
   if (expected !== run.tpBanked) {
-    throw new Error(`closing TP ${run.tpBanked} does not match the ledger total ${expected}`);
+    throw new Error(
+      `closing TP ${run.tpBanked} does not match the ledger total ${expected}`,
+    );
   }
   const spent = run.weeklyTp.reduce((sum, week) => sum + week.spent, 0);
   if (spent !== run.tpSpent) {
-    throw new Error(`weekly TP spend ${spent} disagrees with recorded drill costs ${run.tpSpent}`);
+    throw new Error(
+      `weekly TP spend ${spent} disagrees with recorded drill costs ${run.tpSpent}`,
+    );
   }
 }

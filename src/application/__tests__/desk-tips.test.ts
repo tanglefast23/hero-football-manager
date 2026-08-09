@@ -12,7 +12,7 @@ import { homeViewModel, settleWeeklyTip } from '../view-models';
 
 describe("manager's tips", () => {
   const content = loadLaunchContent();
-  const tipIds = content.tips.tips.map(tip => tip.id);
+  const tipIds = content.tips.tips.map((tip) => tip.id);
 
   /** A career whose guide queue is silent, so the desk is genuinely empty. */
   function deskClearCareer(seed: number): GameState {
@@ -54,7 +54,9 @@ describe("manager's tips", () => {
 
   it('writes the whole tip onto the desk as its own card', () => {
     const settled = settleUntilTip(deskClearCareer(20261201));
-    const tip = content.tips.tips.find(candidate => candidate.id === settled.deskTip!.tipId)!;
+    const tip = content.tips.tips.find(
+      (candidate) => candidate.id === settled.deskTip!.tipId,
+    )!;
 
     const notes = homeViewModel(settled).notes;
 
@@ -67,7 +69,9 @@ describe("manager's tips", () => {
   });
 
   it('carries optional squad destinations from content onto actionable tips', () => {
-    const drillTiers = content.tips.tips.find(candidate => candidate.id === 'drill-tiers-are-permanent');
+    const drillTiers = content.tips.tips.find(
+      (candidate) => candidate.id === 'drill-tiers-are-permanent',
+    );
 
     expect(drillTiers).toMatchObject({ destination: 'drill-shop' });
 
@@ -94,12 +98,14 @@ describe("manager's tips", () => {
 
   it('leaves some weeks without a tip', () => {
     const clear = deskClearCareer(20261203);
-    const outcomes = Array.from({ length: 20 }, (_, index) => (
-      settleWeeklyTip({ ...clear, week: index + 5 }).deskTip?.tipId
-    ));
+    const outcomes = Array.from(
+      { length: 20 },
+      (_, index) =>
+        settleWeeklyTip({ ...clear, week: index + 5 }).deskTip?.tipId,
+    );
 
-    expect(outcomes.some(tipId => tipId === undefined)).toBe(true);
-    expect(outcomes.some(tipId => tipId !== undefined)).toBe(true);
+    expect(outcomes.some((tipId) => tipId === undefined)).toBe(true);
+    expect(outcomes.some((tipId) => tipId !== undefined)).toBe(true);
   });
 
   it('never repeats a tip in one career', () => {
@@ -120,35 +126,54 @@ describe("manager's tips", () => {
 
   it('runs dry rather than recycling once every tip has been read', () => {
     const clear = deskClearCareer(20261205);
-    const allSeen = { ...clear, eventFlags: [...clear.eventFlags, ...tipIds.map(id => `tip:seen:${id}`)] };
+    const allSeen = {
+      ...clear,
+      eventFlags: [
+        ...clear.eventFlags,
+        ...tipIds.map((id) => `tip:seen:${id}`),
+      ],
+    };
 
     const settled = settleWeeklyTip(allSeen);
 
-    expect(settled.deskTip).toEqual({ season: settled.season, week: settled.week });
-    expect(homeViewModel(settled).notes.some(note => note.kind === 'tip')).toBe(false);
+    expect(settled.deskTip).toEqual({
+      season: settled.season,
+      week: settled.week,
+    });
+    expect(
+      homeViewModel(settled).notes.some((note) => note.kind === 'tip'),
+    ).toBe(false);
   });
 
   it('stays off a week that already has something to read', () => {
     const clear = deskClearCareer(20261206);
-    const injuredId = clear.players.find(player => player.clubId === clear.userClubId)!.id;
+    const injuredId = clear.players.find(
+      (player) => player.clubId === clear.userClubId,
+    )!.id;
     const busy = {
       ...clear,
-      players: clear.players.map(player => (
-        player.id === injuredId ? { ...player, injuryWeeks: 3 } : player
-      )),
+      players: clear.players.map((player) =>
+        player.id === injuredId ? { ...player, injuryWeeks: 3 } : player,
+      ),
     };
 
     expect(settleWeeklyTip(busy)).toBe(busy);
   });
 
   it('yields the quiet week to a story rather than stacking under it', () => {
-    const withStory = offerCareerEvent(deskClearCareer(20261207), 'giant-spider-arrives');
+    const withStory = offerCareerEvent(
+      deskClearCareer(20261207),
+      'giant-spider-arrives',
+    );
 
     expect(settleWeeklyTip(withStory)).toBe(withStory);
   });
 
   it('waits until the opening tutorial is over', () => {
-    const onboarding = { ...deskClearCareer(20261208), onboarding: { stage: 'first-match' as const } };
+    const onboarding = {
+      ...deskClearCareer(20261208),
+      onboarding: { stage: 'first-match' as const },
+    };
 
     expect(settleWeeklyTip(onboarding)).toBe(onboarding);
   });

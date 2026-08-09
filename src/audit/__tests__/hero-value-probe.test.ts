@@ -24,9 +24,12 @@ import { EVEN_DELTA, scaleTeam as scale } from '../probe-calibration';
 import { shouldQueueWellTappedPower } from '../hero-value-tap-policy';
 
 const content = loadLaunchContent();
-const POWERS = content.powers.powers.map(power => power.id) as PowerId[];
-const SOLO_POWERS = POWERS.filter(power => power !== 'RALLY_CRY');
-const FILTERED_POWERS = selectedPowerFilter(process.env.HERO_VALUE_ONLY, SOLO_POWERS);
+const POWERS = content.powers.powers.map((power) => power.id) as PowerId[];
+const SOLO_POWERS = POWERS.filter((power) => power !== 'RALLY_CRY');
+const FILTERED_POWERS = selectedPowerFilter(
+  process.env.HERO_VALUE_ONLY,
+  SOLO_POWERS,
+);
 const SEEDS = positiveIntegerEnv('HERO_VALUE_SEEDS', 1000);
 const BOOTSTRAP_RESAMPLES = 400;
 /** Engine slot for each power's designed carrier: 0 GK, 2 DEF, 6 MID, 9 FWD. */
@@ -50,20 +53,31 @@ const CARRIER_SLOT: Record<PowerId, number> = {
   GUST: 2,
 };
 const SHARD = parseShard(process.env.HERO_VALUE_SHARD, FILTERED_POWERS.length);
-const SELECTED_POWERS = FILTERED_POWERS.filter((_, index) => index % SHARD.count === SHARD.index);
+const SELECTED_POWERS = FILTERED_POWERS.filter(
+  (_, index) => index % SHARD.count === SHARD.index,
+);
 
-function selectedPowerFilter(value: string | undefined, available: readonly PowerId[]): PowerId[] {
+function selectedPowerFilter(
+  value: string | undefined,
+  available: readonly PowerId[],
+): PowerId[] {
   if (value === undefined) return [...available];
-  const requested = value.split(',').map(power => power.trim()).filter(Boolean);
-  if (requested.length === 0) throw new Error('HERO_VALUE_ONLY must name at least one solo power');
+  const requested = value
+    .split(',')
+    .map((power) => power.trim())
+    .filter(Boolean);
+  if (requested.length === 0)
+    throw new Error('HERO_VALUE_ONLY must name at least one solo power');
   const availableIds: ReadonlySet<string> = new Set(available);
   for (const power of requested) {
     if (!availableIds.has(power)) {
-      throw new Error(`HERO_VALUE_ONLY contains unknown or non-solo power: ${power}`);
+      throw new Error(
+        `HERO_VALUE_ONLY contains unknown or non-solo power: ${power}`,
+      );
     }
   }
   const selected = new Set(requested);
-  return available.filter(power => selected.has(power));
+  return available.filter((power) => selected.has(power));
 }
 
 interface LadderRow {
@@ -119,7 +133,7 @@ describe('hero value', () => {
       { delta: 0, ppm: 1.4 },
       { delta: 1, ppm: 0.9 },
     ];
-    const before = raw.map(row => ({ ...row }));
+    const before = raw.map((row) => ({ ...row }));
 
     const fitted = fitNonIncreasingPpm(raw);
 
@@ -146,10 +160,22 @@ describe('hero value', () => {
       { delta: 1, ppm: 1 },
     ];
 
-    expect(estimateEquivalentDelta(ladder, 1.5)).toEqual({ value: -0.5, bound: 'exact' });
-    expect(estimateCenteredWorth(ladder, 1.5, 1.5)).toEqual({ value: 0, bound: 'exact' });
-    expect(estimateCenteredWorth(ladder, 1.75, 1.5)).toEqual({ value: 1, bound: 'exact' });
-    expect(estimateCenteredWorth(ladder, 1.25, 1.5)).toEqual({ value: -1, bound: 'exact' });
+    expect(estimateEquivalentDelta(ladder, 1.5)).toEqual({
+      value: -0.5,
+      bound: 'exact',
+    });
+    expect(estimateCenteredWorth(ladder, 1.5, 1.5)).toEqual({
+      value: 0,
+      bound: 'exact',
+    });
+    expect(estimateCenteredWorth(ladder, 1.75, 1.5)).toEqual({
+      value: 1,
+      bound: 'exact',
+    });
+    expect(estimateCenteredWorth(ladder, 1.25, 1.5)).toEqual({
+      value: -1,
+      bound: 'exact',
+    });
   });
 
   it('keeps paired summaries and bootstrap resampling deterministic', () => {
@@ -177,15 +203,18 @@ describe('hero value', () => {
       same: 2,
       worse: 0,
     });
-    expect(createBootstrapWeights(3, 4, 12345))
-      .toEqual(createBootstrapWeights(3, 4, 12345));
+    expect(createBootstrapWeights(3, 4, 12345)).toEqual(
+      createBootstrapWeights(3, 4, 12345),
+    );
   });
 
   it('assigns every power to its intended compatible carrier', () => {
     const { user } = openingTeams();
     expect(Object.keys(CARRIER_SLOT).sort()).toEqual([...POWERS].sort());
     for (const power of POWERS) {
-      expect(grantPower(user, power, 1).players[CARRIER_SLOT[power]]).toMatchObject({
+      expect(
+        grantPower(user, power, 1).players[CARRIER_SLOT[power]],
+      ).toMatchObject({
         power,
         powerTier: 1,
       });
@@ -199,17 +228,27 @@ describe('hero value', () => {
     const evenDelta = EVEN_DELTA;
     // Worth = evenDelta - measured opponent delta. These 11 points cover a
     // power worth +6 through -4 relative to the calibrated even matchup.
-    const ladderDeltas = Array.from({ length: 11 }, (_, index) => evenDelta - 6 + index);
+    const ladderDeltas = Array.from(
+      { length: 11 },
+      (_, index) => evenDelta - 6 + index,
+    );
 
-    const ladderSamples = ladderDeltas.map(delta => ({
+    const ladderSamples = ladderDeltas.map((delta) => ({
       delta,
       sample: sampleMatches(user, scale(opponent, delta), false),
     }));
-    const rawLadder = ladderSamples.map(({ delta, sample }) => ({ delta, ppm: sample.ppm }));
+    const rawLadder = ladderSamples.map(({ delta, sample }) => ({
+      delta,
+      ppm: sample.ppm,
+    }));
     const fittedLadder = fitNonIncreasingPpm(rawLadder);
-    const baselineSample = ladderSamples.find(row => row.delta === evenDelta)!.sample;
+    const baselineSample = ladderSamples.find(
+      (row) => row.delta === evenDelta,
+    )!.sample;
     const rawBasePpm = baselineSample.ppm;
-    const fittedBasePpm = fittedLadder.find(row => row.delta === evenDelta)!.ppm;
+    const fittedBasePpm = fittedLadder.find(
+      (row) => row.delta === evenDelta,
+    )!.ppm;
     const bootstrapWeights = createBootstrapWeights(
       SEEDS,
       BOOTSTRAP_RESAMPLES,
@@ -229,14 +268,14 @@ describe('hero value', () => {
       const raw = rawLadder[index];
       const fitted = fittedLadder[index];
       lines.push(
-        `  ${String(raw.delta).padStart(5)}   ${raw.ppm.toFixed(3).padStart(7)}`
-        + `   ${fitted.ppm.toFixed(3).padStart(10)}`,
+        `  ${String(raw.delta).padStart(5)}   ${raw.ppm.toFixed(3).padStart(7)}` +
+          `   ${fitted.ppm.toFixed(3).padStart(10)}`,
       );
     }
     lines.push(
-      `  (calibrated even match = delta ${evenDelta}, raw ${rawBasePpm.toFixed(3)},`
-      + ` fitted ${fittedBasePpm.toFixed(3)}, centered worth`
-      + ` ${worthLabel(fittedLadder, rawBasePpm, rawBasePpm)})`,
+      `  (calibrated even match = delta ${evenDelta}, raw ${rawBasePpm.toFixed(3)},` +
+        ` fitted ${fittedBasePpm.toFixed(3)}, centered worth` +
+        ` ${worthLabel(fittedLadder, rawBasePpm, rawBasePpm)})`,
     );
 
     lines.push('', '=== POWER VALUE AT EVEN STRENGTH ===');
@@ -256,10 +295,10 @@ describe('hero value', () => {
       const tier1Tapped = sampleMatches(tier1, evenOpponent, true);
       const tier3Tapped = sampleMatches(tier3, evenOpponent, true);
       lines.push(
-        `${power.padEnd(19)}`
-        + `${sampleLabel(fittedLadder, tier1Auto.ppm, rawBasePpm).padEnd(20)}`
-        + `${sampleLabel(fittedLadder, tier1Tapped.ppm, rawBasePpm).padEnd(27)}`
-        + sampleLabel(fittedLadder, tier3Tapped.ppm, rawBasePpm),
+        `${power.padEnd(19)}` +
+          `${sampleLabel(fittedLadder, tier1Auto.ppm, rawBasePpm).padEnd(20)}` +
+          `${sampleLabel(fittedLadder, tier1Tapped.ppm, rawBasePpm).padEnd(27)}` +
+          sampleLabel(fittedLadder, tier3Tapped.ppm, rawBasePpm),
       );
       detailedRows.push(
         '',
@@ -269,15 +308,33 @@ describe('hero value', () => {
         `  T3 tap  - control: ${formatPairedDelta(summarizePairedDelta(tier3Tapped, baselineSample))}`,
         `  T1 tap  - T1 auto: ${formatPairedDelta(summarizePairedDelta(tier1Tapped, tier1Auto))}`,
         `  T3 tap  - T1 tap:  ${formatPairedDelta(summarizePairedDelta(tier3Tapped, tier1Tapped))}`,
-        `  T1 auto worth: ${formatBootstrapWorth(bootstrapWorth(
-          ladderSamples, tier1Auto, baselineSample, fittedLadder, bootstrapWeights,
-        ))}`,
-        `  T1 tap worth:  ${formatBootstrapWorth(bootstrapWorth(
-          ladderSamples, tier1Tapped, baselineSample, fittedLadder, bootstrapWeights,
-        ))}`,
-        `  T3 tap worth:  ${formatBootstrapWorth(bootstrapWorth(
-          ladderSamples, tier3Tapped, baselineSample, fittedLadder, bootstrapWeights,
-        ))}`,
+        `  T1 auto worth: ${formatBootstrapWorth(
+          bootstrapWorth(
+            ladderSamples,
+            tier1Auto,
+            baselineSample,
+            fittedLadder,
+            bootstrapWeights,
+          ),
+        )}`,
+        `  T1 tap worth:  ${formatBootstrapWorth(
+          bootstrapWorth(
+            ladderSamples,
+            tier1Tapped,
+            baselineSample,
+            fittedLadder,
+            bootstrapWeights,
+          ),
+        )}`,
+        `  T3 tap worth:  ${formatBootstrapWorth(
+          bootstrapWorth(
+            ladderSamples,
+            tier3Tapped,
+            baselineSample,
+            fittedLadder,
+            bootstrapWeights,
+          ),
+        )}`,
       );
     }
     detailedRows.push(
@@ -295,7 +352,11 @@ describe('hero value', () => {
 });
 
 /** Points per match: 3 for a win, 1 for a draw, from the user's perspective. */
-function sampleMatches(home: TeamDef, away: TeamDef, wellTapped: boolean): MatchSample {
+function sampleMatches(
+  home: TeamDef,
+  away: TeamDef,
+  wellTapped: boolean,
+): MatchSample {
   const outcomes: SeedOutcome[] = [];
   for (let index = 0; index < SEEDS; index += 1) {
     const match = createMatch(1_000_003 + index * 104_729, home, away, {
@@ -318,8 +379,15 @@ function sampleMatches(home: TeamDef, away: TeamDef, wellTapped: boolean): Match
           // Tap at full strength in a useful context. If none arrives, commit
           // the closing Zone to the fixed two-second armed window rather than
           // silently letting it expire.
-          if (!tappedThisWindow[slot] && shouldQueueWellTappedPower(match, slot)) {
-            queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: slot });
+          if (
+            !tappedThisWindow[slot] &&
+            shouldQueueWellTappedPower(match, slot)
+          ) {
+            queueInput(match, {
+              tick: match.tick + 1,
+              kind: 'POWER_TAP',
+              player: slot,
+            });
             tappedThisWindow[slot] = true;
           }
         }
@@ -334,7 +402,9 @@ function sampleMatches(home: TeamDef, away: TeamDef, wellTapped: boolean): Match
     });
   }
   return {
-    ppm: outcomes.reduce((sum, outcome) => sum + outcome.points, 0) / outcomes.length,
+    ppm:
+      outcomes.reduce((sum, outcome) => sum + outcome.points, 0) /
+      outcomes.length,
     outcomes,
   };
 }
@@ -345,40 +415,51 @@ function summarizePairedDelta(
   treatment: MatchSample,
   control: MatchSample,
 ): PairedDeltaSummary {
-  if (treatment.outcomes.length !== control.outcomes.length || treatment.outcomes.length === 0) {
+  if (
+    treatment.outcomes.length !== control.outcomes.length ||
+    treatment.outcomes.length === 0
+  ) {
     throw new Error('paired samples must have the same non-zero seed count');
   }
-  const pointDeltas = treatment.outcomes.map((outcome, index) => (
-    outcome.points - control.outcomes[index].points
-  ));
-  const mean = pointDeltas.reduce((sum, value) => sum + value, 0) / pointDeltas.length;
-  const variance = pointDeltas.length === 1 ? 0 : pointDeltas.reduce(
-    (sum, value) => sum + (value - mean) ** 2,
-    0,
-  ) / (pointDeltas.length - 1);
+  const pointDeltas = treatment.outcomes.map(
+    (outcome, index) => outcome.points - control.outcomes[index].points,
+  );
+  const mean =
+    pointDeltas.reduce((sum, value) => sum + value, 0) / pointDeltas.length;
+  const variance =
+    pointDeltas.length === 1
+      ? 0
+      : pointDeltas.reduce((sum, value) => sum + (value - mean) ** 2, 0) /
+        (pointDeltas.length - 1);
   const margin = 1.96 * Math.sqrt(variance / pointDeltas.length);
   const goalDifferenceDeltas = treatment.outcomes.map((outcome, index) => {
     const paired = control.outcomes[index];
-    return (outcome.goalsFor - outcome.goalsAgainst)
-      - (paired.goalsFor - paired.goalsAgainst);
+    return (
+      outcome.goalsFor -
+      outcome.goalsAgainst -
+      (paired.goalsFor - paired.goalsAgainst)
+    );
   });
   return {
     mean,
     lower: mean - margin,
     upper: mean + margin,
-    meanGoalDifferenceDelta: goalDifferenceDeltas.reduce((sum, value) => sum + value, 0)
-      / goalDifferenceDeltas.length,
-    better: pointDeltas.filter(value => value > 0).length,
-    same: pointDeltas.filter(value => value === 0).length,
-    worse: pointDeltas.filter(value => value < 0).length,
+    meanGoalDifferenceDelta:
+      goalDifferenceDeltas.reduce((sum, value) => sum + value, 0) /
+      goalDifferenceDeltas.length,
+    better: pointDeltas.filter((value) => value > 0).length,
+    same: pointDeltas.filter((value) => value === 0).length,
+    worse: pointDeltas.filter((value) => value < 0).length,
   };
 }
 
 function formatPairedDelta(summary: PairedDeltaSummary): string {
-  return `ΔPPM ${formatSignedFixed(summary.mean, 3)}`
-    + ` (95% CI ${formatInterval(summary.lower, summary.upper, 3)})`
-    + `; ΔGD ${formatSignedFixed(summary.meanGoalDifferenceDelta, 3)}`
-    + `; better/same/worse ${summary.better}/${summary.same}/${summary.worse}`;
+  return (
+    `ΔPPM ${formatSignedFixed(summary.mean, 3)}` +
+    ` (95% CI ${formatInterval(summary.lower, summary.upper, 3)})` +
+    `; ΔGD ${formatSignedFixed(summary.meanGoalDifferenceDelta, 3)}` +
+    `; better/same/worse ${summary.better}/${summary.same}/${summary.worse}`
+  );
 }
 
 /** Generates count vectors rather than copied samples. Reusing every vector
@@ -389,7 +470,8 @@ function createBootstrapWeights(
   resamples: number,
   seed: number,
 ): Uint16Array[] {
-  if (seedCount <= 0 || resamples <= 0) throw new Error('bootstrap sizes must be positive');
+  if (seedCount <= 0 || resamples <= 0)
+    throw new Error('bootstrap sizes must be positive');
   let state = seed >>> 0;
   const next = (): number => {
     state = (Math.imul(state, 1_664_525) + 1_013_904_223) >>> 0;
@@ -411,19 +493,25 @@ function bootstrapWorth(
   fittedLadder: readonly LadderRow[],
   resampleWeights: readonly Uint16Array[],
 ): BootstrapWorthSummary {
-  const estimates = resampleWeights.map(weights => {
-    const ladder = fitNonIncreasingPpm(ladderSamples.map(row => ({
-      delta: row.delta,
-      ppm: weightedPpm(row.sample, weights),
-    })));
+  const estimates = resampleWeights.map((weights) => {
+    const ladder = fitNonIncreasingPpm(
+      ladderSamples.map((row) => ({
+        delta: row.delta,
+        ppm: weightedPpm(row.sample, weights),
+      })),
+    );
     return estimateCenteredWorth(
       ladder,
       weightedPpm(sample, weights),
       weightedPpm(baseline, weights),
     );
   });
-  const values = estimates.map(estimate => estimate.value).sort((left, right) => left - right);
-  const boundRate = estimates.filter(estimate => estimate.bound !== 'exact').length / estimates.length;
+  const values = estimates
+    .map((estimate) => estimate.value)
+    .sort((left, right) => left - right);
+  const boundRate =
+    estimates.filter((estimate) => estimate.bound !== 'exact').length /
+    estimates.length;
   const plateauSpan = Math.max(
     fittedPlateauSpan(fittedLadder, baseline.ppm),
     fittedPlateauSpan(fittedLadder, sample.ppm),
@@ -432,11 +520,19 @@ function bootstrapWorth(
   const median = percentile(values, 0.5);
   const upper = percentile(values, 0.975);
   const labels: string[] = [];
-  if (boundRate > 0) labels.push(`ladder-bound ${(boundRate * 100).toFixed(0)}%`);
+  if (boundRate > 0)
+    labels.push(`ladder-bound ${(boundRate * 100).toFixed(0)}%`);
   if (plateauSpan > 0) labels.push(`plateau span ${plateauSpan.toFixed(1)}`);
   if (lower <= 0 && upper >= 0) labels.push('direction uncertain');
   if (labels.length === 0) labels.push('interior');
-  return { median, lower, upper, boundRate, plateauSpan, confidence: labels.join('; ') };
+  return {
+    median,
+    lower,
+    upper,
+    boundRate,
+    plateauSpan,
+    confidence: labels.join('; '),
+  };
 }
 
 function weightedPpm(sample: MatchSample, weights: Uint16Array): number {
@@ -449,30 +545,39 @@ function weightedPpm(sample: MatchSample, weights: Uint16Array): number {
     weightedPoints += sample.outcomes[index].points * weights[index];
     totalWeight += weights[index];
   }
-  if (totalWeight === 0) throw new Error('bootstrap resample must not be empty');
+  if (totalWeight === 0)
+    throw new Error('bootstrap resample must not be empty');
   return weightedPoints / totalWeight;
 }
 
 function fittedPlateauSpan(ladder: readonly LadderRow[], ppm: number): number {
-  const matching = ladder.filter(row => Math.abs(row.ppm - ppm) < 1e-12);
+  const matching = ladder.filter((row) => Math.abs(row.ppm - ppm) < 1e-12);
   if (matching.length < 2) return 0;
-  return Math.max(...matching.map(row => row.delta)) - Math.min(...matching.map(row => row.delta));
+  return (
+    Math.max(...matching.map((row) => row.delta)) -
+    Math.min(...matching.map((row) => row.delta))
+  );
 }
 
 function percentile(sorted: readonly number[], probability: number): number {
-  if (sorted.length === 0) throw new Error('percentile sample must not be empty');
+  if (sorted.length === 0)
+    throw new Error('percentile sample must not be empty');
   const position = (sorted.length - 1) * probability;
   const lowerIndex = Math.floor(position);
   const upperIndex = Math.ceil(position);
   if (lowerIndex === upperIndex) return sorted[lowerIndex];
   const fraction = position - lowerIndex;
-  return sorted[lowerIndex] + (sorted[upperIndex] - sorted[lowerIndex]) * fraction;
+  return (
+    sorted[lowerIndex] + (sorted[upperIndex] - sorted[lowerIndex]) * fraction
+  );
 }
 
 function formatBootstrapWorth(summary: BootstrapWorthSummary): string {
-  return `median ${formatSignedFixed(summary.median, 1)}`
-    + ` (95% CI ${formatInterval(summary.lower, summary.upper, 1)})`
-    + `; confidence: ${summary.confidence}`;
+  return (
+    `median ${formatSignedFixed(summary.median, 1)}` +
+    ` (95% CI ${formatInterval(summary.lower, summary.upper, 1)})` +
+    `; confidence: ${summary.confidence}`
+  );
 }
 
 function formatInterval(lower: number, upper: number, digits: number): string {
@@ -539,7 +644,12 @@ function worthLabel(
   baselinePpm: number,
 ): string {
   const estimate = estimateCenteredWorth(ladder, ppm, baselinePpm);
-  const marker = estimate.bound === 'at-least' ? '>=' : estimate.bound === 'at-most' ? '<=' : '';
+  const marker =
+    estimate.bound === 'at-least'
+      ? '>='
+      : estimate.bound === 'at-most'
+        ? '<='
+        : '';
   return `${marker}${estimate.value >= 0 ? '+' : ''}${estimate.value.toFixed(1)}`;
 }
 
@@ -551,9 +661,12 @@ function estimateCenteredWorth(
   if (ppm === baselinePpm) return { value: 0, bound: 'exact' };
   const baseline = estimateEquivalentDelta(ladder, baselinePpm);
   const sample = estimateEquivalentDelta(ladder, ppm);
-  const bound = sample.bound === 'at-most' ? 'at-least'
-    : sample.bound === 'at-least' ? 'at-most'
-      : baseline.bound;
+  const bound =
+    sample.bound === 'at-most'
+      ? 'at-least'
+      : sample.bound === 'at-least'
+        ? 'at-most'
+        : baseline.bound;
   return { value: baseline.value - sample.value, bound };
 }
 
@@ -570,7 +683,7 @@ function estimateEquivalentDelta(
     return { value: sorted[sorted.length - 1].delta, bound: 'at-least' };
   }
 
-  const plateau = sorted.filter(row => row.ppm === ppm);
+  const plateau = sorted.filter((row) => row.ppm === ppm);
   if (plateau.length > 0) {
     return {
       value: (plateau[0].delta + plateau[plateau.length - 1].delta) / 2,
@@ -594,7 +707,8 @@ function estimateEquivalentDelta(
 
 /** Average role-weighted overall of the exact 11 players the engine will start. */
 function teamStrength(team: TeamDef): number {
-  if (team.players.length === 0) throw new Error('hero-value team must contain starters');
+  if (team.players.length === 0)
+    throw new Error('hero-value team must contain starters');
   const total = team.players.reduce(
     (sum, player) => sum + roleOverall(player.role, player.attrs),
     0,
@@ -606,43 +720,65 @@ function positiveIntegerEnv(name: string, fallback: number): number {
   const raw = process.env[name];
   if (raw === undefined) return fallback;
   if (!/^[1-9]\d*$/.test(raw)) {
-    throw new Error(`${name} must be a positive integer, got ${JSON.stringify(raw)}`);
+    throw new Error(
+      `${name} must be a positive integer, got ${JSON.stringify(raw)}`,
+    );
   }
   const value = Number(raw);
   if (!Number.isSafeInteger(value)) {
-    throw new Error(`${name} must be a safe positive integer, got ${JSON.stringify(raw)}`);
+    throw new Error(
+      `${name} must be a safe positive integer, got ${JSON.stringify(raw)}`,
+    );
   }
   return value;
 }
 
-function parseShard(raw: string | undefined, powerCount: number): { index: number; count: number } {
+function parseShard(
+  raw: string | undefined,
+  powerCount: number,
+): { index: number; count: number } {
   if (raw === undefined) return { index: 0, count: 1 };
   const match = /^(0|[1-9]\d*)\/([1-9]\d*)$/.exec(raw);
   if (match === null) {
-    throw new Error(`HERO_VALUE_SHARD must use index/count, got ${JSON.stringify(raw)}`);
+    throw new Error(
+      `HERO_VALUE_SHARD must use index/count, got ${JSON.stringify(raw)}`,
+    );
   }
   const index = Number(match[1]);
   const count = Number(match[2]);
   if (!Number.isSafeInteger(index) || !Number.isSafeInteger(count)) {
-    throw new Error(`HERO_VALUE_SHARD must use safe integers, got ${JSON.stringify(raw)}`);
+    throw new Error(
+      `HERO_VALUE_SHARD must use safe integers, got ${JSON.stringify(raw)}`,
+    );
   }
   if (index >= count) {
-    throw new Error(`HERO_VALUE_SHARD index must be less than count, got ${raw}`);
+    throw new Error(
+      `HERO_VALUE_SHARD index must be less than count, got ${raw}`,
+    );
   }
   if (count > powerCount) {
-    throw new Error(`HERO_VALUE_SHARD count must not exceed ${powerCount}, got ${count}`);
+    throw new Error(
+      `HERO_VALUE_SHARD count must not exceed ${powerCount}, got ${count}`,
+    );
   }
   return { index, count };
 }
 
 function openingTeams(): { user: TeamDef; opponent: TeamDef } {
   const state = addCreatedPlayer(
-    beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-      4_000_000, undefined, content, 'COZY',
-    ))),
-    { name: 'Probe Rookie', ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 } },
+    beginStoryOnboarding(
+      createCareer(
+        createLaunchCareerSetup(4_000_000, undefined, content, 'COZY'),
+      ),
+    ),
+    {
+      name: 'Probe Rookie',
+      ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 },
+    },
   );
-  const opponentId = content.clubs.clubs.map(club => club.id).find(id => id !== state.userClubId)!;
+  const opponentId = content.clubs.clubs
+    .map((club) => club.id)
+    .find((id) => id !== state.userClubId)!;
   const teams = buildCareerMatchTeams(state, [state.userClubId, opponentId]);
   return {
     user: withoutPowers(teams[state.userClubId]),
@@ -651,18 +787,27 @@ function openingTeams(): { user: TeamDef; opponent: TeamDef } {
 }
 
 /** Gives the power to its designed carrier slot, and to nobody else. */
-function grantPower(team: TeamDef, power: PowerId, powerTier: 1 | 2 | 3): TeamDef {
+function grantPower(
+  team: TeamDef,
+  power: PowerId,
+  powerTier: 1 | 2 | 3,
+): TeamDef {
   const slot = CARRIER_SLOT[power];
   const carrier = team.players[slot];
-  if (carrier === undefined || !powerIsCompatibleWithRole(power, carrier.role)) {
-    throw new Error(`slot ${slot} cannot carry ${power} (role ${carrier?.role})`);
+  if (
+    carrier === undefined ||
+    !powerIsCompatibleWithRole(power, carrier.role)
+  ) {
+    throw new Error(
+      `slot ${slot} cannot carry ${power} (role ${carrier?.role})`,
+    );
   }
   return {
     ...team,
-    players: team.players.map((player, index) => (
+    players: team.players.map((player, index) =>
       index === slot
         ? { ...player, power, powerTier }
-        : { ...player, power: undefined, powerTier: undefined }
-    )),
+        : { ...player, power: undefined, powerTier: undefined },
+    ),
   };
 }

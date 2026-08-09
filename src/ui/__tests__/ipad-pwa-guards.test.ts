@@ -17,13 +17,15 @@ describe('iPad and installed web app guards', () => {
 
     // iOS kills a backgrounded web app without warning, so the write cannot be
     // left waiting its turn in the serial queue.
-    expect(hook).toContain("document.addEventListener('visibilitychange', onVisibilityChange)");
-    expect(hook).toContain("window.addEventListener('pagehide', flush)");
-    expect(hook).toContain('void flushPendingCareerSave();');
-    expect(app).toContain('useSuspendFlush();');
+    expect(hook).toContainSource(
+      "document.addEventListener('visibilitychange', onVisibilityChange)",
+    );
+    expect(hook).toContainSource("window.addEventListener('pagehide', flush)");
+    expect(hook).toContainSource('void flushPendingCareerSave();');
+    expect(app).toContainSource('useSuspendFlush();');
     // A back-forward-cache restore never re-mounts React, so the hook must not
     // tear the store or its queue down.
-    expect(hook).not.toContain('teardown');
+    expect(hook).not.toContainSource('teardown');
   });
 
   it('writes that career ahead of the queue instead of waiting for it', () => {
@@ -31,24 +33,32 @@ describe('iPad and installed web app guards', () => {
 
     // Awaiting the queue would observe durability without making it arrive any
     // sooner; only cutting ahead shortens the window a kill can land in.
-    expect(store).toContain('export async function flushPendingCareerSave()');
-    expect(store).toContain('&& exclusiveSaveDepth === 0');
-    expect(store).toContain('pendingCareerSave = null;\n    try {\n      await repository.save(snapshot.state);');
+    expect(store).toContainSource(
+      'export async function flushPendingCareerSave()',
+    );
+    expect(store).toContainSource('&& exclusiveSaveDepth === 0');
+    expect(store).toContainSource(
+      'pendingCareerSave = null;\n    try {\n      await repository.save(snapshot.state);',
+    );
     // Multi-statement sequences must never have a cut-ahead land inside them.
-    expect(store).toContain('let exclusiveSaveDepth = 0;');
-    expect(store).toContain('withExclusiveSave(() => repository.delete())');
-    expect(store).toContain('withExclusiveSave(() => repository.restoreBackup())');
-    expect(store).toContain('() => withExclusiveSave(async () => {');
+    expect(store).toContainSource('let exclusiveSaveDepth = 0;');
+    expect(store).toContainSource(
+      'withExclusiveSave(() => repository.delete())',
+    );
+    expect(store).toContainSource(
+      'withExclusiveSave(() => repository.restoreBackup())',
+    );
+    expect(store).toContainSource('() => withExclusiveSave(async () => {');
   });
 
   it('asks the browser to keep the save, and remembers the answer', () => {
     const storage = read('src/persistence/persistent-storage.ts');
     const app = read('App.tsx');
 
-    expect(storage).toContain('navigator.storage');
-    expect(storage).toContain('await storage.persist()');
-    expect(storage).toContain('export function persistentStorageGrant()');
-    expect(app).toContain('void requestPersistentStorage();');
+    expect(storage).toContainSource('navigator.storage');
+    expect(storage).toContainSource('await storage.persist()');
+    expect(storage).toContainSource('export function persistentStorageGrant()');
+    expect(app).toContainSource('void requestPersistentStorage();');
   });
 
   it('never mistakes a suspended launch for a failed one', () => {
@@ -56,9 +66,11 @@ describe('iPad and installed web app guards', () => {
 
     // iOS suspends a backgrounded web app mid-boot and throttles its timers, so
     // the deadline has to be postponed rather than fired while nobody is looking.
-    expect(app).toContain('function appIsHidden()');
-    expect(app).toContain('if (appIsHidden()) {\n          armBootTimeout();');
-    expect(app).toContain("AppState.currentState !== 'active'");
+    expect(app).toContainSource('function appIsHidden()');
+    expect(app).toContainSource(
+      'if (appIsHidden()) {\n          armBootTimeout();',
+    );
+    expect(app).toContainSource("AppState.currentState !== 'active'");
   });
 
   it('re-bases the match clock when the app comes back', () => {
@@ -66,9 +78,9 @@ describe('iPad and installed web app guards', () => {
 
     // RAF stops while hidden but performance.now() does not, so without this the
     // first frame back would see a multi-minute delta.
-    expect(match).toContain("const appIsActive = next === 'active';");
-    expect(match).toContain('last = performance.now();');
-    expect(match).toContain('acc = 0;');
+    expect(match).toContainSource("const appIsActive = next === 'active';");
+    expect(match).toContainSource('last = performance.now();');
+    expect(match).toContainSource('acc = 0;');
   });
 
   it('keeps hover-only UI gated on a hovering pointer, not on being the web', () => {
@@ -78,36 +90,41 @@ describe('iPad and installed web app guards', () => {
       'src/render/SubstitutionBoard.tsx',
     ]) {
       const source = read(path);
-      expect(source).toContain('hasHoverPointer');
-      expect(source).not.toContain("Platform?.OS === 'web'");
+      expect(source).toContainSource('hasHoverPointer');
+      expect(source).not.toContainSource("Platform?.OS === 'web'");
     }
-    expect(read('src/ui/pointer-capability.ts')).toContain("matchMedia('(hover: hover)')");
+    expect(read('src/ui/pointer-capability.ts')).toContainSource(
+      "matchMedia('(hover: hover)')",
+    );
   });
 
   it('keeps the browser from stealing taps, holds and overscroll', () => {
     const css = read('global.css');
 
-    expect(css).toContain('touch-action: manipulation;');
-    expect(css).toContain('-webkit-touch-callout: none;');
-    expect(css).toContain('overscroll-behavior: none;');
+    expect(css).toContainSource('touch-action: manipulation;');
+    expect(css).toContainSource('-webkit-touch-callout: none;');
+    expect(css).toContainSource('overscroll-behavior: none;');
   });
 
   it('ships a shell an iPad can install', () => {
     const html = read('public/index.html');
-    const manifest = JSON.parse(read('public/manifest.json')) as Record<string, unknown>;
+    const manifest = JSON.parse(read('public/manifest.json')) as Record<
+      string,
+      unknown
+    >;
 
     // Expo resolves public/index.html ahead of its own template, so the
     // placeholders it substitutes have to survive.
-    expect(html).toContain('%LANG_ISO_CODE%');
-    expect(html).toContain('%WEB_TITLE%');
-    expect(html).toContain('<div id="root"></div>');
-    expect(html).toContain('viewport-fit=cover');
-    expect(html).toContain('name="apple-mobile-web-app-capable"');
-    expect(html).toContain('name="theme-color"');
-    expect(html).toContain('rel="apple-touch-icon"');
-    expect(html).toContain('rel="manifest"');
+    expect(html).toContainSource('%LANG_ISO_CODE%');
+    expect(html).toContainSource('%WEB_TITLE%');
+    expect(html).toContainSource('<div id="root"></div>');
+    expect(html).toContainSource('viewport-fit=cover');
+    expect(html).toContainSource('name="apple-mobile-web-app-capable"');
+    expect(html).toContainSource('name="theme-color"');
+    expect(html).toContainSource('rel="apple-touch-icon"');
+    expect(html).toContainSource('rel="manifest"');
     // global.css is a stylesheet link and lands after first paint.
-    expect(html).toContain('background: #241f2e;');
+    expect(html).toContainSource('background: #241f2e;');
 
     expect(manifest.display).toBe('standalone');
     // Native locks portrait; the tablet is played in landscape.
@@ -121,10 +138,10 @@ describe('iPad and installed web app guards', () => {
 
     // Under 16px, focusing an input zooms the whole page on iOS. text-base is
     // exactly 16 on web and text-xl is 20.
-    expect(creation).toContain('text-xl font-bold text-ink');
-    expect(creation).toContain('autoCapitalize="words"');
-    expect(creation).toContain('autoCorrect={false}');
-    expect(glossary).toContain('text-base text-ink');
-    expect(glossary).toContain('autoCapitalize="none"');
+    expect(creation).toContainSource('text-xl font-bold text-ink');
+    expect(creation).toContainSource('autoCapitalize="words"');
+    expect(creation).toContainSource('autoCorrect={false}');
+    expect(glossary).toContainSource('text-base text-ink');
+    expect(glossary).toContainSource('autoCapitalize="none"');
   });
 });

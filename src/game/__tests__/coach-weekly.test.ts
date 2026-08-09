@@ -11,7 +11,10 @@ import type { CareerMarketState } from '../market-career';
 import type { CoachCandidate, CoachSpecialty } from '../market';
 
 function marketWithCoach(
-  specialties: readonly [CoachSpecialty, CoachSpecialty] = ['ATTACK', 'FITNESS'],
+  specialties: readonly [CoachSpecialty, CoachSpecialty] = [
+    'ATTACK',
+    'FITNESS',
+  ],
   level = 3,
   weeklyWage = 1_500,
 ): CareerMarketState {
@@ -42,14 +45,16 @@ describe('career coach weekly effects', () => {
     expect(coachMotivatorBonusPercent(1, 'ASSISTANT')).toBe(2.5);
 
     const market = marketWithCoach(['MOTIVATOR', 'ATTACK'], 1);
-    expect(coachMotivatorStrengthHalfLevels({
-      ...market,
-      assistantCoach: {
-        ...market.headCoach!,
-        id: 'assistant-motivator',
-        level: 1,
-      },
-    })).toBe(3);
+    expect(
+      coachMotivatorStrengthHalfLevels({
+        ...market,
+        assistantCoach: {
+          ...market.headCoach!,
+          id: 'assistant-motivator',
+          level: 1,
+        },
+      }),
+    ).toBe(3);
   });
 
   test('returns zero-cost, neutral training data before a head coach is hired', () => {
@@ -85,11 +90,19 @@ describe('career coach weekly effects', () => {
   test('creates stable weekly TP from employed head and assistant coaches', () => {
     const market = marketWithCoach(['ATTACK', 'FITNESS'], 3);
     expect(careerCoachWeeklyTrainingPoints(market)).toBe(13);
-    expect(careerCoachWeeklyTrainingPoints({
-      ...market,
-      assistantCoach: { ...market.headCoach!, id: 'assistant-test', level: 2 },
-    })).toBe(19);
-    expect(careerCoachWeeklyTrainingPoints({ ...market, headCoach: undefined })).toBe(0);
+    expect(
+      careerCoachWeeklyTrainingPoints({
+        ...market,
+        assistantCoach: {
+          ...market.headCoach!,
+          id: 'assistant-test',
+          level: 2,
+        },
+      }),
+    ).toBe(19);
+    expect(
+      careerCoachWeeklyTrainingPoints({ ...market, headCoach: undefined }),
+    ).toBe(0);
   });
 
   test('applies +10% per quality level only to attributes in either specialty', () => {
@@ -147,26 +160,29 @@ describe('career coach weekly effects', () => {
     });
   });
 
-  test.each<[
-    CoachSpecialty,
-    readonly string[],
-  ]>([
+  test.each<[CoachSpecialty, readonly string[]]>([
     ['ATTACK', ['sho']],
     ['DEFENSE', ['def']],
     ['FITNESS', ['pac', 'sta']],
     ['TECHNIQUE', ['pas', 'tec']],
     ['GOALKEEPING', ['ref']],
-  ])('maps %s to its documented training attributes', (specialty, boostedAttributes) => {
-    const modifiers = careerCoachTrainingModifiers(
-      marketWithCoach([specialty, 'MOTIVATOR'] as readonly [CoachSpecialty, CoachSpecialty], 2),
-    );
-    const boosted = Object.entries(modifiers.gainScalePercentByAttribute)
-      .filter(([, scale]) => scale > 100)
-      .map(([attribute]) => attribute);
+  ])(
+    'maps %s to its documented training attributes',
+    (specialty, boostedAttributes) => {
+      const modifiers = careerCoachTrainingModifiers(
+        marketWithCoach(
+          [specialty, 'MOTIVATOR'] as readonly [CoachSpecialty, CoachSpecialty],
+          2,
+        ),
+      );
+      const boosted = Object.entries(modifiers.gainScalePercentByAttribute)
+        .filter(([, scale]) => scale > 100)
+        .map(([attribute]) => attribute);
 
-    expect(boosted).toEqual(boostedAttributes);
-    expect(modifiers.specialtyBonusPercent).toBe(20);
-  });
+      expect(boosted).toEqual(boostedAttributes);
+      expect(modifiers.specialtyBonusPercent).toBe(20);
+    },
+  );
 
   test('does not treat Motivator as a direct stat-training specialty', () => {
     const modifiers = careerCoachTrainingModifiers(
@@ -180,7 +196,9 @@ describe('career coach weekly effects', () => {
   });
 
   test('scales a matching integer gain deterministically and leaves other gains unchanged', () => {
-    const modifiers = careerCoachTrainingModifiers(marketWithCoach(['ATTACK', 'FITNESS'], 3));
+    const modifiers = careerCoachTrainingModifiers(
+      marketWithCoach(['ATTACK', 'FITNESS'], 3),
+    );
 
     expect(applyCareerCoachTrainingModifier(3, 'sho', modifiers)).toBe(4);
     expect(applyCareerCoachTrainingModifier(3, 'pas', modifiers)).toBe(3);
@@ -188,13 +206,24 @@ describe('career coach weekly effects', () => {
   });
 
   test('rejects malformed persisted coach values and unsafe gain calculations', () => {
-    expect(() => careerCoachTrainingModifiers(marketWithCoach(['ATTACK', 'FITNESS'], 0)))
-      .toThrow(/level/);
-    expect(() => careerCoachWageLedgerAmount(marketWithCoach(['ATTACK', 'FITNESS'], 1, -1)))
-      .toThrow(/wage/);
+    expect(() =>
+      careerCoachTrainingModifiers(marketWithCoach(['ATTACK', 'FITNESS'], 0)),
+    ).toThrow(/level/);
+    expect(() =>
+      careerCoachWageLedgerAmount(
+        marketWithCoach(['ATTACK', 'FITNESS'], 1, -1),
+      ),
+    ).toThrow(/wage/);
     const modifiers = careerCoachTrainingModifiers(marketWithCoach());
-    expect(() => applyCareerCoachTrainingModifier(-1, 'sho', modifiers)).toThrow(/gain/);
-    expect(() => applyCareerCoachTrainingModifier(Number.MAX_SAFE_INTEGER, 'sho', modifiers))
-      .toThrow(/safe integer range/);
+    expect(() =>
+      applyCareerCoachTrainingModifier(-1, 'sho', modifiers),
+    ).toThrow(/gain/);
+    expect(() =>
+      applyCareerCoachTrainingModifier(
+        Number.MAX_SAFE_INTEGER,
+        'sho',
+        modifiers,
+      ),
+    ).toThrow(/safe integer range/);
   });
 });

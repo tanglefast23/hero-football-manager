@@ -7,8 +7,10 @@ import {
   type ViewStyle,
 } from 'react-native';
 import {
+  playDangerSfx,
   playManagementActionSfx,
   playMatchControlSfx,
+  playPositiveSfx,
   playStatStepSfx,
   playUiClickSfx,
 } from '../../render/management-sfx';
@@ -22,7 +24,8 @@ type SfxPressableProps = NativePressableProps & {
    * cannot honour the tap — an affirming click there reads as "done" when
    * nothing happened.
    */
-  pressSfx?: 'click' | 'match-control' | 'stat-step' | 'warning';
+  pressSfx?:
+    'click' | 'positive' | 'danger' | 'match-control' | 'stat-step' | 'warning';
   /**
    * One short line explaining what this control does, shown on mouse hover.
    * Pointer-only by design: it never appears on a touch screen, where a tap has
@@ -68,7 +71,9 @@ function setsTransform(style: unknown): boolean {
 type PressCue = NonNullable<SfxPressableProps['pressSfx']>;
 
 function playPressCue(pressSfx: PressCue): void {
-  if (pressSfx === 'stat-step') playStatStepSfx();
+  if (pressSfx === 'positive') playPositiveSfx();
+  else if (pressSfx === 'danger') playDangerSfx();
+  else if (pressSfx === 'stat-step') playStatStepSfx();
   else if (pressSfx === 'warning') playManagementActionSfx('warning');
   else if (pressSfx === 'match-control') playMatchControlSfx();
   else playUiClickSfx();
@@ -110,7 +115,8 @@ export function SfxPressable({
   const gateRef = useRef<PressCueGate | null>(null);
   const cueGate = (gateRef.current ??= createPressCueGate());
   const pointer = hasHoverPointer();
-  const showTip = pointer && hovered && !pressed && tip !== undefined && tip.length > 0;
+  const showTip =
+    pointer && hovered && !pressed && tip !== undefined && tip.length > 0;
 
   return (
     <NativePressable
@@ -119,22 +125,30 @@ export function SfxPressable({
       disabled={disabled}
       // Left unwired without a hovering pointer, so a caller's own hover work
       // (the facilities grid previews a footprint from it) cannot latch either.
-      onHoverIn={!pointer ? undefined : event => {
-        setHovered(true);
-        onHoverIn?.(event);
-      }}
-      onHoverOut={!pointer ? undefined : event => {
-        setHovered(false);
-        onHoverOut?.(event);
-      }}
-      onPressIn={event => {
+      onHoverIn={
+        !pointer
+          ? undefined
+          : (event) => {
+              setHovered(true);
+              onHoverIn?.(event);
+            }
+      }
+      onHoverOut={
+        !pointer
+          ? undefined
+          : (event) => {
+              setHovered(false);
+              onHoverOut?.(event);
+            }
+      }
+      onPressIn={(event) => {
         setPressed(true);
         // A surface with nothing to activate has nothing to answer for, so the
         // cue lives exactly where a press handler does.
         if (onPress != null) cueGate.pressIn(() => playPressCue(pressSfx));
         onPressIn?.(event);
       }}
-      onPressOut={event => {
+      onPressOut={(event) => {
         // A completed press ends the hover too. A touch screen that reports a
         // hovering pointer anyway still gets no stuck tip: the synthetic hover
         // arrives with the touch, and this clears it when the finger lifts.
@@ -143,14 +157,19 @@ export function SfxPressable({
         cueGate.pressOut();
         onPressOut?.(event);
       }}
-      onPress={onPress == null ? undefined : event => {
-        cueGate.press(() => playPressCue(pressSfx));
-        onPress(event);
-      }}
+      onPress={
+        onPress == null
+          ? undefined
+          : (event) => {
+              cueGate.press(() => playPressCue(pressSfx));
+              onPress(event);
+            }
+      }
       style={(() => {
-        const resolved = typeof style === 'function'
-          ? style({ pressed, hovered } as Parameters<typeof style>[0])
-          : style;
+        const resolved =
+          typeof style === 'function'
+            ? style({ pressed, hovered } as Parameters<typeof style>[0])
+            : style;
         return [
           tip !== undefined ? hoverTipAnchor : undefined,
           resolved,
@@ -159,7 +178,9 @@ export function SfxPressable({
           // as "this went away"; moving the surface under the finger reads as
           // "this took the press". It lands with the touch and leaves with it,
           // so nothing is queued and nothing can be left depressed.
-          pressed && !disabled && !setsTransform(resolved) ? pressDepress : undefined,
+          pressed && !disabled && !setsTransform(resolved)
+            ? pressDepress
+            : undefined,
           // A mouse gets a cursor and a 1px lift so the UI stops feeling dead.
           pointer && !disabled ? pointerCursor : undefined,
           pointer && hovered && !pressed && !disabled ? hoverLift : undefined,
@@ -182,7 +203,11 @@ export function SfxPressable({
  *
  * Pointer-only for the same reason as the tip above — a tap has no hover phase.
  */
-export function HoverTipAnchor({ tip, className, children }: {
+export function HoverTipAnchor({
+  tip,
+  className,
+  children,
+}: {
   tip?: string;
   className?: string;
   children: ReactNode;
@@ -222,13 +247,21 @@ const hoverLift: ViewStyle = { transform: [{ translateY: -1 }] };
  * on press-in and is removed on press-out with no tween, so anything larger
  * would snap rather than depress.
  */
-const pressDepress: ViewStyle = { transform: [{ translateY: 1 }, { scale: 0.97 }] };
+const pressDepress: ViewStyle = {
+  transform: [{ translateY: 1 }, { scale: 0.97 }],
+};
 const hoverTipAnchor: ViewStyle = { position: 'relative' };
 // Raise the host, not only the absolute bubble. A child's z-index is trapped in
 // its parent's paint order, which is why later roster text appeared over tips.
 const hoverTipTopLayer: ViewStyle = { zIndex: 1000, elevation: 20 };
 
-function HoverTip({ text, side }: { text: string; side: 'top' | 'bottom' }): ReactNode {
+function HoverTip({
+  text,
+  side,
+}: {
+  text: string;
+  side: 'top' | 'bottom';
+}): ReactNode {
   return (
     <View
       pointerEvents="none"

@@ -1,5 +1,12 @@
 import tables from './formation-tables.json';
-import { clamp, dist, GOAL_CENTER_X, PITCH_W, PITCH_H, type Vec } from './geometry';
+import {
+  clamp,
+  dist,
+  GOAL_CENTER_X,
+  PITCH_W,
+  PITCH_H,
+  type Vec,
+} from './geometry';
 
 // Positional-table movement (m0.5 rework, SWOS-style 35-area tactics table —
 // spec: docs/superpowers/specs/2026-07-18-positional-movement.md). The table
@@ -25,16 +32,16 @@ export const BLEND_TICKS = 10;
 // Penalty-box proportions restated from the real senior pitch (105m x 68m),
 // mirroring src/render/Pitch.tsx's PENALTY_BOX_W/D ratios — sim must never
 // import from render, so the named constants are hardcoded here.
-const GK_BOX_HALF_W = Math.round(PITCH_W * (40.3 / 68) / 2); // 2015 cm
-const GK_BOX_DEPTH = Math.round(PITCH_H * (16.5 / 105));     // 1650 cm
+const GK_BOX_HALF_W = Math.round((PITCH_W * (40.3 / 68)) / 2); // 2015 cm
+const GK_BOX_DEPTH = Math.round(PITCH_H * (16.5 / 105)); // 1650 cm
 // Depth ramp: MAX at the goal, shedding SLOPE cm of depth per cm of ball
 // distance, floored at MIN (reached beyond (MAX-MIN)/SLOPE = 4000 cm).
 // Tuned against the balance rails (200 seeds, ROVERS vs UNITED, commit-time
 // measurement): m0.5 baseline goals/match 2.670, shots/match 8.860, saveRate
 // 0.6985, blowout strongGoals/match 7.415 — at these constants: goals/match
 // 2.720, shots/match 9.075, saveRate 0.6913, blowout 7.480. All rails green.
-const GK_DEPTH_MAX = 1000;  // cm off the line with the ball at the goal (upper clamp)
-const GK_DEPTH_MIN = 200;   // cm off the line with play far away (lower clamp)
+const GK_DEPTH_MAX = 1000; // cm off the line with the ball at the goal (upper clamp)
+const GK_DEPTH_MIN = 200; // cm off the line with play far away (lower clamp)
 const GK_DEPTH_SLOPE = 0.2; // cm of depth shed per cm of ball distance
 
 export function gkTarget(team: 0 | 1, ball: Vec): Vec {
@@ -42,13 +49,24 @@ export function gkTarget(team: 0 | 1, ball: Vec): Vec {
   const goal: Vec = { x: GOAL_CENTER_X, y: PITCH_H }; // own goal, team-0 frame
   const d = dist(goal, b);
   // Off-line depth grows as the ball approaches; never placed beyond the ball.
-  const depth = Math.min(clamp(GK_DEPTH_MAX - GK_DEPTH_SLOPE * d, GK_DEPTH_MIN, GK_DEPTH_MAX), d);
+  const depth = Math.min(
+    clamp(GK_DEPTH_MAX - GK_DEPTH_SLOPE * d, GK_DEPTH_MIN, GK_DEPTH_MAX),
+    d,
+  );
   const t = d === 0 ? 0 : depth / d;
   // Box clamps are safety rails (a shot-flight ball can sit behind the goal
   // line; future retunes may raise GK_DEPTH_MAX past the box bounds): never
   // wider than the penalty box, never deeper than it, never behind the line.
-  const x = clamp(Math.round(goal.x + (b.x - goal.x) * t), GOAL_CENTER_X - GK_BOX_HALF_W, GOAL_CENTER_X + GK_BOX_HALF_W);
-  const y = clamp(Math.round(goal.y + (b.y - goal.y) * t), PITCH_H - GK_BOX_DEPTH, PITCH_H);
+  const x = clamp(
+    Math.round(goal.x + (b.x - goal.x) * t),
+    GOAL_CENTER_X - GK_BOX_HALF_W,
+    GOAL_CENTER_X + GK_BOX_HALF_W,
+  );
+  const y = clamp(
+    Math.round(goal.y + (b.y - goal.y) * t),
+    PITCH_H - GK_BOX_DEPTH,
+    PITCH_H,
+  );
   return team === 0 ? { x, y } : { x: PITCH_W - x, y: PITCH_H - y };
 }
 
@@ -70,7 +88,11 @@ function ballForTeam(team: 0 | 1, ball: Vec): Vec {
  * slot (0..9), ball in the sampling team's frame. Returns unrounded
  * normalized fractions (team-0 frame) — callers blend, then round once.
  */
-function samplePhase(phase: number[][][], slot: number, ball: Vec): { x: number; y: number } {
+function samplePhase(
+  phase: number[][][],
+  slot: number,
+  ball: Vec,
+): { x: number; y: number } {
   const gx = clamp(ball.x / CELL_W - 0.5, 0, GRID_COLS - 1);
   const gy = clamp(ball.y / CELL_H - 0.5, 0, GRID_ROWS - 1);
   const x0 = Math.floor(gx);
@@ -92,7 +114,9 @@ function samplePhase(phase: number[][][], slot: number, ball: Vec): { x: number;
 }
 
 function phaseTable(inPossession: boolean): number[][][] {
-  return inPossession ? tables.phases.inPossession : tables.phases.outOfPossession;
+  return inPossession
+    ? tables.phases.inPossession
+    : tables.phases.outOfPossession;
 }
 
 /**
@@ -102,7 +126,12 @@ function phaseTable(inPossession: boolean): number[][][] {
  * integer cm, then rotated 180° for team 1 (tactical-relative slot semantics).
  */
 export function blendedTableTarget(
-  team: 0 | 1, engineSlot: number, fromInPossession: boolean, toInPossession: boolean, t: number, ball: Vec,
+  team: 0 | 1,
+  engineSlot: number,
+  fromInPossession: boolean,
+  toInPossession: boolean,
+  t: number,
+  ball: Vec,
 ): Vec {
   const b = ballForTeam(team, ball);
   const slot = engineSlot - 1;
@@ -120,8 +149,20 @@ export function blendedTableTarget(
 }
 
 /** Settled (no-blend) table target — the common case and the test surface. */
-export function tableTarget(team: 0 | 1, engineSlot: number, inPossession: boolean, ball: Vec): Vec {
-  return blendedTableTarget(team, engineSlot, inPossession, inPossession, 1, ball);
+export function tableTarget(
+  team: 0 | 1,
+  engineSlot: number,
+  inPossession: boolean,
+  ball: Vec,
+): Vec {
+  return blendedTableTarget(
+    team,
+    engineSlot,
+    inPossession,
+    inPossession,
+    1,
+    ball,
+  );
 }
 
 // Frozen GK kickoff spot (team-0 frame, integer cm): the retired m0.4 anchor

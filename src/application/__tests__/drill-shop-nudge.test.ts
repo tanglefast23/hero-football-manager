@@ -13,7 +13,10 @@ describe('drill shop nudge', () => {
   const content = loadLaunchContent();
 
   /** A promoted club on a quiet week with the money for a tier-2 drill. */
-  function promotedDeskClearCareer(seed: number, division: 4 | 2 = 4): GameState {
+  function promotedDeskClearCareer(
+    seed: number,
+    division: 4 | 2 = 4,
+  ): GameState {
     const started = buildCareerFacility(
       createCareer(createLaunchCareerSetup(seed, undefined, content)),
       'training-pitch',
@@ -29,9 +32,9 @@ describe('drill shop nudge', () => {
       facilities: { trainingGroundBuilt: true, grid },
       market: undefined,
       m2: { ...started.m2!, highestDivisionReached: division },
-      clubs: started.clubs.map(club => (
-        club.id === started.userClubId ? { ...club, cash: 50_000 } : club
-      )),
+      clubs: started.clubs.map((club) =>
+        club.id === started.userClubId ? { ...club, cash: 50_000 } : club,
+      ),
     };
   }
 
@@ -40,7 +43,9 @@ describe('drill shop nudge', () => {
 
     expect(alerts).toHaveLength(1);
     expect(alerts[0].id).toBe('training-upgrade:tier-2');
-    expect(alerts[0].detail).toContain(`$${trainingDrillUpgradeCost(2).toLocaleString()}`);
+    expect(alerts[0].detail).toContain(
+      `$${trainingDrillUpgradeCost(2).toLocaleString()}`,
+    );
   });
 
   /** Tiers are bought in order, so D2 does not let a club skip straight to 4. */
@@ -53,7 +58,10 @@ describe('drill shop nudge', () => {
   it('stays quiet in the division below the first unlock', () => {
     const stillD5 = {
       ...promotedDeskClearCareer(20261103),
-      m2: { ...promotedDeskClearCareer(20261103).m2!, highestDivisionReached: 5 as const },
+      m2: {
+        ...promotedDeskClearCareer(20261103).m2!,
+        highestDivisionReached: 5 as const,
+      },
     };
 
     expect(homeViewModel(stillD5).alerts).toHaveLength(0);
@@ -63,9 +71,9 @@ describe('drill shop nudge', () => {
     const broke = promotedDeskClearCareer(20261104);
     const poor = {
       ...broke,
-      clubs: broke.clubs.map(club => (
-        club.id === broke.userClubId ? { ...club, cash: 10 } : club
-      )),
+      clubs: broke.clubs.map((club) =>
+        club.id === broke.userClubId ? { ...club, cash: 10 } : club,
+      ),
     };
 
     expect(homeViewModel(poor).alerts).toHaveLength(0);
@@ -82,16 +90,18 @@ describe('drill shop nudge', () => {
 
   it('never displaces a real inbox item', () => {
     const clear = promotedDeskClearCareer(20261106);
-    const injuredId = clear.players.find(player => player.clubId === clear.userClubId)!.id;
+    const injuredId = clear.players.find(
+      (player) => player.clubId === clear.userClubId,
+    )!.id;
     const withInjury = {
       ...clear,
-      players: clear.players.map(player => (
-        player.id === injuredId ? { ...player, injuryWeeks: 3 } : player
-      )),
+      players: clear.players.map((player) =>
+        player.id === injuredId ? { ...player, injuryWeeks: 3 } : player,
+      ),
     };
 
-    const ids = homeViewModel(withInjury).alerts.map(alert => alert.id);
+    const ids = homeViewModel(withInjury).alerts.map((alert) => alert.id);
     expect(ids).toContain(`injury-${injuredId}`);
-    expect(ids.some(id => id.startsWith('training-upgrade:'))).toBe(false);
+    expect(ids.some((id) => id.startsWith('training-upgrade:'))).toBe(false);
   });
 });

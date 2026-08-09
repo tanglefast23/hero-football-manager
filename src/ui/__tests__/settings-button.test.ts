@@ -4,7 +4,11 @@
 // accessibility labels keep testing the copy that actually ships.
 jest.mock('../../i18n', () => {
   const actual = jest.requireActual('../../i18n');
-  return { ...actual, useLocale: () => 'en', useCopy: () => actual.copyFor('en') };
+  return {
+    ...actual,
+    useLocale: () => 'en',
+    useCopy: () => actual.copyFor('en'),
+  };
 });
 
 jest.mock('react-native', () => ({
@@ -19,10 +23,14 @@ jest.mock('react-native', () => ({
 import { copyFor } from '../../i18n';
 import { SettingsButton, SettingsOverlay } from '../SettingsOverlay';
 
-function findByAccessibilityRole(node: unknown, role: string): { props: Record<string, unknown> } | undefined {
+function findByAccessibilityRole(
+  node: unknown,
+  role: string,
+): { props: Record<string, unknown> } | undefined {
   if (node === null || typeof node !== 'object') return undefined;
   const element = node as { props?: Record<string, unknown> };
-  if (element.props?.accessibilityRole === role) return element as { props: Record<string, unknown> };
+  if (element.props?.accessibilityRole === role)
+    return element as { props: Record<string, unknown> };
   const children = element.props?.children;
   const childList = Array.isArray(children) ? children : [children];
   for (const child of childList) {
@@ -32,10 +40,14 @@ function findByAccessibilityRole(node: unknown, role: string): { props: Record<s
   return undefined;
 }
 
-function findByAccessibilityLabel(node: unknown, label: string): { props: Record<string, unknown> } | undefined {
+function findByAccessibilityLabel(
+  node: unknown,
+  label: string,
+): { props: Record<string, unknown> } | undefined {
   if (node === null || typeof node !== 'object') return undefined;
   const element = node as { props?: Record<string, unknown> };
-  if (element.props?.accessibilityLabel === label) return element as { props: Record<string, unknown> };
+  if (element.props?.accessibilityLabel === label)
+    return element as { props: Record<string, unknown> };
   const children = element.props?.children;
   const childList = Array.isArray(children) ? children : [children];
   for (const child of childList) {
@@ -64,7 +76,16 @@ describe('SettingsButton', () => {
     const onSetAssistantMode = jest.fn();
     const element = SettingsOverlay({
       open: true,
-      glossary: { schemaVersion: 1, categories: [{ id: 'players', title: 'Players', entries: [{ term: 'Fame', definition: 'Renown.' }] }] },
+      glossary: {
+        schemaVersion: 1,
+        categories: [
+          {
+            id: 'players',
+            title: 'Players',
+            entries: [{ term: 'Fame', definition: 'Renown.' }],
+          },
+        ],
+      },
       glossaryOpen: false,
       privacySupportOpen: false,
       volume: 1,
@@ -140,8 +161,15 @@ describe('SettingsButton', () => {
       onOpenChange: jest.fn(),
     };
 
-    expect(findByAccessibilityLabel(SettingsOverlay(common), 'Developer mode')).toBeUndefined();
-    expect(findByAccessibilityLabel(SettingsOverlay(common), 'Open privacy and support')).toBeDefined();
+    expect(
+      findByAccessibilityLabel(SettingsOverlay(common), 'Developer mode'),
+    ).toBeUndefined();
+    expect(
+      findByAccessibilityLabel(
+        SettingsOverlay(common),
+        'Open privacy and support',
+      ),
+    ).toBeDefined();
 
     const debug = SettingsOverlay({
       ...common,

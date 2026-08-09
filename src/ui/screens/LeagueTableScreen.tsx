@@ -1,6 +1,17 @@
 import { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import { Metric, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
+import {
+  Metric,
+  PaperPanel,
+  SectionLabel,
+  StatusChip,
+} from '../components/Scorecard';
 import { LeagueTableRow } from '../components/LeagueTableRow';
 import { takeLeagueRowShifts } from '../league-table-motion';
 import { EmptyDocket } from '../components/EmptyDocket';
@@ -41,16 +52,36 @@ const TABLE_HEADERS: readonly {
   /** The unabbreviated name, spoken by the screen reader — never drawn. */
   nameKey: string;
 }[] = [
-  { column: 'played', key: 'col.league.played', nameKey: 'leagueTable.a11y.headerName.played' },
-  { column: 'won', key: 'col.league.won', nameKey: 'leagueTable.a11y.headerName.won' },
-  { column: 'drawn', key: 'col.league.drawn', nameKey: 'leagueTable.a11y.headerName.drawn' },
-  { column: 'lost', key: 'col.league.lost', nameKey: 'leagueTable.a11y.headerName.lost' },
+  {
+    column: 'played',
+    key: 'col.league.played',
+    nameKey: 'leagueTable.a11y.headerName.played',
+  },
+  {
+    column: 'won',
+    key: 'col.league.won',
+    nameKey: 'leagueTable.a11y.headerName.won',
+  },
+  {
+    column: 'drawn',
+    key: 'col.league.drawn',
+    nameKey: 'leagueTable.a11y.headerName.drawn',
+  },
+  {
+    column: 'lost',
+    key: 'col.league.lost',
+    nameKey: 'leagueTable.a11y.headerName.lost',
+  },
   {
     column: 'goalDifference',
     key: 'col.league.goalDifference',
     nameKey: 'leagueTable.a11y.headerName.goalDifference',
   },
-  { column: 'points', key: 'col.league.points', nameKey: 'leagueTable.a11y.headerName.points' },
+  {
+    column: 'points',
+    key: 'col.league.points',
+    nameKey: 'leagueTable.a11y.headerName.points',
+  },
 ];
 
 /** Points, not rem-based classes. See league-table-columns.ts. */
@@ -72,7 +103,10 @@ export interface LeagueTableScreenProps {
   reduceMotion?: boolean;
 }
 
-export function LeagueTableScreen({ viewModel, reduceMotion = false }: LeagueTableScreenProps) {
+export function LeagueTableScreen({
+  viewModel,
+  reduceMotion = false,
+}: LeagueTableScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const pointsFromTop = viewModel.leaderPoints - viewModel.userPoints;
@@ -85,12 +119,17 @@ export function LeagueTableScreen({ viewModel, reduceMotion = false }: LeagueTab
   const shiftKey = `${viewModel.divisionLabel}|${viewModel.seasonLabel}|${viewModel.weekLabel}`;
   if (shiftKeyRef.current !== shiftKey) {
     shiftKeyRef.current = shiftKey;
-    shiftsRef.current = takeLeagueRowShifts(viewModel.divisionLabel, viewModel.rows);
+    shiftsRef.current = takeLeagueRowShifts(
+      viewModel.divisionLabel,
+      viewModel.rows,
+    );
   }
   const [rowHeight, setRowHeight] = useState(0);
   const handleRowLayout = (event: LayoutChangeEvent) => {
     const measured = event.nativeEvent.layout.height;
-    setRowHeight(current => (Math.abs(current - measured) < 0.5 ? current : measured));
+    setRowHeight((current) =>
+      Math.abs(current - measured) < 0.5 ? current : measured,
+    );
   };
 
   const sections: FlowSection[] = [
@@ -100,21 +139,32 @@ export function LeagueTableScreen({ viewModel, reduceMotion = false }: LeagueTab
       node: (
         <PaperPanel
           kicker={t('leagueTable.currentStanding')}
-          title={t('leagueTable.position', { position: viewModel.userPosition })}
+          title={t('leagueTable.position', {
+            position: viewModel.userPosition,
+          })}
           stamp={t('leagueTable.live')}
         >
           <View className="flex-row gap-2">
-            <Metric label={t('leagueTable.points')} value={String(viewModel.userPoints)} />
+            <Metric
+              label={t('leagueTable.points')}
+              value={String(viewModel.userPoints)}
+            />
             <Metric
               label={t('leagueTable.fromTop')}
-              value={pointsFromTop === 0
-                ? t('leagueTable.leader')
-                : t('leagueTable.pointsBehind', { points: pointsFromTop })}
+              value={
+                pointsFromTop === 0
+                  ? t('leagueTable.leader')
+                  : t('leagueTable.pointsBehind', { points: pointsFromTop })
+              }
             />
-            <Metric label={t('leagueTable.matchesPlayed')} value={`${viewModel.matchesPlayed}/${viewModel.matchesTotal}`} />
+            <Metric
+              label={t('leagueTable.matchesPlayed')}
+              value={`${viewModel.matchesPlayed}/${viewModel.matchesTotal}`}
+            />
           </View>
           <Text className="mt-3 text-sm leading-4 text-ink/55">
-            {t('leagueTable.tiebreakNote')}</Text>
+            {t('leagueTable.tiebreakNote')}
+          </Text>
         </PaperPanel>
       ),
     },
@@ -126,7 +176,9 @@ export function LeagueTableScreen({ viewModel, reduceMotion = false }: LeagueTab
           <SectionLabel
             eyebrow={t('leagueTable.promotionRace')}
             title={t('leagueTable.fullLeagueTable')}
-            right={<StatusChip label={t('leagueTable.topTwoGoUp')} tone="success" />}
+            right={
+              <StatusChip label={t('leagueTable.topTwoGoUp')} tone="success" />
+            }
           />
           {viewModel.rows.length === 0 ? (
             <EmptyDocket
@@ -134,99 +186,168 @@ export function LeagueTableScreen({ viewModel, reduceMotion = false }: LeagueTab
               detail={t('leagueTable.standingsNotPublishedDetail')}
             />
           ) : (
-          <View
-            accessible
-            accessibilityLabel={t('leagueTable.a11y.divisionStandings', {
-              division: viewModel.divisionLabel,
-              matches: viewModel.matchesPlayed,
-            })}
-            className="border-2 border-ink bg-white"
-          >
-            <View className="flex-row border-b border-ink/20 px-2 py-2">
-              <Text style={tableColumns.position} className="font-mono text-[12px] text-ink/50">{t('col.league.position')}</Text>
-              {/* Safe to translate: this is the flexible name column, and it is
+            <View
+              accessible
+              accessibilityLabel={t('leagueTable.a11y.divisionStandings', {
+                division: viewModel.divisionLabel,
+                matches: viewModel.matchesPlayed,
+              })}
+              className="border-2 border-ink bg-white"
+            >
+              <View className="flex-row border-b border-ink/20 px-2 py-2">
+                <Text
+                  style={tableColumns.position}
+                  className="font-mono text-[12px] text-ink/50"
+                >
+                  {t('col.league.position')}
+                </Text>
+                {/* Safe to translate: this is the flexible name column, and it is
                   deliberately absent from `LEAGUE_HEADER_ADVANCE_EM`, so it does
                   not participate in the measured-width gate the way P/GD/PTS do. */}
-              <PixelText className="flex-1 text-[12px] uppercase text-ink/50">{t('col.league.club')}</PixelText>
-              {TABLE_HEADERS.map(header => (
-                <InfoTip
-                  key={header.key}
-                  text={t(TABLE_COLUMN_EXPLAINER_KEY[header.column])}
-                  align="right"
-                  style={tableColumns[header.column]}
-                  accessibilityLabel={t('leagueTable.a11y.columnExplainer', {
-                    name: t(header.nameKey),
-                    explainer: t(TABLE_COLUMN_EXPLAINER_KEY[header.column]),
-                  })}
-                >
-                  <Text
-                    className="w-full text-right font-mono text-[12px] text-ink/50"
-                    maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
-                    numberOfLines={1}
+                <PixelText className="flex-1 text-[12px] uppercase text-ink/50">
+                  {t('col.league.club')}
+                </PixelText>
+                {TABLE_HEADERS.map((header) => (
+                  <InfoTip
+                    key={header.key}
+                    text={t(TABLE_COLUMN_EXPLAINER_KEY[header.column])}
+                    align="right"
+                    style={tableColumns[header.column]}
+                    accessibilityLabel={t('leagueTable.a11y.columnExplainer', {
+                      name: t(header.nameKey),
+                      explainer: t(TABLE_COLUMN_EXPLAINER_KEY[header.column]),
+                    })}
                   >
-                    {t(header.key)}
-                  </Text>
-                </InfoTip>
-              ))}
+                    <Text
+                      className="w-full text-right font-mono text-[12px] text-ink/50"
+                      maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
+                      numberOfLines={1}
+                    >
+                      {t(header.key)}
+                    </Text>
+                  </InfoTip>
+                ))}
+              </View>
+              {viewModel.rows.map((row) => {
+                const rowClass = row.isUserClub
+                  ? 'bg-blue-light'
+                  : row.inPromotionPlaces
+                    ? 'bg-pitch-light'
+                    : '';
+                const primaryText = row.isUserClub ? 'text-ink' : 'text-ink';
+                const secondaryText = row.isUserClub
+                  ? 'text-ink/70'
+                  : 'text-ink/65';
+                return (
+                  <LeagueTableRow
+                    key={row.clubId}
+                    rowsMoved={shiftsRef.current.get(row.clubId) ?? 0}
+                    rowHeight={rowHeight}
+                    reduceMotion={reduceMotion}
+                    standingsKey={shiftKey}
+                    onLayout={row.position === 1 ? handleRowLayout : undefined}
+                  >
+                    <View
+                      accessible
+                      accessibilityLabel={t('leagueTable.a11y.row', {
+                        position: row.position,
+                        club: row.clubName,
+                        played: row.played,
+                        won: row.won,
+                        drawn: row.drawn,
+                        lost: row.lost,
+                        goalDifference: row.goalDifference,
+                        points: row.points,
+                      })}
+                      className={`min-h-11 flex-row items-center border-b border-ink/10 px-2 py-2 ${rowClass}`}
+                    >
+                      <Text
+                        style={tableColumns.position}
+                        className={`font-mono text-base ${primaryText}`}
+                        numberOfLines={1}
+                      >
+                        {row.position}
+                      </Text>
+                      <View className="flex-1 flex-row items-center pr-1">
+                        <Text
+                          className={`flex-1 text-base ${row.isUserClub ? 'font-bold' : ''} ${primaryText}`}
+                          numberOfLines={1}
+                        >
+                          {row.clubName}
+                        </Text>
+                        {row.inPromotionPlaces ? (
+                          <Text
+                            className={
+                              row.isUserClub
+                                ? 'text-sm font-bold text-ink'
+                                : 'text-sm font-bold text-pitch-ink'
+                            }
+                          >
+                            ↑
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Text
+                        style={tableColumns.played}
+                        className={`text-right font-mono text-[12px] ${secondaryText}`}
+                        numberOfLines={1}
+                      >
+                        {row.played}
+                      </Text>
+                      <Text
+                        style={tableColumns.won}
+                        className={`text-right font-mono text-[12px] ${secondaryText}`}
+                        numberOfLines={1}
+                      >
+                        {row.won}
+                      </Text>
+                      <Text
+                        style={tableColumns.drawn}
+                        className={`text-right font-mono text-[12px] ${secondaryText}`}
+                        numberOfLines={1}
+                      >
+                        {row.drawn}
+                      </Text>
+                      <Text
+                        style={tableColumns.lost}
+                        className={`text-right font-mono text-[12px] ${secondaryText}`}
+                        numberOfLines={1}
+                      >
+                        {row.lost}
+                      </Text>
+                      <Text
+                        style={tableColumns.goalDifference}
+                        className={`text-right font-mono text-[12px] ${secondaryText}`}
+                        numberOfLines={1}
+                      >
+                        {row.goalDifference > 0 ? '+' : ''}
+                        {row.goalDifference}
+                      </Text>
+                      <Text
+                        style={tableColumns.points}
+                        className={`text-right font-mono text-base ${primaryText}`}
+                        numberOfLines={1}
+                      >
+                        {row.points}
+                      </Text>
+                    </View>
+                  </LeagueTableRow>
+                );
+              })}
             </View>
-            {viewModel.rows.map(row => {
-              const rowClass = row.isUserClub
-                ? 'bg-blue-light'
-                : row.inPromotionPlaces
-                  ? 'bg-pitch-light'
-                  : '';
-              const primaryText = row.isUserClub ? 'text-ink' : 'text-ink';
-              const secondaryText = row.isUserClub ? 'text-ink/70' : 'text-ink/65';
-              return (
-                <LeagueTableRow
-                  key={row.clubId}
-                  rowsMoved={shiftsRef.current.get(row.clubId) ?? 0}
-                  rowHeight={rowHeight}
-                  reduceMotion={reduceMotion}
-                  standingsKey={shiftKey}
-                  onLayout={row.position === 1 ? handleRowLayout : undefined}
-                >
-                <View
-                  accessible
-                  accessibilityLabel={t('leagueTable.a11y.row', {
-                    position: row.position,
-                    club: row.clubName,
-                    played: row.played,
-                    won: row.won,
-                    drawn: row.drawn,
-                    lost: row.lost,
-                    goalDifference: row.goalDifference,
-                    points: row.points,
-                  })}
-                  className={`min-h-11 flex-row items-center border-b border-ink/10 px-2 py-2 ${rowClass}`}
-                >
-                  <Text style={tableColumns.position} className={`font-mono text-base ${primaryText}`} numberOfLines={1}>{row.position}</Text>
-                  <View className="flex-1 flex-row items-center pr-1">
-                    <Text className={`flex-1 text-base ${row.isUserClub ? 'font-bold' : ''} ${primaryText}`} numberOfLines={1}>{row.clubName}</Text>
-                    {row.inPromotionPlaces ? (
-                      <Text className={row.isUserClub ? 'text-sm font-bold text-ink' : 'text-sm font-bold text-pitch-ink'}>↑</Text>
-                    ) : null}
-                  </View>
-                  <Text style={tableColumns.played} className={`text-right font-mono text-[12px] ${secondaryText}`} numberOfLines={1}>{row.played}</Text>
-                  <Text style={tableColumns.won} className={`text-right font-mono text-[12px] ${secondaryText}`} numberOfLines={1}>{row.won}</Text>
-                  <Text style={tableColumns.drawn} className={`text-right font-mono text-[12px] ${secondaryText}`} numberOfLines={1}>{row.drawn}</Text>
-                  <Text style={tableColumns.lost} className={`text-right font-mono text-[12px] ${secondaryText}`} numberOfLines={1}>{row.lost}</Text>
-                  <Text style={tableColumns.goalDifference} className={`text-right font-mono text-[12px] ${secondaryText}`} numberOfLines={1}>{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>
-                  <Text style={tableColumns.points} className={`text-right font-mono text-base ${primaryText}`} numberOfLines={1}>{row.points}</Text>
-                </View>
-                </LeagueTableRow>
-              );
-            })}
-          </View>
           )}
           <View className="mt-4 flex-row items-center gap-4 border-2 border-ink bg-white px-3 py-3">
             <View className="flex-row items-center gap-2">
               <View className="h-3 w-3 bg-blue" />
-              <Text className="text-sm text-ink/60">{t('leagueTable.yourClub')}</Text>
+              <Text className="text-sm text-ink/60">
+                {t('leagueTable.yourClub')}
+              </Text>
             </View>
             <View className="flex-row items-center gap-2">
               <View className="h-3 w-3 bg-pitch-light" />
-              <Text className="text-sm text-ink/60">{t('leagueTable.promotionPlace')}</Text>
+              <Text className="text-sm text-ink/60">
+                {t('leagueTable.promotionPlace')}
+              </Text>
             </View>
           </View>
         </View>
@@ -240,16 +361,26 @@ export function LeagueTableScreen({ viewModel, reduceMotion = false }: LeagueTab
           <SectionLabel
             eyebrow={viewModel.divisionLabel}
             title={t('leagueTable.fixturesAndResults')}
-            right={<StatusChip label={t('leagueTable.matchCount', { count: viewModel.leagueFixtures.length })} />}
+            right={
+              <StatusChip
+                label={t('leagueTable.matchCount', {
+                  count: viewModel.leagueFixtures.length,
+                })}
+              />
+            }
           />
           {viewModel.leagueFixtures.length === 0 ? (
-            <PaperPanel title={t('leagueTable.schedulePending')} kicker={viewModel.seasonLabel}>
+            <PaperPanel
+              title={t('leagueTable.schedulePending')}
+              kicker={viewModel.seasonLabel}
+            >
               <Text className="text-sm leading-5 text-ink/60">
-                {t('m2League.yourLeagueScheduleWill')}</Text>
+                {t('m2League.yourLeagueScheduleWill')}
+              </Text>
             </PaperPanel>
           ) : (
             <View className="gap-2">
-              {viewModel.leagueFixtures.map(fixture => (
+              {viewModel.leagueFixtures.map((fixture) => (
                 <LeagueFixtureRow key={fixture.id} fixture={fixture} />
               ))}
             </View>
@@ -260,18 +391,30 @@ export function LeagueTableScreen({ viewModel, reduceMotion = false }: LeagueTab
   ];
 
   return (
-    <ScrollView className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}>
+    <ScrollView
+      className="flex-1"
+      contentContainerStyle={[
+        { padding: 16, paddingBottom: 28 },
+        desktopContent,
+      ]}
+    >
       <SectionFlow
         mode={layoutMode}
         header={
           <View className="mb-5 flex-row items-end justify-between">
             <View>
-              <PixelText className="text-[12px] uppercase text-blue-dark">{t('leagueTable.competitionOffice')}</PixelText>
-              <PixelText className="mt-1 text-[18px] uppercase text-ink">{viewModel.divisionLabel}</PixelText>
+              <PixelText className="text-[12px] uppercase text-blue-dark">
+                {t('leagueTable.competitionOffice')}
+              </PixelText>
+              <PixelText className="mt-1 text-[18px] uppercase text-ink">
+                {viewModel.divisionLabel}
+              </PixelText>
             </View>
             <View className="items-end gap-1">
               <StatusChip label={viewModel.seasonLabel} />
-              <Text className="font-mono text-[12px] text-ink/50">{viewModel.weekLabel}</Text>
+              <Text className="font-mono text-[12px] text-ink/50">
+                {viewModel.weekLabel}
+              </Text>
             </View>
           </View>
         }

@@ -34,29 +34,43 @@ interface AwardCategory {
   metricInlineLabelKey: string;
 }
 
-export const AWARD_CATEGORIES: Readonly<Record<AwardCategoryId, AwardCategory>> = Object.freeze({
+export const AWARD_CATEGORIES: Readonly<
+  Record<AwardCategoryId, AwardCategory>
+> = Object.freeze({
   goals: {
-    id: 'goals', role: 'FWD',
-    boardLabel: 'Strikers', boardLabelKey: 'award.board.goals',
-    metricLabel: 'Goals', metricLabelKey: 'award.metric.goals',
+    id: 'goals',
+    role: 'FWD',
+    boardLabel: 'Strikers',
+    boardLabelKey: 'award.board.goals',
+    metricLabel: 'Goals',
+    metricLabelKey: 'award.metric.goals',
     metricInlineLabelKey: 'award.metricInline.goals',
   },
   passesCompleted: {
-    id: 'passesCompleted', role: 'MID',
-    boardLabel: 'Midfielders', boardLabelKey: 'award.board.passesCompleted',
-    metricLabel: 'Passes', metricLabelKey: 'award.metric.passesCompleted',
+    id: 'passesCompleted',
+    role: 'MID',
+    boardLabel: 'Midfielders',
+    boardLabelKey: 'award.board.passesCompleted',
+    metricLabel: 'Passes',
+    metricLabelKey: 'award.metric.passesCompleted',
     metricInlineLabelKey: 'award.metricInline.passesCompleted',
   },
   tacklesWon: {
-    id: 'tacklesWon', role: 'DEF',
-    boardLabel: 'Defenders', boardLabelKey: 'award.board.tacklesWon',
-    metricLabel: 'Tackles won', metricLabelKey: 'award.metric.tacklesWon',
+    id: 'tacklesWon',
+    role: 'DEF',
+    boardLabel: 'Defenders',
+    boardLabelKey: 'award.board.tacklesWon',
+    metricLabel: 'Tackles won',
+    metricLabelKey: 'award.metric.tacklesWon',
     metricInlineLabelKey: 'award.metricInline.tacklesWon',
   },
   saves: {
-    id: 'saves', role: 'GK',
-    boardLabel: 'Keepers', boardLabelKey: 'award.board.saves',
-    metricLabel: 'Saves', metricLabelKey: 'award.metric.saves',
+    id: 'saves',
+    role: 'GK',
+    boardLabel: 'Keepers',
+    boardLabelKey: 'award.board.saves',
+    metricLabel: 'Saves',
+    metricLabelKey: 'award.metric.saves',
     metricInlineLabelKey: 'award.metricInline.saves',
   },
 });
@@ -83,17 +97,22 @@ interface DivisionLeaderEntry extends DivisionAwardPlacement {
  * one row per club he played for. They are summed under his current club: two
  * partial placings for the same man are not a leaderboard.
  */
-export function divisionLeaderBoard(query: DivisionLeaderQuery): DivisionLeaderEntry[] {
+export function divisionLeaderBoard(
+  query: DivisionLeaderQuery,
+): DivisionLeaderEntry[] {
   const category = AWARD_CATEGORIES[query.category];
-  const eligible = new Map(query.players
-    .filter(player => player.role === category.role)
-    .map(player => [player.id, player]));
+  const eligible = new Map(
+    query.players
+      .filter((player) => player.role === category.role)
+      .map((player) => [player.id, player]),
+  );
 
   const totals = new Map<string, number>();
   for (const statLine of query.statLines) {
     // Cup rows are excluded: a board counting goals scored against another
     // division would not be a division board.
-    if (statLine.season !== query.season || statLine.competition !== 'league') continue;
+    if (statLine.season !== query.season || statLine.competition !== 'league')
+      continue;
     if (!eligible.has(statLine.playerId)) continue;
     totals.set(
       statLine.playerId,
@@ -104,9 +123,10 @@ export function divisionLeaderBoard(query: DivisionLeaderQuery): DivisionLeaderE
   const ranked = [...totals.entries()]
     .filter(([, value]) => value > 0)
     // Player ID is the tiebreak so the board never depends on roster order.
-    .sort(([leftId, leftValue], [rightId, rightValue]) => (
-      rightValue - leftValue || compareIds(leftId, rightId)
-    ));
+    .sort(
+      ([leftId, leftValue], [rightId, rightValue]) =>
+        rightValue - leftValue || compareIds(leftId, rightId),
+    );
 
   let position = 0;
   let previousValue: number | undefined;
@@ -118,7 +138,13 @@ export function divisionLeaderBoard(query: DivisionLeaderQuery): DivisionLeaderE
       previousValue = value;
     }
     const player = eligible.get(playerId)!;
-    return { position, playerId, playerName: player.name, clubId: player.clubId, value };
+    return {
+      position,
+      playerId,
+      playerName: player.name,
+      clubId: player.clubId,
+      value,
+    };
   });
 
   return query.limit === undefined ? entries : entries.slice(0, query.limit);
@@ -132,7 +158,7 @@ export function divisionLeaderBoard(query: DivisionLeaderQuery): DivisionLeaderE
 export function divisionPodium(
   query: Omit<DivisionLeaderQuery, 'limit'>,
 ): DivisionAwardPlacement[] {
-  return divisionLeaderBoard({ ...query, limit: PODIUM_SIZE }).map(entry => ({
+  return divisionLeaderBoard({ ...query, limit: PODIUM_SIZE }).map((entry) => ({
     playerId: entry.playerId,
     playerName: entry.playerName,
     clubId: entry.clubId,

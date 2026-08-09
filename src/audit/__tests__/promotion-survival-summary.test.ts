@@ -44,30 +44,36 @@ describe('promotion survival shard summaries', () => {
   });
 
   it('rejects a partial shard set instead of treating it as the full cohort', () => {
-    expect(() => aggregatePromotionSurvivalShards([shard('COZY', 0, 50)], {
-      expectedDifficulties: ['COZY'],
-      expectedSeedCount: 100,
-    })).toThrow(/exact contiguous range/);
+    expect(() =>
+      aggregatePromotionSurvivalShards([shard('COZY', 0, 50)], {
+        expectedDifficulties: ['COZY'],
+        expectedSeedCount: 100,
+      }),
+    ).toThrow(/exact contiguous range/);
   });
 
   it('rejects duplicate seed coverage across otherwise valid shards', () => {
-    expect(() => aggregatePromotionSurvivalShards([
-      shard('COZY', 0, 50),
-      shard('COZY', 0, 50),
-    ], {
-      expectedDifficulties: ['COZY'],
-      expectedSeedCount: 50,
-    })).toThrow(/duplicated/);
+    expect(() =>
+      aggregatePromotionSurvivalShards(
+        [shard('COZY', 0, 50), shard('COZY', 0, 50)],
+        {
+          expectedDifficulties: ['COZY'],
+          expectedSeedCount: 50,
+        },
+      ),
+    ).toThrow(/duplicated/);
   });
 
   it('enforces survival only after the exact aggregate is present', () => {
-    const losing = shard('COZY', 0, 100, seedIndex => ({
+    const losing = shard('COZY', 0, 100, (seedIndex) => ({
       preparedPosition: seedIndex < 50 ? 8 : 9,
     }));
-    expect(() => aggregatePromotionSurvivalShards([losing], {
-      expectedDifficulties: ['COZY'],
-      expectedSeedCount: 100,
-    })).toThrow(/not above 50%/);
+    expect(() =>
+      aggregatePromotionSurvivalShards([losing], {
+        expectedDifficulties: ['COZY'],
+        expectedSeedCount: 100,
+      }),
+    ).toThrow(/not above 50%/);
   });
 
   it('validates the deterministic seed identity in machine-readable input', () => {
@@ -78,7 +84,9 @@ describe('promotion survival shard summaries', () => {
     };
 
     expect(parsePromotionSurvivalShardSummary(summary)).toEqual(summary);
-    expect(() => parsePromotionSurvivalShardSummary(invalid)).toThrow(/does not match index/);
+    expect(() => parsePromotionSurvivalShardSummary(invalid)).toThrow(
+      /does not match index/,
+    );
   });
 });
 
@@ -86,7 +94,9 @@ function shard(
   difficulty: PromotionSurvivalShardSummary['difficulty'],
   seedOffset: number,
   seedCount: number,
-  patch: (seedIndex: number) => { readonly preparedPosition?: number } = seedIndex => ({
+  patch: (seedIndex: number) => { readonly preparedPosition?: number } = (
+    seedIndex,
+  ) => ({
     preparedPosition: seedIndex % 10 < 6 ? 8 : 9,
   }),
 ): PromotionSurvivalShardSummary {
@@ -105,11 +115,14 @@ function shard(
   };
 }
 
-function run(seedIndex: number, preparedPosition: number): PromotionSurvivalRunSummary {
+function run(
+  seedIndex: number,
+  preparedPosition: number,
+): PromotionSurvivalRunSummary {
   return {
     seedIndex,
     seed: promotionSurvivalSeed(seedIndex),
-    promotedInSeason: seedIndex % 2 + 1,
+    promotedInSeason: (seedIndex % 2) + 1,
     prepared: {
       completed: true,
       played: 18,

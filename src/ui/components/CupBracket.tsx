@@ -50,33 +50,61 @@ export function CupBracket({ rounds, championName }: CupBracketProps) {
    * the gold is withdrawn rather than left to lie: your tie stays findable in
    * blue, but nothing on the tree still claims you are running.
    */
-  const userStillIn = !rounds.some(round => round.userOutcomeKind === 'eliminated');
+  const userStillIn = !rounds.some(
+    (round) => round.userOutcomeKind === 'eliminated',
+  );
   // A phone gets the tree wrapped into bands rather than five columns it would
   // have to scroll sideways through, which hides the shape the bracket is for.
-  const bands = narrow ? cupBracketBands(rounds, NARROW_BAND_COLUMNS) : [cupBracketLayout(rounds)];
+  const bands = narrow
+    ? cupBracketBands(rounds, NARROW_BAND_COLUMNS)
+    : [cupBracketLayout(rounds)];
   if (bands.length === 0 || bands[0].columns.length === 0) return null;
 
   return (
     <View>
       {bands.map((band, index) => (
-        <View key={band.columns[0].round} style={index === 0 ? null : styles.bandGap}>
+        <View
+          key={band.columns[0].round}
+          style={index === 0 ? null : styles.bandGap}
+        >
           {index > 0 ? (
-            <Text style={styles.bandNote}>{t('cupBracket.winnersFromAbove')}</Text>
+            <Text style={styles.bandNote}>
+              {t('cupBracket.winnersFromAbove')}
+            </Text>
           ) : null}
           <BracketBand layout={band} userStillIn={userStillIn} />
         </View>
       ))}
       {championName === undefined ? null : (
-        <View accessible accessibilityLabel={t('cupBracket.a11y.wonTheHeroCup', { club: championName })} style={styles.champion}>
-          <PixelText className="text-xs uppercase text-ink/60">{t('cupBracket.heroCupWinners')}</PixelText>
-          <PixelText className="mt-1 text-lg uppercase text-ink" numberOfLines={1}>{championName}</PixelText>
+        <View
+          accessible
+          accessibilityLabel={t('cupBracket.a11y.wonTheHeroCup', {
+            club: championName,
+          })}
+          style={styles.champion}
+        >
+          <PixelText className="text-xs uppercase text-ink/60">
+            {t('cupBracket.heroCupWinners')}
+          </PixelText>
+          <PixelText
+            className="mt-1 text-lg uppercase text-ink"
+            numberOfLines={1}
+          >
+            {championName}
+          </PixelText>
         </View>
       )}
     </View>
   );
 }
 
-function BracketBand({ layout, userStillIn }: { layout: BracketLayout; userStillIn: boolean }) {
+function BracketBand({
+  layout,
+  userStillIn,
+}: {
+  layout: BracketLayout;
+  userStillIn: boolean;
+}) {
   const styles = usePixelStyles(makeStyles);
   const connectors = cupBracketConnectors(layout);
   return (
@@ -87,11 +115,22 @@ function BracketBand({ layout, userStillIn }: { layout: BracketLayout; userStill
       // shrinking to a size where club names stop being readable.
       contentContainerStyle={{ paddingRight: 12 }}
     >
-      <View style={{ width: layout.width, height: layout.height + HEADER_HEIGHT }}>
+      <View
+        style={{ width: layout.width, height: layout.height + HEADER_HEIGHT }}
+      >
         <View style={styles.headerRow}>
-          {layout.columns.map(column => (
-            <View key={column.round} style={[styles.header, { left: column.left, width: COLUMN_WIDTH }]}>
-              <PixelText className="text-xs uppercase text-blue-dark" numberOfLines={1}>
+          {layout.columns.map((column) => (
+            <View
+              key={column.round}
+              style={[
+                styles.header,
+                { left: column.left, width: COLUMN_WIDTH },
+              ]}
+            >
+              <PixelText
+                className="text-xs uppercase text-blue-dark"
+                numberOfLines={1}
+              >
                 {column.label}
               </PixelText>
             </View>
@@ -100,41 +139,72 @@ function BracketBand({ layout, userStillIn }: { layout: BracketLayout; userStill
 
         <View style={{ height: layout.height }}>
           {/* Connectors first, so ties paint over the elbows rather than under. */}
-          {connectors.map(connector => {
-            const midX = connector.fromX + (connector.toX - connector.fromX) / 2;
+          {connectors.map((connector) => {
+            const midX =
+              connector.fromX + (connector.toX - connector.fromX) / 2;
             return (
               <View key={connector.key} pointerEvents="none">
-                <View style={[styles.rule, {
-                  left: connector.fromX,
-                  top: connector.upperY,
-                  width: midX - connector.fromX,
-                  height: RULE,
-                }]} />
-                <View style={[styles.rule, {
-                  left: connector.fromX,
-                  top: connector.lowerY,
-                  width: midX - connector.fromX,
-                  height: RULE,
-                }]} />
-                <View style={[styles.rule, {
-                  left: midX,
-                  top: connector.upperY,
-                  width: RULE,
-                  height: Math.max(RULE, connector.lowerY - connector.upperY),
-                }]} />
-                <View style={[styles.rule, {
-                  left: midX,
-                  top: connector.midY,
-                  width: connector.toX - midX,
-                  height: RULE,
-                }]} />
+                <View
+                  style={[
+                    styles.rule,
+                    {
+                      left: connector.fromX,
+                      top: connector.upperY,
+                      width: midX - connector.fromX,
+                      height: RULE,
+                    },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.rule,
+                    {
+                      left: connector.fromX,
+                      top: connector.lowerY,
+                      width: midX - connector.fromX,
+                      height: RULE,
+                    },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.rule,
+                    {
+                      left: midX,
+                      top: connector.upperY,
+                      width: RULE,
+                      height: Math.max(
+                        RULE,
+                        connector.lowerY - connector.upperY,
+                      ),
+                    },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.rule,
+                    {
+                      left: midX,
+                      top: connector.midY,
+                      width: connector.toX - midX,
+                      height: RULE,
+                    },
+                  ]}
+                />
               </View>
             );
           })}
 
-          {layout.columns.map(column => column.ties.map(tie => (
-            <TieCard key={tie.key} tie={tie} left={column.left} userStillIn={userStillIn} />
-          )))}
+          {layout.columns.map((column) =>
+            column.ties.map((tie) => (
+              <TieCard
+                key={tie.key}
+                tie={tie}
+                left={column.left}
+                userStillIn={userStillIn}
+              />
+            )),
+          )}
         </View>
       </View>
     </ScrollView>
@@ -163,7 +233,9 @@ function TieCard({
       : t('cupBracket.a11y.tie', { home: tie.homeName, away: tie.awayName });
   // Colour and weight are the sighted half of "this one is yours"; a screen
   // reader gets the same fact said out loud, ahead of the names.
-  const label = tie.involvesUserClub ? t('cupBracket.a11y.yourTie', { tie: tie_ }) : tie_;
+  const label = tie.involvesUserClub
+    ? t('cupBracket.a11y.yourTie', { tie: tie_ })
+    : tie_;
   const live = tie.involvesUserClub && userStillIn;
   return (
     <View
@@ -181,14 +253,22 @@ function TieCard({
       <TieSide
         name={tie.homeName}
         placeholder={tie.placeholder}
-        beaten={tie.played && tie.winnerName !== undefined && tie.winnerName !== tie.homeName}
+        beaten={
+          tie.played &&
+          tie.winnerName !== undefined &&
+          tie.winnerName !== tie.homeName
+        }
         mine={tie.userSide === 'home'}
       />
       <View style={styles.tieDivider} />
       <TieSide
         name={tie.awayName}
         placeholder={tie.placeholder}
-        beaten={tie.played && tie.winnerName !== undefined && tie.winnerName !== tie.awayName}
+        beaten={
+          tie.played &&
+          tie.winnerName !== undefined &&
+          tie.winnerName !== tie.awayName
+        }
         mine={tie.userSide === 'away'}
       />
       {tie.played && tie.scoreLabel.length > 0 ? (
@@ -229,57 +309,63 @@ function TieSide({
   );
 }
 
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  headerRow: { height: HEADER_HEIGHT },
-  /** Bands are one tree wrapped, so the seam is spacing plus a hand-off note. */
-  bandGap: { marginTop: 18 },
-  bandNote: {
-    color: '#6b6675',
-    fontFamily: faces.data,
-    fontSize: 10,
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
-  champion: {
-    marginTop: 12,
-    alignItems: 'center',
-    borderWidth: RULE,
-    borderBottomWidth: 4,
-    borderColor: '#c8862a',
-    backgroundColor: '#f7d894',
-    paddingVertical: 10,
-  },
-  header: { position: 'absolute', top: 0 },
-  rule: { position: 'absolute', backgroundColor: '#3f6fb5' },
-  tie: {
-    position: 'absolute',
-    height: TIE_HEIGHT,
-    justifyContent: 'center',
-    borderWidth: RULE,
-    borderBottomWidth: 4,
-    borderColor: INK,
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 6,
-  },
-  tiePlaceholder: { borderColor: '#9a95a4', backgroundColor: '#f4f1ea' },
-  tieUser: { borderColor: '#3f6fb5', backgroundColor: '#a3c8f0' },
-  /** Still running: gold, and the only gold fill in the tree. */
-  tieUserLive: { borderColor: '#c8862a', backgroundColor: '#f7d894' },
-  tieDivider: { height: 1, backgroundColor: '#241f2e22', marginVertical: 2 },
-  side: { color: INK, fontSize: 12, lineHeight: 16 },
-  sidePlaceholder: { color: '#9a95a4' },
-  sideBeaten: { color: '#9a95a4', textDecorationLine: 'line-through' },
-  // Last, so your own name keeps its weight in the tie you went out in — the
-  // strike-through says you lost; the weight still says which one was you.
-  sideMine: { color: INK, fontWeight: 'bold' },
-  score: {
-    position: 'absolute',
-    right: -2,
-    top: -2,
-    paddingHorizontal: 4,
-    borderWidth: RULE,
-    borderColor: INK,
-    backgroundColor: '#edb54a',
-  },
-  scoreText: { color: INK, fontFamily: faces.data, fontSize: 10, lineHeight: 14 },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    headerRow: { height: HEADER_HEIGHT },
+    /** Bands are one tree wrapped, so the seam is spacing plus a hand-off note. */
+    bandGap: { marginTop: 18 },
+    bandNote: {
+      color: '#6b6675',
+      fontFamily: faces.data,
+      fontSize: 10,
+      letterSpacing: 0.8,
+      marginBottom: 4,
+    },
+    champion: {
+      marginTop: 12,
+      alignItems: 'center',
+      borderWidth: RULE,
+      borderBottomWidth: 4,
+      borderColor: '#c8862a',
+      backgroundColor: '#f7d894',
+      paddingVertical: 10,
+    },
+    header: { position: 'absolute', top: 0 },
+    rule: { position: 'absolute', backgroundColor: '#3f6fb5' },
+    tie: {
+      position: 'absolute',
+      height: TIE_HEIGHT,
+      justifyContent: 'center',
+      borderWidth: RULE,
+      borderBottomWidth: 4,
+      borderColor: INK,
+      backgroundColor: '#ffffff',
+      paddingHorizontal: 6,
+    },
+    tiePlaceholder: { borderColor: '#9a95a4', backgroundColor: '#f4f1ea' },
+    tieUser: { borderColor: '#3f6fb5', backgroundColor: '#a3c8f0' },
+    /** Still running: gold, and the only gold fill in the tree. */
+    tieUserLive: { borderColor: '#c8862a', backgroundColor: '#f7d894' },
+    tieDivider: { height: 1, backgroundColor: '#241f2e22', marginVertical: 2 },
+    side: { color: INK, fontSize: 12, lineHeight: 16 },
+    sidePlaceholder: { color: '#9a95a4' },
+    sideBeaten: { color: '#9a95a4', textDecorationLine: 'line-through' },
+    // Last, so your own name keeps its weight in the tie you went out in — the
+    // strike-through says you lost; the weight still says which one was you.
+    sideMine: { color: INK, fontWeight: 'bold' },
+    score: {
+      position: 'absolute',
+      right: -2,
+      top: -2,
+      paddingHorizontal: 4,
+      borderWidth: RULE,
+      borderColor: INK,
+      backgroundColor: '#edb54a',
+    },
+    scoreText: {
+      color: INK,
+      fontFamily: faces.data,
+      fontSize: 10,
+      lineHeight: 14,
+    },
+  });

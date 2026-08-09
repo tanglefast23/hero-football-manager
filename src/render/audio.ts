@@ -23,7 +23,7 @@ import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
 // checks. The match theme likewise uses its compressed .m4a build. See
 // scripts/audio/catalog.mjs for the full SFX inventory — only the subset
 // below has a wired trigger.
-type SfxKey =
+export type SfxKey =
   | 'kickoff-whistle'
   | 'halftime-whistle'
   | 'fulltime-whistle'
@@ -141,10 +141,13 @@ let masterVolume = 1;
 // Activation and impact are separate so a power-up never impersonates the
 // later ball/body contact. Instant spatial powers intentionally sound only on
 // POWER_IMPACT, so their one cue lands on the moment the player can see.
-const POWER_AUDIO: Record<PowerId, {
-  readonly activation: readonly SfxKey[];
-  readonly impact: readonly SfxKey[];
-}> = {
+const POWER_AUDIO: Record<
+  PowerId,
+  {
+    readonly activation: readonly SfxKey[];
+    readonly impact: readonly SfxKey[];
+  }
+> = {
   SUPER_SPEED: { activation: ['super-speed-whoosh'], impact: [] },
   BLINK_RUN: { activation: [], impact: ['blink-teleport'] },
   THUNDER_STRIKE: { activation: ['thunder-charge'], impact: [] },
@@ -152,7 +155,10 @@ const POWER_AUDIO: Record<PowerId, {
   PHASE_RUN: { activation: [], impact: ['phase-shift'] },
   PORTAL_PASS: { activation: [], impact: ['portal-warp'] },
   DECOY_DOUBLE: { activation: ['zone-enter'], impact: [] },
-  FUTURE_SIGHT: { activation: ['future-sight-read'], impact: ['future-sight-intercept'] },
+  FUTURE_SIGHT: {
+    activation: ['future-sight-read'],
+    impact: ['future-sight-intercept'],
+  },
   SUPER_STRENGTH: { activation: ['super-strength-boom'], impact: [] },
   WEB_TRAP: { activation: ['web-cast'], impact: ['web-spring'] },
   ELASTIC_KEEPER: { activation: ['keeper-stretch'], impact: [] },
@@ -167,6 +173,44 @@ const POWER_AUDIO: Record<PowerId, {
   GIANT_GK: { activation: ['giant-grow'], impact: [] },
   GUST: { activation: ['super-speed-whoosh'], impact: [] },
 };
+
+export type MatchAudioProfile = 'full' | 'showcase';
+
+const SHOWCASE_BASE_SFX: readonly SfxKey[] = [
+  'kickoff-whistle',
+  'kick-pass',
+  'kick-shot',
+  'tackle-thud',
+  'grunt',
+  'body-fall',
+  'duel-scuff',
+  'goal-fanfare',
+  'goal-celebration',
+  'goal-net-hit',
+  'goal-crowd',
+  'zone-enter',
+  'save-slap',
+  'crowd-ooh',
+  'power-interrupt',
+];
+
+/** The awakening demo loads only its short clip's possible sounds. */
+export function audioKeysForProfile(
+  profile: MatchAudioProfile,
+  showcasePower?: PowerId,
+): readonly SfxKey[] {
+  if (profile === 'full') return Object.keys(SFX_SOURCES) as SfxKey[];
+  const selected = new Set<SfxKey>(SHOWCASE_BASE_SFX);
+  if (showcasePower !== undefined) {
+    for (const key of POWER_AUDIO[showcasePower].activation) selected.add(key);
+    for (const key of POWER_AUDIO[showcasePower].impact) selected.add(key);
+    if (showcasePower === 'FIRE_TORCH') {
+      selected.add('flame-hit');
+      selected.add('extinguisher-spray');
+    }
+  }
+  return [...selected];
+}
 
 // -- Event -> file table ------------------------------------------------
 // The single source of truth for what plays on what: swapping a sound is a
@@ -218,9 +262,9 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
     case 'POWER_IMPACT':
       return POWER_AUDIO[e.power].impact;
     case 'SAVE':
-      return ['save-slap'];       // keeper stops it
+      return ['save-slap']; // keeper stops it
     case 'MISS':
-      return ['crowd-ooh'];       // shot off target — crowd groans
+      return ['crowd-ooh']; // shot off target — crowd groans
     case 'POWER_INTERRUPTED':
       return ['power-interrupt']; // wind-up tackled off
     case 'GUST_REDIRECT':
@@ -269,6 +313,8 @@ let fireLoopPlayer: AudioPlayer | null = null;
 /** What the match asked for, so backgrounding can pause and returning can restore. */
 let themeWanted = false;
 let fireWanted = false;
+let activeProfile: MatchAudioProfile = 'full';
+let activeShowcasePower: PowerId | undefined;
 
 // Only the first failure of the session warns (whatever it is) — the point
 // is one diagnostic line, not a per-frame warning flood.
@@ -278,7 +324,11 @@ function warnOnce(context: string, err: unknown): void {
   console.warn(`audio: ${context}`, err);
 }
 
-function setPlayerVolume(player: AudioPlayer, baseVolume: number, context: string): void {
+function setPlayerVolume(
+  player: AudioPlayer,
+  baseVolume: number,
+  context: string,
+): void {
   try {
     player.volume = baseVolume * masterVolume;
     // Browsers on iOS refuse programmatic volume outright — expo-audio's web
@@ -298,7 +348,8 @@ function applyMasterVolume(): void {
     setPlayerVolume(player, 1, 'SFX');
   }
   if (themePlayer) setPlayerVolume(themePlayer, MUSIC_VOLUME, 'theme');
-  if (fireLoopPlayer) setPlayerVolume(fireLoopPlayer, FIRE_LOOP_VOLUME, 'fire loop');
+  if (fireLoopPlayer)
+    setPlayerVolume(fireLoopPlayer, FIRE_LOOP_VOLUME, 'fire loop');
 }
 
 export function setMasterVolume(volume: number): void {
@@ -306,16 +357,23 @@ export function setMasterVolume(volume: number): void {
   applyMasterVolume();
 }
 
-export function initAudio(): void {
+export function initAudio(
+  profile: MatchAudioProfile = 'full',
+  showcasePower?: PowerId,
+): void {
   if (initAttempted) return; // one attempt per mount; teardownAudio() resets this
   initAttempted = true;
+  activeProfile = profile;
+  activeShowcasePower = showcasePower;
   try {
     // Lazy `require`, not a static import — see the file header comment for
     // why this specific call must be the one wrapped in try/catch.
     const mod = require('expo-audio') as typeof import('expo-audio');
     // expo-audio defaults `playsInSilentMode` to true (ignores the hardware
     // mute switch) — set it false so match audio respects the switch.
-    mod.setAudioModeAsync({ playsInSilentMode: false }).catch((err: unknown) => warnOnce('setAudioModeAsync failed', err));
+    mod
+      .setAudioModeAsync({ playsInSilentMode: false })
+      .catch((err: unknown) => warnOnce('setAudioModeAsync failed', err));
     // keepAudioSessionActive is deliberately NOT passed here (settled at the
     // T5 review — don't re-litigate at T6): native deactivateSession() only
     // fires when NO registered player isPlaying (after a 100ms grace), and
@@ -324,7 +382,7 @@ export function initAudio(): void {
     //
     // Per-player try/catch: one bad asset/player must not abort the rest
     // (playForEvent already skips missing map entries).
-    for (const key of Object.keys(SFX_SOURCES) as SfxKey[]) {
+    for (const key of audioKeysForProfile(profile, showcasePower)) {
       try {
         sfxPlayers.set(key, mod.createAudioPlayer(SFX_SOURCES[key]));
       } catch (err) {
@@ -338,12 +396,14 @@ export function initAudio(): void {
       themePlayer = null;
       warnOnce('createAudioPlayer failed (match-theme)', err);
     }
-    try {
-      fireLoopPlayer = mod.createAudioPlayer(FIRE_LOOP_SOURCE);
-      fireLoopPlayer.loop = true;
-    } catch (err) {
-      fireLoopPlayer = null;
-      warnOnce('createAudioPlayer failed (flame-loop)', err);
+    if (profile === 'full' || showcasePower === 'FIRE_TORCH') {
+      try {
+        fireLoopPlayer = mod.createAudioPlayer(FIRE_LOOP_SOURCE);
+        fireLoopPlayer.loop = true;
+      } catch (err) {
+        fireLoopPlayer = null;
+        warnOnce('createAudioPlayer failed (flame-loop)', err);
+      }
     }
     ready = true;
     // Preserve a dev volume chosen before the match screen mounted. This also
@@ -398,6 +458,8 @@ export function teardownAudio(): void {
   // with teardownAudio().
   themeWanted = false;
   fireWanted = false;
+  activeProfile = 'full';
+  activeShowcasePower = undefined;
   ready = false;
   initAttempted = false; // allow the next mount to retry init
   lastRecoveryAt = 0;
@@ -436,7 +498,7 @@ function tryRecoverMatchAudio(): boolean {
   fireLoopPlayer = null;
   ready = false;
   initAttempted = false;
-  initAudio();
+  initAudio(activeProfile, activeShowcasePower);
   if (!ready) return false;
   resumeWantedLoops();
   return true;
@@ -453,7 +515,12 @@ function resumeWantedLoops(): void {
   const fire = fireLoopPlayer;
   if (fireWanted && fire) {
     try {
-      fire.seekTo(0).then(() => fire.play()).catch((err: unknown) => warnOnce('fire loop resume after recovery failed', err));
+      fire
+        .seekTo(0)
+        .then(() => fire.play())
+        .catch((err: unknown) =>
+          warnOnce('fire loop resume after recovery failed', err),
+        );
     } catch (err) {
       warnOnce('fire loop resume after recovery failed', err);
     }
@@ -477,7 +544,10 @@ function playSfxKey(key: SfxKey, isRetry: boolean): void {
     // finished sub-second clip no-ops the play() (already at the end), then
     // the late seek rewinds it while stopped — silent restarts (was the
     // "no SFX on device" bug). Rewind first, then play from 0.
-    player.seekTo(0).then(() => player.play()).catch((err: unknown) => recoverOr('seek/play failed', err));
+    player
+      .seekTo(0)
+      .then(() => player.play())
+      .catch((err: unknown) => recoverOr('seek/play failed', err));
   } catch (err) {
     recoverOr('playback failed', err);
   }
@@ -531,7 +601,9 @@ export function startFireAmbience(): void {
     warnOnce('fire loop start failed', err);
   };
   try {
-    p.seekTo(0).then(() => p.play()).catch((err: unknown) => recoverOr(err));
+    p.seekTo(0)
+      .then(() => p.play())
+      .catch((err: unknown) => recoverOr(err));
   } catch (err) {
     recoverOr(err);
   }
@@ -607,8 +679,9 @@ function verifyResume(): void {
   resumeVerifyTimer = setTimeout(() => {
     resumeVerifyTimer = null;
     if (!ready || audioIsSuspended()) return;
-    const stalled = (themeWanted && themePlayer?.playing === false)
-      || (fireWanted && fireLoopPlayer?.playing === false);
+    const stalled =
+      (themeWanted && themePlayer?.playing === false) ||
+      (fireWanted && fireLoopPlayer?.playing === false);
     if (stalled) tryRecoverMatchAudio();
   }, RESUME_VERIFY_MS);
 }

@@ -27,11 +27,25 @@
  */
 import { loadLaunchContent } from '../../content';
 import type { DifficultyMode } from '../../game';
-import { ORDINARY_POLICY, SMART_BREADTH_POLICY, type OpeningPolicy } from '../opening/policies';
-import { reconcileTrainingPoints, runOpening, type CreationRatings } from '../opening/runner';
-import { bootstrapProportion, mean, openerRailVerdict, percentile } from '../opening/stats';
+import {
+  ORDINARY_POLICY,
+  SMART_BREADTH_POLICY,
+  type OpeningPolicy,
+} from '../opening/policies';
+import {
+  reconcileTrainingPoints,
+  runOpening,
+  type CreationRatings,
+} from '../opening/runner';
+import {
+  bootstrapProportion,
+  mean,
+  openerRailVerdict,
+  percentile,
+} from '../opening/stats';
 
-const describeProbe = process.env.PREP_BUDGET_PROBE === '1' ? describe : describe.skip;
+const describeProbe =
+  process.env.PREP_BUDGET_PROBE === '1' ? describe : describe.skip;
 const content = loadLaunchContent();
 
 /**
@@ -44,8 +58,22 @@ const SEEDS = Array.from(
   { length: positiveIntegerEnv('PREP_BUDGET_SEEDS', 300) },
   (_, index) => 4_000_000 + (index + OFFSET) * 7919,
 );
-const ORDINARY_CREATION: CreationRatings = { pac: 50, sho: 65, pas: 50, def: 50, tec: 50, sta: 50 };
-const SMART_CREATION: CreationRatings = { pac: 55, sho: 65, pas: 50, def: 35, tec: 60, sta: 50 };
+const ORDINARY_CREATION: CreationRatings = {
+  pac: 50,
+  sho: 65,
+  pas: 50,
+  def: 50,
+  tec: 50,
+  sta: 50,
+};
+const SMART_CREATION: CreationRatings = {
+  pac: 55,
+  sho: 65,
+  pas: 50,
+  def: 35,
+  tec: 60,
+  sta: 50,
+};
 
 /** 30 is production. 0 still leaves the two weekly settlements intact. */
 const LAUNCH_GRANTS = integerListEnv('PREP_BUDGET_GRANTS', [30, 15, 0]);
@@ -57,8 +85,18 @@ const CELLS: readonly {
   difficulty: DifficultyMode;
   creation: CreationRatings;
 }[] = [
-  { label: 'Ordinary x Cozy', policy: ORDINARY_POLICY, difficulty: 'COZY', creation: ORDINARY_CREATION },
-  { label: 'Smart x Chairman', policy: SMART_BREADTH_POLICY, difficulty: 'CHAIRMAN', creation: SMART_CREATION },
+  {
+    label: 'Ordinary x Cozy',
+    policy: ORDINARY_POLICY,
+    difficulty: 'COZY',
+    creation: ORDINARY_CREATION,
+  },
+  {
+    label: 'Smart x Chairman',
+    policy: SMART_BREADTH_POLICY,
+    difficulty: 'CHAIRMAN',
+    creation: SMART_CREATION,
+  },
 ];
 
 describeProbe('opening preparation budget', () => {
@@ -75,7 +113,7 @@ describeProbe('opening preparation budget', () => {
     for (const cell of CELLS) {
       for (const launchTp of LAUNCH_GRANTS) {
         for (const buff of BUFFS) {
-          const runs = SEEDS.map(seed => {
+          const runs = SEEDS.map((seed) => {
             const run = runOpening({
               seed,
               difficulty: cell.difficulty,
@@ -88,23 +126,33 @@ describeProbe('opening preparation budget', () => {
             reconcileTrainingPoints(run, launchTp);
             return run;
           });
-          const wins = bootstrapProportion(runs.map(run => run.opener.outcome === 'W'));
-          const draws = bootstrapProportion(runs.map(run => run.opener.outcome === 'D'));
-          const losses = bootstrapProportion(runs.map(run => run.opener.outcome === 'L'));
-          const goalDifferences = runs.map(run => run.opener.goalsFor - run.opener.goalsAgainst);
+          const wins = bootstrapProportion(
+            runs.map((run) => run.opener.outcome === 'W'),
+          );
+          const draws = bootstrapProportion(
+            runs.map((run) => run.opener.outcome === 'D'),
+          );
+          const losses = bootstrapProportion(
+            runs.map((run) => run.opener.outcome === 'L'),
+          );
+          const goalDifferences = runs.map(
+            (run) => run.opener.goalsFor - run.opener.goalsAgainst,
+          );
 
           lines.push(
-            `${cell.label.padEnd(18)}`
-            + ` ${String(launchTp).padStart(8)}`
-            + ` ${String(buff).padStart(4)}`
-            + ` ${mean(runs.map(r => r.tapCount)).toFixed(1).padStart(6)}`
-            + ` ${pct(wins.rate)} ${pct(draws.rate)} ${pct(losses.rate)}`
-            + `  ${openerRailVerdict(wins, losses).padEnd(13)}`
-            + ` ${mean(runs.map(r => r.opener.goalsFor)).toFixed(2)}`
-            + `-${mean(runs.map(r => r.opener.goalsAgainst)).toFixed(2)}`
-            + ` ${String(percentile(goalDifferences, 0.05)).padStart(5)}`
-            + ` ${mean(runs.map(r => r.opener.userShots)).toFixed(1)}`
-            + `/${mean(runs.map(r => r.opener.opponentShots)).toFixed(1)}`,
+            `${cell.label.padEnd(18)}` +
+              ` ${String(launchTp).padStart(8)}` +
+              ` ${String(buff).padStart(4)}` +
+              ` ${mean(runs.map((r) => r.tapCount))
+                .toFixed(1)
+                .padStart(6)}` +
+              ` ${pct(wins.rate)} ${pct(draws.rate)} ${pct(losses.rate)}` +
+              `  ${openerRailVerdict(wins, losses).padEnd(13)}` +
+              ` ${mean(runs.map((r) => r.opener.goalsFor)).toFixed(2)}` +
+              `-${mean(runs.map((r) => r.opener.goalsAgainst)).toFixed(2)}` +
+              ` ${String(percentile(goalDifferences, 0.05)).padStart(5)}` +
+              ` ${mean(runs.map((r) => r.opener.userShots)).toFixed(1)}` +
+              `/${mean(runs.map((r) => r.opener.opponentShots)).toFixed(1)}`,
           );
         }
       }
@@ -144,8 +192,13 @@ function integerListEnv(name: string, fallback: readonly number[]): number[] {
   const raw = process.env[name];
   if (raw === undefined) return [...fallback];
   const parsed = raw.split(',').map((entry: string) => Number(entry.trim()));
-  if (parsed.length === 0 || parsed.some((value: number) => !Number.isSafeInteger(value) || value < 0)) {
-    throw new Error(`${name} must be a comma-separated list of non-negative integers`);
+  if (
+    parsed.length === 0 ||
+    parsed.some((value: number) => !Number.isSafeInteger(value) || value < 0)
+  ) {
+    throw new Error(
+      `${name} must be a comma-separated list of non-negative integers`,
+    );
   }
   return parsed;
 }

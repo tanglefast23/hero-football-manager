@@ -24,7 +24,10 @@ describe('the veteran unlock', () => {
     openedCareer();
     const career = useM1Store.getState().career!;
     useM1Store.setState({
-      career: { ...career, eventFlags: [...career.eventFlags, TRUE_ENDING_SEEN_FLAG] },
+      career: {
+        ...career,
+        eventFlags: [...career.eventFlags, TRUE_ENDING_SEEN_FLAG],
+      },
     });
 
     expect(careerClimbCompleted(useM1Store.getState())).toBe(true);

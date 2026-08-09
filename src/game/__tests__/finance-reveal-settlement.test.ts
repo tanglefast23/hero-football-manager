@@ -17,7 +17,8 @@ import type { FacilityGridState } from '../facilities';
 
 function completeFacilityProject(grid: FacilityGridState): FacilityGridState {
   let next = grid;
-  while (next.construction !== undefined) next = advanceFacilityConstruction(next).grid;
+  while (next.construction !== undefined)
+    next = advanceFacilityConstruction(next).grid;
   return next;
 }
 import { matchdayVarianceRoll } from '../finance-variance';
@@ -34,15 +35,18 @@ function settleScheduledWeek(state: GameState): GameState {
   let next = advanceWeek(state);
   while (next.phase === 'matchday') {
     const matchday = activeCareerMatchday(next)!;
-    next = completeMatchday(next, matchday.fixtures.map(fixture => {
-      const userHome = fixture.homeClubId === next.userClubId;
-      const userAway = fixture.awayClubId === next.userClubId;
-      return {
-        fixtureId: fixture.id,
-        homeGoals: userHome ? 2 : userAway ? 0 : 1,
-        awayGoals: userAway ? 2 : userHome ? 0 : 1,
-      };
-    }));
+    next = completeMatchday(
+      next,
+      matchday.fixtures.map((fixture) => {
+        const userHome = fixture.homeClubId === next.userClubId;
+        const userAway = fixture.awayClubId === next.userClubId;
+        return {
+          fixtureId: fixture.id,
+          homeGoals: userHome ? 2 : userAway ? 0 : 1,
+          awayGoals: userAway ? 2 : userHome ? 0 : 1,
+        };
+      }),
+    );
   }
   return next;
 }
@@ -62,16 +66,22 @@ function settleUntil(
   throw new Error('wanted week not found within a season');
 }
 
-const hasUserHomeLeagueFixture = (state: GameState): boolean => fixturesForCurrentWeek(state)
-  .some(fixture => fixture.homeClubId === state.userClubId);
+const hasUserHomeLeagueFixture = (state: GameState): boolean =>
+  fixturesForCurrentWeek(state).some(
+    (fixture) => fixture.homeClubId === state.userClubId,
+  );
 
-const hasUserAwayLeagueFixture = (state: GameState): boolean => fixturesForCurrentWeek(state)
-  .some(fixture => fixture.awayClubId === state.userClubId);
+const hasUserAwayLeagueFixture = (state: GameState): boolean =>
+  fixturesForCurrentWeek(state).some(
+    (fixture) => fixture.awayClubId === state.userClubId,
+  );
 
-const hasNoUserFixture = (state: GameState): boolean => !fixturesForCurrentWeek(state)
-  .some(fixture => (
-    fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId
-  ));
+const hasNoUserFixture = (state: GameState): boolean =>
+  !fixturesForCurrentWeek(state).some(
+    (fixture) =>
+      fixture.homeClubId === state.userClubId ||
+      fixture.awayClubId === state.userClubId,
+  );
 
 function latestLines(state: GameState): readonly LedgerLine[] {
   const ledger = state.ledgers[state.ledgers.length - 1];
@@ -80,21 +90,23 @@ function latestLines(state: GameState): readonly LedgerLine[] {
 }
 
 function leagueGateLine(state: GameState): LedgerLine | undefined {
-  return latestLines(state).find(line => line.label === 'League home gate');
+  return latestLines(state).find((line) => line.label === 'League home gate');
 }
 
 function cupGateLine(state: GameState): LedgerLine | undefined {
-  return latestLines(state).find(line => (
-    line.kind === 'tickets' && line.label !== 'League home gate'
-  ));
+  return latestLines(state).find(
+    (line) => line.kind === 'tickets' && line.label !== 'League home gate',
+  );
 }
 
 function merchLine(state: GameState): LedgerLine | undefined {
-  return latestLines(state).find(line => line.kind === 'merch');
+  return latestLines(state).find((line) => line.kind === 'merch');
 }
 
 function userClub(state: GameState) {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
   if (club === undefined) throw new Error('missing user club');
   return club;
 }
@@ -102,11 +114,21 @@ function userClub(state: GameState) {
 /** Two Lv1 stands (2x2 footprints) and three Lv1 shops, all operational. */
 function standsAndShopsGrid(): FacilityGridState {
   let grid = createFacilityGrid();
-  grid = completeFacilityProject(buildFacility(grid, 'stadium-stand', { x: 0, y: 0 }, 1_000_000).grid);
-  grid = completeFacilityProject(buildFacility(grid, 'stadium-stand', { x: 2, y: 0 }, 1_000_000).grid);
-  grid = completeFacilityProject(buildFacility(grid, 'fan-shop', { x: 4, y: 0 }, 1_000_000).grid);
-  grid = completeFacilityProject(buildFacility(grid, 'fan-shop', { x: 5, y: 0 }, 1_000_000).grid);
-  grid = completeFacilityProject(buildFacility(grid, 'fan-shop', { x: 6, y: 0 }, 1_000_000).grid);
+  grid = completeFacilityProject(
+    buildFacility(grid, 'stadium-stand', { x: 0, y: 0 }, 1_000_000).grid,
+  );
+  grid = completeFacilityProject(
+    buildFacility(grid, 'stadium-stand', { x: 2, y: 0 }, 1_000_000).grid,
+  );
+  grid = completeFacilityProject(
+    buildFacility(grid, 'fan-shop', { x: 4, y: 0 }, 1_000_000).grid,
+  );
+  grid = completeFacilityProject(
+    buildFacility(grid, 'fan-shop', { x: 5, y: 0 }, 1_000_000).grid,
+  );
+  grid = completeFacilityProject(
+    buildFacility(grid, 'fan-shop', { x: 6, y: 0 }, 1_000_000).grid,
+  );
   return grid;
 }
 
@@ -116,21 +138,28 @@ function withGrid(state: GameState, grid: FacilityGridState): GameState {
 
 function gateReconstructs(line: LedgerLine): void {
   const reveal = line.reveal;
-  if (reveal === undefined || reveal.source === 'merch') throw new Error('expected a gate reveal');
+  if (reveal === undefined || reveal.source === 'merch')
+    throw new Error('expected a gate reveal');
   expect(reveal.base).toBeGreaterThan(0);
   expect(line.amount).toBe(
-    reveal.base + Math.floor(reveal.base * (reveal.multiplierPercent - 100) / 100),
+    reveal.base +
+      Math.floor((reveal.base * (reveal.multiplierPercent - 100)) / 100),
   );
 }
 
 function merchReconstructs(line: LedgerLine): void {
   const reveal = line.reveal;
-  if (reveal === undefined || reveal.source !== 'merch') throw new Error('expected a merch reveal');
+  if (reveal === undefined || reveal.source !== 'merch')
+    throw new Error('expected a merch reveal');
   expect(reveal.base).toBeGreaterThan(0);
   expect(reveal.adjacencyAmount).toBe(
-    Math.floor(reveal.base * reveal.multiplierTimes * reveal.adjacencyPercent / 100),
+    Math.floor(
+      (reveal.base * reveal.multiplierTimes * reveal.adjacencyPercent) / 100,
+    ),
   );
-  expect(line.amount).toBe(reveal.base * reveal.multiplierTimes + reveal.adjacencyAmount);
+  expect(line.amount).toBe(
+    reveal.base * reveal.multiplierTimes + reveal.adjacencyAmount,
+  );
 }
 
 describe('settlement reveals', () => {
@@ -147,7 +176,12 @@ describe('settlement reveals', () => {
     const { pre, post } = settleUntil(state, hasUserHomeLeagueFixture);
     const line = leagueGateLine(post);
     expect(line?.reveal?.source).toBe('league-gate');
-    const roll = matchdayVarianceRoll(post.careerSeed, pre.season, pre.week, 'league-gate');
+    const roll = matchdayVarianceRoll(
+      post.careerSeed,
+      pre.season,
+      pre.week,
+      'league-gate',
+    );
     expect(line?.reveal?.variancePercent).toBe(roll.percent);
     expect(line?.reveal?.surge).toBe(roll.surge);
     if (line?.reveal?.source !== 'merch') {
@@ -162,7 +196,12 @@ describe('settlement reveals', () => {
     const { pre, post } = settleUntil(state, hasUserHomeLeagueFixture);
     const line = merchLine(post);
     expect(line?.reveal?.source).toBe('merch');
-    const roll = matchdayVarianceRoll(post.careerSeed, pre.season, pre.week, 'merch');
+    const roll = matchdayVarianceRoll(
+      post.careerSeed,
+      pre.season,
+      pre.week,
+      'merch',
+    );
     expect(line?.reveal?.variancePercent).toBe(roll.percent);
     if (line?.reveal?.source === 'merch') {
       expect(line.reveal.multiplierTimes).toBe(3); // three Lv1 shops
@@ -220,7 +259,12 @@ describe('settlement reveals', () => {
     expect(cupPost).toBeDefined();
     const cupLine = cupGateLine(cupPost!)!;
     expect(cupLine.reveal?.source).toBe('cup-gate');
-    const roll = matchdayVarianceRoll(cupPost!.careerSeed, cupPre!.season, cupPre!.week, 'cup-gate');
+    const roll = matchdayVarianceRoll(
+      cupPost!.careerSeed,
+      cupPre!.season,
+      cupPre!.week,
+      'cup-gate',
+    );
     expect(cupLine.reveal?.variancePercent).toBe(roll.percent);
     gateReconstructs(cupLine);
     // Merch rolled the same week from its own stream.
@@ -237,9 +281,9 @@ describe('settlement reveals', () => {
 
   test('a zero-fan home gate banks $0 with no reveal', () => {
     const base = fullCareer(801);
-    const clubs = base.clubs.map(club => (
-      club.id === base.userClubId ? { ...club, fans: 0 } : club
-    ));
+    const clubs = base.clubs.map((club) =>
+      club.id === base.userClubId ? { ...club, fans: 0 } : club,
+    );
     const { post } = settleUntil({ ...base, clubs }, hasUserHomeLeagueFixture);
     const line = leagueGateLine(post);
     expect(line?.amount).toBe(0);
@@ -259,25 +303,52 @@ describe('settlement reveals', () => {
     // Search the seed space for careers whose first home-match week rolls
     // percent === 0 — a real gate line on a real eligible week, matching the
     // variance-free projection exactly.
-    const found: { source: 'league-gate' | 'merch'; pre: GameState; post: GameState }[] = [];
+    const found: {
+      source: 'league-gate' | 'merch';
+      pre: GameState;
+      post: GameState;
+    }[] = [];
     for (let seed = 1; seed < 400 && found.length < 2; seed += 1) {
       const career = withGrid(fullCareer(seed), standsAndShopsGrid());
       const { pre, post } = settleUntil(career, hasUserHomeLeagueFixture);
-      const gateRoll = matchdayVarianceRoll(post.careerSeed, pre.season, pre.week, 'league-gate');
-      const merchRoll = matchdayVarianceRoll(post.careerSeed, pre.season, pre.week, 'merch');
-      if (gateRoll.percent === 0 && !found.some(entry => entry.source === 'league-gate')) {
+      const gateRoll = matchdayVarianceRoll(
+        post.careerSeed,
+        pre.season,
+        pre.week,
+        'league-gate',
+      );
+      const merchRoll = matchdayVarianceRoll(
+        post.careerSeed,
+        pre.season,
+        pre.week,
+        'merch',
+      );
+      if (
+        gateRoll.percent === 0 &&
+        !found.some((entry) => entry.source === 'league-gate')
+      ) {
         found.push({ source: 'league-gate', pre, post });
       }
-      if (merchRoll.percent === 0 && !found.some(entry => entry.source === 'merch')) {
+      if (
+        merchRoll.percent === 0 &&
+        !found.some((entry) => entry.source === 'merch')
+      ) {
         found.push({ source: 'merch', pre, post });
       }
     }
-    expect(found.map(entry => entry.source).sort()).toEqual(['league-gate', 'merch']);
+    expect(found.map((entry) => entry.source).sort()).toEqual([
+      'league-gate',
+      'merch',
+    ]);
     for (const { source, pre, post } of found) {
       if (source === 'league-gate') {
-        expect(leagueGateLine(post)?.amount).toBe(homeGateIncome(pre, userClub(pre), 'test'));
+        expect(leagueGateLine(post)?.amount).toBe(
+          homeGateIncome(pre, userClub(pre), 'test'),
+        );
       } else {
-        expect(merchLine(post)?.amount).toBe(weeklyMerchandiseIncome(pre, userClub(pre)));
+        expect(merchLine(post)?.amount).toBe(
+          weeklyMerchandiseIncome(pre, userClub(pre)),
+        );
       }
     }
   });
@@ -297,10 +368,17 @@ describe('settlement reveals', () => {
 
   test('an upgraded stand raises the multiplier through combined level', () => {
     let grid = createFacilityGrid();
-    const built = buildFacility(grid, 'stadium-stand', { x: 0, y: 0 }, 1_000_000);
+    const built = buildFacility(
+      grid,
+      'stadium-stand',
+      { x: 0, y: 0 },
+      1_000_000,
+    );
     grid = completeFacilityProject(built.grid);
     const standId = grid.buildings[grid.buildings.length - 1].id;
-    grid = completeFacilityProject(upgradeFacility(grid, standId, 1_000_000).grid);
+    grid = completeFacilityProject(
+      upgradeFacility(grid, standId, 1_000_000).grid,
+    );
     const state = withGrid(fullCareer(801), grid);
     const { post } = settleUntil(state, hasUserHomeLeagueFixture);
     const line = leagueGateLine(post);

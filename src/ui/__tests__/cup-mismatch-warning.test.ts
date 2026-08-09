@@ -10,8 +10,10 @@ describe('Bert Cup mismatch warning wiring', () => {
       app.indexOf('const facilityComboReveal ='),
     );
 
-    expect(declaration).toContain("store.screen === 'matchday'");
-    expect(declaration).toContain('pendingCupMismatchWarning(store.career)');
+    expect(declaration).toContainSource("store.screen === 'matchday'");
+    expect(declaration).toContainSource(
+      'pendingCupMismatchWarning(store.career)',
+    );
   });
 
   it('is flavour in both assistant modes, never a Teacher-only lesson', () => {
@@ -20,17 +22,23 @@ describe('Bert Cup mismatch warning wiring', () => {
       app.indexOf('const facilityComboReveal ='),
     );
 
-    expect(declaration).not.toContain('careerTeaches');
-    expect(app).toMatch(/guideOverlayVisible = \([\s\S]{0,300}\|\| cupMismatchWarning !== undefined/);
+    expect(declaration).not.toContainSource('careerTeaches');
+    expect(app).toMatchSource(
+      /guideOverlayVisible = \([\s\S]{0,300}\|\| cupMismatchWarning !== undefined/,
+    );
   });
 
   it('blocks the formation screen until its once-per-fixture flag is saved', () => {
     const overlay = app.slice(
       app.indexOf('{guideOverlayVisible && cupMismatchWarning !== undefined'),
-      app.indexOf('guideOverlayVisible && cupGiantKillingCelebration !== undefined'),
+      app.indexOf(
+        'guideOverlayVisible && cupGiantKillingCelebration !== undefined',
+      ),
     );
 
-    expect(overlay).toContain('customMessage={cupMismatchWarning}');
-    expect(overlay).toContain('onDone={store.completeCupMismatchWarning}');
+    expect(overlay).toContainSource('customMessage={cupMismatchWarning}');
+    expect(overlay).toContainSource(
+      'onDone={store.completeCupMismatchWarning}',
+    );
   });
 });

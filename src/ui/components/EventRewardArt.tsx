@@ -3,15 +3,14 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 import { usePixelStyles, type LocaleFaces } from '../../i18n';
 import { Canvas, Rect } from '@shopify/react-native-skia';
 import type { StoryEventRewardViewModel } from '../models';
-import {
-  EVENT_SPRITE_CELL,
-  eventSpriteRuns,
-} from '../event-pixel-art';
+import { EVENT_SPRITE_CELL, eventSpriteRuns } from '../event-pixel-art';
 
 const REWARD_SCALE = 5;
 const REWARD_SIZE = EVENT_SPRITE_CELL * REWARD_SCALE;
 
-const SPRITE_BY_KIND: Readonly<Record<StoryEventRewardViewModel['kind'], string>> = {
+const SPRITE_BY_KIND: Readonly<
+  Record<StoryEventRewardViewModel['kind'], string>
+> = {
   money: 'money-bag',
   morale: 'party-hat',
   fans: 'supporters',
@@ -85,7 +84,7 @@ export function EventRewardArt({
     >
       <View style={styles.artFrame}>
         <Canvas style={{ width: REWARD_SIZE, height: REWARD_SIZE }}>
-          {runs.map(run => (
+          {runs.map((run) => (
             <Rect
               key={run.id}
               x={run.x * REWARD_SCALE}
@@ -97,10 +96,12 @@ export function EventRewardArt({
           ))}
         </Canvas>
       </View>
-      <Text style={[
-        styles.label,
-        reward.positive ? styles.labelPositive : styles.labelNegative,
-      ]}>
+      <Text
+        style={[
+          styles.label,
+          reward.positive ? styles.labelPositive : styles.labelNegative,
+        ]}
+      >
         {reward.label}
       </Text>
     </Animated.View>
@@ -116,7 +117,7 @@ export function EventPixelConfetti({
 }) {
   if (reduceMotion) return null;
   const pieces = Array.from({ length: 12 }, (_, index) => ({
-    left: `${8 + (index * 17) % 84}%` as `${number}%`,
+    left: `${8 + ((index * 17) % 84)}%` as `${number}%`,
     distance: 70 + (index % 4) * 22,
     color: ['#edb54a', '#f7d894', '#5a8fd6', '#d94f52'][index % 4],
     delay: (index % 3) * 0.08,
@@ -161,42 +162,43 @@ export function EventPixelConfetti({
   );
 }
 
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  card: {
-    minWidth: 132,
-    flexGrow: 1,
-    flexBasis: 132,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderBottomWidth: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-  },
-  cardPositive: {
-    borderColor: '#c8862a',
-    backgroundColor: '#f7d894',
-  },
-  cardNegative: {
-    borderColor: '#a83440',
-    backgroundColor: '#f2938c',
-  },
-  artFrame: {
-    width: REWARD_SIZE,
-    height: REWARD_SIZE,
-    overflow: 'hidden',
-  },
-  label: {
-    marginTop: 7,
-    textAlign: 'center',
-    fontFamily: faces.display,
-    fontSize: 14,
-    lineHeight: 19,
-    textTransform: 'uppercase',
-  },
-  labelPositive: {
-    color: '#241f2e',
-  },
-  labelNegative: {
-    color: '#a83440',
-  },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    card: {
+      minWidth: 132,
+      flexGrow: 1,
+      flexBasis: 132,
+      alignItems: 'center',
+      borderWidth: 2,
+      borderBottomWidth: 5,
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+    },
+    cardPositive: {
+      borderColor: '#c8862a',
+      backgroundColor: '#f7d894',
+    },
+    cardNegative: {
+      borderColor: '#a83440',
+      backgroundColor: '#f2938c',
+    },
+    artFrame: {
+      width: REWARD_SIZE,
+      height: REWARD_SIZE,
+      overflow: 'hidden',
+    },
+    label: {
+      marginTop: 7,
+      textAlign: 'center',
+      fontFamily: faces.display,
+      fontSize: 14,
+      lineHeight: 19,
+      textTransform: 'uppercase',
+    },
+    labelPositive: {
+      color: '#241f2e',
+    },
+    labelNegative: {
+      color: '#a83440',
+    },
+  });

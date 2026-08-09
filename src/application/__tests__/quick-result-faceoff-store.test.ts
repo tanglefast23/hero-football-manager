@@ -44,7 +44,10 @@ describe('completeFaceOff', () => {
   });
 
   it('honours an awakening held behind the scene', () => {
-    useM1Store.setState({ screen: 'faceoff', pendingPostFaceOffScreen: 'awakening' });
+    useM1Store.setState({
+      screen: 'faceoff',
+      pendingPostFaceOffScreen: 'awakening',
+    });
     useM1Store.getState().completeFaceOff();
     expect(useM1Store.getState().screen).toBe('awakening');
   });
@@ -54,14 +57,20 @@ describe('completeFaceOff', () => {
    * advances would skip whatever screen the first one opened.
    */
   it('is harmless when called twice', () => {
-    useM1Store.setState({ screen: 'faceoff', pendingPostFaceOffScreen: 'postmatch' });
+    useM1Store.setState({
+      screen: 'faceoff',
+      pendingPostFaceOffScreen: 'postmatch',
+    });
     useM1Store.getState().completeFaceOff();
     useM1Store.getState().completeFaceOff();
     expect(useM1Store.getState().screen).toBe('postmatch');
   });
 
   it('mutates nothing at all when the face-off is not the screen', () => {
-    useM1Store.setState({ screen: 'management', pendingPostFaceOffScreen: 'postmatch' });
+    useM1Store.setState({
+      screen: 'management',
+      pendingPostFaceOffScreen: 'postmatch',
+    });
     useM1Store.getState().completeFaceOff();
     expect(useM1Store.getState().screen).toBe('management');
     // The held destination survives, because nothing consumed it.
@@ -82,35 +91,52 @@ describe('quickResult raises the face-off', () => {
    * store.test.ts already exercises end to end. What is worth pinning here is
    * the shape of the call, because both mistakes it can make are silent.
    */
-  const source = () => readFileSync(join(process.cwd(), 'src/application/store.ts'), 'utf8');
+  const source = () =>
+    readFileSync(join(process.cwd(), 'src/application/store.ts'), 'utf8');
 
   it('builds the scene from the pre-settlement capture, never by re-entering currentMatchday', () => {
-    const quickResult = source().split('  quickResult(')[1].split('\n  watchMatch(')[0];
+    const quickResult = source()
+      .split('  quickResult(')[1]
+      .split('\n  watchMatch(')[0];
 
-    expect(quickResult).toContain('quickResultFaceOffViewModel({');
+    expect(quickResult).toContainSource('quickResultFaceOffViewModel({');
     // The capture destructured at the top of the call — the only teams that
     // belong to the fixture just played.
-    expect(quickResult).toContain('const { kind, fixture, fixtures, teams } = currentMatchday(before);');
+    expect(quickResult).toContainSource(
+      'const { kind, fixture, fixtures, teams } = currentMatchday(before);',
+    );
     // Exactly one currentMatchday call in the whole function: the one above.
     expect(quickResult.match(/currentMatchday\(/g)).toHaveLength(1);
     // And it is called on the pre-settlement state, never on the settled one.
-    expect(quickResult).not.toContain('currentMatchday(next)');
-    expect(quickResult).not.toContain('currentMatchday(after)');
-    expect(quickResult).not.toContain('currentMatchday(completed)');
+    expect(quickResult).not.toContainSource('currentMatchday(next)');
+    expect(quickResult).not.toContainSource('currentMatchday(after)');
+    expect(quickResult).not.toContainSource('currentMatchday(completed)');
   });
 
   it('reads the verdict, not the scoreline, so a penalty shoot-out is never a draw', () => {
-    const quickResult = source().split('  quickResult(')[1].split('\n  watchMatch(')[0];
-    expect(quickResult).toContain('outcomeLabel: postMatch.result.outcomeLabel');
+    const quickResult = source()
+      .split('  quickResult(')[1]
+      .split('\n  watchMatch(')[0];
+    expect(quickResult).toContainSource(
+      'outcomeLabel: postMatch.result.outcomeLabel',
+    );
   });
 
   it('holds the screen the result would have opened, and skips the scene if it cannot be built', () => {
-    const quickResult = source().split('  quickResult(')[1].split('\n  watchMatch(')[0];
-    expect(quickResult).toContain("screen: faceOff === null ? destination : 'faceoff'");
-    expect(quickResult).toContain('pendingPostFaceOffScreen: faceOff === null ? null : destination');
+    const quickResult = source()
+      .split('  quickResult(')[1]
+      .split('\n  watchMatch(')[0];
+    expect(quickResult).toContainSource(
+      "screen: faceOff === null ? destination : 'faceoff'",
+    );
+    expect(quickResult).toContainSource(
+      'pendingPostFaceOffScreen: faceOff === null ? null : destination',
+    );
     // The awakening still comes before the ledger; the face-off only ever sits
     // ahead of that chain, never inside it.
-    expect(quickResult).toContain("const destination = awakening.awakened ? 'awakening' as const : 'postmatch' as const;");
+    expect(quickResult).toContainSource(
+      "const destination = awakening.awakened ? ('awakening' as const) : ('postmatch' as const);",
+    );
   });
 });
 
@@ -127,11 +153,14 @@ describe('ephemeral screen state is never inherited across careers', () => {
    * object literal.
    */
   it('pairs every postMatch reset with the face-off and match-day banner', () => {
-    const source = readFileSync(join(process.cwd(), 'src/application/store.ts'), 'utf8');
+    const source = readFileSync(
+      join(process.cwd(), 'src/application/store.ts'),
+      'utf8',
+    );
     const lines = source.split('\n');
     const resets = lines
       .map((line, index) => ({ line, index }))
-      .filter(entry => /^\s+postMatch: null,\s*$/.test(entry.line));
+      .filter((entry) => /^\s+postMatch: null,\s*$/.test(entry.line));
 
     expect(resets.length).toBeGreaterThan(0);
 
@@ -141,9 +170,15 @@ describe('ephemeral screen state is never inherited across careers', () => {
       // without running into the next one.
       const where = `store.ts:${reset.index + 1}`;
       const block = lines.slice(reset.index, reset.index + 24).join('\n');
-      expect(`${where} ${block.includes('faceOff: null,')}`).toBe(`${where} true`);
-      expect(`${where} ${block.includes('pendingPostFaceOffScreen: null,')}`).toBe(`${where} true`);
-      expect(`${where} ${block.includes('matchDayBanner: null,')}`).toBe(`${where} true`);
+      expect(`${where} ${block.includes('faceOff: null,')}`).toBe(
+        `${where} true`,
+      );
+      expect(
+        `${where} ${block.includes('pendingPostFaceOffScreen: null,')}`,
+      ).toBe(`${where} true`);
+      expect(`${where} ${block.includes('matchDayBanner: null,')}`).toBe(
+        `${where} true`,
+      );
     }
   });
 });

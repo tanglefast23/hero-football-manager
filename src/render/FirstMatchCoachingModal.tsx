@@ -67,25 +67,37 @@ export function FirstMatchCoachingModal({
                   percent: player.energyPercent,
                 })}
               >
-                <Text style={styles.playerName} numberOfLines={1}>{player.name}</Text>
+                <Text style={styles.playerName} numberOfLines={1}>
+                  {player.name}
+                </Text>
                 <View style={styles.energyRow}>
                   <View style={styles.energyTrack}>
                     <View
                       style={[
                         styles.energyFill,
-                        energyBand(player.energyPercent) === 'amber' ? styles.energyFillMedium : null,
-                        energyBand(player.energyPercent) === 'red' ? styles.energyFillLow : null,
-                        { width: `${Math.max(0, Math.min(100, player.energyPercent))}%` },
+                        energyBand(player.energyPercent) === 'amber'
+                          ? styles.energyFillMedium
+                          : null,
+                        energyBand(player.energyPercent) === 'red'
+                          ? styles.energyFillLow
+                          : null,
+                        {
+                          width: `${Math.max(0, Math.min(100, player.energyPercent))}%`,
+                        },
                       ]}
                     />
                   </View>
-                  <Text style={styles.energyValue}>{player.energyPercent}%</Text>
+                  <Text style={styles.energyValue}>
+                    {player.energyPercent}%
+                  </Text>
                 </View>
               </View>
             </View>
           )}
           <Text style={styles.body}>{body}</Text>
-          {detail === undefined ? null : <Text style={styles.detail}>{detail}</Text>}
+          {detail === undefined ? null : (
+            <Text style={styles.detail}>{detail}</Text>
+          )}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={buttonLabel}
@@ -105,109 +117,110 @@ export function FirstMatchCoachingModal({
   );
 }
 
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: '#16121fcc',
-    paddingHorizontal: 24,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 560,
-    alignSelf: 'center',
-    borderWidth: 3,
-    borderBottomWidth: 7,
-    borderColor: '#241f2e',
-    backgroundColor: '#f4f1ea',
-    padding: 20,
-  },
-  title: {
-    color: '#241f2e',
-    fontSize: 24,
-    lineHeight: 29,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-  rule: {
-    height: 3,
-    marginVertical: 14,
-    backgroundColor: '#c9c5d0',
-  },
-  playerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
-  },
-  portraitFrame: {
-    borderWidth: 2,
-    borderColor: '#241f2e',
-    backgroundColor: '#c8ddf0',
-  },
-  playerFacts: { flex: 1 },
-  playerName: {
-    color: '#241f2e',
-    fontSize: 18,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-  energyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
-  energyTrack: {
-    flex: 1,
-    height: 12,
-    borderWidth: 2,
-    borderColor: '#241f2e',
-    backgroundColor: '#d9d3e0',
-  },
-  energyFill: {
-    height: '100%',
-    backgroundColor: ENERGY_FILL_COLORS.green,
-  },
-  energyFillMedium: { backgroundColor: ENERGY_FILL_COLORS.amber },
-  energyFillLow: { backgroundColor: ENERGY_FILL_COLORS.red },
-  energyValue: {
-    // Never pair fontFamily with fontWeight: synthetic bold smears the bitmap
-    // font. Bold weight comes from the authored 700 face instead.
-    fontFamily: faces.display,
-    color: '#241f2e',
-    fontSize: 14,
-  },
-  body: {
-    color: '#241f2e',
-    fontSize: 18,
-    lineHeight: 25,
-  },
-  detail: {
-    marginTop: 10,
-    color: '#6b6675',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  button: {
-    minHeight: 50,
-    marginTop: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderBottomWidth: 5,
-    borderColor: '#241f2e',
-    backgroundColor: '#5a8fd6',
-  },
-  buttonPressed: {
-    transform: [{ translateY: 2 }],
-    borderBottomWidth: 3,
-  },
-  buttonText: {
-    fontFamily: faces.display,
-    color: '#f4f1ea',
-    fontSize: 16,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      justifyContent: 'center',
+      backgroundColor: '#16121fcc',
+      paddingHorizontal: 24,
+    },
+    card: {
+      width: '100%',
+      maxWidth: 560,
+      alignSelf: 'center',
+      borderWidth: 3,
+      borderBottomWidth: 7,
+      borderColor: '#241f2e',
+      backgroundColor: '#f4f1ea',
+      padding: 20,
+    },
+    title: {
+      color: '#241f2e',
+      fontSize: 24,
+      lineHeight: 29,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+    },
+    rule: {
+      height: 3,
+      marginVertical: 14,
+      backgroundColor: '#c9c5d0',
+    },
+    playerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 14,
+    },
+    portraitFrame: {
+      borderWidth: 2,
+      borderColor: '#241f2e',
+      backgroundColor: '#c8ddf0',
+    },
+    playerFacts: { flex: 1 },
+    playerName: {
+      color: '#241f2e',
+      fontSize: 18,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+    },
+    energyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 8,
+    },
+    energyTrack: {
+      flex: 1,
+      height: 12,
+      borderWidth: 2,
+      borderColor: '#241f2e',
+      backgroundColor: '#d9d3e0',
+    },
+    energyFill: {
+      height: '100%',
+      backgroundColor: ENERGY_FILL_COLORS.green,
+    },
+    energyFillMedium: { backgroundColor: ENERGY_FILL_COLORS.amber },
+    energyFillLow: { backgroundColor: ENERGY_FILL_COLORS.red },
+    energyValue: {
+      // Never pair fontFamily with fontWeight: synthetic bold smears the bitmap
+      // font. Bold weight comes from the authored 700 face instead.
+      fontFamily: faces.display,
+      color: '#241f2e',
+      fontSize: 14,
+    },
+    body: {
+      color: '#241f2e',
+      fontSize: 18,
+      lineHeight: 25,
+    },
+    detail: {
+      marginTop: 10,
+      color: '#6b6675',
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    button: {
+      minHeight: 50,
+      marginTop: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderBottomWidth: 5,
+      borderColor: '#241f2e',
+      backgroundColor: '#5a8fd6',
+    },
+    buttonPressed: {
+      transform: [{ translateY: 2 }],
+      borderBottomWidth: 3,
+    },
+    buttonText: {
+      fontFamily: faces.display,
+      color: '#f4f1ea',
+      fontSize: 16,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
+  });

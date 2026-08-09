@@ -22,7 +22,9 @@ describe('initialLoyalty', () => {
   it('is stable for the same seed and player, and differs across players', () => {
     expect(initialLoyalty(999, 'rojas')).toBe(initialLoyalty(999, 'rojas'));
     const spread = new Set(
-      Array.from({ length: 60 }, (_, index) => initialLoyalty(999, `p${index}`)),
+      Array.from({ length: 60 }, (_, index) =>
+        initialLoyalty(999, `p${index}`),
+      ),
     );
     expect(spread.size).toBeGreaterThan(8);
   });
@@ -42,7 +44,9 @@ describe('playerLoyalty', () => {
   });
 
   it('derives a value when the field is absent', () => {
-    expect(playerLoyalty({ id: 'rojas' }, 999)).toBe(initialLoyalty(999, 'rojas'));
+    expect(playerLoyalty({ id: 'rojas' }, 999)).toBe(
+      initialLoyalty(999, 'rojas'),
+    );
   });
 });
 

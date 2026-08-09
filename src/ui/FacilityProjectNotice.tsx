@@ -38,26 +38,42 @@ export function FacilityProjectNotice({
       >
         {/* Nothing to decide here, so an outside tap closes it. Sibling of the
             panel so taps on its controls never bubble into the close target. */}
-        <Pressable accessible={false} className="absolute inset-0" onPress={onClose} />
-        <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
+        <Pressable
+          accessible={false}
+          className="absolute inset-0"
+          onPress={onClose}
+        />
+        <View
+          accessibilityViewIsModal
+          className="w-full max-w-[560px] self-center"
+        >
           <PaperPanel
             kicker={t('facilityProjectNotice.worksOrderApproved')}
-            title={project.kind === 'BUILD'
-              ? t('facilityProjectNotice.buildTitle')
-              : t('facilityProjectNotice.upgradeTitle')}
-            stamp={t('facilityProjectNotice.stampWeeks', { weeks: project.weeks })}
+            title={
+              project.kind === 'BUILD'
+                ? t('facilityProjectNotice.buildTitle')
+                : t('facilityProjectNotice.upgradeTitle')
+            }
+            stamp={t('facilityProjectNotice.stampWeeks', {
+              weeks: project.weeks,
+            })}
           >
             <View className="items-center border-y-2 border-ink bg-gold-light py-4">
               <View className="border-2 border-b-4 border-ink bg-white p-3">
                 <ManagementSprite
                   spriteKey="facility:worksite"
                   width={128}
-                  accessibilityLabel={t('facilityProjectNotice.a11y.constructionSite', {
-                    name: project.name,
-                  })}
+                  accessibilityLabel={t(
+                    'facilityProjectNotice.a11y.constructionSite',
+                    {
+                      name: project.name,
+                    },
+                  )}
                 />
               </View>
-              <Text className="mt-3 font-pixel text-lg uppercase text-ink">{project.name}</Text>
+              <Text className="mt-3 font-pixel text-lg uppercase text-ink">
+                {project.name}
+              </Text>
               <View className="mt-2">
                 <StatusChip
                   label={t('facilityProjectNotice.levelAndDuration', {
@@ -72,18 +88,22 @@ export function FacilityProjectNotice({
               </View>
               <View className="mx-3 mt-4 self-stretch border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-3">
                 <Text className="text-center font-pixel text-xs uppercase tracking-widest text-blue-dark">
-                  {t('facilityProjectNotice.whenComplete')}</Text>
+                  {t('facilityProjectNotice.whenComplete')}
+                </Text>
                 <Text className="mt-2 text-center font-pixel text-base uppercase leading-5 text-ink">
                   {project.benefitLabel}
                 </Text>
               </View>
             </View>
             <Text className="mt-4 text-center text-base leading-5 text-ink/65">
-              {t('facilityProjectNotice.oneClubWorksCrew')}</Text>
+              {t('facilityProjectNotice.oneClubWorksCrew')}
+            </Text>
             <View className="mt-4">
               <ActionButton
                 label={`${t('facilityProjectNotice.letThemBuild')}  ▸`}
-                accessibilityLabel={t('facilityProjectNotice.a11y.letThemBuildCloseConfirmation')}
+                accessibilityLabel={t(
+                  'facilityProjectNotice.a11y.letThemBuildCloseConfirmation',
+                )}
                 onPress={onClose}
               />
             </View>

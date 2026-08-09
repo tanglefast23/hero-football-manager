@@ -49,7 +49,10 @@ export function powerCutInPresentation(
   return { name: effect.name, glyph: GLYPHS[power], color: effect.primary };
 }
 
-export function shouldShowFullPowerCutIn(mode: 'full' | 'banner', reduceMotion: boolean): boolean {
+export function shouldShowFullPowerCutIn(
+  mode: 'full' | 'banner',
+  reduceMotion: boolean,
+): boolean {
   // Full-pitch comic panels failed live playtesting: they hid the match and
   // the pause/resume transition made the action harder to follow. "Full" now
   // means the complete compact player/power card; "banner" remains the
@@ -67,7 +70,8 @@ export function powerOverlayPath(
   firingTeam: 0 | 1,
   controlledTeam: 0 | 1,
 ): PowerOverlayPath {
-  return shouldShowFullPowerCutIn(mode, reduceMotion) && firingTeam === controlledTeam
+  return shouldShowFullPowerCutIn(mode, reduceMotion) &&
+    firingTeam === controlledTeam
     ? 'tile'
     : 'banner';
 }
@@ -85,7 +89,8 @@ export interface PowerCutInGroupPolicy {
 export function powerCutInGroupPolicy(
   entries: readonly { skippable: boolean }[],
 ): PowerCutInGroupPolicy {
-  const skippable = entries.length > 0 && entries.every(entry => entry.skippable);
+  const skippable =
+    entries.length > 0 && entries.every((entry) => entry.skippable);
   return { shouldPause: false, skippable };
 }
 
@@ -98,7 +103,10 @@ export function powerCutInGroupPolicy(
  * Gravity Well both freeze that way — and its cut-in would hold an outro that
  * can never start. The freeze ends it instead.
  */
-export function powerCutInOutroDue(powerStillActive: boolean, clipFrozen: boolean): boolean {
+export function powerCutInOutroDue(
+  powerStillActive: boolean,
+  clipFrozen: boolean,
+): boolean {
   return clipFrozen || !powerStillActive;
 }
 
@@ -114,7 +122,7 @@ export function powerCutInAccessibilityLabel(
   t: CopyFn = englishCopy(),
 ): string {
   const powers = entries
-    .map(entry => {
+    .map((entry) => {
       const effect = powerEffectDescriptor(entry.power, t);
       return `${effect.name}, ${entry.playerName}. ${effect.accessibilityLabel}`;
     })
@@ -169,7 +177,12 @@ export interface PowerJuice {
   punchIn: boolean;
 }
 
-const NO_JUICE: PowerJuice = { shake: false, flash: false, speedLines: false, punchIn: false };
+const NO_JUICE: PowerJuice = {
+  shake: false,
+  flash: false,
+  speedLines: false,
+  punchIn: false,
+};
 
 /**
  * Per-power flavour. Every power shares the slammed-in name card and hero body
@@ -177,10 +190,15 @@ const NO_JUICE: PowerJuice = { shake: false, flash: false, speedLines: false, pu
  */
 export function powerJuice(power: PowerId): PowerJuice {
   if (power === 'SUPER_STRENGTH') return { ...NO_JUICE, shake: true };
-  if (power === 'SUPER_SPEED' || power === 'BLINK_RUN' || power === 'PHASE_RUN') {
+  if (
+    power === 'SUPER_SPEED' ||
+    power === 'BLINK_RUN' ||
+    power === 'PHASE_RUN'
+  ) {
     return { ...NO_JUICE, flash: true, speedLines: true };
   }
-  if (power === 'ELASTIC_KEEPER' || power === 'GIANT_GK') return { ...NO_JUICE, punchIn: true };
+  if (power === 'ELASTIC_KEEPER' || power === 'GIANT_GK')
+    return { ...NO_JUICE, punchIn: true };
   return NO_JUICE;
 }
 
@@ -197,6 +215,9 @@ export type PowerJuiceHeroTint = 'none' | 'white' | 'gold';
  * then released back to whatever the player's status already says.
  */
 export function powerJuiceHeroTint(elapsedMs: number): PowerJuiceHeroTint {
-  if (elapsedMs < 0 || elapsedMs >= POWER_JUICE_HERO_FLASH_END_MS) return 'none';
-  return Math.floor(elapsedMs / POWER_JUICE_HERO_FLASH_MS) % 2 === 0 ? 'white' : 'gold';
+  if (elapsedMs < 0 || elapsedMs >= POWER_JUICE_HERO_FLASH_END_MS)
+    return 'none';
+  return Math.floor(elapsedMs / POWER_JUICE_HERO_FLASH_MS) % 2 === 0
+    ? 'white'
+    : 'gold';
 }

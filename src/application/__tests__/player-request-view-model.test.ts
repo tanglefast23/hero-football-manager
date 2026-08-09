@@ -27,8 +27,14 @@ function atStartWeek(state: GameState, week = 5): GameState {
   };
 }
 
-function withPending(state: GameState, requestId: string, costAmount?: number): GameState {
-  const asker = state.players.find(player => player.clubId === state.userClubId)!;
+function withPending(
+  state: GameState,
+  requestId: string,
+  costAmount?: number,
+): GameState {
+  const asker = state.players.find(
+    (player) => player.clubId === state.userClubId,
+  )!;
   return {
     ...state,
     playerRequests: {
@@ -95,7 +101,9 @@ describe('playerRequestViewModel', () => {
   });
 
   it('prints a money cost from the snapshot the request was opened with', () => {
-    const model = playerRequestViewModel(withPending(atStartWeek(career()), 'gold-boots', 4200));
+    const model = playerRequestViewModel(
+      withPending(atStartWeek(career()), 'gold-boots', 4200),
+    );
 
     expect(model.pending!.grantLabel).toBe('-4,200');
   });
@@ -104,29 +112,40 @@ describe('playerRequestViewModel', () => {
     const state = withPending(atStartWeek(career()), 'the-car', 500_000);
     const broke: GameState = {
       ...state,
-      clubs: state.clubs.map(club => (club.id === state.userClubId
-        ? { ...club, cash: 100 }
-        : club)),
+      clubs: state.clubs.map((club) =>
+        club.id === state.userClubId ? { ...club, cash: 100 } : club,
+      ),
     };
 
     expect(playerRequestViewModel(broke).pending!.canAfford).toBe(false);
   });
 
   it('counts the answer window down as the weeks pass', () => {
-    const state = { ...withPending(atStartWeek(career()), 'gold-boots', 4200), week: 6 };
+    const state = {
+      ...withPending(atStartWeek(career()), 'gold-boots', 4200),
+      week: 6,
+    };
 
     expect(playerRequestViewModel(state).pending!.weeksToAnswer).toBe(1);
   });
 
   it('lists what the manager decided, newest first', () => {
     const base = atStartWeek(career());
-    const asker = base.players.find(player => player.clubId === base.userClubId)!;
+    const asker = base.players.find(
+      (player) => player.clubId === base.userClubId,
+    )!;
     const state: GameState = {
       ...base,
       playerRequests: {
         ...DEFAULT_PLAYER_REQUEST_STATE,
         history: [
-          { requestId: 'the-car', playerId: asker.id, season: 2, week: 9, resolution: 'REFUSED' },
+          {
+            requestId: 'the-car',
+            playerId: asker.id,
+            season: 2,
+            week: 9,
+            resolution: 'REFUSED',
+          },
           {
             requestId: 'gold-boots',
             playerId: asker.id,
@@ -143,6 +162,6 @@ describe('playerRequestViewModel', () => {
     expect(model.history[0].label).toBe('The car · S2 W9');
     expect(model.history[0].resolution).toBe('REFUSED');
     expect(model.history[1].label).toBe('Custom gold boots · S2 W5');
-    expect(new Set(model.history.map(entry => entry.key)).size).toBe(2);
+    expect(new Set(model.history.map((entry) => entry.key)).size).toBe(2);
   });
 });

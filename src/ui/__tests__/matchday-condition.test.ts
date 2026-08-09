@@ -25,21 +25,40 @@ function player(id: string, condition: number): LineupPlayerViewModel {
 describe('matchday condition guidance', () => {
   it('uses the agreed player-facing condition bands at their exact boundaries', () => {
     expect(matchdayConditionStatus(81)).toBeNull();
-    expect(matchdayConditionStatus(80)).toEqual({ kind: 'below-peak', label: 'Below peak' });
-    expect(matchdayConditionStatus(50)).toEqual({ kind: 'below-peak', label: 'Below peak' });
-    expect(matchdayConditionStatus(49)).toEqual({ kind: 'fatigued', label: 'Fatigued' });
-    expect(matchdayConditionStatus(30)).toEqual({ kind: 'fatigued', label: 'Fatigued' });
-    expect(matchdayConditionStatus(29)).toEqual({ kind: 'exhausted', label: 'Exhausted' });
+    expect(matchdayConditionStatus(80)).toEqual({
+      kind: 'below-peak',
+      label: 'Below peak',
+    });
+    expect(matchdayConditionStatus(50)).toEqual({
+      kind: 'below-peak',
+      label: 'Below peak',
+    });
+    expect(matchdayConditionStatus(49)).toEqual({
+      kind: 'fatigued',
+      label: 'Fatigued',
+    });
+    expect(matchdayConditionStatus(30)).toEqual({
+      kind: 'fatigued',
+      label: 'Fatigued',
+    });
+    expect(matchdayConditionStatus(29)).toEqual({
+      kind: 'exhausted',
+      label: 'Exhausted',
+    });
   });
 
   it('warns the first time the Below Peak band appears and names the lowest-condition starter', () => {
     expect(matchdayConditionWarningPlayer([player('fresh', 81)])).toBeNull();
-    expect(matchdayConditionWarningPlayer([player('jojo', 80)])?.id).toBe('jojo');
-    expect(matchdayConditionWarningPlayer([
-      player('jojo', 72),
-      player('tired-teammate', 42),
-      player('fresh-teammate', 100),
-    ])?.id).toBe('tired-teammate');
+    expect(matchdayConditionWarningPlayer([player('jojo', 80)])?.id).toBe(
+      'jojo',
+    );
+    expect(
+      matchdayConditionWarningPlayer([
+        player('jojo', 72),
+        player('tired-teammate', 42),
+        player('fresh-teammate', 100),
+      ])?.id,
+    ).toBe('tired-teammate');
   });
 
   it('uses the approved Bert copy with the affected player name', () => {
@@ -50,11 +69,18 @@ describe('matchday condition guidance', () => {
 
   it('wires persistent one-time guidance and visible labels into matchday', () => {
     const app = readFileSync(join(ROOT, 'App.tsx'), 'utf8');
-    const screen = readFileSync(join(ROOT, 'src/ui/screens/FixtureMatchDayScreen.tsx'), 'utf8');
+    const screen = readFileSync(
+      join(ROOT, 'src/ui/screens/FixtureMatchDayScreen.tsx'),
+      'utf8',
+    );
 
-    expect(app).toContain("'match-condition-warning-seen'");
-    expect(app).toContain('matchdayConditionWarningPlayer(matchday.lineup)');
-    expect(app).toContain('<MatchdayConditionWarning');
-    expect(screen).toContain('<MatchdayConditionStamp condition={player.condition}');
+    expect(app).toContainSource("'match-condition-warning-seen'");
+    expect(app).toContainSource(
+      'matchdayConditionWarningPlayer(matchday.lineup)',
+    );
+    expect(app).toContainSource('<MatchdayConditionWarning');
+    expect(screen).toContainSource(
+      '<MatchdayConditionStamp condition={player.condition}',
+    );
   });
 });

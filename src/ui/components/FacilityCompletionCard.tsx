@@ -32,7 +32,13 @@ export function FacilityCompletionCard({
     });
     animation.start();
     return () => animation.stop();
-  }, [completion.kind, completion.level, completion.type, entrance, reduceMotion]);
+  }, [
+    completion.kind,
+    completion.level,
+    completion.type,
+    entrance,
+    reduceMotion,
+  ]);
 
   return (
     // NativeWind drops `className` on an Animated component, so the gold frame
@@ -41,37 +47,63 @@ export function FacilityCompletionCard({
     // itself as unstyled text — no border, no gold, no margin.
     <Animated.View
       accessibilityRole="summary"
-      accessibilityLabel={t('facilityCompletionCard.a11y.completeAndOperational', {
-        name: completion.name,
-        level: completion.level,
-      })}
+      accessibilityLabel={t(
+        'facilityCompletionCard.a11y.completeAndOperational',
+        {
+          name: completion.name,
+          level: completion.level,
+        },
+      )}
       style={{
         opacity: entrance,
         transform: [
-          { translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) },
-          { scale: entrance.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.82, 1.06, 1] }) },
+          {
+            translateY: entrance.interpolate({
+              inputRange: [0, 1],
+              outputRange: [18, 0],
+            }),
+          },
+          {
+            scale: entrance.interpolate({
+              inputRange: [0, 0.7, 1],
+              outputRange: [0.82, 1.06, 1],
+            }),
+          },
         ],
       }}
     >
       <View className="mt-4 overflow-hidden border-2 border-b-4 border-gold-dark bg-gold-light">
         <View className="flex-row items-center justify-between border-b-2 border-gold-dark bg-signal px-3 py-2">
-          <Text className="font-pixel text-base uppercase text-ink">{t('facilityCompletionCard.worksComplete')}</Text>
-          <StatusChip label={t('facilityCompletionCard.level', { level: completion.level })} tone="success" />
+          <Text className="font-pixel text-base uppercase text-ink">
+            {t('facilityCompletionCard.worksComplete')}
+          </Text>
+          <StatusChip
+            label={t('facilityCompletionCard.level', {
+              level: completion.level,
+            })}
+            tone="success"
+          />
         </View>
         <View className="flex-row items-center gap-4 p-4">
           <View className="border-2 border-b-4 border-ink bg-white p-2">
             <ManagementSprite
               spriteKey={`facility:${completion.type}:l${completion.level}`}
               width={88}
-              accessibilityLabel={t('facilityCompletionCard.a11y.facility', { name: completion.name })}
+              accessibilityLabel={t('facilityCompletionCard.a11y.facility', {
+                name: completion.name,
+              })}
             />
           </View>
           <View className="min-w-0 flex-1">
-            <Text className="font-pixel text-lg uppercase text-ink">{t('facilityCompletion.isOpen', { name: completion.name })}</Text>
+            <Text className="font-pixel text-lg uppercase text-ink">
+              {t('facilityCompletion.isOpen', { name: completion.name })}
+            </Text>
             <Text className="mt-2 text-sm leading-5 text-ink/65">
               {completion.kind === 'BUILD'
                 ? t('facilityCompletionCard.buildFinished')
-                : t('facilityCompletionCard.upgradeFinished', { level: completion.level })}
+                : t('facilityCompletionCard.upgradeFinished', {
+                    level: completion.level,
+                  })}
             </Text>
           </View>
         </View>

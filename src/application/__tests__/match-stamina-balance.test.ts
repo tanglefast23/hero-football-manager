@@ -1,48 +1,69 @@
 import { createLaunchCareerSetup } from '../launch';
-import { buildCareerTeamDef, createCareer, trainPlayerInstantly } from '../../game';
+import {
+  buildCareerTeamDef,
+  createCareer,
+  trainPlayerInstantly,
+} from '../../game';
 import { HALF_TICKS } from '../../sim/geometry';
 import { createMatch, queueInput, tick } from '../../sim/match';
 import type { EnergyUse } from '../../sim/tactics';
 import type { MatchState, TeamDef } from '../../sim/types';
 
 const TOTAL_TICKS = HALF_TICKS * 2;
-const MINUTE_70_TICK = Math.round(TOTAL_TICKS * 70 / 90);
+const MINUTE_70_TICK = Math.round((TOTAL_TICKS * 70) / 90);
 
 function runToFullTime(match: MatchState): void {
   while (match.phase !== 'fulltime') tick(match);
 }
 
-function controlledConditions(match: MatchState, controlledTeam: 0 | 1): number[] {
-  const first = controlledTeam * 11;
-  return match.players.slice(first, first + 11).map(player => player.condition);
-}
-
-function playersStillOnPitch(match: MatchState, controlledTeam: 0 | 1): number[] {
+function controlledConditions(
+  match: MatchState,
+  controlledTeam: 0 | 1,
+): number[] {
   const first = controlledTeam * 11;
   return match.players
     .slice(first, first + 11)
-    .filter(player => player.outReason !== 'redcard')
-    .map(player => player.condition);
+    .map((player) => player.condition);
+}
+
+function playersStillOnPitch(
+  match: MatchState,
+  controlledTeam: 0 | 1,
+): number[] {
+  const first = controlledTeam * 11;
+  return match.players
+    .slice(first, first + 11)
+    .filter((player) => player.outReason !== 'redcard')
+    .map((player) => player.condition);
 }
 
 function runMode(team: TeamDef, opponent: TeamDef, mode: EnergyUse): number {
   const match = createMatch(981, team, opponent, { controlledTeam: 0 });
-  if (mode !== 'BALANCED') queueInput(match, { tick: 1, kind: 'SET_ENERGY_USE', energyUse: mode });
+  if (mode !== 'BALANCED')
+    queueInput(match, { tick: 1, kind: 'SET_ENERGY_USE', energyUse: mode });
   runToFullTime(match);
-  return controlledConditions(match, 0).reduce((sum, condition) => sum + condition, 0) / 11;
+  return (
+    controlledConditions(match, 0).reduce(
+      (sum, condition) => sum + condition,
+      0,
+    ) / 11
+  );
 }
 
 describe('opening-match stamina balance', () => {
   const career = createCareer(createLaunchCareerSetup(20260718));
-  const teams = career.clubs.map(club => buildCareerTeamDef(career, club.id));
+  const teams = career.clubs.map((club) => buildCareerTeamDef(career, club.id));
 
   it('carries a four-drill focus stack from career condition into kickoff', () => {
-    const lineup = career.lineups.find(candidate => candidate.clubId === career.userClubId)!;
-    const player = career.players.find(candidate => (
-      candidate.clubId === career.userClubId
-      && candidate.role === 'FWD'
-      && lineup.playerIds.includes(candidate.id)
-    ))!;
+    const lineup = career.lineups.find(
+      (candidate) => candidate.clubId === career.userClubId,
+    )!;
+    const player = career.players.find(
+      (candidate) =>
+        candidate.clubId === career.userClubId &&
+        candidate.role === 'FWD' &&
+        lineup.playerIds.includes(candidate.id),
+    )!;
     let trained = { ...career, trainingPoints: 100 };
     for (let drill = 0; drill < 4; drill += 1) {
       trained = trainPlayerInstantly(trained, player.id, 'finishing').state;
@@ -50,10 +71,18 @@ describe('opening-match stamina balance', () => {
 
     const team = buildCareerTeamDef(trained, trained.userClubId);
     const match = createMatch(981, team, teams[1]);
-    const playerIndex = match.players.findIndex(candidate => candidate.def.id === player.id);
+    const playerIndex = match.players.findIndex(
+      (candidate) => candidate.def.id === player.id,
+    );
 
-    expect(trained.players.find(candidate => candidate.id === player.id)?.condition).toBe(68);
-    expect(team.players.find(candidate => candidate.id === player.id)?.startingCondition).toBe(68);
+    expect(
+      trained.players.find((candidate) => candidate.id === player.id)
+        ?.condition,
+    ).toBe(68);
+    expect(
+      team.players.find((candidate) => candidate.id === player.id)
+        ?.startingCondition,
+    ).toBe(68);
     expect(match.players[playerIndex].condition).toBe(68);
   });
 
@@ -68,7 +97,10 @@ describe('opening-match stamina balance', () => {
 
     const withStamina = (sta: number): TeamDef => ({
       ...team,
-      players: team.players.map(player => ({ ...player, attrs: { ...player.attrs, sta } })),
+      players: team.players.map((player) => ({
+        ...player,
+        attrs: { ...player.attrs, sta },
+      })),
     });
     const low = runMode(withStamina(20), opponent, 'BALANCED');
     const high = runMode(withStamina(90), opponent, 'BALANCED');
@@ -109,8 +141,15 @@ describe('opening-match stamina balance', () => {
           while (match.phase !== 'fulltime') {
             tick(match);
             const conditions = controlledConditions(match, controlledTeam);
-            if (match.tick === MINUTE_70_TICK) tiredAt70 = conditions.filter(condition => condition <= 40).length;
-            if (firstZeroTick === null && conditions.some(condition => condition === 0)) firstZeroTick = match.tick;
+            if (match.tick === MINUTE_70_TICK)
+              tiredAt70 = conditions.filter(
+                (condition) => condition <= 40,
+              ).length;
+            if (
+              firstZeroTick === null &&
+              conditions.some((condition) => condition === 0)
+            )
+              firstZeroTick = match.tick;
           }
           // A red-carded player was removed from the match rather than "left on";
           // excluding them prevents time spent permanently off-pitch from reading
@@ -121,21 +160,34 @@ describe('opening-match stamina balance', () => {
           observedMin = Math.min(observedMin, min);
           observedMax = Math.max(observedMax, max);
           const label = `${club.id} ${controlledTeam === 0 ? 'home' : 'away'} seed ${seed}`;
-          if (min > 5) violations.push(`${label}: least tired finished ${min.toFixed(1)} (needs <=5)`);
-          if (max > 60) violations.push(`${label}: freshest finished ${max.toFixed(1)} (needs <=60)`);
-          if (tiredAt70 < 3) violations.push(`${label}: only ${tiredAt70} tired at 70'`);
+          if (min > 5)
+            violations.push(
+              `${label}: least tired finished ${min.toFixed(1)} (needs <=5)`,
+            );
+          if (max > 60)
+            violations.push(
+              `${label}: freshest finished ${max.toFixed(1)} (needs <=60)`,
+            );
+          if (tiredAt70 < 3)
+            violations.push(`${label}: only ${tiredAt70} tired at 70'`);
           // The floor is minute 70, not 75: these teams are the retuned opening
           // division a career actually plays, and its measured earliest zero is
           // minute 72.1 over these 500 runs. The old 75' figure was taken from
           // the raw content-pack ratings, which no career ever fields.
           if (firstZeroTick !== null && firstZeroTick < MINUTE_70_TICK) {
-            violations.push(`${label}: first zero at tick ${firstZeroTick} before 70'`);
+            violations.push(
+              `${label}: first zero at tick ${firstZeroTick} before 70'`,
+            );
           }
         }
       }
     }
 
-    expect({ observedMin, observedMax, violations: violations.slice(0, 20) }).toEqual({
+    expect({
+      observedMin,
+      observedMax,
+      violations: violations.slice(0, 20),
+    }).toEqual({
       observedMin: expect.any(Number),
       observedMax: expect.any(Number),
       violations: [],

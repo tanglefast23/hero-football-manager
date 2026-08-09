@@ -6,7 +6,10 @@ import type { AssistantGuideFocus } from '../../../content/schemas';
 import { beatMoment } from '../../bert-beat-moments';
 import { briefingBeats } from '../../bert-briefing-beats';
 import { BertBriefingWalkOn } from '../../BertBriefingWalkOn';
-import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls';
+import {
+  DevHarnessButton,
+  devHarnessControlStyles,
+} from '../DevHarnessControls';
 import type { DevHarnessEntry } from '../registry';
 
 /**
@@ -102,7 +105,7 @@ const SEQUENCE_LABELS: Readonly<Record<string, string>> = Object.freeze({
   'first-injury': 'INJURY',
   'first-emergency-loan': 'LOAN',
   'first-transfer-request': 'WANTOUT',
-  'retirement': 'RETIRE',
+  retirement: 'RETIRE',
   'club-legacy': 'LEGACY',
   'board-ultimatum': 'WARNING',
   'board-protection': 'PROTECT',
@@ -201,7 +204,7 @@ const BEAT_GROUPS: readonly BeatGroup[] = Object.freeze([
   },
 ]);
 
-const GROUP_BY_ID = new Map(BEAT_GROUPS.map(group => [group.id, group]));
+const GROUP_BY_ID = new Map(BEAT_GROUPS.map((group) => [group.id, group]));
 
 export function AssistantBeatsReel({ caseId }: { readonly caseId: string }) {
   const group = GROUP_BY_ID.get(caseId) ?? BEAT_GROUPS[0];
@@ -216,11 +219,17 @@ export function AssistantBeatsReel({ caseId }: { readonly caseId: string }) {
   const [runKey, setRunKey] = useState(0);
   const [focus, setFocus] = useState<AssistantGuideFocus>();
 
-  const beats = useMemo(() => briefingBeats(content, sequenceId), [content, sequenceId]);
-  const replay = useCallback(() => setRunKey(key => key + 1), []);
+  const beats = useMemo(
+    () => briefingBeats(content, sequenceId),
+    [content, sequenceId],
+  );
+  const replay = useCallback(() => setRunKey((key) => key + 1), []);
   // Stable, or the walk-on's focus effect would report into a new callback on
   // every render and never settle.
-  const reportFocus = useCallback((next: AssistantGuideFocus | undefined) => setFocus(next), []);
+  const reportFocus = useCallback(
+    (next: AssistantGuideFocus | undefined) => setFocus(next),
+    [],
+  );
 
   /**
    * The money chip and the tab rail are MEASURED in the real app, and the
@@ -230,13 +239,20 @@ export function AssistantBeatsReel({ caseId }: { readonly caseId: string }) {
    * reviewer who wants to see the walk-on with nothing lit.
    */
   const moneyAnchor = anchored
-    ? { x: Math.max(12, width - 132), y: insets.top + 8, width: 120, height: 36 }
+    ? {
+        x: Math.max(12, width - 132),
+        y: insets.top + 8,
+        width: 120,
+        height: 36,
+      }
     : null;
   const navigationAnchor = anchored
     ? { x: 0, y: Math.max(0, height - 84), width, height: 72 }
     : null;
 
-  const moments = beats.map((_, index) => beatMoment(sequenceId, beats, index) ?? '—');
+  const moments = beats.map(
+    (_, index) => beatMoment(sequenceId, beats, index) ?? '—',
+  );
   const authored = AUTHORED_EXPRESSION_RUNS.includes(sequenceId);
 
   return (
@@ -258,7 +274,7 @@ export function AssistantBeatsReel({ caseId }: { readonly caseId: string }) {
         <View style={[styles.panel, { paddingBottom: insets.bottom + 12 }]}>
           <View style={devHarnessControlStyles.row}>
             <Text style={devHarnessControlStyles.rowLabel}>BEAT</Text>
-            {group.sequenceIds.map(id => (
+            {group.sequenceIds.map((id) => (
               <DevHarnessButton
                 key={id}
                 label={SEQUENCE_LABELS[id] ?? id}
@@ -295,7 +311,11 @@ export function AssistantBeatsReel({ caseId }: { readonly caseId: string }) {
               selected={reduceMotion}
               onPress={() => setReduceMotion(true)}
             />
-            <DevHarnessButton label="Replay" hint="Start this briefing again" onPress={replay} />
+            <DevHarnessButton
+              label="Replay"
+              hint="Start this briefing again"
+              onPress={replay}
+            />
             <DevHarnessButton
               label="Hide"
               hint="Hide the review controls"
@@ -304,10 +324,12 @@ export function AssistantBeatsReel({ caseId }: { readonly caseId: string }) {
           </View>
 
           <Text style={styles.note}>
-            {sequenceId} · {beats.length} beat{beats.length === 1 ? '' : 's'} · lit: {focus ?? 'nothing'}
+            {sequenceId} · {beats.length} beat{beats.length === 1 ? '' : 's'} ·
+            lit: {focus ?? 'nothing'}
           </Text>
           <Text style={styles.stageLine}>
-            {authored ? 'AUTHORED LOOKS' : 'DEFAULT RUN — NO AUTHORED LOOKS'} · {moments.join(' ▸ ')}
+            {authored ? 'AUTHORED LOOKS' : 'DEFAULT RUN — NO AUTHORED LOOKS'} ·{' '}
+            {moments.join(' ▸ ')}
           </Text>
         </View>
       ) : (
@@ -333,12 +355,17 @@ export const assistantBeatsEntry: DevHarnessEntry = Object.freeze({
   id: 'assistant-beats',
   group: 'Guidance',
   title: "Bert's briefings",
-  summary: 'All 29 briefing sequences, grouped by what they teach, with the look he wears on each beat.',
-  cases: Object.freeze(BEAT_GROUPS.map(group => Object.freeze({
-    id: group.id,
-    label: group.label,
-    note: group.note,
-  }))),
+  summary:
+    'All 29 briefing sequences, grouped by what they teach, with the look he wears on each beat.',
+  cases: Object.freeze(
+    BEAT_GROUPS.map((group) =>
+      Object.freeze({
+        id: group.id,
+        label: group.label,
+        note: group.note,
+      }),
+    ),
+  ),
   render: (caseId: string) => <AssistantBeatsReel caseId={caseId} />,
 });
 

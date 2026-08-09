@@ -17,7 +17,11 @@ import {
   signCareerRenewalAtAsk,
   submitCareerRenewalOffer,
 } from '../market-career';
-import { LOYALTY_NO_RENEWAL_THRESHOLD, playerLoyalty, willRenegotiate } from '../loyalty';
+import {
+  LOYALTY_NO_RENEWAL_THRESHOLD,
+  playerLoyalty,
+  willRenegotiate,
+} from '../loyalty';
 import {
   contractPerkPercent,
   renewalContractAsk,
@@ -32,62 +36,87 @@ import { currentUserDivision } from '../m2-career';
 import type { CareerPlayer, GameState } from '../types';
 
 /** A season-end career whose named player has an expired contract. */
-function seasonEndWithExpired(seed: number): { state: GameState; player: CareerPlayer } {
+function seasonEndWithExpired(seed: number): {
+  state: GameState;
+  player: CareerPlayer;
+} {
   const initial = createCareer(createLaunchCareerSetup(seed));
   const lineupIds = new Set(
-    initial.lineups.find(lineup => lineup.clubId === initial.userClubId)!.playerIds,
+    initial.lineups.find((lineup) => lineup.clubId === initial.userClubId)!
+      .playerIds,
   );
-  const target = initial.players.find(candidate => (
-    candidate.clubId === initial.userClubId
-    && !lineupIds.has(candidate.id)
-    && willRenegotiate(playerLoyalty(candidate, initial.careerSeed))
-  ))!;
+  const target = initial.players.find(
+    (candidate) =>
+      candidate.clubId === initial.userClubId &&
+      !lineupIds.has(candidate.id) &&
+      willRenegotiate(playerLoyalty(candidate, initial.careerSeed)),
+  )!;
   const state: GameState = {
     ...initial,
     phase: 'season-end',
-    players: initial.players.map(candidate => candidate.id === target.id
-      ? { ...candidate, contractSeasonsRemaining: 0 }
-      : candidate),
+    players: initial.players.map((candidate) =>
+      candidate.id === target.id
+        ? { ...candidate, contractSeasonsRemaining: 0 }
+        : candidate,
+    ),
   };
-  return { state, player: state.players.find(c => c.id === target.id)! };
+  return { state, player: state.players.find((c) => c.id === target.id)! };
 }
 
 function completedSeasonForUser(state: GameState): GameState {
   return {
     ...state,
     phase: 'season-end',
-    fixtures: state.fixtures.map(fixture => fixture.season === state.season
-      ? {
-          ...fixture,
-          status: 'played' as const,
-          score: fixture.homeClubId === state.userClubId
-            ? { homeGoals: 3, awayGoals: 0 }
-            : fixture.awayClubId === state.userClubId
-              ? { homeGoals: 0, awayGoals: 3 }
-              : { homeGoals: 0, awayGoals: 0 },
-        }
-      : fixture),
+    fixtures: state.fixtures.map((fixture) =>
+      fixture.season === state.season
+        ? {
+            ...fixture,
+            status: 'played' as const,
+            score:
+              fixture.homeClubId === state.userClubId
+                ? { homeGoals: 3, awayGoals: 0 }
+                : fixture.awayClubId === state.userClubId
+                  ? { homeGoals: 0, awayGoals: 3 }
+                  : { homeGoals: 0, awayGoals: 0 },
+          }
+        : fixture,
+    ),
   };
 }
 
 /** A D4 promotion review with two licenses full and an expired third hero. */
-function d4PromotionWithExpiredHero(seed: number): { state: GameState; player: CareerPlayer } {
+function d4PromotionWithExpiredHero(seed: number): {
+  state: GameState;
+  player: CareerPlayer;
+} {
   const initial = createCareer(createLaunchCareerSetup(seed));
   const contractsReady: GameState = {
     ...initial,
-    players: initial.players.map(player => player.clubId === initial.userClubId
-      ? { ...player, contractSeasonsRemaining: Math.max(2, player.contractSeasonsRemaining) }
-      : player),
+    players: initial.players.map((player) =>
+      player.clubId === initial.userClubId
+        ? {
+            ...player,
+            contractSeasonsRemaining: Math.max(
+              2,
+              player.contractSeasonsRemaining,
+            ),
+          }
+        : player,
+    ),
   };
   const d4 = startNextSeason(completedSeasonForUser(contractsReady));
   expect(currentUserDivision(d4.m2!)).toBe(4);
-  const userPlayers = d4.players.filter(player => player.clubId === d4.userClubId);
-  const licensedIds = new Set(userPlayers.slice(0, 2).map(player => player.id));
+  const userPlayers = d4.players.filter(
+    (player) => player.clubId === d4.userClubId,
+  );
+  const licensedIds = new Set(
+    userPlayers.slice(0, 2).map((player) => player.id),
+  );
   const target = userPlayers[2]!;
   const state = completedSeasonForUser({
     ...d4,
     market: { ...d4.market!, renewalTalks: undefined },
-    players: d4.players.map(player => {
+    players: d4.players.map((player) => {
       if (player.id === target.id) {
         return {
           ...player,
@@ -103,17 +132,30 @@ function d4PromotionWithExpiredHero(seed: number): { state: GameState; player: C
       if (licensedIds.has(player.id)) {
         return {
           ...player,
-          contractSeasonsRemaining: Math.max(1, player.contractSeasonsRemaining),
+          contractSeasonsRemaining: Math.max(
+            1,
+            player.contractSeasonsRemaining,
+          ),
           power: 'FIRE_TORCH' as never,
           licensed: true,
         };
       }
       return player.clubId === d4.userClubId
-        ? { ...player, licensed: false, contractSeasonsRemaining: Math.max(1, player.contractSeasonsRemaining) }
+        ? {
+            ...player,
+            licensed: false,
+            contractSeasonsRemaining: Math.max(
+              1,
+              player.contractSeasonsRemaining,
+            ),
+          }
         : player;
     }),
   });
-  return { state, player: state.players.find(player => player.id === target.id)! };
+  return {
+    state,
+    player: state.players.find((player) => player.id === target.id)!,
+  };
 }
 
 describe('insulting renewal offers (P1-1)', () => {
@@ -128,15 +170,22 @@ describe('insulting renewal offers (P1-1)', () => {
       perk: 'GUARANTEED_STARTER',
     });
 
-    expect(negotiated.renewalTalks!.negotiation.history[0].outcome).toBe('INSULTED');
+    expect(negotiated.renewalTalks!.negotiation.history[0].outcome).toBe(
+      'INSULTED',
+    );
     expect(negotiated.renewalTalks!.negotiation.status).toBe('REJECTED');
 
     // Before the fix this threw `unknown negotiation player <id>`, which the
     // store surfaced verbatim and which rolled the whole round back.
-    const applied = applyCareerNegotiationConsequence(state, negotiated, 'renewal');
+    const applied = applyCareerNegotiationConsequence(
+      state,
+      negotiated,
+      'renewal',
+    );
 
-    expect(applied.state.players.find(c => c.id === player.id)!.morale)
-      .toBe(Math.max(0, player.morale - 10));
+    expect(applied.state.players.find((c) => c.id === player.id)!.morale).toBe(
+      Math.max(0, player.morale - 10),
+    );
     expect(applied.market.clubFameAdjustment).toBe(-2);
   });
 
@@ -150,11 +199,20 @@ describe('insulting renewal offers (P1-1)', () => {
       perk: 'GUARANTEED_STARTER',
     });
 
-    const once = applyCareerNegotiationConsequence(state, negotiated, 'renewal');
-    const twice = applyCareerNegotiationConsequence(once.state, once.market, 'renewal');
+    const once = applyCareerNegotiationConsequence(
+      state,
+      negotiated,
+      'renewal',
+    );
+    const twice = applyCareerNegotiationConsequence(
+      once.state,
+      once.market,
+      'renewal',
+    );
 
-    expect(twice.state.players.find(c => c.id === player.id)!.morale)
-      .toBe(once.state.players.find(c => c.id === player.id)!.morale);
+    expect(twice.state.players.find((c) => c.id === player.id)!.morale).toBe(
+      once.state.players.find((c) => c.id === player.id)!.morale,
+    );
     expect(twice.market.clubFameAdjustment).toBe(-2);
   });
 });
@@ -171,27 +229,58 @@ describe('the opening offer is never an insult (P1-2)', () => {
   it('sits above the insult line and below round-one acceptance, for every shape of player', () => {
     const cases = [
       // An unlicensed hero on the wage cliff: the x4 case.
-      { wage: 180, personality: 'LOYAL' as const, power: true, growth: 0, fame: 0, loyalty: 100 },
-      { wage: 180, personality: 'GREEDY' as const, power: true, growth: 40, fame: 400, loyalty: 30 },
+      {
+        wage: 180,
+        personality: 'LOYAL' as const,
+        power: true,
+        growth: 0,
+        fame: 0,
+        loyalty: 100,
+      },
+      {
+        wage: 180,
+        personality: 'GREEDY' as const,
+        power: true,
+        growth: 40,
+        fame: 400,
+        loyalty: 30,
+      },
       // An extreme-growth, famous, GREEDY NON-hero. Reviewers caught that the
       // trap is not hero-only: this ask reaches ~9.6x the wage.
-      { wage: 200, personality: 'GREEDY' as const, power: false, growth: 300, fame: 400, loyalty: 30 },
+      {
+        wage: 200,
+        personality: 'GREEDY' as const,
+        power: false,
+        growth: 300,
+        fame: 400,
+        loyalty: 30,
+      },
       // An ordinary player, where the old seed was harmless.
-      { wage: 300, personality: 'PROFESSIONAL' as const, power: false, growth: 10, fame: 0, loyalty: 70 },
+      {
+        wage: 300,
+        personality: 'PROFESSIONAL' as const,
+        power: false,
+        growth: 10,
+        fame: 0,
+        loyalty: 70,
+      },
     ];
 
     for (const shape of cases) {
-      const ask = renewalContractAsk({
-        weeklyWage: shape.wage,
-        personality: shape.personality,
-        ...(shape.power ? { power: 'FIRE_TORCH' as never } : {}),
-        onHeroWage: false,
-      }, {
-        growthSinceSigningPercent: shape.growth,
-        famePercent: Math.min(100, Math.round(shape.fame / 4)),
-        heroMultiplier: 4,
-        loyaltyPercent: loyaltyRenewalPercent(shape.loyalty),
-      });
+      const ask = renewalContractAsk(
+        {
+          weeklyWage: shape.wage,
+          personality: shape.personality,
+          ...(shape.power ? { power: 'FIRE_TORCH' as never } : {}),
+          onHeroWage: false,
+        },
+        {
+          growthSinceSigningPercent: shape.growth,
+          famePercent: Math.min(100, Math.round(shape.fame / 4)),
+          heroMultiplier: 4,
+          loyaltyPercent: loyaltyRenewalPercent(shape.loyalty),
+        },
+      );
       const seed = renewalOpeningOfferWage(ask, 50);
 
       // Above the insult line.
@@ -201,10 +290,14 @@ describe('the opening offer is never an insult (P1-2)', () => {
       // built on this seed still falls short, so "Make the offer" means
       // negotiate rather than sign.
       const negotiation = startContractNegotiation({
-        careerSeed: 1, negotiationId: 'n', playerId: 'p',
-        personality: shape.personality, weeklyAsk: ask,
+        careerSeed: 1,
+        negotiationId: 'n',
+        playerId: 'p',
+        personality: shape.personality,
+        weeklyAsk: ask,
       });
-      const lovedCard = shape.personality === 'GREEDY' ? 'MONEY_TALKS' as const : undefined;
+      const lovedCard =
+        shape.personality === 'GREEDY' ? ('MONEY_TALKS' as const) : undefined;
       const strongest = submitContractOffer(
         negotiation,
         { weeklyWage: seed, termSeasons: 3, perk: 'GUARANTEED_STARTER' },
@@ -218,10 +311,14 @@ describe('the opening offer is never an insult (P1-2)', () => {
 
   it('rejects the old current-wage seed for a hero, proving the case is real', () => {
     const { state, player } = seasonEndWithExpired(8802);
-    const hero: CareerPlayer = { ...player, power: 'FIRE_TORCH' as never, onHeroWage: false };
+    const hero: CareerPlayer = {
+      ...player,
+      power: 'FIRE_TORCH' as never,
+      onHeroWage: false,
+    };
     const heroState: GameState = {
       ...state,
-      players: state.players.map(c => c.id === hero.id ? hero : c),
+      players: state.players.map((c) => (c.id === hero.id ? hero : c)),
     };
 
     const ask = careerRenewalWeeklyAsk(heroState, hero);
@@ -246,7 +343,9 @@ describe('careerRenewalBlockedReasonCopy (P1-6)', () => {
   it('is absent for a player who will still talk', () => {
     const { state, player } = seasonEndWithExpired(9101);
 
-    expect(careerRenewalBlockedReasonCopy(state, state.market!, player.id)).toBeUndefined();
+    expect(
+      careerRenewalBlockedReasonCopy(state, state.market!, player.id),
+    ).toBeUndefined();
   });
 
   it('reports an agent who has already ended talks this season', () => {
@@ -254,7 +353,11 @@ describe('careerRenewalBlockedReasonCopy (P1-6)', () => {
     const opened = beginCareerRenewalTalks(state, state.market!, player.id);
     const closed = closeCareerRenewalTalks(state, opened);
 
-    const reason = careerRenewalBlockedReasonCopy(state, closed, player.id)?.text;
+    const reason = careerRenewalBlockedReasonCopy(
+      state,
+      closed,
+      player.id,
+    )?.text;
 
     expect(reason).toContain('ended talks for this season');
     expect(() => beginCareerRenewalTalks(state, closed, player.id)).toThrow();
@@ -264,44 +367,65 @@ describe('careerRenewalBlockedReasonCopy (P1-6)', () => {
     const { state, player } = seasonEndWithExpired(9101);
     const disloyal: GameState = {
       ...state,
-      players: state.players.map(candidate => candidate.id === player.id
-        ? { ...candidate, loyalty: LOYALTY_NO_RENEWAL_THRESHOLD - 1 }
-        : candidate),
+      players: state.players.map((candidate) =>
+        candidate.id === player.id
+          ? { ...candidate, loyalty: LOYALTY_NO_RENEWAL_THRESHOLD - 1 }
+          : candidate,
+      ),
     };
 
-    const reason = careerRenewalBlockedReasonCopy(disloyal, disloyal.market!, player.id)?.text;
+    const reason = careerRenewalBlockedReasonCopy(
+      disloyal,
+      disloyal.market!,
+      player.id,
+    )?.text;
 
     expect(reason).toContain('will not re-sign');
-    expect(() => beginCareerRenewalTalks(disloyal, disloyal.market!, player.id)).toThrow();
+    expect(() =>
+      beginCareerRenewalTalks(disloyal, disloyal.market!, player.id),
+    ).toThrow();
   });
 });
 
 describe('season-end view model wiring', () => {
-  it('quotes the agent\'s real ask before talks open, not wage-times-four', () => {
+  it("quotes the agent's real ask before talks open, not wage-times-four", () => {
     const { state, player } = seasonEndWithExpired(8802);
     const hero: GameState = {
       ...state,
-      players: state.players.map(candidate => candidate.id === player.id
-        ? { ...candidate, power: 'FIRE_TORCH' as never, onHeroWage: false, fame: 80 }
-        : candidate),
+      players: state.players.map((candidate) =>
+        candidate.id === player.id
+          ? {
+              ...candidate,
+              power: 'FIRE_TORCH' as never,
+              onHeroWage: false,
+              fame: 80,
+            }
+          : candidate,
+      ),
     };
-    const heroPlayer = hero.players.find(c => c.id === player.id)!;
+    const heroPlayer = hero.players.find((c) => c.id === player.id)!;
 
     const view = seasonEndViewModel(hero, loadLaunchContent(), 1);
 
     expect(view.expiredContract?.playerId).toBe(player.id);
-    expect(view.expiredContract?.quotedWeeklyWage).toBe(careerRenewalWeeklyAsk(hero, heroPlayer));
+    expect(view.expiredContract?.quotedWeeklyWage).toBe(
+      careerRenewalWeeklyAsk(hero, heroPlayer),
+    );
     // The old `renewalQuote(player, 4)` ignored fame, so the honest ask is higher.
-    expect(view.expiredContract!.quotedWeeklyWage).toBeGreaterThan(heroPlayer.weeklyWage * 4);
+    expect(view.expiredContract!.quotedWeeklyWage).toBeGreaterThan(
+      heroPlayer.weeklyWage * 4,
+    );
   });
 
   it('opens the negotiation panel above the insult line rather than at the current wage', () => {
     const { state, player } = seasonEndWithExpired(8802);
     const hero: GameState = {
       ...state,
-      players: state.players.map(candidate => candidate.id === player.id
-        ? { ...candidate, power: 'FIRE_TORCH' as never, onHeroWage: false }
-        : candidate),
+      players: state.players.map((candidate) =>
+        candidate.id === player.id
+          ? { ...candidate, power: 'FIRE_TORCH' as never, onHeroWage: false }
+          : candidate,
+      ),
     };
     const negotiating: GameState = {
       ...hero,
@@ -311,9 +435,12 @@ describe('season-end view model wiring', () => {
     const view = seasonEndViewModel(negotiating, loadLaunchContent(), 1);
     const ask = negotiating.market!.renewalTalks!.negotiation.weeklyAsk;
 
-    expect(view.renewalNegotiation!.initialWeeklyWage).toBeGreaterThanOrEqual(ask / 2);
-    expect(view.renewalNegotiation!.initialWeeklyWage)
-      .not.toBe(hero.players.find(c => c.id === player.id)!.weeklyWage);
+    expect(view.renewalNegotiation!.initialWeeklyWage).toBeGreaterThanOrEqual(
+      ask / 2,
+    );
+    expect(view.renewalNegotiation!.initialWeeklyWage).not.toBe(
+      hero.players.find((c) => c.id === player.id)!.weeklyWage,
+    );
   });
 
   it('uses the Hero License this promotion announces when presenting renewal promises', () => {
@@ -324,12 +451,14 @@ describe('season-end view model wiring', () => {
     };
 
     const view = seasonEndViewModel(negotiating, loadLaunchContent(), 1);
-    const starter = view.renewalNegotiation?.perks.find(perk => (
-      perk.id === 'GUARANTEED_STARTER'
-    ));
+    const starter = view.renewalNegotiation?.perks.find(
+      (perk) => perk.id === 'GUARANTEED_STARTER',
+    );
 
     expect(view.outcomeLabel).toBe('PROMOTED');
-    expect(view.promotionRewards?.items.map(item => item.title)).toContain('Third Hero License');
+    expect(view.promotionRewards?.items.map((item) => item.title)).toContain(
+      'Third Hero License',
+    );
     expect(starter).toMatchObject({ available: true });
   });
 
@@ -365,15 +494,20 @@ describe('promise grades (D1)', () => {
    * the failure mode this repo has already shipped once, when a scouting label
    * kept promising "+8% training" for two releases after the bonus was deleted.
    */
-  const gradesFor = (personality: PlayerPersonality) => new Map(
-    marketNegotiationViewModel({
-      state: startContractNegotiation({
-        careerSeed: 7, negotiationId: 'g', playerId: 'p',
-        personality, weeklyAsk: 1000,
-      }),
-      playerName: 'Test', openingWeeklyWage: 700,
-    }).perks.map(perk => [perk.id, perk.gradeLabel]),
-  );
+  const gradesFor = (personality: PlayerPersonality) =>
+    new Map(
+      marketNegotiationViewModel({
+        state: startContractNegotiation({
+          careerSeed: 7,
+          negotiationId: 'g',
+          playerId: 'p',
+          personality,
+          weeklyAsk: 1000,
+        }),
+        playerName: 'Test',
+        openingWeeklyWage: 700,
+      }).perks.map((perk) => [perk.id, perk.gradeLabel]),
+    );
 
   it('grades every promise from the percentage the agent actually values', () => {
     // A TIMID player wants the shirt and the starting place and does not want
@@ -391,15 +525,21 @@ describe('promise grades (D1)', () => {
   it('grades the same promise differently for different men', () => {
     // The whole point of reading your player. If these ever agree, the panel is
     // back to quoting one ladder at everybody.
-    expect(gradesFor('FIERY').get('CAPTAINCY'))
-      .not.toBe(gradesFor('TIMID').get('CAPTAINCY'));
+    expect(gradesFor('FIERY').get('CAPTAINCY')).not.toBe(
+      gradesFor('TIMID').get('CAPTAINCY'),
+    );
   });
 
   it('never grades a promise as worthless, even for the mercenary', () => {
     // GREEDY discounts every promise. The badge still has to name a grade — a
     // blank or an F would read as "this button does nothing", and it does.
     const greedy = gradesFor('GREEDY');
-    const perks = ['GUARANTEED_STARTER', 'CAPTAINCY', 'TRAINING_PRIORITY', 'JERSEY_10'] as const;
+    const perks = [
+      'GUARANTEED_STARTER',
+      'CAPTAINCY',
+      'TRAINING_PRIORITY',
+      'JERSEY_10',
+    ] as const;
     for (const perk of perks) {
       expect({ perk, grade: greedy.get(perk) }).toMatchObject({ perk });
       expect(greedy.get(perk)).toBeTruthy();
@@ -407,32 +547,52 @@ describe('promise grades (D1)', () => {
   });
 
   it('ranks the grades in the same order the engine prices them', () => {
-    const ranked = (['GUARANTEED_STARTER', 'CAPTAINCY', 'TRAINING_PRIORITY', 'JERSEY_10'] as const)
-      .map(perk => ({ perk, percent: contractPerkPercent(perk) }));
+    const ranked = (
+      [
+        'GUARANTEED_STARTER',
+        'CAPTAINCY',
+        'TRAINING_PRIORITY',
+        'JERSEY_10',
+      ] as const
+    ).map((perk) => ({ perk, percent: contractPerkPercent(perk) }));
 
     for (let index = 1; index < ranked.length; index += 1) {
       expect(ranked[index - 1].percent).toBeGreaterThan(ranked[index].percent);
     }
     // And the grade boundaries are the ones the labels claim.
-    expect(contractPerkPercent('GUARANTEED_STARTER')).toBeGreaterThanOrEqual(10);
+    expect(contractPerkPercent('GUARANTEED_STARTER')).toBeGreaterThanOrEqual(
+      10,
+    );
     expect(contractPerkPercent('JERSEY_10')).toBeLessThan(6);
   });
 
   it('states a mechanical consequence for every promise, never flavour', () => {
     const perks = marketNegotiationViewModel({
       state: startContractNegotiation({
-        careerSeed: 7, negotiationId: 'g', playerId: 'p',
-        personality: 'PROFESSIONAL', weeklyAsk: 1000,
+        careerSeed: 7,
+        negotiationId: 'g',
+        playerId: 'p',
+        personality: 'PROFESSIONAL',
+        weeklyAsk: 1000,
       }),
-      playerName: 'Test', openingWeeklyWage: 700,
+      playerName: 'Test',
+      openingWeeklyWage: 700,
     }).perks;
 
     // The grade is only honest while the cost is stated beside it, so this
     // pins the copy that carries it rather than leaving it to drift back.
-    expect(perks.find(p => p.id === 'CAPTAINCY')!.detail).toContain('current captain');
-    expect(perks.find(p => p.id === 'TRAINING_PRIORITY')!.detail).toContain('5 drills');
-    expect(perks.find(p => p.id === 'JERSEY_10')!.detail).toContain('number 10');
-    expect(perks.find(p => p.id === 'GUARANTEED_STARTER')!.detail).toContain('refused');
+    expect(perks.find((p) => p.id === 'CAPTAINCY')!.detail).toContain(
+      'current captain',
+    );
+    expect(perks.find((p) => p.id === 'TRAINING_PRIORITY')!.detail).toContain(
+      '5 drills',
+    );
+    expect(perks.find((p) => p.id === 'JERSEY_10')!.detail).toContain(
+      'number 10',
+    );
+    expect(perks.find((p) => p.id === 'GUARANTEED_STARTER')!.detail).toContain(
+      'refused',
+    );
     for (const perk of perks) expect(perk.detail.length).toBeGreaterThan(20);
   });
 });
@@ -447,23 +607,30 @@ describe('promise invariants are enforced before acceptance (P1-4, P2-13)', () =
   function withPromise(
     state: GameState,
     playerId: string,
-    perk: 'CAPTAINCY' | 'JERSEY_10' | 'TRAINING_PRIORITY' | 'GUARANTEED_STARTER',
+    perk:
+      'CAPTAINCY' | 'JERSEY_10' | 'TRAINING_PRIORITY' | 'GUARANTEED_STARTER',
   ): GameState {
     return {
       ...state,
-      players: state.players.map(candidate => candidate.id === playerId
-        ? {
-            ...candidate,
-            contractSeasonsRemaining: 2,
-            contractPromise: { perk, agreedSeason: state.season },
-            ...(perk === 'TRAINING_PRIORITY' ? { priorityDrillsRemaining: 5 } : {}),
-          }
-        : candidate),
+      players: state.players.map((candidate) =>
+        candidate.id === playerId
+          ? {
+              ...candidate,
+              contractSeasonsRemaining: 2,
+              contractPromise: { perk, agreedSeason: state.season },
+              ...(perk === 'TRAINING_PRIORITY'
+                ? { priorityDrillsRemaining: 5 }
+                : {}),
+            }
+          : candidate,
+      ),
     };
   }
 
   const otherSquadPlayer = (state: GameState, exclude: string): CareerPlayer =>
-    state.players.find(c => c.clubId === state.userClubId && c.id !== exclude)!;
+    state.players.find(
+      (c) => c.clubId === state.userClubId && c.id !== exclude,
+    )!;
 
   it('refuses a second captaincy promise instead of stripping the first holder', () => {
     const { state, player } = seasonEndWithExpired(9101);
@@ -471,11 +638,13 @@ describe('promise invariants are enforced before acceptance (P1-4, P2-13)', () =
     const held = withPromise(state, incumbent.id, 'CAPTAINCY');
     const opened = beginCareerRenewalTalks(held, held.market!, player.id);
 
-    expect(() => submitCareerRenewalOffer(held, opened, {
-      weeklyWage: opened.renewalTalks!.negotiation.weeklyAsk,
-      termSeasons: 1,
-      perk: 'CAPTAINCY',
-    })).toThrow(new RegExp(`${incumbent.name}.*captaincy`));
+    expect(() =>
+      submitCareerRenewalOffer(held, opened, {
+        weeklyWage: opened.renewalTalks!.negotiation.weeklyAsk,
+        termSeasons: 1,
+        perk: 'CAPTAINCY',
+      }),
+    ).toThrow(new RegExp(`${incumbent.name}.*captaincy`));
   });
 
   it('refuses a second number 10 promise', () => {
@@ -484,11 +653,13 @@ describe('promise invariants are enforced before acceptance (P1-4, P2-13)', () =
     const held = withPromise(state, incumbent.id, 'JERSEY_10');
     const opened = beginCareerRenewalTalks(held, held.market!, player.id);
 
-    expect(() => submitCareerRenewalOffer(held, opened, {
-      weeklyWage: opened.renewalTalks!.negotiation.weeklyAsk,
-      termSeasons: 1,
-      perk: 'JERSEY_10',
-    })).toThrow(/number 10 shirt/);
+    expect(() =>
+      submitCareerRenewalOffer(held, opened, {
+        weeklyWage: opened.renewalTalks!.negotiation.weeklyAsk,
+        termSeasons: 1,
+        perk: 'JERSEY_10',
+      }),
+    ).toThrow(/number 10 shirt/);
   });
 
   it('refuses a second training debt while one is still owed', () => {
@@ -497,36 +668,46 @@ describe('promise invariants are enforced before acceptance (P1-4, P2-13)', () =
     const held = withPromise(state, incumbent.id, 'TRAINING_PRIORITY');
     const opened = beginCareerRenewalTalks(held, held.market!, player.id);
 
-    expect(() => submitCareerRenewalOffer(held, opened, {
-      weeklyWage: opened.renewalTalks!.negotiation.weeklyAsk,
-      termSeasons: 1,
-      perk: 'TRAINING_PRIORITY',
-    })).toThrow(/still owed 5 drills/);
+    expect(() =>
+      submitCareerRenewalOffer(held, opened, {
+        weeklyWage: opened.renewalTalks!.negotiation.weeklyAsk,
+        termSeasons: 1,
+        perk: 'TRAINING_PRIORITY',
+      }),
+    ).toThrow(/still owed 5 drills/);
   });
 
   it('refuses a starting promise the Hero License cap cannot cover', () => {
     const { state, player } = seasonEndWithExpired(9101);
     // A D5 club is capped at two licences; fill both, and make the target an
     // unlicensed hero who would need a third.
-    const others = state.players.filter(c => c.clubId === state.userClubId && c.id !== player.id).slice(0, 2);
+    const others = state.players
+      .filter((c) => c.clubId === state.userClubId && c.id !== player.id)
+      .slice(0, 2);
     const capped: GameState = {
       ...state,
-      players: state.players.map(candidate => {
+      players: state.players.map((candidate) => {
         if (candidate.id === player.id) {
-          return { ...candidate, power: 'FIRE_TORCH' as never, licensed: false };
+          return {
+            ...candidate,
+            power: 'FIRE_TORCH' as never,
+            licensed: false,
+          };
         }
-        return others.some(o => o.id === candidate.id)
+        return others.some((o) => o.id === candidate.id)
           ? { ...candidate, licensed: true }
           : candidate;
       }),
     };
     const opened = beginCareerRenewalTalks(capped, capped.market!, player.id);
 
-    expect(() => submitCareerRenewalOffer(capped, opened, {
-      weeklyWage: opened.renewalTalks!.negotiation.weeklyAsk,
-      termSeasons: 1,
-      perk: 'GUARANTEED_STARTER',
-    })).toThrow(/No Hero License is free/);
+    expect(() =>
+      submitCareerRenewalOffer(capped, opened, {
+        weeklyWage: opened.renewalTalks!.negotiation.weeklyAsk,
+        termSeasons: 1,
+        perk: 'GUARANTEED_STARTER',
+      }),
+    ).toThrow(/No Hero License is free/);
   });
 
   it('still allows a legal promise, so the guard is not simply refusing everything', () => {
@@ -546,20 +727,21 @@ describe('promise invariants are enforced before acceptance (P1-4, P2-13)', () =
 });
 
 describe('signing at the asking price (D2)', () => {
-  it('signs at the agent\'s ask, attaches no promise, and updates payroll', () => {
+  it("signs at the agent's ask, attaches no promise, and updates payroll", () => {
     const { state, player } = seasonEndWithExpired(9101);
     const ask = careerRenewalWeeklyAsk(state, player);
-    const club = state.clubs.find(c => c.id === state.userClubId)!;
+    const club = state.clubs.find((c) => c.id === state.userClubId)!;
 
     const signed = signCareerRenewalAtAsk(state, state.market!, player.id, 2);
-    const renewed = signed.state.players.find(c => c.id === player.id)!;
+    const renewed = signed.state.players.find((c) => c.id === player.id)!;
 
     expect(renewed.weeklyWage).toBe(ask);
     expect(renewed.contractSeasonsRemaining).toBe(2);
     expect(renewed.contractPromise).toBeUndefined();
     expect(renewed.transferRequested).toBe(false);
-    expect(signed.state.clubs.find(c => c.id === state.userClubId)!.weeklyWages)
-      .toBe(club.weeklyWages + (ask - player.weeklyWage));
+    expect(
+      signed.state.clubs.find((c) => c.id === state.userClubId)!.weeklyWages,
+    ).toBe(club.weeklyWages + (ask - player.weeklyWage));
   });
 
   it('does not revive the promise from the contract that just expired', () => {
@@ -569,20 +751,30 @@ describe('signing at the asking price (D2)', () => {
     const { state, player } = seasonEndWithExpired(9101);
     const haunted: GameState = {
       ...state,
-      players: state.players.map(candidate => candidate.id === player.id
-        ? {
-            ...candidate,
-            contractPromise: { perk: 'TRAINING_PRIORITY' as const, agreedSeason: state.season - 1 },
-            priorityDrillsRemaining: 3,
-            isCaptain: true,
-            shirtNumber: 7,
-            licensed: true,
-          }
-        : candidate),
+      players: state.players.map((candidate) =>
+        candidate.id === player.id
+          ? {
+              ...candidate,
+              contractPromise: {
+                perk: 'TRAINING_PRIORITY' as const,
+                agreedSeason: state.season - 1,
+              },
+              priorityDrillsRemaining: 3,
+              isCaptain: true,
+              shirtNumber: 7,
+              licensed: true,
+            }
+          : candidate,
+      ),
     };
 
-    const signed = signCareerRenewalAtAsk(haunted, haunted.market!, player.id, 2);
-    const renewed = signed.state.players.find(c => c.id === player.id)!;
+    const signed = signCareerRenewalAtAsk(
+      haunted,
+      haunted.market!,
+      player.id,
+      2,
+    );
+    const renewed = signed.state.players.find((c) => c.id === player.id)!;
 
     expect(renewed.contractPromise).toBeUndefined();
     expect(renewed.priorityDrillsRemaining).toBe(0);
@@ -598,14 +790,17 @@ describe('signing at the asking price (D2)', () => {
     const { state, player } = seasonEndWithExpired(9101);
     const disloyal: GameState = {
       ...state,
-      players: state.players.map(candidate => candidate.id === player.id
-        ? { ...candidate, loyalty: LOYALTY_NO_RENEWAL_THRESHOLD - 1 }
-        : candidate),
+      players: state.players.map((candidate) =>
+        candidate.id === player.id
+          ? { ...candidate, loyalty: LOYALTY_NO_RENEWAL_THRESHOLD - 1 }
+          : candidate,
+      ),
     };
 
     // The gate belongs to the domain, not to a disabled button.
-    expect(() => signCareerRenewalAtAsk(disloyal, disloyal.market!, player.id, 1))
-      .toThrow(/will not re-sign/);
+    expect(() =>
+      signCareerRenewalAtAsk(disloyal, disloyal.market!, player.id, 1),
+    ).toThrow(/will not re-sign/);
   });
 
   it('refuses a player whose agent already ended talks this season', () => {
@@ -613,8 +808,9 @@ describe('signing at the asking price (D2)', () => {
     const opened = beginCareerRenewalTalks(state, state.market!, player.id);
     const closed = closeCareerRenewalTalks(state, opened);
 
-    expect(() => signCareerRenewalAtAsk(state, closed, player.id, 1))
-      .toThrow(/ended talks for this season/);
+    expect(() => signCareerRenewalAtAsk(state, closed, player.id, 1)).toThrow(
+      /ended talks for this season/,
+    );
   });
 
   it('never undercuts a negotiated deal', () => {
@@ -625,19 +821,21 @@ describe('signing at the asking price (D2)', () => {
     const signed = signCareerRenewalAtAsk(state, state.market!, player.id, 1);
 
     // Sign now pays the full ask; negotiating is the only way below it.
-    expect(signed.state.players.find(c => c.id === player.id)!.weeklyWage).toBe(ask);
+    expect(
+      signed.state.players.find((c) => c.id === player.id)!.weeklyWage,
+    ).toBe(ask);
   });
 
-  it('supersedes that player\'s own open talks but not somebody else\'s', () => {
+  it("supersedes that player's own open talks but not somebody else's", () => {
     const { state, player } = seasonEndWithExpired(9101);
     const opened = beginCareerRenewalTalks(state, state.market!, player.id);
 
     const signed = signCareerRenewalAtAsk(state, opened, player.id, 1);
     expect(signed.market.renewalTalks).toBeUndefined();
 
-    const other = state.players.find(c => (
-      c.clubId === state.userClubId && c.id !== player.id
-    ))!;
+    const other = state.players.find(
+      (c) => c.clubId === state.userClubId && c.id !== player.id,
+    )!;
     expect(() => signCareerRenewalAtAsk(state, opened, other.id, 1)).toThrow();
   });
 });
@@ -653,29 +851,39 @@ describe('the same promise guard covers buying, not just renewing (P1-4)', () =>
   it('refuses a starting promise on a signing the Hero License cannot cover', () => {
     const initial = createCareer(createLaunchCareerSetup(4242));
     const lineupIds = new Set(
-      initial.lineups.find(l => l.clubId === initial.userClubId)!.playerIds,
+      initial.lineups.find((l) => l.clubId === initial.userClubId)!.playerIds,
     );
     const licensed = initial.players
-      .filter(p => p.clubId === initial.userClubId)
+      .filter((p) => p.clubId === initial.userClubId)
       .slice(0, 2)
-      .map(p => p.id);
+      .map((p) => p.id);
     // Room on the roster, so the squad-size check cannot mask the licence one.
     const spare = initial.players
-      .filter(p => p.clubId === initial.userClubId && !lineupIds.has(p.id) && !licensed.includes(p.id))
+      .filter(
+        (p) =>
+          p.clubId === initial.userClubId &&
+          !lineupIds.has(p.id) &&
+          !licensed.includes(p.id),
+      )
       .slice(0, 3)
-      .map(p => p.id);
-    const rival = initial.players.find(p => p.clubId !== initial.userClubId)!;
+      .map((p) => p.id);
+    const rival = initial.players.find((p) => p.clubId !== initial.userClubId)!;
 
     const state: GameState = {
       ...initial,
       phase: 'manage',
       week: 1,
       players: initial.players
-        .filter(p => !spare.includes(p.id))
-        .map(p => {
+        .filter((p) => !spare.includes(p.id))
+        .map((p) => {
           if (licensed.includes(p.id)) return { ...p, licensed: true };
           if (p.id === rival.id) {
-            return { ...p, power: 'FIRE_TORCH' as never, powerTier: 1, licensed: false };
+            return {
+              ...p,
+              power: 'FIRE_TORCH' as never,
+              powerTier: 1,
+              licensed: false,
+            };
           }
           return p;
         }),
@@ -684,18 +892,25 @@ describe('the same promise guard covers buying, not just renewing (P1-4)', () =>
     const range = { minimum: 40, maximum: 60 };
     const scouted = {
       ...state.market!,
-      scoutReports: [{
-        playerId: rival.id,
-        role: rival.role,
-        age: rival.age ?? 24,
-        statRanges: {
-          pac: range, sho: range, pas: range,
-          def: range, tec: range, sta: range, ref: range,
+      scoutReports: [
+        {
+          playerId: rival.id,
+          role: rival.role,
+          age: rival.age ?? 24,
+          statRanges: {
+            pac: range,
+            sho: range,
+            pas: range,
+            def: range,
+            tec: range,
+            sta: range,
+            ref: range,
+          },
+          potentialRange: { minimum: 3, maximum: 4 },
+          power: 'FIRE_TORCH' as never,
+          powerTier: 1,
         },
-        potentialRange: { minimum: 3, maximum: 4 },
-        power: 'FIRE_TORCH' as never,
-        powerTier: 1,
-      }],
+      ],
     } as never;
 
     const talks = beginCareerTransferTalks(state, scouted, rival.id);
@@ -704,11 +919,13 @@ describe('the same promise guard covers buying, not just renewing (P1-4)', () =>
     // Before the fix this returned ACCEPTED, and `completeCareerTransfer` then
     // threw "<name>'s starting promise requires an available Hero License",
     // discarding a deal the agent had already agreed.
-    expect(() => submitCareerTransferOffer(state, talks, {
-      weeklyWage: ask * 3,
-      termSeasons: 3,
-      perk: 'GUARANTEED_STARTER',
-    })).toThrow(/No Hero License is free/);
+    expect(() =>
+      submitCareerTransferOffer(state, talks, {
+        weeklyWage: ask * 3,
+        termSeasons: 3,
+        perk: 'GUARANTEED_STARTER',
+      }),
+    ).toThrow(/No Hero License is free/);
 
     // A promise that needs no licence still goes through and completes.
     const accepted = submitCareerTransferOffer(state, talks, {

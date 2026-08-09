@@ -5,17 +5,25 @@ import { faceFile, glyphSet, missingGlyphs } from '../../i18n/glyph-coverage';
 describe('languagePanelRows', () => {
   test('names every language in its own language', () => {
     const rows = languagePanelRows('en', ['en', 'es', 'pt-BR', 'vi']);
-    expect(rows.map(row => row.endonym))
-      .toEqual(['English', 'Español', 'Português (Brasil)', 'Tiếng Việt']);
+    expect(rows.map((row) => row.endonym)).toEqual([
+      'English',
+      'Español',
+      'Português (Brasil)',
+      'Tiếng Việt',
+    ]);
   });
 
   test('marks exactly one row as selected', () => {
     const rows = languagePanelRows('es', ['en', 'es', 'de']);
-    expect(rows.filter(row => row.selected).map(row => row.locale)).toEqual(['es']);
+    expect(rows.filter((row) => row.selected).map((row) => row.locale)).toEqual(
+      ['es'],
+    );
   });
 
   test('offers only what has actually shipped', () => {
-    expect(languagePanelRows('en').map(row => row.locale)).toEqual([...ENABLED_LOCALES]);
+    expect(languagePanelRows('en').map((row) => row.locale)).toEqual([
+      ...ENABLED_LOCALES,
+    ]);
   });
 
   test('every row carries its OWN face, not the active language s', () => {
@@ -26,9 +34,9 @@ describe('languagePanelRows', () => {
     // fix would be the broken one.
     for (const active of LOCALES) {
       const rows = languagePanelRows(active, [...LOCALES]);
-      expect({ active, faces: rows.map(row => row.face) }).toEqual({
+      expect({ active, faces: rows.map((row) => row.face) }).toEqual({
         active,
-        faces: LOCALES.map(locale => localeMeta(locale).faces.display),
+        faces: LOCALES.map((locale) => localeMeta(locale).faces.display),
       });
     }
   });
@@ -37,8 +45,15 @@ describe('languagePanelRows', () => {
     // `Tiếng Việt` is the reason the derivative exists: the picker draws each
     // language's name in that language's face, so a face that cannot spell one
     // of them breaks the control offering the fix.
-    const vietnamese = languagePanelRows('en', ['en', 'vi']).find(row => row.locale === 'vi');
+    const vietnamese = languagePanelRows('en', ['en', 'vi']).find(
+      (row) => row.locale === 'vi',
+    );
     expect(vietnamese?.face).toBe('HFMSilkscreen_700Bold');
-    expect(missingGlyphs(vietnamese?.endonym ?? '', glyphSet(faceFile(vietnamese!.face)))).toEqual([]);
+    expect(
+      missingGlyphs(
+        vietnamese?.endonym ?? '',
+        glyphSet(faceFile(vietnamese!.face)),
+      ),
+    ).toEqual([]);
   });
 });

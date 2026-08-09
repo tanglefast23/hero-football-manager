@@ -74,16 +74,22 @@ export function TutorialTapCue({
   });
 
   const cue = (
-    <Animated.View style={[styles.cue, { transform: [{ translateY: travel }] }]}>
+    <Animated.View
+      style={[styles.cue, { transform: [{ translateY: travel }] }]}
+    >
       {direction === 'up' ? <Text style={styles.arrow}>▲</Text> : null}
       <View
         style={[
           styles.labelShadow,
-          labelOffsetX === 0 ? null : { transform: [{ translateX: labelOffsetX }] },
+          labelOffsetX === 0
+            ? null
+            : { transform: [{ translateX: labelOffsetX }] },
         ]}
       >
         <View style={styles.labelFrame}>
-          <Text className="text-center font-pixel text-sm uppercase text-white">{cueLabel}</Text>
+          <Text className="text-center font-pixel text-sm uppercase text-white">
+            {cueLabel}
+          </Text>
           <Text className="mt-1 text-center font-mono text-[10px] uppercase text-white/90">
             {detail}
           </Text>
@@ -100,7 +106,9 @@ export function TutorialTapCue({
       <View pointerEvents="box-none" style={[styles.anchor, style]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t('app.a11y.tapToDismiss', { sentence: `${cueLabel}. ${detail}.` })}
+          accessibilityLabel={t('app.a11y.tapToDismiss', {
+            sentence: `${cueLabel}. ${detail}.`,
+          })}
           onPress={onDismiss}
         >
           {cue}

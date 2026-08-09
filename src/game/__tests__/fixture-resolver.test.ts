@@ -36,14 +36,18 @@ describe('createFixtureResolver', () => {
   it('produces the identical result to the all-at-once path', () => {
     const scheduled = fixture('resolver-1', 4242);
 
-    expect(drain(scheduled, 64)).toEqual(quickResultForFixture(scheduled, TEAMS));
+    expect(drain(scheduled, 64)).toEqual(
+      quickResultForFixture(scheduled, TEAMS),
+    );
   });
 
   it('is unaffected by slice size — chunking cannot change a result', () => {
     const scheduled = fixture('resolver-2', 99);
 
     expect(drain(scheduled, 1)).toEqual(drain(scheduled, 100_000));
-    expect(drain(scheduled, 1)).toEqual(quickResultForFixture(scheduled, TEAMS));
+    expect(drain(scheduled, 1)).toEqual(
+      quickResultForFixture(scheduled, TEAMS),
+    );
   });
 
   it('refuses to hand over a result before the match has finished', () => {
@@ -55,9 +59,14 @@ describe('createFixtureResolver', () => {
   });
 
   it('validates the fixture exactly as the synchronous path does', () => {
-    const unscheduled = { ...fixture('resolver-4', 7), status: 'played' as const };
+    const unscheduled = {
+      ...fixture('resolver-4', 7),
+      status: 'played' as const,
+    };
 
-    expect(() => createFixtureResolver(unscheduled, TEAMS)).toThrow(/scheduled/i);
+    expect(() => createFixtureResolver(unscheduled, TEAMS)).toThrow(
+      /scheduled/i,
+    );
   });
 
   it('stops advancing once finished so extra pumps are harmless', () => {

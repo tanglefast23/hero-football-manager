@@ -46,7 +46,8 @@ function startListening(): void {
   listening = true;
 
   try {
-    const { AppState } = require('react-native') as typeof import('react-native');
+    const { AppState } =
+      require('react-native') as typeof import('react-native');
     AppState?.addEventListener?.('change', (next: string) => {
       setSuspended(next !== 'active');
     });
@@ -55,8 +56,13 @@ function startListening(): void {
     // below still covers the web build, and headless tests simply never suspend.
   }
 
-  if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
-    document.addEventListener('visibilitychange', () => setSuspended(document.hidden === true));
+  if (
+    typeof document !== 'undefined' &&
+    typeof document.addEventListener === 'function'
+  ) {
+    document.addEventListener('visibilitychange', () =>
+      setSuspended(document.hidden === true),
+    );
   }
 }
 

@@ -76,7 +76,8 @@ export function PixelPortrait({
   }, [canBlink, spriteKey]);
 
   const runs = useMemo(() => {
-    const rows = blinking && blinkVariant ? blinkVariant : portraitSpriteRows(spriteKey);
+    const rows =
+      blinking && blinkVariant ? blinkVariant : portraitSpriteRows(spriteKey);
     // The run id doubles as the React key, so it must stay STABLE across the
     // blink: a `:blink`-prefixed id unmounted and remounted every Rect in the
     // Canvas twice per blink (open and close) instead of diffing in place.
@@ -90,7 +91,7 @@ export function PixelPortrait({
         height: portraitSheet.cell.h * pixel,
       }}
     >
-      {runs.map(run => (
+      {runs.map((run) => (
         <Rect
           key={run.id}
           x={run.x * pixel}

@@ -4,7 +4,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { seasonEndViewModel } from '../../../application/view-models';
 import { loadLaunchContent } from '../../../content/load';
 import { leagueStandings, startNextSeason } from '../../../game/career';
-import { currentUserDivision, willRetireAtSeasonTransition } from '../../../game/m2-career';
+import {
+  currentUserDivision,
+  willRetireAtSeasonTransition,
+} from '../../../game/m2-career';
 import {
   divisionAfterFinish,
   divisionTierLabel,
@@ -14,7 +17,10 @@ import { releaseCareerPlayer, renewCareerPlayer } from '../../../game/squad';
 import type { GameState } from '../../../game/types';
 import { SeasonEndScreen } from '../../screens/SeasonEndScreen';
 import { devHarnessCareerAtSeasonEnd } from '../career';
-import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls';
+import {
+  DevHarnessButton,
+  devHarnessControlStyles,
+} from '../DevHarnessControls';
 import type { DevHarnessEntry } from '../registry';
 
 /**
@@ -82,9 +88,13 @@ const PROMOTION_CASES: readonly PromotionCase[] = Object.freeze([
   },
 ]);
 
-const CASE_BY_ID = new Map(PROMOTION_CASES.map(entry => [entry.id, entry]));
+const CASE_BY_ID = new Map(PROMOTION_CASES.map((entry) => [entry.id, entry]));
 
-export function PromotionTransitionReel({ caseId }: { readonly caseId: string }) {
+export function PromotionTransitionReel({
+  caseId,
+}: {
+  readonly caseId: string;
+}) {
   const season = CASE_BY_ID.get(caseId)?.season ?? PROMOTION_CASES[0].season;
   const content = useMemo(loadLaunchContent, []);
   const insets = useSafeAreaInsets();
@@ -92,7 +102,9 @@ export function PromotionTransitionReel({ caseId }: { readonly caseId: string })
   // The career is the expensive part — a season of simulated weeks each — so it
   // is read once per case and cached for the life of the bundle by `career.ts`.
   // Everything the controls do afterwards works on this local copy.
-  const [state, setState] = useState<GameState>(() => devHarnessCareerAtSeasonEnd(season, LADDER_SEED));
+  const [state, setState] = useState<GameState>(() =>
+    devHarnessCareerAtSeasonEnd(season, LADDER_SEED),
+  );
   const [term, setTerm] = useState<1 | 2 | 3>(1);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [transitionNote, setTransitionNote] = useState<string>();
@@ -102,10 +114,14 @@ export function PromotionTransitionReel({ caseId }: { readonly caseId: string })
     [content, state, term],
   );
 
-  const division: DivisionLevel = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
-  const finalPosition = useMemo(() => (
-    leagueStandings(state).find(row => row.clubId === state.userClubId)?.position ?? 0
-  ), [state]);
+  const division: DivisionLevel =
+    state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+  const finalPosition = useMemo(
+    () =>
+      leagueStandings(state).find((row) => row.clubId === state.userClubId)
+        ?.position ?? 0,
+    [state],
+  );
   // The pyramid's own rule, printed beside the screen that is meant to be
   // saying the same thing. Where they disagree the screen is wrong.
   const nextDivision = divisionAfterFinish(division, finalPosition);
@@ -119,7 +135,7 @@ export function PromotionTransitionReel({ caseId }: { readonly caseId: string })
     const playerId = viewModel.expiredContract?.playerId;
     if (playerId === undefined) return;
     try {
-      setState(current => releaseCareerPlayer(current, playerId));
+      setState((current) => releaseCareerPlayer(current, playerId));
       setTransitionNote(undefined);
     } catch (error) {
       setTransitionNote(`Release refused: ${(error as Error).message}`);
@@ -140,15 +156,17 @@ export function PromotionTransitionReel({ caseId }: { readonly caseId: string })
       let renewed = state;
       // A player leaving at this transition is exempt from the expiry gate and
       // may not re-sign, so renewing him would refuse the whole transition.
-      for (const player of state.players.filter(candidate => (
-        candidate.clubId === state.userClubId
-        && candidate.contractSeasonsRemaining === 0
-        && !willRetireAtSeasonTransition(candidate, state.season)
-      ))) {
+      for (const player of state.players.filter(
+        (candidate) =>
+          candidate.clubId === state.userClubId &&
+          candidate.contractSeasonsRemaining === 0 &&
+          !willRetireAtSeasonTransition(candidate, state.season),
+      )) {
         renewed = renewCareerPlayer(renewed, player.id, 4, 1);
       }
       const next = startNextSeason(renewed);
-      const landed: DivisionLevel = next.m2 === undefined ? 5 : currentUserDivision(next.m2);
+      const landed: DivisionLevel =
+        next.m2 === undefined ? 5 : currentUserDivision(next.m2);
       setTransitionNote(
         `Transition ran · now season ${next.season} week ${next.week} in ${divisionTierLabel(landed)}`,
       );
@@ -157,9 +175,10 @@ export function PromotionTransitionReel({ caseId }: { readonly caseId: string })
     }
   }, [state]);
 
-  const movement = nextDivision === division
-    ? `stays in ${divisionTierLabel(division)}`
-    : `${divisionTierLabel(division)} → ${divisionTierLabel(nextDivision)}`;
+  const movement =
+    nextDivision === division
+      ? `stays in ${divisionTierLabel(division)}`
+      : `${divisionTierLabel(division)} → ${divisionTierLabel(nextDivision)}`;
 
   return (
     <View style={styles.root}>
@@ -169,9 +188,11 @@ export function PromotionTransitionReel({ caseId }: { readonly caseId: string })
         // Live again: "Sign now" and the contract-length picker beside it were
         // dead code while `seasonEndViewModel` hard-coded `requiresNegotiation:
         // true`. The reel drives the same one-tap signing the screen offers.
-        onRenewContract={playerId => {
+        onRenewContract={(playerId) => {
           try {
-            setState(current => renewCareerPlayer(current, playerId, 4, term));
+            setState((current) =>
+              renewCareerPlayer(current, playerId, 4, term),
+            );
           } catch (error) {
             setTransitionNote(`Renewal refused: ${(error as Error).message}`);
           }
@@ -180,7 +201,11 @@ export function PromotionTransitionReel({ caseId }: { readonly caseId: string })
         // The agent meeting is the transfer-market negotiation, a feature of its
         // own with three rounds and pitch cards. Driving it here would make this
         // entry a second market reel; it is deliberately inert.
-        onStartRenewal={() => setTransitionNote('Renewal talks are the market negotiation, not this reel')}
+        onStartRenewal={() =>
+          setTransitionNote(
+            'Renewal talks are the market negotiation, not this reel',
+          )
+        }
         onSubmitRenewalOffer={() => {}}
         onCloseRenewal={() => {}}
         onPrimaryAction={runTransition}
@@ -208,7 +233,11 @@ export function PromotionTransitionReel({ caseId }: { readonly caseId: string })
               hint="Renew everyone and run the real season transition"
               onPress={runTransition}
             />
-            <DevHarnessButton label="Reset" hint="Reload this season boundary" onPress={reset} />
+            <DevHarnessButton
+              label="Reset"
+              hint="Reload this season boundary"
+              onPress={reset}
+            />
             <DevHarnessButton
               label="Hide"
               hint="Hide the review controls"
@@ -250,12 +279,17 @@ export const promotionTransitionEntry: DevHarnessEntry = Object.freeze({
   id: 'promotion-transition',
   group: 'Season',
   title: 'Promotion and relegation',
-  summary: 'The season review that says which way the club just moved, and the transition that moves it.',
-  cases: Object.freeze(PROMOTION_CASES.map(entry => Object.freeze({
-    id: entry.id,
-    label: entry.label,
-    note: entry.note,
-  }))),
+  summary:
+    'The season review that says which way the club just moved, and the transition that moves it.',
+  cases: Object.freeze(
+    PROMOTION_CASES.map((entry) =>
+      Object.freeze({
+        id: entry.id,
+        label: entry.label,
+        note: entry.note,
+      }),
+    ),
+  ),
   render: (caseId: string) => <PromotionTransitionReel caseId={caseId} />,
 });
 

@@ -30,7 +30,14 @@ const TEAM_OUTFIELD: ReadonlyArray<readonly number[]> = [
   [12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
 ];
 
-interface PairAcc { n: number; sa: number; sb: number; saa: number; sbb: number; sab: number; }
+interface PairAcc {
+  n: number;
+  sa: number;
+  sb: number;
+  saa: number;
+  sbb: number;
+  sab: number;
+}
 
 function newAcc(): PairAcc {
   return { n: 0, sa: 0, sb: 0, saa: 0, sbb: 0, sab: 0 };
@@ -45,19 +52,24 @@ function pearson(acc: PairAcc): number | undefined {
   return cov / Math.sqrt(va * vb);
 }
 
-export function meanOffBallYVelocityCorrelation(seeds: number = CORRELATION_SEEDS): number {
+export function meanOffBallYVelocityCorrelation(
+  seeds: number = CORRELATION_SEEDS,
+): number {
   const correlations: number[] = [];
   for (let seed = 1; seed <= seeds; seed++) {
     const m = createMatch(seed, ROVERS, UNITED);
     // accs[t] holds one accumulator per unordered pair of team t's outfielders
-    const accs: PairAcc[][] = TEAM_OUTFIELD.map(ids => ids.flatMap((_, i) => ids.slice(i + 1).map(newAcc)));
+    const accs: PairAcc[][] = TEAM_OUTFIELD.map((ids) =>
+      ids.flatMap((_, i) => ids.slice(i + 1).map(newAcc)),
+    );
     while (m.phase !== 'fulltime') {
-      const prevY = m.players.map(p => p.pos.y);
+      const prevY = m.players.map((p) => p.pos.y);
       const prevCarrier = m.ball.kind === 'held' ? m.ball.by : -1;
       tick(m);
       const carrier = m.ball.kind === 'held' ? m.ball.by : -1;
       const dy: Array<number | undefined> = m.players.map((p, i) => {
-        if (p.outUntilTick > m.tick || i === prevCarrier || i === carrier) return undefined;
+        if (p.outUntilTick > m.tick || i === prevCarrier || i === carrier)
+          return undefined;
         const d = p.pos.y - prevY[i];
         return Math.abs(d) > TELEPORT_CM ? undefined : d;
       });
@@ -66,11 +78,16 @@ export function meanOffBallYVelocityCorrelation(seeds: number = CORRELATION_SEED
         let pair = 0;
         for (let i = 0; i < ids.length; i++) {
           for (let j = i + 1; j < ids.length; j++, pair++) {
-            const a = dy[ids[i]], b = dy[ids[j]];
+            const a = dy[ids[i]],
+              b = dy[ids[j]];
             if (a === undefined || b === undefined) continue;
             const acc = accs[t][pair];
-            acc.n++; acc.sa += a; acc.sb += b;
-            acc.saa += a * a; acc.sbb += b * b; acc.sab += a * b;
+            acc.n++;
+            acc.sa += a;
+            acc.sb += b;
+            acc.saa += a * a;
+            acc.sbb += b * b;
+            acc.sab += a * b;
           }
         }
       }

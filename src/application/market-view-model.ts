@@ -25,7 +25,10 @@ import { loadLaunchContent } from '../content';
 import { copyOrEnglish } from './copy-fallback';
 import { proseSlug } from '../i18n/content-strings';
 import { divisionTierLabelWith, type DivisionLevel } from '../game/pyramid';
-import { contractTermOptions, shortContractReasonCopy } from '../game/retirement';
+import {
+  contractTermOptions,
+  shortContractReasonCopy,
+} from '../game/retirement';
 import { resolveRingCopy } from './copy-fallback';
 import {
   archetypeName,
@@ -159,7 +162,8 @@ export interface YouthIntakeViewSource {
 
 type YouthAttrKey = 'pac' | 'sho' | 'pas' | 'def' | 'tec' | 'sta' | 'ref';
 type YouthAttrs = Readonly<Record<YouthAttrKey, number>>;
-export type YouthStatLabel = 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF';
+export type YouthStatLabel =
+  'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF';
 
 /**
  * The six stats a youth card shows. Keepers swap SHO for REF: a shot-stopper's
@@ -169,10 +173,11 @@ function youthStatLine(
   role: 'GK' | 'DEF' | 'MID' | 'FWD',
   attrs: YouthAttrs,
 ): readonly { readonly label: YouthStatLabel; readonly value: number }[] {
-  const keys: readonly YouthAttrKey[] = role === 'GK'
-    ? ['pac', 'ref', 'pas', 'def', 'tec', 'sta']
-    : ['pac', 'sho', 'pas', 'def', 'tec', 'sta'];
-  return keys.map(key => ({
+  const keys: readonly YouthAttrKey[] =
+    role === 'GK'
+      ? ['pac', 'ref', 'pas', 'def', 'tec', 'sta']
+      : ['pac', 'sho', 'pas', 'def', 'tec', 'sta'];
+  return keys.map((key) => ({
     label: key.toUpperCase() as YouthStatLabel,
     value: attrs[key],
   }));
@@ -250,7 +255,12 @@ const PERK_COPY_KEYS: readonly {
 
 /** Built per call rather than once at module load, because `t` decides the words. */
 const KNOWN_PERSONALITIES: readonly string[] = [
-  'FIERY', 'LOYAL', 'GREEDY', 'JOKER', 'PROFESSIONAL', 'TIMID',
+  'FIERY',
+  'LOYAL',
+  'GREEDY',
+  'JOKER',
+  'PROFESSIONAL',
+  'TIMID',
 ];
 
 function isKnownPersonality(personality: PlayerPersonality): boolean {
@@ -262,27 +272,33 @@ function perkViewModels(
   personality: PlayerPersonality,
   context?: NegotiationViewSource['contractPromiseContext'],
 ): readonly ContractPerkViewModel[] {
-  return PERK_COPY_KEYS.map(perk => {
-    const blocked = context === undefined
-      ? undefined
-      : careerContractPromiseBlockedReason(
-          context.state,
-          context.player,
-          perk.id,
-          context.heroLimit,
-        );
+  return PERK_COPY_KEYS.map((perk) => {
+    const blocked =
+      context === undefined
+        ? undefined
+        : careerContractPromiseBlockedReason(
+            context.state,
+            context.player,
+            perk.id,
+            context.heroLimit,
+          );
     return {
       id: perk.id,
       label: t(perk.label),
       detail: t(perk.detail),
       gradeLabel: perkGradeLabel(perk.id, t, personality),
       available: blocked === undefined,
-      ...(blocked === undefined ? {} : { blockedReason: blockedReasonCopy(t, blocked) }),
+      ...(blocked === undefined
+        ? {}
+        : { blockedReason: blockedReasonCopy(t, blocked) }),
     };
   });
 }
 
-function blockedReasonCopy(t: CopyFn, blocked: ContractPromiseBlockedReason): string {
+function blockedReasonCopy(
+  t: CopyFn,
+  blocked: ContractPromiseBlockedReason,
+): string {
   return copyOrEnglish(t, blocked.key, blocked.text, blocked.params);
 }
 
@@ -319,12 +335,29 @@ function perkGradeLabel(
   return t('market.perkGradeD');
 }
 
-const CARD_COPY_KEYS: Readonly<Record<string, { label: string; detail: string }>> = {
-  FLATTERY: { label: 'market.cardFlatteryLabel', detail: 'market.cardFlatteryDetail' },
-  TROPHY_PROMISE: { label: 'market.cardTrophyLabel', detail: 'market.cardTrophyDetail' },
-  HOMETOWN_TIES: { label: 'market.cardHometownLabel', detail: 'market.cardHometownDetail' },
-  MONEY_TALKS: { label: 'market.cardMoneyLabel', detail: 'market.cardMoneyDetail' },
-  STRAIGHT_TALK: { label: 'market.cardStraightLabel', detail: 'market.cardStraightDetail' },
+const CARD_COPY_KEYS: Readonly<
+  Record<string, { label: string; detail: string }>
+> = {
+  FLATTERY: {
+    label: 'market.cardFlatteryLabel',
+    detail: 'market.cardFlatteryDetail',
+  },
+  TROPHY_PROMISE: {
+    label: 'market.cardTrophyLabel',
+    detail: 'market.cardTrophyDetail',
+  },
+  HOMETOWN_TIES: {
+    label: 'market.cardHometownLabel',
+    detail: 'market.cardHometownDetail',
+  },
+  MONEY_TALKS: {
+    label: 'market.cardMoneyLabel',
+    detail: 'market.cardMoneyDetail',
+  },
+  STRAIGHT_TALK: {
+    label: 'market.cardStraightLabel',
+    detail: 'market.cardStraightDetail',
+  },
 };
 
 export function marketViewModel(
@@ -332,9 +365,14 @@ export function marketViewModel(
   t: CopyFn = englishCopy(),
 ): MarketViewModel {
   const transferWindowOpen = isTransferWindowOpen(source.week);
-  const unlockedSections = source.unlockedSections ?? ['YOUTH', 'SCOUT', 'TRANSFERS', 'COACHES'];
+  const unlockedSections = source.unlockedSections ?? [
+    'YOUTH',
+    'SCOUT',
+    'TRANSFERS',
+    'COACHES',
+  ];
   const identities = new Map(
-    (source.scoutedPlayerIdentities ?? []).map(player => [player.id, player]),
+    (source.scoutedPlayerIdentities ?? []).map((player) => [player.id, player]),
   );
 
   return {
@@ -344,29 +382,36 @@ export function marketViewModel(
     cash: source.cash,
     window: {
       open: transferWindowOpen,
-      label: transferWindowOpen ? t('market.windowOpenLabel') : t('market.windowClosedLabel'),
+      label: transferWindowOpen
+        ? t('market.windowOpenLabel')
+        : t('market.windowClosedLabel'),
       detail: transferWindowOpen
         ? t('market.windowOpenDetail')
         : t('market.windowClosedDetail'),
     },
     scouting: {
-      officeLabel: source.scoutOfficeLevel === 0
-        ? t('market.noScoutOffice')
-        : t('market.scoutOfficeLevel', { level: source.scoutOfficeLevel }),
-      precisionLabel: source.scoutOfficeLevel === 0
-        ? t('market.scoutPrecisionBroad2')
-        : source.scoutOfficeLevel === 1
-          ? t('market.scoutPrecisionBroad3')
-          : source.scoutOfficeLevel === 2
-            ? t('market.scoutPrecisionImproved4')
-            : t('market.scoutPrecisionSharp5'),
+      officeLabel:
+        source.scoutOfficeLevel === 0
+          ? t('market.noScoutOffice')
+          : t('market.scoutOfficeLevel', { level: source.scoutOfficeLevel }),
+      precisionLabel:
+        source.scoutOfficeLevel === 0
+          ? t('market.scoutPrecisionBroad2')
+          : source.scoutOfficeLevel === 1
+            ? t('market.scoutPrecisionBroad3')
+            : source.scoutOfficeLevel === 2
+              ? t('market.scoutPrecisionImproved4')
+              : t('market.scoutPrecisionSharp5'),
       status: scoutingStatus(source, t),
-      choices: source.scoutOptions.map(option => scoutingChoice(source, option, t)),
-      reports: (source.scoutResult?.reports ?? []).map(report => {
+      choices: source.scoutOptions.map((option) =>
+        scoutingChoice(source, option, t),
+      ),
+      reports: (source.scoutResult?.reports ?? []).map((report) => {
         const identity = identities.get(report.playerId);
-        const stats = report.role === 'GK'
-          ? (['pac', 'pas', 'def', 'tec', 'sta', 'ref'] as const)
-          : (['pac', 'sho', 'pas', 'def', 'tec', 'sta'] as const);
+        const stats =
+          report.role === 'GK'
+            ? (['pac', 'pas', 'def', 'tec', 'sta', 'ref'] as const)
+            : (['pac', 'sho', 'pas', 'def', 'tec', 'sta'] as const);
         return {
           playerId: report.playerId,
           playerName: identity?.name ?? report.playerId,
@@ -380,39 +425,51 @@ export function marketViewModel(
           ),
           ...(report.power === undefined
             ? {}
-            : { powerLabel: identity?.powerName ?? powerDisplayName(t, report.power) }),
+            : {
+                powerLabel:
+                  identity?.powerName ?? powerDisplayName(t, report.power),
+              }),
           ...(report.rumoredHeroLead === true && report.power === undefined
             ? { rumorLabel: t('market.heroRumorLooksReal') }
             : {}),
-          stats: stats.map(attribute => ({
+          stats: stats.map((attribute) => ({
             label: attribute.toUpperCase(),
             rangeLabel: `${report.statRanges[attribute].minimum}-${report.statRanges[attribute].maximum}`,
           })),
         } satisfies ScoutReportViewModel;
       }),
     },
-    transfers: source.transferListings.map(listing =>
-      transferListing(source, listing, transferWindowOpen, t)),
-    coaches: source.coachCandidates.slice(0, 3).map(candidate => {
+    transfers: source.transferListings.map((listing) =>
+      transferListing(source, listing, transferWindowOpen, t),
+    ),
+    coaches: source.coachCandidates.slice(0, 3).map((candidate) => {
       const eligible = isCoachCandidateEligible(
         candidate,
         source.highestDivisionReached ?? source.division,
         source.fame,
       );
       const headWeeklyWage = coachWeeklyWageForRole(candidate, 'HEAD');
-      const assistantWeeklyWage = coachWeeklyWageForRole(candidate, 'ASSISTANT');
+      const assistantWeeklyWage = coachWeeklyWageForRole(
+        candidate,
+        'ASSISTANT',
+      );
       const headAffordable = source.cash >= headWeeklyWage;
       const assistantAffordable = source.cash >= assistantWeeklyWage;
       const headCoachId = source.headCoachId ?? source.headCoach?.id;
-      const legacySingleHeadSource = source.headCoach !== undefined && source.headCoachId === undefined;
-      const alreadyOnStaff = candidate.id === headCoachId || candidate.id === source.assistantCoachId;
+      const legacySingleHeadSource =
+        source.headCoach !== undefined && source.headCoachId === undefined;
+      const alreadyOnStaff =
+        candidate.id === headCoachId ||
+        candidate.id === source.assistantCoachId;
       const assistantSlotUnlocked = source.assistantSlotUnlocked === true;
       const generallyAvailable = eligible && !alreadyOnStaff;
-      const headAvailable = generallyAvailable && headAffordable && headCoachId === undefined;
-      const assistantAvailable = generallyAvailable
-        && assistantAffordable
-        && assistantSlotUnlocked
-        && source.assistantCoachId === undefined;
+      const headAvailable =
+        generallyAvailable && headAffordable && headCoachId === undefined;
+      const assistantAvailable =
+        generallyAvailable &&
+        assistantAffordable &&
+        assistantSlotUnlocked &&
+        source.assistantCoachId === undefined;
       return {
         id: candidate.id,
         portraitId: candidate.portraitId ?? candidate.id,
@@ -433,14 +490,18 @@ export function marketViewModel(
         retiredLegend: candidate.retiredLegendPlayerId !== undefined,
         ...(candidate.loyaltyDiscountPercent > 0
           ? {
-            loyaltyLabel: t('market.loyaltyDiscount', {
-              percent: candidate.loyaltyDiscountPercent,
-            }),
-          }
+              loyaltyLabel: t('market.loyaltyDiscount', {
+                percent: candidate.loyaltyDiscountPercent,
+              }),
+            }
           : {}),
         ...(candidate.unlockId === undefined
           ? {}
-          : { unlockLabel: t('market.teachesUnlock', { unlock: unlockName(candidate.unlockId, t) }) }),
+          : {
+              unlockLabel: t('market.teachesUnlock', {
+                unlock: unlockName(candidate.unlockId, t),
+              }),
+            }),
         available: headAvailable || assistantAvailable,
         headAvailable,
         assistantAvailable,
@@ -456,16 +517,16 @@ export function marketViewModel(
         ...(legacySingleHeadSource
           ? { blockedReason: dismissCoachFirst(source, t) }
           : alreadyOnStaff
-          ? { blockedReason: t('market.alreadyOnCoachingStaff') }
-          : !eligible
-            ? { blockedReason: t('market.raiseDivisionAndFame') }
-            : !headAffordable && !assistantAffordable
-              ? { blockedReason: t('market.cannotCoverFirstWage') }
-              : headAvailable || assistantAvailable
-                ? {}
-                : headCoachId !== undefined && !assistantSlotUnlocked
-                  ? { blockedReason: dismissCoachFirst(source, t) }
-                  : { blockedReason: t('market.bothCoachingRolesFilled') }),
+            ? { blockedReason: t('market.alreadyOnCoachingStaff') }
+            : !eligible
+              ? { blockedReason: t('market.raiseDivisionAndFame') }
+              : !headAffordable && !assistantAffordable
+                ? { blockedReason: t('market.cannotCoverFirstWage') }
+                : headAvailable || assistantAvailable
+                  ? {}
+                  : headCoachId !== undefined && !assistantSlotUnlocked
+                    ? { blockedReason: dismissCoachFirst(source, t) }
+                    : { blockedReason: t('market.bothCoachingRolesFilled') }),
       };
     }),
     ...(source.youthIntake === undefined || !unlockedSections.includes('YOUTH')
@@ -505,7 +566,7 @@ function youthIntakeViewModel(
       count: intake.rosterCount,
       capacity: intake.rosterCapacity,
     }),
-    offers: intake.offers.map(offer => {
+    offers: intake.offers.map((offer) => {
       const affordable = cash >= offer.signingBonus;
       return {
         playerId: offer.player.id,
@@ -514,7 +575,10 @@ function youthIntakeViewModel(
         lookId: offer.player.lookId,
         ageLabel: t('market.ageLabel', { age: offer.player.age }),
         archetypeLabel: archetypeName(t, offer.player.archetype),
-        potentialLabel: exactPotentialLabel(offer.player.id, offer.player.potential),
+        potentialLabel: exactPotentialLabel(
+          offer.player.id,
+          offer.player.potential,
+        ),
         stats: youthStatLine(offer.player.role, offer.player.attrs),
         signingBonus: offer.signingBonus,
         weeklyWage: offer.player.weeklyWage,
@@ -539,7 +603,9 @@ function scoutingStatus(
   if (source.scoutResult !== undefined) {
     return {
       kind: 'COMPLETED',
-      headline: t('market.scoutReportsOnDesk', { count: source.scoutResult.reports.length }),
+      headline: t('market.scoutReportsOnDesk', {
+        count: source.scoutResult.reports.length,
+      }),
       detail: t('market.scoutReportsDetail'),
       progressLabel: t('market.scoutProgressComplete'),
     };
@@ -553,7 +619,10 @@ function scoutingStatus(
       progressLabel: t('market.scoutProgressReady'),
     };
   }
-  const weeksRemaining = Math.max(0, mission.dueWeek - source.currentCareerWeek);
+  const weeksRemaining = Math.max(
+    0,
+    mission.dueWeek - source.currentCareerWeek,
+  );
   if (weeksRemaining === 0) {
     return {
       kind: 'READY',
@@ -564,14 +633,22 @@ function scoutingStatus(
   }
   return {
     kind: 'IN_PROGRESS',
-    headline: t('market.scoutTripInProgress', { region: scoutRegionName(t, mission.region) }),
-    detail: source.activeScoutMissionFeeWaived === true
-      ? t('market.scoutBriefFeeWaived', { focus: focusLabel(mission.focus, t) })
-      : t('market.scoutBriefPaid', {
-        focus: focusLabel(mission.focus, t),
-        cost: formatMoneyForCopy(t, mission.cost),
-      }),
-    progressLabel: t('market.scoutWeeksLeft', { n: weeksRemaining, count: weeksRemaining }),
+    headline: t('market.scoutTripInProgress', {
+      region: scoutRegionName(t, mission.region),
+    }),
+    detail:
+      source.activeScoutMissionFeeWaived === true
+        ? t('market.scoutBriefFeeWaived', {
+            focus: focusLabel(mission.focus, t),
+          })
+        : t('market.scoutBriefPaid', {
+            focus: focusLabel(mission.focus, t),
+            cost: formatMoneyForCopy(t, mission.cost),
+          }),
+    progressLabel: t('market.scoutWeeksLeft', {
+      n: weeksRemaining,
+      count: weeksRemaining,
+    }),
   };
 }
 
@@ -582,8 +659,10 @@ function scoutingChoice(
 ): ScoutMissionChoiceViewModel {
   const cost = scoutMissionCost(option.region, option.focus);
   const progressionDivision = source.highestDivisionReached ?? source.division;
-  const heroLocked = option.focus.kind === 'RUMORED_HERO' && progressionDivision > 3;
-  const eliteLocked = option.focus.kind === 'ELITE_PROSPECT' && progressionDivision > 2;
+  const heroLocked =
+    option.focus.kind === 'RUMORED_HERO' && progressionDivision > 3;
+  const eliteLocked =
+    option.focus.kind === 'ELITE_PROSPECT' && progressionDivision > 2;
   const busy = source.activeScoutMission !== undefined;
   const affordable = source.cash >= cost;
   const feeWaived = !affordable && source.firstScoutFavorAvailable === true;
@@ -596,16 +675,25 @@ function scoutingChoice(
     cost,
     feeWaived,
     durationLabel: t('market.scoutDuration'),
-    available: !busy && !heroLocked && !eliteLocked && (affordable || feeWaived),
+    available:
+      !busy && !heroLocked && !eliteLocked && (affordable || feeWaived),
     ...(busy
       ? { blockedReason: t('market.scoutBusy') }
       : heroLocked
-        ? { blockedReason: t('market.scoutHeroLocked', { division: divisionTierLabelWith(3, t) }) }
+        ? {
+            blockedReason: t('market.scoutHeroLocked', {
+              division: divisionTierLabelWith(3, t),
+            }),
+          }
         : eliteLocked
-          ? { blockedReason: t('market.scoutEliteLocked', { division: divisionTierLabelWith(2, t) }) }
-        : !affordable
-          ? { blockedReason: t('market.scoutNotEnoughMoney') }
-          : {}),
+          ? {
+              blockedReason: t('market.scoutEliteLocked', {
+                division: divisionTierLabelWith(2, t),
+              }),
+            }
+          : !affordable
+            ? { blockedReason: t('market.scoutNotEnoughMoney') }
+            : {}),
   };
 }
 
@@ -621,9 +709,11 @@ function transferListing(
     week: source.week,
     sellingClubDivision: listing.sellingClubDivision,
   };
-  const quote = listing.savedQuote ?? (listing.direction === 'BUY'
-    ? buyingTransferQuote(listing.player, context)
-    : sellingTransferQuote(listing.player, context));
+  const quote =
+    listing.savedQuote ??
+    (listing.direction === 'BUY'
+      ? buyingTransferQuote(listing.player, context)
+      : sellingTransferQuote(listing.player, context));
   const affordable = listing.direction === 'SELL' || source.cash >= quote.fee;
   return {
     playerId: listing.player.id,
@@ -636,24 +726,29 @@ function transferListing(
       listing.player.potential as 1 | 2 | 3 | 4 | 5,
     ),
     direction: listing.direction,
-    ...(listing.player.powerName === undefined ? {} : { powerLabel: listing.player.powerName }),
+    ...(listing.player.powerName === undefined
+      ? {}
+      : { powerLabel: listing.player.powerName }),
     valuation: quote.valuation,
     quote: quote.fee,
-    quoteLabel: listing.direction === 'BUY'
-      ? t('market.quoteClubAsking')
-      : t('market.quoteBestBid'),
-    actionLabel: listing.direction === 'BUY'
-      ? t('market.actionOpenTalks')
-      : listing.listed === true
-        ? t('market.actionAcceptBid')
-        : t('market.actionListPlayer'),
+    quoteLabel:
+      listing.direction === 'BUY'
+        ? t('market.quoteClubAsking')
+        : t('market.quoteBestBid'),
+    actionLabel:
+      listing.direction === 'BUY'
+        ? t('market.actionOpenTalks')
+        : listing.listed === true
+          ? t('market.actionAcceptBid')
+          : t('market.actionListPlayer'),
     listed: listing.listed === true,
-    bids: (listing.bids ?? []).map(bid => ({
+    bids: (listing.bids ?? []).map((bid) => ({
       id: bid.id,
       buyerName: bid.buyerName,
       fee: bid.quote.fee,
     })),
-    available: windowOpen && affordable && listing.saleBlockedReason === undefined,
+    available:
+      windowOpen && affordable && listing.saleBlockedReason === undefined,
     ...(!windowOpen
       ? { blockedReason: t('market.transferWindowClosed') }
       : listing.saleBlockedReason !== undefined
@@ -687,8 +782,10 @@ function scoutPotentialLabel(
   minimum: number,
   maximum: number,
 ): string {
-  const minTier = Math.max(1, Math.min(5, Math.round(minimum))) as 1 | 2 | 3 | 4 | 5;
-  const maxTier = Math.max(1, Math.min(5, Math.round(maximum))) as 1 | 2 | 3 | 4 | 5;
+  const minTier = Math.max(1, Math.min(5, Math.round(minimum))) as
+    1 | 2 | 3 | 4 | 5;
+  const maxTier = Math.max(1, Math.min(5, Math.round(maximum))) as
+    1 | 2 | 3 | 4 | 5;
   if (minTier === maxTier) return exactPotentialLabel(playerId, minTier);
   const lowGrade = POTENTIAL_GRADES[(minTier - 1) * 3];
   const highGrade = POTENTIAL_GRADES[(maxTier - 1) * 3 + 2];
@@ -707,7 +804,10 @@ function hashString(value: string): number {
   return hash >>> 0;
 }
 const NEGOTIATION_PERKS: readonly ContractPerk[] = [
-  'GUARANTEED_STARTER', 'CAPTAINCY', 'TRAINING_PRIORITY', 'JERSEY_10',
+  'GUARANTEED_STARTER',
+  'CAPTAINCY',
+  'TRAINING_PRIORITY',
+  'JERSEY_10',
 ];
 
 /**
@@ -732,14 +832,18 @@ export function contractDraftPerk(
   viewModel: Pick<MarketNegotiationViewModel, 'perks'> | undefined,
   preferred?: ContractPerk,
 ): ContractPerk {
-  if (preferred !== undefined && (
-    viewModel === undefined
-    || viewModel.perks.some(perk => perk.id === preferred && perk.available)
-  )) return preferred;
-  return viewModel?.perks.find(perk => perk.available)?.id
-    ?? viewModel?.perks[0]?.id
-    ?? preferred
-    ?? 'GUARANTEED_STARTER';
+  if (
+    preferred !== undefined &&
+    (viewModel === undefined ||
+      viewModel.perks.some((perk) => perk.id === preferred && perk.available))
+  )
+    return preferred;
+  return (
+    viewModel?.perks.find((perk) => perk.available)?.id ??
+    viewModel?.perks[0]?.id ??
+    preferred ??
+    'GUARANTEED_STARTER'
+  );
 }
 
 /**
@@ -757,13 +861,20 @@ function requiredWageQuotes(
   const quotes: Record<string, number> = {};
   const cards: (PitchCard | undefined)[] = [
     undefined,
-    ...negotiation.pitchCards.filter(card => !negotiation.usedPitchCards.includes(card)),
+    ...negotiation.pitchCards.filter(
+      (card) => !negotiation.usedPitchCards.includes(card),
+    ),
   ];
   try {
     for (const term of termOptions) {
       for (const perk of NEGOTIATION_PERKS) {
         for (const card of cards) {
-          quotes[offerQuoteKey(term, perk, card)] = requiredWeeklyWage(negotiation, term, perk, card);
+          quotes[offerQuoteKey(term, perk, card)] = requiredWeeklyWage(
+            negotiation,
+            term,
+            perk,
+            card,
+          );
         }
       }
     }
@@ -801,35 +912,44 @@ export function marketNegotiationViewModel(
    * Absent before the last round and absent once talks are over, so the panel's
    * whole take-it-or-leave-it branch hangs off one optional field.
    */
-  const finalDemand = negotiation.status !== 'OPEN'
-    || negotiation.round + 1 !== FINAL_NEGOTIATION_ROUND
-    ? undefined
-    : (() => {
-        const termSeasons = (lastOffer?.termSeasons ?? maxTermSeasons) as 1 | 2 | 3;
-        const perk = lastOffer?.perk ?? 'GUARANTEED_STARTER';
-        // Same reasoning as the quote table: a demand that cannot be priced is
-        // no demand, and the panel falls back to the ordinary offer form rather
-        // than crashing on the last round of a drifted save.
-        const quoted = requiredWageQuotes(negotiation, [termSeasons])[
-          offerQuoteKey(termSeasons, perk)
-        ];
-        if (quoted === undefined) return undefined;
-        const weeklyWage = quoted;
-        // Seeded on the negotiation, so re-rendering the panel — or reloading
-        // the save — does not hand the same agent a different personality
-        // halfway through his own sentence.
-        const authored = AGENT_FINAL_LINES[
-          hashString(`agent-final:${negotiation.id}`) % AGENT_FINAL_LINES.length
-        ]!;
-        return {
-          weeklyWage,
-          termSeasons,
-          perk,
-          line: copyOrEnglish(t, `agent.final.${proseSlug(authored)}`, authored, {
-            wage: formatMoneyForCopy(t, weeklyWage),
-          }),
-        };
-      })();
+  const finalDemand =
+    negotiation.status !== 'OPEN' ||
+    negotiation.round + 1 !== FINAL_NEGOTIATION_ROUND
+      ? undefined
+      : (() => {
+          const termSeasons = (lastOffer?.termSeasons ?? maxTermSeasons) as
+            1 | 2 | 3;
+          const perk = lastOffer?.perk ?? 'GUARANTEED_STARTER';
+          // Same reasoning as the quote table: a demand that cannot be priced is
+          // no demand, and the panel falls back to the ordinary offer form rather
+          // than crashing on the last round of a drifted save.
+          const quoted = requiredWageQuotes(negotiation, [termSeasons])[
+            offerQuoteKey(termSeasons, perk)
+          ];
+          if (quoted === undefined) return undefined;
+          const weeklyWage = quoted;
+          // Seeded on the negotiation, so re-rendering the panel — or reloading
+          // the save — does not hand the same agent a different personality
+          // halfway through his own sentence.
+          const authored =
+            AGENT_FINAL_LINES[
+              hashString(`agent-final:${negotiation.id}`) %
+                AGENT_FINAL_LINES.length
+            ]!;
+          return {
+            weeklyWage,
+            termSeasons,
+            perk,
+            line: copyOrEnglish(
+              t,
+              `agent.final.${proseSlug(authored)}`,
+              authored,
+              {
+                wage: formatMoneyForCopy(t, weeklyWage),
+              },
+            ),
+          };
+        })();
   return {
     id: negotiation.id,
     playerId: negotiation.playerId,
@@ -842,31 +962,43 @@ export function marketNegotiationViewModel(
     mood: negotiation.mood,
     moodFace: mood.face,
     moodLabel: mood.label,
-    roundLabel: negotiation.status === 'OPEN'
-      ? t('market.negotiationRound', { round: negotiation.round + 1 })
-      : negotiation.status === 'ACCEPTED'
-        ? t('market.negotiationDealAgreed')
-        : t('market.negotiationTalksEnded'),
-    pitchLeverageLabel: leverage < 0
-      ? t('market.pitchLowersWage', { percent: Math.abs(leverage) })
-      : leverage > 0
-        ? t('market.pitchRaisesWage', { percent: leverage })
-        : t('market.pitchNoWageChange'),
-    cards: negotiation.pitchCards.map(card => {
+    roundLabel:
+      negotiation.status === 'OPEN'
+        ? t('market.negotiationRound', { round: negotiation.round + 1 })
+        : negotiation.status === 'ACCEPTED'
+          ? t('market.negotiationDealAgreed')
+          : t('market.negotiationTalksEnded'),
+    pitchLeverageLabel:
+      leverage < 0
+        ? t('market.pitchLowersWage', { percent: Math.abs(leverage) })
+        : leverage > 0
+          ? t('market.pitchRaisesWage', { percent: leverage })
+          : t('market.pitchNoWageChange'),
+    cards: negotiation.pitchCards.map((card) => {
       const affinity = pitchCardAffinity(negotiation.personality, card);
       return {
         id: card,
         label: t(CARD_COPY_KEYS[card].label),
         detail: t(CARD_COPY_KEYS[card].detail),
         used: negotiation.usedPitchCards.includes(card),
-        affinity: affinity === 1 ? 'LOVED' : affinity === -1 ? 'HATED' : 'NEUTRAL',
+        affinity:
+          affinity === 1 ? 'LOVED' : affinity === -1 ? 'HATED' : 'NEUTRAL',
       } satisfies PitchCardViewModel;
     }),
-    perks: perkViewModels(t, negotiation.personality, source.contractPromiseContext),
+    perks: perkViewModels(
+      t,
+      negotiation.personality,
+      source.contractPromiseContext,
+    ),
     termOptions: contractTermOptions(maxTermSeasons),
-    ...(maxTermSeasons >= 3 || source.playerAge === undefined ? {} : {
-      shortTermReason: resolveRingCopy(t, shortContractReasonCopy(source.playerAge, maxTermSeasons)),
-    }),
+    ...(maxTermSeasons >= 3 || source.playerAge === undefined
+      ? {}
+      : {
+          shortTermReason: resolveRingCopy(
+            t,
+            shortContractReasonCopy(source.playerAge, maxTermSeasons),
+          ),
+        }),
     initialWeeklyWage: previousOffer ?? source.openingWeeklyWage,
     wageStep,
     walkOutWeeklyWage: insultingOfferFloor(negotiation.weeklyAsk),
@@ -878,13 +1010,15 @@ export function marketNegotiationViewModel(
     ...(lastOutcome === undefined
       ? {}
       : { lastOutcomeLabel: outcomeLabel(lastOutcome, t) }),
-    ...(lastOffer === undefined ? {} : {
-      lastOffer: {
-        weeklyWage: lastOffer.weeklyWage,
-        termSeasons: lastOffer.termSeasons as 1 | 2 | 3,
-        perk: lastOffer.perk,
-      },
-    }),
+    ...(lastOffer === undefined
+      ? {}
+      : {
+          lastOffer: {
+            weeklyWage: lastOffer.weeklyWage,
+            termSeasons: lastOffer.termSeasons as 1 | 2 | 3,
+            perk: lastOffer.perk,
+          },
+        }),
   };
 }
 
@@ -894,9 +1028,12 @@ function moodPresentation(
   t: CopyFn,
 ): { face: string; label: string } {
   if (mood === 'ANGRY') return { face: 'ಠ_ಠ', label: t('market.moodAngry') };
-  if (mood === 'UNHAPPY') return { face: '>_<', label: t('market.moodUnhappy') };
-  if (mood === 'PLEASED') return { face: '^_^', label: t('market.moodPleased') };
-  if (mood === 'THRILLED') return { face: '★_★', label: t('market.moodThrilled') };
+  if (mood === 'UNHAPPY')
+    return { face: '>_<', label: t('market.moodUnhappy') };
+  if (mood === 'PLEASED')
+    return { face: '^_^', label: t('market.moodPleased') };
+  if (mood === 'THRILLED')
+    return { face: '★_★', label: t('market.moodThrilled') };
   return { face: '•_•', label: t('market.moodListening') };
 }
 
@@ -911,7 +1048,8 @@ function outcomeLabel(
 }
 
 function focusLabel(focus: ScoutFocus, t: CopyFn): string {
-  if (focus.kind === 'POSITION') return t('market.focusPositionSearch', { role: focus.role });
+  if (focus.kind === 'POSITION')
+    return t('market.focusPositionSearch', { role: focus.role });
   if (focus.kind === 'AGE') {
     return t('market.focusAgeRange', {
       minimum: focus.minimumAge,
@@ -923,7 +1061,8 @@ function focusLabel(focus: ScoutFocus, t: CopyFn): string {
 }
 
 function focusDetail(focus: ScoutFocus, t: CopyFn): string {
-  if (focus.kind === 'POSITION') return t('market.focusPositionDetail', { role: focus.role });
+  if (focus.kind === 'POSITION')
+    return t('market.focusPositionDetail', { role: focus.role });
   if (focus.kind === 'AGE') return t('market.focusAgeDetail');
   if (focus.kind === 'ELITE_PROSPECT') return t('market.focusEliteDetail');
   return t('market.focusHeroDetail');

@@ -29,7 +29,10 @@ import type { Attrs } from '../sim/types';
  * rule and lives in `src/game/`, which cannot import this layer. One rule, two
  * doors.
  */
-export function displayedAttributeValue(player: CareerPlayer, attribute: keyof Attrs): number {
+export function displayedAttributeValue(
+  player: CareerPlayer,
+  attribute: keyof Attrs,
+): number {
   return displayedValue(player, attribute);
 }
 
@@ -49,6 +52,10 @@ export function displayedAttributeCeiling(value: number): number {
  * What a drill row advertises, which for the keeper ladder is the outfield
  * number. Takes the authored gain so the caller keeps whatever it already read.
  */
-export function displayedDrillGain(state: GameState, drillId: string, gain: number): number {
+export function displayedDrillGain(
+  state: GameState,
+  drillId: string,
+  gain: number,
+): number {
   return Math.round(gain * keeperDisplayLadderMultiplier(state, drillId));
 }

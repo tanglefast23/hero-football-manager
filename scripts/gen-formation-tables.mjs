@@ -19,15 +19,15 @@ const ROWS = 7;
 // SS second striker.
 const SLOTS = [
   { ax: 0.15, ay: 0.78, line: 'DEF', role: 'FB' },
-  { ax: 0.38, ay: 0.80, line: 'DEF', role: 'CB1' },
-  { ax: 0.62, ay: 0.80, line: 'DEF', role: 'CB2' },
+  { ax: 0.38, ay: 0.8, line: 'DEF', role: 'CB1' },
+  { ax: 0.62, ay: 0.8, line: 'DEF', role: 'CB2' },
   { ax: 0.85, ay: 0.78, line: 'DEF', role: 'FB' },
   { ax: 0.15, ay: 0.55, line: 'MID', role: 'WM' },
   { ax: 0.38, ay: 0.58, line: 'MID', role: 'DM' },
   { ax: 0.62, ay: 0.58, line: 'MID', role: 'AM' },
   { ax: 0.85, ay: 0.55, line: 'MID', role: 'WM' },
-  { ax: 0.38, ay: 0.30, line: 'FWD', role: 'TM' },
-  { ax: 0.62, ay: 0.30, line: 'FWD', role: 'SS' },
+  { ax: 0.38, ay: 0.3, line: 'FWD', role: 'TM' },
+  { ax: 0.62, ay: 0.3, line: 'FWD', role: 'SS' },
 ];
 
 // Per-LINE X parameters: width scales the lateral spread around center, slide
@@ -48,14 +48,68 @@ const X_PARAMS = {
     // press IN possession = ball-side support: the nearest one-two teammates
     // converge toward the carrier's line (pass options, second balls after a
     // power KO frees the ball) — the narrow pressReach keeps it a duty, not a sheet.
-    DEF: { width: 1.00, slide: 0.25, near: 0.25, reach: 0.45, pressReach: 0.20, attackRun: 0.05, press: 0.015, cover: 0.06 },
-    MID: { width: 1.10, slide: 0.20, near: 0.30, reach: 0.45, pressReach: 0.22, attackRun: 0.14, press: 0.05, cover: 0.08 },
-    FWD: { width: 1.15, slide: 0.15, near: 0.25, reach: 0.45, pressReach: 0.24, attackRun: 0.18, press: 0.05, cover: 0.04 },
+    DEF: {
+      width: 1.0,
+      slide: 0.25,
+      near: 0.25,
+      reach: 0.45,
+      pressReach: 0.2,
+      attackRun: 0.05,
+      press: 0.015,
+      cover: 0.06,
+    },
+    MID: {
+      width: 1.1,
+      slide: 0.2,
+      near: 0.3,
+      reach: 0.45,
+      pressReach: 0.22,
+      attackRun: 0.14,
+      press: 0.05,
+      cover: 0.08,
+    },
+    FWD: {
+      width: 1.15,
+      slide: 0.15,
+      near: 0.25,
+      reach: 0.45,
+      pressReach: 0.24,
+      attackRun: 0.18,
+      press: 0.05,
+      cover: 0.04,
+    },
   },
   outOfPossession: {
-    DEF: { width: 0.72, slide: 0.26, near: 0.28, reach: 0.50, pressReach: 0.20, attackRun: 0, press: 0.06, cover: 0.06 },
-    MID: { width: 0.68, slide: 0.35, near: 0.42, reach: 0.50, pressReach: 0.22, attackRun: 0, press: 0.10, cover: 0.08 },
-    FWD: { width: 0.64, slide: 0.45, near: 0.35, reach: 0.50, pressReach: 0.24, attackRun: 0, press: 0.06, cover: 0.03 },
+    DEF: {
+      width: 0.72,
+      slide: 0.26,
+      near: 0.28,
+      reach: 0.5,
+      pressReach: 0.2,
+      attackRun: 0,
+      press: 0.06,
+      cover: 0.06,
+    },
+    MID: {
+      width: 0.68,
+      slide: 0.35,
+      near: 0.42,
+      reach: 0.5,
+      pressReach: 0.22,
+      attackRun: 0,
+      press: 0.1,
+      cover: 0.08,
+    },
+    FWD: {
+      width: 0.64,
+      slide: 0.45,
+      near: 0.35,
+      reach: 0.5,
+      pressReach: 0.24,
+      attackRun: 0,
+      press: 0.06,
+      cover: 0.03,
+    },
   },
 };
 
@@ -76,19 +130,75 @@ const Y_PARAMS = {
     // pitch (playing out under pressure): a deep keeper's easy 400-3500 outlet
     // sits inside the opposing forwards' camp, so regains happen in shooting
     // range instead of the keeper recycling forever.
-    FB:  { lineY: 0.66, follow: 0.35, winLo: 0.35, winHi: 0.95, minY: 0.40, maxY: 0.90 },
-    CB1: { lineY: 0.72, follow: 0.22, winLo: 0.55, winHi: 0.95, minY: 0.50, maxY: 0.90 },
-    CB2: { lineY: 0.74, follow: 0.18, winLo: 0.60, winHi: 0.97, minY: 0.52, maxY: 0.92 },
-    WM:  { lineY: 0.48, follow: 0.35, winLo: 0.15, winHi: 0.70, minY: 0.20, maxY: 0.80 },
-    DM:  { lineY: 0.56, follow: 0.22, winLo: 0.40, winHi: 0.75, minY: 0.35, maxY: 0.82 },
-    AM:  { lineY: 0.44, follow: 0.30, winLo: 0.15, winHi: 0.55, minY: 0.18, maxY: 0.75 },
+    FB: {
+      lineY: 0.66,
+      follow: 0.35,
+      winLo: 0.35,
+      winHi: 0.95,
+      minY: 0.4,
+      maxY: 0.9,
+    },
+    CB1: {
+      lineY: 0.72,
+      follow: 0.22,
+      winLo: 0.55,
+      winHi: 0.95,
+      minY: 0.5,
+      maxY: 0.9,
+    },
+    CB2: {
+      lineY: 0.74,
+      follow: 0.18,
+      winLo: 0.6,
+      winHi: 0.97,
+      minY: 0.52,
+      maxY: 0.92,
+    },
+    WM: {
+      lineY: 0.48,
+      follow: 0.35,
+      winLo: 0.15,
+      winHi: 0.7,
+      minY: 0.2,
+      maxY: 0.8,
+    },
+    DM: {
+      lineY: 0.56,
+      follow: 0.22,
+      winLo: 0.4,
+      winHi: 0.75,
+      minY: 0.35,
+      maxY: 0.82,
+    },
+    AM: {
+      lineY: 0.44,
+      follow: 0.3,
+      winLo: 0.15,
+      winHi: 0.55,
+      minY: 0.18,
+      maxY: 0.75,
+    },
     // Striker floors keep receiving positions just OUTSIDE the box — shots
     // then come from sane range (save-rate rail), not six-yard tap-ins.
     // winHi keeps strikers pinned high, OUT of a deepest-third carrier's 3500
     // pass range: build-up from one's own box cycles through mids (slow, safe)
     // instead of instant long balls to the front line.
-    TM:  { lineY: 0.26, follow: 0.30, winLo: 0.08, winHi: 0.40, minY: 0.16, maxY: 0.55 },
-    SS:  { lineY: 0.32, follow: 0.30, winLo: 0.12, winHi: 0.45, minY: 0.18, maxY: 0.60 },
+    TM: {
+      lineY: 0.26,
+      follow: 0.3,
+      winLo: 0.08,
+      winHi: 0.4,
+      minY: 0.16,
+      maxY: 0.55,
+    },
+    SS: {
+      lineY: 0.32,
+      follow: 0.3,
+      winLo: 0.12,
+      winHi: 0.45,
+      minY: 0.18,
+      maxY: 0.6,
+    },
   },
   outOfPossession: {
     // Three-tier defense, piecewise by ball cell (this is what a per-cell
@@ -105,14 +215,72 @@ const Y_PARAMS = {
     //    the box (m0.4's CBs stood ~0.80): defenders meet an arriving carrier
     //    at shot range — also what keeps the rival SUPER_STRENGTH CB inside
     //    his 1200 lock radius of carriers about to shoot.
-    FB:  { lineY: 0.70, follow: 0.32, winLo: 0.50, winHi: 0.95, minY: 0.48, maxY: 0.87 },
-    CB1: { lineY: 0.76, follow: 0.22, winLo: 0.55, winHi: 0.95, minY: 0.58, maxY: 0.85 },
-    CB2: { lineY: 0.78, follow: 0.18, winLo: 0.60, winHi: 0.97, minY: 0.60, maxY: 0.815 },
-    WM:  { lineY: 0.56, follow: 0.38, winLo: 0.30, winHi: 0.70, minY: 0.20, maxY: 0.82, pressTrigger: 0.25, pressLine: 0.17 },
-    DM:  { lineY: 0.60, follow: 0.28, winLo: 0.38, winHi: 0.72, minY: 0.42, maxY: 0.82 },
-    AM:  { lineY: 0.52, follow: 0.30, winLo: 0.30, winHi: 0.60, minY: 0.22, maxY: 0.78 },
-    TM:  { lineY: 0.32, follow: 0.45, winLo: 0.10, winHi: 0.40, minY: 0.13, maxY: 0.62 },
-    SS:  { lineY: 0.38, follow: 0.45, winLo: 0.12, winHi: 0.50, minY: 0.15, maxY: 0.68 },
+    FB: {
+      lineY: 0.7,
+      follow: 0.32,
+      winLo: 0.5,
+      winHi: 0.95,
+      minY: 0.48,
+      maxY: 0.87,
+    },
+    CB1: {
+      lineY: 0.76,
+      follow: 0.22,
+      winLo: 0.55,
+      winHi: 0.95,
+      minY: 0.58,
+      maxY: 0.85,
+    },
+    CB2: {
+      lineY: 0.78,
+      follow: 0.18,
+      winLo: 0.6,
+      winHi: 0.97,
+      minY: 0.6,
+      maxY: 0.815,
+    },
+    WM: {
+      lineY: 0.56,
+      follow: 0.38,
+      winLo: 0.3,
+      winHi: 0.7,
+      minY: 0.2,
+      maxY: 0.82,
+      pressTrigger: 0.25,
+      pressLine: 0.17,
+    },
+    DM: {
+      lineY: 0.6,
+      follow: 0.28,
+      winLo: 0.38,
+      winHi: 0.72,
+      minY: 0.42,
+      maxY: 0.82,
+    },
+    AM: {
+      lineY: 0.52,
+      follow: 0.3,
+      winLo: 0.3,
+      winHi: 0.6,
+      minY: 0.22,
+      maxY: 0.78,
+    },
+    TM: {
+      lineY: 0.32,
+      follow: 0.45,
+      winLo: 0.1,
+      winHi: 0.4,
+      minY: 0.13,
+      maxY: 0.62,
+    },
+    SS: {
+      lineY: 0.38,
+      follow: 0.45,
+      winLo: 0.12,
+      winHi: 0.5,
+      minY: 0.15,
+      maxY: 0.68,
+    },
   },
 };
 
@@ -120,9 +288,16 @@ const Y_PARAMS = {
 // the ~915 cm center circle — restartKickoff moves the kicking striker to the
 // spot itself). Same slot order as SLOTS.
 const KICKOFF = [
-  [0.16, 0.84], [0.38, 0.86], [0.62, 0.86], [0.84, 0.84],
-  [0.16, 0.66], [0.40, 0.68], [0.60, 0.68], [0.84, 0.66],
-  [0.40, 0.57], [0.60, 0.57],
+  [0.16, 0.84],
+  [0.38, 0.86],
+  [0.62, 0.86],
+  [0.84, 0.84],
+  [0.16, 0.66],
+  [0.4, 0.68],
+  [0.6, 0.68],
+  [0.84, 0.66],
+  [0.4, 0.57],
+  [0.6, 0.57],
 ];
 
 const EDGE = 0.03; // global in-bounds margin
@@ -138,21 +313,30 @@ const round4 = (v) => Math.round(v * 10000) / 10000;
 // shared signal (the m0.4 rigid-sheet defect; smooth per-cell follow gains,
 // however differentiated, keep every released pair co-tracking). Bilinear
 // sampling across cells turns each step into a short one-cell ramp.
-const stair = (v, step, offset) => (Math.floor((v - offset) / step) + 0.5) * step + offset;
+const stair = (v, step, offset) =>
+  (Math.floor((v - offset) / step) + 0.5) * step + offset;
 
 function cellTarget(slot, phaseName, slotIdx, bx, by) {
   const px = X_PARAMS[phaseName][slot.line];
   const py = Y_PARAMS[phaseName][slot.role];
   const falloff = Math.max(0, 1 - Math.abs(bx - slot.ax) / px.reach);
   const pressFalloff = Math.max(0, 1 - Math.abs(bx - slot.ax) / px.pressReach);
-  const x = 0.5 + (slot.ax - 0.5) * px.width + (bx - 0.5) * px.slide + (bx - slot.ax) * px.near * falloff;
+  const x =
+    0.5 +
+    (slot.ax - 0.5) * px.width +
+    (bx - 0.5) * px.slide +
+    (bx - slot.ax) * px.near * falloff;
   const step = 0.13 + slotIdx * 0.011;
-  const steppedBy = clamp(stair(clamp(by, py.winLo, py.winHi), step, slotIdx * 0.031), py.winLo, py.winHi); // re-clamp: a step-center may overshoot the window
+  const steppedBy = clamp(
+    stair(clamp(by, py.winLo, py.winHi), step, slotIdx * 0.031),
+    py.winLo,
+    py.winHi,
+  ); // re-clamp: a step-center may overshoot the window
   let y = py.lineY + py.follow * (steppedBy - 0.5);
   if (py.pressTrigger !== undefined && by < py.pressTrigger) y = py.pressLine; // counter-press cells override the window model
   y += (by - y) * px.press * pressFalloff; // ball-side step toward the ball's y line
-  y -= px.attackRun * pressFalloff;        // ball-side forward run in possession
-  y += px.cover * (1 - pressFalloff);      // weak-side cover drop
+  y -= px.attackRun * pressFalloff; // ball-side forward run in possession
+  y += px.cover * (1 - pressFalloff); // weak-side cover drop
   y = clamp(y, py.minY, py.maxY);
   return [round4(clamp(x, EDGE, 1 - EDGE)), round4(clamp(y, EDGE, 1 - EDGE))];
 }
@@ -162,20 +346,38 @@ function buildPhase(name) {
     const cells = [];
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLS; col++) {
-        cells.push(cellTarget(slot, name, slotIdx, (col + 0.5) / COLS, (row + 0.5) / ROWS));
+        cells.push(
+          cellTarget(
+            slot,
+            name,
+            slotIdx,
+            (col + 0.5) / COLS,
+            (row + 0.5) / ROWS,
+          ),
+        );
       }
     }
     return cells;
   });
 }
 
-const phases = { inPossession: buildPhase('inPossession'), outOfPossession: buildPhase('outOfPossession') };
+const phases = {
+  inPossession: buildPhase('inPossession'),
+  outOfPossession: buildPhase('outOfPossession'),
+};
 
 // Apply the committed hand-correction overrides on top of the model.
-const { overrides } = JSON.parse(readFileSync('scripts/formation-overrides.json', 'utf8'));
+const { overrides } = JSON.parse(
+  readFileSync('scripts/formation-overrides.json', 'utf8'),
+);
 for (const o of overrides) {
   const table = phases[o.phase];
-  if (!table || !(o.slot >= 0 && o.slot < SLOTS.length) || !(o.col >= 0 && o.col < COLS) || !(o.row >= 0 && o.row < ROWS)) {
+  if (
+    !table ||
+    !(o.slot >= 0 && o.slot < SLOTS.length) ||
+    !(o.col >= 0 && o.col < COLS) ||
+    !(o.row >= 0 && o.row < ROWS)
+  ) {
     throw new Error(`bad override: ${JSON.stringify(o)}`);
   }
   const cell = table[o.slot][o.row * COLS + o.col];
@@ -188,4 +390,6 @@ const out = { grid: { cols: COLS, rows: ROWS }, phases, kickoff: KICKOFF };
 // byte-compare against the committed file (default stays the real target).
 const outPath = process.argv[2] ?? 'src/sim/formation-tables.json';
 writeFileSync(outPath, JSON.stringify(out));
-console.log(`wrote ${outPath}: 2 phases x ${SLOTS.length} slots x ${COLS * ROWS} cells (+${KICKOFF.length} kickoff entries), ${overrides.length} override(s) applied`);
+console.log(
+  `wrote ${outPath}: 2 phases x ${SLOTS.length} slots x ${COLS * ROWS} cells (+${KICKOFF.length} kickoff entries), ${overrides.length} override(s) applied`,
+);

@@ -2,16 +2,48 @@ import type { Attrs, Role } from '../sim/types';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import type { PlayerArchetype } from './types';
 
-const ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const satisfies readonly (keyof Attrs)[];
-const OUT_FIELD_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta'] as const satisfies readonly (keyof Attrs)[];
-const GOALKEEPER_ATTRIBUTES = ['pac', 'pas', 'def', 'tec', 'sta', 'ref'] as const satisfies readonly (keyof Attrs)[];
+const ATTRIBUTES = [
+  'pac',
+  'sho',
+  'pas',
+  'def',
+  'tec',
+  'sta',
+  'ref',
+] as const satisfies readonly (keyof Attrs)[];
+const OUT_FIELD_ATTRIBUTES = [
+  'pac',
+  'sho',
+  'pas',
+  'def',
+  'tec',
+  'sta',
+] as const satisfies readonly (keyof Attrs)[];
+const GOALKEEPER_ATTRIBUTES = [
+  'pac',
+  'pas',
+  'def',
+  'tec',
+  'sta',
+  'ref',
+] as const satisfies readonly (keyof Attrs)[];
 
 export const POTENTIAL_GRADES = [
-  'E-', 'E', 'E+',
-  'D-', 'D', 'D+',
-  'C-', 'C', 'C+',
-  'B-', 'B', 'B+',
-  'A-', 'A', 'A+',
+  'E-',
+  'E',
+  'E+',
+  'D-',
+  'D',
+  'D+',
+  'C-',
+  'C',
+  'C+',
+  'B-',
+  'B',
+  'B+',
+  'A-',
+  'A',
+  'A+',
 ] as const;
 
 export type PotentialGrade = (typeof POTENTIAL_GRADES)[number];
@@ -40,7 +72,9 @@ const POTENTIAL_GRADE_BANDS: readonly PotentialGradeBand[] = [
   { grade: 'A+', minimum: 97, maximum: 99 },
 ] as const;
 
-const POTENTIAL_TIER_CEILING_RANGES: Readonly<Record<1 | 2 | 3 | 4 | 5, readonly [number, number]>> = {
+const POTENTIAL_TIER_CEILING_RANGES: Readonly<
+  Record<1 | 2 | 3 | 4 | 5, readonly [number, number]>
+> = {
   1: [46, 57],
   2: [58, 69],
   3: [70, 81],
@@ -88,7 +122,10 @@ const INERT_ATTRIBUTES: Readonly<Record<Role, readonly (keyof Attrs)[]>> = {
 };
 
 /** Whether training this attribute can change anything the role does in a match. */
-export function attributeAffectsPlay(role: Role, attribute: keyof Attrs): boolean {
+export function attributeAffectsPlay(
+  role: Role,
+  attribute: keyof Attrs,
+): boolean {
   return !INERT_ATTRIBUTES[role].includes(attribute);
 }
 
@@ -126,7 +163,9 @@ export function archetypeTrainingBonusPercent(
 ): number {
   if (archetype === 'Prodigy') return 20;
   if (archetype === 'All-Rounder') return 5;
-  const specialties: Partial<Record<PlayerArchetype, readonly (keyof Attrs)[]>> = {
+  const specialties: Partial<
+    Record<PlayerArchetype, readonly (keyof Attrs)[]>
+  > = {
     Speedster: ['pac'],
     Sniper: ['sho'],
     Playmaker: ['pas', 'tec'],
@@ -134,7 +173,9 @@ export function archetypeTrainingBonusPercent(
     Wall: ['ref', 'def'],
     Engine: ['sta', 'pac'],
   };
-  return archetype !== undefined && specialties[archetype]?.includes(attribute) ? 15 : 0;
+  return archetype !== undefined && specialties[archetype]?.includes(attribute)
+    ? 15
+    : 0;
 }
 
 /** Stable E− through A+ grade within the player's persisted 1–5 talent tier. */
@@ -146,7 +187,7 @@ export function playerPotentialGrade(
   const legacyValue = deterministicPotentialCeiling(player.id, potential);
   const variant = Math.min(
     2,
-    Math.floor((legacyValue - range[0]) * 3 / (range[1] - range[0] + 1)),
+    Math.floor(((legacyValue - range[0]) * 3) / (range[1] - range[0] + 1)),
   );
   return POTENTIAL_GRADES[(potential - 1) * 3 + variant];
 }
@@ -155,7 +196,6 @@ export function playerPotentialGrade(
 export function superTrainingChancePercent(grade: PotentialGrade): number {
   return 5 + POTENTIAL_GRADES.indexOf(grade) * 2;
 }
-
 
 /** Total attribute points normal training can still add before the 999 safety ceiling. */
 export function remainingDevelopmentPotential(
@@ -180,21 +220,22 @@ export function roleOverall(role: Role, attrs: Readonly<Attrs>): number {
   return Math.round(total / attributes.length);
 }
 
-
 /** Stable fine-grained ceiling for legacy players that only persisted a 1–5 potential tier. */
 function deterministicPotentialCeiling(
   playerId: string,
   potential: 1 | 2 | 3 | 4 | 5,
 ): number {
-  if (playerId.trim().length === 0) throw new Error('player ID is required for a potential ceiling');
+  if (playerId.trim().length === 0)
+    throw new Error('player ID is required for a potential ceiling');
   const range = POTENTIAL_TIER_CEILING_RANGES[potential];
-  if (range === undefined) throw new Error('player potential must be an integer from 1 to 5');
+  if (range === undefined)
+    throw new Error('player potential must be an integer from 1 to 5');
   let hash = 2166136261;
   for (let index = 0; index < playerId.length; index += 1) {
     hash = Math.imul(hash ^ playerId.charCodeAt(index), 16777619) >>> 0;
   }
   hash = Math.imul(hash ^ potential, 16777619) >>> 0;
-  return range[0] + hash % (range[1] - range[0] + 1);
+  return range[0] + (hash % (range[1] - range[0] + 1));
 }
 
 /** Minimum projected-overall room retained when a player is created or migrated. */
@@ -239,7 +280,9 @@ export function potentialTierForDivision(
   if (!Number.isSafeInteger(roll) || roll < 0 || roll > 99) {
     throw new Error('potential roll must be an integer from 0 to 99');
   }
-  const thresholds: Readonly<Record<number, readonly [number, number, number, number]>> = {
+  const thresholds: Readonly<
+    Record<number, readonly [number, number, number, number]>
+  > = {
     // D1 is the first tier where A-range talent appears.
     1: [75, 100, 100, 100],
     2: [0, 60, 95, 100],
@@ -256,14 +299,16 @@ export function potentialTierForDivision(
   return 1;
 }
 
-
 /**
  * Compatibility adapter for old cap-aware callers. Personal caps have been
  * removed, so every attribute now reports the universal 999 safety ceiling.
  */
 export function playerAttributeCaps(player: PotentialProfile): Attrs {
   for (const attribute of ATTRIBUTES) {
-    assertAttributeValue(player.attrs[attribute], `current ${attribute} attribute`);
+    assertAttributeValue(
+      player.attrs[attribute],
+      `current ${attribute} attribute`,
+    );
   }
   return {
     pac: MAX_PLAYER_ATTRIBUTE,
@@ -300,7 +345,13 @@ function roleAttributes(role: Role): readonly (keyof Attrs)[] {
 }
 
 function assertAttributeValue(value: number, label: string): void {
-  if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PLAYER_ATTRIBUTE) {
-    throw new Error(`${label} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
+  if (
+    !Number.isSafeInteger(value) ||
+    value < 1 ||
+    value > MAX_PLAYER_ATTRIBUTE
+  ) {
+    throw new Error(
+      `${label} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`,
+    );
   }
 }

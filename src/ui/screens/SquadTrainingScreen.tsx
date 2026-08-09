@@ -1,9 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import type { GestureResponderEvent, ViewStyle } from 'react-native';
 import type { AssistantGuideFocus, ManagerTipDestination } from '../../content';
-import { Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
+import {
+  Metric,
+  PaperPanel,
+  SectionLabel,
+  StatusChip,
+  formatCurrency,
+} from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
 import type {
   DrillResultViewModel,
@@ -35,7 +47,10 @@ import {
   SORT_ARROW_WIDTH,
   TRAIN_BUTTON_HIT_SLOP,
 } from '../squad-register-columns';
-import { archetypeDevelopmentSummary, type ArchetypeDevelopmentSummary } from '../archetype-development';
+import {
+  archetypeDevelopmentSummary,
+  type ArchetypeDevelopmentSummary,
+} from '../archetype-development';
 import {
   shouldDismissTutorialForDrag,
   type TutorialTouchPoint,
@@ -46,7 +61,10 @@ import { PixelText } from '../components/PixelText';
 import { InfoTip } from '../components/InfoTip';
 import { energyBand } from '../../render/match-energy-ui';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
-import { LOYALTY_NO_RENEWAL_THRESHOLD, LOYALTY_WARNING_THRESHOLD } from '../../game/loyalty';
+import {
+  LOYALTY_NO_RENEWAL_THRESHOLD,
+  LOYALTY_WARNING_THRESHOLD,
+} from '../../game/loyalty';
 import { GUIDED_ALERT_GLOW } from '../guidance-glow';
 import { SquadRequestsPanel } from './SquadRequestsPanel';
 import type { PlayerRequestViewModel } from '../../application/player-request-view-model';
@@ -87,8 +105,10 @@ const PERSONALITY_EXPLAINER: Readonly<Record<string, string>> = {
 };
 
 function personalityExplainer(personality: string, t: CopyFn): string {
-  return t(PERSONALITY_EXPLAINER[personality.toUpperCase().replace('-', '_')]
-    ?? 'squadTraining.personality.default');
+  return t(
+    PERSONALITY_EXPLAINER[personality.toUpperCase().replace('-', '_')] ??
+      'squadTraining.personality.default',
+  );
 }
 
 const COLUMN_EXPLAINER: Readonly<Record<SquadSortKey, string>> = {
@@ -135,8 +155,14 @@ const SQUAD_GUIDE_FRAME_TOP = 96;
  * and not Tailwind width classes: `w-12` is 42pt on native, not 48, and the
  * role header used to sit 6pt left of the role cells because of it.
  */
-type RosterColumnStyles = Record<'role' | 'overall' | 'potential' | 'condition', ViewStyle>;
-const ROSTER_COLUMN_STYLE: { phone: RosterColumnStyles; wide: RosterColumnStyles } = {
+type RosterColumnStyles = Record<
+  'role' | 'overall' | 'potential' | 'condition',
+  ViewStyle
+>;
+const ROSTER_COLUMN_STYLE: {
+  phone: RosterColumnStyles;
+  wide: RosterColumnStyles;
+} = {
   phone: StyleSheet.create({
     role: { width: REGISTER_COLUMN_WIDTH.phone.role, flexShrink: 0 },
     overall: { width: REGISTER_COLUMN_WIDTH.phone.overall, flexShrink: 0 },
@@ -249,16 +275,23 @@ export function SquadTrainingScreen({
   // its own label at the largest text size a header may reach, plus the arrow,
   // plus a gutter to the column beside it. The name is the only flexible cell,
   // so the name pays. Header and row share one style, so they cannot drift.
-  const columns = wideColumns ? ROSTER_COLUMN_STYLE.wide : ROSTER_COLUMN_STYLE.phone;
+  const columns = wideColumns
+    ? ROSTER_COLUMN_STYLE.wide
+    : ROSTER_COLUMN_STYLE.phone;
   // Headers label the data, they aren't it. Phone headers step down one further
   // than the wide ones so four abbreviations and an arrow fit side by side.
   const headerLabelSize = wideColumns ? 'text-xs' : 'text-[10px]';
-  const selectedPlayer = viewModel.players.find(player => player.id === selectedPlayerId);
-  const selectedArchetype = selectedPlayer === undefined
-    ? undefined
-    : archetypeDevelopmentSummary(selectedPlayer.archetype);
+  const selectedPlayer = viewModel.players.find(
+    (player) => player.id === selectedPlayerId,
+  );
+  const selectedArchetype =
+    selectedPlayer === undefined
+      ? undefined
+      : archetypeDevelopmentSummary(selectedPlayer.archetype);
   const playerGuideTouchStartRef = useRef<TutorialTouchPoint | null>(null);
-  const [squadTab, setSquadTab] = useState<'drills' | 'requests'>(initialSquadTab);
+  const [squadTab, setSquadTab] = useState<'drills' | 'requests'>(
+    initialSquadTab,
+  );
   const [drillPickerOpen, setDrillPickerOpen] = useState(false);
   const [playerGuideDismissed, setPlayerGuideDismissed] = useState(false);
   /**
@@ -272,20 +305,28 @@ export function SquadTrainingScreen({
    * drill of the career and cleared by the next thing the manager does. It
    * waits for the drill popup to close, because the popup covers the roster.
    */
-  const [conditionCuePlayerId, setConditionCuePlayerId] = useState<string | null>(null);
+  const [conditionCuePlayerId, setConditionCuePlayerId] = useState<
+    string | null
+  >(null);
   const lastDismissTipsTokenRef = useRef(dismissTipsToken);
-  const [managerTipGuideTarget, setManagerTipGuideTarget] = useState<ManagerTipDestination | null>(null);
+  const [managerTipGuideTarget, setManagerTipGuideTarget] =
+    useState<ManagerTipDestination | null>(null);
   /** The stat the manager tapped in the player file, aimed at its drill. */
-  const [quickTrainPathId, setQuickTrainPathId] = useState<string | undefined>(undefined);
+  const [quickTrainPathId, setQuickTrainPathId] = useState<string | undefined>(
+    undefined,
+  );
   const scrollRef = useRef<ScrollView>(null);
   const drillShopRef = useRef<View>(null);
-  const setSquadSort = useCallback((key: SquadSortKey) => {
-    // A sort is a statement about the whole register, so it drops the current
-    // selection. Keeping it left the open player file reading as a row pinned
-    // above the order it was supposed to obey.
-    onSelectPlayer(undefined);
-    onChangeSquadSort(nextSquadSort(squadSort, key));
-  }, [onChangeSquadSort, onSelectPlayer, squadSort]);
+  const setSquadSort = useCallback(
+    (key: SquadSortKey) => {
+      // A sort is a statement about the whole register, so it drops the current
+      // selection. Keeping it left the open player file reading as a row pinned
+      // above the order it was supposed to obey.
+      onSelectPlayer(undefined);
+      onChangeSquadSort(nextSquadSort(squadSort, key));
+    },
+    [onChangeSquadSort, onSelectPlayer, squadSort],
+  );
   const sortedPlayers = useMemo(
     () => sortSquadPlayers(viewModel.players, squadSort),
     [squadSort, viewModel.players],
@@ -296,36 +337,47 @@ export function SquadTrainingScreen({
     if (guidePlayers) setPlayerGuideDismissed(true);
   }, [guidePlayers]);
 
-  const rememberPlayerGuideTouch = useCallback((event: GestureResponderEvent) => {
-    if (!guidePlayers || playerGuideDismissed) return;
-    playerGuideTouchStartRef.current = {
-      x: event.nativeEvent.pageX,
-      y: event.nativeEvent.pageY,
-    };
-  }, [guidePlayers, playerGuideDismissed]);
+  const rememberPlayerGuideTouch = useCallback(
+    (event: GestureResponderEvent) => {
+      if (!guidePlayers || playerGuideDismissed) return;
+      playerGuideTouchStartRef.current = {
+        x: event.nativeEvent.pageX,
+        y: event.nativeEvent.pageY,
+      };
+    },
+    [guidePlayers, playerGuideDismissed],
+  );
 
-  const dismissPlayerGuideAfterDrag = useCallback((event: GestureResponderEvent) => {
-    const start = playerGuideTouchStartRef.current;
-    if (!guidePlayers || playerGuideDismissed || start === null) return;
-    if (shouldDismissTutorialForDrag(start, {
-      x: event.nativeEvent.pageX,
-      y: event.nativeEvent.pageY,
-    })) {
-      dismissPlayerGuide();
-      playerGuideTouchStartRef.current = null;
-    }
-  }, [dismissPlayerGuide, guidePlayers, playerGuideDismissed]);
+  const dismissPlayerGuideAfterDrag = useCallback(
+    (event: GestureResponderEvent) => {
+      const start = playerGuideTouchStartRef.current;
+      if (!guidePlayers || playerGuideDismissed || start === null) return;
+      if (
+        shouldDismissTutorialForDrag(start, {
+          x: event.nativeEvent.pageX,
+          y: event.nativeEvent.pageY,
+        })
+      ) {
+        dismissPlayerGuide();
+        playerGuideTouchStartRef.current = null;
+      }
+    },
+    [dismissPlayerGuide, guidePlayers, playerGuideDismissed],
+  );
 
   const forgetPlayerGuideTouch = useCallback(() => {
     playerGuideTouchStartRef.current = null;
   }, []);
 
-  const handleTrainingBadgePress = useCallback((playerId: string) => {
-    setTrainingCueUsed(true);
-    setQuickTrainPathId(undefined);
-    onSelectPlayer(playerId);
-    setDrillPickerOpen(true);
-  }, [onSelectPlayer]);
+  const handleTrainingBadgePress = useCallback(
+    (playerId: string) => {
+      setTrainingCueUsed(true);
+      setQuickTrainPathId(undefined);
+      onSelectPlayer(playerId);
+      setDrillPickerOpen(true);
+    },
+    [onSelectPlayer],
+  );
 
   // Stable so the popup's consume effect does not re-run on every render.
   const forgetQuickTrainRequest = useCallback(() => {
@@ -333,13 +385,16 @@ export function SquadTrainingScreen({
   }, []);
 
   /** Quick Train: the attribute IS the drill picker. */
-  const handleTrainAttribute = useCallback((pathId: string) => {
-    setTrainingCueUsed(true);
-    setQuickTrainPathId(pathId);
-    setDrillPickerOpen(true);
-    // Doing the thing retires the lesson; there is nothing left to teach.
-    onQuickTrainShown?.();
-  }, [onQuickTrainShown]);
+  const handleTrainAttribute = useCallback(
+    (pathId: string) => {
+      setTrainingCueUsed(true);
+      setQuickTrainPathId(pathId);
+      setDrillPickerOpen(true);
+      // Doing the thing retires the lesson; there is nothing left to teach.
+      onQuickTrainShown?.();
+    },
+    [onQuickTrainShown],
+  );
 
   useEffect(() => {
     if (drillPickerRequestToken === undefined) return;
@@ -353,7 +408,10 @@ export function SquadTrainingScreen({
     setConditionCuePlayerId(lastDrillResult.playerId);
   }, [lastDrillResult]);
 
-  const dismissConditionCue = useCallback(() => setConditionCuePlayerId(null), []);
+  const dismissConditionCue = useCallback(
+    () => setConditionCuePlayerId(null),
+    [],
+  );
 
   useEffect(() => {
     if (lastDismissTipsTokenRef.current === dismissTipsToken) return;
@@ -418,19 +476,25 @@ export function SquadTrainingScreen({
         />
       ),
     },
-    ...(selectedPlayer ? [{
-      key: 'player-file',
-      weight: 9,
-      node: (
-        <PlayerFileSection
-          selectedPlayer={selectedPlayer}
-          selectedArchetype={selectedArchetype}
-          statOptions={viewModel.selectedPlayerStatOptions}
-          onTrainAttribute={handleTrainAttribute}
-          guideQuickTrain={guideQuickTrain && selectedPlayer.injuryWeeks === 0}
-        />
-      ),
-    }] : []),
+    ...(selectedPlayer
+      ? [
+          {
+            key: 'player-file',
+            weight: 9,
+            node: (
+              <PlayerFileSection
+                selectedPlayer={selectedPlayer}
+                selectedArchetype={selectedArchetype}
+                statOptions={viewModel.selectedPlayerStatOptions}
+                onTrainAttribute={handleTrainAttribute}
+                guideQuickTrain={
+                  guideQuickTrain && selectedPlayer.injuryWeeks === 0
+                }
+              />
+            ),
+          },
+        ]
+      : []),
     {
       key: 'drill-shop',
       weight: 3 + viewModel.drillUpgrades.length,
@@ -438,9 +502,11 @@ export function SquadTrainingScreen({
         <View
           ref={drillShopRef}
           collapsable={false}
-          className={managerTipGuideTarget === 'drill-shop'
-            ? 'relative mt-20 border-2 border-blue-dark bg-blue-light/20 p-1'
-            : 'relative'}
+          className={
+            managerTipGuideTarget === 'drill-shop'
+              ? 'relative mt-20 border-2 border-blue-dark bg-blue-light/20 p-1'
+              : 'relative'
+          }
         >
           {managerTipGuideTarget === 'drill-shop' ? (
             <TutorialTapCue
@@ -468,7 +534,10 @@ export function SquadTrainingScreen({
       <ScrollView
         ref={scrollRef}
         className="flex-1"
-        contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}
+        contentContainerStyle={[
+          { padding: 16, paddingBottom: 28 },
+          desktopContent,
+        ]}
         onScrollBeginDrag={() => {
           dismissPlayerGuide();
           dismissConditionCue();
@@ -479,8 +548,12 @@ export function SquadTrainingScreen({
         onTouchCancel={forgetPlayerGuideTouch}
       >
         <View className="mb-6">
-          <PixelText className="text-sm uppercase tracking-[2px] text-blue-dark">{t('squadTraining.squadRoom')}</PixelText>
-          <PixelText className="mt-1 text-xl uppercase text-ink">{t('squadTraining.rosterTraining')}</PixelText>
+          <PixelText className="text-sm uppercase tracking-[2px] text-blue-dark">
+            {t('squadTraining.squadRoom')}
+          </PixelText>
+          <PixelText className="mt-1 text-xl uppercase text-ink">
+            {t('squadTraining.rosterTraining')}
+          </PixelText>
         </View>
 
         {/* Drawn like the league's division selector so the two read as one
@@ -489,22 +562,30 @@ export function SquadTrainingScreen({
             unlocked something. */}
         {requestViewModel?.available ? (
           <View className="mb-5 flex-row gap-1">
-            {(['drills', 'requests'] as const).map(tab => {
+            {(['drills', 'requests'] as const).map((tab) => {
               const selected = tab === squadTab;
-              const glowing = tab === 'requests' && requestViewModel.glowing && !selected;
-              const label = tab === 'drills' ? t('squadTraining.tab.drills') : t('squadTraining.tab.requests');
+              const glowing =
+                tab === 'requests' && requestViewModel.glowing && !selected;
+              const label =
+                tab === 'drills'
+                  ? t('squadTraining.tab.drills')
+                  : t('squadTraining.tab.requests');
               return (
                 <Pressable
                   key={tab}
                   accessibilityRole="tab"
-                  accessibilityLabel={glowing
-                    ? t('squadTraining.a11y.tabOneWaiting', { tab: label })
-                    : t('squadTraining.a11y.tab', { tab: label })}
+                  accessibilityLabel={
+                    glowing
+                      ? t('squadTraining.a11y.tabOneWaiting', { tab: label })
+                      : t('squadTraining.a11y.tab', { tab: label })
+                  }
                   accessibilityState={{ selected }}
                   onPress={() => setSquadTab(tab)}
-                  className={selected
-                    ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-1 py-2'
-                    : 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink/40 bg-white px-1 py-2'}
+                  className={
+                    selected
+                      ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-1 py-2'
+                      : 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink/40 bg-white px-1 py-2'
+                  }
                   style={({ pressed }) => ({
                     opacity: pressed ? 0.82 : 1,
                     transform: [{ translateY: pressed ? 2 : 0 }],
@@ -512,7 +593,8 @@ export function SquadTrainingScreen({
                   })}
                 >
                   <Text className="font-pixel text-sm uppercase text-ink">
-                    {label}{glowing ? '  \u25CF' : ''}
+                    {label}
+                    {glowing ? '  \u25CF' : ''}
                   </Text>
                 </Pressable>
               );
@@ -530,7 +612,9 @@ export function SquadTrainingScreen({
           <SectionFlow mode={layoutMode} sections={sections} />
         )}
       </ScrollView>
-      {drillPickerOpen && selectedPlayer && viewModel.selectedPlayerStatOptions ? (
+      {drillPickerOpen &&
+      selectedPlayer &&
+      viewModel.selectedPlayerStatOptions ? (
         <TrainingDrillModal
           playerId={selectedPlayer.id}
           playerName={selectedPlayer.name}
@@ -607,28 +691,46 @@ function RosterSection({
   // The lesson is about the column, so it only needs to know that some player
   // triggered it — not which row they are on.
   const conditionCueShowing = conditionCuePlayerId !== null && !showSortHint;
-  const selectedQuickTrainPlayer = sortedPlayers.find(player => player.id === selectedPlayerId);
-  const quickTrainTargetPlayerId = selectedQuickTrainPlayer?.injuryWeeks === 0
-    ? selectedQuickTrainPlayer.id
-    : sortedPlayers.find(player => player.injuryWeeks === 0)?.id;
+  const selectedQuickTrainPlayer = sortedPlayers.find(
+    (player) => player.id === selectedPlayerId,
+  );
+  const quickTrainTargetPlayerId =
+    selectedQuickTrainPlayer?.injuryWeeks === 0
+      ? selectedQuickTrainPlayer.id
+      : sortedPlayers.find((player) => player.injuryWeeks === 0)?.id;
   const quickTrainNeedsPlayer = selectedQuickTrainPlayer?.injuryWeeks !== 0;
   return (
     <View>
       <SectionLabel
         eyebrow={t('squadTraining.teamRegister')}
-        title={t('squadTraining.playerCount', { n: viewModel.players.length, count: viewModel.players.length })}
-        right={<StatusChip label={t('squadTraining.trainingPoints', { count: trainingPoints })} />}
+        title={t('squadTraining.playerCount', {
+          n: viewModel.players.length,
+          count: viewModel.players.length,
+        })}
+        right={
+          <StatusChip
+            label={t('squadTraining.trainingPoints', { count: trainingPoints })}
+          />
+        }
       />
-      <View className={guidePlayers
-        ? 'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'
-        : conditionCueShowing || showSortHint
-          ? 'relative mt-20 border-2 border-ink bg-white'
-          : 'border-2 border-ink bg-white'}>
+      <View
+        className={
+          guidePlayers
+            ? 'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'
+            : conditionCueShowing || showSortHint
+              ? 'relative mt-20 border-2 border-ink bg-white'
+              : 'border-2 border-ink bg-white'
+        }
+      >
         {guidePlayers && !playerGuideDismissed ? (
           <TutorialTapCue
             label={t('squadTraining.tapPlus')}
             detail={t('squadTraining.trainAPlayer')}
-            style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+            style={{
+              left: '50%',
+              marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+              top: -72,
+            }}
           />
         ) : null}
         {/* Raised above the rows beneath it. A column tip is an absolutely
@@ -641,8 +743,22 @@ function RosterSection({
           className="flex-row items-center border-b border-ink/20 px-2"
           style={styles.sortHeaderBar}
         >
-          <SquadSortHeader label={t('col.squad.role')} sortKey="role" sort={squadSort} columnStyle={columns.role} labelSize={headerLabelSize} onSort={setSquadSort} />
-          <SquadSortHeader label={t(wideColumns ? 'col.squad.player' : 'col.squad.name')} sortKey="player" sort={squadSort} widthClass="flex-1" labelSize={headerLabelSize} onSort={setSquadSort} />
+          <SquadSortHeader
+            label={t('col.squad.role')}
+            sortKey="role"
+            sort={squadSort}
+            columnStyle={columns.role}
+            labelSize={headerLabelSize}
+            onSort={setSquadSort}
+          />
+          <SquadSortHeader
+            label={t(wideColumns ? 'col.squad.player' : 'col.squad.name')}
+            sortKey="player"
+            sort={squadSort}
+            widthClass="flex-1"
+            labelSize={headerLabelSize}
+            onSort={setSquadSort}
+          />
           <SquadSortHeader
             label={t(wideColumns ? 'col.squad.score' : 'col.squad.overall')}
             sortKey="overall"
@@ -651,44 +767,60 @@ function RosterSection({
             labelSize={headerLabelSize}
             align="right"
             onSort={setSquadSort}
-            tutorialCue={showSortHint ? (
-              <TutorialTapCue
-                label={t('squadTraining.tapHere')}
-                detail={t('squadTraining.sortColumn')}
-                style={{
-                  left: '50%',
-                  marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                  top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
-                }}
-              />
-            ) : null}
+            tutorialCue={
+              showSortHint ? (
+                <TutorialTapCue
+                  label={t('squadTraining.tapHere')}
+                  detail={t('squadTraining.sortColumn')}
+                  style={{
+                    left: '50%',
+                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                    top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                  }}
+                />
+              ) : null
+            }
           />
-          <SquadSortHeader label={t(wideColumns ? 'col.squad.potentialLong' : 'col.squad.potential')} sortKey="potential" sort={squadSort} columnStyle={columns.potential} labelSize={headerLabelSize} align="right" onSort={setSquadSort} />
           <SquadSortHeader
-            label={t(wideColumns ? 'col.squad.conditionLong' : 'col.squad.condition')}
+            label={t(
+              wideColumns ? 'col.squad.potentialLong' : 'col.squad.potential',
+            )}
+            sortKey="potential"
+            sort={squadSort}
+            columnStyle={columns.potential}
+            labelSize={headerLabelSize}
+            align="right"
+            onSort={setSquadSort}
+          />
+          <SquadSortHeader
+            label={t(
+              wideColumns ? 'col.squad.conditionLong' : 'col.squad.condition',
+            )}
             sortKey="condition"
             sort={squadSort}
             columnStyle={columns.condition}
             labelSize={headerLabelSize}
             align="right"
             onSort={setSquadSort}
-            tutorialCue={conditionCueShowing ? (
-              <TutorialTapCue
-                label={t('col.squad.conditionLong')}
-                detail={t('squadTraining.tooLowAndThey')}
-                // `bottom`, not the fixed `top: -ABOVE_OFFSET` the one-line cues
-                // use: this detail wraps to four lines on a narrow column, and a
-                // fixed offset let the taller bubble sit ON the header it is
-                // naming, with its arrow pointing past it into the first roster
-                // row. Anchoring the bubble's bottom to the header's top keeps
-                // the arrow on the header at every wrap.
-                style={{
-                  left: '50%',
-                  marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                  bottom: '100%',
-                }}
-              />
-            ) : null}
+            tutorialCue={
+              conditionCueShowing ? (
+                <TutorialTapCue
+                  label={t('col.squad.conditionLong')}
+                  detail={t('squadTraining.tooLowAndThey')}
+                  // `bottom`, not the fixed `top: -ABOVE_OFFSET` the one-line cues
+                  // use: this detail wraps to four lines on a narrow column, and a
+                  // fixed offset let the taller bubble sit ON the header it is
+                  // naming, with its arrow pointing past it into the first roster
+                  // row. Anchoring the bubble's bottom to the header's top keeps
+                  // the arrow on the header at every wrap.
+                  style={{
+                    left: '50%',
+                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                    bottom: '100%',
+                  }}
+                />
+              ) : null
+            }
           />
           {/* The train column needs its width to keep the + buttons aligned, but
               not a label: the + is self-explanatory and the word was clipping. */}
@@ -696,168 +828,261 @@ function RosterSection({
         </View>
         {sortedPlayers.length === 0 ? (
           <View className="items-center px-4 py-8">
-            <PixelText className="text-base uppercase text-ink">{t('squadTraining.noPlayersRegistered')}</PixelText>
+            <PixelText className="text-base uppercase text-ink">
+              {t('squadTraining.noPlayersRegistered')}
+            </PixelText>
             <Text className="mt-2 text-center text-sm leading-5 text-ink/55">
-              {t('squadTraining.signAPlayerFrom')}</Text>
+              {t('squadTraining.signAPlayerFrom')}
+            </Text>
           </View>
-        ) : sortedPlayers.map((player) => {
-          const selected = player.id === selectedPlayerId;
-          const glowAssignmentButton = guidePlayers
-            && !trainingCueUsed
-            && player.id === viewModel.createdPlayerId
-            && player.injuryWeeks === 0;
-          const guideConciergePlayer = player.id === selectedPlayerId && (
-            (guideFocus === 'injury-lineup' && player.injuryWeeks > 0)
-            || guideFocus === 'transfer-request'
-          );
-          const guideQuickTrainPlayer = guideQuickTrain
-            && !guidePlayers
-            && guideFocus === undefined
-            && !showSortHint
-            && !conditionCueShowing
-            && (quickTrainNeedsPlayer || !wideColumns)
-            && player.id === quickTrainTargetPlayerId;
-          return (
-            <View
-              key={player.id}
-              className={guideQuickTrainPlayer
-                ? 'relative flex-row items-center border-2 border-blue-dark bg-blue-light px-2 py-2'
-                : selected
-                ? 'flex-row items-center border-b border-ink/20 bg-paper-dark px-2 py-2'
-                : player.injuryWeeks > 0
-                  ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-2 py-2'
-                  : 'flex-row items-center border-b border-ink/10 px-2 py-2'}
-              style={guideConciergePlayer || guideQuickTrainPlayer
-                ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE }
-                : undefined}
-            >
-              {guideConciergePlayer ? (
-                <TutorialTapCue
-                  label={t('squadTraining.bertSays')}
-                  detail={guideFocus === 'injury-lineup'
-                    ? t('squadTraining.reviewInjuryAndReplacement')
-                    : t('squadTraining.reviewThisPlayer')}
-                  style={{
-                    left: '50%',
-                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                    top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
-                  }}
-                />
-              ) : null}
-              {guideQuickTrainPlayer ? (
-                <TutorialTapCue
-                  label={t('squadTraining.quickTrain')}
-                  detail={quickTrainNeedsPlayer
-                    ? t('squadTraining.tapAPlayerTo')
-                    : t('squadTraining.scrollDownToAttributes')}
-                  style={{
-                    left: '50%',
-                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                    top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
-                  }}
-                />
-              ) : null}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('squadTraining.a11y.openSummaryFor', { player: player.name })}
-                onPress={() => onSelectPlayer(player.id)}
-                className="min-h-11 flex-1 flex-row items-center"
-                style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+        ) : (
+          sortedPlayers.map((player) => {
+            const selected = player.id === selectedPlayerId;
+            const glowAssignmentButton =
+              guidePlayers &&
+              !trainingCueUsed &&
+              player.id === viewModel.createdPlayerId &&
+              player.injuryWeeks === 0;
+            const guideConciergePlayer =
+              player.id === selectedPlayerId &&
+              ((guideFocus === 'injury-lineup' && player.injuryWeeks > 0) ||
+                guideFocus === 'transfer-request');
+            const guideQuickTrainPlayer =
+              guideQuickTrain &&
+              !guidePlayers &&
+              guideFocus === undefined &&
+              !showSortHint &&
+              !conditionCueShowing &&
+              (quickTrainNeedsPlayer || !wideColumns) &&
+              player.id === quickTrainTargetPlayerId;
+            return (
+              <View
+                key={player.id}
+                className={
+                  guideQuickTrainPlayer
+                    ? 'relative flex-row items-center border-2 border-blue-dark bg-blue-light px-2 py-2'
+                    : selected
+                      ? 'flex-row items-center border-b border-ink/20 bg-paper-dark px-2 py-2'
+                      : player.injuryWeeks > 0
+                        ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-2 py-2'
+                        : 'flex-row items-center border-b border-ink/10 px-2 py-2'
+                }
+                style={
+                  guideConciergePlayer || guideQuickTrainPlayer
+                    ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE }
+                    : undefined
+                }
               >
-                <Text
-                  style={columns.role}
-                  className={selected ? 'font-pixel text-sm text-ink' : 'font-pixel text-sm text-blue-dark'}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.8}
-                  numberOfLines={1}
-                >{player.role}</Text>
-                <View className="flex-1 pr-2">
-                  <Text className="text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
-                  {player.injuryWeeks > 0 ? (
-                    <Text className="mt-0.5 font-pixel text-sm uppercase text-red-dark" numberOfLines={1}>
-                      {t('squadTraining.outForWeeks', { n: player.injuryWeeks, count: player.injuryWeeks })}
-                    </Text>
-                  ) : player.isStarter ? (
-                    // One word, because the name column is the row's only
-                    // flexible cell: "Starting XI" clipped to "STARTI…" on a
-                    // phone, which reads as a bug rather than an abbreviation.
-                    <Text className="mt-0.5 font-pixel text-sm uppercase text-pitch-ink" numberOfLines={1}>
-                      {t('squadTraining.start')}
-                    </Text>
-                  ) : null}
-                  {player.isCaptain || player.contractPromiseLabel ? (
-                    <Text className="mt-0.5 font-pixel text-sm uppercase text-blue-dark" numberOfLines={1}>
-                      {[player.isCaptain ? t('squadTraining.captain') : undefined, player.shirtNumber ? `#${player.shirtNumber}` : undefined, player.contractPromiseLabel].filter(Boolean).join(' · ')}
-                    </Text>
-                  ) : null}
-                  <Text className="mt-1 text-sm text-ink/60" numberOfLines={1}>{player.contractLabel}</Text>
-                  {player.powerName ? (
-                    <View className="mt-0.5 flex-row items-center gap-1">
-                      {/* Glyph-only node: ★ is in neither Silkscreen weight, so it
-                          stands alone and falls back to the system face on purpose. */}
-                      <Text className="text-sm text-gold-dark">★</Text>
-                      <PixelText className="text-sm uppercase text-gold-dark" numberOfLines={1}>{player.powerName}</PixelText>
-                    </View>
-                  ) : null}
-                </View>
-                <Text style={columns.overall} className="text-right font-mono text-base text-ink" maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER} numberOfLines={1}>{player.overall}</Text>
-                <Text style={columns.potential} className="pr-1 text-right font-mono text-base text-gold-dark" maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER} numberOfLines={1}>{player.potentialGrade}</Text>
-                <Text
-                  style={columns.condition}
-                  className={`text-right font-mono text-sm ${CONDITION_TONE[energyBand(player.condition)]}`}
-                  maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
-                  numberOfLines={1}
+                {guideConciergePlayer ? (
+                  <TutorialTapCue
+                    label={t('squadTraining.bertSays')}
+                    detail={
+                      guideFocus === 'injury-lineup'
+                        ? t('squadTraining.reviewInjuryAndReplacement')
+                        : t('squadTraining.reviewThisPlayer')
+                    }
+                    style={{
+                      left: '50%',
+                      marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                      top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                    }}
+                  />
+                ) : null}
+                {guideQuickTrainPlayer ? (
+                  <TutorialTapCue
+                    label={t('squadTraining.quickTrain')}
+                    detail={
+                      quickTrainNeedsPlayer
+                        ? t('squadTraining.tapAPlayerTo')
+                        : t('squadTraining.scrollDownToAttributes')
+                    }
+                    style={{
+                      left: '50%',
+                      marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                      top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                    }}
+                  />
+                ) : null}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('squadTraining.a11y.openSummaryFor', {
+                    player: player.name,
+                  })}
+                  onPress={() => onSelectPlayer(player.id)}
+                  className="min-h-11 flex-1 flex-row items-center"
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.65 : undefined,
+                  })}
                 >
-                  {player.condition}%
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={player.injuryWeeks > 0
-                  ? t('squadTraining.a11y.playerInjuredCannotTrain', { player: player.name })
-                  : player.awayWeeks > 0
-                    ? t('squadTraining.a11y.playerAwayCannotTrain', { player: player.name })
-                    : player.priorityDrillsRemaining !== undefined
-                      ? t('squadTraining.a11y.trainNowPromisedDrills', {
-                        player: player.name,
-                        count: player.priorityDrillsRemaining,
-                      })
-                      : t('squadTraining.a11y.trainNow', { player: player.name })}
-                accessibilityState={{ disabled: !player.canTrain }}
-                disabled={!player.canTrain}
-                onPress={() => onPressTrainingBadge(player.id)}
-                // The circle is 35pt — `w-10` is 2.5rem, and a rem is 14pt here
-                // — so hitSlop is what carries the tap target over the 44pt
-                // minimum, at 45. It costs no layout, so the columns keep every
-                // point. The slop overlaps the row's own tap area by a point or
-                // two; the button is the later sibling and wins there, which is
-                // the right way round for the more consequential target.
-                hitSlop={TRAIN_BUTTON_HIT_SLOP}
-                className={!player.canTrain
-                  ? 'ml-1 h-10 w-10 items-center justify-center rounded-full border border-ink/20 bg-paper-dark'
-                  : player.priorityDrillsRemaining !== undefined
-                    ? 'ml-1 h-10 w-10 items-center justify-center rounded-full border-2 border-blue-dark bg-blue-light'
-                    : glowAssignmentButton
-                      ? 'ml-1 h-10 w-10 items-center justify-center rounded-full border-2 border-gold-dark bg-gold-light'
-                      : 'ml-1 h-10 w-10 items-center justify-center rounded-full border border-ink/30'}
-                style={({ pressed }) => [
-                  { opacity: pressed && player.injuryWeeks === 0 ? 0.65 : undefined },
-                  glowAssignmentButton ? styles.assignmentButtonGlow : null,
-                ]}
-              >
-                <Text className={player.injuryWeeks > 0
-                  ? 'font-mono text-base text-ink/30'
-                  : player.priorityDrillsRemaining !== undefined
-                    ? 'font-mono text-base text-blue-dark'
-                    : glowAssignmentButton
-                      ? 'font-mono text-base text-ink'
-                      : 'font-mono text-base text-ink/40'}>
-                  {player.priorityDrillsRemaining ?? '+'}
-                </Text>
-              </Pressable>
-            </View>
-          );
-        })}
+                  <Text
+                    style={columns.role}
+                    className={
+                      selected
+                        ? 'font-pixel text-sm text-ink'
+                        : 'font-pixel text-sm text-blue-dark'
+                    }
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
+                    numberOfLines={1}
+                  >
+                    {player.role}
+                  </Text>
+                  <View className="flex-1 pr-2">
+                    <Text
+                      className="text-base font-bold text-ink"
+                      numberOfLines={1}
+                    >
+                      {player.name}
+                    </Text>
+                    {player.injuryWeeks > 0 ? (
+                      <Text
+                        className="mt-0.5 font-pixel text-sm uppercase text-red-dark"
+                        numberOfLines={1}
+                      >
+                        {t('squadTraining.outForWeeks', {
+                          n: player.injuryWeeks,
+                          count: player.injuryWeeks,
+                        })}
+                      </Text>
+                    ) : player.isStarter ? (
+                      // One word, because the name column is the row's only
+                      // flexible cell: "Starting XI" clipped to "STARTI…" on a
+                      // phone, which reads as a bug rather than an abbreviation.
+                      <Text
+                        className="mt-0.5 font-pixel text-sm uppercase text-pitch-ink"
+                        numberOfLines={1}
+                      >
+                        {t('squadTraining.start')}
+                      </Text>
+                    ) : null}
+                    {player.isCaptain || player.contractPromiseLabel ? (
+                      <Text
+                        className="mt-0.5 font-pixel text-sm uppercase text-blue-dark"
+                        numberOfLines={1}
+                      >
+                        {[
+                          player.isCaptain
+                            ? t('squadTraining.captain')
+                            : undefined,
+                          player.shirtNumber
+                            ? `#${player.shirtNumber}`
+                            : undefined,
+                          player.contractPromiseLabel,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </Text>
+                    ) : null}
+                    <Text
+                      className="mt-1 text-sm text-ink/60"
+                      numberOfLines={1}
+                    >
+                      {player.contractLabel}
+                    </Text>
+                    {player.powerName ? (
+                      <View className="mt-0.5 flex-row items-center gap-1">
+                        {/* Glyph-only node: ★ is in neither Silkscreen weight, so it
+                          stands alone and falls back to the system face on purpose. */}
+                        <Text className="text-sm text-gold-dark">★</Text>
+                        <PixelText
+                          className="text-sm uppercase text-gold-dark"
+                          numberOfLines={1}
+                        >
+                          {player.powerName}
+                        </PixelText>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text
+                    style={columns.overall}
+                    className="text-right font-mono text-base text-ink"
+                    maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
+                    numberOfLines={1}
+                  >
+                    {player.overall}
+                  </Text>
+                  <Text
+                    style={columns.potential}
+                    className="pr-1 text-right font-mono text-base text-gold-dark"
+                    maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
+                    numberOfLines={1}
+                  >
+                    {player.potentialGrade}
+                  </Text>
+                  <Text
+                    style={columns.condition}
+                    className={`text-right font-mono text-sm ${CONDITION_TONE[energyBand(player.condition)]}`}
+                    maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
+                    numberOfLines={1}
+                  >
+                    {player.condition}%
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    player.injuryWeeks > 0
+                      ? t('squadTraining.a11y.playerInjuredCannotTrain', {
+                          player: player.name,
+                        })
+                      : player.awayWeeks > 0
+                        ? t('squadTraining.a11y.playerAwayCannotTrain', {
+                            player: player.name,
+                          })
+                        : player.priorityDrillsRemaining !== undefined
+                          ? t('squadTraining.a11y.trainNowPromisedDrills', {
+                              player: player.name,
+                              count: player.priorityDrillsRemaining,
+                            })
+                          : t('squadTraining.a11y.trainNow', {
+                              player: player.name,
+                            })
+                  }
+                  accessibilityState={{ disabled: !player.canTrain }}
+                  disabled={!player.canTrain}
+                  onPress={() => onPressTrainingBadge(player.id)}
+                  // The circle is 35pt — `w-10` is 2.5rem, and a rem is 14pt here
+                  // — so hitSlop is what carries the tap target over the 44pt
+                  // minimum, at 45. It costs no layout, so the columns keep every
+                  // point. The slop overlaps the row's own tap area by a point or
+                  // two; the button is the later sibling and wins there, which is
+                  // the right way round for the more consequential target.
+                  hitSlop={TRAIN_BUTTON_HIT_SLOP}
+                  className={
+                    !player.canTrain
+                      ? 'ml-1 h-10 w-10 items-center justify-center rounded-full border border-ink/20 bg-paper-dark'
+                      : player.priorityDrillsRemaining !== undefined
+                        ? 'ml-1 h-10 w-10 items-center justify-center rounded-full border-2 border-blue-dark bg-blue-light'
+                        : glowAssignmentButton
+                          ? 'ml-1 h-10 w-10 items-center justify-center rounded-full border-2 border-gold-dark bg-gold-light'
+                          : 'ml-1 h-10 w-10 items-center justify-center rounded-full border border-ink/30'
+                  }
+                  style={({ pressed }) => [
+                    {
+                      opacity:
+                        pressed && player.injuryWeeks === 0 ? 0.65 : undefined,
+                    },
+                    glowAssignmentButton ? styles.assignmentButtonGlow : null,
+                  ]}
+                >
+                  <Text
+                    className={
+                      player.injuryWeeks > 0
+                        ? 'font-mono text-base text-ink/30'
+                        : player.priorityDrillsRemaining !== undefined
+                          ? 'font-mono text-base text-blue-dark'
+                          : glowAssignmentButton
+                            ? 'font-mono text-base text-ink'
+                            : 'font-mono text-base text-ink/40'
+                    }
+                  >
+                    {player.priorityDrillsRemaining ?? '+'}
+                  </Text>
+                </Pressable>
+              </View>
+            );
+          })
+        )}
       </View>
     </View>
   );
@@ -884,7 +1109,7 @@ function DrillShopSection({ upgrades, money, onBuy }: DrillShopSectionProps) {
         right={<StatusChip label={formatCurrency(t, money)} />}
       />
       <View className="border-2 border-ink bg-white">
-        {upgrades.map(upgrade => {
+        {upgrades.map((upgrade) => {
           const owned = t('squadTraining.ownedDrillLine', {
             drill: upgrade.drillName,
             gain: upgrade.ownedGain,
@@ -898,50 +1123,67 @@ function DrillShopSection({ upgrades, money, onBuy }: DrillShopSectionProps) {
               className="flex-row items-center gap-3 border-b border-ink/10 px-3 py-2"
             >
               <View className="min-w-0 flex-1">
-                <PixelText className="text-sm uppercase tracking-wide text-blue-dark" numberOfLines={1}>
+                <PixelText
+                  className="text-sm uppercase tracking-wide text-blue-dark"
+                  numberOfLines={1}
+                >
                   {upgrade.label}
                 </PixelText>
-                <Text className="mt-0.5 text-sm text-ink" numberOfLines={1}>{owned}</Text>
+                <Text className="mt-0.5 text-sm text-ink" numberOfLines={1}>
+                  {owned}
+                </Text>
                 {/* One line, not two: the upgrade's pitch while it can be
                     bought, the reason it cannot once it cannot. Both at once
                     repeated the tier number and painted the whole column. */}
                 <Text className="mt-0.5 text-xs text-ink/55" numberOfLines={2}>
                   {maxed
                     ? t('squadTraining.bestDrillOwned')
-                    : upgrade.blockedReason
-                      ?? t('squadTraining.nextTierLine', {
+                    : (upgrade.blockedReason ??
+                      t('squadTraining.nextTierLine', {
                         tier: upgrade.nextTier ?? '',
                         gain: upgrade.nextGain ?? '',
                         cost: upgrade.nextTpCost ?? '',
-                      })}
+                      }))}
                 </Text>
               </View>
               {maxed ? (
                 <View className="h-11 w-24 items-center justify-center border border-ink/20 bg-paper-dark">
-                  <PixelText className="text-sm uppercase text-ink/40">{t('squadTraining.tier5')}</PixelText>
+                  <PixelText className="text-sm uppercase text-ink/40">
+                    {t('squadTraining.tier5')}
+                  </PixelText>
                 </View>
               ) : (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={buyable
-                    ? t('squadTraining.a11y.buyDrill', {
-                      path: upgrade.label,
-                      tier: upgrade.nextTier ?? '',
-                      price: formatCurrency(t, upgrade.cost ?? 0),
-                    })
-                    : t('squadTraining.a11y.drillUnavailable', {
-                      path: upgrade.label,
-                      tier: upgrade.nextTier ?? '',
-                      reason: upgrade.blockedReason ?? '',
-                    })}
+                  accessibilityLabel={
+                    buyable
+                      ? t('squadTraining.a11y.buyDrill', {
+                          path: upgrade.label,
+                          tier: upgrade.nextTier ?? '',
+                          price: formatCurrency(t, upgrade.cost ?? 0),
+                        })
+                      : t('squadTraining.a11y.drillUnavailable', {
+                          path: upgrade.label,
+                          tier: upgrade.nextTier ?? '',
+                          reason: upgrade.blockedReason ?? '',
+                        })
+                  }
                   accessibilityState={{ disabled: !buyable }}
                   disabled={!buyable}
                   onPress={() => onBuy(upgrade.pathId)}
-                  className={buyable
-                    ? 'h-11 w-24 items-center justify-center border-2 border-b-4 border-ink bg-gold-light'
-                    : 'h-11 w-24 items-center justify-center border border-ink/20 bg-paper-dark'}
+                  className={
+                    buyable
+                      ? 'h-11 w-24 items-center justify-center border-2 border-b-4 border-ink bg-gold-light'
+                      : 'h-11 w-24 items-center justify-center border border-ink/20 bg-paper-dark'
+                  }
                 >
-                  <Text className={buyable ? 'font-mono text-sm text-ink' : 'font-mono text-sm text-ink/40'}>
+                  <Text
+                    className={
+                      buyable
+                        ? 'font-mono text-sm text-ink'
+                        : 'font-mono text-sm text-ink/40'
+                    }
+                  >
                     {formatCurrency(t, upgrade.cost ?? 0)}
                   </Text>
                 </Pressable>
@@ -976,40 +1218,69 @@ function PlayerFileSection({
     <PaperPanel
       kicker={t('squadTraining.playerFile')}
       title={selectedPlayer.name}
-      stamp={selectedPlayer.injuryWeeks > 0
-        ? t('squadTraining.out')
-        : selectedPlayer.licensed ? t('squadTraining.licensed') : selectedPlayer.role}
+      stamp={
+        selectedPlayer.injuryWeeks > 0
+          ? t('squadTraining.out')
+          : selectedPlayer.licensed
+            ? t('squadTraining.licensed')
+            : selectedPlayer.role
+      }
     >
       <View className="mb-4 flex-row items-center gap-4">
         <View className="border-2 border-b-4 border-ink bg-blue-light p-2">
-          <PixelPortrait playerId={selectedPlayer.id} role={selectedPlayer.role} lookId={selectedPlayer.lookId} />
+          <PixelPortrait
+            playerId={selectedPlayer.id}
+            role={selectedPlayer.role}
+            lookId={selectedPlayer.lookId}
+          />
         </View>
         <View className="flex-1">
-          <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.playerIdentity')}</PixelText>
-          <PixelText className="mt-1 text-lg uppercase text-ink">{selectedPlayer.role} · {selectedPlayer.archetypeLabel}</PixelText>
-          <Text className="mt-1 text-sm text-ink/60">{t('squadTraining.personalityAndFame', { personality: selectedPlayer.personalityLabel, fame: selectedPlayer.fame })}</Text>
+          <PixelText className="text-sm uppercase tracking-wide text-ink/50">
+            {t('squadTraining.playerIdentity')}
+          </PixelText>
+          <PixelText className="mt-1 text-lg uppercase text-ink">
+            {selectedPlayer.role} · {selectedPlayer.archetypeLabel}
+          </PixelText>
+          <Text className="mt-1 text-sm text-ink/60">
+            {t('squadTraining.personalityAndFame', {
+              personality: selectedPlayer.personalityLabel,
+              fame: selectedPlayer.fame,
+            })}
+          </Text>
         </View>
       </View>
       {selectedPlayer.injuryWeeks > 0 ? (
         <View className="mb-3 border-2 border-b-4 border-red-dark bg-red-light p-3">
           <Text className="font-pixel text-base uppercase text-red-dark">
-            {t('squadTraining.outForWeeks', { n: selectedPlayer.injuryWeeks, count: selectedPlayer.injuryWeeks })}
+            {t('squadTraining.outForWeeks', {
+              n: selectedPlayer.injuryWeeks,
+              count: selectedPlayer.injuryWeeks,
+            })}
           </Text>
-          <Text className="mt-1 text-sm text-ink/70">{t('squadTraining.unavailableForMatchSelection')}</Text>
+          <Text className="mt-1 text-sm text-ink/70">
+            {t('squadTraining.unavailableForMatchSelection')}
+          </Text>
         </View>
       ) : selectedPlayer.awayWeeks > 0 ? (
         // Gold, not red: leave is a consequence the manager chose, and keeping
         // red for injury alone means the two read apart at a glance.
         <View className="mb-3 border-2 border-b-4 border-gold-dark bg-gold-light p-3">
           <Text className="font-pixel text-base uppercase text-gold-dark">
-            {t('squadTraining.onLeaveForWeeks', { n: selectedPlayer.awayWeeks, count: selectedPlayer.awayWeeks })}
+            {t('squadTraining.onLeaveForWeeks', {
+              n: selectedPlayer.awayWeeks,
+              count: selectedPlayer.awayWeeks,
+            })}
           </Text>
           <Text className="mt-1 text-sm text-ink/70">
-            {t('squadTraining.awayOnAGranted')}</Text>
+            {t('squadTraining.awayOnAGranted')}
+          </Text>
         </View>
       ) : null}
       <View className="flex-row gap-2">
-        <Metric label={t('squadTraining.currentRating')} value={String(selectedPlayer.overall)} />
+        <Metric
+          label={t('squadTraining.currentRating')}
+          value={String(selectedPlayer.overall)}
+        />
         {/* The four numbers a manager acts on but the card cannot define — and
             potential's line is wider than its box, so its tip is also the only
             place the full "{grade} · {percent}% SUPER" is readable. */}
@@ -1023,13 +1294,23 @@ function PlayerFileSection({
           <Metric
             label={t('col.squad.conditionLong')}
             value={`${selectedPlayer.condition}%`}
-            tone={energyBand(selectedPlayer.condition) === 'red' ? 'negative' : 'positive'}
+            tone={
+              energyBand(selectedPlayer.condition) === 'red'
+                ? 'negative'
+                : 'positive'
+            }
           />
         </InfoTip>
-        <Metric label={t('squadTraining.wagePerWeek')} value={formatCurrency(t, selectedPlayer.weeklyWage)} />
+        <Metric
+          label={t('squadTraining.wagePerWeek')}
+          value={formatCurrency(t, selectedPlayer.weeklyWage)}
+        />
       </View>
       <View className="mt-2 flex-row gap-2">
-        <Metric label={t('squadTraining.age')} value={String(selectedPlayer.age)} />
+        <Metric
+          label={t('squadTraining.age')}
+          value={String(selectedPlayer.age)}
+        />
         <InfoTip
           className="min-w-0 flex-1"
           text={t('squadTraining.potentialTip', {
@@ -1054,9 +1335,14 @@ function PlayerFileSection({
           align="right"
           className="min-w-0 flex-1"
           text={t('squadTraining.fameTip')}
-          accessibilityLabel={t('squadTraining.a11y.fame', { fame: selectedPlayer.fame })}
+          accessibilityLabel={t('squadTraining.a11y.fame', {
+            fame: selectedPlayer.fame,
+          })}
         >
-          <Metric label={t('squadTraining.fame')} value={String(selectedPlayer.fame)} />
+          <Metric
+            label={t('squadTraining.fame')}
+            value={String(selectedPlayer.fame)}
+          />
         </InfoTip>
       </View>
       {/* Morale and loyalty sit together because they are the same kind of
@@ -1067,14 +1353,21 @@ function PlayerFileSection({
         <InfoTip
           className="min-w-0 flex-1"
           text={t('squadTraining.moraleTip')}
-          accessibilityLabel={t('squadTraining.a11y.morale', { morale: selectedPlayer.morale })}
+          accessibilityLabel={t('squadTraining.a11y.morale', {
+            morale: selectedPlayer.morale,
+          })}
         >
-          <Metric label={t('squadTraining.morale')} value={`${selectedPlayer.morale}%`} />
+          <Metric
+            label={t('squadTraining.morale')}
+            value={`${selectedPlayer.morale}%`}
+          />
         </InfoTip>
         <InfoTip
           align="right"
           className="min-w-0 flex-1"
-          text={t('squadTraining.loyaltyTip', { floor: LOYALTY_NO_RENEWAL_THRESHOLD })}
+          text={t('squadTraining.loyaltyTip', {
+            floor: LOYALTY_NO_RENEWAL_THRESHOLD,
+          })}
           accessibilityLabel={t('squadTraining.a11y.loyalty', {
             loyalty: selectedPlayer.loyalty,
             floor: LOYALTY_NO_RENEWAL_THRESHOLD,
@@ -1083,44 +1376,94 @@ function PlayerFileSection({
           <Metric
             label={t('squadTraining.loyalty')}
             value={String(selectedPlayer.loyalty)}
-            tone={selectedPlayer.loyalty <= LOYALTY_WARNING_THRESHOLD ? 'negative' : 'normal'}
+            tone={
+              selectedPlayer.loyalty <= LOYALTY_WARNING_THRESHOLD
+                ? 'negative'
+                : 'normal'
+            }
           />
         </InfoTip>
       </View>
       <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/20 pt-3">
         <View className="flex-1">
-          <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.contract')}</PixelText>
-          <Text className="mt-1 text-base font-bold text-ink">{selectedPlayer.contractLabel}</Text>
+          <PixelText className="text-sm uppercase tracking-wide text-ink/50">
+            {t('squadTraining.contract')}
+          </PixelText>
+          <Text className="mt-1 text-base font-bold text-ink">
+            {selectedPlayer.contractLabel}
+          </Text>
           {selectedPlayer.retirementLabel === undefined ? null : (
-            <Text className="mt-1 text-sm text-ink/60">{selectedPlayer.retirementLabel}</Text>
+            <Text className="mt-1 text-sm text-ink/60">
+              {selectedPlayer.retirementLabel}
+            </Text>
           )}
         </View>
-        {selectedPlayer.powerName ? <StatusChip label={selectedPlayer.powerName} tone="hero" /> : null}
+        {selectedPlayer.powerName ? (
+          <StatusChip label={selectedPlayer.powerName} tone="hero" />
+        ) : null}
       </View>
-      {selectedPlayer.contractPromiseLabel || selectedPlayer.isCaptain || selectedPlayer.shirtNumber ? (
+      {selectedPlayer.contractPromiseLabel ||
+      selectedPlayer.isCaptain ||
+      selectedPlayer.shirtNumber ? (
         <View className="mt-3 flex-row flex-wrap gap-2">
-          {selectedPlayer.isCaptain ? <StatusChip label={t('squadTraining.captain')} selected /> : null}
-          {selectedPlayer.shirtNumber ? <StatusChip label={t('squadTraining.shirtNumber', { number: selectedPlayer.shirtNumber })} /> : null}
-          {selectedPlayer.contractPromiseLabel ? <StatusChip label={selectedPlayer.contractPromiseLabel} selected /> : null}
+          {selectedPlayer.isCaptain ? (
+            <StatusChip label={t('squadTraining.captain')} selected />
+          ) : null}
+          {selectedPlayer.shirtNumber ? (
+            <StatusChip
+              label={t('squadTraining.shirtNumber', {
+                number: selectedPlayer.shirtNumber,
+              })}
+            />
+          ) : null}
+          {selectedPlayer.contractPromiseLabel ? (
+            <StatusChip label={selectedPlayer.contractPromiseLabel} selected />
+          ) : null}
         </View>
       ) : null}
       <View className="mt-3 border border-ink/20 bg-paper-dark/40 px-3 py-3">
         <View className="flex-row items-center justify-between gap-3">
-          <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.archetype')}</PixelText>
+          <PixelText className="text-sm uppercase tracking-wide text-ink/50">
+            {t('squadTraining.archetype')}
+          </PixelText>
           <View className="min-w-0 flex-1 items-end">
-            <Text className="text-base font-bold text-ink">{selectedPlayer.archetypeLabel}</Text>
+            <Text className="text-base font-bold text-ink">
+              {selectedPlayer.archetypeLabel}
+            </Text>
             <View className="mt-1 flex-row flex-wrap justify-end gap-x-2">
-              <Text className="font-pixel text-sm text-pitch-ink">{selectedArchetype === undefined ? null : copyOrEnglish(t, selectedArchetype.strengthsKey, selectedArchetype.strengths)}</Text>
-              <Text className="font-pixel text-sm text-ink/50">{selectedArchetype === undefined ? null : copyOrEnglish(t, selectedArchetype.weaknessesKey, selectedArchetype.weaknesses)}</Text>
+              <Text className="font-pixel text-sm text-pitch-ink">
+                {selectedArchetype === undefined
+                  ? null
+                  : copyOrEnglish(
+                      t,
+                      selectedArchetype.strengthsKey,
+                      selectedArchetype.strengths,
+                    )}
+              </Text>
+              <Text className="font-pixel text-sm text-ink/50">
+                {selectedArchetype === undefined
+                  ? null
+                  : copyOrEnglish(
+                      t,
+                      selectedArchetype.weaknessesKey,
+                      selectedArchetype.weaknesses,
+                    )}
+              </Text>
             </View>
           </View>
         </View>
         <View className="mt-2 flex-row items-center justify-between gap-3">
-          <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.position')}</PixelText>
-          <Text className="font-pixel text-sm text-blue-dark">{selectedPlayer.positionTrainingLabel}</Text>
+          <PixelText className="text-sm uppercase tracking-wide text-ink/50">
+            {t('squadTraining.position')}
+          </PixelText>
+          <Text className="font-pixel text-sm text-blue-dark">
+            {selectedPlayer.positionTrainingLabel}
+          </Text>
         </View>
         <View className="mt-2 flex-row items-center justify-between gap-3">
-          <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.personality')}</PixelText>
+          <PixelText className="text-sm uppercase tracking-wide text-ink/50">
+            {t('squadTraining.personality')}
+          </PixelText>
           <InfoTip
             align="right"
             text={personalityExplainer(selectedPlayer.personality, t)}
@@ -1129,18 +1472,26 @@ function PlayerFileSection({
               explainer: personalityExplainer(selectedPlayer.personality, t),
             })}
           >
-            <Text className="text-base font-bold text-ink">{selectedPlayer.personalityLabel}</Text>
+            <Text className="text-base font-bold text-ink">
+              {selectedPlayer.personalityLabel}
+            </Text>
           </InfoTip>
         </View>
         <View className="mt-2 flex-row items-center justify-between gap-3">
-          <PixelText className="text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.fame')}</PixelText>
-          <Text className="font-mono text-base text-ink">{selectedPlayer.fame}</Text>
+          <PixelText className="text-sm uppercase tracking-wide text-ink/50">
+            {t('squadTraining.fame')}
+          </PixelText>
+          <Text className="font-mono text-base text-ink">
+            {selectedPlayer.fame}
+          </Text>
         </View>
       </View>
       <View
-        className={guideQuickTrain
-          ? 'relative mt-20 border-2 border-blue-dark bg-blue-light/20 p-3'
-          : 'mt-3 border-2 border-ink bg-white p-3'}
+        className={
+          guideQuickTrain
+            ? 'relative mt-20 border-2 border-blue-dark bg-blue-light/20 p-3'
+            : 'mt-3 border-2 border-ink bg-white p-3'
+        }
       >
         {guideQuickTrain ? (
           <TutorialTapCue
@@ -1153,19 +1504,27 @@ function PlayerFileSection({
             }}
           />
         ) : null}
-        <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/50">{t('squadTraining.attributes')}</PixelText>
+        <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/50">
+          {t('squadTraining.attributes')}
+        </PixelText>
         <Text className="mb-3 text-xs leading-4 text-ink/55">
-          {t('squadTraining.pacPaceShoShooting')}</Text>
+          {t('squadTraining.pacPaceShoShooting')}
+        </Text>
         <View className="flex-row flex-wrap gap-2">
           {selectedPlayer.attributes
-            .filter(attribute => selectedPlayer.role === 'GK'
-              ? attribute.label !== 'SHO'
-              : attribute.label !== 'REF')
-            .map(attribute => {
+            .filter((attribute) =>
+              selectedPlayer.role === 'GK'
+                ? attribute.label !== 'SHO'
+                : attribute.label !== 'REF',
+            )
+            .map((attribute) => {
               // Quick Train: the attribute IS the button. Tapping it opens the
               // confirmation for whichever drill trains that stat.
-              const option = statOptions?.find(candidate => candidate.shortCode === attribute.label);
-              const trainable = option !== undefined && onTrainAttribute !== undefined;
+              const option = statOptions?.find(
+                (candidate) => candidate.shortCode === attribute.label,
+              );
+              const trainable =
+                option !== undefined && onTrainAttribute !== undefined;
               return (
                 // Tap trains, hold explains. InfoTip's 500ms delay is chosen so
                 // an unhurried tap still counts as a tap, which is what lets one
@@ -1175,33 +1534,49 @@ function PlayerFileSection({
                 <InfoTip
                   key={attribute.label}
                   text={t(ATTRIBUTE_EXPLAINER[attribute.label])}
-                  accessibilityLabel={trainable
-                    ? t('squadTraining.a11y.trainAttribute', {
-                      stat: attribute.label,
-                      value: attribute.value,
-                      drill: option.drillName,
-                      cost: option.tpCost,
-                      gain: option.gain,
-                      explainer: t(ATTRIBUTE_EXPLAINER[attribute.label]),
-                    })
-                    : t('squadTraining.a11y.attributeValue', {
-                      stat: attribute.label,
-                      value: attribute.value,
-                      explainer: t(ATTRIBUTE_EXPLAINER[attribute.label]),
-                    })}
-                  className={trainable
-                    ? 'min-w-[29%] flex-1 border-2 border-b-4 border-ink/40 bg-paper px-2 py-2'
-                    : 'min-w-[29%] flex-1 border border-ink/20 bg-paper px-2 py-2'}
+                  accessibilityLabel={
+                    trainable
+                      ? t('squadTraining.a11y.trainAttribute', {
+                          stat: attribute.label,
+                          value: attribute.value,
+                          drill: option.drillName,
+                          cost: option.tpCost,
+                          gain: option.gain,
+                          explainer: t(ATTRIBUTE_EXPLAINER[attribute.label]),
+                        })
+                      : t('squadTraining.a11y.attributeValue', {
+                          stat: attribute.label,
+                          value: attribute.value,
+                          explainer: t(ATTRIBUTE_EXPLAINER[attribute.label]),
+                        })
+                  }
+                  className={
+                    trainable
+                      ? 'min-w-[29%] flex-1 border-2 border-b-4 border-ink/40 bg-paper px-2 py-2'
+                      : 'min-w-[29%] flex-1 border border-ink/20 bg-paper px-2 py-2'
+                  }
                   disabled={!trainable}
-                  onPress={trainable ? () => onTrainAttribute(option.pathId) : undefined}
+                  onPress={
+                    trainable
+                      ? () => onTrainAttribute(option.pathId)
+                      : undefined
+                  }
                 >
-                  <PixelText className="text-sm uppercase text-ink/50">{attribute.label}</PixelText>
+                  <PixelText className="text-sm uppercase text-ink/50">
+                    {attribute.label}
+                  </PixelText>
                   <Text className="mt-1 font-mono text-base text-ink">
                     {attribute.value}
                   </Text>
                   {trainable ? (
-                    <Text className="mt-0.5 font-mono text-xs text-blue-dark" numberOfLines={1}>
-                      {t('squadTraining.gainAndCost', { gain: option.gain, cost: option.tpCost })}
+                    <Text
+                      className="mt-0.5 font-mono text-xs text-blue-dark"
+                      numberOfLines={1}
+                    >
+                      {t('squadTraining.gainAndCost', {
+                        gain: option.gain,
+                        cost: option.tpCost,
+                      })}
                     </Text>
                   ) : null}
                 </InfoTip>
@@ -1227,8 +1602,18 @@ function PlayerFileSection({
  * its tail — the same trick, and the only way to fill a triangle without an
  * image or a canvas.
  */
-function SquadSortArrow({ direction }: { direction: 'ascending' | 'descending' }) {
-  return <View style={direction === 'descending' ? styles.sortArrowDown : styles.sortArrowUp} />;
+function SquadSortArrow({
+  direction,
+}: {
+  direction: 'ascending' | 'descending';
+}) {
+  return (
+    <View
+      style={
+        direction === 'descending' ? styles.sortArrowDown : styles.sortArrowUp
+      }
+    />
+  );
 }
 
 function SquadSortHeader({
@@ -1256,16 +1641,18 @@ function SquadSortHeader({
 }) {
   const t = useCopy();
   const direction = sort?.key === sortKey ? sort.direction : null;
-  const directionWord = direction === 'descending'
-    ? t('squadTraining.sortDescending')
-    : direction === 'ascending'
-      ? t('squadTraining.sortAscending')
-      : t('squadTraining.sortDefaultOrder');
-  const nextDirection = direction === null
-    ? t('squadTraining.sortDescending')
-    : direction === 'descending'
-      ? t('squadTraining.sortAscending')
-      : t('squadTraining.sortDefaultOrder');
+  const directionWord =
+    direction === 'descending'
+      ? t('squadTraining.sortDescending')
+      : direction === 'ascending'
+        ? t('squadTraining.sortAscending')
+        : t('squadTraining.sortDefaultOrder');
+  const nextDirection =
+    direction === null
+      ? t('squadTraining.sortDescending')
+      : direction === 'descending'
+        ? t('squadTraining.sortAscending')
+        : t('squadTraining.sortDefaultOrder');
   const explainer = t(COLUMN_EXPLAINER[sortKey]);
   return (
     <InfoTip
@@ -1281,34 +1668,36 @@ function SquadSortHeader({
       })}
       onPress={() => onSort(sortKey)}
     >
-    <View
-      className={`relative min-h-11 w-full flex-row items-center ${align === 'right' ? 'justify-end' : 'justify-start'}`}
-      // The gap the column widths are sized around, in points rather than in a
-      // utility class: `gap-1` is 3.5pt on native, not 4.
-      style={styles.sortHeaderRow}
-    >
-      {tutorialCue}
-      <PixelText
-        // A step down from the row values so the spelled-out words fit their
-        // column with the sort arrow — headers label the data, they aren't it.
-        className={direction === null
-          ? `${labelSize} uppercase text-ink/50`
-          : `${labelSize} uppercase text-blue-dark`}
-        // Capped, because the column under it cannot grow with the reader's
-        // text size and a header that outgrows its column paints over the one
-        // beside it. The full sentence is on the accessibility label.
-        maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
-        // Shrinks before the arrow does, so at a text size beyond anything
-        // measured here the label gives up a letter rather than the arrow
-        // disappearing — losing which way a column is sorted is worse.
-        style={styles.sortHeaderLabel}
-        numberOfLines={1}
-        ellipsizeMode="clip"
+      <View
+        className={`relative min-h-11 w-full flex-row items-center ${align === 'right' ? 'justify-end' : 'justify-start'}`}
+        // The gap the column widths are sized around, in points rather than in a
+        // utility class: `gap-1` is 3.5pt on native, not 4.
+        style={styles.sortHeaderRow}
       >
-        {label}
-      </PixelText>
-      {direction === null ? null : <SquadSortArrow direction={direction} />}
-    </View>
+        {tutorialCue}
+        <PixelText
+          // A step down from the row values so the spelled-out words fit their
+          // column with the sort arrow — headers label the data, they aren't it.
+          className={
+            direction === null
+              ? `${labelSize} uppercase text-ink/50`
+              : `${labelSize} uppercase text-blue-dark`
+          }
+          // Capped, because the column under it cannot grow with the reader's
+          // text size and a header that outgrows its column paints over the one
+          // beside it. The full sentence is on the accessibility label.
+          maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
+          // Shrinks before the arrow does, so at a text size beyond anything
+          // measured here the label gives up a letter rather than the arrow
+          // disappearing — losing which way a column is sorted is worse.
+          style={styles.sortHeaderLabel}
+          numberOfLines={1}
+          ellipsizeMode="clip"
+        >
+          {label}
+        </PixelText>
+        {direction === null ? null : <SquadSortArrow direction={direction} />}
+      </View>
     </InfoTip>
   );
 }

@@ -4,8 +4,15 @@ import {
   addCreatedPlayer,
   beginStoryOnboarding,
 } from '../../game';
-import { GAME_SCHEMA_VERSION, type CareerSetup, type GameState } from '../../game/types';
-import { createLaunchCareerSetup, reconcileLaunchRoster } from '../../application/launch';
+import {
+  GAME_SCHEMA_VERSION,
+  type CareerSetup,
+  type GameState,
+} from '../../game/types';
+import {
+  createLaunchCareerSetup,
+  reconcileLaunchRoster,
+} from '../../application/launch';
 import { createCareerRepository } from '../career-repository';
 import { parseStoredGameState, serializeGameState } from '../game-state-codec';
 import {
@@ -21,9 +28,14 @@ import { FakePersistenceDatabase } from './fake-database';
 describe('career repository', () => {
   it('normalizes schema-1 saves created before awakening history existed', () => {
     const state = createCareer(createLaunchCareerSetup(1234));
-    const withoutAwakening = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+    const withoutAwakening = JSON.parse(JSON.stringify(state)) as Record<
+      string,
+      unknown
+    >;
     delete withoutAwakening.awakening;
-    expect(parseStoredGameState(JSON.stringify(withoutAwakening)).awakening).toEqual({
+    expect(
+      parseStoredGameState(JSON.stringify(withoutAwakening)).awakening,
+    ).toEqual({
       matchesSinceLastAwakening: 0,
       usedTriggerIds: [],
     });
@@ -32,8 +44,10 @@ describe('career repository', () => {
       awakening: Record<string, unknown>;
     };
     delete withoutTriggerHistory.awakening.usedTriggerIds;
-    expect(parseStoredGameState(JSON.stringify(withoutTriggerHistory)).awakening.usedTriggerIds)
-      .toEqual([]);
+    expect(
+      parseStoredGameState(JSON.stringify(withoutTriggerHistory)).awakening
+        .usedTriggerIds,
+    ).toEqual([]);
   });
 
   it('loads a retired m1-slice save and reconciles it into a full career', () => {
@@ -42,7 +56,13 @@ describe('career repository', () => {
     // label, and none of the sidecars that mode never created.
     const slice = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
     slice.careerMode = 'm1-slice';
-    for (const field of ['m2', 'market', 'youthIntake', 'financialSafety', 'cashTransactions']) {
+    for (const field of [
+      'm2',
+      'market',
+      'youthIntake',
+      'financialSafety',
+      'cashTransactions',
+    ]) {
       delete slice[field];
     }
 
@@ -80,8 +100,9 @@ describe('career repository', () => {
     // Decoding orders keys by the codec schema rather than by the in-memory
     // literal, so byte-identity is asserted where it matters: a decoded save
     // re-saves and re-loads to exactly itself.
-    expect(JSON.stringify(parseStoredGameState(serializeGameState(loaded!))))
-      .toBe(JSON.stringify(loaded));
+    expect(
+      JSON.stringify(parseStoredGameState(serializeGameState(loaded!))),
+    ).toBe(JSON.stringify(loaded));
   });
 
   it('persists the created player and resumable onboarding stage in the career save', async () => {
@@ -99,15 +120,21 @@ describe('career repository', () => {
       stage: 'first-match',
       createdPlayerId: 'bramble-rovers-created-player',
     });
-    expect(loaded?.players.find(player => player.id === loaded.onboarding?.createdPlayerId))
-      .toMatchObject({
-        name: 'Jo Rook',
-        weeklyWage: 180,
-        contractSeasonsRemaining: 1,
-        onHeroWage: false,
-      });
-    expect(loaded?.players.find(player => player.id === loaded.onboarding?.createdPlayerId)?.power)
-      .toBeUndefined();
+    expect(
+      loaded?.players.find(
+        (player) => player.id === loaded.onboarding?.createdPlayerId,
+      ),
+    ).toMatchObject({
+      name: 'Jo Rook',
+      weeklyWage: 180,
+      contractSeasonsRemaining: 1,
+      onHeroWage: false,
+    });
+    expect(
+      loaded?.players.find(
+        (player) => player.id === loaded.onboarding?.createdPlayerId,
+      )?.power,
+    ).toBeUndefined();
   });
 
   it('round-trips the training rules, SUPER pity counters, and drill nonce', async () => {
@@ -117,9 +144,11 @@ describe('career repository', () => {
     const state: GameState = {
       ...initial,
       totalInstantDrills: 17,
-      players: initial.players.map(player => player.id === 'bramble-rovers-p13'
-        ? { ...player, drillsSinceSuper: 7 }
-        : player),
+      players: initial.players.map((player) =>
+        player.id === 'bramble-rovers-p13'
+          ? { ...player, drillsSinceSuper: 7 }
+          : player,
+      ),
     };
 
     await repository.save(state);
@@ -127,8 +156,10 @@ describe('career repository', () => {
 
     expect(loaded?.trainingRules).toEqual(state.trainingRules);
     expect(loaded?.totalInstantDrills).toBe(17);
-    expect(loaded?.players.find(player => player.id === 'bramble-rovers-p13')?.drillsSinceSuper)
-      .toBe(7);
+    expect(
+      loaded?.players.find((player) => player.id === 'bramble-rovers-p13')
+        ?.drillsSinceSuper,
+    ).toBe(7);
   });
 
   it('overwrites the existing slot atomically with the latest state', async () => {
@@ -158,10 +189,13 @@ describe('career repository', () => {
   it('reads an incompatible save as exact raw text without decoding it', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);
-    const stateJson = '{"schemaVersion":1,"careerSeed":7788,"unknown":{"keep":"exact"}}';
+    const stateJson =
+      '{"schemaVersion":1,"careerSeed":7788,"unknown":{"keep":"exact"}}';
     database.seedCareerRow({ schema_version: 1, state_json: stateJson });
 
-    await expect(repository.load()).rejects.toBeInstanceOf(UnsupportedGameSchemaError);
+    await expect(repository.load()).rejects.toBeInstanceOf(
+      UnsupportedGameSchemaError,
+    );
     await expect(repository.loadRaw()).resolves.toEqual({
       schemaVersion: 1,
       stateJson,
@@ -200,7 +234,9 @@ describe('career repository', () => {
 
     expect(database.careerRow).toBeNull();
     expect(database.backupRow).toBeNull();
-    expect([...database.replayRows.values()].map(row => row.fixture_id)).toEqual(['keep']);
+    expect(
+      [...database.replayRows.values()].map((row) => row.fixture_id),
+    ).toEqual(['keep']);
     expect(database.preferencesRow).toEqual(preferencesBefore);
   });
 
@@ -289,9 +325,14 @@ describe('career repository', () => {
   it('rejects a row whose schema version column is below the first version', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);
-    database.seedCareerRow({ schema_version: 0, state_json: '{"schemaVersion":1}' });
+    database.seedCareerRow({
+      schema_version: 0,
+      state_json: '{"schemaVersion":1}',
+    });
 
-    await expect(repository.load()).rejects.toBeInstanceOf(CorruptCareerSaveError);
+    await expect(repository.load()).rejects.toBeInstanceOf(
+      CorruptCareerSaveError,
+    );
   });
 });
 
@@ -302,17 +343,26 @@ describe('career backup generation', () => {
     const seasonOne = makeState();
 
     await repository.save(seasonOne);
-    await expect(repository.backupSummary()).resolves.toEqual({ season: 1, week: 1 });
+    await expect(repository.backupSummary()).resolves.toEqual({
+      season: 1,
+      week: 1,
+    });
 
     // Mid-season saves leave the previous generation alone.
     await repository.save(atSeason(seasonOne, 1, 7));
-    await expect(repository.backupSummary()).resolves.toEqual({ season: 1, week: 1 });
+    await expect(repository.backupSummary()).resolves.toEqual({
+      season: 1,
+      week: 1,
+    });
 
     await repository.save(atSeason(seasonOne, 2, 3));
-    await expect(repository.backupSummary()).resolves.toEqual({ season: 2, week: 3 });
+    await expect(repository.backupSummary()).resolves.toEqual({
+      season: 2,
+      week: 3,
+    });
   });
 
-  it('replaces the previous career\'s backup as soon as a different career saves', async () => {
+  it("replaces the previous career's backup as soon as a different career saves", async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);
     const careerA = makeState();
@@ -349,7 +399,9 @@ describe('career backup generation', () => {
       schema_version: GAME_SCHEMA_VERSION,
       state_json: `{"schemaVersion":${GAME_SCHEMA_VERSION}}`,
     });
-    await expect(repository.load()).rejects.toBeInstanceOf(CorruptCareerSaveError);
+    await expect(repository.load()).rejects.toBeInstanceOf(
+      CorruptCareerSaveError,
+    );
 
     const restored = await repository.restoreBackup();
 
@@ -366,10 +418,16 @@ describe('career backup generation', () => {
 
     await repository.restoreBackup();
     await repository.save(atSeason(state, 2, 4));
-    await expect(repository.backupSummary()).resolves.toEqual({ season: 2, week: 1 });
+    await expect(repository.backupSummary()).resolves.toEqual({
+      season: 2,
+      week: 1,
+    });
 
     await repository.save(atSeason(state, 3, 1));
-    await expect(repository.backupSummary()).resolves.toEqual({ season: 3, week: 1 });
+    await expect(repository.backupSummary()).resolves.toEqual({
+      season: 3,
+      week: 1,
+    });
   });
 
   it('refuses to restore a backup this build cannot decode', async () => {
@@ -404,7 +462,10 @@ describe('career backup generation', () => {
     // The checkpoint is retried rather than skipped for the rest of the season.
     database.backupWritesFail = false;
     await repository.save(atSeason(state, 1, 5));
-    await expect(repository.backupSummary()).resolves.toEqual({ season: 1, week: 5 });
+    await expect(repository.backupSummary()).resolves.toEqual({
+      season: 1,
+      week: 5,
+    });
   });
 
   it('backs up a replacement career that opened on the same season number', async () => {

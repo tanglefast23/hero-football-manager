@@ -23,7 +23,10 @@ describe('weekly event clock', () => {
 
   it('guarantees an event on the sixth consecutive eventless week', () => {
     // The default mirrors content/events.json's guaranteeAfterDryWeeks: 6.
-    const fifthMiss = rollWeeklyEvent({ weeksWithoutEvent: 4, riskyChoices: 2 }, 99);
+    const fifthMiss = rollWeeklyEvent(
+      { weeksWithoutEvent: 4, riskyChoices: 2 },
+      99,
+    );
     expect(fifthMiss).toEqual({
       offered: false,
       state: { weeksWithoutEvent: 5, riskyChoices: 2 },
@@ -37,17 +40,22 @@ describe('weekly event clock', () => {
   });
 
   it('resets the eventless count whenever a normal roll offers an event', () => {
-    expect(rollWeeklyEvent({ weeksWithoutEvent: 4, riskyChoices: 3 }, 0)).toEqual({
+    expect(
+      rollWeeklyEvent({ weeksWithoutEvent: 4, riskyChoices: 3 }, 0),
+    ).toEqual({
       offered: true,
       state: { weeksWithoutEvent: 0, riskyChoices: 3 },
     });
   });
 
-  it.each([-1, 100, 1.5, Number.NaN])('rejects invalid percent roll %p', roll => {
-    expect(() => rollWeeklyEvent({ weeksWithoutEvent: 0, riskyChoices: 0 }, roll)).toThrow(
-      'integer from 0 to 99',
-    );
-  });
+  it.each([-1, 100, 1.5, Number.NaN])(
+    'rejects invalid percent roll %p',
+    (roll) => {
+      expect(() =>
+        rollWeeklyEvent({ weeksWithoutEvent: 0, riskyChoices: 0 }, roll),
+      ).toThrow('integer from 0 to 99');
+    },
+  );
 
   it('takes its chance and dry-week guarantee from authored content tuning', () => {
     const state = { weeksWithoutEvent: 0, riskyChoices: 0 };
@@ -55,13 +63,21 @@ describe('weekly event clock', () => {
 
     expect(rollWeeklyEvent(state, 39, generous).offered).toBe(true);
     expect(rollWeeklyEvent(state, 40, generous).offered).toBe(false);
-    expect(rollWeeklyEvent({ weeksWithoutEvent: 1, riskyChoices: 0 }, 99, generous).offered).toBe(false);
-    expect(rollWeeklyEvent({ weeksWithoutEvent: 2, riskyChoices: 0 }, 99, generous).offered).toBe(true);
+    expect(
+      rollWeeklyEvent({ weeksWithoutEvent: 1, riskyChoices: 0 }, 99, generous)
+        .offered,
+    ).toBe(false);
+    expect(
+      rollWeeklyEvent({ weeksWithoutEvent: 2, riskyChoices: 0 }, 99, generous)
+        .offered,
+    ).toBe(true);
   });
 
   it('raises the chance with every dry week without moving the guarantee', () => {
     const tuning = { weeklyChancePercent: 18, guaranteeAfterDryWeeks: 6 };
-    const curve = [0, 1, 2, 3, 4, 5].map(dry => quietWeekEventChancePercent(dry, tuning));
+    const curve = [0, 1, 2, 3, 4, 5].map((dry) =>
+      quietWeekEventChancePercent(dry, tuning),
+    );
 
     expect(curve[0]).toBe(tuning.weeklyChancePercent);
     expect(curve[curve.length - 1]).toBe(100);
@@ -74,16 +90,26 @@ describe('weekly event clock', () => {
   });
 
   it('rejects a negative dry-week count', () => {
-    expect(() => quietWeekEventChancePercent(-1)).toThrow('non-negative integer');
+    expect(() => quietWeekEventChancePercent(-1)).toThrow(
+      'non-negative integer',
+    );
   });
 
   it('rejects content tuning outside the supported range', () => {
     const state = { weeksWithoutEvent: 0, riskyChoices: 0 };
 
-    expect(() => rollWeeklyEvent(state, 0, { weeklyChancePercent: 0, guaranteeAfterDryWeeks: 4 }))
-      .toThrow('weekly event chance');
-    expect(() => rollWeeklyEvent(state, 0, { weeklyChancePercent: 20, guaranteeAfterDryWeeks: 0 }))
-      .toThrow('dry-week guarantee');
+    expect(() =>
+      rollWeeklyEvent(state, 0, {
+        weeklyChancePercent: 0,
+        guaranteeAfterDryWeeks: 4,
+      }),
+    ).toThrow('weekly event chance');
+    expect(() =>
+      rollWeeklyEvent(state, 0, {
+        weeklyChancePercent: 20,
+        guaranteeAfterDryWeeks: 0,
+      }),
+    ).toThrow('dry-week guarantee');
   });
 });
 
@@ -132,13 +158,18 @@ describe('weighted outcome selection', () => {
     [[1.5, 2]],
     [[Number.MAX_SAFE_INTEGER + 1]],
     [[Number.MAX_SAFE_INTEGER, 1]],
-  ])('rejects invalid weights %p', weights => {
+  ])('rejects invalid weights %p', (weights) => {
     expect(() => chooseWeightedOutcome(weights, 0)).toThrow();
   });
 
-  it.each([-1, 6, 1.5, Number.NaN])('rejects out-of-range weighted roll %p', roll => {
-    expect(() => chooseWeightedOutcome([2, 3, 1], roll)).toThrow('weighted outcome roll');
-  });
+  it.each([-1, 6, 1.5, Number.NaN])(
+    'rejects out-of-range weighted roll %p',
+    (roll) => {
+      expect(() => chooseWeightedOutcome([2, 3, 1], roll)).toThrow(
+        'weighted outcome roll',
+      );
+    },
+  );
 });
 
 describe('event clock validation and immutability', () => {
@@ -147,7 +178,7 @@ describe('event clock validation and immutability', () => {
     { weeksWithoutEvent: 1.5, riskyChoices: 0 },
     { weeksWithoutEvent: 0, riskyChoices: -1 },
     { weeksWithoutEvent: 0, riskyChoices: 1.5 },
-  ])('rejects invalid state %p', state => {
+  ])('rejects invalid state %p', (state) => {
     expect(() => rollWeeklyEvent(state, 50)).toThrow();
     expect(() => recordEventChoice(state, false)).toThrow();
   });
@@ -166,19 +197,42 @@ describe('event clock validation and immutability', () => {
 
 describe('deterministic career event rolls', () => {
   it('returns the same stream value from the same persisted context', () => {
-    const context = Object.freeze({ careerSeed: 456, season: 1, week: 9, riskyChoices: 1 });
+    const context = Object.freeze({
+      careerSeed: 456,
+      season: 1,
+      week: 9,
+      riskyChoices: 1,
+    });
 
-    const first = deterministicCareerEventRoll(context, 'approach-spider', 0, 100);
-    const second = deterministicCareerEventRoll(context, 'approach-spider', 0, 100);
+    const first = deterministicCareerEventRoll(
+      context,
+      'approach-spider',
+      0,
+      100,
+    );
+    const second = deterministicCareerEventRoll(
+      context,
+      'approach-spider',
+      0,
+      100,
+    );
 
     expect(first).toBe(second);
-    expect(context).toEqual({ careerSeed: 456, season: 1, week: 9, riskyChoices: 1 });
+    expect(context).toEqual({
+      careerSeed: 456,
+      season: 1,
+      week: 9,
+      riskyChoices: 1,
+    });
   });
 
   it('keeps choice streams independent', () => {
     const context = { careerSeed: 456, season: 1, week: 9, riskyChoices: 1 };
-    expect(deterministicCareerEventRoll(context, 'approach-spider', 0, 100))
-      .not.toBe(deterministicCareerEventRoll(context, 'approach-spider', 1, 100));
+    expect(
+      deterministicCareerEventRoll(context, 'approach-spider', 0, 100),
+    ).not.toBe(
+      deterministicCareerEventRoll(context, 'approach-spider', 1, 100),
+    );
   });
 
   it.each([
@@ -186,7 +240,9 @@ describe('deterministic career event rolls', () => {
     [{ careerSeed: 1, season: 0, week: 9, riskyChoices: 1 }],
     [{ careerSeed: 1, season: 1, week: 0, riskyChoices: 1 }],
     [{ careerSeed: 1, season: 1, week: 9, riskyChoices: -1 }],
-  ])('rejects invalid roll context %p', context => {
-    expect(() => deterministicCareerEventRoll(context, 'approach-spider', 0, 100)).toThrow();
+  ])('rejects invalid roll context %p', (context) => {
+    expect(() =>
+      deterministicCareerEventRoll(context, 'approach-spider', 0, 100),
+    ).toThrow();
   });
 });

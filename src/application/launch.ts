@@ -57,74 +57,90 @@ export function createLaunchCareerSetup(
     // fresh career opens with 24 rather than 30 — see `training-point-income.ts`.
     startingTrainingPoints: scaledTrainingPoints(30),
     trainingRules: {
-      focusDrills: content.training.focusDrills.map(drill => ({
-        id: drill.id, moneyCost: drill.moneyCost, tpCost: drill.tpCost, gains: { ...drill.gains },
+      focusDrills: content.training.focusDrills.map((drill) => ({
+        id: drill.id,
+        moneyCost: drill.moneyCost,
+        tpCost: drill.tpCost,
+        gains: { ...drill.gains },
       })),
     },
     sponsorRules: {
-      brands: content.sponsors.brands.map(brand => ({ ...brand })),
+      brands: content.sponsors.brands.map((brand) => ({ ...brand })),
       profiles: {
         STEADY: { ...content.sponsors.profiles.STEADY },
         BALANCED: { ...content.sponsors.profiles.BALANCED },
         BOLD: { ...content.sponsors.profiles.BOLD },
       },
-      objectives: content.sponsors.objectives.map(objective => ({
+      objectives: content.sponsors.objectives.map((objective) => ({
         ...objective,
         targets: { ...objective.targets },
       })),
     },
-    clubs: content.clubs.clubs.map(club => ({
+    clubs: content.clubs.clubs.map((club) => ({
       id: club.id,
       name: club.name,
       cash: club.startingCash,
       fans: club.fans,
       ticketPrice: club.ticketPrice,
       sponsorMonthlyFee: club.sponsorMonthlyFee,
-      weeklyWages: club.players.reduce((sum, player) => sum + player.weeklyWage, 0),
+      weeklyWages: club.players.reduce(
+        (sum, player) => sum + player.weeklyWage,
+        0,
+      ),
     })),
-    players: content.clubs.clubs.flatMap((club, clubIndex) => club.players.map((player, playerIndex) => ({
-      id: player.id,
-      clubId: club.id,
-      name: player.name,
-      role: player.role,
-      lookId: playerLookId(player.id, player.role),
-      attrs: { ...player.ratings },
-      ...(club.id === userClubId || player.powerId === null
-        ? {}
-        : { power: player.powerId, powerTier: 1 as const }),
-      licensed: club.id === userClubId ? false : player.licensed,
-      weeklyWage: player.weeklyWage,
-      onHeroWage: club.id === userClubId ? false : player.onHeroWage,
-      // M1 intentionally contains one renewal: the created hero's wage cliff.
-      // Keep ordinary user-club contracts alive through Season 1 so they do not
-      // become unresolved transfer-market work before M2 exists.
-      contractSeasonsRemaining: club.id === userClubId
-        ? Math.max(2, player.contractSeasonsRemaining)
-        : player.contractSeasonsRemaining,
-      morale: 50,
-      injuryWeeks: 0,
-      age: player.age,
-      archetype: player.archetype,
-      potential: deterministicPotential(seed, clubIndex, playerIndex),
-      potentialCeiling: developmentPotentialCeiling({
+    players: content.clubs.clubs.flatMap((club, clubIndex) =>
+      club.players.map((player, playerIndex) => ({
         id: player.id,
+        clubId: club.id,
+        name: player.name,
         role: player.role,
-        attrs: player.ratings,
+        lookId: playerLookId(player.id, player.role),
+        attrs: { ...player.ratings },
+        ...(club.id === userClubId || player.powerId === null
+          ? {}
+          : { power: player.powerId, powerTier: 1 as const }),
+        licensed: club.id === userClubId ? false : player.licensed,
+        weeklyWage: player.weeklyWage,
+        onHeroWage: club.id === userClubId ? false : player.onHeroWage,
+        // M1 intentionally contains one renewal: the created hero's wage cliff.
+        // Keep ordinary user-club contracts alive through Season 1 so they do not
+        // become unresolved transfer-market work before M2 exists.
+        contractSeasonsRemaining:
+          club.id === userClubId
+            ? Math.max(2, player.contractSeasonsRemaining)
+            : player.contractSeasonsRemaining,
+        morale: 50,
+        injuryWeeks: 0,
         age: player.age,
+        archetype: player.archetype,
         potential: deterministicPotential(seed, clubIndex, playerIndex),
-      }),
-      consistency: 55 + deterministicPlayerValue(seed, clubIndex, playerIndex, 1) % 31,
-      personality: PLAYER_PERSONALITIES[
-        deterministicPlayerValue(seed, clubIndex, playerIndex, 2) % PLAYER_PERSONALITIES.length
-      ],
-      condition: 100,
-      seasonsAtClub: 0,
-      fame: player.powerId === null ? 0 : 12,
-      retirementAge: 33 + deterministicPlayerValue(seed, clubIndex, playerIndex, 3) % 6,
-      retirementAnnounced: false,
-      signingStatTotal: Object.values(player.ratings).reduce((sum, value) => sum + value, 0),
-    }))),
-    lineups: content.clubs.clubs.map(club => ({
+        potentialCeiling: developmentPotentialCeiling({
+          id: player.id,
+          role: player.role,
+          attrs: player.ratings,
+          age: player.age,
+          potential: deterministicPotential(seed, clubIndex, playerIndex),
+        }),
+        consistency:
+          55 + (deterministicPlayerValue(seed, clubIndex, playerIndex, 1) % 31),
+        personality:
+          PLAYER_PERSONALITIES[
+            deterministicPlayerValue(seed, clubIndex, playerIndex, 2) %
+              PLAYER_PERSONALITIES.length
+          ],
+        condition: 100,
+        seasonsAtClub: 0,
+        fame: player.powerId === null ? 0 : 12,
+        retirementAge:
+          33 + (deterministicPlayerValue(seed, clubIndex, playerIndex, 3) % 6),
+        retirementAnnounced: false,
+        signingStatTotal: Object.values(player.ratings).reduce(
+          (sum, value) => sum + value,
+          0,
+        ),
+      })),
+    ),
+    lineups: content.clubs.clubs.map((club) => ({
       clubId: club.id,
       playerIds: [...club.startingLineup],
     })),
@@ -168,7 +184,9 @@ function deterministicPotential(
  */
 function sameFocusDrills(
   saved: CareerSetup['trainingRules'] extends infer Rules
-    ? Rules extends { focusDrills: infer Drills } ? Drills : never
+    ? Rules extends { focusDrills: infer Drills }
+      ? Drills
+      : never
     : never,
   shipped: typeof saved,
 ): boolean {
@@ -177,10 +195,14 @@ function sameFocusDrills(
     const current = saved[index];
     if (current === undefined) return false;
     if (current.id !== drill.id) return false;
-    if (current.tpCost !== drill.tpCost || current.moneyCost !== drill.moneyCost) return false;
+    if (
+      current.tpCost !== drill.tpCost ||
+      current.moneyCost !== drill.moneyCost
+    )
+      return false;
     const keys = Object.keys(drill.gains) as Array<keyof typeof drill.gains>;
     if (keys.length !== Object.keys(current.gains).length) return false;
-    return keys.every(key => current.gains[key] === drill.gains[key]);
+    return keys.every((key) => current.gains[key] === drill.gains[key]);
   });
 }
 
@@ -188,25 +210,37 @@ export function reconcileLaunchRoster(
   state: GameState,
   content: LaunchContent = loadLaunchContent(),
 ): GameState {
-  const savedAwakening = (state as Omit<GameState, 'awakening'> & {
-    awakening?: Omit<GameState['awakening'], 'usedTriggerIds'> & { usedTriggerIds?: string[] };
-  }).awakening;
-  const launch = createLaunchCareerSetup(state.careerSeed, state.userClubId, content);
+  const savedAwakening = (
+    state as Omit<GameState, 'awakening'> & {
+      awakening?: Omit<GameState['awakening'], 'usedTriggerIds'> & {
+        usedTriggerIds?: string[];
+      };
+    }
+  ).awakening;
+  const launch = createLaunchCareerSetup(
+    state.careerSeed,
+    state.userClubId,
+    content,
+  );
   const launchPlayers = launch.players ?? [];
-  const existingIds = new Set(state.players.map(player => player.id));
-  const clubIds = new Set(state.clubs.map(club => club.id));
-  const needsLegacyRosterExpansion = state.launchRosterVersion === undefined
-    && isLegacyThirteenPlayerLaunchRoster(state, launchPlayers);
+  const existingIds = new Set(state.players.map((player) => player.id));
+  const clubIds = new Set(state.clubs.map((club) => club.id));
+  const needsLegacyRosterExpansion =
+    state.launchRosterVersion === undefined &&
+    isLegacyThirteenPlayerLaunchRoster(state, launchPlayers);
   const needsDevelopmentHeadroomUpgrade = (state.launchRosterVersion ?? 0) < 2;
   const missing = needsLegacyRosterExpansion
-    ? launchPlayers.filter(player => (
-        isExpansionReserve(player.id)
-        && !existingIds.has(player.id)
-        && clubIds.has(player.clubId)
-      ))
+    ? launchPlayers.filter(
+        (player) =>
+          isExpansionReserve(player.id) &&
+          !existingIds.has(player.id) &&
+          clubIds.has(player.clubId),
+      )
     : [];
 
-  const launchById = new Map(launchPlayers.map(player => [player.id, player]));
+  const launchById = new Map(
+    launchPlayers.map((player) => [player.id, player]),
+  );
   const legacyReserveWages = new Map<string, number>();
   content.clubs.clubs.forEach((club, index) => {
     // Before the roster expansion, p12/p13 carried the full reserve payroll.
@@ -226,46 +260,49 @@ export function reconcileLaunchRoster(
    * fires whenever nothing else changed and a comparison made after it would
    * never rebase a save that already carries a `trainingRules` field.
    */
-  const staleTrainingRules = state.trainingRules !== undefined
-    && launch.trainingRules !== undefined
-    && !sameFocusDrills(state.trainingRules.focusDrills, launch.trainingRules.focusDrills);
-  let changed = state.launchRosterVersion !== LAUNCH_ROSTER_VERSION
-    || missing.length > 0
-    || state.trainingRules === undefined
-    || staleTrainingRules
-    || state.playerRequestRules === undefined
-    || state.sponsorRules === undefined
-    || savedAwakening === undefined
-    || savedAwakening.usedTriggerIds === undefined
-    || state.facilities.grid === undefined;
+  const staleTrainingRules =
+    state.trainingRules !== undefined &&
+    launch.trainingRules !== undefined &&
+    !sameFocusDrills(
+      state.trainingRules.focusDrills,
+      launch.trainingRules.focusDrills,
+    );
+  let changed =
+    state.launchRosterVersion !== LAUNCH_ROSTER_VERSION ||
+    missing.length > 0 ||
+    state.trainingRules === undefined ||
+    staleTrainingRules ||
+    state.playerRequestRules === undefined ||
+    state.sponsorRules === undefined ||
+    savedAwakening === undefined ||
+    savedAwakening.usedTriggerIds === undefined ||
+    state.facilities.grid === undefined;
   const players = [
-    ...state.players.map(player => {
+    ...state.players.map((player) => {
       const current = launchById.get(player.id);
       const legacyWage = legacyReserveWages.get(player.id);
-      const correctsLaunchPotential = (
-        state.season === 1
-        && current !== undefined
-        && (
-          player.potential !== current.potential
-          || player.potentialCeiling !== current.potentialCeiling
-        )
-      );
-      const potentialPatch = correctsLaunchPotential && current !== undefined
-        ? {
-            potential: current.potential,
-            potentialCeiling: current.potentialCeiling,
-          }
-        : needsDevelopmentHeadroomUpgrade
-          ? (() => {
-              const potentialCeiling = Math.max(
-                player.potentialCeiling ?? 0,
-                developmentPotentialCeiling(player),
-              );
-              if (potentialCeiling === player.potentialCeiling) return {};
-              changed = true;
-              return { potentialCeiling };
-            })()
-          : {};
+      const correctsLaunchPotential =
+        state.season === 1 &&
+        current !== undefined &&
+        (player.potential !== current.potential ||
+          player.potentialCeiling !== current.potentialCeiling);
+      const potentialPatch =
+        correctsLaunchPotential && current !== undefined
+          ? {
+              potential: current.potential,
+              potentialCeiling: current.potentialCeiling,
+            }
+          : needsDevelopmentHeadroomUpgrade
+            ? (() => {
+                const potentialCeiling = Math.max(
+                  player.potentialCeiling ?? 0,
+                  developmentPotentialCeiling(player),
+                );
+                if (potentialCeiling === player.potentialCeiling) return {};
+                changed = true;
+                return { potentialCeiling };
+              })()
+            : {};
       if (correctsLaunchPotential) {
         // Correct launch-player potential saved before the D5 curve and
         // development-headroom floor were aligned. Non-launch players use the
@@ -284,14 +321,16 @@ export function reconcileLaunchRoster(
         return { ...player, ...potentialPatch, weeklyWage: current.weeklyWage };
       }
       if (
-        state.season === 1
-        && player.clubId === state.userClubId
-        && player.power === undefined
-        && current !== undefined
-        && player.contractSeasonsRemaining < Math.max(
-          1,
-          current.contractSeasonsRemaining - (state.phase === 'season-end' ? 1 : 0),
-        )
+        state.season === 1 &&
+        player.clubId === state.userClubId &&
+        player.power === undefined &&
+        current !== undefined &&
+        player.contractSeasonsRemaining <
+          Math.max(
+            1,
+            current.contractSeasonsRemaining -
+              (state.phase === 'season-end' ? 1 : 0),
+          )
       ) {
         changed = true;
         return {
@@ -299,51 +338,61 @@ export function reconcileLaunchRoster(
           ...potentialPatch,
           contractSeasonsRemaining: Math.max(
             1,
-            current.contractSeasonsRemaining - (state.phase === 'season-end' ? 1 : 0),
+            current.contractSeasonsRemaining -
+              (state.phase === 'season-end' ? 1 : 0),
           ),
         };
       }
-      return correctsLaunchPotential ? { ...player, ...potentialPatch } : player;
+      return correctsLaunchPotential
+        ? { ...player, ...potentialPatch }
+        : player;
     }),
-    ...missing.map(player => ({ ...player, attrs: { ...player.attrs } })),
+    ...missing.map((player) => ({ ...player, attrs: { ...player.attrs } })),
   ];
   const wageByClub = new Map<string, number>();
   for (const player of players) {
-    wageByClub.set(player.clubId, (wageByClub.get(player.clubId) ?? 0) + player.weeklyWage);
+    wageByClub.set(
+      player.clubId,
+      (wageByClub.get(player.clubId) ?? 0) + player.weeklyWage,
+    );
   }
 
   if (!changed) {
-    return reconcileSponsorBusiness(reconcileCareerPlayerLooks(enableFullCareer(state)));
+    return reconcileSponsorBusiness(
+      reconcileCareerPlayerLooks(enableFullCareer(state)),
+    );
   }
 
   const reconciled: GameState = {
     ...state,
     launchRosterVersion: LAUNCH_ROSTER_VERSION,
-    awakening: savedAwakening === undefined
-      ? { matchesSinceLastAwakening: 0, usedTriggerIds: [] }
-      : {
-          ...savedAwakening,
-          usedTriggerIds: savedAwakening.usedTriggerIds ?? [],
-        },
-    facilities: state.facilities.grid === undefined
-      ? {
-          ...state.facilities,
-          grid: state.facilities.trainingGroundBuilt
-            ? placeFacility(
-                createFacilityGrid(),
-                'training-pitch',
-                { x: 0, y: 0 },
-                8_000,
-              ).grid
-            : createFacilityGrid(),
-        }
-      : state.facilities,
+    awakening:
+      savedAwakening === undefined
+        ? { matchesSinceLastAwakening: 0, usedTriggerIds: [] }
+        : {
+            ...savedAwakening,
+            usedTriggerIds: savedAwakening.usedTriggerIds ?? [],
+          },
+    facilities:
+      state.facilities.grid === undefined
+        ? {
+            ...state.facilities,
+            grid: state.facilities.trainingGroundBuilt
+              ? placeFacility(
+                  createFacilityGrid(),
+                  'training-pitch',
+                  { x: 0, y: 0 },
+                  8_000,
+                ).grid
+              : createFacilityGrid(),
+          }
+        : state.facilities,
     players,
-    ...((state.trainingRules === undefined || staleTrainingRules)
-      && launch.trainingRules !== undefined
+    ...((state.trainingRules === undefined || staleTrainingRules) &&
+    launch.trainingRules !== undefined
       ? {
           trainingRules: {
-            focusDrills: launch.trainingRules.focusDrills.map(drill => ({
+            focusDrills: launch.trainingRules.focusDrills.map((drill) => ({
               ...drill,
               gains: { ...drill.gains },
             })),
@@ -354,24 +403,33 @@ export function reconcileLaunchRoster(
     // one the tab would stay empty forever. Reconciliation supplies it the same
     // way it supplies training rules.
     ...(state.playerRequestRules === undefined
-      ? { playerRequestRules: JSON.parse(JSON.stringify(content.playerRequests)) }
+      ? {
+          playerRequestRules: JSON.parse(
+            JSON.stringify(content.playerRequests),
+          ),
+        }
       : {}),
     ...(state.sponsorRules === undefined && launch.sponsorRules !== undefined
       ? { sponsorRules: launch.sponsorRules }
       : {}),
-    clubs: state.clubs.map(club => ({
+    clubs: state.clubs.map((club) => ({
       ...club,
       weeklyWages: wageByClub.get(club.id) ?? club.weeklyWages,
     })),
   };
-  return reconcileSponsorBusiness(reconcileCareerPlayerLooks(enableFullCareer(reconciled)));
+  return reconcileSponsorBusiness(
+    reconcileCareerPlayerLooks(enableFullCareer(reconciled)),
+  );
 }
 
 function reconcileSponsorBusiness(state: GameState): GameState {
   const rules = state.sponsorRules;
   if (rules === undefined || state.m2 === undefined) return state;
   const sponsorship = state.clubBusiness.sponsorship;
-  if (sponsorship.portfolioSeason !== state.season || sponsorship.activeContracts.length === 0) {
+  if (
+    sponsorship.portfolioSeason !== state.season ||
+    sponsorship.activeContracts.length === 0
+  ) {
     return state;
   }
   if (sponsorship.offerSeason === state.season) return state;
@@ -411,37 +469,43 @@ function reconcileSponsorBusiness(state: GameState): GameState {
 }
 
 function reconcileCareerPlayerLooks(state: GameState): GameState {
-  const appearanceCandidates = state.players.map(player => (
+  const appearanceCandidates = state.players.map((player) =>
     player.clubId === state.userClubId && player.lookId === undefined
       ? { ...player, lookId: playerLookId(player.id, player.role) }
-      : player
-  ));
-  const players = assignDistinctPlayerLooks(
-    appearanceCandidates,
-    player => playerLookId(player.id, player.role),
+      : player,
   );
-  const playersChanged = players.some((player, index) => (
-    player.lookId !== state.players[index].lookId
-  ));
-  const activeLookById = new Map(players.map(player => [player.id, player.lookId]));
-  const retiredPlayers = state.retiredPlayers === undefined
-    ? undefined
-    : state.retiredPlayers.map(player => ({
-        ...player,
-        lookId: player.lookId !== undefined
-          && isPlayerLookIdForRole(player.lookId, player.role)
-          ? player.lookId
-          : playerLookId(player.id, player.role),
-      }));
-  const retiredPlayersChanged = retiredPlayers?.some((player, index) => (
-    player.lookId !== state.retiredPlayers?.[index]?.lookId
-  )) ?? false;
+  const players = assignDistinctPlayerLooks(appearanceCandidates, (player) =>
+    playerLookId(player.id, player.role),
+  );
+  const playersChanged = players.some(
+    (player, index) => player.lookId !== state.players[index].lookId,
+  );
+  const activeLookById = new Map(
+    players.map((player) => [player.id, player.lookId]),
+  );
+  const retiredPlayers =
+    state.retiredPlayers === undefined
+      ? undefined
+      : state.retiredPlayers.map((player) => ({
+          ...player,
+          lookId:
+            player.lookId !== undefined &&
+            isPlayerLookIdForRole(player.lookId, player.role)
+              ? player.lookId
+              : playerLookId(player.id, player.role),
+        }));
+  const retiredPlayersChanged =
+    retiredPlayers?.some(
+      (player, index) =>
+        player.lookId !== state.retiredPlayers?.[index]?.lookId,
+    ) ?? false;
 
   const appearancePool = [...players];
-  const offers = state.youthIntake?.offers.map(offer => {
-    const preservesAssignedLook = offer.player.lookId !== undefined
-      && isPlayerLookIdForRole(offer.player.lookId, offer.player.role)
-      && !appearancePool.some(player => player.lookId === offer.player.lookId);
+  const offers = state.youthIntake?.offers.map((offer) => {
+    const preservesAssignedLook =
+      offer.player.lookId !== undefined &&
+      isPlayerLookIdForRole(offer.player.lookId, offer.player.role) &&
+      !appearancePool.some((player) => player.lookId === offer.player.lookId);
     const lookId = preservesAssignedLook
       ? offer.player.lookId!
       : nextDistinctPlayerLook(offer.player, appearancePool);
@@ -449,16 +513,18 @@ function reconcileCareerPlayerLooks(state: GameState): GameState {
     appearancePool.push(player);
     return { ...offer, player };
   });
-  const offersChanged = offers?.some((offer, index) => (
-    offer.player.lookId !== state.youthIntake?.offers[index]?.player.lookId
-  )) ?? false;
+  const offersChanged =
+    offers?.some(
+      (offer, index) =>
+        offer.player.lookId !== state.youthIntake?.offers[index]?.player.lookId,
+    ) ?? false;
 
   let pyramidChanged = false;
-  const divisions = state.m2?.pyramid.divisions.map(division => ({
+  const divisions = state.m2?.pyramid.divisions.map((division) => ({
     ...division,
-    clubs: division.clubs.map(club => ({
+    clubs: division.clubs.map((club) => ({
       ...club,
-      squad: club.squad.map(player => {
+      squad: club.squad.map((player) => {
         const lookId = activeLookById.get(player.id) ?? player.lookId;
         if (lookId === undefined || lookId === player.lookId) return player;
         pyramidChanged = true;
@@ -467,15 +533,24 @@ function reconcileCareerPlayerLooks(state: GameState): GameState {
     })),
   }));
 
-  if (!playersChanged && !retiredPlayersChanged && !offersChanged && !pyramidChanged) {
+  if (
+    !playersChanged &&
+    !retiredPlayersChanged &&
+    !offersChanged &&
+    !pyramidChanged
+  ) {
     return state;
   }
 
   return {
     ...state,
     players: playersChanged ? players : state.players,
-    ...(retiredPlayers === undefined || !retiredPlayersChanged ? {} : { retiredPlayers }),
-    ...(offers === undefined || state.youthIntake === undefined || !offersChanged
+    ...(retiredPlayers === undefined || !retiredPlayersChanged
+      ? {}
+      : { retiredPlayers }),
+    ...(offers === undefined ||
+    state.youthIntake === undefined ||
+    !offersChanged
       ? {}
       : { youthIntake: { ...state.youthIntake, offers } }),
     ...(state.m2 === undefined || divisions === undefined || !pyramidChanged
@@ -496,14 +571,16 @@ function isLegacyThirteenPlayerLaunchRoster(
   state: GameState,
   launchPlayers: readonly NonNullable<CareerSetup['players']>[number][],
 ): boolean {
-  const activeClubIds = new Set(state.clubs.map(club => club.id));
-  const launchClubIds = new Set(launchPlayers.map(player => player.clubId));
-  if (activeClubIds.size !== launchClubIds.size
-    || [...activeClubIds].some(clubId => !launchClubIds.has(clubId))) {
+  const activeClubIds = new Set(state.clubs.map((club) => club.id));
+  const launchClubIds = new Set(launchPlayers.map((player) => player.clubId));
+  if (
+    activeClubIds.size !== launchClubIds.size ||
+    [...activeClubIds].some((clubId) => !launchClubIds.has(clubId))
+  ) {
     return false;
   }
 
-  const savedIds = new Set(state.players.map(player => player.id));
+  const savedIds = new Set(state.players.map((player) => player.id));
   const savedBasePlayerCountByClub = new Map<string, number>();
   for (const player of launchPlayers) {
     const reserveNumber = launchReserveNumber(player.id);
@@ -516,9 +593,9 @@ function isLegacyThirteenPlayerLaunchRoster(
     }
     if (reserveNumber >= 14 && savedIds.has(player.id)) return false;
   }
-  return [...activeClubIds].every(clubId => (
-    (savedBasePlayerCountByClub.get(clubId) ?? 0) >= 11
-  ));
+  return [...activeClubIds].every(
+    (clubId) => (savedBasePlayerCountByClub.get(clubId) ?? 0) >= 11,
+  );
 }
 
 function isExpansionReserve(playerId: string): boolean {

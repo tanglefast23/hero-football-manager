@@ -146,29 +146,161 @@ interface FacilityCatalogEntry {
   readonly available: boolean;
 }
 
-export const FACILITY_CATALOG: Readonly<Record<FacilityType, FacilityCatalogEntry>> = {
-  'training-pitch': facility('training-pitch', 'Training Pitch', 2, 2, 8_000, 2, [10_000, 18_000], [2, 3], [100, 160, 240], 400),
-  gym: facility('gym', 'Gym', 1, 1, 7_000, 2, [9_000, 16_000], [2, 3], [90, 140, 210], 350),
-  'tech-center': facility('tech-center', 'Tech Center', 1, 1, 9_000, 2, [11_500, 20_500], [2, 3], [110, 175, 260], 450),
-  'shooting-range': facility('shooting-range', 'Shooting Range', 1, 2, 7_500, 2, [9_500, 17_000], [2, 3], [95, 150, 225], 375),
-  'keeper-court': facility('keeper-court', 'Keeper Court', 1, 2, 7_500, 2, [9_500, 17_000], [2, 3], [95, 150, 225], 375),
-  'medical-bay': facility('medical-bay', 'Medical Bay', 1, 1, 10_000, 2, [12_500, 22_500], [2, 3], [125, 200, 300], 500),
-  dorm: facility('dorm', 'Dorm', 1, 1, 6_000, 1, [7_500, 13_500], [1, 2], [75, 120, 180], 300),
-  'scout-office': facility('scout-office', 'Scout Office', 1, 1, 6_000, 1, [7_500, 13_500], [1, 2], [75, 120, 180], 300),
-  'coaching-office': facility('coaching-office', 'Coaching Office', 1, 1, 6_500, 1, [6_500, 9_750], [1, 2], [40, 65, 100], 325),
-  'youth-field': facility('youth-field', 'Youth Field', 2, 2, 12_000, 3, [15_000, 27_000], [2, 3], [150, 240, 360], 600),
-  'fan-shop': facility('fan-shop', 'Fan Shop', 1, 1, 5_000, 1, [6_500, 11_500], [1, 2], [40, 65, 95], 250),
+export const FACILITY_CATALOG: Readonly<
+  Record<FacilityType, FacilityCatalogEntry>
+> = {
+  'training-pitch': facility(
+    'training-pitch',
+    'Training Pitch',
+    2,
+    2,
+    8_000,
+    2,
+    [10_000, 18_000],
+    [2, 3],
+    [100, 160, 240],
+    400,
+  ),
+  gym: facility(
+    'gym',
+    'Gym',
+    1,
+    1,
+    7_000,
+    2,
+    [9_000, 16_000],
+    [2, 3],
+    [90, 140, 210],
+    350,
+  ),
+  'tech-center': facility(
+    'tech-center',
+    'Tech Center',
+    1,
+    1,
+    9_000,
+    2,
+    [11_500, 20_500],
+    [2, 3],
+    [110, 175, 260],
+    450,
+  ),
+  'shooting-range': facility(
+    'shooting-range',
+    'Shooting Range',
+    1,
+    2,
+    7_500,
+    2,
+    [9_500, 17_000],
+    [2, 3],
+    [95, 150, 225],
+    375,
+  ),
+  'keeper-court': facility(
+    'keeper-court',
+    'Keeper Court',
+    1,
+    2,
+    7_500,
+    2,
+    [9_500, 17_000],
+    [2, 3],
+    [95, 150, 225],
+    375,
+  ),
+  'medical-bay': facility(
+    'medical-bay',
+    'Medical Bay',
+    1,
+    1,
+    10_000,
+    2,
+    [12_500, 22_500],
+    [2, 3],
+    [125, 200, 300],
+    500,
+  ),
+  dorm: facility(
+    'dorm',
+    'Dorm',
+    1,
+    1,
+    6_000,
+    1,
+    [7_500, 13_500],
+    [1, 2],
+    [75, 120, 180],
+    300,
+  ),
+  'scout-office': facility(
+    'scout-office',
+    'Scout Office',
+    1,
+    1,
+    6_000,
+    1,
+    [7_500, 13_500],
+    [1, 2],
+    [75, 120, 180],
+    300,
+  ),
+  'coaching-office': facility(
+    'coaching-office',
+    'Coaching Office',
+    1,
+    1,
+    6_500,
+    1,
+    [6_500, 9_750],
+    [1, 2],
+    [40, 65, 100],
+    325,
+  ),
+  'youth-field': facility(
+    'youth-field',
+    'Youth Field',
+    2,
+    2,
+    12_000,
+    3,
+    [15_000, 27_000],
+    [2, 3],
+    [150, 240, 360],
+    600,
+  ),
+  'fan-shop': facility(
+    'fan-shop',
+    'Fan Shop',
+    1,
+    1,
+    5_000,
+    1,
+    [6_500, 11_500],
+    [1, 2],
+    [40, 65, 95],
+    250,
+  ),
   // At the D5 floor (500 fans, $4 tickets), Level 1 adds $600 per home gate.
   // Across nine league gates that is $5,400, less $1,500 annual upkeep: a
   // $3,900 return and roughly 2.6-season payback before Cup ties. It remains a
   // slower club-growth investment than the Fan Shop without being a trap.
-  'stadium-stand': facility('stadium-stand', 'Stadium Stand', 2, 2, 10_000, 3, [19_000, 34_000], [2, 3], [50, 80, 120], 750),
+  'stadium-stand': facility(
+    'stadium-stand',
+    'Stadium Stand',
+    2,
+    2,
+    10_000,
+    3,
+    [19_000, 34_000],
+    [2, 3],
+    [50, 80, 120],
+    750,
+  ),
 };
 
 export type FacilityAdjacencyId =
-  | 'gym-dorm'
-  | 'fan-shop-stadium'
-  | 'medical-training-pitch';
+  'gym-dorm' | 'fan-shop-stadium' | 'medical-training-pitch';
 
 interface FacilityEffects {
   readonly staminaTrainingBonusPercent: number;
@@ -267,7 +399,8 @@ export function cappedFacilityBoost(
   facet: keyof typeof FACILITY_BOOST_CAPS,
 ): number {
   const raw = boosts?.[facet] ?? 0;
-  if (!Number.isSafeInteger(raw)) throw new Error(`facility ${facet} boost must be a safe integer`);
+  if (!Number.isSafeInteger(raw))
+    throw new Error(`facility ${facet} boost must be a safe integer`);
   const cap = FACILITY_BOOST_CAPS[facet];
   return Math.max(-cap, Math.min(cap, raw));
 }
@@ -323,19 +456,24 @@ export function buildFacility(
   validateFacilityGrid(grid);
   validateSpendableCash(availableCash);
   const definition = definitionFor(type);
-  if (!definition.available) throw new Error(`${definition.name} is not unlocked`);
-  const copiesBuilt = grid.buildings.filter(building => building.type === type).length;
+  if (!definition.available)
+    throw new Error(`${definition.name} is not unlocked`);
+  const copiesBuilt = grid.buildings.filter(
+    (building) => building.type === type,
+  ).length;
   const buildLimit = facilityBuildLimit(type);
   if (copiesBuilt >= buildLimit) {
-    throw new Error(buildLimit === 1
-      ? `${definition.name} is already built; upgrade or move the existing facility`
-      : `${definition.name} limit reached; the club may build up to ${buildLimit}`);
+    throw new Error(
+      buildLimit === 1
+        ? `${definition.name} is already built; upgrade or move the existing facility`
+        : `${definition.name} limit reached; the club may build up to ${buildLimit}`,
+    );
   }
   assertNoActiveConstruction(grid);
   assertAffordable(availableCash, definition.buildCost);
 
   const id = `facility-${grid.nextBuildingId}`;
-  if (grid.buildings.some(building => building.id === id)) {
+  if (grid.buildings.some((building) => building.id === id)) {
     throw new Error(`facility ID ${id} is already in use`);
   }
   const building: PlacedFacility = {
@@ -375,7 +513,9 @@ export function upgradeFacility(
   assertNoActiveConstruction(grid);
   const building = findBuilding(grid, buildingId);
   if (building.type === 'coaching-office') {
-    throw new Error('Coaching Office upgrades are disabled until they have a gameplay benefit');
+    throw new Error(
+      'Coaching Office upgrades are disabled until they have a gameplay benefit',
+    );
   }
   if (building.level === MAX_FACILITY_LEVEL) {
     throw new Error(`${buildingId} is already at level ${MAX_FACILITY_LEVEL}`);
@@ -384,7 +524,8 @@ export function upgradeFacility(
   assertAffordable(availableCash, cost);
 
   const nextLevel = (building.level + 1) as FacilityLevel;
-  const weeks = FACILITY_CATALOG[building.type].upgradeWeeks[building.level - 1];
+  const weeks =
+    FACILITY_CATALOG[building.type].upgradeWeeks[building.level - 1];
   const paidBuilding: PlacedFacility = {
     ...building,
     capitalInvested: checkedAdd(
@@ -396,10 +537,15 @@ export function upgradeFacility(
   return transaction(
     {
       ...grid,
-      buildings: grid.buildings.map(candidate => candidate.id === buildingId
-        ? paidBuilding
-        : candidate),
-      construction: constructionProject('UPGRADE', paidBuilding, nextLevel, weeks),
+      buildings: grid.buildings.map((candidate) =>
+        candidate.id === buildingId ? paidBuilding : candidate,
+      ),
+      construction: constructionProject(
+        'UPGRADE',
+        paidBuilding,
+        nextLevel,
+        weeks,
+      ),
     },
     cost,
     availableCash,
@@ -429,9 +575,9 @@ export function relocateFacility(
   return transaction(
     {
       ...grid,
-      buildings: grid.buildings.map(candidate => candidate.id === buildingId
-        ? relocated
-        : candidate),
+      buildings: grid.buildings.map((candidate) =>
+        candidate.id === buildingId ? relocated : candidate,
+      ),
     },
     cost,
     availableCash,
@@ -475,7 +621,9 @@ export function closeFacility(
   return transaction(
     {
       ...grid,
-      buildings: grid.buildings.filter(candidate => candidate.id !== buildingId),
+      buildings: grid.buildings.filter(
+        (candidate) => candidate.id !== buildingId,
+      ),
     },
     refund === 0 ? 0 : -refund,
     availableCash,
@@ -487,15 +635,22 @@ export function weeklyFacilityUpkeep(grid: FacilityGridState): number {
   let total = 0;
   for (const building of grid.buildings) {
     if (!isFacilityOperational(grid, building.id)) continue;
-    const upkeep = FACILITY_CATALOG[building.type].weeklyUpkeep[building.level - 1];
+    const upkeep =
+      FACILITY_CATALOG[building.type].weeklyUpkeep[building.level - 1];
     total = checkedAdd(total, upkeep, 'weekly facility upkeep');
   }
   return total;
 }
 
-export function isFacilityOperational(grid: FacilityGridState, buildingId: string): boolean {
+export function isFacilityOperational(
+  grid: FacilityGridState,
+  buildingId: string,
+): boolean {
   const building = findBuilding(grid, buildingId);
-  return grid.construction?.kind !== 'BUILD' || grid.construction.buildingId !== building.id;
+  return (
+    grid.construction?.kind !== 'BUILD' ||
+    grid.construction.buildingId !== building.id
+  );
 }
 
 export function advanceFacilityConstruction(
@@ -510,7 +665,10 @@ export function advanceFacilityConstruction(
     return {
       grid: {
         ...grid,
-        construction: { ...project, weeksRemaining: project.weeksRemaining - 1 },
+        construction: {
+          ...project,
+          weeksRemaining: project.weeksRemaining - 1,
+        },
       },
       newlyDiscoveredAdjacencies: [],
     };
@@ -518,25 +676,29 @@ export function advanceFacilityConstruction(
 
   const completedGrid: FacilityGridState = {
     ...grid,
-    buildings: project.kind === 'UPGRADE'
-      ? grid.buildings.map(building => building.id === project.buildingId
-        ? { ...building, level: project.targetLevel }
-        : building)
-      : grid.buildings,
+    buildings:
+      project.kind === 'UPGRADE'
+        ? grid.buildings.map((building) =>
+            building.id === project.buildingId
+              ? { ...building, level: project.targetLevel }
+              : building,
+          )
+        : grid.buildings,
     construction: undefined,
   };
   const active = activeAdjacenciesUnchecked(completedGrid);
   const discovered = new Set(completedGrid.discoveredAdjacencies);
-  const newlyDiscoveredAdjacencies = active.filter(id => !discovered.has(id));
-  const nextGrid = newlyDiscoveredAdjacencies.length === 0
-    ? completedGrid
-    : {
-        ...completedGrid,
-        discoveredAdjacencies: [
-          ...completedGrid.discoveredAdjacencies,
-          ...newlyDiscoveredAdjacencies,
-        ],
-      };
+  const newlyDiscoveredAdjacencies = active.filter((id) => !discovered.has(id));
+  const nextGrid =
+    newlyDiscoveredAdjacencies.length === 0
+      ? completedGrid
+      : {
+          ...completedGrid,
+          discoveredAdjacencies: [
+            ...completedGrid.discoveredAdjacencies,
+            ...newlyDiscoveredAdjacencies,
+          ],
+        };
   return {
     grid: nextGrid,
     completed: project,
@@ -585,16 +747,17 @@ function transaction(
 ): FacilityTransaction {
   const active = activeAdjacenciesUnchecked(nextGrid);
   const discovered = new Set(nextGrid.discoveredAdjacencies);
-  const newlyDiscoveredAdjacencies = active.filter(id => !discovered.has(id));
-  const grid = newlyDiscoveredAdjacencies.length === 0
-    ? nextGrid
-    : {
-        ...nextGrid,
-        discoveredAdjacencies: [
-          ...nextGrid.discoveredAdjacencies,
-          ...newlyDiscoveredAdjacencies,
-        ],
-      };
+  const newlyDiscoveredAdjacencies = active.filter((id) => !discovered.has(id));
+  const grid =
+    newlyDiscoveredAdjacencies.length === 0
+      ? nextGrid
+      : {
+          ...nextGrid,
+          discoveredAdjacencies: [
+            ...nextGrid.discoveredAdjacencies,
+            ...newlyDiscoveredAdjacencies,
+          ],
+        };
 
   return {
     grid,
@@ -604,40 +767,58 @@ function transaction(
   };
 }
 
-function activeAdjacenciesUnchecked(grid: FacilityGridState): FacilityAdjacencyId[] {
-  const operational = grid.buildings.filter(building => (
-    grid.construction?.kind !== 'BUILD' || grid.construction.buildingId !== building.id
-  ));
-  return FACILITY_ADJACENCIES
-    .filter(adjacency => operational.some(first =>
-      first.type === adjacency.first
-      && operational.some(second =>
-        second.id !== first.id
-        && second.type === adjacency.second
-        && shareEdge(first, second),
-      ),
-    ))
-    .map(adjacency => adjacency.id);
+function activeAdjacenciesUnchecked(
+  grid: FacilityGridState,
+): FacilityAdjacencyId[] {
+  const operational = grid.buildings.filter(
+    (building) =>
+      grid.construction?.kind !== 'BUILD' ||
+      grid.construction.buildingId !== building.id,
+  );
+  return FACILITY_ADJACENCIES.filter((adjacency) =>
+    operational.some(
+      (first) =>
+        first.type === adjacency.first &&
+        operational.some(
+          (second) =>
+            second.id !== first.id &&
+            second.type === adjacency.second &&
+            shareEdge(first, second),
+        ),
+    ),
+  ).map((adjacency) => adjacency.id);
 }
 
 function shareEdge(first: PlacedFacility, second: PlacedFacility): boolean {
   const firstFootprint = FACILITY_CATALOG[first.type].footprint;
   const secondFootprint = FACILITY_CATALOG[second.type].footprint;
-  const horizontalContact = first.x + firstFootprint.width === second.x
-    || second.x + secondFootprint.width === first.x;
-  const verticalContact = first.y + firstFootprint.height === second.y
-    || second.y + secondFootprint.height === first.y;
-  const verticalOverlap = first.y < second.y + secondFootprint.height
-    && second.y < first.y + firstFootprint.height;
-  const horizontalOverlap = first.x < second.x + secondFootprint.width
-    && second.x < first.x + firstFootprint.width;
-  return (horizontalContact && verticalOverlap) || (verticalContact && horizontalOverlap);
+  const horizontalContact =
+    first.x + firstFootprint.width === second.x ||
+    second.x + secondFootprint.width === first.x;
+  const verticalContact =
+    first.y + firstFootprint.height === second.y ||
+    second.y + secondFootprint.height === first.y;
+  const verticalOverlap =
+    first.y < second.y + secondFootprint.height &&
+    second.y < first.y + firstFootprint.height;
+  const horizontalOverlap =
+    first.x < second.x + secondFootprint.width &&
+    second.x < first.x + firstFootprint.width;
+  return (
+    (horizontalContact && verticalOverlap) ||
+    (verticalContact && horizontalOverlap)
+  );
 }
 
 /** Validates every persisted grid invariant, including bounds and overlap. */
 export function validateFacilityGrid(grid: FacilityGridState): void {
-  if (grid.width !== FACILITY_GRID_WIDTH || grid.height !== FACILITY_GRID_HEIGHT) {
-    throw new Error(`facility grid must be ${FACILITY_GRID_WIDTH}x${FACILITY_GRID_HEIGHT}`);
+  if (
+    grid.width !== FACILITY_GRID_WIDTH ||
+    grid.height !== FACILITY_GRID_HEIGHT
+  ) {
+    throw new Error(
+      `facility grid must be ${FACILITY_GRID_WIDTH}x${FACILITY_GRID_HEIGHT}`,
+    );
   }
   if (!Number.isSafeInteger(grid.nextBuildingId) || grid.nextBuildingId < 1) {
     throw new Error('next facility ID must be a positive safe integer');
@@ -647,42 +828,65 @@ export function validateFacilityGrid(grid: FacilityGridState): void {
     if (typeof building.id !== 'string' || building.id.length === 0) {
       throw new Error('facility IDs must be non-empty strings');
     }
-    if (ids.has(building.id)) throw new Error(`duplicate facility ID ${building.id}`);
+    if (ids.has(building.id))
+      throw new Error(`duplicate facility ID ${building.id}`);
     ids.add(building.id);
     definitionFor(building.type);
-    if (!Number.isSafeInteger(building.level)
-      || building.level < 1
-      || building.level > MAX_FACILITY_LEVEL) {
-      throw new Error(`facility ${building.id} level must be from 1 to ${MAX_FACILITY_LEVEL}`);
+    if (
+      !Number.isSafeInteger(building.level) ||
+      building.level < 1 ||
+      building.level > MAX_FACILITY_LEVEL
+    ) {
+      throw new Error(
+        `facility ${building.id} level must be from 1 to ${MAX_FACILITY_LEVEL}`,
+      );
     }
     validateCapitalInvested(building);
     validatePlacement(grid, building, building.id);
   }
 
-  const validAdjacencyIds = new Set(FACILITY_ADJACENCIES.map(adjacency => adjacency.id));
+  const validAdjacencyIds = new Set(
+    FACILITY_ADJACENCIES.map((adjacency) => adjacency.id),
+  );
   const discoveries = new Set<FacilityAdjacencyId>();
   for (const id of grid.discoveredAdjacencies) {
-    if (!validAdjacencyIds.has(id)) throw new Error(`unknown facility adjacency ${String(id)}`);
-    if (discoveries.has(id)) throw new Error(`duplicate facility adjacency ${id}`);
+    if (!validAdjacencyIds.has(id))
+      throw new Error(`unknown facility adjacency ${String(id)}`);
+    if (discoveries.has(id))
+      throw new Error(`duplicate facility adjacency ${id}`);
     discoveries.add(id);
   }
 
   const project = grid.construction;
   if (project !== undefined) {
-    const building = grid.buildings.find(candidate => candidate.id === project.buildingId);
-    if (building === undefined) throw new Error('facility construction references an unknown building');
-    if (project.type !== building.type) throw new Error('facility construction type does not match its building');
-    if (project.kind === 'BUILD' && (building.level !== 1 || project.targetLevel !== 1)) {
+    const building = grid.buildings.find(
+      (candidate) => candidate.id === project.buildingId,
+    );
+    if (building === undefined)
+      throw new Error('facility construction references an unknown building');
+    if (project.type !== building.type)
+      throw new Error('facility construction type does not match its building');
+    if (
+      project.kind === 'BUILD' &&
+      (building.level !== 1 || project.targetLevel !== 1)
+    ) {
       throw new Error('new facility construction must target level 1');
     }
-    if (project.kind === 'UPGRADE' && project.targetLevel !== building.level + 1) {
+    if (
+      project.kind === 'UPGRADE' &&
+      project.targetLevel !== building.level + 1
+    ) {
       throw new Error('facility upgrade must target the next level');
     }
-    if (!Number.isSafeInteger(project.weeksRemaining)
-      || project.weeksRemaining < 1
-      || !Number.isSafeInteger(project.totalWeeks)
-      || project.totalWeeks < project.weeksRemaining) {
-      throw new Error('facility construction weeks must be positive safe integers');
+    if (
+      !Number.isSafeInteger(project.weeksRemaining) ||
+      project.weeksRemaining < 1 ||
+      !Number.isSafeInteger(project.totalWeeks) ||
+      project.totalWeeks < project.weeksRemaining
+    ) {
+      throw new Error(
+        'facility construction weeks must be positive safe integers',
+      );
     }
   }
 }
@@ -696,10 +900,12 @@ function validatePlacement(
     throw new Error('facility position must use integer grid coordinates');
   }
   const footprint = definitionFor(building.type).footprint;
-  if (building.x < 0
-    || building.y < 0
-    || building.x + footprint.width > FACILITY_GRID_WIDTH
-    || building.y + footprint.height > FACILITY_GRID_HEIGHT) {
+  if (
+    building.x < 0 ||
+    building.y < 0 ||
+    building.x + footprint.width > FACILITY_GRID_WIDTH ||
+    building.y + footprint.height > FACILITY_GRID_HEIGHT
+  ) {
     throw new Error(`${building.id} is outside the facility grid`);
   }
   for (const other of grid.buildings) {
@@ -710,27 +916,38 @@ function validatePlacement(
   }
 }
 
-function rectanglesOverlap(first: PlacedFacility, second: PlacedFacility): boolean {
+function rectanglesOverlap(
+  first: PlacedFacility,
+  second: PlacedFacility,
+): boolean {
   const firstFootprint = FACILITY_CATALOG[first.type].footprint;
   const secondFootprint = FACILITY_CATALOG[second.type].footprint;
-  return first.x < second.x + secondFootprint.width
-    && second.x < first.x + firstFootprint.width
-    && first.y < second.y + secondFootprint.height
-    && second.y < first.y + firstFootprint.height;
+  return (
+    first.x < second.x + secondFootprint.width &&
+    second.x < first.x + firstFootprint.width &&
+    first.y < second.y + secondFootprint.height &&
+    second.y < first.y + firstFootprint.height
+  );
 }
 
-function findBuilding(grid: FacilityGridState, buildingId: string): PlacedFacility {
+function findBuilding(
+  grid: FacilityGridState,
+  buildingId: string,
+): PlacedFacility {
   if (typeof buildingId !== 'string' || buildingId.length === 0) {
     throw new Error('facility ID must be a non-empty string');
   }
-  const building = grid.buildings.find(candidate => candidate.id === buildingId);
+  const building = grid.buildings.find(
+    (candidate) => candidate.id === buildingId,
+  );
   if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
   return building;
 }
 
 function definitionFor(type: FacilityType): FacilityCatalogEntry {
   const definition = FACILITY_CATALOG[type];
-  if (definition === undefined) throw new Error(`unknown facility type ${String(type)}`);
+  if (definition === undefined)
+    throw new Error(`unknown facility type ${String(type)}`);
   return definition;
 }
 
@@ -741,8 +958,13 @@ function validateCash(cash: number): void {
 }
 
 function validateCapitalInvested(building: PlacedFacility): void {
-  if (!Number.isSafeInteger(building.capitalInvested) || building.capitalInvested < 0) {
-    throw new Error(`facility ${building.id} capital invested must be a non-negative safe integer`);
+  if (
+    !Number.isSafeInteger(building.capitalInvested) ||
+    building.capitalInvested < 0
+  ) {
+    throw new Error(
+      `facility ${building.id} capital invested must be a non-negative safe integer`,
+    );
   }
 }
 
@@ -764,12 +986,15 @@ function validateSpendableCash(cash: number): void {
 }
 
 function assertAffordable(availableCash: number, cost: number): void {
-  if (cost > availableCash) throw new Error('facility transaction is not affordable');
+  if (cost > availableCash)
+    throw new Error('facility transaction is not affordable');
 }
 
 function assertNoActiveConstruction(grid: FacilityGridState): void {
   if (grid.construction !== undefined) {
-    throw new Error('only one facility construction project may be active at a time');
+    throw new Error(
+      'only one facility construction project may be active at a time',
+    );
   }
 }
 
@@ -780,7 +1005,9 @@ function constructionProject(
   weeks: number,
 ): FacilityConstructionProject {
   if (!Number.isSafeInteger(weeks) || weeks < 1) {
-    throw new Error('facility construction duration must be a positive safe integer');
+    throw new Error(
+      'facility construction duration must be a positive safe integer',
+    );
   }
   return {
     kind,
@@ -794,7 +1021,8 @@ function constructionProject(
 
 function checkedAdd(left: number, right: number, label: string): number {
   const result = left + right;
-  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(result))
+    throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }
 

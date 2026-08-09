@@ -33,26 +33,33 @@ function withCatalog(state: GameState): GameState {
   return { ...state, playerRequestRules: loadLaunchContent().playerRequests };
 }
 
-function steppedCareer(stop: (state: GameState) => boolean): GameState | undefined {
+function steppedCareer(
+  stop: (state: GameState) => boolean,
+): GameState | undefined {
   let state = withCatalog(devHarnessCareerAtWeek(SEASON, WEEK, SEED));
   for (let step = 0; step < STEP_BUDGET; step += 1) {
     state = advancePlayerRequests(state, true);
     if (stop(state)) return state;
-    state = state.week >= SEASON_WEEKS
-      ? { ...state, season: state.season + 1, week: 1 }
-      : { ...state, week: state.week + 1 };
+    state =
+      state.week >= SEASON_WEEKS
+        ? { ...state, season: state.season + 1, week: 1 }
+        : { ...state, week: state.week + 1 };
   }
   return undefined;
 }
 
 function askerWeight(state: GameState): number {
   const pending = state.playerRequests?.pending;
-  const asker = state.players.find(player => player.id === pending?.playerId);
+  const asker = state.players.find((player) => player.id === pending?.playerId);
   if (asker === undefined) return 0;
   const tuning = state.playerRequestRules!.tuning;
   return weightForPlayer(
     asker,
-    starQualifiers(state.seasonStatLines ?? [], state.season, tuning.starGoalRank),
+    starQualifiers(
+      state.seasonStatLines ?? [],
+      state.season,
+      tuning.starGoalRank,
+    ),
     tuning.starFameThreshold,
   );
 }
@@ -65,25 +72,29 @@ describe('the player requests reel', () => {
    * of `advancePlayerRequests`.
    */
   it('starts from a career with no request catalog at all', () => {
-    expect(devHarnessCareerAtWeek(SEASON, WEEK, SEED).playerRequestRules).toBeUndefined();
+    expect(
+      devHarnessCareerAtWeek(SEASON, WEEK, SEED).playerRequestRules,
+    ).toBeUndefined();
   });
 
   it('finds a star asker', () => {
-    const state = steppedCareer(item => askerWeight(item) === 2);
+    const state = steppedCareer((item) => askerWeight(item) === 2);
 
     expect(state).toBeDefined();
     expect(playerRequestViewModel(state!).pending).toBeDefined();
   });
 
   it('finds a squad asker', () => {
-    const state = steppedCareer(item => askerWeight(item) === 1);
+    const state = steppedCareer((item) => askerWeight(item) === 1);
 
     expect(state).toBeDefined();
     expect(playerRequestViewModel(state!).pending).toBeDefined();
   });
 
   it('finds a request already down to its last week', () => {
-    const state = steppedCareer(item => item.playerRequests?.pending?.warned === true);
+    const state = steppedCareer(
+      (item) => item.playerRequests?.pending?.warned === true,
+    );
 
     expect(state).toBeDefined();
     expect(playerRequestViewModel(state!).pending?.weeksToAnswer).toBe(1);
@@ -96,10 +107,11 @@ describe('the player requests reel', () => {
    * is the only route to the disabled Grant and its copy.
    */
   it('finds a money ask, which a solvent club can always meet', () => {
-    const state = steppedCareer(item => (
-      item.playerRequests?.pending?.costAmount !== undefined
-      && (item.playerRequests?.history.length ?? 0) >= 1
-    ));
+    const state = steppedCareer(
+      (item) =>
+        item.playerRequests?.pending?.costAmount !== undefined &&
+        (item.playerRequests?.history.length ?? 0) >= 1,
+    );
 
     expect(state).toBeDefined();
     expect(playerRequestViewModel(state!).pending?.canAfford).toBe(true);
@@ -107,19 +119,22 @@ describe('the player requests reel', () => {
     const cost = state!.playerRequests!.pending!.costAmount!;
     const spentDown: GameState = {
       ...state!,
-      clubs: state!.clubs.map(club => (club.id === state!.userClubId
-        ? { ...club, cash: Math.max(0, cost - 1) }
-        : club)),
+      clubs: state!.clubs.map((club) =>
+        club.id === state!.userClubId
+          ? { ...club, cash: Math.max(0, cost - 1) }
+          : club,
+      ),
     };
 
     expect(playerRequestViewModel(spentDown).pending?.canAfford).toBe(false);
   });
 
   it('finds a quiet week with a ledger behind it', () => {
-    const state = steppedCareer(item => (
-      item.playerRequests?.pending === undefined
-      && (item.playerRequests?.history.length ?? 0) >= 3
-    ));
+    const state = steppedCareer(
+      (item) =>
+        item.playerRequests?.pending === undefined &&
+        (item.playerRequests?.history.length ?? 0) >= 3,
+    );
 
     expect(state).toBeDefined();
     const viewModel = playerRequestViewModel(state!);
@@ -127,21 +142,35 @@ describe('the player requests reel', () => {
     expect(viewModel.history.length).toBeGreaterThanOrEqual(3);
     // Nobody answered any of them, which is the state the ledger exists to make
     // visible: silence settles a request at a refusal's price.
-    expect(viewModel.history.every(item => item.resolution === 'LAPSED')).toBe(true);
+    expect(
+      viewModel.history.every((item) => item.resolution === 'LAPSED'),
+    ).toBe(true);
   });
 
   /** Granting and refusing are the entry's controls, and both really settle. */
   it('settles an answer through the shipped resolver', () => {
-    const state = steppedCareer(item => item.playerRequests?.pending !== undefined)!;
+    const state = steppedCareer(
+      (item) => item.playerRequests?.pending !== undefined,
+    )!;
     const askerId = state.playerRequests!.pending!.playerId;
-    const before = state.players.find(player => player.id === askerId)!;
-    const granted = resolvePlayerRequest(state, state.playerRequestRules!, 'GRANTED');
-    const refused = resolvePlayerRequest(state, state.playerRequestRules!, 'REFUSED');
+    const before = state.players.find((player) => player.id === askerId)!;
+    const granted = resolvePlayerRequest(
+      state,
+      state.playerRequestRules!,
+      'GRANTED',
+    );
+    const refused = resolvePlayerRequest(
+      state,
+      state.playerRequestRules!,
+      'REFUSED',
+    );
 
-    expect(granted.players.find(player => player.id === askerId)!.morale)
-      .toBeGreaterThan(before.morale);
-    expect(refused.players.find(player => player.id === askerId)!.morale)
-      .toBeLessThan(before.morale);
+    expect(
+      granted.players.find((player) => player.id === askerId)!.morale,
+    ).toBeGreaterThan(before.morale);
+    expect(
+      refused.players.find((player) => player.id === askerId)!.morale,
+    ).toBeLessThan(before.morale);
     expect(granted.playerRequests?.history[0].resolution).toBe('GRANTED');
     expect(refused.playerRequests?.history[0].resolution).toBe('REFUSED');
   });

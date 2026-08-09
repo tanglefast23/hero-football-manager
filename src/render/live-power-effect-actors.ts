@@ -55,7 +55,7 @@ function easeOut(progress: number): number {
 
 function easeInOut(progress: number): number {
   const p = clamp01(progress);
-  return p < 0.5 ? 2 * p * p : 1 - ((-2 * p + 2) ** 2) / 2;
+  return p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
 }
 
 /**
@@ -64,8 +64,14 @@ function easeInOut(progress: number): number {
  * batches all copies into one Atlas draw call. Powers whose real player is
  * already moving in the main Atlas deliberately return no duplicate body.
  */
-export function livePowerEffectActors(input: LivePowerEffectActorInput): LivePowerEffectActor[] {
-  const frame = powerEffectFrame(input.power, input.elapsedMs, input.reduceMotion);
+export function livePowerEffectActors(
+  input: LivePowerEffectActorInput,
+): LivePowerEffectActor[] {
+  const frame = powerEffectFrame(
+    input.power,
+    input.elapsedMs,
+    input.reduceMotion,
+  );
   const p = frame.progress;
   const unit = Math.max(5, Math.min(input.width, input.height) / 18);
   const target = input.targets[0] ?? {
@@ -73,8 +79,12 @@ export function livePowerEffectActors(input: LivePowerEffectActorInput): LivePow
     y: input.origin.y + input.direction * input.height * 0.38,
   };
   if (input.power === 'PHASE_RUN') {
-    const phased = pointAlong(input.origin, target, easeInOut(segment(p, 0.18, 0.78)));
-    return [0, 1, 2].map(index => ({
+    const phased = pointAlong(
+      input.origin,
+      target,
+      easeInOut(segment(p, 0.18, 0.78)),
+    );
+    return [0, 1, 2].map((index) => ({
       id: `${input.id}:phase:${index}`,
       player: input.player,
       at: {
@@ -89,24 +99,28 @@ export function livePowerEffectActors(input: LivePowerEffectActorInput): LivePow
   if (input.power === 'SHADOW_MARK') {
     const pop = easeOut(segment(p, 0.7, 0.88));
     if (pop <= 0) return [];
-    return [{
-      id: `${input.id}:pop`,
-      player: input.player,
-      at: { x: target.x, y: target.y + unit * (2.2 - pop * 2.2) },
-      opacity: pop,
-      scale: 1,
-    }];
+    return [
+      {
+        id: `${input.id}:pop`,
+        player: input.player,
+        at: { x: target.x, y: target.y + unit * (2.2 - pop * 2.2) },
+        opacity: pop,
+        scale: 1,
+      },
+    ];
   }
 
   if (input.power === 'GIANT_GK') {
     const grow = easeOut(segment(p, 0.05, 0.5));
-    return [{
-      id: `${input.id}:giant`,
-      player: input.player,
-      at: input.origin,
-      opacity: 0.95,
-      scale: 1 + grow * 1.05,
-    }];
+    return [
+      {
+        id: `${input.id}:giant`,
+        player: input.player,
+        at: input.origin,
+        opacity: 0.95,
+        scale: 1 + grow * 1.05,
+      },
+    ];
   }
 
   return [];

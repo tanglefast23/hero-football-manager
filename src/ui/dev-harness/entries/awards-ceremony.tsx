@@ -13,7 +13,10 @@ import {
 } from '../../awards-ceremony-qa';
 import { awardCeremonyStages } from '../../awards-ceremony-stage';
 import { AwardsCeremonyScreen } from '../../screens/AwardsCeremonyScreen';
-import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls';
+import {
+  DevHarnessButton,
+  devHarnessControlStyles,
+} from '../DevHarnessControls';
 import type { DevHarnessEntry } from '../registry';
 
 /**
@@ -58,12 +61,21 @@ export function AwardsCeremonyReel({
   const insets = useSafeAreaInsets();
 
   const viewModel = useMemo(() => awardsCeremonyQaViewModel(caseId), [caseId]);
-  const lookIds = useMemo(() => awardsCeremonyQaLookIds(viewModel), [viewModel]);
-  const targets = useMemo(() => awardsCeremonyQaTargets(viewModel), [viewModel]);
-  const stageCount = useMemo(() => awardCeremonyStages(viewModel).length, [viewModel]);
+  const lookIds = useMemo(
+    () => awardsCeremonyQaLookIds(viewModel),
+    [viewModel],
+  );
+  const targets = useMemo(
+    () => awardsCeremonyQaTargets(viewModel),
+    [viewModel],
+  );
+  const stageCount = useMemo(
+    () => awardCeremonyStages(viewModel).length,
+    [viewModel],
+  );
   const initialStageIndex = awardsCeremonyQaStageIndex(viewModel, target);
 
-  const replay = useCallback(() => setRunKey(key => key + 1), []);
+  const replay = useCallback(() => setRunKey((key) => key + 1), []);
 
   return (
     <View style={styles.root}>
@@ -84,7 +96,7 @@ export function AwardsCeremonyReel({
 
           <View style={devHarnessControlStyles.row}>
             <Text style={devHarnessControlStyles.rowLabel}>OPEN</Text>
-            {targets.map(entry => (
+            {targets.map((entry) => (
               <DevHarnessButton
                 key={entry.id}
                 label={entry.code}
@@ -109,7 +121,11 @@ export function AwardsCeremonyReel({
               selected={reduceMotion}
               onPress={() => setReduceMotion(true)}
             />
-            <DevHarnessButton label="Replay" hint="Restart this ceremony" onPress={replay} />
+            <DevHarnessButton
+              label="Replay"
+              hint="Restart this ceremony"
+              onPress={replay}
+            />
             <DevHarnessButton
               label="Hide"
               hint="Hide the review controls"
@@ -117,7 +133,9 @@ export function AwardsCeremonyReel({
             />
           </View>
 
-          <Text style={styles.note}>{awardsCeremonyQaNote(viewModel, target)}</Text>
+          <Text style={styles.note}>
+            {awardsCeremonyQaNote(viewModel, target)}
+          </Text>
           <Text style={styles.stageLine}>
             OPENS AT STAGE {initialStageIndex + 1} / {stageCount}
           </Text>
@@ -141,12 +159,14 @@ export function AwardsCeremonyReel({
  * temporal dead zone. TypeScript cannot see that through the arrow function,
  * so the only symptom is a blank bundle at runtime.
  */
-const CASE_NOTES: Readonly<Record<AwardsCeremonyQaCaseId, string>> = Object.freeze({
-  mixed: 'Every walk-on rule at once, one board each',
-  sweep: 'All four boards won · the prize taper at full stretch',
-  thin: 'One name, two names, and a board nobody registered',
-  barren: 'Four full boards, nothing won · the prize states the barren season',
-});
+const CASE_NOTES: Readonly<Record<AwardsCeremonyQaCaseId, string>> =
+  Object.freeze({
+    mixed: 'Every walk-on rule at once, one board each',
+    sweep: 'All four boards won · the prize taper at full stretch',
+    thin: 'One name, two names, and a board nobody registered',
+    barren:
+      'Four full boards, nothing won · the prize states the barren season',
+  });
 
 /**
  * The cases are the four fabricated seasons the reel already carried, kept at
@@ -157,12 +177,17 @@ export const awardsCeremonyEntry: DevHarnessEntry = Object.freeze({
   id: 'awards-ceremony',
   group: 'Season',
   title: 'Division awards',
-  summary: 'End-of-season ceremony: four boards, one walk-on each, then the prize.',
-  cases: Object.freeze(AWARDS_CEREMONY_QA_CASES.map(entry => Object.freeze({
-    id: entry.id,
-    label: entry.label,
-    note: CASE_NOTES[entry.id],
-  }))),
+  summary:
+    'End-of-season ceremony: four boards, one walk-on each, then the prize.',
+  cases: Object.freeze(
+    AWARDS_CEREMONY_QA_CASES.map((entry) =>
+      Object.freeze({
+        id: entry.id,
+        label: entry.label,
+        note: CASE_NOTES[entry.id],
+      }),
+    ),
+  ),
   render: (caseId: string) => (
     <AwardsCeremonyReel caseId={caseId as AwardsCeremonyQaCaseId} />
   ),

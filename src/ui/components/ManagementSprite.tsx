@@ -8,11 +8,13 @@ interface ManagementSpriteSheet {
 }
 
 const sheet = spriteData as ManagementSpriteSheet;
-const coachPortraitIds = Array.from(new Set(
-  Object.keys(sheet.sprites)
-    .filter(key => key.startsWith('coach:') && key.endsWith(':rest'))
-    .map(key => key.split(':')[1]),
-));
+const coachPortraitIds = Array.from(
+  new Set(
+    Object.keys(sheet.sprites)
+      .filter((key) => key.startsWith('coach:') && key.endsWith(':rest'))
+      .map((key) => key.split(':')[1]),
+  ),
+);
 
 export interface ManagementSpriteProps {
   spriteKey: string;
@@ -25,9 +27,10 @@ export const ManagementSprite = memo(function ManagementSprite({
   width,
   accessibilityLabel,
 }: ManagementSpriteProps) {
-  const resolvedKey = sheet.sprites[spriteKey] === undefined
-    ? fallbackSpriteKey(spriteKey)
-    : spriteKey;
+  const resolvedKey =
+    sheet.sprites[spriteKey] === undefined
+      ? fallbackSpriteKey(spriteKey)
+      : spriteKey;
   const rows = sheet.sprites[resolvedKey] ?? sheet.sprites['facility:worksite'];
   const sourceWidth = rows[0]?.length ?? 1;
   const sourceHeight = rows.length;
@@ -39,9 +42,10 @@ export const ManagementSprite = memo(function ManagementSprite({
   // whole multiple that fits and is centered in the requested box. A slot
   // narrower than the source art keeps a continuous sub-1x downscale: no whole
   // multiple can fit, and clipping would be worse.
-  const scale = width >= sourceWidth
-    ? Math.floor(width / sourceWidth)
-    : width / sourceWidth;
+  const scale =
+    width >= sourceWidth
+      ? Math.floor(width / sourceWidth)
+      : width / sourceWidth;
   const offsetX = Math.floor((width - sourceWidth * scale) / 2);
   return (
     <View
@@ -50,7 +54,7 @@ export const ManagementSprite = memo(function ManagementSprite({
       accessibilityLabel={accessibilityLabel}
       style={{ width, height: sourceHeight * scale, position: 'relative' }}
     >
-      {runs.map(run => (
+      {runs.map((run) => (
         <View
           key={run.id}
           style={{
@@ -73,7 +77,7 @@ function fallbackSpriteKey(spriteKey: string): string {
   }
   let hash = 0;
   for (let index = 0; index < spriteKey.length; index += 1) {
-    hash = ((hash * 31) + spriteKey.charCodeAt(index)) >>> 0;
+    hash = (hash * 31 + spriteKey.charCodeAt(index)) >>> 0;
   }
   const portraitId = coachPortraitIds[hash % coachPortraitIds.length];
   const expression = spriteKey.endsWith(':joy') ? 'joy' : 'rest';
@@ -81,7 +85,13 @@ function fallbackSpriteKey(spriteKey: string): string {
 }
 
 function pixelRuns(rows: string[], spriteKey: string) {
-  const result: Array<{ id: string; x: number; y: number; length: number; color: string }> = [];
+  const result: Array<{
+    id: string;
+    x: number;
+    y: number;
+    length: number;
+    color: string;
+  }> = [];
   rows.forEach((row, y) => {
     let x = 0;
     while (x < row.length) {
@@ -90,7 +100,13 @@ function pixelRuns(rows: string[], spriteKey: string) {
       let end = x + 1;
       while (end < row.length && row[end] === key) end += 1;
       if (color !== null && color !== undefined) {
-        result.push({ id: `${spriteKey}-${y}-${x}`, x, y, length: end - x, color });
+        result.push({
+          id: `${spriteKey}-${y}-${x}`,
+          x,
+          y,
+          length: end - x,
+          color,
+        });
       }
       x = end;
     }

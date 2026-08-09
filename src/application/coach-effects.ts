@@ -13,8 +13,9 @@ function englishCopy(): CopyFn {
   return (englishCopyFn ??= copyFor('en'));
 }
 
-
-const TRAINING_LABELS: Readonly<Record<Exclude<CoachSpecialty, 'MOTIVATOR'>, string>> = {
+const TRAINING_LABELS: Readonly<
+  Record<Exclude<CoachSpecialty, 'MOTIVATOR'>, string>
+> = {
   ATTACK: 'SHO',
   DEFENSE: 'DEF',
   FITNESS: 'PAC & STA',
@@ -31,15 +32,19 @@ export function coachRoleEffectLabels(
   const trainingBonusPercent = coachTrainingBonusPercent(coach.level, role);
   const motivatorBonusPercent = coachMotivatorBonusPercent(coach.level, role);
   return [
-    ...coach.specialties.map(specialty => (
+    ...coach.specialties.map((specialty) =>
       specialty === 'MOTIVATOR'
-        ? t('coachStaff.effectMotivator', { percent: formatPercent(motivatorBonusPercent) })
+        ? t('coachStaff.effectMotivator', {
+            percent: formatPercent(motivatorBonusPercent),
+          })
         : t('coachStaff.effectTraining', {
             stats: TRAINING_LABELS[specialty],
             percent: formatPercent(trainingBonusPercent),
-          })
-    )),
-    t('coachStaff.effectTpWeekly', { points: coachWeeklyTrainingPoints(coach.level, role) }),
+          }),
+    ),
+    t('coachStaff.effectTpWeekly', {
+      points: coachWeeklyTrainingPoints(coach.level, role),
+    }),
   ];
 }
 

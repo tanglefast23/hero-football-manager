@@ -22,7 +22,7 @@ describe('the ground as pixel art', () => {
     const runs = standRuns(STAND_TILE_WIDTH);
 
     expect(runs.length).toBeGreaterThan(0);
-    runs.forEach(run => {
+    runs.forEach((run) => {
       expect(run.x).toBeGreaterThanOrEqual(0);
       expect(run.x + run.width).toBeLessThanOrEqual(STAND_TILE_WIDTH);
       expect(run.y).toBeLessThan(STAND_TILE_HEIGHT);
@@ -34,7 +34,7 @@ describe('the ground as pixel art', () => {
     const runs = floodlightRuns();
 
     expect(runs.length).toBeGreaterThan(0);
-    runs.forEach(run => {
+    runs.forEach((run) => {
       expect(run.x).toBeGreaterThanOrEqual(0);
       expect(run.x + run.width).toBeLessThanOrEqual(FLOODLIGHT_WIDTH);
       expect(run.y).toBeLessThan(FLOODLIGHT_HEIGHT);
@@ -52,14 +52,18 @@ describe('the ground as pixel art', () => {
     ['the floodlight', floodlightRuns],
   ])('merges every same-ink span of %s', (_label, build) => {
     const byRow = new Map<number, ReturnType<typeof floodlightRuns>>();
-    build().forEach(run => byRow.set(run.y, [...(byRow.get(run.y) ?? []), run]));
+    build().forEach((run) =>
+      byRow.set(run.y, [...(byRow.get(run.y) ?? []), run]),
+    );
 
-    byRow.forEach(row => {
+    byRow.forEach((row) => {
       const ordered = [...row].sort((left, right) => left.x - right.x);
       ordered.forEach((run, index) => {
         const previous = ordered[index - 1];
         if (previous === undefined) return;
-        expect(previous.x + previous.width === run.x && previous.color === run.color).toBe(false);
+        expect(
+          previous.x + previous.width === run.x && previous.color === run.color,
+        ).toBe(false);
       });
     });
   });
@@ -71,7 +75,7 @@ describe('the ground as pixel art', () => {
    */
   it('merges a uniform row across every bay it spans', () => {
     const wide = standRuns(STAND_TILE_WIDTH * 4);
-    const roof = wide.filter(run => run.y === 0);
+    const roof = wide.filter((run) => run.y === 0);
 
     expect(roof).toHaveLength(1);
     expect(roof[0].width).toBe(STAND_TILE_WIDTH * 4);
@@ -80,7 +84,7 @@ describe('the ground as pixel art', () => {
   it('paints only from the ground palette', () => {
     const inks = new Set(Object.values(GROUND_PALETTE));
 
-    [...standRuns(STAND_TILE_WIDTH), ...floodlightRuns()].forEach(run => {
+    [...standRuns(STAND_TILE_WIDTH), ...floodlightRuns()].forEach((run) => {
       expect(inks.has(run.color)).toBe(true);
     });
   });
@@ -89,10 +93,12 @@ describe('the ground as pixel art', () => {
   it('paints every column of every row of the stand', () => {
     const columns = STAND_TILE_WIDTH * 3 + 5;
     const byRow = new Map<number, number>();
-    standRuns(columns).forEach(run => byRow.set(run.y, (byRow.get(run.y) ?? 0) + run.width));
+    standRuns(columns).forEach((run) =>
+      byRow.set(run.y, (byRow.get(run.y) ?? 0) + run.width),
+    );
 
     expect(byRow.size).toBe(STAND_TILE_HEIGHT);
-    byRow.forEach(painted => expect(painted).toBe(columns));
+    byRow.forEach((painted) => expect(painted).toBe(columns));
   });
 
   it('has an empty stand rather than a broken one at zero width', () => {
@@ -108,13 +114,17 @@ describe('the crowd', () => {
 
   it('spreads across the whole stand rather than clumping in one bay', () => {
     const columns = 60;
-    const bays = new Set(crowdSpeckle(columns).map(speck => Math.floor(speck.x / STAND_TILE_WIDTH)));
+    const bays = new Set(
+      crowdSpeckle(columns).map((speck) =>
+        Math.floor(speck.x / STAND_TILE_WIDTH),
+      ),
+    );
 
     expect(bays.size).toBe(Math.ceil(columns / STAND_TILE_WIDTH));
   });
 
   it('keeps every supporter on the terrace, never on the roof or the wall', () => {
-    crowdSpeckle(60).forEach(speck => {
+    crowdSpeckle(60).forEach((speck) => {
       expect(speck.x).toBeGreaterThanOrEqual(0);
       expect(speck.x).toBeLessThan(60);
       // Below the roof and its dark underside, above the front rail.
@@ -133,13 +143,13 @@ describe('the composition', () => {
   it('leaves no horizontal slice of the window to nobody', () => {
     const scene = groundScene(PHONE.width, PHONE.height);
     const spans = [...scene.sky, ...scene.rects]
-      .map(rect => ({ top: rect.y, bottom: rect.y + rect.height }))
+      .map((rect) => ({ top: rect.y, bottom: rect.y + rect.height }))
       .sort((left, right) => left.top - right.top);
 
     // Merged, the painted bands have to come back as one unbroken run from the
     // top of the window to the bottom.
     const merged: { top: number; bottom: number }[] = [];
-    spans.forEach(span => {
+    spans.forEach((span) => {
       const last = merged[merged.length - 1];
       if (last !== undefined && span.top <= last.bottom + 0.001) {
         last.bottom = Math.max(last.bottom, span.bottom);
@@ -156,17 +166,25 @@ describe('the composition', () => {
   it('puts the horizon and the grass line where the bands say', () => {
     const scene = groundScene(PHONE.width, PHONE.height);
 
-    expect(scene.horizonY).toBeCloseTo((PHONE.height * HORIZON_PERCENT) / 100, 5);
-    expect(scene.grassTopY).toBeCloseTo((PHONE.height * GRASS_PERCENT) / 100, 5);
+    expect(scene.horizonY).toBeCloseTo(
+      (PHONE.height * HORIZON_PERCENT) / 100,
+      5,
+    );
+    expect(scene.grassTopY).toBeCloseTo(
+      (PHONE.height * GRASS_PERCENT) / 100,
+      5,
+    );
     expect(scene.horizonY).toBeLessThan(scene.grassTopY);
   });
 
   it('ends both ramps exactly at their band edge', () => {
     expect(SKY_BANDS[SKY_BANDS.length - 1].end).toBe(1);
     expect(GRASS_BANDS[GRASS_BANDS.length - 1].end).toBe(1);
-    [SKY_BANDS, GRASS_BANDS].forEach(bands => {
+    [SKY_BANDS, GRASS_BANDS].forEach((bands) => {
       bands.forEach((band, index) => {
-        expect(band.end).toBeGreaterThan(index === 0 ? 0 : bands[index - 1].end);
+        expect(band.end).toBeGreaterThan(
+          index === 0 ? 0 : bands[index - 1].end,
+        );
       });
     });
   });
@@ -177,7 +195,10 @@ describe('the composition', () => {
    */
   it('widens the mown stripes toward the viewer', () => {
     const turf = GRASS_BANDS.slice(2);
-    const heights = turf.map((band, index) => band.end - (index === 0 ? GRASS_BANDS[1].end : turf[index - 1].end));
+    const heights = turf.map(
+      (band, index) =>
+        band.end - (index === 0 ? GRASS_BANDS[1].end : turf[index - 1].end),
+    );
 
     heights.forEach((bandHeight, index) => {
       if (index === 0) return;
@@ -189,7 +210,7 @@ describe('the composition', () => {
     const scene = groundScene(PHONE.width, PHONE.height);
 
     expect(scene.glows.length).toBeGreaterThan(0);
-    scene.glows.forEach(glow => {
+    scene.glows.forEach((glow) => {
       expect(glow.cx).toBeGreaterThan(0);
       expect(glow.cx).toBeLessThan(PHONE.width);
       expect(glow.cy).toBeLessThan(scene.horizonY);
@@ -198,17 +219,17 @@ describe('the composition', () => {
   });
 
   it('covers the window at any size without a gap at the right edge', () => {
-    [
-      { width: 320, height: 568 },
-      PHONE,
-      { width: 1280, height: 800 },
-    ].forEach(({ width, height }) => {
-      const scene = groundScene(width, height);
-      const roof = scene.rects.filter(rect => rect.id.startsWith('stand-0-'));
-      const painted = roof.reduce((total, rect) => total + rect.width, 0);
+    [{ width: 320, height: 568 }, PHONE, { width: 1280, height: 800 }].forEach(
+      ({ width, height }) => {
+        const scene = groundScene(width, height);
+        const roof = scene.rects.filter((rect) =>
+          rect.id.startsWith('stand-0-'),
+        );
+        const painted = roof.reduce((total, rect) => total + rect.width, 0);
 
-      expect(painted).toBeGreaterThanOrEqual(width);
-    });
+        expect(painted).toBeGreaterThanOrEqual(width);
+      },
+    );
   });
 
   /** No image assets: the whole ground is rects and two haloes. */
@@ -217,11 +238,11 @@ describe('the composition', () => {
     const painted = [...scene.sky, ...scene.rects];
 
     expect(painted.length).toBeGreaterThan(0);
-    painted.forEach(rect => {
+    painted.forEach((rect) => {
       expect(rect.width).toBeGreaterThan(0);
       expect(rect.height).toBeGreaterThan(0);
       expect(rect.color).toMatch(/^#[0-9a-f]{6}$/);
     });
-    expect(new Set(painted.map(rect => rect.id)).size).toBe(painted.length);
+    expect(new Set(painted.map((rect) => rect.id)).size).toBe(painted.length);
   });
 });

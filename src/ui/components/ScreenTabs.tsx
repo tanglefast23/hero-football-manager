@@ -66,8 +66,16 @@ export function ScreenTabs<Id extends string>({
         return (
           <Pressable
             key={tab.id}
-            ref={anchor !== undefined && tab.id === anchor.id ? anchor.ref : undefined}
-            onLayout={anchor !== undefined && tab.id === anchor.id ? anchor.onLayout : undefined}
+            ref={
+              anchor !== undefined && tab.id === anchor.id
+                ? anchor.ref
+                : undefined
+            }
+            onLayout={
+              anchor !== undefined && tab.id === anchor.id
+                ? anchor.onLayout
+                : undefined
+            }
             accessibilityRole="tab"
             accessibilityLabel={tab.accessibilityLabel ?? tab.label}
             accessibilityState={{ selected }}
@@ -76,27 +84,32 @@ export function ScreenTabs<Id extends string>({
               selected,
               tabId,
               panelId: linkPanels ? panelId : undefined,
-              onKeyDown: key => {
+              onKeyDown: (key) => {
                 let nextIndex = index;
                 if (key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
-                else if (key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+                else if (key === 'ArrowLeft')
+                  nextIndex = (index - 1 + tabs.length) % tabs.length;
                 else if (key === 'Home') nextIndex = 0;
-                    else if (key === 'End') nextIndex = tabs.length - 1;
-                    else return false;
-                    const next = tabs[nextIndex];
-                    onSelect(next.id);
-                    // Every tab already exists in the strip, so focus it before
-                    // React commits the new selected state. RN Web otherwise
-                    // leaves the keyboard cursor on the old tab even though
-                    // aria-selected has moved to the new one.
-                    if (typeof document !== 'undefined') {
-                      document.getElementById(`${tabSetId}-tab-${next.id}`)?.focus();
-                    }
-                    // A caller may remount its strip with the new panel. Repeat
-                    // after commit so that variant receives focus as well.
-                    requestAnimationFrame(() => {
-                      if (typeof document !== 'undefined') {
-                        document.getElementById(`${tabSetId}-tab-${next.id}`)?.focus();
+                else if (key === 'End') nextIndex = tabs.length - 1;
+                else return false;
+                const next = tabs[nextIndex];
+                onSelect(next.id);
+                // Every tab already exists in the strip, so focus it before
+                // React commits the new selected state. RN Web otherwise
+                // leaves the keyboard cursor on the old tab even though
+                // aria-selected has moved to the new one.
+                if (typeof document !== 'undefined') {
+                  document
+                    .getElementById(`${tabSetId}-tab-${next.id}`)
+                    ?.focus();
+                }
+                // A caller may remount its strip with the new panel. Repeat
+                // after commit so that variant receives focus as well.
+                requestAnimationFrame(() => {
+                  if (typeof document !== 'undefined') {
+                    document
+                      .getElementById(`${tabSetId}-tab-${next.id}`)
+                      ?.focus();
                   }
                 });
                 return true;
@@ -106,14 +119,20 @@ export function ScreenTabs<Id extends string>({
             // min-h-14 is load-bearing: the pressed style below is
             // function-form, which drops NativeWind layout on iOS if
             // height ever depends on it.
-            className={selected
-              ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-1'
-              : 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink/40 bg-white px-1'}
+            className={
+              selected
+                ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-1'
+                : 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink/40 bg-white px-1'
+            }
             style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
           >
-            <PixelText className={selected
-              ? 'text-sm uppercase text-ink'
-              : 'text-sm uppercase text-ink/70'}>
+            <PixelText
+              className={
+                selected
+                  ? 'text-sm uppercase text-ink'
+                  : 'text-sm uppercase text-ink/70'
+              }
+            >
               {tab.label}
             </PixelText>
           </Pressable>

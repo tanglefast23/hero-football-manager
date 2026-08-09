@@ -60,38 +60,48 @@ export const EMPTY_SUBSTITUTION_PLAN: SubstitutionPlan = { swaps: [] };
 export type BenchEntry =
   | { readonly kind: 'available'; readonly sub: SubstitutionBenchPlayer }
   | {
-    readonly kind: 'outgoing';
-    readonly starter: SubstitutionFieldPlayer;
-    readonly incomingId: string;
-  };
+      readonly kind: 'outgoing';
+      readonly starter: SubstitutionFieldPlayer;
+      readonly incomingId: string;
+    };
 
 /** Most tired first — the column exists to put the next decision on top. */
 export function fieldByTiredness(
   players: readonly SubstitutionFieldPlayer[],
 ): SubstitutionFieldPlayer[] {
-  return [...players].sort((left, right) => (
+  return [...players].sort((left, right) =>
     left.condition === right.condition
       ? left.index - right.index
-      : left.condition - right.condition
-  ));
+      : left.condition - right.condition,
+  );
 }
 
 /** Who is staged to come on for this slot, if anyone. */
-export function incomingFor(plan: SubstitutionPlan, index: number): string | null {
-  return plan.swaps.find(swap => swap.player === index)?.replacementId ?? null;
+export function incomingFor(
+  plan: SubstitutionPlan,
+  index: number,
+): string | null {
+  return (
+    plan.swaps.find((swap) => swap.player === index)?.replacementId ?? null
+  );
 }
 
 /** Which slot this substitute is staged to fill, if any. */
-export function slotForSub(plan: SubstitutionPlan, benchId: string): number | null {
-  return plan.swaps.find(swap => swap.replacementId === benchId)?.player ?? null;
+export function slotForSub(
+  plan: SubstitutionPlan,
+  benchId: string,
+): number | null {
+  return (
+    plan.swaps.find((swap) => swap.replacementId === benchId)?.player ?? null
+  );
 }
 
 export function isSubStaged(plan: SubstitutionPlan, benchId: string): boolean {
-  return plan.swaps.some(swap => swap.replacementId === benchId);
+  return plan.swaps.some((swap) => swap.replacementId === benchId);
 }
 
 export function isSlotStaged(plan: SubstitutionPlan, index: number): boolean {
-  return plan.swaps.some(swap => swap.player === index);
+  return plan.swaps.some((swap) => swap.player === index);
 }
 
 export function stagedCount(plan: SubstitutionPlan): number {
@@ -105,14 +115,20 @@ export function benchEntries(
   plan: SubstitutionPlan,
 ): BenchEntry[] {
   const available: BenchEntry[] = bench
-    .filter(sub => !isSubStaged(plan, sub.id))
-    .map(sub => ({ kind: 'available', sub }));
+    .filter((sub) => !isSubStaged(plan, sub.id))
+    .map((sub) => ({ kind: 'available', sub }));
   // Dimmed rows sink to the bottom, and keep the order they were staged in.
-  const outgoing: BenchEntry[] = plan.swaps.flatMap(swap => {
-    const starter = field.find(player => player.index === swap.player);
+  const outgoing: BenchEntry[] = plan.swaps.flatMap((swap) => {
+    const starter = field.find((player) => player.index === swap.player);
     return starter === undefined
       ? []
-      : [{ kind: 'outgoing' as const, starter, incomingId: swap.replacementId }];
+      : [
+          {
+            kind: 'outgoing' as const,
+            starter,
+            incomingId: swap.replacementId,
+          },
+        ];
   });
   return [...available, ...outgoing];
 }
@@ -151,23 +167,31 @@ export function applySwap(
   starter: SubstitutionFieldPlayer,
   sub: SubstitutionBenchPlayer,
 ): SubstitutionPlan {
-  const existing = plan.swaps.some(swap => swap.player === starter.index);
+  const existing = plan.swaps.some((swap) => swap.player === starter.index);
   return {
     swaps: existing
-      ? plan.swaps.map(swap => (
-        swap.player === starter.index ? { ...swap, replacementId: sub.id } : swap
-      ))
+      ? plan.swaps.map((swap) =>
+          swap.player === starter.index
+            ? { ...swap, replacementId: sub.id }
+            : swap,
+        )
       : [...plan.swaps, { player: starter.index, replacementId: sub.id }],
   };
 }
 
 /** Undoes a slot's swap: the starter stays on, the substitute goes back. */
-export function undoSwap(plan: SubstitutionPlan, index: number): SubstitutionPlan {
-  return { swaps: plan.swaps.filter(swap => swap.player !== index) };
+export function undoSwap(
+  plan: SubstitutionPlan,
+  index: number,
+): SubstitutionPlan {
+  return { swaps: plan.swaps.filter((swap) => swap.player !== index) };
 }
 
 /** Copy for a swapped field card: who is on, and whose shirt they took. */
-export function filledShirtLabel(outgoingName: string, t: CopyFn = englishCopy()): string {
+export function filledShirtLabel(
+  outgoingName: string,
+  t: CopyFn = englishCopy(),
+): string {
   return t('substitutionBoard.onFor', { player: outgoingName.toUpperCase() });
 }
 
@@ -211,7 +235,8 @@ export function ineligibleTag(
   draggedIsKeeper: boolean,
   budgetSpent: boolean,
 ): string | null {
-  if (cardIsKeeper !== draggedIsKeeper) return cardIsKeeper ? 'KEEPERS ONLY' : 'NEEDS A KEEPER';
+  if (cardIsKeeper !== draggedIsKeeper)
+    return cardIsKeeper ? 'KEEPERS ONLY' : 'NEEDS A KEEPER';
   if (budgetSpent) return 'NO SUBS LEFT';
   return null;
 }
@@ -236,5 +261,8 @@ export function atSubstitutionLimit(
 export function planInputs(
   plan: SubstitutionPlan,
 ): readonly { readonly player: number; readonly replacementId: string }[] {
-  return plan.swaps.map(swap => ({ player: swap.player, replacementId: swap.replacementId }));
+  return plan.swaps.map((swap) => ({
+    player: swap.player,
+    replacementId: swap.replacementId,
+  }));
 }

@@ -27,10 +27,10 @@ export function AwardsCeremonyQaScreen() {
   return (
     <AwardsCeremonyReel
       caseId={caseId}
-      caseControls={(
+      caseControls={
         <View style={devHarnessControlStyles.row}>
           <Text style={devHarnessControlStyles.rowLabel}>CASE</Text>
-          {AWARDS_CEREMONY_QA_CASES.map(entry => (
+          {AWARDS_CEREMONY_QA_CASES.map((entry) => (
             <DevHarnessButton
               key={entry.id}
               label={entry.label}
@@ -40,7 +40,7 @@ export function AwardsCeremonyQaScreen() {
             />
           ))}
         </View>
-      )}
+      }
     />
   );
 }

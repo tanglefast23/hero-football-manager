@@ -6,7 +6,11 @@ import {
   type GameState,
 } from '../../game';
 import { createPreloadPump } from '../rival-preload';
-import { cachedRivalResults, clearRivalResultCache, storeRivalResult } from '../rival-result-cache';
+import {
+  cachedRivalResults,
+  clearRivalResultCache,
+  storeRivalResult,
+} from '../rival-result-cache';
 import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 
 /**
@@ -23,12 +27,15 @@ function startCareerAtMatchday(seed: number): GameState {
     ratings: DEFAULT_CREATION_RATINGS,
   });
   const career = withRivalHeroIntrosSeen(useM1Store.getState().career!);
-  const fixture = career.fixtures.find(candidate => (
-    candidate.season === 1
-    && candidate.status === 'scheduled'
-    && (candidate.homeClubId === career.userClubId || candidate.awayClubId === career.userClubId)
-  ));
-  if (fixture === undefined) throw new Error('expected a scheduled season-1 user fixture');
+  const fixture = career.fixtures.find(
+    (candidate) =>
+      candidate.season === 1 &&
+      candidate.status === 'scheduled' &&
+      (candidate.homeClubId === career.userClubId ||
+        candidate.awayClubId === career.userClubId),
+  );
+  if (fixture === undefined)
+    throw new Error('expected a scheduled season-1 user fixture');
   useM1Store.setState({
     career: { ...career, week: fixture.week, phase: 'matchday' },
     screen: 'matchday',
@@ -40,11 +47,17 @@ function startCareerAtMatchday(seed: number): GameState {
 function rivalsFor(career: GameState) {
   const matchday = activeCareerMatchday(career);
   if (matchday === undefined) throw new Error('expected an active matchday');
-  const rivals = matchday.fixtures.filter(candidate => candidate.id !== matchday.fixture.id);
-  const teams = buildCareerMatchTeams(
-    career,
-    [...new Set(rivals.flatMap(candidate => [candidate.homeClubId, candidate.awayClubId]))],
+  const rivals = matchday.fixtures.filter(
+    (candidate) => candidate.id !== matchday.fixture.id,
   );
+  const teams = buildCareerMatchTeams(career, [
+    ...new Set(
+      rivals.flatMap((candidate) => [
+        candidate.homeClubId,
+        candidate.awayClubId,
+      ]),
+    ),
+  ]);
   return { rivals, teams };
 }
 
@@ -100,9 +113,9 @@ describe('preloaded rivals reach settle unchanged', () => {
 
     useM1Store.getState().quickResult();
 
-    const settled = useM1Store.getState().career!.fixtures.find(
-      candidate => candidate.id === target.id,
-    );
+    const settled = useM1Store
+      .getState()
+      .career!.fixtures.find((candidate) => candidate.id === target.id);
     expect(settled?.score).toEqual({ homeGoals: 9, awayGoals: 0 });
   });
 
@@ -126,9 +139,9 @@ describe('preloaded rivals reach settle unchanged', () => {
 
     useM1Store.getState().quickResult();
 
-    const settled = useM1Store.getState().career!.fixtures.find(
-      candidate => candidate.id === target.id,
-    );
+    const settled = useM1Store
+      .getState()
+      .career!.fixtures.find((candidate) => candidate.id === target.id);
     expect(settled?.score).not.toEqual({ homeGoals: 9, awayGoals: 0 });
   });
 

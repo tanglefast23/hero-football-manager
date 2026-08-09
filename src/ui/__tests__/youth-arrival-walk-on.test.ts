@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { RUNNER_UP_CEREMONY_LINES, WINNER_CEREMONY_LINES } from '../award-ceremony-lines';
+import {
+  RUNNER_UP_CEREMONY_LINES,
+  WINNER_CEREMONY_LINES,
+} from '../award-ceremony-lines';
 import {
   MAX_ARRIVAL_LINE_LENGTH,
   arrivalLine,
@@ -8,7 +11,8 @@ import {
   youthArrivalLines,
 } from '../player-arrival-lines';
 
-const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
+const source = (path: string) =>
+  readFileSync(join(process.cwd(), path), 'utf8');
 
 /** Doubled from twenty, which halves how often a career hears a line twice. */
 const YOUTH_POOL_SIZE = 40;
@@ -22,7 +26,8 @@ const YOUTH_ARRIVAL_LINES = youthArrivalLines();
 function youthIds(seasons: number, offersPerIntake: number): string[] {
   const ids: string[] = [];
   for (let season = 1; season <= seasons; season += 1) {
-    for (let index = 1; index <= offersPerIntake; index += 1) ids.push(`youth-s${season}-${index}`);
+    for (let index = 1; index <= offersPerIntake; index += 1)
+      ids.push(`youth-s${season}-${index}`);
   }
   return ids;
 }
@@ -63,13 +68,19 @@ describe('youth arrival walk-on', () => {
     // One player can do both in a career: sign in week 1 and take a board at
     // the end of the season. A line shared between the pools is a copy-paste.
     const ceremony = [...WINNER_CEREMONY_LINES, ...RUNNER_UP_CEREMONY_LINES];
-    expect(YOUTH_ARRIVAL_LINES.filter(line => ceremony.includes(line))).toEqual([]);
+    expect(
+      YOUTH_ARRIVAL_LINES.filter((line) => ceremony.includes(line)),
+    ).toEqual([]);
     expect(ceremony).not.toContain(ROOKIE_ARRIVAL_LINE);
   });
 
   it('keeps the rookie on their own line whoever they are', () => {
-    expect(arrivalLine({ playerId: 'rookie-1', source: 'rookie' })).toBe(ROOKIE_ARRIVAL_LINE);
-    expect(arrivalLine({ playerId: 'youth-s1-1', source: 'rookie' })).toBe(ROOKIE_ARRIVAL_LINE);
+    expect(arrivalLine({ playerId: 'rookie-1', source: 'rookie' })).toBe(
+      ROOKIE_ARRIVAL_LINE,
+    );
+    expect(arrivalLine({ playerId: 'youth-s1-1', source: 'rookie' })).toBe(
+      ROOKIE_ARRIVAL_LINE,
+    );
     expect(YOUTH_ARRIVAL_LINES).not.toContain(ROOKIE_ARRIVAL_LINE);
   });
 
@@ -91,7 +102,9 @@ describe('youth arrival walk-on', () => {
     // actually catch the repeat.
     const seasons = 20;
     const ids = youthIds(seasons, 6);
-    const lines = ids.map(id => arrivalLine({ playerId: id, source: 'academy' }));
+    const lines = ids.map((id) =>
+      arrivalLine({ playerId: id, source: 'academy' }),
+    );
     expect(new Set(lines).size).toBeGreaterThanOrEqual(25);
 
     for (let season = 0; season < seasons; season += 1) {

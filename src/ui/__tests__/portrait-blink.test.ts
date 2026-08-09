@@ -7,7 +7,9 @@ const EYE_BAND_TOP = 5;
 const EYE_BAND_BOTTOM = 10;
 
 function changedRows(before: string[], after: string[]): number[] {
-  return before.map((row, y) => (row === after[y] ? -1 : y)).filter(y => y >= 0);
+  return before
+    .map((row, y) => (row === after[y] ? -1 : y))
+    .filter((y) => y >= 0);
 }
 
 describe('blinkRows', () => {
@@ -58,7 +60,7 @@ describe('blinkRows', () => {
       const rest = sheet.sprites['f04:rest'];
       const changed = changedRows(rest, blinkRows(rest)!);
       expect(changed).toHaveLength(1);
-      changed.forEach(y => {
+      changed.forEach((y) => {
         expect(y).toBeGreaterThanOrEqual(EYE_BAND_TOP);
         expect(y).toBeLessThanOrEqual(EYE_BAND_BOTTOM);
       });
@@ -69,8 +71,8 @@ describe('blinkRows', () => {
         const closed = blinkRows(rows);
         if (closed === null) return [];
         return changedRows(rows, closed)
-          .filter(y => y < EYE_BAND_TOP || y > EYE_BAND_BOTTOM)
-          .map(y => `${key} row ${y}`);
+          .filter((y) => y < EYE_BAND_TOP || y > EYE_BAND_BOTTOM)
+          .map((y) => `${key} row ${y}`);
       });
       expect(strays).toEqual([]);
     });
@@ -106,7 +108,9 @@ describe('blinkRows', () => {
     });
 
     it('blinks nearly every resting face in the sheet', () => {
-      const rest = Object.entries(sheet.sprites).filter(([key]) => key.endsWith(':rest'));
+      const rest = Object.entries(sheet.sprites).filter(([key]) =>
+        key.endsWith(':rest'),
+      );
       const blinking = rest.filter(([, rows]) => blinkRows(rows) !== null);
       // 333 of 433 before dark eyes were synthesised. Regenerating the sheet may
       // move this — update it deliberately, don't loosen the assertion.

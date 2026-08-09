@@ -31,7 +31,8 @@ export function useGuideAnchor(
 
   const scheduleMeasurement = useCallback(() => {
     if (!enabled || onAnchorChange === undefined) return;
-    if (measurementFrameRef.current !== null) cancelAnimationFrame(measurementFrameRef.current);
+    if (measurementFrameRef.current !== null)
+      cancelAnimationFrame(measurementFrameRef.current);
     measurementFrameRef.current = requestAnimationFrame(() => {
       measurementFrameRef.current = null;
       measureAnchor();

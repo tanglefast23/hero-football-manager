@@ -16,12 +16,14 @@ describe('match button response contract', () => {
   it('offers a match-only web delay override without changing native timing', () => {
     const pressable = source('src/ui/components/SfxPressable.tsx');
 
-    expect(pressable).toContain('immediatePress?: boolean;');
-    expect(pressable).toContain('immediatePress = false');
-    expect(pressable).toContain("immediatePress && Platform.OS === 'web'");
-    expect(pressable).toContain('{ delayPressIn: 0 }');
-    expect(pressable).not.toContain('unstable_pressDelay');
-    expect(pressable).toContain(
+    expect(pressable).toContainSource('immediatePress?: boolean;');
+    expect(pressable).toContainSource('immediatePress = false');
+    expect(pressable).toContainSource(
+      "immediatePress && Platform.OS === 'web'",
+    );
+    expect(pressable).toContainSource('{ delayPressIn: 0 }');
+    expect(pressable).not.toContainSource('unstable_pressDelay');
+    expect(pressable).toContainSource(
       "else if (pressSfx === 'match-control') playMatchControlSfx();",
     );
     expect(pressable.match(/playMatchControlSfx\(\)/g) ?? []).toHaveLength(1);
@@ -30,50 +32,58 @@ describe('match button response contract', () => {
   it('gives every phone match control immediate shared feedback with one cue owner', () => {
     const match = source('src/render/MatchScreen.tsx');
 
-    expect(match).toContain(
+    expect(match).toContainSource(
       "import { SfxPressable as Pressable } from '../ui/components/SfxPressable';",
     );
-    expect(openings(match, 'Pressable')).toHaveLength(6);
+    // Six match controls opt in below. The performance notice and two graphics
+    // recovery actions are ordinary release-driven Pressables.
+    expect(openings(match, 'Pressable')).toHaveLength(9);
     expect(match.match(/\n {10,20}immediatePress\n/g) ?? []).toHaveLength(6);
     expect(match.match(/pressSfx="match-control"/g) ?? []).toHaveLength(4);
     for (const handler of [
-      'selectFormation(nextFormation',
+      'selectFormation(',
       'selectMentality(nextMentality',
       'openSwap();',
       'selectEnergyUse(mode);',
     ]) {
-      expect(openingFor(match, 'Pressable', handler)).toContain(
+      expect(openingFor(match, 'Pressable', handler)).toContainSource(
         'pressSfx="match-control"',
       );
     }
-    expect(openingFor(match, 'Pressable', 'toggleUserPause();')).not.toContain(
-      'pressSfx="match-control"',
-    );
+    expect(
+      openingFor(match, 'Pressable', 'toggleUserPause();'),
+    ).not.toContainSource('pressSfx="match-control"');
     expect(
       openingFor(match, 'Pressable', 'applySpeed(nextMatchSpeed'),
-    ).not.toContain('pressSfx="match-control"');
+    ).not.toContainSource('pressSfx="match-control"');
     // The only direct cue left belongs to the skippable power takeover, which
     // is not one of these Pressables. Each match control delegates its cue to
     // SfxPressable and leaves its gameplay action on release.
     expect(match.match(/playUiClickSfx\(\);/g) ?? []).toHaveLength(1);
-    expect(match).not.toContain('onPressIn=');
-    expect(match).toContain('onPress={() => {\n            toggleUserPause();');
-    expect(match).toContain('onPress={() => {\n                applySpeed(');
-    expect(match).toContain(
+    expect(match).not.toContainSource('onPressIn=');
+    expect(match).toContainSource(
+      'onPress={() => {\n            toggleUserPause();',
+    );
+    expect(match).toContainSource(
+      'onPress={() => {\n                applySpeed(',
+    );
+    expect(match).toContainSource(
       'onPress={() => {\n                selectFormation(',
     );
-    expect(match).toContain(
+    expect(match).toContainSource(
       'onPress={() => {\n                selectMentality(',
     );
-    expect(match).toContain('onPress={() => {\n                openSwap();');
-    expect(match).toContain(
+    expect(match).toContainSource(
+      'onPress={() => {\n                openSwap();',
+    );
+    expect(match).toContainSource(
       'onPress={() => {\n                      selectEnergyUse(mode);',
     );
-    expect(match).toContain(
+    expect(match).toContainSource(
       'pressed ? { opacity: 0.7, transform: [{ translateY: 1 }] } : null',
     );
-    expect(match).toContain('disabled={coachingDisabled}');
-    expect(match).toContain('disabled={swapDisabled}');
+    expect(match).toContainSource('disabled={coachingDisabled}');
+    expect(match).toContainSource('disabled={swapDisabled}');
   });
 
   it('opts every desktop rail control and only the match settings trigger in', () => {
@@ -94,18 +104,18 @@ describe('match button response contract', () => {
       'onPress={onSwap}',
       'onSelectEnergyUse(mode)',
     ]) {
-      expect(openingFor(rail, 'SfxPressable', handler)).toContain(
+      expect(openingFor(rail, 'SfxPressable', handler)).toContainSource(
         'pressSfx="match-control"',
       );
     }
     expect(
       openingFor(rail, 'SfxPressable', 'onSelectSpeed(option)'),
-    ).not.toContain('pressSfx="match-control"');
+    ).not.toContainSource('pressSfx="match-control"');
     expect(
       openingFor(rail, 'SfxPressable', 'onPress={onTogglePause}'),
-    ).not.toContain('pressSfx="match-control"');
-    expect(settings).toContain('immediatePress={match}');
-    expect(settings).not.toContain('pressSfx="match-control"');
+    ).not.toContainSource('pressSfx="match-control"');
+    expect(settings).toContainSource('immediatePress={match}');
+    expect(settings).not.toContainSource('pressSfx="match-control"');
   });
 
   it('keeps substitution actions on release, disabled buttons inert, and cancel single-cued', () => {
@@ -115,10 +125,10 @@ describe('match button response contract', () => {
     // The two visible control sites opt in. The full-screen scrim does not:
     // scaling that invisible dismissal surface would move the whole overlay.
     expect(board.match(/\bimmediatePress\b/g) ?? []).toHaveLength(2);
-    expect(board).not.toContain('pressSfx="match-control"');
-    expect(board).toContain('disabled={disabled}');
-    expect(board).toContain('onPress={onPress}');
-    expect(board).toMatch(
+    expect(board).not.toContainSource('pressSfx="match-control"');
+    expect(board).toContainSource('disabled={disabled}');
+    expect(board).toContainSource('onPress={onPress}');
+    expect(board).toMatchSource(
       /label=\{t\('substitutionBoard\.cancel'\)\}[\s\S]*?onPressIn=\{\(\) => \{\s*onCancel\(\);\s*\}\}[\s\S]*?onPress=\{onCancel\}/,
     );
   });

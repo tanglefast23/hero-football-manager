@@ -18,13 +18,17 @@ function careerState(seed = 0): GameState {
 }
 
 function keeper(state: GameState): CareerPlayer {
-  const player = state.players.find(p => p.clubId === state.userClubId && p.role === 'GK');
+  const player = state.players.find(
+    (p) => p.clubId === state.userClubId && p.role === 'GK',
+  );
   if (player === undefined) throw new Error('no user keeper');
   return player;
 }
 
 function outfielder(state: GameState): CareerPlayer {
-  const player = state.players.find(p => p.clubId === state.userClubId && p.role !== 'GK');
+  const player = state.players.find(
+    (p) => p.clubId === state.userClubId && p.role !== 'GK',
+  );
   if (player === undefined) throw new Error('no user outfield player');
   return player;
 }
@@ -43,9 +47,16 @@ function outfielder(state: GameState): CareerPlayer {
 function aged(state: GameState, playerId: string, age: number): GameState {
   return {
     ...state,
-    players: state.players.map(p => (p.id === playerId
-      ? { ...p, age, trainingBonusRemainders: {}, coachTrainingBonusRemainders: {} }
-      : p)),
+    players: state.players.map((p) =>
+      p.id === playerId
+        ? {
+            ...p,
+            age,
+            trainingBonusRemainders: {},
+            coachTrainingBonusRemainders: {},
+          }
+        : p,
+    ),
   };
 }
 
@@ -59,7 +70,14 @@ describe('keeperDisplayLadderMultiplier', () => {
 
   it('is one for every outfield path, so nothing but the keeper is touched', () => {
     const state = careerState();
-    for (const pathId of ['sprints', 'rondo', 'circuit', 'finishing', 'duels', 'first-touch']) {
+    for (const pathId of [
+      'sprints',
+      'rondo',
+      'circuit',
+      'finishing',
+      'duels',
+      'first-touch',
+    ]) {
       expect(keeperDisplayLadderMultiplier(state, pathId)).toBe(1);
     }
   });
@@ -77,11 +95,14 @@ describe('keeperDisplayLadderMultiplier', () => {
 describe('preview and resolve read the same tier', () => {
   /** Tier II at 7 outfield against 4 keeper: a ratio of 1.75, not 2. */
   function unevenTierTwo(state: GameState): GameState {
-    const focusDrills = (state.trainingRules?.focusDrills ?? []).map(drill => {
-      if (drill.id === 'sprints-ii') return { ...drill, gains: { pac: 7 } };
-      if (drill.id === 'keeper-drills-ii') return { ...drill, gains: { ref: 4 } };
-      return drill;
-    });
+    const focusDrills = (state.trainingRules?.focusDrills ?? []).map(
+      (drill) => {
+        if (drill.id === 'sprints-ii') return { ...drill, gains: { pac: 7 } };
+        if (drill.id === 'keeper-drills-ii')
+          return { ...drill, gains: { ref: 4 } };
+        return drill;
+      },
+    );
     return {
       ...state,
       trainingRules: { ...state.trainingRules!, focusDrills },
@@ -94,7 +115,9 @@ describe('preview and resolve read the same tier', () => {
     const gk = keeper(base);
     const state = unevenTierTwo(aged(base, gk.id, 26));
 
-    expect(keeperDisplayLadderMultiplier(state, 'keeper-drills-ii')).toBe(7 / 4);
+    expect(keeperDisplayLadderMultiplier(state, 'keeper-drills-ii')).toBe(
+      7 / 4,
+    );
     // The tier-1 id still reports 2 — which is exactly what the resolve used to
     // use, and why the two paths could disagree.
     expect(keeperDisplayLadderMultiplier(state, 'keeper-drills')).toBe(2);
@@ -114,8 +137,12 @@ describe('trainPlayerInstantly display bonus', () => {
   it('banks the shortfall so a prime-age keeper reads the outfield step', () => {
     const state = careerState();
     const gk = keeper(state);
-    const res = trainPlayerInstantly(aged(state, gk.id, 26), gk.id, 'keeper-drills');
-    const trained = res.state.players.find(p => p.id === gk.id)!;
+    const res = trainPlayerInstantly(
+      aged(state, gk.id, 26),
+      gk.id,
+      'keeper-drills',
+    );
+    const trained = res.state.players.find((p) => p.id === gk.id)!;
 
     // Stored is the real halved gain and stays the sim's number.
     expect(res.after).toBe(trained.attrs.ref);
@@ -143,7 +170,11 @@ describe('trainPlayerInstantly display bonus', () => {
   it('steps the stored and displayed gains together through the young age band', () => {
     const state = careerState();
     const gk = keeper(state);
-    const res = trainPlayerInstantly(aged(state, gk.id, 22), gk.id, 'keeper-drills');
+    const res = trainPlayerInstantly(
+      aged(state, gk.id, 22),
+      gk.id,
+      'keeper-drills',
+    );
 
     // round(2 x 1.3) = 3 stored. Displayed runs the same modifiers over the
     // outfield base: round(4 x 1.3) = 5, plus the percent channel's released
@@ -155,7 +186,11 @@ describe('trainPlayerInstantly display bonus', () => {
   it('steps the stored and displayed gains together through the veteran age band', () => {
     const state = careerState();
     const gk = keeper(state);
-    const res = trainPlayerInstantly(aged(state, gk.id, 31), gk.id, 'keeper-drills');
+    const res = trainPlayerInstantly(
+      aged(state, gk.id, 31),
+      gk.id,
+      'keeper-drills',
+    );
 
     // round(2 x 0.6) = 1 stored; round(4 x 0.6) = 2 displayed.
     expect(res.after - res.before).toBe(1);
@@ -172,7 +207,7 @@ describe('trainPlayerInstantly display bonus', () => {
       const res = trainPlayerInstantly(state, gk.id, 'keeper-drills');
       state = res.state;
     }
-    const trained = state.players.find(p => p.id === gk.id)!;
+    const trained = state.players.find((p) => p.id === gk.id)!;
     const storedGain = trained.attrs.ref - storedBefore;
 
     expect(storedGain).toBeGreaterThan(0);
@@ -186,7 +221,7 @@ describe('trainPlayerInstantly display bonus', () => {
     const state = careerState();
     const player = outfielder(state);
     const res = trainPlayerInstantly(state, player.id, 'sprints');
-    const trained = res.state.players.find(p => p.id === player.id)!;
+    const trained = res.state.players.find((p) => p.id === player.id)!;
 
     expect(trained.refDisplayBonus).toBeUndefined();
     expect(res.displayedBefore).toBe(res.before);
@@ -197,7 +232,7 @@ describe('trainPlayerInstantly display bonus', () => {
     const state = careerState();
     const gk = keeper(state);
     const res = trainPlayerInstantly(state, gk.id, 'sprints');
-    const trained = res.state.players.find(p => p.id === gk.id)!;
+    const trained = res.state.players.find((p) => p.id === gk.id)!;
 
     expect(trained.refDisplayBonus).toBeUndefined();
     expect(res.displayedAfter).toBe(res.after);
@@ -211,9 +246,16 @@ describe('trainPlayerInstantly display bonus', () => {
     // crosses, so the displayed step is a point clear of twice the stored one.
     const primed: GameState = {
       ...state,
-      players: state.players.map(p => (p.id === gk.id
-        ? { ...p, age: 26, trainingBonusRemainders: { ref: 95 }, coachTrainingBonusRemainders: {} }
-        : p)),
+      players: state.players.map((p) =>
+        p.id === gk.id
+          ? {
+              ...p,
+              age: 26,
+              trainingBonusRemainders: { ref: 95 },
+              coachTrainingBonusRemainders: {},
+            }
+          : p,
+      ),
     };
     const res = trainPlayerInstantly(primed, gk.id, 'keeper-drills');
 
@@ -230,14 +272,24 @@ describe('trainPlayerInstantly display bonus', () => {
   it('keeps the shadow out of the stored remainder ledger', () => {
     const state = careerState();
     const gk = keeper(state);
-    const res = trainPlayerInstantly(aged(state, gk.id, 26), gk.id, 'keeper-drills');
-    const trained = res.state.players.find(p => p.id === gk.id)!;
-    const control = trainPlayerInstantly(aged(state, gk.id, 26), gk.id, 'keeper-drills');
+    const res = trainPlayerInstantly(
+      aged(state, gk.id, 26),
+      gk.id,
+      'keeper-drills',
+    );
+    const trained = res.state.players.find((p) => p.id === gk.id)!;
+    const control = trainPlayerInstantly(
+      aged(state, gk.id, 26),
+      gk.id,
+      'keeper-drills',
+    );
 
     // The shadow call banks its own percent remainders and they must be thrown
     // away. If they leaked, the real ledger would advance at double rate and
     // the keeper would earn genuine extra points from a presentation trick.
-    expect(trained.trainingBonusRemainders?.ref)
-      .toBe(control.state.players.find(p => p.id === gk.id)!.trainingBonusRemainders?.ref);
+    expect(trained.trainingBonusRemainders?.ref).toBe(
+      control.state.players.find((p) => p.id === gk.id)!.trainingBonusRemainders
+        ?.ref,
+    );
   });
 });

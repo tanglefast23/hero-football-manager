@@ -1,20 +1,25 @@
 {
   "node": "v22.23.1",
-  "commit": "96f45b1f",
+  "sourceRevision": "73ca9f4a67a8+dirty",
+  "budget": {
+    "watchedP99Ms": 4,
+    "pumpP99Ms": 16,
+    "coldWorstCase4xMs": 4000
+  },
   "watchedMatch": {
     "count": 2002,
-    "meanMs": 0.18,
-    "p99Ms": 1.43,
-    "worstMs": 24.33,
-    "totalMs": 363.16
+    "meanMs": 0.1,
+    "p99Ms": 0.55,
+    "worstMs": 1.67,
+    "totalMs": 195.42
   },
   "pump": {
-    "count": 1004,
-    "meanMs": 1.17,
-    "p99Ms": 7.49,
-    "worstMs": 53.72,
-    "totalMs": 1175.8,
+    "count": 1003,
+    "meanMs": 0.63,
+    "p99Ms": 1.37,
+    "worstMs": 2.04,
+    "totalMs": 628.12,
     "ticksPerBurst": 8
   },
-  "coldWorstCase4xMs": 949.72
+  "coldWorstCase4xMs": 598.42
 }

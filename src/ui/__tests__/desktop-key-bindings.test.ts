@@ -5,8 +5,15 @@ jest.mock('react-native', () => ({}));
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { managementKeyBindings, tabNumberKey } from '../management-key-bindings';
-import { resolveKeyBinding, type KeyBindingContext, type KeyBindings } from '../use-key-bindings';
+import {
+  managementKeyBindings,
+  tabNumberKey,
+} from '../management-key-bindings';
+import {
+  resolveKeyBinding,
+  type KeyBindingContext,
+  type KeyBindings,
+} from '../use-key-bindings';
 
 const RAIL = [
   { id: 'home', available: true },
@@ -23,10 +30,19 @@ const BODY = { tagName: 'BODY' };
 function press(
   key: string,
   bindings: KeyBindings,
-  event: { target?: unknown; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean } = {},
+  event: {
+    target?: unknown;
+    ctrlKey?: boolean;
+    metaKey?: boolean;
+    altKey?: boolean;
+  } = {},
   context?: KeyBindingContext,
 ): boolean {
-  const action = resolveKeyBinding({ key, target: BODY, ...event }, bindings, context);
+  const action = resolveKeyBinding(
+    { key, target: BODY, ...event },
+    bindings,
+    context,
+  );
   action?.();
   return action !== undefined;
 }
@@ -43,8 +59,13 @@ describe('management chrome keymap', () => {
     });
 
     for (const key of ['1', '2', '3', '4', '5']) press(key, bindings);
-    expect(onTabChange.mock.calls.map(call => call[0]))
-      .toEqual(['home', 'squad', 'club', 'market', 'league']);
+    expect(onTabChange.mock.calls.map((call) => call[0])).toEqual([
+      'home',
+      'squad',
+      'club',
+      'market',
+      'league',
+    ]);
 
     expect(press('Enter', bindings)).toBe(true);
     expect(onAdvanceWeek).toHaveBeenCalledTimes(1);
@@ -131,7 +152,11 @@ describe('key binding rules', () => {
     for (const tagName of ['INPUT', 'input', 'TEXTAREA', 'SELECT']) {
       expect(press('1', bindings, { target: { tagName } })).toBe(false);
     }
-    expect(press('1', bindings, { target: { tagName: 'DIV', isContentEditable: true } })).toBe(false);
+    expect(
+      press('1', bindings, {
+        target: { tagName: 'DIV', isContentEditable: true },
+      }),
+    ).toBe(false);
     expect(action).not.toHaveBeenCalled();
   });
 
@@ -145,7 +170,9 @@ describe('key binding rules', () => {
   });
 
   it('acts on Enter when the page itself holds focus', () => {
-    expect(press('Enter', bindings, { target: { tagName: 'BODY' } })).toBe(true);
+    expect(press('Enter', bindings, { target: { tagName: 'BODY' } })).toBe(
+      true,
+    );
     expect(press('Enter', bindings, { target: null })).toBe(true);
     expect(action).toHaveBeenCalledTimes(2);
   });
@@ -156,27 +183,40 @@ describe('management shell wiring', () => {
     join(process.cwd(), 'src/ui/ManagementShell.tsx'),
     'utf8',
   );
-  const hook = readFileSync(join(process.cwd(), 'src/ui/use-key-bindings.ts'), 'utf8');
+  const hook = readFileSync(
+    join(process.cwd(), 'src/ui/use-key-bindings.ts'),
+    'utf8',
+  );
 
   it('drives the real tab rail and advance action from the keymap', () => {
-    expect(shell).toContain('managementKeyBindings({ tabs: TABS, onTabChange, onAdvanceWeek, advanceWeekDisabled })');
-    expect(shell).toContain('keyboardShortcutsEnabled');
+    expect(shell).toContainSource(
+      'managementKeyBindings({ tabs: TABS, onTabChange, onAdvanceWeek, advanceWeekDisabled })',
+    );
+    expect(shell).toContainSource('keyboardShortcutsEnabled');
   });
 
   it('shows the shortcut on hover so the keymap is discoverable', () => {
     // Both tips are catalog copy now. The wiring this test guards is that the
     // hover tip still carries the tab's number key, and that the advance button
     // still has a tip at all.
-    expect(shell).toContain('key: tabNumberKey(index),');
-    expect(shell).toContain("t('managementShell.tabTipWithKey'");
-    expect(shell).toContain("const ADVANCE_WEEK_TIP_KEY = 'managementShell.advanceWeekTip';");
-    expect(shell).toContain('tip={advanceWeekDisabled ? undefined : t(ADVANCE_WEEK_TIP_KEY)}');
+    expect(shell).toContainSource('key: tabNumberKey(index),');
+    expect(shell).toContainSource("t('managementShell.tabTipWithKey'");
+    expect(shell).toContainSource(
+      "const ADVANCE_WEEK_TIP_KEY = 'managementShell.advanceWeekTip';",
+    );
+    expect(shell).toContainSource(
+      'tip={advanceWeekDisabled ? undefined : t(ADVANCE_WEEK_TIP_KEY)}',
+    );
   });
 
   it('attaches one listener and removes it again', () => {
     expect(hook.match(/window\.addEventListener/g)).toHaveLength(1);
-    expect(hook).toContain("window.addEventListener('keydown', onKeyDown)");
-    expect(hook).toContain("return () => window.removeEventListener('keydown', onKeyDown)");
-    expect(hook).toContain("Platform?.OS !== 'web'");
+    expect(hook).toContainSource(
+      "window.addEventListener('keydown', onKeyDown)",
+    );
+    expect(hook).toContainSource(
+      "return () => window.removeEventListener('keydown', onKeyDown)",
+    );
+    expect(hook).toContainSource("Platform?.OS !== 'web'");
   });
 });

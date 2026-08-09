@@ -2,7 +2,11 @@ import { emit } from './events';
 import type { MatchState, PlayerDef } from './types';
 
 export const MAX_SUBSTITUTIONS = 5;
-export type BeforeSubstitution = (state: MatchState, playerIndex: number, outgoingPlayerId: string) => void;
+export type BeforeSubstitution = (
+  state: MatchState,
+  playerIndex: number,
+  outgoingPlayerId: string,
+) => void;
 
 function copyPlayerDef(player: PlayerDef): PlayerDef {
   return { ...player, attrs: { ...player.attrs } };
@@ -20,13 +24,18 @@ export function performSubstitution(
   if (playerIndex < first || playerIndex >= first + 11) return false;
   if (state.substitutionsUsed[team] >= MAX_SUBSTITUTIONS) return false;
 
-  const benchIndex = state.bench[team].findIndex(player => player.id === replacementId);
+  const benchIndex = state.bench[team].findIndex(
+    (player) => player.id === replacementId,
+  );
   if (benchIndex < 0) return false;
   const replacement = state.bench[team][benchIndex];
   const outgoing = state.players[playerIndex];
-  if (outgoing.team !== team
-    || outgoing.outReason === 'redcard'
-    || (outgoing.def.role === 'GK') !== (replacement.role === 'GK')) return false;
+  if (
+    outgoing.team !== team ||
+    outgoing.outReason === 'redcard' ||
+    (outgoing.def.role === 'GK') !== (replacement.role === 'GK')
+  )
+    return false;
 
   beforeSubstitution?.(state, playerIndex, outgoing.def.id);
   state.bench[team].splice(benchIndex, 1);

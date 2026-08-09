@@ -40,10 +40,15 @@ function openedCareer(): GameState {
 describe('assistant mode presentation', () => {
   it('keeps Teacher exactly on the existing opening journey', () => {
     const career = openedCareer();
-    expect(pendingAssistantGuideSequence(career, 'home')).toBe('management-intro');
+    expect(pendingAssistantGuideSequence(career, 'home')).toBe(
+      'management-intro',
+    );
     expect(dueAssistantInboxGuideSequences(career).length).toBeGreaterThan(0);
 
-    const introduced = completeAssistantGuideMilestone(career, 'intro-complete');
+    const introduced = completeAssistantGuideMilestone(
+      career,
+      'intro-complete',
+    );
     expect(currentAssistantObjective(introduced, 'home')).not.toBeNull();
   });
 
@@ -52,12 +57,15 @@ describe('assistant mode presentation', () => {
     const advisor = { ...teacher, assistantMode: 'advisor' as const };
 
     expect(pendingAssistantGuideSequence(advisor, 'home')).toBeNull();
-    expect(currentAssistantObjective(
-      completeAssistantGuideMilestone(advisor, 'intro-complete'),
-      'home',
-    )).toBeNull();
-    expect(dueAssistantInboxGuideSequences(advisor))
-      .toEqual(dueAssistantInboxGuideSequences(teacher));
+    expect(
+      currentAssistantObjective(
+        completeAssistantGuideMilestone(advisor, 'intro-complete'),
+        'home',
+      ),
+    ).toBeNull();
+    expect(dueAssistantInboxGuideSequences(advisor)).toEqual(
+      dueAssistantInboxGuideSequences(teacher),
+    );
 
     const weekTwo = { ...advisor, week: 2 };
     expect(outstandingInboxDuties(weekTwo)).toEqual([]);
@@ -71,9 +79,15 @@ describe('assistant mode presentation', () => {
 
     const reconciled = reconcileHomeAssistantInbox(advisor);
     const home = homeViewModel(reconciled);
-    expect(home.alerts.some(alert => alert.id === 'training-ground')).toBe(true);
-    expect(home.alerts.some(alert => alert.id.startsWith('assistant-guide:'))).toBe(false);
-    expect(home.alerts.some(alert => alert.guideSequenceId !== undefined)).toBe(false);
+    expect(home.alerts.some((alert) => alert.id === 'training-ground')).toBe(
+      true,
+    );
+    expect(
+      home.alerts.some((alert) => alert.id.startsWith('assistant-guide:')),
+    ).toBe(false);
+    expect(
+      home.alerts.some((alert) => alert.guideSequenceId !== undefined),
+    ).toBe(false);
   });
 });
 
@@ -129,11 +143,18 @@ describe('advice costs the manager nothing', () => {
 
     expect(advised.week).toBe(2);
     expect(taught.week).toBe(2);
-    expect(advised.clubs.map(club => club.cash)).toEqual(taught.clubs.map(club => club.cash));
+    expect(advised.clubs.map((club) => club.cash)).toEqual(
+      taught.clubs.map((club) => club.cash),
+    );
     expect(advised.trainingPoints).toBe(taught.trainingPoints);
-    expect(advised.players.map(player => player.id)).toEqual(taught.players.map(player => player.id));
-    expect(advised.fixtures.filter(fixture => fixture.status === 'played').length)
-      .toBe(taught.fixtures.filter(fixture => fixture.status === 'played').length);
+    expect(advised.players.map((player) => player.id)).toEqual(
+      taught.players.map((player) => player.id),
+    );
+    expect(
+      advised.fixtures.filter((fixture) => fixture.status === 'played').length,
+    ).toBe(
+      taught.fixtures.filter((fixture) => fixture.status === 'played').length,
+    );
   });
 
   it('diverges only on whether the next week is held', () => {
@@ -151,8 +172,10 @@ describe('advice costs the manager nothing', () => {
   it('is invisible to the game ring', () => {
     const gameDir = join(__dirname, '../../game');
     const mentions = readdirSync(gameDir)
-      .filter(name => name.endsWith('.ts'))
-      .filter(name => readFileSync(join(gameDir, name), 'utf8').includes('assistantMode'));
+      .filter((name) => name.endsWith('.ts'))
+      .filter((name) =>
+        readFileSync(join(gameDir, name), 'utf8').includes('assistantMode'),
+      );
 
     expect(mentions.sort()).toEqual(['assistant-guide.ts', 'types.ts']);
   });
@@ -169,7 +192,9 @@ describe('advice costs the manager nothing', () => {
     expect(advised.managementWeeks).toHaveLength(120);
     expect(advised.managementWeekKeys).toEqual(taught.managementWeekKeys);
     expect(advised.managementWeeks).toEqual(taught.managementWeeks);
-    expect(modeNeutralCareer(advised.finalState)).toEqual(modeNeutralCareer(taught.finalState));
+    expect(modeNeutralCareer(advised.finalState)).toEqual(
+      modeNeutralCareer(taught.finalState),
+    );
   });
 });
 
@@ -199,7 +224,8 @@ function runManagedCareer(
     ratings: DEFAULT_CREATION_RATINGS,
   });
 
-  if (mode === 'teacher') useM1Store.getState().completeAssistantGuide('management-intro');
+  if (mode === 'teacher')
+    useM1Store.getState().completeAssistantGuide('management-intro');
   settleAssistantDesk(mode);
 
   // The shipped opening jobs, performed in both modes so this test isolates
@@ -207,7 +233,8 @@ function runManagedCareer(
   useM1Store.getState().buildFacility();
   useM1Store.getState().trainPlayer('bramble-rovers-created-player', 'sprints');
   const coachId = useM1Store.getState().career?.market?.coachCandidates[0]?.id;
-  if (coachId === undefined) throw new Error('managed mode parity career has no head coach candidate');
+  if (coachId === undefined)
+    throw new Error('managed mode parity career has no head coach candidate');
   useM1Store.getState().hireCoach(coachId);
   useM1Store.getState().setActiveTab('home');
   settleAssistantDesk(mode);
@@ -219,11 +246,12 @@ function runManagedCareer(
   for (let step = 0; step < completedSeasons * 220; step += 1) {
     const current = useM1Store.getState();
     const career = current.career;
-    if (career === null) throw new Error('managed mode parity career disappeared');
+    if (career === null)
+      throw new Error('managed mode parity career disappeared');
     if (
-      career.season === completedSeasons
-      && career.phase === 'season-end'
-      && current.screen === 'season-end'
+      career.season === completedSeasons &&
+      career.phase === 'season-end' &&
+      current.screen === 'season-end'
     ) {
       return { finalState: career, managementWeekKeys, managementWeeks };
     }
@@ -249,11 +277,12 @@ function runManagedCareer(
     } else if (current.screen === 'legacy') {
       current.chooseLegacy('farewell');
     } else if (current.screen === 'season-end') {
-      const expired = career.players.find(player => (
-        player.clubId === career.userClubId
-        && player.contractSeasonsRemaining === 0
-        && !willRetireAtSeasonTransition(player, career.season)
-      ));
+      const expired = career.players.find(
+        (player) =>
+          player.clubId === career.userClubId &&
+          player.contractSeasonsRemaining === 0 &&
+          !willRetireAtSeasonTransition(player, career.season),
+      );
       if (expired === undefined) current.advanceCareer();
       else current.renewPlayer(expired.id, 1);
     } else if (current.screen === 'management') {
@@ -266,7 +295,8 @@ function runManagedCareer(
       settleAssistantDesk(mode);
       const afterDesk = useM1Store.getState();
       const afterCareer = afterDesk.career;
-      if (afterCareer === null) throw new Error('managed mode parity desk lost its career');
+      if (afterCareer === null)
+        throw new Error('managed mode parity desk lost its career');
       if (afterDesk.screen !== 'management') continue;
       if (afterCareer.pendingEvent !== undefined) {
         afterDesk.openDeskStory();
@@ -315,23 +345,24 @@ function resolveSharedManagementDecisions(): void {
   }
 
   if (
-    career.season === 1
-    && career.week >= 2
-    && career.youthIntake?.status === 'OPEN'
-    && dueAssistantInboxGuideSequences(career).includes('youth-intake')
+    career.season === 1 &&
+    career.week >= 2 &&
+    career.youthIntake?.status === 'OPEN' &&
+    dueAssistantInboxGuideSequences(career).includes('youth-intake')
   ) {
     current.declineYouth();
     current = useM1Store.getState();
     career = current.career!;
   }
 
-  const hasCoachingOffice = career.facilities.grid?.buildings.some(
-    building => building.type === 'coaching-office',
-  ) ?? false;
+  const hasCoachingOffice =
+    career.facilities.grid?.buildings.some(
+      (building) => building.type === 'coaching-office',
+    ) ?? false;
   if (
-    !hasCoachingOffice
-    && career.facilities.grid?.construction === undefined
-    && dueAssistantInboxGuideSequences(career).includes('coaching-office')
+    !hasCoachingOffice &&
+    career.facilities.grid?.construction === undefined &&
+    dueAssistantInboxGuideSequences(career).includes('coaching-office')
   ) {
     current.buildClubFacility('coaching-office', { x: 2, y: 0 });
     current = useM1Store.getState();
@@ -352,30 +383,45 @@ function settleAssistantDesk(mode: 'teacher' | 'advisor'): void {
   useM1Store.getState().reconcileAssistantInbox();
 
   current = useM1Store.getState();
-  if (mode !== 'teacher' || current.career === null || current.screen !== 'management') return;
-  const delivered = new Set(homeViewModel(current.career).alerts.flatMap(alert => (
-    alert.guideSequenceId === undefined ? [] : [alert.guideSequenceId]
-  )));
-  for (const sequenceId of delivered) useM1Store.getState().completeAssistantGuide(sequenceId);
+  if (
+    mode !== 'teacher' ||
+    current.career === null ||
+    current.screen !== 'management'
+  )
+    return;
+  const delivered = new Set(
+    homeViewModel(current.career).alerts.flatMap((alert) =>
+      alert.guideSequenceId === undefined ? [] : [alert.guideSequenceId],
+    ),
+  );
+  for (const sequenceId of delivered)
+    useM1Store.getState().completeAssistantGuide(sequenceId);
 }
 
 function progressManagedEvent(): void {
   const current = useM1Store.getState();
   const career = current.career;
   const pending = career?.pendingEvent;
-  if (career === null || pending === undefined) throw new Error('managed event lost its offer');
+  if (career === null || pending === undefined)
+    throw new Error('managed event lost its offer');
   if (pending.resolvedChoiceId !== undefined) {
     current.continueAfterEvent();
     return;
   }
   const viewModel = storyEventViewModel(career, loadLaunchContent());
-  if (viewModel.playerSelectionRequired && viewModel.selectedPlayer === undefined) {
+  if (
+    viewModel.playerSelectionRequired &&
+    viewModel.selectedPlayer === undefined
+  ) {
     current.selectEventPlayer(viewModel.playerChoices[0]!.id);
     return;
   }
-  const choice = viewModel.choices.find(candidate => !candidate.disabled && candidate.tone === 'safe')
-    ?? viewModel.choices.find(candidate => !candidate.disabled);
-  if (choice === undefined) throw new Error(`managed event ${pending.eventId} has no choice`);
+  const choice =
+    viewModel.choices.find(
+      (candidate) => !candidate.disabled && candidate.tone === 'safe',
+    ) ?? viewModel.choices.find((candidate) => !candidate.disabled);
+  if (choice === undefined)
+    throw new Error(`managed event ${pending.eventId} has no choice`);
   current.chooseEvent(choice.id);
 }
 
@@ -389,19 +435,24 @@ function completeManagedMatchday(): void {
   const career = useM1Store.getState().career;
   if (career === null) throw new Error('managed matchday lost its career');
   const matchday = activeCareerMatchday(career);
-  if (matchday === undefined) throw new Error('managed matchday has no fixtures');
-  const next = completeMatchday(career, matchday.fixtures.map(fixture => ({
-    fixtureId: fixture.id,
-    homeGoals: fixture.matchSeed % 3,
-    awayGoals: Math.floor(fixture.matchSeed / 3) % 3,
-  })));
+  if (matchday === undefined)
+    throw new Error('managed matchday has no fixtures');
+  const next = completeMatchday(
+    career,
+    matchday.fixtures.map((fixture) => ({
+      fixtureId: fixture.id,
+      homeGoals: fixture.matchSeed % 3,
+      awayGoals: Math.floor(fixture.matchSeed / 3) % 3,
+    })),
+  );
   useM1Store.setState({
     career: next,
-    screen: next.phase === 'matchday'
-      ? 'matchday'
-      : next.phase === 'season-end' || next.phase === 'complete'
-        ? 'season-end'
-        : 'management',
+    screen:
+      next.phase === 'matchday'
+        ? 'matchday'
+        : next.phase === 'season-end' || next.phase === 'complete'
+          ? 'season-end'
+          : 'management',
     activeTab: 'home',
     postMatch: null,
     postMatchOverlay: null,
@@ -417,6 +468,6 @@ function modeNeutralCareer(state: GameState): Omit<GameState, 'assistantMode'> {
     // Guide delivery/completion/suppression is the presentation difference
     // under test. Product cadence, desk tips, events and every club fact remain
     // elsewhere in this projection and therefore still have to match.
-    eventFlags: eventFlags.filter(flag => !flag.startsWith('guide:bert:')),
+    eventFlags: eventFlags.filter((flag) => !flag.startsWith('guide:bert:')),
   };
 }

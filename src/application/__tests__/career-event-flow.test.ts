@@ -101,21 +101,30 @@ describe('shared career event flow', () => {
     const sellablePlayerId = careerEventTargetCandidates(
       opening,
       event('rival-bid-arrives'),
-    ).playerIds.find(playerId => (
-      careerEventPlayerSaleBlocker(opening, playerId, 2600) === undefined
-    ));
-    if (sellablePlayerId === undefined) throw new Error('test event has no sellable player');
+    ).playerIds.find(
+      (playerId) =>
+        careerEventPlayerSaleBlocker(opening, playerId, 2600) === undefined,
+    );
+    if (sellablePlayerId === undefined)
+      throw new Error('test event has no sellable player');
     const offered = selectCareerEventPlayer(opening, sellablePlayerId);
     const selectedPlayerId = offered.pendingEvent?.selectedPlayerId;
-    if (selectedPlayerId === undefined) throw new Error('test event has no player');
-    const playerName = offered.players.find(player => player.id === selectedPlayerId)!.name;
+    if (selectedPlayerId === undefined)
+      throw new Error('test event has no player');
+    const playerName = offered.players.find(
+      (player) => player.id === selectedPlayerId,
+    )!.name;
     const opened = continueResolvedCareerEvent(
       resolveCareerEventChoice(offered, catalog, 'listen-to-the-rival-bid'),
       catalog,
     ).state;
-    const clubBefore = opened.clubs.find(club => club.id === opened.userClubId)!;
-    const preview = storyEventViewModel(opened, loadLaunchContent())
-      .choices.find(choice => choice.id === 'take-the-deadline-fee');
+    const clubBefore = opened.clubs.find(
+      (club) => club.id === opened.userClubId,
+    )!;
+    const preview = storyEventViewModel(
+      opened,
+      loadLaunchContent(),
+    ).choices.find((choice) => choice.id === 'take-the-deadline-fee');
 
     expect(preview).toMatchObject({ disabled: false });
     expect(preview?.consequenceHint).toContain('+$2,600');
@@ -126,47 +135,59 @@ describe('shared career event flow', () => {
       catalog,
       'take-the-deadline-fee',
     );
-    const clubAfter = sold.clubs.find(club => club.id === sold.userClubId)!;
+    const clubAfter = sold.clubs.find((club) => club.id === sold.userClubId)!;
     const result = storyEventViewModel(sold, loadLaunchContent());
 
-    expect(sold.players.find(player => player.id === selectedPlayerId)?.clubId)
-      .not.toBe(sold.userClubId);
     expect(
-      sold.lineups.find(lineup => lineup.clubId === sold.userClubId)?.playerIds,
+      sold.players.find((player) => player.id === selectedPlayerId)?.clubId,
+    ).not.toBe(sold.userClubId);
+    expect(
+      sold.lineups.find((lineup) => lineup.clubId === sold.userClubId)
+        ?.playerIds,
     ).not.toContain(selectedPlayerId);
     expect(clubAfter.cash).toBe(clubBefore.cash + 2600);
-    expect(sold.cashTransactions?.filter(transaction => (
-      transaction.kind === 'transfer-sell'
-      && transaction.referenceId === selectedPlayerId
-    ))).toHaveLength(1);
-    expect(result.outcomeRewards?.map(reward => reward.label))
-      .toEqual(['+$2,600', `Lose ${playerName}`]);
+    expect(
+      sold.cashTransactions?.filter(
+        (transaction) =>
+          transaction.kind === 'transfer-sell' &&
+          transaction.referenceId === selectedPlayerId,
+      ),
+    ).toHaveLength(1);
+    expect(result.outcomeRewards?.map((reward) => reward.label)).toEqual([
+      '+$2,600',
+      `Lose ${playerName}`,
+    ]);
   });
 
   test('only the sale choice is disabled when the chosen player must stay for squad cover', () => {
     const initial = career();
     const starters = new Set(
-      initial.lineups.find(lineup => lineup.clubId === initial.userClubId)!.playerIds,
+      initial.lineups.find((lineup) => lineup.clubId === initial.userClubId)!
+        .playerIds,
     );
-    const backupKeeper = initial.players.find(player => (
-      player.clubId === initial.userClubId
-      && !starters.has(player.id)
-      && player.role === 'GK'
-    ));
-    if (backupKeeper === undefined) throw new Error('test career has no backup keeper');
+    const backupKeeper = initial.players.find(
+      (player) =>
+        player.clubId === initial.userClubId &&
+        !starters.has(player.id) &&
+        player.role === 'GK',
+    );
+    if (backupKeeper === undefined)
+      throw new Error('test career has no backup keeper');
     const state = selectCareerEventPlayer(
       offerCareerEvent(initial, 'rival-bid-deadline-day'),
       backupKeeper.id,
     );
     const choices = storyEventViewModel(state, loadLaunchContent()).choices;
 
-    expect(choices.find(choice => choice.id === 'hold-past-the-deadline'))
-      .toMatchObject({ disabled: false });
-    expect(choices.find(choice => choice.id === 'take-the-deadline-fee'))
-      .toMatchObject({
-        disabled: true,
-        disabledReason: expect.stringContaining('spare goalkeeper'),
-      });
+    expect(
+      choices.find((choice) => choice.id === 'hold-past-the-deadline'),
+    ).toMatchObject({ disabled: false });
+    expect(
+      choices.find((choice) => choice.id === 'take-the-deadline-fee'),
+    ).toMatchObject({
+      disabled: true,
+      disabledReason: expect.stringContaining('spare goalkeeper'),
+    });
   });
 
   test('skips a targeted sequel when its original player is now illegal, even with alternatives', () => {

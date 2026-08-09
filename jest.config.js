@@ -15,15 +15,23 @@ module.exports = {
     // CommonJS, which Jest needs; (2) allowJs makes ts-jest default outDir to an
     // internal constant, and TS 6 hard-errors (TS5011) on outDir without an
     // explicit rootDir — set rootDir to the project root to satisfy that.
-    '^.+\\.tsx?$': ['ts-jest', { tsconfig: { module: 'commonjs', rootDir: '.', isolatedModules: true } }],
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      { tsconfig: { module: 'commonjs', rootDir: '.', isolatedModules: true } },
+    ],
   },
-  // Binary media assets (require('*.wav'/'*.m4a')) can't load as JS modules under
+  setupFiles: ['<rootDir>/src/i18n/jest-register-catalogs.ts'],
+  setupFilesAfterEnv: ['<rootDir>/src/test/source-contract-matchers.ts'],
+  // Metro assets (require('*.wav'/'*.m4a'/'*.txt')) can't load as JS modules under
   // Jest — Metro handles them in the app. Stub them so audio.ts (and its pure
   // event→sound mapping) is importable in tests.
   moduleNameMapper: {
-    '\\.(wav|m4a)$': '<rootDir>/src/render/__tests__/__mocks__/assetStub.js',
+    '\\.(wav|m4a|txt)$':
+      '<rootDir>/src/render/__tests__/__mocks__/assetStub.js',
   },
   // Long-running measurement probes are opt-in via `npm run test:probe -- <path>`.
   // Keep the acceptance-seed audit test in the normal suite.
-  testPathIgnorePatterns: ['<rootDir>/src/audit/__tests__/.*-probe\\.test\\.ts$'],
+  testPathIgnorePatterns: [
+    '<rootDir>/src/audit/__tests__/.*-probe\\.test\\.ts$',
+  ],
 };

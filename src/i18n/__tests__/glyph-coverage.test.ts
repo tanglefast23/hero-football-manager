@@ -13,8 +13,9 @@ describe('faceFile', () => {
     // The face the app actually renders is built into the repo, not installed,
     // so `require.resolve` cannot find it. Resolving it relative to the module
     // rather than to `process.cwd()` is what keeps this working from a worktree.
-    expect(faceFile('HFMSilkscreen_700Bold'))
-      .toMatch(/assets\/fonts\/HFMSilkscreen_700Bold\.ttf$/);
+    expect(faceFile('HFMSilkscreen_700Bold')).toMatch(
+      /assets\/fonts\/HFMSilkscreen_700Bold\.ttf$/,
+    );
     expect(existsSync(faceFile('HFMSilkscreen_700Bold'))).toBe(true);
     expect(existsSync(faceFile('HFMSilkscreen_400Regular'))).toBe(true);
   });
@@ -55,10 +56,15 @@ describe('glyphSet', () => {
     // load-bearing and forbids faux-bold on a bitmap face — a face that covered
     // Vietnamese in one weight only would work for half the UI.
     // The full 134-letter repertoire is gated in `vietnamese-face.test.ts`.
-    for (const family of ['HFMSilkscreen_400Regular', 'HFMSilkscreen_700Bold']) {
+    for (const family of [
+      'HFMSilkscreen_400Regular',
+      'HFMSilkscreen_700Bold',
+    ]) {
       const covered = glyphSet(faceFile(family));
-      expect({ family, missing: missingGlyphs('ếộữạằọđơư', covered) })
-        .toEqual({ family, missing: [] });
+      expect({ family, missing: missingGlyphs('ếộữạằọđơư', covered) }).toEqual({
+        family,
+        missing: [],
+      });
     }
   });
 
@@ -66,8 +72,10 @@ describe('glyphSet', () => {
     for (const locale of LOCALES) {
       const covered = glyphSet(faceFile(localeMeta(locale).faces.data));
       const characters = `${localeMeta(locale).groupSeparator}$-0123456789`;
-      expect({ locale, missing: missingGlyphs(characters, covered) })
-        .toEqual({ locale, missing: [] });
+      expect({ locale, missing: missingGlyphs(characters, covered) }).toEqual({
+        locale,
+        missing: [],
+      });
     }
   });
 });

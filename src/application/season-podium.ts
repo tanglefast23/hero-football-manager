@@ -31,8 +31,10 @@ export function seasonPodiumFlag(season: number): string {
  */
 export function hasPendingSeasonPodium(state: GameState): boolean {
   if (state.phase !== 'season-end' && state.phase !== 'complete') return false;
-  return userPodiumPosition(state) !== undefined
-    && !state.eventFlags.includes(seasonPodiumFlag(state.season));
+  return (
+    userPodiumPosition(state) !== undefined &&
+    !state.eventFlags.includes(seasonPodiumFlag(state.season))
+  );
 }
 
 export function completeSeasonPodium(state: GameState): GameState {
@@ -44,7 +46,9 @@ export function completeSeasonPodium(state: GameState): GameState {
 }
 
 function userPodiumPosition(state: GameState): 2 | 3 | undefined {
-  const row = leagueStandings(state).find(standing => standing.clubId === state.userClubId);
+  const row = leagueStandings(state).find(
+    (standing) => standing.clubId === state.userClubId,
+  );
   return row?.position === 2 || row?.position === 3 ? row.position : undefined;
 }
 
@@ -61,17 +65,24 @@ export function seasonPodiumViewModel(
 ): SeasonPodiumViewModel {
   const standings = leagueStandings(state);
   const userPosition = userPodiumPosition(state) ?? 2;
-  const places = ([1, 2, 3] as const).map(position => (
-    placeViewModel(state, standings.find(standing => standing.position === position), position, t)
-  ));
+  const places = ([1, 2, 3] as const).map((position) =>
+    placeViewModel(
+      state,
+      standings.find((standing) => standing.position === position),
+      position,
+      t,
+    ),
+  );
 
   return {
     seasonLabel: t('endgameCelebration.seasonLabel', { season: state.season }),
-    headline: userPosition === 2
-      ? t('seasonPodium.headlineSecond')
-      : t('seasonPodium.headlineThird'),
-    clubName: state.clubs.find(club => club.id === state.userClubId)?.name
-      ?? t('endgameCelebration.yourClub'),
+    headline:
+      userPosition === 2
+        ? t('seasonPodium.headlineSecond')
+        : t('seasonPodium.headlineThird'),
+    clubName:
+      state.clubs.find((club) => club.id === state.userClubId)?.name ??
+      t('endgameCelebration.yourClub'),
     userPosition,
     places,
   };
@@ -91,9 +102,11 @@ function placeViewModel(
   const role = best?.role ?? 'FWD';
   return {
     position,
-    clubName: clubId === undefined
-      ? t('endgameCelebration.yourClub')
-      : state.clubs.find(club => club.id === clubId)?.name ?? t('endgameCelebration.yourClub'),
+    clubName:
+      clubId === undefined
+        ? t('endgameCelebration.yourClub')
+        : (state.clubs.find((club) => club.id === clubId)?.name ??
+          t('endgameCelebration.yourClub')),
     isUserClub: clubId === state.userClubId,
     points: standing?.points ?? 0,
     playerId,
@@ -105,13 +118,17 @@ function placeViewModel(
 }
 
 /** The club's face on its block: its highest-overall player, ties by id. */
-function bestPlayer(state: GameState, clubId: string): CareerPlayer | undefined {
+function bestPlayer(
+  state: GameState,
+  clubId: string,
+): CareerPlayer | undefined {
   return state.players
-    .filter(player => player.clubId === clubId)
-    .sort((left, right) => (
-      roleOverall(right.role, right.attrs) - roleOverall(left.role, left.attrs)
-      || compareIds(left.id, right.id)
-    ))[0];
+    .filter((player) => player.clubId === clubId)
+    .sort(
+      (left, right) =>
+        roleOverall(right.role, right.attrs) -
+          roleOverall(left.role, left.attrs) || compareIds(left.id, right.id),
+    )[0];
 }
 
 function compareIds(left: string, right: string): number {

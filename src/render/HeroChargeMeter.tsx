@@ -23,7 +23,11 @@ export interface HeroChargeMeterProps {
  * Blue while it fills; a sliding rainbow strip for the whole Zone window; empty
  * again once the power is spent.
  */
-export function HeroChargeMeter({ meter, trackWidth, reduceMotion }: HeroChargeMeterProps) {
+export function HeroChargeMeter({
+  meter,
+  trackWidth,
+  reduceMotion,
+}: HeroChargeMeterProps) {
   const t = useCopy();
   const slide = useRef(new Animated.Value(0)).current;
   const ready = meter.state === 'ready';
@@ -59,20 +63,32 @@ export function HeroChargeMeter({ meter, trackWidth, reduceMotion }: HeroChargeM
       style={styles.track}
     >
       {ready ? (
-        <Animated.View style={[styles.strip, { transform: [{ translateX: travel }] }]}>
+        <Animated.View
+          style={[styles.strip, { transform: [{ translateX: travel }] }]}
+        >
           {rainbowStripBands(trackWidth).map((color, index) => (
-            <View key={index} style={[styles.band, { backgroundColor: color }]} />
+            <View
+              key={index}
+              style={[styles.band, { backgroundColor: color }]}
+            />
           ))}
         </Animated.View>
       ) : (
-        <View style={[styles.fill, { width: `${Math.round(meter.fill * 100)}%` }]} />
+        <View
+          style={[styles.fill, { width: `${Math.round(meter.fill * 100)}%` }]}
+        />
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  track: { height: 4, marginTop: 4, backgroundColor: '#3a3350', overflow: 'hidden' },
+  track: {
+    height: 4,
+    marginTop: 4,
+    backgroundColor: '#3a3350',
+    overflow: 'hidden',
+  },
   fill: { height: 4, backgroundColor: CHARGE_FILL_COLOR },
   strip: { flexDirection: 'row', height: 4 },
   band: { width: CHARGE_BAND_WIDTH, height: 4 },

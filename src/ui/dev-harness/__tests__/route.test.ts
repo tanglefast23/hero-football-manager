@@ -37,12 +37,16 @@ const ENTRIES: readonly DevHarnessRoutableEntry[] = [
 
 describe('reading an address', () => {
   it('reads an entry and a case out of the full form', () => {
-    expect(parseDevHarnessHash('#/dev/awards-ceremony/sweep'))
-      .toEqual({ entryId: 'awards-ceremony', caseId: 'sweep' });
+    expect(parseDevHarnessHash('#/dev/awards-ceremony/sweep')).toEqual({
+      entryId: 'awards-ceremony',
+      caseId: 'sweep',
+    });
   });
 
   it('reads an entry with no case named', () => {
-    expect(parseDevHarnessHash('#/dev/awards-ceremony')).toEqual({ entryId: 'awards-ceremony' });
+    expect(parseDevHarnessHash('#/dev/awards-ceremony')).toEqual({
+      entryId: 'awards-ceremony',
+    });
   });
 
   /** A hash is a text field a human types into; none of this should matter. */
@@ -52,19 +56,25 @@ describe('reading an address', () => {
     ['doubled slashes', '#//dev//awards-ceremony//sweep'],
     ['no leading slash', '#dev/awards-ceremony/sweep'],
   ])('tolerates %s', (_label, hash) => {
-    expect(parseDevHarnessHash(hash))
-      .toEqual({ entryId: 'awards-ceremony', caseId: 'sweep' });
+    expect(parseDevHarnessHash(hash)).toEqual({
+      entryId: 'awards-ceremony',
+      caseId: 'sweep',
+    });
   });
 
   it('decodes percent-escaped segments', () => {
-    expect(parseDevHarnessHash('#/dev/awards%2Dceremony/sweep'))
-      .toEqual({ entryId: 'awards-ceremony', caseId: 'sweep' });
+    expect(parseDevHarnessHash('#/dev/awards%2Dceremony/sweep')).toEqual({
+      entryId: 'awards-ceremony',
+      caseId: 'sweep',
+    });
   });
 
   /** A stray `%` is a typo, and a typo must not throw on a cold load. */
   it('keeps a malformed escape rather than throwing', () => {
-    expect(parseDevHarnessHash('#/dev/100%/sweep'))
-      .toEqual({ entryId: '100%', caseId: 'sweep' });
+    expect(parseDevHarnessHash('#/dev/100%/sweep')).toEqual({
+      entryId: '100%',
+      caseId: 'sweep',
+    });
   });
 
   it.each([
@@ -78,17 +88,21 @@ describe('reading an address', () => {
   });
 
   it('ignores anything past the case', () => {
-    expect(parseDevHarnessHash('#/dev/awards-ceremony/sweep/prize/extra'))
-      .toEqual({ entryId: 'awards-ceremony', caseId: 'sweep' });
+    expect(
+      parseDevHarnessHash('#/dev/awards-ceremony/sweep/prize/extra'),
+    ).toEqual({ entryId: 'awards-ceremony', caseId: 'sweep' });
   });
 });
 
 describe('writing an address', () => {
   it('writes the menu, an entry and a case', () => {
     expect(formatDevHarnessHash({})).toBe('#/dev');
-    expect(formatDevHarnessHash({ entryId: 'awards-ceremony' })).toBe('#/dev/awards-ceremony');
-    expect(formatDevHarnessHash({ entryId: 'awards-ceremony', caseId: 'sweep' }))
-      .toBe('#/dev/awards-ceremony/sweep');
+    expect(formatDevHarnessHash({ entryId: 'awards-ceremony' })).toBe(
+      '#/dev/awards-ceremony',
+    );
+    expect(
+      formatDevHarnessHash({ entryId: 'awards-ceremony', caseId: 'sweep' }),
+    ).toBe('#/dev/awards-ceremony/sweep');
   });
 
   /** A case with no entry is not an address: it must not encode into one. */
@@ -97,7 +111,9 @@ describe('writing an address', () => {
   });
 
   it('escapes an id that is not url-safe', () => {
-    expect(formatDevHarnessHash({ entryId: 'a b', caseId: 'c/d' })).toBe('#/dev/a%20b/c%2Fd');
+    expect(formatDevHarnessHash({ entryId: 'a b', caseId: 'c/d' })).toBe(
+      '#/dev/a%20b/c%2Fd',
+    );
   });
 
   it.each([
@@ -105,20 +121,25 @@ describe('writing an address', () => {
     { entryId: 'awards-ceremony' },
     { entryId: 'awards-ceremony', caseId: 'sweep' },
     { entryId: 'a b', caseId: 'c/d' },
-  ])('round-trips %j', route => {
+  ])('round-trips %j', (route) => {
     expect(parseDevHarnessHash(formatDevHarnessHash(route))).toEqual(route);
   });
 });
 
 describe('resolving an address against the registry', () => {
   it('lands on the entry and case a full address names', () => {
-    expect(resolveDevHarnessRoute(ENTRIES, { entryId: 'awards-ceremony', caseId: 'thin' }))
-      .toEqual({ kind: 'entry', entryId: 'awards-ceremony', caseId: 'thin' });
+    expect(
+      resolveDevHarnessRoute(ENTRIES, {
+        entryId: 'awards-ceremony',
+        caseId: 'thin',
+      }),
+    ).toEqual({ kind: 'entry', entryId: 'awards-ceremony', caseId: 'thin' });
   });
 
   it('takes the first case when an address names none', () => {
-    expect(resolveDevHarnessRoute(ENTRIES, { entryId: 'awards-ceremony' }))
-      .toEqual({ kind: 'entry', entryId: 'awards-ceremony', caseId: 'mixed' });
+    expect(
+      resolveDevHarnessRoute(ENTRIES, { entryId: 'awards-ceremony' }),
+    ).toEqual({ kind: 'entry', entryId: 'awards-ceremony', caseId: 'mixed' });
   });
 
   it('shows the menu when the address names nothing', () => {
@@ -131,15 +152,24 @@ describe('resolving an address against the registry', () => {
    * reviewer able to get anywhere.
    */
   it('falls back to the menu for an entry the registry does not hold', () => {
-    expect(resolveDevHarnessRoute(ENTRIES, { entryId: 'no-such-entry' }))
-      .toEqual({ kind: 'menu' });
-    expect(resolveDevHarnessRoute(ENTRIES, { entryId: 'no-such-entry', caseId: 'sweep' }))
-      .toEqual({ kind: 'menu' });
+    expect(
+      resolveDevHarnessRoute(ENTRIES, { entryId: 'no-such-entry' }),
+    ).toEqual({ kind: 'menu' });
+    expect(
+      resolveDevHarnessRoute(ENTRIES, {
+        entryId: 'no-such-entry',
+        caseId: 'sweep',
+      }),
+    ).toEqual({ kind: 'menu' });
   });
 
   it('falls back to the menu for a case the entry does not hold', () => {
-    expect(resolveDevHarnessRoute(ENTRIES, { entryId: 'awards-ceremony', caseId: 'gone' }))
-      .toEqual({ kind: 'menu' });
+    expect(
+      resolveDevHarnessRoute(ENTRIES, {
+        entryId: 'awards-ceremony',
+        caseId: 'gone',
+      }),
+    ).toEqual({ kind: 'menu' });
   });
 
   it('falls back to the menu for an entry with no cases at all', () => {
@@ -147,12 +177,18 @@ describe('resolving an address against the registry', () => {
       { id: 'stub', group: 'Season', title: 'Stub', cases: [] },
     ];
 
-    expect(resolveDevHarnessRoute(empty, { entryId: 'stub' })).toEqual({ kind: 'menu' });
+    expect(resolveDevHarnessRoute(empty, { entryId: 'stub' })).toEqual({
+      kind: 'menu',
+    });
   });
 
   it('resolves against an empty registry without throwing', () => {
-    expect(resolveDevHarnessRoute([], { entryId: 'awards-ceremony', caseId: 'sweep' }))
-      .toEqual({ kind: 'menu' });
+    expect(
+      resolveDevHarnessRoute([], {
+        entryId: 'awards-ceremony',
+        caseId: 'sweep',
+      }),
+    ).toEqual({ kind: 'menu' });
   });
 
   /** What the harness writes back, so the URL and the screen agree. */
@@ -160,11 +196,16 @@ describe('resolving an address against the registry', () => {
     const route = { entryId: 'awards-ceremony' };
     const resolution = resolveDevHarnessRoute(ENTRIES, route);
 
-    expect(formatDevHarnessHash(resolvedDevHarnessRoute(resolution)))
-      .toBe('#/dev/awards-ceremony/mixed');
-    expect(formatDevHarnessHash(resolvedDevHarnessRoute(
-      resolveDevHarnessRoute(ENTRIES, { entryId: 'gone' }),
-    ))).toBe('#/dev');
+    expect(formatDevHarnessHash(resolvedDevHarnessRoute(resolution))).toBe(
+      '#/dev/awards-ceremony/mixed',
+    );
+    expect(
+      formatDevHarnessHash(
+        resolvedDevHarnessRoute(
+          resolveDevHarnessRoute(ENTRIES, { entryId: 'gone' }),
+        ),
+      ),
+    ).toBe('#/dev');
   });
 
   /** Correcting an address must settle, or the harness rewrites the URL forever. */
@@ -172,7 +213,9 @@ describe('resolving an address against the registry', () => {
     for (const entry of ENTRIES) {
       for (const entryCase of entry.cases) {
         const route = { entryId: entry.id, caseId: entryCase.id };
-        const settled = resolvedDevHarnessRoute(resolveDevHarnessRoute(ENTRIES, route));
+        const settled = resolvedDevHarnessRoute(
+          resolveDevHarnessRoute(ENTRIES, route),
+        );
 
         expect(settled).toEqual(route);
       }
@@ -180,10 +223,15 @@ describe('resolving an address against the registry', () => {
   });
 
   it('resolves a hash end to end', () => {
-    expect(resolveDevHarnessRoute(ENTRIES, parseDevHarnessHash('#/dev/training')))
-      .toEqual({ kind: 'entry', entryId: 'training', caseId: 'default' });
-    expect(resolveDevHarnessRoute(ENTRIES, parseDevHarnessHash('#/dev/nonsense/at/all')))
-      .toEqual({ kind: 'menu' });
+    expect(
+      resolveDevHarnessRoute(ENTRIES, parseDevHarnessHash('#/dev/training')),
+    ).toEqual({ kind: 'entry', entryId: 'training', caseId: 'default' });
+    expect(
+      resolveDevHarnessRoute(
+        ENTRIES,
+        parseDevHarnessHash('#/dev/nonsense/at/all'),
+      ),
+    ).toEqual({ kind: 'menu' });
   });
 });
 
@@ -199,7 +247,10 @@ describe('the menu’s sections', () => {
   it('orders groups by where each first appeared', () => {
     const reordered = [ENTRIES[2], ENTRIES[0], ENTRIES[1]];
 
-    expect(devHarnessGroups(reordered).map(group => group.name)).toEqual(['Squad', 'Season']);
+    expect(devHarnessGroups(reordered).map((group) => group.name)).toEqual([
+      'Squad',
+      'Season',
+    ]);
   });
 
   it('handles an empty registry', () => {

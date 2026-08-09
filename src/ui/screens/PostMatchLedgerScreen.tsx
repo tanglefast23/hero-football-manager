@@ -1,6 +1,10 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActionButton, SectionLabel, StatusChip } from '../components/Scorecard';
+import {
+  ActionButton,
+  SectionLabel,
+  StatusChip,
+} from '../components/Scorecard';
 import type { PostMatchViewModel } from '../models';
 import { SettingsButton } from '../SettingsOverlay';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
@@ -37,58 +41,88 @@ export function PostMatchLedgerScreen({
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
   const { result } = viewModel;
-  const resultTone = result.outcomeLabel === 'WIN'
-    ? 'success'
-    : result.outcomeLabel === 'LOSS'
-      ? 'danger'
-      : 'normal';
+  const resultTone =
+    result.outcomeLabel === 'WIN'
+      ? 'success'
+      : result.outcomeLabel === 'LOSS'
+        ? 'danger'
+        : 'normal';
 
   return (
-    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView
+      className="flex-1 bg-paper"
+      edges={['top', 'left', 'right', 'bottom']}
+    >
       <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
         <View>
-          <PixelText className="text-[12px] uppercase tracking-[2px] text-blue-dark">{t('postMatchLedger.matchComplete')}</PixelText>
-          <PixelText className="mt-1 text-base uppercase text-ink">{t('postMatchLedger.full-timeReport')}</PixelText>
+          <PixelText className="text-[12px] uppercase tracking-[2px] text-blue-dark">
+            {t('postMatchLedger.matchComplete')}
+          </PixelText>
+          <PixelText className="mt-1 text-base uppercase text-ink">
+            {t('postMatchLedger.full-timeReport')}
+          </PixelText>
         </View>
         <SettingsButton onPress={onOpenSettings} />
       </View>
-      <ScrollView className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 24 }, desktopContent]}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={[
+          { padding: 16, paddingBottom: 24 },
+          desktopContent,
+        ]}
+      >
         {/* Stacked rather than side by side: two names in 24-point columns
             either wrapped mid-word or truncated to "BRAMB LE RO_" on a phone,
             which is no way to read your own club's name. The vertical run has
             the width to spell both out without crowding the score. */}
         <View className="items-center py-3">
           <StatusChip label={t('postMatchLedger.fullTime')} tone={resultTone} />
-          <PixelText className="mt-3 text-[12px] uppercase text-blue-dark">{result.competition}</PixelText>
+          <PixelText className="mt-3 text-[12px] uppercase text-blue-dark">
+            {result.competition}
+          </PixelText>
 
           <TeamLine
             name={result.homeTeam}
             t={t}
-            outcome={result.winner === 'home' && result.outcomeLabel !== 'DRAW'
-              ? result.outcomeLabel
-              : null}
+            outcome={
+              result.winner === 'home' && result.outcomeLabel !== 'DRAW'
+                ? result.outcomeLabel
+                : null
+            }
           />
 
           <View className="mt-3 flex-row items-center border-2 border-ink bg-ink px-5 py-3">
-            <Text className="font-mono text-[26px] text-paper">{result.homeScore}</Text>
+            <Text className="font-mono text-[26px] text-paper">
+              {result.homeScore}
+            </Text>
             <Text className="mx-3 font-mono text-[18px] text-paper/60">–</Text>
-            <Text className="font-mono text-[26px] text-paper">{result.awayScore}</Text>
+            <Text className="font-mono text-[26px] text-paper">
+              {result.awayScore}
+            </Text>
           </View>
           {result.winner === null ? (
-            <PixelText className="mt-3 text-base uppercase text-ink/70">{t('postMatchLedger.draw')}</PixelText>
+            <PixelText className="mt-3 text-base uppercase text-ink/70">
+              {t('postMatchLedger.draw')}
+            </PixelText>
           ) : null}
 
           <TeamLine
             name={result.awayTeam}
             t={t}
-            outcome={result.winner === 'away' && result.outcomeLabel !== 'DRAW'
-              ? result.outcomeLabel
-              : null}
+            outcome={
+              result.winner === 'away' && result.outcomeLabel !== 'DRAW'
+                ? result.outcomeLabel
+                : null
+            }
           />
         </View>
 
         {viewModel.reaction ? (
-          <FulltimeReaction reaction={viewModel.reaction} textScale={textScale} t={t} />
+          <FulltimeReaction
+            reaction={viewModel.reaction}
+            textScale={textScale}
+            t={t}
+          />
         ) : null}
 
         {viewModel.buzz === undefined ? null : (
@@ -97,9 +131,12 @@ export function PostMatchLedgerScreen({
 
         {viewModel.highlights.length ? (
           <View className="mt-6">
-            <SectionLabel eyebrow={t('postMatchLedger.matchTape')} title={t('postMatchLedger.highlights')} />
+            <SectionLabel
+              eyebrow={t('postMatchLedger.matchTape')}
+              title={t('postMatchLedger.highlights')}
+            />
             <View className="gap-2">
-              {viewModel.highlights.map(highlight => (
+              {viewModel.highlights.map((highlight) => (
                 <Pressable
                   key={highlight.id}
                   accessibilityRole={onReplayHighlight ? 'button' : 'text'}
@@ -107,11 +144,24 @@ export function PostMatchLedgerScreen({
                   disabled={!onReplayHighlight}
                   onPress={() => onReplayHighlight?.(highlight.id)}
                   className="min-h-12 flex-row items-center border border-ink/25 bg-white px-3 py-2"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.68 : undefined,
+                  })}
                 >
-                  <Text className="w-12 font-mono text-base text-gold-dark">{highlight.minuteLabel}</Text>
-                  <Text className="flex-1 text-ink" style={scaledBody(textScale)}>{highlight.description}</Text>
-                  {onReplayHighlight ? <Text className="font-mono text-base text-blue-dark">▶</Text> : null}
+                  <Text className="w-12 font-mono text-base text-gold-dark">
+                    {highlight.minuteLabel}
+                  </Text>
+                  <Text
+                    className="flex-1 text-ink"
+                    style={scaledBody(textScale)}
+                  >
+                    {highlight.description}
+                  </Text>
+                  {onReplayHighlight ? (
+                    <Text className="font-mono text-base text-blue-dark">
+                      ▶
+                    </Text>
+                  ) : null}
                 </Pressable>
               ))}
             </View>
@@ -164,11 +214,15 @@ function TeamLine({
       </View>
       {outcome ? (
         <PixelText
-          className={outcome === 'WIN'
-            ? 'mt-2 text-[18px] uppercase text-pitch-ink'
-            : 'mt-2 text-[18px] uppercase text-red-dark'}
+          className={
+            outcome === 'WIN'
+              ? 'mt-2 text-[18px] uppercase text-pitch-ink'
+              : 'mt-2 text-[18px] uppercase text-red-dark'
+          }
         >
-          {outcome === 'WIN' ? t('postMatchLedger.weWon') : t('postMatchLedger.weLost')}
+          {outcome === 'WIN'
+            ? t('postMatchLedger.weWon')
+            : t('postMatchLedger.weLost')}
         </PixelText>
       ) : null}
     </View>
@@ -196,19 +250,27 @@ function FulltimeReaction({
   textScale: TextScale;
   t: CopyFn;
 }) {
-  const blaming = reaction.pose === 'point' && reaction.assistantPortraitId !== undefined;
-  const mood = reaction.pose === 'joy'
-    ? t('postMatchLedger.a11y.coachIsCelebrating', { coach: reaction.coachName })
-    : blaming
-      ? t('postMatchLedger.a11y.coachIsBlaming', {
-        coach: reaction.coachName,
-        assistant: reaction.assistantName ?? '',
-      })
-      : reaction.pose === 'cry'
-        ? t('postMatchLedger.a11y.coachIsInTears', { coach: reaction.coachName })
-        // A draw leaves him at rest, so there is no mood to name — read out who
-        // is talking and let the line carry the rest.
-        : t('postMatchLedger.a11y.coachOnTheResult', { coach: reaction.coachName });
+  const blaming =
+    reaction.pose === 'point' && reaction.assistantPortraitId !== undefined;
+  const mood =
+    reaction.pose === 'joy'
+      ? t('postMatchLedger.a11y.coachIsCelebrating', {
+          coach: reaction.coachName,
+        })
+      : blaming
+        ? t('postMatchLedger.a11y.coachIsBlaming', {
+            coach: reaction.coachName,
+            assistant: reaction.assistantName ?? '',
+          })
+        : reaction.pose === 'cry'
+          ? t('postMatchLedger.a11y.coachIsInTears', {
+              coach: reaction.coachName,
+            })
+          : // A draw leaves him at rest, so there is no mood to name — read out who
+            // is talking and let the line carry the rest.
+            t('postMatchLedger.a11y.coachOnTheResult', {
+              coach: reaction.coachName,
+            });
 
   return (
     <View className="mt-6 items-start">
@@ -219,20 +281,35 @@ function FulltimeReaction({
         <Text
           style={[
             speechBubbleStyles.text,
-            scaledBody(textScale, SPEECH_BUBBLE_FONT_SIZE, SPEECH_BUBBLE_LINE_HEIGHT),
+            scaledBody(
+              textScale,
+              SPEECH_BUBBLE_FONT_SIZE,
+              SPEECH_BUBBLE_LINE_HEIGHT,
+            ),
           ]}
-        >{reaction.line}</Text>
+        >
+          {reaction.line}
+        </Text>
         <SpeechBubbleTail left={REACTION_TAIL_LEFT} />
       </View>
       <View
         accessible
         accessibilityRole="image"
-        accessibilityLabel={t('postMatchLedger.a11y.coachReaction', { mood, line: reaction.line })}
+        accessibilityLabel={t('postMatchLedger.a11y.coachReaction', {
+          mood,
+          line: reaction.line,
+        })}
         className="flex-row items-end gap-3"
       >
-        <ManagementSprite spriteKey={`coach:${reaction.coachPortraitId}:${reaction.pose}`} width={COACH_SPRITE_WIDTH} />
+        <ManagementSprite
+          spriteKey={`coach:${reaction.coachPortraitId}:${reaction.pose}`}
+          width={COACH_SPRITE_WIDTH}
+        />
         {blaming ? (
-          <ManagementSprite spriteKey={`coach:${reaction.assistantPortraitId}:rest`} width={COACH_SPRITE_WIDTH} />
+          <ManagementSprite
+            spriteKey={`coach:${reaction.assistantPortraitId}:rest`}
+            width={COACH_SPRITE_WIDTH}
+          />
         ) : null}
       </View>
     </View>

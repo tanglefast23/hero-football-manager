@@ -20,7 +20,10 @@
  * positions stay untouched, and the movement quantum (1 device px, a third of a
  * dp on a 3x screen) is imperceptible.
  */
-export function snapDevicePixels(value: number, devicePixelRatio: number): number {
+export function snapDevicePixels(
+  value: number,
+  devicePixelRatio: number,
+): number {
   'worklet';
   const dpr = Math.max(1, devicePixelRatio);
   return Math.round(value * dpr) / dpr;

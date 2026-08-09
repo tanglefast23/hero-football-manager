@@ -10,7 +10,9 @@ describe('season stat line persistence', () => {
     const career = baseCareer();
     const line = statLine(career);
 
-    const restored = parseStoredGameState(serializeGameState(withStatLines(career, [line])));
+    const restored = parseStoredGameState(
+      serializeGameState(withStatLines(career, [line])),
+    );
 
     expect(restored.seasonStatLines).toEqual([line]);
   });
@@ -19,10 +21,12 @@ describe('season stat line persistence', () => {
     const career = baseCareer();
     const negative = { ...statLine(career), tacklesWon: -1 };
 
-    expect(() => serializeGameState(withStatLines(career, [negative])))
-      .toThrow(InvalidGameStateError);
-    expect(() => serializeGameState(withStatLines(career, [negative])))
-      .toThrow('seasonStatLines');
+    expect(() => serializeGameState(withStatLines(career, [negative]))).toThrow(
+      InvalidGameStateError,
+    );
+    expect(() => serializeGameState(withStatLines(career, [negative]))).toThrow(
+      'seasonStatLines',
+    );
   });
 
   test('refuses to save an unknown competition', () => {
@@ -33,19 +37,25 @@ describe('season stat line persistence', () => {
       competition: 'friendly' as PlayerSeasonStatLine['competition'],
     };
 
-    expect(() => serializeGameState(withStatLines(career, [friendly])))
-      .toThrow(InvalidGameStateError);
-    expect(() => serializeGameState(withStatLines(career, [friendly])))
-      .toThrow('seasonStatLines');
+    expect(() => serializeGameState(withStatLines(career, [friendly]))).toThrow(
+      InvalidGameStateError,
+    );
+    expect(() => serializeGameState(withStatLines(career, [friendly]))).toThrow(
+      'seasonStatLines',
+    );
   });
 });
 
 function baseCareer(): GameState {
-  return createCareer(createLaunchCareerSetup(1234, undefined, loadLaunchContent()));
+  return createCareer(
+    createLaunchCareerSetup(1234, undefined, loadLaunchContent()),
+  );
 }
 
 function statLine(state: GameState): PlayerSeasonStatLine {
-  const player = state.players.find(candidate => candidate.clubId === state.userClubId)!;
+  const player = state.players.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  )!;
   return {
     season: state.season,
     playerId: player.id,
@@ -59,6 +69,9 @@ function statLine(state: GameState): PlayerSeasonStatLine {
   };
 }
 
-function withStatLines(state: GameState, lines: PlayerSeasonStatLine[]): GameState {
+function withStatLines(
+  state: GameState,
+  lines: PlayerSeasonStatLine[],
+): GameState {
   return { ...state, seasonStatLines: lines };
 }

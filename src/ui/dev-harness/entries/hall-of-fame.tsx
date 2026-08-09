@@ -2,12 +2,18 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TRUE_ENDING_SEEN_FLAG } from '../../../application/endgame-celebration';
-import { hallOfFameViewModel, recordHallOfFame } from '../../../application/hall-of-fame';
+import {
+  hallOfFameViewModel,
+  recordHallOfFame,
+} from '../../../application/hall-of-fame';
 import { compareIds } from '../../../game/ordering';
 import type { CareerPlayer, GameState, SeasonRecap } from '../../../game/types';
 import type { HallOfFameViewModel } from '../../models';
 import { HallOfFameScreen } from '../../screens/HallOfFameScreen';
-import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls';
+import {
+  DevHarnessButton,
+  devHarnessControlStyles,
+} from '../DevHarnessControls';
 import { devHarnessCareerAtSeasonEnd, devHarnessCareerAtWeek } from '../career';
 import type { DevHarnessEntry } from '../registry';
 
@@ -39,7 +45,8 @@ export type HallOfFameCaseId = 'long-climb' | 'quick-climb' | 'locked';
  * so the only symptom is a blank bundle at runtime.
  */
 const CASE_NOTES: Readonly<Record<HallOfFameCaseId, string>> = Object.freeze({
-  'long-climb': 'Six seasons, five tiers, four titles and two Cups · the list scrolls',
+  'long-climb':
+    'Six seasons, five tiers, four titles and two Cups · the list scrolls',
   'quick-climb': 'One season, one tier, one title · the shortest legal record',
   locked: 'Climb unfinished · what the button says before the end',
 });
@@ -89,12 +96,31 @@ const QUICK_CLIMB_SEASONS: readonly FabricatedSeason[] = Object.freeze([
  * only their results are rewritten.
  */
 const SEASON_SHAPES = Object.freeze({
-  champion: { drawn: 3, lost: 2, goalsForPerGame: 2.4, goalsAgainstPerGame: 0.95 },
-  promoted: { drawn: 4, lost: 3, goalsForPerGame: 2.1, goalsAgainstPerGame: 1.2 },
-  settling: { drawn: 5, lost: 5, goalsForPerGame: 1.6, goalsAgainstPerGame: 1.45 },
+  champion: {
+    drawn: 3,
+    lost: 2,
+    goalsForPerGame: 2.4,
+    goalsAgainstPerGame: 0.95,
+  },
+  promoted: {
+    drawn: 4,
+    lost: 3,
+    goalsForPerGame: 2.1,
+    goalsAgainstPerGame: 1.2,
+  },
+  settling: {
+    drawn: 5,
+    lost: 5,
+    goalsForPerGame: 1.6,
+    goalsAgainstPerGame: 1.45,
+  },
 });
 
-export function HallOfFameReel({ caseId }: { readonly caseId: HallOfFameCaseId }) {
+export function HallOfFameReel({
+  caseId,
+}: {
+  readonly caseId: HallOfFameCaseId;
+}) {
   const [frame, setFrame] = useState<FrameId>('panel');
   const [backPresses, setBackPresses] = useState(0);
   const insets = useSafeAreaInsets();
@@ -106,13 +132,20 @@ export function HallOfFameReel({ caseId }: { readonly caseId: HallOfFameCaseId }
         <View style={frame === 'panel' ? styles.paperPanel : styles.paperFull}>
           <HallOfFameScreen
             viewModel={viewModel}
-            onBack={() => setBackPresses(presses => presses + 1)}
+            onBack={() => setBackPresses((presses) => presses + 1)}
           />
         </View>
       </View>
 
-      <View style={[styles.controls, { paddingBottom: Math.max(10, insets.bottom) }]}>
-        <Text style={styles.note}>{hallOfFameNote(viewModel, backPresses)}</Text>
+      <View
+        style={[
+          styles.controls,
+          { paddingBottom: Math.max(10, insets.bottom) },
+        ]}
+      >
+        <Text style={styles.note}>
+          {hallOfFameNote(viewModel, backPresses)}
+        </Text>
         <View style={devHarnessControlStyles.row}>
           <Text style={devHarnessControlStyles.rowLabel}>FRAME</Text>
           <DevHarnessButton
@@ -134,9 +167,13 @@ export function HallOfFameReel({ caseId }: { readonly caseId: HallOfFameCaseId }
 }
 
 /** What the reel reports: the sizes that decide whether the page holds up. */
-export function hallOfFameNote(viewModel: HallOfFameViewModel, backPresses: number): string {
+export function hallOfFameNote(
+  viewModel: HallOfFameViewModel,
+  backPresses: number,
+): string {
   const back = `back pressed ${backPresses}×`;
-  if (viewModel.status === 'locked') return `Locked · ${viewModel.lines.length} lines · ${back}`;
+  if (viewModel.status === 'locked')
+    return `Locked · ${viewModel.lines.length} lines · ${back}`;
   return [
     `${viewModel.stats.length} figures`,
     `${viewModel.honours.length} honours`,
@@ -161,7 +198,9 @@ export function hallOfFameCaseState(caseId: HallOfFameCaseId): GameState {
   });
 }
 
-export function hallOfFameCaseViewModel(caseId: HallOfFameCaseId): HallOfFameViewModel {
+export function hallOfFameCaseViewModel(
+  caseId: HallOfFameCaseId,
+): HallOfFameViewModel {
   return hallOfFameViewModel(hallOfFameCaseState(caseId));
 }
 
@@ -181,20 +220,24 @@ export function hallOfFameCaseViewModel(caseId: HallOfFameCaseId): HallOfFameVie
  */
 function withHonours(state: GameState, caseId: HallOfFameCaseId): GameState {
   const strikers = leadingStrikers(state);
-  const seasons = caseId === 'quick-climb' ? QUICK_CLIMB_SEASONS : LONG_CLIMB_SEASONS;
+  const seasons =
+    caseId === 'quick-climb' ? QUICK_CLIMB_SEASONS : LONG_CLIMB_SEASONS;
   const recaps = (state.seasonRecaps ?? []).map((recap): SeasonRecap => {
     // Two names sharing six seasons, so the reel shows a career total that had
     // to be summed rather than one season copied out.
     const scorer = strikers[recap.season % strikers.length];
-    const booted: SeasonRecap = scorer === undefined ? recap : {
-      ...recap,
-      topScorer: {
-        playerId: scorer.id,
-        playerName: scorer.name,
-        label: 'Golden Boot',
-        detail: `${9 + recap.season * 2} goals`,
-      },
-    };
+    const booted: SeasonRecap =
+      scorer === undefined
+        ? recap
+        : {
+            ...recap,
+            topScorer: {
+              playerId: scorer.id,
+              playerName: scorer.name,
+              label: 'Golden Boot',
+              detail: `${9 + recap.season * 2} goals`,
+            },
+          };
     const plan = seasons[recap.season - 1];
     // Defensive: a career run past the table is left exactly as it was played
     // rather than half-fabricated.
@@ -208,18 +251,22 @@ function withHonours(state: GameState, caseId: HallOfFameCaseId): GameState {
   });
   const cupSeasons = seasons
     .map((season, index) => (season.cupWon ? index + 1 : 0))
-    .filter(season => season > 0);
+    .filter((season) => season > 0);
   return {
     ...state,
     seasonRecaps: recaps,
-    ...(state.m2 === undefined ? {} : {
-      m2: {
-        ...state.m2,
-        nationalCups: state.m2.nationalCups.map(cup => (cupSeasons.includes(cup.season)
-          ? { ...cup, championClubId: state.userClubId }
-          : cup)),
-      },
-    }),
+    ...(state.m2 === undefined
+      ? {}
+      : {
+          m2: {
+            ...state.m2,
+            nationalCups: state.m2.nationalCups.map((cup) =>
+              cupSeasons.includes(cup.season)
+                ? { ...cup, championClubId: state.userClubId }
+                : cup,
+            ),
+          },
+        }),
   };
 }
 
@@ -237,12 +284,15 @@ function seasonShape(
   if (season === undefined) return 'settling';
   if (season.finalPosition === 1) return 'champion';
   const next = seasons[index + 1];
-  return next !== undefined && next.division < season.division ? 'promoted' : 'settling';
+  return next !== undefined && next.division < season.division
+    ? 'promoted'
+    : 'settling';
 }
 
 /** The results a season of that kind carried, over the games it played. */
 function seasonResults(played: number, shape: keyof typeof SEASON_SHAPES) {
-  const { drawn, lost, goalsForPerGame, goalsAgainstPerGame } = SEASON_SHAPES[shape];
+  const { drawn, lost, goalsForPerGame, goalsAgainstPerGame } =
+    SEASON_SHAPES[shape];
   // Clamped so the three always sum to the fixtures played, whatever the
   // schedule length is.
   const seasonDrawn = Math.min(drawn, played);
@@ -260,8 +310,13 @@ function seasonResults(played: number, shape: keyof typeof SEASON_SHAPES) {
 /** The two men a fabricated Golden Boot goes to, picked deterministically. */
 function leadingStrikers(state: GameState): CareerPlayer[] {
   return state.players
-    .filter(player => player.clubId === state.userClubId && player.role === 'FWD')
-    .sort((left, right) => right.attrs.sho - left.attrs.sho || compareIds(left.id, right.id))
+    .filter(
+      (player) => player.clubId === state.userClubId && player.role === 'FWD',
+    )
+    .sort(
+      (left, right) =>
+        right.attrs.sho - left.attrs.sho || compareIds(left.id, right.id),
+    )
     .slice(0, 2);
 }
 
@@ -272,10 +327,16 @@ export const hallOfFameEntry: DevHarnessEntry = Object.freeze({
   summary: 'The career record, kept from the summit and opened from Settings.',
   cases: Object.freeze([
     { id: 'long-climb', label: 'Long climb', note: CASE_NOTES['long-climb'] },
-    { id: 'quick-climb', label: 'Quick climb', note: CASE_NOTES['quick-climb'] },
+    {
+      id: 'quick-climb',
+      label: 'Quick climb',
+      note: CASE_NOTES['quick-climb'],
+    },
     { id: 'locked', label: 'Locked', note: CASE_NOTES.locked },
   ]),
-  render: (caseId: string) => <HallOfFameReel caseId={caseId as HallOfFameCaseId} />,
+  render: (caseId: string) => (
+    <HallOfFameReel caseId={caseId as HallOfFameCaseId} />
+  ),
 });
 
 /**

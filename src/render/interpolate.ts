@@ -9,7 +9,15 @@ import { snapDevicePixels } from './pixel-grid';
 
 // No 'ready' state exists (Task 14 amendment ledger item 5) — a hero's
 // zone window is its own status, distinct from an ordinary idle 'ok'.
-export type PlayerStatus = 'ok' | 'windup' | 'active' | 'out' | 'ignited' | 'zone' | 'sliding' | 'recovering';
+export type PlayerStatus =
+  | 'ok'
+  | 'windup'
+  | 'active'
+  | 'out'
+  | 'ignited'
+  | 'zone'
+  | 'sliding'
+  | 'recovering';
 
 export interface PitchFrame {
   players: Vec[];
@@ -88,7 +96,10 @@ export function snapSpriteScale(
 ): SnappedSpriteScale {
   const dpr = Math.max(1, devicePixelRatio);
   const floor = Math.max(1, Math.floor(dpr));
-  const devicePixels = Math.max(floor, Math.round(pitchScale * nominalDrawScale * dpr));
+  const devicePixels = Math.max(
+    floor,
+    Math.round(pitchScale * nominalDrawScale * dpr),
+  );
   return { devicePixels, drawScale: devicePixels / (pitchScale * dpr) };
 }
 
@@ -116,7 +127,9 @@ export function matchPitchLayout(
 ): MatchPitchLayout {
   const pitchWidth = Math.max(
     1,
-    Math.floor(Math.min(viewportWidth, availablePitchHeight * PITCH_W / PITCH_H)),
+    Math.floor(
+      Math.min(viewportWidth, (availablePitchHeight * PITCH_W) / PITCH_H),
+    ),
   );
   const scale = pitchWidth / PITCH_W;
   return {
@@ -163,7 +176,8 @@ export function matchShakeOffset(
   durationMs: number,
   amplitude: number,
 ): MatchShakeOffset {
-  if (elapsedMs < 0 || elapsedMs >= durationMs || durationMs <= 0) return { x: 0, y: 0 };
+  if (elapsedMs < 0 || elapsedMs >= durationMs || durationMs <= 0)
+    return { x: 0, y: 0 };
   const progress = elapsedMs / durationMs;
   const decay = (1 - progress) ** 2;
   return {
@@ -203,10 +217,19 @@ export function matchCameraOffset(
   const halfWidth = viewWidth / (2 * steps);
   const halfHeight = viewHeight / (2 * steps);
   const centerX = Math.min(Math.max(focusX, halfWidth), viewWidth - halfWidth);
-  const centerY = Math.min(Math.max(focusY, halfHeight), viewHeight - halfHeight);
+  const centerY = Math.min(
+    Math.max(focusY, halfHeight),
+    viewHeight - halfHeight,
+  );
   return {
-    translateX: snapDevicePixels(viewWidth / 2 - steps * centerX + shake.x, devicePixelRatio),
-    translateY: snapDevicePixels(viewHeight / 2 - steps * centerY + shake.y, devicePixelRatio),
+    translateX: snapDevicePixels(
+      viewWidth / 2 - steps * centerX + shake.x,
+      devicePixelRatio,
+    ),
+    translateY: snapDevicePixels(
+      viewHeight / 2 - steps * centerY + shake.y,
+      devicePixelRatio,
+    ),
     zoom: steps,
   };
 }
@@ -217,12 +240,17 @@ export function matchCameraOffset(
  * accumulated visual travel). It derives `moved` and advances the run-cycle
  * distance without changing sim state. Omit it for the first frame at mount.
  */
-export function snapshotFrame(state: MatchState, previous?: Pick<PitchFrame, 'players' | 'travel'>): PitchFrame {
-  const entities = Array.from({ length: RENDER_PLAYER_COUNT }, (_, index) => playerAt(state, index));
-  const positions = entities.map(player => player === undefined
-    ? { x: -1000, y: -1000 }
-    : { ...player.pos });
-  const visible = entities.map(player => player !== undefined);
+export function snapshotFrame(
+  state: MatchState,
+  previous?: Pick<PitchFrame, 'players' | 'travel'>,
+): PitchFrame {
+  const entities = Array.from({ length: RENDER_PLAYER_COUNT }, (_, index) =>
+    playerAt(state, index),
+  );
+  const positions = entities.map((player) =>
+    player === undefined ? { x: -1000, y: -1000 } : { ...player.pos },
+  );
+  const visible = entities.map((player) => player !== undefined);
   return {
     players: positions,
     // Copy, don't alias: a held ball's ballPos IS the carrier's live pos
@@ -232,23 +260,31 @@ export function snapshotFrame(state: MatchState, previous?: Pick<PitchFrame, 'pl
     carrier: state.ball.kind === 'held' ? state.ball.by : -1,
     statuses: entities.map((p): PlayerStatus => {
       if (p === undefined) return 'out';
-      if (p.outUntilTick > state.tick) return p.outReason === 'ignited' ? 'ignited' : 'out';
+      if (p.outUntilTick > state.tick)
+        return p.outReason === 'ignited' ? 'ignited' : 'out';
       if (p.slideTackle) return 'sliding';
       if (p.tackleRecoveryUntil > state.tick) return 'recovering';
-      if (p.powerState.kind === 'zone' || p.powerState.kind === 'armed') return 'zone';
+      if (p.powerState.kind === 'zone' || p.powerState.kind === 'armed')
+        return 'zone';
       if (p.powerState.kind === 'winding') return 'windup';
       if (p.powerState.kind === 'active') return 'active';
       return 'ok';
     }),
     zoneFraction: entities.map((p) => {
       if (p === undefined) return 0;
-      if (p.powerState.kind === 'zone') return p.powerState.remainingTicks / ZONE_WINDOW_TICKS;
-      if (p.powerState.kind === 'armed') return p.powerState.remainingTicks / ARM_WINDOW_TICKS;
+      if (p.powerState.kind === 'zone')
+        return p.powerState.remainingTicks / ZONE_WINDOW_TICKS;
+      if (p.powerState.kind === 'armed')
+        return p.powerState.remainingTicks / ARM_WINDOW_TICKS;
       return 0;
     }),
-    moved: positions.map((p, i) => previous !== undefined
-      && visible[i] && previous.players[i].x >= 0
-      && (p.x !== previous.players[i].x || p.y !== previous.players[i].y)),
+    moved: positions.map(
+      (p, i) =>
+        previous !== undefined &&
+        visible[i] &&
+        previous.players[i].x >= 0 &&
+        (p.x !== previous.players[i].x || p.y !== previous.players[i].y),
+    ),
     travel: positions.map((p, i) => {
       if (!previous || !visible[i] || previous.players[i].x < 0) return 0;
       const dx = p.x - previous.players[i].x;
@@ -265,7 +301,11 @@ export function snapshotFrame(state: MatchState, previous?: Pick<PitchFrame, 'pl
  * snapshots. Discrete per-tick state (statuses, carrier, zoneFraction, moved,
  * ballShooting) snaps to `next` — there is no meaningful "half status".
  */
-export function lerpFrame(prev: PitchFrame, next: PitchFrame, t: number): PitchFrame {
+export function lerpFrame(
+  prev: PitchFrame,
+  next: PitchFrame,
+  t: number,
+): PitchFrame {
   return {
     players: prev.players.map((p, i) => lerpVec(p, next.players[i], t)),
     ball: lerpVec(prev.ball, next.ball, t),
@@ -274,7 +314,9 @@ export function lerpFrame(prev: PitchFrame, next: PitchFrame, t: number): PitchF
     statuses: next.statuses,
     zoneFraction: next.zoneFraction,
     moved: next.moved,
-    travel: prev.travel.map((distance, i) => distance + (next.travel[i] - distance) * t),
+    travel: prev.travel.map(
+      (distance, i) => distance + (next.travel[i] - distance) * t,
+    ),
     visible: next.visible,
     ballShooting: next.ballShooting,
   };

@@ -13,7 +13,11 @@ type MutableRecord = Record<string, unknown>;
 
 describe('stored game state migrations', () => {
   it('passes a save already at the current version through unchanged', () => {
-    const save = { schemaVersion: GAME_SCHEMA_VERSION, season: 3, userClubId: 'c1' };
+    const save = {
+      schemaVersion: GAME_SCHEMA_VERSION,
+      season: 3,
+      userClubId: 'c1',
+    };
 
     expect(migrateStoredGameState(save)).toEqual(save);
   });
@@ -21,7 +25,9 @@ describe('stored game state migrations', () => {
   it('refuses a save written by a newer build rather than guessing', () => {
     const save = { schemaVersion: GAME_SCHEMA_VERSION + 1 };
 
-    expect(() => migrateStoredGameState(save)).toThrow(UnsupportedGameSchemaError);
+    expect(() => migrateStoredGameState(save)).toThrow(
+      UnsupportedGameSchemaError,
+    );
   });
 
   it('walks a representative schema-2 career through 2 -> 3 -> 4', () => {
@@ -33,12 +39,14 @@ describe('stored game state migrations', () => {
     const migrated = migrateStoredGameState(legacy) as MutableRecord;
 
     expect(migrated.schemaVersion).toBe(GAME_SCHEMA_VERSION);
-    expect(migrated.clubBusiness).toEqual(expect.objectContaining({
-      supporters: { consecutiveLosses: 0 },
-      pendingUserMatchImpacts: [],
-      sponsorship: { activeContracts: [], offers: [], portfolioSeason: 1 },
-      buzz: { value: 0 },
-    }));
+    expect(migrated.clubBusiness).toEqual(
+      expect.objectContaining({
+        supporters: { consecutiveLosses: 0 },
+        pendingUserMatchImpacts: [],
+        sponsorship: { activeContracts: [], offers: [], portfolioSeason: 1 },
+        buzz: { value: 0 },
+      }),
+    );
   });
 
   it('round-trips a representative schema-3 career through the final schema', () => {
@@ -48,7 +56,9 @@ describe('stored game state migrations', () => {
     expect(restored.schemaVersion).toBe(GAME_SCHEMA_VERSION);
     expect(restored.clubBusiness.pendingUserMatchImpacts).toEqual([]);
     expect(restored.clubBusiness.supporters).toEqual({ consecutiveLosses: 0 });
-    expect(parseStoredGameState(serializeGameState(restored))).toEqual(restored);
+    expect(parseStoredGameState(serializeGameState(restored))).toEqual(
+      restored,
+    );
   });
 
   it('migrates schema-4 assistant wages, passive D5 sponsor, and paid Stadium Stand bases once', () => {
@@ -57,7 +67,7 @@ describe('stored game state migrations', () => {
     legacy.schemaVersion = 4;
     legacy.week = 5;
     const clubs = legacy.clubs as MutableRecord[];
-    const userClub = clubs.find(club => club.id === legacy.userClubId)!;
+    const userClub = clubs.find((club) => club.id === legacy.userClubId)!;
     userClub.cash = 1_000;
     userClub.sponsorMonthlyFee = 2_000;
     const market = legacy.market as MutableRecord;
@@ -66,15 +76,17 @@ describe('stored game state migrations', () => {
     market.assistantCoach = { ...candidates[1], weeklyWage: 500 };
     market.coachCandidates = candidates.slice(2);
     const ledgersBefore = JSON.parse(JSON.stringify(legacy.ledgers));
-    legacy.cashTransactions = [{
-      id: 'cash-transaction-economy-rebalance-v5-1',
-      season: 1,
-      week: 1,
-      kind: 'facility-build',
-      label: 'Existing history',
-      amount: -1,
-      balanceAfter: 1_000,
-    }];
+    legacy.cashTransactions = [
+      {
+        id: 'cash-transaction-economy-rebalance-v5-1',
+        season: 1,
+        week: 1,
+        kind: 'facility-build',
+        label: 'Existing history',
+        amount: -1,
+        balanceAfter: 1_000,
+      },
+    ];
     legacy.facilities = {
       trainingGroundBuilt: false,
       grid: {
@@ -82,23 +94,64 @@ describe('stored game state migrations', () => {
         height: 6,
         nextBuildingId: 6,
         buildings: [
-          { id: 'stand-build', type: 'stadium-stand', level: 1, capitalInvested: 15_000, x: 0, y: 0 },
-          { id: 'stand-upgraded', type: 'stadium-stand', level: 2, capitalInvested: 34_000, x: 2, y: 0 },
-          { id: 'stand-seeded', type: 'stadium-stand', level: 1, capitalInvested: 0, x: 4, y: 0, seeded: true },
-          { id: 'stand-custom-low', type: 'stadium-stand', level: 1, capitalInvested: 12_000, x: 0, y: 2 },
-          { id: 'stand-custom-high', type: 'stadium-stand', level: 1, capitalInvested: 20_000, x: 2, y: 2 },
+          {
+            id: 'stand-build',
+            type: 'stadium-stand',
+            level: 1,
+            capitalInvested: 15_000,
+            x: 0,
+            y: 0,
+          },
+          {
+            id: 'stand-upgraded',
+            type: 'stadium-stand',
+            level: 2,
+            capitalInvested: 34_000,
+            x: 2,
+            y: 0,
+          },
+          {
+            id: 'stand-seeded',
+            type: 'stadium-stand',
+            level: 1,
+            capitalInvested: 0,
+            x: 4,
+            y: 0,
+            seeded: true,
+          },
+          {
+            id: 'stand-custom-low',
+            type: 'stadium-stand',
+            level: 1,
+            capitalInvested: 12_000,
+            x: 0,
+            y: 2,
+          },
+          {
+            id: 'stand-custom-high',
+            type: 'stadium-stand',
+            level: 1,
+            capitalInvested: 20_000,
+            x: 2,
+            y: 2,
+          },
         ],
         discoveredAdjacencies: [],
         construction: {
-          kind: 'BUILD', buildingId: 'stand-build', type: 'stadium-stand',
-          targetLevel: 1, weeksRemaining: 2, totalWeeks: 3,
+          kind: 'BUILD',
+          buildingId: 'stand-build',
+          type: 'stadium-stand',
+          targetLevel: 1,
+          weeksRemaining: 2,
+          totalWeeks: 3,
         },
       },
     };
 
     const migrated = migrateStoredGameState(legacy) as MutableRecord;
-    const migratedClub = (migrated.clubs as MutableRecord[])
-      .find(club => club.id === migrated.userClubId)!;
+    const migratedClub = (migrated.clubs as MutableRecord[]).find(
+      (club) => club.id === migrated.userClubId,
+    )!;
     const migratedMarket = migrated.market as MutableRecord;
     const assistant = migratedMarket.assistantCoach as MutableRecord;
     const facilities = migrated.facilities as MutableRecord;
@@ -108,10 +161,16 @@ describe('stored game state migrations', () => {
 
     expect(migrated.schemaVersion).toBe(5);
     expect(assistant.weeklyWage).toBe(250);
-    expect((migratedMarket.headCoach as MutableRecord).weeklyWage)
-      .toBe((market.headCoach as MutableRecord).weeklyWage);
-    expect(migratedClub).toMatchObject({ cash: 11_000, sponsorMonthlyFee: 3_000 });
-    expect(buildings.map(building => [building.id, building.capitalInvested])).toEqual([
+    expect((migratedMarket.headCoach as MutableRecord).weeklyWage).toBe(
+      (market.headCoach as MutableRecord).weeklyWage,
+    );
+    expect(migratedClub).toMatchObject({
+      cash: 11_000,
+      sponsorMonthlyFee: 3_000,
+    });
+    expect(
+      buildings.map((building) => [building.id, building.capitalInvested]),
+    ).toEqual([
       ['stand-build', 10_000],
       ['stand-upgraded', 29_000],
       ['stand-seeded', 0],
@@ -131,28 +190,40 @@ describe('stored game state migrations', () => {
   });
 
   it('preserves custom and managed sponsor values during schema-4 migration', () => {
-    const custom = JSON.parse(JSON.stringify(
-      createCareer(createLaunchCareerSetup(20260807)),
-    )) as MutableRecord;
+    const custom = JSON.parse(
+      JSON.stringify(createCareer(createLaunchCareerSetup(20260807))),
+    ) as MutableRecord;
     custom.schemaVersion = 4;
-    const customClub = (custom.clubs as MutableRecord[])
-      .find(club => club.id === custom.userClubId)!;
+    const customClub = (custom.clubs as MutableRecord[]).find(
+      (club) => club.id === custom.userClubId,
+    )!;
     customClub.sponsorMonthlyFee = 2_750;
     const migratedCustom = migrateStoredGameState(custom) as MutableRecord;
-    expect(((migratedCustom.clubs as MutableRecord[])
-      .find(club => club.id === migratedCustom.userClubId)!).sponsorMonthlyFee).toBe(2_750);
+    expect(
+      (migratedCustom.clubs as MutableRecord[]).find(
+        (club) => club.id === migratedCustom.userClubId,
+      )!.sponsorMonthlyFee,
+    ).toBe(2_750);
 
     const managed = JSON.parse(JSON.stringify(custom)) as MutableRecord;
     managed.schemaVersion = 4;
-    const managedClub = (managed.clubs as MutableRecord[])
-      .find(club => club.id === managed.userClubId)!;
+    const managedClub = (managed.clubs as MutableRecord[]).find(
+      (club) => club.id === managed.userClubId,
+    )!;
     managedClub.sponsorMonthlyFee = 2_000;
     const business = managed.clubBusiness as MutableRecord;
     const sponsorship = business.sponsorship as MutableRecord;
-    sponsorship.activeContracts = createProvisionalSponsorPortfolio(2_000, 1, 1);
+    sponsorship.activeContracts = createProvisionalSponsorPortfolio(
+      2_000,
+      1,
+      1,
+    );
     const migratedManaged = migrateStoredGameState(managed) as MutableRecord;
-    expect(((migratedManaged.clubs as MutableRecord[])
-      .find(club => club.id === migratedManaged.userClubId)!).sponsorMonthlyFee).toBe(2_000);
+    expect(
+      (migratedManaged.clubs as MutableRecord[]).find(
+        (club) => club.id === migratedManaged.userClubId,
+      )!.sponsorMonthlyFee,
+    ).toBe(2_000);
   });
 
   it.each([
@@ -167,7 +238,7 @@ describe('stored game state migrations', () => {
       const m2 = legacy.m2 as MutableRecord;
       m2.highestDivisionReached = highestDivision;
       const clubs = legacy.clubs as MutableRecord[];
-      const userClub = clubs.find(club => club.id === legacy.userClubId)!;
+      const userClub = clubs.find((club) => club.id === legacy.userClubId)!;
       userClub.sponsorMonthlyFee = 4_123;
 
       const migrated = migrateStoredGameState(legacy) as MutableRecord;
@@ -176,71 +247,120 @@ describe('stored game state migrations', () => {
       const contracts = sponsorship.activeContracts as MutableRecord[];
 
       expect(contracts).toHaveLength(expectedSlots);
-      expect(contracts.reduce(
-        (sum, contract) => sum + (contract.nominalMonthlyFee as number),
-        0,
-      )).toBe(expectedSlots === 0 ? 0 : 4_123);
+      expect(
+        contracts.reduce(
+          (sum, contract) => sum + (contract.nominalMonthlyFee as number),
+          0,
+        ),
+      ).toBe(expectedSlots === 0 ? 0 : 4_123);
       expect(userClub.sponsorMonthlyFee).toBe(4_123);
       expect(migrated.sponsorRules).toBeUndefined();
-      expect(contracts.every(contract => (
-        contract.provisional === true
-        && contract.objective === undefined
-        && contract.profile === undefined
-      ))).toBe(true);
+      expect(
+        contracts.every(
+          (contract) =>
+            contract.provisional === true &&
+            contract.objective === undefined &&
+            contract.profile === undefined,
+        ),
+      ).toBe(true);
     },
   );
 
   it.each([
     {
-      label: 'Season 2 Week 30', season: 2, week: 30, phase: 'season-end',
-      ledgerWeeks: [30], expected: { value: 0 },
+      label: 'Season 2 Week 30',
+      season: 2,
+      week: 30,
+      phase: 'season-end',
+      ledgerWeeks: [30],
+      expected: { value: 0 },
     },
     {
-      label: 'Week 2', season: 3, week: 2, phase: 'manage',
-      ledgerWeeks: [], expected: { value: 0, lastSettledSeason: 2, lastSettledHalf: 2 },
+      label: 'Week 2',
+      season: 3,
+      week: 2,
+      phase: 'manage',
+      ledgerWeeks: [],
+      expected: { value: 0, lastSettledSeason: 2, lastSettledHalf: 2 },
     },
     {
-      label: 'Week 4 before settlement', season: 3, week: 4, phase: 'matchday',
-      ledgerWeeks: [], expected: { value: 0, lastSettledSeason: 2, lastSettledHalf: 2 },
+      label: 'Week 4 before settlement',
+      season: 3,
+      week: 4,
+      phase: 'matchday',
+      ledgerWeeks: [],
+      expected: { value: 0, lastSettledSeason: 2, lastSettledHalf: 2 },
     },
     {
-      label: 'Week 5', season: 3, week: 5, phase: 'manage',
-      ledgerWeeks: [4], expected: { value: 0, lastSettledSeason: 2, lastSettledHalf: 2 },
+      label: 'Week 5',
+      season: 3,
+      week: 5,
+      phase: 'manage',
+      ledgerWeeks: [4],
+      expected: { value: 0, lastSettledSeason: 2, lastSettledHalf: 2 },
     },
     {
-      label: 'Week 15 before settlement', season: 3, week: 15, phase: 'matchday',
-      ledgerWeeks: [], expected: { value: 0, lastSettledSeason: 2, lastSettledHalf: 2 },
+      label: 'Week 15 before settlement',
+      season: 3,
+      week: 15,
+      phase: 'matchday',
+      ledgerWeeks: [],
+      expected: { value: 0, lastSettledSeason: 2, lastSettledHalf: 2 },
     },
     {
-      label: 'Week 15 after settlement despite stale phase', season: 3, week: 15, phase: 'matchday',
-      ledgerWeeks: [15], expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 1 },
+      label: 'Week 15 after settlement despite stale phase',
+      season: 3,
+      week: 15,
+      phase: 'matchday',
+      ledgerWeeks: [15],
+      expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 1 },
     },
     {
-      label: 'Week 16', season: 3, week: 16, phase: 'manage',
-      ledgerWeeks: [15], expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 1 },
+      label: 'Week 16',
+      season: 3,
+      week: 16,
+      phase: 'manage',
+      ledgerWeeks: [15],
+      expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 1 },
     },
     {
-      label: 'Week 30 before settlement', season: 3, week: 30, phase: 'matchday',
-      ledgerWeeks: [15], expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 1 },
+      label: 'Week 30 before settlement',
+      season: 3,
+      week: 30,
+      phase: 'matchday',
+      ledgerWeeks: [15],
+      expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 1 },
     },
     {
-      label: 'Week 30 after ledger despite stale phase', season: 3, week: 30, phase: 'matchday',
-      ledgerWeeks: [15, 30], expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 2 },
+      label: 'Week 30 after ledger despite stale phase',
+      season: 3,
+      week: 30,
+      phase: 'matchday',
+      ledgerWeeks: [15, 30],
+      expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 2 },
     },
     {
-      label: 'Week 30 season end', season: 3, week: 30, phase: 'season-end',
-      ledgerWeeks: [15], expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 2 },
+      label: 'Week 30 season end',
+      season: 3,
+      week: 30,
+      phase: 'season-end',
+      ledgerWeeks: [15],
+      expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 2 },
     },
     {
-      label: 'next-season Week 1', season: 4, week: 1, phase: 'manage',
-      ledgerWeeks: [], expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 2 },
+      label: 'next-season Week 1',
+      season: 4,
+      week: 1,
+      phase: 'manage',
+      ledgerWeeks: [],
+      expected: { value: 0, lastSettledSeason: 3, lastSettledHalf: 2 },
     },
-  ] as const)('maps the Buzz boundary without cash: $label', testCase => {
+  ] as const)('maps the Buzz boundary without cash: $label', (testCase) => {
     const legacy = schema3Career();
     legacy.season = testCase.season;
     legacy.week = testCase.week;
     legacy.phase = testCase.phase;
-    legacy.ledgers = testCase.ledgerWeeks.map(week => ({
+    legacy.ledgers = testCase.ledgerWeeks.map((week) => ({
       season: testCase.season,
       week,
       lines: [],
@@ -258,51 +378,86 @@ describe('stored game state migrations', () => {
   });
 
   it.each([
-    ['clubBusiness', (legacy: MutableRecord) => { legacy.clubBusiness = {}; }],
-    ['sponsorRules', (legacy: MutableRecord) => { legacy.sponsorRules = {}; }],
-    ['capitalInvested', (legacy: MutableRecord) => {
-      const facilities = legacy.facilities as MutableRecord;
-      const grid = facilities.grid as MutableRecord;
-      grid.buildings = [{
-        id: 'facility-1', type: 'gym', level: 1, capitalInvested: 7_000, x: 0, y: 0,
-      }];
-    }],
-  ] as const)('refuses contaminated schema-3 %s data', (_label, contaminate) => {
-    const legacy = schema3Career();
-    contaminate(legacy);
+    [
+      'clubBusiness',
+      (legacy: MutableRecord) => {
+        legacy.clubBusiness = {};
+      },
+    ],
+    [
+      'sponsorRules',
+      (legacy: MutableRecord) => {
+        legacy.sponsorRules = {};
+      },
+    ],
+    [
+      'capitalInvested',
+      (legacy: MutableRecord) => {
+        const facilities = legacy.facilities as MutableRecord;
+        const grid = facilities.grid as MutableRecord;
+        grid.buildings = [
+          {
+            id: 'facility-1',
+            type: 'gym',
+            level: 1,
+            capitalInvested: 7_000,
+            x: 0,
+            y: 0,
+          },
+        ];
+      },
+    ],
+  ] as const)(
+    'refuses contaminated schema-3 %s data',
+    (_label, contaminate) => {
+      const legacy = schema3Career();
+      contaminate(legacy);
 
-    expect(() => migrateStoredGameState(legacy)).toThrow(CorruptCareerSaveError);
-    expect(() => migrateStoredGameState(legacy)).toThrow(/cannot be remigrated/);
-  });
+      expect(() => migrateStoredGameState(legacy)).toThrow(
+        CorruptCareerSaveError,
+      );
+      expect(() => migrateStoredGameState(legacy)).toThrow(
+        /cannot be remigrated/,
+      );
+    },
+  );
 
   it('cannot serialize schema-4 fields under a schema-3 version stamp', () => {
     const current = createCareer(createLaunchCareerSetup(20260809));
     const wronglyStamped = { ...current, schemaVersion: 3 };
 
-    expect(() => serializeGameState(wronglyStamped, { validate: false }))
-      .toThrow(UnsupportedGameSchemaError);
+    expect(() =>
+      serializeGameState(wronglyStamped, { validate: false }),
+    ).toThrow(UnsupportedGameSchemaError);
   });
 
   it('refuses an older save when no rung covers its version', () => {
-    expect(() => migrateStoredGameState({ schemaVersion: 0 })).toThrow(UnsupportedGameSchemaError);
+    expect(() => migrateStoredGameState({ schemaVersion: 0 })).toThrow(
+      UnsupportedGameSchemaError,
+    );
   });
 
   it('reports a missing or non-integer schemaVersion as a corrupt save', () => {
     expect(() => migrateStoredGameState({})).toThrow(CorruptCareerSaveError);
-    expect(() => migrateStoredGameState({ schemaVersion: 1.5 })).toThrow(CorruptCareerSaveError);
-    expect(() => migrateStoredGameState('not an object')).toThrow(CorruptCareerSaveError);
+    expect(() => migrateStoredGameState({ schemaVersion: 1.5 })).toThrow(
+      CorruptCareerSaveError,
+    );
+    expect(() => migrateStoredGameState('not an object')).toThrow(
+      CorruptCareerSaveError,
+    );
   });
 
   it('names both versions in the error so a downgrade is diagnosable', () => {
-    expect(() => migrateStoredGameState({ schemaVersion: 99 }))
-      .toThrow(`game state schema 99 is unsupported; this build supports schema ${GAME_SCHEMA_VERSION}`);
+    expect(() => migrateStoredGameState({ schemaVersion: 99 })).toThrow(
+      `game state schema 99 is unsupported; this build supports schema ${GAME_SCHEMA_VERSION}`,
+    );
   });
 });
 
 function schema3Career(): MutableRecord {
-  const legacy = JSON.parse(JSON.stringify(
-    createCareer(createLaunchCareerSetup(20260805)),
-  )) as MutableRecord;
+  const legacy = JSON.parse(
+    JSON.stringify(createCareer(createLaunchCareerSetup(20260805))),
+  ) as MutableRecord;
   legacy.schemaVersion = 3;
   delete legacy.clubBusiness;
   delete legacy.sponsorRules;

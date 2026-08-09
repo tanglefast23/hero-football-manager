@@ -64,7 +64,10 @@ const STAT_STEP = 17;
 const MATCH_CONTROL = 26;
 
 const totalPlays = () =>
-  mockPlayers.reduce((count, player) => count + player.play.mock.calls.length, 0);
+  mockPlayers.reduce(
+    (count, player) => count + player.play.mock.calls.length,
+    0,
+  );
 
 let clock = 0;
 

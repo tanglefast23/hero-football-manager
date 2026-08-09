@@ -1,15 +1,27 @@
-import { DEFAULT_APP_PREFERENCES, type AppPreferences, type PreferencesRepository } from '../../persistence';
+import {
+  DEFAULT_APP_PREFERENCES,
+  type AppPreferences,
+  type PreferencesRepository,
+} from '../../persistence';
 import { createCareer } from '../../game';
 import { TRUE_ENDING_SEEN_FLAG } from '../endgame-celebration';
 import { createLaunchCareerSetup } from '../launch';
-import { loadPreferencesFailSoft, markPowerCutInSeen, rememberCompletedClimb } from '../preferences';
+import {
+  loadPreferencesFailSoft,
+  markPowerCutInSeen,
+  rememberCompletedClimb,
+} from '../preferences';
 
 describe('fail-soft app preferences', () => {
   it('resets damaged preferences without blocking the career boot', async () => {
     let saved: AppPreferences | undefined;
     const repository: PreferencesRepository = {
-      async load() { throw new Error('corrupt JSON'); },
-      async save(preferences) { saved = preferences; },
+      async load() {
+        throw new Error('corrupt JSON');
+      },
+      async save(preferences) {
+        saved = preferences;
+      },
     };
 
     const result = await loadPreferencesFailSoft(repository);
@@ -18,6 +30,7 @@ describe('fail-soft app preferences', () => {
       formationPresets: ['4-4-2', '3-4-3', '5-3-2'],
       autoPowers: false,
       masterVolume: 1,
+      performanceLimit: null,
       reduceMotion: false,
       hudSide: 'left',
       hapticsEnabled: true,
@@ -41,8 +54,12 @@ describe('fail-soft app preferences', () => {
 
   it('uses session defaults when even the repair write fails', async () => {
     const repository: PreferencesRepository = {
-      async load() { throw new Error('corrupt JSON'); },
-      async save() { throw new Error('database locked'); },
+      async load() {
+        throw new Error('corrupt JSON');
+      },
+      async save() {
+        throw new Error('database locked');
+      },
     };
 
     const result = await loadPreferencesFailSoft(repository);
@@ -66,9 +83,13 @@ describe('fail-soft app preferences', () => {
       eventFlags: [...career.eventFlags, TRUE_ENDING_SEEN_FLAG],
     };
 
-    expect(rememberCompletedClimb(DEFAULT_APP_PREFERENCES, career))
-      .toBe(DEFAULT_APP_PREFERENCES);
-    const remembered = rememberCompletedClimb(DEFAULT_APP_PREFERENCES, finished);
+    expect(rememberCompletedClimb(DEFAULT_APP_PREFERENCES, career)).toBe(
+      DEFAULT_APP_PREFERENCES,
+    );
+    const remembered = rememberCompletedClimb(
+      DEFAULT_APP_PREFERENCES,
+      finished,
+    );
     expect(remembered.climbCompleted).toBe(true);
     expect(rememberCompletedClimb(remembered, finished)).toBe(remembered);
   });

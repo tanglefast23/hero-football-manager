@@ -91,7 +91,8 @@ export interface M2CupRoundHistoryViewModel {
    * painted every knockout chip the same colour in all five other languages.
    * Tone switches on this; `userOutcome` is now free to be copy.
    */
-  readonly userOutcomeKind?: 'bye' | 'waiting' | 'advanced' | 'champion' | 'eliminated';
+  readonly userOutcomeKind?:
+    'bye' | 'waiting' | 'advanced' | 'champion' | 'eliminated';
 }
 
 export interface M2CupByeViewModel {

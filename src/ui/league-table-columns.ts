@@ -119,14 +119,23 @@ export function leagueHeaderWidthDemand(label: string): number {
   if (advanceEm === undefined) {
     throw new Error(`No measured Silkscreen advance for the header "${label}"`);
   }
-  return advanceEm * LEAGUE_HEADER_FONT_SIZE * HEADER_MAX_FONT_MULTIPLIER + COLUMN_MIN_GUTTER;
+  return (
+    advanceEm * LEAGUE_HEADER_FONT_SIZE * HEADER_MAX_FONT_MULTIPLIER +
+    COLUMN_MIN_GUTTER
+  );
 }
 
 /** Width a value needs at the reader's largest text size, plus the gutter. */
-export function leagueCellWidthDemand(value: string, column: LeagueColumn): number {
+export function leagueCellWidthDemand(
+  value: string,
+  column: LeagueColumn,
+): number {
   const advanceEm = LEAGUE_CELL_ADVANCE_EM[value];
   if (advanceEm === undefined) {
     throw new Error(`No measured Silkscreen advance for the value "${value}"`);
   }
-  return advanceEm * LEAGUE_CELL_FONT_SIZE[column] * CELL_MAX_FONT_MULTIPLIER + COLUMN_MIN_GUTTER;
+  return (
+    advanceEm * LEAGUE_CELL_FONT_SIZE[column] * CELL_MAX_FONT_MULTIPLIER +
+    COLUMN_MIN_GUTTER
+  );
 }

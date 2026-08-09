@@ -2,7 +2,10 @@ import * as simMatch from '../sim/match';
 import type { FormationId } from '../sim/tactics';
 import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
 import { contributionsFrom } from './match-contributions';
-import { controlledMatchOptions, queueControlledAutoSubstitution } from './match-policy';
+import {
+  controlledMatchOptions,
+  queueControlledAutoSubstitution,
+} from './match-policy';
 import type { FixtureResult, LeagueFixture } from './types';
 
 const UINT32_MAX = 4294967295;
@@ -88,11 +91,13 @@ export function quickMatchForFixture(
   const match = createFixtureMatch(fixture, teamsByClubId, policy);
   while (match.phase !== 'fulltime') {
     simMatch.tick(match);
-    if (policy !== undefined) queueControlledAutoSubstitution(match, policy.autoSubs);
+    if (policy !== undefined)
+      queueControlledAutoSubstitution(match, policy.autoSubs);
   }
-  const production = policy === undefined
-    ? undefined
-    : productionResultFromMatch(fixture, match, policy.userClubId);
+  const production =
+    policy === undefined
+      ? undefined
+      : productionResultFromMatch(fixture, match, policy.userClubId);
   return {
     result: production?.fixtureResult ?? fixtureResultFromMatch(fixture, match),
     replay: simMatch.envelopeFrom(match),
@@ -144,7 +149,11 @@ export function createFixtureResolver(
       return match.phase === 'fulltime';
     },
     advance(maxTicks: number): void {
-      for (let step = 0; step < maxTicks && match.phase !== 'fulltime'; step += 1) {
+      for (
+        let step = 0;
+        step < maxTicks && match.phase !== 'fulltime';
+        step += 1
+      ) {
         simMatch.tick(match);
       }
     },
@@ -171,7 +180,8 @@ export function createFixtureResolver(
 export function goalsFrom(match: MatchState): MatchGoal[] {
   const names = new Map<string, string>();
   for (const team of match.teams) {
-    for (const def of [...team.players, ...(team.bench ?? [])]) names.set(def.id, def.name);
+    for (const def of [...team.players, ...(team.bench ?? [])])
+      names.set(def.id, def.name);
   }
   const slotOwners = new Map<number, string>();
   match.players.forEach((player, slot) => {
@@ -185,18 +195,26 @@ export function goalsFrom(match: MatchState): MatchGoal[] {
     if (event.kind === 'GOAL') {
       const playerId = slotOwners.get(event.by);
       if (playerId !== undefined) {
-        goals.push({ playerId, name: names.get(playerId) ?? playerId, tick: event.t });
+        goals.push({
+          playerId,
+          name: names.get(playerId) ?? playerId,
+          tick: event.t,
+        });
       }
       continue;
     }
     // Rewind: before this swap the shirt belonged to the player going off.
-    if (event.kind === 'SUBSTITUTION') slotOwners.set(event.player, event.outPlayerId);
+    if (event.kind === 'SUBSTITUTION')
+      slotOwners.set(event.player, event.outPlayerId);
   }
   return goals.reverse();
 }
 
-function fixtureResultFromMatch(fixture: LeagueFixture, match: MatchState): FixtureResult {
-  const scorerPlayerIds = goalsFrom(match).map(goal => goal.playerId);
+function fixtureResultFromMatch(
+  fixture: LeagueFixture,
+  match: MatchState,
+): FixtureResult {
+  const scorerPlayerIds = goalsFrom(match).map((goal) => goal.playerId);
   const contributions = contributionsFrom(match);
   return {
     fixtureId: fixture.id,
@@ -225,16 +243,22 @@ export function productionResultFromMatch(
   const goals = goalsFrom(match);
   const fixtureResult = fixtureResultFromMatch(fixture, match);
   const userTeam = userTeamForFixture(fixture, userClubId);
-  const slotOwners = match.teams.flatMap(team => team.players.map(player => player.id));
-  const rosterByTeam = match.teams.map(team => new Set([
-    ...team.players.map(player => player.id),
-    ...(team.bench ?? []).map(player => player.id),
-  ]));
-  const playerDefs = new Map(match.teams.flatMap(team => [
-    ...team.players,
-    ...(team.bench ?? []),
-  ]).map(player => [player.id, player] as const));
-  const participants = match.teams[userTeam].players.map(player => player.id);
+  const slotOwners = match.teams.flatMap((team) =>
+    team.players.map((player) => player.id),
+  );
+  const rosterByTeam = match.teams.map(
+    (team) =>
+      new Set([
+        ...team.players.map((player) => player.id),
+        ...(team.bench ?? []).map((player) => player.id),
+      ]),
+  );
+  const playerDefs = new Map(
+    match.teams
+      .flatMap((team) => [...team.players, ...(team.bench ?? [])])
+      .map((player) => [player.id, player] as const),
+  );
+  const participants = match.teams[userTeam].players.map((player) => player.id);
   const participantSet = new Set(participants);
   const powerFiredPlayerIds: string[] = [];
   const powerFiredSet = new Set<string>();
@@ -243,10 +267,14 @@ export function productionResultFromMatch(
     if (event.kind === 'POWER_FIRED') {
       const owner = slotOwners[event.player];
       if (owner === undefined) {
-        throw new Error(`fixture ${fixture.id} power event references invalid player slot ${event.player}`);
+        throw new Error(
+          `fixture ${fixture.id} power event references invalid player slot ${event.player}`,
+        );
       }
       if (playerDefs.get(owner)?.power !== event.power) {
-        throw new Error(`fixture ${fixture.id} power event does not match player ${owner}`);
+        throw new Error(
+          `fixture ${fixture.id} power event does not match player ${owner}`,
+        );
       }
       const eventTeam: 0 | 1 = event.player < 11 ? 0 : 1;
       if (eventTeam === userTeam && !powerFiredSet.has(owner)) {
@@ -258,13 +286,19 @@ export function productionResultFromMatch(
     if (event.kind !== 'SUBSTITUTION') continue;
     const slotTeam: 0 | 1 = event.player < 11 ? 0 : 1;
     if (event.player < 0 || event.player > 21 || slotTeam !== event.team) {
-      throw new Error(`fixture ${fixture.id} substitution references invalid team slot ${event.player}`);
+      throw new Error(
+        `fixture ${fixture.id} substitution references invalid team slot ${event.player}`,
+      );
     }
     if (slotOwners[event.player] !== event.outPlayerId) {
-      throw new Error(`fixture ${fixture.id} substitution ownership is inconsistent at slot ${event.player}`);
+      throw new Error(
+        `fixture ${fixture.id} substitution ownership is inconsistent at slot ${event.player}`,
+      );
     }
     if (!rosterByTeam[event.team].has(event.inPlayerId)) {
-      throw new Error(`fixture ${fixture.id} substitution uses a player outside team ${event.team}`);
+      throw new Error(
+        `fixture ${fixture.id} substitution uses a player outside team ${event.team}`,
+      );
     }
     if (event.team === userTeam && !participantSet.has(event.inPlayerId)) {
       participantSet.add(event.inPlayerId);
@@ -274,23 +308,33 @@ export function productionResultFromMatch(
   }
 
   const userRosterIds = rosterByTeam[userTeam];
-  if (participants.some(playerId => !userRosterIds.has(playerId))) {
-    throw new Error(`fixture ${fixture.id} participants contain a player outside the user roster`);
+  if (participants.some((playerId) => !userRosterIds.has(playerId))) {
+    throw new Error(
+      `fixture ${fixture.id} participants contain a player outside the user roster`,
+    );
   }
-  if (powerFiredPlayerIds.some(playerId => !participantSet.has(playerId))) {
-    throw new Error(`fixture ${fixture.id} power owners must be match participants`);
+  if (powerFiredPlayerIds.some((playerId) => !participantSet.has(playerId))) {
+    throw new Error(
+      `fixture ${fixture.id} power owners must be match participants`,
+    );
   }
 
-  const matchRosterIds = new Set(match.teams.flatMap(team => [
-    ...team.players.map(player => player.id),
-    ...(team.bench ?? []).map(player => player.id),
-  ]));
+  const matchRosterIds = new Set(
+    match.teams.flatMap((team) => [
+      ...team.players.map((player) => player.id),
+      ...(team.bench ?? []).map((player) => player.id),
+    ]),
+  );
   const attributedIds = [
     ...(fixtureResult.scorerPlayerIds ?? []),
-    ...(fixtureResult.contributions ?? []).map(contribution => contribution.playerId),
+    ...(fixtureResult.contributions ?? []).map(
+      (contribution) => contribution.playerId,
+    ),
   ];
-  if (attributedIds.some(playerId => !matchRosterIds.has(playerId))) {
-    throw new Error(`fixture ${fixture.id} result attributes a player outside the match roster`);
+  if (attributedIds.some((playerId) => !matchRosterIds.has(playerId))) {
+    throw new Error(
+      `fixture ${fixture.id} result attributes a player outside the match roster`,
+    );
   }
 
   return {
@@ -321,17 +365,23 @@ export function resolveMatchday(
   for (const result of suppliedResults) {
     validateSuppliedResult(result);
     if (!fixtureIds.has(result.fixtureId)) {
-      throw new Error(`supplied result references unknown fixture ${result.fixtureId}`);
+      throw new Error(
+        `supplied result references unknown fixture ${result.fixtureId}`,
+      );
     }
     if (suppliedByFixtureId.has(result.fixtureId)) {
-      throw new Error(`duplicate supplied result for fixture ${result.fixtureId}`);
+      throw new Error(
+        `duplicate supplied result for fixture ${result.fixtureId}`,
+      );
     }
     suppliedByFixtureId.set(result.fixtureId, result);
   }
 
-  return fixtures.map(fixture => {
+  return fixtures.map((fixture) => {
     const supplied = suppliedByFixtureId.get(fixture.id);
-    return supplied === undefined ? quickResultForFixture(fixture, teamsByClubId) : { ...supplied };
+    return supplied === undefined
+      ? quickResultForFixture(fixture, teamsByClubId)
+      : { ...supplied };
   });
 }
 
@@ -341,9 +391,14 @@ function validateProductionMatchContext(
   userClubId: string,
 ): void {
   validateScheduledFixture(fixture);
-  if (match.phase !== 'fulltime') throw new Error(`fixture ${fixture.id} has not finished`);
-  if (match.seed !== fixture.matchSeed) throw new Error(`fixture ${fixture.id} match seed does not match`);
-  if (match.teams[0]?.id !== fixture.homeClubId || match.teams[1]?.id !== fixture.awayClubId) {
+  if (match.phase !== 'fulltime')
+    throw new Error(`fixture ${fixture.id} has not finished`);
+  if (match.seed !== fixture.matchSeed)
+    throw new Error(`fixture ${fixture.id} match seed does not match`);
+  if (
+    match.teams[0]?.id !== fixture.homeClubId ||
+    match.teams[1]?.id !== fixture.awayClubId
+  ) {
     throw new Error(`fixture ${fixture.id} match teams do not match`);
   }
   userTeamForFixture(fixture, userClubId);
@@ -352,7 +407,9 @@ function validateProductionMatchContext(
 function userTeamForFixture(fixture: LeagueFixture, userClubId: string): 0 | 1 {
   if (fixture.homeClubId === userClubId) return 0;
   if (fixture.awayClubId === userClubId) return 1;
-  throw new Error(`fixture ${fixture.id} does not contain user club ${userClubId}`);
+  throw new Error(
+    `fixture ${fixture.id} does not contain user club ${userClubId}`,
+  );
 }
 
 function validateScheduledFixture(fixture: LeagueFixture): void {
@@ -365,14 +422,20 @@ function validateScheduledFixture(fixture: LeagueFixture): void {
   if (fixture.status !== 'scheduled' || fixture.score !== undefined) {
     throw new Error(`fixture ${fixture.id} must be scheduled and unplayed`);
   }
-  if (typeof fixture.homeClubId !== 'string' || fixture.homeClubId.trim().length === 0
-    || typeof fixture.awayClubId !== 'string' || fixture.awayClubId.trim().length === 0
-    || fixture.homeClubId === fixture.awayClubId) {
+  if (
+    typeof fixture.homeClubId !== 'string' ||
+    fixture.homeClubId.trim().length === 0 ||
+    typeof fixture.awayClubId !== 'string' ||
+    fixture.awayClubId.trim().length === 0 ||
+    fixture.homeClubId === fixture.awayClubId
+  ) {
     throw new Error(`fixture ${fixture.id} must name two different clubs`);
   }
-  if (!Number.isInteger(fixture.matchSeed)
-    || fixture.matchSeed < 0
-    || fixture.matchSeed > UINT32_MAX) {
+  if (
+    !Number.isInteger(fixture.matchSeed) ||
+    fixture.matchSeed < 0 ||
+    fixture.matchSeed > UINT32_MAX
+  ) {
     throw new Error(`fixture ${fixture.id} match seed must be a uint32`);
   }
 }
@@ -392,7 +455,10 @@ function teamsForFixture(
   return [home, away];
 }
 
-function validateTeam(team: TeamDef | undefined, clubId: string): asserts team is TeamDef {
+function validateTeam(
+  team: TeamDef | undefined,
+  clubId: string,
+): asserts team is TeamDef {
   if (!team) {
     throw new Error(`missing sim team for club ${clubId}`);
   }
@@ -403,18 +469,34 @@ function validateSuppliedResult(result: FixtureResult): void {
   if (!result || typeof result !== 'object') {
     throw new Error('supplied result must be an object');
   }
-  if (typeof result.fixtureId !== 'string' || result.fixtureId.trim().length === 0) {
+  if (
+    typeof result.fixtureId !== 'string' ||
+    result.fixtureId.trim().length === 0
+  ) {
     throw new Error('supplied result fixture ID must be a non-empty string');
   }
-  if (!isValidGoalCount(result.homeGoals) || !isValidGoalCount(result.awayGoals)) {
-    throw new Error(`supplied result for fixture ${result.fixtureId} must have non-negative integer goals`);
+  if (
+    !isValidGoalCount(result.homeGoals) ||
+    !isValidGoalCount(result.awayGoals)
+  ) {
+    throw new Error(
+      `supplied result for fixture ${result.fixtureId} must have non-negative integer goals`,
+    );
   }
   if (result.scorerPlayerIds !== undefined) {
     if (result.scorerPlayerIds.length !== result.homeGoals + result.awayGoals) {
-      throw new Error(`supplied result for fixture ${result.fixtureId} scorer count must match the score`);
+      throw new Error(
+        `supplied result for fixture ${result.fixtureId} scorer count must match the score`,
+      );
     }
-    if (result.scorerPlayerIds.some(playerId => typeof playerId !== 'string' || playerId.length === 0)) {
-      throw new Error(`supplied result for fixture ${result.fixtureId} has an invalid scorer ID`);
+    if (
+      result.scorerPlayerIds.some(
+        (playerId) => typeof playerId !== 'string' || playerId.length === 0,
+      )
+    ) {
+      throw new Error(
+        `supplied result for fixture ${result.fixtureId} has an invalid scorer ID`,
+      );
     }
   }
 }

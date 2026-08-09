@@ -24,11 +24,13 @@ describe('the last week of the season', () => {
   it('has the final league round on it', () => {
     const state = career(1);
     const lastFixtureWeek = state.fixtures
-      .filter(fixture => fixture.season === state.season)
+      .filter((fixture) => fixture.season === state.season)
       .reduce((latest, fixture) => Math.max(latest, fixture.week), 0);
 
     expect(lastFixtureWeek).toBe(SEASON_WEEKS);
-    expect(activeCareerMatchday({ ...state, week: SEASON_WEEKS })?.kind).toBe('league');
+    expect(activeCareerMatchday({ ...state, week: SEASON_WEEKS })?.kind).toBe(
+      'league',
+    );
   });
 
   it('shows the match on the desk instead of a season review', () => {
@@ -43,18 +45,22 @@ describe('the last week of the season', () => {
   });
 
   it('stamps the card "Final game" rather than "This week"', () => {
-    expect(homeViewModel({ ...career(1), week: SEASON_WEEKS }).nextMatchTimingLabel)
-      .toBe('Final game');
+    expect(
+      homeViewModel({ ...career(1), week: SEASON_WEEKS }).nextMatchTimingLabel,
+    ).toBe('Final game');
   });
 
   it('still stamps an ordinary match week "This week"', () => {
     const state = career(1);
-    const ordinary = state.fixtures.find(fixture => (
-      fixture.season === state.season
-      && fixture.week < SEASON_WEEKS
-      && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
-    ))!;
-    expect(homeViewModel({ ...state, week: ordinary.week }).nextMatchTimingLabel)
-      .toBe('This week');
+    const ordinary = state.fixtures.find(
+      (fixture) =>
+        fixture.season === state.season &&
+        fixture.week < SEASON_WEEKS &&
+        (fixture.homeClubId === state.userClubId ||
+          fixture.awayClubId === state.userClubId),
+    )!;
+    expect(
+      homeViewModel({ ...state, week: ordinary.week }).nextMatchTimingLabel,
+    ).toBe('This week');
   });
 });

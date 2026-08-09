@@ -83,9 +83,9 @@ describe('squad register column widths', () => {
 
   it('holds row values at the fixed data cell cap without capping the app', () => {
     const max = CELL_MAX_FONT_MULTIPLIER;
-    expect(readFileSync(join(process.cwd(), 'App.tsx'), 'utf8')).not.toContain(
-      'APP_MAX_FONT_SIZE_MULTIPLIER',
-    );
+    expect(
+      readFileSync(join(process.cwd(), 'App.tsx'), 'utf8'),
+    ).not.toContainSource('APP_MAX_FONT_SIZE_MULTIPLIER');
     for (const layout of ['phone', 'wide'] as const) {
       const width = REGISTER_COLUMN_WIDTH[layout];
       expect(width.overall).toBeGreaterThanOrEqual(
@@ -120,11 +120,11 @@ describe('squad register column widths', () => {
 
     expect(labels.length).toBeGreaterThanOrEqual(5);
     for (const label of labels) {
-      expect(label).toMatch(/^t\(/);
-      expect(label).toContain("'col.squad.");
+      expect(label).toMatchSource(/^t\(/);
+      expect(label).toContainSource("'col.squad.");
     }
     // No `label="…"` form survives, in this component or any sibling header.
-    expect(source).not.toMatch(/<SquadSortHeader[\s\S]{0,160}?label="/);
+    expect(source).not.toMatchSource(/<SquadSortHeader[\s\S]{0,160}?label="/);
   });
 
   it('measures every English label the register renders', () => {
@@ -143,20 +143,20 @@ describe('squad register column widths', () => {
     // the arrow was what got cut. The glyphs may survive in prose, nowhere else.
     const arrowLines = source.split('\n').filter((line) => /[▼▲]/.test(line));
     for (const line of arrowLines) {
-      expect(line.trim()).toMatch(/^(\*|\/\/)/);
+      expect(line.trim()).toMatchSource(/^(\*|\/\/)/);
     }
-    expect(source).toContain('function SquadSortArrow(');
-    expect(source).toContain('borderTopWidth: SORT_ARROW_HEIGHT');
-    expect(source).toContain('borderBottomWidth: SORT_ARROW_HEIGHT');
-    expect(source).toContain('borderLeftWidth: SORT_ARROW_WIDTH / 2');
+    expect(source).toContainSource('function SquadSortArrow(');
+    expect(source).toContainSource('borderTopWidth: SORT_ARROW_HEIGHT');
+    expect(source).toContainSource('borderBottomWidth: SORT_ARROW_HEIGHT');
+    expect(source).toContainSource('borderLeftWidth: SORT_ARROW_WIDTH / 2');
     // The gap the widths are sized around, in points: `gap-1` is 3.5pt here.
-    expect(source).toContain('sortHeaderRow: { gap: SORT_ARROW_GAP }');
+    expect(source).toContainSource('sortHeaderRow: { gap: SORT_ARROW_GAP }');
     // The arrow keeps its place when the label runs out of room.
-    expect(source).toContain('sortHeaderLabel: { flexShrink: 1 }');
+    expect(source).toContainSource('sortHeaderLabel: { flexShrink: 1 }');
   });
 
   it('caps how far a header grows with the reader s text size', () => {
-    expect(screenSource()).toContain(
+    expect(screenSource()).toContainSource(
       'maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}',
     );
   });
@@ -168,7 +168,7 @@ describe('squad register column widths', () => {
     expect(
       TRAIN_BUTTON_DIAMETER + 2 * TRAIN_BUTTON_HIT_SLOP,
     ).toBeGreaterThanOrEqual(MINIMUM_TOUCH_TARGET);
-    expect(screenSource()).toContain('hitSlop={TRAIN_BUTTON_HIT_SLOP}');
+    expect(screenSource()).toContainSource('hitSlop={TRAIN_BUTTON_HIT_SLOP}');
   });
 
   it('gives the header and the cells under it one width each', () => {
@@ -176,14 +176,14 @@ describe('squad register column widths', () => {
 
     // Widths are points, not Tailwind classes: a rem is 14pt on native, so the
     // old `w-12` header sat 6pt left of the `width: 48` role cells below it.
-    expect(source).toContain(
+    expect(source).toContainSource(
       'const columns = wideColumns ? ROSTER_COLUMN_STYLE.wide : ROSTER_COLUMN_STYLE.phone;',
     );
     for (const column of COLUMNS) {
-      expect(source).toContain(`columnStyle={columns.${column}}`);
-      expect(source).toContain(`style={columns.${column}}`);
+      expect(source).toContainSource(`columnStyle={columns.${column}}`);
+      expect(source).toContainSource(`style={columns.${column}}`);
     }
-    expect(source).not.toContain("wideColumns ? 'w-16' : 'w-12'");
-    expect(source).not.toContain("wideColumns ? 'w-28' : 'w-[60px]'");
+    expect(source).not.toContainSource("wideColumns ? 'w-16' : 'w-12'");
+    expect(source).not.toContainSource("wideColumns ? 'w-28' : 'w-[60px]'");
   });
 });

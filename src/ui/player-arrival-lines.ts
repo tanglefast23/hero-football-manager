@@ -90,8 +90,10 @@ export const YOUTH_ARRIVAL_LINE_KEYS: readonly string[] = [
 ];
 
 /** The whole academy pool, in the given language and in pool order. */
-export function youthArrivalLines(t: CopyFn = englishCopy()): readonly string[] {
-  return YOUTH_ARRIVAL_LINE_KEYS.map(key => t(key));
+export function youthArrivalLines(
+  t: CopyFn = englishCopy(),
+): readonly string[] {
+  return YOUTH_ARRIVAL_LINE_KEYS.map((key) => t(key));
 }
 
 /**
@@ -122,7 +124,11 @@ export function arrivalLine(
   t: CopyFn = englishCopy(),
 ): string {
   if (player.source === 'rookie') return t(ROOKIE_ARRIVAL_LINE_KEY);
-  return t(YOUTH_ARRIVAL_LINE_KEYS[hashString(player.playerId) % YOUTH_ARRIVAL_LINE_KEYS.length]);
+  return t(
+    YOUTH_ARRIVAL_LINE_KEYS[
+      hashString(player.playerId) % YOUTH_ARRIVAL_LINE_KEYS.length
+    ],
+  );
 }
 
 function hashString(value: string): number {

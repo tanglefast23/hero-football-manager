@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   StyleSheet,
@@ -10,7 +10,6 @@ import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Atlas,
-  Canvas,
   Circle,
   Fill,
   Group,
@@ -34,14 +33,21 @@ import { PITCH_H, PITCH_W } from '../../sim/geometry';
 import type { AwakeningCutsceneViewModel } from '../models';
 import { Pitch } from '../../render/Pitch';
 import { POWER_EFFECT_DESCRIPTORS } from '../../render/power-effect-descriptors';
-import { buildFallbackAtlas, buildSpriteAtlas } from '../../render/sprites/buildAtlas';
+import {
+  buildFallbackAtlas,
+  buildSpriteAtlas,
+} from '../../render/sprites/buildAtlas';
 import { playerLookId } from '../../render/sprites/player-look';
 import { PIXEL_ART_SAMPLING } from '../../render/pixel-art-sampling';
 import { AwakeningTriggerCalloutIcon } from './awakening-trigger-visuals/AwakeningTriggerCalloutIcon';
 import { AwakeningTriggerVisual } from './awakening-trigger-visuals/AwakeningTriggerVisual';
-import { awakeningViewportHeight, nextAwakeningAction } from './awakening-progression';
+import {
+  awakeningViewportHeight,
+  nextAwakeningAction,
+} from './awakening-progression';
 import { PowerAcquiredDemoModal } from '../PowerAcquiredDemoModal';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
+import { RecoverableSkiaCanvas } from '../../render/RecoverableSkiaCanvas';
 
 const FOCUS_INDEX = 4;
 /** How far the CTA halo dips between breaths; never to nothing, so it still reads as lit. */
@@ -116,6 +122,15 @@ export function AwakeningCutsceneScreen({
   const skipBeatRef = useRef<(() => void) | null>(null);
   const [triggerPropVisible, setTriggerPropVisible] = useState(false);
   const [demoVisible, setDemoVisible] = useState(false);
+  const [canvasGeneration, setCanvasGeneration] = useState(0);
+  const canvasGenerationRef = useRef(0);
+  const [sceneGeneration, setSceneGeneration] = useState(0);
+  const graphicsRestartAttemptsRef = useRef(0);
+  const [graphicsStatus, setGraphicsStatus] = useState<
+    'ok' | 'restarting' | 'failed'
+  >('ok');
+  const graphicsStatusRef = useRef(graphicsStatus);
+  graphicsStatusRef.current = graphicsStatus;
   const cameraZoom = useSharedValue(1);
   // 0 -> 1 across the opening jolt; 1 means settled.
   const shakePhase = useSharedValue(1);
@@ -125,29 +140,48 @@ export function AwakeningCutsceneScreen({
   const burst = useSharedValue(0);
   const limp = useSharedValue(0);
   const limpTravel = useSharedValue(0);
-  const cutsceneVisualIds = useMemo(() => [
-    'u:f18',
-    'r:f07',
-    'r:f04',
-    'u:f14',
-    `r:${playerLookId(viewModel.playerId, viewModel.role, viewModel.lookId)}`,
-    'r:f06',
-    'u:f16',
-  ], [viewModel.lookId, viewModel.playerId, viewModel.role]);
-  const cutsceneSpriteKeys = useMemo(() => cutsceneVisualIds.map(id => `${id}:run0`), [cutsceneVisualIds]);
+  const cutsceneVisualIds = useMemo(
+    () => [
+      'u:f18',
+      'r:f07',
+      'r:f04',
+      'u:f14',
+      `r:${playerLookId(viewModel.playerId, viewModel.role, viewModel.lookId)}`,
+      'r:f06',
+      'u:f16',
+    ],
+    [viewModel.lookId, viewModel.playerId, viewModel.role],
+  );
+  const cutsceneSpriteKeys = useMemo(
+    () => cutsceneVisualIds.map((id) => `${id}:run0`),
+    [cutsceneVisualIds],
+  );
 
   const atlas = useMemo(() => {
     try {
-      return { ...buildSpriteAtlas(Skia, cutsceneVisualIds), fallbackMode: false };
+      return {
+        ...buildSpriteAtlas(Skia, cutsceneVisualIds),
+        fallbackMode: false,
+      };
     } catch (error) {
-      console.warn('AwakeningCutsceneScreen: sprite atlas failed, using fallback', error);
-      return { ...buildFallbackAtlas(Skia, FALLBACK_SPRITE), fallbackMode: true };
+      console.warn(
+        'AwakeningCutsceneScreen: sprite atlas failed, using fallback',
+        error,
+      );
+      return {
+        ...buildFallbackAtlas(Skia, FALLBACK_SPRITE),
+        fallbackMode: true,
+      };
     }
-  }, [cutsceneVisualIds]);
-  const sprites: SkRect[] = useMemo(() => cutsceneSpriteKeys.map(key => {
-    const rect = atlas.rectFor(key);
-    return Skia.XYWHRect(rect.x, rect.y, rect.w, rect.h);
-  }), [atlas, cutsceneSpriteKeys]);
+  }, [canvasGeneration, cutsceneVisualIds]);
+  const sprites: SkRect[] = useMemo(
+    () =>
+      cutsceneSpriteKeys.map((key) => {
+        const rect = atlas.rectFor(key);
+        return Skia.XYWHRect(rect.x, rect.y, rect.w, rect.h);
+      }),
+    [atlas, cutsceneSpriteKeys],
+  );
 
   const centerX = width / 2;
   // Anchored inside the band the viewport actually shows, NOT the middle of the
@@ -164,67 +198,86 @@ export function AwakeningCutsceneScreen({
     const decay = phase >= 1 ? 0 : (1 - phase) ** 2;
     return [
       { translateX: Math.sin(phase * Math.PI * 14) * SCENE_SHAKE_PT * decay },
-      { translateY: Math.sin(phase * Math.PI * 11 + 1.7) * SCENE_SHAKE_PT * decay * 0.7 },
+      {
+        translateY:
+          Math.sin(phase * Math.PI * 11 + 1.7) * SCENE_SHAKE_PT * decay * 0.7,
+      },
       { scale: cameraZoom.value },
     ];
   });
-  const starts = useMemo(() => [
-    [width * 0.63, centerY - 176],
-    [width * 0.36, centerY - 165],
-    [width * 0.13, centerY - 118],
-    [width * 0.86, centerY - 108],
-    [width * 0.06, centerY],
-    [width * 0.2, centerY + 132],
-    [width * 0.8, centerY + 138],
-  ], [centerX, centerY, width]);
-  const huddle = useMemo(() => [
-    [centerX + 13, centerY - 45],
-    [centerX - 12, centerY - 42],
-    [centerX - 34, centerY - 22],
-    [centerX + 35, centerY - 20],
+  const starts = useMemo(
+    () => [
+      [width * 0.63, centerY - 176],
+      [width * 0.36, centerY - 165],
+      [width * 0.13, centerY - 118],
+      [width * 0.86, centerY - 108],
+      [width * 0.06, centerY],
+      [width * 0.2, centerY + 132],
+      [width * 0.8, centerY + 138],
+    ],
+    [centerX, centerY, width],
+  );
+  const huddle = useMemo(
+    () => [
+      [centerX + 13, centerY - 45],
+      [centerX - 12, centerY - 42],
+      [centerX - 34, centerY - 22],
+      [centerX + 35, centerY - 20],
+      [centerX, centerY],
+      [centerX - 38, centerY + 28],
+      [centerX + 38, centerY + 30],
+    ],
     [centerX, centerY],
-    [centerX - 38, centerY + 28],
-    [centerX + 38, centerY + 30],
-  ], [centerX, centerY]);
+  );
 
-  const transforms = useRSXformBuffer(cutsceneSpriteKeys.length, (transform, index) => {
-    'worklet';
-    const focus = index === FOCUS_INDEX;
-    const startX = starts[index][0];
-    const startY = starts[index][1];
-    const huddleX = huddle[index][0];
-    const huddleY = huddle[index][1];
-    const outwardX = huddleX + (huddleX - centerX) * 2.4;
-    const outwardY = huddleY + (huddleY - centerY) * 1.6;
-    let x = focus
-      ? startX + (huddleX - startX) * limpTravel.value
-      : startX + (huddleX - startX) * rush.value;
-    let y = focus
-      ? startY - Math.abs(Math.sin(limpTravel.value * Math.PI * 8)) * 4
-      : startY + (huddleY - startY) * rush.value;
-    if (focus) {
-      y -= ascent.value * 70;
-    } else {
-      x += (outwardX - huddleX) * burst.value;
-      y += (outwardY - huddleY) * burst.value;
-    }
-    const limpStep = Math.sin(limpTravel.value * Math.PI * 8) * 0.12;
-    const rotation = focus ? (1 - ascent.value) * (limpStep + limp.value * 0.72) : 0;
-    const cos = Math.cos(rotation) * DRAW_SCALE;
-    const sin = Math.sin(rotation) * DRAW_SCALE;
-    transform.set(
-      cos,
-      sin,
-      x - (cos * 24 - sin * 30) / 2,
-      y - (sin * 24 + cos * 30) / 2,
-    );
-  });
+  const transforms = useRSXformBuffer(
+    cutsceneSpriteKeys.length,
+    (transform, index) => {
+      'worklet';
+      const focus = index === FOCUS_INDEX;
+      const startX = starts[index][0];
+      const startY = starts[index][1];
+      const huddleX = huddle[index][0];
+      const huddleY = huddle[index][1];
+      const outwardX = huddleX + (huddleX - centerX) * 2.4;
+      const outwardY = huddleY + (huddleY - centerY) * 1.6;
+      let x = focus
+        ? startX + (huddleX - startX) * limpTravel.value
+        : startX + (huddleX - startX) * rush.value;
+      let y = focus
+        ? startY - Math.abs(Math.sin(limpTravel.value * Math.PI * 8)) * 4
+        : startY + (huddleY - startY) * rush.value;
+      if (focus) {
+        y -= ascent.value * 70;
+      } else {
+        x += (outwardX - huddleX) * burst.value;
+        y += (outwardY - huddleY) * burst.value;
+      }
+      const limpStep = Math.sin(limpTravel.value * Math.PI * 8) * 0.12;
+      const rotation = focus
+        ? (1 - ascent.value) * (limpStep + limp.value * 0.72)
+        : 0;
+      const cos = Math.cos(rotation) * DRAW_SCALE;
+      const sin = Math.sin(rotation) * DRAW_SCALE;
+      transform.set(
+        cos,
+        sin,
+        x - (cos * 24 - sin * 30) / 2,
+        y - (sin * 24 + cos * 30) / 2,
+      );
+    },
+  );
 
-  const colors: SkColor[] = useMemo(() => cutsceneSpriteKeys.map((_, index) => {
-    if (index === FOCUS_INDEX && beat === 3) return Skia.Color('#f7d894');
-    if (atlas.fallbackMode) return Skia.Color(index < 4 ? '#d94f52' : '#5a8fd6');
-    return Skia.Color('#ffffff');
-  }), [atlas.fallbackMode, beat, cutsceneSpriteKeys]);
+  const colors: SkColor[] = useMemo(
+    () =>
+      cutsceneSpriteKeys.map((_, index) => {
+        if (index === FOCUS_INDEX && beat === 3) return Skia.Color('#f7d894');
+        if (atlas.fallbackMode)
+          return Skia.Color(index < 4 ? '#d94f52' : '#5a8fd6');
+        return Skia.Color('#ffffff');
+      }),
+    [atlas.fallbackMode, beat, cutsceneSpriteKeys],
+  );
 
   useEffect(() => {
     onBeatChange?.(beat);
@@ -322,7 +375,10 @@ export function AwakeningCutsceneScreen({
             duration: REVEAL_FLASH_IN_MS,
             easing: ReanimatedEasing.linear,
           }),
-          withTiming(0, { duration: REVEAL_FLASH_OUT_MS, easing: ReanimatedEasing.linear }),
+          withTiming(0, {
+            duration: REVEAL_FLASH_OUT_MS,
+            easing: ReanimatedEasing.linear,
+          }),
         );
       }
       ascent.value = withTiming(1, {
@@ -370,24 +426,95 @@ export function AwakeningCutsceneScreen({
     reduceMotion,
     revealFlash,
     rush,
+    sceneGeneration,
     shakePhase,
   ]);
 
-  const current = beat === 2
-    ? { number: '02', kicker: viewModel.triggerKicker, title: viewModel.triggerTitle }
-    : {
-      number: BEAT_COPY[beat].number,
-      kicker: t(`awakening.beat.${BEAT_COPY[beat].slug}.kicker`),
-      title: t(`awakening.beat.${BEAT_COPY[beat].slug}.title`),
-    };
-  const triggerOffset = viewModel.triggerVisual === 'caterpillar'
-    ? CATERPILLAR_FACE_OFFSET
-    : { x: 0, y: 0 };
-  const copy = beat === 1
-    ? null
-    : beat === 2
-      ? `${viewModel.triggerCopy} ${viewModel.omenCopy}`
-      : viewModel.revealCopy;
+  const restartCanvas = useCallback((restartStory: boolean) => {
+    graphicsStatusRef.current = 'restarting';
+    setGraphicsStatus('restarting');
+    if (restartStory) {
+      setBeat(1);
+      setAdvanceReady(false);
+    }
+    setSceneGeneration((generation) => generation + 1);
+    const nextGeneration = canvasGenerationRef.current + 1;
+    canvasGenerationRef.current = nextGeneration;
+    setCanvasGeneration(nextGeneration);
+  }, []);
+
+  const handleGraphicsContextLost = useCallback(
+    (generation: number) => {
+      if (
+        generation !== canvasGenerationRef.current ||
+        graphicsStatusRef.current === 'failed'
+      ) {
+        return;
+      }
+      if (graphicsRestartAttemptsRef.current >= 1) {
+        graphicsStatusRef.current = 'failed';
+        setGraphicsStatus('failed');
+        setAdvanceReady(false);
+        return;
+      }
+      graphicsRestartAttemptsRef.current += 1;
+      restartCanvas(true);
+    },
+    [restartCanvas],
+  );
+
+  const handleGraphicsContextReady = useCallback((generation: number) => {
+    if (
+      generation !== canvasGenerationRef.current ||
+      graphicsStatusRef.current !== 'restarting'
+    ) {
+      return;
+    }
+    graphicsStatusRef.current = 'ok';
+    setGraphicsStatus('ok');
+  }, []);
+
+  const retryAwakeningGraphics = useCallback(() => {
+    graphicsRestartAttemptsRef.current = 0;
+    restartCanvas(true);
+  }, [restartCanvas]);
+
+  const reloadAfterGraphicsFailure = useCallback(() => {
+    if (typeof window !== 'undefined') window.location.reload();
+  }, []);
+
+  const closeDemo = useCallback(() => {
+    setDemoVisible(false);
+    // CanvasKit images belong to their WebGL context. Returning from the demo
+    // creates a new context, so rebuild the awakening atlas for it too.
+    setSceneGeneration((generation) => generation + 1);
+    const nextGeneration = canvasGenerationRef.current + 1;
+    canvasGenerationRef.current = nextGeneration;
+    setCanvasGeneration(nextGeneration);
+  }, []);
+
+  const current =
+    beat === 2
+      ? {
+          number: '02',
+          kicker: viewModel.triggerKicker,
+          title: viewModel.triggerTitle,
+        }
+      : {
+          number: BEAT_COPY[beat].number,
+          kicker: t(`awakening.beat.${BEAT_COPY[beat].slug}.kicker`),
+          title: t(`awakening.beat.${BEAT_COPY[beat].slug}.title`),
+        };
+  const triggerOffset =
+    viewModel.triggerVisual === 'caterpillar'
+      ? CATERPILLAR_FACE_OFFSET
+      : { x: 0, y: 0 };
+  const copy =
+    beat === 1
+      ? null
+      : beat === 2
+        ? `${viewModel.triggerCopy} ${viewModel.omenCopy}`
+        : viewModel.revealCopy;
   const focusY = centerY - (beat === 3 ? 70 : 0);
   // Keyed under `awakening.`, beside the beat kickers they sit under, because
   // that namespace already classifies `display` — these four are pixel type in
@@ -395,7 +522,9 @@ export function AwakeningCutsceneScreen({
   const tapHint = !advanceReady
     ? t('awakening.tapToSkip')
     : beat === 3
-      ? viewModel.firstHero ? t('awakening.firstHero') : t('awakening.newHero')
+      ? viewModel.firstHero
+        ? t('awakening.firstHero')
+        : t('awakening.newHero')
       : t('awakening.tapToContinue');
   /**
    * One tap, two jobs. Mid-beat it jumps to the end of what is playing rather
@@ -414,23 +543,48 @@ export function AwakeningCutsceneScreen({
     }
     setBeat(action);
   };
-  const storyAccessibilityLabel = beat < 3
-    ? t('awakening.a11y.beatOfThree', { beat })
-    : t('awakening.a11y.awakenedWith', {
-      player: viewModel.playerName,
-      power: viewModel.powerName,
-      description: viewModel.powerDescription,
-      reveal: viewModel.revealCopy,
-      license: viewModel.licenseLabel,
-    });
+  const storyAccessibilityLabel =
+    beat < 3
+      ? t('awakening.a11y.beatOfThree', { beat })
+      : t('awakening.a11y.awakenedWith', {
+          player: viewModel.playerName,
+          power: viewModel.powerName,
+          description: viewModel.powerDescription,
+          reveal: viewModel.revealCopy,
+          license: viewModel.licenseLabel,
+        });
   const storyAccessibilityHint = advanceReady
     ? beat < 3
       ? t('awakening.a11y.tapForNextBeat')
       : t('awakening.a11y.tapToWatchDemonstration')
     : t('awakening.a11y.tapToSkipToEndOfBeat');
 
+  // The match demo replaces the awakening stage instead of opening over it.
+  // Web Skia therefore owns one live CanvasKit context during this transition.
+  if (demoVisible) {
+    return (
+      <PowerAcquiredDemoModal
+        visible
+        playerName={viewModel.playerName}
+        powerId={viewModel.powerId}
+        powerName={viewModel.powerName}
+        description={viewModel.powerDescription}
+        continueLabel={viewModel.continueLabel}
+        reduceMotion={reduceMotion}
+        onClose={closeDemo}
+        onContinue={() => {
+          setDemoVisible(false);
+          onContinue();
+        }}
+      />
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView
+      style={styles.root}
+      edges={['top', 'left', 'right', 'bottom']}
+    >
       <View style={styles.flex}>
         {/* First child, absolutely filled: it is painted UNDER the header, the
             viewport and the story panel, so each of those still takes its own
@@ -457,41 +611,56 @@ export function AwakeningCutsceneScreen({
         </View>
 
         <View style={[styles.viewport, { height: viewportHeight }]}>
-          <Canvas style={{ width, height: viewportHeight }}>
-            <Fill color="#3f8a4a" />
-            <Group
-              origin={{ x: centerX, y: centerY }}
-              transform={cameraTransform}
+          {graphicsStatus === 'failed' ? null : (
+            <RecoverableSkiaCanvas
+              key={canvasGeneration}
+              generation={canvasGeneration}
+              onContextLost={handleGraphicsContextLost}
+              onContextReady={handleGraphicsContextReady}
+              style={{ width, height: viewportHeight }}
             >
-              <Pitch scale={pitchScale} devicePixelRatio={devicePixelRatio} />
-              {beat >= 2 ? <PowerOmen powerId={viewModel.powerId} x={centerX} y={focusY} reveal={beat === 3} /> : null}
-              <Atlas
-                image={atlas.image as SkImage}
-                sprites={sprites}
-                transforms={transforms}
-                colors={colors}
-                colorBlendMode="modulate"
-                sampling={PIXEL_ART_SAMPLING}
-              />
-              {beat === 2 && triggerPropVisible ? (
-                <AwakeningTriggerVisual
-                  visual={viewModel.triggerVisual}
-                  x={centerX + triggerOffset.x}
-                  y={centerY + triggerOffset.y}
+              <Fill color="#3f8a4a" />
+              <Group
+                origin={{ x: centerX, y: centerY }}
+                transform={cameraTransform}
+              >
+                <Pitch scale={pitchScale} devicePixelRatio={devicePixelRatio} />
+                {beat >= 2 ? (
+                  <PowerOmen
+                    powerId={viewModel.powerId}
+                    x={centerX}
+                    y={focusY}
+                    reveal={beat === 3}
+                  />
+                ) : null}
+                <Atlas
+                  image={atlas.image as SkImage}
+                  sprites={sprites}
+                  transforms={transforms}
+                  colors={colors}
+                  colorBlendMode="modulate"
+                  sampling={PIXEL_ART_SAMPLING}
                 />
-              ) : null}
-            </Group>
-            {/* Outside the camera group so the white-out covers the whole
+                {beat === 2 && triggerPropVisible ? (
+                  <AwakeningTriggerVisual
+                    visual={viewModel.triggerVisual}
+                    x={centerX + triggerOffset.x}
+                    y={centerY + triggerOffset.y}
+                  />
+                ) : null}
+              </Group>
+              {/* Outside the camera group so the white-out covers the whole
                 viewport however far the shot has pushed in. */}
-            <Rect
-              x={0}
-              y={0}
-              width={width}
-              height={viewportHeight}
-              color="#ffffff"
-              opacity={revealFlash}
-            />
-          </Canvas>
+              <Rect
+                x={0}
+                y={0}
+                width={width}
+                height={viewportHeight}
+                color="#ffffff"
+                opacity={revealFlash}
+              />
+            </RecoverableSkiaCanvas>
+          )}
           <View style={styles.fullTimeBug}>
             <Text style={styles.fullTimeText}>{t('awakening.fullTime')}</Text>
           </View>
@@ -520,57 +689,106 @@ export function AwakeningCutsceneScreen({
           accessibilityHint={storyAccessibilityHint}
           onPress={advanceStory}
         >
-          <View style={[
-            styles.storyPanel,
-            beat === 3 ? styles.storyPanelHero : null,
-          ]}>
+          <View
+            style={[
+              styles.storyPanel,
+              beat === 3 ? styles.storyPanelHero : null,
+            ]}
+          >
             <View style={styles.storyTopline}>
-              <Text style={[styles.beatKicker, beat === 3 ? styles.heroInk : null]}>{current.kicker}</Text>
+              <Text
+                style={[styles.beatKicker, beat === 3 ? styles.heroInk : null]}
+              >
+                {current.kicker}
+              </Text>
               {/* Lit only once the tap does something. While the scene is still
                   playing the same line is a status, and a status that glows
                   like a button is a promise the screen cannot keep. */}
               {advanceReady ? (
                 <AwakeningCta label={tapHint} reduceMotion={reduceMotion} />
               ) : (
-                <Text style={[styles.tapHint, beat === 3 ? styles.heroInk : null]}>{tapHint}</Text>
+                <Text
+                  style={[styles.tapHint, beat === 3 ? styles.heroInk : null]}
+                >
+                  {tapHint}
+                </Text>
               )}
             </View>
-            <Text style={[styles.beatTitle, beat === 3 ? styles.heroInk : null]}>
+            <Text
+              style={[styles.beatTitle, beat === 3 ? styles.heroInk : null]}
+            >
               {beat === 3 ? viewModel.playerName : current.title}
             </Text>
-            {beat === 3 ? <Text style={styles.powerName}>{viewModel.powerName}</Text> : null}
+            {beat === 3 ? (
+              <Text style={styles.powerName}>{viewModel.powerName}</Text>
+            ) : null}
             {beat === 3 ? (
               <View style={styles.powerDescriptionCard}>
-                <Text style={styles.powerDescriptionLabel}>{t('awakening.whatItDoes')}</Text>
-                <Text style={styles.powerDescription}>{viewModel.powerDescription}</Text>
+                <Text style={styles.powerDescriptionLabel}>
+                  {t('awakening.whatItDoes')}
+                </Text>
+                <Text style={styles.powerDescription}>
+                  {viewModel.powerDescription}
+                </Text>
               </View>
             ) : null}
             {copy !== null ? (
-              <Text style={[styles.storyCopy, beat === 3 ? styles.heroCopy : null]}>{copy}</Text>
+              <Text
+                style={[styles.storyCopy, beat === 3 ? styles.heroCopy : null]}
+              >
+                {copy}
+              </Text>
             ) : null}
             {beat === 3 ? (
               <View style={styles.heroFooter}>
                 <Text style={styles.license}>{viewModel.licenseLabel}</Text>
-                <AwakeningCta label={t('awakening.watchExample')} reduceMotion={reduceMotion} />
+                <AwakeningCta
+                  label={t('awakening.watchExample')}
+                  reduceMotion={reduceMotion}
+                />
               </View>
             ) : null}
           </View>
         </Pressable>
       </View>
-      <PowerAcquiredDemoModal
-        visible={demoVisible}
-        playerName={viewModel.playerName}
-        powerId={viewModel.powerId}
-        powerName={viewModel.powerName}
-        description={viewModel.powerDescription}
-        continueLabel={viewModel.continueLabel}
-        reduceMotion={reduceMotion}
-        onClose={() => setDemoVisible(false)}
-        onContinue={() => {
-          setDemoVisible(false);
-          onContinue();
-        }}
-      />
+      {graphicsStatus !== 'ok' ? (
+        <View accessibilityViewIsModal style={styles.graphicsRecoveryOverlay}>
+          <View style={styles.graphicsRecoveryCard}>
+            <Text style={styles.graphicsRecoveryTitle}>
+              {graphicsStatus === 'restarting'
+                ? t('graphics.restarting')
+                : t('graphics.awakeningStopped')}
+            </Text>
+            {graphicsStatus === 'failed' ? (
+              <>
+                <Text style={styles.graphicsRecoveryDetail}>
+                  {t('graphics.awakeningDetail')}
+                </Text>
+                <View style={styles.graphicsRecoveryButtons}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={reloadAfterGraphicsFailure}
+                    style={styles.graphicsRecoveryButton}
+                  >
+                    <Text style={styles.graphicsRecoveryButtonText}>
+                      {t('graphics.reload')}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={retryAwakeningGraphics}
+                    style={styles.graphicsRecoveryButtonPrimary}
+                  >
+                    <Text style={styles.graphicsRecoveryButtonText}>
+                      {t('graphics.restartAwakening')}
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -589,9 +807,17 @@ export function AwakeningCutsceneScreen({
  * other. Reduce Motion flattens the size range instead of switching the
  * transform off, which keeps a single type on the style either way.
  */
-function AwakeningCta({ label, reduceMotion }: { label: string; reduceMotion: boolean }) {
+function AwakeningCta({
+  label,
+  reduceMotion,
+}: {
+  label: string;
+  reduceMotion: boolean;
+}) {
   const styles = usePixelStyles(makeStyles);
-  const pulse = useRef(new Animated.Value(reduceMotion ? 1 : CTA_GLOW_MIN_OPACITY)).current;
+  const pulse = useRef(
+    new Animated.Value(reduceMotion ? 1 : CTA_GLOW_MIN_OPACITY),
+  ).current;
   const scale = pulse.interpolate({
     inputRange: [CTA_GLOW_MIN_OPACITY, 1],
     outputRange: reduceMotion ? [1, 1] : [1, CTA_PULSE_MAX_SCALE],
@@ -604,8 +830,16 @@ function AwakeningCta({ label, reduceMotion }: { label: string; reduceMotion: bo
     }
     const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 620, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: CTA_GLOW_MIN_OPACITY, duration: 620, useNativeDriver: true }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 620,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: CTA_GLOW_MIN_OPACITY,
+          duration: 620,
+          useNativeDriver: true,
+        }),
       ]),
     );
     animation.start();
@@ -614,7 +848,10 @@ function AwakeningCta({ label, reduceMotion }: { label: string; reduceMotion: bo
 
   return (
     <View style={styles.ctaAnchor}>
-      <Animated.View pointerEvents="none" style={[styles.ctaGlow, { opacity: pulse }]} />
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.ctaGlow, { opacity: pulse }]}
+      />
       <Animated.View style={[styles.ctaChip, { transform: [{ scale }] }]}>
         <Text style={styles.ctaText}>{label}</Text>
       </Animated.View>
@@ -636,20 +873,50 @@ function PowerOmen({
   if (powerId === 'FIRE_TORCH') {
     return (
       <>
-        <Circle cx={x} cy={y} r={reveal ? 48 : 28} color="#ff6a00" opacity={reveal ? 0.32 : 0.18} />
-        <Circle cx={x} cy={y} r={reveal ? 30 : 17} color="#f7d894" opacity={0.28} />
+        <Circle
+          cx={x}
+          cy={y}
+          r={reveal ? 48 : 28}
+          color="#ff6a00"
+          opacity={reveal ? 0.32 : 0.18}
+        />
+        <Circle
+          cx={x}
+          cy={y}
+          r={reveal ? 30 : 17}
+          color="#f7d894"
+          opacity={0.28}
+        />
       </>
     );
   }
   if (powerId === 'SUPER_STRENGTH') {
     return (
       <>
-        <Circle cx={x} cy={y + 24} r={reveal ? 62 : 34} color="#edb54a" style="stroke" strokeWidth={reveal ? 7 : 4} opacity={0.7} />
-        <Circle cx={x} cy={y + 24} r={reveal ? 36 : 18} color="#f7d894" opacity={0.22} />
+        <Circle
+          cx={x}
+          cy={y + 24}
+          r={reveal ? 62 : 34}
+          color="#edb54a"
+          style="stroke"
+          strokeWidth={reveal ? 7 : 4}
+          opacity={0.7}
+        />
+        <Circle
+          cx={x}
+          cy={y + 24}
+          r={reveal ? 36 : 18}
+          color="#f7d894"
+          opacity={0.22}
+        />
       </>
     );
   }
-  if (powerId === 'PORTAL_PASS' || powerId === 'PHASE_RUN' || powerId === 'ELASTIC_KEEPER') {
+  if (
+    powerId === 'PORTAL_PASS' ||
+    powerId === 'PHASE_RUN' ||
+    powerId === 'ELASTIC_KEEPER'
+  ) {
     // A power's colour has one source of truth (docs/11). These three rings
     // used to carry their own hand-picked hues, which drifted off-palette and
     // away from the same power's cut-in.
@@ -679,9 +946,27 @@ function PowerOmen({
     const { primary, secondary } = POWER_EFFECT_DESCRIPTORS[powerId];
     return (
       <>
-        <Circle cx={x - spread} cy={y} r={reveal ? 24 : 14} color={primary} opacity={0.35} />
-        <Circle cx={x + spread} cy={y} r={reveal ? 24 : 14} color={secondary} opacity={0.35} />
-        <Line p1={{ x: x - spread, y }} p2={{ x: x + spread, y }} color="#f7d894" strokeWidth={reveal ? 6 : 3} opacity={0.8} />
+        <Circle
+          cx={x - spread}
+          cy={y}
+          r={reveal ? 24 : 14}
+          color={primary}
+          opacity={0.35}
+        />
+        <Circle
+          cx={x + spread}
+          cy={y}
+          r={reveal ? 24 : 14}
+          color={secondary}
+          opacity={0.35}
+        />
+        <Line
+          p1={{ x: x - spread, y }}
+          p2={{ x: x + spread, y }}
+          color="#f7d894"
+          strokeWidth={reveal ? 6 : 3}
+          opacity={0.8}
+        />
       </>
     );
   }
@@ -689,11 +974,34 @@ function PowerOmen({
     const radius = reveal ? 66 : 38;
     return (
       <>
-        {[0, 45, 90, 135].map(angle => {
-          const radians = angle * Math.PI / 180;
-          return <Line key={angle} p1={{ x: x - Math.cos(radians) * radius, y: y - Math.sin(radians) * radius }} p2={{ x: x + Math.cos(radians) * radius, y: y + Math.sin(radians) * radius }} color="#f4f1ea" strokeWidth={2} opacity={0.7} />;
+        {[0, 45, 90, 135].map((angle) => {
+          const radians = (angle * Math.PI) / 180;
+          return (
+            <Line
+              key={angle}
+              p1={{
+                x: x - Math.cos(radians) * radius,
+                y: y - Math.sin(radians) * radius,
+              }}
+              p2={{
+                x: x + Math.cos(radians) * radius,
+                y: y + Math.sin(radians) * radius,
+              }}
+              color="#f4f1ea"
+              strokeWidth={2}
+              opacity={0.7}
+            />
+          );
         })}
-        <Circle cx={x} cy={y} r={radius * 0.58} color="#f4f1ea" style="stroke" strokeWidth={2} opacity={0.55} />
+        <Circle
+          cx={x}
+          cy={y}
+          r={radius * 0.58}
+          color="#f4f1ea"
+          style="stroke"
+          strokeWidth={2}
+          opacity={0.55}
+        />
       </>
     );
   }
@@ -701,10 +1009,23 @@ function PowerOmen({
     const radius = reveal ? 72 : 42;
     return (
       <>
-        {[-1, 1].map(direction => (
-          <Line key={direction} p1={{ x: x + direction * radius, y: y - radius }} p2={{ x: x - direction * 10, y: y + radius }} color="#edb54a" strokeWidth={reveal ? 7 : 4} opacity={0.85} />
+        {[-1, 1].map((direction) => (
+          <Line
+            key={direction}
+            p1={{ x: x + direction * radius, y: y - radius }}
+            p2={{ x: x - direction * 10, y: y + radius }}
+            color="#edb54a"
+            strokeWidth={reveal ? 7 : 4}
+            opacity={0.85}
+          />
         ))}
-        <Circle cx={x} cy={y} r={reveal ? 22 : 13} color="#f7d894" opacity={0.48} />
+        <Circle
+          cx={x}
+          cy={y}
+          r={reveal ? 22 : 13}
+          color="#f7d894"
+          opacity={0.48}
+        />
       </>
     );
   }
@@ -728,109 +1049,266 @@ function PowerOmen({
 // dark-pitch stage as the landing screens — pixel display type, paper
 // stickers, and a centered story panel. Custom fonts are referenced without
 // fontWeight so iOS never swaps in a synthetic system face.
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#3f8a4a' },
-  flex: { flex: 1 },
-  header: {
-    minHeight: 84,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  eyebrow: { fontFamily: faces.display, color: '#f7d894', fontSize: 10, letterSpacing: 2 },
-  fixture: { marginTop: 6, fontFamily: faces.data, color: '#f4f1ea', fontSize: 12, textTransform: 'uppercase' },
-  counter: {
-    borderWidth: 2,
-    borderColor: '#241f2e',
-    backgroundColor: '#f4f1ea',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    transform: [{ rotate: '2deg' }],
-  },
-  counterText: { fontFamily: faces.display, color: '#241f2e', fontSize: 13 },
-  viewport: { overflow: 'hidden', backgroundColor: '#3f8a4a', borderBottomWidth: 4, borderBottomColor: '#241f2e' },
-  fullTimeBug: {
-    position: 'absolute',
-    top: 12,
-    alignSelf: 'center',
-    backgroundColor: '#241f2eee',
-    borderWidth: 2,
-    borderColor: '#f4f1ea',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  fullTimeText: { fontFamily: faces.display, color: '#f4f1ea', fontSize: 12, letterSpacing: 1.5 },
-  biteCallout: {
-    position: 'absolute',
-    right: 14,
-    bottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-    backgroundColor: '#181420ee',
-    borderWidth: 2,
-    borderColor: '#f7d894',
-    padding: 10,
-  },
-  biteLabel: { fontFamily: faces.display, color: '#f7d894', fontSize: 10, letterSpacing: 1 },
-  biteDetail: { marginTop: 3, color: '#f4f1ea', fontSize: 10 },
-  storyPanel: {
-    margin: 14,
-    padding: 16,
-    width: 'auto',
-    maxWidth: 560,
-    minWidth: 320,
-    alignSelf: 'center',
-    backgroundColor: '#f4f1ea',
-    borderWidth: 3,
-    borderColor: '#241f2e',
-    borderBottomWidth: 7,
-  },
-  storyPanelHero: { backgroundColor: '#edb54a', borderColor: '#f7d894' },
-  storyTopline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  beatKicker: { fontFamily: faces.data, color: '#d94f52', fontSize: 11, letterSpacing: 1 },
-  tapHint: { fontFamily: faces.data, color: '#6b6675', fontSize: 9, letterSpacing: 0.8 },
-  heroInk: { color: '#241f2e' },
-  beatTitle: { marginTop: 8, fontFamily: faces.display, color: '#241f2e', fontSize: 24, lineHeight: 28, textTransform: 'uppercase' },
-  powerName: { marginTop: 4, fontFamily: faces.display, color: '#f4f1ea', fontSize: 17, textTransform: 'uppercase', letterSpacing: 1 },
-  powerDescriptionCard: { marginTop: 10, borderWidth: 2, borderColor: '#3f6fb5', backgroundColor: '#a3c8f0', paddingHorizontal: 10, paddingVertical: 8 },
-  powerDescriptionLabel: { color: '#3f6fb5', fontFamily: faces.display, fontSize: 8, letterSpacing: 1.4 },
-  powerDescription: { marginTop: 4, color: '#241f2e', fontSize: 14, lineHeight: 19 },
-  storyCopy: { marginTop: 12, color: '#3a3350', fontSize: 15, lineHeight: 22 },
-  heroCopy: { color: '#241f2e' },
-  heroFooter: { marginTop: 14, paddingTop: 12, borderTopWidth: 2, borderTopColor: '#241f2e55', flexDirection: 'row', justifyContent: 'space-between' },
-  license: { fontFamily: faces.data, color: '#241f2e', fontSize: 10, textTransform: 'uppercase' },
-  ctaAnchor: { position: 'relative' },
-  ctaGlow: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    backgroundColor: '#edb54a',
-    // Same halo geometry as the guided-alert glow, in hero gold: docs/08 gives
-    // gold to hero and power elements, and this whole screen is one.
-    boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)',
-    shadowColor: '#edb54a',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 9,
-    elevation: 10,
-  },
-  ctaChip: {
-    backgroundColor: '#241f2e',
-    borderWidth: 2,
-    borderColor: '#f7d894',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  ctaText: {
-    fontFamily: faces.display,
-    color: '#edb54a',
-    fontSize: 10,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: '#3f8a4a' },
+    flex: { flex: 1 },
+    header: {
+      minHeight: 84,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    eyebrow: {
+      fontFamily: faces.display,
+      color: '#f7d894',
+      fontSize: 10,
+      letterSpacing: 2,
+    },
+    fixture: {
+      marginTop: 6,
+      fontFamily: faces.data,
+      color: '#f4f1ea',
+      fontSize: 12,
+      textTransform: 'uppercase',
+    },
+    counter: {
+      borderWidth: 2,
+      borderColor: '#241f2e',
+      backgroundColor: '#f4f1ea',
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+      transform: [{ rotate: '2deg' }],
+    },
+    counterText: { fontFamily: faces.display, color: '#241f2e', fontSize: 13 },
+    viewport: {
+      overflow: 'hidden',
+      backgroundColor: '#3f8a4a',
+      borderBottomWidth: 4,
+      borderBottomColor: '#241f2e',
+    },
+    fullTimeBug: {
+      position: 'absolute',
+      top: 12,
+      alignSelf: 'center',
+      backgroundColor: '#241f2eee',
+      borderWidth: 2,
+      borderColor: '#f4f1ea',
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+    },
+    fullTimeText: {
+      fontFamily: faces.display,
+      color: '#f4f1ea',
+      fontSize: 12,
+      letterSpacing: 1.5,
+    },
+    biteCallout: {
+      position: 'absolute',
+      right: 14,
+      bottom: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
+      backgroundColor: '#181420ee',
+      borderWidth: 2,
+      borderColor: '#f7d894',
+      padding: 10,
+    },
+    biteLabel: {
+      fontFamily: faces.display,
+      color: '#f7d894',
+      fontSize: 10,
+      letterSpacing: 1,
+    },
+    biteDetail: { marginTop: 3, color: '#f4f1ea', fontSize: 10 },
+    storyPanel: {
+      margin: 14,
+      padding: 16,
+      width: 'auto',
+      maxWidth: 560,
+      minWidth: 320,
+      alignSelf: 'center',
+      backgroundColor: '#f4f1ea',
+      borderWidth: 3,
+      borderColor: '#241f2e',
+      borderBottomWidth: 7,
+    },
+    storyPanelHero: { backgroundColor: '#edb54a', borderColor: '#f7d894' },
+    storyTopline: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    beatKicker: {
+      fontFamily: faces.data,
+      color: '#d94f52',
+      fontSize: 11,
+      letterSpacing: 1,
+    },
+    tapHint: {
+      fontFamily: faces.data,
+      color: '#6b6675',
+      fontSize: 9,
+      letterSpacing: 0.8,
+    },
+    heroInk: { color: '#241f2e' },
+    beatTitle: {
+      marginTop: 8,
+      fontFamily: faces.display,
+      color: '#241f2e',
+      fontSize: 24,
+      lineHeight: 28,
+      textTransform: 'uppercase',
+    },
+    powerName: {
+      marginTop: 4,
+      fontFamily: faces.display,
+      color: '#f4f1ea',
+      fontSize: 17,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    powerDescriptionCard: {
+      marginTop: 10,
+      borderWidth: 2,
+      borderColor: '#3f6fb5',
+      backgroundColor: '#a3c8f0',
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    powerDescriptionLabel: {
+      color: '#3f6fb5',
+      fontFamily: faces.display,
+      fontSize: 8,
+      letterSpacing: 1.4,
+    },
+    powerDescription: {
+      marginTop: 4,
+      color: '#241f2e',
+      fontSize: 14,
+      lineHeight: 19,
+    },
+    storyCopy: {
+      marginTop: 12,
+      color: '#3a3350',
+      fontSize: 15,
+      lineHeight: 22,
+    },
+    heroCopy: { color: '#241f2e' },
+    heroFooter: {
+      marginTop: 14,
+      paddingTop: 12,
+      borderTopWidth: 2,
+      borderTopColor: '#241f2e55',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    license: {
+      fontFamily: faces.data,
+      color: '#241f2e',
+      fontSize: 10,
+      textTransform: 'uppercase',
+    },
+    ctaAnchor: { position: 'relative' },
+    ctaGlow: {
+      position: 'absolute',
+      top: -4,
+      left: -4,
+      right: -4,
+      bottom: -4,
+      backgroundColor: '#edb54a',
+      // Same halo geometry as the guided-alert glow, in hero gold: docs/08 gives
+      // gold to hero and power elements, and this whole screen is one.
+      boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)',
+      shadowColor: '#edb54a',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 1,
+      shadowRadius: 9,
+      elevation: 10,
+    },
+    ctaChip: {
+      backgroundColor: '#241f2e',
+      borderWidth: 2,
+      borderColor: '#f7d894',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    ctaText: {
+      fontFamily: faces.display,
+      color: '#edb54a',
+      fontSize: 10,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    graphicsRecoveryOverlay: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      zIndex: 60,
+      elevation: 60,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(22,18,31,0.9)',
+      padding: 18,
+    },
+    graphicsRecoveryCard: {
+      width: '100%',
+      maxWidth: 520,
+      borderWidth: 3,
+      borderBottomWidth: 7,
+      borderColor: '#241f2e',
+      backgroundColor: '#f4f1ea',
+      padding: 16,
+    },
+    graphicsRecoveryTitle: {
+      color: '#241f2e',
+      fontFamily: faces.display,
+      fontSize: 18,
+      lineHeight: 24,
+      textTransform: 'uppercase',
+    },
+    graphicsRecoveryDetail: {
+      marginTop: 8,
+      color: '#3a3350',
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    graphicsRecoveryButtons: {
+      marginTop: 16,
+      flexDirection: 'row',
+      gap: 10,
+    },
+    graphicsRecoveryButton: {
+      flex: 1,
+      minHeight: 46,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderBottomWidth: 5,
+      borderColor: '#241f2e',
+      backgroundColor: '#6b6675',
+      paddingHorizontal: 8,
+    },
+    graphicsRecoveryButtonPrimary: {
+      flex: 1,
+      minHeight: 46,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderBottomWidth: 5,
+      borderColor: '#241f2e',
+      backgroundColor: '#2f55b8',
+      paddingHorizontal: 8,
+    },
+    graphicsRecoveryButtonText: {
+      color: '#f4f1ea',
+      fontFamily: faces.display,
+      fontSize: 11,
+      textAlign: 'center',
+    },
+  });

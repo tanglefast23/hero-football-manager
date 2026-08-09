@@ -29,7 +29,7 @@ export function CelebrationCoachRow({
   if (coaches.length === 0) return null;
   return (
     <View pointerEvents="none" style={[styles.row, style]}>
-      {coaches.map(coach => (
+      {coaches.map((coach) => (
         <ManagementSprite
           key={coach.id}
           spriteKey={coach.spriteKey}

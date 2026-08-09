@@ -76,12 +76,7 @@ export interface InstantDrillResolution {
  * a bonus.
  */
 export type TrainingModifierKind =
-  | 'YOUTH'
-  | 'VETERAN'
-  | 'ROLE'
-  | 'ARCHETYPE'
-  | 'FACILITY'
-  | 'COACH';
+  'YOUTH' | 'VETERAN' | 'ROLE' | 'ARCHETYPE' | 'FACILITY' | 'COACH';
 
 export interface TrainingModifier {
   /**
@@ -135,7 +130,7 @@ export function instantTrainingPreview(
   playerId: string,
   pathId: string,
 ): InstantTrainingPreview {
-  const player = state.players.find(candidate => candidate.id === playerId);
+  const player = state.players.find((candidate) => candidate.id === playerId);
   if (player === undefined || player.clubId !== state.userClubId) {
     throw new Error(`player ${playerId} is not on the user club`);
   }
@@ -161,13 +156,13 @@ export function instantTrainingPreview(
     MAX_PLAYER_ATTRIBUTE,
     checkedAdd(displayedCurrent, baseGain, 'base training attribute'),
   );
-  const adjustedGain = applyInstantGrowthModifiers(
-    state,
-    player,
-    attribute,
-    baseGain,
-  ).value - currentValue;
-  const adjustedAfter = Math.min(MAX_PLAYER_ATTRIBUTE, displayedCurrent + adjustedGain);
+  const adjustedGain =
+    applyInstantGrowthModifiers(state, player, attribute, baseGain).value -
+    currentValue;
+  const adjustedAfter = Math.min(
+    MAX_PLAYER_ATTRIBUTE,
+    displayedCurrent + adjustedGain,
+  );
   return {
     baseAfter,
     adjustedAfter,
@@ -204,42 +199,54 @@ export function trainPlayerInstantly(
   playerId: string,
   pathId: string,
 ): InstantDrillResolution {
-  const player = state.players.find(candidate => candidate.id === playerId);
+  const player = state.players.find((candidate) => candidate.id === playerId);
   if (player === undefined || player.clubId !== state.userClubId) {
     throw new Error(`player ${playerId} is not on the user club`);
   }
   // Two messages, not one "unavailable". The manager can act on an injury —
   // the Medical Bay shortens it — and can only wait out leave, so collapsing
   // them would throw away the one useful thing the error says.
-  if (player.injuryWeeks > 0) throw new Error(`${player.name} is injured and cannot train`);
-  if ((player.awayWeeks ?? 0) > 0) throw new Error(`${player.name} is away and cannot train`);
+  if (player.injuryWeeks > 0)
+    throw new Error(`${player.name} is injured and cannot train`);
+  if ((player.awayWeeks ?? 0) > 0)
+    throw new Error(`${player.name} is away and cannot train`);
   // A TRAINING_PRIORITY promise is a debt: the promised player owns the next
   // drills until their countdown drains. They remind the manager; an injured
   // holder pauses the debt instead of deadlocking training.
-  const targetOwedDrills = (player.priorityDrillsRemaining ?? 0) > 0
-    && hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY');
+  const targetOwedDrills =
+    (player.priorityDrillsRemaining ?? 0) > 0 &&
+    hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY');
   const priorityHolder = pendingTrainingPriorityHolder(state);
   if (!targetOwedDrills && priorityHolder !== undefined) {
     throw new Error(
-      `${priorityHolder.playerName} was promised the next `
-      + `${priorityHolder.remaining} drill${priorityHolder.remaining === 1 ? '' : 's'}, train them first`,
+      `${priorityHolder.playerName} was promised the next ` +
+        `${priorityHolder.remaining} drill${priorityHolder.remaining === 1 ? '' : 's'}, train them first`,
     );
   }
   const drill = resolveTrainingDrillForPath(state, pathId);
   if (drill.tpCost > state.trainingPoints) {
-    throw new Error(`training needs ${drill.tpCost} TP but only ${state.trainingPoints} are available`);
+    throw new Error(
+      `training needs ${drill.tpCost} TP but only ${state.trainingPoints} are available`,
+    );
   }
 
   const nonce = state.totalInstantDrills ?? 0;
   const superChance = superTrainingChancePercent(playerPotentialGrade(player));
-  const pityReached = (player.drillsSinceSuper ?? 0) + 1 >= SUPER_TRAINING_PITY_DRILLS;
-  const isSuper = pityReached
-    || instantDrillRoll(state.careerSeed, nonce, playerId, 0, 100) < superChance;
+  const pityReached =
+    (player.drillsSinceSuper ?? 0) + 1 >= SUPER_TRAINING_PITY_DRILLS;
+  const isSuper =
+    pityReached ||
+    instantDrillRoll(state.careerSeed, nonce, playerId, 0, 100) < superChance;
 
   const attribute = trainingPathAttribute(pathId);
   const baseDrillGain = drill.gains[attribute] ?? 0;
   const rolledGain = isSuper ? Math.round(baseDrillGain * 1.5) : baseDrillGain;
-  const growth = applyInstantGrowthModifiers(state, player, attribute, rolledGain);
+  const growth = applyInstantGrowthModifiers(
+    state,
+    player,
+    attribute,
+    rolledGain,
+  );
 
   /**
    * Keeper Drills award half the outfield ladder for the same TP, so a keeper's
@@ -274,29 +281,46 @@ export function trainPlayerInstantly(
   // 2 and hid it; the first ladder where the halving is not exact would have
   // promised +7 on the card and banked +8.
   const displayMultiplier = keeperDisplayLadderMultiplier(state, drill.id);
-  const displayBonusBefore = attribute === 'ref' ? player.refDisplayBonus ?? 0 : 0;
-  const displayBonusAfter = displayMultiplier <= 1
-    ? displayBonusBefore
-    : displayBonusBefore
-      + (applyInstantGrowthModifiers(state, player, attribute, rolledGain * displayMultiplier).value
-        - growth.value);
+  const displayBonusBefore =
+    attribute === 'ref' ? (player.refDisplayBonus ?? 0) : 0;
+  const displayBonusAfter =
+    displayMultiplier <= 1
+      ? displayBonusBefore
+      : displayBonusBefore +
+        (applyInstantGrowthModifiers(
+          state,
+          player,
+          attribute,
+          rolledGain * displayMultiplier,
+        ).value -
+          growth.value);
 
   const conditionBefore = player.condition ?? 100;
-  const injuryRiskReductionPercent = state.facilities.grid === undefined
-    ? 0
-    : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
-  const injuryChancePercent = conditionBefore >= OVERTRAINING_CONDITION_THRESHOLD
-    ? 0
-    : overtrainingInjuryChancePercent(conditionBefore, injuryRiskReductionPercent);
-  const injured = injuryChancePercent > 0
-    && instantDrillRoll(state.careerSeed, nonce, playerId, 1, 100) < injuryChancePercent;
+  const injuryRiskReductionPercent =
+    state.facilities.grid === undefined
+      ? 0
+      : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
+  const injuryChancePercent =
+    conditionBefore >= OVERTRAINING_CONDITION_THRESHOLD
+      ? 0
+      : overtrainingInjuryChancePercent(
+          conditionBefore,
+          injuryRiskReductionPercent,
+        );
+  const injured =
+    injuryChancePercent > 0 &&
+    instantDrillRoll(state.careerSeed, nonce, playerId, 1, 100) <
+      injuryChancePercent;
   const recoveryWeeks = injured
     ? medicalBayRecoveryWeeks(
         2 + instantDrillRoll(state.careerSeed, nonce, playerId, 2, 5),
         gridMedicalBayLevel(state.facilities.grid),
       )
     : undefined;
-  const conditionAfter = Math.max(0, conditionBefore - INSTANT_DRILL_CONDITION_COST);
+  const conditionAfter = Math.max(
+    0,
+    conditionBefore - INSTANT_DRILL_CONDITION_COST,
+  );
 
   const trainedPlayer: CareerPlayer = {
     ...player,
@@ -318,7 +342,7 @@ export function trainPlayerInstantly(
 
   const nextState: GameState = {
     ...state,
-    players: state.players.map(candidate =>
+    players: state.players.map((candidate) =>
       candidate.id === playerId ? trainedPlayer : candidate,
     ),
     trainingPoints: state.trainingPoints - drill.tpCost,
@@ -328,7 +352,10 @@ export function trainPlayerInstantly(
   return {
     // A tap-time injury must bench the starter right away — settlement no
     // longer stands between training and the next matchday to repair it.
-    state: recoveryWeeks === undefined ? nextState : repairCareerLineupForInjuries(nextState),
+    state:
+      recoveryWeeks === undefined
+        ? nextState
+        : repairCareerLineupForInjuries(nextState),
     playerId,
     pathId,
     drillId: drill.id,
@@ -338,8 +365,14 @@ export function trainPlayerInstantly(
     before: player.attrs[attribute],
     after: growth.value,
     // Clamped on the way out, like every other read of the displayed value.
-    displayedBefore: Math.min(MAX_PLAYER_ATTRIBUTE, player.attrs[attribute] + displayBonusBefore),
-    displayedAfter: Math.min(MAX_PLAYER_ATTRIBUTE, growth.value + displayBonusAfter),
+    displayedBefore: Math.min(
+      MAX_PLAYER_ATTRIBUTE,
+      player.attrs[attribute] + displayBonusBefore,
+    ),
+    displayedAfter: Math.min(
+      MAX_PLAYER_ATTRIBUTE,
+      growth.value + displayBonusAfter,
+    ),
     conditionAfter,
     ...(recoveryWeeks === undefined
       ? {}
@@ -360,38 +393,54 @@ function applyInstantGrowthModifiers(
   rolledGain: number,
 ): {
   value: number;
-  trainingBonusRemainders?: Partial<Record<keyof CareerPlayer['attrs'], number>>;
+  trainingBonusRemainders?: Partial<
+    Record<keyof CareerPlayer['attrs'], number>
+  >;
   facilityStaBonusRemainder?: number;
 } {
-  const coachModifiers = state.market === undefined
-    ? undefined
-    : careerCoachTrainingModifiers(state.market);
-  const structuralMultiplier = trainingMultiplierForAge(player.age ?? 24)
-    * facilityTrainingMultiplier(state, attribute);
+  const coachModifiers =
+    state.market === undefined
+      ? undefined
+      : careerCoachTrainingModifiers(state.market);
+  const structuralMultiplier =
+    trainingMultiplierForAge(player.age ?? 24) *
+    facilityTrainingMultiplier(state, attribute);
   // A granted "my own guru" or "ease off the lads" scales gains for its spell.
   // The floor of 1 stays: a drill must always be worth something, even at a
   // compounded 30%, or the manager pays TP for literally nothing.
-  const requestScale = drillMultiplierPercent(state.playerRequests?.effects ?? [], player.id);
+  const requestScale = drillMultiplierPercent(
+    state.playerRequests?.effects ?? [],
+    player.id,
+  );
   const baseGain = Math.max(
     1,
-    Math.round(rolledGain * structuralMultiplier * requestScale / 100),
+    Math.round((rolledGain * structuralMultiplier * requestScale) / 100),
   );
-  const coachBonusPercent = (coachModifiers?.gainScalePercentByAttribute[attribute] ?? 100) - 100;
-  const developmentBonusPercent = archetypeTrainingBonusPercent(player.archetype, attribute)
-    + positionTrainingBonusPercent(player.role, attribute)
-    + coachBonusPercent;
+  const coachBonusPercent =
+    (coachModifiers?.gainScalePercentByAttribute[attribute] ?? 100) - 100;
+  const developmentBonusPercent =
+    archetypeTrainingBonusPercent(player.archetype, attribute) +
+    positionTrainingBonusPercent(player.role, attribute) +
+    coachBonusPercent;
 
   const trainingBonusRemainders = {
-    ...(player.trainingBonusRemainders ?? player.coachTrainingBonusRemainders ?? {}),
+    ...(player.trainingBonusRemainders ??
+      player.coachTrainingBonusRemainders ??
+      {}),
   };
   const previousRemainder = trainingBonusRemainders[attribute] ?? 0;
   validateCoachTrainingRemainder(previousRemainder, player.id, attribute);
   // Bank hundredths so small percent bonuses remain exact even when one drill
   // cannot award a whole extra attribute point.
-  const earnedHundredths = developmentBonusPercent === 0
-    ? 0
-    : Math.round(rolledGain * structuralMultiplier * developmentBonusPercent);
-  const totalHundredths = checkedAdd(previousRemainder, earnedHundredths, 'training bonus progress');
+  const earnedHundredths =
+    developmentBonusPercent === 0
+      ? 0
+      : Math.round(rolledGain * structuralMultiplier * developmentBonusPercent);
+  const totalHundredths = checkedAdd(
+    previousRemainder,
+    earnedHundredths,
+    'training bonus progress',
+  );
   const extraGain = Math.floor(totalHundredths / 100);
   const nextRemainder = totalHundredths % 100;
   const proposedValue = checkedAdd(
@@ -399,22 +448,33 @@ function applyInstantGrowthModifiers(
     checkedAdd(baseGain, extraGain, 'adjusted training gain'),
     'adjusted training attribute',
   );
-  let value = capPlayerTrainingGain(player, attribute, player.attrs[attribute], proposedValue);
+  let value = capPlayerTrainingGain(
+    player,
+    attribute,
+    player.attrs[attribute],
+    proposedValue,
+  );
   if (developmentBonusPercent > 0) {
-    trainingBonusRemainders[attribute] = value < proposedValue ? 0 : nextRemainder;
+    trainingBonusRemainders[attribute] =
+      value < proposedValue ? 0 : nextRemainder;
   }
 
   let facilityStaBonusRemainder: number | undefined;
   if (attribute === 'sta') {
-    const staminaBonusPercent = state.facilities.grid === undefined
-      ? 0
-      : facilityEffects(state.facilities.grid).staminaTrainingBonusPercent;
+    const staminaBonusPercent =
+      state.facilities.grid === undefined
+        ? 0
+        : facilityEffects(state.facilities.grid).staminaTrainingBonusPercent;
     const realizedGain = value - player.attrs.sta;
     if (staminaBonusPercent > 0 && realizedGain > 0) {
       const previousStaRemainder = player.facilityStaBonusRemainder ?? 0;
       const totalPercentagePoints = checkedAdd(
         previousStaRemainder,
-        checkedMultiply(realizedGain, staminaBonusPercent, 'facility stamina bonus progress'),
+        checkedMultiply(
+          realizedGain,
+          staminaBonusPercent,
+          'facility stamina bonus progress',
+        ),
         'facility stamina bonus progress',
       );
       const staExtra = Math.floor(totalPercentagePoints / 100);
@@ -428,13 +488,16 @@ function applyInstantGrowthModifiers(
     }
   }
 
-  const hasPercentBonusState = developmentBonusPercent > 0
-    || player.trainingBonusRemainders !== undefined
-    || player.coachTrainingBonusRemainders !== undefined;
+  const hasPercentBonusState =
+    developmentBonusPercent > 0 ||
+    player.trainingBonusRemainders !== undefined ||
+    player.coachTrainingBonusRemainders !== undefined;
   return {
     value,
     ...(hasPercentBonusState ? { trainingBonusRemainders } : {}),
-    ...(facilityStaBonusRemainder === undefined ? {} : { facilityStaBonusRemainder }),
+    ...(facilityStaBonusRemainder === undefined
+      ? {}
+      : { facilityStaBonusRemainder }),
   };
 }
 
@@ -483,33 +546,39 @@ const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
  * reading of it, not a replacement.
  */
 export function playerGrowthGrade(player: CareerPlayer): PotentialGrade {
-  const trainable = (Object.keys(player.attrs) as (keyof CareerPlayer['attrs'])[])
-    .filter(attribute => attributeAffectsPlay(player.role, attribute));
+  const trainable = (
+    Object.keys(player.attrs) as (keyof CareerPlayer['attrs'])[]
+  ).filter((attribute) => attributeAffectsPlay(player.role, attribute));
   // Averaged across the attributes this role actually uses, because the bonuses
   // are per-attribute — a Sniper is +15% on Shooting and nothing on Defense, and
   // one letter cannot say so. The mean is what they get over a season of drills.
-  const averageBonusPercent = trainable.length === 0
-    ? 0
-    : trainable.reduce(
-      (total, attribute) => total
-        + positionTrainingBonusPercent(player.role, attribute)
-        + archetypeTrainingBonusPercent(player.archetype, attribute),
-      0,
-    ) / trainable.length;
+  const averageBonusPercent =
+    trainable.length === 0
+      ? 0
+      : trainable.reduce(
+          (total, attribute) =>
+            total +
+            positionTrainingBonusPercent(player.role, attribute) +
+            archetypeTrainingBonusPercent(player.archetype, attribute),
+          0,
+        ) / trainable.length;
 
-  const multiplier = trainingMultiplierForAge(player.age ?? 24)
-    * (1 + averageBonusPercent / 100);
+  const multiplier =
+    trainingMultiplierForAge(player.age ?? 24) *
+    (1 + averageBonusPercent / 100);
   const multiplierScore = clamp01(
-    (multiplier - GROWTH_MULTIPLIER_FLOOR)
-    / (GROWTH_MULTIPLIER_CEILING - GROWTH_MULTIPLIER_FLOOR),
+    (multiplier - GROWTH_MULTIPLIER_FLOOR) /
+      (GROWTH_MULTIPLIER_CEILING - GROWTH_MULTIPLIER_FLOOR),
   );
   const superScore = clamp01(
-    (superTrainingChancePercent(playerPotentialGrade(player)) - GROWTH_SUPER_FLOOR)
-    / (GROWTH_SUPER_CEILING - GROWTH_SUPER_FLOOR),
+    (superTrainingChancePercent(playerPotentialGrade(player)) -
+      GROWTH_SUPER_FLOOR) /
+      (GROWTH_SUPER_CEILING - GROWTH_SUPER_FLOOR),
   );
 
-  const blended = GROWTH_MULTIPLIER_WEIGHT * multiplierScore
-    + GROWTH_SUPER_WEIGHT * superScore;
+  const blended =
+    GROWTH_MULTIPLIER_WEIGHT * multiplierScore +
+    GROWTH_SUPER_WEIGHT * superScore;
   return POTENTIAL_GRADES[Math.round(blended * (POTENTIAL_GRADES.length - 1))];
 }
 
@@ -523,13 +592,20 @@ function instantGrowthModifierLabels(
   // The only entry on this list that can cost the player anything. Every other
   // modifier below is pushed solely when it pays, so `helps` is false here and
   // nowhere else — which is exactly what the card colours on.
-  if (ageMultiplier > 1) modifiers.push({ kind: 'YOUTH', label: 'Youth', helps: true });
-  if (ageMultiplier < 1) modifiers.push({ kind: 'VETERAN', label: 'Veteran', helps: false });
+  if (ageMultiplier > 1)
+    modifiers.push({ kind: 'YOUTH', label: 'Youth', helps: true });
+  if (ageMultiplier < 1)
+    modifiers.push({ kind: 'VETERAN', label: 'Veteran', helps: false });
   if (positionTrainingBonusPercent(player.role, attribute) > 0) {
     // The role CODE is the label. GK/DEF/MID/FWD are drawn untranslated
     // everywhere else in the game — the register column, the squad chips — so
     // translating them only here would make the same player two things at once.
-    modifiers.push({ kind: 'ROLE', token: player.role, label: player.role, helps: true });
+    modifiers.push({
+      kind: 'ROLE',
+      token: player.role,
+      label: player.role,
+      helps: true,
+    });
   }
   if (archetypeTrainingBonusPercent(player.archetype, attribute) > 0) {
     modifiers.push({
@@ -550,10 +626,14 @@ function instantGrowthModifierLabels(
       helps: true,
     });
   }
-  const coachScale = state.market === undefined
-    ? 100
-    : careerCoachTrainingModifiers(state.market).gainScalePercentByAttribute[attribute];
-  if (coachScale > 100) modifiers.push({ kind: 'COACH', label: 'Coach', helps: true });
+  const coachScale =
+    state.market === undefined
+      ? 100
+      : careerCoachTrainingModifiers(state.market).gainScalePercentByAttribute[
+          attribute
+        ];
+  if (coachScale > 100)
+    modifiers.push({ kind: 'COACH', label: 'Coach', helps: true });
   return modifiers;
 }
 
@@ -564,11 +644,11 @@ function instantDrillRoll(
   stream: number,
   upperExclusive: number,
 ): number {
-  const seed = (
-    careerSeed
-    ^ Math.imul(nonce + 1, 0x9e3779b1)
-    ^ Math.imul(fnvHashString(playerId), stream + 1)
-  ) >>> 0;
+  const seed =
+    (careerSeed ^
+      Math.imul(nonce + 1, 0x9e3779b1) ^
+      Math.imul(fnvHashString(playerId), stream + 1)) >>>
+    0;
   return Math.floor(mulberry32(seed)() * upperExclusive);
 }
 
@@ -586,7 +666,9 @@ function validateCoachTrainingRemainder(
   attribute: keyof CareerPlayer['attrs'],
 ): void {
   if (!Number.isSafeInteger(remainder) || remainder < 0 || remainder >= 100) {
-    throw new Error(`player ${playerId} ${attribute} coach training remainder must be from 0 to 99`);
+    throw new Error(
+      `player ${playerId} ${attribute} coach training remainder must be from 0 to 99`,
+    );
   }
 }
 
@@ -597,7 +679,9 @@ function validateCoachTrainingRemainder(
  * Court a club ever built changed nothing, at the only level a D5 club can
  * afford. Level 2 and 3 keep their previous x1.5 and x2.0.
  */
-export const FACILITY_TRAINING_MULTIPLIER: readonly number[] = [1, 1.25, 1.5, 2];
+export const FACILITY_TRAINING_MULTIPLIER: readonly number[] = [
+  1, 1.25, 1.5, 2,
+];
 
 function facilityTrainingMultiplier(
   state: GameState,
@@ -615,7 +699,7 @@ function facilityTrainingMultiplier(
    * making your players worse than owning no gym. Scaling `base − 1` keeps the
    * floor at exactly 1.0 and still moves the part the building actually earned.
    */
-  return 1 + (base - 1) * (100 + boost) / 100;
+  return 1 + ((base - 1) * (100 + boost)) / 100;
 }
 
 function trainingFacilityType(
@@ -628,8 +712,8 @@ function trainingFacilityType(
       : attribute === 'pas' || attribute === 'tec'
         ? 'tech-center'
         : attribute === 'pac' || attribute === 'sta'
-        ? 'gym'
-        : 'training-pitch';
+          ? 'gym'
+          : 'training-pitch';
 }
 
 function facilityTrainingLevel(
@@ -663,12 +747,14 @@ function bestTrainingBuilding(
 
 function checkedAdd(left: number, right: number, label: string): number {
   const result = left + right;
-  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(result))
+    throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }
 
 function checkedMultiply(left: number, right: number, label: string): number {
   const result = left * right;
-  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(result))
+    throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }

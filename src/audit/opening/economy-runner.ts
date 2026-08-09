@@ -32,7 +32,11 @@ const CREATED_PLAYER_RATINGS = {
   tec: 50,
   sta: 50,
 } as const;
-const SAFETY_LINE_KINDS = new Set(['emergency-loan', 'board-sale', 'board-rescue']);
+const SAFETY_LINE_KINDS = new Set([
+  'emergency-loan',
+  'board-sale',
+  'board-rescue',
+]);
 
 export type EconomyOutcomePolicy = 'STRONG' | 'REPRESENTATIVE';
 
@@ -70,12 +74,16 @@ export function runOpeningEconomy(
   options: OpeningEconomyRunOptions,
 ): OpeningEconomyRun {
   let state = addCreatedPlayer(
-    beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-      options.seed,
-      undefined,
-      content,
-      options.difficulty,
-    ))),
+    beginStoryOnboarding(
+      createCareer(
+        createLaunchCareerSetup(
+          options.seed,
+          undefined,
+          content,
+          options.difficulty,
+        ),
+      ),
+    ),
     {
       name: 'Economy Rookie',
       ratings: { ...CREATED_PLAYER_RATINGS },
@@ -96,46 +104,57 @@ export function runOpeningEconomy(
       continue;
     }
     if (state.phase !== 'matchday') {
-      throw new Error(`economy runner entered unsupported phase ${state.phase}`);
+      throw new Error(
+        `economy runner entered unsupported phase ${state.phase}`,
+      );
     }
 
     const matchday = activeCareerMatchday(state);
-    if (matchday === undefined) throw new Error('economy runner lost its active matchday');
+    if (matchday === undefined)
+      throw new Error('economy runner lost its active matchday');
     const played = playPolicyMatchday(state, matchday, options.outcomes);
     state = played.state;
     if (matchday.kind === 'league') leagueMatches += 1;
     else cupMatches += 1;
 
-    if (options.throughSeasonEnd !== true
-      && leagueMatches >= 7
-      && cupMatches >= 1
-      && state.phase === 'manage') {
+    if (
+      options.throughSeasonEnd !== true &&
+      leagueMatches >= 7 &&
+      cupMatches >= 1 &&
+      state.phase === 'manage'
+    ) {
       break;
     }
   }
 
-  if (guard >= 96) throw new Error('economy runner exceeded its transition guard');
+  if (guard >= 96)
+    throw new Error('economy runner exceeded its transition guard');
   if (options.throughSeasonEnd === true && state.phase !== 'season-end') {
     throw new Error('economy runner did not reach the Season-1 review');
   }
-  if (options.throughSeasonEnd !== true && (leagueMatches < 7 || cupMatches < 1)) {
+  if (
+    options.throughSeasonEnd !== true &&
+    (leagueMatches < 7 || cupMatches < 1)
+  ) {
     throw new Error('economy runner did not reach the opening checkpoint');
   }
 
   const club = userClub(state);
-  const ledgerLines = state.ledgers.flatMap(ledger => ledger.lines);
+  const ledgerLines = state.ledgers.flatMap((ledger) => ledger.lines);
   const prizeIncome = ledgerLines
-    .filter(line => line.kind === 'prize')
+    .filter((line) => line.kind === 'prize')
     .reduce((sum, line) => sum + line.amount, 0);
   const capitalSpend = -(state.cashTransactions ?? [])
-    .filter(transaction => transaction.kind === 'facility-build')
+    .filter((transaction) => transaction.kind === 'facility-build')
     .reduce((sum, transaction) => sum + transaction.amount, 0);
   const operatingLedgerNet = ledgerLines
-    .filter(line => line.kind !== 'prize' && !SAFETY_LINE_KINDS.has(line.kind))
+    .filter(
+      (line) => line.kind !== 'prize' && !SAFETY_LINE_KINDS.has(line.kind),
+    )
     .reduce((sum, line) => sum + line.amount, 0);
-  const stand = state.facilities.grid?.buildings.find(building => (
-    building.type === 'stadium-stand'
-  ));
+  const stand = state.facilities.grid?.buildings.find(
+    (building) => building.type === 'stadium-stand',
+  );
 
   return {
     seed: options.seed,
@@ -146,23 +165,26 @@ export function runOpeningEconomy(
     leagueMatches,
     cupMatches,
     endingCash: club.cash,
-    endingCashBeforePrizesAndSafety: openingCash
-      - capitalSpend
-      + operatingLedgerNet,
+    endingCashBeforePrizesAndSafety:
+      openingCash - capitalSpend + operatingLedgerNet,
     capitalSpend,
     prizeIncome,
-    emergencyLoan: ledgerLines.some(line => line.kind === 'emergency-loan'),
-    forcedSale: ledgerLines.some(line => line.kind === 'board-sale'),
-    cashFloorTopUp: ledgerLines.some(line => line.kind === 'board-rescue'),
-    stadiumOperational: stand !== undefined
-      && isFacilityOperational(state.facilities.grid!, stand.id),
+    emergencyLoan: ledgerLines.some((line) => line.kind === 'emergency-loan'),
+    forcedSale: ledgerLines.some((line) => line.kind === 'board-sale'),
+    cashFloorTopUp: ledgerLines.some((line) => line.kind === 'board-rescue'),
+    stadiumOperational:
+      stand !== undefined &&
+      isFacilityOperational(state.facilities.grid!, stand.id),
   };
 }
 
 function applyGuidedOpeningActions(state: GameState): GameState {
   if (state.week === 1) {
     const head = firstLevelOneCoach(state);
-    state = { ...state, market: hireCareerCoach(state, state.market!, head.id, 'HEAD') };
+    state = {
+      ...state,
+      market: hireCareerCoach(state, state.market!, head.id, 'HEAD'),
+    };
     return buildCareerFacility(state, 'training-pitch', { x: 0, y: 0 }).state;
   }
   if (state.week === 3) {
@@ -183,8 +205,11 @@ function applyGuidedOpeningActions(state: GameState): GameState {
 }
 
 function firstLevelOneCoach(state: GameState) {
-  const coach = state.market?.coachCandidates.find(candidate => candidate.level === 1);
-  if (coach === undefined) throw new Error('guided opening needs an eligible Level-1 coach');
+  const coach = state.market?.coachCandidates.find(
+    (candidate) => candidate.level === 1,
+  );
+  if (coach === undefined)
+    throw new Error('guided opening needs an eligible Level-1 coach');
   return coach;
 }
 
@@ -193,17 +218,21 @@ function playPolicyMatchday(
   matchday: ActiveCareerMatchday,
   policy: EconomyOutcomePolicy,
 ): { state: GameState } {
-  const userFixture = matchday.fixtures.find(fixture => (
-    fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId
-  ));
-  if (userFixture === undefined) throw new Error('active matchday has no user fixture');
-  const outcome = policy === 'STRONG'
-    ? 'WIN' as const
-    : representativeOutcome(state.careerSeed, userFixture.id);
+  const userFixture = matchday.fixtures.find(
+    (fixture) =>
+      fixture.homeClubId === state.userClubId ||
+      fixture.awayClubId === state.userClubId,
+  );
+  if (userFixture === undefined)
+    throw new Error('active matchday has no user fixture');
+  const outcome =
+    policy === 'STRONG'
+      ? ('WIN' as const)
+      : representativeOutcome(state.careerSeed, userFixture.id);
   const userResult = scoreForOutcome(userFixture, state.userClubId, outcome);
-  const results = matchday.fixtures.map(fixture => (
-    fixture.id === userFixture.id ? userResult : backgroundScore(fixture)
-  ));
+  const results = matchday.fixtures.map((fixture) =>
+    fixture.id === userFixture.id ? userResult : backgroundScore(fixture),
+  );
   const participants = userLineup(state);
   const production: ProductionFixtureResult = {
     fixtureResult: userResult,
@@ -213,18 +242,20 @@ function playPolicyMatchday(
   };
   const onboardingMatch = isFirstOnboardingFixture(state, userFixture.id);
   let next = completeMatchday(state, results, production);
-  if (onboardingMatch) next = completeFirstOnboardingMatch(next, userFixture.id);
+  if (onboardingMatch)
+    next = completeFirstOnboardingMatch(next, userFixture.id);
 
   if (matchday.kind === 'league') {
     const awakening = resolvePostMatchAwakening(
       next,
       userFixture.id,
       participants,
-      content.powers.powers.map(power => power.id),
-      content.onboarding.triggers.map(trigger => trigger.id),
+      content.powers.powers.map((power) => power.id),
+      content.onboarding.triggers.map((trigger) => trigger.id),
       {
         chancePercent: content.powers.awakening.postMatchChancePercent,
-        secondInSeasonChancePercent: content.powers.awakening.secondInSeasonChancePercent,
+        secondInSeasonChancePercent:
+          content.powers.awakening.secondInSeasonChancePercent,
         maxPerSeason: content.powers.awakening.maxPerSeason,
         minimumMatchesBetween: content.powers.awakening.minimumMatchesBetween,
       },
@@ -240,9 +271,11 @@ function representativeOutcome(
   careerSeed: number,
   fixtureId: string,
 ): 'WIN' | 'DRAW' | 'LOSS' {
-  const roll = mulberry32((careerSeed ^ Math.imul(hashString(fixtureId), 0x9e3779b1)) >>> 0)();
+  const roll = mulberry32(
+    (careerSeed ^ Math.imul(hashString(fixtureId), 0x9e3779b1)) >>> 0,
+  )();
   if (roll < 0.45) return 'WIN';
-  if (roll < 0.70) return 'DRAW';
+  if (roll < 0.7) return 'DRAW';
   return 'LOSS';
 }
 
@@ -290,13 +323,18 @@ function hashString(value: string): number {
 }
 
 function userLineup(state: GameState): string[] {
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
-  if (lineup === undefined) throw new Error('economy runner lost the user lineup');
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  if (lineup === undefined)
+    throw new Error('economy runner lost the user lineup');
   return [...lineup.playerIds];
 }
 
 function userClub(state: GameState) {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
   if (club === undefined) throw new Error('economy runner lost the user club');
   return club;
 }

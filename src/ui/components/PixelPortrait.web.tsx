@@ -70,7 +70,8 @@ export function PixelPortrait({
   }, [canBlink, spriteKey]);
 
   const colorPaths = useMemo(() => {
-    const rows = blinking && blinkVariant ? blinkVariant : portraitSpriteRows(spriteKey);
+    const rows =
+      blinking && blinkVariant ? blinkVariant : portraitSpriteRows(spriteKey);
     const runs = portraitPixelRuns(rows, spriteKey);
     const commandsByColor = new Map<string, string[]>();
     for (const run of runs) {
@@ -94,7 +95,9 @@ export function PixelPortrait({
       shapeRendering="crispEdges"
       style={{ display: 'block' }}
     >
-      {colorPaths.map(({ color, path }) => <path key={color} d={path} fill={color} />)}
+      {colorPaths.map(({ color, path }) => (
+        <path key={color} d={path} fill={color} />
+      ))}
     </svg>
   );
 }

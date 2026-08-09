@@ -11,10 +11,9 @@ const DATABASE_LOCK_MARKERS = [
  * inside the same document even after the other tab closes.
  */
 export function isBrowserDatabaseLockError(error: unknown): boolean {
-  const detail = error instanceof Error
-    ? `${error.name}: ${error.message}`
-    : String(error);
-  return DATABASE_LOCK_MARKERS.some(marker => detail.includes(marker));
+  const detail =
+    error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  return DATABASE_LOCK_MARKERS.some((marker) => detail.includes(marker));
 }
 
 export interface BrowserReloadTarget {

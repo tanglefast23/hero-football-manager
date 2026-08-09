@@ -19,8 +19,12 @@ describe('management shell safe-area chrome', () => {
 
   test('the HUD bar owns the status-bar strip so it is one colour', () => {
     expect(shell).toContain('className="flex-1 bg-paper-dark"');
-    expect(shell).toContain('className="border-b-2 border-ink bg-paper-dark px-3 pb-2.5"');
-    expect(shell).toContain('style={{ paddingTop: insets.top + HUD_TOP_BREATHING_ROOM }}');
+    expect(shell).toContain(
+      'className="border-b-2 border-ink bg-paper-dark px-3 pb-2.5"',
+    );
+    expect(shell).toContain(
+      'style={{ paddingTop: insets.top + HUD_TOP_BREATHING_ROOM }}',
+    );
   });
 
   test('the tab bar reaches the bottom edge with trimmed clearance', () => {
@@ -31,6 +35,8 @@ describe('management shell safe-area chrome', () => {
   });
 
   test('the content column keeps the paper backdrop', () => {
-    expect(shell).toContain('<View className="flex-1 bg-paper">{children}</View>');
+    expect(shell).toContain(
+      '<View className="flex-1 bg-paper">{children}</View>',
+    );
   });
 });

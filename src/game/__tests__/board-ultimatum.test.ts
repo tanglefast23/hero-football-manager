@@ -17,18 +17,25 @@ describe('board ultimatum domain', () => {
   test('creates a byte-identical visible list of four discounted safe candidates', () => {
     const state = career(9501);
     const first = createBoardUltimatum(state)!;
-    const second = createBoardUltimatum(JSON.parse(JSON.stringify(state)) as typeof state)!;
+    const second = createBoardUltimatum(
+      JSON.parse(JSON.stringify(state)) as typeof state,
+    )!;
 
     expect(first).toEqual(second);
     expect(first.weeksRemaining).toBe(4);
     expect(first.targetCash).toBe(0);
     expect(first.candidates).toHaveLength(4);
-    expect(new Set(first.candidates.map(candidate => candidate.playerId)).size).toBe(4);
-    expect(first.candidates.every(candidate => (
-      candidate.discountPercent === 30
-      && candidate.forcedSaleFee > 0
-      && candidate.forcedSaleFee < candidate.marketValue
-    ))).toBe(true);
+    expect(
+      new Set(first.candidates.map((candidate) => candidate.playerId)).size,
+    ).toBe(4);
+    expect(
+      first.candidates.every(
+        (candidate) =>
+          candidate.discountPercent === 30 &&
+          candidate.forcedSaleFee > 0 &&
+          candidate.forcedSaleFee < candidate.marketValue,
+      ),
+    ).toBe(true);
   });
 
   test('protects exactly one visible candidate and never selects them at the deadline', () => {
@@ -43,74 +50,116 @@ describe('board ultimatum domain', () => {
       },
     };
     const protectedId = ultimatum.candidates[0].playerId;
-    const protectedState = protectBoardUltimatumPlayer(withUltimatum, protectedId);
+    const protectedState = protectBoardUltimatumPlayer(
+      withUltimatum,
+      protectedId,
+    );
     const resolution = boardForcedSaleAtDeadline(
       protectedState,
       protectedState.financialSafety!.boardUltimatum!,
     )!;
 
-    expect(protectedState.financialSafety?.boardUltimatum?.protectedPlayerId).toBe(protectedId);
+    expect(
+      protectedState.financialSafety?.boardUltimatum?.protectedPlayerId,
+    ).toBe(protectedId);
     expect(resolution.playerId).not.toBe(protectedId);
-    expect(ultimatum.candidates.map(candidate => candidate.playerId)).toContain(resolution.playerId);
-    expect(() => protectBoardUltimatumPlayer(withUltimatum, 'not-visible'))
-      .toThrow('visible board candidates');
+    expect(
+      ultimatum.candidates.map((candidate) => candidate.playerId),
+    ).toContain(resolution.playerId);
+    expect(() =>
+      protectBoardUltimatumPlayer(withUltimatum, 'not-visible'),
+    ).toThrow('visible board candidates');
   });
 
   test('applies the exact stored sale with payroll, lineup, morale, and fan consequences', () => {
     const state = career(9503);
     const ultimatum = createBoardUltimatum(state)!;
     const resolution = boardForcedSaleAtDeadline(state, ultimatum)!;
-    const player = state.players.find(candidate => candidate.id === resolution.playerId)!;
-    const userClub = state.clubs.find(club => club.id === state.userClubId)!;
-    const buyer = state.clubs.find(club => club.id === resolution.buyerClubId)!;
+    const player = state.players.find(
+      (candidate) => candidate.id === resolution.playerId,
+    )!;
+    const userClub = state.clubs.find((club) => club.id === state.userClubId)!;
+    const buyer = state.clubs.find(
+      (club) => club.id === resolution.buyerClubId,
+    )!;
     const next = applyBoardForcedSaleConsequences(state, resolution);
 
-    expect(next.players.find(candidate => candidate.id === player.id)?.clubId)
-      .toBe(buyer.id);
-    expect(next.clubs.find(club => club.id === state.userClubId)).toMatchObject({
+    expect(
+      next.players.find((candidate) => candidate.id === player.id)?.clubId,
+    ).toBe(buyer.id);
+    expect(
+      next.clubs.find((club) => club.id === state.userClubId),
+    ).toMatchObject({
       fans: userClub.fans - resolution.fansLost,
-      weeklyWages: userClub.weeklyWages - player.weeklyWage
-        + next.players.find(candidate => candidate.id === resolution.replacementPlayerId)!.weeklyWage,
+      weeklyWages:
+        userClub.weeklyWages -
+        player.weeklyWage +
+        next.players.find(
+          (candidate) => candidate.id === resolution.replacementPlayerId,
+        )!.weeklyWage,
     });
-    expect(next.clubs.find(club => club.id === buyer.id)).toMatchObject({
+    expect(next.clubs.find((club) => club.id === buyer.id)).toMatchObject({
       cash: buyer.cash - resolution.fee,
       weeklyWages: buyer.weeklyWages + player.weeklyWage,
     });
-    expect(next.players.filter(candidate => (
-      candidate.clubId === state.userClubId
-      && candidate.id !== resolution.replacementPlayerId
-    ))
-      .every(candidate => candidate.morale === 42)).toBe(true);
-    expect(next.players.find(candidate => candidate.id === resolution.replacementPlayerId))
-      .toMatchObject({ clubId: state.userClubId, role: player.role, age: 17, weeklyWage: expect.any(Number) });
-    expect(next.players.find(candidate => candidate.id === resolution.replacementPlayerId)?.lookId)
-      .toMatch(new RegExp(`^${player.role === 'GK' ? 'g' : 'f'}\\d+$`));
-    expect(next.players.filter(candidate => candidate.clubId === state.userClubId)).toHaveLength(16);
+    expect(
+      next.players
+        .filter(
+          (candidate) =>
+            candidate.clubId === state.userClubId &&
+            candidate.id !== resolution.replacementPlayerId,
+        )
+        .every((candidate) => candidate.morale === 42),
+    ).toBe(true);
+    expect(
+      next.players.find(
+        (candidate) => candidate.id === resolution.replacementPlayerId,
+      ),
+    ).toMatchObject({
+      clubId: state.userClubId,
+      role: player.role,
+      age: 17,
+      weeklyWage: expect.any(Number),
+    });
+    expect(
+      next.players.find(
+        (candidate) => candidate.id === resolution.replacementPlayerId,
+      )?.lookId,
+    ).toMatch(new RegExp(`^${player.role === 'GK' ? 'g' : 'f'}\\d+$`));
+    expect(
+      next.players.filter((candidate) => candidate.clubId === state.userClubId),
+    ).toHaveLength(16);
     expect(() => buildCareerTeamDef(next, state.userClubId)).not.toThrow();
   });
 
   test('a forced sale preserves an unlicensed hero on the bench', () => {
     const state = career(9505);
-    const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+    const lineup = state.lineups.find(
+      (candidate) => candidate.clubId === state.userClubId,
+    )!;
     const starterIds = new Set(lineup.playerIds);
-    const departing = state.players.find(player => (
-      player.clubId === state.userClubId
-      && starterIds.has(player.id)
-      && player.role !== 'GK'
-    ))!;
-    const reserves = state.players.filter(player => (
-      player.clubId === state.userClubId
-      && !starterIds.has(player.id)
-      && player.role !== 'GK'
-    ));
+    const departing = state.players.find(
+      (player) =>
+        player.clubId === state.userClubId &&
+        starterIds.has(player.id) &&
+        player.role !== 'GK',
+    )!;
+    const reserves = state.players.filter(
+      (player) =>
+        player.clubId === state.userClubId &&
+        !starterIds.has(player.id) &&
+        player.role !== 'GK',
+    );
     const unlicensedHero = reserves[0];
     const eligibleReserve = reserves[1];
     if (unlicensedHero === undefined || eligibleReserve === undefined) {
-      throw new Error('expected two outfield reserves for the forced-sale regression');
+      throw new Error(
+        'expected two outfield reserves for the forced-sale regression',
+      );
     }
     const withHeroBenched = {
       ...state,
-      players: state.players.map(player => {
+      players: state.players.map((player) => {
         if (player.id === unlicensedHero.id) {
           return {
             ...player,
@@ -130,17 +179,22 @@ describe('board ultimatum domain', () => {
       issuedWeek: withHeroBenched.week,
       weeksRemaining: 1,
       targetCash: 0,
-      candidates: [{
-        playerId: departing.id,
-        marketValue: 2,
-        forcedSaleFee: 1,
-        discountPercent: 30,
-      }],
+      candidates: [
+        {
+          playerId: departing.id,
+          marketValue: 2,
+          forcedSaleFee: 1,
+          discountPercent: 30,
+        },
+      ],
     });
-    if (resolution === undefined) throw new Error('expected a forced-sale resolution');
+    if (resolution === undefined)
+      throw new Error('expected a forced-sale resolution');
 
     const next = applyBoardForcedSaleConsequences(withHeroBenched, resolution);
-    const nextLineup = next.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+    const nextLineup = next.lineups.find(
+      (candidate) => candidate.clubId === state.userClubId,
+    )!;
 
     expect(nextLineup.playerIds).not.toContain(unlicensedHero.id);
     expect(nextLineup.playerIds).toContain(eligibleReserve.id);
@@ -152,9 +206,9 @@ describe('board ultimatum domain', () => {
     const ultimatum = { ...createBoardUltimatum(state)!, targetCash: 1_000 };
     const below = {
       ...state,
-      clubs: state.clubs.map(club => club.id === state.userClubId
-        ? { ...club, cash: 999 }
-        : club),
+      clubs: state.clubs.map((club) =>
+        club.id === state.userClubId ? { ...club, cash: 999 } : club,
+      ),
       financialSafety: {
         consecutiveNegativeWeeks: 0,
         emergencyLoanUsed: true,
@@ -163,9 +217,9 @@ describe('board ultimatum domain', () => {
     };
     const met = {
       ...below,
-      clubs: below.clubs.map(club => club.id === state.userClubId
-        ? { ...club, cash: 1_000 }
-        : club),
+      clubs: below.clubs.map((club) =>
+        club.id === state.userClubId ? { ...club, cash: 1_000 } : club,
+      ),
     };
 
     expect(clearMetBoardUltimatum(below)).toBe(below);

@@ -46,7 +46,8 @@ const BACKUP_SUMMARY_SQL = `
   WHERE slot = ?
 `;
 const DELETE_BACKUP_SQL = 'DELETE FROM career_save_backups WHERE slot = ?';
-const DELETE_CAREER_REPLAYS_SQL = 'DELETE FROM replay_envelopes WHERE career_id = ?';
+const DELETE_CAREER_REPLAYS_SQL =
+  'DELETE FROM replay_envelopes WHERE career_id = ?';
 // quick_check skips the (much slower) full index cross-check but still reads
 // every page, which is what tells a damaged file apart from an unreadable save.
 const INTEGRITY_CHECK_SQL = 'PRAGMA quick_check';
@@ -119,13 +120,17 @@ export async function createCareerRepository(
   let backedUp = await readBackupGeneration(database);
 
   async function readRawCareer(): Promise<RawStoredCareer | null> {
-    const row = await database.getFirstAsync<StoredCareerRow>(
-      LOAD_CAREER_SQL,
-      [PRIMARY_SLOT],
-    );
+    const row = await database.getFirstAsync<StoredCareerRow>(LOAD_CAREER_SQL, [
+      PRIMARY_SLOT,
+    ]);
     if (row === null) return null;
-    if (!Number.isSafeInteger(row.schema_version) || (row.schema_version as number) < 1) {
-      throw new CorruptCareerSaveError('schema_version column is missing or invalid');
+    if (
+      !Number.isSafeInteger(row.schema_version) ||
+      (row.schema_version as number) < 1
+    ) {
+      throw new CorruptCareerSaveError(
+        'schema_version column is missing or invalid',
+      );
     }
     if (typeof row.state_json !== 'string') {
       throw new CorruptCareerSaveError('state_json column is not text');
@@ -136,7 +141,10 @@ export async function createCareerRepository(
     };
   }
 
-  async function writeBackup(state: GameState, liveJson: string): Promise<void> {
+  async function writeBackup(
+    state: GameState,
+    liveJson: string,
+  ): Promise<void> {
     try {
       // The live slot skips validation in production for speed, so an unnoticed
       // state bug would be copied straight into the generation meant to survive
@@ -170,7 +178,9 @@ export async function createCareerRepository(
 
   return {
     async save(state: GameState): Promise<void> {
-      const stateJson = serializeGameState(state, { validate: VALIDATE_ON_SAVE });
+      const stateJson = serializeGameState(state, {
+        validate: VALIDATE_ON_SAVE,
+      });
       await database.runAsync(UPSERT_CAREER_SQL, [
         PRIMARY_SLOT,
         GAME_SCHEMA_VERSION,
@@ -182,9 +192,9 @@ export async function createCareerRepository(
       // replaced stays restorable, and season 1 of the new one would never
       // displace season 1 of the old.
       if (
-        backedUp === null
-        || backedUp.careerSeed !== state.careerSeed
-        || backedUp.season !== state.season
+        backedUp === null ||
+        backedUp.careerSeed !== state.careerSeed ||
+        backedUp.season !== state.season
       ) {
         await writeBackup(state, stateJson);
       }
@@ -220,10 +230,9 @@ export async function createCareerRepository(
       }
       await database.withTransactionAsync(async () => {
         for (const careerSeed of careerSeeds) {
-          await database.runAsync(
-            DELETE_CAREER_REPLAYS_SQL,
-            [`m1-career-${careerSeed}`],
-          );
+          await database.runAsync(DELETE_CAREER_REPLAYS_SQL, [
+            `m1-career-${careerSeed}`,
+          ]);
         }
         await database.runAsync(DELETE_CAREER_SQL, [PRIMARY_SLOT]);
         await database.runAsync(DELETE_BACKUP_SQL, [BACKUP_SLOT]);
@@ -239,9 +248,10 @@ export async function createCareerRepository(
     },
 
     async restoreBackup(): Promise<GameState> {
-      const row = await database.getFirstAsync<StoredBackupRow>(LOAD_BACKUP_SQL, [
-        BACKUP_SLOT,
-      ]);
+      const row = await database.getFirstAsync<StoredBackupRow>(
+        LOAD_BACKUP_SQL,
+        [BACKUP_SLOT],
+      );
       if (row === null) throw new MissingCareerBackupError();
       const restored = decodeStoredCareer(row);
       // Re-serialise before overwriting: if the backup cannot be written back as
@@ -254,8 +264,12 @@ export async function createCareerRepository(
       ]);
       backedUp = {
         careerSeed: restored.careerSeed,
-        season: typeof row.saved_season === 'number' ? row.saved_season : restored.season,
-        week: typeof row.saved_week === 'number' ? row.saved_week : restored.week,
+        season:
+          typeof row.saved_season === 'number'
+            ? row.saved_season
+            : restored.season,
+        week:
+          typeof row.saved_week === 'number' ? row.saved_week : restored.week,
       };
       return restored;
     },
@@ -273,10 +287,13 @@ export async function createCareerRepository(
 function rawCareerSeed(stateJson: string): number | null {
   try {
     const value = JSON.parse(stateJson) as unknown;
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+    if (typeof value !== 'object' || value === null || Array.isArray(value))
+      return null;
     const seed = (value as Record<string, unknown>).careerSeed;
-    return Number.isInteger(seed) && (seed as number) >= 0 && (seed as number) <= 0xffff_ffff
-      ? seed as number
+    return Number.isInteger(seed) &&
+      (seed as number) >= 0 &&
+      (seed as number) <= 0xffff_ffff
+      ? (seed as number)
       : null;
   } catch {
     return null;
@@ -284,7 +301,10 @@ function rawCareerSeed(stateJson: string): number | null {
 }
 
 function decodeStoredCareer(row: StoredCareerRow): GameState {
-  if (!Number.isSafeInteger(row.schema_version) || (row.schema_version as number) < 1) {
+  if (
+    !Number.isSafeInteger(row.schema_version) ||
+    (row.schema_version as number) < 1
+  ) {
     throw new CorruptCareerSaveError(
       'schema_version column is missing or invalid',
     );
@@ -313,7 +333,10 @@ async function readBackupGeneration(
     saved_career_seed: unknown;
   }>(BACKUP_SUMMARY_SQL, [BACKUP_SLOT]);
   if (row === null) return null;
-  if (!Number.isSafeInteger(row.saved_season) || !Number.isSafeInteger(row.saved_week)) {
+  if (
+    !Number.isSafeInteger(row.saved_season) ||
+    !Number.isSafeInteger(row.saved_week)
+  ) {
     return null;
   }
   return {

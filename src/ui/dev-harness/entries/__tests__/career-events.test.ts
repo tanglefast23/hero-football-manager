@@ -194,12 +194,15 @@ describe('the career events Dev Harness controller', () => {
 
   test('the deadline receipt names the player who was sold', () => {
     const event = EVENTS.find(
-      candidate => candidate.id === 'rival-bid-deadline-day',
+      (candidate) => candidate.id === 'rival-bid-deadline-day',
     )!;
     const before = offered(event.id);
     const playerId = before.pendingEvent?.selectedPlayerId;
-    const playerName = before.players.find(player => player.id === playerId)?.name;
-    if (playerName === undefined) throw new Error('deadline test has no player');
+    const playerName = before.players.find(
+      (player) => player.id === playerId,
+    )?.name;
+    if (playerName === undefined)
+      throw new Error('deadline test has no player');
     const after = resolveStoryEventChoice(
       before,
       event,
@@ -208,9 +211,12 @@ describe('the career events Dev Harness controller', () => {
     ).state;
     const receipt = careerEventChanges(before, after);
 
-    expect(receipt.some(line => line.includes(`${playerName} sold to`))).toBe(true);
-    expect(receipt.some(line => line.includes('cash') && line.includes('+2600')))
-      .toBe(true);
+    expect(receipt.some((line) => line.includes(`${playerName} sold to`))).toBe(
+      true,
+    );
+    expect(
+      receipt.some((line) => line.includes('cash') && line.includes('+2600')),
+    ).toBe(true);
   });
 
   test('says nothing changed rather than showing an empty receipt', () => {

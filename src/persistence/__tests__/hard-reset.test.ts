@@ -16,7 +16,9 @@ describe('career database hard reset', () => {
 
     await resetCareerDatabase({
       openDatabase: async () => database,
-      deleteDatabaseFile: async () => { deletions += 1; },
+      deleteDatabaseFile: async () => {
+        deletions += 1;
+      },
     });
 
     expect(database.tableExists).toBe(false);
@@ -29,18 +31,26 @@ describe('career database hard reset', () => {
 
     await migrateDatabase(database);
     expect(database.userVersion).toBe(PERSISTENCE_SCHEMA_VERSION);
-    await expect((await createCareerRepository(database)).load()).resolves.toBeNull();
+    await expect(
+      (await createCareerRepository(database)).load(),
+    ).resolves.toBeNull();
   });
 
   it('escapes a database written by a newer build, which no repository can open', async () => {
     // A downgrade: `user_version` is ahead of this build's ladder, so every
     // repository throws and Retry can never succeed.
-    const database = new FakePersistenceDatabase(PERSISTENCE_SCHEMA_VERSION + 1);
-    await expect(createCareerRepository(database)).rejects.toThrow('is newer than supported');
+    const database = new FakePersistenceDatabase(
+      PERSISTENCE_SCHEMA_VERSION + 1,
+    );
+    await expect(createCareerRepository(database)).rejects.toThrow(
+      'is newer than supported',
+    );
 
     await resetCareerDatabase({
       openDatabase: async () => database,
-      deleteDatabaseFile: async () => { throw new Error('file is locked'); },
+      deleteDatabaseFile: async () => {
+        throw new Error('file is locked');
+      },
     });
 
     expect(database.userVersion).toBe(0);
@@ -52,22 +62,32 @@ describe('career database hard reset', () => {
 
     await resetCareerDatabase({
       openDatabase: async () => unreadableDatabase(),
-      deleteDatabaseFile: async () => { deletions += 1; },
+      deleteDatabaseFile: async () => {
+        deletions += 1;
+      },
     });
 
     expect(deletions).toBe(1);
   });
 
   it('reports both failures when neither way out works', async () => {
-    await expect(resetCareerDatabase({
-      openDatabase: async () => unreadableDatabase(),
-      deleteDatabaseFile: async () => { throw new Error('file is locked'); },
-    })).rejects.toBeInstanceOf(PersistenceResetError);
+    await expect(
+      resetCareerDatabase({
+        openDatabase: async () => unreadableDatabase(),
+        deleteDatabaseFile: async () => {
+          throw new Error('file is locked');
+        },
+      }),
+    ).rejects.toBeInstanceOf(PersistenceResetError);
 
-    await expect(resetCareerDatabase({
-      openDatabase: async () => unreadableDatabase(),
-      deleteDatabaseFile: async () => { throw new Error('file is locked'); },
-    })).rejects.toThrow('database disk image is malformed');
+    await expect(
+      resetCareerDatabase({
+        openDatabase: async () => unreadableDatabase(),
+        deleteDatabaseFile: async () => {
+          throw new Error('file is locked');
+        },
+      }),
+    ).rejects.toThrow('database disk image is malformed');
   });
 });
 

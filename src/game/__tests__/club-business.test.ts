@@ -40,12 +40,14 @@ describe('supporter growth and sustained-loss decline', () => {
     const result = applySupporterImpacts(
       { consecutiveLosses: 0 },
       500,
-      [impact('w1', 'WIN', {
-        divisionScale: 3,
-        heroAppearancePlayerIds: ['h1', 'h2'],
-        supporterWinUnits: 15,
-        supporterHeroUnits: 6,
-      })],
+      [
+        impact('w1', 'WIN', {
+          divisionScale: 3,
+          heroAppearancePlayerIds: ['h1', 'h2'],
+          supporterWinUnits: 15,
+          supporterHeroUnits: 6,
+        }),
+      ],
       3,
       8,
     );
@@ -82,12 +84,14 @@ describe('supporter growth and sustained-loss decline', () => {
     const applied = applySupporterImpacts(
       { consecutiveLosses: 2 },
       1_500,
-      [impact('third-loss', 'LOSS', {
-        divisionScale: 3,
-        heroAppearancePlayerIds: heroes,
-        participantPlayerIds: heroes,
-        supporterHeroUnits: 12,
-      })],
+      [
+        impact('third-loss', 'LOSS', {
+          divisionScale: 3,
+          heroAppearancePlayerIds: heroes,
+          participantPlayerIds: heroes,
+          supporterHeroUnits: 12,
+        }),
+      ],
       4,
       10,
     );
@@ -101,24 +105,28 @@ describe('supporter growth and sustained-loss decline', () => {
   });
 
   it('resets the streak on a draw and enforces league-before-Cup ordering', () => {
-    expect(applySupporterImpacts(
-      { consecutiveLosses: 4 },
-      500,
-      [impact('draw', 'DRAW')],
-      3,
-      9,
-    ).supporters.consecutiveLosses).toBe(0);
+    expect(
+      applySupporterImpacts(
+        { consecutiveLosses: 4 },
+        500,
+        [impact('draw', 'DRAW')],
+        3,
+        9,
+      ).supporters.consecutiveLosses,
+    ).toBe(0);
 
-    expect(() => applySupporterImpacts(
-      { consecutiveLosses: 0 },
-      500,
-      [
-        impact('cup', 'WIN', { competition: 'CUP', settlementOrder: 1 }),
-        impact('league', 'WIN', { settlementOrder: 0 }),
-      ],
-      3,
-      9,
-    )).toThrow(/league before Cup/);
+    expect(() =>
+      applySupporterImpacts(
+        { consecutiveLosses: 0 },
+        500,
+        [
+          impact('cup', 'WIN', { competition: 'CUP', settlementOrder: 1 }),
+          impact('league', 'WIN', { settlementOrder: 0 }),
+        ],
+        3,
+        9,
+      ),
+    ).toThrow(/league before Cup/);
   });
 });
 
@@ -126,13 +134,15 @@ describe('Buzz earnings and twice-season payout', () => {
   it('adds wins, regulation goals, and distinct hero moments from Season 3', () => {
     const applied = applyBuzzImpacts(
       { value: 40 },
-      [impact('league', 'WIN', {
-        regulationGoals: 4,
-        powerFiredPlayerIds: ['h1', 'h2'],
-        buzzWin: 4,
-        buzzGoals: 4,
-        buzzHeroMoments: 4,
-      })],
+      [
+        impact('league', 'WIN', {
+          regulationGoals: 4,
+          powerFiredPlayerIds: ['h1', 'h2'],
+          buzzWin: 4,
+          buzzGoals: 4,
+          buzzHeroMoments: 4,
+        }),
+      ],
       3,
       14,
       4_000,
@@ -145,13 +155,15 @@ describe('Buzz earnings and twice-season payout', () => {
   it('includes the Week 15 match, caps, pays from actual sponsor income, and resets', () => {
     const applied = applyBuzzImpacts(
       { value: 94 },
-      [impact('week-15', 'WIN', {
-        regulationGoals: 3,
-        powerFiredPlayerIds: ['h1'],
-        buzzWin: 4,
-        buzzGoals: 3,
-        buzzHeroMoments: 2,
-      })],
+      [
+        impact('week-15', 'WIN', {
+          regulationGoals: 3,
+          powerFiredPlayerIds: ['h1'],
+          buzzWin: 4,
+          buzzGoals: 3,
+          buzzHeroMoments: 2,
+        }),
+      ],
       3,
       15,
       3_200,
@@ -176,40 +188,97 @@ describe('Buzz earnings and twice-season payout', () => {
   });
 
   it('does not earn before Season 3 or repay an already consumed half', () => {
-    expect(applyBuzzImpacts(
-      { value: 0 },
-      [impact('locked', 'WIN')],
-      2,
-      15,
-      2_000,
-    )).toEqual({ buzz: { value: 0 } });
+    expect(
+      applyBuzzImpacts({ value: 0 }, [impact('locked', 'WIN')], 2, 15, 2_000),
+    ).toEqual({ buzz: { value: 0 } });
 
-    const settled = { value: 0, lastSettledSeason: 3, lastSettledHalf: 1 as const };
-    expect(applyBuzzImpacts(settled, [impact('retry', 'WIN')], 3, 15, 4_000))
-      .toEqual({ buzz: settled });
+    const settled = {
+      value: 0,
+      lastSettledSeason: 3,
+      lastSettledHalf: 1 as const,
+    };
+    expect(
+      applyBuzzImpacts(settled, [impact('retry', 'WIN')], 3, 15, 4_000),
+    ).toEqual({ buzz: settled });
   });
 });
 
 describe('schema-3 Club Business defaults', () => {
   it.each([
-    [{ season: 2, week: 30, phase: 'season-end' as const, settledLedgerWeeks: [30] }, {}],
-    [{ season: 3, week: 2, phase: 'manage' as const, settledLedgerWeeks: [] }, { lastSettledSeason: 2, lastSettledHalf: 2 }],
-    [{ season: 3, week: 15, phase: 'matchday' as const, settledLedgerWeeks: [] }, { lastSettledSeason: 2, lastSettledHalf: 2 }],
-    [{ season: 3, week: 15, phase: 'manage' as const, settledLedgerWeeks: [15] }, { lastSettledSeason: 3, lastSettledHalf: 1 }],
-    [{ season: 3, week: 16, phase: 'manage' as const, settledLedgerWeeks: [15] }, { lastSettledSeason: 3, lastSettledHalf: 1 }],
-    [{ season: 3, week: 30, phase: 'matchday' as const, settledLedgerWeeks: [15] }, { lastSettledSeason: 3, lastSettledHalf: 1 }],
-    [{ season: 3, week: 30, phase: 'season-end' as const, settledLedgerWeeks: [15] }, { lastSettledSeason: 3, lastSettledHalf: 2 }],
+    [
+      {
+        season: 2,
+        week: 30,
+        phase: 'season-end' as const,
+        settledLedgerWeeks: [30],
+      },
+      {},
+    ],
+    [
+      { season: 3, week: 2, phase: 'manage' as const, settledLedgerWeeks: [] },
+      { lastSettledSeason: 2, lastSettledHalf: 2 },
+    ],
+    [
+      {
+        season: 3,
+        week: 15,
+        phase: 'matchday' as const,
+        settledLedgerWeeks: [],
+      },
+      { lastSettledSeason: 2, lastSettledHalf: 2 },
+    ],
+    [
+      {
+        season: 3,
+        week: 15,
+        phase: 'manage' as const,
+        settledLedgerWeeks: [15],
+      },
+      { lastSettledSeason: 3, lastSettledHalf: 1 },
+    ],
+    [
+      {
+        season: 3,
+        week: 16,
+        phase: 'manage' as const,
+        settledLedgerWeeks: [15],
+      },
+      { lastSettledSeason: 3, lastSettledHalf: 1 },
+    ],
+    [
+      {
+        season: 3,
+        week: 30,
+        phase: 'matchday' as const,
+        settledLedgerWeeks: [15],
+      },
+      { lastSettledSeason: 3, lastSettledHalf: 1 },
+    ],
+    [
+      {
+        season: 3,
+        week: 30,
+        phase: 'season-end' as const,
+        settledLedgerWeeks: [15],
+      },
+      { lastSettledSeason: 3, lastSettledHalf: 2 },
+    ],
   ])('maps the Buzz boundary without inventing cash: %j', (input, marker) => {
     expect(migratedEmptyBuzzState(input)).toEqual({ value: 0, ...marker });
   });
 
   it('creates empty supporter and pending-impact state without rewriting history', () => {
-    expect(createClubBusinessState({ season: 3, week: 16, settledLedgerWeeks: [15] }))
-      .toMatchObject({
-        supporters: { consecutiveLosses: 0 },
-        pendingUserMatchImpacts: [],
-        sponsorship: { activeContracts: [], offers: [], portfolioSeason: 3 },
-        buzz: { value: 0, lastSettledSeason: 3, lastSettledHalf: 1 },
-      });
+    expect(
+      createClubBusinessState({
+        season: 3,
+        week: 16,
+        settledLedgerWeeks: [15],
+      }),
+    ).toMatchObject({
+      supporters: { consecutiveLosses: 0 },
+      pendingUserMatchImpacts: [],
+      sponsorship: { activeContracts: [], offers: [], portfolioSeason: 3 },
+      buzz: { value: 0, lastSettledSeason: 3, lastSettledHalf: 1 },
+    });
   });
 });

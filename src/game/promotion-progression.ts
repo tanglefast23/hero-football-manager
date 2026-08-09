@@ -41,13 +41,14 @@ export type TrainingDrillTier = 1 | 2 | 3 | 4 | 5;
 
 export const MAX_TRAINING_DRILL_TIER: TrainingDrillTier = 5;
 
-const TRAINING_DRILL_TIER_SUFFIX: Readonly<Record<TrainingDrillTier, string>> = {
-  1: '',
-  2: '-ii',
-  3: '-iii',
-  4: '-iv',
-  5: '-v',
-};
+const TRAINING_DRILL_TIER_SUFFIX: Readonly<Record<TrainingDrillTier, string>> =
+  {
+    1: '',
+    2: '-ii',
+    3: '-iii',
+    4: '-iv',
+    5: '-v',
+  };
 
 /**
  * What the club pays, per path, to own the next tier. Reaching the division
@@ -55,7 +56,9 @@ const TRAINING_DRILL_TIER_SUFFIX: Readonly<Record<TrainingDrillTier, string>> = 
  * decision. Each price is roughly the previous one doubled, so no club ever
  * owns the whole board at once.
  */
-const TRAINING_DRILL_UPGRADE_COST: Readonly<Record<Exclude<TrainingDrillTier, 1>, number>> = {
+const TRAINING_DRILL_UPGRADE_COST: Readonly<
+  Record<Exclude<TrainingDrillTier, 1>, number>
+> = {
   2: 3_000,
   3: 8_000,
   4: 18_000,
@@ -70,7 +73,12 @@ const TRAINING_DRILL_UPGRADE_COST: Readonly<Record<Exclude<TrainingDrillTier, 1>
  * `titleKey`/`detailKey` and only falls back to these words if a key is missing.
  */
 function reward(key: string, title: string, detail: string): PromotionReward {
-  return { title, detail, titleKey: `${key}.title`, detailKey: `${key}.detail` };
+  return {
+    title,
+    detail,
+    titleKey: `${key}.title`,
+    detailKey: `${key}.detail`,
+  };
 }
 
 function drillTierReward(tier: Exclude<TrainingDrillTier, 1>): PromotionReward {
@@ -85,7 +93,9 @@ function drillTierReward(tier: Exclude<TrainingDrillTier, 1>): PromotionReward {
   };
 }
 
-const PROMOTION_REWARDS: Readonly<Record<1 | 2 | 3 | 4, readonly PromotionReward[]>> = {
+const PROMOTION_REWARDS: Readonly<
+  Record<1 | 2 | 3 | 4, readonly PromotionReward[]>
+> = {
   4: [
     {
       ...reward(
@@ -167,12 +177,20 @@ const PROMOTION_REWARDS: Readonly<Record<1 | 2 | 3 | 4, readonly PromotionReward
 export function highestDivisionReached(state: GameState): DivisionLevel {
   if (state.m2 === undefined) return 5;
   const current = currentUserDivision(state.m2);
-  return Math.min(current, state.m2.highestDivisionReached ?? current) as DivisionLevel;
+  return Math.min(
+    current,
+    state.m2.highestDivisionReached ?? current,
+  ) as DivisionLevel;
 }
 
-export function recordHighestDivisionReached(state: M2CareerState): M2CareerState {
+export function recordHighestDivisionReached(
+  state: M2CareerState,
+): M2CareerState {
   const current = currentUserDivision(state);
-  const highest = Math.min(current, state.highestDivisionReached ?? current) as DivisionLevel;
+  const highest = Math.min(
+    current,
+    state.highestDivisionReached ?? current,
+  ) as DivisionLevel;
   return state.highestDivisionReached === highest
     ? state
     : { ...state, highestDivisionReached: highest };
@@ -218,7 +236,9 @@ export interface BlockedCopy {
  * League", which is the exact defect that put `DIVISION_NAME_KEYS` beside
  * `DIVISION_NAMES`.
  */
-function divisionParams(level: DivisionLevel): Readonly<Record<string, string | number>> {
+function divisionParams(
+  level: DivisionLevel,
+): Readonly<Record<string, string | number>> {
   return {
     divisionLevel: level,
     divisionName: DIVISION_NAMES[level],
@@ -248,12 +268,16 @@ export function trainingDrillTier(drillId: string): TrainingDrillTier {
   return 1;
 }
 
-export function trainingDrillIdForTier(pathId: string, tier: TrainingDrillTier): string {
+export function trainingDrillIdForTier(
+  pathId: string,
+  tier: TrainingDrillTier,
+): string {
   return `${pathId}${TRAINING_DRILL_TIER_SUFFIX[tier]}`;
 }
 
 export function trainingDrillUpgradeCost(tier: TrainingDrillTier): number {
-  if (tier === 1) throw new Error('tier 1 drills are owned from the first day of the career');
+  if (tier === 1)
+    throw new Error('tier 1 drills are owned from the first day of the career');
   return TRAINING_DRILL_UPGRADE_COST[tier];
 }
 
@@ -290,9 +314,13 @@ export function trainingDrillBlockedReason(
  */
 const LEAGUE_PRIZE_STEP_PER_DIVISION = 10_000;
 
-export function leaguePrizeMoney(division: DivisionLevel, position: number): number {
+export function leaguePrizeMoney(
+  division: DivisionLevel,
+  position: number,
+): number {
   if (position > 2) return 0;
-  const championPrize = 20_000 + (5 - division) * LEAGUE_PRIZE_STEP_PER_DIVISION;
+  const championPrize =
+    20_000 + (5 - division) * LEAGUE_PRIZE_STEP_PER_DIVISION;
   return position === 1 ? championPrize : championPrize / 2;
 }
 

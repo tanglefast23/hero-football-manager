@@ -4,7 +4,7 @@ import { Animated, Easing, Text, View } from 'react-native';
 import { countUpValue } from '../count-up';
 import type { PostMatchViewModel } from '../models';
 import { FinancialStatement } from './FinancialStatement';
-import { Metric, SectionLabel, formatCompactNumber } from './Scorecard';
+import { Metric, SectionLabel, formatSignedCompactNumber } from './Scorecard';
 import { PixelText } from './PixelText';
 import { PostMatchBuzzCard } from './PostMatchBuzzCard';
 import { useCopy } from '../../i18n';
@@ -54,26 +54,32 @@ export function FinancialReportBody({
         <View className="flex-row gap-2">
           <Metric
             label={t('financialReport.tpChange')}
-            value={(
+            value={
               <CountUpText
                 value={viewModel.trainingPointsGained}
-                format={amount => `${amount > 0 ? '+' : ''}${formatCompactNumber(t, amount)}`}
+                format={(amount) => formatSignedCompactNumber(t, amount)}
                 reduceMotion={reduceMotion}
-                colorClass={viewModel.trainingPointsGained < 0 ? 'text-red-dark' : 'text-pitch-ink'}
+                colorClass={
+                  viewModel.trainingPointsGained < 0
+                    ? 'text-red-dark'
+                    : 'text-pitch-ink'
+                }
               />
-            )}
+            }
             tone={viewModel.trainingPointsGained < 0 ? 'negative' : 'positive'}
           />
           <Metric
             label={t('financialReport.fans')}
-            value={(
+            value={
               <CountUpText
                 value={viewModel.fanDelta}
-                format={amount => `${amount > 0 ? '+' : ''}${formatCompactNumber(t, amount)}`}
+                format={(amount) => formatSignedCompactNumber(t, amount)}
                 reduceMotion={reduceMotion}
-                colorClass={viewModel.fanDelta < 0 ? 'text-red-dark' : 'text-pitch-ink'}
+                colorClass={
+                  viewModel.fanDelta < 0 ? 'text-red-dark' : 'text-pitch-ink'
+                }
               />
-            )}
+            }
             tone={viewModel.fanDelta < 0 ? 'negative' : 'positive'}
           />
         </View>
@@ -100,14 +106,20 @@ export function FinancialReportBody({
                 wiggle={update.tone === 'warning'}
               >
                 <View
-                  className={update.tone === 'warning'
-                    ? 'border-2 border-b-4 border-red-dark bg-red-light p-3'
-                    : update.tone === 'positive'
-                      ? 'border-2 border-b-4 border-pitch-dark bg-pitch-light p-3'
-                      : 'border-2 border-b-4 border-blue-dark bg-blue-light p-3'}
+                  className={
+                    update.tone === 'warning'
+                      ? 'border-2 border-b-4 border-red-dark bg-red-light p-3'
+                      : update.tone === 'positive'
+                        ? 'border-2 border-b-4 border-pitch-dark bg-pitch-light p-3'
+                        : 'border-2 border-b-4 border-blue-dark bg-blue-light p-3'
+                  }
                 >
-                  <PixelText className="text-base uppercase text-ink">{update.title}</PixelText>
-                  <Text className="mt-1 text-sm text-ink/70">{update.detail}</Text>
+                  <PixelText className="text-base uppercase text-ink">
+                    {update.title}
+                  </PixelText>
+                  <Text className="mt-1 text-sm text-ink/70">
+                    {update.detail}
+                  </Text>
                 </View>
               </EntranceView>
             ))}
@@ -147,9 +159,21 @@ function EntranceView({
     ];
     if (wiggle) {
       steps.push(
-        Animated.timing(tilt, { toValue: 1, duration: 75, useNativeDriver: true }),
-        Animated.timing(tilt, { toValue: -1, duration: 150, useNativeDriver: true }),
-        Animated.timing(tilt, { toValue: 0, duration: 75, useNativeDriver: true }),
+        Animated.timing(tilt, {
+          toValue: 1,
+          duration: 75,
+          useNativeDriver: true,
+        }),
+        Animated.timing(tilt, {
+          toValue: -1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(tilt, {
+          toValue: 0,
+          duration: 75,
+          useNativeDriver: true,
+        }),
       );
     }
     const sequence = Animated.sequence(steps);
@@ -164,8 +188,18 @@ function EntranceView({
         style={{
           opacity: progress,
           transform: [
-            { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
-            { rotate: tilt.interpolate({ inputRange: [-1, 1], outputRange: ['-3deg', '3deg'] }) },
+            {
+              translateY: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [12, 0],
+              }),
+            },
+            {
+              rotate: tilt.interpolate({
+                inputRange: [-1, 1],
+                outputRange: ['-3deg', '3deg'],
+              }),
+            },
           ],
         }}
       >
@@ -205,16 +239,30 @@ function CountUpText({
         return;
       }
       Animated.sequence([
-        Animated.timing(bounce, { toValue: 1.08, duration: 90, useNativeDriver: true }),
-        Animated.timing(bounce, { toValue: 1, duration: 90, useNativeDriver: true }),
+        Animated.timing(bounce, {
+          toValue: 1.08,
+          duration: 90,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounce, {
+          toValue: 1,
+          duration: 90,
+          useNativeDriver: true,
+        }),
       ]).start();
     };
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
   }, [bounce, reduceMotion, value]);
   return (
-    <Animated.View style={{ transform: [{ scale: bounce }], alignSelf: 'flex-start' }}>
-      <Text className={`font-mono text-base ${colorClass}`} accessibilityLabel={format(value)} numberOfLines={1}>
+    <Animated.View
+      style={{ transform: [{ scale: bounce }], alignSelf: 'flex-start' }}
+    >
+      <Text
+        className={`font-mono text-base ${colorClass}`}
+        accessibilityLabel={format(value)}
+        numberOfLines={1}
+      >
         {format(shown)}
       </Text>
     </Animated.View>

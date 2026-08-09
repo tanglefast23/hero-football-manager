@@ -23,13 +23,27 @@ const BASE_EVENT = {
       id: 'safe-one',
       label: 'Do the safe thing',
       risky: false,
-      outcomes: [{ id: 'done', weight: 100, text: 'It goes fine.', effects: [] as unknown[] }],
+      outcomes: [
+        {
+          id: 'done',
+          weight: 100,
+          text: 'It goes fine.',
+          effects: [] as unknown[],
+        },
+      ],
     },
     {
       id: 'safe-two',
       label: 'Do the other safe thing',
       risky: false,
-      outcomes: [{ id: 'done', weight: 100, text: 'It also goes fine.', effects: [] as unknown[] }],
+      outcomes: [
+        {
+          id: 'done',
+          weight: 100,
+          text: 'It also goes fine.',
+          effects: [] as unknown[],
+        },
+      ],
     },
   ],
 };
@@ -37,9 +51,15 @@ const BASE_EVENT = {
 function eventWithEffects(effects: unknown[], requiresPlayer = false) {
   return {
     ...BASE_EVENT,
-    trigger: { ...BASE_EVENT.trigger, ...(requiresPlayer ? { requiresPlayer: true } : {}) },
+    trigger: {
+      ...BASE_EVENT.trigger,
+      ...(requiresPlayer ? { requiresPlayer: true } : {}),
+    },
     choices: [
-      { ...BASE_EVENT.choices[0], outcomes: [{ ...BASE_EVENT.choices[0].outcomes[0], effects }] },
+      {
+        ...BASE_EVENT.choices[0],
+        outcomes: [{ ...BASE_EVENT.choices[0].outcomes[0], effects }],
+      },
       BASE_EVENT.choices[1],
     ],
   };
@@ -54,22 +74,39 @@ describe('event effect gates', () => {
     // `money`, `tp` and `fans` are summed; these are not, so a second one would
     // be dropped on the floor without the gate.
     for (const pair of [
-      [{ type: 'morale', amount: 4 }, { type: 'morale', amount: 5 }],
-      [{ type: 'squadMorale', amount: 4 }, { type: 'squadMorale', amount: 5 }],
-      [{ type: 'injury', weeks: 2 }, { type: 'injury', weeks: 3 }],
+      [
+        { type: 'morale', amount: 4 },
+        { type: 'morale', amount: 5 },
+      ],
+      [
+        { type: 'squadMorale', amount: 4 },
+        { type: 'squadMorale', amount: 5 },
+      ],
+      [
+        { type: 'injury', weeks: 2 },
+        { type: 'injury', weeks: 3 },
+      ],
       [
         { type: 'statDelta', attribute: 'sho', amount: 2 },
         { type: 'statDelta', attribute: 'pac', amount: 2 },
       ],
     ]) {
       const requiresPlayer = pair[0].type !== 'squadMorale';
-      expect(GameEventSchema.safeParse(eventWithEffects(pair, requiresPlayer)).success).toBe(false);
+      expect(
+        GameEventSchema.safeParse(eventWithEffects(pair, requiresPlayer))
+          .success,
+      ).toBe(false);
     }
   });
 
   it('still sums the effects that are meant to be summed', () => {
-    const money = [{ type: 'money', amount: 100 }, { type: 'money', amount: 200 }];
-    expect(GameEventSchema.safeParse(eventWithEffects(money)).success).toBe(true);
+    const money = [
+      { type: 'money', amount: 100 },
+      { type: 'money', amount: 200 },
+    ];
+    expect(GameEventSchema.safeParse(eventWithEffects(money)).success).toBe(
+      true,
+    );
   });
 
   it('rejects a player effect on an event that never asks for a player', () => {
@@ -79,21 +116,34 @@ describe('event effect gates', () => {
       { type: 'injuryDelta', weeks: -1 },
       { type: 'statDelta', attribute: 'sho', amount: 2 },
     ]) {
-      expect(GameEventSchema.safeParse(eventWithEffects([effect])).success).toBe(false);
-      expect(GameEventSchema.safeParse(eventWithEffects([effect], true)).success).toBe(true);
+      expect(
+        GameEventSchema.safeParse(eventWithEffects([effect])).success,
+      ).toBe(false);
+      expect(
+        GameEventSchema.safeParse(eventWithEffects([effect], true)).success,
+      ).toBe(true);
     }
   });
 
   it('lets squadMorale say "the room" without a selected player', () => {
-    expect(GameEventSchema.safeParse(eventWithEffects([{ type: 'squadMorale', amount: -6 }])).success)
-      .toBe(true);
+    expect(
+      GameEventSchema.safeParse(
+        eventWithEffects([{ type: 'squadMorale', amount: -6 }]),
+      ).success,
+    ).toBe(true);
   });
 
   it('will not let an injury heal be spelled as a setback', () => {
-    expect(GameEventSchema.safeParse(eventWithEffects([{ type: 'injury', weeks: -1 }], true)).success)
-      .toBe(false);
-    expect(GameEventSchema.safeParse(eventWithEffects([{ type: 'injuryDelta', weeks: 1 }], true)).success)
-      .toBe(false);
+    expect(
+      GameEventSchema.safeParse(
+        eventWithEffects([{ type: 'injury', weeks: -1 }], true),
+      ).success,
+    ).toBe(false);
+    expect(
+      GameEventSchema.safeParse(
+        eventWithEffects([{ type: 'injuryDelta', weeks: 1 }], true),
+      ).success,
+    ).toBe(false);
   });
 
   /**
@@ -101,20 +151,29 @@ describe('event effect gates', () => {
    * whose morale silently applies to nobody, and no other test would notice.
    */
   it('carries no morale effect that the shipped catalog cannot target', () => {
-    const offenders = loadLaunchContent().events.events
-      .filter(event => event.trigger.requiresPlayer !== true)
-      .filter(event => event.choices.some(choice => choice.outcomes.some(
-        outcome => outcome.effects.some(effect => effect.type === 'morale'),
-      )))
-      .map(event => event.id);
+    const offenders = loadLaunchContent()
+      .events.events.filter((event) => event.trigger.requiresPlayer !== true)
+      .filter((event) =>
+        event.choices.some((choice) =>
+          choice.outcomes.some((outcome) =>
+            outcome.effects.some((effect) => effect.type === 'morale'),
+          ),
+        ),
+      )
+      .map((event) => event.id);
 
     expect(offenders).toEqual([]);
   });
 
   it('kept the squad-wide mood the migration moved, rather than dropping it', () => {
-    const squadMoraleEffects = loadLaunchContent().events.events.flatMap(event =>
-      event.choices.flatMap(choice => choice.outcomes.flatMap(outcome =>
-        outcome.effects.filter(effect => effect.type === 'squadMorale'))));
+    const squadMoraleEffects = loadLaunchContent().events.events.flatMap(
+      (event) =>
+        event.choices.flatMap((choice) =>
+          choice.outcomes.flatMap((outcome) =>
+            outcome.effects.filter((effect) => effect.type === 'squadMorale'),
+          ),
+        ),
+    );
 
     // 43 before the cut; 16 of the migrated events left with the cut list.
     expect(squadMoraleEffects).toHaveLength(27);

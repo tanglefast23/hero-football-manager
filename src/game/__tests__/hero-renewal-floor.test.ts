@@ -30,12 +30,22 @@ const STRONGEST_OFFER_PERCENT = 116;
 /** Two loved pitch cards, the -20% hard cap on pitch influence. */
 const BEST_PITCH_INFLUENCE = -20;
 
-function cheapestSignableWage(ask: number, pitchInfluencePercent: number): number {
+function cheapestSignableWage(
+  ask: number,
+  pitchInfluencePercent: number,
+): number {
   const effectiveAsk = effectiveContractAsk(ask, pitchInfluencePercent);
   // Search upward for the smallest wage whose effective offer clears the ask.
-  const start = Math.max(1, Math.floor((effectiveAsk * 100) / STRONGEST_OFFER_PERCENT) - 2);
+  const start = Math.max(
+    1,
+    Math.floor((effectiveAsk * 100) / STRONGEST_OFFER_PERCENT) - 2,
+  );
   for (let wage = start; wage <= ask; wage += 1) {
-    const value = contractOfferValue({ weeklyWage: wage, termSeasons: 3, perk: 'GUARANTEED_STARTER' });
+    const value = contractOfferValue({
+      weeklyWage: wage,
+      termSeasons: 3,
+      perk: 'GUARANTEED_STARTER',
+    });
     if (value >= effectiveAsk) return wage;
   }
   return ask;
@@ -47,17 +57,20 @@ function heroAsk(
   growthPercent: number,
   fame: number,
 ): number {
-  return renewalContractAsk({
-    weeklyWage: WAGE,
-    personality,
-    power: 'FIRE_TORCH' as never,
-    onHeroWage: false,
-  }, {
-    growthSinceSigningPercent: growthPercent,
-    famePercent: Math.min(100, Math.round(fame / 4)),
-    heroMultiplier: 4,
-    loyaltyPercent: loyaltyRenewalPercent(loyalty),
-  });
+  return renewalContractAsk(
+    {
+      weeklyWage: WAGE,
+      personality,
+      power: 'FIRE_TORCH' as never,
+      onHeroWage: false,
+    },
+    {
+      growthSinceSigningPercent: growthPercent,
+      famePercent: Math.min(100, Math.round(fame / 4)),
+      heroMultiplier: 4,
+      loyaltyPercent: loyaltyRenewalPercent(loyalty),
+    },
+  );
 }
 
 describe('hero renewal signed floor', () => {
@@ -74,7 +87,11 @@ describe('hero renewal signed floor', () => {
 
   it('stays above x2.5 once the hero has actually developed', () => {
     // Any real season of football pushes him back over the owner's stated line.
-    for (const [growth, fame] of [[25, 60], [50, 200], [100, 400]] as const) {
+    for (const [growth, fame] of [
+      [25, 60],
+      [50, 200],
+      [100, 400],
+    ] as const) {
       for (const personality of ['LOYAL', 'PROFESSIONAL', 'GREEDY'] as const) {
         const ask = heroAsk(personality, 65, growth, fame);
         const signed = cheapestSignableWage(ask, BEST_PITCH_INFLUENCE);
@@ -97,7 +114,9 @@ describe('hero renewal signed floor', () => {
 
     // The cap is enforced inside `effectiveContractAsk`, so even a corrupted or
     // migrated influence value cannot exceed it.
-    expect(effectiveContractAsk(ask, -100)).toBe(effectiveContractAsk(ask, -20));
+    expect(effectiveContractAsk(ask, -100)).toBe(
+      effectiveContractAsk(ask, -20),
+    );
     expect(effectiveContractAsk(ask, 100)).toBe(effectiveContractAsk(ask, 20));
   });
 });

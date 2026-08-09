@@ -27,7 +27,15 @@ export type Locale = (typeof LOCALES)[number];
  * module, so the two have to move together. The drift fails safe: the script
  * refuses to write a catalog no gate would check.
  */
-export const ENABLED_LOCALES: readonly Locale[] = ['en', 'es', 'pt-BR', 'fr', 'id', 'de', 'vi'];
+export const ENABLED_LOCALES: readonly Locale[] = [
+  'en',
+  'es',
+  'pt-BR',
+  'fr',
+  'id',
+  'de',
+  'vi',
+];
 
 /**
  * Which plural forms a language needs. Hermes' `Intl` coverage varies by
@@ -97,13 +105,55 @@ const SILKSCREEN: LocaleFaces = {
 };
 
 const META: Readonly<Record<Locale, LocaleMeta>> = {
-  en: { endonym: 'English', pluralRule: 'oneOther', groupSeparator: ',', faces: SILKSCREEN, expansion: 1 },
-  es: { endonym: 'Español', pluralRule: 'oneOther', groupSeparator: '.', faces: SILKSCREEN, expansion: 1.25 },
-  'pt-BR': { endonym: 'Português (Brasil)', pluralRule: 'zeroIsOne', groupSeparator: '.', faces: SILKSCREEN, expansion: 1.25 },
-  fr: { endonym: 'Français', pluralRule: 'zeroIsOne', groupSeparator: ' ', faces: SILKSCREEN, expansion: 1.25 },
-  de: { endonym: 'Deutsch', pluralRule: 'oneOther', groupSeparator: '.', faces: SILKSCREEN, expansion: 1.3 },
-  id: { endonym: 'Bahasa Indonesia', pluralRule: 'none', groupSeparator: '.', faces: SILKSCREEN, expansion: 1.2 },
-  vi: { endonym: 'Tiếng Việt', pluralRule: 'none', groupSeparator: '.', faces: SILKSCREEN, expansion: 1.15 },
+  en: {
+    endonym: 'English',
+    pluralRule: 'oneOther',
+    groupSeparator: ',',
+    faces: SILKSCREEN,
+    expansion: 1,
+  },
+  es: {
+    endonym: 'Español',
+    pluralRule: 'oneOther',
+    groupSeparator: '.',
+    faces: SILKSCREEN,
+    expansion: 1.25,
+  },
+  'pt-BR': {
+    endonym: 'Português (Brasil)',
+    pluralRule: 'zeroIsOne',
+    groupSeparator: '.',
+    faces: SILKSCREEN,
+    expansion: 1.25,
+  },
+  fr: {
+    endonym: 'Français',
+    pluralRule: 'zeroIsOne',
+    groupSeparator: ' ',
+    faces: SILKSCREEN,
+    expansion: 1.25,
+  },
+  de: {
+    endonym: 'Deutsch',
+    pluralRule: 'oneOther',
+    groupSeparator: '.',
+    faces: SILKSCREEN,
+    expansion: 1.3,
+  },
+  id: {
+    endonym: 'Bahasa Indonesia',
+    pluralRule: 'none',
+    groupSeparator: '.',
+    faces: SILKSCREEN,
+    expansion: 1.2,
+  },
+  vi: {
+    endonym: 'Tiếng Việt',
+    pluralRule: 'none',
+    groupSeparator: '.',
+    faces: SILKSCREEN,
+    expansion: 1.15,
+  },
 };
 
 export function localeMeta(locale: Locale): LocaleMeta {
@@ -111,5 +161,7 @@ export function localeMeta(locale: Locale): LocaleMeta {
 }
 
 export function isLocale(value: unknown): value is Locale {
-  return typeof value === 'string' && (LOCALES as readonly string[]).includes(value);
+  return (
+    typeof value === 'string' && (LOCALES as readonly string[]).includes(value)
+  );
 }

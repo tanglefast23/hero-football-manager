@@ -23,44 +23,61 @@ function careerWithRosterSize(
   youthFieldLevel: 0 | 1 | 2 | 3 = 0,
 ): GameState {
   const state = createCareer(createLaunchCareerSetup(seed));
-  const userPlayers = state.players.filter(player => player.clubId === state.userClubId);
-  const retainedUserIds = new Set(userPlayers.slice(0, rosterSize).map(player => player.id));
+  const userPlayers = state.players.filter(
+    (player) => player.clubId === state.userClubId,
+  );
+  const retainedUserIds = new Set(
+    userPlayers.slice(0, rosterSize).map((player) => player.id),
+  );
   const grid = createFacilityGrid();
   return {
     ...state,
-    players: state.players.filter(player => (
-      player.clubId !== state.userClubId || retainedUserIds.has(player.id)
-    )),
-    facilities: youthFieldLevel === 0
-      ? { ...state.facilities, grid }
-      : {
-          ...state.facilities,
-          grid: {
-            ...grid,
-            nextBuildingId: 2,
-            buildings: [{
-              id: 'facility-1',
-              type: 'youth-field',
-              level: youthFieldLevel,
-              capitalInvested: youthFieldLevel === 1
-                ? 12_000
-                : youthFieldLevel === 2
-                  ? 27_000
-                  : 54_000,
-              x: 0,
-              y: 0,
-            }],
+    players: state.players.filter(
+      (player) =>
+        player.clubId !== state.userClubId || retainedUserIds.has(player.id),
+    ),
+    facilities:
+      youthFieldLevel === 0
+        ? { ...state.facilities, grid }
+        : {
+            ...state.facilities,
+            grid: {
+              ...grid,
+              nextBuildingId: 2,
+              buildings: [
+                {
+                  id: 'facility-1',
+                  type: 'youth-field',
+                  level: youthFieldLevel,
+                  capitalInvested:
+                    youthFieldLevel === 1
+                      ? 12_000
+                      : youthFieldLevel === 2
+                        ? 27_000
+                        : 54_000,
+                  x: 0,
+                  y: 0,
+                },
+              ],
+            },
           },
-        },
   };
 }
 
-function relevantAverage(state: ReturnType<typeof createPreseasonYouthIntake>): number {
-  const totals = state.offers.map(offer => {
+function relevantAverage(
+  state: ReturnType<typeof createPreseasonYouthIntake>,
+): number {
+  const totals = state.offers.map((offer) => {
     const attrs = offer.player.attrs;
     return offer.player.role === 'GK'
       ? (attrs.ref + attrs.def + attrs.pas) / 3
-      : (attrs.pac + attrs.sho + attrs.pas + attrs.def + attrs.tec + attrs.sta) / 6;
+      : (attrs.pac +
+          attrs.sho +
+          attrs.pas +
+          attrs.def +
+          attrs.tec +
+          attrs.sta) /
+          6;
   });
   return totals.reduce((sum, value) => sum + value, 0) / totals.length;
 }
@@ -70,25 +87,51 @@ describe('pre-season youth intake', () => {
     const state = careerWithRosterSize(14, 101);
     const before = JSON.stringify(state);
     const first = createPreseasonYouthIntake(state);
-    const second = createPreseasonYouthIntake(JSON.parse(JSON.stringify(state)) as GameState);
+    const second = createPreseasonYouthIntake(
+      JSON.parse(JSON.stringify(state)) as GameState,
+    );
 
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
     expect(first.status).toBe('OPEN');
     expect(first.offers.length).toBeGreaterThanOrEqual(1);
     expect(first.offers.length).toBeLessThanOrEqual(2);
-    expect(first.offers.every(offer => offer.player.age === 16 || offer.player.age === 17)).toBe(true);
-    expect(first.offers.every(offer => offer.player.clubId === state.userClubId)).toBe(true);
-    expect(first.offers.every(offer => offer.player.contractSeasonsRemaining === 3)).toBe(true);
-    expect(first.offers.every(offer => (
-      offer.player.potentialCeiling !== undefined
-      && offer.player.potentialCeiling >= 46
-      && offer.player.potentialCeiling <= 99
-    ))).toBe(true);
-    expect(first.offers.every(offer => offer.player.lookId !== undefined)).toBe(true);
-    expect(first.offers.every(offer => !state.players.some(player => (
-      player.lookId === offer.player.lookId
-    )))).toBe(true);
-    expect(first.offers.every(offer => offer.signingBonus === youthSigningBonus(0))).toBe(true);
+    expect(
+      first.offers.every(
+        (offer) => offer.player.age === 16 || offer.player.age === 17,
+      ),
+    ).toBe(true);
+    expect(
+      first.offers.every((offer) => offer.player.clubId === state.userClubId),
+    ).toBe(true);
+    expect(
+      first.offers.every(
+        (offer) => offer.player.contractSeasonsRemaining === 3,
+      ),
+    ).toBe(true);
+    expect(
+      first.offers.every(
+        (offer) =>
+          offer.player.potentialCeiling !== undefined &&
+          offer.player.potentialCeiling >= 46 &&
+          offer.player.potentialCeiling <= 99,
+      ),
+    ).toBe(true);
+    expect(
+      first.offers.every((offer) => offer.player.lookId !== undefined),
+    ).toBe(true);
+    expect(
+      first.offers.every(
+        (offer) =>
+          !state.players.some(
+            (player) => player.lookId === offer.player.lookId,
+          ),
+      ),
+    ).toBe(true);
+    expect(
+      first.offers.every(
+        (offer) => offer.signingBonus === youthSigningBonus(0),
+      ),
+    ).toBe(true);
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);
     expect(JSON.stringify(state)).toBe(before);
   });
@@ -106,7 +149,8 @@ describe('pre-season youth intake', () => {
             id: `facility-${index + 1}`,
             type: 'youth-field' as const,
             level,
-            capitalInvested: level === 1 ? 12_000 : level === 2 ? 27_000 : 54_000,
+            capitalInvested:
+              level === 1 ? 12_000 : level === 2 ? 27_000 : 54_000,
             x: index * 2,
             y: 0,
           })),
@@ -132,15 +176,21 @@ describe('pre-season youth intake', () => {
     expect(full.status).toBe('OPEN');
     expect(full.offers.length).toBeGreaterThanOrEqual(1);
     expect(full.offers.length).toBeLessThanOrEqual(2);
-    expect(() => signYouthIntakeOffer(fullState, full, full.offers[0].player.id)).toThrow(
-      '16-player roster is full',
-    );
+    expect(() =>
+      signYouthIntakeOffer(fullState, full, full.offers[0].player.id),
+    ).toThrow('16-player roster is full');
   });
 
   it('keeps the story-created player as one explicit extra slot without opening an unlimited cap', () => {
     const base = careerWithRosterSize(BASE_ROSTER_CAPACITY, 212);
-    const template = base.players.find(player => player.clubId === base.userClubId)!;
-    const created = { ...template, id: `${base.userClubId}-created-player`, name: 'Joe Hero' };
+    const template = base.players.find(
+      (player) => player.clubId === base.userClubId,
+    )!;
+    const created = {
+      ...template,
+      id: `${base.userClubId}-created-player`,
+      name: 'Joe Hero',
+    };
     const storyState: GameState = {
       ...base,
       players: [...base.players, created],
@@ -149,16 +199,24 @@ describe('pre-season youth intake', () => {
     const intake = createPreseasonYouthIntake(storyState);
 
     expect(careerRosterCapacity(storyState)).toBe(17);
-    expect(() => signYouthIntakeOffer(storyState, intake, intake.offers[0].player.id)).toThrow(
-      '17-player roster is full',
-    );
+    expect(() =>
+      signYouthIntakeOffer(storyState, intake, intake.offers[0].player.id),
+    ).toThrow('17-player roster is full');
 
     const withSpace = {
       ...storyState,
-      players: storyState.players.filter(player => player.id !== template.id),
+      players: storyState.players.filter((player) => player.id !== template.id),
     };
-    const signed = signYouthIntakeOffer(withSpace, intake, intake.offers[0].player.id);
-    expect(signed.state.players.filter(player => player.clubId === storyState.userClubId)).toHaveLength(17);
+    const signed = signYouthIntakeOffer(
+      withSpace,
+      intake,
+      intake.offers[0].player.id,
+    );
+    expect(
+      signed.state.players.filter(
+        (player) => player.clubId === storyState.userClubId,
+      ),
+    ).toHaveLength(17);
   });
 
   it('expires and clears every open offer after pre-season Week 4', () => {
@@ -170,11 +228,14 @@ describe('pre-season youth intake', () => {
       if (state.phase !== 'matchday') continue;
       const matchday = activeCareerMatchday(state);
       if (matchday === undefined) throw new Error('expected an active fixture');
-      state = completeMatchday(state, matchday.fixtures.map(fixture => ({
-        fixtureId: fixture.id,
-        homeGoals: 0,
-        awayGoals: 0,
-      })));
+      state = completeMatchday(
+        state,
+        matchday.fixtures.map((fixture) => ({
+          fixtureId: fixture.id,
+          homeGoals: 0,
+          awayGoals: 0,
+        })),
+      );
     }
 
     expect(state).toMatchObject({ week: 5, phase: 'manage' });
@@ -182,16 +243,28 @@ describe('pre-season youth intake', () => {
   });
 
   it('raises current quality and the explicit signing bonus with Youth Field level', () => {
-    const noField = createPreseasonYouthIntake(careerWithRosterSize(14, 303, 0));
-    const levelThree = createPreseasonYouthIntake(careerWithRosterSize(14, 303, 3));
-
-    expect(levelThree.offers.map(offer => offer.player.id)).toEqual(
-      noField.offers.map(offer => offer.player.id),
+    const noField = createPreseasonYouthIntake(
+      careerWithRosterSize(14, 303, 0),
     );
-    expect(relevantAverage(levelThree)).toBeGreaterThan(relevantAverage(noField) + 10);
-    expect(levelThree.offers.every(offer => offer.signingBonus === 1250)).toBe(true);
-    expect(Math.min(...levelThree.offers.map(offer => offer.player.potential ?? 0))).toBeGreaterThanOrEqual(
-      Math.min(...noField.offers.map(offer => offer.player.potential ?? 0)),
+    const levelThree = createPreseasonYouthIntake(
+      careerWithRosterSize(14, 303, 3),
+    );
+
+    expect(levelThree.offers.map((offer) => offer.player.id)).toEqual(
+      noField.offers.map((offer) => offer.player.id),
+    );
+    expect(relevantAverage(levelThree)).toBeGreaterThan(
+      relevantAverage(noField) + 10,
+    );
+    expect(
+      levelThree.offers.every((offer) => offer.signingBonus === 1250),
+    ).toBe(true);
+    expect(
+      Math.min(
+        ...levelThree.offers.map((offer) => offer.player.potential ?? 0),
+      ),
+    ).toBeGreaterThanOrEqual(
+      Math.min(...noField.offers.map((offer) => offer.player.potential ?? 0)),
     );
   });
 
@@ -202,22 +275,38 @@ describe('pre-season youth intake', () => {
     };
     const intake = createPreseasonYouthIntake(state);
     const offer = intake.offers[0];
-    const clubBefore = state.clubs.find(club => club.id === state.userClubId)!;
+    const clubBefore = state.clubs.find(
+      (club) => club.id === state.userClubId,
+    )!;
     const stateBefore = JSON.stringify(state);
     const intakeBefore = JSON.stringify(intake);
 
     const result = signYouthIntakeOffer(state, intake, offer.player.id);
-    const clubAfter = result.state.clubs.find(club => club.id === state.userClubId)!;
+    const clubAfter = result.state.clubs.find(
+      (club) => club.id === state.userClubId,
+    )!;
 
     expect(result).toMatchObject({
       signedPlayerId: offer.player.id,
       signingBonusPaid: offer.signingBonus,
-      intake: { status: 'CLOSED', offers: [], signedPlayerIds: [offer.player.id] },
+      intake: {
+        status: 'CLOSED',
+        offers: [],
+        signedPlayerIds: [offer.player.id],
+      },
     });
-    expect(result.state.players.filter(player => player.clubId === state.userClubId)).toHaveLength(16);
-    expect(result.state.players.find(player => player.id === offer.player.id)).toEqual(offer.player);
+    expect(
+      result.state.players.filter(
+        (player) => player.clubId === state.userClubId,
+      ),
+    ).toHaveLength(16);
+    expect(
+      result.state.players.find((player) => player.id === offer.player.id),
+    ).toEqual(offer.player);
     expect(clubAfter.cash).toBe(clubBefore.cash - offer.signingBonus);
-    expect(clubAfter.weeklyWages).toBe(clubBefore.weeklyWages + offer.player.weeklyWage);
+    expect(clubAfter.weeklyWages).toBe(
+      clubBefore.weeklyWages + offer.player.weeklyWage,
+    );
     expect(result.state.cashTransactions).toEqual([
       expect.objectContaining({
         kind: 'youth-signing',
@@ -254,19 +343,25 @@ describe('pre-season youth intake', () => {
     const offer = intake.offers[0];
     const broke = {
       ...state,
-      clubs: state.clubs.map(club => club.id === state.userClubId ? { ...club, cash: 0 } : club),
+      clubs: state.clubs.map((club) =>
+        club.id === state.userClubId ? { ...club, cash: 0 } : club,
+      ),
     };
-    expect(() => signYouthIntakeOffer(broke, intake, offer.player.id)).toThrow('not affordable');
-    expect(() => signYouthIntakeOffer(
-      { ...state, players: [...state.players, offer.player] },
-      intake,
-      offer.player.id,
-    )).toThrow('already in the career');
-    expect(() => signYouthIntakeOffer(
-      { ...state, season: 2 },
-      intake,
-      offer.player.id,
-    )).toThrow('different season');
-    expect(() => createPreseasonYouthIntake({ ...state, week: 5 })).toThrow('pre-season weeks 1-4');
+    expect(() => signYouthIntakeOffer(broke, intake, offer.player.id)).toThrow(
+      'not affordable',
+    );
+    expect(() =>
+      signYouthIntakeOffer(
+        { ...state, players: [...state.players, offer.player] },
+        intake,
+        offer.player.id,
+      ),
+    ).toThrow('already in the career');
+    expect(() =>
+      signYouthIntakeOffer({ ...state, season: 2 }, intake, offer.player.id),
+    ).toThrow('different season');
+    expect(() => createPreseasonYouthIntake({ ...state, week: 5 })).toThrow(
+      'pre-season weeks 1-4',
+    );
   });
 });

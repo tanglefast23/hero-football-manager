@@ -14,7 +14,11 @@ export type OpeningIntent =
       readonly facilityType: FacilityType;
       readonly position: FacilityPosition;
     }
-  | { readonly kind: 'train'; readonly playerId: string; readonly pathId: string };
+  | {
+      readonly kind: 'train';
+      readonly playerId: string;
+      readonly pathId: string;
+    };
 
 export function describeIntent(intent: OpeningIntent): string {
   switch (intent.kind) {

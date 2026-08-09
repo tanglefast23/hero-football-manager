@@ -10,7 +10,10 @@ import {
 import type { DivisionLevel } from '../pyramid';
 import { careerHeroLimit } from '../squad';
 import { resolveTrainingDrillForPath } from '../training-paths';
-import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
+import {
+  parseStoredGameState,
+  serializeGameState,
+} from '../../persistence/game-state-codec';
 
 describe('permanent promotion progression', () => {
   test('starts at D5 and raises facility and Hero License ceilings from the best tier reached', () => {
@@ -48,28 +51,48 @@ describe('permanent promotion progression', () => {
     expect(promotionRewardsForDivision(5)).toEqual([]);
     // No 'Level 2 facilities' here: level 2 is available from D5, so the D4
     // promotion screen must not promise a reward the club already has.
-    expect(promotionRewardsForDivision(4).map(reward => reward.title)).toEqual([
+    expect(
+      promotionRewardsForDivision(4).map((reward) => reward.title),
+    ).toEqual([
       'Recruitment fund · $15,000',
       'Tier 2 drills · $3,000 each',
       'International scouting',
       'Level 2 coaches',
     ]);
-    expect(promotionRewardsForDivision(3).map(reward => reward.title)).toContain('Third Hero License');
-    expect(promotionRewardsForDivision(2).map(reward => reward.title)).toContain('Elite Prospect scouting');
-    expect(promotionRewardsForDivision(1).map(reward => reward.title)).toContain('Fourth Hero License');
+    expect(
+      promotionRewardsForDivision(3).map((reward) => reward.title),
+    ).toContain('Third Hero License');
+    expect(
+      promotionRewardsForDivision(2).map((reward) => reward.title),
+    ).toContain('Elite Prospect scouting');
+    expect(
+      promotionRewardsForDivision(1).map((reward) => reward.title),
+    ).toContain('Fourth Hero License');
     // Each promotion puts exactly one drill tier up for sale, never grants it.
-    expect(promotionRewardsForDivision(3).map(reward => reward.title)).toContain('Tier 3 drills · $8,000 each');
-    expect(promotionRewardsForDivision(2).map(reward => reward.title)).toContain('Tier 4 drills · $18,000 each');
-    expect(promotionRewardsForDivision(1).map(reward => reward.title)).toContain('Tier 5 drills · $40,000 each');
+    expect(
+      promotionRewardsForDivision(3).map((reward) => reward.title),
+    ).toContain('Tier 3 drills · $8,000 each');
+    expect(
+      promotionRewardsForDivision(2).map((reward) => reward.title),
+    ).toContain('Tier 4 drills · $18,000 each');
+    expect(
+      promotionRewardsForDivision(1).map((reward) => reward.title),
+    ).toContain('Tier 5 drills · $40,000 each');
   });
 
   test('raises the league purse one $10,000 step per division', () => {
     // D5 is untouched so the measured opening ramp does not move; the climb is
     // what funds the drill shop.
-    expect([5, 4, 3, 2, 1].map(division => leaguePrizeMoney(division as DivisionLevel, 1)))
-      .toEqual([20_000, 30_000, 40_000, 50_000, 60_000]);
-    expect([5, 4, 3, 2, 1].map(division => leaguePrizeMoney(division as DivisionLevel, 2)))
-      .toEqual([10_000, 15_000, 20_000, 25_000, 30_000]);
+    expect(
+      [5, 4, 3, 2, 1].map((division) =>
+        leaguePrizeMoney(division as DivisionLevel, 1),
+      ),
+    ).toEqual([20_000, 30_000, 40_000, 50_000, 60_000]);
+    expect(
+      [5, 4, 3, 2, 1].map((division) =>
+        leaguePrizeMoney(division as DivisionLevel, 2),
+      ),
+    ).toEqual([10_000, 15_000, 20_000, 25_000, 30_000]);
     expect(leaguePrizeMoney(1, 3)).toBe(0);
   });
 
@@ -83,21 +106,29 @@ describe('permanent promotion progression', () => {
     };
 
     expect(reconciled.m2?.highestDivisionReached).toBe(5);
-    expect(parseStoredGameState(serializeGameState(earned)).m2?.highestDivisionReached).toBe(3);
+    expect(
+      parseStoredGameState(serializeGameState(earned)).m2
+        ?.highestDivisionReached,
+    ).toBe(3);
   });
 
   test('round-trips bought drill tiers and defaults a save that has none', () => {
     const initial = createCareer(createLaunchCareerSetup(20260724));
     const bought = { ...initial, ownedTrainingTiers: { sprints: 3, duels: 2 } };
 
-    expect(parseStoredGameState(serializeGameState(bought)).ownedTrainingTiers)
-      .toEqual({ sprints: 3, duels: 2 });
+    expect(
+      parseStoredGameState(serializeGameState(bought)).ownedTrainingTiers,
+    ).toEqual({ sprints: 3, duels: 2 });
     // Saves written before the purchase existed carry no record at all, and
     // load with every path back at the tier the career starts on.
-    expect(parseStoredGameState(serializeGameState(initial)).ownedTrainingTiers).toBeUndefined();
-    expect(resolveTrainingDrillForPath(
-      parseStoredGameState(serializeGameState(initial)),
-      'sprints',
-    ).id).toBe('sprints');
+    expect(
+      parseStoredGameState(serializeGameState(initial)).ownedTrainingTiers,
+    ).toBeUndefined();
+    expect(
+      resolveTrainingDrillForPath(
+        parseStoredGameState(serializeGameState(initial)),
+        'sprints',
+      ).id,
+    ).toBe('sprints');
   });
 });

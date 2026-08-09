@@ -5,7 +5,10 @@ describe('startup recovery', () => {
   it('keeps the screen error boundary inside a root safe-area provider', () => {
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
     const appRootStart = app.indexOf('export default function App()');
-    const appRootEnd = app.indexOf('\n}\n\nconst POWER_CUT_IN_QA_ENTRIES', appRootStart);
+    const appRootEnd = app.indexOf(
+      '\n}\n\nconst POWER_CUT_IN_QA_ENTRIES',
+      appRootStart,
+    );
     const appRoot = app.slice(appRootStart, appRootEnd);
 
     expect(appRoot).toMatch(
@@ -28,7 +31,7 @@ describe('startup recovery', () => {
       /browserDatabaseLock[\s\S]*?isBrowserDatabaseLockError\(bootError\)/,
     );
     expect(app).toMatch(
-      /browserDatabaseLock && reloadBrowserDocument\(\)[\s\S]*?onStartFresh={browserDatabaseLock \? undefined/,
+      /browserDatabaseLock && reloadBrowserDocument\(\)[\s\S]*?onStartFresh={\s*browserDatabaseLock\s*\?\s*undefined/,
     );
   });
 });

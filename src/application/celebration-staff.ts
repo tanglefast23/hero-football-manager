@@ -14,13 +14,21 @@ import type { CelebrationCoachViewModel } from '../ui/models';
  * running no staff at all simply sends nobody, and the scenes are built to
  * stage an empty list without a gap.
  */
-export function celebrationCoaches(state: GameState): readonly CelebrationCoachViewModel[] {
-  return [state.market?.headCoach, state.market?.assistantCoach]
-    .flatMap(coach => (coach === undefined ? [] : [{
-      id: coach.id,
-      name: coach.name,
-      // `portraitId` is what the art is keyed by; an older save that predates it
-      // falls back to the candidate id, exactly as the staff list does.
-      spriteKey: `coach:${coach.portraitId ?? coach.id}:field-cheer`,
-    }]));
+export function celebrationCoaches(
+  state: GameState,
+): readonly CelebrationCoachViewModel[] {
+  return [state.market?.headCoach, state.market?.assistantCoach].flatMap(
+    (coach) =>
+      coach === undefined
+        ? []
+        : [
+            {
+              id: coach.id,
+              name: coach.name,
+              // `portraitId` is what the art is keyed by; an older save that predates it
+              // falls back to the candidate id, exactly as the staff list does.
+              spriteKey: `coach:${coach.portraitId ?? coach.id}:field-cheer`,
+            },
+          ],
+  );
 }

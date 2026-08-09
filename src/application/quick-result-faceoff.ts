@@ -29,7 +29,9 @@ function englishCopy(): CopyFn {
  * it is settled on the recorded penalty winner. Reading the score here would
  * call every shoot-out a draw.
  */
-export function faceOffStrike(outcomeLabel: 'WIN' | 'DRAW' | 'LOSS'): FaceOffStrike {
+export function faceOffStrike(
+  outcomeLabel: 'WIN' | 'DRAW' | 'LOSS',
+): FaceOffStrike {
   if (outcomeLabel === 'WIN') return 'club';
   if (outcomeLabel === 'LOSS') return 'opponent';
   return 'bounce';
@@ -49,7 +51,7 @@ export function faceOffStrike(outcomeLabel: 'WIN' | 'DRAW' | 'LOSS'): FaceOffStr
  * strange picture rather than to no scene at all.
  */
 export function bestOutfieldPlayer(team: TeamDef): PlayerDef | null {
-  const outfield = team.players.filter(player => player.role !== 'GK');
+  const outfield = team.players.filter((player) => player.role !== 'GK');
   return bestByOverall(outfield.length > 0 ? outfield : team.players);
 }
 
@@ -59,7 +61,10 @@ function bestByOverall(players: readonly PlayerDef[]): PlayerDef | null {
   let bestOverall = -1;
   for (const player of players) {
     const overall = roleOverall(player.role, player.attrs);
-    if (overall > bestOverall || (overall === bestOverall && best !== null && player.id < best.id)) {
+    if (
+      overall > bestOverall ||
+      (overall === bestOverall && best !== null && player.id < best.id)
+    ) {
       best = player;
       bestOverall = overall;
     }
@@ -84,11 +89,14 @@ function side(player: PlayerDef, clubName: string): FaceOffSideViewModel {
  * decorative overlay must never be able to block a played match from reaching
  * the manager.
  */
-export function quickResultFaceOffViewModel(args: {
-  clubTeam: TeamDef;
-  opponentTeam: TeamDef;
-  outcomeLabel: 'WIN' | 'DRAW' | 'LOSS';
-}, t: CopyFn = englishCopy()): QuickResultFaceOffViewModel | null {
+export function quickResultFaceOffViewModel(
+  args: {
+    clubTeam: TeamDef;
+    opponentTeam: TeamDef;
+    outcomeLabel: 'WIN' | 'DRAW' | 'LOSS';
+  },
+  t: CopyFn = englishCopy(),
+): QuickResultFaceOffViewModel | null {
   const clubPlayer = bestOutfieldPlayer(args.clubTeam);
   const opponentPlayer = bestOutfieldPlayer(args.opponentTeam);
   if (clubPlayer === null || opponentPlayer === null) return null;

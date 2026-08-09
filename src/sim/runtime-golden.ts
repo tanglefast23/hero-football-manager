@@ -72,13 +72,13 @@ export function assertRuntimeGoldenReplay(): string {
   const actual = runtimeGoldenFingerprint();
   if (actual !== EXPECTED_RUNTIME_GOLDEN) {
     throw new Error(
-      `runtime golden replay mismatch for ${ENGINE_VERSION}: ${actual} != ${EXPECTED_RUNTIME_GOLDEN}`
+      `runtime golden replay mismatch for ${ENGINE_VERSION}: ${actual} != ${EXPECTED_RUNTIME_GOLDEN}`,
     );
   }
   const actualGoal = goalGoldenFingerprint();
   if (actualGoal !== EXPECTED_GOAL_GOLDEN) {
     throw new Error(
-      `goal golden replay mismatch for ${ENGINE_VERSION}: ${actualGoal} != ${EXPECTED_GOAL_GOLDEN}`
+      `goal golden replay mismatch for ${ENGINE_VERSION}: ${actualGoal} != ${EXPECTED_GOAL_GOLDEN}`,
     );
   }
   return `${actual} ${actualGoal}`;

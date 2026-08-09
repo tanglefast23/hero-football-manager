@@ -26,14 +26,14 @@ export interface RearHeadStyle {
   readonly bands?: readonly { readonly row: number; readonly token: string }[];
 }
 
-const PLAYER_IDS = ['r', 'u'].flatMap(side => [
-  ...FIELD_PLAYER_LOOK_IDS.map(lookId => `${side}:${lookId}`),
-  ...GOALKEEPER_LOOK_IDS.map(lookId => `${side}:${lookId}`),
+const PLAYER_IDS = ['r', 'u'].flatMap((side) => [
+  ...FIELD_PLAYER_LOOK_IDS.map((lookId) => `${side}:${lookId}`),
+  ...GOALKEEPER_LOOK_IDS.map((lookId) => `${side}:${lookId}`),
 ]);
 const FRAMES = ['run0', 'run1', 'back0', 'back1'];
-const GOALKEEPER_IDS = ['r', 'u'].flatMap(side => (
-  GOALKEEPER_LOOK_IDS.map(lookId => `${side}:${lookId}`)
-));
+const GOALKEEPER_IDS = ['r', 'u'].flatMap((side) =>
+  GOALKEEPER_LOOK_IDS.map((lookId) => `${side}:${lookId}`),
+);
 const GOALKEEPER_FRAMES = ['ready0', 'ready1', 'backReady0', 'backReady1'];
 const BALL_KEY = 'ball';
 const BALL_SIZE = 6;
@@ -54,7 +54,11 @@ function mostCommonToken(
       counts.set(token, (counts.get(token) ?? 0) + 1);
     }
   }
-  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? 'K';
+  return (
+    [...counts.entries()].sort(
+      (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+    )[0]?.[0] ?? 'K'
+  );
 }
 
 // Boots live below the shorts hem, and are the only white/off-white pixels down
@@ -62,20 +66,31 @@ function mostCommonToken(
 const BOOT_BAND_TOP = 26;
 const SOLE_FOR: Readonly<Record<string, string>> = { W: 'G', w: 'g' };
 
-function bootColumnGroups(rows: readonly string[]): { start: number; end: number }[] {
+function bootColumnGroups(
+  rows: readonly string[],
+): { start: number; end: number }[] {
   const groups: { start: number; end: number }[] = [];
-  for (let column = 0; column < (rows[BOOT_BAND_TOP]?.length ?? 0); column += 1) {
-    const isBoot = rows.slice(BOOT_BAND_TOP)
-      .some(row => SOLE_FOR[row[column]] !== undefined);
+  for (
+    let column = 0;
+    column < (rows[BOOT_BAND_TOP]?.length ?? 0);
+    column += 1
+  ) {
+    const isBoot = rows
+      .slice(BOOT_BAND_TOP)
+      .some((row) => SOLE_FOR[row[column]] !== undefined);
     if (!isBoot) continue;
     const previous = groups[groups.length - 1];
-    if (previous !== undefined && previous.end === column - 1) previous.end = column;
+    if (previous !== undefined && previous.end === column - 1)
+      previous.end = column;
     else groups.push({ start: column, end: column });
   }
   return groups;
 }
 
-function bootBottomRow(rows: readonly string[], group: { start: number; end: number }): number {
+function bootBottomRow(
+  rows: readonly string[],
+  group: { start: number; end: number },
+): number {
   let bottom = -1;
   for (let row = BOOT_BAND_TOP; row < rows.length; row += 1) {
     for (let column = group.start; column <= group.end; column += 1) {
@@ -95,13 +110,18 @@ function bootBottomRow(rows: readonly string[], group: { start: number; end: num
 function withRearSoles(rows: readonly string[]): string[] {
   const groups = bootColumnGroups(rows);
   if (groups.length < 2) return [...rows];
-  const bottoms = groups.map(group => bootBottomRow(rows, group));
+  const bottoms = groups.map((group) => bootBottomRow(rows, group));
   const nearest = Math.max(...bottoms);
-  if (bottoms.every(bottom => bottom === nearest)) return [...rows];
+  if (bottoms.every((bottom) => bottom === nearest)) return [...rows];
 
   const soleColumns = groups
     .filter((_, index) => bottoms[index] === nearest)
-    .flatMap(group => Array.from({ length: group.end - group.start + 1 }, (_, i) => group.start + i));
+    .flatMap((group) =>
+      Array.from(
+        { length: group.end - group.start + 1 },
+        (_, i) => group.start + i,
+      ),
+    );
   return rows.map((row, index) => {
     if (index < BOOT_BAND_TOP) return row;
     const tokens = [...row];
@@ -127,12 +147,19 @@ export function deriveBackFacingFrame(
 ): string[] {
   const hair = mostCommonToken(front, 0, 6, new Set(['.', 'K']));
   const skin = mostCommonToken(front, 7, 14, new Set(['.', 'K', 'W', 'w']));
-  const kit = mostCommonToken(front, 16, 23, new Set(['.', 'K', 'W', 'w', skin]));
+  const kit = mostCommonToken(
+    front,
+    16,
+    23,
+    new Set(['.', 'K', 'W', 'w', skin]),
+  );
 
   const rear = front.map((source, row) => {
     if (row < 7 || row > 23) return source;
     const tokens = [...source];
-    const painted = tokens.flatMap((token, column) => token === '.' ? [] : [column]);
+    const painted = tokens.flatMap((token, column) =>
+      token === '.' ? [] : [column],
+    );
     if (painted.length < 2) return source;
     const first = painted[0];
     const last = painted[painted.length - 1];
@@ -140,15 +167,22 @@ export function deriveBackFacingFrame(
       if (tokens[column] === '.') continue;
       if (row <= 12) tokens[column] = rearHead?.head ?? hair;
       else if (row <= 14) tokens[column] = rearHead?.lower ?? skin;
-      else if (tokens[column] === 'W' || tokens[column] === 'w') tokens[column] = kit;
+      else if (tokens[column] === 'W' || tokens[column] === 'w')
+        tokens[column] = kit;
     }
     return tokens.join('');
   });
 
   for (const band of rearHead?.bands ?? []) {
     const tokens = [...rear[band.row]];
-    const painted = tokens.flatMap((token, column) => token === '.' ? [] : [column]);
-    for (let column = painted[0] + 1; column < painted[painted.length - 1]; column += 1) {
+    const painted = tokens.flatMap((token, column) =>
+      token === '.' ? [] : [column],
+    );
+    for (
+      let column = painted[0] + 1;
+      column < painted[painted.length - 1];
+      column += 1
+    ) {
       if (tokens[column] !== '.') tokens[column] = band.token;
     }
     rear[band.row] = tokens.join('');
@@ -208,9 +242,13 @@ export function deriveWebbedFrame(
   rows: readonly string[],
   palette: Readonly<Record<string, string | null>>,
 ): string[] {
-  return rows.map(row => [...row].map(token => (
-    token === '.' ? '.' : greyTokenFor(palette[token] ?? null)
-  )).join(''));
+  return rows.map((row) =>
+    [...row]
+      .map((token) =>
+        token === '.' ? '.' : greyTokenFor(palette[token] ?? null),
+      )
+      .join(''),
+  );
 }
 
 function withWebbedSprites(sheet: SpriteSheet): SpriteSheet {
@@ -219,7 +257,12 @@ function withWebbedSprites(sheet: SpriteSheet): SpriteSheet {
     // A webbed player is rooted in the standing pose. Generating thousands of
     // impossible webbed slide frames bloats every match Atlas and the full
     // roster contract without adding a state the renderer can legitimately use.
-    if (key === BALL_KEY || key.endsWith(WEBBED_SUFFIX) || SLIDE_FRAME_PATTERN.test(key)) continue;
+    if (
+      key === BALL_KEY ||
+      key.endsWith(WEBBED_SUFFIX) ||
+      SLIDE_FRAME_PATTERN.test(key)
+    )
+      continue;
     sprites[webbedSpriteKey(key)] = deriveWebbedFrame(rows, sheet.palette);
   }
   return { ...sheet, sprites };
@@ -231,8 +274,11 @@ export const ATLAS_GUTTER = 1;
 
 function requiredKeys(playerIds: readonly string[]): string[] {
   const keys: string[] = [];
-  for (const id of playerIds) for (const frame of FRAMES) keys.push(`${id}:${frame}`);
-  for (const id of playerIds.filter(candidate => GOALKEEPER_IDS.includes(candidate))) {
+  for (const id of playerIds)
+    for (const frame of FRAMES) keys.push(`${id}:${frame}`);
+  for (const id of playerIds.filter((candidate) =>
+    GOALKEEPER_IDS.includes(candidate),
+  )) {
     for (const frame of GOALKEEPER_FRAMES) keys.push(`${id}:${frame}`);
   }
   for (const id of playerIds) {
@@ -249,14 +295,18 @@ function requiredKeys(playerIds: readonly string[]): string[] {
  * structural violation: missing required sprite, wrong row count/width, or a
  * character used in a sprite row that isn't a palette key.
  */
-export function loadSpriteSheet(visualIds: readonly string[] = PLAYER_IDS): SpriteSheet {
+export function loadSpriteSheet(
+  visualIds: readonly string[] = PLAYER_IDS,
+): SpriteSheet {
   const baseSheet = sheetData as SpriteSheet;
 
   if (!baseSheet.cell || baseSheet.cell.w <= 0 || baseSheet.cell.h <= 0) {
     throw new Error('loadSpriteSheet: sheet.cell must have positive w/h');
   }
   if (!baseSheet.palette || !('.' in baseSheet.palette)) {
-    throw new Error('loadSpriteSheet: palette must define the transparent "." key');
+    throw new Error(
+      'loadSpriteSheet: palette must define the transparent "." key',
+    );
   }
 
   // Validate the authored pack before deriving action art so malformed source
@@ -266,17 +316,21 @@ export function loadSpriteSheet(visualIds: readonly string[] = PLAYER_IDS): Spri
     const expectedH = isBall ? BALL_SIZE : baseSheet.cell.h;
     const expectedW = isBall ? BALL_SIZE : baseSheet.cell.w;
     if (rows.length !== expectedH) {
-      throw new Error(`loadSpriteSheet: sprite "${key}" has ${rows.length} rows, expected ${expectedH}`);
+      throw new Error(
+        `loadSpriteSheet: sprite "${key}" has ${rows.length} rows, expected ${expectedH}`,
+      );
     }
     rows.forEach((row, i) => {
       if (row.length !== expectedW) {
         throw new Error(
-          `loadSpriteSheet: sprite "${key}" row ${i} has width ${row.length}, expected ${expectedW}`
+          `loadSpriteSheet: sprite "${key}" row ${i} has width ${row.length}, expected ${expectedW}`,
         );
       }
       for (const ch of row) {
         if (!(ch in baseSheet.palette)) {
-          throw new Error(`loadSpriteSheet: sprite "${key}" row ${i} uses char "${ch}" not present in palette`);
+          throw new Error(
+            `loadSpriteSheet: sprite "${key}" row ${i} uses char "${ch}" not present in palette`,
+          );
         }
       }
     });
@@ -288,12 +342,17 @@ export function loadSpriteSheet(visualIds: readonly string[] = PLAYER_IDS): Spri
       throw new Error(`loadSpriteSheet: unknown player visual ID "${id}"`);
     }
   }
-  const selectedSprites: Record<string, string[]> = { [BALL_KEY]: baseSheet.sprites[BALL_KEY] };
-  for (const id of uniqueVisualIds) for (const [key, rows] of Object.entries(baseSheet.sprites)) {
-    if (key.startsWith(`${id}:`)) selectedSprites[key] = rows;
-  }
+  const selectedSprites: Record<string, string[]> = {
+    [BALL_KEY]: baseSheet.sprites[BALL_KEY],
+  };
+  for (const id of uniqueVisualIds)
+    for (const [key, rows] of Object.entries(baseSheet.sprites)) {
+      if (key.startsWith(`${id}:`)) selectedSprites[key] = rows;
+    }
   const sheet = withWebbedSprites(
-    withSlideTackleSprites(withBackFacingSprites({ ...baseSheet, sprites: selectedSprites })),
+    withSlideTackleSprites(
+      withBackFacingSprites({ ...baseSheet, sprites: selectedSprites }),
+    ),
   );
 
   for (const key of requiredKeys(uniqueVisualIds)) {
@@ -305,21 +364,33 @@ export function loadSpriteSheet(visualIds: readonly string[] = PLAYER_IDS): Spri
   for (const [key, rows] of Object.entries(sheet.sprites)) {
     const isBall = key === BALL_KEY;
     const isSlideFrame = SLIDE_FRAME_PATTERN.test(key);
-    const expectedH = isBall ? BALL_SIZE : isSlideFrame ? SLIDE_TACKLE_CELL.h : sheet.cell.h;
-    const expectedW = isBall ? BALL_SIZE : isSlideFrame ? SLIDE_TACKLE_CELL.w : sheet.cell.w;
+    const expectedH = isBall
+      ? BALL_SIZE
+      : isSlideFrame
+        ? SLIDE_TACKLE_CELL.h
+        : sheet.cell.h;
+    const expectedW = isBall
+      ? BALL_SIZE
+      : isSlideFrame
+        ? SLIDE_TACKLE_CELL.w
+        : sheet.cell.w;
 
     if (rows.length !== expectedH) {
-      throw new Error(`loadSpriteSheet: sprite "${key}" has ${rows.length} rows, expected ${expectedH}`);
+      throw new Error(
+        `loadSpriteSheet: sprite "${key}" has ${rows.length} rows, expected ${expectedH}`,
+      );
     }
     rows.forEach((row, i) => {
       if (row.length !== expectedW) {
         throw new Error(
-          `loadSpriteSheet: sprite "${key}" row ${i} has width ${row.length}, expected ${expectedW}`
+          `loadSpriteSheet: sprite "${key}" row ${i} has width ${row.length}, expected ${expectedW}`,
         );
       }
       for (const ch of row) {
         if (!(ch in sheet.palette)) {
-          throw new Error(`loadSpriteSheet: sprite "${key}" row ${i} uses char "${ch}" not present in palette`);
+          throw new Error(
+            `loadSpriteSheet: sprite "${key}" row ${i} uses char "${ch}" not present in palette`,
+          );
         }
       }
     });
@@ -347,13 +418,22 @@ export function atlasLayout(sheet: SpriteSheet): AtlasLayout {
   const keys = Object.keys(sheet.sprites).sort();
   const cols = 8;
   const rows = Math.ceil(keys.length / cols);
-  const maxFrameWidth = Math.max(...Object.values(sheet.sprites).map(frame => frame[0]?.length ?? 0));
-  const maxFrameHeight = Math.max(...Object.values(sheet.sprites).map(frame => frame.length));
+  const maxFrameWidth = Math.max(
+    ...Object.values(sheet.sprites).map((frame) => frame[0]?.length ?? 0),
+  );
+  const maxFrameHeight = Math.max(
+    ...Object.values(sheet.sprites).map((frame) => frame.length),
+  );
   const slotW = maxFrameWidth + ATLAS_GUTTER * 2;
   const slotH = maxFrameHeight + ATLAS_GUTTER * 2;
   const indexOf = new Map(keys.map((k, i) => [k, i]));
 
-  function rectFor(key: string): { x: number; y: number; w: number; h: number } {
+  function rectFor(key: string): {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } {
     const i = indexOf.get(key);
     if (i === undefined) {
       throw new Error(`atlasLayout: unknown sprite key "${key}"`);

@@ -18,13 +18,19 @@ import { boardFinanceBriefing, homeViewModel } from '../view-models';
 describe('the board finance briefing', () => {
   const content = loadLaunchContent();
 
-  function career(seed: number, cash: number, safety: GameState['financialSafety']): GameState {
-    const started = createCareer(createLaunchCareerSetup(seed, undefined, content));
+  function career(
+    seed: number,
+    cash: number,
+    safety: GameState['financialSafety'],
+  ): GameState {
+    const started = createCareer(
+      createLaunchCareerSetup(seed, undefined, content),
+    );
     return {
       ...started,
-      clubs: started.clubs.map(club => (
-        club.id === started.userClubId ? { ...club, cash } : club
-      )),
+      clubs: started.clubs.map((club) =>
+        club.id === started.userClubId ? { ...club, cash } : club,
+      ),
       financialSafety: safety,
     };
   }
@@ -32,19 +38,27 @@ describe('the board finance briefing', () => {
   describe('the financial warning', () => {
     it('opens with the weeks in the red and the balance behind them', () => {
       const briefing = boardFinanceBriefing(
-        career(20260901, -2540, { consecutiveNegativeWeeks: 1, emergencyLoanUsed: false }),
+        career(20260901, -2540, {
+          consecutiveNegativeWeeks: 1,
+          emergencyLoanUsed: false,
+        }),
         'financial-warning',
       );
 
       expect(briefing?.title).toBe('Board financial warning');
-      expect(briefing?.body[0]).toBe('The club has been in the red for 1 week. The balance is -$2,540.');
+      expect(briefing?.body[0]).toBe(
+        'The club has been in the red for 1 week. The balance is -$2,540.',
+      );
     });
 
     it('counts the grace weeks left before the board steps in', () => {
       // Cozy allows four negative weeks before the rescue fires, and the count
       // has already reached one, so three more are left.
       const briefing = boardFinanceBriefing(
-        career(20260902, -2540, { consecutiveNegativeWeeks: 1, emergencyLoanUsed: false }),
+        career(20260902, -2540, {
+          consecutiveNegativeWeeks: 1,
+          emergencyLoanUsed: false,
+        }),
         'financial-warning',
       );
 
@@ -55,7 +69,10 @@ describe('the board finance briefing', () => {
     /** A club that has spent its one rescue is warned about the real next step. */
     it('promises sales rather than a loan once the rescue is spent', () => {
       const briefing = boardFinanceBriefing(
-        career(20260903, -8000, { consecutiveNegativeWeeks: 3, emergencyLoanUsed: true }),
+        career(20260903, -8000, {
+          consecutiveNegativeWeeks: 3,
+          emergencyLoanUsed: true,
+        }),
         'financial-warning',
       );
 
@@ -66,7 +83,10 @@ describe('the board finance briefing', () => {
 
     it('stops counting down once the grace weeks are gone', () => {
       const briefing = boardFinanceBriefing(
-        career(20260904, -20000, { consecutiveNegativeWeeks: 6, emergencyLoanUsed: true }),
+        career(20260904, -20000, {
+          consecutiveNegativeWeeks: 6,
+          emergencyLoanUsed: true,
+        }),
         'financial-warning',
       );
 
@@ -76,38 +96,50 @@ describe('the board finance briefing', () => {
 
     it('explains the action available when the manager can still afford it', () => {
       const briefing = boardFinanceBriefing(
-        career(20260905, -2540, { consecutiveNegativeWeeks: 1, emergencyLoanUsed: false }),
+        career(20260905, -2540, {
+          consecutiveNegativeWeeks: 1,
+          emergencyLoanUsed: false,
+        }),
         'financial-warning',
       );
 
       expect(briefing?.body[2]).toBe(
-        'If you have the funds to do so, create a facility to help earn more income.'
-        + ' If not, the board is having an emergency meeting right now.',
+        'If you have the funds to do so, create a facility to help earn more income.' +
+          ' If not, the board is having an emergency meeting right now.',
       );
     });
 
     it('reassures a broke manager that waiting for the board is the right move', () => {
       const briefing = boardFinanceBriefing(
-        career(20260916, -2540, { consecutiveNegativeWeeks: 1, emergencyLoanUsed: false }),
+        career(20260916, -2540, {
+          consecutiveNegativeWeeks: 1,
+          emergencyLoanUsed: false,
+        }),
         'financial-warning',
       );
 
       expect(briefing?.body[3]).toBe(
-        "If you don't have enough to build anything, hold tight."
-        + " There's nothing else you need to do until the board decides what happens next."
-        + " You'll hear from them soon.",
+        "If you don't have enough to build anything, hold tight." +
+          " There's nothing else you need to do until the board decides what happens next." +
+          " You'll hear from them soon.",
       );
     });
 
     it('quotes the same week count as the desk row it came from', () => {
       // The row's two clipped lines and the briefing are the same message. A
       // week count that disagreed between them would read as a second problem.
-      const state = career(20260906, -2540, { consecutiveNegativeWeeks: 2, emergencyLoanUsed: false });
-      const row = homeViewModel(state).alerts.find(alert => alert.id === 'financial-warning');
+      const state = career(20260906, -2540, {
+        consecutiveNegativeWeeks: 2,
+        emergencyLoanUsed: false,
+      });
+      const row = homeViewModel(state).alerts.find(
+        (alert) => alert.id === 'financial-warning',
+      );
 
       expect(row?.detail).toContain('negative for 2 weeks');
-      expect(boardFinanceBriefing(state, 'financial-warning')?.body[0])
-        .toContain('in the red for 2 weeks');
+      expect(
+        boardFinanceBriefing(state, 'financial-warning')?.body[0],
+      ).toContain('in the red for 2 weeks');
     });
 
     it('removes the warning after Bert finishes, but allows a new one next week', () => {
@@ -115,15 +147,26 @@ describe('the board finance briefing', () => {
         consecutiveNegativeWeeks: 1,
         emergencyLoanUsed: false,
       });
-      const dismissed = dismissAssistantInboxProductForCurrentWeek(state, 'financial-warning');
+      const dismissed = dismissAssistantInboxProductForCurrentWeek(
+        state,
+        'financial-warning',
+      );
 
-      expect(homeViewModel(dismissed).alerts.map(alert => alert.id)).not.toContain('financial-warning');
-      expect(homeViewModel({ ...dismissed, week: dismissed.week + 1 }).alerts.map(alert => alert.id))
-        .toContain('financial-warning');
+      expect(
+        homeViewModel(dismissed).alerts.map((alert) => alert.id),
+      ).not.toContain('financial-warning');
+      expect(
+        homeViewModel({ ...dismissed, week: dismissed.week + 1 }).alerts.map(
+          (alert) => alert.id,
+        ),
+      ).toContain('financial-warning');
     });
 
     it('says nothing when the club is not in the red', () => {
-      const state = career(20260907, 12000, { consecutiveNegativeWeeks: 0, emergencyLoanUsed: false });
+      const state = career(20260907, 12000, {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: false,
+      });
 
       expect(boardFinanceBriefing(state, 'financial-warning')).toBeUndefined();
     });
@@ -139,17 +182,27 @@ describe('the board finance briefing', () => {
 
     it('leads with what is still owed', () => {
       const briefing = boardFinanceBriefing(
-        career(20260908, 15000, { consecutiveNegativeWeeks: 0, emergencyLoanUsed: true, loan }),
+        career(20260908, 15000, {
+          consecutiveNegativeWeeks: 0,
+          emergencyLoanUsed: true,
+          loan,
+        }),
         'emergency-loan',
       );
 
       expect(briefing?.title).toBe('Emergency loan active');
-      expect(briefing?.body[0]).toBe('The board’s emergency loan landed. $22,229 of it still has to go back.');
+      expect(briefing?.body[0]).toBe(
+        'The board’s emergency loan landed. $22,229 of it still has to go back.',
+      );
     });
 
     it('names the season the repayments start and rules out a second rescue', () => {
       const briefing = boardFinanceBriefing(
-        career(20260909, 15000, { consecutiveNegativeWeeks: 0, emergencyLoanUsed: true, loan }),
+        career(20260909, 15000, {
+          consecutiveNegativeWeeks: 0,
+          emergencyLoanUsed: true,
+          loan,
+        }),
         'emergency-loan',
       );
 
@@ -164,21 +217,28 @@ describe('the board finance briefing', () => {
         loan: { ...loan, remainingWeeks: 12 },
       });
 
-      const briefing = boardFinanceBriefing({ ...started, season: 2 }, 'emergency-loan');
+      const briefing = boardFinanceBriefing(
+        { ...started, season: 2 },
+        'emergency-loan',
+      );
 
       expect(briefing?.body[1]).toContain('12 weeks of repayments left');
     });
 
     it('explains the commercial build limits and points at more income', () => {
       const briefing = boardFinanceBriefing(
-        career(20260911, 15000, { consecutiveNegativeWeeks: 0, emergencyLoanUsed: true, loan }),
+        career(20260911, 15000, {
+          consecutiveNegativeWeeks: 0,
+          emergencyLoanUsed: true,
+          loan,
+        }),
         'emergency-loan',
       );
 
       expect(briefing?.body.at(-1)).toBe(
-        'Fan Shops earn money every week, while Stadium Stands improve home-match income.'
-        + ' You can build up to three of each; every other facility is limited to one.'
-        + ' Build another one now to create more income.',
+        'Fan Shops earn money every week, while Stadium Stands improve home-match income.' +
+          ' You can build up to three of each; every other facility is limited to one.' +
+          ' Build another one now to create more income.',
       );
     });
 
@@ -189,7 +249,10 @@ describe('the board finance briefing', () => {
         loan: { ...loan, remainingWeeks: 12 },
       });
 
-      const briefing = boardFinanceBriefing({ ...started, season: 2 }, 'emergency-loan');
+      const briefing = boardFinanceBriefing(
+        { ...started, season: 2 },
+        'emergency-loan',
+      );
 
       expect(briefing?.body.at(-1)).toContain('up to three of each');
       expect(briefing?.body.at(-1)).toContain('Build another one now');
@@ -201,14 +264,22 @@ describe('the board finance briefing', () => {
         emergencyLoanUsed: true,
         loan,
       });
-      const busy = buildCareerFacility(borrowed, 'training-pitch', { x: 0, y: 0 }).state;
+      const busy = buildCareerFacility(borrowed, 'training-pitch', {
+        x: 0,
+        y: 0,
+      }).state;
 
       const briefing = boardFinanceBriefing(busy, 'emergency-loan');
 
-      expect(briefing?.body.at(-1)).toContain('works crew is busy with the Training Pitch');
-      expect(briefing?.body.at(-1)).toContain('Wait until that construction finishes');
-      expect(boardFinanceBriefing(borrowed, 'emergency-loan')?.body.at(-1))
-        .not.toContain('Wait until');
+      expect(briefing?.body.at(-1)).toContain(
+        'works crew is busy with the Training Pitch',
+      );
+      expect(briefing?.body.at(-1)).toContain(
+        'Wait until that construction finishes',
+      );
+      expect(
+        boardFinanceBriefing(borrowed, 'emergency-loan')?.body.at(-1),
+      ).not.toContain('Wait until');
     });
 
     it('retires the inbox card permanently after showing the highlighted income facilities', () => {
@@ -217,22 +288,36 @@ describe('the board finance briefing', () => {
         emergencyLoanUsed: true,
         loan,
       });
-      const dismissed = dismissAssistantInboxProductPermanently(state, 'emergency-loan');
+      const dismissed = dismissAssistantInboxProductPermanently(
+        state,
+        'emergency-loan',
+      );
 
-      expect(homeViewModel(dismissed).alerts.map(alert => alert.id)).not.toContain('emergency-loan');
-      expect(homeViewModel({ ...dismissed, week: dismissed.week + 1 }).alerts.map(alert => alert.id))
-        .not.toContain('emergency-loan');
+      expect(
+        homeViewModel(dismissed).alerts.map((alert) => alert.id),
+      ).not.toContain('emergency-loan');
+      expect(
+        homeViewModel({ ...dismissed, week: dismissed.week + 1 }).alerts.map(
+          (alert) => alert.id,
+        ),
+      ).not.toContain('emergency-loan');
     });
 
     it('says nothing when there is no loan to repay', () => {
-      const state = career(20260913, 15000, { consecutiveNegativeWeeks: 0, emergencyLoanUsed: false });
+      const state = career(20260913, 15000, {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: false,
+      });
 
       expect(boardFinanceBriefing(state, 'emergency-loan')).toBeUndefined();
     });
   });
 
   it('has nothing to say about any other desk row', () => {
-    const state = career(20260914, -2540, { consecutiveNegativeWeeks: 1, emergencyLoanUsed: false });
+    const state = career(20260914, -2540, {
+      consecutiveNegativeWeeks: 1,
+      emergencyLoanUsed: false,
+    });
 
     expect(boardFinanceBriefing(state, 'renewals')).toBeUndefined();
   });
@@ -240,11 +325,14 @@ describe('the board finance briefing', () => {
   /** Every bubble is one tap. An empty one would be a tap that showed nothing. */
   it('says every line it promises', () => {
     const warning = boardFinanceBriefing(
-      career(20260915, -2540, { consecutiveNegativeWeeks: 1, emergencyLoanUsed: false }),
+      career(20260915, -2540, {
+        consecutiveNegativeWeeks: 1,
+        emergencyLoanUsed: false,
+      }),
       'financial-warning',
     );
 
     expect(warning?.body).toHaveLength(4);
-    expect(warning?.body.every(line => line.trim().length > 0)).toBe(true);
+    expect(warning?.body.every((line) => line.trim().length > 0)).toBe(true);
   });
 });

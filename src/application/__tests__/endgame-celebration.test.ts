@@ -49,7 +49,10 @@ describe('the endgame celebrations', () => {
      * playing its season has no boundary to present anything at.
      */
     it('fires nothing away from a season boundary', () => {
-      const midSeason = { ...careerAt({ division: 1, champions: true }), phase: 'manage' as const };
+      const midSeason = {
+        ...careerAt({ division: 1, champions: true }),
+        phase: 'manage' as const,
+      };
 
       expect(pendingEndgameCelebration(midSeason)).toBeUndefined();
     });
@@ -66,10 +69,9 @@ describe('the endgame celebrations', () => {
     });
 
     it('plays the true ending when the D1 title arrives last', () => {
-      const state = withFlags(
-        careerAt({ division: 1, champions: true }),
-        [NATIONAL_CUP_WON_FLAG],
-      );
+      const state = withFlags(careerAt({ division: 1, champions: true }), [
+        NATIONAL_CUP_WON_FLAG,
+      ]);
 
       expect(pendingEndgameCelebration(state)).toBe('true-ending');
     });
@@ -90,26 +92,30 @@ describe('the endgame celebrations', () => {
         careerAt({ division: 4, champions: false, cupWon: true }),
         [GLOBAL_LEAGUE_WON_FLAG],
       );
-      const leagueLast = withFlags(
-        careerAt({ division: 1, champions: true }),
-        [NATIONAL_CUP_WON_FLAG],
-      );
+      const leagueLast = withFlags(careerAt({ division: 1, champions: true }), [
+        NATIONAL_CUP_WON_FLAG,
+      ]);
 
-      [cupLast, leagueLast].forEach(state => {
+      [cupLast, leagueLast].forEach((state) => {
         const after = markEndgameCelebrationComplete(state);
         expect(pendingEndgameCelebration(after)).toBeUndefined();
-        expect(after.eventFlags).toEqual(expect.arrayContaining([
-          GLOBAL_LEAGUE_WON_FLAG,
-          NATIONAL_CUP_WON_FLAG,
-          TRUE_ENDING_SEEN_FLAG,
-        ]));
+        expect(after.eventFlags).toEqual(
+          expect.arrayContaining([
+            GLOBAL_LEAGUE_WON_FLAG,
+            NATIONAL_CUP_WON_FLAG,
+            TRUE_ENDING_SEEN_FLAG,
+          ]),
+        );
       });
     });
   });
 
   describe('a flag, once set, never fires again', () => {
     it.each([
-      ['the Global League screen', { division: 1 as DivisionLevel, cupWon: false }],
+      [
+        'the Global League screen',
+        { division: 1 as DivisionLevel, cupWon: false },
+      ],
       ['the Cup screen', { division: 4 as DivisionLevel, cupWon: true }],
     ])('retires %s after it has been watched', (_label, setup) => {
       const state = careerAt({ ...setup, champions: true });
@@ -140,10 +146,11 @@ describe('the endgame celebrations', () => {
     });
 
     it('gives the ordinary screen back for every D1 title after it', () => {
-      const state = withFlags(
-        careerAt({ division: 1, champions: true }),
-        [GLOBAL_LEAGUE_WON_FLAG, NATIONAL_CUP_WON_FLAG, TRUE_ENDING_SEEN_FLAG],
-      );
+      const state = withFlags(careerAt({ division: 1, champions: true }), [
+        GLOBAL_LEAGUE_WON_FLAG,
+        NATIONAL_CUP_WON_FLAG,
+        TRUE_ENDING_SEEN_FLAG,
+      ]);
 
       expect(pendingEndgameCelebration(state)).toBeUndefined();
       expect(hasPendingChampionshipCelebration(state)).toBe(true);
@@ -171,8 +178,9 @@ describe('the endgame celebrations', () => {
         'bramble-rovers-p10': 12,
       });
 
-      expect(endgameCelebrationViewModel(state, 'Bert Rudge').star)
-        .toMatchObject({ id: 'bramble-rovers-p03', fame: 88 });
+      expect(
+        endgameCelebrationViewModel(state, 'Bert Rudge').star,
+      ).toMatchObject({ id: 'bramble-rovers-p03', fame: 88 });
     });
 
     /**
@@ -182,13 +190,16 @@ describe('the endgame celebrations', () => {
      */
     it('breaks ties on player ID, not on roster order', () => {
       const state = careerAt({ division: 1, champions: true });
-      const squad = state.players.filter(player => player.clubId === state.userClubId);
+      const squad = state.players.filter(
+        (player) => player.clubId === state.userClubId,
+      );
       const shuffled = { ...state, players: [...state.players].reverse() };
 
-      expect(squad.every(player => (player.fame ?? 0) === 0)).toBe(true);
+      expect(squad.every((player) => (player.fame ?? 0) === 0)).toBe(true);
       expect(highestFamePlayer(squad)?.id).toBe('bramble-rovers-p01');
-      expect(endgameCelebrationViewModel(shuffled, 'Bert Rudge').star?.id)
-        .toBe('bramble-rovers-p01');
+      expect(endgameCelebrationViewModel(shuffled, 'Bert Rudge').star?.id).toBe(
+        'bramble-rovers-p01',
+      );
     });
 
     it('keeps a tied-on-fame man behind the leader whichever way the list came in', () => {
@@ -197,8 +208,9 @@ describe('the endgame celebrations', () => {
         'bramble-rovers-p02': 40,
       });
 
-      expect(endgameCelebrationViewModel(state, 'Bert Rudge').star?.id)
-        .toBe('bramble-rovers-p02');
+      expect(endgameCelebrationViewModel(state, 'Bert Rudge').star?.id).toBe(
+        'bramble-rovers-p02',
+      );
     });
   });
 
@@ -257,7 +269,9 @@ describe('the endgame celebrations', () => {
 
       expect(ending.kind).toBe('true-ending');
       expect(ending.squad.length).toBeGreaterThan(0);
-      expect(ending.squad.some(player => player.id === ending.star?.id)).toBe(false);
+      expect(ending.squad.some((player) => player.id === ending.star?.id)).toBe(
+        false,
+      );
     });
 
     /**
@@ -269,7 +283,9 @@ describe('the endgame celebrations', () => {
       const state = careerAt({ division: 1, champions: true, cupWon: true });
       const empty = {
         ...state,
-        players: state.players.filter(player => player.clubId !== state.userClubId),
+        players: state.players.filter(
+          (player) => player.clubId !== state.userClubId,
+        ),
       };
 
       const viewModel = endgameCelebrationViewModel(empty, 'Bert Rudge');
@@ -310,7 +326,9 @@ describe('the endgame celebrations', () => {
 
       const after = useM1Store.getState().career!;
       expect(useM1Store.getState().screen).not.toBe('championship-celebration');
-      expect(after.eventFlags).toContain(championshipCelebrationFlag(after.season));
+      expect(after.eventFlags).toContain(
+        championshipCelebrationFlag(after.season),
+      );
       expect(hasPendingChampionshipCelebration(after)).toBe(false);
     });
 
@@ -353,7 +371,9 @@ describe('the endgame celebrations', () => {
      * nothing is locked and nothing ends.
      */
     it('reaches the true ending with the Cup last', () => {
-      const afterLeague = watchEndgame(careerAt({ division: 1, champions: true }));
+      const afterLeague = watchEndgame(
+        careerAt({ division: 1, champions: true }),
+      );
       expect(afterLeague.eventFlags).toContain(GLOBAL_LEAGUE_WON_FLAG);
       expect(afterLeague.eventFlags).not.toContain(TRUE_ENDING_SEEN_FLAG);
 
@@ -364,7 +384,9 @@ describe('the endgame celebrations', () => {
     });
 
     it('reaches the true ending with the D1 title last', () => {
-      const afterCup = watchEndgame(careerAt({ division: 4, champions: false, cupWon: true }));
+      const afterCup = watchEndgame(
+        careerAt({ division: 4, champions: false, cupWon: true }),
+      );
       expect(afterCup.eventFlags).toContain(NATIONAL_CUP_WON_FLAG);
       expect(afterCup.eventFlags).not.toContain(TRUE_ENDING_SEEN_FLAG);
 
@@ -407,7 +429,7 @@ function careerAt({
 function withLeagueResults(state: GameState, champions: boolean): GameState {
   return {
     ...state,
-    fixtures: state.fixtures.map(fixture => {
+    fixtures: state.fixtures.map((fixture) => {
       const userIsHome = fixture.homeClubId === state.userClubId;
       const userIsAway = fixture.awayClubId === state.userClubId;
       return {
@@ -442,26 +464,31 @@ function watchEndgame(career: GameState): GameState {
 /** Swaps the user's club into `level`, keeping every division ten clubs deep. */
 function inDivision(state: GameState, level: DivisionLevel): GameState {
   const m2 = state.m2!;
-  const from = m2.pyramid.divisions
-    .find(division => division.clubs.some(club => club.id === state.userClubId))!;
+  const from = m2.pyramid.divisions.find((division) =>
+    division.clubs.some((club) => club.id === state.userClubId),
+  )!;
   if (from.level === level) return state;
-  const userClub = from.clubs.find(club => club.id === state.userClubId)!;
-  const displaced = m2.pyramid.divisions.find(division => division.level === level)!.clubs[0];
-  const divisions = m2.pyramid.divisions.map(division => {
+  const userClub = from.clubs.find((club) => club.id === state.userClubId)!;
+  const displaced = m2.pyramid.divisions.find(
+    (division) => division.level === level,
+  )!.clubs[0];
+  const divisions = m2.pyramid.divisions.map((division) => {
     if (division.level === from.level) {
       return {
         ...division,
-        clubs: division.clubs.map(club => club.id === state.userClubId
-          ? { ...displaced, division: from.level }
-          : club),
+        clubs: division.clubs.map((club) =>
+          club.id === state.userClubId
+            ? { ...displaced, division: from.level }
+            : club,
+        ),
       };
     }
     if (division.level === level) {
       return {
         ...division,
-        clubs: division.clubs.map(club => club.id === displaced.id
-          ? { ...userClub, division: level }
-          : club),
+        clubs: division.clubs.map((club) =>
+          club.id === displaced.id ? { ...userClub, division: level } : club,
+        ),
       };
     }
     return division;
@@ -476,9 +503,9 @@ function withCupWinner(state: GameState): GameState {
     ...state,
     m2: {
       ...m2,
-      nationalCups: m2.nationalCups.map((cup, index) => index === 0
-        ? { ...cup, championClubId: state.userClubId }
-        : cup),
+      nationalCups: m2.nationalCups.map((cup, index) =>
+        index === 0 ? { ...cup, championClubId: state.userClubId } : cup,
+      ),
     },
   };
 }
@@ -487,13 +514,16 @@ function withFlags(state: GameState, flags: readonly string[]): GameState {
   return { ...state, eventFlags: [...state.eventFlags, ...flags] };
 }
 
-function withFame(state: GameState, fameByPlayerId: Record<string, number>): GameState {
+function withFame(
+  state: GameState,
+  fameByPlayerId: Record<string, number>,
+): GameState {
   return {
     ...state,
-    players: state.players.map(player => (
+    players: state.players.map((player) =>
       fameByPlayerId[player.id] === undefined
         ? player
-        : { ...player, fame: fameByPlayerId[player.id] }
-    )),
+        : { ...player, fame: fameByPlayerId[player.id] },
+    ),
   };
 }

@@ -54,16 +54,39 @@ const replayPlayerSchema = z
     attrs: attributesSchema,
     // MAGNET_TOUCH was retired at M4; an envelope taped before the cut must
     // still parse, so it maps to the surviving utility power it became.
-    power: z.enum([
-      'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
-      'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
-      'RALLY_CRY', 'ICE_RINK', 'SHADOW_MARK', 'GRAVITY_WELL', 'GIANT_GK', 'GUST',
-    ]).optional().transform(power => (power === 'MAGNET_TOUCH' ? 'PORTAL_PASS' as const : power)),
+    power: z
+      .enum([
+        'SUPER_SPEED',
+        'BLINK_RUN',
+        'THUNDER_STRIKE',
+        'FIRE_TORCH',
+        'PHASE_RUN',
+        'PORTAL_PASS',
+        'MAGNET_TOUCH',
+        'DECOY_DOUBLE',
+        'FUTURE_SIGHT',
+        'SUPER_STRENGTH',
+        'WEB_TRAP',
+        'ELASTIC_KEEPER',
+        'RALLY_CRY',
+        'ICE_RINK',
+        'SHADOW_MARK',
+        'GRAVITY_WELL',
+        'GIANT_GK',
+        'GUST',
+      ])
+      .optional()
+      .transform((power) =>
+        power === 'MAGNET_TOUCH' ? ('PORTAL_PASS' as const) : power,
+      ),
     powerTier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
   })
   .passthrough()
   .superRefine((player, context) => {
-    if (player.lookId !== undefined && !isPlayerLookIdForRole(player.lookId, player.role)) {
+    if (
+      player.lookId !== undefined &&
+      !isPlayerLookIdForRole(player.lookId, player.role)
+    ) {
       context.addIssue({
         code: 'custom',
         path: ['lookId'],
@@ -105,37 +128,49 @@ const formationSchema = z.enum([
 ]);
 
 const inputSchema = z.discriminatedUnion('kind', [
-  z.object({
-    tick: positiveInteger,
-    kind: z.literal('POWER_TAP'),
-    player: nonnegativeInteger,
-  }).passthrough(),
-  z.object({
-    tick: positiveInteger,
-    kind: z.literal('SET_AUTO_POWERS'),
-    enabled: z.boolean(),
-  }).passthrough(),
-  z.object({
-    tick: positiveInteger,
-    kind: z.literal('SET_FORMATION'),
-    formation: formationSchema,
-  }).passthrough(),
-  z.object({
-    tick: positiveInteger,
-    kind: z.literal('SET_MENTALITY'),
-    mentality: z.enum(['BALANCED', 'ATTACK', 'PROTECT']),
-  }).passthrough(),
-  z.object({
-    tick: positiveInteger,
-    kind: z.literal('SET_ENERGY_USE'),
-    energyUse: z.enum(['SAVE_ENERGY', 'BALANCED', 'ALL_OUT']),
-  }).passthrough(),
-  z.object({
-    tick: positiveInteger,
-    kind: z.literal('SUBSTITUTE'),
-    player: nonnegativeInteger,
-    replacementId: nonemptyString,
-  }).passthrough(),
+  z
+    .object({
+      tick: positiveInteger,
+      kind: z.literal('POWER_TAP'),
+      player: nonnegativeInteger,
+    })
+    .passthrough(),
+  z
+    .object({
+      tick: positiveInteger,
+      kind: z.literal('SET_AUTO_POWERS'),
+      enabled: z.boolean(),
+    })
+    .passthrough(),
+  z
+    .object({
+      tick: positiveInteger,
+      kind: z.literal('SET_FORMATION'),
+      formation: formationSchema,
+    })
+    .passthrough(),
+  z
+    .object({
+      tick: positiveInteger,
+      kind: z.literal('SET_MENTALITY'),
+      mentality: z.enum(['BALANCED', 'ATTACK', 'PROTECT']),
+    })
+    .passthrough(),
+  z
+    .object({
+      tick: positiveInteger,
+      kind: z.literal('SET_ENERGY_USE'),
+      energyUse: z.enum(['SAVE_ENERGY', 'BALANCED', 'ALL_OUT']),
+    })
+    .passthrough(),
+  z
+    .object({
+      tick: positiveInteger,
+      kind: z.literal('SUBSTITUTE'),
+      player: nonnegativeInteger,
+      replacementId: nonemptyString,
+    })
+    .passthrough(),
 ]);
 
 const matchOptionsSchema = z

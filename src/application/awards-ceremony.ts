@@ -43,7 +43,10 @@ export function hasPendingAwardsCeremony(state: GameState): boolean {
  */
 export function markAwardsCeremonyComplete(state: GameState): GameState {
   if (!hasPendingAwardsCeremony(state)) return state;
-  return { ...state, eventFlags: [...state.eventFlags, awardsCeremonyFlag(state.season)] };
+  return {
+    ...state,
+    eventFlags: [...state.eventFlags, awardsCeremonyFlag(state.season)],
+  };
 }
 
 /**
@@ -60,15 +63,20 @@ export function careerAwardCeremonyViewModel(
   t: CopyFn = englishCopy(),
 ): AwardCeremonyViewModel {
   const recap = latestSeasonRecap(state) ?? emptyRecap(state);
-  const clubNames = new Map((state.m2?.pyramid.divisions ?? []).flatMap(division =>
-    division.clubs.map(club => [club.id, club.name] as const),
-  ));
-  return awardCeremonyViewModel({
-    recap,
-    userClubId: state.userClubId,
-    clubNames,
-    targetDivision: targetDivision(recap),
-  }, t);
+  const clubNames = new Map(
+    (state.m2?.pyramid.divisions ?? []).flatMap((division) =>
+      division.clubs.map((club) => [club.id, club.name] as const),
+    ),
+  );
+  return awardCeremonyViewModel(
+    {
+      recap,
+      userClubId: state.userClubId,
+      clubNames,
+      targetDivision: targetDivision(recap),
+    },
+    t,
+  );
 }
 
 /**
@@ -78,10 +86,14 @@ export function careerAwardCeremonyViewModel(
  * to the stable hash of his ID inside `playerLookId`, which is the same look
  * the match drew him with.
  */
-export function awardCeremonyLookIds(state: GameState): ReadonlyMap<string, string> {
-  return new Map(state.players.flatMap(player => (
-    player.lookId === undefined ? [] : [[player.id, player.lookId] as const]
-  )));
+export function awardCeremonyLookIds(
+  state: GameState,
+): ReadonlyMap<string, string> {
+  return new Map(
+    state.players.flatMap((player) =>
+      player.lookId === undefined ? [] : [[player.id, player.lookId] as const],
+    ),
+  );
 }
 
 /**
@@ -90,7 +102,10 @@ export function awardCeremonyLookIds(state: GameState): ReadonlyMap<string, stri
  * transition, which resolves promotion from the same rule.
  */
 function targetDivision(recap: SeasonRecap): number {
-  return divisionAfterFinish(clampDivision(recap.division), recap.finalPosition);
+  return divisionAfterFinish(
+    clampDivision(recap.division),
+    recap.finalPosition,
+  );
 }
 
 function clampDivision(division: number): 1 | 2 | 3 | 4 | 5 {
@@ -121,7 +136,8 @@ function emptyRecap(state: GameState): SeasonRecap {
     goalsFor: 0,
     goalsAgainst: 0,
     cashChange: 0,
-    closingCash: state.clubs.find(club => club.id === state.userClubId)?.cash ?? 0,
+    closingCash:
+      state.clubs.find((club) => club.id === state.userClubId)?.cash ?? 0,
     trainingCapsReached: 0,
     cupResult: '—',
   };

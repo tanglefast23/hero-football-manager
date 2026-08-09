@@ -81,7 +81,13 @@ export interface NationalCupFixture {
 
 export interface NationalCupRound {
   number: number;
-  label: 'Play-in' | 'Round of 32' | 'Round of 16' | 'Quarter-final' | 'Semi-final' | 'Final';
+  label:
+    | 'Play-in'
+    | 'Round of 32'
+    | 'Round of 16'
+    | 'Quarter-final'
+    | 'Semi-final'
+    | 'Final';
   entrantClubIds: string[];
   byeClubIds: string[];
   fixtures: NationalCupFixture[];
@@ -116,12 +122,7 @@ interface SeasonEndLifecycleResult {
 }
 
 export type CoachSpecialty =
-  | 'Attack'
-  | 'Defense'
-  | 'Fitness'
-  | 'Technique'
-  | 'Goalkeeping'
-  | 'Motivator';
+  'Attack' | 'Defense' | 'Fitness' | 'Technique' | 'Goalkeeping' | 'Motivator';
 
 interface LegendCoachCandidate {
   id: string;
@@ -295,7 +296,9 @@ export const CUP_DISPLAY_NAME = 'Hero Cup';
  */
 export const CUP_NAME_KEY = 'm2League.heroCup';
 
-export const CUP_ROUND_NAME_KEYS: Readonly<Record<NationalCupRound['label'], string>> = {
+export const CUP_ROUND_NAME_KEYS: Readonly<
+  Record<NationalCupRound['label'], string>
+> = {
   'Play-in': 'm2League.cupRound.playIn',
   'Round of 32': 'm2League.cupRound.roundOf32',
   'Round of 16': 'm2League.cupRound.roundOf16',
@@ -327,10 +330,22 @@ export function cupRoundNameWith(
 
 const UINT32_RANGE = 4294967296;
 const SQUAD_ROLES: readonly Role[] = [
-  'GK', 'GK',
-  'DEF', 'DEF', 'DEF', 'DEF', 'DEF',
-  'MID', 'MID', 'MID', 'MID', 'MID',
-  'FWD', 'FWD', 'FWD', 'FWD',
+  'GK',
+  'GK',
+  'DEF',
+  'DEF',
+  'DEF',
+  'DEF',
+  'DEF',
+  'MID',
+  'MID',
+  'MID',
+  'MID',
+  'MID',
+  'FWD',
+  'FWD',
+  'FWD',
+  'FWD',
 ];
 /**
  * The climb, and the order it gets harder in.
@@ -379,7 +394,9 @@ export const DIVISION_STRENGTH_BANDS: Readonly<
  * generated club recognisable — a few standouts among ordinary teammates —
  * rather than a uniform wall of elite ratings.
  */
-export const DIVISION_SUPPORT_STRENGTHS: Readonly<Record<DivisionLevel, number>> = {
+export const DIVISION_SUPPORT_STRENGTHS: Readonly<
+  Record<DivisionLevel, number>
+> = {
   1: 103,
   2: 77,
   3: 65,
@@ -387,7 +404,9 @@ export const DIVISION_SUPPORT_STRENGTHS: Readonly<Record<DivisionLevel, number>>
   5: 40,
 };
 /** Honest raw focus ratings for each division's DEF/MID/FWD specialist. */
-export const DIVISION_STAR_FOCUS_RATINGS: Readonly<Record<DivisionLevel, number>> = {
+export const DIVISION_STAR_FOCUS_RATINGS: Readonly<
+  Record<DivisionLevel, number>
+> = {
   1: 212,
   2: 159,
   3: 133,
@@ -399,7 +418,9 @@ export const DIVISION_STAR_FOCUS_RATINGS: Readonly<Record<DivisionLevel, number>
  * every outfielder. It trails the division's star SHO so finishers retain the
  * edge, while staying high enough to prevent every peer match becoming a rout.
  */
-export const DIVISION_GOALKEEPER_REF_RATINGS: Readonly<Record<DivisionLevel, number>> = {
+export const DIVISION_GOALKEEPER_REF_RATINGS: Readonly<
+  Record<DivisionLevel, number>
+> = {
   1: 180,
   2: 135,
   3: 113,
@@ -434,22 +455,92 @@ const GENERATED_STAR_SLOTS = new Set([2, 7, 12]);
 // measured effect was a division the user re-entered at a POSITIVE gap after
 // every relegation. The whole division is survivable now, so the pack is not.
 const ARCHETYPES: readonly PlayerArchetype[] = [
-  'Speedster', 'Sniper', 'Playmaker', 'Anchor', 'Wall', 'Engine', 'All-Rounder', 'Prodigy',
+  'Speedster',
+  'Sniper',
+  'Playmaker',
+  'Anchor',
+  'Wall',
+  'Engine',
+  'All-Rounder',
+  'Prodigy',
 ];
 const PERSONALITIES: readonly PlayerPersonality[] = [
-  'Fiery', 'Loyal', 'Greedy', 'Joker', 'Professional', 'Timid',
+  'Fiery',
+  'Loyal',
+  'Greedy',
+  'Joker',
+  'Professional',
+  'Timid',
 ];
 const CLUB_PREFIXES = [
-  'Alder', 'Beacon', 'Copper', 'Dunwich', 'Elm', 'Fable', 'Garnet', 'Harbour', 'Iron', 'Juniper',
+  'Alder',
+  'Beacon',
+  'Copper',
+  'Dunwich',
+  'Elm',
+  'Fable',
+  'Garnet',
+  'Harbour',
+  'Iron',
+  'Juniper',
 ] as const;
-const CLUB_SUFFIXES = ['Athletic', 'City', 'Rovers', 'United', 'Wanderers'] as const;
+const CLUB_SUFFIXES = [
+  'Athletic',
+  'City',
+  'Rovers',
+  'United',
+  'Wanderers',
+] as const;
 const FIRST_NAMES = [
-  'Ari', 'Ben', 'Cal', 'Dara', 'Eli', 'Finn', 'Gio', 'Hugo', 'Ivo', 'Jae', 'Kai', 'Leo',
-  'Milo', 'Nico', 'Ollie', 'Paz', 'Quin', 'Remy', 'Sol', 'Tavi', 'Uma', 'Vik', 'Wes', 'Zane',
+  'Ari',
+  'Ben',
+  'Cal',
+  'Dara',
+  'Eli',
+  'Finn',
+  'Gio',
+  'Hugo',
+  'Ivo',
+  'Jae',
+  'Kai',
+  'Leo',
+  'Milo',
+  'Nico',
+  'Ollie',
+  'Paz',
+  'Quin',
+  'Remy',
+  'Sol',
+  'Tavi',
+  'Uma',
+  'Vik',
+  'Wes',
+  'Zane',
 ] as const;
 const LAST_NAMES = [
-  'Ash', 'Baird', 'Cole', 'Dunn', 'Everett', 'Flint', 'Gray', 'Hart', 'Irons', 'Jett', 'Knox',
-  'Lane', 'Moss', 'North', 'Oak', 'Penn', 'Quick', 'Reed', 'Stone', 'Tate', 'Vale', 'Ward', 'York',
+  'Ash',
+  'Baird',
+  'Cole',
+  'Dunn',
+  'Everett',
+  'Flint',
+  'Gray',
+  'Hart',
+  'Irons',
+  'Jett',
+  'Knox',
+  'Lane',
+  'Moss',
+  'North',
+  'Oak',
+  'Penn',
+  'Quick',
+  'Reed',
+  'Stone',
+  'Tate',
+  'Vale',
+  'Ward',
+  'York',
 ] as const;
 
 /** Generates all five divisions from one injected career seed. */
@@ -457,7 +548,9 @@ export function generateLeaguePyramid(careerSeed: number): LeaguePyramid {
   validateSeed(careerSeed);
   const random = mulberry32(mixSeed(careerSeed, 0x50f1a4d));
   const clubNames = shuffled(
-    CLUB_PREFIXES.flatMap(prefix => CLUB_SUFFIXES.map(suffix => `${prefix} ${suffix}`)),
+    CLUB_PREFIXES.flatMap((prefix) =>
+      CLUB_SUFFIXES.map((suffix) => `${prefix} ${suffix}`),
+    ),
     random,
   );
   const divisions: PyramidDivision[] = [];
@@ -465,11 +558,16 @@ export function generateLeaguePyramid(careerSeed: number): LeaguePyramid {
   for (let level = 1; level <= PYRAMID_DIVISION_COUNT; level += 1) {
     const division = level as DivisionLevel;
     const clubs: PyramidClub[] = [];
-    const [minimumStrength, maximumStrength] = DIVISION_STRENGTH_BANDS[division];
+    const [minimumStrength, maximumStrength] =
+      DIVISION_STRENGTH_BANDS[division];
     const targetStrengths = shuffled(
-      Array.from({ length: CLUBS_PER_DIVISION }, (_, index) => (
-        Math.round(minimumStrength + ((maximumStrength - minimumStrength) * index) / (CLUBS_PER_DIVISION - 1))
-      )),
+      Array.from({ length: CLUBS_PER_DIVISION }, (_, index) =>
+        Math.round(
+          minimumStrength +
+            ((maximumStrength - minimumStrength) * index) /
+              (CLUBS_PER_DIVISION - 1),
+        ),
+      ),
       random,
     );
     for (let clubIndex = 0; clubIndex < CLUBS_PER_DIVISION; clubIndex += 1) {
@@ -507,7 +605,8 @@ export function divisionAfterFinish(
   division: DivisionLevel,
   finalPosition: number,
 ): DivisionLevel {
-  if (division > 1 && finalPosition <= PROMOTION_PLACES) return (division - 1) as DivisionLevel;
+  if (division > 1 && finalPosition <= PROMOTION_PLACES)
+    return (division - 1) as DivisionLevel;
   if (division < 5 && finalPosition > CLUBS_PER_DIVISION - RELEGATION_PLACES) {
     return (division + 1) as DivisionLevel;
   }
@@ -521,7 +620,9 @@ export function resolvePromotionAndRelegation(
 ): PyramidSeasonResolution {
   validatePyramid(pyramid);
   validateFinishOrders(pyramid, finishOrders);
-  const orderByDivision = new Map(finishOrders.map(order => [order.division, order.orderedClubIds]));
+  const orderByDivision = new Map(
+    finishOrders.map((order) => [order.division, order.orderedClubIds]),
+  );
   const movements: DivisionMovement[] = [];
   const targetDivisionByClubId = new Map<string, DivisionLevel>();
 
@@ -532,27 +633,41 @@ export function resolvePromotionAndRelegation(
       const toDivision = divisionAfterFinish(division.level, index + 1);
       targetDivisionByClubId.set(clubId, toDivision);
       if (toDivision < division.level) {
-        movements.push({ clubId, fromDivision: division.level, toDivision, kind: 'promoted' });
+        movements.push({
+          clubId,
+          fromDivision: division.level,
+          toDivision,
+          kind: 'promoted',
+        });
       } else if (toDivision > division.level) {
-        movements.push({ clubId, fromDivision: division.level, toDivision, kind: 'relegated' });
+        movements.push({
+          clubId,
+          fromDivision: division.level,
+          toDivision,
+          kind: 'relegated',
+        });
       }
     }
   }
 
-  const allClubs = pyramid.divisions.flatMap(division => division.clubs).map(club => {
-    const division = targetDivisionByClubId.get(club.id)!;
-    return cloneClub({ ...club, division });
-  });
-  const divisions = divisionLevels().map(level => ({
+  const allClubs = pyramid.divisions
+    .flatMap((division) => division.clubs)
+    .map((club) => {
+      const division = targetDivisionByClubId.get(club.id)!;
+      return cloneClub({ ...club, division });
+    });
+  const divisions = divisionLevels().map((level) => ({
     level,
     clubs: allClubs
-      .filter(club => club.division === level)
+      .filter((club) => club.division === level)
       .sort((left, right) => compareIds(left.id, right.id)),
   }));
 
   return {
     pyramid: { careerSeed: pyramid.careerSeed, divisions },
-    movements: movements.sort((left, right) => compareIds(left.clubId, right.clubId)),
+    movements: movements.sort((left, right) =>
+      compareIds(left.clubId, right.clubId),
+    ),
   };
 }
 
@@ -567,15 +682,24 @@ export function createNationalCup(
   validateSeason(season);
   validateSeed(careerSeed);
   const sortedClubIds = [...clubIds].sort(compareIds);
-  const seedDivisions = seedDivisionByClubId === undefined
-    ? undefined
-    : validateCupSeedDivisions(sortedClubIds, seedDivisionByClubId);
-  const firstRound = createCupRound(sortedClubIds, season, 1, careerSeed, seedDivisions);
+  const seedDivisions =
+    seedDivisionByClubId === undefined
+      ? undefined
+      : validateCupSeedDivisions(sortedClubIds, seedDivisionByClubId);
+  const firstRound = createCupRound(
+    sortedClubIds,
+    season,
+    1,
+    careerSeed,
+    seedDivisions,
+  );
   return {
     careerSeed,
     season,
     rounds: [firstRound],
-    ...(seedDivisions === undefined ? {} : { seedDivisionByClubId: seedDivisions }),
+    ...(seedDivisions === undefined
+      ? {}
+      : { seedDivisionByClubId: seedDivisions }),
   };
 }
 
@@ -586,25 +710,31 @@ export function advanceNationalCup(
 ): NationalCup {
   validateSeason(cup.season);
   validateSeed(cup.careerSeed);
-  if (cup.championClubId !== undefined) throw new Error('the Hero Cup is already complete');
-  if (cup.rounds.length < 1 || cup.rounds.length > 6) throw new Error('the Hero Cup has invalid rounds');
+  if (cup.championClubId !== undefined)
+    throw new Error('the Hero Cup is already complete');
+  if (cup.rounds.length < 1 || cup.rounds.length > 6)
+    throw new Error('the Hero Cup has invalid rounds');
   const current = cup.rounds[cup.rounds.length - 1];
-  if (current.fixtures.some(fixture => fixture.status !== 'scheduled')) {
+  if (current.fixtures.some((fixture) => fixture.status !== 'scheduled')) {
     throw new Error('the current Hero Cup round has already been resolved');
   }
   if (results.length !== current.fixtures.length) {
-    throw new Error(`Hero Cup round ${current.number} requires exactly ${current.fixtures.length} results`);
+    throw new Error(
+      `Hero Cup round ${current.number} requires exactly ${current.fixtures.length} results`,
+    );
   }
   const resultByFixtureId = new Map<string, NationalCupResult>();
   for (const result of results) {
-    if (resultByFixtureId.has(result.fixtureId)) throw new Error(`duplicate result for ${result.fixtureId}`);
+    if (resultByFixtureId.has(result.fixtureId))
+      throw new Error(`duplicate result for ${result.fixtureId}`);
     resultByFixtureId.set(result.fixtureId, result);
   }
 
   const winners: string[] = [];
-  const fixtures = current.fixtures.map(fixture => {
+  const fixtures = current.fixtures.map((fixture) => {
     const result = resultByFixtureId.get(fixture.id);
-    if (result === undefined) throw new Error(`missing result for ${fixture.id}`);
+    if (result === undefined)
+      throw new Error(`missing result for ${fixture.id}`);
     validateCupResult(fixture, result);
     winners.push(result.winnerClubId);
     return {
@@ -655,8 +785,10 @@ export function resolveSeasonEndLifecycle(
 
   for (const player of players) {
     validateLifecyclePlayer(player);
-    if (player.retirementAnnouncementSeason !== undefined
-      && player.retirementAnnouncementSeason < season) {
+    if (
+      player.retirementAnnouncementSeason !== undefined &&
+      player.retirementAnnouncementSeason < season
+    ) {
       retiredPlayers.push(clonePlayer(player));
       continue;
     }
@@ -668,13 +800,24 @@ export function resolveSeasonEndLifecycle(
       attrs: declineApplies
         ? {
             ...player.attrs,
-            pac: Math.max(1, player.attrs.pac - lifecycleRoll(careerSeed, season, player.id, 'pac', 1, 3)),
-            sta: Math.max(1, player.attrs.sta - lifecycleRoll(careerSeed, season, player.id, 'sta', 1, 3)),
+            pac: Math.max(
+              1,
+              player.attrs.pac -
+                lifecycleRoll(careerSeed, season, player.id, 'pac', 1, 3),
+            ),
+            sta: Math.max(
+              1,
+              player.attrs.sta -
+                lifecycleRoll(careerSeed, season, player.id, 'sta', 1, 3),
+            ),
           }
         : { ...player.attrs },
     };
     const retirementAge = retirementAnnouncementAge(player, careerSeed);
-    if (aged.retirementAnnouncementSeason === undefined && aged.age >= retirementAge) {
+    if (
+      aged.retirementAnnouncementSeason === undefined &&
+      aged.age >= retirementAge
+    ) {
       aged.retirementAnnouncementSeason = season;
       announcements.push({
         playerId: aged.id,
@@ -704,7 +847,8 @@ export function retirementAnnouncementAge(
     Timid: [33, 33, 34, 34, 35, 35, 36, 37],
   };
   const pool = pools[player.personality];
-  if (pool === undefined) throw new Error(`unknown personality ${String(player.personality)}`);
+  if (pool === undefined)
+    throw new Error(`unknown personality ${String(player.personality)}`);
   const roll = statelessUint32(careerSeed, hashString(player.id), 0x71e1ae);
   return pool[roll % pool.length];
 }
@@ -712,14 +856,17 @@ export function retirementAnnouncementAge(
 export function isClubLegend(
   player: Pick<PyramidPlayer, 'seasonsAtClub' | 'fame'>,
 ): boolean {
-  return Number.isInteger(player.seasonsAtClub)
-    && player.seasonsAtClub >= CLUB_LEGEND_MIN_SEASONS
-    && Number.isInteger(player.fame)
-    && player.fame >= CLUB_LEGEND_MIN_FAME;
+  return (
+    Number.isInteger(player.seasonsAtClub) &&
+    player.seasonsAtClub >= CLUB_LEGEND_MIN_SEASONS &&
+    Number.isInteger(player.fame) &&
+    player.fame >= CLUB_LEGEND_MIN_FAME
+  );
 }
 
 export function createLegendLegacy(legend: PyramidPlayer): LegendLegacy {
-  if (!isClubLegend(legend)) throw new Error(`${legend.name} is not eligible for a club-legend legacy`);
+  if (!isClubLegend(legend))
+    throw new Error(`${legend.name} is not eligible for a club-legend legacy`);
   return {
     choice: 'coach-candidate',
     coachCandidate: {
@@ -739,7 +886,10 @@ export function updatePlayerWellbeing<T extends WellbeingState>(
 ): T {
   validatePercentage(player.morale, 'player morale');
   validatePercentage(player.condition, 'player condition');
-  if (!Number.isInteger(player.consecutiveLowMoraleWeeks) || player.consecutiveLowMoraleWeeks < 0) {
+  if (
+    !Number.isInteger(player.consecutiveLowMoraleWeeks) ||
+    player.consecutiveLowMoraleWeeks < 0
+  ) {
     throw new Error('low-morale week count must be a non-negative integer');
   }
   const moraleDelta = update.moraleDelta ?? 0;
@@ -749,9 +899,8 @@ export function updatePlayerWellbeing<T extends WellbeingState>(
   }
   const morale = clamp(player.morale + moraleDelta, 0, 100);
   const condition = clamp(player.condition + conditionDelta, 0, 100);
-  const consecutiveLowMoraleWeeks = morale < LOW_MORALE_THRESHOLD
-    ? player.consecutiveLowMoraleWeeks + 1
-    : 0;
+  const consecutiveLowMoraleWeeks =
+    morale < LOW_MORALE_THRESHOLD ? player.consecutiveLowMoraleWeeks + 1 : 0;
   return { ...player, morale, condition, consecutiveLowMoraleWeeks };
 }
 
@@ -767,7 +916,9 @@ export function applyLowMoraleToStat(stat: number, morale: number): number {
   return Math.max(1, Math.round(stat * lowMoraleStatModifier(morale)));
 }
 
-const TRANSFER_REQUEST_RULE: Readonly<Record<PlayerPersonality, { morale: number; weeks: number }>> = {
+const TRANSFER_REQUEST_RULE: Readonly<
+  Record<PlayerPersonality, { morale: number; weeks: number }>
+> = {
   Greedy: { morale: 30, weeks: 2 },
   Fiery: { morale: 25, weeks: 2 },
   Joker: { morale: 22, weeks: 3 },
@@ -776,9 +927,13 @@ const TRANSFER_REQUEST_RULE: Readonly<Record<PlayerPersonality, { morale: number
   Loyal: { morale: 12, weeks: 5 },
 };
 
-function transferRequestRule(personality: PlayerPersonality): { morale: number; weeks: number } {
+function transferRequestRule(personality: PlayerPersonality): {
+  morale: number;
+  weeks: number;
+} {
   const rule = TRANSFER_REQUEST_RULE[personality];
-  if (rule === undefined) throw new Error(`unknown personality ${String(personality)}`);
+  if (rule === undefined)
+    throw new Error(`unknown personality ${String(personality)}`);
   return rule;
 }
 
@@ -797,12 +952,17 @@ export const TRANSFER_REQUEST_WITHDRAW_MARGIN = 20;
 /** A predictable request rule: personality changes patience, but a single bad week never triggers it. */
 export function shouldRequestTransfer(player: WellbeingState): boolean {
   validatePercentage(player.morale, 'player morale');
-  if (!Number.isInteger(player.consecutiveLowMoraleWeeks) || player.consecutiveLowMoraleWeeks < 0) {
+  if (
+    !Number.isInteger(player.consecutiveLowMoraleWeeks) ||
+    player.consecutiveLowMoraleWeeks < 0
+  ) {
     throw new Error('low-morale week count must be a non-negative integer');
   }
   const personalityRule = transferRequestRule(player.personality);
-  return player.morale <= personalityRule.morale
-    && player.consecutiveLowMoraleWeeks >= personalityRule.weeks;
+  return (
+    player.morale <= personalityRule.morale &&
+    player.consecutiveLowMoraleWeeks >= personalityRule.weeks
+  );
 }
 
 /**
@@ -822,8 +982,11 @@ export function shouldRequestTransfer(player: WellbeingState): boolean {
  */
 export function shouldWithdrawTransferRequest(player: WellbeingState): boolean {
   validatePercentage(player.morale, 'player morale');
-  return player.morale >= transferRequestRule(player.personality).morale
-    + TRANSFER_REQUEST_WITHDRAW_MARGIN;
+  return (
+    player.morale >=
+    transferRequestRule(player.personality).morale +
+      TRANSFER_REQUEST_WITHDRAW_MARGIN
+  );
 }
 
 function generateSquad(
@@ -832,9 +995,15 @@ function generateSquad(
   targetStrength: number,
   random: Rng,
 ): PyramidPlayer[] {
-  const supportStrength = divisionSupportStrengthForTarget(division, targetStrength);
+  const supportStrength = divisionSupportStrengthForTarget(
+    division,
+    targetStrength,
+  );
   const typicalPace = DIVISION_TYPICAL_PACE[division];
-  const focusedStarAttribute = divisionStarFocusedAttribute(division, targetStrength);
+  const focusedStarAttribute = divisionStarFocusedAttribute(
+    division,
+    targetStrength,
+  );
   const goalkeeperRef = DIVISION_GOALKEEPER_REF_RATINGS[division];
   return SQUAD_ROLES.map((role, playerIndex) => {
     const age = integerRoll(random, 18, 32);
@@ -870,7 +1039,11 @@ function generateSquad(
       // your five-season captain and genuinely less famous than your
       // twelve-season one, which is the ordering the old ceiling gave by
       // accident: every rival sat under 65 while every user starter sat at 99.
-      fame: clamp((6 - division) * 80 + integerRoll(random, 0, 120), 0, FAME_CEILING),
+      fame: clamp(
+        (6 - division) * 80 + integerRoll(random, 0, 120),
+        0,
+        FAME_CEILING,
+      ),
       seasonsAtClub: integerRoll(random, 0, Math.min(8, age - 16)),
       morale: integerRoll(random, 55, 75),
       condition: 100,
@@ -958,7 +1131,10 @@ function generateFocusedAttributes(
 }
 
 function averageSquadStrength(squad: readonly PyramidPlayer[]): number {
-  const total = squad.reduce((sum, player) => sum + roleOverall(player.role, player.attrs), 0);
+  const total = squad.reduce(
+    (sum, player) => sum + roleOverall(player.role, player.attrs),
+    0,
+  );
   return Math.round(total / squad.length);
 }
 
@@ -986,33 +1162,41 @@ function tuneGeneratedSquadToStrength(
       if (player.role === 'GK') protectedAttributes.add('ref');
       return {
         ...player,
-        attrs: mapAttrsByKey(player.attrs, (attribute, value) => (
-          protectedAttributes.has(attribute) ? value : clampRating(value + delta)
-        )),
+        attrs: mapAttrsByKey(player.attrs, (attribute, value) =>
+          protectedAttributes.has(attribute)
+            ? value
+            : clampRating(value + delta),
+        ),
       };
     });
   }
   if (averageSquadStrength(tuned) !== targetStrength) {
-    throw new Error(`could not tune generated Division ${division} club to ${targetStrength}`);
+    throw new Error(
+      `could not tune generated Division ${division} club to ${targetStrength}`,
+    );
   }
   return tuned;
 }
 
-export function tuneSquadToStrength<T extends Pick<PyramidPlayer, 'role' | 'attrs'>>(
-  squad: readonly T[],
-  targetStrength: number,
-): T[] {
+export function tuneSquadToStrength<
+  T extends Pick<PyramidPlayer, 'role' | 'attrs'>,
+>(squad: readonly T[], targetStrength: number): T[] {
   validateRating(targetStrength, 'target squad strength');
   if (squad.length === 0) throw new Error('cannot tune an empty squad');
-  let tuned = squad.map(player => ({ ...player, attrs: { ...player.attrs } }));
+  let tuned = squad.map((player) => ({
+    ...player,
+    attrs: { ...player.attrs },
+  }));
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    const current = Math.round(tuned.reduce(
-      (sum, player) => sum + roleOverall(player.role, player.attrs),
-      0,
-    ) / tuned.length);
+    const current = Math.round(
+      tuned.reduce(
+        (sum, player) => sum + roleOverall(player.role, player.attrs),
+        0,
+      ) / tuned.length,
+    );
     const delta = targetStrength - current;
     if (delta === 0) return tuned;
-    tuned = tuned.map(player => ({
+    tuned = tuned.map((player) => ({
       ...player,
       attrs: {
         ...player.attrs,
@@ -1037,25 +1221,30 @@ function createCupRound(
 ): NationalCupRound {
   const entrantsByRound = [50, 32, 16, 8, 4, 2] as const;
   const expectedEntrants = entrantsByRound[round - 1];
-  if (expectedEntrants === undefined) throw new Error(`unsupported Hero Cup round ${round}`);
+  if (expectedEntrants === undefined)
+    throw new Error(`unsupported Hero Cup round ${round}`);
   if (entrantClubIds.length !== expectedEntrants) {
-    throw new Error(`Hero Cup round ${round} requires ${expectedEntrants} entrants`);
+    throw new Error(
+      `Hero Cup round ${round} requires ${expectedEntrants} entrants`,
+    );
   }
   const random = mulberry32(mixSeed(careerSeed, season, round, 0xc09c0a));
-  const seededEntrants = seedDivisionByClubId === undefined
-    ? shuffled(entrantClubIds, random)
-    : divisionSeededEntrants(entrantClubIds, seedDivisionByClubId, random);
+  const seededEntrants =
+    seedDivisionByClubId === undefined
+      ? shuffled(entrantClubIds, random)
+      : divisionSeededEntrants(entrantClubIds, seedDivisionByClubId, random);
   const byeCount = round === 1 ? 14 : 0;
   const byeClubIds = seededEntrants.slice(0, byeCount);
   const unpairedClubIds = seededEntrants.slice(byeCount);
-  const playingClubIds = seedDivisionByClubId === undefined
-    ? unpairedClubIds
-    // The play-in is the player's first Cup exposure. Division seeding means
-    // neighboring entrants play one another after the D1/D2 byes, rather than
-    // recreating the old D2-v-D5 worst case through a high/low draw.
-    : round === 1
+  const playingClubIds =
+    seedDivisionByClubId === undefined
       ? unpairedClubIds
-      : highLowPairingOrder(unpairedClubIds);
+      : // The play-in is the player's first Cup exposure. Division seeding means
+        // neighboring entrants play one another after the D1/D2 byes, rather than
+        // recreating the old D2-v-D5 worst case through a high/low draw.
+        round === 1
+        ? unpairedClubIds
+        : highLowPairingOrder(unpairedClubIds);
   const fixtures: NationalCupFixture[] = [];
   for (let index = 0; index < playingClubIds.length; index += 2) {
     const firstClubId = playingClubIds[index];
@@ -1088,7 +1277,9 @@ function validateCupSeedDivisions(
   for (const clubId of clubIds) {
     const division = seedDivisionByClubId[clubId];
     if (division === undefined || !divisionLevels().includes(division)) {
-      throw new Error(`Hero Cup seed division is missing or invalid for ${clubId}`);
+      throw new Error(
+        `Hero Cup seed division is missing or invalid for ${clubId}`,
+      );
     }
     result[clubId] = division;
   }
@@ -1100,14 +1291,19 @@ function divisionSeededEntrants(
   seedDivisionByClubId: Readonly<Record<string, DivisionLevel>>,
   random: Rng,
 ): string[] {
-  return divisionLevels().flatMap(division => shuffled(
-    entrantClubIds.filter(clubId => seedDivisionByClubId[clubId] === division),
-    random,
-  ));
+  return divisionLevels().flatMap((division) =>
+    shuffled(
+      entrantClubIds.filter(
+        (clubId) => seedDivisionByClubId[clubId] === division,
+      ),
+      random,
+    ),
+  );
 }
 
 function highLowPairingOrder(seededClubIds: readonly string[]): string[] {
-  if (seededClubIds.length % 2 !== 0) throw new Error('a seeded Cup draw requires an even entrant count');
+  if (seededClubIds.length % 2 !== 0)
+    throw new Error('a seeded Cup draw requires an even entrant count');
   const half = seededClubIds.length / 2;
   const stronger = seededClubIds.slice(0, half);
   const weaker = seededClubIds.slice(half).reverse();
@@ -1117,25 +1313,49 @@ function highLowPairingOrder(seededClubIds: readonly string[]): string[] {
 /** @i18n-fallback Persisted cup-round enum values; app consumers resolve their keys. */
 function cupRoundLabel(round: number): NationalCupRound['label'] {
   const labels: NationalCupRound['label'][] = [
-    'Play-in', 'Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final',
+    'Play-in',
+    'Round of 32',
+    'Round of 16',
+    'Quarter-final',
+    'Semi-final',
+    'Final',
   ];
   const label = labels[round - 1];
-  if (label === undefined) throw new Error(`unsupported Hero Cup round ${round}`);
+  if (label === undefined)
+    throw new Error(`unsupported Hero Cup round ${round}`);
   return label;
 }
 
-function validateCupResult(fixture: NationalCupFixture, result: NationalCupResult): void {
-  if (!Number.isSafeInteger(result.homeGoals) || result.homeGoals < 0
-    || !Number.isSafeInteger(result.awayGoals) || result.awayGoals < 0) {
+function validateCupResult(
+  fixture: NationalCupFixture,
+  result: NationalCupResult,
+): void {
+  if (
+    !Number.isSafeInteger(result.homeGoals) ||
+    result.homeGoals < 0 ||
+    !Number.isSafeInteger(result.awayGoals) ||
+    result.awayGoals < 0
+  ) {
     throw new Error(`Hero Cup result ${result.fixtureId} has invalid goals`);
   }
-  if (result.winnerClubId !== fixture.homeClubId && result.winnerClubId !== fixture.awayClubId) {
-    throw new Error(`Hero Cup winner for ${fixture.id} must be one of its clubs`);
+  if (
+    result.winnerClubId !== fixture.homeClubId &&
+    result.winnerClubId !== fixture.awayClubId
+  ) {
+    throw new Error(
+      `Hero Cup winner for ${fixture.id} must be one of its clubs`,
+    );
   }
-  if (result.homeGoals > result.awayGoals && result.winnerClubId !== fixture.homeClubId) {
+  if (
+    result.homeGoals > result.awayGoals &&
+    result.winnerClubId !== fixture.homeClubId
+  ) {
     throw new Error(`Hero Cup winner for ${fixture.id} contradicts its score`);
   }
-  if (result.awayGoals > result.homeGoals && result.winnerClubId !== fixture.awayClubId) {
+  if (
+    result.awayGoals > result.homeGoals &&
+    result.winnerClubId !== fixture.awayClubId
+  ) {
     throw new Error(`Hero Cup winner for ${fixture.id} contradicts its score`);
   }
 }
@@ -1147,12 +1367,18 @@ function validatePyramid(pyramid: LeaguePyramid): void {
   }
   const clubIds: string[] = [];
   for (const level of divisionLevels()) {
-    const division = pyramid.divisions.find(candidate => candidate.level === level);
-    if (division === undefined || division.clubs.length !== CLUBS_PER_DIVISION) {
+    const division = pyramid.divisions.find(
+      (candidate) => candidate.level === level,
+    );
+    if (
+      division === undefined ||
+      division.clubs.length !== CLUBS_PER_DIVISION
+    ) {
       throw new Error(`Division ${level} requires exactly ten clubs`);
     }
     for (const club of division.clubs) {
-      if (club.division !== level) throw new Error(`club ${club.id} has the wrong division`);
+      if (club.division !== level)
+        throw new Error(`club ${club.id} has the wrong division`);
       clubIds.push(club.id);
     }
   }
@@ -1167,21 +1393,34 @@ function validateFinishOrders(
     throw new Error('promotion and relegation requires all five finish orders');
   }
   for (const division of pyramid.divisions) {
-    const order = finishOrders.find(candidate => candidate.division === division.level);
-    if (order === undefined) throw new Error(`missing Division ${division.level} finish order`);
-    validateClubIds(order.orderedClubIds, CLUBS_PER_DIVISION, `Division ${division.level} finish order`);
-    const expected = new Set(division.clubs.map(club => club.id));
-    if (order.orderedClubIds.some(clubId => !expected.has(clubId))) {
-      throw new Error(`Division ${division.level} finish order contains an unknown club`);
+    const order = finishOrders.find(
+      (candidate) => candidate.division === division.level,
+    );
+    if (order === undefined)
+      throw new Error(`missing Division ${division.level} finish order`);
+    validateClubIds(
+      order.orderedClubIds,
+      CLUBS_PER_DIVISION,
+      `Division ${division.level} finish order`,
+    );
+    const expected = new Set(division.clubs.map((club) => club.id));
+    if (order.orderedClubIds.some((clubId) => !expected.has(clubId))) {
+      throw new Error(
+        `Division ${division.level} finish order contains an unknown club`,
+      );
     }
   }
-  if (new Set(finishOrders.map(order => order.division)).size !== PYRAMID_DIVISION_COUNT) {
+  if (
+    new Set(finishOrders.map((order) => order.division)).size !==
+    PYRAMID_DIVISION_COUNT
+  ) {
     throw new Error('finish-order divisions must be unique');
   }
 }
 
 function validateLifecyclePlayer(player: PyramidPlayer): void {
-  if (player.id.trim().length === 0) throw new Error('player ID must be non-empty');
+  if (player.id.trim().length === 0)
+    throw new Error('player ID must be non-empty');
   validateAge(player.age);
   validateAttrs(player.attrs);
   // Fame is not a percentage and has not been one since the ceiling moved off
@@ -1199,32 +1438,44 @@ function validateLifecyclePlayer(player: PyramidPlayer): void {
 }
 
 function validateAttrs(attrs: Attrs): void {
-  for (const [key, value] of Object.entries(attrs)) validateRating(value, `player attribute ${key}`);
+  for (const [key, value] of Object.entries(attrs))
+    validateRating(value, `player attribute ${key}`);
 }
 
-function validateClubIds(ids: readonly string[], expectedCount: number, label: string): void {
-  if (ids.length !== expectedCount) throw new Error(`${label} requires exactly ${expectedCount} clubs`);
-  if (ids.some(id => typeof id !== 'string' || id.trim().length === 0)) {
+function validateClubIds(
+  ids: readonly string[],
+  expectedCount: number,
+  label: string,
+): void {
+  if (ids.length !== expectedCount)
+    throw new Error(`${label} requires exactly ${expectedCount} clubs`);
+  if (ids.some((id) => typeof id !== 'string' || id.trim().length === 0)) {
     throw new Error(`${label} club IDs must be non-empty strings`);
   }
-  if (new Set(ids).size !== ids.length) throw new Error(`${label} club IDs must be unique`);
+  if (new Set(ids).size !== ids.length)
+    throw new Error(`${label} club IDs must be unique`);
 }
 
 function validateSeed(seed: number): void {
-  if (!Number.isSafeInteger(seed)) throw new Error('career seed must be a safe integer');
+  if (!Number.isSafeInteger(seed))
+    throw new Error('career seed must be a safe integer');
 }
 
 function validateSeason(season: number): void {
-  if (!Number.isInteger(season) || season < 1) throw new Error('season must be a positive integer');
+  if (!Number.isInteger(season) || season < 1)
+    throw new Error('season must be a positive integer');
 }
 
 function validateAge(age: number): void {
-  if (!Number.isInteger(age) || age < 16) throw new Error('player age must be an integer of at least 16');
+  if (!Number.isInteger(age) || age < 16)
+    throw new Error('player age must be an integer of at least 16');
 }
 
 function validateRating(value: number, label: string): void {
   if (!Number.isInteger(value) || value < 1 || value > MAX_PLAYER_ATTRIBUTE) {
-    throw new Error(`${label} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
+    throw new Error(
+      `${label} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`,
+    );
   }
 }
 
@@ -1248,7 +1499,12 @@ function lifecycleRoll(
   min: number,
   max: number,
 ): number {
-  const roll = statelessUint32(careerSeed, season, hashString(playerId), hashString(field));
+  const roll = statelessUint32(
+    careerSeed,
+    season,
+    hashString(playerId),
+    hashString(field),
+  );
   return min + (roll % (max - min + 1));
 }
 
@@ -1312,12 +1568,17 @@ function mapAttrsByKey(
   };
 }
 
-function coachSpecialtiesFor(legend: PyramidPlayer): [CoachSpecialty, CoachSpecialty] {
+function coachSpecialtiesFor(
+  legend: PyramidPlayer,
+): [CoachSpecialty, CoachSpecialty] {
   if (legend.role === 'GK') return ['Goalkeeping', 'Motivator'];
-  if (legend.archetype === 'Speedster' || legend.archetype === 'Engine') return ['Fitness', 'Attack'];
+  if (legend.archetype === 'Speedster' || legend.archetype === 'Engine')
+    return ['Fitness', 'Attack'];
   if (legend.archetype === 'Sniper') return ['Attack', 'Technique'];
-  if (legend.archetype === 'Playmaker' || legend.archetype === 'Prodigy') return ['Technique', 'Attack'];
-  if (legend.archetype === 'Anchor' || legend.archetype === 'Wall') return ['Defense', 'Fitness'];
+  if (legend.archetype === 'Playmaker' || legend.archetype === 'Prodigy')
+    return ['Technique', 'Attack'];
+  if (legend.archetype === 'Anchor' || legend.archetype === 'Wall')
+    return ['Defense', 'Fitness'];
   return ['Motivator', legend.role === 'DEF' ? 'Defense' : 'Technique'];
 }
 

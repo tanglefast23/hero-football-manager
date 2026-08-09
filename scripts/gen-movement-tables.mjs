@@ -19,7 +19,7 @@ const HOME_TIER_TRAINING_STEPS = [
 
 function matchAttribute(rawAttribute) {
   if (rawAttribute <= 99) return rawAttribute;
-  return 99 + Math.round(50 * (rawAttribute - 99) / (rawAttribute + 101));
+  return 99 + Math.round((50 * (rawAttribute - 99)) / (rawAttribute + 101));
 }
 
 function shippedEndurance(rawStamina) {
@@ -30,27 +30,30 @@ function shippedEndurance(rawStamina) {
 
 function shippedSlide(rawStamina) {
   const effectiveStamina = matchAttribute(rawStamina);
-  if (effectiveStamina <= 99) return 1 + 0.6 * (100 - effectiveStamina) / 100;
+  if (effectiveStamina <= 99) return 1 + (0.6 * (100 - effectiveStamina)) / 100;
   return Math.max(0.65, 1.006 - (effectiveStamina - 99) * 0.009);
 }
 
-const paceMultiplier = PACE_REFERENCE_SPEED / (PACE_REFERENCE_RATING ** PACE_ALPHA);
+const paceMultiplier =
+  PACE_REFERENCE_SPEED / PACE_REFERENCE_RATING ** PACE_ALPHA;
 const paceValues = [];
 for (let rating = 1; rating <= MAX_ATTRIBUTE; rating += 1) {
-  const generated = Math.round(PACE_SCALE * paceMultiplier * (rating ** PACE_ALPHA));
-  paceValues.push(rating === 1 ? generated : Math.max(generated, paceValues[rating - 2] + 1));
+  const generated = Math.round(
+    PACE_SCALE * paceMultiplier * rating ** PACE_ALPHA,
+  );
+  paceValues.push(
+    rating === 1 ? generated : Math.max(generated, paceValues[rating - 2] + 1),
+  );
 }
 if (paceValues[MAX_ATTRIBUTE - 1] > paceValues[0] * 2) {
   paceValues[MAX_ATTRIBUTE - 1] = paceValues[0] * 2;
 }
 
-const enduranceValues = Array.from(
-  { length: MAX_ATTRIBUTE },
-  (_, index) => Math.round(STAMINA_SCALE * shippedEndurance(index + 1)),
+const enduranceValues = Array.from({ length: MAX_ATTRIBUTE }, (_, index) =>
+  Math.round(STAMINA_SCALE * shippedEndurance(index + 1)),
 );
-const slideValues = Array.from(
-  { length: MAX_ATTRIBUTE },
-  (_, index) => Math.round(STAMINA_SCALE * shippedSlide(index + 1)),
+const slideValues = Array.from({ length: MAX_ATTRIBUTE }, (_, index) =>
+  Math.round(STAMINA_SCALE * shippedSlide(index + 1)),
 );
 
 // matchAttribute's integer plateaus must not make a whole home-tier drill inert.
@@ -66,7 +69,10 @@ for (const [rating, gain] of HOME_TIER_TRAINING_STEPS) {
   }
 }
 for (let index = 1; index < MAX_ATTRIBUTE; index += 1) {
-  enduranceValues[index] = Math.min(enduranceValues[index], enduranceValues[index - 1]);
+  enduranceValues[index] = Math.min(
+    enduranceValues[index],
+    enduranceValues[index - 1],
+  );
   slideValues[index] = Math.min(slideValues[index], slideValues[index - 1]);
 }
 
@@ -82,6 +88,12 @@ writeFileSync(
 );
 writeFileSync(
   join(outputDirectory, 'stamina-tables.json'),
-  JSON.stringify({ scale: STAMINA_SCALE, endurance: enduranceValues, slide: slideValues }),
+  JSON.stringify({
+    scale: STAMINA_SCALE,
+    endurance: enduranceValues,
+    slide: slideValues,
+  }),
 );
-console.log(`wrote ${paceValues.length} pace and ${enduranceValues.length} stamina entries`);
+console.log(
+  `wrote ${paceValues.length} pace and ${enduranceValues.length} stamina entries`,
+);

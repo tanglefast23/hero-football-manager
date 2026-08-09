@@ -23,7 +23,12 @@ function attackingScenario(y: number): MatchState {
   return m;
 }
 
-function addAvailableTeammate(m: MatchState, idx: number, x: number, y: number): void {
+function addAvailableTeammate(
+  m: MatchState,
+  idx: number,
+  x: number,
+  y: number,
+): void {
   m.players[idx].outUntilTick = 0;
   m.players[idx].pos = { x, y };
 }
@@ -69,7 +74,7 @@ describe('attacking decisions', () => {
     expect(attackingDecision(m, CARRIER).kind).toBe('carry');
     possessionTick(m);
     expect(m.ball).toEqual({ kind: 'held', by: CARRIER });
-    expect(m.events.some(e => e.kind === 'PASS')).toBe(false);
+    expect(m.events.some((e) => e.kind === 'PASS')).toBe(false);
   });
 
   it('an advancing carrier steers around a defender occupying the central lane', () => {
@@ -122,6 +127,8 @@ describe('attacking decisions', () => {
     const leading = attackingScenario(2200);
     leading.score = [5, 0];
 
-    expect(attackingDecision(leading, CARRIER)).toEqual(attackingDecision(level, CARRIER));
+    expect(attackingDecision(leading, CARRIER)).toEqual(
+      attackingDecision(level, CARRIER),
+    );
   });
 });

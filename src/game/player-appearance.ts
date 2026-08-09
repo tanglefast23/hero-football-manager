@@ -25,13 +25,16 @@ export const CREATED_PLAYER_LOOK_COUNT = 240;
  * own face fail validation on load.
  */
 export const RESERVED_FIELD_LOOK_COUNT = 15;
-export const ASSIGNABLE_FIELD_LOOK_COUNT = FIELD_PLAYER_LOOK_COUNT - RESERVED_FIELD_LOOK_COUNT;
+export const ASSIGNABLE_FIELD_LOOK_COUNT =
+  FIELD_PLAYER_LOOK_COUNT - RESERVED_FIELD_LOOK_COUNT;
 
 export function isReservedFieldLook(lookId: string): boolean {
   const match = /^f(\d+)$/.exec(lookId);
   if (match === null) return false;
   const index = Number(match[1]);
-  return index >= ASSIGNABLE_FIELD_LOOK_COUNT && index < FIELD_PLAYER_LOOK_COUNT;
+  return (
+    index >= ASSIGNABLE_FIELD_LOOK_COUNT && index < FIELD_PLAYER_LOOK_COUNT
+  );
 }
 
 interface CreatedAppearanceChoice {
@@ -52,8 +55,11 @@ export const CREATED_APPEARANCE_OPTION_COUNTS = {
 } as const satisfies Record<keyof CreatedAppearanceChoice, number>;
 
 /** Maps the editable paper-doll controls onto the dedicated 240-look paper-doll atlas. */
-export function createdAppearanceLookId(appearance: CreatedAppearanceChoice): string {
-  const index = appearance.skinTone * 40 + appearance.hairstyle * 4 + appearance.kitAccent;
+export function createdAppearanceLookId(
+  appearance: CreatedAppearanceChoice,
+): string {
+  const index =
+    appearance.skinTone * 40 + appearance.hairstyle * 4 + appearance.kitAccent;
   return `c${String(index).padStart(3, '0')}`;
 }
 
@@ -61,27 +67,37 @@ export function createdAppearanceLookId(appearance: CreatedAppearanceChoice): st
  * Stable fallback for generated players. Career state persists the chosen ID;
  * this hash is only the first candidate before collision probing.
  */
-export function generatedPlayerLookId(playerId: string, role: PlayerVisualRole): string {
+export function generatedPlayerLookId(
+  playerId: string,
+  role: PlayerVisualRole,
+): string {
   const poolSize = lookPoolSize(role);
   return formatPlayerLookId(role, lookIndex(playerId, poolSize));
 }
 
-export function isPlayerLookIdForRole(lookId: string, role: PlayerVisualRole): boolean {
+export function isPlayerLookIdForRole(
+  lookId: string,
+  role: PlayerVisualRole,
+): boolean {
   const createdMatch = /^c(\d{3})$/.exec(lookId);
   if (createdMatch !== null) {
     const index = Number(createdMatch[1]);
-    return role !== 'GK'
-      && index >= 0
-      && index < CREATED_PLAYER_LOOK_COUNT
-      && lookId === `c${String(index).padStart(3, '0')}`;
+    return (
+      role !== 'GK' &&
+      index >= 0 &&
+      index < CREATED_PLAYER_LOOK_COUNT &&
+      lookId === `c${String(index).padStart(3, '0')}`
+    );
   }
   const match = /^(f|g)(\d+)$/.exec(lookId);
   if (match === null || match[1] !== (role === 'GK' ? 'g' : 'f')) return false;
   const index = Number(match[2]);
-  return Number.isInteger(index)
-    && index >= 0
-    && index < shippedLookCount(role)
-    && lookId === formatPlayerLookId(role, index);
+  return (
+    Number.isInteger(index) &&
+    index >= 0 &&
+    index < shippedLookCount(role) &&
+    lookId === formatPlayerLookId(role, index)
+  );
 }
 
 /**
@@ -92,11 +108,13 @@ export function isPlayerLookIdForRole(lookId: string, role: PlayerVisualRole): b
  */
 export function assignDistinctPlayerLooks<T extends PlayerAppearanceIdentity>(
   players: readonly T[],
-  preferredLook: (player: T) => string = player => generatedPlayerLookId(player.id, player.role),
+  preferredLook: (player: T) => string = (player) =>
+    generatedPlayerLookId(player.id, player.role),
 ): Array<T & { lookId: string }> {
   const ids = new Set<string>();
   for (const player of players) {
-    if (ids.has(player.id)) throw new Error(`duplicate player appearance ID ${player.id}`);
+    if (ids.has(player.id))
+      throw new Error(`duplicate player appearance ID ${player.id}`);
     ids.add(player.id);
   }
 
@@ -106,20 +124,24 @@ export function assignDistinctPlayerLooks<T extends PlayerAppearanceIdentity>(
   // projection places the user's squad first, so a returning opponent can
   // never displace a face the user already knows.
   for (const player of players) {
-    if (player.lookId === undefined
-      || !isPlayerLookIdForRole(player.lookId, player.role)
-      || used.has(player.lookId)) continue;
+    if (
+      player.lookId === undefined ||
+      !isPlayerLookIdForRole(player.lookId, player.role) ||
+      used.has(player.lookId)
+    )
+      continue;
     // A reserved face is only ever legitimate on the character it belongs to.
     // Without this an ordinary player who was assigned one before the faces
     // were reserved would keep it forever, and the real hero would be pushed
     // onto a stranger's head.
-    if (isReservedFieldLook(player.lookId) && !isSpecialHeroId(player.id)) continue;
+    if (isReservedFieldLook(player.lookId) && !isSpecialHeroId(player.id))
+      continue;
     assigned.set(player.id, player.lookId);
     used.add(player.lookId);
   }
 
   const pending = players
-    .filter(player => !assigned.has(player.id))
+    .filter((player) => !assigned.has(player.id))
     .sort((left, right) => compareIds(left.id, right.id));
   for (const player of pending) {
     const preferred = preferredLook(player);
@@ -128,17 +150,26 @@ export function assignDistinctPlayerLooks<T extends PlayerAppearanceIdentity>(
     used.add(lookId);
   }
 
-  return players.map(player => ({ ...player, lookId: assigned.get(player.id)! }));
+  return players.map((player) => ({
+    ...player,
+    lookId: assigned.get(player.id)!,
+  }));
 }
 
 export function nextDistinctPlayerLook(
   player: Pick<PlayerAppearanceIdentity, 'id' | 'role'>,
   activePlayers: readonly PlayerAppearanceIdentity[],
 ): string {
-  const used = new Set(activePlayers
-    .filter(candidate => candidate.lookId !== undefined)
-    .map(candidate => candidate.lookId!));
-  return firstAvailableLook(generatedPlayerLookId(player.id, player.role), player.role, used);
+  const used = new Set(
+    activePlayers
+      .filter((candidate) => candidate.lookId !== undefined)
+      .map((candidate) => candidate.lookId!),
+  );
+  return firstAvailableLook(
+    generatedPlayerLookId(player.id, player.role),
+    player.role,
+    used,
+  );
 }
 
 export function stablePlayerLookHash(value: string): number {
@@ -164,7 +195,10 @@ function firstAvailableLook(
     ? Number(preferred.slice(1))
     : lookIndex(preferred, poolSize);
   for (let offset = 0; offset < poolSize; offset += 1) {
-    const lookId = formatPlayerLookId(role, (preferredIndex + offset) % poolSize);
+    const lookId = formatPlayerLookId(
+      role,
+      (preferredIndex + offset) % poolSize,
+    );
     if (!used.has(lookId)) return lookId;
   }
   return formatPlayerLookId(role, preferredIndex);
@@ -189,5 +223,8 @@ function lookIndex(playerId: string, poolSize: number): number {
   if (numberedId === null) return stablePlayerLookHash(playerId) % poolSize;
   // Generated club squads end in p01, p02, ... . Walking the pool with a
   // larger coprime step keeps new-season squads visually distinct.
-  return (stablePlayerLookHash(numberedId[1]) + Number(numberedId[2]) * 101) % poolSize;
+  return (
+    (stablePlayerLookHash(numberedId[1]) + Number(numberedId[2]) * 101) %
+    poolSize
+  );
 }

@@ -63,60 +63,82 @@ export function resolveWeeklyPlayerWellbeing(
   validateStateClock(state);
 
   const matchParticipations = context.matchParticipations;
-  const match = matchParticipations === undefined ? currentUserMatch(state) : undefined;
-  const additionalMatchOutcomes = matchParticipations === undefined
-    ? context.additionalMatchOutcomes ?? []
-    : [];
-  if (additionalMatchOutcomes.some(outcome => !['win', 'draw', 'loss'].includes(outcome))) {
+  const match =
+    matchParticipations === undefined ? currentUserMatch(state) : undefined;
+  const additionalMatchOutcomes =
+    matchParticipations === undefined
+      ? (context.additionalMatchOutcomes ?? [])
+      : [];
+  if (
+    additionalMatchOutcomes.some(
+      (outcome) => !['win', 'draw', 'loss'].includes(outcome),
+    )
+  ) {
     throw new Error('additional match outcomes must be win, draw, or loss');
   }
-  const matchOutcomes = matchParticipations?.map(participation => participation.outcome) ?? [
-      ...(match === undefined ? [] : [match.outcome]),
-      ...additionalMatchOutcomes,
-    ];
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
-  if (matchOutcomes.length > 0 && lineup === undefined && matchParticipations === undefined) {
+  const matchOutcomes = matchParticipations?.map(
+    (participation) => participation.outcome,
+  ) ?? [
+    ...(match === undefined ? [] : [match.outcome]),
+    ...additionalMatchOutcomes,
+  ];
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  if (
+    matchOutcomes.length > 0 &&
+    lineup === undefined &&
+    matchParticipations === undefined
+  ) {
     throw new Error('a played user match requires a user lineup');
   }
   const starters = new Set(lineup?.playerIds ?? []);
-  const participantSets = matchParticipations?.map(participation => {
+  const participantSets = matchParticipations?.map((participation) => {
     if (!['win', 'draw', 'loss'].includes(participation.outcome)) {
       throw new Error('match participation outcome must be win, draw, or loss');
     }
     const participants = new Set(participation.participantPlayerIds);
     if (participants.size !== participation.participantPlayerIds.length) {
-      throw new Error(`match ${participation.fixtureId} participant IDs must be unique`);
+      throw new Error(
+        `match ${participation.fixtureId} participant IDs must be unique`,
+      );
     }
     return { outcome: participation.outcome, participants };
   });
-  const motivatorStrengthHalfLevels = state.market === undefined
-    ? 0
-    : coachMotivatorStrengthHalfLevels(state.market);
+  const motivatorStrengthHalfLevels =
+    state.market === undefined
+      ? 0
+      : coachMotivatorStrengthHalfLevels(state.market);
   const bestDorm = bestOperationalDorm(state.facilities.grid);
-  const conditionDelta = weeklyConditionRecovery(bestDorm?.level ?? 0)
-    + cappedFacilityBoost(bestDorm?.boosts, 'recoveryBonus');
+  const conditionDelta =
+    weeklyConditionRecovery(bestDorm?.level ?? 0) +
+    cappedFacilityBoost(bestDorm?.boosts, 'recoveryBonus');
 
-  const players = state.players.map(player => {
+  const players = state.players.map((player) => {
     if (player.clubId !== state.userClubId) return player;
 
-    const matchMoraleDelta = participantSets === undefined
-      ? matchOutcomes.reduce(
-          (total, outcome) => total + moraleDeltaForMatch(outcome, starters.has(player.id)),
-          0,
-        )
-      : participantSets.reduce(
-          (total, participation) => total + moraleDeltaForMatch(
-            participation.outcome,
-            participation.participants.has(player.id),
-          ),
-          0,
-        );
+    const matchMoraleDelta =
+      participantSets === undefined
+        ? matchOutcomes.reduce(
+            (total, outcome) =>
+              total + moraleDeltaForMatch(outcome, starters.has(player.id)),
+            0,
+          )
+        : participantSets.reduce(
+            (total, participation) =>
+              total +
+              moraleDeltaForMatch(
+                participation.outcome,
+                participation.participants.has(player.id),
+              ),
+            0,
+          );
     const underpaidMoraleDelta = isUnderpaidPlayer(player) ? -2 : 0;
     const motivation = applyMotivatorProtection(
       matchMoraleDelta + underpaidMoraleDelta,
       motivatorStrengthHalfLevels,
-      player.motivatorMoraleRemainderHalfPoints
-        ?? (player.motivatorMoraleRemainder ?? 0) * 2,
+      player.motivatorMoraleRemainderHalfPoints ??
+        (player.motivatorMoraleRemainder ?? 0) * 2,
     );
     const updated = updatePlayerWellbeing(
       {
@@ -128,7 +150,10 @@ export function resolveWeeklyPlayerWellbeing(
       { conditionDelta, moraleDelta: motivation.moraleDelta },
     );
     const updatedCondition = updated.condition ?? 100;
-    const { motivatorMoraleRemainder: _legacyMotivatorRemainder, ...withoutLegacyRemainder } = updated;
+    const {
+      motivatorMoraleRemainder: _legacyMotivatorRemainder,
+      ...withoutLegacyRemainder
+    } = updated;
     return {
       ...withoutLegacyRemainder,
       condition: updatedCondition,
@@ -138,9 +163,10 @@ export function resolveWeeklyPlayerWellbeing(
       // flag a memory instead of a state: it could only ever be set, so a squad
       // accumulated permanent "wants to leave" alerts, and `eligibleAskers`
       // — which drops listed players — starved until nobody could ask at all.
-      transferRequested: player.transferRequested === true
-        ? !shouldWithdrawTransferRequest(updated)
-        : shouldRequestTransfer(updated),
+      transferRequested:
+        player.transferRequested === true
+          ? !shouldWithdrawTransferRequest(updated)
+          : shouldRequestTransfer(updated),
     };
   });
 
@@ -153,23 +179,30 @@ export function resolveWeeklyPlayerWellbeing(
 }
 
 function isUnderpaidPlayer(player: CareerPlayer): boolean {
-  const fairWage = renewalContractAsk({
-    weeklyWage: player.weeklyWage,
-    personality: (player.personality ?? 'Professional').toUpperCase().replace('-', '_') as Parameters<typeof renewalContractAsk>[0]['personality'],
-    ...(player.power === undefined ? {} : { power: player.power }),
-    onHeroWage: player.onHeroWage,
-  }, {
-    growthSinceSigningPercent: growthSinceSigningPercent(player),
-    famePercent: renewalFamePercent(player.fame ?? 0),
-    heroMultiplier: 4,
-    // Deliberately not the player's real loyalty. Loyalty has exactly one job —
-    // the price of the next contract — and the player card says so. Feeding it
-    // here would make every refused request ALSO raise the "fair wage" line,
-    // adding a silent -2 morale a week and a faster transfer request that no
-    // button on the decision card ever mentioned. A third punishment channel
-    // the manager was never shown is worse than no punishment at all.
-    loyaltyPercent: 0,
-  });
+  const fairWage = renewalContractAsk(
+    {
+      weeklyWage: player.weeklyWage,
+      personality: (player.personality ?? 'Professional')
+        .toUpperCase()
+        .replace('-', '_') as Parameters<
+        typeof renewalContractAsk
+      >[0]['personality'],
+      ...(player.power === undefined ? {} : { power: player.power }),
+      onHeroWage: player.onHeroWage,
+    },
+    {
+      growthSinceSigningPercent: growthSinceSigningPercent(player),
+      famePercent: renewalFamePercent(player.fame ?? 0),
+      heroMultiplier: 4,
+      // Deliberately not the player's real loyalty. Loyalty has exactly one job —
+      // the price of the next contract — and the player card says so. Feeding it
+      // here would make every refused request ALSO raise the "fair wage" line,
+      // adding a silent -2 morale a week and a faster transfer request that no
+      // button on the decision card ever mentioned. A third punishment channel
+      // the manager was never shown is worse than no punishment at all.
+      loyaltyPercent: 0,
+    },
+  );
   return player.weeklyWage * 100 < fairWage * 70;
 }
 
@@ -178,30 +211,49 @@ function applyMotivatorProtection(
   strengthHalfLevels: number,
   remainderHalfPoints: number,
 ): { moraleDelta: number; remainderHalfPoints: number } {
-  if (!Number.isSafeInteger(strengthHalfLevels) || strengthHalfLevels < 0 || strengthHalfLevels > 15) {
+  if (
+    !Number.isSafeInteger(strengthHalfLevels) ||
+    strengthHalfLevels < 0 ||
+    strengthHalfLevels > 15
+  ) {
     throw new Error('Motivator strength must be from 0 to 15 half-levels');
   }
-  if (!Number.isSafeInteger(remainderHalfPoints)
-    || remainderHalfPoints < 0
-    || remainderHalfPoints >= 200) {
-    throw new Error('Motivator morale remainder must be from 0 to 199 half-points');
+  if (
+    !Number.isSafeInteger(remainderHalfPoints) ||
+    remainderHalfPoints < 0 ||
+    remainderHalfPoints >= 200
+  ) {
+    throw new Error(
+      'Motivator morale remainder must be from 0 to 199 half-points',
+    );
   }
   if (moraleDelta >= 0 || strengthHalfLevels === 0) {
     return { moraleDelta, remainderHalfPoints };
   }
   // One half-level is 2.5%. A denominator of 200 keeps assistant effects exact
   // without introducing floating-point morale or fractional player ratings.
-  const scaled = Math.abs(moraleDelta) * strengthHalfLevels * 5 + remainderHalfPoints;
+  const scaled =
+    Math.abs(moraleDelta) * strengthHalfLevels * 5 + remainderHalfPoints;
   const prevented = Math.floor(scaled / 200);
-  return { moraleDelta: moraleDelta + prevented, remainderHalfPoints: scaled % 200 };
+  return {
+    moraleDelta: moraleDelta + prevented,
+    remainderHalfPoints: scaled % 200,
+  };
 }
 
 /** Medical Bay levels remove one recovery week each, with a one-week floor. */
-export function medicalBayRecoveryWeeks(baseRecoveryWeeks: number, medicalBayLevel: number): number {
+export function medicalBayRecoveryWeeks(
+  baseRecoveryWeeks: number,
+  medicalBayLevel: number,
+): number {
   if (!Number.isSafeInteger(baseRecoveryWeeks) || baseRecoveryWeeks < 1) {
     throw new Error('base recovery weeks must be a positive safe integer');
   }
-  if (!Number.isSafeInteger(medicalBayLevel) || medicalBayLevel < 0 || medicalBayLevel > 3) {
+  if (
+    !Number.isSafeInteger(medicalBayLevel) ||
+    medicalBayLevel < 0 ||
+    medicalBayLevel > 3
+  ) {
     throw new Error('Medical Bay level must be an integer from 0 to 3');
   }
   return Math.max(1, baseRecoveryWeeks - medicalBayLevel);
@@ -214,23 +266,25 @@ export function overtrainingInjuryChancePercent(
   if (!Number.isSafeInteger(condition) || condition < 0 || condition > 100) {
     throw new Error('player condition must be an integer from 0 to 100');
   }
-  if (!Number.isSafeInteger(riskReductionPercent)
-    || riskReductionPercent < 0
-    || riskReductionPercent > 100) {
+  if (
+    !Number.isSafeInteger(riskReductionPercent) ||
+    riskReductionPercent < 0 ||
+    riskReductionPercent > 100
+  ) {
     throw new Error('injury risk reduction must be an integer from 0 to 100');
   }
   if (condition >= OVERTRAINING_CONDITION_THRESHOLD) return 0;
 
   const missingCondition = OVERTRAINING_CONDITION_THRESHOLD - condition;
-  const baseChance = 10 + checkedMultiply(
-    missingCondition,
-    2,
-    'overtraining injury chance',
-  );
+  const baseChance =
+    10 + checkedMultiply(missingCondition, 2, 'overtraining injury chance');
   return Math.floor((baseChance * (100 - riskReductionPercent)) / 100);
 }
 
-function moraleDeltaForMatch(outcome: WeeklyMatchOutcome, started: boolean): number {
+function moraleDeltaForMatch(
+  outcome: WeeklyMatchOutcome,
+  started: boolean,
+): number {
   const resultDelta = outcome === 'win' ? 3 : outcome === 'draw' ? 1 : -3;
   return resultDelta + (started ? 2 : -1);
 }
@@ -238,25 +292,40 @@ function moraleDeltaForMatch(outcome: WeeklyMatchOutcome, started: boolean): num
 function currentUserMatch(
   state: GameState,
 ): { outcome: WeeklyMatchOutcome } | undefined {
-  const fixtures = state.fixtures.filter(fixture =>
-    fixture.season === state.season
-    && fixture.week === state.week
-    && fixture.status === 'played'
-    && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId),
+  const fixtures = state.fixtures.filter(
+    (fixture) =>
+      fixture.season === state.season &&
+      fixture.week === state.week &&
+      fixture.status === 'played' &&
+      (fixture.homeClubId === state.userClubId ||
+        fixture.awayClubId === state.userClubId),
   );
-  if (fixtures.length > 1) throw new Error('a club cannot have more than one played match per week');
+  if (fixtures.length > 1)
+    throw new Error('a club cannot have more than one played match per week');
   const fixture = fixtures[0];
   if (fixture === undefined) return undefined;
-  if (fixture.score === undefined) throw new Error('a played wellbeing fixture requires a score');
+  if (fixture.score === undefined)
+    throw new Error('a played wellbeing fixture requires a score');
 
   const isHome = fixture.homeClubId === state.userClubId;
   const goalsFor = isHome ? fixture.score.homeGoals : fixture.score.awayGoals;
-  const goalsAgainst = isHome ? fixture.score.awayGoals : fixture.score.homeGoals;
-  return { outcome: goalsFor > goalsAgainst ? 'win' : goalsFor === goalsAgainst ? 'draw' : 'loss' };
+  const goalsAgainst = isHome
+    ? fixture.score.awayGoals
+    : fixture.score.homeGoals;
+  return {
+    outcome:
+      goalsFor > goalsAgainst
+        ? 'win'
+        : goalsFor === goalsAgainst
+          ? 'draw'
+          : 'loss',
+  };
 }
 
 /** The best operational Medical Bay wins; one still being built treats nobody. */
-export function gridMedicalBayLevel(grid: FacilityGridState | undefined): number {
+export function gridMedicalBayLevel(
+  grid: FacilityGridState | undefined,
+): number {
   if (grid === undefined) return 0;
   let level = 0;
   for (const building of grid.buildings) {
@@ -273,7 +342,9 @@ export function gridMedicalBayLevel(grid: FacilityGridState | undefined): number
  * building. A percent would be useless here — the dorm gives 4 points a level,
  * and a tenth of that rounds to zero — so its boost is flat points.
  */
-function bestOperationalDorm(grid: FacilityGridState | undefined): PlacedFacility | undefined {
+function bestOperationalDorm(
+  grid: FacilityGridState | undefined,
+): PlacedFacility | undefined {
   if (grid === undefined) return undefined;
   let best: PlacedFacility | undefined;
   for (const building of grid.buildings) {
@@ -300,11 +371,19 @@ export function weeklyConditionRecovery(dormLevel: number): number {
   if (!Number.isSafeInteger(dormLevel) || dormLevel < 0 || dormLevel > 3) {
     throw new Error('Dorm level must be an integer from 0 to 3');
   }
-  return WEEKLY_CONDITION_RECOVERY + dormLevel * DORM_CONDITION_RECOVERY_PER_LEVEL;
+  return (
+    WEEKLY_CONDITION_RECOVERY + dormLevel * DORM_CONDITION_RECOVERY_PER_LEVEL
+  );
 }
 
-function validateStateClock(state: Pick<GameState, 'careerSeed' | 'season' | 'week'>): void {
-  if (!Number.isInteger(state.careerSeed) || state.careerSeed < 0 || state.careerSeed > 4294967295) {
+function validateStateClock(
+  state: Pick<GameState, 'careerSeed' | 'season' | 'week'>,
+): void {
+  if (
+    !Number.isInteger(state.careerSeed) ||
+    state.careerSeed < 0 ||
+    state.careerSeed > 4294967295
+  ) {
     throw new Error('wellbeing career seed must be a uint32');
   }
   if (!Number.isSafeInteger(state.season) || state.season < 1) {
@@ -315,9 +394,9 @@ function validateStateClock(state: Pick<GameState, 'careerSeed' | 'season' | 'we
   }
 }
 
-
 function checkedMultiply(left: number, right: number, label: string): number {
   const result = left * right;
-  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(result))
+    throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }

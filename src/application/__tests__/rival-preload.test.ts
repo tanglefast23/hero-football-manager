@@ -2,7 +2,10 @@ import { ROVERS, UNITED } from '../../sim/teams';
 import type { TeamDef } from '../../sim/types';
 import { quickResultForFixture } from '../../game/matchday';
 import type { LeagueFixture } from '../../game/types';
-import { cachedRivalResults, clearRivalResultCache } from '../rival-result-cache';
+import {
+  cachedRivalResults,
+  clearRivalResultCache,
+} from '../rival-result-cache';
 import { createPreloadPump, type PreloadPump } from '../rival-preload';
 
 const TEAMS: Readonly<Record<string, TeamDef>> = {
@@ -43,7 +46,7 @@ describe('rival preload pump', () => {
     drain(createPreloadPump(rivals, TEAMS));
 
     expect(cachedRivalResults(rivals, TEAMS)).toEqual(
-      rivals.map(scheduled => quickResultForFixture(scheduled, TEAMS)),
+      rivals.map((scheduled) => quickResultForFixture(scheduled, TEAMS)),
     );
   });
 

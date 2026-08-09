@@ -18,7 +18,7 @@ function decoyTeams(both = false): [TeamDef, TeamDef] {
       players: ROVERS.players.map((player, index) => ({
         ...player,
         attrs: { ...player.attrs },
-        power: index === 5 ? 'DECOY_DOUBLE' as const : undefined,
+        power: index === 5 ? ('DECOY_DOUBLE' as const) : undefined,
       })),
     },
     {
@@ -26,7 +26,7 @@ function decoyTeams(both = false): [TeamDef, TeamDef] {
       players: UNITED.players.map((player, index) => ({
         ...player,
         attrs: { ...player.attrs },
-        power: both && index === 5 ? 'DECOY_DOUBLE' as const : undefined,
+        power: both && index === 5 ? ('DECOY_DOUBLE' as const) : undefined,
       })),
     },
   ];
@@ -47,12 +47,15 @@ function placeHomeDecoyContext(match: MatchState): void {
 function spawnHomeDecoy(match: MatchState): void {
   placeHomeDecoyContext(match);
   activatePower(match, 5, 1);
-  if (match.decoyClones[0] === null) throw new Error('expected home Decoy clone');
+  if (match.decoyClones[0] === null)
+    throw new Error('expected home Decoy clone');
 }
 
 function forcePassArrival(match: MatchState): void {
   if (match.ball.kind !== 'pass') throw new Error('expected pass');
-  const targetIdx = match.ball.willSucceed ? match.ball.to : match.ball.interceptor;
+  const targetIdx = match.ball.willSucceed
+    ? match.ball.to
+    : match.ball.interceptor;
   const target = match.ball.arrivalPos ?? playerAt(match, targetIdx)?.pos;
   if (target === undefined) throw new Error('expected live pass target');
   match.ball.pos = { ...target };
@@ -76,7 +79,9 @@ describe('Decoy Double genuine temporary player', () => {
     expect(clone.condition).toBe(source.condition);
     expect(clone.def.power).toBeUndefined();
     expect(match.players).toHaveLength(22);
-    expect(match.players.every((player, index) => player === baseIdentities[index])).toBe(true);
+    expect(
+      match.players.every((player, index) => player === baseIdentities[index]),
+    ).toBe(true);
     expect(playerAt(match, HOME_DECOY_INDEX)).toBe(clone);
   });
 
@@ -90,9 +95,14 @@ describe('Decoy Double genuine temporary player', () => {
 
     powerTick(powered);
     expect(powered.players[5].powerState).toMatchObject({
-      kind: 'winding', carrierIdx: 6, runnerIdx: 9,
+      kind: 'winding',
+      carrierIdx: 6,
+      runnerIdx: 9,
     });
-    expect(powered.players[5].powerState).toHaveProperty('targetIdx', undefined);
+    expect(powered.players[5].powerState).toHaveProperty(
+      'targetIdx',
+      undefined,
+    );
     movementTick(powered);
     movementTick(control);
 
@@ -104,7 +114,10 @@ describe('Decoy Double genuine temporary player', () => {
     spawnHomeDecoy(match);
     const clone = match.decoyClones[0]!;
     const rival = 13;
-    match.players[rival].def = { ...match.players[rival].def, power: 'WEB_TRAP' };
+    match.players[rival].def = {
+      ...match.players[rival].def,
+      power: 'WEB_TRAP',
+    };
     match.players[rival].pos = { x: clone.pos.x + 300, y: clone.pos.y + 200 };
     match.ball = { kind: 'held', by: HOME_DECOY_INDEX };
     match.players[rival].firePolicy = 'FIRE_WHEN_READY';
@@ -112,10 +125,13 @@ describe('Decoy Double genuine temporary player', () => {
 
     powerTick(match);
     expect(match.players[rival].powerState).toMatchObject({
-      kind: 'winding', targetIdx: HOME_DECOY_INDEX, targetPlayerId: clone.def.id,
+      kind: 'winding',
+      targetIdx: HOME_DECOY_INDEX,
+      targetPlayerId: clone.def.id,
     });
     const winding = match.players[rival].powerState as PowerState;
-    if (winding.kind !== 'winding') throw new Error('expected rival Web wind-up');
+    if (winding.kind !== 'winding')
+      throw new Error('expected rival Web wind-up');
     match.tick = winding.untilTick;
     powerTick(match);
     match.tick += 1;
@@ -146,21 +162,34 @@ describe('Decoy Double genuine temporary player', () => {
 
     launchPass(match, HOME_DECOY_INDEX, 9, false, true);
     expect(match.events.at(-1)).toMatchObject({
-      kind: 'PASS', from: HOME_DECOY_INDEX, to: 9, ok: true,
+      kind: 'PASS',
+      from: HOME_DECOY_INDEX,
+      to: 9,
+      ok: true,
     });
-    expect(match.ball).toMatchObject({ kind: 'pass', from: HOME_DECOY_INDEX, to: 9 });
+    expect(match.ball).toMatchObject({
+      kind: 'pass',
+      from: HOME_DECOY_INDEX,
+      to: 9,
+    });
     forcePassArrival(match);
     expect(match.ball).toEqual({ kind: 'held', by: 9 });
 
     clone.pos = { x: 3400, y: 1500 };
     match.ball = { kind: 'held', by: HOME_DECOY_INDEX };
     match.tick = 5;
-    for (let index = 11; index < 22; index += 1) match.players[index].pos = { x: 500, y: 9000 };
+    for (let index = 11; index < 22; index += 1)
+      match.players[index].pos = { x: 500, y: 9000 };
     expect(attackingDecision(match, HOME_DECOY_INDEX).kind).toBe('shoot');
     possessionTick(match);
-    expect(match.ball).toMatchObject({ kind: 'shot', pos: { x: 3400, y: 1500 } });
+    expect(match.ball).toMatchObject({
+      kind: 'shot',
+      pos: { x: 3400, y: 1500 },
+    });
     expect(match.events.at(-1)).toMatchObject({
-      kind: 'SHOT', by: clone.sourceIdx, actor: HOME_DECOY_INDEX,
+      kind: 'SHOT',
+      by: clone.sourceIdx,
+      actor: HOME_DECOY_INDEX,
     });
   });
 
@@ -174,11 +203,17 @@ describe('Decoy Double genuine temporary player', () => {
 
     expect(match.decoyClones[0]).toBeNull();
     expect(match.ball).toEqual({ kind: 'held', by: 6 });
-    expect(match.events.filter(event => event.kind === 'DECOY_POP')).toEqual([
-      expect.objectContaining({ clone: HOME_DECOY_INDEX, source: 9, reason: 'expired' }),
+    expect(match.events.filter((event) => event.kind === 'DECOY_POP')).toEqual([
+      expect.objectContaining({
+        clone: HOME_DECOY_INDEX,
+        source: 9,
+        reason: 'expired',
+      }),
     ]);
     expect(dismissDecoyClone(match, 0, 'invalid')).toBe(false);
-    expect(match.events.filter(event => event.kind === 'DECOY_POP')).toHaveLength(1);
+    expect(
+      match.events.filter((event) => event.kind === 'DECOY_POP'),
+    ).toHaveLength(1);
   });
 
   it('leaves the ball loose at the exact clone location when expiry catches it carrying', () => {
@@ -191,14 +226,20 @@ describe('Decoy Double genuine temporary player', () => {
     powerTick(match);
 
     expect(match.ball).toEqual({
-      kind: 'loose', pos: { x: 3123, y: 2789 }, vel: { x: 0, y: 0 }, z: 0, vz: 0,
-    });
-    expect(match.events).toContainEqual(expect.objectContaining({
-      kind: 'DECOY_POP',
-      clone: HOME_DECOY_INDEX,
+      kind: 'loose',
       pos: { x: 3123, y: 2789 },
-      reason: 'expired',
-    }));
+      vel: { x: 0, y: 0 },
+      z: 0,
+      vz: 0,
+    });
+    expect(match.events).toContainEqual(
+      expect.objectContaining({
+        kind: 'DECOY_POP',
+        clone: HOME_DECOY_INDEX,
+        pos: { x: 3123, y: 2789 },
+        reason: 'expired',
+      }),
+    );
   });
 
   it('ends on opponent possession and reserves a separate stable slot for each team', () => {
@@ -223,9 +264,13 @@ describe('Decoy Double genuine temporary player', () => {
     powerTick(match);
     expect(match.decoyClones[0]).toBeNull();
     expect(match.decoyClones[1]).not.toBeNull();
-    expect(match.events).toContainEqual(expect.objectContaining({
-      kind: 'DECOY_POP', clone: HOME_DECOY_INDEX, reason: 'turnover',
-    }));
+    expect(match.events).toContainEqual(
+      expect.objectContaining({
+        kind: 'DECOY_POP',
+        clone: HOME_DECOY_INDEX,
+        reason: 'turnover',
+      }),
+    );
   });
 
   it('retires the previous owner when a teammate creates a replacement clone', () => {
@@ -253,7 +298,11 @@ describe('Decoy Double genuine temporary player', () => {
     match.tick = oldClone.untilTick;
     powerTick(match);
     expect(match.decoyClones[0]).toBeNull();
-    expect(match.ball).toMatchObject({ kind: 'pass', from: HOME_DECOY_INDEX, to: 9 });
+    expect(match.ball).toMatchObject({
+      kind: 'pass',
+      from: HOME_DECOY_INDEX,
+      to: 9,
+    });
 
     match.players[6].def = { ...match.players[6].def, power: 'DECOY_DOUBLE' };
     expect(() => activatePower(match, 6, 1)).not.toThrow();
@@ -262,12 +311,14 @@ describe('Decoy Double genuine temporary player', () => {
 
   it('clears safely on restart and invalid identity without shifting base slots', () => {
     const restarted = createMatch(1818, ...decoyTeams());
-    const baseIds = restarted.players.map(player => player.def.id);
+    const baseIds = restarted.players.map((player) => player.def.id);
     spawnHomeDecoy(restarted);
     restartKickoff(restarted, 0);
     expect(restarted.decoyClones[0]).toBeNull();
-    expect(restarted.players.map(player => player.def.id)).toEqual(baseIds);
-    expect(restarted.events.filter(event => event.kind === 'DECOY_POP')).toEqual([
+    expect(restarted.players.map((player) => player.def.id)).toEqual(baseIds);
+    expect(
+      restarted.events.filter((event) => event.kind === 'DECOY_POP'),
+    ).toEqual([
       expect.objectContaining({ clone: HOME_DECOY_INDEX, reason: 'restart' }),
     ]);
 
@@ -276,7 +327,9 @@ describe('Decoy Double genuine temporary player', () => {
     invalid.decoyClones[0]!.sourcePlayerId = 'stale-source';
     powerTick(invalid);
     expect(invalid.decoyClones[0]).toBeNull();
-    expect(invalid.events.filter(event => event.kind === 'DECOY_POP')).toEqual([
+    expect(
+      invalid.events.filter((event) => event.kind === 'DECOY_POP'),
+    ).toEqual([
       expect.objectContaining({ clone: HOME_DECOY_INDEX, reason: 'invalid' }),
     ]);
   });
@@ -293,10 +346,16 @@ describe('Decoy Double genuine temporary player', () => {
         possessionTick(match);
       }
       const clone = match.decoyClones[0];
-      if (clone === null) throw new Error('clone ended before deterministic expiry');
+      if (clone === null)
+        throw new Error('clone ended before deterministic expiry');
       match.tick = clone.untilTick;
       powerTick(match);
-      return JSON.stringify({ ball: match.ball, events: match.events, players: match.players, clones: match.decoyClones });
+      return JSON.stringify({
+        ball: match.ball,
+        events: match.events,
+        players: match.players,
+        clones: match.decoyClones,
+      });
     }
 
     expect(deterministicRun()).toBe(deterministicRun());
@@ -313,10 +372,13 @@ describe('Decoy Double genuine temporary player', () => {
         home,
         away,
         inputs: [],
-        opts: { homePolicy: 'FIRE_WHEN_READY' as const, awayPolicy: 'FIRE_WHEN_READY' as const },
+        opts: {
+          homePolicy: 'FIRE_WHEN_READY' as const,
+          awayPolicy: 'FIRE_WHEN_READY' as const,
+        },
       };
       const first = runReplay(envelope);
-      if (!first.events.some(event => event.kind === 'DECOY_POP')) continue;
+      if (!first.events.some((event) => event.kind === 'DECOY_POP')) continue;
       const second = runReplay(JSON.parse(JSON.stringify(envelope)));
       expect(JSON.stringify(second)).toBe(JSON.stringify(first));
       replayWithDecoy = first;

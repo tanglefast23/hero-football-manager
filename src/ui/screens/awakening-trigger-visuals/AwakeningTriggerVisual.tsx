@@ -26,41 +26,45 @@ interface AwakeningTriggerVisualProps {
   y: number;
 }
 
-export function AwakeningTriggerVisual({ visual, x, y }: AwakeningTriggerVisualProps) {
+export function AwakeningTriggerVisual({
+  visual,
+  x,
+  y,
+}: AwakeningTriggerVisualProps) {
   if (visual === 'caterpillar') {
     return <GlowingCaterpillarVisual x={x} y={y} />;
   }
 
   const art = (() => {
     switch (visual) {
-    case 'water':
-      return <WaterBottleVisual x={x} y={y} />;
-    case 'cpr':
-      return <RhythmicCprTriggerVisual x={x} y={y} />;
-    case 'sponge':
-      return <MagicSpongeTriggerVisual x={x} y={y} />;
-    case 'sneeze':
-      return <SmellingSaltSuperSneezeTriggerVisual x={x} y={y} />;
-    case 'ice':
-      return <IcePackMoonsTriggerVisual x={x} y={y} />;
-    case 'drink':
-      return <StrongManStrongDrinkTriggerVisual x={x} y={y} />;
-    case 'sprinkler':
-      return <RunawaySprinklerVisual x={x} y={y} />;
-    case 'shin-guard':
-      return <BuzzingShinGuardVisual x={x} y={y} />;
-    case 'meteor':
-      return <MeteoriteInTheBootVisual x={x} y={y} />;
-    case 'ball':
-      return <BallOfDestinyVisual x={x} y={y} />;
-    case 'confetti':
-      return <ConfettiCannonVisual x={x} y={y} />;
-    case 'feather':
-      return <ChosenFeatherVisual x={x} y={y} />;
-    case 'thermometer':
-      return <HeroThermometerVisual x={x} y={y} />;
-    case 'defibrillator':
-      return <DefibrillatorStarVisual x={x} y={y} />;
+      case 'water':
+        return <WaterBottleVisual x={x} y={y} />;
+      case 'cpr':
+        return <RhythmicCprTriggerVisual x={x} y={y} />;
+      case 'sponge':
+        return <MagicSpongeTriggerVisual x={x} y={y} />;
+      case 'sneeze':
+        return <SmellingSaltSuperSneezeTriggerVisual x={x} y={y} />;
+      case 'ice':
+        return <IcePackMoonsTriggerVisual x={x} y={y} />;
+      case 'drink':
+        return <StrongManStrongDrinkTriggerVisual x={x} y={y} />;
+      case 'sprinkler':
+        return <RunawaySprinklerVisual x={x} y={y} />;
+      case 'shin-guard':
+        return <BuzzingShinGuardVisual x={x} y={y} />;
+      case 'meteor':
+        return <MeteoriteInTheBootVisual x={x} y={y} />;
+      case 'ball':
+        return <BallOfDestinyVisual x={x} y={y} />;
+      case 'confetti':
+        return <ConfettiCannonVisual x={x} y={y} />;
+      case 'feather':
+        return <ChosenFeatherVisual x={x} y={y} />;
+      case 'thermometer':
+        return <HeroThermometerVisual x={x} y={y} />;
+      case 'defibrillator':
+        return <DefibrillatorStarVisual x={x} y={y} />;
     }
   })();
 

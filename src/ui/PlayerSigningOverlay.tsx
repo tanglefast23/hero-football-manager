@@ -40,7 +40,6 @@ export function PlayerSigningOverlay({
     playPositiveSfx();
   }, [player.playerId]);
 
-
   return (
     <Modal
       visible
@@ -49,12 +48,22 @@ export function PlayerSigningOverlay({
       animationType={reduceMotion ? 'none' : 'fade'}
       onRequestClose={onClose}
     >
-      <SafeAreaView className="flex-1 justify-center bg-ink/60 px-4 py-6" edges={['top', 'left', 'right', 'bottom']}>
+      <SafeAreaView
+        className="flex-1 justify-center bg-ink/60 px-4 py-6"
+        edges={['top', 'left', 'right', 'bottom']}
+      >
         {/* The signing is already done — this is the receipt, so an outside tap
             closes it. Sibling of the panel so taps on its controls never bubble
             into the close target. */}
-        <Pressable accessible={false} className="absolute inset-0" onPress={onClose} />
-        <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
+        <Pressable
+          accessible={false}
+          className="absolute inset-0"
+          onPress={onClose}
+        />
+        <View
+          accessibilityViewIsModal
+          className="w-full max-w-[560px] self-center"
+        >
           <PaperPanel
             kicker={t('playerSigning.transferComplete')}
             title={t('coachStaff.titleWelcome')}
@@ -62,7 +71,12 @@ export function PlayerSigningOverlay({
           >
             <View className="items-center border-y-2 border-ink bg-gold-light py-4">
               <View className="border-2 border-b-4 border-ink bg-white px-4 pt-3">
-                <PixelPortrait playerId={player.playerId} role={player.role} lookId={player.lookId} expression="joy" />
+                <PixelPortrait
+                  playerId={player.playerId}
+                  role={player.role}
+                  lookId={player.lookId}
+                  expression="joy"
+                />
               </View>
               <Text
                 numberOfLines={2}
@@ -75,11 +89,14 @@ export function PlayerSigningOverlay({
               </Text>
             </View>
             <Text className="mt-4 text-center text-base leading-5 text-ink/65">
-              {t('playerSigning.theTransferIsComplete')}</Text>
+              {t('playerSigning.theTransferIsComplete')}
+            </Text>
             <View className="mt-4">
               <ActionButton
                 label={t('playerSigning.returnToClub')}
-                accessibilityLabel={t('playerSigning.a11y.closePlayerSigningConfirmation')}
+                accessibilityLabel={t(
+                  'playerSigning.a11y.closePlayerSigningConfirmation',
+                )}
                 onPress={onClose}
               />
             </View>

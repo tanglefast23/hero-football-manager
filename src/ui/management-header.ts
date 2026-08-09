@@ -31,6 +31,7 @@ export function managementHeaderLine(
   const parts = seasonLabel.split(HEADER_SEPARATOR);
   // Only a season-plus-rung-plus-name label has anything to give up. Anything
   // shorter is already at its minimum and is passed through untouched.
-  const trimmed = parts.length >= 3 ? parts.slice(0, -1).join(HEADER_SEPARATOR) : seasonLabel;
+  const trimmed =
+    parts.length >= 3 ? parts.slice(0, -1).join(HEADER_SEPARATOR) : seasonLabel;
   return { visible: `${trimmed}${HEADER_SEPARATOR}${weekLabel}`, spoken };
 }

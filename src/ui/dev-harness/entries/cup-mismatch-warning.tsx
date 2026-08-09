@@ -43,7 +43,9 @@ const MISMATCH_CASES: readonly MismatchCase[] = Object.freeze([
   },
 ]);
 
-const CASE_BY_ID = new Map(MISMATCH_CASES.map(candidate => [candidate.id, candidate]));
+const CASE_BY_ID = new Map(
+  MISMATCH_CASES.map((candidate) => [candidate.id, candidate]),
+);
 
 /** A real career stopped at its first player-controlled Cup formation screen. */
 function cupMatchdayCareer(): GameState {
@@ -51,10 +53,9 @@ function cupMatchdayCareer(): GameState {
     id: 'cup-mismatch-warning:first-cup-matchday:20260805',
     seed: 20260805,
     seasonBudget: 2,
-    stopAt: state => (
-      state.phase === 'matchday'
-      && activeCareerMatchday(state)?.kind === 'national-cup'
-    ),
+    stopAt: (state) =>
+      state.phase === 'matchday' &&
+      activeCareerMatchday(state)?.kind === 'national-cup',
   });
 }
 
@@ -66,47 +67,62 @@ function cupMatchdayCareer(): GameState {
 function mismatchCareer(mismatchCase: MismatchCase): GameState {
   const base = cupMatchdayCareer();
   const matchday = activeCareerMatchday(base);
-  if (matchday?.kind !== 'national-cup') throw new Error('Cup mismatch harness has no Cup tie');
-  const opponentClubId = matchday.fixture.homeClubId === base.userClubId
-    ? matchday.fixture.awayClubId
-    : matchday.fixture.homeClubId;
+  if (matchday?.kind !== 'national-cup')
+    throw new Error('Cup mismatch harness has no Cup tie');
+  const opponentClubId =
+    matchday.fixture.homeClubId === base.userClubId
+      ? matchday.fixture.awayClubId
+      : matchday.fixture.homeClubId;
   return {
     ...base,
     m2: {
       ...base.m2!,
-      nationalCups: base.m2!.nationalCups.map(cup => cup.season !== base.season
-        ? cup
-        : {
-            ...cup,
-            seedDivisionByClubId: {
-              ...cup.seedDivisionByClubId,
-              [base.userClubId]: 5,
-              [opponentClubId]: (5 - mismatchCase.divisionGap) as DivisionLevel,
+      nationalCups: base.m2!.nationalCups.map((cup) =>
+        cup.season !== base.season
+          ? cup
+          : {
+              ...cup,
+              seedDivisionByClubId: {
+                ...cup.seedDivisionByClubId,
+                [base.userClubId]: 5,
+                [opponentClubId]: (5 -
+                  mismatchCase.divisionGap) as DivisionLevel,
+              },
+              rounds: cup.rounds.map((round) => ({
+                ...round,
+                fixtures: round.fixtures.map((fixture) =>
+                  fixture.id !== matchday.fixture.id
+                    ? fixture
+                    : {
+                        ...fixture,
+                        // Even names the star; odd leaves the second bubble out.
+                        matchSeed: mismatchCase.namesStar ? 2 : 1,
+                      },
+                ),
+              })),
             },
-            rounds: cup.rounds.map(round => ({
-              ...round,
-              fixtures: round.fixtures.map(fixture => fixture.id !== matchday.fixture.id
-                ? fixture
-                : {
-                    ...fixture,
-                    // Even names the star; odd leaves the second bubble out.
-                    matchSeed: mismatchCase.namesStar ? 2 : 1,
-                  }),
-            })),
-          }),
+      ),
     },
   };
 }
 
-export function CupMismatchWarningReel({ caseId }: { readonly caseId: string }) {
+export function CupMismatchWarningReel({
+  caseId,
+}: {
+  readonly caseId: string;
+}) {
   const mismatchCase = CASE_BY_ID.get(caseId) ?? MISMATCH_CASES[0];
   const { width, height } = useWindowDimensions();
   const content = useMemo(() => loadLaunchContent(), []);
   const state = useMemo(() => mismatchCareer(mismatchCase), [mismatchCase]);
   const warning = useMemo(() => cupMismatchWarning(state), [state]);
-  const viewModel = useMemo(() => matchDayViewModel(state, content), [content, state]);
+  const viewModel = useMemo(
+    () => matchDayViewModel(state, content),
+    [content, state],
+  );
   const [visible, setVisible] = useState(true);
-  if (warning === undefined) throw new Error(`Cup mismatch case ${mismatchCase.id} produced no warning`);
+  if (warning === undefined)
+    throw new Error(`Cup mismatch case ${mismatchCase.id} produced no warning`);
 
   return (
     <View style={{ flex: 1 }}>
@@ -124,7 +140,12 @@ export function CupMismatchWarningReel({ caseId }: { readonly caseId: string }) 
           key={warning.fixtureId}
           content={content.assistantGuide}
           customMessage={warning}
-          navigationAnchor={{ x: 0, y: Math.max(0, height - 78), width, height: 78 }}
+          navigationAnchor={{
+            x: 0,
+            y: Math.max(0, height - 78),
+            width,
+            height: 78,
+          }}
           reduceMotion
           onDone={() => setVisible(false)}
         />
@@ -137,11 +158,16 @@ export const cupMismatchWarningEntry: DevHarnessEntry = Object.freeze({
   id: 'cup-mismatch-warning',
   group: 'Cup',
   title: 'Cup mismatch warning',
-  summary: 'Bert warns about opponents two, three, or four divisions above the club.',
-  cases: Object.freeze(MISMATCH_CASES.map(candidate => Object.freeze({
-    id: candidate.id,
-    label: candidate.label,
-    note: candidate.note,
-  }))),
+  summary:
+    'Bert warns about opponents two, three, or four divisions above the club.',
+  cases: Object.freeze(
+    MISMATCH_CASES.map((candidate) =>
+      Object.freeze({
+        id: candidate.id,
+        label: candidate.label,
+        note: candidate.note,
+      }),
+    ),
+  ),
   render: (caseId: string) => <CupMismatchWarningReel caseId={caseId} />,
 });

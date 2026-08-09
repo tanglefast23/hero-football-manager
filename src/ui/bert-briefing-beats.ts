@@ -43,7 +43,9 @@ export function briefingBeats(
   sequenceId: string,
   t: CopyFn = copyFor('en'),
 ): readonly BriefingBeat[] {
-  const sequence = content.sequences.find(candidate => candidate.id === sequenceId);
+  const sequence = content.sequences.find(
+    (candidate) => candidate.id === sequenceId,
+  );
   if (sequence === undefined) return [];
 
   const beats: BriefingBeat[] = [];

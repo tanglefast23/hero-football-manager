@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { flushPendingCareerSave } from '../application/store';
+import { subscribeToNativeSuspend } from './suspend-flush-lifecycle';
 
 /**
  * True only where the page-lifecycle events the hook below listens for actually
@@ -12,12 +13,14 @@ import { flushPendingCareerSave } from '../application/store';
 function hasPageLifecycleDom(): boolean {
   const page = typeof document === 'undefined' ? undefined : document;
   const view = typeof window === 'undefined' ? undefined : window;
-  return typeof page?.addEventListener === 'function'
-    && typeof view?.addEventListener === 'function';
+  return (
+    typeof page?.addEventListener === 'function' &&
+    typeof view?.addEventListener === 'function'
+  );
 }
 
 /**
- * Writes any queued career save the moment the app is hidden. Web only.
+ * Writes any queued career save the moment the app is hidden.
  *
  * iOS can kill a backgrounded web app — the game installed to an iPad home
  * screen is exactly that — without ever telling the page. The save queue is
@@ -36,13 +39,17 @@ export function useSuspendFlush(): void {
     // react-native without it (the trap documented on SfxPressable). It is a
     // cheap first read, not the safety check — 'web' still covers a prerender
     // with no DOM, so both listener targets are feature-detected below.
-    if (Platform?.OS !== 'web' || !hasPageLifecycleDom()) return undefined;
-
     const flush = () => {
-      // Fire and forget: a hidden page may not get to finish, and there is
-      // nothing useful to do with the promise here.
+      // Fire and forget: a suspended app may not get to finish, and there is
+      // nothing useful to do with the promise from a lifecycle callback.
       void flushPendingCareerSave();
     };
+
+    if (Platform?.OS !== 'web') {
+      return subscribeToNativeSuspend(AppState, flush);
+    }
+    if (!hasPageLifecycleDom()) return undefined;
+
     const onVisibilityChange = () => {
       if (document.hidden) flush();
     };

@@ -52,17 +52,30 @@ interface Census {
 
 function blank(): Census {
   return {
-    standingAttempts: 0, standingWon: 0, drops: 0,
-    fullWeightThuds: 0, bodyFalls: 0, scuffs: 0,
-    slidesLaunched: 0, slideContacts: 0, slidesWon: 0, midSlides: 0,
-    passes: 0, shots: 0, goals: 0, zonesOpened: 0,
-    longLockSpells: 0, maxAttemptsInOneDuel: 0, matchTicks: 0,
+    standingAttempts: 0,
+    standingWon: 0,
+    drops: 0,
+    fullWeightThuds: 0,
+    bodyFalls: 0,
+    scuffs: 0,
+    slidesLaunched: 0,
+    slideContacts: 0,
+    slidesWon: 0,
+    midSlides: 0,
+    passes: 0,
+    shots: 0,
+    goals: 0,
+    zonesOpened: 0,
+    longLockSpells: 0,
+    maxAttemptsInOneDuel: 0,
+    matchTicks: 0,
   };
 }
 
 function censusMatch(seed: number, into: Census): void {
   const state = createMatch(seed, ROVERS, UNITED, {
-    homePolicy: 'FIRE_WHEN_READY', awayPolicy: 'FIRE_WHEN_READY',
+    homePolicy: 'FIRE_WHEN_READY',
+    awayPolicy: 'FIRE_WHEN_READY',
   });
   let seen = 0;
   // Running state as primitives rather than objects: reassigning an annotated
@@ -104,16 +117,28 @@ function censusMatch(seed: number, into: Census): void {
       // backstop actually bounds. A win or a drop ends the streak, so grouping
       // by raw attempts instead would count the defender's post-recovery return
       // as a fourth attempt in the same duel and misread the cap.
-      const sameDuel = duelOn === e.on && duelBy === e.by && e.t - duelLastTick <= 15;
-      duelAttempts = sameDuel && !e.won && !e.dropped ? duelAttempts + 1 : e.won || e.dropped ? 0 : 1;
+      const sameDuel =
+        duelOn === e.on && duelBy === e.by && e.t - duelLastTick <= 15;
+      duelAttempts =
+        sameDuel && !e.won && !e.dropped
+          ? duelAttempts + 1
+          : e.won || e.dropped
+            ? 0
+            : 1;
       duelOn = e.on;
       duelBy = e.by;
       duelLastTick = e.t;
-      into.maxAttemptsInOneDuel = Math.max(into.maxAttemptsInOneDuel, duelAttempts);
+      into.maxAttemptsInOneDuel = Math.max(
+        into.maxAttemptsInOneDuel,
+        duelAttempts,
+      );
     }
     seen = state.events.length;
 
-    if (state.ball.kind !== 'held') { spellCarrier = -1; continue; }
+    if (state.ball.kind !== 'held') {
+      spellCarrier = -1;
+      continue;
+    }
     const carrierIdx = state.ball.by;
     const carrier = state.players[carrierIdx];
     let nearest = -1;
@@ -121,10 +146,17 @@ function censusMatch(seed: number, into: Census): void {
     for (let i = 0; i < state.players.length; i += 1) {
       const p = state.players[i];
       if (p.team === carrier.team) continue;
-      const d2 = (p.pos.x - carrier.pos.x) ** 2 + (p.pos.y - carrier.pos.y) ** 2;
-      if (d2 <= nearestD2) { nearestD2 = d2; nearest = i; }
+      const d2 =
+        (p.pos.x - carrier.pos.x) ** 2 + (p.pos.y - carrier.pos.y) ** 2;
+      if (d2 <= nearestD2) {
+        nearestD2 = d2;
+        nearest = i;
+      }
     }
-    if (nearest === -1) { spellCarrier = -1; continue; }
+    if (nearest === -1) {
+      spellCarrier = -1;
+      continue;
+    }
     const sameSpell = spellCarrier === carrierIdx && spellPresser === nearest;
     spellTicks = sameSpell ? spellTicks + 1 : 1;
     spellCarrier = carrierIdx;
@@ -139,28 +171,31 @@ describe('duel punctuation census', () => {
     for (let seed = 1; seed <= SEEDS; seed++) censusMatch(seed, total);
     const per = (n: number) => n / SEEDS;
     const secondsPerMatch = per(total.matchTicks) / TICKS_PER_SECOND;
-    const every = (n: number) => (n === 0 ? 'never' : `${(secondsPerMatch / per(n)).toFixed(1)}s`);
+    const every = (n: number) =>
+      n === 0 ? 'never' : `${(secondsPerMatch / per(n)).toFixed(1)}s`;
 
     // eslint-disable-next-line no-console
-    console.log([
-      `--- DUEL PUNCTUATION, ${SEEDS} seeds, ${secondsPerMatch.toFixed(0)}s per match ---`,
-      `standing challenges   ${per(total.standingAttempts).toFixed(1)}/match   one every ${every(total.standingAttempts)}`,
-      `  won                 ${per(total.standingWon).toFixed(1)}  (${(100 * total.standingWon / total.standingAttempts).toFixed(1)}%)`,
-      `  defender dropped    ${per(total.drops).toFixed(1)}  one every ${every(total.drops)}`,
-      `longest single duel   ${total.maxAttemptsInOneDuel} attempts (backstop caps one defender at 3)`,
-      `lock spells >= 3s     ${per(total.longLockSpells).toFixed(1)}/match`,
-      '',
-      `AUDIO  tackle-thud    ${per(total.fullWeightThuds).toFixed(1)}/match   one every ${every(total.fullWeightThuds)}`,
-      `       body-fall      ${per(total.bodyFalls).toFixed(1)}/match   one every ${every(total.bodyFalls)}`,
-      `       duel-scuff     ${per(total.scuffs).toFixed(1)}/match   one every ${every(total.scuffs)}`,
-      '',
-      `slides launched       ${per(total.slidesLaunched).toFixed(2)}/match (${per(total.midSlides).toFixed(2)} by midfielders on the breakaway beat)`,
-      `slides contacting     ${per(total.slideContacts).toFixed(2)}/match (${(100 * total.slideContacts / Math.max(1, total.slidesLaunched)).toFixed(0)}% of launches)`,
-      `slides won            ${per(total.slidesWon).toFixed(2)}/match`,
-      '',
-      `passes ${per(total.passes).toFixed(1)}  shots ${per(total.shots).toFixed(1)}  goals ${per(total.goals).toFixed(2)}  zones opened ${per(total.zonesOpened).toFixed(2)}`,
-      `fall length in use: ${BEATEN_FALL_TICKS} ticks (${(BEATEN_FALL_TICKS / TICKS_PER_SECOND).toFixed(1)}s)`,
-    ].join('\n'));
+    console.log(
+      [
+        `--- DUEL PUNCTUATION, ${SEEDS} seeds, ${secondsPerMatch.toFixed(0)}s per match ---`,
+        `standing challenges   ${per(total.standingAttempts).toFixed(1)}/match   one every ${every(total.standingAttempts)}`,
+        `  won                 ${per(total.standingWon).toFixed(1)}  (${((100 * total.standingWon) / total.standingAttempts).toFixed(1)}%)`,
+        `  defender dropped    ${per(total.drops).toFixed(1)}  one every ${every(total.drops)}`,
+        `longest single duel   ${total.maxAttemptsInOneDuel} attempts (backstop caps one defender at 3)`,
+        `lock spells >= 3s     ${per(total.longLockSpells).toFixed(1)}/match`,
+        '',
+        `AUDIO  tackle-thud    ${per(total.fullWeightThuds).toFixed(1)}/match   one every ${every(total.fullWeightThuds)}`,
+        `       body-fall      ${per(total.bodyFalls).toFixed(1)}/match   one every ${every(total.bodyFalls)}`,
+        `       duel-scuff     ${per(total.scuffs).toFixed(1)}/match   one every ${every(total.scuffs)}`,
+        '',
+        `slides launched       ${per(total.slidesLaunched).toFixed(2)}/match (${per(total.midSlides).toFixed(2)} by midfielders on the breakaway beat)`,
+        `slides contacting     ${per(total.slideContacts).toFixed(2)}/match (${((100 * total.slideContacts) / Math.max(1, total.slidesLaunched)).toFixed(0)}% of launches)`,
+        `slides won            ${per(total.slidesWon).toFixed(2)}/match`,
+        '',
+        `passes ${per(total.passes).toFixed(1)}  shots ${per(total.shots).toFixed(1)}  goals ${per(total.goals).toFixed(2)}  zones opened ${per(total.zonesOpened).toFixed(2)}`,
+        `fall length in use: ${BEATEN_FALL_TICKS} ticks (${(BEATEN_FALL_TICKS / TICKS_PER_SECOND).toFixed(1)}s)`,
+      ].join('\n'),
+    );
 
     // The grind is what this feature exists to kill: before m1.30 a single
     // defender re-rolled up to 10 times against one carrier and ~5.4 duels a

@@ -13,12 +13,19 @@ export const TUTORIAL_TAP_CUE_ABOVE_OFFSET = 72;
 /** Vertical space a guided control reserves above itself while its cue is
  * showing, so the cue lands in an empty gap instead of covering the row above
  * it — the wage, cost or stat the cue is usually telling you to read. */
-export const TUTORIAL_TAP_CUE_RESERVED_SPACE = TUTORIAL_TAP_CUE_ABOVE_OFFSET + 6;
+export const TUTORIAL_TAP_CUE_RESERVED_SPACE =
+  TUTORIAL_TAP_CUE_ABOVE_OFFSET + 6;
 
-function tutorialCueLeft(anchor: TutorialAnchorLayout, viewportWidth: number): number {
+function tutorialCueLeft(
+  anchor: TutorialAnchorLayout,
+  viewportWidth: number,
+): number {
   const gutter = 8;
   const idealLeft = anchor.x + anchor.width / 2 - TUTORIAL_TAP_CUE_WIDTH / 2;
-  const maxLeft = Math.max(gutter, viewportWidth - TUTORIAL_TAP_CUE_WIDTH - gutter);
+  const maxLeft = Math.max(
+    gutter,
+    viewportWidth - TUTORIAL_TAP_CUE_WIDTH - gutter,
+  );
   return Math.min(Math.max(idealLeft, gutter), maxLeft);
 }
 
@@ -52,7 +59,10 @@ export function isTutorialTargetVisible(
   minimumVisibleHeight = 24,
 ): boolean {
   const visibleTop = Math.max(target.y, viewport.y);
-  const visibleBottom = Math.min(target.y + target.height, viewport.y + viewport.height);
+  const visibleBottom = Math.min(
+    target.y + target.height,
+    viewport.y + viewport.height,
+  );
   const visibleHeight = Math.max(0, visibleBottom - visibleTop);
   return visibleHeight >= Math.min(minimumVisibleHeight, target.height);
 }

@@ -18,7 +18,10 @@ import { PlayerRequestWalkOn } from '../../PlayerRequestWalkOn';
 import { SquadTrainingScreen } from '../../screens/SquadTrainingScreen';
 import type { SquadSort } from '../../squad-sort';
 import { devHarnessCareerAtWeek } from '../career';
-import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls';
+import {
+  DevHarnessButton,
+  devHarnessControlStyles,
+} from '../DevHarnessControls';
 import type { DevHarnessEntry } from '../registry';
 
 /**
@@ -124,20 +127,23 @@ function withCatalog(state: GameState): GameState {
  * and that is already whatever the seeded career made it.
  */
 function steppedCareer(stop: (state: GameState) => boolean): GameState {
-  let state = withCatalog(devHarnessCareerAtWeek(REQUEST_SEASON, REQUEST_WEEK, REQUEST_SEED));
+  let state = withCatalog(
+    devHarnessCareerAtWeek(REQUEST_SEASON, REQUEST_WEEK, REQUEST_SEED),
+  );
   for (let step = 0; step < STEP_BUDGET; step += 1) {
     state = advancePlayerRequests(state, true);
     if (stop(state)) return state;
-    state = state.week >= SEASON_WEEKS
-      ? { ...state, season: state.season + 1, week: 1 }
-      : { ...state, week: state.week + 1 };
+    state =
+      state.week >= SEASON_WEEKS
+        ? { ...state, season: state.season + 1, week: 1 }
+        : { ...state, week: state.week + 1 };
   }
   return state;
 }
 
 function askerWeight(state: GameState): number {
   const pending = state.playerRequests?.pending;
-  const asker = state.players.find(player => player.id === pending?.playerId);
+  const asker = state.players.find((player) => player.id === pending?.playerId);
   if (asker === undefined) return 0;
   const catalog = state.playerRequestRules;
   const qualifiers = starQualifiers(
@@ -145,41 +151,51 @@ function askerWeight(state: GameState): number {
     state.season,
     catalog?.tuning.starGoalRank ?? 2,
   );
-  return weightForPlayer(asker, qualifiers, catalog?.tuning.starFameThreshold ?? STAR_FAME_THRESHOLD);
+  return weightForPlayer(
+    asker,
+    qualifiers,
+    catalog?.tuning.starFameThreshold ?? STAR_FAME_THRESHOLD,
+  );
 }
 
 function careerForCase(caseId: string): GameState {
   if (caseId === 'squad') {
-    return steppedCareer(state => askerWeight(state) === 1);
+    return steppedCareer((state) => askerWeight(state) === 1);
   }
   if (caseId === 'last-week') {
-    return steppedCareer(state => state.playerRequests?.pending?.warned === true);
+    return steppedCareer(
+      (state) => state.playerRequests?.pending?.warned === true,
+    );
   }
   if (caseId === 'broke') {
     // The one field this reel writes. Wage-multiple pricing tops out near a
     // couple of thousand against a five-figure balance, so a solvent club can
     // always say yes and the disabled Grant is unreachable by waiting.
-    const state = steppedCareer(item => (
-      item.playerRequests?.pending?.costAmount !== undefined
-      // Not the first money ask, so this case shows a different request from
-      // the three that open on one.
-      && (item.playerRequests?.history.length ?? 0) >= 1
-    ));
+    const state = steppedCareer(
+      (item) =>
+        item.playerRequests?.pending?.costAmount !== undefined &&
+        // Not the first money ask, so this case shows a different request from
+        // the three that open on one.
+        (item.playerRequests?.history.length ?? 0) >= 1,
+    );
     const cost = state.playerRequests?.pending?.costAmount ?? 0;
     return {
       ...state,
-      clubs: state.clubs.map(club => (club.id === state.userClubId
-        ? { ...club, cash: Math.max(0, cost - 1) }
-        : club)),
+      clubs: state.clubs.map((club) =>
+        club.id === state.userClubId
+          ? { ...club, cash: Math.max(0, cost - 1) }
+          : club,
+      ),
     };
   }
   if (caseId === 'quiet') {
-    return steppedCareer(state => (
-      state.playerRequests?.pending === undefined
-      && (state.playerRequests?.history.length ?? 0) >= 3
-    ));
+    return steppedCareer(
+      (state) =>
+        state.playerRequests?.pending === undefined &&
+        (state.playerRequests?.history.length ?? 0) >= 3,
+    );
   }
-  return steppedCareer(state => askerWeight(state) === 2);
+  return steppedCareer((state) => askerWeight(state) === 2);
 }
 
 export function PlayerRequestsReel({ caseId }: { readonly caseId: string }) {
@@ -205,25 +221,32 @@ export function PlayerRequestsReel({ caseId }: { readonly caseId: string }) {
     setDecision(undefined);
   }, [caseId]);
 
-  const decide = useCallback((resolution: 'GRANTED' | 'REFUSED') => {
-    const open = state.playerRequests?.pending;
-    const catalog = state.playerRequestRules;
-    if (open === undefined || catalog === undefined) return;
-    const before = state.players.find(player => player.id === open.playerId);
-    try {
-      const settled = resolvePlayerRequest(state, catalog, resolution);
-      const after = settled.players.find(player => player.id === open.playerId);
-      setState(settled);
-      setStage('tab');
-      setDecision(
-        before === undefined || after === undefined
-          ? resolution
-          : `${resolution} · loyalty ${playerLoyalty(before, state.careerSeed)} → ${playerLoyalty(after, state.careerSeed)} · morale ${before.morale} → ${after.morale}`,
+  const decide = useCallback(
+    (resolution: 'GRANTED' | 'REFUSED') => {
+      const open = state.playerRequests?.pending;
+      const catalog = state.playerRequestRules;
+      if (open === undefined || catalog === undefined) return;
+      const before = state.players.find(
+        (player) => player.id === open.playerId,
       );
-    } catch (error) {
-      setDecision(`Refused by the rules: ${(error as Error).message}`);
-    }
-  }, [state]);
+      try {
+        const settled = resolvePlayerRequest(state, catalog, resolution);
+        const after = settled.players.find(
+          (player) => player.id === open.playerId,
+        );
+        setState(settled);
+        setStage('tab');
+        setDecision(
+          before === undefined || after === undefined
+            ? resolution
+            : `${resolution} · loyalty ${playerLoyalty(before, state.careerSeed)} → ${playerLoyalty(after, state.careerSeed)} · morale ${before.morale} → ${after.morale}`,
+        );
+      } catch (error) {
+        setDecision(`Refused by the rules: ${(error as Error).message}`);
+      }
+    },
+    [state],
+  );
 
   const weight = askerWeight(state);
 
@@ -296,14 +319,26 @@ export function PlayerRequestsReel({ caseId }: { readonly caseId: string }) {
 
           <View style={devHarnessControlStyles.row}>
             <Text style={devHarnessControlStyles.rowLabel}>ANSWER</Text>
-            <DevHarnessButton label="Grant" hint="Grant the request for real" onPress={() => decide('GRANTED')} />
-            <DevHarnessButton label="Refuse" hint="Refuse the request for real" onPress={() => decide('REFUSED')} />
-            <DevHarnessButton label="Reset" hint="Redraw this case from the seeded career" onPress={reset} />
+            <DevHarnessButton
+              label="Grant"
+              hint="Grant the request for real"
+              onPress={() => decide('GRANTED')}
+            />
+            <DevHarnessButton
+              label="Refuse"
+              hint="Refuse the request for real"
+              onPress={() => decide('REFUSED')}
+            />
+            <DevHarnessButton
+              label="Reset"
+              hint="Redraw this case from the seeded career"
+              onPress={reset}
+            />
             <DevHarnessButton
               label="Reduced"
               hint="Reduce motion, which parks the walk-on"
               selected={reduceMotion}
-              onPress={() => setReduceMotion(current => !current)}
+              onPress={() => setReduceMotion((current) => !current)}
             />
             <DevHarnessButton
               label="Hide"
@@ -318,7 +353,8 @@ export function PlayerRequestsReel({ caseId }: { readonly caseId: string }) {
               : `${pending.playerName} · ×${weight} weight · grant ${pending.grantLabel} · refuse ${pending.refuseLabel} · ${pending.weeksToAnswer} wk left`}
           </Text>
           <Text style={styles.stageLine}>
-            {decision ?? `S${state.season} W${state.week} · ${viewModel.available ? 'TAB LIVE' : 'TAB NOT YET OPEN'}`}
+            {decision ??
+              `S${state.season} W${state.week} · ${viewModel.available ? 'TAB LIVE' : 'TAB NOT YET OPEN'}`}
           </Text>
         </View>
       ) : (
@@ -344,12 +380,17 @@ export const playerRequestsEntry: DevHarnessEntry = Object.freeze({
   id: 'player-requests',
   group: 'Squad',
   title: 'Player requests',
-  summary: 'The Requests tab, the asking player, and the card that prices both answers.',
-  cases: Object.freeze(REQUEST_CASES.map(entry => Object.freeze({
-    id: entry.id,
-    label: entry.label,
-    note: entry.note,
-  }))),
+  summary:
+    'The Requests tab, the asking player, and the card that prices both answers.',
+  cases: Object.freeze(
+    REQUEST_CASES.map((entry) =>
+      Object.freeze({
+        id: entry.id,
+        label: entry.label,
+        note: entry.note,
+      }),
+    ),
+  ),
   render: (caseId: string) => <PlayerRequestsReel caseId={caseId} />,
 });
 

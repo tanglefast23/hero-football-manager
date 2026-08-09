@@ -3,7 +3,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { playerLookId } from '../../../render/sprites/player-look';
 import { EndgameCelebrationScreen } from '../../screens/EndgameCelebrationScreen';
-import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls';
+import {
+  DevHarnessButton,
+  devHarnessControlStyles,
+} from '../DevHarnessControls';
 import type { DevHarnessEntry } from '../registry';
 import type {
   EndgameCelebrationKind,
@@ -25,7 +28,11 @@ import type {
  *
  * NOT REGISTERED in `registry.ts`. Import it there to put it in the menu.
  */
-export function EndgameCelebrationReel({ caseId }: { readonly caseId: EndgameCelebrationKind }) {
+export function EndgameCelebrationReel({
+  caseId,
+}: {
+  readonly caseId: EndgameCelebrationKind;
+}) {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [runKey, setRunKey] = useState(0);
   const insets = useSafeAreaInsets();
@@ -37,21 +44,23 @@ export function EndgameCelebrationReel({ caseId }: { readonly caseId: EndgameCel
         key={`${caseId}:${reduceMotion}:${runKey}`}
         viewModel={viewModel}
         reduceMotion={reduceMotion}
-        onComplete={() => setRunKey(current => current + 1)}
+        onComplete={() => setRunKey((current) => current + 1)}
       />
-      <View style={[styles.panel, { paddingBottom: Math.max(10, insets.bottom) }]}>
+      <View
+        style={[styles.panel, { paddingBottom: Math.max(10, insets.bottom) }]}
+      >
         <Text style={styles.note}>{CASE_NOTES[caseId]}</Text>
         <View style={devHarnessControlStyles.row}>
           <DevHarnessButton
             label={reduceMotion ? 'Motion: reduced' : 'Motion: full'}
             hint="Toggle reduced motion: walk-ons, jumping and fireworks go static"
             selected={reduceMotion}
-            onPress={() => setReduceMotion(current => !current)}
+            onPress={() => setReduceMotion((current) => !current)}
           />
           <DevHarnessButton
             label="Replay"
             hint="Play this celebration again from the top"
-            onPress={() => setRunKey(current => current + 1)}
+            onPress={() => setRunKey((current) => current + 1)}
           />
         </View>
       </View>
@@ -62,7 +71,17 @@ export function EndgameCelebrationReel({ caseId }: { readonly caseId: EndgameCel
 /** Eleven men and Bert, so the walk-out is the width a real squad makes it. */
 function qaSquad(): EndgameCelebrationPlayerViewModel[] {
   const roles: EndgameCelebrationPlayerViewModel['role'][] = [
-    'GK', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'FWD', 'FWD', 'FWD', 'MID',
+    'GK',
+    'DEF',
+    'DEF',
+    'DEF',
+    'MID',
+    'MID',
+    'MID',
+    'FWD',
+    'FWD',
+    'FWD',
+    'MID',
   ];
   return roles.map((role, index) => {
     const id = `qa-p${index + 1}`;
@@ -85,7 +104,9 @@ function qaSquad(): EndgameCelebrationPlayerViewModel[] {
  * legal state for, and building a whole D1 career to read three strings would
  * make the reel unrunnable.
  */
-function endgameQaViewModel(kind: EndgameCelebrationKind): EndgameCelebrationViewModel {
+function endgameQaViewModel(
+  kind: EndgameCelebrationKind,
+): EndgameCelebrationViewModel {
   const squad = qaSquad();
   const star: EndgameCelebrationPlayerViewModel = {
     id: 'qa-star',
@@ -112,19 +133,32 @@ function endgameQaViewModel(kind: EndgameCelebrationKind): EndgameCelebrationVie
     // Two of the thirty-two, so the harness shows the staff row staged rather
     // than the empty-club case the scenes also have to survive.
     coaches: [
-      { id: 'qa-head', name: 'Amara Okafor', spriteKey: 'coach:amara-okafor:field-cheer' },
-      { id: 'qa-assistant', name: 'Kenji Sato', spriteKey: 'coach:kenji-sato:field-cheer' },
+      {
+        id: 'qa-head',
+        name: 'Amara Okafor',
+        spriteKey: 'coach:amara-okafor:field-cheer',
+      },
+      {
+        id: 'qa-assistant',
+        name: 'Kenji Sato',
+        spriteKey: 'coach:kenji-sato:field-cheer',
+      },
     ],
     skippable: kind !== 'true-ending',
     accessibilityLabel: `${copy.headline}. ${copy.subheading}. ${copy.lines.join(' ')}`,
   };
 }
 
-const QA_COPY: Readonly<Record<EndgameCelebrationKind, {
-  headline: string;
-  subheading: string;
-  lines: readonly string[];
-}>> = Object.freeze({
+const QA_COPY: Readonly<
+  Record<
+    EndgameCelebrationKind,
+    {
+      headline: string;
+      subheading: string;
+      lines: readonly string[];
+    }
+  >
+> = Object.freeze({
   'global-league': {
     headline: 'GLOBAL LEAGUE CHAMPIONS',
     subheading: 'Bramble Rovers · Top of the pyramid',
@@ -156,11 +190,15 @@ const QA_COPY: Readonly<Record<EndgameCelebrationKind, {
   },
 });
 
-const CASE_NOTES: Readonly<Record<EndgameCelebrationKind, string>> = Object.freeze({
-  'global-league': 'First D1 title, Cup unwon · full squad walk-out, biggest staging',
-  'cup-winners': 'First Cup, D1 unwon · smaller staging, still not a consolation',
-  'true-ending': 'Both trophies in · five bubbles, then the squad out and Bert’s sign-off. No skip. The last tap goes to the title screen in the game; here it replays.',
-});
+const CASE_NOTES: Readonly<Record<EndgameCelebrationKind, string>> =
+  Object.freeze({
+    'global-league':
+      'First D1 title, Cup unwon · full squad walk-out, biggest staging',
+    'cup-winners':
+      'First Cup, D1 unwon · smaller staging, still not a consolation',
+    'true-ending':
+      'Both trophies in · five bubbles, then the squad out and Bert’s sign-off. No skip. The last tap goes to the title screen in the game; here it replays.',
+  });
 
 export const endgameCelebrationEntry: DevHarnessEntry = Object.freeze({
   id: 'endgame',
@@ -168,9 +206,21 @@ export const endgameCelebrationEntry: DevHarnessEntry = Object.freeze({
   title: 'Endgame celebrations',
   summary: 'The end of the climb: D1, the Cup, and the true ending.',
   cases: Object.freeze([
-    { id: 'global-league', label: 'Global League', note: CASE_NOTES['global-league'] },
-    { id: 'cup-winners', label: 'Cup Winners', note: CASE_NOTES['cup-winners'] },
-    { id: 'true-ending', label: 'True ending', note: CASE_NOTES['true-ending'] },
+    {
+      id: 'global-league',
+      label: 'Global League',
+      note: CASE_NOTES['global-league'],
+    },
+    {
+      id: 'cup-winners',
+      label: 'Cup Winners',
+      note: CASE_NOTES['cup-winners'],
+    },
+    {
+      id: 'true-ending',
+      label: 'True ending',
+      note: CASE_NOTES['true-ending'],
+    },
   ]),
   render: (caseId: string) => (
     <EndgameCelebrationReel caseId={caseId as EndgameCelebrationKind} />

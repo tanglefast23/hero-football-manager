@@ -33,7 +33,9 @@ export const TitleMatchSprite = memo(function TitleMatchSprite({
       shapeRendering="crispEdges"
       style={{ display: 'block' }}
     >
-      {colorPaths.map(({ color, path }) => <path key={color} d={path} fill={color} />)}
+      {colorPaths.map(({ color, path }) => (
+        <path key={color} d={path} fill={color} />
+      ))}
     </svg>
   );
 });

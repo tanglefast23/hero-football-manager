@@ -47,7 +47,10 @@ export const GRASS_PERCENT = 63;
  *
  * `end` is a fraction of the sky's own height, so the ramp holds at any size.
  */
-export const SKY_BANDS: readonly { readonly end: number; readonly color: string }[] = Object.freeze([
+export const SKY_BANDS: readonly {
+  readonly end: number;
+  readonly color: string;
+}[] = Object.freeze([
   { end: 0.42, color: '#19142a' },
   { end: 0.74, color: '#241f2e' },
   { end: 1, color: '#35234f' },
@@ -66,14 +69,17 @@ export const SKY_BANDS: readonly { readonly end: number; readonly color: string 
  * Colours are the pitch ramp (`#3f8a4a` base) darkened for night; the game
  * never shows floodlit turf at the daytime `#5cb85c`.
  */
-export const GRASS_BANDS: readonly { readonly end: number; readonly color: string }[] = Object.freeze([
-  { end: 0.040, color: '#26512f' },
+export const GRASS_BANDS: readonly {
+  readonly end: number;
+  readonly color: string;
+}[] = Object.freeze([
+  { end: 0.04, color: '#26512f' },
   { end: 0.056, color: '#c9c5d0' },
-  { end: 0.140, color: '#31703f' },
-  { end: 0.250, color: '#3f8a4a' },
-  { end: 0.390, color: '#31703f' },
+  { end: 0.14, color: '#31703f' },
+  { end: 0.25, color: '#3f8a4a' },
+  { end: 0.39, color: '#31703f' },
   { end: 0.565, color: '#3f8a4a' },
-  { end: 0.780, color: '#31703f' },
+  { end: 0.78, color: '#31703f' },
   { end: 1, color: '#529f5b' },
 ]);
 
@@ -118,7 +124,9 @@ const STAND_TILE: readonly string[] = Object.freeze([
 export const STAND_TILE_HEIGHT = STAND_TILE.length;
 
 /** The rows a supporter can be standing on. */
-const TERRACE_ROWS: readonly number[] = Object.freeze([6, 7, 9, 10, 12, 13, 15, 16]);
+const TERRACE_ROWS: readonly number[] = Object.freeze([
+  6, 7, 9, 10, 12, 13, 15, 16,
+]);
 /** The two rows the advertising boards cover. */
 const HOARDING_ROWS: readonly number[] = Object.freeze([19, 20]);
 
@@ -162,19 +170,27 @@ export const FLOODLIGHT_HEIGHT = FLOODLIGHT.length;
 const FLOODLIGHT_CENTRES: readonly number[] = Object.freeze([0.14, 0.83]);
 
 /** The haze around a lamp bank, in rings from the outside in. */
-const GLOW_RINGS: readonly { readonly radius: number; readonly opacity: number; readonly color: string }[] =
-  Object.freeze([
-    { radius: 1.7, opacity: 0.035, color: '#edb54a' },
-    { radius: 1.15, opacity: 0.045, color: '#edb54a' },
-    { radius: 0.7, opacity: 0.07, color: '#f7d894' },
-  ]);
+const GLOW_RINGS: readonly {
+  readonly radius: number;
+  readonly opacity: number;
+  readonly color: string;
+}[] = Object.freeze([
+  { radius: 1.7, opacity: 0.035, color: '#edb54a' },
+  { radius: 1.15, opacity: 0.045, color: '#edb54a' },
+  { radius: 0.7, opacity: 0.07, color: '#f7d894' },
+]);
 
 /**
  * The advertising boards at the foot of the stand, cycling so no two
  * neighbours match. Club red and blue with a cream board between them: at this
  * size a hoarding is a colour, not a word.
  */
-const HOARDING_COLORS: readonly string[] = Object.freeze(['#d94f52', '#5a8fd6', '#f4f1ea', '#c8862a']);
+const HOARDING_COLORS: readonly string[] = Object.freeze([
+  '#d94f52',
+  '#5a8fd6',
+  '#f4f1ea',
+  '#c8862a',
+]);
 /** Art-pixel width of one board. */
 const HOARDING_BOARD_WIDTH = 8;
 
@@ -185,9 +201,18 @@ const HOARDING_BOARD_WIDTH = 8;
  * trying is how a stand starts looking like a rash.
  */
 const CROWD_COLORS: readonly string[] = Object.freeze([
-  '#9a95a4', '#9a95a4', '#c9c5d0', '#6b6675',
-  '#9a95a4', '#6b6675', '#c9c5d0', '#9a95a4',
-  '#edb54a', '#6b6675', '#d94f52', '#c9c5d0',
+  '#9a95a4',
+  '#9a95a4',
+  '#c9c5d0',
+  '#6b6675',
+  '#9a95a4',
+  '#6b6675',
+  '#c9c5d0',
+  '#9a95a4',
+  '#edb54a',
+  '#6b6675',
+  '#d94f52',
+  '#c9c5d0',
 ]);
 /** How much of the terrace is people rather than concrete. */
 const CROWD_DENSITY = 0.32;
@@ -240,7 +265,8 @@ function rowRuns(row: string, y: number): ArtRun[] {
   let start = -1;
   let color: string | undefined;
   const flush = (end: number) => {
-    if (start >= 0 && color !== undefined) runs.push({ x: start, y, width: end - start, color });
+    if (start >= 0 && color !== undefined)
+      runs.push({ x: start, y, width: end - start, color });
     start = -1;
     color = undefined;
   };
@@ -308,13 +334,17 @@ export function crowdSpeckle(columns: number): ReadonlyArray<{
   const count = Math.round(columns * TERRACE_ROWS.length * CROWD_DENSITY);
   const seed = fnv1a('endgame-ground-crowd');
   return Array.from({ length: count }, (_, index) => {
-    const jitter = (offset: number, span: number) => (seed >>> ((index * 5 + offset) % 27)) % span;
+    const jitter = (offset: number, span: number) =>
+      (seed >>> ((index * 5 + offset) % 27)) % span;
     return {
       // Strided rather than rolled: a hash alone clumps, and a clumped crowd
       // reads as damage to the stand rather than as people in it.
       x: (index * 7 + jitter(1, 5)) % columns,
       y: TERRACE_ROWS[(index * 3 + jitter(2, 3)) % TERRACE_ROWS.length],
-      color: CROWD_COLORS[(index + jitter(3, CROWD_COLORS.length)) % CROWD_COLORS.length],
+      color:
+        CROWD_COLORS[
+          (index + jitter(3, CROWD_COLORS.length)) % CROWD_COLORS.length
+        ],
     };
   });
 }
@@ -380,7 +410,7 @@ export function groundScene(width: number, height: number): GroundScene {
         opacity: ring.opacity,
       });
     });
-    pylonRuns.forEach(run => {
+    pylonRuns.forEach((run) => {
       rects.push({
         id: `pylon-${index}-${run.y}-${run.x}`,
         x: left + run.x * pixel,
@@ -392,7 +422,7 @@ export function groundScene(width: number, height: number): GroundScene {
     });
   });
 
-  standRuns(columns).forEach(run => {
+  standRuns(columns).forEach((run) => {
     rects.push({
       id: `stand-${run.y}-${run.x}`,
       x: run.x * pixel,

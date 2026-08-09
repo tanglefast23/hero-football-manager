@@ -19,7 +19,10 @@ export interface DeskTipState {
   readonly tipId?: string;
 }
 
-export function hasSeenDeskTip(state: Pick<GameState, 'eventFlags'>, tipId: string): boolean {
+export function hasSeenDeskTip(
+  state: Pick<GameState, 'eventFlags'>,
+  tipId: string,
+): boolean {
   return state.eventFlags.includes(seenTipFlag(tipId));
 }
 
@@ -34,12 +37,16 @@ export function unseenDeskTipIds(
   state: Pick<GameState, 'eventFlags'>,
   tipIds: readonly string[],
 ): string[] {
-  return tipIds.filter(tipId => !hasSeenDeskTip(state, tipId));
+  return tipIds.filter((tipId) => !hasSeenDeskTip(state, tipId));
 }
 
 /** True once this week has already been decided, whether or not a tip landed. */
-export function isDeskTipSettled(state: Pick<GameState, 'deskTip' | 'season' | 'week'>): boolean {
-  return state.deskTip?.season === state.season && state.deskTip.week === state.week;
+export function isDeskTipSettled(
+  state: Pick<GameState, 'deskTip' | 'season' | 'week'>,
+): boolean {
+  return (
+    state.deskTip?.season === state.season && state.deskTip.week === state.week
+  );
 }
 
 /** The tip showing right now, or undefined on a week that drew a blank. */

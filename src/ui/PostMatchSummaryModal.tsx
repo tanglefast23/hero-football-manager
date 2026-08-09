@@ -55,7 +55,7 @@ export function PostMatchSummaryModal({
   const [skipSignal, setSkipSignal] = useState(0);
   const handleContinue = useCallback(() => {
     if (statementRunning) {
-      setSkipSignal(signal => signal + 1);
+      setSkipSignal((signal) => signal + 1);
       return;
     }
     handleDismiss();
@@ -69,14 +69,20 @@ export function PostMatchSummaryModal({
       onRequestClose={handleDismiss}
       statusBarTranslucent
     >
-      <SafeAreaView className="flex-1" edges={['top', 'left', 'right', 'bottom']}>
+      <SafeAreaView
+        className="flex-1"
+        edges={['top', 'left', 'right', 'bottom']}
+      >
         <View className="flex-1 justify-end px-3 pb-3">
           <Pressable
             accessible={false}
             style={StyleSheet.absoluteFill}
             onPress={handleDismiss}
           >
-            <View className="flex-1" style={{ backgroundColor: 'rgba(36,31,46,0.62)' }} />
+            <View
+              className="flex-1"
+              style={{ backgroundColor: 'rgba(36,31,46,0.62)' }}
+            />
           </Pressable>
           <View
             accessibilityViewIsModal
@@ -85,12 +91,18 @@ export function PostMatchSummaryModal({
           >
             <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
               <View className="flex-1 pr-3">
-                <Text className="font-pixel text-[12px] uppercase text-blue-dark">{t('postMatchSummary.backAtTheOffice')}</Text>
-                <Text className="mt-1 font-pixel text-[18px] uppercase text-ink">{t('postMatchSummary.financialReport')}</Text>
+                <Text className="font-pixel text-[12px] uppercase text-blue-dark">
+                  {t('postMatchSummary.backAtTheOffice')}
+                </Text>
+                <Text className="mt-1 font-pixel text-[18px] uppercase text-ink">
+                  {t('postMatchSummary.financialReport')}
+                </Text>
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t('postMatchSummary.a11y.closeFinancialReport')}
+                accessibilityLabel={t(
+                  'postMatchSummary.a11y.closeFinancialReport',
+                )}
                 onPress={handleDismiss}
                 className="h-11 w-11 items-center justify-center border-2 border-ink bg-white"
                 // Explicit points: h-11 is 38.5pt on native, under the 44pt
@@ -101,7 +113,9 @@ export function PostMatchSummaryModal({
               </Pressable>
             </View>
 
-            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+            <ScrollView
+              contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+            >
               <FinancialReportBody
                 viewModel={viewModel}
                 reduceMotion={reduceMotion}
@@ -113,9 +127,11 @@ export function PostMatchSummaryModal({
             <View className="border-t-2 border-ink/20 bg-white p-3">
               <ActionButton
                 label={t('postMatchSummary.continue')}
-                accessibilityLabel={statementRunning
-                  ? t('postMatchSummary.a11y.showTheRestOfTheStatement')
-                  : t('postMatchSummary.a11y.continuePastTheFinancialReport')}
+                accessibilityLabel={
+                  statementRunning
+                    ? t('postMatchSummary.a11y.showTheRestOfTheStatement')
+                    : t('postMatchSummary.a11y.continuePastTheFinancialReport')
+                }
                 onPress={handleContinue}
               />
             </View>

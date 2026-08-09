@@ -30,7 +30,10 @@ function starter(
   return { index, name: `Player ${index}`, role, condition, sentOff };
 }
 
-function substitute(id: string, role: SubstitutionBenchPlayer['role'] = 'MID'): SubstitutionBenchPlayer {
+function substitute(
+  id: string,
+  role: SubstitutionBenchPlayer['role'] = 'MID',
+): SubstitutionBenchPlayer {
   return { id, name: `Sub ${id}`, role };
 }
 
@@ -45,7 +48,9 @@ const KEEPER_SUB = substitute('gk-sub', 'GK');
 
 describe('substitution board trades', () => {
   it('puts the most tired starter on top, breaking ties by slot', () => {
-    expect(fieldByTiredness(FIELD).map(player => player.index)).toEqual([1, 2, 3, 0]);
+    expect(fieldByTiredness(FIELD).map((player) => player.index)).toEqual([
+      1, 2, 3, 0,
+    ]);
   });
 
   it('trades a starter for a substitute and emits one engine payload', () => {
@@ -74,7 +79,9 @@ describe('substitution board trades', () => {
   it('never trades a sent-off player, who cannot be replaced', () => {
     const sentOff = starter(4, 40, 'FWD', true);
 
-    expect(canSwap(EMPTY_SUBSTITUTION_PLAN, sentOff, VELA, MAX_SUBSTITUTIONS)).toBe(false);
+    expect(
+      canSwap(EMPTY_SUBSTITUTION_PLAN, sentOff, VELA, MAX_SUBSTITUTIONS),
+    ).toBe(false);
   });
 
   it('spends one substitution per new trade and none for changing your mind', () => {
@@ -113,13 +120,17 @@ describe('substitution board trades', () => {
     const rows = benchEntries(bench, FIELD, plan);
 
     // Vela is on the field now, so she is gone from the bench...
-    expect(rows.filter(row => row.kind === 'available').map(row => (
-      row.kind === 'available' ? row.sub.id : ''
-    ))).toEqual(['vale', 'gk-sub']);
+    expect(
+      rows
+        .filter((row) => row.kind === 'available')
+        .map((row) => (row.kind === 'available' ? row.sub.id : '')),
+    ).toEqual(['vale', 'gk-sub']);
     // ...and Flint sits dimmed at the bottom, naming who took his shirt.
     const last = rows[rows.length - 1];
     expect(last.kind).toBe('outgoing');
-    expect(last.kind === 'outgoing' ? last.starter.index : null).toBe(FLINT.index);
+    expect(last.kind === 'outgoing' ? last.starter.index : null).toBe(
+      FLINT.index,
+    );
     expect(last.kind === 'outgoing' ? last.incomingId : null).toBe('vela');
   });
 
@@ -141,11 +152,15 @@ describe('substitution board trades', () => {
   it('states what is left to spend rather than leaving a dead drag unexplained', () => {
     const one = applySwap(EMPTY_SUBSTITUTION_PLAN, FLINT, VELA);
 
-    expect(budgetNote(EMPTY_SUBSTITUTION_PLAN, 5)).toBe('Five substitutions left.');
+    expect(budgetNote(EMPTY_SUBSTITUTION_PLAN, 5)).toBe(
+      'Five substitutions left.',
+    );
     expect(budgetNote(one, 5)).toBe('Four substitutions left.');
     expect(budgetNote(one, 2)).toBe('One substitution left.');
     expect(budgetNote(one, 1)).toBe('No substitutions left this match.');
-    expect(budgetNote(EMPTY_SUBSTITUTION_PLAN, 0)).toBe('No substitutions left this match.');
+    expect(budgetNote(EMPTY_SUBSTITUTION_PLAN, 0)).toBe(
+      'No substitutions left this match.',
+    );
   });
 
   it('tells a card why it cannot take the player being dragged', () => {

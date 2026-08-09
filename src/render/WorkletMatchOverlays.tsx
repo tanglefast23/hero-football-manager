@@ -6,7 +6,11 @@ import {
   WORKLET_ACTION_STAGGER,
   WORKLET_ACTION_STRIDE,
 } from './worklet-atlas-frame';
-import { AWAY_DECOY_INDEX, HOME_DECOY_INDEX, RENDER_PLAYER_COUNT } from '../sim/entities';
+import {
+  AWAY_DECOY_INDEX,
+  HOME_DECOY_INDEX,
+  RENDER_PLAYER_COUNT,
+} from '../sim/entities';
 import {
   BALL_AIRBORNE_THRESHOLD_CM,
   ballShadowOpacity,
@@ -166,8 +170,16 @@ export function WorkletSlideTackleEffects({
         for (let index = 0; index < TACKLE_TRAIL_SAMPLES.length; index += 1) {
           const sample = TACKLE_TRAIL_SAMPLES[index];
           const size = sample.dustSize * pixel;
-          const rawLeft = originX + travelX * sample.progress + sideX * sample.side * pixel - size * 0.5;
-          const rawTop = originY + travelY * sample.progress + sideY * sample.side * pixel - size * 0.5;
+          const rawLeft =
+            originX +
+            travelX * sample.progress +
+            sideX * sample.side * pixel -
+            size * 0.5;
+          const rawTop =
+            originY +
+            travelY * sample.progress +
+            sideY * sample.side * pixel -
+            size * 0.5;
           const left = snapDevicePixels(rawLeft, devicePixelRatio);
           const top = snapDevicePixels(rawTop, devicePixelRatio);
           const right = snapDevicePixels(rawLeft + size, devicePixelRatio);
@@ -179,14 +191,18 @@ export function WorkletSlideTackleEffects({
           builder.close();
         }
 
-        const count = Math.min(TACKLE_DUST_PIXELS.length, Math.max(2, Math.floor(age * 2) + 2));
+        const count = Math.min(
+          TACKLE_DUST_PIXELS.length,
+          Math.max(2, Math.floor(age * 2) + 2),
+        );
         for (let index = 0; index < count; index += 1) {
           const puff = TACKLE_DUST_PIXELS[index];
           const drift = Math.min(5, age * 0.8 + index * 0.35);
           const along = puff.along - drift;
           const size = puff.size * pixel;
           const rawLeft = cx + (ux * along + sideX * puff.side) * pixel;
-          const rawTop = cy + (uy * along + sideY * puff.side) * pixel - size * 0.5;
+          const rawTop =
+            cy + (uy * along + sideY * puff.side) * pixel - size * 0.5;
           const left = snapDevicePixels(rawLeft, devicePixelRatio);
           const top = snapDevicePixels(rawTop, devicePixelRatio);
           const right = snapDevicePixels(rawLeft + size, devicePixelRatio);
@@ -200,8 +216,10 @@ export function WorkletSlideTackleEffects({
       } else {
         for (let index = 0; index < TACKLE_TRAIL_SAMPLES.length; index += 1) {
           const sample = TACKLE_TRAIL_SAMPLES[index];
-          const rawBaseX = originX + travelX * sample.progress + sideX * sample.side * pixel;
-          const rawBaseY = originY + travelY * sample.progress + sideY * sample.side * pixel;
+          const rawBaseX =
+            originX + travelX * sample.progress + sideX * sample.side * pixel;
+          const rawBaseY =
+            originY + travelY * sample.progress + sideY * sample.side * pixel;
           const width = Math.max(1, pixel);
           const height = sample.grassHeight * pixel;
           const baseX = snapDevicePixels(rawBaseX, devicePixelRatio);
@@ -215,7 +233,10 @@ export function WorkletSlideTackleEffects({
           builder.close();
         }
 
-        const count = Math.min(TACKLE_GRASS_PIXELS.length, Math.max(1, Math.floor(age * 1.5)));
+        const count = Math.min(
+          TACKLE_GRASS_PIXELS.length,
+          Math.max(1, Math.floor(age * 1.5)),
+        );
         for (let index = 0; index < count; index += 1) {
           const blade = TACKLE_GRASS_PIXELS[index];
           const rise = Math.min(7, age + index * 0.7);
@@ -238,9 +259,21 @@ export function WorkletSlideTackleEffects({
     }
   });
 
-  return layer === 'dust'
-    ? <Path path={debris} color={TACKLE_DUST_COLOR} opacity={TACKLE_DUST_OPACITY} antiAlias={false} />
-    : <Path path={debris} color={TACKLE_GRASS_COLOR} opacity={TACKLE_GRASS_OPACITY} antiAlias={false} />;
+  return layer === 'dust' ? (
+    <Path
+      path={debris}
+      color={TACKLE_DUST_COLOR}
+      opacity={TACKLE_DUST_OPACITY}
+      antiAlias={false}
+    />
+  ) : (
+    <Path
+      path={debris}
+      color={TACKLE_GRASS_COLOR}
+      opacity={TACKLE_GRASS_OPACITY}
+      antiAlias={false}
+    />
+  );
 }
 
 /**
@@ -299,7 +332,14 @@ export function WorkletSpeedLines({
     return 0.85 * (1 - progress);
   });
 
-  return <Path path={lines} color={SPEED_LINE_COLOR} opacity={opacity} antiAlias={false} />;
+  return (
+    <Path
+      path={lines}
+      color={SPEED_LINE_COLOR}
+      opacity={opacity}
+      antiAlias={false}
+    />
+  );
 }
 
 /** Ground-locked cue that makes the ball sprite's vertical offset read as height. */
@@ -507,12 +547,19 @@ function WorkletDecoyRing({
   const opacity = useDerivedValue(() => {
     if (visibility.value[slot] !== 1) return 0;
     const presentationTick = Math.max(0, visualTick.value);
-    const pulse = reduceMotion || Math.floor(presentationTick) % 20 < 10 ? 0.9 : 0.55;
+    const pulse =
+      reduceMotion || Math.floor(presentationTick) % 20 < 10 ? 0.9 : 0.55;
     return pulse;
   });
 
   return (
-    <Path path={ring} color={DECOY_RING_COLOR} style="stroke" strokeWidth={2} opacity={opacity}>
+    <Path
+      path={ring}
+      color={DECOY_RING_COLOR}
+      style="stroke"
+      strokeWidth={2}
+      opacity={opacity}
+    >
       <DashPathEffect intervals={[5, 4]} phase={0} />
     </Path>
   );
@@ -553,7 +600,8 @@ function WorkletZoneIndicator({
   const opacity = useDerivedValue(() => {
     if (statuses.value[playerIndex] !== STATUS_ZONE) return 0;
     const presentationTick = Math.max(0, visualTick.value);
-    const pulse = reduceMotion || Math.floor(presentationTick) % 20 < 10 ? 1 : 0.55;
+    const pulse =
+      reduceMotion || Math.floor(presentationTick) % 20 < 10 ? 1 : 0.55;
     return zoneFractions.value[playerIndex] * pulse;
   });
 
@@ -601,23 +649,42 @@ function WorkletFlameLayer({
     for (let player = 0; player < RENDER_PLAYER_COUNT; player += 1) {
       const status = statuses.value[player];
       const fireCaster = (fireTorchMask & (1 << player)) !== 0;
-      if (status !== STATUS_IGNITED && !(status === STATUS_ACTIVE && fireCaster)) continue;
+      if (
+        status !== STATUS_IGNITED &&
+        !(status === STATUS_ACTIVE && fireCaster)
+      )
+        continue;
       const cx = visualPositions.value[player * 2] * scale;
-      const baseY = visualPositions.value[player * 2 + 1] * scale + ringRadius * 0.35;
+      const baseY =
+        visualPositions.value[player * 2 + 1] * scale + ringRadius * 0.35;
       for (let tongue = 0; tongue < count; tongue += 1) {
         const bx = cx - width / 2 + (width / (count - 1)) * tongue;
-        const flick = reduceMotion ? 0 : 0.5 * (
-          Math.sin((presentationTick + player * 2) * 1.1 + tongue * 1.7)
-          + Math.sin((presentationTick + player * 2) * 0.7 + tongue * 2.3)
-        );
+        const flick = reduceMotion
+          ? 0
+          : 0.5 *
+            (Math.sin((presentationTick + player * 2) * 1.1 + tongue * 1.7) +
+              Math.sin((presentationTick + player * 2) * 0.7 + tongue * 2.3));
         const flameHeight = height * layer.heightScale * (0.7 + 0.3 * flick);
         const flameWidth = (width / count) * layer.widthScale;
         const tipX = reduceMotion
           ? bx
-          : bx + Math.sin((presentationTick + player * 2) * 0.9 + tongue) * flameWidth * 0.5;
+          : bx +
+            Math.sin((presentationTick + player * 2) * 0.9 + tongue) *
+              flameWidth *
+              0.5;
         builder.moveTo(bx - flameWidth / 2, baseY);
-        builder.quadTo(bx - flameWidth * 0.3, baseY - flameHeight * 0.6, tipX, baseY - flameHeight);
-        builder.quadTo(bx + flameWidth * 0.3, baseY - flameHeight * 0.6, bx + flameWidth / 2, baseY);
+        builder.quadTo(
+          bx - flameWidth * 0.3,
+          baseY - flameHeight * 0.6,
+          tipX,
+          baseY - flameHeight,
+        );
+        builder.quadTo(
+          bx + flameWidth * 0.3,
+          baseY - flameHeight * 0.6,
+          bx + flameWidth / 2,
+          baseY,
+        );
         builder.close();
       }
     }
@@ -672,8 +739,14 @@ export function WorkletDuelScuff({
       const sideY = ux;
       // The contact point is a fixed pitch coordinate, so the mark stays put
       // while the loser is shoved off it.
-      const cx = snapDevicePixels(actionData.value[offset + 6] * scale, devicePixelRatio);
-      const cy = snapDevicePixels(actionData.value[offset + 7] * scale, devicePixelRatio);
+      const cx = snapDevicePixels(
+        actionData.value[offset + 6] * scale,
+        devicePixelRatio,
+      );
+      const cy = snapDevicePixels(
+        actionData.value[offset + 7] * scale,
+        devicePixelRatio,
+      );
 
       for (let index = 0; index < DUEL_SCUFF_PIXELS.length; index += 1) {
         const fleck = DUEL_SCUFF_PIXELS[index];
@@ -702,6 +775,11 @@ export function WorkletDuelScuff({
   });
 
   return (
-    <Path path={scuff} color={DUEL_SCUFF_COLOR} opacity={DUEL_SCUFF_OPACITY} antiAlias={false} />
+    <Path
+      path={scuff}
+      color={DUEL_SCUFF_COLOR}
+      opacity={DUEL_SCUFF_OPACITY}
+      antiAlias={false}
+    />
   );
 }

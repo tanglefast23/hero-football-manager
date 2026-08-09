@@ -80,7 +80,8 @@ const FIREWORK_SHELLS: Readonly<Record<string, readonly string[]>> = {
   ],
 };
 
-export const FIREWORK_SHELL_IDS: readonly string[] = Object.keys(FIREWORK_SHELLS);
+export const FIREWORK_SHELL_IDS: readonly string[] =
+  Object.keys(FIREWORK_SHELLS);
 
 export interface FireworkPixelRun {
   readonly id: string;
@@ -107,7 +108,13 @@ export function fireworkShellRuns(shellId: string): FireworkPixelRun[] {
     let runOpacity = 0;
     const flush = (end: number) => {
       if (runStart >= 0) {
-        runs.push({ id: `${shellId}:${y}:${runStart}`, x: runStart, y, width: end - runStart, opacity: runOpacity });
+        runs.push({
+          id: `${shellId}:${y}:${runStart}`,
+          x: runStart,
+          y,
+          width: end - runStart,
+          opacity: runOpacity,
+        });
       }
       runStart = -1;
       runOpacity = 0;
@@ -155,7 +162,11 @@ export interface FireworkBurst {
  * together is one big flash, five spread across the loop is a sky that keeps
  * going while somebody talks over it.
  */
-export function fireworkBursts(key: string, count: number, colorCount = 3): FireworkBurst[] {
+export function fireworkBursts(
+  key: string,
+  count: number,
+  colorCount = 3,
+): FireworkBurst[] {
   if (count <= 0) return [];
   let hash = 2166136261;
   for (let index = 0; index < key.length; index += 1) {
@@ -164,7 +175,8 @@ export function fireworkBursts(key: string, count: number, colorCount = 3): Fire
   }
   const unsigned = hash >>> 0;
   return Array.from({ length: count }, (_, index) => {
-    const jitter = (offset: number, span: number) => (unsigned >>> ((index * 7 + offset) % 27)) % span;
+    const jitter = (offset: number, span: number) =>
+      (unsigned >>> ((index * 7 + offset) % 27)) % span;
     return {
       id: `${key}:burst-${index}`,
       shellId: FIREWORK_SHELL_IDS[index % FIREWORK_SHELL_IDS.length],

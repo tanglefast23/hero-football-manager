@@ -43,9 +43,15 @@ export function PlayerRequestWalkOn({
       characterWidth={PLAYER_SPRITE_CELL.width * SPRITE_SCALE}
       characterHeight={PLAYER_SPRITE_CELL.height * SPRITE_SCALE}
       groundOffset={groundOffset}
-      autoAdvanceMs={Math.max(MIN_LINE_MS, request.line.length * MS_PER_CHARACTER)}
+      autoAdvanceMs={Math.max(
+        MIN_LINE_MS,
+        request.line.length * MS_PER_CHARACTER,
+      )}
       reduceMotion={reduceMotion}
-      accessibilityLabel={t('awardsCeremony.a11y.playerSays', { player: request.playerName, line: request.line })}
+      accessibilityLabel={t('awardsCeremony.a11y.playerSays', {
+        player: request.playerName,
+        line: request.line,
+      })}
       onDone={onDone}
     >
       <View>

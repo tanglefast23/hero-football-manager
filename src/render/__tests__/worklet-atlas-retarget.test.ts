@@ -21,7 +21,8 @@ const {
   retargetAtlasFrameOnUI,
   sampleRawRetargetPositions,
   sampleRawRetargetValue,
-} = require('../worklet-atlas-frame') as typeof import('../worklet-atlas-frame');
+} =
+  require('../worklet-atlas-frame') as typeof import('../worklet-atlas-frame');
 const { withTiming } = require('react-native-reanimated') as {
   withTiming: jest.Mock;
 };
@@ -41,7 +42,9 @@ function shared<T>(value: T): SharedValue<T> {
   return { value } as unknown as SharedValue<T>;
 }
 
-function sharedFloat(value: Float32Array<ArrayBufferLike>): SharedValue<Float32Array<ArrayBufferLike>> {
+function sharedFloat(
+  value: Float32Array<ArrayBufferLike>,
+): SharedValue<Float32Array<ArrayBufferLike>> {
   return shared<Float32Array<ArrayBufferLike>>(value);
 }
 
@@ -180,7 +183,10 @@ describe('worklet Atlas continuity retargeting', () => {
     expect(zoneFractions.value).toBe(firstZones);
     expect(carrier.value).toBe(7);
     expect(progress.value).toBe(1);
-    expect(withTiming).toHaveBeenCalledWith(1, expect.objectContaining({ duration: 33 }));
+    expect(withTiming).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ duration: 33 }),
+    );
 
     progress.value = 0.25;
     const secondIncoming = positions(() => 200);
@@ -289,23 +295,23 @@ describe('worklet Atlas continuity retargeting', () => {
       source.indexOf('function pauseAtlasFrameOnUI('),
     );
     const publishBody = source.slice(
-      source.indexOf('const publish = useCallback(('),
+      source.indexOf('const publish = useCallback('),
       source.indexOf('const pause = useCallback('),
     );
 
-    expect(retargetBody).toContain("'worklet';");
-    expect(retargetBody).toContain('sampleRawRetargetPositions(');
-    expect(retargetBody).not.toContain('visualPositions');
-    expect(retargetBody).toContain('previousBallHeight.value');
-    expect(retargetBody).toContain('previousVisualTick.value');
-    expect(retargetBody).toContain('progress.value = snap ? 1 : 0;');
-    expect(retargetBody).toContain('if (snap) return;');
-    expect(publishBody).toContain('runOnAtlasRuntime(');
-    expect(publishBody).not.toContain('progress.value');
-    expect(source).toContain('visualTick: SharedValue<number>;');
-    expect(source).toContain('if (IS_WEB_RUNTIME) {');
-    expect(source).toContain('worklet(...args);');
-    expect(source).toContain('scheduleOnUI(worklet, ...args);');
+    expect(retargetBody).toContainSource("'worklet';");
+    expect(retargetBody).toContainSource('sampleRawRetargetPositions(');
+    expect(retargetBody).not.toContainSource('visualPositions');
+    expect(retargetBody).toContainSource('previousBallHeight.value');
+    expect(retargetBody).toContainSource('previousVisualTick.value');
+    expect(retargetBody).toContainSource('progress.value = snap ? 1 : 0;');
+    expect(retargetBody).toContainSource('if (snap) return;');
+    expect(publishBody).toContainSource('runOnAtlasRuntime(');
+    expect(publishBody).not.toContainSource('progress.value');
+    expect(source).toContainSource('visualTick: SharedValue<number>;');
+    expect(source).toContainSource('if (IS_WEB_RUNTIME) {');
+    expect(source).toContainSource('worklet(...args);');
+    expect(source).toContainSource('scheduleOnUI(worklet, ...args);');
   });
 
   test('routes action and overlay time through the retargeted visual clock', () => {
@@ -318,10 +324,10 @@ describe('worklet Atlas continuity retargeting', () => {
       'utf8',
     );
 
-    expect(atlas).not.toContain('simTick.value - 1 + t');
-    expect(overlays).not.toContain('simTick.value - 1 + progress.value');
-    expect(overlays).not.toContain('simTick: SharedValue<number>');
-    expect(overlays).toContain('visualTick: SharedValue<number>');
+    expect(atlas).not.toContainSource('simTick.value - 1 + t');
+    expect(overlays).not.toContainSource('simTick.value - 1 + progress.value');
+    expect(overlays).not.toContainSource('simTick: SharedValue<number>');
+    expect(overlays).toContainSource('visualTick: SharedValue<number>');
   });
 
   test('keeps the final frame mounted long enough for the scheduled UI publish', () => {
@@ -330,9 +336,13 @@ describe('worklet Atlas continuity retargeting', () => {
       'utf8',
     );
 
-    expect(screen).toContain('reduceMotion ? 0 : FULLTIME_HOLD_MS');
-    expect(screen).toContain("snap || pauseAfterPublish || s.phase === 'fulltime'");
-    expect(screen).toContain('} else if (now >= fulltimeDeadlineRef.current) {');
+    expect(screen).toContainSource('reduceMotion ? 0 : FULLTIME_HOLD_MS');
+    expect(screen).toContainSource(
+      "snap || pauseAfterPublish || s.phase === 'fulltime'",
+    );
+    expect(screen).toContainSource(
+      '} else if (now >= fulltimeDeadlineRef.current) {',
+    );
   });
 
   test('publishes and snaps a tutorial tick before pausing its UI animation', () => {
@@ -342,11 +352,11 @@ describe('worklet Atlas continuity retargeting', () => {
     );
     const loop = screen.slice(
       screen.indexOf('const loop = (now: number) => {'),
-      screen.indexOf('if (s.phase === \'fulltime\') {'),
+      screen.indexOf("if (s.phase === 'fulltime') {"),
     );
 
-    expect(loop).toContain('pauseAfterPublish = true;');
-    expect(loop).toContain('snap || pauseAfterPublish');
+    expect(loop).toContainSource('pauseAfterPublish = true;');
+    expect(loop).toContainSource('snap || pauseAfterPublish');
     expect(loop.indexOf('publishAtlasFrame(')).toBeLessThan(
       loop.indexOf('if (pauseAfterPublish) syncPauseReasons();'),
     );

@@ -1,8 +1,21 @@
-import { createMatch, tick, runMatch, envelopeFrom, runReplay, queueInput, validateEnvelope } from '../match';
+import {
+  createMatch,
+  tick,
+  runMatch,
+  envelopeFrom,
+  runReplay,
+  queueInput,
+  validateEnvelope,
+} from '../match';
 import { restartKickoff } from '../engine';
 import { ROVERS, UNITED } from '../teams';
 import { HALF_TICKS } from '../geometry';
-import type { FirePolicy, MatchInput, PlayerDef, ReplayEnvelope } from '../types';
+import type {
+  FirePolicy,
+  MatchInput,
+  PlayerDef,
+  ReplayEnvelope,
+} from '../types';
 
 describe('match skeleton', () => {
   it('creates 22 players with correct fire policies', () => {
@@ -15,7 +28,9 @@ describe('match skeleton', () => {
     expect(m.events[0]).toMatchObject({ kind: 'KICKOFF', half: 1 });
 
     // SAVE_FOR_TAP remains available as explicit test instrumentation only.
-    const instrumented = createMatch(42, ROVERS, UNITED, { homePolicy: 'SAVE_FOR_TAP' });
+    const instrumented = createMatch(42, ROVERS, UNITED, {
+      homePolicy: 'SAVE_FOR_TAP',
+    });
     expect(instrumented.players[10].firePolicy).toBe('SAVE_FOR_TAP');
     expect(instrumented.players[14].firePolicy).toBe('FIRE_WHEN_READY');
   });
@@ -23,9 +38,9 @@ describe('match skeleton', () => {
   it('uses supplied starting condition and defaults legacy match players to fresh', () => {
     const home = {
       ...ROVERS,
-      players: ROVERS.players.map((player, index) => (
-        index === 10 ? { ...player, startingCondition: 68 } : player
-      )),
+      players: ROVERS.players.map((player, index) =>
+        index === 10 ? { ...player, startingCondition: 68 } : player,
+      ),
     };
 
     const match = createMatch(42, home, UNITED);
@@ -36,10 +51,12 @@ describe('match skeleton', () => {
 
   it('runs to FULL_TIME with HALF_TIME inside the stoppage window', () => {
     const r = runMatch(42, ROVERS, UNITED);
-    const kinds = r.events.map(e => e.kind);
-    expect(kinds.filter(k => k === 'KICKOFF').length).toBeGreaterThanOrEqual(2);
+    const kinds = r.events.map((e) => e.kind);
+    expect(kinds.filter((k) => k === 'KICKOFF').length).toBeGreaterThanOrEqual(
+      2,
+    );
     expect(kinds[kinds.length - 1]).toBe('FULL_TIME');
-    const ht = r.events.find(e => e.kind === 'HALF_TIME')?.t ?? -1;
+    const ht = r.events.find((e) => e.kind === 'HALF_TIME')?.t ?? -1;
     expect(ht).toBeGreaterThanOrEqual(HALF_TICKS);
     expect(ht).toBeLessThanOrEqual(HALF_TICKS + 50);
   });
@@ -53,9 +70,11 @@ describe('match skeleton', () => {
 
   it('players move each tick', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    const before = m.players.map(p => ({ ...p.pos }));
+    const before = m.players.map((p) => ({ ...p.pos }));
     for (let i = 0; i < 50; i++) tick(m);
-    const moved = m.players.filter((p, i) => p.pos.x !== before[i].x || p.pos.y !== before[i].y);
+    const moved = m.players.filter(
+      (p, i) => p.pos.x !== before[i].x || p.pos.y !== before[i].y,
+    );
     expect(moved.length).toBeGreaterThan(10);
   });
 
@@ -74,55 +93,67 @@ describe('match skeleton', () => {
 
   it('createMatch rejects malformed squads', () => {
     const tenMen = { ...ROVERS, players: ROVERS.players.slice(0, 10) };
-    expect(() => createMatch(1, tenMen, UNITED)).toThrow('home team must have exactly 11 players');
+    expect(() => createMatch(1, tenMen, UNITED)).toThrow(
+      'home team must have exactly 11 players',
+    );
 
     const duplicateId = {
       ...ROVERS,
-      players: ROVERS.players.map((player, index) => (
-        index === 1 ? { ...player, id: ROVERS.players[0].id } : player
-      )),
+      players: ROVERS.players.map((player, index) =>
+        index === 1 ? { ...player, id: ROVERS.players[0].id } : player,
+      ),
     };
-    expect(() => createMatch(1, duplicateId, UNITED)).toThrow('player IDs must be unique');
+    expect(() => createMatch(1, duplicateId, UNITED)).toThrow(
+      'player IDs must be unique',
+    );
 
     const fractionalAttr = {
       ...ROVERS,
-      players: ROVERS.players.map((player, index) => (
-        index === 1 ? { ...player, attrs: { ...player.attrs, pac: 50.5 } } : player
-      )),
+      players: ROVERS.players.map((player, index) =>
+        index === 1
+          ? { ...player, attrs: { ...player.attrs, pac: 50.5 } }
+          : player,
+      ),
     };
     expect(() => createMatch(1, fractionalAttr, UNITED)).toThrow('attrs.pac');
 
     const extraGoalkeeper = {
       ...ROVERS,
-      players: ROVERS.players.map((player, index) => (
-        index === 1 ? { ...player, role: 'GK' as const } : player
-      )),
+      players: ROVERS.players.map((player, index) =>
+        index === 1 ? { ...player, role: 'GK' as const } : player,
+      ),
     };
-    expect(() => createMatch(1, extraGoalkeeper, UNITED)).toThrow('exactly one goalkeeper');
+    expect(() => createMatch(1, extraGoalkeeper, UNITED)).toThrow(
+      'exactly one goalkeeper',
+    );
 
     const invalidPowerTier = {
       ...ROVERS,
-      players: ROVERS.players.map((player, index) => (
-        index === 10 ? { ...player, powerTier: 4 as 3 } : player
-      )),
+      players: ROVERS.players.map((player, index) =>
+        index === 10 ? { ...player, powerTier: 4 as 3 } : player,
+      ),
     };
-    expect(() => createMatch(1, invalidPowerTier, UNITED)).toThrow('invalid power tier');
+    expect(() => createMatch(1, invalidPowerTier, UNITED)).toThrow(
+      'invalid power tier',
+    );
 
     const invalidStartingCondition = {
       ...ROVERS,
-      players: ROVERS.players.map((player, index) => (
-        index === 10 ? { ...player, startingCondition: 101 } : player
-      )),
+      players: ROVERS.players.map((player, index) =>
+        index === 10 ? { ...player, startingCondition: 101 } : player,
+      ),
     };
-    expect(() => createMatch(1, invalidStartingCondition, UNITED)).toThrow('invalid starting condition');
+    expect(() => createMatch(1, invalidStartingCondition, UNITED)).toThrow(
+      'invalid starting condition',
+    );
   });
 
   it('preserves power tiers in a valid, runnable replay envelope', () => {
     const home = {
       ...ROVERS,
-      players: ROVERS.players.map((player, index) => (
-        index === 10 ? { ...player, powerTier: 3 as const } : player
-      )),
+      players: ROVERS.players.map((player, index) =>
+        index === 10 ? { ...player, powerTier: 3 as const } : player,
+      ),
     };
     const match = createMatch(12, home, UNITED);
     const envelope = envelopeFrom(match);
@@ -133,7 +164,10 @@ describe('match skeleton', () => {
   });
 
   it('createMatch deep-copies teams: mutating the source cannot affect a running match', () => {
-    const src = { ...ROVERS, players: ROVERS.players.map(p => ({ ...p, attrs: { ...p.attrs } })) };
+    const src = {
+      ...ROVERS,
+      players: ROVERS.players.map((p) => ({ ...p, attrs: { ...p.attrs } })),
+    };
     const m = createMatch(1, src, UNITED);
     src.players[9].attrs.pac = 1;
     src.players[9].name = 'Corrupted';
@@ -167,24 +201,41 @@ describe('match skeleton', () => {
   });
 
   it('replays a recorded substitute-of-a-substitute byte-identically (same slot twice)', () => {
-    const bench = ['hb1', 'hb2'].map(id => ({
+    const bench = ['hb1', 'hb2'].map((id) => ({
       id,
       name: `Bench ${id}`,
       role: 'MID' as const,
       attrs: { pac: 60, sho: 45, pas: 60, def: 50, tec: 55, sta: 65, ref: 10 },
     }));
-    const m = createMatch(11, { ...ROVERS, bench }, UNITED, { controlledTeam: 0 });
+    const m = createMatch(11, { ...ROVERS, bench }, UNITED, {
+      controlledTeam: 0,
+    });
     // Live play holds at most the next tick's input, so substituting the same
     // slot twice across a match records cleanly; the replay must accept it too.
-    queueInput(m, { tick: 2, kind: 'SUBSTITUTE', player: 5, replacementId: 'hb1' });
+    queueInput(m, {
+      tick: 2,
+      kind: 'SUBSTITUTE',
+      player: 5,
+      replacementId: 'hb1',
+    });
     while (m.tick < 2) tick(m);
-    queueInput(m, { tick: 3, kind: 'SUBSTITUTE', player: 5, replacementId: 'hb2' });
+    queueInput(m, {
+      tick: 3,
+      kind: 'SUBSTITUTE',
+      player: 5,
+      replacementId: 'hb2',
+    });
     while (m.phase !== 'fulltime') tick(m);
 
-    const substitutions = m.events.filter(e => e.kind === 'SUBSTITUTION');
+    const substitutions = m.events.filter((e) => e.kind === 'SUBSTITUTION');
     expect(substitutions).toEqual([
       expect.objectContaining({ t: 2, player: 5, inPlayerId: 'hb1' }),
-      expect.objectContaining({ t: 3, player: 5, outPlayerId: 'hb1', inPlayerId: 'hb2' }),
+      expect.objectContaining({
+        t: 3,
+        player: 5,
+        outPlayerId: 'hb1',
+        inPlayerId: 'hb2',
+      }),
     ]);
 
     const replayed = runReplay(envelopeFrom(m));
@@ -195,7 +246,9 @@ describe('match skeleton', () => {
   it('queueInput rejects past-stamped inputs (replay-fidelity invariant)', () => {
     const m = createMatch(42, ROVERS, UNITED);
     for (let i = 0; i < 10; i++) tick(m);
-    expect(() => queueInput(m, { tick: 5, kind: 'POWER_TAP', player: 10 })).toThrow('future-stamped');
+    expect(() =>
+      queueInput(m, { tick: 5, kind: 'POWER_TAP', player: 10 }),
+    ).toThrow('future-stamped');
     expect(m.inputLog).toHaveLength(0);
   });
 
@@ -207,14 +260,28 @@ describe('match skeleton', () => {
     });
     queueInput(m, { tick: 1, kind: 'SET_AUTO_POWERS', enabled: true });
 
-    expect(m.inputLog).toEqual([{ tick: 1, kind: 'SET_AUTO_POWERS', enabled: true }]);
+    expect(m.inputLog).toEqual([
+      { tick: 1, kind: 'SET_AUTO_POWERS', enabled: true },
+    ]);
     tick(m);
-    expect(m.players.slice(0, 11).every(player => player.firePolicy === 'FIRE_WHEN_READY')).toBe(true);
-    expect(m.players.slice(11).every(player => player.firePolicy === 'FIRE_WHEN_READY')).toBe(true);
+    expect(
+      m.players
+        .slice(0, 11)
+        .every((player) => player.firePolicy === 'FIRE_WHEN_READY'),
+    ).toBe(true);
+    expect(
+      m.players
+        .slice(11)
+        .every((player) => player.firePolicy === 'FIRE_WHEN_READY'),
+    ).toBe(true);
 
     queueInput(m, { tick: 2, kind: 'SET_AUTO_POWERS', enabled: false });
     tick(m);
-    expect(m.players.slice(11).every(player => player.firePolicy === 'SAVE_FOR_TAP')).toBe(true);
+    expect(
+      m.players
+        .slice(11)
+        .every((player) => player.firePolicy === 'SAVE_FOR_TAP'),
+    ).toBe(true);
 
     while (m.phase !== 'fulltime') tick(m);
     const replayed = runReplay(envelopeFrom(m));
@@ -224,8 +291,9 @@ describe('match skeleton', () => {
 
   it('requires a controlled team for live automatic-power mode', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    expect(() => queueInput(m, { tick: 1, kind: 'SET_AUTO_POWERS', enabled: true }))
-      .toThrow('controlled team');
+    expect(() =>
+      queueInput(m, { tick: 1, kind: 'SET_AUTO_POWERS', enabled: true }),
+    ).toThrow('controlled team');
   });
 
   it('restores exactly 10 condition at halftime and clamps at 100', () => {
@@ -267,7 +335,9 @@ describe('validateEnvelope', () => {
   it('accepts a replay-recorded Energy Use change', () => {
     const env = makeValidEnvelope();
     env.opts = { ...env.opts, controlledTeam: 0 };
-    env.inputs = [{ tick: 5, kind: 'SET_ENERGY_USE', energyUse: 'SAVE_ENERGY' }];
+    env.inputs = [
+      { tick: 5, kind: 'SET_ENERGY_USE', energyUse: 'SAVE_ENERGY' },
+    ];
     expect(() => validateEnvelope(env)).not.toThrow();
   });
 
@@ -276,20 +346,30 @@ describe('validateEnvelope', () => {
     env.inputs = [{ tick: 5, kind: 'SET_ENERGY_USE', energyUse: 'BALANCED' }];
     expect(() => validateEnvelope(env)).toThrow('energy use');
     env.opts = { ...env.opts, controlledTeam: 0 };
-    env.inputs = [{ tick: 5, kind: 'SET_ENERGY_USE', energyUse: 'MAX' as 'BALANCED' }];
+    env.inputs = [
+      { tick: 5, kind: 'SET_ENERGY_USE', energyUse: 'MAX' as 'BALANCED' },
+    ];
     expect(() => validateEnvelope(env)).toThrow('energy use');
   });
 
   it('rejects a non-boolean automatic-power mode', () => {
     const env = makeValidEnvelope();
     env.opts = { ...env.opts, controlledTeam: 0 };
-    env.inputs = [{ tick: 5, kind: 'SET_AUTO_POWERS', enabled: 'yes' as unknown as boolean }];
+    env.inputs = [
+      {
+        tick: 5,
+        kind: 'SET_AUTO_POWERS',
+        enabled: 'yes' as unknown as boolean,
+      },
+    ];
     expect(() => validateEnvelope(env)).toThrow('boolean');
   });
 
   it('rejects a string player index', () => {
     const env = makeValidEnvelope();
-    env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: '10' as unknown as number }];
+    env.inputs = [
+      { tick: 5, kind: 'POWER_TAP', player: '10' as unknown as number },
+    ];
     expect(() => validateEnvelope(env)).toThrow();
   });
 
@@ -312,7 +392,11 @@ describe('validateEnvelope', () => {
     const env = makeValidEnvelope();
     env.home = {
       ...env.home,
-      players: env.home.players.map((p, i) => (i === 9 ? { ...p, power: 'LASER_EYES' as unknown as PlayerDef['power'] } : p)),
+      players: env.home.players.map((p, i) =>
+        i === 9
+          ? { ...p, power: 'LASER_EYES' as unknown as PlayerDef['power'] }
+          : p,
+      ),
     };
     expect(() => validateEnvelope(env)).toThrow();
   });
@@ -320,24 +404,30 @@ describe('validateEnvelope', () => {
   it('rejects a 10-player squad', () => {
     const env = makeValidEnvelope();
     env.home = { ...env.home, players: env.home.players.slice(0, 10) };
-    expect(() => validateEnvelope(env)).toThrow('replay envelope: home team must have exactly 11 players');
+    expect(() => validateEnvelope(env)).toThrow(
+      'replay envelope: home team must have exactly 11 players',
+    );
   });
 
   it('rejects attrs out of range', () => {
     const env = makeValidEnvelope();
     env.home = {
       ...env.home,
-      players: env.home.players.map((p, i) => (i === 0 ? { ...p, attrs: { ...p.attrs, pac: 1_000 } } : p)),
+      players: env.home.players.map((p, i) =>
+        i === 0 ? { ...p, attrs: { ...p.attrs, pac: 1_000 } } : p,
+      ),
     };
-    expect(() => validateEnvelope(env)).toThrow('replay envelope: home team player');
+    expect(() => validateEnvelope(env)).toThrow(
+      'replay envelope: home team player',
+    );
   });
 
   it('serializes and validates starting condition in replay teams', () => {
     const home = {
       ...ROVERS,
-      players: ROVERS.players.map((player, index) => (
-        index === 9 ? { ...player, startingCondition: 0 } : player
-      )),
+      players: ROVERS.players.map((player, index) =>
+        index === 9 ? { ...player, startingCondition: 0 } : player,
+      ),
     };
     const env = envelopeFrom(createMatch(42, home, UNITED));
     expect(env.home.players[9].startingCondition).toBe(0);
@@ -382,7 +472,12 @@ describe('validateEnvelope', () => {
 
   it('rejects a null/non-object player in a team roster', () => {
     const env = makeValidEnvelope();
-    env.home = { ...env.home, players: env.home.players.map((p, i) => (i === 0 ? (null as unknown as PlayerDef) : p)) };
+    env.home = {
+      ...env.home,
+      players: env.home.players.map((p, i) =>
+        i === 0 ? (null as unknown as PlayerDef) : p,
+      ),
+    };
     expect(() => validateEnvelope(env)).toThrow('must be an object');
   });
 
@@ -406,20 +501,34 @@ describe('validateEnvelope', () => {
 
   it('rejects an absurd input flood (count cap)', () => {
     const env = makeValidEnvelope();
-    env.inputs = Array.from({ length: 5000 }, () => ({ tick: 5, kind: 'POWER_TAP' as const, player: 10 }));
+    env.inputs = Array.from({ length: 5000 }, () => ({
+      tick: 5,
+      kind: 'POWER_TAP' as const,
+      player: 10,
+    }));
     expect(() => validateEnvelope(env)).toThrow('too many inputs');
   });
 
   it('rejects a team whose slot 0 is not the goalkeeper', () => {
     const env = makeValidEnvelope();
-    env.home = { ...env.home, players: env.home.players.map((p, i) => (i === 0 ? { ...p, role: 'FWD' as const } : p)) };
-    expect(() => validateEnvelope(env)).toThrow('slot 0 must be the goalkeeper');
+    env.home = {
+      ...env.home,
+      players: env.home.players.map((p, i) =>
+        i === 0 ? { ...p, role: 'FWD' as const } : p,
+      ),
+    };
+    expect(() => validateEnvelope(env)).toThrow(
+      'slot 0 must be the goalkeeper',
+    );
   });
 });
 
 describe('envelopeFrom does not leak the test-only blindAutoHome flag', () => {
   it('omits blindAutoHome from a serialized envelope even when the match used it', () => {
-    const m = createMatch(9, ROVERS, UNITED, { homePolicy: 'FIRE_WHEN_READY', blindAutoHome: true });
+    const m = createMatch(9, ROVERS, UNITED, {
+      homePolicy: 'FIRE_WHEN_READY',
+      blindAutoHome: true,
+    });
     const env = envelopeFrom(m);
     expect(env.opts?.blindAutoHome).toBeUndefined();
     expect(env.opts?.homePolicy).toBe('FIRE_WHEN_READY'); // production opts still carried

@@ -6,7 +6,10 @@ import type {
   DivisionAwardPlacement,
   SeasonRecap,
 } from '../game/types';
-import { RUNNER_UP_CEREMONY_LINES, WINNER_CEREMONY_LINES } from './award-ceremony-lines';
+import {
+  RUNNER_UP_CEREMONY_LINES,
+  WINNER_CEREMONY_LINES,
+} from './award-ceremony-lines';
 import {
   awardCeremonyStages,
   prizeCountsUp,
@@ -84,118 +87,119 @@ interface QaCase {
   readonly longestLinesOn?: readonly AwardCategoryId[];
 }
 
-const QA_CASES: Readonly<Record<AwardsCeremonyQaCaseId, QaCase>> = Object.freeze({
-  /**
-   * The season that exercises every walk-on rule at once, one board each:
-   * keepers a rival win with your man second (your man speaks, the rival does
-   * not), defenders your own win, midfielders your first AND second (one
-   * walk-on, the winner's), strikers a rival board you are nowhere on, which
-   * nobody walks on to at all.
-   */
-  mixed: {
-    label: 'Mixed',
-    longestLinesOn: ['saves', 'tacklesWon'],
-    podiums: {
-      saves: [
-        { name: LONG_PLAYER_NAME, clubId: 'thunder-borough', value: 63 },
-        { name: 'Nell Barrow', clubId: USER_CLUB_ID, value: 59 },
-        { name: 'Sam Mitts', clubId: 'bramble-rovers', value: 55 },
-      ],
-      tacklesWon: [
-        { name: 'Ed Stone', clubId: USER_CLUB_ID, value: 62 },
-        { name: 'Bo Hedges', clubId: 'ferrous-united', value: 54 },
-        { name: 'Max Tanko', clubId: 'harbor-comets', value: 47 },
-      ],
-      passesCompleted: [
-        { name: 'Gio Marsh', clubId: USER_CLUB_ID, value: 172 },
-        { name: 'Ken Ash', clubId: USER_CLUB_ID, value: 165 },
-        { name: 'Ravi Chan', clubId: 'moonlight-town', value: 153 },
-      ],
-      goals: [
-        { name: 'Zip Vela', clubId: 'harbor-comets', value: 23 },
-        { name: 'Dario Flint', clubId: 'thunder-borough', value: 21 },
-        { name: 'Nora Vale', clubId: 'moor-end-athletic', value: 20 },
-      ],
+const QA_CASES: Readonly<Record<AwardsCeremonyQaCaseId, QaCase>> =
+  Object.freeze({
+    /**
+     * The season that exercises every walk-on rule at once, one board each:
+     * keepers a rival win with your man second (your man speaks, the rival does
+     * not), defenders your own win, midfielders your first AND second (one
+     * walk-on, the winner's), strikers a rival board you are nowhere on, which
+     * nobody walks on to at all.
+     */
+    mixed: {
+      label: 'Mixed',
+      longestLinesOn: ['saves', 'tacklesWon'],
+      podiums: {
+        saves: [
+          { name: LONG_PLAYER_NAME, clubId: 'thunder-borough', value: 63 },
+          { name: 'Nell Barrow', clubId: USER_CLUB_ID, value: 59 },
+          { name: 'Sam Mitts', clubId: 'bramble-rovers', value: 55 },
+        ],
+        tacklesWon: [
+          { name: 'Ed Stone', clubId: USER_CLUB_ID, value: 62 },
+          { name: 'Bo Hedges', clubId: 'ferrous-united', value: 54 },
+          { name: 'Max Tanko', clubId: 'harbor-comets', value: 47 },
+        ],
+        passesCompleted: [
+          { name: 'Gio Marsh', clubId: USER_CLUB_ID, value: 172 },
+          { name: 'Ken Ash', clubId: USER_CLUB_ID, value: 165 },
+          { name: 'Ravi Chan', clubId: 'moonlight-town', value: 153 },
+        ],
+        goals: [
+          { name: 'Zip Vela', clubId: 'harbor-comets', value: 23 },
+          { name: 'Dario Flint', clubId: 'thunder-borough', value: 21 },
+          { name: 'Nora Vale', clubId: 'moor-end-athletic', value: 20 },
+        ],
+      },
     },
-  },
-  /** Every board, and the taper at full stretch: 120 + 90 + 60 + 30. */
-  sweep: {
-    label: 'Sweep',
-    podiums: {
-      saves: [
-        { name: 'Nell Barrow', clubId: USER_CLUB_ID, value: 65 },
-        { name: 'Sam Mitts', clubId: 'bramble-rovers', value: 60 },
-        { name: 'Rufus Okonkwo', clubId: 'ferrous-united', value: 56 },
-      ],
-      tacklesWon: [
-        { name: 'Ed Stone', clubId: USER_CLUB_ID, value: 63 },
-        { name: 'Mae Thorn', clubId: USER_CLUB_ID, value: 58 },
-        { name: 'Bo Hedges', clubId: 'ferrous-united', value: 50 },
-      ],
-      passesCompleted: [
-        { name: 'Gio Marsh', clubId: USER_CLUB_ID, value: 175 },
-        { name: 'Ravi Chan', clubId: 'moonlight-town', value: 168 },
-        { name: 'Kit Rowan', clubId: 'harbor-comets', value: 155 },
-      ],
-      goals: [
-        { name: 'Sol Reed', clubId: USER_CLUB_ID, value: 24 },
-        { name: 'Zip Vela', clubId: 'harbor-comets', value: 22 },
-        { name: 'Dario Flint', clubId: 'thunder-borough', value: 20 },
-      ],
+    /** Every board, and the taper at full stretch: 120 + 90 + 60 + 30. */
+    sweep: {
+      label: 'Sweep',
+      podiums: {
+        saves: [
+          { name: 'Nell Barrow', clubId: USER_CLUB_ID, value: 65 },
+          { name: 'Sam Mitts', clubId: 'bramble-rovers', value: 60 },
+          { name: 'Rufus Okonkwo', clubId: 'ferrous-united', value: 56 },
+        ],
+        tacklesWon: [
+          { name: 'Ed Stone', clubId: USER_CLUB_ID, value: 63 },
+          { name: 'Mae Thorn', clubId: USER_CLUB_ID, value: 58 },
+          { name: 'Bo Hedges', clubId: 'ferrous-united', value: 50 },
+        ],
+        passesCompleted: [
+          { name: 'Gio Marsh', clubId: USER_CLUB_ID, value: 175 },
+          { name: 'Ravi Chan', clubId: 'moonlight-town', value: 168 },
+          { name: 'Kit Rowan', clubId: 'harbor-comets', value: 155 },
+        ],
+        goals: [
+          { name: 'Sol Reed', clubId: USER_CLUB_ID, value: 24 },
+          { name: 'Zip Vela', clubId: 'harbor-comets', value: 22 },
+          { name: 'Dario Flint', clubId: 'thunder-borough', value: 20 },
+        ],
+      },
     },
-  },
-  /**
-   * Boards a thin division actually produces: one name, two names, and one the
-   * metric was never registered on at all.
-   */
-  thin: {
-    label: 'Thin',
-    podiums: {
-      saves: [{ name: 'Sam Mitts', clubId: 'bramble-rovers', value: 57 }],
-      tacklesWon: [
-        { name: 'Bo Hedges', clubId: 'ferrous-united', value: 59 },
-        { name: 'Ed Stone', clubId: USER_CLUB_ID, value: 51 },
-      ],
-      passesCompleted: [],
-      goals: [
-        { name: 'Sol Reed', clubId: USER_CLUB_ID, value: 22 },
-        { name: 'Zip Vela', clubId: 'harbor-comets', value: 21 },
-        { name: 'Dario Flint', clubId: 'thunder-borough', value: 20 },
-      ],
+    /**
+     * Boards a thin division actually produces: one name, two names, and one the
+     * metric was never registered on at all.
+     */
+    thin: {
+      label: 'Thin',
+      podiums: {
+        saves: [{ name: 'Sam Mitts', clubId: 'bramble-rovers', value: 57 }],
+        tacklesWon: [
+          { name: 'Bo Hedges', clubId: 'ferrous-united', value: 59 },
+          { name: 'Ed Stone', clubId: USER_CLUB_ID, value: 51 },
+        ],
+        passesCompleted: [],
+        goals: [
+          { name: 'Sol Reed', clubId: USER_CLUB_ID, value: 22 },
+          { name: 'Zip Vela', clubId: 'harbor-comets', value: 21 },
+          { name: 'Dario Flint', clubId: 'thunder-borough', value: 20 },
+        ],
+      },
     },
-  },
-  /**
-   * Four full boards and nothing to show for them. Your players place third
-   * twice, which is still the highest you finished on those boards, so each of
-   * them walks on with a beaten line — and the prize screen has to state the
-   * barren season rather than count to zero.
-   */
-  barren: {
-    label: 'Nothing',
-    podiums: {
-      saves: [
-        { name: 'Sam Mitts', clubId: 'bramble-rovers', value: 62 },
-        { name: 'Rufus Okonkwo', clubId: 'ferrous-united', value: 58 },
-        { name: 'Nell Barrow', clubId: USER_CLUB_ID, value: 55 },
-      ],
-      tacklesWon: [
-        { name: 'Bo Hedges', clubId: 'ferrous-united', value: 64 },
-        { name: 'Max Tanko', clubId: 'harbor-comets', value: 57 },
-        { name: 'Pip Alder', clubId: 'moonlight-town', value: 49 },
-      ],
-      passesCompleted: [
-        { name: 'Ravi Chan', clubId: 'moonlight-town', value: 174 },
-        { name: 'Kit Rowan', clubId: 'harbor-comets', value: 161 },
-        { name: 'Ken Ash', clubId: USER_CLUB_ID, value: 152 },
-      ],
-      goals: [
-        { name: 'Zip Vela', clubId: 'harbor-comets', value: 24 },
-        { name: 'Dario Flint', clubId: 'thunder-borough', value: 22 },
-        { name: 'Mae Thorn', clubId: 'bramble-rovers', value: 20 },
-      ],
+    /**
+     * Four full boards and nothing to show for them. Your players place third
+     * twice, which is still the highest you finished on those boards, so each of
+     * them walks on with a beaten line — and the prize screen has to state the
+     * barren season rather than count to zero.
+     */
+    barren: {
+      label: 'Nothing',
+      podiums: {
+        saves: [
+          { name: 'Sam Mitts', clubId: 'bramble-rovers', value: 62 },
+          { name: 'Rufus Okonkwo', clubId: 'ferrous-united', value: 58 },
+          { name: 'Nell Barrow', clubId: USER_CLUB_ID, value: 55 },
+        ],
+        tacklesWon: [
+          { name: 'Bo Hedges', clubId: 'ferrous-united', value: 64 },
+          { name: 'Max Tanko', clubId: 'harbor-comets', value: 57 },
+          { name: 'Pip Alder', clubId: 'moonlight-town', value: 49 },
+        ],
+        passesCompleted: [
+          { name: 'Ravi Chan', clubId: 'moonlight-town', value: 174 },
+          { name: 'Kit Rowan', clubId: 'harbor-comets', value: 161 },
+          { name: 'Ken Ash', clubId: USER_CLUB_ID, value: 152 },
+        ],
+        goals: [
+          { name: 'Zip Vela', clubId: 'harbor-comets', value: 24 },
+          { name: 'Dario Flint', clubId: 'thunder-borough', value: 22 },
+          { name: 'Mae Thorn', clubId: 'bramble-rovers', value: 20 },
+        ],
+      },
     },
-  },
-});
+  });
 
 export interface AwardsCeremonyQaCase {
   readonly id: AwardsCeremonyQaCaseId;
@@ -203,10 +207,12 @@ export interface AwardsCeremonyQaCase {
 }
 
 /** The reel's case list, in the order the buttons are drawn. */
-export const AWARDS_CEREMONY_QA_CASES: readonly AwardsCeremonyQaCase[] = Object.freeze(
-  (Object.keys(QA_CASES) as AwardsCeremonyQaCaseId[])
-    .map(id => Object.freeze({ id, label: QA_CASES[id].label })),
-);
+export const AWARDS_CEREMONY_QA_CASES: readonly AwardsCeremonyQaCase[] =
+  Object.freeze(
+    (Object.keys(QA_CASES) as AwardsCeremonyQaCaseId[]).map((id) =>
+      Object.freeze({ id, label: QA_CASES[id].label }),
+    ),
+  );
 
 /**
  * One fabricated ceremony, built by the production view model.
@@ -242,15 +248,20 @@ export function awardsCeremonyQaViewModel(
 export function awardsCeremonyQaLookIds(
   viewModel: AwardCeremonyViewModel,
 ): ReadonlyMap<string, string> {
-  return new Map(viewModel.beats.flatMap(beat => {
-    const { role } = AWARD_CATEGORIES[beat.categoryId];
-    return beat.placings
-      .filter(placing => placing.isUserPlayer)
-      .map(placing => [
-        placing.playerId,
-        generatedPlayerLookId(`${placing.playerId}:qa`, role),
-      ] as const);
-  }));
+  return new Map(
+    viewModel.beats.flatMap((beat) => {
+      const { role } = AWARD_CATEGORIES[beat.categoryId];
+      return beat.placings
+        .filter((placing) => placing.isUserPlayer)
+        .map(
+          (placing) =>
+            [
+              placing.playerId,
+              generatedPlayerLookId(`${placing.playerId}:qa`, role),
+            ] as const,
+        );
+    }),
+  );
 }
 
 export type AwardsCeremonyQaTargetId = AwardCategoryId | 'prize';
@@ -274,7 +285,7 @@ export function awardsCeremonyQaTargets(
   viewModel: AwardCeremonyViewModel,
 ): readonly AwardsCeremonyQaTarget[] {
   return [
-    ...viewModel.beats.map(beat => ({
+    ...viewModel.beats.map((beat) => ({
       id: beat.categoryId,
       label: beat.boardLabel,
       code: AWARD_CATEGORIES[beat.categoryId].role,
@@ -297,10 +308,12 @@ export function awardsCeremonyQaStageIndex(
 ): number {
   const stages = awardCeremonyStages(viewModel);
   if (target === 'prize') return prizeStageIndex(stages);
-  const beatIndex = viewModel.beats.findIndex(beat => beat.categoryId === target);
-  const board = stages.findIndex(stage => (
-    stage.kind === 'board' && stage.beatIndex === beatIndex
-  ));
+  const beatIndex = viewModel.beats.findIndex(
+    (beat) => beat.categoryId === target,
+  );
+  const board = stages.findIndex(
+    (stage) => stage.kind === 'board' && stage.beatIndex === beatIndex,
+  );
   return board === -1 ? 0 : board;
 }
 
@@ -320,7 +333,9 @@ export function awardsCeremonyQaNote(
       ? `${prize.boardsWon} of 4 boards · counts up to $${prize.totalMoney.toLocaleString('en-US')}`
       : 'No board won · states the barren season instead of counting to zero';
   }
-  const beat = viewModel.beats.find(candidate => candidate.categoryId === target);
+  const beat = viewModel.beats.find(
+    (candidate) => candidate.categoryId === target,
+  );
   return beat === undefined ? 'No such board' : beatNote(beat);
 }
 
@@ -328,7 +343,7 @@ function beatNote(beat: AwardCeremonyBeatViewModel): string {
   const count = beat.placings.length;
   if (count === 0) return 'Empty board · no winner, nobody walks on';
   const rows = `${count} placing${count === 1 ? '' : 's'}`;
-  const winner = beat.placings.find(placing => placing.position === 1);
+  const winner = beat.placings.find((placing) => placing.position === 1);
   const won = winner?.isUserPlayer === true ? 'yours wins' : 'rival wins';
   return `${rows} · ${won} · ${walkOnNote(beat)}`;
 }
@@ -336,13 +351,14 @@ function beatNote(beat: AwardCeremonyBeatViewModel): string {
 /** The one thing the reviewer is here to check: who, if anyone, walks on. */
 function walkOnNote(beat: AwardCeremonyBeatViewModel): string {
   const { speaker } = beat;
-  if (speaker === undefined) return 'none of yours on the podium · nobody walks on';
+  if (speaker === undefined)
+    return 'none of yours on the podium · nobody walks on';
   if (speaker.tone === 'runner-up') {
     // The podium is cut to three, so a beaten speaker is second or third.
     const place = speaker.placing.position === 2 ? '2nd' : '3rd';
     return `your ${place} walks on · the rival winner does not`;
   }
-  const second = beat.placings.find(placing => placing.position === 2);
+  const second = beat.placings.find((placing) => placing.position === 2);
   return second?.isUserPlayer === true
     ? 'yours 1st AND 2nd · only the winner walks on'
     : 'your winner walks on alone';
@@ -363,12 +379,17 @@ function withLongestLines(
 ): AwardCeremonyViewModel {
   return {
     ...viewModel,
-    beats: viewModel.beats.map(beat => (
-      !categoryIds.includes(beat.categoryId) || beat.speaker === undefined ? beat : {
-        ...beat,
-        speaker: { ...beat.speaker, line: longestLine(poolFor(beat.speaker.tone)) },
-      }
-    )),
+    beats: viewModel.beats.map((beat) =>
+      !categoryIds.includes(beat.categoryId) || beat.speaker === undefined
+        ? beat
+        : {
+            ...beat,
+            speaker: {
+              ...beat.speaker,
+              line: longestLine(poolFor(beat.speaker.tone)),
+            },
+          },
+    ),
   };
 }
 
@@ -378,7 +399,10 @@ function poolFor(tone: AwardCeremonySpeechTone): readonly string[] {
 }
 
 function longestLine(lines: readonly string[]): string {
-  return lines.reduce((widest, line) => (line.length > widest.length ? line : widest), '');
+  return lines.reduce(
+    (widest, line) => (line.length > widest.length ? line : widest),
+    '',
+  );
 }
 
 /**
@@ -404,7 +428,7 @@ function qaRecap(podiums: QaPodiums): SeasonRecap {
     trainingCapsReached: 0,
     cupResult: 'Quarter-final',
     divisionAwards: Object.fromEntries(
-      (Object.keys(AWARD_CATEGORIES) as AwardCategoryId[]).map(category => [
+      (Object.keys(AWARD_CATEGORIES) as AwardCategoryId[]).map((category) => [
         category,
         podiums[category].map(placement),
       ]),
@@ -423,5 +447,8 @@ function placement(entry: QaPodiumEntry): DivisionAwardPlacement {
 
 /** Named players keep one ID across cases, so a face follows a name around. */
 function qaPlayerId(name: string): string {
-  return `qa-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`;
+  return `qa-${name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')}`;
 }

@@ -1,7 +1,10 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { runHeadlessFullCareer } from '../../game/headless';
 import type { CareerPlayer, GameState } from '../../game/types';
-import { displayedAttributeValue, displayedDrillGain } from '../displayed-attributes';
+import {
+  displayedAttributeValue,
+  displayedDrillGain,
+} from '../displayed-attributes';
 
 /**
  * The one place the keeper's display bonus is added in, and the one place to
@@ -14,7 +17,11 @@ function careerState(seed = 0): GameState {
   return { ...state, phase: 'manage', trainingPoints: 400 };
 }
 
-function withBonus(player: CareerPlayer, ref: number, bonus?: number): CareerPlayer {
+function withBonus(
+  player: CareerPlayer,
+  ref: number,
+  bonus?: number,
+): CareerPlayer {
   return {
     ...player,
     attrs: { ...player.attrs, ref },
@@ -23,7 +30,7 @@ function withBonus(player: CareerPlayer, ref: number, bonus?: number): CareerPla
 }
 
 function anyPlayer(state: GameState): CareerPlayer {
-  const player = state.players.find(p => p.clubId === state.userClubId);
+  const player = state.players.find((p) => p.clubId === state.userClubId);
   if (player === undefined) throw new Error('no user player');
   return player;
 }
@@ -41,8 +48,17 @@ describe('displayedAttributeValue', () => {
 
   it('never touches an attribute other than Reflexes', () => {
     const player = withBonus(anyPlayer(careerState()), 60, 14);
-    for (const attribute of ['pac', 'sho', 'pas', 'def', 'tec', 'sta'] as const) {
-      expect(displayedAttributeValue(player, attribute)).toBe(player.attrs[attribute]);
+    for (const attribute of [
+      'pac',
+      'sho',
+      'pas',
+      'def',
+      'tec',
+      'sta',
+    ] as const) {
+      expect(displayedAttributeValue(player, attribute)).toBe(
+        player.attrs[attribute],
+      );
     }
   });
 
@@ -74,7 +90,13 @@ describe('displayedDrillGain', () => {
 
   it('leaves every outfield drill untouched', () => {
     const state = careerState();
-    for (const drillId of ['sprints', 'rondo-ii', 'circuit-iii', 'finishing-iv', 'duels-v']) {
+    for (const drillId of [
+      'sprints',
+      'rondo-ii',
+      'circuit-iii',
+      'finishing-iv',
+      'duels-v',
+    ]) {
       expect(displayedDrillGain(state, drillId, 6)).toBe(6);
     }
   });

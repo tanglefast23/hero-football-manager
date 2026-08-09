@@ -47,22 +47,24 @@ export function PlayerSprite({ size = 16 }: { size?: number }) {
       importantForAccessibility="no-hide-descendants"
       style={{ width: size, height: size, position: 'relative' }}
     >
-      {PIXELS.flatMap((row, y) => [...row].map((tone, x) => {
-        if (tone === '.') return null;
-        return (
-          <View
-            key={`${x}-${y}`}
-            style={{
-              position: 'absolute',
-              left: x * pixel,
-              top: y * pixel,
-              width: pixel,
-              height: pixel,
-              backgroundColor: PALETTE[tone],
-            }}
-          />
-        );
-      }))}
+      {PIXELS.flatMap((row, y) =>
+        [...row].map((tone, x) => {
+          if (tone === '.') return null;
+          return (
+            <View
+              key={`${x}-${y}`}
+              style={{
+                position: 'absolute',
+                left: x * pixel,
+                top: y * pixel,
+                width: pixel,
+                height: pixel,
+                backgroundColor: PALETTE[tone],
+              }}
+            />
+          );
+        }),
+      )}
     </View>
   );
 }

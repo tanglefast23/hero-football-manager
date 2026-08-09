@@ -2,7 +2,10 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../career';
 import { applyCareerEventOutcome, offerCareerEvent } from '../career-events';
 import { playerLoyalty } from '../loyalty';
-import { sessionAttributeDelta, trainingSessionPoints } from '../training-paths';
+import {
+  sessionAttributeDelta,
+  trainingSessionPoints,
+} from '../training-paths';
 import type { GameState } from '../types';
 
 /**
@@ -45,7 +48,9 @@ describe('training-session attribute effects', () => {
     expect(trainingSessionPoints(tier1, 'ref', 3)).toBe(6);
     expect(trainingSessionPoints(tier5, 'ref', 3)).toBe(33);
     // Half of what the same authored sessions pay an outfielder.
-    expect(trainingSessionPoints(careerAtTier({ sprints: 5 }), 'pac', 3)).toBe(66);
+    expect(trainingSessionPoints(careerAtTier({ sprints: 5 }), 'pac', 3)).toBe(
+      66,
+    );
   });
 
   it('treats an unbought path as tier 1 rather than as nothing', () => {
@@ -72,27 +77,52 @@ describe('the losing branch cannot gut a young player', () => {
 
   it('takes the whole session from a player who can afford it', () => {
     // Tier 5: the session is 22 and a quarter of 88 is 22, so the floor is moot.
-    expect(sessionAttributeDelta(careerAtTier({ sprints: 5 }), withPac(88), 'pac', -1)).toBe(-22);
+    expect(
+      sessionAttributeDelta(
+        careerAtTier({ sprints: 5 }),
+        withPac(88),
+        'pac',
+        -1,
+      ),
+    ).toBe(-22);
   });
 
   it('takes only a quarter from a youth who cannot', () => {
     // Same authored loss, same club: 22 points against a quarter of 35, which is 8.
-    expect(sessionAttributeDelta(careerAtTier({ sprints: 5 }), withPac(35), 'pac', -1)).toBe(-8);
+    expect(
+      sessionAttributeDelta(
+        careerAtTier({ sprints: 5 }),
+        withPac(35),
+        'pac',
+        -1,
+      ),
+    ).toBe(-8);
   });
 
   it('never binds at tier 1, where a session is small anyway', () => {
-    expect(sessionAttributeDelta(careerAtTier({}), withPac(88), 'pac', -1)).toBe(-4);
+    expect(
+      sessionAttributeDelta(careerAtTier({}), withPac(88), 'pac', -1),
+    ).toBe(-4);
   });
 
   it('leaves a gain untouched — the floor is for losses only', () => {
-    expect(sessionAttributeDelta(careerAtTier({ sprints: 5 }), withPac(35), 'pac', 3)).toBe(66);
+    expect(
+      sessionAttributeDelta(
+        careerAtTier({ sprints: 5 }),
+        withPac(35),
+        'pac',
+        3,
+      ),
+    ).toBe(66);
   });
 });
 
 describe('loyalty, condition and fame effects', () => {
   function resolveOn(effect: Record<string, number>) {
     const base = createCareer(createLaunchCareerSetup());
-    const player = base.players.find(candidate => candidate.clubId === base.userClubId)!;
+    const player = base.players.find(
+      (candidate) => candidate.clubId === base.userClubId,
+    )!;
     const resolved = applyCareerEventOutcome(
       offerCareerEvent(base, 'test-event'),
       'a-choice',
@@ -101,7 +131,7 @@ describe('loyalty, condition and fame effects', () => {
     );
     return {
       before: player,
-      after: resolved.players.find(candidate => candidate.id === player.id)!,
+      after: resolved.players.find((candidate) => candidate.id === player.id)!,
       careerSeed: base.careerSeed,
     };
   }
@@ -116,7 +146,9 @@ describe('loyalty, condition and fame effects', () => {
   });
 
   it('clamps loyalty, condition and fame at both ends', () => {
-    expect(resolveOn({ loyaltyDelta: -25 }).after.loyalty).toBeGreaterThanOrEqual(0);
+    expect(
+      resolveOn({ loyaltyDelta: -25 }).after.loyalty,
+    ).toBeGreaterThanOrEqual(0);
     expect(resolveOn({ conditionDelta: 25 }).after.condition).toBe(100);
     expect(resolveOn({ conditionDelta: -30 }).after.condition).toBe(70);
     expect(resolveOn({ fameDelta: -50 }).after.fame).toBeGreaterThanOrEqual(0);

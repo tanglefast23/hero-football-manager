@@ -129,7 +129,8 @@ import type { ScoutReport } from '../game/market';
 import { ENGINE_VERSION } from '../sim/match';
 import type { Attrs, Role } from '../sim/types';
 
-export const CLUB_BUSINESS_LONG_CAREER_POLICY_VERSION = 'production-policy-b-v2';
+export const CLUB_BUSINESS_LONG_CAREER_POLICY_VERSION =
+  'production-policy-b-v2';
 export const CLUB_BUSINESS_LONG_CAREER_MAX_SEASONS = 12;
 export const CLUB_BUSINESS_LONG_CAREER_CASH_RESERVE = 15_000;
 export const CLUB_BUSINESS_LONG_CAREER_CENSOR_POSITION = 11;
@@ -137,11 +138,12 @@ export const CLUB_BUSINESS_LONG_CAREER_CENSOR_POSITION = 11;
 const content = loadLaunchContent();
 const PRESEASON_LAST_WEEK = 4;
 const MAX_PRESEASON_SIGNINGS = 2;
-const POWER_IDS = content.powers.powers.map(power => power.id);
-const TRIGGER_IDS = content.onboarding.triggers.map(trigger => trigger.id);
+const POWER_IDS = content.powers.powers.map((power) => power.id);
+const TRIGGER_IDS = content.onboarding.triggers.map((trigger) => trigger.id);
 const AWAKENING_TUNING = {
   chancePercent: content.powers.awakening.postMatchChancePercent,
-  secondInSeasonChancePercent: content.powers.awakening.secondInSeasonChancePercent,
+  secondInSeasonChancePercent:
+    content.powers.awakening.secondInSeasonChancePercent,
   maxPerSeason: content.powers.awakening.maxPerSeason,
   minimumMatchesBetween: content.powers.awakening.minimumMatchesBetween,
 };
@@ -213,10 +215,11 @@ export const CLUB_BUSINESS_LONG_CAREER_POLICY: LongCareerPolicyDescription = {
   deskStories: 'FIRST_AVAILABLE_NON_RISKY_CHOICE',
   renewals: 'NEGOTIATE_AT_ASK_OR_RELEASE_IF_TALKS_REFUSED',
   clubLegacies: 'FAREWELL',
-  recruitment: 'first season of each newly reached division; one scout mission; up to two reported XI upgrades',
+  recruitment:
+    'first season of each newly reached division; one scout mission; up to two reported XI upgrades',
   discretionaryCashReserve: CLUB_BUSINESS_LONG_CAREER_CASH_RESERVE,
-  facilityOrder: FACILITY_PLAN.map(entry => entry.type),
-  facilityPlacements: FACILITY_PLAN.map(entry => ({
+  facilityOrder: FACILITY_PLAN.map((entry) => entry.type),
+  facilityPlacements: FACILITY_PLAN.map((entry) => ({
     type: entry.type,
     position: { ...entry.position },
   })),
@@ -242,17 +245,20 @@ export const CLUB_BUSINESS_LONG_CAREER_INPUT_MANIFEST = {
     offerLastWeek: SPONSOR_OFFER_LAST_WEEK,
     offerExpiryWeek: SPONSOR_OFFER_EXPIRY_WEEK,
     paymentWeeks: SPONSOR_PAYMENT_WEEKS,
-    representativeSeasonPortfolios: ([5, 4, 3, 2, 1] as const).flatMap(division => (
-      (['COZY', 'CHAIRMAN'] as const).map(difficulty => createSeasonSponsorship({
-        rules: content.sponsors,
-        careerSeed: 0x5a17_c0de,
-        season: 3,
-        division,
-        difficulty,
-        highestDivisionReached: division,
-        nominalAnchor: divisionSponsorAnchor(division),
-      }))
-    )),
+    representativeSeasonPortfolios: ([5, 4, 3, 2, 1] as const).flatMap(
+      (division) =>
+        (['COZY', 'CHAIRMAN'] as const).map((difficulty) =>
+          createSeasonSponsorship({
+            rules: content.sponsors,
+            careerSeed: 0x5a17_c0de,
+            season: 3,
+            division,
+            difficulty,
+            highestDivisionReached: division,
+            nominalAnchor: divisionSponsorAnchor(division),
+          }),
+        ),
+    ),
     implementation: createSeasonSponsorship.toString(),
   },
   buzzRules: {
@@ -412,7 +418,9 @@ export interface ClubBusinessLongCareerResult {
   readonly firstD1TopEight: boolean;
   /** Censors map to 11 so they count as failures in both first-D1 gates. */
   readonly firstD1GatePosition: number;
-  readonly divisionEntrySeason: Readonly<Partial<Record<DivisionLevel, number>>>;
+  readonly divisionEntrySeason: Readonly<
+    Partial<Record<DivisionLevel, number>>
+  >;
   readonly minimumObservedCash: number;
   readonly endingCash: number;
   readonly endingFans: number;
@@ -448,12 +456,11 @@ export function runClubBusinessLongCareer(
 ): ClubBusinessLongCareerResult {
   assertUint32(seed, 'long-career seed');
   let state = addCreatedPlayer(
-    beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-      seed,
-      undefined,
-      content,
-      difficulty,
-    ))),
+    beginStoryOnboarding(
+      createCareer(
+        createLaunchCareerSetup(seed, undefined, content, difficulty),
+      ),
+    ),
     {
       name: 'Long Career Probe Hero',
       ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 },
@@ -461,7 +468,9 @@ export function runClubBusinessLongCareer(
     },
   );
   if (state.difficulty !== difficulty) {
-    throw new Error(`long-career seed ${seed} lost ${difficulty} difficulty identity`);
+    throw new Error(
+      `long-career seed ${seed} lost ${difficulty} difficulty identity`,
+    );
   }
 
   const observer: RunObserver = {
@@ -477,9 +486,15 @@ export function runClubBusinessLongCareer(
   const seasons: LongCareerSeasonSummary[] = [];
   let totalTrainingDrills = 0;
 
-  for (let seasonIndex = 0; seasonIndex < CLUB_BUSINESS_LONG_CAREER_MAX_SEASONS; seasonIndex += 1) {
+  for (
+    let seasonIndex = 0;
+    seasonIndex < CLUB_BUSINESS_LONG_CAREER_MAX_SEASONS;
+    seasonIndex += 1
+  ) {
     if (state.phase !== 'manage') {
-      throw new Error(`long-career seed ${seed} began season ${state.season} in ${state.phase}`);
+      throw new Error(
+        `long-career seed ${seed} began season ${state.season} in ${state.phase}`,
+      );
     }
     const division = userDivision(state);
     const firstSeasonInDivision = !visitedDivisions.has(division);
@@ -490,7 +505,9 @@ export function runClubBusinessLongCareer(
     const openingCash = userCash(state);
     const openingFans = userFans(state);
     observer.seasonMinimumCash = openingCash;
-    const recruitment = createRecruitmentWindow(firstSeasonInDivision && division < 5);
+    const recruitment = createRecruitmentWindow(
+      firstSeasonInDivision && division < 5,
+    );
     const seasonBuzzStart = new Set(observer.buzzSettlements.keys());
     const trainingDrillsAtStart = totalTrainingDrills;
 
@@ -498,7 +515,9 @@ export function runClubBusinessLongCareer(
     while (state.phase !== 'season-end') {
       guard += 1;
       if (guard > 420) {
-        throw new Error(`long-career seed ${seed} exceeded the season-${state.season} transition guard`);
+        throw new Error(
+          `long-career seed ${seed} exceeded the season-${state.season} transition guard`,
+        );
       }
       if (state.phase === 'manage') {
         // Mirror the player-facing order: any modal lesson is read, this
@@ -512,24 +531,31 @@ export function runClubBusinessLongCareer(
         state = chooseManagedHeroLicenses(state);
         state = signBalancedSponsorOffers(state);
 
-        if (recruitment.eligible && !recruitment.scoutStarted && !recruitment.signingResolved) {
+        if (
+          recruitment.eligible &&
+          !recruitment.scoutStarted &&
+          !recruitment.signingResolved
+        ) {
           state = openRecruitmentWindow(state, recruitment);
         }
         if (recruitment.eligible && state.week <= PRESEASON_LAST_WEEK) {
           state = tryCompleteRecruitment(state, recruitment);
         }
-        if (recruitment.eligible
-          && !recruitment.signingResolved
-          && state.week > PRESEASON_LAST_WEEK) {
+        if (
+          recruitment.eligible &&
+          !recruitment.signingResolved &&
+          state.week > PRESEASON_LAST_WEEK
+        ) {
           recruitment.signingResolved = true;
           recruitment.stopReason = 'SCOUT_INCOMPLETE';
         }
 
         // Keep transfer-window cash liquid until the one new-division mission
         // resolves, then resume the same capital plan used in every season.
-        const recruitmentPending = recruitment.eligible
-          && state.week <= PRESEASON_LAST_WEEK
-          && !recruitment.signingResolved;
+        const recruitmentPending =
+          recruitment.eligible &&
+          state.week <= PRESEASON_LAST_WEEK &&
+          !recruitment.signingResolved;
         if (!recruitmentPending) {
           state = advanceFacilityPlan(state);
           state = buyManagedDrillUpgrades(state);
@@ -537,11 +563,18 @@ export function runClubBusinessLongCareer(
         const training = trainManagedCore(state);
         state = training.state;
         totalTrainingDrills += training.drills;
-        if (training.drills > 0
-          && !hasAssistantGuideMilestone(state, 'first-training-complete')) {
-          state = completeAssistantGuideMilestone(state, 'first-training-complete');
+        if (
+          training.drills > 0 &&
+          !hasAssistantGuideMilestone(state, 'first-training-complete')
+        ) {
+          state = completeAssistantGuideMilestone(
+            state,
+            'first-training-complete',
+          );
         }
-        state = readManagedInboxCards(reconcileSatisfiedAssistantGuideSequences(state));
+        state = readManagedInboxCards(
+          reconcileSatisfiedAssistantGuideSequences(state),
+        );
         assertPlayerReachableAdvance(state);
         observeState(state, observer);
         const beforeAdvance = state;
@@ -553,9 +586,14 @@ export function runClubBusinessLongCareer(
             { cause: error },
           );
         }
-        if (state.week !== beforeAdvance.week
-          && hasAssistantGuideMilestone(beforeAdvance, 'first-training-complete')
-          && !hasAssistantGuideMilestone(state, 'first-week-advanced')) {
+        if (
+          state.week !== beforeAdvance.week &&
+          hasAssistantGuideMilestone(
+            beforeAdvance,
+            'first-training-complete',
+          ) &&
+          !hasAssistantGuideMilestone(state, 'first-week-advanced')
+        ) {
           state = completeAssistantGuideMilestone(state, 'first-week-advanced');
         }
         observeState(state, observer);
@@ -566,7 +604,9 @@ export function runClubBusinessLongCareer(
         observeState(state, observer);
         continue;
       }
-      throw new Error(`long-career seed ${seed} entered unsupported phase ${state.phase}`);
+      throw new Error(
+        `long-career seed ${seed} entered unsupported phase ${state.phase}`,
+      );
     }
 
     if (recruitment.eligible && !recruitment.signingResolved) {
@@ -582,8 +622,9 @@ export function runClubBusinessLongCareer(
       seasonMinimumCash: observer.seasonMinimumCash,
       recruitment,
       trainingDrills: totalTrainingDrills - trainingDrillsAtStart,
-      boardUltimatumsIssued: [...observer.ultimatumSeasonById.values()]
-        .filter(issuedSeason => issuedSeason === state.season).length,
+      boardUltimatumsIssued: [...observer.ultimatumSeasonById.values()].filter(
+        (issuedSeason) => issuedSeason === state.season,
+      ).length,
       buzzSettlements: [...observer.buzzSettlements.entries()]
         .filter(([key]) => !seasonBuzzStart.has(key))
         .map(([, summary]) => summary),
@@ -593,32 +634,58 @@ export function runClubBusinessLongCareer(
     // "First D1" means the season has actually completed. Reaching its opening
     // screen is not enough to claim the survival gate.
     if (division === 1) {
-      return buildRunResult(state, seed, difficulty, seasons, divisionEntrySeason, observer, false);
+      return buildRunResult(
+        state,
+        seed,
+        difficulty,
+        seasons,
+        divisionEntrySeason,
+        observer,
+        false,
+      );
     }
     if (seasonIndex + 1 === CLUB_BUSINESS_LONG_CAREER_MAX_SEASONS) break;
     state = renewExpiringPlayers(state);
-    state = resolveManagedClubLegacies(reconcilePendingClubLegends(startNextSeason(state)));
+    state = resolveManagedClubLegacies(
+      reconcilePendingClubLegends(startNextSeason(state)),
+    );
     observeState(state, observer);
   }
 
-  return buildRunResult(state, seed, difficulty, seasons, divisionEntrySeason, observer, true);
+  return buildRunResult(
+    state,
+    seed,
+    difficulty,
+    seasons,
+    divisionEntrySeason,
+    observer,
+    true,
+  );
 }
 
 function readManagedOverlayLesson(state: GameState): GameState {
   const sequenceId = pendingAssistantGuideSequence(state, 'home');
-  return sequenceId === null ? state : completeAssistantGuideSequence(state, sequenceId);
+  return sequenceId === null
+    ? state
+    : completeAssistantGuideSequence(state, sequenceId);
 }
 
 /** Reads only cards the production inbox actually delivered this week. */
 function readManagedInboxCards(state: GameState): GameState {
-  let next = reconcileHomeAssistantInbox(reconcileSatisfiedAssistantGuideSequences(state));
-  const delivered = homeViewModel(next).alerts
-    .map(alert => alert.guideSequenceId)
-    .filter((sequenceId): sequenceId is NonNullable<typeof sequenceId> => sequenceId !== undefined);
+  let next = reconcileHomeAssistantInbox(
+    reconcileSatisfiedAssistantGuideSequences(state),
+  );
+  const delivered = homeViewModel(next)
+    .alerts.map((alert) => alert.guideSequenceId)
+    .filter(
+      (sequenceId): sequenceId is NonNullable<typeof sequenceId> =>
+        sequenceId !== undefined,
+    );
   for (const sequenceId of delivered) {
     // These two cards point at real opening jobs. The manager completes them
     // in the world below; merely reading copy must not make a duty disappear.
-    if (sequenceId === 'coaching-office' || sequenceId === 'youth-intake') continue;
+    if (sequenceId === 'coaching-office' || sequenceId === 'youth-intake')
+      continue;
     next = completeAssistantGuideSequence(next, sequenceId);
   }
   return reconcileSatisfiedAssistantGuideSequences(next);
@@ -629,15 +696,25 @@ function resolveManagedDeskStory(state: GameState): GameState {
   let guard = 0;
   while (next.pendingEvent !== undefined) {
     guard += 1;
-    if (guard > 20) throw new Error('long-career story chain exceeded 20 authored events');
+    if (guard > 20)
+      throw new Error('long-career story chain exceeded 20 authored events');
     const pending = next.pendingEvent;
-    const event = content.events.events.find(candidate => candidate.id === pending.eventId);
-    if (event === undefined) throw new Error(`long-career desk offered unknown event ${pending.eventId}`);
+    const event = content.events.events.find(
+      (candidate) => candidate.id === pending.eventId,
+    );
+    if (event === undefined)
+      throw new Error(
+        `long-career desk offered unknown event ${pending.eventId}`,
+      );
 
     if (pending.resolvedChoiceId === undefined) {
-      if (event.trigger.requiresPlayer === true && pending.selectedPlayerId === undefined) {
+      if (
+        event.trigger.requiresPlayer === true &&
+        pending.selectedPlayerId === undefined
+      ) {
         const selected = careerEventTargetCandidates(next, event).playerIds[0];
-        if (selected === undefined) throw new Error(`event ${event.id} has no eligible user player`);
+        if (selected === undefined)
+          throw new Error(`event ${event.id} has no eligible user player`);
         next = selectCareerEventPlayer(next, selected);
       }
       /**
@@ -646,20 +723,37 @@ function resolveManagedDeskStory(state: GameState): GameState {
        * reports a number. Head coach first, then assistant; lowest building id
        * among the types the story admits, so the choice is deterministic.
        */
-      if (event.trigger.requiresCoach === true && pending.selectedCoachRole === undefined) {
+      if (
+        event.trigger.requiresCoach === true &&
+        pending.selectedCoachRole === undefined
+      ) {
         const role = careerEventTargetCandidates(next, event).coachRoles[0];
-        if (role === undefined) throw new Error(`event ${event.id} has no eligible coach`);
+        if (role === undefined)
+          throw new Error(`event ${event.id} has no eligible coach`);
         next = selectCareerEventCoach(next, role);
       }
-      if (event.trigger.requiresFacility !== undefined && pending.selectedFacilityId === undefined) {
-        const buildingId = careerEventTargetCandidates(next, event).facilityIds[0];
-        if (buildingId === undefined) throw new Error(`event ${event.id} has no operational building`);
+      if (
+        event.trigger.requiresFacility !== undefined &&
+        pending.selectedFacilityId === undefined
+      ) {
+        const buildingId = careerEventTargetCandidates(next, event)
+          .facilityIds[0];
+        if (buildingId === undefined)
+          throw new Error(`event ${event.id} has no operational building`);
         next = selectCareerEventFacility(next, buildingId);
       }
-      const choice = event.choices.find(candidate => (
-        candidate.risky !== true && eventChoiceUnavailableReason(next, candidate) === undefined
-      )) ?? event.choices.find(candidate => eventChoiceUnavailableReason(next, candidate) === undefined);
-      if (choice === undefined) throw new Error(`event ${event.id} has no available production choice`);
+      const choice =
+        event.choices.find(
+          (candidate) =>
+            candidate.risky !== true &&
+            eventChoiceUnavailableReason(next, candidate) === undefined,
+        ) ??
+        event.choices.find(
+          (candidate) =>
+            eventChoiceUnavailableReason(next, candidate) === undefined,
+        );
+      if (choice === undefined)
+        throw new Error(`event ${event.id} has no available production choice`);
       const guided = next.eventFlags.includes('m4:event-guide-seen')
         ? next
         : { ...next, eventFlags: [...next.eventFlags, 'm4:event-guide-seen'] };
@@ -680,23 +774,32 @@ function resolveManagedDeskStory(state: GameState): GameState {
 
 function hireCheapestAffordableHeadCoach(state: GameState): GameState {
   const market = state.market;
-  if (market === undefined) throw new Error('long-career coach policy has no career market');
+  if (market === undefined)
+    throw new Error('long-career coach policy has no career market');
   if (market.headCoach !== undefined) return state;
-  const candidates = market.coachCandidates.slice().sort((left, right) => (
-    left.weeklyWage - right.weeklyWage
-    || left.id.localeCompare(right.id)
-  ));
+  const candidates = market.coachCandidates
+    .slice()
+    .sort(
+      (left, right) =>
+        left.weeklyWage - right.weeklyWage || left.id.localeCompare(right.id),
+    );
   for (const candidate of candidates) {
     try {
-      return { ...state, market: hireCareerCoach(state, market, candidate.id, 'HEAD') };
+      return {
+        ...state,
+        market: hireCareerCoach(state, market, candidate.id, 'HEAD'),
+      };
     } catch (error) {
       if (!(error instanceof Error)) throw error;
       if (error.message.includes('is not eligible')) continue;
-      if (error.message === 'the club cannot cover the coach weekly wage') break;
+      if (error.message === 'the club cannot cover the coach weekly wage')
+        break;
       throw error;
     }
   }
-  throw new Error('long-career policy found no affordable eligible head coach before advance');
+  throw new Error(
+    'long-career policy found no affordable eligible head coach before advance',
+  );
 }
 
 function resolveManagedYouthDuty(state: GameState): GameState {
@@ -708,7 +811,9 @@ function resolveManagedYouthDuty(state: GameState): GameState {
 
 function assertPlayerReachableAdvance(state: GameState): void {
   if (state.pendingEvent !== undefined) {
-    throw new Error(`long-career season ${state.season} week ${state.week} left a desk story unresolved`);
+    throw new Error(
+      `long-career season ${state.season} week ${state.week} left a desk story unresolved`,
+    );
   }
   const duties = outstandingInboxDuties(state);
   if (duties.length > 0) {
@@ -718,18 +823,24 @@ function assertPlayerReachableAdvance(state: GameState): void {
   }
   if (state.season !== 1 || state.week !== 1) return;
   if (!hasAssistantGuideMilestone(state, 'intro-complete')) {
-    throw new Error('long-career opening did not complete Bert management intro');
+    throw new Error(
+      'long-career opening did not complete Bert management intro',
+    );
   }
   if (!hasAssistantGuideMilestone(state, 'first-training-complete')) {
-    throw new Error('long-career opening did not perform the required first training');
+    throw new Error(
+      'long-career opening did not perform the required first training',
+    );
   }
   if (state.market?.headCoach === undefined) {
     throw new Error('long-career opening did not hire a head coach');
   }
-  const trainingGroundStarted = state.facilities.trainingGroundBuilt
-    || (state.facilities.grid?.construction?.kind === 'BUILD'
-      && state.facilities.grid.construction.type === 'training-pitch');
-  if (!trainingGroundStarted) throw new Error('long-career opening did not start the Training Pitch');
+  const trainingGroundStarted =
+    state.facilities.trainingGroundBuilt ||
+    (state.facilities.grid?.construction?.kind === 'BUILD' &&
+      state.facilities.grid.construction.type === 'training-pitch');
+  if (!trainingGroundStarted)
+    throw new Error('long-career opening did not start the Training Pitch');
 }
 
 function resolveManagedClubLegacies(state: GameState): GameState {
@@ -737,7 +848,8 @@ function resolveManagedClubLegacies(state: GameState): GameState {
   let guard = 0;
   while (nextPendingClubLegend(next) !== undefined) {
     guard += 1;
-    if (guard > 100) throw new Error('long-career club-legacy queue exceeded 100 players');
+    if (guard > 100)
+      throw new Error('long-career club-legacy queue exceeded 100 players');
     next = resolveNextClubLegendLegacy(next, 'farewell').state;
   }
   return next;
@@ -758,17 +870,24 @@ function createRecruitmentWindow(eligible: boolean): RecruitmentWindow {
   };
 }
 
-function openRecruitmentWindow(state: GameState, window: RecruitmentWindow): GameState {
+function openRecruitmentWindow(
+  state: GameState,
+  window: RecruitmentWindow,
+): GameState {
   const market = state.market;
-  if (market === undefined) throw new Error('long-career recruitment has no transfer market');
+  if (market === undefined)
+    throw new Error('long-career recruitment has no transfer market');
   const focusRole = weakestStartingRole(state);
   const selected = careerMarketScoutOptions(state)
     .slice()
-    .sort((left, right) => (
-      scoutPriority(left.focus, focusRole) - scoutPriority(right.focus, focusRole)
-      || left.id.localeCompare(right.id)
-    ))[0];
-  if (selected === undefined) throw new Error('long-career recruitment has no production scouting brief');
+    .sort(
+      (left, right) =>
+        scoutPriority(left.focus, focusRole) -
+          scoutPriority(right.focus, focusRole) ||
+        left.id.localeCompare(right.id),
+    )[0];
+  if (selected === undefined)
+    throw new Error('long-career recruitment has no production scouting brief');
   let mission: ReturnType<typeof startCareerScoutMission>;
   try {
     mission = startCareerScoutMission(
@@ -779,7 +898,10 @@ function openRecruitmentWindow(state: GameState, window: RecruitmentWindow): Gam
       userDivision(state),
     );
   } catch (error) {
-    if (error instanceof Error && error.message === 'the scouting mission is not affordable') {
+    if (
+      error instanceof Error &&
+      error.message === 'the scouting mission is not affordable'
+    ) {
       window.signingResolved = true;
       window.scoutBriefId = selected.id;
       window.stopReason = 'CASH_RESERVE';
@@ -804,28 +926,35 @@ function scoutPriority(
   weakestRole: Role,
 ): number {
   if (focus.kind === 'POSITION' && focus.role === weakestRole) return 0;
-  if (focus.kind === 'AGE' && focus.minimumAge >= 22 && focus.maximumAge <= 29) return 1;
+  if (focus.kind === 'AGE' && focus.minimumAge >= 22 && focus.maximumAge <= 29)
+    return 1;
   if (focus.kind === 'POSITION') return 2;
   return 3;
 }
 
-function tryCompleteRecruitment(state: GameState, window: RecruitmentWindow): GameState {
+function tryCompleteRecruitment(
+  state: GameState,
+  window: RecruitmentWindow,
+): GameState {
   if (window.signingResolved || !window.scoutStarted) return state;
   let next = state;
   const initialMarket = next.market;
-  if (initialMarket === undefined) throw new Error('long-career recruitment lost its market');
+  if (initialMarket === undefined)
+    throw new Error('long-career recruitment lost its market');
   if (initialMarket.activeScoutMission !== undefined) return state;
   window.scoutReports = initialMarket.scoutReports.length;
   window.signingResolved = true;
 
   for (let signing = 0; signing < MAX_PRESEASON_SIGNINGS; signing += 1) {
     const market = next.market;
-    if (market === undefined) throw new Error('long-career signing lost its market');
+    if (market === undefined)
+      throw new Error('long-career signing lost its market');
     if (market.scoutReports.length === 0) {
       window.stopReason = window.signings === 0 ? 'NO_REPORTS' : 'MAX_SIGNINGS';
       return next;
     }
-    const rosterFull = userCareerRosterCount(next) >= careerRosterCapacity(next);
+    const rosterFull =
+      userCareerRosterCount(next) >= careerRosterCapacity(next);
     const previewSale = sellManagedReserve(next, market);
     if (rosterFull && previewSale === undefined) {
       window.stopReason = 'NO_RESERVE_SALE';
@@ -833,28 +962,35 @@ function tryCompleteRecruitment(state: GameState, window: RecruitmentWindow): Ga
     }
     const spendableCash = Math.max(
       0,
-      userCash(previewSale?.state ?? next) - CLUB_BUSINESS_LONG_CAREER_CASH_RESERVE,
+      userCash(previewSale?.state ?? next) -
+        CLUB_BUSINESS_LONG_CAREER_CASH_RESERVE,
     );
     const eligible = market.scoutReports
-      .map(report => signingCandidate(next, market, report))
-      .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== undefined);
+      .map((report) => signingCandidate(next, market, report))
+      .filter(
+        (candidate): candidate is NonNullable<typeof candidate> =>
+          candidate !== undefined,
+      );
     if (eligible.length === 0) {
       window.stopReason = 'NO_ELIGIBLE_ORDINARY_TARGETS';
       return next;
     }
-    const upgrades = eligible.filter(candidate => candidate.reportedUpgrade > 0);
+    const upgrades = eligible.filter(
+      (candidate) => candidate.reportedUpgrade > 0,
+    );
     if (upgrades.length === 0) {
       window.stopReason = 'NO_REPORTED_UPGRADES';
       return next;
     }
     const selected = upgrades
-      .filter(candidate => candidate.fee <= spendableCash)
-      .sort((left, right) => (
-        right.reportedUpgrade - left.reportedUpgrade
-        || right.reportedPotential - left.reportedPotential
-        || left.fee - right.fee
-        || left.report.playerId.localeCompare(right.report.playerId)
-      ))[0];
+      .filter((candidate) => candidate.fee <= spendableCash)
+      .sort(
+        (left, right) =>
+          right.reportedUpgrade - left.reportedUpgrade ||
+          right.reportedPotential - left.reportedPotential ||
+          left.fee - right.fee ||
+          left.report.playerId.localeCompare(right.report.playerId),
+      )[0];
     if (selected === undefined) {
       window.stopReason = 'NO_AFFORDABLE_UPGRADES';
       return next;
@@ -878,7 +1014,8 @@ function tryCompleteRecruitment(state: GameState, window: RecruitmentWindow): Ga
     window.transferSpend += selected.fee;
     next = { ...completed.state, market: completed.market };
     window.signings += 1;
-    window.reportedStartingElevenGain += startingElevenStrength(next) - beforeStrength;
+    window.reportedStartingElevenGain +=
+      startingElevenStrength(next) - beforeStrength;
   }
   window.stopReason = 'MAX_SIGNINGS';
   return next;
@@ -890,75 +1027,107 @@ function sellManagedReserve(
 ) {
   const lineupIds = new Set(userLineupIds(state));
   const reserve = state.players
-    .filter(player => (
-      player.clubId === state.userClubId
-      && !lineupIds.has(player.id)
-      && player.role !== 'GK'
-      && player.power === undefined
-      && player.contractPromise === undefined
-    ))
-    .sort((left, right) => (
-      roleOverall(left.role, left.attrs) - roleOverall(right.role, right.attrs)
-      || left.id.localeCompare(right.id)
-    ))[0];
+    .filter(
+      (player) =>
+        player.clubId === state.userClubId &&
+        !lineupIds.has(player.id) &&
+        player.role !== 'GK' &&
+        player.power === undefined &&
+        player.contractPromise === undefined,
+    )
+    .sort(
+      (left, right) =>
+        roleOverall(left.role, left.attrs) -
+          roleOverall(right.role, right.attrs) ||
+        left.id.localeCompare(right.id),
+    )[0];
   if (reserve === undefined) return undefined;
   const buyer = state.clubs
-    .filter(club => club.id !== state.userClubId)
-    .sort((left, right) => right.cash - left.cash || left.id.localeCompare(right.id))[0];
-  if (buyer === undefined) throw new Error('long-career recruitment has no transfer buyer');
-  return sellCareerPlayer(state, market, reserve.id, buyer.id, userDivision(state));
+    .filter((club) => club.id !== state.userClubId)
+    .sort(
+      (left, right) =>
+        right.cash - left.cash || left.id.localeCompare(right.id),
+    )[0];
+  if (buyer === undefined)
+    throw new Error('long-career recruitment has no transfer buyer');
+  return sellCareerPlayer(
+    state,
+    market,
+    reserve.id,
+    buyer.id,
+    userDivision(state),
+  );
 }
 
 function signingCandidate(
   state: GameState,
   market: NonNullable<GameState['market']>,
   report: ScoutReport,
-): {
-  readonly report: ScoutReport;
-  readonly market: NonNullable<GameState['market']>;
-  readonly fee: number;
-  readonly weeklyAsk: number;
-  readonly termSeasons: 1 | 2;
-  readonly reportedUpgrade: number;
-  readonly reportedPotential: number;
-} | undefined {
-  const target = careerTransferTarget(state, report.playerId, userDivision(state));
+):
+  | {
+      readonly report: ScoutReport;
+      readonly market: NonNullable<GameState['market']>;
+      readonly fee: number;
+      readonly weeklyAsk: number;
+      readonly termSeasons: 1 | 2;
+      readonly reportedUpgrade: number;
+      readonly reportedPotential: number;
+    }
+  | undefined {
+  const target = careerTransferTarget(
+    state,
+    report.playerId,
+    userDivision(state),
+  );
   const player = target?.player;
   if (player === undefined || player.power !== undefined) return undefined;
   const weakest = weakestStarterForRole(state, report.role);
   if (weakest === undefined) return undefined;
   const maxTerm = maxSigningTermSeasons(player, state.careerSeed);
   if (maxTerm < 1) return undefined;
-  const candidateMarket = beginCareerTransferTalks(state, market, report.playerId);
+  const candidateMarket = beginCareerTransferTalks(
+    state,
+    market,
+    report.playerId,
+  );
   const talks = candidateMarket.transferTalks;
-  if (talks === undefined) throw new Error('long-career transfer talks did not open');
+  if (talks === undefined)
+    throw new Error('long-career transfer talks did not open');
   return {
     report,
     market: candidateMarket,
     fee: talks.transferQuote.fee,
     weeklyAsk: talks.negotiation.weeklyAsk,
     termSeasons: maxTerm >= 2 ? 2 : 1,
-    reportedUpgrade: reportedOverall(report) - roleOverall(weakest.role, weakest.attrs),
-    reportedPotential: (report.potentialRange.minimum + report.potentialRange.maximum) / 2,
+    reportedUpgrade:
+      reportedOverall(report) - roleOverall(weakest.role, weakest.attrs),
+    reportedPotential:
+      (report.potentialRange.minimum + report.potentialRange.maximum) / 2,
   };
 }
 
 function signBalancedSponsorOffers(state: GameState): GameState {
   const current = state.clubBusiness.sponsorship;
-  if (state.week > PRESEASON_LAST_WEEK || current.offers.length === 0) return state;
+  if (state.week > PRESEASON_LAST_WEEK || current.offers.length === 0)
+    return state;
   let sponsorship = current;
   const provisionalSlots = sponsorship.activeContracts
-    .filter(contract => contract.season === state.season && contract.provisional)
-    .map(contract => contract.slot)
+    .filter(
+      (contract) => contract.season === state.season && contract.provisional,
+    )
+    .map((contract) => contract.slot)
     .sort((left, right) => left - right);
   for (const slot of provisionalSlots) {
-    const offer = sponsorship.offers.find(candidate => (
-      candidate.season === state.season
-      && candidate.slot === slot
-      && candidate.profile === 'BALANCED'
-    ));
+    const offer = sponsorship.offers.find(
+      (candidate) =>
+        candidate.season === state.season &&
+        candidate.slot === slot &&
+        candidate.profile === 'BALANCED',
+    );
     if (offer === undefined) {
-      throw new Error(`season ${state.season} sponsor slot ${slot} has no BALANCED offer`);
+      throw new Error(
+        `season ${state.season} sponsor slot ${slot} has no BALANCED offer`,
+      );
     }
     sponsorship = acceptSponsorOffer(sponsorship, {
       offerId: offer.offerId,
@@ -980,33 +1149,51 @@ function signBalancedSponsorOffers(state: GameState): GameState {
 function advanceFacilityPlan(state: GameState): GameState {
   const grid = state.facilities.grid;
   if (grid === undefined || grid.construction !== undefined) return state;
-  const pitch = grid.buildings.find(building => building.type === 'training-pitch');
-  if (pitch === undefined) return buildRequiredFacility(state, FACILITY_PLAN[0]);
-  const office = grid.buildings.find(building => building.type === 'coaching-office');
-  if (office === undefined) return buildRequiredFacility(state, FACILITY_PLAN[1]);
+  const pitch = grid.buildings.find(
+    (building) => building.type === 'training-pitch',
+  );
+  if (pitch === undefined)
+    return buildRequiredFacility(state, FACILITY_PLAN[0]);
+  const office = grid.buildings.find(
+    (building) => building.type === 'coaching-office',
+  );
+  if (office === undefined)
+    return buildRequiredFacility(state, FACILITY_PLAN[1]);
   if (pitch.level < 2) return tryFacilityUpgrade(state, pitch.id);
 
   for (const entry of FACILITY_PLAN.slice(2)) {
-    if (!grid.buildings.some(building => building.type === entry.type)) {
+    if (!grid.buildings.some((building) => building.type === entry.type)) {
       return tryFacilityBuild(state, entry);
     }
   }
   for (const targetLevel of [2, 3] as const) {
-    for (const entry of FACILITY_PLAN.filter(candidate => candidate.type !== 'coaching-office')) {
-      const building = grid.buildings.find(candidate => candidate.type === entry.type);
-      if (building === undefined) throw new Error(`facility plan lost ${entry.type}`);
-      if (building.level < targetLevel) return tryFacilityUpgrade(state, building.id);
+    for (const entry of FACILITY_PLAN.filter(
+      (candidate) => candidate.type !== 'coaching-office',
+    )) {
+      const building = grid.buildings.find(
+        (candidate) => candidate.type === entry.type,
+      );
+      if (building === undefined)
+        throw new Error(`facility plan lost ${entry.type}`);
+      if (building.level < targetLevel)
+        return tryFacilityUpgrade(state, building.id);
     }
   }
   return state;
 }
 
-function buildRequiredFacility(state: GameState, entry: FacilityPlanEntry): GameState {
+function buildRequiredFacility(
+  state: GameState,
+  entry: FacilityPlanEntry,
+): GameState {
   if (userCash(state) < FACILITY_CATALOG[entry.type].buildCost) return state;
   return buildCareerFacility(state, entry.type, entry.position).state;
 }
 
-function tryFacilityBuild(state: GameState, entry: FacilityPlanEntry): GameState {
+function tryFacilityBuild(
+  state: GameState,
+  entry: FacilityPlanEntry,
+): GameState {
   try {
     const transaction = buildCareerFacility(state, entry.type, entry.position);
     return userCash(transaction.state) < CLUB_BUSINESS_LONG_CAREER_CASH_RESERVE
@@ -1033,23 +1220,35 @@ function buyManagedDrillUpgrades(state: GameState): GameState {
   for (const pathId of MANAGED_DRILL_PATHS) {
     const offer = nextTrainingUpgradeOffer(next, pathId);
     if (offer === undefined || offer.blockedReason !== undefined) continue;
-    if (userCash(next) - offer.cost < CLUB_BUSINESS_LONG_CAREER_CASH_RESERVE) continue;
+    if (userCash(next) - offer.cost < CLUB_BUSINESS_LONG_CAREER_CASH_RESERVE)
+      continue;
     next = purchaseCareerTrainingUpgrade(next, pathId).state;
   }
   return next;
 }
 
-function trainManagedCore(state: GameState): { state: GameState; drills: number } {
+function trainManagedCore(state: GameState): {
+  state: GameState;
+  drills: number;
+} {
   const starters = userLineupIds(state)
-    .map(id => state.players.find(player => player.id === id))
-    .filter((player): player is CareerPlayer => player !== undefined && player.injuryWeeks === 0);
+    .map((id) => state.players.find((player) => player.id === id))
+    .filter(
+      (player): player is CareerPlayer =>
+        player !== undefined && player.injuryWeeks === 0,
+    );
   const core = (['GK', 'DEF', 'MID', 'FWD'] as const)
-    .map(role => starters
-      .filter(player => player.role === role)
-      .sort((left, right) => (
-        roleOverall(right.role, right.attrs) - roleOverall(left.role, left.attrs)
-        || left.id.localeCompare(right.id)
-      ))[0])
+    .map(
+      (role) =>
+        starters
+          .filter((player) => player.role === role)
+          .sort(
+            (left, right) =>
+              roleOverall(right.role, right.attrs) -
+                roleOverall(left.role, left.attrs) ||
+              left.id.localeCompare(right.id),
+          )[0],
+    )
     .filter((player): player is CareerPlayer => player !== undefined);
   const pathByAttribute = {
     pac: 'sprints',
@@ -1066,13 +1265,17 @@ function trainManagedCore(state: GameState): { state: GameState; drills: number 
   let drills = 0;
   for (let index = 0; index < order.length; index += 1) {
     const player = order[index];
-    const attributes = player.role === 'GK'
-      ? (['ref'] as const)
-      : POSITION_TRAINING_ATTRIBUTES[player.role];
-    const attribute = attributes[(state.season * 30 + state.week + index) % attributes.length];
-    if (player.attrs[attribute] >= playerAttributeCaps(player)[attribute]) continue;
+    const attributes =
+      player.role === 'GK'
+        ? (['ref'] as const)
+        : POSITION_TRAINING_ATTRIBUTES[player.role];
+    const attribute =
+      attributes[(state.season * 30 + state.week + index) % attributes.length];
+    if (player.attrs[attribute] >= playerAttributeCaps(player)[attribute])
+      continue;
     const pathId = pathByAttribute[attribute];
-    if (resolveTrainingDrillForPath(next, pathId).tpCost > next.trainingPoints) continue;
+    if (resolveTrainingDrillForPath(next, pathId).tpCost > next.trainingPoints)
+      continue;
     try {
       next = trainPlayerInstantly(next, player.id, pathId).state;
       drills += 1;
@@ -1088,7 +1291,10 @@ function trainManagedCore(state: GameState): { state: GameState; drills: number 
 function chooseManagedHeroLicenses(state: GameState): GameState {
   const lineupIds = new Set(userLineupIds(state));
   const selectedHeroIds = state.players
-    .filter(player => player.clubId === state.userClubId && player.power !== undefined)
+    .filter(
+      (player) =>
+        player.clubId === state.userClubId && player.power !== undefined,
+    )
     .slice()
     .sort((left, right) => {
       const leftPromise = hasActiveStartingPromise(left);
@@ -1097,39 +1303,48 @@ function chooseManagedHeroLicenses(state: GameState): GameState {
       const leftStarts = lineupIds.has(left.id);
       const rightStarts = lineupIds.has(right.id);
       if (leftStarts !== rightStarts) return leftStarts ? -1 : 1;
-      return roleOverall(right.role, right.attrs) - roleOverall(left.role, left.attrs)
-        || left.id.localeCompare(right.id);
+      return (
+        roleOverall(right.role, right.attrs) -
+          roleOverall(left.role, left.attrs) || left.id.localeCompare(right.id)
+      );
     })
     .slice(0, careerHeroLimit(state))
-    .map(player => player.id);
+    .map((player) => player.id);
   let next = restoreCareerContractPromiseLineup(
     selectCareerLicensedHeroes(state, selectedHeroIds),
   );
-  const playerById = new Map(next.players.map(player => [player.id, player]));
+  const playerById = new Map(next.players.map((player) => [player.id, player]));
   const lineup = [...userLineupIds(next)];
   const selected = new Set(lineup);
   for (let slot = 0; slot < lineup.length; slot += 1) {
     const starter = playerById.get(lineup[slot]);
-    if (starter === undefined) throw new Error(`long-career lineup lost player ${lineup[slot]}`);
+    if (starter === undefined)
+      throw new Error(`long-career lineup lost player ${lineup[slot]}`);
     if (starter.power === undefined || starter.licensed) continue;
     selected.delete(starter.id);
     const eligible = next.players
-      .filter(candidate => (
-        candidate.clubId === next.userClubId
-        && !selected.has(candidate.id)
-        && candidate.injuryWeeks === 0
-        && !(candidate.power !== undefined && !candidate.licensed)
-        && (slot === 0 ? candidate.role === 'GK' : candidate.role !== 'GK')
-      ))
+      .filter(
+        (candidate) =>
+          candidate.clubId === next.userClubId &&
+          !selected.has(candidate.id) &&
+          candidate.injuryWeeks === 0 &&
+          !(candidate.power !== undefined && !candidate.licensed) &&
+          (slot === 0 ? candidate.role === 'GK' : candidate.role !== 'GK'),
+      )
       .sort((left, right) => {
         const leftRolePenalty = left.role === starter.role ? 0 : 1;
         const rightRolePenalty = right.role === starter.role ? 0 : 1;
-        return leftRolePenalty - rightRolePenalty
-          || roleOverall(right.role, right.attrs) - roleOverall(left.role, left.attrs)
-          || left.id.localeCompare(right.id);
+        return (
+          leftRolePenalty - rightRolePenalty ||
+          roleOverall(right.role, right.attrs) -
+            roleOverall(left.role, left.attrs) ||
+          left.id.localeCompare(right.id)
+        );
       })[0];
     if (eligible === undefined) {
-      throw new Error(`unlicensed long-career hero ${starter.id} has no eligible replacement`);
+      throw new Error(
+        `unlicensed long-career hero ${starter.id} has no eligible replacement`,
+      );
     }
     lineup[slot] = eligible.id;
     selected.add(eligible.id);
@@ -1138,23 +1353,27 @@ function chooseManagedHeroLicenses(state: GameState): GameState {
 }
 
 function hasActiveStartingPromise(player: CareerPlayer): boolean {
-  return hasActiveCareerContractPromise(player)
-    && (player.contractPromise?.perk === 'GUARANTEED_STARTER'
-      || player.contractPromise?.perk === 'CAPTAINCY');
+  return (
+    hasActiveCareerContractPromise(player) &&
+    (player.contractPromise?.perk === 'GUARANTEED_STARTER' ||
+      player.contractPromise?.perk === 'CAPTAINCY')
+  );
 }
 
 function settleProductionMatchday(state: GameState): GameState {
   const matchday = activeCareerMatchday(state);
-  if (matchday === undefined) throw new Error('long-career matchday has no active fixture');
+  if (matchday === undefined)
+    throw new Error('long-career matchday has no active fixture');
   const fixture = matchday.fixture;
-  const teams = buildCareerMatchTeams(
-    state,
-    [...new Set(matchday.fixtures.flatMap(candidate => [
-      candidate.homeClubId,
-      candidate.awayClubId,
-    ]))],
-  );
-  const quickMatches = matchday.fixtures.map(candidate => ({
+  const teams = buildCareerMatchTeams(state, [
+    ...new Set(
+      matchday.fixtures.flatMap((candidate) => [
+        candidate.homeClubId,
+        candidate.awayClubId,
+      ]),
+    ),
+  ]);
+  const quickMatches = matchday.fixtures.map((candidate) => ({
     fixture: candidate,
     quick: quickMatchForFixture(
       candidate,
@@ -1168,13 +1387,17 @@ function settleProductionMatchday(state: GameState): GameState {
         : undefined,
     ),
   }));
-  const userQuick = quickMatches.find(candidate => candidate.fixture.id === fixture.id)?.quick;
+  const userQuick = quickMatches.find(
+    (candidate) => candidate.fixture.id === fixture.id,
+  )?.quick;
   if (userQuick?.production === undefined) {
-    throw new Error('long-career Quick Result did not produce user match facts');
+    throw new Error(
+      'long-career Quick Result did not produce user match facts',
+    );
   }
   const settled = completeMatchday(
     state,
-    quickMatches.map(candidate => candidate.quick.result),
+    quickMatches.map((candidate) => candidate.quick.result),
     userQuick.production,
   );
   const completed = isFirstOnboardingFixture(state, fixture.id)
@@ -1196,16 +1419,24 @@ function settleProductionMatchday(state: GameState): GameState {
 
 function renewExpiringPlayers(state: GameState): GameState {
   let next = state;
-  const expiring = state.players.filter(candidate => (
-    candidate.clubId === state.userClubId && candidate.contractSeasonsRemaining === 0
-  )).slice().sort((left, right) => left.id.localeCompare(right.id));
+  const expiring = state.players
+    .filter(
+      (candidate) =>
+        candidate.clubId === state.userClubId &&
+        candidate.contractSeasonsRemaining === 0,
+    )
+    .slice()
+    .sort((left, right) => left.id.localeCompare(right.id));
   for (const original of expiring) {
-    const player = next.players.find(candidate => candidate.id === original.id);
+    const player = next.players.find(
+      (candidate) => candidate.id === original.id,
+    );
     if (player === undefined || player.contractSeasonsRemaining !== 0) continue;
     const maxTerm = maxRenewalTermSeasons(player, state.careerSeed);
     if (maxTerm === 0) continue;
     const market = next.market;
-    if (market === undefined) throw new Error('long-career renewal policy lost its market');
+    if (market === undefined)
+      throw new Error('long-career renewal policy lost its market');
     // Signs at the agent's ask with no promise, which is what the shipped
     // "Sign now" button does. This used to open talks and offer the ask with a
     // hard-coded JERSEY_10, copied from the old dead `renewPlayer`. That promise
@@ -1223,7 +1454,10 @@ function renewExpiringPlayers(state: GameState): GameState {
     } catch (error) {
       // A player who will not re-sign leaves; the harness models a manager who
       // keeps whoever will stay, not one who can force a signature.
-      if (error instanceof Error && error.message.includes('will not re-sign')) {
+      if (
+        error instanceof Error &&
+        error.message.includes('will not re-sign')
+      ) {
         next = releaseCareerPlayer(next, player.id);
         continue;
       }
@@ -1246,15 +1480,20 @@ function summarizeSeason(input: {
   readonly buzzSettlements: readonly BuzzSettlementSummary[];
 }): LongCareerSeasonSummary {
   const { state } = input;
-  const row = leagueStandings(state).find(candidate => candidate.clubId === state.userClubId);
-  if (row === undefined) throw new Error(`season ${state.season} lost the user standing`);
-  const ledgers = state.ledgers.filter(ledger => ledger.season === state.season);
-  const lines = ledgers.flatMap(ledger => ledger.lines);
-  const transactions = (state.cashTransactions ?? []).filter(transaction => (
-    transaction.season === state.season
-  ));
+  const row = leagueStandings(state).find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  if (row === undefined)
+    throw new Error(`season ${state.season} lost the user standing`);
+  const ledgers = state.ledgers.filter(
+    (ledger) => ledger.season === state.season,
+  );
+  const lines = ledgers.flatMap((ledger) => ledger.lines);
+  const transactions = (state.cashTransactions ?? []).filter(
+    (transaction) => transaction.season === state.season,
+  );
   const sponsorContracts = state.clubBusiness.sponsorship.activeContracts
-    .filter(contract => contract.season === state.season)
+    .filter((contract) => contract.season === state.season)
     .slice()
     .sort((left, right) => left.slot - right.slot);
   return {
@@ -1276,65 +1515,101 @@ function summarizeSeason(input: {
     openingFans: input.openingFans,
     endingFans: userFans(state),
     fanDelta: userFans(state) - input.openingFans,
-    sponsorIncome: sumAmounts(lines.filter(line => line.kind === 'sponsor')),
-    sponsorObjectiveBonuses: sumAmounts(lines.filter(line => (
-      line.kind === 'sponsor' && line.label.endsWith('objective bonus')
-    ))),
-    buzzIncome: sumAmounts(lines.filter(line => line.kind === 'buzz')),
-    ticketIncome: sumAmounts(lines.filter(line => line.kind === 'tickets')),
-    merchandiseIncome: sumAmounts(lines.filter(line => line.kind === 'merch')),
-    prizeAndSubsidyIncome: sumAmounts(lines.filter(line => (
-      line.kind === 'prize' || line.kind === 'subsidy'
-    ))),
-    wageExpense: -sumAmounts(lines.filter(line => line.kind === 'wages')),
-    facilityUpkeepExpense: -sumAmounts(lines.filter(line => line.kind === 'facilities')),
-    loanRepaymentExpense: -sumAmounts(lines.filter(line => line.kind === 'loan-repayment')),
-    ordinaryLedgerNet: sumAmounts(lines.filter(line => (
-      line.kind !== 'emergency-loan'
-      && line.kind !== 'board-sale'
-      && line.kind !== 'board-rescue'
-      && line.kind !== 'loan-repayment'
-    ))),
-    safetyIncome: sumAmounts(lines.filter(line => (
-      line.kind === 'emergency-loan'
-      || line.kind === 'board-sale'
-      || line.kind === 'board-rescue'
-    ))),
-    facilityCapitalSpend: -sumAmounts(transactions.filter(transaction => (
-      transaction.kind === 'facility-build' || transaction.kind === 'facility-upgrade'
-    ))),
-    drillUpgradeSpend: -sumAmounts(transactions.filter(transaction => (
-      transaction.kind === 'training-upgrade'
-    ))),
-    scoutingSpend: -sumAmounts(transactions.filter(transaction => transaction.kind === 'scouting')),
-    transferSpend: -sumAmounts(transactions.filter(transaction => transaction.kind === 'transfer-buy')),
-    transferSaleIncome: sumAmounts(transactions.filter(transaction => transaction.kind === 'transfer-sell')),
+    sponsorIncome: sumAmounts(lines.filter((line) => line.kind === 'sponsor')),
+    sponsorObjectiveBonuses: sumAmounts(
+      lines.filter(
+        (line) =>
+          line.kind === 'sponsor' && line.label.endsWith('objective bonus'),
+      ),
+    ),
+    buzzIncome: sumAmounts(lines.filter((line) => line.kind === 'buzz')),
+    ticketIncome: sumAmounts(lines.filter((line) => line.kind === 'tickets')),
+    merchandiseIncome: sumAmounts(
+      lines.filter((line) => line.kind === 'merch'),
+    ),
+    prizeAndSubsidyIncome: sumAmounts(
+      lines.filter((line) => line.kind === 'prize' || line.kind === 'subsidy'),
+    ),
+    wageExpense: -sumAmounts(lines.filter((line) => line.kind === 'wages')),
+    facilityUpkeepExpense: -sumAmounts(
+      lines.filter((line) => line.kind === 'facilities'),
+    ),
+    loanRepaymentExpense: -sumAmounts(
+      lines.filter((line) => line.kind === 'loan-repayment'),
+    ),
+    ordinaryLedgerNet: sumAmounts(
+      lines.filter(
+        (line) =>
+          line.kind !== 'emergency-loan' &&
+          line.kind !== 'board-sale' &&
+          line.kind !== 'board-rescue' &&
+          line.kind !== 'loan-repayment',
+      ),
+    ),
+    safetyIncome: sumAmounts(
+      lines.filter(
+        (line) =>
+          line.kind === 'emergency-loan' ||
+          line.kind === 'board-sale' ||
+          line.kind === 'board-rescue',
+      ),
+    ),
+    facilityCapitalSpend: -sumAmounts(
+      transactions.filter(
+        (transaction) =>
+          transaction.kind === 'facility-build' ||
+          transaction.kind === 'facility-upgrade',
+      ),
+    ),
+    drillUpgradeSpend: -sumAmounts(
+      transactions.filter(
+        (transaction) => transaction.kind === 'training-upgrade',
+      ),
+    ),
+    scoutingSpend: -sumAmounts(
+      transactions.filter((transaction) => transaction.kind === 'scouting'),
+    ),
+    transferSpend: -sumAmounts(
+      transactions.filter((transaction) => transaction.kind === 'transfer-buy'),
+    ),
+    transferSaleIncome: sumAmounts(
+      transactions.filter(
+        (transaction) => transaction.kind === 'transfer-sell',
+      ),
+    ),
     trainingDrills: input.trainingDrills,
     buzzSettlements: input.buzzSettlements,
-    sponsorObjectives: sponsorContracts.map(contract => ({
+    sponsorObjectives: sponsorContracts.map((contract) => ({
       slot: contract.slot,
       sponsorName: contract.sponsorName,
       ...(contract.profile === undefined ? {} : { profile: contract.profile }),
-      ...(contract.objective === undefined ? {} : {
-        objectiveKind: contract.objective.kind,
-        objectiveTarget: contract.objective.target,
-      }),
-      ...(contract.objectiveOutcome === undefined ? {} : {
-        objectiveMet: contract.objectiveOutcome.met,
-      }),
+      ...(contract.objective === undefined
+        ? {}
+        : {
+            objectiveKind: contract.objective.kind,
+            objectiveTarget: contract.objective.target,
+          }),
+      ...(contract.objectiveOutcome === undefined
+        ? {}
+        : {
+            objectiveMet: contract.objectiveOutcome.met,
+          }),
       actualBonus: contract.objectiveOutcome?.actualBonus ?? 0,
     })),
     recruitment: recruitmentSummary(input.recruitment),
     facilities: facilityLevels(state),
     startingElevenStrength: startingElevenStrength(state),
     boardUltimatumsIssued: input.boardUltimatumsIssued,
-    boardForcedSales: lines.filter(line => line.kind === 'board-sale').length,
-    emergencyLoans: lines.filter(line => line.kind === 'emergency-loan').length,
-    boardRescues: lines.filter(line => line.kind === 'board-rescue').length,
+    boardForcedSales: lines.filter((line) => line.kind === 'board-sale').length,
+    emergencyLoans: lines.filter((line) => line.kind === 'emergency-loan')
+      .length,
+    boardRescues: lines.filter((line) => line.kind === 'board-rescue').length,
   };
 }
 
-function recruitmentSummary(window: RecruitmentWindow): LongCareerRecruitmentSummary {
+function recruitmentSummary(
+  window: RecruitmentWindow,
+): LongCareerRecruitmentSummary {
   return {
     eligible: window.eligible,
     scoutStarted: window.scoutStarted,
@@ -1357,14 +1632,15 @@ function buildRunResult(
   observer: RunObserver,
   censored: boolean,
 ): ClubBusinessLongCareerResult {
-  const firstD1 = seasons.find(season => season.division === 1);
-  const sponsorObjectives = seasons.flatMap(season => season.sponsorObjectives)
-    .filter(objective => objective.objectiveMet !== undefined);
-  const buzzSettlements = seasons.flatMap(season => season.buzzSettlements);
-  const lines = state.ledgers.flatMap(ledger => ledger.lines);
-  const sumSeason = (pick: (season: LongCareerSeasonSummary) => number): number => (
-    seasons.reduce((sum, season) => sum + pick(season), 0)
-  );
+  const firstD1 = seasons.find((season) => season.division === 1);
+  const sponsorObjectives = seasons
+    .flatMap((season) => season.sponsorObjectives)
+    .filter((objective) => objective.objectiveMet !== undefined);
+  const buzzSettlements = seasons.flatMap((season) => season.buzzSettlements);
+  const lines = state.ledgers.flatMap((ledger) => ledger.lines);
+  const sumSeason = (
+    pick: (season: LongCareerSeasonSummary) => number,
+  ): number => seasons.reduce((sum, season) => sum + pick(season), 0);
   return {
     kind: 'club-business-long-career-run',
     policyVersion: CLUB_BUSINESS_LONG_CAREER_POLICY_VERSION,
@@ -1373,45 +1649,62 @@ function buildRunResult(
     difficulty,
     completedFirstD1: firstD1 !== undefined,
     censored,
-    ...(firstD1 === undefined ? {} : {
-      firstD1Season: firstD1.season,
-      firstD1Position: firstD1.position,
-    }),
+    ...(firstD1 === undefined
+      ? {}
+      : {
+          firstD1Season: firstD1.season,
+          firstD1Position: firstD1.position,
+        }),
     firstD1TopEight: firstD1 !== undefined && firstD1.position <= 8,
-    firstD1GatePosition: firstD1?.position ?? CLUB_BUSINESS_LONG_CAREER_CENSOR_POSITION,
+    firstD1GatePosition:
+      firstD1?.position ?? CLUB_BUSINESS_LONG_CAREER_CENSOR_POSITION,
     divisionEntrySeason: { ...divisionEntrySeason },
     minimumObservedCash: observer.minimumCash,
     endingCash: userCash(state),
     endingFans: userFans(state),
     seasons,
     totals: {
-      sponsorIncome: sumSeason(season => season.sponsorIncome),
-      sponsorObjectiveBonuses: sumSeason(season => season.sponsorObjectiveBonuses),
-      buzzIncome: sumSeason(season => season.buzzIncome),
-      ticketIncome: sumSeason(season => season.ticketIncome),
-      merchandiseIncome: sumSeason(season => season.merchandiseIncome),
-      wageExpense: sumSeason(season => season.wageExpense),
-      facilityUpkeepExpense: sumSeason(season => season.facilityUpkeepExpense),
-      loanRepaymentExpense: sumSeason(season => season.loanRepaymentExpense),
-      ordinaryLedgerNet: sumSeason(season => season.ordinaryLedgerNet),
-      safetyIncome: sumSeason(season => season.safetyIncome),
-      facilityCapitalSpend: sumSeason(season => season.facilityCapitalSpend),
-      drillUpgradeSpend: sumSeason(season => season.drillUpgradeSpend),
-      scoutingSpend: sumSeason(season => season.scoutingSpend),
-      transferSpend: sumSeason(season => season.transferSpend),
-      transferSaleIncome: sumSeason(season => season.transferSaleIncome),
-      trainingDrills: sumSeason(season => season.trainingDrills),
-      sponsorObjectivesMet: sponsorObjectives.filter(objective => objective.objectiveMet).length,
+      sponsorIncome: sumSeason((season) => season.sponsorIncome),
+      sponsorObjectiveBonuses: sumSeason(
+        (season) => season.sponsorObjectiveBonuses,
+      ),
+      buzzIncome: sumSeason((season) => season.buzzIncome),
+      ticketIncome: sumSeason((season) => season.ticketIncome),
+      merchandiseIncome: sumSeason((season) => season.merchandiseIncome),
+      wageExpense: sumSeason((season) => season.wageExpense),
+      facilityUpkeepExpense: sumSeason(
+        (season) => season.facilityUpkeepExpense,
+      ),
+      loanRepaymentExpense: sumSeason((season) => season.loanRepaymentExpense),
+      ordinaryLedgerNet: sumSeason((season) => season.ordinaryLedgerNet),
+      safetyIncome: sumSeason((season) => season.safetyIncome),
+      facilityCapitalSpend: sumSeason((season) => season.facilityCapitalSpend),
+      drillUpgradeSpend: sumSeason((season) => season.drillUpgradeSpend),
+      scoutingSpend: sumSeason((season) => season.scoutingSpend),
+      transferSpend: sumSeason((season) => season.transferSpend),
+      transferSaleIncome: sumSeason((season) => season.transferSaleIncome),
+      trainingDrills: sumSeason((season) => season.trainingDrills),
+      sponsorObjectivesMet: sponsorObjectives.filter(
+        (objective) => objective.objectiveMet,
+      ).length,
       sponsorObjectivesSettled: sponsorObjectives.length,
       buzzSettlementCount: buzzSettlements.length,
-      buzzCapCount: buzzSettlements.filter(summary => summary.prePayoutValue >= 100).length,
+      buzzCapCount: buzzSettlements.filter(
+        (summary) => summary.prePayoutValue >= 100,
+      ).length,
       boardUltimatumsIssued: observer.ultimatumSeasonById.size,
-      boardForcedSales: lines.filter(line => line.kind === 'board-sale').length,
-      emergencyLoans: lines.filter(line => line.kind === 'emergency-loan').length,
-      boardRescues: lines.filter(line => line.kind === 'board-rescue').length,
-      firstD4RecruitmentFund: sumAmounts(lines.filter(line => (
-        line.kind === 'subsidy' && line.label === 'County League recruitment fund'
-      ))),
+      boardForcedSales: lines.filter((line) => line.kind === 'board-sale')
+        .length,
+      emergencyLoans: lines.filter((line) => line.kind === 'emergency-loan')
+        .length,
+      boardRescues: lines.filter((line) => line.kind === 'board-rescue').length,
+      firstD4RecruitmentFund: sumAmounts(
+        lines.filter(
+          (line) =>
+            line.kind === 'subsidy' &&
+            line.label === 'County League recruitment fund',
+        ),
+      ),
     },
     finalStateFingerprint: stateFingerprint(state),
   };
@@ -1423,7 +1716,10 @@ function observeState(state: GameState, observer: RunObserver): void {
   observer.seasonMinimumCash = Math.min(observer.seasonMinimumCash, cash);
   const settlement = state.clubBusiness.buzz.lastSettlementSummary;
   if (settlement !== undefined) {
-    observer.buzzSettlements.set(`${settlement.season}:${settlement.half}`, settlement);
+    observer.buzzSettlements.set(
+      `${settlement.season}:${settlement.half}`,
+      settlement,
+    );
   }
   const ultimatum = state.financialSafety?.boardUltimatum;
   if (ultimatum !== undefined) {
@@ -1433,73 +1729,96 @@ function observeState(state: GameState, observer: RunObserver): void {
 
 function facilityLevels(state: GameState): LongCareerFacilityLevel[] {
   const buildings = state.facilities.grid?.buildings ?? [];
-  return FACILITY_PLAN.map(entry => ({
+  return FACILITY_PLAN.map((entry) => ({
     type: entry.type,
-    level: (buildings.find(building => building.type === entry.type)?.level ?? 0) as 0 | 1 | 2 | 3,
+    level: (buildings.find((building) => building.type === entry.type)?.level ??
+      0) as 0 | 1 | 2 | 3,
   }));
 }
 
 function weakestStartingRole(state: GameState): Role {
   return userLineupIds(state)
-    .map(id => state.players.find(player => player.id === id))
+    .map((id) => state.players.find((player) => player.id === id))
     .filter((player): player is CareerPlayer => player !== undefined)
-    .sort((left, right) => (
-      roleOverall(left.role, left.attrs) - roleOverall(right.role, right.attrs)
-      || left.id.localeCompare(right.id)
-    ))[0].role;
+    .sort(
+      (left, right) =>
+        roleOverall(left.role, left.attrs) -
+          roleOverall(right.role, right.attrs) ||
+        left.id.localeCompare(right.id),
+    )[0].role;
 }
 
-function weakestStarterForRole(state: GameState, role: Role): CareerPlayer | undefined {
+function weakestStarterForRole(
+  state: GameState,
+  role: Role,
+): CareerPlayer | undefined {
   return userLineupIds(state)
-    .map(id => state.players.find(player => player.id === id))
-    .filter((player): player is CareerPlayer => (
-      player !== undefined
-      && player.role === role
-      && player.contractPromise?.perk !== 'GUARANTEED_STARTER'
-      && player.contractPromise?.perk !== 'CAPTAINCY'
-    ))
-    .sort((left, right) => (
-      roleOverall(left.role, left.attrs) - roleOverall(right.role, right.attrs)
-      || left.id.localeCompare(right.id)
-    ))[0];
+    .map((id) => state.players.find((player) => player.id === id))
+    .filter(
+      (player): player is CareerPlayer =>
+        player !== undefined &&
+        player.role === role &&
+        player.contractPromise?.perk !== 'GUARANTEED_STARTER' &&
+        player.contractPromise?.perk !== 'CAPTAINCY',
+    )
+    .sort(
+      (left, right) =>
+        roleOverall(left.role, left.attrs) -
+          roleOverall(right.role, right.attrs) ||
+        left.id.localeCompare(right.id),
+    )[0];
 }
 
 function reportedOverall(report: ScoutReport): number {
-  const attrs = Object.fromEntries(Object.entries(report.statRanges).map(([key, range]) => [
-    key,
-    Math.round((range.minimum + range.maximum) / 2),
-  ])) as unknown as Attrs;
+  const attrs = Object.fromEntries(
+    Object.entries(report.statRanges).map(([key, range]) => [
+      key,
+      Math.round((range.minimum + range.maximum) / 2),
+    ]),
+  ) as unknown as Attrs;
   return roleOverall(report.role, attrs);
 }
 
 function startingElevenStrength(state: GameState): number {
   const team = buildCareerMatchTeamDef(state, state.userClubId);
-  return roundTwo(team.players.reduce(
-    (sum, player) => sum + roleOverall(player.role, player.attrs),
-    0,
-  ) / team.players.length);
+  return roundTwo(
+    team.players.reduce(
+      (sum, player) => sum + roleOverall(player.role, player.attrs),
+      0,
+    ) / team.players.length,
+  );
 }
 
 function userDivision(state: GameState): DivisionLevel {
-  if (state.m2 === undefined) throw new Error('long-career state has no full-career ladder');
+  if (state.m2 === undefined)
+    throw new Error('long-career state has no full-career ladder');
   return currentUserDivision(state.m2);
 }
 
 function userLineupIds(state: GameState): readonly string[] {
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
-  if (lineup === undefined) throw new Error('long-career state lost the user lineup');
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  if (lineup === undefined)
+    throw new Error('long-career state lost the user lineup');
   return lineup.playerIds;
 }
 
 function userCash(state: GameState): number {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error('long-career state lost the user club');
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error('long-career state lost the user club');
   return club.cash;
 }
 
 function userFans(state: GameState): number {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error('long-career state lost the user club');
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error('long-career state lost the user club');
   return club.fans;
 }
 
@@ -1517,13 +1836,15 @@ function stateFingerprint(state: GameState): string {
 
 function manifestFingerprint(value: unknown): string {
   const json = JSON.stringify(value);
-  if (json === undefined) throw new Error('long-career manifest value is not JSON serializable');
+  if (json === undefined)
+    throw new Error('long-career manifest value is not JSON serializable');
   return `sha256:${createHash('sha256').update(json).digest('hex')}:${json.length}`;
 }
 
 function jsonFingerprint(value: unknown): string {
   const json = JSON.stringify(value);
-  if (json === undefined) throw new Error('long-career manifest value is not JSON serializable');
+  if (json === undefined)
+    throw new Error('long-career manifest value is not JSON serializable');
   let hash = 2166136261;
   for (let index = 0; index < json.length; index += 1) {
     hash ^= json.charCodeAt(index);

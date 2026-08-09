@@ -28,12 +28,22 @@ describe('replay repository', () => {
       { tick: 25, kind: 'SET_FORMATION', formation: '4-3-3' },
       { tick: 25, kind: 'SET_MENTALITY', mentality: 'ATTACK' },
       { tick: 25, kind: 'SET_ENERGY_USE', energyUse: 'ALL_OUT' },
-      { tick: 30, kind: 'SUBSTITUTE', player: 8, replacementId: 'rovers-bench-1' },
+      {
+        tick: 30,
+        kind: 'SUBSTITUTE',
+        player: 8,
+        replacementId: 'rovers-bench-1',
+      },
       { tick: 40, kind: 'POWER_TAP', player: 9 },
     ]);
-    expect(loaded?.home.bench?.map(player => player.id)).toEqual(['rovers-bench-1']);
+    expect(loaded?.home.bench?.map((player) => player.id)).toEqual([
+      'rovers-bench-1',
+    ]);
     expect(loaded?.home.players[0].lookId).toBe('g00');
-    expect(loaded?.opts).toMatchObject({ controlledTeam: 0, homeFormation: '4-4-2' });
+    expect(loaded?.opts).toMatchObject({
+      controlledTeam: 0,
+      homeFormation: '4-4-2',
+    });
     expect(JSON.stringify(envelope)).toBe(original);
   });
 
@@ -167,14 +177,15 @@ describe('replay repository', () => {
       ...envelope,
       home: {
         ...envelope.home,
-        players: envelope.home.players.map((player, index) => index === 0
-          ? { ...player, lookId: 'f00' }
-          : player),
+        players: envelope.home.players.map((player, index) =>
+          index === 0 ? { ...player, lookId: 'f00' } : player,
+        ),
       },
     };
 
-    await expect(repository.save('career-1', 'fixture-1', 0, invalid))
-      .rejects.toBeInstanceOf(InvalidReplayEnvelopeError);
+    await expect(
+      repository.save('career-1', 'fixture-1', 0, invalid),
+    ).rejects.toBeInstanceOf(InvalidReplayEnvelopeError);
   });
 
   it('applies the same structural rules as runtime replay validation', async () => {
@@ -198,16 +209,18 @@ describe('replay repository', () => {
       ...makeEnvelope(),
       inputs: [{ tick: 0, kind: 'POWER_TAP', player: 0 }],
     };
-    database.seedReplayRow(storedRow({
-      envelope_json: JSON.stringify(invalidStoredEnvelope),
-    }));
+    database.seedReplayRow(
+      storedRow({
+        envelope_json: JSON.stringify(invalidStoredEnvelope),
+      }),
+    );
 
     await expect(
       repository.load('career-1', 'fixture-1'),
     ).rejects.toBeInstanceOf(CorruptReplayEnvelopeError);
-    await expect(
-      repository.load('career-1', 'fixture-1'),
-    ).rejects.toThrow('input tick');
+    await expect(repository.load('career-1', 'fixture-1')).rejects.toThrow(
+      'input tick',
+    );
   });
 
   it('round-trips a replay controlled from the away team', async () => {
@@ -224,9 +237,9 @@ describe('replay repository', () => {
 
     await repository.save('career-1', 'away-fixture', 2, awayControlled);
 
-    await expect(
-      repository.load('career-1', 'away-fixture'),
-    ).resolves.toEqual(awayControlled);
+    await expect(repository.load('career-1', 'away-fixture')).resolves.toEqual(
+      awayControlled,
+    );
   });
 
   it('round-trips every M4 power ID in a replay team', async () => {
@@ -252,16 +265,18 @@ describe('replay repository', () => {
     };
 
     await repository.save('career-1', 'm4-powers', 3, expanded);
-    await expect(repository.load('career-1', 'm4-powers')).resolves.toEqual(expanded);
+    await expect(repository.load('career-1', 'm4-powers')).resolves.toEqual(
+      expanded,
+    );
   });
 });
 
 function makeEnvelope(): ReplayEnvelope {
   const home = {
     ...ROVERS,
-    players: ROVERS.players.map((player, index) => index === 0
-      ? { ...player, lookId: 'g00' }
-      : player),
+    players: ROVERS.players.map((player, index) =>
+      index === 0 ? { ...player, lookId: 'g00' } : player,
+    ),
     bench: [{ ...UNITED.players[9], id: 'rovers-bench-1' }],
   };
   return {
@@ -276,7 +291,12 @@ function makeEnvelope(): ReplayEnvelope {
       { tick: 25, kind: 'SET_FORMATION', formation: '4-3-3' },
       { tick: 25, kind: 'SET_MENTALITY', mentality: 'ATTACK' },
       { tick: 25, kind: 'SET_ENERGY_USE', energyUse: 'ALL_OUT' },
-      { tick: 30, kind: 'SUBSTITUTE', player: 8, replacementId: 'rovers-bench-1' },
+      {
+        tick: 30,
+        kind: 'SUBSTITUTE',
+        player: 8,
+        replacementId: 'rovers-bench-1',
+      },
       { tick: 40, kind: 'POWER_TAP', player: 9 },
     ],
     opts: {

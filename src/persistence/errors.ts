@@ -51,13 +51,6 @@ export class InvalidGameStateError extends Error {
   }
 }
 
-export class InvalidSaveFileError extends Error {
-  constructor(message: string) {
-    super(`the save file could not be read: ${message}`);
-    this.name = 'InvalidSaveFileError';
-  }
-}
-
 export class UnsupportedReplaySchemaError extends Error {
   constructor(found: number, supported: number) {
     super(

@@ -21,8 +21,10 @@ describe('the staff who come out for a celebration', () => {
       portraitId: 'kenji-sato',
     });
 
-    expect(celebrationCoaches(state).map(coach => coach.name))
-      .toEqual(['Amara Okafor', 'Kenji Sato']);
+    expect(celebrationCoaches(state).map((coach) => coach.name)).toEqual([
+      'Amara Okafor',
+      'Kenji Sato',
+    ]);
   });
 
   it('draws them from the art their portrait is keyed by', () => {
@@ -33,11 +35,13 @@ describe('the staff who come out for a celebration', () => {
 
   it('names a sprite that the sheet actually ships, for every coach', () => {
     const shipped = new Set(Object.keys(sheet.sprites));
-    const portraitIds = Array.from(new Set(
-      Object.keys(sheet.sprites)
-        .filter(key => key.startsWith('coach:') && key.endsWith(':rest'))
-        .map(key => key.split(':')[1]),
-    ));
+    const portraitIds = Array.from(
+      new Set(
+        Object.keys(sheet.sprites)
+          .filter((key) => key.startsWith('coach:') && key.endsWith(':rest'))
+          .map((key) => key.split(':')[1]),
+      ),
+    );
 
     expect(portraitIds).toHaveLength(32);
     for (const portraitId of portraitIds) {
@@ -58,7 +62,9 @@ describe('the staff who come out for a celebration', () => {
   it('falls back to the candidate id on a save written before portrait ids', () => {
     const state = withStaff(bareCareer(), { id: 'legend-p7', name: 'Old Boy' });
 
-    expect(celebrationCoaches(state)[0]?.spriteKey).toBe('coach:legend-p7:field-cheer');
+    expect(celebrationCoaches(state)[0]?.spriteKey).toBe(
+      'coach:legend-p7:field-cheer',
+    );
   });
 });
 

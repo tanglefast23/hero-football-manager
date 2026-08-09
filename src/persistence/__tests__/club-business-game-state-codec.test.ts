@@ -17,75 +17,83 @@ function fullClubBusinessCareer(): GameState {
           before: 1_200,
           after: 1_197,
           totalDelta: -3,
-          impacts: [{
-            fixtureId: 'league-s3-r8',
-            outcome: 'LOSS',
-            streakAfter: 3,
-            resultDelta: -6,
-            heroDelta: 3,
-            realizedDelta: -3,
-          }],
+          impacts: [
+            {
+              fixtureId: 'league-s3-r8',
+              outcome: 'LOSS',
+              streakAfter: 3,
+              resultDelta: -6,
+              heroDelta: 3,
+              realizedDelta: -3,
+            },
+          ],
         },
       },
-      pendingUserMatchImpacts: [{
-        fixtureId: 'league-s3-r9',
-        competition: 'LEAGUE',
-        settlementOrder: 0,
-        source: 'PRODUCTION',
-        outcome: 'WIN',
-        regulationGoals: 3,
-        participantPlayerIds: ['hero-1', 'player-2'],
-        powerFiredPlayerIds: ['hero-1'],
-        heroAppearancePlayerIds: ['hero-1'],
-        divisionScale: 2,
-        supporterWinUnits: 10,
-        supporterHeroUnits: 2,
-        buzzWin: 5,
-        buzzGoals: 3,
-        buzzHeroMoments: 2,
-      }],
+      pendingUserMatchImpacts: [
+        {
+          fixtureId: 'league-s3-r9',
+          competition: 'LEAGUE',
+          settlementOrder: 0,
+          source: 'PRODUCTION',
+          outcome: 'WIN',
+          regulationGoals: 3,
+          participantPlayerIds: ['hero-1', 'player-2'],
+          powerFiredPlayerIds: ['hero-1'],
+          heroAppearancePlayerIds: ['hero-1'],
+          divisionScale: 2,
+          supporterWinUnits: 10,
+          supporterHeroUnits: 2,
+          buzzWin: 5,
+          buzzGoals: 3,
+          buzzHeroMoments: 2,
+        },
+      ],
       sponsorship: {
-        activeContracts: [{
-          contractId: 'contract-s3-slot0',
-          sponsorContentId: 'northstar-tools',
-          sponsorName: 'Northstar Tools',
-          offerLine: 'Build something worth cheering for.',
-          season: 3,
-          slot: 0,
-          nominalMonthlyFee: 4_200,
-          profile: 'STEADY',
-          objective: {
-            kind: 'LEAGUE_WINS',
-            label: 'Win 5 league matches',
-            target: 5,
-            nominalBonus: 1_000,
+        activeContracts: [
+          {
+            contractId: 'contract-s3-slot0',
+            sponsorContentId: 'northstar-tools',
+            sponsorName: 'Northstar Tools',
+            offerLine: 'Build something worth cheering for.',
+            season: 3,
+            slot: 0,
+            nominalMonthlyFee: 4_200,
+            profile: 'STEADY',
+            objective: {
+              kind: 'LEAGUE_WINS',
+              label: 'Win 5 league matches',
+              target: 5,
+              nominalBonus: 1_000,
+            },
+            provisional: false,
+            signedSeason: 3,
+            signedWeek: 2,
+            replacedContinuity: true,
+            objectiveOutcome: {
+              met: true,
+              settledSeason: 3,
+              actualBonus: 1_000,
+            },
           },
-          provisional: false,
-          signedSeason: 3,
-          signedWeek: 2,
-          replacedContinuity: true,
-          objectiveOutcome: {
-            met: true,
-            settledSeason: 3,
-            actualBonus: 1_000,
+        ],
+        offers: [
+          {
+            offerId: 'offer-s3-slot1-balanced',
+            sponsorContentId: 'pixel-peak-mobile',
+            sponsorName: 'Pixel Peak Mobile',
+            offerLine: 'Every highlight, right in your pocket.',
+            season: 3,
+            slot: 1,
+            profile: 'BALANCED',
+            nominalMonthlyFee: 3_000,
+            objective: {
+              kind: 'LEAGUE_GOALS',
+              label: 'Score 26 league goals',
+              target: 26,
+              nominalBonus: 3_000,
+            },
           },
-        }],
-        offers: [{
-          offerId: 'offer-s3-slot1-balanced',
-          sponsorContentId: 'pixel-peak-mobile',
-          sponsorName: 'Pixel Peak Mobile',
-          offerLine: 'Every highlight, right in your pocket.',
-          season: 3,
-          slot: 1,
-          profile: 'BALANCED',
-          nominalMonthlyFee: 3_000,
-          objective: {
-            kind: 'LEAGUE_GOALS',
-            label: 'Score 26 league goals',
-            target: 26,
-            nominalBonus: 3_000,
-          },
-        }],
+        ],
         portfolioSeason: 3,
         offerSeason: 3,
       },
@@ -102,13 +110,15 @@ function fullClubBusinessCareer(): GameState {
           prePayoutValue: 100,
           payout: 4_200,
           resetValue: 0,
-          impacts: [{
-            fixtureId: 'league-s3-r15',
-            win: 5,
-            goals: 3,
-            heroMoments: 2,
-            rawEarned: 10,
-          }],
+          impacts: [
+            {
+              fixtureId: 'league-s3-r15',
+              win: 5,
+              goals: 3,
+              heroMoments: 2,
+              rawEarned: 10,
+            },
+          ],
         },
       },
     },
@@ -128,9 +138,12 @@ describe('Club Business game-state persistence', () => {
   test('keeps early schema-4 sponsor rules readable before family overrides existed', () => {
     const stored = JSON.parse(serializeGameState(fullClubBusinessCareer())) as {
       sponsorRules: {
-        profiles: Record<'STEADY' | 'BALANCED' | 'BOLD', {
-          bonusPercentByObjective?: unknown;
-        }>;
+        profiles: Record<
+          'STEADY' | 'BALANCED' | 'BOLD',
+          {
+            bonusPercentByObjective?: unknown;
+          }
+        >;
       };
     };
     delete stored.sponsorRules.profiles.STEADY.bonusPercentByObjective;
@@ -139,7 +152,9 @@ describe('Club Business game-state persistence', () => {
 
     const restored = parseStoredGameState(JSON.stringify(stored));
 
-    expect(restored.sponsorRules?.profiles.STEADY.bonusPercentByObjective).toBeUndefined();
+    expect(
+      restored.sponsorRules?.profiles.STEADY.bonusPercentByObjective,
+    ).toBeUndefined();
     expect(restored.sponsorRules?.profiles.BOLD.bonusPercent).toBe(650);
   });
 
@@ -152,10 +167,15 @@ describe('Club Business game-state persistence', () => {
     };
     contaminated.clubBusiness.pendingUserMatchImpacts[0].inventedReward = 99;
 
-    expect(() => serializeGameState(contaminated as GameState)).toThrow(InvalidGameStateError);
-    expect(() => serializeGameState(contaminated as GameState)).toThrow(/inventedReward|unrecognized/i);
-    expect(() => parseStoredGameState(JSON.stringify(contaminated)))
-      .toThrow(CorruptCareerSaveError);
+    expect(() => serializeGameState(contaminated as GameState)).toThrow(
+      InvalidGameStateError,
+    );
+    expect(() => serializeGameState(contaminated as GameState)).toThrow(
+      /inventedReward|unrecognized/i,
+    );
+    expect(() => parseStoredGameState(JSON.stringify(contaminated))).toThrow(
+      CorruptCareerSaveError,
+    );
   });
 
   test('rejects inconsistent pending-impact ordering and Buzz settlement markers', () => {
@@ -164,10 +184,12 @@ describe('Club Business game-state persistence', () => {
       ...state,
       clubBusiness: {
         ...state.clubBusiness,
-        pendingUserMatchImpacts: state.clubBusiness.pendingUserMatchImpacts.map(impact => ({
-          ...impact,
-          settlementOrder: 1 as const,
-        })),
+        pendingUserMatchImpacts: state.clubBusiness.pendingUserMatchImpacts.map(
+          (impact) => ({
+            ...impact,
+            settlementOrder: 1 as const,
+          }),
+        ),
         buzz: {
           ...state.clubBusiness.buzz,
           lastSettledHalf: undefined,
@@ -175,7 +197,9 @@ describe('Club Business game-state persistence', () => {
       },
     };
 
-    expect(() => serializeGameState(invalid as GameState)).toThrow(/settlementOrder|settlement markers/);
+    expect(() => serializeGameState(invalid as GameState)).toThrow(
+      /settlementOrder|settlement markers/,
+    );
   });
 
   test('rejects duplicate participant IDs before a loaded save can brick settlement', () => {
@@ -184,14 +208,21 @@ describe('Club Business game-state persistence', () => {
       ...state,
       clubBusiness: {
         ...state.clubBusiness,
-        pendingUserMatchImpacts: state.clubBusiness.pendingUserMatchImpacts.map(impact => ({
-          ...impact,
-          participantPlayerIds: [impact.participantPlayerIds[0], impact.participantPlayerIds[0]],
-        })),
+        pendingUserMatchImpacts: state.clubBusiness.pendingUserMatchImpacts.map(
+          (impact) => ({
+            ...impact,
+            participantPlayerIds: [
+              impact.participantPlayerIds[0],
+              impact.participantPlayerIds[0],
+            ],
+          }),
+        ),
       },
     };
 
     expect(() => serializeGameState(duplicate as GameState)).toThrow(/unique/);
-    expect(() => parseStoredGameState(JSON.stringify(duplicate))).toThrow(CorruptCareerSaveError);
+    expect(() => parseStoredGameState(JSON.stringify(duplicate))).toThrow(
+      CorruptCareerSaveError,
+    );
   });
 });

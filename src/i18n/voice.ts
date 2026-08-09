@@ -20,7 +20,12 @@ export type Voice = 'display' | 'data' | 'body';
  * type.
  */
 const BODY_PREFIXES = [
-  'event.', 'bert.', 'tip.', 'glossary.', 'story.', 'ceremony.',
+  'event.',
+  'bert.',
+  'tip.',
+  'glossary.',
+  'story.',
+  'ceremony.',
   // The gaffer's full-time verdict and his blaming line. Both are drawn in the
   // same speech bubble Bert speaks out of (`src/ui/speech-bubble.tsx`), which
   // sets no `fontFamily` — platform sans, like every other paragraph.
@@ -84,9 +89,9 @@ const DISPLAY_LEAVES: readonly RegExp[] = [
 
 export function voiceOf(key: string): Voice {
   // Checked BEFORE the prefixes, because these live inside body namespaces.
-  if (DISPLAY_LEAVES.some(leaf => leaf.test(key))) return 'display';
-  if (BODY_PREFIXES.some(prefix => key.startsWith(prefix))) return 'body';
-  if (DATA_PREFIXES.some(prefix => key.startsWith(prefix))) return 'data';
+  if (DISPLAY_LEAVES.some((leaf) => leaf.test(key))) return 'display';
+  if (BODY_PREFIXES.some((prefix) => key.startsWith(prefix))) return 'body';
+  if (DATA_PREFIXES.some((prefix) => key.startsWith(prefix))) return 'data';
   return 'display';
 }
 

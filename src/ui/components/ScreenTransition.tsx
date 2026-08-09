@@ -153,7 +153,9 @@ export function ScreenTransition({
       // just finished dissolving back to solid — the cleanup below does it once
       // the slot is genuinely empty.
       if (!finished) return;
-      setState(current => (current.pass === pass ? { ...current, outgoing: null } : current));
+      setState((current) =>
+        current.pass === pass ? { ...current, outgoing: null } : current,
+      );
     });
     return () => {
       animation.stop();
@@ -168,16 +170,26 @@ export function ScreenTransition({
       <Animated.View
         pointerEvents={active === 0 ? 'auto' : 'none'}
         accessibilityElementsHidden={active !== 0}
-        importantForAccessibility={active === 0 ? 'auto' : 'no-hide-descendants'}
-        style={[styles.slot, { opacity: opacities[0], zIndex: active === 0 ? 0 : 1 }]}
+        importantForAccessibility={
+          active === 0 ? 'auto' : 'no-hide-descendants'
+        }
+        style={[
+          styles.slot,
+          { opacity: opacities[0], zIndex: active === 0 ? 0 : 1 },
+        ]}
       >
         {active === 0 ? children : outgoing}
       </Animated.View>
       <Animated.View
         pointerEvents={active === 1 ? 'auto' : 'none'}
         accessibilityElementsHidden={active !== 1}
-        importantForAccessibility={active === 1 ? 'auto' : 'no-hide-descendants'}
-        style={[styles.slot, { opacity: opacities[1], zIndex: active === 1 ? 0 : 1 }]}
+        importantForAccessibility={
+          active === 1 ? 'auto' : 'no-hide-descendants'
+        }
+        style={[
+          styles.slot,
+          { opacity: opacities[1], zIndex: active === 1 ? 0 : 1 },
+        ]}
       >
         {active === 1 ? children : outgoing}
       </Animated.View>

@@ -49,7 +49,9 @@ export function ConfirmationSheet({
   const t = useCopy();
   const headingRef = useRef<Text>(null);
   const headingFocusFrameRef = useRef<number | null>(null);
-  const headingFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const headingFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const priorWebFocusRef = useRef<HTMLElement | null>(null);
   const returnFocusIdRef = useRef<string | undefined>(undefined);
   const afterConfirmDismissRef = useRef<(() => void) | undefined>(undefined);
@@ -75,9 +77,10 @@ export function ConfirmationSheet({
     let remainingFrames = 4;
     const focusHeading = () => {
       headingFocusFrameRef.current = null;
-      const heading = Platform.OS === 'web' && typeof document !== 'undefined'
-        ? document.getElementById('club-confirmation-heading')
-        : headingRef.current;
+      const heading =
+        Platform.OS === 'web' && typeof document !== 'undefined'
+          ? document.getElementById('club-confirmation-heading')
+          : headingRef.current;
       if (heading === null) {
         if (remainingFrames === 0) return;
         remainingFrames -= 1;
@@ -94,10 +97,13 @@ export function ConfirmationSheet({
       // RN Web's fade can return focus to the body after the portal mounts.
       // Reassert it once the fade is over; the frame path still covers reduced
       // motion and browsers that do not animate the Modal.
-      headingFocusTimerRef.current = setTimeout(() => {
-        headingFocusTimerRef.current = null;
-        document.getElementById('club-confirmation-heading')?.focus();
-      }, reduceMotion ? 0 : 400);
+      headingFocusTimerRef.current = setTimeout(
+        () => {
+          headingFocusTimerRef.current = null;
+          document.getElementById('club-confirmation-heading')?.focus();
+        },
+        reduceMotion ? 0 : 400,
+      );
     }
   }, [cancelHeadingFocus, reduceMotion]);
 
@@ -163,7 +169,10 @@ export function ConfirmationSheet({
       onDismiss={completeDismissal}
       onRequestClose={cancel}
     >
-      <SafeAreaView edges={['bottom']} className="flex-1 justify-end bg-ink/70 px-4 pb-8">
+      <SafeAreaView
+        edges={['bottom']}
+        className="flex-1 justify-end bg-ink/70 px-4 pb-8"
+      >
         <View
           accessibilityViewIsModal
           accessibilityLabelledBy="club-confirmation-heading"
@@ -171,7 +180,9 @@ export function ConfirmationSheet({
           style={{ zIndex: 1 }}
           {...webDialogLabelProps()}
         >
-          <Text className="font-pixel text-sm uppercase text-red-dark">{t('confirmationSheet.confirmClubDecision')}</Text>
+          <Text className="font-pixel text-sm uppercase text-red-dark">
+            {t('confirmationSheet.confirmClubDecision')}
+          </Text>
           <Text
             ref={headingRef}
             nativeID="club-confirmation-heading"
@@ -181,7 +192,9 @@ export function ConfirmationSheet({
           >
             {confirmation?.title}
           </Text>
-          <Text className="mt-3 text-base leading-6 text-ink/70">{confirmation?.detail}</Text>
+          <Text className="mt-3 text-base leading-6 text-ink/70">
+            {confirmation?.detail}
+          </Text>
           <View className="mt-5 flex-row gap-3">
             <View className="flex-1">
               <ActionButton
@@ -194,11 +207,21 @@ export function ConfirmationSheet({
             </View>
             <View className="flex-1">
               <ActionButton
-                label={confirmation?.confirmLabel ?? t('confirmationSheet.confirmDecision')}
-                accessibilityLabel={confirmation?.confirmLabel ?? t('confirmationSheet.confirmDecision')}
-                variant={confirmation?.tone === 'danger'
-                  ? 'danger'
-                  : confirmation?.tone === 'hero' ? 'hero' : 'confirm'}
+                label={
+                  confirmation?.confirmLabel ??
+                  t('confirmationSheet.confirmDecision')
+                }
+                accessibilityLabel={
+                  confirmation?.confirmLabel ??
+                  t('confirmationSheet.confirmDecision')
+                }
+                variant={
+                  confirmation?.tone === 'danger'
+                    ? 'danger'
+                    : confirmation?.tone === 'hero'
+                      ? 'hero'
+                      : 'confirm'
+                }
                 disabled={confirmation?.confirmDisabled === true}
                 onPress={confirm}
               />
@@ -244,9 +267,11 @@ function trapWebDialogFocus(event: {
   if (event.key !== 'Tab' || typeof document === 'undefined') return;
   const dialog = event.currentTarget as HTMLElement | null;
   if (dialog === null) return;
-  const controls = [...dialog.querySelectorAll<HTMLElement>(
-    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-  )];
+  const controls = [
+    ...dialog.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  ];
   const first = controls[0];
   const last = controls[controls.length - 1];
   if (first === undefined || last === undefined) return;

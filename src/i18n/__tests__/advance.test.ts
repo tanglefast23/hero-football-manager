@@ -11,19 +11,24 @@ describe('advanceEm', () => {
     // with the numbers taken from stock Silkscreen is the whole point of the
     // append-only merge, and it is what keeps the column tables valid.
     for (const [label, expected] of Object.entries(LEAGUE_HEADER_ADVANCE_EM)) {
-      expect({ label, em: advanceEm(label, 'HFMSilkscreen_400Regular') })
-        .toEqual({ label, em: expected });
+      expect({
+        label,
+        em: advanceEm(label, 'HFMSilkscreen_400Regular'),
+      }).toEqual({ label, em: expected });
       expect(advanceEm(label, 'Silkscreen_400Regular')).toEqual(expected);
     }
   });
 
   test('Silkscreen is proportional, which is why character counts lie', () => {
-    expect(advanceEm('W', 'HFMSilkscreen_400Regular'))
-      .toBeGreaterThan(advanceEm('P', 'HFMSilkscreen_400Regular'));
+    expect(advanceEm('W', 'HFMSilkscreen_400Regular')).toBeGreaterThan(
+      advanceEm('P', 'HFMSilkscreen_400Regular'),
+    );
   });
 
   test('refuses a character the face cannot draw rather than guessing', () => {
-    expect(() => advanceEm('Đ', 'Silkscreen_400Regular')).toThrow(/cannot draw/);
+    expect(() => advanceEm('Đ', 'Silkscreen_400Regular')).toThrow(
+      /cannot draw/,
+    );
     expect(advanceEm('Đ', 'HFMSilkscreen_400Regular')).toBeGreaterThan(0);
   });
 });

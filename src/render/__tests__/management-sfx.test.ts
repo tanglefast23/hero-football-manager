@@ -79,7 +79,7 @@ describe('management feedback sounds', () => {
 
     expect(mockPlayers).toHaveLength(33);
     const trainingDing = mockPlayers[1];
-    expect(mockPlayers.every(player => player.volume === 0.5)).toBe(true);
+    expect(mockPlayers.every((player) => player.volume === 0.5)).toBe(true);
     expect(trainingDing.seekTo).toHaveBeenCalledWith(0);
     expect(trainingDing.play).toHaveBeenCalledTimes(1);
 
@@ -119,18 +119,23 @@ describe('management feedback sounds', () => {
   });
 
   it('answers a risky career event with the fanfare, and never with the old cheer', () => {
-    const sounds = readFileSync(join(process.cwd(), 'src/render/management-sfx.ts'), 'utf8');
+    const sounds = readFileSync(
+      join(process.cwd(), 'src/render/management-sfx.ts'),
+      'utf8',
+    );
 
-    expect(sounds).toContain(
+    expect(sounds).toContainSource(
       "'event-success': require('../../assets/audio/sfx/event-success-fanfare.m4a')",
     );
-    expect(sounds).toContain(
+    expect(sounds).toContainSource(
       "'super-celebration': require('../../assets/audio/sfx/level-up.m4a')",
     );
     // The crowd wash is gone from the catalog. Asserted on the require rather
     // than the file, because the comment above `event-success` still names the
     // sound it replaced — which is the point of the comment.
-    expect(sounds).not.toContain("require('../../assets/audio/sfx/crowd-cheer.wav')");
+    expect(sounds).not.toContainSource(
+      "require('../../assets/audio/sfx/crowd-cheer.wav')",
+    );
   });
 
   /**
@@ -140,20 +145,25 @@ describe('management feedback sounds', () => {
    * assets, and the argument the card passes.
    */
   it('gives the league week the fanfare and the cup tie the bugle', async () => {
-    const sounds = readFileSync(join(process.cwd(), 'src/render/management-sfx.ts'), 'utf8');
+    const sounds = readFileSync(
+      join(process.cwd(), 'src/render/management-sfx.ts'),
+      'utf8',
+    );
     const banner = readFileSync(
       join(process.cwd(), 'src/ui/components/MatchDayBanner.tsx'),
       'utf8',
     );
 
-    expect(sounds).toContain(
+    expect(sounds).toContainSource(
       "'match-day-fanfare': require('../../assets/audio/sfx/match-day-fanfare.m4a')",
     );
-    expect(sounds).toContain(
+    expect(sounds).toContainSource(
       "'match-day-bugle': require('../../assets/audio/sfx/match-day-bugle.m4a')",
     );
-    expect(sounds).toContain("playManagementSfx(isCup ? 'match-day-bugle' : 'match-day-fanfare')");
-    expect(banner).toContain('playMatchDayCallSfx(isCup)');
+    expect(sounds).toContainSource(
+      "playManagementSfx(isCup ? 'match-day-bugle' : 'match-day-fanfare')",
+    );
+    expect(banner).toContainSource('playMatchDayCallSfx(isCup)');
 
     playMatchDayCallSfx(false);
     await Promise.resolve();
@@ -180,11 +190,20 @@ describe('management feedback sounds', () => {
     playUiClickSfx();
     await Promise.resolve();
 
-    const uiClickPool = [mockPlayers[2], mockPlayers[27], mockPlayers[28], mockPlayers[29]];
+    const uiClickPool = [
+      mockPlayers[2],
+      mockPlayers[27],
+      mockPlayers[28],
+      mockPlayers[29],
+    ];
     // One press, one rewind, one play — on a voice of its own, so four quick
     // presses never share a playhead.
-    expect(uiClickPool.every(player => player.seekTo.mock.calls.length === 1)).toBe(true);
-    expect(uiClickPool.every(player => player.play.mock.calls.length === 1)).toBe(true);
+    expect(
+      uiClickPool.every((player) => player.seekTo.mock.calls.length === 1),
+    ).toBe(true);
+    expect(
+      uiClickPool.every((player) => player.play.mock.calls.length === 1),
+    ).toBe(true);
     expect(mockImpactAsync).toHaveBeenCalledTimes(4);
   });
 
@@ -194,7 +213,7 @@ describe('management feedback sounds', () => {
       'utf8',
     );
 
-    expect(sounds).toContain(
+    expect(sounds).toContainSource(
       "'match-control': require('../../assets/audio/sfx/match-control-whistle.wav')",
     );
 
@@ -210,23 +229,39 @@ describe('management feedback sounds', () => {
   });
 
   it('gives small interactions an audible click and large action buttons the confirmation', () => {
-    const sounds = readFileSync(join(process.cwd(), 'src/render/management-sfx.ts'), 'utf8');
-    const buttons = readFileSync(join(process.cwd(), 'src/ui/components/Scorecard.tsx'), 'utf8');
+    const sounds = readFileSync(
+      join(process.cwd(), 'src/render/management-sfx.ts'),
+      'utf8',
+    );
+    const buttons = readFileSync(
+      join(process.cwd(), 'src/ui/components/Scorecard.tsx'),
+      'utf8',
+    );
 
     // A press on the screen answers with the supplied tap, whichever of the two
     // generic cue names the caller reaches for; steppers keep the lighter tap.
     // Neither borrows headroom from the music.
-    expect(sounds).toContain("'ui-click': require('../../assets/audio/sfx/ui-tap.wav')");
-    expect(sounds).toContain("select: require('../../assets/audio/sfx/ui-tap.wav')");
-    expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/stat-step-tap-loud.m4a')");
-    expect(sounds).toContain("positive: require('../../assets/audio/sfx/positive.m4a')");
+    expect(sounds).toContainSource(
+      "'ui-click': require('../../assets/audio/sfx/ui-tap.wav')",
+    );
+    expect(sounds).toContainSource(
+      "select: require('../../assets/audio/sfx/ui-tap.wav')",
+    );
+    expect(sounds).toContainSource(
+      "'stat-step': require('../../assets/audio/sfx/stat-step-tap-loud.m4a')",
+    );
+    expect(sounds).toContainSource(
+      "positive: require('../../assets/audio/sfx/positive.m4a')",
+    );
     // Large buttons still confirm by default, but the variant can speak for
     // itself: a destructive one answers with the back-button cue (dismissing a
     // coach or erasing a save used to be applauded by the chime that celebrates
     // a signing), and a neutral paper one — cancel, back, pass, decline — only
     // clicks, so a refusal never sounds like a win.
-    expect(sounds).toContain("danger: require('../../assets/audio/sfx/back-button.m4a')");
-    expect(buttons).toContain(
+    expect(sounds).toContainSource(
+      "danger: require('../../assets/audio/sfx/back-button.m4a')",
+    );
+    expect(buttons).toContainSource(
       "const cue = pressSfx\n    ?? (variant === 'danger' ? 'danger' : variant === 'paper' ? 'click' : 'positive');",
     );
   });
@@ -251,16 +286,19 @@ describe('management feedback sounds', () => {
   });
 
   it('ties the progress bed to the count-up inside the drill scene', () => {
-    const scene = readFileSync(join(process.cwd(), 'src/render/DrillSceneOverlay.tsx'), 'utf8');
+    const scene = readFileSync(
+      join(process.cwd(), 'src/render/DrillSceneOverlay.tsx'),
+      'utf8',
+    );
 
-    expect(scene).toContain('playDrillProgressSfx()');
+    expect(scene).toContainSource('playDrillProgressSfx()');
     // Stopped where the number lands AND on teardown, so a skipped scene is silent.
     expect(scene.match(/stopDrillProgressSfx\(\)/g)).toHaveLength(2);
     // The number itself is green; the duplicate inline "+N" stamp is gone
     // because the following full-screen takeover owns the gain.
-    expect(scene).not.toContain('countLanded');
-    expect(scene).not.toContain('gainDelta');
-    expect(scene).toContain("gainValue: { color: '#3f8a4a'");
+    expect(scene).not.toContainSource('countLanded');
+    expect(scene).not.toContainSource('gainDelta');
+    expect(scene).toContainSource("gainValue: { color: '#3f8a4a'");
   });
 
   it('routes semantic management cues to their dedicated player', async () => {
@@ -293,9 +331,11 @@ describe('management feedback sounds', () => {
 
     // Tied to the end of the takeover, not to the result landing — and it fires
     // whether the celebration played out or was tapped away.
-    expect(celebration).toContain('playSuperTrainingYaySfx()');
-    expect(celebration).toContain('export const SUPER_CELEBRATION_MS = 3400');
-    expect(celebration).toContain('FIREWORK_DELAYS_MS');
+    expect(celebration).toContainSource('playSuperTrainingYaySfx()');
+    expect(celebration).toContainSource(
+      'export const SUPER_CELEBRATION_MS = 3400',
+    );
+    expect(celebration).toContainSource('FIREWORK_DELAYS_MS');
 
     playSuperTrainingYaySfx();
     await Promise.resolve();
@@ -304,15 +344,20 @@ describe('management feedback sounds', () => {
   });
 
   it('runs the level-up jingle under the SUPER takeover and stops it when it goes', async () => {
-    const sounds = readFileSync(join(process.cwd(), 'src/render/management-sfx.ts'), 'utf8');
+    const sounds = readFileSync(
+      join(process.cwd(), 'src/render/management-sfx.ts'),
+      'utf8',
+    );
     const celebration = readFileSync(
       join(process.cwd(), 'src/ui/components/SuperTrainingCelebration.tsx'),
       'utf8',
     );
 
-    expect(sounds).toContain("'super-celebration': require('../../assets/audio/sfx/level-up.m4a')");
+    expect(sounds).toContainSource(
+      "'super-celebration': require('../../assets/audio/sfx/level-up.m4a')",
+    );
     // Started when the takeover appears, not when the result lands.
-    expect(celebration).toContain('playSuperCelebrationSfx()');
+    expect(celebration).toContainSource('playSuperCelebrationSfx()');
     // Stopped where the takeover ends AND on teardown, so a 3.6s jingle never
     // rings on over the screen behind it.
     expect(celebration.match(/stopSuperCelebrationSfx\(\)/g)).toHaveLength(2);
@@ -335,7 +380,8 @@ describe('management feedback sounds', () => {
     // iOS kills the session server while backgrounded: the next native call
     // rejects and the old player can never play again.
     mockPlayers[16].seekTo.mockImplementation(() =>
-      Promise.reject(new Error('Session lookup failed')));
+      Promise.reject(new Error('Session lookup failed')),
+    );
 
     playPositiveSfx();
     await Promise.resolve();
@@ -353,7 +399,8 @@ describe('management feedback sounds', () => {
 
   it('recovers a dead rapid voice and replays the tap on the rebuilt pool', async () => {
     mockPlayers[2].seekTo.mockImplementation(() =>
-      Promise.reject(new Error('Unable to find the native shared object')));
+      Promise.reject(new Error('Unable to find the native shared object')),
+    );
 
     playUiClickSfx();
     await Promise.resolve();
@@ -377,9 +424,18 @@ describe('management feedback sounds', () => {
     await Promise.resolve();
 
     expect(mockPlayers).toHaveLength(33);
-    const statStepPool = [mockPlayers[17], mockPlayers[30], mockPlayers[31], mockPlayers[32]];
-    expect(statStepPool.every(player => player.seekTo.mock.calls.length === 1)).toBe(true);
-    expect(statStepPool.every(player => player.play.mock.calls.length === 1)).toBe(true);
+    const statStepPool = [
+      mockPlayers[17],
+      mockPlayers[30],
+      mockPlayers[31],
+      mockPlayers[32],
+    ];
+    expect(
+      statStepPool.every((player) => player.seekTo.mock.calls.length === 1),
+    ).toBe(true);
+    expect(
+      statStepPool.every((player) => player.play.mock.calls.length === 1),
+    ).toBe(true);
 
     // The fifth press wraps back onto the first voice. It rewinds again rather
     // than calling play() on a playhead that may be parked at the clip's end,

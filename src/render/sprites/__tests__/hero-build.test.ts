@@ -11,8 +11,12 @@ const heroSheet = sprites as Sheet;
 
 /** Inclusive span of painted columns, which is what a silhouette's width means. */
 function paintedWidth(row: string): number {
-  const painted = [...row].map((token, index) => (token === '.' ? -1 : index)).filter(index => index >= 0);
-  return painted.length === 0 ? 0 : Math.max(...painted) - Math.min(...painted) + 1;
+  const painted = [...row]
+    .map((token, index) => (token === '.' ? -1 : index))
+    .filter((index) => index >= 0);
+  return painted.length === 0
+    ? 0
+    : Math.max(...painted) - Math.min(...painted) + 1;
 }
 
 function faceKeys(rows: readonly string[]): Set<string> {
@@ -32,9 +36,9 @@ describe('superhero homage looks', () => {
    * with the pair broken.
    */
   it('ships exactly fifteen, at the end of the field pool', () => {
-    expect(manifest.heroes.map(hero => hero.id)).toEqual(HERO_IDS);
+    expect(manifest.heroes.map((hero) => hero.id)).toEqual(HERO_IDS);
     expect(manifest.field.slice(-15)).toEqual(HERO_IDS);
-    expect(new Set(manifest.heroes.map(hero => hero.name)).size).toBe(15);
+    expect(new Set(manifest.heroes.map((hero) => hero.name)).size).toBe(15);
   });
 
   /**
@@ -47,37 +51,47 @@ describe('superhero homage looks', () => {
   it('draws heroes wider than the broadest ordinary build', () => {
     const heroWidths = new Set<number>();
     const ordinaryWidths = new Set<number>();
-    for (const side of SIDES) for (const frame of RUN_FRAMES) {
-      for (const id of manifest.field) {
-        const width = paintedWidth(heroSheet.sprites[`${side}:${id}:${frame}`][18]);
-        (HERO_IDS.includes(id) ? heroWidths : ordinaryWidths).add(width);
+    for (const side of SIDES)
+      for (const frame of RUN_FRAMES) {
+        for (const id of manifest.field) {
+          const width = paintedWidth(
+            heroSheet.sprites[`${side}:${id}:${frame}`][18],
+          );
+          (HERO_IDS.includes(id) ? heroWidths : ordinaryWidths).add(width);
+        }
       }
-    }
     expect([...heroWidths]).toEqual([20]);
     expect(Math.max(...ordinaryWidths)).toBe(18);
   });
 
   it('leaves the outline a column to land in on every frame', () => {
-    for (const side of SIDES) for (const frame of RUN_FRAMES) for (const id of HERO_IDS) {
-      for (const row of heroSheet.sprites[`${side}:${id}:${frame}`]) {
-        expect([row[0], row[23]]).toEqual(['.', '.']);
-      }
-    }
+    for (const side of SIDES)
+      for (const frame of RUN_FRAMES)
+        for (const id of HERO_IDS) {
+          for (const row of heroSheet.sprites[`${side}:${id}:${frame}`]) {
+            expect([row[0], row[23]]).toEqual(['.', '.']);
+          }
+        }
   });
 
   it('gives all fifteen a silhouette of their own', () => {
-    const silhouettes = HERO_IDS.map(id => (portraits as Sheet).sprites[`${id}:rest`]
-      .map(row => row.replace(/[^.]/g, '#'))
-      .join('|'));
+    const silhouettes = HERO_IDS.map((id) =>
+      (portraits as Sheet).sprites[`${id}:rest`]
+        .map((row) => row.replace(/[^.]/g, '#'))
+        .join('|'),
+    );
     expect(new Set(silhouettes).size).toBe(15);
   });
 
   it('uses the intro portrait head unchanged on every front-facing match frame', () => {
     for (const id of HERO_IDS) {
       const introHead = (portraits as Sheet).sprites[`${id}:rest`].slice(0, 15);
-      for (const side of SIDES) for (const frame of RUN_FRAMES) {
-        expect(heroSheet.sprites[`${side}:${id}:${frame}`].slice(0, 15)).toEqual(introHead);
-      }
+      for (const side of SIDES)
+        for (const frame of RUN_FRAMES) {
+          expect(
+            heroSheet.sprites[`${side}:${id}:${frame}`].slice(0, 15),
+          ).toEqual(introHead);
+        }
     }
   });
 
@@ -93,8 +107,8 @@ describe('superhero homage looks', () => {
     for (const key of ['f176:rest', 'f176:joy', 'f176:ko']) {
       const present = faceKeys((portraits as Sheet).sprites[key]);
       expect(present.has('T')).toBe(true);
-      expect(['h', 'H', 'J'].some(legacy => present.has(legacy))).toBe(true);
-      expect(['x', 'y', 'z'].some(hair => present.has(hair))).toBe(false);
+      expect(['h', 'H', 'J'].some((legacy) => present.has(legacy))).toBe(true);
+      expect(['x', 'y', 'z'].some((hair) => present.has(hair))).toBe(false);
     }
   });
 });

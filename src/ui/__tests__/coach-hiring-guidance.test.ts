@@ -10,11 +10,17 @@ describe('coach hiring guidance', () => {
     );
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
-    expect(market).not.toContain('guidedHeadCoachId');
-    expect(market).not.toContain('guidedAssistantCoachId');
-    expect(market).not.toContain('detail="If you want to hire this coach"');
-    expect(app).toContain('const hideCoachHiringCues = store.activeTab === \'market\'');
-    expect(app).toContain('guideTarget={hideCoachHiringCues ? undefined : visibleAssistantObjectiveTarget}');
+    expect(market).not.toContainSource('guidedHeadCoachId');
+    expect(market).not.toContainSource('guidedAssistantCoachId');
+    expect(market).not.toContainSource(
+      'detail="If you want to hire this coach"',
+    );
+    expect(app).toContainSource(
+      "const hideCoachHiringCues = store.activeTab === 'market'",
+    );
+    expect(app).toContainSource(
+      'guideTarget={hideCoachHiringCues ? undefined : visibleAssistantObjectiveTarget}',
+    );
   });
 
   it('labels the post-hire action Return home and routes it to Home', () => {
@@ -26,12 +32,21 @@ describe('coach hiring guidance', () => {
 
     // The visible label is catalog copy now, so assert the key and the English
     // behind it rather than a literal that has moved out of the component.
-    expect(overlay).toContain("label={t('coachStaff.returnHome')}");
-    expect(loadCatalog('en').strings['coachStaff.returnHome']).toBe('Return home');
-    expect(overlay).toContain("t('coachStaff.a11y.closeCoachConfirmationAndReturnHome')");
-    expect(loadCatalog('en').strings['coachStaff.a11y.closeCoachConfirmationAndReturnHome'])
-      .toBe('Close coach confirmation and return home');
-    expect(overlay).not.toContain('label="Return to club');
-    expect(app).toContain("if (returnsHome) useM1Store.getState().setActiveTab('home');");
+    expect(overlay).toContainSource("label={t('coachStaff.returnHome')}");
+    expect(loadCatalog('en').strings['coachStaff.returnHome']).toBe(
+      'Return home',
+    );
+    expect(overlay).toContainSource(
+      "t('coachStaff.a11y.closeCoachConfirmationAndReturnHome')",
+    );
+    expect(
+      loadCatalog('en').strings[
+        'coachStaff.a11y.closeCoachConfirmationAndReturnHome'
+      ],
+    ).toBe('Close coach confirmation and return home');
+    expect(overlay).not.toContainSource('label="Return to club');
+    expect(app).toContainSource(
+      "if (returnsHome) useM1Store.getState().setActiveTab('home');",
+    );
   });
 });

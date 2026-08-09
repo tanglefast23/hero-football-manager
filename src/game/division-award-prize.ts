@@ -61,9 +61,8 @@ export const DIVISION_AWARD_PRIZE_PER_TIER = 20;
  * COUNT of boards won, never against which boards they were. Winning goals and
  * saves pays exactly what winning tackles and passes pays.
  */
-export const DIVISION_AWARD_PRIZE_TAPER_PERCENT: readonly number[] = Object.freeze(
-  [100, 75, 50, 25],
-);
+export const DIVISION_AWARD_PRIZE_TAPER_PERCENT: readonly number[] =
+  Object.freeze([100, 75, 50, 25]);
 
 const LOWEST_DIVISION = 5;
 
@@ -83,13 +82,19 @@ interface DivisionAwardPrizeQuery {
 }
 
 export function divisionAwardPrizePerCategory(targetDivision: number): number {
-  if (!Number.isInteger(targetDivision)
-    || targetDivision < 1
-    || targetDivision > LOWEST_DIVISION) {
-    throw new Error(`division ${targetDivision} is outside the five-tier pyramid`);
+  if (
+    !Number.isInteger(targetDivision) ||
+    targetDivision < 1 ||
+    targetDivision > LOWEST_DIVISION
+  ) {
+    throw new Error(
+      `division ${targetDivision} is outside the five-tier pyramid`,
+    );
   }
-  return DIVISION_AWARD_PRIZE_AT_D5
-    + (LOWEST_DIVISION - targetDivision) * DIVISION_AWARD_PRIZE_PER_TIER;
+  return (
+    DIVISION_AWARD_PRIZE_AT_D5 +
+    (LOWEST_DIVISION - targetDivision) * DIVISION_AWARD_PRIZE_PER_TIER
+  );
 }
 
 /**
@@ -111,12 +116,14 @@ export const TRAINING_POINT_CASH_VALUE = 40;
 export const DIVISION_AWARD_PRIZE_UPLIFT_PERCENT = 110;
 
 /** One board's cash value for a club entering `targetDivision`. */
-export function divisionAwardPrizeCashPerCategory(targetDivision: number): number {
+export function divisionAwardPrizeCashPerCategory(
+  targetDivision: number,
+): number {
   return Math.round(
-    divisionAwardPrizePerCategory(targetDivision)
-    * TRAINING_POINT_CASH_VALUE
-    * DIVISION_AWARD_PRIZE_UPLIFT_PERCENT
-    / 100,
+    (divisionAwardPrizePerCategory(targetDivision) *
+      TRAINING_POINT_CASH_VALUE *
+      DIVISION_AWARD_PRIZE_UPLIFT_PERCENT) /
+      100,
   );
 }
 
@@ -130,7 +137,10 @@ export function divisionAwardPrizeCashPerCategory(targetDivision: number): numbe
  * nothing rounds at all: every division rate is a multiple of 20 TP, the cash
  * rate is 40, the uplift is a tenth and every multiplier is a quarter.
  */
-export function divisionAwardPrizeTotal(targetDivision: number, boardsWon: number): number {
+export function divisionAwardPrizeTotal(
+  targetDivision: number,
+  boardsWon: number,
+): number {
   const perCategory = divisionAwardPrizeCashPerCategory(targetDivision);
   if (!Number.isInteger(boardsWon) || boardsWon < 0) {
     throw new Error(`cannot pay for ${boardsWon} boards`);
@@ -138,11 +148,14 @@ export function divisionAwardPrizeTotal(targetDivision: number, boardsWon: numbe
   if (boardsWon > DIVISION_AWARD_PRIZE_TAPER_PERCENT.length) {
     // A fifth board would need a fifth multiplier, which is a balance decision
     // and not something to extrapolate silently from a four-entry curve.
-    throw new Error(`the taper prices at most ${DIVISION_AWARD_PRIZE_TAPER_PERCENT.length} boards`);
+    throw new Error(
+      `the taper prices at most ${DIVISION_AWARD_PRIZE_TAPER_PERCENT.length} boards`,
+    );
   }
-  return DIVISION_AWARD_PRIZE_TAPER_PERCENT
-    .slice(0, boardsWon)
-    .reduce((total, percent) => total + Math.round(perCategory * percent / 100), 0);
+  return DIVISION_AWARD_PRIZE_TAPER_PERCENT.slice(0, boardsWon).reduce(
+    (total, percent) => total + Math.round((perCategory * percent) / 100),
+    0,
+  );
 }
 
 /**
@@ -161,7 +174,9 @@ export function divisionAwardPrizeTotal(targetDivision: number, boardsWon: numbe
  * stable to render, but the total reads only its LENGTH — which boards were won
  * cannot change what they are worth.
  */
-export function divisionAwardPrize(query: DivisionAwardPrizeQuery): DivisionAwardPrize {
+export function divisionAwardPrize(
+  query: DivisionAwardPrizeQuery,
+): DivisionAwardPrize {
   const awards = query.recap.divisionAwards;
   // Absent on saves written before the boards shipped. Those careers simply
   // have nothing to pay for; there is no history to reconstruct a podium from.
@@ -172,10 +187,13 @@ export function divisionAwardPrize(query: DivisionAwardPrizeQuery): DivisionAwar
   // blanks a board; the transition throws, and a throw here surfaces as an error
   // banner on every "start next season" tap, which is the permanently stranded
   // career the whole design exists to prevent.
-  const categoriesWon = awards === undefined
-    ? []
-    : (Object.keys(AWARD_CATEGORIES) as AwardCategoryId[])
-      .filter(category => (awards[category] ?? [])[0]?.clubId === query.userClubId);
+  const categoriesWon =
+    awards === undefined
+      ? []
+      : (Object.keys(AWARD_CATEGORIES) as AwardCategoryId[]).filter(
+          (category) =>
+            (awards[category] ?? [])[0]?.clubId === query.userClubId,
+        );
   return {
     money: divisionAwardPrizeTotal(query.targetDivision, categoriesWon.length),
     categoriesWon,

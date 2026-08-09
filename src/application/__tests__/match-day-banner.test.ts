@@ -48,7 +48,7 @@ function walkWeeks(seed: number, weeks: number) {
       const matchday = activeCareerMatchday(state)!;
       state = completeMatchday(
         state,
-        matchday.fixtures.map(fixture => ({
+        matchday.fixtures.map((fixture) => ({
           fixtureId: fixture.id,
           homeGoals: 1,
           awayGoals: 1,
@@ -62,30 +62,37 @@ function walkWeeks(seed: number, weeks: number) {
 describe('matchDayBannerViewModel', () => {
   it('announces nothing on a week with no user fixture', () => {
     const weeks = walkWeeks(1, 10);
-    const quiet = weeks.filter(week => !week.hasFixture);
+    const quiet = weeks.filter((week) => !week.hasFixture);
     expect(quiet.length).toBeGreaterThan(0);
-    expect(quiet.every(week => week.headline === null)).toBe(true);
+    expect(quiet.every((week) => week.headline === null)).toBe(true);
   });
 
   it('announces every week that does have one, and never any other', () => {
     const weeks = walkWeeks(1, 10);
-    const busy = weeks.filter(week => week.hasFixture);
+    const busy = weeks.filter((week) => week.hasFixture);
     expect(busy.length).toBeGreaterThan(0);
-    expect(busy.every(week => week.headline !== null)).toBe(true);
+    expect(busy.every((week) => week.headline !== null)).toBe(true);
   });
 
   it('names the division, not "Division 5", for a league week', () => {
     const weeks = walkWeeks(1, 10);
-    const league = weeks.find(week => week.headline === `${DIVISION_NAMES[5]}: Match Day`);
+    const league = weeks.find(
+      (week) => week.headline === `${DIVISION_NAMES[5]}: Match Day`,
+    );
     expect(league).toBeDefined();
-    expect(weeks.every(week => week.headline === null || !/Division \d/.test(week.headline)))
-      .toBe(true);
+    expect(
+      weeks.every(
+        (week) => week.headline === null || !/Division \d/.test(week.headline),
+      ),
+    ).toBe(true);
   });
 
   it('names the cup on a cup week', () => {
     // Seed 2 draws a Play-in tie inside the first eight weeks.
     const weeks = walkWeeks(2, 10);
-    expect(weeks.some(week => week.headline === `${CUP_DISPLAY_NAME}: Match Day`)).toBe(true);
+    expect(
+      weeks.some((week) => week.headline === `${CUP_DISPLAY_NAME}: Match Day`),
+    ).toBe(true);
   });
 
   it('calls the last week of the season the final game, not another match day', () => {
@@ -94,14 +101,18 @@ describe('matchDayBannerViewModel', () => {
     // bury the one fixture that decides promotion.
     const finale = { ...career(1), week: SEASON_WEEKS };
     expect(activeCareerMatchday(finale)?.kind).toBe('league');
-    expect(matchDayBannerViewModel(finale)?.headline)
-      .toBe(`${DIVISION_NAMES[5]}: Final Game!`);
+    expect(matchDayBannerViewModel(finale)?.headline).toBe(
+      `${DIVISION_NAMES[5]}: Final Game!`,
+    );
   });
 
   it('keeps the ordinary announcement for every other league week', () => {
     const weeks = walkWeeks(1, 10);
-    expect(weeks.every(week => week.headline === null || !/Final Game/.test(week.headline)))
-      .toBe(true);
+    expect(
+      weeks.every(
+        (week) => week.headline === null || !/Final Game/.test(week.headline),
+      ),
+    ).toBe(true);
   });
 
   /**
@@ -110,11 +121,15 @@ describe('matchDayBannerViewModel', () => {
    * promise a cup run the club is not on.
    */
   it('flags the cup week, and only the cup week, for the cabinet art', () => {
-    const weeks = walkWeeks(2, 10).filter(week => week.headline !== null);
-    const cup = weeks.filter(week => week.headline === `${CUP_DISPLAY_NAME}: Match Day`);
+    const weeks = walkWeeks(2, 10).filter((week) => week.headline !== null);
+    const cup = weeks.filter(
+      (week) => week.headline === `${CUP_DISPLAY_NAME}: Match Day`,
+    );
     expect(cup.length).toBeGreaterThan(0);
-    expect(cup.every(week => week.isCup)).toBe(true);
-    expect(weeks.filter(week => week.isCup === true)).toHaveLength(cup.length);
+    expect(cup.every((week) => week.isCup)).toBe(true);
+    expect(weeks.filter((week) => week.isCup === true)).toHaveLength(
+      cup.length,
+    );
   });
 
   /**
@@ -132,12 +147,14 @@ describe('matchDayBannerViewModel', () => {
       ratings: DEFAULT_CREATION_RATINGS,
     });
     const started = useM1Store.getState().career!;
-    const userFixtures = started.fixtures.filter(fixture => (
-      fixture.season === started.season
-      && (fixture.homeClubId === started.userClubId || fixture.awayClubId === started.userClubId)
-    ));
+    const userFixtures = started.fixtures.filter(
+      (fixture) =>
+        fixture.season === started.season &&
+        (fixture.homeClubId === started.userClubId ||
+          fixture.awayClubId === started.userClubId),
+    );
     const played = userFixtures[0];
-    const next = userFixtures.find(fixture => fixture.week > played.week + 1);
+    const next = userFixtures.find((fixture) => fixture.week > played.week + 1);
     expect(next).toBeDefined();
 
     useM1Store.setState({
@@ -147,9 +164,11 @@ describe('matchDayBannerViewModel', () => {
         phase: 'matchday',
         // Pull a later fixture onto the week this match settles into, so the
         // manager leaves one match week straight into another.
-        fixtures: started.fixtures.map(fixture => (
-          fixture.id === next!.id ? { ...fixture, week: played.week + 1 } : fixture
-        )),
+        fixtures: started.fixtures.map((fixture) =>
+          fixture.id === next!.id
+            ? { ...fixture, week: played.week + 1 }
+            : fixture,
+        ),
       }),
       screen: 'matchday',
       matchDayBanner: null,
@@ -157,9 +176,12 @@ describe('matchDayBannerViewModel', () => {
 
     useM1Store.getState().quickResult();
 
-    expect(useM1Store.getState().career).toMatchObject({ week: played.week + 1 });
-    expect(useM1Store.getState().matchDayBanner?.id)
-      .toBe(`match-day-banner-${started.season}-${played.week + 1}`);
+    expect(useM1Store.getState().career).toMatchObject({
+      week: played.week + 1,
+    });
+    expect(useM1Store.getState().matchDayBanner?.id).toBe(
+      `match-day-banner-${started.season}-${played.week + 1}`,
+    );
   });
 
   /**
@@ -170,7 +192,7 @@ describe('matchDayBannerViewModel', () => {
    */
   it('waits for the Financial Report to be dismissed before it announces', () => {
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
-    expect(app).toMatch(
+    expect(app).toMatchSource(
       /store\.screen === 'management'\s*\n\s*&& !postMatchSummaryVisible\s*\n\s*&& store\.matchDayBanner !== null/,
     );
   });

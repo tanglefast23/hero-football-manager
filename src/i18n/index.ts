@@ -8,8 +8,20 @@ export {
   formatMoney,
   formatMoneyForCopy,
 } from './format-number';
-export { contentStrings, glossaryTermSlug, powerCopySlug, proseSlug } from './content-strings';
-export { loadCatalog, loadGlossary, type Glossary, type GlossaryTerm } from './load-catalogs';
+export {
+  contentStrings,
+  glossaryTermSlug,
+  powerCopySlug,
+  proseSlug,
+} from './content-strings';
+export {
+  ensureCatalog,
+  loadCatalog,
+  loadGlossary,
+  registerCatalog,
+  type Glossary,
+  type GlossaryTerm,
+} from './load-catalogs';
 export {
   ENABLED_LOCALES,
   LOCALES,

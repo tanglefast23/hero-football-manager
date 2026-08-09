@@ -36,8 +36,13 @@ interface CareerFacilityTransaction extends FacilityTransaction {
  * everywhere else in the game, and leaving one English inside an otherwise
  * translated sentence is the exact defect that put keys beside `DIVISION_NAMES`.
  */
-function facilityLabelParams(type: FacilityType): Readonly<Record<string, string>> {
-  return { facility: FACILITY_CATALOG[type].name, facilityKey: FACILITY_NAME_KEYS[type] };
+function facilityLabelParams(
+  type: FacilityType,
+): Readonly<Record<string, string>> {
+  return {
+    facility: FACILITY_CATALOG[type].name,
+    facilityKey: FACILITY_NAME_KEYS[type],
+  };
 }
 
 /** Everything the confirmation needs to explain one staffed-office closure. */
@@ -74,10 +79,14 @@ export function buildCareerFacility(
     cash,
   );
   const applied = applyFacilityTransaction(state, transaction);
-  const building = transaction.grid.buildings.find(candidate => (
-    !state.facilities.grid?.buildings.some(existing => existing.id === candidate.id)
-  ));
-  if (building === undefined) throw new Error('facility build did not add a building');
+  const building = transaction.grid.buildings.find(
+    (candidate) =>
+      !state.facilities.grid?.buildings.some(
+        (existing) => existing.id === candidate.id,
+      ),
+  );
+  if (building === undefined)
+    throw new Error('facility build did not add a building');
   return {
     ...applied,
     state: recordCashTransaction(applied.state, {
@@ -96,7 +105,9 @@ export function upgradeCareerFacility(
   buildingId: string,
 ): CareerFacilityTransaction {
   assertManagementPhase(state);
-  const current = state.facilities.grid?.buildings.find(candidate => candidate.id === buildingId);
+  const current = state.facilities.grid?.buildings.find(
+    (candidate) => candidate.id === buildingId,
+  );
   if (current === undefined) throw new Error(`unknown facility ${buildingId}`);
   if (current.level < 3) {
     const targetLevel = (current.level + 1) as 2 | 3;
@@ -112,17 +123,23 @@ export function upgradeCareerFacility(
     userCash(state),
   );
   const applied = applyFacilityTransaction(state, transaction);
-  const building = transaction.grid.buildings.find(candidate => candidate.id === buildingId);
+  const building = transaction.grid.buildings.find(
+    (candidate) => candidate.id === buildingId,
+  );
   if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
   const targetLevel = transaction.grid.construction?.targetLevel;
-  if (targetLevel === undefined) throw new Error('facility upgrade did not start construction');
+  if (targetLevel === undefined)
+    throw new Error('facility upgrade did not start construction');
   return {
     ...applied,
     state: recordCashTransaction(applied.state, {
       kind: 'facility-upgrade',
       label: `${FACILITY_CATALOG[building.type].name} Level ${targetLevel} upgrade started`,
       labelKey: 'cashTransaction.facilityUpgrade',
-      labelParams: { ...facilityLabelParams(building.type), level: targetLevel },
+      labelParams: {
+        ...facilityLabelParams(building.type),
+        level: targetLevel,
+      },
       amount: -transaction.cost,
       referenceId: building.id,
     }),
@@ -142,7 +159,9 @@ export function relocateCareerFacility(
     userCash(state),
   );
   const applied = applyFacilityTransaction(state, transaction);
-  const building = transaction.grid.buildings.find(candidate => candidate.id === buildingId);
+  const building = transaction.grid.buildings.find(
+    (candidate) => candidate.id === buildingId,
+  );
   if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
   return {
     ...applied,
@@ -168,10 +187,17 @@ export function closeCareerFacility(
   buildingId: string,
 ): CareerFacilityTransaction {
   assertManagementPhase(state);
-  const building = state.facilities.grid?.buildings.find(candidate => candidate.id === buildingId);
+  const building = state.facilities.grid?.buildings.find(
+    (candidate) => candidate.id === buildingId,
+  );
   if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
-  if (building.type === 'coaching-office' && state.market?.assistantCoach !== undefined) {
-    throw new Error('a staffed Coaching Office must dismiss its assistant and close together');
+  if (
+    building.type === 'coaching-office' &&
+    state.market?.assistantCoach !== undefined
+  ) {
+    throw new Error(
+      'a staffed Coaching Office must dismiss its assistant and close together',
+    );
   }
   const transaction = closeFacility(
     state.facilities.grid ?? createFacilityGrid(),
@@ -232,17 +258,21 @@ export function closeStaffedCareerCoachingOffice(
     );
   }
 
-  const facilityApplied = applyFacilityTransaction(state, planned.facilityTransaction);
-  const withClosureLine = confirmation.facilityRefund === 0
-    ? facilityApplied.state
-    : recordCashTransaction(facilityApplied.state, {
-        kind: 'facility-closure',
-        label: `Closed ${FACILITY_CATALOG['coaching-office'].name}`,
-        labelKey: 'cashTransaction.facilityClosed',
-        labelParams: facilityLabelParams('coaching-office'),
-        amount: confirmation.facilityRefund,
-        referenceId: buildingId,
-      });
+  const facilityApplied = applyFacilityTransaction(
+    state,
+    planned.facilityTransaction,
+  );
+  const withClosureLine =
+    confirmation.facilityRefund === 0
+      ? facilityApplied.state
+      : recordCashTransaction(facilityApplied.state, {
+          kind: 'facility-closure',
+          label: `Closed ${FACILITY_CATALOG['coaching-office'].name}`,
+          labelKey: 'cashTransaction.facilityClosed',
+          labelParams: facilityLabelParams('coaching-office'),
+          amount: confirmation.facilityRefund,
+          referenceId: buildingId,
+        });
   const dismissed = dismissCareerCoach(
     withClosureLine,
     planned.market,
@@ -272,12 +302,15 @@ export function purchaseCareerTrainingUpgrade(
   if (offer === undefined) {
     throw new Error(`${trainingPathLabel(pathId)} already owns its best drill`);
   }
-  if (offer.blockedReason !== undefined) throw new Error(offer.blockedReason.text);
+  if (offer.blockedReason !== undefined)
+    throw new Error(offer.blockedReason.text);
   const paid: GameState = {
     ...state,
-    clubs: state.clubs.map(club => club.id === state.userClubId
-      ? { ...club, cash: club.cash - offer.cost }
-      : club),
+    clubs: state.clubs.map((club) =>
+      club.id === state.userClubId
+        ? { ...club, cash: club.cash - offer.cost }
+        : club,
+    ),
     ownedTrainingTiers: { ...state.ownedTrainingTiers, [pathId]: offer.tier },
   };
   return {
@@ -305,15 +338,18 @@ function applyFacilityTransaction(
 ): CareerFacilityTransaction {
   const stateAfter: GameState = {
     ...state,
-    clubs: state.clubs.map(club => club.id === state.userClubId
-      ? { ...club, cash: transaction.cashAfter }
-      : club),
+    clubs: state.clubs.map((club) =>
+      club.id === state.userClubId
+        ? { ...club, cash: transaction.cashAfter }
+        : club,
+    ),
     facilities: {
       ...state.facilities,
-      trainingGroundBuilt: transaction.grid.buildings.some(building => (
-        building.type === 'training-pitch'
-        && isFacilityOperational(transaction.grid, building.id)
-      )),
+      trainingGroundBuilt: transaction.grid.buildings.some(
+        (building) =>
+          building.type === 'training-pitch' &&
+          isFacilityOperational(transaction.grid, building.id),
+      ),
       grid: transaction.grid,
     },
   };
@@ -331,7 +367,9 @@ function planStaffedCoachingOfficeClosure(
   buildingId: string,
 ): PlannedStaffedCoachingOfficeClosure {
   const grid = state.facilities.grid ?? createFacilityGrid();
-  const building = grid.buildings.find(candidate => candidate.id === buildingId);
+  const building = grid.buildings.find(
+    (candidate) => candidate.id === buildingId,
+  );
   if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
   if (building.type !== 'coaching-office') {
     throw new Error(`${buildingId} is not a Coaching Office`);
@@ -339,9 +377,14 @@ function planStaffedCoachingOfficeClosure(
   const market = state.market;
   const assistant = market?.assistantCoach;
   if (market === undefined || assistant === undefined) {
-    throw new Error('the Coaching Office does not have an assistant to dismiss');
+    throw new Error(
+      'the Coaching Office does not have an assistant to dismiss',
+    );
   }
-  if (!Number.isSafeInteger(assistant.weeklyWage) || assistant.weeklyWage <= 0) {
+  if (
+    !Number.isSafeInteger(assistant.weeklyWage) ||
+    assistant.weeklyWage <= 0
+  ) {
     throw new Error('assistant weekly wage must be a positive safe integer');
   }
 
@@ -369,13 +412,18 @@ function planStaffedCoachingOfficeClosure(
 }
 
 function userCash(state: GameState): number {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
   return club.cash;
 }
 
 function assertManagementPhase(state: GameState): void {
   if (state.phase !== 'manage') {
-    throw new Error('facility transactions can only happen during the manage phase');
+    throw new Error(
+      'facility transactions can only happen during the manage phase',
+    );
   }
 }

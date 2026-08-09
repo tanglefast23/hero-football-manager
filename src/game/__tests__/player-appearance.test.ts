@@ -8,8 +8,12 @@ import {
 
 describe('persisted player appearances', () => {
   it('maps paper-doll choices to their dedicated visual identity', () => {
-    expect(createdAppearanceLookId({ skinTone: 0, hairstyle: 0, kitAccent: 0 })).toBe('c000');
-    expect(createdAppearanceLookId({ skinTone: 5, hairstyle: 9, kitAccent: 3 })).toBe('c239');
+    expect(
+      createdAppearanceLookId({ skinTone: 0, hairstyle: 0, kitAccent: 0 }),
+    ).toBe('c000');
+    expect(
+      createdAppearanceLookId({ skinTone: 5, hairstyle: 9, kitAccent: 3 }),
+    ).toBe('c239');
     expect(isPlayerLookIdForRole('c000', 'FWD')).toBe(true);
     expect(isPlayerLookIdForRole('c239', 'MID')).toBe(true);
     expect(isPlayerLookIdForRole('c240', 'FWD')).toBe(false);
@@ -24,9 +28,12 @@ describe('persisted player appearances', () => {
     ];
     const first = assignDistinctPlayerLooks(players);
     const reversed = assignDistinctPlayerLooks([...players].reverse());
-    expect(new Map(first.map(player => [player.id, player.lookId])))
-      .toEqual(new Map(reversed.map(player => [player.id, player.lookId])));
-    expect(new Set(first.map(player => player.lookId)).size).toBe(first.length);
+    expect(new Map(first.map((player) => [player.id, player.lookId]))).toEqual(
+      new Map(reversed.map((player) => [player.id, player.lookId])),
+    );
+    expect(new Set(first.map((player) => player.lookId)).size).toBe(
+      first.length,
+    );
   });
 
   it('keeps an established user face when a later player arrives with the same look', () => {

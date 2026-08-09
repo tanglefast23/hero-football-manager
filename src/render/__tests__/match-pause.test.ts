@@ -23,11 +23,21 @@ describe('match pause reasons', () => {
   });
 
   it('holds the match while a first-match tutorial is open', () => {
-    expect(shouldPauseMatch(false, new Set<AutomaticMatchPauseReason>(['tutorial']))).toBe(true);
+    expect(
+      shouldPauseMatch(false, new Set<AutomaticMatchPauseReason>(['tutorial'])),
+    ).toBe(true);
   });
 
   it('holds an acquired-power replay on its final frame', () => {
-    expect(shouldPauseMatch(false, new Set<AutomaticMatchPauseReason>(['showcase']))).toBe(true);
+    expect(
+      shouldPauseMatch(false, new Set<AutomaticMatchPauseReason>(['showcase'])),
+    ).toBe(true);
+  });
+
+  it('holds the simulation while the graphics context is unavailable', () => {
+    expect(
+      shouldPauseMatch(false, new Set<AutomaticMatchPauseReason>(['graphics'])),
+    ).toBe(true);
   });
 
   it('automatically releases only the background pause when the app returns', () => {
@@ -42,7 +52,9 @@ describe('match pause reasons', () => {
     const reasons = new Set<AutomaticMatchPauseReason>(['settings']);
 
     syncBackgroundPauseReason(reasons, false);
-    expect(reasons).toEqual(new Set<AutomaticMatchPauseReason>(['settings', 'background']));
+    expect(reasons).toEqual(
+      new Set<AutomaticMatchPauseReason>(['settings', 'background']),
+    );
 
     syncBackgroundPauseReason(reasons, true);
     expect(reasons).toEqual(new Set<AutomaticMatchPauseReason>(['settings']));

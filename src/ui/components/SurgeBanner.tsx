@@ -76,12 +76,24 @@ export function SurgeBanner({
       scale.setValue(0.2);
       opacity.setValue(0);
       animation = Animated.parallel([
-        Animated.spring(scale, { toValue: 1, friction: 6, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: true }),
+        Animated.spring(scale, {
+          toValue: 1,
+          friction: 6,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 160,
+          useNativeDriver: true,
+        }),
       ]);
       animation.start();
       holdTimer = setTimeout(() => {
-        animation = Animated.timing(opacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true });
+        animation = Animated.timing(opacity, {
+          toValue: 0,
+          duration: FADE_MS,
+          useNativeDriver: true,
+        });
         animation.start(({ finished }) => {
           if (finished) onShownRef.current(headRowId);
         });
@@ -98,45 +110,60 @@ export function SurgeBanner({
   const sprites = attendance
     ? [...CROWD_SPRITE_IDS]
     : pickMerchToys(settlementSeason, settlementWeek);
-  const headline = t(attendance ? 'surgeBanner.extremeAttendance' : 'surgeBanner.trendingMerchandise');
+  const headline = t(
+    attendance
+      ? 'surgeBanner.extremeAttendance'
+      : 'surgeBanner.trendingMerchandise',
+  );
 
-  const bonusLabel = head.bonusAmount > 0 ? `+${formatCurrency(t, head.bonusAmount)}` : null;
+  const bonusLabel =
+    head.bonusAmount > 0 ? formatCurrency(t, head.bonusAmount, true) : null;
 
   return (
     // items-center: the card shrink-wraps its content instead of spanning the
     // panel (owner revision, 2026-08-06).
-    <View pointerEvents="none" className="absolute inset-x-4 top-1/4 items-center">
+    <View
+      pointerEvents="none"
+      className="absolute inset-x-4 top-1/4 items-center"
+    >
       {/* NativeWind ignores className on Animated views: the animated wrapper
           is style-only and the plain View inside carries the card look. */}
       <Animated.View
         accessibilityRole="alert"
-        accessibilityLabel={bonusLabel === null
-          ? headline
-          : t('surgeBanner.a11y.withBonus', { headline, amount: bonusLabel })}
+        accessibilityLabel={
+          bonusLabel === null
+            ? headline
+            : t('surgeBanner.a11y.withBonus', { headline, amount: bonusLabel })
+        }
         style={{ opacity, transform: [{ rotate: '-3deg' }, { scale }] }}
       >
         <View className="items-center border-2 border-b-4 border-ink bg-paper px-4 py-3">
           <View style={{ flexDirection: 'row', gap: 4 }}>
-          {sprites.map(spriteId => (
-            <Canvas key={spriteId} style={{ width: SPRITE_PX, height: SPRITE_PX }}>
-              {financeSpriteRuns(spriteId).map(run => (
-                <Rect
-                  key={run.id}
-                  x={run.x * FINANCE_SPRITE_SCALE}
-                  y={run.y * FINANCE_SPRITE_SCALE}
-                  width={run.width * FINANCE_SPRITE_SCALE}
-                  height={FINANCE_SPRITE_SCALE}
-                  color={run.color}
-                />
-              ))}
-            </Canvas>
-          ))}
-        </View>
+            {sprites.map((spriteId) => (
+              <Canvas
+                key={spriteId}
+                style={{ width: SPRITE_PX, height: SPRITE_PX }}
+              >
+                {financeSpriteRuns(spriteId).map((run) => (
+                  <Rect
+                    key={run.id}
+                    x={run.x * FINANCE_SPRITE_SCALE}
+                    y={run.y * FINANCE_SPRITE_SCALE}
+                    width={run.width * FINANCE_SPRITE_SCALE}
+                    height={FINANCE_SPRITE_SCALE}
+                    color={run.color}
+                  />
+                ))}
+              </Canvas>
+            ))}
+          </View>
           <View className="mt-2 flex-row items-center" style={{ gap: 8 }}>
             <PixelText
-              className={attendance
-                ? 'text-base uppercase text-red-dark'
-                : 'text-base uppercase text-pitch-ink'}
+              className={
+                attendance
+                  ? 'text-base uppercase text-red-dark'
+                  : 'text-base uppercase text-pitch-ink'
+              }
             >
               {headline}
             </PixelText>

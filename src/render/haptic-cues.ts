@@ -1,6 +1,7 @@
 import type { MatchEvent } from '../sim/types';
 
-export type MatchHapticCue = 'zone' | 'power' | 'rival-power' | 'goal' | 'conceded';
+export type MatchHapticCue =
+  'zone' | 'power' | 'rival-power' | 'goal' | 'conceded';
 
 export function hapticCueForEvent(
   event: MatchEvent,
@@ -10,12 +11,17 @@ export function hapticCueForEvent(
     return teamForPlayer(event.player) === controlledTeam ? 'zone' : null;
   }
   if (event.kind === 'POWER_FIRED') {
-    return teamForPlayer(event.player) === controlledTeam ? 'power' : 'rival-power';
+    return teamForPlayer(event.player) === controlledTeam
+      ? 'power'
+      : 'rival-power';
   }
   if (event.kind === 'GUST_REDIRECT' || event.kind === 'GUST_PUNT') {
-    return teamForPlayer(event.player) === controlledTeam ? 'power' : 'rival-power';
+    return teamForPlayer(event.player) === controlledTeam
+      ? 'power'
+      : 'rival-power';
   }
-  if (event.kind === 'GOAL') return event.team === controlledTeam ? 'goal' : 'conceded';
+  if (event.kind === 'GOAL')
+    return event.team === controlledTeam ? 'goal' : 'conceded';
   return null;
 }
 

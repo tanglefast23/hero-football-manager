@@ -68,7 +68,10 @@ export const EVENT_OBJECTS: Readonly<Record<string, readonly string[]>> = {
   // `content/player-requests.json`; a second hand-written copy would be a
   // second thing to keep in step, and nothing would notice when it drifted.
   ...Object.fromEntries(
-    playerRequestsJson.requests.map(request => [`request-${request.id}`, request.art]),
+    playerRequestsJson.requests.map((request) => [
+      `request-${request.id}`,
+      request.art,
+    ]),
   ),
   'event-sprint-race': ['boot', 'letter'],
   'event-crossbar': ['ball', 'star-sparkle'],
@@ -129,7 +132,13 @@ export function eventSpriteRuns(spriteId: string): EventPixelRun[] {
     let runColor: string | undefined;
     const flush = (end: number) => {
       if (runStart >= 0 && runColor !== undefined) {
-        runs.push({ id: `${spriteId}:${y}:${runStart}`, x: runStart, y, width: end - runStart, color: runColor });
+        runs.push({
+          id: `${spriteId}:${y}:${runStart}`,
+          x: runStart,
+          y,
+          width: end - runStart,
+          color: runColor,
+        });
       }
       runStart = -1;
       runColor = undefined;
@@ -152,7 +161,10 @@ export function eventSpriteRuns(spriteId: string): EventPixelRun[] {
 }
 
 /** Deterministic scatter layout for up to three floating story objects. */
-export function eventObjectLayout(artKey: string, count: number): ReadonlyArray<{
+export function eventObjectLayout(
+  artKey: string,
+  count: number,
+): ReadonlyArray<{
   readonly leftPercent: number;
   readonly topOffset: number;
   readonly rotationDeg: number;
@@ -164,13 +176,14 @@ export function eventObjectLayout(artKey: string, count: number): ReadonlyArray<
     hash = Math.imul(hash, 16777619);
   }
   const unsigned = hash >>> 0;
-  const slots = count === 3
-    ? [{ left: 16 }, { left: 46 }, { left: 74 }]
-    : [{ left: 24 }, { left: 62 }];
+  const slots =
+    count === 3
+      ? [{ left: 16 }, { left: 46 }, { left: 74 }]
+      : [{ left: 24 }, { left: 62 }];
   return slots.slice(0, count).map((slot, index) => ({
     leftPercent: slot.left + ((unsigned >>> (index * 5)) % 7) - 3,
     topOffset: 12 + ((unsigned >>> (index * 7 + 3)) % 34),
-    rotationDeg: (((unsigned >>> (index * 9 + 1)) % 17) - 8),
+    rotationDeg: ((unsigned >>> (index * 9 + 1)) % 17) - 8,
     phase: ((unsigned >>> (index * 4 + 2)) % 100) / 100,
   }));
 }

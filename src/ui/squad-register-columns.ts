@@ -42,9 +42,8 @@ export const HEADER_LABEL_ADVANCE_EM: Readonly<Record<string, number>> = {
 export const HEADER_FONT_SIZE = { phone: 10, wide: 10.5 } as const;
 
 /**
- * How far a header may grow with the reader's text size. The app allows 1.6
- * everywhere and the shell already holds its chrome to a lower cap for the
- * same reason: a five-letter abbreviation labelling a fixed column cannot grow
+ * How far a header may grow with the reader's text size. A five-letter
+ * abbreviation labelling a fixed column cannot grow
  * without pushing its neighbour off the row, and the sentence a header stands
  * for is on the Pressable's accessibility label at any size. 1.25 is above the
  * xxLarge multiplier (1.235), so the largest text size in ordinary use renders
@@ -94,7 +93,11 @@ export const MINIMUM_TOUCH_TARGET = 44;
  */
 export const CELL_FONT_SIZE = { value: 14, condition: 12.25 } as const;
 /** Silkscreen Regular advances, same source as the header measurements. */
-export const CELL_WIDEST_VALUE_EM = { overall: 1.5, potential: 1.5, condition: 3 } as const;
+export const CELL_WIDEST_VALUE_EM = {
+  overall: 1.5,
+  potential: 1.5,
+  condition: 3,
+} as const;
 /** The potential cell's `pr-1`, which is 0.25rem. */
 export const POTENTIAL_CELL_PADDING_RIGHT = 3.5;
 
@@ -119,5 +122,9 @@ export function headerWidthDemand(label: string, fontSize: number): number {
   if (advanceEm === undefined) {
     throw new Error(`No measured Silkscreen advance for the header "${label}"`);
   }
-  return advanceEm * fontSize * HEADER_MAX_FONT_MULTIPLIER + SORT_ARROW_GAP + SORT_ARROW_WIDTH;
+  return (
+    advanceEm * fontSize * HEADER_MAX_FONT_MULTIPLIER +
+    SORT_ARROW_GAP +
+    SORT_ARROW_WIDTH
+  );
 }

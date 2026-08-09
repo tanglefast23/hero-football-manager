@@ -2,22 +2,26 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { loadCatalog } from '../../i18n';
 
-const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
+const source = (path: string) =>
+  readFileSync(join(process.cwd(), path), 'utf8');
 
 describe('repeat-training presentation contract', () => {
   it('offers an affordable 1-9 wheel and resolves every queued drill separately', () => {
     const modal = source('src/ui/TrainingDrillModal.tsx');
 
-    expect(modal).toContain('maximumAffordableTrainingRuns(trainingPoints, pendingConfirm.tpCost)');
-    expect(modal).toContain('horizontal');
-    expect(modal).toContain('snapToInterval={REPEAT_PICKER_CELL_WIDTH}');
-    expect(modal).toContain('snapToAlignment="start"');
-    expect(modal).not.toContain('repeatPickerWidth');
-    expect(modal).toContain("t('trainingDrill.eachRunKeepsIts')");
-    expect(loadCatalog('en').strings['trainingDrill.eachRunKeepsIts'])
-      .toBe('Each run keeps its own SUPER roll, injury roll and result reveal.');
-    expect(modal).toContain('batch.remaining > 0');
-    expect(modal).toContain('onTrainDrill(playerId, nextBatch.pathId);');
+    expect(modal).toContainSource(
+      'maximumAffordableTrainingRuns(trainingPoints, pendingConfirm.tpCost)',
+    );
+    expect(modal).toContainSource('horizontal');
+    expect(modal).toContainSource('snapToInterval={REPEAT_PICKER_CELL_WIDTH}');
+    expect(modal).toContainSource('snapToAlignment="start"');
+    expect(modal).not.toContainSource('repeatPickerWidth');
+    expect(modal).toContainSource("t('trainingDrill.eachRunKeepsIts')");
+    expect(loadCatalog('en').strings['trainingDrill.eachRunKeepsIts']).toBe(
+      'Each run keeps its own SUPER roll, injury roll and result reveal.',
+    );
+    expect(modal).toContainSource('batch.remaining > 0');
+    expect(modal).toContainSource('onTrainDrill(playerId, nextBatch.pathId);');
   });
 
   it('lets a tapped number stand instead of reading it back off the scroll offset', () => {
@@ -29,26 +33,40 @@ describe('repeat-training presentation contract', () => {
     // stopped — and only about five cells fit the phone card, so every number
     // past those clamps short and the tapped "3" quietly became "2" a third of
     // a second later. Only the manager's own finger may move the selection.
-    expect(modal).toContain('draggingRepeatRef.current = false;');
-    expect(modal).toContain('onScrollBeginDrag={() => { draggingRepeatRef.current = true; }}');
-    expect(modal).toContain('if (!draggingRepeatRef.current) return;');
+    expect(modal).toContainSource('draggingRepeatRef.current = false;');
+    expect(modal).toContainSource(
+      'onScrollBeginDrag={() => { draggingRepeatRef.current = true; }}',
+    );
+    expect(modal).toContainSource('if (!draggingRepeatRef.current) return;');
   });
 
   it('names risky runs and offers all three requested safety choices', () => {
     const modal = source('src/ui/TrainingDrillModal.tsx');
 
-    expect(modal).toContain('riskyTrainingRunCount(condition, repeatCount)');
-    expect(loadCatalog('en').strings['trainingDrill.riskyRunsBody'])
-      .toContain('selected drills start below 30% condition');
-    expect(loadCatalog('en').strings['trainingDrill.continueAnyway'])
-      .toBe('Continue anyway · {count}×');
-    expect(modal).toContain("t('trainingDrill.continueMaxSafe'");
-    expect(loadCatalog('en').strings['trainingDrill.continueMaxSafe'])
-      .toBe('Continue with max safe · {count}×');
-    expect(modal).toContain("t('trainingDrill.a11y.cancelAndReturnToTheNumberPicker')");
-    expect(loadCatalog('en').strings['trainingDrill.a11y.cancelAndReturnToTheNumberPicker'])
-      .toBe('Cancel and return to the number picker');
-    expect(modal).toContain('startTrainingBatch(pendingConfirm, saferRuns);');
+    expect(modal).toContainSource(
+      'riskyTrainingRunCount(condition, repeatCount)',
+    );
+    expect(
+      loadCatalog('en').strings['trainingDrill.riskyRunsBody'],
+    ).toContainSource('selected drills start below 30% condition');
+    expect(loadCatalog('en').strings['trainingDrill.continueAnyway']).toBe(
+      'Continue anyway · {count}×',
+    );
+    expect(modal).toContainSource("t('trainingDrill.continueMaxSafe'");
+    expect(loadCatalog('en').strings['trainingDrill.continueMaxSafe']).toBe(
+      'Continue with max safe · {count}×',
+    );
+    expect(modal).toContainSource(
+      "t('trainingDrill.a11y.cancelAndReturnToTheNumberPicker')",
+    );
+    expect(
+      loadCatalog('en').strings[
+        'trainingDrill.a11y.cancelAndReturnToTheNumberPicker'
+      ],
+    ).toBe('Cancel and return to the number picker');
+    expect(modal).toContainSource(
+      'startTrainingBatch(pendingConfirm, saferRuns);',
+    );
   });
 });
 
@@ -63,47 +81,65 @@ describe('new power explanation contract', () => {
     // The description still comes from `powers.json`; it is now read through
     // the catalog so a translated locale gets a translated sentence, with the
     // authored English as the fallback.
-    expect(viewModels).toContain(
+    expect(viewModels).toContainSource(
       'powerDescription: copyOrEnglish(t, `powerEffect.${powerSlug}.description`, power.description)',
     );
-    expect(awakening).toContain("t('awakening.whatItDoes')");
-    expect(awakening).toContain('description={viewModel.powerDescription}');
-    expect(awakening).toContain('<PowerAcquiredDemoModal');
+    expect(awakening).toContainSource("t('awakening.whatItDoes')");
+    expect(awakening).toContainSource(
+      'description={viewModel.powerDescription}',
+    );
+    expect(awakening).toContainSource('<PowerAcquiredDemoModal');
     // The button opens a scripted demo of the power, not the manager's own
     // match, so it says what it actually shows. It breathes in size on the
     // halo's own value, so the one thing left to tap is the one thing moving.
-    expect(awakening).toContain("t('awakening.watchExample')");
-    expect(awakening).toContain('outputRange: reduceMotion ? [1, 1] : [1, CTA_PULSE_MAX_SCALE]');
-    expect(awakening).toContain('style={[styles.ctaChip, { transform: [{ scale }] }]}');
-    expect(demo).toContain('<MatchScreen');
-    expect(demo).toContain('powerMatchShowcaseHome(powerId, playerName)');
-    expect(demo).toContain('onPowerShowcaseComplete');
-    expect(demo).toContain("label={t('powerAcquiredDemo.replay')}");
-    expect(loadCatalog('en').strings['powerAcquiredDemo.replay']).toBe('REPLAY');
+    expect(awakening).toContainSource("t('awakening.watchExample')");
+    expect(awakening).toContainSource(
+      'outputRange: reduceMotion ? [1, 1] : [1, CTA_PULSE_MAX_SCALE]',
+    );
+    expect(awakening).toContainSource(
+      'style={[styles.ctaChip, { transform: [{ scale }] }]}',
+    );
+    expect(demo).toContainSource('<MatchScreen');
+    expect(demo).toContainSource('powerMatchShowcaseHome(powerId, playerName)');
+    expect(demo).toContainSource('onPowerShowcaseComplete');
+    expect(demo).toContainSource("label={t('powerAcquiredDemo.replay')}");
+    expect(loadCatalog('en').strings['powerAcquiredDemo.replay']).toBe(
+      'REPLAY',
+    );
     // Spelled out. "CONT" saved four characters on a button with a whole row to
     // itself, and read like a debug stub next to REPLAY.
-    expect(demo).toContain("label={t('powerAcquiredDemo.continue')}");
-    expect(loadCatalog('en').strings['powerAcquiredDemo.continue']).toBe('CONTINUE');
+    expect(demo).toContainSource("label={t('powerAcquiredDemo.continue')}");
+    expect(loadCatalog('en').strings['powerAcquiredDemo.continue']).toBe(
+      'CONTINUE',
+    );
     // Each power's clip runs on the seed that makes its own promise land.
-    expect(demo).toContain('seed={powerMatchShowcaseSeed(powerId)}');
-    expect(demo).toContain('presentationOnly');
-    expect(demo).toContain('zIndex: 10');
-    expect(demo).toContain('elevation: 10');
-    expect(match).toContain("automaticPauseReasonsRef.current.add('showcase')");
+    expect(demo).toContainSource('seed={powerMatchShowcaseSeed(powerId)}');
+    expect(demo).toContainSource('presentationOnly');
+    expect(demo).toContainSource('zIndex: 10');
+    expect(demo).toContainSource('elevation: 10');
+    expect(match).toContainSource(
+      "automaticPauseReasonsRef.current.add('showcase')",
+    );
     // Opening the demo mounts the match once. Bumping the replay key here as
     // well remounted it immediately, and rebuilding every audio player twice in
     // one frame killed the iOS audio session.
-    expect(demo).toMatch(
+    expect(demo).toMatchSource(
       /if \(!visible\) return;\n {4}setFrozen\(false\);\n {2}\}, \[powerId, visible\]\);/,
     );
-    expect(demo).toContain('const replay = useCallback(() => {');
-    expect(showcase).toContain('POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS = 15');
+    expect(demo).toContainSource('const replay = useCallback(() => {');
+    expect(showcase).toContainSource(
+      'POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS = 15',
+    );
     // The clip ends on the power's promise landing, not on a timer running out.
-    expect(showcase).toContain('export function powerMatchShowcaseSucceeded(');
-    expect(match).toContain('powerMatchShowcaseSucceeded(s, powerMatchQa.power)');
+    expect(showcase).toContainSource(
+      'export function powerMatchShowcaseSucceeded(',
+    );
+    expect(match).toContainSource(
+      'powerMatchShowcaseSucceeded(s, powerMatchQa.power)',
+    );
     // A goal restarts the kickoff in the tick it is scored, so those clips
     // freeze on the frame before it.
-    expect(match).toContain('nextRef.current = before;');
+    expect(match).toContainSource('nextRef.current = before;');
   });
 });
 
@@ -113,16 +149,21 @@ describe('story-event result contract', () => {
     const rewardArt = source('src/ui/components/EventRewardArt.tsx');
     const sprites = source('src/ui/event-pixel-sprites.ts');
 
-    expect(screen).toContain("choice.tone === 'risky' ? 'border-stamp bg-red-light'");
-    expect(screen).toContain("t('storyEvent.outcomeNoBonusThisTime')");
-    expect(loadCatalog('en').strings['storyEvent.outcomeNoBonusThisTime'])
-      .toBe('No bonus this time');
-    expect(screen).toContain("t('storyEvent.noBonusEarned')");
-    expect(loadCatalog('en').strings['storyEvent.noBonusEarned']).toBe('No bonus earned');
-    expect(screen).toContain('<EventRewardArt');
-    expect(screen).toContain('<EventPixelConfetti');
-    expect(rewardArt).toContain("fans: 'supporters'");
-    expect(sprites).toContain('supporters: [');
+    expect(screen).toContainSource(
+      "choice.tone === 'risky' ? 'border-stamp bg-red-light'",
+    );
+    expect(screen).toContainSource("t('storyEvent.outcomeNoBonusThisTime')");
+    expect(loadCatalog('en').strings['storyEvent.outcomeNoBonusThisTime']).toBe(
+      'No bonus this time',
+    );
+    expect(screen).toContainSource("t('storyEvent.noBonusEarned')");
+    expect(loadCatalog('en').strings['storyEvent.noBonusEarned']).toBe(
+      'No bonus earned',
+    );
+    expect(screen).toContainSource('<EventRewardArt');
+    expect(screen).toContainSource('<EventPixelConfetti');
+    expect(rewardArt).toContainSource("fans: 'supporters'");
+    expect(sprites).toContainSource('supporters: [');
   });
 });
 
@@ -134,16 +175,18 @@ describe('match-speed contract', () => {
 
     // No cap at the call site: MatchScreen's own default is the full set, so a
     // watched match opens with 1x, 2x and 3x all selectable in Season 1.
-    expect(app).not.toContain('maximumSpeed=');
-    expect(match).toContain('maximumSpeed = 3');
+    expect(app).not.toContainSource('maximumSpeed=');
+    expect(match).toContainSource('maximumSpeed = 3');
     // The season-3 unlock and Bert's briefing for it are gone together — a
     // celebration for something already available reads as a bug.
-    expect(app).not.toContain('tripleSpeedIntroVisible');
-    expect(app).not.toContain('3× match speed is now an option.');
-    expect(app).toContain('pausedExternally={globalSettingsOpen}');
+    expect(app).not.toContainSource('tripleSpeedIntroVisible');
+    expect(app).not.toContainSource('3× match speed is now an option.');
+    expect(app).toContainSource('pausedExternally={globalSettingsOpen}');
     // The cap still exists as a mechanism; the power demo caps itself at 1x.
-    expect(match).toContain('nextMatchSpeed(speed, maximumSpeed)');
-    expect(rail).toContain('availableMatchSpeeds(maximumSpeed).map');
+    expect(match).toContainSource(
+      'nextMatchSpeed(speed, effectiveMaximumSpeed)',
+    );
+    expect(rail).toContainSource('availableMatchSpeeds(maximumSpeed).map');
   });
 });
 
@@ -162,8 +205,10 @@ describe('speech bubble placement contract', () => {
     // measuring pass needs somewhere to be; what must not happen is painting
     // it. `pop` starts at zero and hides it by accident, but `instant` sets
     // `pop` to 1 immediately and does not.
-    expect(overlay).toContain('if (bubbleWidth === 0) return characterCentre;');
-    expect(overlay).toContain('const bubbleMeasured = bubbleWidth > 0;');
-    expect(overlay).toContain('opacity: bubbleMeasured ? pop : 0,');
+    expect(overlay).toContainSource(
+      'if (bubbleWidth === 0) return characterCentre;',
+    );
+    expect(overlay).toContainSource('const bubbleMeasured = bubbleWidth > 0;');
+    expect(overlay).toContainSource('opacity: bubbleMeasured ? pop : 0,');
   });
 });

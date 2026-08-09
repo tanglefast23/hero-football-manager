@@ -11,7 +11,7 @@
         },
         {
           "term": "Potential",
-          "definition": "A fixed E- to A+ grade that adds an exact training bonus. E- adds 0%, and every grade step adds 1% up to A+ at 14%. Potential changes development speed, not how high a player can grow."
+          "definition": "A fixed E- to A+ grade that sets a drill's SUPER chance. E- gives 5%, and every grade step adds 2% up to 33% at A+. Potential does not add to an ordinary drill or limit how high a player can grow."
         },
         {
           "term": "Archetype",

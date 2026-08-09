@@ -1,6 +1,9 @@
 import { loadLaunchContent } from '../../content';
 import { offerCareerEvent, type GameState } from '../../game';
-import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
+import {
+  parseStoredGameState,
+  serializeGameState,
+} from '../../persistence/game-state-codec';
 import { reconcilePendingStoryEvent } from '../event-selection';
 import { careerEventTargetCandidates } from '../career-event-targets';
 import { useM1Store } from '../store';
@@ -27,11 +30,11 @@ function awakenedCareerAtEvent(seed: number, eventId: string): GameState {
 }
 
 function clubCash(state: GameState): number {
-  return state.clubs.find(club => club.id === state.userClubId)!.cash;
+  return state.clubs.find((club) => club.id === state.userClubId)!.cash;
 }
 
 function clubFans(state: GameState): number {
-  return state.clubs.find(club => club.id === state.userClubId)!.fans;
+  return state.clubs.find((club) => club.id === state.userClubId)!.fans;
 }
 
 describe('M4 resolved events survive a reload without rerolling or double-paying', () => {
@@ -71,7 +74,10 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
   });
 
   it('keeps the same outcome, rewards, and balances after a save/load round trip', () => {
-    useM1Store.setState({ career: awakenedCareerAtEvent(456, 'giant-spider-arrives'), screen: 'event' });
+    useM1Store.setState({
+      career: awakenedCareerAtEvent(456, 'giant-spider-arrives'),
+      screen: 'event',
+    });
     useM1Store.getState().chooseEvent('adopt-spider');
 
     const resolved = useM1Store.getState().career!;
@@ -83,34 +89,49 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
     expect(clubFans(reloaded)).toBe(clubFans(resolved));
     expect(reloaded.trainingPoints).toBe(resolved.trainingPoints);
     expect(reloaded.eventFlags).toEqual(resolved.eventFlags);
-    expect(storyEventViewModel(reloaded, content))
-      .toEqual(storyEventViewModel(resolved, content));
+    expect(storyEventViewModel(reloaded, content)).toEqual(
+      storyEventViewModel(resolved, content),
+    );
   });
 
   it('refuses a second resolution of the same pending event', () => {
-    useM1Store.setState({ career: awakenedCareerAtEvent(456, 'giant-spider-arrives'), screen: 'event' });
+    useM1Store.setState({
+      career: awakenedCareerAtEvent(456, 'giant-spider-arrives'),
+      screen: 'event',
+    });
     useM1Store.getState().chooseEvent('adopt-spider');
     const afterFirst = useM1Store.getState().career!;
 
-    useM1Store.setState({ career: parseStoredGameState(serializeGameState(afterFirst)) });
+    useM1Store.setState({
+      career: parseStoredGameState(serializeGameState(afterFirst)),
+    });
     useM1Store.getState().chooseEvent('adopt-spider');
 
     expect(useM1Store.getState().error).not.toBeNull();
     expect(clubFans(useM1Store.getState().career!)).toBe(clubFans(afterFirst));
-    expect(useM1Store.getState().career!.trainingPoints).toBe(afterFirst.trainingPoints);
+    expect(useM1Store.getState().career!.trainingPoints).toBe(
+      afterFirst.trainingPoints,
+    );
   });
 
   it('cannot offer a resolved one-shot story again after a reload', () => {
-    useM1Store.setState({ career: awakenedCareerAtEvent(456, 'giant-spider-arrives'), screen: 'event' });
+    useM1Store.setState({
+      career: awakenedCareerAtEvent(456, 'giant-spider-arrives'),
+      screen: 'event',
+    });
     useM1Store.getState().chooseEvent('adopt-spider');
     useM1Store.getState().continueAfterEvent();
 
-    const reloaded = parseStoredGameState(serializeGameState(useM1Store.getState().career!));
+    const reloaded = parseStoredGameState(
+      serializeGameState(useM1Store.getState().career!),
+    );
     expect(reloaded.resolvedEventIds).toContain('giant-spider-arrives');
-    expect(() => offerCareerEvent(
-      { ...reloaded, phase: 'manage', pendingEvent: undefined },
-      'giant-spider-arrives',
-    )).toThrow('already resolved');
+    expect(() =>
+      offerCareerEvent(
+        { ...reloaded, phase: 'manage', pendingEvent: undefined },
+        'giant-spider-arrives',
+      ),
+    ).toThrow('already resolved');
   });
 
   it('drops a pending story the shipped catalog no longer contains', () => {
@@ -125,7 +146,9 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
     const recovered = reconcilePendingStoryEvent(orphaned, content.events);
 
     expect(recovered.pendingEvent).toBeUndefined();
-    expect(() => storyEventViewModel(recovered, content)).toThrow('no pending story event');
+    expect(() => storyEventViewModel(recovered, content)).toThrow(
+      'no pending story event',
+    );
   });
 
   it('keeps a pending story the catalog still contains', () => {
@@ -142,31 +165,42 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
     const blocked: string[] = [];
 
     for (const event of content.events.events) {
-      const risky = event.choices.find(choice => choice.risky)!;
+      const risky = event.choices.find((choice) => choice.risky)!;
       const staged = awakenedCareerAtEvent(456, event.id);
       useM1Store.setState({ career: staged, screen: 'event' });
       if (event.trigger.requiresPlayer === true) {
-        const candidate = careerEventTargetCandidates(staged, event).playerIds[0];
-        if (candidate !== undefined) useM1Store.getState().selectEventPlayer(candidate);
+        const candidate = careerEventTargetCandidates(staged, event)
+          .playerIds[0];
+        if (candidate !== undefined)
+          useM1Store.getState().selectEventPlayer(candidate);
       }
       useM1Store.getState().chooseEvent(risky.id);
-      if (useM1Store.getState().error !== null
-        || useM1Store.getState().career?.pendingEvent?.resolvedChoiceId === undefined) {
+      if (
+        useM1Store.getState().error !== null ||
+        useM1Store.getState().career?.pendingEvent?.resolvedChoiceId ===
+          undefined
+      ) {
         blocked.push(event.id); // requirement-gated choice this career cannot take
         continue;
       }
 
       const resolved = useM1Store.getState().career!;
       const reloaded = parseStoredGameState(serializeGameState(resolved));
-      expect(reloaded.pendingEvent?.resolvedOutcomeIndex)
-        .toBe(resolved.pendingEvent?.resolvedOutcomeIndex);
-      expect(reloaded.pendingEvent?.outcomeText).toBe(resolved.pendingEvent?.outcomeText);
-      expect(reloaded.pendingEvent?.resolvedSuccess).toBe(resolved.pendingEvent?.resolvedSuccess);
+      expect(reloaded.pendingEvent?.resolvedOutcomeIndex).toBe(
+        resolved.pendingEvent?.resolvedOutcomeIndex,
+      );
+      expect(reloaded.pendingEvent?.outcomeText).toBe(
+        resolved.pendingEvent?.outcomeText,
+      );
+      expect(reloaded.pendingEvent?.resolvedSuccess).toBe(
+        resolved.pendingEvent?.resolvedSuccess,
+      );
       expect(clubCash(reloaded)).toBe(clubCash(resolved));
       expect(clubFans(reloaded)).toBe(clubFans(resolved));
       // A reload must never turn a setback into the authored success.
-      expect(storyEventViewModel(reloaded, content).successCutscene)
-        .toEqual(storyEventViewModel(resolved, content).successCutscene);
+      expect(storyEventViewModel(reloaded, content).successCutscene).toEqual(
+        storyEventViewModel(resolved, content).successCutscene,
+      );
       checked.push(event.id);
     }
 

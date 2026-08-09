@@ -7,19 +7,27 @@ import { postMatchViewModel } from '../view-models';
 
 const content = loadLaunchContent();
 
-function careerWithStaff(seed: number, staff: { assistant: boolean }): {
+function careerWithStaff(
+  seed: number,
+  staff: { assistant: boolean },
+): {
   before: GameState;
   after: GameState;
   fixtureId: string;
   isHome: boolean;
 } {
-  const initial = createCareer(createLaunchCareerSetup(seed, undefined, content));
-  const fixture = initial.fixtures.find(candidate => (
-    candidate.homeClubId === initial.userClubId || candidate.awayClubId === initial.userClubId
-  ))!;
+  const initial = createCareer(
+    createLaunchCareerSetup(seed, undefined, content),
+  );
+  const fixture = initial.fixtures.find(
+    (candidate) =>
+      candidate.homeClubId === initial.userClubId ||
+      candidate.awayClubId === initial.userClubId,
+  )!;
   const candidates = initial.market?.coachCandidates ?? [];
   const headCoach = candidates[0] as CoachCandidate | undefined;
-  if (headCoach === undefined) throw new Error('the launch career has no coach candidates');
+  if (headCoach === undefined)
+    throw new Error('the launch career has no coach candidates');
   const assistantCoach = candidates[1] as CoachCandidate | undefined;
   if (staff.assistant && assistantCoach === undefined) {
     throw new Error('the launch career has only one coach candidate');
@@ -65,10 +73,12 @@ describe('full-time touchline reaction', () => {
   });
 
   it('celebrates a win and cries at a loss', () => {
-    expect(reactionFor(20260802, 'win', { assistant: false }).reaction)
-      .toMatchObject({ pose: 'joy' });
-    expect(reactionFor(20260802, 'loss', { assistant: false }).reaction)
-      .toMatchObject({ pose: 'cry' });
+    expect(
+      reactionFor(20260802, 'win', { assistant: false }).reaction,
+    ).toMatchObject({ pose: 'joy' });
+    expect(
+      reactionFor(20260802, 'loss', { assistant: false }).reaction,
+    ).toMatchObject({ pose: 'cry' });
   });
 
   it('stands at rest for a draw and still says something', () => {
@@ -80,19 +90,36 @@ describe('full-time touchline reaction', () => {
   });
 
   it('says nothing at all without a coach in the building', () => {
-    const { before, after, fixtureId } = careerWithStaff(20260803, { assistant: false });
-    const coachless: GameState = { ...after, market: { ...after.market!, headCoach: undefined } };
-    expect(postMatchViewModel(before, coachless, fixtureId, { homeGoals: 0, awayGoals: 2 }).reaction)
-      .toBeUndefined();
+    const { before, after, fixtureId } = careerWithStaff(20260803, {
+      assistant: false,
+    });
+    const coachless: GameState = {
+      ...after,
+      market: { ...after.market!, headCoach: undefined },
+    };
+    expect(
+      postMatchViewModel(before, coachless, fixtureId, {
+        homeGoals: 0,
+        awayGoals: 2,
+      }).reaction,
+    ).toBeUndefined();
   });
 
   it('reads a league result by how heavily it went', () => {
-    const { before, after, fixtureId, isHome } = careerWithStaff(20260804, { assistant: false });
-    const score = (goalsFor: number, goalsAgainst: number) => (isHome
-      ? { homeGoals: goalsFor, awayGoals: goalsAgainst }
-      : { homeGoals: goalsAgainst, awayGoals: goalsFor });
+    const { before, after, fixtureId, isHome } = careerWithStaff(20260804, {
+      assistant: false,
+    });
+    const score = (goalsFor: number, goalsAgainst: number) =>
+      isHome
+        ? { homeGoals: goalsFor, awayGoals: goalsAgainst }
+        : { homeGoals: goalsAgainst, awayGoals: goalsFor };
     const lineFor = (goalsFor: number, goalsAgainst: number) =>
-      postMatchViewModel(before, after, fixtureId, score(goalsFor, goalsAgainst)).reaction!.line;
+      postMatchViewModel(
+        before,
+        after,
+        fixtureId,
+        score(goalsFor, goalsAgainst),
+      ).reaction!.line;
 
     // Three clear is a hiding either way; two is a Saturday.
     expect(content.fulltimeCoachLines.leagueWinBig).toContain(lineFor(4, 1));
@@ -104,7 +131,9 @@ describe('full-time touchline reaction', () => {
   it('never points at an assistant who is not there', () => {
     // Every seed, no assistant hired: the roll may come up, the blaming may not.
     for (let seed = 0; seed < 40; seed += 1) {
-      const reaction = reactionFor(20260900 + seed, 'loss', { assistant: false }).reaction;
+      const reaction = reactionFor(20260900 + seed, 'loss', {
+        assistant: false,
+      }).reaction;
       expect(reaction?.pose).toBe('cry');
     }
   });
@@ -113,7 +142,9 @@ describe('full-time touchline reaction', () => {
     const poses: string[] = [];
     const lines = new Set<string>();
     for (let seed = 0; seed < 60; seed += 1) {
-      const reaction = reactionFor(20261000 + seed, 'loss', { assistant: true }).reaction!;
+      const reaction = reactionFor(20261000 + seed, 'loss', {
+        assistant: true,
+      }).reaction!;
       poses.push(reaction.pose);
       if (reaction.pose === 'point') {
         expect(reaction.assistantPortraitId).toBeDefined();
@@ -123,11 +154,13 @@ describe('full-time touchline reaction', () => {
         expect(reaction.pose).toBe('cry');
         // He is grieving the result rather than blaming a man for it, so the
         // line has to come from the defeat pool and not the blame pool.
-        expect(content.fulltimeCoachLines.leagueLossClose).toContain(reaction.line);
+        expect(content.fulltimeCoachLines.leagueLossClose).toContain(
+          reaction.line,
+        );
         expect(content.fulltimeBlameLines.lines).not.toContain(reaction.line);
       }
     }
-    const blamed = poses.filter(pose => pose === 'point').length;
+    const blamed = poses.filter((pose) => pose === 'point').length;
     // One in three, loosely: a hash is not a coin, so this pins the shape of the
     // roll rather than a rate. A blame that fired every time, or never, fails.
     expect(blamed).toBeGreaterThan(6);

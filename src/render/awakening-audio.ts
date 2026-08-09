@@ -47,7 +47,11 @@ function clearHarpTimer(): void {
  */
 const MUSIC_VOLUME = 0.5;
 
-function setPlayerVolume(player: AudioPlayer | null, baseVolume: number, context: string): void {
+function setPlayerVolume(
+  player: AudioPlayer | null,
+  baseVolume: number,
+  context: string,
+): void {
   if (!player) return;
   try {
     player.volume = baseVolume * masterVolume;
@@ -75,7 +79,8 @@ export function initAwakeningAudio(): void {
 
   try {
     const audio = require('expo-audio') as typeof import('expo-audio');
-    audio.setAudioModeAsync({ playsInSilentMode: false })
+    audio
+      .setAudioModeAsync({ playsInSilentMode: false })
       .catch((error: unknown) => warnOnce('setAudioModeAsync failed', error));
 
     try {
@@ -100,7 +105,8 @@ export function initAwakeningAudio(): void {
       warnOnce('createAudioPlayer failed (limp)', error);
     }
 
-    ready = angelsPlayer !== null || harpsPlayer !== null || limpPlayer !== null;
+    ready =
+      angelsPlayer !== null || harpsPlayer !== null || limpPlayer !== null;
     applyAwakeningVolumes();
   } catch (error) {
     angelsPlayer = null;
@@ -175,13 +181,16 @@ function playFromStart(
     return Promise.resolve(false);
   };
   try {
-    return player.seekTo(0)
+    return player
+      .seekTo(0)
       .then(() => {
         if (!shouldStart()) return false;
         player.play();
         return true;
       })
-      .catch((error: unknown) => recoverOr(`${context} seek/play failed`, error));
+      .catch((error: unknown) =>
+        recoverOr(`${context} seek/play failed`, error),
+      );
   } catch (error) {
     return recoverOr(`${context} playback failed`, error);
   }
@@ -203,7 +212,7 @@ export function playAwakeningAscension(): void {
     () => angelsPlayer,
     'angels',
     () => generation === playbackGeneration,
-  ).then(started => {
+  ).then((started) => {
     if (!started || generation !== playbackGeneration) return;
     harpTimer = setTimeout(() => {
       harpTimer = null;

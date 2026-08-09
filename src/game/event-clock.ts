@@ -76,7 +76,8 @@ export function rollWeeklyEvent(
     throw new Error('event roll must be an integer from 0 to 99');
   }
 
-  const offered = rollPercent < quietWeekEventChancePercent(state.weeksWithoutEvent, tuning);
+  const offered =
+    rollPercent < quietWeekEventChancePercent(state.weeksWithoutEvent, tuning);
 
   return {
     offered,
@@ -87,7 +88,10 @@ export function rollWeeklyEvent(
   };
 }
 
-export function recordEventChoice(state: EventClockState, risky: boolean): EventClockState {
+export function recordEventChoice(
+  state: EventClockState,
+  risky: boolean,
+): EventClockState {
   validateState(state);
   if (typeof risky !== 'boolean') {
     throw new Error('event choice risk must be a boolean');
@@ -102,7 +106,10 @@ export function recordEventChoice(state: EventClockState, risky: boolean): Event
   };
 }
 
-export function chooseWeightedOutcome(weights: readonly number[], roll: number): number {
+export function chooseWeightedOutcome(
+  weights: readonly number[],
+  roll: number,
+): number {
   if (weights.length === 0) {
     throw new Error('weighted outcomes require at least one weight');
   }
@@ -119,7 +126,9 @@ export function chooseWeightedOutcome(weights: readonly number[], roll: number):
   }
 
   if (!Number.isInteger(roll) || roll < 0 || roll >= totalWeight) {
-    throw new Error(`weighted outcome roll must be an integer from 0 to ${totalWeight - 1}`);
+    throw new Error(
+      `weighted outcome roll must be an integer from 0 to ${totalWeight - 1}`,
+    );
   }
 
   let cumulativeWeight = 0;
@@ -145,39 +154,52 @@ export function deterministicCareerEventRoll(
   if (typeof choiceId !== 'string' || choiceId.trim().length === 0) {
     throw new Error('event roll choice ID must be a non-empty string');
   }
-  if (!Number.isSafeInteger(stream) || stream < 0 || stream >= Number.MAX_SAFE_INTEGER) {
+  if (
+    !Number.isSafeInteger(stream) ||
+    stream < 0 ||
+    stream >= Number.MAX_SAFE_INTEGER
+  ) {
     throw new Error('event roll stream must be a nonnegative safe integer');
   }
   if (!Number.isSafeInteger(upperExclusive) || upperExclusive <= 0) {
     throw new Error('event roll upper bound must be a positive safe integer');
   }
 
-  const seed = (
-    context.careerSeed ^
-    Math.imul(context.season, 0x9e3779b1) ^
-    Math.imul(context.week, 0x85ebca6b) ^
-    Math.imul(context.riskyChoices + 1, 0xc2b2ae35) ^
-    Math.imul(hashString(choiceId), stream + 1)
-  ) >>> 0;
+  const seed =
+    (context.careerSeed ^
+      Math.imul(context.season, 0x9e3779b1) ^
+      Math.imul(context.week, 0x85ebca6b) ^
+      Math.imul(context.riskyChoices + 1, 0xc2b2ae35) ^
+      Math.imul(hashString(choiceId), stream + 1)) >>>
+    0;
   return Math.floor(mulberry32(seed)() * upperExclusive);
 }
 
 function validateTuning(tuning: EventClockTuning): void {
-  if (!Number.isInteger(tuning.weeklyChancePercent)
-    || tuning.weeklyChancePercent < 1
-    || tuning.weeklyChancePercent > 100) {
+  if (
+    !Number.isInteger(tuning.weeklyChancePercent) ||
+    tuning.weeklyChancePercent < 1 ||
+    tuning.weeklyChancePercent > 100
+  ) {
     throw new Error('weekly event chance must be an integer from 1 to 100');
   }
-  if (!Number.isInteger(tuning.guaranteeAfterDryWeeks)
-    || tuning.guaranteeAfterDryWeeks < 1
-    || tuning.guaranteeAfterDryWeeks > 30) {
+  if (
+    !Number.isInteger(tuning.guaranteeAfterDryWeeks) ||
+    tuning.guaranteeAfterDryWeeks < 1 ||
+    tuning.guaranteeAfterDryWeeks > 30
+  ) {
     throw new Error('dry-week guarantee must be an integer from 1 to 30');
   }
 }
 
 function validateState(state: EventClockState): void {
-  if (!Number.isSafeInteger(state.weeksWithoutEvent) || state.weeksWithoutEvent < 0) {
-    throw new Error('weeks without an event must be a nonnegative safe integer');
+  if (
+    !Number.isSafeInteger(state.weeksWithoutEvent) ||
+    state.weeksWithoutEvent < 0
+  ) {
+    throw new Error(
+      'weeks without an event must be a nonnegative safe integer',
+    );
   }
   if (!Number.isSafeInteger(state.riskyChoices) || state.riskyChoices < 0) {
     throw new Error('risky choice count must be a nonnegative safe integer');
@@ -185,15 +207,19 @@ function validateState(state: EventClockState): void {
 }
 
 function validateCareerEventRollContext(context: CareerEventRollContext): void {
-  if (!Number.isInteger(context.careerSeed)
-    || context.careerSeed < 0
-    || context.careerSeed > 4294967295) {
+  if (
+    !Number.isInteger(context.careerSeed) ||
+    context.careerSeed < 0 ||
+    context.careerSeed > 4294967295
+  ) {
     throw new Error('event roll career seed must be a uint32');
   }
   validatePositiveInteger(context.season, 'event roll season');
   validatePositiveInteger(context.week, 'event roll week');
   if (!Number.isSafeInteger(context.riskyChoices) || context.riskyChoices < 0) {
-    throw new Error('event roll risky choices must be a nonnegative safe integer');
+    throw new Error(
+      'event roll risky choices must be a nonnegative safe integer',
+    );
   }
 }
 

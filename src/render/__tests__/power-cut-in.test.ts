@@ -24,13 +24,27 @@ describe('M4 power cut-in policy', () => {
 
   it('uses only colors from the locked master art palette', () => {
     const allowed = new Set([
-      '#5b3a91', '#9a63d6', '#c9a6ec',
-      '#a83440', '#d94f52', '#f2938c',
-      '#3f6fb5', '#5a8fd6', '#a3c8f0',
-      '#c8862a', '#edb54a', '#f7d894',
-      '#3f8a4a', '#5cb85c', '#8fd98f',
-      '#6b6675', '#9a95a4', '#c9c5d0',
-      '#241f2e', '#f4f1ea', '#ffffff',
+      '#5b3a91',
+      '#9a63d6',
+      '#c9a6ec',
+      '#a83440',
+      '#d94f52',
+      '#f2938c',
+      '#3f6fb5',
+      '#5a8fd6',
+      '#a3c8f0',
+      '#c8862a',
+      '#edb54a',
+      '#f7d894',
+      '#3f8a4a',
+      '#5cb85c',
+      '#8fd98f',
+      '#6b6675',
+      '#9a95a4',
+      '#c9c5d0',
+      '#241f2e',
+      '#f4f1ea',
+      '#ffffff',
     ]);
 
     for (const power of LAUNCH_POWER_IDS) {
@@ -70,10 +84,18 @@ describe('M4 power cut-in policy', () => {
       { power: 'GRAVITY_WELL', playerName: 'Leo Quick', skippable: false },
       { power: 'ELASTIC_KEEPER', playerName: 'Sam Mitts', skippable: false },
     ]);
-    expect(label).toContain('Fire Torch, Dario Flint. A flaming run ignites one, two, or three');
-    expect(label).toContain('Super Speed, Zip Vela. A runner explodes into space');
-    expect(label).toContain('Gravity Well, Leo Quick. Gravity lines pull defenders inward');
-    expect(label).toContain('Elastic Keeper, Sam Mitts. The goalkeeper stretches across the goal');
+    expect(label).toContain(
+      'Fire Torch, Dario Flint. A flaming run ignites one, two, or three',
+    );
+    expect(label).toContain(
+      'Super Speed, Zip Vela. A runner explodes into space',
+    );
+    expect(label).toContain(
+      'Gravity Well, Leo Quick. Gravity lines pull defenders inward',
+    );
+    expect(label).toContain(
+      'Elastic Keeper, Sam Mitts. The goalkeeper stretches across the goal',
+    );
   });
 
   it('ends a cut-in when its power ends, and when a frozen clip means it never will', () => {
@@ -91,11 +113,15 @@ describe('M4 power cut-in policy', () => {
       shouldPause: false,
       skippable: false,
     });
-    expect(powerCutInGroupPolicy([{ skippable: true }, { skippable: false }])).toEqual({
+    expect(
+      powerCutInGroupPolicy([{ skippable: true }, { skippable: false }]),
+    ).toEqual({
       shouldPause: false,
       skippable: false,
     });
-    expect(powerCutInGroupPolicy([{ skippable: true }, { skippable: true }])).toEqual({
+    expect(
+      powerCutInGroupPolicy([{ skippable: true }, { skippable: true }]),
+    ).toEqual({
       shouldPause: false,
       skippable: true,
     });

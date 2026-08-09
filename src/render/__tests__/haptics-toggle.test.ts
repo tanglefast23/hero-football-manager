@@ -10,7 +10,11 @@ jest.mock('expo-haptics', () => ({
   NotificationFeedbackType: { Success: 'success', Warning: 'warning' },
 }));
 
-import { playHapticForEvent, playManagementHaptic, setHapticsEnabled } from '../haptics';
+import {
+  playHapticForEvent,
+  playManagementHaptic,
+  setHapticsEnabled,
+} from '../haptics';
 
 describe('persistent haptics gate', () => {
   beforeEach(() => {
@@ -32,7 +36,10 @@ describe('persistent haptics gate', () => {
     setHapticsEnabled(false);
     setHapticsEnabled(true);
     playManagementHaptic('select');
-    playHapticForEvent({ t: 1, kind: 'POWER_FIRED', player: 9, power: 'WEB_TRAP', strength: 1 }, 0);
+    playHapticForEvent(
+      { t: 1, kind: 'POWER_FIRED', player: 9, power: 'WEB_TRAP', strength: 1 },
+      0,
+    );
 
     expect(mockSelectionAsync).toHaveBeenCalledTimes(1);
     expect(mockImpactAsync).toHaveBeenCalledWith('heavy');

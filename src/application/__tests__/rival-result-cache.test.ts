@@ -26,7 +26,11 @@ function fixture(id: string): LeagueFixture {
   };
 }
 
-const RESULT: FixtureResult = { fixtureId: 'rival-1', homeGoals: 2, awayGoals: 1 };
+const RESULT: FixtureResult = {
+  fixtureId: 'rival-1',
+  homeGoals: 2,
+  awayGoals: 1,
+};
 
 describe('rival result cache', () => {
   beforeEach(() => {
@@ -59,7 +63,9 @@ describe('rival result cache', () => {
     const stored = fixture('rival-1');
     storeRivalResult(stored, TEAMS, RESULT);
 
-    expect(cachedRivalResults([stored, fixture('rival-2')], TEAMS)).toEqual([RESULT]);
+    expect(cachedRivalResults([stored, fixture('rival-2')], TEAMS)).toEqual([
+      RESULT,
+    ]);
   });
 
   it('clears completely so a settled week never leaks into the next', () => {

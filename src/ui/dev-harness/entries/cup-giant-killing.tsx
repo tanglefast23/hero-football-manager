@@ -11,7 +11,10 @@ import type { NationalCupFixture } from '../../../game/pyramid';
 import type { GameState } from '../../../game/types';
 import { BertBriefingWalkOn } from '../../BertBriefingWalkOn';
 import { devHarnessCareerAtWeek } from '../career';
-import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls';
+import {
+  DevHarnessButton,
+  devHarnessControlStyles,
+} from '../DevHarnessControls';
 import type { DevHarnessEntry } from '../registry';
 
 /**
@@ -74,19 +77,27 @@ const UPSET_CASES: readonly UpsetCase[] = Object.freeze([
   },
 ]);
 
-const CASE_BY_ID = new Map(UPSET_CASES.map(entry => [entry.id, entry]));
+const CASE_BY_ID = new Map(UPSET_CASES.map((entry) => [entry.id, entry]));
 
 /** A club from `division` in this Cup's frozen draw seeding, never the user's. */
-function opponentInDivision(state: GameState, division: number): string | undefined {
-  const cup = state.m2?.nationalCups.find(candidate => candidate.season === UPSET_SEASON);
+function opponentInDivision(
+  state: GameState,
+  division: number,
+): string | undefined {
+  const cup = state.m2?.nationalCups.find(
+    (candidate) => candidate.season === UPSET_SEASON,
+  );
   const seeds = cup?.seedDivisionByClubId;
   if (seeds === undefined) return undefined;
-  return Object.keys(seeds).find(clubId => (
-    clubId !== state.userClubId && seeds[clubId] === division
-  ));
+  return Object.keys(seeds).find(
+    (clubId) => clubId !== state.userClubId && seeds[clubId] === division,
+  );
 }
 
-function upsetFixture(state: GameState, opponentClubId: string): NationalCupFixture {
+function upsetFixture(
+  state: GameState,
+  opponentClubId: string,
+): NationalCupFixture {
   return {
     id: `dev-harness-upset-${opponentClubId}`,
     season: UPSET_SEASON,
@@ -109,7 +120,11 @@ function queuedCareer(caseId: string): GameState {
     if (opponentClubId === undefined) continue;
     state = queueCupGiantKillingCelebration(
       state,
-      cupGiantKillingCelebration(state, upsetFixture(base, opponentClubId), base.userClubId),
+      cupGiantKillingCelebration(
+        state,
+        upsetFixture(base, opponentClubId),
+        base.userClubId,
+      ),
     );
   }
   return state;
@@ -128,23 +143,37 @@ export function CupGiantKillingReel({ caseId }: { readonly caseId: string }) {
   const celebration = pending[0];
 
   const replay = useCallback(() => setState(queuedCareer(caseId)), [caseId]);
-  const dismiss = useCallback(() => setState(current => (
-    (current.pendingCupGiantKillingCelebrations ?? []).length === 0
-      ? current
-      : completeCupGiantKillingCelebration(current)
-  )), []);
+  const dismiss = useCallback(
+    () =>
+      setState((current) =>
+        (current.pendingCupGiantKillingCelebrations ?? []).length === 0
+          ? current
+          : completeCupGiantKillingCelebration(current),
+      ),
+    [],
+  );
 
   const opponentName = useMemo(() => {
     if (celebration === undefined) return undefined;
-    const opponentClubId = celebration.fixtureId.replace('dev-harness-upset-', '');
-    return state.m2?.pyramid.divisions
-      .flatMap(division => division.clubs)
-      .find(club => club.id === opponentClubId)?.name ?? opponentClubId;
+    const opponentClubId = celebration.fixtureId.replace(
+      'dev-harness-upset-',
+      '',
+    );
+    return (
+      state.m2?.pyramid.divisions
+        .flatMap((division) => division.clubs)
+        .find((club) => club.id === opponentClubId)?.name ?? opponentClubId
+    );
   }, [celebration, state.m2]);
 
   // The tab rail is measured in the real app and is the floor he walks along.
   // There is none here, so plausible geometry stands in for it.
-  const navigationAnchor = { x: 0, y: Math.max(0, height - 84), width, height: 72 };
+  const navigationAnchor = {
+    x: 0,
+    y: Math.max(0, height - 84),
+    width,
+    height: 72,
+  };
 
   return (
     <View style={styles.root}>
@@ -174,7 +203,11 @@ export function CupGiantKillingReel({ caseId }: { readonly caseId: string }) {
               hint="Dismiss the celebration at the head of the queue"
               onPress={dismiss}
             />
-            <DevHarnessButton label="Replay" hint="Queue this case again" onPress={replay} />
+            <DevHarnessButton
+              label="Replay"
+              hint="Queue this case again"
+              onPress={replay}
+            />
             <DevHarnessButton
               label="Motion"
               hint="Play the walk-on in full"
@@ -226,12 +259,17 @@ export const cupGiantKillingEntry: DevHarnessEntry = Object.freeze({
   id: 'cup-giant-killing',
   group: 'Cup',
   title: 'Cup giant-killing',
-  summary: 'The celebration for beating a bigger club, including two arriving back to back.',
-  cases: Object.freeze(UPSET_CASES.map(entry => Object.freeze({
-    id: entry.id,
-    label: entry.label,
-    note: entry.note,
-  }))),
+  summary:
+    'The celebration for beating a bigger club, including two arriving back to back.',
+  cases: Object.freeze(
+    UPSET_CASES.map((entry) =>
+      Object.freeze({
+        id: entry.id,
+        label: entry.label,
+        note: entry.note,
+      }),
+    ),
+  ),
   render: (caseId: string) => <CupGiantKillingReel caseId={caseId} />,
 });
 

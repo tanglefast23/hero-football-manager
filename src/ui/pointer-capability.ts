@@ -27,9 +27,10 @@ export function hasHoverPointer(): boolean {
   // same trap documented on SfxPressable and useKeyBindings).
   if (Platform?.OS !== 'web') return false;
   if (hoverQuery === undefined) {
-    hoverQuery = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-      ? window.matchMedia('(hover: hover)')
-      : null;
+    hoverQuery =
+      typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(hover: hover)')
+        : null;
   }
   // No matchMedia at all (jest, or a browser too old to answer): keep the
   // desktop behaviour rather than silently dropping hover everywhere.

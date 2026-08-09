@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
-import type { AssistantGuideContent, AssistantGuideFocus } from '../content/schemas';
-import { bertVoiceDurationMs, playBertVoice, stopBertVoice } from '../render/bert-voice';
+import type {
+  AssistantGuideContent,
+  AssistantGuideFocus,
+} from '../content/schemas';
+import {
+  bertVoiceDurationMs,
+  playBertVoice,
+  stopBertVoice,
+} from '../render/bert-voice';
 import { BertFullBody } from './BertFullBody';
 import { beatFocus, briefingBeats } from './bert-briefing-beats';
 import { beatMoment } from './bert-beat-moments';
@@ -9,7 +16,10 @@ import { NavigationRing, TutorialSpotlight } from './TutorialSpotlight';
 import { TutorialTapCue } from './TutorialTapCue';
 import { BERT_SPRITE_SIZE } from './bert-walk-frames';
 import { CharacterSpeechOverlay } from './CharacterSpeechOverlay';
-import { tutorialCuePosition, type TutorialAnchorLayout } from './tutorial-cue-position';
+import {
+  tutorialCuePosition,
+  type TutorialAnchorLayout,
+} from './tutorial-cue-position';
 import { useCopy } from '../i18n';
 
 /**
@@ -83,21 +93,23 @@ export function BertBriefingWalkOn({
   onDone,
 }: BertBriefingWalkOnProps) {
   const t = useCopy();
-  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
+  const { width: viewportWidth, height: viewportHeight } =
+    useWindowDimensions();
   const [beatIndex, setBeatIndex] = useState(0);
 
   const beats = useMemo(
-    () => customMessage === undefined
-      ? briefingBeats(content, sequenceId ?? '', t)
-      : (typeof customMessage.body === 'string'
-          ? [customMessage.body]
-          : customMessage.body
-        ).map((text, pageIndex) => ({
-          text,
-          focus: 'assistant' as const,
-          kind: 'body' as const,
-          pageIndex,
-        })),
+    () =>
+      customMessage === undefined
+        ? briefingBeats(content, sequenceId ?? '', t)
+        : (typeof customMessage.body === 'string'
+            ? [customMessage.body]
+            : customMessage.body
+          ).map((text, pageIndex) => ({
+            text,
+            focus: 'assistant' as const,
+            kind: 'body' as const,
+            pageIndex,
+          })),
     [content, customMessage, sequenceId, t],
   );
   const beat = beats[Math.min(beatIndex, Math.max(0, beats.length - 1))];
@@ -122,19 +134,21 @@ export function BertBriefingWalkOn({
 
   if (beats.length === 0) return null;
 
-  const spotlightAnchor = focus === 'money'
-    ? moneyAnchor
-    : focus === 'navigation'
-      ? navigationAnchor
-      // The board beats point at a sub-tab rather than a chip or the rail, and
-      // a tab talked about under the scrim reads as one he is not talking
-      // about.
-      : focus === 'division-leaders' || focus === 'national-cup'
-        ? subTabAnchor
-        : null;
-  const moneyCuePosition = focus === 'money' && moneyAnchor
-    ? tutorialCuePosition(moneyAnchor, viewportWidth)
-    : null;
+  const spotlightAnchor =
+    focus === 'money'
+      ? moneyAnchor
+      : focus === 'navigation'
+        ? navigationAnchor
+        : // The board beats point at a sub-tab rather than a chip or the rail, and
+          // a tab talked about under the scrim reads as one he is not talking
+          // about.
+          focus === 'division-leaders' || focus === 'national-cup'
+          ? subTabAnchor
+          : null;
+  const moneyCuePosition =
+    focus === 'money' && moneyAnchor
+      ? tutorialCuePosition(moneyAnchor, viewportWidth)
+      : null;
 
   return (
     <View
@@ -152,7 +166,12 @@ export function BertBriefingWalkOn({
       />
 
       {moneyCuePosition ? (
-        <TutorialTapCue label={t('clubHome.lookHere')} detail={t('clubHome.weeklyMoney')} direction="up" style={moneyCuePosition} />
+        <TutorialTapCue
+          label={t('clubHome.lookHere')}
+          detail={t('clubHome.weeklyMoney')}
+          direction="up"
+          style={moneyCuePosition}
+        />
       ) : null}
 
       {focus === 'navigation' && navigationAnchor ? (
@@ -160,7 +179,7 @@ export function BertBriefingWalkOn({
       ) : null}
 
       <CharacterSpeechOverlay
-        lines={beats.map(entry => entry.text)}
+        lines={beats.map((entry) => entry.text)}
         heading={customMessage?.title}
         characterWidth={BERT_SPRITE_SIZE.width * BERT_SCALE}
         characterHeight={BERT_SPRITE_SIZE.height * BERT_SCALE}
@@ -174,9 +193,11 @@ export function BertBriefingWalkOn({
         // teaching, and a timer would pull a rule off screen mid-sentence.
         mirrorSprite={false}
         onLineChange={setBeatIndex}
-        accessibilityLabel={beat === undefined
-          ? undefined
-          : `${content.assistant.name}: ${beat.text}`}
+        accessibilityLabel={
+          beat === undefined
+            ? undefined
+            : `${content.assistant.name}: ${beat.text}`
+        }
         renderCharacter={() => (
           <BertFullBody
             pointing={focus !== 'assistant'}
@@ -207,6 +228,7 @@ function bertDialogProps(): object {
 export function bertBriefingBackgroundProps(open: boolean): object {
   if (!open) return {};
   if (Platform.OS === 'web') return { inert: true, 'aria-hidden': true };
-  if (Platform.OS === 'android') return { importantForAccessibility: 'no-hide-descendants' };
+  if (Platform.OS === 'android')
+    return { importantForAccessibility: 'no-hide-descendants' };
   return {};
 }

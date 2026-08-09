@@ -31,7 +31,10 @@ export function powerMatchShowcaseCardDueAt(
   frozenAt: number,
   cutInOutroStartedAt: number | undefined,
 ): number {
-  return Math.max(frozenAt, cutInOutroStartedAt ?? 0) + POWER_MATCH_SHOWCASE_CARD_DELAY_MS;
+  return (
+    Math.max(frozenAt, cutInOutroStartedAt ?? 0) +
+    POWER_MATCH_SHOWCASE_CARD_DELAY_MS
+  );
 }
 
 /**
@@ -117,12 +120,14 @@ export function powerMatchShowcaseSuccessRestartsPlay(power: PowerId): boolean {
  * - and the four that land an effect on somebody — Web Trap, Ice Rink, Shadow
  *   Mark, Future Sight — have to land it.
  */
-export function powerMatchShowcaseSucceeded(match: MatchState, power: PowerId): boolean {
+export function powerMatchShowcaseSucceeded(
+  match: MatchState,
+  power: PowerId,
+): boolean {
   const hero = powerMatchShowcaseHeroIndex(power);
   const firedAt = match.events.find(
-    (event): event is Extract<MatchEvent, { kind: 'POWER_FIRED' }> => (
-      event.kind === 'POWER_FIRED' && event.player === hero
-    ),
+    (event): event is Extract<MatchEvent, { kind: 'POWER_FIRED' }> =>
+      event.kind === 'POWER_FIRED' && event.player === hero,
   )?.t;
   if (firedAt === undefined) return false;
 
@@ -132,25 +137,31 @@ export function powerMatchShowcaseSucceeded(match: MatchState, power: PowerId): 
     return match.players[RALLY_TEAMMATE]?.encoreState !== undefined;
   }
 
-  const since = (predicate: (event: MatchEvent) => boolean): boolean => (
-    match.events.some(event => event.t >= firedAt && predicate(event))
-  );
+  const since = (predicate: (event: MatchEvent) => boolean): boolean =>
+    match.events.some((event) => event.t >= firedAt && predicate(event));
 
-  if (SCORES.has(power)) return since(event => event.kind === 'GOAL' && event.team === 0);
+  if (SCORES.has(power))
+    return since((event) => event.kind === 'GOAL' && event.team === 0);
   if (power === 'ELASTIC_KEEPER' || power === 'GIANT_GK') {
-    return since(event => event.kind === 'SAVE' && event.by === hero);
+    return since((event) => event.kind === 'SAVE' && event.by === hero);
   }
   if (power === 'SUPER_STRENGTH') {
-    return since(event => event.kind === 'TACKLE' && event.by === hero && event.won);
+    return since(
+      (event) => event.kind === 'TACKLE' && event.by === hero && event.won,
+    );
   }
   // The redirect is only half of it — the card promises the keeper punts it
   // back into attack, so the clip runs until he has.
-  if (power === 'GUST') return since(event => event.kind === 'GUST_PUNT');
+  if (power === 'GUST') return since((event) => event.kind === 'GUST_PUNT');
   // The pull is the setup; the pass into the lane it emptied is the point.
   if (power === 'GRAVITY_WELL') {
-    return since(event => event.kind === 'PASS' && event.ok && event.t > firedAt);
+    return since(
+      (event) => event.kind === 'PASS' && event.ok && event.t > firedAt,
+    );
   }
-  return since(event => event.kind === 'POWER_IMPACT' && event.player === hero);
+  return since(
+    (event) => event.kind === 'POWER_IMPACT' && event.player === hero,
+  );
 }
 
 const HERO_INDEX: Readonly<Record<PowerId, number>> = {
@@ -184,7 +195,10 @@ export function powerMatchShowcaseHeroIndex(power: PowerId): number {
  * also needs a powered teammate because that dependency is part of its actual
  * match behavior.
  */
-export function powerMatchShowcaseHome(power: PowerId, heroName?: string): TeamDef {
+export function powerMatchShowcaseHome(
+  power: PowerId,
+  heroName?: string,
+): TeamDef {
   const heroIndex = powerMatchShowcaseHeroIndex(power);
   return {
     ...ROVERS,
@@ -192,13 +206,15 @@ export function powerMatchShowcaseHome(power: PowerId, heroName?: string): TeamD
     name: 'Power Showcase XI',
     players: ROVERS.players.map((player, index) => ({
       ...player,
-      name: index === heroIndex && heroName !== undefined ? heroName : player.name,
+      name:
+        index === heroIndex && heroName !== undefined ? heroName : player.name,
       attrs: { ...player.attrs },
-      power: index === heroIndex
-        ? power
-        : power === 'RALLY_CRY' && index === RALLY_TEAMMATE
-          ? 'SUPER_SPEED'
-          : undefined,
+      power:
+        index === heroIndex
+          ? power
+          : power === 'RALLY_CRY' && index === RALLY_TEAMMATE
+            ? 'SUPER_SPEED'
+            : undefined,
       powerTier: index === heroIndex ? 1 : undefined,
     })),
   };
@@ -209,7 +225,7 @@ export function powerMatchShowcaseAway(): TeamDef {
     ...UNITED,
     id: 'power-showcase-away',
     name: 'Scenario United',
-    players: UNITED.players.map(player => ({
+    players: UNITED.players.map((player) => ({
       ...player,
       attrs: { ...player.attrs },
       power: undefined,
@@ -280,7 +296,8 @@ function arrangePowerMatchShowcase(match: MatchState, power: PowerId): number {
       place(match, 14, PITCH_W - 500, 1_850);
       place(match, 15, PITCH_W - 850, 1_050);
       holdBall(match, 6);
-      match.players[6].actionLockedUntilTick = POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
+      match.players[6].actionLockedUntilTick =
+        POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
       break;
     case 'DECOY_DOUBLE':
       place(match, hero, 3_400, 4_300);
@@ -289,14 +306,16 @@ function arrangePowerMatchShowcase(match: MatchState, power: PowerId): number {
       place(match, 10, 3_500, 3_600);
       place(match, 12, 2_700, 3_700);
       holdBall(match, 6);
-      match.players[6].actionLockedUntilTick = POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
+      match.players[6].actionLockedUntilTick =
+        POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
       break;
     case 'FUTURE_SIGHT':
       place(match, hero, 2_200, 5_000);
       place(match, 11, 2_300, 5_000);
       place(match, 12, 2_500, 4_800);
       holdBall(match, 11);
-      match.players[11].actionLockedUntilTick = POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
+      match.players[11].actionLockedUntilTick =
+        POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
       break;
     case 'SUPER_STRENGTH':
     case 'ICE_RINK':
@@ -355,14 +374,16 @@ function arrangePowerMatchShowcase(match: MatchState, power: PowerId): number {
       place(match, 9, 2_000, 3_000);
       place(match, 12, 1_500, 3_400);
       holdBall(match, 6);
-      match.players[6].actionLockedUntilTick = POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
+      match.players[6].actionLockedUntilTick =
+        POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
       break;
     case 'GUST':
       place(match, hero, 2_200, 5_000);
       place(match, 11, 2_300, 5_000);
       place(match, 12, 2_500, 4_800);
       holdBall(match, 11);
-      match.players[11].actionLockedUntilTick = POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
+      match.players[11].actionLockedUntilTick =
+        POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
       break;
   }
 
@@ -377,7 +398,10 @@ export function initializePowerMatchShowcase(
   match.players[hero].firePolicy = 'SAVE_FOR_TAP';
   match.players[hero].gauge = 0;
   match.players[hero].zonesOpened = 1;
-  match.players[hero].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+  match.players[hero].powerState = {
+    kind: 'zone',
+    remainingTicks: ZONE_WINDOW_TICKS,
+  };
   match.events.push({ t: match.tick, kind: 'POWER_READY', player: hero });
   return hero;
 }
@@ -388,7 +412,10 @@ export function initializePowerMatchShowcase(
  * real contextual auto policy. The Zone cannot expire while it waits for that
  * useful moment, and nothing is repositioned at activation time.
  */
-export function advancePowerMatchShowcaseReady(match: MatchState, power: PowerId): boolean {
+export function advancePowerMatchShowcaseReady(
+  match: MatchState,
+  power: PowerId,
+): boolean {
   const hero = powerMatchShowcaseHeroIndex(power);
   const player = match.players[hero];
   const state = player.powerState;

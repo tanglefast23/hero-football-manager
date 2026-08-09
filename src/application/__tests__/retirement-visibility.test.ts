@@ -28,7 +28,10 @@ const content = loadLaunchContent();
  * guessing a number. Retirement age varies by personality AND by id hash, so a
  * hardcoded 36 is a coin flip on whether the label appears at all.
  */
-function ageOneSeasonFromAnnouncing(player: CareerPlayer, careerSeed: number): number {
+function ageOneSeasonFromAnnouncing(
+  player: CareerPlayer,
+  careerSeed: number,
+): number {
   return (player.age ?? 24) + seasonsBeforeRetirement(player, careerSeed) - 1;
 }
 
@@ -53,7 +56,7 @@ function deskClearCareer(seed: number): GameState {
 }
 
 function firstUserPlayer(state: GameState): CareerPlayer {
-  return state.players.find(player => player.clubId === state.userClubId)!;
+  return state.players.find((player) => player.clubId === state.userClubId)!;
 }
 
 function withPlayerAged(
@@ -63,9 +66,9 @@ function withPlayerAged(
 ): GameState {
   return {
     ...state,
-    players: state.players.map(player => player.id === playerId
-      ? { ...player, ...overrides }
-      : player),
+    players: state.players.map((player) =>
+      player.id === playerId ? { ...player, ...overrides } : player,
+    ),
   };
 }
 
@@ -76,10 +79,12 @@ function seasonEndWithExpiredVeteran(
 ): { state: GameState; player: CareerPlayer } {
   const initial = createCareer({ ...createLaunchCareerSetup(seed) });
   const lineupIds = new Set(
-    initial.lineups.find(lineup => lineup.clubId === initial.userClubId)!.playerIds,
+    initial.lineups.find((lineup) => lineup.clubId === initial.userClubId)!
+      .playerIds,
   );
-  const target = initial.players.find(player =>
-    player.clubId === initial.userClubId && !lineupIds.has(player.id),
+  const target = initial.players.find(
+    (player) =>
+      player.clubId === initial.userClubId && !lineupIds.has(player.id),
   )!;
   const aged: CareerPlayer = {
     ...target,
@@ -91,14 +96,19 @@ function seasonEndWithExpiredVeteran(
     state: {
       ...initial,
       phase: 'season-end' as const,
-      players: initial.players.map(player => player.id === target.id ? aged : player),
+      players: initial.players.map((player) =>
+        player.id === target.id ? aged : player,
+      ),
     },
   };
 }
 
 describe('renewal term cap', () => {
   it('offers only the seasons the veteran has left', () => {
-    const { state, player } = seasonEndWithExpiredVeteran(8802, ageOneSeasonFromAnnouncing);
+    const { state, player } = seasonEndWithExpiredVeteran(
+      8802,
+      ageOneSeasonFromAnnouncing,
+    );
     const cap = maxRenewalTermSeasons(player, state.careerSeed);
     expect(cap).toBe(1);
 
@@ -108,7 +118,10 @@ describe('renewal term cap', () => {
   });
 
   it('explains the short term as the player own judgement', () => {
-    const { state, player } = seasonEndWithExpiredVeteran(8802, ageOneSeasonFromAnnouncing);
+    const { state, player } = seasonEndWithExpiredVeteran(
+      8802,
+      ageOneSeasonFromAnnouncing,
+    );
 
     const view = seasonEndViewModel(state, content, 1);
 
@@ -127,7 +140,10 @@ describe('renewal term cap', () => {
   });
 
   it('never pre-selects a term above the cap', () => {
-    const { state } = seasonEndWithExpiredVeteran(8802, ageOneSeasonFromAnnouncing);
+    const { state } = seasonEndWithExpiredVeteran(
+      8802,
+      ageOneSeasonFromAnnouncing,
+    );
 
     // Three is what the store would carry in from the player renewed before him.
     const view = seasonEndViewModel(state, content, 3);
@@ -138,9 +154,14 @@ describe('renewal term cap', () => {
 
 describe('signing term cap', () => {
   it('offers one more season than a renewal, because week 30 has not run yet', () => {
-    const { state, player } = seasonEndWithExpiredVeteran(8802, ageOneSeasonFromAnnouncing);
+    const { state, player } = seasonEndWithExpiredVeteran(
+      8802,
+      ageOneSeasonFromAnnouncing,
+    );
     const signingCap = maxSigningTermSeasons(player, state.careerSeed);
-    expect(signingCap).toBe(maxRenewalTermSeasons(player, state.careerSeed) + 1);
+    expect(signingCap).toBe(
+      maxRenewalTermSeasons(player, state.careerSeed) + 1,
+    );
 
     const view = marketNegotiationViewModel({
       state: {
@@ -204,23 +225,32 @@ describe('signing term cap', () => {
    * ignored retirement would hand back 3 and fail here.
    */
   it('is supplied by the shipped market source, not just by tests', () => {
-    const base = createCareer(createLaunchCareerSetup(8811, undefined, content));
-    const division = base.m2!.pyramid.divisions.find(candidate => candidate.level === 4)!;
-    const raw = division.clubs[0].squad.find(candidate => candidate.role === 'DEF')!;
-    const veteranAge = ageOneSeasonFromAnnouncing(raw as unknown as CareerPlayer, base.careerSeed);
+    const base = createCareer(
+      createLaunchCareerSetup(8811, undefined, content),
+    );
+    const division = base.m2!.pyramid.divisions.find(
+      (candidate) => candidate.level === 4,
+    )!;
+    const raw = division.clubs[0].squad.find(
+      (candidate) => candidate.role === 'DEF',
+    )!;
+    const veteranAge = ageOneSeasonFromAnnouncing(
+      raw as unknown as CareerPlayer,
+      base.careerSeed,
+    );
     const career: GameState = {
       ...base,
       m2: {
         ...base.m2!,
         pyramid: {
           ...base.m2!.pyramid,
-          divisions: base.m2!.pyramid.divisions.map(entry => ({
+          divisions: base.m2!.pyramid.divisions.map((entry) => ({
             ...entry,
-            clubs: entry.clubs.map(club => ({
+            clubs: entry.clubs.map((club) => ({
               ...club,
-              squad: club.squad.map(player => (player.id === raw.id
-                ? { ...player, age: veteranAge }
-                : player)),
+              squad: club.squad.map((player) =>
+                player.id === raw.id ? { ...player, age: veteranAge } : player,
+              ),
             })),
           })),
         },
@@ -230,18 +260,27 @@ describe('signing term cap', () => {
     // Talks require a scout report, the same gate the shipped flow enforces.
     const scouted = {
       ...career.market!,
-      scoutReports: [{
-        playerId: raw.id,
-        role: raw.role,
-        age: veteranAge,
-        statRanges: Object.fromEntries(Object.entries(raw.attrs).map(([key, value]) => [
-          key,
-          { minimum: value, maximum: value },
-        ])) as never,
-        potentialRange: { minimum: 3 as const, maximum: 3 as const },
-      }],
+      scoutReports: [
+        {
+          playerId: raw.id,
+          role: raw.role,
+          age: veteranAge,
+          statRanges: Object.fromEntries(
+            Object.entries(raw.attrs).map(([key, value]) => [
+              key,
+              { minimum: value, maximum: value },
+            ]),
+          ) as never,
+          potentialRange: { minimum: 3 as const, maximum: 3 as const },
+        },
+      ],
     };
-    const market = beginCareerTransferTalks(career, scouted, raw.id, division.level);
+    const market = beginCareerTransferTalks(
+      career,
+      scouted,
+      raw.id,
+      division.level,
+    );
     const source = careerMarketViewModelSource(career, market);
     const expected = maxSigningTermSeasons(
       { ...raw, age: veteranAge } as unknown as CareerPlayer,
@@ -255,7 +294,9 @@ describe('signing term cap', () => {
   });
 
   it('exposes no negotiation on a career with no talks open', () => {
-    const career = createCareer(createLaunchCareerSetup(8811, undefined, content));
+    const career = createCareer(
+      createLaunchCareerSetup(8811, undefined, content),
+    );
     const source = careerMarketViewModelSource(career, career.market!);
     // No talks open on a fresh career; the adapter must still typecheck and
     // expose the field, which is what stops the ship path defaulting to 1-2-3.
@@ -265,31 +306,42 @@ describe('signing term cap', () => {
 
 describe('player-card retirement label', () => {
   it('stays quiet while retirement is more than one season away', () => {
-    const career = createCareer(createLaunchCareerSetup(73101, undefined, content));
+    const career = createCareer(
+      createLaunchCareerSetup(73101, undefined, content),
+    );
     const target = firstUserPlayer(career);
     const state = withPlayerAged(career, target.id, { age: 24 });
 
     const view = squadTrainingViewModel(state, content, undefined);
 
-    expect(view.players.find(player => player.id === target.id)?.retirementLabel)
-      .toBeUndefined();
+    expect(
+      view.players.find((player) => player.id === target.id)?.retirementLabel,
+    ).toBeUndefined();
   });
 
   it('warns one season before the announcement', () => {
-    const career = createCareer(createLaunchCareerSetup(73101, undefined, content));
+    const career = createCareer(
+      createLaunchCareerSetup(73101, undefined, content),
+    );
     const target = firstUserPlayer(career);
     const state = withPlayerAged(career, target.id, {
-      age: ageOneSeasonFromAnnouncing({ ...target, age: 24 }, career.careerSeed),
+      age: ageOneSeasonFromAnnouncing(
+        { ...target, age: 24 },
+        career.careerSeed,
+      ),
     });
 
     const view = squadTrainingViewModel(state, content, undefined);
 
-    expect(view.players.find(player => player.id === target.id)?.retirementLabel)
-      .toBe('Considering retirement in 1 year');
+    expect(
+      view.players.find((player) => player.id === target.id)?.retirementLabel,
+    ).toBe('Considering retirement in 1 year');
   });
 
   it('marks the final season once announced', () => {
-    const career = createCareer(createLaunchCareerSetup(73101, undefined, content));
+    const career = createCareer(
+      createLaunchCareerSetup(73101, undefined, content),
+    );
     const target = firstUserPlayer(career);
     const state = withPlayerAged(career, target.id, {
       age: 37,
@@ -298,8 +350,9 @@ describe('player-card retirement label', () => {
 
     const view = squadTrainingViewModel(state, content, undefined);
 
-    expect(view.players.find(player => player.id === target.id)?.retirementLabel)
-      .toBe('Final season, retires in summer');
+    expect(
+      view.players.find((player) => player.id === target.id)?.retirementLabel,
+    ).toBe('Final season, retires in summer');
   });
 });
 
@@ -313,10 +366,13 @@ describe('retirement heads-up alert', () => {
 
     const alerts = homeViewModel(state).alerts;
 
-    expect(alerts.map(alert => alert.id))
-      .toContain(`retirement-considering-${state.season}-${target.id}`);
-    expect(alerts.find(alert => alert.id.startsWith('retirement-considering-'))?.detail)
-      .toContain('one more season after this one');
+    expect(alerts.map((alert) => alert.id)).toContain(
+      `retirement-considering-${state.season}-${target.id}`,
+    );
+    expect(
+      alerts.find((alert) => alert.id.startsWith('retirement-considering-'))
+        ?.detail,
+    ).toContain('one more season after this one');
   });
 
   it('does not land for a player with seasons still ahead', () => {
@@ -326,7 +382,9 @@ describe('retirement heads-up alert', () => {
 
     const alerts = homeViewModel(state).alerts;
 
-    expect(alerts.some(alert => alert.id.startsWith('retirement-considering-'))).toBe(false);
+    expect(
+      alerts.some((alert) => alert.id.startsWith('retirement-considering-')),
+    ).toBe(false);
   });
 
   it('does not repeat once the player has announced', () => {
@@ -339,11 +397,17 @@ describe('retirement heads-up alert', () => {
 
     const alerts = homeViewModel(state).alerts;
 
-    expect(alerts.some(alert => alert.id.startsWith('retirement-considering-'))).toBe(false);
+    expect(
+      alerts.some((alert) => alert.id.startsWith('retirement-considering-')),
+    ).toBe(false);
   });
 
   it('is one-shot, so it does not hold a desk slot all season', () => {
-    expect(isOneShotProductAlert('retirement-considering-3-player-7')).toBe(true);
-    expect(isOneShotProductAlert('retirement-announcement-3-player-7')).toBe(false);
+    expect(isOneShotProductAlert('retirement-considering-3-player-7')).toBe(
+      true,
+    );
+    expect(isOneShotProductAlert('retirement-announcement-3-player-7')).toBe(
+      false,
+    );
   });
 });

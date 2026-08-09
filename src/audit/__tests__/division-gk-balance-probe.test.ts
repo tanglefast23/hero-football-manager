@@ -13,7 +13,8 @@ import { generateLeaguePyramid } from '../../game/pyramid';
 import { runMatch } from '../../sim/match';
 import type { PlayerDef, TeamDef } from '../../sim/types';
 
-const describeProbe = process.env.DIVISION_GK_PROBE === '1' ? describe : describe.skip;
+const describeProbe =
+  process.env.DIVISION_GK_PROBE === '1' ? describe : describe.skip;
 const OUTPUT = process.env.DIVISION_GK_OUTPUT;
 const MATCHES_PER_DIVISION = artifact.matchesPerDivision;
 
@@ -27,35 +28,44 @@ describeProbe('division goalkeeper balance artifact probe', () => {
     if (OUTPUT === undefined) throw new Error('DIVISION_GK_OUTPUT is required');
     const pyramid = generateLeaguePyramid(artifact.rosterSeed);
     const divisions: Record<string, BalanceSample[]> = {};
-    const aggregates: Record<string, {
-      goals: number;
-      saves: number;
-      goalsPerMatch: number;
-      saveRate: number;
-    }> = {};
+    const aggregates: Record<
+      string,
+      {
+        goals: number;
+        saves: number;
+        goalsPerMatch: number;
+        saveRate: number;
+      }
+    > = {};
 
     for (const division of pyramid.divisions) {
       const peers = division.clubs
         .slice()
-        .sort((left, right) => (
-          left.squadStrength - right.squadStrength || left.id.localeCompare(right.id)
-        ))
+        .sort(
+          (left, right) =>
+            left.squadStrength - right.squadStrength ||
+            left.id.localeCompare(right.id),
+        )
         .slice(4, 6)
-        .map(club => team(club.id, club.name, club.squad));
-      const samples = Array.from({ length: MATCHES_PER_DIVISION }, (_, index) => {
-        const swap = index % 2 === 1;
-        const result = runMatch(
-          division.level * 10_000_000 + index * artifact.matchSeedStride,
-          swap ? peers[1] : peers[0],
-          swap ? peers[0] : peers[1],
-          [],
-          { homePolicy: 'FIRE_WHEN_READY', awayPolicy: 'FIRE_WHEN_READY' },
-        );
-        return {
-          goals: result.score[0] + result.score[1],
-          saves: result.events.filter(event => event.kind === 'SAVE').length,
-        };
-      });
+        .map((club) => team(club.id, club.name, club.squad));
+      const samples = Array.from(
+        { length: MATCHES_PER_DIVISION },
+        (_, index) => {
+          const swap = index % 2 === 1;
+          const result = runMatch(
+            division.level * 10_000_000 + index * artifact.matchSeedStride,
+            swap ? peers[1] : peers[0],
+            swap ? peers[0] : peers[1],
+            [],
+            { homePolicy: 'FIRE_WHEN_READY', awayPolicy: 'FIRE_WHEN_READY' },
+          );
+          return {
+            goals: result.score[0] + result.score[1],
+            saves: result.events.filter((event) => event.kind === 'SAVE')
+              .length,
+          };
+        },
+      );
       divisions[String(division.level)] = samples;
       const goals = samples.reduce((total, sample) => total + sample.goals, 0);
       const saves = samples.reduce((total, sample) => total + sample.saves, 0);
@@ -67,26 +77,30 @@ describeProbe('division goalkeeper balance artifact probe', () => {
       };
     }
 
-    writeFileSync(OUTPUT, `${JSON.stringify({
-      version: 1,
-      matchesPerDivision: MATCHES_PER_DIVISION,
-      divisions,
-    }, null, 2)}\n`);
-    expect(Object.values(divisions).every(samples => (
-      samples.length === MATCHES_PER_DIVISION
-    ))).toBe(true);
+    writeFileSync(
+      OUTPUT,
+      `${JSON.stringify(
+        {
+          version: 1,
+          matchesPerDivision: MATCHES_PER_DIVISION,
+          divisions,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    expect(
+      Object.values(divisions).every(
+        (samples) => samples.length === MATCHES_PER_DIVISION,
+      ),
+    ).toBe(true);
     expect(aggregates).toEqual(artifact.divisions);
   }, 900_000);
 });
 
-function team(
-  id: string,
-  name: string,
-  squad: readonly PlayerDef[],
-): TeamDef {
-  const take = (role: PlayerDef['role'], count: number) => squad
-    .filter(player => player.role === role)
-    .slice(0, count);
+function team(id: string, name: string, squad: readonly PlayerDef[]): TeamDef {
+  const take = (role: PlayerDef['role'], count: number) =>
+    squad.filter((player) => player.role === role).slice(0, count);
   return {
     id,
     name,
@@ -95,7 +109,7 @@ function team(
       ...take('DEF', 4),
       ...take('MID', 4),
       ...take('FWD', 2),
-    ].map(player => ({
+    ].map((player) => ({
       id: player.id,
       name: player.name,
       role: player.role,

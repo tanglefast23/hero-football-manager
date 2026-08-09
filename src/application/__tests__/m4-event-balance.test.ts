@@ -1,5 +1,9 @@
 import { loadLaunchContent } from '../../content';
-import { applyCareerEventOutcome, createCareer, offerCareerEvent } from '../../game';
+import {
+  applyCareerEventOutcome,
+  createCareer,
+  offerCareerEvent,
+} from '../../game';
 import { eventOfferForWeek } from '../event-selection';
 import { createLaunchCareerSetup } from '../launch';
 import { storyEventViewModel } from '../view-models';
@@ -7,25 +11,43 @@ import { storyEventViewModel } from '../view-models';
 describe('M4 risky-success cutscene rewards', () => {
   it('names every kind of earned bonus, including squad development', () => {
     const content = loadLaunchContent();
-    const spider = content.events.events.find(event => event.id === 'giant-spider-arrives')!;
+    const spider = content.events.events.find(
+      (event) => event.id === 'giant-spider-arrives',
+    )!;
     const withDevelopment = {
       ...content,
       events: {
         ...content.events,
-        events: content.events.events.map(event => event.id !== spider.id ? event : {
-          ...event,
-          choices: event.choices.map(choice => choice.id !== 'adopt-spider' ? choice : {
-            ...choice,
-            outcomes: choice.outcomes.map((outcome, index) => index !== 0 ? outcome : {
-              ...outcome,
-              effects: [
-                ...outcome.effects,
-                { type: 'statDelta' as const, attribute: 'tec' as const, amount: 2 },
-                { type: 'injury' as const, weeks: 2 },
-              ],
-            }),
-          }),
-        }),
+        events: content.events.events.map((event) =>
+          event.id !== spider.id
+            ? event
+            : {
+                ...event,
+                choices: event.choices.map((choice) =>
+                  choice.id !== 'adopt-spider'
+                    ? choice
+                    : {
+                        ...choice,
+                        outcomes: choice.outcomes.map((outcome, index) =>
+                          index !== 0
+                            ? outcome
+                            : {
+                                ...outcome,
+                                effects: [
+                                  ...outcome.effects,
+                                  {
+                                    type: 'statDelta' as const,
+                                    attribute: 'tec' as const,
+                                    amount: 2,
+                                  },
+                                  { type: 'injury' as const, weeks: 2 },
+                                ],
+                              },
+                        ),
+                      },
+                ),
+              },
+        ),
       },
     };
     const initial = createCareer(createLaunchCareerSetup());
@@ -38,8 +60,12 @@ describe('M4 risky-success cutscene rewards', () => {
     );
 
     const viewModel = storyEventViewModel(resolved, withDevelopment);
-    expect(viewModel.successCutscene?.rewards)
-      .toEqual(['+10 squad morale', '+100 fans', '+2 TEC', '2 weeks out injured']);
+    expect(viewModel.successCutscene?.rewards).toEqual([
+      '+10 squad morale',
+      '+100 fans',
+      '+2 TEC',
+      '2 weeks out injured',
+    ]);
     expect(viewModel).toMatchObject({
       resolvedRisky: true,
       resolvedSuccess: true,
@@ -57,17 +83,32 @@ describe('M4 event balance rails', () => {
   const catalog = loadLaunchContent().events;
 
   it('keeps individual setbacks fail-soft and risky cash value bounded', () => {
-    const moneyAmounts = catalog.events.flatMap(event => event.choices.flatMap(choice => (
-      choice.outcomes.flatMap(outcome => outcome.effects.flatMap(effect => effect.type === 'money' ? [effect.amount] : []))
-    )));
-    const expectedRiskyCash = catalog.events.flatMap(event => event.choices
-      .filter(choice => choice.risky)
-      .map(choice => choice.outcomes.reduce((expected, outcome) => (
-        expected + outcome.weight / 100 * outcome.effects.reduce(
-          (sum, effect) => sum + (effect.type === 'money' ? effect.amount : 0),
-          0,
-        )
-      ), 0)));
+    const moneyAmounts = catalog.events.flatMap((event) =>
+      event.choices.flatMap((choice) =>
+        choice.outcomes.flatMap((outcome) =>
+          outcome.effects.flatMap((effect) =>
+            effect.type === 'money' ? [effect.amount] : [],
+          ),
+        ),
+      ),
+    );
+    const expectedRiskyCash = catalog.events.flatMap((event) =>
+      event.choices
+        .filter((choice) => choice.risky)
+        .map((choice) =>
+          choice.outcomes.reduce(
+            (expected, outcome) =>
+              expected +
+              (outcome.weight / 100) *
+                outcome.effects.reduce(
+                  (sum, effect) =>
+                    sum + (effect.type === 'money' ? effect.amount : 0),
+                  0,
+                ),
+            0,
+          ),
+        ),
+    );
 
     expect(Math.min(...moneyAmounts)).toBeGreaterThanOrEqual(-1_500);
     expect(Math.max(...moneyAmounts)).toBeLessThanOrEqual(5_000);
@@ -94,15 +135,19 @@ describe('M4 event balance rails', () => {
           state = {
             ...state,
             eventClock: offer.eventClock,
-            ...(offer.eventId === undefined ? {} : {
-              resolvedEventIds: state.resolvedEventIds.includes(offer.eventId)
-                ? state.resolvedEventIds
-                : [...state.resolvedEventIds, offer.eventId],
-              resolvedEventHistory: [
-                ...(state.resolvedEventHistory ?? []),
-                { eventId: offer.eventId, season, week },
-              ],
-            }),
+            ...(offer.eventId === undefined
+              ? {}
+              : {
+                  resolvedEventIds: state.resolvedEventIds.includes(
+                    offer.eventId,
+                  )
+                    ? state.resolvedEventIds
+                    : [...state.resolvedEventIds, offer.eventId],
+                  resolvedEventHistory: [
+                    ...(state.resolvedEventHistory ?? []),
+                    { eventId: offer.eventId, season, week },
+                  ],
+                }),
           };
           if (offer.eventId !== undefined) count += 1;
         }

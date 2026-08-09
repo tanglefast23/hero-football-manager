@@ -19,7 +19,9 @@ function fullCareerState(seed = 0): GameState {
 }
 
 function userPlayer(state: GameState) {
-  const player = state.players.find(p => p.clubId === state.userClubId && p.role !== 'GK');
+  const player = state.players.find(
+    (p) => p.clubId === state.userClubId && p.role !== 'GK',
+  );
   if (player === undefined) throw new Error('no user outfield player');
   return player;
 }
@@ -42,11 +44,13 @@ describe('trainPlayerInstantly', () => {
     const state = fullCareerState();
     const player = userPlayer(state);
     const res = trainPlayerInstantly(state, player.id, 'sprints');
-    const trained = res.state.players.find(p => p.id === player.id)!;
+    const trained = res.state.players.find((p) => p.id === player.id)!;
 
     expect(res.tpSpent).toBe(10); // tier-II sprints, unlocked from D5
     expect(res.state.trainingPoints).toBe(state.trainingPoints - 10);
-    expect(trained.condition).toBe((player.condition ?? 100) - INSTANT_DRILL_CONDITION_COST);
+    expect(trained.condition).toBe(
+      (player.condition ?? 100) - INSTANT_DRILL_CONDITION_COST,
+    );
     expect(res.conditionAfter).toBe(trained.condition);
     expect(res.state.totalInstantDrills).toBe(1);
     expect(res.attribute).toBe('pac');
@@ -60,7 +64,9 @@ describe('trainPlayerInstantly', () => {
     const player = userPlayer(state);
     const drained = {
       ...state,
-      players: state.players.map(p => p.id === player.id ? { ...p, condition: 3 } : p),
+      players: state.players.map((p) =>
+        p.id === player.id ? { ...p, condition: 3 } : p,
+      ),
     };
     const res = trainPlayerInstantly(drained, player.id, 'sprints');
     expect(res.conditionAfter).toBe(0);
@@ -69,17 +75,30 @@ describe('trainPlayerInstantly', () => {
   it('rejects opponents, the injured, unknown players, and empty banks', () => {
     const state = fullCareerState();
     const player = userPlayer(state);
-    const opponent = state.players.find(p => p.clubId !== state.userClubId)!;
+    const opponent = state.players.find((p) => p.clubId !== state.userClubId)!;
 
-    expect(() => trainPlayerInstantly(state, opponent.id, 'sprints')).toThrow('not on the user club');
-    expect(() => trainPlayerInstantly(state, 'nobody', 'sprints')).toThrow('not on the user club');
+    expect(() => trainPlayerInstantly(state, opponent.id, 'sprints')).toThrow(
+      'not on the user club',
+    );
+    expect(() => trainPlayerInstantly(state, 'nobody', 'sprints')).toThrow(
+      'not on the user club',
+    );
     const hurt = {
       ...state,
-      players: state.players.map(p => p.id === player.id ? { ...p, injuryWeeks: 2 } : p),
+      players: state.players.map((p) =>
+        p.id === player.id ? { ...p, injuryWeeks: 2 } : p,
+      ),
     };
-    expect(() => trainPlayerInstantly(hurt, player.id, 'sprints')).toThrow('injured');
-    expect(() => trainPlayerInstantly({ ...state, trainingPoints: 5 }, player.id, 'sprints'))
-      .toThrow('needs 10 TP');
+    expect(() => trainPlayerInstantly(hurt, player.id, 'sprints')).toThrow(
+      'injured',
+    );
+    expect(() =>
+      trainPlayerInstantly(
+        { ...state, trainingPoints: 5 },
+        player.id,
+        'sprints',
+      ),
+    ).toThrow('needs 10 TP');
   });
 
   it('is deterministic: the same state resolves identically twice', () => {
@@ -95,13 +114,17 @@ describe('trainPlayerInstantly', () => {
     const player = userPlayer(state);
     const pitiful = {
       ...state,
-      players: state.players.map(p => p.id === player.id
-        ? { ...p, drillsSinceSuper: SUPER_TRAINING_PITY_DRILLS - 1 }
-        : p),
+      players: state.players.map((p) =>
+        p.id === player.id
+          ? { ...p, drillsSinceSuper: SUPER_TRAINING_PITY_DRILLS - 1 }
+          : p,
+      ),
     };
     const res = trainPlayerInstantly(pitiful, player.id, 'sprints');
     expect(res.isSuper).toBe(true);
-    expect(res.state.players.find(p => p.id === player.id)!.drillsSinceSuper).toBe(0);
+    expect(
+      res.state.players.find((p) => p.id === player.id)!.drillsSinceSuper,
+    ).toBe(0);
   });
 
   it('rolls both SUPER and ordinary sessions across nonces; counters track them', () => {
@@ -112,7 +135,7 @@ describe('trainPlayerInstantly', () => {
     for (let nonce = 0; nonce < 200 && !(sawSuper && sawOrdinary); nonce += 1) {
       const staged = { ...state, totalInstantDrills: nonce };
       const res = trainPlayerInstantly(staged, player.id, 'sprints');
-      const trained = res.state.players.find(p => p.id === player.id)!;
+      const trained = res.state.players.find((p) => p.id === player.id)!;
       expect(res.state.totalInstantDrills).toBe(nonce + 1);
       if (res.isSuper) {
         sawSuper = true;
@@ -132,40 +155,50 @@ describe('trainPlayerInstantly', () => {
     const ordinary = trainPlayerInstantly(state, player.id, 'sprints');
     const pitiful = {
       ...state,
-      players: state.players.map(p => p.id === player.id
-        ? { ...p, drillsSinceSuper: SUPER_TRAINING_PITY_DRILLS - 1 }
-        : p),
+      players: state.players.map((p) =>
+        p.id === player.id
+          ? { ...p, drillsSinceSuper: SUPER_TRAINING_PITY_DRILLS - 1 }
+          : p,
+      ),
     };
     const superRes = trainPlayerInstantly(pitiful, player.id, 'sprints');
     expect(superRes.isSuper).toBe(true);
     if (!ordinary.isSuper) {
-      expect(superRes.after - superRes.before).toBeGreaterThan(ordinary.after - ordinary.before);
+      expect(superRes.after - superRes.before).toBeGreaterThan(
+        ordinary.after - ordinary.before,
+      );
     }
   });
 
   it('enforces a TRAINING_PRIORITY debt: owed drills block others, count down, then clear', () => {
     const state = fullCareerState();
-    const roster = state.players.filter(p => p.clubId === state.userClubId);
+    const roster = state.players.filter((p) => p.clubId === state.userClubId);
     const promised = roster[0];
-    const other = roster.find(p => p.id !== promised.id && p.role !== 'GK')!;
+    const other = roster.find((p) => p.id !== promised.id && p.role !== 'GK')!;
     let owed: GameState = applyCareerContractPromise(
       { ...state, trainingPoints: 1_000 },
       promised.id,
       'TRAINING_PRIORITY',
     );
-    expect(owed.players.find(p => p.id === promised.id)?.priorityDrillsRemaining)
-      .toBe(TRAINING_PRIORITY_DRILLS);
+    expect(
+      owed.players.find((p) => p.id === promised.id)?.priorityDrillsRemaining,
+    ).toBe(TRAINING_PRIORITY_DRILLS);
 
     // The promised player reminds you: nobody else may train while drills are owed.
-    expect(() => trainPlayerInstantly(owed, other.id, 'sprints'))
-      .toThrow(`${promised.name} was promised the next 5 drills`);
+    expect(() => trainPlayerInstantly(owed, other.id, 'sprints')).toThrow(
+      `${promised.name} was promised the next 5 drills`,
+    );
 
     // Each of their drills ticks the countdown down.
     for (let drill = TRAINING_PRIORITY_DRILLS; drill > 0; drill -= 1) {
-      expect(owed.players.find(p => p.id === promised.id)?.priorityDrillsRemaining).toBe(drill);
+      expect(
+        owed.players.find((p) => p.id === promised.id)?.priorityDrillsRemaining,
+      ).toBe(drill);
       owed = trainPlayerInstantly(owed, promised.id, 'sprints').state;
     }
-    expect(owed.players.find(p => p.id === promised.id)?.priorityDrillsRemaining).toBe(0);
+    expect(
+      owed.players.find((p) => p.id === promised.id)?.priorityDrillsRemaining,
+    ).toBe(0);
 
     // Debt paid: everyone trains freely again.
     expect(() => trainPlayerInstantly(owed, other.id, 'sprints')).not.toThrow();
@@ -173,9 +206,9 @@ describe('trainPlayerInstantly', () => {
 
   it('pauses a TRAINING_PRIORITY debt while the promised player is injured', () => {
     const state = fullCareerState();
-    const roster = state.players.filter(p => p.clubId === state.userClubId);
+    const roster = state.players.filter((p) => p.clubId === state.userClubId);
     const promised = roster[0];
-    const other = roster.find(p => p.id !== promised.id && p.role !== 'GK')!;
+    const other = roster.find((p) => p.id !== promised.id && p.role !== 'GK')!;
     const owed = applyCareerContractPromise(
       { ...state, trainingPoints: 1_000 },
       promised.id,
@@ -183,13 +216,18 @@ describe('trainPlayerInstantly', () => {
     );
     const paused = {
       ...owed,
-      players: owed.players.map(p => p.id === promised.id ? { ...p, injuryWeeks: 3 } : p),
+      players: owed.players.map((p) =>
+        p.id === promised.id ? { ...p, injuryWeeks: 3 } : p,
+      ),
     };
 
-    expect(() => trainPlayerInstantly(paused, other.id, 'sprints')).not.toThrow();
+    expect(() =>
+      trainPlayerInstantly(paused, other.id, 'sprints'),
+    ).not.toThrow();
     // The debt survives the pause rather than being forgiven.
-    expect(paused.players.find(p => p.id === promised.id)?.priorityDrillsRemaining)
-      .toBe(TRAINING_PRIORITY_DRILLS);
+    expect(
+      paused.players.find((p) => p.id === promised.id)?.priorityDrillsRemaining,
+    ).toBe(TRAINING_PRIORITY_DRILLS);
   });
 
   it('never rolls injury at 30+ condition, and gambles honestly below it', () => {
@@ -200,7 +238,9 @@ describe('trainPlayerInstantly', () => {
 
     const tiredState = {
       ...state,
-      players: state.players.map(p => p.id === player.id ? { ...p, condition: 10 } : p),
+      players: state.players.map((p) =>
+        p.id === player.id ? { ...p, condition: 10 } : p,
+      ),
     };
     const expectedChance = overtrainingInjuryChancePercent(10, 0);
     let sawInjury = false;
@@ -215,7 +255,7 @@ describe('trainPlayerInstantly', () => {
       sawInjury = true;
       expect(res.injury.chancePercent).toBe(expectedChance);
       expect(res.injury.recoveryWeeks).toBeGreaterThanOrEqual(1);
-      const trained = res.state.players.find(p => p.id === player.id)!;
+      const trained = res.state.players.find((p) => p.id === player.id)!;
       expect(trained.injuryWeeks).toBe(res.injury.recoveryWeeks);
       // The drill still paid out: you trained, then pulled something.
       expect(res.after).toBeGreaterThan(res.before);

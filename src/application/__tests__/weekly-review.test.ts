@@ -27,7 +27,9 @@ describe('weekly review view model', () => {
       trainingPointsAfter: after.trainingPoints,
       netTrainingPoints: after.trainingPoints - before.trainingPoints,
     });
-    expect(review.ledger.some(line => line.label === 'Weekly wages')).toBe(true);
+    expect(review.ledger.some((line) => line.label === 'Weekly wages')).toBe(
+      true,
+    );
     // Drills resolve instantly in the popup now; the review carries no
     // training results section at all.
     expect(review).not.toHaveProperty('development');
@@ -39,48 +41,70 @@ describe('weekly review view model', () => {
     const before: GameState = {
       ...initial,
       week: 4,
-      fixtures: initial.fixtures.map(fixture => fixture.week <= 4
-        ? { ...fixture, status: 'played' as const, score: { homeGoals: 0, awayGoals: 0 } }
-        : fixture),
-      players: initial.players.map(player => player.id === injuredId
-        ? { ...player, injuryWeeks: 1 }
-        : player),
+      fixtures: initial.fixtures.map((fixture) =>
+        fixture.week <= 4
+          ? {
+              ...fixture,
+              status: 'played' as const,
+              score: { homeGoals: 0, awayGoals: 0 },
+            }
+          : fixture,
+      ),
+      players: initial.players.map((player) =>
+        player.id === injuredId ? { ...player, injuryWeeks: 1 } : player,
+      ),
     };
 
     // Season-1 league rounds now start in week 3, so week 4 is a matchday
     // that must be played before the weekly ledger settles.
     let after = advanceWeek(before);
     if (after.phase === 'matchday') {
-      after = completeMatchday(after, fixturesForCurrentWeek(after).map(fixture => ({
-        fixtureId: fixture.id,
-        homeGoals: 0,
-        awayGoals: 0,
-      })));
+      after = completeMatchday(
+        after,
+        fixturesForCurrentWeek(after).map((fixture) => ({
+          fixtureId: fixture.id,
+          homeGoals: 0,
+          awayGoals: 0,
+        })),
+      );
     }
     const review = weeklyReviewViewModel(before, after);
 
     expect(review.nextWeekLabel).toBe('Week 5');
     expect(review.nextFixture?.weekLabel).toBe('W5');
-    expect(review.updates).toContainEqual(expect.objectContaining({
-      id: `injury-${injuredId}`,
-      title: expect.stringContaining('cleared to play'),
-    }));
-    expect(review.updates.some(update => update.id.startsWith('contract-'))).toBe(false);
-    expect(review.updates.some(update => update.id.startsWith('event-'))).toBe(false);
+    expect(review.updates).toContainEqual(
+      expect.objectContaining({
+        id: `injury-${injuredId}`,
+        title: expect.stringContaining('cleared to play'),
+      }),
+    );
+    expect(
+      review.updates.some((update) => update.id.startsWith('contract-')),
+    ).toBe(false);
+    expect(
+      review.updates.some((update) => update.id.startsWith('event-')),
+    ).toBe(false);
   });
 
   it('celebrates the first Training Pitch without paying TP before it opens', () => {
     const fresh = createCareer(createLaunchCareerSetup(5680));
-    const started = buildCareerFacility(fresh, 'training-pitch', { x: 5, y: 1 }).state;
+    const started = buildCareerFacility(fresh, 'training-pitch', {
+      x: 5,
+      y: 1,
+    }).state;
     // The pitch now takes two weeks: no completion after the first settlement.
     const before = advanceWeek(started);
-    expect(weeklyReviewViewModel(started, before).facilityCompletion).toBeUndefined();
+    expect(
+      weeklyReviewViewModel(started, before).facilityCompletion,
+    ).toBeUndefined();
     const after = advanceWeek(before);
     const review = weeklyReviewViewModel(before, after);
 
     // The pitch itself pays nothing until it opens; the club's unconditional
     // baseline still lands in both build weeks.
-    expect(after.trainingPoints).toBe(started.trainingPoints + BASE_WEEKLY_TRAINING_POINTS * 2);
+    expect(after.trainingPoints).toBe(
+      started.trainingPoints + BASE_WEEKLY_TRAINING_POINTS * 2,
+    );
     expect(review.netTrainingPoints).toBe(BASE_WEEKLY_TRAINING_POINTS);
     expect(review.facilityCompletion).toEqual({
       type: 'training-pitch',
@@ -92,27 +116,36 @@ describe('weekly review view model', () => {
 
   it('announces a new injury and names the automatic Starting XI replacement', () => {
     const before = createCareer(createLaunchCareerSetup(6789));
-    const beforeLineup = before.lineups.find(lineup => lineup.clubId === before.userClubId)!;
+    const beforeLineup = before.lineups.find(
+      (lineup) => lineup.clubId === before.userClubId,
+    )!;
     const injuredId = beforeLineup.playerIds[1];
-    const injuredPlayer = before.players.find(player => player.id === injuredId)!;
-    const replacement = before.players.find(player => (
-      player.clubId === before.userClubId
-      && player.role === injuredPlayer.role
-      && !beforeLineup.playerIds.includes(player.id)
-      && player.power === undefined
-    ))!;
+    const injuredPlayer = before.players.find(
+      (player) => player.id === injuredId,
+    )!;
+    const replacement = before.players.find(
+      (player) =>
+        player.clubId === before.userClubId &&
+        player.role === injuredPlayer.role &&
+        !beforeLineup.playerIds.includes(player.id) &&
+        player.power === undefined,
+    )!;
     const settled = advanceWeek(before);
     const after: GameState = {
       ...settled,
-      players: settled.players.map(player => player.id === injuredId
-        ? { ...player, injuryWeeks: 4 }
-        : player),
-      lineups: settled.lineups.map(lineup => lineup.clubId === settled.userClubId
-        ? {
-            ...lineup,
-            playerIds: lineup.playerIds.map(playerId => playerId === injuredId ? replacement.id : playerId),
-          }
-        : lineup),
+      players: settled.players.map((player) =>
+        player.id === injuredId ? { ...player, injuryWeeks: 4 } : player,
+      ),
+      lineups: settled.lineups.map((lineup) =>
+        lineup.clubId === settled.userClubId
+          ? {
+              ...lineup,
+              playerIds: lineup.playerIds.map((playerId) =>
+                playerId === injuredId ? replacement.id : playerId,
+              ),
+            }
+          : lineup,
+      ),
     };
 
     const review = weeklyReviewViewModel(before, after);
@@ -133,17 +166,32 @@ describe('weekly review view model', () => {
     const after = advanceWeek(before);
     const review = weeklyReviewViewModel(before, after);
 
-    const wages = review.ledger.find(line => line.label === 'Weekly wages')!;
-    const squadSize = after.players.filter(player => player.clubId === after.userClubId).length;
-    expect(wages.icons).toEqual([{ id: 'squad', kind: 'player', count: squadSize }]);
-
-    const upkeep = review.ledger.find(line => line.label === 'Facility upkeep')!;
-    expect(upkeep.icons).toEqual([
-      { id: expect.any(String), kind: 'facility', facility: 'fan-shop', level: 1 },
+    const wages = review.ledger.find((line) => line.label === 'Weekly wages')!;
+    const squadSize = after.players.filter(
+      (player) => player.clubId === after.userClubId,
+    ).length;
+    expect(wages.icons).toEqual([
+      { id: 'squad', kind: 'player', count: squadSize },
     ]);
 
-    const merch = review.ledger.find(line => line.label === 'Fan Shop merchandise')!;
-    expect(merch.icons).toEqual([{ id: 'shops', kind: 'facility', facility: 'fan-shop', count: 1 }]);
+    const upkeep = review.ledger.find(
+      (line) => line.label === 'Facility upkeep',
+    )!;
+    expect(upkeep.icons).toEqual([
+      {
+        id: expect.any(String),
+        kind: 'facility',
+        facility: 'fan-shop',
+        level: 1,
+      },
+    ]);
+
+    const merch = review.ledger.find(
+      (line) => line.label === 'Fan Shop merchandise',
+    )!;
+    expect(merch.icons).toEqual([
+      { id: 'shops', kind: 'facility', facility: 'fan-shop', count: 1 },
+    ]);
   });
 
   it('leaves a row bare when the club owns nothing to draw', () => {
@@ -152,9 +200,15 @@ describe('weekly review view model', () => {
     const review = weeklyReviewViewModel(before, after);
 
     // No shop, no buildings, no coach: only the wage row has anything to show.
-    expect(review.ledger.some(line => line.label === 'Facility upkeep')).toBe(false);
-    expect(review.ledger.some(line => line.label === 'Fan Shop merchandise')).toBe(false);
-    const advertising = review.ledger.find(line => line.label.startsWith('Local advertising'));
+    expect(review.ledger.some((line) => line.label === 'Facility upkeep')).toBe(
+      false,
+    );
+    expect(
+      review.ledger.some((line) => line.label === 'Fan Shop merchandise'),
+    ).toBe(false);
+    const advertising = review.ledger.find((line) =>
+      line.label.startsWith('Local advertising'),
+    );
     expect(advertising?.icons).toBeUndefined();
   });
 
@@ -167,7 +221,10 @@ describe('weekly review view model', () => {
 });
 
 function requireUserClub(state: GameState) {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error('test career is missing the user club');
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error('test career is missing the user club');
   return club;
 }

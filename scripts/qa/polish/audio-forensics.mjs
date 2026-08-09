@@ -23,7 +23,9 @@ const flag = (name, fallback) => {
   return index === -1 ? fallback : args[index + 1];
 };
 const dir = path.resolve(flag('--dir', 'assets/audio'));
-const out = path.resolve(flag('--out', 'artifacts/polish-audit-2026-08-06/audio-forensics.md'));
+const out = path.resolve(
+  flag('--out', 'artifacts/polish-audit-2026-08-06/audio-forensics.md'),
+);
 const PEAK_LIMIT_DB = -0.1;
 
 function* walk(root) {
@@ -35,22 +37,34 @@ function* walk(root) {
 }
 
 function probeSeconds(file) {
-  const res = spawnSync('ffprobe', [
-    '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file,
-  ], { encoding: 'utf8' });
+  const res = spawnSync(
+    'ffprobe',
+    ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file],
+    { encoding: 'utf8' },
+  );
   const value = parseFloat((res.stdout || '').trim());
   return Number.isFinite(value) ? value : null;
 }
 
 function astats(file) {
-  const res = spawnSync('ffmpeg', [
-    '-hide_banner', '-i', file,
-    '-af', 'astats=measure_overall=Peak_level+RMS_level:measure_perchannel=none:metadata=1',
-    '-f', 'null', '-',
-  ], { encoding: 'utf8' });
+  const res = spawnSync(
+    'ffmpeg',
+    [
+      '-hide_banner',
+      '-i',
+      file,
+      '-af',
+      'astats=measure_overall=Peak_level+RMS_level:measure_perchannel=none:metadata=1',
+      '-f',
+      'null',
+      '-',
+    ],
+    { encoding: 'utf8' },
+  );
   const text = res.stderr || '';
   const last = (re) => {
-    let match; let found = null;
+    let match;
+    let found = null;
     const global = new RegExp(re.source, 'g');
     while ((match = global.exec(text)) !== null) found = match[1];
     return found === null ? null : parseFloat(found);
@@ -70,23 +84,30 @@ for (const file of walk(dir)) {
 rows.sort((a, b) => (b.peakDb ?? -999) - (a.peakDb ?? -999));
 
 const hot = rows.filter((r) => r.peakDb !== null && r.peakDb > PEAK_LIMIT_DB);
-const fmt = (v, digits = 1) => (v === null || !Number.isFinite(v) ? 'n/a' : v.toFixed(digits));
+const fmt = (v, digits = 1) =>
+  v === null || !Number.isFinite(v) ? 'n/a' : v.toFixed(digits);
 const lines = [
   `# Audio forensics — ${new Date().toISOString().slice(0, 10)}`,
   '',
-  `${rows.length} files under \`${path.relative(process.cwd(), dir)}\`; sorted by peak. `
-    + `Flag threshold: peak > ${PEAK_LIMIT_DB} dBFS. Flagged: ${hot.length}.`,
+  `${rows.length} files under \`${path.relative(process.cwd(), dir)}\`; sorted by peak. ` +
+    `Flag threshold: peak > ${PEAK_LIMIT_DB} dBFS. Flagged: ${hot.length}.`,
   '',
   '| file | peak dBFS | RMS dBFS | seconds |',
   '|---|---:|---:|---:|',
-  ...rows.map((r) => `| ${r.rel} | ${fmt(r.peakDb)} | ${fmt(r.rmsDb)} | ${fmt(r.seconds, 2)} |`),
+  ...rows.map(
+    (r) =>
+      `| ${r.rel} | ${fmt(r.peakDb)} | ${fmt(r.rmsDb)} | ${fmt(r.seconds, 2)} |`,
+  ),
 ];
 mkdirSync(path.dirname(out), { recursive: true });
 writeFileSync(out, `${lines.join('\n')}\n`);
 
-console.log(`wrote ${path.relative(process.cwd(), out)} (${rows.length} files)`);
+console.log(
+  `wrote ${path.relative(process.cwd(), out)} (${rows.length} files)`,
+);
 console.log('hottest 10:');
-for (const r of rows.slice(0, 10)) console.log(`  ${fmt(r.peakDb)} dBFS  ${r.rel}`);
+for (const r of rows.slice(0, 10))
+  console.log(`  ${fmt(r.peakDb)} dBFS  ${r.rel}`);
 if (hot.length > 0) {
   console.error(`FAIL: ${hot.length} file(s) peak above ${PEAK_LIMIT_DB} dBFS`);
   process.exit(1);

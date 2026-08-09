@@ -12,34 +12,108 @@ import type { GameState } from '../types';
 
 describe('content-driven awakening powers', () => {
   it('selects deterministically from stat-weighted ranges without mutating content', () => {
-    const powers = Object.freeze(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'] as const);
-    const attrs = { pac: 50, sho: 50, pas: 50, def: 50, tec: 50, sta: 50, ref: 50 };
+    const powers = Object.freeze([
+      'SUPER_SPEED',
+      'SUPER_STRENGTH',
+      'FIRE_TORCH',
+    ] as const);
+    const attrs = {
+      pac: 50,
+      sho: 50,
+      pas: 50,
+      def: 50,
+      tec: 50,
+      sta: 50,
+      ref: 50,
+    };
 
     expect(awakeningPowerRollSize(powers, attrs)).toBe(780);
-    expect(chooseStatWeightedAwakeningPower(powers, attrs, 0)).toBe('SUPER_SPEED');
-    expect(chooseStatWeightedAwakeningPower(powers, attrs, 260)).toBe('SUPER_STRENGTH');
-    expect(chooseStatWeightedAwakeningPower(powers, attrs, 520)).toBe('FIRE_TORCH');
+    expect(chooseStatWeightedAwakeningPower(powers, attrs, 0)).toBe(
+      'SUPER_SPEED',
+    );
+    expect(chooseStatWeightedAwakeningPower(powers, attrs, 260)).toBe(
+      'SUPER_STRENGTH',
+    );
+    expect(chooseStatWeightedAwakeningPower(powers, attrs, 520)).toBe(
+      'FIRE_TORCH',
+    );
     expect(powers).toEqual(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']);
   });
 
   it('rejects empty, duplicate, unknown, and out-of-range selections', () => {
-    const attrs = { pac: 50, sho: 50, pas: 50, def: 50, tec: 50, sta: 50, ref: 50 };
-    expect(() => chooseStatWeightedAwakeningPower([], attrs, 0)).toThrow('at least one power');
-    expect(() => chooseStatWeightedAwakeningPower(['SUPER_SPEED', 'SUPER_SPEED'], attrs, 0)).toThrow('duplicate');
-    expect(() => chooseStatWeightedAwakeningPower(['NOT_A_POWER' as 'SUPER_SPEED'], attrs, 0)).toThrow('unknown');
-    expect(() => chooseStatWeightedAwakeningPower(['SUPER_SPEED'], attrs, -1)).toThrow('integer from 0 to 259');
-    expect(() => chooseStatWeightedAwakeningPower(['SUPER_SPEED'], attrs, 260)).toThrow('integer from 0 to 259');
+    const attrs = {
+      pac: 50,
+      sho: 50,
+      pas: 50,
+      def: 50,
+      tec: 50,
+      sta: 50,
+      ref: 50,
+    };
+    expect(() => chooseStatWeightedAwakeningPower([], attrs, 0)).toThrow(
+      'at least one power',
+    );
+    expect(() =>
+      chooseStatWeightedAwakeningPower(
+        ['SUPER_SPEED', 'SUPER_SPEED'],
+        attrs,
+        0,
+      ),
+    ).toThrow('duplicate');
+    expect(() =>
+      chooseStatWeightedAwakeningPower(
+        ['NOT_A_POWER' as 'SUPER_SPEED'],
+        attrs,
+        0,
+      ),
+    ).toThrow('unknown');
+    expect(() =>
+      chooseStatWeightedAwakeningPower(['SUPER_SPEED'], attrs, -1),
+    ).toThrow('integer from 0 to 259');
+    expect(() =>
+      chooseStatWeightedAwakeningPower(['SUPER_SPEED'], attrs, 260),
+    ).toThrow('integer from 0 to 259');
   });
 
   it('changes the likely power range when the player build changes', () => {
     const powers = ['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'] as const;
-    const speedBuild = { pac: 99, sho: 10, pas: 10, def: 10, tec: 10, sta: 10, ref: 10 };
-    const strengthBuild = { pac: 10, sho: 10, pas: 10, def: 99, tec: 10, sta: 99, ref: 10 };
-    const fireBuild = { pac: 10, sho: 99, pas: 10, def: 10, tec: 10, sta: 10, ref: 10 };
+    const speedBuild = {
+      pac: 99,
+      sho: 10,
+      pas: 10,
+      def: 10,
+      tec: 10,
+      sta: 10,
+      ref: 10,
+    };
+    const strengthBuild = {
+      pac: 10,
+      sho: 10,
+      pas: 10,
+      def: 99,
+      tec: 10,
+      sta: 99,
+      ref: 10,
+    };
+    const fireBuild = {
+      pac: 10,
+      sho: 99,
+      pas: 10,
+      def: 10,
+      tec: 10,
+      sta: 10,
+      ref: 10,
+    };
 
-    expect(chooseStatWeightedAwakeningPower(powers, speedBuild, 250)).toBe('SUPER_SPEED');
-    expect(chooseStatWeightedAwakeningPower(powers, strengthBuild, 250)).toBe('SUPER_STRENGTH');
-    expect(chooseStatWeightedAwakeningPower(powers, fireBuild, 250)).toBe('FIRE_TORCH');
+    expect(chooseStatWeightedAwakeningPower(powers, speedBuild, 250)).toBe(
+      'SUPER_SPEED',
+    );
+    expect(chooseStatWeightedAwakeningPower(powers, strengthBuild, 250)).toBe(
+      'SUPER_STRENGTH',
+    );
+    expect(chooseStatWeightedAwakeningPower(powers, fireBuild, 250)).toBe(
+      'FIRE_TORCH',
+    );
   });
 });
 
@@ -59,9 +133,20 @@ describe('career event state', () => {
         moneyDelta: -100,
         fanDelta: 20,
         flags: ['spider-adopted'],
-        playerEffect: { playerId, injuryWeeks: 2, moraleDelta: 5, attribute: 'pac', attributeDelta: 2 },
+        playerEffect: {
+          playerId,
+          injuryWeeks: 2,
+          moraleDelta: 5,
+          attribute: 'pac',
+          attributeDelta: 2,
+        },
       },
-      { outcomeIndex: 0, risky: true, success: true, nextEventId: 'community-mural' },
+      {
+        outcomeIndex: 0,
+        risky: true,
+        success: true,
+        nextEventId: 'community-mural',
+      },
     );
 
     expect(resolved.pendingEvent).toMatchObject({
@@ -73,7 +158,9 @@ describe('career event state', () => {
       resolvedSuccess: true,
       resolvedNextEventId: 'community-mural',
     });
-    expect(resolved.players.find(player => player.id === playerId)).toMatchObject({
+    expect(
+      resolved.players.find((player) => player.id === playerId),
+    ).toMatchObject({
       injuryWeeks: 2,
       morale: 55,
       attrs: { pac: 67 },
@@ -86,14 +173,18 @@ describe('career event state', () => {
     expect(dismissed.resolvedEventHistory).toEqual([
       { eventId: 'giant-spider-arrives', season: 1, week: 1 },
     ]);
-    expect(() => offerCareerEvent(dismissed, 'giant-spider-arrives')).toThrow('already resolved');
+    expect(() => offerCareerEvent(dismissed, 'giant-spider-arrives')).toThrow(
+      'already resolved',
+    );
   });
 
   it('records event money in the cash-transaction history', () => {
     // Event cash used to mutate the balance silently, so the money history and
     // the pre-M4 recap fallback both misstated the season's cash change.
     const initial = createCareer(createLaunchCareerSetup());
-    const cashBefore = initial.clubs.find(club => club.id === initial.userClubId)!.cash;
+    const cashBefore = initial.clubs.find(
+      (club) => club.id === initial.userClubId,
+    )!.cash;
 
     const spent = applyCareerEventOutcome(
       offerCareerEvent(initial, 'test-event'),
@@ -135,9 +226,9 @@ describe('career event state', () => {
     const initial = createCareer(createLaunchCareerSetup());
     const abandoned: GameState = {
       ...initial,
-      clubs: initial.clubs.map(club => club.id === initial.userClubId
-        ? { ...club, fans: 10 }
-        : club),
+      clubs: initial.clubs.map((club) =>
+        club.id === initial.userClubId ? { ...club, fans: 10 } : club,
+      ),
     };
     const resolved = applyCareerEventOutcome(
       offerCareerEvent(abandoned, 'test-event'),
@@ -146,31 +237,40 @@ describe('career event state', () => {
       { fanDelta: -25 },
     );
 
-    expect(resolved.clubs.find(club => club.id === resolved.userClubId)?.fans).toBe(0);
+    expect(
+      resolved.clubs.find((club) => club.id === resolved.userClubId)?.fans,
+    ).toBe(0);
   });
 
   it('still refuses a training-point setback that outruns the balance', () => {
     const initial = createCareer(createLaunchCareerSetup());
 
-    expect(() => applyCareerEventOutcome(
-      offerCareerEvent(initial, 'test-event'),
-      'reckless',
-      'That cost more than the club had.',
-      { trainingPointDelta: -(initial.trainingPoints + 1) },
-    )).toThrow('cannot make TP negative');
+    expect(() =>
+      applyCareerEventOutcome(
+        offerCareerEvent(initial, 'test-event'),
+        'reckless',
+        'That cost more than the club had.',
+        { trainingPointDelta: -(initial.trainingPoints + 1) },
+      ),
+    ).toThrow('cannot make TP negative');
   });
 
   it('recovers one injury week whenever a management week settles', () => {
     const initial = createCareer(createLaunchCareerSetup());
     const playerId = 'bramble-rovers-p13';
     const withInjury = applyCareerEventOutcome(
-      selectCareerEventPlayer(offerCareerEvent(initial, 'test-event'), playerId),
+      selectCareerEventPlayer(
+        offerCareerEvent(initial, 'test-event'),
+        playerId,
+      ),
       'risk',
       'Ouch.',
       { playerEffect: { playerId, injuryWeeks: 2 } },
     );
     const dismissed = dismissCareerEvent(withInjury);
     const next = advanceWeek(dismissed);
-    expect(next.players.find(player => player.id === playerId)?.injuryWeeks).toBe(1);
+    expect(
+      next.players.find((player) => player.id === playerId)?.injuryWeeks,
+    ).toBe(1);
   });
 });

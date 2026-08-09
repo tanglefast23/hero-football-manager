@@ -7,10 +7,23 @@ import {
 } from '../quick-result-faceoff';
 
 function attrs(overrides: Partial<Attrs> = {}): Attrs {
-  return { pac: 40, sho: 40, pas: 40, def: 40, tec: 40, sta: 40, ref: 40, ...overrides };
+  return {
+    pac: 40,
+    sho: 40,
+    pas: 40,
+    def: 40,
+    tec: 40,
+    sta: 40,
+    ref: 40,
+    ...overrides,
+  };
 }
 
-function player(id: string, role: Role, overrides: Partial<Attrs> = {}): PlayerDef {
+function player(
+  id: string,
+  role: Role,
+  overrides: Partial<Attrs> = {},
+): PlayerDef {
   return { id, name: `Player ${id}`, role, attrs: attrs(overrides) };
 }
 
@@ -37,11 +50,27 @@ describe('bestOutfieldPlayer', () => {
   });
 
   it('never picks the keeper, even when the keeper is the best player in the eleven', () => {
-    const keeper = player('gk', 'GK', { ref: 99, pac: 99, def: 99, sta: 99, tec: 99, pas: 99 });
-    const striker = player('fw', 'FWD', { sho: 30, pac: 30, tec: 30, pas: 30, sta: 30, def: 30 });
+    const keeper = player('gk', 'GK', {
+      ref: 99,
+      pac: 99,
+      def: 99,
+      sta: 99,
+      tec: 99,
+      pas: 99,
+    });
+    const striker = player('fw', 'FWD', {
+      sho: 30,
+      pac: 30,
+      tec: 30,
+      pas: 30,
+      sta: 30,
+      def: 30,
+    });
     const squad = team('a', [keeper, striker]);
     // Guard the premise: the keeper really is rated higher.
-    expect(roleOverall('GK', keeper.attrs)).toBeGreaterThan(roleOverall('FWD', striker.attrs));
+    expect(roleOverall('GK', keeper.attrs)).toBeGreaterThan(
+      roleOverall('FWD', striker.attrs),
+    );
     expect(bestOutfieldPlayer(squad)?.id).toBe('fw');
   });
 
@@ -61,7 +90,14 @@ describe('bestOutfieldPlayer', () => {
   it('falls back to the best of any role when the eleven is all keepers', () => {
     const squad = team('a', [
       player('gk1', 'GK', { ref: 50 }),
-      player('gk2', 'GK', { ref: 90, pac: 90, def: 90, sta: 90, tec: 90, pas: 90 }),
+      player('gk2', 'GK', {
+        ref: 90,
+        pac: 90,
+        def: 90,
+        sta: 90,
+        tec: 90,
+        pas: 90,
+      }),
     ]);
     expect(bestOutfieldPlayer(squad)?.id).toBe('gk2');
   });
@@ -72,8 +108,14 @@ describe('bestOutfieldPlayer', () => {
 });
 
 describe('quickResultFaceOffViewModel', () => {
-  const club = team('rovers', [player('ours', 'FWD', { sho: 80 }), player('gk', 'GK')]);
-  const opponent = team('town', [player('theirs', 'MID', { pas: 80 }), player('gk2', 'GK')]);
+  const club = team('rovers', [
+    player('ours', 'FWD', { sho: 80 }),
+    player('gk', 'GK'),
+  ]);
+  const opponent = team('town', [
+    player('theirs', 'MID', { pas: 80 }),
+    player('gk2', 'GK'),
+  ]);
 
   it('puts the club on the left whatever the venue', () => {
     const model = quickResultFaceOffViewModel({
@@ -108,7 +150,9 @@ describe('quickResultFaceOffViewModel', () => {
   });
 
   it('carries the look id when the player has one, and omits it when not', () => {
-    const withLook = team('rovers', [{ ...player('ours', 'FWD'), lookId: 'look-7' }]);
+    const withLook = team('rovers', [
+      { ...player('ours', 'FWD'), lookId: 'look-7' },
+    ]);
     const model = quickResultFaceOffViewModel({
       clubTeam: withLook,
       opponentTeam: opponent,
@@ -119,15 +163,19 @@ describe('quickResultFaceOffViewModel', () => {
   });
 
   it('returns null when either side cannot field anyone, so the caller can skip the scene', () => {
-    expect(quickResultFaceOffViewModel({
-      clubTeam: team('rovers', []),
-      opponentTeam: opponent,
-      outcomeLabel: 'WIN',
-    })).toBeNull();
-    expect(quickResultFaceOffViewModel({
-      clubTeam: club,
-      opponentTeam: team('town', []),
-      outcomeLabel: 'WIN',
-    })).toBeNull();
+    expect(
+      quickResultFaceOffViewModel({
+        clubTeam: team('rovers', []),
+        opponentTeam: opponent,
+        outcomeLabel: 'WIN',
+      }),
+    ).toBeNull();
+    expect(
+      quickResultFaceOffViewModel({
+        clubTeam: club,
+        opponentTeam: team('town', []),
+        outcomeLabel: 'WIN',
+      }),
+    ).toBeNull();
   });
 });

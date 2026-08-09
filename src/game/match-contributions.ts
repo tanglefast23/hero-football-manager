@@ -1,8 +1,13 @@
-import { AWAY_DECOY_INDEX, HOME_DECOY_INDEX, attributedPlayerIndex } from '../sim/entities';
+import {
+  AWAY_DECOY_INDEX,
+  HOME_DECOY_INDEX,
+  attributedPlayerIndex,
+} from '../sim/entities';
 import type { MatchState } from '../sim/types';
 import type { PlayerMatchContribution } from './types';
 
-type Countable = 'goals' | 'assists' | 'tacklesWon' | 'saves' | 'passesCompleted';
+type Countable =
+  'goals' | 'assists' | 'tacklesWon' | 'saves' | 'passesCompleted';
 
 /**
  * Every countable action in a finished match, resolved to stable player ids.
@@ -24,7 +29,9 @@ type Countable = 'goals' | 'assists' | 'tacklesWon' | 'saves' | 'passesCompleted
  * Assists are exempt from all of that — the engine stamps a stable id precisely
  * because the assisting touch can precede the goal by a substitution.
  */
-export function contributionsFrom(match: MatchState): PlayerMatchContribution[] {
+export function contributionsFrom(
+  match: MatchState,
+): PlayerMatchContribution[] {
   const slotOwners = new Map<number, string>();
   match.players.forEach((player, slot) => slotOwners.set(slot, player.def.id));
 
@@ -37,8 +44,14 @@ export function contributionsFrom(match: MatchState): PlayerMatchContribution[] 
 
   const totals = new Map<string, PlayerMatchContribution>();
   const bump = (playerId: string, key: Countable): void => {
-    const row = totals.get(playerId)
-      ?? { playerId, goals: 0, assists: 0, tacklesWon: 0, saves: 0, passesCompleted: 0 };
+    const row = totals.get(playerId) ?? {
+      playerId,
+      goals: 0,
+      assists: 0,
+      tacklesWon: 0,
+      saves: 0,
+      passesCompleted: 0,
+    };
     row[key] += 1;
     totals.set(playerId, row);
   };
@@ -55,7 +68,11 @@ export function contributionsFrom(match: MatchState): PlayerMatchContribution[] 
       // Only a keeper saves, and a clone is never one: `by` is slot 0 or 11.
       const keeper = slotOwners.get(event.by);
       if (keeper !== undefined) bump(keeper, 'saves');
-    } else if (event.kind === 'TACKLE' && event.won && event.style !== 'power') {
+    } else if (
+      event.kind === 'TACKLE' &&
+      event.won &&
+      event.style !== 'power'
+    ) {
       // Power tackles are excluded: a ball-winning power would otherwise decide
       // the defender award on power ownership rather than defending.
       const tackler = ownerOf(event.by);

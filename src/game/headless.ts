@@ -32,7 +32,11 @@ export function runHeadlessFullCareer(
   setup: CareerSetup,
   completedSeasons: number,
 ): GameState {
-  if (!Number.isSafeInteger(completedSeasons) || completedSeasons < 1 || completedSeasons > 100) {
+  if (
+    !Number.isSafeInteger(completedSeasons) ||
+    completedSeasons < 1 ||
+    completedSeasons > 100
+  ) {
     throw new Error('completedSeasons must be an integer from 1 to 100');
   }
 
@@ -43,7 +47,9 @@ export function runHeadlessFullCareer(
   while (!(state.phase === 'season-end' && state.season === completedSeasons)) {
     transitions += 1;
     if (transitions > maximumTransitions) {
-      throw new Error(`headless full career exceeded ${maximumTransitions} transitions`);
+      throw new Error(
+        `headless full career exceeded ${maximumTransitions} transitions`,
+      );
     }
 
     if (state.phase === 'manage') {
@@ -51,7 +57,9 @@ export function runHeadlessFullCareer(
     } else if (state.phase === 'matchday') {
       const matchday = activeCareerMatchday(state);
       if (matchday === undefined) {
-        throw new Error('headless full career entered matchday without an active fixture');
+        throw new Error(
+          'headless full career entered matchday without an active fixture',
+        );
       }
       state = completeMatchday(
         state,
@@ -62,11 +70,12 @@ export function runHeadlessFullCareer(
       // their retirement is exempt from the expiry gate because he is leaving at
       // this transition, and the season review never offers him a renewal — so
       // renewing him here was work the shipped game never does.
-      for (const player of state.players.filter(candidate => (
-        candidate.clubId === state.userClubId
-        && candidate.contractSeasonsRemaining === 0
-        && !willRetireAtSeasonTransition(candidate, state.season)
-      ))) {
+      for (const player of state.players.filter(
+        (candidate) =>
+          candidate.clubId === state.userClubId &&
+          candidate.contractSeasonsRemaining === 0 &&
+          !willRetireAtSeasonTransition(candidate, state.season),
+      )) {
         state = renewCareerPlayer(state, player.id, 4, 1);
       }
       state = startNextSeason(state);
@@ -83,46 +92,50 @@ export function runHeadlessFullCareer(
  * The caller supplies the setup to the headless runner, so this pure game
  * helper never imports launch content or platform code.
  */
-export function summarizeFullCareerBalance(state: GameState): FullCareerBalanceSummary {
+export function summarizeFullCareerBalance(
+  state: GameState,
+): FullCareerBalanceSummary {
   if (state.m2 === undefined) {
     throw new Error('full career balance requires an M2 career state');
   }
-  const userClub = state.clubs.find(club => club.id === state.userClubId);
-  const userLineup = state.lineups.find(lineup => lineup.clubId === state.userClubId);
+  const userClub = state.clubs.find((club) => club.id === state.userClubId);
+  const userLineup = state.lineups.find(
+    (lineup) => lineup.clubId === state.userClubId,
+  );
   if (userClub === undefined || userLineup === undefined) {
     throw new Error('full career balance requires the user club and lineup');
   }
   const money = [
     userClub.cash,
     userClub.weeklyWages,
-    ...state.ledgers.flatMap(ledger => [
+    ...state.ledgers.flatMap((ledger) => [
       ledger.balanceAfter,
-      ...ledger.lines.map(line => line.amount),
+      ...ledger.lines.map((line) => line.amount),
     ]),
-    ...(state.cashTransactions ?? []).flatMap(transaction => [
+    ...(state.cashTransactions ?? []).flatMap((transaction) => [
       transaction.amount,
       transaction.balanceAfter,
     ]),
   ];
-  if (money.some(value => !Number.isSafeInteger(value))) {
+  if (money.some((value) => !Number.isSafeInteger(value))) {
     throw new Error('full career balance contains non-finite or unsafe money');
   }
   if (!Number.isSafeInteger(state.trainingPoints) || state.trainingPoints < 0) {
     throw new Error('full career balance contains invalid Training Points');
   }
 
-  const balances = state.ledgers.map(ledger => ledger.balanceAfter);
-  const weeklyNets = state.ledgers.map(ledger => ledger.lines.reduce(
-    (sum, line) => sum + line.amount,
-    0,
-  ));
+  const balances = state.ledgers.map((ledger) => ledger.balanceAfter);
+  const weeklyNets = state.ledgers.map((ledger) =>
+    ledger.lines.reduce((sum, line) => sum + line.amount, 0),
+  );
   if (balances.length === 0 || weeklyNets.length === 0) {
     throw new Error('full career balance requires settled weeks');
   }
-  const division = state.m2.pyramid.divisions.find(candidate => (
-    candidate.clubs.some(club => club.id === state.userClubId)
-  ));
-  if (division === undefined) throw new Error('full career balance cannot find the user division');
+  const division = state.m2.pyramid.divisions.find((candidate) =>
+    candidate.clubs.some((club) => club.id === state.userClubId),
+  );
+  if (division === undefined)
+    throw new Error('full career balance cannot find the user division');
 
   return {
     completedSeasons: state.season,
@@ -133,7 +146,9 @@ export function summarizeFullCareerBalance(state: GameState): FullCareerBalanceS
     maximumWeeklyNet: Math.max(...weeklyNets),
     trainingPoints: state.trainingPoints,
     currentDivision: division.level,
-    userRosterSize: state.players.filter(player => player.clubId === state.userClubId).length,
+    userRosterSize: state.players.filter(
+      (player) => player.clubId === state.userClubId,
+    ).length,
     userStartingLineupSize: userLineup.playerIds.length,
   };
 }

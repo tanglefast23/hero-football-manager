@@ -1,6 +1,12 @@
 import { contestStat, drainStamina, speedFor } from '../engine';
 import { PITCH_H } from '../geometry';
-import { createMatch, envelopeFrom, queueInput, runReplay, tick } from '../match';
+import {
+  createMatch,
+  envelopeFrom,
+  queueInput,
+  runReplay,
+  tick,
+} from '../match';
 import { ROVERS, UNITED } from '../teams';
 import type { PlayerDef, TeamDef } from '../types';
 import {
@@ -22,18 +28,26 @@ describe('match tactics', () => {
   it('ships three distinct balanced, attacking, and defensive presets', () => {
     expect(DEFAULT_FORMATION_PRESETS).toEqual(['4-4-2', '3-4-3', '5-3-2']);
     expect(new Set(DEFAULT_FORMATION_PRESETS).size).toBe(3);
-    expect(COACHING_FORMATION_IDS).toEqual(['4-4-2', '4-3-3', '5-3-2', '3-4-3']);
+    expect(COACHING_FORMATION_IDS).toEqual([
+      '4-4-2',
+      '4-3-3',
+      '5-3-2',
+      '3-4-3',
+    ]);
   });
 
-  it.each(FORMATION_IDS)('%s has exactly ten in-bounds outfield dots', formation => {
-    expect(FORMATION_LAYOUTS[formation]).toHaveLength(10);
-    for (const [x, y] of FORMATION_LAYOUTS[formation]) {
-      expect(x).toBeGreaterThan(0);
-      expect(x).toBeLessThan(1);
-      expect(y).toBeGreaterThan(0);
-      expect(y).toBeLessThan(1);
-    }
-  });
+  it.each(FORMATION_IDS)(
+    '%s has exactly ten in-bounds outfield dots',
+    (formation) => {
+      expect(FORMATION_LAYOUTS[formation]).toHaveLength(10);
+      for (const [x, y] of FORMATION_LAYOUTS[formation]) {
+        expect(x).toBeGreaterThan(0);
+        expect(x).toBeLessThan(1);
+        expect(y).toBeGreaterThan(0);
+        expect(y).toBeLessThan(1);
+      }
+    },
+  );
 
   it('cycles only the configured formation presets', () => {
     expect(nextFormation('4-4-2', DEFAULT_FORMATION_PRESETS)).toBe('3-4-3');
@@ -62,7 +76,9 @@ describe('match tactics', () => {
     const base = { x: 3400, y: 6000 };
     expect(formationTarget(0, 5, '4-3-3', base)).not.toEqual(base);
     expect(formationTarget(0, 5, '5-3-2', base)).not.toEqual(base);
-    expect(formationTarget(0, 5, '4-3-3', base)).not.toEqual(formationTarget(0, 5, '5-3-2', base));
+    expect(formationTarget(0, 5, '4-3-3', base)).not.toEqual(
+      formationTarget(0, 5, '5-3-2', base),
+    );
   });
 
   it('keeps converted wide players on their original side of the pitch', () => {
@@ -75,16 +91,24 @@ describe('match tactics', () => {
       [9, '4-5-1'],
       [4, '3-4-3'],
     ] as const) {
-      expect(Math.abs(formationTarget(0, slot, formation, base).x - base.x)).toBeLessThan(1000);
+      expect(
+        Math.abs(formationTarget(0, slot, formation, base).x - base.x),
+      ).toBeLessThan(1000);
     }
   });
 
   it('pushes ATTACK toward goal and PROTECT toward home for either team', () => {
     const home = { x: 3400, y: PITCH_H / 2 };
     expect(mentalityTarget(0, 9, 'ATTACK', true, home).y).toBeLessThan(home.y);
-    expect(mentalityTarget(0, 9, 'PROTECT', false, home).y).toBeGreaterThan(home.y);
-    expect(mentalityTarget(1, 9, 'ATTACK', true, home).y).toBeGreaterThan(home.y);
-    expect(mentalityTarget(1, 9, 'PROTECT', false, home).y).toBeLessThan(home.y);
+    expect(mentalityTarget(0, 9, 'PROTECT', false, home).y).toBeGreaterThan(
+      home.y,
+    );
+    expect(mentalityTarget(1, 9, 'ATTACK', true, home).y).toBeGreaterThan(
+      home.y,
+    );
+    expect(mentalityTarget(1, 9, 'PROTECT', false, home).y).toBeLessThan(
+      home.y,
+    );
   });
 
   it('makes the 3-4-3 back three hold extra counter-risk when defending', () => {
@@ -92,7 +116,9 @@ describe('match tactics', () => {
     const attacking = formationTarget(0, 1, '3-4-3', base, true);
     const defending = formationTarget(0, 1, '3-4-3', base, false);
     expect(defending.y).toBeLessThan(attacking.y);
-    expect(Math.abs(defending.x - 3400)).toBeGreaterThan(Math.abs(attacking.x - 3400));
+    expect(Math.abs(defending.x - 3400)).toBeGreaterThan(
+      Math.abs(attacking.x - 3400),
+    );
   });
 
   it('defines the three locked Energy Use modes and their physical tradeoffs', () => {
@@ -113,29 +139,53 @@ describe('match tactics', () => {
     const match = createMatch(42, ROVERS, UNITED, { controlledTeam: 0 });
     queueInput(match, { tick: 1, kind: 'SET_FORMATION', formation: '4-3-3' });
     queueInput(match, { tick: 1, kind: 'SET_MENTALITY', mentality: 'ATTACK' });
-    queueInput(match, { tick: 1, kind: 'SET_ENERGY_USE', energyUse: 'ALL_OUT' });
+    queueInput(match, {
+      tick: 1,
+      kind: 'SET_ENERGY_USE',
+      energyUse: 'ALL_OUT',
+    });
     tick(match);
 
-    expect(match.tactics[0]).toEqual({ formation: '4-3-3', mentality: 'ATTACK', energyUse: 'ALL_OUT' });
-    expect(match.events).toEqual(expect.arrayContaining([
-      { t: 1, kind: 'FORMATION_CHANGED', team: 0, formation: '4-3-3' },
-      { t: 1, kind: 'MENTALITY_CHANGED', team: 0, mentality: 'ATTACK' },
-      { t: 1, kind: 'ENERGY_USE_CHANGED', team: 0, energyUse: 'ALL_OUT' },
-    ]));
+    expect(match.tactics[0]).toEqual({
+      formation: '4-3-3',
+      mentality: 'ATTACK',
+      energyUse: 'ALL_OUT',
+    });
+    expect(match.events).toEqual(
+      expect.arrayContaining([
+        { t: 1, kind: 'FORMATION_CHANGED', team: 0, formation: '4-3-3' },
+        { t: 1, kind: 'MENTALITY_CHANGED', team: 0, mentality: 'ATTACK' },
+        { t: 1, kind: 'ENERGY_USE_CHANGED', team: 0, energyUse: 'ALL_OUT' },
+      ]),
+    );
 
     const replay = runReplay(envelopeFrom(match));
-    expect(replay.events).toEqual(expect.arrayContaining([
-      { t: 1, kind: 'FORMATION_CHANGED', team: 0, formation: '4-3-3' },
-      { t: 1, kind: 'MENTALITY_CHANGED', team: 0, mentality: 'ATTACK' },
-      { t: 1, kind: 'ENERGY_USE_CHANGED', team: 0, energyUse: 'ALL_OUT' },
-    ]));
+    expect(replay.events).toEqual(
+      expect.arrayContaining([
+        { t: 1, kind: 'FORMATION_CHANGED', team: 0, formation: '4-3-3' },
+        { t: 1, kind: 'MENTALITY_CHANGED', team: 0, mentality: 'ATTACK' },
+        { t: 1, kind: 'ENERGY_USE_CHANGED', team: 0, energyUse: 'ALL_OUT' },
+      ]),
+    );
   });
 
   it('makes the same player drain Save Energy < Balanced < All Out', () => {
     const match = createMatch(42, ROVERS, UNITED);
-    const saved = { ...match.players[5], def: { ...match.players[5].def, attrs: { ...match.players[5].def.attrs } } };
-    const balanced = { ...saved, def: { ...saved.def, attrs: { ...saved.def.attrs } } };
-    const allOut = { ...saved, def: { ...saved.def, attrs: { ...saved.def.attrs } } };
+    const saved = {
+      ...match.players[5],
+      def: {
+        ...match.players[5].def,
+        attrs: { ...match.players[5].def.attrs },
+      },
+    };
+    const balanced = {
+      ...saved,
+      def: { ...saved.def, attrs: { ...saved.def.attrs } },
+    };
+    const allOut = {
+      ...saved,
+      def: { ...saved.def, attrs: { ...saved.def.attrs } },
+    };
     drainStamina(saved, true, 'SAVE_ENERGY');
     drainStamina(balanced, true, 'BALANCED');
     drainStamina(allOut, true, 'ALL_OUT');
@@ -155,7 +205,12 @@ describe('match tactics', () => {
     const match = createMatch(42, home, UNITED, { controlledTeam: 0 });
     match.players[6].condition = 9;
 
-    queueInput(match, { tick: 1, kind: 'SUBSTITUTE', player: 6, replacementId: replacement.id });
+    queueInput(match, {
+      tick: 1,
+      kind: 'SUBSTITUTE',
+      player: 6,
+      replacementId: replacement.id,
+    });
     tick(match);
 
     expect(match.players[6].def.id).toBe(replacement.id);
@@ -176,16 +231,26 @@ describe('match tactics', () => {
   it('honors zero-condition starters and a substitute own starting condition', () => {
     const starterHome: TeamDef = {
       ...ROVERS,
-      players: ROVERS.players.map((player, index) => (
-        index === 6 ? { ...player, startingCondition: 0 } : player
-      )),
-      bench: [{
-        id: 'tired-bench-mid',
-        name: 'Tired Bench Mid',
-        role: 'MID',
-        attrs: { pac: 55, sho: 45, pas: 58, def: 47, tec: 56, sta: 64, ref: 10 },
-        startingCondition: 37,
-      }],
+      players: ROVERS.players.map((player, index) =>
+        index === 6 ? { ...player, startingCondition: 0 } : player,
+      ),
+      bench: [
+        {
+          id: 'tired-bench-mid',
+          name: 'Tired Bench Mid',
+          role: 'MID',
+          attrs: {
+            pac: 55,
+            sho: 45,
+            pas: 58,
+            def: 47,
+            tec: 56,
+            sta: 64,
+            ref: 10,
+          },
+          startingCondition: 37,
+        },
+      ],
     };
     const match = createMatch(42, starterHome, UNITED, { controlledTeam: 0 });
 
@@ -209,12 +274,9 @@ describe('match tactics', () => {
       role: 'MID',
       attrs: { pac: 55, sho: 45, pas: 58, def: 47, tec: 56, sta: 64, ref: 10 },
     }));
-    const match = createMatch(
-      42,
-      { ...ROVERS, bench: replacements },
-      UNITED,
-      { controlledTeam: 0 },
-    );
+    const match = createMatch(42, { ...ROVERS, bench: replacements }, UNITED, {
+      controlledTeam: 0,
+    });
 
     for (const replacement of replacements.slice(0, 5)) {
       queueInput(match, {
@@ -228,13 +290,15 @@ describe('match tactics', () => {
 
     expect(match.substitutionsUsed[0]).toBe(5);
     expect(match.players[6].def.id).toBe('bench-mid-5');
-    expect(match.bench[0].map(player => player.id)).toEqual(['bench-mid-6']);
-    expect(() => queueInput(match, {
-      tick: match.tick + 1,
-      kind: 'SUBSTITUTE',
-      player: 6,
-      replacementId: 'bench-mid-6',
-    })).toThrow('team 0 has used all 5 substitutions');
+    expect(match.bench[0].map((player) => player.id)).toEqual(['bench-mid-6']);
+    expect(() =>
+      queueInput(match, {
+        tick: match.tick + 1,
+        kind: 'SUBSTITUTE',
+        player: 6,
+        replacementId: 'bench-mid-6',
+      }),
+    ).toThrow('team 0 has used all 5 substitutions');
   });
 
   it('rejects goalkeeper-for-outfielder substitutions', () => {
@@ -246,12 +310,14 @@ describe('match tactics', () => {
     };
     const home: TeamDef = { ...ROVERS, bench: [keeper] };
     const match = createMatch(42, home, UNITED, { controlledTeam: 0 });
-    expect(() => queueInput(match, {
-      tick: 1,
-      kind: 'SUBSTITUTE',
-      player: 6,
-      replacementId: keeper.id,
-    })).toThrow('goalkeepers may only be swapped');
+    expect(() =>
+      queueInput(match, {
+        tick: 1,
+        kind: 'SUBSTITUTE',
+        player: 6,
+        replacementId: keeper.id,
+      }),
+    ).toThrow('goalkeepers may only be swapped');
   });
 
   it('never restores a sent-off player through a substitution', () => {
@@ -261,16 +327,20 @@ describe('match tactics', () => {
       role: 'MID',
       attrs: { pac: 55, sho: 45, pas: 58, def: 47, tec: 56, sta: 64, ref: 10 },
     };
-    const match = createMatch(42, { ...ROVERS, bench: [replacement] }, UNITED, { controlledTeam: 0 });
+    const match = createMatch(42, { ...ROVERS, bench: [replacement] }, UNITED, {
+      controlledTeam: 0,
+    });
     match.players[6].outReason = 'redcard';
     match.players[6].outUntilTick = Number.MAX_SAFE_INTEGER;
 
-    expect(() => queueInput(match, {
-      tick: 1,
-      kind: 'SUBSTITUTE',
-      player: 6,
-      replacementId: replacement.id,
-    })).toThrow('sent-off player cannot be substituted');
+    expect(() =>
+      queueInput(match, {
+        tick: 1,
+        kind: 'SUBSTITUTE',
+        player: 6,
+        replacementId: replacement.id,
+      }),
+    ).toThrow('sent-off player cannot be substituted');
   });
 
   it('makes high STA drain more slowly and low condition reduce live performance', () => {

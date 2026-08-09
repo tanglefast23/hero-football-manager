@@ -38,7 +38,13 @@ function placement(
 function awards(
   overrides: Partial<Record<AwardCategoryId, DivisionAwardPlacement[]>> = {},
 ): Record<AwardCategoryId, DivisionAwardPlacement[]> {
-  return { goals: [], passesCompleted: [], tacklesWon: [], saves: [], ...overrides };
+  return {
+    goals: [],
+    passesCompleted: [],
+    tacklesWon: [],
+    saves: [],
+    ...overrides,
+  };
 }
 
 function recap(overrides: Partial<SeasonRecap> = {}): SeasonRecap {
@@ -75,12 +81,14 @@ function ceremony(
 
 /** A full podium for one category, with the user's club taking the given slot. */
 function podium(userSlot?: 1 | 2 | 3): DivisionAwardPlacement[] {
-  return [1, 2, 3].map(slot => placement(
-    `player-${slot}`,
-    `Player ${slot}`,
-    slot === userSlot ? 'me' : 'them',
-    30 - slot,
-  ));
+  return [1, 2, 3].map((slot) =>
+    placement(
+      `player-${slot}`,
+      `Player ${slot}`,
+      slot === userSlot ? 'me' : 'them',
+      30 - slot,
+    ),
+  );
 }
 
 describe('awardCeremonyViewModel', () => {
@@ -90,12 +98,18 @@ describe('awardCeremonyViewModel', () => {
    * with goals for the opposite reason, and the two are not meant to converge.
    */
   it('reveals keepers first and strikers last', () => {
-    expect(ceremony().beats.map(beat => beat.categoryId))
-      .toEqual(['saves', 'tacklesWon', 'passesCompleted', 'goals']);
+    expect(ceremony().beats.map((beat) => beat.categoryId)).toEqual([
+      'saves',
+      'tacklesWon',
+      'passesCompleted',
+      'goals',
+    ]);
   });
 
   it('labels every beat by the position line and the metric it is won on', () => {
-    expect(ceremony().beats.map(beat => [beat.boardLabel, beat.metricLabel])).toEqual([
+    expect(
+      ceremony().beats.map((beat) => [beat.boardLabel, beat.metricLabel]),
+    ).toEqual([
       ['Keepers', 'Saves'],
       ['Defenders', 'Tackles won'],
       ['Midfielders', 'Passes'],
@@ -116,33 +130,65 @@ describe('awardCeremonyViewModel', () => {
    * about which catalog has been filled in yet.
    */
   it('announces every board in the club language', () => {
-    const beats = awardCeremonyViewModel({
-      recap: recap(),
-      userClubId: 'me',
-      clubNames: CLUB_NAMES,
-      targetDivision: 5,
-    }, stubbedCopy({
-      'award.board.saves': 'Torhüter',
-      'award.metric.saves': 'Paraden',
-      'award.metricInline.saves': 'Paraden',
-      'awardsCeremony.noneRecordedThisSeason': 'Keine {metric} in dieser Saison',
-    })).beats;
+    const beats = awardCeremonyViewModel(
+      {
+        recap: recap(),
+        userClubId: 'me',
+        clubNames: CLUB_NAMES,
+        targetDivision: 5,
+      },
+      stubbedCopy({
+        'award.board.saves': 'Torhüter',
+        'award.metric.saves': 'Paraden',
+        'award.metricInline.saves': 'Paraden',
+        'awardsCeremony.noneRecordedThisSeason':
+          'Keine {metric} in dieser Saison',
+      }),
+    ).beats;
 
-    expect([beats[0].boardLabel, beats[0].metricLabel]).toEqual(['Torhüter', 'Paraden']);
+    expect([beats[0].boardLabel, beats[0].metricLabel]).toEqual([
+      'Torhüter',
+      'Paraden',
+    ]);
     // Not "keine paraden": the inline key exists so a language can keep its own
     // casing instead of taking a lowercased heading.
     expect(beats[0].emptyLabel).toBe('Keine Paraden in dieser Saison');
-    expect([beats[3].boardLabel, beats[3].metricLabel]).toEqual(['Strikers', 'Goals']);
+    expect([beats[3].boardLabel, beats[3].metricLabel]).toEqual([
+      'Strikers',
+      'Goals',
+    ]);
   });
 
   it('reveals the podium third, second, then first', () => {
-    const beat = ceremony({ recap: recap({ divisionAwards: awards({ goals: podium(2) }) }) })
-      .beats[3];
+    const beat = ceremony({
+      recap: recap({ divisionAwards: awards({ goals: podium(2) }) }),
+    }).beats[3];
 
     expect(beat.placings).toEqual([
-      { position: 3, playerId: 'player-3', playerName: 'Player 3', clubName: 'Quartz FC', value: 27, isUserPlayer: false },
-      { position: 2, playerId: 'player-2', playerName: 'Player 2', clubName: 'Brambleroad', value: 28, isUserPlayer: true },
-      { position: 1, playerId: 'player-1', playerName: 'Player 1', clubName: 'Quartz FC', value: 29, isUserPlayer: false },
+      {
+        position: 3,
+        playerId: 'player-3',
+        playerName: 'Player 3',
+        clubName: 'Quartz FC',
+        value: 27,
+        isUserPlayer: false,
+      },
+      {
+        position: 2,
+        playerId: 'player-2',
+        playerName: 'Player 2',
+        clubName: 'Brambleroad',
+        value: 28,
+        isUserPlayer: true,
+      },
+      {
+        position: 1,
+        playerId: 'player-1',
+        playerName: 'Player 1',
+        clubName: 'Quartz FC',
+        value: 29,
+        isUserPlayer: false,
+      },
     ]);
     expect(beat.speaker?.placing).toEqual(beat.placings[1]);
   });
@@ -150,11 +196,15 @@ describe('awardCeremonyViewModel', () => {
   it('resolves club names from the pyramid and falls back to the id for a club that is gone', () => {
     const [keepers] = ceremony({
       recap: recap({
-        divisionAwards: awards({ saves: [placement('gk', 'Dune Halloway', 'dissolved-club', 44)] }),
+        divisionAwards: awards({
+          saves: [placement('gk', 'Dune Halloway', 'dissolved-club', 44)],
+        }),
       }),
     }).beats;
 
-    expect(keepers.placings.map(placing => placing.clubName)).toEqual(['dissolved-club']);
+    expect(keepers.placings.map((placing) => placing.clubName)).toEqual([
+      'dissolved-club',
+    ]);
   });
 
   /**
@@ -163,8 +213,9 @@ describe('awardCeremonyViewModel', () => {
    * nobody on now reveals its three placings and moves on.
    */
   it('walks nobody on when a rival wins and no player of the manager is on the podium', () => {
-    const beat = ceremony({ recap: recap({ divisionAwards: awards({ goals: podium() }) }) })
-      .beats[3];
+    const beat = ceremony({
+      recap: recap({ divisionAwards: awards({ goals: podium() }) }),
+    }).beats[3];
 
     expect(beat.speaker).toBeUndefined();
     expect(beat.wonByUserPlayer).toBe(false);
@@ -175,8 +226,9 @@ describe('awardCeremonyViewModel', () => {
   });
 
   it('walks the manager own winner on with a winner line', () => {
-    const beat = ceremony({ recap: recap({ divisionAwards: awards({ goals: podium(1) }) }) })
-      .beats[3];
+    const beat = ceremony({
+      recap: recap({ divisionAwards: awards({ goals: podium(1) }) }),
+    }).beats[3];
 
     expect(beat.speaker?.placing).toEqual(beat.placings[2]);
     expect(beat.speaker?.placing.isUserPlayer).toBe(true);
@@ -186,8 +238,9 @@ describe('awardCeremonyViewModel', () => {
   });
 
   it('walks the manager second-placed player on with a runner-up line', () => {
-    const beat = ceremony({ recap: recap({ divisionAwards: awards({ tacklesWon: podium(2) }) }) })
-      .beats[1];
+    const beat = ceremony({
+      recap: recap({ divisionAwards: awards({ tacklesWon: podium(2) }) }),
+    }).beats[1];
 
     expect(beat.speaker?.placing).toEqual(beat.placings[1]);
     expect(beat.speaker?.placing.isUserPlayer).toBe(true);
@@ -198,8 +251,9 @@ describe('awardCeremonyViewModel', () => {
 
   /** Highest-placed, not second-placed: third is still the best he managed. */
   it('walks the manager third-placed player on when he is the highest of the manager', () => {
-    const beat = ceremony({ recap: recap({ divisionAwards: awards({ tacklesWon: podium(3) }) }) })
-      .beats[1];
+    const beat = ceremony({
+      recap: recap({ divisionAwards: awards({ tacklesWon: podium(3) }) }),
+    }).beats[1];
 
     expect(beat.speaker?.placing.position).toBe(3);
     expect(beat.speaker?.tone).toBe('runner-up');
@@ -213,8 +267,9 @@ describe('awardCeremonyViewModel', () => {
       placement('second', 'Wren Sable', 'me', 28),
       placement('third', 'Flint Vale', 'them', 27),
     ];
-    const beat = ceremony({ recap: recap({ divisionAwards: awards({ goals: bothMine }) }) })
-      .beats[3];
+    const beat = ceremony({
+      recap: recap({ divisionAwards: awards({ goals: bothMine }) }),
+    }).beats[3];
 
     expect(beat.speaker?.placing.playerId).toBe('first');
     expect(beat.speaker?.placing.position).toBe(1);
@@ -234,17 +289,22 @@ describe('awardCeremonyViewModel', () => {
       }),
     }).beats[2];
 
-    expect(beat.placings.map(placing => placing.position)).toEqual([2, 1]);
+    expect(beat.placings.map((placing) => placing.position)).toEqual([2, 1]);
     expect(beat.speaker?.placing.playerId).toBe('one');
     expect(beat.wonByUserPlayer).toBe(true);
   });
 
   it('presents a podium of three however deep the stored record is', () => {
-    const overfull = [...podium(1), placement('four', 'Bram Teller', 'other', 12)];
+    const overfull = [
+      ...podium(1),
+      placement('four', 'Bram Teller', 'other', 12),
+    ];
 
-    expect(ceremony({ recap: recap({ divisionAwards: awards({ goals: overfull }) }) })
-      .beats[3].placings.map(placing => placing.playerId))
-      .toEqual(['player-3', 'player-2', 'player-1']);
+    expect(
+      ceremony({
+        recap: recap({ divisionAwards: awards({ goals: overfull }) }),
+      }).beats[3].placings.map((placing) => placing.playerId),
+    ).toEqual(['player-3', 'player-2', 'player-1']);
   });
 
   it('still presents a category nobody registered a figure in', () => {
@@ -266,19 +326,23 @@ describe('awardCeremonyViewModel', () => {
           saves: podium(1),
         }),
       }),
-    }).beats.map(beat => beat.speaker?.line);
+    }).beats.map((beat) => beat.speaker?.line);
 
-    expect(lines.filter(line => line !== undefined)).toHaveLength(4);
+    expect(lines.filter((line) => line !== undefined)).toHaveLength(4);
     expect(new Set(lines).size).toBe(4);
   });
 
   it('projects the prize from the division being entered', () => {
     const won = ceremony({
-      recap: recap({ divisionAwards: awards({ goals: podium(1), saves: podium(1) }) }),
+      recap: recap({
+        divisionAwards: awards({ goals: podium(1), saves: podium(1) }),
+      }),
       targetDivision: 5,
     });
 
-    expect(won.prize.perCategoryMoney).toBe(divisionAwardPrizeCashPerCategory(5));
+    expect(won.prize.perCategoryMoney).toBe(
+      divisionAwardPrizeCashPerCategory(5),
+    );
     expect(won.prize.boardsWon).toBe(2);
     // Tapered: the second board pays 75% of the first, so the total is not the
     // rate times the count.
@@ -286,12 +350,16 @@ describe('awardCeremonyViewModel', () => {
   });
 
   it('raises the rate for a club promoted into a higher division', () => {
-    const source = { recap: recap({ divisionAwards: awards({ goals: podium(1) }) }) };
+    const source = {
+      recap: recap({ divisionAwards: awards({ goals: podium(1) }) }),
+    };
 
-    expect(ceremony({ ...source, targetDivision: 4 }).prize.perCategoryMoney)
-      .toBe(divisionAwardPrizeCashPerCategory(4));
-    expect(ceremony({ ...source, targetDivision: 4 }).prize.totalMoney)
-      .toBe(divisionAwardPrizeCashPerCategory(4));
+    expect(
+      ceremony({ ...source, targetDivision: 4 }).prize.perCategoryMoney,
+    ).toBe(divisionAwardPrizeCashPerCategory(4));
+    expect(ceremony({ ...source, targetDivision: 4 }).prize.totalMoney).toBe(
+      divisionAwardPrizeCashPerCategory(4),
+    );
   });
 
   /**
@@ -313,15 +381,21 @@ describe('awardCeremonyViewModel', () => {
 
   it('runs a complete ceremony for a season the club won nothing in', () => {
     const nothing = ceremony({
-      recap: recap({ divisionAwards: awards({ goals: podium(), saves: podium() }) }),
+      recap: recap({
+        divisionAwards: awards({ goals: podium(), saves: podium() }),
+      }),
     });
 
     expect(nothing.beats).toHaveLength(4);
-    expect(nothing.beats.every(beat => !beat.wonByUserPlayer)).toBe(true);
-    expect(nothing.beats.filter(beat => beat.placings.length > 0)).toHaveLength(2);
+    expect(nothing.beats.every((beat) => !beat.wonByUserPlayer)).toBe(true);
+    expect(
+      nothing.beats.filter((beat) => beat.placings.length > 0),
+    ).toHaveLength(2);
     // Two boards were contested and the manager was on neither, so the whole
     // ceremony is podiums and no walk-on at all.
-    expect(nothing.beats.every(beat => beat.speaker === undefined)).toBe(true);
+    expect(nothing.beats.every((beat) => beat.speaker === undefined)).toBe(
+      true,
+    );
     expect(nothing.prize).toEqual({
       totalMoney: 0,
       perCategoryMoney: divisionAwardPrizeCashPerCategory(5),
@@ -333,19 +407,24 @@ describe('awardCeremonyViewModel', () => {
   it('runs a complete ceremony for a recap with no division awards at all', () => {
     const legacy = ceremony({ recap: recap({ divisionAwards: undefined }) });
 
-    expect(legacy.beats.map(beat => beat.categoryId))
-      .toEqual(['saves', 'tacklesWon', 'passesCompleted', 'goals']);
-    expect(legacy.beats.every(beat => beat.placings.length === 0)).toBe(true);
+    expect(legacy.beats.map((beat) => beat.categoryId)).toEqual([
+      'saves',
+      'tacklesWon',
+      'passesCompleted',
+      'goals',
+    ]);
+    expect(legacy.beats.every((beat) => beat.placings.length === 0)).toBe(true);
     expect(legacy.prize.totalMoney).toBe(0);
   });
 
   it('survives a stored record that is missing a category', () => {
-    const partial = { goals: [placement('one', 'Gem Arrow', 'me', 21)] } as
-      Record<AwardCategoryId, DivisionAwardPlacement[]>;
+    const partial = {
+      goals: [placement('one', 'Gem Arrow', 'me', 21)],
+    } as Record<AwardCategoryId, DivisionAwardPlacement[]>;
 
     const beats = ceremony({ recap: recap({ divisionAwards: partial }) }).beats;
 
-    expect(beats.map(beat => beat.placings.length)).toEqual([0, 0, 0, 1]);
+    expect(beats.map((beat) => beat.placings.length)).toEqual([0, 0, 0, 1]);
     expect(beats[3].wonByUserPlayer).toBe(true);
   });
 
@@ -356,7 +435,11 @@ describe('awardCeremonyViewModel', () => {
   it('produces the same ceremony every time it is built from the same recap', () => {
     const source = {
       recap: recap({
-        divisionAwards: awards({ goals: podium(2), saves: podium(1), tacklesWon: podium() }),
+        divisionAwards: awards({
+          goals: podium(2),
+          saves: podium(1),
+          tacklesWon: podium(),
+        }),
       }),
     };
 

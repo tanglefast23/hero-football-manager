@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import {
   AccessibilityInfo,
   Animated,
@@ -79,7 +86,10 @@ export interface CharacterSpeechOverlayProps {
    * case; this covers a figure whose own limbs animate, which cannot be told
    * from outside because the phase is internal.
    */
-  renderCharacter?: (state: { phase: Phase; walking: boolean }) => React.ReactNode;
+  renderCharacter?: (state: {
+    phase: Phase;
+    walking: boolean;
+  }) => React.ReactNode;
   /**
    * Grows the bubble with the character. A big figure beside small type reads
    * as a mistake rather than a choice.
@@ -192,9 +202,12 @@ export function CharacterSpeechOverlay({
   advanceSignal,
 }: CharacterSpeechOverlayProps) {
   const t = useCopy();
-  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
+  const { width: viewportWidth, height: viewportHeight } =
+    useWindowDimensions();
   const reduce = useReducedMotion(reduceMotion);
-  const [phase, setPhase] = useState<Phase>(reduce || instant ? 'speaking' : 'arriving');
+  const [phase, setPhase] = useState<Phase>(
+    reduce || instant ? 'speaking' : 'arriving',
+  );
   const [lineIndex, setLineIndex] = useState(0);
   const [bubbleWidth, setBubbleWidth] = useState(0);
   const [bubbleHeight, setBubbleHeight] = useState(0);
@@ -218,12 +231,19 @@ export function CharacterSpeechOverlay({
   // that actually draws the letters. The parent re-renders twice per LINE (see
   // `lineComplete`) instead of once per character.
   const revealListeners = useRef(new Set<() => void>()).current;
-  const subscribeToReveal = useCallback((listener: () => void) => {
-    revealListeners.add(listener);
-    return () => { revealListeners.delete(listener); };
-  }, [revealListeners]);
+  const subscribeToReveal = useCallback(
+    (listener: () => void) => {
+      revealListeners.add(listener);
+      return () => {
+        revealListeners.delete(listener);
+      };
+    },
+    [revealListeners],
+  );
   const emitReveal = useCallback(() => {
-    revealListeners.forEach(listener => { listener(); });
+    revealListeners.forEach((listener) => {
+      listener();
+    });
   }, [revealListeners]);
   // Advancing reads this rather than the state value: two taps landing in the
   // same tick would both see a stale `lineIndex` and skip a line, and a skipped
@@ -240,13 +260,18 @@ export function CharacterSpeechOverlay({
    * line — false when a line starts, true when it lands — which is why it can
    * afford to be state when the character count cannot.
    */
-  const [lineComplete, setLineComplete] = useState(initialReveal.count >= lineCharacters.length);
+  const [lineComplete, setLineComplete] = useState(
+    initialReveal.count >= lineCharacters.length,
+  );
   /** The one place the reveal is written. Publishes to the text, not the tree. */
-  const publishReveal = useCallback((next: typeof initialReveal) => {
-    revealRef.current = next;
-    emitReveal();
-    setLineComplete(next.count >= Array.from(next.line).length);
-  }, [emitReveal]);
+  const publishReveal = useCallback(
+    (next: typeof initialReveal) => {
+      revealRef.current = next;
+      emitReveal();
+      setLineComplete(next.count >= Array.from(next.line).length);
+    },
+    [emitReveal],
+  );
   const doneRef = useRef(false);
   const pressableRef = useRef<View>(null);
 
@@ -268,7 +293,9 @@ export function CharacterSpeechOverlay({
   const restLeft = viewportWidth * characterCentreRatio - characterWidth / 2;
   const offRight = viewportWidth + 24;
 
-  const travel = useRef(new Animated.Value(reduce || instant ? restLeft : offRight)).current;
+  const travel = useRef(
+    new Animated.Value(reduce || instant ? restLeft : offRight),
+  ).current;
   const lean = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(0)).current;
   // `leaving` is read on the JS side to flip the sprite, so it is state as well
@@ -349,9 +376,10 @@ export function CharacterSpeechOverlay({
     let timer: ReturnType<typeof setTimeout> | null = null;
     const revealNextCharacter = () => {
       const active = revealRef.current;
-      const currentCount = active.lineIndex === lineIndex && active.line === line
-        ? active.count
-        : 0;
+      const currentCount =
+        active.lineIndex === lineIndex && active.line === line
+          ? active.count
+          : 0;
       const nextCount = Math.min(lineCharacters.length, currentCount + 1);
       setRevealCount(nextCount);
       if (nextCount < lineCharacters.length) {
@@ -368,7 +396,15 @@ export function CharacterSpeechOverlay({
     return () => {
       if (timer !== null) clearTimeout(timer);
     };
-  }, [instant, line, lineCharacters.length, lineIndex, phase, reduce, typewriter]);
+  }, [
+    instant,
+    line,
+    lineCharacters.length,
+    lineIndex,
+    phase,
+    reduce,
+    typewriter,
+  ]);
 
   // Leave.
   useEffect(() => {
@@ -407,10 +443,11 @@ export function CharacterSpeechOverlay({
     const currentLine = lines[currentLineIndex] ?? '';
     const currentLineLength = Array.from(currentLine).length;
     const activeReveal = revealRef.current;
-    const revealedCount = activeReveal.lineIndex === currentLineIndex
-      && activeReveal.line === currentLine
-      ? activeReveal.count
-      : 0;
+    const revealedCount =
+      activeReveal.lineIndex === currentLineIndex &&
+      activeReveal.line === currentLine
+        ? activeReveal.count
+        : 0;
     if (typewriter && !reduce && revealedCount < currentLineLength) {
       publishReveal({
         lineIndex: currentLineIndex,
@@ -444,7 +481,11 @@ export function CharacterSpeechOverlay({
 
   const previousAdvanceSignalRef = useRef(advanceSignal);
   useEffect(() => {
-    if (advanceSignal === undefined || previousAdvanceSignalRef.current === advanceSignal) return;
+    if (
+      advanceSignal === undefined ||
+      previousAdvanceSignalRef.current === advanceSignal
+    )
+      return;
     previousAdvanceSignalRef.current = advanceSignal;
     advance();
   }, [advance, advanceSignal]);
@@ -486,10 +527,11 @@ export function CharacterSpeechOverlay({
   // Auto-advance for a character who is remarking rather than briefing.
   useEffect(() => {
     if (
-      autoAdvanceMs === undefined
-      || phase !== 'speaking'
-      || !lineFullyRevealed
-    ) return undefined;
+      autoAdvanceMs === undefined ||
+      phase !== 'speaking' ||
+      !lineFullyRevealed
+    )
+      return undefined;
     const timer = setTimeout(advance, autoAdvanceMs);
     return () => clearTimeout(timer);
   }, [advance, autoAdvanceMs, lineFullyRevealed, lineIndex, phase]);
@@ -536,7 +578,10 @@ export function CharacterSpeechOverlay({
     if (bubbleWidth === 0) return characterCentre;
     const gutter = BUBBLE_GUTTER;
     const ideal = characterCentre - bubbleWidth / 2;
-    return Math.min(Math.max(ideal, gutter), Math.max(gutter, viewportWidth - bubbleWidth - gutter));
+    return Math.min(
+      Math.max(ideal, gutter),
+      Math.max(gutter, viewportWidth - bubbleWidth - gutter),
+    );
   }, [bubbleWidth, characterCentre, viewportWidth]);
   const tailLeft = Math.min(
     Math.max(characterCentre - bubbleLeft, 18),
@@ -557,18 +602,23 @@ export function CharacterSpeechOverlay({
     return Math.max(0, Math.min(ideal, highest));
   }, [bubbleHeight, characterHeight, groundOffset, viewportHeight]);
 
-  const tilt = lean.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${SPEAK_TILT_DEG}deg`] });
+  const tilt = lean.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', `${SPEAK_TILT_DEG}deg`],
+  });
 
   return (
     <Pressable
       ref={pressableRef}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? line}
-      accessibilityHint={t(!lineFullyRevealed
-        ? 'characterSpeech.a11y.showFullLine'
-        : lastLine
-          ? 'awardsCeremony.a11y.tapAnywhereToFinish'
-          : 'characterSpeech.a11y.nextLine')}
+      accessibilityHint={t(
+        !lineFullyRevealed
+          ? 'characterSpeech.a11y.showFullLine'
+          : lastLine
+            ? 'awardsCeremony.a11y.tapAnywhereToFinish'
+            : 'characterSpeech.a11y.nextLine',
+      )}
       accessibilityViewIsModal={focusOnMount}
       onAccessibilityEscape={handleAccessibilityEscape ? advance : undefined}
       onPress={advance}
@@ -597,15 +647,31 @@ export function CharacterSpeechOverlay({
             ]}
           >
             {heading === undefined ? null : (
-              <Text style={[styles.bubbleHeading, bubbleScale === 1 ? null : {
-                fontSize: (BUBBLE_FONT_SIZE - 1) * bubbleScale,
-                lineHeight: (BUBBLE_LINE_HEIGHT - 2) * bubbleScale,
-              }]}>{heading}</Text>
+              <Text
+                style={[
+                  styles.bubbleHeading,
+                  bubbleScale === 1
+                    ? null
+                    : {
+                        fontSize: (BUBBLE_FONT_SIZE - 1) * bubbleScale,
+                        lineHeight: (BUBBLE_LINE_HEIGHT - 2) * bubbleScale,
+                      },
+                ]}
+              >
+                {heading}
+              </Text>
             )}
-            <Text style={[styles.bubbleText, bubbleScale === 1 ? null : {
-              fontSize: BUBBLE_FONT_SIZE * bubbleScale,
-              lineHeight: BUBBLE_LINE_HEIGHT * bubbleScale,
-            }]}>
+            <Text
+              style={[
+                styles.bubbleText,
+                bubbleScale === 1
+                  ? null
+                  : {
+                      fontSize: BUBBLE_FONT_SIZE * bubbleScale,
+                      lineHeight: BUBBLE_LINE_HEIGHT * bubbleScale,
+                    },
+              ]}
+            >
               <RevealingLine
                 characters={lineCharacters}
                 line={line}
@@ -619,37 +685,45 @@ export function CharacterSpeechOverlay({
           </Animated.View>
         ) : null}
 
-        {hideCharacter ? null : <Animated.View
-          style={[
-            styles.character,
-            {
-              bottom: groundOffset,
-              width: characterWidth,
-              height: characterHeight,
-              transform: [
-                { translateX: travel },
-                // The sheet only holds a right-facing run, so arriving from the
-                // right means drawing it mirrored. A front-facing figure opts
-                // out — mirroring it would only reverse the arm it points with.
-                { scaleX: mirrorSprite && phase !== 'leaving' ? -1 : 1 },
-                { rotate: tilt },
-              ],
-            },
-          ]}
-        >
-          {renderCharacter === undefined ? children : renderCharacter({ phase, walking })}
-        </Animated.View>}
+        {hideCharacter ? null : (
+          <Animated.View
+            style={[
+              styles.character,
+              {
+                bottom: groundOffset,
+                width: characterWidth,
+                height: characterHeight,
+                transform: [
+                  { translateX: travel },
+                  // The sheet only holds a right-facing run, so arriving from the
+                  // right means drawing it mirrored. A front-facing figure opts
+                  // out — mirroring it would only reverse the arm it points with.
+                  { scaleX: mirrorSprite && phase !== 'leaving' ? -1 : 1 },
+                  { rotate: tilt },
+                ],
+              },
+            ]}
+          >
+            {renderCharacter === undefined
+              ? children
+              : renderCharacter({ phase, walking })}
+          </Animated.View>
+        )}
 
-        {hideCharacter ? null : <Animated.View
-          style={[
-            styles.groundShadow,
-            {
-              bottom: groundOffset - 2,
-              width: characterWidth * 0.62,
-              transform: [{ translateX: Animated.add(travel, characterWidth * 0.19) }],
-            },
-          ]}
-        />}
+        {hideCharacter ? null : (
+          <Animated.View
+            style={[
+              styles.groundShadow,
+              {
+                bottom: groundOffset - 2,
+                width: characterWidth * 0.62,
+                transform: [
+                  { translateX: Animated.add(travel, characterWidth * 0.19) },
+                ],
+              },
+            ]}
+          />
+        )}
       </View>
 
       {lines.length > 1 ? (
@@ -657,7 +731,10 @@ export function CharacterSpeechOverlay({
           {lines.map((_, index) => (
             <View
               key={index}
-              style={[styles.progressDot, index === lineIndex ? styles.progressDotOn : null]}
+              style={[
+                styles.progressDot,
+                index === lineIndex ? styles.progressDotOn : null,
+              ]}
             />
           ))}
         </View>

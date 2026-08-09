@@ -56,7 +56,6 @@ export interface PlayerRequestViewModel {
   readonly emptyDetail: string;
 }
 
-
 /**
  * The Requests tab, built from career state.
  *
@@ -72,30 +71,39 @@ export function playerRequestViewModel(
   const emptyDetail = t('playerRequests.dressingRoomQuiet');
   const catalog = state.playerRequestRules;
   const pending = state.playerRequests?.pending;
-  const available = catalog !== undefined
-    && (state.season > catalog.tuning.startSeason
-      || (state.season === catalog.tuning.startSeason && state.week >= catalog.tuning.startWeek));
+  const available =
+    catalog !== undefined &&
+    (state.season > catalog.tuning.startSeason ||
+      (state.season === catalog.tuning.startSeason &&
+        state.week >= catalog.tuning.startWeek));
 
-  const history = catalog === undefined
-    ? []
-    : (state.playerRequests?.history ?? []).map((entry, index) => ({
-        key: `${entry.requestId}-${entry.season}-${entry.week}-${index}`,
-        label: t('playerRequests.historyStamp', {
-          title: requestTitle(t, requestDefinition(catalog, entry.requestId)),
-          season: entry.season,
-          week: entry.week,
-        }),
-        resolution: entry.resolution,
-      }));
+  const history =
+    catalog === undefined
+      ? []
+      : (state.playerRequests?.history ?? []).map((entry, index) => ({
+          key: `${entry.requestId}-${entry.season}-${entry.week}-${index}`,
+          label: t('playerRequests.historyStamp', {
+            title: requestTitle(t, requestDefinition(catalog, entry.requestId)),
+            season: entry.season,
+            week: entry.week,
+          }),
+          resolution: entry.resolution,
+        }));
 
   if (!available || catalog === undefined || pending === undefined) {
     return { available, glowing: false, history, emptyDetail };
   }
 
   const definition = requestDefinition(catalog, pending.requestId);
-  const player = state.players.find(candidate => candidate.id === pending.playerId);
+  const player = state.players.find(
+    (candidate) => candidate.id === pending.playerId,
+  );
   const difficulty = careerDifficulty(state);
-  const refuse = resolutionDeltas('REFUSED', requestTarget(definition.cost), difficulty).asker;
+  const refuse = resolutionDeltas(
+    'REFUSED',
+    requestTarget(definition.cost),
+    difficulty,
+  ).asker;
 
   return {
     available,
@@ -112,7 +120,11 @@ export function playerRequestViewModel(
       // The walk-on speaks this. `contentStrings` flattens every request into
       // `playerRequest.<id>.line`, the same key `src/game/player-requests.ts`
       // already stamps on the ledger, so `player-requests.json` is the fallback.
-      line: copyOrEnglish(t, `playerRequest.${definition.id}.line`, definition.line),
+      line: copyOrEnglish(
+        t,
+        `playerRequest.${definition.id}.line`,
+        definition.line,
+      ),
       artKey: `request-${definition.id}`,
       grantLabel: grantLabel(definition, pending.costAmount, difficulty, t),
       // The minus signs are U+2212, which Silkscreen cannot draw — they are
@@ -122,14 +134,21 @@ export function playerRequestViewModel(
         morale: `-${Math.abs(refuse.morale)}`,
       }),
       canAfford: canAffordRequest(state),
-      weeksToAnswer: Math.max(0, catalog.tuning.answerWeeks - (state.week - pending.askedWeek)),
+      weeksToAnswer: Math.max(
+        0,
+        catalog.tuning.answerWeeks - (state.week - pending.askedWeek),
+      ),
     },
   };
 }
 
 /** The request's headline, in the player's language. */
 function requestTitle(t: CopyFn, definition: PlayerRequestDefinition): string {
-  return copyOrEnglish(t, `playerRequest.${definition.id}.title`, definition.title);
+  return copyOrEnglish(
+    t,
+    `playerRequest.${definition.id}.title`,
+    definition.title,
+  );
 }
 
 /** What the Grant button costs, in the manager's own terms. */
@@ -148,7 +167,9 @@ function grantLabel(
     return t('playerRequests.costOutForWeeks', { n: weeks, count: weeks });
   }
   if (cost.kind === 'CONDITION_SQUAD') {
-    return t('playerRequests.costSquadCondition', { amount: `-${cost.amount}` });
+    return t('playerRequests.costSquadCondition', {
+      amount: `-${cost.amount}`,
+    });
   }
   if (cost.kind === 'DRILL_PLAYER') {
     return t('playerRequests.costPlayerDrills', {

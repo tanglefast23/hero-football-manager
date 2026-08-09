@@ -34,12 +34,17 @@ export async function resetCareerDatabase(
   let wipeFailure: unknown;
   try {
     const database = await options.openDatabase();
-    const tables = await database.getAllAsync<{ name: unknown }>(LIST_TABLES_SQL, []);
+    const tables = await database.getAllAsync<{ name: unknown }>(
+      LIST_TABLES_SQL,
+      [],
+    );
     // One transaction so a half-dropped schema can never outlive a failure.
     await database.withTransactionAsync(async () => {
       for (const table of tables) {
         if (typeof table.name !== 'string') continue;
-        await database.execAsync(`DROP TABLE IF EXISTS "${table.name.replaceAll('"', '""')}"`);
+        await database.execAsync(
+          `DROP TABLE IF EXISTS "${table.name.replaceAll('"', '""')}"`,
+        );
       }
       await database.execAsync('PRAGMA user_version = 0');
     });

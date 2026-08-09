@@ -4,7 +4,10 @@ import { loadLaunchContent } from '../../../content';
 import { squadTrainingViewModel } from '../../../application/view-models';
 import { SquadTrainingScreen } from '../../screens/SquadTrainingScreen';
 import type { SquadSort } from '../../squad-sort';
-import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls';
+import {
+  DevHarnessButton,
+  devHarnessControlStyles,
+} from '../DevHarnessControls';
 import { devHarnessCareerAtWeek } from '../career';
 import type { DevHarnessEntry } from '../registry';
 
@@ -29,9 +32,13 @@ function SquadSortHintReel() {
     });
   }, [hintVisible]);
 
-  useEffect(() => () => {
-    if (dismissFrameRef.current !== null) cancelAnimationFrame(dismissFrameRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (dismissFrameRef.current !== null)
+        cancelAnimationFrame(dismissFrameRef.current);
+    },
+    [],
+  );
 
   return (
     <View
@@ -69,9 +76,14 @@ export const squadSortHintEntry: DevHarnessEntry = Object.freeze({
   id: 'squad-sort-hint',
   group: 'Squad',
   title: 'Sortable-column hint',
-  summary: 'The Week 12 pointer above Overall, dismissed by the next completed tap.',
+  summary:
+    'The Week 12 pointer above Overall, dismissed by the next completed tap.',
   cases: Object.freeze([
-    Object.freeze({ id: 'week-12', label: 'Week 12', note: 'First eligible Squad visit · tap anywhere to dismiss' }),
+    Object.freeze({
+      id: 'week-12',
+      label: 'Week 12',
+      note: 'First eligible Squad visit · tap anywhere to dismiss',
+    }),
   ]),
   render: () => <SquadSortHintReel />,
 });

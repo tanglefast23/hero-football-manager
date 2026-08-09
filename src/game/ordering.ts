@@ -48,11 +48,15 @@ interface StandingsOrder {
  * tiebroke with `localeCompare` — which is a ceremony framing a promotion the
  * transition never grants.
  */
-export function compareStandings(left: StandingsOrder, right: StandingsOrder): number {
+export function compareStandings(
+  left: StandingsOrder,
+  right: StandingsOrder,
+): number {
   if (left.points !== right.points) return left.points > right.points ? -1 : 1;
   if (left.goalDifference !== right.goalDifference) {
     return left.goalDifference > right.goalDifference ? -1 : 1;
   }
-  if (left.goalsFor !== right.goalsFor) return left.goalsFor > right.goalsFor ? -1 : 1;
+  if (left.goalsFor !== right.goalsFor)
+    return left.goalsFor > right.goalsFor ? -1 : 1;
   return compareIds(left.clubId, right.clubId);
 }

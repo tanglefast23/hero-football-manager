@@ -1,5 +1,8 @@
 import { flushPendingCareerSave, useM1Store } from '../store';
-import { MissingCareerBackupError, type CareerRepository } from '../../persistence';
+import {
+  MissingCareerBackupError,
+  type CareerRepository,
+} from '../../persistence';
 import { DEFAULT_CREATION_RATINGS, type GameState } from '../../game';
 
 /**
@@ -18,7 +21,9 @@ describe('career save flush on suspend', () => {
   it('does nothing when there is no queued career', async () => {
     let saves = 0;
     const repository = stubCareerRepository({
-      async save() { saves += 1; },
+      async save() {
+        saves += 1;
+      },
     });
     await useM1Store.getState().initializePersistence(repository);
     await flushPendingCareerSave();
@@ -29,7 +34,9 @@ describe('career save flush on suspend', () => {
   it('writes a pending career when the queue is otherwise idle', async () => {
     const saved: GameState[] = [];
     const repository = stubCareerRepository({
-      async save(state) { saved.push(state); },
+      async save(state) {
+        saved.push(state);
+      },
     });
     await useM1Store.getState().initializePersistence(repository);
     await startCreatedCareer(20260806);
@@ -56,7 +63,9 @@ describe('career save flush on suspend', () => {
     await useM1Store.getState().initializePersistence(repository);
     await startCreatedCareer(20260806);
 
-    useM1Store.setState({ career: withWeek(useM1Store.getState().career!, 11) });
+    useM1Store.setState({
+      career: withWeek(useM1Store.getState().career!, 11),
+    });
     failing = true;
     useM1Store.getState().retrySave();
     await flushPendingCareerSave();
@@ -64,7 +73,7 @@ describe('career save flush on suspend', () => {
 
     // A disk that cannot take the write is the player's problem to know about.
     expect(useM1Store.getState().saveWarning).not.toBeNull();
-    expect(saved.some(state => state.week === 11)).toBe(false);
+    expect(saved.some((state) => state.week === 11)).toBe(false);
   });
 
   it('lets a later action save after a failed flush', async () => {
@@ -82,7 +91,9 @@ describe('career save flush on suspend', () => {
     await useM1Store.getState().initializePersistence(repository);
     await startCreatedCareer(20260806);
 
-    useM1Store.setState({ career: withWeek(useM1Store.getState().career!, 13) });
+    useM1Store.setState({
+      career: withWeek(useM1Store.getState().career!, 13),
+    });
     failNext = true;
     useM1Store.getState().retrySave();
     await flushPendingCareerSave();
@@ -95,7 +106,7 @@ describe('career save flush on suspend', () => {
     useM1Store.getState().retrySave();
     await settle();
 
-    expect(saved.some(state => state.week === 14)).toBe(true);
+    expect(saved.some((state) => state.week === 14)).toBe(true);
     expect(useM1Store.getState().lastPersistedCareer).toBe(later);
   });
 
@@ -109,7 +120,9 @@ describe('career save flush on suspend', () => {
           hangNext = false;
           // Stands in for whatever long write the career is queued behind — a
           // replay save, or the four rival matches fulltime sims (571ms).
-          await new Promise<void>(resolve => { held.release = resolve; });
+          await new Promise<void>((resolve) => {
+            held.release = resolve;
+          });
         }
         saved.push(state);
       },
@@ -119,7 +132,9 @@ describe('career save flush on suspend', () => {
 
     try {
       hangNext = true;
-      useM1Store.setState({ career: withWeek(useM1Store.getState().career!, 3) });
+      useM1Store.setState({
+        career: withWeek(useM1Store.getState().career!, 3),
+      });
       useM1Store.getState().retrySave();
       await waitUntil(() => held.release !== null);
 
@@ -130,15 +145,15 @@ describe('career save flush on suspend', () => {
 
       // The app is hiding: this must not wait its turn.
       const flushed = flushPendingCareerSave();
-      await waitUntil(() => saved.some(state => state.week === 4));
-      expect(saved.some(state => state.week === 3)).toBe(false);
+      await waitUntil(() => saved.some((state) => state.week === 4));
+      expect(saved.some((state) => state.week === 3)).toBe(false);
       expect(useM1Store.getState().lastPersistedCareer).toBe(latest);
 
       held.release!();
       await flushed;
       // The task queued for that state sees it was written and does nothing, so
       // cutting ahead costs one write, not two.
-      expect(saved.filter(state => state.week === 4)).toHaveLength(1);
+      expect(saved.filter((state) => state.week === 4)).toHaveLength(1);
     } finally {
       held.release?.();
       await flushPendingCareerSave();
@@ -153,7 +168,9 @@ describe('career save flush on suspend', () => {
       async save(state) {
         if (hangNext) {
           hangNext = false;
-          await new Promise<void>(resolve => { held.release = resolve; });
+          await new Promise<void>((resolve) => {
+            held.release = resolve;
+          });
         }
         saved.push(state);
       },
@@ -169,16 +186,18 @@ describe('career save flush on suspend', () => {
       useM1Store.getState().startNewCareer(20260807);
       await waitUntil(() => held.release !== null);
 
-      useM1Store.setState({ career: withWeek(useM1Store.getState().career!, 21) });
+      useM1Store.setState({
+        career: withWeek(useM1Store.getState().career!, 21),
+      });
       useM1Store.getState().retrySave();
       const flushed = flushPendingCareerSave();
       await settle();
-      expect(saved.some(state => state.week === 21)).toBe(false);
+      expect(saved.some((state) => state.week === 21)).toBe(false);
 
       held.release!();
       await flushed;
       // Once the sequence is done, the ordinary queued task writes it.
-      expect(saved.some(state => state.week === 21)).toBe(true);
+      expect(saved.some((state) => state.week === 21)).toBe(true);
     } finally {
       held.release?.();
       await flushPendingCareerSave();
@@ -202,12 +221,13 @@ async function startCreatedCareer(seed: number): Promise<void> {
 
 /** A few macrotasks, which is all any queued save needs when nothing is held. */
 async function settle(): Promise<void> {
-  for (let i = 0; i < 5; i += 1) await new Promise(resolve => setTimeout(resolve, 0));
+  for (let i = 0; i < 5; i += 1)
+    await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 async function waitUntil(done: () => boolean): Promise<void> {
   for (let i = 0; i < 200 && !done(); i += 1) {
-    await new Promise(resolve => setTimeout(resolve, 1));
+    await new Promise((resolve) => setTimeout(resolve, 1));
   }
   if (!done()) throw new Error('condition never became true');
 }
@@ -216,13 +236,23 @@ function stubCareerRepository(
   overrides: Partial<CareerRepository> = {},
 ): CareerRepository {
   return {
-    async load() { return null; },
-    async loadRaw() { return null; },
+    async load() {
+      return null;
+    },
+    async loadRaw() {
+      return null;
+    },
     async save() {},
     async delete() {},
-    async backupSummary() { return null; },
-    async restoreBackup() { throw new MissingCareerBackupError(); },
-    async checkIntegrity() { return true; },
+    async backupSummary() {
+      return null;
+    },
+    async restoreBackup() {
+      throw new MissingCareerBackupError();
+    },
+    async checkIntegrity() {
+      return true;
+    },
     ...overrides,
   };
 }

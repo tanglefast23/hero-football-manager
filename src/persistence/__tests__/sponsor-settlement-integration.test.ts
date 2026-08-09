@@ -11,22 +11,22 @@ import type { DifficultyMode, GameState } from '../../game/types';
 import { parseStoredGameState } from '../game-state-codec';
 
 function reachWeekFour(difficulty: DifficultyMode = 'COZY'): GameState {
-  let state = createCareer(createLaunchCareerSetup(
-    20260805,
-    undefined,
-    undefined,
-    difficulty,
-  ));
+  let state = createCareer(
+    createLaunchCareerSetup(20260805, undefined, undefined, difficulty),
+  );
 
   state = advanceWeek(state);
   state = advanceWeek(state);
   state = advanceWeek(state);
   expect(state).toMatchObject({ season: 1, week: 3, phase: 'matchday' });
-  state = completeMatchday(state, fixturesForCurrentWeek(state).map(fixture => ({
-    fixtureId: fixture.id,
-    homeGoals: 0,
-    awayGoals: 0,
-  })));
+  state = completeMatchday(
+    state,
+    fixturesForCurrentWeek(state).map((fixture) => ({
+      fixtureId: fixture.id,
+      homeGoals: 0,
+      awayGoals: 0,
+    })),
+  );
   expect(state).toMatchObject({ season: 1, week: 4, phase: 'manage' });
   return withSafeCash(state);
 }
@@ -34,24 +34,29 @@ function reachWeekFour(difficulty: DifficultyMode = 'COZY'): GameState {
 function withSafeCash(state: GameState): GameState {
   return {
     ...state,
-    clubs: state.clubs.map(club => club.id === state.userClubId
-      ? { ...club, cash: 1_000_000 }
-      : club),
+    clubs: state.clubs.map((club) =>
+      club.id === state.userClubId ? { ...club, cash: 1_000_000 } : club,
+    ),
   };
 }
 
 function sponsorLines(state: GameState) {
-  return state.ledgers.at(-1)?.lines.filter(line => line.kind === 'sponsor') ?? [];
+  return (
+    state.ledgers.at(-1)?.lines.filter((line) => line.kind === 'sponsor') ?? []
+  );
 }
 
 function settleManageWeek(state: GameState): GameState {
   const advanced = advanceWeek(state);
   if (advanced.phase !== 'matchday') return advanced;
-  return completeMatchday(advanced, fixturesForCurrentWeek(advanced).map(fixture => ({
-    fixtureId: fixture.id,
-    homeGoals: 0,
-    awayGoals: 0,
-  })));
+  return completeMatchday(
+    advanced,
+    fixturesForCurrentWeek(advanced).map((fixture) => ({
+      fixtureId: fixture.id,
+      homeGoals: 0,
+      awayGoals: 0,
+    })),
+  );
 }
 
 describe('sponsor settlement integration', () => {
@@ -79,36 +84,47 @@ describe('sponsor settlement integration', () => {
     };
 
     expect(ready.clubBusiness.sponsorship.offers).toHaveLength(9);
-    expect(ready.clubBusiness.sponsorship.activeContracts.every(contract => (
-      contract.provisional
-    ))).toBe(true);
+    expect(
+      ready.clubBusiness.sponsorship.activeContracts.every(
+        (contract) => contract.provisional,
+      ),
+    ).toBe(true);
 
     const settled = settleManageWeek(ready);
     const paid = sponsorLines(settled);
 
-    expect(paid.map(line => line.amount)).toEqual([2_134, 2_133, 2_133]);
+    expect(paid.map((line) => line.amount)).toEqual([2_134, 2_133, 2_133]);
     expect(paid.reduce((total, line) => total + line.amount, 0)).toBe(6_400);
     expect(paid).toHaveLength(3);
-    expect(paid.some(line => (
-      line.label === 'Chairman sponsor target' || line.label === 'Local advertising (monthly)'
-    ))).toBe(false);
+    expect(
+      paid.some(
+        (line) =>
+          line.label === 'Chairman sponsor target' ||
+          line.label === 'Local advertising (monthly)',
+      ),
+    ).toBe(false);
     expect(settled).toMatchObject({ season: 1, week: 5, phase: 'manage' });
     expect(settled.clubBusiness.sponsorship.offers).toEqual([]);
-    expect(settled.clubBusiness.sponsorship.activeContracts.every(contract => (
-      !contract.provisional
-    ))).toBe(true);
+    expect(
+      settled.clubBusiness.sponsorship.activeContracts.every(
+        (contract) => !contract.provisional,
+      ),
+    ).toBe(true);
   });
 
   test('preserves a migrated D4 sponsor scalar through the real Week 4 cash settlement', () => {
     const current = reachWeekFour();
-    const legacy = JSON.parse(JSON.stringify(current)) as Record<string, unknown>;
+    const legacy = JSON.parse(JSON.stringify(current)) as Record<
+      string,
+      unknown
+    >;
     legacy.schemaVersion = 3;
     delete legacy.clubBusiness;
     delete legacy.sponsorRules;
     const m2 = legacy.m2 as Record<string, unknown>;
     m2.highestDivisionReached = 4;
     const clubs = legacy.clubs as Array<Record<string, unknown>>;
-    const userClub = clubs.find(club => club.id === legacy.userClubId)!;
+    const userClub = clubs.find((club) => club.id === legacy.userClubId)!;
     userClub.sponsorMonthlyFee = 4_123;
 
     const migrated = parseStoredGameState(JSON.stringify(legacy));
@@ -120,21 +136,29 @@ describe('sponsor settlement integration', () => {
 
     const settled = settleManageWeek(migrated);
 
-    expect(sponsorLines(settled)).toEqual([expect.objectContaining({
-      amount: 4_123,
-      idempotencyKey: expect.stringContaining('continuity-s1-slot0'),
-    })]);
-    expect(settled.clubs.find(club => club.id === settled.userClubId)?.sponsorMonthlyFee)
-      .toBe(4_123);
-    expect(settled.clubBusiness.sponsorship.activeContracts[0].provisional).toBe(false);
+    expect(sponsorLines(settled)).toEqual([
+      expect.objectContaining({
+        amount: 4_123,
+        idempotencyKey: expect.stringContaining('continuity-s1-slot0'),
+      }),
+    ]);
+    expect(
+      settled.clubs.find((club) => club.id === settled.userClubId)
+        ?.sponsorMonthlyFee,
+    ).toBe(4_123);
+    expect(
+      settled.clubBusiness.sponsorship.activeContracts[0].provisional,
+    ).toBe(false);
   });
 
   test('settles Chairman objective bonuses at Week 30 once through the weekly ledger seam', () => {
     const initial = reachWeekFour('CHAIRMAN');
-    const userFixture = initial.fixtures.find(fixture => (
-      fixture.status === 'scheduled'
-      && (fixture.homeClubId === initial.userClubId || fixture.awayClubId === initial.userClubId)
-    ))!;
+    const userFixture = initial.fixtures.find(
+      (fixture) =>
+        fixture.status === 'scheduled' &&
+        (fixture.homeClubId === initial.userClubId ||
+          fixture.awayClubId === initial.userClubId),
+    )!;
     const userIsHome = userFixture.homeClubId === initial.userClubId;
     const contracts: SponsorContractSnapshot[] = [
       {
@@ -178,16 +202,18 @@ describe('sponsor settlement integration', () => {
         ...initial.m2!,
         highestDivisionReached: 3,
       },
-      fixtures: initial.fixtures.map(fixture => fixture.id === userFixture.id
-        ? {
-            ...fixture,
-            status: 'played' as const,
-            score: {
-              homeGoals: userIsHome ? 2 : 0,
-              awayGoals: userIsHome ? 0 : 2,
-            },
-          }
-        : fixture),
+      fixtures: initial.fixtures.map((fixture) =>
+        fixture.id === userFixture.id
+          ? {
+              ...fixture,
+              status: 'played' as const,
+              score: {
+                homeGoals: userIsHome ? 2 : 0,
+                awayGoals: userIsHome ? 0 : 2,
+              },
+            }
+          : fixture,
+      ),
       clubBusiness: {
         ...initial.clubBusiness,
         sponsorship: {
@@ -202,38 +228,48 @@ describe('sponsor settlement integration', () => {
     // Week 30 is the league finale, so the objectives settle behind the last
     // match of the season rather than behind a bare Advance Week press.
     const settled = settleManageWeek(ready);
-    const objectiveLines = settled.ledgers.flatMap(ledger => ledger.lines).filter(line => (
-      line.idempotencyKey?.startsWith('sponsor-objective:')
-    ));
+    const objectiveLines = settled.ledgers
+      .flatMap((ledger) => ledger.lines)
+      .filter((line) => line.idempotencyKey?.startsWith('sponsor-objective:'));
 
-    expect(objectiveLines.map(line => [line.label, line.amount])).toEqual([
+    expect(objectiveLines.map((line) => [line.label, line.amount])).toEqual([
       ['Wins Co objective bonus', 801],
       ['Goals Co objective bonus', 799],
     ]);
-    expect(settled.clubBusiness.sponsorship.activeContracts.map(contract => (
-      contract.objectiveOutcome
-    ))).toEqual([
+    expect(
+      settled.clubBusiness.sponsorship.activeContracts.map(
+        (contract) => contract.objectiveOutcome,
+      ),
+    ).toEqual([
       { met: true, settledSeason: 1, actualBonus: 801 },
       { met: true, settledSeason: 1, actualBonus: 799 },
     ]);
 
     const repeated = advanceWeek({ ...settled, phase: 'manage' });
-    expect(repeated.ledgers.flatMap(ledger => ledger.lines).filter(line => (
-      line.idempotencyKey?.startsWith('sponsor-objective:')
-    ))).toEqual(objectiveLines);
+    expect(
+      repeated.ledgers
+        .flatMap((ledger) => ledger.lines)
+        .filter((line) =>
+          line.idempotencyKey?.startsWith('sponsor-objective:'),
+        ),
+    ).toEqual(objectiveLines);
   });
 
   test('labels the unmanaged D5 monthly income as local advertising in both modes', () => {
     const cozy = sponsorLines(settleManageWeek(reachWeekFour('COZY')));
-    expect(cozy).toEqual([expect.objectContaining({
-      label: 'Local advertising (monthly)',
-      amount: 3_000,
-    })]);
+    expect(cozy).toEqual([
+      expect.objectContaining({
+        label: 'Local advertising (monthly)',
+        amount: 3_000,
+      }),
+    ]);
 
     const chairman = sponsorLines(settleManageWeek(reachWeekFour('CHAIRMAN')));
-    expect(chairman).toEqual([expect.objectContaining({
-      label: 'Local advertising (monthly)',
-      amount: 2_400,
-    })]);
+    expect(chairman).toEqual([
+      expect.objectContaining({
+        label: 'Local advertising (monthly)',
+        amount: 2_400,
+      }),
+    ]);
   });
 });

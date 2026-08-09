@@ -1,4 +1,12 @@
-import { useEffect, useRef, useState, type Dispatch, type ReactNode, type RefObject, type SetStateAction } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type RefObject,
+  type SetStateAction,
+} from 'react';
 import {
   ScrollView,
   Text,
@@ -8,7 +16,14 @@ import {
 } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import type { ContractOffer, ContractPerk, PitchCard } from '../../game/market';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
+import {
+  ActionButton,
+  Metric,
+  PaperPanel,
+  SectionLabel,
+  StatusChip,
+  formatCurrency,
+} from '../components/Scorecard';
 import { EmptyDocket } from '../components/EmptyDocket';
 import { ManagementSprite } from '../components/ManagementSprite';
 import { PixelPortrait } from '../components/PixelPortrait';
@@ -31,18 +46,28 @@ import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
 import { useTapGuard } from '../use-tap-guard';
 import { AgentFinalDemandGate } from '../AgentFinalDemandGate';
-import { contractDraftPerk, offerQuoteKey } from '../../application/market-view-model';
+import {
+  contractDraftPerk,
+  offerQuoteKey,
+} from '../../application/market-view-model';
 import { useCopy } from '../../i18n';
 
 export interface MarketScreenProps {
   readonly viewModel: MarketViewModel;
   readonly onStartScoutMission: (optionId: string) => void;
   readonly onOpenScoutReport: (playerId: string) => void;
-  readonly onTransferAction: (playerId: string, direction: 'BUY' | 'SELL', bidId?: string) => void;
+  readonly onTransferAction: (
+    playerId: string,
+    direction: 'BUY' | 'SELL',
+    bidId?: string,
+  ) => void;
   readonly onHireCoach: (coachId: string, role: 'HEAD' | 'ASSISTANT') => void;
   readonly onSignYouth: (playerId: string) => void;
   readonly onDeclineYouth: () => void;
-  readonly onSubmitContractOffer: (offer: ContractOffer, pitchCard?: PitchCard) => void;
+  readonly onSubmitContractOffer: (
+    offer: ContractOffer,
+    pitchCard?: PitchCard,
+  ) => void;
   readonly onCloseNegotiation: () => void;
   readonly onDismissGuideFocus?: () => void;
   readonly guideFocus?: AssistantGuideFocus;
@@ -53,10 +78,17 @@ export interface MarketScreenProps {
 const MIN_GUIDE_SCROLL_DISTANCE = 24;
 
 function initialSection(viewModel: MarketViewModel): MarketSectionId {
-  if (viewModel.negotiation !== undefined && viewModel.sections.includes('TRANSFERS')) {
+  if (
+    viewModel.negotiation !== undefined &&
+    viewModel.sections.includes('TRANSFERS')
+  ) {
     return 'TRANSFERS';
   }
-  if (viewModel.youth?.status === 'OPEN' && viewModel.sections.includes('YOUTH')) return 'YOUTH';
+  if (
+    viewModel.youth?.status === 'OPEN' &&
+    viewModel.sections.includes('YOUTH')
+  )
+    return 'YOUTH';
   if (viewModel.sections.includes('SCOUT')) return 'SCOUT';
   return viewModel.sections[0] ?? 'COACHES';
 }
@@ -78,14 +110,19 @@ export function MarketScreen({
 }: MarketScreenProps) {
   const t = useCopy();
   const desktopContent = useDesktopContentStyle();
-  const [section, setSection] = useState<MarketSectionId>(() => initialSection(viewModel));
-  const [scrollDismissedGuideFocus, setScrollDismissedGuideFocus] = useState<AssistantGuideFocus>();
-  const visibleGuideFocus = scrollDismissedGuideFocus === guideFocus ? undefined : guideFocus;
+  const [section, setSection] = useState<MarketSectionId>(() =>
+    initialSection(viewModel),
+  );
+  const [scrollDismissedGuideFocus, setScrollDismissedGuideFocus] =
+    useState<AssistantGuideFocus>();
+  const visibleGuideFocus =
+    scrollDismissedGuideFocus === guideFocus ? undefined : guideFocus;
   const marketViewportRef = useRef<View>(null);
   const southAmericaScoutActionRef = useRef<View>(null);
   const latestScrollOffsetRef = useRef(0);
   const scoutDragStartOffsetRef = useRef(0);
-  const youthSectionVisible = viewModel.sections.includes('YOUTH') && viewModel.youth !== undefined;
+  const youthSectionVisible =
+    viewModel.sections.includes('YOUTH') && viewModel.youth !== undefined;
   const scoutSectionVisible = viewModel.sections.includes('SCOUT');
   const transferSectionVisible = viewModel.sections.includes('TRANSFERS');
   const coachSectionVisible = viewModel.sections.includes('COACHES');
@@ -95,7 +132,9 @@ export function MarketScreen({
     onDismissGuideFocus?.();
   };
 
-  const handleScrollBeginDrag = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const handleScrollBeginDrag = (
+    event: NativeSyntheticEvent<NativeScrollEvent>,
+  ) => {
     if (guideFocus === 'transfer-list') {
       dismissScrollGuide('transfer-list');
       return;
@@ -112,22 +151,29 @@ export function MarketScreen({
       dismissScrollGuide('transfer-list');
       return;
     }
-    if (guideFocus !== 'scout-mission' || scrollDismissedGuideFocus === 'scout-mission') return;
-    const dragStartOffset = scoutDragStartOffsetRef.current;
     if (
-      currentOffset < dragStartOffset + MIN_GUIDE_SCROLL_DISTANCE
-    ) return;
+      guideFocus !== 'scout-mission' ||
+      scrollDismissedGuideFocus === 'scout-mission'
+    )
+      return;
+    const dragStartOffset = scoutDragStartOffsetRef.current;
+    if (currentOffset < dragStartOffset + MIN_GUIDE_SCROLL_DISTANCE) return;
 
     const viewport = marketViewportRef.current;
     const target = southAmericaScoutActionRef.current;
     if (viewport === null || target === null) return;
-    viewport.measureInWindow((_viewportX, viewportY, _viewportWidth, viewportHeight) => {
-      target.measureInWindow((_targetX, targetY, _targetWidth, targetHeight) => {
-        const targetFullyVisible = targetY >= viewportY
-          && targetY + targetHeight <= viewportY + viewportHeight;
-        if (targetFullyVisible) dismissScrollGuide('scout-mission');
-      });
-    });
+    viewport.measureInWindow(
+      (_viewportX, viewportY, _viewportWidth, viewportHeight) => {
+        target.measureInWindow(
+          (_targetX, targetY, _targetWidth, targetHeight) => {
+            const targetFullyVisible =
+              targetY >= viewportY &&
+              targetY + targetHeight <= viewportY + viewportHeight;
+            if (targetFullyVisible) dismissScrollGuide('scout-mission');
+          },
+        );
+      },
+    );
   };
 
   useEffect(() => {
@@ -135,7 +181,8 @@ export function MarketScreen({
   }, [viewModel.negotiation?.id]);
 
   useEffect(() => {
-    if (!viewModel.sections.includes(section)) setSection(initialSection(viewModel));
+    if (!viewModel.sections.includes(section))
+      setSection(initialSection(viewModel));
   }, [section, viewModel]);
 
   useEffect(() => {
@@ -145,21 +192,48 @@ export function MarketScreen({
   }, [guideFocus]);
 
   useEffect(() => {
-    if (guideFocus === 'youth-intake' && youthSectionVisible) setSection('YOUTH');
-    else if ((guideFocus === 'scout-mission' || guideFocus === 'scout-report') && scoutSectionVisible) setSection('SCOUT');
-    else if ((guideFocus === 'transfer-list' || guideFocus === 'transfer-bid' || guideFocus === 'transfer-negotiation') && transferSectionVisible) setSection('TRANSFERS');
-    else if ((guideFocus === 'coach-market' || guideFocus === 'coach-hire' || guideFocus === 'assistant-coach-hire') && coachSectionVisible) setSection('COACHES');
-  }, [coachSectionVisible, guideFocus, scoutSectionVisible, transferSectionVisible, youthSectionVisible]);
+    if (guideFocus === 'youth-intake' && youthSectionVisible)
+      setSection('YOUTH');
+    else if (
+      (guideFocus === 'scout-mission' || guideFocus === 'scout-report') &&
+      scoutSectionVisible
+    )
+      setSection('SCOUT');
+    else if (
+      (guideFocus === 'transfer-list' ||
+        guideFocus === 'transfer-bid' ||
+        guideFocus === 'transfer-negotiation') &&
+      transferSectionVisible
+    )
+      setSection('TRANSFERS');
+    else if (
+      (guideFocus === 'coach-market' ||
+        guideFocus === 'coach-hire' ||
+        guideFocus === 'assistant-coach-hire') &&
+      coachSectionVisible
+    )
+      setSection('COACHES');
+  }, [
+    coachSectionVisible,
+    guideFocus,
+    scoutSectionVisible,
+    transferSectionVisible,
+    youthSectionVisible,
+  ]);
 
   const negotiationDraft = useContractDraft(viewModel.negotiation);
   const layoutMode = useLayoutMode();
 
   useEffect(() => {
     if (layoutMode !== 'single') return;
-    if (requestedSection === 'YOUTH' && youthSectionVisible) setSection('YOUTH');
-    else if (requestedSection === 'SCOUT' && scoutSectionVisible) setSection('SCOUT');
-    else if (requestedSection === 'TRANSFERS' && transferSectionVisible) setSection('TRANSFERS');
-    else if (requestedSection === 'COACHES' && coachSectionVisible) setSection('COACHES');
+    if (requestedSection === 'YOUTH' && youthSectionVisible)
+      setSection('YOUTH');
+    else if (requestedSection === 'SCOUT' && scoutSectionVisible)
+      setSection('SCOUT');
+    else if (requestedSection === 'TRANSFERS' && transferSectionVisible)
+      setSection('TRANSFERS');
+    else if (requestedSection === 'COACHES' && coachSectionVisible)
+      setSection('COACHES');
   }, [
     coachSectionVisible,
     layoutMode,
@@ -176,10 +250,42 @@ export function MarketScreen({
    * picks a board, exactly as the League screen's competition office works.
    */
   const docketTabs: ScreenTab<MarketSectionId>[] = [
-    ...(youthSectionVisible ? [{ id: 'YOUTH' as const, label: t('market.tab.youth'), accessibilityLabel: t('market.a11y.youthDesk') }] : []),
-    ...(scoutSectionVisible ? [{ id: 'SCOUT' as const, label: t('market.tab.scout'), accessibilityLabel: t('market.a11y.scoutDesk') }] : []),
-    ...(transferSectionVisible ? [{ id: 'TRANSFERS' as const, label: t('market.tab.deals'), accessibilityLabel: t('market.a11y.dealsDesk') }] : []),
-    ...(coachSectionVisible ? [{ id: 'COACHES' as const, label: t('market.tab.coaches'), accessibilityLabel: t('market.a11y.coachesDesk') }] : []),
+    ...(youthSectionVisible
+      ? [
+          {
+            id: 'YOUTH' as const,
+            label: t('market.tab.youth'),
+            accessibilityLabel: t('market.a11y.youthDesk'),
+          },
+        ]
+      : []),
+    ...(scoutSectionVisible
+      ? [
+          {
+            id: 'SCOUT' as const,
+            label: t('market.tab.scout'),
+            accessibilityLabel: t('market.a11y.scoutDesk'),
+          },
+        ]
+      : []),
+    ...(transferSectionVisible
+      ? [
+          {
+            id: 'TRANSFERS' as const,
+            label: t('market.tab.deals'),
+            accessibilityLabel: t('market.a11y.dealsDesk'),
+          },
+        ]
+      : []),
+    ...(coachSectionVisible
+      ? [
+          {
+            id: 'COACHES' as const,
+            label: t('market.tab.coaches'),
+            accessibilityLabel: t('market.a11y.coachesDesk'),
+          },
+        ]
+      : []),
   ];
 
   const header = (
@@ -187,8 +293,11 @@ export function MarketScreen({
       <View className="flex-row items-end justify-between gap-3">
         <View className="flex-1">
           <Text className="font-pixel text-sm uppercase tracking-[2px] text-blue-dark">
-            {t('market.recruitmentOffice')}</Text>
-          <Text className="mt-1 font-pixel text-xl uppercase text-ink">{t('market.marketDocket')}</Text>
+            {t('market.recruitmentOffice')}
+          </Text>
+          <Text className="mt-1 font-pixel text-xl uppercase text-ink">
+            {t('market.marketDocket')}
+          </Text>
         </View>
         <StatusChip label={viewModel.periodLabel} />
       </View>
@@ -214,22 +323,39 @@ export function MarketScreen({
     />
   ) : null;
   const transferDesk = transferSectionVisible ? (
-    <TransferDesk viewModel={viewModel} onTransferAction={onTransferAction} guideFocus={visibleGuideFocus} />
+    <TransferDesk
+      viewModel={viewModel}
+      onTransferAction={onTransferAction}
+      guideFocus={visibleGuideFocus}
+    />
   ) : null;
   const coachDesk = coachSectionVisible ? (
     <CoachDesk viewModel={viewModel} onHireCoach={onHireCoach} />
   ) : null;
 
   /** Only the chosen board is on the desk, so its weight is the one that counts. */
-  const activeDeskSection: FlowSection | undefined = section === 'YOUTH' && viewModel.youth
-    ? { key: 'youth-desk', weight: 4 + 5 * viewModel.youth.offers.length, node: youthDesk }
-    : section === 'SCOUT' && scoutSectionVisible
-      ? { key: 'scout-desk', weight: 8, node: scoutDesk }
-      : section === 'TRANSFERS' && transferSectionVisible
-        ? { key: 'transfer-desk', weight: 3 + 3 * viewModel.transfers.length, node: transferDesk }
-        : coachSectionVisible
-          ? { key: 'coach-desk', weight: 3 + 4 * viewModel.coaches.length, node: coachDesk }
-          : undefined;
+  const activeDeskSection: FlowSection | undefined =
+    section === 'YOUTH' && viewModel.youth
+      ? {
+          key: 'youth-desk',
+          weight: 4 + 5 * viewModel.youth.offers.length,
+          node: youthDesk,
+        }
+      : section === 'SCOUT' && scoutSectionVisible
+        ? { key: 'scout-desk', weight: 8, node: scoutDesk }
+        : section === 'TRANSFERS' && transferSectionVisible
+          ? {
+              key: 'transfer-desk',
+              weight: 3 + 3 * viewModel.transfers.length,
+              node: transferDesk,
+            }
+          : coachSectionVisible
+            ? {
+                key: 'coach-desk',
+                weight: 3 + 4 * viewModel.coaches.length,
+                node: coachDesk,
+              }
+            : undefined;
 
   const sections: FlowSection[] = [
     {
@@ -237,20 +363,24 @@ export function MarketScreen({
       weight: 5,
       node: <RegistrationDesk viewModel={viewModel} flush />,
     },
-    ...(viewModel.negotiation ? [{
-      key: 'negotiation',
-      weight: 10,
-      node: (
-        <NegotiationPanel
-          viewModel={viewModel.negotiation}
-          draft={negotiationDraft}
-          onSubmitContractOffer={onSubmitContractOffer}
-          onClose={onCloseNegotiation}
-          guided={visibleGuideFocus === 'transfer-negotiation'}
-          flush
-        />
-      ),
-    }] : []),
+    ...(viewModel.negotiation
+      ? [
+          {
+            key: 'negotiation',
+            weight: 10,
+            node: (
+              <NegotiationPanel
+                viewModel={viewModel.negotiation}
+                draft={negotiationDraft}
+                onSubmitContractOffer={onSubmitContractOffer}
+                onClose={onCloseNegotiation}
+                guided={visibleGuideFocus === 'transfer-negotiation'}
+                flush
+              />
+            ),
+          },
+        ]
+      : []),
     ...(activeDeskSection === undefined ? [] : [activeDeskSection]),
   ];
 
@@ -258,7 +388,10 @@ export function MarketScreen({
     <View ref={marketViewportRef} collapsable={false} className="flex-1">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}
+        contentContainerStyle={[
+          { padding: 16, paddingBottom: 28 },
+          desktopContent,
+        ]}
         onScrollBeginDrag={handleScrollBeginDrag}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -283,19 +416,32 @@ function RegistrationDesk({ viewModel, flush = false }: RegistrationDeskProps) {
     <PaperPanel
       kicker={t('market.registrationDesk')}
       title={t('market.buildTheNextGreat')}
-      stamp={viewModel.window.open ? t('market.windowOpenStamp') : t('market.windowShutStamp')}
+      stamp={
+        viewModel.window.open
+          ? t('market.windowOpenStamp')
+          : t('market.windowShutStamp')
+      }
       className={flush ? undefined : 'mt-5'}
     >
       <View className="flex-row gap-2">
-        <Metric label={t('market.cash')} value={formatCurrency(t, viewModel.cash)} />
+        <Metric
+          label={t('market.cash')}
+          value={formatCurrency(t, viewModel.cash)}
+        />
         <Metric label={t('market.level')} value={viewModel.divisionLabel} />
         <Metric
           label={t('market.window')}
-          value={viewModel.window.open ? t('market.windowOpenValue') : t('market.windowClosedValue')}
+          value={
+            viewModel.window.open
+              ? t('market.windowOpenValue')
+              : t('market.windowClosedValue')
+          }
           tone={viewModel.window.open ? 'positive' : 'negative'}
         />
       </View>
-      <Text className="mt-3 text-sm leading-5 text-ink/60">{viewModel.window.detail}</Text>
+      <Text className="mt-3 text-sm leading-5 text-ink/60">
+        {viewModel.window.detail}
+      </Text>
     </PaperPanel>
   );
 }
@@ -305,64 +451,111 @@ function YouthDesk({
   onSignYouth,
   onDeclineYouth,
   guideFocus,
-}: Pick<MarketScreenProps, 'viewModel' | 'onSignYouth' | 'onDeclineYouth' | 'guideFocus'>) {
+}: Pick<
+  MarketScreenProps,
+  'viewModel' | 'onSignYouth' | 'onDeclineYouth' | 'guideFocus'
+>) {
   const t = useCopy();
   const intake = viewModel.youth;
   if (intake === undefined) return null;
   return (
     <View className="relative overflow-hidden border-[3px] border-ink bg-pitch-ink p-4">
       {/* The academy gets its own chalkboard stage inside the market desk. */}
-      <View pointerEvents="none" className="absolute -left-12 -top-10 h-40 w-40 rounded-full border-4 border-paper/10" />
-      <View pointerEvents="none" className="absolute -right-10 bottom-4 h-32 w-32 rounded-full border-4 border-paper/10" />
+      <View
+        pointerEvents="none"
+        className="absolute -left-12 -top-10 h-40 w-40 rounded-full border-4 border-paper/10"
+      />
+      <View
+        pointerEvents="none"
+        className="absolute -right-10 bottom-4 h-32 w-32 rounded-full border-4 border-paper/10"
+      />
       <View className="mb-3 flex-row items-end justify-between gap-3">
         <View className="flex-1">
-          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{t('market.pre-seasonAcademyIntake')}</Text>
-          <Text className="mt-1 font-pixel text-lg uppercase text-white">{t('market.meetTheNextGeneration')}</Text>
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">
+            {t('market.pre-seasonAcademyIntake')}
+          </Text>
+          <Text className="mt-1 font-pixel text-lg uppercase text-white">
+            {t('market.meetTheNextGeneration')}
+          </Text>
         </View>
         <StatusChip label={intake.rosterLabel} />
       </View>
-      <View className={intake.status === 'OPEN'
-        ? 'self-start -rotate-1 border-2 border-ink bg-blue px-3 py-2'
-        : 'self-start -rotate-1 border-2 border-ink bg-paper px-3 py-2'}
+      <View
+        className={
+          intake.status === 'OPEN'
+            ? '-rotate-1 self-start border-2 border-ink bg-blue px-3 py-2'
+            : '-rotate-1 self-start border-2 border-ink bg-paper px-3 py-2'
+        }
       >
-        <Text className={intake.status === 'OPEN'
-          ? 'font-pixel text-sm uppercase text-white'
-          : 'font-pixel text-sm uppercase text-ink'}
+        <Text
+          className={
+            intake.status === 'OPEN'
+              ? 'font-pixel text-sm uppercase text-white'
+              : 'font-pixel text-sm uppercase text-ink'
+          }
         >
           {intake.headline}
         </Text>
       </View>
-      <Text className="mt-2 text-sm leading-5 text-paper/75">{intake.detail}</Text>
+      <Text className="mt-2 text-sm leading-5 text-paper/75">
+        {intake.detail}
+      </Text>
 
       {intake.offers.length === 0 ? (
         <View className="mt-4">
-          <EmptyDocket title={t('market.noOffersWaiting')} detail={t('market.aFreshYouthIntake')} />
+          <EmptyDocket
+            title={t('market.noOffersWaiting')}
+            detail={t('market.aFreshYouthIntake')}
+          />
         </View>
       ) : (
         <View className="mt-4 gap-3">
-          {intake.offers.map(offer => (
-            <View key={offer.playerId} className="border-2 border-b-4 border-ink bg-white p-3">
+          {intake.offers.map((offer) => (
+            <View
+              key={offer.playerId}
+              className="border-2 border-b-4 border-ink bg-white p-3"
+            >
               <View className="flex-row items-start justify-between gap-3">
                 <View className="overflow-hidden border-2 border-ink bg-blue-light">
-                  <PixelPortrait playerId={offer.playerId} role={offer.role} lookId={offer.lookId} />
+                  <PixelPortrait
+                    playerId={offer.playerId}
+                    role={offer.role}
+                    lookId={offer.lookId}
+                  />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-lg font-bold text-ink" numberOfLines={1}>{offer.playerName}</Text>
+                  <Text
+                    className="text-lg font-bold text-ink"
+                    numberOfLines={1}
+                  >
+                    {offer.playerName}
+                  </Text>
                   <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
                     {offer.role} · {offer.ageLabel} · {offer.archetypeLabel}
                   </Text>
                   <Text className="mt-1 font-pixel text-sm uppercase text-gold-dark">
-                    {t('market.potentialValue', { grade: offer.potentialLabel })}
+                    {t('market.potentialValue', {
+                      grade: offer.potentialLabel,
+                    })}
                   </Text>
                 </View>
                 <View className="-rotate-2 border-2 border-blue-dark bg-blue-light px-2 py-1">
-                  <PixelText className="text-sm uppercase text-blue-dark">{t('market.academy')}</PixelText>
+                  <PixelText className="text-sm uppercase text-blue-dark">
+                    {t('market.academy')}
+                  </PixelText>
                 </View>
               </View>
               <YouthStatLine stats={offer.stats} />
               <View className="mt-3 flex-row gap-2">
-                <Metric label={t('market.signing')} value={formatCurrency(t, offer.signingBonus)} tone="negative" />
-                <Metric label={t('market.weeklyWage')} value={formatCurrency(t, offer.weeklyWage)} />
+                <Metric
+                  label={t('market.signing')}
+                  value={formatCurrency(t, offer.signingBonus)}
+                  tone="negative"
+                />
+                <Metric
+                  label={t('market.weeklyWage')}
+                  value={formatCurrency(t, offer.weeklyWage)}
+                />
               </View>
               <View className="mt-3 flex-row items-center justify-between gap-3">
                 <Text className="flex-1 text-sm text-stamp">
@@ -370,7 +563,9 @@ function YouthDesk({
                 </Text>
                 <SmallAction
                   label={t('market.sign')}
-                  accessibilityLabel={t('market.a11y.signYouthPlayer', { player: offer.playerName })}
+                  accessibilityLabel={t('market.a11y.signYouthPlayer', {
+                    player: offer.playerName,
+                  })}
                   disabled={!offer.available}
                   onPress={() => onSignYouth(offer.playerId)}
                 />
@@ -379,7 +574,9 @@ function YouthDesk({
           ))}
           <ActionButton
             label={t('market.declineRemainingIntake')}
-            accessibilityLabel={t('market.a11y.declineAllRemainingYouthIntakeOffers')}
+            accessibilityLabel={t(
+              'market.a11y.declineAllRemainingYouthIntakeOffers',
+            )}
             variant="paper"
             disabled={!intake.canDecline}
             onPress={onDeclineYouth}
@@ -396,19 +593,24 @@ function ScoutingDesk({
   onOpenScoutReport,
   southAmericaScoutActionRef,
   guideFocus,
-}: Pick<MarketScreenProps, 'viewModel' | 'onStartScoutMission' | 'onOpenScoutReport' | 'guideFocus'> & {
+}: Pick<
+  MarketScreenProps,
+  'viewModel' | 'onStartScoutMission' | 'onOpenScoutReport' | 'guideFocus'
+> & {
   southAmericaScoutActionRef: RefObject<View | null>;
 }) {
   const t = useCopy();
   const status = viewModel.scouting.status;
-  const scrollDismissTargetId = viewModel.scouting.choices.find(choice => (
-    choice.region === 'SOUTH_AMERICA'
-  ))?.id ?? viewModel.scouting.choices[1]?.id;
-  const statusClass = status.kind === 'COMPLETED' || status.kind === 'READY'
-    ? 'border-pitch-dark bg-pitch-light'
-    : status.kind === 'IN_PROGRESS'
-      ? 'border-blue-dark bg-blue-light'
-      : 'border-ink bg-white';
+  const scrollDismissTargetId =
+    viewModel.scouting.choices.find(
+      (choice) => choice.region === 'SOUTH_AMERICA',
+    )?.id ?? viewModel.scouting.choices[1]?.id;
+  const statusClass =
+    status.kind === 'COMPLETED' || status.kind === 'READY'
+      ? 'border-pitch-dark bg-pitch-light'
+      : status.kind === 'IN_PROGRESS'
+        ? 'border-blue-dark bg-blue-light'
+        : 'border-ink bg-white';
 
   return (
     <View>
@@ -420,10 +622,19 @@ function ScoutingDesk({
       <View className={`border-2 border-b-4 p-4 ${statusClass}`}>
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
-            <Text className="font-pixel text-base uppercase text-ink">{status.headline}</Text>
-            <Text className="mt-2 text-sm leading-5 text-ink/65">{status.detail}</Text>
+            <Text className="font-pixel text-base uppercase text-ink">
+              {status.headline}
+            </Text>
+            <Text className="mt-2 text-sm leading-5 text-ink/65">
+              {status.detail}
+            </Text>
           </View>
-          {status.progressLabel ? <StatusChip label={status.progressLabel} selected={status.kind === 'READY'} /> : null}
+          {status.progressLabel ? (
+            <StatusChip
+              label={status.progressLabel}
+              selected={status.kind === 'READY'}
+            />
+          ) : null}
         </View>
         <Text className="mt-3 border-t border-ink/20 pt-2 font-mono text-sm uppercase text-ink/50">
           {viewModel.scouting.precisionLabel}
@@ -432,16 +643,22 @@ function ScoutingDesk({
 
       {viewModel.scouting.reports.length > 0 ? (
         <View className="mt-5 gap-3">
-          <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">{t('market.scoutingReports')}</Text>
+          <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">
+            {t('market.scoutingReports')}
+          </Text>
           {viewModel.scouting.reports.map((report, index) => (
             <Pressable
               key={report.playerId}
               accessibilityRole="button"
-              accessibilityLabel={t('market.a11y.fullScoutingReportFor', { player: report.playerName })}
+              accessibilityLabel={t('market.a11y.fullScoutingReportFor', {
+                player: report.playerName,
+              })}
               onPress={() => onOpenScoutReport(report.playerId)}
-              className={guideFocus === 'scout-report' && index === 0
-                ? 'relative border-2 border-b-4 border-blue-dark bg-blue-light p-3'
-                : 'relative border-2 border-b-4 border-ink bg-white p-3'}
+              className={
+                guideFocus === 'scout-report' && index === 0
+                  ? 'relative border-2 border-b-4 border-blue-dark bg-blue-light p-3'
+                  : 'relative border-2 border-b-4 border-ink bg-white p-3'
+              }
               style={({ pressed }) => ({
                 opacity: pressed ? 0.78 : 1,
                 ...(guideFocus === 'scout-report' && index === 0
@@ -461,15 +678,26 @@ function ScoutingDesk({
               ) : null}
               <View className="flex-row items-start justify-between gap-3">
                 <View className="overflow-hidden border-2 border-ink bg-blue-light">
-                  <PixelPortrait playerId={report.playerId} role={report.role} lookId={report.lookId} />
+                  <PixelPortrait
+                    playerId={report.playerId}
+                    role={report.role}
+                    lookId={report.lookId}
+                  />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-lg font-bold text-ink" numberOfLines={1}>{report.playerName}</Text>
+                  <Text
+                    className="text-lg font-bold text-ink"
+                    numberOfLines={1}
+                  >
+                    {report.playerName}
+                  </Text>
                   <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
                     {report.role} · {report.ageLabel}
                   </Text>
                   <Text className="mt-1 font-pixel text-sm uppercase text-gold-dark">
-                    {t('market.potentialValue', { grade: report.potentialLabel })}
+                    {t('market.potentialValue', {
+                      grade: report.potentialLabel,
+                    })}
                   </Text>
                 </View>
               </View>
@@ -479,74 +707,121 @@ function ScoutingDesk({
                       and falls back to the system face on purpose — typed inside
                       the pixel-font string it flipped the face mid-word. */}
                   <Text className="text-sm text-ink">★</Text>
-                  <Text className="font-pixel text-sm uppercase text-ink">{t('market.confirmedPower', { power: report.powerLabel })}</Text>
+                  <Text className="font-pixel text-sm uppercase text-ink">
+                    {t('market.confirmedPower', { power: report.powerLabel })}
+                  </Text>
                 </View>
               ) : null}
               {report.rumorLabel ? (
                 <View className="mt-3 flex-row items-center gap-1.5 border-2 border-gold-dark bg-gold-light px-3 py-2">
                   <Text className="text-sm text-ink">★</Text>
-                  <Text className="font-pixel text-sm uppercase text-ink">{report.rumorLabel}</Text>
+                  <Text className="font-pixel text-sm uppercase text-ink">
+                    {report.rumorLabel}
+                  </Text>
                 </View>
               ) : null}
               <View className="mt-3 flex-row flex-wrap gap-1.5">
-                {report.stats.map(stat => (
-                  <View key={stat.label} className="min-w-[30%] flex-1 border border-ink/25 bg-paper px-2 py-1.5">
-                    <PixelText className="text-sm uppercase text-ink/50">{stat.label}</PixelText>
-                    <Text className="mt-0.5 font-mono text-base text-ink">{stat.rangeLabel}</Text>
+                {report.stats.map((stat) => (
+                  <View
+                    key={stat.label}
+                    className="min-w-[30%] flex-1 border border-ink/25 bg-paper px-2 py-1.5"
+                  >
+                    <PixelText className="text-sm uppercase text-ink/50">
+                      {stat.label}
+                    </PixelText>
+                    <Text className="mt-0.5 font-mono text-base text-ink">
+                      {stat.rangeLabel}
+                    </Text>
                   </View>
                 ))}
               </View>
-              <Text className="mt-3 text-right font-pixel text-sm uppercase text-blue-dark">{t('market.fullReportRangesShown')}</Text>
+              <Text className="mt-3 text-right font-pixel text-sm uppercase text-blue-dark">
+                {t('market.fullReportRangesShown')}
+              </Text>
             </Pressable>
           ))}
         </View>
       ) : (
         <View className="mt-5 gap-3">
-          <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">{t('market.missionSlips')}</Text>
+          <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">
+            {t('market.missionSlips')}
+          </Text>
           {viewModel.scouting.choices.length === 0 ? (
             <EmptyDocket
               title={t('market.noMissionsOnOffer')}
               detail={t('market.scoutingAssignmentsAreDrawn')}
             />
-          ) : viewModel.scouting.choices.map((choice, index) => (
-            <View
-              key={choice.id}
-              className={choice.available
-                ? 'border-2 border-b-4 border-ink bg-white p-3'
-                : 'border-2 border-ink/25 bg-white/50 p-3 opacity-60'}
-            >
-              <View className="flex-row items-start justify-between gap-3">
-                <View className="flex-1">
-                  <PixelText className="text-base uppercase text-ink">{choice.regionLabel}</PixelText>
-                  <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">{choice.focusLabel}</Text>
+          ) : (
+            viewModel.scouting.choices.map((choice, index) => (
+              <View
+                key={choice.id}
+                className={
+                  choice.available
+                    ? 'border-2 border-b-4 border-ink bg-white p-3'
+                    : 'border-2 border-ink/25 bg-white/50 p-3 opacity-60'
+                }
+              >
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="flex-1">
+                    <PixelText className="text-base uppercase text-ink">
+                      {choice.regionLabel}
+                    </PixelText>
+                    <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
+                      {choice.focusLabel}
+                    </Text>
+                  </View>
+                  <Text className="font-mono text-base text-ink">
+                    {choice.feeWaived === true
+                      ? t('market.free')
+                      : formatCurrency(t, choice.cost)}
+                  </Text>
                 </View>
-                <Text className="font-mono text-base text-ink">
-                  {choice.feeWaived === true ? t('market.free') : formatCurrency(t, choice.cost)}
+                <Text className="mt-2 text-sm leading-5 text-ink/60">
+                  {choice.detail}
                 </Text>
+                <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/15 pt-3">
+                  <Text className="font-mono text-sm uppercase text-ink/50">
+                    {choice.durationLabel}
+                  </Text>
+                  <GuidedAction
+                    enabled={guideFocus === 'scout-mission' && index === 0}
+                    detail={t('market.sendTheScout')}
+                    targetRef={
+                      choice.id === scrollDismissTargetId
+                        ? southAmericaScoutActionRef
+                        : undefined
+                    }
+                  >
+                    <SmallAction
+                      label={
+                        choice.feeWaived === true
+                          ? t('market.sendFreeScout')
+                          : t('market.sendScout')
+                      }
+                      accessibilityLabel={
+                        choice.feeWaived === true
+                          ? t('market.a11y.sendScoutFreeFirstTrip', {
+                              region: choice.regionLabel,
+                              focus: choice.focusLabel,
+                            })
+                          : t('market.a11y.sendScoutTo', {
+                              region: choice.regionLabel,
+                              focus: choice.focusLabel,
+                            })
+                      }
+                      disabled={!choice.available}
+                      onPress={() => onStartScoutMission(choice.id)}
+                    />
+                  </GuidedAction>
+                </View>
+                {choice.blockedReason ? (
+                  <Text className="mt-2 text-right text-sm font-bold text-stamp">
+                    {choice.blockedReason}
+                  </Text>
+                ) : null}
               </View>
-              <Text className="mt-2 text-sm leading-5 text-ink/60">{choice.detail}</Text>
-              <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/15 pt-3">
-                <Text className="font-mono text-sm uppercase text-ink/50">{choice.durationLabel}</Text>
-                <GuidedAction
-                  enabled={guideFocus === 'scout-mission' && index === 0}
-                  detail={t('market.sendTheScout')}
-                  targetRef={choice.id === scrollDismissTargetId ? southAmericaScoutActionRef : undefined}
-                >
-                  <SmallAction
-                    label={choice.feeWaived === true ? t('market.sendFreeScout') : t('market.sendScout')}
-                    accessibilityLabel={choice.feeWaived === true
-                      ? t('market.a11y.sendScoutFreeFirstTrip', { region: choice.regionLabel, focus: choice.focusLabel })
-                      : t('market.a11y.sendScoutTo', { region: choice.regionLabel, focus: choice.focusLabel })}
-                    disabled={!choice.available}
-                    onPress={() => onStartScoutMission(choice.id)}
-                  />
-                </GuidedAction>
-              </View>
-              {choice.blockedReason ? (
-                <Text className="mt-2 text-right text-sm font-bold text-stamp">{choice.blockedReason}</Text>
-              ) : null}
-            </View>
-          ))}
+            ))
+          )}
         </View>
       )}
     </View>
@@ -559,44 +834,81 @@ function TransferDesk({
   guideFocus,
 }: Pick<MarketScreenProps, 'viewModel' | 'onTransferAction' | 'guideFocus'>) {
   const t = useCopy();
-  const guidedListing = guideFocus === 'transfer-list'
-    ? viewModel.transfers.find(listing => listing.direction === 'SELL' && !listing.listed)
-    : guideFocus === 'transfer-bid'
-      ? viewModel.transfers.find(listing => listing.direction === 'SELL' && listing.bids.length > 0)
-      : undefined;
+  const guidedListing =
+    guideFocus === 'transfer-list'
+      ? viewModel.transfers.find(
+          (listing) => listing.direction === 'SELL' && !listing.listed,
+        )
+      : guideFocus === 'transfer-bid'
+        ? viewModel.transfers.find(
+            (listing) =>
+              listing.direction === 'SELL' && listing.bids.length > 0,
+          )
+        : undefined;
   return (
     <View>
       <SectionLabel
         eyebrow={t('market.transfers')}
         title={t('market.buyPlayersSellYour')}
-        right={<StatusChip label={viewModel.window.label} tone={viewModel.window.open ? 'success' : 'danger'} />}
+        right={
+          <StatusChip
+            label={viewModel.window.label}
+            tone={viewModel.window.open ? 'success' : 'danger'}
+          />
+        }
       />
       {viewModel.transfers.length === 0 ? (
-        <EmptyDocket title={t('market.noTransferActivity')} detail={t('market.scoutedPlayersAndListed')} />
+        <EmptyDocket
+          title={t('market.noTransferActivity')}
+          detail={t('market.scoutedPlayersAndListed')}
+        />
       ) : (
         <View className="gap-3">
-          {viewModel.transfers.map(listing => (
-            <View key={`${listing.direction}-${listing.playerId}`} className="border-2 border-b-4 border-ink bg-white">
-              <View className={listing.direction === 'BUY'
-                ? 'flex-row items-start justify-between gap-3 border-b-2 border-blue-dark bg-blue-light px-3 py-3'
-                : 'flex-row items-start justify-between gap-3 border-b-2 border-pitch-dark bg-pitch-light px-3 py-3'}>
+          {viewModel.transfers.map((listing) => (
+            <View
+              key={`${listing.direction}-${listing.playerId}`}
+              className="border-2 border-b-4 border-ink bg-white"
+            >
+              <View
+                className={
+                  listing.direction === 'BUY'
+                    ? 'flex-row items-start justify-between gap-3 border-b-2 border-blue-dark bg-blue-light px-3 py-3'
+                    : 'flex-row items-start justify-between gap-3 border-b-2 border-pitch-dark bg-pitch-light px-3 py-3'
+                }
+              >
                 <View className="overflow-hidden border-2 border-ink bg-white">
-                  <PixelPortrait playerId={listing.playerId} role={listing.role} lookId={listing.lookId} />
+                  <PixelPortrait
+                    playerId={listing.playerId}
+                    role={listing.role}
+                    lookId={listing.lookId}
+                  />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-lg font-bold text-ink" numberOfLines={1}>{listing.playerName}</Text>
+                  <Text
+                    className="text-lg font-bold text-ink"
+                    numberOfLines={1}
+                  >
+                    {listing.playerName}
+                  </Text>
                   <Text className="mt-1 font-pixel text-sm uppercase text-ink/60">
-                    {t('market.roleAndAge', { role: listing.role, age: listing.age })}
+                    {t('market.roleAndAge', {
+                      role: listing.role,
+                      age: listing.age,
+                    })}
                   </Text>
                   <Text className="mt-1 font-pixel text-sm uppercase text-gold-dark">
-                    {t('market.potentialValue', { grade: listing.potentialLabel })}
+                    {t('market.potentialValue', {
+                      grade: listing.potentialLabel,
+                    })}
                   </Text>
                 </View>
                 <View className="border-2 border-ink bg-white px-2 py-1">
                   <PixelText className="text-sm uppercase text-ink">
                     {listing.direction === 'BUY'
                       ? t('market.target')
-                      : listing.listed ? t('market.bidsIn') : t('market.available')}
+                      : listing.listed
+                        ? t('market.bidsIn')
+                        : t('market.available')}
                   </PixelText>
                 </View>
               </View>
@@ -604,9 +916,20 @@ function TransferDesk({
                 {/* No ★ prefix: the glyph is missing from Silkscreen and flipped
                     the chip to the system face mid-string; the gold hero tone
                     already marks the power. */}
-                {listing.powerLabel ? <StatusChip label={listing.powerLabel} tone="hero" /> : null}
-                <View className={listing.powerLabel ? 'mt-3 flex-row gap-2' : 'flex-row gap-2'}>
-                  <Metric label={t('market.valuation')} value={formatCurrency(t, listing.valuation)} />
+                {listing.powerLabel ? (
+                  <StatusChip label={listing.powerLabel} tone="hero" />
+                ) : null}
+                <View
+                  className={
+                    listing.powerLabel
+                      ? 'mt-3 flex-row gap-2'
+                      : 'flex-row gap-2'
+                  }
+                >
+                  <Metric
+                    label={t('market.valuation')}
+                    value={formatCurrency(t, listing.valuation)}
+                  />
                   <Metric
                     label={listing.quoteLabel}
                     value={formatCurrency(t, listing.quote)}
@@ -615,19 +938,31 @@ function TransferDesk({
                 </View>
                 <View className="mt-3 flex-row items-center justify-between gap-3">
                   <Text className="flex-1 text-sm text-ink/55">
-                    {listing.blockedReason ?? (listing.direction === 'BUY'
-                      ? t('market.feeFirstPlayerTerms')
-                      : listing.listed
-                        ? t('market.reviewTheSavedBid')
-                        : t('market.listThePlayerTo'))}
+                    {listing.blockedReason ??
+                      (listing.direction === 'BUY'
+                        ? t('market.feeFirstPlayerTerms')
+                        : listing.listed
+                          ? t('market.reviewTheSavedBid')
+                          : t('market.listThePlayerTo'))}
                   </Text>
                   {listing.direction === 'BUY' || !listing.listed ? (
-                    <GuidedAction enabled={guideFocus === 'transfer-list' && listing === guidedListing} detail={t('market.requestTheBids')}>
+                    <GuidedAction
+                      enabled={
+                        guideFocus === 'transfer-list' &&
+                        listing === guidedListing
+                      }
+                      detail={t('market.requestTheBids')}
+                    >
                       <SmallAction
                         label={listing.actionLabel}
-                        accessibilityLabel={t('market.a11y.actionForPlayer', { action: listing.actionLabel, player: listing.playerName })}
+                        accessibilityLabel={t('market.a11y.actionForPlayer', {
+                          action: listing.actionLabel,
+                          player: listing.playerName,
+                        })}
                         disabled={!listing.available}
-                        onPress={() => onTransferAction(listing.playerId, listing.direction)}
+                        onPress={() =>
+                          onTransferAction(listing.playerId, listing.direction)
+                        }
                       />
                     </GuidedAction>
                   ) : null}
@@ -636,32 +971,57 @@ function TransferDesk({
                   <View className="mt-3 gap-2 border-t-2 border-ink/15 pt-3">
                     {listing.bids.length === 0 ? (
                       <View className="items-center border-2 border-dashed border-ink/25 bg-white/50 px-3 py-4">
-                        <PixelText className="text-sm uppercase text-ink/60">{t('market.listedNoBidsYet')}</PixelText>
+                        <PixelText className="text-sm uppercase text-ink/60">
+                          {t('market.listedNoBidsYet')}
+                        </PixelText>
                         <Text className="mt-1 text-center text-sm leading-5 text-ink/55">
-                          {t('market.rivalClubsReviewThe')}</Text>
+                          {t('market.rivalClubsReviewThe')}
+                        </Text>
                       </View>
-                    ) : listing.bids.map((bid, index) => (
-                      <View key={bid.id} className="flex-row items-center gap-3 border-2 border-ink bg-paper px-3 py-2">
-                        <View className="flex-1">
-                          <Text className="font-bold text-ink">{index + 1}. {bid.buyerName}</Text>
-                          <Text className="mt-1 font-mono text-sm text-pitch-ink">
-                            {t('market.feeAmount', { fee: formatCurrency(t, bid.fee) })}
-                          </Text>
+                    ) : (
+                      listing.bids.map((bid, index) => (
+                        <View
+                          key={bid.id}
+                          className="flex-row items-center gap-3 border-2 border-ink bg-paper px-3 py-2"
+                        >
+                          <View className="flex-1">
+                            <Text className="font-bold text-ink">
+                              {index + 1}. {bid.buyerName}
+                            </Text>
+                            <Text className="mt-1 font-mono text-sm text-pitch-ink">
+                              {t('market.feeAmount', {
+                                fee: formatCurrency(t, bid.fee),
+                              })}
+                            </Text>
+                          </View>
+                          <GuidedAction
+                            enabled={
+                              guideFocus === 'transfer-bid' &&
+                              listing === guidedListing &&
+                              index === 0
+                            }
+                            detail={t('market.reviewThisBid')}
+                          >
+                            <SmallAction
+                              label={t('market.accept')}
+                              accessibilityLabel={t('market.a11y.acceptBid', {
+                                club: bid.buyerName,
+                                fee: formatCurrency(t, bid.fee),
+                                player: listing.playerName,
+                              })}
+                              disabled={!listing.available}
+                              onPress={() =>
+                                onTransferAction(
+                                  listing.playerId,
+                                  'SELL',
+                                  bid.id,
+                                )
+                              }
+                            />
+                          </GuidedAction>
                         </View>
-                        <GuidedAction enabled={guideFocus === 'transfer-bid' && listing === guidedListing && index === 0} detail={t('market.reviewThisBid')}>
-                          <SmallAction
-                            label={t('market.accept')}
-                            accessibilityLabel={t('market.a11y.acceptBid', {
-                              club: bid.buyerName,
-                              fee: formatCurrency(t, bid.fee),
-                              player: listing.playerName,
-                            })}
-                            disabled={!listing.available}
-                            onPress={() => onTransferAction(listing.playerId, 'SELL', bid.id)}
-                          />
-                        </GuidedAction>
-                      </View>
-                    ))}
+                      ))
+                    )}
                   </View>
                 ) : null}
               </View>
@@ -683,29 +1043,48 @@ function CoachDesk({
       <SectionLabel
         eyebrow={t('market.pre-seasonShortlist')}
         title={t('market.aVoiceForThe')}
-        right={<StatusChip label={t('market.candidates', { n: viewModel.coaches.length, count: viewModel.coaches.length })} />}
+        right={
+          <StatusChip
+            label={t('market.candidates', {
+              n: viewModel.coaches.length,
+              count: viewModel.coaches.length,
+            })}
+          />
+        }
       />
       {viewModel.coaches.length === 0 ? (
-        <EmptyDocket title={t('market.shortlistPending')} detail={t('market.coachCandidatesRefreshEach')} />
+        <EmptyDocket
+          title={t('market.shortlistPending')}
+          detail={t('market.coachCandidatesRefreshEach')}
+        />
       ) : (
         <View className="gap-3">
-          {viewModel.coaches.map(coach => (
+          {viewModel.coaches.map((coach) => (
             <View
               key={coach.id}
-              className={coach.retiredLegend
-                ? 'border-2 border-b-4 border-gold-dark bg-gold-light p-3'
-                : 'border-2 border-b-4 border-ink bg-white p-3'}
+              className={
+                coach.retiredLegend
+                  ? 'border-2 border-b-4 border-gold-dark bg-gold-light p-3'
+                  : 'border-2 border-b-4 border-ink bg-white p-3'
+              }
             >
               <View className="flex-row items-start gap-3">
                 <View className="border-2 border-b-4 border-ink bg-blue-light px-2 pt-2">
                   <ManagementSprite
                     spriteKey={`coach:${coach.portraitId}:rest`}
                     width={72}
-                    accessibilityLabel={t('market.a11y.coachPortrait', { name: coach.name })}
+                    accessibilityLabel={t('market.a11y.coachPortrait', {
+                      name: coach.name,
+                    })}
                   />
                 </View>
                 <View className="min-w-0 flex-1">
-                  <Text className="text-lg font-bold text-ink" numberOfLines={1}>{coach.name}</Text>
+                  <Text
+                    className="text-lg font-bold text-ink"
+                    numberOfLines={1}
+                  >
+                    {coach.name}
+                  </Text>
                   <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
                     {t('market.coachAgeLine', {
                       age: coach.age,
@@ -714,16 +1093,23 @@ function CoachDesk({
                     })}
                   </Text>
                   {coach.retiredLegend ? (
-                    <View className="mt-2 self-start -rotate-2 border-2 border-gold-dark bg-white px-2 py-1">
-                      <PixelText className="text-sm uppercase text-gold-dark">{t('market.clubLegend')}</PixelText>
+                    <View className="mt-2 -rotate-2 self-start border-2 border-gold-dark bg-white px-2 py-1">
+                      <PixelText className="text-sm uppercase text-gold-dark">
+                        {t('market.clubLegend')}
+                      </PixelText>
                     </View>
                   ) : null}
                 </View>
               </View>
               <View className="mt-3 flex-row gap-2">
-                {coach.specialtyLabels.map(specialty => (
-                  <View key={specialty} className="flex-1 border-2 border-ink bg-paper px-2 py-2">
-                    <PixelText className="text-center text-sm uppercase text-ink">{specialty}</PixelText>
+                {coach.specialtyLabels.map((specialty) => (
+                  <View
+                    key={specialty}
+                    className="flex-1 border-2 border-ink bg-paper px-2 py-2"
+                  >
+                    <PixelText className="text-center text-sm uppercase text-ink">
+                      {specialty}
+                    </PixelText>
                   </View>
                 ))}
               </View>
@@ -731,49 +1117,81 @@ function CoachDesk({
                 <Text className="font-pixel text-sm uppercase text-ink">
                   {coach.assistantSlotUnlocked
                     ? t('market.coachWagesWithAssistant', {
-                      head: formatCurrency(t, coach.headWeeklyWage),
-                      assistant: formatCurrency(t, coach.assistantWeeklyWage),
-                    })
-                    : t('market.coachWages', { head: formatCurrency(t, coach.headWeeklyWage) })}
+                        head: formatCurrency(t, coach.headWeeklyWage),
+                        assistant: formatCurrency(t, coach.assistantWeeklyWage),
+                      })
+                    : t('market.coachWages', {
+                        head: formatCurrency(t, coach.headWeeklyWage),
+                      })}
                 </Text>
                 <View className="mt-2 border-t border-blue-dark/25 pt-2">
-                  <Text className="font-pixel text-sm uppercase text-blue-dark">{t('market.asHeadCoach')}</Text>
-                  {coach.headEffectLabels.map(effect => (
-                    <Text key={`head-${effect}`} className="mt-1 text-sm font-bold text-ink">{effect}</Text>
+                  <Text className="font-pixel text-sm uppercase text-blue-dark">
+                    {t('market.asHeadCoach')}
+                  </Text>
+                  {coach.headEffectLabels.map((effect) => (
+                    <Text
+                      key={`head-${effect}`}
+                      className="mt-1 text-sm font-bold text-ink"
+                    >
+                      {effect}
+                    </Text>
                   ))}
                 </View>
                 {coach.assistantSlotUnlocked ? (
                   <View className="mt-2 border-t border-blue-dark/25 pt-2">
-                    <Text className="font-pixel text-sm uppercase text-blue-dark">{t('market.asAssistant')}</Text>
-                    {coach.assistantEffectLabels.map(effect => (
-                      <Text key={`assistant-${effect}`} className="mt-1 text-sm text-ink/75">{effect}</Text>
+                    <Text className="font-pixel text-sm uppercase text-blue-dark">
+                      {t('market.asAssistant')}
+                    </Text>
+                    {coach.assistantEffectLabels.map((effect) => (
+                      <Text
+                        key={`assistant-${effect}`}
+                        className="mt-1 text-sm text-ink/75"
+                      >
+                        {effect}
+                      </Text>
                     ))}
                   </View>
                 ) : null}
-                {coach.unlockLabel ? <Text className="mt-1 text-sm text-ink/65">{coach.unlockLabel}</Text> : null}
-                {coach.loyaltyLabel ? <Text className="mt-1 text-sm font-bold text-gold-dark">{coach.loyaltyLabel}</Text> : null}
+                {coach.unlockLabel ? (
+                  <Text className="mt-1 text-sm text-ink/65">
+                    {coach.unlockLabel}
+                  </Text>
+                ) : null}
+                {coach.loyaltyLabel ? (
+                  <Text className="mt-1 text-sm font-bold text-gold-dark">
+                    {coach.loyaltyLabel}
+                  </Text>
+                ) : null}
               </View>
               <View className="mt-3 gap-2">
                 <Text className="text-sm text-stamp">
                   {coach.currentRole === undefined
-                    ? coach.blockedReason ?? t('market.availableToHire')
-                    : t(coach.currentRole === 'HEAD'
-                      ? 'market.currentRoleHead'
-                      : 'market.currentRoleAssistant')}
+                    ? (coach.blockedReason ?? t('market.availableToHire'))
+                    : t(
+                        coach.currentRole === 'HEAD'
+                          ? 'market.currentRoleHead'
+                          : 'market.currentRoleAssistant',
+                      )}
                 </Text>
                 {!coach.assistantSlotUnlocked ? (
-                  <Text className="text-sm font-bold text-blue-dark">{t('market.buildTheCoachingOffice')}</Text>
+                  <Text className="text-sm font-bold text-blue-dark">
+                    {t('market.buildTheCoachingOffice')}
+                  </Text>
                 ) : null}
                 <View className="flex-row justify-end gap-2">
                   <SmallAction
                     label={t('market.hireAsHead')}
-                    accessibilityLabel={t('market.a11y.hireAsHeadCoach', { name: coach.name })}
+                    accessibilityLabel={t('market.a11y.hireAsHeadCoach', {
+                      name: coach.name,
+                    })}
                     disabled={!coach.headAvailable}
                     onPress={() => onHireCoach(coach.id, 'HEAD')}
                   />
                   <SmallAction
                     label={t('market.hireAsAssistant')}
-                    accessibilityLabel={t('market.a11y.hireAsAssistantCoach', { name: coach.name })}
+                    accessibilityLabel={t('market.a11y.hireAsAssistantCoach', {
+                      name: coach.name,
+                    })}
                     disabled={!coach.assistantAvailable}
                     onPress={() => onHireCoach(coach.id, 'ASSISTANT')}
                   />
@@ -807,12 +1225,18 @@ export interface ContractDraft {
  * dragging a desktop window wider mid-negotiation no longer silently discards
  * the wage, term, promise, and pitch card the user had dialled in.
  */
-export function useContractDraft(viewModel: MarketNegotiationViewModel | undefined): ContractDraft {
+export function useContractDraft(
+  viewModel: MarketNegotiationViewModel | undefined,
+): ContractDraft {
   // A veteran may not be offered the usual two seasons, so the default has to
   // bend to the cap or the panel opens on a term the button cannot submit.
   const maxTerm = viewModel?.termOptions.at(-1) ?? 3;
-  const [weeklyWage, setWeeklyWage] = useState(viewModel?.initialWeeklyWage ?? 0);
-  const [termSeasons, setTermSeasons] = useState<1 | 2 | 3>(Math.min(2, maxTerm) as 1 | 2 | 3);
+  const [weeklyWage, setWeeklyWage] = useState(
+    viewModel?.initialWeeklyWage ?? 0,
+  );
+  const [termSeasons, setTermSeasons] = useState<1 | 2 | 3>(
+    Math.min(2, maxTerm) as 1 | 2 | 3,
+  );
   const [perk, setPerk] = useState<ContractPerk>(contractDraftPerk(viewModel));
   const [pitchCard, setPitchCard] = useState<PitchCard | undefined>();
 
@@ -851,8 +1275,14 @@ export function useContractDraft(viewModel: MarketNegotiationViewModel | undefin
   }, [id, initialWeeklyWage]);
 
   return {
-    weeklyWage, setWeeklyWage, termSeasons, setTermSeasons,
-    perk, setPerk, pitchCard, setPitchCard,
+    weeklyWage,
+    setWeeklyWage,
+    termSeasons,
+    setTermSeasons,
+    perk,
+    setPerk,
+    pitchCard,
+    setPitchCard,
   };
 }
 
@@ -874,7 +1304,16 @@ export function NegotiationPanel({
   flush?: boolean;
 }) {
   const t = useCopy();
-  const { weeklyWage, setWeeklyWage, termSeasons, setTermSeasons, perk, setPerk, pitchCard, setPitchCard } = draft;
+  const {
+    weeklyWage,
+    setWeeklyWage,
+    termSeasons,
+    setTermSeasons,
+    perk,
+    setPerk,
+    pitchCard,
+    setPitchCard,
+  } = draft;
   // Talks allow three rounds and the panel re-renders in place after each one,
   // so a double-tap spends two of them on the identical offer — and a third
   // round reached that way can end the negotiation outright.
@@ -893,30 +1332,39 @@ export function NegotiationPanel({
    * outside the quoted set, in which case the readout shows a dash rather than
    * inventing a wage.
    */
-  const requiredWage = viewModel.requiredWeeklyWageByOffer[
-    offerQuoteKey(termSeasons, perk, pitchCard)
-  ];
-  const selectedPerk = viewModel.perks.find(option => option.id === perk);
+  const requiredWage =
+    viewModel.requiredWeeklyWageByOffer[
+      offerQuoteKey(termSeasons, perk, pitchCard)
+    ];
+  const selectedPerk = viewModel.perks.find((option) => option.id === perk);
   const selectedPerkBlocked = selectedPerk?.available === false;
-  const moodClass = viewModel.mood === 'ANGRY' || viewModel.mood === 'UNHAPPY'
-    ? 'border-red-dark bg-red-light'
-    : viewModel.mood === 'PLEASED' || viewModel.mood === 'THRILLED'
-      ? 'border-pitch-dark bg-pitch-light'
-      : 'border-blue-dark bg-blue-light';
+  const moodClass =
+    viewModel.mood === 'ANGRY' || viewModel.mood === 'UNHAPPY'
+      ? 'border-red-dark bg-red-light'
+      : viewModel.mood === 'PLEASED' || viewModel.mood === 'THRILLED'
+        ? 'border-pitch-dark bg-pitch-light'
+        : 'border-blue-dark bg-blue-light';
 
   return (
-    <PaperPanel kicker={t('market.agentOnLineTwo')} title={viewModel.playerName} stamp={viewModel.roundLabel} className={flush ? undefined : 'mt-6'}>
+    <PaperPanel
+      kicker={t('market.agentOnLineTwo')}
+      title={viewModel.playerName}
+      stamp={viewModel.roundLabel}
+      className={flush ? undefined : 'mt-6'}
+    >
       <View className={`flex-row items-center gap-3 border-2 p-3 ${moodClass}`}>
         <View className="overflow-hidden border-2 border-ink bg-white">
           <PixelPortrait
             playerId={viewModel.playerId}
             role={viewModel.playerRole}
             lookId={viewModel.lookId}
-            expression={viewModel.mood === 'ANGRY' || viewModel.mood === 'UNHAPPY'
-              ? 'ko'
-              : viewModel.mood === 'PLEASED' || viewModel.mood === 'THRILLED'
-                ? 'joy'
-                : 'rest'}
+            expression={
+              viewModel.mood === 'ANGRY' || viewModel.mood === 'UNHAPPY'
+                ? 'ko'
+                : viewModel.mood === 'PLEASED' || viewModel.mood === 'THRILLED'
+                  ? 'joy'
+                  : 'rest'
+            }
           />
         </View>
         <View className="flex-1">
@@ -925,7 +1373,9 @@ export function NegotiationPanel({
               already-labelled mood, so it is hidden from screen readers rather
               than read out as punctuation. */}
           <View className="flex-row items-center gap-2">
-            <Text className="font-pixel text-base uppercase text-ink">{viewModel.moodLabel}</Text>
+            <Text className="font-pixel text-base uppercase text-ink">
+              {viewModel.moodLabel}
+            </Text>
             <Text
               className="font-mono text-base text-ink/70"
               accessibilityElementsHidden
@@ -934,7 +1384,11 @@ export function NegotiationPanel({
               {viewModel.moodFace}
             </Text>
           </View>
-          <PixelText className="mt-1 text-sm uppercase text-ink/60">{t('market.personalityLine', { personality: viewModel.personalityLabel })}</PixelText>
+          <PixelText className="mt-1 text-sm uppercase text-ink/60">
+            {t('market.personalityLine', {
+              personality: viewModel.personalityLabel,
+            })}
+          </PixelText>
           <Text className="mt-2 font-pixel text-sm uppercase text-blue-dark">
             {viewModel.pitchLeverageLabel}
           </Text>
@@ -943,7 +1397,9 @@ export function NegotiationPanel({
 
       {viewModel.lastOutcomeLabel ? (
         <View className="mt-3 border-2 border-stamp bg-red-light px-3 py-2">
-          <Text className="text-sm font-bold text-ink">{viewModel.lastOutcomeLabel}</Text>
+          <Text className="text-sm font-bold text-ink">
+            {viewModel.lastOutcomeLabel}
+          </Text>
         </View>
       ) : null}
 
@@ -958,7 +1414,9 @@ export function NegotiationPanel({
             <PixelText className="text-sm uppercase tracking-wide text-stamp">
               {t('market.finalOffer')}
             </PixelText>
-            <Text className="mt-2 text-sm leading-5 text-ink/80">{finalDemand.line}</Text>
+            <Text className="mt-2 text-sm leading-5 text-ink/80">
+              {finalDemand.line}
+            </Text>
           </View>
           <View className="mt-3 flex-row items-center justify-between border-2 border-ink bg-white px-3 py-3">
             <PixelText className="text-sm uppercase text-ink/50">
@@ -971,8 +1429,9 @@ export function NegotiationPanel({
           <Text className="mt-2 text-center text-sm text-ink/50">
             {t('market.finalTerms', {
               seasons: finalDemand.termSeasons,
-              promise: viewModel.perks.find(entry => entry.id === finalDemand.perk)?.label
-                ?? finalDemand.perk,
+              promise:
+                viewModel.perks.find((entry) => entry.id === finalDemand.perk)
+                  ?.label ?? finalDemand.perk,
             })}
           </Text>
           <View className="mt-3">
@@ -985,17 +1444,23 @@ export function NegotiationPanel({
                 seasons: finalDemand.termSeasons,
               })}
               variant="confirm"
-              onPress={() => guardTap(() => onSubmitContractOffer({
-                weeklyWage: finalDemand.weeklyWage,
-                termSeasons: finalDemand.termSeasons,
-                perk: finalDemand.perk,
-              }))}
+              onPress={() =>
+                guardTap(() =>
+                  onSubmitContractOffer({
+                    weeklyWage: finalDemand.weeklyWage,
+                    termSeasons: finalDemand.termSeasons,
+                    perk: finalDemand.perk,
+                  }),
+                )
+              }
             />
           </View>
           <View className="mt-2">
             <ActionButton
               label={t('market.walkAway')}
-              accessibilityLabel={t('market.a11y.closeCompletedContractNegotiation')}
+              accessibilityLabel={t(
+                'market.a11y.closeCompletedContractNegotiation',
+              )}
               variant="paper"
               onPress={onClose}
             />
@@ -1011,20 +1476,33 @@ export function NegotiationPanel({
             <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink/60">
               {t('market.wageNeeded')}
             </PixelText>
-            <Text className={requiredWage !== undefined && weeklyWage >= requiredWage
-              ? 'font-mono text-xl text-pitch-ink'
-              : 'font-mono text-xl text-stamp'}
+            <Text
+              className={
+                requiredWage !== undefined && weeklyWage >= requiredWage
+                  ? 'font-mono text-xl text-pitch-ink'
+                  : 'font-mono text-xl text-stamp'
+              }
             >
-              {requiredWage === undefined ? '—' : formatCurrency(t, requiredWage)}
+              {requiredWage === undefined
+                ? '—'
+                : formatCurrency(t, requiredWage)}
             </Text>
           </View>
           <View className="mt-4">
-            <Text className="font-pixel text-sm uppercase text-stamp">{t('market.1WeeklyWage')}</Text>
+            <Text className="font-pixel text-sm uppercase text-stamp">
+              {t('market.1WeeklyWage')}
+            </Text>
             <View className="mt-2 flex-row items-stretch gap-2">
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t('market.a11y.reduceWeeklyWageBy', { amount: formatCurrency(t, viewModel.wageStep) })}
-                onPress={() => setWeeklyWage(value => Math.max(viewModel.wageStep, value - viewModel.wageStep))}
+                accessibilityLabel={t('market.a11y.reduceWeeklyWageBy', {
+                  amount: formatCurrency(t, viewModel.wageStep),
+                })}
+                onPress={() =>
+                  setWeeklyWage((value) =>
+                    Math.max(viewModel.wageStep, value - viewModel.wageStep),
+                  )
+                }
                 className="h-12 w-12 items-center justify-center border-2 border-b-4 border-ink bg-paper-dark"
                 // Explicit points: h-12 is 42pt on native, under the 44pt
                 // touch-target contract — see ActionButton's minHeight.
@@ -1033,12 +1511,20 @@ export function NegotiationPanel({
                 <Text className="font-mono text-2xl font-bold text-ink">-</Text>
               </Pressable>
               <View className="h-12 flex-1 items-center justify-center border-2 border-ink bg-white">
-                <Text className="font-mono text-xl text-ink">{t('market.perWeekAmount', { amount: formatCurrency(t, weeklyWage) })}</Text>
+                <Text className="font-mono text-xl text-ink">
+                  {t('market.perWeekAmount', {
+                    amount: formatCurrency(t, weeklyWage),
+                  })}
+                </Text>
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t('market.a11y.increaseWeeklyWageBy', { amount: formatCurrency(t, viewModel.wageStep) })}
-                onPress={() => setWeeklyWage(value => value + viewModel.wageStep)}
+                accessibilityLabel={t('market.a11y.increaseWeeklyWageBy', {
+                  amount: formatCurrency(t, viewModel.wageStep),
+                })}
+                onPress={() =>
+                  setWeeklyWage((value) => value + viewModel.wageStep)
+                }
                 className="h-12 w-12 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light"
                 style={{ minWidth: 44, minHeight: 44 }}
               >
@@ -1048,20 +1534,28 @@ export function NegotiationPanel({
           </View>
 
           <View className="mt-4">
-            <Text className="font-pixel text-sm uppercase text-stamp">{t('market.2ContractTerm')}</Text>
+            <Text className="font-pixel text-sm uppercase text-stamp">
+              {t('market.2ContractTerm')}
+            </Text>
             <View className="mt-2 flex-row gap-2">
-              {viewModel.termOptions.map(term => (
+              {viewModel.termOptions.map((term) => (
                 <Pressable
                   key={term}
                   accessibilityRole="radio"
-                  accessibilityLabel={t('market.a11y.seasonContract', { seasons: term })}
+                  accessibilityLabel={t('market.a11y.seasonContract', {
+                    seasons: term,
+                  })}
                   accessibilityState={{ selected: termSeasons === term }}
                   onPress={() => setTermSeasons(term)}
-                  className={termSeasons === term
-                    ? 'min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light'
-                    : 'min-h-12 flex-1 items-center justify-center border-2 border-ink/30 bg-white'}
+                  className={
+                    termSeasons === term
+                      ? 'min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light'
+                      : 'min-h-12 flex-1 items-center justify-center border-2 border-ink/30 bg-white'
+                  }
                 >
-                  <Text className="font-pixel text-base text-ink">{t('market.termYears', { seasons: term })}</Text>
+                  <Text className="font-pixel text-base text-ink">
+                    {t('market.termYears', { seasons: term })}
+                  </Text>
                 </Pressable>
               ))}
             </View>
@@ -1073,7 +1567,8 @@ export function NegotiationPanel({
             {/* Term stacks with the promise at 0/3/6%, invisibly. One line
                 rather than a second grading system beside the first. */}
             <Text className="mt-2 text-sm leading-5 text-ink/50">
-              {t('market.longerDealsSweetenThe')}</Text>
+              {t('market.longerDealsSweetenThe')}
+            </Text>
           </View>
 
           {/* Full width, mirroring the pitch cards below: the grade sits where a
@@ -1082,23 +1577,28 @@ export function NegotiationPanel({
               why the promise consequences were never stated. */}
           <View className="mt-4">
             <View className="flex-row items-baseline justify-between gap-3">
-              <Text className="font-pixel text-sm uppercase text-stamp">{t('market.onePromise')}</Text>
+              <Text className="font-pixel text-sm uppercase text-stamp">
+                {t('market.onePromise')}
+              </Text>
               {/* Captions the grade column. Without it "A · Huge" reads as the
                   best promise for the club, when it is the one that sways the
                   agent most AND costs the squad most. */}
-              <PixelText className="text-sm uppercase text-ink/45">{t('market.valueToAgent')}</PixelText>
+              <PixelText className="text-sm uppercase text-ink/45">
+                {t('market.valueToAgent')}
+              </PixelText>
             </View>
             <View className="mt-2 gap-2">
-              {viewModel.perks.map(option => (
+              {viewModel.perks.map((option) => (
                 <Pressable
                   key={option.id}
                   accessibilityRole="radio"
                   accessibilityLabel={t('market.a11y.perkWorthToAgent', {
                     label: option.label,
                     grade: option.gradeLabel.replace(' · ', ', '),
-                    detail: option.blockedReason === undefined
-                      ? option.detail
-                      : `${option.detail} ${option.blockedReason}`,
+                    detail:
+                      option.blockedReason === undefined
+                        ? option.detail
+                        : `${option.detail} ${option.blockedReason}`,
                   })}
                   accessibilityState={{
                     selected: perk === option.id,
@@ -1106,11 +1606,13 @@ export function NegotiationPanel({
                   }}
                   disabled={!option.available}
                   onPress={() => setPerk(option.id)}
-                  className={!option.available
-                    ? 'min-h-14 border-2 border-ink/20 bg-ink/5 px-3 py-2 opacity-45'
-                    : perk === option.id
-                      ? 'min-h-14 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
-                      : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'}
+                  className={
+                    !option.available
+                      ? 'min-h-14 border-2 border-ink/20 bg-ink/5 px-3 py-2 opacity-45'
+                      : perk === option.id
+                        ? 'min-h-14 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
+                        : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'
+                  }
                 >
                   <View className="flex-row items-center justify-between gap-3">
                     <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink">
@@ -1120,9 +1622,13 @@ export function NegotiationPanel({
                       {option.gradeLabel}
                     </PixelText>
                   </View>
-                  <Text className="mt-1 text-sm text-ink/60">{option.detail}</Text>
+                  <Text className="mt-1 text-sm text-ink/60">
+                    {option.detail}
+                  </Text>
                   {option.blockedReason === undefined ? null : (
-                    <Text className="mt-1 text-sm font-bold text-stamp">{option.blockedReason}</Text>
+                    <Text className="mt-1 text-sm font-bold text-stamp">
+                      {option.blockedReason}
+                    </Text>
                   )}
                 </Pressable>
               ))}
@@ -1130,57 +1636,93 @@ export function NegotiationPanel({
           </View>
 
           <View className="mt-4">
-            <Text className="font-pixel text-sm uppercase text-stamp">{t('market.4PitchCardOptional')}</Text>
+            <Text className="font-pixel text-sm uppercase text-stamp">
+              {t('market.4PitchCardOptional')}
+            </Text>
             <View className="mt-2 gap-2">
               {viewModel.cards.length === 0 ? (
                 <EmptyDocket
                   title={t('market.noCardsInHand')}
                   detail={t('market.pitchCardsAreEarned')}
                 />
-              ) : viewModel.cards.map(card => {
-                const selected = pitchCard === card.id;
-                return (
-                  <Pressable
-                    key={card.id}
-                    accessibilityRole="radio"
-                    accessibilityLabel={t('market.a11y.cardLabelDetail', { label: card.label, detail: card.detail })}
-                    accessibilityState={{ selected, disabled: card.used }}
-                    disabled={card.used}
-                    onPress={() => setPitchCard(current => current === card.id ? undefined : card.id)}
-                    className={card.used
-                      ? 'min-h-14 border-2 border-ink/20 bg-ink/5 px-3 py-2 opacity-45'
-                      : selected
-                        ? 'min-h-14 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
-                        : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'}
-                  >
-                    <View className="flex-row items-center justify-between gap-3">
-                      <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink">{card.label}</PixelText>
-                      {/* The loved/hated mapping has always been in the engine
+              ) : (
+                viewModel.cards.map((card) => {
+                  const selected = pitchCard === card.id;
+                  return (
+                    <Pressable
+                      key={card.id}
+                      accessibilityRole="radio"
+                      accessibilityLabel={t('market.a11y.cardLabelDetail', {
+                        label: card.label,
+                        detail: card.detail,
+                      })}
+                      accessibilityState={{ selected, disabled: card.used }}
+                      disabled={card.used}
+                      onPress={() =>
+                        setPitchCard((current) =>
+                          current === card.id ? undefined : card.id,
+                        )
+                      }
+                      className={
+                        card.used
+                          ? 'min-h-14 border-2 border-ink/20 bg-ink/5 px-3 py-2 opacity-45'
+                          : selected
+                            ? 'min-h-14 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
+                            : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'
+                      }
+                    >
+                      <View className="flex-row items-center justify-between gap-3">
+                        <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink">
+                          {card.label}
+                        </PixelText>
+                        {/* The loved/hated mapping has always been in the engine
                           and never on screen, so a hated card cost 10% AND one
                           of only three rounds with no warning. Read as how the
                           player takes it, not as a rule being quoted at you. */}
-                      {card.used || card.affinity === undefined || card.affinity === 'NEUTRAL' ? null : (
-                        <Text className={card.affinity === 'LOVED'
-                          ? 'font-pixel text-sm uppercase text-pitch-ink'
-                          : 'font-pixel text-sm uppercase text-stamp'}
-                        >
-                          {card.affinity === 'LOVED' ? t('market.heLlLikeThis') : t('market.risky')}
+                        {card.used ||
+                        card.affinity === undefined ||
+                        card.affinity === 'NEUTRAL' ? null : (
+                          <Text
+                            className={
+                              card.affinity === 'LOVED'
+                                ? 'font-pixel text-sm uppercase text-pitch-ink'
+                                : 'font-pixel text-sm uppercase text-stamp'
+                            }
+                          >
+                            {card.affinity === 'LOVED'
+                              ? t('market.heLlLikeThis')
+                              : t('market.risky')}
+                          </Text>
+                        )}
+                        <Text className="font-pixel text-sm uppercase text-ink/50">
+                          {card.used
+                            ? t('market.played')
+                            : selected
+                              ? t('market.loaded')
+                              : t('market.card')}
                         </Text>
-                      )}
-                      <Text className="font-pixel text-sm uppercase text-ink/50">
-                        {card.used ? t('market.played') : selected ? t('market.loaded') : t('market.card')}
+                      </View>
+                      <Text className="mt-1 text-sm text-ink/60">
+                        {card.detail}
                       </Text>
-                    </View>
-                    <Text className="mt-1 text-sm text-ink/60">{card.detail}</Text>
-                  </Pressable>
-                );
-              })}
+                    </Pressable>
+                  );
+                })
+              )}
             </View>
           </View>
 
           <View
-            className={guided ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-4'}
-            style={guided ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
+            className={
+              guided
+                ? 'relative border-2 border-blue-dark bg-blue-light p-1'
+                : 'relative mt-4'
+            }
+            style={
+              guided
+                ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE }
+                : undefined
+            }
           >
             {guided ? (
               <TutorialTapCue
@@ -1194,19 +1736,32 @@ export function NegotiationPanel({
             ) : null}
             <ActionButton
               // '›' is in Silkscreen; '▸' is not and rendered in the fallback face.
-              label={walksOut ? t('market.theyWillWalkOut') : t('market.makeTheOfferArrow')}
-              accessibilityLabel={walksOut
-                ? t('market.a11y.offerBelowWalkOut', {
-                  wage: formatCurrency(t, weeklyWage),
-                  floor: formatCurrency(t, viewModel.walkOutWeeklyWage),
-                })
-                : t('market.a11y.offerPerWeekForSeasons', {
-                  wage: formatCurrency(t, weeklyWage),
-                  seasons: termSeasons,
-                })}
+              label={
+                walksOut
+                  ? t('market.theyWillWalkOut')
+                  : t('market.makeTheOfferArrow')
+              }
+              accessibilityLabel={
+                walksOut
+                  ? t('market.a11y.offerBelowWalkOut', {
+                      wage: formatCurrency(t, weeklyWage),
+                      floor: formatCurrency(t, viewModel.walkOutWeeklyWage),
+                    })
+                  : t('market.a11y.offerPerWeekForSeasons', {
+                      wage: formatCurrency(t, weeklyWage),
+                      seasons: termSeasons,
+                    })
+              }
               variant="confirm"
               disabled={selectedPerkBlocked}
-              onPress={() => guardTap(() => onSubmitContractOffer({ weeklyWage, termSeasons, perk }, pitchCard))}
+              onPress={() =>
+                guardTap(() =>
+                  onSubmitContractOffer(
+                    { weeklyWage, termSeasons, perk },
+                    pitchCard,
+                  ),
+                )
+              }
             />
           </View>
           {/* The rule, at the moment it applies, with the number in it. It used
@@ -1232,7 +1787,9 @@ export function NegotiationPanel({
         <View className="mt-4">
           <ActionButton
             label={t('market.closeAgentFile')}
-            accessibilityLabel={t('market.a11y.closeCompletedContractNegotiation')}
+            accessibilityLabel={t(
+              'market.a11y.closeCompletedContractNegotiation',
+            )}
             variant={viewModel.status === 'ACCEPTED' ? 'confirm' : 'paper'}
             onPress={onClose}
           />
@@ -1256,8 +1813,14 @@ function GuidedAction({
   return (
     <View
       ref={targetRef}
-      className={enabled ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
-      style={enabled ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
+      className={
+        enabled
+          ? 'relative border-2 border-blue-dark bg-blue-light p-1'
+          : 'relative'
+      }
+      style={
+        enabled ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined
+      }
     >
       {enabled ? (
         <TutorialTapCue
@@ -1286,17 +1849,30 @@ function YouthStatLine({
   stats: readonly { readonly label: string; readonly value: number }[];
 }) {
   if (stats.length === 0) return null;
-  const best = Math.max(...stats.map(stat => stat.value));
+  const best = Math.max(...stats.map((stat) => stat.value));
   return (
-    <View className="mt-3 flex-row gap-1.5" accessibilityLabel={stats.map(stat => `${stat.label} ${stat.value}`).join(', ')}>
-      {stats.map(stat => {
+    <View
+      className="mt-3 flex-row gap-1.5"
+      accessibilityLabel={stats
+        .map((stat) => `${stat.label} ${stat.value}`)
+        .join(', ')}
+    >
+      {stats.map((stat) => {
         const strongest = stat.value === best;
         return (
-          <View key={stat.label} className="min-w-0 flex-1 border border-ink/25 px-1 pb-1 pt-0.5">
-            <PixelText className="text-center text-[10px] uppercase text-ink/45">{stat.label}</PixelText>
-            <Text className={strongest
-              ? 'mt-0.5 text-center font-mono text-base text-gold-dark'
-              : 'mt-0.5 text-center font-mono text-base text-ink'}
+          <View
+            key={stat.label}
+            className="min-w-0 flex-1 border border-ink/25 px-1 pb-1 pt-0.5"
+          >
+            <PixelText className="text-center text-[10px] uppercase text-ink/45">
+              {stat.label}
+            </PixelText>
+            <Text
+              className={
+                strongest
+                  ? 'mt-0.5 text-center font-mono text-base text-gold-dark'
+                  : 'mt-0.5 text-center font-mono text-base text-ink'
+              }
             >
               {stat.value}
             </Text>
@@ -1331,14 +1907,22 @@ function SmallAction({
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      className={disabled
-        ? 'min-h-11 min-w-24 items-center justify-center border-2 border-ink/20 bg-ink/5 px-3'
-        : 'min-h-11 min-w-24 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-3'}
-      style={({ pressed }) => ({ transform: [{ translateY: pressed && !disabled ? 2 : 0 }] })}
+      className={
+        disabled
+          ? 'min-h-11 min-w-24 items-center justify-center border-2 border-ink/20 bg-ink/5 px-3'
+          : 'min-h-11 min-w-24 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-3'
+      }
+      style={({ pressed }) => ({
+        transform: [{ translateY: pressed && !disabled ? 2 : 0 }],
+      })}
     >
-      <PixelText className={disabled
-        ? 'text-center text-sm uppercase text-ink/30'
-        : 'text-center text-sm uppercase text-ink'}>
+      <PixelText
+        className={
+          disabled
+            ? 'text-center text-sm uppercase text-ink/30'
+            : 'text-center text-sm uppercase text-ink'
+        }
+      >
         {label}
       </PixelText>
     </Pressable>

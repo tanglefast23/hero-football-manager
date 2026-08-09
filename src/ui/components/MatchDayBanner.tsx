@@ -9,7 +9,10 @@ import {
   FINANCE_SPRITE_SCALE,
   financeSpriteRuns,
 } from '../finance-pixel-art';
-import { playMatchDayCallSfx, stopMatchDayCallSfx } from '../../render/management-sfx';
+import {
+  playMatchDayCallSfx,
+  stopMatchDayCallSfx,
+} from '../../render/management-sfx';
 
 /**
  * The match-week callout: the same pixel card the Financial Report pops for
@@ -69,8 +72,16 @@ export function MatchDayBanner({
       scale.setValue(0.2);
       opacity.setValue(0);
       animation = Animated.parallel([
-        Animated.spring(scale, { toValue: 1, friction: 6, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: true }),
+        Animated.spring(scale, {
+          toValue: 1,
+          friction: 6,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 160,
+          useNativeDriver: true,
+        }),
       ]);
       animation.start();
       holdTimer = setTimeout(() => {
@@ -96,7 +107,10 @@ export function MatchDayBanner({
   return (
     // items-center: the card shrink-wraps its content instead of spanning the
     // screen, matching the surge banner it borrows its look from.
-    <View pointerEvents="none" className="absolute inset-x-4 top-1/4 items-center">
+    <View
+      pointerEvents="none"
+      className="absolute inset-x-4 top-1/4 items-center"
+    >
       {/* NativeWind ignores className on Animated views: the animated wrapper
           is style-only and the plain View inside carries the card look. */}
       <Animated.View
@@ -109,8 +123,11 @@ export function MatchDayBanner({
             {/* Keyed by slot, not by sprite: the cabinet repeats the small and
                 medium cups either side of the grand one. */}
             {strip.map((spriteId, slot) => (
-              <Canvas key={`${slot}:${spriteId}`} style={{ width: SPRITE_PX, height: SPRITE_PX }}>
-                {financeSpriteRuns(spriteId).map(run => (
+              <Canvas
+                key={`${slot}:${spriteId}`}
+                style={{ width: SPRITE_PX, height: SPRITE_PX }}
+              >
+                {financeSpriteRuns(spriteId).map((run) => (
                   <Rect
                     key={run.id}
                     x={run.x * FINANCE_SPRITE_SCALE}
@@ -124,7 +141,9 @@ export function MatchDayBanner({
             ))}
           </View>
           <View className="mt-2 flex-row items-center">
-            <PixelText className="text-base uppercase text-blue-dark">{headline}</PixelText>
+            <PixelText className="text-base uppercase text-blue-dark">
+              {headline}
+            </PixelText>
           </View>
         </View>
       </Animated.View>

@@ -11,8 +11,10 @@ export function ballVisualOffset(heightCm: number, pitchScale: number): number {
   if (height === 0) return 0;
   // The fixed-pixel shoulder makes take-off obvious immediately; the linear
   // term preserves the sim's parabola and opens it into a tall arcade arc.
-  return height * pitchScale * BALL_HEIGHT_VISUAL_SCALE
-    + Math.min(BALL_MINIMUM_ARC_LIFT_PX, height / 10);
+  return (
+    height * pitchScale * BALL_HEIGHT_VISUAL_SCALE +
+    Math.min(BALL_MINIMUM_ARC_LIFT_PX, height / 10)
+  );
 }
 
 export function ballHeightScale(heightCm: number): number {

@@ -23,10 +23,15 @@ const MAX_CONTRACT_TERM_SEASONS = 3;
 const DEFAULT_PERSONALITY: PlayerPersonality = 'Professional';
 const DEFAULT_AGE = 24;
 
-type RetirementPlayer = Pick<CareerPlayer, 'id'>
-  & Partial<Pick<CareerPlayer, 'age' | 'personality' | 'retirementAnnouncementSeason'>>;
+type RetirementPlayer = Pick<CareerPlayer, 'id'> &
+  Partial<
+    Pick<CareerPlayer, 'age' | 'personality' | 'retirementAnnouncementSeason'>
+  >;
 
-function retirementAgeFor(player: RetirementPlayer, careerSeed: number): number {
+function retirementAgeFor(
+  player: RetirementPlayer,
+  careerSeed: number,
+): number {
   return retirementAnnouncementAge(
     { id: player.id, personality: player.personality ?? DEFAULT_PERSONALITY },
     careerSeed,
@@ -45,9 +50,15 @@ function retirementAgeFor(player: RetirementPlayer, careerSeed: number): number 
  * with a retirement age of 34 — has not announced yet, so the next transition
  * announces them and the lifecycle grants them one final season.
  */
-export function seasonsBeforeRetirement(player: RetirementPlayer, careerSeed: number): number {
+export function seasonsBeforeRetirement(
+  player: RetirementPlayer,
+  careerSeed: number,
+): number {
   if (player.retirementAnnouncementSeason !== undefined) return 0;
-  return Math.max(1, retirementAgeFor(player, careerSeed) - (player.age ?? DEFAULT_AGE));
+  return Math.max(
+    1,
+    retirementAgeFor(player, careerSeed) - (player.age ?? DEFAULT_AGE),
+  );
 }
 
 /**
@@ -88,7 +99,7 @@ export function maxSigningTermSeasons(
 
 /** The terms a term selector may offer. Empty when the player may not re-sign at all. */
 export function contractTermOptions(maxTerm: number): readonly (1 | 2 | 3)[] {
-  return ([1, 2, 3] as const).filter(term => term <= maxTerm);
+  return ([1, 2, 3] as const).filter((term) => term <= maxTerm);
 }
 
 /**
@@ -116,17 +127,28 @@ export function retirementCardCopy(
   careerSeed: number,
 ): RetirementCopy | undefined {
   if (player.retirementAnnouncementSeason !== undefined) {
-    return { text: 'Final season, retires in summer', textKey: 'retirement.finalSeason' };
+    return {
+      text: 'Final season, retires in summer',
+      textKey: 'retirement.finalSeason',
+    };
   }
   return seasonsBeforeRetirement(player, careerSeed) === 1
-    ? { text: 'Considering retirement in 1 year', textKey: 'retirement.consideringInOneYear' }
+    ? {
+        text: 'Considering retirement in 1 year',
+        textKey: 'retirement.consideringInOneYear',
+      }
     : undefined;
 }
 
 /** True for exactly the players who will announce at this season's end. */
-export function isConsideringRetirement(player: RetirementPlayer, careerSeed: number): boolean {
-  return player.retirementAnnouncementSeason === undefined
-    && seasonsBeforeRetirement(player, careerSeed) === 1;
+export function isConsideringRetirement(
+  player: RetirementPlayer,
+  careerSeed: number,
+): boolean {
+  return (
+    player.retirementAnnouncementSeason === undefined &&
+    seasonsBeforeRetirement(player, careerSeed) === 1
+  );
 }
 
 /**
@@ -147,11 +169,14 @@ export function assertContractTermFitsCareer(
   careerSeed: number,
   kind: 'renewal' | 'signing',
 ): void {
-  const cap = kind === 'renewal'
-    ? maxRenewalTermSeasons(player, careerSeed)
-    : maxSigningTermSeasons(player, careerSeed);
+  const cap =
+    kind === 'renewal'
+      ? maxRenewalTermSeasons(player, careerSeed)
+      : maxSigningTermSeasons(player, careerSeed);
   if (cap === 0) {
-    throw new Error(`${player.name} has announced their retirement and cannot re-sign`);
+    throw new Error(
+      `${player.name} has announced their retirement and cannot re-sign`,
+    );
   }
   if (termSeasons > cap) {
     throw new Error(
@@ -168,7 +193,10 @@ export function assertContractTermFitsCareer(
  * fragment: a language whose plural rules differ cannot rebuild the sentence
  * from a phrase that was already inflected in English.
  */
-export function shortContractReasonCopy(age: number, maxTerm: number): RetirementCopy {
+export function shortContractReasonCopy(
+  age: number,
+  maxTerm: number,
+): RetirementCopy {
   /** @i18n-fallback English source for the `retirement.shortContract` plural. */
   const years = maxTerm === 1 ? '1 year' : `${maxTerm} years`;
   return {

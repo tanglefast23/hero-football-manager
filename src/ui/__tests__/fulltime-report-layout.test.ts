@@ -1,10 +1,11 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const screen = () => readFileSync(
-  join(process.cwd(), 'src/ui/screens/PostMatchLedgerScreen.tsx'),
-  'utf8',
-);
+const screen = () =>
+  readFileSync(
+    join(process.cwd(), 'src/ui/screens/PostMatchLedgerScreen.tsx'),
+    'utf8',
+  );
 
 describe('full-time report layout', () => {
   it('gives each club its own row instead of a 24-point column', () => {
@@ -12,33 +13,47 @@ describe('full-time report layout', () => {
 
     // Side by side, the names were cut to "BRAMB LE RO_" on a phone. Stacked,
     // both spell out, and the score sits between them.
-    expect(source).toContain("outcome={result.winner === 'home' && result.outcomeLabel !== 'DRAW'");
-    expect(source).toContain("outcome={result.winner === 'away' && result.outcomeLabel !== 'DRAW'");
-    expect(source).not.toContain('className="w-24 text-right text-base uppercase text-ink"');
+    expect(source).toContainSource(
+      "outcome={result.winner === 'home' && result.outcomeLabel !== 'DRAW'",
+    );
+    expect(source).toContainSource(
+      "outcome={result.winner === 'away' && result.outcomeLabel !== 'DRAW'",
+    );
+    expect(source).not.toContainSource(
+      'className="w-24 text-right text-base uppercase text-ink"',
+    );
   });
 
   it('states our result in green or red without boxing either club', () => {
     const source = screen();
 
-    expect(source).not.toContain('border-stamp');
-    expect(source).toContain("outcome === 'WIN'");
-    expect(source).toContain("t('postMatchLedger.weWon') : t('postMatchLedger.weLost')");
-    expect(source).toContain('text-pitch-ink');
-    expect(source).toContain('text-red-dark');
+    expect(source).not.toContainSource('border-stamp');
+    expect(source).toContainSource("outcome === 'WIN'");
+    expect(source).toContainSource(
+      "t('postMatchLedger.weWon') : t('postMatchLedger.weLost')",
+    );
+    expect(source).toContainSource('text-pitch-ink');
+    expect(source).toContainSource('text-red-dark');
     // A drawn match boxes nobody, so it still has to say so somewhere.
-    expect(source).toContain('{result.winner === null ? (');
-    expect(source).toContain(">{t('postMatchLedger.draw')}<");
+    expect(source).toContainSource('{result.winner === null ? (');
+    expect(source).toContainSource(">{t('postMatchLedger.draw')}<");
   });
 
   it('puts the touchline reaction below the result, not beside it', () => {
     const source = screen();
 
-    expect(source).toContain('{viewModel.reaction ? (');
-    expect(source).toContain('<FulltimeReaction reaction={viewModel.reaction}');
-    expect(source).toContain('coach:${reaction.coachPortraitId}:${reaction.pose}');
+    expect(source).toContainSource('{viewModel.reaction ? (');
+    expect(source).toContainSource(
+      '<FulltimeReaction reaction={viewModel.reaction}',
+    );
+    expect(source).toContainSource(
+      'coach:${reaction.coachPortraitId}:${reaction.pose}',
+    );
     // The assistant stands on the side the pointing arm comes out of, and only
     // ever in his resting face — he is being blamed, not joining in.
-    expect(source).toContain('coach:${reaction.assistantPortraitId}:rest');
+    expect(source).toContainSource(
+      'coach:${reaction.assistantPortraitId}:rest',
+    );
   });
 
   it('gives the gaffer the verdict instead of printing one over his head', () => {
@@ -47,10 +62,10 @@ describe('full-time report layout', () => {
     // The written headline is gone: the score states the fact and he says what
     // it meant. Two voices saying the same thing gave the silent one top
     // billing, and the manager read the caption rather than the man.
-    expect(source).not.toContain('result.headline');
+    expect(source).not.toContainSource('result.headline');
     // The bubble is no longer gated on the blame roll — it renders every week.
-    expect(source).not.toContain('{blaming && reaction.blameLine ? (');
-    expect(source).toContain('{reaction.line}');
+    expect(source).not.toContainSource('{blaming && reaction.blameLine ? (');
+    expect(source).toContainSource('{reaction.line}');
   });
 
   it('reads the whole line to a screen reader, not just the picture', () => {
@@ -58,12 +73,14 @@ describe('full-time report layout', () => {
 
     // Mood and line both reach the label through the catalog now; the four
     // moods still have to be named, so each key is asserted by name.
-    expect(source).toContain(
+    expect(source).toContainSource(
       "accessibilityLabel={t('postMatchLedger.a11y.coachReaction', { mood, line: reaction.line })}",
     );
-    expect(source).toContain("t('postMatchLedger.a11y.coachIsBlaming'");
-    expect(source).toContain('assistant: reaction.assistantName');
-    expect(source).toContain("t('postMatchLedger.a11y.coachIsInTears'");
-    expect(source).toContain("t('postMatchLedger.a11y.coachIsCelebrating'");
+    expect(source).toContainSource("t('postMatchLedger.a11y.coachIsBlaming'");
+    expect(source).toContainSource('assistant: reaction.assistantName');
+    expect(source).toContainSource("t('postMatchLedger.a11y.coachIsInTears'");
+    expect(source).toContainSource(
+      "t('postMatchLedger.a11y.coachIsCelebrating'",
+    );
   });
 });
