@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, PixelRatio, StyleSheet, Text, View } from 'react-native';
+import {
+  Animated,
+  Easing,
+  PixelRatio,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { formatCurrency } from './Scorecard';
+import { useCopy } from '../../i18n';
 
 /**
  * The slot-machine amount: every digit is a vertical reel that cycles fast
@@ -76,14 +84,15 @@ export function SlotAmount({
   reduceMotion,
   onSettled,
 }: SlotAmountProps) {
+  const t = useCopy();
   const fontScale = PixelRatio.getFontScale();
   const baseSize = (large ? 18 : 14) * fontScale;
   const surgeSettled = surge && phase === 'settled';
   const fontSize = surgeSettled ? baseSize + 2 * fontScale : baseSize;
   const lineHeight = Math.ceil(fontSize * 1.3);
   const digitWidth = Math.ceil(fontSize * DIGIT_EM);
-  const formatted = formatCurrency(value, true);
-  const sizing = formatCurrency(finalValue, true);
+  const formatted = formatCurrency(t, value, true);
+  const sizing = formatCurrency(t, finalValue, true);
   const color = surgeSettled ? SURGE_SETTLED_COLOR : TONE_COLORS[tone];
   const fontClass = surgeSettled ? 'font-pixel' : 'font-mono';
   // The halo that makes a surged total read as lit rather than merely tinted.
@@ -105,7 +114,9 @@ export function SlotAmount({
   onSettledRef.current = onSettled;
   const [flickerColor, setFlickerColor] = useState<string | null>(null);
 
-  const digitChars = formatted.split('').filter(char => char >= '0' && char <= '9');
+  const digitChars = formatted
+    .split('')
+    .filter((char) => char >= '0' && char <= '9');
   while (reels.length < digitChars.length) reels.push(new Animated.Value(0));
 
   // The surge flicker: three warm colors cycling while the reels spin.
@@ -141,23 +152,26 @@ export function SlotAmount({
       stopLoops();
       reels.forEach((reel, index) => {
         reel.setValue(-(index % CYCLE) * lineHeight);
-        const loop = Animated.loop(Animated.timing(reel, {
-          toValue: -CYCLE * lineHeight - (index % CYCLE) * lineHeight,
-          duration: SPIN_CYCLE_MS,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }));
+        const loop = Animated.loop(
+          Animated.timing(reel, {
+            toValue: -CYCLE * lineHeight - (index % CYCLE) * lineHeight,
+            duration: SPIN_CYCLE_MS,
+            easing: Easing.linear,
+            useNativeDriver: true,
+          }),
+        );
         loops.push(loop);
         loop.start();
       });
       return stopLoops;
     }
 
-    if (phase !== 'settled' || settledKeys.current.has(settleKey)) return undefined;
+    if (phase !== 'settled' || settledKeys.current.has(settleKey))
+      return undefined;
     settledKeys.current.add(settleKey);
     stopLoops();
 
-    const digits = digitChars.map(char => Number(char));
+    const digits = digitChars.map((char) => Number(char));
     if (settleMode === 'instant') {
       digits.forEach((digit, index) => {
         reels[index]?.setValue(-(CYCLE + digit) * lineHeight);
@@ -173,9 +187,10 @@ export function SlotAmount({
       const previous = previousDigits.current[index];
       // Upward-only roll: start below the target by the digit delta (or a
       // short three-step roll when there is no meaningful previous digit).
-      const delta = previous === undefined || settleMode === 'land'
-        ? 3
-        : (((digit - previous) % CYCLE) + CYCLE) % CYCLE || CYCLE;
+      const delta =
+        previous === undefined || settleMode === 'land'
+          ? 3
+          : (((digit - previous) % CYCLE) + CYCLE) % CYCLE || CYCLE;
       reel.setValue(-(targetIndex - delta) * lineHeight);
       return Animated.timing(reel, {
         toValue: -targetIndex * lineHeight,
@@ -188,15 +203,24 @@ export function SlotAmount({
     previousDigits.current = digits;
 
     const settle = Animated.parallel(animations);
-    const sequence = settleMode === 'land'
-      ? Animated.sequence([
-          settle,
-          Animated.sequence([
-            Animated.timing(popScale, { toValue: 1.06, duration: POP_MS / 2, useNativeDriver: true }),
-            Animated.timing(popScale, { toValue: 1, duration: POP_MS / 2, useNativeDriver: true }),
-          ]),
-        ])
-      : settle;
+    const sequence =
+      settleMode === 'land'
+        ? Animated.sequence([
+            settle,
+            Animated.sequence([
+              Animated.timing(popScale, {
+                toValue: 1.06,
+                duration: POP_MS / 2,
+                useNativeDriver: true,
+              }),
+              Animated.timing(popScale, {
+                toValue: 1,
+                duration: POP_MS / 2,
+                useNativeDriver: true,
+              }),
+            ]),
+          ])
+        : settle;
     sequence.start(({ finished }) => {
       if (finished) onSettledRef.current?.(settleKey);
     });
@@ -210,7 +234,13 @@ export function SlotAmount({
       <View style={{ alignItems: 'flex-end' }}>
         <Text
           className={fontClass}
-          style={{ fontSize, lineHeight, color, opacity: phase === 'pending' ? 0 : 1, ...glow }}
+          style={{
+            fontSize,
+            lineHeight,
+            color,
+            opacity: phase === 'pending' ? 0 : 1,
+            ...glow,
+          }}
           importantForAccessibility="no"
         >
           {sizing}
@@ -218,12 +248,15 @@ export function SlotAmount({
         {phase === 'pending' ? (
           <Text
             className="font-mono"
-            style={[StyleSheet.absoluteFill as object, {
-              fontSize,
-              lineHeight,
-              color: `${TONE_COLORS[tone]}4D`,
-              textAlign: 'right',
-            }]}
+            style={[
+              StyleSheet.absoluteFill as object,
+              {
+                fontSize,
+                lineHeight,
+                color: `${TONE_COLORS[tone]}4D`,
+                textAlign: 'right',
+              },
+            ]}
             importantForAccessibility="no"
           >
             {'$...'}
@@ -233,9 +266,10 @@ export function SlotAmount({
     );
   }
 
-  const digitColor = phase === 'spinning'
-    ? (flickerColor ?? `${TONE_COLORS[tone]}${SPIN_ALPHA}`)
-    : color;
+  const digitColor =
+    phase === 'spinning'
+      ? (flickerColor ?? `${TONE_COLORS[tone]}${SPIN_ALPHA}`)
+      : color;
   let digitIndex = -1;
 
   return (
@@ -249,12 +283,15 @@ export function SlotAmount({
         {sizing}
       </Text>
       <Animated.View
-        style={[StyleSheet.absoluteFill as object, {
-          flexDirection: 'row',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          transform: [{ scale: popScale }],
-        }]}
+        style={[
+          StyleSheet.absoluteFill as object,
+          {
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            transform: [{ scale: popScale }],
+          },
+        ]}
         importantForAccessibility="no-hide-descendants"
         accessibilityElementsHidden
       >
@@ -275,7 +312,11 @@ export function SlotAmount({
           return (
             <View
               key={`digit-${charIndex}`}
-              style={{ width: digitWidth, height: lineHeight, overflow: 'hidden' }}
+              style={{
+                width: digitWidth,
+                height: lineHeight,
+                overflow: 'hidden',
+              }}
             >
               <Animated.View style={{ transform: [{ translateY: reel }] }}>
                 {TRACK_DIGITS.map((trackChar, trackIndex) => (

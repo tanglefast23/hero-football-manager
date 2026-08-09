@@ -18,7 +18,10 @@ const TEAMS = { home: ROVERS, away: UNITED };
 describe('matchday contributions', () => {
   it('attaches contributions whose goals match the scoreline', () => {
     const [result] = resolveMatchday([FIXTURE], TEAMS);
-    const goals = (result.contributions ?? []).reduce((sum, row) => sum + row.goals, 0);
+    const goals = (result.contributions ?? []).reduce(
+      (sum, row) => sum + row.goals,
+      0,
+    );
     expect(result.contributions).toBeDefined();
     expect(result.homeGoals + result.awayGoals).toBeGreaterThan(0);
     expect(goals).toBe(result.homeGoals + result.awayGoals);

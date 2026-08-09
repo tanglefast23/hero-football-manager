@@ -23,14 +23,16 @@ function seasonEndWithTwoExpired(seed: number): {
 } {
   const initial = createCareer(createLaunchCareerSetup(seed));
   const lineupIds = new Set(
-    initial.lineups.find(lineup => lineup.clubId === initial.userClubId)!.playerIds,
+    initial.lineups.find((lineup) => lineup.clubId === initial.userClubId)!
+      .playerIds,
   );
   const candidates = initial.players
-    .filter(player => (
-      player.clubId === initial.userClubId
-      && !lineupIds.has(player.id)
-      && willRenegotiate(playerLoyalty(player, initial.careerSeed))
-    ))
+    .filter(
+      (player) =>
+        player.clubId === initial.userClubId &&
+        !lineupIds.has(player.id) &&
+        willRenegotiate(playerLoyalty(player, initial.careerSeed)),
+    )
     .sort((left, right) => left.id.localeCompare(right.id));
   expect(candidates.length).toBeGreaterThanOrEqual(2);
   const expiredIds = new Set([candidates[0].id, candidates[1].id]);
@@ -40,9 +42,11 @@ function seasonEndWithTwoExpired(seed: number): {
     state: {
       ...initial,
       phase: 'season-end' as const,
-      players: initial.players.map(player => expiredIds.has(player.id)
-        ? { ...player, contractSeasonsRemaining: 0 }
-        : player),
+      players: initial.players.map((player) =>
+        expiredIds.has(player.id)
+          ? { ...player, contractSeasonsRemaining: 0 }
+          : player,
+      ),
     },
   };
 }

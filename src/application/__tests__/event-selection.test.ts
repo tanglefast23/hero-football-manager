@@ -1,7 +1,11 @@
 import { loadLaunchContent } from '../../content';
 import { createCareer, createFacilityGrid } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
-import { eventChoiceUnavailableReason, eventIsEligible, eventOfferForWeek } from '../event-selection';
+import {
+  eventChoiceUnavailableReason,
+  eventIsEligible,
+  eventOfferForWeek,
+} from '../event-selection';
 
 describe('M4 event selection', () => {
   const content = loadLaunchContent().events;
@@ -10,7 +14,9 @@ describe('M4 event selection', () => {
     const initial = createCareer(createLaunchCareerSetup(3));
     const state = { ...initial, season: 1, week: 7, phase: 'manage' as const };
 
-    expect(eventOfferForWeek(state, content, { deskClear: true })).toMatchObject({
+    expect(
+      eventOfferForWeek(state, content, { deskClear: true }),
+    ).toMatchObject({
       eventId: 'giant-spider-arrives',
       eventClock: { weeksWithoutEvent: 0 },
     });
@@ -27,7 +33,9 @@ describe('M4 event selection', () => {
       eventClock: { weeksWithoutEvent: 4, riskyChoices: 0 },
     };
 
-    expect(eventOfferForWeek(state, content, { deskClear: true })).toEqual({ eventClock: state.eventClock });
+    expect(eventOfferForWeek(state, content, { deskClear: true })).toEqual({
+      eventClock: state.eventClock,
+    });
   });
 
   it('is deterministic and never re-offers a resolved one-shot event', () => {
@@ -75,7 +83,9 @@ describe('M4 event selection', () => {
       week: 8,
       phase: 'manage' as const,
       eventClock: { weeksWithoutEvent: 0, riskyChoices: 0 },
-      resolvedEventHistory: [{ eventId: 'the-rondo-circle', season: 1, week: 7 }],
+      resolvedEventHistory: [
+        { eventId: 'the-rondo-circle', season: 1, week: 7 },
+      ],
     };
 
     expect(eventOfferForWeek(state, content, { deskClear: true })).toEqual({
@@ -94,7 +104,9 @@ describe('M4 event selection', () => {
       resolvedEventIds: ['giant-spider-arrives'],
     };
 
-    expect(eventOfferForWeek(state, content, { deskClear: true }).eventId).toBeDefined();
+    expect(
+      eventOfferForWeek(state, content, { deskClear: true }).eventId,
+    ).toBeDefined();
     expect(eventOfferForWeek(state, content, { deskClear: false })).toEqual({
       eventClock: state.eventClock,
     });
@@ -108,8 +120,9 @@ describe('M4 event selection', () => {
     const initial = createCareer(createLaunchCareerSetup(3));
     const state = { ...initial, season: 1, week: 7, phase: 'manage' as const };
 
-    expect(eventOfferForWeek(state, content, { deskClear: false }).eventId)
-      .toBe('giant-spider-arrives');
+    expect(
+      eventOfferForWeek(state, content, { deskClear: false }).eventId,
+    ).toBe('giant-spider-arrives');
   });
 
   it('does not count a busy week towards the dry spell', () => {
@@ -123,46 +136,73 @@ describe('M4 event selection', () => {
     };
 
     // Only quiet weeks that came up empty raise the odds of the next one.
-    expect(eventOfferForWeek(state, content, { deskClear: false }).eventClock.weeksWithoutEvent)
-      .toBe(3);
-    expect(eventOfferForWeek(state, content, { deskClear: true }).eventClock.weeksWithoutEvent)
-      .not.toBe(3);
+    expect(
+      eventOfferForWeek(state, content, { deskClear: false }).eventClock
+        .weeksWithoutEvent,
+    ).toBe(3);
+    expect(
+      eventOfferForWeek(state, content, { deskClear: true }).eventClock
+        .weeksWithoutEvent,
+    ).not.toBe(3);
   });
 
   it('enforces personality, facility, and money requirements from content', () => {
     const initial = createCareer(createLaunchCareerSetup(1));
     // A player who submits a written training schedule, with a second schedule
     // attached for the first one, is a Professional.
-    const doubleSession = content.events.find(event => event.id === 'the-double-session')!;
+    const doubleSession = content.events.find(
+      (event) => event.id === 'the-double-session',
+    )!;
     // A story about the pitch needs a pitch that is actually finished.
-    const grassMix = content.events.find(event => event.id === 'the-grass-mix')!;
-    const mountainCamp = content.events.find(event => event.id === 'the-specialist-camp')!;
-    const spendingChoice = mountainCamp.choices.find(choice => choice.risky)!;
+    const grassMix = content.events.find(
+      (event) => event.id === 'the-grass-mix',
+    )!;
+    const mountainCamp = content.events.find(
+      (event) => event.id === 'the-specialist-camp',
+    )!;
+    const spendingChoice = mountainCamp.choices.find((choice) => choice.risky)!;
 
     const noProfessional = {
       ...initial,
       season: 2,
       week: 10,
       facilities: { trainingGroundBuilt: false, grid: createFacilityGrid() },
-      players: initial.players.map(player => ({ ...player, personality: 'Joker' as const })),
+      players: initial.players.map((player) => ({
+        ...player,
+        personality: 'Joker' as const,
+      })),
     };
     expect(eventIsEligible(noProfessional, doubleSession)).toBe(false);
-    expect(eventIsEligible({
-      ...noProfessional,
-      players: noProfessional.players.map((player, index) => (
-        index === 0 ? { ...player, personality: 'Professional' as const } : player
-      )),
-    }, doubleSession)).toBe(true);
+    expect(
+      eventIsEligible(
+        {
+          ...noProfessional,
+          players: noProfessional.players.map((player, index) =>
+            index === 0
+              ? { ...player, personality: 'Professional' as const }
+              : player,
+          ),
+        },
+        doubleSession,
+      ),
+    ).toBe(true);
 
     // No operational training pitch, so the grass story is not in the deck.
     expect(eventIsEligible(noProfessional, grassMix)).toBe(false);
 
-    expect(eventChoiceUnavailableReason({
-      ...noProfessional,
-      clubs: noProfessional.clubs.map(club => (
-        club.id === noProfessional.userClubId ? { ...club, cash: 699 } : club
-      )),
-    }, spendingChoice)).toBe('Requires $700 cash');
+    expect(
+      eventChoiceUnavailableReason(
+        {
+          ...noProfessional,
+          clubs: noProfessional.clubs.map((club) =>
+            club.id === noProfessional.userClubId
+              ? { ...club, cash: 699 }
+              : club,
+          ),
+        },
+        spendingChoice,
+      ),
+    ).toBe('Requires $700 cash');
   });
 
   /**
@@ -172,18 +212,32 @@ describe('M4 event selection', () => {
    */
   it('never offers a new spending branch the club cannot cover', () => {
     const AUTHORED_SPENDERS = [
-      'homesick-family-move', 'the-specialist-camp', 'sports-science-salesman',
-      'volunteer-work-party', 'floodlight-night', 'milestone-merch-surge',
+      'homesick-family-move',
+      'the-specialist-camp',
+      'sports-science-salesman',
+      'volunteer-work-party',
+      'floodlight-night',
+      'milestone-merch-surge',
     ];
     for (const eventId of AUTHORED_SPENDERS) {
-      const event = content.events.find(candidate => candidate.id === eventId)!;
+      const event = content.events.find(
+        (candidate) => candidate.id === eventId,
+      )!;
       for (const choice of event.choices) {
-        const spend = Math.min(0, ...choice.outcomes.flatMap(outcome => outcome.effects.flatMap(
-          effect => effect.type === 'money' ? [effect.amount] : [],
-        )));
+        const spend = Math.min(
+          0,
+          ...choice.outcomes.flatMap((outcome) =>
+            outcome.effects.flatMap((effect) =>
+              effect.type === 'money' ? [effect.amount] : [],
+            ),
+          ),
+        );
         if (spend >= 0) continue;
-        expect({ eventId, choice: choice.id, minMoney: choice.requires?.minMoney })
-          .toMatchObject({ eventId, choice: choice.id, minMoney: -spend });
+        expect({
+          eventId,
+          choice: choice.id,
+          minMoney: choice.requires?.minMoney,
+        }).toMatchObject({ eventId, choice: choice.id, minMoney: -spend });
       }
     }
   });
@@ -219,7 +273,9 @@ describe('M4 event selection', () => {
 
   it('can re-offer an authored repeatable event after its dry-spell guarantee', () => {
     const initial = createCareer(createLaunchCareerSetup(88));
-    const repeatable = content.events.find(event => event.id === 'the-double-session')!;
+    const repeatable = content.events.find(
+      (event) => event.id === 'the-double-session',
+    )!;
     const repeatableOnly = { ...content, events: [repeatable] };
     const state = {
       ...initial,
@@ -230,6 +286,8 @@ describe('M4 event selection', () => {
       resolvedEventIds: ['giant-spider-arrives', repeatable.id],
     };
 
-    expect(eventOfferForWeek(state, repeatableOnly, { deskClear: true }).eventId).toBe(repeatable.id);
+    expect(
+      eventOfferForWeek(state, repeatableOnly, { deskClear: true }).eventId,
+    ).toBe(repeatable.id);
   });
 });

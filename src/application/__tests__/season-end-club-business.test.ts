@@ -13,9 +13,11 @@ describe('season-end Club Business presentation', () => {
     const settled = advanceWeek(week30ChairmanCareer());
 
     expect(settled).toMatchObject({ season: 3, week: 30, phase: 'season-end' });
-    expect(settled.clubBusiness.sponsorship.activeContracts.map(contract => (
-      contract.objectiveOutcome
-    ))).toEqual([
+    expect(
+      settled.clubBusiness.sponsorship.activeContracts.map(
+        (contract) => contract.objectiveOutcome,
+      ),
+    ).toEqual([
       { met: true, settledSeason: 3, actualBonus: 800 },
       { met: false, settledSeason: 3, actualBonus: 0 },
     ]);
@@ -83,18 +85,16 @@ describe('season-end Club Business presentation', () => {
       },
     };
 
-    expect(seasonEndViewModel(state, loadLaunchContent(), 1).clubBusinessSettlement)
-      .toBeUndefined();
+    expect(
+      seasonEndViewModel(state, loadLaunchContent(), 1).clubBusinessSettlement,
+    ).toBeUndefined();
   });
 });
 
 function week30ChairmanCareer(): GameState {
-  const initial = createCareer(createLaunchCareerSetup(
-    20260805,
-    undefined,
-    undefined,
-    'CHAIRMAN',
-  ));
+  const initial = createCareer(
+    createLaunchCareerSetup(20260805, undefined, undefined, 'CHAIRMAN'),
+  );
   const contracts: SponsorContractSnapshot[] = [
     {
       contractId: 'wins-contract',
@@ -137,10 +137,12 @@ function week30ChairmanCareer(): GameState {
     week: 30,
     phase: 'manage',
     difficulty: 'CHAIRMAN',
-    clubs: initial.clubs.map(club => club.id === initial.userClubId
-      ? { ...club, cash: 1_000_000, sponsorMonthlyFee: 8_000 }
-      : club),
-    fixtures: initial.fixtures.map(fixture => {
+    clubs: initial.clubs.map((club) =>
+      club.id === initial.userClubId
+        ? { ...club, cash: 1_000_000, sponsorMonthlyFee: 8_000 }
+        : club,
+    ),
+    fixtures: initial.fixtures.map((fixture) => {
       const userIsHome = fixture.homeClubId === initial.userClubId;
       const userIsAway = fixture.awayClubId === initial.userClubId;
       const giveUserWin = !assignedUserWin && (userIsHome || userIsAway);

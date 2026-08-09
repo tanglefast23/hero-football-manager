@@ -70,7 +70,7 @@ export function BertFullBody({
       return undefined;
     }
     const timer = setInterval(
-      () => setFrameIndex(current => (current + 1) % BERT_WALK_FRAMES.length),
+      () => setFrameIndex((current) => (current + 1) % BERT_WALK_FRAMES.length),
       BERT_WALK_STEP_MS,
     );
     return () => clearInterval(timer);
@@ -94,60 +94,68 @@ export function BertFullBody({
     <View
       accessible={false}
       importantForAccessibility="no-hide-descendants"
-      style={[styles.bertFrame, {
-        width: BERT_SPRITE_SIZE.width * scale,
-        height: BERT_SPRITE_SIZE.height * scale,
-      }]}
+      style={[
+        styles.bertFrame,
+        {
+          width: BERT_SPRITE_SIZE.width * scale,
+          height: BERT_SPRITE_SIZE.height * scale,
+        },
+      ]}
     >
       {/* Centred inside the frame so the default centre-origin scale lands him
           exactly on its edges, with no transform-origin to get wrong. Scaling
           before the bob means a one-pixel bob is one *sprite* pixel at any
           size, which is what keeps the walk reading the same when he grows. */}
       <View
-        style={[styles.bertSprite, { transform: [{ scale }, { translateY: frame.bodyDy }] }]}
+        style={[
+          styles.bertSprite,
+          { transform: [{ scale }, { translateY: frame.bodyDy }] },
+        ]}
       >
-      {groundShadow ? (
-        <View style={[styles.bertGroundShadow, raise(1, frame, 'groundShadow')]} />
-      ) : null}
-      <View style={[styles.bertLeftShoe, raise(6, frame, 'leftShoe')]} />
-      <View style={[styles.bertRightShoe, raise(6, frame, 'rightShoe')]} />
-      <View style={[styles.bertLeftLeg, raise(15, frame, 'leftLeg', 37)]} />
-      <View style={[styles.bertRightLeg, raise(15, frame, 'rightLeg', 37)]} />
-      <View style={styles.bertJacket} />
-      <View style={styles.bertShirt} />
-      <View style={styles.bertTie} />
-      <View style={styles.bertLeftLapelle} />
-      <View style={styles.bertRightLapelle} />
-      {showPointing ? (
-        <>
-          <View style={styles.bertPointingArm} />
-          <View style={styles.bertPointingHand} />
-          <View style={styles.bertPointingFinger} />
-        </>
-      ) : (
-        <>
-          <View style={[styles.bertLeftArm, drop(101, frame, 'leftArm')]} />
-          <View style={[styles.bertLeftHand, drop(137, frame, 'leftHand')]} />
-        </>
-      )}
-      <View style={[styles.bertRightArm, drop(101, frame, 'rightArm')]} />
-      <View style={[styles.bertRightHand, drop(137, frame, 'rightHand')]} />
-      <View style={styles.bertLeftEar} />
-      <View style={styles.bertRightEar} />
-      <View style={styles.bertHeadTop} />
-      <View style={styles.bertHeadFace} />
-      <View style={styles.bertHeadJaw} />
-      <View style={styles.bertLeftHair} />
-      <View style={styles.bertRightHair} />
-      <View style={styles.bertBaldHighlight} />
-      <View style={styles.bertLeftBrow} />
-      <View style={styles.bertRightBrow} />
-      <View style={styles.bertLeftEye} />
-      <View style={styles.bertRightEye} />
-      <View style={styles.bertNose} />
-      <View style={styles.bertNoseLight} />
-      <View style={styles.bertMoustacheLeft} />
-      <View style={styles.bertMoustacheRight} />
+        {groundShadow ? (
+          <View
+            style={[styles.bertGroundShadow, raise(1, frame, 'groundShadow')]}
+          />
+        ) : null}
+        <View style={[styles.bertLeftShoe, raise(6, frame, 'leftShoe')]} />
+        <View style={[styles.bertRightShoe, raise(6, frame, 'rightShoe')]} />
+        <View style={[styles.bertLeftLeg, raise(15, frame, 'leftLeg', 37)]} />
+        <View style={[styles.bertRightLeg, raise(15, frame, 'rightLeg', 37)]} />
+        <View style={styles.bertJacket} />
+        <View style={styles.bertShirt} />
+        <View style={styles.bertTie} />
+        <View style={styles.bertLeftLapelle} />
+        <View style={styles.bertRightLapelle} />
+        {showPointing ? (
+          <>
+            <View style={styles.bertPointingArm} />
+            <View style={styles.bertPointingHand} />
+            <View style={styles.bertPointingFinger} />
+          </>
+        ) : (
+          <>
+            <View style={[styles.bertLeftArm, drop(101, frame, 'leftArm')]} />
+            <View style={[styles.bertLeftHand, drop(137, frame, 'leftHand')]} />
+          </>
+        )}
+        <View style={[styles.bertRightArm, drop(101, frame, 'rightArm')]} />
+        <View style={[styles.bertRightHand, drop(137, frame, 'rightHand')]} />
+        <View style={styles.bertLeftEar} />
+        <View style={styles.bertRightEar} />
+        <View style={styles.bertHeadTop} />
+        <View style={styles.bertHeadFace} />
+        <View style={styles.bertHeadJaw} />
+        <View style={styles.bertLeftHair} />
+        <View style={styles.bertRightHair} />
+        <View style={styles.bertBaldHighlight} />
+        <View style={styles.bertLeftBrow} />
+        <View style={styles.bertRightBrow} />
+        <View style={styles.bertLeftEye} />
+        <View style={styles.bertRightEye} />
+        <View style={styles.bertNose} />
+        <View style={styles.bertNoseLight} />
+        <View style={styles.bertMoustacheLeft} />
+        <View style={styles.bertMoustacheRight} />
         <View style={styles.bertMouth} />
       </View>
     </View>
@@ -173,21 +181,32 @@ function PosedBert({
   const { expression, posture } = BERT_MOMENTS[moment];
   const lean = bertPostureLean(posture);
   const head = bertHeadOffset(posture);
-  const face = bertPostureHidesFace(posture) ? [] : bertExpressionParts(expression);
+  const face = bertPostureHidesFace(posture)
+    ? []
+    : bertExpressionParts(expression);
 
   return (
     <View
       accessible={false}
       importantForAccessibility="no-hide-descendants"
-      style={[styles.bertFrame, {
-        width: BERT_SPRITE_SIZE.width * scale,
-        height: BERT_SPRITE_SIZE.height * scale,
-      }]}
+      style={[
+        styles.bertFrame,
+        {
+          width: BERT_SPRITE_SIZE.width * scale,
+          height: BERT_SPRITE_SIZE.height * scale,
+        },
+      ]}
     >
       <View
-        style={[styles.bertSprite, {
-          transform: [{ scale }, ...(lean === 0 ? [] : [{ rotate: `${lean}deg` }])],
-        }]}
+        style={[
+          styles.bertSprite,
+          {
+            transform: [
+              { scale },
+              ...(lean === 0 ? [] : [{ rotate: `${lean}deg` }]),
+            ],
+          },
+        ]}
       >
         {groundShadow ? <View style={styles.bertGroundShadow} /> : null}
         {bertPostureParts(posture).map((rect, index) => (
@@ -202,7 +221,10 @@ function PosedBert({
 }
 
 /** One pose rectangle as a style, shifted by the head offset when it is one. */
-function partStyle(rect: BertPart, offset?: { x: number; y: number }): ViewStyle {
+function partStyle(
+  rect: BertPart,
+  offset?: { x: number; y: number },
+): ViewStyle {
   const dx = offset?.x ?? 0;
   const dy = offset?.y ?? 0;
   return {
@@ -214,7 +236,9 @@ function partStyle(rect: BertPart, offset?: { x: number; y: number }): ViewStyle
     width: rect.width,
     height: rect.height,
     backgroundColor: rect.color,
-    ...(rect.rotate === undefined ? {} : { transform: [{ rotate: `${rect.rotate}deg` }] }),
+    ...(rect.rotate === undefined
+      ? {}
+      : { transform: [{ rotate: `${rect.rotate}deg` }] }),
   };
 }
 
@@ -250,41 +274,288 @@ function drop(
 const styles = StyleSheet.create({
   bertFrame: { alignItems: 'center', justifyContent: 'center' },
   bertSprite: { width: 104, height: 180 },
-  bertGroundShadow: { position: 'absolute', left: 14, bottom: 1, width: 78, height: 9, backgroundColor: '#c9c5d0' },
-  bertLeftShoe: { position: 'absolute', left: 26, bottom: 6, width: 25, height: 10, backgroundColor: '#241f2e' },
-  bertRightShoe: { position: 'absolute', right: 22, bottom: 6, width: 25, height: 10, backgroundColor: '#241f2e' },
-  bertLeftLeg: { position: 'absolute', left: 31, bottom: 15, width: 18, height: 37, backgroundColor: '#3a3350' },
-  bertRightLeg: { position: 'absolute', right: 26, bottom: 15, width: 18, height: 37, backgroundColor: '#3a3350' },
-  bertJacket: { position: 'absolute', left: 23, top: 88, width: 60, height: 51, backgroundColor: '#3a3350' },
-  bertShirt: { position: 'absolute', left: 43, top: 91, width: 20, height: 43, backgroundColor: '#f4f1ea' },
-  bertTie: { position: 'absolute', left: 49, top: 96, width: 9, height: 35, backgroundColor: '#d94f52' },
-  bertLeftLapelle: { position: 'absolute', left: 31, top: 93, width: 18, height: 26, backgroundColor: '#5b3a91', transform: [{ rotate: '18deg' }] },
-  bertRightLapelle: { position: 'absolute', right: 30, top: 93, width: 18, height: 26, backgroundColor: '#5b3a91', transform: [{ rotate: '-18deg' }] },
-  bertPointingArm: { position: 'absolute', left: 3, top: 101, width: 33, height: 13, backgroundColor: '#3a3350', transform: [{ rotate: '-8deg' }] },
-  bertPointingHand: { position: 'absolute', left: 0, top: 98, width: 15, height: 14, backgroundColor: '#cf9268' },
-  bertPointingFinger: { position: 'absolute', left: -8, top: 101, width: 13, height: 6, backgroundColor: '#eab48c' },
-  bertLeftArm: { position: 'absolute', left: 16, top: 101, width: 13, height: 42, backgroundColor: '#3a3350', transform: [{ rotate: '5deg' }] },
-  bertLeftHand: { position: 'absolute', left: 17, top: 137, width: 13, height: 15, backgroundColor: '#cf9268' },
-  bertRightArm: { position: 'absolute', right: 14, top: 101, width: 13, height: 42, backgroundColor: '#3a3350', transform: [{ rotate: '-5deg' }] },
-  bertRightHand: { position: 'absolute', right: 15, top: 137, width: 13, height: 15, backgroundColor: '#cf9268' },
-  bertLeftEar: { position: 'absolute', left: 17, top: 42, width: 13, height: 28, backgroundColor: '#cf9268' },
-  bertRightEar: { position: 'absolute', right: 17, top: 42, width: 13, height: 28, backgroundColor: '#cf9268' },
-  bertHeadTop: { position: 'absolute', left: 31, top: 12, width: 44, height: 23, backgroundColor: '#eab48c' },
-  bertHeadFace: { position: 'absolute', left: 24, top: 27, width: 58, height: 48, backgroundColor: '#eab48c' },
-  bertHeadJaw: { position: 'absolute', left: 31, top: 68, width: 44, height: 24, backgroundColor: '#cf9268' },
+  bertGroundShadow: {
+    position: 'absolute',
+    left: 14,
+    bottom: 1,
+    width: 78,
+    height: 9,
+    backgroundColor: '#c9c5d0',
+  },
+  bertLeftShoe: {
+    position: 'absolute',
+    left: 26,
+    bottom: 6,
+    width: 25,
+    height: 10,
+    backgroundColor: '#241f2e',
+  },
+  bertRightShoe: {
+    position: 'absolute',
+    right: 22,
+    bottom: 6,
+    width: 25,
+    height: 10,
+    backgroundColor: '#241f2e',
+  },
+  bertLeftLeg: {
+    position: 'absolute',
+    left: 31,
+    bottom: 15,
+    width: 18,
+    height: 37,
+    backgroundColor: '#3a3350',
+  },
+  bertRightLeg: {
+    position: 'absolute',
+    right: 26,
+    bottom: 15,
+    width: 18,
+    height: 37,
+    backgroundColor: '#3a3350',
+  },
+  bertJacket: {
+    position: 'absolute',
+    left: 23,
+    top: 88,
+    width: 60,
+    height: 51,
+    backgroundColor: '#3a3350',
+  },
+  bertShirt: {
+    position: 'absolute',
+    left: 43,
+    top: 91,
+    width: 20,
+    height: 43,
+    backgroundColor: '#f4f1ea',
+  },
+  bertTie: {
+    position: 'absolute',
+    left: 49,
+    top: 96,
+    width: 9,
+    height: 35,
+    backgroundColor: '#d94f52',
+  },
+  bertLeftLapelle: {
+    position: 'absolute',
+    left: 31,
+    top: 93,
+    width: 18,
+    height: 26,
+    backgroundColor: '#5b3a91',
+    transform: [{ rotate: '18deg' }],
+  },
+  bertRightLapelle: {
+    position: 'absolute',
+    right: 30,
+    top: 93,
+    width: 18,
+    height: 26,
+    backgroundColor: '#5b3a91',
+    transform: [{ rotate: '-18deg' }],
+  },
+  bertPointingArm: {
+    position: 'absolute',
+    left: 3,
+    top: 101,
+    width: 33,
+    height: 13,
+    backgroundColor: '#3a3350',
+    transform: [{ rotate: '-8deg' }],
+  },
+  bertPointingHand: {
+    position: 'absolute',
+    left: 0,
+    top: 98,
+    width: 15,
+    height: 14,
+    backgroundColor: '#cf9268',
+  },
+  bertPointingFinger: {
+    position: 'absolute',
+    left: -8,
+    top: 101,
+    width: 13,
+    height: 6,
+    backgroundColor: '#eab48c',
+  },
+  bertLeftArm: {
+    position: 'absolute',
+    left: 16,
+    top: 101,
+    width: 13,
+    height: 42,
+    backgroundColor: '#3a3350',
+    transform: [{ rotate: '5deg' }],
+  },
+  bertLeftHand: {
+    position: 'absolute',
+    left: 17,
+    top: 137,
+    width: 13,
+    height: 15,
+    backgroundColor: '#cf9268',
+  },
+  bertRightArm: {
+    position: 'absolute',
+    right: 14,
+    top: 101,
+    width: 13,
+    height: 42,
+    backgroundColor: '#3a3350',
+    transform: [{ rotate: '-5deg' }],
+  },
+  bertRightHand: {
+    position: 'absolute',
+    right: 15,
+    top: 137,
+    width: 13,
+    height: 15,
+    backgroundColor: '#cf9268',
+  },
+  bertLeftEar: {
+    position: 'absolute',
+    left: 17,
+    top: 42,
+    width: 13,
+    height: 28,
+    backgroundColor: '#cf9268',
+  },
+  bertRightEar: {
+    position: 'absolute',
+    right: 17,
+    top: 42,
+    width: 13,
+    height: 28,
+    backgroundColor: '#cf9268',
+  },
+  bertHeadTop: {
+    position: 'absolute',
+    left: 31,
+    top: 12,
+    width: 44,
+    height: 23,
+    backgroundColor: '#eab48c',
+  },
+  bertHeadFace: {
+    position: 'absolute',
+    left: 24,
+    top: 27,
+    width: 58,
+    height: 48,
+    backgroundColor: '#eab48c',
+  },
+  bertHeadJaw: {
+    position: 'absolute',
+    left: 31,
+    top: 68,
+    width: 44,
+    height: 24,
+    backgroundColor: '#cf9268',
+  },
   // Silver, not the mid-grey he was drawn with. That grey was chosen against
   // the briefing card's pale panel; standing on a dimmed screen it sat within a
   // few points of the dim itself and his hair simply disappeared.
-  bertLeftHair: { position: 'absolute', left: 22, top: 22, width: 10, height: 27, backgroundColor: '#c9c5d0' },
-  bertRightHair: { position: 'absolute', right: 21, top: 22, width: 10, height: 27, backgroundColor: '#c9c5d0' },
-  bertBaldHighlight: { position: 'absolute', left: 40, top: 17, width: 21, height: 5, backgroundColor: '#f7d7ba' },
-  bertLeftBrow: { position: 'absolute', left: 30, top: 41, width: 15, height: 7, backgroundColor: '#6a4326', transform: [{ rotate: '8deg' }] },
-  bertRightBrow: { position: 'absolute', right: 29, top: 41, width: 15, height: 7, backgroundColor: '#6a4326', transform: [{ rotate: '-8deg' }] },
-  bertLeftEye: { position: 'absolute', left: 36, top: 50, width: 5, height: 5, backgroundColor: '#241f2e' },
-  bertRightEye: { position: 'absolute', right: 35, top: 50, width: 5, height: 5, backgroundColor: '#241f2e' },
-  bertNose: { position: 'absolute', left: 42, top: 48, width: 25, height: 24, backgroundColor: '#cf9268' },
-  bertNoseLight: { position: 'absolute', left: 46, top: 51, width: 13, height: 7, backgroundColor: '#f7d7ba' },
-  bertMoustacheLeft: { position: 'absolute', left: 31, top: 70, width: 22, height: 10, backgroundColor: '#6a4326', transform: [{ rotate: '8deg' }] },
-  bertMoustacheRight: { position: 'absolute', right: 29, top: 70, width: 22, height: 10, backgroundColor: '#6a4326', transform: [{ rotate: '-8deg' }] },
-  bertMouth: { position: 'absolute', left: 46, top: 82, width: 13, height: 4, backgroundColor: '#a83440' },
+  bertLeftHair: {
+    position: 'absolute',
+    left: 22,
+    top: 22,
+    width: 10,
+    height: 27,
+    backgroundColor: '#c9c5d0',
+  },
+  bertRightHair: {
+    position: 'absolute',
+    right: 21,
+    top: 22,
+    width: 10,
+    height: 27,
+    backgroundColor: '#c9c5d0',
+  },
+  bertBaldHighlight: {
+    position: 'absolute',
+    left: 40,
+    top: 17,
+    width: 21,
+    height: 5,
+    backgroundColor: '#f7d7ba',
+  },
+  bertLeftBrow: {
+    position: 'absolute',
+    left: 30,
+    top: 41,
+    width: 15,
+    height: 7,
+    backgroundColor: '#6a4326',
+    transform: [{ rotate: '8deg' }],
+  },
+  bertRightBrow: {
+    position: 'absolute',
+    right: 29,
+    top: 41,
+    width: 15,
+    height: 7,
+    backgroundColor: '#6a4326',
+    transform: [{ rotate: '-8deg' }],
+  },
+  bertLeftEye: {
+    position: 'absolute',
+    left: 36,
+    top: 50,
+    width: 5,
+    height: 5,
+    backgroundColor: '#241f2e',
+  },
+  bertRightEye: {
+    position: 'absolute',
+    right: 35,
+    top: 50,
+    width: 5,
+    height: 5,
+    backgroundColor: '#241f2e',
+  },
+  bertNose: {
+    position: 'absolute',
+    left: 42,
+    top: 48,
+    width: 25,
+    height: 24,
+    backgroundColor: '#cf9268',
+  },
+  bertNoseLight: {
+    position: 'absolute',
+    left: 46,
+    top: 51,
+    width: 13,
+    height: 7,
+    backgroundColor: '#f7d7ba',
+  },
+  bertMoustacheLeft: {
+    position: 'absolute',
+    left: 31,
+    top: 70,
+    width: 22,
+    height: 10,
+    backgroundColor: '#6a4326',
+    transform: [{ rotate: '8deg' }],
+  },
+  bertMoustacheRight: {
+    position: 'absolute',
+    right: 29,
+    top: 70,
+    width: 22,
+    height: 10,
+    backgroundColor: '#6a4326',
+    transform: [{ rotate: '-8deg' }],
+  },
+  bertMouth: {
+    position: 'absolute',
+    left: 46,
+    top: 82,
+    width: 13,
+    height: 4,
+    backgroundColor: '#a83440',
+  },
 });

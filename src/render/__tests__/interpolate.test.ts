@@ -6,9 +6,18 @@ import { HOME_DECOY_INDEX } from '../../sim/entities';
 
 describe('lerpVec', () => {
   it('blends between two points', () => {
-    expect(lerpVec({ x: 0, y: 0 }, { x: 100, y: 200 }, 0.5)).toEqual({ x: 50, y: 100 });
-    expect(lerpVec({ x: 0, y: 0 }, { x: 100, y: 200 }, 0)).toEqual({ x: 0, y: 0 });
-    expect(lerpVec({ x: 0, y: 0 }, { x: 100, y: 200 }, 1)).toEqual({ x: 100, y: 200 });
+    expect(lerpVec({ x: 0, y: 0 }, { x: 100, y: 200 }, 0.5)).toEqual({
+      x: 50,
+      y: 100,
+    });
+    expect(lerpVec({ x: 0, y: 0 }, { x: 100, y: 200 }, 0)).toEqual({
+      x: 0,
+      y: 0,
+    });
+    expect(lerpVec({ x: 0, y: 0 }, { x: 100, y: 200 }, 1)).toEqual({
+      x: 100,
+      y: 200,
+    });
   });
 });
 
@@ -42,7 +51,9 @@ describe('snapshotFrame', () => {
     const after = snapshotFrame(m, before);
     expect(after.moved.some(Boolean)).toBe(true);
     for (let i = 0; i < 22; i++) {
-      const changed = before.players[i].x !== after.players[i].x || before.players[i].y !== after.players[i].y;
+      const changed =
+        before.players[i].x !== after.players[i].x ||
+        before.players[i].y !== after.players[i].y;
       expect(after.moved[i]).toBe(changed);
     }
   });
@@ -82,9 +93,17 @@ describe('snapshotFrame', () => {
 
   it('statuses report "windup" while winding and "active" once fired', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    m.players[9].powerState = { kind: 'winding', untilTick: m.tick + 15, strength: 1 };
+    m.players[9].powerState = {
+      kind: 'winding',
+      untilTick: m.tick + 15,
+      strength: 1,
+    };
     expect(snapshotFrame(m).statuses[9]).toBe('windup');
-    m.players[9].powerState = { kind: 'active', untilTick: m.tick + 80, strength: 1 };
+    m.players[9].powerState = {
+      kind: 'active',
+      untilTick: m.tick + 80,
+      strength: 1,
+    };
     expect(snapshotFrame(m).statuses[9]).toBe('active');
   });
 
@@ -118,13 +137,20 @@ describe('snapshotFrame', () => {
 
   it('carrier is -1 when the ball is not held', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    m.ball = { kind: 'loose', pos: { x: 100, y: 100 }, vel: { x: 0, y: 0 }, z: 0, vz: 0 };
+    m.ball = {
+      kind: 'loose',
+      pos: { x: 100, y: 100 },
+      vel: { x: 0, y: 0 },
+      z: 0,
+      vz: 0,
+    };
     expect(snapshotFrame(m).carrier).toBe(-1);
   });
 
   it('ball is a copy, never an alias of live sim state', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    if (m.ball.kind !== 'held') throw new Error('expected kickoff ball to be held');
+    if (m.ball.kind !== 'held')
+      throw new Error('expected kickoff ball to be held');
     const carrierPos = m.players[m.ball.by].pos;
     expect(snapshotFrame(m).ball).not.toBe(carrierPos);
     expect(snapshotFrame(m).ball).toEqual(carrierPos);
@@ -139,8 +165,15 @@ describe('snapshotFrame', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const prev = snapshotFrame(m);
     m.ball = {
-      kind: 'pass', pos: { x: 2000, y: 2000 }, from: 1, to: 2,
-      willSucceed: true, interceptor: -1, z: 180, vz: 20, speed: 250,
+      kind: 'pass',
+      pos: { x: 2000, y: 2000 },
+      from: 1,
+      to: 2,
+      willSucceed: true,
+      interceptor: -1,
+      z: 180,
+      vz: 20,
+      speed: 250,
     };
     const next = snapshotFrame(m, prev);
     expect(next.ballHeight).toBe(180);
@@ -153,7 +186,7 @@ describe('snapshotFrame', () => {
       players: ROVERS.players.map((player, index) => ({
         ...player,
         attrs: { ...player.attrs },
-        power: index === 5 ? 'DECOY_DOUBLE' as const : undefined,
+        power: index === 5 ? ('DECOY_DOUBLE' as const) : undefined,
       })),
     };
     const m = createMatch(1818, home, UNITED);
@@ -175,7 +208,9 @@ describe('snapshotFrame', () => {
     expect(visible.players[HOME_DECOY_INDEX]).toEqual(m.decoyClones[0]!.pos);
     expect(visible.moved[HOME_DECOY_INDEX]).toBe(false);
     expect(visible.travel[HOME_DECOY_INDEX]).toBe(0);
-    expect(lerpFrame(hidden, visible, 0.5).visible[HOME_DECOY_INDEX]).toBe(true);
+    expect(lerpFrame(hidden, visible, 0.5).visible[HOME_DECOY_INDEX]).toBe(
+      true,
+    );
   });
 });
 
@@ -194,7 +229,9 @@ describe('lerpFrame', () => {
       expect(mid.travel[i]).toBeCloseTo((prev.travel[i] + next.travel[i]) / 2);
     }
     for (let i = 0; i < 22; i++) {
-      expect(mid.players[i]).toEqual(lerpVec(prev.players[i], next.players[i], 0.5));
+      expect(mid.players[i]).toEqual(
+        lerpVec(prev.players[i], next.players[i], 0.5),
+      );
     }
     expect(mid.ball).toEqual(lerpVec(prev.ball, next.ball, 0.5));
     expect(mid.ballHeight).toBeCloseTo((prev.ballHeight + next.ballHeight) / 2);

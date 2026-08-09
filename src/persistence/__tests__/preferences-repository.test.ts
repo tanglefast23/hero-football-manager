@@ -37,7 +37,9 @@ const V9_ROW_LITERAL = {
 
 describe('app preferences repository', () => {
   it('loads manual powers and the three coverage formations by default', async () => {
-    const repository = await createPreferencesRepository(new FakePersistenceDatabase());
+    const repository = await createPreferencesRepository(
+      new FakePersistenceDatabase(),
+    );
     await expect(repository.load()).resolves.toEqual(DEFAULT_APP_PREFERENCES);
   });
 
@@ -46,7 +48,11 @@ describe('app preferences repository', () => {
     const repository = await createPreferencesRepository(database);
     const preferences: AppPreferences = {
       ...DEFAULT_APP_PREFERENCES,
-      formationPresets: ['3-5-2', '4-5-1', '3-4-3'] as ['3-5-2', '4-5-1', '3-4-3'],
+      formationPresets: ['3-5-2', '4-5-1', '3-4-3'] as [
+        '3-5-2',
+        '4-5-1',
+        '3-4-3',
+      ],
       autoPowers: true,
       masterVolume: 0.5 as const,
       reduceMotion: true,
@@ -116,7 +122,10 @@ describe('app preferences repository', () => {
     } = V9_ROW_LITERAL;
     database.preferencesRow = {
       schema_version: 3,
-      preferences_json: JSON.stringify({ ...m4Preferences, cutInMode: 'banner' }),
+      preferences_json: JSON.stringify({
+        ...m4Preferences,
+        cutInMode: 'banner',
+      }),
     };
     const repository = await createPreferencesRepository(database);
 
@@ -186,7 +195,10 @@ describe('app preferences repository', () => {
     const schema6Preferences = { ...schema6Base, managerTipsEnabled: true };
     database.preferencesRow = {
       schema_version: 6,
-      preferences_json: JSON.stringify({ ...schema6Preferences, autoSubs: true }),
+      preferences_json: JSON.stringify({
+        ...schema6Preferences,
+        autoSubs: true,
+      }),
     };
     const repository = await createPreferencesRepository(database);
 
@@ -229,13 +241,15 @@ describe('app preferences repository', () => {
   });
 
   it('offers the validated taught formation after hire and ignores trap or unknown IDs', () => {
-    expect(availableFormationIds(DEFAULT_APP_PREFERENCES, [
-      '3-5-2',
-      'not-a-formation',
-      '3-5-2',
-      '4-5-1',
-      '4-3-3',
-    ])).toEqual(['4-4-2', '4-3-3', '5-3-2', '3-4-3']);
+    expect(
+      availableFormationIds(DEFAULT_APP_PREFERENCES, [
+        '3-5-2',
+        'not-a-formation',
+        '3-5-2',
+        '4-5-1',
+        '4-3-3',
+      ]),
+    ).toEqual(['4-4-2', '4-3-3', '5-3-2', '3-4-3']);
 
     let preferences = DEFAULT_APP_PREFERENCES;
     const seen = new Set<string>();
@@ -263,7 +277,9 @@ describe('app preferences repository', () => {
   });
 
   it('defaults a fresh install to a locked climb and retires the narrow tips toggle', async () => {
-    const repository = await createPreferencesRepository(new FakePersistenceDatabase());
+    const repository = await createPreferencesRepository(
+      new FakePersistenceDatabase(),
+    );
     const preferences = await repository.load();
 
     expect(preferences.climbCompleted).toBe(false);
@@ -300,7 +316,9 @@ describe('app preferences repository', () => {
   });
 
   it('round-trips a completed climb', async () => {
-    const repository = await createPreferencesRepository(new FakePersistenceDatabase());
+    const repository = await createPreferencesRepository(
+      new FakePersistenceDatabase(),
+    );
     const preferences = await repository.load();
 
     await repository.save({ ...preferences, climbCompleted: true });
@@ -308,10 +326,10 @@ describe('app preferences repository', () => {
     expect((await repository.load()).climbCompleted).toBe(true);
   });
 
-
   it('migrates a version 8 row with Developer Mode safely off', async () => {
     const database = new FakePersistenceDatabase();
-    const { developerMode: _developerMode, ...schema8Preferences } = V9_ROW_LITERAL;
+    const { developerMode: _developerMode, ...schema8Preferences } =
+      V9_ROW_LITERAL;
     database.preferencesRow = {
       schema_version: 8,
       preferences_json: JSON.stringify(schema8Preferences),

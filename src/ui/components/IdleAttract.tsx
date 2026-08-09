@@ -71,9 +71,14 @@ export function IdleAttract({
       style={[
         style,
         {
-          transform: [{
-            scale: breath.interpolate({ inputRange: [0, 1], outputRange: [1, BREATH_SCALE] }),
-          }],
+          transform: [
+            {
+              scale: breath.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, BREATH_SCALE],
+              }),
+            },
+          ],
         },
       ]}
     >

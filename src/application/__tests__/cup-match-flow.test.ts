@@ -27,7 +27,11 @@ describe('Hero Cup app routing', () => {
     });
     const career = useM1Store.getState().career!;
     useM1Store.setState({
-      career: withRivalHeroIntrosSeen({ ...career, week: 3, phase: 'matchday' }),
+      career: withRivalHeroIntrosSeen({
+        ...career,
+        week: 3,
+        phase: 'matchday',
+      }),
       screen: 'matchday',
     });
 
@@ -67,19 +71,26 @@ describe('Hero Cup app routing', () => {
     // season-2-onward double-header this routing has to handle without playing
     // out a whole season first.
     const awakenedCareer = useM1Store.getState().career!;
-    const doubleHeaderRound = Math.min(...awakenedCareer.fixtures
-      .filter(fixture => fixture.season === awakenedCareer.season && fixture.week > PLAY_IN_WEEK)
-      .map(fixture => fixture.round));
+    const doubleHeaderRound = Math.min(
+      ...awakenedCareer.fixtures
+        .filter(
+          (fixture) =>
+            fixture.season === awakenedCareer.season &&
+            fixture.week > PLAY_IN_WEEK,
+        )
+        .map((fixture) => fixture.round),
+    );
     useM1Store.setState({
       career: {
         ...awakenedCareer,
         week: PLAY_IN_WEEK,
         phase: 'matchday',
-        fixtures: awakenedCareer.fixtures.map(fixture => (
-          fixture.season === awakenedCareer.season && fixture.round === doubleHeaderRound
+        fixtures: awakenedCareer.fixtures.map((fixture) =>
+          fixture.season === awakenedCareer.season &&
+          fixture.round === doubleHeaderRound
             ? { ...fixture, week: PLAY_IN_WEEK }
-            : fixture
-        )),
+            : fixture,
+        ),
       },
       screen: 'matchday',
     });
@@ -109,29 +120,39 @@ describe('Hero Cup app routing', () => {
         },
       },
     });
-    expect(final.career!.m2!.nationalCups[0].rounds[0].fixtures.every(
-      fixture => fixture.status === 'played',
-    )).toBe(true);
+    expect(
+      final.career!.m2!.nationalCups[0].rounds[0].fixtures.every(
+        (fixture) => fixture.status === 'played',
+      ),
+    ).toBe(true);
   });
 
   test('does not open the second match until the league checkpoint is on disk', async () => {
     const initial = createCareer(createLaunchCareerSetup(20260805));
-    const doubleHeaderRound = Math.min(...initial.fixtures
-      .filter(fixture => fixture.season === initial.season && fixture.week > PLAY_IN_WEEK)
-      .map(fixture => fixture.round));
+    const doubleHeaderRound = Math.min(
+      ...initial.fixtures
+        .filter(
+          (fixture) =>
+            fixture.season === initial.season && fixture.week > PLAY_IN_WEEK,
+        )
+        .map((fixture) => fixture.round),
+    );
     const checkpoint = withRivalHeroIntrosSeen({
       ...initial,
       week: PLAY_IN_WEEK,
       phase: 'matchday' as const,
-      fixtures: initial.fixtures.map(fixture => (
+      fixtures: initial.fixtures.map((fixture) =>
         fixture.season === initial.season && fixture.round === doubleHeaderRound
           ? { ...fixture, week: PLAY_IN_WEEK }
-          : fixture
-      )),
+          : fixture,
+      ),
     });
     let releaseSave: (() => void) | undefined;
     const repository = emptyCareerRepository({
-      save: async () => new Promise<void>(resolve => { releaseSave = resolve; }),
+      save: async () =>
+        new Promise<void>((resolve) => {
+          releaseSave = resolve;
+        }),
     });
     useM1Store.setState({
       career: checkpoint,
@@ -161,7 +182,11 @@ describe('Hero Cup app routing', () => {
 
     const continuation = useM1Store.getState().continueAfterMatch();
     expect(useM1Store.getState().screen).toBe('postmatch');
-    for (let attempt = 0; attempt < 20 && releaseSave === undefined; attempt += 1) {
+    for (
+      let attempt = 0;
+      attempt < 20 && releaseSave === undefined;
+      attempt += 1
+    ) {
       await Promise.resolve();
     }
     expect(releaseSave).toBeDefined();
@@ -185,7 +210,11 @@ describe('Hero Cup app routing', () => {
     const career = useM1Store.getState().career!;
 
     useM1Store.setState({
-      career: withRivalHeroIntrosSeen({ ...career, week: 3, phase: 'matchday' }),
+      career: withRivalHeroIntrosSeen({
+        ...career,
+        week: 3,
+        phase: 'matchday',
+      }),
       screen: 'matchday',
     });
     useM1Store.getState().watchMatch();
@@ -206,52 +235,66 @@ describe('Hero Cup app routing', () => {
   test.each([
     { path: 'Quick Result', watched: false },
     { path: 'watched', watched: true },
-  ])('queues exactly one Bert giant-killing walk-on after the $path path', ({ watched }) => {
-    const prepared = prepareCupTie(2);
-    const matchday = prepared.m2!.nationalCups[0].rounds[0].fixtures.find(fixture => (
-      fixture.homeClubId === prepared.userClubId || fixture.awayClubId === prepared.userClubId
-    ))!;
+  ])(
+    'queues exactly one Bert giant-killing walk-on after the $path path',
+    ({ watched }) => {
+      const prepared = prepareCupTie(2);
+      const matchday = prepared.m2!.nationalCups[0].rounds[0].fixtures.find(
+        (fixture) =>
+          fixture.homeClubId === prepared.userClubId ||
+          fixture.awayClubId === prepared.userClubId,
+      )!;
 
-    if (watched) {
-      useM1Store.getState().watchMatch();
-      const context = useM1Store.getState().watchedMatch!;
-      const result = createMatch(
-        context.fixture.matchSeed,
-        context.home,
-        context.away,
-        { controlledTeam: context.controlledTeam },
-      );
-      result.score = context.userIsFixtureHome ? [1, 0] : [0, 1];
-      result.phase = 'fulltime';
-      useM1Store.getState().finishWatchedMatch(result);
-      // A duplicate full-time callback is ignored and must not queue Bert twice.
-      useM1Store.getState().finishWatchedMatch(result);
-    } else {
-      useM1Store.getState().quickResult();
-      // The post-match screen rejects a double tap at the store boundary.
-      useM1Store.getState().quickResult();
-    }
+      if (watched) {
+        useM1Store.getState().watchMatch();
+        const context = useM1Store.getState().watchedMatch!;
+        const result = createMatch(
+          context.fixture.matchSeed,
+          context.home,
+          context.away,
+          { controlledTeam: context.controlledTeam },
+        );
+        result.score = context.userIsFixtureHome ? [1, 0] : [0, 1];
+        result.phase = 'fulltime';
+        useM1Store.getState().finishWatchedMatch(result);
+        // A duplicate full-time callback is ignored and must not queue Bert twice.
+        useM1Store.getState().finishWatchedMatch(result);
+      } else {
+        useM1Store.getState().quickResult();
+        // The post-match screen rejects a double tap at the store boundary.
+        useM1Store.getState().quickResult();
+      }
 
-    const prizeLines = useM1Store.getState().career!.ledgers
-      .flatMap(ledger => ledger.lines)
-      .filter(line => line.idempotencyKey === weeklySettlementAwardKeys.cupRound(
-        prepared.userClubId,
-        prepared.season,
-        matchday.round,
-      ));
-    expect(prizeLines).toEqual([
-      expect.objectContaining({ kind: 'prize', amount: 2_000 }),
-    ]);
-    expect(useM1Store.getState().career?.pendingCupGiantKillingCelebrations).toEqual([
-      expect.objectContaining({
-        fixtureId: matchday.id,
-        divisionGap: 2,
-        title: 'Two divisions up!',
-      }),
-    ]);
-    useM1Store.getState().completeCupGiantKillingCelebration();
-    expect(useM1Store.getState().career?.pendingCupGiantKillingCelebrations).toBeUndefined();
-  });
+      const prizeLines = useM1Store
+        .getState()
+        .career!.ledgers.flatMap((ledger) => ledger.lines)
+        .filter(
+          (line) =>
+            line.idempotencyKey ===
+            weeklySettlementAwardKeys.cupRound(
+              prepared.userClubId,
+              prepared.season,
+              matchday.round,
+            ),
+        );
+      expect(prizeLines).toEqual([
+        expect.objectContaining({ kind: 'prize', amount: 2_000 }),
+      ]);
+      expect(
+        useM1Store.getState().career?.pendingCupGiantKillingCelebrations,
+      ).toEqual([
+        expect.objectContaining({
+          fixtureId: matchday.id,
+          divisionGap: 2,
+          title: 'Two divisions up!',
+        }),
+      ]);
+      useM1Store.getState().completeCupGiantKillingCelebration();
+      expect(
+        useM1Store.getState().career?.pendingCupGiantKillingCelebrations,
+      ).toBeUndefined();
+    },
+  );
 
   test('dismisses the mode-neutral mismatch warning once before the Cup tie', () => {
     const prepared = prepareCupTie(2);
@@ -285,7 +328,9 @@ describe('Hero Cup app routing', () => {
       cupExit: true,
     });
     // Being knocked out by a club two divisions up is not a giant-killing.
-    expect(useM1Store.getState().career?.pendingCupGiantKillingCelebrations).toBeUndefined();
+    expect(
+      useM1Store.getState().career?.pendingCupGiantKillingCelebrations,
+    ).toBeUndefined();
 
     useM1Store.setState(useM1Store.getInitialState(), true);
     prepareCupTie(2, 'user');
@@ -297,20 +342,35 @@ describe('Hero Cup app routing', () => {
   });
 });
 
-function emptyCareerRepository(overrides: Partial<CareerRepository>): CareerRepository {
+function emptyCareerRepository(
+  overrides: Partial<CareerRepository>,
+): CareerRepository {
   return {
-    async load() { return null; },
-    async loadRaw() { return null; },
+    async load() {
+      return null;
+    },
+    async loadRaw() {
+      return null;
+    },
     async save() {},
     async delete() {},
-    async backupSummary() { return null; },
-    async restoreBackup() { throw new MissingCareerBackupError(); },
-    async checkIntegrity() { return true; },
+    async backupSummary() {
+      return null;
+    },
+    async restoreBackup() {
+      throw new MissingCareerBackupError();
+    },
+    async checkIntegrity() {
+      return true;
+    },
     ...overrides,
   };
 }
 
-function prepareCupTie(divisionGap: 1 | 2, winner: 'user' | 'opponent' = 'user') {
+function prepareCupTie(
+  divisionGap: 1 | 2,
+  winner: 'user' | 'opponent' = 'user',
+) {
   useM1Store.getState().startNewCareer(2);
   useM1Store.getState().completePlayerCreation({
     name: 'Cup Runner',
@@ -318,18 +378,33 @@ function prepareCupTie(divisionGap: 1 | 2, winner: 'user' | 'opponent' = 'user')
   });
   const career = useM1Store.getState().career!;
   const cup = career.m2!.nationalCups[0];
-  const fixture = cup.rounds[0].fixtures.find(candidate => (
-    candidate.homeClubId === career.userClubId || candidate.awayClubId === career.userClubId
-  ));
+  const fixture = cup.rounds[0].fixtures.find(
+    (candidate) =>
+      candidate.homeClubId === career.userClubId ||
+      candidate.awayClubId === career.userClubId,
+  );
   if (fixture === undefined) throw new Error('expected a user play-in fixture');
-  const opponentClubId = fixture.homeClubId === career.userClubId
-    ? fixture.awayClubId
-    : fixture.homeClubId;
+  const opponentClubId =
+    fixture.homeClubId === career.userClubId
+      ? fixture.awayClubId
+      : fixture.homeClubId;
   const strong = {
-    pac: 999, sho: 999, pas: 999, def: 999, tec: 999, sta: 999, ref: 999,
+    pac: 999,
+    sho: 999,
+    pas: 999,
+    def: 999,
+    tec: 999,
+    sta: 999,
+    ref: 999,
   };
   const weak = {
-    pac: 1, sho: 1, pas: 1, def: 1, tec: 1, sta: 1, ref: 1,
+    pac: 1,
+    sho: 1,
+    pas: 1,
+    def: 1,
+    tec: 1,
+    sta: 1,
+    ref: 1,
   };
   // A knockout tie has to end decisively for either assertion to mean anything,
   // so the side that is meant to go through is made unbeatable rather than
@@ -348,33 +423,34 @@ function prepareCupTie(divisionGap: 1 | 2, winner: 'user' | 'opponent' = 'user')
     ...career,
     week: PLAY_IN_WEEK,
     phase: 'matchday' as const,
-    players: career.players.map(player => (
+    players: career.players.map((player) =>
       player.clubId === career.userClubId
         ? { ...player, attrs: dominant }
         : player.clubId === opponentClubId
           ? { ...player, attrs: overmatched }
-          : player
-    )),
+          : player,
+    ),
     m2: {
       ...career.m2!,
-      nationalCups: career.m2!.nationalCups.map(candidate => (
-        candidate.season === nextCup.season ? nextCup : candidate
-      )),
+      nationalCups: career.m2!.nationalCups.map((candidate) =>
+        candidate.season === nextCup.season ? nextCup : candidate,
+      ),
       pyramid: {
         ...career.m2!.pyramid,
-        divisions: career.m2!.pyramid.divisions.map(division => ({
+        divisions: career.m2!.pyramid.divisions.map((division) => ({
           ...division,
-          clubs: division.clubs.map(club => (
+          clubs: division.clubs.map((club) =>
             club.id !== career.userClubId && club.id !== opponentClubId
               ? club
               : {
                   ...club,
-                  squad: club.squad.map(player => ({
+                  squad: club.squad.map((player) => ({
                     ...player,
-                    attrs: club.id === career.userClubId ? dominant : overmatched,
+                    attrs:
+                      club.id === career.userClubId ? dominant : overmatched,
                   })),
-                }
-          )),
+                },
+          ),
         })),
       },
     },

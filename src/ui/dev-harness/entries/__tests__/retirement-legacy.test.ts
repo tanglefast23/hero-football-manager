@@ -1,9 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { clubLegacyViewModel, homeViewModel } from '../../../../application/view-models';
+import {
+  clubLegacyViewModel,
+  homeViewModel,
+} from '../../../../application/view-models';
 import { resolveNextClubLegendLegacy } from '../../../../game/legacy-career';
-import { CLUB_LEGEND_MIN_FAME, CLUB_LEGEND_MIN_SEASONS } from '../../../../game/pyramid';
-import { careerRosterCapacity, userCareerRosterCount } from '../../../../game/youth-intake';
+import {
+  CLUB_LEGEND_MIN_FAME,
+  CLUB_LEGEND_MIN_SEASONS,
+} from '../../../../game/pyramid';
+import {
+  careerRosterCapacity,
+  userCareerRosterCount,
+} from '../../../../game/youth-intake';
 import type { GameState } from '../../../../game/types';
 
 /**
@@ -20,8 +29,12 @@ jest.mock('react-native', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('../../../screens/ClubHomeScreen', () => ({ ClubHomeScreen: () => null }));
-jest.mock('../../../screens/ClubLegacyScreen', () => ({ ClubLegacyScreen: () => null }));
+jest.mock('../../../screens/ClubHomeScreen', () => ({
+  ClubHomeScreen: () => null,
+}));
+jest.mock('../../../screens/ClubLegacyScreen', () => ({
+  ClubLegacyScreen: () => null,
+}));
 jest.mock('../../DevHarnessControls', () => ({
   DevHarnessButton: () => null,
   devHarnessControlStyles: { row: {}, rowLabel: {} },
@@ -44,16 +57,18 @@ function career(caseId: RetirementLegacyCaseId): GameState {
 }
 
 function retirementAlerts(state: GameState) {
-  return homeViewModel(state).alerts.filter(alert => alert.id.startsWith('retirement-'));
+  return homeViewModel(state).alerts.filter((alert) =>
+    alert.id.startsWith('retirement-'),
+  );
 }
 
 function retirementRows(state: GameState): string[] {
-  return retirementAlerts(state).map(alert => alert.title);
+  return retirementAlerts(state).map((alert) => alert.title);
 }
 
 describe('the retirement and legacy reel', () => {
   it('registers five squads and three queues', () => {
-    expect(retirementLegacyEntry.cases.map(entry => entry.id)).toEqual([
+    expect(retirementLegacyEntry.cases.map((entry) => entry.id)).toEqual([
       'announcement',
       'hero-farewell',
       'generation',
@@ -63,7 +78,11 @@ describe('the retirement and legacy reel', () => {
       'legacy-queue',
       'legacy-empty',
     ]);
-    expect(retirementLegacyEntry.cases.every(entry => (entry.note ?? '').length > 0)).toBe(true);
+    expect(
+      retirementLegacyEntry.cases.every(
+        (entry) => (entry.note ?? '').length > 0,
+      ),
+    ).toBe(true);
   });
 
   it('builds every case, deterministically', () => {
@@ -103,7 +122,9 @@ describe('the retirement and legacy reel', () => {
   it('marks the hero farewell as a hero', () => {
     const state = career('hero-farewell');
     const announcement = state.retirementAnnouncements?.[0];
-    const leaving = state.players.find(player => player.id === announcement?.playerId);
+    const leaving = state.players.find(
+      (player) => player.id === announcement?.playerId,
+    );
     const row = retirementAlerts(state)[0];
 
     expect(leaving?.power).toBeDefined();
@@ -128,8 +149,12 @@ describe('the retirement and legacy reel', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].title).toBe(`${announced} players announce final seasons`);
     expect(rows[0].detail).toContain(`and ${announced - 3} more`);
-    expect(retirementLegacyNote('generation', state)).toContain(`Announced ${announced}`);
-    expect(retirementLegacyNote('generation', state)).toContain('1 on the desk');
+    expect(retirementLegacyNote('generation', state)).toContain(
+      `Announced ${announced}`,
+    );
+    expect(retirementLegacyNote('generation', state)).toContain(
+      '1 on the desk',
+    );
   });
 
   /**
@@ -141,15 +166,17 @@ describe('the retirement and legacy reel', () => {
   it('warns that the last matches are being played, even on a busy desk', () => {
     const state = career('last-matches');
     const busy = retirementLegacyCareer('last-matches', { quietDesk: false });
-    const warning = retirementAlerts(state)
-      .find(alert => alert.id.startsWith('retirement-final-weeks-'));
+    const warning = retirementAlerts(state).find((alert) =>
+      alert.id.startsWith('retirement-final-weeks-'),
+    );
 
     expect(warning).toBeDefined();
     expect(warning?.detail).toContain('when the season ends');
     expect(warning?.detail).toContain('weeks left');
     expect(warning?.isHero).toBe(true);
-    expect(retirementAlerts(busy).map(alert => alert.id))
-      .toContain(`retirement-final-weeks-${busy.season}`);
+    expect(retirementAlerts(busy).map((alert) => alert.id)).toContain(
+      `retirement-final-weeks-${busy.season}`,
+    );
   });
 
   /**
@@ -160,12 +187,21 @@ describe('the retirement and legacy reel', () => {
   it('says goodbye the season after a player has actually gone', () => {
     const state = career('farewell');
     const gone = state.retiredPlayers ?? [];
-    const row = retirementAlerts(state)
-      .find(alert => alert.id === `retirement-farewell:s${state.season}`);
+    const row = retirementAlerts(state).find(
+      (alert) => alert.id === `retirement-farewell:s${state.season}`,
+    );
 
     expect(gone.length).toBe(3);
-    expect(gone.every(player => player.retirementAnnouncementSeason === state.season - 2)).toBe(true);
-    expect(state.players.some(player => gone.some(left => left.id === player.id))).toBe(false);
+    expect(
+      gone.every(
+        (player) => player.retirementAnnouncementSeason === state.season - 2,
+      ),
+    ).toBe(true);
+    expect(
+      state.players.some((player) =>
+        gone.some((left) => left.id === player.id),
+      ),
+    ).toBe(false);
     expect(row?.title).toBe('3 players have retired');
     expect(row?.detail).toContain(`Season ${state.season - 1}`);
     expect(row?.isHero).toBe(true);
@@ -176,15 +212,25 @@ describe('the retirement and legacy reel', () => {
 
     expect(state.pendingLegacyPlayerIds).toHaveLength(3);
     for (const retired of state.retiredPlayers ?? []) {
-      expect(retired.seasonsAtClub ?? 0).toBeGreaterThanOrEqual(CLUB_LEGEND_MIN_SEASONS);
+      expect(retired.seasonsAtClub ?? 0).toBeGreaterThanOrEqual(
+        CLUB_LEGEND_MIN_SEASONS,
+      );
       expect(retired.fame ?? 0).toBeGreaterThanOrEqual(CLUB_LEGEND_MIN_FAME);
     }
-    expect((state.retiredPlayers ?? []).some(retired => retired.power !== undefined)).toBe(true);
+    expect(
+      (state.retiredPlayers ?? []).some(
+        (retired) => retired.power !== undefined,
+      ),
+    ).toBe(true);
   });
 
   it('labels the last decision differently from a queue of them', () => {
-    expect(clubLegacyViewModel(career('legacy-one')).queueLabel).toBe('Final legacy decision');
-    expect(clubLegacyViewModel(career('legacy-queue')).queueLabel).toBe('3 legacy decisions remain');
+    expect(clubLegacyViewModel(career('legacy-one')).queueLabel).toBe(
+      'Final legacy decision',
+    );
+    expect(clubLegacyViewModel(career('legacy-queue')).queueLabel).toBe(
+      '3 legacy decisions remain',
+    );
   });
 
   /** The reel's buttons are the shipped transaction, so the queue advances. */
@@ -210,16 +256,28 @@ describe('the retirement and legacy reel', () => {
     const state = career('legacy-queue');
     const legacy = clubLegacyViewModel(state);
 
-    expect(legacy.choices.map(choice => choice.id)).toEqual(['coach-candidate', 'farewell']);
+    expect(legacy.choices.map((choice) => choice.id)).toEqual([
+      'coach-candidate',
+      'farewell',
+    ]);
     // Both read as decisions: a label, why it happens, and what it does.
-    expect(legacy.choices.every(choice => (
-      choice.label.length > 0 && choice.detail.length > 0 && choice.outcome.length > 0
-    ))).toBe(true);
-    expect(retirementLegacyNote('legacy-queue', state)).toMatch(/roster \d+\/\d+/);
+    expect(
+      legacy.choices.every(
+        (choice) =>
+          choice.label.length > 0 &&
+          choice.detail.length > 0 &&
+          choice.outcome.length > 0,
+      ),
+    ).toBe(true);
+    expect(retirementLegacyNote('legacy-queue', state)).toMatch(
+      /roster \d+\/\d+/,
+    );
     expect(retirementLegacyNote('legacy-queue', state)).toContain('Queue 3');
     // The roster is full, and both legacies resolve anyway.
     expect(userCareerRosterCount(state)).toBe(careerRosterCapacity(state));
-    expect(() => resolveNextClubLegendLegacy(state, 'coach-candidate')).not.toThrow();
+    expect(() =>
+      resolveNextClubLegendLegacy(state, 'coach-candidate'),
+    ).not.toThrow();
     expect(() => resolveNextClubLegendLegacy(state, 'farewell')).not.toThrow();
   });
 
@@ -240,10 +298,12 @@ describe('the retirement and legacy reel', () => {
     expect(declined.coachCandidate).toBeUndefined();
     expect(declined.state.market?.coachCandidates).toHaveLength(coachesBefore);
     expect(hired.state.market?.coachCandidates).toHaveLength(coachesBefore + 1);
-    expect(retirementLegacyNote('legacy-queue', declined.state))
-      .toContain(`coach market ${coachesBefore}`);
-    expect(retirementLegacyNote('legacy-queue', hired.state))
-      .toContain(`coach market ${coachesBefore + 1}`);
+    expect(retirementLegacyNote('legacy-queue', declined.state)).toContain(
+      `coach market ${coachesBefore}`,
+    );
+    expect(retirementLegacyNote('legacy-queue', hired.state)).toContain(
+      `coach market ${coachesBefore + 1}`,
+    );
   });
 
   /**
@@ -256,10 +316,17 @@ describe('the retirement and legacy reel', () => {
     expect(legacy.isHero).toBe(true);
     // Three retired, one of them the legend this screen is deciding about.
     expect(legacy.formerPlayerTotal).toBe(2);
-    expect(legacy.formerPlayers.map(former => former.playerId)).not.toContain(legacy.playerId);
-    expect(legacy.formerPlayers.every(former => /\d+ seasons? · \d+ fame/.test(former.detail)))
-      .toBe(true);
-    expect(retirementLegacyNote('legacy-queue', career('legacy-queue'))).toContain('roll shows 2/2');
+    expect(legacy.formerPlayers.map((former) => former.playerId)).not.toContain(
+      legacy.playerId,
+    );
+    expect(
+      legacy.formerPlayers.every((former) =>
+        /\d+ seasons? · \d+ fame/.test(former.detail),
+      ),
+    ).toBe(true);
+    expect(
+      retirementLegacyNote('legacy-queue', career('legacy-queue')),
+    ).toContain('roll shows 2/2');
   });
 
   it('has no legacy screen for an empty queue, and says so', () => {
@@ -267,7 +334,9 @@ describe('the retirement and legacy reel', () => {
 
     expect(state.pendingLegacyPlayerIds ?? []).toHaveLength(0);
     expect(() => clubLegacyViewModel(state)).toThrow();
-    expect(emptyLegacyReason(state)).toBe('there is no pending club-legend decision');
+    expect(emptyLegacyReason(state)).toBe(
+      'there is no pending club-legend decision',
+    );
   });
 
   it('sends each case to the surface that owns it', () => {

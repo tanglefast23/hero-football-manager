@@ -42,7 +42,8 @@
           "backgroundColor": "#101418"
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "expo-audio"
     ]
   }
 }

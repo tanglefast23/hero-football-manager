@@ -16,17 +16,23 @@ export function isStoryFeaturePacingActive(
 export function isStoryYouthUnlocked(
   state: Pick<GameState, 'season' | 'week'>,
 ): boolean {
-  return !isStoryFeaturePacingActive(state) || state.week >= STORY_YOUTH_UNLOCK_WEEK;
+  return (
+    !isStoryFeaturePacingActive(state) || state.week >= STORY_YOUTH_UNLOCK_WEEK
+  );
 }
 
 export function isStoryCupGuideUnlocked(
   state: Pick<GameState, 'season' | 'week'>,
 ): boolean {
-  return !isStoryFeaturePacingActive(state) || state.week >= STORY_CUP_GUIDE_WEEK;
+  return (
+    !isStoryFeaturePacingActive(state) || state.week >= STORY_CUP_GUIDE_WEEK
+  );
 }
 
 export function isStoryScoutingUnlocked(
   state: Pick<GameState, 'season' | 'week'>,
 ): boolean {
-  return !isStoryFeaturePacingActive(state) || state.week >= STORY_SCOUT_UNLOCK_WEEK;
+  return (
+    !isStoryFeaturePacingActive(state) || state.week >= STORY_SCOUT_UNLOCK_WEEK
+  );
 }

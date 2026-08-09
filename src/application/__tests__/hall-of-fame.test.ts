@@ -27,7 +27,7 @@ function playedCareer(): GameState {
 }
 
 function userRoster(state: GameState): CareerPlayer[] {
-  return state.players.filter(player => player.clubId === state.userClubId);
+  return state.players.filter((player) => player.clubId === state.userClubId);
 }
 
 /**
@@ -69,14 +69,18 @@ function finishedCareer(state: GameState = playedCareer()): GameState {
     ...state,
     seasonRecaps: recaps,
     eventFlags: [...state.eventFlags, TRUE_ENDING_SEEN_FLAG],
-    ...(state.m2 === undefined ? {} : {
-      m2: {
-        ...state.m2,
-        nationalCups: state.m2.nationalCups.map(cup => (cup.season === PLAYED_SEASONS
-          ? { ...cup, championClubId: state.userClubId }
-          : cup)),
-      },
-    }),
+    ...(state.m2 === undefined
+      ? {}
+      : {
+          m2: {
+            ...state.m2,
+            nationalCups: state.m2.nationalCups.map((cup) =>
+              cup.season === PLAYED_SEASONS
+                ? { ...cup, championClubId: state.userClubId }
+                : cup,
+            ),
+          },
+        }),
   });
 }
 
@@ -88,14 +92,25 @@ describe('capturing the Hall of Fame record', () => {
 
     expect(recaps).toHaveLength(PLAYED_SEASONS);
     expect(record.season).toBe(state.season);
-    expect(record.clubName)
-      .toBe(state.clubs.find(club => club.id === state.userClubId)?.name);
-    expect(record.played).toBe(recaps.reduce((sum, recap) => sum + recap.played, 0));
+    expect(record.clubName).toBe(
+      state.clubs.find((club) => club.id === state.userClubId)?.name,
+    );
+    expect(record.played).toBe(
+      recaps.reduce((sum, recap) => sum + recap.played, 0),
+    );
     expect(record.won).toBe(recaps.reduce((sum, recap) => sum + recap.won, 0));
-    expect(record.drawn).toBe(recaps.reduce((sum, recap) => sum + recap.drawn, 0));
-    expect(record.lost).toBe(recaps.reduce((sum, recap) => sum + recap.lost, 0));
-    expect(record.goalsFor).toBe(recaps.reduce((sum, recap) => sum + recap.goalsFor, 0));
-    expect(record.goalsAgainst).toBe(recaps.reduce((sum, recap) => sum + recap.goalsAgainst, 0));
+    expect(record.drawn).toBe(
+      recaps.reduce((sum, recap) => sum + recap.drawn, 0),
+    );
+    expect(record.lost).toBe(
+      recaps.reduce((sum, recap) => sum + recap.lost, 0),
+    );
+    expect(record.goalsFor).toBe(
+      recaps.reduce((sum, recap) => sum + recap.goalsFor, 0),
+    );
+    expect(record.goalsAgainst).toBe(
+      recaps.reduce((sum, recap) => sum + recap.goalsAgainst, 0),
+    );
     expect(record.won + record.drawn + record.lost).toBe(record.played);
   });
 
@@ -103,7 +118,7 @@ describe('capturing the Hall of Fame record', () => {
     const state = playedCareer();
     const record = captureHallOfFameRecord({
       ...state,
-      seasonRecaps: (state.seasonRecaps ?? []).map(recap => ({
+      seasonRecaps: (state.seasonRecaps ?? []).map((recap) => ({
         ...recap,
         division: recap.season === 1 ? 5 : 4,
         finalPosition: recap.season === 1 ? 2 : 6,
@@ -120,7 +135,7 @@ describe('capturing the Hall of Fame record', () => {
     const state = playedCareer();
     const record = captureHallOfFameRecord({
       ...state,
-      seasonRecaps: (state.seasonRecaps ?? []).map(recap => ({
+      seasonRecaps: (state.seasonRecaps ?? []).map((recap) => ({
         ...recap,
         division: 5,
         finalPosition: recap.season === 1 ? 9 : 3,
@@ -135,7 +150,9 @@ describe('capturing the Hall of Fame record', () => {
   it('records a title for every season the club finished top', () => {
     const record = captureHallOfFameRecord(finishedCareer());
 
-    expect(record.divisionTitles).toEqual([{ season: PLAYED_SEASONS, division: 1 }]);
+    expect(record.divisionTitles).toEqual([
+      { season: PLAYED_SEASONS, division: 1 },
+    ]);
   });
 
   /**
@@ -148,19 +165,24 @@ describe('capturing the Hall of Fame record', () => {
     const record = captureHallOfFameRecord(state);
 
     expect(record.cupWinSeasons).toEqual([PLAYED_SEASONS]);
-    expect(state.seasonRecaps?.every(recap => recap.cupResult !== 'Winners')).toBe(true);
+    expect(
+      state.seasonRecaps?.every((recap) => recap.cupResult !== 'Winners'),
+    ).toBe(true);
   });
 
   it('names the most famous man in the squad', () => {
     const state = playedCareer();
     const record = captureHallOfFameRecord(state);
-    const bestFame = Math.max(...state.players
-      .filter(player => player.clubId === state.userClubId)
-      .map(player => player.fame ?? 0));
+    const bestFame = Math.max(
+      ...state.players
+        .filter((player) => player.clubId === state.userClubId)
+        .map((player) => player.fame ?? 0),
+    );
 
     expect(record.star?.fame).toBe(bestFame);
-    expect(record.star?.playerName)
-      .toBe(state.players.find(player => player.id === record.star?.playerId)?.name);
+    expect(record.star?.playerName).toBe(
+      state.players.find((player) => player.id === record.star?.playerId)?.name,
+    );
   });
 
   /**
@@ -219,19 +241,22 @@ describe('capturing the Hall of Fame record', () => {
     const scored = 17;
     const recap = buildSeasonRecap({
       ...state,
-      seasonStatLines: [{
-        season: state.season,
-        playerId: scorer.id,
-        clubId: state.userClubId,
-        competition: 'league',
-        goals: scored,
-        assists: 0,
-        tacklesWon: 0,
-        saves: 0,
-        passesCompleted: 0,
-      }],
+      seasonStatLines: [
+        {
+          season: state.season,
+          playerId: scorer.id,
+          clubId: state.userClubId,
+          competition: 'league',
+          goals: scored,
+          assists: 0,
+          tacklesWon: 0,
+          saves: 0,
+          passesCompleted: 0,
+        },
+      ],
     });
-    if (recap.topScorer === undefined) throw new Error('the recap recorded no Golden Boot');
+    if (recap.topScorer === undefined)
+      throw new Error('the recap recorded no Golden Boot');
 
     expect(recap.topScorer.playerId).toBe(scorer.id);
     expect(goldenBootGoals(recap.topScorer)).toBe(scored);
@@ -251,13 +276,22 @@ describe('capturing the Hall of Fame record', () => {
       },
     };
 
-    expect(captureHallOfFameRecord({ ...state, seasonRecaps: [reworded] }).topScorer)
-      .toEqual({ playerId: scorer.id, playerName: scorer.name, goals: 0, goldenBoots: 1 });
+    expect(
+      captureHallOfFameRecord({ ...state, seasonRecaps: [reworded] }).topScorer,
+    ).toEqual({
+      playerId: scorer.id,
+      playerName: scorer.name,
+      goals: 0,
+      goldenBoots: 1,
+    });
   });
 
   /** A career missing its recaps still reaches its own record. */
   it('records zeroes rather than throwing on a career with no recaps', () => {
-    const record = captureHallOfFameRecord({ ...playedCareer(), seasonRecaps: [] });
+    const record = captureHallOfFameRecord({
+      ...playedCareer(),
+      seasonRecaps: [],
+    });
 
     expect(record.played).toBe(0);
     expect(record.divisionTitles).toEqual([]);
@@ -276,13 +310,18 @@ describe('banking the record', () => {
 
   it('writes once and never overwrites', () => {
     const finished = finishedCareer();
-    if (finished.hallOfFame === undefined) throw new Error('the climb recorded nothing');
+    if (finished.hallOfFame === undefined)
+      throw new Error('the climb recorded nothing');
 
     expect(recordHallOfFame(finished)).toBe(finished);
 
     // A later career state cannot replace the record with a thinner version of
     // itself — which is the whole reason it is captured rather than derived.
-    const later = recordHallOfFame({ ...finished, seasonRecaps: [], season: 40 });
+    const later = recordHallOfFame({
+      ...finished,
+      seasonRecaps: [],
+      season: 40,
+    });
     expect(later.hallOfFame).toEqual(finished.hallOfFame);
   });
 });
@@ -304,7 +343,10 @@ describe('watching the true ending', () => {
     // Both trophies flagged and the ending unseen is what makes the pending
     // celebration the true one, without simulating nine promotions to D1.
     useM1Store.setState({
-      career: { ...career, eventFlags: [GLOBAL_LEAGUE_WON_FLAG, NATIONAL_CUP_WON_FLAG] },
+      career: {
+        ...career,
+        eventFlags: [GLOBAL_LEAGUE_WON_FLAG, NATIONAL_CUP_WON_FLAG],
+      },
       screen: 'endgame-celebration',
     });
 
@@ -313,8 +355,9 @@ describe('watching the true ending', () => {
     const after = useM1Store.getState().career;
     expect(after?.eventFlags).toContain(TRUE_ENDING_SEEN_FLAG);
     expect(after?.hallOfFame?.season).toBe(career.season);
-    expect(after?.hallOfFame?.played)
-      .toBe((career.seasonRecaps ?? []).reduce((sum, recap) => sum + recap.played, 0));
+    expect(after?.hallOfFame?.played).toBe(
+      (career.seasonRecaps ?? []).reduce((sum, recap) => sum + recap.played, 0),
+    );
   });
 
   it('leaves a career that has not finished the climb without a record', () => {
@@ -333,7 +376,8 @@ describe('watching the true ending', () => {
 describe('the Hall of Fame page', () => {
   it('is locked, and says what unlocks it, before the climb ends', () => {
     const viewModel = hallOfFameViewModel(playedCareer());
-    if (viewModel.status !== 'locked') throw new Error('an unfinished career unlocked the page');
+    if (viewModel.status !== 'locked')
+      throw new Error('an unfinished career unlocked the page');
 
     expect(viewModel.lines[0]).toBe('Finish the climb to see your record.');
     expect(viewModel.lines.join(' ')).toContain('Hero Cup');
@@ -350,15 +394,22 @@ describe('the Hall of Fame page', () => {
 
     expect(viewModel.headline).toBe(record.clubName);
     expect(viewModel.subheading).toContain(`${record.season} seasons`);
-    expect(viewModel.stats.map(stat => stat.id)).toEqual([
-      'seasons', 'record', 'goals', 'titles', 'cups', 'top-scorer', 'star',
+    expect(viewModel.stats.map((stat) => stat.id)).toEqual([
+      'seasons',
+      'record',
+      'goals',
+      'titles',
+      'cups',
+      'top-scorer',
+      'star',
     ]);
-    expect(viewModel.stats.find(stat => stat.id === 'record')?.value)
-      .toBe(`${record.won} / ${record.drawn} / ${record.lost}`);
+    expect(viewModel.stats.find((stat) => stat.id === 'record')?.value).toBe(
+      `${record.won} / ${record.drawn} / ${record.lost}`,
+    );
     expect(viewModel.tiers).toHaveLength(record.tiers.length);
     // Every figure says what it is a total of; a bare number on this page is a
     // number nobody can check.
-    expect(viewModel.stats.every(stat => stat.detail.length > 0)).toBe(true);
+    expect(viewModel.stats.every((stat) => stat.detail.length > 0)).toBe(true);
   });
 
   /**
@@ -377,7 +428,8 @@ describe('the Hall of Fame page', () => {
         tiers: [{ division: 2, firstSeason: 5, seasons: 1, bestPosition: 2 }],
       },
     });
-    if (viewModel.status !== 'complete') throw new Error('the page did not unlock');
+    if (viewModel.status !== 'complete')
+      throw new Error('the page did not unlock');
 
     expect(viewModel.tiers[0].best).toBe('Best 2nd');
     expect(viewModel.tiers[0].detail).toBe('Reached in season 5 · 1 season');
@@ -391,14 +443,21 @@ describe('the Hall of Fame page', () => {
       ...state,
       hallOfFame: {
         ...record,
-        divisionTitles: [{ season: 3, division: 2 }, { season: 1, division: 5 }],
+        divisionTitles: [
+          { season: 3, division: 2 },
+          { season: 1, division: 5 },
+        ],
         cupWinSeasons: [2, 4],
       },
     });
-    if (viewModel.status !== 'complete') throw new Error('the page did not unlock');
+    if (viewModel.status !== 'complete')
+      throw new Error('the page did not unlock');
 
-    expect(viewModel.honours.map(honour => honour.label)).toEqual([
-      'Season 1', 'Season 2', 'Season 3', 'Season 4',
+    expect(viewModel.honours.map((honour) => honour.label)).toEqual([
+      'Season 1',
+      'Season 2',
+      'Season 3',
+      'Season 4',
     ]);
     // Named the way the league table names it, never invented here.
     expect(viewModel.honours[0].value).toBe(`${DIVISION_NAMES[5]} champions`);
@@ -413,12 +472,14 @@ describe('the Hall of Fame page', () => {
       ...state,
       hallOfFame: { ...record, divisionTitles: [], cupWinSeasons: [] },
     });
-    if (viewModel.status !== 'complete') throw new Error('the page did not unlock');
+    if (viewModel.status !== 'complete')
+      throw new Error('the page did not unlock');
 
     expect(viewModel.honours).toEqual([]);
     expect(viewModel.honoursEmptyLabel.length).toBeGreaterThan(0);
-    expect(viewModel.stats.find(stat => stat.id === 'titles')?.detail)
-      .toBe('Promoted without a title');
+    expect(viewModel.stats.find((stat) => stat.id === 'titles')?.detail).toBe(
+      'Promoted without a title',
+    );
   });
 });
 

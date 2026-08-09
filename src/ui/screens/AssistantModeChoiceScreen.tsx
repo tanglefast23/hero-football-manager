@@ -23,24 +23,35 @@ export function AssistantModeChoiceScreen({
   const wide = useLayoutMode() === 'twoColumn';
 
   return (
-    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView
+      className="flex-1 bg-pitch-dark"
+      edges={['top', 'left', 'right', 'bottom']}
+    >
       <ChalkboardBackdrop wide={wide} />
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
         <View
-          className={wide
-            ? 'w-full max-w-[1180px] flex-1 self-center justify-center px-10 py-8'
-            : 'flex-1 justify-center px-5 py-6'}
+          className={
+            wide
+              ? 'w-full max-w-[1180px] flex-1 justify-center self-center px-10 py-8'
+              : 'flex-1 justify-center px-5 py-6'
+          }
         >
-          <Text className={wide
-            ? 'font-pixel text-sm uppercase tracking-[4px] text-gold-light'
-            : 'font-pixel text-xs uppercase tracking-[3px] text-gold-light'}
+          <Text
+            className={
+              wide
+                ? 'font-pixel text-sm uppercase tracking-[4px] text-gold-light'
+                : 'font-pixel text-xs uppercase tracking-[3px] text-gold-light'
+            }
           >
             {choice.kicker}
           </Text>
 
-          <View className={wide
-            ? 'mt-7 flex-row items-end gap-6'
-            : 'mt-5 flex-row items-end gap-3'}
+          <View
+            className={
+              wide
+                ? 'mt-7 flex-row items-end gap-6'
+                : 'mt-5 flex-row items-end gap-3'
+            }
           >
             <BertFullBody
               pointing={false}
@@ -60,8 +71,11 @@ export function AssistantModeChoiceScreen({
           </View>
 
           <View className={wide ? 'mt-7 flex-row gap-5' : 'mt-6 gap-4'}>
-            {choice.options.map(option => (
-              <View key={option.mode} className={wide ? 'flex-1 gap-2' : 'gap-2'}>
+            {choice.options.map((option) => (
+              <View
+                key={option.mode}
+                className={wide ? 'flex-1 gap-2' : 'gap-2'}
+              >
                 <ActionButton
                   label={option.label}
                   accessibilityLabel={option.accessibilityLabel}
@@ -69,7 +83,9 @@ export function AssistantModeChoiceScreen({
                   variant={option.mode === 'teacher' ? 'hero' : 'paper'}
                   pressSfx="click"
                 />
-                <Text className="px-1 text-sm leading-5 text-paper/75">{option.detail}</Text>
+                <Text className="px-1 text-sm leading-5 text-paper/75">
+                  {option.detail}
+                </Text>
               </View>
             ))}
           </View>

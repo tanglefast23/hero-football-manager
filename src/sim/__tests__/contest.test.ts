@@ -10,32 +10,38 @@ import { mulberry32 } from '../rng';
 
 describe('scale-invariant fixed-point contests', () => {
   it('gives equal conditioned ratings a 50% chance', () => {
-    expect(contestProbability(
-      conditionedRatingD64(50, 100),
-      conditionedRatingD64(50, 100),
-    )).toBeCloseTo(0.5, 3);
+    expect(
+      contestProbability(
+        conditionedRatingD64(50, 100),
+        conditionedRatingD64(50, 100),
+      ),
+    ).toBeCloseTo(0.5, 3);
   });
 
   it('maps a 1.2x advantage through the fitted opening-match sensitivity', () => {
     const probability = contestProbability(ratingD64(60), ratingD64(50));
-    expect(probability).toBeGreaterThan(0.60);
+    expect(probability).toBeGreaterThan(0.6);
     expect(probability).toBeLessThan(0.62);
   });
 
   it('interpolates the committed logistic table exactly at whole d64 points', () => {
     for (let difference = -99; difference <= 99; difference += 1) {
-      const truth = Math.round(65536 / (1 + Math.exp(-difference / 12))) / 65536;
+      const truth =
+        Math.round(65536 / (1 + Math.exp(-difference / 12))) / 65536;
       expect(contestProbability(difference * D64_SCALE, 0)).toBe(truth);
     }
   });
 
   it('is monotonic at sub-point precision and clamps beyond ±99 points', () => {
-    expect(contestProbability(100 * D64_SCALE, 0))
-      .toBe(contestProbability(99 * D64_SCALE, 0));
+    expect(contestProbability(100 * D64_SCALE, 0)).toBe(
+      contestProbability(99 * D64_SCALE, 0),
+    );
     let previous = 0;
-    for (let differenceD64 = -99 * D64_SCALE;
+    for (
+      let differenceD64 = -99 * D64_SCALE;
       differenceD64 <= 99 * D64_SCALE;
-      differenceD64 += 1) {
+      differenceD64 += 1
+    ) {
       const probability = contestProbability(differenceD64, 0);
       expect(probability).toBeGreaterThanOrEqual(previous);
       previous = probability;
@@ -80,7 +86,10 @@ describe('scale-invariant fixed-point contests', () => {
       [442, 23],
     ] as const) {
       const before = contestProbability(ratingD64(rating), ratingD64(rating));
-      const after = contestProbability(ratingD64(rating + gain), ratingD64(rating));
+      const after = contestProbability(
+        ratingD64(rating + gain),
+        ratingD64(rating),
+      );
       expect(after - before).toBeGreaterThanOrEqual(0.01);
     }
   });
@@ -90,10 +99,12 @@ describe('scale-invariant fixed-point contests', () => {
     expect(conditionD64(64)).toBeGreaterThan(conditionD64(63));
     expect(conditionD64(-10)).toBe(conditionD64(0));
     expect(conditionD64(110)).toBe(conditionD64(100));
-    expect(contestProbability(
-      conditionedRatingD64(100, 0),
-      conditionedRatingD64(75, 100),
-    )).toBeCloseTo(0.5, 3);
+    expect(
+      contestProbability(
+        conditionedRatingD64(100, 0),
+        conditionedRatingD64(75, 100),
+      ),
+    ).toBeCloseTo(0.5, 3);
   });
 
   it('rejects invalid ratings instead of silently clamping them', () => {
@@ -116,8 +127,14 @@ describe('scale-invariant fixed-point contests', () => {
 
   it('consumes exactly one RNG draw per contest, win or lose', () => {
     let calls = 0;
-    const winRng = () => { calls += 1; return 0; };
-    const loseRng = () => { calls += 1; return 0.999999; };
+    const winRng = () => {
+      calls += 1;
+      return 0;
+    };
+    const loseRng = () => {
+      calls += 1;
+      return 0.999999;
+    };
     const attacker = ratingD64(60);
     const defender = ratingD64(40);
     expect(contest(winRng, attacker, defender)).toBe(true);

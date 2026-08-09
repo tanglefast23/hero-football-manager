@@ -38,7 +38,10 @@ export function PlayerRequestDecisionCard({
           className="w-full max-w-[520px]"
         >
           <View className="flex-row items-center gap-3">
-            <EventPixelScene artKey={request.artKey} reduceMotion={reduceMotion} />
+            <EventPixelScene
+              artKey={request.artKey}
+              reduceMotion={reduceMotion}
+            />
             <Text className="min-w-0 flex-1 text-base leading-6 text-ink/75">
               &ldquo;{request.line}&rdquo;
             </Text>
@@ -51,7 +54,9 @@ export function PlayerRequestDecisionCard({
                 variant="primary"
                 disabled={!request.canAfford}
                 onPress={onGrant}
-                accessibilityLabel={t('playerRequestCard.a11y.grant', { detail: grantDetail })}
+                accessibilityLabel={t('playerRequestCard.a11y.grant', {
+                  detail: grantDetail,
+                })}
               />
               <PixelText className="mt-1 text-center text-sm uppercase text-ink/60">
                 {grantDetail}

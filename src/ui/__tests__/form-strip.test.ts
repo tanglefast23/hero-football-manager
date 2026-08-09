@@ -12,7 +12,8 @@ import {
   visibleForm,
 } from '../form-strip';
 
-const phone = (screenWidth: number) => formStripCapacity(formStripWidthEstimate(screenWidth));
+const phone = (screenWidth: number) =>
+  formStripCapacity(formStripWidthEstimate(screenWidth));
 
 describe('form strip capacity', () => {
   it('never renders a clipped cell', () => {
@@ -44,7 +45,9 @@ describe('width estimate, for the frame before the strip has measured itself', (
 
   it('guesses low on a wide window, where the cap decides anyway', () => {
     expect(formStripWidthEstimate(2000)).toBeLessThan(2000);
-    expect(formStripCapacity(formStripWidthEstimate(2000))).toBe(FORM_STRIP_MAX);
+    expect(formStripCapacity(formStripWidthEstimate(2000))).toBe(
+      FORM_STRIP_MAX,
+    );
   });
 
   it('survives a window that has not reported a size', () => {
@@ -77,7 +80,9 @@ describe('cascade timing', () => {
   });
 
   it('takes the same total time whatever the row holds', () => {
-    expect(formCellEnterDelay(FORM_STRIP_MAX - 1, FORM_STRIP_MAX)).toBe(FORM_STRIP_CASCADE_MS);
+    expect(formCellEnterDelay(FORM_STRIP_MAX - 1, FORM_STRIP_MAX)).toBe(
+      FORM_STRIP_CASCADE_MS,
+    );
   });
 
   it('does not stall a lone result', () => {
@@ -100,7 +105,7 @@ describe('trophy sprite', () => {
   });
 
   it('keeps an unbroken ink outline along the bottom of the base', () => {
-    const base = TROPHY_RUNS.filter(run => run.y === TROPHY_GRID - 1);
+    const base = TROPHY_RUNS.filter((run) => run.y === TROPHY_GRID - 1);
     expect(base).toHaveLength(1);
     expect(base[0].color).toBe('#241f2e');
     expect(base[0].width).toBe(8);

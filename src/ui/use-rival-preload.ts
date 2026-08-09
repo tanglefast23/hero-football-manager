@@ -81,7 +81,11 @@ export function useRivalPreload(
   watching: boolean,
 ): void {
   useEffect(() => {
-    if (sessionKey === null || teamsByClubId === null || fixtures.length === 0) {
+    if (
+      sessionKey === null ||
+      teamsByClubId === null ||
+      fixtures.length === 0
+    ) {
       return undefined;
     }
 

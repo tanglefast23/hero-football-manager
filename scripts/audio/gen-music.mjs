@@ -60,36 +60,155 @@ const PROGRESSION = ['A', 'F', 'C', 'G'];
 // bar. The compact rise-and-fall contour is intended to be recognizable after
 // one match without becoming grating over a whole season.
 const MAIN_HOOK = [
-  [['A5', 0.5], ['C6', 0.5], ['E6', 1], ['D6', 0.5], ['C6', 0.5], ['A5', 1]],
-  [['A5', 0.5], ['C6', 0.5], ['F6', 1], ['E6', 0.5], ['C6', 0.5], ['A5', 1]],
-  [['G5', 0.5], ['C6', 0.5], ['E6', 0.5], ['G6', 0.5], ['E6', 0.5], ['D6', 0.5], ['C6', 1]],
-  [['D6', 0.5], ['B5', 0.5], ['G5', 1], ['A5', 0.5], ['B5', 0.5], ['D6', 1]],
+  [
+    ['A5', 0.5],
+    ['C6', 0.5],
+    ['E6', 1],
+    ['D6', 0.5],
+    ['C6', 0.5],
+    ['A5', 1],
+  ],
+  [
+    ['A5', 0.5],
+    ['C6', 0.5],
+    ['F6', 1],
+    ['E6', 0.5],
+    ['C6', 0.5],
+    ['A5', 1],
+  ],
+  [
+    ['G5', 0.5],
+    ['C6', 0.5],
+    ['E6', 0.5],
+    ['G6', 0.5],
+    ['E6', 0.5],
+    ['D6', 0.5],
+    ['C6', 1],
+  ],
+  [
+    ['D6', 0.5],
+    ['B5', 0.5],
+    ['G5', 1],
+    ['A5', 0.5],
+    ['B5', 0.5],
+    ['D6', 1],
+  ],
 ];
 
 const MAIN_HOOK_LIFT = [
-  [['A5', 0.5], ['C6', 0.5], ['E6', 0.5], ['G6', 0.5], ['E6', 0.5], ['D6', 0.5], ['C6', 0.5], ['A5', 0.5]],
-  [['A5', 0.5], ['C6', 0.5], ['F6', 1], ['A6', 0.5], ['G6', 0.5], ['E6', 1]],
-  [['G5', 0.5], ['C6', 0.5], ['E6', 0.5], ['G6', 0.5], ['A6', 0.5], ['G6', 0.5], ['E6', 1]],
-  [['D6', 0.5], ['B5', 0.5], ['G5', 1], ['D6', 0.5], ['E6', 0.5], ['G6', 0.5], [null, 0.5]],
+  [
+    ['A5', 0.5],
+    ['C6', 0.5],
+    ['E6', 0.5],
+    ['G6', 0.5],
+    ['E6', 0.5],
+    ['D6', 0.5],
+    ['C6', 0.5],
+    ['A5', 0.5],
+  ],
+  [
+    ['A5', 0.5],
+    ['C6', 0.5],
+    ['F6', 1],
+    ['A6', 0.5],
+    ['G6', 0.5],
+    ['E6', 1],
+  ],
+  [
+    ['G5', 0.5],
+    ['C6', 0.5],
+    ['E6', 0.5],
+    ['G6', 0.5],
+    ['A6', 0.5],
+    ['G6', 0.5],
+    ['E6', 1],
+  ],
+  [
+    ['D6', 0.5],
+    ['B5', 0.5],
+    ['G5', 1],
+    ['D6', 0.5],
+    ['E6', 0.5],
+    ['G6', 0.5],
+    [null, 0.5],
+  ],
 ];
 
 const ANSWER = [
-  [['E6', 1], ['C6', 0.5], ['A5', 0.5], ['C6', 1], ['E6', 1]],
-  [['F6', 0.5], ['E6', 0.5], ['C6', 1], ['A5', 1], ['C6', 1]],
-  [['E6', 0.5], ['G6', 0.5], ['C7', 1], ['G6', 0.5], ['E6', 0.5], ['D6', 1]],
-  [['B5', 0.5], ['D6', 0.5], ['G6', 1], ['E6', 0.5], ['D6', 0.5], ['B5', 1]],
+  [
+    ['E6', 1],
+    ['C6', 0.5],
+    ['A5', 0.5],
+    ['C6', 1],
+    ['E6', 1],
+  ],
+  [
+    ['F6', 0.5],
+    ['E6', 0.5],
+    ['C6', 1],
+    ['A5', 1],
+    ['C6', 1],
+  ],
+  [
+    ['E6', 0.5],
+    ['G6', 0.5],
+    ['C7', 1],
+    ['G6', 0.5],
+    ['E6', 0.5],
+    ['D6', 1],
+  ],
+  [
+    ['B5', 0.5],
+    ['D6', 0.5],
+    ['G6', 1],
+    ['E6', 0.5],
+    ['D6', 0.5],
+    ['B5', 1],
+  ],
 ];
 
 const ANSWER_LIFT = [
-  [['E6', 0.5], ['A6', 0.5], ['C7', 1], ['B6', 0.5], ['A6', 0.5], ['E6', 1]],
-  [['F6', 0.5], ['A6', 0.5], ['C7', 1], ['A6', 0.5], ['G6', 0.5], ['E6', 1]],
-  [['E6', 0.5], ['G6', 0.5], ['C7', 0.5], ['E7', 0.5], ['C7', 0.5], ['G6', 0.5], ['E6', 1]],
-  [['D6', 0.5], ['G6', 0.5], ['B6', 1], ['A6', 0.5], ['G6', 0.5], ['D6', 0.5], [null, 0.5]],
+  [
+    ['E6', 0.5],
+    ['A6', 0.5],
+    ['C7', 1],
+    ['B6', 0.5],
+    ['A6', 0.5],
+    ['E6', 1],
+  ],
+  [
+    ['F6', 0.5],
+    ['A6', 0.5],
+    ['C7', 1],
+    ['A6', 0.5],
+    ['G6', 0.5],
+    ['E6', 1],
+  ],
+  [
+    ['E6', 0.5],
+    ['G6', 0.5],
+    ['C7', 0.5],
+    ['E7', 0.5],
+    ['C7', 0.5],
+    ['G6', 0.5],
+    ['E6', 1],
+  ],
+  [
+    ['D6', 0.5],
+    ['G6', 0.5],
+    ['B6', 1],
+    ['A6', 0.5],
+    ['G6', 0.5],
+    ['D6', 0.5],
+    [null, 0.5],
+  ],
 ];
 
 function shiftOctave(name, amount) {
   if (!name) return name;
-  return name.replace(/(-?\d+)$/, (_, octave) => String(Number(octave) + amount));
+  return name.replace(/(-?\d+)$/, (_, octave) =>
+    String(Number(octave) + amount),
+  );
 }
 
 function leadTone(name, beats, { octaveShift = 0, softer = false } = {}) {
@@ -113,7 +232,9 @@ function leadTone(name, beats, { octaveShift = 0, softer = false } = {}) {
 
 function melodyBar(pattern, options) {
   const parts = pattern.map(([name, beats]) =>
-    name ? leadTone(name, beats, options) : new Float32Array(beatSamples(beats)),
+    name
+      ? leadTone(name, beats, options)
+      : new Float32Array(beatSamples(beats)),
   );
   return resize(concat(parts), BAR_N);
 }
@@ -129,7 +250,10 @@ function padBar(chordName) {
     gain: index === 1 ? 0.9 : 1,
   }));
   const warm = lowpass(mix(layers), 1500);
-  return applyEnv(warm, adsr(soundN, { attack: 0.045, decay: 0.08, sustain: 0.55, release: 0.14 }));
+  return applyEnv(
+    warm,
+    adsr(soundN, { attack: 0.045, decay: 0.08, sustain: 0.55, release: 0.14 }),
+  );
 }
 
 function arpPluck(name, beats = 0.5) {
@@ -141,7 +265,10 @@ function arpPluck(name, beats = 0.5) {
     { buf: oscSquare(soundN, freq, 0.25), gain: 0.28 },
   ]);
   const bright = lowpass(raw, 4200);
-  return resize(applyEnv(bright, decayEnv(soundN, { attack: 0.003, decay: 0.18 })), totalN);
+  return resize(
+    applyEnv(bright, decayEnv(soundN, { attack: 0.003, decay: 0.18 })),
+    totalN,
+  );
 }
 
 function arpeggioBar(chordName, reverse = false) {
@@ -158,7 +285,10 @@ function bassNote(name, beats, soundingBeats = beats * 0.72) {
     { buf: oscTriangle(soundN, freq), gain: 0.82 },
     { buf: lowpass(oscSaw(soundN, freq), 520), gain: 0.18 },
   ]);
-  return resize(applyEnv(raw, decayEnv(soundN, { attack: 0.004, decay: 0.28 })), totalN);
+  return resize(
+    applyEnv(raw, decayEnv(soundN, { attack: 0.004, decay: 0.28 })),
+    totalN,
+  );
 }
 
 function bassBar(chordName, busier = false) {
@@ -166,10 +296,21 @@ function bassBar(chordName, busier = false) {
   const rests = (beats) => new Float32Array(beatSamples(beats));
   const pattern = busier
     ? [
-        bassNote(bass, 0.75), rests(0.25), bassNote(octave, 0.5), bassNote(fifth, 0.5),
-        bassNote(bass, 0.75), rests(0.25), bassNote(fifth, 0.5), bassNote(octave, 0.5),
+        bassNote(bass, 0.75),
+        rests(0.25),
+        bassNote(octave, 0.5),
+        bassNote(fifth, 0.5),
+        bassNote(bass, 0.75),
+        rests(0.25),
+        bassNote(fifth, 0.5),
+        bassNote(octave, 0.5),
       ]
-    : [bassNote(bass, 1), bassNote(fifth, 1), bassNote(octave, 1), bassNote(fifth, 1)];
+    : [
+        bassNote(bass, 1),
+        bassNote(fifth, 1),
+        bassNote(octave, 1),
+        bassNote(fifth, 1),
+      ];
   return resize(concat(pattern), BAR_N);
 }
 
@@ -177,14 +318,26 @@ function kick(rng) {
   const n = secondsToSamples(0.13);
   const body = oscSine(n, expGlide(135, 52, 0.11));
   const click = lowpass(noiseWhite(n, rng), 900);
-  return applyEnv(mix([{ buf: body, gain: 0.92 }, { buf: click, gain: 0.2 }]), decayEnv(n, { attack: 0.001, decay: 0.1 }));
+  return applyEnv(
+    mix([
+      { buf: body, gain: 0.92 },
+      { buf: click, gain: 0.2 },
+    ]),
+    decayEnv(n, { attack: 0.001, decay: 0.1 }),
+  );
 }
 
 function snare(rng) {
   const n = secondsToSamples(0.12);
   const noise = bandpass(noiseWhite(n, rng), 650, 6200);
   const body = oscTriangle(n, 185);
-  return applyEnv(mix([{ buf: noise, gain: 0.8 }, { buf: body, gain: 0.28 }]), decayEnv(n, { attack: 0.001, decay: 0.09 }));
+  return applyEnv(
+    mix([
+      { buf: noise, gain: 0.8 },
+      { buf: body, gain: 0.28 },
+    ]),
+    decayEnv(n, { attack: 0.001, decay: 0.09 }),
+  );
 }
 
 function clap(rng) {
@@ -210,24 +363,42 @@ function hat(rng, open = false) {
 
 function tom(frequency) {
   const n = secondsToSamples(0.11);
-  return applyEnv(oscSine(n, expGlide(frequency * 1.25, frequency, 0.08)), decayEnv(n, { attack: 0.001, decay: 0.085 }));
+  return applyEnv(
+    oscSine(n, expGlide(frequency * 1.25, frequency, 0.08)),
+    decayEnv(n, { attack: 0.001, decay: 0.085 }),
+  );
 }
 
 function drumBar(rng, { intensity = 1, stadium = false, fill = false } = {}) {
   const layers = [];
-  const place = (buf, beat, gain) => layers.push({ buf, gain, offset: beatSamples(beat) });
+  const place = (buf, beat, gain) =>
+    layers.push({ buf, gain, offset: beatSamples(beat) });
 
-  const kickBeats = intensity < 0.7 ? [0, 2] : intensity > 1.1 ? [0, 1.5, 2, 3.5] : [0, 2, 2.75];
+  const kickBeats =
+    intensity < 0.7
+      ? [0, 2]
+      : intensity > 1.1
+        ? [0, 1.5, 2, 3.5]
+        : [0, 2, 2.75];
   for (const beat of kickBeats) place(kick(rng), beat, 0.72 * intensity);
   for (const beat of [1, 3]) {
     place(snare(rng), beat, 0.48 * intensity);
     if (stadium) place(clap(rng), beat, 0.42 * intensity);
   }
   for (let eighth = 0; eighth < 8; eighth++) {
-    place(hat(rng, eighth === 7 && fill), eighth * 0.5, (eighth % 2 === 0 ? 0.16 : 0.23) * intensity);
+    place(
+      hat(rng, eighth === 7 && fill),
+      eighth * 0.5,
+      (eighth % 2 === 0 ? 0.16 : 0.23) * intensity,
+    );
   }
   if (fill) {
-    for (const [beat, frequency] of [[3, 190], [3.25, 165], [3.5, 140], [3.75, 115]]) {
+    for (const [beat, frequency] of [
+      [3, 190],
+      [3.25, 165],
+      [3.5, 140],
+      [3.75, 115],
+    ]) {
       place(tom(frequency), beat, 0.38 * intensity);
     }
   }
@@ -239,15 +410,23 @@ function chordStabsBar(chordName) {
   const hitN = beatSamples(0.42);
   const hit = applyEnv(
     lowpass(
-      mix(chord.tones.map((tone) => ({ buf: oscSaw(hitN, note(tone)), gain: 0.34 }))),
+      mix(
+        chord.tones.map((tone) => ({
+          buf: oscSaw(hitN, note(tone)),
+          gain: 0.34,
+        })),
+      ),
       2400,
     ),
     decayEnv(hitN, { attack: 0.006, decay: 0.28 }),
   );
-  return resize(mix([
-    { buf: hit, offset: beatSamples(0) },
-    { buf: hit, gain: 0.8, offset: beatSamples(2) },
-  ]), BAR_N);
+  return resize(
+    mix([
+      { buf: hit, offset: beatSamples(0) },
+      { buf: hit, gain: 0.8, offset: beatSamples(2) },
+    ]),
+    BAR_N,
+  );
 }
 
 function buildBar(index, rng) {
@@ -258,39 +437,64 @@ function buildBar(index, rng) {
 
   // A warm harmonic floor and an arpeggio link every section together.
   layers.push({ buf: padBar(chordName), gain: cycle === 5 ? 0.12 : 0.2 });
-  layers.push({ buf: arpeggioBar(chordName, cycle % 2 === 1), gain: cycle === 5 ? 0.18 : 0.32 });
+  layers.push({
+    buf: arpeggioBar(chordName, cycle % 2 === 1),
+    gain: cycle === 5 ? 0.18 : 0.32,
+  });
 
   if (cycle === 0) {
     // Kickoff: establish the groove before the tune arrives.
     layers.push({ buf: bassBar(chordName), gain: 0.52 });
-    layers.push({ buf: drumBar(rng, { intensity: 0.58, fill: index === 3 }), gain: 0.62 });
+    layers.push({
+      buf: drumBar(rng, { intensity: 0.58, fill: index === 3 }),
+      gain: 0.62,
+    });
   } else if (cycle <= 2) {
     // Main hook, then a more animated second phrase.
     const phrase = cycle === 1 ? MAIN_HOOK : MAIN_HOOK_LIFT;
     layers.push({ buf: melodyBar(phrase[barInCycle]), gain: 0.68 });
     layers.push({ buf: bassBar(chordName, cycle === 2), gain: 0.58 });
-    layers.push({ buf: drumBar(rng, { intensity: 0.9, stadium: cycle === 2, fill: index === 11 }), gain: 0.65 });
+    layers.push({
+      buf: drumBar(rng, {
+        intensity: 0.9,
+        stadium: cycle === 2,
+        fill: index === 11,
+      }),
+      gain: 0.65,
+    });
   } else if (cycle <= 4) {
     // Answer section climbs higher without changing key or instrumentation.
     const phrase = cycle === 3 ? ANSWER : ANSWER_LIFT;
     layers.push({ buf: melodyBar(phrase[barInCycle]), gain: 0.64 });
     layers.push({ buf: bassBar(chordName, true), gain: 0.6 });
-    layers.push({ buf: drumBar(rng, { intensity: 1, stadium: true, fill: index === 19 }), gain: 0.67 });
+    layers.push({
+      buf: drumBar(rng, { intensity: 1, stadium: true, fill: index === 19 }),
+      gain: 0.67,
+    });
   } else if (cycle === 5) {
     // Stadium break: two-beat chord calls and obvious claps create a breath
     // before the finale, while also opening the mix for in-game action cues.
     layers.push({ buf: chordStabsBar(chordName), gain: 0.36 });
     layers.push({ buf: bassBar(chordName), gain: 0.52 });
-    layers.push({ buf: drumBar(rng, { intensity: 1.08, stadium: true, fill: index === 23 }), gain: 0.72 });
+    layers.push({
+      buf: drumBar(rng, { intensity: 1.08, stadium: true, fill: index === 23 }),
+      gain: 0.72,
+    });
   } else {
     // Full return: hook plus a quiet octave double, never a dense extra
     // countermelody, so the foreground SFX still own the player's attention.
     const phrase = cycle === 6 ? MAIN_HOOK : MAIN_HOOK_LIFT;
     layers.push({ buf: melodyBar(phrase[barInCycle]), gain: 0.72 });
-    layers.push({ buf: melodyBar(phrase[barInCycle], { octaveShift: -1, softer: true }), gain: 0.24 });
+    layers.push({
+      buf: melodyBar(phrase[barInCycle], { octaveShift: -1, softer: true }),
+      gain: 0.24,
+    });
     layers.push({ buf: chordStabsBar(chordName), gain: 0.16 });
     layers.push({ buf: bassBar(chordName, true), gain: 0.62 });
-    layers.push({ buf: drumBar(rng, { intensity: 1.08, stadium: true, fill: index === 31 }), gain: 0.68 });
+    layers.push({
+      buf: drumBar(rng, { intensity: 1.08, stadium: true, fill: index === 31 }),
+      gain: 0.68,
+    });
   }
 
   return resize(mix(layers), BAR_N);
@@ -316,29 +520,56 @@ export function generateMusic(outDir = OUT_DIR) {
   const wavPath = join(outDir, `${entry.name}.wav`);
   saveWav(wavPath, finalBuf, SAMPLE_RATE);
   const ms = (finalBuf.length / SAMPLE_RATE) * 1000;
-  console.log(`${entry.name}.wav  ${ms.toFixed(0)}ms  ${BPM} BPM  peak ${entry.targetDb}dBFS`);
+  console.log(
+    `${entry.name}.wav  ${ms.toFixed(0)}ms  ${BPM} BPM  peak ${entry.targetDb}dBFS`,
+  );
 
   const m4aPath = join(outDir, `${entry.name}.m4a`);
   try {
-    execFileSync('afconvert', ['-f', 'm4af', '-d', 'aac', '-b', '96000', wavPath, m4aPath], { stdio: 'pipe' });
+    execFileSync(
+      'afconvert',
+      ['-f', 'm4af', '-d', 'aac', '-b', '96000', wavPath, m4aPath],
+      { stdio: 'pipe' },
+    );
     console.log(`${entry.name}.m4a  written via afconvert (-b 96000)`);
   } catch {
     // afconvert's accepted AAC data-format string varies across macOS
     // toolchains. Prefer its VBR path when available, then use ffmpeg's native
     // AAC encoder as a deterministic local-development fallback.
     try {
-      execFileSync('afconvert', ['-f', 'm4af', '-d', 'aac', '-s', '3', '-q', '127', wavPath, m4aPath], { stdio: 'pipe' });
-      console.log(`${entry.name}.m4a  written via afconvert (VBR q127 fallback)`);
+      execFileSync(
+        'afconvert',
+        ['-f', 'm4af', '-d', 'aac', '-s', '3', '-q', '127', wavPath, m4aPath],
+        { stdio: 'pipe' },
+      );
+      console.log(
+        `${entry.name}.m4a  written via afconvert (VBR q127 fallback)`,
+      );
     } catch {
       try {
         execFileSync(
           'ffmpeg',
-          ['-y', '-v', 'error', '-i', wavPath, '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart', m4aPath],
+          [
+            '-y',
+            '-v',
+            'error',
+            '-i',
+            wavPath,
+            '-c:a',
+            'aac',
+            '-b:a',
+            '96k',
+            '-movflags',
+            '+faststart',
+            m4aPath,
+          ],
           { stdio: 'pipe' },
         );
         console.log(`${entry.name}.m4a  written via ffmpeg (AAC 96k)`);
       } catch (err3) {
-        console.warn(`AAC encoders unavailable or failed, skipping .m4a (${err3.message})`);
+        console.warn(
+          `AAC encoders unavailable or failed, skipping .m4a (${err3.message})`,
+        );
       }
     }
   }

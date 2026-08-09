@@ -18,22 +18,30 @@ const DEFAULT_GUARD_MS = 400;
  * frame the stray tap arrives in. It always re-arms on a timer, so a commit the
  * store refuses can never leave the button latched off.
  */
-export function useTapGuard(guardMs: number = DEFAULT_GUARD_MS): (commit: () => void) => void {
+export function useTapGuard(
+  guardMs: number = DEFAULT_GUARD_MS,
+): (commit: () => void) => void {
   const blockedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => () => {
-    if (timerRef.current !== null) clearTimeout(timerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    },
+    [],
+  );
 
-  return useCallback((commit: () => void) => {
-    if (blockedRef.current) return;
-    blockedRef.current = true;
-    if (timerRef.current !== null) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      blockedRef.current = false;
-    }, guardMs);
-    commit();
-  }, [guardMs]);
+  return useCallback(
+    (commit: () => void) => {
+      if (blockedRef.current) return;
+      blockedRef.current = true;
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        blockedRef.current = false;
+      }, guardMs);
+      commit();
+    },
+    [guardMs],
+  );
 }

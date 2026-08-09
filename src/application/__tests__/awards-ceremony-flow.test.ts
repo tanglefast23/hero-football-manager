@@ -20,11 +20,17 @@ import {
   nextStageIndex,
   prizeStageIndex,
 } from '../../ui/awards-ceremony-stage';
-import { awardsCeremonyFlag, careerAwardCeremonyViewModel } from '../awards-ceremony';
+import {
+  awardsCeremonyFlag,
+  careerAwardCeremonyViewModel,
+} from '../awards-ceremony';
 import { useM1Store } from '../store';
 
 const CATEGORIES: readonly AwardCategoryId[] = [
-  'goals', 'passesCompleted', 'tacklesWon', 'saves',
+  'goals',
+  'passesCompleted',
+  'tacklesWon',
+  'saves',
 ];
 
 describe('the awards ceremony in the season transition', () => {
@@ -99,7 +105,9 @@ describe('the awards ceremony in the season transition', () => {
     // A ceremony with nothing to show still renders four boards and a zero,
     // because a thrown view model here would strand the career: this screen is
     // inside the transition and its own completion is the only exit.
-    const viewModel = careerAwardCeremonyViewModel(useM1Store.getState().career!);
+    const viewModel = careerAwardCeremonyViewModel(
+      useM1Store.getState().career!,
+    );
     expect(viewModel.beats).toHaveLength(4);
     expect(viewModel.prize.totalMoney).toBe(0);
 
@@ -109,7 +117,10 @@ describe('the awards ceremony in the season transition', () => {
 
   describe('the prize money grant', () => {
     it('lands once, at the transition, and never at the ceremony', () => {
-      const career = startAtSeasonEnd({ champions: false, won: ['goals', 'saves'] });
+      const career = startAtSeasonEnd({
+        champions: false,
+        won: ['goals', 'saves'],
+      });
       const before = userCash(career);
 
       useM1Store.getState().advanceCareer();
@@ -121,7 +132,10 @@ describe('the awards ceremony in the season transition', () => {
 
       useM1Store.getState().advanceCareer();
       const after = useM1Store.getState().career!;
-      const expected = divisionAwardPrizeTotal(currentUserDivision(after.m2!), 2);
+      const expected = divisionAwardPrizeTotal(
+        currentUserDivision(after.m2!),
+        2,
+      );
       expect(userCash(after)).toBe(before + expected);
       expect(expected).toBeGreaterThan(0);
     });
@@ -140,8 +154,9 @@ describe('the awards ceremony in the season transition', () => {
       expect(userCash(useM1Store.getState().career!)).toBe(paid);
       // And the new season's own ceremony is still owed: a completion dispatched
       // outside a boundary must not flag the season being played.
-      expect(useM1Store.getState().career!.eventFlags)
-        .not.toContain(awardsCeremonyFlag(nextSeason));
+      expect(useM1Store.getState().career!.eventFlags).not.toContain(
+        awardsCeremonyFlag(nextSeason),
+      );
     });
 
     /**
@@ -168,22 +183,27 @@ describe('the awards ceremony in the season transition', () => {
     it.each([
       ['a club staying where it is', false],
       ['a promoted champion', true],
-    ])('shows %s exactly what the transition then banks', (_label, champions) => {
-      const career = startAtSeasonEnd({ champions, won: ['goals', 'saves'] });
-      useM1Store.getState().advanceCareer();
-      if (champions) useM1Store.getState().completeChampionshipCelebration();
-      const projected = careerAwardCeremonyViewModel(useM1Store.getState().career!)
-        .prize.totalMoney;
+    ])(
+      'shows %s exactly what the transition then banks',
+      (_label, champions) => {
+        const career = startAtSeasonEnd({ champions, won: ['goals', 'saves'] });
+        useM1Store.getState().advanceCareer();
+        if (champions) useM1Store.getState().completeChampionshipCelebration();
+        const projected = careerAwardCeremonyViewModel(
+          useM1Store.getState().career!,
+        ).prize.totalMoney;
 
-      useM1Store.getState().completeAwardsCeremony();
-      useM1Store.getState().advanceCareer();
+        useM1Store.getState().completeAwardsCeremony();
+        useM1Store.getState().advanceCareer();
 
-      const banked = userCash(useM1Store.getState().career!) - userCash(career);
-      expect(banked).toBe(projected);
-      // Pinned so the two rows cannot quietly become the same case: a champion
-      // is priced against D4, the division he is about to enter.
-      expect(projected).toBe(divisionAwardPrizeTotal(champions ? 4 : 5, 2));
-    });
+        const banked =
+          userCash(useM1Store.getState().career!) - userCash(career);
+        expect(banked).toBe(projected);
+        // Pinned so the two rows cannot quietly become the same case: a champion
+        // is priced against D4, the division he is about to enter.
+        expect(projected).toBe(divisionAwardPrizeTotal(champions ? 4 : 5, 2));
+      },
+    );
 
     /**
      * The case the two orderings can only be caught disagreeing on.
@@ -206,12 +226,15 @@ describe('the awards ceremony in the season transition', () => {
     it('agrees with the transition when an exact tie decides the promotion cutoff', () => {
       const career = tiedAtThePromotionCutoff();
       const table = leagueStandings(career);
-      const user = table.find(row => row.clubId === career.userClubId)!;
-      const rival = table.find(row => row.clubId === TIED_RIVAL_CLUB)!;
+      const user = table.find((row) => row.clubId === career.userClubId)!;
+      const rival = table.find((row) => row.clubId === TIED_RIVAL_CLUB)!;
 
       // The tie is real and it straddles the cutoff, or the test proves nothing.
-      expect([user.points, user.goalDifference, user.goalsFor])
-        .toEqual([rival.points, rival.goalDifference, rival.goalsFor]);
+      expect([user.points, user.goalDifference, user.goalsFor]).toEqual([
+        rival.points,
+        rival.goalDifference,
+        rival.goalsFor,
+      ]);
       expect([user.position, rival.position].sort()).toEqual([2, 3]);
 
       const projected = careerAwardCeremonyViewModel(career).prize.totalMoney;
@@ -222,7 +245,9 @@ describe('the awards ceremony in the season transition', () => {
       // A zero on both sides would pass while proving nothing, and the two
       // divisions in play price the same single board differently.
       expect(banked).toBeGreaterThan(0);
-      expect(banked).toBe(divisionAwardPrizeTotal(currentUserDivision(next.m2!), 1));
+      expect(banked).toBe(
+        divisionAwardPrizeTotal(currentUserDivision(next.m2!), 1),
+      );
     });
   });
 });
@@ -254,15 +279,16 @@ function tiedAtThePromotionCutoff(): GameState {
     if (clubId === base.userClubId || clubId === TIED_RIVAL_CLUB) return 2;
     return 1;
   };
-  const striker = base.players
-    .find(player => player.clubId === base.userClubId && player.role === 'FWD')!;
+  const striker = base.players.find(
+    (player) => player.clubId === base.userClubId && player.role === 'FWD',
+  )!;
 
   // Written by the real recap writer, so `finalPosition` is whatever
   // `buildSeasonRecap` actually decides rather than whatever the test wants.
   return recordSeasonRecap({
     ...base,
     phase: 'season-end',
-    fixtures: base.fixtures.map(fixture => {
+    fixtures: base.fixtures.map((fixture) => {
       const home = tier(fixture.homeClubId);
       const away = tier(fixture.awayClubId);
       return {
@@ -274,17 +300,19 @@ function tiedAtThePromotionCutoff(): GameState {
         },
       };
     }),
-    seasonStatLines: [{
-      season: base.season,
-      playerId: striker.id,
-      clubId: base.userClubId,
-      competition: 'league',
-      goals: 21,
-      assists: 0,
-      tacklesWon: 0,
-      saves: 0,
-      passesCompleted: 0,
-    }],
+    seasonStatLines: [
+      {
+        season: base.season,
+        playerId: striker.id,
+        clubId: base.userClubId,
+        competition: 'league',
+        goals: 21,
+        assists: 0,
+        tacklesWon: 0,
+        saves: 0,
+        passesCompleted: 0,
+      },
+    ],
   });
 }
 
@@ -293,12 +321,18 @@ function tiedAtThePromotionCutoff(): GameState {
  * so "watched" and "skipped" are the two real routes and not two labels.
  */
 /** Where the boards now pay: the user club's cash, not the TP pool. */
-function userCash(career: { clubs: { id: string; cash: number }[]; userClubId: string }): number {
-  return career.clubs.find(club => club.id === career.userClubId)!.cash;
+function userCash(career: {
+  clubs: { id: string; cash: number }[];
+  userClubId: string;
+}): number {
+  return career.clubs.find((club) => club.id === career.userClubId)!.cash;
 }
 
 function runSeasonTransition(style: 'watch' | 'skip'): number {
-  const career = startAtSeasonEnd({ champions: false, won: ['goals', 'saves'] });
+  const career = startAtSeasonEnd({
+    champions: false,
+    won: ['goals', 'saves'],
+  });
   useM1Store.getState().advanceCareer();
 
   const stages = awardCeremonyStages(
@@ -336,7 +370,7 @@ function startAtSeasonEnd({
   const seasonEnd: GameState = {
     ...current,
     phase: 'season-end',
-    fixtures: current.fixtures.map(fixture => {
+    fixtures: current.fixtures.map((fixture) => {
       const userIsHome = fixture.homeClubId === current.userClubId;
       const userIsAway = fixture.awayClubId === current.userClubId;
       const userWins = champions;
@@ -368,20 +402,40 @@ function startAtSeasonEnd({
  * be asserting that the transition agrees with itself: the recap writer — the
  * only thing that can disagree — would never run.
  */
-function recapWonBy(career: GameState, won: readonly AwardCategoryId[]): SeasonRecap {
+function recapWonBy(
+  career: GameState,
+  won: readonly AwardCategoryId[],
+): SeasonRecap {
   return {
     ...buildSeasonRecap(career),
-    divisionAwards: Object.fromEntries(CATEGORIES.map(category => [
-      category,
-      podium(won.includes(category) ? career.userClubId : 'rival-club'),
-    ])) as Record<AwardCategoryId, DivisionAwardPlacement[]>,
+    divisionAwards: Object.fromEntries(
+      CATEGORIES.map((category) => [
+        category,
+        podium(won.includes(category) ? career.userClubId : 'rival-club'),
+      ]),
+    ) as Record<AwardCategoryId, DivisionAwardPlacement[]>,
   };
 }
 
 function podium(winnerClubId: string): DivisionAwardPlacement[] {
   return [
-    { playerId: 'p_first', playerName: 'First Place', clubId: winnerClubId, value: 21 },
-    { playerId: 'p_second', playerName: 'Second Place', clubId: 'rival-club', value: 14 },
-    { playerId: 'p_third', playerName: 'Third Place', clubId: 'other-club', value: 9 },
+    {
+      playerId: 'p_first',
+      playerName: 'First Place',
+      clubId: winnerClubId,
+      value: 21,
+    },
+    {
+      playerId: 'p_second',
+      playerName: 'Second Place',
+      clubId: 'rival-club',
+      value: 14,
+    },
+    {
+      playerId: 'p_third',
+      playerName: 'Third Place',
+      clubId: 'other-club',
+      value: 9,
+    },
   ];
 }

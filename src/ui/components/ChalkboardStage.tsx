@@ -17,14 +17,28 @@ export function ChalkboardBackdrop({ wide = false }: { wide?: boolean }) {
 }
 
 /** Tilted blue sticker that holds a masthead's payoff word. */
-export function StickerWord({ text, wide = false }: { text: string; wide?: boolean }) {
+export function StickerWord({
+  text,
+  wide = false,
+}: {
+  text: string;
+  wide?: boolean;
+}) {
   return (
     <View
-      className={wide
-        ? 'self-start -rotate-2 border-[3px] border-ink bg-blue px-5 py-2'
-        : 'self-start -rotate-2 border-2 border-ink bg-blue px-3 py-1'}
+      className={
+        wide
+          ? '-rotate-2 self-start border-[3px] border-ink bg-blue px-5 py-2'
+          : '-rotate-2 self-start border-2 border-ink bg-blue px-3 py-1'
+      }
     >
-      <Text className={wide ? 'font-pixel text-4xl uppercase text-white' : 'font-pixel text-2xl uppercase text-white'}>
+      <Text
+        className={
+          wide
+            ? 'font-pixel text-4xl uppercase text-white'
+            : 'font-pixel text-2xl uppercase text-white'
+        }
+      >
         {text}
       </Text>
     </View>
@@ -32,10 +46,20 @@ export function StickerWord({ text, wide = false }: { text: string; wide?: boole
 }
 
 /** Small tilted paper chip, e.g. the crest or a corner label on the stage. */
-export function PaperSticker({ text, className = '' }: { text: string; className?: string }) {
+export function PaperSticker({
+  text,
+  className = '',
+}: {
+  text: string;
+  className?: string;
+}) {
   return (
-    <View className={`-rotate-2 border-2 border-ink bg-paper px-3 py-2 ${className}`}>
-      <Text className="font-pixel text-xs uppercase text-pitch-ink">{text}</Text>
+    <View
+      className={`-rotate-2 border-2 border-ink bg-paper px-3 py-2 ${className}`}
+    >
+      <Text className="font-pixel text-xs uppercase text-pitch-ink">
+        {text}
+      </Text>
     </View>
   );
 }
@@ -53,10 +77,17 @@ export function StageSection({
   className?: string;
 }) {
   return (
-    <View className={`mb-3 flex-row items-end justify-between gap-3 ${className}`}>
+    <View
+      className={`mb-3 flex-row items-end justify-between gap-3 ${className}`}
+    >
       <View className="flex-1">
-        <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{eyebrow}</Text>
-        <Text accessibilityRole="header" className="mt-1 font-pixel text-lg uppercase text-white">
+        <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">
+          {eyebrow}
+        </Text>
+        <Text
+          accessibilityRole="header"
+          className="mt-1 font-pixel text-lg uppercase text-white"
+        >
           {title}
         </Text>
       </View>

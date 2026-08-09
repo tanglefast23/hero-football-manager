@@ -105,15 +105,22 @@ const CREATED_PLAYER_SUFFIX = '-created-player';
  * screen the app does not offer.
  */
 export function buildOpeningObservation(state: GameState): OpeningObservation {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
-  const starterOrder = new Map((lineup?.playerIds ?? []).map((id, index) => [id, index]));
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  const starterOrder = new Map(
+    (lineup?.playerIds ?? []).map((id, index) => [id, index]),
+  );
   const grid = state.facilities.grid;
 
   const players = state.players
-    .filter(player => player.clubId === state.userClubId)
-    .map<VisiblePlayer>(player => ({
+    .filter((player) => player.clubId === state.userClubId)
+    .map<VisiblePlayer>((player) => ({
       id: player.id,
       name: player.name,
       role: player.role,
@@ -134,15 +141,16 @@ export function buildOpeningObservation(state: GameState): OpeningObservation {
     phase: state.phase,
     cash: club.cash,
     trainingPoints: state.trainingPoints,
-    facilities: (grid?.buildings ?? []).map(building => ({
+    facilities: (grid?.buildings ?? []).map((building) => ({
       id: building.id,
       type: building.type,
       level: building.level,
-      operational: grid !== undefined && isFacilityOperational(grid, building.id),
+      operational:
+        grid !== undefined && isFacilityOperational(grid, building.id),
     })),
     constructionInProgress: grid?.construction !== undefined,
     headCoachHired: state.market?.headCoach !== undefined,
-    coachCandidates: (state.market?.coachCandidates ?? []).map(candidate => ({
+    coachCandidates: (state.market?.coachCandidates ?? []).map((candidate) => ({
       id: candidate.id,
       name: candidate.name,
       level: candidate.level,
@@ -154,8 +162,11 @@ export function buildOpeningObservation(state: GameState): OpeningObservation {
   };
 }
 
-function visibleDrills(state: GameState, player: CareerPlayer): VisibleDrillOption[] {
-  return TRAINING_PATHS.map(path => {
+function visibleDrills(
+  state: GameState,
+  player: CareerPlayer,
+): VisibleDrillOption[] {
+  return TRAINING_PATHS.map((path) => {
     const drill = resolveTrainingDrillForPath(state, path.pathId);
     const preview = instantTrainingPreview(state, player.id, path.pathId);
     const currentValue = player.attrs[path.attribute];
@@ -167,29 +178,36 @@ function visibleDrills(state: GameState, player: CareerPlayer): VisibleDrillOpti
       currentValue,
       adjustedAfter: preview.adjustedAfter,
       visibleGain: preview.adjustedAfter - currentValue,
-      modifierLabels: preview.modifiers.map(modifier => modifier.label),
+      modifierLabels: preview.modifiers.map((modifier) => modifier.label),
     };
   });
 }
 
 function nextUserFixture(state: GameState): VisibleFixture | undefined {
   const upcoming = state.fixtures
-    .filter(fixture => (
-      fixture.status !== 'played'
-      && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
-      && (fixture.season > state.season
-        || (fixture.season === state.season && fixture.week >= state.week))
-    ))
-    .sort((left, right) => (
-      left.season - right.season || left.week - right.week || left.id.localeCompare(right.id)
-    ))[0];
+    .filter(
+      (fixture) =>
+        fixture.status !== 'played' &&
+        (fixture.homeClubId === state.userClubId ||
+          fixture.awayClubId === state.userClubId) &&
+        (fixture.season > state.season ||
+          (fixture.season === state.season && fixture.week >= state.week)),
+    )
+    .sort(
+      (left, right) =>
+        left.season - right.season ||
+        left.week - right.week ||
+        left.id.localeCompare(right.id),
+    )[0];
   if (upcoming === undefined) return undefined;
   const isHome = upcoming.homeClubId === state.userClubId;
   const opponentClubId = isHome ? upcoming.awayClubId : upcoming.homeClubId;
   return {
     id: upcoming.id,
     opponentClubId,
-    opponentName: state.clubs.find(club => club.id === opponentClubId)?.name ?? opponentClubId,
+    opponentName:
+      state.clubs.find((club) => club.id === opponentClubId)?.name ??
+      opponentClubId,
     isHome,
   };
 }

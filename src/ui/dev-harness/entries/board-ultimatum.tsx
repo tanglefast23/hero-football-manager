@@ -8,7 +8,10 @@ import {
   homeViewModel,
 } from '../../../application/view-models';
 import { loadLaunchContent } from '../../../content';
-import { M2_ASSISTANT_GUIDE_SEQUENCE_IDS, completeAssistantGuideSequence } from '../../../game/assistant-guide';
+import {
+  M2_ASSISTANT_GUIDE_SEQUENCE_IDS,
+  completeAssistantGuideSequence,
+} from '../../../game/assistant-guide';
 import {
   BOARD_ULTIMATUM_WEEKS,
   applyBoardForcedSaleConsequences,
@@ -22,7 +25,10 @@ import type { BoardUltimatumState, GameState } from '../../../game/types';
 import { BertBriefingWalkOn } from '../../BertBriefingWalkOn';
 import { ClubFinancesScreen } from '../../screens/ClubFinancesScreen';
 import { ClubHomeScreen } from '../../screens/ClubHomeScreen';
-import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls';
+import {
+  DevHarnessButton,
+  devHarnessControlStyles,
+} from '../DevHarnessControls';
 import { devHarnessCareerAtWeek } from '../career';
 import type { DevHarnessEntry } from '../registry';
 
@@ -48,11 +54,7 @@ import type { DevHarnessEntry } from '../registry';
  */
 
 export type BoardUltimatumCaseId =
-  | 'warning'
-  | 'loan'
-  | 'ultimatum'
-  | 'survived'
-  | 'forced-sale';
+  'warning' | 'loan' | 'ultimatum' | 'survived' | 'forced-sale';
 
 export interface BoardUltimatumOptions {
   /** Weeks left on the deadline. Only an active ultimatum reads it. */
@@ -87,9 +89,9 @@ function redCash(state: GameState): number {
 function withCash(state: GameState, cash: number): GameState {
   return {
     ...state,
-    clubs: state.clubs.map(club => (
-      club.id === state.userClubId ? { ...club, cash } : club
-    )),
+    clubs: state.clubs.map((club) =>
+      club.id === state.userClubId ? { ...club, cash } : club,
+    ),
   };
 }
 
@@ -105,11 +107,11 @@ function withCash(state: GameState, cash: number): GameState {
 function withQuietDesk(state: GameState): GameState {
   const cleared: GameState = {
     ...state,
-    players: state.players.map(player => (
+    players: state.players.map((player) =>
       player.clubId === state.userClubId
         ? { ...player, transferRequested: false, injuryWeeks: 0 }
-        : player
-    )),
+        : player,
+    ),
     facilities: { ...state.facilities, trainingGroundBuilt: true },
   };
   return M2_ASSISTANT_GUIDE_SEQUENCE_IDS.reduce(
@@ -140,7 +142,9 @@ function outstandingLoan(state: GameState, remainingWeeks: number) {
 function issuedUltimatum(state: GameState): BoardUltimatumState {
   const ultimatum = createBoardUltimatum(state);
   if (ultimatum === undefined) {
-    throw new Error('the board ultimatum reel has fewer than three sellable players');
+    throw new Error(
+      'the board ultimatum reel has fewer than three sellable players',
+    );
   }
   return ultimatum;
 }
@@ -157,7 +161,10 @@ export function boardUltimatumCareer(
   if (caseId === 'warning') {
     return {
       ...broke,
-      financialSafety: { consecutiveNegativeWeeks: 1, emergencyLoanUsed: false },
+      financialSafety: {
+        consecutiveNegativeWeeks: 1,
+        emergencyLoanUsed: false,
+      },
     };
   }
 
@@ -200,7 +207,10 @@ export function boardUltimatumCareer(
         consecutiveNegativeWeeks: 0,
         emergencyLoanUsed: true,
         loan: outstandingLoan(base, 24),
-        latestBoardResolution: targetMetResolution(base, issuedUltimatum(broke)),
+        latestBoardResolution: targetMetResolution(
+          base,
+          issuedUltimatum(broke),
+        ),
       },
     };
   }
@@ -217,13 +227,18 @@ export function boardUltimatumCareer(
   };
   const resolution = boardForcedSaleAtDeadline(atDeadline, ultimatum);
   if (resolution === undefined) {
-    throw new Error('the board ultimatum reel found no buyer for a forced sale');
+    throw new Error(
+      'the board ultimatum reel found no buyer for a forced sale',
+    );
   }
   // The engine credits the fee through the weekly ledger rather than inside
   // `applyBoardForcedSaleConsequences`, so the reel adds it the same way the
   // ledger would: the hole, plus what the sale raised.
   return {
-    ...withCash(applyBoardForcedSaleConsequences(atDeadline, resolution), redCash(base) + resolution.fee),
+    ...withCash(
+      applyBoardForcedSaleConsequences(atDeadline, resolution),
+      redCash(base) + resolution.fee,
+    ),
     financialSafety: {
       consecutiveNegativeWeeks: 0,
       emergencyLoanUsed: true,
@@ -235,20 +250,28 @@ export function boardUltimatumCareer(
 
 /** What the reel is measuring, in the numbers the escalation is made of. */
 export function boardUltimatumNote(state: GameState): string {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
   const safety = state.financialSafety;
   const ultimatum = safety?.boardUltimatum;
-  const produced = homeProductAlerts(state).filter(alert => isBoardAlertId(alert.id));
+  const produced = homeProductAlerts(state).filter((alert) =>
+    isBoardAlertId(alert.id),
+  );
   const deskRows = homeViewModel(state).alerts;
-  const onDesk = deskRows.filter(alert => isBoardAlertId(alert.id));
+  const onDesk = deskRows.filter((alert) => isBoardAlertId(alert.id));
   return [
     `Cash ${club?.cash ?? 0}`,
     `red weeks ${safety?.consecutiveNegativeWeeks ?? 0}/${difficultyRules(state).negativeWeeksBeforeIntervention}`,
-    safety?.loan === undefined ? 'no loan' : `loan owes ${safety.loan.remainingBalance}`,
+    safety?.loan === undefined
+      ? 'no loan'
+      : `loan owes ${safety.loan.remainingBalance}`,
     ultimatum === undefined
       ? 'no deadline'
-      : `target ${ultimatum.targetCash} · ${ultimatum.candidates.length} on the block`
-        + (ultimatum.protectedPlayerId === undefined ? ' · none protected' : ' · one protected'),
+      : `target ${ultimatum.targetCash} · ${ultimatum.candidates.length} on the block` +
+        (ultimatum.protectedPlayerId === undefined
+          ? ' · none protected'
+          : ' · one protected'),
     // The measurement the reel exists to take. It read 0/n on every busy desk.
     // The three time-critical rows must now read n/n whatever else the week is
     // carrying; the loan row may queue, because the balance it used to be the
@@ -260,16 +283,26 @@ export function boardUltimatumNote(state: GameState): string {
 }
 
 function isBoardAlertId(alertId: string): boolean {
-  return alertId === 'financial-warning'
-    || alertId === 'emergency-loan'
-    || alertId === 'board-ultimatum'
-    || alertId.startsWith('board-resolution');
+  return (
+    alertId === 'financial-warning' ||
+    alertId === 'emergency-loan' ||
+    alertId === 'board-ultimatum' ||
+    alertId.startsWith('board-resolution')
+  );
 }
 
 /** The countdown values worth a tap: issued, mid-way, and the last week. */
-const COUNTDOWN_WEEKS: readonly number[] = Object.freeze([BOARD_ULTIMATUM_WEEKS, 2, 1]);
+const COUNTDOWN_WEEKS: readonly number[] = Object.freeze([
+  BOARD_ULTIMATUM_WEEKS,
+  2,
+  1,
+]);
 
-export function BoardUltimatumReel({ caseId }: { readonly caseId: BoardUltimatumCaseId }) {
+export function BoardUltimatumReel({
+  caseId,
+}: {
+  readonly caseId: BoardUltimatumCaseId;
+}) {
   const [weeksRemaining, setWeeksRemaining] = useState(2);
   const [quietDesk, setQuietDesk] = useState(true);
   const [guideBoard, setGuideBoard] = useState(false);
@@ -282,7 +315,9 @@ export function BoardUltimatumReel({ caseId }: { readonly caseId: BoardUltimatum
    * reads the whole message, and the loan then opens the Facility board with
    * the money-making buildings lit.
    */
-  const [openedBoardAlertId, setOpenedBoardAlertId] = useState<string | null>(null);
+  const [openedBoardAlertId, setOpenedBoardAlertId] = useState<string | null>(
+    null,
+  );
   const [incomeFacilityTour, setIncomeFacilityTour] = useState(false);
   // Every tap the manager can make lands here, applied by the real reducer on
   // top of the built state. Cleared whenever an option rebuilds the career.
@@ -299,9 +334,10 @@ export function BoardUltimatumReel({ caseId }: { readonly caseId: BoardUltimatum
   const viewModel = useMemo(() => homeViewModel(state), [state]);
   const note = useMemo(() => boardUltimatumNote(state), [state]);
 
-  const briefing = openedBoardAlertId === null
-    ? undefined
-    : boardFinanceBriefing(state, openedBoardAlertId);
+  const briefing =
+    openedBoardAlertId === null
+      ? undefined
+      : boardFinanceBriefing(state, openedBoardAlertId);
 
   const rebuild = useCallback((change: () => void) => {
     setPlayed(undefined);
@@ -311,14 +347,17 @@ export function BoardUltimatumReel({ caseId }: { readonly caseId: BoardUltimatum
     change();
   }, []);
 
-  const protectCandidate = useCallback((playerId: string) => {
-    try {
-      setPlayed(protectBoardUltimatumPlayer(state, playerId));
-      setFailure(undefined);
-    } catch (error) {
-      setFailure((error as Error).message);
-    }
-  }, [state]);
+  const protectCandidate = useCallback(
+    (playerId: string) => {
+      try {
+        setPlayed(protectBoardUltimatumPlayer(state, playerId));
+        setFailure(undefined);
+      } catch (error) {
+        setFailure((error as Error).message);
+      }
+    },
+    [state],
+  );
 
   return (
     <View style={styles.root}>
@@ -345,9 +384,11 @@ export function BoardUltimatumReel({ caseId }: { readonly caseId: BoardUltimatum
         <BertBriefingWalkOn
           key={openedBoardAlertId}
           content={guideContent}
-          sequenceId={openedBoardAlertId === 'emergency-loan'
-            ? 'board-emergency-loan'
-            : 'board-financial-warning'}
+          sequenceId={
+            openedBoardAlertId === 'emergency-loan'
+              ? 'board-emergency-loan'
+              : 'board-financial-warning'
+          }
           customMessage={briefing}
           onDone={() => {
             const wasLoan = openedBoardAlertId === 'emergency-loan';
@@ -361,7 +402,7 @@ export function BoardUltimatumReel({ caseId }: { readonly caseId: BoardUltimatum
         <View style={[styles.panel, { paddingBottom: insets.bottom + 12 }]}>
           <View style={devHarnessControlStyles.row}>
             <Text style={devHarnessControlStyles.rowLabel}>WEEKS</Text>
-            {COUNTDOWN_WEEKS.map(weeks => (
+            {COUNTDOWN_WEEKS.map((weeks) => (
               <DevHarnessButton
                 key={weeks}
                 label={`${weeks}`}
@@ -395,7 +436,7 @@ export function BoardUltimatumReel({ caseId }: { readonly caseId: BoardUltimatum
               label="Bert"
               hint="Show Bert's tap cue over the board panel"
               selected={guideBoard}
-              onPress={() => setGuideBoard(current => !current)}
+              onPress={() => setGuideBoard((current) => !current)}
             />
             <DevHarnessButton
               label="Hide"
@@ -428,7 +469,11 @@ export function BoardUltimatumReel({ caseId }: { readonly caseId: BoardUltimatum
  * temporal dead zone. TypeScript cannot see that through the arrow function,
  * so the only symptom is a blank bundle at runtime.
  */
-const CASES: readonly { id: BoardUltimatumCaseId; label: string; note: string }[] = Object.freeze([
+const CASES: readonly {
+  id: BoardUltimatumCaseId;
+  label: string;
+  note: string;
+}[] = Object.freeze([
   {
     id: 'warning',
     label: 'Warning',
@@ -466,12 +511,17 @@ export const boardUltimatumEntry: DevHarnessEntry = Object.freeze({
   id: 'board-ultimatum',
   group: 'Season',
   title: 'Board ultimatum',
-  summary: 'Fail-soft economy: warning, one loan, a four-week deadline, then a forced sale.',
-  cases: Object.freeze(CASES.map(entry => Object.freeze({
-    id: entry.id,
-    label: entry.label,
-    note: entry.note,
-  }))),
+  summary:
+    'Fail-soft economy: warning, one loan, a four-week deadline, then a forced sale.',
+  cases: Object.freeze(
+    CASES.map((entry) =>
+      Object.freeze({
+        id: entry.id,
+        label: entry.label,
+        note: entry.note,
+      }),
+    ),
+  ),
   render: (caseId: string) => (
     <BoardUltimatumReel caseId={caseId as BoardUltimatumCaseId} />
   ),

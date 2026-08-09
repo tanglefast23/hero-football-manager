@@ -54,55 +54,72 @@ export function managerNotes(
   ];
 }
 
-function transferWindowNotes(state: GameState, t: CopyFn): ManagerNoteViewModel[] {
+function transferWindowNotes(
+  state: GameState,
+  t: CopyFn,
+): ManagerNoteViewModel[] {
   // Legacy careers have no market screen, so the window is not a thing there.
   if (state.market === undefined) return [];
   const academyOpen = isStoryYouthUnlocked(state);
 
   if (state.week === 1) {
-    return [{
-      id: 'note:transfer-window-open',
-      title: t('managerNotes.windowOpenTitle', { lastWeek: PRESEASON_WINDOW_LAST_WEEK }),
-      detail: t('managerNotes.windowOpenDetail', {
-        preseasonLastWeek: PRESEASON_WINDOW_LAST_WEEK,
-        midseasonFirstWeek: MIDSEASON_WINDOW_FIRST_WEEK,
-        midseasonLastWeek: MIDSEASON_WINDOW_LAST_WEEK,
-        // Glued rather than authored with a leading space: no catalog entry
-        // carries edge whitespace, and a translator cannot be asked to keep it.
-        academy: academyOpen ? ` ${t('managerNotes.windowOpenAcademy')}` : '',
-      }),
-    }];
+    return [
+      {
+        id: 'note:transfer-window-open',
+        title: t('managerNotes.windowOpenTitle', {
+          lastWeek: PRESEASON_WINDOW_LAST_WEEK,
+        }),
+        detail: t('managerNotes.windowOpenDetail', {
+          preseasonLastWeek: PRESEASON_WINDOW_LAST_WEEK,
+          midseasonFirstWeek: MIDSEASON_WINDOW_FIRST_WEEK,
+          midseasonLastWeek: MIDSEASON_WINDOW_LAST_WEEK,
+          // Glued rather than authored with a leading space: no catalog entry
+          // carries edge whitespace, and a translator cannot be asked to keep it.
+          academy: academyOpen ? ` ${t('managerNotes.windowOpenAcademy')}` : '',
+        }),
+      },
+    ];
   }
 
   if (state.week === PRESEASON_WINDOW_LAST_WEEK) {
-    return [{
-      id: 'note:preseason-windows-closing',
-      title: academyOpen
-        ? t('managerNotes.windowsClosingTitle')
-        : t('managerNotes.windowClosingTitle'),
-      detail: academyOpen
-        ? t('managerNotes.windowsClosingDetail', { week: MIDSEASON_WINDOW_FIRST_WEEK })
-        : t('managerNotes.windowClosingDetail', { week: MIDSEASON_WINDOW_FIRST_WEEK }),
-    }];
+    return [
+      {
+        id: 'note:preseason-windows-closing',
+        title: academyOpen
+          ? t('managerNotes.windowsClosingTitle')
+          : t('managerNotes.windowClosingTitle'),
+        detail: academyOpen
+          ? t('managerNotes.windowsClosingDetail', {
+              week: MIDSEASON_WINDOW_FIRST_WEEK,
+            })
+          : t('managerNotes.windowClosingDetail', {
+              week: MIDSEASON_WINDOW_FIRST_WEEK,
+            }),
+      },
+    ];
   }
 
   if (state.week === MIDSEASON_WINDOW_FIRST_WEEK) {
-    return [{
-      id: 'note:midseason-window-open',
-      title: t('managerNotes.midseasonWindowOpenTitle', {
-        firstWeek: MIDSEASON_WINDOW_FIRST_WEEK,
-        lastWeek: MIDSEASON_WINDOW_LAST_WEEK,
-      }),
-      detail: t('managerNotes.midseasonWindowOpenDetail'),
-    }];
+    return [
+      {
+        id: 'note:midseason-window-open',
+        title: t('managerNotes.midseasonWindowOpenTitle', {
+          firstWeek: MIDSEASON_WINDOW_FIRST_WEEK,
+          lastWeek: MIDSEASON_WINDOW_LAST_WEEK,
+        }),
+        detail: t('managerNotes.midseasonWindowOpenDetail'),
+      },
+    ];
   }
 
   if (state.week === MIDSEASON_WINDOW_LAST_WEEK) {
-    return [{
-      id: 'note:midseason-window-closing',
-      title: t('managerNotes.windowClosingTitle'),
-      detail: t('managerNotes.midseasonWindowClosingDetail'),
-    }];
+    return [
+      {
+        id: 'note:midseason-window-closing',
+        title: t('managerNotes.windowClosingTitle'),
+        detail: t('managerNotes.midseasonWindowClosingDetail'),
+      },
+    ];
   }
 
   return [];
@@ -114,63 +131,84 @@ function transferWindowNotes(state: GameState, t: CopyFn): ManagerNoteViewModel[
  * from the outside.
  */
 function cupRoundNotes(state: GameState, t: CopyFn): ManagerNoteViewModel[] {
-  const cup = state.m2?.nationalCups.find(candidate => candidate.season === state.season);
+  const cup = state.m2?.nationalCups.find(
+    (candidate) => candidate.season === state.season,
+  );
   if (cup === undefined || cup.championClubId !== undefined) return [];
-  const round = cup.rounds.find(candidate => (
-    CUP_SETTLEMENT_WEEKS[candidate.number - 1] === state.week
-  ));
+  const round = cup.rounds.find(
+    (candidate) => CUP_SETTLEMENT_WEEKS[candidate.number - 1] === state.week,
+  );
   if (round === undefined) return [];
 
   const nextRoundWeek = CUP_SETTLEMENT_WEEKS[round.number];
   const nextRoundLabel = nextCupRoundLabel(round.label);
 
   if (round.byeClubIds.includes(state.userClubId)) {
-    return [{
-      id: `note:cup-bye:${round.number}`,
-      title: t('managerNotes.cupByeTitle', { round: cupRoundNameWith(round.label, t) }),
-      detail: nextRoundLabel === undefined || nextRoundWeek === undefined
-        ? t('managerNotes.cupByeFinalDetail')
-        : t('managerNotes.cupByeDetail', {
-            week: nextRoundWeek,
-            round: cupRoundNameWith(nextRoundLabel, t),
-          }),
-    }];
+    return [
+      {
+        id: `note:cup-bye:${round.number}`,
+        title: t('managerNotes.cupByeTitle', {
+          round: cupRoundNameWith(round.label, t),
+        }),
+        detail:
+          nextRoundLabel === undefined || nextRoundWeek === undefined
+            ? t('managerNotes.cupByeFinalDetail')
+            : t('managerNotes.cupByeDetail', {
+                week: nextRoundWeek,
+                round: cupRoundNameWith(nextRoundLabel, t),
+              }),
+      },
+    ];
   }
 
-  const fixture = round.fixtures.find(candidate => (
-    candidate.homeClubId === state.userClubId || candidate.awayClubId === state.userClubId
-  ));
+  const fixture = round.fixtures.find(
+    (candidate) =>
+      candidate.homeClubId === state.userClubId ||
+      candidate.awayClubId === state.userClubId,
+  );
   if (fixture === undefined) return [];
 
-  const opponentId = fixture.homeClubId === state.userClubId ? fixture.awayClubId : fixture.homeClubId;
-  const opponent = state.clubs.find(club => club.id === opponentId)?.name
-    ?? t('managerNotes.opponentFallback');
+  const opponentId =
+    fixture.homeClubId === state.userClubId
+      ? fixture.awayClubId
+      : fixture.homeClubId;
+  const opponent =
+    state.clubs.find((club) => club.id === opponentId)?.name ??
+    t('managerNotes.opponentFallback');
   // Name the ground rather than trailing "at home" after the opponent, which
   // reads as the opponent being the home side.
-  const venue = fixture.homeClubId === state.userClubId
-    ? t('managerNotes.venueHome')
-    : t('managerNotes.venueAway');
+  const venue =
+    fixture.homeClubId === state.userClubId
+      ? t('managerNotes.venueHome')
+      : t('managerNotes.venueAway');
   const opening = t('managerNotes.cupFixtureOpening', { opponent, venue });
-  return [{
-    id: `note:cup-round:${round.number}`,
-    title: t('managerNotes.cupRoundTitle', { round: cupRoundNameWith(round.label, t) }),
-    detail: nextRoundLabel === undefined || nextRoundWeek === undefined
-      ? t('managerNotes.cupFinalDetail', { opening })
-      : t('managerNotes.cupRoundDetail', {
-          opening,
-          round: cupRoundNameWith(nextRoundLabel, t),
-          week: nextRoundWeek,
-        }),
-  }];
+  return [
+    {
+      id: `note:cup-round:${round.number}`,
+      title: t('managerNotes.cupRoundTitle', {
+        round: cupRoundNameWith(round.label, t),
+      }),
+      detail:
+        nextRoundLabel === undefined || nextRoundWeek === undefined
+          ? t('managerNotes.cupFinalDetail', { opening })
+          : t('managerNotes.cupRoundDetail', {
+              opening,
+              round: cupRoundNameWith(nextRoundLabel, t),
+              week: nextRoundWeek,
+            }),
+    },
+  ];
 }
 
 function seasonEndNotes(state: GameState, t: CopyFn): ManagerNoteViewModel[] {
   if (state.week !== SEASON_WEEKS) return [];
-  return [{
-    id: 'note:season-final-week',
-    title: t('managerNotes.seasonFinalWeekTitle'),
-    detail: t('managerNotes.seasonFinalWeekDetail'),
-  }];
+  return [
+    {
+      id: 'note:season-final-week',
+      title: t('managerNotes.seasonFinalWeekTitle'),
+      detail: t('managerNotes.seasonFinalWeekDetail'),
+    },
+  ];
 }
 
 /**
@@ -180,10 +218,18 @@ function seasonEndNotes(state: GameState, t: CopyFn): ManagerNoteViewModel[] {
  * The labels are data, and data stays English; `cupRoundNameWith` turns the
  * one it returns into a word the player reads, at the interpolation.
  */
+/** @i18n-fallback Persisted round enum values; `cupRoundNameWith` translates them. */
 const CUP_ROUND_ORDER: readonly NationalCupRoundLabel[] = [
-  'Play-in', 'Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final',
+  'Play-in',
+  'Round of 32',
+  'Round of 16',
+  'Quarter-final',
+  'Semi-final',
+  'Final',
 ];
 
-function nextCupRoundLabel(label: NationalCupRoundLabel): NationalCupRoundLabel | undefined {
+function nextCupRoundLabel(
+  label: NationalCupRoundLabel,
+): NationalCupRoundLabel | undefined {
   return CUP_ROUND_ORDER[CUP_ROUND_ORDER.indexOf(label) + 1];
 }

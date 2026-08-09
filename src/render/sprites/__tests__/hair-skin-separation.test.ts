@@ -1,7 +1,10 @@
 import sprites from '../sprites.json';
 import portraits from '../portraits.json';
 
-type Sheet = { palette: Record<string, string | null>; sprites: Record<string, string[]> };
+type Sheet = {
+  palette: Record<string, string | null>;
+  sprites: Record<string, string[]>;
+};
 
 /** The hair-only ramp. The skin ramp may not borrow these, nor they it. */
 const HAIR_KEYS = ['x', 'y', 'z'] as const;
@@ -17,7 +20,7 @@ const SKIN_KEYS = ['d', 'm', 'n', 'S', 'L'] as const;
 const SEPARATION_FLOOR = 25;
 
 function lab(hex: string): [number, number, number] {
-  const [r, g, b] = [1, 3, 5].map(i => {
+  const [r, g, b] = [1, 3, 5].map((i) => {
     const v = parseInt(hex.slice(i, i + 2), 16) / 255;
     return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
   });
@@ -38,7 +41,8 @@ function deltaE(a: string, b: string): number {
 /** Every palette key used anywhere in the head, brow to chin. */
 function faceKeys(rows: readonly string[]): Set<string> {
   const keys = new Set<string>();
-  for (let y = 7; y <= 14 && y < rows.length; y += 1) for (const char of rows[y]) keys.add(char);
+  for (let y = 7; y <= 14 && y < rows.length; y += 1)
+    for (const char of rows[y]) keys.add(char);
   return keys;
 }
 
@@ -49,11 +53,20 @@ function faceKeys(rows: readonly string[]): Set<string> {
  * is drawn IN a hair-family key — `c212`'s whole head is `h` — and recolouring
  * that key would blacken the face itself.
  */
-const faceHasRealSkin = (rows: readonly string[]) => SKIN_KEYS.some(key => faceKeys(rows).has(key));
+const faceHasRealSkin = (rows: readonly string[]) =>
+  SKIN_KEYS.some((key) => faceKeys(rows).has(key));
 
 describe.each([
-  ['sprites.json', sprites as Sheet, (key: string) => key.split(':').length >= 3 && key.endsWith(':run0')],
-  ['portraits.json', portraits as Sheet, (key: string) => key.endsWith(':rest')],
+  [
+    'sprites.json',
+    sprites as Sheet,
+    (key: string) => key.split(':').length >= 3 && key.endsWith(':run0'),
+  ],
+  [
+    'portraits.json',
+    portraits as Sheet,
+    (key: string) => key.endsWith(':rest'),
+  ],
 ])('%s hair reads as hair', (_name, sheet, isFrontFrame) => {
   const frames = Object.keys(sheet.sprites).filter(isFrontFrame);
 
@@ -66,9 +79,14 @@ describe.each([
         if (!present.has(hair)) continue;
         for (const skin of SKIN_KEYS) {
           if (!present.has(skin)) continue;
-          const separation = deltaE(sheet.palette[hair] as string, sheet.palette[skin] as string);
+          const separation = deltaE(
+            sheet.palette[hair] as string,
+            sheet.palette[skin] as string,
+          );
           if (separation < SEPARATION_FLOOR) {
-            failures.push(`${key}: ${hair} beside ${skin} is only ΔE ${separation.toFixed(1)}`);
+            failures.push(
+              `${key}: ${hair} beside ${skin} is only ΔE ${separation.toFixed(1)}`,
+            );
           }
         }
       }
@@ -79,24 +97,28 @@ describe.each([
   it('never draws hair in a colour the skin ramp also uses', () => {
     // The whole defect was one palette serving both: `h` was the dark-hair base
     // AND the shadow on the darkest skin, so a fringe over a face vanished.
-    const offenders = frames.filter(key => {
+    const offenders = frames.filter((key) => {
       const present = faceKeys(sheet.sprites[key]);
-      return faceHasRealSkin(sheet.sprites[key])
-        && LEGACY_HAIR_KEYS.some(legacy => present.has(legacy));
+      return (
+        faceHasRealSkin(sheet.sprites[key]) &&
+        LEGACY_HAIR_KEYS.some((legacy) => present.has(legacy))
+      );
     });
     expect(offenders).toEqual([]);
   });
 
   it('leaves the faces that are drawn in a hair key alone', () => {
-    const drawnInHairKey = frames.filter(key => !faceHasRealSkin(sheet.sprites[key]));
+    const drawnInHairKey = frames.filter(
+      (key) => !faceHasRealSkin(sheet.sprites[key]),
+    );
     // A handful of the darkest looks: their whole head is one tone.
     expect(drawnInHairKey.length).toBeGreaterThan(0);
     expect(drawnInHairKey.length).toBeLessThan(frames.length / 20);
     for (const key of drawnInHairKey) {
       const present = faceKeys(sheet.sprites[key]);
       // Untouched, so still on the legacy key and NOT on the near-black ramp.
-      expect(LEGACY_HAIR_KEYS.some(legacy => present.has(legacy))).toBe(true);
-      expect(HAIR_KEYS.some(hair => present.has(hair))).toBe(false);
+      expect(LEGACY_HAIR_KEYS.some((legacy) => present.has(legacy))).toBe(true);
+      expect(HAIR_KEYS.some((hair) => present.has(hair))).toBe(false);
     }
   });
 });
@@ -105,14 +127,18 @@ describe('hair palette', () => {
   it('defines the ramp in both sheets, identically', () => {
     for (const key of HAIR_KEYS) {
       expect(typeof (sprites as Sheet).palette[key]).toBe('string');
-      expect((portraits as Sheet).palette[key]).toBe((sprites as Sheet).palette[key]);
+      expect((portraits as Sheet).palette[key]).toBe(
+        (sprites as Sheet).palette[key],
+      );
     }
   });
 
   it('stays clear of the ink outline, so hair is not mistaken for a border', () => {
     const ink = (sprites as Sheet).palette.K as string;
     for (const key of HAIR_KEYS) {
-      expect(deltaE((sprites as Sheet).palette[key] as string, ink)).toBeGreaterThan(12);
+      expect(
+        deltaE((sprites as Sheet).palette[key] as string, ink),
+      ).toBeGreaterThan(12);
     }
   });
 });

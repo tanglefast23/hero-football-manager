@@ -28,7 +28,8 @@ export function bootstrapProportion(
   seed = BOOTSTRAP_SEED,
 ): ProportionInterval {
   const total = outcomes.length;
-  if (total === 0) throw new Error('a bootstrap interval needs at least one observation');
+  if (total === 0)
+    throw new Error('a bootstrap interval needs at least one observation');
   const count = outcomes.filter(Boolean).length;
   const random = mulberry32(seed);
   const rates = new Float64Array(resamples);
@@ -61,12 +62,13 @@ export function openerRailVerdict(
   wins: ProportionInterval,
   losses: ProportionInterval,
   maximumWinRate = 0.05,
-  minimumLossRate = 0.90,
+  minimumLossRate = 0.9,
 ): RailVerdict {
   const winPasses = wins.upper95 <= maximumWinRate;
   const lossPasses = losses.lower95 >= minimumLossRate;
   if (winPasses && lossPasses) return 'PASS';
-  if (wins.lower95 > maximumWinRate || losses.upper95 < minimumLossRate) return 'FAIL';
+  if (wins.lower95 > maximumWinRate || losses.upper95 < minimumLossRate)
+    return 'FAIL';
   return 'INCONCLUSIVE';
 }
 
@@ -75,8 +77,16 @@ export function mean(values: readonly number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-export function percentile(values: readonly number[], fraction: number): number {
+export function percentile(
+  values: readonly number[],
+  fraction: number,
+): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((left, right) => left - right);
-  return sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * fraction)))];
+  return sorted[
+    Math.min(
+      sorted.length - 1,
+      Math.max(0, Math.floor(sorted.length * fraction)),
+    )
+  ];
 }

@@ -1,25 +1,32 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { assistantModeChoice, shouldAskAssistantMode } from '../assistant-mode-choice';
+import {
+  assistantModeChoice,
+  shouldAskAssistantMode,
+} from '../assistant-mode-choice';
 import { BERT_MOMENTS } from '../bert-poses';
 
-describe("the question Bert asks a manager who has won everything", () => {
+describe('the question Bert asks a manager who has won everything', () => {
   it('offers exactly the two jobs, Teacher first', () => {
-    expect(assistantModeChoice().options.map(option => option.mode))
-      .toEqual(['teacher', 'advisor']);
+    expect(assistantModeChoice().options.map((option) => option.mode)).toEqual([
+      'teacher',
+      'advisor',
+    ]);
   });
 
   it('names what each choice changes', () => {
     for (const option of assistantModeChoice().options) {
       expect(option.label.length).toBeGreaterThan(0);
       expect(option.detail.length).toBeGreaterThan(0);
-      expect(option.accessibilityLabel).toContain(option.label);
-      expect(option.accessibilityLabel).toContain(option.detail);
+      expect(option.accessibilityLabel).toContainSource(option.label);
+      expect(option.accessibilityLabel).toContainSource(option.detail);
     }
   });
 
   it('uses a pose from the approved set', () => {
-    expect(Object.keys(BERT_MOMENTS)).toContain(assistantModeChoice().moment);
+    expect(Object.keys(BERT_MOMENTS)).toContainSource(
+      assistantModeChoice().moment,
+    );
   });
 
   it('asks only after the device has completed the climb', () => {
@@ -32,22 +39,34 @@ describe("the question Bert asks a manager who has won everything", () => {
       join(__dirname, '../screens/AssistantModeChoiceScreen.tsx'),
       'utf8',
     );
-    const pageWrapper = source.slice(source.indexOf('<ScrollView'), source.indexOf('choice.kicker'));
-    expect(pageWrapper).not.toContain('accessible');
-    expect(source).toContain('accessibilityRole="text"');
-    expect(source).toContain('accessibilityLabel={choice.line}');
-    expect(source).toContain('accessibilityLabel={option.accessibilityLabel}');
+    const pageWrapper = source.slice(
+      source.indexOf('<ScrollView'),
+      source.indexOf('choice.kicker'),
+    );
+    expect(pageWrapper).not.toContainSource('accessible');
+    expect(source).toContainSource('accessibilityRole="text"');
+    expect(source).toContainSource('accessibilityLabel={choice.line}');
+    expect(source).toContainSource(
+      'accessibilityLabel={option.accessibilityLabel}',
+    );
   });
 });
 
 describe('the app wires the choice to every teaching surface', () => {
   const app = readFileSync(join(__dirname, '../../../App.tsx'), 'utf8');
-  const settings = readFileSync(join(__dirname, '../SettingsOverlay.tsx'), 'utf8');
+  const settings = readFileSync(
+    join(__dirname, '../SettingsOverlay.tsx'),
+    'utf8',
+  );
 
   it('routes veterans through the choice and first-timers directly into a career', () => {
-    expect(app).toContain("landingView === 'assistant-mode'");
-    expect(app).toContain('shouldAskAssistantMode(preferencesRef.current.climbCompleted)');
-    expect(app).toContain('store.startNewCareer(undefined, assistantMode)');
+    expect(app).toContainSource("landingView === 'assistant-mode'");
+    expect(app).toContainSource(
+      'shouldAskAssistantMode(preferencesRef.current.climbCompleted)',
+    );
+    expect(app).toContainSource(
+      'store.startNewCareer(undefined, assistantMode)',
+    );
   });
 
   it('gates raw story copy and every named lesson on the one derived predicate', () => {
@@ -65,7 +84,7 @@ describe('the app wires the choice to every teaching surface', () => {
       'firstMatchTutorial={careerTeaches',
       'const boardFinanceMessage = !careerTeaches',
     ]) {
-      expect(app).toContain(fragment);
+      expect(app).toContainSource(fragment);
     }
   });
 
@@ -79,13 +98,16 @@ describe('the app wires the choice to every teaching surface', () => {
       app.indexOf('const facilityComboReveal ='),
     );
 
-    expect(cupExitDeclaration).not.toContain('careerTeaches');
-    expect(cupWarningDeclaration).not.toContain('careerTeaches');
-    expect(app).toContain('pendingCupGiantKillingCelebrations?.[0]');
+    expect(cupExitDeclaration).not.toContainSource('careerTeaches');
+    expect(cupWarningDeclaration).not.toContainSource('careerTeaches');
+    expect(app).toContainSource('pendingCupGiantKillingCelebrations?.[0]');
   });
 
   it('clears active teaching state before changing Bert to Advisor', () => {
-    const handler = app.slice(app.indexOf('const handleSetAssistantMode'), app.indexOf('const startNewCareer'));
+    const handler = app.slice(
+      app.indexOf('const handleSetAssistantMode'),
+      app.indexOf('const startNewCareer'),
+    );
     for (const setter of [
       'setRequestedAssistantSequenceId(null)',
       'setConciergeFocus(null)',
@@ -93,16 +115,18 @@ describe('the app wires the choice to every teaching surface', () => {
       'setActiveGuideFocus(undefined)',
       'setOpenedBoardFinanceAlertId(null)',
     ]) {
-      expect(handler).toContain(setter);
+      expect(handler).toContainSource(setter);
     }
-    expect(handler).toContain('store.setAssistantMode(assistantMode)');
+    expect(handler).toContainSource('store.setAssistantMode(assistantMode)');
   });
 
   it('replaces the narrow tips toggle with a career-only Bert row', () => {
-    expect(app).not.toContain('managerTipsEnabled');
-    expect(settings).not.toContain('managerTipsEnabled');
-    expect(settings).toContain('assistantMode?: AssistantMode');
-    expect(settings).toContain('onSetAssistantMode?:');
-    expect(settings).toContain('assistantMode !== undefined && onSetAssistantMode !== undefined');
+    expect(app).not.toContainSource('managerTipsEnabled');
+    expect(settings).not.toContainSource('managerTipsEnabled');
+    expect(settings).toContainSource('assistantMode?: AssistantMode');
+    expect(settings).toContainSource('onSetAssistantMode?:');
+    expect(settings).toContainSource(
+      'assistantMode !== undefined && onSetAssistantMode !== undefined',
+    );
   });
 });

@@ -53,18 +53,23 @@ export function SquadRequestsPanel({
       <SectionLabel
         eyebrow={t('squadRequests.theDressingRoom')}
         title={t('squadRequests.requests')}
-        right={pending === undefined
-          ? undefined
-          : (
+        right={
+          pending === undefined ? undefined : (
             <StatusChip
-              label={t('squadRequests.weeksToAnswer', { count: pending.weeksToAnswer })}
+              label={t('squadRequests.weeksToAnswer', {
+                count: pending.weeksToAnswer,
+              })}
               tone={pending.weeksToAnswer <= 1 ? 'danger' : 'hero'}
             />
-          )}
+          )
+        }
       />
 
       {pending === undefined ? (
-        <EmptyDocket title={t('squadRequests.noRequests')} detail={viewModel.emptyDetail} />
+        <EmptyDocket
+          title={t('squadRequests.noRequests')}
+          detail={viewModel.emptyDetail}
+        />
       ) : (
         <Pressable
           accessibilityRole="button"
@@ -81,14 +86,25 @@ export function SquadRequestsPanel({
           })}
         >
           <View className="mr-3">
-            <EventPixelScene artKey={pending.artKey} reduceMotion={reduceMotion} />
+            <EventPixelScene
+              artKey={pending.artKey}
+              reduceMotion={reduceMotion}
+            />
           </View>
           <View className="min-w-0 flex-1">
-            <PixelText className="text-sm uppercase text-blue-dark">{pending.playerName}</PixelText>
-            <Text className="mt-1 text-base font-bold text-ink" numberOfLines={1}>
+            <PixelText className="text-sm uppercase text-blue-dark">
+              {pending.playerName}
+            </PixelText>
+            <Text
+              className="mt-1 text-base font-bold text-ink"
+              numberOfLines={1}
+            >
               {pending.title}
             </Text>
-            <Text className="mt-1 text-sm leading-5 text-ink/65" numberOfLines={2}>
+            <Text
+              className="mt-1 text-sm leading-5 text-ink/65"
+              numberOfLines={2}
+            >
               &ldquo;{pending.line}&rdquo;
             </Text>
           </View>
@@ -107,14 +123,21 @@ export function SquadRequestsPanel({
           </View>
         )
       ) : (
-        <PaperPanel kicker={t('squadRequests.recently')} title={t('squadRequests.whatYouDecided')} className="mt-4">
+        <PaperPanel
+          kicker={t('squadRequests.recently')}
+          title={t('squadRequests.whatYouDecided')}
+          className="mt-4"
+        >
           <View className="gap-2">
-            {viewModel.history.slice(0, 6).map(entry => (
+            {viewModel.history.slice(0, 6).map((entry) => (
               <View
                 key={entry.key}
                 className="flex-row items-center justify-between gap-3"
               >
-                <Text className="min-w-0 flex-1 text-sm text-ink/70" numberOfLines={1}>
+                <Text
+                  className="min-w-0 flex-1 text-sm text-ink/70"
+                  numberOfLines={1}
+                >
                   {entry.label}
                 </Text>
                 <StatusChip

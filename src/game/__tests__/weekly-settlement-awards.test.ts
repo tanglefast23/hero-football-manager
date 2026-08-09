@@ -43,7 +43,9 @@ describe('weekly settlement awards', () => {
       fanGain: award.fanGain,
     };
 
-    expect(resolveWeeklySettlementAwards([], { awards: [award, duplicate] })).toEqual({
+    expect(
+      resolveWeeklySettlementAwards([], { awards: [award, duplicate] }),
+    ).toEqual({
       lines: [award.line],
       fanGain: 6,
     });
@@ -56,8 +58,9 @@ describe('weekly settlement awards', () => {
       fanGain: award.fanGain,
     };
 
-    expect(() => resolveWeeklySettlementAwards([], { awards: [award, conflict] }))
-      .toThrow('reused with a different payload');
+    expect(() =>
+      resolveWeeklySettlementAwards([], { awards: [award, conflict] }),
+    ).toThrow('reused with a different payload');
   });
 
   test('treats an identical paid ledger line as a no-op and rejects a conflict', () => {
@@ -73,10 +76,12 @@ describe('weekly settlement awards', () => {
       lines: [],
       fanGain: 0,
     });
-    expect(() => resolveWeeklySettlementAwards(
-      [{ ...paid, lines: [{ ...award.line, amount: 1_999 }] }],
-      { awards: [award] },
-    )).toThrow('conflicts with a paid ledger line');
+    expect(() =>
+      resolveWeeklySettlementAwards(
+        [{ ...paid, lines: [{ ...award.line, amount: 1_999 }] }],
+        { awards: [award] },
+      ),
+    ).toThrow('conflicts with a paid ledger line');
   });
 
   test('keeps award namespaces distinct across all planned cash sources', () => {

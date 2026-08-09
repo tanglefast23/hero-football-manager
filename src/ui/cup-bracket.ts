@@ -1,4 +1,7 @@
-import type { M2CupFixtureViewModel, M2CupRoundViewModel } from './m2-league-models';
+import type {
+  M2CupFixtureViewModel,
+  M2CupRoundViewModel,
+} from './m2-league-models';
 
 /**
  * Pure geometry for the Hero Cup bracket.
@@ -75,7 +78,9 @@ function tieFrom(
     awayName: fixture.awayClubName,
     scoreLabel: fixture.scoreLabel,
     played: fixture.status === 'PLAYED',
-    ...(fixture.winnerName === undefined ? {} : { winnerName: fixture.winnerName }),
+    ...(fixture.winnerName === undefined
+      ? {}
+      : { winnerName: fixture.winnerName }),
     involvesUserClub: fixture.involvesUserClub,
     ...(fixture.userSide === undefined ? {} : { userSide: fixture.userSide }),
     placeholder: false,
@@ -91,9 +96,11 @@ function tieCountFor(roundIndex: number, firstRoundTies: number): number {
   return Math.max(1, Math.round(firstRoundTies / 2 ** roundIndex));
 }
 
-export function cupBracketLayout(rounds: readonly M2CupRoundViewModel[]): BracketLayout {
+export function cupBracketLayout(
+  rounds: readonly M2CupRoundViewModel[],
+): BracketLayout {
   const bracketRounds = rounds
-    .filter(round => round.round >= BRACKET_FIRST_ROUND)
+    .filter((round) => round.round >= BRACKET_FIRST_ROUND)
     .sort((a, b) => a.round - b.round);
   if (bracketRounds.length === 0) return { columns: [], width: 0, height: 0 };
 
@@ -101,7 +108,9 @@ export function cupBracketLayout(rounds: readonly M2CupRoundViewModel[]): Bracke
   // declared match count so the shape is right before a ball is kicked.
   const firstRoundTies = Math.max(
     1,
-    bracketRounds[0].fixtures.length > 0 ? bracketRounds[0].fixtures.length : bracketRounds[0].matchCount,
+    bracketRounds[0].fixtures.length > 0
+      ? bracketRounds[0].fixtures.length
+      : bracketRounds[0].matchCount,
   );
   const slot = TIE_HEIGHT + TIE_GAP;
   const height = firstRoundTies * slot;
@@ -111,11 +120,13 @@ export function cupBracketLayout(rounds: readonly M2CupRoundViewModel[]): Bracke
     // Each round's ties sit centred on the pair that feeds them, which is what
     // makes the connectors straight: spacing doubles every column.
     const spacing = height / count;
-    const ties = Array.from({ length: count }, (_unused, tieIndex) => tieFrom(
-      round.fixtures[tieIndex],
-      `${round.round}:${tieIndex}`,
-      spacing * tieIndex + spacing / 2,
-    ));
+    const ties = Array.from({ length: count }, (_unused, tieIndex) =>
+      tieFrom(
+        round.fixtures[tieIndex],
+        `${round.round}:${tieIndex}`,
+        spacing * tieIndex + spacing / 2,
+      ),
+    );
     return {
       round: round.round,
       label: round.label,
@@ -126,7 +137,9 @@ export function cupBracketLayout(rounds: readonly M2CupRoundViewModel[]): Bracke
 
   return {
     columns,
-    width: columns.length * COLUMN_WIDTH + Math.max(0, columns.length - 1) * COLUMN_GAP,
+    width:
+      columns.length * COLUMN_WIDTH +
+      Math.max(0, columns.length - 1) * COLUMN_GAP,
     height,
   };
 }
@@ -148,7 +161,7 @@ export function cupBracketBands(
   columnsPerBand: readonly number[],
 ): readonly BracketLayout[] {
   const bracketRounds = rounds
-    .filter(round => round.round >= BRACKET_FIRST_ROUND)
+    .filter((round) => round.round >= BRACKET_FIRST_ROUND)
     .sort((a, b) => a.round - b.round);
   const bands: BracketLayout[] = [];
   let cursor = 0;
@@ -159,8 +172,9 @@ export function cupBracketBands(
     bands.push(cupBracketLayout(bracketRounds.slice(cursor, cursor + width)));
     cursor += width;
   }
-  if (cursor < bracketRounds.length) bands.push(cupBracketLayout(bracketRounds.slice(cursor)));
-  return bands.filter(band => band.columns.length > 0);
+  if (cursor < bracketRounds.length)
+    bands.push(cupBracketLayout(bracketRounds.slice(cursor)));
+  return bands.filter((band) => band.columns.length > 0);
 }
 
 export interface BracketConnector {
@@ -174,7 +188,9 @@ export interface BracketConnector {
 }
 
 /** One elbow per pair, so the tree reads as a tree and not as stacked lists. */
-export function cupBracketConnectors(layout: BracketLayout): readonly BracketConnector[] {
+export function cupBracketConnectors(
+  layout: BracketLayout,
+): readonly BracketConnector[] {
   const connectors: BracketConnector[] = [];
   for (let index = 0; index < layout.columns.length - 1; index += 1) {
     const column = layout.columns[index];

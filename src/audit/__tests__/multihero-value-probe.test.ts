@@ -85,14 +85,24 @@ describe('multihero marginal value', () => {
   it('uses four unique, role-compatible starter slots', () => {
     const { user } = openingTeams();
     expect(REPRESENTATIVE_HEROES).toHaveLength(4);
-    expect(new Set(REPRESENTATIVE_HEROES.map(hero => hero.slot)).size).toBe(4);
-    expect(REPRESENTATIVE_HEROES.map(hero => user.players[hero.slot].role))
-      .toEqual(['FWD', 'MID', 'DEF', 'GK']);
+    expect(new Set(REPRESENTATIVE_HEROES.map((hero) => hero.slot)).size).toBe(
+      4,
+    );
+    expect(
+      REPRESENTATIVE_HEROES.map((hero) => user.players[hero.slot].role),
+    ).toEqual(['FWD', 'MID', 'DEF', 'GK']);
 
     for (const hero of REPRESENTATIVE_HEROES) {
-      expect(powerIsCompatibleWithRole(hero.power, user.players[hero.slot].role)).toBe(true);
+      expect(
+        powerIsCompatibleWithRole(hero.power, user.players[hero.slot].role),
+      ).toBe(true);
     }
-    expect(powerIsCompatibleWithRole(RALLY_HERO.power, user.players[RALLY_HERO.slot].role)).toBe(true);
+    expect(
+      powerIsCompatibleWithRole(
+        RALLY_HERO.power,
+        user.players[RALLY_HERO.slot].role,
+      ),
+    ).toBe(true);
   });
 
   it('calculates each added hero relative to its own solo value', () => {
@@ -113,7 +123,7 @@ describe('multihero marginal value', () => {
       { delta: 0, ppm: 1.4 },
       { delta: 1, ppm: 0.9 },
     ]);
-    expect(fitted.map(row => row.delta)).toEqual([-2, -1, 0, 1]);
+    expect(fitted.map((row) => row.delta)).toEqual([-2, -1, 0, 1]);
     const expectedPpm = [1.8, 1.3, 1.3, 0.9];
     for (let index = 0; index < expectedPpm.length; index += 1) {
       expect(fitted[index].ppm).toBeCloseTo(expectedPpm[index], 12);
@@ -128,10 +138,22 @@ describe('multihero marginal value', () => {
       { delta: 1, ppm: 1 },
     ];
 
-    expect(estimateEquivalentDelta(ladder, 1.5)).toEqual({ value: -0.5, bound: 'exact' });
-    expect(estimateWorth(ladder, 1.5, 1.5)).toEqual({ value: 0, bound: 'exact' });
-    expect(estimateWorth(ladder, 1.75, 1.5)).toEqual({ value: 1, bound: 'exact' });
-    expect(estimateWorth(ladder, 1.25, 1.5)).toEqual({ value: -1, bound: 'exact' });
+    expect(estimateEquivalentDelta(ladder, 1.5)).toEqual({
+      value: -0.5,
+      bound: 'exact',
+    });
+    expect(estimateWorth(ladder, 1.5, 1.5)).toEqual({
+      value: 0,
+      bound: 'exact',
+    });
+    expect(estimateWorth(ladder, 1.75, 1.5)).toEqual({
+      value: 1,
+      bound: 'exact',
+    });
+    expect(estimateWorth(ladder, 1.25, 1.5)).toEqual({
+      value: -1,
+      bound: 'exact',
+    });
   });
 
   it('reports solo, cumulative, and marginal worth for heroes one through four', () => {
@@ -141,28 +163,47 @@ describe('multihero marginal value', () => {
     const evenDelta = EVEN_DELTA;
     // Four healthy heroes target roughly +8 combined. Cover +12 through -4 so
     // stacking upside is measured rather than clipped at the one-hero ladder.
-    const ladderDeltas = Array.from({ length: 17 }, (_, index) => evenDelta - 12 + index);
-    const ladderSamples = ladderDeltas.map(delta => ({
+    const ladderDeltas = Array.from(
+      { length: 17 },
+      (_, index) => evenDelta - 12 + index,
+    );
+    const ladderSamples = ladderDeltas.map((delta) => ({
       delta,
       sample: sampleMatches(user, scale(opponent, delta)),
     }));
-    const rawLadder = ladderSamples.map(({ delta, sample }) => ({ delta, ppm: sample.ppm }));
+    const rawLadder = ladderSamples.map(({ delta, sample }) => ({
+      delta,
+      ppm: sample.ppm,
+    }));
     const fittedLadder = fitNonIncreasingPpm(rawLadder);
-    const baselineSample = ladderSamples.find(row => row.delta === evenDelta)!.sample;
+    const baselineSample = ladderSamples.find(
+      (row) => row.delta === evenDelta,
+    )!.sample;
     const rawBasePpm = baselineSample.ppm;
-    const baselineDelta = estimateEquivalentDelta(fittedLadder, rawBasePpm).value;
+    const baselineDelta = estimateEquivalentDelta(
+      fittedLadder,
+      rawBasePpm,
+    ).value;
     const evenOpponent = scale(opponent, evenDelta);
 
-    const soloSamples = REPRESENTATIVE_HEROES.map(hero => {
+    const soloSamples = REPRESENTATIVE_HEROES.map((hero) => {
       const sample = sampleMatches(withHeroes(user, [hero]), evenOpponent);
-      return { sample, ppm: sample.ppm, worth: estimateWorth(fittedLadder, sample.ppm, rawBasePpm) };
+      return {
+        sample,
+        ppm: sample.ppm,
+        worth: estimateWorth(fittedLadder, sample.ppm, rawBasePpm),
+      };
     });
     const prefixSamples = REPRESENTATIVE_HEROES.map((_, index) => {
       const sample = sampleMatches(
         withHeroes(user, REPRESENTATIVE_HEROES.slice(0, index + 1)),
         evenOpponent,
       );
-      return { sample, ppm: sample.ppm, worth: estimateWorth(fittedLadder, sample.ppm, rawBasePpm) };
+      return {
+        sample,
+        ppm: sample.ppm,
+        worth: estimateWorth(fittedLadder, sample.ppm, rawBasePpm),
+      };
     });
     // Rally Cry is deliberately unavailable as a club's first or only power.
     // Price it in its valid weakest case: Tier 1 contextual auto beside the
@@ -172,12 +213,20 @@ describe('multihero marginal value', () => {
       evenOpponent,
     );
     const rallyPairPpm = rallyPairSample.ppm;
-    const rallyPairWorth = estimateWorth(fittedLadder, rallyPairPpm, rawBasePpm);
-    const rallyMarginalWorth = rallyPairWorth.value - prefixSamples[0].worth.value;
-    const rallyPairedDelta = summarizePairedDelta(rallyPairSample, prefixSamples[0].sample);
+    const rallyPairWorth = estimateWorth(
+      fittedLadder,
+      rallyPairPpm,
+      rawBasePpm,
+    );
+    const rallyMarginalWorth =
+      rallyPairWorth.value - prefixSamples[0].worth.value;
+    const rallyPairedDelta = summarizePairedDelta(
+      rallyPairSample,
+      prefixSamples[0].sample,
+    );
     const summaries = summarizeWorths(
-      soloSamples.map(sample => sample.worth.value),
-      prefixSamples.map(sample => sample.worth.value),
+      soloSamples.map((sample) => sample.worth.value),
+      prefixSamples.map((sample) => sample.worth.value),
     );
 
     const lines: string[] = [
@@ -185,22 +234,22 @@ describe('multihero marginal value', () => {
       `=== MULTI-HERO MARGINAL VALUE (${SEEDS} paired seeds per sample) ===`,
       'mode: Tier 1, contextual auto-fire (the weakest player case)',
       `starting-XI strength: user ${userStrength}, opponent ${opponentStrength}, measured even delta ${evenDelta}`,
-      `centered ladder coverage: ${formatSigned(baselineDelta - Math.min(...ladderDeltas))}`
-      + ` to ${formatSigned(baselineDelta - Math.max(...ladderDeltas))} points of squad worth`,
+      `centered ladder coverage: ${formatSigned(baselineDelta - Math.min(...ladderDeltas))}` +
+        ` to ${formatSigned(baselineDelta - Math.max(...ladderDeltas))} points of squad worth`,
       '',
       '=== SHARED NO-HERO BASELINE LADDER ===',
       '  delta   raw ppm   fitted ppm',
     ];
     for (let index = 0; index < rawLadder.length; index += 1) {
       lines.push(
-        `  ${String(rawLadder[index].delta).padStart(5)}`
-        + `   ${rawLadder[index].ppm.toFixed(3).padStart(7)}`
-        + `   ${fittedLadder[index].ppm.toFixed(3).padStart(10)}`,
+        `  ${String(rawLadder[index].delta).padStart(5)}` +
+          `   ${rawLadder[index].ppm.toFixed(3).padStart(7)}` +
+          `   ${fittedLadder[index].ppm.toFixed(3).padStart(10)}`,
       );
     }
     lines.push(
-      `  (calibrated even raw ppm ${rawBasePpm.toFixed(3)}, centered worth`
-      + ` ${formatEstimate(estimateWorth(fittedLadder, rawBasePpm, rawBasePpm))})`,
+      `  (calibrated even raw ppm ${rawBasePpm.toFixed(3)}, centered worth` +
+        ` ${formatEstimate(estimateWorth(fittedLadder, rawBasePpm, rawBasePpm))})`,
       '',
       '=== HERO STACK VALUE AT CALIBRATED EVEN STRENGTH ===',
       'order  slot/role  power             solo ppm/worth   prefix ppm/worth   marginal   efficiency',
@@ -212,19 +261,19 @@ describe('multihero marginal value', () => {
       const prefix = prefixSamples[index];
       const summary = summaries[index];
       lines.push(
-        `${String(index + 1).padEnd(7)}`
-        + `${`${hero.slot}/${user.players[hero.slot].role}`.padEnd(11)}`
-        + `${hero.power.padEnd(18)}`
-        + `${`${solo.ppm.toFixed(3)} / ${formatEstimate(solo.worth)}`.padEnd(17)}`
-        + `${`${prefix.ppm.toFixed(3)} / ${formatEstimate(prefix.worth)}`.padEnd(19)}`
-        + `${formatSigned(summary.marginalWorth).padEnd(11)}`
-        + formatEfficiency(summary.efficiency, solo.worth, prefix.worth),
+        `${String(index + 1).padEnd(7)}` +
+          `${`${hero.slot}/${user.players[hero.slot].role}`.padEnd(11)}` +
+          `${hero.power.padEnd(18)}` +
+          `${`${solo.ppm.toFixed(3)} / ${formatEstimate(solo.worth)}`.padEnd(17)}` +
+          `${`${prefix.ppm.toFixed(3)} / ${formatEstimate(prefix.worth)}`.padEnd(19)}` +
+          `${formatSigned(summary.marginalWorth).padEnd(11)}` +
+          formatEfficiency(summary.efficiency, solo.worth, prefix.worth),
       );
     }
 
     lines.push(
       '',
-      'Efficiency = added marginal worth / that same hero\'s solo worth; 100% means no stacking loss.',
+      "Efficiency = added marginal worth / that same hero's solo worth; 100% means no stacking loss.",
       'Bound markers mean the result reached the edge of the calibrated ladder.',
       '',
       '=== RALLY CRY VALID-CONTEXT VALUE ===',
@@ -259,7 +308,9 @@ function sampleMatches(home: TeamDef, away: TeamDef): MatchSample {
     });
   }
   return {
-    ppm: outcomes.reduce((sum, outcome) => sum + outcome.points, 0) / outcomes.length,
+    ppm:
+      outcomes.reduce((sum, outcome) => sum + outcome.points, 0) /
+      outcomes.length,
     outcomes,
   };
 }
@@ -268,40 +319,51 @@ function summarizePairedDelta(
   treatment: MatchSample,
   control: MatchSample,
 ): PairedDeltaSummary {
-  if (treatment.outcomes.length !== control.outcomes.length || treatment.outcomes.length === 0) {
+  if (
+    treatment.outcomes.length !== control.outcomes.length ||
+    treatment.outcomes.length === 0
+  ) {
     throw new Error('paired samples must have the same non-zero seed count');
   }
-  const pointDeltas = treatment.outcomes.map((outcome, index) => (
-    outcome.points - control.outcomes[index].points
-  ));
-  const mean = pointDeltas.reduce((sum, value) => sum + value, 0) / pointDeltas.length;
-  const variance = pointDeltas.length === 1 ? 0 : pointDeltas.reduce(
-    (sum, value) => sum + (value - mean) ** 2,
-    0,
-  ) / (pointDeltas.length - 1);
+  const pointDeltas = treatment.outcomes.map(
+    (outcome, index) => outcome.points - control.outcomes[index].points,
+  );
+  const mean =
+    pointDeltas.reduce((sum, value) => sum + value, 0) / pointDeltas.length;
+  const variance =
+    pointDeltas.length === 1
+      ? 0
+      : pointDeltas.reduce((sum, value) => sum + (value - mean) ** 2, 0) /
+        (pointDeltas.length - 1);
   const margin = 1.96 * Math.sqrt(variance / pointDeltas.length);
   const goalDifferenceDeltas = treatment.outcomes.map((outcome, index) => {
     const paired = control.outcomes[index];
-    return (outcome.goalsFor - outcome.goalsAgainst)
-      - (paired.goalsFor - paired.goalsAgainst);
+    return (
+      outcome.goalsFor -
+      outcome.goalsAgainst -
+      (paired.goalsFor - paired.goalsAgainst)
+    );
   });
   return {
     mean,
     lower: mean - margin,
     upper: mean + margin,
-    meanGoalDifferenceDelta: goalDifferenceDeltas.reduce((sum, value) => sum + value, 0)
-      / goalDifferenceDeltas.length,
-    better: pointDeltas.filter(value => value > 0).length,
-    same: pointDeltas.filter(value => value === 0).length,
-    worse: pointDeltas.filter(value => value < 0).length,
+    meanGoalDifferenceDelta:
+      goalDifferenceDeltas.reduce((sum, value) => sum + value, 0) /
+      goalDifferenceDeltas.length,
+    better: pointDeltas.filter((value) => value > 0).length,
+    same: pointDeltas.filter((value) => value === 0).length,
+    worse: pointDeltas.filter((value) => value < 0).length,
   };
 }
 
 function formatPairedDelta(summary: PairedDeltaSummary): string {
-  return `ΔPPM ${formatSignedFixed(summary.mean, 3)}`
-    + ` (95% CI [${formatSignedFixed(summary.lower, 3)}, ${formatSignedFixed(summary.upper, 3)}])`
-    + `; ΔGD ${formatSignedFixed(summary.meanGoalDifferenceDelta, 3)}`
-    + `; better/same/worse ${summary.better}/${summary.same}/${summary.worse}`;
+  return (
+    `ΔPPM ${formatSignedFixed(summary.mean, 3)}` +
+    ` (95% CI [${formatSignedFixed(summary.lower, 3)}, ${formatSignedFixed(summary.upper, 3)}])` +
+    `; ΔGD ${formatSignedFixed(summary.meanGoalDifferenceDelta, 3)}` +
+    `; better/same/worse ${summary.better}/${summary.same}/${summary.worse}`
+  );
 }
 
 function formatSignedFixed(value: number, digits: number): string {
@@ -313,7 +375,9 @@ function summarizeWorths(
   cumulativeWorths: readonly number[],
 ): SummaryRow[] {
   if (soloWorths.length !== cumulativeWorths.length) {
-    throw new Error('solo and cumulative worth samples must have the same length');
+    throw new Error(
+      'solo and cumulative worth samples must have the same length',
+    );
   }
   return soloWorths.map((soloWorth, index) => {
     const previousWorth = index === 0 ? 0 : cumulativeWorths[index - 1];
@@ -370,9 +434,12 @@ function estimateWorth(
   if (ppm === baselinePpm) return { value: 0, bound: 'exact' };
   const baseline = estimateEquivalentDelta(ladder, baselinePpm);
   const sample = estimateEquivalentDelta(ladder, ppm);
-  const bound = sample.bound === 'at-most' ? 'at-least'
-    : sample.bound === 'at-least' ? 'at-most'
-      : baseline.bound;
+  const bound =
+    sample.bound === 'at-most'
+      ? 'at-least'
+      : sample.bound === 'at-least'
+        ? 'at-most'
+        : baseline.bound;
   return { value: baseline.value - sample.value, bound };
 }
 
@@ -389,7 +456,7 @@ function estimateEquivalentDelta(
     return { value: sorted[sorted.length - 1].delta, bound: 'at-least' };
   }
 
-  const plateau = sorted.filter(row => row.ppm === ppm);
+  const plateau = sorted.filter((row) => row.ppm === ppm);
   if (plateau.length > 0) {
     return {
       value: (plateau[0].delta + plateau[plateau.length - 1].delta) / 2,
@@ -412,7 +479,12 @@ function estimateEquivalentDelta(
 }
 
 function formatEstimate(estimate: WorthEstimate): string {
-  const marker = estimate.bound === 'at-least' ? '>=' : estimate.bound === 'at-most' ? '<=' : '';
+  const marker =
+    estimate.bound === 'at-least'
+      ? '>='
+      : estimate.bound === 'at-most'
+        ? '<='
+        : '';
   return `${marker}${formatSigned(estimate.value)}`;
 }
 
@@ -425,18 +497,26 @@ function formatEfficiency(
   solo: WorthEstimate,
   prefix: WorthEstimate,
 ): string {
-  if (efficiency === null || solo.bound !== 'exact' || prefix.bound !== 'exact') return 'n/a (ladder bound)';
+  if (efficiency === null || solo.bound !== 'exact' || prefix.bound !== 'exact')
+    return 'n/a (ladder bound)';
   return `${(efficiency * 100).toFixed(0)}%`;
 }
 
 function openingTeams(): { user: TeamDef; opponent: TeamDef } {
   const state = addCreatedPlayer(
-    beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-      4_000_000, undefined, content, 'COZY',
-    ))),
-    { name: 'Probe Rookie', ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 } },
+    beginStoryOnboarding(
+      createCareer(
+        createLaunchCareerSetup(4_000_000, undefined, content, 'COZY'),
+      ),
+    ),
+    {
+      name: 'Probe Rookie',
+      ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 },
+    },
   );
-  const opponentId = content.clubs.clubs.map(club => club.id).find(id => id !== state.userClubId)!;
+  const opponentId = content.clubs.clubs
+    .map((club) => club.id)
+    .find((id) => id !== state.userClubId)!;
   const teams = buildCareerMatchTeams(state, [state.userClubId, opponentId]);
   return {
     user: withoutPowers(teams[state.userClubId]),
@@ -444,15 +524,21 @@ function openingTeams(): { user: TeamDef; opponent: TeamDef } {
   };
 }
 
-function withHeroes(team: TeamDef, heroes: readonly RepresentativeHero[]): TeamDef {
-  const bySlot = new Map(heroes.map(hero => [hero.slot, hero]));
+function withHeroes(
+  team: TeamDef,
+  heroes: readonly RepresentativeHero[],
+): TeamDef {
+  const bySlot = new Map(heroes.map((hero) => [hero.slot, hero]));
   return {
     ...team,
     players: team.players.map((player, slot) => {
       const hero = bySlot.get(slot);
-      if (hero === undefined) return { ...player, power: undefined, powerTier: undefined };
+      if (hero === undefined)
+        return { ...player, power: undefined, powerTier: undefined };
       if (!powerIsCompatibleWithRole(hero.power, player.role)) {
-        throw new Error(`slot ${slot} (${player.role}) cannot carry ${hero.power}`);
+        throw new Error(
+          `slot ${slot} (${player.role}) cannot carry ${hero.power}`,
+        );
       }
       return { ...player, power: hero.power, powerTier: 1 as const };
     }),
@@ -461,22 +547,29 @@ function withHeroes(team: TeamDef, heroes: readonly RepresentativeHero[]): TeamD
 
 /** Average role-weighted overall of the exact 11 players the engine starts. */
 function teamStrength(team: TeamDef): number {
-  if (team.players.length === 0) throw new Error('multihero-value team must contain starters');
-  return Math.round(team.players.reduce(
-    (sum, player) => sum + roleOverall(player.role, player.attrs),
-    0,
-  ) / team.players.length);
+  if (team.players.length === 0)
+    throw new Error('multihero-value team must contain starters');
+  return Math.round(
+    team.players.reduce(
+      (sum, player) => sum + roleOverall(player.role, player.attrs),
+      0,
+    ) / team.players.length,
+  );
 }
 
 function positiveIntegerEnv(name: string, fallback: number): number {
   const raw = process.env[name];
   if (raw === undefined) return fallback;
   if (!/^[1-9]\d*$/.test(raw)) {
-    throw new Error(`${name} must be a positive integer, got ${JSON.stringify(raw)}`);
+    throw new Error(
+      `${name} must be a positive integer, got ${JSON.stringify(raw)}`,
+    );
   }
   const value = Number(raw);
   if (!Number.isSafeInteger(value)) {
-    throw new Error(`${name} must be a safe positive integer, got ${JSON.stringify(raw)}`);
+    throw new Error(
+      `${name} must be a safe positive integer, got ${JSON.stringify(raw)}`,
+    );
   }
   return value;
 }

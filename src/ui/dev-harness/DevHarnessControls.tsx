@@ -28,7 +28,9 @@ export function DevHarnessButton({
       // a Pressable drops layout properties on iOS and collapses it to nothing.
       style={selected ? styles.buttonSelected : styles.button}
     >
-      <Text style={selected ? styles.buttonTextSelected : styles.buttonText}>{label}</Text>
+      <Text style={selected ? styles.buttonTextSelected : styles.buttonText}>
+        {label}
+      </Text>
     </Pressable>
   );
 }

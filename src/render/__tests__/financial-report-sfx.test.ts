@@ -16,16 +16,22 @@ const mockPlayers: MockPlayer[] = [];
 
 jest.mock('expo-audio', () => ({
   createAudioPlayer: jest.fn(() => {
-    const resolvers: Array<{ resolve: () => void; reject: (error: Error) => void }> = [];
+    const resolvers: Array<{
+      resolve: () => void;
+      reject: (error: Error) => void;
+    }> = [];
     const player: MockPlayer = {
       volume: -1,
       muted: false,
       loop: false,
       play: jest.fn(),
       pause: jest.fn(),
-      seekTo: jest.fn(() => new Promise<void>((resolve, reject) => {
-        resolvers.push({ resolve: () => resolve(), reject });
-      })),
+      seekTo: jest.fn(
+        () =>
+          new Promise<void>((resolve, reject) => {
+            resolvers.push({ resolve: () => resolve(), reject });
+          }),
+      ),
       remove: jest.fn(),
       release: jest.fn(),
       resolveSeek: () => resolvers.shift()?.resolve(),
@@ -57,7 +63,7 @@ const thunkVoice = (index: number) => mockPlayers[1 + index];
 const flameUp = () => mockPlayers[5];
 const crackle = () => mockPlayers[6];
 
-const flush = () => new Promise<void>(resolve => setTimeout(resolve, 0));
+const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 describe('financial report audio controller', () => {
   beforeEach(() => {

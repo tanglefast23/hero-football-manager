@@ -21,14 +21,17 @@ describe('screen transition', () => {
     // player is waiting for. A screen change happens dozens of times a session.
     expect(MOTION_MS.QUICK).toBeGreaterThanOrEqual(140);
     expect(MOTION_MS.QUICK).toBeLessThanOrEqual(200);
-    expect(source(TRANSITION)).toContain('export const SCREEN_FADE_MS = MOTION_MS.QUICK;');
+    expect(source(TRANSITION)).toContain(
+      'export const SCREEN_FADE_MS = MOTION_MS.QUICK;',
+    );
   });
 
   it('keeps every animated wrapper style-only', () => {
     // NativeWind silently drops `className` on Animated components: the styles
     // vanish, nothing errors, and the screen renders unstyled. The classNamed
     // content belongs to the screens; these wrappers carry raw styles only.
-    const animatedViews = source(TRANSITION).match(/<Animated\.\w+[\s\S]*?>/g) ?? [];
+    const animatedViews =
+      source(TRANSITION).match(/<Animated\.\w+[\s\S]*?>/g) ?? [];
     expect(animatedViews.length).toBeGreaterThan(0);
     for (const view of animatedViews) {
       expect(view).not.toContain('className');
@@ -44,7 +47,9 @@ describe('screen transition', () => {
     expect(file).not.toContain('useNativeDriver: false');
     // Native driver only carries opacity and transforms; anything else silently
     // throws at runtime.
-    expect(file).not.toMatch(/toValue[\s\S]{0,80}(width|height|backgroundColor)/);
+    expect(file).not.toMatch(
+      /toValue[\s\S]{0,80}(width|height|backgroundColor)/,
+    );
   });
 
   it('cuts instead of dissolving under Reduce Motion', () => {
@@ -56,7 +61,9 @@ describe('screen transition', () => {
   it('needs both sides of a change to opt in', () => {
     // A screen excluded from the dissolve is excluded leaving as well as
     // arriving: either direction would hold it on screen past its handover.
-    expect(source(TRANSITION)).toContain('return previous.animated && next.animated;');
+    expect(source(TRANSITION)).toContain(
+      'return previous.animated && next.animated;',
+    );
   });
 
   it('never re-parents a screen between the two slots', () => {
@@ -68,7 +75,9 @@ describe('screen transition', () => {
     expect(file).toContain('zIndex: active === 0 ? 0 : 1');
     expect(file).toContain('zIndex: active === 1 ? 0 : 1');
     // Two fixed slots, each rendering the live children or the outgoing one.
-    expect(file.match(/\{active === [01] \? children : outgoing\}/g)).toHaveLength(2);
+    expect(
+      file.match(/\{active === [01] \? children : outgoing\}/g),
+    ).toHaveLength(2);
   });
 
   it('leaves the fading screen untouchable and unread', () => {
@@ -94,7 +103,9 @@ describe('App screen routing', () => {
     // A parallel key derived from `store.screen` would be a second routing table
     // to keep in step with the if/else chain, and would get the welcome views
     // and the two loading branches wrong.
-    expect(app).toContain('const screenKey: unknown = isValidElement(screen) ? screen.type : screen;');
+    expect(app).toContain(
+      'const screenKey: unknown = isValidElement(screen) ? screen.type : screen;',
+    );
   });
 
   it('excludes frame-loop screens and the blocking rival cutscene', () => {

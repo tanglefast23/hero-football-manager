@@ -11,7 +11,10 @@ export function maximumAffordableTrainingRuns(
   if (trainingPointCost <= 0) return MAX_CONSECUTIVE_DRILLS;
   return Math.max(
     0,
-    Math.min(MAX_CONSECUTIVE_DRILLS, Math.floor(trainingPoints / trainingPointCost)),
+    Math.min(
+      MAX_CONSECUTIVE_DRILLS,
+      Math.floor(trainingPoints / trainingPointCost),
+    ),
   );
 }
 
@@ -24,7 +27,8 @@ export function maximumSafeTrainingRuns(condition: number): number {
   return Math.min(
     MAX_CONSECUTIVE_DRILLS,
     Math.floor(
-      (condition - INJURY_RISK_CONDITION_THRESHOLD) / INSTANT_DRILL_CONDITION_COST,
+      (condition - INJURY_RISK_CONDITION_THRESHOLD) /
+        INSTANT_DRILL_CONDITION_COST,
     ) + 1,
   );
 }
@@ -34,8 +38,8 @@ export function riskyTrainingRunCount(condition: number, runs: number): number {
   let riskyRuns = 0;
   for (let index = 0; index < runs; index += 1) {
     if (
-      condition - index * INSTANT_DRILL_CONDITION_COST
-      < INJURY_RISK_CONDITION_THRESHOLD
+      condition - index * INSTANT_DRILL_CONDITION_COST <
+      INJURY_RISK_CONDITION_THRESHOLD
     ) {
       riskyRuns += 1;
     }

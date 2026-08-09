@@ -6,14 +6,22 @@ import {
   createCareer,
   weeklyAmbientTrainingPoints,
 } from './career';
-import { BASE_WEEKLY_TRAINING_POINTS, TRAINING_PITCH_TP_PER_LEVEL } from './facilities';
+import {
+  BASE_WEEKLY_TRAINING_POINTS,
+  TRAINING_PITCH_TP_PER_LEVEL,
+} from './facilities';
 import { deterministicPostMatchAwakeningRoll } from './post-match-awakening';
 import { buildTrainingGround } from './squad';
 import { isAvailableForSelection } from './lineup';
 import { trainPlayerInstantly } from './training';
 import { trainingDrillPathId } from './training-paths';
 import type { FocusDrill } from './progression';
-import type { CareerSetup, FixtureResult, GameState, LeagueFixture } from './types';
+import type {
+  CareerSetup,
+  FixtureResult,
+  GameState,
+  LeagueFixture,
+} from './types';
 
 const DEFAULT_CAREER_SEEDS = 200;
 const DEFAULT_AWAKENING_SEEDS = 2000;
@@ -132,12 +140,13 @@ export function runMiniBalanceHarness(
     meanSeasonOneEndingCash: endingCashTotal / careerSeeds,
     meanSeasonOneDiscretionarySpend: discretionarySpendTotal / careerSeeds,
     meanTrainingPointsPerSeason: trainingPointsTotal / careerSeeds,
-    meanAmbientTrainingPointsPerWeek: ambientTrainingPointsTotal / careerSeeds / 30,
+    meanAmbientTrainingPointsPerWeek:
+      ambientTrainingPointsTotal / careerSeeds / 30,
     meanAwakeningMatch: awakeningMatchTotal / awakeningSeeds,
     meanAwakeningAttempts: awakeningAttemptTotal / awakeningSeeds,
     awakeningByDeadlineRate: awakeningsByDeadline / awakeningSeeds,
     awakeningDeadlineMatch: awakening.seasonMatches,
-    representativeDrillIds: representativeDrills.map(drill => drill.id),
+    representativeDrillIds: representativeDrills.map((drill) => drill.id),
   };
 }
 
@@ -153,12 +162,14 @@ function simulatePostMatchAwakeningWindow(
     matchesSinceLastAwakening += 1;
     if (matchesSinceLastAwakening < minimumMatchesBetween) continue;
     attempts += 1;
-    if (deterministicPostMatchAwakeningRoll(
-      careerSeed,
-      `balance-match-${match}`,
-      0,
-      100,
-    ) < chancePercent) {
+    if (
+      deterministicPostMatchAwakeningRoll(
+        careerSeed,
+        `balance-match-${match}`,
+        0,
+        100,
+      ) < chancePercent
+    ) {
       return { awakened: true, awakeningMatch: match, attempts };
     }
   }
@@ -179,8 +190,13 @@ function simulateSeasonOne(
 ): SeasonOneResult {
   let state = createCareer(setup);
   state = buildTrainingGround(state, spendingPolicy.trainingGroundCost);
-  if (spendingPolicy.assignedPlayerIds.length !== spendingPolicy.weeklyFocusDrillIds.length) {
-    throw new Error('balance spending policy requires exactly one drill per assigned player');
+  if (
+    spendingPolicy.assignedPlayerIds.length !==
+    spendingPolicy.weeklyFocusDrillIds.length
+  ) {
+    throw new Error(
+      'balance spending policy requires exactly one drill per assigned player',
+    );
   }
   const slots = spendingPolicy.assignedPlayerIds.map((playerId, index) => ({
     playerId,
@@ -188,7 +204,8 @@ function simulateSeasonOne(
   }));
 
   let ambientTrainingPoints = 0;
-  const initialCash = setup.clubs.find(club => club.id === setup.userClubId)?.cash ?? 0;
+  const initialCash =
+    setup.clubs.find((club) => club.id === setup.userClubId)?.cash ?? 0;
   let minimumBalance = initialCash - spendingPolicy.trainingGroundCost;
 
   while (state.phase !== 'season-end') {
@@ -196,7 +213,9 @@ function simulateSeasonOne(
     // per manage week, skipping unaffordable or injured assignments the way an
     // active manager would.
     for (const slot of slots) {
-      const player = state.players.find(candidate => candidate.id === slot.playerId);
+      const player = state.players.find(
+        (candidate) => candidate.id === slot.playerId,
+      );
       // Skips leave as well as injury. `trainPlayerInstantly` throws on both,
       // and the catch below breaks out of the whole week's training — so an
       // unskipped away player would silently truncate every later drill in the
@@ -216,7 +235,8 @@ function simulateSeasonOne(
       // Cup tie, so drain every matchday the week holds.
       while (state.phase === 'matchday') {
         const matchday = activeCareerMatchday(state);
-        if (matchday === undefined) throw new Error('balance harness lost its active matchday');
+        if (matchday === undefined)
+          throw new Error('balance harness lost its active matchday');
         state = completeMatchday(state, matchday.fixtures.map(scoreFixture));
       }
     } else {
@@ -224,8 +244,9 @@ function simulateSeasonOne(
     }
   }
 
-  const userClub = state.clubs.find(club => club.id === state.userClubId);
-  if (userClub === undefined) throw new Error(`balance harness lost user club ${state.userClubId}`);
+  const userClub = state.clubs.find((club) => club.id === state.userClubId);
+  if (userClub === undefined)
+    throw new Error(`balance harness lost user club ${state.userClubId}`);
 
   return {
     endingCash: userClub.cash,
@@ -235,12 +256,16 @@ function simulateSeasonOne(
     ),
     trainingPoints: state.trainingPoints,
     ambientTrainingPoints,
-    discretionarySpend: spendingPolicy.trainingGroundCost + state.ledgers.reduce(
-      (sum, ledger) => sum + ledger.lines
-        .filter(line => line.kind === 'training')
-        .reduce((weekly, line) => weekly + Math.max(0, -line.amount), 0),
-      0,
-    ),
+    discretionarySpend:
+      spendingPolicy.trainingGroundCost +
+      state.ledgers.reduce(
+        (sum, ledger) =>
+          sum +
+          ledger.lines
+            .filter((line) => line.kind === 'training')
+            .reduce((weekly, line) => weekly + Math.max(0, -line.amount), 0),
+        0,
+      ),
   };
 }
 

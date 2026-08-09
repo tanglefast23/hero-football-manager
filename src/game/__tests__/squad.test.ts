@@ -1,5 +1,11 @@
 import { loadLaunchContent } from '../../content';
-import { activeCareerMatchday, advanceWeek, completeMatchday, createCareer, startNextSeason } from '../career';
+import {
+  activeCareerMatchday,
+  advanceWeek,
+  completeMatchday,
+  createCareer,
+  startNextSeason,
+} from '../career';
 import {
   buildCareerTeamDef,
   buildTrainingGround,
@@ -10,21 +16,26 @@ import {
   swapCareerLineupPlayer,
 } from '../squad';
 import { trainPlayerInstantly } from '../training';
-import { BASE_WEEKLY_TRAINING_POINTS, TRAINING_PITCH_TP_PER_LEVEL } from '../facilities';
+import {
+  BASE_WEEKLY_TRAINING_POINTS,
+  TRAINING_PITCH_TP_PER_LEVEL,
+} from '../facilities';
 import type { CareerPlayer, CareerSetup, GameState } from '../types';
 
 const CLUB_IDS = Array.from({ length: 10 }, (_, index) => `club-${index}`);
 
 function makePlayer(clubId: string, index: number): CareerPlayer {
   const isUser = clubId === CLUB_IDS[0];
-  const role = index === 0 ? 'GK' : index <= 4 ? 'DEF' : index <= 8 ? 'MID' : 'FWD';
-  const power = isUser && index === 9
-    ? 'SUPER_SPEED'
-    : isUser && index === 10
-      ? 'FIRE_TORCH'
-      : isUser && index === 11
-        ? 'SUPER_STRENGTH'
-        : undefined;
+  const role =
+    index === 0 ? 'GK' : index <= 4 ? 'DEF' : index <= 8 ? 'MID' : 'FWD';
+  const power =
+    isUser && index === 9
+      ? 'SUPER_SPEED'
+      : isUser && index === 10
+        ? 'FIRE_TORCH'
+        : isUser && index === 11
+          ? 'SUPER_STRENGTH'
+          : undefined;
 
   return {
     id: `${clubId}-p${index}`,
@@ -55,12 +66,15 @@ function setup(): CareerSetup {
       sponsorMonthlyFee: 2000,
       weeklyWages: 1300,
     })),
-    players: CLUB_IDS.flatMap(clubId =>
+    players: CLUB_IDS.flatMap((clubId) =>
       Array.from({ length: 13 }, (_, index) => makePlayer(clubId, index)),
     ),
-    lineups: CLUB_IDS.map(clubId => ({
+    lineups: CLUB_IDS.map((clubId) => ({
       clubId,
-      playerIds: Array.from({ length: 11 }, (_, index) => `${clubId}-p${index}`),
+      playerIds: Array.from(
+        { length: 11 },
+        (_, index) => `${clubId}-p${index}`,
+      ),
     })),
     startingTrainingPoints: 100,
     trainingRules: loadLaunchContent().training,
@@ -80,20 +94,29 @@ function career(): GameState {
 function playedToSeasonEnd(state: GameState = career()): GameState {
   const opened = advanceWeek({ ...state, week: 30 as const });
   const matchday = activeCareerMatchday(opened);
-  if (matchday === undefined) throw new Error('week 30 must hold the season finale');
+  if (matchday === undefined)
+    throw new Error('week 30 must hold the season finale');
   return completeMatchday(
     opened,
-    matchday.fixtures.map(fixture => ({ fixtureId: fixture.id, homeGoals: 1, awayGoals: 1 })),
+    matchday.fixtures.map((fixture) => ({
+      fixtureId: fixture.id,
+      homeGoals: 1,
+      awayGoals: 1,
+    })),
   );
 }
 
 describe('away players', () => {
-  function withAway(state: GameState, playerId: string, weeks: number): GameState {
+  function withAway(
+    state: GameState,
+    playerId: string,
+    weeks: number,
+  ): GameState {
     return {
       ...state,
-      players: state.players.map(player => (player.id === playerId
-        ? { ...player, awayWeeks: weeks }
-        : player)),
+      players: state.players.map((player) =>
+        player.id === playerId ? { ...player, awayWeeks: weeks } : player,
+      ),
     };
   }
 
@@ -112,42 +135,58 @@ describe('away players', () => {
     const replacementId = `${CLUB_IDS[0]}-p12`;
     const away = withAway(initial, replacementId, 1);
 
-    expect(() => swapCareerLineupPlayer(away, starterId, replacementId)).toThrow();
+    expect(() =>
+      swapCareerLineupPlayer(away, starterId, replacementId),
+    ).toThrow();
   });
 
   it('keeps an away player off the bench the sim is handed', () => {
     const benchId = `${CLUB_IDS[0]}-p12`;
     const away = withAway(career(), benchId, 1);
 
-    expect((buildCareerTeamDef(away, CLUB_IDS[0]).bench ?? []).map(player => player.id))
-      .not.toContain(benchId);
+    expect(
+      (buildCareerTeamDef(away, CLUB_IDS[0]).bench ?? []).map(
+        (player) => player.id,
+      ),
+    ).not.toContain(benchId);
   });
 
   it('refuses to train an away player', () => {
     const playerId = `${CLUB_IDS[0]}-p10`;
     const away = withAway(career(), playerId, 1);
 
-    expect(() => trainPlayerInstantly(away, playerId, 'sprints'))
-      .toThrow('is away and cannot train');
+    expect(() => trainPlayerInstantly(away, playerId, 'sprints')).toThrow(
+      'is away and cannot train',
+    );
   });
 });
 
 describe('career squad integration', () => {
   it('turns the persistent lineup into a valid sim team and supports hero-slot competition', () => {
     const initial = career();
-    expect(buildCareerTeamDef(initial, CLUB_IDS[0]).players.filter(player => player.power)).toHaveLength(2);
+    expect(
+      buildCareerTeamDef(initial, CLUB_IDS[0]).players.filter(
+        (player) => player.power,
+      ),
+    ).toHaveLength(2);
 
     const relicensed = selectCareerLicensedHeroes(initial, [
       `${CLUB_IDS[0]}-p9`,
       `${CLUB_IDS[0]}-p11`,
     ]);
-    expect(() => buildCareerTeamDef(relicensed, CLUB_IDS[0])).toThrow('licensed or benched');
+    expect(() => buildCareerTeamDef(relicensed, CLUB_IDS[0])).toThrow(
+      'licensed or benched',
+    );
 
-    const lineup = relicensed.lineups[0].playerIds.map(id =>
+    const lineup = relicensed.lineups[0].playerIds.map((id) =>
       id === `${CLUB_IDS[0]}-p10` ? `${CLUB_IDS[0]}-p11` : id,
     );
     const swapped = setCareerLineup(relicensed, lineup);
-    expect(buildCareerTeamDef(swapped, CLUB_IDS[0]).players.filter(player => player.power)).toHaveLength(2);
+    expect(
+      buildCareerTeamDef(swapped, CLUB_IDS[0]).players.filter(
+        (player) => player.power,
+      ),
+    ).toHaveLength(2);
   });
 
   it('persists same-role bench swaps and rejects unavailable replacements', () => {
@@ -156,45 +195,64 @@ describe('career squad integration', () => {
     const replacementId = `${CLUB_IDS[0]}-p12`;
 
     const swapped = swapCareerLineupPlayer(initial, starterId, replacementId);
-    const userLineup = swapped.lineups.find(lineup => lineup.clubId === swapped.userClubId)!;
+    const userLineup = swapped.lineups.find(
+      (lineup) => lineup.clubId === swapped.userClubId,
+    )!;
     expect(userLineup.playerIds).toContain(replacementId);
     expect(userLineup.playerIds).not.toContain(starterId);
-    expect(buildCareerTeamDef(swapped, swapped.userClubId).players.map(player => player.id))
-      .toContain(replacementId);
+    expect(
+      buildCareerTeamDef(swapped, swapped.userClubId).players.map(
+        (player) => player.id,
+      ),
+    ).toContain(replacementId);
 
-    const crossRole = swapCareerLineupPlayer(swapped, `${CLUB_IDS[0]}-p8`, starterId);
-    const crossRoleLineup = crossRole.lineups.find(lineup => lineup.clubId === crossRole.userClubId)!;
+    const crossRole = swapCareerLineupPlayer(
+      swapped,
+      `${CLUB_IDS[0]}-p8`,
+      starterId,
+    );
+    const crossRoleLineup = crossRole.lineups.find(
+      (lineup) => lineup.clubId === crossRole.userClubId,
+    )!;
     expect(crossRoleLineup.playerIds[8]).toBe(starterId);
-    expect(() => swapCareerLineupPlayer(initial, starterId, `${CLUB_IDS[0]}-p11`))
-      .toThrow('Hero License');
+    expect(() =>
+      swapCareerLineupPlayer(initial, starterId, `${CLUB_IDS[0]}-p11`),
+    ).toThrow('Hero License');
 
     const injured = {
       ...initial,
-      players: initial.players.map(player => player.id === replacementId
-        ? { ...player, injuryWeeks: 3 }
-        : player),
+      players: initial.players.map((player) =>
+        player.id === replacementId ? { ...player, injuryWeeks: 3 } : player,
+      ),
     };
-    expect(() => swapCareerLineupPlayer(injured, starterId, replacementId))
-      .toThrow('injured and unavailable');
+    expect(() =>
+      swapCareerLineupPlayer(injured, starterId, replacementId),
+    ).toThrow('injured and unavailable');
   });
 
   it('applies the low-morale penalty at the sim boundary and never rewards high morale', () => {
     const playerId = `${CLUB_IDS[0]}-p0`;
     const withMorale = (state: GameState, morale: number): GameState => ({
       ...state,
-      players: state.players.map(player => player.id === playerId
-        ? { ...player, morale }
-        : player),
+      players: state.players.map((player) =>
+        player.id === playerId ? { ...player, morale } : player,
+      ),
     });
     const demoralized = withMorale(career(), 0);
 
-    expect(buildCareerTeamDef(demoralized, CLUB_IDS[0]).players[0].attrs.pac).toBe(45);
+    expect(
+      buildCareerTeamDef(demoralized, CLUB_IDS[0]).players[0].attrs.pac,
+    ).toBe(45);
     // The penalty belongs to the match adapter; the career attribute is untouched.
-    expect(demoralized.players.find(player => player.id === playerId)?.attrs.pac).toBe(50);
+    expect(
+      demoralized.players.find((player) => player.id === playerId)?.attrs.pac,
+    ).toBe(50);
 
     // Morale is a penalty with a neutral band, never a high-morale stat bonus.
-    expect(buildCareerTeamDef(withMorale(demoralized, 100), CLUB_IDS[0]).players[0].attrs.pac)
-      .toBe(50);
+    expect(
+      buildCareerTeamDef(withMorale(demoralized, 100), CLUB_IDS[0]).players[0]
+        .attrs.pac,
+    ).toBe(50);
   });
 
   it('carries a Motivator coach Heat bonus through the sim-team boundary', () => {
@@ -204,12 +262,20 @@ describe('career squad integration', () => {
       ...state,
       market: {
         ...state.market!,
-        headCoach: { ...coach, level: 4 as const, specialties: ['MOTIVATOR', 'ATTACK'] as const },
+        headCoach: {
+          ...coach,
+          level: 4 as const,
+          specialties: ['MOTIVATOR', 'ATTACK'] as const,
+        },
       },
     };
 
-    expect(buildCareerTeamDef(coached, coached.userClubId).heroGaugeRatePercent).toBe(120);
-    expect(buildCareerTeamDef(coached, coached.clubs[1].id).heroGaugeRatePercent).toBeUndefined();
+    expect(
+      buildCareerTeamDef(coached, coached.userClubId).heroGaugeRatePercent,
+    ).toBe(120);
+    expect(
+      buildCareerTeamDef(coached, coached.clubs[1].id).heroGaugeRatePercent,
+    ).toBeUndefined();
   });
 
   it('gives a Level 1 assistant Motivator a half-strength Hero Gauge bonus', () => {
@@ -219,18 +285,26 @@ describe('career squad integration', () => {
       ...state,
       market: {
         ...state.market!,
-        assistantCoach: { ...assistant, level: 1 as const, specialties: ['MOTIVATOR', 'ATTACK'] as const },
+        assistantCoach: {
+          ...assistant,
+          level: 1 as const,
+          specialties: ['MOTIVATOR', 'ATTACK'] as const,
+        },
       },
     };
 
-    expect(buildCareerTeamDef(coached, coached.userClubId).heroGaugeRatePercent).toBe(102.5);
+    expect(
+      buildCareerTeamDef(coached, coached.userClubId).heroGaugeRatePercent,
+    ).toBe(102.5);
   });
 
   it('trains each tapped drill for only its own player and stat', () => {
     const initial = career();
     expect(initial.clubs[0].cash).toBe(50000);
     expect(initial.trainingPoints).toBe(100);
-    expect(initial.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(50);
+    expect(
+      initial.players.find((player) => player.id.endsWith('-p9'))?.attrs.pac,
+    ).toBe(50);
 
     // A Division 5 career unlocks tiers I and II, so each path resolves to its
     // 10 TP tier-II tap for +5. A SUPER roll would disturb these exact values,
@@ -246,17 +320,37 @@ describe('career squad integration', () => {
           tap.playerId,
           tap.pathId,
         );
-        if (!result.isSuper) { trained = result.state; break; }
+        if (!result.isSuper) {
+          trained = result.state;
+          break;
+        }
       }
     }
     expect(trained.trainingPoints).toBe(80);
-    expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(54);
-    expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.def).toBe(50);
-    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.pac).toBe(50);
-    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.def).toBe(54);
-    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p2`)?.attrs.def).toBe(50);
+    expect(
+      trained.players.find((player) => player.id.endsWith('-p9'))?.attrs.pac,
+    ).toBe(54);
+    expect(
+      trained.players.find((player) => player.id.endsWith('-p9'))?.attrs.def,
+    ).toBe(50);
+    expect(
+      trained.players.find((player) => player.id === `${CLUB_IDS[0]}-p1`)?.attrs
+        .pac,
+    ).toBe(50);
+    expect(
+      trained.players.find((player) => player.id === `${CLUB_IDS[0]}-p1`)?.attrs
+        .def,
+    ).toBe(54);
+    expect(
+      trained.players.find((player) => player.id === `${CLUB_IDS[0]}-p2`)?.attrs
+        .def,
+    ).toBe(50);
     // Training is TP-only; weekly settlement never charges money for it.
-    expect(advanceWeek(trained).ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
+    expect(
+      advanceWeek(trained).ledgers[0].lines.some(
+        (line) => line.kind === 'training',
+      ),
+    ).toBe(false);
   });
 
   it('starts the two-week training-ground build and pays its first pitch TP after completion', () => {
@@ -267,13 +361,17 @@ describe('career squad integration', () => {
       type: 'training-pitch',
       weeksRemaining: 2,
     });
-    expect(() => buildTrainingGround(built)).toThrow(/Training Pitch is already built/);
+    expect(() => buildTrainingGround(built)).toThrow(
+      /Training Pitch is already built/,
+    );
 
     // Each week banks the club's unconditional baseline; only the pitch's own
     // per-level TP waits for construction to finish.
     const stillBuilding = advanceWeek(built);
     expect(stillBuilding.week).toBe(2);
-    expect(stillBuilding.trainingPoints).toBe(100 + BASE_WEEKLY_TRAINING_POINTS);
+    expect(stillBuilding.trainingPoints).toBe(
+      100 + BASE_WEEKLY_TRAINING_POINTS,
+    );
     expect(stillBuilding.facilities.trainingGroundBuilt).toBe(false);
     expect(stillBuilding.facilities.grid?.construction).toMatchObject({
       type: 'training-pitch',
@@ -282,7 +380,9 @@ describe('career squad integration', () => {
 
     const completed = advanceWeek(stillBuilding);
     expect(completed.week).toBe(3);
-    expect(completed.trainingPoints).toBe(100 + BASE_WEEKLY_TRAINING_POINTS * 2);
+    expect(completed.trainingPoints).toBe(
+      100 + BASE_WEEKLY_TRAINING_POINTS * 2,
+    );
     expect(completed.facilities.trainingGroundBuilt).toBe(true);
 
     // Week 3 is the first match week, so settle it through the matchday path.
@@ -290,9 +390,11 @@ describe('career squad integration', () => {
     expect(matchday.phase).toBe('matchday');
     const activeWeek = completeMatchday(
       matchday,
-      activeCareerMatchday(matchday)!.fixtures.map(fixture => (
-        { fixtureId: fixture.id, homeGoals: 1, awayGoals: 1 }
-      )),
+      activeCareerMatchday(matchday)!.fixtures.map((fixture) => ({
+        fixtureId: fixture.id,
+        homeGoals: 1,
+        awayGoals: 1,
+      })),
     );
     expect(activeWeek.trainingPoints).toBe(
       100 + BASE_WEEKLY_TRAINING_POINTS * 3 + TRAINING_PITCH_TP_PER_LEVEL,
@@ -303,34 +405,51 @@ describe('career squad integration', () => {
     const broke = {
       ...career(),
       trainingPoints: 0,
-      clubs: career().clubs.map(club => club.id === CLUB_IDS[0]
-        ? { ...club, cash: 0 }
-        : club),
+      clubs: career().clubs.map((club) =>
+        club.id === CLUB_IDS[0] ? { ...club, cash: 0 } : club,
+      ),
     };
 
-    expect(() => trainPlayerInstantly(broke, `${CLUB_IDS[0]}-p9`, 'sprints'))
-      .toThrow(/needs 10 TP/);
+    expect(() =>
+      trainPlayerInstantly(broke, `${CLUB_IDS[0]}-p9`, 'sprints'),
+    ).toThrow(/needs 10 TP/);
 
     const settled = advanceWeek(broke);
     expect(settled.week).toBe(2);
-    expect(settled.players.find(player => player.id === `${CLUB_IDS[0]}-p9`)?.attrs.pac).toBe(50);
-    expect(settled.ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
+    expect(
+      settled.players.find((player) => player.id === `${CLUB_IDS[0]}-p9`)?.attrs
+        .pac,
+    ).toBe(50);
+    expect(
+      settled.ledgers[0].lines.some((line) => line.kind === 'training'),
+    ).toBe(false);
   });
 
   it('expires contracts at season end and applies the hero wage cliff only on renewal', () => {
     const heroId = `${CLUB_IDS[0]}-p9`;
     const ended = playedToSeasonEnd();
     expect(ended.phase).toBe('season-end');
-    expect(ended.players.find(player => player.id === heroId)?.contractSeasonsRemaining).toBe(0);
-    expect(ended.players.find(player => player.id === heroId)?.weeklyWage).toBe(100);
+    expect(
+      ended.players.find((player) => player.id === heroId)
+        ?.contractSeasonsRemaining,
+    ).toBe(0);
+    expect(
+      ended.players.find((player) => player.id === heroId)?.weeklyWage,
+    ).toBe(100);
 
     const renewed = renewCareerPlayer(ended, heroId, 4, 1);
-    expect(renewed.players.find(player => player.id === heroId)?.weeklyWage).toBe(400);
-    expect(renewed.players.find(player => player.id === heroId)?.onHeroWage).toBe(true);
+    expect(
+      renewed.players.find((player) => player.id === heroId)?.weeklyWage,
+    ).toBe(400);
+    expect(
+      renewed.players.find((player) => player.id === heroId)?.onHeroWage,
+    ).toBe(true);
     expect(renewed.clubs[0].weeklyWages).toBe(1600);
 
     const released = releaseCareerPlayer(ended, `${CLUB_IDS[0]}-p11`);
-    expect(released.players.some(player => player.id === `${CLUB_IDS[0]}-p11`)).toBe(false);
+    expect(
+      released.players.some((player) => player.id === `${CLUB_IDS[0]}-p11`),
+    ).toBe(false);
     expect(released.clubs[0].weeklyWages).toBe(1200);
   });
 
@@ -346,20 +465,22 @@ describe('career squad integration', () => {
     // reason and would not isolate this rule.
     const withHeroCover: GameState = {
       ...ended,
-      players: ended.players.map(player => player.id === coverId
-        ? {
-            ...player,
-            power: 'SUPER_SPEED' as const,
-            powerTier: 1 as const,
-            licensed: true,
-            contractSeasonsRemaining: 1,
-          }
-        : player),
+      players: ended.players.map((player) =>
+        player.id === coverId
+          ? {
+              ...player,
+              power: 'SUPER_SPEED' as const,
+              powerTier: 1 as const,
+              licensed: true,
+              contractSeasonsRemaining: 1,
+            }
+          : player,
+      ),
     };
 
     const released = releaseCareerPlayer(withHeroCover, heroId);
 
-    expect(released.players.some(player => player.id === heroId)).toBe(false);
+    expect(released.players.some((player) => player.id === heroId)).toBe(false);
     expect(released.lineups[0].playerIds).toContain(coverId);
     // The real proof: the repaired lineup still builds a legal match team.
     expect(() => buildCareerTeamDef(released, CLUB_IDS[0])).not.toThrow();
@@ -378,18 +499,24 @@ describe('career squad integration', () => {
 
     const released = releaseCareerPlayer(ended, keeperId);
 
-    const youth = released.players.find(player => (
-      player.clubId === CLUB_IDS[0]
-      && !ended.players.some(existing => existing.id === player.id)
-    ));
+    const youth = released.players.find(
+      (player) =>
+        player.clubId === CLUB_IDS[0] &&
+        !ended.players.some((existing) => existing.id === player.id),
+    );
     expect(youth).toMatchObject({ role: 'GK', contractSeasonsRemaining: 2 });
-    expect(released.players.some(player => player.id === keeperId)).toBe(false);
+    expect(released.players.some((player) => player.id === keeperId)).toBe(
+      false,
+    );
     expect(released.lineups[0].playerIds[0]).toBe(youth!.id);
     expect(released.clubs[0].weeklyWages).toBe(1300 - 100 + youth!.weeklyWage);
     expect(() => buildCareerTeamDef(released, CLUB_IDS[0])).not.toThrow();
     // Same state, same relief: the replacement is deterministic.
-    expect(releaseCareerPlayer(ended, keeperId).players.some(player => player.id === youth!.id))
-      .toBe(true);
+    expect(
+      releaseCareerPlayer(ended, keeperId).players.some(
+        (player) => player.id === youth!.id,
+      ),
+    ).toBe(true);
   });
 
   it('unblocks the season transition after a forced release with no cover', () => {
@@ -398,13 +525,15 @@ describe('career squad integration', () => {
     // Every other expired deal is renewed, so the keeper alone holds the gate.
     const onlyKeeperExpired: GameState = {
       ...ended,
-      players: ended.players.map(player => (
+      players: ended.players.map((player) =>
         player.clubId === CLUB_IDS[0] && player.id !== keeperId
           ? { ...player, contractSeasonsRemaining: 1 }
-          : player
-      )),
+          : player,
+      ),
     };
-    expect(() => startNextSeason(onlyKeeperExpired)).toThrow('expired contract');
+    expect(() => startNextSeason(onlyKeeperExpired)).toThrow(
+      'expired contract',
+    );
 
     const released = releaseCareerPlayer(onlyKeeperExpired, keeperId);
 

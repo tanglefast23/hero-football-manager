@@ -6,7 +6,11 @@ import {
   beginCareerRenewalTalks,
   submitCareerRenewalOffer,
 } from '../market-career';
-import { createCareer, resolveCareerMatchFame, startNextSeason } from '../career';
+import {
+  createCareer,
+  resolveCareerMatchFame,
+  startNextSeason,
+} from '../career';
 import { CLUB_LEGEND_MIN_FAME } from '../pyramid';
 import { releaseCareerPlayer } from '../squad';
 import type { GameState } from '../types';
@@ -14,14 +18,20 @@ import type { GameState } from '../types';
 describe('M2 fame and expired contracts', () => {
   test('turns genuine appearances, wins, and goals into reachable club-legend fame', () => {
     let state = createCareer({ ...createLaunchCareerSetup(8801) });
-    const fixture = state.fixtures.find(candidate => (
-      candidate.homeClubId === state.userClubId || candidate.awayClubId === state.userClubId
-    ))!;
-    const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+    const fixture = state.fixtures.find(
+      (candidate) =>
+        candidate.homeClubId === state.userClubId ||
+        candidate.awayClubId === state.userClubId,
+    )!;
+    const lineup = state.lineups.find(
+      (candidate) => candidate.clubId === state.userClubId,
+    )!;
     const scorerId = lineup.playerIds[1];
-    const reserveId = state.players.find(player => (
-      player.clubId === state.userClubId && !lineup.playerIds.includes(player.id)
-    ))!.id;
+    const reserveId = state.players.find(
+      (player) =>
+        player.clubId === state.userClubId &&
+        !lineup.playerIds.includes(player.id),
+    )!.id;
     const userIsHome = fixture.homeClubId === state.userClubId;
     const result = {
       fixtureId: fixture.id,
@@ -29,8 +39,10 @@ describe('M2 fame and expired contracts', () => {
       awayGoals: userIsHome ? 0 : 1,
       scorerPlayerIds: [scorerId],
     };
-    const startingFame = state.players.find(player => player.id === scorerId)!.fame ?? 0;
-    const reserveFame = state.players.find(player => player.id === reserveId)!.fame ?? 0;
+    const startingFame =
+      state.players.find((player) => player.id === scorerId)!.fame ?? 0;
+    const reserveFame =
+      state.players.find((player) => player.id === reserveId)!.fame ?? 0;
 
     // Forty scoring wins — about two seasons of league and cup football — are
     // enough to make a homegrown player famous enough for the club-legend gate,
@@ -40,30 +52,47 @@ describe('M2 fame and expired contracts', () => {
     for (let appearance = 0; appearance < 40; appearance += 1) {
       state = {
         ...state,
-        players: resolveCareerMatchFame(state, [fixture], new Map([[fixture.id, result]])),
+        players: resolveCareerMatchFame(
+          state,
+          [fixture],
+          new Map([[fixture.id, result]]),
+        ),
       };
     }
 
-    expect(state.players.find(player => player.id === scorerId)?.fame).toBe(startingFame + 200);
-    expect(state.players.find(player => player.id === reserveId)?.fame).toBe(reserveFame);
-    expect(state.players.find(player => player.id === scorerId)?.fame)
-      .toBeGreaterThanOrEqual(CLUB_LEGEND_MIN_FAME);
+    expect(state.players.find((player) => player.id === scorerId)?.fame).toBe(
+      startingFame + 200,
+    );
+    expect(state.players.find((player) => player.id === reserveId)?.fame).toBe(
+      reserveFame,
+    );
+    expect(
+      state.players.find((player) => player.id === scorerId)?.fame,
+    ).toBeGreaterThanOrEqual(CLUB_LEGEND_MIN_FAME);
   });
 
   test('blocks a new full-career season until every ordinary or hero expiry is resolved', () => {
     const content = loadLaunchContent();
     const initial = createCareer({ ...createLaunchCareerSetup(8802) });
-    const lineupIds = new Set(initial.lineups.find(lineup => lineup.clubId === initial.userClubId)!.playerIds);
+    const lineupIds = new Set(
+      initial.lineups.find((lineup) => lineup.clubId === initial.userClubId)!
+        .playerIds,
+    );
     const expired = initial.players
-      .filter(player => player.clubId === initial.userClubId && !lineupIds.has(player.id))
+      .filter(
+        (player) =>
+          player.clubId === initial.userClubId && !lineupIds.has(player.id),
+      )
       .slice(0, 2);
     expect(expired).toHaveLength(2);
     let state: GameState = {
       ...initial,
       phase: 'season-end' as const,
-      players: initial.players.map(player => expired.some(candidate => candidate.id === player.id)
-        ? { ...player, contractSeasonsRemaining: 0 }
-        : player),
+      players: initial.players.map((player) =>
+        expired.some((candidate) => candidate.id === player.id)
+          ? { ...player, contractSeasonsRemaining: 0 }
+          : player,
+      ),
     };
 
     const firstReview = seasonEndViewModel(state, content, 1);
@@ -76,21 +105,36 @@ describe('M2 fame and expired contracts', () => {
       expiredContract: { remainingExpiredCount: 2 },
     });
     expect(firstReview.expiredContract?.renewalBlockedReason).toBeUndefined();
-    expect(() => startNextSeason(state)).toThrow('2 expired contracts must be resolved');
+    expect(() => startNextSeason(state)).toThrow(
+      '2 expired contracts must be resolved',
+    );
 
-    let market = beginCareerRenewalTalks(state, state.market!, firstReview.expiredContract!.playerId);
+    let market = beginCareerRenewalTalks(
+      state,
+      state.market!,
+      firstReview.expiredContract!.playerId,
+    );
     const ask = market.renewalTalks!.negotiation.weeklyAsk;
-    market = submitCareerRenewalOffer(state, market, {
-      weeklyWage: ask,
-      termSeasons: 2,
-      perk: 'GUARANTEED_STARTER',
-    }, market.renewalTalks!.negotiation.pitchCards[0]);
+    market = submitCareerRenewalOffer(
+      state,
+      market,
+      {
+        weeklyWage: ask,
+        termSeasons: 2,
+        perk: 'GUARANTEED_STARTER',
+      },
+      market.renewalTalks!.negotiation.pitchCards[0],
+    );
     const renewed = completeCareerRenewal(state, market);
     state = { ...renewed.state, market: renewed.market };
 
     const secondReview = seasonEndViewModel(state, content, 1);
-    expect(secondReview.expiredContract).toMatchObject({ remainingExpiredCount: 1 });
-    expect(secondReview.expiredContract?.playerId).not.toBe(firstReview.expiredContract?.playerId);
+    expect(secondReview.expiredContract).toMatchObject({
+      remainingExpiredCount: 1,
+    });
+    expect(secondReview.expiredContract?.playerId).not.toBe(
+      firstReview.expiredContract?.playerId,
+    );
     state = {
       ...state,
       market: beginCareerRenewalTalks(

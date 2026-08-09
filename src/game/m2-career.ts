@@ -120,7 +120,10 @@ interface EndlessCareerSeasonTransitionPlan {
 
 /** True when the player has completed their announced final season. */
 export function willRetireAtSeasonTransition(
-  player: Pick<StructuralCareerPlayer, 'retirementAnnounced' | 'retirementAnnouncementSeason'>,
+  player: Pick<
+    StructuralCareerPlayer,
+    'retirementAnnounced' | 'retirementAnnouncementSeason'
+  >,
   completedSeason: number,
 ): boolean {
   validateSeason(completedSeason);
@@ -137,32 +140,40 @@ export function willRetireAtSeasonTransition(
  * user club. The user's actual squad remains in GameState rather than being
  * duplicated in this sidecar, so its pyramid squad is intentionally empty.
  */
-export function initializeM2Career(input: M2CareerInitialization): M2CareerState {
+export function initializeM2Career(
+  input: M2CareerInitialization,
+): M2CareerState {
   validateSeed(input.careerSeed);
   validateUserClub(input.userClub);
   const generated = generateLeaguePyramid(input.careerSeed);
-  const generatedIds = new Set(generated.divisions.flatMap(division =>
-    division.clubs.map(club => club.id),
-  ));
-  const replacedClubId = generated.divisions
-    .find(division => division.level === 5)!
-    .clubs[0].id;
+  const generatedIds = new Set(
+    generated.divisions.flatMap((division) =>
+      division.clubs.map((club) => club.id),
+    ),
+  );
+  const replacedClubId = generated.divisions.find(
+    (division) => division.level === 5,
+  )!.clubs[0].id;
   generatedIds.delete(replacedClubId);
   if (generatedIds.has(input.userClub.id)) {
-    throw new Error(`user club ID ${input.userClub.id} collides with a generated club`);
+    throw new Error(
+      `user club ID ${input.userClub.id} collides with a generated club`,
+    );
   }
 
-  const divisions = generated.divisions.map(division => ({
+  const divisions = generated.divisions.map((division) => ({
     level: division.level,
-    clubs: division.clubs.map(club => club.id !== replacedClubId
-      ? cloneClub(club)
-      : {
-          id: input.userClub.id,
-          name: input.userClub.name,
-          division: 5 as const,
-          squadStrength: input.userClub.squadStrength,
-          squad: [],
-        }),
+    clubs: division.clubs.map((club) =>
+      club.id !== replacedClubId
+        ? cloneClub(club)
+        : {
+            id: input.userClub.id,
+            name: input.userClub.name,
+            division: 5 as const,
+            squadStrength: input.userClub.squadStrength,
+            squad: [],
+          },
+    ),
   }));
 
   return {
@@ -177,11 +188,13 @@ export function initializeM2Career(input: M2CareerInitialization): M2CareerState
 }
 
 export function currentUserDivision(state: M2CareerState): DivisionLevel {
-  const matches = state.pyramid.divisions.filter(division =>
-    division.clubs.some(club => club.id === state.userClubId),
+  const matches = state.pyramid.divisions.filter((division) =>
+    division.clubs.some((club) => club.id === state.userClubId),
   );
   if (matches.length !== 1) {
-    throw new Error(`user club ${state.userClubId} must appear in exactly one division`);
+    throw new Error(
+      `user club ${state.userClubId} must appear in exactly one division`,
+    );
   }
   return matches[0].level;
 }
@@ -197,18 +210,25 @@ export function synchronizeM2ActiveDivision(
   division = currentUserDivision(state),
 ): M2CareerState {
   validateStateIdentity(state);
-  if (snapshot.clubs.length !== 10) throw new Error('an active division requires exactly ten clubs');
-  const clubIds = new Set(snapshot.clubs.map(club => club.id));
+  if (snapshot.clubs.length !== 10)
+    throw new Error('an active division requires exactly ten clubs');
+  const clubIds = new Set(snapshot.clubs.map((club) => club.id));
   if (clubIds.size !== 10 || !clubIds.has(state.userClubId)) {
-    throw new Error('active division club IDs must be unique and include the user club');
+    throw new Error(
+      'active division club IDs must be unique and include the user club',
+    );
   }
-  const outsideIds = new Set(state.pyramid.divisions
-    .filter(candidate => candidate.level !== division)
-    .flatMap(candidate => candidate.clubs.map(club => club.id)));
-  if ([...clubIds].some(id => outsideIds.has(id))) {
-    throw new Error('an active division club ID collides with another pyramid tier');
+  const outsideIds = new Set(
+    state.pyramid.divisions
+      .filter((candidate) => candidate.level !== division)
+      .flatMap((candidate) => candidate.clubs.map((club) => club.id)),
+  );
+  if ([...clubIds].some((id) => outsideIds.has(id))) {
+    throw new Error(
+      'an active division club ID collides with another pyramid tier',
+    );
   }
-  const pyramidClubs = snapshot.clubs.map(club => {
+  const pyramidClubs = snapshot.clubs.map((club) => {
     const squad = snapshot.players
       // Named superheroes never enter pyramid data — the user's own signings
       // included. They belong to a division rather than a club, and are rebuilt
@@ -219,9 +239,12 @@ export function synchronizeM2ActiveDivision(
       // `pyramidCareerPlayer` from the wrong tier. Nothing needs them here: the
       // season transition rebuilds the user's squad from live state, never from
       // the pyramid.
-      .filter(player => player.clubId === club.id && !isSpecialHeroId(player.id))
-      .map(player => careerPlayerToPyramid(player));
-    if (squad.length < 11) throw new Error(`club ${club.id} needs at least eleven players`);
+      .filter(
+        (player) => player.clubId === club.id && !isSpecialHeroId(player.id),
+      )
+      .map((player) => careerPlayerToPyramid(player));
+    if (squad.length < 11)
+      throw new Error(`club ${club.id} needs at least eleven players`);
     return {
       id: club.id,
       name: club.name,
@@ -238,9 +261,11 @@ export function synchronizeM2ActiveDivision(
     ) as DivisionLevel,
     pyramid: {
       ...state.pyramid,
-      divisions: state.pyramid.divisions.map(candidate => candidate.level === division
-        ? { level: division, clubs: pyramidClubs.map(cloneClub) }
-        : candidate),
+      divisions: state.pyramid.divisions.map((candidate) =>
+        candidate.level === division
+          ? { level: division, clubs: pyramidClubs.map(cloneClub) }
+          : candidate,
+      ),
     },
   };
 }
@@ -254,24 +279,46 @@ export function deterministicM2FinishOrders(
 ): DivisionFinishOrder[] {
   validateStateIdentity(state);
   validateSeason(season);
-  const active = state.pyramid.divisions.find(division => division.level === activeDivision);
-  if (active === undefined) throw new Error(`unknown active Division ${activeDivision}`);
-  if (activeOrderedClubIds.length !== 10
-    || new Set(activeOrderedClubIds).size !== 10
-    || activeOrderedClubIds.some(id => !active.clubs.some(club => club.id === id))) {
-    throw new Error('active finish order must contain its ten clubs exactly once');
+  const active = state.pyramid.divisions.find(
+    (division) => division.level === activeDivision,
+  );
+  if (active === undefined)
+    throw new Error(`unknown active Division ${activeDivision}`);
+  if (
+    activeOrderedClubIds.length !== 10 ||
+    new Set(activeOrderedClubIds).size !== 10 ||
+    activeOrderedClubIds.some(
+      (id) => !active.clubs.some((club) => club.id === id),
+    )
+  ) {
+    throw new Error(
+      'active finish order must contain its ten clubs exactly once',
+    );
   }
-  return state.pyramid.divisions.map(division => ({
+  return state.pyramid.divisions.map((division) => ({
     division: division.level,
-    orderedClubIds: division.level === activeDivision
-      ? [...activeOrderedClubIds]
-      : division.clubs.slice().sort((left, right) => {
-          const strength = currentClubStrength(right) - currentClubStrength(left);
-          if (strength !== 0) return strength;
-          const leftTie = stableSeasonTie(state.careerSeed, season, left.id);
-          const rightTie = stableSeasonTie(state.careerSeed, season, right.id);
-          return leftTie - rightTie || compareIds(left.id, right.id);
-        }).map(club => club.id),
+    orderedClubIds:
+      division.level === activeDivision
+        ? [...activeOrderedClubIds]
+        : division.clubs
+            .slice()
+            .sort((left, right) => {
+              const strength =
+                currentClubStrength(right) - currentClubStrength(left);
+              if (strength !== 0) return strength;
+              const leftTie = stableSeasonTie(
+                state.careerSeed,
+                season,
+                left.id,
+              );
+              const rightTie = stableSeasonTie(
+                state.careerSeed,
+                season,
+                right.id,
+              );
+              return leftTie - rightTie || compareIds(left.id, right.id);
+            })
+            .map((club) => club.id),
   }));
 }
 
@@ -294,7 +341,10 @@ export const RETAINED_CUP_BRACKET_SEASONS = 10;
  */
 function pruneCupBrackets(cups: readonly NationalCup[]): NationalCup[] {
   const ordered = [...cups].sort((left, right) => left.season - right.season);
-  const firstRetained = Math.max(0, ordered.length - RETAINED_CUP_BRACKET_SEASONS);
+  const firstRetained = Math.max(
+    0,
+    ordered.length - RETAINED_CUP_BRACKET_SEASONS,
+  );
   return ordered.map((cup, index) => {
     if (index >= firstRetained) return cup;
     if (cup.championClubId === undefined || cup.rounds.length === 0) return cup;
@@ -305,26 +355,36 @@ function pruneCupBrackets(cups: readonly NationalCup[]): NationalCup[] {
 }
 
 /** Starts one all-division cup while retaining completed cups as plain history. */
-export function startM2NationalCup(state: M2CareerState, season: number): M2CareerState {
+export function startM2NationalCup(
+  state: M2CareerState,
+  season: number,
+): M2CareerState {
   validateStateIdentity(state);
   validateSeason(season);
-  if (state.nationalCups.some(cup => cup.championClubId === undefined)) {
+  if (state.nationalCups.some((cup) => cup.championClubId === undefined)) {
     throw new Error('the active Hero Cup must finish before another can start');
   }
-  if (state.nationalCups.some(cup => cup.season === season)) {
+  if (state.nationalCups.some((cup) => cup.season === season)) {
     throw new Error(`Season ${season} already has a Hero Cup`);
   }
-  const clubIds = state.pyramid.divisions.flatMap(division =>
-    division.clubs.map(club => club.id),
+  const clubIds = state.pyramid.divisions.flatMap((division) =>
+    division.clubs.map((club) => club.id),
   );
-  const seedDivisionByClubId = Object.fromEntries(state.pyramid.divisions.flatMap(division => (
-    division.clubs.map(club => [club.id, division.level] as const)
-  )));
+  const seedDivisionByClubId = Object.fromEntries(
+    state.pyramid.divisions.flatMap((division) =>
+      division.clubs.map((club) => [club.id, division.level] as const),
+    ),
+  );
   return {
     ...state,
     nationalCups: pruneCupBrackets([
       ...state.nationalCups,
-      createNationalCup(clubIds, season, state.careerSeed, seedDivisionByClubId),
+      createNationalCup(
+        clubIds,
+        season,
+        state.careerSeed,
+        seedDivisionByClubId,
+      ),
     ]),
   };
 }
@@ -342,10 +402,15 @@ export function advanceM2NationalCup(
     }
   }
   if (activeCupIndex === -1) throw new Error('there is no active Hero Cup');
-  const advanced = advanceNationalCup(state.nationalCups[activeCupIndex], results);
+  const advanced = advanceNationalCup(
+    state.nationalCups[activeCupIndex],
+    results,
+  );
   return {
     ...state,
-    nationalCups: state.nationalCups.map((cup, index) => index === activeCupIndex ? advanced : cup),
+    nationalCups: state.nationalCups.map((cup, index) =>
+      index === activeCupIndex ? advanced : cup,
+    ),
   };
 }
 
@@ -359,21 +424,32 @@ export function resolveNextM2NationalCupRound(
   suppliedResult?: NationalCupResult,
 ): M2CareerState {
   validateStateIdentity(state);
-  const cup = state.nationalCups.find(candidate => candidate.championClubId === undefined);
+  const cup = state.nationalCups.find(
+    (candidate) => candidate.championClubId === undefined,
+  );
   if (cup === undefined) throw new Error('there is no active Hero Cup');
   const round = cup.rounds[cup.rounds.length - 1];
-  if (round === undefined || round.fixtures.some(fixture => fixture.status !== 'scheduled')) {
+  if (
+    round === undefined ||
+    round.fixtures.some((fixture) => fixture.status !== 'scheduled')
+  ) {
     throw new Error('the active Hero Cup has no scheduled round');
   }
   const results = deterministicCupRoundResults(state, cup, round.number);
   if (suppliedResult === undefined) return advanceM2NationalCup(state, results);
-  const fixtureIndex = round.fixtures.findIndex(fixture => fixture.id === suppliedResult.fixtureId);
+  const fixtureIndex = round.fixtures.findIndex(
+    (fixture) => fixture.id === suppliedResult.fixtureId,
+  );
   if (fixtureIndex === -1) {
-    throw new Error(`Hero Cup result ${suppliedResult.fixtureId} is not in the current round`);
+    throw new Error(
+      `Hero Cup result ${suppliedResult.fixtureId} is not in the current round`,
+    );
   }
   return advanceM2NationalCup(
     state,
-    results.map((result, index) => index === fixtureIndex ? { ...suppliedResult } : result),
+    results.map((result, index) =>
+      index === fixtureIndex ? { ...suppliedResult } : result,
+    ),
   );
 }
 
@@ -381,7 +457,9 @@ export function resolveNextM2NationalCupRound(
 export function quickResolveM2NationalCup(state: M2CareerState): M2CareerState {
   validateStateIdentity(state);
   let resolved = state;
-  while (resolved.nationalCups.some(cup => cup.championClubId === undefined)) {
+  while (
+    resolved.nationalCups.some((cup) => cup.championClubId === undefined)
+  ) {
     resolved = resolveNextM2NationalCupRound(resolved);
   }
   return resolved;
@@ -412,25 +490,28 @@ export function resolveM2CareerPlayerLifecycle(
   validateSeason(season);
   validateSeed(careerSeed);
   const sourceById = new Map<string, StructuralCareerPlayer>();
-  const lifecyclePlayers: PyramidPlayer[] = players.map(player => {
-    if (sourceById.has(player.id)) throw new Error(`duplicate career player ID ${player.id}`);
+  const lifecyclePlayers: PyramidPlayer[] = players.map((player) => {
+    if (sourceById.has(player.id))
+      throw new Error(`duplicate career player ID ${player.id}`);
     sourceById.set(player.id, player);
     return normalizeLifecyclePlayer(player, season);
   });
-  const resolved = resolveSeasonEndLifecycle(lifecyclePlayers, season, careerSeed);
+  const resolved = resolveSeasonEndLifecycle(
+    lifecyclePlayers,
+    season,
+    careerSeed,
+  );
 
   return {
-    activePlayers: resolved.activePlayers.map(player => mergeCareerPlayer(
-      sourceById.get(player.id)!,
-      player,
-      careerSeed,
-    )),
-    retiredPlayers: resolved.retiredPlayers.map(player => mergeCareerPlayer(
-      sourceById.get(player.id)!,
-      player,
-      careerSeed,
-    )),
-    announcements: resolved.announcements.map(announcement => ({ ...announcement })),
+    activePlayers: resolved.activePlayers.map((player) =>
+      mergeCareerPlayer(sourceById.get(player.id)!, player, careerSeed),
+    ),
+    retiredPlayers: resolved.retiredPlayers.map((player) =>
+      mergeCareerPlayer(sourceById.get(player.id)!, player, careerSeed),
+    ),
+    announcements: resolved.announcements.map((announcement) => ({
+      ...announcement,
+    })),
   };
 }
 
@@ -467,39 +548,50 @@ export function planEndlessCareerSeasonTransition(
   const applyGrowth = state.opponentGrowthThroughSeason < nextSeason;
   let advancedState: M2CareerState = {
     ...state,
-    opponentGrowthThroughSeason: Math.max(state.opponentGrowthThroughSeason, nextSeason),
+    opponentGrowthThroughSeason: Math.max(
+      state.opponentGrowthThroughSeason,
+      nextSeason,
+    ),
     pyramid: {
       ...state.pyramid,
-      divisions: state.pyramid.divisions.map(candidate => ({
+      divisions: state.pyramid.divisions.map((candidate) => ({
         ...candidate,
-        clubs: candidate.clubs.map(club => club.id === state.userClubId
-          ? cloneClub(club)
-          : applyGrowth
-            ? scaleOpponentClub(club, nextSeason, growth, state.careerSeed)
-            : cloneClub(club)),
+        clubs: candidate.clubs.map((club) =>
+          club.id === state.userClubId
+            ? cloneClub(club)
+            : applyGrowth
+              ? scaleOpponentClub(club, nextSeason, growth, state.careerSeed)
+              : cloneClub(club),
+        ),
       })),
     },
   };
   const division = currentUserDivision(advancedState);
-  const currentClubs = advancedState.pyramid.divisions
-    .find(candidate => candidate.level === division)!.clubs;
-  const userClub = currentClubs.find(club => club.id === state.userClubId)!;
+  const currentClubs = advancedState.pyramid.divisions.find(
+    (candidate) => candidate.level === division,
+  )!.clubs;
+  const userClub = currentClubs.find((club) => club.id === state.userClubId)!;
   const generatedOpponentClubs = currentClubs
-    .filter(club => club.id !== state.userClubId)
+    .filter((club) => club.id !== state.userClubId)
     .map(cloneClub)
     .sort((left, right) => compareIds(left.id, right.id));
   if (generatedOpponentClubs.length !== 9) {
     throw new Error(`Division ${division} must provide exactly nine opponents`);
   }
-  const activeClubs = [cloneClub(userClub), ...generatedOpponentClubs.map(cloneClub)];
+  const activeClubs = [
+    cloneClub(userClub),
+    ...generatedOpponentClubs.map(cloneClub),
+  ];
   return {
     nextSeason,
     division,
     state: advancedState,
     activeClubs,
-    activeClubIds: activeClubs.map(club => club.id),
+    activeClubIds: activeClubs.map((club) => club.id),
     generatedOpponentClubs,
-    generatedOpponentPlayers: generatedOpponentClubs.flatMap(club => club.squad.map(clonePlayer)),
+    generatedOpponentPlayers: generatedOpponentClubs.flatMap((club) =>
+      club.squad.map(clonePlayer),
+    ),
   };
 }
 
@@ -507,8 +599,9 @@ function normalizeLifecyclePlayer(
   player: StructuralCareerPlayer,
   season: number,
 ): PyramidPlayer {
-  const announcementSeason = player.retirementAnnouncementSeason
-    ?? (player.retirementAnnounced === true ? Math.max(1, season - 1) : undefined);
+  const announcementSeason =
+    player.retirementAnnouncementSeason ??
+    (player.retirementAnnounced === true ? Math.max(1, season - 1) : undefined);
   return {
     id: player.id,
     clubId: player.clubId,
@@ -524,7 +617,9 @@ function normalizeLifecyclePlayer(
     morale: player.morale,
     condition: player.condition ?? 100,
     consecutiveLowMoraleWeeks: player.consecutiveLowMoraleWeeks ?? 0,
-    ...(announcementSeason === undefined ? {} : { retirementAnnouncementSeason: announcementSeason }),
+    ...(announcementSeason === undefined
+      ? {}
+      : { retirementAnnouncementSeason: announcementSeason }),
   };
 }
 
@@ -547,7 +642,9 @@ function mergeCareerPlayer(
     consecutiveLowMoraleWeeks: lifecycle.consecutiveLowMoraleWeeks,
     retirementAge: retirementAnnouncementAge(lifecycle, careerSeed),
     retirementAnnounced: announcementSeason !== undefined,
-    ...(announcementSeason === undefined ? {} : { retirementAnnouncementSeason: announcementSeason }),
+    ...(announcementSeason === undefined
+      ? {}
+      : { retirementAnnouncementSeason: announcementSeason }),
   };
 }
 
@@ -577,15 +674,23 @@ function careerPlayerToPyramid(player: StructuralCareerPlayer): PyramidPlayer {
 export function clubSquadStrength(
   squad: readonly Pick<PyramidPlayer, 'role' | 'attrs'>[],
 ): number {
-  if (squad.length === 0) throw new Error('club squad strength requires at least one player');
+  if (squad.length === 0)
+    throw new Error('club squad strength requires at least one player');
   const total = squad.reduce(
     (clubTotal, player) => clubTotal + roleOverall(player.role, player.attrs),
     0,
   );
-  return Math.max(1, Math.min(MAX_PLAYER_ATTRIBUTE, Math.round(total / squad.length)));
+  return Math.max(
+    1,
+    Math.min(MAX_PLAYER_ATTRIBUTE, Math.round(total / squad.length)),
+  );
 }
 
-function stableSeasonTie(careerSeed: number, season: number, clubId: string): number {
+function stableSeasonTie(
+  careerSeed: number,
+  season: number,
+  clubId: string,
+): number {
   let hash = (careerSeed ^ Math.imul(season, 0x9e3779b9)) >>> 0;
   for (let index = 0; index < clubId.length; index += 1) {
     hash = Math.imul(hash ^ clubId.charCodeAt(index), 0x01000193) >>> 0;
@@ -595,8 +700,8 @@ function stableSeasonTie(careerSeed: number, season: number, clubId: string): nu
 
 function pyramidClub(state: M2CareerState, clubId: string): PyramidClub {
   const club = state.pyramid.divisions
-    .flatMap(division => division.clubs)
-    .find(candidate => candidate.id === clubId);
+    .flatMap((division) => division.clubs)
+    .find((candidate) => candidate.id === clubId);
   if (club === undefined) throw new Error(`unknown pyramid club ${clubId}`);
   return club;
 }
@@ -610,7 +715,7 @@ function deterministicCupRoundResults(
   if (round === undefined || round.number !== roundNumber) {
     throw new Error(`Hero Cup round ${roundNumber} is not current`);
   }
-  return round.fixtures.map(fixture => {
+  return round.fixtures.map((fixture) => {
     const home = pyramidClub(state, fixture.homeClubId);
     const away = pyramidClub(state, fixture.awayClubId);
     const winnerClubId = deterministicCupTieWinner(
@@ -637,19 +742,14 @@ export function deterministicCupTieWinner(
   home: PyramidClub,
   away: PyramidClub,
 ): string {
-  const homeScore = currentClubStrength(home) * deterministicCupPerformanceBasisPoints(
-    careerSeed,
-    season,
-    round,
-    home.id,
-  );
-  const awayScore = currentClubStrength(away) * deterministicCupPerformanceBasisPoints(
-    careerSeed,
-    season,
-    round,
-    away.id,
-  );
-  if (homeScore === awayScore) return compareIds(home.id, away.id) < 0 ? home.id : away.id;
+  const homeScore =
+    currentClubStrength(home) *
+    deterministicCupPerformanceBasisPoints(careerSeed, season, round, home.id);
+  const awayScore =
+    currentClubStrength(away) *
+    deterministicCupPerformanceBasisPoints(careerSeed, season, round, away.id);
+  if (homeScore === awayScore)
+    return compareIds(home.id, away.id) < 0 ? home.id : away.id;
   return homeScore > awayScore ? home.id : away.id;
 }
 
@@ -659,7 +759,7 @@ function scaleOpponentClub(
   growth: OpponentGrowthRules,
   careerSeed: number,
 ): PyramidClub {
-  const squad = club.squad.map(player => ({
+  const squad = club.squad.map((player) => ({
     ...player,
     attrs: growOpponentAttrs(
       player.attrs,
@@ -688,7 +788,8 @@ function growOpponentAttrs(
     const scaled = attrs[attribute] * (100 + growth.opponentGrowthPercent);
     const floor = Math.floor(scaled / 100);
     const remainder = scaled % 100;
-    const roll = opponentGrowthRoll(careerSeed, season, playerId, attribute) % 100;
+    const roll =
+      opponentGrowthRoll(careerSeed, season, playerId, attribute) % 100;
     next[attribute] = Math.min(
       MAX_PLAYER_ATTRIBUTE,
       growth.opponentGrowthAttributeCap,
@@ -703,8 +804,10 @@ function validateStateIdentity(state: M2CareerState): void {
     throw new Error(`unsupported M2 career schema ${state.schemaVersion}`);
   }
   validateSeed(state.careerSeed);
-  if (!Number.isSafeInteger(state.opponentGrowthThroughSeason)
-    || state.opponentGrowthThroughSeason < 1) {
+  if (
+    !Number.isSafeInteger(state.opponentGrowthThroughSeason) ||
+    state.opponentGrowthThroughSeason < 1
+  ) {
     throw new Error('opponent growth season must be a positive safe integer');
   }
   if (state.pyramid.careerSeed !== state.careerSeed) {
@@ -714,7 +817,9 @@ function validateStateIdentity(state: M2CareerState): void {
 }
 
 function currentClubStrength(club: PyramidClub): number {
-  return club.squad.length === 0 ? club.squadStrength : clubSquadStrength(club.squad);
+  return club.squad.length === 0
+    ? club.squadStrength
+    : clubSquadStrength(club.squad);
 }
 
 /**
@@ -727,11 +832,15 @@ function deterministicCupPerformanceBasisPoints(
   round: number,
   clubId: string,
 ): number {
-  const bucket = stableSeasonTie(careerSeed, season * 10 + round, `${clubId}:cup-tail`) % 10_000;
+  const bucket =
+    stableSeasonTie(careerSeed, season * 10 + round, `${clubId}:cup-tail`) %
+    10_000;
   if (bucket < 150) return 70_000;
   if (bucket < 800) return 25_000;
-  return 9_400 + (
-    stableSeasonTie(careerSeed, season * 10 + round, `${clubId}:cup-normal`) % 1_201
+  return (
+    9_400 +
+    (stableSeasonTie(careerSeed, season * 10 + round, `${clubId}:cup-normal`) %
+      1_201)
   );
 }
 
@@ -741,11 +850,7 @@ function opponentGrowthRoll(
   playerId: string,
   attribute: keyof Attrs,
 ): number {
-  return stableSeasonTie(
-    careerSeed,
-    season,
-    `${playerId}:growth:${attribute}`,
-  );
+  return stableSeasonTie(careerSeed, season, `${playerId}:growth:${attribute}`);
 }
 
 function validateUserClub(club: M2UserClubIdentity): void {
@@ -755,10 +860,14 @@ function validateUserClub(club: M2UserClubIdentity): void {
   if (typeof club.name !== 'string' || club.name.trim().length === 0) {
     throw new Error('user club name must be a non-empty string');
   }
-  if (!Number.isInteger(club.squadStrength)
-    || club.squadStrength < 1
-    || club.squadStrength > MAX_PLAYER_ATTRIBUTE) {
-    throw new Error(`user club strength must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
+  if (
+    !Number.isInteger(club.squadStrength) ||
+    club.squadStrength < 1 ||
+    club.squadStrength > MAX_PLAYER_ATTRIBUTE
+  ) {
+    throw new Error(
+      `user club strength must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`,
+    );
   }
 }
 

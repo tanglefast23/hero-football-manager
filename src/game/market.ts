@@ -20,7 +20,9 @@ const GOALKEEPER_ATTRS = ['pac', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
  * The ladder still makes elite players more expensive, while a wholesale
  * rebase of every rating no longer multiplies prices by accident.
  */
-export const DIVISION_TRANSFER_VALUE_ANCHORS: Readonly<Record<DivisionLevel, number>> = {
+export const DIVISION_TRANSFER_VALUE_ANCHORS: Readonly<
+  Record<DivisionLevel, number>
+> = {
   1: 32_000,
   2: 22_000,
   3: 14_500,
@@ -28,7 +30,9 @@ export const DIVISION_TRANSFER_VALUE_ANCHORS: Readonly<Record<DivisionLevel, num
   5: 6_500,
 };
 /** Weekly wage for a support-level generated player in each division. */
-export const DIVISION_WEEKLY_WAGE_ANCHORS: Readonly<Record<DivisionLevel, number>> = {
+export const DIVISION_WEEKLY_WAGE_ANCHORS: Readonly<
+  Record<DivisionLevel, number>
+> = {
   1: 700,
   2: 500,
   3: 340,
@@ -37,14 +41,10 @@ export const DIVISION_WEEKLY_WAGE_ANCHORS: Readonly<Record<DivisionLevel, number
 };
 
 export type PlayerPersonality =
-  | 'FIERY'
-  | 'LOYAL'
-  | 'GREEDY'
-  | 'JOKER'
-  | 'PROFESSIONAL'
-  | 'TIMID';
+  'FIERY' | 'LOYAL' | 'GREEDY' | 'JOKER' | 'PROFESSIONAL' | 'TIMID';
 
-export type ScoutRegion = 'LOCAL' | 'EUROPE' | 'SOUTH_AMERICA' | 'AFRICA' | 'ASIA';
+export type ScoutRegion =
+  'LOCAL' | 'EUROPE' | 'SOUTH_AMERICA' | 'AFRICA' | 'ASIA';
 
 export type ScoutFocus =
   | { kind: 'POSITION'; role: Role }
@@ -123,17 +123,22 @@ const REGION_COST: Readonly<Record<ScoutRegion, number>> = {
   ASIA: 2000,
 };
 
-export function scoutMissionCost(region: ScoutRegion, focus: ScoutFocus): number {
+export function scoutMissionCost(
+  region: ScoutRegion,
+  focus: ScoutFocus,
+): number {
   validateScoutFocus(focus);
   const regionCost = REGION_COST[region];
-  if (regionCost === undefined) throw new Error(`unknown scouting region ${String(region)}`);
-  const focusCost = focus.kind === 'RUMORED_HERO'
-    ? 2500
-    : focus.kind === 'ELITE_PROSPECT'
-      ? 1500
-      : focus.kind === 'AGE'
-        ? 500
-        : 0;
+  if (regionCost === undefined)
+    throw new Error(`unknown scouting region ${String(region)}`);
+  const focusCost =
+    focus.kind === 'RUMORED_HERO'
+      ? 2500
+      : focus.kind === 'ELITE_PROSPECT'
+        ? 1500
+        : focus.kind === 'AGE'
+          ? 500
+          : 0;
   return Math.min(5000, regionCost + focusCost);
 }
 
@@ -151,7 +156,9 @@ export function startScoutMission(setup: ScoutMissionSetup): ScoutMission {
     throw new Error(`rumored hero scouting unlocks in ${divisionTierLabel(3)}`);
   }
   if (setup.focus.kind === 'ELITE_PROSPECT' && setup.division > 2) {
-    throw new Error(`elite prospect scouting unlocks in ${divisionTierLabel(2)}`);
+    throw new Error(
+      `elite prospect scouting unlocks in ${divisionTierLabel(2)}`,
+    );
   }
 
   const missionSeed = mixSeed(
@@ -180,26 +187,44 @@ export function resolveScoutMission(
 ): ScoutMissionResult {
   validateScoutMission(mission);
   assertPositiveSafeInteger(currentWeek, 'scouting resolution week');
-  if (currentWeek < mission.dueWeek) throw new Error('scouting mission is not complete yet');
-  if (!Number.isSafeInteger(shortlistSize) || shortlistSize < 1 || shortlistSize > 5) {
+  if (currentWeek < mission.dueWeek)
+    throw new Error('scouting mission is not complete yet');
+  if (
+    !Number.isSafeInteger(shortlistSize) ||
+    shortlistSize < 1 ||
+    shortlistSize > 5
+  ) {
     throw new Error('scouting shortlist size must be an integer from 1 to 5');
   }
-  assertUniqueStrings(candidates.map(candidate => candidate.id), 'scouting candidate ID');
+  assertUniqueStrings(
+    candidates.map((candidate) => candidate.id),
+    'scouting candidate ID',
+  );
   for (const candidate of candidates) validateScoutablePlayer(candidate);
 
   const eligible = candidates
-    .filter(candidate => candidate.region === mission.region && matchesScoutFocus(candidate, mission.focus))
+    .filter(
+      (candidate) =>
+        candidate.region === mission.region &&
+        matchesScoutFocus(candidate, mission.focus),
+    )
     .slice()
     .sort((left, right) => compareIds(left.id, right.id));
   const random = mulberry32(mixSeed(mission.missionSeed, 'shortlist'));
-  const shortlist = mission.focus.kind === 'RUMORED_HERO'
-    ? rumoredHeroShortlist(eligible, shortlistSize, mission.missionSeed, random)
-    : shuffledShortlist(eligible, shortlistSize, random);
+  const shortlist =
+    mission.focus.kind === 'RUMORED_HERO'
+      ? rumoredHeroShortlist(
+          eligible,
+          shortlistSize,
+          mission.missionSeed,
+          random,
+        )
+      : shuffledShortlist(eligible, shortlistSize, random);
 
   return {
     missionId: mission.id,
     completedWeek: currentWeek,
-    reports: shortlist.map(candidate => ({
+    reports: shortlist.map((candidate) => ({
       playerId: candidate.id,
       role: candidate.role,
       age: candidate.age,
@@ -210,7 +235,11 @@ export function resolveScoutMission(
       ),
       potentialRange: scoutingRange(
         candidate.potential,
-        mission.scoutOfficeLevel === 1 ? 2 : mission.scoutOfficeLevel === 2 ? 1 : 0,
+        mission.scoutOfficeLevel === 1
+          ? 2
+          : mission.scoutOfficeLevel === 2
+            ? 1
+            : 0,
         1,
         5,
         mixSeed(mission.missionSeed, `${candidate.id}:potential`),
@@ -240,22 +269,29 @@ function rumoredHeroShortlist(
   missionSeed: number,
   random: () => number,
 ): ScoutablePlayer[] {
-  const heroes = eligible.filter(candidate => candidate.power !== undefined);
-  const ordinary = eligible.filter(candidate => candidate.power === undefined);
+  const heroes = eligible.filter((candidate) => candidate.power !== undefined);
+  const ordinary = eligible.filter(
+    (candidate) => candidate.power === undefined,
+  );
   // Partitioned before the shuffle, not sorted after it: by division 3 the hero
   // bucket holds dozens of generated opponents, so an unbiased pick would
   // surface one of the four named characters almost never and "reachable"
   // would be a claim the code does not support. The 25% rumour roll below still
   // decides whether anything is found at all, so the find stays rare.
-  const named = heroes.filter(candidate => candidate.id.startsWith(SPECIAL_HERO_ID_PREFIX));
-  const generated = heroes.filter(candidate => !candidate.id.startsWith(SPECIAL_HERO_ID_PREFIX));
+  const named = heroes.filter((candidate) =>
+    candidate.id.startsWith(SPECIAL_HERO_ID_PREFIX),
+  );
+  const generated = heroes.filter(
+    (candidate) => !candidate.id.startsWith(SPECIAL_HERO_ID_PREFIX),
+  );
   shuffleInPlace(named, random);
   shuffleInPlace(generated, random);
   heroes.length = 0;
   heroes.push(...named, ...generated);
   shuffleInPlace(ordinary, random);
   const rumorIsReal = mulberry32(mixSeed(missionSeed, 'rumor-payoff'))() < 0.25;
-  if (!rumorIsReal || heroes.length === 0) return ordinary.slice(0, shortlistSize);
+  if (!rumorIsReal || heroes.length === 0)
+    return ordinary.slice(0, shortlistSize);
   return [heroes[0], ...ordinary].slice(0, shortlistSize);
 }
 
@@ -270,13 +306,55 @@ export function scoutAttributeRanges(
   const span = scoutOfficeLevel === 1 ? 30 : scoutOfficeLevel === 2 ? 18 : 8;
 
   return {
-    pac: scoutingRange(attrs.pac, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'pac')),
-    sho: scoutingRange(attrs.sho, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'sho')),
-    pas: scoutingRange(attrs.pas, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'pas')),
-    def: scoutingRange(attrs.def, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'def')),
-    tec: scoutingRange(attrs.tec, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'tec')),
-    sta: scoutingRange(attrs.sta, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'sta')),
-    ref: scoutingRange(attrs.ref, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'ref')),
+    pac: scoutingRange(
+      attrs.pac,
+      span,
+      1,
+      MAX_PLAYER_ATTRIBUTE,
+      mixSeed(rangeSeed, 'pac'),
+    ),
+    sho: scoutingRange(
+      attrs.sho,
+      span,
+      1,
+      MAX_PLAYER_ATTRIBUTE,
+      mixSeed(rangeSeed, 'sho'),
+    ),
+    pas: scoutingRange(
+      attrs.pas,
+      span,
+      1,
+      MAX_PLAYER_ATTRIBUTE,
+      mixSeed(rangeSeed, 'pas'),
+    ),
+    def: scoutingRange(
+      attrs.def,
+      span,
+      1,
+      MAX_PLAYER_ATTRIBUTE,
+      mixSeed(rangeSeed, 'def'),
+    ),
+    tec: scoutingRange(
+      attrs.tec,
+      span,
+      1,
+      MAX_PLAYER_ATTRIBUTE,
+      mixSeed(rangeSeed, 'tec'),
+    ),
+    sta: scoutingRange(
+      attrs.sta,
+      span,
+      1,
+      MAX_PLAYER_ATTRIBUTE,
+      mixSeed(rangeSeed, 'sta'),
+    ),
+    ref: scoutingRange(
+      attrs.ref,
+      span,
+      1,
+      MAX_PLAYER_ATTRIBUTE,
+      mixSeed(rangeSeed, 'ref'),
+    ),
   };
 }
 
@@ -316,19 +394,29 @@ export interface TransferQuote {
  * relative to the selling division's support band, then age, potential, power
  * tier and contract control adjust it.
  */
-export function playerValuation(player: ValuationPlayer, sellingClubDivision: number): number {
+export function playerValuation(
+  player: ValuationPlayer,
+  sellingClubDivision: number,
+): number {
   validateValuationPlayer(player);
   validateDivision(sellingClubDivision);
   const division = sellingClubDivision as DivisionLevel;
   const attributes = player.role === 'GK' ? GOALKEEPER_ATTRS : OUT_FIELD_ATTRS;
-  const total = attributes.reduce((sum, attribute) => sum + player.attrs[attribute], 0);
+  const total = attributes.reduce(
+    (sum, attribute) => sum + player.attrs[attribute],
+    0,
+  );
   const supportTotal = DIVISION_SUPPORT_STRENGTHS[division] * attributes.length;
   let value = checkedRound(
-    DIVISION_TRANSFER_VALUE_ANCHORS[division] * total * total
-      / (supportTotal * supportTotal),
+    (DIVISION_TRANSFER_VALUE_ANCHORS[division] * total * total) /
+      (supportTotal * supportTotal),
     'division-anchored player valuation',
   );
-  value = scaleByPercent(value, ageValuePercent(player.age), 'age-adjusted player valuation');
+  value = scaleByPercent(
+    value,
+    ageValuePercent(player.age),
+    'age-adjusted player valuation',
+  );
   value = scaleByPercent(
     value,
     [0, 80, 90, 100, 120, 145][player.potential],
@@ -380,15 +468,24 @@ export function generatedPlayerWeeklyWage(
   validateDivision(divisionValue);
   for (const attribute of ATTR_NAMES) {
     const value = attrs[attribute];
-    if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PLAYER_ATTRIBUTE) {
-      throw new Error(`${attribute} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
+    if (
+      !Number.isSafeInteger(value) ||
+      value < 1 ||
+      value > MAX_PLAYER_ATTRIBUTE
+    ) {
+      throw new Error(
+        `${attribute} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`,
+      );
     }
   }
   const division = divisionValue as DivisionLevel;
-  const total = ATTR_NAMES.reduce((sum, attribute) => sum + attrs[attribute], 0);
+  const total = ATTR_NAMES.reduce(
+    (sum, attribute) => sum + attrs[attribute],
+    0,
+  );
   const wage = checkedRound(
-    GLOBAL_WAGE_SCALE * DIVISION_WEEKLY_WAGE_ANCHORS[division] * total
-      / (DIVISION_SUPPORT_STRENGTHS[division] * ATTR_NAMES.length),
+    (GLOBAL_WAGE_SCALE * DIVISION_WEEKLY_WAGE_ANCHORS[division] * total) /
+      (DIVISION_SUPPORT_STRENGTHS[division] * ATTR_NAMES.length),
     'division-anchored weekly wage',
   );
   return Math.max(150, wage);
@@ -411,10 +508,7 @@ export function sellingTransferQuote(
 }
 
 export type ContractPerk =
-  | 'GUARANTEED_STARTER'
-  | 'CAPTAINCY'
-  | 'TRAINING_PRIORITY'
-  | 'JERSEY_10';
+  'GUARANTEED_STARTER' | 'CAPTAINCY' | 'TRAINING_PRIORITY' | 'JERSEY_10';
 
 export type PitchCard =
   | 'FLATTERY'
@@ -423,7 +517,8 @@ export type PitchCard =
   | 'MONEY_TALKS'
   | 'STRAIGHT_TALK';
 
-export type NegotiationMood = 'ANGRY' | 'UNHAPPY' | 'NEUTRAL' | 'PLEASED' | 'THRILLED';
+export type NegotiationMood =
+  'ANGRY' | 'UNHAPPY' | 'NEUTRAL' | 'PLEASED' | 'THRILLED';
 export type NegotiationStatus = 'OPEN' | 'ACCEPTED' | 'REJECTED';
 
 export interface ContractOffer {
@@ -510,14 +605,15 @@ const PITCH_CARDS: readonly PitchCard[] = [
   'STRAIGHT_TALK',
 ];
 
-const LOVED_PITCHES: Readonly<Record<PlayerPersonality, readonly PitchCard[]>> = {
-  FIERY: ['TROPHY_PROMISE', 'STRAIGHT_TALK'],
-  LOYAL: ['HOMETOWN_TIES', 'FLATTERY'],
-  GREEDY: ['MONEY_TALKS', 'TROPHY_PROMISE'],
-  JOKER: ['FLATTERY', 'HOMETOWN_TIES'],
-  PROFESSIONAL: ['STRAIGHT_TALK', 'TROPHY_PROMISE'],
-  TIMID: ['HOMETOWN_TIES', 'STRAIGHT_TALK'],
-};
+const LOVED_PITCHES: Readonly<Record<PlayerPersonality, readonly PitchCard[]>> =
+  {
+    FIERY: ['TROPHY_PROMISE', 'STRAIGHT_TALK'],
+    LOYAL: ['HOMETOWN_TIES', 'FLATTERY'],
+    GREEDY: ['MONEY_TALKS', 'TROPHY_PROMISE'],
+    JOKER: ['FLATTERY', 'HOMETOWN_TIES'],
+    PROFESSIONAL: ['STRAIGHT_TALK', 'TROPHY_PROMISE'],
+    TIMID: ['HOMETOWN_TIES', 'STRAIGHT_TALK'],
+  };
 
 const HATED_PITCHES: Readonly<Record<PlayerPersonality, PitchCard>> = {
   FIERY: 'HOMETOWN_TIES',
@@ -536,16 +632,20 @@ export function renewalContractAsk(
   validatePersonality(player.personality);
   assertPercent(factors.growthSinceSigningPercent, 'growth since signing', 300);
   assertPercent(factors.famePercent, 'renewal fame factor', 200);
-  if (!Number.isFinite(factors.heroMultiplier)
-    || factors.heroMultiplier < 3
-    || factors.heroMultiplier > 5) {
+  if (
+    !Number.isFinite(factors.heroMultiplier) ||
+    factors.heroMultiplier < 3 ||
+    factors.heroMultiplier > 5
+  ) {
     throw new Error('hero wage multiplier must be from 3 to 5');
   }
   // Validated here rather than through `assertPercent`, which rejects negatives.
   // This factor is signed: a loyal player asks for less, not zero less.
-  if (!Number.isInteger(factors.loyaltyPercent)
-    || factors.loyaltyPercent < -20
-    || factors.loyaltyPercent > 20) {
+  if (
+    !Number.isInteger(factors.loyaltyPercent) ||
+    factors.loyaltyPercent < -20 ||
+    factors.loyaltyPercent > 20
+  ) {
     throw new Error('renewal loyalty factor must be an integer from -20 to 20');
   }
 
@@ -554,11 +654,23 @@ export function renewalContractAsk(
     100 + factors.growthSinceSigningPercent,
     'growth-adjusted renewal ask',
   );
-  ask = scaleByPercent(ask, 100 + factors.famePercent, 'fame-adjusted renewal ask');
-  ask = scaleByPercent(ask, 100 + factors.loyaltyPercent, 'loyalty-adjusted renewal ask');
   ask = scaleByPercent(
     ask,
-    player.personality === 'GREEDY' ? 120 : player.personality === 'LOYAL' ? 90 : 100,
+    100 + factors.famePercent,
+    'fame-adjusted renewal ask',
+  );
+  ask = scaleByPercent(
+    ask,
+    100 + factors.loyaltyPercent,
+    'loyalty-adjusted renewal ask',
+  );
+  ask = scaleByPercent(
+    ask,
+    player.personality === 'GREEDY'
+      ? 120
+      : player.personality === 'LOYAL'
+        ? 90
+        : 100,
     'personality-adjusted renewal ask',
   );
   if (player.power !== undefined && !player.onHeroWage) {
@@ -576,10 +688,13 @@ export function renewalContractAsk(
   // is the only number a player ever sees here, so it is the one that has to
   // match what the game promises — a renewal costs up to five times the old
   // deal, and never more, however the five is arrived at.
-  return Math.min(ask, checkedRound(
-    player.weeklyWage * MAX_RENEWAL_ASK_MULTIPLE,
-    'capped renewal ask',
-  ));
+  return Math.min(
+    ask,
+    checkedRound(
+      player.weeklyWage * MAX_RENEWAL_ASK_MULTIPLE,
+      'capped renewal ask',
+    ),
+  );
 }
 
 /**
@@ -593,11 +708,17 @@ export function renewalContractAsk(
  */
 export const MAX_RENEWAL_ASK_MULTIPLE = 5;
 
-export function dealPitchCards(careerSeed: number, negotiationId: string): PitchCard[] {
+export function dealPitchCards(
+  careerSeed: number,
+  negotiationId: string,
+): PitchCard[] {
   assertUint32(careerSeed, 'negotiation career seed');
   assertNonEmptyString(negotiationId, 'negotiation ID');
   const cards = PITCH_CARDS.slice();
-  shuffleInPlace(cards, mulberry32(mixSeed(careerSeed, `pitch:${negotiationId}`)));
+  shuffleInPlace(
+    cards,
+    mulberry32(mixSeed(careerSeed, `pitch:${negotiationId}`)),
+  );
   return cards.slice(0, 3);
 }
 
@@ -703,12 +824,17 @@ export function askWobblePercent(
   }
   // The final round is the agent's stated position, not a mood.
   if (round >= FINAL_NEGOTIATION_ROUND) return 0;
-  const roll = mulberry32(mixSeed(careerSeed, `ask:${negotiationId}:r${round}`))();
+  const roll = mulberry32(
+    mixSeed(careerSeed, `ask:${negotiationId}:r${round}`),
+  )();
   const span = ASK_WOBBLE_PERCENT * 2 + 1;
   return Math.floor(roll * span) - ASK_WOBBLE_PERCENT;
 }
 
-export function effectiveContractAsk(weeklyAsk: number, pitchInfluencePercent: number): number {
+export function effectiveContractAsk(
+  weeklyAsk: number,
+  pitchInfluencePercent: number,
+): number {
   assertPositiveSafeInteger(weeklyAsk, 'weekly contract ask');
   if (!Number.isSafeInteger(pitchInfluencePercent)) {
     throw new Error('pitch influence must be a safe integer percent');
@@ -749,12 +875,42 @@ export function effectiveContractAsk(weeklyAsk: number, pitchInfluencePercent: n
 const PERK_PERSONALITY_BONUS: Readonly<
   Record<PlayerPersonality, Readonly<Record<ContractPerk, number>>>
 > = {
-  GREEDY: { GUARANTEED_STARTER: -4, CAPTAINCY: -4, TRAINING_PRIORITY: -4, JERSEY_10: -2 },
-  FIERY: { GUARANTEED_STARTER: -2, CAPTAINCY: 4, TRAINING_PRIORITY: 0, JERSEY_10: 2 },
-  TIMID: { GUARANTEED_STARTER: 4, CAPTAINCY: -4, TRAINING_PRIORITY: 2, JERSEY_10: 0 },
-  PROFESSIONAL: { GUARANTEED_STARTER: 0, CAPTAINCY: 2, TRAINING_PRIORITY: 4, JERSEY_10: -2 },
-  JOKER: { GUARANTEED_STARTER: 0, CAPTAINCY: -2, TRAINING_PRIORITY: -2, JERSEY_10: 4 },
-  LOYAL: { GUARANTEED_STARTER: 2, CAPTAINCY: 2, TRAINING_PRIORITY: 2, JERSEY_10: 2 },
+  GREEDY: {
+    GUARANTEED_STARTER: -4,
+    CAPTAINCY: -4,
+    TRAINING_PRIORITY: -4,
+    JERSEY_10: -2,
+  },
+  FIERY: {
+    GUARANTEED_STARTER: -2,
+    CAPTAINCY: 4,
+    TRAINING_PRIORITY: 0,
+    JERSEY_10: 2,
+  },
+  TIMID: {
+    GUARANTEED_STARTER: 4,
+    CAPTAINCY: -4,
+    TRAINING_PRIORITY: 2,
+    JERSEY_10: 0,
+  },
+  PROFESSIONAL: {
+    GUARANTEED_STARTER: 0,
+    CAPTAINCY: 2,
+    TRAINING_PRIORITY: 4,
+    JERSEY_10: -2,
+  },
+  JOKER: {
+    GUARANTEED_STARTER: 0,
+    CAPTAINCY: -2,
+    TRAINING_PRIORITY: -2,
+    JERSEY_10: 4,
+  },
+  LOYAL: {
+    GUARANTEED_STARTER: 2,
+    CAPTAINCY: 2,
+    TRAINING_PRIORITY: 2,
+    JERSEY_10: 2,
+  },
 };
 
 /**
@@ -849,15 +1005,25 @@ export function requiredWeeklyWage(
   validateNegotiation(negotiation);
   validateContractPerk(perk);
   const round = negotiation.round + 1;
-  const affinity = pitchCard === undefined
-    ? 0
-    : pitchCardAffinity(negotiation.personality, pitchCard);
-  const influence = Math.max(-20, Math.min(20,
-    negotiation.pitchInfluencePercent
-    + (affinity === 1 ? -10 : affinity === -1 ? 10 : 0)
-    + askWobblePercent(negotiation.careerSeed, negotiation.id, round)));
+  const affinity =
+    pitchCard === undefined
+      ? 0
+      : pitchCardAffinity(negotiation.personality, pitchCard);
+  const influence = Math.max(
+    -20,
+    Math.min(
+      20,
+      negotiation.pitchInfluencePercent +
+        (affinity === 1 ? -10 : affinity === -1 ? 10 : 0) +
+        askWobblePercent(negotiation.careerSeed, negotiation.id, round),
+    ),
+  );
   const ask = effectiveContractAsk(negotiation.weeklyAsk, influence);
-  const bonus = contractOfferBonusPercent(termSeasons, perk, negotiation.personality);
+  const bonus = contractOfferBonusPercent(
+    termSeasons,
+    perk,
+    negotiation.personality,
+  );
   // Rounded UP: the acceptance test is `offer x bonus >= ask`, and a wage
   // rounded down would be one dollar short of the number the screen just
   // promised would work. Told to offer it, the manager must be accepted.
@@ -887,7 +1053,10 @@ export function requiredWeeklyWage(
  * loved pitch card (0.7 x 1.16 = 0.81 against a 0.90 floor), so "Make the offer"
  * keeps meaning negotiate while the one-tap accept stays its own button.
  */
-export function renewalOpeningOfferWage(weeklyAsk: number, wageStep: number): number {
+export function renewalOpeningOfferWage(
+  weeklyAsk: number,
+  wageStep: number,
+): number {
   assertPositiveSafeInteger(weeklyAsk, 'weekly contract ask');
   assertPositiveSafeInteger(wageStep, 'wage step');
   const opening = Math.round((weeklyAsk * 0.7) / wageStep) * wageStep;
@@ -903,8 +1072,10 @@ export function submitContractOffer(
 ): ContractNegotiation {
   validateNegotiation(negotiation);
   validateContractOffer(offer);
-  if (negotiation.status !== 'OPEN') throw new Error('contract talks have already ended');
-  if (negotiation.round >= 3) throw new Error('contract talks allow at most 3 rounds');
+  if (negotiation.status !== 'OPEN')
+    throw new Error('contract talks have already ended');
+  if (negotiation.round >= 3)
+    throw new Error('contract talks allow at most 3 rounds');
   if (pitchCard !== undefined) {
     validatePitchCard(pitchCard);
     if (!negotiation.pitchCards.includes(pitchCard)) {
@@ -915,9 +1086,10 @@ export function submitContractOffer(
     }
   }
 
-  const affinity = pitchCard === undefined
-    ? 0
-    : pitchCardAffinity(negotiation.personality, pitchCard);
+  const affinity =
+    pitchCard === undefined
+      ? 0
+      : pitchCardAffinity(negotiation.personality, pitchCard);
   const pitchDelta = affinity === 1 ? -10 : affinity === -1 ? 10 : 0;
   const pitchInfluencePercent = Math.max(
     -20,
@@ -929,15 +1101,19 @@ export function submitContractOffer(
   // was written to guarantee.
   const wobbledInfluence = Math.max(
     -20,
-    Math.min(20, pitchInfluencePercent + askWobblePercent(
-      negotiation.careerSeed,
-      negotiation.id,
-      round,
-    )),
+    Math.min(
+      20,
+      pitchInfluencePercent +
+        askWobblePercent(negotiation.careerSeed, negotiation.id, round),
+    ),
   );
-  const effectiveAsk = effectiveContractAsk(negotiation.weeklyAsk, wobbledInfluence);
+  const effectiveAsk = effectiveContractAsk(
+    negotiation.weeklyAsk,
+    wobbledInfluence,
+  );
   const effectiveOffer = contractOfferValue(offer, negotiation.personality);
-  const insulting = offer.weeklyWage < insultingOfferFloor(negotiation.weeklyAsk);
+  const insulting =
+    offer.weeklyWage < insultingOfferFloor(negotiation.weeklyAsk);
   const accepted = !insulting && effectiveOffer >= effectiveAsk;
   const finalRejection = !insulting && !accepted && round === 3;
   const outcome: ContractRoundRecord['outcome'] = insulting
@@ -971,23 +1147,21 @@ export function submitContractOffer(
     round,
     mood,
     pitchInfluencePercent,
-    usedPitchCards: pitchCard === undefined
-      ? [...negotiation.usedPitchCards]
-      : [...negotiation.usedPitchCards, pitchCard],
+    usedPitchCards:
+      pitchCard === undefined
+        ? [...negotiation.usedPitchCards]
+        : [...negotiation.usedPitchCards, pitchCard],
     status,
     history: [...negotiation.history, record],
     ...(accepted ? { acceptedOffer: { ...offer } } : {}),
-    ...(insulting ? { consequence: { moraleDelta: -10, clubFameDelta: -2 } } : {}),
+    ...(insulting
+      ? { consequence: { moraleDelta: -10, clubFameDelta: -2 } }
+      : {}),
   };
 }
 
 export type CoachSpecialty =
-  | 'ATTACK'
-  | 'DEFENSE'
-  | 'FITNESS'
-  | 'TECHNIQUE'
-  | 'GOALKEEPING'
-  | 'MOTIVATOR';
+  'ATTACK' | 'DEFENSE' | 'FITNESS' | 'TECHNIQUE' | 'GOALKEEPING' | 'MOTIVATOR';
 
 interface RetiredLegendCoachInput {
   readonly playerId: string;
@@ -1055,9 +1229,12 @@ interface CoachMarketSetup {
  * Curated identities keep staff memorable and deliberately multicultural.
  * Gameplay traits are rolled independently so appearance never encodes skill.
  */
-const COACH_IDENTITIES: readonly { id: string; name: string; age: number }[] = coachIdentityData.map(
-  identity => ({ id: identity.id, name: identity.name, age: identity.age }),
-);
+const COACH_IDENTITIES: readonly { id: string; name: string; age: number }[] =
+  coachIdentityData.map((identity) => ({
+    id: identity.id,
+    name: identity.name,
+    age: identity.age,
+  }));
 
 const COACH_SPECIALTIES: readonly CoachSpecialty[] = [
   'ATTACK',
@@ -1141,7 +1318,10 @@ export const CAREER_CLUB_FAME_CEILING = 99_999;
  */
 export function legendCoachLevel(fame: number): number {
   assertNonNegativeSafeInteger(fame, 'retired legend fame');
-  return Math.max(1, Math.min(5, 1 + Math.floor((fame - CLUB_LEGEND_MIN_FAME) / 100)));
+  return Math.max(
+    1,
+    Math.min(5, 1 + Math.floor((fame - CLUB_LEGEND_MIN_FAME) / 100)),
+  );
 }
 
 /**
@@ -1180,27 +1360,42 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
   const unlockIds = setup.unlockIds ?? [];
   assertUniqueStrings(unlockIds, 'coach unlock ID');
   const excludedPortraitIds = new Set(setup.excludedPortraitIds ?? []);
-  const legends = (setup.retiredLegends ?? []).slice().sort((left, right) =>
-    compareIds(left.playerId, right.playerId),
+  const legends = (setup.retiredLegends ?? [])
+    .slice()
+    .sort((left, right) => compareIds(left.playerId, right.playerId));
+  assertUniqueStrings(
+    legends.map((legend) => legend.playerId),
+    'retired legend player ID',
   );
-  assertUniqueStrings(legends.map(legend => legend.playerId), 'retired legend player ID');
   for (const legend of legends) validateRetiredLegend(legend);
 
   const marketSeed = mixSeed(setup.careerSeed, `coach-market:${setup.season}`);
   const random = mulberry32(marketSeed);
   const shuffledUnlockIds = unlockIds.slice();
-  shuffleInPlace(shuffledUnlockIds, mulberry32(mixSeed(marketSeed, 'coach-unlocks')));
+  shuffleInPlace(
+    shuffledUnlockIds,
+    mulberry32(mixSeed(marketSeed, 'coach-unlocks')),
+  );
   const targetCount = 3 + randomInteger(random, 3);
   const maxLevel = maxCoachLevelForClub(setup.division, setup.fame);
   const result: CoachCandidate[] = [];
-  const availableIdentities = COACH_IDENTITIES.filter(identity => !excludedPortraitIds.has(identity.id));
+  const availableIdentities = COACH_IDENTITIES.filter(
+    (identity) => !excludedPortraitIds.has(identity.id),
+  );
 
   for (const legend of legends.slice(0, targetCount)) {
     const level = Math.min(maxLevel, legendCoachLevel(legend.fame));
-    const specialties = legend.specialties === undefined
-      ? pickCoachSpecialties(mulberry32(mixSeed(marketSeed, `legend:${legend.playerId}`)))
-      : [legend.specialties[0], legend.specialties[1]] as const;
-    const baseWage = checkedMultiply(COACH_WAGE_PER_LEVEL, level, 'legend coach wage');
+    const specialties =
+      legend.specialties === undefined
+        ? pickCoachSpecialties(
+            mulberry32(mixSeed(marketSeed, `legend:${legend.playerId}`)),
+          )
+        : ([legend.specialties[0], legend.specialties[1]] as const);
+    const baseWage = checkedMultiply(
+      COACH_WAGE_PER_LEVEL,
+      level,
+      'legend coach wage',
+    );
     result.push({
       id: `legend-${legend.playerId}`,
       portraitId: `legend-${legend.playerId}`,
@@ -1223,10 +1418,14 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
   while (result.length < targetCount) {
     const genericIndex = result.length;
     if (availableIdentities.length === 0) break;
-    const identity = availableIdentities.splice(randomInteger(random, availableIdentities.length), 1)[0];
-    const level = genericIndex === legends.length
-      ? maxLevel
-      : 1 + randomInteger(random, maxLevel);
+    const identity = availableIdentities.splice(
+      randomInteger(random, availableIdentities.length),
+      1,
+    )[0];
+    const level =
+      genericIndex === legends.length
+        ? maxLevel
+        : 1 + randomInteger(random, maxLevel);
     result.push({
       id: `coach-s${setup.season}-${identity.id}`,
       portraitId: identity.id,
@@ -1234,7 +1433,11 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
       age: identity.age,
       specialties: pickCoachSpecialties(random),
       level,
-      weeklyWage: checkedMultiply(COACH_WAGE_PER_LEVEL, level, 'coach weekly wage'),
+      weeklyWage: checkedMultiply(
+        COACH_WAGE_PER_LEVEL,
+        level,
+        'coach weekly wage',
+      ),
       personality: PERSONALITIES[randomInteger(random, PERSONALITIES.length)],
       requiredDivision: 6 - level,
       requiredFame: COACH_FAME_GATES[level],
@@ -1254,11 +1457,16 @@ export function isCoachCandidateEligible(
 ): boolean {
   validateDivision(division);
   assertNonNegativeSafeInteger(fame, 'club fame');
-  return division <= candidate.requiredDivision && fame >= candidate.requiredFame;
+  return (
+    division <= candidate.requiredDivision && fame >= candidate.requiredFame
+  );
 }
 
 /** Coaches gain one level for every two full seasons employed, capped at level 5. */
-export function coachLevelAfterSeasons(level: number, fullSeasonsEmployed: number): number {
+export function coachLevelAfterSeasons(
+  level: number,
+  fullSeasonsEmployed: number,
+): number {
   if (!Number.isSafeInteger(level) || level < 1 || level > 5) {
     throw new Error('coach level must be an integer from 1 to 5');
   }
@@ -1275,11 +1483,13 @@ function transferQuote(
 ): TransferQuote {
   validateTransferQuoteContext(context);
   const valuation = playerValuation(player, context.sellingClubDivision);
-  const bandPercent = minimumPercent + deterministicRoll(
-    context.careerSeed,
-    `${direction}:${player.id}:${context.season}:${context.week}`,
-    bandSize,
-  );
+  const bandPercent =
+    minimumPercent +
+    deterministicRoll(
+      context.careerSeed,
+      `${direction}:${player.id}:${context.season}:${context.week}`,
+      bandSize,
+    );
   return {
     playerId: player.id,
     valuation,
@@ -1288,10 +1498,15 @@ function transferQuote(
   };
 }
 
-function matchesScoutFocus(candidate: ScoutablePlayer, focus: ScoutFocus): boolean {
+function matchesScoutFocus(
+  candidate: ScoutablePlayer,
+  focus: ScoutFocus,
+): boolean {
   if (focus.kind === 'POSITION') return candidate.role === focus.role;
   if (focus.kind === 'AGE') {
-    return candidate.age >= focus.minimumAge && candidate.age <= focus.maximumAge;
+    return (
+      candidate.age >= focus.minimumAge && candidate.age <= focus.maximumAge
+    );
   }
   if (focus.kind === 'ELITE_PROSPECT') {
     return candidate.age <= 23 && candidate.potential >= 4;
@@ -1311,11 +1526,9 @@ function scoutingRange(
   if (span === 0) return { minimum: value, maximum: value };
   const minimumStart = Math.max(absoluteMinimum, value - span);
   const maximumStart = Math.min(value, absoluteMaximum - span);
-  const start = minimumStart + deterministicRoll(
-    seed,
-    'range',
-    maximumStart - minimumStart + 1,
-  );
+  const start =
+    minimumStart +
+    deterministicRoll(seed, 'range', maximumStart - minimumStart + 1);
   return { minimum: start, maximum: start + span };
 }
 
@@ -1328,7 +1541,10 @@ function ageValuePercent(age: number): number {
   return 40;
 }
 
-function moodForOffer(effectiveOffer: number, effectiveAsk: number): NegotiationMood {
+function moodForOffer(
+  effectiveOffer: number,
+  effectiveAsk: number,
+): NegotiationMood {
   const ratioPercent = Math.floor(
     checkedMultiply(effectiveOffer, 100, 'contract offer ratio') / effectiveAsk,
   );
@@ -1347,7 +1563,9 @@ function shiftMood(mood: NegotiationMood, steps: -1 | 0 | 1): NegotiationMood {
     'PLEASED',
     'THRILLED',
   ];
-  return moods[Math.max(0, Math.min(moods.length - 1, moods.indexOf(mood) + steps))];
+  return moods[
+    Math.max(0, Math.min(moods.length - 1, moods.indexOf(mood) + steps))
+  ];
 }
 
 function pickCoachSpecialties(
@@ -1363,7 +1581,10 @@ function validateScoutMission(mission: ScoutMission): void {
   assertUint32(mission.missionSeed, 'scouting mission seed');
   assertPositiveSafeInteger(mission.startWeek, 'scouting start week');
   assertPositiveSafeInteger(mission.dueWeek, 'scouting due week');
-  if (mission.dueWeek - mission.startWeek < 2 || mission.dueWeek - mission.startWeek > 3) {
+  if (
+    mission.dueWeek - mission.startWeek < 2 ||
+    mission.dueWeek - mission.startWeek > 3
+  ) {
     throw new Error('scouting missions must take 2 or 3 weeks');
   }
   assertPositiveSafeInteger(mission.cost, 'scouting mission cost');
@@ -1379,11 +1600,13 @@ function validateScoutFocus(focus: ScoutFocus): void {
     return;
   }
   if (focus.kind === 'AGE') {
-    if (!Number.isSafeInteger(focus.minimumAge)
-      || !Number.isSafeInteger(focus.maximumAge)
-      || focus.minimumAge < 16
-      || focus.maximumAge > 45
-      || focus.minimumAge > focus.maximumAge) {
+    if (
+      !Number.isSafeInteger(focus.minimumAge) ||
+      !Number.isSafeInteger(focus.maximumAge) ||
+      focus.minimumAge < 16 ||
+      focus.maximumAge > 45 ||
+      focus.minimumAge > focus.maximumAge
+    ) {
       throw new Error('scouting age focus must be a valid range from 16 to 45');
     }
     return;
@@ -1395,7 +1618,8 @@ function validateScoutFocus(focus: ScoutFocus): void {
 
 function scoutFocusKey(focus: ScoutFocus): string {
   if (focus.kind === 'POSITION') return `${focus.kind}:${focus.role}`;
-  if (focus.kind === 'AGE') return `${focus.kind}:${focus.minimumAge}-${focus.maximumAge}`;
+  if (focus.kind === 'AGE')
+    return `${focus.kind}:${focus.minimumAge}-${focus.maximumAge}`;
   return focus.kind;
 }
 
@@ -1407,16 +1631,21 @@ function validateScoutOfficeLevel(level: number): void {
 
 function validateScoutablePlayer(player: ScoutablePlayer): void {
   assertNonEmptyString(player.id, 'scouting candidate ID');
-  if (REGION_COST[player.region] === undefined) throw new Error('scouting candidate region is unknown');
+  if (REGION_COST[player.region] === undefined)
+    throw new Error('scouting candidate region is unknown');
   validateAge(player.age);
   validateAttrs(player.attrs, `scouting candidate ${player.id}`);
   validatePotential(player.potential);
   validatePersonality(player.personality);
   if (player.powerTier !== undefined) validatePowerTier(player.powerTier);
-  if (!Number.isSafeInteger(player.contractSeasonsRemaining)
-    || player.contractSeasonsRemaining < 0
-    || player.contractSeasonsRemaining > 3) {
-    throw new Error('candidate contract seasons must be an integer from 0 to 3');
+  if (
+    !Number.isSafeInteger(player.contractSeasonsRemaining) ||
+    player.contractSeasonsRemaining < 0 ||
+    player.contractSeasonsRemaining > 3
+  ) {
+    throw new Error(
+      'candidate contract seasons must be an integer from 0 to 3',
+    );
   }
 }
 
@@ -1429,17 +1658,25 @@ function validateValuationPlayer(player: ValuationPlayer): void {
   validateAge(player.age);
   validatePotential(player.potential);
   if (player.powerTier !== undefined) validatePowerTier(player.powerTier);
-  if (!Number.isSafeInteger(player.contractSeasonsRemaining)
-    || player.contractSeasonsRemaining < 0
-    || player.contractSeasonsRemaining > 3) {
-    throw new Error('contract seasons remaining must be an integer from 0 to 3');
+  if (
+    !Number.isSafeInteger(player.contractSeasonsRemaining) ||
+    player.contractSeasonsRemaining < 0 ||
+    player.contractSeasonsRemaining > 3
+  ) {
+    throw new Error(
+      'contract seasons remaining must be an integer from 0 to 3',
+    );
   }
 }
 
 function validateTransferQuoteContext(context: TransferQuoteContext): void {
   assertUint32(context.careerSeed, 'transfer quote career seed');
   assertPositiveSafeInteger(context.season, 'transfer quote season');
-  if (!Number.isSafeInteger(context.week) || context.week < 1 || context.week > 30) {
+  if (
+    !Number.isSafeInteger(context.week) ||
+    context.week < 1 ||
+    context.week > 30
+  ) {
     throw new Error('transfer quote week must be an integer from 1 to 30');
   }
   validateDivision(context.sellingClubDivision);
@@ -1447,14 +1684,25 @@ function validateTransferQuoteContext(context: TransferQuoteContext): void {
 
 function validateContractOffer(offer: ContractOffer): void {
   assertPositiveSafeInteger(offer.weeklyWage, 'offered weekly wage');
-  if (!Number.isSafeInteger(offer.termSeasons) || offer.termSeasons < 1 || offer.termSeasons > 3) {
+  if (
+    !Number.isSafeInteger(offer.termSeasons) ||
+    offer.termSeasons < 1 ||
+    offer.termSeasons > 3
+  ) {
     throw new Error('contract term must be an integer from 1 to 3 seasons');
   }
   validateContractPerk(offer.perk);
 }
 
 function validateContractPerk(perk: ContractPerk): void {
-  if (!['GUARANTEED_STARTER', 'CAPTAINCY', 'TRAINING_PRIORITY', 'JERSEY_10'].includes(perk)) {
+  if (
+    ![
+      'GUARANTEED_STARTER',
+      'CAPTAINCY',
+      'TRAINING_PRIORITY',
+      'JERSEY_10',
+    ].includes(perk)
+  ) {
     throw new Error('contract offer has an unknown perk');
   }
 }
@@ -1464,18 +1712,23 @@ function validateNegotiation(negotiation: ContractNegotiation): void {
   assertNonEmptyString(negotiation.playerId, 'negotiation player ID');
   validatePersonality(negotiation.personality);
   assertPositiveSafeInteger(negotiation.weeklyAsk, 'weekly contract ask');
-  if (!Number.isSafeInteger(negotiation.round)
-    || negotiation.round < 0
-    || negotiation.round > 3
-    || negotiation.history.length !== negotiation.round) {
+  if (
+    !Number.isSafeInteger(negotiation.round) ||
+    negotiation.round < 0 ||
+    negotiation.round > 3 ||
+    negotiation.history.length !== negotiation.round
+  ) {
     throw new Error('negotiation round history is invalid');
   }
-  if (!Number.isSafeInteger(negotiation.pitchInfluencePercent)
-    || negotiation.pitchInfluencePercent < -20
-    || negotiation.pitchInfluencePercent > 20) {
+  if (
+    !Number.isSafeInteger(negotiation.pitchInfluencePercent) ||
+    negotiation.pitchInfluencePercent < -20 ||
+    negotiation.pitchInfluencePercent > 20
+  ) {
     throw new Error('negotiation pitch influence must stay within +/-20%');
   }
-  if (negotiation.pitchCards.length !== 3) throw new Error('negotiation must deal 3 pitch cards');
+  if (negotiation.pitchCards.length !== 3)
+    throw new Error('negotiation must deal 3 pitch cards');
   assertUniqueStrings(negotiation.pitchCards, 'dealt pitch card');
   assertUniqueStrings(negotiation.usedPitchCards, 'used pitch card');
 }
@@ -1485,7 +1738,8 @@ function validatePitchCard(pitchCard: PitchCard): void {
 }
 
 function validatePersonality(personality: PlayerPersonality): void {
-  if (!PERSONALITIES.includes(personality)) throw new Error('unknown personality');
+  if (!PERSONALITIES.includes(personality))
+    throw new Error('unknown personality');
 }
 
 function validateRetiredLegend(legend: RetiredLegendCoachInput): void {
@@ -1493,17 +1747,26 @@ function validateRetiredLegend(legend: RetiredLegendCoachInput): void {
   assertNonEmptyString(legend.name, 'retired legend name');
   validatePersonality(legend.personality);
   assertNonNegativeSafeInteger(legend.fame, 'retired legend fame');
-  if (legend.age !== undefined && (!Number.isSafeInteger(legend.age) || legend.age < 30 || legend.age > 60)) {
+  if (
+    legend.age !== undefined &&
+    (!Number.isSafeInteger(legend.age) || legend.age < 30 || legend.age > 60)
+  ) {
     throw new Error('retired coach candidates must be age 30 to 60');
   }
   if (!Number.isSafeInteger(legend.seasonsAtClub) || legend.seasonsAtClub < 5) {
-    throw new Error('retired coach candidates must have at least 5 club seasons');
+    throw new Error(
+      'retired coach candidates must have at least 5 club seasons',
+    );
   }
   if (legend.specialties !== undefined) {
-    if (legend.specialties[0] === legend.specialties[1]
-      || !COACH_SPECIALTIES.includes(legend.specialties[0])
-      || !COACH_SPECIALTIES.includes(legend.specialties[1])) {
-      throw new Error('retired legend coach specialties must be two distinct specialties');
+    if (
+      legend.specialties[0] === legend.specialties[1] ||
+      !COACH_SPECIALTIES.includes(legend.specialties[0]) ||
+      !COACH_SPECIALTIES.includes(legend.specialties[1])
+    ) {
+      throw new Error(
+        'retired legend coach specialties must be two distinct specialties',
+      );
     }
   }
 }
@@ -1511,8 +1774,14 @@ function validateRetiredLegend(legend: RetiredLegendCoachInput): void {
 function validateAttrs(attrs: Readonly<Attrs>, label: string): void {
   for (const attribute of ATTR_NAMES) {
     const value = attrs[attribute];
-    if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PLAYER_ATTRIBUTE) {
-      throw new Error(`${label} ${attribute} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
+    if (
+      !Number.isSafeInteger(value) ||
+      value < 1 ||
+      value > MAX_PLAYER_ATTRIBUTE
+    ) {
+      throw new Error(
+        `${label} ${attribute} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`,
+      );
     }
   }
 }
@@ -1582,19 +1851,22 @@ function assertUniqueStrings(values: readonly string[], label: string): void {
 
 function checkedAdd(left: number, right: number, label: string): number {
   const result = left + right;
-  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(result))
+    throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }
 
 function checkedMultiply(left: number, right: number, label: string): number {
   const result = left * right;
-  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(result))
+    throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }
 
 function checkedRound(value: number, label: string): number {
   const result = Math.round(value);
-  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(result))
+    throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }
 
@@ -1602,9 +1874,15 @@ function scaleByPercent(value: number, percent: number, label: string): number {
   return checkedRound(checkedMultiply(value, percent, label) / 100, label);
 }
 
-function deterministicRoll(seed: number, key: string, upperExclusive: number): number {
+function deterministicRoll(
+  seed: number,
+  key: string,
+  upperExclusive: number,
+): number {
   if (!Number.isSafeInteger(upperExclusive) || upperExclusive < 1) {
-    throw new Error('deterministic roll upper bound must be a positive safe integer');
+    throw new Error(
+      'deterministic roll upper bound must be a positive safe integer',
+    );
   }
   return Math.floor(mulberry32(mixSeed(seed, key))() * upperExclusive);
 }

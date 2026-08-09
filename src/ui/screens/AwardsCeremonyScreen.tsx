@@ -10,7 +10,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AWARD_CATEGORIES } from '../../game/division-leaders';
 import type { AwardCategoryId } from '../../game/types';
-import { PLAYER_SPRITE_CELL, PlayerRunSprite } from '../../render/PlayerRunSprite';
+import {
+  PLAYER_SPRITE_CELL,
+  PlayerRunSprite,
+} from '../../render/PlayerRunSprite';
 import { CharacterSpeechOverlay } from '../CharacterSpeechOverlay';
 import { PixelText } from '../components/PixelText';
 import { formatCurrency } from '../components/Scorecard';
@@ -61,10 +64,11 @@ const SKIP_BUTTON_HEIGHT = 44;
 const SKIP_ROW_GAP = 8;
 /** Two stacked controls is the most the ceremony ever shows at once. */
 const SKIP_CONTROL_COUNT = 2;
-const SKIP_CONTROL_BAND = SKIP_ROW_INSET
-  + SKIP_BUTTON_HEIGHT * SKIP_CONTROL_COUNT
-  + SKIP_ROW_GAP * (SKIP_CONTROL_COUNT - 1)
-  + SKIP_ROW_INSET;
+const SKIP_CONTROL_BAND =
+  SKIP_ROW_INSET +
+  SKIP_BUTTON_HEIGHT * SKIP_CONTROL_COUNT +
+  SKIP_ROW_GAP * (SKIP_CONTROL_COUNT - 1) +
+  SKIP_ROW_INSET;
 /** Clearance from the bottom edge, so the podium list stays readable behind him. */
 const GROUND_OFFSET = 96;
 /** How high the winner hops, and how long each half of the hop takes. */
@@ -124,12 +128,13 @@ export function AwardsCeremonyScreen({
   const reduce = useReducedMotion(reduceMotion);
   const stages = useMemo(() => awardCeremonyStages(viewModel), [viewModel]);
   const [stageIndex, setStageIndex] = useState(Math.max(0, initialStageIndex));
-  const stage = stages[Math.min(stageIndex, stages.length - 1)] ?? FALLBACK_STAGE;
+  const stage =
+    stages[Math.min(stageIndex, stages.length - 1)] ?? FALLBACK_STAGE;
   const beat = stageBeat(viewModel, stage);
   const walkOn = isWalkOnStage(stage);
 
   const advance = useCallback(() => {
-    setStageIndex(current => nextStageIndex(stages, current));
+    setStageIndex((current) => nextStageIndex(stages, current));
   }, [stages]);
 
   // The clock that plays the ceremony. Keyed on the index as well as the stage
@@ -142,7 +147,7 @@ export function AwardsCeremonyScreen({
     return () => clearTimeout(timer);
   }, [advance, reduce, stage, stageIndex]);
   const skipWalkOn = useCallback(() => {
-    setStageIndex(current => beatResultStageIndex(stages, current));
+    setStageIndex((current) => beatResultStageIndex(stages, current));
   }, [stages]);
   const skipCeremony = useCallback(() => {
     setStageIndex(prizeStageIndex(stages));
@@ -159,9 +164,11 @@ export function AwardsCeremonyScreen({
         // covers the whole screen, and an accessible parent hides the rows
         // underneath it from VoiceOver.
         accessibilityLabel={stageAccessibilityLabel(viewModel, stage, t)}
-        accessibilityHint={stage.kind === 'prize'
-          ? t('awardsCeremony.a11y.tapAnywhereToFinish')
-          : t('awardsCeremony.a11y.ceremonyPlaysItself')}
+        accessibilityHint={
+          stage.kind === 'prize'
+            ? t('awardsCeremony.a11y.tapAnywhereToFinish')
+            : t('awardsCeremony.a11y.ceremonyPlaysItself')
+        }
         onPress={stage.kind === 'prize' ? onComplete : advance}
         // Static style only: a function-form style on a Pressable drops layout
         // properties on iOS, and this one has to fill the screen.
@@ -177,7 +184,8 @@ export function AwardsCeremonyScreen({
               {viewModel.seasonLabel}
             </PixelText>
             <PixelText className="mt-1 text-base uppercase text-paper">
-              {t('awardsCeremony.divisionAwards')}</PixelText>
+              {t('awardsCeremony.divisionAwards')}
+            </PixelText>
           </View>
         </View>
 
@@ -228,7 +236,11 @@ export function AwardsCeremonyScreen({
 }
 
 /** A stage to render when the view model somehow carries no beats at all. */
-const FALLBACK_STAGE: AwardCeremonyStage = { kind: 'prize', beatIndex: -1, revealed: 0 };
+const FALLBACK_STAGE: AwardCeremonyStage = {
+  kind: 'prize',
+  beatIndex: -1,
+  revealed: 0,
+};
 
 function SkipButton({
   label,
@@ -248,7 +260,9 @@ function SkipButton({
       // a function-form style collapses a Pressable to zero height on iOS.
       style={styles.skipButton}
     >
-      <PixelText className="text-[10px] uppercase text-paper">{label}</PixelText>
+      <PixelText className="text-[10px] uppercase text-paper">
+        {label}
+      </PixelText>
     </Pressable>
   );
 }
@@ -271,16 +285,20 @@ function BoardPanel({
         <PixelText className="text-[10px] uppercase tracking-[3px] text-ink/60">
           {beat.metricLabel}
         </PixelText>
-        <PixelText className="mt-1 text-2xl uppercase text-ink">{beat.boardLabel}</PixelText>
+        <PixelText className="mt-1 text-2xl uppercase text-ink">
+          {beat.boardLabel}
+        </PixelText>
       </View>
 
       {rows.length === 0 ? (
         <Text className="px-4 py-6 text-center text-sm leading-5 text-paper/60">
-          {stage.kind === 'board' ? t('awardsCeremony.andTheAwardGoesTo') : beat.emptyLabel}
+          {stage.kind === 'board'
+            ? t('awardsCeremony.andTheAwardGoesTo')
+            : beat.emptyLabel}
         </Text>
       ) : (
         <View style={styles.podium}>
-          {rows.map(placing => (
+          {rows.map((placing) => (
             <PodiumRow
               key={placing.playerId}
               placing={placing}
@@ -325,7 +343,9 @@ function PodiumRow({
       // compiles class strings and cannot read a constant.
       className={`min-h-[68px] flex-row items-center border-2 border-b-4 px-3 py-2 ${surface}`}
     >
-      <PixelText variant="data" className="w-8 text-base text-ink">{placing.position}</PixelText>
+      <PixelText variant="data" className="w-8 text-base text-ink">
+        {placing.position}
+      </PixelText>
       <View className="min-w-0 flex-1 pr-2">
         <Text className={`font-bold text-ink ${nameClass}`} numberOfLines={1}>
           {placing.playerName}
@@ -334,7 +354,9 @@ function PodiumRow({
           {placing.clubName}
         </Text>
       </View>
-      <PixelText variant="data" className="text-base text-ink">{placing.value}</PixelText>
+      <PixelText variant="data" className="text-base text-ink">
+        {placing.value}
+      </PixelText>
     </View>
   );
 }
@@ -381,16 +403,23 @@ function PrizePanel({
   }, [counts, reduceMotion, total]);
 
   return (
-    <View accessible accessibilityLabel={prizeAccessibilityLabel(prize, t)} style={styles.board}>
+    <View
+      accessible
+      accessibilityLabel={prizeAccessibilityLabel(prize, t)}
+      style={styles.board}
+    >
       <View style={styles.boardTitle}>
         <PixelText className="text-[10px] uppercase tracking-[3px] text-ink/60">
-          {t('awardsCeremony.awardPrize')}</PixelText>
+          {t('awardsCeremony.awardPrize')}
+        </PixelText>
         {counts ? (
           <PixelText variant="data" className="mt-2 text-4xl text-ink">
-            {formatCurrency(shown)}
+            {formatCurrency(t, shown)}
           </PixelText>
         ) : (
-          <PixelText className="mt-2 text-2xl uppercase text-ink">{t('awardsCeremony.nothingThisYear')}</PixelText>
+          <PixelText className="mt-2 text-2xl uppercase text-ink">
+            {t('awardsCeremony.nothingThisYear')}
+          </PixelText>
         )}
       </View>
       <Text className="px-4 pb-5 pt-3 text-center text-sm leading-5 text-paper/80">
@@ -438,7 +467,10 @@ function AwardWalkOn({
       groundOffset={GROUND_OFFSET}
       autoAdvanceMs={Math.max(MIN_LINE_MS, line.length * MS_PER_CHARACTER)}
       reduceMotion={reduceMotion}
-      accessibilityLabel={t('awardsCeremony.a11y.playerSays', { player: placing.playerName, line })}
+      accessibilityLabel={t('awardsCeremony.a11y.playerSays', {
+        player: placing.playerName,
+        line,
+      })}
       renderCharacter={({ phase, walking }) => (
         <CelebratingPlayer
           playerId={placing.playerId}
@@ -500,9 +532,14 @@ function CelebratingPlayer({
   return (
     <Animated.View
       style={{
-        transform: [{
-          translateY: hop.interpolate({ inputRange: [0, 1], outputRange: [0, -JUMP_HEIGHT] }),
-        }],
+        transform: [
+          {
+            translateY: hop.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, -JUMP_HEIGHT],
+            }),
+          },
+        ],
       }}
     >
       <PlayerRunSprite
@@ -526,10 +563,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 8,
   },
-  headerBlock: { width: '100%', maxWidth: CEREMONY_MAX_WIDTH, alignSelf: 'center' },
+  headerBlock: {
+    width: '100%',
+    maxWidth: CEREMONY_MAX_WIDTH,
+    alignSelf: 'center',
+  },
   controlBand: { height: SKIP_CONTROL_BAND },
   header: { alignItems: 'center', paddingBottom: 16 },
-  footer: { alignItems: 'center', paddingTop: 16, maxWidth: CEREMONY_MAX_WIDTH, alignSelf: 'center', width: '100%' },
+  footer: {
+    alignItems: 'center',
+    paddingTop: 16,
+    maxWidth: CEREMONY_MAX_WIDTH,
+    alignSelf: 'center',
+    width: '100%',
+  },
   board: {
     // The podium is a card, and cards in this game stop at the two-column
     // content width. Left unbounded it ran the full width of a desktop window,

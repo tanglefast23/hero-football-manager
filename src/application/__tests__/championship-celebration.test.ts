@@ -29,7 +29,7 @@ function statLine(
 
 function championState() {
   const state = createCareer(createLaunchCareerSetup(777));
-  const fixtures = state.fixtures.map(fixture => {
+  const fixtures = state.fixtures.map((fixture) => {
     const userIsHome = fixture.homeClubId === state.userClubId;
     const userIsAway = fixture.awayClubId === state.userClubId;
     return {
@@ -61,43 +61,65 @@ describe('league championship celebration', () => {
   it('selects the actual leading scorer and includes the rest of the squad', () => {
     const state = championState();
     const finalFixture = state.fixtures
-      .filter(fixture => fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
+      .filter(
+        (fixture) =>
+          fixture.homeClubId === state.userClubId ||
+          fixture.awayClubId === state.userClubId,
+      )
       .sort((left, right) => right.week - left.week)[0]!;
-    const finalMatchSide = finalFixture.homeClubId === state.userClubId ? 'r' : 'u';
-    const leadingScorer = state.players.find(player => player.id === 'bramble-rovers-p10')!;
+    const finalMatchSide =
+      finalFixture.homeClubId === state.userClubId ? 'r' : 'u';
+    const leadingScorer = state.players.find(
+      (player) => player.id === 'bramble-rovers-p10',
+    )!;
 
     expect(hasPendingChampionshipCelebration(state)).toBe(true);
-    expect(championshipCelebrationViewModel(state, 'Bert Rudge')).toMatchObject({
-      clubName: 'Bramble Rovers',
-      assistantName: 'Bert Rudge',
-      star: {
-        id: 'bramble-rovers-p10',
-        goals: 12,
-        hasRecordedGoals: true,
-        spriteKey: `${finalMatchSide}:${playerLookId(leadingScorer.id, leadingScorer.role)}:run0`,
+    expect(championshipCelebrationViewModel(state, 'Bert Rudge')).toMatchObject(
+      {
+        clubName: 'Bramble Rovers',
+        assistantName: 'Bert Rudge',
+        star: {
+          id: 'bramble-rovers-p10',
+          goals: 12,
+          hasRecordedGoals: true,
+          spriteKey: `${finalMatchSide}:${playerLookId(leadingScorer.id, leadingScorer.role)}:run0`,
+        },
+        squad: expect.arrayContaining([
+          expect.objectContaining({ id: 'bramble-rovers-p13' }),
+        ]),
       },
-      squad: expect.arrayContaining([
-        expect.objectContaining({ id: 'bramble-rovers-p13' }),
-      ]),
-    });
-    expect(championshipCelebrationViewModel(state, 'Bert Rudge').squad)
-      .toHaveLength(state.players.filter(player => player.clubId === state.userClubId).length - 1);
+    );
+    expect(
+      championshipCelebrationViewModel(state, 'Bert Rudge').squad,
+    ).toHaveLength(
+      state.players.filter((player) => player.clubId === state.userClubId)
+        .length - 1,
+    );
   });
 
   it('uses the same atlas characters as the final match lineup', () => {
     const state = championState();
     const viewModel = championshipCelebrationViewModel(state, 'Bert Rudge');
     const players = [viewModel.star, ...viewModel.squad];
-    const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+    const lineup = state.lineups.find(
+      (candidate) => candidate.clubId === state.userClubId,
+    )!;
     const finalFixture = state.fixtures
-      .filter(fixture => fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
+      .filter(
+        (fixture) =>
+          fixture.homeClubId === state.userClubId ||
+          fixture.awayClubId === state.userClubId,
+      )
       .sort((left, right) => right.week - left.week)[0]!;
     const side = finalFixture.homeClubId === state.userClubId ? 'r' : 'u';
 
-    lineup.playerIds.forEach(playerId => {
-      const careerPlayer = state.players.find(player => player.id === playerId)!;
-      expect(players.find(player => player.id === playerId)?.spriteKey)
-        .toBe(`${side}:${playerLookId(careerPlayer.id, careerPlayer.role)}:run0`);
+    lineup.playerIds.forEach((playerId) => {
+      const careerPlayer = state.players.find(
+        (player) => player.id === playerId,
+      )!;
+      expect(players.find((player) => player.id === playerId)?.spriteKey).toBe(
+        `${side}:${playerLookId(careerPlayer.id, careerPlayer.role)}:run0`,
+      );
     });
   });
 
@@ -114,7 +136,9 @@ describe('league championship celebration', () => {
     const state = createCareer(createLaunchCareerSetup(777));
 
     expect(hasPendingChampionshipCelebration(state)).toBe(false);
-    expect(() => championshipCelebrationViewModel(state, 'Bert Rudge')).not.toThrow();
+    expect(() =>
+      championshipCelebrationViewModel(state, 'Bert Rudge'),
+    ).not.toThrow();
   });
 
   it('parades a stand-in star when a damaged save leaves the champions empty-handed', () => {
@@ -124,7 +148,9 @@ describe('league championship celebration', () => {
     // transition, so the view model must render rather than strand the save.
     const damaged = {
       ...state,
-      players: state.players.filter(player => player.clubId !== state.userClubId),
+      players: state.players.filter(
+        (player) => player.clubId !== state.userClubId,
+      ),
       lineups: [],
       seasonStatLines: [],
     };
@@ -136,24 +162,31 @@ describe('league championship celebration', () => {
     expect(viewModel.star.hasRecordedGoals).toBe(false);
     expect(viewModel.squad).toHaveLength(0);
     // The way off the screen stays reachable too.
-    expect(completeChampionshipCelebration(damaged).eventFlags)
-      .toContain(championshipCelebrationFlag(1));
+    expect(completeChampionshipCelebration(damaged).eventFlags).toContain(
+      championshipCelebrationFlag(1),
+    );
   });
 
   it('does not trigger for a club that did not win the division', () => {
     const state = championState();
-    const losingFixtures = state.fixtures.map(fixture => {
-      if (fixture.homeClubId !== state.userClubId && fixture.awayClubId !== state.userClubId) {
+    const losingFixtures = state.fixtures.map((fixture) => {
+      if (
+        fixture.homeClubId !== state.userClubId &&
+        fixture.awayClubId !== state.userClubId
+      ) {
         return fixture;
       }
       return {
         ...fixture,
-        score: fixture.homeClubId === state.userClubId
-          ? { homeGoals: 0, awayGoals: 3 }
-          : { homeGoals: 3, awayGoals: 0 },
+        score:
+          fixture.homeClubId === state.userClubId
+            ? { homeGoals: 0, awayGoals: 3 }
+            : { homeGoals: 3, awayGoals: 0 },
       };
     });
 
-    expect(hasPendingChampionshipCelebration({ ...state, fixtures: losingFixtures })).toBe(false);
+    expect(
+      hasPendingChampionshipCelebration({ ...state, fixtures: losingFixtures }),
+    ).toBe(false);
   });
 });

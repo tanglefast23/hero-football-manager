@@ -3,19 +3,28 @@ import path from 'node:path';
 
 const bundleDirectory = path.resolve('dist', '_expo', 'static', 'js', 'web');
 const filenames = await readdir(bundleDirectory);
-const workerFilenames = filenames.filter(filename => /^worker-.*\.js$/.test(filename));
-const commonFilename = filenames.find(filename => /^__common-.*\.js$/.test(filename));
+const workerFilenames = filenames.filter((filename) =>
+  /^worker-.*\.js$/.test(filename),
+);
+const commonFilename = filenames.find((filename) =>
+  /^__common-.*\.js$/.test(filename),
+);
 
 if (workerFilenames.length === 0) {
   throw new Error(`No exported web worker was found in ${bundleDirectory}`);
 }
 
 if (commonFilename === undefined) {
-  console.info('Web workers are already self-contained; no shared chunk was emitted.');
+  console.info(
+    'Web workers are already self-contained; no shared chunk was emitted.',
+  );
   process.exit(0);
 }
 
-const commonSource = await readFile(path.join(bundleDirectory, commonFilename), 'utf8');
+const commonSource = await readFile(
+  path.join(bundleDirectory, commonFilename),
+  'utf8',
+);
 const marker = '/* HFM_WORKER_SHARED_MODULES */';
 
 for (const workerFilename of workerFilenames) {
@@ -29,7 +38,9 @@ for (const workerFilename of workerFilenames) {
   // worker entry so every required module exists in the worker's own runtime.
   const runModuleIndex = workerSource.lastIndexOf('\n__r(');
   if (runModuleIndex < 0) {
-    throw new Error(`Could not locate the Metro worker entry in ${workerFilename}`);
+    throw new Error(
+      `Could not locate the Metro worker entry in ${workerFilename}`,
+    );
   }
 
   const patchedSource = [

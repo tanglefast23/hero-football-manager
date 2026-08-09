@@ -1,8 +1,4 @@
-import type {
-  CashTransaction,
-  CashTransactionKind,
-  GameState,
-} from './types';
+import type { CashTransaction, CashTransactionKind, GameState } from './types';
 
 interface CashTransactionInput {
   readonly kind: CashTransactionKind;
@@ -30,14 +26,18 @@ export function recordCashTransaction(
   if (input.label.trim().length === 0) {
     throw new Error('cash transaction label must be a non-empty string');
   }
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
   const history = state.cashTransactions ?? [];
   // Monotonic across the career rather than derived from the history's length,
   // so ids stay unique even if old entries are ever pruned. Saves written
   // before the counter existed seed it from the length that minted their
   // existing ids, which reproduces exactly the ids they would have issued.
-  const issued = Math.max(state.cashTransactionIdCounter ?? 0, history.length) + 1;
+  const issued =
+    Math.max(state.cashTransactionIdCounter ?? 0, history.length) + 1;
   const transaction: CashTransaction = {
     id: `cash-transaction-${issued}`,
     season: state.season,
@@ -45,10 +45,14 @@ export function recordCashTransaction(
     kind: input.kind,
     label: input.label,
     ...(input.labelKey === undefined ? {} : { labelKey: input.labelKey }),
-    ...(input.labelParams === undefined ? {} : { labelParams: input.labelParams }),
+    ...(input.labelParams === undefined
+      ? {}
+      : { labelParams: input.labelParams }),
     amount: input.amount,
     balanceAfter: club.cash,
-    ...(input.referenceId === undefined ? {} : { referenceId: input.referenceId }),
+    ...(input.referenceId === undefined
+      ? {}
+      : { referenceId: input.referenceId }),
   };
   return {
     ...state,

@@ -25,7 +25,9 @@ export type BoardForcedSaleResolution = Extract<
  * Creates the exact player list shown to the manager. The board never sells
  * anyone outside this persisted list, and all ordering is deterministic.
  */
-export function createBoardUltimatum(state: GameState): BoardUltimatumState | undefined {
+export function createBoardUltimatum(
+  state: GameState,
+): BoardUltimatumState | undefined {
   const candidates = eligibleBoardSaleCandidates(state);
   if (candidates.length < 3) return undefined;
   return {
@@ -52,32 +54,39 @@ export function reconcileBoardUltimatumCandidates(state: GameState): GameState {
     const { boardUltimatum: _boardUltimatum, ...withoutUltimatum } = safety;
     return { ...state, financialSafety: withoutUltimatum };
   }
-  const eligibleIds = new Set(eligible.map(candidate => candidate.playerId));
+  const eligibleIds = new Set(eligible.map((candidate) => candidate.playerId));
   const targetCount = eligible.length >= 4 ? 4 : 3;
   const candidates = ultimatum.candidates
-    .filter(candidate => eligibleIds.has(candidate.playerId))
+    .filter((candidate) => eligibleIds.has(candidate.playerId))
     .slice(0, targetCount);
-  const retainedIds = new Set(candidates.map(candidate => candidate.playerId));
+  const retainedIds = new Set(
+    candidates.map((candidate) => candidate.playerId),
+  );
   for (const candidate of eligible) {
     if (candidates.length >= targetCount) break;
     if (retainedIds.has(candidate.playerId)) continue;
     candidates.push(candidate);
     retainedIds.add(candidate.playerId);
   }
-  const protectedPlayerId = ultimatum.protectedPlayerId !== undefined
-    && retainedIds.has(ultimatum.protectedPlayerId)
-    ? ultimatum.protectedPlayerId
-    : undefined;
-  const unchanged = candidates.length === ultimatum.candidates.length
-    && candidates.every((candidate, index) => (
-      candidate.playerId === ultimatum.candidates[index].playerId
-      && candidate.marketValue === ultimatum.candidates[index].marketValue
-      && candidate.forcedSaleFee === ultimatum.candidates[index].forcedSaleFee
-      && candidate.discountPercent === ultimatum.candidates[index].discountPercent
-    ))
-    && protectedPlayerId === ultimatum.protectedPlayerId;
+  const protectedPlayerId =
+    ultimatum.protectedPlayerId !== undefined &&
+    retainedIds.has(ultimatum.protectedPlayerId)
+      ? ultimatum.protectedPlayerId
+      : undefined;
+  const unchanged =
+    candidates.length === ultimatum.candidates.length &&
+    candidates.every(
+      (candidate, index) =>
+        candidate.playerId === ultimatum.candidates[index].playerId &&
+        candidate.marketValue === ultimatum.candidates[index].marketValue &&
+        candidate.forcedSaleFee === ultimatum.candidates[index].forcedSaleFee &&
+        candidate.discountPercent ===
+          ultimatum.candidates[index].discountPercent,
+    ) &&
+    protectedPlayerId === ultimatum.protectedPlayerId;
   if (unchanged) return state;
-  const { protectedPlayerId: _protectedPlayerId, ...unprotectedUltimatum } = ultimatum;
+  const { protectedPlayerId: _protectedPlayerId, ...unprotectedUltimatum } =
+    ultimatum;
   return {
     ...state,
     financialSafety: {
@@ -96,18 +105,21 @@ function eligibleBoardSaleCandidates(state: GameState): BoardSaleCandidate[] {
   const starters = new Set(lineup.playerIds);
   const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
   return state.players
-    .filter(player => (
-      player.clubId === state.userClubId
-      && player.contractSeasonsRemaining > 0
-      && canLeaveWithoutBreakingLineup(state, player)
-    ))
-    .map(player => candidateForPlayer(state, player, division))
+    .filter(
+      (player) =>
+        player.clubId === state.userClubId &&
+        player.contractSeasonsRemaining > 0 &&
+        canLeaveWithoutBreakingLineup(state, player),
+    )
+    .map((player) => candidateForPlayer(state, player, division))
     .sort((left, right) => {
       const leftStarter = starters.has(left.playerId) ? 1 : 0;
       const rightStarter = starters.has(right.playerId) ? 1 : 0;
-      return leftStarter - rightStarter
-        || right.forcedSaleFee - left.forcedSaleFee
-        || compareIds(left.playerId, right.playerId);
+      return (
+        leftStarter - rightStarter ||
+        right.forcedSaleFee - left.forcedSaleFee ||
+        compareIds(left.playerId, right.playerId)
+      );
     });
 }
 
@@ -124,8 +136,12 @@ export function protectBoardUltimatumPlayer(
   if (safety === undefined || ultimatum === undefined) {
     throw new Error('there is no active board ultimatum');
   }
-  if (!ultimatum.candidates.some(candidate => candidate.playerId === playerId)) {
-    throw new Error('only a player from the visible board candidates may be protected');
+  if (
+    !ultimatum.candidates.some((candidate) => candidate.playerId === playerId)
+  ) {
+    throw new Error(
+      'only a player from the visible board candidates may be protected',
+    );
   }
   return {
     ...state,
@@ -141,8 +157,11 @@ export function clearMetBoardUltimatum(state: GameState): GameState {
   const safety = state.financialSafety;
   const ultimatum = safety?.boardUltimatum;
   if (safety === undefined || ultimatum === undefined) return state;
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
   if (club.cash < ultimatum.targetCash) return state;
   const { boardUltimatum: _boardUltimatum, ...withoutUltimatum } = safety;
   return {
@@ -159,24 +178,37 @@ export function boardForcedSaleAtDeadline(
   state: GameState,
   ultimatum: BoardUltimatumState,
 ): BoardForcedSaleResolution | undefined {
-  const userClub = state.clubs.find(club => club.id === state.userClubId);
-  if (userClub === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const userClub = state.clubs.find((club) => club.id === state.userClubId);
+  if (userClub === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
   for (const candidate of ultimatum.candidates) {
     if (candidate.playerId === ultimatum.protectedPlayerId) continue;
-    const player = state.players.find(item => (
-      item.id === candidate.playerId && item.clubId === state.userClubId
-    ));
-    if (player === undefined || !canLeaveWithoutBreakingLineup(state, player)) continue;
+    const player = state.players.find(
+      (item) =>
+        item.id === candidate.playerId && item.clubId === state.userClubId,
+    );
+    if (player === undefined || !canLeaveWithoutBreakingLineup(state, player))
+      continue;
     const buyer = state.clubs
-      .filter(club => club.id !== state.userClubId && club.cash >= candidate.forcedSaleFee)
+      .filter(
+        (club) =>
+          club.id !== state.userClubId && club.cash >= candidate.forcedSaleFee,
+      )
       .slice()
-      .sort((left, right) => right.cash - left.cash || compareIds(left.id, right.id))[0];
+      .sort(
+        (left, right) =>
+          right.cash - left.cash || compareIds(left.id, right.id),
+      )[0];
     if (buyer === undefined) continue;
     const fansLost = Math.min(
       userClub.fans,
       Math.max(25, Math.floor(userClub.fans / 10)),
     );
-    const replacement = createEmergencyYouthReplacement(state, player.role, ultimatum.id);
+    const replacement = createEmergencyYouthReplacement(
+      state,
+      player.role,
+      ultimatum.id,
+    );
     return {
       id: ultimatum.id,
       kind: 'FORCED_SALE',
@@ -203,29 +235,45 @@ export function applyBoardForcedSaleConsequences(
   state: GameState,
   resolution: BoardForcedSaleResolution,
 ): GameState {
-  const player = state.players.find(candidate => (
-    candidate.id === resolution.playerId && candidate.clubId === state.userClubId
-  ));
-  if (player === undefined) throw new Error(`unknown board-sale player ${resolution.playerId}`);
-  const buyer = state.clubs.find(candidate => candidate.id === resolution.buyerClubId);
+  const player = state.players.find(
+    (candidate) =>
+      candidate.id === resolution.playerId &&
+      candidate.clubId === state.userClubId,
+  );
+  if (player === undefined)
+    throw new Error(`unknown board-sale player ${resolution.playerId}`);
+  const buyer = state.clubs.find(
+    (candidate) => candidate.id === resolution.buyerClubId,
+  );
   if (buyer === undefined || buyer.id === state.userClubId) {
     throw new Error(`unknown board-sale buyer ${resolution.buyerClubId}`);
   }
-  if (buyer.cash < resolution.fee) throw new Error('the board-sale buyer cannot afford the fee');
-  const replacement = createEmergencyYouthReplacement(state, player.role, resolution.id);
+  if (buyer.cash < resolution.fee)
+    throw new Error('the board-sale buyer cannot afford the fee');
+  const replacement = createEmergencyYouthReplacement(
+    state,
+    player.role,
+    resolution.id,
+  );
   if (replacement.id !== resolution.replacementPlayerId) {
-    throw new Error('the board-sale replacement does not match the saved resolution');
+    throw new Error(
+      'the board-sale replacement does not match the saved resolution',
+    );
   }
   const lineups = replaceDepartingStarter(state, player);
   return {
     ...state,
-    clubs: state.clubs.map(club => {
+    clubs: state.clubs.map((club) => {
       if (club.id === state.userClubId) {
         return {
           ...club,
           fans: Math.max(0, club.fans - resolution.fansLost),
           weeklyWages: checkedAdd(
-            checkedSubtract(club.weeklyWages, player.weeklyWage, 'board-sale payroll'),
+            checkedSubtract(
+              club.weeklyWages,
+              player.weeklyWage,
+              'board-sale payroll',
+            ),
             replacement.weeklyWage,
             'board relief payroll',
           ),
@@ -234,34 +282,47 @@ export function applyBoardForcedSaleConsequences(
       if (club.id === buyer.id) {
         return {
           ...club,
-          cash: checkedSubtract(club.cash, resolution.fee, 'board-sale buyer cash'),
-          weeklyWages: checkedAdd(club.weeklyWages, player.weeklyWage, 'board-sale buyer payroll'),
+          cash: checkedSubtract(
+            club.cash,
+            resolution.fee,
+            'board-sale buyer cash',
+          ),
+          weeklyWages: checkedAdd(
+            club.weeklyWages,
+            player.weeklyWage,
+            'board-sale buyer payroll',
+          ),
         };
       }
       return club;
     }),
-    players: [...state.players.map(candidate => {
-      if (candidate.id === player.id) {
+    players: [
+      ...state.players.map((candidate) => {
+        if (candidate.id === player.id) {
+          return {
+            ...clearCareerContractPromise(candidate),
+            clubId: buyer.id,
+            licensed: false,
+          };
+        }
+        if (candidate.clubId !== state.userClubId) return candidate;
         return {
-          ...clearCareerContractPromise(candidate),
-          clubId: buyer.id,
-          licensed: false,
+          ...candidate,
+          morale: Math.max(0, candidate.morale + resolution.moraleDelta),
         };
-      }
-      if (candidate.clubId !== state.userClubId) return candidate;
-      return {
-        ...candidate,
-        morale: Math.max(0, candidate.morale + resolution.moraleDelta),
-      };
-    }), replacement],
+      }),
+      replacement,
+    ],
     lineups,
-    market: state.market === undefined
-      ? undefined
-      : {
-          ...state.market,
-          transferListings: (state.market.transferListings ?? [])
-            .filter(listing => listing.playerId !== player.id),
-        },
+    market:
+      state.market === undefined
+        ? undefined
+        : {
+            ...state.market,
+            transferListings: (state.market.transferListings ?? []).filter(
+              (listing) => listing.playerId !== player.id,
+            ),
+          },
   };
 }
 
@@ -311,18 +372,22 @@ function valuationPlayer(player: CareerPlayer): ValuationPlayer {
   };
 }
 
-function canLeaveWithoutBreakingLineup(state: GameState, player: CareerPlayer): boolean {
+function canLeaveWithoutBreakingLineup(
+  state: GameState,
+  player: CareerPlayer,
+): boolean {
   const lineup = userLineup(state);
   if (!lineup.playerIds.includes(player.id)) return true;
   const starterIds = new Set(lineup.playerIds);
-  return state.players.some(candidate => (
-    candidate.clubId === state.userClubId
-    && candidate.id !== player.id
-    && !starterIds.has(candidate.id)
-    && isEligibleBoardLineupReplacement(candidate)
-    && (candidate.role === player.role
-      || (candidate.role !== 'GK' && player.role !== 'GK'))
-  ));
+  return state.players.some(
+    (candidate) =>
+      candidate.clubId === state.userClubId &&
+      candidate.id !== player.id &&
+      !starterIds.has(candidate.id) &&
+      isEligibleBoardLineupReplacement(candidate) &&
+      (candidate.role === player.role ||
+        (candidate.role !== 'GK' && player.role !== 'GK')),
+  );
 }
 
 function replaceDepartingStarter(
@@ -332,51 +397,65 @@ function replaceDepartingStarter(
   const lineup = userLineup(state);
   if (!lineup.playerIds.includes(player.id)) return state.lineups;
   const starters = new Set(lineup.playerIds);
-  const replacement = state.players.find(candidate => (
-    candidate.clubId === state.userClubId
-    && candidate.id !== player.id
-    && !starters.has(candidate.id)
-    && isEligibleBoardLineupReplacement(candidate)
-    && candidate.role === player.role
-  )) ?? state.players.find(candidate => (
-    candidate.clubId === state.userClubId
-    && candidate.id !== player.id
-    && !starters.has(candidate.id)
-    && isEligibleBoardLineupReplacement(candidate)
-    && candidate.role !== 'GK'
-    && player.role !== 'GK'
-  ));
+  const replacement =
+    state.players.find(
+      (candidate) =>
+        candidate.clubId === state.userClubId &&
+        candidate.id !== player.id &&
+        !starters.has(candidate.id) &&
+        isEligibleBoardLineupReplacement(candidate) &&
+        candidate.role === player.role,
+    ) ??
+    state.players.find(
+      (candidate) =>
+        candidate.clubId === state.userClubId &&
+        candidate.id !== player.id &&
+        !starters.has(candidate.id) &&
+        isEligibleBoardLineupReplacement(candidate) &&
+        candidate.role !== 'GK' &&
+        player.role !== 'GK',
+    );
   if (replacement === undefined) {
     throw new Error('the board-sale player has no eligible lineup replacement');
   }
-  return state.lineups.map(candidate => candidate.clubId === state.userClubId
-    ? {
-        ...candidate,
-        playerIds: candidate.playerIds.map(id => id === player.id ? replacement.id : id),
-      }
-    : candidate);
+  return state.lineups.map((candidate) =>
+    candidate.clubId === state.userClubId
+      ? {
+          ...candidate,
+          playerIds: candidate.playerIds.map((id) =>
+            id === player.id ? replacement.id : id,
+          ),
+        }
+      : candidate,
+  );
 }
 
 function isEligibleBoardLineupReplacement(player: CareerPlayer): boolean {
-  return player.contractSeasonsRemaining > 0
-    && isAvailableForSelection(player)
-    && !(player.power !== undefined && !player.licensed);
+  return (
+    player.contractSeasonsRemaining > 0 &&
+    isAvailableForSelection(player) &&
+    !(player.power !== undefined && !player.licensed)
+  );
 }
 
 function userLineup(state: GameState) {
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
   if (lineup === undefined) throw new Error('the user club has no lineup');
   return lineup;
 }
 
 function checkedAdd(left: number, right: number, label: string): number {
   const result = left + right;
-  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(result))
+    throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }
 
 function checkedSubtract(left: number, right: number, label: string): number {
   const result = left - right;
-  if (!Number.isSafeInteger(result) || result < 0) throw new Error(`${label} is invalid`);
+  if (!Number.isSafeInteger(result) || result < 0)
+    throw new Error(`${label} is invalid`);
   return result;
 }

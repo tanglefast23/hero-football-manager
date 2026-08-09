@@ -9,7 +9,12 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { useCopy, usePixelStyles, type CopyFn, type LocaleFaces } from '../i18n';
+import {
+  useCopy,
+  usePixelStyles,
+  type CopyFn,
+  type LocaleFaces,
+} from '../i18n';
 import { SfxPressable } from '../ui/components/SfxPressable';
 import { hasHoverPointer } from '../ui/pointer-capability';
 import { TutorialTapCue } from '../ui/TutorialTapCue';
@@ -48,7 +53,12 @@ const TAP_SLOP = 8;
 const EMPHASIS_MS = 110;
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-interface Rect { x: number; y: number; width: number; height: number }
+interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 /** What is under the finger: a field slot, a substitute, or a dimmed leaver. */
 type CardId = `field:${number}` | `sub:${string}` | `off:${number}`;
@@ -137,33 +147,44 @@ export function SubstitutionBoard({
   const cardViews = useRef(new Map<CardId, View>()).current;
   const cardRects = useRef(new Map<CardId, Rect>()).current;
 
-  const substitutionsRemaining = Math.max(0, MAX_SUBSTITUTIONS - substitutionsUsed);
+  const substitutionsRemaining = Math.max(
+    0,
+    MAX_SUBSTITUTIONS - substitutionsUsed,
+  );
   const orderedField = useMemo(() => fieldByTiredness(field), [field]);
-  const rows = useMemo(() => benchEntries(bench, field, plan), [bench, field, plan]);
+  const rows = useMemo(
+    () => benchEntries(bench, field, plan),
+    [bench, field, plan],
+  );
   const staged = stagedCount(plan);
   const atLimit = atSubstitutionLimit(plan, substitutionsRemaining);
   const autoChanged = draftAutoSubs !== autoSubs;
   const saveable = canSave(plan) || autoChanged;
   const note = autoChanged
     ? t(
-      draftAutoSubs ? 'substitutionBoard.noteAutoSubsOn' : 'substitutionBoard.noteAutoSubsOff',
-      { note: budgetNote(plan, substitutionsRemaining, t) },
-    )
+        draftAutoSubs
+          ? 'substitutionBoard.noteAutoSubsOn'
+          : 'substitutionBoard.noteAutoSubsOff',
+        { note: budgetNote(plan, substitutionsRemaining, t) },
+      )
     : budgetNote(plan, substitutionsRemaining, t);
 
   const starterAt = useCallback(
-    (slot: number) => field.find(player => player.index === slot),
+    (slot: number) => field.find((player) => player.index === slot),
     [field],
   );
   const subById = useCallback(
-    (id: string) => bench.find(player => player.id === id),
+    (id: string) => bench.find((player) => player.id === id),
     [bench],
   );
 
-  const registerCard = useCallback((id: CardId) => (view: View | null) => {
-    if (view === null) cardViews.delete(id);
-    else cardViews.set(id, view);
-  }, [cardViews]);
+  const registerCard = useCallback(
+    (id: CardId) => (view: View | null) => {
+      if (view === null) cardViews.delete(id);
+      else cardViews.set(id, view);
+    },
+    [cardViews],
+  );
 
   /**
    * Measured fresh on every drag start rather than on layout: the board scrolls,
@@ -179,81 +200,104 @@ export function SubstitutionBoard({
     });
   }, [cardRects, cardViews]);
 
-  const cardAt = useCallback((pageX: number, pageY: number): CardId | null => {
-    for (const [id, rect] of cardRects) {
-      if (
-        pageX >= rect.x && pageX <= rect.x + rect.width
-        && pageY >= rect.y && pageY <= rect.y + rect.height
-      ) return id;
-    }
-    return null;
-  }, [cardRects]);
+  const cardAt = useCallback(
+    (pageX: number, pageY: number): CardId | null => {
+      for (const [id, rect] of cardRects) {
+        if (
+          pageX >= rect.x &&
+          pageX <= rect.x + rect.width &&
+          pageY >= rect.y &&
+          pageY <= rect.y + rect.height
+        )
+          return id;
+      }
+      return null;
+    },
+    [cardRects],
+  );
 
   /**
    * One predicate for the light and for the drop. A dimmed leaver only ever
    * accepts its own partner back.
    */
-  const isEligible = useCallback((source: DragSource, target: CardId): boolean => {
-    if (source.kind === 'field' && source.slot !== undefined) {
-      const starter = starterAt(source.slot);
-      if (starter === undefined) return false;
-      if (target === `off:${source.slot}`) return incomingFor(plan, source.slot) !== null;
-      if (target.startsWith('sub:')) {
-        const sub = subById(target.slice(4));
-        return sub !== undefined && canSwap(plan, starter, sub, substitutionsRemaining);
+  const isEligible = useCallback(
+    (source: DragSource, target: CardId): boolean => {
+      if (source.kind === 'field' && source.slot !== undefined) {
+        const starter = starterAt(source.slot);
+        if (starter === undefined) return false;
+        if (target === `off:${source.slot}`)
+          return incomingFor(plan, source.slot) !== null;
+        if (target.startsWith('sub:')) {
+          const sub = subById(target.slice(4));
+          return (
+            sub !== undefined &&
+            canSwap(plan, starter, sub, substitutionsRemaining)
+          );
+        }
+        return false;
+      }
+      if (source.kind === 'sub' && source.subId !== undefined) {
+        const sub = subById(source.subId);
+        if (sub === undefined || !target.startsWith('field:')) return false;
+        const starter = starterAt(Number(target.slice(6)));
+        return (
+          starter !== undefined &&
+          canSwap(plan, starter, sub, substitutionsRemaining)
+        );
+      }
+      if (source.kind === 'off' && source.slot !== undefined) {
+        // The leaver goes back only into the shirt he left.
+        return target === `field:${source.slot}`;
       }
       return false;
-    }
-    if (source.kind === 'sub' && source.subId !== undefined) {
-      const sub = subById(source.subId);
-      if (sub === undefined || !target.startsWith('field:')) return false;
-      const starter = starterAt(Number(target.slice(6)));
-      return starter !== undefined && canSwap(plan, starter, sub, substitutionsRemaining);
-    }
-    if (source.kind === 'off' && source.slot !== undefined) {
-      // The leaver goes back only into the shirt he left.
-      return target === `field:${source.slot}`;
-    }
-    return false;
-  }, [plan, starterAt, subById, substitutionsRemaining]);
+    },
+    [plan, starterAt, subById, substitutionsRemaining],
+  );
 
   const commit = useCallback((next: SubstitutionPlan) => {
     playUiClickSfx();
     setPlan(next);
   }, []);
 
-  const resolveDrop = useCallback((source: DragSource, target: CardId | null) => {
-    if (target === null || !isEligible(source, target)) return;
-    if (source.kind === 'off' && source.slot !== undefined) {
-      commit(undoSwap(plan, source.slot));
-      return;
-    }
-    if (source.kind === 'field' && source.slot !== undefined) {
-      if (target === `off:${source.slot}`) {
+  const resolveDrop = useCallback(
+    (source: DragSource, target: CardId | null) => {
+      if (target === null || !isEligible(source, target)) return;
+      if (source.kind === 'off' && source.slot !== undefined) {
         commit(undoSwap(plan, source.slot));
         return;
       }
-      const starter = starterAt(source.slot);
-      const sub = subById(target.slice(4));
-      if (starter !== undefined && sub !== undefined) commit(applySwap(plan, starter, sub));
-      return;
-    }
-    if (source.kind === 'sub' && source.subId !== undefined) {
-      const sub = subById(source.subId);
-      const starter = starterAt(Number(target.slice(6)));
-      if (starter !== undefined && sub !== undefined) commit(applySwap(plan, starter, sub));
-    }
-  }, [commit, isEligible, plan, starterAt, subById]);
+      if (source.kind === 'field' && source.slot !== undefined) {
+        if (target === `off:${source.slot}`) {
+          commit(undoSwap(plan, source.slot));
+          return;
+        }
+        const starter = starterAt(source.slot);
+        const sub = subById(target.slice(4));
+        if (starter !== undefined && sub !== undefined)
+          commit(applySwap(plan, starter, sub));
+        return;
+      }
+      if (source.kind === 'sub' && source.subId !== undefined) {
+        const sub = subById(source.subId);
+        const starter = starterAt(Number(target.slice(6)));
+        if (starter !== undefined && sub !== undefined)
+          commit(applySwap(plan, starter, sub));
+      }
+    },
+    [commit, isEligible, plan, starterAt, subById],
+  );
 
-  const guideCardId: CardId | null = guideFieldPlayer === undefined
-    ? null
-    : `field:${guideFieldPlayer}`;
-  const consumeGuide = useCallback((source: DragSource, target: CardId | null = null) => {
-    if (guideCardId === null) return;
-    if (source.id === guideCardId || target === guideCardId) {
-      onGuideFieldPlayerAction?.();
-    }
-  }, [guideCardId, onGuideFieldPlayerAction]);
+  const guideCardId: CardId | null =
+    guideFieldPlayer === undefined ? null : `field:${guideFieldPlayer}`;
+  const consumeGuide = useCallback(
+    (source: DragSource, target: CardId | null = null) => {
+      if (guideCardId === null) return;
+      if (source.id === guideCardId || target === guideCardId) {
+        onGuideFieldPlayerAction?.();
+      }
+    },
+    [guideCardId, onGuideFieldPlayerAction],
+  );
 
   /**
    * Tap once to pick, tap the partner to trade. Tapping the picked card again
@@ -268,27 +312,30 @@ export function SubstitutionBoard({
    * dispatch — and both the click and `resolveDrop`'s own `setPlan` are side
    * effects, so a doubled run would click twice and stage the trade twice.
    */
-  const resolveTap = useCallback((source: DragSource) => {
-    consumeGuide(source);
-    const current = pickedRef.current;
-    if (current === null) {
+  const resolveTap = useCallback(
+    (source: DragSource) => {
+      consumeGuide(source);
+      const current = pickedRef.current;
+      if (current === null) {
+        playUiClickSfx();
+        setPicked(source);
+        return;
+      }
+      if (current.id === source.id) {
+        playUiClickSfx();
+        setPicked(null);
+        return;
+      }
+      if (isEligible(current, source.id)) {
+        resolveDrop(current, source.id);
+        setPicked(null);
+        return;
+      }
       playUiClickSfx();
       setPicked(source);
-      return;
-    }
-    if (current.id === source.id) {
-      playUiClickSfx();
-      setPicked(null);
-      return;
-    }
-    if (isEligible(current, source.id)) {
-      resolveDrop(current, source.id);
-      setPicked(null);
-      return;
-    }
-    playUiClickSfx();
-    setPicked(source);
-  }, [consumeGuide, isEligible, resolveDrop]);
+    },
+    [consumeGuide, isEligible, resolveDrop],
+  );
 
   // The button is disabled with nothing staged, so a player never reaches the
   // refusal; it stays as the backstop for any caller that forgets to pass it.
@@ -325,11 +372,16 @@ export function SubstitutionBoard({
     // can never name a card the release would miss.
     onDragMove: (source: DragSource, pageX: number, pageY: number) => {
       const over = cardAt(pageX, pageY);
-      setDropTarget(over !== null && over !== source.id && isEligible(source, over) ? over : null);
+      setDropTarget(
+        over !== null && over !== source.id && isEligible(source, over)
+          ? over
+          : null,
+      );
     },
     onDrop: (source: DragSource, pageX: number, pageY: number) => {
       const target = cardAt(pageX, pageY);
-      if (target !== null && isEligible(source, target)) consumeGuide(source, target);
+      if (target !== null && isEligible(source, target))
+        consumeGuide(source, target);
       resolveDrop(source, target);
     },
   };
@@ -339,7 +391,11 @@ export function SubstitutionBoard({
 
   return (
     <View style={styles.overlay}>
-      <SfxPressable accessible={false} onPress={onCancel} style={StyleSheet.absoluteFill}>
+      <SfxPressable
+        accessible={false}
+        onPress={onCancel}
+        style={StyleSheet.absoluteFill}
+      >
         <View style={styles.scrim} />
       </SfxPressable>
 
@@ -349,7 +405,9 @@ export function SubstitutionBoard({
       >
         <View style={styles.header}>
           <View style={styles.titleBlock}>
-            <Text style={styles.eyebrow}>{t('substitutionBoard.matchPaused')}</Text>
+            <Text style={styles.eyebrow}>
+              {t('substitutionBoard.matchPaused')}
+            </Text>
             <View style={styles.titleRow}>
               <Text
                 adjustsFontSizeToFit
@@ -359,7 +417,9 @@ export function SubstitutionBoard({
               >
                 {t('substitutionBoard.title')}
               </Text>
-              <Text style={[styles.counter, atLimit ? styles.counterSpent : null]}>
+              <Text
+                style={[styles.counter, atLimit ? styles.counterSpent : null]}
+              >
                 {substitutionsUsed + staged}/{MAX_SUBSTITUTIONS}
               </Text>
             </View>
@@ -373,11 +433,13 @@ export function SubstitutionBoard({
             <SfxPressable
               immediatePress
               accessibilityRole="switch"
-              accessibilityLabel={draftAutoSubs
-                ? t('substitutionBoard.a11y.autoSubsOnSaveToApply')
-                : t('substitutionBoard.a11y.autoSubsOffSaveToApply')}
+              accessibilityLabel={
+                draftAutoSubs
+                  ? t('substitutionBoard.a11y.autoSubsOnSaveToApply')
+                  : t('substitutionBoard.a11y.autoSubsOffSaveToApply')
+              }
               accessibilityState={{ checked: draftAutoSubs }}
-              onPress={() => setDraftAutoSubs(enabled => !enabled)}
+              onPress={() => setDraftAutoSubs((enabled) => !enabled)}
               style={[styles.autoSub, draftAutoSubs ? styles.autoSubOn : null]}
             >
               <Text style={styles.autoSubText}>
@@ -402,20 +464,29 @@ export function SubstitutionBoard({
               towards the bench slid underneath the bench column, which paints
               after it. */}
           <View style={wide ? styles.columns : styles.columnsStacked}>
-            <View style={[
-              styles.column,
-              styles.fieldColumn,
-              drag?.kind === 'field' ? styles.columnCarrying : null,
-            ]}>
-              <Text style={styles.columnTitle}>{t('substitutionBoard.fieldColumn')}</Text>
-              <Text style={styles.columnHint}>{t('substitutionBoard.mostTiredFirst')}</Text>
-              <View style={[
-                wide ? undefined : styles.grid,
-                guideCardId === null ? null : styles.guidedFieldList,
-              ]}>
-                {orderedField.map(player => {
+            <View
+              style={[
+                styles.column,
+                styles.fieldColumn,
+                drag?.kind === 'field' ? styles.columnCarrying : null,
+              ]}
+            >
+              <Text style={styles.columnTitle}>
+                {t('substitutionBoard.fieldColumn')}
+              </Text>
+              <Text style={styles.columnHint}>
+                {t('substitutionBoard.mostTiredFirst')}
+              </Text>
+              <View
+                style={[
+                  wide ? undefined : styles.grid,
+                  guideCardId === null ? null : styles.guidedFieldList,
+                ]}
+              >
+                {orderedField.map((player) => {
                   const incomingId = incomingFor(plan, player.index);
-                  const incoming = incomingId === null ? undefined : subById(incomingId);
+                  const incoming =
+                    incomingId === null ? undefined : subById(incomingId);
                   const id: CardId = `field:${player.index}`;
                   const guided = id === guideCardId;
                   return (
@@ -428,74 +499,111 @@ export function SubstitutionBoard({
                         slot: player.index,
                         isKeeper: (incoming?.role ?? player.role) === 'GK',
                       }}
-                      lit={active !== null && active.id !== id && isEligible(active, id)}
+                      lit={
+                        active !== null &&
+                        active.id !== id &&
+                        isEligible(active, id)
+                      }
                       picked={picked?.id === id}
-                      hint={dropTarget === id ? t('substitutionBoard.dropHintSwap') : null}
-                      guideLabel={guided
-                        ? (wide
-                          ? t('substitutionBoard.guideClickOrDrag')
-                          : t('substitutionBoard.guideTap'))
-                        : undefined}
-                      guideDetail={guided
-                        ? t('substitutionBoard.guideSwapPlayer', {
-                          name: compactName(player.name, !wide),
-                        })
-                        : undefined}
+                      hint={
+                        dropTarget === id
+                          ? t('substitutionBoard.dropHintSwap')
+                          : null
+                      }
+                      guideLabel={
+                        guided
+                          ? wide
+                            ? t('substitutionBoard.guideClickOrDrag')
+                            : t('substitutionBoard.guideTap')
+                          : undefined
+                      }
+                      guideDetail={
+                        guided
+                          ? t('substitutionBoard.guideSwapPlayer', {
+                              name: compactName(player.name, !wide),
+                            })
+                          : undefined
+                      }
                       compact={!wide}
                       dragEnabled={wide}
                       registerCard={registerCard}
                       {...dragProps}
-                      accessibilityLabel={incoming === undefined
-                        ? t('substitutionBoard.a11y.starterEnergy', {
-                          name: player.name,
-                          role: player.role,
-                          percent: Math.round(player.condition),
-                        })
-                        : t('substitutionBoard.a11y.replacementOnFor', {
-                          name: incoming.name,
-                          role: incoming.role,
-                          replaced: player.name,
-                        })}
-                      accessibilityHint={guided
-                        ? wide
-                          ? t('substitutionBoard.a11y.hintGuidedWide')
-                          : t('substitutionBoard.a11y.hintGuidedNarrow')
-                        : picked?.id === id
-                          ? t('substitutionBoard.a11y.hintPutBack')
-                          : incoming === undefined
-                            ? t('substitutionBoard.a11y.hintTradeWithBench')
-                            : t('substitutionBoard.a11y.hintUndoOnBench', { name: player.name })}
-                      style={incoming === undefined
-                        ? styles.card
-                        : [styles.card, styles.cardSwapped]}
+                      accessibilityLabel={
+                        incoming === undefined
+                          ? t('substitutionBoard.a11y.starterEnergy', {
+                              name: player.name,
+                              role: player.role,
+                              percent: Math.round(player.condition),
+                            })
+                          : t('substitutionBoard.a11y.replacementOnFor', {
+                              name: incoming.name,
+                              role: incoming.role,
+                              replaced: player.name,
+                            })
+                      }
+                      accessibilityHint={
+                        guided
+                          ? wide
+                            ? t('substitutionBoard.a11y.hintGuidedWide')
+                            : t('substitutionBoard.a11y.hintGuidedNarrow')
+                          : picked?.id === id
+                            ? t('substitutionBoard.a11y.hintPutBack')
+                            : incoming === undefined
+                              ? t('substitutionBoard.a11y.hintTradeWithBench')
+                              : t('substitutionBoard.a11y.hintUndoOnBench', {
+                                  name: player.name,
+                                })
+                      }
+                      style={
+                        incoming === undefined
+                          ? styles.card
+                          : [styles.card, styles.cardSwapped]
+                      }
                     >
                       <View style={styles.cardCopy}>
                         <Text
                           numberOfLines={1}
                           style={[
-                            incoming === undefined ? styles.name : styles.nameSwapped,
+                            incoming === undefined
+                              ? styles.name
+                              : styles.nameSwapped,
                             POSITION_NAME_STYLE[incoming?.role ?? player.role],
                           ]}
                         >
                           {compactName(incoming?.name ?? player.name, !wide)}
-                          <Text style={styles.role}> {incoming?.role ?? player.role}</Text>
+                          <Text style={styles.role}>
+                            {' '}
+                            {incoming?.role ?? player.role}
+                          </Text>
                         </Text>
                         {incoming === undefined ? (
                           <>
-                            <Text style={styles.meta}>{Math.round(player.condition)}%</Text>
+                            <Text style={styles.meta}>
+                              {Math.round(player.condition)}%
+                            </Text>
                             <View style={styles.energyTrack}>
                               <View
                                 style={[
                                   styles.energyFill,
-                                  { backgroundColor: ENERGY_FILL_COLORS[energyBand(player.condition)] },
-                                  { width: `${Math.max(0, Math.min(100, player.condition))}%` },
+                                  {
+                                    backgroundColor:
+                                      ENERGY_FILL_COLORS[
+                                        energyBand(player.condition)
+                                      ],
+                                  },
+                                  {
+                                    width: `${Math.max(0, Math.min(100, player.condition))}%`,
+                                  },
                                 ]}
                               />
                             </View>
                           </>
                         ) : (
                           <Text style={styles.metaSwapped}>
-                            {filledShirtLabel(compactName(player.name, !wide), t)}
+                            {filledShirtLabel(
+                              compactName(player.name, !wide),
+                              t,
+                            )}
                           </Text>
                         )}
                       </View>
@@ -505,62 +613,111 @@ export function SubstitutionBoard({
               </View>
             </View>
 
-            <View style={[styles.column, drag !== null && drag.kind !== 'field' ? styles.columnCarrying : null]}>
-              <Text style={styles.columnTitle}>{t('substitutionBoard.benchColumn')}</Text>
-              <Text style={styles.columnHint}>{t('substitutionBoard.freshLegsEnterFull')}</Text>
+            <View
+              style={[
+                styles.column,
+                drag !== null && drag.kind !== 'field'
+                  ? styles.columnCarrying
+                  : null,
+              ]}
+            >
+              <Text style={styles.columnTitle}>
+                {t('substitutionBoard.benchColumn')}
+              </Text>
+              <Text style={styles.columnHint}>
+                {t('substitutionBoard.freshLegsEnterFull')}
+              </Text>
               {rows.length === 0 ? (
-                <Text style={styles.emptyBench}>{t('substitutionBoard.benchEmpty')}</Text>
+                <Text style={styles.emptyBench}>
+                  {t('substitutionBoard.benchEmpty')}
+                </Text>
               ) : (
                 <View style={wide ? undefined : styles.grid}>
-                  {rows.map(entry => {
+                  {rows.map((entry) => {
                     if (entry.kind === 'available') {
                       const id: CardId = `sub:${entry.sub.id}`;
-                      const lit = active !== null && active.id !== id && isEligible(active, id);
+                      const lit =
+                        active !== null &&
+                        active.id !== id &&
+                        isEligible(active, id);
                       // While a starter is held or picked, a card that cannot take
                       // them says why — docs/08: nothing refuses silently.
-                      const reason = active === null || active.kind !== 'field' || lit
-                        ? null
-                        : ineligibleTag(entry.sub.role === 'GK', active.isKeeper, atLimit);
+                      const reason =
+                        active === null || active.kind !== 'field' || lit
+                          ? null
+                          : ineligibleTag(
+                              entry.sub.role === 'GK',
+                              active.isKeeper,
+                              atLimit,
+                            );
                       return (
                         <DragCard
                           key={id}
                           id={id}
-                          source={{ id, kind: 'sub', subId: entry.sub.id, isKeeper: entry.sub.role === 'GK' }}
+                          source={{
+                            id,
+                            kind: 'sub',
+                            subId: entry.sub.id,
+                            isKeeper: entry.sub.role === 'GK',
+                          }}
                           lit={lit}
                           picked={picked?.id === id}
-                          hint={dropTarget === id ? t('substitutionBoard.dropHintSwap') : null}
+                          hint={
+                            dropTarget === id
+                              ? t('substitutionBoard.dropHintSwap')
+                              : null
+                          }
                           compact={!wide}
                           dragEnabled={wide}
                           registerCard={registerCard}
                           {...dragProps}
-                          accessibilityLabel={t('substitutionBoard.a11y.benchPlayerFresh', {
-                            name: entry.sub.name,
-                            role: entry.sub.role,
-                          })}
-                          accessibilityHint={picked?.id === id
-                            ? t('substitutionBoard.a11y.hintPutBack')
-                            : t('substitutionBoard.a11y.hintTradeWithField')}
+                          accessibilityLabel={t(
+                            'substitutionBoard.a11y.benchPlayerFresh',
+                            {
+                              name: entry.sub.name,
+                              role: entry.sub.role,
+                            },
+                          )}
+                          accessibilityHint={
+                            picked?.id === id
+                              ? t('substitutionBoard.a11y.hintPutBack')
+                              : t('substitutionBoard.a11y.hintTradeWithField')
+                          }
                           style={styles.card}
                         >
                           <View style={styles.cardCopy}>
                             <Text
                               numberOfLines={1}
-                              style={[styles.name, POSITION_NAME_STYLE[entry.sub.role]]}
+                              style={[
+                                styles.name,
+                                POSITION_NAME_STYLE[entry.sub.role],
+                              ]}
                             >
                               {compactName(entry.sub.name, !wide)}
                               <Text style={styles.role}> {entry.sub.role}</Text>
                             </Text>
-                            <Text style={reason === null ? styles.meta : styles.metaBlocked}>
+                            <Text
+                              style={
+                                reason === null
+                                  ? styles.meta
+                                  : styles.metaBlocked
+                              }
+                            >
                               {reason ?? '100%'}
                             </Text>
                             {/* A full green bar, so a bench player reads against
                                 the field on the same scale instead of asking you
                                 to compare a bar with a bare number. */}
                             <View style={styles.energyTrack}>
-                              <View style={[
-                                styles.energyFill,
-                                { backgroundColor: ENERGY_FILL_COLORS.green, width: '100%' },
-                              ]} />
+                              <View
+                                style={[
+                                  styles.energyFill,
+                                  {
+                                    backgroundColor: ENERGY_FILL_COLORS.green,
+                                    width: '100%',
+                                  },
+                                ]}
+                              />
                             </View>
                           </View>
                         </DragCard>
@@ -571,21 +728,39 @@ export function SubstitutionBoard({
                       <DragCard
                         key={id}
                         id={id}
-                        source={{ id, kind: 'off', slot: entry.starter.index, isKeeper: entry.starter.role === 'GK' }}
-                        lit={active !== null && active.id !== id && isEligible(active, id)}
+                        source={{
+                          id,
+                          kind: 'off',
+                          slot: entry.starter.index,
+                          isKeeper: entry.starter.role === 'GK',
+                        }}
+                        lit={
+                          active !== null &&
+                          active.id !== id &&
+                          isEligible(active, id)
+                        }
                         picked={picked?.id === id}
-                        hint={dropTarget === id ? t('substitutionBoard.dropHintKeepOn') : null}
+                        hint={
+                          dropTarget === id
+                            ? t('substitutionBoard.dropHintKeepOn')
+                            : null
+                        }
                         compact={!wide}
                         dragEnabled={wide}
                         registerCard={registerCard}
                         {...dragProps}
-                        accessibilityLabel={t('substitutionBoard.a11y.starterComingOff', {
-                          name: entry.starter.name,
-                          role: entry.starter.role,
-                        })}
-                        accessibilityHint={picked?.id === id
-                          ? t('substitutionBoard.a11y.hintPutBack')
-                          : t('substitutionBoard.a11y.hintKeepShirtOn')}
+                        accessibilityLabel={t(
+                          'substitutionBoard.a11y.starterComingOff',
+                          {
+                            name: entry.starter.name,
+                            role: entry.starter.role,
+                          },
+                        )}
+                        accessibilityHint={
+                          picked?.id === id
+                            ? t('substitutionBoard.a11y.hintPutBack')
+                            : t('substitutionBoard.a11y.hintKeepShirtOn')
+                        }
                         style={[styles.card, styles.cardDimmed]}
                       >
                         <View style={styles.cardCopy}>
@@ -597,9 +772,14 @@ export function SubstitutionBoard({
                             ]}
                           >
                             {compactName(entry.starter.name, !wide)}
-                            <Text style={styles.roleDimmed}> {entry.starter.role}</Text>
+                            <Text style={styles.roleDimmed}>
+                              {' '}
+                              {entry.starter.role}
+                            </Text>
                           </Text>
-                          <Text style={styles.metaDimmed}>{t('substitutionBoard.comingOff')}</Text>
+                          <Text style={styles.metaDimmed}>
+                            {t('substitutionBoard.comingOff')}
+                          </Text>
                         </View>
                       </DragCard>
                     );
@@ -621,7 +801,9 @@ export function SubstitutionBoard({
         <View style={styles.actions}>
           <LozengeButton
             label={t('substitutionBoard.cancel')}
-            accessibilityLabel={t('substitutionBoard.a11y.cancelAndCloseWithout')}
+            accessibilityLabel={t(
+              'substitutionBoard.a11y.cancelAndCloseWithout',
+            )}
             tone="grey"
             // The board's full-screen scroll/responder stack can cancel the
             // completed web press after the button has already received focus.
@@ -667,7 +849,12 @@ export function SubstitutionBoard({
  */
 function saveAccessibilityLabel(
   t: CopyFn,
-  { saveable, autoChanged, autoSubs, staged }: {
+  {
+    saveable,
+    autoChanged,
+    autoSubs,
+    staged,
+  }: {
     saveable: boolean;
     autoChanged: boolean;
     autoSubs: boolean;
@@ -676,12 +863,17 @@ function saveAccessibilityLabel(
 ): string {
   if (!saveable) return t('substitutionBoard.a11y.nothingToSaveYet');
   if (!autoChanged) {
-    return t('substitutionBoard.a11y.saveSubstitutions', { n: staged, count: staged });
+    return t('substitutionBoard.a11y.saveSubstitutions', {
+      n: staged,
+      count: staged,
+    });
   }
   if (staged === 0) {
-    return t(autoSubs
-      ? 'substitutionBoard.a11y.saveAutoSubsOn'
-      : 'substitutionBoard.a11y.saveAutoSubsOff');
+    return t(
+      autoSubs
+        ? 'substitutionBoard.a11y.saveAutoSubsOn'
+        : 'substitutionBoard.a11y.saveAutoSubsOff',
+    );
   }
   return t(
     autoSubs
@@ -714,8 +906,16 @@ function LozengeButton({
   onPress: () => void;
 }) {
   const styles = usePixelStyles(makeStyles);
-  const face = disabled ? styles.faceDisabled : tone === 'blue' ? styles.faceBlue : styles.faceGrey;
-  const gloss = disabled ? styles.glossDisabled : tone === 'blue' ? styles.glossBlue : styles.glossGrey;
+  const face = disabled
+    ? styles.faceDisabled
+    : tone === 'blue'
+      ? styles.faceBlue
+      : styles.faceGrey;
+  const gloss = disabled
+    ? styles.glossDisabled
+    : tone === 'blue'
+      ? styles.glossBlue
+      : styles.glossGrey;
   return (
     <SfxPressable
       immediatePress
@@ -735,7 +935,10 @@ function LozengeButton({
         face,
         // Opacity is set here so SfxPressable's fallback dim never fires: the
         // pressed state is the drop and the collapsed gloss, not a fade.
-        { opacity: 1, transform: [{ translateY: pressed && !disabled ? 2 : 0 }] },
+        {
+          opacity: 1,
+          transform: [{ translateY: pressed && !disabled ? 2 : 0 }],
+        },
       ]}
     >
       {({ pressed }) => (
@@ -818,10 +1021,29 @@ function DragCard({
    * it closed over would be the plan from the first render, and staging a second
    * swap against that stale copy would silently erase the first.
    */
-  const latest = useRef({ source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, dragEnabled });
-  latest.current = { source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, dragEnabled };
+  const latest = useRef({
+    source,
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+    onDrop,
+    onTap,
+    dragEnabled,
+  });
+  latest.current = {
+    source,
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+    onDrop,
+    onTap,
+    dragEnabled,
+  };
 
-  const tap = useCallback(() => latest.current.onTap(latest.current.source), []);
+  const tap = useCallback(
+    () => latest.current.onTap(latest.current.source),
+    [],
+  );
 
   /**
    * 0 at rest, 1 under the pointer, 2 while carried. One value so a card cannot
@@ -835,7 +1057,10 @@ function DragCard({
       useNativeDriver: true,
     }).start();
   }, [emphasis, hovered, lifted]);
-  const scale = emphasis.interpolate({ inputRange: [0, 1, 2], outputRange: [1, 1.02, 1.06] });
+  const scale = emphasis.interpolate({
+    inputRange: [0, 1, 2],
+    outputRange: [1, 1.02, 1.06],
+  });
 
   const release = useCallback(() => {
     liftedRef.current = false;
@@ -858,11 +1083,19 @@ function DragCard({
       onPanResponderTerminationRequest: () => !liftedRef.current,
       onPanResponderMove: (_event, gesture) => {
         if (!liftedRef.current) {
-          if (Math.abs(gesture.dx) <= TAP_SLOP && Math.abs(gesture.dy) <= TAP_SLOP) return;
+          if (
+            Math.abs(gesture.dx) <= TAP_SLOP &&
+            Math.abs(gesture.dy) <= TAP_SLOP
+          )
+            return;
           lift();
         }
         offset.setValue({ x: gesture.dx, y: gesture.dy });
-        latest.current.onDragMove(latest.current.source, gesture.moveX, gesture.moveY);
+        latest.current.onDragMove(
+          latest.current.source,
+          gesture.moveX,
+          gesture.moveY,
+        );
       },
       onPanResponderRelease: (_event, gesture) => {
         const dropping = liftedRef.current;
@@ -871,7 +1104,8 @@ function DragCard({
         // time to lift under it. Releasing a card onto its own square is never
         // a trade, so on the stacked board — where a card lifts after a hold
         // rather than on movement — a slow tap would otherwise do nothing at all.
-        const still = Math.abs(gesture.dx) <= TAP_SLOP && Math.abs(gesture.dy) <= TAP_SLOP;
+        const still =
+          Math.abs(gesture.dx) <= TAP_SLOP && Math.abs(gesture.dy) <= TAP_SLOP;
         release();
         if (still) {
           pick(from);
@@ -914,9 +1148,11 @@ function DragCard({
       // `aria-selected` is not valid on role="button", so the web drops the
       // accessibilityState below and a screen reader would never learn which
       // card is waiting for a partner.
-      accessibilityLabel={picked
-        ? t('substitutionBoard.a11y.picked', { label: accessibilityLabel })
-        : accessibilityLabel}
+      accessibilityLabel={
+        picked
+          ? t('substitutionBoard.a11y.picked', { label: accessibilityLabel })
+          : accessibilityLabel
+      }
       accessibilityHint={accessibilityHint}
       accessibilityState={{ selected: picked }}
       // A wide dragged View still needs the explicit accessibility action.
@@ -978,7 +1214,7 @@ function keyboardActivation(activate: () => void): object {
 /** Surnames only in a two-up cell, where a full name would not fit. */
 function compactName(name: string, compact: boolean): string {
   if (!compact) return name;
-  const parts = name.split(' ').filter(part => part.length > 0);
+  const parts = name.split(' ').filter((part) => part.length > 0);
   return parts[parts.length - 1] ?? name;
 }
 
@@ -998,255 +1234,362 @@ const POSITION_NAME_STYLE = {
   DEF: { color: '#3f6fb5' },
   GK: { color: '#3f8a4a' },
   MID: { color: '#5b3a91' },
-} as const satisfies Readonly<Record<SubstitutionFieldPlayer['role'], { color: string }>>;
+} as const satisfies Readonly<
+  Record<SubstitutionFieldPlayer['role'], { color: string }>
+>;
 
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    zIndex: 30,
-  },
-  scrim: { flex: 1, backgroundColor: 'rgba(36,31,46,0.72)' },
-  board: {
-    width: '100%',
-    borderWidth: 3,
-    borderColor: INK,
-    borderRadius: 4,
-    backgroundColor: PAPER,
-    padding: 20,
-    gap: 16,
-    // Ink contact shadow rather than a soft blur, per docs/11.
-    shadowColor: INK,
-    shadowOffset: { width: 8, height: 10 },
-    shadowOpacity: 0.55,
-    shadowRadius: 0,
-    elevation: 12,
-  },
-  boardWide: { maxWidth: 920, maxHeight: '92%' },
-  boardNarrow: { maxWidth: 520, maxHeight: '94%' },
-  scroll: { flexGrow: 0, flexShrink: 1 },
-  scrollContent: { gap: 16 },
-  header: { gap: 8 },
-  titleBlock: { minWidth: 0 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  headerControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  eyebrow: { color: '#6b6675', fontFamily: faces.data, fontSize: 13, letterSpacing: 1 },
-  title: { flexShrink: 1, color: INK, fontFamily: faces.display, fontSize: 24, letterSpacing: 1, marginTop: 4 },
-  titleNarrow: { fontSize: 18 },
-  hint: { flex: 1, color: '#6b6675', fontFamily: faces.data, fontSize: 13, letterSpacing: 0.6 },
-  counter: { color: INK, fontFamily: faces.display, fontSize: 18, fontVariant: ['tabular-nums'] },
-  counterSpent: { color: '#a83440' },
-  autoSub: {
-    minHeight: 40,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    borderWidth: 2,
-    borderColor: INK,
-    borderBottomWidth: 4,
-    borderRadius: 3,
-    backgroundColor: '#ffffff',
-  },
-  autoSubOn: { backgroundColor: '#a3c8f0' },
-  autoSubText: { color: INK, fontFamily: faces.display, fontSize: 15 },
-  columns: { flexDirection: 'row', gap: 16 },
-  columnsStacked: { gap: 16 },
-  column: {
-    flex: 1,
-    minWidth: 0,
-    gap: 8,
-    borderWidth: 2,
-    borderColor: INK,
-    borderRadius: 3,
-    backgroundColor: '#ffffff',
-    padding: 12,
-  },
-  fieldColumn: { flexGrow: 1.15 },
-  columnTitle: { color: INK, fontFamily: faces.display, fontSize: 15, letterSpacing: 1 },
-  columnHint: { color: '#9a95a4', fontFamily: faces.data, fontSize: 13, letterSpacing: 0.6, marginTop: -4 },
-  emptyBench: { color: '#9a95a4', fontFamily: faces.data, fontSize: 13, paddingVertical: 12 },
-  // Two names per row on a phone, so a whole squad fits without scrolling.
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  guidedFieldList: { paddingTop: TUTORIAL_TAP_CUE_RESERVED_SPACE },
-  gridCell: { width: '48.5%', minHeight: 64 },
-  card: {
-    minHeight: 58,
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: INK,
-    borderBottomWidth: 4,
-    borderRadius: 3,
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  // Restore the original swapped-shirt treatment: one even 3px dashed frame
-  // and a light tint. Blue replaces the old pre-doc gold so the border keeps
-  // the board's current neutral-action meaning.
-  cardSwapped: {
-    borderWidth: 3,
-    borderBottomWidth: 3,
-    borderColor: '#3f6fb5',
-    borderStyle: 'dashed',
-    backgroundColor: 'rgba(90,143,214,0.12)',
-  },
-  cardDimmed: { backgroundColor: '#f4f1ea', borderColor: '#9a95a4', opacity: 0.6 },
-  cardPointer: { cursor: 'pointer' },
-  cardGuided: {
-    borderColor: '#3f6fb5',
-    borderWidth: 4,
-    backgroundColor: '#c8ddf0',
-    opacity: 1,
-    zIndex: 50,
-    elevation: 14,
-    boxShadow: '0 0 0 4px rgba(90, 143, 214, 0.55)',
-    shadowColor: '#3f6fb5',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-  },
-  cardGuideCue: {
-    left: '50%',
-    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-    bottom: '100%',
-  },
-  // Blue, not gold: docs/08 reserves the gold accent for hero and power moments.
-  cardLit: {
-    borderColor: '#3f6fb5',
-    opacity: 1,
-    boxShadow: '0 0 0 3px rgba(90, 143, 214, 0.45)',
-    shadowColor: '#5a8fd6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 7,
-    elevation: 10,
-  },
-  // Under the pointer but not yet carried: enough to say "this one is live",
-  // deliberately weaker than cardLit so a drop target still wins the eye.
-  cardHovered: {
-    borderColor: '#5a8fd6',
-    boxShadow: '0 0 0 2px rgba(90, 143, 214, 0.25)',
-  },
-  cardLifted: {
-    borderColor: '#3f6fb5',
-    zIndex: 40,
-    elevation: 14,
-    boxShadow: '0 8px 0 0 rgba(36, 31, 46, 0.30), 0 0 0 3px rgba(90, 143, 214, 0.55)',
-    shadowColor: '#241f2e',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 8,
-  },
-  /**
-   * Chosen by tap and waiting for a partner. It reads like a carried card
-   * standing still — same blue, same weight — because that is exactly what it
-   * is: the tap flow's half of a drag.
-   */
-  cardPicked: {
-    borderColor: '#3f6fb5',
-    borderWidth: 4,
-    opacity: 1,
-    zIndex: 30,
-    elevation: 12,
-    boxShadow: '0 0 0 4px rgba(90, 143, 214, 0.55)',
-    shadowColor: '#3f6fb5',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-  },
-  /**
-   * The card the drop would land on. A filled blue face under a heavy ring: at
-   * a glance you can see which bench player is coming on without reading a
-   * word, and it cannot be confused with the softer ring every merely-eligible
-   * card wears.
-   */
-  cardTargeted: {
-    borderColor: '#3f6fb5',
-    backgroundColor: '#a3c8f0',
-    opacity: 1,
-    boxShadow: '0 0 0 4px rgba(63, 111, 181, 0.85)',
-    shadowColor: '#3f6fb5',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    elevation: 12,
-  },
-  /**
-   * The macOS-trash promise: the target says what the release will do, above
-   * the card and pointing down at it, so the badge never covers the name you
-   * are aiming for.
-   */
-  dropHint: {
-    position: 'absolute',
-    top: -30,
-    alignSelf: 'center',
-    alignItems: 'center',
-    zIndex: 60,
-  },
-  dropHintLabel: {
-    color: '#f4f1ea',
-    fontFamily: faces.display,
-    fontSize: 12,
-    letterSpacing: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 2,
-    borderColor: '#f4f1ea',
-    borderRadius: 4,
-    backgroundColor: '#3f6fb5',
-    overflow: 'hidden',
-  },
-  dropHintTail: { color: '#3f6fb5', fontSize: 12, lineHeight: 10, marginTop: -1 },
-  /** Raised so the card being carried out of it clears the other column. */
-  columnCarrying: { zIndex: 30 },
-  cardCopy: { minWidth: 0 },
-  name: { fontFamily: faces.display, fontSize: 15 },
-  nameSwapped: { fontFamily: faces.display, fontSize: 15 },
-  nameDimmed: { fontFamily: faces.display, fontSize: 15 },
-  role: { color: '#6b6675', fontFamily: faces.display, fontSize: 13, letterSpacing: 0.5 },
-  roleDimmed: { color: '#9a95a4', fontFamily: faces.display, fontSize: 13, letterSpacing: 0.5 },
-  meta: { color: '#6b6675', fontFamily: faces.data, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
-  metaSwapped: { color: '#3f6fb5', fontFamily: faces.data, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
-  metaBlocked: { color: '#a83440', fontFamily: faces.data, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
-  metaDimmed: { color: '#9a95a4', fontFamily: faces.data, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
-  energyTrack: { height: 6, marginTop: 6, backgroundColor: '#d9d3e0', overflow: 'hidden' },
-  energyFill: { height: 6 },
-  note: { color: '#6b6675', fontFamily: faces.data, fontSize: 13, letterSpacing: 0.6, lineHeight: 20 },
-  noteSpent: { color: '#a83440' },
-  actions: { flexDirection: 'row', gap: 12 },
-  button: {
-    flex: 1,
-    minHeight: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: INK,
-    borderBottomWidth: 5,
-    borderRadius: 4,
-    paddingHorizontal: 10,
-  },
-  buttonWide: { flex: 1.4 },
-  faceBlue: { backgroundColor: '#5a8fd6', borderBottomColor: '#3f6fb5' },
-  faceGrey: { backgroundColor: '#9a95a4', borderBottomColor: '#6b6675' },
-  faceDisabled: { backgroundColor: '#c9c5d0', borderBottomColor: '#9a95a4' },
-  // The gloss is a bold band across the top 40%, not a hairline.
-  gloss: { position: 'absolute', top: 0, left: 0, right: 0, height: '40%' },
-  glossBlue: { backgroundColor: '#a3c8f0' },
-  glossGrey: { backgroundColor: '#c9c5d0' },
-  glossDisabled: { backgroundColor: '#d9d3e0' },
-  buttonLabel: {
-    color: PAPER,
-    fontFamily: faces.display,
-    fontSize: 13,
-    letterSpacing: 1,
-    textShadowColor: INK,
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 0,
-  },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    overlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+      zIndex: 30,
+    },
+    scrim: { flex: 1, backgroundColor: 'rgba(36,31,46,0.72)' },
+    board: {
+      width: '100%',
+      borderWidth: 3,
+      borderColor: INK,
+      borderRadius: 4,
+      backgroundColor: PAPER,
+      padding: 20,
+      gap: 16,
+      // Ink contact shadow rather than a soft blur, per docs/11.
+      shadowColor: INK,
+      shadowOffset: { width: 8, height: 10 },
+      shadowOpacity: 0.55,
+      shadowRadius: 0,
+      elevation: 12,
+    },
+    boardWide: { maxWidth: 920, maxHeight: '92%' },
+    boardNarrow: { maxWidth: 520, maxHeight: '94%' },
+    scroll: { flexGrow: 0, flexShrink: 1 },
+    scrollContent: { gap: 16 },
+    header: { gap: 8 },
+    titleBlock: { minWidth: 0 },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    headerControls: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    eyebrow: {
+      color: '#6b6675',
+      fontFamily: faces.data,
+      fontSize: 13,
+      letterSpacing: 1,
+    },
+    title: {
+      flexShrink: 1,
+      color: INK,
+      fontFamily: faces.display,
+      fontSize: 24,
+      letterSpacing: 1,
+      marginTop: 4,
+    },
+    titleNarrow: { fontSize: 18 },
+    hint: {
+      flex: 1,
+      color: '#6b6675',
+      fontFamily: faces.data,
+      fontSize: 13,
+      letterSpacing: 0.6,
+    },
+    counter: {
+      color: INK,
+      fontFamily: faces.display,
+      fontSize: 18,
+      fontVariant: ['tabular-nums'],
+    },
+    counterSpent: { color: '#a83440' },
+    autoSub: {
+      minHeight: 40,
+      justifyContent: 'center',
+      paddingHorizontal: 12,
+      borderWidth: 2,
+      borderColor: INK,
+      borderBottomWidth: 4,
+      borderRadius: 3,
+      backgroundColor: '#ffffff',
+    },
+    autoSubOn: { backgroundColor: '#a3c8f0' },
+    autoSubText: { color: INK, fontFamily: faces.display, fontSize: 15 },
+    columns: { flexDirection: 'row', gap: 16 },
+    columnsStacked: { gap: 16 },
+    column: {
+      flex: 1,
+      minWidth: 0,
+      gap: 8,
+      borderWidth: 2,
+      borderColor: INK,
+      borderRadius: 3,
+      backgroundColor: '#ffffff',
+      padding: 12,
+    },
+    fieldColumn: { flexGrow: 1.15 },
+    columnTitle: {
+      color: INK,
+      fontFamily: faces.display,
+      fontSize: 15,
+      letterSpacing: 1,
+    },
+    columnHint: {
+      color: '#9a95a4',
+      fontFamily: faces.data,
+      fontSize: 13,
+      letterSpacing: 0.6,
+      marginTop: -4,
+    },
+    emptyBench: {
+      color: '#9a95a4',
+      fontFamily: faces.data,
+      fontSize: 13,
+      paddingVertical: 12,
+    },
+    // Two names per row on a phone, so a whole squad fits without scrolling.
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    guidedFieldList: { paddingTop: TUTORIAL_TAP_CUE_RESERVED_SPACE },
+    gridCell: { width: '48.5%', minHeight: 64 },
+    card: {
+      minHeight: 58,
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: INK,
+      borderBottomWidth: 4,
+      borderRadius: 3,
+      backgroundColor: '#ffffff',
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    // Restore the original swapped-shirt treatment: one even 3px dashed frame
+    // and a light tint. Blue replaces the old pre-doc gold so the border keeps
+    // the board's current neutral-action meaning.
+    cardSwapped: {
+      borderWidth: 3,
+      borderBottomWidth: 3,
+      borderColor: '#3f6fb5',
+      borderStyle: 'dashed',
+      backgroundColor: 'rgba(90,143,214,0.12)',
+    },
+    cardDimmed: {
+      backgroundColor: '#f4f1ea',
+      borderColor: '#9a95a4',
+      opacity: 0.6,
+    },
+    cardPointer: { cursor: 'pointer' },
+    cardGuided: {
+      borderColor: '#3f6fb5',
+      borderWidth: 4,
+      backgroundColor: '#c8ddf0',
+      opacity: 1,
+      zIndex: 50,
+      elevation: 14,
+      boxShadow: '0 0 0 4px rgba(90, 143, 214, 0.55)',
+      shadowColor: '#3f6fb5',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 1,
+      shadowRadius: 8,
+    },
+    cardGuideCue: {
+      left: '50%',
+      marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+      bottom: '100%',
+    },
+    // Blue, not gold: docs/08 reserves the gold accent for hero and power moments.
+    cardLit: {
+      borderColor: '#3f6fb5',
+      opacity: 1,
+      boxShadow: '0 0 0 3px rgba(90, 143, 214, 0.45)',
+      shadowColor: '#5a8fd6',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 1,
+      shadowRadius: 7,
+      elevation: 10,
+    },
+    // Under the pointer but not yet carried: enough to say "this one is live",
+    // deliberately weaker than cardLit so a drop target still wins the eye.
+    cardHovered: {
+      borderColor: '#5a8fd6',
+      boxShadow: '0 0 0 2px rgba(90, 143, 214, 0.25)',
+    },
+    cardLifted: {
+      borderColor: '#3f6fb5',
+      zIndex: 40,
+      elevation: 14,
+      boxShadow:
+        '0 8px 0 0 rgba(36, 31, 46, 0.30), 0 0 0 3px rgba(90, 143, 214, 0.55)',
+      shadowColor: '#241f2e',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.45,
+      shadowRadius: 8,
+    },
+    /**
+     * Chosen by tap and waiting for a partner. It reads like a carried card
+     * standing still — same blue, same weight — because that is exactly what it
+     * is: the tap flow's half of a drag.
+     */
+    cardPicked: {
+      borderColor: '#3f6fb5',
+      borderWidth: 4,
+      opacity: 1,
+      zIndex: 30,
+      elevation: 12,
+      boxShadow: '0 0 0 4px rgba(90, 143, 214, 0.55)',
+      shadowColor: '#3f6fb5',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 1,
+      shadowRadius: 8,
+    },
+    /**
+     * The card the drop would land on. A filled blue face under a heavy ring: at
+     * a glance you can see which bench player is coming on without reading a
+     * word, and it cannot be confused with the softer ring every merely-eligible
+     * card wears.
+     */
+    cardTargeted: {
+      borderColor: '#3f6fb5',
+      backgroundColor: '#a3c8f0',
+      opacity: 1,
+      boxShadow: '0 0 0 4px rgba(63, 111, 181, 0.85)',
+      shadowColor: '#3f6fb5',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 1,
+      shadowRadius: 10,
+      elevation: 12,
+    },
+    /**
+     * The macOS-trash promise: the target says what the release will do, above
+     * the card and pointing down at it, so the badge never covers the name you
+     * are aiming for.
+     */
+    dropHint: {
+      position: 'absolute',
+      top: -30,
+      alignSelf: 'center',
+      alignItems: 'center',
+      zIndex: 60,
+    },
+    dropHintLabel: {
+      color: '#f4f1ea',
+      fontFamily: faces.display,
+      fontSize: 12,
+      letterSpacing: 1,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderWidth: 2,
+      borderColor: '#f4f1ea',
+      borderRadius: 4,
+      backgroundColor: '#3f6fb5',
+      overflow: 'hidden',
+    },
+    dropHintTail: {
+      color: '#3f6fb5',
+      fontSize: 12,
+      lineHeight: 10,
+      marginTop: -1,
+    },
+    /** Raised so the card being carried out of it clears the other column. */
+    columnCarrying: { zIndex: 30 },
+    cardCopy: { minWidth: 0 },
+    name: { fontFamily: faces.display, fontSize: 15 },
+    nameSwapped: { fontFamily: faces.display, fontSize: 15 },
+    nameDimmed: { fontFamily: faces.display, fontSize: 15 },
+    role: {
+      color: '#6b6675',
+      fontFamily: faces.display,
+      fontSize: 13,
+      letterSpacing: 0.5,
+    },
+    roleDimmed: {
+      color: '#9a95a4',
+      fontFamily: faces.display,
+      fontSize: 13,
+      letterSpacing: 0.5,
+    },
+    meta: {
+      color: '#6b6675',
+      fontFamily: faces.data,
+      fontSize: 13,
+      marginTop: 4,
+      letterSpacing: 0.6,
+    },
+    metaSwapped: {
+      color: '#3f6fb5',
+      fontFamily: faces.data,
+      fontSize: 13,
+      marginTop: 4,
+      letterSpacing: 0.6,
+    },
+    metaBlocked: {
+      color: '#a83440',
+      fontFamily: faces.data,
+      fontSize: 13,
+      marginTop: 4,
+      letterSpacing: 0.6,
+    },
+    metaDimmed: {
+      color: '#9a95a4',
+      fontFamily: faces.data,
+      fontSize: 13,
+      marginTop: 4,
+      letterSpacing: 0.6,
+    },
+    energyTrack: {
+      height: 6,
+      marginTop: 6,
+      backgroundColor: '#d9d3e0',
+      overflow: 'hidden',
+    },
+    energyFill: { height: 6 },
+    note: {
+      color: '#6b6675',
+      fontFamily: faces.data,
+      fontSize: 13,
+      letterSpacing: 0.6,
+      lineHeight: 20,
+    },
+    noteSpent: { color: '#a83440' },
+    actions: { flexDirection: 'row', gap: 12 },
+    button: {
+      flex: 1,
+      minHeight: 52,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      borderWidth: 2,
+      borderColor: INK,
+      borderBottomWidth: 5,
+      borderRadius: 4,
+      paddingHorizontal: 10,
+    },
+    buttonWide: { flex: 1.4 },
+    faceBlue: { backgroundColor: '#5a8fd6', borderBottomColor: '#3f6fb5' },
+    faceGrey: { backgroundColor: '#9a95a4', borderBottomColor: '#6b6675' },
+    faceDisabled: { backgroundColor: '#c9c5d0', borderBottomColor: '#9a95a4' },
+    // The gloss is a bold band across the top 40%, not a hairline.
+    gloss: { position: 'absolute', top: 0, left: 0, right: 0, height: '40%' },
+    glossBlue: { backgroundColor: '#a3c8f0' },
+    glossGrey: { backgroundColor: '#c9c5d0' },
+    glossDisabled: { backgroundColor: '#d9d3e0' },
+    buttonLabel: {
+      color: PAPER,
+      fontFamily: faces.display,
+      fontSize: 13,
+      letterSpacing: 1,
+      textShadowColor: INK,
+      textShadowOffset: { width: 1, height: 1 },
+      textShadowRadius: 0,
+    },
+  });

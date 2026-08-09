@@ -4,7 +4,11 @@
 // accessibility labels keep testing the copy that actually ships.
 jest.mock('../../i18n', () => {
   const actual = jest.requireActual('../../i18n');
-  return { ...actual, useLocale: () => 'en', useCopy: () => actual.copyFor('en') };
+  return {
+    ...actual,
+    useLocale: () => 'en',
+    useCopy: () => actual.copyFor('en'),
+  };
 });
 
 jest.mock('react-native', () => ({
@@ -33,7 +37,8 @@ function findByAccessibilityLabel(
 ): { props: Record<string, unknown> } | undefined {
   if (node === null || typeof node !== 'object') return undefined;
   const element = node as { props?: Record<string, unknown> };
-  if (element.props?.accessibilityLabel === label) return element as { props: Record<string, unknown> };
+  if (element.props?.accessibilityLabel === label)
+    return element as { props: Record<string, unknown> };
   const children = element.props?.children;
   const childList = Array.isArray(children) ? children : [children];
   for (const child of childList) {
@@ -48,7 +53,10 @@ function findByAccessibilityLabel(
  * them exists to search for. Which one the panel holds is decided by the props
  * it was handed — `viewModel` for the record, `content` for the glossary.
  */
-function findByProp(node: unknown, prop: string): { props: Record<string, unknown> } | undefined {
+function findByProp(
+  node: unknown,
+  prop: string,
+): { props: Record<string, unknown> } | undefined {
   if (node === null || typeof node !== 'object') return undefined;
   const element = node as { props?: Record<string, unknown> };
   if (element.props !== undefined && prop in element.props) {
@@ -128,13 +136,15 @@ describe('the Hall of Fame row in Settings', () => {
     const element = overlay({});
 
     expect(findByAccessibilityLabel(element, OPEN_LABEL)).toBeUndefined();
-    expect(findByAccessibilityLabel(element, LOCKED_LABEL))
-      .toBeUndefined();
+    expect(findByAccessibilityLabel(element, LOCKED_LABEL)).toBeUndefined();
   });
 
   it('offers the locked page while the climb is unfinished', () => {
     const onHallOfFameOpenChange = jest.fn();
-    const element = overlay({ hallOfFame: viewModel(), onHallOfFameOpenChange });
+    const element = overlay({
+      hallOfFame: viewModel(),
+      onHallOfFameOpenChange,
+    });
     const row = findByAccessibilityLabel(element, LOCKED_LABEL);
 
     expect(row).toBeDefined();
@@ -147,8 +157,7 @@ describe('the Hall of Fame row in Settings', () => {
     const element = overlay({ hallOfFame: viewModel(RECORD) });
 
     expect(findByAccessibilityLabel(element, OPEN_LABEL)).toBeDefined();
-    expect(findByAccessibilityLabel(element, LOCKED_LABEL))
-      .toBeUndefined();
+    expect(findByAccessibilityLabel(element, LOCKED_LABEL)).toBeUndefined();
   });
 
   it('replaces the settings list with the page while it is open', () => {
@@ -161,7 +170,9 @@ describe('the Hall of Fame row in Settings', () => {
 
     expect(findByProp(element, 'viewModel')?.props.viewModel).toBe(page);
     expect(findByAccessibilityLabel(element, 'Open glossary')).toBeUndefined();
-    expect(findByAccessibilityLabel(element, 'Open the Hall of Fame')).toBeUndefined();
+    expect(
+      findByAccessibilityLabel(element, 'Open the Hall of Fame'),
+    ).toBeUndefined();
   });
 
   /** The glossary is the older sub-page and still wins the panel. */

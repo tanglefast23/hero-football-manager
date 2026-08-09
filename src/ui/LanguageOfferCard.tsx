@@ -35,7 +35,11 @@ export interface LanguageOfferCardProps {
  * asked, not the answer, so choosing English does not mean being asked again on
  * the next launch.
  */
-export function LanguageOfferCard({ offered, onKeep, onUseEnglish }: LanguageOfferCardProps) {
+export function LanguageOfferCard({
+  offered,
+  onKeep,
+  onUseEnglish,
+}: LanguageOfferCardProps) {
   const t = useCopy();
   if (offered === null) return null;
   const language = localeMeta(offered).endonym;
@@ -66,8 +70,8 @@ export function LanguageOfferCard({ offered, onKeep, onUseEnglish }: LanguageOff
                   way out for someone who cannot read a word of the rest — which
                   is also why its spoken label is English. */}
               <ActionButton
-                label="English"
-                accessibilityLabel="Switch to English"
+                label={t('languageOffer.english')}
+                accessibilityLabel={t('languageOffer.a11y.switchToEnglish')}
                 onPress={onUseEnglish}
                 variant="paper"
               />

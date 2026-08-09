@@ -93,10 +93,15 @@ import {
 } from '../../game';
 import { willRetireAtSeasonTransition } from '../../game/m2-career';
 import { resolveMatchday } from '../../game/matchday';
-import { eligibleAskers, starQualifiers, weightForPlayer } from '../../game/player-requests';
+import {
+  eligibleAskers,
+  starQualifiers,
+  weightForPlayer,
+} from '../../game/player-requests';
 import { buildCareerMatchTeams } from '../../game/squad';
 
-const describeProbe = process.env.PLAYER_REQUEST_CADENCE_PROBE === '1' ? describe : describe.skip;
+const describeProbe =
+  process.env.PLAYER_REQUEST_CADENCE_PROBE === '1' ? describe : describe.skip;
 const content = loadLaunchContent();
 const TUNING = content.playerRequests.tuning;
 
@@ -131,7 +136,7 @@ function newCareer(seed: number): GameState {
 }
 
 function userSquad(state: GameState): GameState['players'] {
-  return state.players.filter(player => player.clubId === state.userClubId);
+  return state.players.filter((player) => player.clubId === state.userClubId);
 }
 
 /** `advancePlayerRequests`'s own star test, recomputed so the reason is visible. */
@@ -145,25 +150,37 @@ function starReading(
   );
   const squad = userSquad(state);
   const fameStars = squad.filter(
-    player => (player.fame ?? 0) >= TUNING.starFameThreshold,
+    (player) => (player.fame ?? 0) >= TUNING.starFameThreshold,
   ).length;
-  const goalStars = squad.filter(player => qualifiers.includes(player.id)).length;
+  const goalStars = squad.filter((player) =>
+    qualifiers.includes(player.id),
+  ).length;
   return {
     hasStar: squad.some(
-      player => weightForPlayer(player, qualifiers, TUNING.starFameThreshold) > 1,
+      (player) =>
+        weightForPlayer(player, qualifiers, TUNING.starFameThreshold) > 1,
     ),
     fameStars,
     goalStars,
-    topFame: squad.length === 0 ? 0 : Math.max(...squad.map(player => player.fame ?? 0)),
+    topFame:
+      squad.length === 0
+        ? 0
+        : Math.max(...squad.map((player) => player.fame ?? 0)),
   };
 }
 
 function playMatchday(state: GameState): GameState {
   const matchday = activeCareerMatchday(state);
-  if (matchday === undefined) throw new Error('matchday phase without an active fixture');
-  const clubIds = [...new Set(matchday.fixtures.flatMap(
-    fixture => [fixture.homeClubId, fixture.awayClubId],
-  ))];
+  if (matchday === undefined)
+    throw new Error('matchday phase without an active fixture');
+  const clubIds = [
+    ...new Set(
+      matchday.fixtures.flatMap((fixture) => [
+        fixture.homeClubId,
+        fixture.awayClubId,
+      ]),
+    ),
+  ];
   return completeMatchday(
     state,
     resolveMatchday(matchday.fixtures, buildCareerMatchTeams(state, clubIds)),
@@ -184,14 +201,16 @@ function runCareer(seed: number): WeekRow[] {
 
   while (state.season <= SEASONS) {
     guard += 1;
-    if (guard > SEASONS * 400) throw new Error('cadence probe exceeded its transition budget');
+    if (guard > SEASONS * 400)
+      throw new Error('cadence probe exceeded its transition budget');
 
     if (state.phase === 'season-end') {
       if (state.season >= SEASONS) break;
-      for (const player of userSquad(state).filter(candidate => (
-        candidate.contractSeasonsRemaining === 0
-        && !willRetireAtSeasonTransition(candidate, state.season)
-      ))) {
+      for (const player of userSquad(state).filter(
+        (candidate) =>
+          candidate.contractSeasonsRemaining === 0 &&
+          !willRetireAtSeasonTransition(candidate, state.season),
+      )) {
         state = renewCareerPlayer(state, player.id, 4, 1);
       }
       state = startNextSeason(state);
@@ -207,8 +226,9 @@ function runCareer(seed: number): WeekRow[] {
     state = settling ? playMatchday(before) : advanceWeek(before);
     if (!settling && state.phase === 'matchday') continue;
 
-    const opensRequests = before.season > TUNING.startSeason
-      || (before.season === TUNING.startSeason && before.week >= TUNING.startWeek);
+    const opensRequests =
+      before.season > TUNING.startSeason ||
+      (before.season === TUNING.startSeason && before.week >= TUNING.startWeek);
     const pendingAfter = state.playerRequests?.pending;
     if (opensRequests && state.phase !== 'season-end') {
       rows.push({
@@ -223,7 +243,8 @@ function runCareer(seed: number): WeekRow[] {
           minSeasonsAtClub: TUNING.minSeasonsAtClub,
           absence: false,
         }).length,
-        ...(pendingAfter !== undefined && pendingAfter.requestId !== pendingBefore
+        ...(pendingAfter !== undefined &&
+        pendingAfter.requestId !== pendingBefore
           ? { opened: pendingAfter.requestId }
           : {}),
       });
@@ -239,50 +260,64 @@ describeProbe('the player request cadence over a real career', () => {
     const lines = [
       '',
       `star fame >= ${TUNING.starFameThreshold} · top-${TUNING.starGoalRank} league scorers also count`,
-      `cadence COZY  no star ${cadence.minWeeks}-${cadence.guaranteeWeeks} wk`
-        + `  star ${cadence.starMinWeeks}-${cadence.starGuaranteeWeeks} wk`,
+      `cadence COZY  no star ${cadence.minWeeks}-${cadence.guaranteeWeeks} wk` +
+        `  star ${cadence.starMinWeeks}-${cadence.starGuaranteeWeeks} wk`,
       '',
     ];
 
     for (const seed of SEEDS) {
       const rows = runCareer(seed);
-      const starless = rows.filter(row => !row.hasStar);
-      const firstStar = rows.find(row => row.hasStar);
+      const starless = rows.filter((row) => !row.hasStar);
+      const firstStar = rows.find((row) => row.hasStar);
       lines.push(`seed ${seed}`);
       lines.push(
-        `  weeks recorded ${rows.length} · starless ${starless.length}`
-        + ` · first star ${firstStar === undefined ? 'never' : `S${firstStar.season} W${firstStar.week}`}`,
+        `  weeks recorded ${rows.length} · starless ${starless.length}` +
+          ` · first star ${firstStar === undefined ? 'never' : `S${firstStar.season} W${firstStar.week}`}`,
       );
       lines.push(
-        '  season  wks  starless  topFame  fameStars  goalStars  maxClock  minPool'
-        + '  opens  starlessOpens',
+        '  season  wks  starless  topFame  fameStars  goalStars  maxClock  minPool' +
+          '  opens  starlessOpens',
       );
       for (let season = TUNING.startSeason; season <= SEASONS; season += 1) {
-        const inSeason = rows.filter(row => row.season === season);
+        const inSeason = rows.filter((row) => row.season === season);
         if (inSeason.length === 0) continue;
-        lines.push([
-          String(season).padStart(8),
-          String(inSeason.length).padStart(5),
-          String(inSeason.filter(row => !row.hasStar).length).padStart(10),
-          String(Math.max(...inSeason.map(row => row.topFame))).padStart(9),
-          String(Math.max(...inSeason.map(row => row.fameStars))).padStart(11),
-          String(Math.max(...inSeason.map(row => row.goalStars))).padStart(11),
-          String(Math.max(...inSeason.map(row => row.weeksSinceRequest))).padStart(10),
-          String(Math.min(...inSeason.map(row => row.eligible))).padStart(9),
-          String(inSeason.filter(row => row.opened !== undefined).length).padStart(7),
-          String(inSeason.filter(row => row.opened !== undefined && !row.hasStar).length)
-            .padStart(15),
-        ].join(''));
+        lines.push(
+          [
+            String(season).padStart(8),
+            String(inSeason.length).padStart(5),
+            String(inSeason.filter((row) => !row.hasStar).length).padStart(10),
+            String(Math.max(...inSeason.map((row) => row.topFame))).padStart(9),
+            String(Math.max(...inSeason.map((row) => row.fameStars))).padStart(
+              11,
+            ),
+            String(Math.max(...inSeason.map((row) => row.goalStars))).padStart(
+              11,
+            ),
+            String(
+              Math.max(...inSeason.map((row) => row.weeksSinceRequest)),
+            ).padStart(10),
+            String(Math.min(...inSeason.map((row) => row.eligible))).padStart(
+              9,
+            ),
+            String(
+              inSeason.filter((row) => row.opened !== undefined).length,
+            ).padStart(7),
+            String(
+              inSeason.filter((row) => row.opened !== undefined && !row.hasStar)
+                .length,
+            ).padStart(15),
+          ].join(''),
+        );
       }
 
       lines.push('  every ask, with the clock it arrived on:');
-      for (const row of rows.filter(item => item.opened !== undefined)) {
+      for (const row of rows.filter((item) => item.opened !== undefined)) {
         lines.push(
-          `    S${row.season} W${String(row.week).padStart(2)}`
-          + `  since=${String(row.weeksSinceRequest).padStart(2)}`
-          + `  ${row.hasStar ? 'STAR   ' : 'NO STAR'}`
-          + `  fame=${row.fameStars} goals=${row.goalStars}`
-          + `  ${row.opened}`,
+          `    S${row.season} W${String(row.week).padStart(2)}` +
+            `  since=${String(row.weeksSinceRequest).padStart(2)}` +
+            `  ${row.hasStar ? 'STAR   ' : 'NO STAR'}` +
+            `  fame=${row.fameStars} goals=${row.goalStars}` +
+            `  ${row.opened}`,
         );
       }
       lines.push('');

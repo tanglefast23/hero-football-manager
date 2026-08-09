@@ -117,7 +117,10 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
 const players = new Map<ManagementSfxKey, AudioPlayer>();
 const ownedPlayers = new Set<AudioPlayer>();
 type RapidManagementSfxKey = 'ui-click' | 'stat-step';
-const RAPID_SFX_KEYS: readonly RapidManagementSfxKey[] = ['ui-click', 'stat-step'];
+const RAPID_SFX_KEYS: readonly RapidManagementSfxKey[] = [
+  'ui-click',
+  'stat-step',
+];
 const RAPID_SFX_POOL_SIZE = 4;
 const rapidPlayers = new Map<RapidManagementSfxKey, AudioPlayer[]>();
 const rapidPlayerCursor = new Map<RapidManagementSfxKey, number>();
@@ -173,7 +176,10 @@ function initManagementSfx(): void {
   } catch (error) {
     // No audio module at all (headless Jest, an out-of-date dev client) — the
     // whole catalog is unavailable and every play() becomes a no-op.
-    warnOnce('initialization failed; review sounds disabled for this session', error);
+    warnOnce(
+      'initialization failed; review sounds disabled for this session',
+      error,
+    );
     return;
   }
   // One cue failing to load is that cue's problem. Clearing the map on the first
@@ -189,7 +195,10 @@ function initManagementSfx(): void {
       players.set(key, player);
       ownedPlayers.add(player);
     } catch (error) {
-      warnOnce(`${key} failed to load; that cue is silent for this session`, error);
+      warnOnce(
+        `${key} failed to load; that cue is silent for this session`,
+        error,
+      );
     }
   }
 
@@ -210,7 +219,10 @@ function initManagementSfx(): void {
         pool.push(player);
         ownedPlayers.add(player);
       } catch (error) {
-        warnOnce(`${key} rapid player failed to load; repeated taps may be delayed`, error);
+        warnOnce(
+          `${key} rapid player failed to load; repeated taps may be delayed`,
+          error,
+        );
         break;
       }
     }
@@ -247,13 +259,18 @@ export function playDrillResultSfx(streak: number): void {
   if (player === undefined || masterVolume === 0) return;
   try {
     const rate = 1 + 0.06 * Math.max(0, Math.min(streak, 8));
-    (player as unknown as { setPlaybackRate?: (rate: number) => void }).setPlaybackRate?.(rate);
+    (
+      player as unknown as { setPlaybackRate?: (rate: number) => void }
+    ).setPlaybackRate?.(rate);
   } catch (error) {
     warnOnce('training-ding pitch adjust failed', error);
   }
-  player.seekTo(0)
+  player
+    .seekTo(0)
     .then(() => player.play())
-    .catch((error: unknown) => warnOnce('training-ding playback failed', error));
+    .catch((error: unknown) =>
+      warnOnce('training-ding playback failed', error),
+    );
 }
 
 /** Big celebratory hit for a SUPER training session. */
@@ -432,8 +449,10 @@ function playManagementSfx(key: ManagementSfxKey): void {
       }
       warnOnce(label, error);
     };
-    const rapidKey = key === 'ui-click' || key === 'stat-step' ? key : undefined;
-    const player = rapidKey === undefined ? players.get(key) : nextRapidPlayer(rapidKey);
+    const rapidKey =
+      key === 'ui-click' || key === 'stat-step' ? key : undefined;
+    const player =
+      rapidKey === undefined ? players.get(key) : nextRapidPlayer(rapidKey);
     if (player === undefined || masterVolume === 0) return;
     if (rapidKey !== undefined) varyRapidPitch(rapidKey, player);
     // Every cue rewinds before it plays, rapid ones included. A voice parked at
@@ -445,7 +464,8 @@ function playManagementSfx(key: ManagementSfxKey): void {
     // what keeps quick repeats from cutting each other off; the seek is what
     // makes each press sound exactly once.
     try {
-      player.seekTo(0)
+      player
+        .seekTo(0)
         .then(() => player.play())
         .catch((error: unknown) => recoverOr(`${key} playback failed`, error));
     } catch (error) {
@@ -478,7 +498,9 @@ const RAPID_SFX_PITCH_SPREAD = 0.04;
 function varyRapidPitch(key: RapidManagementSfxKey, player: AudioPlayer): void {
   const rate = 1 + (Math.random() * 2 - 1) * RAPID_SFX_PITCH_SPREAD;
   try {
-    (player as unknown as { setPlaybackRate?: (rate: number) => void }).setPlaybackRate?.(rate);
+    (
+      player as unknown as { setPlaybackRate?: (rate: number) => void }
+    ).setPlaybackRate?.(rate);
   } catch (error) {
     warnOnce(`${key} pitch vary failed`, error);
   }

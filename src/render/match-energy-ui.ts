@@ -24,12 +24,18 @@ const ENERGY_USE_ACCESSIBILITY_KEYS: Readonly<Record<EnergyUse, string>> = {
 };
 
 /** The button word for an energy mode — "SAVE ENERGY", "BALANCED", "ALL OUT". */
-export function energyUseLabel(mode: EnergyUse, t: CopyFn = englishCopy()): string {
+export function energyUseLabel(
+  mode: EnergyUse,
+  t: CopyFn = englishCopy(),
+): string {
   return t(ENERGY_USE_LABEL_KEYS[mode]);
 }
 
 /** What that mode does, for a screen reader. */
-export function energyUseAccessibility(mode: EnergyUse, t: CopyFn = englishCopy()): string {
+export function energyUseAccessibility(
+  mode: EnergyUse,
+  t: CopyFn = englishCopy(),
+): string {
   return t(ENERGY_USE_ACCESSIBILITY_KEYS[mode]);
 }
 
@@ -64,6 +70,8 @@ export function summarizeTeamEnergy(conditions: readonly number[]): {
   const total = conditions.reduce((sum, condition) => sum + condition, 0);
   return {
     average: Math.round(total / conditions.length),
-    tiredCount: conditions.filter((condition) => condition <= TIRED_ENERGY_THRESHOLD).length,
+    tiredCount: conditions.filter(
+      (condition) => condition <= TIRED_ENERGY_THRESHOLD,
+    ).length,
   };
 }

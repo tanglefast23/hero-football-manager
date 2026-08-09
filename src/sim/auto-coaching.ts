@@ -19,21 +19,40 @@ const AUTO_SUB_MIN_ENTRY_CONDITION = AUTO_SUB_CONDITION;
 // Preserve the old D5 boundary exactly: at the scheduled threshold, a fresh
 // 48-rated reserve clears the three-point effective improvement over a tired
 // 50-rated starter, while a 47-rated reserve does not.
-const ROLE_VALUE_MARGIN_D64 = (
-  ratingD64(48) - ratingD64(50) - conditionD64(AUTO_SUB_CONDITION)
-);
+const ROLE_VALUE_MARGIN_D64 =
+  ratingD64(48) - ratingD64(50) - conditionD64(AUTO_SUB_CONDITION);
 
 function tickForMinute(minute: number): number {
-  return Math.round(TOTAL_TICKS * minute / 90);
+  return Math.round((TOTAL_TICKS * minute) / 90);
 }
 
 export const AUTO_SUBSTITUTION_TICKS = SUBSTITUTION_MINUTES.map(tickForMinute);
 export const AUTO_ENERGY_USE_TICKS = ENERGY_USE_MINUTES.map(tickForMinute);
 
-const ROLE_WEIGHTS: Readonly<Record<Exclude<Role, 'GK'>, ReadonlyArray<readonly [keyof PlayerDef['attrs'], number]>>> = {
-  DEF: [['def', 50], ['pac', 20], ['pas', 15], ['tec', 15]],
-  MID: [['pas', 35], ['tec', 30], ['pac', 20], ['def', 15]],
-  FWD: [['sho', 40], ['tec', 25], ['pac', 20], ['pas', 15]],
+const ROLE_WEIGHTS: Readonly<
+  Record<
+    Exclude<Role, 'GK'>,
+    ReadonlyArray<readonly [keyof PlayerDef['attrs'], number]>
+  >
+> = {
+  DEF: [
+    ['def', 50],
+    ['pac', 20],
+    ['pas', 15],
+    ['tec', 15],
+  ],
+  MID: [
+    ['pas', 35],
+    ['tec', 30],
+    ['pac', 20],
+    ['def', 15],
+  ],
+  FWD: [
+    ['sho', 40],
+    ['tec', 25],
+    ['pac', 20],
+    ['pas', 15],
+  ],
 };
 
 function stableIdCompare(a: string, b: string): number {
@@ -41,12 +60,18 @@ function stableIdCompare(a: string, b: string): number {
 }
 
 /** Weighted log-ratio role score, shared by outgoing and incoming rankings. */
-export function automaticRoleValue(player: PlayerDef, condition: number): number {
+export function automaticRoleValue(
+  player: PlayerDef,
+  condition: number,
+): number {
   if (player.role === 'GK') return 0;
-  const weightedRatingD64 = Math.round(ROLE_WEIGHTS[player.role].reduce(
-    (sum, [attribute, weight]) => sum + ratingD64(player.attrs[attribute]) * weight,
-    0,
-  ) / 100);
+  const weightedRatingD64 = Math.round(
+    ROLE_WEIGHTS[player.role].reduce(
+      (sum, [attribute, weight]) =>
+        sum + ratingD64(player.attrs[attribute]) * weight,
+      0,
+    ) / 100,
+  );
   return weightedRatingD64 + conditionD64(condition);
 }
 
@@ -61,8 +86,10 @@ export function automaticSubstitutionClearsMargin(
   outgoingCondition: number,
   replacement: PlayerDef,
 ): boolean {
-  return automaticRoleValue(replacement, replacementEntryCondition(replacement))
-    >= automaticRoleValue(outgoing, outgoingCondition) + ROLE_VALUE_MARGIN_D64;
+  return (
+    automaticRoleValue(replacement, replacementEntryCondition(replacement)) >=
+    automaticRoleValue(outgoing, outgoingCondition) + ROLE_VALUE_MARGIN_D64
+  );
 }
 
 export function automaticTeams(state: MatchState): readonly (0 | 1)[] {
@@ -77,7 +104,13 @@ function performAutomaticSubstitution(
   choice: { playerIndex: number; replacementId: string },
   beforeSubstitution?: BeforeSubstitution,
 ): boolean {
-  return performSubstitution(state, team, choice.playerIndex, choice.replacementId, beforeSubstitution);
+  return performSubstitution(
+    state,
+    team,
+    choice.playerIndex,
+    choice.replacementId,
+    beforeSubstitution,
+  );
 }
 
 /** Exported so a watched match can offer the same bench call to the team the
@@ -86,7 +119,12 @@ export function automaticSubstitutionChoice(
   state: MatchState,
   team: 0 | 1,
 ): { playerIndex: number; replacementId: string } | null {
-  return automaticSubstitutionChoiceAtCondition(state, team, AUTO_SUB_CONDITION, true);
+  return automaticSubstitutionChoiceAtCondition(
+    state,
+    team,
+    AUTO_SUB_CONDITION,
+    true,
+  );
 }
 
 /** Red energy is an emergency: use any same-role fresh reserve, even when that
@@ -109,32 +147,46 @@ function automaticSubstitutionChoiceAtCondition(
   conditionThreshold: number,
   requireValueMargin: boolean,
 ): { playerIndex: number; replacementId: string } | null {
-  if (state.substitutionsUsed[team] >= MAX_SUBSTITUTIONS || state.bench[team].length === 0) return null;
+  if (
+    state.substitutionsUsed[team] >= MAX_SUBSTITUTIONS ||
+    state.bench[team].length === 0
+  )
+    return null;
   const first = team * 11;
   const candidates = state.players
     .map((player, index) => ({ player, index }))
-    .filter(({ player, index }) => (
-      index >= first
-      && index < first + 11
-      && player.def.role !== 'GK'
-      && player.outReason !== 'redcard'
-      && player.condition <= conditionThreshold
-    ))
-    .sort((a, b) => a.player.condition - b.player.condition || stableIdCompare(a.player.def.id, b.player.def.id));
+    .filter(
+      ({ player, index }) =>
+        index >= first &&
+        index < first + 11 &&
+        player.def.role !== 'GK' &&
+        player.outReason !== 'redcard' &&
+        player.condition <= conditionThreshold,
+    )
+    .sort(
+      (a, b) =>
+        a.player.condition - b.player.condition ||
+        stableIdCompare(a.player.def.id, b.player.def.id),
+    );
 
   for (const outgoing of candidates) {
     const replacements = state.bench[team]
-      .filter(player => player.role === outgoing.player.def.role
-        && replacementEntryCondition(player) > AUTO_SUB_MIN_ENTRY_CONDITION)
-      .sort((a, b) => (
-        automaticRoleValue(b, replacementEntryCondition(b))
-          - automaticRoleValue(a, replacementEntryCondition(a))
-      ) || stableIdCompare(a.id, b.id));
+      .filter(
+        (player) =>
+          player.role === outgoing.player.def.role &&
+          replacementEntryCondition(player) > AUTO_SUB_MIN_ENTRY_CONDITION,
+      )
+      .sort(
+        (a, b) =>
+          automaticRoleValue(b, replacementEntryCondition(b)) -
+            automaticRoleValue(a, replacementEntryCondition(a)) ||
+          stableIdCompare(a.id, b.id),
+      );
     const replacement = replacements[0];
     if (replacement === undefined) continue;
     if (
-      requireValueMargin
-      && !automaticSubstitutionClearsMargin(
+      requireValueMargin &&
+      !automaticSubstitutionClearsMargin(
         outgoing.player.def,
         outgoing.player.condition,
         replacement,
@@ -162,12 +214,16 @@ function meanCondition(state: MatchState, team: 0 | 1): number {
 export function automaticEnergyUse(state: MatchState, team: 0 | 1): EnergyUse {
   if (state.tick < tickForMinute(65)) return 'BALANCED';
   const opponent = team === 0 ? 1 : 0;
-  const substitutionsAvailable = automaticSubstitutionChoice(state, team) !== null;
+  const substitutionsAvailable =
+    automaticSubstitutionChoice(state, team) !== null;
   if (!substitutionsAvailable && meanCondition(state, team) <= 35) {
     return 'SAVE_ENERGY';
   }
   if (state.score[team] < state.score[opponent]) return 'ALL_OUT';
-  if (state.tick >= tickForMinute(75) && state.score[team] > state.score[opponent]) {
+  if (
+    state.tick >= tickForMinute(75) &&
+    state.score[team] > state.score[opponent]
+  ) {
     return 'SAVE_ENERGY';
   }
   return 'BALANCED';
@@ -184,12 +240,23 @@ export function applyAutomaticCoaching(
 
   for (const team of automaticTeams(state)) {
     const emergencyChoice = automaticEmergencySubstitutionChoice(state, team);
-    const emergencySubstitutionMade = emergencyChoice !== null
-      && performAutomaticSubstitution(state, team, emergencyChoice, beforeSubstitution);
+    const emergencySubstitutionMade =
+      emergencyChoice !== null &&
+      performAutomaticSubstitution(
+        state,
+        team,
+        emergencyChoice,
+        beforeSubstitution,
+      );
     if (!emergencySubstitutionMade && substitutionCheckpoint) {
       const scheduledChoice = automaticSubstitutionChoice(state, team);
       if (scheduledChoice !== null) {
-        performAutomaticSubstitution(state, team, scheduledChoice, beforeSubstitution);
+        performAutomaticSubstitution(
+          state,
+          team,
+          scheduledChoice,
+          beforeSubstitution,
+        );
       }
     }
     if (!energyCheckpoint) continue;

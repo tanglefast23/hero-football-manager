@@ -9,7 +9,15 @@ describe('locale registry', () => {
     // Widening this is the LAST step of a translation phase, never the first:
     // every quality gate runs against it, so widening early turns them all red
     // at once and the real failures get lost in the noise.
-    expect(ENABLED_LOCALES).toEqual(['en', 'es', 'pt-BR', 'fr', 'id', 'de', 'vi']);
+    expect(ENABLED_LOCALES).toEqual([
+      'en',
+      'es',
+      'pt-BR',
+      'fr',
+      'id',
+      'de',
+      'vi',
+    ]);
   });
 
   test('every locale names itself in its own language', () => {
@@ -49,7 +57,10 @@ describe('locale registry', () => {
     for (const locale of LOCALES) {
       expect({ locale, faces: localeMeta(locale).faces }).toEqual({
         locale,
-        faces: { display: 'HFMSilkscreen_700Bold', data: 'HFMSilkscreen_400Regular' },
+        faces: {
+          display: 'HFMSilkscreen_700Bold',
+          data: 'HFMSilkscreen_400Regular',
+        },
       });
     }
   });

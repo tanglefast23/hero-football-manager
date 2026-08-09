@@ -16,13 +16,17 @@ export const PACE_SPEED_SCALE = paceTable.scale;
 export const STAMINA_SCALE = staminaTables.scale;
 
 export function matchAttribute(rawAttribute: number): number {
-  if (!Number.isSafeInteger(rawAttribute)
-    || rawAttribute < 1
-    || rawAttribute > MAX_PLAYER_ATTRIBUTE) {
-    throw new Error(`player attribute must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
+  if (
+    !Number.isSafeInteger(rawAttribute) ||
+    rawAttribute < 1 ||
+    rawAttribute > MAX_PLAYER_ATTRIBUTE
+  ) {
+    throw new Error(
+      `player attribute must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`,
+    );
   }
   if (rawAttribute <= 99) return rawAttribute;
-  return 99 + Math.round(50 * (rawAttribute - 99) / (rawAttribute + 101));
+  return 99 + Math.round((50 * (rawAttribute - 99)) / (rawAttribute + 101));
 }
 
 /**
@@ -33,7 +37,10 @@ export function matchAttribute(rawAttribute: number): number {
  */
 export function matchPaceAttribute(rawPace: number): number {
   assertPlayerAttribute(rawPace);
-  return Math.max(1, Math.round(paceSpeed128(rawPace) / PACE_SPEED_SCALE) - BASE_MOVEMENT_SPEED);
+  return Math.max(
+    1,
+    Math.round(paceSpeed128(rawPace) / PACE_SPEED_SCALE) - BASE_MOVEMENT_SPEED,
+  );
 }
 
 /** Full-condition ordinary movement speed in 1/128 pitch units. */
@@ -47,10 +54,15 @@ export function fullConditionMovementSpeed(rawPace: number): number {
   return paceSpeed128(rawPace) / PACE_SPEED_SCALE;
 }
 
-export function paceAdvantagePercent(rawPace: number, comparisonRawPace: number): number {
+export function paceAdvantagePercent(
+  rawPace: number,
+  comparisonRawPace: number,
+): number {
   return Math.round(
-    (fullConditionMovementSpeed(rawPace) / fullConditionMovementSpeed(comparisonRawPace) - 1)
-    * 100,
+    (fullConditionMovementSpeed(rawPace) /
+      fullConditionMovementSpeed(comparisonRawPace) -
+      1) *
+      100,
   );
 }
 
@@ -70,9 +82,13 @@ export function slideStaminaDrainScale(rawStamina: number): number {
 }
 
 function assertPlayerAttribute(rawAttribute: number): void {
-  if (!Number.isSafeInteger(rawAttribute)
-    || rawAttribute < 1
-    || rawAttribute > MAX_PLAYER_ATTRIBUTE) {
-    throw new Error(`player attribute must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
+  if (
+    !Number.isSafeInteger(rawAttribute) ||
+    rawAttribute < 1 ||
+    rawAttribute > MAX_PLAYER_ATTRIBUTE
+  ) {
+    throw new Error(
+      `player attribute must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`,
+    );
   }
 }

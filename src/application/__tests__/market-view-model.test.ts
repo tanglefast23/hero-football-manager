@@ -7,7 +7,10 @@ import {
   type ScoutablePlayer,
   type ValuationPlayer,
 } from '../../game/market';
-import { marketViewModel, type MarketViewModelSource } from '../market-view-model';
+import {
+  marketViewModel,
+  type MarketViewModelSource,
+} from '../market-view-model';
 
 const ATTRS = { pac: 60, sho: 58, pas: 64, def: 48, tec: 66, sta: 62, ref: 30 };
 
@@ -47,14 +50,20 @@ function baseSource(): MarketViewModelSource {
     cash: 50_000,
     scoutOfficeLevel: 2,
     scoutOptions: [
-      { id: 'local-mid', region: 'LOCAL', focus: { kind: 'POSITION', role: 'MID' } },
+      {
+        id: 'local-mid',
+        region: 'LOCAL',
+        focus: { kind: 'POSITION', role: 'MID' },
+      },
       { id: 'hero-rumor', region: 'EUROPE', focus: { kind: 'RUMORED_HERO' } },
     ],
-    transferListings: [{
-      player: transferPlayer('target-1'),
-      direction: 'BUY',
-      sellingClubDivision: 3,
-    }],
+    transferListings: [
+      {
+        player: transferPlayer('target-1'),
+        direction: 'BUY',
+        sellingClubDivision: 3,
+      },
+    ],
     coachCandidates: generateCoachMarket({
       careerSeed: 404,
       season: 2,
@@ -99,11 +108,16 @@ describe('marketViewModel', () => {
       scoutOfficeLevel: 2,
       division: 3,
     });
-    const viewModel = marketViewModel({ ...source, activeScoutMission: mission });
+    const viewModel = marketViewModel({
+      ...source,
+      activeScoutMission: mission,
+    });
 
     expect(viewModel.scouting.status.kind).toBe('IN_PROGRESS');
     expect(viewModel.scouting.status.progressLabel).toMatch(/week/);
-    expect(viewModel.scouting.choices.every(choice => !choice.available)).toBe(true);
+    expect(
+      viewModel.scouting.choices.every((choice) => !choice.available),
+    ).toBe(true);
     expect(viewModel.scouting.choices[0].blockedReason).toBe('Scout Sent');
   });
 
@@ -144,7 +158,9 @@ describe('marketViewModel', () => {
 
     expect(open.window.label).toBe('Window open');
     expect(open.transfers[0].available).toBe(true);
-    expect(open.transfers[0].quote).toBeGreaterThan(open.transfers[0].valuation);
+    expect(open.transfers[0].quote).toBeGreaterThan(
+      open.transfers[0].valuation,
+    );
     expect(open).toEqual(marketViewModel(baseSource()));
     expect(closed.window.label).toBe('Window closed');
     expect(closed.transfers[0]).toMatchObject({
@@ -160,14 +176,16 @@ describe('marketViewModel', () => {
       season: 4,
       division: 2,
       fame: 800,
-      retiredLegends: [{
-        playerId: 'legend-1',
-        name: 'Ari Flint',
-        personality: 'LOYAL',
-        fame: 750,
-        seasonsAtClub: 8,
-        specialties: ['ATTACK', 'MOTIVATOR'],
-      }],
+      retiredLegends: [
+        {
+          playerId: 'legend-1',
+          name: 'Ari Flint',
+          personality: 'LOYAL',
+          fame: 750,
+          seasonsAtClub: 8,
+          specialties: ['ATTACK', 'MOTIVATOR'],
+        },
+      ],
     });
     const viewModel = marketViewModel({
       ...source,
@@ -175,9 +193,11 @@ describe('marketViewModel', () => {
       fame: 800,
       coachCandidates,
     });
-    const legend = viewModel.coaches.find(coach => coach.retiredLegend);
+    const legend = viewModel.coaches.find((coach) => coach.retiredLegend);
 
-    expect(viewModel.coaches.every(coach => coach.specialtyLabels.length === 2)).toBe(true);
+    expect(
+      viewModel.coaches.every((coach) => coach.specialtyLabels.length === 2),
+    ).toBe(true);
     expect(legend).toMatchObject({
       name: 'Ari Flint',
       loyaltyLabel: '25% loyalty discount',
@@ -204,8 +224,15 @@ describe('marketViewModel', () => {
       fame: 800,
       unlockIds: ['formation:4-3-3'],
     });
-    const viewModel = marketViewModel({ ...source, division: 2, fame: 800, coachCandidates });
-    const teacher = viewModel.coaches.find(coach => coach.unlockLabel !== undefined);
+    const viewModel = marketViewModel({
+      ...source,
+      division: 2,
+      fame: 800,
+      coachCandidates,
+    });
+    const teacher = viewModel.coaches.find(
+      (coach) => coach.unlockLabel !== undefined,
+    );
 
     expect(teacher?.unlockLabel).toBe('Teaches 4-3-3');
   });
@@ -218,8 +245,11 @@ describe('marketViewModel', () => {
       name: `Coach ${index}`,
     }));
 
-    expect(marketViewModel({ ...source, coachCandidates: expanded }).coaches.map(coach => coach.id))
-      .toEqual(['shortlist-0', 'shortlist-1', 'shortlist-2']);
+    expect(
+      marketViewModel({ ...source, coachCandidates: expanded }).coaches.map(
+        (coach) => coach.id,
+      ),
+    ).toEqual(['shortlist-0', 'shortlist-1', 'shortlist-2']);
   });
 
   it('locks every hire action while one head coach is employed', () => {
@@ -227,10 +257,13 @@ describe('marketViewModel', () => {
     const currentCoach = source.coachCandidates[0];
     const viewModel = marketViewModel({ ...source, headCoach: currentCoach });
 
-    expect(viewModel.coaches.every(coach => !coach.available)).toBe(true);
-    expect(viewModel.coaches.every(coach => (
-      coach.blockedReason === `Dismiss ${currentCoach.name} first.`
-    ))).toBe(true);
+    expect(viewModel.coaches.every((coach) => !coach.available)).toBe(true);
+    expect(
+      viewModel.coaches.every(
+        (coach) =>
+          coach.blockedReason === `Dismiss ${currentCoach.name} first.`,
+      ),
+    ).toBe(true);
   });
 
   // Narrowed 2026-08-06 rather than deleted. The ask stays hidden for TRANSFERS,
@@ -245,10 +278,11 @@ describe('marketViewModel', () => {
       personality: 'PROFESSIONAL',
       weeklyAsk: 1000,
     });
-    const countered = submitContractOffer(
-      initial,
-      { weeklyWage: 700, termSeasons: 1, perk: 'JERSEY_10' },
-    );
+    const countered = submitContractOffer(initial, {
+      weeklyWage: 700,
+      termSeasons: 1,
+      perk: 'JERSEY_10',
+    });
     const viewModel = marketViewModel({
       ...baseSource(),
       negotiation: {
@@ -273,7 +307,9 @@ describe('marketViewModel', () => {
   });
 
   describe('youth prospect stats', () => {
-    function withYouth(role: 'GK' | 'DEF' | 'MID' | 'FWD'): MarketViewModelSource {
+    function withYouth(
+      role: 'GK' | 'DEF' | 'MID' | 'FWD',
+    ): MarketViewModelSource {
       return {
         ...baseSource(),
         youthIntake: {
@@ -281,19 +317,21 @@ describe('marketViewModel', () => {
           declined: false,
           rosterCount: 15,
           rosterCapacity: 17,
-          offers: [{
-            player: {
-              id: 'kid-1',
-              name: 'Cal Hart',
-              role,
-              age: 17,
-              potential: 2,
-              archetype: 'Anchor',
-              weeklyWage: 202,
-              attrs: { ...ATTRS },
+          offers: [
+            {
+              player: {
+                id: 'kid-1',
+                name: 'Cal Hart',
+                role,
+                age: 17,
+                potential: 2,
+                archetype: 'Anchor',
+                weeklyWage: 202,
+                attrs: { ...ATTRS },
+              },
+              signingBonus: 500,
             },
-            signingBonus: 500,
-          }],
+          ],
         },
       };
     }
@@ -310,15 +348,26 @@ describe('marketViewModel', () => {
         { label: 'STA', value: ATTRS.sta },
       ]);
       // No hedging: every value is a number the card can print as-is.
-      expect(offer?.stats.every(stat => Number.isInteger(stat.value))).toBe(true);
+      expect(offer?.stats.every((stat) => Number.isInteger(stat.value))).toBe(
+        true,
+      );
     });
 
     it('shows a keeper reflexes in place of finishing', () => {
       const offer = marketViewModel(withYouth('GK')).youth?.offers[0];
 
-      expect(offer?.stats.map(stat => stat.label)).toEqual(['PAC', 'REF', 'PAS', 'DEF', 'TEC', 'STA']);
-      expect(offer?.stats.find(stat => stat.label === 'REF')?.value).toBe(ATTRS.ref);
-      expect(offer?.stats.some(stat => stat.label === 'SHO')).toBe(false);
+      expect(offer?.stats.map((stat) => stat.label)).toEqual([
+        'PAC',
+        'REF',
+        'PAS',
+        'DEF',
+        'TEC',
+        'STA',
+      ]);
+      expect(offer?.stats.find((stat) => stat.label === 'REF')?.value).toBe(
+        ATTRS.ref,
+      );
+      expect(offer?.stats.some((stat) => stat.label === 'SHO')).toBe(false);
     });
   });
 });

@@ -35,5 +35,7 @@ export function isExpiredContractRevealed(
 ): boolean {
   const { sectionTop, viewportHeight, scrollOffset } = geometry;
   if (sectionTop === undefined || viewportHeight <= 0) return false;
-  return sectionTop <= scrollOffset + viewportHeight - EXPIRED_CONTRACT_REVEAL_MARGIN;
+  return (
+    sectionTop <= scrollOffset + viewportHeight - EXPIRED_CONTRACT_REVEAL_MARGIN
+  );
 }

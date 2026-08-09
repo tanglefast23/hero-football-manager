@@ -14,7 +14,8 @@ const CRC_TABLE = (() => {
 
 function crc32(buf) {
   let c = 0xffffffff;
-  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+  for (let i = 0; i < buf.length; i++)
+    c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
   return (c ^ 0xffffffff) >>> 0;
 }
 
@@ -32,7 +33,9 @@ function chunk(type, data) {
 export function encodePNG(width, height, rgba) {
   const src = Buffer.isBuffer(rgba) ? rgba : Buffer.from(rgba);
   if (src.length !== width * height * 4) {
-    throw new Error(`encodePNG: expected ${width * height * 4} bytes, got ${src.length}`);
+    throw new Error(
+      `encodePNG: expected ${width * height * 4} bytes, got ${src.length}`,
+    );
   }
 
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);

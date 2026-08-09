@@ -1,7 +1,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
+const source = (path: string) =>
+  readFileSync(join(process.cwd(), path), 'utf8');
 
 describe('bottom navigation guide', () => {
   const ring = source('src/ui/TutorialSpotlight.tsx');

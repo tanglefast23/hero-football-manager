@@ -28,34 +28,36 @@ const english = () => ({ ...contentStrings(), ...loadCatalog('en').strings });
 describe('display leaves inside body namespaces', () => {
   test('every pixel-drawn leaf is display, so gate 5 checks it', () => {
     const keys = Object.keys(english());
-    const shouldBeDisplay = keys.filter(key => (
-      /^event\.[^.]+\.title$/.test(key)
-      || /^event\.[^.]+\.[^.]+\.label$/.test(key)
-      || /^event\.[^.]+\.[^.]+\.[^.]+\.headline$/.test(key)
-      || key === 'glossary.clubHandbook'
-      || /^glossary\.[^.]+\.title$/.test(key)
-    ));
+    const shouldBeDisplay = keys.filter(
+      (key) =>
+        /^event\.[^.]+\.title$/.test(key) ||
+        /^event\.[^.]+\.[^.]+\.label$/.test(key) ||
+        /^event\.[^.]+\.[^.]+\.[^.]+\.headline$/.test(key) ||
+        key === 'glossary.clubHandbook' ||
+        /^glossary\.[^.]+\.title$/.test(key),
+    );
 
     // Guards against the list quietly matching nothing, which would make every
     // assertion below vacuous.
     expect(shouldBeDisplay.length).toBeGreaterThanOrEqual(200);
 
-    const wrong = shouldBeDisplay.filter(key => voiceOf(key) !== 'display');
+    const wrong = shouldBeDisplay.filter((key) => voiceOf(key) !== 'display');
     expect(wrong).toEqual([]);
   });
 
   test('the prose beside them is still body, so valid copy is not rejected', () => {
     const keys = Object.keys(english());
-    const mustStayBody = keys.filter(key => (
-      /^event\.[^.]+\.body$/.test(key)
-      || /^event\.[^.]+\.[^.]+\.[^.]+\.text$/.test(key)
-      || /^glossary\.[^.]+\.[^.]+\.term$/.test(key)
-      || /^glossary\.[^.]+\.[^.]+\.definition$/.test(key)
-    ));
+    const mustStayBody = keys.filter(
+      (key) =>
+        /^event\.[^.]+\.body$/.test(key) ||
+        /^event\.[^.]+\.[^.]+\.[^.]+\.text$/.test(key) ||
+        /^glossary\.[^.]+\.[^.]+\.term$/.test(key) ||
+        /^glossary\.[^.]+\.[^.]+\.definition$/.test(key),
+    );
 
     expect(mustStayBody.length).toBeGreaterThanOrEqual(200);
 
-    const wrong = mustStayBody.filter(key => voiceOf(key) !== 'body');
+    const wrong = mustStayBody.filter((key) => voiceOf(key) !== 'body');
     expect(wrong).toEqual([]);
   });
 
@@ -127,28 +129,38 @@ describe('key shapes drawn from the prose namespaces', () => {
   };
 
   test('no undeclared key shape has appeared', () => {
-    const { execSync } = require('child_process') as typeof import('child_process');
+    const { execSync } =
+      require('child_process') as typeof import('child_process');
     const raw = execSync(
       `grep -rhoE '\`(event|glossary)\\.[^\`]*\`' ${SOURCE_DIRS.join(' ')} || true`,
       { encoding: 'utf8' },
     );
     const found = new Set(
-      raw.split('\n')
+      raw
+        .split('\n')
         .filter(Boolean)
-        .map(line => line.replace(/`/g, '').replace(/\$\{[^}]*\}/g, '<>')),
+        .map((line) => line.replace(/`/g, '').replace(/\$\{[^}]*\}/g, '<>')),
     );
 
     // Anti-vacuity: a broken grep would make this pass silently.
     expect(found.size).toBeGreaterThanOrEqual(5);
-    expect([...found].filter(shape => DECLARED[shape] === undefined)).toEqual([]);
+    expect([...found].filter((shape) => DECLARED[shape] === undefined)).toEqual(
+      [],
+    );
   });
 
   test('every declared shape resolves to the voice it is declared with', () => {
     const sample = (shape: string) => shape.replace(/<>/g, 'x');
-    for (const [shape, expected] of Object.entries({ ...DECLARED, ...COMPOSED })) {
+    for (const [shape, expected] of Object.entries({
+      ...DECLARED,
+      ...COMPOSED,
+    })) {
       // The bare outcomeKey prefix is never rendered on its own.
       if (shape === 'event.<>.<>.<>') continue;
-      expect({ shape, voice: voiceOf(sample(shape)) }).toEqual({ shape, voice: expected });
+      expect({ shape, voice: voiceOf(sample(shape)) }).toEqual({
+        shape,
+        voice: expected,
+      });
     }
   });
 });

@@ -1,8 +1,14 @@
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { clubLegacyViewModel, homeViewModel } from '../../../application/view-models';
-import { M2_ASSISTANT_GUIDE_SEQUENCE_IDS, completeAssistantGuideSequence } from '../../../game/assistant-guide';
+import {
+  clubLegacyViewModel,
+  homeViewModel,
+} from '../../../application/view-models';
+import {
+  M2_ASSISTANT_GUIDE_SEQUENCE_IDS,
+  completeAssistantGuideSequence,
+} from '../../../game/assistant-guide';
 import {
   nextPendingClubLegend,
   reconcilePendingClubLegends,
@@ -12,11 +18,21 @@ import {
 import { resolveM2CareerPlayerLifecycle } from '../../../game/m2-career';
 import { generatedClubPower } from '../../../game/power-catalog';
 import { isClubLegend, retirementAnnouncementAge } from '../../../game/pyramid';
-import { SEASON_WEEKS, type CareerPlayer, type GameState } from '../../../game/types';
-import { careerRosterCapacity, userCareerRosterCount } from '../../../game/youth-intake';
+import {
+  SEASON_WEEKS,
+  type CareerPlayer,
+  type GameState,
+} from '../../../game/types';
+import {
+  careerRosterCapacity,
+  userCareerRosterCount,
+} from '../../../game/youth-intake';
 import { ClubHomeScreen } from '../../screens/ClubHomeScreen';
 import { ClubLegacyScreen } from '../../screens/ClubLegacyScreen';
-import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls';
+import {
+  DevHarnessButton,
+  devHarnessControlStyles,
+} from '../DevHarnessControls';
 import { devHarnessCareerAtWeek } from '../career';
 import type { DevHarnessEntry } from '../registry';
 
@@ -90,12 +106,13 @@ const FINAL_WEEKS_WEEK = SEASON_WEEKS - 2;
  */
 function baseCareer(caseId: RetirementLegacyCaseId): GameState {
   if (caseId === 'farewell') return devHarnessCareerAtWeek(3, 2);
-  if (caseId === 'last-matches') return devHarnessCareerAtWeek(2, FINAL_WEEKS_WEEK);
+  if (caseId === 'last-matches')
+    return devHarnessCareerAtWeek(2, FINAL_WEEKS_WEEK);
   return devHarnessCareerAtWeek(2, 2);
 }
 
 function userRoster(state: GameState): CareerPlayer[] {
-  return state.players.filter(player => player.clubId === state.userClubId);
+  return state.players.filter((player) => player.clubId === state.userClubId);
 }
 
 function announcementAge(state: GameState, player: CareerPlayer): number {
@@ -117,11 +134,11 @@ function announcementAge(state: GameState, player: CareerPlayer): number {
 function withQuietDesk(state: GameState): GameState {
   const cleared: GameState = {
     ...state,
-    players: state.players.map(player => (
+    players: state.players.map((player) =>
       player.clubId === state.userClubId
         ? { ...player, transferRequested: false, injuryWeeks: 0 }
-        : player
-    )),
+        : player,
+    ),
     facilities: { ...state.facilities, trainingGroundBuilt: true },
   };
   return M2_ASSISTANT_GUIDE_SEQUENCE_IDS.reduce(
@@ -153,9 +170,9 @@ function agedForAnnouncement(
   makeHero: boolean,
 ): GameState {
   const roster = userRoster(state);
-  const announcing = new Set(roster.slice(0, count).map(player => player.id));
+  const announcing = new Set(roster.slice(0, count).map((player) => player.id));
   const heroId = makeHero ? roster[0]?.id : undefined;
-  const previousSeasonSquad = roster.map(player => {
+  const previousSeasonSquad = roster.map((player) => {
     const aged: CareerPlayer = {
       ...player,
       age: announcing.has(player.id)
@@ -173,7 +190,7 @@ function agedForAnnouncement(
     ...state,
     players: [
       ...lifecycle.activePlayers,
-      ...state.players.filter(player => player.clubId !== state.userClubId),
+      ...state.players.filter((player) => player.clubId !== state.userClubId),
     ],
     retirementAnnouncements: lifecycle.announcements,
   };
@@ -201,16 +218,22 @@ function withRetiredLegends(state: GameState, count: number): GameState {
     };
     return index === 0 ? asHero(state, retiring) : retiring;
   });
-  const lifecycle = resolveM2CareerPlayerLifecycle(legends, state.season, state.careerSeed);
+  const lifecycle = resolveM2CareerPlayerLifecycle(
+    legends,
+    state.season,
+    state.careerSeed,
+  );
   return {
     ...state,
     retiredPlayers: lifecycle.retiredPlayers,
     pendingLegacyPlayerIds: lifecycle.retiredPlayers
-      .filter(player => isClubLegend({
-        seasonsAtClub: player.seasonsAtClub ?? 0,
-        fame: player.fame ?? 0,
-      }))
-      .map(player => player.id),
+      .filter((player) =>
+        isClubLegend({
+          seasonsAtClub: player.seasonsAtClub ?? 0,
+          fame: player.fame ?? 0,
+        }),
+      )
+      .map((player) => player.id),
   };
 }
 
@@ -222,12 +245,17 @@ function withRetiredLegends(state: GameState, count: number): GameState {
  * step, and taking a starter out here would leave the lineup pointing at
  * somebody who no longer exists — a fault of the reel, not of the feature.
  */
-function withJustRetired(state: GameState, count: number, makeHero: boolean): GameState {
+function withJustRetired(
+  state: GameState,
+  count: number,
+  makeHero: boolean,
+): GameState {
   const lineupIds = new Set(
-    state.lineups.find(lineup => lineup.clubId === state.userClubId)?.playerIds ?? [],
+    state.lineups.find((lineup) => lineup.clubId === state.userClubId)
+      ?.playerIds ?? [],
   );
   const leaving = userRoster(state)
-    .filter(player => !lineupIds.has(player.id))
+    .filter((player) => !lineupIds.has(player.id))
     .slice(0, count)
     .map((player, index) => {
       // Announced two seasons back is what makes this season the one that
@@ -239,11 +267,17 @@ function withJustRetired(state: GameState, count: number, makeHero: boolean): Ga
       };
       return index === 0 && makeHero ? asHero(state, retiring) : retiring;
     });
-  const lifecycle = resolveM2CareerPlayerLifecycle(leaving, state.season - 1, state.careerSeed);
-  const departedIds = new Set(lifecycle.retiredPlayers.map(player => player.id));
+  const lifecycle = resolveM2CareerPlayerLifecycle(
+    leaving,
+    state.season - 1,
+    state.careerSeed,
+  );
+  const departedIds = new Set(
+    lifecycle.retiredPlayers.map((player) => player.id),
+  );
   return {
     ...state,
-    players: state.players.filter(player => !departedIds.has(player.id)),
+    players: state.players.filter((player) => !departedIds.has(player.id)),
     retiredPlayers: lifecycle.retiredPlayers,
   };
 }
@@ -288,13 +322,15 @@ export function retirementLegacyNote(
     ].join(' · ');
   }
   const announced = state.retirementAnnouncements?.length ?? 0;
-  const rows = homeViewModel(state).alerts.filter(alert => alert.id.startsWith('retirement-'));
+  const rows = homeViewModel(state).alerts.filter((alert) =>
+    alert.id.startsWith('retirement-'),
+  );
   return [
     `Announced ${announced}`,
     `retired on file ${state.retiredPlayers?.length ?? 0}`,
     // One row now covers a whole intake, so this reads 1 where it used to read
     // 3 while four more farewells were dropped and never mentioned again.
-    `${rows.length} on the desk (${rows.map(row => row.id).join(', ') || 'none'})`,
+    `${rows.length} on the desk (${rows.map((row) => row.id).join(', ') || 'none'})`,
     'desk holds 3 rows a week',
   ].join(' · ');
 }
@@ -319,7 +355,11 @@ function EmptyLegacyPanel({ reason }: { readonly reason: string }) {
   );
 }
 
-export function RetirementLegacyReel({ caseId }: { readonly caseId: RetirementLegacyCaseId }) {
+export function RetirementLegacyReel({
+  caseId,
+}: {
+  readonly caseId: RetirementLegacyCaseId;
+}) {
   const [quietDesk, setQuietDesk] = useState(true);
   const [guided, setGuided] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -334,7 +374,10 @@ export function RetirementLegacyReel({ caseId }: { readonly caseId: RetirementLe
     [caseId, quietDesk],
   );
   const state = played ?? built;
-  const note = useMemo(() => retirementLegacyNote(caseId, state), [caseId, state]);
+  const note = useMemo(
+    () => retirementLegacyNote(caseId, state),
+    [caseId, state],
+  );
   const home = useMemo(() => homeViewModel(state), [state]);
 
   const rebuild = useCallback((change: () => void) => {
@@ -343,15 +386,18 @@ export function RetirementLegacyReel({ caseId }: { readonly caseId: RetirementLe
     change();
   }, []);
 
-  const choose = useCallback((choice: CareerLegendLegacyChoice) => {
-    try {
-      const transaction = resolveNextClubLegendLegacy(state, choice);
-      setPlayed(reconcilePendingClubLegends(transaction.state));
-      setFailure(undefined);
-    } catch (error) {
-      setFailure((error as Error).message);
-    }
-  }, [state]);
+  const choose = useCallback(
+    (choice: CareerLegendLegacyChoice) => {
+      try {
+        const transaction = resolveNextClubLegendLegacy(state, choice);
+        setPlayed(reconcilePendingClubLegends(transaction.state));
+        setFailure(undefined);
+      } catch (error) {
+        setFailure((error as Error).message);
+      }
+    },
+    [state],
+  );
 
   const legacy = isLegacyCase(caseId);
   const pending = legacy ? nextPendingClubLegend(state) : undefined;
@@ -397,7 +443,7 @@ export function RetirementLegacyReel({ caseId }: { readonly caseId: RetirementLe
               label="Bert"
               hint="Show Bert's tap cue over the first legacy option"
               selected={guided}
-              onPress={() => setGuided(current => !current)}
+              onPress={() => setGuided((current) => !current)}
             />
             <DevHarnessButton
               label="Reset"
@@ -445,7 +491,11 @@ export function emptyLegacyReason(state: GameState): string {
  * temporal dead zone. TypeScript cannot see that through the arrow function,
  * so the only symptom is a blank bundle at runtime.
  */
-const CASES: readonly { id: RetirementLegacyCaseId; label: string; note: string }[] = Object.freeze([
+const CASES: readonly {
+  id: RetirementLegacyCaseId;
+  label: string;
+  note: string;
+}[] = Object.freeze([
   {
     id: 'announcement',
     label: 'One',
@@ -500,11 +550,15 @@ export const retirementLegacyEntry: DevHarnessEntry = Object.freeze({
   group: 'Season',
   title: 'Retirement & legacy',
   summary: 'A final season announced, then the club legend’s last decision.',
-  cases: Object.freeze(CASES.map(entry => Object.freeze({
-    id: entry.id,
-    label: entry.label,
-    note: entry.note,
-  }))),
+  cases: Object.freeze(
+    CASES.map((entry) =>
+      Object.freeze({
+        id: entry.id,
+        label: entry.label,
+        note: entry.note,
+      }),
+    ),
+  ),
   render: (caseId: string) => (
     <RetirementLegacyReel caseId={caseId as RetirementLegacyCaseId} />
   ),

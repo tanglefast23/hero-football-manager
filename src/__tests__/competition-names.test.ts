@@ -1,4 +1,11 @@
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -18,7 +25,10 @@ const SELF = join(__dirname, 'competition-names.test.ts');
  * guard protects the rest — JSX copy, JSON content, error text, comments — by
  * refusing to let a retired name back into the tree at all.
  */
-const RETIRED_NAMES: readonly { readonly pattern: RegExp; readonly nowCalled: string }[] = [
+const RETIRED_NAMES: readonly {
+  readonly pattern: RegExp;
+  readonly nowCalled: string;
+}[] = [
   { pattern: /global cup/gi, nowCalled: CUP_DISPLAY_NAME },
   { pattern: /national cup/gi, nowCalled: CUP_DISPLAY_NAME },
   /**
@@ -37,7 +47,11 @@ function sourceFiles(root: string): string[] {
     const path = join(root, entry.name);
     if (entry.isDirectory()) {
       if (entry.name !== 'node_modules') files.push(...sourceFiles(path));
-    } else if (entry.isFile() && /\.(?:ts|tsx|json)$/.test(entry.name) && path !== SELF) {
+    } else if (
+      entry.isFile() &&
+      /\.(?:ts|tsx|json)$/.test(entry.name) &&
+      path !== SELF
+    ) {
       files.push(path);
     }
   }
@@ -53,7 +67,8 @@ function retiredNameViolations(roots: readonly string[]): string[] {
       const source = readFileSync(file, 'utf8');
       for (const { pattern, nowCalled } of RETIRED_NAMES) {
         const hits = source.match(pattern);
-        if (hits) violations.push(`${file}: ${hits.join(', ')} — now "${nowCalled}"`);
+        if (hits)
+          violations.push(`${file}: ${hits.join(', ')} — now "${nowCalled}"`);
       }
     }
   }
@@ -77,7 +92,9 @@ describe('competition names', () => {
   });
 
   it('names the cup outside the division ladder, so no rung can claim it', () => {
-    const rungAdjectives = Object.values(DIVISION_NAMES).map(name => name.split(' ')[0]);
+    const rungAdjectives = Object.values(DIVISION_NAMES).map(
+      (name) => name.split(' ')[0],
+    );
 
     for (const adjective of rungAdjectives) {
       expect(CUP_DISPLAY_NAME).not.toContain(adjective);
@@ -90,8 +107,14 @@ describe('competition names', () => {
 
     try {
       mkdirSync(nestedDir, { recursive: true });
-      writeFileSync(join(nestedDir, 'screen.tsx'), 'const title = "GLOBAL CUP";\n');
-      writeFileSync(join(nestedDir, 'copy.json'), '{ "term": "National Cup" }\n');
+      writeFileSync(
+        join(nestedDir, 'screen.tsx'),
+        'const title = "GLOBAL CUP";\n',
+      );
+      writeFileSync(
+        join(nestedDir, 'copy.json'),
+        '{ "term": "National Cup" }\n',
+      );
 
       expect(retiredNameViolations([fixtureRoot])).toHaveLength(2);
     } finally {
@@ -99,7 +122,7 @@ describe('competition names', () => {
     }
   });
 
-  it('leaves the manager\'s real-world backstory alone', () => {
+  it("leaves the manager's real-world backstory alone", () => {
     const fixtureRoot = mkdtempSync(join(tmpdir(), 'hfm-names-backstory-'));
 
     try {

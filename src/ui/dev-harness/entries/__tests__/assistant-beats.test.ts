@@ -19,28 +19,41 @@ const entry = read('src/ui/dev-harness/entries/assistant-beats.tsx');
 const moments = read('src/ui/bert-beat-moments.ts');
 
 function quoted(block: string): string[] {
-  return [...block.matchAll(/'([a-z-]+)'/g)].map(match => match[1]);
+  return [...block.matchAll(/'([a-z-]+)'/g)].map((match) => match[1]);
 }
 
 function groupedSequenceIds(): string[] {
-  return [...entry.matchAll(/sequenceIds: \[([\s\S]*?)\]/g)].flatMap(match => quoted(match[1]));
+  return [...entry.matchAll(/sequenceIds: \[([\s\S]*?)\]/g)].flatMap((match) =>
+    quoted(match[1]),
+  );
 }
 
 function mirroredAuthoredIds(): string[] {
-  const block = /const AUTHORED_EXPRESSION_RUNS[^[]*\[([\s\S]*?)\]\);/.exec(entry);
-  if (block === null) throw new Error('assistant-beats.tsx no longer declares AUTHORED_EXPRESSION_RUNS');
+  const block = /const AUTHORED_EXPRESSION_RUNS[^[]*\[([\s\S]*?)\]\);/.exec(
+    entry,
+  );
+  if (block === null)
+    throw new Error(
+      'assistant-beats.tsx no longer declares AUTHORED_EXPRESSION_RUNS',
+    );
   return quoted(block[1]);
 }
 
 function realAuthoredIds(): string[] {
-  const block = /const AUTHORED: Record<string, readonly BertMomentId\[\]> = \{([\s\S]*?)\n\};/.exec(moments);
-  if (block === null) throw new Error('bert-beat-moments.ts no longer declares AUTHORED');
-  return [...block[1].matchAll(/^\s*'([a-z-]+)':/gm)].map(match => match[1]);
+  const block =
+    /const AUTHORED: Record<string, readonly BertMomentId\[\]> = \{([\s\S]*?)\n\};/.exec(
+      moments,
+    );
+  if (block === null)
+    throw new Error('bert-beat-moments.ts no longer declares AUTHORED');
+  return [...block[1].matchAll(/^\s*(?:'([a-z-]+)'|([a-z][a-z-]*)):/gm)].map(
+    (match) => match[1] ?? match[2],
+  );
 }
 
 describe("the reel of Bert's briefings", () => {
   const grouped = groupedSequenceIds();
-  const authored = assistantGuide.sequences.map(sequence => sequence.id);
+  const authored = assistantGuide.sequences.map((sequence) => sequence.id);
 
   it('reaches every sequence the content ships', () => {
     expect([...grouped].sort()).toEqual([...authored].sort());
@@ -53,7 +66,10 @@ describe("the reel of Bert's briefings", () => {
   it('has a chip label for every sequence it can play', () => {
     const labels = /const SEQUENCE_LABELS[^{]*\{([\s\S]*?)\n\}\);/.exec(entry);
     expect(labels).not.toBeNull();
-    for (const id of grouped) expect(labels![1]).toContain(`'${id}':`);
+    const labelledIds = [
+      ...labels![1].matchAll(/^\s*(?:'([a-z-]+)'|([a-z][a-z-]*)):/gm),
+    ].map((match) => match[1] ?? match[2]);
+    for (const id of grouped) expect(labelledIds).toContain(id);
   });
 
   /**
@@ -62,7 +78,9 @@ describe("the reel of Bert's briefings", () => {
    * anything while the mirrored list matches the real map.
    */
   it('mirrors the authored expression runs exactly', () => {
-    expect([...mirroredAuthoredIds()].sort()).toEqual([...realAuthoredIds()].sort());
+    expect([...mirroredAuthoredIds()].sort()).toEqual(
+      [...realAuthoredIds()].sort(),
+    );
   });
 
   /**
@@ -78,7 +96,9 @@ describe("the reel of Bert's briefings", () => {
    * unauthored if one ever appears again, and this asserts none does today.
    */
   it('leaves no sequence on the fallback run', () => {
-    const fallback = authored.filter(id => !mirroredAuthoredIds().includes(id));
+    const fallback = authored.filter(
+      (id) => !mirroredAuthoredIds().includes(id),
+    );
 
     expect(fallback).toEqual([]);
   });
@@ -96,7 +116,7 @@ describe("the reel of Bert's briefings", () => {
 
   /** The harness adds no audio: the management SFX table is index-addressed. */
   it('plays no sound of its own', () => {
-    expect(entry).not.toContain('SfxPressable');
-    expect(entry).not.toContain('playManagement');
+    expect(entry).not.toContainSource('SfxPressable');
+    expect(entry).not.toContainSource('playManagement');
   });
 });

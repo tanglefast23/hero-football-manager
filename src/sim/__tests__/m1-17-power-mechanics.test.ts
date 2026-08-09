@@ -33,15 +33,17 @@ function segmentDistance(
   const dy = to.y - from.y;
   const length2 = dx * dx + dy * dy;
   if (length2 === 0) return Math.hypot(point.x - from.x, point.y - from.y);
-  const t = Math.max(0, Math.min(1,
-    ((point.x - from.x) * dx + (point.y - from.y) * dy) / length2));
-  return Math.hypot(
-    point.x - (from.x + dx * t),
-    point.y - (from.y + dy * t),
+  const t = Math.max(
+    0,
+    Math.min(1, ((point.x - from.x) * dx + (point.y - from.y) * dy) / length2),
   );
+  return Math.hypot(point.x - (from.x + dx * t), point.y - (from.y + dy * t));
 }
 
-function matchWith(power: PowerId, slot = 10): { match: MatchState; hero: number } {
+function matchWith(
+  power: PowerId,
+  slot = 10,
+): { match: MatchState; hero: number } {
   const home = {
     ...ROVERS,
     players: ROVERS.players.map((player, idx) => ({
@@ -51,7 +53,10 @@ function matchWith(power: PowerId, slot = 10): { match: MatchState; hero: number
     })),
   };
   // SAVE_FOR_TAP keeps rigged Zones inert so each test fires its power itself.
-  return { match: createMatch(117, home, UNITED, { homePolicy: 'SAVE_FOR_TAP' }), hero: slot };
+  return {
+    match: createMatch(117, home, UNITED, { homePolicy: 'SAVE_FOR_TAP' }),
+    hero: slot,
+  };
 }
 
 function activateAt(
@@ -84,7 +89,11 @@ describe('m1.18 authored one-moment powers', () => {
     match.ball = { kind: 'held', by: hero };
     match.players[hero].pos = { x: 4700, y: 3000 };
     expect(inUsefulContext(match, hero)).toBe(true);
-    match.players[hero].powerState = { kind: 'winding', untilTick: 15, strength: 1 };
+    match.players[hero].powerState = {
+      kind: 'winding',
+      untilTick: 15,
+      strength: 1,
+    };
     expect(attackingDecision(match, hero).kind).toBe('carry');
     expect(dribbleBonus(match, hero).d64Mod).toBeGreaterThan(0);
   });
@@ -93,8 +102,13 @@ describe('m1.18 authored one-moment powers', () => {
     const { match, hero } = matchWith('THUNDER_STRIKE');
     match.ball = { kind: 'held', by: hero };
     match.players[hero].pos = { x: 3400, y: 2000 };
-    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 600, y: 8000 };
-    match.players[hero].powerState = { kind: 'winding', untilTick: 15, strength: 1 };
+    for (let idx = 11; idx < 22; idx += 1)
+      match.players[idx].pos = { x: 600, y: 8000 };
+    match.players[hero].powerState = {
+      kind: 'winding',
+      untilTick: 15,
+      strength: 1,
+    };
     expect(attackingDecision(match, hero).kind).toBe('carry');
 
     activatePower(match, hero, 1);
@@ -113,15 +127,19 @@ describe('m1.18 authored one-moment powers', () => {
     expect(attackingDecision(match, hero).kind).toBe('carry');
     possessionTick(match);
     expect(match.players[hero].powerState).toMatchObject({
-      kind: 'active', commitment: 'THUNDER_SHOT',
+      kind: 'active',
+      commitment: 'THUNDER_SHOT',
     });
-    expect(match.events.some(event => event.kind === 'SHOT')).toBe(false);
+    expect(match.events.some((event) => event.kind === 'SHOT')).toBe(false);
 
     match.players[hero].pos = { x: 3400, y: 1900 };
-    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 600, y: 8000 };
+    for (let idx = 11; idx < 22; idx += 1)
+      match.players[idx].pos = { x: 600, y: 8000 };
     match.tick = 5;
     possessionTick(match);
-    expect(match.events.filter(event => event.kind === 'SHOT')).toHaveLength(1);
+    expect(match.events.filter((event) => event.kind === 'SHOT')).toHaveLength(
+      1,
+    );
     expect(match.players[hero].powerState.kind).toBe('idle');
   });
 
@@ -130,13 +148,17 @@ describe('m1.18 authored one-moment powers', () => {
     match.ball = { kind: 'held', by: hero };
     match.players[hero].pos = { x: 3400, y: 700 };
     match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
-    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 600, y: 8000 };
+    for (let idx = 11; idx < 22; idx += 1)
+      match.players[idx].pos = { x: 600, y: 8000 };
 
     expect(attackingDecision(match, hero).kind).toBe('shoot');
     possessionTick(match);
 
     expect(match.ball.kind).toBe('shot');
-    expect(match.players[hero].powerState).toEqual({ kind: 'zone', remainingTicks: 70 });
+    expect(match.players[hero].powerState).toEqual({
+      kind: 'zone',
+      remainingTicks: 70,
+    });
   });
 
   it('Portal Pass always exits ahead and selects the lane with room', () => {
@@ -145,10 +167,12 @@ describe('m1.18 authored one-moment powers', () => {
     match.ball = { kind: 'held', by: carrier };
     match.players[carrier].pos = { x: 2250, y: 4000 };
     for (let idx = 0; idx < 11; idx += 1) {
-      if (idx !== carrier && idx !== hero) match.players[idx].pos = { x: 600, y: 7000 };
+      if (idx !== carrier && idx !== hero)
+        match.players[idx].pos = { x: 600, y: 7000 };
     }
     match.players[hero].pos = { x: 3600, y: 3300 };
-    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 600, y: 7000 };
+    for (let idx = 11; idx < 22; idx += 1)
+      match.players[idx].pos = { x: 600, y: 7000 };
     const beforeProgress = 10500 - match.players[carrier].pos.y;
 
     activatePower(match, hero, 1);
@@ -156,7 +180,9 @@ describe('m1.18 authored one-moment powers', () => {
     expect(match.ball.kind).toBe('held');
     const receiver = match.ball.kind === 'held' ? match.ball.by : carrier;
     expect(receiver).not.toBe(carrier);
-    expect(10500 - match.players[receiver].pos.y).toBeGreaterThan(beforeProgress);
+    expect(10500 - match.players[receiver].pos.y).toBeGreaterThan(
+      beforeProgress,
+    );
     expect(match.players[receiver].pos.x).toBeGreaterThan(600);
     expect(attackingDecision(match, receiver).kind).not.toBe('pass');
   });
@@ -176,7 +202,10 @@ describe('m1.18 authored one-moment powers', () => {
     activatePower(match, hero, 1);
     expect(match.players[marker].pos).toEqual(before);
     expect(dribbleBonus(match, carrier).d64Mod).toBe(0);
-    expect(match.decoyClones[0]).toMatchObject({ ownerIdx: hero, sourceIdx: 9 });
+    expect(match.decoyClones[0]).toMatchObject({
+      ownerIdx: hero,
+      sourceIdx: 9,
+    });
     expect(match.decoyClones[0]?.def.role).toBe('FWD');
     expect(match.decoyClones[0]?.def.attrs).toEqual(match.players[9].def.attrs);
   });
@@ -201,21 +230,31 @@ describe('m1.18 authored one-moment powers', () => {
 
   it.each(['PORTAL_PASS', 'DECOY_DOUBLE', 'GRAVITY_WELL'] as const)(
     '%s refunds a stale windup without emitting a fake fire',
-    power => {
+    (power) => {
       const { match, hero } = matchWith(power, 6);
-      match.players[hero].powerState = { kind: 'winding', untilTick: 15, strength: 0.85 };
+      match.players[hero].powerState = {
+        kind: 'winding',
+        untilTick: 15,
+        strength: 0.85,
+      };
       match.ball = { kind: 'held', by: 11 };
 
       activatePower(match, hero, 0.85);
 
       expect(match.players[hero].powerState).toEqual({ kind: 'idle' });
       expect(match.players[hero].gauge).toBe(50);
-      expect(match.events).toContainEqual(expect.objectContaining({
-        kind: 'POWER_INTERRUPTED', player: hero,
-      }));
-      expect(match.events).not.toContainEqual(expect.objectContaining({
-        kind: 'POWER_FIRED', player: hero,
-      }));
+      expect(match.events).toContainEqual(
+        expect.objectContaining({
+          kind: 'POWER_INTERRUPTED',
+          player: hero,
+        }),
+      );
+      expect(match.events).not.toContainEqual(
+        expect.objectContaining({
+          kind: 'POWER_FIRED',
+          player: hero,
+        }),
+      );
     },
   );
 
@@ -235,14 +274,22 @@ describe('m1.18 authored one-moment powers', () => {
 
     powerTick(match);
     expect(match.players[hero].powerState).toMatchObject({
-      kind: 'winding', carrierIdx: carrier,
+      kind: 'winding',
+      carrierIdx: carrier,
     });
-    expect(match.players[hero].powerState).toHaveProperty('targetIdx', undefined);
+    expect(match.players[hero].powerState).toHaveProperty(
+      'targetIdx',
+      undefined,
+    );
     const winding = match.players[hero].powerState as PowerState;
-    if (winding.kind !== 'winding' || match.players[hero].powerAnchor === undefined) {
+    if (
+      winding.kind !== 'winding' ||
+      match.players[hero].powerAnchor === undefined
+    ) {
       throw new Error('expected a placed Decoy windup');
     }
-    if (winding.runnerAnchor === undefined) throw new Error('expected a placed Decoy runner');
+    if (winding.runnerAnchor === undefined)
+      throw new Error('expected a placed Decoy runner');
     const newCarrier = 8;
     match.ball = { kind: 'held', by: newCarrier };
     match.players[marker].pos = { x: 1500, y: 5200 };
@@ -251,11 +298,16 @@ describe('m1.18 authored one-moment powers', () => {
 
     powerTick(match);
 
-    expect(match.events).toContainEqual(expect.objectContaining({
-      kind: 'POWER_FIRED', player: hero, power: 'DECOY_DOUBLE',
-    }));
+    expect(match.events).toContainEqual(
+      expect.objectContaining({
+        kind: 'POWER_FIRED',
+        player: hero,
+        power: 'DECOY_DOUBLE',
+      }),
+    );
     expect(match.players[hero].powerState).toMatchObject({
-      kind: 'active', carrierIdx: newCarrier,
+      kind: 'active',
+      carrierIdx: newCarrier,
     });
     expect('targetIdx' in match.players[hero].powerState).toBe(false);
     expect(match.players[marker].pos).toEqual(movedMarker);
@@ -270,24 +322,40 @@ describe('m1.18 authored one-moment powers', () => {
     match.players[carrier].pos = { x: 2600, y: 4000 };
     match.players[receiver].pos = { x: 2900, y: 3600 };
     match.players[hero].pos = { x: 3400, y: 4300 };
-    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 6500, y: 9000 };
+    for (let idx = 11; idx < 22; idx += 1)
+      match.players[idx].pos = { x: 6500, y: 9000 };
     match.players[hero].firePolicy = 'FIRE_WHEN_READY';
     match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
 
     powerTick(match);
     const winding = match.players[hero].powerState as PowerState;
-    if (winding.kind !== 'winding') throw new Error('expected marker-free Decoy wind-up');
+    if (winding.kind !== 'winding')
+      throw new Error('expected marker-free Decoy wind-up');
     expect(winding.untilTick - match.tick).toBe(1);
     launchPass(match, carrier, receiver, false, true);
-    expect(match.ball).toMatchObject({ kind: 'pass', from: carrier, to: receiver });
+    expect(match.ball).toMatchObject({
+      kind: 'pass',
+      from: carrier,
+      to: receiver,
+    });
     match.tick = winding.untilTick;
     powerTick(match);
 
-    expect(match.players[hero].powerState).toMatchObject({ kind: 'active', carrierIdx: receiver });
-    expect(match.decoyClones[0]).toMatchObject({ ownerIdx: hero, sourceIdx: 10 });
-    expect(match.events).toContainEqual(expect.objectContaining({
-      kind: 'POWER_FIRED', player: hero, power: 'DECOY_DOUBLE',
-    }));
+    expect(match.players[hero].powerState).toMatchObject({
+      kind: 'active',
+      carrierIdx: receiver,
+    });
+    expect(match.decoyClones[0]).toMatchObject({
+      ownerIdx: hero,
+      sourceIdx: 10,
+    });
+    expect(match.events).toContainEqual(
+      expect.objectContaining({
+        kind: 'POWER_FIRED',
+        player: hero,
+        power: 'DECOY_DOUBLE',
+      }),
+    );
   });
 
   it('refunds a placed Decoy windup when possession turns over', () => {
@@ -311,12 +379,18 @@ describe('m1.18 authored one-moment powers', () => {
     expect(match.players[hero].powerState).toEqual({ kind: 'idle' });
     expect(match.players[hero].gauge).toBe(50);
     expect(match.players[hero].powerAnchor).toBeUndefined();
-    expect(match.events).toContainEqual(expect.objectContaining({
-      kind: 'POWER_INTERRUPTED', player: hero,
-    }));
-    expect(match.events).not.toContainEqual(expect.objectContaining({
-      kind: 'POWER_FIRED', player: hero,
-    }));
+    expect(match.events).toContainEqual(
+      expect.objectContaining({
+        kind: 'POWER_INTERRUPTED',
+        player: hero,
+      }),
+    );
+    expect(match.events).not.toContainEqual(
+      expect.objectContaining({
+        kind: 'POWER_FIRED',
+        player: hero,
+      }),
+    );
   });
 
   it('clears a placed anchor when its windup is interrupted', () => {
@@ -351,18 +425,24 @@ describe('m1.18 authored one-moment powers', () => {
     match.players[blocker].pos = { x: 3200, y: 4100 };
     match.players[secondBlocker].pos = { x: 3000, y: 3800 };
     for (let idx = 11; idx < 22; idx += 1) {
-      if (idx !== blocker && idx !== secondBlocker) match.players[idx].pos = { x: 6000, y: 9000 };
+      if (idx !== blocker && idx !== secondBlocker)
+        match.players[idx].pos = { x: 6000, y: 9000 };
     }
     match.players[hero].firePolicy = 'FIRE_WHEN_READY';
     match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
 
     powerTick(match);
     expect(match.players[hero].powerState).toMatchObject({
-      kind: 'winding', carrierIdx: carrier, targetIdx: blocker,
+      kind: 'winding',
+      carrierIdx: carrier,
+      targetIdx: blocker,
       secondaryTargetIdx: secondBlocker,
     });
     const winding = match.players[hero].powerState as PowerState;
-    if (winding.kind !== 'winding' || match.players[hero].powerAnchor === undefined) {
+    if (
+      winding.kind !== 'winding' ||
+      match.players[hero].powerAnchor === undefined
+    ) {
       throw new Error('expected a placed Gravity windup');
     }
     const staleAnchor = { ...match.players[hero].powerAnchor };
@@ -375,24 +455,38 @@ describe('m1.18 authored one-moment powers', () => {
 
     powerTick(match);
 
-    expect(match.events).toContainEqual(expect.objectContaining({
-      kind: 'POWER_FIRED', player: hero, power: 'GRAVITY_WELL',
-    }));
-    expect(match.players[hero].powerState).toMatchObject({ kind: 'active', carrierIdx: newCarrier });
+    expect(match.events).toContainEqual(
+      expect.objectContaining({
+        kind: 'POWER_FIRED',
+        player: hero,
+        power: 'GRAVITY_WELL',
+      }),
+    );
+    expect(match.players[hero].powerState).toMatchObject({
+      kind: 'active',
+      carrierIdx: newCarrier,
+    });
     const active = match.players[hero].powerState as PowerState;
-    if (active.kind !== 'active') throw new Error('expected active Gravity well');
-    expect(new Set([active.targetIdx, active.secondaryTargetIdx]))
-      .toEqual(new Set([blocker, secondBlocker]));
+    if (active.kind !== 'active')
+      throw new Error('expected active Gravity well');
+    expect(new Set([active.targetIdx, active.secondaryTargetIdx])).toEqual(
+      new Set([blocker, secondBlocker]),
+    );
     expect(match.players[hero].powerAnchor).not.toEqual(staleAnchor);
-    expect(Math.hypot(
-      match.players[blocker].pos.x - match.players[newCarrier].pos.x,
-      match.players[blocker].pos.y - match.players[newCarrier].pos.y,
-    )).toBeGreaterThanOrEqual(599);
+    expect(
+      Math.hypot(
+        match.players[blocker].pos.x - match.players[newCarrier].pos.x,
+        match.players[blocker].pos.y - match.players[newCarrier].pos.y,
+      ),
+    ).toBeGreaterThanOrEqual(599);
     movementTick(match);
     tackleTick(match);
-    expect(match.events).not.toContainEqual(expect.objectContaining({
-      kind: 'TACKLE', on: newCarrier,
-    }));
+    expect(match.events).not.toContainEqual(
+      expect.objectContaining({
+        kind: 'TACKLE',
+        on: newCarrier,
+      }),
+    );
   });
 
   it('refunds Gravity when possession transfers to a carrier with no valid lane', () => {
@@ -407,13 +501,15 @@ describe('m1.18 authored one-moment powers', () => {
     match.players[primary].pos = { x: 3200, y: 4100 };
     match.players[secondary].pos = { x: 3000, y: 3800 };
     for (let idx = 11; idx < 22; idx += 1) {
-      if (idx !== primary && idx !== secondary) match.players[idx].pos = { x: 6000, y: 9000 };
+      if (idx !== primary && idx !== secondary)
+        match.players[idx].pos = { x: 6000, y: 9000 };
     }
     match.players[hero].firePolicy = 'FIRE_WHEN_READY';
     match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
     powerTick(match);
     const winding = match.players[hero].powerState as PowerState;
-    if (winding.kind !== 'winding') throw new Error('expected a Gravity wind-up');
+    if (winding.kind !== 'winding')
+      throw new Error('expected a Gravity wind-up');
     const primaryBefore = { ...match.players[primary].pos };
     const secondaryBefore = { ...match.players[secondary].pos };
     const newCarrier = 8;
@@ -427,12 +523,19 @@ describe('m1.18 authored one-moment powers', () => {
     expect(match.players[secondary].pos).toEqual(secondaryBefore);
     expect(match.players[hero].powerState).toEqual({ kind: 'idle' });
     expect(match.players[hero].gauge).toBe(50);
-    expect(match.events).toContainEqual(expect.objectContaining({
-      kind: 'POWER_INTERRUPTED', player: hero,
-    }));
-    expect(match.events).not.toContainEqual(expect.objectContaining({
-      kind: 'POWER_FIRED', player: hero, power: 'GRAVITY_WELL',
-    }));
+    expect(match.events).toContainEqual(
+      expect.objectContaining({
+        kind: 'POWER_INTERRUPTED',
+        player: hero,
+      }),
+    );
+    expect(match.events).not.toContainEqual(
+      expect.objectContaining({
+        kind: 'POWER_FIRED',
+        player: hero,
+        power: 'GRAVITY_WELL',
+      }),
+    );
   });
 
   it('lets an airborne pass escape Gravity when no current carrier exists at landing', () => {
@@ -451,7 +554,8 @@ describe('m1.18 authored one-moment powers', () => {
     match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
     powerTick(match);
     const winding = match.players[hero].powerState as PowerState;
-    if (winding.kind !== 'winding') throw new Error('expected a Gravity wind-up');
+    if (winding.kind !== 'winding')
+      throw new Error('expected a Gravity wind-up');
 
     launchPass(match, carrier, 8, false, true);
     expect(match.ball).toMatchObject({ kind: 'pass', from: carrier, to: 8 });
@@ -460,13 +564,20 @@ describe('m1.18 authored one-moment powers', () => {
 
     expect(match.players[hero].powerState).toEqual({ kind: 'idle' });
     expect(match.players[hero].gauge).toBe(50);
-    expect(match.events).not.toContainEqual(expect.objectContaining({
-      kind: 'POWER_FIRED', player: hero, power: 'GRAVITY_WELL',
-    }));
+    expect(match.events).not.toContainEqual(
+      expect.objectContaining({
+        kind: 'POWER_FIRED',
+        player: hero,
+        power: 'GRAVITY_WELL',
+      }),
+    );
   });
 
   it('keeps Decoy placement safe while taps extend the clone lifetime', () => {
-    function cloneOutcome(strength: number, tier: 1 | 3): { progress: number; duration: number } {
+    function cloneOutcome(
+      strength: number,
+      tier: 1 | 3,
+    ): { progress: number; duration: number } {
       const { match, hero } = matchWith('DECOY_DOUBLE');
       const carrier = 6;
       const marker = 12;
@@ -480,7 +591,10 @@ describe('m1.18 authored one-moment powers', () => {
       activatePower(match, hero, strength);
       const clone = match.decoyClones[0];
       if (clone === null) throw new Error('expected Decoy clone');
-      return { progress: 10500 - clone.pos.y, duration: clone.untilTick - match.tick };
+      return {
+        progress: 10500 - clone.pos.y,
+        duration: clone.untilTick - match.tick,
+      };
     }
 
     const auto = cloneOutcome(0.85, 1);
@@ -535,12 +649,15 @@ describe('m1.18 authored one-moment powers', () => {
     match.blindAutoHome = true;
     match.players[hero].firePolicy = 'FIRE_WHEN_READY';
     match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
-    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 200, y: 9000 };
+    for (let idx = 11; idx < 22; idx += 1)
+      match.players[idx].pos = { x: 200, y: 9000 };
 
     powerTick(match);
 
     expect(match.players[hero].powerState).toEqual({
-      kind: 'winding', untilTick: 15, strength: 0.85,
+      kind: 'winding',
+      untilTick: 15,
+      strength: 0.85,
     });
     expect(() => movementTick(match)).not.toThrow();
     match.tick = 15;
@@ -559,26 +676,42 @@ describe('m1.18 authored one-moment powers', () => {
     activatePower(match, hero, 1);
     expect(attackingDecision(match, hero).kind).toBe('carry');
     possessionTick(match);
-    expect(match.players[hero].powerState).toMatchObject({ kind: 'active', commitment: 'FIRE_RUN' });
+    expect(match.players[hero].powerState).toMatchObject({
+      kind: 'active',
+      commitment: 'FIRE_RUN',
+    });
 
     match.players[hero].pos = { x: 3400, y: 2100 };
     match.tick = 5;
     possessionTick(match);
-    expect(match.events.filter(event => event.kind === 'SHOT')).toHaveLength(1);
+    expect(match.events.filter((event) => event.kind === 'SHOT')).toHaveLength(
+      1,
+    );
     expect(match.players[hero].powerState.kind).toBe('idle');
   });
 
-  it.each(['BLINK_RUN', 'FIRE_TORCH'] as const)('%s preserves the attacking carry during windup', power => {
-    const { match, hero } = matchWith(power);
-    match.ball = { kind: 'held', by: hero };
-    match.players[hero].pos = { x: 3400, y: 4000 };
-    match.players[hero].powerState = { kind: 'winding', untilTick: 15, strength: 1 };
-    expect(attackingDecision(match, hero).kind).toBe('carry');
-    expect(dribbleBonus(match, hero).d64Mod).toBeGreaterThan(0);
-  });
+  it.each(['BLINK_RUN', 'FIRE_TORCH'] as const)(
+    '%s preserves the attacking carry during windup',
+    (power) => {
+      const { match, hero } = matchWith(power);
+      match.ball = { kind: 'held', by: hero };
+      match.players[hero].pos = { x: 3400, y: 4000 };
+      match.players[hero].powerState = {
+        kind: 'winding',
+        untilTick: 15,
+        strength: 1,
+      };
+      expect(attackingDecision(match, hero).kind).toBe('carry');
+      expect(dribbleBonus(match, hero).d64Mod).toBeGreaterThan(0);
+    },
+  );
 
   it('keeps Fire Torch acquisition visible and stable while tiers change marker count', () => {
-    const firesAt = (strength: number, tier: 1 | 3, distance: number): boolean => {
+    const firesAt = (
+      strength: number,
+      tier: 1 | 3,
+      distance: number,
+    ): boolean => {
       const { match, hero } = matchWith('FIRE_TORCH');
       match.players[hero].def.powerTier = tier;
       match.ball = { kind: 'held', by: hero };
@@ -602,19 +735,30 @@ describe('m1.18 authored one-moment powers', () => {
     match.ball = { kind: 'held', by: hero };
     match.players[hero].pos = { x: 2250, y: 5000 };
     for (let idx = 11; idx < 22; idx += 1) {
-      match.players[idx].pos = { x: idx % 2 === 0 ? 1200 : 3300, y: idx === 11 ? 300 : 3600 + (idx - 12) * 100 };
+      match.players[idx].pos = {
+        x: idx % 2 === 0 ? 1200 : 3300,
+        y: idx === 11 ? 300 : 3600 + (idx - 12) * 100,
+      };
     }
-    const lastDefenderY = Math.min(...match.players.slice(12, 22).map(player => player.pos.y));
+    const lastDefenderY = Math.min(
+      ...match.players.slice(12, 22).map((player) => player.pos.y),
+    );
     activatePower(match, hero, 1);
     expect(match.players[hero].pos.y).toBeLessThan(lastDefenderY);
     expect(attackingDecision(match, hero).kind).not.toBe('pass');
     possessionTick(match);
-    expect(match.players[hero].powerState).toMatchObject({ kind: 'active', commitment: 'BLINK_ACTION' });
+    expect(match.players[hero].powerState).toMatchObject({
+      kind: 'active',
+      commitment: 'BLINK_ACTION',
+    });
     match.players[hero].pos = { x: 3400, y: 2000 };
-    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 600, y: 8000 };
+    for (let idx = 11; idx < 22; idx += 1)
+      match.players[idx].pos = { x: 600, y: 8000 };
     match.tick = 5;
     possessionTick(match);
-    expect(match.events.filter(event => event.kind === 'SHOT')).toHaveLength(1);
+    expect(match.events.filter((event) => event.kind === 'SHOT')).toHaveLength(
+      1,
+    );
     expect(match.players[hero].powerState.kind).toBe('idle');
   });
 
@@ -622,7 +766,8 @@ describe('m1.18 authored one-moment powers', () => {
     const { match, hero } = matchWith('BLINK_RUN');
     match.ball = { kind: 'held', by: hero };
     match.players[hero].pos = { x: 3400, y: 1000 };
-    for (let idx = 12; idx < 22; idx += 1) match.players[idx].pos = { x: 1000 + idx * 100, y: 2000 };
+    for (let idx = 12; idx < 22; idx += 1)
+      match.players[idx].pos = { x: 1000 + idx * 100, y: 2000 };
     activatePower(match, hero, 1);
     expect(match.players[hero].pos.y).toBeLessThan(1000);
   });
@@ -634,13 +779,16 @@ describe('m1.18 authored one-moment powers', () => {
     match.players[carrier].pos = { x: 800, y: 6500 };
     for (let idx = 0; idx < 11; idx += 1) {
       if (idx !== carrier) match.players[idx].pos = { x: 3400, y: 5000 };
-      if (match.players[idx].def.role === 'MID' && idx !== carrier) match.players[idx].tackleRecoveryUntil = 20;
+      if (match.players[idx].def.role === 'MID' && idx !== carrier)
+        match.players[idx].tackleRecoveryUntil = 20;
     }
     activatePower(match, hero, 1);
     expect(match.ball.kind).toBe('held');
     const receiver = match.ball.kind === 'held' ? match.ball.by : carrier;
     expect(['MID', 'FWD']).toContain(match.players[receiver].def.role);
-    expect(match.players[receiver].tackleRecoveryUntil).toBeLessThanOrEqual(match.tick);
+    expect(match.players[receiver].tackleRecoveryUntil).toBeLessThanOrEqual(
+      match.tick,
+    );
   });
 
   it('keeps Portal Heat banked when no obvious better forward exit exists', () => {
@@ -666,9 +814,11 @@ describe('m1.18 authored one-moment powers', () => {
     match.players[carrier].pos = { x: 3000, y: 4000 };
     match.players[hero].pos = { x: 3400, y: 3300 };
     for (let idx = 0; idx < 11; idx += 1) {
-      if (idx !== carrier && idx !== hero) match.players[idx].pos = { x: 3400, y: 6500 };
+      if (idx !== carrier && idx !== hero)
+        match.players[idx].pos = { x: 3400, y: 6500 };
     }
-    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 600, y: 7000 };
+    for (let idx = 11; idx < 22; idx += 1)
+      match.players[idx].pos = { x: 600, y: 7000 };
     match.players[hero].gauge = 60;
 
     expect(zoneEntryContext(match, hero)).toBe(true);
@@ -687,9 +837,11 @@ describe('m1.18 authored one-moment powers', () => {
       for (let idx = 0; idx < 11; idx += 1) {
         if (idx !== carrier) match.players[idx].pos = { x: 3400, y: 6500 };
       }
-      for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 6000, y: 9000 };
+      for (let idx = 11; idx < 22; idx += 1)
+        match.players[idx].pos = { x: 6000, y: 9000 };
       activatePower(match, hero, strength);
-      if (match.ball.kind !== 'held' || match.ball.by === carrier) throw new Error('expected Portal exit');
+      if (match.ball.kind !== 'held' || match.ball.by === carrier)
+        throw new Error('expected Portal exit');
       return 10500 - match.players[match.ball.by].pos.y;
     }
 
@@ -710,10 +862,13 @@ describe('m1.18 authored one-moment powers', () => {
     match.players[defender].pos = { x: 2250, y: 1400 };
     activatePower(match, hero, 1);
     expect(match.players[hero].powerState).toMatchObject({
-      kind: 'active', commitment: 'PHASE_ACTION',
+      kind: 'active',
+      commitment: 'PHASE_ACTION',
     });
     expect(match.ball).toEqual({ kind: 'held', by: hero });
-    expect(match.players[hero].pos.y).toBeLessThan(match.players[defender].pos.y);
+    expect(match.players[hero].pos.y).toBeLessThan(
+      match.players[defender].pos.y,
+    );
     expect(phaseRunPreventsShot(match, hero)).toBe(false);
   });
 
@@ -727,19 +882,24 @@ describe('m1.18 authored one-moment powers', () => {
 
     powerTick(match, [{ tick: match.tick, kind: 'POWER_TAP', player: hero }]);
     expect(match.players[hero].powerState).toMatchObject({
-      kind: 'winding', targetIdx: challenger,
+      kind: 'winding',
+      targetIdx: challenger,
     });
     expect(attackingDecision(match, hero).kind).toBe('carry');
 
-    const winding = match.players[hero].powerState as MatchState['players'][number]['powerState'];
+    const winding = match.players[hero]
+      .powerState as MatchState['players'][number]['powerState'];
     if (winding.kind !== 'winding') throw new Error('expected Phase windup');
     match.tick = winding.untilTick;
     powerTick(match);
     expect(match.players[hero].powerState).toMatchObject({
-      kind: 'active', commitment: 'PHASE_ACTION',
+      kind: 'active',
+      commitment: 'PHASE_ACTION',
     });
     expect(match.ball).toEqual({ kind: 'held', by: hero });
-    expect(match.players[hero].pos.y).toBeLessThan(match.players[challenger].pos.y);
+    expect(match.players[hero].pos.y).toBeLessThan(
+      match.players[challenger].pos.y,
+    );
   });
 
   it('Phase Run carries farther through its one challenge with manual timing and tiers', () => {
@@ -748,11 +908,13 @@ describe('m1.18 authored one-moment powers', () => {
       match.players[hero].def.powerTier = tier;
       match.ball = { kind: 'held', by: hero };
       match.players[hero].pos = { x: 2250, y: 3000 };
-      for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 200, y: 9000 };
+      for (let idx = 11; idx < 22; idx += 1)
+        match.players[idx].pos = { x: 200, y: 9000 };
       match.players[11].pos = { x: 2250, y: 2850 };
       activatePower(match, hero, strength);
       expect(match.players[hero].powerState).toMatchObject({
-        kind: 'active', commitment: 'PHASE_ACTION',
+        kind: 'active',
+        commitment: 'PHASE_ACTION',
       });
       expect(match.ball).toEqual({ kind: 'held', by: hero });
       return match.players[hero].pos.y;
@@ -779,14 +941,27 @@ describe('m1.18 authored one-moment powers', () => {
     match.rng = () => 0;
     launchPass(match, passer, receiver, false);
 
-    expect(match.ball).toMatchObject({ kind: 'pass', willSucceed: false, interceptor: hero });
-    expect(match.players[hero].powerState).toMatchObject({
-      kind: 'active', commitment: 'POWER_OUTLET', targetIdx: 9,
+    expect(match.ball).toMatchObject({
+      kind: 'pass',
+      willSucceed: false,
+      interceptor: hero,
     });
-    const flight = match.ball as unknown as Extract<MatchState['ball'], { kind: 'pass' }>;
+    expect(match.players[hero].powerState).toMatchObject({
+      kind: 'active',
+      commitment: 'POWER_OUTLET',
+      targetIdx: 9,
+    });
+    const flight = match.ball as unknown as Extract<
+      MatchState['ball'],
+      { kind: 'pass' }
+    >;
     flight.pos = { ...match.players[hero].pos };
     possessionTick(match);
-    expect(match.ball).toMatchObject({ kind: 'pass', willSucceed: true, interceptor: -1 });
+    expect(match.ball).toMatchObject({
+      kind: 'pass',
+      willSucceed: true,
+      interceptor: -1,
+    });
     expect(match.ball).toMatchObject({ from: hero, to: 9 });
     expect(match.players[hero].powerState.kind).toBe('idle');
   });
@@ -807,7 +982,8 @@ describe('m1.18 authored one-moment powers', () => {
     function outletY(strength: number, tier: 1 | 3): number {
       const { match, hero } = matchWith('FUTURE_SIGHT', 2);
       match.players[hero].def.powerTier = tier;
-      for (let idx = 0; idx < 11; idx += 1) match.players[idx].pos = { x: 6000, y: 7000 };
+      for (let idx = 0; idx < 11; idx += 1)
+        match.players[idx].pos = { x: 6000, y: 7000 };
       match.players[hero].pos = { x: 2200, y: 5000 };
       match.players[9].pos = { x: 2500, y: 3000 };
       match.players[11].pos = { x: 2300, y: 4800 };
@@ -835,7 +1011,8 @@ describe('m1.18 authored one-moment powers', () => {
     function spring(power: 'WEB_TRAP' | 'ICE_RINK') {
       const { match, hero } = matchWith(power, 2);
       const victim = 11;
-      for (let idx = 0; idx < 11; idx += 1) match.players[idx].pos = { x: 6000, y: 9000 };
+      for (let idx = 0; idx < 11; idx += 1)
+        match.players[idx].pos = { x: 6000, y: 9000 };
       match.players[hero].pos = { x: 1000, y: 5000 };
       match.players[victim].pos = { x: 2000, y: 5000 };
       match.ball = { kind: 'held', by: victim };
@@ -848,67 +1025,86 @@ describe('m1.18 authored one-moment powers', () => {
     }
 
     const web = spring('WEB_TRAP');
-    expect(web.match.ball).toMatchObject({ kind: 'loose', pos: web.match.players[web.victim].pos });
+    expect(web.match.ball).toMatchObject({
+      kind: 'loose',
+      pos: web.match.players[web.victim].pos,
+    });
     expect(web.match.players[web.victim].webbedUntilTick).toBe(200);
 
     const ice = spring('ICE_RINK');
     expect(ice.match.ball).toEqual({ kind: 'held', by: ice.victim });
-    expect(ice.match.players[ice.victim].forcedMovement).toMatchObject({ kind: 'ICE_SLIDE', untilTick: 35 });
+    expect(ice.match.players[ice.victim].forcedMovement).toMatchObject({
+      kind: 'ICE_SLIDE',
+      untilTick: 35,
+    });
   });
 
   it.each([
     ['WEB_TRAP', 2599, 2600],
     ['ICE_RINK', 2399, 2400],
-  ] as const)('%s uses its authored inside/outside trigger boundary', (power, inside, outside) => {
-    function triggerAt(distance: number): MatchState {
-      const { match, hero } = matchWith(power, 2);
-      const victim = 11;
-      match.players[hero].pos = { x: 1000, y: 5000 };
-      match.players[victim].pos = { x: 1000 + distance, y: 5000 };
-      match.ball = { kind: 'held', by: victim };
-      activatePower(match, hero, 1);
-      powerTick(match);
-      return match;
-    }
+  ] as const)(
+    '%s uses its authored inside/outside trigger boundary',
+    (power, inside, outside) => {
+      function triggerAt(distance: number): MatchState {
+        const { match, hero } = matchWith(power, 2);
+        const victim = 11;
+        match.players[hero].pos = { x: 1000, y: 5000 };
+        match.players[victim].pos = { x: 1000 + distance, y: 5000 };
+        match.ball = { kind: 'held', by: victim };
+        activatePower(match, hero, 1);
+        powerTick(match);
+        return match;
+      }
 
-    const insideMatch = triggerAt(inside);
-    expect(insideMatch.ball.kind).toBe(power === 'WEB_TRAP' ? 'loose' : 'held');
-    if (power === 'WEB_TRAP') expect(insideMatch.players[11].webbedUntilTick).toBe(200);
-    else expect(insideMatch.players[11].forcedMovement?.kind).toBe('ICE_SLIDE');
-    expect(insideMatch.players[2].powerState.kind).toBe('idle');
+      const insideMatch = triggerAt(inside);
+      expect(insideMatch.ball.kind).toBe(
+        power === 'WEB_TRAP' ? 'loose' : 'held',
+      );
+      if (power === 'WEB_TRAP')
+        expect(insideMatch.players[11].webbedUntilTick).toBe(200);
+      else
+        expect(insideMatch.players[11].forcedMovement?.kind).toBe('ICE_SLIDE');
+      expect(insideMatch.players[2].powerState.kind).toBe('idle');
 
-    const outsideMatch = triggerAt(outside);
-    expect(outsideMatch.ball).toEqual({ kind: 'held', by: 11 });
-    expect(outsideMatch.players[2].powerState.kind).toBe('active');
-  });
+      const outsideMatch = triggerAt(outside);
+      expect(outsideMatch.ball).toEqual({ kind: 'held', by: 11 });
+      expect(outsideMatch.players[2].powerState.kind).toBe('active');
+    },
+  );
 
   it.each([
     ['WEB_TRAP', 2599, 2600],
     ['ICE_RINK', 2399, 2400],
-  ] as const)('%s uses the same boundary for natural Zone entry and wind-up', (power, inside, outside) => {
-    function prepareAt(distance: number): MatchState {
-      const { match, hero } = matchWith(power, 2);
-      match.players[hero].pos = { x: 1000, y: 5000 };
-      match.players[11].pos = { x: 1000 + distance, y: 5000 };
-      match.ball = { kind: 'held', by: 11 };
-      match.players[hero].gauge = 60;
-      match.players[hero].firePolicy = 'FIRE_WHEN_READY';
-      powerTick(match);
-      return match;
-    }
+  ] as const)(
+    '%s uses the same boundary for natural Zone entry and wind-up',
+    (power, inside, outside) => {
+      function prepareAt(distance: number): MatchState {
+        const { match, hero } = matchWith(power, 2);
+        match.players[hero].pos = { x: 1000, y: 5000 };
+        match.players[11].pos = { x: 1000 + distance, y: 5000 };
+        match.ball = { kind: 'held', by: 11 };
+        match.players[hero].gauge = 60;
+        match.players[hero].firePolicy = 'FIRE_WHEN_READY';
+        powerTick(match);
+        return match;
+      }
 
-    const insideMatch = prepareAt(inside);
-    expect(insideMatch.players[2].powerState.kind).toBe('zone');
-    powerTick(insideMatch);
-    expect(insideMatch.players[2].powerState).toMatchObject({ kind: 'winding', targetIdx: 11 });
+      const insideMatch = prepareAt(inside);
+      expect(insideMatch.players[2].powerState.kind).toBe('zone');
+      powerTick(insideMatch);
+      expect(insideMatch.players[2].powerState).toMatchObject({
+        kind: 'winding',
+        targetIdx: 11,
+      });
 
-    const outsideMatch = prepareAt(outside);
-    expect(outsideMatch.players[2].powerState.kind).toBe('idle');
-  });
+      const outsideMatch = prepareAt(outside);
+      expect(outsideMatch.players[2].powerState.kind).toBe('idle');
+    },
+  );
 
   it.each(['WEB_TRAP', 'ICE_RINK'] as const)(
     '%s lands on the current enemy carrier after a pass during wind-up',
-    power => {
+    (power) => {
       const { match, hero } = matchWith(power, 2);
       const original = 11;
       const receiver = 12;
@@ -920,11 +1116,16 @@ describe('m1.18 authored one-moment powers', () => {
       match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
       powerTick(match);
       const winding = match.players[hero].powerState as PowerState;
-      if (winding.kind !== 'winding') throw new Error(`expected ${power} wind-up`);
+      if (winding.kind !== 'winding')
+        throw new Error(`expected ${power} wind-up`);
 
       launchPass(match, original, receiver, false, true);
-      const flight = match.ball as unknown as Extract<MatchState['ball'], { kind: 'pass' }>;
-      if (flight.kind !== 'pass') throw new Error('expected friendly pass flight');
+      const flight = match.ball as unknown as Extract<
+        MatchState['ball'],
+        { kind: 'pass' }
+      >;
+      if (flight.kind !== 'pass')
+        throw new Error('expected friendly pass flight');
       flight.pos = { ...match.players[receiver].pos };
       flight.z = 0;
       flight.vz = 0;
@@ -936,7 +1137,9 @@ describe('m1.18 authored one-moment powers', () => {
       powerTick(match);
 
       if (power === 'WEB_TRAP') {
-        expect(match.players[receiver].webbedUntilTick).toBeGreaterThan(match.tick);
+        expect(match.players[receiver].webbedUntilTick).toBeGreaterThan(
+          match.tick,
+        );
         expect(match.players[original].webbedUntilTick).toBeUndefined();
       } else {
         expect(match.players[receiver].forcedMovement?.kind).toBe('ICE_SLIDE');
@@ -958,8 +1161,17 @@ describe('m1.18 authored one-moment powers', () => {
     launchPass(match, passer, receiver, false);
 
     expect(match.players[hero].powerState.kind).toBe('idle');
-    expect(match.ball).toMatchObject({ kind: 'pass', to: 0, willSucceed: true, gustRedirect: true, interceptor: -1 });
-    const flight = match.ball as unknown as Extract<MatchState['ball'], { kind: 'pass' }>;
+    expect(match.ball).toMatchObject({
+      kind: 'pass',
+      to: 0,
+      willSucceed: true,
+      gustRedirect: true,
+      interceptor: -1,
+    });
+    const flight = match.ball as unknown as Extract<
+      MatchState['ball'],
+      { kind: 'pass' }
+    >;
     flight.pos = { ...match.players[0].pos };
     flight.z = 0;
     possessionTick(match);
@@ -968,7 +1180,7 @@ describe('m1.18 authored one-moment powers', () => {
 
   it.each(['FUTURE_SIGHT', 'GUST'] as const)(
     '%s stays banked when the ordinary pass already fails',
-    power => {
+    (power) => {
       const { match, hero } = matchWith(power, 2);
       const passer = 11;
       const receiver = 12;
@@ -983,7 +1195,9 @@ describe('m1.18 authored one-moment powers', () => {
       launchPass(match, passer, receiver, false);
 
       expect(match.players[hero].powerState).toMatchObject({ kind: 'active' });
-      expect(match.players[hero].powerState).not.toMatchObject({ commitment: 'POWER_OUTLET' });
+      expect(match.players[hero].powerState).not.toMatchObject({
+        commitment: 'POWER_OUTLET',
+      });
     },
   );
 
@@ -999,12 +1213,20 @@ describe('m1.18 authored one-moment powers', () => {
     expect(match.ball).toEqual({ kind: 'held', by: carrier });
     expect(match.players[hero].powerState.kind).toBe('active');
     tackleTick(match);
-    expect(match.events).not.toContainEqual(expect.objectContaining({ kind: 'TACKLE', by: hero }));
+    expect(match.events).not.toContainEqual(
+      expect.objectContaining({ kind: 'TACKLE', by: hero }),
+    );
     match.tick = 20;
     powerTick(match);
-    expect(match.events).toContainEqual(expect.objectContaining({
-      kind: 'TACKLE', by: hero, on: carrier, style: 'power', won: true,
-    }));
+    expect(match.events).toContainEqual(
+      expect.objectContaining({
+        kind: 'TACKLE',
+        by: hero,
+        on: carrier,
+        style: 'power',
+        won: true,
+      }),
+    );
     expect(match.ball).toEqual({ kind: 'held', by: hero });
     expect(match.players[hero].powerState.kind).toBe('idle');
   });
@@ -1013,7 +1235,8 @@ describe('m1.18 authored one-moment powers', () => {
     const { match, hero } = matchWith('SHADOW_MARK', 2);
     const passer = 11;
     const receiver = 12;
-    for (let idx = 0; idx < 11; idx += 1) match.players[idx].pos = { x: 200, y: 9000 };
+    for (let idx = 0; idx < 11; idx += 1)
+      match.players[idx].pos = { x: 200, y: 9000 };
     match.players[hero].pos = { x: 2300, y: 5000 };
     match.players[receiver].pos = { x: 2300, y: 5000 };
     match.players[passer].def.attrs.pas = 99;
@@ -1022,9 +1245,16 @@ describe('m1.18 authored one-moment powers', () => {
     activatePower(match, hero, 1);
 
     launchPass(match, passer, receiver, false);
-    expect(match.ball).toMatchObject({ kind: 'pass', willSucceed: true, to: receiver });
+    expect(match.ball).toMatchObject({
+      kind: 'pass',
+      willSucceed: true,
+      to: receiver,
+    });
     expect(match.players[hero].powerState.kind).toBe('active');
-    const flight = match.ball as unknown as Extract<MatchState['ball'], { kind: 'pass' }>;
+    const flight = match.ball as unknown as Extract<
+      MatchState['ball'],
+      { kind: 'pass' }
+    >;
     flight.pos = { ...match.players[receiver].pos };
     flight.z = 0;
     possessionTick(match);
@@ -1052,11 +1282,26 @@ describe('m1.18 authored one-moment powers', () => {
     const auto = activateAt('SHADOW_MARK', 0.85, 1, 2);
     const manual = activateAt('SHADOW_MARK', 1, 1, 2);
     const tier3 = activateAt('SHADOW_MARK', 1, 3, 2);
-    expect(auto.match.players[auto.hero].powerState).toMatchObject({ untilTick: 120, armedAtTick: 20 });
-    expect(manual.match.players[manual.hero].powerState).toMatchObject({ untilTick: 120, armedAtTick: 20 });
-    expect(tier3.match.players[tier3.hero].powerState).toMatchObject({ untilTick: 120, armedAtTick: 20 });
+    expect(auto.match.players[auto.hero].powerState).toMatchObject({
+      untilTick: 120,
+      armedAtTick: 20,
+    });
+    expect(manual.match.players[manual.hero].powerState).toMatchObject({
+      untilTick: 120,
+      armedAtTick: 20,
+    });
+    expect(tier3.match.players[tier3.hero].powerState).toMatchObject({
+      untilTick: 120,
+      armedAtTick: 20,
+    });
 
-    auto.match.ball = { kind: 'loose', pos: { x: 3400, y: 5250 }, vel: { x: 0, y: 0 }, z: 0, vz: 0 };
+    auto.match.ball = {
+      kind: 'loose',
+      pos: { x: 3400, y: 5250 },
+      vel: { x: 0, y: 0 },
+      z: 0,
+      vz: 0,
+    };
     auto.match.tick = 119;
     powerTick(auto.match);
     expect(auto.match.players[auto.hero].powerState.kind).toBe('active');
@@ -1079,33 +1324,58 @@ describe('m1.18 authored one-moment powers', () => {
         match.players[hero].gauge = 5;
         match.players[hero].zonesOpened = 0;
         powerTick(match);
-        expect(match.players[hero].powerState).toEqual({ kind: 'zone', remainingTicks: 70 });
+        expect(match.players[hero].powerState).toEqual({
+          kind: 'zone',
+          remainingTicks: 70,
+        });
       }
 
       match.players[hero].firePolicy = 'FIRE_WHEN_READY';
       match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
       powerTick(match);
-      expect(match.players[hero].powerState).toEqual({ kind: 'zone', remainingTicks: 70 });
+      expect(match.players[hero].powerState).toEqual({
+        kind: 'zone',
+        remainingTicks: 70,
+      });
 
       match.players[hero].firePolicy = 'SAVE_FOR_TAP';
       match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
       powerTick(match);
-      expect(match.players[hero].powerState).toEqual({ kind: 'zone', remainingTicks: 70 });
+      expect(match.players[hero].powerState).toEqual({
+        kind: 'zone',
+        remainingTicks: 70,
+      });
 
       match.players[hero].firePolicy = 'FIRE_WHEN_READY';
       match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
       match.players[hero].pos = { x: 3400, y: 10000 };
       match.ball = {
-        kind: 'shot', pos: { x: 3400, y: 9800 }, vel: { x: 0, y: 300 }, by: 20,
-        shotStrengthD64: 0, power: 1, targetX: 3400, z: 0, vz: 0,
-        trajectory: 'driven', keeperChecked: false,
+        kind: 'shot',
+        pos: { x: 3400, y: 9800 },
+        vel: { x: 0, y: 300 },
+        by: 20,
+        shotStrengthD64: 0,
+        power: 1,
+        targetX: 3400,
+        z: 0,
+        vz: 0,
+        trajectory: 'driven',
+        keeperChecked: false,
       };
       match.rng = () => 0;
       powerTick(match);
       expect(match.players[hero].powerState.kind).toBe('active');
-      expect(match.events.at(-1)).toMatchObject({ kind: 'POWER_FIRED', player: hero, strength: 0.85 });
+      expect(match.events.at(-1)).toMatchObject({
+        kind: 'POWER_FIRED',
+        player: hero,
+        strength: 0.85,
+      });
       shotFlightTick(match);
-      expect(match.ball).toMatchObject({ kind: 'held', by: hero, caught: true });
+      expect(match.ball).toMatchObject({
+        kind: 'held',
+        by: hero,
+        caught: true,
+      });
       if (power === 'ELASTIC_KEEPER') {
         expect(match.players[hero].powerState.kind).toBe('idle');
       } else {
@@ -1130,7 +1400,9 @@ describe('m1.18 authored one-moment powers', () => {
       expect(manualBonus).toBe(expected.manual * 64);
       expect(tier3Bonus).toBe(expected.tier3 * 64);
       expect(manualBonus - autoBonus).toBeGreaterThan(0);
-      expect(tier3Bonus - manualBonus).toBeGreaterThanOrEqual(manualBonus - autoBonus);
+      expect(tier3Bonus - manualBonus).toBeGreaterThanOrEqual(
+        manualBonus - autoBonus,
+      );
     }
   });
 
@@ -1139,9 +1411,21 @@ describe('m1.18 authored one-moment powers', () => {
     const manual = matchWith('SUPER_STRENGTH');
     auto.match.players[auto.hero].def.powerTier = 1;
     manual.match.players[manual.hero].def.powerTier = 3;
-    auto.match.players[auto.hero].powerState = { kind: 'winding', untilTick: 15, strength: 0.85, targetIdx: 11 };
-    manual.match.players[manual.hero].powerState = { kind: 'winding', untilTick: 15, strength: 1, targetIdx: 11 };
-    expect(speedMultiplier(manual.match, manual.hero)).toBeGreaterThan(speedMultiplier(auto.match, auto.hero));
+    auto.match.players[auto.hero].powerState = {
+      kind: 'winding',
+      untilTick: 15,
+      strength: 0.85,
+      targetIdx: 11,
+    };
+    manual.match.players[manual.hero].powerState = {
+      kind: 'winding',
+      untilTick: 15,
+      strength: 1,
+      targetIdx: 11,
+    };
+    expect(speedMultiplier(manual.match, manual.hero)).toBeGreaterThan(
+      speedMultiplier(auto.match, auto.hero),
+    );
 
     auto.match.players[auto.hero].pos = { x: 2000, y: 5000 };
     manual.match.players[manual.hero].pos = { x: 2000, y: 5000 };
@@ -1179,9 +1463,15 @@ describe('m1.18 authored one-moment powers', () => {
     activatePower(match, hero, 1, target);
     expect(match.ball).toEqual({ kind: 'held', by: hero });
     expect(match.players[hero].powerState.kind).toBe('idle');
-    expect(match.events).toContainEqual(expect.objectContaining({
-      kind: 'TACKLE', by: hero, on: target, won: true, style: 'power',
-    }));
+    expect(match.events).toContainEqual(
+      expect.objectContaining({
+        kind: 'TACKLE',
+        by: hero,
+        on: target,
+        won: true,
+        style: 'power',
+      }),
+    );
   });
 
   it('turns Speed manual timing and tier into materially stronger tackle resistance', () => {
@@ -1196,12 +1486,22 @@ describe('m1.18 authored one-moment powers', () => {
   });
 
   it('makes every authored attacking finish stronger from auto to tap to Tier 3', () => {
-    function profile(power: 'SUPER_SPEED' | 'BLINK_RUN' | 'THUNDER_STRIKE' | 'FIRE_TORCH' | 'PHASE_RUN', strength: number, tier: 1 | 3) {
+    function profile(
+      power:
+        | 'SUPER_SPEED'
+        | 'BLINK_RUN'
+        | 'THUNDER_STRIKE'
+        | 'FIRE_TORCH'
+        | 'PHASE_RUN',
+      strength: number,
+      tier: 1 | 3,
+    ) {
       const { match, hero } = matchWith(power);
       match.players[hero].def.powerTier = tier;
       match.players[hero].pos = { x: 2250, y: 2500 };
       match.ball = { kind: 'held', by: hero };
-      for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 6000, y: 9000 };
+      for (let idx = 11; idx < 22; idx += 1)
+        match.players[idx].pos = { x: 6000, y: 9000 };
       if (power === 'FIRE_TORCH') match.players[12].pos = { x: 2250, y: 2200 };
       if (power === 'PHASE_RUN') match.players[12].pos = { x: 2250, y: 2350 };
       activatePower(match, hero, strength);
@@ -1210,7 +1510,13 @@ describe('m1.18 authored one-moment powers', () => {
       return result;
     }
 
-    for (const power of ['SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN'] as const) {
+    for (const power of [
+      'SUPER_SPEED',
+      'BLINK_RUN',
+      'THUNDER_STRIKE',
+      'FIRE_TORCH',
+      'PHASE_RUN',
+    ] as const) {
       const auto = profile(power, 0.85, 1);
       const manual = profile(power, 1, 1);
       const tier3 = profile(power, 1, 3);
@@ -1234,7 +1540,10 @@ describe('m1.18 authored one-moment powers', () => {
     match.ball = { kind: 'held', by: carrier };
     expect(inUsefulContext(match, hero)).toBe(true);
     const before = { ...match.players[12].pos };
-    const beforeDistance = Math.hypot(before.x - match.players[carrier].pos.x, before.y - match.players[carrier].pos.y);
+    const beforeDistance = Math.hypot(
+      before.x - match.players[carrier].pos.x,
+      before.y - match.players[carrier].pos.y,
+    );
     activatePower(match, hero, 1);
     const after = { ...match.players[12].pos };
     const active = match.players[hero].powerState;
@@ -1242,12 +1551,22 @@ describe('m1.18 authored one-moment powers', () => {
       throw new Error('expected active Gravity runner');
     }
     const goal = { x: 2250, y: 0 };
-    expect(segmentDistance(after, match.players[carrier].pos, goal))
-      .toBeGreaterThan(segmentDistance(before, match.players[carrier].pos, goal));
-    expect(segmentDistance(after, match.players[carrier].pos, active.runnerAnchor))
-      .toBeGreaterThan(segmentDistance(before, match.players[carrier].pos, active.runnerAnchor));
-    expect(Math.hypot(after.x - match.players[carrier].pos.x, after.y - match.players[carrier].pos.y))
-      .toBeGreaterThan(beforeDistance);
+    expect(
+      segmentDistance(after, match.players[carrier].pos, goal),
+    ).toBeGreaterThan(
+      segmentDistance(before, match.players[carrier].pos, goal),
+    );
+    expect(
+      segmentDistance(after, match.players[carrier].pos, active.runnerAnchor),
+    ).toBeGreaterThan(
+      segmentDistance(before, match.players[carrier].pos, active.runnerAnchor),
+    );
+    expect(
+      Math.hypot(
+        after.x - match.players[carrier].pos.x,
+        after.y - match.players[carrier].pos.y,
+      ),
+    ).toBeGreaterThan(beforeDistance);
     expect(match.players[hero].powerState.kind).toBe('active');
     powerTick(match);
     expect(match.players[12].pos).toEqual(after);
@@ -1263,7 +1582,8 @@ describe('m1.18 authored one-moment powers', () => {
     match.players[carrier].pos = { x: 3400, y: 4800 };
     match.players[10].pos = { x: 3200, y: 3400 };
     match.players[hero].gauge = 60;
-    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 6000, y: 9000 };
+    for (let idx = 11; idx < 22; idx += 1)
+      match.players[idx].pos = { x: 6000, y: 9000 };
 
     expect(zoneEntryContext(match, hero)).toBe(false);
     powerTick(match);
@@ -1277,7 +1597,10 @@ describe('m1.18 authored one-moment powers', () => {
   });
 
   it('keeps every Gravity grade on the same non-harmful outward pulse', () => {
-    function pulse(strength: number, tier: 1 | 3): { before: number; after: number } {
+    function pulse(
+      strength: number,
+      tier: 1 | 3,
+    ): { before: number; after: number } {
       const { match, hero } = matchWith('GRAVITY_WELL', 6);
       const carrier = 9;
       const blocker = 12;
@@ -1293,7 +1616,10 @@ describe('m1.18 authored one-moment powers', () => {
       const before = { ...match.players[blocker].pos };
       activatePower(match, hero, strength);
       return {
-        before: Math.hypot(before.x - match.players[carrier].pos.x, before.y - match.players[carrier].pos.y),
+        before: Math.hypot(
+          before.x - match.players[carrier].pos.x,
+          before.y - match.players[carrier].pos.y,
+        ),
         after: Math.hypot(
           match.players[blocker].pos.x - match.players[carrier].pos.x,
           match.players[blocker].pos.y - match.players[carrier].pos.y,

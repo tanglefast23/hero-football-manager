@@ -30,7 +30,11 @@ const ICON_SIZE = 16;
  */
 const MAX_DRAWN_ICONS = 6;
 
-export function LedgerRowIcons({ icons }: { icons: readonly LedgerIconViewModel[] }) {
+export function LedgerRowIcons({
+  icons,
+}: {
+  icons: readonly LedgerIconViewModel[];
+}) {
   if (icons.length === 0) return null;
   const drawn = icons.slice(0, MAX_DRAWN_ICONS);
   const overflow = icons.length - drawn.length;
@@ -42,11 +46,13 @@ export function LedgerRowIcons({ icons }: { icons: readonly LedgerIconViewModel[
       // the amount and read as part of the money.
       className="ml-2 mr-3 shrink-0 flex-row items-center gap-1"
     >
-      {drawn.map(icon => (
+      {drawn.map((icon) => (
         <View key={icon.id} className="flex-row items-center">
           <LedgerIcon icon={icon} />
           {icon.count !== undefined && icon.count > 1 ? (
-            <Text className="ml-0.5 font-mono text-xs text-ink/60">×{icon.count}</Text>
+            <Text className="ml-0.5 font-mono text-xs text-ink/60">
+              ×{icon.count}
+            </Text>
           ) : null}
         </View>
       ))}
@@ -60,10 +66,17 @@ export function LedgerRowIcons({ icons }: { icons: readonly LedgerIconViewModel[
 function LedgerIcon({ icon }: { icon: LedgerIconViewModel }) {
   if (icon.kind === 'facility') {
     // Level pips belong on the grounds map, not on a one-line ledger badge.
-    return <FacilitySprite type={icon.facility} size={ICON_SIZE} showLevel={false} />;
+    return (
+      <FacilitySprite type={icon.facility} size={ICON_SIZE} showLevel={false} />
+    );
   }
   if (icon.kind === 'coach') {
-    return <ManagementSprite spriteKey={`coach:${icon.portraitId}:rest`} width={ICON_SIZE} />;
+    return (
+      <ManagementSprite
+        spriteKey={`coach:${icon.portraitId}:rest`}
+        width={ICON_SIZE}
+      />
+    );
   }
   return <PlayerSprite size={ICON_SIZE} />;
 }

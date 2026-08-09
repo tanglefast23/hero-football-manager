@@ -2,13 +2,20 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { loadLaunchContent } from '../../content';
 import { createCareer, type CareerPlayer, type GameState } from '../../game';
-import type { CoachSpecialty as MarketCoachSpecialty, PlayerPersonality as MarketPersonality, ScoutRegion } from '../../game/market';
+import type {
+  CoachSpecialty as MarketCoachSpecialty,
+  PlayerPersonality as MarketPersonality,
+  ScoutRegion,
+} from '../../game/market';
 import type { CoachSpecialty as LegacyCoachSpecialty } from '../../game/pyramid';
 import type { PlayerArchetype, PlayerPersonality } from '../../game/types';
 import { ENABLED_LOCALES, copyFor, loadCatalog, type Locale } from '../../i18n';
 import { createLaunchCareerSetup } from '../launch';
 import { careerMarketViewModelSource } from '../market-source-adapter';
-import { marketViewModel, type MarketViewModelSource } from '../market-view-model';
+import {
+  marketViewModel,
+  type MarketViewModelSource,
+} from '../market-view-model';
 import {
   archetypeName,
   coachSpecialtyName,
@@ -46,29 +53,65 @@ const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
  * appearing in it.
  */
 const ARCHETYPE_IDS = Object.keys({
-  Speedster: 0, Sniper: 0, Playmaker: 0, Anchor: 0, Wall: 0, Engine: 0, 'All-Rounder': 0, Prodigy: 0,
+  Speedster: 0,
+  Sniper: 0,
+  Playmaker: 0,
+  Anchor: 0,
+  Wall: 0,
+  Engine: 0,
+  'All-Rounder': 0,
+  Prodigy: 0,
 } satisfies Record<PlayerArchetype, 0>) as PlayerArchetype[];
 const PERSONALITY_IDS = Object.keys({
-  Fiery: 0, Loyal: 0, Greedy: 0, Joker: 0, Professional: 0, Timid: 0,
+  Fiery: 0,
+  Loyal: 0,
+  Greedy: 0,
+  Joker: 0,
+  Professional: 0,
+  Timid: 0,
 } satisfies Record<PlayerPersonality, 0>) as PlayerPersonality[];
 const MARKET_PERSONALITY_IDS = Object.keys({
-  FIERY: 0, LOYAL: 0, GREEDY: 0, JOKER: 0, PROFESSIONAL: 0, TIMID: 0,
+  FIERY: 0,
+  LOYAL: 0,
+  GREEDY: 0,
+  JOKER: 0,
+  PROFESSIONAL: 0,
+  TIMID: 0,
 } satisfies Record<MarketPersonality, 0>) as MarketPersonality[];
 const SPECIALTY_IDS = Object.keys({
-  ATTACK: 0, DEFENSE: 0, FITNESS: 0, TECHNIQUE: 0, GOALKEEPING: 0, MOTIVATOR: 0,
+  ATTACK: 0,
+  DEFENSE: 0,
+  FITNESS: 0,
+  TECHNIQUE: 0,
+  GOALKEEPING: 0,
+  MOTIVATOR: 0,
 } satisfies Record<MarketCoachSpecialty, 0>) as MarketCoachSpecialty[];
 const LEGACY_SPECIALTY_IDS = Object.keys({
-  Attack: 0, Defense: 0, Fitness: 0, Technique: 0, Goalkeeping: 0, Motivator: 0,
+  Attack: 0,
+  Defense: 0,
+  Fitness: 0,
+  Technique: 0,
+  Goalkeeping: 0,
+  Motivator: 0,
 } satisfies Record<LegacyCoachSpecialty, 0>) as LegacyCoachSpecialty[];
 const REGION_IDS = Object.keys({
-  LOCAL: 0, EUROPE: 0, SOUTH_AMERICA: 0, AFRICA: 0, ASIA: 0,
+  LOCAL: 0,
+  EUROPE: 0,
+  SOUTH_AMERICA: 0,
+  AFRICA: 0,
+  ASIA: 0,
 } satisfies Record<ScoutRegion, 0>) as ScoutRegion[];
 
-const career = (seed: number) => createCareer(createLaunchCareerSetup(seed, undefined, content));
+const career = (seed: number) =>
+  createCareer(createLaunchCareerSetup(seed, undefined, content));
 
 function catalogWord(locale: Locale, key: string): string {
   const value = loadCatalog(locale).strings[key];
-  expect({ locale, key, value }).toEqual({ locale, key, value: expect.any(String) });
+  expect({ locale, key, value }).toEqual({
+    locale,
+    key,
+    value: expect.any(String),
+  });
   return value!;
 }
 
@@ -84,30 +127,50 @@ describe('every enum name has a word in every language', () => {
     for (const locale of ENABLED_LOCALES) {
       const t = copyFor(locale);
       for (const [id, slug] of [
-        ['Speedster', 'speedster'], ['Sniper', 'sniper'], ['Playmaker', 'playmaker'],
-        ['Anchor', 'anchor'], ['Wall', 'wall'], ['Engine', 'engine'],
-        ['All-Rounder', 'allRounder'], ['Prodigy', 'prodigy'],
+        ['Speedster', 'speedster'],
+        ['Sniper', 'sniper'],
+        ['Playmaker', 'playmaker'],
+        ['Anchor', 'anchor'],
+        ['Wall', 'wall'],
+        ['Engine', 'engine'],
+        ['All-Rounder', 'allRounder'],
+        ['Prodigy', 'prodigy'],
       ] as const) {
-        expect({ locale, id, word: archetypeName(t, id) })
-          .toEqual({ locale, id, word: catalogWord(locale, `archetype.${slug}.name`) });
+        expect({ locale, id, word: archetypeName(t, id) }).toEqual({
+          locale,
+          id,
+          word: catalogWord(locale, `archetype.${slug}.name`),
+        });
       }
       expect(ARCHETYPE_IDS).toHaveLength(8);
 
       for (const id of PERSONALITY_IDS) {
-        expect({ locale, id, word: personalityName(t, id) })
-          .toEqual({ locale, id, word: catalogWord(locale, `personality.${id.toLowerCase()}.name`) });
+        expect({ locale, id, word: personalityName(t, id) }).toEqual({
+          locale,
+          id,
+          word: catalogWord(locale, `personality.${id.toLowerCase()}.name`),
+        });
       }
       for (const id of SPECIALTY_IDS) {
         const slug = id === 'GOALKEEPING' ? 'goalkeeping' : id.toLowerCase();
-        expect({ locale, id, word: coachSpecialtyName(t, id) })
-          .toEqual({ locale, id, word: catalogWord(locale, `coachSpecialty.${slug}.name`) });
+        expect({ locale, id, word: coachSpecialtyName(t, id) }).toEqual({
+          locale,
+          id,
+          word: catalogWord(locale, `coachSpecialty.${slug}.name`),
+        });
       }
       for (const [id, slug] of [
-        ['LOCAL', 'local'], ['EUROPE', 'europe'], ['SOUTH_AMERICA', 'southAmerica'],
-        ['AFRICA', 'africa'], ['ASIA', 'asia'],
+        ['LOCAL', 'local'],
+        ['EUROPE', 'europe'],
+        ['SOUTH_AMERICA', 'southAmerica'],
+        ['AFRICA', 'africa'],
+        ['ASIA', 'asia'],
       ] as const) {
-        expect({ locale, id, word: scoutRegionName(t, id) })
-          .toEqual({ locale, id, word: catalogWord(locale, `scoutRegion.${slug}.name`) });
+        expect({ locale, id, word: scoutRegionName(t, id) }).toEqual({
+          locale,
+          id,
+          word: catalogWord(locale, `scoutRegion.${slug}.name`),
+        });
       }
       expect(REGION_IDS).toHaveLength(5);
     }
@@ -120,17 +183,38 @@ describe('every enum name has a word in every language', () => {
    * hard-coded expectation catches it.
    */
   test('a German player reads German words, not the enum', () => {
-    expect(ARCHETYPE_IDS.map(id => archetypeName(de, id))).toEqual([
-      'Sprinter', 'Torjäger', 'Spielmacher', 'Abräumer', 'Mauer', 'Motor', 'Allrounder', 'Wunderkind',
+    expect(ARCHETYPE_IDS.map((id) => archetypeName(de, id))).toEqual([
+      'Sprinter',
+      'Torjäger',
+      'Spielmacher',
+      'Abräumer',
+      'Mauer',
+      'Motor',
+      'Allrounder',
+      'Wunderkind',
     ]);
-    expect(PERSONALITY_IDS.map(id => personalityName(de, id))).toEqual([
-      'Hitzkopf', 'Loyal', 'Gierig', 'Spaßvogel', 'Profi', 'Schüchtern',
+    expect(PERSONALITY_IDS.map((id) => personalityName(de, id))).toEqual([
+      'Hitzkopf',
+      'Loyal',
+      'Gierig',
+      'Spaßvogel',
+      'Profi',
+      'Schüchtern',
     ]);
-    expect(REGION_IDS.map(id => scoutRegionName(de, id))).toEqual([
-      'Umgebung', 'Europa', 'Südamerika', 'Afrika', 'Asien',
+    expect(REGION_IDS.map((id) => scoutRegionName(de, id))).toEqual([
+      'Umgebung',
+      'Europa',
+      'Südamerika',
+      'Afrika',
+      'Asien',
     ]);
-    expect(SPECIALTY_IDS.map(id => coachSpecialtyName(de, id))).toEqual([
-      'Angriff', 'Abwehr', 'Fitness', 'Technik', 'Torwart', 'Motivator',
+    expect(SPECIALTY_IDS.map((id) => coachSpecialtyName(de, id))).toEqual([
+      'Angriff',
+      'Abwehr',
+      'Fitness',
+      'Technik',
+      'Torwart',
+      'Motivator',
     ]);
   });
 
@@ -141,31 +225,43 @@ describe('every enum name has a word in every language', () => {
    * player's personality and leave the coach beside him in English.
    */
   test('both spellings of the same enum reach the same word', () => {
-    expect(MARKET_PERSONALITY_IDS.map(id => personalityName(de, id)))
-      .toEqual(PERSONALITY_IDS.map(id => personalityName(de, id)));
-    expect(LEGACY_SPECIALTY_IDS.map(id => coachSpecialtyName(de, id)))
-      .toEqual(SPECIALTY_IDS.map(id => coachSpecialtyName(de, id)));
+    expect(MARKET_PERSONALITY_IDS.map((id) => personalityName(de, id))).toEqual(
+      PERSONALITY_IDS.map((id) => personalityName(de, id)),
+    );
+    expect(
+      LEGACY_SPECIALTY_IDS.map((id) => coachSpecialtyName(de, id)),
+    ).toEqual(SPECIALTY_IDS.map((id) => coachSpecialtyName(de, id)));
   });
 });
 
 describe('every archetype render site draws the translated word', () => {
   test('the player file — both the identity line and the archetype row', () => {
     const state = career(20260808);
-    const player = state.players.find(candidate => candidate.clubId === state.userClubId)!;
-    const german = squadTrainingViewModel(state, content, player.id, de)
-      .players.find(row => row.id === player.id)!;
+    const player = state.players.find(
+      (candidate) => candidate.clubId === state.userClubId,
+    )!;
+    const german = squadTrainingViewModel(
+      state,
+      content,
+      player.id,
+      de,
+    ).players.find((row) => row.id === player.id)!;
 
     expect(german.archetype).toBe(player.archetype);
     expect(german.archetypeLabel).toBe(archetypeName(de, player.archetype!));
     expect(german.archetypeLabel).not.toBe(german.archetype);
-    expect(german.personalityLabel).toBe(personalityName(de, player.personality!));
+    expect(german.personalityLabel).toBe(
+      personalityName(de, player.personality!),
+    );
 
     // Both lines draw the label. The id stays on the model because
     // `archetypeDevelopmentSummary` and `personalityExplainer` key off it.
     const screen = read('src/ui/screens/SquadTrainingScreen.tsx');
-    expect(screen).toContain('{selectedPlayer.role} · {selectedPlayer.archetypeLabel}');
-    expect(screen).toContain('{selectedPlayer.archetypeLabel}</Text>');
-    expect(screen).toContain('{selectedPlayer.personalityLabel}</Text>');
+    expect(screen).toContainSource(
+      '{selectedPlayer.role} · {selectedPlayer.archetypeLabel}',
+    );
+    expect(screen).toContainSource('{selectedPlayer.archetypeLabel}</Text>');
+    expect(screen).toContainSource('{selectedPlayer.personalityLabel}</Text>');
   });
 
   test('the youth card on the market screen', () => {
@@ -178,30 +274,45 @@ describe('every archetype render site draws the translated word', () => {
         declined: false,
         rosterCount: 16,
         rosterCapacity: 20,
-        offers: [{
-          player: {
-            id: 'youth-1',
-            name: 'Tam Reyes',
-            role: 'FWD',
-            age: 17,
-            potential: 4,
-            archetype: 'Sniper',
-            weeklyWage: 40,
-            attrs: { pac: 40, sho: 44, pas: 30, def: 12, tec: 35, sta: 38, ref: 6 },
+        offers: [
+          {
+            player: {
+              id: 'youth-1',
+              name: 'Tam Reyes',
+              role: 'FWD',
+              age: 17,
+              potential: 4,
+              archetype: 'Sniper',
+              weeklyWage: 40,
+              attrs: {
+                pac: 40,
+                sho: 44,
+                pas: 30,
+                def: 12,
+                tec: 35,
+                sta: 38,
+                ref: 6,
+              },
+            },
+            signingBonus: 500,
           },
-          signingBonus: 500,
-        }],
+        ],
       },
     };
 
-    expect(marketViewModel(source, de).youth?.offers[0]?.archetypeLabel).toBe('Torjäger');
-    expect(read('src/ui/screens/MarketScreen.tsx'))
-      .toContain('{offer.role} · {offer.ageLabel} · {offer.archetypeLabel}');
+    expect(marketViewModel(source, de).youth?.offers[0]?.archetypeLabel).toBe(
+      'Torjäger',
+    );
+    expect(read('src/ui/screens/MarketScreen.tsx')).toContainSource(
+      '{offer.role} · {offer.ageLabel} · {offer.archetypeLabel}',
+    );
   });
 
   test('the club-legend chip', () => {
     const state = career(20260808);
-    const roster = state.players.filter(candidate => candidate.clubId === state.userClubId);
+    const roster = state.players.filter(
+      (candidate) => candidate.clubId === state.userClubId,
+    );
     const legend: CareerPlayer = {
       ...roster[0]!,
       id: 'retired-legend',
@@ -224,8 +335,9 @@ describe('every archetype render site draws the translated word', () => {
     expect(german.archetypeLabel).toBe('Spielmacher');
     expect(german.personalityLabel).toBe(personalityName(de, 'Loyal'));
 
-    expect(read('src/ui/screens/ClubLegacyScreen.tsx'))
-      .toContain('<StatusChip label={viewModel.archetypeLabel} tone="hero" />');
+    expect(read('src/ui/screens/ClubLegacyScreen.tsx')).toContainSource(
+      '<StatusChip label={viewModel.archetypeLabel} tone="hero" />',
+    );
   });
 
   /**
@@ -237,14 +349,20 @@ describe('every archetype render site draws the translated word', () => {
   test('no site draws the persisted id', () => {
     const drawnIds = [
       ['src/ui/screens/SquadTrainingScreen.tsx', '{selectedPlayer.archetype}'],
-      ['src/ui/screens/SquadTrainingScreen.tsx', '{selectedPlayer.personality}<'],
+      [
+        'src/ui/screens/SquadTrainingScreen.tsx',
+        '{selectedPlayer.personality}<',
+      ],
       ['src/ui/screens/MarketScreen.tsx', '{offer.archetype}'],
       ['src/ui/screens/ClubLegacyScreen.tsx', 'label={viewModel.archetype}'],
       ['src/ui/screens/ClubLegacyScreen.tsx', 'label={viewModel.personality}'],
     ] as const;
     for (const [file, expression] of drawnIds) {
-      expect({ file, expression, drawn: read(file).includes(expression) })
-        .toEqual({ file, expression, drawn: false });
+      expect({
+        file,
+        expression,
+        drawn: read(file).includes(expression),
+      }).toEqual({ file, expression, drawn: false });
     }
   });
 });
@@ -257,7 +375,11 @@ describe('the rest of the raw name tokens', () => {
       ...base,
       unlockedSections: ['YOUTH', 'SCOUT', 'TRANSFERS', 'COACHES'],
       scoutOptions: [
-        { id: 'brief-sa', region: 'SOUTH_AMERICA', focus: { kind: 'POSITION', role: 'DEF' } },
+        {
+          id: 'brief-sa',
+          region: 'SOUTH_AMERICA',
+          focus: { kind: 'POSITION', role: 'DEF' },
+        },
         { id: 'brief-asia', region: 'ASIA', focus: { kind: 'ELITE_PROSPECT' } },
       ],
       activeScoutMission: {
@@ -273,7 +395,10 @@ describe('the rest of the raw name tokens', () => {
     };
 
     const german = marketViewModel(source, de).scouting;
-    expect(german.choices.map(choice => choice.regionLabel)).toEqual(['Südamerika', 'Asien']);
+    expect(german.choices.map((choice) => choice.regionLabel)).toEqual([
+      'Südamerika',
+      'Asien',
+    ]);
     // The headline interpolates the region, so an untranslated token would leak
     // "Africa" into an otherwise German sentence.
     expect(german.status.headline).toBe('Reise läuft: Afrika');
@@ -281,8 +406,10 @@ describe('the rest of the raw name tokens', () => {
 
   test('the coach market names specialty and personality in the player s language', () => {
     const state = career(20260808);
-    const candidate = marketViewModel(careerMarketViewModelSource(state, undefined, de), de)
-      .coaches[0]!;
+    const candidate = marketViewModel(
+      careerMarketViewModelSource(state, undefined, de),
+      de,
+    ).coaches[0]!;
 
     expect(candidate.specialtyLabels).toEqual([
       coachSpecialtyName(de, 'ATTACK'),
@@ -302,17 +429,22 @@ describe('the rest of the raw name tokens', () => {
    */
   test('the drill card names its bonuses in the player s language', () => {
     const state = career(20260808);
-    const player = state.players.find(candidate =>
-      candidate.clubId === state.userClubId && candidate.archetype === 'Wall',
+    const player = state.players.find(
+      (candidate) =>
+        candidate.clubId === state.userClubId && candidate.archetype === 'Wall',
     )!;
-    const options = squadTrainingViewModel(state, content, player.id, de)
-      .selectedPlayerStatOptions ?? [];
-    const labels = new Set(options.flatMap(option =>
-      option.trainingModifiers.map(modifier => modifier.label)));
+    const options =
+      squadTrainingViewModel(state, content, player.id, de)
+        .selectedPlayerStatOptions ?? [];
+    const labels = new Set(
+      options.flatMap((option) =>
+        option.trainingModifiers.map((modifier) => modifier.label),
+      ),
+    );
 
-    expect(labels).toContain('Jung');
-    expect(labels).toContain('Mauer');
-    expect(labels).not.toContain('Youth');
-    expect(labels).not.toContain('Wall');
+    expect(labels).toContainSource('Jung');
+    expect(labels).toContainSource('Mauer');
+    expect(labels).not.toContainSource('Youth');
+    expect(labels).not.toContainSource('Wall');
   });
 });

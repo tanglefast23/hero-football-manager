@@ -10,14 +10,18 @@ const MAX_CONTEST_D64 = 99 * D64_SCALE;
 export const LOG_RATIO_K = ratingLogTable.k;
 
 function assertGeneratedTables(): void {
-  if (!Number.isSafeInteger(LOG_RATIO_K)
-    || LOG_RATIO_K < 1
-    || conditionLogTable.k !== LOG_RATIO_K
-    || resolveLogTable.k !== LOG_RATIO_K
-    || ratingLogTable.values.length !== 999
-    || conditionLogTable.values.length !== 101
-    || resolveLogTable.values.length !== 101) {
-    throw new Error('scale-invariant contest tables do not match the runtime contract');
+  if (
+    !Number.isSafeInteger(LOG_RATIO_K) ||
+    LOG_RATIO_K < 1 ||
+    conditionLogTable.k !== LOG_RATIO_K ||
+    resolveLogTable.k !== LOG_RATIO_K ||
+    ratingLogTable.values.length !== 999 ||
+    conditionLogTable.values.length !== 101 ||
+    resolveLogTable.values.length !== 101
+  ) {
+    throw new Error(
+      'scale-invariant contest tables do not match the runtime contract',
+    );
   }
 }
 
@@ -40,12 +44,19 @@ export function resolveD64(resolve: number): number {
   return resolveLogTable.values[resolveIndex];
 }
 
-export function conditionedRatingD64(rating: number, condition: number): number {
+export function conditionedRatingD64(
+  rating: number,
+  condition: number,
+): number {
   return ratingD64(rating) + conditionD64(condition);
 }
 
 /** P(attacker beats defender), interpolated at 1/64 of an old contest point. */
-export function contestProbability(attackerD64: number, defenderD64: number, modD64 = 0): number {
+export function contestProbability(
+  attackerD64: number,
+  defenderD64: number,
+  modD64 = 0,
+): number {
   const differenceD64 = clamp(
     Math.round(attackerD64 + modD64 - defenderD64),
     -MAX_CONTEST_D64,

@@ -14,7 +14,9 @@ describe('Hall of Fame persistence', () => {
   test('round-trips a full record unchanged', () => {
     const record = fullRecord();
 
-    const restored = parseStoredGameState(serializeGameState(withRecord(baseCareer(), record)));
+    const restored = parseStoredGameState(
+      serializeGameState(withRecord(baseCareer(), record)),
+    );
 
     expect(restored.hallOfFame).toEqual(record);
   });
@@ -34,7 +36,9 @@ describe('Hall of Fame persistence', () => {
       tiers: [],
     };
 
-    const restored = parseStoredGameState(serializeGameState(withRecord(baseCareer(), record)));
+    const restored = parseStoredGameState(
+      serializeGameState(withRecord(baseCareer(), record)),
+    );
 
     expect(restored.hallOfFame).toEqual(record);
     expect(restored.hallOfFame?.topScorer).toBeUndefined();
@@ -49,24 +53,28 @@ describe('Hall of Fame persistence', () => {
   test('refuses a results line that does not add up', () => {
     const wrong = { ...fullRecord(), won: 30 };
 
-    expect(() => serializeGameState(withRecord(baseCareer(), wrong)))
-      .toThrow(InvalidGameStateError);
-    expect(() => serializeGameState(withRecord(baseCareer(), wrong)))
-      .toThrow('hallOfFame');
+    expect(() => serializeGameState(withRecord(baseCareer(), wrong))).toThrow(
+      InvalidGameStateError,
+    );
+    expect(() => serializeGameState(withRecord(baseCareer(), wrong))).toThrow(
+      'hallOfFame',
+    );
   });
 
   test('refuses a negative total', () => {
     const wrong = { ...fullRecord(), goalsAgainst: -1, played: 41, lost: 21 };
 
-    expect(() => serializeGameState(withRecord(baseCareer(), wrong)))
-      .toThrow(InvalidGameStateError);
+    expect(() => serializeGameState(withRecord(baseCareer(), wrong))).toThrow(
+      InvalidGameStateError,
+    );
   });
 
   test('refuses a fractional total', () => {
     const wrong = { ...fullRecord(), goalsFor: 12.5 };
 
-    expect(() => serializeGameState(withRecord(baseCareer(), wrong)))
-      .toThrow(InvalidGameStateError);
+    expect(() => serializeGameState(withRecord(baseCareer(), wrong))).toThrow(
+      InvalidGameStateError,
+    );
   });
 
   /**
@@ -79,27 +87,39 @@ describe('Hall of Fame persistence', () => {
       topScorer: { playerId: 'p_a', playerName: '', goals: 40, goldenBoots: 2 },
     };
 
-    expect(() => serializeGameState(withRecord(baseCareer(), wrong)))
-      .toThrow(InvalidGameStateError);
-    expect(() => serializeGameState(withRecord(baseCareer(), wrong)))
-      .toThrow('hallOfFame');
+    expect(() => serializeGameState(withRecord(baseCareer(), wrong))).toThrow(
+      InvalidGameStateError,
+    );
+    expect(() => serializeGameState(withRecord(baseCareer(), wrong))).toThrow(
+      'hallOfFame',
+    );
   });
 
   test('refuses a top scorer who never won a Golden Boot', () => {
     const wrong = {
       ...fullRecord(),
-      topScorer: { playerId: 'p_a', playerName: 'Alma Roe', goals: 40, goldenBoots: 0 },
+      topScorer: {
+        playerId: 'p_a',
+        playerName: 'Alma Roe',
+        goals: 40,
+        goldenBoots: 0,
+      },
     };
 
-    expect(() => serializeGameState(withRecord(baseCareer(), wrong)))
-      .toThrow(InvalidGameStateError);
+    expect(() => serializeGameState(withRecord(baseCareer(), wrong))).toThrow(
+      InvalidGameStateError,
+    );
   });
 
   test('refuses a division outside the pyramid', () => {
-    const wrong = { ...fullRecord(), divisionTitles: [{ season: 2, division: 6 }] };
+    const wrong = {
+      ...fullRecord(),
+      divisionTitles: [{ season: 2, division: 6 }],
+    };
 
-    expect(() => serializeGameState(withRecord(baseCareer(), wrong)))
-      .toThrow(InvalidGameStateError);
+    expect(() => serializeGameState(withRecord(baseCareer(), wrong))).toThrow(
+      InvalidGameStateError,
+    );
   });
 
   test('refuses a tier listed twice', () => {
@@ -111,27 +131,34 @@ describe('Hall of Fame persistence', () => {
       ],
     };
 
-    expect(() => serializeGameState(withRecord(baseCareer(), wrong)))
-      .toThrow(InvalidGameStateError);
-    expect(() => serializeGameState(withRecord(baseCareer(), wrong)))
-      .toThrow('hallOfFame');
+    expect(() => serializeGameState(withRecord(baseCareer(), wrong))).toThrow(
+      InvalidGameStateError,
+    );
+    expect(() => serializeGameState(withRecord(baseCareer(), wrong))).toThrow(
+      'hallOfFame',
+    );
   });
 
   test('refuses two titles in one season', () => {
     const wrong = {
       ...fullRecord(),
-      divisionTitles: [{ season: 2, division: 5 }, { season: 2, division: 4 }],
+      divisionTitles: [
+        { season: 2, division: 5 },
+        { season: 2, division: 4 },
+      ],
     };
 
-    expect(() => serializeGameState(withRecord(baseCareer(), wrong)))
-      .toThrow(InvalidGameStateError);
+    expect(() => serializeGameState(withRecord(baseCareer(), wrong))).toThrow(
+      InvalidGameStateError,
+    );
   });
 
   test('refuses the same Cup won twice', () => {
     const wrong = { ...fullRecord(), cupWinSeasons: [3, 3] };
 
-    expect(() => serializeGameState(withRecord(baseCareer(), wrong)))
-      .toThrow(InvalidGameStateError);
+    expect(() => serializeGameState(withRecord(baseCareer(), wrong))).toThrow(
+      InvalidGameStateError,
+    );
   });
 
   /**
@@ -142,10 +169,12 @@ describe('Hall of Fame persistence', () => {
     const career = baseCareer();
     const wrong = { ...fullRecord(), cupWinSeasons: [career.season + 1] };
 
-    expect(() => serializeGameState(withRecord(career, wrong)))
-      .toThrow(InvalidGameStateError);
-    expect(() => serializeGameState(withRecord(career, wrong)))
-      .toThrow('hallOfFame');
+    expect(() => serializeGameState(withRecord(career, wrong))).toThrow(
+      InvalidGameStateError,
+    );
+    expect(() => serializeGameState(withRecord(career, wrong))).toThrow(
+      'hallOfFame',
+    );
   });
 });
 
@@ -155,7 +184,9 @@ describe('Hall of Fame persistence', () => {
  * active season, and a fresh career carries season 1's.
  */
 function baseCareer(): GameState {
-  const created = createCareer(createLaunchCareerSetup(1234, undefined, loadLaunchContent()));
+  const created = createCareer(
+    createLaunchCareerSetup(1234, undefined, loadLaunchContent()),
+  );
   return {
     ...created,
     season: 4,
@@ -175,14 +206,27 @@ function fullRecord(): HallOfFameRecord {
     lost: 10,
     goalsFor: 71,
     goalsAgainst: 44,
-    divisionTitles: [{ season: 2, division: 5 }, { season: 4, division: 4 }],
+    divisionTitles: [
+      { season: 2, division: 5 },
+      { season: 4, division: 4 },
+    ],
     cupWinSeasons: [3],
     tiers: [
       { division: 5, firstSeason: 1, seasons: 2, bestPosition: 1 },
       { division: 4, firstSeason: 3, seasons: 2, bestPosition: 1 },
     ],
-    topScorer: { playerId: 'p_a', playerName: 'Alma Roe', goals: 40, goldenBoots: 2 },
-    star: { playerId: 'p_b', playerName: 'Bruno Kell', fame: 99, seasonsAtClub: 4 },
+    topScorer: {
+      playerId: 'p_a',
+      playerName: 'Alma Roe',
+      goals: 40,
+      goldenBoots: 2,
+    },
+    star: {
+      playerId: 'p_b',
+      playerName: 'Bruno Kell',
+      fame: 99,
+      seasonsAtClub: 4,
+    },
   };
 }
 

@@ -3,8 +3,14 @@ import { join } from 'node:path';
 
 describe('rookie signing celebration', () => {
   const appSource = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
-  const walkOnSource = readFileSync(join(process.cwd(), 'src/ui/PlayerWalkOnWelcome.tsx'), 'utf8');
-  const receiptSource = readFileSync(join(process.cwd(), 'src/ui/PlayerSigningOverlay.tsx'), 'utf8');
+  const walkOnSource = readFileSync(
+    join(process.cwd(), 'src/ui/PlayerWalkOnWelcome.tsx'),
+    'utf8',
+  );
+  const receiptSource = readFileSync(
+    join(process.cwd(), 'src/ui/PlayerSigningOverlay.tsx'),
+    'utf8',
+  );
 
   it('shows the rookie before allowing Bert to begin', () => {
     expect(appSource).toContain('completeRookieCreation');
@@ -14,7 +20,7 @@ describe('rookie signing celebration', () => {
     // the overlay is gated on it, rather than one literal expression — the
     // expression is now shared with the keyboard-shortcut gate so the two
     // cannot drift, and pinning its exact text blocks that kind of safe change.
-    expect(appSource).toContain("assistantSequenceId !== null");
+    expect(appSource).toContain('assistantSequenceId !== null');
     expect(appSource).toContain('signingWalkOn === null');
     expect(appSource).toContain('const guideOverlayVisible');
     expect(appSource).toContain('{guideOverlayVisible');

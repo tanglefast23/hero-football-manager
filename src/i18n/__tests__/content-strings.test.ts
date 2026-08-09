@@ -1,4 +1,9 @@
-import { contentStrings, glossaryTermSlug, powerCopySlug, proseSlug } from '../content-strings';
+import {
+  contentStrings,
+  glossaryTermSlug,
+  powerCopySlug,
+  proseSlug,
+} from '../content-strings';
 import { copyFor } from '../use-copy';
 import { resolveCopy } from '../resolve';
 import { loadLaunchContent } from '../../content';
@@ -9,12 +14,16 @@ describe('content prose as catalog keys', () => {
     const events = loadLaunchContent().events.events;
 
     for (const event of events) {
-      expect({ id: event.id, body: strings[`event.${event.id}.body`] })
-        .toEqual({ id: event.id, body: event.body });
+      expect({ id: event.id, body: strings[`event.${event.id}.body`] }).toEqual(
+        { id: event.id, body: event.body },
+      );
       for (const choice of event.choices) {
         for (const outcome of choice.outcomes) {
           const key = `event.${event.id}.${choice.id}.${outcome.id}.text`;
-          expect({ key, text: strings[key] }).toEqual({ key, text: outcome.text });
+          expect({ key, text: strings[key] }).toEqual({
+            key,
+            text: outcome.text,
+          });
         }
       }
     }
@@ -24,9 +33,14 @@ describe('content prose as catalog keys', () => {
     // The whole point of the ids: reordering a choice's outcomes must not
     // silently reassign a translation to the other branch.
     const strings = contentStrings();
-    expect(Object.keys(strings).some(key => /\.(success|setback|only)\.text$/.test(key)))
-      .toBe(true);
-    expect(Object.keys(strings).some(key => /\.\d+\.text$/.test(key))).toBe(false);
+    expect(
+      Object.keys(strings).some((key) =>
+        /\.(success|setback|only)\.text$/.test(key),
+      ),
+    ).toBe(true);
+    expect(Object.keys(strings).some((key) => /\.\d+\.text$/.test(key))).toBe(
+      false,
+    );
   });
 
   test('English resolves through the resolver without living in en.json', () => {
@@ -38,8 +52,12 @@ describe('content prose as catalog keys', () => {
   test('content prose is NOT duplicated into en.json', () => {
     // Two hand-maintained copies of the same sentence drift the first time
     // someone fixes a typo in one of them.
-    const catalogKeys = new Set(Object.keys(require('../../../content/i18n/en.json').strings));
-    const overlap = Object.keys(contentStrings()).filter(key => catalogKeys.has(key));
+    const catalogKeys = new Set(
+      Object.keys(require('../../../content/i18n/en.json').strings),
+    );
+    const overlap = Object.keys(contentStrings()).filter((key) =>
+      catalogKeys.has(key),
+    );
     expect(overlap).toEqual([]);
   });
 
@@ -62,11 +80,16 @@ describe('the story and glossary screens read the keys that exist', () => {
   test('every key StoryEventScreen builds resolves for every event', () => {
     const strings = contentStrings();
     for (const event of loadLaunchContent().events.events) {
-      expect({ id: event.id, title: strings[`event.${event.id}.title`] !== undefined })
-        .toEqual({ id: event.id, title: true });
+      expect({
+        id: event.id,
+        title: strings[`event.${event.id}.title`] !== undefined,
+      }).toEqual({ id: event.id, title: true });
       for (const choice of event.choices) {
         const key = `event.${event.id}.${choice.id}.label`;
-        expect({ key, present: strings[key] !== undefined }).toEqual({ key, present: true });
+        expect({ key, present: strings[key] !== undefined }).toEqual({
+          key,
+          present: true,
+        });
       }
     }
   });
@@ -85,8 +108,12 @@ describe('the story and glossary screens read the keys that exist', () => {
         });
       });
       if (sequence.inbox === undefined) continue;
-      expect(strings[`bert.guide.${sequence.id}.inbox.title`]).toBe(sequence.inbox.title);
-      expect(strings[`bert.guide.${sequence.id}.inbox.detail`]).toBe(sequence.inbox.detail);
+      expect(strings[`bert.guide.${sequence.id}.inbox.title`]).toBe(
+        sequence.inbox.title,
+      );
+      expect(strings[`bert.guide.${sequence.id}.inbox.detail`]).toBe(
+        sequence.inbox.detail,
+      );
     }
   });
 
@@ -102,15 +129,23 @@ describe('the story and glossary screens read the keys that exist', () => {
       ['coach.blame', content.fulltimeBlameLines.lines],
       ...Object.entries(content.fulltimeCoachLines)
         .filter((entry): entry is [string, string[]] => Array.isArray(entry[1]))
-        .map(([pool, lines]): [string, readonly string[]] => [`coach.fulltime.${pool}`, lines]),
+        .map(([pool, lines]): [string, readonly string[]] => [
+          `coach.fulltime.${pool}`,
+          lines,
+        ]),
     ];
 
     for (const [namespace, lines] of pools) {
-      const keys = lines.map(line => `${namespace}.${proseSlug(line)}`);
-      expect({ namespace, unique: new Set(keys).size }).toEqual({ namespace, unique: lines.length });
+      const keys = lines.map((line) => `${namespace}.${proseSlug(line)}`);
+      expect({ namespace, unique: new Set(keys).size }).toEqual({
+        namespace,
+        unique: lines.length,
+      });
       lines.forEach((line, index) => {
-        expect({ key: keys[index]!, text: strings[keys[index]!] })
-          .toEqual({ key: keys[index]!, text: line });
+        expect({ key: keys[index]!, text: strings[keys[index]!] }).toEqual({
+          key: keys[index]!,
+          text: line,
+        });
       });
     }
   });
@@ -120,13 +155,20 @@ describe('the story and glossary screens read the keys that exist', () => {
     // later and live here. Two spellings of the same power would put them in
     // different namespaces and translate only half of it.
     const strings = contentStrings();
-    const catalog = require('../../../content/i18n/en.json').strings as Record<string, string>;
+    const catalog = require('../../../content/i18n/en.json').strings as Record<
+      string,
+      string
+    >;
     for (const power of loadLaunchContent().powers.powers) {
       const slug = powerCopySlug(power.id);
-      expect({ id: power.id, name: catalog[`powerEffect.${slug}.name`] })
-        .toEqual({ id: power.id, name: power.name });
-      expect({ id: power.id, description: strings[`powerEffect.${slug}.description`] })
-        .toEqual({ id: power.id, description: power.description });
+      expect({
+        id: power.id,
+        name: catalog[`powerEffect.${slug}.name`],
+      }).toEqual({ id: power.id, name: power.name });
+      expect({
+        id: power.id,
+        description: strings[`powerEffect.${slug}.description`],
+      }).toEqual({ id: power.id, description: power.description });
     }
   });
 
@@ -135,7 +177,10 @@ describe('the story and glossary screens read the keys that exist', () => {
     for (const category of loadLaunchContent().glossary.categories) {
       for (const entry of category.entries) {
         const key = `glossary.${category.id}.${glossaryTermSlug(entry.term)}.definition`;
-        expect({ key, present: strings[key] !== undefined }).toEqual({ key, present: true });
+        expect({ key, present: strings[key] !== undefined }).toEqual({
+          key,
+          present: true,
+        });
       }
     }
   });

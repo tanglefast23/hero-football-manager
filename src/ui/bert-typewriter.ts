@@ -17,10 +17,13 @@ const ACCELERATION_MS_PER_EXTRA_CHARACTER = 0.15;
  */
 export function bertTypewriterStepMs(message: string): number {
   const characterCount = Array.from(message).length;
-  const extraCharacters = Math.max(0, characterCount - BERT_SHORT_MESSAGE_MAX_CHARS);
+  const extraCharacters = Math.max(
+    0,
+    characterCount - BERT_SHORT_MESSAGE_MAX_CHARS,
+  );
   return Math.max(
     BERT_FASTEST_TYPEWRITER_STEP_MS,
-    BERT_REGULAR_TYPEWRITER_STEP_MS
-      - extraCharacters * ACCELERATION_MS_PER_EXTRA_CHARACTER,
+    BERT_REGULAR_TYPEWRITER_STEP_MS -
+      extraCharacters * ACCELERATION_MS_PER_EXTRA_CHARACTER,
   );
 }

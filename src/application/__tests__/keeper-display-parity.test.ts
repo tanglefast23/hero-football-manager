@@ -19,12 +19,16 @@ import { squadTrainingViewModel } from '../view-models';
 const content = loadLaunchContent();
 
 function careerState(): GameState {
-  const state = createCareer(createLaunchCareerSetup(20260804, undefined, content));
+  const state = createCareer(
+    createLaunchCareerSetup(20260804, undefined, content),
+  );
   return { ...state, trainingPoints: 400 };
 }
 
 function keeper(state: GameState): CareerPlayer {
-  const player = state.players.find(p => p.clubId === state.userClubId && p.role === 'GK');
+  const player = state.players.find(
+    (p) => p.clubId === state.userClubId && p.role === 'GK',
+  );
   if (player === undefined) throw new Error('no user keeper');
   return player;
 }
@@ -32,26 +36,43 @@ function keeper(state: GameState): CareerPlayer {
 describe('keeper drill rows', () => {
   it("prints the same gain on all four of a keeper's paths", () => {
     const state = careerState();
-    const options = squadTrainingViewModel(state, content, keeper(state).id).selectedPlayerStatOptions!;
+    const options = squadTrainingViewModel(
+      state,
+      content,
+      keeper(state).id,
+    ).selectedPlayerStatOptions!;
 
     // The whole reason the change exists: this is the side-by-side comparison
     // that made the strongest per-TP purchase in the game look like the weakest.
-    expect(options.map(option => option.pathId))
-      .toEqual(['sprints', 'rondo', 'circuit', 'keeper-drills']);
-    const gains = options.map(option => option.gain);
+    expect(options.map((option) => option.pathId)).toEqual([
+      'sprints',
+      'rondo',
+      'circuit',
+      'keeper-drills',
+    ]);
+    const gains = options.map((option) => option.gain);
     expect(new Set(gains).size).toBe(1);
-    expect(gains.every(gain => gain === gains[0])).toBe(true);
+    expect(gains.every((gain) => gain === gains[0])).toBe(true);
   });
 
   it("leaves an outfield player's rows exactly as authored", () => {
     const state = careerState();
-    const outfielder = state.players.find(p => p.clubId === state.userClubId && p.role !== 'GK')!;
-    const options = squadTrainingViewModel(state, content, outfielder.id).selectedPlayerStatOptions!;
+    const outfielder = state.players.find(
+      (p) => p.clubId === state.userClubId && p.role !== 'GK',
+    )!;
+    const options = squadTrainingViewModel(
+      state,
+      content,
+      outfielder.id,
+    ).selectedPlayerStatOptions!;
 
     for (const option of options) {
-      const authored = content.training.focusDrills
-        .find(drill => drill.id === option.pathId)!.gains;
-      expect(option.gain).toBe(authored[option.shortCode.toLowerCase() as keyof typeof authored]);
+      const authored = content.training.focusDrills.find(
+        (drill) => drill.id === option.pathId,
+      )!.gains;
+      expect(option.gain).toBe(
+        authored[option.shortCode.toLowerCase() as keyof typeof authored],
+      );
     }
   });
 });
@@ -60,8 +81,12 @@ describe('keeper confirm card', () => {
   it('agrees with the row it was opened from, base line included', () => {
     const state = careerState();
     const gk = keeper(state);
-    const options = squadTrainingViewModel(state, content, gk.id).selectedPlayerStatOptions!;
-    const drills = options.find(option => option.pathId === 'keeper-drills')!;
+    const options = squadTrainingViewModel(
+      state,
+      content,
+      gk.id,
+    ).selectedPlayerStatOptions!;
+    const drills = options.find((option) => option.pathId === 'keeper-drills')!;
 
     // The base line is `baseValueAfter - currentValue`. Shadow only the adjusted
     // half and the card reads +2 over a +4 count-up, which is the exact
@@ -83,14 +108,19 @@ describe('keeper confirm card', () => {
     for (const age of [22, 26, 31, 34]) {
       const aged: GameState = {
         ...state,
-        players: state.players.map(p => (p.id === gk.id ? { ...p, age } : p)),
+        players: state.players.map((p) => (p.id === gk.id ? { ...p, age } : p)),
       };
-      const options = squadTrainingViewModel(aged, content, gk.id).selectedPlayerStatOptions!;
+      const options = squadTrainingViewModel(
+        aged,
+        content,
+        gk.id,
+      ).selectedPlayerStatOptions!;
       for (const option of options) {
         const headline = option.baseValueAfter - option.currentValue;
-        const forThisPlayer = option.baseValueAfter
-          + option.trainingAdjustment
-          - option.currentValue;
+        const forThisPlayer =
+          option.baseValueAfter +
+          option.trainingAdjustment -
+          option.currentValue;
         expect(headline).toBeGreaterThan(0);
         expect(forThisPlayer).toBeGreaterThan(0);
       }
@@ -102,10 +132,16 @@ describe('keeper confirm card', () => {
     const gk = keeper(state);
     const banked: GameState = {
       ...state,
-      players: state.players.map(p => (p.id === gk.id ? { ...p, refDisplayBonus: 9 } : p)),
+      players: state.players.map((p) =>
+        p.id === gk.id ? { ...p, refDisplayBonus: 9 } : p,
+      ),
     };
-    const options = squadTrainingViewModel(banked, content, gk.id).selectedPlayerStatOptions!;
-    const drills = options.find(option => option.pathId === 'keeper-drills')!;
+    const options = squadTrainingViewModel(
+      banked,
+      content,
+      gk.id,
+    ).selectedPlayerStatOptions!;
+    const drills = options.find((option) => option.pathId === 'keeper-drills')!;
 
     expect(drills.currentValue).toBe(gk.attrs.ref + 9);
   });
@@ -117,12 +153,18 @@ describe('keeper confirm card', () => {
     // row must not claim the keeper is maxed out.
     const nearCeiling: GameState = {
       ...state,
-      players: state.players.map(p => (p.id === gk.id
-        ? { ...p, attrs: { ...p.attrs, ref: 990 }, refDisplayBonus: 40 }
-        : p)),
+      players: state.players.map((p) =>
+        p.id === gk.id
+          ? { ...p, attrs: { ...p.attrs, ref: 990 }, refDisplayBonus: 40 }
+          : p,
+      ),
     };
-    const options = squadTrainingViewModel(nearCeiling, content, gk.id).selectedPlayerStatOptions!;
-    const drills = options.find(option => option.pathId === 'keeper-drills')!;
+    const options = squadTrainingViewModel(
+      nearCeiling,
+      content,
+      gk.id,
+    ).selectedPlayerStatOptions!;
+    const drills = options.find((option) => option.pathId === 'keeper-drills')!;
 
     expect(drills.atSafetyCeiling).toBe(false);
     // And the display stalls rather than printing past the shared ceiling.
@@ -136,23 +178,34 @@ describe('keeper stat row', () => {
     const gk = keeper(state);
     const banked: GameState = {
       ...state,
-      players: state.players.map(p => (p.id === gk.id ? { ...p, refDisplayBonus: 12 } : p)),
+      players: state.players.map((p) =>
+        p.id === gk.id ? { ...p, refDisplayBonus: 12 } : p,
+      ),
     };
-    const player = squadTrainingViewModel(banked, content, gk.id)
-      .players.find(p => p.id === gk.id)!;
+    const player = squadTrainingViewModel(banked, content, gk.id).players.find(
+      (p) => p.id === gk.id,
+    )!;
 
-    expect(player.attributes.find(a => a.label === 'REF')!.value).toBe(gk.attrs.ref + 12);
+    expect(player.attributes.find((a) => a.label === 'REF')!.value).toBe(
+      gk.attrs.ref + 12,
+    );
     // Every other stat is the stored number, untouched.
-    expect(player.attributes.find(a => a.label === 'PAC')!.value).toBe(gk.attrs.pac);
+    expect(player.attributes.find((a) => a.label === 'PAC')!.value).toBe(
+      gk.attrs.pac,
+    );
   });
 });
 
 describe('drill upgrade shop', () => {
   it('quotes the keeper ladder at outfield numbers on both tiers it shows', () => {
     const state = careerState();
-    const upgrades = squadTrainingViewModel(state, content, keeper(state).id).drillUpgrades;
-    const keeperRow = upgrades.find(row => row.pathId === 'keeper-drills')!;
-    const sprintRow = upgrades.find(row => row.pathId === 'sprints')!;
+    const upgrades = squadTrainingViewModel(
+      state,
+      content,
+      keeper(state).id,
+    ).drillUpgrades;
+    const keeperRow = upgrades.find((row) => row.pathId === 'keeper-drills')!;
+    const sprintRow = upgrades.find((row) => row.pathId === 'sprints')!;
 
     // The panel sits on the same screen as the drill rows above it. Fixing one
     // and not the other moves the defect rather than removing it.
@@ -166,14 +219,16 @@ describe('the stored value at the store boundary', () => {
     const state = careerState();
     const gk = keeper(state);
     const res = trainPlayerInstantly(state, gk.id, 'keeper-drills');
-    const trained = res.state.players.find(p => p.id === gk.id)!;
+    const trained = res.state.players.find((p) => p.id === gk.id)!;
 
     // The real tripwire for the stored/displayed split. store.test.ts asserts
     // this relationship on PAC, where the two are equal and an overload would
     // pass unnoticed.
     expect(res.after).toBe(trained.attrs.ref);
     expect(res.displayedAfter).toBeGreaterThan(res.after);
-    expect(res.displayedAfter).toBe(trained.attrs.ref + trained.refDisplayBonus!);
+    expect(res.displayedAfter).toBe(
+      trained.attrs.ref + trained.refDisplayBonus!,
+    );
   });
 });
 
@@ -189,16 +244,25 @@ describe('training modifier signs', () => {
     const gk = keeper(state);
     const veteran: GameState = {
       ...state,
-      players: state.players.map(p => (p.id === gk.id ? { ...p, age: 31 } : p)),
+      players: state.players.map((p) =>
+        p.id === gk.id ? { ...p, age: 31 } : p,
+      ),
     };
-    const option = squadTrainingViewModel(veteran, content, gk.id)
-      .selectedPlayerStatOptions!.find(o => o.pathId === 'keeper-drills')!;
+    const option = squadTrainingViewModel(
+      veteran,
+      content,
+      gk.id,
+    ).selectedPlayerStatOptions!.find((o) => o.pathId === 'keeper-drills')!;
 
-    const veteranEntry = option.trainingModifiers.find(m => m.label === 'Veteran');
+    const veteranEntry = option.trainingModifiers.find(
+      (m) => m.label === 'Veteran',
+    );
     expect(veteranEntry).toBeDefined();
     expect(veteranEntry!.helps).toBe(false);
     // Everything else on the list is only ever added when it pays.
-    for (const modifier of option.trainingModifiers.filter(m => m.label !== 'Veteran')) {
+    for (const modifier of option.trainingModifiers.filter(
+      (m) => m.label !== 'Veteran',
+    )) {
       expect(modifier.helps).toBe(true);
     }
   });
@@ -208,13 +272,18 @@ describe('training modifier signs', () => {
     const gk = keeper(state);
     const young: GameState = {
       ...state,
-      players: state.players.map(p => (p.id === gk.id ? { ...p, age: 22 } : p)),
+      players: state.players.map((p) =>
+        p.id === gk.id ? { ...p, age: 22 } : p,
+      ),
     };
-    const option = squadTrainingViewModel(young, content, gk.id)
-      .selectedPlayerStatOptions!.find(o => o.pathId === 'keeper-drills')!;
+    const option = squadTrainingViewModel(
+      young,
+      content,
+      gk.id,
+    ).selectedPlayerStatOptions!.find((o) => o.pathId === 'keeper-drills')!;
 
-    expect(option.trainingModifiers.map(m => m.label)).toContain('Youth');
-    expect(option.trainingModifiers.every(m => m.helps)).toBe(true);
+    expect(option.trainingModifiers.map((m) => m.label)).toContain('Youth');
+    expect(option.trainingModifiers.every((m) => m.helps)).toBe(true);
     // And the net difference is what the second box prints, signed.
     expect(option.trainingAdjustment).toBeGreaterThan(0);
   });

@@ -1,7 +1,10 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { PITCH_H, PITCH_W } from '../../sim/geometry';
-import { layoutModeForWidth, TWO_COLUMN_MIN_WIDTH } from '../../ui/layout/layout-mode';
+import {
+  layoutModeForWidth,
+  TWO_COLUMN_MIN_WIDTH,
+} from '../../ui/layout/layout-mode';
 import {
   heatFraction,
   MATCH_RAIL_GUTTER,
@@ -15,15 +18,25 @@ import {
 import { mentalityLabel } from '../match-mentality-ui';
 import { ENABLED_LOCALES, loadCatalog } from '../../i18n';
 
-const railSource = () => readFileSync(join(process.cwd(), 'src/render/MatchControlRail.tsx'), 'utf8');
-const matchSource = () => readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
-const styleSource = () => readFileSync(join(process.cwd(), 'src/render/match-screen-styles.ts'), 'utf8');
+const railSource = () =>
+  readFileSync(join(process.cwd(), 'src/render/MatchControlRail.tsx'), 'utf8');
+const matchSource = () =>
+  readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
+const styleSource = () =>
+  readFileSync(
+    join(process.cwd(), 'src/render/match-screen-styles.ts'),
+    'utf8',
+  );
 
 /** Where the pitch's left edge lands once rail + pitch are centred as one group. */
 function pitchLeftEdge(width: number, pitchWidth: number): number {
-  return MATCH_RAIL_GUTTER * 2 + MATCH_RAIL_WIDTH + Math.max(
-    0,
-    (width - MATCH_RAIL_GUTTER * 3 - MATCH_RAIL_WIDTH - pitchWidth) / 2,
+  return (
+    MATCH_RAIL_GUTTER * 2 +
+    MATCH_RAIL_WIDTH +
+    Math.max(
+      0,
+      (width - MATCH_RAIL_GUTTER * 3 - MATCH_RAIL_WIDTH - pitchWidth) / 2,
+    )
   );
 }
 
@@ -37,7 +50,11 @@ describe('desktop match control rail', () => {
       { id: 'rb', condition: 40 },
     ];
 
-    expect(mostTiredFirst(field).map((player) => player.id)).toEqual(['st', 'lb', 'rb']);
+    expect(mostTiredFirst(field).map((player) => player.id)).toEqual([
+      'st',
+      'lb',
+      'rb',
+    ]);
     expect(RAIL_TIRED_ROWS).toBe(3);
   });
 
@@ -49,7 +66,11 @@ describe('desktop match control rail', () => {
       { id: 'd', condition: 50 },
     ];
 
-    expect(mostTiredFirst(field).map((player) => player.id)).toEqual(['a', 'b', 'c']);
+    expect(mostTiredFirst(field).map((player) => player.id)).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
   });
 
   it('reads heat as a clamped share of the Zone threshold', () => {
@@ -63,9 +84,15 @@ describe('desktop match control rail', () => {
   it('separates banking heat, the tappable Zone, and a power playing out', () => {
     expect(railHeroStatus({ kind: 'idle' })).toBe('building');
     expect(railHeroStatus({ kind: 'zone', remainingTicks: 70 })).toBe('zone');
-    expect(railHeroStatus({ kind: 'armed', remainingTicks: 20 })).toBe('firing');
-    expect(railHeroStatus({ kind: 'winding', untilTick: 40, strength: 1 })).toBe('firing');
-    expect(railHeroStatus({ kind: 'active', untilTick: 90, strength: 1 })).toBe('firing');
+    expect(railHeroStatus({ kind: 'armed', remainingTicks: 20 })).toBe(
+      'firing',
+    );
+    expect(
+      railHeroStatus({ kind: 'winding', untilTick: 40, strength: 1 }),
+    ).toBe('firing');
+    expect(railHeroStatus({ kind: 'active', untilTick: 90, strength: 1 })).toBe(
+      'firing',
+    );
   });
 
   it('ships no Zone-countdown plumbing — a Zone holds until its context arrives', () => {
@@ -74,10 +101,13 @@ describe('desktop match control rail', () => {
     // a frozen fake '7s' timer. The plumbing (zoneSecondsRemaining /
     // zoneSecondsLeft) was deleted end to end — pin it out like the manual-tap
     // removal in automatic-power-ui.test.ts.
-    const rail = readFileSync(join(process.cwd(), 'src/render/match-rail.ts'), 'utf8');
-    expect(rail).not.toContain('zoneSecondsRemaining');
-    expect(railSource()).not.toContain('zoneSecondsLeft');
-    expect(matchSource()).not.toContain('zoneSecondsRemaining');
+    const rail = readFileSync(
+      join(process.cwd(), 'src/render/match-rail.ts'),
+      'utf8',
+    );
+    expect(rail).not.toContainSource('zoneSecondsRemaining');
+    expect(railSource()).not.toContainSource('zoneSecondsLeft');
+    expect(matchSource()).not.toContainSource('zoneSecondsRemaining');
   });
 
   it('names the playstyle chips without renaming the engine mentalities', () => {
@@ -89,8 +119,8 @@ describe('desktop match control rail', () => {
     expect(mentalityLabel('PROTECT')).toBe('PROTECT');
     // Nothing may draw the raw enum again: the rail is desktop's most-used
     // control and it read English in all seven languages.
-    expect(railSource()).not.toContain('MENTALITY_CHIP_LABELS');
-    expect(railSource()).toContain('mentalityLabel(option, t)');
+    expect(railSource()).not.toContainSource('MENTALITY_CHIP_LABELS');
+    expect(railSource()).toContainSource('mentalityLabel(option, t)');
   });
 
   it('caps the rail at the Hero License field cap of four tiles', () => {
@@ -104,7 +134,10 @@ describe('desktop match control rail', () => {
 
     const availableHeight = height - MATCH_RAIL_TOP_INSET - MATCH_RAIL_GUTTER;
     const availableWidth = width - MATCH_RAIL_WIDTH - MATCH_RAIL_GUTTER * 3;
-    const pitchWidth = Math.min(availableWidth, (availableHeight * PITCH_W) / PITCH_H);
+    const pitchWidth = Math.min(
+      availableWidth,
+      (availableHeight * PITCH_W) / PITCH_H,
+    );
     const pitchHeight = PITCH_H * (pitchWidth / PITCH_W);
 
     expect(MATCH_RAIL_WIDTH).toBe(440);
@@ -121,17 +154,21 @@ describe('desktop match control rail', () => {
     const width = 1920;
     const pitchWidth = 800;
 
-    expect(styleSource()).toContain("justifyContent: 'center'");
-    expect(styleSource()).not.toContain('desktopPitchPane: { flex: 1');
+    expect(styleSource()).toContainSource("justifyContent: 'center'");
+    expect(styleSource()).not.toContainSource('desktopPitchPane: { flex: 1');
     // The banner stack follows the pitch's real left edge AND its width: moving
     // only `left` left the stack anchored to the window's right edge, so match
     // banners ran off the pitch and across the whole desktop window.
-    expect(matchSource()).toContain('{ left: desktopPitchLeft, right: undefined, width: pitchWidth }');
+    expect(matchSource()).toContainSource(
+      '{ left: desktopPitchLeft, right: undefined, width: pitchWidth }',
+    );
 
     const railRight = pitchLeftEdge(width, pitchWidth) - MATCH_RAIL_GUTTER;
     const railLeft = railRight - MATCH_RAIL_WIDTH;
     // The gap between controls and pitch is the gutter, nothing more...
-    expect(pitchLeftEdge(width, pitchWidth) - railRight).toBe(MATCH_RAIL_GUTTER);
+    expect(pitchLeftEdge(width, pitchWidth) - railRight).toBe(
+      MATCH_RAIL_GUTTER,
+    );
     // ...and the leftover width is split evenly either side of the pair.
     expect(Math.round(railLeft)).toBe(
       Math.round(width - (pitchLeftEdge(width, pitchWidth) + pitchWidth)),
@@ -142,36 +179,42 @@ describe('desktop match control rail', () => {
     const source = matchSource();
 
     expect(layoutModeForWidth(TWO_COLUMN_MIN_WIDTH - 1)).toBe('single');
-    expect(source).toContain(
+    expect(source).toContainSource(
       "const railLayout = !presentationOnly && layoutModeForWidth(width) === 'twoColumn';",
     );
-    expect(source).toContain('? MATCH_RAIL_TOP_INSET + MATCH_RAIL_GUTTER');
-    expect(source).toContain('const availablePitchWidth = railLayout');
-    expect(source).toContain('width - MATCH_RAIL_WIDTH - MATCH_RAIL_GUTTER * 3');
+    expect(source).toContainSource(
+      '? MATCH_RAIL_TOP_INSET + MATCH_RAIL_GUTTER',
+    );
+    expect(source).toContainSource('const availablePitchWidth = railLayout');
+    expect(source).toContainSource(
+      'width - MATCH_RAIL_WIDTH - MATCH_RAIL_GUTTER * 3',
+    );
     // `scale` now comes from matchPitchLayout, which also snaps sprite
     // magnification to whole device pixels. What this test guards is that the
     // rail's reserved width is what gets measured, not the raw viewport.
-    expect(source).toContain('matchPitchLayout(availablePitchWidth');
+    expect(source).toContainSource('matchPitchLayout(availablePitchWidth');
     // The phone scorebar and coaching dock render only in single mode.
-    expect(source).toContain('{railLayout || presentationOnly ? null : (');
-    expect(source).toContain('{railLayout ? (');
+    expect(source).toContainSource(
+      '{railLayout || presentationOnly ? null : (',
+    );
+    expect(source).toContainSource('{railLayout ? (');
   });
 
   it('drives every rail control from an already-recorded coaching input', () => {
     const source = matchSource();
 
-    expect(source).toContain("kind: 'SET_FORMATION', formation }");
-    expect(source).toContain("kind: 'SET_MENTALITY', mentality }");
-    expect(source).toContain("kind: 'SET_ENERGY_USE', energyUse: mode }");
+    expect(source).toContainSource("kind: 'SET_FORMATION', formation }");
+    expect(source).toContainSource("kind: 'SET_MENTALITY', mentality }");
+    expect(source).toContainSource("kind: 'SET_ENERGY_USE', energyUse: mode }");
     // The hero tile's A/M badge is read-only until on-pitch tap-to-fire exists,
     // so the rail must NOT queue the team-wide auto-powers policy flip.
-    expect(source).not.toContain("kind: 'SET_AUTO_POWERS',");
+    expect(source).not.toContainSource("kind: 'SET_AUTO_POWERS',");
     // No new input kinds, and no engine-version-affecting sim edit.
-    expect(source).not.toContain('ENGINE_VERSION');
+    expect(source).not.toContainSource('ENGINE_VERSION');
   });
 
   it('never hands a Pressable a function style', () => {
-    expect(railSource()).not.toMatch(/style=\{\(\{\s*pressed/);
+    expect(railSource()).not.toMatchSource(/style=\{\(\{\s*pressed/);
   });
 
   it('keeps the signed-off rail copy', () => {
@@ -181,30 +224,44 @@ describe('desktop match control rail', () => {
     // which key goes where, and the catalog owns the words. Asserting the key
     // and its English separately is what keeps both halves signed off.
     const strings = loadCatalog('en').strings;
-    expect(source).toContain("t('matchRail.substitutionsLeft', { count: substitutionsRemaining })");
-    expect(strings['matchRail.substitutionsLeft']).toBe('SUBSTITUTIONS · {count} LEFT');
-    expect(source).toContain("t('matchRail.mostTiredOnThePitch')");
-    expect(strings['matchRail.mostTiredOnThePitch']).toBe('MOST TIRED ON THE PITCH');
-    expect(source).toContain("t('matchRail.swapOpensTheBench')");
-    expect(strings['matchRail.swapOpensTheBench'])
-      .toBe('SWAP OPENS THE BENCH · FRESH LEGS ENTER AT 100%');
-    expect(source).toContain("t('matchRail.teamEnergyTitle', { mode: energyUseLabel(energyUse, t) })");
+    expect(source).toContainSource(
+      "t('matchRail.substitutionsLeft', { count: substitutionsRemaining })",
+    );
+    expect(strings['matchRail.substitutionsLeft']).toBe(
+      'SUBSTITUTIONS · {count} LEFT',
+    );
+    expect(source).toContainSource("t('matchRail.mostTiredOnThePitch')");
+    expect(strings['matchRail.mostTiredOnThePitch']).toBe(
+      'MOST TIRED ON THE PITCH',
+    );
+    expect(source).toContainSource("t('matchRail.swapOpensTheBench')");
+    expect(strings['matchRail.swapOpensTheBench']).toBe(
+      'SWAP OPENS THE BENCH · FRESH LEGS ENTER AT 100%',
+    );
+    expect(source).toContainSource(
+      "t('matchRail.teamEnergyTitle', { mode: energyUseLabel(energyUse, t) })",
+    );
     expect(strings['matchRail.teamEnergyTitle']).toBe('TEAM ENERGY ({mode})');
-    expect(source).toContain("t('matchRail.energyCaption', {");
-    expect(strings['matchRail.energyCaption'])
-      .toBe('{percent}% AVERAGE · {tired} TIRED (UP TO {threshold}%)');
+    expect(source).toContainSource("t('matchRail.energyCaption', {");
+    expect(strings['matchRail.energyCaption']).toBe(
+      '{percent}% AVERAGE · {tired} TIRED (UP TO {threshold}%)',
+    );
     // `≤` has no glyph in the face, so it is not drawn at all — an earlier
     // version appended it at the call site and it rendered through the system
     // fallback. The param carries the NUMBER, so each language writes its own
     // wording around it rather than inheriting an English phrase mid-sentence.
-    expect(source).toContain('threshold: TIRED_ENERGY_THRESHOLD,');
+    expect(source).toContainSource('threshold: TIRED_ENERGY_THRESHOLD,');
     // Comments may name the character; nothing may DRAW it. Strip comments
     // before asserting, or this test fails on the line explaining itself.
-    const drawn = source.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
-    expect(drawn).not.toContain('≤');
+    const drawn = source
+      .replace(/\/\/[^\n]*/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(drawn).not.toContainSource('≤');
     for (const locale of ENABLED_LOCALES) {
-      expect({ locale, caption: loadCatalog(locale).strings['matchRail.energyCaption'] })
-        .toEqual({ locale, caption: expect.not.stringContaining('≤') });
+      expect({
+        locale,
+        caption: loadCatalog(locale).strings['matchRail.energyCaption'],
+      }).toEqual({ locale, caption: expect.not.stringContaining('≤') });
     }
     // The formation's shape note rides in its heading, the way TEAM ENERGY
     // already carries its mode — the rail has to fit more hero tiles as the
@@ -212,16 +269,18 @@ describe('desktop match control rail', () => {
     // The blurb now comes from the copy catalog rather than a map in the sim
     // ring — it is display text, and a pure ring must not hold copy that
     // changes with the player's language.
-    expect(source).toContain('blurb: t(`formation.${formation}.blurb`).toUpperCase(),');
+    expect(source).toContainSource(
+      'blurb: t(`formation.${formation}.blurb`).toUpperCase(),',
+    );
     expect(strings['matchRail.formationTitle']).toBe('FORMATION ({blurb})');
-    expect(source).not.toContain(
+    expect(source).not.toContainSource(
       'ONE POWER TILE PER FIELDED HERO — THE RAIL GROWS TO 4 TILES WITH THE HERO LICENSE CAP.',
     );
     // The A/M badge went with it: powers always fire on their own cue, so the
     // badge could only ever read 'A'.
-    expect(source).not.toContain('policyToggle');
-    expect(source).not.toContain('autoPowers');
+    expect(source).not.toContainSource('policyToggle');
+    expect(source).not.toContainSource('autoPowers');
     // Status tiles only: firing is a tap on the glowing hero, not a rail button.
-    expect(source).not.toContain('>FIRE<');
+    expect(source).not.toContainSource('>FIRE<');
   });
 });

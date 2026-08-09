@@ -22,10 +22,39 @@ const ALLOWED: Record<string, string[]> = {
   'events.ts': ['types'],
   'entities.ts': ['types'],
   'substitutions.ts': ['events', 'types'],
-  'auto-coaching.ts': ['contest', 'geometry', 'events', 'substitutions', 'tactics', 'types'],
+  'auto-coaching.ts': [
+    'contest',
+    'geometry',
+    'events',
+    'substitutions',
+    'tactics',
+    'types',
+  ],
   'powers.ts': ['types', 'geometry', 'events', 'entities', 'contest'],
-  'engine.ts': ['movement-table', 'geometry', 'events', 'types', 'contest', 'powers', 'tactics', 'entities', 'attributes'],
-  'match.ts': ['rng', 'geometry', 'events', 'engine', 'entities', 'types', 'powers', 'auto-coaching', 'substitutions', 'tactics', 'attributes'],
+  'engine.ts': [
+    'movement-table',
+    'geometry',
+    'events',
+    'types',
+    'contest',
+    'powers',
+    'tactics',
+    'entities',
+    'attributes',
+  ],
+  'match.ts': [
+    'rng',
+    'geometry',
+    'events',
+    'engine',
+    'entities',
+    'types',
+    'powers',
+    'auto-coaching',
+    'substitutions',
+    'tactics',
+    'attributes',
+  ],
   'runtime-golden.ts': ['match', 'teams'],
 };
 
@@ -46,13 +75,16 @@ describe('import layers', () => {
         ...src.matchAll(/from\s+['"]([^'"]+)['"]/g),
         ...src.matchAll(/import\s+['"]([^'"]+)['"]/g),
         ...src.matchAll(/(?:import|require)\s*\(\s*['"]([^'"]+)['"]/g),
-      ].map(m => m[1]);
+      ].map((m) => m[1]);
       for (const spec of imports) {
         if (!spec.startsWith('./')) {
-          violations.push(`${f} imports '${spec}' (non-relative — sim modules may only import sim modules)`);
+          violations.push(
+            `${f} imports '${spec}' (non-relative — sim modules may only import sim modules)`,
+          );
           continue;
         }
-        if (!ALLOWED[f].includes(spec.slice(2))) violations.push(`${f} imports '${spec}' (not allowed)`);
+        if (!ALLOWED[f].includes(spec.slice(2)))
+          violations.push(`${f} imports '${spec}' (not allowed)`);
       }
     }
     expect(violations).toEqual([]);

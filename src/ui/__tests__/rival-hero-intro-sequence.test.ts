@@ -19,6 +19,14 @@ import {
   rivalHeroSceneComposition,
 } from '../rival-hero-intro-layout';
 
+const RIVAL_BACKDROP_FILES = [
+  'barry-allan.png',
+  'scott-somers.png',
+  'steve-rodgers.png',
+  'bruno-bannor.png',
+  'bruce-wain.png',
+] as const;
+
 describe('rival hero intro sequence', () => {
   it('keeps the power readable before speech and consumes rapid exit taps', () => {
     expect(RIVAL_HERO_POWER_INTRO_MS).toBe(240);
@@ -75,14 +83,7 @@ describe('rival hero intro sequence', () => {
       join(process.cwd(), 'src/ui/RivalHeroIntroScreen.tsx'),
       'utf8',
     );
-    for (const asset of [
-      'barry-allan.png',
-      'scott-somers.png',
-      'steve-rodgers.png',
-      'bruno-bannor.png',
-      'bruce-wain.png',
-    ])
-      expect(screen).toContain(asset);
+    for (const asset of RIVAL_BACKDROP_FILES) expect(screen).toContain(asset);
     expect(screen).toContain('<RivalHeroPowerShowcase');
     expect(screen).toContain('<PowerTitleTakeover');
     expect(screen).toContain('<CharacterSpeechOverlay');
@@ -91,9 +92,26 @@ describe('rival hero intro sequence', () => {
     expect(screen).toContain('autoAdvanceMs={speechAutoExitMs}');
     expect(screen).toContain('{viewModel.title}');
     expect(screen).toContain("backgroundColor: '#000000'");
-    expect(screen).toContain("imageRendering: 'pixelated'");
+    expect(screen).toContain('<SkiaImage');
+    expect(screen).toContain('sampling={PIXEL_ART_SAMPLING}');
     expect(screen).toContain('screenReaderEnabled');
     expect(screen).toContain("phaseRef.current = 'power'");
+  });
+
+  it('ships every rival backdrop as a budgeted indexed PNG', () => {
+    for (const asset of RIVAL_BACKDROP_FILES) {
+      const png = readFileSync(
+        join(process.cwd(), 'assets/images/rival-hero-intros', asset),
+      );
+      expect(png.subarray(1, 4).toString('ascii')).toBe('PNG');
+      expect(png[24]).toBe(8);
+      expect(png[25]).toBe(3);
+      const paletteChunk = png.indexOf(Buffer.from('PLTE'));
+      expect(paletteChunk).toBeGreaterThan(3);
+      const paletteBytes = png.readUInt32BE(paletteChunk - 4);
+      expect(paletteBytes % 3).toBe(0);
+      expect(paletteBytes / 3).toBeLessThanOrEqual(16);
+    }
   });
 
   it('stages all five authored power actions before the speech beat', () => {

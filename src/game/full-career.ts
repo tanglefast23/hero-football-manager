@@ -1,7 +1,17 @@
-import { developmentPotentialCeiling, potentialTierForDivision, roleOverall } from './archetype-caps';
-import { assignDistinctPlayerLooks, nextDistinctPlayerLook } from './player-appearance';
+import {
+  developmentPotentialCeiling,
+  potentialTierForDivision,
+  roleOverall,
+} from './archetype-caps';
+import {
+  assignDistinctPlayerLooks,
+  nextDistinctPlayerLook,
+} from './player-appearance';
 import { generateSeasonFixtures, pinOpeningLeagueOpponents } from './schedule';
-import { createCareerMarketState, refreshCareerMarketForNewSeason } from './market-career';
+import {
+  createCareerMarketState,
+  refreshCareerMarketForNewSeason,
+} from './market-career';
 import { CAREER_CLUB_FAME_CEILING, generatedPlayerWeeklyWage } from './market';
 import { compareIds } from './ordering';
 import {
@@ -25,10 +35,16 @@ import {
 } from './pyramid';
 import { difficultyRules } from './difficulty';
 import { divisionAwardPrize } from './division-award-prize';
-import { initializeSeasonYouthIntake, reconcileStoryYouthIntake } from './youth-intake';
+import {
+  initializeSeasonYouthIntake,
+  reconcileStoryYouthIntake,
+} from './youth-intake';
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { recordFanGain } from './fan-growth';
-import { highestDivisionReached, recordHighestDivisionReached } from './promotion-progression';
+import {
+  highestDivisionReached,
+  recordHighestDivisionReached,
+} from './promotion-progression';
 import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
 import {
   isSpecialHeroId,
@@ -69,30 +85,42 @@ export function enableFullCareer(state: GameState): GameState {
         emergencyLoanUsed: false,
       },
     };
-    const withIntake = reconciled.youthIntake === undefined
-      ? { ...reconciled, youthIntake: initializeSeasonYouthIntake(reconciled) }
-      : reconciled;
+    const withIntake =
+      reconciled.youthIntake === undefined
+        ? {
+            ...reconciled,
+            youthIntake: initializeSeasonYouthIntake(reconciled),
+          }
+        : reconciled;
     return reconcileStoryYouthIntake(withIntake);
   }
-  const balancedState = state.season === 1
-    && state.week === 1
-    && state.phase === 'manage'
+  const balancedState =
+    state.season === 1 &&
+    state.week === 1 &&
+    state.phase === 'manage' &&
     // Only the authored launch division is deliberately retuned. Generic
     // CareerSetup fixtures keep the ratings their caller supplied.
-    && state.userClubId === 'bramble-rovers'
-    && state.ledgers.length === 0
-    && (state.cashTransactions?.length ?? 0) === 0
-    && !state.facilities.trainingGroundBuilt
-    && (state.facilities.grid?.buildings.length ?? 0) === 0
-    && state.facilities.grid?.construction === undefined
-    && state.fixtures.every(fixture => fixture.status === 'scheduled')
-    ? balanceOpeningDivision(state)
-    : state;
-  const userClub = balancedState.clubs.find(club => club.id === balancedState.userClubId);
-  if (userClub === undefined) throw new Error(`unknown user club ${balancedState.userClubId}`);
-  const userPlayers = balancedState.players.filter(player => player.clubId === balancedState.userClubId);
+    state.userClubId === 'bramble-rovers' &&
+    state.ledgers.length === 0 &&
+    (state.cashTransactions?.length ?? 0) === 0 &&
+    !state.facilities.trainingGroundBuilt &&
+    (state.facilities.grid?.buildings.length ?? 0) === 0 &&
+    state.facilities.grid?.construction === undefined &&
+    state.fixtures.every((fixture) => fixture.status === 'scheduled')
+      ? balanceOpeningDivision(state)
+      : state;
+  const userClub = balancedState.clubs.find(
+    (club) => club.id === balancedState.userClubId,
+  );
+  if (userClub === undefined)
+    throw new Error(`unknown user club ${balancedState.userClubId}`);
+  const userPlayers = balancedState.players.filter(
+    (player) => player.clubId === balancedState.userClubId,
+  );
   if (balancedState.clubs.length !== 10 || userPlayers.length < 11) {
-    throw new Error('the full career requires one complete ten-club active division');
+    throw new Error(
+      'the full career requires one complete ten-club active division',
+    );
   }
   let m2 = initializeM2Career({
     careerSeed: balancedState.careerSeed,
@@ -106,7 +134,8 @@ export function enableFullCareer(state: GameState): GameState {
   m2 = startM2NationalCup(m2, balancedState.season);
   const fullState: GameState = {
     ...balancedState,
-    phase: balancedState.phase === 'complete' ? 'season-end' : balancedState.phase,
+    phase:
+      balancedState.phase === 'complete' ? 'season-end' : balancedState.phase,
     careerMode: 'full',
     m2,
     retiredPlayers: balancedState.retiredPlayers ?? [],
@@ -141,12 +170,16 @@ export function startNextFullCareerSeason(
     m2,
     state.season,
     activeDivision,
-    activeStandings.map(row => row.clubId),
+    activeStandings.map((row) => row.clubId),
   );
   m2 = applyM2PromotionAndRelegation(m2, finishOrders).state;
   // Chairman faces a league that improves every season instead of every other
   // one, so the difficulty has to reach the opponent growth step.
-  const transition = planEndlessCareerSeasonTransition(m2, state.season, difficultyRules(state));
+  const transition = planEndlessCareerSeasonTransition(
+    m2,
+    state.season,
+    difficultyRules(state),
+  );
   m2 = transition.state;
 
   // The division boards are paid here rather than by the ceremony that shows
@@ -159,19 +192,29 @@ export function startNextFullCareerSeason(
   // `transition.division` is the division the club is entering, which is the one
   // the prize is sized against — the recap's own `division` is the one just
   // played, and for a promoted or relegated club they differ.
-  const completedRecap = (state.seasonRecaps ?? [])
-    .find(recap => recap.season === state.season);
-  const awardPrize = completedRecap === undefined
-    ? undefined
-    : divisionAwardPrize({
-        recap: completedRecap,
-        userClubId: state.userClubId,
-        targetDivision: transition.division,
-      });
+  const completedRecap = (state.seasonRecaps ?? []).find(
+    (recap) => recap.season === state.season,
+  );
+  const awardPrize =
+    completedRecap === undefined
+      ? undefined
+      : divisionAwardPrize({
+          recap: completedRecap,
+          userClubId: state.userClubId,
+          targetDivision: transition.division,
+        });
 
-  const userPlayers = state.players.filter(player => player.clubId === state.userClubId);
-  const lifecycle = resolveM2CareerPlayerLifecycle(userPlayers, state.season, state.careerSeed);
-  const retiredIds = new Set(lifecycle.retiredPlayers.map(player => player.id));
+  const userPlayers = state.players.filter(
+    (player) => player.clubId === state.userClubId,
+  );
+  const lifecycle = resolveM2CareerPlayerLifecycle(
+    userPlayers,
+    state.season,
+    state.careerSeed,
+  );
+  const retiredIds = new Set(
+    lifecycle.retiredPlayers.map((player) => player.id),
+  );
   const activeUserPlayers = replenishUserSquad(
     lifecycle.activePlayers,
     state.userClubId,
@@ -180,13 +223,18 @@ export function startNextFullCareerSeason(
     transition.division,
   );
   const userLineup = repairUserLineup(
-    state.lineups.find(lineup => lineup.clubId === state.userClubId),
+    state.lineups.find((lineup) => lineup.clubId === state.userClubId),
     activeUserPlayers,
     retiredIds,
-    new Map(lifecycle.retiredPlayers.map(player => [player.id, player.role])),
+    new Map(lifecycle.retiredPlayers.map((player) => [player.id, player.role])),
   );
-  const generated = generatedActiveDivision(transition.generatedOpponentClubs, transition.division);
-  const currentUserClub = state.clubs.find(club => club.id === state.userClubId)!;
+  const generated = generatedActiveDivision(
+    transition.generatedOpponentClubs,
+    transition.division,
+  );
+  const currentUserClub = state.clubs.find(
+    (club) => club.id === state.userClubId,
+  )!;
   const userClub: ClubState = {
     ...currentUserClub,
     // The user's gate, sponsor and ticket income scales with division exactly as
@@ -200,9 +248,14 @@ export function startNextFullCareerSeason(
     // on. It used to be credited as Training Points a few lines below; the
     // board now writes a cheque instead, so it lands where every other prize
     // does and the season-opening balance already includes it.
-    cash: awardPrize === undefined
-      ? currentUserClub.cash
-      : checkedAdd(currentUserClub.cash, awardPrize.money, 'division award prize'),
+    cash:
+      awardPrize === undefined
+        ? currentUserClub.cash
+        : checkedAdd(
+            currentUserClub.cash,
+            awardPrize.money,
+            'division award prize',
+          ),
     fans: Math.max(currentUserClub.fans, divisionFans(transition.division)),
     ticketPrice: divisionTicketPrice(transition.division),
     sponsorMonthlyFee: divisionSponsorMonthlyFee(transition.division),
@@ -227,24 +280,44 @@ export function startNextFullCareerSeason(
   const lineups = overlaid.lineups;
   const strengthByClubId = new Map<string, number>([
     [state.userClubId, clubSquadStrength(activeUserPlayers)],
-    ...transition.generatedOpponentClubs.map(club => [club.id, club.squadStrength] as const),
+    ...transition.generatedOpponentClubs.map(
+      (club) => [club.id, club.squadStrength] as const,
+    ),
   ]);
   const scheduleClubIds = pinOpeningLeagueOpponents(
-    clubs.map(club => club.id),
+    clubs.map((club) => club.id),
     state.userClubId,
     strengthByClubId,
   );
-  const fixtures = generateSeasonFixtures(scheduleClubIds, season, state.careerSeed);
-  let nextM2 = synchronizeM2ActiveDivision(m2, { clubs, players }, transition.division);
+  const fixtures = generateSeasonFixtures(
+    scheduleClubIds,
+    season,
+    state.careerSeed,
+  );
+  let nextM2 = synchronizeM2ActiveDivision(
+    m2,
+    { clubs, players },
+    transition.division,
+  );
   nextM2 = startM2NationalCup(nextM2, season);
-  const retiredPlayers = [...(state.retiredPlayers ?? []), ...lifecycle.retiredPlayers];
+  const retiredPlayers = [
+    ...(state.retiredPlayers ?? []),
+    ...lifecycle.retiredPlayers,
+  ];
   const pendingLegacyPlayerIds = [
     ...(state.pendingLegacyPlayerIds ?? []),
     ...lifecycle.retiredPlayers
-      .filter(player => isClubLegend({ seasonsAtClub: player.seasonsAtClub, fame: player.fame }))
-      .map(player => player.id),
+      .filter((player) =>
+        isClubLegend({
+          seasonsAtClub: player.seasonsAtClub,
+          fame: player.fame,
+        }),
+      )
+      .map((player) => player.id),
   ];
-  const retirementAnnouncements = lifecycle.announcements.map(announcement => ({ ...announcement }));
+  const retirementAnnouncements = lifecycle.announcements.map(
+    (announcement) => ({ ...announcement }),
+  );
   const next: GameState = {
     ...state,
     season,
@@ -280,9 +353,9 @@ export function startNextFullCareerSeason(
     // backfills retirement-vacated slots with no availability check, so an away
     // player could be promoted into the XI and then throw on the new season's
     // first matchday.
-    players: players.map(player => (player.clubId === state.userClubId
-      ? { ...player, awayWeeks: 0 }
-      : player)),
+    players: players.map((player) =>
+      player.clubId === state.userClubId ? { ...player, awayWeeks: 0 } : player,
+    ),
     lineups,
     seasonOpeningCash: userClub.cash,
     m2: nextM2,
@@ -300,11 +373,14 @@ export function startNextFullCareerSeason(
     seasonStatLines: prunedStatLines({ ...state, players, retiredPlayers }),
     // Stamped even when it paid nothing, so an absent field always means "this
     // season has not been transitioned through yet" and never "won nothing".
-    seasonRecaps: awardPrize === undefined
-      ? state.seasonRecaps
-      : (state.seasonRecaps ?? []).map(recap => (recap.season === state.season
-        ? { ...recap, divisionAwardPrize: awardPrize }
-        : recap)),
+    seasonRecaps:
+      awardPrize === undefined
+        ? state.seasonRecaps
+        : (state.seasonRecaps ?? []).map((recap) =>
+            recap.season === state.season
+              ? { ...recap, divisionAwardPrize: awardPrize }
+              : recap,
+          ),
     clubBusiness: {
       ...state.clubBusiness,
       sponsorship: nextSeasonSponsorship(
@@ -318,14 +394,19 @@ export function startNextFullCareerSeason(
   };
   const withMarket: GameState = {
     ...next,
-    market: state.market === undefined
-      ? createCareerMarketState(next, highestDivisionReached(next), clubFame(next))
-      : refreshCareerMarketForNewSeason(
-          next,
-          state.market,
-          highestDivisionReached(next),
-          clubFame(next),
-        ),
+    market:
+      state.market === undefined
+        ? createCareerMarketState(
+            next,
+            highestDivisionReached(next),
+            clubFame(next),
+          )
+        : refreshCareerMarketForNewSeason(
+            next,
+            state.market,
+            highestDivisionReached(next),
+            clubFame(next),
+          ),
   };
   return recordFanGain(
     reconcileBoardUltimatumCandidates({
@@ -353,7 +434,11 @@ function nextSeasonSponsorship(
   }
   if (state.sponsorRules === undefined) {
     return {
-      activeContracts: createProvisionalSponsorPortfolio(nominalAnchor, capacity, season),
+      activeContracts: createProvisionalSponsorPortfolio(
+        nominalAnchor,
+        capacity,
+        season,
+      ),
       offers: [],
       portfolioSeason: season,
     };
@@ -370,17 +455,21 @@ function nextSeasonSponsorship(
 }
 
 function balanceOpeningDivision(state: GameState): GameState {
-  const currentStrengths = new Map(state.clubs.map(club => {
-    const squad = state.players.filter(player => player.clubId === club.id);
-    if (squad.length < 11) throw new Error(`club ${club.id} needs at least eleven players`);
-    return [club.id, clubSquadStrength(squad)] as const;
-  }));
+  const currentStrengths = new Map(
+    state.clubs.map((club) => {
+      const squad = state.players.filter((player) => player.clubId === club.id);
+      if (squad.length < 11)
+        throw new Error(`club ${club.id} needs at least eleven players`);
+      return [club.id, clubSquadStrength(squad)] as const;
+    }),
+  );
   const opponentsWeakestFirst = state.clubs
-    .filter(club => club.id !== state.userClubId)
-    .sort((left, right) => (
-      currentStrengths.get(left.id)! - currentStrengths.get(right.id)!
-      || compareIds(left.id, right.id)
-    ));
+    .filter((club) => club.id !== state.userClubId)
+    .sort(
+      (left, right) =>
+        currentStrengths.get(left.id)! - currentStrengths.get(right.id)! ||
+        compareIds(left.id, right.id),
+    );
   // The opening is deliberately rigged against the player: 40 against a field of
   // 42..50, so the user is the weakest club in the division and every week of
   // Season 1 is uphill. Climbing out is meant to take one or two seasons of
@@ -396,30 +485,47 @@ function balanceOpeningDivision(state: GameState): GameState {
   // |  0                | 8th    | 19     |
   // | +5                | 2nd    | 34     |
   // | +10               | 1st    | 52     |
-  const targetStrengthByClubId = new Map<string, number>([[state.userClubId, 40]]);
+  const targetStrengthByClubId = new Map<string, number>([
+    [state.userClubId, 40],
+  ]);
   opponentsWeakestFirst.forEach((club, index) => {
     targetStrengthByClubId.set(club.id, 42 + index);
   });
 
-  const players = state.clubs.flatMap(club => {
-    const squad = state.players.filter(player => player.clubId === club.id);
+  const players = state.clubs.flatMap((club) => {
+    const squad = state.players.filter((player) => player.clubId === club.id);
     const targetStrength = targetStrengthByClubId.get(club.id);
-    if (targetStrength === undefined) throw new Error(`missing opening strength for ${club.id}`);
-    return tuneSquadToStrength(squad, targetStrength).map(player => ({
+    if (targetStrength === undefined)
+      throw new Error(`missing opening strength for ${club.id}`);
+    return tuneSquadToStrength(squad, targetStrength).map((player) => ({
       ...player,
-      signingStatTotal: Object.values(player.attrs).reduce((sum, value) => sum + value, 0),
+      signingStatTotal: Object.values(player.attrs).reduce(
+        (sum, value) => sum + value,
+        0,
+      ),
     }));
   });
-  const balancedStrengths = new Map(state.clubs.map(club => [
-    club.id,
-    clubSquadStrength(players.filter(player => player.clubId === club.id)),
-  ] as const));
+  const balancedStrengths = new Map(
+    state.clubs.map(
+      (club) =>
+        [
+          club.id,
+          clubSquadStrength(
+            players.filter((player) => player.clubId === club.id),
+          ),
+        ] as const,
+    ),
+  );
   const scheduleClubIds = pinOpeningLeagueOpponents(
-    state.clubs.map(club => club.id),
+    state.clubs.map((club) => club.id),
     state.userClubId,
     balancedStrengths,
   );
-  const fixtures = generateSeasonFixtures(scheduleClubIds, state.season, state.careerSeed);
+  const fixtures = generateSeasonFixtures(
+    scheduleClubIds,
+    state.season,
+    state.careerSeed,
+  );
   // Last, on purpose. The ladder above, the pin and the first-opponent buff are
   // the most carefully tuned numbers in the game, and none of them should see a
   // special: the hero is added on top of a finished division, which is what
@@ -441,7 +547,9 @@ function balanceOpeningDivision(state: GameState): GameState {
 }
 
 /** The attribute each position is judged by, and the one a +5 is felt through. */
-const FIRST_OPPONENT_KEY_ATTR: Readonly<Record<CareerPlayer['role'], 'ref' | 'def' | 'pas' | 'sho'>> = {
+const FIRST_OPPONENT_KEY_ATTR: Readonly<
+  Record<CareerPlayer['role'], 'ref' | 'def' | 'pas' | 'sho'>
+> = {
   GK: 'ref',
   DEF: 'def',
   MID: 'pas',
@@ -462,11 +570,17 @@ function strengthenFirstOpponent(
   userClubId: string,
 ): CareerPlayer[] {
   const opener = fixtures
-    .filter(fixture => fixture.homeClubId === userClubId || fixture.awayClubId === userClubId)
-    .sort((left, right) => left.week - right.week || compareIds(left.id, right.id))[0];
+    .filter(
+      (fixture) =>
+        fixture.homeClubId === userClubId || fixture.awayClubId === userClubId,
+    )
+    .sort(
+      (left, right) => left.week - right.week || compareIds(left.id, right.id),
+    )[0];
   if (opener === undefined) return [...players];
-  const opponentClubId = opener.homeClubId === userClubId ? opener.awayClubId : opener.homeClubId;
-  return players.map(player => {
+  const opponentClubId =
+    opener.homeClubId === userClubId ? opener.awayClubId : opener.homeClubId;
+  return players.map((player) => {
     if (player.clubId !== opponentClubId) return player;
     const key = FIRST_OPPONENT_KEY_ATTR[player.role];
     const attrs = {
@@ -476,7 +590,10 @@ function strengthenFirstOpponent(
     return {
       ...player,
       attrs,
-      signingStatTotal: Object.values(attrs).reduce((sum, value) => sum + value, 0),
+      signingStatTotal: Object.values(attrs).reduce(
+        (sum, value) => sum + value,
+        0,
+      ),
     };
   });
 }
@@ -490,9 +607,11 @@ function generatedActiveDivision(
   const lineups: ClubLineupState[] = [];
   for (const club of clubs) {
     let heroEligibleIndex = 0;
-    const clubPlayers = club.squad.map(player => {
-      const eligibleIndex = player.role === 'MID' || player.role === 'FWD'
-        ? heroEligibleIndex++ : -1;
+    const clubPlayers = club.squad.map((player) => {
+      const eligibleIndex =
+        player.role === 'MID' || player.role === 'FWD'
+          ? heroEligibleIndex++
+          : -1;
       return opponentCareerPlayer(player, division, eligibleIndex);
     });
     generatedClubs.push({
@@ -503,7 +622,8 @@ function generatedActiveDivision(
       ticketPrice: divisionTicketPrice(division),
       sponsorMonthlyFee: divisionSponsorMonthlyFee(division),
       weeklyWages: clubPlayers.reduce(
-        (sum, player) => checkedAdd(sum, player.weeklyWage, 'opponent weekly wages'),
+        (sum, player) =>
+          checkedAdd(sum, player.weeklyWage, 'opponent weekly wages'),
         0,
       ),
     });
@@ -520,9 +640,10 @@ function opponentCareerPlayer(
 ): CareerPlayer {
   const heroCount = generatedClubHeroCount(player.clubId, division);
   const heroEligible = eligibleIndex >= 0;
-  const power = heroEligible && eligibleIndex < heroCount
-    ? generatedClubPower(player.clubId, eligibleIndex, player.role)
-    : undefined;
+  const power =
+    heroEligible && eligibleIndex < heroCount
+      ? generatedClubPower(player.clubId, eligibleIndex, player.role)
+      : undefined;
   const potential = opponentPotential(player.id, division);
   return {
     id: player.id,
@@ -533,7 +654,10 @@ function opponentCareerPlayer(
     attrs: { ...player.attrs },
     ...(power === undefined
       ? {}
-      : { power, powerTier: (division === 1 ? 3 : division <= 3 ? 2 : 1) as 1 | 2 | 3 }),
+      : {
+          power,
+          powerTier: (division === 1 ? 3 : division <= 3 ? 2 : 1) as 1 | 2 | 3,
+        }),
     licensed: power !== undefined,
     weeklyWage: generatedPlayerWeeklyWage(player.attrs, division),
     onHeroWage: power !== undefined,
@@ -558,7 +682,10 @@ function opponentCareerPlayer(
     retirementAge: 36,
     retirementAnnounced: false,
     consecutiveLowMoraleWeeks: player.consecutiveLowMoraleWeeks,
-    signingStatTotal: Object.values(player.attrs).reduce((sum, value) => sum + value, 0),
+    signingStatTotal: Object.values(player.attrs).reduce(
+      (sum, value) => sum + value,
+      0,
+    ),
   };
 }
 
@@ -587,7 +714,9 @@ export function divisionTicketPrice(division: DivisionLevel): number {
 }
 
 export function divisionSponsorMonthlyFee(division: DivisionLevel): number {
-  return ({ 5: 3_000, 4: 4_000, 3: 6_000, 2: 8_000, 1: 10_000 } as const)[division];
+  return ({ 5: 3_000, 4: 4_000, 3: 6_000, 2: 8_000, 1: 10_000 } as const)[
+    division
+  ];
 }
 
 /**
@@ -603,55 +732,82 @@ export function divisionSponsorMonthlyFee(division: DivisionLevel): number {
  * the division, not to a club, so a club that is strongest this year fields them
  * and a club that is relegated leaves them behind.
  */
-function overlayDivisionSpecials(
-  input: {
-    clubs: readonly ClubState[];
-    players: readonly CareerPlayer[];
-    lineups: readonly ClubLineupState[];
-    division: DivisionLevel;
-    userClubId: string;
-  },
-): { clubs: ClubState[]; players: CareerPlayer[]; lineups: ClubLineupState[] } {
+function overlayDivisionSpecials(input: {
+  clubs: readonly ClubState[];
+  players: readonly CareerPlayer[];
+  lineups: readonly ClubLineupState[];
+  division: DivisionLevel;
+  userClubId: string;
+}): {
+  clubs: ClubState[];
+  players: CareerPlayer[];
+  lineups: ClubLineupState[];
+} {
   // Last season's specials arrive back through the pyramid round trip. They are
   // dropped before anything is measured, so the host is picked on ordinary
   // strength alone and a character can never be double-booked.
-  const carried = input.players.filter(player => (
-    !isSpecialHeroId(player.id) || player.clubId === input.userClubId
-  ));
-  const signedIds = new Set(carried
-    .filter(player => player.clubId === input.userClubId && isSpecialHeroId(player.id))
-    .map(player => player.id));
+  const carried = input.players.filter(
+    (player) =>
+      !isSpecialHeroId(player.id) || player.clubId === input.userClubId,
+  );
+  const signedIds = new Set(
+    carried
+      .filter(
+        (player) =>
+          player.clubId === input.userClubId && isSpecialHeroId(player.id),
+      )
+      .map((player) => player.id),
+  );
   // A hero the user has bought is gone from the rival pool for the rest of the
   // save. The host simply fields one fewer rather than being handed a stand-in.
-  const heroes = specialHeroesForDivision(input.division)
-    .filter(hero => !signedIds.has(hero.id));
+  const heroes = specialHeroesForDivision(input.division).filter(
+    (hero) => !signedIds.has(hero.id),
+  );
   if (heroes.length === 0) {
-    return { clubs: [...input.clubs], players: carried, lineups: [...input.lineups] };
+    return {
+      clubs: [...input.clubs],
+      players: carried,
+      lineups: [...input.lineups],
+    };
   }
 
-  const rivals = input.clubs.filter(club => club.id !== input.userClubId);
+  const rivals = input.clubs.filter((club) => club.id !== input.userClubId);
   if (rivals.length === 0) {
-    return { clubs: [...input.clubs], players: carried, lineups: [...input.lineups] };
+    return {
+      clubs: [...input.clubs],
+      players: carried,
+      lineups: [...input.lineups],
+    };
   }
-  const strengthByClubId = new Map(rivals.map(club => {
-    const squad = carried.filter(player => player.clubId === club.id);
-    return [club.id, squad.length === 0 ? 0 : clubSquadStrength(squad)] as const;
-  }));
+  const strengthByClubId = new Map(
+    rivals.map((club) => {
+      const squad = carried.filter((player) => player.clubId === club.id);
+      return [
+        club.id,
+        squad.length === 0 ? 0 : clubSquadStrength(squad),
+      ] as const;
+    }),
+  );
   const hostId = rivals
     .slice()
-    .sort((left, right) => (
-      strengthByClubId.get(right.id)! - strengthByClubId.get(left.id)!
-      || compareIds(left.id, right.id)
-    ))[0].id;
+    .sort(
+      (left, right) =>
+        strengthByClubId.get(right.id)! - strengthByClubId.get(left.id)! ||
+        compareIds(left.id, right.id),
+    )[0].id;
 
-  const hostSquad = carried.filter(player => player.clubId === hostId);
-  const base = Math.max(...hostSquad.map(player => roleOverall(player.role, player.attrs)));
-  const specials = heroes.map((hero, index) => buildSpecialHeroPlayer({
-    hero,
-    clubId: hostId,
-    division: input.division,
-    target: specialHeroTargetOverall(base, heroes.length, index + 1),
-  }));
+  const hostSquad = carried.filter((player) => player.clubId === hostId);
+  const base = Math.max(
+    ...hostSquad.map((player) => roleOverall(player.role, player.attrs)),
+  );
+  const specials = heroes.map((hero, index) =>
+    buildSpecialHeroPlayer({
+      hero,
+      clubId: hostId,
+      division: input.division,
+      target: specialHeroTargetOverall(base, heroes.length, index + 1),
+    }),
+  );
 
   // Specials come first in the HOST'S slice, because startingEleven takes the
   // first N of each role in array order — an appended special becomes the sixth
@@ -660,24 +816,32 @@ function overlayDivisionSpecials(
   // index 0 silently changed which player "the first rival forward" means.
   const hostPlayers = [...specials, ...hostSquad];
   const players = [...carried, ...specials];
-  const clubs = input.clubs.map(club => (club.id === hostId
-    ? {
-        ...club,
-        weeklyWages: hostPlayers.reduce(
-          (sum, player) => checkedAdd(sum, player.weeklyWage, 'special hero host wages'),
-          0,
-        ),
-      }
-    : club));
-  const lineups = input.lineups.map(lineup => (lineup.clubId === hostId
-    ? { clubId: hostId, playerIds: startingEleven(hostPlayers) }
-    : lineup));
+  const clubs = input.clubs.map((club) =>
+    club.id === hostId
+      ? {
+          ...club,
+          weeklyWages: hostPlayers.reduce(
+            (sum, player) =>
+              checkedAdd(sum, player.weeklyWage, 'special hero host wages'),
+            0,
+          ),
+        }
+      : club,
+  );
+  const lineups = input.lineups.map((lineup) =>
+    lineup.clubId === hostId
+      ? { clubId: hostId, playerIds: startingEleven(hostPlayers) }
+      : lineup,
+  );
   return { clubs, players, lineups };
 }
 
-function buildSpecialHeroPlayer(
-  input: { hero: SpecialHero; clubId: string; division: DivisionLevel; target: number },
-): CareerPlayer {
+function buildSpecialHeroPlayer(input: {
+  hero: SpecialHero;
+  clubId: string;
+  division: DivisionLevel;
+  target: number;
+}): CareerPlayer {
   const attrs = specialHeroAttrs(input.hero.role, input.target);
   const potential = 5;
   return {
@@ -688,7 +852,8 @@ function buildSpecialHeroPlayer(
     lookId: input.hero.lookId,
     attrs,
     power: input.hero.power,
-    powerTier: (input.division === 1 ? 3 : input.division <= 3 ? 2 : 1) as 1 | 2 | 3,
+    powerTier: (input.division === 1 ? 3 : input.division <= 3 ? 2 : 1) as
+      1 | 2 | 3,
     licensed: true,
     weeklyWage: generatedPlayerWeeklyWage(attrs, input.division),
     onHeroWage: true,
@@ -713,17 +878,27 @@ function buildSpecialHeroPlayer(
     retirementAge: 36,
     retirementAnnounced: false,
     consecutiveLowMoraleWeeks: 0,
-    signingStatTotal: Object.values(attrs).reduce((sum, value) => sum + value, 0),
+    signingStatTotal: Object.values(attrs).reduce(
+      (sum, value) => sum + value,
+      0,
+    ),
   };
 }
 
 function startingEleven(players: readonly CareerPlayer[]): string[] {
-  const take = (role: CareerPlayer['role'], count: number) => players
-    .filter(player => player.role === role)
-    .slice(0, count)
-    .map(player => player.id);
-  const ids = [...take('GK', 1), ...take('DEF', 4), ...take('MID', 4), ...take('FWD', 2)];
-  if (ids.length !== 11) throw new Error('generated opponent cannot form a starting eleven');
+  const take = (role: CareerPlayer['role'], count: number) =>
+    players
+      .filter((player) => player.role === role)
+      .slice(0, count)
+      .map((player) => player.id);
+  const ids = [
+    ...take('GK', 1),
+    ...take('DEF', 4),
+    ...take('MID', 4),
+    ...take('FWD', 2),
+  ];
+  if (ids.length !== 11)
+    throw new Error('generated opponent cannot form a starting eleven');
   return ids;
 }
 
@@ -741,20 +916,33 @@ function repairUserLineup(
   retiredRoleById: ReadonlyMap<string, CareerPlayer['role']>,
 ): ClubLineupState {
   if (current === undefined) throw new Error('the user club has no lineup');
-  const playerById = new Map(players.map(player => [player.id, player]));
-  const slots: Array<string | undefined> = current.playerIds.map(
-    id => (retiredIds.has(id) || !playerById.has(id) ? undefined : id),
+  const playerById = new Map(players.map((player) => [player.id, player]));
+  const slots: Array<string | undefined> = current.playerIds.map((id) =>
+    retiredIds.has(id) || !playerById.has(id) ? undefined : id,
   );
-  const selected = new Set(slots.filter((id): id is string => id !== undefined));
+  const selected = new Set(
+    slots.filter((id): id is string => id !== undefined),
+  );
   for (let index = 0; index < slots.length; index += 1) {
     if (slots[index] !== undefined) continue;
     const vacatedId = current.playerIds[index];
-    const vacatedRole = retiredRoleById.get(vacatedId) ?? playerById.get(vacatedId)?.role;
-    const sameRole = players.find(player => !selected.has(player.id) && player.role === vacatedRole);
-    const fallback = index === 0
-      ? players.find(player => !selected.has(player.id) && player.role === 'GK')
-      : players.find(player => !selected.has(player.id) && player.role !== 'GK');
-    const replacement = sameRole ?? fallback ?? players.find(player => !selected.has(player.id));
+    const vacatedRole =
+      retiredRoleById.get(vacatedId) ?? playerById.get(vacatedId)?.role;
+    const sameRole = players.find(
+      (player) => !selected.has(player.id) && player.role === vacatedRole,
+    );
+    const fallback =
+      index === 0
+        ? players.find(
+            (player) => !selected.has(player.id) && player.role === 'GK',
+          )
+        : players.find(
+            (player) => !selected.has(player.id) && player.role !== 'GK',
+          );
+    const replacement =
+      sameRole ??
+      fallback ??
+      players.find((player) => !selected.has(player.id));
     if (replacement !== undefined) {
       slots[index] = replacement.id;
       selected.add(replacement.id);
@@ -768,7 +956,8 @@ function repairUserLineup(
       selected.add(player.id);
     }
   }
-  if (retained.length !== 11) throw new Error('retirements leave the user without a starting eleven');
+  if (retained.length !== 11)
+    throw new Error('retirements leave the user without a starting eleven');
   ensureKeeperFirst(retained, players);
   return { clubId: current.clubId, playerIds: retained };
 }
@@ -778,17 +967,22 @@ function repairUserLineup(
  * in the eleven is preferred; only when the eleven has none does a spare come
  * in from the squad.
  */
-function ensureKeeperFirst(playerIds: string[], players: readonly CareerPlayer[]): void {
-  const roleById = new Map(players.map(player => [player.id, player.role]));
+function ensureKeeperFirst(
+  playerIds: string[],
+  players: readonly CareerPlayer[],
+): void {
+  const roleById = new Map(players.map((player) => [player.id, player.role]));
   if (playerIds.length === 0 || roleById.get(playerIds[0]) === 'GK') return;
-  const keeperIndex = playerIds.findIndex(id => roleById.get(id) === 'GK');
+  const keeperIndex = playerIds.findIndex((id) => roleById.get(id) === 'GK');
   if (keeperIndex > 0) {
     const keeper = playerIds[keeperIndex];
     playerIds[keeperIndex] = playerIds[0];
     playerIds[0] = keeper;
     return;
   }
-  const spare = players.find(player => player.role === 'GK' && !playerIds.includes(player.id));
+  const spare = players.find(
+    (player) => player.role === 'GK' && !playerIds.includes(player.id),
+  );
   if (spare !== undefined) playerIds[0] = spare.id;
 }
 
@@ -799,8 +993,22 @@ const ACADEMY_ROLE_TARGETS: Readonly<Record<CareerPlayer['role'], number>> = {
   FWD: 4,
 };
 const ACADEMY_NAMES = [
-  'Ari', 'Ben', 'Cal', 'Dara', 'Eli', 'Finn', 'Gio', 'Hugo',
-  'Ivo', 'Jae', 'Kai', 'Leo', 'Milo', 'Nico', 'Ollie', 'Paz',
+  'Ari',
+  'Ben',
+  'Cal',
+  'Dara',
+  'Eli',
+  'Finn',
+  'Gio',
+  'Hugo',
+  'Ivo',
+  'Jae',
+  'Kai',
+  'Leo',
+  'Milo',
+  'Nico',
+  'Ollie',
+  'Paz',
 ] as const;
 
 /** Keeps the endless career playable even after a whole generation retires. */
@@ -811,10 +1019,13 @@ function replenishUserSquad(
   careerSeed: number,
   division: DivisionLevel,
 ): CareerPlayer[] {
-  const result = players.map(player => ({ ...player, attrs: { ...player.attrs } }));
-  const existingIds = new Set(result.map(player => player.id));
+  const result = players.map((player) => ({
+    ...player,
+    attrs: { ...player.attrs },
+  }));
+  const existingIds = new Set(result.map((player) => player.id));
   for (const role of ['GK', 'DEF', 'MID', 'FWD'] as const) {
-    let roleCount = result.filter(player => player.role === role).length;
+    let roleCount = result.filter((player) => player.role === role).length;
     let intakeNumber = 1;
     while (roleCount < ACADEMY_ROLE_TARGETS[role]) {
       let id = `${userClubId}-academy-s${season}-${role.toLowerCase()}-${intakeNumber}`;
@@ -832,7 +1043,10 @@ function replenishUserSquad(
         intakeNumber,
         division,
       );
-      result.push({ ...player, lookId: nextDistinctPlayerLook(player, result) });
+      result.push({
+        ...player,
+        lookId: nextDistinctPlayerLook(player, result),
+      });
       roleCount += 1;
       intakeNumber += 1;
     }
@@ -840,6 +1054,7 @@ function replenishUserSquad(
   return result;
 }
 
+/** @i18n-fallback Generated player names are product data and stay English. */
 function academyPlayer(
   id: string,
   clubId: string,
@@ -850,7 +1065,7 @@ function academyPlayer(
   division: DivisionLevel,
 ): CareerPlayer {
   const value = stableYouthValue(careerSeed, season, id);
-  const base = 38 + value % 13;
+  const base = 38 + (value % 13);
   const attrs = {
     pac: Math.min(99, base + (role === 'FWD' ? 6 : 2)),
     sho: Math.min(99, base + (role === 'FWD' ? 8 : 0)),
@@ -861,7 +1076,13 @@ function academyPlayer(
     ref: Math.min(99, base + (role === 'GK' ? 10 : 0)),
   };
   const potential = potentialTierForDivision(division, (value >>> 5) % 100);
-  const personalities = ['Fiery', 'Loyal', 'Joker', 'Professional', 'Timid'] as const;
+  const personalities = [
+    'Fiery',
+    'Loyal',
+    'Joker',
+    'Professional',
+    'Timid',
+  ] as const;
   return {
     id,
     clubId,
@@ -875,9 +1096,22 @@ function academyPlayer(
     morale: 60,
     injuryWeeks: 0,
     age: 17,
-    archetype: role === 'GK' ? 'Wall' : role === 'DEF' ? 'Anchor' : role === 'MID' ? 'Playmaker' : 'Sniper',
+    archetype:
+      role === 'GK'
+        ? 'Wall'
+        : role === 'DEF'
+          ? 'Anchor'
+          : role === 'MID'
+            ? 'Playmaker'
+            : 'Sniper',
     potential,
-    potentialCeiling: developmentPotentialCeiling({ id, role, attrs, age: 17, potential }),
+    potentialCeiling: developmentPotentialCeiling({
+      id,
+      role,
+      attrs,
+      age: 17,
+      potential,
+    }),
     consistency: 55 + ((value >>> 9) % 21),
     personality: personalities[(value >>> 14) % personalities.length],
     condition: 100,
@@ -885,11 +1119,18 @@ function academyPlayer(
     fame: 0,
     retirementAge: 35 + ((value >>> 17) % 3),
     retirementAnnounced: false,
-    signingStatTotal: Object.values(attrs).reduce((sum, rating) => sum + rating, 0),
+    signingStatTotal: Object.values(attrs).reduce(
+      (sum, rating) => sum + rating,
+      0,
+    ),
   };
 }
 
-function stableYouthValue(careerSeed: number, season: number, id: string): number {
+function stableYouthValue(
+  careerSeed: number,
+  season: number,
+  id: string,
+): number {
   let value = (careerSeed ^ Math.imul(season, 0x9e3779b1)) >>> 0;
   for (let index = 0; index < id.length; index += 1) {
     value = Math.imul(value ^ id.charCodeAt(index), 0x01000193) >>> 0;
@@ -903,13 +1144,23 @@ function careerSquadStrength(players: readonly CareerPlayer[]): number {
 }
 
 function clubFame(state: GameState): number {
-  return Math.max(0, Math.min(CAREER_CLUB_FAME_CEILING, state.players
-    .filter(player => player.clubId === state.userClubId)
-    .reduce((sum, player) => sum + (player.fame ?? 0), state.market?.clubFameAdjustment ?? 0)));
+  return Math.max(
+    0,
+    Math.min(
+      CAREER_CLUB_FAME_CEILING,
+      state.players
+        .filter((player) => player.clubId === state.userClubId)
+        .reduce(
+          (sum, player) => sum + (player.fame ?? 0),
+          state.market?.clubFameAdjustment ?? 0,
+        ),
+    ),
+  );
 }
 
 function checkedAdd(left: number, right: number, label: string): number {
   const result = left + right;
-  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(result))
+    throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }

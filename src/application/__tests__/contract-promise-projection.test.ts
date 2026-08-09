@@ -10,16 +10,18 @@ describe('season-end contract promise projection', () => {
     const initial = createCareer(createLaunchCareerSetup(20260810));
     let state: GameState = {
       ...initial,
-      players: initial.players.map(player => player.clubId === initial.userClubId
-        ? {
-            ...player,
-            age: 18,
-            contractSeasonsRemaining: 8,
-            retirementAge: 40,
-            retirementAnnounced: false,
-            retirementAnnouncementSeason: undefined,
-          }
-        : player),
+      players: initial.players.map((player) =>
+        player.clubId === initial.userClubId
+          ? {
+              ...player,
+              age: 18,
+              contractSeasonsRemaining: 8,
+              retirementAge: 40,
+              retirementAnnounced: false,
+              retirementAnnouncementSeason: undefined,
+            }
+          : player,
+      ),
     };
     for (const expectedDivision of [4, 3, 2] as const) {
       state = startNextSeason(completedSeasonForUser(state));
@@ -36,16 +38,19 @@ function completedSeasonForUser(state: GameState): GameState {
   return {
     ...state,
     phase: 'season-end',
-    fixtures: state.fixtures.map(fixture => fixture.season === state.season
-      ? {
-          ...fixture,
-          status: 'played' as const,
-          score: fixture.homeClubId === state.userClubId
-            ? { homeGoals: 3, awayGoals: 0 }
-            : fixture.awayClubId === state.userClubId
-              ? { homeGoals: 0, awayGoals: 3 }
-              : { homeGoals: 0, awayGoals: 0 },
-        }
-      : fixture),
+    fixtures: state.fixtures.map((fixture) =>
+      fixture.season === state.season
+        ? {
+            ...fixture,
+            status: 'played' as const,
+            score:
+              fixture.homeClubId === state.userClubId
+                ? { homeGoals: 3, awayGoals: 0 }
+                : fixture.awayClubId === state.userClubId
+                  ? { homeGoals: 0, awayGoals: 3 }
+                  : { homeGoals: 0, awayGoals: 0 },
+          }
+        : fixture,
+    ),
   };
 }

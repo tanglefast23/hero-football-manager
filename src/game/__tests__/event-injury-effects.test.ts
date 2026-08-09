@@ -13,14 +13,21 @@ import type { GameState } from '../types';
  * sign.
  */
 
-function careerWithInjury(weeks: number): { state: GameState; playerId: string } {
+function careerWithInjury(weeks: number): {
+  state: GameState;
+  playerId: string;
+} {
   const base = createCareer(createLaunchCareerSetup());
-  const player = base.players.find(candidate => candidate.clubId === base.userClubId)!;
+  const player = base.players.find(
+    (candidate) => candidate.clubId === base.userClubId,
+  )!;
   const state: GameState = {
     ...base,
-    players: base.players.map(candidate => (
-      candidate.id === player.id ? { ...candidate, injuryWeeks: weeks } : candidate
-    )),
+    players: base.players.map((candidate) =>
+      candidate.id === player.id
+        ? { ...candidate, injuryWeeks: weeks }
+        : candidate,
+    ),
   };
   return { state: offerCareerEvent(state, 'test-event'), playerId: player.id };
 }
@@ -33,7 +40,8 @@ function injuryAfter(
   const resolved = applyCareerEventOutcome(state, 'a-choice', 'It happens.', {
     playerEffect: { playerId, ...effect },
   });
-  return resolved.players.find(candidate => candidate.id === playerId)!.injuryWeeks;
+  return resolved.players.find((candidate) => candidate.id === playerId)!
+    .injuryWeeks;
 }
 
 describe('event injury effects', () => {
@@ -64,7 +72,11 @@ describe('event injury effects', () => {
   });
 
   it('refuses a setback spelled negative or a heal spelled positive', () => {
-    expect(() => injuryAfter(0, { injuryWeeks: -2 })).toThrow('cannot be negative');
-    expect(() => injuryAfter(0, { injuryWeeksDelta: 2 })).toThrow('must be negative or zero');
+    expect(() => injuryAfter(0, { injuryWeeks: -2 })).toThrow(
+      'cannot be negative',
+    );
+    expect(() => injuryAfter(0, { injuryWeeksDelta: 2 })).toThrow(
+      'must be negative or zero',
+    );
   });
 });

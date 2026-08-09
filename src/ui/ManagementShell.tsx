@@ -1,13 +1,23 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ActionButton, formatCompactNumber, formatCurrency } from './components/Scorecard';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+import {
+  ActionButton,
+  formatCompactNumber,
+  formatCurrency,
+} from './components/Scorecard';
 import type { ManagementTab, ResourceSummaryViewModel } from './models';
 import { TutorialTapCue } from './TutorialTapCue';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
 import { SettingsButton } from './SettingsOverlay';
 import { FansGlyph } from './components/FansGlyph';
-import { HoverTipAnchor, SfxPressable as Pressable } from './components/SfxPressable';
+import {
+  HoverTipAnchor,
+  SfxPressable as Pressable,
+} from './components/SfxPressable';
 import { playUiClickSfx } from '../render/management-sfx';
 import { managementHeaderLine } from './management-header';
 import { managementKeyBindings, tabNumberKey } from './management-key-bindings';
@@ -18,24 +28,58 @@ import { useGuideAnchor } from './use-guide-anchor';
 import { useCountUpNumber } from './use-count-up-number';
 import { IdleAttract } from './components/IdleAttract';
 import type { DeveloperSaveSlot, DeveloperSaveSummary } from '../persistence';
-import { useCopy } from '../i18n';
+import { useCopy, type CopyFn } from '../i18n';
 
 const TABS: ReadonlyArray<{
-  id: ManagementTab; labelKey: string; glyph: string; available: boolean; tipKey: string;
+  id: ManagementTab;
+  labelKey: string;
+  glyph: string;
+  available: boolean;
+  tipKey: string;
 }> = [
-  { id: 'home', labelKey: 'managementShell.tab.home', glyph: '⌂', available: true, tipKey: 'managementShell.tabTip.home' },
-  { id: 'squad', labelKey: 'managementShell.tab.squad', glyph: '11', available: true, tipKey: 'managementShell.tabTip.squad' },
-  { id: 'club', labelKey: 'managementShell.tab.club', glyph: '▦', available: true, tipKey: 'managementShell.tabTip.club' },
-  { id: 'market', labelKey: 'managementShell.tab.market', glyph: '⇄', available: true, tipKey: 'managementShell.tabTip.market' },
-  { id: 'league', labelKey: 'managementShell.tab.league', glyph: '≡', available: true, tipKey: 'managementShell.tabTip.league' },
+  {
+    id: 'home',
+    labelKey: 'managementShell.tab.home',
+    glyph: '⌂',
+    available: true,
+    tipKey: 'managementShell.tabTip.home',
+  },
+  {
+    id: 'squad',
+    labelKey: 'managementShell.tab.squad',
+    glyph: '11',
+    available: true,
+    tipKey: 'managementShell.tabTip.squad',
+  },
+  {
+    id: 'club',
+    labelKey: 'managementShell.tab.club',
+    glyph: '▦',
+    available: true,
+    tipKey: 'managementShell.tabTip.club',
+  },
+  {
+    id: 'market',
+    labelKey: 'managementShell.tab.market',
+    glyph: '⇄',
+    available: true,
+    tipKey: 'managementShell.tabTip.market',
+  },
+  {
+    id: 'league',
+    labelKey: 'managementShell.tab.league',
+    glyph: '≡',
+    available: true,
+    tipKey: 'managementShell.tabTip.league',
+  },
 ];
 
 const ADVANCE_WEEK_TIP_KEY = 'managementShell.advanceWeekTip';
 
-// Persistent chrome must not consume the screen when iOS Dynamic Type is at
-// its accessibility maximum. The full names remain available to assistive
-// technology through accessibilityLabel.
-const CHROME_MAX_FONT_SIZE_MULTIPLIER = 1.3;
+// This one-line status header labels fixed desk data. Its complete sentence is
+// also exposed through accessibilityLabel. Player actions below are not capped:
+// they grow with the selected Dynamic Type category.
+const FIXED_HEADER_MAX_FONT_SIZE_MULTIPLIER = 1.3;
 
 // The shell paints its own safe-area padding instead of letting SafeAreaView
 // letterbox the screen: the status-bar/Dynamic Island strip then carries the
@@ -50,11 +94,12 @@ const DEVELOPER_AUTO_SLOT_LABELS = ['1', '2', '3', '4', '5'] as const;
 const DEVELOPER_MANUAL_SLOT_LABELS = ['A', 'B', 'C', 'D', 'E'] as const;
 
 /** Compact top-bar numerals: commas under 10k, then k / M so three fit on one row. */
-function abbrev(n: number): string {
+function abbrev(t: CopyFn, n: number): string {
   const abs = Math.abs(n);
-  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (abs >= 1_000_000)
+    return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
   if (abs >= 10_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
-  return formatCompactNumber(n);
+  return formatCompactNumber(t, n);
 }
 
 function ResourceChip({
@@ -100,34 +145,54 @@ function ResourceChip({
   const shownValue = useCountUpNumber(value, reduceMotion);
   const spoken = t('managementShell.a11y.resourceChip', {
     name,
-    value: money ? formatCurrency(value) : formatCompactNumber(value),
+    value: money ? formatCurrency(t, value) : formatCompactNumber(t, value),
     explainer,
   });
   return (
     <InfoTip
       text={explainer}
       align="right"
-      accessibilityLabel={onPress === undefined
-        ? spoken
-        : `${spoken} ${t('managementShell.a11y.opensTheClubLedger')}`}
+      accessibilityLabel={
+        onPress === undefined
+          ? spoken
+          : `${spoken} ${t('managementShell.a11y.opensTheClubLedger')}`
+      }
       onPress={onPress}
     >
-    <View
-      className={hero
-        ? 'h-11 flex-row items-center gap-1 border-2 border-gold-dark bg-white px-2'
-        : 'h-11 flex-row items-center gap-1 border-2 border-ink bg-white px-2'}
-    >
-      {/* font-pixel is the authored bold face; font-mono + font-bold would
+      <View
+        className={
+          hero
+            ? 'h-11 flex-row items-center gap-1 border-2 border-gold-dark bg-white px-2'
+            : 'h-11 flex-row items-center gap-1 border-2 border-ink bg-white px-2'
+        }
+      >
+        {/* font-pixel is the authored bold face; font-mono + font-bold would
           synthetically embolden the bitmap font and smear these glyphs. */}
-      {icon ?? (
-        <Text maxFontSizeMultiplier={1.2} className={hero ? 'font-pixel text-xs text-gold-dark' : 'font-pixel text-xs text-blue-dark'}>
-          {glyph}
+        {icon ?? (
+          <Text
+            maxFontSizeMultiplier={1.2}
+            className={
+              hero
+                ? 'font-pixel text-xs text-gold-dark'
+                : 'font-pixel text-xs text-blue-dark'
+            }
+          >
+            {glyph}
+          </Text>
+        )}
+        <Text
+          maxFontSizeMultiplier={1.2}
+          adjustsFontSizeToFit
+          numberOfLines={1}
+          className={
+            hero
+              ? 'font-mono text-sm text-gold-dark'
+              : 'font-mono text-sm text-ink'
+          }
+        >
+          {abbrev(t, shownValue)}
         </Text>
-      )}
-      <Text maxFontSizeMultiplier={1.2} adjustsFontSizeToFit numberOfLines={1} className={hero ? 'font-mono text-sm text-gold-dark' : 'font-mono text-sm text-ink'}>
-        {abbrev(shownValue)}
-      </Text>
-    </View>
+      </View>
     </InfoTip>
   );
 }
@@ -144,26 +209,33 @@ function DeveloperSaveControls({
   onToggleManualSave: () => void;
 }) {
   const t = useCopy();
-  const bySlot = new Map(summaries.map(summary => [summary.slot, summary]));
+  const bySlot = new Map(summaries.map((summary) => [summary.slot, summary]));
   const slotButton = (slot: DeveloperSaveSlot, manual: boolean) => {
     const summary = bySlot.get(slot);
     const choosingTarget = manual && manualSaveSelecting;
     // While S is active, A-E are save destinations and every load control is
     // frozen. That prevents a filled weekly slot from looking live while its
     // press is deliberately ignored by the manual-save flow.
-    const enabled = choosingTarget || (!manualSaveSelecting && summary !== undefined);
-    const kind = t(manual ? 'managementShell.dev.manual' : 'managementShell.dev.weekly');
-    const kindLower = t(manual ? 'managementShell.dev.manualLower' : 'managementShell.dev.weeklyLower');
+    const enabled =
+      choosingTarget || (!manualSaveSelecting && summary !== undefined);
+    const kind = t(
+      manual ? 'managementShell.dev.manual' : 'managementShell.dev.weekly',
+    );
+    const kindLower = t(
+      manual
+        ? 'managementShell.dev.manualLower'
+        : 'managementShell.dev.weeklyLower',
+    );
     const purpose = choosingTarget
       ? t('managementShell.dev.a11y.saveToManualSlot', { slot })
       : summary === undefined
         ? t('managementShell.dev.a11y.emptySlot', { kind, slot })
         : t('managementShell.dev.a11y.loadSlot', {
-          kind: kindLower,
-          slot,
-          season: summary.season,
-          week: summary.week,
-        });
+            kind: kindLower,
+            slot,
+            season: summary.season,
+            week: summary.week,
+          });
     return (
       <Pressable
         key={slot}
@@ -173,36 +245,54 @@ function DeveloperSaveControls({
         disabled={!enabled}
         hitSlop={3}
         onPress={() => onPressSlot(slot)}
-        className={choosingTarget
-          ? 'h-8 w-6 items-center justify-center border-2 border-gold-dark bg-gold-light'
-          : summary !== undefined
-            ? 'h-8 w-6 items-center justify-center border-2 border-blue-dark bg-blue-light'
-            : 'h-8 w-6 items-center justify-center border border-ink/25 bg-white'}
-        style={({ pressed }) => ({ opacity: !enabled ? 0.35 : pressed ? 0.65 : 1 })}
+        className={
+          choosingTarget
+            ? 'h-8 w-6 items-center justify-center border-2 border-gold-dark bg-gold-light'
+            : summary !== undefined
+              ? 'h-8 w-6 items-center justify-center border-2 border-blue-dark bg-blue-light'
+              : 'h-8 w-6 items-center justify-center border border-ink/25 bg-white'
+        }
+        style={({ pressed }) => ({
+          opacity: !enabled ? 0.35 : pressed ? 0.65 : 1,
+        })}
       >
-        <Text maxFontSizeMultiplier={1} className="font-mono text-xs font-bold text-ink">{slot}</Text>
+        <Text
+          maxFontSizeMultiplier={1}
+          className="font-mono text-xs font-bold text-ink"
+        >
+          {slot}
+        </Text>
       </Pressable>
     );
   };
 
   return (
     <View className="flex-row items-center gap-0.5">
-      {DEVELOPER_AUTO_SLOT_LABELS.map(slot => slotButton(slot, false))}
+      {DEVELOPER_AUTO_SLOT_LABELS.map((slot) => slotButton(slot, false))}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={manualSaveSelecting
-          ? t('managementShell.dev.a11y.cancelManualSave')
-          : t('managementShell.dev.a11y.chooseAManualSaveSlot')}
+        accessibilityLabel={
+          manualSaveSelecting
+            ? t('managementShell.dev.a11y.cancelManualSave')
+            : t('managementShell.dev.a11y.chooseAManualSaveSlot')
+        }
         onPress={onToggleManualSave}
         hitSlop={3}
-        className={manualSaveSelecting
-          ? 'h-8 w-6 items-center justify-center border-2 border-gold-dark bg-gold'
-          : 'h-8 w-6 items-center justify-center border-2 border-ink bg-paper'}
+        className={
+          manualSaveSelecting
+            ? 'h-8 w-6 items-center justify-center border-2 border-gold-dark bg-gold'
+            : 'h-8 w-6 items-center justify-center border-2 border-ink bg-paper'
+        }
         style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
       >
-        <Text maxFontSizeMultiplier={1} className="font-mono text-xs font-bold text-ink">S</Text>
+        <Text
+          maxFontSizeMultiplier={1}
+          className="font-mono text-xs font-bold text-ink"
+        >
+          S
+        </Text>
       </Pressable>
-      {DEVELOPER_MANUAL_SLOT_LABELS.map(slot => slotButton(slot, true))}
+      {DEVELOPER_MANUAL_SLOT_LABELS.map((slot) => slotButton(slot, true))}
     </View>
   );
 }
@@ -292,7 +382,8 @@ export function ManagementShell({
   const headerLine = managementHeaderLine(seasonLabel, weekLabel);
   const dismissFrameRef = useRef<number | null>(null);
   const dismissGuidanceAfterPress = useCallback(() => {
-    if (onDismissGuidance === undefined || dismissFrameRef.current !== null) return;
+    if (onDismissGuidance === undefined || dismissFrameRef.current !== null)
+      return;
     // RN web resolves Pressable.onPress after pointer-up. Waiting one frame lets
     // that action land before a disappearing cue reflows the control beneath it.
     dismissFrameRef.current = requestAnimationFrame(() => {
@@ -300,50 +391,90 @@ export function ManagementShell({
       onDismissGuidance();
     });
   }, [onDismissGuidance]);
-  useEffect(() => () => {
-    if (dismissFrameRef.current !== null) cancelAnimationFrame(dismissFrameRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (dismissFrameRef.current !== null)
+        cancelAnimationFrame(dismissFrameRef.current);
+    },
+    [],
+  );
 
   // Desktop players drive the chrome from the keyboard; a no-op on phones.
   useKeyBindings(
-    managementKeyBindings({ tabs: TABS, onTabChange, onAdvanceWeek, advanceWeekDisabled }),
+    managementKeyBindings({
+      tabs: TABS,
+      onTabChange,
+      onAdvanceWeek,
+      advanceWeekDisabled,
+    }),
     keyboardShortcutsEnabled,
   );
 
-  const moneyGuideAnchor = useGuideAnchor(guideFocus === 'money', onMoneyGuideAnchorChange);
+  const moneyGuideAnchor = useGuideAnchor(
+    guideFocus === 'money',
+    onMoneyGuideAnchorChange,
+  );
   const navigationGuideAnchor = useGuideAnchor(
     guideFocus === 'navigation',
     onNavigationGuideAnchorChange,
   );
   const insets = useSafeAreaInsets();
-  const developerControlsVisible = developerSaveSummaries !== undefined
-    && onPressDeveloperSaveSlot !== undefined
-    && onToggleDeveloperManualSave !== undefined;
+  const developerControlsVisible =
+    developerSaveSummaries !== undefined &&
+    onPressDeveloperSaveSlot !== undefined &&
+    onToggleDeveloperManualSave !== undefined;
 
   // Forwarded into each chip's InfoTip: the chips cover essentially the whole
   // cluster, so the outer ledger Pressable below only ever receives taps in the
   // gaps. The click cue the outer SfxPressable would have played rides along.
-  const openLedgerFromChip = onOpenLedger === undefined
-    ? undefined
-    : () => {
-        playUiClickSfx();
-        onOpenLedger();
-      };
+  const openLedgerFromChip =
+    onOpenLedger === undefined
+      ? undefined
+      : () => {
+          playUiClickSfx();
+          onOpenLedger();
+        };
   const resourceCluster = (
     <View className="flex-shrink flex-row items-center gap-1.5">
       <View
         ref={moneyGuideAnchor.anchorRef}
         collapsable={false}
         onLayout={moneyGuideAnchor.scheduleMeasurement}
-        className={guideFocus === 'money' ? 'border-2 border-blue-dark bg-blue-light p-1' : undefined}
+        className={
+          guideFocus === 'money'
+            ? 'border-2 border-blue-dark bg-blue-light p-1'
+            : undefined
+        }
       >
-        <ResourceChip glyph="$" name={t('managementShell.money')} explainer={t('managementShell.moneyExplainer')} money value={resources.money} reduceMotion={reduceMotion} onPress={openLedgerFromChip} />
+        <ResourceChip
+          glyph="$"
+          name={t('managementShell.money')}
+          explainer={t('managementShell.moneyExplainer')}
+          money
+          value={resources.money}
+          reduceMotion={reduceMotion}
+          onPress={openLedgerFromChip}
+        />
       </View>
-      <ResourceChip glyph="TP" name={t('managementShell.trainingPoints')} explainer={t('managementShell.trainingPointsExplainer')} value={resources.trainingPoints} reduceMotion={reduceMotion} onPress={openLedgerFromChip} />
+      <ResourceChip
+        glyph="TP"
+        name={t('managementShell.trainingPoints')}
+        explainer={t('managementShell.trainingPointsExplainer')}
+        value={resources.trainingPoints}
+        reduceMotion={reduceMotion}
+        onPress={openLedgerFromChip}
+      />
       {/* Last of the three, and the only one drawn rather than lettered: fans
           are not spent, they are what the gate and the merchandise are priced
           off, so the chip names the crowd in the crowd's own art. */}
-      <ResourceChip icon={<FansGlyph />} name={t('managementShell.fans')} explainer={t('managementShell.fansExplainer')} value={resources.fans} reduceMotion={reduceMotion} onPress={openLedgerFromChip} />
+      <ResourceChip
+        icon={<FansGlyph />}
+        name={t('managementShell.fans')}
+        explainer={t('managementShell.fansExplainer')}
+        value={resources.fans}
+        reduceMotion={reduceMotion}
+        onPress={openLedgerFromChip}
+      />
     </View>
   );
 
@@ -377,53 +508,77 @@ export function ManagementShell({
               onToggleManualSave={onToggleDeveloperManualSave}
             />
           ) : null}
-          {!developerControlsVisible ? <View className="flex-row items-center gap-2">
-            {onOpenLedger ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('managementShell.a11y.openTheClubLedger')}
-                onPress={onOpenLedger}
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
-              >
-                {resourceCluster}
-              </Pressable>
-            ) : (
-              resourceCluster
-            )}
-            {onOpenSettings ? (
-              <SettingsButton onPress={onOpenSettings} />
-            ) : null}
-          </View> : null}
+          {!developerControlsVisible ? (
+            <View className="flex-row items-center gap-2">
+              {onOpenLedger ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t(
+                    'managementShell.a11y.openTheClubLedger',
+                  )}
+                  onPress={onOpenLedger}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.7 : undefined,
+                  })}
+                >
+                  {resourceCluster}
+                </Pressable>
+              ) : (
+                resourceCluster
+              )}
+              {onOpenSettings ? (
+                <SettingsButton onPress={onOpenSettings} />
+              ) : null}
+            </View>
+          ) : null}
         </View>
-        <View className={developerControlsVisible
-          ? 'mt-2 flex-row items-center gap-2 border-t border-ink/15 pt-2'
-          : 'mt-2 border-t border-ink/15 pt-2'}>
+        <View
+          className={
+            developerControlsVisible
+              ? 'mt-2 flex-row items-center gap-2 border-t border-ink/15 pt-2'
+              : 'mt-2 border-t border-ink/15 pt-2'
+          }
+        >
           <Text
-            className={developerControlsVisible
-              ? `min-w-0 flex-1 font-pixel text-sm uppercase ${developerManualSaveSelecting ? 'text-gold-dark' : 'text-blue-dark'}`
-              : 'font-pixel text-sm uppercase text-blue-dark'}
+            className={
+              developerControlsVisible
+                ? `min-w-0 flex-1 font-pixel text-sm uppercase ${developerManualSaveSelecting ? 'text-gold-dark' : 'text-blue-dark'}`
+                : 'font-pixel text-sm uppercase text-blue-dark'
+            }
             numberOfLines={1}
             adjustsFontSizeToFit
-            accessibilityLabel={developerManualSaveSelecting
-              ? t('managementShell.dev.a11y.chooseManualSaveSlotAThroughE')
-              : headerLine.spoken}
-            maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
+            accessibilityLabel={
+              developerManualSaveSelecting
+                ? t('managementShell.dev.a11y.chooseManualSaveSlotAThroughE')
+                : headerLine.spoken
+            }
+            maxFontSizeMultiplier={FIXED_HEADER_MAX_FONT_SIZE_MULTIPLIER}
           >
-            {developerManualSaveSelecting ? t('managementShell.dev.chooseASlotToSave') : headerLine.visible}
+            {developerManualSaveSelecting
+              ? t('managementShell.dev.chooseASlotToSave')
+              : headerLine.visible}
           </Text>
           {developerControlsVisible ? (
             <View className="flex-row items-center gap-2">
               {onOpenLedger ? (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={t('managementShell.a11y.openTheClubLedger')}
+                  accessibilityLabel={t(
+                    'managementShell.a11y.openTheClubLedger',
+                  )}
                   onPress={onOpenLedger}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.7 : undefined,
+                  })}
                 >
                   {resourceCluster}
                 </Pressable>
-              ) : resourceCluster}
-              {onOpenSettings ? <SettingsButton onPress={onOpenSettings} /> : null}
+              ) : (
+                resourceCluster
+              )}
+              {onOpenSettings ? (
+                <SettingsButton onPress={onOpenSettings} />
+              ) : null}
             </View>
           ) : null}
         </View>
@@ -443,138 +598,185 @@ export function ManagementShell({
         {/* Bottom chrome shares the content column: the Advance Week button and
             the five tabs never extend past the tables above them on desktop. */}
         <View className="w-full max-w-5xl self-center">
-        {guideObjective ? (
-          onGuideObjectivePress ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('managementShell.a11y.bertsCurrentJob', { objective: guideObjective })}
-              onPress={onGuideObjectivePress}
-              className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
-              style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
-            >
-              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">{t('managementShell.bertsJob')}</Text>
-              <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">{guideObjective}</Text>
-              <Text className="font-mono text-lg font-bold text-ink">›</Text>
-            </Pressable>
-          ) : (
-            <View
-              accessible
-              accessibilityLabel={t('managementShell.a11y.bertsCurrentJob', { objective: guideObjective })}
-              className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
-            >
-              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">{t('managementShell.bertsJob')}</Text>
-              <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">{guideObjective}</Text>
-            </View>
-          )
-        ) : null}
-        <HoverTipAnchor
-          tip={advanceWeekDisabled ? undefined : t(ADVANCE_WEEK_TIP_KEY)}
-          className={guideTarget === 'advance-week' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
-        >
-          {guideTarget === 'advance-week' ? (
-            <TutorialTapCue
-              detail={t('managementShell.cueAdvanceWeek')}
-              style={styles.advanceCue}
-            />
+          {guideObjective ? (
+            onGuideObjectivePress ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('managementShell.a11y.bertsCurrentJob', {
+                  objective: guideObjective,
+                })}
+                onPress={onGuideObjectivePress}
+                className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
+                style={({ pressed }) => ({
+                  opacity: pressed ? 0.72 : undefined,
+                })}
+              >
+                <Text className="font-mono text-xs font-bold uppercase text-blue-dark">
+                  {t('managementShell.bertsJob')}
+                </Text>
+                <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">
+                  {guideObjective}
+                </Text>
+                <Text className="font-mono text-lg font-bold text-ink">›</Text>
+              </Pressable>
+            ) : (
+              <View
+                accessible
+                accessibilityLabel={t('managementShell.a11y.bertsCurrentJob', {
+                  objective: guideObjective,
+                })}
+                className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
+              >
+                <Text className="font-mono text-xs font-bold uppercase text-blue-dark">
+                  {t('managementShell.bertsJob')}
+                </Text>
+                <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">
+                  {guideObjective}
+                </Text>
+              </View>
+            )
           ) : null}
-          {/* Once the desk is clear and nothing has moved for a few seconds,
+          <HoverTipAnchor
+            tip={advanceWeekDisabled ? undefined : t(ADVANCE_WEEK_TIP_KEY)}
+            className={
+              guideTarget === 'advance-week'
+                ? 'relative border-2 border-blue-dark bg-blue-light p-1'
+                : 'relative'
+            }
+          >
+            {guideTarget === 'advance-week' ? (
+              <TutorialTapCue
+                detail={t('managementShell.cueAdvanceWeek')}
+                style={styles.advanceCue}
+              />
+            ) : null}
+            {/* Once the desk is clear and nothing has moved for a few seconds,
               the week itself is the only thing left to do — so it asks. It
               waits while Bert still has a job for the player, because two
               things competing for attention is worse than none. */}
-          <IdleAttract
-            active={!advanceWeekDisabled && !reduceMotion && guideTarget !== 'advance-week'}
-            restartKey={`${weekLabel}|${activeTab}|${guideObjective ?? ''}`}
+            <IdleAttract
+              active={
+                !advanceWeekDisabled &&
+                !reduceMotion &&
+                guideTarget !== 'advance-week'
+              }
+              restartKey={`${weekLabel}|${activeTab}|${guideObjective ?? ''}`}
+            >
+              <ActionButton
+                label={advanceWeek}
+                accessibilityLabel={
+                  guideTarget === 'advance-week'
+                    ? // Strip either arrow glyph: App still passes labels with '▸'.
+                      t('managementShell.a11y.bertSaysReadTheDesk', {
+                        action: advanceWeek.replace(/[▸›]/g, '').trim(),
+                      })
+                    : advanceWeek.replace(/[▸›]/g, '').trim()
+                }
+                onPress={onAdvanceWeek}
+                disabled={advanceWeekDisabled}
+                compact
+              />
+            </IdleAttract>
+          </HoverTipAnchor>
+          <View
+            ref={navigationGuideAnchor.anchorRef}
+            collapsable={false}
+            onLayout={navigationGuideAnchor.scheduleMeasurement}
+            className={
+              guideFocus === 'navigation'
+                ? 'mt-2 flex-row border-2 border-blue-dark bg-blue-light/40'
+                : 'mt-2 flex-row'
+            }
+            accessibilityRole="tablist"
           >
-            <ActionButton
-              label={advanceWeek}
-              accessibilityLabel={guideTarget === 'advance-week'
-                // Strip either arrow glyph: App still passes labels with '▸'.
-                ? t('managementShell.a11y.bertSaysReadTheDesk', {
-                  action: advanceWeek.replace(/[▸›]/g, '').trim(),
-                })
-                : advanceWeek.replace(/[▸›]/g, '').trim()}
-              onPress={onAdvanceWeek}
-              disabled={advanceWeekDisabled}
-              compact
-              maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
-            />
-          </IdleAttract>
-        </HoverTipAnchor>
-        <View
-          ref={navigationGuideAnchor.anchorRef}
-          collapsable={false}
-          onLayout={navigationGuideAnchor.scheduleMeasurement}
-          className={guideFocus === 'navigation'
-            ? 'mt-2 flex-row border-2 border-blue-dark bg-blue-light/40'
-            : 'mt-2 flex-row'}
-          accessibilityRole="tablist"
-        >
-          {TABS.map((tab, index) => {
-            const selected = tab.id === activeTab;
-            const guideTab = guideTarget === 'home-tab'
-              ? 'home'
-              : guideTarget === 'squad-tab'
-                ? 'squad'
-                : undefined;
-            const guided = guideTab === tab.id;
-            const tabLabel = t(tab.labelKey);
-            return (
-              <Pressable
-                key={tab.id}
-                accessibilityRole="tab"
-                accessibilityLabel={guided
-                  ? t('managementShell.a11y.guidedTab', {
-                    tab: tabLabel,
-                    instruction: tab.id === 'squad'
-                      ? t('managementShell.a11y.openSquad')
-                      : t('managementShell.a11y.returnHome'),
-                  })
-                  : tab.available
-                    ? t('managementShell.a11y.tab', { tab: tabLabel })
-                    : t('managementShell.a11y.tabUnavailable', { tab: tabLabel })}
-                accessibilityState={{ selected, disabled: !tab.available }}
-                disabled={!tab.available}
-                tip={tab.available
-                  ? t('managementShell.tabTipWithKey', {
-                    tip: t(tab.tipKey),
-                    key: tabNumberKey(index),
-                  })
-                  : t('managementShell.tabNotAvailableYet', { tab: tabLabel })}
-                onPress={() => onTabChange(tab.id)}
-                className={guided
-                  ? 'relative min-h-12 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light'
-                  : 'relative min-h-12 flex-1 items-center justify-center'}
-                style={({ pressed }) => ({ opacity: !tab.available ? 0.35 : pressed ? 0.7 : undefined })}
-              >
-                {guided ? (
-                  <TutorialTapCue
-                    detail={tab.id === 'squad'
-                      ? t('managementShell.cueOpenSquad')
-                      : t('managementShell.cueReturnHome')}
-                    labelOffsetX={tab.id === 'home' ? 42 : 0}
-                    style={styles.tabCue}
-                  />
-                ) : null}
-                <Text
-                  className={selected ? 'font-pixel text-lg text-ink' : 'font-mono text-lg text-ink/50'}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
+            {TABS.map((tab, index) => {
+              const selected = tab.id === activeTab;
+              const guideTab =
+                guideTarget === 'home-tab'
+                  ? 'home'
+                  : guideTarget === 'squad-tab'
+                    ? 'squad'
+                    : undefined;
+              const guided = guideTab === tab.id;
+              const tabLabel = t(tab.labelKey);
+              return (
+                <Pressable
+                  key={tab.id}
+                  accessibilityRole="tab"
+                  accessibilityLabel={
+                    guided
+                      ? t('managementShell.a11y.guidedTab', {
+                          tab: tabLabel,
+                          instruction:
+                            tab.id === 'squad'
+                              ? t('managementShell.a11y.openSquad')
+                              : t('managementShell.a11y.returnHome'),
+                        })
+                      : tab.available
+                        ? t('managementShell.a11y.tab', { tab: tabLabel })
+                        : t('managementShell.a11y.tabUnavailable', {
+                            tab: tabLabel,
+                          })
+                  }
+                  accessibilityState={{ selected, disabled: !tab.available }}
+                  disabled={!tab.available}
+                  tip={
+                    tab.available
+                      ? t('managementShell.tabTipWithKey', {
+                          tip: t(tab.tipKey),
+                          key: tabNumberKey(index),
+                        })
+                      : t('managementShell.tabNotAvailableYet', {
+                          tab: tabLabel,
+                        })
+                  }
+                  onPress={() => onTabChange(tab.id)}
+                  className={
+                    guided
+                      ? 'relative min-h-12 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light'
+                      : 'relative min-h-12 flex-1 items-center justify-center'
+                  }
+                  style={({ pressed }) => ({
+                    opacity: !tab.available ? 0.35 : pressed ? 0.7 : undefined,
+                  })}
                 >
-                  {tab.glyph}
-                </Text>
-                <PixelText
-                  className={selected ? 'mt-1 text-sm uppercase text-ink' : 'mt-1 text-sm uppercase text-ink/50'}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
-                >
-                  {tabLabel}
-                </PixelText>
-              </Pressable>
-            );
-          })}
-        </View>
+                  {guided ? (
+                    <TutorialTapCue
+                      detail={
+                        tab.id === 'squad'
+                          ? t('managementShell.cueOpenSquad')
+                          : t('managementShell.cueReturnHome')
+                      }
+                      labelOffsetX={tab.id === 'home' ? 42 : 0}
+                      style={styles.tabCue}
+                    />
+                  ) : null}
+                  <Text
+                    className={
+                      selected
+                        ? 'font-pixel text-lg text-ink'
+                        : 'font-mono text-lg text-ink/50'
+                    }
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {tab.glyph}
+                  </Text>
+                  <PixelText
+                    className={
+                      selected
+                        ? 'mt-1 text-sm uppercase text-ink'
+                        : 'mt-1 text-sm uppercase text-ink/50'
+                    }
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {tabLabel}
+                  </PixelText>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
       </View>
     </SafeAreaView>

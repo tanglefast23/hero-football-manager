@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import {
+  ScrollView,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
@@ -82,15 +88,44 @@ const DIFFICULTY_LABEL_KEY: Record<DifficultyMode, string> = {
  * lines up and drops it cleanly where it does not, so English is unchanged and
  * nothing else renders a half-bolded word.
  */
-const STAT_COPY: Record<OutfieldCreationStat, {
-  code: string; nameKey: string; detailKey: string;
-}> = {
-  pac: { code: 'PAC', nameKey: 'characterCreation.statName.pac', detailKey: 'characterCreation.stat.pac' },
-  sho: { code: 'SHO', nameKey: 'characterCreation.statName.sho', detailKey: 'characterCreation.stat.sho' },
-  pas: { code: 'PAS', nameKey: 'characterCreation.statName.pas', detailKey: 'characterCreation.stat.pas' },
-  def: { code: 'DEF', nameKey: 'characterCreation.statName.def', detailKey: 'characterCreation.stat.def' },
-  tec: { code: 'TEC', nameKey: 'characterCreation.statName.tec', detailKey: 'characterCreation.stat.tec' },
-  sta: { code: 'STA', nameKey: 'characterCreation.statName.sta', detailKey: 'characterCreation.stat.sta' },
+const STAT_COPY: Record<
+  OutfieldCreationStat,
+  {
+    code: string;
+    nameKey: string;
+    detailKey: string;
+  }
+> = {
+  pac: {
+    code: 'PAC',
+    nameKey: 'characterCreation.statName.pac',
+    detailKey: 'characterCreation.stat.pac',
+  },
+  sho: {
+    code: 'SHO',
+    nameKey: 'characterCreation.statName.sho',
+    detailKey: 'characterCreation.stat.sho',
+  },
+  pas: {
+    code: 'PAS',
+    nameKey: 'characterCreation.statName.pas',
+    detailKey: 'characterCreation.stat.pas',
+  },
+  def: {
+    code: 'DEF',
+    nameKey: 'characterCreation.statName.def',
+    detailKey: 'characterCreation.stat.def',
+  },
+  tec: {
+    code: 'TEC',
+    nameKey: 'characterCreation.statName.tec',
+    detailKey: 'characterCreation.stat.tec',
+  },
+  sta: {
+    code: 'STA',
+    nameKey: 'characterCreation.statName.sta',
+    detailKey: 'characterCreation.stat.sta',
+  },
 };
 
 /**
@@ -117,16 +152,24 @@ export function CharacterCreationScreen({
   const compactRosterLabel = useWindowDimensions().width < 430;
   const [name, setName] = useState('');
   const [clubName, setClubName] = useState(defaultClubName);
-  const [rosterNames, setRosterNames] = useState<Readonly<Record<string, string>>>({});
+  const [rosterNames, setRosterNames] = useState<
+    Readonly<Record<string, string>>
+  >({});
   const [renamingRoster, setRenamingRoster] = useState(false);
   const renamedCount = Object.keys(rosterNames).length;
   const [ratings, setRatings] = useState<OutfieldCreationRatings>({
     ...DEFAULT_CREATION_RATINGS,
   });
-  const [appearance, setAppearance] = useState<CreatedPlayerAppearance>({ ...DEFAULT_CREATED_APPEARANCE });
-  const [difficulty, setDifficulty] = useState<DifficultyMode>(initialDifficulty);
+  const [appearance, setAppearance] = useState<CreatedPlayerAppearance>({
+    ...DEFAULT_CREATED_APPEARANCE,
+  });
+  const [difficulty, setDifficulty] =
+    useState<DifficultyMode>(initialDifficulty);
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const pointsRemaining = useMemo(() => creationPointsRemaining(ratings), [ratings]);
+  const pointsRemaining = useMemo(
+    () => creationPointsRemaining(ratings),
+    [ratings],
+  );
 
   /**
    * Desktop opens with the caret already in the registration card, so a player
@@ -147,20 +190,21 @@ export function CharacterCreationScreen({
   const canSubmit = hasValidName && pointsRemaining === 0;
   const submitBlockReason = hasValidName
     ? t('characterCreation.spendBeforeSigning', {
-      n: pointsRemaining,
-      count: pointsRemaining,
-    })
+        n: pointsRemaining,
+        count: pointsRemaining,
+      })
     : pointsRemaining === 0
       ? t('characterCreation.nameTheRookie')
       : t('characterCreation.nameAndSpendBeforeSigning', {
-        n: pointsRemaining,
-        count: pointsRemaining,
-      });
+          n: pointsRemaining,
+          count: pointsRemaining,
+        });
 
   function adjust(stat: OutfieldCreationStat, delta: -1 | 1): void {
-    setRatings(current => {
+    setRatings((current) => {
       const nextValue = current[stat] + delta;
-      if (nextValue < CREATION_STAT_MIN || nextValue > CREATION_STAT_MAX) return current;
+      if (nextValue < CREATION_STAT_MIN || nextValue > CREATION_STAT_MAX)
+        return current;
       if (delta > 0 && creationPointsRemaining(current) <= 0) return current;
       return { ...current, [stat]: nextValue };
     });
@@ -171,10 +215,13 @@ export function CharacterCreationScreen({
     delta: -1 | 1,
     count: number,
   ): void {
-    setAppearance(current => ({
-      ...current,
-      [key]: stepChoice(current[key], delta, count),
-    }) as CreatedPlayerAppearance);
+    setAppearance(
+      (current) =>
+        ({
+          ...current,
+          [key]: stepChoice(current[key], delta, count),
+        }) as CreatedPlayerAppearance,
+    );
   }
 
   const identityPanels = (
@@ -186,7 +233,11 @@ export function CharacterCreationScreen({
       >
         {/* Portrait and steppers sit side by side only when there is room for
             readable stepper labels; phones stack them. */}
-        <View className={wide ? 'flex-row items-center gap-4' : 'items-center gap-4'}>
+        <View
+          className={
+            wide ? 'flex-row items-center gap-4' : 'items-center gap-4'
+          }
+        >
           {/* `rest` rather than `joy` so the rookie blinks while you dress them:
               every joy face squints, and PixelPortrait can only close eyes it can
               find open (see portrait-blink). */}
@@ -201,21 +252,42 @@ export function CharacterCreationScreen({
           <View className={wide ? 'min-w-0 flex-1 gap-2' : 'w-full gap-2'}>
             <AppearanceChoice
               label={t('characterCreation.skinTone')}
-              value={formatChoiceValue(appearance.skinTone, APPEARANCE_OPTIONS.skinTone)}
-              onPrevious={() => cycleAppearance('skinTone', -1, APPEARANCE_OPTIONS.skinTone)}
-              onNext={() => cycleAppearance('skinTone', 1, APPEARANCE_OPTIONS.skinTone)}
+              value={formatChoiceValue(
+                appearance.skinTone,
+                APPEARANCE_OPTIONS.skinTone,
+              )}
+              onPrevious={() =>
+                cycleAppearance('skinTone', -1, APPEARANCE_OPTIONS.skinTone)
+              }
+              onNext={() =>
+                cycleAppearance('skinTone', 1, APPEARANCE_OPTIONS.skinTone)
+              }
             />
             <AppearanceChoice
               label={t('characterCreation.hair')}
-              value={formatChoiceValue(appearance.hairstyle, APPEARANCE_OPTIONS.hairstyle)}
-              onPrevious={() => cycleAppearance('hairstyle', -1, APPEARANCE_OPTIONS.hairstyle)}
-              onNext={() => cycleAppearance('hairstyle', 1, APPEARANCE_OPTIONS.hairstyle)}
+              value={formatChoiceValue(
+                appearance.hairstyle,
+                APPEARANCE_OPTIONS.hairstyle,
+              )}
+              onPrevious={() =>
+                cycleAppearance('hairstyle', -1, APPEARANCE_OPTIONS.hairstyle)
+              }
+              onNext={() =>
+                cycleAppearance('hairstyle', 1, APPEARANCE_OPTIONS.hairstyle)
+              }
             />
             <AppearanceChoice
               label={t('characterCreation.kitAccent')}
-              value={formatChoiceValue(appearance.kitAccent, APPEARANCE_OPTIONS.kitAccent)}
-              onPrevious={() => cycleAppearance('kitAccent', -1, APPEARANCE_OPTIONS.kitAccent)}
-              onNext={() => cycleAppearance('kitAccent', 1, APPEARANCE_OPTIONS.kitAccent)}
+              value={formatChoiceValue(
+                appearance.kitAccent,
+                APPEARANCE_OPTIONS.kitAccent,
+              )}
+              onPrevious={() =>
+                cycleAppearance('kitAccent', -1, APPEARANCE_OPTIONS.kitAccent)
+              }
+              onNext={() =>
+                cycleAppearance('kitAccent', 1, APPEARANCE_OPTIONS.kitAccent)
+              }
             />
           </View>
         </View>
@@ -230,11 +302,14 @@ export function CharacterCreationScreen({
         {/* A radio reports its state as `checked`, not `selected` — the latter
             becomes aria-selected on web, which role="radio" does not expose, so
             a screen reader announced neither option as chosen. */}
-        <View accessibilityRole="radiogroup" accessibilityLabel={t('characterCreation.a11y.careerPressure')} className="gap-3">
-          {/* Chairman first: it is the default career, so it is the option the
-              list opens on, and Cozy is the one you step down to. The order
-              carries that meaning, which is why the test asserts it. */}
-          {(['CHAIRMAN', 'COZY'] as const).map(mode => {
+        <View
+          accessibilityRole="radiogroup"
+          accessibilityLabel={t('characterCreation.a11y.careerPressure')}
+          className="gap-3"
+        >
+          {/* Cozy first: it is the documented default and the safe choice for a
+              new manager. Chairman remains an explicit harder alternative. */}
+          {(['COZY', 'CHAIRMAN'] as const).map((mode) => {
             const label = t(DIFFICULTY_LABEL_KEY[mode]);
             const selected = difficulty === mode;
             return (
@@ -246,20 +321,29 @@ export function CharacterCreationScreen({
                 onPress={() => {
                   setDifficulty(mode);
                 }}
-                className={selected
-                  ? 'min-h-14 border-2 border-ink bg-blue px-3 py-3'
-                  : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-3'}
+                className={
+                  selected
+                    ? 'min-h-14 border-2 border-ink bg-blue px-3 py-3'
+                    : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-3'
+                }
               >
                 <View className="flex-row items-center gap-2">
                   {/* Glyph-only node: ●/○ are in neither Silkscreen weight, so
                       the radio dot stands alone and falls back to the system
                       face on purpose instead of flipping the label mid-string. */}
-                  <Text className={selected ? 'text-base text-white' : 'text-base text-ink'}>
+                  <Text
+                    className={
+                      selected ? 'text-base text-white' : 'text-base text-ink'
+                    }
+                  >
                     {selected ? '●' : '○'}
                   </Text>
-                  <Text className={selected
-                    ? 'font-pixel text-base text-white'
-                    : 'font-pixel text-base text-ink'}
+                  <Text
+                    className={
+                      selected
+                        ? 'font-pixel text-base text-white'
+                        : 'font-pixel text-base text-ink'
+                    }
                   >
                     {mode} ({label})
                   </Text>
@@ -292,14 +376,18 @@ export function CharacterCreationScreen({
             the row wraps instead of running the wage off the edge. */}
         <View className="mt-3 flex-row flex-wrap items-center justify-between gap-2">
           <StatusChip label={t('characterCreation.positionFwd')} selected />
-          <PixelText className="shrink text-sm uppercase text-ink/50">{t('creation.rookieTerms')}</PixelText>
+          <PixelText className="shrink text-sm uppercase text-ink/50">
+            {t('creation.rookieTerms')}
+          </PixelText>
         </View>
 
         {/* The club and the squad it already has, under the one name that is
             actually required. Both ship filled in, so a manager who wants the
             club as written can walk past the whole block. */}
         <View className="mt-6 border-t-2 border-ink/15 pt-4">
-          <PixelText className="text-sm uppercase text-ink/50">{t('characterCreation.teamName')}</PixelText>
+          <PixelText className="text-sm uppercase text-ink/50">
+            {t('characterCreation.teamName')}
+          </PixelText>
           <TextInput
             id={CLUB_FIELD_ID}
             accessibilityLabel={t('characterCreation.a11y.teamName')}
@@ -315,9 +403,11 @@ export function CharacterCreationScreen({
           <View className="mt-3 border-t-2 border-ink/15 pt-3">
             <View className="flex-row items-center gap-2">
               <PixelText
-                className={compactRosterLabel
-                  ? 'min-w-0 flex-1 text-xs uppercase leading-4 text-ink/50'
-                  : 'min-w-0 flex-1 text-sm uppercase text-ink/50'}
+                className={
+                  compactRosterLabel
+                    ? 'min-w-0 flex-1 text-xs uppercase leading-4 text-ink/50'
+                    : 'min-w-0 flex-1 text-sm uppercase text-ink/50'
+                }
               >
                 {t('characterCreation.teammateNames')}
               </PixelText>
@@ -336,7 +426,10 @@ export function CharacterCreationScreen({
             {renamedCount > 0 ? (
               <View className="mt-2 flex-row justify-end">
                 <StatusChip
-                  label={t('characterCreation.renamedCount', { n: renamedCount, count: renamedCount })}
+                  label={t('characterCreation.renamedCount', {
+                    n: renamedCount,
+                    count: renamedCount,
+                  })}
                   tone="success"
                 />
               </View>
@@ -348,19 +441,28 @@ export function CharacterCreationScreen({
   );
 
   const pointsChip = (
-    <View className={pointsRemaining === 0
-      ? 'rotate-2 border-[3px] border-ink bg-pitch-light px-3 py-2'
-      : 'rotate-2 border-[3px] border-ink bg-blue px-3 py-2'}
+    <View
+      className={
+        pointsRemaining === 0
+          ? 'rotate-2 border-[3px] border-ink bg-pitch-light px-3 py-2'
+          : 'rotate-2 border-[3px] border-ink bg-blue px-3 py-2'
+      }
     >
-      <Text className={pointsRemaining === 0
-        ? 'text-center font-mono text-2xl text-ink'
-        : 'text-center font-mono text-2xl text-white'}
+      <Text
+        className={
+          pointsRemaining === 0
+            ? 'text-center font-mono text-2xl text-ink'
+            : 'text-center font-mono text-2xl text-white'
+        }
       >
         {pointsRemaining}
       </Text>
-      <Text className={pointsRemaining === 0
-        ? 'text-center font-pixel text-sm uppercase text-ink/60'
-        : 'text-center font-pixel text-sm uppercase text-white/80'}
+      <Text
+        className={
+          pointsRemaining === 0
+            ? 'text-center font-pixel text-sm uppercase text-ink/60'
+            : 'text-center font-pixel text-sm uppercase text-white/80'
+        }
       >
         left
       </Text>
@@ -370,29 +472,46 @@ export function CharacterCreationScreen({
   const statBalancing = (
     <>
       <View className={wide ? 'gap-2' : 'mt-6 gap-2'}>
-        {OUTFIELD_CREATION_STATS.map(stat => {
+        {OUTFIELD_CREATION_STATS.map((stat) => {
           const copy = STAT_COPY[stat];
           const value = ratings[stat];
           return (
-            <View key={stat} className="min-h-20 flex-row items-center border-2 border-ink bg-white p-3">
+            <View
+              key={stat}
+              className="min-h-20 flex-row items-center border-2 border-ink bg-white p-3"
+            >
               <View className="w-28 shrink-0">
-                <Text className="font-mono text-base text-blue-dark" numberOfLines={1} adjustsFontSizeToFit>
+                <Text
+                  className="font-mono text-base text-blue-dark"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
                   {(() => {
                     const [bold, rest] = statPrefix(t(copy.nameKey), copy.code);
                     return (
                       <>
-                        {bold === '' ? null : <Text className="font-bold">{bold}</Text>}
-                        <Text className={bold === '' ? 'font-bold' : 'font-normal'}>{rest}</Text>
+                        {bold === '' ? null : (
+                          <Text className="font-bold">{bold}</Text>
+                        )}
+                        <Text
+                          className={bold === '' ? 'font-bold' : 'font-normal'}
+                        >
+                          {rest}
+                        </Text>
                       </>
                     );
                   })()}
                 </Text>
-                <Text className="mt-1 text-sm leading-4 text-ink/45">{t(copy.detailKey)}</Text>
+                <Text className="mt-1 text-sm leading-4 text-ink/45">
+                  {t(copy.detailKey)}
+                </Text>
               </View>
               <View className="mx-2 h-2 flex-1 overflow-hidden border border-ink/20 bg-ink/15">
                 <View
                   className="h-full bg-blue-dark"
-                  style={{ width: `${((value - CREATION_STAT_MIN) / (CREATION_STAT_MAX - CREATION_STAT_MIN)) * 100}%` }}
+                  style={{
+                    width: `${((value - CREATION_STAT_MIN) / (CREATION_STAT_MAX - CREATION_STAT_MIN)) * 100}%`,
+                  }}
                 />
               </View>
               <Pressable
@@ -412,18 +531,27 @@ export function CharacterCreationScreen({
                 // function-form style (the twice-hit iOS zero-height trap). The
                 // 44pt minimum is explicit points: h-11 is 38.5pt on native.
                 // SfxPressable supplies the pressed dim when no opacity is set.
-                style={[{ minWidth: 44, minHeight: 44 }, value <= CREATION_STAT_MIN ? { opacity: 0.3 } : null]}
+                style={[
+                  { minWidth: 44, minHeight: 44 },
+                  value <= CREATION_STAT_MIN ? { opacity: 0.3 } : null,
+                ]}
               >
-                <Text className="font-mono text-2xl font-bold text-white">-</Text>
+                <Text className="font-mono text-2xl font-bold text-white">
+                  -
+                </Text>
               </Pressable>
-              <Text className="w-12 text-center font-mono text-2xl text-ink">{value}</Text>
+              <Text className="w-12 text-center font-mono text-2xl text-ink">
+                {value}
+              </Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('characterCreation.a11y.increaseStat', {
                   stat: t(copy.nameKey),
                   value,
                 })}
-                accessibilityState={{ disabled: value >= CREATION_STAT_MAX || pointsRemaining <= 0 }}
+                accessibilityState={{
+                  disabled: value >= CREATION_STAT_MAX || pointsRemaining <= 0,
+                }}
                 disabled={value >= CREATION_STAT_MAX || pointsRemaining <= 0}
                 pressSfx="stat-step"
                 onPress={() => {
@@ -432,10 +560,14 @@ export function CharacterCreationScreen({
                 className="h-11 w-11 items-center justify-center border-2 border-ink bg-blue"
                 style={[
                   { minWidth: 44, minHeight: 44 },
-                  value >= CREATION_STAT_MAX || pointsRemaining <= 0 ? { opacity: 0.3 } : null,
+                  value >= CREATION_STAT_MAX || pointsRemaining <= 0
+                    ? { opacity: 0.3 }
+                    : null,
                 ]}
               >
-                <Text className="font-mono text-2xl font-bold text-white">+</Text>
+                <Text className="font-mono text-2xl font-bold text-white">
+                  +
+                </Text>
               </Pressable>
             </View>
           );
@@ -457,9 +589,11 @@ export function CharacterCreationScreen({
       <ActionButton
         // '›' is in Silkscreen; '▸' is not and rendered in the fallback face.
         label={t('characterCreation.signTheRookie')}
-        accessibilityLabel={canSubmit
-          ? t('characterCreation.a11y.finishCreatingPlayer')
-          : t('characterCreation.a11y.finishCreatingPlayerBlocked')}
+        accessibilityLabel={
+          canSubmit
+            ? t('characterCreation.a11y.finishCreatingPlayer')
+            : t('characterCreation.a11y.finishCreatingPlayerBlocked')
+        }
         pressSfx={canSubmit ? 'positive' : 'click'}
         onPress={() => {
           if (!canSubmit) {
@@ -483,18 +617,31 @@ export function CharacterCreationScreen({
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView
+      className="flex-1 bg-pitch-ink"
+      edges={['top', 'left', 'right', 'bottom']}
+    >
       <ChalkboardBackdrop wide={wide} />
-      <View className={wide ? 'w-full max-w-[1180px] self-center px-10 pt-6' : 'px-5 py-4'}>
+      <View
+        className={
+          wide ? 'w-full max-w-[1180px] self-center px-10 pt-6' : 'px-5 py-4'
+        }
+      >
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
-            <Text className="font-pixel text-xs uppercase tracking-[3px] text-gold-light">{t('characterCreation.clubFile00')}</Text>
+            <Text className="font-pixel text-xs uppercase tracking-[3px] text-gold-light">
+              {t('characterCreation.clubFile00')}
+            </Text>
             <View className="mt-2 flex-row flex-wrap items-center gap-2">
-              <Text className={wide
-                ? 'font-pixel text-4xl uppercase text-white'
-                : 'font-pixel text-2xl uppercase text-white'}
+              <Text
+                className={
+                  wide
+                    ? 'font-pixel text-4xl uppercase text-white'
+                    : 'font-pixel text-2xl uppercase text-white'
+                }
               >
-                {t('characterCreation.yourFirst')}</Text>
+                {t('characterCreation.yourFirst')}
+              </Text>
               <StickerWord text="hire" wide={wide} />
             </View>
           </View>
@@ -533,7 +680,7 @@ export function CharacterCreationScreen({
           roster={roster}
           renames={rosterNames}
           reduceMotion={reduceMotion}
-          onSave={saved => {
+          onSave={(saved) => {
             setRosterNames(saved);
             setRenamingRoster(false);
           }}
@@ -569,7 +716,10 @@ function AppearanceChoice({
       </PixelText>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t('characterCreation.a11y.previousChoice', { label, value })}
+        accessibilityLabel={t('characterCreation.a11y.previousChoice', {
+          label,
+          value,
+        })}
         pressSfx="stat-step"
         onPress={() => {
           onPrevious();
@@ -592,7 +742,10 @@ function AppearanceChoice({
       </PixelText>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t('characterCreation.a11y.nextChoice', { label, value })}
+        accessibilityLabel={t('characterCreation.a11y.nextChoice', {
+          label,
+          value,
+        })}
         pressSfx="stat-step"
         onPress={() => {
           onNext();

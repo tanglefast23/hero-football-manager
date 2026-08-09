@@ -1,4 +1,9 @@
-import { createCareer, leagueStandings, roleOverall, type GameState } from '../../game';
+import {
+  createCareer,
+  leagueStandings,
+  roleOverall,
+  type GameState,
+} from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import {
   completeSeasonPodium,
@@ -19,12 +24,15 @@ import { useM1Store } from '../store';
 function seasonEndedWithTable(order: readonly string[]): GameState {
   const state = createCareer(createLaunchCareerSetup(777));
   const rank = new Map(order.map((clubId, index) => [clubId, index]));
-  const fixtures = state.fixtures.map(fixture => {
-    const homeIsBetter = rank.get(fixture.homeClubId)! < rank.get(fixture.awayClubId)!;
+  const fixtures = state.fixtures.map((fixture) => {
+    const homeIsBetter =
+      rank.get(fixture.homeClubId)! < rank.get(fixture.awayClubId)!;
     return {
       ...fixture,
       status: 'played' as const,
-      score: homeIsBetter ? { homeGoals: 2, awayGoals: 0 } : { homeGoals: 0, awayGoals: 2 },
+      score: homeIsBetter
+        ? { homeGoals: 2, awayGoals: 0 }
+        : { homeGoals: 0, awayGoals: 2 },
     };
   });
   return { ...state, week: 30, phase: 'season-end' as const, fixtures };
@@ -34,8 +42,8 @@ function seasonEndedWithTable(order: readonly string[]): GameState {
 function seasonEndedInPosition(position: number): GameState {
   const state = createCareer(createLaunchCareerSetup(777));
   const others = state.clubs
-    .map(club => club.id)
-    .filter(clubId => clubId !== state.userClubId);
+    .map((club) => club.id)
+    .filter((clubId) => clubId !== state.userClubId);
   const order = [...others];
   order.splice(position - 1, 0, state.userClubId);
   return seasonEndedWithTable(order);
@@ -44,7 +52,9 @@ function seasonEndedInPosition(position: number): GameState {
 describe('the season podium', () => {
   it('places the user club exactly where the table says', () => {
     const state = seasonEndedInPosition(2);
-    const standing = leagueStandings(state).find(row => row.clubId === state.userClubId);
+    const standing = leagueStandings(state).find(
+      (row) => row.clubId === state.userClubId,
+    );
 
     expect(standing?.position).toBe(2);
   });
@@ -64,7 +74,11 @@ describe('the season podium', () => {
   });
 
   it('never fires mid-season, whatever the table currently says', () => {
-    const midSeason = { ...seasonEndedInPosition(2), phase: 'manage' as const, week: 20 };
+    const midSeason = {
+      ...seasonEndedInPosition(2),
+      phase: 'manage' as const,
+      week: 20,
+    };
 
     expect(hasPendingSeasonPodium(midSeason)).toBe(false);
   });
@@ -85,10 +99,12 @@ describe('the season podium', () => {
     expect(seasonPodiumFlag(1)).not.toBe(seasonPodiumFlag(2));
     // Carrying a LATER season's flag must not silence this season's ceremony:
     // a prefix match rather than an exact one would do exactly that.
-    expect(hasPendingSeasonPodium({
-      ...state,
-      eventFlags: [...state.eventFlags, seasonPodiumFlag(state.season + 1)],
-    })).toBe(true);
+    expect(
+      hasPendingSeasonPodium({
+        ...state,
+        eventFlags: [...state.eventFlags, seasonPodiumFlag(state.season + 1)],
+      }),
+    ).toBe(true);
   });
 });
 
@@ -100,13 +116,17 @@ describe('the podium view model', () => {
 
     expect(view.userPosition).toBe(2);
     expect(view.headline).toBe('Second Place!');
-    expect(view.places.map(place => place.position)).toEqual([1, 2, 3]);
-    expect(view.places.map(place => place.clubName)).toEqual(
-      standings.slice(0, 3).map(row => (
-        state.clubs.find(club => club.id === row.clubId)!.name
-      )),
+    expect(view.places.map((place) => place.position)).toEqual([1, 2, 3]);
+    expect(view.places.map((place) => place.clubName)).toEqual(
+      standings
+        .slice(0, 3)
+        .map((row) => state.clubs.find((club) => club.id === row.clubId)!.name),
     );
-    expect(view.places.map(place => place.isUserClub)).toEqual([false, true, false]);
+    expect(view.places.map((place) => place.isUserClub)).toEqual([
+      false,
+      true,
+      false,
+    ]);
   });
 
   it('names third place when that is where the season ended', () => {
@@ -114,7 +134,11 @@ describe('the podium view model', () => {
 
     expect(view.userPosition).toBe(3);
     expect(view.headline).toBe('Third Place!');
-    expect(view.places.map(place => place.isUserClub)).toEqual([false, false, true]);
+    expect(view.places.map((place) => place.isUserClub)).toEqual([
+      false,
+      false,
+      true,
+    ]);
   });
 
   it('stands each club s own best player on its step', () => {
@@ -124,11 +148,11 @@ describe('the podium view model', () => {
 
     for (const [index, place] of view.places.entries()) {
       const clubId = standings[index].clubId;
-      const squad = state.players.filter(player => player.clubId === clubId);
+      const squad = state.players.filter((player) => player.clubId === clubId);
       const bestOverall = Math.max(
-        ...squad.map(player => roleOverall(player.role, player.attrs)),
+        ...squad.map((player) => roleOverall(player.role, player.attrs)),
       );
-      const chosen = squad.find(player => player.id === place.playerId)!;
+      const chosen = squad.find((player) => player.id === place.playerId)!;
 
       expect(chosen.clubId).toBe(clubId);
       expect(roleOverall(chosen.role, chosen.attrs)).toBe(bestOverall);
@@ -140,8 +164,12 @@ describe('the podium view model', () => {
   it('never throws on a damaged state, because its own exit is the only way off it', () => {
     const state = seasonEndedInPosition(2);
 
-    expect(() => seasonPodiumViewModel({ ...state, players: [] })).not.toThrow();
-    expect(seasonPodiumViewModel({ ...state, players: [] }).places).toHaveLength(3);
+    expect(() =>
+      seasonPodiumViewModel({ ...state, players: [] }),
+    ).not.toThrow();
+    expect(
+      seasonPodiumViewModel({ ...state, players: [] }).places,
+    ).toHaveLength(3);
   });
 });
 

@@ -230,7 +230,13 @@ export function offerStoryEvent(base: GameState, eventId: string): GameState {
     !carriedOnly || kind === 'none'
       ? undefined
       : kind === 'player'
-        ? { playerId: preferredHarnessPlayerId(clean, event, candidates.playerIds) }
+        ? {
+            playerId: preferredHarnessPlayerId(
+              clean,
+              event,
+              candidates.playerIds,
+            ),
+          }
         : kind === 'coach'
           ? { coachRole: candidates.coachRoles[0] }
           : { facilityId: candidates.facilityIds[0] };
@@ -285,13 +291,17 @@ function preferredHarnessPlayerId(
   event: StoryEvent,
   playerIds: readonly string[],
 ): string | undefined {
-  const sale = event.choices.flatMap(choice => choice.outcomes)
-    .flatMap(outcome => outcome.effects)
-    .find(effect => effect.type === 'playerSale');
+  const sale = event.choices
+    .flatMap((choice) => choice.outcomes)
+    .flatMap((outcome) => outcome.effects)
+    .find((effect) => effect.type === 'playerSale');
   if (sale?.type !== 'playerSale') return playerIds[0];
-  return playerIds.find(playerId => (
-    careerEventPlayerSaleBlocker(state, playerId, sale.fee) === undefined
-  )) ?? playerIds[0];
+  return (
+    playerIds.find(
+      (playerId) =>
+        careerEventPlayerSaleBlocker(state, playerId, sale.fee) === undefined,
+    ) ?? playerIds[0]
+  );
 }
 
 export interface StoryEventResolution {

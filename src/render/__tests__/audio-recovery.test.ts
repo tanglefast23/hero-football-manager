@@ -76,7 +76,8 @@ describe('match audio session recovery', () => {
     const initialCount = mockPlayers.length;
     const deadKickoff = mockPlayers[0];
     deadKickoff.seekTo.mockImplementation(() =>
-      Promise.reject(new Error('Unable to find the native shared object')));
+      Promise.reject(new Error('Unable to find the native shared object')),
+    );
 
     playForEvent({ t: 0, kind: 'KICKOFF', half: 1 } as MatchEvent);
     await Promise.resolve();
@@ -111,7 +112,8 @@ describe('match audio session recovery', () => {
     initAudio();
     const kickoff = mockPlayers[countAfterTeardown];
     kickoff.seekTo.mockImplementation(() =>
-      Promise.reject(new Error('Session lookup failed')));
+      Promise.reject(new Error('Session lookup failed')),
+    );
 
     playForEvent({ t: 0, kind: 'KICKOFF', half: 1 } as MatchEvent);
     await Promise.resolve();

@@ -1,7 +1,11 @@
 import type { Attrs, PowerId, Role } from '../../sim/types';
 import { createMatch } from '../../sim/match';
 import { UNITED } from '../../sim/teams';
-import { buildTeamDef, matchAttrsAtMorale, type MatchSquadPlayer } from '../lineup';
+import {
+  buildTeamDef,
+  matchAttrsAtMorale,
+  type MatchSquadPlayer,
+} from '../lineup';
 
 const BASE_ATTRS: Attrs = {
   pac: 50,
@@ -83,30 +87,44 @@ describe('buildTeamDef', () => {
 
     expect(team).toMatchObject({ id: 'rovers', name: 'Hero Rovers' });
     expect(team.players).toHaveLength(11);
-    expect(team.players.map(player => player.id)).toEqual(STARTING_IDS);
+    expect(team.players.map((player) => player.id)).toEqual(STARTING_IDS);
     expect(team.players[0].role).toBe('GK');
     expect(team.players[9].power).toBe('SUPER_SPEED');
     expect(team.players[10].power).toBe('FIRE_TORCH');
-    expect(team.bench?.map(player => player.id)).toEqual(['bench-regular']);
+    expect(team.bench?.map((player) => player.id)).toEqual(['bench-regular']);
   });
 
   it('carries a licensed hero tier into the deterministic match definition', () => {
-    const roster = validRoster().map(player => (
-      player.id === 'fwd-speed' ? { ...player, powerTier: 3 as const } : player
-    ));
+    const roster = validRoster().map((player) =>
+      player.id === 'fwd-speed' ? { ...player, powerTier: 3 as const } : player,
+    );
 
-    const team = buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, STARTING_IDS);
+    const team = buildTeamDef(
+      { id: 'rovers', name: 'Hero Rovers' },
+      roster,
+      STARTING_IDS,
+    );
 
-    expect(team.players[9]).toMatchObject({ power: 'SUPER_SPEED', powerTier: 3 });
-    expect(team.players[10]).toMatchObject({ power: 'FIRE_TORCH', powerTier: 1 });
+    expect(team.players[9]).toMatchObject({
+      power: 'SUPER_SPEED',
+      powerTier: 3,
+    });
+    expect(team.players[10]).toMatchObject({
+      power: 'FIRE_TORCH',
+      powerTier: 1,
+    });
   });
 
   it('starts a repeatedly trained hero at his real career condition', () => {
-    const roster = validRoster().map(player => (
-      player.id === 'fwd-speed' ? { ...player, condition: 68 } : player
-    ));
+    const roster = validRoster().map((player) =>
+      player.id === 'fwd-speed' ? { ...player, condition: 68 } : player,
+    );
 
-    const team = buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, STARTING_IDS);
+    const team = buildTeamDef(
+      { id: 'rovers', name: 'Hero Rovers' },
+      roster,
+      STARTING_IDS,
+    );
     const match = createMatch(42, team, UNITED);
 
     expect(team.players[9].startingCondition).toBe(68);
@@ -114,40 +132,45 @@ describe('buildTeamDef', () => {
   });
 
   it('carries career condition into starters and bench definitions, including zero', () => {
-    const roster = validRoster().map(player => (
-      player.id === 'fwd-speed' ? { ...player, condition: 0 }
-        : player.id === 'bench-regular' ? { ...player, condition: 37 }
-          : player
-    ));
+    const roster = validRoster().map((player) =>
+      player.id === 'fwd-speed'
+        ? { ...player, condition: 0 }
+        : player.id === 'bench-regular'
+          ? { ...player, condition: 37 }
+          : player,
+    );
 
-    const team = buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, STARTING_IDS);
+    const team = buildTeamDef(
+      { id: 'rovers', name: 'Hero Rovers' },
+      roster,
+      STARTING_IDS,
+    );
 
     expect(team.players[9].startingCondition).toBe(0);
-    expect(team.bench?.find(player => player.id === 'bench-regular')?.startingCondition).toBe(37);
+    expect(
+      team.bench?.find((player) => player.id === 'bench-regular')
+        ?.startingCondition,
+    ).toBe(37);
   });
 
   it('rejects invalid career condition before building a replay team', () => {
-    const roster = validRoster().map(player => (
-      player.id === 'fwd-speed' ? { ...player, condition: 101 } : player
-    ));
+    const roster = validRoster().map((player) =>
+      player.id === 'fwd-speed' ? { ...player, condition: 101 } : player,
+    );
 
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      roster,
-      STARTING_IDS,
-    )).toThrow(/condition must be an integer from 0 to 100/);
+    expect(() =>
+      buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, STARTING_IDS),
+    ).toThrow(/condition must be an integer from 0 to 100/);
   });
 
   it('rejects an invalid power tier before a squad reaches the match engine', () => {
-    const roster = validRoster().map(player => (
-      player.id === 'fwd-speed' ? { ...player, powerTier: 4 as 3 } : player
-    ));
+    const roster = validRoster().map((player) =>
+      player.id === 'fwd-speed' ? { ...player, powerTier: 4 as 3 } : player,
+    );
 
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      roster,
-      STARTING_IDS,
-    )).toThrow(/power tier must be an integer from 1 to 3/);
+    expect(() =>
+      buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, STARTING_IDS),
+    ).toThrow(/power tier must be an integer from 1 to 3/);
   });
 
   it('requires an owned hero to be licensed or benched', () => {
@@ -158,23 +181,27 @@ describe('buildTeamDef', () => {
       'bench-hero',
     ];
 
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      validRoster(),
-      lineupIds,
-    )).toThrow(/must be licensed or benched/);
+    expect(() =>
+      buildTeamDef(
+        { id: 'rovers', name: 'Hero Rovers' },
+        validRoster(),
+        lineupIds,
+      ),
+    ).toThrow(/must be licensed or benched/);
 
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      validRoster(),
-      STARTING_IDS,
-    )).not.toThrow();
+    expect(() =>
+      buildTeamDef(
+        { id: 'rovers', name: 'Hero Rovers' },
+        validRoster(),
+        STARTING_IDS,
+      ),
+    ).not.toThrow();
   });
 
   it('enforces the licensed-hero cap only across the selected lineup', () => {
-    const roster = validRoster().map(player => (
-      player.id === 'bench-hero' ? { ...player, licensed: true } : player
-    ));
+    const roster = validRoster().map((player) =>
+      player.id === 'bench-hero' ? { ...player, licensed: true } : player,
+    );
     const lineupIds = [
       ...STARTING_IDS.slice(0, 8),
       'fwd-speed',
@@ -182,57 +209,61 @@ describe('buildTeamDef', () => {
       'bench-hero',
     ];
 
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      roster,
-      lineupIds,
-    )).toThrow(/at most 2 licensed heroes/);
+    expect(() =>
+      buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, lineupIds),
+    ).toThrow(/at most 2 licensed heroes/);
 
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      roster,
-      STARTING_IDS,
-    )).not.toThrow();
+    expect(() =>
+      buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, STARTING_IDS),
+    ).not.toThrow();
   });
 
   it('rejects duplicate, unknown, or incorrectly sized lineup selections', () => {
     const roster = validRoster();
 
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      roster,
-      [...STARTING_IDS.slice(0, 10), 'fwd-speed'],
-    )).toThrow(/unique/);
+    expect(() =>
+      buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, [
+        ...STARTING_IDS.slice(0, 10),
+        'fwd-speed',
+      ]),
+    ).toThrow(/unique/);
 
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      roster,
-      [...STARTING_IDS.slice(0, 10), 'missing'],
-    )).toThrow(/Unknown/);
+    expect(() =>
+      buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, [
+        ...STARTING_IDS.slice(0, 10),
+        'missing',
+      ]),
+    ).toThrow(/Unknown/);
 
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      roster,
-      STARTING_IDS.slice(0, 10),
-    )).toThrow(/exactly 11/);
+    expect(() =>
+      buildTeamDef(
+        { id: 'rovers', name: 'Hero Rovers' },
+        roster,
+        STARTING_IDS.slice(0, 10),
+      ),
+    ).toThrow(/exactly 11/);
   });
 
   it('rejects duplicate roster IDs and licensed players without powers', () => {
     const roster = validRoster();
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      [...roster, { ...roster[0] }],
-      STARTING_IDS,
-    )).toThrow(/unique/);
+    expect(() =>
+      buildTeamDef(
+        { id: 'rovers', name: 'Hero Rovers' },
+        [...roster, { ...roster[0] }],
+        STARTING_IDS,
+      ),
+    ).toThrow(/unique/);
 
-    const invalidLicense = roster.map(player => (
-      player.id === 'bench-regular' ? { ...player, licensed: true } : player
-    ));
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      invalidLicense,
-      STARTING_IDS,
-    )).toThrow(/must own a power/);
+    const invalidLicense = roster.map((player) =>
+      player.id === 'bench-regular' ? { ...player, licensed: true } : player,
+    );
+    expect(() =>
+      buildTeamDef(
+        { id: 'rovers', name: 'Hero Rovers' },
+        invalidLicense,
+        STARTING_IDS,
+      ),
+    ).toThrow(/must own a power/);
   });
 
   it('requires exactly one goalkeeper in slot 0', () => {
@@ -240,40 +271,38 @@ describe('buildTeamDef', () => {
     const wrongSlot = [...STARTING_IDS];
     [wrongSlot[0], wrongSlot[1]] = [wrongSlot[1], wrongSlot[0]];
 
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      roster,
-      wrongSlot,
-    )).toThrow(/slot 0/);
+    expect(() =>
+      buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, wrongSlot),
+    ).toThrow(/slot 0/);
 
-    const secondKeeper = roster.map(player => (
-      player.id === 'def-1' ? { ...player, role: 'GK' as const } : player
-    ));
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      secondKeeper,
-      STARTING_IDS,
-    )).toThrow(/exactly one goalkeeper/);
+    const secondKeeper = roster.map((player) =>
+      player.id === 'def-1' ? { ...player, role: 'GK' as const } : player,
+    );
+    expect(() =>
+      buildTeamDef(
+        { id: 'rovers', name: 'Hero Rovers' },
+        secondKeeper,
+        STARTING_IDS,
+      ),
+    ).toThrow(/exactly one goalkeeper/);
   });
 
   it('validates attributes as integer values from 1 to 999', () => {
-    const roster = validRoster().map(player => (
+    const roster = validRoster().map((player) =>
       player.id === 'bench-regular'
         ? { ...player, attrs: { ...player.attrs, pac: 99.5 } }
-        : player
-    ));
+        : player,
+    );
 
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      roster,
-      STARTING_IDS,
-    )).toThrow(/integer from 1 to 999/);
+    expect(() =>
+      buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, STARTING_IDS),
+    ).toThrow(/integer from 1 to 999/);
   });
 
   it('pins the canonical morale modifier into the match attributes', () => {
-    const roster = validRoster().map(player => (
-      player.id === 'mid-1' ? { ...player, morale: 100 } : player
-    ));
+    const roster = validRoster().map((player) =>
+      player.id === 'mid-1' ? { ...player, morale: 100 } : player,
+    );
 
     const team = buildTeamDef(
       { id: 'rovers', name: 'Hero Rovers' },
@@ -281,50 +310,59 @@ describe('buildTeamDef', () => {
       STARTING_IDS,
     );
 
-    expect(team.players.find(player => player.id === 'mid-1')?.attrs).toEqual({
-      pac: 55,
-      sho: 55,
-      pas: 55,
-      def: 55,
-      tec: 55,
-      sta: 55,
-      ref: 55,
-    });
-    expect(team.players.find(player => player.id === 'mid-2')?.attrs).toEqual(BASE_ATTRS);
+    expect(team.players.find((player) => player.id === 'mid-1')?.attrs).toEqual(
+      {
+        pac: 55,
+        sho: 55,
+        pas: 55,
+        def: 55,
+        tec: 55,
+        sta: 55,
+        ref: 55,
+      },
+    );
+    expect(team.players.find((player) => player.id === 'mid-2')?.attrs).toEqual(
+      BASE_ATTRS,
+    );
   });
 
   it('maps the full morale band to -10% through +10% and clamps attributes', () => {
     expect(matchAttrsAtMorale(BASE_ATTRS, 0).pac).toBe(45);
     expect(matchAttrsAtMorale(BASE_ATTRS, 50).pac).toBe(50);
     expect(matchAttrsAtMorale(BASE_ATTRS, 100).pac).toBe(55);
-    expect(matchAttrsAtMorale({ ...BASE_ATTRS, pac: 99, sho: 1, sta: 999 }, 100)).toMatchObject({
+    expect(
+      matchAttrsAtMorale({ ...BASE_ATTRS, pac: 99, sho: 1, sta: 999 }, 100),
+    ).toMatchObject({
       pac: 109,
       sho: 1,
       sta: 999,
     });
   });
 
-  it.each([-1, 101, 1.5, Number.NaN])('rejects invalid morale %p', morale => {
-    const roster = validRoster().map(player => (
-      player.id === 'bench-regular' ? { ...player, morale } : player
-    ));
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      roster,
-      STARTING_IDS,
-    )).toThrow(/morale must be an integer from 0 to 100/);
+  it.each([-1, 101, 1.5, Number.NaN])('rejects invalid morale %p', (morale) => {
+    const roster = validRoster().map((player) =>
+      player.id === 'bench-regular' ? { ...player, morale } : player,
+    );
+    expect(() =>
+      buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, STARTING_IDS),
+    ).toThrow(/morale must be an integer from 0 to 100/);
   });
 
-  it.each([-1, 101, 1.5, Number.NaN])('rejects invalid condition %p', condition => {
-    const roster = validRoster().map(player => (
-      player.id === 'bench-regular' ? { ...player, condition } : player
-    ));
-    expect(() => buildTeamDef(
-      { id: 'rovers', name: 'Hero Rovers' },
-      roster,
-      STARTING_IDS,
-    )).toThrow(/condition must be an integer from 0 to 100/);
-  });
+  it.each([-1, 101, 1.5, Number.NaN])(
+    'rejects invalid condition %p',
+    (condition) => {
+      const roster = validRoster().map((player) =>
+        player.id === 'bench-regular' ? { ...player, condition } : player,
+      );
+      expect(() =>
+        buildTeamDef(
+          { id: 'rovers', name: 'Hero Rovers' },
+          roster,
+          STARTING_IDS,
+        ),
+      ).toThrow(/condition must be an integer from 0 to 100/);
+    },
+  );
 
   it('deep-copies match players and attributes without mutating the inputs', () => {
     const club = { id: 'rovers', name: 'Hero Rovers' };

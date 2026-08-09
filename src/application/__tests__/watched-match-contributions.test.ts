@@ -19,7 +19,7 @@ describe('watched match contributions', () => {
     });
     while (match.phase !== 'fulltime') tick(match);
 
-    const scorers = goalsFrom(match).map(goal => goal.playerId);
+    const scorers = goalsFrom(match).map((goal) => goal.playerId);
     const contributions = contributionsFrom(match);
     const goalsByPlayer = new Map<string, number>();
     for (const row of contributions) {
@@ -30,7 +30,9 @@ describe('watched match contributions', () => {
 
     expect(scorers.length).toBeGreaterThan(0);
     expect(goalsByPlayer).toEqual(expected);
-    expect(contributions.reduce((sum, row) => sum + row.saves, 0)).toBeGreaterThan(0);
+    expect(
+      contributions.reduce((sum, row) => sum + row.saves, 0),
+    ).toBeGreaterThan(0);
   });
 });
 
@@ -58,31 +60,46 @@ describe('watched match stat lines', () => {
     advanceToMatchday();
     useM1Store.getState().watchMatch();
     const watched = useM1Store.getState().watchedMatch;
-    if (watched === null) throw new Error('watched match context was not created');
-    const match = createMatch(watched.fixture.matchSeed, watched.home, watched.away, {
-      controlledTeam: watched.controlledTeam,
-      homePolicy: 'FIRE_WHEN_READY',
-      awayPolicy: 'FIRE_WHEN_READY',
-    });
+    if (watched === null)
+      throw new Error('watched match context was not created');
+    const match = createMatch(
+      watched.fixture.matchSeed,
+      watched.home,
+      watched.away,
+      {
+        controlledTeam: watched.controlledTeam,
+        homePolicy: 'FIRE_WHEN_READY',
+        awayPolicy: 'FIRE_WHEN_READY',
+      },
+    );
     while (match.phase !== 'fulltime') tick(match);
 
     useM1Store.getState().finishWatchedMatch(match);
 
     const career = useM1Store.getState().career;
-    if (career === null) throw new Error('the career went missing over the matchday');
+    if (career === null)
+      throw new Error('the career went missing over the matchday');
     const lines = career.seasonStatLines ?? [];
-    const ownLines = lines.filter(line => line.clubId === career.userClubId);
-    const ownPlayerIds = new Set(career.players
-      .filter(player => player.clubId === career.userClubId)
-      .map(player => player.id));
+    const ownLines = lines.filter((line) => line.clubId === career.userClubId);
+    const ownPlayerIds = new Set(
+      career.players
+        .filter((player) => player.clubId === career.userClubId)
+        .map((player) => player.id),
+    );
 
     expect(ownLines.length).toBeGreaterThan(0);
-    expect(ownLines.every(line => ownPlayerIds.has(line.playerId))).toBe(true);
-    expect(ownLines.every(line => line.competition === 'league')).toBe(true);
-    expect(ownLines.reduce((sum, line) => sum + line.saves, 0)).toBeGreaterThan(0);
-    expect(ownLines.reduce((sum, line) => sum + line.tacklesWon, 0)).toBeGreaterThan(0);
+    expect(ownLines.every((line) => ownPlayerIds.has(line.playerId))).toBe(
+      true,
+    );
+    expect(ownLines.every((line) => line.competition === 'league')).toBe(true);
+    expect(ownLines.reduce((sum, line) => sum + line.saves, 0)).toBeGreaterThan(
+      0,
+    );
+    expect(
+      ownLines.reduce((sum, line) => sum + line.tacklesWon, 0),
+    ).toBeGreaterThan(0);
     // The rivals were simulated on the same matchday; both paths must record.
-    expect(lines.some(line => line.clubId !== career.userClubId)).toBe(true);
+    expect(lines.some((line) => line.clubId !== career.userClubId)).toBe(true);
   });
 });
 
@@ -95,7 +112,9 @@ function advanceToMatchday(): void {
       continue;
     }
     if (state.screen !== 'management') {
-      throw new Error(`the career stopped on the ${state.screen} screen before a matchday`);
+      throw new Error(
+        `the career stopped on the ${state.screen} screen before a matchday`,
+      );
     }
     state.advanceCareer();
     // The opening weeks hold Advance Week until the desk is clear. This test is
@@ -106,7 +125,9 @@ function advanceToMatchday(): void {
     if (refused !== null) {
       useM1Store.getState().dismissInboxDutyReminder();
       if (!refused.includes('youth-intake')) {
-        throw new Error(`the desk refused with ${refused.join(', ')} before a matchday`);
+        throw new Error(
+          `the desk refused with ${refused.join(', ')} before a matchday`,
+        );
       }
       useM1Store.getState().declineYouth();
     }

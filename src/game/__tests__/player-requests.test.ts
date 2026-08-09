@@ -1,6 +1,9 @@
 import { loadLaunchContent } from '../../content';
 import { createLaunchCareerSetup } from '../../application/launch';
-import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
+import {
+  parseStoredGameState,
+  serializeGameState,
+} from '../../persistence/game-state-codec';
 import { createCareer } from '../career';
 import { careerDifficulty } from '../difficulty';
 import { runHeadlessFullCareer } from '../headless';
@@ -36,7 +39,9 @@ import { SEASON_WEEKS, type CareerPlayer, type GameState } from '../types';
  */
 const CATALOG = loadLaunchContent().playerRequests;
 
-function player(overrides: Partial<CareerPlayer> & { id: string }): CareerPlayer {
+function player(
+  overrides: Partial<CareerPlayer> & { id: string },
+): CareerPlayer {
   return {
     clubId: 'user-club',
     name: overrides.id,
@@ -55,7 +60,12 @@ function player(overrides: Partial<CareerPlayer> & { id: string }): CareerPlayer
   } as CareerPlayer;
 }
 
-const COZY = { minWeeks: 8, guaranteeWeeks: 12, starMinWeeks: 6, starGuaranteeWeeks: 10 };
+const COZY = {
+  minWeeks: 8,
+  guaranteeWeeks: 12,
+  starMinWeeks: 6,
+  starGuaranteeWeeks: 10,
+};
 
 describe('requestChancePercent', () => {
   it('is zero before the minimum gap', () => {
@@ -73,7 +83,9 @@ describe('requestChancePercent', () => {
   });
 
   it('rises rather than jumping, so a wait reads as patience running out', () => {
-    const ramp = [9, 10, 11].map(week => requestChancePercent(week, COZY, false, 25));
+    const ramp = [9, 10, 11].map((week) =>
+      requestChancePercent(week, COZY, false, 25),
+    );
 
     expect(ramp[0]).toBeGreaterThan(25);
     expect(ramp[1]).toBeGreaterThan(ramp[0]);
@@ -85,12 +97,15 @@ describe('requestChancePercent', () => {
     expect(requestChancePercent(6, COZY, true, 25)).toBe(25);
     expect(requestChancePercent(10, COZY, true, 25)).toBe(100);
     // The same week is likelier with a star than without one.
-    expect(requestChancePercent(9, COZY, true, 25))
-      .toBeGreaterThan(requestChancePercent(9, COZY, false, 25));
+    expect(requestChancePercent(9, COZY, true, 25)).toBeGreaterThan(
+      requestChancePercent(9, COZY, false, 25),
+    );
   });
 
   it('rejects a negative dry-week count', () => {
-    expect(() => requestChancePercent(-1, COZY, false, 25)).toThrow('nonnegative');
+    expect(() => requestChancePercent(-1, COZY, false, 25)).toThrow(
+      'nonnegative',
+    );
   });
 });
 
@@ -125,7 +140,7 @@ describe('starQualifiers', () => {
     expect(starQualifiers(withCup, 2, 2)).toEqual(['a']);
   });
 
-  it('sums a mid-season transfer\'s rows into the one player he is', () => {
+  it("sums a mid-season transfer's rows into the one player he is", () => {
     const transferred = [
       league(2, 'a', 9),
       // Two league rows, one per club, the way stat lines are keyed.
@@ -142,7 +157,9 @@ describe('weightForPlayer', () => {
   });
 
   it('doubles for a famous player', () => {
-    expect(weightForPlayer(player({ id: 'a', fame: STAR_FAME_THRESHOLD }), [])).toBe(2);
+    expect(
+      weightForPlayer(player({ id: 'a', fame: STAR_FAME_THRESHOLD }), []),
+    ).toBe(2);
   });
 
   it('doubles for a division goal leader', () => {
@@ -150,7 +167,9 @@ describe('weightForPlayer', () => {
   });
 
   it('compounds to 4 for a famous goal leader', () => {
-    expect(weightForPlayer(player({ id: 'a', fame: STAR_FAME_THRESHOLD }), ['a'])).toBe(4);
+    expect(
+      weightForPlayer(player({ id: 'a', fame: STAR_FAME_THRESHOLD }), ['a']),
+    ).toBe(4);
   });
 });
 
@@ -169,7 +188,7 @@ describe('eligibleAskers', () => {
       lastAskingPlayerId: 'previous',
       minSeasonsAtClub: 0,
       absence: false,
-    }).map(candidate => candidate.id);
+    }).map((candidate) => candidate.id);
 
     expect(ids).toContain('fit');
     expect(ids).not.toContain('injured');
@@ -187,25 +206,35 @@ describe('eligibleAskers', () => {
    * can talk him round, since granting pays morale toward his withdrawal line.
    */
   it('lets a transfer-listed player ask', () => {
-    const ids = eligibleAskers(roster, { minSeasonsAtClub: 0, absence: false })
-      .map(candidate => candidate.id);
+    const ids = eligibleAskers(roster, {
+      minSeasonsAtClub: 0,
+      absence: false,
+    }).map((candidate) => candidate.id);
 
     expect(ids).toContain('listed');
   });
 
   it('excludes a player in their first season at the club', () => {
-    const ids = eligibleAskers(roster, { minSeasonsAtClub: 1, absence: false })
-      .map(candidate => candidate.id);
+    const ids = eligibleAskers(roster, {
+      minSeasonsAtClub: 1,
+      absence: false,
+    }).map((candidate) => candidate.id);
 
     expect(ids).not.toContain('new');
     expect(ids).toContain('fit');
   });
 
   it('never sends away the only fit goalkeeper', () => {
-    const squad = [player({ id: 'keeper', role: 'GK' }), player({ id: 'striker' })];
+    const squad = [
+      player({ id: 'keeper', role: 'GK' }),
+      player({ id: 'striker' }),
+    ];
 
-    expect(eligibleAskers(squad, { minSeasonsAtClub: 0, absence: true }).map(c => c.id))
-      .toEqual(['striker']);
+    expect(
+      eligibleAskers(squad, { minSeasonsAtClub: 0, absence: true }).map(
+        (c) => c.id,
+      ),
+    ).toEqual(['striker']);
   });
 
   it('does let a backed-up goalkeeper go away', () => {
@@ -214,8 +243,11 @@ describe('eligibleAskers', () => {
       player({ id: 'reserve-keeper', role: 'GK' }),
     ];
 
-    expect(eligibleAskers(squad, { minSeasonsAtClub: 0, absence: true }).map(c => c.id))
-      .toEqual(['keeper', 'reserve-keeper']);
+    expect(
+      eligibleAskers(squad, { minSeasonsAtClub: 0, absence: true }).map(
+        (c) => c.id,
+      ),
+    ).toEqual(['keeper', 'reserve-keeper']);
   });
 
   it('counts an injured backup keeper as no backup at all', () => {
@@ -224,8 +256,11 @@ describe('eligibleAskers', () => {
       player({ id: 'reserve-keeper', role: 'GK', injuryWeeks: 3 }),
     ];
 
-    expect(eligibleAskers(squad, { minSeasonsAtClub: 0, absence: true }).map(c => c.id))
-      .toEqual([]);
+    expect(
+      eligibleAskers(squad, { minSeasonsAtClub: 0, absence: true }).map(
+        (c) => c.id,
+      ),
+    ).toEqual([]);
   });
 
   it('excludes a starter whose absence the lineup cannot survive', () => {
@@ -237,8 +272,8 @@ describe('eligibleAskers', () => {
     const ids = eligibleAskers(squad, {
       minSeasonsAtClub: 0,
       absence: true,
-      lineupSurvivesAbsence: candidate => candidate.id !== 'starter',
-    }).map(candidate => candidate.id);
+      lineupSurvivesAbsence: (candidate) => candidate.id !== 'starter',
+    }).map((candidate) => candidate.id);
 
     expect(ids).toEqual(['reserve']);
   });
@@ -250,7 +285,7 @@ describe('eligibleAskers', () => {
       minSeasonsAtClub: 0,
       absence: false,
       lineupSurvivesAbsence: () => false,
-    }).map(candidate => candidate.id);
+    }).map((candidate) => candidate.id);
 
     expect(ids).toEqual(['starter', 'reserve']);
   });
@@ -258,7 +293,10 @@ describe('eligibleAskers', () => {
 
 describe('pickAsker', () => {
   it('is deterministic for the same roll and respects weight', () => {
-    const roster = [player({ id: 'a' }), player({ id: 'b', fame: STAR_FAME_THRESHOLD })];
+    const roster = [
+      player({ id: 'a' }),
+      player({ id: 'b', fame: STAR_FAME_THRESHOLD }),
+    ];
 
     expect(totalAskerWeight(roster, [])).toBe(3);
     expect(pickAsker(roster, [], 0)?.id).toBe('a');
@@ -274,24 +312,37 @@ describe('pickAsker', () => {
 describe('requestMoneyCost', () => {
   const context = { playerWeeklyWage: 1400, squadWeeklyWageBill: 20000 };
 
-  it('prices an individual ask off that player\'s wage', () => {
-    expect(requestMoneyCost({ kind: 'MONEY_PLAYER', wageMultiple: 3 }, context)).toBe(4200);
+  it("prices an individual ask off that player's wage", () => {
+    expect(
+      requestMoneyCost({ kind: 'MONEY_PLAYER', wageMultiple: 3 }, context),
+    ).toBe(4200);
   });
 
   it('prices a squad ask off the whole wage bill', () => {
-    expect(requestMoneyCost({ kind: 'MONEY_SQUAD', billMultiplePercent: 50 }, context)).toBe(10000);
+    expect(
+      requestMoneyCost(
+        { kind: 'MONEY_SQUAD', billMultiplePercent: 50 },
+        context,
+      ),
+    ).toBe(10000);
   });
 
   it('is undefined for a cost that is not money', () => {
-    expect(requestMoneyCost({ kind: 'ABSENCE', weeks: 2 }, context)).toBeUndefined();
-    expect(requestMoneyCost({ kind: 'CONDITION_SQUAD', amount: 10 }, context)).toBeUndefined();
+    expect(
+      requestMoneyCost({ kind: 'ABSENCE', weeks: 2 }, context),
+    ).toBeUndefined();
+    expect(
+      requestMoneyCost({ kind: 'CONDITION_SQUAD', amount: 10 }, context),
+    ).toBeUndefined();
   });
 
   it('never returns zero, so a grant is never silently free', () => {
-    expect(requestMoneyCost(
-      { kind: 'MONEY_SQUAD', billMultiplePercent: 30 },
-      { playerWeeklyWage: 0, squadWeeklyWageBill: 1 },
-    )).toBe(1);
+    expect(
+      requestMoneyCost(
+        { kind: 'MONEY_SQUAD', billMultiplePercent: 30 },
+        { playerWeeklyWage: 0, squadWeeklyWageBill: 1 },
+      ),
+    ).toBe(1);
   });
 });
 
@@ -308,21 +359,31 @@ describe('absenceWeeksFor', () => {
 
 describe('requestTarget', () => {
   it('treats squad money, condition and drills as squad-wide', () => {
-    expect(requestTarget({ kind: 'MONEY_SQUAD', billMultiplePercent: 50 })).toBe('SQUAD');
-    expect(requestTarget({ kind: 'CONDITION_SQUAD', amount: 10 })).toBe('SQUAD');
-    expect(requestTarget({ kind: 'DRILL_SQUAD', multiplierPercent: 60, weeks: 2 })).toBe('SQUAD');
+    expect(
+      requestTarget({ kind: 'MONEY_SQUAD', billMultiplePercent: 50 }),
+    ).toBe('SQUAD');
+    expect(requestTarget({ kind: 'CONDITION_SQUAD', amount: 10 })).toBe(
+      'SQUAD',
+    );
+    expect(
+      requestTarget({ kind: 'DRILL_SQUAD', multiplierPercent: 60, weeks: 2 }),
+    ).toBe('SQUAD');
   });
 
   it('treats an individual ask as one player', () => {
-    expect(requestTarget({ kind: 'MONEY_PLAYER', wageMultiple: 3 })).toBe('PLAYER');
+    expect(requestTarget({ kind: 'MONEY_PLAYER', wageMultiple: 3 })).toBe(
+      'PLAYER',
+    );
     expect(requestTarget({ kind: 'ABSENCE', weeks: 2 })).toBe('PLAYER');
-    expect(requestTarget({ kind: 'DRILL_PLAYER', multiplierPercent: 50, weeks: 4 })).toBe('PLAYER');
+    expect(
+      requestTarget({ kind: 'DRILL_PLAYER', multiplierPercent: 50, weeks: 4 }),
+    ).toBe('PLAYER');
   });
 
   it('agrees with the shipped catalog on which requests hit everyone', () => {
     const squadIds = CATALOG.requests
-      .filter(request => requestTarget(request.cost) === 'SQUAD')
-      .map(request => request.id);
+      .filter((request) => requestTarget(request.cost) === 'SQUAD')
+      .map((request) => request.id);
 
     expect(squadIds).toContain('squad-massage');
     expect(squadIds).toContain('one-big-night-out');
@@ -338,7 +399,7 @@ describe('resolutionDeltas', () => {
     });
   });
 
-  it('grants a squad request as a squad bump plus the asker\'s own', () => {
+  it("grants a squad request as a squad bump plus the asker's own", () => {
     expect(resolutionDeltas('GRANTED', 'SQUAD', 'CHAIRMAN')).toEqual({
       asker: { loyalty: 5, morale: 5 },
       squad: { loyalty: 2, morale: 5 },
@@ -346,19 +407,25 @@ describe('resolutionDeltas', () => {
   });
 
   it('refuses harder on Chairman than on Cozy', () => {
-    expect(resolutionDeltas('REFUSED', 'PLAYER', 'CHAIRMAN').asker)
-      .toEqual({ loyalty: -5, morale: -8 });
-    expect(resolutionDeltas('REFUSED', 'PLAYER', 'COZY').asker)
-      .toEqual({ loyalty: -3, morale: -4 });
+    expect(resolutionDeltas('REFUSED', 'PLAYER', 'CHAIRMAN').asker).toEqual({
+      loyalty: -5,
+      morale: -8,
+    });
+    expect(resolutionDeltas('REFUSED', 'PLAYER', 'COZY').asker).toEqual({
+      loyalty: -3,
+      morale: -4,
+    });
   });
 
   it('charges a lapse at exactly the refusal rate', () => {
     // The second-week inbox notice prints the number, so the manager was told.
     // A discount would make silence cheaper than deciding.
-    expect(resolutionDeltas('LAPSED', 'PLAYER', 'CHAIRMAN'))
-      .toEqual(resolutionDeltas('REFUSED', 'PLAYER', 'CHAIRMAN'));
-    expect(resolutionDeltas('LAPSED', 'SQUAD', 'COZY'))
-      .toEqual(resolutionDeltas('REFUSED', 'SQUAD', 'COZY'));
+    expect(resolutionDeltas('LAPSED', 'PLAYER', 'CHAIRMAN')).toEqual(
+      resolutionDeltas('REFUSED', 'PLAYER', 'CHAIRMAN'),
+    );
+    expect(resolutionDeltas('LAPSED', 'SQUAD', 'COZY')).toEqual(
+      resolutionDeltas('REFUSED', 'SQUAD', 'COZY'),
+    );
   });
 
   it('never rewards a refusal on either difficulty', () => {
@@ -384,9 +451,13 @@ describe('resolutionDeltas', () => {
  */
 function requestFixture(requestId: string): GameState {
   const base = createCareer(createLaunchCareerSetup(20260801));
-  const roster = base.players.filter(player => player.clubId === base.userClubId);
+  const roster = base.players.filter(
+    (player) => player.clubId === base.userClubId,
+  );
   const asker = roster[1];
-  const club = base.clubs.find(candidate => candidate.id === base.userClubId)!;
+  const club = base.clubs.find(
+    (candidate) => candidate.id === base.userClubId,
+  )!;
   const definition = requestDefinition(CATALOG, requestId);
   const costAmount = requestMoneyCost(definition.cost, {
     playerWeeklyWage: asker.weeklyWage,
@@ -396,9 +467,11 @@ function requestFixture(requestId: string): GameState {
   return {
     ...base,
     week: 8,
-    players: base.players.map(player => (player.clubId !== base.userClubId
-      ? player
-      : { ...player, morale: 60, condition: 100 })),
+    players: base.players.map((player) =>
+      player.clubId !== base.userClubId
+        ? player
+        : { ...player, morale: 60, condition: 100 },
+    ),
     playerRequests: {
       ...DEFAULT_PLAYER_REQUEST_STATE,
       pending: {
@@ -415,19 +488,20 @@ function requestFixture(requestId: string): GameState {
 
 const askerOf = (state: GameState) => state.playerRequests!.pending!.playerId;
 const cashOf = (state: GameState) =>
-  state.clubs.find(club => club.id === state.userClubId)!.cash;
+  state.clubs.find((club) => club.id === state.userClubId)!.cash;
 
 describe('resolvePlayerRequest', () => {
   it('grants a money request, charging cash and lifting loyalty and morale', () => {
     const state = requestFixture('gold-boots');
     const cost = state.playerRequests!.pending!.costAmount!;
     const next = resolvePlayerRequest(state, CATALOG, 'GRANTED');
-    const asker = next.players.find(p => p.id === askerOf(state))!;
-    const before = state.players.find(p => p.id === askerOf(state))!;
+    const asker = next.players.find((p) => p.id === askerOf(state))!;
+    const before = state.players.find((p) => p.id === askerOf(state))!;
 
     expect(cashOf(next)).toBe(cashOf(state) - cost);
-    expect(playerLoyalty(asker, next.careerSeed))
-      .toBe(playerLoyalty(before, state.careerSeed) + 5);
+    expect(playerLoyalty(asker, next.careerSeed)).toBe(
+      playerLoyalty(before, state.careerSeed) + 5,
+    );
     expect(asker.morale).toBe(65);
     expect(next.playerRequests!.pending).toBeUndefined();
     expect(next.playerRequests!.weeksSinceRequest).toBe(0);
@@ -451,15 +525,22 @@ describe('resolvePlayerRequest', () => {
     const state = requestFixture('bahamas-fortnight');
     const next = resolvePlayerRequest(state, CATALOG, 'GRANTED');
 
-    expect(next.players.find(p => p.id === askerOf(state))!.awayWeeks).toBe(1);
+    expect(next.players.find((p) => p.id === askerOf(state))!.awayWeeks).toBe(
+      1,
+    );
     expect(cashOf(next)).toBe(cashOf(state));
   });
 
   it('honours the full two weeks on Chairman', () => {
-    const state = { ...requestFixture('bahamas-fortnight'), difficulty: 'CHAIRMAN' as const };
+    const state = {
+      ...requestFixture('bahamas-fortnight'),
+      difficulty: 'CHAIRMAN' as const,
+    };
     const next = resolvePlayerRequest(state, CATALOG, 'GRANTED');
 
-    expect(next.players.find(p => p.id === askerOf(state))!.awayWeeks).toBe(2);
+    expect(next.players.find((p) => p.id === askerOf(state))!.awayWeeks).toBe(
+      2,
+    );
   });
 
   it('takes an away starter out of the XI immediately', () => {
@@ -467,14 +548,24 @@ describe('resolvePlayerRequest', () => {
     const asker = askerOf(state);
     const started: GameState = {
       ...state,
-      lineups: state.lineups.map(lineup => (lineup.clubId === state.userClubId
-        ? { ...lineup, playerIds: [lineup.playerIds[0], asker, ...lineup.playerIds.slice(2)
-            .filter(id => id !== asker)].slice(0, 11) }
-        : lineup)),
+      lineups: state.lineups.map((lineup) =>
+        lineup.clubId === state.userClubId
+          ? {
+              ...lineup,
+              playerIds: [
+                lineup.playerIds[0],
+                asker,
+                ...lineup.playerIds.slice(2).filter((id) => id !== asker),
+              ].slice(0, 11),
+            }
+          : lineup,
+      ),
     };
     const next = resolvePlayerRequest(started, CATALOG, 'GRANTED');
 
-    expect(next.lineups.find(l => l.clubId === next.userClubId)!.playerIds).not.toContain(asker);
+    expect(
+      next.lineups.find((l) => l.clubId === next.userClubId)!.playerIds,
+    ).not.toContain(asker);
     // The guard in buildCareerTeamDef is what would otherwise throw on Saturday.
     expect(() => buildCareerTeamDef(next, next.userClubId)).not.toThrow();
   });
@@ -483,7 +574,9 @@ describe('resolvePlayerRequest', () => {
     const state = requestFixture('one-big-night-out');
     const next = resolvePlayerRequest(state, CATALOG, 'GRANTED');
 
-    for (const player of next.players.filter(p => p.clubId === next.userClubId)) {
+    for (const player of next.players.filter(
+      (p) => p.clubId === next.userClubId,
+    )) {
       expect(player.condition).toBe(90);
     }
   });
@@ -492,13 +585,15 @@ describe('resolvePlayerRequest', () => {
     const state = requestFixture('squad-massage');
     const drained: GameState = {
       ...state,
-      players: state.players.map(p => (p.clubId === state.userClubId
-        ? { ...p, condition: 70 }
-        : p)),
+      players: state.players.map((p) =>
+        p.clubId === state.userClubId ? { ...p, condition: 70 } : p,
+      ),
     };
     const next = resolvePlayerRequest(drained, CATALOG, 'GRANTED');
 
-    for (const player of next.players.filter(p => p.clubId === next.userClubId)) {
+    for (const player of next.players.filter(
+      (p) => p.clubId === next.userClubId,
+    )) {
       expect(player.condition).toBe(78);
     }
   });
@@ -506,23 +601,31 @@ describe('resolvePlayerRequest', () => {
   it('lifts the whole squad on a granted squad request, and the asker most', () => {
     const state = requestFixture('bbq-at-my-place');
     const next = resolvePlayerRequest(state, CATALOG, 'GRANTED');
-    const asker = next.players.find(p => p.id === askerOf(state))!;
+    const asker = next.players.find((p) => p.id === askerOf(state))!;
     const other = next.players.find(
-      p => p.clubId === next.userClubId && p.id !== askerOf(state),
+      (p) => p.clubId === next.userClubId && p.id !== askerOf(state),
     )!;
 
-    expect(playerLoyalty(asker, next.careerSeed) - playerLoyalty(
-      state.players.find(p => p.id === asker.id)!, state.careerSeed,
-    )).toBe(7);
-    expect(playerLoyalty(other, next.careerSeed) - playerLoyalty(
-      state.players.find(p => p.id === other.id)!, state.careerSeed,
-    )).toBe(2);
+    expect(
+      playerLoyalty(asker, next.careerSeed) -
+        playerLoyalty(
+          state.players.find((p) => p.id === asker.id)!,
+          state.careerSeed,
+        ),
+    ).toBe(7);
+    expect(
+      playerLoyalty(other, next.careerSeed) -
+        playerLoyalty(
+          state.players.find((p) => p.id === other.id)!,
+          state.careerSeed,
+        ),
+    ).toBe(2);
   });
 
   it('refuses without spending cash and drops loyalty and morale', () => {
     const state = requestFixture('gold-boots');
     const next = resolvePlayerRequest(state, CATALOG, 'REFUSED');
-    const asker = next.players.find(p => p.id === askerOf(state))!;
+    const asker = next.players.find((p) => p.id === askerOf(state))!;
 
     expect(cashOf(next)).toBe(cashOf(state));
     expect(asker.morale).toBe(56);
@@ -533,7 +636,7 @@ describe('resolvePlayerRequest', () => {
   it('records a drill request as a bounded effect, never a contract promise', () => {
     const state = requestFixture('my-own-guru');
     const next = resolvePlayerRequest(state, CATALOG, 'GRANTED');
-    const asker = next.players.find(p => p.id === askerOf(state))!;
+    const asker = next.players.find((p) => p.id === askerOf(state))!;
 
     expect(asker.contractPromise).toBeUndefined();
     expect(next.playerRequests!.effects).toContainEqual({
@@ -545,7 +648,11 @@ describe('resolvePlayerRequest', () => {
   });
 
   it('adds no effect when a drill request is refused', () => {
-    const next = resolvePlayerRequest(requestFixture('my-own-guru'), CATALOG, 'REFUSED');
+    const next = resolvePlayerRequest(
+      requestFixture('my-own-guru'),
+      CATALOG,
+      'REFUSED',
+    );
 
     expect(next.playerRequests!.effects).toEqual([]);
   });
@@ -554,10 +661,14 @@ describe('resolvePlayerRequest', () => {
     const state = requestFixture('the-car');
     const broke: GameState = {
       ...state,
-      clubs: state.clubs.map(c => (c.id === state.userClubId ? { ...c, cash: 0 } : c)),
+      clubs: state.clubs.map((c) =>
+        c.id === state.userClubId ? { ...c, cash: 0 } : c,
+      ),
     };
 
-    expect(() => resolvePlayerRequest(broke, CATALOG, 'GRANTED')).toThrow('cannot afford');
+    expect(() => resolvePlayerRequest(broke, CATALOG, 'GRANTED')).toThrow(
+      'cannot afford',
+    );
     expect(() => resolvePlayerRequest(broke, CATALOG, 'REFUSED')).not.toThrow();
   });
 
@@ -568,11 +679,17 @@ describe('resolvePlayerRequest', () => {
       playerRequests: { ...state.playerRequests!, pending: undefined },
     };
 
-    expect(() => resolvePlayerRequest(empty, CATALOG, 'GRANTED')).toThrow('no pending request');
+    expect(() => resolvePlayerRequest(empty, CATALOG, 'GRANTED')).toThrow(
+      'no pending request',
+    );
   });
 
   it('leaves a save the codec still accepts', () => {
-    const next = resolvePlayerRequest(requestFixture('gold-boots'), CATALOG, 'GRANTED');
+    const next = resolvePlayerRequest(
+      requestFixture('gold-boots'),
+      CATALOG,
+      'GRANTED',
+    );
 
     expect(() => parseStoredGameState(serializeGameState(next))).not.toThrow();
   });
@@ -583,7 +700,9 @@ describe('canAffordRequest', () => {
     const state = requestFixture('the-car');
     const broke: GameState = {
       ...state,
-      clubs: state.clubs.map(c => (c.id === state.userClubId ? { ...c, cash: 0 } : c)),
+      clubs: state.clubs.map((c) =>
+        c.id === state.userClubId ? { ...c, cash: 0 } : c,
+      ),
     };
 
     expect(canAffordRequest(broke)).toBe(false);
@@ -593,7 +712,9 @@ describe('canAffordRequest', () => {
     const state = requestFixture('bahamas-fortnight');
     const broke: GameState = {
       ...state,
-      clubs: state.clubs.map(c => (c.id === state.userClubId ? { ...c, cash: 0 } : c)),
+      clubs: state.clubs.map((c) =>
+        c.id === state.userClubId ? { ...c, cash: 0 } : c,
+      ),
     };
 
     expect(canAffordRequest(broke)).toBe(true);
@@ -602,10 +723,17 @@ describe('canAffordRequest', () => {
 
 describe('tickRequestEffects', () => {
   it('counts every effect down and drops the expired ones', () => {
-    expect(tickRequestEffects([
-      { kind: 'DRILL_SQUAD', weeksRemaining: 2, multiplierPercent: 60 },
-      { kind: 'DRILL_PLAYER', playerId: 'a', weeksRemaining: 1, multiplierPercent: 50 },
-    ])).toEqual([
+    expect(
+      tickRequestEffects([
+        { kind: 'DRILL_SQUAD', weeksRemaining: 2, multiplierPercent: 60 },
+        {
+          kind: 'DRILL_PLAYER',
+          playerId: 'a',
+          weeksRemaining: 1,
+          multiplierPercent: 50,
+        },
+      ]),
+    ).toEqual([
       { kind: 'DRILL_SQUAD', weeksRemaining: 1, multiplierPercent: 60 },
     ]);
   });
@@ -621,46 +749,62 @@ describe('drillMultiplierPercent', () => {
   });
 
   it('applies a squad effect to everyone', () => {
-    expect(drillMultiplierPercent(
-      [{ kind: 'DRILL_SQUAD', weeksRemaining: 2, multiplierPercent: 60 }],
-      'a',
-    )).toBe(60);
+    expect(
+      drillMultiplierPercent(
+        [{ kind: 'DRILL_SQUAD', weeksRemaining: 2, multiplierPercent: 60 }],
+        'a',
+      ),
+    ).toBe(60);
   });
 
   it('applies a player effect only to that player', () => {
-    const effects = [{
-      kind: 'DRILL_PLAYER' as const,
-      playerId: 'a',
-      weeksRemaining: 2,
-      multiplierPercent: 50,
-    }];
+    const effects = [
+      {
+        kind: 'DRILL_PLAYER' as const,
+        playerId: 'a',
+        weeksRemaining: 2,
+        multiplierPercent: 50,
+      },
+    ];
 
     expect(drillMultiplierPercent(effects, 'a')).toBe(50);
     expect(drillMultiplierPercent(effects, 'b')).toBe(100);
   });
 
   it('compounds a stacked squad and player effect', () => {
-    expect(drillMultiplierPercent([
-      { kind: 'DRILL_SQUAD', weeksRemaining: 2, multiplierPercent: 60 },
-      { kind: 'DRILL_PLAYER', playerId: 'a', weeksRemaining: 2, multiplierPercent: 50 },
-    ], 'a')).toBe(30);
+    expect(
+      drillMultiplierPercent(
+        [
+          { kind: 'DRILL_SQUAD', weeksRemaining: 2, multiplierPercent: 60 },
+          {
+            kind: 'DRILL_PLAYER',
+            playerId: 'a',
+            weeksRemaining: 2,
+            multiplierPercent: 50,
+          },
+        ],
+        'a',
+      ),
+    ).toBe(30);
   });
 });
 
 describe('request drill effects in real training', () => {
   it('reduces the gain a drill produces while a personal effect is live', () => {
     const state = requestFixture('my-own-guru');
-    const target = state.players.find(p => p.clubId === state.userClubId)!;
+    const target = state.players.find((p) => p.clubId === state.userClubId)!;
     const penalised: GameState = {
       ...state,
       playerRequests: {
         ...DEFAULT_PLAYER_REQUEST_STATE,
-        effects: [{
-          kind: 'DRILL_PLAYER',
-          playerId: target.id,
-          weeksRemaining: 4,
-          multiplierPercent: 50,
-        }],
+        effects: [
+          {
+            kind: 'DRILL_PLAYER',
+            playerId: target.id,
+            weeksRemaining: 4,
+            multiplierPercent: 50,
+          },
+        ],
       },
     };
 
@@ -670,38 +814,47 @@ describe('request drill effects in real training', () => {
     expect(halved.after - halved.before).toBeLessThan(full.after - full.before);
   });
 
-  it('leaves a player untouched by someone else\'s personal effect', () => {
+  it("leaves a player untouched by someone else's personal effect", () => {
     const state = requestFixture('my-own-guru');
-    const squad = state.players.filter(p => p.clubId === state.userClubId);
+    const squad = state.players.filter((p) => p.clubId === state.userClubId);
     const other: GameState = {
       ...state,
       playerRequests: {
         ...DEFAULT_PLAYER_REQUEST_STATE,
-        effects: [{
-          kind: 'DRILL_PLAYER',
-          playerId: squad[0].id,
-          weeksRemaining: 4,
-          multiplierPercent: 50,
-        }],
+        effects: [
+          {
+            kind: 'DRILL_PLAYER',
+            playerId: squad[0].id,
+            weeksRemaining: 4,
+            multiplierPercent: 50,
+          },
+        ],
       },
     };
 
     const baseline = trainPlayerInstantly(state, squad[1].id, 'sprints');
     const unaffected = trainPlayerInstantly(other, squad[1].id, 'sprints');
 
-    expect(unaffected.after - unaffected.before).toBe(baseline.after - baseline.before);
+    expect(unaffected.after - unaffected.before).toBe(
+      baseline.after - baseline.before,
+    );
   });
 
   it('never lets a compounded penalty make a drill worth nothing', () => {
     const state = requestFixture('my-own-guru');
-    const target = state.players.find(p => p.clubId === state.userClubId)!;
+    const target = state.players.find((p) => p.clubId === state.userClubId)!;
     const crushed: GameState = {
       ...state,
       playerRequests: {
         ...DEFAULT_PLAYER_REQUEST_STATE,
         effects: [
           { kind: 'DRILL_SQUAD', weeksRemaining: 2, multiplierPercent: 60 },
-          { kind: 'DRILL_PLAYER', playerId: target.id, weeksRemaining: 4, multiplierPercent: 50 },
+          {
+            kind: 'DRILL_PLAYER',
+            playerId: target.id,
+            weeksRemaining: 4,
+            multiplierPercent: 50,
+          },
         ],
       },
     };
@@ -726,9 +879,11 @@ function tickingCareer(): GameState {
   // the tick tests would pass by never opening anything.
   return {
     ...base,
-    players: base.players.map(player => (player.clubId === base.userClubId
-      ? { ...player, seasonsAtClub: (player.seasonsAtClub ?? 0) + 1 }
-      : player)),
+    players: base.players.map((player) =>
+      player.clubId === base.userClubId
+        ? { ...player, seasonsAtClub: (player.seasonsAtClub ?? 0) + 1 }
+        : player,
+    ),
   };
 }
 
@@ -754,16 +909,21 @@ describe('advancePlayerRequests', () => {
   it('does nothing at all when the catalog was never baked in', () => {
     // This is what turns the feature off for the balance harness and the audit
     // probes: they build a setup and drop the catalog from it.
-    const { playerRequestRules: _dropped, ...setup } = createLaunchCareerSetup(20260801);
+    const { playerRequestRules: _dropped, ...setup } =
+      createLaunchCareerSetup(20260801);
     const bare = createCareer(setup);
 
-    expect(advancePlayerRequests(atSeason(bare, 3), true).playerRequests).toBeUndefined();
+    expect(
+      advancePlayerRequests(atSeason(bare, 3), true).playerRequests,
+    ).toBeUndefined();
   });
 
   it('opens nothing before the start season', () => {
     const early = { ...tickingCareer(), season: 1, week: 30 };
 
-    expect(advancePlayerRequests(early, true).playerRequests?.pending).toBeUndefined();
+    expect(
+      advancePlayerRequests(early, true).playerRequests?.pending,
+    ).toBeUndefined();
   });
 
   it('never offers a cost the calendar cannot collect', () => {
@@ -774,15 +934,20 @@ describe('advancePlayerRequests', () => {
     const empty: GameState = {
       ...atSeason(tickingCareer(), 3),
       week: 30,
-      playerRequests: { ...DEFAULT_PLAYER_REQUEST_STATE, weeksSinceRequest: 40 },
+      playerRequests: {
+        ...DEFAULT_PLAYER_REQUEST_STATE,
+        weeksSinceRequest: 40,
+      },
     };
     const pending = advancePlayerRequests(empty, true).playerRequests?.pending;
 
     expect(pending).toBeDefined();
-    expect(requestDefinition(CATALOG, pending!.requestId).cost.kind)
-      .not.toBe('ABSENCE');
-    expect(requestDefinition(CATALOG, pending!.requestId).cost.kind)
-      .not.toBe('CONDITION_SQUAD');
+    expect(requestDefinition(CATALOG, pending!.requestId).cost.kind).not.toBe(
+      'ABSENCE',
+    );
+    expect(requestDefinition(CATALOG, pending!.requestId).cost.kind).not.toBe(
+      'CONDITION_SQUAD',
+    );
   });
 
   it('still offers leave in a week with football ahead of it', () => {
@@ -793,7 +958,10 @@ describe('advancePlayerRequests', () => {
       const live: GameState = {
         ...atSeason(tickingCareer(), 3),
         week,
-        playerRequests: { ...DEFAULT_PLAYER_REQUEST_STATE, weeksSinceRequest: 40 },
+        playerRequests: {
+          ...DEFAULT_PLAYER_REQUEST_STATE,
+          weeksSinceRequest: 40,
+        },
       };
       const pending = advancePlayerRequests(live, true).playerRequests?.pending;
       if (pending !== undefined) {
@@ -808,7 +976,9 @@ describe('advancePlayerRequests', () => {
     const base = tickingCareer();
     const away: GameState = {
       ...base,
-      players: base.players.map((p, i) => (i === 0 ? { ...p, awayWeeks: 2 } : p)),
+      players: base.players.map((p, i) =>
+        i === 0 ? { ...p, awayWeeks: 2 } : p,
+      ),
     };
 
     expect(advancePlayerRequests(away, true).players[0].awayWeeks).toBe(1);
@@ -818,8 +988,13 @@ describe('advancePlayerRequests', () => {
     const base = tickingCareer();
     const loaded: GameState = {
       ...atSeason(base, 3),
-      players: base.players.map((p, i) => (i === 0 ? { ...p, awayWeeks: 2 } : p)),
-      playerRequests: { ...DEFAULT_PLAYER_REQUEST_STATE, weeksSinceRequest: 40 },
+      players: base.players.map((p, i) =>
+        i === 0 ? { ...p, awayWeeks: 2 } : p,
+      ),
+      playerRequests: {
+        ...DEFAULT_PLAYER_REQUEST_STATE,
+        weeksSinceRequest: 40,
+      },
     };
     const next = advancePlayerRequests(loaded, false);
 
@@ -832,7 +1007,10 @@ describe('advancePlayerRequests', () => {
     const overdue: GameState = {
       ...atSeason(base, 3),
       week: 10,
-      playerRequests: { ...DEFAULT_PLAYER_REQUEST_STATE, weeksSinceRequest: 40 },
+      playerRequests: {
+        ...DEFAULT_PLAYER_REQUEST_STATE,
+        weeksSinceRequest: 40,
+      },
     };
     const next = advancePlayerRequests(overdue, true);
 
@@ -846,22 +1024,31 @@ describe('advancePlayerRequests', () => {
     // catalog of nothing but absence requests must therefore open nothing.
     const base = tickingCareer();
     const starters = new Set(
-      base.lineups.find(lineup => lineup.clubId === base.userClubId)!.playerIds,
+      base.lineups.find((lineup) => lineup.clubId === base.userClubId)!
+        .playerIds,
     );
     const bareEleven: GameState = {
       ...atSeason(base, 3),
       week: 10,
-      players: base.players.filter(candidate => (
-        candidate.clubId !== base.userClubId || starters.has(candidate.id)
-      )),
+      players: base.players.filter(
+        (candidate) =>
+          candidate.clubId !== base.userClubId || starters.has(candidate.id),
+      ),
       playerRequestRules: {
         ...CATALOG,
-        requests: CATALOG.requests.filter(request => request.cost.kind === 'ABSENCE'),
+        requests: CATALOG.requests.filter(
+          (request) => request.cost.kind === 'ABSENCE',
+        ),
       },
-      playerRequests: { ...DEFAULT_PLAYER_REQUEST_STATE, weeksSinceRequest: 40 },
+      playerRequests: {
+        ...DEFAULT_PLAYER_REQUEST_STATE,
+        weeksSinceRequest: 40,
+      },
     };
 
-    expect(advancePlayerRequests(bareEleven, true).playerRequests!.pending).toBeUndefined();
+    expect(
+      advancePlayerRequests(bareEleven, true).playerRequests!.pending,
+    ).toBeUndefined();
   });
 
   it('is save-stable: the same week resolves to the same asker and request', () => {
@@ -869,12 +1056,16 @@ describe('advancePlayerRequests', () => {
     const overdue: GameState = {
       ...atSeason(base, 3),
       week: 10,
-      playerRequests: { ...DEFAULT_PLAYER_REQUEST_STATE, weeksSinceRequest: 40 },
+      playerRequests: {
+        ...DEFAULT_PLAYER_REQUEST_STATE,
+        weeksSinceRequest: 40,
+      },
     };
 
     const first = advancePlayerRequests(overdue, true).playerRequests!.pending!;
     const reloaded = parseStoredGameState(serializeGameState(overdue));
-    const second = advancePlayerRequests(reloaded, true).playerRequests!.pending!;
+    const second = advancePlayerRequests(reloaded, true).playerRequests!
+      .pending!;
 
     expect(second).toEqual(first);
   });
@@ -889,7 +1080,7 @@ describe('advancePlayerRequests', () => {
         weeksSinceRequest: 40,
         pending: {
           requestId: 'gold-boots',
-          playerId: base.players.find(p => p.clubId === base.userClubId)!.id,
+          playerId: base.players.find((p) => p.clubId === base.userClubId)!.id,
           askedSeason: 3,
           askedWeek: 10,
           costAmount: 1200,
@@ -898,13 +1089,14 @@ describe('advancePlayerRequests', () => {
       },
     };
 
-    expect(advancePlayerRequests(busy, true).playerRequests!.pending!.requestId)
-      .toBe('gold-boots');
+    expect(
+      advancePlayerRequests(busy, true).playerRequests!.pending!.requestId,
+    ).toBe('gold-boots');
   });
 
   it('warns in the second week and lapses in the third', () => {
     const base = tickingCareer();
-    const asker = base.players.find(p => p.clubId === base.userClubId)!;
+    const asker = base.players.find((p) => p.clubId === base.userClubId)!;
     const pending = {
       requestId: 'gold-boots',
       playerId: asker.id,
@@ -916,28 +1108,33 @@ describe('advancePlayerRequests', () => {
     const withPending = (week: number, warned: boolean): GameState => ({
       ...atSeason(base, 3),
       week,
-      players: base.players.map(p => (p.clubId === base.userClubId
-        ? { ...p, morale: 60 }
-        : p)),
-      playerRequests: { ...DEFAULT_PLAYER_REQUEST_STATE, pending: { ...pending, warned } },
+      players: base.players.map((p) =>
+        p.clubId === base.userClubId ? { ...p, morale: 60 } : p,
+      ),
+      playerRequests: {
+        ...DEFAULT_PLAYER_REQUEST_STATE,
+        pending: { ...pending, warned },
+      },
     });
 
-    expect(advancePlayerRequests(withPending(11, false), true).playerRequests!.pending!.warned)
-      .toBe(true);
+    expect(
+      advancePlayerRequests(withPending(11, false), true).playerRequests!
+        .pending!.warned,
+    ).toBe(true);
 
     const lapsed = advancePlayerRequests(withPending(12, true), true);
     expect(lapsed.playerRequests!.pending).toBeUndefined();
     expect(lapsed.playerRequests!.history[0].resolution).toBe('LAPSED');
     // A lapse costs exactly what a refusal costs; the notice printed the number.
-    expect(lapsed.players.find(p => p.id === asker.id)!.morale).toBe(56);
+    expect(lapsed.players.find((p) => p.id === asker.id)!.morale).toBe(56);
   });
 
   it('cancels silently when the asker has left the club', () => {
     const base = tickingCareer();
-    const asker = base.players.find(p => p.clubId === base.userClubId)!;
+    const asker = base.players.find((p) => p.clubId === base.userClubId)!;
     const sold: GameState = {
       ...atSeason(base, 3),
-      players: base.players.filter(p => p.id !== asker.id),
+      players: base.players.filter((p) => p.id !== asker.id),
       playerRequests: {
         ...DEFAULT_PLAYER_REQUEST_STATE,
         pending: {
@@ -965,10 +1162,12 @@ describe('advancePlayerRequests', () => {
    */
   it('keeps the ask alive when the asker asks for a transfer', () => {
     const base = tickingCareer();
-    const asker = base.players.find(p => p.clubId === base.userClubId)!;
+    const asker = base.players.find((p) => p.clubId === base.userClubId)!;
     const listed: GameState = {
       ...atSeason(base, 3),
-      players: base.players.map(p => (p.id === asker.id ? { ...p, transferRequested: true } : p)),
+      players: base.players.map((p) =>
+        p.id === asker.id ? { ...p, transferRequested: true } : p,
+      ),
       playerRequests: {
         ...DEFAULT_PLAYER_REQUEST_STATE,
         pending: {
@@ -981,8 +1180,9 @@ describe('advancePlayerRequests', () => {
       },
     };
 
-    expect(advancePlayerRequests(listed, true).playerRequests!.pending)
-      .toMatchObject({ requestId: 'gold-boots', playerId: asker.id });
+    expect(
+      advancePlayerRequests(listed, true).playerRequests!.pending,
+    ).toMatchObject({ requestId: 'gold-boots', playerId: asker.id });
   });
 });
 
@@ -1001,21 +1201,30 @@ describe('advancePlayerRequests', () => {
  */
 describe('the star gate divides a real career in two', () => {
   it('runs the non-star cadence for its first seasons and the star one after', () => {
-    const hasStar = (state: GameState): boolean => state.players
-      .filter(candidate => candidate.clubId === state.userClubId)
-      .some(candidate => weightForPlayer(
-        candidate,
-        starQualifiers(state.seasonStatLines ?? [], state.season, CATALOG.tuning.starGoalRank),
-        CATALOG.tuning.starFameThreshold,
-      ) > 1);
+    const hasStar = (state: GameState): boolean =>
+      state.players
+        .filter((candidate) => candidate.clubId === state.userClubId)
+        .some(
+          (candidate) =>
+            weightForPlayer(
+              candidate,
+              starQualifiers(
+                state.seasonStatLines ?? [],
+                state.season,
+                CATALOG.tuning.starGoalRank,
+              ),
+              CATALOG.tuning.starFameThreshold,
+            ) > 1,
+        );
 
     // The catalog is attached here for the same reason the dev harness attaches
     // it: `createLaunchCareerSetup` never carries one, so a career built without
     // this line has requests switched off at the first line of the draw.
-    const played = (seasons: number): GameState => runHeadlessFullCareer(
-      { ...createLaunchCareerSetup(20260801), playerRequestRules: CATALOG },
-      seasons,
-    );
+    const played = (seasons: number): GameState =>
+      runHeadlessFullCareer(
+        { ...createLaunchCareerSetup(20260801), playerRequestRules: CATALOG },
+        seasons,
+      );
     const early = played(3);
     const late = played(7);
 
@@ -1047,7 +1256,10 @@ describe('the star gate divides a real career in two', () => {
  */
 describe('the non-star cadence times a starless squad', () => {
   /** Every week of a season, so one held clock produces a whole season of rolls. */
-  const SWEPT_WEEKS = Array.from({ length: SEASON_WEEKS }, (_, index) => index + 1);
+  const SWEPT_WEEKS = Array.from(
+    { length: SEASON_WEEKS },
+    (_, index) => index + 1,
+  );
   const CADENCE = CATALOG.tuning.cadence[careerDifficulty(tickingCareer())];
 
   /**
@@ -1057,26 +1269,41 @@ describe('the non-star cadence times a starless squad', () => {
    */
   function opensPerSeason(dryWeeks: number, starred: boolean): number {
     const base = tickingCareer();
-    const squad = base.players.filter(player => player.clubId === base.userClubId);
+    const squad = base.players.filter(
+      (player) => player.clubId === base.userClubId,
+    );
     const starId = squad[0].id;
-    const players = base.players.map(player => {
+    const players = base.players.map((player) => {
       if (player.clubId !== base.userClubId) return player;
       // Zeroed rather than trusted: a launch roster that starts anyone above the
       // threshold would make the starless half of this test vacuous.
-      return { ...player, fame: starred && player.id === starId
-        ? CATALOG.tuning.starFameThreshold
-        : 0 };
+      return {
+        ...player,
+        fame:
+          starred && player.id === starId
+            ? CATALOG.tuning.starFameThreshold
+            : 0,
+      };
     });
 
-    return SWEPT_WEEKS.filter(week => advancePlayerRequests({
-      ...atSeason(base, 3),
-      week,
-      players,
-      // Empty on purpose: a top-scorer qualifier is the other half of `hasStar`,
-      // and this test is about the fame half.
-      seasonStatLines: [],
-      playerRequests: { ...DEFAULT_PLAYER_REQUEST_STATE, weeksSinceRequest: dryWeeks - 1 },
-    }, true).playerRequests!.pending !== undefined).length;
+    return SWEPT_WEEKS.filter(
+      (week) =>
+        advancePlayerRequests(
+          {
+            ...atSeason(base, 3),
+            week,
+            players,
+            // Empty on purpose: a top-scorer qualifier is the other half of `hasStar`,
+            // and this test is about the fame half.
+            seasonStatLines: [],
+            playerRequests: {
+              ...DEFAULT_PLAYER_REQUEST_STATE,
+              weeksSinceRequest: dryWeeks - 1,
+            },
+          },
+          true,
+        ).playerRequests!.pending !== undefined,
+    ).length;
   }
 
   it('stays silent through the weeks a star squad would already be asking in', () => {
@@ -1087,7 +1314,9 @@ describe('the non-star cadence times a starless squad', () => {
 
   it('reaches certainty on its own guarantee week, not the star one', () => {
     expect(opensPerSeason(CADENCE.starGuaranteeWeeks, true)).toBe(SEASON_WEEKS);
-    expect(opensPerSeason(CADENCE.starGuaranteeWeeks, false)).toBeLessThan(SEASON_WEEKS);
+    expect(opensPerSeason(CADENCE.starGuaranteeWeeks, false)).toBeLessThan(
+      SEASON_WEEKS,
+    );
     expect(opensPerSeason(CADENCE.guaranteeWeeks, false)).toBe(SEASON_WEEKS);
   });
 
@@ -1098,8 +1327,11 @@ describe('the non-star cadence times a starless squad', () => {
    */
   it('asks less often than a star squad across the weeks they share', () => {
     const shared = [CADENCE.minWeeks, CADENCE.starGuaranteeWeeks];
-    const total = (starred: boolean): number => shared
-      .reduce((sum, dryWeeks) => sum + opensPerSeason(dryWeeks, starred), 0);
+    const total = (starred: boolean): number =>
+      shared.reduce(
+        (sum, dryWeeks) => sum + opensPerSeason(dryWeeks, starred),
+        0,
+      );
 
     expect(total(false)).toBeLessThan(total(true));
   });
@@ -1114,12 +1346,17 @@ describe('the tenure gate lets a real season-2 squad ask', () => {
     // because a value the squad can never reach would leave the tab empty for
     // an entire career with nothing failing to say so.
     const fresh = createCareer(createLaunchCareerSetup(20260801));
-    const freshRoster = fresh.players.filter(p => p.clubId === fresh.userClubId);
-    const gate = { minSeasonsAtClub: CATALOG.tuning.minSeasonsAtClub, absence: false };
+    const freshRoster = fresh.players.filter(
+      (p) => p.clubId === fresh.userClubId,
+    );
+    const gate = {
+      minSeasonsAtClub: CATALOG.tuning.minSeasonsAtClub,
+      absence: false,
+    };
 
     expect(eligibleAskers(freshRoster, gate)).toHaveLength(0);
 
-    const tenured = freshRoster.map(player => ({
+    const tenured = freshRoster.map((player) => ({
       ...player,
       seasonsAtClub: (player.seasonsAtClub ?? 0) + 1,
     }));

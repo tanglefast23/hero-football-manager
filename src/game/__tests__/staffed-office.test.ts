@@ -14,15 +14,18 @@ describe('staffed Coaching Office closure', () => {
     const staffed = staffedOffice(2_000, 4_000);
     const before = JSON.stringify(staffed);
 
-    expect(() => closeCareerFacility(staffed, 'facility-1'))
-      .toThrow('a staffed Coaching Office must dismiss its assistant and close together');
+    expect(() => closeCareerFacility(staffed, 'facility-1')).toThrow(
+      'a staffed Coaching Office must dismiss its assistant and close together',
+    );
     expect(JSON.stringify(staffed)).toBe(before);
   });
 
   test('confirmation names the assistant and exposes severance, refund, net, and shortage', () => {
     const staffed = staffedOffice(500, 4_000);
 
-    expect(staffedCoachingOfficeClosureConfirmation(staffed, 'facility-1')).toEqual({
+    expect(
+      staffedCoachingOfficeClosureConfirmation(staffed, 'facility-1'),
+    ).toEqual({
       buildingId: 'facility-1',
       assistantId: staffed.market!.assistantCoach!.id,
       assistantName: staffed.market!.assistantCoach!.name,
@@ -83,8 +86,11 @@ describe('staffed Coaching Office closure', () => {
     const staffed = staffedOffice(500, 4_000);
     const before = JSON.stringify(staffed);
 
-    expect(() => closeStaffedCareerCoachingOffice(staffed, 'facility-1'))
-      .toThrow('the club needs $250 more to cover assistant severance after the Coaching Office refund');
+    expect(() =>
+      closeStaffedCareerCoachingOffice(staffed, 'facility-1'),
+    ).toThrow(
+      'the club needs $250 more to cover assistant severance after the Coaching Office refund',
+    );
     expect(JSON.stringify(staffed)).toBe(before);
   });
 
@@ -99,17 +105,21 @@ describe('staffed Coaching Office closure', () => {
       },
     };
 
-    expect(() => closeStaffedCareerCoachingOffice(empty, 'facility-1'))
-      .toThrow('does not have an assistant');
+    expect(() => closeStaffedCareerCoachingOffice(empty, 'facility-1')).toThrow(
+      'does not have an assistant',
+    );
 
     const initial = createCareer(createLaunchCareerSetup(20260806));
-    const gym = completeProject(buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state);
+    const gym = completeProject(
+      buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state,
+    );
     const withAssistant = {
       ...gym,
       market: staffed.market,
     };
-    expect(() => closeStaffedCareerCoachingOffice(withAssistant, 'facility-1'))
-      .toThrow('is not a Coaching Office');
+    expect(() =>
+      closeStaffedCareerCoachingOffice(withAssistant, 'facility-1'),
+    ).toThrow('is not a Coaching Office');
   });
 });
 
@@ -118,22 +128,22 @@ function staffedOffice(cash: number, severanceCost: number): GameState {
   const office = completeProject(
     buildCareerFacility(initial, 'coaching-office', { x: 2, y: 0 }).state,
   );
-  const assistant = office.market!.coachCandidates.find(candidate => (
-    candidate.requiredDivision === 5
-  ));
+  const assistant = office.market!.coachCandidates.find(
+    (candidate) => candidate.requiredDivision === 5,
+  );
   if (assistant === undefined) throw new Error('missing D5 assistant fixture');
   return {
     ...office,
-    clubs: office.clubs.map(club => club.id === office.userClubId
-      ? { ...club, cash }
-      : club),
+    clubs: office.clubs.map((club) =>
+      club.id === office.userClubId ? { ...club, cash } : club,
+    ),
     market: {
       ...office.market!,
       assistantCoach: { ...assistant, weeklyWage: severanceCost },
       assistantCoachSeasonsEmployed: 0,
-      coachCandidates: office.market!.coachCandidates.filter(candidate => (
-        candidate.id !== assistant.id
-      )),
+      coachCandidates: office.market!.coachCandidates.filter(
+        (candidate) => candidate.id !== assistant.id,
+      ),
     },
   };
 }
@@ -149,7 +159,9 @@ function completeProject(state: GameState): GameState {
 }
 
 function userCash(state: GameState): number {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
   if (club === undefined) throw new Error('missing user club');
   return club.cash;
 }

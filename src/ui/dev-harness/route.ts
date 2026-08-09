@@ -42,10 +42,10 @@ export interface DevHarnessRoutableEntry {
 export type DevHarnessResolution =
   | { readonly kind: 'menu' }
   | {
-    readonly kind: 'entry';
-    readonly entryId: string;
-    readonly caseId: string;
-  };
+      readonly kind: 'entry';
+      readonly entryId: string;
+      readonly caseId: string;
+    };
 
 /**
  * Reads an address out of a location hash.
@@ -61,7 +61,7 @@ export function parseDevHarnessHash(hash: string): DevHarnessRoute {
     .replace(/^#/, '')
     .split('/')
     .map(safeDecode)
-    .filter(segment => segment.length > 0);
+    .filter((segment) => segment.length > 0);
 
   if (segments[0] !== HASH_PREFIX) return {};
 
@@ -79,7 +79,8 @@ export function parseDevHarnessHash(hash: string): DevHarnessRoute {
 export function formatDevHarnessHash(route: DevHarnessRoute): string {
   const { entryId, caseId } = route;
   if (entryId === undefined) return `#/${HASH_PREFIX}`;
-  if (caseId === undefined) return `#/${HASH_PREFIX}/${encodeURIComponent(entryId)}`;
+  if (caseId === undefined)
+    return `#/${HASH_PREFIX}/${encodeURIComponent(entryId)}`;
   return `#/${HASH_PREFIX}/${encodeURIComponent(entryId)}/${encodeURIComponent(caseId)}`;
 }
 
@@ -98,7 +99,7 @@ export function resolveDevHarnessRoute(
 ): DevHarnessResolution {
   if (route.entryId === undefined) return { kind: 'menu' };
 
-  const entry = entries.find(candidate => candidate.id === route.entryId);
+  const entry = entries.find((candidate) => candidate.id === route.entryId);
   if (entry === undefined) return { kind: 'menu' };
 
   const first = entry.cases[0];
@@ -107,13 +108,15 @@ export function resolveDevHarnessRoute(
   if (route.caseId === undefined) {
     return { kind: 'entry', entryId: entry.id, caseId: first.id };
   }
-  return entry.cases.some(candidate => candidate.id === route.caseId)
+  return entry.cases.some((candidate) => candidate.id === route.caseId)
     ? { kind: 'entry', entryId: entry.id, caseId: route.caseId }
     : { kind: 'menu' };
 }
 
 /** The address a resolution is at, so the hash can be normalised onto it. */
-export function resolvedDevHarnessRoute(resolution: DevHarnessResolution): DevHarnessRoute {
+export function resolvedDevHarnessRoute(
+  resolution: DevHarnessResolution,
+): DevHarnessRoute {
   return resolution.kind === 'menu'
     ? {}
     : { entryId: resolution.entryId, caseId: resolution.caseId };

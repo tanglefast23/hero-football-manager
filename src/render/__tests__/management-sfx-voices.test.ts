@@ -38,7 +38,8 @@ function createFakePlayer(): FakePlayer {
   let startTimer: ReturnType<typeof setTimeout> | null = null;
   let endTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const sounding = (): boolean => soundingUntil !== null && Date.now() < soundingUntil;
+  const sounding = (): boolean =>
+    soundingUntil !== null && Date.now() < soundingUntil;
 
   const scheduleEnd = (from: number): void => {
     if (endTimer !== null) clearTimeout(endTimer);
@@ -157,8 +158,10 @@ describe('rapid tap voices', () => {
       await advance(700);
     }
 
-    expect({ audibleStarts: totalAudibleStarts(), droppedPlays: totalDroppedPlays() })
-      .toEqual({ audibleStarts: 12, droppedPlays: 0 });
+    expect({
+      audibleStarts: totalAudibleStarts(),
+      droppedPlays: totalDroppedPlays(),
+    }).toEqual({ audibleStarts: 12, droppedPlays: 0 });
   });
 
   it('sounds a stepper tap once per press, at any pace', async () => {
@@ -169,8 +172,10 @@ describe('rapid tap voices', () => {
       await advance(260);
     }
 
-    expect({ audibleStarts: totalAudibleStarts(), droppedPlays: totalDroppedPlays() })
-      .toEqual({ audibleStarts: 12, droppedPlays: 0 });
+    expect({
+      audibleStarts: totalAudibleStarts(),
+      droppedPlays: totalDroppedPlays(),
+    }).toEqual({ audibleStarts: 12, droppedPlays: 0 });
   });
 
   it('still gives a held-down stepper one sound per press', async () => {
@@ -181,7 +186,9 @@ describe('rapid tap voices', () => {
       await advance(90);
     }
 
-    expect({ audibleStarts: totalAudibleStarts(), droppedPlays: totalDroppedPlays() })
-      .toEqual({ audibleStarts: 12, droppedPlays: 0 });
+    expect({
+      audibleStarts: totalAudibleStarts(),
+      droppedPlays: totalDroppedPlays(),
+    }).toEqual({ audibleStarts: 12, droppedPlays: 0 });
   });
 });

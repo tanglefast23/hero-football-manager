@@ -1,8 +1,17 @@
 import { useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
-import { SfxPressable } from './SfxPressable';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { languagePanelRows } from '../language-panel-rows';
 import { useCopy, localeMeta, type Locale } from '../../i18n';
+import { TYPE_SIZE } from '../ui-tokens';
+import { ChunkyControl } from './ChunkyControl';
+import { PixelLanguageIcon } from './PixelLanguageIcon';
 
 export interface LanguageButtonProps {
   value: Locale;
@@ -23,29 +32,41 @@ export interface LanguageButtonProps {
  * options and unusable at seven, and the player should be able to see their
  * language before choosing it, not step past it.
  */
-export function LanguageButton({ value, onChange, className }: LanguageButtonProps) {
+export function LanguageButton({
+  value,
+  onChange,
+  className,
+}: LanguageButtonProps) {
   const t = useCopy();
   const [open, setOpen] = useState(false);
+  const { height: viewportHeight } = useWindowDimensions();
   const rows = languagePanelRows(value);
   const current = localeMeta(value);
 
   return (
     <>
-      <SfxPressable
+      <ChunkyControl
         accessibilityRole="button"
-        accessibilityLabel={t('languageButton.a11y.current', { language: current.endonym })}
+        accessibilityLabel={t('languageButton.a11y.current', {
+          language: current.endonym,
+        })}
         onPress={() => {
           setOpen(true);
         }}
-        className={`min-h-9 flex-row items-center gap-2 border-2 border-ink bg-paper px-3 py-1 ${className ?? ''}`}
+        compact
+        square
+        tone="paper"
+        className={`min-h-11 flex-row items-center gap-2 px-3 ${className ?? ''}`}
+        style={{ minWidth: 44, minHeight: 44 }}
       >
-        {/* Not in either Silkscreen weight, so it falls back to the system face
-            on purpose — the same choice the difficulty radio makes for ●/○. */}
-        <Text className="text-xs text-ink/60">⌘</Text>
-        <Text className="text-xs uppercase text-ink" style={{ fontFamily: current.faces.display }}>
+        <PixelLanguageIcon />
+        <Text
+          className={`min-w-0 uppercase text-ink ${TYPE_SIZE.caption}`}
+          style={{ fontFamily: current.faces.display, flexShrink: 1 }}
+        >
           {current.endonym}
         </Text>
-      </SfxPressable>
+      </ChunkyControl>
 
       <Modal
         visible={open}
@@ -66,37 +87,50 @@ export function LanguageButton({ value, onChange, className }: LanguageButtonPro
           <View
             accessibilityRole="radiogroup"
             accessibilityLabel={t('creation.language.title')}
-            className="w-full max-w-sm gap-2 border-[3px] border-ink bg-paper p-4"
+            className="w-full max-w-sm border-[3px] border-ink bg-paper p-4"
+            style={{ maxHeight: Math.max(180, viewportHeight - 48) }}
           >
-            <Text className="font-pixel mb-1 text-[10px] uppercase tracking-[1px] text-ink/60">
+            <Text
+              className={`mb-1 font-pixel uppercase tracking-[1px] text-ink/60 ${TYPE_SIZE.caption}`}
+            >
               {t('creation.language.title')}
             </Text>
-            {rows.map(row => (
-              <SfxPressable
-                key={row.locale}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: row.selected }}
-                accessibilityLabel={row.endonym}
-                onPress={() => {
-                  onChange(row.locale);
-                  setOpen(false);
-                }}
-                className={row.selected
-                  ? 'min-h-12 flex-row items-center gap-2 border-2 border-ink bg-blue px-3 py-2'
-                  : 'min-h-12 flex-row items-center gap-2 border-2 border-ink/30 bg-white px-3 py-2'}
-              >
-                <Text className={row.selected ? 'text-base text-white' : 'text-base text-ink'}>
-                  {row.selected ? '●' : '○'}
-                </Text>
-                {/* Each row in its OWN face, not the active one. */}
-                <Text
-                  className={row.selected ? 'text-base text-white' : 'text-base text-ink'}
-                  style={{ fontFamily: row.face }}
+            <ScrollView
+              className="min-h-0"
+              contentContainerStyle={{ gap: 8 }}
+              showsVerticalScrollIndicator
+            >
+              {rows.map((row) => (
+                <ChunkyControl
+                  key={row.locale}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: row.selected }}
+                  accessibilityLabel={row.endonym}
+                  onPress={() => {
+                    onChange(row.locale);
+                    setOpen(false);
+                  }}
+                  compact
+                  square
+                  tone={row.selected ? 'primary' : 'paper'}
+                  className="min-h-12 flex-row items-center gap-2 px-3"
+                  style={{ minHeight: 44 }}
                 >
-                  {row.endonym}
-                </Text>
-              </SfxPressable>
-            ))}
+                  <Text
+                    className={`${TYPE_SIZE.body} ${row.selected ? 'text-white' : 'text-ink'}`}
+                  >
+                    {row.selected ? '●' : '○'}
+                  </Text>
+                  {/* Each row in its OWN face, not the active one. */}
+                  <Text
+                    className={`min-w-0 flex-1 ${TYPE_SIZE.body} ${row.selected ? 'text-white' : 'text-ink'}`}
+                    style={{ fontFamily: row.face }}
+                  >
+                    {row.endonym}
+                  </Text>
+                </ChunkyControl>
+              ))}
+            </ScrollView>
           </View>
         </Pressable>
       </Modal>

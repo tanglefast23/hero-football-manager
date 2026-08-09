@@ -70,8 +70,12 @@ describe('playerGrowthGrade', () => {
   });
 
   it('stays inside the grade scale at both extremes', () => {
-    const worst = playerGrowthGrade(player({ age: 34, potential: 1, archetype: undefined }));
-    const best = playerGrowthGrade(player({ age: 20, potential: 5, archetype: 'Prodigy' }));
+    const worst = playerGrowthGrade(
+      player({ age: 34, potential: 1, archetype: undefined }),
+    );
+    const best = playerGrowthGrade(
+      player({ age: 20, potential: 5, archetype: 'Prodigy' }),
+    );
 
     expect(POTENTIAL_GRADES).toContain(worst);
     expect(POTENTIAL_GRADES).toContain(best);

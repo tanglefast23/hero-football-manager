@@ -84,7 +84,8 @@ import { shouldRequestTransfer } from '../../game/pyramid';
 import { buildCareerMatchTeams } from '../../game/squad';
 import type { CareerPlayer } from '../../game/types';
 
-const describeProbe = process.env.PLAYER_REQUEST_DROUGHT_PROBE === '1' ? describe : describe.skip;
+const describeProbe =
+  process.env.PLAYER_REQUEST_DROUGHT_PROBE === '1' ? describe : describe.skip;
 const content = loadLaunchContent();
 const TUNING = content.playerRequests.tuning;
 
@@ -124,7 +125,7 @@ function newCareer(seed: number): GameState {
 }
 
 function userSquad(state: GameState): GameState['players'] {
-  return state.players.filter(player => player.clubId === state.userClubId);
+  return state.players.filter((player) => player.clubId === state.userClubId);
 }
 
 /**
@@ -143,10 +144,16 @@ function wouldAskToLeaveToday(player: CareerPlayer): boolean {
 
 function playMatchday(state: GameState): GameState {
   const matchday = activeCareerMatchday(state);
-  if (matchday === undefined) throw new Error('matchday phase without an active fixture');
-  const clubIds = [...new Set(matchday.fixtures.flatMap(
-    fixture => [fixture.homeClubId, fixture.awayClubId],
-  ))];
+  if (matchday === undefined)
+    throw new Error('matchday phase without an active fixture');
+  const clubIds = [
+    ...new Set(
+      matchday.fixtures.flatMap((fixture) => [
+        fixture.homeClubId,
+        fixture.awayClubId,
+      ]),
+    ),
+  ];
   return completeMatchday(
     state,
     resolveMatchday(matchday.fixtures, buildCareerMatchTeams(state, clubIds)),
@@ -159,14 +166,14 @@ function readWeek(
   pendingBefore: string | undefined,
 ): WeekRow {
   const squad = userSquad(after);
-  const listed = squad.filter(player => player.transferRequested === true);
+  const listed = squad.filter((player) => player.transferRequested === true);
   const pendingAfter = after.playerRequests?.pending;
   return {
     season: before.season,
     week: before.week,
     squad: squad.length,
     listed: listed.length,
-    stale: listed.filter(player => !wouldAskToLeaveToday(player)).length,
+    stale: listed.filter((player) => !wouldAskToLeaveToday(player)).length,
     eligible: eligibleAskers(squad, {
       ...(after.playerRequests?.lastAskingPlayerId === undefined
         ? {}
@@ -198,14 +205,16 @@ function runCareer(seed: number, answer: boolean): ArmResult {
 
   while (state.season <= SEASONS) {
     guard += 1;
-    if (guard > SEASONS * 400) throw new Error('drought probe exceeded its transition budget');
+    if (guard > SEASONS * 400)
+      throw new Error('drought probe exceeded its transition budget');
 
     if (state.phase === 'season-end') {
       if (state.season >= SEASONS) break;
-      for (const player of userSquad(state).filter(candidate => (
-        candidate.contractSeasonsRemaining === 0
-        && !willRetireAtSeasonTransition(candidate, state.season)
-      ))) {
+      for (const player of userSquad(state).filter(
+        (candidate) =>
+          candidate.contractSeasonsRemaining === 0 &&
+          !willRetireAtSeasonTransition(candidate, state.season),
+      )) {
         state = renewCareerPlayer(state, player.id, 4, 1);
       }
       state = startNextSeason(state);
@@ -220,13 +229,18 @@ function runCareer(seed: number, answer: boolean): ArmResult {
     state = settling ? playMatchday(before) : advanceWeek(before);
     if (!settling && state.phase === 'matchday') continue;
 
-    const opensRequests = before.season > TUNING.startSeason
-      || (before.season === TUNING.startSeason && before.week >= TUNING.startWeek);
+    const opensRequests =
+      before.season > TUNING.startSeason ||
+      (before.season === TUNING.startSeason && before.week >= TUNING.startWeek);
     if (opensRequests && state.phase !== 'season-end') {
       rows.push(readWeek(before, state, pendingBefore));
     }
 
-    if (answer && state.phase !== 'season-end' && state.playerRequests?.pending !== undefined) {
+    if (
+      answer &&
+      state.phase !== 'season-end' &&
+      state.playerRequests?.pending !== undefined
+    ) {
       const affordable = canAffordRequest(state);
       state = resolvePlayerRequest(
         state,
@@ -254,29 +268,35 @@ function longestSilence(rows: readonly WeekRow[]): number {
 
 function reportArm(label: string, arm: ArmResult): string[] {
   const { rows } = arm;
-  const silent = rows.filter(row => row.eligible === 0).length;
-  const opens = rows.filter(row => row.opened !== undefined).length;
+  const silent = rows.filter((row) => row.eligible === 0).length;
+  const opens = rows.filter((row) => row.opened !== undefined).length;
   const lines = [
     `  ${label}`,
-    `    weeks ${rows.length} · silent ${silent} (${Math.round(silent * 100 / rows.length)}%)`
-    + ` · longest silence ${longestSilence(rows)} wk`
-    + ` · asks ${opens} (granted ${arm.grants}, refused ${arm.refusals})`,
+    `    weeks ${rows.length} · silent ${silent} (${Math.round((silent * 100) / rows.length)}%)` +
+      ` · longest silence ${longestSilence(rows)} wk` +
+      ` · asks ${opens} (granted ${arm.grants}, refused ${arm.refusals})`,
     '    season  wks  squad  listed  stale  minPool  maxClock  opens',
   ];
   for (let season = TUNING.startSeason; season <= SEASONS; season += 1) {
-    const inSeason = rows.filter(row => row.season === season);
+    const inSeason = rows.filter((row) => row.season === season);
     if (inSeason.length === 0) continue;
     const last = inSeason[inSeason.length - 1]!;
-    lines.push([
-      String(season).padStart(10),
-      String(inSeason.length).padStart(5),
-      String(last.squad).padStart(7),
-      String(last.listed).padStart(8),
-      String(last.stale).padStart(7),
-      String(Math.min(...inSeason.map(row => row.eligible))).padStart(9),
-      String(Math.max(...inSeason.map(row => row.weeksSinceRequest))).padStart(10),
-      String(inSeason.filter(row => row.opened !== undefined).length).padStart(7),
-    ].join(''));
+    lines.push(
+      [
+        String(season).padStart(10),
+        String(inSeason.length).padStart(5),
+        String(last.squad).padStart(7),
+        String(last.listed).padStart(8),
+        String(last.stale).padStart(7),
+        String(Math.min(...inSeason.map((row) => row.eligible))).padStart(9),
+        String(
+          Math.max(...inSeason.map((row) => row.weeksSinceRequest)),
+        ).padStart(10),
+        String(
+          inSeason.filter((row) => row.opened !== undefined).length,
+        ).padStart(7),
+      ].join(''),
+    );
   }
   return lines;
 }
@@ -292,9 +312,16 @@ describeProbe('the player request drought under a manager who answers', () => {
 
     for (const seed of SEEDS) {
       lines.push(`seed ${seed}`);
-      lines.push(...reportArm('IGNORE  (answers nothing)', runCareer(seed, false)));
+      lines.push(
+        ...reportArm('IGNORE  (answers nothing)', runCareer(seed, false)),
+      );
       lines.push('');
-      lines.push(...reportArm('ANSWER  (settles every ask on sight)', runCareer(seed, true)));
+      lines.push(
+        ...reportArm(
+          'ANSWER  (settles every ask on sight)',
+          runCareer(seed, true),
+        ),
+      );
       lines.push('');
     }
 

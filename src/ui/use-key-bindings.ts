@@ -32,7 +32,11 @@ export interface KeyBindingContext {
  * (see PressResponder.isValidKeyPress). A global binding for them would run two
  * actions from one press, so the focused control wins.
  */
-const FOCUSED_CONTROL_KEYS: ReadonlySet<string> = new Set(['Enter', ' ', 'Spacebar']);
+const FOCUSED_CONTROL_KEYS: ReadonlySet<string> = new Set([
+  'Enter',
+  ' ',
+  'Spacebar',
+]);
 
 /** Uppercased tag name of a DOM-ish target, or '' when it has none. */
 function tagNameOf(target: unknown): string {
@@ -77,9 +81,11 @@ export function resolveKeyBinding(
   const { enabled = true, modalOpen = false } = context;
   if (!enabled || modalOpen) return undefined;
   // Browser and OS shortcuts (⌘1, Ctrl+R, Alt+←) stay with the browser.
-  if (event.ctrlKey === true || event.metaKey === true || event.altKey === true) return undefined;
+  if (event.ctrlKey === true || event.metaKey === true || event.altKey === true)
+    return undefined;
   if (isTypingTarget(event.target)) return undefined;
-  if (FOCUSED_CONTROL_KEYS.has(event.key) && hasFocusedControl(event.target)) return undefined;
+  if (FOCUSED_CONTROL_KEYS.has(event.key) && hasFocusedControl(event.target))
+    return undefined;
   return bindings[event.key];
 }
 
@@ -95,7 +101,10 @@ export function resolveKeyBinding(
 function hasKeyboardDom(): boolean {
   const page = typeof document === 'undefined' ? undefined : document;
   const view = typeof window === 'undefined' ? undefined : window;
-  return typeof page?.querySelector === 'function' && typeof view?.addEventListener === 'function';
+  return (
+    typeof page?.querySelector === 'function' &&
+    typeof view?.addEventListener === 'function'
+  );
 }
 
 /**

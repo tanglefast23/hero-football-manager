@@ -12,14 +12,20 @@ function seasonThreeMatch(seed = 20260805): {
   fixtureId: string;
   score: { homeGoals: number; awayGoals: number };
 } {
-  const career = createCareer(createLaunchCareerSetup(seed, undefined, content));
-  const fixture = career.fixtures.find(candidate => (
-    candidate.homeClubId === career.userClubId || candidate.awayClubId === career.userClubId
-  ));
-  if (fixture === undefined) throw new Error('launch career has no user fixture');
-  const score = fixture.homeClubId === career.userClubId
-    ? { homeGoals: 3, awayGoals: 1 }
-    : { homeGoals: 1, awayGoals: 3 };
+  const career = createCareer(
+    createLaunchCareerSetup(seed, undefined, content),
+  );
+  const fixture = career.fixtures.find(
+    (candidate) =>
+      candidate.homeClubId === career.userClubId ||
+      candidate.awayClubId === career.userClubId,
+  );
+  if (fixture === undefined)
+    throw new Error('launch career has no user fixture');
+  const score =
+    fixture.homeClubId === career.userClubId
+      ? { homeGoals: 3, awayGoals: 1 }
+      : { homeGoals: 1, awayGoals: 3 };
   return {
     before: {
       ...career,
@@ -36,7 +42,10 @@ function seasonThreeMatch(seed = 20260805): {
   };
 }
 
-function impact(fixtureId: string, overrides: Partial<PendingUserMatchImpact> = {}): PendingUserMatchImpact {
+function impact(
+  fixtureId: string,
+  overrides: Partial<PendingUserMatchImpact> = {},
+): PendingUserMatchImpact {
   return {
     fixtureId,
     competition: 'LEAGUE',
@@ -68,15 +77,23 @@ describe('post-match Buzz cause and effect', () => {
       },
     };
 
-    expect(postMatchViewModel(before, after, fixtureId, score, [], ['hero-one', 'hero-two']).buzz)
-      .toEqual({
-        earned: 11,
-        rawEarned: 11,
-        valueAfter: 51,
-        win: 4,
-        goals: 3,
-        heroMoments: 4,
-      });
+    expect(
+      postMatchViewModel(
+        before,
+        after,
+        fixtureId,
+        score,
+        [],
+        ['hero-one', 'hero-two'],
+      ).buzz,
+    ).toEqual({
+      earned: 11,
+      rawEarned: 11,
+      valueAfter: 51,
+      win: 4,
+      goals: 3,
+      heroMoments: 4,
+    });
   });
 
   it('credits only the current match when a league match is already pending', () => {
@@ -93,7 +110,10 @@ describe('post-match Buzz cause and effect', () => {
         pendingUserMatchImpacts: [prior],
       },
     };
-    const current = impact(fixtureId, { competition: 'CUP', settlementOrder: 1 });
+    const current = impact(fixtureId, {
+      competition: 'CUP',
+      settlementOrder: 1,
+    });
     const after: GameState = {
       ...before,
       clubBusiness: {
@@ -102,8 +122,16 @@ describe('post-match Buzz cause and effect', () => {
       },
     };
 
-    expect(postMatchViewModel(before, after, fixtureId, score, [], ['hero-one', 'hero-two']).buzz)
-      .toMatchObject({ earned: 11, rawEarned: 11, valueAfter: 59 });
+    expect(
+      postMatchViewModel(
+        before,
+        after,
+        fixtureId,
+        score,
+        [],
+        ['hero-one', 'hero-two'],
+      ).buzz,
+    ).toMatchObject({ earned: 11, rawEarned: 11, valueAfter: 59 });
   });
 
   it('reports cap-limited earnings without hiding the match contribution', () => {
@@ -123,8 +151,16 @@ describe('post-match Buzz cause and effect', () => {
       },
     };
 
-    expect(postMatchViewModel(before, after, fixtureId, score, [], ['hero-one', 'hero-two']).buzz)
-      .toMatchObject({ earned: 5, rawEarned: 11, valueAfter: 100 });
+    expect(
+      postMatchViewModel(
+        before,
+        after,
+        fixtureId,
+        score,
+        [],
+        ['hero-one', 'hero-two'],
+      ).buzz,
+    ).toMatchObject({ earned: 5, rawEarned: 11, valueAfter: 100 });
   });
 
   it('shows the new half-season payout and reset exactly once', () => {
@@ -152,10 +188,28 @@ describe('post-match Buzz cause and effect', () => {
         },
       },
     };
-    const first = postMatchViewModel(before, after, fixtureId, score, [], ['hero-one', 'hero-two']);
-    const reread = postMatchViewModel(after, after, fixtureId, score, [], ['hero-one', 'hero-two']);
+    const first = postMatchViewModel(
+      before,
+      after,
+      fixtureId,
+      score,
+      [],
+      ['hero-one', 'hero-two'],
+    );
+    const reread = postMatchViewModel(
+      after,
+      after,
+      fixtureId,
+      score,
+      [],
+      ['hero-one', 'hero-two'],
+    );
 
-    expect(first.buzz).toMatchObject({ earned: 11, valueAfter: 0, payout: 510 });
+    expect(first.buzz).toMatchObject({
+      earned: 11,
+      valueAfter: 0,
+      payout: 510,
+    });
     expect(reread.buzz?.payout).toBeUndefined();
   });
 
@@ -163,7 +217,11 @@ describe('post-match Buzz cause and effect', () => {
     const { before, fixtureId, score } = seasonThreeMatch();
     const seasonTwo = { ...before, season: 2 };
 
-    expect(postMatchViewModel(seasonTwo, seasonTwo, fixtureId, score, [], []).buzz).toBeUndefined();
-    expect(postMatchViewModel(before, before, fixtureId, score).buzz).toBeUndefined();
+    expect(
+      postMatchViewModel(seasonTwo, seasonTwo, fixtureId, score, [], []).buzz,
+    ).toBeUndefined();
+    expect(
+      postMatchViewModel(before, before, fixtureId, score).buzz,
+    ).toBeUndefined();
   });
 });

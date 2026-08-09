@@ -5,7 +5,10 @@ import { createCareer, type GameState } from '../../../game';
 import { createLaunchCareerSetup } from '../../../application/launch';
 import { seasonPodiumViewModel } from '../../../application/season-podium';
 import { SeasonPodiumScreen } from '../../screens/SeasonPodiumScreen';
-import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls';
+import {
+  DevHarnessButton,
+  devHarnessControlStyles,
+} from '../DevHarnessControls';
 import type { DevHarnessEntry } from '../registry';
 
 /**
@@ -22,12 +25,17 @@ import type { DevHarnessEntry } from '../registry';
  * the table is exactly the order below. Nothing about the podium is
  * re-implemented here, so a fault seen in the reel is a fault in the game.
  */
-export function SeasonPodiumReel({ caseId }: { readonly caseId: 'second' | 'third' }) {
+export function SeasonPodiumReel({
+  caseId,
+}: {
+  readonly caseId: 'second' | 'third';
+}) {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [runKey, setRunKey] = useState(0);
   const insets = useSafeAreaInsets();
   const viewModel = useMemo(
-    () => seasonPodiumViewModel(seasonEndedInPosition(caseId === 'second' ? 2 : 3)),
+    () =>
+      seasonPodiumViewModel(seasonEndedInPosition(caseId === 'second' ? 2 : 3)),
     [caseId],
   );
 
@@ -37,21 +45,23 @@ export function SeasonPodiumReel({ caseId }: { readonly caseId: 'second' | 'thir
         key={`${caseId}:${reduceMotion}:${runKey}`}
         viewModel={viewModel}
         reduceMotion={reduceMotion}
-        onComplete={() => setRunKey(current => current + 1)}
+        onComplete={() => setRunKey((current) => current + 1)}
       />
-      <View style={[styles.panel, { paddingBottom: Math.max(10, insets.bottom) }]}>
+      <View
+        style={[styles.panel, { paddingBottom: Math.max(10, insets.bottom) }]}
+      >
         <Text style={styles.note}>{CASE_NOTES[caseId]}</Text>
         <View style={devHarnessControlStyles.row}>
           <DevHarnessButton
             label={reduceMotion ? 'Motion: reduced' : 'Motion: full'}
             hint="Toggle reduced motion: the blocks, the hop and the confetti go static"
             selected={reduceMotion}
-            onPress={() => setReduceMotion(current => !current)}
+            onPress={() => setReduceMotion((current) => !current)}
           />
           <DevHarnessButton
             label="Replay"
             hint="Play the ceremony again from the top"
-            onPress={() => setRunKey(current => current + 1)}
+            onPress={() => setRunKey((current) => current + 1)}
           />
         </View>
       </View>
@@ -73,7 +83,9 @@ function seasonEndedInPosition(position: number): GameState {
   const cached = cache.get(position);
   if (cached !== undefined) return cached;
   const state = createCareer(createLaunchCareerSetup(777));
-  const others = state.clubs.map(club => club.id).filter(id => id !== state.userClubId);
+  const others = state.clubs
+    .map((club) => club.id)
+    .filter((id) => id !== state.userClubId);
   const order = [...others];
   order.splice(position - 1, 0, state.userClubId);
   const rank = new Map(order.map((clubId, index) => [clubId, index]));
@@ -81,12 +93,13 @@ function seasonEndedInPosition(position: number): GameState {
     ...state,
     week: 30,
     phase: 'season-end',
-    fixtures: state.fixtures.map(fixture => ({
+    fixtures: state.fixtures.map((fixture) => ({
       ...fixture,
       status: 'played' as const,
-      score: rank.get(fixture.homeClubId)! < rank.get(fixture.awayClubId)!
-        ? { homeGoals: 2, awayGoals: 0 }
-        : { homeGoals: 0, awayGoals: 2 },
+      score:
+        rank.get(fixture.homeClubId)! < rank.get(fixture.awayClubId)!
+          ? { homeGoals: 2, awayGoals: 0 }
+          : { homeGoals: 0, awayGoals: 2 },
     })),
   };
   cache.set(position, built);
@@ -94,15 +107,18 @@ function seasonEndedInPosition(position: number): GameState {
 }
 
 const CASE_NOTES: Readonly<Record<'second' | 'third', string>> = Object.freeze({
-  second: 'Finished 2nd · our club on the middle-left block, gold row second in the table',
-  third: 'Finished 3rd · our club on the lowest block, at the right of the podium',
+  second:
+    'Finished 2nd · our club on the middle-left block, gold row second in the table',
+  third:
+    'Finished 3rd · our club on the lowest block, at the right of the podium',
 });
 
 export const seasonPodiumEntry: DevHarnessEntry = Object.freeze({
   id: 'season-podium',
   group: 'Season',
   title: 'Season podium',
-  summary: 'The medal ceremony a second or third place finish plays before the awards.',
+  summary:
+    'The medal ceremony a second or third place finish plays before the awards.',
   cases: Object.freeze([
     { id: 'second', label: 'Second', note: CASE_NOTES.second },
     { id: 'third', label: 'Third', note: CASE_NOTES.third },

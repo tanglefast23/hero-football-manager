@@ -86,8 +86,15 @@ export const speechBubbleStyles = StyleSheet.create({
 export function SpeechBubbleTail({ left }: { left: number }) {
   return (
     <>
-      <View style={[speechBubbleStyles.tailBorder, { left: left - TAIL_HALF_WIDTH }]} />
-      <View style={[speechBubbleStyles.tailFill, { left: left - TAIL_FILL_INSET }]} />
+      <View
+        style={[
+          speechBubbleStyles.tailBorder,
+          { left: left - TAIL_HALF_WIDTH },
+        ]}
+      />
+      <View
+        style={[speechBubbleStyles.tailFill, { left: left - TAIL_FILL_INSET }]}
+      />
     </>
   );
 }

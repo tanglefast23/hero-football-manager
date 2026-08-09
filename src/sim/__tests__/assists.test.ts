@@ -4,10 +4,15 @@ import { GOAL_CENTER_X } from '../geometry';
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState, TeamDef } from '../types';
 
-const POLICIES = { homePolicy: 'FIRE_WHEN_READY' as const, awayPolicy: 'FIRE_WHEN_READY' as const };
+const POLICIES = {
+  homePolicy: 'FIRE_WHEN_READY' as const,
+  awayPolicy: 'FIRE_WHEN_READY' as const,
+};
 
 function rosterIds(team: TeamDef): Set<string> {
-  return new Set([...team.players, ...(team.bench ?? [])].map(player => player.id));
+  return new Set(
+    [...team.players, ...(team.bench ?? [])].map((player) => player.id),
+  );
 }
 
 /**
@@ -43,7 +48,13 @@ describe('assist tracking', () => {
     let goals = 0;
     let assisted = 0;
     for (let index = 0; index < 20; index += 1) {
-      const result = runMatch(900_000 + index * 7919, ROVERS, UNITED, [], POLICIES);
+      const result = runMatch(
+        900_000 + index * 7919,
+        ROVERS,
+        UNITED,
+        [],
+        POLICIES,
+      );
       for (const event of result.events) {
         if (event.kind !== 'GOAL') continue;
         goals += 1;
@@ -60,13 +71,19 @@ describe('assist tracking', () => {
   it('never credits the scorer with their own assist', () => {
     let checked = 0;
     for (let index = 0; index < 20; index += 1) {
-      const state = createMatch(900_000 + index * 7919, ROVERS, UNITED, POLICIES);
+      const state = createMatch(
+        900_000 + index * 7919,
+        ROVERS,
+        UNITED,
+        POLICIES,
+      );
       let read = 0;
       while (state.phase !== 'fulltime') {
         tick(state);
         for (; read < state.events.length; read += 1) {
           const event = state.events[read];
-          if (event.kind !== 'GOAL' || event.assistedById === undefined) continue;
+          if (event.kind !== 'GOAL' || event.assistedById === undefined)
+            continue;
           // Resolved from live state on the tick the goal landed. A slot map
           // taken at kickoff goes stale the moment anyone is substituted.
           expect(event.assistedById).not.toBe(state.players[event.by].def.id);
@@ -116,12 +133,19 @@ describe('assist tracking', () => {
 
     // The assister leaves the pitch and a substitute inherits slot 7. A
     // slot-based candidate would now resolve to the substitute instead.
-    state.players[7] = { ...state.players[7], def: { ...state.players[7].def, id: 'substitute-7' } };
+    state.players[7] = {
+      ...state.players[7],
+      def: { ...state.players[7].def, id: 'substitute-7' },
+    };
     stampGoal(state, 9);
 
-    const goals = state.events.filter(event => event.kind === 'GOAL');
+    const goals = state.events.filter((event) => event.kind === 'GOAL');
     expect(goals).toHaveLength(1);
-    expect(goals[0]).toMatchObject({ by: 9, team: 0, assistedById: assisterId });
+    expect(goals[0]).toMatchObject({
+      by: 9,
+      team: 0,
+      assistedById: assisterId,
+    });
   });
 
   it('clears the candidate when the other team takes the ball', () => {
@@ -142,8 +166,15 @@ describe('assist tracking', () => {
     state.ball = { kind: 'held', by: 7 };
     observePossession(state);
     state.ball = {
-      kind: 'pass', pos: { x: 0, y: 0 }, from: 7, to: 9,
-      willSucceed: true, interceptor: -1, z: 0, vz: 0, speed: 1,
+      kind: 'pass',
+      pos: { x: 0, y: 0 },
+      from: 7,
+      to: 9,
+      willSucceed: true,
+      interceptor: -1,
+      z: 0,
+      vz: 0,
+      speed: 1,
     };
     observePossession(state);
     state.ball = { kind: 'held', by: 9 };

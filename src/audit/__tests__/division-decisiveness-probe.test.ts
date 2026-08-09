@@ -23,18 +23,34 @@
  */
 import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';
-import { buildCareerMatchTeams, createCareer, type GameState } from '../../game';
+import {
+  buildCareerMatchTeams,
+  createCareer,
+  type GameState,
+} from '../../game';
 import { runMatch } from '../../sim/match';
 import type { Attrs, TeamDef } from '../../sim/types';
 import { mean } from '../opening/stats';
 
-const describeProbe = process.env.DIVISION_DECISIVENESS_PROBE === '1' ? describe : describe.skip;
+const describeProbe =
+  process.env.DIVISION_DECISIVENESS_PROBE === '1' ? describe : describe.skip;
 const content = loadLaunchContent();
 
 const SEEDS_PER_PAIRING = positiveIntegerEnv('DECISIVENESS_MATCHES', 120);
 const CAREER_SEED = 4_000_000;
-const ATTRS: readonly (keyof Attrs)[] = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'];
-const POLICIES = { homePolicy: 'FIRE_WHEN_READY' as const, awayPolicy: 'FIRE_WHEN_READY' as const };
+const ATTRS: readonly (keyof Attrs)[] = [
+  'pac',
+  'sho',
+  'pas',
+  'def',
+  'tec',
+  'sta',
+  'ref',
+];
+const POLICIES = {
+  homePolicy: 'FIRE_WHEN_READY' as const,
+  awayPolicy: 'FIRE_WHEN_READY' as const,
+};
 
 interface Row {
   readonly division: number;
@@ -50,13 +66,22 @@ interface Row {
 
 function squadMean(state: GameState, clubId: string): number {
   const team = buildCareerMatchTeams(state, [clubId])[clubId];
-  return mean(team.players.map(player => (
-    ATTRS.reduce((sum, key) => sum + player.attrs[key], 0) / ATTRS.length
-  )));
+  return mean(
+    team.players.map(
+      (player) =>
+        ATTRS.reduce((sum, key) => sum + player.attrs[key], 0) / ATTRS.length,
+    ),
+  );
 }
 
-function play(home: TeamDef, away: TeamDef, pairing: Row['pairing'], division: number,
-  homeMean: number, awayMean: number): Row {
+function play(
+  home: TeamDef,
+  away: TeamDef,
+  pairing: Row['pairing'],
+  division: number,
+  homeMean: number,
+  awayMean: number,
+): Row {
   let goals = 0;
   let draws = 0;
   let nilNil = 0;
@@ -76,8 +101,9 @@ function play(home: TeamDef, away: TeamDef, pairing: Row['pairing'], division: n
       goals += firstGoals + secondGoals;
       if (firstGoals === secondGoals) draws += 1;
       if (firstGoals === 0 && secondGoals === 0) nilNil += 1;
-      if (firstIsStronger ? firstGoals > secondGoals : secondGoals > firstGoals) strongerWins += 1;
-      shots += result.events.filter(event => event.kind === 'SHOT').length;
+      if (firstIsStronger ? firstGoals > secondGoals : secondGoals > firstGoals)
+        strongerWins += 1;
+      shots += result.events.filter((event) => event.kind === 'SHOT').length;
     }
   }
 
@@ -96,30 +122,51 @@ function play(home: TeamDef, away: TeamDef, pairing: Row['pairing'], division: n
 
 describeProbe('division decisiveness', () => {
   it('reports whether matches stay decisive as the pyramid climbs', () => {
-    const state = createCareer(createLaunchCareerSetup(CAREER_SEED, undefined, content));
+    const state = createCareer(
+      createLaunchCareerSetup(CAREER_SEED, undefined, content),
+    );
     const pyramid = state.m2?.pyramid;
-    if (pyramid === undefined) throw new Error('the career must have a pyramid');
+    if (pyramid === undefined)
+      throw new Error('the career must have a pyramid');
 
     const rows: Row[] = [];
     for (const division of [5, 4, 3, 2, 1]) {
-      const clubs = pyramid.divisions.find(candidate => candidate.level === division)?.clubs ?? [];
-      if (clubs.length < 4) throw new Error(`division ${division} has too few clubs`);
-      const ranked = [...clubs].sort((left, right) => right.squadStrength - left.squadStrength);
-      const teamsFor = (clubId: string) => buildCareerMatchTeams(state, [clubId])[clubId];
+      const clubs =
+        pyramid.divisions.find((candidate) => candidate.level === division)
+          ?.clubs ?? [];
+      if (clubs.length < 4)
+        throw new Error(`division ${division} has too few clubs`);
+      const ranked = [...clubs].sort(
+        (left, right) => right.squadStrength - left.squadStrength,
+      );
+      const teamsFor = (clubId: string) =>
+        buildCareerMatchTeams(state, [clubId])[clubId];
 
       const midA = ranked[Math.floor(ranked.length / 2) - 1];
       const midB = ranked[Math.floor(ranked.length / 2)];
-      rows.push(play(
-        teamsFor(midA.id), teamsFor(midB.id), 'peer', division,
-        squadMean(state, midA.id), squadMean(state, midB.id),
-      ));
+      rows.push(
+        play(
+          teamsFor(midA.id),
+          teamsFor(midB.id),
+          'peer',
+          division,
+          squadMean(state, midA.id),
+          squadMean(state, midB.id),
+        ),
+      );
 
       const best = ranked[0];
       const worst = ranked[ranked.length - 1];
-      rows.push(play(
-        teamsFor(best.id), teamsFor(worst.id), 'mismatch', division,
-        squadMean(state, best.id), squadMean(state, worst.id),
-      ));
+      rows.push(
+        play(
+          teamsFor(best.id),
+          teamsFor(worst.id),
+          'mismatch',
+          division,
+          squadMean(state, best.id),
+          squadMean(state, worst.id),
+        ),
+      );
     }
 
     const lines: string[] = [
@@ -129,13 +176,13 @@ describeProbe('division decisiveness', () => {
     ];
     for (const row of rows) {
       lines.push(
-        `D${row.division}   ${row.pairing.padEnd(9)}`
-        + ` ${row.homeMean.toFixed(1).padStart(6)} v ${row.awayMean.toFixed(1).padStart(6)}`
-        + ` ${row.goalsPerMatch.toFixed(2).padStart(12)}`
-        + ` ${pct(row.drawRate).padStart(7)}`
-        + ` ${pct(row.nilNilRate).padStart(6)}`
-        + ` ${pct(row.strongerWinRate).padStart(13)}`
-        + ` ${row.shotsPerMatch.toFixed(1).padStart(12)}`,
+        `D${row.division}   ${row.pairing.padEnd(9)}` +
+          ` ${row.homeMean.toFixed(1).padStart(6)} v ${row.awayMean.toFixed(1).padStart(6)}` +
+          ` ${row.goalsPerMatch.toFixed(2).padStart(12)}` +
+          ` ${pct(row.drawRate).padStart(7)}` +
+          ` ${pct(row.nilNilRate).padStart(6)}` +
+          ` ${pct(row.strongerWinRate).padStart(13)}` +
+          ` ${row.shotsPerMatch.toFixed(1).padStart(12)}`,
       );
     }
     // eslint-disable-next-line no-console

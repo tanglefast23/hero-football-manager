@@ -18,7 +18,10 @@ describe('Advisor lifts only Bert gates', () => {
 
     useM1Store.getState().advanceCareer();
 
-    expect(useM1Store.getState().career).toMatchObject({ week: 2, assistantMode: 'advisor' });
+    expect(useM1Store.getState().career).toMatchObject({
+      week: 2,
+      assistantMode: 'advisor',
+    });
     expect(useM1Store.getState().error).toBeNull();
   });
 
@@ -71,13 +74,21 @@ describe('changing Bert mid-career', () => {
     start('advisor');
     useM1Store.getState().reconcileAssistantInbox();
     const hidden = useM1Store.getState().career!;
-    expect(hidden.eventFlags.some(flag => flag.includes('advisor-suppressed'))).toBe(true);
-    expect(hidden.eventFlags.some(flag => flag.includes('inbox:queued'))).toBe(true);
+    expect(
+      hidden.eventFlags.some((flag) => flag.includes('advisor-suppressed')),
+    ).toBe(true);
+    expect(
+      hidden.eventFlags.some((flag) => flag.includes('inbox:queued')),
+    ).toBe(true);
 
     useM1Store.getState().setAssistantMode('teacher');
 
     const resumed = useM1Store.getState().career!;
-    expect(resumed.eventFlags.some(flag => flag.includes('advisor-suppressed'))).toBe(false);
-    expect(resumed.eventFlags.some(flag => flag.includes('inbox:queued'))).toBe(true);
+    expect(
+      resumed.eventFlags.some((flag) => flag.includes('advisor-suppressed')),
+    ).toBe(false);
+    expect(
+      resumed.eventFlags.some((flag) => flag.includes('inbox:queued')),
+    ).toBe(true);
   });
 });

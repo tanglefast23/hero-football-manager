@@ -1,5 +1,12 @@
-import { AWARD_CATEGORIES, divisionLeaderBoard } from '../game/division-leaders';
-import type { AwardCategoryId, CareerPlayer, PlayerSeasonStatLine } from '../game/types';
+import {
+  AWARD_CATEGORIES,
+  divisionLeaderBoard,
+} from '../game/division-leaders';
+import type {
+  AwardCategoryId,
+  CareerPlayer,
+  PlayerSeasonStatLine,
+} from '../game/types';
 import type {
   M2DivisionLeadersViewModel,
   M2LeaderBoardViewModel,
@@ -21,7 +28,10 @@ function englishCopy(): CopyFn {
  * the two orders would cost one of them the thing it is ordered for.
  */
 const BOARD_ORDER: readonly AwardCategoryId[] = [
-  'goals', 'passesCompleted', 'tacklesWon', 'saves',
+  'goals',
+  'passesCompleted',
+  'tacklesWon',
+  'saves',
 ];
 
 /** Five names read at a glance; a longer board is a table, not a leaderboard. */
@@ -40,7 +50,7 @@ export function divisionLeadersViewModel(
   source: DivisionLeadersViewModelSource,
   t: CopyFn = englishCopy(),
 ): M2DivisionLeadersViewModel {
-  const boards: M2LeaderBoardViewModel[] = BOARD_ORDER.map(categoryId => {
+  const boards: M2LeaderBoardViewModel[] = BOARD_ORDER.map((categoryId) => {
     const category = AWARD_CATEGORIES[categoryId];
     const entries = divisionLeaderBoard({
       category: categoryId,
@@ -48,7 +58,7 @@ export function divisionLeadersViewModel(
       players: source.players,
       statLines: source.statLines,
       limit: BOARD_LIMIT,
-    }).map(entry => ({
+    }).map((entry) => ({
       position: entry.position,
       playerId: entry.playerId,
       playerName: entry.playerName,
@@ -63,7 +73,11 @@ export function divisionLeadersViewModel(
       // The pure ring writes the English and the key; the club reads whichever
       // of the two its language has. See `AWARD_CATEGORIES`.
       boardLabel: copyOrEnglish(t, category.boardLabelKey, category.boardLabel),
-      metricLabel: copyOrEnglish(t, category.metricLabelKey, category.metricLabel),
+      metricLabel: copyOrEnglish(
+        t,
+        category.metricLabelKey,
+        category.metricLabel,
+      ),
       emptyLabel: t('m2League.noneRecordedYetThisSeason', {
         metric: copyOrEnglish(
           t,

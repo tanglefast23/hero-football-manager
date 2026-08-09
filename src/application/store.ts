@@ -1,4 +1,8 @@
-import { adjacencyDescription, copyOrEnglish, facilityName } from './copy-fallback';
+import {
+  adjacencyDescription,
+  copyOrEnglish,
+  facilityName,
+} from './copy-fallback';
 import { create } from 'zustand';
 import { loadLaunchContent } from '../content';
 import {
@@ -111,8 +115,15 @@ import type {
   QuickResultFaceOffViewModel,
   WeeklyReviewViewModel,
 } from '../ui';
-import { createLaunchCareerSetup, generateCareerSeed, reconcileLaunchRoster } from './launch';
-import { cachedRivalResults, clearRivalResultCache } from './rival-result-cache';
+import {
+  createLaunchCareerSetup,
+  generateCareerSeed,
+  reconcileLaunchRoster,
+} from './launch';
+import {
+  cachedRivalResults,
+  clearRivalResultCache,
+} from './rival-result-cache';
 import { quickResultFaceOffViewModel } from './quick-result-faceoff';
 import { careerMarketScoutOptions } from './market-source-adapter';
 import {
@@ -159,7 +170,13 @@ import {
 } from './endgame-celebration';
 import { recordHallOfFame } from './hall-of-fame';
 import { projectedSeasonEndContractPromiseHeroLimit } from './contract-promise-projection';
-import { copyFor, type CopyFn, type CopyParams } from '../i18n';
+import {
+  copyFor,
+  formatIntegerForCopy,
+  formatMoneyForCopy,
+  type CopyFn,
+  type CopyParams,
+} from '../i18n';
 
 /**
  * The store's own `t`.
@@ -188,11 +205,14 @@ export function setStoreCopy(copy: CopyFn): void {
 }
 
 const launchContent = loadLaunchContent();
-const awakeningPowerIds = launchContent.powers.powers.map(power => power.id);
-const awakeningTriggerIds = launchContent.onboarding.triggers.map(trigger => trigger.id);
+const awakeningPowerIds = launchContent.powers.powers.map((power) => power.id);
+const awakeningTriggerIds = launchContent.onboarding.triggers.map(
+  (trigger) => trigger.id,
+);
 const awakeningTuning = {
   chancePercent: launchContent.powers.awakening.postMatchChancePercent,
-  secondInSeasonChancePercent: launchContent.powers.awakening.secondInSeasonChancePercent,
+  secondInSeasonChancePercent:
+    launchContent.powers.awakening.secondInSeasonChancePercent,
   maxPerSeason: launchContent.powers.awakening.maxPerSeason,
   minimumMatchesBetween: launchContent.powers.awakening.minimumMatchesBetween,
 };
@@ -250,9 +270,9 @@ async function withExclusiveSave<T>(task: () => Promise<T>): Promise<T> {
  * Writes a queued career save immediately, ahead of the save queue, and then
  * waits for the queue to settle.
  *
- * For the web build on a tablet: iOS kills a hidden web app without warning, and
- * a career write can be sitting in the serial queue behind something long (a
- * replay write, or the four rival matches fulltime sims — measured at 571ms).
+ * On native and installed web builds, the OS may suspend or kill the app after
+ * it leaves the foreground. A career write can be sitting in the serial queue
+ * behind something long (a replay write, or rival fixture settlement).
  * Waiting for the queue would not help, because the chain runs at its own pace
  * either way; the only thing that shortens the window is doing the write now.
  * The payload is withdrawn first, so the task already queued for it recognises
@@ -268,11 +288,11 @@ export async function flushPendingCareerSave(): Promise<void> {
   const set = (partial: Partial<M1Store>) => useM1Store.setState(partial);
   const repository = get().repository;
   if (
-    snapshot !== null
-    && repository !== null
-    && exclusiveSaveDepth === 0
-    && snapshot.lineage === careerLineage
-    && get().persistenceLoadError === null
+    snapshot !== null &&
+    repository !== null &&
+    exclusiveSaveDepth === 0 &&
+    snapshot.lineage === careerLineage &&
+    get().persistenceLoadError === null
   ) {
     pendingCareerSave = null;
     try {
@@ -358,7 +378,10 @@ export interface WatchedMatch {
 export type PostMatchOverlay = 'summary' | null;
 
 /** The latest tap's outcome, sequenced so the popup can animate repeats. */
-export interface InstantDrillResult extends Omit<InstantDrillResolution, 'state'> {
+export interface InstantDrillResult extends Omit<
+  InstantDrillResolution,
+  'state'
+> {
   sequence: number;
   /**
    * Which drill this was in the whole career. Carried on the result rather than
@@ -382,8 +405,6 @@ interface M1Store {
   repository: CareerRepository | null;
   replayRepository: ReplayRepository | null;
   persistenceLoadError: string | null;
-  rawExportRequired: boolean;
-  rawExportSucceeded: boolean;
   persistenceReady: boolean;
   saving: boolean;
   hasSavedCareer: boolean;
@@ -438,9 +459,6 @@ interface M1Store {
     replayRepository?: ReplayRepository,
   ) => Promise<void>;
   discardUnreadableSave: () => Promise<void>;
-  exportUnreadableSave: (
-    share: (fileName: string, contents: string) => Promise<void>,
-  ) => Promise<void>;
   restoreBackupSave: () => Promise<void>;
   /** Debug UI only: replaces the live career with an exact stored snapshot. */
   restoreDeveloperSave: (state: GameState, slotLabel: string) => void;
@@ -474,7 +492,9 @@ interface M1Store {
   openMatchday: () => void;
   openCupFixture: (fixtureId: string) => void;
   advanceCareer: () => void;
-  quickResult: (preferences?: Pick<ManagerMatchPreferences, 'initialFormation'>) => void;
+  quickResult: (
+    preferences?: Pick<ManagerMatchPreferences, 'initialFormation'>,
+  ) => void;
   watchMatch: () => void;
   finishWatchedMatch: (result: MatchState) => void;
   continueAfterMatch: () => Promise<void>;
@@ -510,11 +530,18 @@ interface M1Store {
   buildFacility: () => void;
   buildClubFacility: (type: FacilityType, position: FacilityPosition) => void;
   upgradeClubFacility: (buildingId: string) => void;
-  relocateClubFacility: (buildingId: string, position: FacilityPosition) => void;
+  relocateClubFacility: (
+    buildingId: string,
+    position: FacilityPosition,
+  ) => void;
   closeClubFacility: (buildingId: string) => void;
   startScoutMission: (optionId: string) => void;
   openScoutReport: (playerId: string) => void;
-  actOnTransfer: (playerId: string, direction: 'BUY' | 'SELL', bidId?: string) => void;
+  actOnTransfer: (
+    playerId: string,
+    direction: 'BUY' | 'SELL',
+    bidId?: string,
+  ) => void;
   hireCoach: (coachId: string, role?: 'HEAD' | 'ASSISTANT') => void;
   dismissCoach: (role?: 'HEAD' | 'ASSISTANT') => void;
   protectBoardCandidate: (playerId: string) => void;
@@ -538,8 +565,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
   repository: null,
   replayRepository: null,
   persistenceLoadError: null,
-  rawExportRequired: false,
-  rawExportSucceeded: false,
   persistenceReady: false,
   saving: false,
   hasSavedCareer: false,
@@ -569,7 +594,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
     retireCareerLineage();
     try {
       const loadedCareer = await repository.load();
-      const career = loadedCareer === null ? null : reconcileLoadedCareer(loadedCareer);
+      const career =
+        loadedCareer === null ? null : reconcileLoadedCareer(loadedCareer);
       set({
         repository,
         replayRepository: replayRepository ?? null,
@@ -584,8 +610,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
         faceOff: null,
         pendingPostFaceOffScreen: null,
         persistenceLoadError: null,
-        rawExportRequired: false,
-        rawExportSucceeded: false,
         backupSummary: await backupSummaryFailSoft(repository),
         error: null,
       });
@@ -593,7 +617,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // queue AFTER the career is installed: a save that fails here (full
       // disk) must warn, not turn a perfectly readable career into the
       // "save could not be loaded" screen whose options include deleting it.
-      if (career !== null && career !== loadedCareer) queueCareerSave(get, set, career);
+      if (career !== null && career !== loadedCareer)
+        queueCareerSave(get, set, career);
     } catch (error) {
       // Whether the file itself is damaged decides which way out is worth
       // offering: restoring the backup, or wiping the database and starting over.
@@ -609,54 +634,22 @@ export const useM1Store = create<M1Store>((set, get) => ({
           // carries edge whitespace, and a translator cannot be asked to keep it.
           damage: damaged ? ` ${t('store.saveDatabaseDamaged')}` : '',
         }),
-        rawExportRequired: false,
-        rawExportSucceeded: false,
       });
     }
-  },
-
-  async exportUnreadableSave(share) {
-    const { repository, persistenceLoadError } = get();
-    if (repository === null || persistenceLoadError === null) return;
-    set({ rawExportRequired: true, rawExportSucceeded: false });
-    try {
-      const raw = await repository.loadRaw();
-      if (raw === null) throw new Error('the stored career row is missing');
-      const fileName = `hero-football-manager-raw-schema-${raw.schemaVersion}.json`;
-      await share(fileName, raw.stateJson);
-    } catch (error) {
-      set({
-        persistenceLoadError: t('store.rawExportFailed', { reason: errorMessage(error) }),
-      });
-      return;
-    }
-    set({
-      rawExportSucceeded: true,
-      notice: { tone: 'info', message: t('store.rawExportSucceeded') },
-    });
   },
 
   async discardUnreadableSave() {
-    const {
-      repository,
-      persistenceLoadError,
-      rawExportRequired,
-      rawExportSucceeded,
-    } = get();
+    const { repository, persistenceLoadError } = get();
     if (repository === null || persistenceLoadError === null) return;
-    if (rawExportRequired && !rawExportSucceeded) {
-      set({
-        persistenceLoadError: t('store.rawExportUnfinished'),
-      });
-      return;
-    }
     try {
       // One transaction across both generations, so no queue-jumping save may
       // land inside it.
       await withExclusiveSave(() => repository.delete());
     } catch (error) {
       set({
-        persistenceLoadError: t('store.saveDeleteFailed', { reason: errorMessage(error) }),
+        persistenceLoadError: t('store.saveDeleteFailed', {
+          reason: errorMessage(error),
+        }),
       });
       return;
     }
@@ -664,8 +657,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
     retireCareerLineage();
     set({
       persistenceLoadError: null,
-      rawExportRequired: false,
-      rawExportSucceeded: false,
       career: null,
       hasSavedCareer: false,
       lastPersistedCareer: null,
@@ -698,7 +689,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
       written = await withExclusiveSave(() => repository.restoreBackup());
       restored = reconcileLoadedCareer(written);
     } catch (error) {
-      set({ persistenceLoadError: t('store.backupRestoreFailed', { reason: errorMessage(error) }) });
+      set({
+        persistenceLoadError: t('store.backupRestoreFailed', {
+          reason: errorMessage(error),
+        }),
+      });
       return;
     }
     retireCareerLineage();
@@ -749,7 +744,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
         faceOff: null,
         pendingPostFaceOffScreen: null,
         error: null,
-        notice: { tone: 'info', message: t('store.developerSaveLoaded', { slot: slotLabel }) },
+        notice: {
+          tone: 'info',
+          message: t('store.developerSaveLoaded', { slot: slotLabel }),
+        },
       });
       clearSaveFailures(set);
       queueCareerSave(get, set, restored);
@@ -782,9 +780,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         ),
         playerRequestRules: launchContent.playerRequests,
       });
-      const career = beginStoryOnboarding(assistantMode === undefined
-        ? created
-        : { ...created, assistantMode });
+      const career = beginStoryOnboarding(
+        assistantMode === undefined ? created : { ...created, assistantMode },
+      );
       set({
         career,
         hasSavedCareer: true,
@@ -832,9 +830,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
     if (career === null) return;
     guarded(set, () => {
       const changed = { ...career, assistantMode };
-      const next = assistantMode === 'teacher'
-        ? clearAdvisorAssistantInboxSuppressions(changed)
-        : changed;
+      const next =
+        assistantMode === 'teacher'
+          ? clearAdvisorAssistantInboxSuppressions(changed)
+          : changed;
       set({ career: next, inboxDutyReminder: null, error: null });
       queueCareerSave(get, set, next);
     });
@@ -843,7 +842,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
   completePlayerCreation(draft) {
     guarded(set, () => {
       const next = addCreatedPlayer(requireCareer(get()), draft);
-      set({ career: next, screen: 'management', activeTab: 'home', error: null });
+      set({
+        career: next,
+        screen: 'management',
+        activeTab: 'home',
+        error: null,
+      });
       queueCareerSave(get, set, next);
     });
   },
@@ -852,7 +856,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       const pending = career.awakening.pending;
-      if (pending === undefined) throw new Error('there is no awakening cutscene to finish');
+      if (pending === undefined)
+        throw new Error('there is no awakening cutscene to finish');
       const next = completePostMatchAwakening(career);
       // Every awakening still owes the manager that match's accounts, including
       // the story's first hero — skipping it hid the opening match's whole ledger.
@@ -861,7 +866,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         ? 'postmatch'
         : career.phase === 'season-end' || career.phase === 'complete'
           ? seasonBoundaryScreen(next)
-          : career.phase === 'matchday' ? 'matchday' : 'management';
+          : career.phase === 'matchday'
+            ? 'matchday'
+            : 'management';
       set({
         career: next,
         screen,
@@ -878,10 +885,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
   setActiveTab(activeTab) {
     const current = get();
     if (
-      current.screen === 'matchday'
-      && current.career !== null
-      && pendingRivalHeroIntro(current.career) !== undefined
-    ) return;
+      current.screen === 'matchday' &&
+      current.career !== null &&
+      pendingRivalHeroIntro(current.career) !== undefined
+    )
+      return;
     if (activeTab === 'market') {
       const career = get().career;
       if (career?.market === undefined) {
@@ -905,9 +913,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
     // A week reached through a match has no review to hand the story over, so
     // this is where its opening beat arrives: the desk has just come up and the
     // story settles onto it. Same rule either way — read it entering the week.
-    const opensStory = career.pendingEvent === undefined
-      && next.pendingEvent !== undefined
-      && get().screen === 'management';
+    const opensStory =
+      career.pendingEvent === undefined &&
+      next.pendingEvent !== undefined &&
+      get().screen === 'management';
     set({ career: next, ...(opensStory ? { screen: 'event' as const } : {}) });
     queueCareerSave(get, set, next);
   },
@@ -932,7 +941,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   completeAssistantGuide(sequenceId) {
     guarded(set, () => {
-      const next = completeAssistantGuideSequence(requireCareer(get()), sequenceId);
+      const next = completeAssistantGuideSequence(
+        requireCareer(get()),
+        sequenceId,
+      );
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -1006,9 +1018,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
   dismissInboxProduct(alertId, scope = 'current-week') {
     guarded(set, () => {
       const career = requireCareer(get());
-      const next = scope === 'permanent'
-        ? dismissAssistantInboxProductPermanently(career, alertId)
-        : dismissAssistantInboxProductForCurrentWeek(career, alertId);
+      const next =
+        scope === 'permanent'
+          ? dismissAssistantInboxProductPermanently(career, alertId)
+          : dismissAssistantInboxProductForCurrentWeek(career, alertId);
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -1031,9 +1044,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
     }
     const matchday = activeCareerMatchday(career);
     if (
-      career.phase !== 'matchday'
-      || matchday?.kind !== 'national-cup'
-      || matchday.fixture.id !== fixtureId
+      career.phase !== 'matchday' ||
+      matchday?.kind !== 'national-cup' ||
+      matchday.fixture.id !== fixtureId
     ) {
       set({ error: t('store.leagueMatchFirst') });
       return;
@@ -1056,34 +1069,38 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (career.onboarding?.stage === 'create-player') {
         throw new Error(t('store.createPlayerFirst'));
       }
-      if (career.awakening.pending !== undefined || career.onboarding?.stage === 'reveal') {
+      if (
+        career.awakening.pending !== undefined ||
+        career.onboarding?.stage === 'reveal'
+      ) {
         set({ screen: 'awakening', error: null });
         return;
       }
       if (
-        assistantTeaches(career)
-        && hasAssistantGuideMilestone(career, 'intro-complete')
-        && !hasAssistantGuideMilestone(career, 'first-training-complete')
+        assistantTeaches(career) &&
+        hasAssistantGuideMilestone(career, 'intro-complete') &&
+        !hasAssistantGuideMilestone(career, 'first-training-complete')
       ) {
         throw new Error(t('store.trainBeforeAdvancing'));
       }
-      const guidedFirstWeek = assistantTeaches(career)
-        && hasAssistantGuideMilestone(career, 'intro-complete')
-        && hasAssistantGuideMilestone(career, 'first-training-complete')
-        && !hasAssistantGuideMilestone(career, 'first-week-advanced');
+      const guidedFirstWeek =
+        assistantTeaches(career) &&
+        hasAssistantGuideMilestone(career, 'intro-complete') &&
+        hasAssistantGuideMilestone(career, 'first-training-complete') &&
+        !hasAssistantGuideMilestone(career, 'first-week-advanced');
       if (guidedFirstWeek) {
         const activeTab = get().activeTab;
         if (activeTab !== 'home' && activeTab !== 'club') {
           throw new Error(t('store.returnHomeAndCheckInbox'));
         }
-        const trainingGroundStarted = career.facilities.trainingGroundBuilt
-          || (
-            career.facilities.grid?.construction?.kind === 'BUILD'
-            && career.facilities.grid.construction.type === 'training-pitch'
-          );
-        const recoveringWrongOpeningProject = openingTrainingPitchRequired(career)
-          && career.facilities.grid?.construction !== undefined
-          && career.facilities.grid.construction.type !== 'training-pitch';
+        const trainingGroundStarted =
+          career.facilities.trainingGroundBuilt ||
+          (career.facilities.grid?.construction?.kind === 'BUILD' &&
+            career.facilities.grid.construction.type === 'training-pitch');
+        const recoveringWrongOpeningProject =
+          openingTrainingPitchRequired(career) &&
+          career.facilities.grid?.construction !== undefined &&
+          career.facilities.grid.construction.type !== 'training-pitch';
         if (!trainingGroundStarted && !recoveringWrongOpeningProject) {
           throw new Error(t('store.buildTrainingGroundFirst'));
         }
@@ -1091,9 +1108,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
           throw new Error(t('store.returnHomeBeforeAdvancing'));
         }
         if (
-          !recoveringWrongOpeningProject
-          && career.market !== undefined
-          && career.market.headCoach === undefined
+          !recoveringWrongOpeningProject &&
+          career.market !== undefined &&
+          career.market.headCoach === undefined
         ) {
           set({
             error: null,
@@ -1119,13 +1136,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
         return;
       }
       if (career.phase === 'season-end') {
-        const guidedCareer = career.eventFlags.includes('m4:season-recap-guide-seen')
+        const guidedCareer = career.eventFlags.includes(
+          'm4:season-recap-guide-seen',
+        )
           ? career
-          : { ...career, eventFlags: [...career.eventFlags, 'm4:season-recap-guide-seen'] };
+          : {
+              ...career,
+              eventFlags: [...career.eventFlags, 'm4:season-recap-guide-seen'],
+            };
         const next = reconcilePendingClubLegends(startNextSeason(guidedCareer));
         set({
           career: next,
-          screen: nextPendingClubLegend(next) === undefined ? 'management' : 'legacy',
+          screen:
+            nextPendingClubLegend(next) === undefined ? 'management' : 'legacy',
           activeTab: 'home',
           weekReview: null,
           error: null,
@@ -1168,35 +1191,42 @@ export const useM1Store = create<M1Store>((set, get) => ({
       }
 
       const advanced = advanceWeek(career);
-      const withMilestone = advanced.week !== career.week
-        && hasAssistantGuideMilestone(career, 'first-training-complete')
-        ? completeAssistantGuideMilestone(advanced, 'first-week-advanced')
-        : advanced;
+      const withMilestone =
+        advanced.week !== career.week &&
+        hasAssistantGuideMilestone(career, 'first-training-complete')
+          ? completeAssistantGuideMilestone(advanced, 'first-week-advanced')
+          : advanced;
       // Stories belong to the week being entered, not the one being left, so the
       // card is already on the desk when the manager first sees the new week.
       const next = reconcilePendingCareerEvent(
         settleWeeklyTip(settleWeeklyStory(withMilestone)),
         launchContent.events,
       );
-      const weekReview = next.phase === 'manage' && next.week !== career.week
-        ? weeklyReviewViewModel(career, next, t)
-        : null;
+      const weekReview =
+        next.phase === 'manage' && next.week !== career.week
+          ? weeklyReviewViewModel(career, next, t)
+          : null;
       // Announced on arrival at a new week that has a fixture, and only then:
       // the week review comes first, so the card is waiting on the desk behind
       // it rather than competing with it. A week that merely CONTAINS the
       // matchday phase (the same week, one press later) is already past its
       // announcement, so the week must actually have changed.
-      const matchDayBanner = matchDayBannerOnArrival(career, next, get().matchDayBanner);
+      const matchDayBanner = matchDayBannerOnArrival(
+        career,
+        next,
+        get().matchDayBanner,
+      );
       set({
         career: next,
         matchDayBanner,
-        screen: weekReview !== null
-          ? 'week-review'
-          : next.phase === 'matchday'
-          ? 'matchday'
-          : next.phase === 'season-end' || next.phase === 'complete'
-            ? seasonBoundaryScreen(next)
-            : 'management',
+        screen:
+          weekReview !== null
+            ? 'week-review'
+            : next.phase === 'matchday'
+              ? 'matchday'
+              : next.phase === 'season-end' || next.phase === 'complete'
+                ? seasonBoundaryScreen(next)
+                : 'management',
         weekReview,
         error: null,
       });
@@ -1227,21 +1257,26 @@ export const useM1Store = create<M1Store>((set, get) => ({
         autoSubs: true,
       });
       const production = quickMatch.production;
-      if (production === undefined) throw new Error('Quick Result did not produce user match facts');
+      if (production === undefined)
+        throw new Error('Quick Result did not produce user match facts');
       // Whatever the preload finished is handed over as a supplied result, so
       // `resolveMatchday` simulates only what is genuinely missing. A cold or
       // stale cache contributes nothing and it simulates all four, as before.
-      const results = kind === 'league'
-        ? resolveMatchday(fixtures, teams, [
-            production.fixtureResult,
-            ...cachedRivalResults(
-              fixtures.filter(candidate => candidate.id !== fixture.id),
-              teams,
-            ),
-          ])
-        : [production.fixtureResult];
-      const userResult = results.find(result => result.fixtureId === fixture.id);
-      if (userResult === undefined) throw new Error('the user fixture did not produce a result');
+      const results =
+        kind === 'league'
+          ? resolveMatchday(fixtures, teams, [
+              production.fixtureResult,
+              ...cachedRivalResults(
+                fixtures.filter((candidate) => candidate.id !== fixture.id),
+                teams,
+              ),
+            ])
+          : [production.fixtureResult];
+      const userResult = results.find(
+        (result) => result.fixtureId === fixture.id,
+      );
+      if (userResult === undefined)
+        throw new Error('the user fixture did not produce a result');
       const after = completeMatchday(before, results, production);
       // The week is settled; nothing may claim these again, and the fingerprints
       // are large enough that a season of them would be worth real memory.
@@ -1250,16 +1285,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const completed = isOnboardingMatch
         ? completeFirstOnboardingMatch(after, fixture.id)
         : after;
-      const awakening = kind === 'league'
-        ? resolvePostMatchAwakening(
-            completed,
-            fixture.id,
-            production.participantPlayerIds,
-            awakeningPowerIds,
-            awakeningTriggerIds,
-            awakeningTuning,
-          )
-        : { state: completed, awakened: false };
+      const awakening =
+        kind === 'league'
+          ? resolvePostMatchAwakening(
+              completed,
+              fixture.id,
+              production.participantPlayerIds,
+              awakeningPowerIds,
+              awakeningTriggerIds,
+              awakeningTuning,
+            )
+          : { state: completed, awakened: false };
       const next = awakening.state;
       // The onboarding match earns its statement too; the awakening cutscene
       // runs first, so the payoff still lands before any accounting.
@@ -1272,7 +1308,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         production.powerFiredPlayerIds,
         t,
       );
-      const destination = awakening.awakened ? 'awakening' as const : 'postmatch' as const;
+      const destination = awakening.awakened
+        ? ('awakening' as const)
+        : ('postmatch' as const);
       /**
        * The face-off, built from the PRE-SETTLEMENT capture at the top of this
        * call — `teams`, `fixture` and `before.userClubId`.
@@ -1290,15 +1328,21 @@ export const useM1Store = create<M1Store>((set, get) => ({
        * penalties — reading the score would call every shoot-out a draw.
        */
       const userIsHome = fixture.homeClubId === before.userClubId;
-      const clubTeam = teams[userIsHome ? fixture.homeClubId : fixture.awayClubId];
-      const opponentTeam = teams[userIsHome ? fixture.awayClubId : fixture.homeClubId];
-      const faceOff = clubTeam === undefined || opponentTeam === undefined
-        ? null
-        : quickResultFaceOffViewModel({
-            clubTeam,
-            opponentTeam,
-            outcomeLabel: postMatch.result.outcomeLabel,
-          }, t);
+      const clubTeam =
+        teams[userIsHome ? fixture.homeClubId : fixture.awayClubId];
+      const opponentTeam =
+        teams[userIsHome ? fixture.awayClubId : fixture.homeClubId];
+      const faceOff =
+        clubTeam === undefined || opponentTeam === undefined
+          ? null
+          : quickResultFaceOffViewModel(
+              {
+                clubTeam,
+                opponentTeam,
+                outcomeLabel: postMatch.result.outcomeLabel,
+              },
+              t,
+            );
       set({
         career: next,
         postMatch,
@@ -1307,7 +1351,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
         // Settling this match rolled the calendar on. If the week it rolled
         // into has its own fixture, that week gets its announcement when the
         // manager reaches the desk, exactly as a quiet week's would.
-        matchDayBanner: matchDayBannerOnArrival(before, next, get().matchDayBanner),
+        matchDayBanner: matchDayBannerOnArrival(
+          before,
+          next,
+          get().matchDayBanner,
+        ),
         // A scene that could not be built is simply not shown: the settled
         // result reaches the manager either way.
         screen: faceOff === null ? destination : 'faceoff',
@@ -1363,17 +1411,22 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (watchedMatch.fixture.id !== fixture.id) {
         throw new Error('the watched fixture context is missing');
       }
-      const production = productionResultFromMatch(fixture, result, before.userClubId);
+      const production = productionResultFromMatch(
+        fixture,
+        result,
+        before.userClubId,
+      );
       const supplied = production.fixtureResult;
-      const results = kind === 'league'
-        ? resolveMatchday(fixtures, teams, [
-            supplied,
-            ...cachedRivalResults(
-              fixtures.filter(candidate => candidate.id !== fixture.id),
-              teams,
-            ),
-          ])
-        : [supplied];
+      const results =
+        kind === 'league'
+          ? resolveMatchday(fixtures, teams, [
+              supplied,
+              ...cachedRivalResults(
+                fixtures.filter((candidate) => candidate.id !== fixture.id),
+                teams,
+              ),
+            ])
+          : [supplied];
       const after = completeMatchday(before, results, production);
       // The week is settled; nothing may claim these again, and the fingerprints
       // are large enough that a season of them would be worth real memory.
@@ -1389,16 +1442,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const completed = isOnboardingMatch
         ? completeFirstOnboardingMatch(after, fixture.id)
         : after;
-      const awakening = kind === 'league'
-        ? resolvePostMatchAwakening(
-            completed,
-            fixture.id,
-            production.participantPlayerIds,
-            awakeningPowerIds,
-            awakeningTriggerIds,
-            awakeningTuning,
-          )
-        : { state: completed, awakened: false };
+      const awakening =
+        kind === 'league'
+          ? resolvePostMatchAwakening(
+              completed,
+              fixture.id,
+              production.participantPlayerIds,
+              awakeningPowerIds,
+              awakeningTriggerIds,
+              awakeningTuning,
+            )
+          : { state: completed, awakened: false };
       const next = awakening.state;
       const postMatch = postMatchViewModel(
         before,
@@ -1416,7 +1470,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
         weekReview: null,
         // See the Quick Result path: a settled match can land the club in
         // another match week, and that week is owed its announcement too.
-        matchDayBanner: matchDayBannerOnArrival(before, next, get().matchDayBanner),
+        matchDayBanner: matchDayBannerOnArrival(
+          before,
+          next,
+          get().matchDayBanner,
+        ),
         screen: awakening.awakened ? 'awakening' : 'postmatch',
         watchedMatch: null,
         error: null,
@@ -1434,26 +1492,37 @@ export const useM1Store = create<M1Store>((set, get) => ({
     // coalescing save queue could replace the only snapshot containing that
     // league participation and audience impact.
     if (
-      hasSecondMatch
-      && career !== null
-      && get().repository !== null
-      && get().lastPersistedCareer !== career
+      hasSecondMatch &&
+      career !== null &&
+      get().repository !== null &&
+      get().lastPersistedCareer !== career
     ) {
       set({ notice: { tone: 'info', message: t('store.savingLeagueResult') } });
       await saveQueue;
-      if (get().career !== career || get().lastPersistedCareer !== career) return;
+      if (get().career !== career || get().lastPersistedCareer !== career)
+        return;
     }
     const currentCareer = get().career;
-    const currentSeasonBoundary = currentCareer !== null
-      && (currentCareer.phase === 'season-end' || currentCareer.phase === 'complete');
+    const currentSeasonBoundary =
+      currentCareer !== null &&
+      (currentCareer.phase === 'season-end' ||
+        currentCareer.phase === 'complete');
     const currentHasSecondMatch = currentCareer?.phase === 'matchday';
     set({
-      postMatch: currentSeasonBoundary || currentHasSecondMatch ? null : get().postMatch,
+      postMatch:
+        currentSeasonBoundary || currentHasSecondMatch ? null : get().postMatch,
       weekReview: null,
-      postMatchOverlay: currentSeasonBoundary || currentHasSecondMatch || get().postMatch === null ? null : 'summary',
+      postMatchOverlay:
+        currentSeasonBoundary ||
+        currentHasSecondMatch ||
+        get().postMatch === null
+          ? null
+          : 'summary',
       screen: currentSeasonBoundary
         ? seasonBoundaryScreen(currentCareer)
-        : currentHasSecondMatch ? 'matchday' : 'management',
+        : currentHasSecondMatch
+          ? 'matchday'
+          : 'management',
       activeTab: 'home',
       error: null,
     });
@@ -1466,19 +1535,23 @@ export const useM1Store = create<M1Store>((set, get) => ({
   continueWeekReview() {
     guarded(set, () => {
       const career = requireCareer(get());
-      const reconciled = reconcilePendingCareerEvent(career, launchContent.events);
+      const reconciled = reconcilePendingCareerEvent(
+        career,
+        launchContent.events,
+      );
       set({
         career: reconciled,
         weekReview: null,
-        screen: reconciled.phase === 'season-end' || reconciled.phase === 'complete'
-          ? seasonBoundaryScreen(reconciled)
-          // A story is the top of the week it was drawn for, not a toll on the
-          // way out of it. The manager reads it on arrival and then has the
-          // whole week to act on what it did, rather than meeting it as an
-          // ambush on the Advance Week press seven days later.
-          : reconciled.pendingEvent !== undefined
-            ? 'event'
-            : 'management',
+        screen:
+          reconciled.phase === 'season-end' || reconciled.phase === 'complete'
+            ? seasonBoundaryScreen(reconciled)
+            : // A story is the top of the week it was drawn for, not a toll on the
+              // way out of it. The manager reads it on arrival and then has the
+              // whole week to act on what it did, rather than meeting it as an
+              // ambush on the Advance Week press seven days later.
+              reconciled.pendingEvent !== undefined
+              ? 'event'
+              : 'management',
         activeTab: 'home',
         error: null,
       });
@@ -1536,14 +1609,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // record is the club's whole career. `recordHallOfFame` no-ops unless
       // the true ending was just marked, so the two smaller celebrations pass
       // through it untouched.
-      const next = recordHallOfFame(superseded
-        ? markChampionshipCelebrationComplete(celebrated)
-        : celebrated);
+      const next = recordHallOfFame(
+        superseded
+          ? markChampionshipCelebrationComplete(celebrated)
+          : celebrated,
+      );
       set({
         career: next,
-        screen: next.phase === 'season-end' || next.phase === 'complete'
-          ? seasonBoundaryScreen(next)
-          : 'management',
+        screen:
+          next.phase === 'season-end' || next.phase === 'complete'
+            ? seasonBoundaryScreen(next)
+            : 'management',
         error: null,
       });
       if (next !== career) queueCareerSave(get, set, next);
@@ -1586,9 +1662,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const next = markAwardsCeremonyComplete(career);
       set({
         career: next,
-        screen: next.phase === 'season-end' || next.phase === 'complete'
-          ? 'season-end'
-          : 'management',
+        screen:
+          next.phase === 'season-end' || next.phase === 'complete'
+            ? 'season-end'
+            : 'management',
         error: null,
       });
       if (next !== career) queueCareerSave(get, set, next);
@@ -1597,11 +1674,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   chooseLegacy(choice) {
     guarded(set, () => {
-      const transaction = resolveNextClubLegendLegacy(requireCareer(get()), choice);
+      const transaction = resolveNextClubLegendLegacy(
+        requireCareer(get()),
+        choice,
+      );
       const next = reconcilePendingClubLegends(transaction.state);
       set({
         career: next,
-        screen: nextPendingClubLegend(next) === undefined ? 'management' : 'legacy',
+        screen:
+          nextPendingClubLegend(next) === undefined ? 'management' : 'legacy',
         activeTab: 'home',
         error: null,
       });
@@ -1620,12 +1701,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
   selectEventPlayer(playerId) {
     guarded(set, () => {
       const career = requireCareer(get());
-      if (career.pendingEvent === undefined) throw new Error('there is no active event');
+      if (career.pendingEvent === undefined)
+        throw new Error('there is no active event');
       const event = launchContent.events.events.find(
-        candidate => candidate.id === career.pendingEvent?.eventId,
+        (candidate) => candidate.id === career.pendingEvent?.eventId,
       );
-      if (event === undefined
-        || !careerEventTargetCandidates(career, event).playerIds.includes(playerId)) {
+      if (
+        event === undefined ||
+        !careerEventTargetCandidates(career, event).playerIds.includes(playerId)
+      ) {
         throw new Error('that player is not eligible for this story');
       }
       const next = selectCareerEventPlayer(career, playerId);
@@ -1637,12 +1721,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
   selectEventCoach(role) {
     guarded(set, () => {
       const career = requireCareer(get());
-      if (career.pendingEvent === undefined) throw new Error('there is no active event');
+      if (career.pendingEvent === undefined)
+        throw new Error('there is no active event');
       const event = launchContent.events.events.find(
-        candidate => candidate.id === career.pendingEvent?.eventId,
+        (candidate) => candidate.id === career.pendingEvent?.eventId,
       );
-      if (event === undefined
-        || !careerEventTargetCandidates(career, event).coachRoles.includes(role)) {
+      if (
+        event === undefined ||
+        !careerEventTargetCandidates(career, event).coachRoles.includes(role)
+      ) {
         throw new Error('that coach is not eligible for this story');
       }
       const next = selectCareerEventCoach(career, role);
@@ -1654,12 +1741,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
   selectEventFacility(buildingId) {
     guarded(set, () => {
       const career = requireCareer(get());
-      if (career.pendingEvent === undefined) throw new Error('there is no active event');
+      if (career.pendingEvent === undefined)
+        throw new Error('there is no active event');
       const event = launchContent.events.events.find(
-        candidate => candidate.id === career.pendingEvent?.eventId,
+        (candidate) => candidate.id === career.pendingEvent?.eventId,
       );
-      if (event === undefined
-        || !careerEventTargetCandidates(career, event).facilityIds.includes(buildingId)) {
+      if (
+        event === undefined ||
+        !careerEventTargetCandidates(career, event).facilityIds.includes(
+          buildingId,
+        )
+      ) {
         throw new Error('that facility is not eligible for this story');
       }
       const next = selectCareerEventFacility(career, buildingId);
@@ -1671,9 +1763,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
   chooseEvent(choiceId) {
     guarded(set, () => {
       const career = requireCareer(get());
-      const reconciled = reconcilePendingCareerEvent(career, launchContent.events);
+      const reconciled = reconcilePendingCareerEvent(
+        career,
+        launchContent.events,
+      );
       if (reconciled.pendingEvent === undefined) {
-        set({ career: reconciled, screen: resumeScreen(reconciled), error: null });
+        set({
+          career: reconciled,
+          screen: resumeScreen(reconciled),
+          error: null,
+        });
         if (reconciled !== career) queueCareerSave(get, set, reconciled);
         return;
       }
@@ -1685,18 +1784,35 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // rule twice.
       const seen = reconciled.eventFlags.includes('m4:event-guide-seen')
         ? reconciled
-        : { ...reconciled, eventFlags: [...reconciled.eventFlags, 'm4:event-guide-seen'] };
+        : {
+            ...reconciled,
+            eventFlags: [...reconciled.eventFlags, 'm4:event-guide-seen'],
+          };
       try {
-        const next = resolveCareerEventChoice(seen, launchContent.events, choiceId, t);
+        const next = resolveCareerEventChoice(
+          seen,
+          launchContent.events,
+          choiceId,
+          t,
+        );
         set({ career: next, error: null });
         queueCareerSave(get, set, next);
       } catch (error) {
         if (!(error instanceof InvalidCareerEventTargetError)) throw error;
-        const repaired = reconcilePendingCareerEvent(reconciled, launchContent.events);
+        const repaired = reconcilePendingCareerEvent(
+          reconciled,
+          launchContent.events,
+        );
         set({
           career: repaired,
-          screen: repaired.pendingEvent === undefined ? resumeScreen(repaired) : 'event',
-          error: repaired.pendingEvent === undefined ? null : t('storyEvent.chooseTargetFirst'),
+          screen:
+            repaired.pendingEvent === undefined
+              ? resumeScreen(repaired)
+              : 'event',
+          error:
+            repaired.pendingEvent === undefined
+              ? null
+              : t('storyEvent.chooseTargetFirst'),
         });
         if (repaired !== career) queueCareerSave(get, set, repaired);
       }
@@ -1712,11 +1828,18 @@ export const useM1Store = create<M1Store>((set, get) => ({
       }
       const career = requireCareer(get());
       const pending = career.pendingEvent;
-      if (pending?.resolvedChoiceId === undefined) throw new Error('resolve the event before continuing');
+      if (pending?.resolvedChoiceId === undefined)
+        throw new Error('resolve the event before continuing');
       const guidedCareer = career.eventFlags.includes('m4:event-guide-seen')
         ? career
-        : { ...career, eventFlags: [...career.eventFlags, 'm4:event-guide-seen'] };
-      const continuation = continueResolvedCareerEvent(guidedCareer, launchContent.events);
+        : {
+            ...career,
+            eventFlags: [...career.eventFlags, 'm4:event-guide-seen'],
+          };
+      const continuation = continueResolvedCareerEvent(
+        guidedCareer,
+        launchContent.events,
+      );
       const next = continuation.state;
       if (continuation.followed) {
         set({ career: next, screen: 'event', weekReview: null, error: null });
@@ -1729,11 +1852,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // build on whatever the story just did to the club.
       set({
         career: next,
-        screen: next.phase === 'matchday'
-          ? 'matchday'
-          : next.phase === 'season-end' || next.phase === 'complete'
-            ? seasonBoundaryScreen(next)
-            : 'management',
+        screen:
+          next.phase === 'matchday'
+            ? 'matchday'
+            : next.phase === 'season-end' || next.phase === 'complete'
+              ? seasonBoundaryScreen(next)
+              : 'management',
         activeTab: 'home',
         weekReview: null,
         error: null,
@@ -1746,7 +1870,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       const next = skipUnavailableCareerEvent(career, launchContent.events);
-      set({ career: next, screen: resumeScreen(next), weekReview: null, error: null });
+      set({
+        career: next,
+        screen: resumeScreen(next),
+        weekReview: null,
+        error: null,
+      });
       queueCareerSave(get, set, next);
     });
   },
@@ -1754,14 +1883,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
   toggleHeroLicense(playerId) {
     guarded(set, () => {
       const career = requireCareer(get());
-      const player = career.players.find(candidate =>
-        candidate.id === playerId && candidate.clubId === career.userClubId,
+      const player = career.players.find(
+        (candidate) =>
+          candidate.id === playerId && candidate.clubId === career.userClubId,
       );
-      if (player?.power === undefined) throw new Error('only heroes can receive a license');
+      if (player?.power === undefined)
+        throw new Error('only heroes can receive a license');
       const selected = career.players
-        .filter(candidate => candidate.clubId === career.userClubId && candidate.licensed)
-        .map(candidate => candidate.id)
-        .filter(id => id !== playerId);
+        .filter(
+          (candidate) =>
+            candidate.clubId === career.userClubId && candidate.licensed,
+        )
+        .map((candidate) => candidate.id)
+        .filter((id) => id !== playerId);
       if (!player.licensed) {
         if (selected.length >= careerHeroLimit(career)) {
           throw new Error(t('store.unlicenseFirst'));
@@ -1771,30 +1905,41 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
       let next = selectCareerLicensedHeroes(career, selected);
       if (!player.licensed) {
-        const lineup = next.lineups.find(candidate => candidate.clubId === next.userClubId);
-        if (lineup === undefined) throw new Error('the user club has no lineup');
+        const lineup = next.lineups.find(
+          (candidate) => candidate.clubId === next.userClubId,
+        );
+        if (lineup === undefined)
+          throw new Error('the user club has no lineup');
         if (!lineup.playerIds.includes(playerId)) {
-          const playerById = new Map(next.players.map(candidate => [candidate.id, candidate]));
-          const outgoing = lineup.playerIds
-            .map(id => playerById.get(id))
-            .find(candidate =>
-              candidate?.power !== undefined
-              && !candidate.licensed
-              && candidate.role === player.role,
-            ) ?? lineup.playerIds
-            .map(id => playerById.get(id))
-            .find(candidate =>
-              candidate?.power !== undefined
-              && !candidate.licensed
-              && candidate.role !== 'GK'
-              && player.role !== 'GK',
-            );
+          const playerById = new Map(
+            next.players.map((candidate) => [candidate.id, candidate]),
+          );
+          const outgoing =
+            lineup.playerIds
+              .map((id) => playerById.get(id))
+              .find(
+                (candidate) =>
+                  candidate?.power !== undefined &&
+                  !candidate.licensed &&
+                  candidate.role === player.role,
+              ) ??
+            lineup.playerIds
+              .map((id) => playerById.get(id))
+              .find(
+                (candidate) =>
+                  candidate?.power !== undefined &&
+                  !candidate.licensed &&
+                  candidate.role !== 'GK' &&
+                  player.role !== 'GK',
+              );
           if (outgoing === undefined) {
-            throw new Error('bench an unlicensed hero in the same role before making this swap');
+            throw new Error(
+              'bench an unlicensed hero in the same role before making this swap',
+            );
           }
           next = setCareerLineup(
             next,
-            lineup.playerIds.map(id => id === outgoing.id ? playerId : id),
+            lineup.playerIds.map((id) => (id === outgoing.id ? playerId : id)),
           );
         }
       }
@@ -1805,7 +1950,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   swapStartingPlayer(starterId, replacementId) {
     guarded(set, () => {
-      const next = swapCareerLineupPlayer(requireCareer(get()), starterId, replacementId);
+      const next = swapCareerLineupPlayer(
+        requireCareer(get()),
+        starterId,
+        replacementId,
+      );
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -1815,7 +1964,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       const catalog = career.playerRequestRules;
-      if (catalog === undefined) throw new Error('this career has no player request catalog');
+      if (catalog === undefined)
+        throw new Error('this career has no player request catalog');
       const next = resolveCareerPlayerRequest(career, catalog, resolution);
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
@@ -1825,40 +1975,56 @@ export const useM1Store = create<M1Store>((set, get) => ({
   acceptSponsorOffer(offerId) {
     guarded(set, () => {
       const career = requireCareer(get());
-      const sponsorship = acceptCareerSponsorOffer(career.clubBusiness.sponsorship, {
-        offerId,
-        season: career.season,
-        week: career.week,
-      });
+      const sponsorship = acceptCareerSponsorOffer(
+        career.clubBusiness.sponsorship,
+        {
+          offerId,
+          season: career.season,
+          week: career.week,
+        },
+      );
       const next = {
         ...career,
         clubBusiness: { ...career.clubBusiness, sponsorship },
       };
-      const signed = sponsorship.activeContracts.find(contract => contract.contractId === `contract-${offerId}`);
-      const actualSigned = signed === undefined
-        ? undefined
-        : allocateSponsorPortfolioPayment(
-            sponsorship.activeContracts,
-            difficultyRules(career).sponsorIncomePercent,
-          ).find(payment => payment.contractId === signed.contractId)?.actualAmount;
+      const signed = sponsorship.activeContracts.find(
+        (contract) => contract.contractId === `contract-${offerId}`,
+      );
+      const actualSigned =
+        signed === undefined
+          ? undefined
+          : allocateSponsorPortfolioPayment(
+              sponsorship.activeContracts,
+              difficultyRules(career).sponsorIncomePercent,
+            ).find((payment) => payment.contractId === signed.contractId)
+              ?.actualAmount;
       set({
         career: next,
         error: null,
-        notice: signed === undefined
-          ? null
-          : {
-              tone: 'success',
-              message: actualSigned === undefined || actualSigned === signed.nominalMonthlyFee
-                ? t('store.sponsorSigned', {
-                    sponsor: signed.sponsorName,
-                    amount: signed.nominalMonthlyFee.toLocaleString(),
-                  })
-                : t('store.sponsorSignedChairman', {
-                    sponsor: signed.sponsorName,
-                    nominal: signed.nominalMonthlyFee.toLocaleString(),
-                    actual: actualSigned.toLocaleString(),
-                  }),
-            },
+        notice:
+          signed === undefined
+            ? null
+            : {
+                tone: 'success',
+                message:
+                  actualSigned === undefined ||
+                  actualSigned === signed.nominalMonthlyFee
+                    ? t('store.sponsorSigned', {
+                        sponsor: signed.sponsorName,
+                        amount: formatIntegerForCopy(
+                          t,
+                          signed.nominalMonthlyFee,
+                        ),
+                      })
+                    : t('store.sponsorSignedChairman', {
+                        sponsor: signed.sponsorName,
+                        nominal: formatIntegerForCopy(
+                          t,
+                          signed.nominalMonthlyFee,
+                        ),
+                        actual: formatIntegerForCopy(t, actualSigned),
+                      }),
+              },
       });
       queueCareerSave(get, set, next);
     });
@@ -1872,9 +2038,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       const resolution = trainPlayerInstantly(career, playerId, pathId);
-      const next = hasAssistantGuideMilestone(resolution.state, 'first-training-complete')
+      const next = hasAssistantGuideMilestone(
+        resolution.state,
+        'first-training-complete',
+      )
         ? resolution.state
-        : completeAssistantGuideMilestone(resolution.state, 'first-training-complete');
+        : completeAssistantGuideMilestone(
+            resolution.state,
+            'first-training-complete',
+          );
       const { state: _state, ...result } = resolution;
       set({
         career: next,
@@ -1897,15 +2069,25 @@ export const useM1Store = create<M1Store>((set, get) => ({
       let injuredAfter: number | undefined;
 
       for (let run = 0; run < runs; run += 1) {
-        const player = career.players.find(candidate => candidate.id === playerId);
+        const player = career.players.find(
+          (candidate) => candidate.id === playerId,
+        );
         // An injury ends the batch here exactly as it ends a watched one — the
         // engine would refuse the next drill anyway, and being skipped past is
         // no reason to train a player who has pulled up.
         if (player === undefined || player.injuryWeeks > 0) break;
-        const { state, ...result } = trainPlayerInstantly(career, playerId, pathId);
+        const { state, ...result } = trainPlayerInstantly(
+          career,
+          playerId,
+          pathId,
+        );
         career = state;
         sequence += 1;
-        last = { ...result, sequence, totalDrillsRun: career.totalInstantDrills ?? 0 };
+        last = {
+          ...result,
+          sequence,
+          totalDrillsRun: career.totalInstantDrills ?? 0,
+        };
         if (result.injury !== undefined) {
           injuredAfter = result.injury.recoveryWeeks;
           break;
@@ -1916,23 +2098,27 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const next = hasAssistantGuideMilestone(career, 'first-training-complete')
         ? career
         : completeAssistantGuideMilestone(career, 'first-training-complete');
-      const injuredPlayer = next.players.find(candidate => candidate.id === playerId);
+      const injuredPlayer = next.players.find(
+        (candidate) => candidate.id === playerId,
+      );
       set({
         career: next,
         lastDrillResult: last,
         error: null,
         // The skipped drills reported themselves in silence; an injury among
         // them cannot. It is why the rest of the batch did not run.
-        ...(injuredAfter === undefined ? {} : {
-          notice: {
-            tone: 'info' as const,
-            message: t('store.trainingInjury', {
-              player: injuredPlayer?.name ?? t('store.thePlayer'),
-              n: injuredAfter,
-              count: injuredAfter,
+        ...(injuredAfter === undefined
+          ? {}
+          : {
+              notice: {
+                tone: 'info' as const,
+                message: t('store.trainingInjury', {
+                  player: injuredPlayer?.name ?? t('store.thePlayer'),
+                  n: injuredAfter,
+                  count: injuredAfter,
+                }),
+              },
             }),
-          },
-        }),
       });
       queueCareerSave(get, set, next);
     });
@@ -1940,14 +2126,21 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   purchaseTrainingUpgrade(pathId) {
     guarded(set, () => {
-      const transaction = purchaseCareerTrainingUpgrade(requireCareer(get()), pathId);
+      const transaction = purchaseCareerTrainingUpgrade(
+        requireCareer(get()),
+        pathId,
+      );
       set({
         career: transaction.state,
         error: null,
         notice: {
           tone: 'success',
           message: t('store.drillsUpgraded', {
-            path: copyOrEnglish(t, trainingPathLabelKey(pathId), trainingPathLabel(pathId)),
+            path: copyOrEnglish(
+              t,
+              trainingPathLabelKey(pathId),
+              trainingPathLabel(pathId),
+            ),
             tier: transaction.offer.tier,
           }),
         },
@@ -1974,18 +2167,24 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (type !== 'training-pitch' && openingTrainingPitchRequired(career)) {
         set({
           error: null,
-          notice: { tone: 'info', message: t(OPENING_TRAINING_PITCH_REMINDER_KEY) },
+          notice: {
+            tone: 'info',
+            message: t(OPENING_TRAINING_PITCH_REMINDER_KEY),
+          },
         });
         return;
       }
       const transaction = buildCareerFacility(career, type, position);
-      const discovery = transaction.newlyDiscoveredAdjacencies.length === 0
-        ? ''
-        // Glued rather than authored with a leading space: no catalog entry
-        // carries edge whitespace, and a translator cannot be asked to keep it.
-        : ` ${t('store.adjacencyDiscovered', {
-            adjacencies: transaction.newlyDiscoveredAdjacencies.map(id => adjacencyDescription(t, id)).join(', '),
-          })}`;
+      const discovery =
+        transaction.newlyDiscoveredAdjacencies.length === 0
+          ? ''
+          : // Glued rather than authored with a leading space: no catalog entry
+            // carries edge whitespace, and a translator cannot be asked to keep it.
+            ` ${t('store.adjacencyDiscovered', {
+              adjacencies: transaction.newlyDiscoveredAdjacencies
+                .map((id) => adjacencyDescription(t, id))
+                .join(', '),
+            })}`;
       set({
         career: transaction.state,
         error: null,
@@ -2004,16 +2203,22 @@ export const useM1Store = create<M1Store>((set, get) => ({
   upgradeClubFacility(buildingId) {
     guarded(set, () => {
       const career = requireCareer(get());
-      const building = career.facilities.grid?.buildings.find(candidate => candidate.id === buildingId);
-      if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
+      const building = career.facilities.grid?.buildings.find(
+        (candidate) => candidate.id === buildingId,
+      );
+      if (building === undefined)
+        throw new Error(`unknown facility ${buildingId}`);
       const transaction = upgradeCareerFacility(career, buildingId);
-      const discovery = transaction.newlyDiscoveredAdjacencies.length === 0
-        ? ''
-        // Glued rather than authored with a leading space: no catalog entry
-        // carries edge whitespace, and a translator cannot be asked to keep it.
-        : ` ${t('store.adjacencyDiscovered', {
-            adjacencies: transaction.newlyDiscoveredAdjacencies.map(id => adjacencyDescription(t, id)).join(', '),
-          })}`;
+      const discovery =
+        transaction.newlyDiscoveredAdjacencies.length === 0
+          ? ''
+          : // Glued rather than authored with a leading space: no catalog entry
+            // carries edge whitespace, and a translator cannot be asked to keep it.
+            ` ${t('store.adjacencyDiscovered', {
+              adjacencies: transaction.newlyDiscoveredAdjacencies
+                .map((id) => adjacencyDescription(t, id))
+                .join(', '),
+            })}`;
       set({
         career: transaction.state,
         error: null,
@@ -2036,17 +2241,23 @@ export const useM1Store = create<M1Store>((set, get) => ({
         buildingId,
         position,
       );
-      const discovery = transaction.newlyDiscoveredAdjacencies.length === 0
-        ? ''
-        // Glued rather than authored with a leading space: no catalog entry
-        // carries edge whitespace, and a translator cannot be asked to keep it.
-        : ` ${t('store.adjacencyDiscovered', {
-            adjacencies: transaction.newlyDiscoveredAdjacencies.map(id => adjacencyDescription(t, id)).join(', '),
-          })}`;
+      const discovery =
+        transaction.newlyDiscoveredAdjacencies.length === 0
+          ? ''
+          : // Glued rather than authored with a leading space: no catalog entry
+            // carries edge whitespace, and a translator cannot be asked to keep it.
+            ` ${t('store.adjacencyDiscovered', {
+              adjacencies: transaction.newlyDiscoveredAdjacencies
+                .map((id) => adjacencyDescription(t, id))
+                .join(', '),
+            })}`;
       set({
         career: transaction.state,
         error: null,
-        notice: { tone: 'success', message: t('store.facilityMoved', { discovery }) },
+        notice: {
+          tone: 'success',
+          message: t('store.facilityMoved', { discovery }),
+        },
       });
       queueCareerSave(get, set, transaction.state);
     });
@@ -2055,12 +2266,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
   closeClubFacility(buildingId) {
     guarded(set, () => {
       const career = requireCareer(get());
-      const building = career.facilities.grid?.buildings.find(candidate => candidate.id === buildingId);
-      if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
-      const staffedOffice = building.type === 'coaching-office'
-        && career.market?.assistantCoach !== undefined;
+      const building = career.facilities.grid?.buildings.find(
+        (candidate) => candidate.id === buildingId,
+      );
+      if (building === undefined)
+        throw new Error(`unknown facility ${buildingId}`);
+      const staffedOffice =
+        building.type === 'coaching-office' &&
+        career.market?.assistantCoach !== undefined;
       if (staffedOffice) {
-        const transaction = closeStaffedCareerCoachingOffice(career, buildingId);
+        const transaction = closeStaffedCareerCoachingOffice(
+          career,
+          buildingId,
+        );
         const net = transaction.confirmation.netCashEffect;
         set({
           career: transaction.state,
@@ -2069,7 +2287,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
             tone: 'info',
             message: t('store.coachingOfficeClosed', {
               facility: facilityName(t, building.type),
-              amount: `${net < 0 ? '-' : net > 0 ? '+' : ''}$${Math.abs(net).toLocaleString()}`,
+              amount: formatMoneyForCopy(t, net, true),
             }),
           },
         });
@@ -2083,12 +2301,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
         error: null,
         notice: {
           tone: 'info',
-          message: refund === 0
-            ? t('store.facilityClosed', { facility: facilityName(t, building.type) })
-            : t('store.facilityClosedRefund', {
-                facility: facilityName(t, building.type),
-                amount: refund.toLocaleString(),
-              }),
+          message:
+            refund === 0
+              ? t('store.facilityClosed', {
+                  facility: facilityName(t, building.type),
+                })
+              : t('store.facilityClosedRefund', {
+                  facility: facilityName(t, building.type),
+                  amount: formatIntegerForCopy(t, refund),
+                }),
         },
       });
       queueCareerSave(get, set, transaction.state);
@@ -2099,8 +2320,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       const market = requireMarket(career);
-      const option = careerMarketScoutOptions(career, t).find(candidate => candidate.id === optionId);
-      if (option === undefined) throw new Error(`unknown scouting brief ${optionId}`);
+      const option = careerMarketScoutOptions(career, t).find(
+        (candidate) => candidate.id === optionId,
+      );
+      if (option === undefined)
+        throw new Error(`unknown scouting brief ${optionId}`);
       const transaction = startCareerScoutMission(
         career,
         market,
@@ -2128,7 +2352,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   openScoutReport(playerId) {
     const career = get().career;
-    if (career?.market?.scoutReports.some(report => report.playerId === playerId) !== true) {
+    if (
+      career?.market?.scoutReports.some(
+        (report) => report.playerId === playerId,
+      ) !== true
+    ) {
       set({ error: t('store.scoutReportUnavailable') });
       return;
     }
@@ -2151,7 +2379,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         queueCareerSave(get, set, next);
         return;
       }
-      const listing = (market.transferListings ?? []).find(candidate => candidate.playerId === playerId);
+      const listing = (market.transferListings ?? []).find(
+        (candidate) => candidate.playerId === playerId,
+      );
       if (listing === undefined) {
         const nextMarket = listCareerPlayer(
           career,
@@ -2160,8 +2390,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
           currentCareerDivision(career),
         );
         const next = { ...career, market: nextMarket };
-        const bidCount = nextMarket.transferListings?.find(candidate => candidate.playerId === playerId)
-          ?.bids.length ?? 0;
+        const bidCount =
+          nextMarket.transferListings?.find(
+            (candidate) => candidate.playerId === playerId,
+          )?.bids.length ?? 0;
         set({
           career: next,
           error: null,
@@ -2173,10 +2405,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
         queueCareerSave(get, set, next);
         return;
       }
-      if (bidId === undefined) throw new Error('choose a club bid before accepting the transfer');
-      const bid = listing.bids.find(candidate => candidate.id === bidId);
-      if (bid === undefined) throw new Error('that transfer bid is no longer available');
-      const buyer = career.clubs.find(club => club.id === bid.buyerClubId);
+      if (bidId === undefined)
+        throw new Error('choose a club bid before accepting the transfer');
+      const bid = listing.bids.find((candidate) => candidate.id === bidId);
+      if (bid === undefined)
+        throw new Error('that transfer bid is no longer available');
+      const buyer = career.clubs.find((club) => club.id === bid.buyerClubId);
       const transaction = acceptCareerTransferBid(career, market, bidId);
       const next = { ...transaction.state, market: transaction.market };
       set({
@@ -2186,7 +2420,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           tone: 'success',
           message: t('store.transferSold', {
             club: buyer?.name ?? t('store.theBuyingClub'),
-            fee: bid.quote.fee.toLocaleString(),
+            fee: formatIntegerForCopy(t, bid.quote.fee),
           }),
         },
       });
@@ -2197,13 +2431,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
   hireCoach(coachId, role = 'HEAD') {
     guarded(set, () => {
       const career = requireCareer(get());
-      const next = { ...career, market: hireCareerCoach(career, requireMarket(career), coachId, role) };
+      const next = {
+        ...career,
+        market: hireCareerCoach(career, requireMarket(career), coachId, role),
+      };
       set({
         career: next,
         error: null,
         notice: {
           tone: 'success',
-          message: role === 'HEAD' ? t('store.headCoachHired') : t('store.assistantCoachHired'),
+          message:
+            role === 'HEAD'
+              ? t('store.headCoachHired')
+              : t('store.assistantCoachHired'),
         },
       });
       queueCareerSave(get, set, next);
@@ -2213,13 +2453,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
   protectBoardCandidate(playerId) {
     guarded(set, () => {
       const next = protectBoardUltimatumPlayer(requireCareer(get()), playerId);
-      const player = next.players.find(candidate => candidate.id === playerId);
+      const player = next.players.find(
+        (candidate) => candidate.id === playerId,
+      );
       set({
         career: next,
         error: null,
         notice: {
           tone: 'info',
-          message: t('store.playerProtected', { player: player?.name ?? t('store.playerFallback') }),
+          message: t('store.playerProtected', {
+            player: player?.name ?? t('store.playerFallback'),
+          }),
         },
       });
       queueCareerSave(get, set, next);
@@ -2229,7 +2473,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
   dismissCoach(role = 'HEAD') {
     guarded(set, () => {
       const career = requireCareer(get());
-      const transaction = dismissCareerCoach(career, requireMarket(career), role);
+      const transaction = dismissCareerCoach(
+        career,
+        requireMarket(career),
+        role,
+      );
       const next = { ...transaction.state, market: transaction.market };
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
@@ -2239,8 +2487,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
   signYouth(playerId) {
     guarded(set, () => {
       const career = requireCareer(get());
-      if (career.youthIntake === undefined) throw new Error('there is no youth intake available');
-      const transaction = signYouthIntakeOffer(career, career.youthIntake, playerId);
+      if (career.youthIntake === undefined)
+        throw new Error('there is no youth intake available');
+      const transaction = signYouthIntakeOffer(
+        career,
+        career.youthIntake,
+        playerId,
+      );
       const next = { ...transaction.state, youthIntake: transaction.intake };
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
@@ -2250,7 +2503,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
   declineYouth() {
     guarded(set, () => {
       const career = requireCareer(get());
-      if (career.youthIntake === undefined) throw new Error('there is no youth intake available');
+      if (career.youthIntake === undefined)
+        throw new Error('there is no youth intake available');
       const transaction = declineYouthIntakeOffers(career, career.youthIntake);
       const next = { ...transaction.state, youthIntake: transaction.intake };
       set({ career: next, error: null });
@@ -2281,13 +2535,18 @@ export const useM1Store = create<M1Store>((set, get) => ({
         queueCareerSave(get, set, next);
         return;
       }
-      const consequence = applyCareerNegotiationConsequence(career, negotiatedMarket, 'transfer');
+      const consequence = applyCareerNegotiationConsequence(
+        career,
+        negotiatedMarket,
+        'transfer',
+      );
       const next = { ...consequence.state, market: consequence.market };
       set({
         career: next,
-        error: consequence.market !== negotiatedMarket
-          ? t('store.agentWalkedAway')
-          : null,
+        error:
+          consequence.market !== negotiatedMarket
+            ? t('store.agentWalkedAway')
+            : null,
       });
       queueCareerSave(get, set, next);
     });
@@ -2297,7 +2556,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       const market = requireMarket(career);
-      const next = { ...career, market: closeCareerTransferTalks(career, market) };
+      const next = {
+        ...career,
+        market: closeCareerTransferTalks(career, market),
+      };
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -2337,7 +2599,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const career = requireCareer(get());
       const next = {
         ...career,
-        market: beginCareerRenewalTalks(career, requireMarket(career), playerId),
+        market: beginCareerRenewalTalks(
+          career,
+          requireMarket(career),
+          playerId,
+        ),
       };
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
@@ -2356,7 +2622,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
         heroLimit,
       );
       if (negotiated.renewalTalks?.negotiation.status === 'ACCEPTED') {
-        const transaction = completeCareerRenewal(career, negotiated, heroLimit);
+        const transaction = completeCareerRenewal(
+          career,
+          negotiated,
+          heroLimit,
+        );
         const next = { ...transaction.state, market: transaction.market };
         set({
           career: next,
@@ -2367,7 +2637,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
         queueCareerSave(get, set, next);
         return;
       }
-      const consequence = applyCareerNegotiationConsequence(career, negotiated, 'renewal');
+      const consequence = applyCareerNegotiationConsequence(
+        career,
+        negotiated,
+        'renewal',
+      );
       const next = { ...consequence.state, market: consequence.market };
       // Outcome-specific, and on the right channel. The insult message used to
       // travel on `error` while describing a penalty, and a genuine three-round
@@ -2403,7 +2677,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
   closeRenewal() {
     guarded(set, () => {
       const career = requireCareer(get());
-      const next = { ...career, market: closeCareerRenewalTalks(career, requireMarket(career)) };
+      const next = {
+        ...career,
+        market: closeCareerRenewalTalks(career, requireMarket(career)),
+      };
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -2434,14 +2711,20 @@ export const useM1Store = create<M1Store>((set, get) => ({
 }));
 
 function currentMatchday(state: GameState) {
-  if (state.phase !== 'matchday') throw new Error('there is no active matchday');
+  if (state.phase !== 'matchday')
+    throw new Error('there is no active matchday');
   const matchday = activeCareerMatchday(state);
-  if (matchday === undefined) throw new Error('the matchday has no user fixture');
+  if (matchday === undefined)
+    throw new Error('the matchday has no user fixture');
   const { fixture, fixtures } = matchday;
-  const builtTeams = buildCareerMatchTeams(
-    state,
-    [...new Set(fixtures.flatMap(candidate => [candidate.homeClubId, candidate.awayClubId]))],
-  );
+  const builtTeams = buildCareerMatchTeams(state, [
+    ...new Set(
+      fixtures.flatMap((candidate) => [
+        candidate.homeClubId,
+        candidate.awayClubId,
+      ]),
+    ),
+  ]);
   const teams = isFirstOnboardingFixture(state, fixture.id)
     ? {
         ...builtTeams,
@@ -2449,11 +2732,18 @@ function currentMatchday(state: GameState) {
         [fixture.awayClubId]: withoutPowers(builtTeams[fixture.awayClubId]),
       }
     : builtTeams;
-  return { kind: matchday.kind, fixture, fixtures, teams, cupRoundLabel: matchday.cupRoundLabel };
+  return {
+    kind: matchday.kind,
+    fixture,
+    fixtures,
+    teams,
+    cupRoundLabel: matchday.cupRoundLabel,
+  };
 }
 
 function requireMarket(state: GameState): NonNullable<GameState['market']> {
-  if (state.market === undefined) throw new Error('the career market is unavailable');
+  if (state.market === undefined)
+    throw new Error('the career market is unavailable');
   return state.market;
 }
 
@@ -2463,7 +2753,11 @@ function currentCareerDivision(state: GameState): number {
 
 function resumeScreen(career: GameState): M1Screen {
   if (career.onboarding?.stage === 'create-player') return 'create-player';
-  if (career.awakening.pending !== undefined || career.onboarding?.stage === 'reveal') return 'awakening';
+  if (
+    career.awakening.pending !== undefined ||
+    career.onboarding?.stage === 'reveal'
+  )
+    return 'awakening';
   // Relaunching with a story open resumes it. Nothing records that the card was
   // opened, so treating the offer itself as "resume here" is what keeps a story
   // from being lost between a kill and the next launch.
@@ -2500,12 +2794,14 @@ function matchDayBannerOnArrival(
   next: GameState,
   waiting: MatchDayBannerViewModel | null,
 ): MatchDayBannerViewModel | null {
-  if (next.week === before.week && next.season === before.season) return waiting;
+  if (next.week === before.week && next.season === before.season)
+    return waiting;
   return matchDayBannerViewModel(next, t);
 }
 
 function seasonBoundaryScreen(career: GameState): M1Screen {
-  if (hasPendingChampionshipCelebration(career)) return 'championship-celebration';
+  if (hasPendingChampionshipCelebration(career))
+    return 'championship-celebration';
   // The same slot as the parade, and never at the same time as it: one fires on
   // first place, the other on second and third.
   if (hasPendingSeasonPodium(career)) return 'season-podium';
@@ -2513,7 +2809,8 @@ function seasonBoundaryScreen(career: GameState): M1Screen {
   // moment suppresses the ordinary screen outright, so the only case where both
   // play is a lesser division's title in the season the Cup completed the pair
   // — and there the smaller news should land first and the summit last.
-  if (pendingEndgameCelebration(career) !== undefined) return 'endgame-celebration';
+  if (pendingEndgameCelebration(career) !== undefined)
+    return 'endgame-celebration';
   return hasPendingAwardsCeremony(career) ? 'awards-ceremony' : 'season-end';
 }
 
@@ -2525,7 +2822,9 @@ function seasonBoundaryScreen(career: GameState): M1Screen {
 function reconcileLoadedCareer(state: GameState): GameState {
   return reconcilePendingAwakeningContent(
     reconcilePendingStoryEvent(
-      reconcileLegacyFirstAwakening(reconcileLaunchRoster(state, launchContent)),
+      reconcileLegacyFirstAwakening(
+        reconcileLaunchRoster(state, launchContent),
+      ),
       launchContent.events,
     ),
   );
@@ -2546,8 +2845,11 @@ function reconcilePendingAwakeningContent(state: GameState): GameState {
   const triggerId = awakeningTriggerIds.includes(pending.triggerId)
     ? pending.triggerId
     : awakeningTriggerIds[0];
-  const hasPowerContent = launchContent.powers.powers.some(power => power.id === pending.power)
-    && launchContent.onboarding.powers.some(copy => copy.powerId === pending.power);
+  const hasPowerContent =
+    launchContent.powers.powers.some((power) => power.id === pending.power) &&
+    launchContent.onboarding.powers.some(
+      (copy) => copy.powerId === pending.power,
+    );
   if (triggerId !== undefined && hasPowerContent) {
     if (triggerId === pending.triggerId) return state;
     return {
@@ -2569,7 +2871,9 @@ function reconcilePendingAwakeningContent(state: GameState): GameState {
     },
     // Onboarding waits at `reveal` for this cutscene, and `advanceCareer` sends
     // the player back to it, so the stage has to move on with the drop.
-    ...(pending.firstHero && state.onboarding !== undefined && state.onboarding.stage !== 'complete'
+    ...(pending.firstHero &&
+    state.onboarding !== undefined &&
+    state.onboarding.stage !== 'complete'
       ? { onboarding: { ...state.onboarding, stage: 'complete' as const } }
       : {}),
   };
@@ -2578,9 +2882,15 @@ function reconcilePendingAwakeningContent(state: GameState): GameState {
 function reconcileLegacyFirstAwakening(state: GameState): GameState {
   if (state.awakening.pending !== undefined) return state;
   const onboarding = state.onboarding;
-  if (onboarding?.stage === 'collapse' && onboarding.firstFixtureId !== undefined) {
-    const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
-    if (lineup === undefined) throw new Error('legacy first awakening is missing the user lineup');
+  if (
+    onboarding?.stage === 'collapse' &&
+    onboarding.firstFixtureId !== undefined
+  ) {
+    const lineup = state.lineups.find(
+      (candidate) => candidate.clubId === state.userClubId,
+    );
+    if (lineup === undefined)
+      throw new Error('legacy first awakening is missing the user lineup');
     return resolvePostMatchAwakening(
       state,
       onboarding.firstFixtureId,
@@ -2591,10 +2901,10 @@ function reconcileLegacyFirstAwakening(state: GameState): GameState {
     ).state;
   }
   if (
-    onboarding?.stage === 'reveal'
-    && onboarding.firstFixtureId !== undefined
-    && onboarding.createdPlayerId !== undefined
-    && onboarding.awakenedPower !== undefined
+    onboarding?.stage === 'reveal' &&
+    onboarding.firstFixtureId !== undefined &&
+    onboarding.createdPlayerId !== undefined &&
+    onboarding.awakenedPower !== undefined
   ) {
     return {
       ...state,
@@ -2630,12 +2940,15 @@ function assertLeagueCupCheckpointPersisted(
   store: Pick<M1Store, 'repository' | 'lastPersistedCareer'>,
   career: GameState,
 ): void {
-  const owesCupAfterLeague = career.phase === 'matchday'
-    && career.clubBusiness.pendingUserMatchImpacts.some(impact => impact.competition === 'LEAGUE');
+  const owesCupAfterLeague =
+    career.phase === 'matchday' &&
+    career.clubBusiness.pendingUserMatchImpacts.some(
+      (impact) => impact.competition === 'LEAGUE',
+    );
   if (
-    owesCupAfterLeague
-    && store.repository !== null
-    && store.lastPersistedCareer !== career
+    owesCupAfterLeague &&
+    store.repository !== null &&
+    store.lastPersistedCareer !== career
   ) {
     throw new Error(t('store.leagueResultStillSaving'));
   }
@@ -2670,7 +2983,11 @@ function queueCareerSave(
       // generation mismatch means this task's payload was withdrawn by a career
       // replacement and the one sitting here belongs to a later task — stealing
       // it would write that newer state ahead of the replacement transaction.
-      if (pendingCareerSave === null || pendingCareerSave.generation !== generation) return;
+      if (
+        pendingCareerSave === null ||
+        pendingCareerSave.generation !== generation
+      )
+        return;
       const { lineage, state } = pendingCareerSave;
       pendingCareerSave = null;
       if (get().persistenceLoadError !== null) return;
@@ -2688,7 +3005,8 @@ function queueCareerSave(
       // only an actual write may clear the failure streak.
       if (saved === null) return;
       clearSaveFailures(set);
-      if (get().career === saved) set({ hasSavedCareer: true, lastPersistedCareer: saved });
+      if (get().career === saved)
+        set({ hasSavedCareer: true, lastPersistedCareer: saved });
     },
     () => recordSaveFailure(get, set),
   );
@@ -2727,7 +3045,9 @@ async function backupSummaryFailSoft(
 }
 
 /** Treats an unanswerable integrity check as "no damage reported". */
-async function integrityFailSoft(repository: CareerRepository): Promise<boolean> {
+async function integrityFailSoft(
+  repository: CareerRepository,
+): Promise<boolean> {
   try {
     return await repository.checkIntegrity();
   } catch {
@@ -2745,8 +3065,9 @@ function queueReplaySave(
   const repository = get().replayRepository;
   if (repository === null) return;
   const careerId = `m1-career-${career.careerSeed}`;
-  const sortOrder = (fixture.season - 1) * 100
-    + (fixture.id.includes('-cup-') ? 50 + fixture.round : fixture.week);
+  const sortOrder =
+    (fixture.season - 1) * 100 +
+    (fixture.id.includes('-cup-') ? 50 + fixture.round : fixture.week);
   enqueueSave(
     set,
     async () => {
@@ -2775,47 +3096,50 @@ function queueNewCareerSave(
   pendingCareerSave = null;
   retireCareerLineage();
   let replacedCareerPersisted = false;
-  const replacedCareerId = replacedCareer === null
-    ? null
-    : `m1-career-${replacedCareer.careerSeed}`;
+  const replacedCareerId =
+    replacedCareer === null ? null : `m1-career-${replacedCareer.careerSeed}`;
   enqueueSave(
     set,
     // Exclusive: the checkpoint, the replacement write and the replay cleanup
     // only mean anything as one sequence. A queue-jumping save landing between
     // them would be overwritten by the replacement write that follows it.
-    () => withExclusiveSave(async () => {
-      // A replacement may be requested in the same turn as an ordinary save.
-      // That older task no longer owns its coalesced payload once we withdraw
-      // it above, so first checkpoint the exact career the player is replacing.
-      // If the new write then fails, both memory and disk can return to this
-      // same snapshot instead of quietly losing the latest lineup/week change.
-      if (replacedCareer !== null && careerRepository !== null) {
-        await careerRepository.save(replacedCareer);
-        replacedCareerPersisted = true;
-      }
-      // The career is the irreplaceable asset. Persist it before cleaning any
-      // replay namespace so a failed replacement never erases match history.
-      await careerRepository?.save(career);
-      try {
-        if (replacedCareerId !== null && replacedCareerId !== careerId) {
-          await replayRepository?.deleteAllForCareer(replacedCareerId);
+    () =>
+      withExclusiveSave(async () => {
+        // A replacement may be requested in the same turn as an ordinary save.
+        // That older task no longer owns its coalesced payload once we withdraw
+        // it above, so first checkpoint the exact career the player is replacing.
+        // If the new write then fails, both memory and disk can return to this
+        // same snapshot instead of quietly losing the latest lineup/week change.
+        if (replacedCareer !== null && careerRepository !== null) {
+          await careerRepository.save(replacedCareer);
+          replacedCareerPersisted = true;
         }
-        await replayRepository?.deleteAllForCareer(careerId);
-      } catch (error) {
-        // Replay cleanup is recoverable and must never make memory roll back to
-        // a career the disk has already replaced.
-        set({
-          notice: {
-            tone: 'info',
-            message: t('store.replayCleanupFailed', { reason: errorMessage(error) }),
-          },
-        });
-      }
-    }),
+        // The career is the irreplaceable asset. Persist it before cleaning any
+        // replay namespace so a failed replacement never erases match history.
+        await careerRepository?.save(career);
+        try {
+          if (replacedCareerId !== null && replacedCareerId !== careerId) {
+            await replayRepository?.deleteAllForCareer(replacedCareerId);
+          }
+          await replayRepository?.deleteAllForCareer(careerId);
+        } catch (error) {
+          // Replay cleanup is recoverable and must never make memory roll back to
+          // a career the disk has already replaced.
+          set({
+            notice: {
+              tone: 'info',
+              message: t('store.replayCleanupFailed', {
+                reason: errorMessage(error),
+              }),
+            },
+          });
+        }
+      }),
     t('store.newCareerSaveFailed'),
     () => {
       clearSaveFailures(set);
-      if (get().career === career) set({ hasSavedCareer: true, lastPersistedCareer: career });
+      if (get().career === career)
+        set({ hasSavedCareer: true, lastPersistedCareer: career });
     },
     () => {
       // The write that failed is the one that would have replaced the career on
@@ -2869,7 +3193,7 @@ function enqueueSave(
       onSuccess?.();
       if (ticket === latestSaveTicket) set({ saving: false });
     })
-    .catch(error => {
+    .catch((error) => {
       onError?.(error);
       if (ticket === latestSaveTicket) set({ saving: false });
       set({ error: `${errorPrefix}: ${errorMessage(error)}` });
@@ -2877,13 +3201,16 @@ function enqueueSave(
 }
 
 /** Whether the loaded career has finished the climb at least once. */
-export function careerClimbCompleted(
-  state: { career: GameState | null },
-): boolean {
+export function careerClimbCompleted(state: {
+  career: GameState | null;
+}): boolean {
   return state.career?.eventFlags.includes(TRUE_ENDING_SEEN_FLAG) ?? false;
 }
 
-function guarded(set: (partial: Partial<M1Store>) => void, action: () => void): void {
+function guarded(
+  set: (partial: Partial<M1Store>) => void,
+  action: () => void,
+): void {
   try {
     action();
   } catch (error) {

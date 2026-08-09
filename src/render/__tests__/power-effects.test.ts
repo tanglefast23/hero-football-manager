@@ -16,7 +16,9 @@ describe('launch power effect direction', () => {
   });
 
   it('gives every launch power a unique, accessible three-beat animation', () => {
-    expect(Object.keys(POWER_EFFECT_DESCRIPTORS).sort()).toEqual([...LAUNCH_POWER_IDS].sort());
+    expect(Object.keys(POWER_EFFECT_DESCRIPTORS).sort()).toEqual(
+      [...LAUNCH_POWER_IDS].sort(),
+    );
     const signatures = new Set<string>();
     for (const power of LAUNCH_POWER_IDS) {
       const effect = powerEffectDescriptor(power);
@@ -40,32 +42,49 @@ describe('launch power effect direction', () => {
     expect(web.beats[2]).toMatchObject({ label: 'ROOTED' });
     expect(web.beats[2].endMs - web.beats[2].startMs).toBe(2_000);
 
-    expect(powerEffectDescriptor('FIRE_TORCH').accessibilityLabel).toMatch(/one, two, or three/i);
-    expect(powerEffectDescriptor('PORTAL_PASS').beats[2].label).toBe('RECEIVER SHIELDED');
-    expect(powerEffectDescriptor('RALLY_CRY').beats[2].label).toBe('ENCORE TICKET');
-    expect(powerEffectDescriptor('ICE_RINK').beats[2].label).toBe('ATTACK RESET');
+    expect(powerEffectDescriptor('FIRE_TORCH').accessibilityLabel).toMatch(
+      /one, two, or three/i,
+    );
+    expect(powerEffectDescriptor('PORTAL_PASS').beats[2].label).toBe(
+      'RECEIVER SHIELDED',
+    );
+    expect(powerEffectDescriptor('RALLY_CRY').beats[2].label).toBe(
+      'ENCORE TICKET',
+    );
+    expect(powerEffectDescriptor('ICE_RINK').beats[2].label).toBe(
+      'ATTACK RESET',
+    );
   });
 
   it('shows the complete causal sequence for the revised powers', () => {
-    expect(powerEffectDescriptor('DECOY_DOUBLE').beats.map(beat => beat.id)).toEqual([
-      'project', 'fork', 'swap',
-    ]);
-    expect(powerEffectDescriptor('FUTURE_SIGHT').beats.map(beat => beat.id)).toEqual([
-      'anticipate', 'intercept', 'outlet',
-    ]);
-    expect(powerEffectDescriptor('SHADOW_MARK').beats.map(beat => beat.id)).toEqual([
-      'burrow', 'hunt', 'pop-steal',
-    ]);
-    expect(powerEffectDescriptor('GUST').beats.map(beat => beat.id)).toEqual([
-      'bend', 'keeper', 'punt',
+    expect(
+      powerEffectDescriptor('DECOY_DOUBLE').beats.map((beat) => beat.id),
+    ).toEqual(['project', 'fork', 'swap']);
+    expect(
+      powerEffectDescriptor('FUTURE_SIGHT').beats.map((beat) => beat.id),
+    ).toEqual(['anticipate', 'intercept', 'outlet']);
+    expect(
+      powerEffectDescriptor('SHADOW_MARK').beats.map((beat) => beat.id),
+    ).toEqual(['burrow', 'hunt', 'pop-steal']);
+    expect(powerEffectDescriptor('GUST').beats.map((beat) => beat.id)).toEqual([
+      'bend',
+      'keeper',
+      'punt',
     ]);
   });
 
   it('advances deterministically and holds a readable reduced-motion frame', () => {
     const effect = powerEffectDescriptor('FUTURE_SIGHT');
-    expect(powerEffectFrame('FUTURE_SIGHT', 0)).toMatchObject({ beatIndex: 0, progress: 0 });
-    expect(powerEffectFrame('FUTURE_SIGHT', effect.beats[1].startMs)).toMatchObject({ beatIndex: 1 });
-    expect(powerEffectFrame('FUTURE_SIGHT', effect.durationMs + 100)).toMatchObject({
+    expect(powerEffectFrame('FUTURE_SIGHT', 0)).toMatchObject({
+      beatIndex: 0,
+      progress: 0,
+    });
+    expect(
+      powerEffectFrame('FUTURE_SIGHT', effect.beats[1].startMs),
+    ).toMatchObject({ beatIndex: 1 });
+    expect(
+      powerEffectFrame('FUTURE_SIGHT', effect.durationMs + 100),
+    ).toMatchObject({
       beatIndex: 2,
       progress: 1,
       complete: true,

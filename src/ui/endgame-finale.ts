@@ -55,7 +55,7 @@ export const BERT_SIGNOFF_LINE_KEYS: readonly string[] = Object.freeze([
 ]);
 
 export function bertSignoffLines(t: CopyFn = englishCopy()): readonly string[] {
-  return BERT_SIGNOFF_LINE_KEYS.map(key => t(key));
+  return BERT_SIGNOFF_LINE_KEYS.map((key) => t(key));
 }
 
 /**
@@ -176,20 +176,27 @@ export interface FinaleStage {
  * moustache are ignored — they move an edge by a pixel or two, and a bubble
  * cares about his skull.
  */
-export function bertMomentExtent(moment: BertMomentId): { readonly top: number; readonly bottom: number } {
+export function bertMomentExtent(moment: BertMomentId): {
+  readonly top: number;
+  readonly bottom: number;
+} {
   const { expression, posture } = BERT_MOMENTS[moment];
   const parts = [
-    ...bertPostureParts(posture).map(part => ({ part, dy: 0 })),
+    ...bertPostureParts(posture).map((part) => ({ part, dy: 0 })),
     ...(bertPostureHidesFace(posture)
       ? []
-      : bertExpressionParts(expression).map(part => ({ part, dy: bertHeadOffset(posture).y }))),
+      : bertExpressionParts(expression).map((part) => ({
+          part,
+          dy: bertHeadOffset(posture).y,
+        }))),
   ];
   let top: number = BERT_SPRITE_SIZE.height;
   let bottom = 0;
   parts.forEach(({ part, dy }) => {
-    const partTop = part.top === undefined
-      ? BERT_SPRITE_SIZE.height - ((part.bottom ?? 0) - dy) - part.height
-      : part.top + dy;
+    const partTop =
+      part.top === undefined
+        ? BERT_SPRITE_SIZE.height - ((part.bottom ?? 0) - dy) - part.height
+        : part.top + dy;
     top = Math.min(top, partTop);
     bottom = Math.max(bottom, partTop + part.height);
   });
@@ -224,26 +231,49 @@ export function finaleStage(
   };
   if (performers.length === 0) return { spots: [], bert };
 
-  const star = performers.find(performer => performer.isStar);
-  const others = performers.filter(performer => performer !== star);
+  const star = performers.find((performer) => performer.isStar);
+  const others = performers.filter((performer) => performer !== star);
   // Fewer men in the near row than the far one — the shape of a team photo,
   // where the back row is the wide one and the front row sits inside it.
   const frontCount = Math.max(1, Math.floor(performers.length / 2));
-  const front = star === undefined
-    ? others.slice(0, frontCount)
-    : withStarCentred(others.slice(0, frontCount - 1), star);
-  const back = star === undefined ? others.slice(frontCount) : others.slice(frontCount - 1);
+  const front =
+    star === undefined
+      ? others.slice(0, frontCount)
+      : withStarCentred(others.slice(0, frontCount - 1), star);
+  const back =
+    star === undefined
+      ? others.slice(frontCount)
+      : others.slice(frontCount - 1);
 
   const frontScale = rowScale(front.length, width);
   const backScale = frontScale * BACK_SCALE_RATIO;
-  const phaseOf = (performer: FinalePerformer) => (
-    (performers.indexOf(performer) * PHASE_STEP) % 1
-  );
+  const phaseOf = (performer: FinalePerformer) =>
+    (performers.indexOf(performer) * PHASE_STEP) % 1;
 
   return {
     spots: [
-      ...rowSpots(back, 0, backScale, BACK_ROW_FEET, width, height, grassTop, grassHeight, phaseOf),
-      ...rowSpots(front, 1, frontScale, FRONT_ROW_FEET, width, height, grassTop, grassHeight, phaseOf),
+      ...rowSpots(
+        back,
+        0,
+        backScale,
+        BACK_ROW_FEET,
+        width,
+        height,
+        grassTop,
+        grassHeight,
+        phaseOf,
+      ),
+      ...rowSpots(
+        front,
+        1,
+        frontScale,
+        FRONT_ROW_FEET,
+        width,
+        height,
+        grassTop,
+        grassHeight,
+        phaseOf,
+      ),
     ],
     bert,
   };
@@ -263,7 +293,10 @@ function rowScale(count: number, width: number): number {
   if (count <= 0) return FRONT_MAX_SCALE;
   const available = Math.max(1, width - SIDE_MARGIN * 2);
   const perMan = available / count;
-  return Math.min(FRONT_MAX_SCALE, perMan / (FINALE_CELL.width * (1 + GAP_RATIO)));
+  return Math.min(
+    FRONT_MAX_SCALE,
+    perMan / (FINALE_CELL.width * (1 + GAP_RATIO)),
+  );
 }
 
 function rowSpots(

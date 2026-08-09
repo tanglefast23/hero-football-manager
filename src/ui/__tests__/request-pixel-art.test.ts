@@ -6,15 +6,15 @@ const REQUESTS = playerRequestsJson.requests;
 
 describe('player request artwork', () => {
   it('has a sprite for every name the catalog references', () => {
-    const missing = REQUESTS
-      .flatMap(request => request.art)
-      .filter(sprite => EVENT_SPRITE_ROWS[sprite] === undefined);
+    const missing = REQUESTS.flatMap((request) => request.art).filter(
+      (sprite) => EVENT_SPRITE_ROWS[sprite] === undefined,
+    );
 
     expect(missing).toEqual([]);
   });
 
   it('keeps every request sprite a 16 by 16 grid', () => {
-    for (const sprite of new Set(REQUESTS.flatMap(request => request.art))) {
+    for (const sprite of new Set(REQUESTS.flatMap((request) => request.art))) {
       const rows = EVENT_SPRITE_ROWS[sprite];
       expect(rows).toHaveLength(16);
       for (const row of rows) expect(row).toHaveLength(16);
@@ -36,7 +36,9 @@ describe('player request artwork', () => {
         .filter(([key]) => key.startsWith('event-'))
         .flatMap(([, sprites]) => sprites),
     );
-    const reused = REQUESTS.filter(request => request.art.every(s => eventSprites.has(s)));
+    const reused = REQUESTS.filter((request) =>
+      request.art.every((s) => eventSprites.has(s)),
+    );
 
     expect(reused.length).toBeGreaterThanOrEqual(20);
   });

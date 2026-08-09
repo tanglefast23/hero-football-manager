@@ -85,7 +85,11 @@ describe('awakening ascension audio', () => {
     await flushPromises();
 
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
-    expect(mockPlayers.slice(0, 2).every(player => player.pause.mock.calls.length > 0)).toBe(true);
+    expect(
+      mockPlayers
+        .slice(0, 2)
+        .every((player) => player.pause.mock.calls.length > 0),
+    ).toBe(true);
   });
 
   it('restarts cleanly without leaving the first harp timer active', async () => {
@@ -112,10 +116,12 @@ describe('awakening ascension audio', () => {
     // The limp is a music bed, so it carries the same 0.5 every other bed does
     // rather than the SFX gain the two reveal cues play at.
     expect(limp.volume).toBe(0.25);
-    expect(setAudioModeAsync).toHaveBeenCalledWith({ playsInSilentMode: false });
+    expect(setAudioModeAsync).toHaveBeenCalledWith({
+      playsInSilentMode: false,
+    });
 
     setAwakeningMasterVolume(0);
-    expect(mockPlayers.every(player => player.volume === 0)).toBe(true);
+    expect(mockPlayers.every((player) => player.volume === 0)).toBe(true);
   });
 
   it('rebuilds every player and replays the limp when the audio session dies', async () => {
@@ -143,7 +149,8 @@ describe('awakening ascension audio', () => {
     await flushPromises();
     expect(mockPlayers).toHaveLength(3);
     mockPlayers[0].seekTo.mockImplementation(() =>
-      Promise.reject(new Error('Unable to find the native shared object')));
+      Promise.reject(new Error('Unable to find the native shared object')),
+    );
 
     playAwakeningAscension();
     await flushPromises();

@@ -15,7 +15,10 @@ function englishCopy(): CopyFn {
 export interface FacilityAdjacencyPresentation {
   readonly id: FacilityAdjacencyId;
   readonly pairLabel: string;
-  readonly facilityTypes: readonly [FacilityTypeViewModel, FacilityTypeViewModel];
+  readonly facilityTypes: readonly [
+    FacilityTypeViewModel,
+    FacilityTypeViewModel,
+  ];
   readonly effectLabel: string;
   readonly rationale: string;
   readonly discoveryCopy: string;
@@ -33,11 +36,14 @@ export interface FacilityAdjacencyPresentation {
  * joined on in `facilityAdjacencyPresentation`, so the table below holds nothing
  * a translator would ever be shown.
  */
-type FacilityAdjacencyStructure =
-  Omit<FacilityAdjacencyPresentation, 'pairLabel' | 'effectLabel' | 'rationale' | 'discoveryCopy'>
-  & { readonly copySlug: string };
+type FacilityAdjacencyStructure = Omit<
+  FacilityAdjacencyPresentation,
+  'pairLabel' | 'effectLabel' | 'rationale' | 'discoveryCopy'
+> & { readonly copySlug: string };
 
-const STRUCTURES: Readonly<Record<FacilityAdjacencyId, FacilityAdjacencyStructure>> = {
+const STRUCTURES: Readonly<
+  Record<FacilityAdjacencyId, FacilityAdjacencyStructure>
+> = {
   'gym-dorm': {
     id: 'gym-dorm',
     facilityTypes: ['gym', 'dorm'],
@@ -74,7 +80,10 @@ export function facilityAdjacencyPresentation(
   };
 }
 
-export function facilityAdjacencyLabel(id: string, t: CopyFn = englishCopy()): string {
+export function facilityAdjacencyLabel(
+  id: string,
+  t: CopyFn = englishCopy(),
+): string {
   const presentation = facilityAdjacencyPresentation(id, t);
   return presentation === undefined
     ? id

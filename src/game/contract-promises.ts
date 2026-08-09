@@ -21,9 +21,11 @@ export function hasActiveCareerContractPromise(
   player: CareerPlayer,
   perk?: CareerContractPerk,
 ): boolean {
-  return player.contractSeasonsRemaining > 0
-    && player.contractPromise !== undefined
-    && (perk === undefined || player.contractPromise.perk === perk);
+  return (
+    player.contractSeasonsRemaining > 0 &&
+    player.contractPromise !== undefined &&
+    (perk === undefined || player.contractPromise.perk === perk)
+  );
 }
 
 /**
@@ -41,27 +43,33 @@ export function applyCareerContractPromise(
    */
   heroLimit?: number,
 ): GameState {
-  const player = state.players.find(candidate => (
-    candidate.id === playerId && candidate.clubId === state.userClubId
-  ));
-  if (player === undefined) throw new Error(`unknown user-club player ${playerId}`);
+  const player = state.players.find(
+    (candidate) =>
+      candidate.id === playerId && candidate.clubId === state.userClubId,
+  );
+  if (player === undefined)
+    throw new Error(`unknown user-club player ${playerId}`);
   if (player.contractSeasonsRemaining < 1) {
     throw new Error('a contract promise requires an active contract');
   }
-  const needsHeroLicense = STARTING_PROMISES.includes(perk)
-    && player.power !== undefined
-    && !player.licensed;
+  const needsHeroLicense =
+    STARTING_PROMISES.includes(perk) &&
+    player.power !== undefined &&
+    !player.licensed;
   if (needsHeroLicense) {
-    const licensedCount = state.players.filter(candidate => (
-      candidate.clubId === state.userClubId && candidate.licensed
-    )).length;
+    const licensedCount = state.players.filter(
+      (candidate) =>
+        candidate.clubId === state.userClubId && candidate.licensed,
+    ).length;
     if (licensedCount >= (heroLimit ?? contractPromiseHeroLimit(state))) {
-      throw new Error(`${player.name}'s starting promise requires an available Hero License`);
+      throw new Error(
+        `${player.name}'s starting promise requires an available Hero License`,
+      );
     }
   }
 
   const promise: CareerContractPromise = { perk, agreedSeason: state.season };
-  let players = state.players.map(candidate => {
+  let players = state.players.map((candidate) => {
     if (candidate.clubId !== state.userClubId) return candidate;
     if (candidate.id === playerId) {
       return {
@@ -82,8 +90,12 @@ export function applyCareerContractPromise(
     }
     return {
       ...candidate,
-      ...(perk === 'CAPTAINCY' && candidate.isCaptain === true ? { isCaptain: false } : {}),
-      ...(perk === 'JERSEY_10' && candidate.shirtNumber === 10 ? { shirtNumber: undefined } : {}),
+      ...(perk === 'CAPTAINCY' && candidate.isCaptain === true
+        ? { isCaptain: false }
+        : {}),
+      ...(perk === 'JERSEY_10' && candidate.shirtNumber === 10
+        ? { shirtNumber: undefined }
+        : {}),
     };
   });
 
@@ -97,15 +109,17 @@ export function applyCareerContractPromise(
   // drains, other players' instant drills are blocked (the promised player
   // reminds you). Re-read the promised player from the immutable copy so the
   // returned state is plain data even when no reassignment was necessary.
-  players = players.map(candidate => candidate.id === playerId
-    ? {
-        ...candidate,
-        contractPromise: { ...promise },
-        ...(perk === 'TRAINING_PRIORITY'
-          ? { priorityDrillsRemaining: TRAINING_PRIORITY_DRILLS }
-          : {}),
-      }
-    : candidate);
+  players = players.map((candidate) =>
+    candidate.id === playerId
+      ? {
+          ...candidate,
+          contractPromise: { ...promise },
+          ...(perk === 'TRAINING_PRIORITY'
+            ? { priorityDrillsRemaining: TRAINING_PRIORITY_DRILLS }
+            : {}),
+        }
+      : candidate,
+  );
   return { ...state, players, lineups };
 }
 
@@ -121,13 +135,14 @@ export const TRAINING_PRIORITY_DRILLS = 5;
 export function pendingTrainingPriorityHolder(
   state: GameState,
 ): { playerId: string; playerName: string; remaining: number } | undefined {
-  const holder = state.players.find(player => (
-    player.clubId === state.userClubId
-    && isAvailableForSelection(player)
-    && (player.priorityDrillsRemaining ?? 0) > 0
-    && hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
-    && !isFullyCappedPlayer(player)
-  ));
+  const holder = state.players.find(
+    (player) =>
+      player.clubId === state.userClubId &&
+      isAvailableForSelection(player) &&
+      (player.priorityDrillsRemaining ?? 0) > 0 &&
+      hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY') &&
+      !isFullyCappedPlayer(player),
+  );
   return holder === undefined
     ? undefined
     : {
@@ -138,23 +153,30 @@ export function pendingTrainingPriorityHolder(
 }
 
 /** Restores recovered promised starters after injury repair and weekly settlement. */
-export function restoreCareerContractPromiseLineup(state: GameState): GameState {
+export function restoreCareerContractPromiseLineup(
+  state: GameState,
+): GameState {
   const promised = state.players
-    .filter(player => (
-      player.clubId === state.userClubId
-      && isAvailableForSelection(player)
-      && hasActiveCareerContractPromise(player)
-      && STARTING_PROMISES.includes(player.contractPromise!.perk)
-    ))
+    .filter(
+      (player) =>
+        player.clubId === state.userClubId &&
+        isAvailableForSelection(player) &&
+        hasActiveCareerContractPromise(player) &&
+        STARTING_PROMISES.includes(player.contractPromise!.perk),
+    )
     .slice()
-    .sort((left, right) => (
-      (left.contractPromise!.agreedSeason - right.contractPromise!.agreedSeason)
-      || compareIds(left.id, right.id)
-    ));
-  return promised.reduce((current, player) => ({
-    ...current,
-    lineups: putPromisedPlayerInStartingLineup(current, player.id),
-  }), state);
+    .sort(
+      (left, right) =>
+        left.contractPromise!.agreedSeason -
+          right.contractPromise!.agreedSeason || compareIds(left.id, right.id),
+    );
+  return promised.reduce(
+    (current, player) => ({
+      ...current,
+      lineups: putPromisedPlayerInStartingLineup(current, player.id),
+    }),
+    state,
+  );
 }
 
 /**
@@ -174,19 +196,21 @@ export function assertCareerLineupHonorsContractPromises(
 ): void {
   const selected = new Set(playerIds);
   const promised = state.players
-    .filter(player => (
-      player.clubId === state.userClubId
-      && isAvailableForSelection(player)
-      && hasActiveCareerContractPromise(player)
-      && STARTING_PROMISES.includes(player.contractPromise!.perk)
-    ))
-    .sort((left, right) => (
-      (left.contractPromise!.agreedSeason - right.contractPromise!.agreedSeason)
-      || compareIds(left.id, right.id)
-    ));
+    .filter(
+      (player) =>
+        player.clubId === state.userClubId &&
+        isAvailableForSelection(player) &&
+        hasActiveCareerContractPromise(player) &&
+        STARTING_PROMISES.includes(player.contractPromise!.perk),
+    )
+    .sort(
+      (left, right) =>
+        left.contractPromise!.agreedSeason -
+          right.contractPromise!.agreedSeason || compareIds(left.id, right.id),
+    );
   const enforceable = [
-    ...promised.filter(player => player.role === 'GK').slice(0, 1),
-    ...promised.filter(player => player.role !== 'GK').slice(0, 10),
+    ...promised.filter((player) => player.role === 'GK').slice(0, 1),
+    ...promised.filter((player) => player.role !== 'GK').slice(0, 10),
   ];
   for (const player of enforceable) {
     if (!selected.has(player.id)) {
@@ -198,7 +222,9 @@ export function assertCareerLineupHonorsContractPromises(
 /** True only once every trainable attribute reaches the universal 999 maximum. */
 export function isFullyCappedPlayer(player: CareerPlayer): boolean {
   const caps = playerAttributeCaps(player);
-  return TRAINING_PATHS.every(path => player.attrs[path.attribute] >= caps[path.attribute]);
+  return TRAINING_PATHS.every(
+    (path) => player.attrs[path.attribute] >= caps[path.attribute],
+  );
 }
 
 /** Removes promises and club-owned presentation roles when a player is sold. */
@@ -216,23 +242,35 @@ function putPromisedPlayerInStartingLineup(
   state: GameState,
   playerId: string,
 ): GameState['lineups'] {
-  const player = state.players.find(candidate => candidate.id === playerId)!;
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
+  const player = state.players.find((candidate) => candidate.id === playerId)!;
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
   if (lineup === undefined) throw new Error('the user club has no lineup');
   if (lineup.playerIds.includes(playerId)) return state.lineups;
 
-  const playerById = new Map(state.players.map(candidate => [candidate.id, candidate]));
-  const replacementSlot = promisedReplacementSlot(lineup.playerIds, player, playerById);
+  const playerById = new Map(
+    state.players.map((candidate) => [candidate.id, candidate]),
+  );
+  const replacementSlot = promisedReplacementSlot(
+    lineup.playerIds,
+    player,
+    playerById,
+  );
   // Two promises can compete for one slot (there is only ever a single GK slot).
   // Leaving the promise unhonoured is the correct outcome — the club overcommitted
   // — whereas throwing here ran during weekly settlement and bricked the career.
   if (replacementSlot < 0) return state.lineups;
-  return state.lineups.map(candidate => candidate.clubId !== state.userClubId
-    ? candidate
-    : {
-        ...candidate,
-        playerIds: candidate.playerIds.map((id, index) => index === replacementSlot ? playerId : id),
-      });
+  return state.lineups.map((candidate) =>
+    candidate.clubId !== state.userClubId
+      ? candidate
+      : {
+          ...candidate,
+          playerIds: candidate.playerIds.map((id, index) =>
+            index === replacementSlot ? playerId : id,
+          ),
+        },
+  );
 }
 
 function promisedReplacementSlot(
@@ -242,30 +280,39 @@ function promisedReplacementSlot(
 ): number {
   if (promisedPlayer.role === 'GK') {
     const current = playerById.get(lineupIds[0]);
-    return current !== undefined
-      && (hasActiveCareerContractPromise(current, 'GUARANTEED_STARTER')
-        || hasActiveCareerContractPromise(current, 'CAPTAINCY'))
+    return current !== undefined &&
+      (hasActiveCareerContractPromise(current, 'GUARANTEED_STARTER') ||
+        hasActiveCareerContractPromise(current, 'CAPTAINCY'))
       ? -1
       : 0;
   }
   const eligible = lineupIds
     .map((id, index) => ({ index, player: playerById.get(id) }))
-    .filter((candidate): candidate is { index: number; player: CareerPlayer } => (
-      candidate.player !== undefined
-      && candidate.player.role !== 'GK'
-      && candidate.player.id !== promisedPlayer.id
-      && !hasActiveCareerContractPromise(candidate.player, 'GUARANTEED_STARTER')
-      && !hasActiveCareerContractPromise(candidate.player, 'CAPTAINCY')
-    ));
-  const sameRole = eligible.filter(candidate => candidate.player.role === promisedPlayer.role);
+    .filter(
+      (candidate): candidate is { index: number; player: CareerPlayer } =>
+        candidate.player !== undefined &&
+        candidate.player.role !== 'GK' &&
+        candidate.player.id !== promisedPlayer.id &&
+        !hasActiveCareerContractPromise(
+          candidate.player,
+          'GUARANTEED_STARTER',
+        ) &&
+        !hasActiveCareerContractPromise(candidate.player, 'CAPTAINCY'),
+    );
+  const sameRole = eligible.filter(
+    (candidate) => candidate.player.role === promisedPlayer.role,
+  );
   const pool = sameRole.length > 0 ? sameRole : eligible;
-  return pool
-    .slice()
-    .sort((left, right) => (
-      roleOverall(left.player.role, left.player.attrs)
-        - roleOverall(right.player.role, right.player.attrs)
-      || compareIds(left.player.id, right.player.id)
-    ))[0]?.index ?? -1;
+  return (
+    pool
+      .slice()
+      .sort(
+        (left, right) =>
+          roleOverall(left.player.role, left.player.attrs) -
+            roleOverall(right.player.role, right.player.attrs) ||
+          compareIds(left.player.id, right.player.id),
+      )[0]?.index ?? -1
+  );
 }
 
 /**
@@ -314,16 +361,22 @@ export function careerContractPromiseBlockedReason(
   perk: CareerContractPerk,
   heroLimit: number,
 ): ContractPromiseBlockedReason | undefined {
-  const squad = state.players.filter(candidate => (
-    candidate.clubId === state.userClubId && candidate.id !== player.id
-  ));
+  const squad = state.players.filter(
+    (candidate) =>
+      candidate.clubId === state.userClubId && candidate.id !== player.id,
+  );
   const holderOf = (held: CareerContractPerk): CareerPlayer | undefined =>
-    squad.find(candidate => hasActiveCareerContractPromise(candidate, held));
+    squad.find((candidate) => hasActiveCareerContractPromise(candidate, held));
 
-  if (STARTING_PROMISES.includes(perk) && player.power !== undefined && !player.licensed) {
-    const licensed = state.players.filter(candidate => (
-      candidate.clubId === state.userClubId && candidate.licensed
-    )).length;
+  if (
+    STARTING_PROMISES.includes(perk) &&
+    player.power !== undefined &&
+    !player.licensed
+  ) {
+    const licensed = state.players.filter(
+      (candidate) =>
+        candidate.clubId === state.userClubId && candidate.licensed,
+    ).length;
     if (licensed >= heroLimit) {
       return {
         text: `No Hero License is free. ${player.name} needs one to be promised a place.`,
@@ -356,15 +409,19 @@ export function careerContractPromiseBlockedReason(
     }
   }
   if (perk === 'TRAINING_PRIORITY') {
-    const owed = squad.find(candidate => (
-      hasActiveCareerContractPromise(candidate, 'TRAINING_PRIORITY')
-      && (candidate.priorityDrillsRemaining ?? 0) > 0
-    ));
+    const owed = squad.find(
+      (candidate) =>
+        hasActiveCareerContractPromise(candidate, 'TRAINING_PRIORITY') &&
+        (candidate.priorityDrillsRemaining ?? 0) > 0,
+    );
     if (owed !== undefined) {
       return {
         text: `${owed.name} is still owed ${owed.priorityDrillsRemaining} drills.`,
         key: 'market.promiseBlockedTraining',
-        params: { player: owed.name, drills: owed.priorityDrillsRemaining ?? 0 },
+        params: {
+          player: owed.name,
+          drills: owed.priorityDrillsRemaining ?? 0,
+        },
       };
     }
   }
@@ -373,12 +430,15 @@ export function careerContractPromiseBlockedReason(
   // one GK and ten outfielders, so beyond that the club would be recording an
   // obligation it has already decided not to keep.
   if (STARTING_PROMISES.includes(perk)) {
-    const promisedStarters = squad.filter(candidate => (
-      hasActiveCareerContractPromise(candidate)
-      && STARTING_PROMISES.includes(candidate.contractPromise!.perk)
-    ));
+    const promisedStarters = squad.filter(
+      (candidate) =>
+        hasActiveCareerContractPromise(candidate) &&
+        STARTING_PROMISES.includes(candidate.contractPromise!.perk),
+    );
     if (player.role === 'GK') {
-      const promisedKeeper = promisedStarters.find(candidate => candidate.role === 'GK');
+      const promisedKeeper = promisedStarters.find(
+        (candidate) => candidate.role === 'GK',
+      );
       if (promisedKeeper !== undefined) {
         return {
           text: `${promisedKeeper.name} already has the promised goalkeeper's shirt.`,
@@ -386,7 +446,10 @@ export function careerContractPromiseBlockedReason(
           params: { player: promisedKeeper.name },
         };
       }
-    } else if (promisedStarters.filter(candidate => candidate.role !== 'GK').length >= 10) {
+    } else if (
+      promisedStarters.filter((candidate) => candidate.role !== 'GK').length >=
+      10
+    ) {
       return {
         text: 'Every outfield place in the XI is already promised.',
         key: 'market.promiseBlockedOutfield',

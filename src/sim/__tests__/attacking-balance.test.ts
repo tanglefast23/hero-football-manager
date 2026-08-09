@@ -42,10 +42,10 @@ describe('attacking decision balance', () => {
     const zoneEntriesPerMatch = zoneEntries / matches;
     console.log(
       `ATTACKING MIX goals=${goalsPerMatch.toFixed(3)} shots=${shotsPerMatch.toFixed(3)} ` +
-      `passes=${passesPerMatch.toFixed(3)} completion=${completionRate.toFixed(3)} ` +
-      `zoneEntries=${zoneEntriesPerMatch.toFixed(3)} ` +
-      `heroEntries=[${zoneEntriesByPlayer[9]},${zoneEntriesByPlayer[10]},${zoneEntriesByPlayer[14]}] ` +
-      `rivalFires=${powerFiresByPlayer[14]} rivalCardMatches=${matchesWithRivalCard} over ${matches} seeds`,
+        `passes=${passesPerMatch.toFixed(3)} completion=${completionRate.toFixed(3)} ` +
+        `zoneEntries=${zoneEntriesPerMatch.toFixed(3)} ` +
+        `heroEntries=[${zoneEntriesByPlayer[9]},${zoneEntriesByPlayer[10]},${zoneEntriesByPlayer[14]}] ` +
+        `rivalFires=${powerFiresByPlayer[14]} rivalCardMatches=${matchesWithRivalCard} over ${matches} seeds`,
     );
 
     expect(goalsPerMatch).toBeGreaterThanOrEqual(1.5);
@@ -88,15 +88,20 @@ describe('attacking decision balance', () => {
           if (event.kind !== 'PASS') continue;
           const passer = m.players[event.from];
           const receiver = m.players[event.to];
-          const passerProgress = passer.team === 0 ? PITCH_H - passer.pos.y : passer.pos.y;
-          if (passerProgress < PITCH_H * 2 / 3) continue;
+          const passerProgress =
+            passer.team === 0 ? PITCH_H - passer.pos.y : passer.pos.y;
+          if (passerProgress < (PITCH_H * 2) / 3) continue;
 
-          const receiverProgress = receiver.team === 0 ? PITCH_H - receiver.pos.y : receiver.pos.y;
+          const receiverProgress =
+            receiver.team === 0 ? PITCH_H - receiver.pos.y : receiver.pos.y;
           const backward = receiverProgress < passerProgress - 200;
           let pressured = false;
           for (const opponent of m.players) {
-            if (opponent.team !== passer.team && opponent.outUntilTick <= m.tick
-              && dist2(opponent.pos, passer.pos) < 400 * 400) {
+            if (
+              opponent.team !== passer.team &&
+              opponent.outUntilTick <= m.tick &&
+              dist2(opponent.pos, passer.pos) < 400 * 400
+            ) {
               pressured = true;
               break;
             }
@@ -116,6 +121,8 @@ describe('attacking decision balance', () => {
     // The leased presser means almost every natural attacking-third pass is
     // launched under pressure. If an unpressured pass does occur, it must not
     // be the old arbitrary backpass behavior.
-    expect(unpressuredBackpasses / attackingThirdPasses).toBeLessThanOrEqual(0.01);
+    expect(unpressuredBackpasses / attackingThirdPasses).toBeLessThanOrEqual(
+      0.01,
+    );
   }, 30000);
 });

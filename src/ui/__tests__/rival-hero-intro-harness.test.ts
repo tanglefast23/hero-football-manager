@@ -14,17 +14,17 @@ describe('rival hero intro Dev Harness entry', () => {
       'bruno-bannor',
       'bruce-wain',
     ])
-      expect(entry).toContain(`id: '${caseId}'`);
-    expect(entry).toContain('rivalHeroIntroViewModelForHeroId');
-    expect(entry).toContain('<RivalHeroIntroScreen');
-    expect(entry).toContain('label="Replay"');
-    expect(entry).toContain('label="Reduced"');
+      expect(entry).toContainSource(`id: '${caseId}'`);
+    expect(entry).toContainSource('rivalHeroIntroViewModelForHeroId');
+    expect(entry).toContainSource('<RivalHeroIntroScreen');
+    expect(entry).toContainSource('label="Replay"');
+    expect(entry).toContainSource('label="Reduced"');
 
     const registry = source('src/ui/dev-harness/registry.ts');
-    expect(registry).toContain(
+    expect(registry).toContainSource(
       "import { rivalHeroIntroEntry } from './entries/rival-hero-intro';",
     );
-    expect(registry).toContain('rivalHeroIntroEntry,');
+    expect(registry).toContainSource('rivalHeroIntroEntry,');
   });
 
   it('routes the rival before Cup Bert, condition warning, and the lineup, with hard cuts', () => {
@@ -32,9 +32,9 @@ describe('rival hero intro Dev Harness entry', () => {
     expect(app.indexOf('if (rivalHeroIntro !== undefined)')).toBeLessThan(
       app.indexOf('<FixtureMatchDayScreen'),
     );
-    expect(app).toContain('rivalHeroIntro === undefined');
-    expect(app).toContain('|| screenKey === RivalHeroIntroScreen;');
-    expect(app).toContain(
+    expect(app).toContainSource('rivalHeroIntro === undefined');
+    expect(app).toContainSource('|| screenKey === RivalHeroIntroScreen;');
+    expect(app).toContainSource(
       'rivalHeroIntro === undefined && lowConditionMatchdayStarter !== null',
     );
   });

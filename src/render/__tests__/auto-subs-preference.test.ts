@@ -1,7 +1,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
+const source = (path: string) =>
+  readFileSync(join(process.cwd(), path), 'utf8');
 
 describe('automatic substitution policy', () => {
   it('opens every live match on the saved setting, with a fresh install defaulting off', () => {
@@ -9,11 +10,15 @@ describe('automatic substitution policy', () => {
     const repository = source('src/persistence/preferences-repository.ts');
 
     expect(match).toContain('autoSubs: initialAutoSubs = false,');
-    expect(match).toContain('const [autoSubs, setAutoSubs] = useState(initialAutoSubs);');
+    expect(match).toContain(
+      'const [autoSubs, setAutoSubs] = useState(initialAutoSubs);',
+    );
     expect(match).toContain('const autoSubsRef = useRef(initialAutoSubs);');
     expect(repository).toContain('autoSubs: false,');
     // The old default made the manager re-tick AUTO every week.
-    expect(match).not.toContain('const [autoSubs, setAutoSubs] = useState(false);');
+    expect(match).not.toContain(
+      'const [autoSubs, setAutoSubs] = useState(false);',
+    );
   });
 
   it('reports the board’s save so the preference outlives the screen', () => {
@@ -26,7 +31,9 @@ describe('automatic substitution policy', () => {
 
   it('evaluates Auto Subs after every engine tick inside a catch-up frame', () => {
     const match = source('src/render/MatchScreen.tsx');
-    const loopStart = match.indexOf("while (acc >= TICK_MS && s.phase !== 'fulltime') {");
+    const loopStart = match.indexOf(
+      "while (acc >= TICK_MS && s.phase !== 'fulltime') {",
+    );
     const loopEnd = match.indexOf('\n      const newEvents =', loopStart);
 
     expect(loopStart).toBeGreaterThan(-1);
@@ -46,7 +53,9 @@ describe('automatic substitution policy', () => {
 
     expect(app).toContain('autoSubs={preferences.autoSubs}');
     expect(app).toContain('onAutoSubsChange={saveAutoSubs}');
-    expect(app).toContain('savePreferences({ ...preferencesRef.current, autoSubs });');
+    expect(app).toContain(
+      'savePreferences({ ...preferencesRef.current, autoSubs });',
+    );
     expect(repository).toContain('autoSubs: z.boolean(),');
     expect(repository).toContain('autoSubs: false,');
   });
@@ -54,12 +63,19 @@ describe('automatic substitution policy', () => {
   it('always enables tired-player swaps for Quick Result without changing the live preference', () => {
     const app = source('App.tsx');
     const store = source('src/application/store.ts');
-    const quickResultStart = store.indexOf("  quickResult(preferences = { initialFormation: '4-4-2' }) {");
-    const quickResultEnd = store.indexOf('\n\n  watchMatch() {', quickResultStart);
+    const quickResultStart = store.indexOf(
+      "  quickResult(preferences = { initialFormation: '4-4-2' }) {",
+    );
+    const quickResultEnd = store.indexOf(
+      '\n\n  watchMatch() {',
+      quickResultStart,
+    );
 
     expect(quickResultStart).toBeGreaterThan(-1);
     expect(quickResultEnd).toBeGreaterThan(quickResultStart);
-    expect(store.slice(quickResultStart, quickResultEnd)).toContain('autoSubs: true,');
+    expect(store.slice(quickResultStart, quickResultEnd)).toContain(
+      'autoSubs: true,',
+    );
     expect(app).toContain('autoSubs={preferences.autoSubs}');
     expect(app).not.toContain('autoSubs: preferences.autoSubs,');
   });

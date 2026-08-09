@@ -42,7 +42,11 @@ jest.mock('expo-audio', () => ({
 const listeners = new Map<string, Set<() => void>>();
 const fakeDocument = {
   hidden: false,
-  addEventListener: (type: string, listener: () => void, options?: { once?: boolean }) => {
+  addEventListener: (
+    type: string,
+    listener: () => void,
+    options?: { once?: boolean },
+  ) => {
     const set = listeners.get(type) ?? new Set();
     set.add(Object.assign(listener, { once: options?.once === true }));
     listeners.set(type, set);
@@ -55,7 +59,8 @@ const fakeDocument = {
 
 function dispatch(type: string): void {
   for (const listener of [...(listeners.get(type) ?? [])]) {
-    if ((listener as { once?: boolean }).once === true) listeners.get(type)?.delete(listener);
+    if ((listener as { once?: boolean }).once === true)
+      listeners.get(type)?.delete(listener);
     listener();
   }
 }
@@ -75,20 +80,12 @@ function unlockWebPlayback(): void {
 }
 
 // Required, not imported: the stub above must already be in place.
-const {
-  audioIsSuspended,
-  registerAudioOwner,
-} = require('../audio-lifecycle') as typeof import('../audio-lifecycle');
-const {
-  setMenuTheme,
-  teardownMenuAudio,
-} = require('../menu-audio') as typeof import('../menu-audio');
-const {
-  initAudio,
-  startTheme,
-  stopTheme,
-  teardownAudio,
-} = require('../audio') as typeof import('../audio');
+const { audioIsSuspended, registerAudioOwner } =
+  require('../audio-lifecycle') as typeof import('../audio-lifecycle');
+const { setMenuTheme, teardownMenuAudio } =
+  require('../menu-audio') as typeof import('../menu-audio');
+const { initAudio, startTheme, stopTheme, teardownAudio } =
+  require('../audio') as typeof import('../audio');
 
 describe('audio lifecycle', () => {
   beforeEach(() => {
@@ -132,9 +129,11 @@ describe('audio lifecycle', () => {
     unregister();
   });
 
-  it('keeps one owner\'s failure from silencing the rest', () => {
+  it("keeps one owner's failure from silencing the rest", () => {
     const throwing = {
-      suspend: () => { throw new Error('player gone'); },
+      suspend: () => {
+        throw new Error('player gone');
+      },
       resume: jest.fn(),
     };
     const healthy = { suspend: jest.fn(), resume: jest.fn() };
@@ -182,7 +181,7 @@ describe('audio lifecycle', () => {
       initAudio();
       startTheme();
       const before = mockPlayers.length;
-      const theme = mockPlayers.find(player => player.loop === true)!;
+      const theme = mockPlayers.find((player) => player.loop === true)!;
       expect(theme.play).toHaveBeenCalledTimes(1);
 
       setTabHidden(true);
@@ -202,7 +201,9 @@ describe('audio lifecycle', () => {
 
       expect(theme.release).toHaveBeenCalled();
       expect(mockPlayers.length).toBeGreaterThan(before);
-      const rebuilt = mockPlayers.slice(before).find(player => player.loop === true)!;
+      const rebuilt = mockPlayers
+        .slice(before)
+        .find((player) => player.loop === true)!;
       expect(rebuilt.play).toHaveBeenCalled();
     });
 
@@ -210,7 +211,7 @@ describe('audio lifecycle', () => {
       initAudio();
       startTheme();
       const before = mockPlayers.length;
-      const theme = mockPlayers.find(player => player.loop === true)!;
+      const theme = mockPlayers.find((player) => player.loop === true)!;
 
       setTabHidden(true);
       setTabHidden(false);

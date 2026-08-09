@@ -37,9 +37,13 @@ export interface ChargeMeter {
  * pinned full and the reset lands on the power playing out instead — which is
  * also where players expect it.
  */
-export function chargeMeter(gauge: number, powerState: PowerState): ChargeMeter {
+export function chargeMeter(
+  gauge: number,
+  powerState: PowerState,
+): ChargeMeter {
   if (powerState.kind === 'zone') return { state: 'ready', fill: 1 };
-  if (powerState.kind === 'idle') return { state: 'building', fill: heatFraction(gauge) };
+  if (powerState.kind === 'idle')
+    return { state: 'building', fill: heatFraction(gauge) };
   return { state: 'spent', fill: 0 };
 }
 
@@ -73,7 +77,8 @@ export const CHARGE_RAINBOW_BANDS: readonly string[] = [
 export const CHARGE_BAND_WIDTH = 16;
 
 /** One full pass of the palette; also the loop's translate distance. */
-export const CHARGE_RAINBOW_CYCLE_WIDTH = CHARGE_RAINBOW_BANDS.length * CHARGE_BAND_WIDTH;
+export const CHARGE_RAINBOW_CYCLE_WIDTH =
+  CHARGE_RAINBOW_BANDS.length * CHARGE_BAND_WIDTH;
 
 /** Seconds-scale slide: lively enough to read as "charged", not strobing. */
 export const CHARGE_RAINBOW_CYCLE_MS = 1200;
@@ -83,7 +88,8 @@ export const CHARGE_RAINBOW_CYCLE_MS = 1200;
  * exposes the track behind it. One spare cycle covers the travel exactly.
  */
 export function rainbowStripBands(trackWidth: number): string[] {
-  const cycles = Math.max(1, Math.ceil(trackWidth / CHARGE_RAINBOW_CYCLE_WIDTH)) + 1;
+  const cycles =
+    Math.max(1, Math.ceil(trackWidth / CHARGE_RAINBOW_CYCLE_WIDTH)) + 1;
   return Array.from(
     { length: cycles * CHARGE_RAINBOW_BANDS.length },
     (_, index) => CHARGE_RAINBOW_BANDS[index % CHARGE_RAINBOW_BANDS.length],
@@ -100,5 +106,7 @@ export function chargeMeterAccessibilityLabel(
 ): string {
   if (meter.state === 'ready') return t('matchScreen.a11y.powerCharged');
   if (meter.state === 'spent') return t('matchScreen.a11y.powerSpent');
-  return t('matchScreen.a11y.powerCharge', { percent: Math.round(meter.fill * 100) });
+  return t('matchScreen.a11y.powerCharge', {
+    percent: Math.round(meter.fill * 100),
+  });
 }

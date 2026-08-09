@@ -9,17 +9,25 @@ import {
 
 describe('training paths', () => {
   test('there are 7 paths, one per stat, with labels', () => {
-    expect(TRAINING_PATHS.map(p => p.pathId).sort()).toEqual(
-      ['circuit', 'duels', 'finishing', 'first-touch', 'keeper-drills', 'rondo', 'sprints'],
-    );
+    expect(TRAINING_PATHS.map((p) => p.pathId).sort()).toEqual([
+      'circuit',
+      'duels',
+      'finishing',
+      'first-touch',
+      'keeper-drills',
+      'rondo',
+      'sprints',
+    ]);
     expect(trainingPathLabel('duels')).toBe('Defense');
-    expect(TRAINING_PATHS.find(p => p.pathId === 'duels')?.attribute).toBe('def');
+    expect(TRAINING_PATHS.find((p) => p.pathId === 'duels')?.attribute).toBe(
+      'def',
+    );
   });
 
   test('every label is written twice: the English, and the key beside it', () => {
     // The English alone is what shipped, and it drew "Pace" and "Reflexes" into
     // six otherwise translated screens. A path without a key is that bug.
-    expect(TRAINING_PATHS.map(path => [path.pathId, path.labelKey])).toEqual([
+    expect(TRAINING_PATHS.map((path) => [path.pathId, path.labelKey])).toEqual([
       ['sprints', 'trainingPath.pac'],
       ['finishing', 'trainingPath.sho'],
       ['rondo', 'trainingPath.pas'],
@@ -29,7 +37,9 @@ describe('training paths', () => {
       ['keeper-drills', 'trainingPath.ref'],
     ]);
     expect(trainingPathLabelKey('duels')).toBe('trainingPath.def');
-    expect(() => trainingPathLabelKey('nope')).toThrow('unknown training path nope');
+    expect(() => trainingPathLabelKey('nope')).toThrow(
+      'unknown training path nope',
+    );
   });
 
   test('catalog is baked into state and the resolver returns the OWNED tier', () => {

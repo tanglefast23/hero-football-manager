@@ -21,7 +21,15 @@ export const PowerIdSchema = z.enum([
   'GIANT_GK',
   'GUST',
 ]);
-export const AttributeSchema = z.enum(['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref']);
+export const AttributeSchema = z.enum([
+  'pac',
+  'sho',
+  'pas',
+  'def',
+  'tec',
+  'sta',
+  'ref',
+]);
 export const ArchetypeSchema = z.enum([
   'Speedster',
   'Sniper',
@@ -35,7 +43,11 @@ export const ArchetypeSchema = z.enum([
 
 const idSchema = z.string().trim().min(1);
 const displayNameSchema = z.string().trim().min(1);
-const safeNonnegativeIntegerSchema = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
+const safeNonnegativeIntegerSchema = z
+  .number()
+  .int()
+  .nonnegative()
+  .max(Number.MAX_SAFE_INTEGER);
 const ratingSchema = z.number().int().min(1).max(99);
 
 export const RatingsSchema = z.strictObject({
@@ -62,29 +74,48 @@ export const LaunchPlayerSchema = z.strictObject({
   onHeroWage: z.boolean(),
 });
 
-export const LaunchClubSchema = z.strictObject({
-  id: idSchema,
-  name: displayNameSchema,
-  shortName: z.string().trim().min(2).max(4),
-  primaryColor: z.string().regex(/^#[0-9A-F]{6}$/),
-  secondaryColor: z.string().regex(/^#[0-9A-F]{6}$/),
-  startingCash: safeNonnegativeIntegerSchema,
-  fans: safeNonnegativeIntegerSchema,
-  ticketPrice: safeNonnegativeIntegerSchema,
-  sponsorMonthlyFee: safeNonnegativeIntegerSchema,
-  players: z.array(LaunchPlayerSchema).length(16),
-  startingLineup: z.array(idSchema).length(11),
-}).superRefine((club, context) => {
-  addDuplicateIssues(club.players.map(player => player.id), context, ['players'], 'player ID');
-  addDuplicateIssues(club.startingLineup, context, ['startingLineup'], 'lineup player ID');
-});
+export const LaunchClubSchema = z
+  .strictObject({
+    id: idSchema,
+    name: displayNameSchema,
+    shortName: z.string().trim().min(2).max(4),
+    primaryColor: z.string().regex(/^#[0-9A-F]{6}$/),
+    secondaryColor: z.string().regex(/^#[0-9A-F]{6}$/),
+    startingCash: safeNonnegativeIntegerSchema,
+    fans: safeNonnegativeIntegerSchema,
+    ticketPrice: safeNonnegativeIntegerSchema,
+    sponsorMonthlyFee: safeNonnegativeIntegerSchema,
+    players: z.array(LaunchPlayerSchema).length(16),
+    startingLineup: z.array(idSchema).length(11),
+  })
+  .superRefine((club, context) => {
+    addDuplicateIssues(
+      club.players.map((player) => player.id),
+      context,
+      ['players'],
+      'player ID',
+    );
+    addDuplicateIssues(
+      club.startingLineup,
+      context,
+      ['startingLineup'],
+      'lineup player ID',
+    );
+  });
 
-export const ClubCatalogSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  clubs: z.array(LaunchClubSchema).length(10),
-}).superRefine((catalog, context) => {
-  addDuplicateIssues(catalog.clubs.map(club => club.id), context, ['clubs'], 'club ID');
-});
+export const ClubCatalogSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    clubs: z.array(LaunchClubSchema).length(10),
+  })
+  .superRefine((catalog, context) => {
+    addDuplicateIssues(
+      catalog.clubs.map((club) => club.id),
+      context,
+      ['clubs'],
+      'club ID',
+    );
+  });
 
 export const PowerDefinitionSchema = z.strictObject({
   id: PowerIdSchema,
@@ -111,67 +142,95 @@ export const PowerDefinitionSchema = z.strictObject({
   windupTicks: z.number().int().min(1).max(100),
 });
 
-export const PowerCatalogSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  awakening: z.strictObject({
-    postMatchChancePercent: z.literal(10),
-    /**
-     * The roll once the season already has one hero. A second in the same
-     * season is meant to be a surprise, not the expected second half of the
-     * year, so it is a fifth of the first chance rather than a shade off it.
-     */
-    secondInSeasonChancePercent: z.literal(2),
-    /** Counting the campaign's guaranteed first hero: season 1 gets one more. */
-    maxPerSeason: z.literal(2),
-    minimumMatchesBetween: z.literal(3),
-  }),
-  powers: z.array(PowerDefinitionSchema).length(17),
-}).superRefine((catalog, context) => {
-  addDuplicateIssues(catalog.powers.map(power => power.id), context, ['powers'], 'power ID');
-});
+export const PowerCatalogSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    awakening: z.strictObject({
+      postMatchChancePercent: z.literal(10),
+      /**
+       * The roll once the season already has one hero. A second in the same
+       * season is meant to be a surprise, not the expected second half of the
+       * year, so it is a fifth of the first chance rather than a shade off it.
+       */
+      secondInSeasonChancePercent: z.literal(2),
+      /** Counting the campaign's guaranteed first hero: season 1 gets one more. */
+      maxPerSeason: z.literal(2),
+      minimumMatchesBetween: z.literal(3),
+    }),
+    powers: z.array(PowerDefinitionSchema).length(17),
+  })
+  .superRefine((catalog, context) => {
+    addDuplicateIssues(
+      catalog.powers.map((power) => power.id),
+      context,
+      ['powers'],
+      'power ID',
+    );
+  });
 
-export const OnboardingContentSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  limp: displayNameSchema,
-  triggers: z.array(z.strictObject({
-    id: idSchema,
-    visual: z.enum([
-      'caterpillar',
-      'water',
-      'cpr',
-      'sponge',
-      'sneeze',
-      'ice',
-      'drink',
-      'sprinkler',
-      'shin-guard',
-      'meteor',
-      'ball',
-      'confetti',
-      'feather',
-      'thermometer',
-      'defibrillator',
-    ]),
-    kicker: displayNameSchema,
-    title: displayNameSchema,
-    callout: displayNameSchema,
-    detail: displayNameSchema,
-    copy: displayNameSchema,
-  })).length(15),
-  powers: z.array(z.strictObject({
-    powerId: PowerIdSchema,
-    omen: displayNameSchema,
-    reveal: displayNameSchema,
-  })).min(16).max(20),
-}).superRefine((content, context) => {
-  addDuplicateIssues(content.triggers.map(trigger => trigger.id), context, ['triggers'], 'awakening trigger');
-  addDuplicateIssues(content.powers.map(power => power.powerId), context, ['powers'], 'power');
-  for (const powerId of PowerIdSchema.options) {
-    if (!content.powers.some(power => power.powerId === powerId)) {
-      addIssue(context, ['powers'], `missing awakening copy for ${powerId}`);
+export const OnboardingContentSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    limp: displayNameSchema,
+    triggers: z
+      .array(
+        z.strictObject({
+          id: idSchema,
+          visual: z.enum([
+            'caterpillar',
+            'water',
+            'cpr',
+            'sponge',
+            'sneeze',
+            'ice',
+            'drink',
+            'sprinkler',
+            'shin-guard',
+            'meteor',
+            'ball',
+            'confetti',
+            'feather',
+            'thermometer',
+            'defibrillator',
+          ]),
+          kicker: displayNameSchema,
+          title: displayNameSchema,
+          callout: displayNameSchema,
+          detail: displayNameSchema,
+          copy: displayNameSchema,
+        }),
+      )
+      .length(15),
+    powers: z
+      .array(
+        z.strictObject({
+          powerId: PowerIdSchema,
+          omen: displayNameSchema,
+          reveal: displayNameSchema,
+        }),
+      )
+      .min(16)
+      .max(20),
+  })
+  .superRefine((content, context) => {
+    addDuplicateIssues(
+      content.triggers.map((trigger) => trigger.id),
+      context,
+      ['triggers'],
+      'awakening trigger',
+    );
+    addDuplicateIssues(
+      content.powers.map((power) => power.powerId),
+      context,
+      ['powers'],
+      'power',
+    );
+    for (const powerId of PowerIdSchema.options) {
+      if (!content.powers.some((power) => power.powerId === powerId)) {
+        addIssue(context, ['powers'], `missing awakening copy for ${powerId}`);
+      }
     }
-  }
-});
+  });
 
 export const AssistantGuideSequenceIdSchema = z.enum([
   'management-intro',
@@ -255,25 +314,40 @@ export const AssistantGuideDestinationSchema = z.enum([
   'club-finances',
 ]);
 
-const AssistantGuidePageSchema = z.strictObject({
-  kicker: displayNameSchema,
-  title: displayNameSchema,
-  body: z.array(displayNameSchema).min(1).max(2),
-  focus: AssistantGuideFocusSchema,
-  objective: displayNameSchema.optional(),
-  buttonLabel: displayNameSchema,
-  navItems: z.array(z.strictObject({
-    tab: z.enum(['HOME', 'SQUAD', 'CLUB', 'MARKET', 'LEAGUE']),
-    detail: displayNameSchema,
-  })).length(5).optional(),
-}).superRefine((page, context) => {
-  if (page.focus === 'navigation' && page.navItems === undefined) {
-    addIssue(context, ['navItems'], 'navigation guide page requires all five nav items');
-  }
-  if (page.focus !== 'navigation' && page.navItems !== undefined) {
-    addIssue(context, ['navItems'], 'only navigation guide pages may define nav items');
-  }
-});
+const AssistantGuidePageSchema = z
+  .strictObject({
+    kicker: displayNameSchema,
+    title: displayNameSchema,
+    body: z.array(displayNameSchema).min(1).max(2),
+    focus: AssistantGuideFocusSchema,
+    objective: displayNameSchema.optional(),
+    buttonLabel: displayNameSchema,
+    navItems: z
+      .array(
+        z.strictObject({
+          tab: z.enum(['HOME', 'SQUAD', 'CLUB', 'MARKET', 'LEAGUE']),
+          detail: displayNameSchema,
+        }),
+      )
+      .length(5)
+      .optional(),
+  })
+  .superRefine((page, context) => {
+    if (page.focus === 'navigation' && page.navItems === undefined) {
+      addIssue(
+        context,
+        ['navItems'],
+        'navigation guide page requires all five nav items',
+      );
+    }
+    if (page.focus !== 'navigation' && page.navItems !== undefined) {
+      addIssue(
+        context,
+        ['navItems'],
+        'only navigation guide pages may define nav items',
+      );
+    }
+  });
 
 /**
  * The sequences Bert delivers by walking onto the screen that raised them, as
@@ -290,73 +364,117 @@ const SCREEN_DELIVERED_SEQUENCE_IDS = [
 ] as const satisfies readonly z.infer<typeof AssistantGuideSequenceIdSchema>[];
 
 const INBOX_DELIVERED_SEQUENCE_IDS: ReadonlySet<string> = new Set(
-  AssistantGuideSequenceIdSchema.options
-    .filter(id => !(SCREEN_DELIVERED_SEQUENCE_IDS as readonly string[]).includes(id)),
+  AssistantGuideSequenceIdSchema.options.filter(
+    (id) => !(SCREEN_DELIVERED_SEQUENCE_IDS as readonly string[]).includes(id),
+  ),
 );
 
-const AssistantGuideSequenceSchema = z.strictObject({
-  id: AssistantGuideSequenceIdSchema,
-  inbox: z.strictObject({
-    title: displayNameSchema,
-    detail: displayNameSchema,
-  }).optional(),
-  destination: AssistantGuideDestinationSchema.optional(),
-  pages: z.array(AssistantGuidePageSchema).min(1).max(4),
-}).superRefine((sequence, context) => {
-  if (INBOX_DELIVERED_SEQUENCE_IDS.has(sequence.id)) {
-    if (sequence.inbox === undefined) {
-      addIssue(context, ['inbox'], 'M2 assistant guides require inbox copy');
+const AssistantGuideSequenceSchema = z
+  .strictObject({
+    id: AssistantGuideSequenceIdSchema,
+    inbox: z
+      .strictObject({
+        title: displayNameSchema,
+        detail: displayNameSchema,
+      })
+      .optional(),
+    destination: AssistantGuideDestinationSchema.optional(),
+    pages: z.array(AssistantGuidePageSchema).min(1).max(4),
+  })
+  .superRefine((sequence, context) => {
+    if (INBOX_DELIVERED_SEQUENCE_IDS.has(sequence.id)) {
+      if (sequence.inbox === undefined) {
+        addIssue(context, ['inbox'], 'M2 assistant guides require inbox copy');
+      }
+      if (sequence.destination === undefined) {
+        addIssue(
+          context,
+          ['destination'],
+          'M2 assistant guides require a destination',
+        );
+      }
+      return;
     }
-    if (sequence.destination === undefined) {
-      addIssue(context, ['destination'], 'M2 assistant guides require a destination');
+    // A sequence Bert delivers by walking onto the screen that raised it has no
+    // desk row to title and nowhere to send you — it is already there. Requiring
+    // inbox copy would mean authoring a card nothing ever renders.
+    if (sequence.inbox !== undefined) {
+      addIssue(
+        context,
+        ['inbox'],
+        'screen-delivered assistant guides have no inbox row',
+      );
     }
-    return;
-  }
-  // A sequence Bert delivers by walking onto the screen that raised it has no
-  // desk row to title and nowhere to send you — it is already there. Requiring
-  // inbox copy would mean authoring a card nothing ever renders.
-  if (sequence.inbox !== undefined) {
-    addIssue(context, ['inbox'], 'screen-delivered assistant guides have no inbox row');
-  }
-  if (sequence.destination !== undefined) {
-    addIssue(context, ['destination'], 'screen-delivered assistant guides have no destination');
-  }
-});
+    if (sequence.destination !== undefined) {
+      addIssue(
+        context,
+        ['destination'],
+        'screen-delivered assistant guides have no destination',
+      );
+    }
+  });
 
-export const AssistantGuideContentSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  assistant: z.strictObject({
-    name: displayNameSchema,
-    role: displayNameSchema,
-    portraitArchetype: z.literal('GAFFER'),
-  }),
-  m4Fiction: z.strictObject({
-    accessibility: z.strictObject({ title: displayNameSchema, body: displayNameSchema }),
-    events: z.strictObject({ title: displayNameSchema, body: displayNameSchema }),
-    seasonRecap: z.strictObject({ title: displayNameSchema, body: displayNameSchema }),
-  }),
-  sequences: z.array(AssistantGuideSequenceSchema).length(AssistantGuideSequenceIdSchema.options.length),
-}).superRefine((content, context) => {
-  addDuplicateIssues(content.sequences.map(sequence => sequence.id), context, ['sequences'], 'guide sequence ID');
-  for (const sequenceId of AssistantGuideSequenceIdSchema.options) {
-    if (!content.sequences.some(sequence => sequence.id === sequenceId)) {
-      addIssue(context, ['sequences'], `missing assistant guide sequence ${sequenceId}`);
+export const AssistantGuideContentSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    assistant: z.strictObject({
+      name: displayNameSchema,
+      role: displayNameSchema,
+      portraitArchetype: z.literal('GAFFER'),
+    }),
+    m4Fiction: z.strictObject({
+      accessibility: z.strictObject({
+        title: displayNameSchema,
+        body: displayNameSchema,
+      }),
+      events: z.strictObject({
+        title: displayNameSchema,
+        body: displayNameSchema,
+      }),
+      seasonRecap: z.strictObject({
+        title: displayNameSchema,
+        body: displayNameSchema,
+      }),
+    }),
+    sequences: z
+      .array(AssistantGuideSequenceSchema)
+      .length(AssistantGuideSequenceIdSchema.options.length),
+  })
+  .superRefine((content, context) => {
+    addDuplicateIssues(
+      content.sequences.map((sequence) => sequence.id),
+      context,
+      ['sequences'],
+      'guide sequence ID',
+    );
+    for (const sequenceId of AssistantGuideSequenceIdSchema.options) {
+      if (!content.sequences.some((sequence) => sequence.id === sequenceId)) {
+        addIssue(
+          context,
+          ['sequences'],
+          `missing assistant guide sequence ${sequenceId}`,
+        );
+      }
     }
-  }
-});
+  });
 
 // The ceiling is the top tier's gain: the per-drill table below pins every
 // authored value exactly, so this bound only catches a gain invented outside it.
 const MAXIMUM_DRILL_GAIN = 23;
-const DrillGainsSchema = z.strictObject({
-  pac: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
-  sho: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
-  pas: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
-  def: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
-  tec: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
-  sta: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
-  ref: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
-}).refine(gains => Object.keys(gains).length === 1, 'a drill must improve exactly one attribute');
+const DrillGainsSchema = z
+  .strictObject({
+    pac: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
+    sho: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
+    pas: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
+    def: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
+    tec: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
+    sta: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
+    ref: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
+  })
+  .refine(
+    (gains) => Object.keys(gains).length === 1,
+    'a drill must improve exactly one attribute',
+  );
 
 /**
  * `gains` overrides the shared tier ladder for one path.
@@ -380,7 +498,12 @@ const FOCUS_DRILL_PATHS = [
   { id: 'duels', name: 'Duels', attribute: 'def' },
   { id: 'first-touch', name: 'First Touch', attribute: 'tec' },
   { id: 'circuit', name: 'Circuit', attribute: 'sta' },
-  { id: 'keeper-drills', name: 'Keeper Drills', attribute: 'ref', gains: [2, 4, 6, 8, 11] },
+  {
+    id: 'keeper-drills',
+    name: 'Keeper Drills',
+    attribute: 'ref',
+    gains: [2, 4, 6, 8, 11],
+  },
 ] as const;
 // Tier labels are Arabic digits: the Roman "I" rendered as a bare bar in the
 // UI font and read as a serif-less 1.
@@ -401,14 +524,14 @@ const FOCUS_DRILL_TIERS = [
   { suffix: '-iv', label: '4', gain: 16 },
   { suffix: '-v', label: '5', gain: 22 },
 ] as const;
-const EXPECTED_FOCUS_DRILLS = FOCUS_DRILL_PATHS.flatMap(path => (
+const EXPECTED_FOCUS_DRILLS = FOCUS_DRILL_PATHS.flatMap((path) =>
   FOCUS_DRILL_TIERS.map((tier, tierIndex) => ({
     id: `${path.id}${tier.suffix}`,
     name: `${path.name} ${tier.label}`,
     attribute: path.attribute,
     gain: 'gains' in path ? path.gains[tierIndex] : tier.gain,
-  }))
-));
+  })),
+);
 
 export const TrainingDrillSchema = z.strictObject({
   id: idSchema,
@@ -418,56 +541,68 @@ export const TrainingDrillSchema = z.strictObject({
   gains: DrillGainsSchema,
 });
 
-export const TrainingCatalogSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  focusDrills: z.array(TrainingDrillSchema).length(
-    FOCUS_DRILL_PATHS.length * FOCUS_DRILL_TIERS.length,
-  ),
-}).superRefine((catalog, context) => {
-  addDuplicateIssues(
-    catalog.focusDrills.map(drill => drill.id),
-    context,
-    ['focusDrills'],
-    'drill ID',
-  );
-  const expectedById = new Map(EXPECTED_FOCUS_DRILLS.map(drill => [drill.id, drill]));
-  catalog.focusDrills.forEach((drill, index) => {
-    const expected = expectedById.get(drill.id);
-    if (expected === undefined) {
-      addIssue(
-        context,
-        ['focusDrills', index, 'id'],
-        'focus drill ID must identify one of the seven five-tier drill paths',
-      );
-      return;
-    }
-    if (drill.name !== expected.name) {
-      addIssue(
-        context,
-        ['focusDrills', index, 'name'],
-        `${drill.id} must be named ${expected.name}`,
-      );
-    }
-    const gains = Object.entries(drill.gains);
-    if (gains.length === 1 && (
-      gains[0][0] !== expected.attribute || gains[0][1] !== expected.gain
-    )) {
-      addIssue(
-        context,
-        ['focusDrills', index, 'gains'],
-        `${drill.id} must grant exactly +${expected.gain} ${expected.attribute.toUpperCase()}`,
-      );
+export const TrainingCatalogSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    focusDrills: z
+      .array(TrainingDrillSchema)
+      .length(FOCUS_DRILL_PATHS.length * FOCUS_DRILL_TIERS.length),
+  })
+  .superRefine((catalog, context) => {
+    addDuplicateIssues(
+      catalog.focusDrills.map((drill) => drill.id),
+      context,
+      ['focusDrills'],
+      'drill ID',
+    );
+    const expectedById = new Map(
+      EXPECTED_FOCUS_DRILLS.map((drill) => [drill.id, drill]),
+    );
+    catalog.focusDrills.forEach((drill, index) => {
+      const expected = expectedById.get(drill.id);
+      if (expected === undefined) {
+        addIssue(
+          context,
+          ['focusDrills', index, 'id'],
+          'focus drill ID must identify one of the seven five-tier drill paths',
+        );
+        return;
+      }
+      if (drill.name !== expected.name) {
+        addIssue(
+          context,
+          ['focusDrills', index, 'name'],
+          `${drill.id} must be named ${expected.name}`,
+        );
+      }
+      const gains = Object.entries(drill.gains);
+      if (
+        gains.length === 1 &&
+        (gains[0][0] !== expected.attribute || gains[0][1] !== expected.gain)
+      ) {
+        addIssue(
+          context,
+          ['focusDrills', index, 'gains'],
+          `${drill.id} must grant exactly +${expected.gain} ${expected.attribute.toUpperCase()}`,
+        );
+      }
+    });
+    for (const expected of EXPECTED_FOCUS_DRILLS) {
+      if (!catalog.focusDrills.some((drill) => drill.id === expected.id)) {
+        addIssue(
+          context,
+          ['focusDrills'],
+          `missing focus drill ${expected.id}`,
+        );
+      }
     }
   });
-  for (const expected of EXPECTED_FOCUS_DRILLS) {
-    if (!catalog.focusDrills.some(drill => drill.id === expected.id)) {
-      addIssue(context, ['focusDrills'], `missing focus drill ${expected.id}`);
-    }
-  }
-});
 
 const EventEffectSchema = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.literal('money'), amount: z.number().int().min(-100000).max(100000) }),
+  z.strictObject({
+    type: z.literal('money'),
+    amount: z.number().int().min(-100000).max(100000),
+  }),
   /**
    * Sell the selected player for one authored fee.
    *
@@ -480,15 +615,30 @@ const EventEffectSchema = z.discriminatedUnion('type', [
     type: z.literal('playerSale'),
     fee: z.number().int().min(1).max(100000),
   }),
-  z.strictObject({ type: z.literal('tp'), amount: z.number().int().min(-1000).max(1000) }),
-  z.strictObject({ type: z.literal('morale'), amount: z.number().int().min(-100).max(100) }),
-  z.strictObject({ type: z.literal('fans'), amount: z.number().int().min(-10000).max(10000) }),
-  z.strictObject({ type: z.literal('injury'), weeks: z.number().int().min(1).max(8) }),
+  z.strictObject({
+    type: z.literal('tp'),
+    amount: z.number().int().min(-1000).max(1000),
+  }),
+  z.strictObject({
+    type: z.literal('morale'),
+    amount: z.number().int().min(-100).max(100),
+  }),
+  z.strictObject({
+    type: z.literal('fans'),
+    amount: z.number().int().min(-10000).max(10000),
+  }),
+  z.strictObject({
+    type: z.literal('injury'),
+    weeks: z.number().int().min(1).max(8),
+  }),
   /**
    * A heal. `injury` can only ever lengthen an absence (it resolves through
    * `max`), so shortening one needs its own effect and its own sign.
    */
-  z.strictObject({ type: z.literal('injuryDelta'), weeks: z.number().int().min(-3).max(-1) }),
+  z.strictObject({
+    type: z.literal('injuryDelta'),
+    weeks: z.number().int().min(-3).max(-1),
+  }),
   /**
    * Squad-wide morale, said out loud.
    *
@@ -497,7 +647,10 @@ const EventEffectSchema = z.discriminatedUnion('type', [
    * one type, distinguished by something the outcome never states. `morale` is
    * now always the selected player; this is always the room.
    */
-  z.strictObject({ type: z.literal('squadMorale'), amount: z.number().int().min(-100).max(100) }),
+  z.strictObject({
+    type: z.literal('squadMorale'),
+    amount: z.number().int().min(-100).max(100),
+  }),
   z.strictObject({
     type: z.literal('statDelta'),
     attribute: AttributeSchema,
@@ -540,7 +693,14 @@ const EventEffectSchema = z.discriminatedUnion('type', [
    */
   z.strictObject({
     type: z.literal('coachSpecialty'),
-    to: z.enum(['ATTACK', 'DEFENSE', 'FITNESS', 'TECHNIQUE', 'GOALKEEPING', 'MOTIVATOR']),
+    to: z.enum([
+      'ATTACK',
+      'DEFENSE',
+      'FITNESS',
+      'TECHNIQUE',
+      'GOALKEEPING',
+      'MOTIVATOR',
+    ]),
   }),
   /**
    * A permanent change to how well one building works. Four named effects
@@ -548,14 +708,39 @@ const EventEffectSchema = z.discriminatedUnion('type', [
    * not the same kind of number — the dorm's is four points a level, which no
    * sensible percentage can move.
    */
-  z.strictObject({ type: z.literal('facilityTpBonus'), percent: z.number().int().min(-15).max(20) }),
-  z.strictObject({ type: z.literal('facilityTrainingBonus'), percent: z.number().int().min(-15).max(20) }),
-  z.strictObject({ type: z.literal('facilityRecoveryBonus'), amount: z.number().int().min(-2).max(3) }),
-  z.strictObject({ type: z.literal('facilityIncomeBonus'), percent: z.number().int().min(-15).max(20) }),
-  z.strictObject({ type: z.literal('loyalty'), amount: z.number().int().min(-25).max(25) }),
-  z.strictObject({ type: z.literal('condition'), amount: z.number().int().min(-30).max(30) }),
-  z.strictObject({ type: z.literal('fame'), amount: z.number().int().min(-50).max(50) }),
-  z.strictObject({ type: z.literal('flag'), flag: idSchema, value: z.boolean() }),
+  z.strictObject({
+    type: z.literal('facilityTpBonus'),
+    percent: z.number().int().min(-15).max(20),
+  }),
+  z.strictObject({
+    type: z.literal('facilityTrainingBonus'),
+    percent: z.number().int().min(-15).max(20),
+  }),
+  z.strictObject({
+    type: z.literal('facilityRecoveryBonus'),
+    amount: z.number().int().min(-2).max(3),
+  }),
+  z.strictObject({
+    type: z.literal('facilityIncomeBonus'),
+    percent: z.number().int().min(-15).max(20),
+  }),
+  z.strictObject({
+    type: z.literal('loyalty'),
+    amount: z.number().int().min(-25).max(25),
+  }),
+  z.strictObject({
+    type: z.literal('condition'),
+    amount: z.number().int().min(-30).max(30),
+  }),
+  z.strictObject({
+    type: z.literal('fame'),
+    amount: z.number().int().min(-50).max(50),
+  }),
+  z.strictObject({
+    type: z.literal('flag'),
+    flag: idSchema,
+    value: z.boolean(),
+  }),
 ]);
 
 /**
@@ -605,228 +790,331 @@ const FACILITY_EFFECT_TYPES = [
 const FACILITY_EFFECT_READERS: Readonly<Record<string, readonly string[]>> = {
   facilityTpBonus: ['training-pitch'],
   facilityTrainingBonus: [
-    'training-pitch', 'gym', 'tech-center', 'shooting-range', 'keeper-court',
+    'training-pitch',
+    'gym',
+    'tech-center',
+    'shooting-range',
+    'keeper-court',
   ],
   facilityRecoveryBonus: ['dorm'],
   facilityIncomeBonus: ['fan-shop', 'stadium-stand'],
 };
 
-const EventOutcomeSchema = z.strictObject({
-  weight: z.number().int().min(1).max(1000),
-  /**
-   * Stable within its choice, and the anchor for this outcome's translations
-   * (`event.<eventId>.<choiceId>.<outcomeId>.text`).
-   *
-   * Required rather than optional, and stored rather than derived from the
-   * array position: keying a translation by index means a later reorder
-   * silently reassigns every translated outcome to the wrong branch, and every
-   * key would still resolve — so no other gate would catch it.
-   */
-  id: idSchema,
-  text: displayNameSchema,
-  /** Bespoke banner for the risky-success cutscene; required on every risky win. */
-  successHeadline: displayNameSchema.optional(),
-  effects: z.array(EventEffectSchema),
-  nextEventId: idSchema.optional(),
-}).refine(
-  outcome => SINGULAR_EFFECT_TYPES.every(type => (
-    outcome.effects.filter(effect => effect.type === type).length <= 1
-  )),
-  'an outcome may carry at most one effect of each singular type — the engine reads them with find(), so a second is dropped rather than summed',
-);
+const EventOutcomeSchema = z
+  .strictObject({
+    weight: z.number().int().min(1).max(1000),
+    /**
+     * Stable within its choice, and the anchor for this outcome's translations
+     * (`event.<eventId>.<choiceId>.<outcomeId>.text`).
+     *
+     * Required rather than optional, and stored rather than derived from the
+     * array position: keying a translation by index means a later reorder
+     * silently reassigns every translated outcome to the wrong branch, and every
+     * key would still resolve — so no other gate would catch it.
+     */
+    id: idSchema,
+    text: displayNameSchema,
+    /** Bespoke banner for the risky-success cutscene; required on every risky win. */
+    successHeadline: displayNameSchema.optional(),
+    effects: z.array(EventEffectSchema),
+    nextEventId: idSchema.optional(),
+  })
+  .refine(
+    (outcome) =>
+      SINGULAR_EFFECT_TYPES.every(
+        (type) =>
+          outcome.effects.filter((effect) => effect.type === type).length <= 1,
+      ),
+    'an outcome may carry at most one effect of each singular type — the engine reads them with find(), so a second is dropped rather than summed',
+  );
 
 const EventRequirementSchema = z.strictObject({
   minMoney: safeNonnegativeIntegerSchema.optional(),
-  requiredFacility: z.enum([
-    'training-pitch', 'gym', 'tech-center', 'shooting-range', 'keeper-court', 'medical-bay',
-    'dorm', 'scout-office', 'coaching-office', 'youth-field', 'fan-shop', 'stadium-stand',
-  ]).optional(),
-  requiredPersonality: z.enum(['Fiery', 'Loyal', 'Greedy', 'Joker', 'Professional', 'Timid']).optional(),
+  requiredFacility: z
+    .enum([
+      'training-pitch',
+      'gym',
+      'tech-center',
+      'shooting-range',
+      'keeper-court',
+      'medical-bay',
+      'dorm',
+      'scout-office',
+      'coaching-office',
+      'youth-field',
+      'fan-shop',
+      'stadium-stand',
+    ])
+    .optional(),
+  requiredPersonality: z
+    .enum(['Fiery', 'Loyal', 'Greedy', 'Joker', 'Professional', 'Timid'])
+    .optional(),
   requiresHero: z.boolean().optional(),
 });
 
-const EventChoiceSchema = z.strictObject({
-  id: idSchema,
-  label: displayNameSchema,
-  risky: z.boolean(),
-  requires: EventRequirementSchema.optional(),
-  outcomes: z.array(EventOutcomeSchema).min(1),
-}).refine(
-  choice => choice.outcomes.reduce((sum, outcome) => sum + outcome.weight, 0) === 100,
-  'event outcome weights must total 100',
-).refine(
-  choice => !choice.risky || choice.outcomes.length === 2,
-  'risky event choices must define success first and setback second',
-).refine(
-  choice => !choice.risky || choice.outcomes[0]?.effects.some(
-    effect => effect.type === 'flag' && effect.value,
-  ) === true,
-  'a risky event choice must mark its first outcome as the authored success',
-).refine(
-  choice => !choice.risky || (choice.outcomes[0]?.successHeadline?.trim().length ?? 0) > 0,
-  'a risky event choice must author a bespoke success headline for its cutscene',
-);
+const EventChoiceSchema = z
+  .strictObject({
+    id: idSchema,
+    label: displayNameSchema,
+    risky: z.boolean(),
+    requires: EventRequirementSchema.optional(),
+    outcomes: z.array(EventOutcomeSchema).min(1),
+  })
+  .refine(
+    (choice) =>
+      choice.outcomes.reduce((sum, outcome) => sum + outcome.weight, 0) === 100,
+    'event outcome weights must total 100',
+  )
+  .refine(
+    (choice) => !choice.risky || choice.outcomes.length === 2,
+    'risky event choices must define success first and setback second',
+  )
+  .refine(
+    (choice) =>
+      !choice.risky ||
+      choice.outcomes[0]?.effects.some(
+        (effect) => effect.type === 'flag' && effect.value,
+      ) === true,
+    'a risky event choice must mark its first outcome as the authored success',
+  )
+  .refine(
+    (choice) =>
+      !choice.risky ||
+      (choice.outcomes[0]?.successHeadline?.trim().length ?? 0) > 0,
+    'a risky event choice must author a bespoke success headline for its cutscene',
+  );
 
-export const GameEventSchema = z.strictObject({
-  id: idSchema,
-  category: z.enum(['mystery', 'club', 'media', 'sponsor', 'player', 'medical', 'fan']),
-  rarity: z.enum(['common', 'rare', 'legendary']),
-  art: idSchema,
-  title: displayNameSchema,
-  body: displayNameSchema,
-  trigger: z.strictObject({
-    season: z.number().int().min(1).max(2),
-    minWeek: z.number().int().min(1).max(30),
-    maxWeek: z.number().int().min(1).max(30),
-    requiredFlag: idSchema.optional(),
-    minDivision: z.number().int().min(1).max(5).optional(),
-    maxDivision: z.number().int().min(1).max(5).optional(),
-    minMoney: safeNonnegativeIntegerSchema.optional(),
-    requiredFacility: EventRequirementSchema.shape.requiredFacility,
-    requiredPersonality: EventRequirementSchema.shape.requiredPersonality,
-    requiresHero: z.boolean().optional(),
-    requiresPlayer: z.boolean().optional(),
-    /** The one keeper story: the picker offers only goalkeepers. */
-    requiresPlayerRole: z.literal('GK').optional(),
-    /** The card asks the manager to point at the head coach or the assistant. */
-    requiresCoach: z.boolean().optional(),
-    /** Optional staff-slot restriction for prose that explicitly names one role. */
-    requiresCoachRole: z.enum(['HEAD', 'ASSISTANT']).optional(),
-    /**
-     * The story is about the two of them disagreeing, so it needs both slots
-     * filled — which means it cannot appear before the Coaching Office is up.
-     */
-    requiresBothCoaches: z.boolean().optional(),
-    /**
-     * The card asks the manager to point at a building. The list narrows which
-     * types are offered; an event that admits several must map every one of
-     * them to an effect, or the picker could hand it a building it cannot act
-     * on. Scout Office and Coaching Office are not targetable — a shortlist
-     * size and a boolean unlock cannot take a percentage.
-     */
-    requiresFacility: z.array(z.enum([
-      'training-pitch', 'gym', 'tech-center', 'shooting-range', 'keeper-court',
-      'dorm', 'youth-field', 'fan-shop', 'stadium-stand',
-    ])).min(1).optional(),
-    repeatable: z.boolean().optional(),
-  }).superRefine((trigger, context) => {
-    if (trigger.minWeek > trigger.maxWeek) addIssue(context, ['minWeek'], 'event minWeek must not exceed maxWeek');
-    if (trigger.minDivision !== undefined && trigger.maxDivision !== undefined && trigger.minDivision > trigger.maxDivision) {
-      addIssue(context, ['minDivision'], 'event minDivision must not exceed maxDivision');
-    }
-    if (trigger.requiresCoachRole !== undefined && trigger.requiresCoach !== true) {
-      addIssue(context, ['requiresCoachRole'], 'requiresCoachRole requires requiresCoach');
-    }
-  }),
-  choices: z.array(EventChoiceSchema).min(2).max(3),
-}).superRefine((event, context) => {
-  addDuplicateIssues(event.choices.map(choice => choice.id), context, ['choices'], 'choice ID');
-  const targetKinds = [
-    event.trigger.requiresPlayer === true,
-    event.trigger.requiresCoach === true,
-    event.trigger.requiresFacility !== undefined,
-  ].filter(Boolean).length;
-  if (targetKinds > 1) {
-    addIssue(context, ['trigger'], 'an event may require only one target kind');
-  }
-  /**
-   * A player effect needs a player, and the engine will not guess one.
-   *
-   * `morale`, `injury` and `statDelta` all land on the event's selected player.
-   * Before this rule, an event that authored one without `requiresPlayer` did
-   * not fail — `morale` quietly became a squad-wide effect and the other two
-   * were dropped on the floor. Both readings are now unreachable: squad morale
-   * is its own type, and this rejects the rest at build time.
-   */
-  const PLAYER_EFFECT_TYPES = [
-    'playerSale',
-    'morale', 'injury', 'injuryDelta', 'statDelta', 'statDeltaSessions',
-    'loyalty', 'condition', 'fame',
-  ] as const;
-  /**
-   * A coach effect needs a coach, for the same reason a player effect needs a
-   * player: the engine will not guess which one the story meant.
-   */
-  event.choices.forEach((choice, choiceIndex) => {
-    choice.outcomes.forEach((outcome, outcomeIndex) => {
-      if (outcome.effects.some(effect => effect.type === 'playerSale')
-        && outcome.effects.some(effect => effect.type === 'money')) {
-        addIssue(
-          context,
-          ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
-          'a playerSale already pays its fee, so the same outcome must not also author a money effect',
-        );
-      }
-      const facets = outcome.effects
-        .filter(effect => effect.type === 'coachBoost')
-        .map(effect => effect.type === 'coachBoost' ? effect.facet : '');
-      if (new Set(facets).size !== facets.length) {
-        addIssue(
-          context,
-          ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
-          'an outcome may carry at most one coachBoost per facet',
-        );
-      }
-      const facilityEffect = outcome.effects.find(effect => (
-        (FACILITY_EFFECT_TYPES as readonly string[]).includes(effect.type)
-      ));
-      if (facilityEffect !== undefined && event.trigger.requiresFacility === undefined) {
-        addIssue(
-          context,
-          ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
-          `a "${facilityEffect.type}" effect targets the selected building, so ${event.id} must set trigger.requiresFacility`,
-        );
-      }
-      const offered = event.trigger.requiresFacility ?? [];
-      for (const effect of outcome.effects) {
-        const readers = FACILITY_EFFECT_READERS[effect.type];
-        if (readers === undefined) continue;
-        const deaf = offered.filter(type => !readers.includes(type));
-        if (deaf.length === 0) continue;
-        addIssue(
-          context,
-          ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
-          `${event.id} may offer ${deaf.join(', ')}, which cannot read a "${effect.type}" — the boost would be stored and never read`,
-        );
-      }
-      if (event.trigger.requiresCoach === true) return;
-      const coachEffect = outcome.effects.find(effect => (
-        (COACH_EFFECT_TYPES as readonly string[]).includes(effect.type)
-      ));
-      if (coachEffect === undefined) return;
+export const GameEventSchema = z
+  .strictObject({
+    id: idSchema,
+    category: z.enum([
+      'mystery',
+      'club',
+      'media',
+      'sponsor',
+      'player',
+      'medical',
+      'fan',
+    ]),
+    rarity: z.enum(['common', 'rare', 'legendary']),
+    art: idSchema,
+    title: displayNameSchema,
+    body: displayNameSchema,
+    trigger: z
+      .strictObject({
+        season: z.number().int().min(1).max(2),
+        minWeek: z.number().int().min(1).max(30),
+        maxWeek: z.number().int().min(1).max(30),
+        requiredFlag: idSchema.optional(),
+        minDivision: z.number().int().min(1).max(5).optional(),
+        maxDivision: z.number().int().min(1).max(5).optional(),
+        minMoney: safeNonnegativeIntegerSchema.optional(),
+        requiredFacility: EventRequirementSchema.shape.requiredFacility,
+        requiredPersonality: EventRequirementSchema.shape.requiredPersonality,
+        requiresHero: z.boolean().optional(),
+        requiresPlayer: z.boolean().optional(),
+        /** The one keeper story: the picker offers only goalkeepers. */
+        requiresPlayerRole: z.literal('GK').optional(),
+        /** The card asks the manager to point at the head coach or the assistant. */
+        requiresCoach: z.boolean().optional(),
+        /** Optional staff-slot restriction for prose that explicitly names one role. */
+        requiresCoachRole: z.enum(['HEAD', 'ASSISTANT']).optional(),
+        /**
+         * The story is about the two of them disagreeing, so it needs both slots
+         * filled — which means it cannot appear before the Coaching Office is up.
+         */
+        requiresBothCoaches: z.boolean().optional(),
+        /**
+         * The card asks the manager to point at a building. The list narrows which
+         * types are offered; an event that admits several must map every one of
+         * them to an effect, or the picker could hand it a building it cannot act
+         * on. Scout Office and Coaching Office are not targetable — a shortlist
+         * size and a boolean unlock cannot take a percentage.
+         */
+        requiresFacility: z
+          .array(
+            z.enum([
+              'training-pitch',
+              'gym',
+              'tech-center',
+              'shooting-range',
+              'keeper-court',
+              'dorm',
+              'youth-field',
+              'fan-shop',
+              'stadium-stand',
+            ]),
+          )
+          .min(1)
+          .optional(),
+        repeatable: z.boolean().optional(),
+      })
+      .superRefine((trigger, context) => {
+        if (trigger.minWeek > trigger.maxWeek)
+          addIssue(
+            context,
+            ['minWeek'],
+            'event minWeek must not exceed maxWeek',
+          );
+        if (
+          trigger.minDivision !== undefined &&
+          trigger.maxDivision !== undefined &&
+          trigger.minDivision > trigger.maxDivision
+        ) {
+          addIssue(
+            context,
+            ['minDivision'],
+            'event minDivision must not exceed maxDivision',
+          );
+        }
+        if (
+          trigger.requiresCoachRole !== undefined &&
+          trigger.requiresCoach !== true
+        ) {
+          addIssue(
+            context,
+            ['requiresCoachRole'],
+            'requiresCoachRole requires requiresCoach',
+          );
+        }
+      }),
+    choices: z.array(EventChoiceSchema).min(2).max(3),
+  })
+  .superRefine((event, context) => {
+    addDuplicateIssues(
+      event.choices.map((choice) => choice.id),
+      context,
+      ['choices'],
+      'choice ID',
+    );
+    const targetKinds = [
+      event.trigger.requiresPlayer === true,
+      event.trigger.requiresCoach === true,
+      event.trigger.requiresFacility !== undefined,
+    ].filter(Boolean).length;
+    if (targetKinds > 1) {
       addIssue(
         context,
-        ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
-        `a "${coachEffect.type}" effect targets the selected coach, so ${event.id} must set trigger.requiresCoach`,
+        ['trigger'],
+        'an event may require only one target kind',
       );
+    }
+    /**
+     * A player effect needs a player, and the engine will not guess one.
+     *
+     * `morale`, `injury` and `statDelta` all land on the event's selected player.
+     * Before this rule, an event that authored one without `requiresPlayer` did
+     * not fail — `morale` quietly became a squad-wide effect and the other two
+     * were dropped on the floor. Both readings are now unreachable: squad morale
+     * is its own type, and this rejects the rest at build time.
+     */
+    const PLAYER_EFFECT_TYPES = [
+      'playerSale',
+      'morale',
+      'injury',
+      'injuryDelta',
+      'statDelta',
+      'statDeltaSessions',
+      'loyalty',
+      'condition',
+      'fame',
+    ] as const;
+    /**
+     * A coach effect needs a coach, for the same reason a player effect needs a
+     * player: the engine will not guess which one the story meant.
+     */
+    event.choices.forEach((choice, choiceIndex) => {
+      choice.outcomes.forEach((outcome, outcomeIndex) => {
+        if (
+          outcome.effects.some((effect) => effect.type === 'playerSale') &&
+          outcome.effects.some((effect) => effect.type === 'money')
+        ) {
+          addIssue(
+            context,
+            ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+            'a playerSale already pays its fee, so the same outcome must not also author a money effect',
+          );
+        }
+        const facets = outcome.effects
+          .filter((effect) => effect.type === 'coachBoost')
+          .map((effect) => (effect.type === 'coachBoost' ? effect.facet : ''));
+        if (new Set(facets).size !== facets.length) {
+          addIssue(
+            context,
+            ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+            'an outcome may carry at most one coachBoost per facet',
+          );
+        }
+        const facilityEffect = outcome.effects.find((effect) =>
+          (FACILITY_EFFECT_TYPES as readonly string[]).includes(effect.type),
+        );
+        if (
+          facilityEffect !== undefined &&
+          event.trigger.requiresFacility === undefined
+        ) {
+          addIssue(
+            context,
+            ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+            `a "${facilityEffect.type}" effect targets the selected building, so ${event.id} must set trigger.requiresFacility`,
+          );
+        }
+        const offered = event.trigger.requiresFacility ?? [];
+        for (const effect of outcome.effects) {
+          const readers = FACILITY_EFFECT_READERS[effect.type];
+          if (readers === undefined) continue;
+          const deaf = offered.filter((type) => !readers.includes(type));
+          if (deaf.length === 0) continue;
+          addIssue(
+            context,
+            ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+            `${event.id} may offer ${deaf.join(', ')}, which cannot read a "${effect.type}" — the boost would be stored and never read`,
+          );
+        }
+        if (event.trigger.requiresCoach === true) return;
+        const coachEffect = outcome.effects.find((effect) =>
+          (COACH_EFFECT_TYPES as readonly string[]).includes(effect.type),
+        );
+        if (coachEffect === undefined) return;
+        addIssue(
+          context,
+          ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+          `a "${coachEffect.type}" effect targets the selected coach, so ${event.id} must set trigger.requiresCoach`,
+        );
+      });
+    });
+    if (event.trigger.requiresPlayer === true) return;
+    event.choices.forEach((choice, choiceIndex) => {
+      choice.outcomes.forEach((outcome, outcomeIndex) => {
+        const offender = outcome.effects.find((effect) =>
+          (PLAYER_EFFECT_TYPES as readonly string[]).includes(effect.type),
+        );
+        if (offender === undefined) return;
+        addIssue(
+          context,
+          ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
+          `a "${offender.type}" effect targets the selected player, so ${event.id} must set trigger.requiresPlayer (use "squadMorale" for a club-wide mood change)`,
+        );
+      });
     });
   });
-  if (event.trigger.requiresPlayer === true) return;
-  event.choices.forEach((choice, choiceIndex) => {
-    choice.outcomes.forEach((outcome, outcomeIndex) => {
-      const offender = outcome.effects.find(effect => (
-        (PLAYER_EFFECT_TYPES as readonly string[]).includes(effect.type)
-      ));
-      if (offender === undefined) return;
-      addIssue(
-        context,
-        ['choices', choiceIndex, 'outcomes', outcomeIndex, 'effects'],
-        `a "${offender.type}" effect targets the selected player, so ${event.id} must set trigger.requiresPlayer (use "squadMorale" for a club-wide mood change)`,
-      );
-    });
-  });
-});
 
-export const EventCatalogSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  tuning: z.strictObject({
-    weeklyChancePercent: z.number().int().min(1).max(100),
-    guaranteeAfterDryWeeks: z.number().int().min(1).max(30),
-  }),
-  events: z.array(GameEventSchema).min(1),
-}).superRefine((catalog, context) => {
-  addDuplicateIssues(catalog.events.map(event => event.id), context, ['events'], 'event ID');
-});
+export const EventCatalogSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    tuning: z.strictObject({
+      weeklyChancePercent: z.number().int().min(1).max(100),
+      guaranteeAfterDryWeeks: z.number().int().min(1).max(30),
+    }),
+    events: z.array(GameEventSchema).min(1),
+  })
+  .superRefine((catalog, context) => {
+    addDuplicateIssues(
+      catalog.events.map((event) => event.id),
+      context,
+      ['events'],
+      'event ID',
+    );
+  });
 
 /**
  * Flag namespaces the engine records itself rather than an authored outcome.
@@ -841,20 +1129,34 @@ const GlossaryEntrySchema = z.strictObject({
   definition: z.string().trim().min(1).max(500),
 });
 
-const GlossaryCategorySchema = z.strictObject({
-  id: idSchema,
-  title: displayNameSchema,
-  entries: z.array(GlossaryEntrySchema).min(1),
-}).superRefine((category, context) => {
-  addDuplicateIssues(category.entries.map(entry => entry.term), context, ['entries'], 'glossary term');
-});
+const GlossaryCategorySchema = z
+  .strictObject({
+    id: idSchema,
+    title: displayNameSchema,
+    entries: z.array(GlossaryEntrySchema).min(1),
+  })
+  .superRefine((category, context) => {
+    addDuplicateIssues(
+      category.entries.map((entry) => entry.term),
+      context,
+      ['entries'],
+      'glossary term',
+    );
+  });
 
-export const GlossaryCatalogSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  categories: z.array(GlossaryCategorySchema).min(1),
-}).superRefine((catalog, context) => {
-  addDuplicateIssues(catalog.categories.map(category => category.id), context, ['categories'], 'glossary category');
-});
+export const GlossaryCatalogSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    categories: z.array(GlossaryCategorySchema).min(1),
+  })
+  .superRefine((catalog, context) => {
+    addDuplicateIssues(
+      catalog.categories.map((category) => category.id),
+      context,
+      ['categories'],
+      'glossary category',
+    );
+  });
 
 /**
  * A manager's tip: one non-obvious rule, stated once, in the plainest words it
@@ -871,12 +1173,19 @@ const ManagerTipSchema = z.strictObject({
   destination: ManagerTipDestinationSchema.optional(),
 });
 
-export const ManagerTipCatalogSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  tips: z.array(ManagerTipSchema).min(1),
-}).superRefine((catalog, context) => {
-  addDuplicateIssues(catalog.tips.map(tip => tip.id), context, ['tips'], 'manager tip');
-});
+export const ManagerTipCatalogSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    tips: z.array(ManagerTipSchema).min(1),
+  })
+  .superRefine((catalog, context) => {
+    addDuplicateIssues(
+      catalog.tips.map((tip) => tip.id),
+      context,
+      ['tips'],
+      'manager tip',
+    );
+  });
 
 /**
  * What a player says on the award rostrum: one pool for whoever won a board,
@@ -891,16 +1200,32 @@ export const ManagerTipCatalogSchema = z.strictObject({
  */
 const MAX_CEREMONY_LINE_LENGTH = 64;
 const CEREMONY_LINE_POOL_SIZE = 30;
-const ceremonyLineSchema = z.string().trim().min(1).max(MAX_CEREMONY_LINE_LENGTH);
+const ceremonyLineSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(MAX_CEREMONY_LINE_LENGTH);
 
-export const AwardCeremonyLinesSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  winner: z.array(ceremonyLineSchema).length(CEREMONY_LINE_POOL_SIZE),
-  runnerUp: z.array(ceremonyLineSchema).length(CEREMONY_LINE_POOL_SIZE),
-}).superRefine((pools, context) => {
-  addDuplicateIssues(pools.winner, context, ['winner'], 'winner ceremony line');
-  addDuplicateIssues(pools.runnerUp, context, ['runnerUp'], 'runner-up ceremony line');
-});
+export const AwardCeremonyLinesSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    winner: z.array(ceremonyLineSchema).length(CEREMONY_LINE_POOL_SIZE),
+    runnerUp: z.array(ceremonyLineSchema).length(CEREMONY_LINE_POOL_SIZE),
+  })
+  .superRefine((pools, context) => {
+    addDuplicateIssues(
+      pools.winner,
+      context,
+      ['winner'],
+      'winner ceremony line',
+    );
+    addDuplicateIssues(
+      pools.runnerUp,
+      context,
+      ['runnerUp'],
+      'runner-up ceremony line',
+    );
+  });
 
 /**
  * What the gaffer says when he decides the assistant lost it for him.
@@ -923,28 +1248,36 @@ const BLAME_LINE_POOL_SIZE = 20;
 const MAX_AGENT_FINAL_LINE_LENGTH = 100;
 const AGENT_FINAL_LINE_POOL_SIZE = 15;
 
-export const AgentFinalLinesSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  lines: z.array(
-    z.string().trim().min(1).max(MAX_AGENT_FINAL_LINE_LENGTH),
-  ).length(AGENT_FINAL_LINE_POOL_SIZE),
-}).superRefine((pool, context) => {
-  addDuplicateIssues(pool.lines, context, ['lines'], 'agent final line');
-  // The whole point of the beat is that he names a figure. A line that lost its
-  // placeholder in a rewrite would deliver an ultimatum with no number in it.
-  pool.lines.forEach((line, index) => {
-    if (!line.includes('{wage}')) {
-      addIssue(context, ['lines', index], 'agent final lines must name the wage with {wage}');
-    }
+export const AgentFinalLinesSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    lines: z
+      .array(z.string().trim().min(1).max(MAX_AGENT_FINAL_LINE_LENGTH))
+      .length(AGENT_FINAL_LINE_POOL_SIZE),
+  })
+  .superRefine((pool, context) => {
+    addDuplicateIssues(pool.lines, context, ['lines'], 'agent final line');
+    // The whole point of the beat is that he names a figure. A line that lost its
+    // placeholder in a rewrite would deliver an ultimatum with no number in it.
+    pool.lines.forEach((line, index) => {
+      if (!line.includes('{wage}')) {
+        addIssue(
+          context,
+          ['lines', index],
+          'agent final lines must name the wage with {wage}',
+        );
+      }
+    });
   });
-});
 
-export const FulltimeBlameLinesSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  lines: z.array(ceremonyLineSchema).length(BLAME_LINE_POOL_SIZE),
-}).superRefine((pool, context) => {
-  addDuplicateIssues(pool.lines, context, ['lines'], 'full-time blame line');
-});
+export const FulltimeBlameLinesSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    lines: z.array(ceremonyLineSchema).length(BLAME_LINE_POOL_SIZE),
+  })
+  .superRefine((pool, context) => {
+    addDuplicateIssues(pool.lines, context, ['lines'], 'full-time blame line');
+  });
 
 /**
  * What the gaffer says about the result itself, one pool per kind of afternoon.
@@ -962,37 +1295,44 @@ const COACH_LINE_POOL_SIZE = 15;
 
 const coachLinePool = z.array(ceremonyLineSchema).length(COACH_LINE_POOL_SIZE);
 
-export const FulltimeCoachLinesSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  /** Won by three or more. */
-  leagueWinBig: coachLinePool,
-  /** Won by one or two. */
-  leagueWinClose: coachLinePool,
-  leagueDraw: coachLinePool,
-  /** Lost by one or two. */
-  leagueLossClose: coachLinePool,
-  /** Lost by three or more. */
-  leagueLossBig: coachLinePool,
-  /** Beat a club a division or more above us. */
-  cupWinGiant: coachLinePool,
-  /** Beat a club a little above us. */
-  cupWinBetter: coachLinePool,
-  /** Beat a club level with us or a little below. */
-  cupWinSlight: coachLinePool,
-  /** Beat a club well below us. */
-  cupWinRoutine: coachLinePool,
-  /** Lost to a club a division or more above us. */
-  cupLossStrong: coachLinePool,
-  /** Lost to a club near enough our own size. */
-  cupLossEven: coachLinePool,
-  /** Lost to a club well below us: the tie nobody lets you forget. */
-  cupLossWeak: coachLinePool,
-}).superRefine((pools, context) => {
-  for (const [name, lines] of Object.entries(pools)) {
-    if (name === 'schemaVersion') continue;
-    addDuplicateIssues(lines as readonly string[], context, [name], `${name} coach line`);
-  }
-});
+export const FulltimeCoachLinesSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    /** Won by three or more. */
+    leagueWinBig: coachLinePool,
+    /** Won by one or two. */
+    leagueWinClose: coachLinePool,
+    leagueDraw: coachLinePool,
+    /** Lost by one or two. */
+    leagueLossClose: coachLinePool,
+    /** Lost by three or more. */
+    leagueLossBig: coachLinePool,
+    /** Beat a club a division or more above us. */
+    cupWinGiant: coachLinePool,
+    /** Beat a club a little above us. */
+    cupWinBetter: coachLinePool,
+    /** Beat a club level with us or a little below. */
+    cupWinSlight: coachLinePool,
+    /** Beat a club well below us. */
+    cupWinRoutine: coachLinePool,
+    /** Lost to a club a division or more above us. */
+    cupLossStrong: coachLinePool,
+    /** Lost to a club near enough our own size. */
+    cupLossEven: coachLinePool,
+    /** Lost to a club well below us: the tie nobody lets you forget. */
+    cupLossWeak: coachLinePool,
+  })
+  .superRefine((pools, context) => {
+    for (const [name, lines] of Object.entries(pools)) {
+      if (name === 'schemaVersion') continue;
+      addDuplicateIssues(
+        lines as readonly string[],
+        context,
+        [name],
+        `${name} coach line`,
+      );
+    }
+  });
 
 /**
  * Sprite names a request may reference for its artwork.
@@ -1003,12 +1343,39 @@ export const FulltimeCoachLinesSchema = z.strictObject({
  * checks the shipped catalog against the real sprite table.
  */
 const REQUEST_ART_SPRITES = new Set([
-  'banner-flag', 'boot', 'briefcase', 'burger', 'camera', 'chef-hat', 'cone',
-  'dog', 'drink-can', 'drone', 'envelope', 'headphones', 'letter',
-  'massage-table', 'microphone', 'money-bag', 'palm-tree', 'party-hat', 'plane',
-  'rain-cloud', 'scarf', 'scissors', 'shirt', 'spatula', 'speaker',
-  'sports-car', 'star-sparkle', 'sunglasses', 'tactics-board', 'tape-roll',
-  'ticket', 'tuning-fork', 'tv',
+  'banner-flag',
+  'boot',
+  'briefcase',
+  'burger',
+  'camera',
+  'chef-hat',
+  'cone',
+  'dog',
+  'drink-can',
+  'drone',
+  'envelope',
+  'headphones',
+  'letter',
+  'massage-table',
+  'microphone',
+  'money-bag',
+  'palm-tree',
+  'party-hat',
+  'plane',
+  'rain-cloud',
+  'scarf',
+  'scissors',
+  'shirt',
+  'spatula',
+  'speaker',
+  'sports-car',
+  'star-sparkle',
+  'sunglasses',
+  'tactics-board',
+  'tape-roll',
+  'ticket',
+  'tuning-fork',
+  'tv',
 ]);
 
 /**
@@ -1025,8 +1392,14 @@ const RequestCostSchema = z.discriminatedUnion('kind', [
     kind: z.literal('MONEY_SQUAD'),
     billMultiplePercent: z.number().int().min(5).max(300),
   }),
-  z.strictObject({ kind: z.literal('ABSENCE'), weeks: z.number().int().min(1).max(4) }),
-  z.strictObject({ kind: z.literal('CONDITION_SQUAD'), amount: z.number().int().min(1).max(30) }),
+  z.strictObject({
+    kind: z.literal('ABSENCE'),
+    weeks: z.number().int().min(1).max(4),
+  }),
+  z.strictObject({
+    kind: z.literal('CONDITION_SQUAD'),
+    amount: z.number().int().min(1).max(30),
+  }),
   z.strictObject({
     kind: z.literal('DRILL_PLAYER'),
     multiplierPercent: z.number().int().min(10).max(99),
@@ -1041,8 +1414,14 @@ const RequestCostSchema = z.discriminatedUnion('kind', [
 
 /** A themed reward a few squad requests carry, on top of loyalty and morale. */
 const RequestGrantBonusSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('CONDITION_SQUAD'), amount: z.number().int().min(1).max(20) }),
-  z.strictObject({ kind: z.literal('MORALE_SQUAD'), amount: z.number().int().min(1).max(10) }),
+  z.strictObject({
+    kind: z.literal('CONDITION_SQUAD'),
+    amount: z.number().int().min(1).max(20),
+  }),
+  z.strictObject({
+    kind: z.literal('MORALE_SQUAD'),
+    amount: z.number().int().min(1).max(10),
+  }),
 ]);
 
 const PlayerRequestSchema = z.strictObject({
@@ -1054,67 +1433,92 @@ const PlayerRequestSchema = z.strictObject({
   grantBonus: RequestGrantBonusSchema.optional(),
 });
 
-const RequestCadenceSchema = z.strictObject({
-  minWeeks: z.number().int().min(1).max(30),
-  guaranteeWeeks: z.number().int().min(2).max(40),
-  starMinWeeks: z.number().int().min(1).max(30),
-  starGuaranteeWeeks: z.number().int().min(2).max(40),
-}).superRefine((cadence, context) => {
-  if (cadence.minWeeks >= cadence.guaranteeWeeks) {
-    addIssue(context, ['minWeeks'], 'cadence minWeeks must be below guaranteeWeeks');
-  }
-  if (cadence.starMinWeeks >= cadence.starGuaranteeWeeks) {
-    addIssue(context, ['starMinWeeks'], 'star cadence minWeeks must be below guaranteeWeeks');
-  }
-  if (cadence.starMinWeeks > cadence.minWeeks) {
-    addIssue(context, ['starMinWeeks'], 'a squad with a star must not wait longer');
-  }
-});
+const RequestCadenceSchema = z
+  .strictObject({
+    minWeeks: z.number().int().min(1).max(30),
+    guaranteeWeeks: z.number().int().min(2).max(40),
+    starMinWeeks: z.number().int().min(1).max(30),
+    starGuaranteeWeeks: z.number().int().min(2).max(40),
+  })
+  .superRefine((cadence, context) => {
+    if (cadence.minWeeks >= cadence.guaranteeWeeks) {
+      addIssue(
+        context,
+        ['minWeeks'],
+        'cadence minWeeks must be below guaranteeWeeks',
+      );
+    }
+    if (cadence.starMinWeeks >= cadence.starGuaranteeWeeks) {
+      addIssue(
+        context,
+        ['starMinWeeks'],
+        'star cadence minWeeks must be below guaranteeWeeks',
+      );
+    }
+    if (cadence.starMinWeeks > cadence.minWeeks) {
+      addIssue(
+        context,
+        ['starMinWeeks'],
+        'a squad with a star must not wait longer',
+      );
+    }
+  });
 
-export const PlayerRequestCatalogSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  tuning: z.strictObject({
-    startSeason: z.number().int().min(1).max(10),
-    startWeek: z.number().int().min(1).max(30),
-    baseChancePercent: z.number().int().min(1).max(100),
-    /**
-     * The bound is `FAME_CEILING` from `src/game/pyramid.ts`, restated rather
-     * than imported: nothing in `src/content/` depends on the game ring, and
-     * one zod bound is not worth opening that door. A threshold above the
-     * ceiling is one no player can ever cross, which would silently retire the
-     * star half of `cadence` — the mirror of what the shipped 50 did to the
-     * non-star half while fame still saturated at 99.
-     */
-    starFameThreshold: z.number().int().min(0).max(999),
-    starGoalRank: z.number().int().min(1).max(5),
-    /**
-     * Seasons, not weeks: `CareerPlayer` carries `seasonsAtClub` and nothing
-     * finer, so a week-level knob would be config that silently did nothing.
-     *
-     * Ships as 1: a player has to have been at the club through a season
-     * transition before they start making demands. `mergeCareerPlayer`
-     * (`src/game/m2-career.ts`) increments the field each transition, so a
-     * launch-squad player reads 1 by season 2 — which is when requests begin —
-     * while someone signed mid-season waits until the next rollover.
-     */
-    minSeasonsAtClub: z.number().int().min(0).max(5),
-    answerWeeks: z.number().int().min(1).max(5),
-    cadence: z.strictObject({
-      COZY: RequestCadenceSchema,
-      CHAIRMAN: RequestCadenceSchema,
+export const PlayerRequestCatalogSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    tuning: z.strictObject({
+      startSeason: z.number().int().min(1).max(10),
+      startWeek: z.number().int().min(1).max(30),
+      baseChancePercent: z.number().int().min(1).max(100),
+      /**
+       * The bound is `FAME_CEILING` from `src/game/pyramid.ts`, restated rather
+       * than imported: nothing in `src/content/` depends on the game ring, and
+       * one zod bound is not worth opening that door. A threshold above the
+       * ceiling is one no player can ever cross, which would silently retire the
+       * star half of `cadence` — the mirror of what the shipped 50 did to the
+       * non-star half while fame still saturated at 99.
+       */
+      starFameThreshold: z.number().int().min(0).max(999),
+      starGoalRank: z.number().int().min(1).max(5),
+      /**
+       * Seasons, not weeks: `CareerPlayer` carries `seasonsAtClub` and nothing
+       * finer, so a week-level knob would be config that silently did nothing.
+       *
+       * Ships as 1: a player has to have been at the club through a season
+       * transition before they start making demands. `mergeCareerPlayer`
+       * (`src/game/m2-career.ts`) increments the field each transition, so a
+       * launch-squad player reads 1 by season 2 — which is when requests begin —
+       * while someone signed mid-season waits until the next rollover.
+       */
+      minSeasonsAtClub: z.number().int().min(0).max(5),
+      answerWeeks: z.number().int().min(1).max(5),
+      cadence: z.strictObject({
+        COZY: RequestCadenceSchema,
+        CHAIRMAN: RequestCadenceSchema,
+      }),
     }),
-  }),
-  requests: z.array(PlayerRequestSchema).min(1),
-}).superRefine((catalog, context) => {
-  addDuplicateIssues(catalog.requests.map(request => request.id), context, ['requests'], 'request ID');
-  catalog.requests.forEach((request, index) => {
-    request.art.forEach((sprite, spriteIndex) => {
-      if (!REQUEST_ART_SPRITES.has(sprite)) {
-        addIssue(context, ['requests', index, 'art', spriteIndex], `unknown request art sprite ${sprite}`);
-      }
+    requests: z.array(PlayerRequestSchema).min(1),
+  })
+  .superRefine((catalog, context) => {
+    addDuplicateIssues(
+      catalog.requests.map((request) => request.id),
+      context,
+      ['requests'],
+      'request ID',
+    );
+    catalog.requests.forEach((request, index) => {
+      request.art.forEach((sprite, spriteIndex) => {
+        if (!REQUEST_ART_SPRITES.has(sprite)) {
+          addIssue(
+            context,
+            ['requests', index, 'art', spriteIndex],
+            `unknown request art sprite ${sprite}`,
+          );
+        }
+      });
     });
   });
-});
 
 export type PlayerRequestCatalog = z.infer<typeof PlayerRequestCatalogSchema>;
 export type PlayerRequestDefinition = z.infer<typeof PlayerRequestSchema>;
@@ -1133,20 +1537,27 @@ const SponsorProfileSchema = z.strictObject({
   monthlyPercent: z.number().int().min(1).max(500),
   objectiveLevel: SponsorObjectiveLevelSchema,
   bonusPercent: z.number().int().nonnegative().max(1_000),
-  bonusPercentByObjective: z.strictObject({
-    LEAGUE_WINS: z.number().int().nonnegative().max(1_000).optional(),
-    LEAGUE_GOALS: z.number().int().nonnegative().max(1_000).optional(),
-    LEAGUE_FINISH: z.number().int().nonnegative().max(1_000).optional(),
-  }).optional(),
+  bonusPercentByObjective: z
+    .strictObject({
+      LEAGUE_WINS: z.number().int().nonnegative().max(1_000).optional(),
+      LEAGUE_GOALS: z.number().int().nonnegative().max(1_000).optional(),
+      LEAGUE_FINISH: z.number().int().nonnegative().max(1_000).optional(),
+    })
+    .optional(),
 });
 
 const SponsorObjectiveSchema = z.strictObject({
   id: idSchema,
   kind: SponsorObjectiveKindSchema,
-  labelTemplate: z.string().trim().min(1).max(72).refine(
-    label => label.includes('{target}'),
-    'sponsor objective label must include {target}',
-  ),
+  labelTemplate: z
+    .string()
+    .trim()
+    .min(1)
+    .max(72)
+    .refine(
+      (label) => label.includes('{target}'),
+      'sponsor objective label must include {target}',
+    ),
   targets: z.strictObject({
     EASY: z.number().int().positive().max(100),
     NORMAL: z.number().int().positive().max(100),
@@ -1155,65 +1566,111 @@ const SponsorObjectiveSchema = z.strictObject({
   chairmanDelta: z.number().int().min(-10).max(10),
 });
 
-export const SponsorCatalogSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  brands: z.array(z.strictObject({
-    id: idSchema,
-    name: z.string().trim().min(1).max(28),
-    offerLine: z.string().trim().min(1).max(96),
-  })).min(9),
-  profiles: z.strictObject({
-    STEADY: SponsorProfileSchema,
-    BALANCED: SponsorProfileSchema,
-    BOLD: SponsorProfileSchema,
-  }),
-  objectives: z.array(SponsorObjectiveSchema).length(3),
-}).superRefine((catalog, context) => {
-  addDuplicateIssues(catalog.brands.map(brand => brand.id), context, ['brands'], 'sponsor brand ID');
-  addDuplicateIssues(catalog.brands.map(brand => brand.name), context, ['brands'], 'sponsor brand name');
-  addDuplicateIssues(catalog.objectives.map(objective => objective.id), context, ['objectives'], 'sponsor objective ID');
-  addDuplicateIssues(catalog.objectives.map(objective => objective.kind), context, ['objectives'], 'sponsor objective kind');
+export const SponsorCatalogSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    brands: z
+      .array(
+        z.strictObject({
+          id: idSchema,
+          name: z.string().trim().min(1).max(28),
+          offerLine: z.string().trim().min(1).max(96),
+        }),
+      )
+      .min(9),
+    profiles: z.strictObject({
+      STEADY: SponsorProfileSchema,
+      BALANCED: SponsorProfileSchema,
+      BOLD: SponsorProfileSchema,
+    }),
+    objectives: z.array(SponsorObjectiveSchema).length(3),
+  })
+  .superRefine((catalog, context) => {
+    addDuplicateIssues(
+      catalog.brands.map((brand) => brand.id),
+      context,
+      ['brands'],
+      'sponsor brand ID',
+    );
+    addDuplicateIssues(
+      catalog.brands.map((brand) => brand.name),
+      context,
+      ['brands'],
+      'sponsor brand name',
+    );
+    addDuplicateIssues(
+      catalog.objectives.map((objective) => objective.id),
+      context,
+      ['objectives'],
+      'sponsor objective ID',
+    );
+    addDuplicateIssues(
+      catalog.objectives.map((objective) => objective.kind),
+      context,
+      ['objectives'],
+      'sponsor objective kind',
+    );
 
-  const expectedProfiles = {
-    STEADY: {
-      monthlyPercent: 105,
-      objectiveLevel: 'EASY',
-      bonusPercent: { LEAGUE_WINS: 25, LEAGUE_GOALS: 27, LEAGUE_FINISH: 25 },
-    },
-    BALANCED: {
-      monthlyPercent: 100,
-      objectiveLevel: 'NORMAL',
-      bonusPercent: { LEAGUE_WINS: 85, LEAGUE_GOALS: 100, LEAGUE_FINISH: 110 },
-    },
-    BOLD: {
-      monthlyPercent: 99,
-      objectiveLevel: 'HARD',
-      bonusPercent: { LEAGUE_WINS: 650, LEAGUE_GOALS: 650, LEAGUE_FINISH: 280 },
-    },
-  } as const;
-  for (const profile of SponsorProfileIdSchema.options) {
-    const actual = catalog.profiles[profile];
-    const expected = expectedProfiles[profile];
-    if (actual.monthlyPercent !== expected.monthlyPercent
-      || actual.objectiveLevel !== expected.objectiveLevel
-      || SponsorObjectiveKindSchema.options.some(kind => (
-        (actual.bonusPercentByObjective?.[kind] ?? actual.bonusPercent)
-        !== expected.bonusPercent[kind]
-      ))) {
-      addIssue(context, ['profiles', profile], `${profile} sponsor profile does not match the approved trade-off`);
+    const expectedProfiles = {
+      STEADY: {
+        monthlyPercent: 105,
+        objectiveLevel: 'EASY',
+        bonusPercent: { LEAGUE_WINS: 25, LEAGUE_GOALS: 27, LEAGUE_FINISH: 25 },
+      },
+      BALANCED: {
+        monthlyPercent: 100,
+        objectiveLevel: 'NORMAL',
+        bonusPercent: {
+          LEAGUE_WINS: 85,
+          LEAGUE_GOALS: 100,
+          LEAGUE_FINISH: 110,
+        },
+      },
+      BOLD: {
+        monthlyPercent: 99,
+        objectiveLevel: 'HARD',
+        bonusPercent: {
+          LEAGUE_WINS: 650,
+          LEAGUE_GOALS: 650,
+          LEAGUE_FINISH: 280,
+        },
+      },
+    } as const;
+    for (const profile of SponsorProfileIdSchema.options) {
+      const actual = catalog.profiles[profile];
+      const expected = expectedProfiles[profile];
+      if (
+        actual.monthlyPercent !== expected.monthlyPercent ||
+        actual.objectiveLevel !== expected.objectiveLevel ||
+        SponsorObjectiveKindSchema.options.some(
+          (kind) =>
+            (actual.bonusPercentByObjective?.[kind] ?? actual.bonusPercent) !==
+            expected.bonusPercent[kind],
+        )
+      ) {
+        addIssue(
+          context,
+          ['profiles', profile],
+          `${profile} sponsor profile does not match the approved trade-off`,
+        );
+      }
     }
-  }
 
-  catalog.objectives.forEach((objective, index) => {
-    const { EASY, NORMAL, HARD } = objective.targets;
-    const ordered = objective.kind === 'LEAGUE_FINISH'
-      ? EASY > NORMAL && NORMAL > HARD && objective.chairmanDelta === -1
-      : EASY < NORMAL && NORMAL < HARD && objective.chairmanDelta > 0;
-    if (!ordered) {
-      addIssue(context, ['objectives', index], 'sponsor objective difficulty targets are not ordered correctly');
-    }
+    catalog.objectives.forEach((objective, index) => {
+      const { EASY, NORMAL, HARD } = objective.targets;
+      const ordered =
+        objective.kind === 'LEAGUE_FINISH'
+          ? EASY > NORMAL && NORMAL > HARD && objective.chairmanDelta === -1
+          : EASY < NORMAL && NORMAL < HARD && objective.chairmanDelta > 0;
+      if (!ordered) {
+        addIssue(
+          context,
+          ['objectives', index],
+          'sponsor objective difficulty targets are not ordered correctly',
+        );
+      }
+    });
   });
-});
 
 export type SponsorCatalog = z.infer<typeof SponsorCatalogSchema>;
 
@@ -1232,129 +1689,219 @@ const RivalHeroIntroSchema = z.strictObject({
   taunt: z.string().trim().min(1).max(160),
 });
 
-export const RivalHeroIntroCatalogSchema = z.strictObject({
-  schemaVersion: ContentSchemaVersion,
-  intros: z.array(RivalHeroIntroSchema).length(RivalHeroIntroHeroIdSchema.options.length),
-}).superRefine((catalog, context) => {
-  addDuplicateIssues(catalog.intros.map(intro => intro.heroId), context, ['intros'], 'rival hero ID');
-  const present = new Set(catalog.intros.map(intro => intro.heroId));
-  RivalHeroIntroHeroIdSchema.options.forEach(heroId => {
-    if (!present.has(heroId)) addIssue(context, ['intros'], `missing rival hero intro ${heroId}`);
-  });
-});
-
-export const LaunchContentSchema = z.strictObject({
-  assistantGuide: AssistantGuideContentSchema,
-  awardCeremonyLines: AwardCeremonyLinesSchema,
-  fulltimeBlameLines: FulltimeBlameLinesSchema,
-  agentFinalLines: AgentFinalLinesSchema,
-  fulltimeCoachLines: FulltimeCoachLinesSchema,
-  clubs: ClubCatalogSchema,
-  glossary: GlossaryCatalogSchema,
-  onboarding: OnboardingContentSchema,
-  powers: PowerCatalogSchema,
-  playerRequests: PlayerRequestCatalogSchema,
-  rivalHeroIntros: RivalHeroIntroCatalogSchema,
-  sponsors: SponsorCatalogSchema,
-  tips: ManagerTipCatalogSchema,
-  training: TrainingCatalogSchema,
-  events: EventCatalogSchema,
-}).superRefine((content, context) => {
-  const powerIds = new Set(content.powers.powers.map(power => power.id));
-  const eventIds = new Set(content.events.events.map(event => event.id));
-  const producedFlags = new Set(
-    content.events.events.flatMap(event => event.choices.flatMap(choice => choice.outcomes.flatMap(
-      outcome => outcome.effects.flatMap(effect => effect.type === 'flag' ? [effect.flag] : []),
-    ))),
-  );
-  const globalPlayerIds = new Set<string>();
-
-  content.clubs.clubs.forEach((club, clubIndex) => {
-    const playerById = new Map(club.players.map(player => [player.id, player]));
-    club.players.forEach((player, playerIndex) => {
-      if (globalPlayerIds.has(player.id)) {
-        addIssue(context, ['clubs', 'clubs', clubIndex, 'players', playerIndex, 'id'], `duplicate global player ID ${player.id}`);
-      }
-      globalPlayerIds.add(player.id);
-      if (player.powerId !== null && !powerIds.has(player.powerId)) {
-        addIssue(context, ['clubs', 'clubs', clubIndex, 'players', playerIndex, 'powerId'], `unknown power ID ${player.powerId}`);
-      }
-      if (player.licensed && player.powerId === null) {
-        addIssue(context, ['clubs', 'clubs', clubIndex, 'players', playerIndex, 'licensed'], 'licensed player must own a power');
-      }
-      if (player.onHeroWage && player.powerId === null) {
-        addIssue(context, ['clubs', 'clubs', clubIndex, 'players', playerIndex, 'onHeroWage'], 'hero wage requires a power');
-      }
+export const RivalHeroIntroCatalogSchema = z
+  .strictObject({
+    schemaVersion: ContentSchemaVersion,
+    intros: z
+      .array(RivalHeroIntroSchema)
+      .length(RivalHeroIntroHeroIdSchema.options.length),
+  })
+  .superRefine((catalog, context) => {
+    addDuplicateIssues(
+      catalog.intros.map((intro) => intro.heroId),
+      context,
+      ['intros'],
+      'rival hero ID',
+    );
+    const present = new Set(catalog.intros.map((intro) => intro.heroId));
+    RivalHeroIntroHeroIdSchema.options.forEach((heroId) => {
+      if (!present.has(heroId))
+        addIssue(context, ['intros'], `missing rival hero intro ${heroId}`);
     });
-
-    const lineup = club.startingLineup.map((playerId, lineupIndex) => {
-      const player = playerById.get(playerId);
-      if (player === undefined) {
-        addIssue(context, ['clubs', 'clubs', clubIndex, 'startingLineup', lineupIndex], `unknown lineup player ID ${playerId}`);
-      }
-      return player;
-    });
-    if (lineup[0] !== undefined && lineup[0].role !== 'GK') {
-      addIssue(context, ['clubs', 'clubs', clubIndex, 'startingLineup', 0], 'starting lineup slot 0 must be a goalkeeper');
-    }
-    if (lineup.filter(player => player?.role === 'GK').length !== 1) {
-      addIssue(context, ['clubs', 'clubs', clubIndex, 'startingLineup'], 'starting lineup must contain exactly one goalkeeper');
-    }
-    lineup.forEach((player, lineupIndex) => {
-      if (player?.powerId !== null && player?.licensed === false) {
-        addIssue(context, ['clubs', 'clubs', clubIndex, 'startingLineup', lineupIndex], 'starting hero must be licensed');
-      }
-    });
-    const licensedHeroes = lineup.filter(player => player?.licensed && player.powerId !== null).length;
-    if (licensedHeroes > 2) {
-      addIssue(context, ['clubs', 'clubs', clubIndex, 'startingLineup'], 'M1 starting lineup cannot exceed two licensed heroes');
-    }
   });
 
-  content.events.events.forEach((event, eventIndex) => {
-    const requiredFlag = event.trigger.requiredFlag;
-    const engineProduced = requiredFlag !== undefined
-      && ENGINE_PRODUCED_FLAG_PREFIXES.some(prefix => requiredFlag.startsWith(prefix));
-    if (requiredFlag !== undefined && !engineProduced && !producedFlags.has(requiredFlag)) {
-      addIssue(
-        context,
-        ['events', 'events', eventIndex, 'trigger', 'requiredFlag'],
-        `unknown required flag ${event.trigger.requiredFlag}`,
+export const LaunchContentSchema = z
+  .strictObject({
+    assistantGuide: AssistantGuideContentSchema,
+    awardCeremonyLines: AwardCeremonyLinesSchema,
+    fulltimeBlameLines: FulltimeBlameLinesSchema,
+    agentFinalLines: AgentFinalLinesSchema,
+    fulltimeCoachLines: FulltimeCoachLinesSchema,
+    clubs: ClubCatalogSchema,
+    glossary: GlossaryCatalogSchema,
+    onboarding: OnboardingContentSchema,
+    powers: PowerCatalogSchema,
+    playerRequests: PlayerRequestCatalogSchema,
+    rivalHeroIntros: RivalHeroIntroCatalogSchema,
+    sponsors: SponsorCatalogSchema,
+    tips: ManagerTipCatalogSchema,
+    training: TrainingCatalogSchema,
+    events: EventCatalogSchema,
+  })
+  .superRefine((content, context) => {
+    const powerIds = new Set(content.powers.powers.map((power) => power.id));
+    const eventIds = new Set(content.events.events.map((event) => event.id));
+    const producedFlags = new Set(
+      content.events.events.flatMap((event) =>
+        event.choices.flatMap((choice) =>
+          choice.outcomes.flatMap((outcome) =>
+            outcome.effects.flatMap((effect) =>
+              effect.type === 'flag' ? [effect.flag] : [],
+            ),
+          ),
+        ),
+      ),
+    );
+    const globalPlayerIds = new Set<string>();
+
+    content.clubs.clubs.forEach((club, clubIndex) => {
+      const playerById = new Map(
+        club.players.map((player) => [player.id, player]),
       );
-    }
-    event.choices.forEach((choice, choiceIndex) => {
-      choice.outcomes.forEach((outcome, outcomeIndex) => {
-        if (outcome.nextEventId !== undefined && !eventIds.has(outcome.nextEventId)) {
+      club.players.forEach((player, playerIndex) => {
+        if (globalPlayerIds.has(player.id)) {
           addIssue(
             context,
-            ['events', 'events', eventIndex, 'choices', choiceIndex, 'outcomes', outcomeIndex, 'nextEventId'],
-            `unknown next event ID ${outcome.nextEventId}`,
+            ['clubs', 'clubs', clubIndex, 'players', playerIndex, 'id'],
+            `duplicate global player ID ${player.id}`,
           );
         }
-        if (outcome.nextEventId !== undefined) {
-          const followUp = content.events.events.find(candidate => candidate.id === outcome.nextEventId);
-          if (followUp !== undefined) {
-            const targetKind = (candidate: typeof event) => (
-              candidate.trigger.requiresPlayer === true ? 'player'
-                : candidate.trigger.requiresCoach === true ? 'coach'
-                  : candidate.trigger.requiresFacility !== undefined ? 'facility'
-                    : 'none'
+        globalPlayerIds.add(player.id);
+        if (player.powerId !== null && !powerIds.has(player.powerId)) {
+          addIssue(
+            context,
+            ['clubs', 'clubs', clubIndex, 'players', playerIndex, 'powerId'],
+            `unknown power ID ${player.powerId}`,
+          );
+        }
+        if (player.licensed && player.powerId === null) {
+          addIssue(
+            context,
+            ['clubs', 'clubs', clubIndex, 'players', playerIndex, 'licensed'],
+            'licensed player must own a power',
+          );
+        }
+        if (player.onHeroWage && player.powerId === null) {
+          addIssue(
+            context,
+            ['clubs', 'clubs', clubIndex, 'players', playerIndex, 'onHeroWage'],
+            'hero wage requires a power',
+          );
+        }
+      });
+
+      const lineup = club.startingLineup.map((playerId, lineupIndex) => {
+        const player = playerById.get(playerId);
+        if (player === undefined) {
+          addIssue(
+            context,
+            ['clubs', 'clubs', clubIndex, 'startingLineup', lineupIndex],
+            `unknown lineup player ID ${playerId}`,
+          );
+        }
+        return player;
+      });
+      if (lineup[0] !== undefined && lineup[0].role !== 'GK') {
+        addIssue(
+          context,
+          ['clubs', 'clubs', clubIndex, 'startingLineup', 0],
+          'starting lineup slot 0 must be a goalkeeper',
+        );
+      }
+      if (lineup.filter((player) => player?.role === 'GK').length !== 1) {
+        addIssue(
+          context,
+          ['clubs', 'clubs', clubIndex, 'startingLineup'],
+          'starting lineup must contain exactly one goalkeeper',
+        );
+      }
+      lineup.forEach((player, lineupIndex) => {
+        if (player?.powerId !== null && player?.licensed === false) {
+          addIssue(
+            context,
+            ['clubs', 'clubs', clubIndex, 'startingLineup', lineupIndex],
+            'starting hero must be licensed',
+          );
+        }
+      });
+      const licensedHeroes = lineup.filter(
+        (player) => player?.licensed && player.powerId !== null,
+      ).length;
+      if (licensedHeroes > 2) {
+        addIssue(
+          context,
+          ['clubs', 'clubs', clubIndex, 'startingLineup'],
+          'M1 starting lineup cannot exceed two licensed heroes',
+        );
+      }
+    });
+
+    content.events.events.forEach((event, eventIndex) => {
+      const requiredFlag = event.trigger.requiredFlag;
+      const engineProduced =
+        requiredFlag !== undefined &&
+        ENGINE_PRODUCED_FLAG_PREFIXES.some((prefix) =>
+          requiredFlag.startsWith(prefix),
+        );
+      if (
+        requiredFlag !== undefined &&
+        !engineProduced &&
+        !producedFlags.has(requiredFlag)
+      ) {
+        addIssue(
+          context,
+          ['events', 'events', eventIndex, 'trigger', 'requiredFlag'],
+          `unknown required flag ${event.trigger.requiredFlag}`,
+        );
+      }
+      event.choices.forEach((choice, choiceIndex) => {
+        choice.outcomes.forEach((outcome, outcomeIndex) => {
+          if (
+            outcome.nextEventId !== undefined &&
+            !eventIds.has(outcome.nextEventId)
+          ) {
+            addIssue(
+              context,
+              [
+                'events',
+                'events',
+                eventIndex,
+                'choices',
+                choiceIndex,
+                'outcomes',
+                outcomeIndex,
+                'nextEventId',
+              ],
+              `unknown next event ID ${outcome.nextEventId}`,
             );
-            const openerKind = targetKind(event);
-            const followUpKind = targetKind(followUp);
-            if (openerKind !== followUpKind && followUpKind !== 'none') {
-              addIssue(
-                context,
-                ['events', 'events', eventIndex, 'choices', choiceIndex, 'outcomes', outcomeIndex, 'nextEventId'],
-                `targeted follow-up ${followUp.id} must use the opener's target kind`,
-              );
+          }
+          if (outcome.nextEventId !== undefined) {
+            const followUp = content.events.events.find(
+              (candidate) => candidate.id === outcome.nextEventId,
+            );
+            if (followUp !== undefined) {
+              const targetKind = (candidate: typeof event) =>
+                candidate.trigger.requiresPlayer === true
+                  ? 'player'
+                  : candidate.trigger.requiresCoach === true
+                    ? 'coach'
+                    : candidate.trigger.requiresFacility !== undefined
+                      ? 'facility'
+                      : 'none';
+              const openerKind = targetKind(event);
+              const followUpKind = targetKind(followUp);
+              if (openerKind !== followUpKind && followUpKind !== 'none') {
+                addIssue(
+                  context,
+                  [
+                    'events',
+                    'events',
+                    eventIndex,
+                    'choices',
+                    choiceIndex,
+                    'outcomes',
+                    outcomeIndex,
+                    'nextEventId',
+                  ],
+                  `targeted follow-up ${followUp.id} must use the opener's target kind`,
+                );
+              }
             }
           }
-        }
+        });
       });
     });
   });
-});
 
 export type LaunchPlayer = z.infer<typeof LaunchPlayerSchema>;
 export type LaunchClub = z.infer<typeof LaunchClubSchema>;
@@ -1362,16 +1909,23 @@ export type ClubCatalog = z.infer<typeof ClubCatalogSchema>;
 export type PowerDefinition = z.infer<typeof PowerDefinitionSchema>;
 export type PowerCatalog = z.infer<typeof PowerCatalogSchema>;
 export type OnboardingContent = z.infer<typeof OnboardingContentSchema>;
-export type AssistantGuideSequenceId = z.infer<typeof AssistantGuideSequenceIdSchema>;
+export type AssistantGuideSequenceId = z.infer<
+  typeof AssistantGuideSequenceIdSchema
+>;
 export type AssistantGuideFocus = z.infer<typeof AssistantGuideFocusSchema>;
-export type AssistantGuideDestination = z.infer<typeof AssistantGuideDestinationSchema>;
+export type AssistantGuideDestination = z.infer<
+  typeof AssistantGuideDestinationSchema
+>;
 export type AssistantGuideContent = z.infer<typeof AssistantGuideContentSchema>;
 export type AwardCeremonyLines = z.infer<typeof AwardCeremonyLinesSchema>;
 export type FulltimeBlameLines = z.infer<typeof FulltimeBlameLinesSchema>;
 export type AgentFinalLines = z.infer<typeof AgentFinalLinesSchema>;
 export type FulltimeCoachLines = z.infer<typeof FulltimeCoachLinesSchema>;
 /** Which pool of the gaffer's lines an afternoon draws from. */
-export type FulltimeCoachLinePool = Exclude<keyof FulltimeCoachLines, 'schemaVersion'>;
+export type FulltimeCoachLinePool = Exclude<
+  keyof FulltimeCoachLines,
+  'schemaVersion'
+>;
 export type TrainingDrill = z.infer<typeof TrainingDrillSchema>;
 export type TrainingCatalog = z.infer<typeof TrainingCatalogSchema>;
 export type GameEvent = z.infer<typeof GameEventSchema>;
@@ -1391,11 +1945,20 @@ function addDuplicateIssues(
 ): void {
   const seen = new Set<string>();
   values.forEach((value, index) => {
-    if (seen.has(value)) addIssue(context, [...path, index], `${label}s must be unique; duplicate ${value}`);
+    if (seen.has(value))
+      addIssue(
+        context,
+        [...path, index],
+        `${label}s must be unique; duplicate ${value}`,
+      );
     seen.add(value);
   });
 }
 
-function addIssue(context: z.RefinementCtx, path: PropertyKey[], message: string): void {
+function addIssue(
+  context: z.RefinementCtx,
+  path: PropertyKey[],
+  message: string,
+): void {
   context.addIssue({ code: 'custom', path, message });
 }

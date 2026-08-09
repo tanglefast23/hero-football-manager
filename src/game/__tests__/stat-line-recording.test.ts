@@ -25,11 +25,15 @@ describe('season stat line recording', () => {
     const settled = completeMatchday(state, resolveMatchday(fixtures, teams));
 
     const lines = settled.seasonStatLines ?? [];
-    const clubByPlayerId = new Map(settled.players.map(player => [player.id, player.clubId]));
+    const clubByPlayerId = new Map(
+      settled.players.map((player) => [player.id, player.clubId]),
+    );
     expect(lines.length).toBeGreaterThan(0);
-    expect(lines.every(line => line.competition === 'league')).toBe(true);
-    expect(lines.every(line => line.season === settled.season)).toBe(true);
-    expect(lines.every(line => line.clubId === clubByPlayerId.get(line.playerId))).toBe(true);
+    expect(lines.every((line) => line.competition === 'league')).toBe(true);
+    expect(lines.every((line) => line.season === settled.season)).toBe(true);
+    expect(
+      lines.every((line) => line.clubId === clubByPlayerId.get(line.playerId)),
+    ).toBe(true);
     // Goals alone would pass with the old scorer-only ledger still in place.
     expect(total(lines, 'goals')).toBeGreaterThan(0);
     expect(total(lines, 'assists')).toBeGreaterThan(0);
@@ -54,25 +58,33 @@ describe('season stat line recording', () => {
   it('records the user squad from a supplied watched result', () => {
     const state = careerAtMatchday(9753);
     const { fixtures, teams } = matchdayTeams(state);
-    const userFixture = fixtures.find(fixture => (
-      fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId
-    ))!;
+    const userFixture = fixtures.find(
+      (fixture) =>
+        fixture.homeClubId === state.userClubId ||
+        fixture.awayClubId === state.userClubId,
+    )!;
     const watched = watchedResult(userFixture, teams);
 
-    const settled = completeMatchday(state, resolveMatchday(fixtures, teams, [watched]));
+    const settled = completeMatchday(
+      state,
+      resolveMatchday(fixtures, teams, [watched]),
+    );
 
-    const ownPlayerIds = new Set(settled.players
-      .filter(player => player.clubId === settled.userClubId)
-      .map(player => player.id));
-    const ownLines = (settled.seasonStatLines ?? [])
-      .filter(line => line.clubId === settled.userClubId);
+    const ownPlayerIds = new Set(
+      settled.players
+        .filter((player) => player.clubId === settled.userClubId)
+        .map((player) => player.id),
+    );
+    const ownLines = (settled.seasonStatLines ?? []).filter(
+      (line) => line.clubId === settled.userClubId,
+    );
     expect(ownLines.length).toBeGreaterThan(0);
     expect(total(ownLines, 'saves')).toBeGreaterThan(0);
     expect(total(ownLines, 'tacklesWon')).toBeGreaterThan(0);
-    expect(ownLines.map(line => line.playerId).sort()).toEqual(
-      watched.contributions!
-        .map(row => row.playerId)
-        .filter(playerId => ownPlayerIds.has(playerId))
+    expect(ownLines.map((line) => line.playerId).sort()).toEqual(
+      watched
+        .contributions!.map((row) => row.playerId)
+        .filter((playerId) => ownPlayerIds.has(playerId))
         .sort(),
     );
   });
@@ -86,14 +98,25 @@ function careerAtMatchday(seed: number): GameState {
 
 function matchdayTeams(state: GameState): {
   fixtures: LeagueFixture[];
-  teams: Readonly<Record<string, ReturnType<typeof buildCareerMatchTeams>[string]>>;
+  teams: Readonly<
+    Record<string, ReturnType<typeof buildCareerMatchTeams>[string]>
+  >;
 } {
   const matchday = activeCareerMatchday(state);
-  if (matchday === undefined) throw new Error('the career is not on a matchday');
-  const clubIds = [...new Set(matchday.fixtures.flatMap(
-    fixture => [fixture.homeClubId, fixture.awayClubId],
-  ))];
-  return { fixtures: matchday.fixtures, teams: buildCareerMatchTeams(state, clubIds) };
+  if (matchday === undefined)
+    throw new Error('the career is not on a matchday');
+  const clubIds = [
+    ...new Set(
+      matchday.fixtures.flatMap((fixture) => [
+        fixture.homeClubId,
+        fixture.awayClubId,
+      ]),
+    ),
+  ];
+  return {
+    fixtures: matchday.fixtures,
+    teams: buildCareerMatchTeams(state, clubIds),
+  };
 }
 
 function playOneWeek(state: GameState): GameState {
@@ -104,7 +127,9 @@ function playOneWeek(state: GameState): GameState {
 /** Exactly what `finishWatchedMatch` hands to `resolveMatchday`. */
 function watchedResult(
   fixture: LeagueFixture,
-  teams: Readonly<Record<string, ReturnType<typeof buildCareerMatchTeams>[string]>>,
+  teams: Readonly<
+    Record<string, ReturnType<typeof buildCareerMatchTeams>[string]>
+  >,
 ): FixtureResult {
   const match: MatchState = createMatch(
     fixture.matchSeed,

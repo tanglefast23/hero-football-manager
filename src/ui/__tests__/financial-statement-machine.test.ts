@@ -15,7 +15,10 @@ import type {
 } from '../financial-statement-machine';
 import type { LedgerLineReveal } from '../../game/types';
 
-type GateReveal = Extract<LedgerLineReveal, { source: 'league-gate' | 'cup-gate' }>;
+type GateReveal = Extract<
+  LedgerLineReveal,
+  { source: 'league-gate' | 'cup-gate' }
+>;
 type MerchReveal = Extract<LedgerLineReveal, { source: 'merch' }>;
 
 const gateReveal = (over: Partial<GateReveal> = {}): LedgerLineReveal => ({
@@ -50,13 +53,21 @@ function config(rows: MachineRow[], reduceMotion = false): MachineConfig {
 }
 
 const plainRow = (id: string, amount: number): MachineRow => ({ id, amount });
-const gateRow = (id: string, over: Parameters<typeof gateReveal>[0] = {}): MachineRow => {
+const gateRow = (
+  id: string,
+  over: Parameters<typeof gateReveal>[0] = {},
+): MachineRow => {
   const reveal = gateReveal(over);
   if (reveal.source === 'merch') throw new Error('unreachable');
-  const amount = reveal.base + Math.floor(reveal.base * (reveal.multiplierPercent - 100) / 100);
+  const amount =
+    reveal.base +
+    Math.floor((reveal.base * (reveal.multiplierPercent - 100)) / 100);
   return { id, amount, reveal };
 };
-const merchRow = (id: string, over: Parameters<typeof merchReveal>[0] = {}): MachineRow => {
+const merchRow = (
+  id: string,
+  over: Parameters<typeof merchReveal>[0] = {},
+): MachineRow => {
   const reveal = merchReveal(over);
   if (reveal.source !== 'merch') throw new Error('unreachable');
   const amount = reveal.base * reveal.multiplierTimes + reveal.adjacencyAmount;
@@ -79,7 +90,8 @@ class Harness {
     const emitted = [...result.commands];
     this.log.push(...emitted);
     for (const command of emitted) {
-      if (command.type === 'schedule') this.queue.push({ afterMs: command.afterMs, event: command.event });
+      if (command.type === 'schedule')
+        this.queue.push({ afterMs: command.afterMs, event: command.event });
     }
     return emitted;
   }
@@ -103,7 +115,12 @@ class Harness {
       const group = this.state.groups[cursor.index];
       for (const rowIndex of group) {
         const row = this.state.rows[rowIndex];
-        if (row.phase === 'pending' || row.phase === 'spinning' || row.phase === 'complete') continue;
+        if (
+          row.phase === 'pending' ||
+          row.phase === 'spinning' ||
+          row.phase === 'complete'
+        )
+          continue;
         this.dispatch({
           type: 'amountSettled',
           generation: this.state.generation,
@@ -136,7 +153,10 @@ class Harness {
       }
       // No timer pending: the shell would be animating a settle or the stamp.
       if (this.state.stampPhase === 'slamming') {
-        this.dispatch({ type: 'stampSettled', generation: this.state.generation });
+        this.dispatch({
+          type: 'stampSettled',
+          generation: this.state.generation,
+        });
         continue;
       }
       this.settleCurrent();
@@ -145,13 +165,15 @@ class Harness {
   }
 
   countCommands(type: MachineCommand['type']): number {
-    return this.log.filter(command => command.type === type).length;
+    return this.log.filter((command) => command.type === type).length;
   }
 }
 
 describe('financial statement machine', () => {
   it('runs the happy path in order with one spin/stop/thunk per row and two net thunks', () => {
-    const harness = new Harness(config([plainRow('wages', -3200), gateRow('gate')]));
+    const harness = new Harness(
+      config([plainRow('wages', -3200), gateRow('gate')]),
+    );
     harness.dispatch({ type: 'start' });
     harness.runToCompletion();
     expect(harness.state.status).toBe('reportComplete');
@@ -160,7 +182,9 @@ describe('financial statement machine', () => {
     expect(harness.countCommands('playSpin')).toBe(3);
     expect(harness.countCommands('stopSpin')).toBe(3);
     expect(harness.countCommands('playThunk')).toBe(4);
-    expect(harness.state.rows.every(row => row.phase === 'complete')).toBe(true);
+    expect(harness.state.rows.every((row) => row.phase === 'complete')).toBe(
+      true,
+    );
   });
 
   it('emits the base thunk on amountSettled, not on the spin timer', () => {
@@ -196,8 +220,10 @@ describe('financial statement machine', () => {
 
   it.each(['spinning', 'base', 'chip', 'multiplied', 'adjacency'] as const)(
     'a tap during the %s phase completes the row atomically with one thunk and one banner',
-    phase => {
-      const harness = new Harness(config([merchRow('merch', { surge: true, variancePercent: 15 })]));
+    (phase) => {
+      const harness = new Harness(
+        config([merchRow('merch', { surge: true, variancePercent: 15 })]),
+      );
       harness.dispatch({ type: 'start' });
       // Walk the row to the wanted phase using the machine's own flow.
       let guard = 0;
@@ -212,8 +238,12 @@ describe('financial statement machine', () => {
       expect(harness.state.rows[0].shownValue).toBe(825);
       expect(harness.state.rows[0].settleMode).toBe('instant');
       expect(harness.countCommands('playThunk')).toBe(before + 1);
-      expect(commands.some(command => command.type === 'stopSpin')).toBe(true);
-      expect(commands.some(command => command.type === 'stopSurgeBed')).toBe(true);
+      expect(commands.some((command) => command.type === 'stopSpin')).toBe(
+        true,
+      );
+      expect(commands.some((command) => command.type === 'stopSurgeBed')).toBe(
+        true,
+      );
       // Exactly one banner for the surged row, no matter which phase the tap hit.
       expect(harness.state.bannerQueue).toHaveLength(1);
       expect(harness.state.bannersEnqueued).toEqual(['merch']);
@@ -223,7 +253,9 @@ describe('financial statement machine', () => {
   );
 
   it('acts on the next row for each rapid tap, never re-completing the same row', () => {
-    const harness = new Harness(config([plainRow('a', 100), plainRow('b', 200)]));
+    const harness = new Harness(
+      config([plainRow('a', 100), plainRow('b', 200)]),
+    );
     harness.dispatch({ type: 'start' });
     harness.dispatch({ type: 'tap' }); // completes row a
     const thunksAfterFirst = harness.countCommands('playThunk');
@@ -260,15 +292,28 @@ describe('financial statement machine', () => {
       const phase = harness.state.rows[0].phase;
       if (phases[phases.length - 1] !== phase) phases.push(phase);
     }
-    expect(phases).toEqual(['spinning', 'base', 'chip', 'multiplied', 'adjacency', 'complete']);
+    expect(phases).toEqual([
+      'spinning',
+      'base',
+      'chip',
+      'multiplied',
+      'adjacency',
+      'complete',
+    ]);
     // The shown values walk base -> multiplied -> final.
     expect(harness.state.rows[0].shownValue).toBe(825);
   });
 
   it('skips the chip for one shop with adjacency: base -> adjacency -> complete', () => {
-    const harness = new Harness(config([
-      merchRow('merch', { multiplierTimes: 1, facilityCount: 1, adjacencyAmount: 25 }),
-    ]));
+    const harness = new Harness(
+      config([
+        merchRow('merch', {
+          multiplierTimes: 1,
+          facilityCount: 1,
+          adjacencyAmount: 25,
+        }),
+      ]),
+    );
     harness.dispatch({ type: 'start' });
     const phases: string[] = [];
     let guard = 0;
@@ -283,9 +328,9 @@ describe('financial statement machine', () => {
   });
 
   it('goes straight from base to complete for identity reveals', () => {
-    const harness = new Harness(config([
-      gateRow('gate', { multiplierPercent: 100, facilityCount: 0 }),
-    ]));
+    const harness = new Harness(
+      config([gateRow('gate', { multiplierPercent: 100, facilityCount: 0 })]),
+    );
     harness.dispatch({ type: 'start' });
     const phases: string[] = [];
     let guard = 0;
@@ -300,13 +345,20 @@ describe('financial statement machine', () => {
   });
 
   it('stretches a surged spin by the surge factor and fires its cues at the land', () => {
-    const harness = new Harness(config([gateRow('gate', { surge: true, variancePercent: 15 })]));
+    const harness = new Harness(
+      config([gateRow('gate', { surge: true, variancePercent: 15 })]),
+    );
     harness.dispatch({ type: 'start' });
-    expect(harness.log.some(command => command.type === 'playSurgeIgnition')).toBe(true);
+    expect(
+      harness.log.some((command) => command.type === 'playSurgeIgnition'),
+    ).toBe(true);
     const spinDelay = harness.fireNext(); // spin -> base
-    expect(spinDelay).toBe(Math.round(
-      DEFAULT_MACHINE_TIMINGS.rowSpinMs * DEFAULT_MACHINE_TIMINGS.surgeSpinFactor,
-    ));
+    expect(spinDelay).toBe(
+      Math.round(
+        DEFAULT_MACHINE_TIMINGS.rowSpinMs *
+          DEFAULT_MACHINE_TIMINGS.surgeSpinFactor,
+      ),
+    );
     // The bed keeps burning through the digit settle; it stops at the land.
     expect(harness.countCommands('stopSurgeBed')).toBe(0);
     expect(harness.state.bannerQueue).toHaveLength(0);
@@ -320,7 +372,7 @@ describe('financial statement machine', () => {
     const commands = harness.dispatch({ type: 'start' });
     expect(harness.state.cursor).toEqual({ kind: 'net' });
     expect(harness.state.net.phase).toBe('spinning');
-    expect(commands.some(command => command.type === 'playSpin')).toBe(true);
+    expect(commands.some((command) => command.type === 'playSpin')).toBe(true);
   });
 
   it('creates a reduce-motion machine fully complete with surged banners queued', () => {
@@ -332,10 +384,16 @@ describe('financial statement machine', () => {
     const state = createMachine(config(rows, true));
     expect(state.status).toBe('reportComplete');
     expect(state.stampPhase).toBe('complete');
-    expect(state.rows.every(row => row.phase === 'complete')).toBe(true);
+    expect(state.rows.every((row) => row.phase === 'complete')).toBe(true);
     expect(state.net.phase).toBe('complete');
-    expect(state.bannerQueue.map(banner => banner.rowId)).toEqual(['gate', 'merch']);
-    expect(state.bannerQueue.map(banner => banner.kind)).toEqual(['attendance', 'merch']);
+    expect(state.bannerQueue.map((banner) => banner.rowId)).toEqual([
+      'gate',
+      'merch',
+    ]);
+    expect(state.bannerQueue.map((banner) => banner.kind)).toEqual([
+      'attendance',
+      'merch',
+    ]);
   });
 
   it('queues triple-surge banners FIFO in ledger order and dequeues only the head', () => {
@@ -347,39 +405,65 @@ describe('financial statement machine', () => {
     const harness = new Harness(config(rows));
     harness.dispatch({ type: 'start' });
     harness.runToCompletion();
-    expect(harness.state.bannerQueue.map(banner => banner.rowId)).toEqual(['league', 'cup', 'merch']);
+    expect(harness.state.bannerQueue.map((banner) => banner.rowId)).toEqual([
+      'league',
+      'cup',
+      'merch',
+    ]);
     // A stale dismissal for a non-head banner is ignored.
-    expect(harness.dispatch({ type: 'bannerShown', rowId: 'merch' })).toHaveLength(0);
+    expect(
+      harness.dispatch({ type: 'bannerShown', rowId: 'merch' }),
+    ).toHaveLength(0);
     expect(harness.state.bannerQueue).toHaveLength(3);
     harness.dispatch({ type: 'bannerShown', rowId: 'league' });
-    expect(harness.state.bannerQueue.map(banner => banner.rowId)).toEqual(['cup', 'merch']);
+    expect(harness.state.bannerQueue.map((banner) => banner.rowId)).toEqual([
+      'cup',
+      'merch',
+    ]);
   });
 
   it('keeps every row solo below the pairing threshold', () => {
-    const rows = [gateRow('gate'), plainRow('a', 1), plainRow('b', 2), merchRow('merch')];
+    const rows = [
+      gateRow('gate'),
+      plainRow('a', 1),
+      plainRow('b', 2),
+      merchRow('merch'),
+    ];
     expect(buildRevealGroups(rows)).toEqual([[0], [1], [2], [3]]);
   });
 
   it('pairs constant runs at the threshold while reveal rows stay solo', () => {
     const rows = [
-      gateRow('gate'),        // 0: solo (reveal)
-      plainRow('s1', 100),    // 1 ┐ pair
-      plainRow('s2', 200),    // 2 ┘
-      plainRow('s3', 300),    // 3: odd tail of the run, solo
-      merchRow('merch'),      // 4: solo (reveal)
-      plainRow('c1', -10),    // 5 ┐ pair
-      plainRow('c2', -20),    // 6 ┘
-      plainRow('c3', -30),    // 7 ┐ pair
-      plainRow('c4', -40),    // 8 ┘
+      gateRow('gate'), // 0: solo (reveal)
+      plainRow('s1', 100), // 1 ┐ pair
+      plainRow('s2', 200), // 2 ┘
+      plainRow('s3', 300), // 3: odd tail of the run, solo
+      merchRow('merch'), // 4: solo (reveal)
+      plainRow('c1', -10), // 5 ┐ pair
+      plainRow('c2', -20), // 6 ┘
+      plainRow('c3', -30), // 7 ┐ pair
+      plainRow('c4', -40), // 8 ┘
     ];
-    expect(buildRevealGroups(rows)).toEqual([[0], [1, 2], [3], [4], [5, 6], [7, 8]]);
+    expect(buildRevealGroups(rows)).toEqual([
+      [0],
+      [1, 2],
+      [3],
+      [4],
+      [5, 6],
+      [7, 8],
+    ]);
   });
 
   it('reveals a pair together with one spin and one thunk', () => {
     const rows = [
       gateRow('gate'),
-      plainRow('a', 100), plainRow('b', 200), plainRow('c', 300), plainRow('d', 400),
-      plainRow('e', -100), plainRow('f', -200), plainRow('g', -300),
+      plainRow('a', 100),
+      plainRow('b', 200),
+      plainRow('c', 300),
+      plainRow('d', 400),
+      plainRow('e', -100),
+      plainRow('f', -200),
+      plainRow('g', -300),
     ];
     const harness = new Harness(config(rows));
     harness.dispatch({ type: 'start' });
@@ -388,13 +472,21 @@ describe('financial statement machine', () => {
     expect(harness.countCommands('playSpin')).toBe(6);
     // One thunk per group land + net land + stamp = 5 + 2 = 7.
     expect(harness.countCommands('playThunk')).toBe(7);
-    expect(harness.state.rows.every(row => row.phase === 'complete')).toBe(true);
+    expect(harness.state.rows.every((row) => row.phase === 'complete')).toBe(
+      true,
+    );
   });
 
   it('completes both rows of a pair on one tap with one thunk', () => {
     const rows = [
-      plainRow('a', 100), plainRow('b', 200), plainRow('c', 300), plainRow('d', 400),
-      plainRow('e', -100), plainRow('f', -200), plainRow('g', -300), plainRow('h', -400),
+      plainRow('a', 100),
+      plainRow('b', 200),
+      plainRow('c', 300),
+      plainRow('d', 400),
+      plainRow('e', -100),
+      plainRow('f', -200),
+      plainRow('g', -300),
+      plainRow('h', -400),
     ];
     const harness = new Harness(config(rows));
     harness.dispatch({ type: 'start' });
@@ -408,22 +500,47 @@ describe('financial statement machine', () => {
 
   it('recovers the surge bonus exactly from the stored reveal', () => {
     // Gate: raw 2000 at +15% -> base 2300; x200% -> amount 4600; zero week 4000.
-    expect(surgeBonusAmount(gateRow('gate', {
-      base: 2300, variancePercent: 15, surge: true, multiplierPercent: 200,
-    }))).toBe(600);
+    expect(
+      surgeBonusAmount(
+        gateRow('gate', {
+          base: 2300,
+          variancePercent: 15,
+          surge: true,
+          multiplierPercent: 200,
+        }),
+      ),
+    ).toBe(600);
     // Merch: raw 250 at +20% -> base 300; x3 + 10% adjacency -> 990; zero week 825.
-    expect(surgeBonusAmount(merchRow('merch', {
-      base: 300, variancePercent: 20, surge: true, multiplierTimes: 3, adjacencyPercent: 10,
-      adjacencyAmount: Math.floor(300 * 3 * 10 / 100),
-    }))).toBe(165);
+    expect(
+      surgeBonusAmount(
+        merchRow('merch', {
+          base: 300,
+          variancePercent: 20,
+          surge: true,
+          multiplierTimes: 3,
+          adjacencyPercent: 10,
+          adjacencyAmount: Math.floor((300 * 3 * 10) / 100),
+        }),
+      ),
+    ).toBe(165);
     // Non-surged rows contribute no banner number.
     expect(surgeBonusAmount(gateRow('flat'))).toBe(0);
   });
 
   it('carries the bonus amount on queued banners', () => {
-    const state = createMachine(config([
-      gateRow('gate', { base: 2300, variancePercent: 15, surge: true, multiplierPercent: 200 }),
-    ], true));
+    const state = createMachine(
+      config(
+        [
+          gateRow('gate', {
+            base: 2300,
+            variancePercent: 15,
+            surge: true,
+            multiplierPercent: 200,
+          }),
+        ],
+        true,
+      ),
+    );
     expect(state.bannerQueue).toEqual([
       { rowId: 'gate', kind: 'attendance', bonusAmount: 600 },
     ]);

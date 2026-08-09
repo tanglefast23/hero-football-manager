@@ -26,7 +26,10 @@
  */
 import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';
-import { runMiniBalanceHarness, type MiniBalanceScenario } from '../../game/balance';
+import {
+  runMiniBalanceHarness,
+  type MiniBalanceScenario,
+} from '../../game/balance';
 import {
   DIVISION_AWARD_PRIZE_TAPER_PERCENT,
   TRAINING_POINT_CASH_VALUE,
@@ -34,7 +37,10 @@ import {
   divisionAwardPrizePerCategory,
   divisionAwardPrizeTotal,
 } from '../../game/division-award-prize';
-import { BASE_WEEKLY_TRAINING_POINTS, TRAINING_PITCH_TP_PER_LEVEL } from '../../game/facilities';
+import {
+  BASE_WEEKLY_TRAINING_POINTS,
+  TRAINING_PITCH_TP_PER_LEVEL,
+} from '../../game/facilities';
 import { CREATED_PLAYER_ROOKIE_WAGE } from '../../game/onboarding/player-creation';
 import { SEASON_WEEKS } from '../../game/types';
 
@@ -46,13 +52,14 @@ const { seed: _launchSeed, ...launchCareerSetup } = createLaunchCareerSetup(1);
 const LAUNCH_SCENARIO: MiniBalanceScenario = {
   careerSetup: {
     ...launchCareerSetup,
-    clubs: launchCareerSetup.clubs.map(club => ({
+    clubs: launchCareerSetup.clubs.map((club) => ({
       ...club,
-      weeklyWages: club.weeklyWages
-        + (club.id === 'bramble-rovers' ? CREATED_PLAYER_ROOKIE_WAGE : 0),
+      weeklyWages:
+        club.weeklyWages +
+        (club.id === 'bramble-rovers' ? CREATED_PLAYER_ROOKIE_WAGE : 0),
     })),
   },
-  representativeDrills: content.training.focusDrills.filter(drill =>
+  representativeDrills: content.training.focusDrills.filter((drill) =>
     ['sprints', 'finishing', 'rondo'].includes(drill.id),
   ),
   spendingPolicy: {
@@ -69,16 +76,18 @@ const LAUNCH_SCENARIO: MiniBalanceScenario = {
 
 test('division award prize against a season of TP income', () => {
   const metrics = runMiniBalanceHarness(LAUNCH_SCENARIO);
-  const measuredSeason = metrics.meanAmbientTrainingPointsPerWeek * SEASON_WEEKS;
+  const measuredSeason =
+    metrics.meanAmbientTrainingPointsPerWeek * SEASON_WEEKS;
   const seasonAtPitchLevel = (level: number): number =>
-    (BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL * level) * SEASON_WEEKS;
+    (BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL * level) *
+    SEASON_WEEKS;
 
   const lines: string[] = [
-    `measured season-1 ambient income: ${metrics.meanAmbientTrainingPointsPerWeek.toFixed(2)}`
-    + ` TP/week x ${SEASON_WEEKS} weeks = ${measuredSeason.toFixed(0)} TP`
-    + ` (${metrics.careerSeeds} seeds, Level-1 Training Pitch)`,
-    `steady-state seasons: L1 ${seasonAtPitchLevel(1)} TP,`
-    + ` L2 ${seasonAtPitchLevel(2)} TP, L3 ${seasonAtPitchLevel(3)} TP`,
+    `measured season-1 ambient income: ${metrics.meanAmbientTrainingPointsPerWeek.toFixed(2)}` +
+      ` TP/week x ${SEASON_WEEKS} weeks = ${measuredSeason.toFixed(0)} TP` +
+      ` (${metrics.careerSeeds} seeds, Level-1 Training Pitch)`,
+    `steady-state seasons: L1 ${seasonAtPitchLevel(1)} TP,` +
+      ` L2 ${seasonAtPitchLevel(2)} TP, L3 ${seasonAtPitchLevel(3)} TP`,
     '',
     `taper: ${DIVISION_AWARD_PRIZE_TAPER_PERCENT.join('% / ')}% of the division rate`,
     '',
@@ -86,15 +95,22 @@ test('division award prize against a season of TP income', () => {
     'div | rate | 1 board | 2 boards | 3 boards | sweep | sweep/L2 | sweep/L3',
   ];
   for (const division of DIVISIONS) {
-    const totals = [1, 2, 3, 4].map(count => divisionAwardPrizeTotal(division, count));
+    const totals = [1, 2, 3, 4].map((count) =>
+      divisionAwardPrizeTotal(division, count),
+    );
     const sweep = totals[3];
-    lines.push([
-      `D${division}`,
-      String(divisionAwardPrizePerCategory(division)),
-      ...totals.map(total => `$${total} (${share(total / TRAINING_POINT_CASH_VALUE, measuredSeason)})`),
-      share(sweep / TRAINING_POINT_CASH_VALUE, seasonAtPitchLevel(2)),
-      share(sweep / TRAINING_POINT_CASH_VALUE, seasonAtPitchLevel(3)),
-    ].join(' | '));
+    lines.push(
+      [
+        `D${division}`,
+        String(divisionAwardPrizePerCategory(division)),
+        ...totals.map(
+          (total) =>
+            `$${total} (${share(total / TRAINING_POINT_CASH_VALUE, measuredSeason)})`,
+        ),
+        share(sweep / TRAINING_POINT_CASH_VALUE, seasonAtPitchLevel(2)),
+        share(sweep / TRAINING_POINT_CASH_VALUE, seasonAtPitchLevel(3)),
+      ].join(' | '),
+    );
   }
   // eslint-disable-next-line no-console
   console.log(`\n${lines.join('\n')}\n`);
@@ -105,11 +121,12 @@ test('division award prize against a season of TP income', () => {
   for (const division of DIVISIONS) {
     // Cash against cash: the payout moved off TP, so the per-category TP rate
     // is a sizing unit now and comparing the two would be comparing currencies.
-    expect(divisionAwardPrizeTotal(division, 4))
-      .toBeLessThan(divisionAwardPrizeCashPerCategory(division) * 4);
+    expect(divisionAwardPrizeTotal(division, 4)).toBeLessThan(
+      divisionAwardPrizeCashPerCategory(division) * 4,
+    );
   }
 });
 
 function share(value: number, season: number): string {
-  return `${(100 * value / season).toFixed(1)}%`;
+  return `${((100 * value) / season).toFixed(1)}%`;
 }

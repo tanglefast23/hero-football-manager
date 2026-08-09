@@ -37,7 +37,7 @@ describe('event story-object pixel art', () => {
       const pixels = runs.reduce((total, run) => total + run.width, 0);
       expect(pixels).toBeGreaterThan(12);
       // Every sprite carries the chunky ink outline of the house style.
-      expect(rows.some(row => row.includes('K'))).toBe(true);
+      expect(rows.some((row) => row.includes('K'))).toBe(true);
     }
   });
 

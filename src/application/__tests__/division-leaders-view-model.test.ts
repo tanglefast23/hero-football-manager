@@ -67,12 +67,18 @@ describe('divisionLeadersViewModel', () => {
    * opposite reason, and the two orders are not meant to converge.
    */
   it('produces one board per category with goals leading', () => {
-    expect(leaders().boards.map(board => board.categoryId))
-      .toEqual(['goals', 'passesCompleted', 'tacklesWon', 'saves']);
+    expect(leaders().boards.map((board) => board.categoryId)).toEqual([
+      'goals',
+      'passesCompleted',
+      'tacklesWon',
+      'saves',
+    ]);
   });
 
   it('labels every board by the position line that can win it', () => {
-    expect(leaders().boards.map(board => [board.boardLabel, board.metricLabel])).toEqual([
+    expect(
+      leaders().boards.map((board) => [board.boardLabel, board.metricLabel]),
+    ).toEqual([
       ['Strikers', 'Goals'],
       ['Midfielders', 'Passes'],
       ['Defenders', 'Tackles won'],
@@ -112,18 +118,30 @@ describe('divisionLeadersViewModel', () => {
   it('shows only the top five of a deeper board', () => {
     const scorers = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
     const view = leaders({
-      players: scorers.map((id, index) => player(id, 'FWD', 'them', `Striker ${index}`)),
-      statLines: scorers.map((id, index) => line(id, 'them', { goals: 20 - index })),
+      players: scorers.map((id, index) =>
+        player(id, 'FWD', 'them', `Striker ${index}`),
+      ),
+      statLines: scorers.map((id, index) =>
+        line(id, 'them', { goals: 20 - index }),
+      ),
     });
 
-    expect(view.boards[0].entries.map(entry => entry.playerId)).toEqual(['a', 'b', 'c', 'd', 'e']);
+    expect(view.boards[0].entries.map((entry) => entry.playerId)).toEqual([
+      'a',
+      'b',
+      'c',
+      'd',
+      'e',
+    ]);
   });
 
   it('renders an empty board with copy instead of throwing', () => {
     const view = leaders({ statLines: [] });
 
-    expect(view.boards.every(board => board.entries.length === 0)).toBe(true);
-    expect(view.boards.every(board => board.emptyLabel.length > 0)).toBe(true);
+    expect(view.boards.every((board) => board.entries.length === 0)).toBe(true);
+    expect(view.boards.every((board) => board.emptyLabel.length > 0)).toBe(
+      true,
+    );
   });
 
   /**
@@ -137,26 +155,33 @@ describe('divisionLeadersViewModel', () => {
    * The board left out of the stub is the other half of the same claim.
    */
   it('heads every board in the club language, and keeps English where a locale has none', () => {
-    const view = divisionLeadersViewModel({
-      season: 1,
-      players: PLAYERS,
-      statLines: [],
-      userClubId: 'me',
-      clubNames: CLUB_NAMES,
-    }, stubbedCopy({
-      'award.board.goals': 'Delanteros',
-      'award.metric.goals': 'Goles',
-      'award.metricInline.goals': 'goles',
-      'm2League.noneRecordedYetThisSeason': 'Aún sin {metric} esta temporada',
-    }));
+    const view = divisionLeadersViewModel(
+      {
+        season: 1,
+        players: PLAYERS,
+        statLines: [],
+        userClubId: 'me',
+        clubNames: CLUB_NAMES,
+      },
+      stubbedCopy({
+        'award.board.goals': 'Delanteros',
+        'award.metric.goals': 'Goles',
+        'award.metricInline.goals': 'goles',
+        'm2League.noneRecordedYetThisSeason': 'Aún sin {metric} esta temporada',
+      }),
+    );
 
-    expect([view.boards[0].boardLabel, view.boards[0].metricLabel])
-      .toEqual(['Delanteros', 'Goles']);
+    expect([view.boards[0].boardLabel, view.boards[0].metricLabel]).toEqual([
+      'Delanteros',
+      'Goles',
+    ]);
     // The metric inside the sentence too — a translated line carrying an
     // English noun is the same bug, one word smaller.
     expect(view.boards[0].emptyLabel).toBe('Aún sin goles esta temporada');
-    expect([view.boards[1].boardLabel, view.boards[1].metricLabel])
-      .toEqual(['Midfielders', 'Passes']);
+    expect([view.boards[1].boardLabel, view.boards[1].metricLabel]).toEqual([
+      'Midfielders',
+      'Passes',
+    ]);
   });
 });
 
@@ -187,7 +212,11 @@ describe('League sub-tab availability', () => {
     const firstCupWeek = CUP_SETTLEMENT_WEEKS[0];
 
     expect(subTabs(career, firstCupWeek + 2)).toEqual(['league', 'cup']);
-    expect(subTabs(career, firstCupWeek + 3)).toEqual(['league', 'cup', 'leaders']);
+    expect(subTabs(career, firstCupWeek + 3)).toEqual([
+      'league',
+      'cup',
+      'leaders',
+    ]);
   });
 
   /**
@@ -203,7 +232,11 @@ describe('League sub-tab availability', () => {
     );
 
     expect(subTabs(career, 1, 2)).toEqual(['league', 'cup', 'leaders']);
-    expect(subTabs(career, CUP_SETTLEMENT_WEEKS[0] - 1, 3)).toEqual(['league', 'cup', 'leaders']);
+    expect(subTabs(career, CUP_SETTLEMENT_WEEKS[0] - 1, 3)).toEqual([
+      'league',
+      'cup',
+      'leaders',
+    ]);
   });
 
   it('carries the boards through the league view model', () => {
@@ -221,18 +254,24 @@ describe('League sub-tab availability', () => {
       statLines: [line('striker', USER_CLUB.id, { goals: 11 })],
     });
 
-    expect(view.leaders.boards[0].entries).toEqual([{
-      position: 1,
-      playerId: 'striker',
-      playerName: 'Gem Arrow',
-      clubName: USER_CLUB.name,
-      value: 11,
-      isUserPlayer: true,
-    }]);
+    expect(view.leaders.boards[0].entries).toEqual([
+      {
+        position: 1,
+        playerId: 'striker',
+        playerName: 'Gem Arrow',
+        clubName: USER_CLUB.name,
+        value: 11,
+        isUserPlayer: true,
+      },
+    ]);
   });
 });
 
-function subTabs(career: M2CareerState, week: number, season = 1): readonly string[] {
+function subTabs(
+  career: M2CareerState,
+  week: number,
+  season = 1,
+): readonly string[] {
   return m2LeagueViewModel({
     career,
     season,
@@ -242,8 +281,8 @@ function subTabs(career: M2CareerState, week: number, season = 1): readonly stri
 }
 
 function standings(state: M2CareerState): LeagueStanding[] {
-  const division = state.pyramid.divisions.find(candidate =>
-    candidate.clubs.some(club => club.id === state.userClubId),
+  const division = state.pyramid.divisions.find((candidate) =>
+    candidate.clubs.some((club) => club.id === state.userClubId),
   )!;
   return division.clubs.map((club, index) => ({
     position: index + 1,
@@ -259,7 +298,12 @@ function standings(state: M2CareerState): LeagueStanding[] {
   }));
 }
 
-function player(id: string, role: Role, clubId: string, name: string): CareerPlayer {
+function player(
+  id: string,
+  role: Role,
+  clubId: string,
+  name: string,
+): CareerPlayer {
   return {
     id,
     clubId,
@@ -278,9 +322,12 @@ function player(id: string, role: Role, clubId: string, name: string): CareerPla
 function line(
   playerId: string,
   clubId: string,
-  counts: Partial<Pick<
-    PlayerSeasonStatLine, 'goals' | 'assists' | 'tacklesWon' | 'saves' | 'passesCompleted'
-  >>,
+  counts: Partial<
+    Pick<
+      PlayerSeasonStatLine,
+      'goals' | 'assists' | 'tacklesWon' | 'saves' | 'passesCompleted'
+    >
+  >,
   competition: AwardCompetition = 'league',
 ): PlayerSeasonStatLine {
   return {

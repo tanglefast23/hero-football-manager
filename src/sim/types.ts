@@ -28,7 +28,13 @@ export type Role = 'GK' | 'DEF' | 'MID' | 'FWD';
 export type FirePolicy = 'SAVE_FOR_TAP' | 'FIRE_WHEN_READY';
 
 export interface Attrs {
-  pac: number; sho: number; pas: number; def: number; tec: number; sta: number; ref: number;
+  pac: number;
+  sho: number;
+  pas: number;
+  def: number;
+  tec: number;
+  sta: number;
+  ref: number;
 }
 
 /** Authored contest effects are expressed directly in fixed-point log-ratio units. */
@@ -63,54 +69,60 @@ export type PowerState =
   | { kind: 'zone'; remainingTicks: number }
   | { kind: 'armed'; remainingTicks: number }
   | {
-    kind: 'winding';
-    untilTick: number;
-    strength: number;
-    /** Target captured when a visible, placed wind-up begins. */
-    targetIdx?: number;
-    /** Stable identity prevents a substitution inheriting somebody else's lock. */
-    targetPlayerId?: string;
-    /** A second captured target for authored multi-blocker effects. */
-    secondaryTargetIdx?: number;
-    /** Stable identity paired with the second captured target. */
-    secondaryTargetPlayerId?: string;
-    /** Destination paired with the second captured target. */
-    secondaryAnchor?: Vec;
-    /** Friendly carrier whose attack created an off-ball placed wind-up. */
-    carrierIdx?: number;
-    /** Friendly runner committed to Gravity Well's opened lane. */
-    runnerIdx?: number;
-    /** Stable identity prevents a substitute inheriting Gravity's run. */
-    runnerPlayerId?: string;
-    /** The opened-lane destination paired with the runner. */
-    runnerAnchor?: Vec;
-  }
+      kind: 'winding';
+      untilTick: number;
+      strength: number;
+      /** Target captured when a visible, placed wind-up begins. */
+      targetIdx?: number;
+      /** Stable identity prevents a substitution inheriting somebody else's lock. */
+      targetPlayerId?: string;
+      /** A second captured target for authored multi-blocker effects. */
+      secondaryTargetIdx?: number;
+      /** Stable identity paired with the second captured target. */
+      secondaryTargetPlayerId?: string;
+      /** Destination paired with the second captured target. */
+      secondaryAnchor?: Vec;
+      /** Friendly carrier whose attack created an off-ball placed wind-up. */
+      carrierIdx?: number;
+      /** Friendly runner committed to Gravity Well's opened lane. */
+      runnerIdx?: number;
+      /** Stable identity prevents a substitute inheriting Gravity's run. */
+      runnerPlayerId?: string;
+      /** The opened-lane destination paired with the runner. */
+      runnerAnchor?: Vec;
+    }
   | {
-    kind: 'active';
-    untilTick: number;
-    strength: number;
-    /** Locked one-moment target, such as Future Sight's outlet. */
-    targetIdx?: number;
-    /** Optional second locked target for a single multi-blocker moment. */
-    secondaryTargetIdx?: number;
-    /** Destination paired with the second locked target. */
-    secondaryAnchor?: Vec;
-    /** Friendly carrier for an off-ball one-moment attack such as Decoy or Gravity. */
-    carrierIdx?: number;
-    /** Stable target identity for one-action commitments across substitutions. */
-    targetPlayerId?: string;
-    /** Friendly runner committed to Gravity Well's opened lane. */
-    runnerIdx?: number;
-    /** Stable identity paired with the Gravity runner. */
-    runnerPlayerId?: string;
-    /** The committed Gravity runner's visible lane destination. */
-    runnerAnchor?: Vec;
-    /** Shadow Mark is invisible during its two-second burrow, then hunts. */
-    armedAtTick?: number;
-    /** Ensures a power's authored next action happens once instead of smearing across its duration. */
-    commitment?: 'SPEED_ACTION' | 'THUNDER_SHOT' | 'BLINK_ACTION' | 'FIRE_RUN'
-      | 'PHASE_ACTION' | 'POWER_OUTLET' | 'SHADOW_HUNT';
-  };
+      kind: 'active';
+      untilTick: number;
+      strength: number;
+      /** Locked one-moment target, such as Future Sight's outlet. */
+      targetIdx?: number;
+      /** Optional second locked target for a single multi-blocker moment. */
+      secondaryTargetIdx?: number;
+      /** Destination paired with the second locked target. */
+      secondaryAnchor?: Vec;
+      /** Friendly carrier for an off-ball one-moment attack such as Decoy or Gravity. */
+      carrierIdx?: number;
+      /** Stable target identity for one-action commitments across substitutions. */
+      targetPlayerId?: string;
+      /** Friendly runner committed to Gravity Well's opened lane. */
+      runnerIdx?: number;
+      /** Stable identity paired with the Gravity runner. */
+      runnerPlayerId?: string;
+      /** The committed Gravity runner's visible lane destination. */
+      runnerAnchor?: Vec;
+      /** Shadow Mark is invisible during its two-second burrow, then hunts. */
+      armedAtTick?: number;
+      /** Ensures a power's authored next action happens once instead of smearing across its duration. */
+      commitment?:
+        | 'SPEED_ACTION'
+        | 'THUNDER_SHOT'
+        | 'BLINK_ACTION'
+        | 'FIRE_RUN'
+        | 'PHASE_ACTION'
+        | 'POWER_OUTLET'
+        | 'SHADOW_HUNT';
+    };
 
 export type OutReason = 'ko' | 'ignited' | 'redcard';
 
@@ -159,7 +171,7 @@ export interface SimPlayer {
   /** Owner of the Strength lock, used for safe cancellation. */
   actionLockSourceIdx?: number;
   firePolicy: FirePolicy;
-  outUntilTick: number;       // 0 = fine
+  outUntilTick: number; // 0 = fine
   outReason?: OutReason;
   slideTackle?: SlideTackleState;
   /**
@@ -190,117 +202,163 @@ export interface DecoyCloneState extends SimPlayer {
 
 export type BallState =
   | {
-    kind: 'held';
-    by: number;
-    caught?: true;
-    releaseAfterTick?: number;
-    gustPunt?: true;
-    gustHeroIdx?: number;
-    gustGrade?: number;
-  }
+      kind: 'held';
+      by: number;
+      caught?: true;
+      releaseAfterTick?: number;
+      gustPunt?: true;
+      gustHeroIdx?: number;
+      gustGrade?: number;
+    }
   | { kind: 'loose'; pos: Vec; vel: Vec; z: number; vz: number }
   | {
-    kind: 'pass';
-    pos: Vec;
-    from: number;
-    to: number;
-    willSucceed: boolean;
-    interceptor: number;
-    z: number;
-    vz: number;
-    speed: number;
-    /** A disrupted pass becomes nobody's ball at its flight target. */
-    looseOnArrival?: boolean;
-    /** Deterministic roll-away applied when a disrupted pass lands loose. */
-    deflectionVel?: Vec;
-    /** Gust's redirect is visually distinct and triggers a forced GK punt. */
-    gustRedirect?: true;
-    /** The authored follow-up punt is guaranteed and renderer-visible. */
-    gustPunt?: true;
-    /** Gust owner retained across redirect flight for deterministic FX events. */
-    gustHeroIdx?: number;
-    /** Gust activation grade retained through the redirect and contestable punt. */
-    gustGrade?: number;
-    /** An authored pass flies to a fixed landing point, not the receiver's old body. */
-    arrivalPos?: Vec;
-    /** Stable identity required before a successful clone can materialize. */
-    decoyReceiverPlayerId?: string;
-    /** Stable identity required before Gust moves its receiver into the landing lane. */
-    gustPuntReceiverPlayerId?: string;
-    /** A power-read interception cannot be inherited by a substitute. */
-    powerInterceptorPlayerId?: string;
-  }
+      kind: 'pass';
+      pos: Vec;
+      from: number;
+      to: number;
+      willSucceed: boolean;
+      interceptor: number;
+      z: number;
+      vz: number;
+      speed: number;
+      /** A disrupted pass becomes nobody's ball at its flight target. */
+      looseOnArrival?: boolean;
+      /** Deterministic roll-away applied when a disrupted pass lands loose. */
+      deflectionVel?: Vec;
+      /** Gust's redirect is visually distinct and triggers a forced GK punt. */
+      gustRedirect?: true;
+      /** The authored follow-up punt is guaranteed and renderer-visible. */
+      gustPunt?: true;
+      /** Gust owner retained across redirect flight for deterministic FX events. */
+      gustHeroIdx?: number;
+      /** Gust activation grade retained through the redirect and contestable punt. */
+      gustGrade?: number;
+      /** An authored pass flies to a fixed landing point, not the receiver's old body. */
+      arrivalPos?: Vec;
+      /** Stable identity required before a successful clone can materialize. */
+      decoyReceiverPlayerId?: string;
+      /** Stable identity required before Gust moves its receiver into the landing lane. */
+      gustPuntReceiverPlayerId?: string;
+      /** A power-read interception cannot be inherited by a substitute. */
+      powerInterceptorPlayerId?: string;
+    }
   | {
-    kind: 'shot';
-    pos: Vec;
-    vel: Vec;
-    by: number;
-    /** Keeper-facing fixed-point execution strength; display `power` never feeds resolution. */
-    shotStrengthD64: number;
-    power: number;
-    targetX: number;
-    z: number;
-    vz: number;
-    trajectory: 'driven' | 'lifted';
-    keeperChecked: boolean;
-  };
+      kind: 'shot';
+      pos: Vec;
+      vel: Vec;
+      by: number;
+      /** Keeper-facing fixed-point execution strength; display `power` never feeds resolution. */
+      shotStrengthD64: number;
+      power: number;
+      targetX: number;
+      z: number;
+      vz: number;
+      trajectory: 'driven' | 'lifted';
+      keeperChecked: boolean;
+    };
 
 export type MatchEvent =
   | { t: number; kind: 'KICKOFF'; half: 1 | 2 }
   | { t: number; kind: 'PASS'; from: number; to: number; ok: boolean }
-  | { t: number; kind: 'SLIDE_STARTED'; by: number; on: number; direction: Vec; untilTick: number }
-  /** `dropped` marks a beaten challenger left on the grass; standing challenges only. */
-  | { t: number; kind: 'TACKLE'; by: number; on: number; won: boolean; style: 'standing' | 'slide' | 'power'; contact: boolean; dropped?: true }
   | {
-    t: number;
-    kind: 'SHOT';
-    /** Stable base player credited in match reports. */
-    by: number;
-    /** Temporary entity that physically struck it, when different from `by`. */
-    actor?: number;
-    power: number;
-    trajectory: 'driven' | 'lifted';
-  }
+      t: number;
+      kind: 'SLIDE_STARTED';
+      by: number;
+      on: number;
+      direction: Vec;
+      untilTick: number;
+    }
+  /** `dropped` marks a beaten challenger left on the grass; standing challenges only. */
+  | {
+      t: number;
+      kind: 'TACKLE';
+      by: number;
+      on: number;
+      won: boolean;
+      style: 'standing' | 'slide' | 'power';
+      contact: boolean;
+      dropped?: true;
+    }
+  | {
+      t: number;
+      kind: 'SHOT';
+      /** Stable base player credited in match reports. */
+      by: number;
+      /** Temporary entity that physically struck it, when different from `by`. */
+      actor?: number;
+      power: number;
+      trajectory: 'driven' | 'lifted';
+    }
   | { t: number; kind: 'SAVE'; by: number; resolveLeft: number }
   | { t: number; kind: 'MISS'; by: number }
   | {
-    t: number;
-    kind: 'GOAL';
-    by: number;
-    team: 0 | 1;
-    /**
-     * Stable id of the teammate who held the ball immediately before the
-     * scorer. A stable id rather than a slot because the assisting touch
-     * precedes the goal by many ticks, so a substitution can land in between
-     * and a slot would resolve to the wrong player.
-     */
-    assistedById?: string;
-  }
+      t: number;
+      kind: 'GOAL';
+      by: number;
+      team: 0 | 1;
+      /**
+       * Stable id of the teammate who held the ball immediately before the
+       * scorer. A stable id rather than a slot because the assisting touch
+       * precedes the goal by many ticks, so a substitution can land in between
+       * and a slot would resolve to the wrong player.
+       */
+      assistedById?: string;
+    }
   | { t: number; kind: 'POWER_READY'; player: number }
-  | { t: number; kind: 'POWER_FIRED'; player: number; power: PowerId; strength: number }
+  | {
+      t: number;
+      kind: 'POWER_FIRED';
+      player: number;
+      power: PowerId;
+      strength: number;
+    }
   /** A power's authored on-pitch effect landing, distinct from ordinary ball/body contact. */
-  | { t: number; kind: 'POWER_IMPACT'; player: number; power: PowerId; target?: number }
+  | {
+      t: number;
+      kind: 'POWER_IMPACT';
+      player: number;
+      power: PowerId;
+      target?: number;
+    }
   | { t: number; kind: 'POWER_INTERRUPTED'; player: number }
   | { t: number; kind: 'POWER_EXPIRED'; player: number }
   | {
-    t: number;
-    kind: 'DECOY_POP';
-    player: number;
-    clone: number;
-    source: number;
-    pos: Vec;
-    reason: 'expired' | 'turnover' | 'restart' | 'substitution' | 'invalid';
-  }
-  | { t: number; kind: 'GUST_REDIRECT'; player: number; from: number; to: number }
+      t: number;
+      kind: 'DECOY_POP';
+      player: number;
+      clone: number;
+      source: number;
+      pos: Vec;
+      reason: 'expired' | 'turnover' | 'restart' | 'substitution' | 'invalid';
+    }
+  | {
+      t: number;
+      kind: 'GUST_REDIRECT';
+      player: number;
+      from: number;
+      to: number;
+    }
   | { t: number; kind: 'GUST_PUNT'; player: number; from: number; to: number }
   | { t: number; kind: 'CARD'; player: number; color: 'yellow' | 'red' }
   | { t: number; kind: 'IGNITED'; player: number }
   | { t: number; kind: 'EXTINGUISHED'; player: number }
   | { t: number; kind: 'RECOVERED'; player: number }
-  | { t: number; kind: 'FORMATION_CHANGED'; team: 0 | 1; formation: FormationId }
+  | {
+      t: number;
+      kind: 'FORMATION_CHANGED';
+      team: 0 | 1;
+      formation: FormationId;
+    }
   | { t: number; kind: 'MENTALITY_CHANGED'; team: 0 | 1; mentality: Mentality }
   | { t: number; kind: 'ENERGY_USE_CHANGED'; team: 0 | 1; energyUse: EnergyUse }
-  | { t: number; kind: 'SUBSTITUTION'; team: 0 | 1; player: number; outPlayerId: string; inPlayerId: string }
+  | {
+      t: number;
+      kind: 'SUBSTITUTION';
+      team: 0 | 1;
+      player: number;
+      outPlayerId: string;
+      inPlayerId: string;
+    }
   | { t: number; kind: 'HALF_TIME' }
   | { t: number; kind: 'FULL_TIME' };
 
@@ -313,12 +371,12 @@ export type MatchInput =
   | { tick: number; kind: 'SUBSTITUTE'; player: number; replacementId: string };
 
 export interface MatchOpts {
-  homePolicy?: FirePolicy;   // default FIRE_WHEN_READY (SAVE_FOR_TAP is explicit test instrumentation)
-  awayPolicy?: FirePolicy;   // default FIRE_WHEN_READY
-  controlledTeam?: 0 | 1;   // watched side; enables replay-recorded coaching inputs
+  homePolicy?: FirePolicy; // default FIRE_WHEN_READY (SAVE_FOR_TAP is explicit test instrumentation)
+  awayPolicy?: FirePolicy; // default FIRE_WHEN_READY
+  controlledTeam?: 0 | 1; // watched side; enables replay-recorded coaching inputs
   homeFormation?: FormationId;
   awayFormation?: FormationId;
-  blindAutoHome?: boolean;   // TEST-ONLY: home heroes auto-fire ignoring context (timing-value baseline)
+  blindAutoHome?: boolean; // TEST-ONLY: home heroes auto-fire ignoring context (timing-value baseline)
 }
 
 /**
@@ -327,10 +385,10 @@ export interface MatchOpts {
  * consumes no rng, so it adds nothing to the replay envelope.
  */
 export interface MovementState {
-  phase: 0 | 1;           // team of the current/last holder — picks each side's in/out-of-possession table
-  blendFrom: 0 | 1;       // phase being blended away from after a turnover (== phase once settled)
+  phase: 0 | 1; // team of the current/last holder — picks each side's in/out-of-possession table
+  blendFrom: 0 | 1; // phase being blended away from after a turnover (== phase once settled)
   blendStartTick: number; // tick the blend began; factor = clamp((tick - start) / BLEND_TICKS, 0, 1)
-  presserIdx: number;     // leased presser (holds the role >= PRESSER_LEASE_TICKS), -1 = none
+  presserIdx: number; // leased presser (holds the role >= PRESSER_LEASE_TICKS), -1 = none
   presserSinceTick: number;
 }
 
@@ -339,7 +397,7 @@ export interface MatchState {
   half: 1 | 2;
   phase: 'play' | 'fulltime';
   score: [number, number];
-  players: SimPlayer[];      // 22; 0-10 team 0 (attacks toward y=0), 11-21 team 1
+  players: SimPlayer[]; // 22; 0-10 team 0 (attacks toward y=0), 11-21 team 1
   /** Fixed optional clone slots: team 0 is entity 22, team 1 is entity 23. */
   decoyClones: [DecoyCloneState | null, DecoyCloneState | null];
   ball: BallState;
@@ -364,11 +422,14 @@ export interface MatchState {
   blindAutoHome: boolean;
   seed: number;
   opts: MatchOpts;
-  teams: [TeamDef, TeamDef];   // match-owned deep copies (createMatch detaches from caller data)
-  inputLog: MatchInput[];      // append-only history of every queued input (replay capture)
+  teams: [TeamDef, TeamDef]; // match-owned deep copies (createMatch detaches from caller data)
+  inputLog: MatchInput[]; // append-only history of every queued input (replay capture)
 }
 
-export interface MatchResult { score: [number, number]; events: MatchEvent[]; }
+export interface MatchResult {
+  score: [number, number];
+  events: MatchEvent[];
+}
 
 export interface ReplayEnvelope {
   schemaVersion: 1;

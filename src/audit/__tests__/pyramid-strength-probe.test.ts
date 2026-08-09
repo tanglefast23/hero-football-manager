@@ -15,10 +15,15 @@ const KEYS = ['pac', 'sho', 'pas', 'def', 'tec', 'sta'] as const;
 describe('pyramid strength', () => {
   it('reports division strength as the match engine sees it', () => {
     const state = addCreatedPlayer(
-      beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-        4_000_000, undefined, content, 'COZY',
-      ))),
-      { name: 'Probe Rookie', ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 } },
+      beginStoryOnboarding(
+        createCareer(
+          createLaunchCareerSetup(4_000_000, undefined, content, 'COZY'),
+        ),
+      ),
+      {
+        name: 'Probe Rookie',
+        ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 },
+      },
     );
 
     const lines = ['', '=== STARTING XI STRENGTH AS THE ENGINE SEES IT ==='];
@@ -26,21 +31,24 @@ describe('pyramid strength', () => {
     lines.push(`YOU (${state.userClubId}): ${you}`);
 
     const launch = content.clubs.clubs
-      .filter(club => club.id !== state.userClubId)
-      .map(club => strengthOf(club.id));
+      .filter((club) => club.id !== state.userClubId)
+      .map((club) => strengthOf(club.id));
     lines.push(
-      `Your season-1 league (9 launch clubs): `
-      + `${Math.min(...launch)} - ${Math.max(...launch)}, avg ${mean(launch)}`,
+      `Your season-1 league (9 launch clubs): ` +
+        `${Math.min(...launch)} - ${Math.max(...launch)}, avg ${mean(launch)}`,
     );
 
-    lines.push('', 'generated pyramid clubs (what you meet after promotion / in the cup):');
+    lines.push(
+      '',
+      'generated pyramid clubs (what you meet after promotion / in the cup):',
+    );
     for (const division of state.m2!.pyramid.divisions) {
       const values = division.clubs
-        .filter(club => club.id !== state.userClubId)
-        .map(club => strengthOf(club.id));
+        .filter((club) => club.id !== state.userClubId)
+        .map((club) => strengthOf(club.id));
       lines.push(
-        `  D${division.level}: ${Math.min(...values)} - ${Math.max(...values)}`
-        + `  avg ${mean(values)}   (gap vs you: ${round(mean(values) - you)})`,
+        `  D${division.level}: ${Math.min(...values)} - ${Math.max(...values)}` +
+          `  avg ${mean(values)}   (gap vs you: ${round(mean(values) - you)})`,
       );
     }
 
@@ -50,7 +58,8 @@ describe('pyramid strength', () => {
     function strengthOf(clubId: string): number {
       const team = buildCareerMatchTeamDef(state, clubId);
       const total = team.players.reduce(
-        (sum, player) => sum + KEYS.reduce((inner, key) => inner + player.attrs[key], 0),
+        (sum, player) =>
+          sum + KEYS.reduce((inner, key) => inner + player.attrs[key], 0),
         0,
       );
       return round(total / (team.players.length * KEYS.length));

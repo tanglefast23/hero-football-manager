@@ -74,18 +74,10 @@ export type PlayerArchetype =
   | 'Prodigy';
 
 export type PlayerPersonality =
-  | 'Fiery'
-  | 'Loyal'
-  | 'Greedy'
-  | 'Joker'
-  | 'Professional'
-  | 'Timid';
+  'Fiery' | 'Loyal' | 'Greedy' | 'Joker' | 'Professional' | 'Timid';
 
 export type CareerContractPerk =
-  | 'GUARANTEED_STARTER'
-  | 'CAPTAINCY'
-  | 'TRAINING_PRIORITY'
-  | 'JERSEY_10';
+  'GUARANTEED_STARTER' | 'CAPTAINCY' | 'TRAINING_PRIORITY' | 'JERSEY_10';
 
 export interface CareerContractPromise {
   perk: CareerContractPerk;
@@ -262,11 +254,7 @@ interface CareerAwakeningState {
 }
 
 type OnboardingStage =
-  | 'create-player'
-  | 'first-match'
-  | 'collapse'
-  | 'reveal'
-  | 'complete';
+  'create-player' | 'first-match' | 'collapse' | 'reveal' | 'complete';
 
 interface CareerOnboardingState {
   stage: OnboardingStage;
@@ -481,7 +469,8 @@ export interface PlayerSeasonStatLine {
  * and it has names on it from week one. Assists are still recorded — they are
  * real match data — they are simply not what this board ranks.
  */
-export type AwardCategoryId = 'goals' | 'passesCompleted' | 'tacklesWon' | 'saves';
+export type AwardCategoryId =
+  'goals' | 'passesCompleted' | 'tacklesWon' | 'saves';
 
 /** One placing, denormalised so it survives the rival roster being regenerated. */
 export interface DivisionAwardPlacement {
@@ -749,8 +738,16 @@ export type PlayerRequestCost =
   | { readonly kind: 'MONEY_SQUAD'; readonly billMultiplePercent: number }
   | { readonly kind: 'ABSENCE'; readonly weeks: number }
   | { readonly kind: 'CONDITION_SQUAD'; readonly amount: number }
-  | { readonly kind: 'DRILL_PLAYER'; readonly multiplierPercent: number; readonly weeks: number }
-  | { readonly kind: 'DRILL_SQUAD'; readonly multiplierPercent: number; readonly weeks: number };
+  | {
+      readonly kind: 'DRILL_PLAYER';
+      readonly multiplierPercent: number;
+      readonly weeks: number;
+    }
+  | {
+      readonly kind: 'DRILL_SQUAD';
+      readonly multiplierPercent: number;
+      readonly weeks: number;
+    };
 
 type PlayerRequestGrantBonus =
   | { readonly kind: 'CONDITION_SQUAD'; readonly amount: number }

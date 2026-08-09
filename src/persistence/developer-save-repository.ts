@@ -8,7 +8,8 @@ export const DEVELOPER_AUTO_SAVE_SLOTS = ['1', '2', '3', '4', '5'] as const;
 export const DEVELOPER_MANUAL_SAVE_SLOTS = ['A', 'B', 'C', 'D', 'E'] as const;
 
 export type DeveloperAutoSaveSlot = (typeof DEVELOPER_AUTO_SAVE_SLOTS)[number];
-export type DeveloperManualSaveSlot = (typeof DEVELOPER_MANUAL_SAVE_SLOTS)[number];
+export type DeveloperManualSaveSlot =
+  (typeof DEVELOPER_MANUAL_SAVE_SLOTS)[number];
 export type DeveloperSaveSlot = DeveloperAutoSaveSlot | DeveloperManualSaveSlot;
 
 export interface DeveloperSaveSummary {
@@ -21,7 +22,10 @@ export interface DeveloperSaveSummary {
 export interface DeveloperSaveRepository {
   list(careerSeed: number): Promise<DeveloperSaveSummary[]>;
   saveNextWeek(state: GameState): Promise<DeveloperSaveSummary[]>;
-  saveManual(slot: DeveloperManualSaveSlot, state: GameState): Promise<DeveloperSaveSummary[]>;
+  saveManual(
+    slot: DeveloperManualSaveSlot,
+    state: GameState,
+  ): Promise<DeveloperSaveSummary[]>;
   load(slot: DeveloperSaveSlot, careerSeed: number): Promise<GameState | null>;
 }
 
@@ -74,10 +78,15 @@ export async function createDeveloperSaveRepository(
   await migrateDatabase(database);
 
   const list = async (careerSeed: number): Promise<DeveloperSaveSummary[]> => {
-    const rows = await database.getAllAsync<StoredSummaryRow>(LIST_SQL, [careerSeed]);
-    return rows.map(decodeSummary).sort((left, right) => (
-      developerSlotOrder(left.slot) - developerSlotOrder(right.slot)
-    ));
+    const rows = await database.getAllAsync<StoredSummaryRow>(LIST_SQL, [
+      careerSeed,
+    ]);
+    return rows
+      .map(decodeSummary)
+      .sort(
+        (left, right) =>
+          developerSlotOrder(left.slot) - developerSlotOrder(right.slot),
+      );
   };
 
   const save = async (
@@ -109,10 +118,16 @@ export async function createDeveloperSaveRepository(
         [state.careerSeed],
       );
       const previous = row?.max_sequence;
-      const sequence = typeof previous === 'number' && Number.isSafeInteger(previous) && previous >= 0
-        ? previous + 1
-        : 1;
-      const slot = DEVELOPER_AUTO_SAVE_SLOTS[(sequence - 1) % DEVELOPER_AUTO_SAVE_SLOTS.length];
+      const sequence =
+        typeof previous === 'number' &&
+        Number.isSafeInteger(previous) &&
+        previous >= 0
+          ? previous + 1
+          : 1;
+      const slot =
+        DEVELOPER_AUTO_SAVE_SLOTS[
+          (sequence - 1) % DEVELOPER_AUTO_SAVE_SLOTS.length
+        ];
       return save(slot, 'AUTO', sequence, state);
     },
 
@@ -121,10 +136,18 @@ export async function createDeveloperSaveRepository(
     },
 
     async load(slot, careerSeed) {
-      const row = await database.getFirstAsync<StoredStateRow>(LOAD_SQL, [slot, careerSeed]);
+      const row = await database.getFirstAsync<StoredStateRow>(LOAD_SQL, [
+        slot,
+        careerSeed,
+      ]);
       if (row === null) return null;
-      if (!Number.isSafeInteger(row.schema_version) || (row.schema_version as number) < 1) {
-        throw new CorruptCareerSaveError('developer save schema_version is missing or invalid');
+      if (
+        !Number.isSafeInteger(row.schema_version) ||
+        (row.schema_version as number) < 1
+      ) {
+        throw new CorruptCareerSaveError(
+          'developer save schema_version is missing or invalid',
+        );
       }
       if ((row.schema_version as number) > GAME_SCHEMA_VERSION) {
         throw new UnsupportedGameSchemaError(
@@ -133,7 +156,9 @@ export async function createDeveloperSaveRepository(
         );
       }
       if (typeof row.state_json !== 'string') {
-        throw new CorruptCareerSaveError('developer save state_json is not text');
+        throw new CorruptCareerSaveError(
+          'developer save state_json is not text',
+        );
       }
       return parseStoredGameState(row.state_json);
     },
@@ -144,13 +169,18 @@ function decodeSummary(row: StoredSummaryRow): DeveloperSaveSummary {
   if (!isDeveloperSaveSlot(row.slot)) {
     throw new Error('Developer save has an invalid slot.');
   }
-  const expectedKind = DEVELOPER_AUTO_SAVE_SLOTS.includes(row.slot as DeveloperAutoSaveSlot)
+  const expectedKind = DEVELOPER_AUTO_SAVE_SLOTS.includes(
+    row.slot as DeveloperAutoSaveSlot,
+  )
     ? 'AUTO'
     : 'MANUAL';
   if (row.kind !== expectedKind) {
     throw new Error('Developer save has an invalid kind.');
   }
-  if (!Number.isSafeInteger(row.saved_season) || (row.saved_season as number) < 1) {
+  if (
+    !Number.isSafeInteger(row.saved_season) ||
+    (row.saved_season as number) < 1
+  ) {
     throw new Error('Developer save has an invalid season.');
   }
   if (!Number.isSafeInteger(row.saved_week) || (row.saved_week as number) < 1) {
@@ -165,15 +195,18 @@ function decodeSummary(row: StoredSummaryRow): DeveloperSaveSummary {
 }
 
 function isDeveloperSaveSlot(value: unknown): value is DeveloperSaveSlot {
-  return typeof value === 'string' && (
-    (DEVELOPER_AUTO_SAVE_SLOTS as readonly string[]).includes(value)
-    || (DEVELOPER_MANUAL_SAVE_SLOTS as readonly string[]).includes(value)
+  return (
+    typeof value === 'string' &&
+    ((DEVELOPER_AUTO_SAVE_SLOTS as readonly string[]).includes(value) ||
+      (DEVELOPER_MANUAL_SAVE_SLOTS as readonly string[]).includes(value))
   );
 }
 
 function developerSlotOrder(slot: DeveloperSaveSlot): number {
   const auto = DEVELOPER_AUTO_SAVE_SLOTS.indexOf(slot as DeveloperAutoSaveSlot);
   if (auto >= 0) return auto;
-  return DEVELOPER_AUTO_SAVE_SLOTS.length
-    + DEVELOPER_MANUAL_SAVE_SLOTS.indexOf(slot as DeveloperManualSaveSlot);
+  return (
+    DEVELOPER_AUTO_SAVE_SLOTS.length +
+    DEVELOPER_MANUAL_SAVE_SLOTS.indexOf(slot as DeveloperManualSaveSlot)
+  );
 }

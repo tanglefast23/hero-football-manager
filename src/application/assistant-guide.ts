@@ -40,9 +40,14 @@ export function pendingAssistantGuideSequence(
 ): AssistantGuideSequenceId | null {
   if (!assistantTeaches(state)) return null;
   if (isFirstCareerWeek(state)) {
-    return hasAssistantGuideMilestone(state, 'intro-complete') ? null : 'management-intro';
+    return hasAssistantGuideMilestone(state, 'intro-complete')
+      ? null
+      : 'management-intro';
   }
-  if (isFirstFixtureWeek(state) && !hasAssistantGuideMilestone(state, 'desk-intro-complete')) {
+  if (
+    isFirstFixtureWeek(state) &&
+    !hasAssistantGuideMilestone(state, 'desk-intro-complete')
+  ) {
     return 'desk-intro';
   }
   return null;
@@ -58,8 +63,13 @@ function isFirstFixtureWeek(state: GameState): boolean {
   let earliestWeek: number | undefined;
   for (const fixture of state.fixtures) {
     if (fixture.season !== state.season) continue;
-    if (fixture.homeClubId !== state.userClubId && fixture.awayClubId !== state.userClubId) continue;
-    if (earliestWeek === undefined || fixture.week < earliestWeek) earliestWeek = fixture.week;
+    if (
+      fixture.homeClubId !== state.userClubId &&
+      fixture.awayClubId !== state.userClubId
+    )
+      continue;
+    if (earliestWeek === undefined || fixture.week < earliestWeek)
+      earliestWeek = fixture.week;
   }
   return earliestWeek !== undefined && earliestWeek === state.week;
 }
@@ -78,23 +88,29 @@ export function dueAssistantInboxGuideSequences(
   }
 
   const due: AssistantInboxGuideSequenceId[] = [];
-  const completed = (sequenceId: AssistantInboxGuideSequenceId) => (
-    hasAssistantGuideSequenceCompleted(state, sequenceId)
-  );
+  const completed = (sequenceId: AssistantInboxGuideSequenceId) =>
+    hasAssistantGuideSequenceCompleted(state, sequenceId);
   const grid = state.facilities.grid;
   const buildings = grid?.buildings ?? [];
-  const hasCoachingOffice = buildings.some(building => building.type === 'coaching-office');
-  const hasOperationalCoachingOffice = grid !== undefined && buildings.some(building => (
-    building.type === 'coaching-office'
-    && isFacilityOperational(grid, building.id)
-  ));
-  const scoutingUnlocked = isStoryScoutingUnlocked(state)
-    || state.market.activeScoutMission !== undefined
-    || state.market.scoutReports.length > 0;
-  const rosterFull = state.players.filter(player => player.clubId === state.userClubId).length
-    >= careerRosterCapacity(state);
-  const playerSalesUnlocked = !isStoryFeaturePacingActive(state)
-    || (scoutingUnlocked && rosterFull);
+  const hasCoachingOffice = buildings.some(
+    (building) => building.type === 'coaching-office',
+  );
+  const hasOperationalCoachingOffice =
+    grid !== undefined &&
+    buildings.some(
+      (building) =>
+        building.type === 'coaching-office' &&
+        isFacilityOperational(grid, building.id),
+    );
+  const scoutingUnlocked =
+    isStoryScoutingUnlocked(state) ||
+    state.market.activeScoutMission !== undefined ||
+    state.market.scoutReports.length > 0;
+  const rosterFull =
+    state.players.filter((player) => player.clubId === state.userClubId)
+      .length >= careerRosterCapacity(state);
+  const playerSalesUnlocked =
+    !isStoryFeaturePacingActive(state) || (scoutingUnlocked && rosterFull);
 
   if (state.phase === 'manage') {
     if (highestDivisionReached(state) <= 4 && !completed('sponsor-desk')) {
@@ -104,36 +120,48 @@ export function dueAssistantInboxGuideSequences(
   }
 
   if (state.market.headCoach === undefined) {
-    due.push(completed('head-coach-market') ? 'head-coach-hire' : 'head-coach-market');
+    due.push(
+      completed('head-coach-market') ? 'head-coach-hire' : 'head-coach-market',
+    );
   } else if (
-    !hasCoachingOffice
-    && (!isStoryFeaturePacingActive(state) || state.week >= STORY_COACHING_OFFICE_GUIDE_WEEK)
+    !hasCoachingOffice &&
+    (!isStoryFeaturePacingActive(state) ||
+      state.week >= STORY_COACHING_OFFICE_GUIDE_WEEK)
   ) {
     due.push('coaching-office');
-  } else if (hasOperationalCoachingOffice && state.market.assistantCoach === undefined) {
+  } else if (
+    hasOperationalCoachingOffice &&
+    state.market.assistantCoach === undefined
+  ) {
     due.push('assistant-coach-hire');
   }
 
   if (
-    isStoryYouthUnlocked(state)
-    && state.youthIntake?.status === 'OPEN'
-    && state.youthIntake.offers.length > 0
+    isStoryYouthUnlocked(state) &&
+    state.youthIntake?.status === 'OPEN' &&
+    state.youthIntake.offers.length > 0
   ) {
     due.push('youth-intake');
   }
 
-  const operationalTrainingPitch = grid === undefined
-    ? state.facilities.trainingGroundBuilt
-    : buildings.some(building => (
-        building.type === 'training-pitch'
-        && isFacilityOperational(grid, building.id)
-      ));
-  const trainingPitchUnderConstruction = grid?.construction?.kind === 'BUILD'
-    && grid.construction.type === 'training-pitch';
-  const upgradeReachable = operationalTrainingPitch
-    && completed('facility-placement')
-    && grid?.construction === undefined
-    && buildings.some(building => building.level < maxCareerFacilityLevel(state));
+  const operationalTrainingPitch =
+    grid === undefined
+      ? state.facilities.trainingGroundBuilt
+      : buildings.some(
+          (building) =>
+            building.type === 'training-pitch' &&
+            isFacilityOperational(grid, building.id),
+        );
+  const trainingPitchUnderConstruction =
+    grid?.construction?.kind === 'BUILD' &&
+    grid.construction.type === 'training-pitch';
+  const upgradeReachable =
+    operationalTrainingPitch &&
+    completed('facility-placement') &&
+    grid?.construction === undefined &&
+    buildings.some(
+      (building) => building.level < maxCareerFacilityLevel(state),
+    );
   if (!operationalTrainingPitch && !trainingPitchUnderConstruction) {
     due.push('facility-placement');
   }
@@ -149,10 +177,12 @@ export function dueAssistantInboxGuideSequences(
   const listings = state.market.transferListings ?? [];
   if (state.market.transferTalks !== undefined) {
     due.push('transfer-negotiation');
-  } else if (listings.some(listing => listing.bids.length > 0)) {
+  } else if (listings.some((listing) => listing.bids.length > 0)) {
     due.push('transfer-bid');
   } else if (playerSalesUnlocked && isTransferWindowOpen(state.week)) {
-    due.push(isStoryFeaturePacingActive(state) ? 'roster-cap' : 'transfer-list');
+    due.push(
+      isStoryFeaturePacingActive(state) ? 'roster-cap' : 'transfer-list',
+    );
   }
 
   if (state.m2.nationalCups.length > 0 && isStoryCupGuideUnlocked(state)) {
@@ -161,7 +191,9 @@ export function dueAssistantInboxGuideSequences(
 
   // The same derivation the League screen's sub-tab list reads, so the boards
   // are always there by the time Bert points at them.
-  if (isDivisionLeadersUnlocked(state.m2.nationalCups, state.season, state.week)) {
+  if (
+    isDivisionLeadersUnlocked(state.m2.nationalCups, state.season, state.week)
+  ) {
     due.push('division-leaders');
   }
 
@@ -169,32 +201,50 @@ export function dueAssistantInboxGuideSequences(
   // itself reads, so a career that never received one — a measurement harness —
   // is never told about a feature it does not have.
   const requestTuning = state.playerRequestRules?.tuning;
-  if (requestTuning !== undefined
-    && (state.season > requestTuning.startSeason
-      || (state.season === requestTuning.startSeason && state.week >= requestTuning.startWeek))) {
+  if (
+    requestTuning !== undefined &&
+    (state.season > requestTuning.startSeason ||
+      (state.season === requestTuning.startSeason &&
+        state.week >= requestTuning.startWeek))
+  ) {
     due.push('player-requests');
   }
 
-  if (state.players.some(player => player.clubId === state.userClubId && player.injuryWeeks > 0)) {
+  if (
+    state.players.some(
+      (player) => player.clubId === state.userClubId && player.injuryWeeks > 0,
+    )
+  ) {
     due.push('first-injury');
   }
-  if (state.financialSafety?.loan !== undefined && state.financialSafety.loan.remainingBalance > 0) {
+  if (
+    state.financialSafety?.loan !== undefined &&
+    state.financialSafety.loan.remainingBalance > 0
+  ) {
     due.push('first-emergency-loan');
   }
-  if (state.players.some(player => player.clubId === state.userClubId && player.transferRequested === true)) {
+  if (
+    state.players.some(
+      (player) =>
+        player.clubId === state.userClubId && player.transferRequested === true,
+    )
+  ) {
     due.push('first-transfer-request');
   }
 
-  const retirementVisible = (state.retirementAnnouncements ?? [])
-    .some(announcement => announcement.announcedInSeason === state.season - 1);
+  const retirementVisible = (state.retirementAnnouncements ?? []).some(
+    (announcement) => announcement.announcedInSeason === state.season - 1,
+  );
   if (retirementVisible) due.push('retirement');
   if ((state.pendingLegacyPlayerIds?.length ?? 0) > 0) due.push('club-legacy');
 
   if (state.financialSafety?.boardUltimatum !== undefined) {
-    due.push(completed('board-ultimatum') ? 'board-protection' : 'board-ultimatum');
+    due.push(
+      completed('board-ultimatum') ? 'board-protection' : 'board-ultimatum',
+    );
   }
 
-  const pending = due.filter(sequenceId => !completed(sequenceId));
+  const pending = due.filter((sequenceId) => !completed(sequenceId));
 
   /*
    * The upgrade lesson is the only guide nothing is waiting on: the pitch
@@ -206,10 +256,10 @@ export function dueAssistantInboxGuideSequences(
    * built, one ring out.
    */
   if (
-    upgradeReachable
-    && pending.length === 0
-    && !isStoryFeaturePacingActive(state)
-    && !completed('facility-upgrade')
+    upgradeReachable &&
+    pending.length === 0 &&
+    !isStoryFeaturePacingActive(state) &&
+    !completed('facility-upgrade')
   ) {
     pending.push('facility-upgrade');
   }
@@ -242,8 +292,10 @@ const BLOCKING_INBOX_DUTIES: readonly AssistantInboxGuideSequenceId[] = [
   'youth-intake',
 ];
 
-export const OPENING_TRAINING_PITCH_BLOCKED_REASON_KEY = 'clubFinances.a11y.buildTheTrainingPitchFirst';
-export const OPENING_TRAINING_PITCH_REMINDER_KEY = 'clubFinances.openingTrainingPitchReminder';
+export const OPENING_TRAINING_PITCH_BLOCKED_REASON_KEY =
+  'clubFinances.a11y.buildTheTrainingPitchFirst';
+export const OPENING_TRAINING_PITCH_REMINDER_KEY =
+  'clubFinances.openingTrainingPitchReminder';
 
 /**
  * The opening build is part of the Teacher path, not a momentary arrow state.
@@ -254,11 +306,14 @@ export const OPENING_TRAINING_PITCH_REMINDER_KEY = 'clubFinances.openingTraining
  */
 export function openingTrainingPitchRequired(state: GameState): boolean {
   if (!assistantTeaches(state)) return false;
-  if (hasAssistantGuideSequenceCompleted(state, 'facility-placement')) return false;
+  if (hasAssistantGuideSequenceCompleted(state, 'facility-placement'))
+    return false;
   if (state.facilities.trainingGroundBuilt) return false;
-  return !(state.facilities.grid?.buildings.some(
-    building => building.type === 'training-pitch',
-  ) ?? false);
+  return !(
+    state.facilities.grid?.buildings.some(
+      (building) => building.type === 'training-pitch',
+    ) ?? false
+  );
 }
 
 /**
@@ -279,7 +334,8 @@ function isInboxDutyAffordable(
   // while either rule owns the one works crew would deadlock Advance Week.
   if (openingTrainingPitchRequired(state)) return false;
   if (state.facilities.grid?.construction !== undefined) return false;
-  const cash = state.clubs.find(club => club.id === state.userClubId)?.cash ?? 0;
+  const cash =
+    state.clubs.find((club) => club.id === state.userClubId)?.cash ?? 0;
   return cash >= FACILITY_CATALOG['coaching-office'].buildCost;
 }
 
@@ -310,7 +366,7 @@ export function outstandingInboxDuties(
   if (state.season !== 1 || state.week > LAST_GATED_INBOX_WEEK) return [];
   const due = new Set(dueAssistantInboxGuideSequences(state));
   return BLOCKING_INBOX_DUTIES.filter(
-    duty => due.has(duty) && isInboxDutyAffordable(state, duty),
+    (duty) => due.has(duty) && isInboxDutyAffordable(state, duty),
   );
 }
 
@@ -319,7 +375,9 @@ export function outstandingInboxDuties(
  * This also heals saves where the follow-up was queued between opening the
  * market and signing the coach, so Bert never asks for a hire that exists.
  */
-export function reconcileSatisfiedAssistantGuideSequences(state: GameState): GameState {
+export function reconcileSatisfiedAssistantGuideSequences(
+  state: GameState,
+): GameState {
   let next = state;
   if (state.market?.headCoach !== undefined) {
     next = completeAssistantGuideSequence(next, 'head-coach-market');
@@ -327,29 +385,34 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
   }
 
   const grid = state.facilities.grid;
-  const hasCoachingOffice = grid?.buildings.some(
-    building => building.type === 'coaching-office',
-  ) ?? false;
-  const hasOperationalCoachingOffice = grid?.buildings.some(building => (
-    building.type === 'coaching-office'
-    && isFacilityOperational(grid, building.id)
-  )) ?? false;
-  const hasOperationalTrainingPitch = grid === undefined
-    ? state.facilities.trainingGroundBuilt
-    : grid.buildings.some(building => (
-        building.type === 'training-pitch'
-        && isFacilityOperational(grid, building.id)
-      ));
+  const hasCoachingOffice =
+    grid?.buildings.some((building) => building.type === 'coaching-office') ??
+    false;
+  const hasOperationalCoachingOffice =
+    grid?.buildings.some(
+      (building) =>
+        building.type === 'coaching-office' &&
+        isFacilityOperational(grid, building.id),
+    ) ?? false;
+  const hasOperationalTrainingPitch =
+    grid === undefined
+      ? state.facilities.trainingGroundBuilt
+      : grid.buildings.some(
+          (building) =>
+            building.type === 'training-pitch' &&
+            isFacilityOperational(grid, building.id),
+        );
   if (hasOperationalTrainingPitch) {
     next = completeAssistantGuideSequence(next, 'facility-placement');
   }
-  if (hasCoachingOffice) next = completeAssistantGuideSequence(next, 'coaching-office');
+  if (hasCoachingOffice)
+    next = completeAssistantGuideSequence(next, 'coaching-office');
   if (state.market?.assistantCoach !== undefined) {
     next = completeAssistantGuideSequence(next, 'assistant-coach-hire');
   }
   if (
-    state.market?.activeScoutMission !== undefined
-    || (state.market?.scoutReports.length ?? 0) > 0
+    state.market?.activeScoutMission !== undefined ||
+    (state.market?.scoutReports.length ?? 0) > 0
   ) {
     next = completeAssistantGuideSequence(next, 'scout-mission');
   }
@@ -360,9 +423,11 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
     premature.push('sponsor-desk', 'sponsor-desk-continuity');
   } else if (!hasAssistantGuideSequenceCompleted(next, 'sponsor-desk')) {
     const activeVariant = sponsorDeskGuideForState(next);
-    premature.push(activeVariant === 'sponsor-desk'
-      ? 'sponsor-desk-continuity'
-      : 'sponsor-desk');
+    premature.push(
+      activeVariant === 'sponsor-desk'
+        ? 'sponsor-desk-continuity'
+        : 'sponsor-desk',
+    );
   }
   if (next.season < 3) premature.push('sponsor-buzz');
   if (!isStoryFeaturePacingActive(next)) {
@@ -377,9 +442,9 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
   if (!isStoryYouthUnlocked(next)) premature.push('youth-intake');
   if (!isStoryCupGuideUnlocked(next)) premature.push('national-cup');
   if (
-    !isStoryScoutingUnlocked(next)
-    && next.market?.activeScoutMission === undefined
-    && (next.market?.scoutReports.length ?? 0) === 0
+    !isStoryScoutingUnlocked(next) &&
+    next.market?.activeScoutMission === undefined &&
+    (next.market?.scoutReports.length ?? 0) === 0
   ) {
     premature.push(
       'scout-mission',
@@ -393,9 +458,14 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
   return deferAssistantGuideSequencesUntilUnlock(next, premature);
 }
 
-function sponsorDeskGuideForState(state: GameState): 'sponsor-desk' | 'sponsor-desk-continuity' {
-  const hasActionableOffer = state.week <= SPONSOR_OFFER_LAST_WEEK
-    && state.clubBusiness.sponsorship.offers.some(offer => offer.season === state.season);
+function sponsorDeskGuideForState(
+  state: GameState,
+): 'sponsor-desk' | 'sponsor-desk-continuity' {
+  const hasActionableOffer =
+    state.week <= SPONSOR_OFFER_LAST_WEEK &&
+    state.clubBusiness.sponsorship.offers.some(
+      (offer) => offer.season === state.season,
+    );
   return hasActionableOffer ? 'sponsor-desk' : 'sponsor-desk-continuity';
 }
 
@@ -408,15 +478,18 @@ export function currentAssistantObjective(
   if (!hasAssistantGuideMilestone(state, 'intro-complete')) return null;
   if (!hasAssistantGuideMilestone(state, 'first-training-complete')) {
     if (activeTab === 'squad') {
-      return { text: 'TAP + ON A PLAYER AND TRAIN A STAT.', target: 'training-plan' };
+      return {
+        text: 'TAP + ON A PLAYER AND TRAIN A STAT.',
+        target: 'training-plan',
+      };
     }
     return { text: 'OPEN SQUAD.', target: 'squad-tab' };
   }
   const currentProject = state.facilities.grid?.construction;
   if (
-    openingTrainingPitchRequired(state)
-    && currentProject !== undefined
-    && currentProject.type !== 'training-pitch'
+    openingTrainingPitchRequired(state) &&
+    currentProject !== undefined &&
+    currentProject.type !== 'training-pitch'
   ) {
     if (activeTab === 'home') {
       return {
@@ -426,19 +499,26 @@ export function currentAssistantObjective(
     }
     return { text: 'RETURN HOME.', target: 'home-tab' };
   }
-  if (!state.facilities.trainingGroundBuilt && !isTrainingGroundUnderConstruction(state)) {
+  if (
+    !state.facilities.trainingGroundBuilt &&
+    !isTrainingGroundUnderConstruction(state)
+  ) {
     if (activeTab === 'home') {
       return { text: 'CHECK YOUR INBOX.', target: 'training-ground-alert' };
     }
     if (activeTab === 'club') {
-      return { text: 'BUILD YOUR TRAINING PITCH.', target: 'training-ground-facility' };
+      return {
+        text: 'BUILD YOUR TRAINING PITCH.',
+        target: 'training-ground-facility',
+      };
     }
     return { text: 'RETURN HOME.', target: 'home-tab' };
   }
   if (activeTab !== 'home') {
     return { text: 'RETURN HOME.', target: 'home-tab' };
   }
-  if (state.market !== undefined && state.market.headCoach === undefined) return null;
+  if (state.market !== undefined && state.market.headCoach === undefined)
+    return null;
   if (!hasAssistantGuideMilestone(state, 'first-week-advanced')) {
     return { text: 'INBOX CLEAR. ADVANCE WEEK.', target: 'advance-week' };
   }
@@ -446,8 +526,10 @@ export function currentAssistantObjective(
 }
 
 function isTrainingGroundUnderConstruction(state: GameState): boolean {
-  return state.facilities.grid?.construction?.kind === 'BUILD'
-    && state.facilities.grid.construction.type === 'training-pitch';
+  return (
+    state.facilities.grid?.construction?.kind === 'BUILD' &&
+    state.facilities.grid.construction.type === 'training-pitch'
+  );
 }
 
 function isFirstCareerWeek(state: Pick<GameState, 'season' | 'week'>): boolean {

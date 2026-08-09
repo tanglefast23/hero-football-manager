@@ -11,11 +11,19 @@ import { tmpdir } from 'os';
 describe('formation tables drift guard', () => {
   it('committed formation-tables.json is byte-identical to fresh generator output', () => {
     const root = join(__dirname, '..', '..', '..');
-    const scratch = join(tmpdir(), `formation-tables-drift-${process.pid}.json`);
+    const scratch = join(
+      tmpdir(),
+      `formation-tables-drift-${process.pid}.json`,
+    );
     try {
-      execSync(`node scripts/gen-formation-tables.mjs "${scratch}"`, { cwd: root });
+      execSync(`node scripts/gen-formation-tables.mjs "${scratch}"`, {
+        cwd: root,
+      });
       const fresh = readFileSync(scratch, 'utf8');
-      const committed = readFileSync(join(root, 'src', 'sim', 'formation-tables.json'), 'utf8');
+      const committed = readFileSync(
+        join(root, 'src', 'sim', 'formation-tables.json'),
+        'utf8',
+      );
       expect(fresh).toBe(committed);
     } finally {
       rmSync(scratch, { force: true });
@@ -25,7 +33,11 @@ describe('formation tables drift guard', () => {
   it('committed log-ratio tables are byte-identical to fresh generator output', () => {
     const root = join(__dirname, '..', '..', '..');
     const scratch = join(tmpdir(), `attribute-tables-drift-${process.pid}`);
-    const names = ['log-table.json', 'clog-table.json', 'resolve-table.json'] as const;
+    const names = [
+      'log-table.json',
+      'clog-table.json',
+      'resolve-table.json',
+    ] as const;
     try {
       execSync(`node scripts/gen-log-table.mjs "${scratch}"`, { cwd: root });
       for (const name of names) {
@@ -43,7 +55,9 @@ describe('formation tables drift guard', () => {
     const scratch = join(tmpdir(), `movement-tables-drift-${process.pid}`);
     const names = ['pace-table.json', 'stamina-tables.json'] as const;
     try {
-      execSync(`node scripts/gen-movement-tables.mjs "${scratch}"`, { cwd: root });
+      execSync(`node scripts/gen-movement-tables.mjs "${scratch}"`, {
+        cwd: root,
+      });
       for (const name of names) {
         const fresh = readFileSync(join(scratch, name), 'utf8');
         const committed = readFileSync(join(root, 'src', 'sim', name), 'utf8');

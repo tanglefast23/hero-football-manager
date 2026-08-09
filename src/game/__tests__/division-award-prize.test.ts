@@ -44,7 +44,10 @@ describe('divisionAwardPrize', () => {
       targetDivision: 5,
     });
 
-    expect(prize).toEqual({ money: divisionAwardPrizeCashPerCategory(5), categoriesWon: ['tacklesWon'] });
+    expect(prize).toEqual({
+      money: divisionAwardPrizeCashPerCategory(5),
+      categoriesWon: ['tacklesWon'],
+    });
   });
 
   test('a sweep pays the tapered total, not four full rates', () => {
@@ -83,17 +86,22 @@ describe('divisionAwardPrize', () => {
       targetDivision: 5,
     });
 
-    expect(prize).toEqual({ money: divisionAwardPrizeCashPerCategory(5), categoriesWon: ['goals'] });
+    expect(prize).toEqual({
+      money: divisionAwardPrizeCashPerCategory(5),
+      categoriesWon: ['goals'],
+    });
   });
 
   test('a save written before the boards existed pays nothing', () => {
     const { divisionAwards, ...withoutAwards } = recapWonBy(CATEGORIES);
 
-    expect(divisionAwardPrize({
-      recap: withoutAwards,
-      userClubId: USER_CLUB,
-      targetDivision: 5,
-    })).toEqual({ money: 0, categoriesWon: [] });
+    expect(
+      divisionAwardPrize({
+        recap: withoutAwards,
+        userClubId: USER_CLUB,
+        targetDivision: 5,
+      }),
+    ).toEqual({ money: 0, categoriesWon: [] });
   });
 
   /**
@@ -108,13 +116,24 @@ describe('divisionAwardPrize', () => {
     const { goals, ...missingGoals } = recapWonBy(CATEGORIES).divisionAwards!;
     const recap: SeasonRecap = {
       ...recapWonBy(CATEGORIES),
-      divisionAwards: missingGoals as Record<AwardCategoryId, DivisionAwardPlacement[]>,
+      divisionAwards: missingGoals as Record<
+        AwardCategoryId,
+        DivisionAwardPlacement[]
+      >,
     };
 
-    const prize = divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 5 });
+    const prize = divisionAwardPrize({
+      recap,
+      userClubId: USER_CLUB,
+      targetDivision: 5,
+    });
 
     // The three surviving boards are still paid; only the absent one is skipped.
-    expect(prize.categoriesWon).toEqual(['passesCompleted', 'tacklesWon', 'saves']);
+    expect(prize.categoriesWon).toEqual([
+      'passesCompleted',
+      'tacklesWon',
+      'saves',
+    ]);
     expect(prize.money).toBe(divisionAwardPrizeTotal(5, 3));
   });
 
@@ -124,15 +143,24 @@ describe('divisionAwardPrize', () => {
       divisionAwards: {} as Record<AwardCategoryId, DivisionAwardPlacement[]>,
     };
 
-    expect(divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 5 }))
-      .toEqual({ money: 0, categoriesWon: [] });
+    expect(
+      divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 5 }),
+    ).toEqual({ money: 0, categoriesWon: [] });
   });
 
   test('the same sweep is worth more promoted than relegated', () => {
     const recap = recapWonBy(CATEGORIES);
 
-    const promoted = divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 3 });
-    const relegated = divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 5 });
+    const promoted = divisionAwardPrize({
+      recap,
+      userClubId: USER_CLUB,
+      targetDivision: 3,
+    });
+    const relegated = divisionAwardPrize({
+      recap,
+      userClubId: USER_CLUB,
+      targetDivision: 5,
+    });
 
     expect(promoted.money).toBeGreaterThan(relegated.money);
     expect(promoted.money).toBe(divisionAwardPrizeTotal(3, CATEGORIES.length));
@@ -140,8 +168,9 @@ describe('divisionAwardPrize', () => {
   });
 
   test('every tier of the pyramid is priced, and nothing outside it is', () => {
-    expect([5, 4, 3, 2, 1].map(divisionAwardPrizePerCategory))
-      .toEqual([120, 140, 160, 180, 200]);
+    expect([5, 4, 3, 2, 1].map(divisionAwardPrizePerCategory)).toEqual([
+      120, 140, 160, 180, 200,
+    ]);
     expect(() => divisionAwardPrizePerCategory(0)).toThrow('division 0');
     expect(() => divisionAwardPrizePerCategory(6)).toThrow('division 6');
   });
@@ -152,11 +181,13 @@ describe('divisionAwardPrize', () => {
     const random = jest.spyOn(Math, 'random');
     const now = jest.spyOn(Date, 'now');
     try {
-      const results = Array.from({ length: 20 }, () => divisionAwardPrize({
-        recap,
-        userClubId: USER_CLUB,
-        targetDivision: 4,
-      }));
+      const results = Array.from({ length: 20 }, () =>
+        divisionAwardPrize({
+          recap,
+          userClubId: USER_CLUB,
+          targetDivision: 4,
+        }),
+      );
 
       for (const result of results) expect(result).toEqual(results[0]);
       expect(random).not.toHaveBeenCalled();
@@ -174,8 +205,9 @@ describe('the diminishing-returns curve', () => {
     // 120 TP a board at D5, converted at $40 and lifted a tenth: $5,280 for the
     // first, then the 75/50/25 taper on the same figure.
     expect(divisionAwardPrizeCashPerCategory(5)).toBe(5_280);
-    expect([0, 1, 2, 3, 4].map(count => divisionAwardPrizeTotal(5, count)))
-      .toEqual([0, 5_280, 9_240, 11_880, 13_200]);
+    expect(
+      [0, 1, 2, 3, 4].map((count) => divisionAwardPrizeTotal(5, count)),
+    ).toEqual([0, 5_280, 9_240, 11_880, 13_200]);
   });
 
   /**
@@ -186,10 +218,14 @@ describe('the diminishing-returns curve', () => {
    */
   test('holds its shape at every tier: always more, always less each time', () => {
     for (const division of [5, 4, 3, 2, 1]) {
-      const totals = [0, 1, 2, 3, 4].map(count => divisionAwardPrizeTotal(division, count));
-      const marginals = totals.slice(1).map((total, index) => total - totals[index]);
+      const totals = [0, 1, 2, 3, 4].map((count) =>
+        divisionAwardPrizeTotal(division, count),
+      );
+      const marginals = totals
+        .slice(1)
+        .map((total, index) => total - totals[index]);
 
-      expect(marginals.every(marginal => marginal > 0)).toBe(true);
+      expect(marginals.every((marginal) => marginal > 0)).toBe(true);
       for (let index = 1; index < marginals.length; index += 1) {
         expect(marginals[index]).toBeLessThan(marginals[index - 1]);
       }
@@ -199,8 +235,12 @@ describe('the diminishing-returns curve', () => {
   test('refuses to extrapolate past the boards the taper prices', () => {
     const boards = DIVISION_AWARD_PRIZE_TAPER_PERCENT.length;
 
-    expect(() => divisionAwardPrizeTotal(5, boards + 1)).toThrow(`at most ${boards} boards`);
-    expect(() => divisionAwardPrizeTotal(5, -1)).toThrow('cannot pay for -1 boards');
+    expect(() => divisionAwardPrizeTotal(5, boards + 1)).toThrow(
+      `at most ${boards} boards`,
+    );
+    expect(() => divisionAwardPrizeTotal(5, -1)).toThrow(
+      'cannot pay for -1 boards',
+    );
   });
 });
 
@@ -215,8 +255,9 @@ describe('banking the prize at the season transition', () => {
     // The club went up, so paying the played division would be a different
     // number: this is what pins the rate to the division being entered.
     expect(entered).toBeLessThan(recapBefore.division);
-    expect(userCash(next) - userCash(state))
-      .toBe(divisionAwardPrizeTotal(entered, 1));
+    expect(userCash(next) - userCash(state)).toBe(
+      divisionAwardPrizeTotal(entered, 1),
+    );
     // TP is untouched now that the board pays cash.
     expect(next.trainingPoints).toBe(state.trainingPoints);
   });
@@ -226,15 +267,18 @@ describe('banking the prize at the season transition', () => {
 
     const next = promoteAndStartNextSeason(state);
 
-    const stamped = next.seasonRecaps!.find(recap => recap.season === state.season)!;
+    const stamped = next.seasonRecaps!.find(
+      (recap) => recap.season === state.season,
+    )!;
     expect(stamped.divisionAwardPrize).toEqual({
       money: divisionAwardPrizeTotal(currentUserDivision(next.m2!), 2),
       categoriesWon: ['goals', 'saves'],
     });
     // The taper has to survive the trip through the transition, not just the
     // pure function: two boards must bank less than two full rates.
-    expect(stamped.divisionAwardPrize!.money)
-      .toBeLessThan(divisionAwardPrizeCashPerCategory(currentUserDivision(next.m2!)) * 2);
+    expect(stamped.divisionAwardPrize!.money).toBeLessThan(
+      divisionAwardPrizeCashPerCategory(currentUserDivision(next.m2!)) * 2,
+    );
   });
 
   test('a season that won nothing is stamped with a zero rather than left blank', () => {
@@ -245,24 +289,29 @@ describe('banking the prize at the season transition', () => {
     const next = promoteAndStartNextSeason(state);
 
     expect(userCash(next)).toBe(userCash(state));
-    expect(next.seasonRecaps!.find(recap => recap.season === state.season)!.divisionAwardPrize)
-      .toEqual({ money: 0, categoriesWon: [] });
+    expect(
+      next.seasonRecaps!.find((recap) => recap.season === state.season)!
+        .divisionAwardPrize,
+    ).toEqual({ money: 0, categoriesWon: [] });
   });
 });
 
 /** The user club's cash, which is where the boards now pay. */
 function userCash(state: GameState): number {
-  return state.clubs.find(club => club.id === state.userClubId)!.cash;
+  return state.clubs.find((club) => club.id === state.userClubId)!.cash;
 }
 
 function promoteAndStartNextSeason(state: GameState): GameState {
   const rows = leagueStandings(state);
-  const user = rows.find(row => row.clubId === state.userClubId)!;
-  const others = rows.filter(row => row.clubId !== state.userClubId);
+  const user = rows.find((row) => row.clubId === state.userClubId)!;
+  const others = rows.filter((row) => row.clubId !== state.userClubId);
   return startNextFullCareerSeason(state, [user, ...others]);
 }
 
-function careerWithRecap(seed: number, won: readonly AwardCategoryId[]): GameState {
+function careerWithRecap(
+  seed: number,
+  won: readonly AwardCategoryId[],
+): GameState {
   const career = createCareer(createLaunchCareerSetup(seed));
   const recap: SeasonRecap = {
     ...recapWonBy(won, career.userClubId),
@@ -281,10 +330,12 @@ function recapWonBy(
   won: readonly AwardCategoryId[],
   userClubId: string = USER_CLUB,
 ): SeasonRecap {
-  const divisionAwards = Object.fromEntries(CATEGORIES.map(category => [
-    category,
-    podium(won.includes(category) ? userClubId : RIVAL_CLUB, userClubId),
-  ])) as Record<AwardCategoryId, DivisionAwardPlacement[]>;
+  const divisionAwards = Object.fromEntries(
+    CATEGORIES.map((category) => [
+      category,
+      podium(won.includes(category) ? userClubId : RIVAL_CLUB, userClubId),
+    ]),
+  ) as Record<AwardCategoryId, DivisionAwardPlacement[]>;
   return {
     season: 1,
     division: 5,
@@ -303,10 +354,28 @@ function recapWonBy(
   };
 }
 
-function podium(winnerClubId: string, userClubId: string): DivisionAwardPlacement[] {
+function podium(
+  winnerClubId: string,
+  userClubId: string,
+): DivisionAwardPlacement[] {
   return [
-    { playerId: 'p_first', playerName: 'First Place', clubId: winnerClubId, value: 21 },
-    { playerId: 'p_second', playerName: 'Second Place', clubId: userClubId, value: 14 },
-    { playerId: 'p_third', playerName: 'Third Place', clubId: RIVAL_CLUB, value: 9 },
+    {
+      playerId: 'p_first',
+      playerName: 'First Place',
+      clubId: winnerClubId,
+      value: 21,
+    },
+    {
+      playerId: 'p_second',
+      playerName: 'Second Place',
+      clubId: userClubId,
+      value: 14,
+    },
+    {
+      playerId: 'p_third',
+      playerName: 'Third Place',
+      clubId: RIVAL_CLUB,
+      value: 9,
+    },
   ];
 }

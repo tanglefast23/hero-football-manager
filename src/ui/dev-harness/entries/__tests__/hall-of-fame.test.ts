@@ -15,7 +15,9 @@ jest.mock('react-native', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('../../../screens/HallOfFameScreen', () => ({ HallOfFameScreen: () => null }));
+jest.mock('../../../screens/HallOfFameScreen', () => ({
+  HallOfFameScreen: () => null,
+}));
 jest.mock('../../DevHarnessControls', () => ({
   DevHarnessButton: () => null,
   devHarnessControlStyles: { row: {}, rowLabel: {} },
@@ -32,15 +34,22 @@ import {
 
 describe('the Hall of Fame reel', () => {
   it('registers a case for each shape the page can be opened in', () => {
-    expect(hallOfFameEntry.cases.map(entry => entry.id))
-      .toEqual(['long-climb', 'quick-climb', 'locked']);
-    expect(hallOfFameEntry.cases.every(entry => (entry.note ?? '').length > 0)).toBe(true);
+    expect(hallOfFameEntry.cases.map((entry) => entry.id)).toEqual([
+      'long-climb',
+      'quick-climb',
+      'locked',
+    ]);
+    expect(
+      hallOfFameEntry.cases.every((entry) => (entry.note ?? '').length > 0),
+    ).toBe(true);
   });
 
   it('builds every case, deterministically', () => {
     for (const entry of hallOfFameEntry.cases) {
       const caseId = entry.id as HallOfFameCaseId;
-      expect(hallOfFameCaseViewModel(caseId)).toEqual(hallOfFameCaseViewModel(caseId));
+      expect(hallOfFameCaseViewModel(caseId)).toEqual(
+        hallOfFameCaseViewModel(caseId),
+      );
     }
   });
 
@@ -51,13 +60,18 @@ describe('the Hall of Fame reel', () => {
    */
   it('opens the long climb on a full record', () => {
     const viewModel = hallOfFameCaseViewModel('long-climb');
-    if (viewModel.status !== 'complete') throw new Error('the long climb did not unlock');
+    if (viewModel.status !== 'complete')
+      throw new Error('the long climb did not unlock');
     const record = hallOfFameCaseState('long-climb').hallOfFame;
 
     expect(record?.season).toBe(6);
-    expect(record?.divisionTitles.map(title => title.season)).toEqual([2, 3, 4, 6]);
+    expect(record?.divisionTitles.map((title) => title.season)).toEqual([
+      2, 3, 4, 6,
+    ]);
     expect(record?.cupWinSeasons).toEqual([5, 6]);
-    expect(viewModel.tiers.map(tier => tier.division)).toEqual([5, 4, 3, 2, 1]);
+    expect(viewModel.tiers.map((tier) => tier.division)).toEqual([
+      5, 4, 3, 2, 1,
+    ]);
     expect(viewModel.honours).toHaveLength(6);
     expect(record?.topScorer?.goldenBoots).toBeGreaterThan(1);
   });
@@ -65,9 +79,12 @@ describe('the Hall of Fame reel', () => {
   /** The other end: the shortest record the page can legally be opened on. */
   it('opens the quick climb on a one-season record', () => {
     const viewModel = hallOfFameCaseViewModel('quick-climb');
-    if (viewModel.status !== 'complete') throw new Error('the quick climb did not unlock');
+    if (viewModel.status !== 'complete')
+      throw new Error('the quick climb did not unlock');
 
-    expect(viewModel.tiers).toEqual([expect.objectContaining({ division: 1, seasons: 1 })]);
+    expect(viewModel.tiers).toEqual([
+      expect.objectContaining({ division: 1, seasons: 1 }),
+    ]);
     expect(viewModel.honours).toHaveLength(2);
     expect(viewModel.subheading).toContain('1 season');
   });
@@ -79,7 +96,7 @@ describe('the Hall of Fame reel', () => {
    */
   it.each<HallOfFameCaseId>(['long-climb', 'quick-climb'])(
     'gives %s the record its trophies were won with',
-    caseId => {
+    (caseId) => {
       const record = hallOfFameCaseState(caseId).hallOfFame;
       if (record === undefined) throw new Error(`${caseId} banked no record`);
 
@@ -88,9 +105,12 @@ describe('the Hall of Fame reel', () => {
       expect(record.goalsFor).toBeGreaterThan(record.goalsAgainst);
       // A climb, not a wander: each tier on the ladder is above the last.
       expect(record.divisionTitles.length).toBeGreaterThan(0);
-      const climbed = record.tiers.map(tier => tier.division);
-      expect(climbed.every((division, index) => index === 0 || division < climbed[index - 1]))
-        .toBe(true);
+      const climbed = record.tiers.map((tier) => tier.division);
+      expect(
+        climbed.every(
+          (division, index) => index === 0 || division < climbed[index - 1],
+        ),
+      ).toBe(true);
     },
   );
 
@@ -101,9 +121,12 @@ describe('the Hall of Fame reel', () => {
 
   /** The note is the reel's instrument: the sizes that decide the layout. */
   it('reports the list lengths and whether Back fired', () => {
-    expect(hallOfFameNote(hallOfFameCaseViewModel('long-climb'), 2))
-      .toBe('7 figures · 6 honours · 5 tiers · back pressed 2×');
-    expect(hallOfFameNote(hallOfFameCaseViewModel('locked'), 0)).toContain('Locked');
+    expect(hallOfFameNote(hallOfFameCaseViewModel('long-climb'), 2)).toBe(
+      '7 figures · 6 honours · 5 tiers · back pressed 2×',
+    );
+    expect(hallOfFameNote(hallOfFameCaseViewModel('locked'), 0)).toContain(
+      'Locked',
+    );
   });
 
   /**

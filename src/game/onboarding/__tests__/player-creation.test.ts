@@ -31,9 +31,15 @@ describe('created outfield player point-buy', () => {
       sta: 50,
     });
     expect(creationPointsRemaining(DEFAULT_CREATION_RATINGS)).toBe(15);
-    expect(Object.values(DEFAULT_CREATION_RATINGS).reduce((sum, value) => sum + value, 0))
-      .toBe(6 * CREATION_BASE_RATING);
-    expect(CREATION_RATING_TOTAL).toBe(6 * CREATION_BASE_RATING + CREATION_POINT_POOL);
+    expect(
+      Object.values(DEFAULT_CREATION_RATINGS).reduce(
+        (sum, value) => sum + value,
+        0,
+      ),
+    ).toBe(6 * CREATION_BASE_RATING);
+    expect(CREATION_RATING_TOTAL).toBe(
+      6 * CREATION_BASE_RATING + CREATION_POINT_POOL,
+    );
   });
 
   it('starts every appearance selector on its first option', () => {
@@ -42,10 +48,12 @@ describe('created outfield player point-buy', () => {
       hairstyle: 0,
       kitAccent: 0,
     });
-    expect(validateCreatedPlayerDraft({
-      name: 'Jo Rook',
-      ratings: DEFAULT_CREATION_RATINGS,
-    }).appearance).toEqual(DEFAULT_CREATED_APPEARANCE);
+    expect(
+      validateCreatedPlayerDraft({
+        name: 'Jo Rook',
+        ratings: DEFAULT_CREATION_RATINGS,
+      }).appearance,
+    ).toEqual(DEFAULT_CREATED_APPEARANCE);
   });
 
   it('allows flavor specialization without exceeding the Div-5 cap', () => {
@@ -58,8 +66,9 @@ describe('created outfield player point-buy', () => {
       sta: CREATION_STAT_MIN,
     };
     expect(creationPointsRemaining(specialist)).toBe(0);
-    expect(() => validateCreatedPlayerDraft({ name: 'Dash Rook', ratings: specialist }))
-      .not.toThrow();
+    expect(() =>
+      validateCreatedPlayerDraft({ name: 'Dash Rook', ratings: specialist }),
+    ).not.toThrow();
   });
 
   it('allows unspent points and lets reductions fund a different balance', () => {
@@ -70,24 +79,39 @@ describe('created outfield player point-buy', () => {
       tec: 55,
     };
     expect(creationPointsRemaining(redistributed)).toBe(0);
-    expect(() => validateCreatedPlayerDraft({ name: 'Rook', ratings: redistributed }))
-      .not.toThrow();
-    expect(() => validateCreatedPlayerDraft({
-      name: 'Rook',
-      ratings: DEFAULT_CREATION_RATINGS,
-    })).not.toThrow();
+    expect(() =>
+      validateCreatedPlayerDraft({ name: 'Rook', ratings: redistributed }),
+    ).not.toThrow();
+    expect(() =>
+      validateCreatedPlayerDraft({
+        name: 'Rook',
+        ratings: DEFAULT_CREATION_RATINGS,
+      }),
+    ).not.toThrow();
   });
 
   it('rejects overspending, values outside the bounds, and malformed names', () => {
-    expect(() => validateCreatedPlayerDraft({
-      name: 'Rook',
-      ratings: { ...DEFAULT_CREATION_RATINGS, pac: CREATION_STAT_MAX, sho: 51 },
-    })).toThrow('exceed');
-    expect(() => validateCreatedPlayerDraft({
-      name: 'Rook',
-      ratings: { ...DEFAULT_CREATION_RATINGS, pac: CREATION_STAT_MAX + 1 },
-    })).toThrow('PAC');
-    expect(() => validateCreatedPlayerDraft({ name: ' ', ratings: DEFAULT_CREATION_RATINGS }))
-      .toThrow('name');
+    expect(() =>
+      validateCreatedPlayerDraft({
+        name: 'Rook',
+        ratings: {
+          ...DEFAULT_CREATION_RATINGS,
+          pac: CREATION_STAT_MAX,
+          sho: 51,
+        },
+      }),
+    ).toThrow('exceed');
+    expect(() =>
+      validateCreatedPlayerDraft({
+        name: 'Rook',
+        ratings: { ...DEFAULT_CREATION_RATINGS, pac: CREATION_STAT_MAX + 1 },
+      }),
+    ).toThrow('PAC');
+    expect(() =>
+      validateCreatedPlayerDraft({
+        name: ' ',
+        ratings: DEFAULT_CREATION_RATINGS,
+      }),
+    ).toThrow('name');
   });
 });

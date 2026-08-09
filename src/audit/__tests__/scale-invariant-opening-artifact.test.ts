@@ -12,19 +12,26 @@ describe('scale-invariant opening acceptance artifact', () => {
     expect(artifact.bootstrap).toEqual({ resamples: 10_000, seed: 20_260_729 });
   });
 
-  it.each(['fit', 'heldOut'] as const)('contains complete paired %s outcomes', cohortName => {
-    const cohort = artifact.cohorts[cohortName];
-    const expected = 1_000;
-    for (const build of ['baseline', 'phaseAFinal'] as const) {
-      for (const training of ['trained', 'control'] as const) {
-        const outcomes = cohort[build][training];
-        expect(outcomes).toHaveLength(expected);
-        expect(outcomes.every(outcome => ['W', 'D', 'L'].includes(outcome))).toBe(true);
-        const aggregate = cohort.aggregateResults[build][training];
-        expect(aggregate.wins + aggregate.draws + aggregate.losses).toBe(expected);
+  it.each(['fit', 'heldOut'] as const)(
+    'contains complete paired %s outcomes',
+    (cohortName) => {
+      const cohort = artifact.cohorts[cohortName];
+      const expected = 1_000;
+      for (const build of ['baseline', 'phaseAFinal'] as const) {
+        for (const training of ['trained', 'control'] as const) {
+          const outcomes = cohort[build][training];
+          expect(outcomes).toHaveLength(expected);
+          expect(
+            outcomes.every((outcome) => ['W', 'D', 'L'].includes(outcome)),
+          ).toBe(true);
+          const aggregate = cohort.aggregateResults[build][training];
+          expect(aggregate.wins + aggregate.draws + aggregate.losses).toBe(
+            expected,
+          );
+        }
       }
-    }
-  });
+    },
+  );
 
   it('pins the accepted calibration', () => {
     expect(artifact.version).toBe(3);
@@ -34,8 +41,9 @@ describe('scale-invariant opening acceptance artifact', () => {
   it('fits every untrained calibration W/D/L point estimate inside ±3 percentage points', () => {
     const cohort = artifact.cohorts.fit;
     for (const outcome of ['W', 'D', 'L'] as const) {
-      const difference = outcomeRate(cohort.phaseAFinal.control as Outcome[], outcome)
-        - outcomeRate(cohort.baseline.control as Outcome[], outcome);
+      const difference =
+        outcomeRate(cohort.phaseAFinal.control as Outcome[], outcome) -
+        outcomeRate(cohort.baseline.control as Outcome[], outcome);
       expect(difference).toBeGreaterThanOrEqual(-0.03);
       expect(difference).toBeLessThanOrEqual(0.03);
     }
@@ -58,21 +66,23 @@ describe('scale-invariant opening acceptance artifact', () => {
 
   it.each(['fit', 'heldOut'] as const)(
     'keeps the final %s opening cohort inside both locked loss-rate rails',
-    cohortName => {
+    (cohortName) => {
       const final = artifact.cohorts[cohortName].aggregateResults.phaseAFinal;
-      expect(final.control.losses / 1_000).toBeGreaterThanOrEqual(0.90);
+      expect(final.control.losses / 1_000).toBeGreaterThanOrEqual(0.9);
       expect(final.control.losses / 1_000).toBeLessThanOrEqual(0.95);
-      expect(final.trained.losses / 1_000).toBeGreaterThanOrEqual(0.90);
+      expect(final.trained.losses / 1_000).toBeGreaterThanOrEqual(0.9);
       expect(final.trained.losses / 1_000).toBeLessThanOrEqual(0.95);
-    }
+    },
   );
 
   it('proves why the deliberately changed trained path is not a baseline-equivalence input', () => {
     for (const cohortName of ['fit', 'heldOut'] as const) {
       const cohort = artifact.cohorts[cohortName];
-      const baselineLossRate = cohort.aggregateResults.baseline.trained.losses / 1_000;
-      const finalLossRate = cohort.aggregateResults.phaseAFinal.trained.losses / 1_000;
-      expect(finalLossRate).toBeGreaterThanOrEqual(0.90);
+      const baselineLossRate =
+        cohort.aggregateResults.baseline.trained.losses / 1_000;
+      const finalLossRate =
+        cohort.aggregateResults.phaseAFinal.trained.losses / 1_000;
+      expect(finalLossRate).toBeGreaterThanOrEqual(0.9);
       if (baselineLossRate < 0.87) {
         expect(finalLossRate - baselineLossRate).toBeGreaterThan(0.03);
       }
@@ -81,7 +91,10 @@ describe('scale-invariant opening acceptance artifact', () => {
 });
 
 function outcomeRate(outcomes: readonly Outcome[], outcome: Outcome): number {
-  return outcomes.filter(candidate => candidate === outcome).length / outcomes.length;
+  return (
+    outcomes.filter((candidate) => candidate === outcome).length /
+    outcomes.length
+  );
 }
 
 function pairedBootstrapInterval(
@@ -91,14 +104,16 @@ function pairedBootstrapInterval(
   resamples: number,
   seed: number,
 ): { low: number; high: number } {
-  if (baseline.length !== phaseA.length) throw new Error('paired cohorts must have equal length');
+  if (baseline.length !== phaseA.length)
+    throw new Error('paired cohorts must have equal length');
   const random = mulberry32(seed ^ outcome.charCodeAt(0) ^ baseline.length);
   const estimates = new Array<number>(resamples);
   for (let sample = 0; sample < resamples; sample += 1) {
     let difference = 0;
     for (let draw = 0; draw < baseline.length; draw += 1) {
       const index = Math.floor(random() * baseline.length);
-      difference += Number(phaseA[index] === outcome) - Number(baseline[index] === outcome);
+      difference +=
+        Number(phaseA[index] === outcome) - Number(baseline[index] === outcome);
     }
     estimates[sample] = difference / baseline.length;
   }
@@ -112,7 +127,7 @@ function pairedBootstrapInterval(
 function mulberry32(seed: number): () => number {
   let value = seed >>> 0;
   return () => {
-    value = (value + 0x6D2B79F5) >>> 0;
+    value = (value + 0x6d2b79f5) >>> 0;
     let output = value;
     output = Math.imul(output ^ (output >>> 15), output | 1);
     output ^= output + Math.imul(output ^ (output >>> 7), output | 61);

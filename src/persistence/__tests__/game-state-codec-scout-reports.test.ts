@@ -8,13 +8,17 @@ import { parseStoredGameState, serializeGameState } from '../game-state-codec';
 
 describe('scout report referential integrity', () => {
   test('round-trips a report that resolves to a pyramid transfer target', () => {
-    const state = withScoutReport(baseCareer(), scoutedPyramidPlayerId(baseCareer()));
+    const state = withScoutReport(
+      baseCareer(),
+      scoutedPyramidPlayerId(baseCareer()),
+    );
 
     const restored = parseStoredGameState(serializeGameState(state));
 
     expect(restored.market?.scoutReports).toHaveLength(1);
-    expect(restored.market?.scoutReports[0].playerId)
-      .toBe(state.market?.scoutReports[0].playerId);
+    expect(restored.market?.scoutReports[0].playerId).toBe(
+      state.market?.scoutReports[0].playerId,
+    );
   });
 
   test('refuses to save a report whose scouted player is gone', () => {
@@ -26,16 +30,22 @@ describe('scout report referential integrity', () => {
 
   test('refuses to save a report that points at the user club', () => {
     const career = baseCareer();
-    const ownPlayer = career.players.find(player => player.clubId === career.userClubId)!;
+    const ownPlayer = career.players.find(
+      (player) => player.clubId === career.userClubId,
+    )!;
 
-    expect(() => serializeGameState(withScoutReport(career, ownPlayer.id)))
-      .toThrow(InvalidGameStateError);
+    expect(() =>
+      serializeGameState(withScoutReport(career, ownPlayer.id)),
+    ).toThrow(InvalidGameStateError);
   });
 
   test('loads a save that already contains a dangling report by dropping it', () => {
     // The shape a save written before the schema required the reference has:
     // legal JSON, unreadable market. Dropping the note keeps the career.
-    const state = withScoutReport(baseCareer(), scoutedPyramidPlayerId(baseCareer()));
+    const state = withScoutReport(
+      baseCareer(),
+      scoutedPyramidPlayerId(baseCareer()),
+    );
     const stored = JSON.parse(JSON.stringify(state)) as {
       market: { scoutReports: ScoutReport[] };
     };
@@ -65,7 +75,9 @@ describe('scout report referential integrity', () => {
 
     const restored = parseStoredGameState(JSON.stringify(stored));
 
-    expect(restored.market?.scoutReports.map(report => report.playerId)).toEqual([goodId]);
+    expect(
+      restored.market?.scoutReports.map((report) => report.playerId),
+    ).toEqual([goodId]);
   });
 });
 
@@ -92,7 +104,13 @@ function withScoutReport(state: GameState, playerId: string): GameState {
     role: 'MID',
     age: 24,
     statRanges: {
-      pac: range, sho: range, pas: range, def: range, tec: range, sta: range, ref: range,
+      pac: range,
+      sho: range,
+      pas: range,
+      def: range,
+      tec: range,
+      sta: range,
+      ref: range,
     },
     potentialRange: { minimum: 3, maximum: 4 },
   };

@@ -9,8 +9,10 @@ import {
   teamKitColor,
 } from '../team-kit-ui';
 
-const matchSource = () => readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
-const railSource = () => readFileSync(join(process.cwd(), 'src/render/MatchControlRail.tsx'), 'utf8');
+const matchSource = () =>
+  readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
+const railSource = () =>
+  readFileSync(join(process.cwd(), 'src/render/MatchControlRail.tsx'), 'utf8');
 
 /** WCAG 2.1 relative luminance of a #rrggbb colour. */
 function luminance(hex: string): number {
@@ -38,8 +40,12 @@ describe('match team kit colours', () => {
   it('separates the color-safe pairing by lightness, not hue alone', () => {
     // The point of color-safe kits is that the two teams stay apart even when
     // hue is unavailable, so amber must be clearly the lighter of the pair.
-    expect(luminance(HOME_KIT_COLOR_SAFE)).toBeGreaterThan(luminance(AWAY_KIT_COLOR) * 1.8);
-    expect(contrastRatio(HOME_KIT_COLOR_SAFE, AWAY_KIT_COLOR)).toBeGreaterThan(1.7);
+    expect(luminance(HOME_KIT_COLOR_SAFE)).toBeGreaterThan(
+      luminance(AWAY_KIT_COLOR) * 1.8,
+    );
+    expect(contrastRatio(HOME_KIT_COLOR_SAFE, AWAY_KIT_COLOR)).toBeGreaterThan(
+      1.7,
+    );
 
     // The default red/blue pairing is close in lightness — which is exactly
     // why color-safe mode exists and defaults to on.
@@ -51,10 +57,16 @@ describe('match team kit colours', () => {
 
   it('reads ink copy on every kit panel, which cream could not', () => {
     // The default (color-safe) pairing clears WCAG AA for body text...
-    expect(contrastRatio(KIT_PANEL_TEXT_COLOR, HOME_KIT_COLOR_SAFE)).toBeGreaterThan(4.5);
-    expect(contrastRatio(KIT_PANEL_TEXT_COLOR, AWAY_KIT_COLOR)).toBeGreaterThan(4.5);
+    expect(
+      contrastRatio(KIT_PANEL_TEXT_COLOR, HOME_KIT_COLOR_SAFE),
+    ).toBeGreaterThan(4.5);
+    expect(contrastRatio(KIT_PANEL_TEXT_COLOR, AWAY_KIT_COLOR)).toBeGreaterThan(
+      4.5,
+    );
     // ...and the opt-out red still clears the 3:1 floor for bold copy.
-    expect(contrastRatio(KIT_PANEL_TEXT_COLOR, HOME_KIT_COLOR)).toBeGreaterThan(3);
+    expect(contrastRatio(KIT_PANEL_TEXT_COLOR, HOME_KIT_COLOR)).toBeGreaterThan(
+      3,
+    );
 
     // Cream on amber is the case that forced the flip to ink.
     expect(contrastRatio('#f4f1ea', HOME_KIT_COLOR_SAFE)).toBeLessThan(2);
@@ -70,26 +82,40 @@ describe('match team kit colours', () => {
   it('drives the possession card and the fallback sprite tint from one source', () => {
     const source = matchSource();
 
-    expect(source).toContain('{ backgroundColor: teamKitColor(carrier.team, colorSafeKits) }');
+    expect(source).toContainSource(
+      '{ backgroundColor: teamKitColor(carrier.team, colorSafeKits) }',
+    );
     // skColor is the interning wrapper around Skia.Color (the Atlas tint table
     // resolves 25 colours a tick); the point of this assertion is that the
     // fallback tint still comes from teamKitColor rather than a second literal.
-    expect(source).toContain('skColor(teamKitColor(');
+    expect(source).toContainSource('skColor(teamKitColor(');
     // No second copy of the kit literals left behind in the screen.
-    expect(source).not.toContain("colorSafeKits ? '#edb54a' : '#d94f52'");
+    expect(source).not.toContainSource("colorSafeKits ? '#edb54a' : '#d94f52'");
   });
 
   it('colors both scoreboard team codes from their matching kits', () => {
     const source = matchSource();
     const rail = railSource();
 
-    expect(source).toContain('const homeKitColor = teamKitColor(0, colorSafeKits);');
-    expect(source).toContain('const awayKitColor = teamKitColor(1, colorSafeKits);');
-    expect(source).toContain('<Text style={{ color: homeKitColor }}>{homeCode}</Text>');
-    expect(source).toContain('<Text style={{ color: awayKitColor }}>{awayCode}</Text>');
-    expect(source).toContain('homeColor={homeKitColor}');
-    expect(source).toContain('awayColor={awayKitColor}');
-    expect(rail).toContain('<Text style={{ color: homeColor }}>{homeCode}</Text>');
-    expect(rail).toContain('<Text style={{ color: awayColor }}>{awayCode}</Text>');
+    expect(source).toContainSource(
+      'const homeKitColor = teamKitColor(0, colorSafeKits);',
+    );
+    expect(source).toContainSource(
+      'const awayKitColor = teamKitColor(1, colorSafeKits);',
+    );
+    expect(source).toContainSource(
+      '<Text style={{ color: homeKitColor }}>{homeCode}</Text>',
+    );
+    expect(source).toContainSource(
+      '<Text style={{ color: awayKitColor }}>{awayCode}</Text>',
+    );
+    expect(source).toContainSource('homeColor={homeKitColor}');
+    expect(source).toContainSource('awayColor={awayKitColor}');
+    expect(rail).toContainSource(
+      '<Text style={{ color: homeColor }}>{homeCode}</Text>',
+    );
+    expect(rail).toContainSource(
+      '<Text style={{ color: awayColor }}>{awayCode}</Text>',
+    );
   });
 });

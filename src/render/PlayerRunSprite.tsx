@@ -52,7 +52,10 @@ export function PlayerRunSprite({
       setFrame(0);
       return undefined;
     }
-    const timer = setInterval(() => setFrame(current => current + 1), STEP_MS);
+    const timer = setInterval(
+      () => setFrame((current) => current + 1),
+      STEP_MS,
+    );
     return () => clearInterval(timer);
   }, [walking]);
 
@@ -72,11 +75,13 @@ export function PlayerRunSprite({
   }, [visualId]);
 
   const sprites: SkRect[] = useMemo(() => {
-    const cell = atlas.rectFor(`${visualId}:${frame % 2 === 0 ? 'run0' : 'run1'}`);
+    const cell = atlas.rectFor(
+      `${visualId}:${frame % 2 === 0 ? 'run0' : 'run1'}`,
+    );
     return [Skia.XYWHRect(cell.x, cell.y, cell.w, cell.h)];
   }, [atlas, visualId, frame]);
 
-  const transforms = useRSXformBuffer(1, transform => {
+  const transforms = useRSXformBuffer(1, (transform) => {
     'worklet';
     transform.set(scale, 0, 0, 0);
   });

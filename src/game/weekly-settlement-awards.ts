@@ -11,39 +11,45 @@ import type {
   WeeklySettlementAwards,
 } from './types';
 
-export const EMPTY_WEEKLY_SETTLEMENT_AWARDS: WeeklySettlementAwards = { awards: [] };
+export const EMPTY_WEEKLY_SETTLEMENT_AWARDS: WeeklySettlementAwards = {
+  awards: [],
+};
 
 /**
  * These prefixes are part of the persisted ledger contract. Keep the identity
  * tied to the thing earned, never to a label that copy edits may change.
  */
 export const weeklySettlementAwardKeys = {
-  cupRound: (clubId: string, season: number, roundNumber: number): string => (
-    `cup-round:${clubId}:s${season}:r${roundNumber}`
-  ),
-  leaguePrize: (clubId: string, season: number): string => (
-    `league-prize:${clubId}:s${season}`
-  ),
-  recruitmentFund: (clubId: string): string => `recruitment-fund:${clubId}:first-d4`,
-  sponsorMonth: (clubId: string, season: number, week: number, contractId = 'basic'): string => (
-    `sponsor-month:${clubId}:s${season}:w${week}:${contractId}`
-  ),
-  sponsorObjective: (clubId: string, season: number, contractId: string): string => (
-    `sponsor-objective:${clubId}:s${season}:${contractId}`
-  ),
-  buzzHalf: (clubId: string, season: number, half: 1 | 2): string => (
-    `buzz-half:${clubId}:s${season}:h${half}`
-  ),
+  cupRound: (clubId: string, season: number, roundNumber: number): string =>
+    `cup-round:${clubId}:s${season}:r${roundNumber}`,
+  leaguePrize: (clubId: string, season: number): string =>
+    `league-prize:${clubId}:s${season}`,
+  recruitmentFund: (clubId: string): string =>
+    `recruitment-fund:${clubId}:first-d4`,
+  sponsorMonth: (
+    clubId: string,
+    season: number,
+    week: number,
+    contractId = 'basic',
+  ): string => `sponsor-month:${clubId}:s${season}:w${week}:${contractId}`,
+  sponsorObjective: (
+    clubId: string,
+    season: number,
+    contractId: string,
+  ): string => `sponsor-objective:${clubId}:s${season}:${contractId}`,
+  buzzHalf: (clubId: string, season: number, half: 1 | 2): string =>
+    `buzz-half:${clubId}:s${season}:h${half}`,
 } as const;
 
-const CUP_PRIZE_BY_ROUND: Readonly<Record<NationalCupRound['label'], number>> = {
-  'Play-in': 2_000,
-  'Round of 32': 3_000,
-  'Round of 16': 4_000,
-  'Quarter-final': 6_000,
-  'Semi-final': 8_000,
-  Final: 25_000,
-};
+const CUP_PRIZE_BY_ROUND: Readonly<Record<NationalCupRound['label'], number>> =
+  {
+    'Play-in': 2_000,
+    'Round of 32': 3_000,
+    'Round of 16': 4_000,
+    'Quarter-final': 6_000,
+    'Semi-final': 8_000,
+    Final: 25_000,
+  };
 
 const CUP_FANS_BY_ROUND: Readonly<Record<NationalCupRound['label'], number>> = {
   'Play-in': 6,
@@ -61,32 +67,36 @@ export function nationalCupRoundSettlementAwards(input: {
   readonly roundLabel: NationalCupRound['label'];
 }): WeeklySettlementAwards {
   return {
-    awards: [{
-      line: {
-        kind: 'prize',
-        // Never keyed at all until now, unlike the league prize beside it — so
-        // a cup run paid out in English on the statement forever.
-        label: input.roundLabel === 'Final'
-          ? `${CUP_DISPLAY_NAME} champions`
-          : `${CUP_DISPLAY_NAME} ${input.roundLabel} win`,
-        labelKey: input.roundLabel === 'Final'
-          ? 'ledger.cupChampions'
-          : 'ledger.cupRoundWin',
-        labelParams: {
-          cup: CUP_DISPLAY_NAME,
-          cupKey: CUP_NAME_KEY,
-          round: input.roundLabel,
-          roundKey: CUP_ROUND_NAME_KEYS[input.roundLabel],
+    awards: [
+      {
+        line: {
+          kind: 'prize',
+          // Never keyed at all until now, unlike the league prize beside it — so
+          // a cup run paid out in English on the statement forever.
+          label:
+            input.roundLabel === 'Final'
+              ? `${CUP_DISPLAY_NAME} champions`
+              : `${CUP_DISPLAY_NAME} ${input.roundLabel} win`,
+          labelKey:
+            input.roundLabel === 'Final'
+              ? 'ledger.cupChampions'
+              : 'ledger.cupRoundWin',
+          labelParams: {
+            cup: CUP_DISPLAY_NAME,
+            cupKey: CUP_NAME_KEY,
+            round: input.roundLabel,
+            roundKey: CUP_ROUND_NAME_KEYS[input.roundLabel],
+          },
+          amount: CUP_PRIZE_BY_ROUND[input.roundLabel],
+          idempotencyKey: weeklySettlementAwardKeys.cupRound(
+            input.clubId,
+            input.season,
+            input.roundNumber,
+          ),
         },
-        amount: CUP_PRIZE_BY_ROUND[input.roundLabel],
-        idempotencyKey: weeklySettlementAwardKeys.cupRound(
-          input.clubId,
-          input.season,
-          input.roundNumber,
-        ),
+        fanGain: CUP_FANS_BY_ROUND[input.roundLabel],
       },
-      fanGain: CUP_FANS_BY_ROUND[input.roundLabel],
-    }],
+    ],
   };
 }
 
@@ -103,10 +113,15 @@ export function resolveWeeklySettlementAwards(
     for (const line of ledger.lines) {
       if (line.idempotencyKey === undefined) continue;
       assertIdempotencyKey(line.idempotencyKey);
-      const idempotentLine: IdempotentLedgerLine = { ...line, idempotencyKey: line.idempotencyKey };
+      const idempotentLine: IdempotentLedgerLine = {
+        ...line,
+        idempotencyKey: line.idempotencyKey,
+      };
       const prior = paidByKey.get(line.idempotencyKey);
       if (prior !== undefined && !sameLine(prior, idempotentLine)) {
-        throw new Error(`weekly settlement award key ${line.idempotencyKey} has conflicting ledger payloads`);
+        throw new Error(
+          `weekly settlement award key ${line.idempotencyKey} has conflicting ledger payloads`,
+        );
       }
       paidByKey.set(line.idempotencyKey, idempotentLine);
     }
@@ -118,7 +133,9 @@ export function resolveWeeklySettlementAwards(
     const key = award.line.idempotencyKey;
     const prior = requestedByKey.get(key);
     if (prior !== undefined && !sameAward(prior, award)) {
-      throw new Error(`weekly settlement award key ${key} was reused with a different payload`);
+      throw new Error(
+        `weekly settlement award key ${key} was reused with a different payload`,
+      );
     }
     if (prior === undefined) requestedByKey.set(key, award);
   }
@@ -136,7 +153,11 @@ export function resolveWeeklySettlementAwards(
       continue;
     }
     lines.push({ ...award.line });
-    fanGain = checkedAdd(fanGain, award.fanGain ?? 0, 'weekly settlement fan award');
+    fanGain = checkedAdd(
+      fanGain,
+      award.fanGain ?? 0,
+      'weekly settlement fan award',
+    );
   }
   return { lines, fanGain };
 }
@@ -144,31 +165,50 @@ export function resolveWeeklySettlementAwards(
 function validateAward(award: WeeklySettlementAward): void {
   assertIdempotencyKey(award.line.idempotencyKey);
   if (!Number.isSafeInteger(award.line.amount) || award.line.amount <= 0) {
-    throw new Error('weekly settlement cash award must be a positive safe integer');
+    throw new Error(
+      'weekly settlement cash award must be a positive safe integer',
+    );
   }
-  if (award.fanGain !== undefined
-    && (!Number.isSafeInteger(award.fanGain) || award.fanGain < 0)) {
-    throw new Error('weekly settlement fan award must be a nonnegative safe integer');
+  if (
+    award.fanGain !== undefined &&
+    (!Number.isSafeInteger(award.fanGain) || award.fanGain < 0)
+  ) {
+    throw new Error(
+      'weekly settlement fan award must be a nonnegative safe integer',
+    );
   }
 }
 
 function assertIdempotencyKey(key: string): void {
-  if (key.trim().length === 0) throw new Error('weekly settlement award key must not be empty');
+  if (key.trim().length === 0)
+    throw new Error('weekly settlement award key must not be empty');
 }
 
-function sameAward(left: WeeklySettlementAward, right: WeeklySettlementAward): boolean {
-  return sameLine(left.line, right.line) && (left.fanGain ?? 0) === (right.fanGain ?? 0);
+function sameAward(
+  left: WeeklySettlementAward,
+  right: WeeklySettlementAward,
+): boolean {
+  return (
+    sameLine(left.line, right.line) &&
+    (left.fanGain ?? 0) === (right.fanGain ?? 0)
+  );
 }
 
-function sameLine(left: IdempotentLedgerLine, right: IdempotentLedgerLine): boolean {
-  return left.idempotencyKey === right.idempotencyKey
-    && left.kind === right.kind
-    && left.label === right.label
-    && left.amount === right.amount;
+function sameLine(
+  left: IdempotentLedgerLine,
+  right: IdempotentLedgerLine,
+): boolean {
+  return (
+    left.idempotencyKey === right.idempotencyKey &&
+    left.kind === right.kind &&
+    left.label === right.label &&
+    left.amount === right.amount
+  );
 }
 
 function checkedAdd(left: number, right: number, label: string): number {
   const sum = left + right;
-  if (!Number.isSafeInteger(sum)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(sum))
+    throw new Error(`${label} exceeds the safe integer range`);
   return sum;
 }

@@ -55,18 +55,20 @@ const NOT_YET_CONVERTED: string[] = [];
 
 function offenders(): string[] {
   return sourceFiles('src')
-    .filter(file => !EXEMPT.some(pattern => pattern.test(file)))
-    .filter(file => FACE_LITERAL.test(fs.readFileSync(file, 'utf8')))
+    .filter((file) => !EXEMPT.some((pattern) => pattern.test(file)))
+    .filter((file) => FACE_LITERAL.test(fs.readFileSync(file, 'utf8')))
     .sort();
 }
 
 test('no NEW file hardcodes a font family', () => {
-  expect(offenders().filter(file => !NOT_YET_CONVERTED.includes(file))).toEqual([]);
+  expect(
+    offenders().filter((file) => !NOT_YET_CONVERTED.includes(file)),
+  ).toEqual([]);
 });
 
 test('the remainder list is honest — every entry still needs converting', () => {
   // Stops the list outliving the work. A converted file left in the list would
   // otherwise silently keep its exemption forever.
-  const stale = NOT_YET_CONVERTED.filter(file => !offenders().includes(file));
+  const stale = NOT_YET_CONVERTED.filter((file) => !offenders().includes(file));
   expect(stale).toEqual([]);
 });

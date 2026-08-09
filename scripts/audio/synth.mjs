@@ -107,7 +107,16 @@ export function vibrato(baseHz, rateHz = 5, depthCents = 20) {
 }
 
 // ---- envelopes (multiply into a buffer via applyEnv) ----
-export function adsr(n, { attack = 0.01, decay = 0.05, sustain = 0.6, release = 0.1, sampleRate = SAMPLE_RATE } = {}) {
+export function adsr(
+  n,
+  {
+    attack = 0.01,
+    decay = 0.05,
+    sustain = 0.6,
+    release = 0.1,
+    sampleRate = SAMPLE_RATE,
+  } = {},
+) {
   const env = new Float32Array(n);
   const aN = Math.max(1, secondsToSamples(attack, sampleRate));
   const dN = Math.max(0, secondsToSamples(decay, sampleRate));
@@ -115,14 +124,18 @@ export function adsr(n, { attack = 0.01, decay = 0.05, sustain = 0.6, release = 
   const sN = Math.max(0, n - aN - dN - rN);
   let i = 0;
   for (let k = 0; k < aN && i < n; k++, i++) env[i] = k / aN;
-  for (let k = 0; k < dN && i < n; k++, i++) env[i] = 1 - (1 - sustain) * (k / dN);
+  for (let k = 0; k < dN && i < n; k++, i++)
+    env[i] = 1 - (1 - sustain) * (k / dN);
   for (let k = 0; k < sN && i < n; k++, i++) env[i] = sustain;
   for (let k = 0; k < rN && i < n; k++, i++) env[i] = sustain * (1 - k / rN);
   return env;
 }
 
 // Percussive envelope: linear attack then true exponential decay (for resonant/ringing sounds).
-export function decayEnv(n, { attack = 0.002, decay = 0.2, sampleRate = SAMPLE_RATE } = {}) {
+export function decayEnv(
+  n,
+  { attack = 0.002, decay = 0.2, sampleRate = SAMPLE_RATE } = {},
+) {
   const env = new Float32Array(n);
   const aN = Math.max(1, secondsToSamples(attack, sampleRate));
   const tau = decay / 5; // ~5 time-constants to reach ~0
@@ -178,7 +191,12 @@ export function bandpass(buf, lowHz, highHz, sampleRate = SAMPLE_RATE) {
 // chunks, each with a [lowHz, highHz] pair from bandFn(tSeconds). The one-pole
 // filters above are constant-coefficient, so this chunked approach is the
 // simplest way to get a time-varying band without a true time-varying filter.
-export function timeVaryingBandpass(buf, bandFn, chunks = 10, sampleRate = SAMPLE_RATE) {
+export function timeVaryingBandpass(
+  buf,
+  bandFn,
+  chunks = 10,
+  sampleRate = SAMPLE_RATE,
+) {
   const chunkLen = Math.ceil(buf.length / chunks);
   const parts = [];
   for (let c = 0; c < chunks; c++) {
@@ -207,7 +225,8 @@ export function gainBuf(buf, g) {
 // layers: [{ buf, gain = 1, offset = 0 (samples) }]
 export function mix(layers) {
   let maxLen = 0;
-  for (const { buf, offset = 0 } of layers) maxLen = Math.max(maxLen, buf.length + offset);
+  for (const { buf, offset = 0 } of layers)
+    maxLen = Math.max(maxLen, buf.length + offset);
   const out = new Float32Array(maxLen);
   for (const { buf, gain = 1, offset = 0 } of layers) {
     for (let i = 0; i < buf.length; i++) out[i + offset] += buf[i] * gain;
@@ -265,8 +284,10 @@ export function crossfadeLoop(buf, fadeSamples, curve = 'equalPower') {
   const out = buf.slice(0, tailStart);
   for (let i = 0; i < fadeN; i++) {
     const progress = i / fadeN;
-    const headGain = curve === 'linear' ? progress : Math.sin(progress * (Math.PI / 2));
-    const tailGain = curve === 'linear' ? 1 - progress : Math.cos(progress * (Math.PI / 2));
+    const headGain =
+      curve === 'linear' ? progress : Math.sin(progress * (Math.PI / 2));
+    const tailGain =
+      curve === 'linear' ? 1 - progress : Math.cos(progress * (Math.PI / 2));
     out[i] = buf[i] * headGain + buf[tailStart + i] * tailGain;
   }
   return out;

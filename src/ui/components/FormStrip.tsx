@@ -48,7 +48,9 @@ const TROPHY_PIXEL = FORM_ART_SIZE / TROPHY_GRID;
  * in the row is the trophy itself. Filling the cell too would put a band of
  * accent colour across the header and leave nothing for the cup to be.
  */
-const CELL_TONE: Readonly<Record<FormResult, { border: string; text: string }>> = {
+const CELL_TONE: Readonly<
+  Record<FormResult, { border: string; text: string }>
+> = {
   W: { border: '#c8862a', text: INK },
   D: { border: 'rgba(36,31,46,0.4)', text: 'rgba(36,31,46,0.55)' },
   L: { border: '#a83440', text: '#a83440' },
@@ -63,7 +65,7 @@ function TrophyGlyph() {
       importantForAccessibility="no-hide-descendants"
       style={{ width: FORM_ART_SIZE, height: FORM_ART_SIZE }}
     >
-      {TROPHY_RUNS.map(run => (
+      {TROPHY_RUNS.map((run) => (
         <View
           key={run.id}
           style={{
@@ -115,9 +117,17 @@ function FormCell({ result, delay, reduceMotion }: FormCellProps) {
   return (
     <Animated.View
       style={{
-        opacity: enter.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1] }),
+        opacity: enter.interpolate({
+          inputRange: [0, 0.4, 1],
+          outputRange: [0, 1, 1],
+        }),
         transform: [
-          { scale: enter.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) },
+          {
+            scale: enter.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.6, 1],
+            }),
+          },
         ],
       }}
     >
@@ -156,14 +166,18 @@ export function FormStrip({ results, reduceMotion = false }: FormStripProps) {
   const [measured, setMeasured] = useState(0);
   const onLayout = (event: LayoutChangeEvent) => {
     const width = event.nativeEvent.layout.width;
-    setMeasured(previous => (previous === width ? previous : width));
+    setMeasured((previous) => (previous === width ? previous : width));
   };
 
   const width = measured > 0 ? measured : formStripWidthEstimate(windowWidth);
   const shown = visibleForm(results, formStripCapacity(width));
 
   return (
-    <View className="mt-2 w-full flex-row justify-end" style={styles.strip} onLayout={onLayout}>
+    <View
+      className="mt-2 w-full flex-row justify-end"
+      style={styles.strip}
+      onLayout={onLayout}
+    >
       {shown.map((result, index) => (
         <InfoTip
           // Re-keying on the measured count is deliberate: a rotation that makes

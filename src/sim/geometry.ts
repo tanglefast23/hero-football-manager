@@ -1,4 +1,7 @@
-export interface Vec { x: number; y: number; }
+export interface Vec {
+  x: number;
+  y: number;
+}
 
 export const TICK_MS = 100;
 export const HALF_TICKS = 1000;
@@ -25,5 +28,8 @@ export function moveToward(from: Vec, to: Vec, speed: number): Vec {
   const d2 = dist2(from, to);
   if (d2 === 0 || d2 <= speed * speed) return { x: to.x, y: to.y };
   const t = speed / Math.sqrt(d2);
-  return { x: Math.round(from.x + (to.x - from.x) * t), y: Math.round(from.y + (to.y - from.y) * t) };
+  return {
+    x: Math.round(from.x + (to.x - from.x) * t),
+    y: Math.round(from.y + (to.y - from.y) * t),
+  };
 }

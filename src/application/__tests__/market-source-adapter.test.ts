@@ -21,7 +21,9 @@ function fullCareer(seed = 20260719): GameState {
   return createCareer(createLaunchCareerSetup(seed));
 }
 
-function exactReport(player: CareerPlayer): CareerMarketState['scoutReports'][number] {
+function exactReport(
+  player: CareerPlayer,
+): CareerMarketState['scoutReports'][number] {
   const range = (value: number) => ({ minimum: value, maximum: value });
   return {
     playerId: player.id,
@@ -44,7 +46,10 @@ function exactReport(player: CareerPlayer): CareerMarketState['scoutReports'][nu
 describe('career market view-model source adapter', () => {
   it('derives deterministic scout briefs and live club context without mutating career state', () => {
     const initial = { ...fullCareer(711), week: 15 };
-    const officeProject = buildCareerFacility(initial, 'scout-office', { x: 0, y: 0 }).state;
+    const officeProject = buildCareerFacility(initial, 'scout-office', {
+      x: 0,
+      y: 0,
+    }).state;
     const withOffice = {
       ...officeProject,
       facilities: {
@@ -64,7 +69,8 @@ describe('career market view-model source adapter', () => {
       week: 15,
       currentCareerWeek: 15,
       division: 5,
-      cash: withOffice.clubs.find(club => club.id === withOffice.userClubId)?.cash,
+      cash: withOffice.clubs.find((club) => club.id === withOffice.userClubId)
+        ?.cash,
       scoutOfficeLevel: 1,
     });
     expect(first.scoutOptions).toHaveLength(2);
@@ -73,14 +79,20 @@ describe('career market view-model source adapter', () => {
       rosterCapacity: 16,
     });
     expect(first.youthIntake?.offers.length).toBeGreaterThanOrEqual(1);
-    expect(new Set(first.scoutOptions.map(option => option.id)).size).toBe(2);
-    expect(new Set(first.scoutOptions.map(option => option.focus.kind)))
-      .toEqual(new Set(['AGE', 'POSITION']));
+    expect(new Set(first.scoutOptions.map((option) => option.id)).size).toBe(2);
+    expect(
+      new Set(first.scoutOptions.map((option) => option.focus.kind)),
+    ).toEqual(new Set(['AGE', 'POSITION']));
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);
     expect(marketViewModel(first).youth).toMatchObject({
       status: 'OPEN',
       rosterLabel: '16/16 rostered',
-      offers: [expect.objectContaining({ available: false, blockedReason: expect.stringContaining('Roster full') })],
+      offers: [
+        expect.objectContaining({
+          available: false,
+          blockedReason: expect.stringContaining('Roster full'),
+        }),
+      ],
     });
   });
 
@@ -91,14 +103,26 @@ describe('career market view-model source adapter', () => {
       m2: { ...initial.m2!, highestDivisionReached: division },
     });
 
-    expect(careerMarketScoutOptions(withBestDivision(5)).map(option => option.focus.kind))
-      .toEqual(['AGE', 'POSITION']);
-    expect(careerMarketScoutOptions(withBestDivision(4)).map(option => option.focus.kind))
-      .toEqual(['AGE', 'POSITION', 'AGE']);
-    expect(careerMarketScoutOptions(withBestDivision(3)).map(option => option.focus.kind))
-      .toEqual(['AGE', 'POSITION', 'AGE', 'RUMORED_HERO']);
-    expect(careerMarketScoutOptions(withBestDivision(2)).map(option => option.focus.kind))
-      .toEqual(['AGE', 'POSITION', 'AGE', 'RUMORED_HERO', 'ELITE_PROSPECT']);
+    expect(
+      careerMarketScoutOptions(withBestDivision(5)).map(
+        (option) => option.focus.kind,
+      ),
+    ).toEqual(['AGE', 'POSITION']);
+    expect(
+      careerMarketScoutOptions(withBestDivision(4)).map(
+        (option) => option.focus.kind,
+      ),
+    ).toEqual(['AGE', 'POSITION', 'AGE']);
+    expect(
+      careerMarketScoutOptions(withBestDivision(3)).map(
+        (option) => option.focus.kind,
+      ),
+    ).toEqual(['AGE', 'POSITION', 'AGE', 'RUMORED_HERO']);
+    expect(
+      careerMarketScoutOptions(withBestDivision(2)).map(
+        (option) => option.focus.kind,
+      ),
+    ).toEqual(['AGE', 'POSITION', 'AGE', 'RUMORED_HERO', 'ELITE_PROSPECT']);
     expect(careerMarketScoutOptions(withBestDivision(1))).toHaveLength(5);
   });
 
@@ -115,71 +139,97 @@ describe('career market view-model source adapter', () => {
     );
     const source = careerMarketViewModelSource(started.state, started.market);
 
-    expect(source.activeScoutMission).toEqual(started.market.activeScoutMission);
+    expect(source.activeScoutMission).toEqual(
+      started.market.activeScoutMission,
+    );
     expect(source.cash).toBe(
-      state.clubs.find(club => club.id === state.userClubId)!.cash
-        - started.market.activeScoutMission!.cost,
+      state.clubs.find((club) => club.id === state.userClubId)!.cash -
+        started.market.activeScoutMission!.cost,
     );
     expect(source.scoutOptions).toEqual(options);
   });
 
   it('maps current reports into buy listings and eligible user players into sell listings', () => {
     const state = fullCareer(913);
-    const target = state.players.find(player => player.clubId !== state.userClubId)!;
+    const target = state.players.find(
+      (player) => player.clubId !== state.userClubId,
+    )!;
     const market: CareerMarketState = {
       ...state.market!,
       nextMissionNumber: 2,
       scoutReports: [exactReport(target)],
     };
     const source = careerMarketViewModelSource(state, market);
-    const buy = source.transferListings.find(listing => listing.direction === 'BUY');
-    const sells = source.transferListings.filter(listing => listing.direction === 'SELL');
+    const buy = source.transferListings.find(
+      (listing) => listing.direction === 'BUY',
+    );
+    const sells = source.transferListings.filter(
+      (listing) => listing.direction === 'SELL',
+    );
 
     expect(source.scoutResult).toMatchObject({
       missionId: 'scout-1',
       completedWeek: 1,
       reports: [{ playerId: target.id }],
     });
-    expect(source.scoutedPlayerIdentities).toContainEqual(expect.objectContaining({
-      id: target.id,
-      name: target.name,
-    }));
+    expect(source.scoutedPlayerIdentities).toContainEqual(
+      expect.objectContaining({
+        id: target.id,
+        name: target.name,
+      }),
+    );
     expect(buy).toMatchObject({
       direction: 'BUY',
       sellingClubDivision: 5,
       player: { id: target.id, name: target.name },
     });
     expect(sells.length).toBeGreaterThan(0);
-    expect(sells.every(listing => listing.player.id !== target.id)).toBe(true);
+    expect(sells.every((listing) => listing.player.id !== target.id)).toBe(
+      true,
+    );
 
     const visible = marketViewModel(source);
     expect(visible.scouting.reports[0].playerName).toBe(target.name);
-    expect(visible.transfers.some(listing => listing.direction === 'BUY')).toBe(true);
-    expect(visible.transfers.some(listing => listing.direction === 'SELL')).toBe(true);
+    expect(
+      visible.transfers.some((listing) => listing.direction === 'BUY'),
+    ).toBe(true);
+    expect(
+      visible.transfers.some((listing) => listing.direction === 'SELL'),
+    ).toBe(true);
   });
 
   it('maps a scouted player from outside the active division into a buy listing', () => {
     const state = fullCareer(714);
-    const division = state.m2!.pyramid.divisions.find(candidate => candidate.level === 4)!;
-    const target = division.clubs[0].squad.find(player => player.role === 'DEF')!;
-    expect(state.players.some(player => player.id === target.id)).toBe(false);
+    const division = state.m2!.pyramid.divisions.find(
+      (candidate) => candidate.level === 4,
+    )!;
+    const target = division.clubs[0].squad.find(
+      (player) => player.role === 'DEF',
+    )!;
+    expect(state.players.some((player) => player.id === target.id)).toBe(false);
     const market: CareerMarketState = {
       ...state.market!,
-      scoutReports: [{
-        playerId: target.id,
-        role: target.role,
-        age: target.age,
-        statRanges: Object.fromEntries(Object.entries(target.attrs).map(([key, value]) => [
-          key,
-          { minimum: value, maximum: value },
-        ])) as never,
-        potentialRange: { minimum: 3, maximum: 3 },
-      }],
+      scoutReports: [
+        {
+          playerId: target.id,
+          role: target.role,
+          age: target.age,
+          statRanges: Object.fromEntries(
+            Object.entries(target.attrs).map(([key, value]) => [
+              key,
+              { minimum: value, maximum: value },
+            ]),
+          ) as never,
+          potentialRange: { minimum: 3, maximum: 3 },
+        },
+      ],
     };
 
     const source = careerMarketViewModelSource(state, market);
 
-    expect(source.transferListings.find(listing => listing.direction === 'BUY')).toEqual(
+    expect(
+      source.transferListings.find((listing) => listing.direction === 'BUY'),
+    ).toEqual(
       expect.objectContaining({
         direction: 'BUY',
         sellingClubDivision: 4,
@@ -193,7 +243,9 @@ describe('career market view-model source adapter', () => {
 
   it('passes coach candidates and current contract talks through with the target wage context', () => {
     const state = fullCareer(1014);
-    const target = state.players.find(player => player.clubId !== state.userClubId)!;
+    const target = state.players.find(
+      (player) => player.clubId !== state.userClubId,
+    )!;
     const scouted: CareerMarketState = {
       ...state.market!,
       scoutReports: [exactReport(target)],
@@ -223,14 +275,18 @@ describe('career market view-model source adapter', () => {
 
   it('disables starting promises with a translated reason when the Hero Licenses are full', () => {
     const initial = fullCareer(20260808);
-    const target = initial.players.find(player => player.clubId !== initial.userClubId)!;
-    const licensedIds = new Set(initial.players
-      .filter(player => player.clubId === initial.userClubId)
-      .slice(0, 2)
-      .map(player => player.id));
+    const target = initial.players.find(
+      (player) => player.clubId !== initial.userClubId,
+    )!;
+    const licensedIds = new Set(
+      initial.players
+        .filter((player) => player.clubId === initial.userClubId)
+        .slice(0, 2)
+        .map((player) => player.id),
+    );
     const state: GameState = {
       ...initial,
-      players: initial.players.map(player => {
+      players: initial.players.map((player) => {
         if (player.id === target.id) {
           return { ...player, power: 'FIRE_TORCH' as never, licensed: false };
         }
@@ -239,7 +295,9 @@ describe('career market view-model source adapter', () => {
           : player;
       }),
     };
-    const poweredTarget = state.players.find(player => player.id === target.id)!;
+    const poweredTarget = state.players.find(
+      (player) => player.id === target.id,
+    )!;
     const scouted: CareerMarketState = {
       ...state.market!,
       scoutReports: [exactReport(poweredTarget)],
@@ -247,13 +305,22 @@ describe('career market view-model source adapter', () => {
     const talks = beginCareerTransferTalks(state, scouted, poweredTarget.id, 5);
     const t = copyFor('vi');
 
-    const visible = marketViewModel(careerMarketViewModelSource(state, talks, t), t);
-    const starter = visible.negotiation?.perks.find(perk => perk.id === 'GUARANTEED_STARTER');
-    const captaincy = visible.negotiation?.perks.find(perk => perk.id === 'CAPTAINCY');
+    const visible = marketViewModel(
+      careerMarketViewModelSource(state, talks, t),
+      t,
+    );
+    const starter = visible.negotiation?.perks.find(
+      (perk) => perk.id === 'GUARANTEED_STARTER',
+    );
+    const captaincy = visible.negotiation?.perks.find(
+      (perk) => perk.id === 'CAPTAINCY',
+    );
 
     expect(starter).toMatchObject({
       available: false,
-      blockedReason: t('market.promiseBlockedHeroLicense', { player: poweredTarget.name }),
+      blockedReason: t('market.promiseBlockedHeroLicense', {
+        player: poweredTarget.name,
+      }),
     });
     expect(captaincy).toMatchObject({ available: false });
     expect(starter?.blockedReason).not.toContain('No Hero License is free');
@@ -274,7 +341,9 @@ describe('career market view-model source adapter', () => {
 
     const source = careerMarketViewModelSource(withCoach);
     expect(source.headCoach).toEqual(headCoach);
-    expect(marketViewModel(source).coaches.every(coach => !coach.available)).toBe(true);
+    expect(
+      marketViewModel(source).coaches.every((coach) => !coach.available),
+    ).toBe(true);
   });
 
   it('keeps earned coach access after relegation', () => {
@@ -291,9 +360,13 @@ describe('career market view-model source adapter', () => {
       market: { ...initial.market!, coachCandidates: [candidate] },
     };
 
-    expect(marketViewModel(careerMarketViewModelSource(relegated)).coaches[0].available).toBe(true);
-    expect(hireCareerCoach(relegated, relegated.market!, candidate.id).headCoach?.id)
-      .toBe(candidate.id);
+    expect(
+      marketViewModel(careerMarketViewModelSource(relegated)).coaches[0]
+        .available,
+    ).toBe(true);
+    expect(
+      hireCareerCoach(relegated, relegated.market!, candidate.id).headCoach?.id,
+    ).toBe(candidate.id);
   });
 
   it('carries the sale-path cover verdict on listings a spare on leave would strand', () => {
@@ -302,41 +375,64 @@ describe('career market view-model source adapter', () => {
     // sale path then rejected. The listing must stay visible, disabled, with
     // the reason — never enabled-then-erroring, never silently gone.
     const state = fullCareer(913);
-    const target = state.players.find(player => player.clubId !== state.userClubId)!;
-    const market: CareerMarketState = { ...state.market!, scoutReports: [exactReport(target)] };
+    const target = state.players.find(
+      (player) => player.clubId !== state.userClubId,
+    )!;
+    const market: CareerMarketState = {
+      ...state.market!,
+      scoutReports: [exactReport(target)],
+    };
     const starters = new Set(
-      state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds,
+      state.lineups.find((lineup) => lineup.clubId === state.userClubId)!
+        .playerIds,
     );
-    const startingOutfielder = state.players.find(player => (
-      player.clubId === state.userClubId && player.role !== 'GK' && starters.has(player.id)
-    ))!;
+    const startingOutfielder = state.players.find(
+      (player) =>
+        player.clubId === state.userClubId &&
+        player.role !== 'GK' &&
+        starters.has(player.id),
+    )!;
 
-    const baseline = careerMarketViewModelSource(state, market).transferListings
-      .find(listing => (
-        listing.direction === 'SELL' && listing.player.id === startingOutfielder.id
-      ));
+    const baseline = careerMarketViewModelSource(
+      state,
+      market,
+    ).transferListings.find(
+      (listing) =>
+        listing.direction === 'SELL' &&
+        listing.player.id === startingOutfielder.id,
+    );
     expect(baseline?.saleBlockedReason).toBeUndefined();
 
     const withOutfieldSparesAway: GameState = {
       ...state,
-      players: state.players.map(player => (
-        player.clubId === state.userClubId && player.role !== 'GK' && !starters.has(player.id)
+      players: state.players.map((player) =>
+        player.clubId === state.userClubId &&
+        player.role !== 'GK' &&
+        !starters.has(player.id)
           ? { ...player, awayWeeks: 2 }
-          : player
-      )),
+          : player,
+      ),
     };
     const source = careerMarketViewModelSource(withOutfieldSparesAway, market);
-    const listing = source.transferListings
-      .find(candidate => (
-        candidate.direction === 'SELL' && candidate.player.id === startingOutfielder.id
-      ));
+    const listing = source.transferListings.find(
+      (candidate) =>
+        candidate.direction === 'SELL' &&
+        candidate.player.id === startingOutfielder.id,
+    );
     expect(listing).toBeDefined();
     expect(listing?.saleBlockedReason).toBeDefined();
     // The adapter's verdict matches what the sale path itself enforces.
-    expect(() => listCareerPlayer(withOutfieldSparesAway, market, startingOutfielder.id, 5))
-      .toThrow();
-    const visible = marketViewModel(source).transfers
-      .find(candidate => candidate.playerId === startingOutfielder.id);
+    expect(() =>
+      listCareerPlayer(
+        withOutfieldSparesAway,
+        market,
+        startingOutfielder.id,
+        5,
+      ),
+    ).toThrow();
+    const visible = marketViewModel(source).transfers.find(
+      (candidate) => candidate.playerId === startingOutfielder.id,
+    );
     expect(visible).toMatchObject({
       available: false,
       blockedReason: listing?.saleBlockedReason,
@@ -345,42 +441,65 @@ describe('career market view-model source adapter', () => {
 
   it('treats an unlicensed hero as bench-locked when judging sale cover, like the sale path', () => {
     const state = fullCareer(913);
-    const target = state.players.find(player => player.clubId !== state.userClubId)!;
-    const market: CareerMarketState = { ...state.market!, scoutReports: [exactReport(target)] };
+    const target = state.players.find(
+      (player) => player.clubId !== state.userClubId,
+    )!;
+    const market: CareerMarketState = {
+      ...state.market!,
+      scoutReports: [exactReport(target)],
+    };
     const starters = new Set(
-      state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds,
+      state.lineups.find((lineup) => lineup.clubId === state.userClubId)!
+        .playerIds,
     );
-    const startingOutfielder = state.players.find(player => (
-      player.clubId === state.userClubId && player.role !== 'GK' && starters.has(player.id)
-    ))!;
+    const startingOutfielder = state.players.find(
+      (player) =>
+        player.clubId === state.userClubId &&
+        player.role !== 'GK' &&
+        starters.has(player.id),
+    )!;
     // An unlicensed hero cannot enter a lineup, so a bench full of them is no
     // cover at all — the old adapter would still have offered the sale.
     const withUnlicensedSpares: GameState = {
       ...state,
-      players: state.players.map(player => (
-        player.clubId === state.userClubId && player.role !== 'GK' && !starters.has(player.id)
-          ? { ...player, power: 'SUPER_SPEED' as const, powerTier: 1 as const, licensed: false }
-          : player
-      )),
+      players: state.players.map((player) =>
+        player.clubId === state.userClubId &&
+        player.role !== 'GK' &&
+        !starters.has(player.id)
+          ? {
+              ...player,
+              power: 'SUPER_SPEED' as const,
+              powerTier: 1 as const,
+              licensed: false,
+            }
+          : player,
+      ),
     };
-    const listing = careerMarketViewModelSource(withUnlicensedSpares, market).transferListings
-      .find(candidate => (
-        candidate.direction === 'SELL' && candidate.player.id === startingOutfielder.id
-      ));
+    const listing = careerMarketViewModelSource(
+      withUnlicensedSpares,
+      market,
+    ).transferListings.find(
+      (candidate) =>
+        candidate.direction === 'SELL' &&
+        candidate.player.id === startingOutfielder.id,
+    );
     expect(listing).toBeDefined();
     expect(listing?.saleBlockedReason).toBeDefined();
-    expect(() => listCareerPlayer(withUnlicensedSpares, market, startingOutfielder.id, 5))
-      .toThrow();
+    expect(() =>
+      listCareerPlayer(withUnlicensedSpares, market, startingOutfielder.id, 5),
+    ).toThrow();
   });
 
   it('requires an initialized market and rejects stale reports instead of inventing players', () => {
     const state = fullCareer(1115);
-    expect(() => careerMarketViewModelSource({ ...state, market: undefined })).toThrow(
-      'has not been initialized',
-    );
+    expect(() =>
+      careerMarketViewModelSource({ ...state, market: undefined }),
+    ).toThrow('has not been initialized');
     const stale: CareerMarketState = {
       ...state.market!,
-      scoutReports: [{ ...exactReport(state.players[0]), playerId: 'missing-player' }],
+      scoutReports: [
+        { ...exactReport(state.players[0]), playerId: 'missing-player' },
+      ],
     };
     expect(() => careerMarketViewModelSource(state, stale)).toThrow(
       'does not reference a transfer target',

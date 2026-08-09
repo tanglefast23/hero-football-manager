@@ -1,6 +1,9 @@
 import { recordCashTransaction } from './cash-transactions';
 import { careerDifficulty } from './difficulty';
-import { chooseWeightedOutcome, deterministicCareerEventRoll } from './event-clock';
+import {
+  chooseWeightedOutcome,
+  deterministicCareerEventRoll,
+} from './event-clock';
 import { isAvailableForSelection } from './lineup';
 import { adjustLoyalty, playerLoyalty } from './loyalty';
 import { compareIds } from './ordering';
@@ -39,8 +42,11 @@ export function requestDefinition(
   catalog: PlayerRequestCatalog,
   requestId: string,
 ): PlayerRequestDefinition {
-  const definition = catalog.requests.find(candidate => candidate.id === requestId);
-  if (definition === undefined) throw new Error(`unknown player request ${requestId}`);
+  const definition = catalog.requests.find(
+    (candidate) => candidate.id === requestId,
+  );
+  if (definition === undefined)
+    throw new Error(`unknown player request ${requestId}`);
   return definition;
 }
 
@@ -61,10 +67,14 @@ export function requestChancePercent(
   baseChancePercent: number,
 ): number {
   if (!Number.isInteger(weeksSinceRequest) || weeksSinceRequest < 0) {
-    throw new Error('weeks since the last request must be a nonnegative integer');
+    throw new Error(
+      'weeks since the last request must be a nonnegative integer',
+    );
   }
   const minWeeks = hasStar ? cadence.starMinWeeks : cadence.minWeeks;
-  const guaranteeWeeks = hasStar ? cadence.starGuaranteeWeeks : cadence.guaranteeWeeks;
+  const guaranteeWeeks = hasStar
+    ? cadence.starGuaranteeWeeks
+    : cadence.guaranteeWeeks;
   if (weeksSinceRequest < minWeeks) return 0;
   if (weeksSinceRequest >= guaranteeWeeks) return 100;
 
@@ -72,7 +82,9 @@ export function requestChancePercent(
   // Eased, not linear: the first week past the floor barely moves the odds and
   // the last one moves them a lot, so the wait reads as patience running out
   // rather than a countdown ticking down in public.
-  return Math.round(baseChancePercent + (100 - baseChancePercent) * progress * progress);
+  return Math.round(
+    baseChancePercent + (100 - baseChancePercent) * progress * progress,
+  );
 }
 
 /**
@@ -84,21 +96,28 @@ export function requestChancePercent(
  * club, and half a season each would rank him below where he actually finished.
  */
 export function starQualifiers(
-  statLines: readonly Pick<PlayerSeasonStatLine, 'season' | 'competition' | 'playerId' | 'goals'>[],
+  statLines: readonly Pick<
+    PlayerSeasonStatLine,
+    'season' | 'competition' | 'playerId' | 'goals'
+  >[],
   season: number,
   rank: number,
 ): string[] {
   const goalsByPlayerId = new Map<string, number>();
   for (const line of statLines) {
     if (line.season !== season || line.competition !== 'league') continue;
-    goalsByPlayerId.set(line.playerId, (goalsByPlayerId.get(line.playerId) ?? 0) + line.goals);
+    goalsByPlayerId.set(
+      line.playerId,
+      (goalsByPlayerId.get(line.playerId) ?? 0) + line.goals,
+    );
   }
 
   return [...goalsByPlayerId]
     .filter(([, goals]) => goals > 0)
-    .sort(([leftId, leftGoals], [rightId, rightGoals]) => (
-      rightGoals - leftGoals || compareIds(leftId, rightId)
-    ))
+    .sort(
+      ([leftId, leftGoals], [rightId, rightGoals]) =>
+        rightGoals - leftGoals || compareIds(leftId, rightId),
+    )
     .slice(0, rank)
     .map(([playerId]) => playerId);
 }
@@ -192,18 +211,20 @@ export function eligibleAskers(
   context: EligibilityContext,
 ): CareerPlayer[] {
   const fitKeepers = roster.filter(
-    player => player.role === 'GK' && isAvailableForSelection(player),
+    (player) => player.role === 'GK' && isAvailableForSelection(player),
   );
-  return roster.filter(player => {
+  return roster.filter((player) => {
     if (!isAvailableForSelection(player)) return false;
     if (player.id === context.lastAskingPlayerId) return false;
     if ((player.seasonsAtClub ?? 0) < context.minSeasonsAtClub) return false;
     // Sending away the only fit keeper leaves no legal XI, so the request is
     // never offered rather than being offered and then failing to apply.
-    if (context.absence && player.role === 'GK' && fitKeepers.length <= 1) return false;
+    if (context.absence && player.role === 'GK' && fitKeepers.length <= 1)
+      return false;
     // The same rule for every starter: a leave the lineup cannot repair is
     // never offered rather than being offered and then throwing on Grant.
-    if (context.absence && context.lineupSurvivesAbsence?.(player) === false) return false;
+    if (context.absence && context.lineupSurvivesAbsence?.(player) === false)
+      return false;
     return true;
   });
 }
@@ -216,10 +237,14 @@ export function pickAsker(
   fameThreshold: number = STAR_FAME_THRESHOLD,
 ): CareerPlayer | undefined {
   if (pool.length === 0) return undefined;
-  return pool[chooseWeightedOutcome(
-    pool.map(player => weightForPlayer(player, qualifierIds, fameThreshold)),
-    roll,
-  )];
+  return pool[
+    chooseWeightedOutcome(
+      pool.map((player) =>
+        weightForPlayer(player, qualifierIds, fameThreshold),
+      ),
+      roll,
+    )
+  ];
 }
 
 /** Total weight of a pool, for sizing the roll. */
@@ -255,16 +280,27 @@ export function requestMoneyCost(
   context: RequestPricingContext,
 ): number | undefined {
   if (cost.kind === 'MONEY_PLAYER') {
-    return Math.max(1, Math.round(context.playerWeeklyWage * cost.wageMultiple));
+    return Math.max(
+      1,
+      Math.round(context.playerWeeklyWage * cost.wageMultiple),
+    );
   }
   if (cost.kind === 'MONEY_SQUAD') {
-    return Math.max(1, Math.round(context.squadWeeklyWageBill * cost.billMultiplePercent / 100));
+    return Math.max(
+      1,
+      Math.round(
+        (context.squadWeeklyWageBill * cost.billMultiplePercent) / 100,
+      ),
+    );
   }
   return undefined;
 }
 
 /** Cozy never loses a player for more than one week. */
-export function absenceWeeksFor(authoredWeeks: number, difficulty: DifficultyMode): number {
+export function absenceWeeksFor(
+  authoredWeeks: number,
+  difficulty: DifficultyMode,
+): number {
   return difficulty === 'COZY' ? Math.min(1, authoredWeeks) : authoredWeeks;
 }
 
@@ -277,16 +313,25 @@ export function absenceWeeksFor(authoredWeeks: number, difficulty: DifficultyMod
  * no fixture in it had a bye and advances, and a club with one survives while
  * that tie is unplayed or was won.
  */
-function isUserAliveInCup(state: Pick<GameState, 'm2' | 'season' | 'userClubId'>): boolean {
-  const cup = state.m2?.nationalCups.find(candidate => candidate.championClubId === undefined);
+function isUserAliveInCup(
+  state: Pick<GameState, 'm2' | 'season' | 'userClubId'>,
+): boolean {
+  const cup = state.m2?.nationalCups.find(
+    (candidate) => candidate.championClubId === undefined,
+  );
   if (cup === undefined || cup.season !== state.season) return false;
   const round = cup.rounds[cup.rounds.length - 1];
-  if (round === undefined || !round.entrantClubIds.includes(state.userClubId)) return false;
-  const fixture = round.fixtures.find(candidate => (
-    candidate.homeClubId === state.userClubId || candidate.awayClubId === state.userClubId
-  ));
+  if (round === undefined || !round.entrantClubIds.includes(state.userClubId))
+    return false;
+  const fixture = round.fixtures.find(
+    (candidate) =>
+      candidate.homeClubId === state.userClubId ||
+      candidate.awayClubId === state.userClubId,
+  );
   if (fixture === undefined) return true;
-  return fixture.status === 'scheduled' || fixture.winnerClubId === state.userClubId;
+  return (
+    fixture.status === 'scheduled' || fixture.winnerClubId === state.userClubId
+  );
 }
 
 /**
@@ -301,14 +346,19 @@ function hasUserMatchThrough(
   state: Pick<GameState, 'fixtures' | 'm2' | 'season' | 'userClubId' | 'week'>,
   throughWeek: number,
 ): boolean {
-  const inLeague = state.fixtures.some(fixture => (
-    fixture.week >= state.week
-    && fixture.week <= throughWeek
-    && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
-  ));
+  const inLeague = state.fixtures.some(
+    (fixture) =>
+      fixture.week >= state.week &&
+      fixture.week <= throughWeek &&
+      (fixture.homeClubId === state.userClubId ||
+        fixture.awayClubId === state.userClubId),
+  );
   if (inLeague) return true;
-  return CUP_SETTLEMENT_WEEKS.some(week => week >= state.week && week <= throughWeek)
-    && isUserAliveInCup(state);
+  return (
+    CUP_SETTLEMENT_WEEKS.some(
+      (week) => week >= state.week && week <= throughWeek,
+    ) && isUserAliveInCup(state)
+  );
 }
 
 /**
@@ -343,7 +393,8 @@ function costIsCollectable(
       lastAnswerWeek + absenceWeeksFor(cost.weeks, difficulty) - 1,
     );
   }
-  if (cost.kind === 'CONDITION_SQUAD') return hasUserMatchThrough(state, lastAnswerWeek);
+  if (cost.kind === 'CONDITION_SQUAD')
+    return hasUserMatchThrough(state, lastAnswerWeek);
   return true;
 }
 
@@ -365,9 +416,9 @@ const NO_DELTA: RequestDelta = { loyalty: 0, morale: 0 };
 
 /** Which requests hit the whole squad rather than one player. */
 export function requestTarget(cost: PlayerRequestCost): RequestTarget {
-  return cost.kind === 'MONEY_SQUAD'
-    || cost.kind === 'CONDITION_SQUAD'
-    || cost.kind === 'DRILL_SQUAD'
+  return cost.kind === 'MONEY_SQUAD' ||
+    cost.kind === 'CONDITION_SQUAD' ||
+    cost.kind === 'DRILL_SQUAD'
     ? 'SQUAD'
     : 'PLAYER';
 }
@@ -393,11 +444,12 @@ export function resolutionDeltas(
   const cozy = difficulty === 'COZY';
   return {
     asker: cozy ? { loyalty: -3, morale: -4 } : { loyalty: -5, morale: -8 },
-    squad: target !== 'SQUAD'
-      ? NO_DELTA
-      : cozy
-        ? { loyalty: -1, morale: -2 }
-        : { loyalty: -2, morale: -3 },
+    squad:
+      target !== 'SQUAD'
+        ? NO_DELTA
+        : cozy
+          ? { loyalty: -1, morale: -2 }
+          : { loyalty: -2, morale: -3 },
   };
 }
 
@@ -423,8 +475,11 @@ export const DEFAULT_PLAYER_REQUEST_STATE: PlayerRequestState = {
 export function canAffordRequest(state: GameState): boolean {
   const pending = state.playerRequests?.pending;
   if (pending?.costAmount === undefined) return true;
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
   return club.cash >= pending.costAmount;
 }
 
@@ -455,63 +510,82 @@ export function resolvePlayerRequest(
   // legs. A themed bonus can offset the cost of the same request.
   const conditionDelta = !granted
     ? 0
-    : (definition.cost.kind === 'CONDITION_SQUAD' ? -definition.cost.amount : 0)
-      + (definition.grantBonus?.kind === 'CONDITION_SQUAD' ? definition.grantBonus.amount : 0);
-  const bonusMorale = granted && definition.grantBonus?.kind === 'MORALE_SQUAD'
-    ? definition.grantBonus.amount
-    : 0;
-  const awayWeeks = granted && definition.cost.kind === 'ABSENCE'
-    ? absenceWeeksFor(definition.cost.weeks, difficulty)
-    : 0;
+    : (definition.cost.kind === 'CONDITION_SQUAD'
+        ? -definition.cost.amount
+        : 0) +
+      (definition.grantBonus?.kind === 'CONDITION_SQUAD'
+        ? definition.grantBonus.amount
+        : 0);
+  const bonusMorale =
+    granted && definition.grantBonus?.kind === 'MORALE_SQUAD'
+      ? definition.grantBonus.amount
+      : 0;
+  const awayWeeks =
+    granted && definition.cost.kind === 'ABSENCE'
+      ? absenceWeeksFor(definition.cost.weeks, difficulty)
+      : 0;
 
-  const players = state.players.map(player => {
+  const players = state.players.map((player) => {
     if (player.clubId !== state.userClubId) return player;
     const isAsker = player.id === pending.playerId;
-    const loyaltyDelta = deltas.squad.loyalty + (isAsker ? deltas.asker.loyalty : 0);
-    const moraleDelta = deltas.squad.morale
-      + bonusMorale
-      + (isAsker ? deltas.asker.morale : 0);
+    const loyaltyDelta =
+      deltas.squad.loyalty + (isAsker ? deltas.asker.loyalty : 0);
+    const moraleDelta =
+      deltas.squad.morale + bonusMorale + (isAsker ? deltas.asker.morale : 0);
 
     return {
       ...player,
-      loyalty: adjustLoyalty(playerLoyalty(player, state.careerSeed), loyaltyDelta),
+      loyalty: adjustLoyalty(
+        playerLoyalty(player, state.careerSeed),
+        loyaltyDelta,
+      ),
       morale: Math.max(0, Math.min(100, player.morale + moraleDelta)),
-      condition: Math.max(0, Math.min(100, (player.condition ?? 100) + conditionDelta)),
+      condition: Math.max(
+        0,
+        Math.min(100, (player.condition ?? 100) + conditionDelta),
+      ),
       ...(isAsker && awayWeeks > 0 ? { awayWeeks } : {}),
     };
   });
 
-  const cost = granted ? pending.costAmount ?? 0 : 0;
+  const cost = granted ? (pending.costAmount ?? 0) : 0;
   // Charge first, then record. `recordCashTransaction` stamps `balanceAfter`
   // from the club's current cash and mutates nothing, so handing it unchanged
   // state would log a spend that never happened. Same order as scouting and
   // transfers.
-  const charged: GameState = cost === 0
-    ? { ...state, players }
-    : {
-        ...state,
-        players,
-        clubs: state.clubs.map(club => (club.id === state.userClubId
-          ? { ...club, cash: club.cash - cost }
-          : club)),
-      };
-  const spent = cost === 0
-    ? charged
-    : recordCashTransaction(charged, {
-        kind: 'player-request',
-        label: definition.title,
-        // The request's own content id, so the ledger row renders from the
-        // catalog rather than from the English frozen into the save.
-        labelKey: `playerRequest.${definition.id}.title`,
-        amount: -cost,
-        referenceId: pending.requestId,
-      });
+  const charged: GameState =
+    cost === 0
+      ? { ...state, players }
+      : {
+          ...state,
+          players,
+          clubs: state.clubs.map((club) =>
+            club.id === state.userClubId
+              ? { ...club, cash: club.cash - cost }
+              : club,
+          ),
+        };
+  const spent =
+    cost === 0
+      ? charged
+      : recordCashTransaction(charged, {
+          kind: 'player-request',
+          label: definition.title,
+          // The request's own content id, so the ledger row renders from the
+          // catalog rather than from the English frozen into the save.
+          labelKey: `playerRequest.${definition.id}.title`,
+          amount: -cost,
+          referenceId: pending.requestId,
+        });
 
   const settled: GameState = {
     ...spent,
     playerRequests: {
       weeksSinceRequest: 0,
-      effects: [...requests.effects, ...grantedEffects(definition.cost, pending.playerId, granted)],
+      effects: [
+        ...requests.effects,
+        ...grantedEffects(definition.cost, pending.playerId, granted),
+      ],
       history: [
         {
           requestId: pending.requestId,
@@ -548,19 +622,23 @@ function grantedEffects(
 ): ActiveRequestEffect[] {
   if (!granted) return [];
   if (cost.kind === 'DRILL_PLAYER') {
-    return [{
-      kind: 'DRILL_PLAYER',
-      playerId,
-      weeksRemaining: cost.weeks,
-      multiplierPercent: cost.multiplierPercent,
-    }];
+    return [
+      {
+        kind: 'DRILL_PLAYER',
+        playerId,
+        weeksRemaining: cost.weeks,
+        multiplierPercent: cost.multiplierPercent,
+      },
+    ];
   }
   if (cost.kind === 'DRILL_SQUAD') {
-    return [{
-      kind: 'DRILL_SQUAD',
-      weeksRemaining: cost.weeks,
-      multiplierPercent: cost.multiplierPercent,
-    }];
+    return [
+      {
+        kind: 'DRILL_SQUAD',
+        weeksRemaining: cost.weeks,
+        multiplierPercent: cost.multiplierPercent,
+      },
+    ];
   }
   return [];
 }
@@ -570,8 +648,8 @@ export function tickRequestEffects(
   effects: readonly ActiveRequestEffect[],
 ): ActiveRequestEffect[] {
   return effects
-    .map(effect => ({ ...effect, weeksRemaining: effect.weeksRemaining - 1 }))
-    .filter(effect => effect.weeksRemaining > 0);
+    .map((effect) => ({ ...effect, weeksRemaining: effect.weeksRemaining - 1 }))
+    .filter((effect) => effect.weeksRemaining > 0);
 }
 
 /** Drill gain scale for one player, squad and personal effects compounded. */
@@ -580,9 +658,12 @@ export function drillMultiplierPercent(
   playerId: string,
 ): number {
   return effects.reduce((percent, effect) => {
-    const applies = effect.kind === 'DRILL_SQUAD'
-      || (effect.kind === 'DRILL_PLAYER' && effect.playerId === playerId);
-    return applies ? Math.round(percent * (effect.multiplierPercent ?? 100) / 100) : percent;
+    const applies =
+      effect.kind === 'DRILL_SQUAD' ||
+      (effect.kind === 'DRILL_PLAYER' && effect.playerId === playerId);
+    return applies
+      ? Math.round((percent * (effect.multiplierPercent ?? 100)) / 100)
+      : percent;
   }, 100);
 }
 
@@ -604,14 +685,18 @@ export function drillMultiplierPercent(
  * still make one, and granting his ask is now a way to talk him round, since a
  * grant pays +5 morale toward the mood he must reach to withdraw.
  */
-export function cancelPendingPlayerRequestIfInvalid(state: GameState): GameState {
+export function cancelPendingPlayerRequestIfInvalid(
+  state: GameState,
+): GameState {
   const pending = state.playerRequests?.pending;
   if (pending === undefined) return state;
-  const asker = state.players.find(player => player.id === pending.playerId);
-  const stillValid = asker !== undefined
-    && asker.clubId === state.userClubId;
+  const asker = state.players.find((player) => player.id === pending.playerId);
+  const stillValid = asker !== undefined && asker.clubId === state.userClubId;
   if (stillValid) return state;
-  return { ...state, playerRequests: { ...state.playerRequests!, pending: undefined } };
+  return {
+    ...state,
+    playerRequests: { ...state.playerRequests!, pending: undefined },
+  };
 }
 
 /**
@@ -628,29 +713,39 @@ export function cancelPendingPlayerRequestIfInvalid(state: GameState): GameState
  * is safe only while it runs exactly once per settlement: never call it from a
  * view model or a desk reconcile.
  */
-export function advancePlayerRequests(state: GameState, openRequests: boolean): GameState {
+export function advancePlayerRequests(
+  state: GameState,
+  openRequests: boolean,
+): GameState {
   const catalog = state.playerRequestRules;
   if (catalog === undefined) return state;
   const requests = state.playerRequests ?? DEFAULT_PLAYER_REQUEST_STATE;
   const tuning = catalog.tuning;
 
-  const players = state.players.map(player => ((player.awayWeeks ?? 0) > 0
-    ? { ...player, awayWeeks: player.awayWeeks! - 1 }
-    : player));
+  const players = state.players.map((player) =>
+    (player.awayWeeks ?? 0) > 0
+      ? { ...player, awayWeeks: player.awayWeeks! - 1 }
+      : player,
+  );
   let next: GameState = cancelPendingPlayerRequestIfInvalid({
     ...state,
     players,
-    playerRequests: { ...requests, effects: tickRequestEffects(requests.effects) },
+    playerRequests: {
+      ...requests,
+      effects: tickRequestEffects(requests.effects),
+    },
   });
 
-  const started = state.season > tuning.startSeason
-    || (state.season === tuning.startSeason && state.week >= tuning.startWeek);
+  const started =
+    state.season > tuning.startSeason ||
+    (state.season === tuning.startSeason && state.week >= tuning.startWeek);
   if (!started || !openRequests) return next;
 
   const pending = next.playerRequests!.pending;
   if (pending !== undefined) {
     const weeksWaiting = state.week - pending.askedWeek;
-    if (weeksWaiting >= tuning.answerWeeks) return resolvePlayerRequest(next, catalog, 'LAPSED');
+    if (weeksWaiting >= tuning.answerWeeks)
+      return resolvePlayerRequest(next, catalog, 'LAPSED');
     if (weeksWaiting >= 1 && !pending.warned) {
       return withRequests(next, {
         ...next.playerRequests!,
@@ -660,19 +755,25 @@ export function advancePlayerRequests(state: GameState, openRequests: boolean): 
     return next;
   }
 
-  const roster = next.players.filter(player => player.clubId === next.userClubId);
+  const roster = next.players.filter(
+    (player) => player.clubId === next.userClubId,
+  );
   const qualifiers = starQualifiers(
     next.seasonStatLines ?? [],
     next.season,
     tuning.starGoalRank,
   );
   const hasStar = roster.some(
-    player => weightForPlayer(player, qualifiers, tuning.starFameThreshold) > 1,
+    (player) =>
+      weightForPlayer(player, qualifiers, tuning.starFameThreshold) > 1,
   );
   const difficulty = careerDifficulty(next);
   const cadence = tuning.cadence[difficulty];
   const weeksSince = next.playerRequests!.weeksSinceRequest + 1;
-  next = withRequests(next, { ...next.playerRequests!, weeksSinceRequest: weeksSince });
+  next = withRequests(next, {
+    ...next.playerRequests!,
+    weeksSinceRequest: weeksSince,
+  });
 
   const context = {
     careerSeed: next.careerSeed,
@@ -680,8 +781,14 @@ export function advancePlayerRequests(state: GameState, openRequests: boolean): 
     week: next.week,
     riskyChoices: 0,
   };
-  const chance = requestChancePercent(weeksSince, cadence, hasStar, tuning.baseChancePercent);
-  if (deterministicCareerEventRoll(context, 'request:open', 0, 100) >= chance) return next;
+  const chance = requestChancePercent(
+    weeksSince,
+    cadence,
+    hasStar,
+    tuning.baseChancePercent,
+  );
+  if (deterministicCareerEventRoll(context, 'request:open', 0, 100) >= chance)
+    return next;
 
   const stateAtDraw = next;
   const base = {
@@ -689,38 +796,56 @@ export function advancePlayerRequests(state: GameState, openRequests: boolean): 
       ? {}
       : { lastAskingPlayerId: next.playerRequests!.lastAskingPlayerId }),
     minSeasonsAtClub: tuning.minSeasonsAtClub,
-    lineupSurvivesAbsence: (player: CareerPlayer) => lineupSurvivesLeave(stateAtDraw, player),
+    lineupSurvivesAbsence: (player: CareerPlayer) =>
+      lineupSurvivesLeave(stateAtDraw, player),
   };
-  const drawn = catalog.requests[
-    deterministicCareerEventRoll(context, 'request:pick', 1, catalog.requests.length)
-  ];
+  const drawn =
+    catalog.requests[
+      deterministicCareerEventRoll(
+        context,
+        'request:pick',
+        1,
+        catalog.requests.length,
+      )
+    ];
   // If an absence draw leaves nobody eligible — a squad with one fit keeper —
   // or the calendar cannot collect what the draw costs, fall back to a request
   // the club can be charged for rather than swallowing a roll that has already
   // succeeded, which would read as the game forgetting about you.
-  const drawnPool = eligibleAskers(roster, { ...base, absence: drawn.cost.kind === 'ABSENCE' });
+  const drawnPool = eligibleAskers(roster, {
+    ...base,
+    absence: drawn.cost.kind === 'ABSENCE',
+  });
   // The fallback pool applies the same collectability test, so a week with no
   // match ahead of it cannot swap a free absence for an equally free night out.
-  const fallbacks = catalog.requests.filter(request => (
-    request.cost.kind !== 'ABSENCE'
-    && costIsCollectable(next, request.cost, tuning.answerWeeks, difficulty)
-  ));
-  const definition = drawnPool.length > 0
-    && costIsCollectable(next, drawn.cost, tuning.answerWeeks, difficulty)
-    ? drawn
-    : fallbacks[deterministicCareerEventRoll(
-        context,
-        'request:fallback',
-        3,
-        Math.max(1, fallbacks.length),
-      )];
+  const fallbacks = catalog.requests.filter(
+    (request) =>
+      request.cost.kind !== 'ABSENCE' &&
+      costIsCollectable(next, request.cost, tuning.answerWeeks, difficulty),
+  );
+  const definition =
+    drawnPool.length > 0 &&
+    costIsCollectable(next, drawn.cost, tuning.answerWeeks, difficulty)
+      ? drawn
+      : fallbacks[
+          deterministicCareerEventRoll(
+            context,
+            'request:fallback',
+            3,
+            Math.max(1, fallbacks.length),
+          )
+        ];
   if (definition === undefined) return next;
 
   const pool = eligibleAskers(roster, {
     ...base,
     absence: definition.cost.kind === 'ABSENCE',
   });
-  const totalWeight = totalAskerWeight(pool, qualifiers, tuning.starFameThreshold);
+  const totalWeight = totalAskerWeight(
+    pool,
+    qualifiers,
+    tuning.starFameThreshold,
+  );
   if (totalWeight === 0) return next;
   const asker = pickAsker(
     pool,
@@ -730,7 +855,9 @@ export function advancePlayerRequests(state: GameState, openRequests: boolean): 
   );
   if (asker === undefined) return next;
 
-  const club = next.clubs.find(candidate => candidate.id === next.userClubId)!;
+  const club = next.clubs.find(
+    (candidate) => candidate.id === next.userClubId,
+  )!;
   const costAmount = requestMoneyCost(definition.cost, {
     playerWeeklyWage: asker.weeklyWage,
     squadWeeklyWageBill: club.weeklyWages,
@@ -760,9 +887,11 @@ function lineupSurvivesLeave(state: GameState, player: CareerPlayer): boolean {
   try {
     repairCareerLineupForInjuries({
       ...state,
-      players: state.players.map(candidate => candidate.id === player.id
-        ? { ...candidate, awayWeeks: (candidate.awayWeeks ?? 0) + 1 }
-        : candidate),
+      players: state.players.map((candidate) =>
+        candidate.id === player.id
+          ? { ...candidate, awayWeeks: (candidate.awayWeeks ?? 0) + 1 }
+          : candidate,
+      ),
     });
     return true;
   } catch {
@@ -770,6 +899,9 @@ function lineupSurvivesLeave(state: GameState, player: CareerPlayer): boolean {
   }
 }
 
-function withRequests(state: GameState, requests: PlayerRequestState): GameState {
+function withRequests(
+  state: GameState,
+  requests: PlayerRequestState,
+): GameState {
   return { ...state, playerRequests: requests };
 }

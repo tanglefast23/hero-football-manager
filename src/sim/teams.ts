@@ -1,13 +1,27 @@
 import type { Attrs, PlayerDef, Role, TeamDef, PowerId } from './types';
 
-function p(id: string, name: string, role: Role, attrs: Attrs, power?: PowerId): PlayerDef {
+function p(
+  id: string,
+  name: string,
+  role: Role,
+  attrs: Attrs,
+  power?: PowerId,
+): PlayerDef {
   return { id, name, role, attrs, power };
 }
-const a = (pac: number, sho: number, pas: number, def: number, tec: number, sta: number, ref: number): Attrs =>
-  ({ pac, sho, pas, def, tec, sta, ref });
+const a = (
+  pac: number,
+  sho: number,
+  pas: number,
+  def: number,
+  tec: number,
+  sta: number,
+  ref: number,
+): Attrs => ({ pac, sho, pas, def, tec, sta, ref });
 
 export const ROVERS: TeamDef = {
-  id: 'rovers', name: 'Bramble Rovers',
+  id: 'rovers',
+  name: 'Bramble Rovers',
   players: [
     p('r0', 'Sam Mitts', 'GK', a(40, 20, 45, 40, 35, 60, 62)),
     p('r1', 'Ed Stone', 'DEF', a(55, 30, 50, 62, 45, 65, 10)),
@@ -24,12 +38,19 @@ export const ROVERS: TeamDef = {
 };
 
 export const UNITED: TeamDef = {
-  id: 'united', name: 'Ferrous United',
+  id: 'united',
+  name: 'Ferrous United',
   players: [
     p('u0', 'Vic Palm', 'GK', a(42, 22, 46, 42, 36, 62, 64)),
     p('u1', 'Ali Frost', 'DEF', a(56, 30, 50, 63, 46, 66, 10)),
     p('u2', 'Jon Crag', 'DEF', a(53, 28, 48, 61, 43, 67, 10)),
-    p('u3', 'Rex Bould', 'DEF', a(51, 26, 46, 65, 41, 69, 10), 'SUPER_STRENGTH'),
+    p(
+      'u3',
+      'Rex Bould',
+      'DEF',
+      a(51, 26, 46, 65, 41, 69, 10),
+      'SUPER_STRENGTH',
+    ),
     p('u4', 'Nik Vale', 'DEF', a(57, 31, 51, 59, 47, 65, 10)),
     p('u5', 'Oz Reeds', 'MID', a(59, 44, 61, 51, 57, 65, 10)),
     p('u6', 'Cal Dunn', 'MID', a(57, 43, 64, 49, 59, 63, 10)),

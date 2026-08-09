@@ -2,7 +2,11 @@ import portraitData from '../portraits.json';
 import spriteData from '../sprites.json';
 import manifest from '../player-look-manifest.json';
 import { playerLookId } from '../player-look';
-import { CREATED_PLAYER_LOOK_COUNT, FIELD_PLAYER_LOOK_COUNT, GOALKEEPER_LOOK_COUNT } from '../../../game/player-appearance';
+import {
+  CREATED_PLAYER_LOOK_COUNT,
+  FIELD_PLAYER_LOOK_COUNT,
+  GOALKEEPER_LOOK_COUNT,
+} from '../../../game/player-appearance';
 
 const sheet = portraitData as {
   cell: { w: number; h: number };
@@ -23,22 +27,33 @@ describe('career player portrait roster', () => {
     expect(manifest.created).toHaveLength(CREATED_PLAYER_LOOK_COUNT);
     expect(IDS).toHaveLength(448);
     expect(Object.keys(sheet.sprites)).toHaveLength(1344);
-    const resting = IDS.map(id => JSON.stringify(sheet.sprites[`${id}:rest`]));
+    const resting = IDS.map((id) =>
+      JSON.stringify(sheet.sprites[`${id}:rest`]),
+    );
     expect(new Set(resting).size).toBe(IDS.length);
     for (const id of IDS) {
-      const expressions = EXPRESSIONS.map(expression => sheet.sprites[`${id}:${expression}`]);
+      const expressions = EXPRESSIONS.map(
+        (expression) => sheet.sprites[`${id}:${expression}`],
+      );
       expect(expressions.every(Boolean)).toBe(true);
-      expect(new Set(expressions.map(rows => JSON.stringify(rows))).size).toBe(3);
+      expect(
+        new Set(expressions.map((rows) => JSON.stringify(rows))).size,
+      ).toBe(3);
     }
   });
 
   it('changes only the selected paper-doll layer', () => {
     const rows = (id: string) => sheet.sprites[`${id}:joy`];
-    const paintedMask = (value: string[]) => value.map(row => row.replace(/[^.]/g, '#'));
-    const faceCore = (value: string[]) => value.slice(8, 16).map(row => row.slice(7, 17));
-    const createdId = (skinTone: number, hairstyle: number, kitAccent: number) => (
-      `c${String(skinTone * 40 + hairstyle * 4 + kitAccent).padStart(3, '0')}`
-    );
+    const paintedMask = (value: string[]) =>
+      value.map((row) => row.replace(/[^.]/g, '#'));
+    const faceCore = (value: string[]) =>
+      value.slice(8, 16).map((row) => row.slice(7, 17));
+    const createdId = (
+      skinTone: number,
+      hairstyle: number,
+      kitAccent: number,
+    ) =>
+      `c${String(skinTone * 40 + hairstyle * 4 + kitAccent).padStart(3, '0')}`;
 
     const base = rows('c000');
     for (let skinTone = 1; skinTone < 6; skinTone += 1) {
@@ -74,8 +89,9 @@ describe('career player portrait roster', () => {
 
   it('uses the exact same head for management portraits and match sprites', () => {
     for (const id of IDS) {
-      expect(sheet.sprites[`${id}:rest`].slice(0, 15))
-        .toEqual(matchSheet.sprites[`r:${id}:run0`].slice(0, 15));
+      expect(sheet.sprites[`${id}:rest`].slice(0, 15)).toEqual(
+        matchSheet.sprites[`r:${id}:run0`].slice(0, 15),
+      );
     }
   });
 
@@ -84,24 +100,34 @@ describe('career player portrait roster', () => {
     expect(playerLookId('u0', 'GK')).toBe('g01');
     expect(playerLookId('r9', 'FWD')).toBe('f08');
     expect(playerLookId('u3', 'DEF')).toBe('f12');
-    expect(playerLookId('academy-s3-7', 'MID')).toBe(playerLookId('academy-s3-7', 'MID'));
+    expect(playerLookId('academy-s3-7', 'MID')).toBe(
+      playerLookId('academy-s3-7', 'MID'),
+    );
     expect(manifest.field).toContain(playerLookId('academy-s3-7', 'MID'));
     expect(manifest.goalkeeper).toContain(playerLookId('academy-keeper', 'GK'));
   });
 
   it('keeps Dario Flint fire-tipped in every expression', () => {
-    const fireToken = Object.entries(sheet.palette).find(([, hex]) => hex === '#ff6a00')?.[0];
+    const fireToken = Object.entries(sheet.palette).find(
+      ([, hex]) => hex === '#ff6a00',
+    )?.[0];
     expect(fireToken).toBeDefined();
     for (const expression of EXPRESSIONS) {
-      expect(sheet.sprites[`f08:${expression}`].some(row => row.includes(fireToken!))).toBe(true);
+      expect(
+        sheet.sprites[`f08:${expression}`].some((row) =>
+          row.includes(fireToken!),
+        ),
+      ).toBe(true);
     }
   });
 
   it('ships the six reviewed Asian redesigns with light skin and visible-tooth smiles', () => {
     const reviewed = ['f05', 'f74', 'f81', 'f82', 'f110', 'f134'];
     const toothSmiles = ['f05', 'f81', 'f82', 'f110'];
-    const resting = reviewed.map(id => sheet.sprites[`${id}:rest`]);
-    expect(new Set(resting.map(rows => JSON.stringify(rows))).size).toBe(reviewed.length);
+    const resting = reviewed.map((id) => sheet.sprites[`${id}:rest`]);
+    expect(new Set(resting.map((rows) => JSON.stringify(rows))).size).toBe(
+      reviewed.length,
+    );
     for (const rows of resting) {
       expect(rows.slice(3, 16).join('')).toMatch(/[SL]/);
       expect(rows.slice(0, 7).join('')).not.toMatch(/[HJ]/);
@@ -113,7 +139,8 @@ describe('career player portrait roster', () => {
   });
 
   it('keeps vivid dyes intentional and bleach-blond or silver treatments scarce', () => {
-    const head = (id: string) => sheet.sprites[`${id}:rest`].slice(0, 7).join('');
+    const head = (id: string) =>
+      sheet.sprites[`${id}:rest`].slice(0, 7).join('');
     for (const id of ['f29', 'f75']) expect(head(id)).toMatch(/[BC]/);
     for (const id of ['f33', 'f124']) expect(head(id)).toContain('T');
     for (const id of ['f27', 'f92', 'f135']) expect(head(id)).toMatch(/[RE]/);
@@ -127,7 +154,10 @@ describe('career player portrait roster', () => {
       ...Array.from({ length: 19 }, (_, offset) => `f${140 + offset}`),
       'g24',
     ];
-    const current = Array.from({ length: 9 }, (_, offset) => `f${159 + offset}`);
+    const current = Array.from(
+      { length: 9 },
+      (_, offset) => `f${159 + offset}`,
+    );
     expect(historical).toHaveLength(20);
     expect(current).toHaveLength(9);
     for (const id of [...historical, ...current]) {
@@ -135,7 +165,9 @@ describe('career player portrait roster', () => {
       expect(sheet.sprites).toHaveProperty(`${id}:joy`);
       expect(sheet.sprites).toHaveProperty(`${id}:ko`);
     }
-    const resting = [...historical, ...current].map(id => JSON.stringify(sheet.sprites[`${id}:rest`]));
+    const resting = [...historical, ...current].map((id) =>
+      JSON.stringify(sheet.sprites[`${id}:rest`]),
+    );
     expect(new Set(resting).size).toBe(29);
     expect(sheet.sprites['f157:rest'].slice(5, 16).join('')).toContain('W');
     expect(sheet.sprites['f165:rest'].slice(0, 7).join('')).toMatch(/[AJW]/);

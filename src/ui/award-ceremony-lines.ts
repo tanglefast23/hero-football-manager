@@ -16,8 +16,10 @@ import { copyFor, proseSlug, type CopyFn } from '../i18n';
  * the walk-on pool uses. `src/content/schemas.ts` enforces both the cap and the
  * pool depth when the game loads its content.
  */
-export const WINNER_CEREMONY_LINES: readonly string[] = awardCeremonyLinesJson.winner;
-export const RUNNER_UP_CEREMONY_LINES: readonly string[] = awardCeremonyLinesJson.runnerUp;
+export const WINNER_CEREMONY_LINES: readonly string[] =
+  awardCeremonyLinesJson.winner;
+export const RUNNER_UP_CEREMONY_LINES: readonly string[] =
+  awardCeremonyLinesJson.runnerUp;
 
 export interface AwardCeremonySpeaker {
   category: AwardCategoryId;
@@ -64,17 +66,20 @@ export function awardCeremonySpeeches(
     'runner-up': new Set(),
   };
 
-  return speakers.map(speaker => {
+  return speakers.map((speaker) => {
     const winning = speaker.tone === 'winner';
     const pool = winning ? WINNER_CEREMONY_LINES : RUNNER_UP_CEREMONY_LINES;
     // The draw stays on the English pool: which line a player gets is decided
     // by the index, so translating first would make the same season deal
     // different speeches in different languages.
-    const line = pool[claimLineIndex(
-      ceremonyKey(speaker.playerId, season, speaker.category),
-      pool.length,
-      claimed[speaker.tone],
-    )];
+    const line =
+      pool[
+        claimLineIndex(
+          ceremonyKey(speaker.playerId, season, speaker.category),
+          pool.length,
+          claimed[speaker.tone],
+        )
+      ];
     // Neither pool has ids — the sentence itself is the key, so rewriting a
     // line retires its translation instead of inheriting the neighbour's.
     const key = `ceremony.${winning ? 'winner' : 'runnerUp'}.${proseSlug(line)}`;
@@ -86,7 +91,11 @@ export function awardCeremonySpeeches(
   });
 }
 
-function ceremonyKey(playerId: string, season: number, category: AwardCategoryId): string {
+function ceremonyKey(
+  playerId: string,
+  season: number,
+  category: AwardCategoryId,
+): string {
   return `${playerId}:${season}:${category}`;
 }
 
@@ -98,7 +107,11 @@ function ceremonyKey(playerId: string, season: number, category: AwardCategoryId
  * thirty lines, so the pool cannot run dry; if a caller ever brings more
  * speakers than lines, the last of them repeat rather than speak nothing.
  */
-function claimLineIndex(key: string, poolSize: number, claimed: Set<number>): number {
+function claimLineIndex(
+  key: string,
+  poolSize: number,
+  claimed: Set<number>,
+): number {
   const hashed = hashString(key) % poolSize;
   for (let step = 0; step < poolSize; step += 1) {
     const index = (hashed + step) % poolSize;

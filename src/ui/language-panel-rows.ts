@@ -28,7 +28,7 @@ export function languagePanelRows(
   active: Locale,
   available: readonly Locale[] = ENABLED_LOCALES,
 ): LanguagePanelRow[] {
-  return available.map(locale => ({
+  return available.map((locale) => ({
     locale,
     endonym: localeMeta(locale).endonym,
     selected: locale === active,

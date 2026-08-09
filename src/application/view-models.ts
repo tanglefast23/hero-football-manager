@@ -1,11 +1,19 @@
-import { displayedAttributeValue, displayedDrillGain } from './displayed-attributes';
+import {
+  displayedAttributeValue,
+  displayedDrillGain,
+} from './displayed-attributes';
 import {
   loadLaunchContent,
   type FulltimeCoachLinePool,
   type GameEvent,
   type LaunchContent,
 } from '../content';
-import { adjacencyDescription, copyOrEnglish, facilityName, resolveRingCopy } from './copy-fallback';
+import {
+  adjacencyDescription,
+  copyOrEnglish,
+  facilityName,
+  resolveRingCopy,
+} from './copy-fallback';
 import {
   archetypeName,
   coachSpecialtyName,
@@ -144,7 +152,11 @@ import type {
 // Direct, not through the `../ui` barrel: that barrel drags in React Native
 // components, and this module is imported by headless harnesses.
 import { FORM_STRIP_MAX } from '../ui/form-strip';
-import { cupRoundNameWith, DIVISION_NAME_KEYS, divisionTierLabelWith } from '../game/pyramid';
+import {
+  cupRoundNameWith,
+  DIVISION_NAME_KEYS,
+  divisionTierLabelWith,
+} from '../game/pyramid';
 import { careerDifficulty } from '../game/difficulty';
 import { isAvailableForSelection } from '../game/lineup';
 import { playerLoyalty } from '../game/loyalty';
@@ -160,7 +172,14 @@ import {
   trainingDrillTier,
 } from '../game/promotion-progression';
 import { renewalOpeningOfferWage } from '../game/market';
-import { copyFor, powerCopySlug, proseSlug, type CopyFn } from '../i18n';
+import {
+  copyFor,
+  formatIntegerForCopy,
+  formatMoneyForCopy,
+  powerCopySlug,
+  proseSlug,
+  type CopyFn,
+} from '../i18n';
 
 /**
  * English copy, for every caller that has not threaded a locale through yet.
@@ -208,17 +227,23 @@ export function clubLegacyViewModel(
 ): ClubLegacyViewModel {
   const reconciled = reconcilePendingClubLegends(state);
   const legend = nextPendingClubLegend(reconciled);
-  if (legend === undefined) throw new Error('there is no pending club-legend decision');
+  if (legend === undefined)
+    throw new Error('there is no pending club-legend decision');
   const pendingCount = reconciled.pendingLegacyPlayerIds?.length ?? 0;
   // Newest first, and never the legend whose decision is on this screen: he is
   // the panel above, and listing him twice reads as two different men.
   const formerPlayers = (state.retiredPlayers ?? [])
-    .filter(player => player.clubId === state.userClubId && player.id !== legend.id)
+    .filter(
+      (player) => player.clubId === state.userClubId && player.id !== legend.id,
+    )
     .slice()
     .reverse();
   return {
     seasonLabel: t('clubLegacy.seasonLabel', { season: state.season }),
-    queueLabel: t('clubLegacy.queueLabel', { n: pendingCount, count: pendingCount }),
+    queueLabel: t('clubLegacy.queueLabel', {
+      n: pendingCount,
+      count: pendingCount,
+    }),
     playerId: legend.id,
     playerName: legend.name,
     role: legend.role,
@@ -248,18 +273,20 @@ export function clubLegacyViewModel(
         outcome: t('clubLegacy.letHimGoOutcome'),
       },
     ],
-    formerPlayers: formerPlayers.slice(0, CLUB_LEGACY_ROLL_LIMIT).map(player => ({
-      playerId: player.id,
-      playerName: player.name,
-      role: player.role,
-      ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
-      isHero: player.power !== undefined,
-      detail: t('clubLegacy.formerPlayerDetail', {
+    formerPlayers: formerPlayers
+      .slice(0, CLUB_LEGACY_ROLL_LIMIT)
+      .map((player) => ({
+        playerId: player.id,
+        playerName: player.name,
         role: player.role,
-        seasons: seasonCountLabel(player.seasonsAtClub ?? 0, t),
-        fame: player.fame ?? 0,
-      }),
-    })),
+        ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+        isHero: player.power !== undefined,
+        detail: t('clubLegacy.formerPlayerDetail', {
+          role: player.role,
+          seasons: seasonCountLabel(player.seasonsAtClub ?? 0, t),
+          fame: player.fame ?? 0,
+        }),
+      })),
     formerPlayerTotal: formerPlayers.length,
   };
 }
@@ -275,19 +302,35 @@ export function awakeningCutsceneViewModel(
   t: CopyFn = englishCopy(),
 ): AwakeningCutsceneViewModel {
   const pending = state.awakening.pending;
-  if (pending === undefined) throw new Error('there is no pending awakening cutscene');
-  const player = state.players.find(candidate => candidate.id === pending.playerId);
-  if (player === undefined || player.clubId !== state.userClubId || player.power !== pending.power) {
+  if (pending === undefined)
+    throw new Error('there is no pending awakening cutscene');
+  const player = state.players.find(
+    (candidate) => candidate.id === pending.playerId,
+  );
+  if (
+    player === undefined ||
+    player.clubId !== state.userClubId ||
+    player.power !== pending.power
+  ) {
     throw new Error('the pending awakening player is invalid');
   }
-  const power = content.powers.powers.find(candidate => candidate.id === pending.power);
-  const copy = content.onboarding.powers.find(candidate => candidate.powerId === pending.power);
-  const trigger = content.onboarding.triggers.find(candidate => candidate.id === pending.triggerId);
+  const power = content.powers.powers.find(
+    (candidate) => candidate.id === pending.power,
+  );
+  const copy = content.onboarding.powers.find(
+    (candidate) => candidate.powerId === pending.power,
+  );
+  const trigger = content.onboarding.triggers.find(
+    (candidate) => candidate.id === pending.triggerId,
+  );
   if (power === undefined || copy === undefined || trigger === undefined) {
     throw new Error(`awakening content is missing ${pending.power}`);
   }
-  const fixture = state.fixtures.find(candidate => candidate.id === pending.fixtureId);
-  if (fixture === undefined) throw new Error('the awakening fixture is missing');
+  const fixture = state.fixtures.find(
+    (candidate) => candidate.id === pending.fixtureId,
+  );
+  if (fixture === undefined)
+    throw new Error('the awakening fixture is missing');
   const fillName = (value: string) => value.split('{name}').join(player.name);
   /**
    * The cutscene's prose, in the reader's language, with the player's name put
@@ -295,42 +338,67 @@ export function awakeningCutsceneViewModel(
    * back to, so the untranslated case renders exactly what the content file
    * says — including its `{name}`, which is why the fallback is filled too.
    */
-  const named = (key: string, authored: string) => copyOrEnglish(
-    t,
-    key,
-    fillName(authored),
-    { name: player.name },
-  );
+  const named = (key: string, authored: string) =>
+    copyOrEnglish(t, key, fillName(authored), { name: player.name });
   const powerSlug = powerCopySlug(power.id);
 
   return {
-    fixtureLabel: t('awakening.fixtureLabel', { season: fixture.season, week: fixture.week }),
+    fixtureLabel: t('awakening.fixtureLabel', {
+      season: fixture.season,
+      week: fixture.week,
+    }),
     playerId: player.id,
     playerName: player.name,
     role: player.role,
     lookId: player.lookId,
     powerId: pending.power,
     powerName: copyOrEnglish(t, `powerEffect.${powerSlug}.name`, power.name),
-    powerDescription: copyOrEnglish(t, `powerEffect.${powerSlug}.description`, power.description),
+    powerDescription: copyOrEnglish(
+      t,
+      `powerEffect.${powerSlug}.description`,
+      power.description,
+    ),
     limpCopy: named('story.awakening.limp', content.onboarding.limp),
     triggerVisual: trigger.visual,
-    triggerKicker: copyOrEnglish(t, `awakening.trigger.${trigger.id}.kicker`, trigger.kicker),
-    triggerTitle: copyOrEnglish(t, `awakening.trigger.${trigger.id}.title`, trigger.title),
-    triggerCallout: copyOrEnglish(t, `awakening.trigger.${trigger.id}.callout`, trigger.callout),
-    triggerDetail: copyOrEnglish(t, `story.awakening.trigger.${trigger.id}.detail`, trigger.detail),
-    triggerCopy: named(`story.awakening.trigger.${trigger.id}.copy`, trigger.copy),
+    triggerKicker: copyOrEnglish(
+      t,
+      `awakening.trigger.${trigger.id}.kicker`,
+      trigger.kicker,
+    ),
+    triggerTitle: copyOrEnglish(
+      t,
+      `awakening.trigger.${trigger.id}.title`,
+      trigger.title,
+    ),
+    triggerCallout: copyOrEnglish(
+      t,
+      `awakening.trigger.${trigger.id}.callout`,
+      trigger.callout,
+    ),
+    triggerDetail: copyOrEnglish(
+      t,
+      `story.awakening.trigger.${trigger.id}.detail`,
+      trigger.detail,
+    ),
+    triggerCopy: named(
+      `story.awakening.trigger.${trigger.id}.copy`,
+      trigger.copy,
+    ),
     omenCopy: named(`story.awakening.power.${copy.powerId}.omen`, copy.omen),
-    revealCopy: named(`story.awakening.power.${copy.powerId}.reveal`, copy.reveal),
+    revealCopy: named(
+      `story.awakening.power.${copy.powerId}.reveal`,
+      copy.reveal,
+    ),
     firstHero: pending.firstHero,
     licenseLabel: player.licensed
       ? t('awakening.licenseActive')
       : t('awakening.licenseAwaiting'),
     continueLabel: pending.firstHero
-      // Spoken, never drawn: the visible button is `powerAcquiredDemo.continue`
-      // and this reaches only the accessibility label. The `▸` went with the
-      // English — a screen reader announces U+25B8 as "black right-pointing
-      // small triangle", which is decoration read aloud as furniture.
-      ? t('awakening.continue.heroEra')
+      ? // Spoken, never drawn: the visible button is `powerAcquiredDemo.continue`
+        // and this reaches only the accessibility label. The `▸` went with the
+        // English — a screen reader announces U+25B8 as "black right-pointing
+        // small triangle", which is decoration read aloud as furniture.
+        t('awakening.continue.heroEra')
       : state.phase === 'season-end' || state.phase === 'complete'
         ? t('awakening.continue.seasonReview')
         : hasPostMatchReport
@@ -352,7 +420,12 @@ export function awakeningCutsceneViewModel(
 const STATEMENT_WEEKS = 4;
 
 /** The three ledger kinds no weekly projection can forecast. */
-const VARIABLE_INCOME_KINDS: readonly LedgerLineKind[] = ['tickets', 'sponsor', 'buzz', 'prize'];
+const VARIABLE_INCOME_KINDS: readonly LedgerLineKind[] = [
+  'tickets',
+  'sponsor',
+  'buzz',
+  'prize',
+];
 
 function ledgerLineKind(amount: number): 'income' | 'expense' | 'neutral' {
   return amount > 0 ? 'income' : amount < 0 ? 'expense' : 'neutral';
@@ -364,23 +437,30 @@ function ledgerLineKind(amount: number): 'income' | 'expense' | 'neutral' {
  * no gate at all, so a bare `$0` there reads as a broken number rather than as
  * the plain fact that the club played somewhere else.
  */
-function variableIncomeViewModel(state: GameState, t: CopyFn): ClubVariableIncomeViewModel {
+function variableIncomeViewModel(
+  state: GameState,
+  t: CopyFn,
+): ClubVariableIncomeViewModel {
   const settled = state.ledgers[state.ledgers.length - 1];
   const amount = (settled?.lines ?? [])
-    .filter(line => VARIABLE_INCOME_KINDS.includes(line.kind))
+    .filter((line) => VARIABLE_INCOME_KINDS.includes(line.kind))
     .reduce((sum, line) => sum + line.amount, 0);
   if (amount !== 0) return { amount };
-  if (settled === undefined) return { amount, detail: t('clubFinances.variableIncomeNoMatch') };
+  if (settled === undefined)
+    return { amount, detail: t('clubFinances.variableIncomeNoMatch') };
   // Cup ties live in the M2 sidecar, so `state.fixtures` is the league season
   // alone — exactly the fixture whose venue decides the ordinary gate.
-  const fixture = state.fixtures.find(candidate => (
-    candidate.season === settled.season
-    && candidate.week === settled.week
-    && (candidate.homeClubId === state.userClubId || candidate.awayClubId === state.userClubId)
-  ));
+  const fixture = state.fixtures.find(
+    (candidate) =>
+      candidate.season === settled.season &&
+      candidate.week === settled.week &&
+      (candidate.homeClubId === state.userClubId ||
+        candidate.awayClubId === state.userClubId),
+  );
   // The league calendar leaves weeks empty — the season opens with two of them —
   // so "no match" is a distinct fact from "played away", and both beat a bare $0.
-  if (fixture === undefined) return { amount, detail: t('clubFinances.variableIncomeNoMatch') };
+  if (fixture === undefined)
+    return { amount, detail: t('clubFinances.variableIncomeNoMatch') };
   if (fixture.awayClubId === state.userClubId) {
     return { amount, detail: t('clubFinances.variableIncomeAwayGame') };
   }
@@ -420,45 +500,61 @@ function incomeGenerationViewModel(
     },
     {
       id: 'income-stadium-stand',
-      label: commercial.standCount === 0
-        ? t('clubFinances.incomeStandLabel')
-        : commercial.standCount === 1
-          ? t('clubFinances.incomeStandLabelLevel', { level: commercial.standLevel })
-          : t('clubFinances.incomeStandLabelBuilt', { count: commercial.standCount }),
-      detail: commercial.standCount === 0
-        ? t('clubFinances.incomeStandDetailUnbuilt')
-        : t('clubFinances.incomeStandDetailBuilt', {
-          levels: t('viewModels.levelCount', {
-            n: commercial.standLevel,
-            count: commercial.standLevel,
-          }),
-          stands: t('viewModels.standCount', {
-            n: commercial.standCount,
-            count: commercial.standCount,
-          }),
-        }),
-      effect: commercial.standCount === 0
-        ? t('clubFinances.incomeStandEffectUnbuilt')
-        : t('clubFinances.incomeStandEffect', { percent: commercial.gateBonusPercent }),
+      label:
+        commercial.standCount === 0
+          ? t('clubFinances.incomeStandLabel')
+          : commercial.standCount === 1
+            ? t('clubFinances.incomeStandLabelLevel', {
+                level: commercial.standLevel,
+              })
+            : t('clubFinances.incomeStandLabelBuilt', {
+                count: commercial.standCount,
+              }),
+      detail:
+        commercial.standCount === 0
+          ? t('clubFinances.incomeStandDetailUnbuilt')
+          : t('clubFinances.incomeStandDetailBuilt', {
+              levels: t('viewModels.levelCount', {
+                n: commercial.standLevel,
+                count: commercial.standLevel,
+              }),
+              stands: t('viewModels.standCount', {
+                n: commercial.standCount,
+                count: commercial.standCount,
+              }),
+            }),
+      effect:
+        commercial.standCount === 0
+          ? t('clubFinances.incomeStandEffectUnbuilt')
+          : t('clubFinances.incomeStandEffect', {
+              percent: commercial.gateBonusPercent,
+            }),
       owned: commercial.standCount > 0,
     },
     {
       id: 'income-fan-shop',
-      label: commercial.shopCount === 0
-        ? t('clubFinances.incomeShopLabel')
-        : commercial.shopCount === 1
-          ? t('clubFinances.incomeShopLabelLevel', { level: commercial.shopLevel })
-          : t('clubFinances.incomeShopLabelBuilt', { count: commercial.shopCount }),
-      detail: commercial.shopCount === 0
-        ? t('clubFinances.incomeShopDetailUnbuilt')
-        : commercial.merchAdjacencyPercent > 0
-          ? t('clubFinances.incomeShopDetailAdjacency', {
-            percent: commercial.merchAdjacencyPercent,
-          })
-          : t('clubFinances.incomeShopDetailBuilt'),
-      effect: commercial.shopCount === 0
-        ? t('clubFinances.incomeShopEffectUnbuilt')
-        : t('clubFinances.incomeShopEffect', { level: commercial.shopLevel }),
+      label:
+        commercial.shopCount === 0
+          ? t('clubFinances.incomeShopLabel')
+          : commercial.shopCount === 1
+            ? t('clubFinances.incomeShopLabelLevel', {
+                level: commercial.shopLevel,
+              })
+            : t('clubFinances.incomeShopLabelBuilt', {
+                count: commercial.shopCount,
+              }),
+      detail:
+        commercial.shopCount === 0
+          ? t('clubFinances.incomeShopDetailUnbuilt')
+          : commercial.merchAdjacencyPercent > 0
+            ? t('clubFinances.incomeShopDetailAdjacency', {
+                percent: commercial.merchAdjacencyPercent,
+              })
+            : t('clubFinances.incomeShopDetailBuilt'),
+      effect:
+        commercial.shopCount === 0
+          ? t('clubFinances.incomeShopEffectUnbuilt')
+          : t('clubFinances.incomeShopEffect', { level: commercial.shopLevel }),
       owned: commercial.shopCount > 0,
     },
   ];
@@ -470,26 +566,36 @@ function incomeGenerationViewModel(
   return {
     rows: [
       ...rows,
-      ...(sponsorIncome <= 0 ? [] : [{
-        id: 'income-sponsor',
-        label: managedSponsors
-          ? t('clubFinances.incomeSponsorLabel')
-          : t('clubFinances.incomeAdvertisingLabel'),
-        detail: managedSponsors
-          ? t('clubFinances.incomeSponsorDetail', {
-            payment: sponsorship?.nextPaymentLabel ?? t('clubFinances.incomeSponsorPaidMonthly'),
-          })
-          : t('clubFinances.incomeAdvertisingDetail'),
-        effect: t('clubFinances.incomeSponsorEffect'),
-        owned: true,
-      }]),
-      ...(sponsorship?.buzz === undefined ? [] : [{
-        id: 'income-buzz',
-        label: 'Buzz',
-        detail: t('clubFinances.incomeBuzzDetail'),
-        effect: `${sponsorship.buzz.value} / 100`,
-        owned: true,
-      }]),
+      ...(sponsorIncome <= 0
+        ? []
+        : [
+            {
+              id: 'income-sponsor',
+              label: managedSponsors
+                ? t('clubFinances.incomeSponsorLabel')
+                : t('clubFinances.incomeAdvertisingLabel'),
+              detail: managedSponsors
+                ? t('clubFinances.incomeSponsorDetail', {
+                    payment:
+                      sponsorship?.nextPaymentLabel ??
+                      t('clubFinances.incomeSponsorPaidMonthly'),
+                  })
+                : t('clubFinances.incomeAdvertisingDetail'),
+              effect: t('clubFinances.incomeSponsorEffect'),
+              owned: true,
+            },
+          ]),
+      ...(sponsorship?.buzz === undefined
+        ? []
+        : [
+            {
+              id: 'income-buzz',
+              label: 'Buzz',
+              detail: t('clubFinances.incomeBuzzDetail'),
+              effect: `${sponsorship.buzz.value} / 100`,
+              owned: true,
+            },
+          ]),
     ],
   };
 }
@@ -502,37 +608,63 @@ export function clubFinancesViewModel(
   const sponsorship = clubSponsorshipViewModel(state, club, t);
   const wageSubsidyPercent = difficultyRules(state).seasonOneWageSubsidyPercent;
   const latest = state.ledgers[state.ledgers.length - 1];
-  const facilityUpkeep = state.facilities.grid === undefined
-    ? 0
-    : weeklyFacilityUpkeep(state.facilities.grid);
-  const coachWage = state.market === undefined ? 0 : careerCoachWageLedgerAmount(state.market);
+  const facilityUpkeep =
+    state.facilities.grid === undefined
+      ? 0
+      : weeklyFacilityUpkeep(state.facilities.grid);
+  const coachWage =
+    state.market === undefined ? 0 : careerCoachWageLedgerAmount(state.market);
   const merchandiseIncome = weeklyMerchandiseIncome(state, club);
   const recurringProjectionLines = [
-    ...(merchandiseIncome === 0 ? [] : [{
-      kind: 'merch' as const,
-      label: t('ledger.fanShopMerchandise'),
-      amount: merchandiseIncome,
-    }]),
-    { kind: 'wages' as const, label: t('ledger.weeklyWages'), amount: -club.weeklyWages },
-    ...(coachWage === 0 ? [] : [{
+    ...(merchandiseIncome === 0
+      ? []
+      : [
+          {
+            kind: 'merch' as const,
+            label: t('ledger.fanShopMerchandise'),
+            amount: merchandiseIncome,
+          },
+        ]),
+    {
       kind: 'wages' as const,
-      label: t('ledger.coachingStaffWages'),
-      amount: coachWage,
-    }]),
-    ...(facilityUpkeep === 0 ? [] : [{
-      kind: 'facilities' as const,
-      label: t('ledger.facilityUpkeep'),
-      amount: -facilityUpkeep,
-    }]),
-    ...(state.season === 1 && wageSubsidyPercent > 0 ? [{
-      kind: 'subsidy' as const,
-      label: t('ledger.seasonOneWageSubsidy'),
-      amount: Math.floor(
-        (club.weeklyWages + Math.abs(coachWage)) * wageSubsidyPercent / 100,
-      ),
-    }] : []),
+      label: t('ledger.weeklyWages'),
+      amount: -club.weeklyWages,
+    },
+    ...(coachWage === 0
+      ? []
+      : [
+          {
+            kind: 'wages' as const,
+            label: t('ledger.coachingStaffWages'),
+            amount: coachWage,
+          },
+        ]),
+    ...(facilityUpkeep === 0
+      ? []
+      : [
+          {
+            kind: 'facilities' as const,
+            label: t('ledger.facilityUpkeep'),
+            amount: -facilityUpkeep,
+          },
+        ]),
+    ...(state.season === 1 && wageSubsidyPercent > 0
+      ? [
+          {
+            kind: 'subsidy' as const,
+            label: t('ledger.seasonOneWageSubsidy'),
+            amount: Math.floor(
+              ((club.weeklyWages + Math.abs(coachWage)) * wageSubsidyPercent) /
+                100,
+            ),
+          },
+        ]
+      : []),
   ];
-  const weeklyNet = recurringProjectionLines.reduce((sum, line) => sum + line.amount, 0);
+  const weeklyNet = recurringProjectionLines.reduce(
+    (sum, line) => sum + line.amount,
+    0,
+  );
   const operatingOutlook = fourWeekOperatingOutlook(
     state,
     club,
@@ -542,34 +674,45 @@ export function clubFinancesViewModel(
   // Newest week first: the statement is read top-down like a bank statement,
   // and the week just settled is the one the manager came here to check.
   const settledStatements = state.ledgers.slice(-STATEMENT_WEEKS).reverse();
-  const statement = settledStatements.length === 0
-    ? recurringProjectionLines.map((line, index) => ({
-      id: `finance-projection-${index}`,
-      periodLabel: `S${state.season} · W${state.week}`,
-      // Already translated: the projection lines are built right here with `t`.
-      label: line.label,
-      amount: line.amount,
-      kind: ledgerLineKind(line.amount),
-    }))
-    // `labelKey` is written onto every persisted ledger line and translated in
-    // all six catalogs, but this read used the raw English — so the projection
-    // rows above rendered in the player's language and then flipped to English
-    // the moment the first week settled. Same screen, two languages, on the
-    // strength of one word.
-    : settledStatements.flatMap(entry => entry.lines.map((line, index) => ({
-      id: `finance-${entry.season}-${entry.week}-${index}`,
-      periodLabel: `S${entry.season} · W${entry.week}`,
-      label: copyOrEnglish(t, line.labelKey, line.label, line.labelParams),
-      amount: line.amount,
-      kind: ledgerLineKind(line.amount),
-    })));
-  const trainingGroundProject = state.facilities.grid?.construction?.type === 'training-pitch'
-    && state.facilities.grid.construction.kind === 'BUILD'
-    ? state.facilities.grid.construction
-    : undefined;
+  const statement =
+    settledStatements.length === 0
+      ? recurringProjectionLines.map((line, index) => ({
+          id: `finance-projection-${index}`,
+          periodLabel: `S${state.season} · W${state.week}`,
+          // Already translated: the projection lines are built right here with `t`.
+          label: line.label,
+          amount: line.amount,
+          kind: ledgerLineKind(line.amount),
+        }))
+      : // `labelKey` is written onto every persisted ledger line and translated in
+        // all six catalogs, but this read used the raw English — so the projection
+        // rows above rendered in the player's language and then flipped to English
+        // the moment the first week settled. Same screen, two languages, on the
+        // strength of one word.
+        settledStatements.flatMap((entry) =>
+          entry.lines.map((line, index) => ({
+            id: `finance-${entry.season}-${entry.week}-${index}`,
+            periodLabel: `S${entry.season} · W${entry.week}`,
+            label: copyOrEnglish(
+              t,
+              line.labelKey,
+              line.label,
+              line.labelParams,
+            ),
+            amount: line.amount,
+            kind: ledgerLineKind(line.amount),
+          })),
+        );
+  const trainingGroundProject =
+    state.facilities.grid?.construction?.type === 'training-pitch' &&
+    state.facilities.grid.construction.kind === 'BUILD'
+      ? state.facilities.grid.construction
+      : undefined;
   const loan = outstandingLoanViewModel(state, t);
   return {
-    periodLabel: latest ? `S${latest.season} · W${latest.week}` : `S${state.season} · W${state.week}`,
+    periodLabel: latest
+      ? `S${latest.season} · W${latest.week}`
+      : `S${state.season} · W${state.week}`,
     resources: {
       money: club.cash,
       trainingPoints: state.trainingPoints,
@@ -580,15 +723,21 @@ export function clubFinancesViewModel(
     recentTransactions: [...(state.cashTransactions ?? [])]
       .slice(-8)
       .reverse()
-      .map(transaction => ({
+      .map((transaction) => ({
         id: transaction.id,
         periodLabel: `S${transaction.season} · W${transaction.week}`,
         // The English `label` is what the save holds; the key beside it is what
         // the club reads. Old transactions carry no key and keep their English.
-        label: copyOrEnglish(t, transaction.labelKey, transaction.label, transaction.labelParams),
+        label: copyOrEnglish(
+          t,
+          transaction.labelKey,
+          transaction.label,
+          transaction.labelParams,
+        ),
         amount: transaction.amount,
         balanceAfter: transaction.balanceAfter,
-        kind: transaction.amount > 0 ? 'income' as const : 'expense' as const,
+        kind:
+          transaction.amount > 0 ? ('income' as const) : ('expense' as const),
       })),
     fans: club.fans,
     variableIncome: variableIncomeViewModel(state, t),
@@ -598,8 +747,10 @@ export function clubFinancesViewModel(
     projectedBalance: club.cash + weeklyNet,
     ...(state.season === 1 && wageSubsidyPercent > 0
       ? {
-        wageSubsidyLabel: t('clubFinances.wageSubsidyLabel', { percent: wageSubsidyPercent }),
-      }
+          wageSubsidyLabel: t('clubFinances.wageSubsidyLabel', {
+            percent: wageSubsidyPercent,
+          }),
+        }
       : {}),
     trainingGround: {
       built: state.facilities.trainingGroundBuilt,
@@ -626,31 +777,41 @@ export function clubFinancesViewModel(
 function fourWeekOperatingOutlook(
   state: GameState,
   club: GameState['clubs'][number],
-  recurringLines: readonly { readonly label: string; readonly amount: number }[],
+  recurringLines: readonly {
+    readonly label: string;
+    readonly amount: number;
+  }[],
   t: CopyFn,
 ): ClubFinancesViewModel['operatingOutlook'] {
   if (state.phase === 'season-end' || state.phase === 'complete') {
     return { weeks: [], net: 0, projectedBalance: club.cash };
   }
-  const recurringNet = recurringLines.reduce((sum, line) => sum + line.amount, 0);
+  const recurringNet = recurringLines.reduce(
+    (sum, line) => sum + line.amount,
+    0,
+  );
   const sponsorIncome = currentActualMonthlySponsorIncome(state, club);
   // A D5 club has no sponsors to name. Managed contracts, not the division, are
   // what makes "sponsor" the true word — a club relegated from D4 keeps both.
   const managed = state.clubBusiness.sponsorship.activeContracts.length > 0;
   const gateIncome = homeGateIncome(state, club, 'projected home gate');
-  const cup = state.m2?.nationalCups.find(candidate => candidate.season === state.season);
+  const cup = state.m2?.nationalCups.find(
+    (candidate) => candidate.season === state.season,
+  );
   let runningBalance = club.cash;
   const weeks = Array.from(
     { length: Math.min(4, SEASON_WEEKS - state.week + 1) },
     (_unused, index) => state.week + index,
-  ).map(week => {
+  ).map((week) => {
     let net = recurringNet;
     const facts: string[] = [];
-    const leagueFixture = state.fixtures.find(fixture => (
-      fixture.season === state.season
-      && fixture.week === week
-      && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
-    ));
+    const leagueFixture = state.fixtures.find(
+      (fixture) =>
+        fixture.season === state.season &&
+        fixture.week === week &&
+        (fixture.homeClubId === state.userClubId ||
+          fixture.awayClubId === state.userClubId),
+    );
     if (leagueFixture?.homeClubId === state.userClubId) {
       net += gateIncome;
       facts.push(t('clubFinances.outlookHomeLeagueGate'));
@@ -658,10 +819,14 @@ function fourWeekOperatingOutlook(
       facts.push(t('clubFinances.outlookAwayLeagueGame'));
     }
 
-    const cupRound = cup?.rounds.find(round => CUP_SETTLEMENT_WEEKS[round.number - 1] === week);
-    const cupFixture = cupRound?.fixtures.find(fixture => (
-      fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId
-    ));
+    const cupRound = cup?.rounds.find(
+      (round) => CUP_SETTLEMENT_WEEKS[round.number - 1] === week,
+    );
+    const cupFixture = cupRound?.fixtures.find(
+      (fixture) =>
+        fixture.homeClubId === state.userClubId ||
+        fixture.awayClubId === state.userClubId,
+    );
     if (cupFixture?.homeClubId === state.userClubId) {
       net += gateIncome;
       facts.push(t('clubFinances.outlookHomeCupGate'));
@@ -669,16 +834,24 @@ function fourWeekOperatingOutlook(
       facts.push(t('clubFinances.outlookAwayCupTie'));
     }
 
-    if (SPONSOR_PAYMENT_WEEKS.includes(week as typeof SPONSOR_PAYMENT_WEEKS[number])) {
+    if (
+      SPONSOR_PAYMENT_WEEKS.includes(
+        week as (typeof SPONSOR_PAYMENT_WEEKS)[number],
+      )
+    ) {
       net += sponsorIncome;
-      facts.push(managed
-        ? t('clubFinances.outlookSponsorPayment')
-        : t('clubFinances.outlookAdvertisingPayment'));
+      facts.push(
+        managed
+          ? t('clubFinances.outlookSponsorPayment')
+          : t('clubFinances.outlookAdvertisingPayment'),
+      );
     }
     if (facts.length === 0) {
-      facts.push(managed
-        ? t('clubFinances.outlookNoSponsorPayment')
-        : t('clubFinances.outlookNoAdvertisingPayment'));
+      facts.push(
+        managed
+          ? t('clubFinances.outlookNoSponsorPayment')
+          : t('clubFinances.outlookNoAdvertisingPayment'),
+      );
     }
     runningBalance += net;
     return {
@@ -720,13 +893,19 @@ const SPONSOR_PROFILE_LABEL_KEYS: Readonly<Record<SponsorProfileId, string>> = {
  */
 function sponsorNameCopy(
   t: CopyFn,
-  contract: Pick<SponsorContractSnapshot, 'sponsorContentId' | 'sponsorName' | 'slot'>,
+  contract: Pick<
+    SponsorContractSnapshot,
+    'sponsorContentId' | 'sponsorName' | 'slot'
+  >,
   portfolioSlots: number,
 ): string {
-  if (contract.sponsorContentId !== CONTINUITY_SPONSOR_ID) return contract.sponsorName;
+  if (contract.sponsorContentId !== CONTINUITY_SPONSOR_ID)
+    return contract.sponsorName;
   return portfolioSlots <= 1
     ? t('clubFinances.sponsorContinuityName')
-    : t('clubFinances.sponsorContinuityNameNumbered', { number: contract.slot + 1 });
+    : t('clubFinances.sponsorContinuityNameNumbered', {
+        number: contract.slot + 1,
+      });
 }
 
 /**
@@ -743,15 +922,23 @@ function sponsorOfferLineCopy(
   return contract.sponsorContentId === CONTINUITY_SPONSOR_ID
     ? t('clubFinances.sponsorContinuityTerms')
     : copyOrEnglish(
-      t,
-      `sponsor.brand.${contract.sponsorContentId}.offerLine`,
-      contract.offerLine,
-    );
+        t,
+        `sponsor.brand.${contract.sponsorContentId}.offerLine`,
+        contract.offerLine,
+      );
 }
 
 /** The season target, from the key the producer now writes beside the English. */
-function sponsorObjectiveCopy(t: CopyFn, objective: SponsorObjectiveSnapshot): string {
-  return copyOrEnglish(t, objective.labelKey, objective.label, objective.labelParams);
+function sponsorObjectiveCopy(
+  t: CopyFn,
+  objective: SponsorObjectiveSnapshot,
+): string {
+  return copyOrEnglish(
+    t,
+    objective.labelKey,
+    objective.label,
+    objective.labelParams,
+  );
 }
 
 function clubSponsorshipViewModel(
@@ -765,94 +952,133 @@ function clubSponsorshipViewModel(
 
   const sponsorPercent = difficultyRules(state).sponsorIncomePercent;
   const actualAllocations = managed
-    ? allocateSponsorPortfolioPayment(sponsorship.activeContracts, sponsorPercent)
+    ? allocateSponsorPortfolioPayment(
+        sponsorship.activeContracts,
+        sponsorPercent,
+      )
     : [];
-  const actualByContract = new Map(actualAllocations.map(allocation => [
-    allocation.contractId,
-    allocation.actualAmount,
-  ]));
+  const actualByContract = new Map(
+    actualAllocations.map((allocation) => [
+      allocation.contractId,
+      allocation.actualAmount,
+    ]),
+  );
   const nominalMonthlyIncome = managed
     ? nominalSponsorPortfolioIncome(sponsorship.activeContracts)
     : club.sponsorMonthlyFee;
   const actualMonthlyIncome = managed
     ? actualSponsorPortfolioIncome(sponsorship.activeContracts, sponsorPercent)
-    : Math.floor(club.sponsorMonthlyFee * sponsorPercent / 100);
-  const bonusByContract = actualObjectiveBonuses(sponsorship.activeContracts, sponsorPercent);
-  const nextSponsorPaymentWeek = SPONSOR_PAYMENT_WEEKS.find(week => week >= state.week);
+    : Math.floor((club.sponsorMonthlyFee * sponsorPercent) / 100);
+  const bonusByContract = actualObjectiveBonuses(
+    sponsorship.activeContracts,
+    sponsorPercent,
+  );
+  const nextSponsorPaymentWeek = SPONSOR_PAYMENT_WEEKS.find(
+    (week) => week >= state.week,
+  );
 
-  const slots = sponsorship.activeContracts.map(contract => {
+  const slots = sponsorship.activeContracts.map((contract) => {
     // "Current Sponsor" only loses its number when the club has a single slot,
     // which is what the producer decided from `capacity` when it wrote the
     // English. A portfolio is one season's worth of contracts, so counting them
     // recovers the same answer without parsing the persisted words back.
-    const portfolioSlots = sponsorship.activeContracts
-      .filter(candidate => candidate.season === contract.season).length;
-    const progress = contract.objective === undefined
-      ? undefined
-      : sponsorObjectiveProgressFromFixtures(
-          contract.objective,
-          state.fixtures,
-          state.userClubId,
-          state.season,
-        );
-    const objectiveStatus = contract.objectiveOutcome === undefined
-      ? 'IN_PROGRESS' as const
-      : contract.objectiveOutcome.met ? 'MET' as const : 'FAILED' as const;
+    const portfolioSlots = sponsorship.activeContracts.filter(
+      (candidate) => candidate.season === contract.season,
+    ).length;
+    const progress =
+      contract.objective === undefined
+        ? undefined
+        : sponsorObjectiveProgressFromFixtures(
+            contract.objective,
+            state.fixtures,
+            state.userClubId,
+            state.season,
+          );
+    const objectiveStatus =
+      contract.objectiveOutcome === undefined
+        ? ('IN_PROGRESS' as const)
+        : contract.objectiveOutcome.met
+          ? ('MET' as const)
+          : ('FAILED' as const);
     return {
       slot: contract.slot,
-      slotLabel: t('clubFinances.sponsorSlotLabel', { number: contract.slot + 1 }),
+      slotLabel: t('clubFinances.sponsorSlotLabel', {
+        number: contract.slot + 1,
+      }),
       sponsorName: sponsorNameCopy(t, contract, portfolioSlots),
       offerLine: sponsorOfferLineCopy(t, contract),
       provisional: contract.provisional,
       nominalMonthlyFee: contract.nominalMonthlyFee,
       actualMonthlyFee: actualByContract.get(contract.contractId) ?? 0,
-      ...(contract.objective === undefined ? {} : {
-        objectiveLabel: sponsorObjectiveCopy(t, contract.objective),
-        objectiveProgressLabel: progress === undefined
-          ? undefined
-          : contract.objective.kind === 'LEAGUE_FINISH'
-            ? t('clubFinances.sponsorObjectiveLeaguePlace', {
-              place: progress.value,
-              target: progress.target,
-            })
-            : `${progress.value} / ${progress.target}`,
-        objectiveStatus,
-        nominalBonus: contract.objective.nominalBonus,
-        actualBonus: contract.objectiveOutcome?.actualBonus
-          ?? bonusByContract.get(contract.contractId)
-          ?? 0,
-      }),
+      ...(contract.objective === undefined
+        ? {}
+        : {
+            objectiveLabel: sponsorObjectiveCopy(t, contract.objective),
+            objectiveProgressLabel:
+              progress === undefined
+                ? undefined
+                : contract.objective.kind === 'LEAGUE_FINISH'
+                  ? t('clubFinances.sponsorObjectiveLeaguePlace', {
+                      place: progress.value,
+                      target: progress.target,
+                    })
+                  : `${progress.value} / ${progress.target}`,
+            objectiveStatus,
+            nominalBonus: contract.objective.nominalBonus,
+            actualBonus:
+              contract.objectiveOutcome?.actualBonus ??
+              bonusByContract.get(contract.contractId) ??
+              0,
+          }),
       offers: sponsorship.offers
-        .filter(offer => offer.slot === contract.slot)
-        .map(offer => sponsorOfferViewModel(
-          offer,
-          sponsorship.activeContracts,
-          sponsorPercent,
-          t,
-        )),
+        .filter((offer) => offer.slot === contract.slot)
+        .map((offer) =>
+          sponsorOfferViewModel(
+            offer,
+            sponsorship.activeContracts,
+            sponsorPercent,
+            t,
+          ),
+        ),
     };
   });
-  const buzz = state.season < 3
-    ? undefined
-    : {
-        value: state.clubBusiness.buzz.value,
-        pendingPayout: Math.round(actualMonthlyIncome * state.clubBusiness.buzz.value / 100),
-        nextPayoutLabel: t('clubFinances.buzzNextPayoutWeek', { week: state.week <= 15 ? 15 : 30 }),
-        ...(state.clubBusiness.buzz.lastSettlementSummary === undefined ? {} : {
-          lastSettlementLabel: t('clubFinances.buzzLastSettlementLabel', {
-            reached: state.clubBusiness.buzz.lastSettlementSummary.prePayoutValue,
-            amount: `$${state.clubBusiness.buzz.lastSettlementSummary.payout.toLocaleString()}`,
+  const buzz =
+    state.season < 3
+      ? undefined
+      : {
+          value: state.clubBusiness.buzz.value,
+          pendingPayout: Math.round(
+            (actualMonthlyIncome * state.clubBusiness.buzz.value) / 100,
+          ),
+          nextPayoutLabel: t('clubFinances.buzzNextPayoutWeek', {
+            week: state.week <= 15 ? 15 : 30,
           }),
-        }),
-      };
+          ...(state.clubBusiness.buzz.lastSettlementSummary === undefined
+            ? {}
+            : {
+                lastSettlementLabel: t('clubFinances.buzzLastSettlementLabel', {
+                  reached:
+                    state.clubBusiness.buzz.lastSettlementSummary
+                      .prePayoutValue,
+                  amount: formatMoneyForCopy(
+                    t,
+                    state.clubBusiness.buzz.lastSettlementSummary.payout,
+                  ),
+                }),
+              }),
+        };
   return {
     managed,
-    offerWindowOpen: managed && state.week <= 4 && sponsorship.offers.length > 0,
+    offerWindowOpen:
+      managed && state.week <= 4 && sponsorship.offers.length > 0,
     actualMonthlyIncome,
     nominalMonthlyIncome,
-    nextPaymentLabel: nextSponsorPaymentWeek === undefined
-      ? t('clubFinances.sponsorNextPaymentPreSeason')
-      : t('clubFinances.sponsorNextPaymentWeek', { week: nextSponsorPaymentWeek }),
+    nextPaymentLabel:
+      nextSponsorPaymentWeek === undefined
+        ? t('clubFinances.sponsorNextPaymentPreSeason')
+        : t('clubFinances.sponsorNextPaymentWeek', {
+            week: nextSponsorPaymentWeek,
+          }),
     ...(sponsorPercent === 100 ? {} : { chairmanPercent: sponsorPercent }),
     slots,
     ...(buzz === undefined ? {} : { buzz }),
@@ -865,24 +1091,29 @@ function sponsorOfferViewModel(
   sponsorPercent: number,
   t: CopyFn,
 ) {
-  const hypothetical: SponsorContractSnapshot[] = contracts.map(contract => contract.slot === offer.slot
-    ? {
-        contractId: `preview-${offer.offerId}`,
-        sponsorContentId: offer.sponsorContentId,
-        sponsorName: offer.sponsorName,
-        offerLine: offer.offerLine,
-        season: offer.season,
-        slot: offer.slot,
-        nominalMonthlyFee: offer.nominalMonthlyFee,
-        profile: offer.profile,
-        objective: offer.objective,
-        provisional: false,
-      }
-    : contract);
+  const hypothetical: SponsorContractSnapshot[] = contracts.map((contract) =>
+    contract.slot === offer.slot
+      ? {
+          contractId: `preview-${offer.offerId}`,
+          sponsorContentId: offer.sponsorContentId,
+          sponsorName: offer.sponsorName,
+          offerLine: offer.offerLine,
+          season: offer.season,
+          slot: offer.slot,
+          nominalMonthlyFee: offer.nominalMonthlyFee,
+          profile: offer.profile,
+          objective: offer.objective,
+          provisional: false,
+        }
+      : contract,
+  );
   const previewId = `preview-${offer.offerId}`;
-  const actualMonthlyFee = allocateSponsorPortfolioPayment(hypothetical, sponsorPercent)
-    .find(allocation => allocation.contractId === previewId)?.actualAmount ?? 0;
-  const actualBonus = actualObjectiveBonuses(hypothetical, sponsorPercent).get(previewId) ?? 0;
+  const actualMonthlyFee =
+    allocateSponsorPortfolioPayment(hypothetical, sponsorPercent).find(
+      (allocation) => allocation.contractId === previewId,
+    )?.actualAmount ?? 0;
+  const actualBonus =
+    actualObjectiveBonuses(hypothetical, sponsorPercent).get(previewId) ?? 0;
   return {
     offerId: offer.offerId,
     sponsorName: offer.sponsorName,
@@ -901,14 +1132,15 @@ function actualObjectiveBonuses(
   contracts: readonly SponsorContractSnapshot[],
   sponsorPercent: number,
 ): Map<string, number> {
-  const bonusContracts = contracts.map(contract => ({
+  const bonusContracts = contracts.map((contract) => ({
     ...contract,
     nominalMonthlyFee: contract.objective?.nominalBonus ?? 0,
   }));
-  return new Map(allocateSponsorPortfolioPayment(bonusContracts, sponsorPercent).map(allocation => [
-    allocation.contractId,
-    allocation.actualAmount,
-  ]));
+  return new Map(
+    allocateSponsorPortfolioPayment(bonusContracts, sponsorPercent).map(
+      (allocation) => [allocation.contractId, allocation.actualAmount],
+    ),
+  );
 }
 
 /**
@@ -920,15 +1152,23 @@ function actualObjectiveBonuses(
  * re-derived, because two additions of the same figures is exactly how a
  * breakdown screen drifts from the thing it explains.
  */
-function trainingPointIncomeViewModel(state: GameState, t: CopyFn): TrainingPointIncomeViewModel {
+function trainingPointIncomeViewModel(
+  state: GameState,
+  t: CopyFn,
+): TrainingPointIncomeViewModel {
   const grid = state.facilities.grid;
-  const pitchLevel = grid === undefined
-    ? (state.facilities.trainingGroundBuilt ? 1 : 0)
-    : grid.buildings
-      .filter(building => (
-        building.type === 'training-pitch' && isFacilityOperational(grid, building.id)
-      ))
-      .reduce((maximum, building) => Math.max(maximum, building.level), 0);
+  const pitchLevel =
+    grid === undefined
+      ? state.facilities.trainingGroundBuilt
+        ? 1
+        : 0
+      : grid.buildings
+          .filter(
+            (building) =>
+              building.type === 'training-pitch' &&
+              isFacilityOperational(grid, building.id),
+          )
+          .reduce((maximum, building) => Math.max(maximum, building.level), 0);
   const head = state.market?.headCoach;
   const assistant = state.market?.assistantCoach;
   const rows = [
@@ -938,24 +1178,40 @@ function trainingPointIncomeViewModel(state: GameState, t: CopyFn): TrainingPoin
       detail: t('clubFinances.tpBaselineDetail'),
       points: BASE_WEEKLY_TRAINING_POINTS,
     },
-    ...(pitchLevel === 0 ? [] : [{
-      id: 'training-points-pitch',
-      label: t('clubFinances.tpPitchLabel', { level: pitchLevel }),
-      detail: t('clubFinances.tpPitchDetail', { points: TRAINING_PITCH_TP_PER_LEVEL }),
-      points: pitchLevel * TRAINING_PITCH_TP_PER_LEVEL,
-    }]),
-    ...(head === undefined ? [] : [{
-      id: 'training-points-head-coach',
-      label: head.name,
-      detail: t('clubFinances.tpHeadCoachDetail', { level: head.level }),
-      points: coachWeeklyTrainingPoints(head.level, 'HEAD'),
-    }]),
-    ...(assistant === undefined ? [] : [{
-      id: 'training-points-assistant-coach',
-      label: assistant.name,
-      detail: t('clubFinances.tpAssistantCoachDetail', { level: assistant.level }),
-      points: coachWeeklyTrainingPoints(assistant.level, 'ASSISTANT'),
-    }]),
+    ...(pitchLevel === 0
+      ? []
+      : [
+          {
+            id: 'training-points-pitch',
+            label: t('clubFinances.tpPitchLabel', { level: pitchLevel }),
+            detail: t('clubFinances.tpPitchDetail', {
+              points: TRAINING_PITCH_TP_PER_LEVEL,
+            }),
+            points: pitchLevel * TRAINING_PITCH_TP_PER_LEVEL,
+          },
+        ]),
+    ...(head === undefined
+      ? []
+      : [
+          {
+            id: 'training-points-head-coach',
+            label: head.name,
+            detail: t('clubFinances.tpHeadCoachDetail', { level: head.level }),
+            points: coachWeeklyTrainingPoints(head.level, 'HEAD'),
+          },
+        ]),
+    ...(assistant === undefined
+      ? []
+      : [
+          {
+            id: 'training-points-assistant-coach',
+            label: assistant.name,
+            detail: t('clubFinances.tpAssistantCoachDetail', {
+              level: assistant.level,
+            }),
+            points: coachWeeklyTrainingPoints(assistant.level, 'ASSISTANT'),
+          },
+        ]),
   ];
   const total = weeklyAmbientTrainingPoints(state);
   const listed = rows.reduce((sum, row) => sum + row.points, 0);
@@ -977,7 +1233,10 @@ function trainingPointIncomeViewModel(state: GameState, t: CopyFn): TrainingPoin
  * the exact figure is already on this screen the week it is taken — copying the
  * formula into a view model would be a second place for it to drift.
  */
-function outstandingLoanViewModel(state: GameState, t: CopyFn): ClubLoanViewModel | undefined {
+function outstandingLoanViewModel(
+  state: GameState,
+  t: CopyFn,
+): ClubLoanViewModel | undefined {
   const loan = state.financialSafety?.loan;
   if (loan === undefined || loan.remainingBalance <= 0) return undefined;
   const repaying = state.season >= loan.repaymentStartsSeason;
@@ -989,10 +1248,14 @@ function outstandingLoanViewModel(state: GameState, t: CopyFn): ClubLoanViewMode
       : t('clubFinances.loanRepaymentsBegin'),
     scheduleValue: repaying
       ? `${loan.remainingWeeks}`
-      : t('clubFinances.loanRepaymentSeason', { season: loan.repaymentStartsSeason }),
+      : t('clubFinances.loanRepaymentSeason', {
+          season: loan.repaymentStartsSeason,
+        }),
     detail: repaying
       ? t('clubFinances.loanDetailRepaying')
-      : t('clubFinances.loanDetailPending', { season: loan.repaymentStartsSeason }),
+      : t('clubFinances.loanDetailPending', {
+          season: loan.repaymentStartsSeason,
+        }),
   };
 }
 
@@ -1003,44 +1266,77 @@ function outstandingLoanViewModel(state: GameState, t: CopyFn): ClubLoanViewMode
  * casting a translated string back to a literal it will not equal. Widening the
  * field is the fix; it belongs with the pass that threads the live `t` in.
  */
-function coachingStaffViewModels(state: GameState, t: CopyFn): readonly CoachStaffMemberViewModel[] {
+function coachingStaffViewModels(
+  state: GameState,
+  t: CopyFn,
+): readonly CoachStaffMemberViewModel[] {
   return [
-    ...(state.market?.headCoach === undefined ? [] : [{
-      id: state.market.headCoach.id,
-      role: 'HEAD' as const,
-      roleLabel: t('coachStaff.headCoach'),
-      portraitId: state.market.headCoach.portraitId ?? state.market.headCoach.id,
-      name: state.market.headCoach.name,
-      age: state.market.headCoach.age ?? 45,
-      personalityLabel: personalityName(t, state.market.headCoach.personality),
-      level: state.market.headCoach.level,
-      specialtyLabels: state.market.headCoach.specialties
-        .map(specialty => coachSpecialtyName(t, specialty)) as [string, string],
-      effectLabels: coachRoleEffectLabels(state.market.headCoach, 'HEAD', t),
-      weeklyWage: state.market.headCoach.weeklyWage,
-      seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
-      severanceCost: state.market.headCoach.weeklyWage,
-    }]),
-    ...(state.market?.assistantCoach === undefined ? [] : [{
-      id: state.market.assistantCoach.id,
-      role: 'ASSISTANT' as const,
-      roleLabel: t('coachStaff.assistantCoach'),
-      portraitId: state.market.assistantCoach.portraitId ?? state.market.assistantCoach.id,
-      name: state.market.assistantCoach.name,
-      age: state.market.assistantCoach.age ?? 45,
-      personalityLabel: personalityName(t, state.market.assistantCoach.personality),
-      level: state.market.assistantCoach.level,
-      specialtyLabels: state.market.assistantCoach.specialties
-        .map(specialty => coachSpecialtyName(t, specialty)) as [string, string],
-      effectLabels: coachRoleEffectLabels(state.market.assistantCoach, 'ASSISTANT', t),
-      weeklyWage: state.market.assistantCoach.weeklyWage,
-      seasonsEmployed: state.market.assistantCoachSeasonsEmployed ?? 0,
-      severanceCost: state.market.assistantCoach.weeklyWage,
-    }]),
+    ...(state.market?.headCoach === undefined
+      ? []
+      : [
+          {
+            id: state.market.headCoach.id,
+            role: 'HEAD' as const,
+            roleLabel: t('coachStaff.headCoach'),
+            portraitId:
+              state.market.headCoach.portraitId ?? state.market.headCoach.id,
+            name: state.market.headCoach.name,
+            age: state.market.headCoach.age ?? 45,
+            personalityLabel: personalityName(
+              t,
+              state.market.headCoach.personality,
+            ),
+            level: state.market.headCoach.level,
+            specialtyLabels: state.market.headCoach.specialties.map(
+              (specialty) => coachSpecialtyName(t, specialty),
+            ) as [string, string],
+            effectLabels: coachRoleEffectLabels(
+              state.market.headCoach,
+              'HEAD',
+              t,
+            ),
+            weeklyWage: state.market.headCoach.weeklyWage,
+            seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
+            severanceCost: state.market.headCoach.weeklyWage,
+          },
+        ]),
+    ...(state.market?.assistantCoach === undefined
+      ? []
+      : [
+          {
+            id: state.market.assistantCoach.id,
+            role: 'ASSISTANT' as const,
+            roleLabel: t('coachStaff.assistantCoach'),
+            portraitId:
+              state.market.assistantCoach.portraitId ??
+              state.market.assistantCoach.id,
+            name: state.market.assistantCoach.name,
+            age: state.market.assistantCoach.age ?? 45,
+            personalityLabel: personalityName(
+              t,
+              state.market.assistantCoach.personality,
+            ),
+            level: state.market.assistantCoach.level,
+            specialtyLabels: state.market.assistantCoach.specialties.map(
+              (specialty) => coachSpecialtyName(t, specialty),
+            ) as [string, string],
+            effectLabels: coachRoleEffectLabels(
+              state.market.assistantCoach,
+              'ASSISTANT',
+              t,
+            ),
+            weeklyWage: state.market.assistantCoach.weeklyWage,
+            seasonsEmployed: state.market.assistantCoachSeasonsEmployed ?? 0,
+            severanceCost: state.market.assistantCoach.weeklyWage,
+          },
+        ]),
   ];
 }
 
-function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewModel['facilities'] {
+function facilityGridViewModel(
+  state: GameState,
+  t: CopyFn,
+): ClubFinancesViewModel['facilities'] {
   const grid = state.facilities.grid ?? createFacilityGrid();
   const club = requireUserClub(state);
   const activeAdjacencies = activeFacilityAdjacencies(grid);
@@ -1048,29 +1344,40 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
   return {
     width: grid.width,
     height: grid.height,
-    buildings: grid.buildings.map(building => {
+    buildings: grid.buildings.map((building) => {
       const definition = FACILITY_CATALOG[building.type];
-      const project = grid.construction?.buildingId === building.id
-        ? grid.construction
-        : undefined;
-      const upgradeCost = building.level < 3
-        ? definition.upgradeCosts[building.level - 1]
-        : undefined;
-      const nextLevelEffectLabel = building.level < 3
-        ? facilityNextLevelEffectLabel(building.type, (building.level + 1) as FacilityLevel, t)
-        : undefined;
-      const blocked = building.level < 3
-        ? facilityUpgradeBlockedReason(state, (building.level + 1) as FacilityLevel)
-        : undefined;
-      const upgradeBlockedReason = blocked === undefined
-        ? undefined
-        : resolveRingCopy(t, blocked);
+      const project =
+        grid.construction?.buildingId === building.id
+          ? grid.construction
+          : undefined;
+      const upgradeCost =
+        building.level < 3
+          ? definition.upgradeCosts[building.level - 1]
+          : undefined;
+      const nextLevelEffectLabel =
+        building.level < 3
+          ? facilityNextLevelEffectLabel(
+              building.type,
+              (building.level + 1) as FacilityLevel,
+              t,
+            )
+          : undefined;
+      const blocked =
+        building.level < 3
+          ? facilityUpgradeBlockedReason(
+              state,
+              (building.level + 1) as FacilityLevel,
+            )
+          : undefined;
+      const upgradeBlockedReason =
+        blocked === undefined ? undefined : resolveRingCopy(t, blocked);
       // The rung as data. The screen used to read it back out of the sentence
       // with `/D[1-5]/`, which only worked while every translation kept an
       // English-authored token.
-      const upgradeBlockedDivision = typeof blocked?.textParams?.divisionLevel === 'number'
-        ? blocked.textParams.divisionLevel
-        : undefined;
+      const upgradeBlockedDivision =
+        typeof blocked?.textParams?.divisionLevel === 'number'
+          ? blocked.textParams.divisionLevel
+          : undefined;
       return {
         id: building.id,
         type: building.type,
@@ -1080,106 +1387,144 @@ function facilityGridViewModel(state: GameState, t: CopyFn): ClubFinancesViewMod
         y: building.y,
         width: definition.footprint.width,
         height: definition.footprint.height,
-        weeklyUpkeep: project?.kind === 'BUILD' ? 0 : definition.weeklyUpkeep[building.level - 1],
+        weeklyUpkeep:
+          project?.kind === 'BUILD'
+            ? 0
+            : definition.weeklyUpkeep[building.level - 1],
         effectLabel: facilityEffectLabel(building.type, building.level, t),
         ...(upgradeCost === undefined ? {} : { upgradeCost }),
         ...(nextLevelEffectLabel === undefined ? {} : { nextLevelEffectLabel }),
         ...(upgradeBlockedReason === undefined ? {} : { upgradeBlockedReason }),
-        ...(upgradeBlockedDivision === undefined ? {} : { upgradeBlockedDivision }),
-        canUpgrade: grid.construction === undefined
-          && upgradeCost !== undefined
-          && upgradeBlockedReason === undefined
-          && club.cash >= upgradeCost,
-        upgradeShortfall: upgradeCost === undefined ? 0 : Math.max(0, upgradeCost - club.cash),
+        ...(upgradeBlockedDivision === undefined
+          ? {}
+          : { upgradeBlockedDivision }),
+        canUpgrade:
+          grid.construction === undefined &&
+          upgradeCost !== undefined &&
+          upgradeBlockedReason === undefined &&
+          club.cash >= upgradeCost,
+        upgradeShortfall:
+          upgradeCost === undefined ? 0 : Math.max(0, upgradeCost - club.cash),
         relocationFee: definition.relocationFee,
-        canRelocate: grid.construction === undefined && club.cash >= definition.relocationFee,
+        canRelocate:
+          grid.construction === undefined &&
+          club.cash >= definition.relocationFee,
         relocationShortfall: Math.max(0, definition.relocationFee - club.cash),
         closeRefund: facilityCloseRefund(building),
         canClose: grid.construction?.buildingId !== building.id,
-        activeAdjacencyIds: activeAdjacencyIdsForBuilding(grid.buildings, building, activeAdjacencies),
-        status: project?.kind === 'BUILD'
-          ? 'construction' as const
-          : project?.kind === 'UPGRADE'
-            ? 'upgrading' as const
-            : 'operational' as const,
-        ...(project === undefined ? {} : {
-          weeksRemaining: project.weeksRemaining,
-          targetLevel: project.targetLevel,
-        }),
+        activeAdjacencyIds: activeAdjacencyIdsForBuilding(
+          grid.buildings,
+          building,
+          activeAdjacencies,
+        ),
+        status:
+          project?.kind === 'BUILD'
+            ? ('construction' as const)
+            : project?.kind === 'UPGRADE'
+              ? ('upgrading' as const)
+              : ('operational' as const),
+        ...(project === undefined
+          ? {}
+          : {
+              weeksRemaining: project.weeksRemaining,
+              targetLevel: project.targetLevel,
+            }),
       };
     }),
-    catalog: Object.values(FACILITY_CATALOG).filter(definition => definition.available).map(definition => {
-      const builtCount = grid.buildings.filter(building => building.type === definition.type).length;
-      const buildLimit = facilityBuildLimit(definition.type);
-      const buildLimitReached = builtCount >= buildLimit;
-      const blockedByOpeningTrainingPitch = pitchMustBeFirst
-        && definition.type !== 'training-pitch';
-      return {
-        type: definition.type,
-        name: facilityName(t, definition.type),
-        builtCount,
-        buildLimit,
-        buildCost: definition.buildCost,
-        width: definition.footprint.width,
-        height: definition.footprint.height,
-        weeklyUpkeep: definition.weeklyUpkeep[0],
-        effectLabel: facilityEffectLabel(definition.type, 1, t),
-        available: definition.available,
-        affordable: definition.available
-          && !buildLimitReached
-          && !blockedByOpeningTrainingPitch
-          && grid.construction === undefined
-          && club.cash >= definition.buildCost,
-        blockedByOpeningTrainingPitch,
-        affordabilityShortfall: definition.available && !buildLimitReached
-          ? Math.max(0, definition.buildCost - club.cash)
-          : 0,
-        buildWeeks: definition.buildWeeks,
-        ...(!definition.available
-          ? { blockedReason: t('clubFinances.facilityLocked') }
-          : buildLimitReached
-            ? { blockedReason: buildLimit === 1
-              ? t('clubFinances.facilityAlreadyBuilt')
-              : t('clubFinances.facilityBuildLimitReached', {
-                built: builtCount,
-                limit: buildLimit,
-              }) }
-            : blockedByOpeningTrainingPitch
-              ? { blockedReason: t(OPENING_TRAINING_PITCH_BLOCKED_REASON_KEY) }
-              : grid.construction !== undefined
-                ? { blockedReason: t('clubFinances.facilityCrewAssigned') }
-                : club.cash < definition.buildCost
-                  ? { blockedReason: t('clubFinances.facilityInsufficientBalance') }
-                  : {}),
-      };
-    }),
+    catalog: Object.values(FACILITY_CATALOG)
+      .filter((definition) => definition.available)
+      .map((definition) => {
+        const builtCount = grid.buildings.filter(
+          (building) => building.type === definition.type,
+        ).length;
+        const buildLimit = facilityBuildLimit(definition.type);
+        const buildLimitReached = builtCount >= buildLimit;
+        const blockedByOpeningTrainingPitch =
+          pitchMustBeFirst && definition.type !== 'training-pitch';
+        return {
+          type: definition.type,
+          name: facilityName(t, definition.type),
+          builtCount,
+          buildLimit,
+          buildCost: definition.buildCost,
+          width: definition.footprint.width,
+          height: definition.footprint.height,
+          weeklyUpkeep: definition.weeklyUpkeep[0],
+          effectLabel: facilityEffectLabel(definition.type, 1, t),
+          available: definition.available,
+          affordable:
+            definition.available &&
+            !buildLimitReached &&
+            !blockedByOpeningTrainingPitch &&
+            grid.construction === undefined &&
+            club.cash >= definition.buildCost,
+          blockedByOpeningTrainingPitch,
+          affordabilityShortfall:
+            definition.available && !buildLimitReached
+              ? Math.max(0, definition.buildCost - club.cash)
+              : 0,
+          buildWeeks: definition.buildWeeks,
+          ...(!definition.available
+            ? { blockedReason: t('clubFinances.facilityLocked') }
+            : buildLimitReached
+              ? {
+                  blockedReason:
+                    buildLimit === 1
+                      ? t('clubFinances.facilityAlreadyBuilt')
+                      : t('clubFinances.facilityBuildLimitReached', {
+                          built: builtCount,
+                          limit: buildLimit,
+                        }),
+                }
+              : blockedByOpeningTrainingPitch
+                ? {
+                    blockedReason: t(OPENING_TRAINING_PITCH_BLOCKED_REASON_KEY),
+                  }
+                : grid.construction !== undefined
+                  ? { blockedReason: t('clubFinances.facilityCrewAssigned') }
+                  : club.cash < definition.buildCost
+                    ? {
+                        blockedReason: t(
+                          'clubFinances.facilityInsufficientBalance',
+                        ),
+                      }
+                    : {}),
+        };
+      }),
     weeklyUpkeep: weeklyFacilityUpkeep(grid),
     activeAdjacencies,
     discoveredAdjacencies: [...grid.discoveredAdjacencies],
-    ...(grid.construction === undefined ? {} : {
-      activeProject: {
-        buildingId: grid.construction.buildingId,
-        name: facilityName(t, grid.construction.type),
-        benefitLabel: facilityEffectLabel(
-          grid.construction.type,
-          grid.construction.targetLevel,
-          t,
-        ),
-        kind: grid.construction.kind,
-        weeksRemaining: grid.construction.weeksRemaining,
-        totalWeeks: grid.construction.totalWeeks,
-        targetLevel: grid.construction.targetLevel,
-      },
-    }),
+    ...(grid.construction === undefined
+      ? {}
+      : {
+          activeProject: {
+            buildingId: grid.construction.buildingId,
+            name: facilityName(t, grid.construction.type),
+            benefitLabel: facilityEffectLabel(
+              grid.construction.type,
+              grid.construction.targetLevel,
+              t,
+            ),
+            kind: grid.construction.kind,
+            weeksRemaining: grid.construction.weeksRemaining,
+            totalWeeks: grid.construction.totalWeeks,
+            targetLevel: grid.construction.targetLevel,
+          },
+        }),
   };
 }
 
 /** Every line states a real effect site in src/game — no facility says "nothing". */
-function facilityEffectLabel(type: FacilityType, level: FacilityLevel, t: CopyFn): string {
-  const trainingEffect = (attributes: string): string => t('clubFinances.facilityTrainingEffect', {
-    percent: TRAINING_BONUS_PERCENT[level],
-    attributes,
-  });
+function facilityEffectLabel(
+  type: FacilityType,
+  level: FacilityLevel,
+  t: CopyFn,
+): string {
+  const trainingEffect = (attributes: string): string =>
+    t('clubFinances.facilityTrainingEffect', {
+      percent: TRAINING_BONUS_PERCENT[level],
+      attributes,
+    });
   if (type === 'training-pitch') {
     return t('clubFinances.facilityPitchEffect', {
       points: TRAINING_PITCH_TP_PER_LEVEL,
@@ -1204,17 +1549,24 @@ function facilityEffectLabel(type: FacilityType, level: FacilityLevel, t: CopyFn
         ? t('clubFinances.facilityScoutTighter', { names })
         : t('clubFinances.facilityScoutPowers', { names });
   }
-  if (type === 'coaching-office') return t('clubFinances.facilityCoachingOfficeEffect');
+  if (type === 'coaching-office')
+    return t('clubFinances.facilityCoachingOfficeEffect');
   if (type === 'youth-field') {
     return t('clubFinances.facilityYouthEffect', { amount: level * 5 });
   }
-  if (type === 'fan-shop') return t('clubFinances.facilityShopEffect', { level });
-  if (type === 'stadium-stand') return t('clubFinances.facilityStandEffect', { percent: level * 50 });
+  if (type === 'fan-shop')
+    return t('clubFinances.facilityShopEffect', { level });
+  if (type === 'stadium-stand')
+    return t('clubFinances.facilityStandEffect', { percent: level * 50 });
   throw new Error(`missing facility effect copy for ${type}`);
 }
 
 /** Mirrors FACILITY_TRAINING_MULTIPLIER in src/game/training.ts, as a percentage. */
-const TRAINING_BONUS_PERCENT: Readonly<Record<FacilityLevel, number>> = { 1: 25, 2: 50, 3: 100 };
+const TRAINING_BONUS_PERCENT: Readonly<Record<FacilityLevel, number>> = {
+  1: 25,
+  2: 50,
+  3: 100,
+};
 
 function facilityNextLevelEffectLabel(
   type: FacilityType,
@@ -1233,29 +1585,45 @@ function activeAdjacencyIdsForBuilding(
   activeAdjacencies: readonly string[],
 ): string[] {
   const active = new Set(activeAdjacencies);
-  return FACILITY_ADJACENCIES.filter(adjacency => (
-    active.has(adjacency.id)
-    && (building.type === adjacency.first || building.type === adjacency.second)
-    && buildings.some(other => (
-      other.id !== building.id
-      && other.type === (building.type === adjacency.first ? adjacency.second : adjacency.first)
-      && facilitiesShareEdge(building, other)
-    ))
-  )).map(adjacency => adjacency.id);
+  return FACILITY_ADJACENCIES.filter(
+    (adjacency) =>
+      active.has(adjacency.id) &&
+      (building.type === adjacency.first ||
+        building.type === adjacency.second) &&
+      buildings.some(
+        (other) =>
+          other.id !== building.id &&
+          other.type ===
+            (building.type === adjacency.first
+              ? adjacency.second
+              : adjacency.first) &&
+          facilitiesShareEdge(building, other),
+      ),
+  ).map((adjacency) => adjacency.id);
 }
 
-function facilitiesShareEdge(first: PlacedFacility, second: PlacedFacility): boolean {
+function facilitiesShareEdge(
+  first: PlacedFacility,
+  second: PlacedFacility,
+): boolean {
   const firstFootprint = FACILITY_CATALOG[first.type].footprint;
   const secondFootprint = FACILITY_CATALOG[second.type].footprint;
-  const horizontalContact = first.x + firstFootprint.width === second.x
-    || second.x + secondFootprint.width === first.x;
-  const verticalContact = first.y + firstFootprint.height === second.y
-    || second.y + secondFootprint.height === first.y;
-  const verticalOverlap = first.y < second.y + secondFootprint.height
-    && second.y < first.y + firstFootprint.height;
-  const horizontalOverlap = first.x < second.x + secondFootprint.width
-    && second.x < first.x + firstFootprint.width;
-  return (horizontalContact && verticalOverlap) || (verticalContact && horizontalOverlap);
+  const horizontalContact =
+    first.x + firstFootprint.width === second.x ||
+    second.x + secondFootprint.width === first.x;
+  const verticalContact =
+    first.y + firstFootprint.height === second.y ||
+    second.y + secondFootprint.height === first.y;
+  const verticalOverlap =
+    first.y < second.y + secondFootprint.height &&
+    second.y < first.y + firstFootprint.height;
+  const horizontalOverlap =
+    first.x < second.x + secondFootprint.width &&
+    second.x < first.x + firstFootprint.width;
+  return (
+    (horizontalContact && verticalOverlap) ||
+    (verticalContact && horizontalOverlap)
+  );
 }
 
 /**
@@ -1267,10 +1635,12 @@ function facilitiesShareEdge(first: PlacedFacility, second: PlacedFacility): boo
 function storyPlayerAttributes(
   player: GameState['players'][number],
 ): StoryEventPlayerViewModel['attributes'] {
-  return (Object.keys(player.attrs) as Array<keyof typeof player.attrs>).map(attribute => ({
-    label: attribute.toUpperCase(),
-    value: displayedAttributeValue(player, attribute),
-  }));
+  return (Object.keys(player.attrs) as Array<keyof typeof player.attrs>).map(
+    (attribute) => ({
+      label: attribute.toUpperCase(),
+      value: displayedAttributeValue(player, attribute),
+    }),
+  );
 }
 
 export function storyEventViewModel(
@@ -1280,13 +1650,18 @@ export function storyEventViewModel(
 ): StoryEventViewModel {
   const pending = state.pendingEvent;
   if (pending === undefined) throw new Error('there is no pending story event');
-  const event = content.events.events.find(candidate => candidate.id === pending.eventId);
-  if (event === undefined) throw new Error(`unknown story event ${pending.eventId}`);
-  const selected = pending.selectedPlayerId === undefined
-    ? undefined
-    : state.players.find(player => player.id === pending.selectedPlayerId);
-  const starterIds = state.lineups
-    .find(lineup => lineup.clubId === state.userClubId)?.playerIds ?? [];
+  const event = content.events.events.find(
+    (candidate) => candidate.id === pending.eventId,
+  );
+  if (event === undefined)
+    throw new Error(`unknown story event ${pending.eventId}`);
+  const selected =
+    pending.selectedPlayerId === undefined
+      ? undefined
+      : state.players.find((player) => player.id === pending.selectedPlayerId);
+  const starterIds =
+    state.lineups.find((lineup) => lineup.clubId === state.userClubId)
+      ?.playerIds ?? [];
   const requiresPlayer = event.trigger.requiresPlayer === true;
   const requiresCoach = event.trigger.requiresCoach === true;
   const requiresFacility = event.trigger.requiresFacility ?? [];
@@ -1302,15 +1677,19 @@ export function storyEventViewModel(
   const coachOption = (
     role: 'HEAD' | 'ASSISTANT',
   ): StoryEventCoachViewModel | undefined => {
-    const coach = role === 'HEAD' ? state.market?.headCoach : state.market?.assistantCoach;
+    const coach =
+      role === 'HEAD' ? state.market?.headCoach : state.market?.assistantCoach;
     if (coach === undefined) return undefined;
     // The same keys the staff screen uses, so the card cannot drift into
     // describing a coach differently from the screen that hired him.
     // `readableLabel` was the second prettifier — it answered in English
     // whatever the locale — and this card arrived after it was removed.
-    const specialties = coach.specialties.map(specialty => coachSpecialtyName(t, specialty));
-    const trainingPercent = coachTrainingBonusPercent(coach.level, role)
-      + cappedCoachBoost(coach.boosts, 'trainingPercent');
+    const specialties = coach.specialties.map((specialty) =>
+      coachSpecialtyName(t, specialty),
+    );
+    const trainingPercent =
+      coachTrainingBonusPercent(coach.level, role) +
+      cappedCoachBoost(coach.boosts, 'trainingPercent');
     const trainingBoost = cappedCoachBoost(coach.boosts, 'trainingPercent');
     const tpBoost = cappedCoachBoost(coach.boosts, 'weeklyTp');
     const earned = [
@@ -1322,7 +1701,9 @@ export function storyEventViewModel(
           }),
       tpBoost === 0
         ? undefined
-        : t('coachStaff.effectTpWeekly', { points: `${tpBoost > 0 ? '+' : ''}${tpBoost}` }),
+        : t('coachStaff.effectTpWeekly', {
+            points: `${tpBoost > 0 ? '+' : ''}${tpBoost}`,
+          }),
       cappedCoachBoost(coach.boosts, 'motivatorHalfLevels') === 0
         ? undefined
         : t('storyEvent.rewardCoachMotivator', {
@@ -1331,7 +1712,9 @@ export function storyEventViewModel(
     ].filter((line): line is string => line !== undefined);
     return {
       role,
-      roleLabel: t(role === 'HEAD' ? 'coachStaff.headCoach' : 'coachStaff.assistantCoach'),
+      roleLabel: t(
+        role === 'HEAD' ? 'coachStaff.headCoach' : 'coachStaff.assistantCoach',
+      ),
       name: coach.name,
       levelLabel: t('facilityCompletionCard.level', { level: coach.level }),
       specialtyLabels: specialties,
@@ -1352,54 +1735,73 @@ export function storyEventViewModel(
       ...(earned.length === 0 ? {} : { earnedLine: earned.join(' · ') }),
     };
   };
-  const coachOptions = targetCandidates.coachRoles.map(coachOption)
-    .filter((option): option is StoryEventCoachViewModel => option !== undefined);
-  const selectedCoach = pending.selectedCoachRole === undefined
-    ? undefined
-    : coachOptions.find(option => option.role === pending.selectedCoachRole);
+  const coachOptions = targetCandidates.coachRoles
+    .map(coachOption)
+    .filter(
+      (option): option is StoryEventCoachViewModel => option !== undefined,
+    );
+  const selectedCoach =
+    pending.selectedCoachRole === undefined
+      ? undefined
+      : coachOptions.find(
+          (option) => option.role === pending.selectedCoachRole,
+        );
 
   const grid = state.facilities.grid;
   const facilityOptions: StoryEventFacilityViewModel[] = (grid?.buildings ?? [])
-    .filter(building => targetCandidates.facilityIds.includes(building.id))
-    .map(building => ({
+    .filter((building) => targetCandidates.facilityIds.includes(building.id))
+    .map((building) => ({
       buildingId: building.id,
       name: t(FACILITY_NAME_KEYS[building.type]),
       levelLabel: t('facilityCompletionCard.level', { level: building.level }),
       effectLabel: facilityEffectLabel(building.type, building.level, t),
       operationalStatus: t('storyEvent.facilityOperational'),
-      ...((() => {
+      ...(() => {
         const boosts = building.boosts;
         const earned = [
           boosts?.tpBonusPercent
-            ? t('storyEvent.rewardFacilityTp', { amount: signedAmount(boosts.tpBonusPercent) })
+            ? t('storyEvent.rewardFacilityTp', {
+                amount: signedAmount(t, boosts.tpBonusPercent),
+              })
             : undefined,
           boosts?.trainingBonusPercent
-            ? t('storyEvent.rewardFacilityTraining', { amount: signedAmount(boosts.trainingBonusPercent) })
+            ? t('storyEvent.rewardFacilityTraining', {
+                amount: signedAmount(t, boosts.trainingBonusPercent),
+              })
             : undefined,
           boosts?.recoveryBonus
-            ? t('storyEvent.rewardFacilityRecovery', { amount: signedAmount(boosts.recoveryBonus) })
+            ? t('storyEvent.rewardFacilityRecovery', {
+                amount: signedAmount(t, boosts.recoveryBonus),
+              })
             : undefined,
           boosts?.incomeBonusPercent
-            ? t('storyEvent.rewardFacilityIncome', { amount: signedAmount(boosts.incomeBonusPercent) })
+            ? t('storyEvent.rewardFacilityIncome', {
+                amount: signedAmount(t, boosts.incomeBonusPercent),
+              })
             : undefined,
         ].filter((line): line is string => line !== undefined);
         return earned.length === 0 ? {} : { earnedLine: earned.join(' · ') };
-      })()),
+      })(),
     }));
-  const selectedFacility = pending.selectedFacilityId === undefined
-    ? undefined
-    : facilityOptions.find(option => option.buildingId === pending.selectedFacilityId);
+  const selectedFacility =
+    pending.selectedFacilityId === undefined
+      ? undefined
+      : facilityOptions.find(
+          (option) => option.buildingId === pending.selectedFacilityId,
+        );
   // Starters first, then by rating: the manager is usually deciding about
   // someone who plays, and within that the number is what the choice turns on.
   const squad = state.players
-    .filter(player => player.clubId === state.userClubId)
-    .filter(player => targetCandidates.playerIds.includes(player.id))
+    .filter((player) => player.clubId === state.userClubId)
+    .filter((player) => targetCandidates.playerIds.includes(player.id))
     .slice()
-    .sort((left, right) => (
-      Number(!starterIds.includes(left.id)) - Number(!starterIds.includes(right.id))
-      || overall(right.role, right.attrs) - overall(left.role, left.attrs)
-      || compareIds(left.id, right.id)
-    ));
+    .sort(
+      (left, right) =>
+        Number(!starterIds.includes(left.id)) -
+          Number(!starterIds.includes(right.id)) ||
+        overall(right.role, right.attrs) - overall(left.role, left.attrs) ||
+        compareIds(left.id, right.id),
+    );
   const storyPlayer = (
     player: GameState['players'][number],
     withAttributes: boolean,
@@ -1408,34 +1810,43 @@ export function storyEventViewModel(
     name: player.name,
     role: player.role,
     overall: overall(player.role, player.attrs),
-    detail: player.injuryWeeks > 0
-      ? t('storyEvent.playerInjured', { n: player.injuryWeeks, count: player.injuryWeeks })
-      : player.power !== undefined
-        ? t('storyEvent.licensedHero', {
-          status: starterIds.includes(player.id)
+    detail:
+      player.injuryWeeks > 0
+        ? t('storyEvent.playerInjured', {
+            n: player.injuryWeeks,
+            count: player.injuryWeeks,
+          })
+        : player.power !== undefined
+          ? t('storyEvent.licensedHero', {
+              status: starterIds.includes(player.id)
+                ? t('storyEvent.startingXi')
+                : t('storyEvent.squadPlayer'),
+            })
+          : starterIds.includes(player.id)
             ? t('storyEvent.startingXi')
             : t('storyEvent.squadPlayer'),
-        })
-        : starterIds.includes(player.id)
-          ? t('storyEvent.startingXi')
-          : t('storyEvent.squadPlayer'),
-    ...(player.power ? {
-      powerName: powerDisplayName(content, player.power, t) ?? player.power,
-    } : {}),
+    ...(player.power
+      ? {
+          powerName: powerDisplayName(content, player.power, t) ?? player.power,
+        }
+      : {}),
     ...(withAttributes ? { attributes: storyPlayerAttributes(player) } : {}),
   });
-  const resolvedChoice = pending.resolvedChoiceId === undefined
-    ? undefined
-    : event.choices.find(choice => choice.id === pending.resolvedChoiceId);
-  const resolvedOutcome = pending.resolvedOutcomeIndex === undefined
-    ? undefined
-    : resolvedChoice?.outcomes[pending.resolvedOutcomeIndex];
+  const resolvedChoice =
+    pending.resolvedChoiceId === undefined
+      ? undefined
+      : event.choices.find((choice) => choice.id === pending.resolvedChoiceId);
+  const resolvedOutcome =
+    pending.resolvedOutcomeIndex === undefined
+      ? undefined
+      : resolvedChoice?.outcomes[pending.resolvedOutcomeIndex];
 
   // The outcome's own key, which needs both ids. Undefined before a choice is
   // resolved, and `copyOrEnglish` falls back to the saved English then.
-  const outcomeKey = resolvedChoice === undefined || resolvedOutcome === undefined
-    ? undefined
-    : `event.${event.id}.${resolvedChoice.id}.${resolvedOutcome.id}`;
+  const outcomeKey =
+    resolvedChoice === undefined || resolvedOutcome === undefined
+      ? undefined
+      : `event.${event.id}.${resolvedChoice.id}.${resolvedOutcome.id}`;
 
   return {
     id: event.id,
@@ -1458,66 +1869,108 @@ export function storyEventViewModel(
     ...(pending.playerLocked === true ? { playerLocked: true as const } : {}),
     // Offered even when a player is already named: the manager may still change
     // their mind, and an unlocked card that cannot be re-opened is a dead end.
-    playerChoices: requiresPlayer && pending.playerLocked !== true
-      ? squad.map(player => storyPlayer(player, false))
-      : [],
+    playerChoices:
+      requiresPlayer && pending.playerLocked !== true
+        ? squad.map((player) => storyPlayer(player, false))
+        : [],
     ...(selectedCoach === undefined ? {} : { selectedCoach }),
     coachSelectionRequired: requiresCoach,
     ...(pending.coachLocked === true ? { coachLocked: true as const } : {}),
-    coachChoices: requiresCoach && pending.coachLocked !== true ? coachOptions : [],
+    coachChoices:
+      requiresCoach && pending.coachLocked !== true ? coachOptions : [],
     ...(selectedFacility === undefined ? {} : { selectedFacility }),
     facilitySelectionRequired: requiresFacility.length > 0,
-    ...(pending.facilityLocked === true ? { facilityLocked: true as const } : {}),
-    facilityChoices: requiresFacility.length > 0 && pending.facilityLocked !== true
-      ? facilityOptions
-      : [],
-    targetUnavailable: (requiresPlayer && targetCandidates.playerIds.length === 0)
-      || (requiresCoach && targetCandidates.coachRoles.length === 0)
-      || (requiresFacility.length > 0 && targetCandidates.facilityIds.length === 0),
-    choices: event.choices.map(choice => {
+    ...(pending.facilityLocked === true
+      ? { facilityLocked: true as const }
+      : {}),
+    facilityChoices:
+      requiresFacility.length > 0 && pending.facilityLocked !== true
+        ? facilityOptions
+        : [],
+    targetUnavailable:
+      (requiresPlayer && targetCandidates.playerIds.length === 0) ||
+      (requiresCoach && targetCandidates.coachRoles.length === 0) ||
+      (requiresFacility.length > 0 &&
+        targetCandidates.facilityIds.length === 0),
+    choices: event.choices.map((choice) => {
       const disabledReason = eventChoiceUnavailableReason(state, choice, t);
       return {
         id: choice.id,
-        label: copyOrEnglish(t, `event.${event.id}.${choice.id}.label`, choice.label),
+        label: copyOrEnglish(
+          t,
+          `event.${event.id}.${choice.id}.label`,
+          choice.label,
+        ),
         // The RISKY/SAFE stamp beside the label already names the tone, so this
         // line only has to say what each one pays.
         detail: choice.risky
           ? t('storyEvent.choiceRiskyDetail')
           : t('storyEvent.choiceSafeDetail'),
         consequenceHint: describeEventChoiceOutcome(choice, t, state),
-        tone: choice.risky ? 'risky' as const : 'safe' as const,
-        disabled: pending.resolvedChoiceId !== undefined || disabledReason !== undefined,
+        tone: choice.risky ? ('risky' as const) : ('safe' as const),
+        disabled:
+          pending.resolvedChoiceId !== undefined ||
+          disabledReason !== undefined,
         ...(disabledReason === undefined ? {} : { disabledReason }),
       };
     }),
-    ...(pending.resolvedChoiceId ? { resolvedChoiceId: pending.resolvedChoiceId } : {}),
-    ...(pending.outcomeText ? {
-      resolvedRisky: pending.resolvedRisky === true,
-      resolvedSuccess: pending.resolvedSuccess === true,
-      outcomeTitle: pending.resolvedRisky === true
-        ? pending.resolvedSuccess === true
-          ? resolvedOutcome?.successHeadline === undefined
-            ? t('storyEvent.outcomeRiskPaidOff')
-            : copyOrEnglish(t, `${outcomeKey}.headline`, resolvedOutcome.successHeadline)
-          : t('storyEvent.outcomeGambleMissed')
-        : t('storyEvent.outcomeDecisionComplete'),
-      // Written into the save in English by the pure ring; the key recovers the
-      // player's language without the save having to hold seven copies.
-      outcomeText: copyOrEnglish(t, outcomeKey === undefined ? undefined : `${outcomeKey}.text`, pending.outcomeText),
-      outcomeRewards: resolvedOutcome === undefined
-        ? []
-        : eventRewardItems(resolvedOutcome.effects, t, state),
-      ...(pending.resolvedNextEventId === undefined ? {} : { outcomeHasFollowUp: true as const }),
-    } : {}),
-    ...(pending.resolvedRisky === true && pending.resolvedSuccess === true && resolvedOutcome !== undefined
+    ...(pending.resolvedChoiceId
+      ? { resolvedChoiceId: pending.resolvedChoiceId }
+      : {}),
+    ...(pending.outcomeText
+      ? {
+          resolvedRisky: pending.resolvedRisky === true,
+          resolvedSuccess: pending.resolvedSuccess === true,
+          outcomeTitle:
+            pending.resolvedRisky === true
+              ? pending.resolvedSuccess === true
+                ? resolvedOutcome?.successHeadline === undefined
+                  ? t('storyEvent.outcomeRiskPaidOff')
+                  : copyOrEnglish(
+                      t,
+                      `${outcomeKey}.headline`,
+                      resolvedOutcome.successHeadline,
+                    )
+                : t('storyEvent.outcomeGambleMissed')
+              : t('storyEvent.outcomeDecisionComplete'),
+          // Written into the save in English by the pure ring; the key recovers the
+          // player's language without the save having to hold seven copies.
+          outcomeText: copyOrEnglish(
+            t,
+            outcomeKey === undefined ? undefined : `${outcomeKey}.text`,
+            pending.outcomeText,
+          ),
+          outcomeRewards:
+            resolvedOutcome === undefined
+              ? []
+              : eventRewardItems(resolvedOutcome.effects, t, state),
+          ...(pending.resolvedNextEventId === undefined
+            ? {}
+            : { outcomeHasFollowUp: true as const }),
+        }
+      : {}),
+    ...(pending.resolvedRisky === true &&
+    pending.resolvedSuccess === true &&
+    resolvedOutcome !== undefined
       ? {
           successCutscene: {
             artKey: `${event.art}-success`,
-            headline: resolvedOutcome.successHeadline === undefined
-              ? copyOrEnglish(t, `event.${event.id}.title`, event.title).replace(/[!?]+$/, '')
-              : copyOrEnglish(t, `${outcomeKey}.headline`, resolvedOutcome.successHeadline),
+            headline:
+              resolvedOutcome.successHeadline === undefined
+                ? copyOrEnglish(
+                    t,
+                    `event.${event.id}.title`,
+                    event.title,
+                  ).replace(/[!?]+$/, '')
+                : copyOrEnglish(
+                    t,
+                    `${outcomeKey}.headline`,
+                    resolvedOutcome.successHeadline,
+                  ),
             rewards: eventRewardLabels(resolvedOutcome.effects, t, state),
-            ...(pending.resolvedNextEventId === undefined ? {} : { hasFollowUp: true as const }),
+            ...(pending.resolvedNextEventId === undefined
+              ? {}
+              : { hasFollowUp: true as const }),
           },
         }
       : {}),
@@ -1534,93 +1987,136 @@ export function seasonEndViewModel(
     throw new Error('the season has not ended');
   }
   const standings = leagueStandings(state);
-  const user = standings.find(row => row.clubId === state.userClubId);
-  if (user === undefined) throw new Error('the user club has no final standing');
+  const user = standings.find((row) => row.clubId === state.userClubId);
+  if (user === undefined)
+    throw new Error('the user club has no final standing');
   const sliceComplete = state.phase === 'complete';
   const division = careerDivision(state);
-  const outcomeLabel = user.position === 1 && division === 1
-    ? 'CHAMPIONS' as const
-    : user.position <= 2 && division > 1
-      ? 'PROMOTED' as const
-      : user.position >= 9 && division < 5
-        ? 'RELEGATED' as const
-        : 'SAFE' as const;
-  const expiredPlayers = sliceComplete ? [] : rosterForClub(state, state.userClubId)
-    .filter(player => player.contractSeasonsRemaining === 0
-      && !willRetireAtSeasonTransition(player, state.season))
-    .sort((left, right) => left.id.localeCompare(right.id));
+  const outcomeLabel =
+    user.position === 1 && division === 1
+      ? ('CHAMPIONS' as const)
+      : user.position <= 2 && division > 1
+        ? ('PROMOTED' as const)
+        : user.position >= 9 && division < 5
+          ? ('RELEGATED' as const)
+          : ('SAFE' as const);
+  const expiredPlayers = sliceComplete
+    ? []
+    : rosterForClub(state, state.userClubId)
+        .filter(
+          (player) =>
+            player.contractSeasonsRemaining === 0 &&
+            !willRetireAtSeasonTransition(player, state.season),
+        )
+        .sort((left, right) => left.id.localeCompare(right.id));
   const renewalTalks = state.market?.renewalTalks;
   const projectedHeroLimit = projectedSeasonEndContractPromiseHeroLimit(state);
   // Open renewal talks pin their own player; otherwise the queue presents its
   // id-ordered head. Pinning `expiredPlayers[0]` unconditionally could park the
   // negotiation panel under the wrong name and locked the queue behind a player
   // whose talks had collapsed for the season.
-  const expiredPlayer = expiredPlayers.find(player => player.id === renewalTalks?.playerId)
-    ?? expiredPlayers[0];
+  const expiredPlayer =
+    expiredPlayers.find((player) => player.id === renewalTalks?.playerId) ??
+    expiredPlayers[0];
   // Zero would mean an announced player, and `expiredPlayers` already filters
   // those out through `willRetireAtSeasonTransition`.
-  const renewalTermCap = expiredPlayer === undefined
-    ? 3
-    : maxRenewalTermSeasons(expiredPlayer, state.careerSeed);
-  const renewalBlocked = expiredPlayer === undefined || state.market === undefined
-    ? undefined
-    : careerRenewalBlockedReasonCopy(state, state.market, expiredPlayer.id);
-  const renewalBlockedReason = renewalBlocked === undefined
-    ? undefined
-    : resolveRingCopy(t, renewalBlocked);
-  const prizeMoney = state.ledgers[state.ledgers.length - 1]?.lines
-    .filter(line => line.kind === 'prize')
-    .reduce((sum, line) => sum + line.amount, 0) ?? 0;
-  const promotedDivision = outcomeLabel === 'PROMOTED'
-    ? (division - 1) as 1 | 2 | 3 | 4
-    : undefined;
-  const newlyUnlockedRewards = promotedDivision !== undefined
-    && promotedDivision < highestDivisionReached(state)
-    ? promotionRewardsForDivision(promotedDivision)
-    : [];
+  const renewalTermCap =
+    expiredPlayer === undefined
+      ? 3
+      : maxRenewalTermSeasons(expiredPlayer, state.careerSeed);
+  const renewalBlocked =
+    expiredPlayer === undefined || state.market === undefined
+      ? undefined
+      : careerRenewalBlockedReasonCopy(state, state.market, expiredPlayer.id);
+  const renewalBlockedReason =
+    renewalBlocked === undefined
+      ? undefined
+      : resolveRingCopy(t, renewalBlocked);
+  const prizeMoney =
+    state.ledgers[state.ledgers.length - 1]?.lines
+      .filter((line) => line.kind === 'prize')
+      .reduce((sum, line) => sum + line.amount, 0) ?? 0;
+  const promotedDivision =
+    outcomeLabel === 'PROMOTED' ? ((division - 1) as 1 | 2 | 3 | 4) : undefined;
+  const newlyUnlockedRewards =
+    promotedDivision !== undefined &&
+    promotedDivision < highestDivisionReached(state)
+      ? promotionRewardsForDivision(promotedDivision)
+      : [];
   const recap = latestSeasonRecap(state);
   // `topScorer` is deliberately absent. It is a club-only award that counts cup
   // goals, while the awards ceremony the manager has just watched crowns a
   // division-wide, league-only, forwards-only Golden Boot — so the two can name
   // different players truthfully. Showing both put a second Golden Boot on the
   // screen one tap after the ceremony handed out the first.
-  const recapAwards = recap === undefined
-    ? []
-    : [recap.playerOfSeason, recap.youngPlayer, recap.heroOfSeason]
-      .filter((award): award is NonNullable<typeof award> => award !== undefined)
-      .flatMap(award => {
-        const player = state.players.find(candidate => candidate.id === award.playerId);
-        return player === undefined ? [] : [{
-          ...award,
-          // The save keeps the English — `hall-of-fame.ts` parses a legacy
-          // recap's `detail` for its goal count — so the screen translates it
-          // here instead. `detail` has no key of its own; it is always the
-          // label's key plus `.detail`.
-          label: copyOrEnglish(t, award.labelKey, award.label, award.labelParams),
-          detail: copyOrEnglish(
-            t,
-            award.labelKey === undefined ? undefined : `${award.labelKey}.detail`,
-            award.detail,
-            award.labelParams,
-          ),
-          role: player.role,
-          ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
-        }];
-      });
-  const memorableEvent = recap?.memorableEventId === undefined
-    ? undefined
-    : content.events.events.find(event => event.id === recap.memorableEventId);
-  const memorableEventTitle = memorableEvent === undefined
-    ? undefined
-    : copyOrEnglish(t, `event.${memorableEvent.id}.title`, memorableEvent.title);
+  const recapAwards =
+    recap === undefined
+      ? []
+      : [recap.playerOfSeason, recap.youngPlayer, recap.heroOfSeason]
+          .filter(
+            (award): award is NonNullable<typeof award> => award !== undefined,
+          )
+          .flatMap((award) => {
+            const player = state.players.find(
+              (candidate) => candidate.id === award.playerId,
+            );
+            return player === undefined
+              ? []
+              : [
+                  {
+                    ...award,
+                    // The save keeps the English — `hall-of-fame.ts` parses a legacy
+                    // recap's `detail` for its goal count — so the screen translates it
+                    // here instead. `detail` has no key of its own; it is always the
+                    // label's key plus `.detail`.
+                    label: copyOrEnglish(
+                      t,
+                      award.labelKey,
+                      award.label,
+                      award.labelParams,
+                    ),
+                    detail: copyOrEnglish(
+                      t,
+                      award.labelKey === undefined
+                        ? undefined
+                        : `${award.labelKey}.detail`,
+                      award.detail,
+                      award.labelParams,
+                    ),
+                    role: player.role,
+                    ...(player.lookId === undefined
+                      ? {}
+                      : { lookId: player.lookId }),
+                  },
+                ];
+          });
+  const memorableEvent =
+    recap?.memorableEventId === undefined
+      ? undefined
+      : content.events.events.find(
+          (event) => event.id === recap.memorableEventId,
+        );
+  const memorableEventTitle =
+    memorableEvent === undefined
+      ? undefined
+      : copyOrEnglish(
+          t,
+          `event.${memorableEvent.id}.title`,
+          memorableEvent.title,
+        );
   const objectiveResults = state.clubBusiness.sponsorship.activeContracts
-    .filter(contract => (
-      contract.season === state.season
-      && contract.objective !== undefined
-      && contract.objectiveOutcome?.settledSeason === state.season
-    ))
-    .sort((left, right) => left.slot - right.slot || left.contractId.localeCompare(right.contractId))
-    .map(contract => ({
+    .filter(
+      (contract) =>
+        contract.season === state.season &&
+        contract.objective !== undefined &&
+        contract.objectiveOutcome?.settledSeason === state.season,
+    )
+    .sort(
+      (left, right) =>
+        left.slot - right.slot ||
+        left.contractId.localeCompare(right.contractId),
+    )
+    .map((contract) => ({
       contractId: contract.contractId,
       // The brand stays English by decision; the target beside it does not.
       sponsorName: contract.sponsorName,
@@ -1635,21 +2131,24 @@ export function seasonEndViewModel(
     0,
   );
   const buzzSummary = state.clubBusiness.buzz.lastSettlementSummary;
-  const seasonEndBuzz = buzzSummary?.season === state.season && buzzSummary.half === 2
-    ? {
-        reached: buzzSummary.prePayoutValue,
-        actualPayout: buzzSummary.payout,
-        resetTo: buzzSummary.resetValue,
-      }
-    : undefined;
-  const clubBusinessSettlement = objectiveResults.length === 0 && seasonEndBuzz === undefined
-    ? undefined
-    : {
-        objectiveResults,
-        objectiveBonusTotal,
-        ...(seasonEndBuzz === undefined ? {} : { buzz: seasonEndBuzz }),
-        actualPayoutTotal: objectiveBonusTotal + (seasonEndBuzz?.actualPayout ?? 0),
-      };
+  const seasonEndBuzz =
+    buzzSummary?.season === state.season && buzzSummary.half === 2
+      ? {
+          reached: buzzSummary.prePayoutValue,
+          actualPayout: buzzSummary.payout,
+          resetTo: buzzSummary.resetValue,
+        }
+      : undefined;
+  const clubBusinessSettlement =
+    objectiveResults.length === 0 && seasonEndBuzz === undefined
+      ? undefined
+      : {
+          objectiveResults,
+          objectiveBonusTotal,
+          ...(seasonEndBuzz === undefined ? {} : { buzz: seasonEndBuzz }),
+          actualPayoutTotal:
+            objectiveBonusTotal + (seasonEndBuzz?.actualPayout ?? 0),
+        };
 
   return {
     seasonLabel: t('seasonEnd.seasonLabel', {
@@ -1657,41 +2156,50 @@ export function seasonEndViewModel(
       division: divisionTierLabelWith(division, t),
     }),
     outcomeLabel,
-    headline: outcomeLabel === 'CHAMPIONS'
-      ? t('seasonEnd.headlineChampions')
-      : outcomeLabel === 'PROMOTED'
-        ? t('seasonEnd.headlinePromoted')
+    headline:
+      outcomeLabel === 'CHAMPIONS'
+        ? t('seasonEnd.headlineChampions')
+        : outcomeLabel === 'PROMOTED'
+          ? t('seasonEnd.headlinePromoted')
+          : outcomeLabel === 'RELEGATED'
+            ? t('seasonEnd.headlineRelegated')
+            : t('seasonEnd.headlineSafe'),
+    summary:
+      outcomeLabel === 'PROMOTED'
+        ? t('seasonEnd.summaryPromoted', {
+            division: divisionTierLabelWith((division - 1) as 1 | 2 | 3 | 4, t),
+          })
         : outcomeLabel === 'RELEGATED'
-          ? t('seasonEnd.headlineRelegated')
-          : t('seasonEnd.headlineSafe'),
-    summary: outcomeLabel === 'PROMOTED'
-      ? t('seasonEnd.summaryPromoted', {
-        division: divisionTierLabelWith((division - 1) as 1 | 2 | 3 | 4, t),
-      })
-      : outcomeLabel === 'RELEGATED'
-        ? t('seasonEnd.summaryRelegated', {
-          division: divisionTierLabelWith((division + 1) as 2 | 3 | 4 | 5, t),
-        })
-        : t('seasonEnd.summarySafe'),
+          ? t('seasonEnd.summaryRelegated', {
+              division: divisionTierLabelWith(
+                (division + 1) as 2 | 3 | 4 | 5,
+                t,
+              ),
+            })
+          : t('seasonEnd.summarySafe'),
     finalPosition: user.position,
     prizeMoney,
     difficultyLabel: state.difficulty ?? 'COZY',
-    ...(recap === undefined ? {} : {
-      recap: {
-        record: `${recap.won}W · ${recap.drawn}D · ${recap.lost}L`,
-        goals: t('seasonEnd.recapGoals', {
-          scored: recap.goalsFor,
-          conceded: recap.goalsAgainst,
+    ...(recap === undefined
+      ? {}
+      : {
+          recap: {
+            record: `${recap.won}W · ${recap.drawn}D · ${recap.lost}L`,
+            goals: t('seasonEnd.recapGoals', {
+              scored: recap.goalsFor,
+              conceded: recap.goalsAgainst,
+            }),
+            cashChange: recap.cashChange,
+            closingCash: recap.closingCash,
+            trainingCapsReached: recap.trainingCapsReached,
+            cupResult: copyOrEnglish(t, recap.cupResultKey, recap.cupResult),
+            ...(memorableEventTitle === undefined
+              ? {}
+              : { memorableEventTitle }),
+            awards: recapAwards,
+          },
         }),
-        cashChange: recap.cashChange,
-        closingCash: recap.closingCash,
-        trainingCapsReached: recap.trainingCapsReached,
-        cupResult: copyOrEnglish(t, recap.cupResultKey, recap.cupResult),
-        ...(memorableEventTitle === undefined ? {} : { memorableEventTitle }),
-        awards: recapAwards,
-      },
-    }),
-    table: standings.map(row => ({
+    table: standings.map((row) => ({
       position: row.position,
       clubId: row.clubId,
       clubName: clubName(state, row.clubId),
@@ -1714,81 +2222,110 @@ export function seasonEndViewModel(
             // Money is formatted here rather than passed raw: the templates read
             // "· {cost} each" with no currency symbol, so they expect a finished
             // amount, and `src/game` may not know what a dollar looks like.
-            items: newlyUnlockedRewards.map(reward => {
-              const params = reward.params === undefined ? undefined : Object.fromEntries(
-                Object.entries(reward.params).map(([name, value]) => [
-                  name,
-                  (name === 'cost' || name === 'amount') && typeof value === 'number'
-                    ? formatMoney(value)
-                    : value,
-                ]),
-              );
+            items: newlyUnlockedRewards.map((reward) => {
+              const params =
+                reward.params === undefined
+                  ? undefined
+                  : Object.fromEntries(
+                      Object.entries(reward.params).map(([name, value]) => [
+                        name,
+                        (name === 'cost' || name === 'amount') &&
+                        typeof value === 'number'
+                          ? formatMoneyForCopy(t, value)
+                          : value,
+                      ]),
+                    );
               return {
                 ...reward,
                 title: copyOrEnglish(t, reward.titleKey, reward.title, params),
-                detail: copyOrEnglish(t, reward.detailKey, reward.detail, params),
+                detail: copyOrEnglish(
+                  t,
+                  reward.detailKey,
+                  reward.detail,
+                  params,
+                ),
               };
             }),
           },
         }),
     ...(clubBusinessSettlement === undefined ? {} : { clubBusinessSettlement }),
-    ...(expiredPlayer ? {
-      expiredContract: {
-        playerId: expiredPlayer.id,
-        playerName: expiredPlayer.name,
-        role: expiredPlayer.role,
-        lookId: expiredPlayer.lookId,
-        powerName: powerDisplayName(content, expiredPlayer.power, t),
-        currentWeeklyWage: expiredPlayer.weeklyWage,
-        // The agent's real opening ask, not `renewalQuote`'s wage-times-four.
-        // The old quote ignored growth, fame, loyalty and personality, so the
-        // headline number the manager used to decide renew-versus-release
-        // measured 13-24% low on ordinary squads and 61% low on a grown hero —
-        // and then changed the instant they tapped "Meet the agent".
-        quotedWeeklyWage: renewalTalks?.playerId === expiredPlayer.id
-          ? renewalTalks.negotiation.weeklyAsk
-          : careerRenewalWeeklyAsk(state, expiredPlayer),
-        isHeroWageCliff: expiredPlayer.power !== undefined && !expiredPlayer.onHeroWage,
-        termOptions: contractTermOptions(renewalTermCap),
-        // Clamped rather than trusted: the term is held in the store across
-        // players, so a 3 dialled in for one man must not survive onto the
-        // veteran queued behind him.
-        selectedTerm: Math.min(selectedTerm, Math.max(1, renewalTermCap)) as 1 | 2 | 3,
-        ...(renewalTermCap >= 3 ? {} : {
-          shortTermReason: resolveRingCopy(t, shortContractReasonCopy(expiredPlayer.age ?? 24, renewalTermCap)),
-        }),
-        // Replaces a hardcoded `decision: 'pending'` and
-        // `requiresNegotiation: true`, which made the whole quick-renew branch
-        // of the screen unreachable while leaving a permanently red PENDING chip
-        // over it. Both renew actions now disable together with a reason, rather
-        // than rendering enabled over an engine call that always throws.
-        ...(renewalBlockedReason === undefined ? {} : { renewalBlockedReason }),
-        remainingExpiredCount: expiredPlayers.length,
-      },
-    } : {}),
-    ...(renewalTalks === undefined
-      || expiredPlayer === undefined
-      || renewalTalks.playerId !== expiredPlayer.id
+    ...(expiredPlayer
+      ? {
+          expiredContract: {
+            playerId: expiredPlayer.id,
+            playerName: expiredPlayer.name,
+            role: expiredPlayer.role,
+            lookId: expiredPlayer.lookId,
+            powerName: powerDisplayName(content, expiredPlayer.power, t),
+            currentWeeklyWage: expiredPlayer.weeklyWage,
+            // The agent's real opening ask, not `renewalQuote`'s wage-times-four.
+            // The old quote ignored growth, fame, loyalty and personality, so the
+            // headline number the manager used to decide renew-versus-release
+            // measured 13-24% low on ordinary squads and 61% low on a grown hero —
+            // and then changed the instant they tapped "Meet the agent".
+            quotedWeeklyWage:
+              renewalTalks?.playerId === expiredPlayer.id
+                ? renewalTalks.negotiation.weeklyAsk
+                : careerRenewalWeeklyAsk(state, expiredPlayer),
+            isHeroWageCliff:
+              expiredPlayer.power !== undefined && !expiredPlayer.onHeroWage,
+            termOptions: contractTermOptions(renewalTermCap),
+            // Clamped rather than trusted: the term is held in the store across
+            // players, so a 3 dialled in for one man must not survive onto the
+            // veteran queued behind him.
+            selectedTerm: Math.min(
+              selectedTerm,
+              Math.max(1, renewalTermCap),
+            ) as 1 | 2 | 3,
+            ...(renewalTermCap >= 3
+              ? {}
+              : {
+                  shortTermReason: resolveRingCopy(
+                    t,
+                    shortContractReasonCopy(
+                      expiredPlayer.age ?? 24,
+                      renewalTermCap,
+                    ),
+                  ),
+                }),
+            // Replaces a hardcoded `decision: 'pending'` and
+            // `requiresNegotiation: true`, which made the whole quick-renew branch
+            // of the screen unreachable while leaving a permanently red PENDING chip
+            // over it. Both renew actions now disable together with a reason, rather
+            // than rendering enabled over an engine call that always throws.
+            ...(renewalBlockedReason === undefined
+              ? {}
+              : { renewalBlockedReason }),
+            remainingExpiredCount: expiredPlayers.length,
+          },
+        }
+      : {}),
+    ...(renewalTalks === undefined ||
+    expiredPlayer === undefined ||
+    renewalTalks.playerId !== expiredPlayer.id
       ? {}
       : {
-          renewalNegotiation: marketNegotiationViewModel({
-            state: renewalTalks.negotiation,
-            playerName: expiredPlayer.name,
-            playerRole: expiredPlayer.role,
-            lookId: expiredPlayer.lookId,
-            openingWeeklyWage: renewalOpeningOfferWage(
-              renewalTalks.negotiation.weeklyAsk,
-              RENEWAL_WAGE_STEP,
-            ),
-            wageStep: RENEWAL_WAGE_STEP,
-            maxTermSeasons: Math.max(1, renewalTermCap) as 1 | 2 | 3,
-            playerAge: expiredPlayer.age ?? 24,
-            contractPromiseContext: {
-              state,
-              player: expiredPlayer,
-              heroLimit: projectedHeroLimit,
+          renewalNegotiation: marketNegotiationViewModel(
+            {
+              state: renewalTalks.negotiation,
+              playerName: expiredPlayer.name,
+              playerRole: expiredPlayer.role,
+              lookId: expiredPlayer.lookId,
+              openingWeeklyWage: renewalOpeningOfferWage(
+                renewalTalks.negotiation.weeklyAsk,
+                RENEWAL_WAGE_STEP,
+              ),
+              wageStep: RENEWAL_WAGE_STEP,
+              maxTermSeasons: Math.max(1, renewalTermCap) as 1 | 2 | 3,
+              playerAge: expiredPlayer.age ?? 24,
+              contractPromiseContext: {
+                state,
+                player: expiredPlayer,
+                heroLimit: projectedHeroLimit,
+              },
             },
-          }, t),
+            t,
+          ),
         }),
     sliceComplete,
     canContinue: sliceComplete || expiredPlayer === undefined,
@@ -1824,8 +2361,11 @@ function deskStoryAlert(
   t: CopyFn = englishCopy(),
 ): ClubAlertViewModel | undefined {
   const pending = state.pendingEvent;
-  if (pending === undefined || pending.resolvedChoiceId !== undefined) return undefined;
-  const event = LAUNCH_CONTENT.events.events.find(candidate => candidate.id === pending.eventId);
+  if (pending === undefined || pending.resolvedChoiceId !== undefined)
+    return undefined;
+  const event = LAUNCH_CONTENT.events.events.find(
+    (candidate) => candidate.id === pending.eventId,
+  );
   if (event === undefined) return undefined;
   // Same rule as `deskTipNote`: the catalog owns the sentence, `events.json`
   // owns the English behind it.
@@ -1846,20 +2386,27 @@ function deskStoryAlert(
  * with nothing else to read, and disappears for good the moment the club buys
  * any upgrade — the point is to teach that the shop exists, not to nag.
  */
-function drillShopAlert(state: GameState, t: CopyFn): ClubAlertViewModel | undefined {
+function drillShopAlert(
+  state: GameState,
+  t: CopyFn,
+): ClubAlertViewModel | undefined {
   // The copy promises a promotion opened the shop, so only say it once one has.
   // Pre-M2 saves have no division record at all and never see this.
   if ((state.m2?.highestDivisionReached ?? 5) >= 5) return undefined;
-  if (TRAINING_PATHS.some(path => ownedTrainingTier(state, path.pathId) > 1)) return undefined;
-  const affordable = TRAINING_PATHS
-    .map(path => nextTrainingUpgradeOffer(state, path.pathId))
-    .filter(offer => offer !== undefined && offer.blockedReason === undefined);
+  if (TRAINING_PATHS.some((path) => ownedTrainingTier(state, path.pathId) > 1))
+    return undefined;
+  const affordable = TRAINING_PATHS.map((path) =>
+    nextTrainingUpgradeOffer(state, path.pathId),
+  ).filter((offer) => offer !== undefined && offer.blockedReason === undefined);
   const offer = affordable[0];
   if (offer === undefined) return undefined;
   return {
     id: `training-upgrade:tier-${offer.tier}`,
     title: t('clubHome.drillShopTitle', { tier: offer.tier }),
-    detail: t('clubHome.drillShopDetail', { cost: formatMoney(offer.cost), tier: offer.tier }),
+    detail: t('clubHome.drillShopDetail', {
+      cost: formatMoneyForCopy(t, offer.cost),
+      tier: offer.tier,
+    }),
     tone: 'info',
   };
 }
@@ -1870,11 +2417,16 @@ function drillShopAlert(state: GameState, t: CopyFn): ClubAlertViewModel | undef
  * the works crew is free — asking for a build the player cannot start would be
  * an instruction that goes nowhere — and never crowds out a real inbox item.
  */
-function isBuildReminderDue(state: GameState, alerts: readonly ClubAlertViewModel[]): boolean {
-  return alerts.length === 0
-    && state.season === 1
-    && state.week === BUILD_REMINDER_WEEK
-    && state.facilities.grid?.construction === undefined;
+function isBuildReminderDue(
+  state: GameState,
+  alerts: readonly ClubAlertViewModel[],
+): boolean {
+  return (
+    alerts.length === 0 &&
+    state.season === 1 &&
+    state.week === BUILD_REMINDER_WEEK &&
+    state.facilities.grid?.construction === undefined
+  );
 }
 
 /** Weeks of a season in which a squad's imminent retirements are called out. */
@@ -1886,57 +2438,78 @@ export function homeProductAlerts(
   t: CopyFn = englishCopy(),
 ): ClubAlertViewModel[] {
   const roster = rosterForClub(state, state.userClubId);
-  const expired = roster.filter(player => player.contractSeasonsRemaining === 0);
-  const injured = roster
-    .filter(player => player.injuryWeeks > 0)
-    .sort((left, right) => right.injuryWeeks - left.injuryWeeks || left.name.localeCompare(right.name));
-  const transferRequests = roster.filter(player => player.transferRequested === true);
-  const negativeCashWeeks = state.financialSafety?.consecutiveNegativeWeeks ?? 0;
-  const loan = state.financialSafety?.loan;
-  const financialWarningDismissed = isAssistantInboxProductDismissedForCurrentWeek(
-    state,
-    'financial-warning',
+  const expired = roster.filter(
+    (player) => player.contractSeasonsRemaining === 0,
   );
-  const emergencyLoanDismissed = isAssistantInboxProductDismissedForCurrentWeek(
-    state,
-    'emergency-loan',
-  ) || isAssistantInboxProductPermanentlyDismissed(state, 'emergency-loan');
+  const injured = roster
+    .filter((player) => player.injuryWeeks > 0)
+    .sort(
+      (left, right) =>
+        right.injuryWeeks - left.injuryWeeks ||
+        left.name.localeCompare(right.name),
+    );
+  const transferRequests = roster.filter(
+    (player) => player.transferRequested === true,
+  );
+  const negativeCashWeeks =
+    state.financialSafety?.consecutiveNegativeWeeks ?? 0;
+  const loan = state.financialSafety?.loan;
+  const financialWarningDismissed =
+    isAssistantInboxProductDismissedForCurrentWeek(state, 'financial-warning');
+  const emergencyLoanDismissed =
+    isAssistantInboxProductDismissedForCurrentWeek(state, 'emergency-loan') ||
+    isAssistantInboxProductPermanentlyDismissed(state, 'emergency-loan');
   const boardUltimatum = state.financialSafety?.boardUltimatum;
   const latestBoardResolution = state.financialSafety?.latestBoardResolution;
-  const boardResolutionAlertId = latestBoardResolution === undefined
-    ? undefined
-    : `board-resolution:${latestBoardResolution.id}`;
-  const showBoardResolution = boardResolutionAlertId !== undefined
-    && isAssistantInboxOneShotProductVisible(state, boardResolutionAlertId);
-  const trainingGroundUnderConstruction = state.facilities.grid?.construction?.kind === 'BUILD'
-    && state.facilities.grid.construction.type === 'training-pitch';
-  const waitingRequest = state.playerRequests?.pending?.warned === true
-    ? state.playerRequests.pending
-    : undefined;
-  const heroIds = new Set(roster
-    .filter(player => player.power !== undefined)
-    .map(player => player.id));
+  const boardResolutionAlertId =
+    latestBoardResolution === undefined
+      ? undefined
+      : `board-resolution:${latestBoardResolution.id}`;
+  const showBoardResolution =
+    boardResolutionAlertId !== undefined &&
+    isAssistantInboxOneShotProductVisible(state, boardResolutionAlertId);
+  const trainingGroundUnderConstruction =
+    state.facilities.grid?.construction?.kind === 'BUILD' &&
+    state.facilities.grid.construction.type === 'training-pitch';
+  const waitingRequest =
+    state.playerRequests?.pending?.warned === true
+      ? state.playerRequests.pending
+      : undefined;
+  const heroIds = new Set(
+    roster
+      .filter((player) => player.power !== undefined)
+      .map((player) => player.id),
+  );
   const retirementAnnouncements = (state.retirementAnnouncements ?? [])
-    .filter(announcement => announcement.announcedInSeason === state.season - 1)
+    .filter(
+      (announcement) => announcement.announcedInSeason === state.season - 1,
+    )
     .sort((left, right) => left.playerName.localeCompare(right.playerName));
   // The last-chance notice. The announcement is a whole season old by the time
   // the final matches arrive, so without this a farewell is something a manager
   // reads about afterwards rather than something he can turn up for.
-  const finalWeeks = state.week > SEASON_WEEKS - RETIREMENT_FINAL_WEEKS
-    ? roster
-        .filter(player => willRetireAtSeasonTransition(player, state.season))
-        .sort((left, right) => left.name.localeCompare(right.name))
-    : [];
+  const finalWeeks =
+    state.week > SEASON_WEEKS - RETIREMENT_FINAL_WEEKS
+      ? roster
+          .filter((player) =>
+            willRetireAtSeasonTransition(player, state.season),
+          )
+          .sort((left, right) => left.name.localeCompare(right.name))
+      : [];
   // Retired at the last transition, and nowhere else on the desk until now: a
   // player announced in season S plays S+1 and is gone by S+2, so the season
   // that has just started is the one that owes him a goodbye.
   const justRetired = (state.retiredPlayers ?? [])
-    .filter(player => player.clubId === state.userClubId
-      && player.retirementAnnouncementSeason === state.season - 2)
+    .filter(
+      (player) =>
+        player.clubId === state.userClubId &&
+        player.retirementAnnouncementSeason === state.season - 2,
+    )
     .sort((left, right) => left.name.localeCompare(right.name));
   const retirementFarewellAlertId = `retirement-farewell:s${state.season}`;
-  const showRetirementFarewell = justRetired.length > 0
-    && isAssistantInboxOneShotProductVisible(state, retirementFarewellAlertId);
+  const showRetirementFarewell =
+    justRetired.length > 0 &&
+    isAssistantInboxOneShotProductVisible(state, retirementFarewellAlertId);
   return [
     // The board speaks first.
     //
@@ -1947,179 +2520,285 @@ export function homeProductAlerts(
     // escalation states, not one board row reached a desk that had anything
     // else on it. Money trouble outranks a squad grumble: nothing else in this
     // list can end the club.
-    ...(negativeCashWeeks > 0 && !financialWarningDismissed ? [{
-      id: 'financial-warning',
-      title: t('clubHome.financialWarningTitle'),
-      detail: t('clubHome.financialWarningDetail', {
-        n: negativeCashWeeks,
-        count: negativeCashWeeks,
-      }),
-      tone: 'urgent' as const,
-    }] : []),
+    ...(negativeCashWeeks > 0 && !financialWarningDismissed
+      ? [
+          {
+            id: 'financial-warning',
+            title: t('clubHome.financialWarningTitle'),
+            detail: t('clubHome.financialWarningDetail', {
+              n: negativeCashWeeks,
+              count: negativeCashWeeks,
+            }),
+            tone: 'urgent' as const,
+          },
+        ]
+      : []),
     // Kept even next to the warning above: the two carry different facts, what
     // is locked and what is owed. It is the one board row that does NOT hold an
     // urgent slot (see `assistantProductPriority`) — the accounts office now
     // carries the outstanding balance permanently, so this row announces the
     // debt rather than being the only place to read it.
-    ...(loan !== undefined && loan.remainingBalance > 0 && !emergencyLoanDismissed ? [{
-      id: 'emergency-loan',
-      title: t('clubHome.emergencyLoanTitle'),
-      detail: state.season >= loan.repaymentStartsSeason
-        ? t('clubHome.emergencyLoanDetailRepaying', {
-          n: loan.remainingWeeks,
-          count: loan.remainingWeeks,
-          amount: formatMoney(loan.remainingBalance),
-        })
-        : t('clubHome.emergencyLoanDetailPending', {
-          amount: formatMoney(loan.remainingBalance),
-          season: loan.repaymentStartsSeason,
-        }),
-      tone: 'info' as const,
-    }] : []),
-    ...(boardUltimatum === undefined ? [] : [{
-      id: 'board-ultimatum',
-      title: t('clubHome.boardDeadlineTitle', {
-        n: boardUltimatum.weeksRemaining,
-        count: boardUltimatum.weeksRemaining,
-      }),
-      detail: t('clubHome.boardDeadlineDetail', {
-        target: boardTargetLabel(boardUltimatum.targetCash, t),
-      }),
-      tone: 'urgent' as const,
-    }]),
-    ...(!showBoardResolution || latestBoardResolution === undefined ? [] : [{
-      id: boardResolutionAlertId!,
-      title: latestBoardResolution.kind === 'TARGET_MET'
-        ? t('clubHome.boardTargetMetTitle')
-        : t('clubHome.boardSaleCompletedTitle'),
-      detail: latestBoardResolution.kind === 'TARGET_MET'
-        ? t('clubHome.boardTargetMetDetail')
-        : t('clubHome.boardSaleCompletedDetail', {
-          player: state.players.find(player => player.id === latestBoardResolution.playerId)?.name
-            ?? t('clubHome.aPlayer'),
-          club: clubName(state, latestBoardResolution.buyerClubId),
-          fee: formatMoney(latestBoardResolution.fee),
-        }),
-      tone: latestBoardResolution.kind === 'TARGET_MET' ? 'info' as const : 'urgent' as const,
-    }]),
+    ...(loan !== undefined &&
+    loan.remainingBalance > 0 &&
+    !emergencyLoanDismissed
+      ? [
+          {
+            id: 'emergency-loan',
+            title: t('clubHome.emergencyLoanTitle'),
+            detail:
+              state.season >= loan.repaymentStartsSeason
+                ? t('clubHome.emergencyLoanDetailRepaying', {
+                    n: loan.remainingWeeks,
+                    count: loan.remainingWeeks,
+                    amount: formatMoneyForCopy(t, loan.remainingBalance),
+                  })
+                : t('clubHome.emergencyLoanDetailPending', {
+                    amount: formatMoneyForCopy(t, loan.remainingBalance),
+                    season: loan.repaymentStartsSeason,
+                  }),
+            tone: 'info' as const,
+          },
+        ]
+      : []),
+    ...(boardUltimatum === undefined
+      ? []
+      : [
+          {
+            id: 'board-ultimatum',
+            title: t('clubHome.boardDeadlineTitle', {
+              n: boardUltimatum.weeksRemaining,
+              count: boardUltimatum.weeksRemaining,
+            }),
+            detail: t('clubHome.boardDeadlineDetail', {
+              target: boardTargetLabel(boardUltimatum.targetCash, t),
+            }),
+            tone: 'urgent' as const,
+          },
+        ]),
+    ...(!showBoardResolution || latestBoardResolution === undefined
+      ? []
+      : [
+          {
+            id: boardResolutionAlertId!,
+            title:
+              latestBoardResolution.kind === 'TARGET_MET'
+                ? t('clubHome.boardTargetMetTitle')
+                : t('clubHome.boardSaleCompletedTitle'),
+            detail:
+              latestBoardResolution.kind === 'TARGET_MET'
+                ? t('clubHome.boardTargetMetDetail')
+                : t('clubHome.boardSaleCompletedDetail', {
+                    player:
+                      state.players.find(
+                        (player) =>
+                          player.id === latestBoardResolution.playerId,
+                      )?.name ?? t('clubHome.aPlayer'),
+                    club: clubName(state, latestBoardResolution.buyerClubId),
+                    fee: formatMoneyForCopy(t, latestBoardResolution.fee),
+                  }),
+            tone:
+              latestBoardResolution.kind === 'TARGET_MET'
+                ? ('info' as const)
+                : ('urgent' as const),
+          },
+        ]),
     // Stated in full, on purpose. A lapse charges exactly what a refusal
     // charges, so the manager has to have been told the number — otherwise
     // ignoring the tab is cheaper than deciding, which is the wrong lesson.
-    ...(waitingRequest === undefined || state.playerRequestRules === undefined ? [] : [{
-      id: 'player-request-waiting',
-      title: t('clubHome.stillWaitingTitle'),
-      detail: (() => {
-        const asker = roster.find(player => player.id === waitingRequest.playerId);
-        const cost = resolutionDeltas(
-          'REFUSED',
-          requestTarget(requestDefinition(state.playerRequestRules!, waitingRequest.requestId).cost),
-          careerDifficulty(state),
-        ).asker;
-        return t('clubHome.stillWaitingDetail', {
-          player: asker?.name ?? t('clubHome.aPlayer'),
-          loyalty: Math.abs(cost.loyalty),
-          morale: Math.abs(cost.morale),
-        });
-      })(),
-      tone: 'urgent' as const,
-      destination: 'squad' as const,
-      ...(waitingRequest.playerId === undefined ? {} : { playerId: waitingRequest.playerId }),
-    }]),
-    ...(!state.facilities.trainingGroundBuilt && !trainingGroundUnderConstruction ? [{
-      id: 'training-ground',
-      title: t('clubHome.trainingPitchTitle'),
-      detail: t('clubHome.trainingPitchDetail'),
-      tone: 'info' as const,
-    }] : []),
-    ...(expired.length > 0 ? [{
-      id: 'renewals',
-      title: t('clubHome.contractsExpiredTitle', { n: expired.length, count: expired.length }),
-      detail: t('clubHome.contractsExpiredDetail'),
-      tone: 'urgent' as const,
-    }] : []),
+    ...(waitingRequest === undefined || state.playerRequestRules === undefined
+      ? []
+      : [
+          {
+            id: 'player-request-waiting',
+            title: t('clubHome.stillWaitingTitle'),
+            detail: (() => {
+              const asker = roster.find(
+                (player) => player.id === waitingRequest.playerId,
+              );
+              const cost = resolutionDeltas(
+                'REFUSED',
+                requestTarget(
+                  requestDefinition(
+                    state.playerRequestRules!,
+                    waitingRequest.requestId,
+                  ).cost,
+                ),
+                careerDifficulty(state),
+              ).asker;
+              return t('clubHome.stillWaitingDetail', {
+                player: asker?.name ?? t('clubHome.aPlayer'),
+                loyalty: Math.abs(cost.loyalty),
+                morale: Math.abs(cost.morale),
+              });
+            })(),
+            tone: 'urgent' as const,
+            destination: 'squad' as const,
+            ...(waitingRequest.playerId === undefined
+              ? {}
+              : { playerId: waitingRequest.playerId }),
+          },
+        ]),
+    ...(!state.facilities.trainingGroundBuilt &&
+    !trainingGroundUnderConstruction
+      ? [
+          {
+            id: 'training-ground',
+            title: t('clubHome.trainingPitchTitle'),
+            detail: t('clubHome.trainingPitchDetail'),
+            tone: 'info' as const,
+          },
+        ]
+      : []),
+    ...(expired.length > 0
+      ? [
+          {
+            id: 'renewals',
+            title: t('clubHome.contractsExpiredTitle', {
+              n: expired.length,
+              count: expired.length,
+            }),
+            detail: t('clubHome.contractsExpiredDetail'),
+            tone: 'urgent' as const,
+          },
+        ]
+      : []),
     // Retirement, in one row per beat rather than one row per player. Seven can
     // arrive in the same week, the desk shows three, and `retirementAnnouncements`
     // is overwritten at the next transition — so a row each meant four farewells
     // were lost for good, with nothing to say they had ever been made.
-    ...(!showRetirementFarewell ? [] : [{
-      id: retirementFarewellAlertId,
-      title: justRetired.length === 1
-        ? t('clubHome.retiredOneTitle', { player: justRetired[0].name })
-        : t('clubHome.retiredManyTitle', { count: justRetired.length }),
-      detail: justRetired.length === 1
-        ? t('clubHome.retiredOneDetail', {
-          names: namesWithOverflow(justRetired.map(player => player.name), t),
-          season: state.season - 1,
-        })
-        : t('clubHome.retiredManyDetail', {
-          names: namesWithOverflow(justRetired.map(player => player.name), t),
-          season: state.season - 1,
-        }),
-      tone: 'info' as const,
-      ...(justRetired.some(player => player.power !== undefined) ? { isHero: true } : {}),
-    }]),
-    ...(finalWeeks.length === 0 ? [] : [{
-      id: `retirement-final-weeks-${state.season}`,
-      title: finalWeeks.length === 1
-        ? t('clubHome.finalMatchesOneTitle', { player: finalWeeks[0].name })
-        : t('clubHome.finalMatchesManyTitle', { count: finalWeeks.length }),
-      detail: finalWeeks.length === 1
-        ? t('clubHome.finalMatchesOneDetail', {
-          names: namesWithOverflow(finalWeeks.map(player => player.name), t),
-          weeks: lowercaseWeekCountLabel(SEASON_WEEKS - state.week + 1, t),
-        })
-        : t('clubHome.finalMatchesManyDetail', {
-          names: namesWithOverflow(finalWeeks.map(player => player.name), t),
-          weeks: lowercaseWeekCountLabel(SEASON_WEEKS - state.week + 1, t),
-        }),
-      tone: 'info' as const,
-      ...(finalWeeks.some(player => player.power !== undefined) ? { isHero: true } : {}),
-    }]),
-    ...(retirementAnnouncements.length === 0 ? [] : [{
-      id: `retirement-announcement-${state.season - 1}`,
-      title: retirementAnnouncements.length === 1
-        ? t('clubHome.retirementAnnouncedOneTitle', {
-          player: retirementAnnouncements[0].playerName,
-        })
-        : t('clubHome.retirementAnnouncedManyTitle', {
-          count: retirementAnnouncements.length,
-        }),
-      detail: retirementAnnouncements.length === 1
-        ? t('clubHome.retirementAnnouncedOneDetail', {
-          age: retirementAnnouncements[0].retirementAge,
-          season: state.season,
-        })
-        : t('clubHome.retirementAnnouncedManyDetail', {
-          names: namesWithOverflow(
-            retirementAnnouncements.map(announcement => announcement.playerName),
-            t,
-          ),
-          season: state.season,
-        }),
-      tone: 'info' as const,
-      ...(retirementAnnouncements.some(announcement => heroIds.has(announcement.playerId))
-        ? { isHero: true }
-        : {}),
-    }]),
+    ...(!showRetirementFarewell
+      ? []
+      : [
+          {
+            id: retirementFarewellAlertId,
+            title:
+              justRetired.length === 1
+                ? t('clubHome.retiredOneTitle', { player: justRetired[0].name })
+                : t('clubHome.retiredManyTitle', { count: justRetired.length }),
+            detail:
+              justRetired.length === 1
+                ? t('clubHome.retiredOneDetail', {
+                    names: namesWithOverflow(
+                      justRetired.map((player) => player.name),
+                      t,
+                    ),
+                    season: state.season - 1,
+                  })
+                : t('clubHome.retiredManyDetail', {
+                    names: namesWithOverflow(
+                      justRetired.map((player) => player.name),
+                      t,
+                    ),
+                    season: state.season - 1,
+                  }),
+            tone: 'info' as const,
+            ...(justRetired.some((player) => player.power !== undefined)
+              ? { isHero: true }
+              : {}),
+          },
+        ]),
+    ...(finalWeeks.length === 0
+      ? []
+      : [
+          {
+            id: `retirement-final-weeks-${state.season}`,
+            title:
+              finalWeeks.length === 1
+                ? t('clubHome.finalMatchesOneTitle', {
+                    player: finalWeeks[0].name,
+                  })
+                : t('clubHome.finalMatchesManyTitle', {
+                    count: finalWeeks.length,
+                  }),
+            detail:
+              finalWeeks.length === 1
+                ? t('clubHome.finalMatchesOneDetail', {
+                    names: namesWithOverflow(
+                      finalWeeks.map((player) => player.name),
+                      t,
+                    ),
+                    weeks: lowercaseWeekCountLabel(
+                      SEASON_WEEKS - state.week + 1,
+                      t,
+                    ),
+                  })
+                : t('clubHome.finalMatchesManyDetail', {
+                    names: namesWithOverflow(
+                      finalWeeks.map((player) => player.name),
+                      t,
+                    ),
+                    weeks: lowercaseWeekCountLabel(
+                      SEASON_WEEKS - state.week + 1,
+                      t,
+                    ),
+                  }),
+            tone: 'info' as const,
+            ...(finalWeeks.some((player) => player.power !== undefined)
+              ? { isHero: true }
+              : {}),
+          },
+        ]),
+    ...(retirementAnnouncements.length === 0
+      ? []
+      : [
+          {
+            id: `retirement-announcement-${state.season - 1}`,
+            title:
+              retirementAnnouncements.length === 1
+                ? t('clubHome.retirementAnnouncedOneTitle', {
+                    player: retirementAnnouncements[0].playerName,
+                  })
+                : t('clubHome.retirementAnnouncedManyTitle', {
+                    count: retirementAnnouncements.length,
+                  }),
+            detail:
+              retirementAnnouncements.length === 1
+                ? t('clubHome.retirementAnnouncedOneDetail', {
+                    age: retirementAnnouncements[0].retirementAge,
+                    season: state.season,
+                  })
+                : t('clubHome.retirementAnnouncedManyDetail', {
+                    names: namesWithOverflow(
+                      retirementAnnouncements.map(
+                        (announcement) => announcement.playerName,
+                      ),
+                      t,
+                    ),
+                    season: state.season,
+                  }),
+            tone: 'info' as const,
+            ...(retirementAnnouncements.some((announcement) =>
+              heroIds.has(announcement.playerId),
+            )
+              ? { isHero: true }
+              : {}),
+          },
+        ]),
     // The earliest retirement signal there is: a full season ahead of the
     // announcement above, which itself lands on the final season. One-shot, so
     // it appears the week it is discovered and then leaves the three desk slots
     // to injuries and board deadlines; the player card carries it from then on.
     ...roster
-      .filter(player => isConsideringRetirement(player, state.careerSeed))
-      .map(player => ({
+      .filter((player) => isConsideringRetirement(player, state.careerSeed))
+      .map((player) => ({
         id: `retirement-considering-${state.season}-${player.id}`,
-        title: t('clubHome.consideringRetirementTitle', { player: player.name }),
-        detail: t('clubHome.consideringRetirementDetail', { age: player.age ?? 24 }),
+        title: t('clubHome.consideringRetirementTitle', {
+          player: player.name,
+        }),
+        detail: t('clubHome.consideringRetirementDetail', {
+          age: player.age ?? 24,
+        }),
         tone: 'info' as const,
       })),
-    ...injured.map(player => ({
+    ...injured.map((player) => ({
       id: `injury-${player.id}`,
       title: `${player.name} · OUT`,
-      detail: t('clubHome.injuredDetail', { weeks: weekCountLabel(player.injuryWeeks, t) }),
+      detail: t('clubHome.injuredDetail', {
+        weeks: weekCountLabel(player.injuryWeeks, t),
+      }),
       tone: 'urgent' as const,
     })),
-    ...transferRequests.map(player => ({
+    ...transferRequests.map((player) => ({
       id: `transfer-request-${player.id}`,
       title: t('clubHome.wantsToLeaveTitle', { player: player.name }),
       detail: t('clubHome.wantsToLeaveDetail'),
@@ -2162,24 +2841,26 @@ export function boardFinanceBriefing(
     // What the board actually does next, which is not the same thing twice: the
     // rescue fires once, and the club that has spent it gets an ultimatum and a
     // sale instead. Promising the wrong one is worse than promising nothing.
-    const graceWeeks = difficultyRules(state).negativeWeeksBeforeIntervention - weeks;
-    const consequence = safety?.emergencyLoanUsed === true
-      ? t('clubHome.briefingConsequenceSells')
-      : t('clubHome.briefingConsequenceLoan');
+    const graceWeeks =
+      difficultyRules(state).negativeWeeksBeforeIntervention - weeks;
+    const consequence =
+      safety?.emergencyLoanUsed === true
+        ? t('clubHome.briefingConsequenceSells')
+        : t('clubHome.briefingConsequenceLoan');
     return {
       title: t('clubHome.financialWarningTitle'),
       body: [
         t('clubHome.briefingWeeksInTheRed', {
           n: weeks,
           count: weeks,
-          amount: formatMoney(cash),
+          amount: formatMoneyForCopy(t, cash),
         }),
         graceWeeks > 0
           ? t('clubHome.briefingLockedWithGrace', {
-            n: graceWeeks,
-            count: graceWeeks,
-            consequence,
-          })
+              n: graceWeeks,
+              count: graceWeeks,
+              consequence,
+            })
           : t('clubHome.briefingLockedOutOfPatience'),
         t('clubHome.briefingBuildAdvice'),
         t('clubHome.briefingHoldTight'),
@@ -2191,19 +2872,26 @@ export function boardFinanceBriefing(
     if (loan === undefined || loan.remainingBalance <= 0) return undefined;
     const repaying = state.season >= loan.repaymentStartsSeason;
     const activeProject = state.facilities.grid?.construction;
-    const commercialAction = activeProject === undefined
-      ? t('clubHome.briefingBuildAnother')
-      : t('clubHome.briefingCrewBusy', { facility: facilityName(t, activeProject.type) });
+    const commercialAction =
+      activeProject === undefined
+        ? t('clubHome.briefingBuildAnother')
+        : t('clubHome.briefingCrewBusy', {
+            facility: facilityName(t, activeProject.type),
+          });
     return {
       title: t('clubHome.emergencyLoanTitle'),
       body: [
-        t('clubHome.briefingLoanLanded', { amount: formatMoney(loan.remainingBalance) }),
+        t('clubHome.briefingLoanLanded', {
+          amount: formatMoneyForCopy(t, loan.remainingBalance),
+        }),
         repaying
           ? t('clubHome.briefingLoanRepaying', {
-            n: loan.remainingWeeks,
-            count: loan.remainingWeeks,
-          })
-          : t('clubHome.briefingLoanPending', { season: loan.repaymentStartsSeason }),
+              n: loan.remainingWeeks,
+              count: loan.remainingWeeks,
+            })
+          : t('clubHome.briefingLoanPending', {
+              season: loan.repaymentStartsSeason,
+            }),
         t('clubHome.briefingCommercialAdvice', { action: commercialAction }),
       ],
     };
@@ -2215,14 +2903,18 @@ export function boardFinanceBriefing(
  * A name list that fits one desk row, with the remainder counted rather than
  * dropped. Alert details render on two lines, so seven names do not fit.
  */
-function namesWithOverflow(names: readonly string[], t: CopyFn, shown = 3): string {
+function namesWithOverflow(
+  names: readonly string[],
+  t: CopyFn,
+  shown = 3,
+): string {
   if (names.length <= shown) {
     return names.length <= 1
-      ? names[0] ?? ''
+      ? (names[0] ?? '')
       : t('viewModels.namesAnd', {
-        names: names.slice(0, -1).join(', '),
-        last: names[names.length - 1],
-      });
+          names: names.slice(0, -1).join(', '),
+          last: names[names.length - 1],
+        });
   }
   return t('viewModels.namesAndMore', {
     names: names.slice(0, shown).join(', '),
@@ -2242,7 +2934,9 @@ function namesWithOverflow(names: readonly string[], t: CopyFn, shown = 3): stri
 function boardTargetLabel(targetCash: number, t: CopyFn): string {
   return targetCash <= 0
     ? t('clubHome.boardTargetPositiveBalance')
-    : t('clubHome.boardTargetCash', { amount: formatMoney(targetCash) });
+    : t('clubHome.boardTargetCash', {
+        amount: formatMoneyForCopy(t, targetCash),
+      });
 }
 
 export function reconcileHomeAssistantInbox(state: GameState): GameState {
@@ -2257,7 +2951,9 @@ export function reconcileHomeAssistantInbox(state: GameState): GameState {
 export function isHomeDeskClear(state: GameState): boolean {
   if (state.phase !== 'manage') return false;
   const plan = homeAssistantInboxPlan(state);
-  return plan.productAlertIds.length === 0 && plan.guideSequenceIds.length === 0;
+  return (
+    plan.productAlertIds.length === 0 && plan.guideSequenceIds.length === 0
+  );
 }
 
 /**
@@ -2269,10 +2965,14 @@ export function isHomeDeskClear(state: GameState): boolean {
  * a fixture, which is most of them. The week stamp makes repeat calls free.
  */
 export function settleWeeklyStory(state: GameState): GameState {
-  if (state.phase !== 'manage' || state.pendingEvent !== undefined) return state;
-  if (state.onboarding !== undefined && state.onboarding.stage !== 'complete') return state;
-  if (state.eventClock.storySettledSeason === state.season
-    && state.eventClock.storySettledWeek === state.week) {
+  if (state.phase !== 'manage' || state.pendingEvent !== undefined)
+    return state;
+  if (state.onboarding !== undefined && state.onboarding.stage !== 'complete')
+    return state;
+  if (
+    state.eventClock.storySettledSeason === state.season &&
+    state.eventClock.storySettledWeek === state.week
+  ) {
     return state;
   }
   const offer = eventOfferForWeek(state, LAUNCH_CONTENT.events, {
@@ -2295,12 +2995,16 @@ export function settleWeeklyStory(state: GameState): GameState {
    * would be a `requiresPlayer` story with an empty target, and the manager
    * could point it at somebody who did not score.
    */
-  const queued = (settled.pendingMilestones ?? []).find(entry => entry.eventId === offer.eventId);
+  const queued = (settled.pendingMilestones ?? []).find(
+    (entry) => entry.eventId === offer.eventId,
+  );
   return reconcilePendingCareerEvent(
     offerCareerEvent(
       settled,
       offer.eventId,
-      queued?.selectedPlayerId === undefined ? undefined : { playerId: queued.selectedPlayerId },
+      queued?.selectedPlayerId === undefined
+        ? undefined
+        : { playerId: queued.selectedPlayerId },
     ),
     LAUNCH_CONTENT.events,
   );
@@ -2318,13 +3022,21 @@ const DESK_TIP_CHANCE_PERCENT = 35;
  */
 export function settleWeeklyTip(state: GameState): GameState {
   if (state.phase !== 'manage' || isDeskTipSettled(state)) return state;
-  if (state.onboarding !== undefined && state.onboarding.stage !== 'complete') return state;
+  if (state.onboarding !== undefined && state.onboarding.stage !== 'complete')
+    return state;
   if (state.pendingEvent !== undefined || !isHomeDeskClear(state)) return state;
 
-  const blank: GameState = { ...state, deskTip: { season: state.season, week: state.week } };
-  const unseen = unseenDeskTipIds(state, LAUNCH_CONTENT.tips.tips.map(tip => tip.id));
+  const blank: GameState = {
+    ...state,
+    deskTip: { season: state.season, week: state.week },
+  };
+  const unseen = unseenDeskTipIds(
+    state,
+    LAUNCH_CONTENT.tips.tips.map((tip) => tip.id),
+  );
   if (unseen.length === 0) return blank;
-  if (deskTipRoll(state, '__desk_tip_chance__', 100) >= DESK_TIP_CHANCE_PERCENT) return blank;
+  if (deskTipRoll(state, '__desk_tip_chance__', 100) >= DESK_TIP_CHANCE_PERCENT)
+    return blank;
 
   const tipId = unseen[deskTipRoll(state, '__desk_tip_pick__', unseen.length)];
   return markDeskTipSeen(
@@ -2333,7 +3045,11 @@ export function settleWeeklyTip(state: GameState): GameState {
   );
 }
 
-function deskTipRoll(state: GameState, nonce: string, upperExclusive: number): number {
+function deskTipRoll(
+  state: GameState,
+  nonce: string,
+  upperExclusive: number,
+): number {
   return deterministicCareerEventRoll(
     {
       careerSeed: state.careerSeed,
@@ -2354,7 +3070,9 @@ function deskTipNote(
 ): ManagerNoteViewModel | undefined {
   const tipId = currentDeskTipId(state);
   if (tipId === undefined) return undefined;
-  const tip = LAUNCH_CONTENT.tips.tips.find(candidate => candidate.id === tipId);
+  const tip = LAUNCH_CONTENT.tips.tips.find(
+    (candidate) => candidate.id === tipId,
+  );
   if (tip === undefined) return undefined;
   // `contentStrings` flattens every tip into `tip.<id>.title` / `.body`, so the
   // English in `tips.json` is the fallback rather than the value.
@@ -2374,7 +3092,7 @@ function homeAssistantInboxPlan(state: GameState) {
   return scheduleAssistantInboxWeek(state, {
     dueGuideSequenceIds: standaloneInboxGuides(dueGuides, productAlerts),
     heldGuideSequenceIds: quietDeskInboxGuides(state, productAlerts),
-    productAlerts: productAlerts.map(alert => ({
+    productAlerts: productAlerts.map((alert) => ({
       id: alert.id,
       priority: assistantProductPriority(alert, dueGuides),
       oneShot: isOneShotProductAlert(alert.id),
@@ -2393,7 +3111,11 @@ function quietDeskInboxGuides(
   state: GameState,
   productAlerts: readonly ClubAlertViewModel[],
 ): AssistantInboxGuideSequenceId[] {
-  if (state.facilities.grid?.construction === undefined && productAlerts.length === 0) return [];
+  if (
+    state.facilities.grid?.construction === undefined &&
+    productAlerts.length === 0
+  )
+    return [];
   return ['facility-upgrade'];
 }
 
@@ -2420,7 +3142,10 @@ function assistantProductPriority(
   // A three-week window, and then the player is gone.
   if (alert.id.startsWith('retirement-final-weeks-')) return 'urgent';
   if (alert.tone === 'urgent') return 'urgent';
-  if (dueGuides.includes('retirement') && alert.id.startsWith('retirement-announcement-')) {
+  if (
+    dueGuides.includes('retirement') &&
+    alert.id.startsWith('retirement-announcement-')
+  ) {
     return 'urgent';
   }
   return 'normal';
@@ -2439,38 +3164,48 @@ function assistantProductPriority(
  * queues like any other standing fact.
  */
 function isBoardNoticeAlertId(alertId: string): boolean {
-  return alertId === 'financial-warning'
-    || alertId === 'board-ultimatum'
-    || alertId.startsWith('board-resolution:');
+  return (
+    alertId === 'financial-warning' ||
+    alertId === 'board-ultimatum' ||
+    alertId.startsWith('board-resolution:')
+  );
 }
 
 /** Exported for `retirement-visibility.test.ts`; nothing else outside reads it. */
 export function isOneShotProductAlert(alertId: string): boolean {
-  return alertId.startsWith('board-resolution:')
-    || alertId.startsWith('training-cap:')
-    || alertId.startsWith('retirement-farewell:')
+  return (
+    alertId.startsWith('board-resolution:') ||
+    alertId.startsWith('training-cap:') ||
+    alertId.startsWith('retirement-farewell:') ||
     // A heads-up, not a standing fact: once seen, the player card carries it.
-    || alertId.startsWith('retirement-considering-');
+    alertId.startsWith('retirement-considering-')
+  );
 }
 
 function standaloneInboxGuides(
   dueGuides: readonly AssistantInboxGuideSequenceId[],
   productAlerts: readonly ClubAlertViewModel[],
 ): AssistantInboxGuideSequenceId[] {
-  const trainingGroundCarriesFacilityGuide = productAlerts.some(alert => alert.id === 'training-ground')
-    && dueGuides.includes('facility-placement');
-  return dueGuides.filter(sequenceId => (
-    sequenceId !== 'board-ultimatum'
-    && sequenceId !== 'board-protection'
-    && sequenceId !== 'retirement'
-    && sequenceId !== 'first-injury'
-    && sequenceId !== 'first-emergency-loan'
-    && sequenceId !== 'first-transfer-request'
-    && (!trainingGroundCarriesFacilityGuide || sequenceId !== 'facility-placement')
-  ));
+  const trainingGroundCarriesFacilityGuide =
+    productAlerts.some((alert) => alert.id === 'training-ground') &&
+    dueGuides.includes('facility-placement');
+  return dueGuides.filter(
+    (sequenceId) =>
+      sequenceId !== 'board-ultimatum' &&
+      sequenceId !== 'board-protection' &&
+      sequenceId !== 'retirement' &&
+      sequenceId !== 'first-injury' &&
+      sequenceId !== 'first-emergency-loan' &&
+      sequenceId !== 'first-transfer-request' &&
+      (!trainingGroundCarriesFacilityGuide ||
+        sequenceId !== 'facility-placement'),
+  );
 }
 
-export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): HomeViewModel {
+export function homeViewModel(
+  state: GameState,
+  t: CopyFn = englishCopy(),
+): HomeViewModel {
   const userClub = requireUserClub(state);
   const roster = rosterForClub(state, state.userClubId);
   // The engine owns the definition of a playable game week, including Global
@@ -2479,29 +3214,37 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
   // which used to make every later desk claim "This week."
   const currentMatchday = activeCareerMatchday(state);
   const nextLeagueFixture = state.fixtures
-    .filter(fixture =>
-      fixture.status === 'scheduled' &&
-      fixture.season === state.season &&
-      fixture.week >= state.week &&
-      (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId),
+    .filter(
+      (fixture) =>
+        fixture.status === 'scheduled' &&
+        fixture.season === state.season &&
+        fixture.week >= state.week &&
+        (fixture.homeClubId === state.userClubId ||
+          fixture.awayClubId === state.userClubId),
     )
-    .sort((left, right) => left.week - right.week || left.round - right.round)[0];
+    .sort(
+      (left, right) => left.week - right.week || left.round - right.round,
+    )[0];
   const nextFixture = currentMatchday?.fixture ?? nextLeagueFixture;
-  const nextFixtureCompetition = currentMatchday?.kind === 'national-cup'
-    ? t('clubHome.heroCupRound', {
-      round: currentMatchday.cupRoundLabel === undefined
-        ? t('clubHome.knockoutTie')
-        : cupRoundNameWith(currentMatchday.cupRoundLabel, t),
-    })
-    : undefined;
+  const nextFixtureCompetition =
+    currentMatchday?.kind === 'national-cup'
+      ? t('clubHome.heroCupRound', {
+          round:
+            currentMatchday.cupRoundLabel === undefined
+              ? t('clubHome.knockoutTie')
+              : cupRoundNameWith(currentMatchday.cupRoundLabel, t),
+        })
+      : undefined;
   const isCurrentGameWeek = currentMatchday !== undefined;
-  const isSeasonFinale = currentMatchday !== undefined
-    && isSeasonFinaleLeagueWeek(state, currentMatchday.kind);
+  const isSeasonFinale =
+    currentMatchday !== undefined &&
+    isSeasonFinaleLeagueWeek(state, currentMatchday.kind);
   const boardUltimatum = state.financialSafety?.boardUltimatum;
-  const rosterById = new Map(roster.map(player => [player.id, player]));
+  const rosterById = new Map(roster.map((player) => [player.id, player]));
   const latestBoardResolution = state.financialSafety?.latestBoardResolution;
-  const showBoardResolution = latestBoardResolution !== undefined
-    && isAssistantInboxOneShotProductVisible(
+  const showBoardResolution =
+    latestBoardResolution !== undefined &&
+    isAssistantInboxOneShotProductVisible(
       state,
       `board-resolution:${latestBoardResolution.id}`,
     );
@@ -2512,66 +3255,79 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
   const inboxPlan = scheduleAssistantInboxWeek(assistantState, {
     dueGuideSequenceIds: standaloneInboxGuides(dueGuides, productAlerts),
     heldGuideSequenceIds: quietDeskInboxGuides(assistantState, productAlerts),
-    productAlerts: productAlerts.map(alert => ({
+    productAlerts: productAlerts.map((alert) => ({
       id: alert.id,
       priority: assistantProductPriority(alert, dueGuides),
       oneShot: isOneShotProductAlert(alert.id),
     })),
   });
   const selectedProductIds = new Set(inboxPlan.productAlertIds);
-  const boardGuide = dueGuides.find(sequenceId => (
-    sequenceId === 'board-ultimatum' || sequenceId === 'board-protection'
-  ));
+  const boardGuide = dueGuides.find(
+    (sequenceId) =>
+      sequenceId === 'board-ultimatum' || sequenceId === 'board-protection',
+  );
   let retirementGuideAssigned = false;
   let injuryGuideAssigned = false;
   let loanGuideAssigned = false;
   let transferRequestGuideAssigned = false;
   let facilityGuideAssigned = false;
   const selectedProducts = productAlerts
-    .filter(alert => selectedProductIds.has(alert.id))
-    .map(alert => {
+    .filter((alert) => selectedProductIds.has(alert.id))
+    .map((alert) => {
       // Product news survives Advisor mode; only Bert's route attached to it
       // disappears. This also prevents a stale queued guide opening silently.
       if (!careerTeaches) return alert;
-      const guideSequenceId = alert.id === 'board-ultimatum'
-        ? boardGuide
-        : !facilityGuideAssigned
-          && dueGuides.includes('facility-placement')
-          && alert.id === 'training-ground'
-          ? 'facility-placement' as const
-        : !injuryGuideAssigned
-          && dueGuides.includes('first-injury')
-          && alert.id.startsWith('injury-')
-          ? 'first-injury' as const
-          : !loanGuideAssigned
-            && dueGuides.includes('first-emergency-loan')
-            && alert.id === 'emergency-loan'
-            ? 'first-emergency-loan' as const
-            : !transferRequestGuideAssigned
-              && dueGuides.includes('first-transfer-request')
-              && alert.id.startsWith('transfer-request-')
-              ? 'first-transfer-request' as const
-        : !retirementGuideAssigned
-          && dueGuides.includes('retirement')
-          && alert.id.startsWith('retirement-announcement-')
-          ? 'retirement' as const
-          : undefined;
+      const guideSequenceId =
+        alert.id === 'board-ultimatum'
+          ? boardGuide
+          : !facilityGuideAssigned &&
+              dueGuides.includes('facility-placement') &&
+              alert.id === 'training-ground'
+            ? ('facility-placement' as const)
+            : !injuryGuideAssigned &&
+                dueGuides.includes('first-injury') &&
+                alert.id.startsWith('injury-')
+              ? ('first-injury' as const)
+              : !loanGuideAssigned &&
+                  dueGuides.includes('first-emergency-loan') &&
+                  alert.id === 'emergency-loan'
+                ? ('first-emergency-loan' as const)
+                : !transferRequestGuideAssigned &&
+                    dueGuides.includes('first-transfer-request') &&
+                    alert.id.startsWith('transfer-request-')
+                  ? ('first-transfer-request' as const)
+                  : !retirementGuideAssigned &&
+                      dueGuides.includes('retirement') &&
+                      alert.id.startsWith('retirement-announcement-')
+                    ? ('retirement' as const)
+                    : undefined;
       if (guideSequenceId === undefined) return alert;
       if (guideSequenceId === 'retirement') retirementGuideAssigned = true;
       if (guideSequenceId === 'first-injury') injuryGuideAssigned = true;
       if (guideSequenceId === 'first-emergency-loan') loanGuideAssigned = true;
-      if (guideSequenceId === 'first-transfer-request') transferRequestGuideAssigned = true;
-      if (guideSequenceId === 'facility-placement') facilityGuideAssigned = true;
-      const sequence = ASSISTANT_GUIDE_CONTENT.sequences.find(candidate => candidate.id === guideSequenceId);
-      if (sequence?.destination === undefined) throw new Error(`assistant guide ${guideSequenceId} is missing routing`);
+      if (guideSequenceId === 'first-transfer-request')
+        transferRequestGuideAssigned = true;
+      if (guideSequenceId === 'facility-placement')
+        facilityGuideAssigned = true;
+      const sequence = ASSISTANT_GUIDE_CONTENT.sequences.find(
+        (candidate) => candidate.id === guideSequenceId,
+      );
+      if (sequence?.destination === undefined)
+        throw new Error(
+          `assistant guide ${guideSequenceId} is missing routing`,
+        );
       return {
         ...alert,
         guideSequenceId,
         destination: sequence.destination,
       };
     });
-  const guideAlerts: ClubAlertViewModel[] = (careerTeaches ? inboxPlan.guideSequenceIds : []).map(sequenceId => {
-    const sequence = ASSISTANT_GUIDE_CONTENT.sequences.find(candidate => candidate.id === sequenceId);
+  const guideAlerts: ClubAlertViewModel[] = (
+    careerTeaches ? inboxPlan.guideSequenceIds : []
+  ).map((sequenceId) => {
+    const sequence = ASSISTANT_GUIDE_CONTENT.sequences.find(
+      (candidate) => candidate.id === sequenceId,
+    );
     if (sequence?.inbox === undefined || sequence.destination === undefined) {
       throw new Error(`assistant guide ${sequenceId} is missing inbox routing`);
     }
@@ -2580,11 +3336,20 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
       // Resolved here rather than in the row, because a PRODUCT alert also
       // carries a `guideSequenceId` while keeping its own title — a screen that
       // keyed off the id alone would relabel those rows with Bert's inbox copy.
-      title: copyOrEnglish(t, `bert.guide.${sequenceId}.inbox.title`, sequence.inbox.title),
-      detail: copyOrEnglish(t, `bert.guide.${sequenceId}.inbox.detail`, sequence.inbox.detail),
-      tone: sequenceId === 'board-ultimatum' || sequenceId === 'board-protection'
-        ? 'urgent'
-        : 'event',
+      title: copyOrEnglish(
+        t,
+        `bert.guide.${sequenceId}.inbox.title`,
+        sequence.inbox.title,
+      ),
+      detail: copyOrEnglish(
+        t,
+        `bert.guide.${sequenceId}.inbox.detail`,
+        sequence.inbox.detail,
+      ),
+      tone:
+        sequenceId === 'board-ultimatum' || sequenceId === 'board-protection'
+          ? 'urgent'
+          : 'event',
       guideSequenceId: sequenceId,
       destination: sequence.destination,
     };
@@ -2595,40 +3360,51 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
   // holds an urgent slot but is deliberately written calmly, so the one row the
   // tutorial cue points at ranked below Bert's coach explainer, with the cue
   // itself sitting over the explainer's card.
-  const productPriority = (alert: ClubAlertViewModel) => assistantProductPriority(alert, dueGuides);
+  const productPriority = (alert: ClubAlertViewModel) =>
+    assistantProductPriority(alert, dueGuides);
   const scheduledAlerts = [
-    ...selectedProducts.filter(alert => productPriority(alert) === 'urgent'),
+    ...selectedProducts.filter((alert) => productPriority(alert) === 'urgent'),
     ...guideAlerts,
-    ...selectedProducts.filter(alert => productPriority(alert) !== 'urgent'),
+    ...selectedProducts.filter((alert) => productPriority(alert) !== 'urgent'),
   ].slice(0, 3);
   // A quiet week's own contents, in the order they earn attention: the story
   // that landed this week, the shop the club has not found yet, and only if
   // neither applies, the one-week build nudge.
   const tipNote = deskTipNote(state, t);
-  const homeNotes = tipNote === undefined ? managerNotes(state, t) : [...managerNotes(state, t), tipNote];
+  const homeNotes =
+    tipNote === undefined
+      ? managerNotes(state, t)
+      : [...managerNotes(state, t), tipNote];
   const storyAlert = deskStoryAlert(state, t);
-  const quietWeekAlerts = scheduledAlerts.length > 0
-    ? []
-    : [storyAlert, drillShopAlert(state, t)].filter(
-        (alert): alert is ClubAlertViewModel => alert !== undefined,
-      );
-  const alerts = quietWeekAlerts.length > 0
-    ? quietWeekAlerts
-    : storyAlert !== undefined
-      ? [storyAlert, ...scheduledAlerts]
-      : isBuildReminderDue(state, scheduledAlerts)
-        ? [buildReminderAlert(t)]
-        : scheduledAlerts;
+  const quietWeekAlerts =
+    scheduledAlerts.length > 0
+      ? []
+      : [storyAlert, drillShopAlert(state, t)].filter(
+          (alert): alert is ClubAlertViewModel => alert !== undefined,
+        );
+  const alerts =
+    quietWeekAlerts.length > 0
+      ? quietWeekAlerts
+      : storyAlert !== undefined
+        ? [storyAlert, ...scheduledAlerts]
+        : isBuildReminderDue(state, scheduledAlerts)
+          ? [buildReminderAlert(t)]
+          : scheduledAlerts;
 
-  const standings = leagueStandings(state).map(row => ({
+  const standings = leagueStandings(state).map((row) => ({
     position: row.position,
     clubName: clubName(state, row.clubId),
     played: row.played,
     goalDifference: row.goalDifference,
     points: row.points,
   }));
-  const userPosition = standings.findIndex(row => row.clubName === userClub.name);
-  const tableStart = Math.max(0, Math.min(userPosition - 2, standings.length - 5));
+  const userPosition = standings.findIndex(
+    (row) => row.clubName === userClub.name,
+  );
+  const tableStart = Math.max(
+    0,
+    Math.min(userPosition - 2, standings.length - 5),
+  );
 
   return {
     clubName: userClub.name,
@@ -2639,14 +3415,19 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
     }),
     divisionLabel: divisionTierLabelWith(careerDivision(state), t),
     weekLabel: t('clubHome.weekLabel', { week: state.week }),
-    nextMatchTimingLabel: nextFixture === undefined
-      ? state.phase === 'complete' ? t('clubHome.complete') : t('clubHome.seasonEnd')
-      : isCurrentGameWeek
-        ? isSeasonFinale ? t('clubHome.finalGame') : t('clubHome.thisWeek')
-        : t('clubHome.nextMatchInWeeks', {
-          n: nextFixture.week - state.week,
-          count: nextFixture.week - state.week,
-        }),
+    nextMatchTimingLabel:
+      nextFixture === undefined
+        ? state.phase === 'complete'
+          ? t('clubHome.complete')
+          : t('clubHome.seasonEnd')
+        : isCurrentGameWeek
+          ? isSeasonFinale
+            ? t('clubHome.finalGame')
+            : t('clubHome.thisWeek')
+          : t('clubHome.nextMatchInWeeks', {
+              n: nextFixture.week - state.week,
+              count: nextFixture.week - state.week,
+            }),
     isCurrentGameWeek,
     form: recentForm(state),
     resources: {
@@ -2654,101 +3435,135 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
       trainingPoints: state.trainingPoints,
       fans: userClub.fans,
     },
-    nextFixture: nextFixture === undefined
-      ? {
-          id: 'season-complete',
-          weekLabel: state.phase === 'complete' ? t('clubHome.complete') : t('clubHome.seasonEnd'),
-          competition: careerDivisionLabel(state, t),
-          homeTeam: userClub.name,
-          awayTeam: t('seasonEnd.seasonReview'),
-          venueLabel: 'Boardroom',
-          opponentHeroCount: 0,
-          matchdayReady: false,
-        }
-      : fixtureViewModel(state, nextFixture, t, nextFixtureCompetition),
+    nextFixture:
+      nextFixture === undefined
+        ? {
+            id: 'season-complete',
+            weekLabel:
+              state.phase === 'complete'
+                ? t('clubHome.complete')
+                : t('clubHome.seasonEnd'),
+            competition: careerDivisionLabel(state, t),
+            homeTeam: userClub.name,
+            awayTeam: t('seasonEnd.seasonReview'),
+            venueLabel: 'Boardroom',
+            opponentHeroCount: 0,
+            matchdayReady: false,
+          }
+        : fixtureViewModel(state, nextFixture, t, nextFixtureCompetition),
     alerts,
     notes: homeNotes,
-    ...(boardUltimatum === undefined ? {} : {
-      boardUltimatum: {
-        id: boardUltimatum.id,
-        weeksRemaining: boardUltimatum.weeksRemaining,
-        targetCash: boardUltimatum.targetCash,
-        targetLabel: boardTargetLabel(boardUltimatum.targetCash, t),
-        cashNeeded: Math.max(0, boardUltimatum.targetCash - userClub.cash),
-        ...(boardUltimatum.protectedPlayerId === undefined
-          || !rosterById.has(boardUltimatum.protectedPlayerId)
-          ? {}
-          : { protectedPlayerId: boardUltimatum.protectedPlayerId }),
-        candidates: boardUltimatum.candidates.flatMap(candidate => {
-          const player = rosterById.get(candidate.playerId);
-          if (player === undefined) return [];
-          return [{
-            playerId: player.id,
-            playerName: player.name,
-            role: player.role,
-            lookId: player.lookId,
-            weeklyWage: player.weeklyWage,
-            marketValue: candidate.marketValue,
-            forcedSaleFee: candidate.forcedSaleFee,
-            discountPercent: candidate.discountPercent,
-            isHero: player.power !== undefined,
-          }];
+    ...(boardUltimatum === undefined
+      ? {}
+      : {
+          boardUltimatum: {
+            id: boardUltimatum.id,
+            weeksRemaining: boardUltimatum.weeksRemaining,
+            targetCash: boardUltimatum.targetCash,
+            targetLabel: boardTargetLabel(boardUltimatum.targetCash, t),
+            cashNeeded: Math.max(0, boardUltimatum.targetCash - userClub.cash),
+            ...(boardUltimatum.protectedPlayerId === undefined ||
+            !rosterById.has(boardUltimatum.protectedPlayerId)
+              ? {}
+              : { protectedPlayerId: boardUltimatum.protectedPlayerId }),
+            candidates: boardUltimatum.candidates.flatMap((candidate) => {
+              const player = rosterById.get(candidate.playerId);
+              if (player === undefined) return [];
+              return [
+                {
+                  playerId: player.id,
+                  playerName: player.name,
+                  role: player.role,
+                  lookId: player.lookId,
+                  weeklyWage: player.weeklyWage,
+                  marketValue: candidate.marketValue,
+                  forcedSaleFee: candidate.forcedSaleFee,
+                  discountPercent: candidate.discountPercent,
+                  isHero: player.power !== undefined,
+                },
+              ];
+            }),
+          },
         }),
-      },
-    }),
-    ...(!showBoardResolution || latestBoardResolution === undefined ? {} : {
-      boardResolution: latestBoardResolution.kind === 'TARGET_MET'
-        ? {
-            kind: 'TARGET_MET' as const,
-            headline: t('clubHome.cashTargetMetHeadline'),
-            detail: t('clubHome.cashTargetMetDetail'),
-          }
-        : (() => {
-            const sold = state.players.find(player => player.id === latestBoardResolution.playerId);
-            const replacement = state.players.find(player => player.id === latestBoardResolution.replacementPlayerId);
-            const buyerName = clubName(state, latestBoardResolution.buyerClubId);
-            // A Week-30 sale is first delivered on the next season's Home
-            // screen. By then the opponent roster has been regenerated, so the
-            // sold player can legitimately be absent even though the saved
-            // verdict is valid. Keep the durable money/outcome facts visible
-            // and enrich only the player sides that still exist.
-            const saleDetail = sold === undefined
-              ? t('clubHome.forcedSaleUnknownPlayer', {
-                club: buyerName,
-                fee: formatMoney(latestBoardResolution.fee),
-              })
-              : t('clubHome.forcedSalePlayer', { player: sold.name, club: buyerName });
-            const replacementDetail = replacement === undefined
-              ? t('clubHome.forcedSaleVacancyFilled')
-              : t('clubHome.forcedSaleAcademyPromoted', { player: replacement.name });
-            return {
-              kind: 'FORCED_SALE' as const,
-              headline: t('clubHome.forcedSaleHeadline'),
-              detail: t('clubHome.forcedSaleDetail', {
-                sale: saleDetail,
-                replacement: replacementDetail,
-              }),
-              ...(sold === undefined ? {} : { soldPlayer: {
-                id: sold.id,
-                name: sold.name,
-                role: sold.role,
-                lookId: sold.lookId,
-                buyerName,
-                fee: latestBoardResolution.fee,
-              } }),
-              ...(replacement === undefined ? {} : { replacementPlayer: {
-                id: replacement.id,
-                name: replacement.name,
-                role: replacement.role,
-                lookId: replacement.lookId,
-                age: replacement.age ?? 17,
-                weeklyWage: replacement.weeklyWage,
-              } }),
-              fansLost: latestBoardResolution.fansLost,
-              moraleDelta: latestBoardResolution.moraleDelta,
-            };
-          })(),
-    }),
+    ...(!showBoardResolution || latestBoardResolution === undefined
+      ? {}
+      : {
+          boardResolution:
+            latestBoardResolution.kind === 'TARGET_MET'
+              ? {
+                  kind: 'TARGET_MET' as const,
+                  headline: t('clubHome.cashTargetMetHeadline'),
+                  detail: t('clubHome.cashTargetMetDetail'),
+                }
+              : (() => {
+                  const sold = state.players.find(
+                    (player) => player.id === latestBoardResolution.playerId,
+                  );
+                  const replacement = state.players.find(
+                    (player) =>
+                      player.id === latestBoardResolution.replacementPlayerId,
+                  );
+                  const buyerName = clubName(
+                    state,
+                    latestBoardResolution.buyerClubId,
+                  );
+                  // A Week-30 sale is first delivered on the next season's Home
+                  // screen. By then the opponent roster has been regenerated, so the
+                  // sold player can legitimately be absent even though the saved
+                  // verdict is valid. Keep the durable money/outcome facts visible
+                  // and enrich only the player sides that still exist.
+                  const saleDetail =
+                    sold === undefined
+                      ? t('clubHome.forcedSaleUnknownPlayer', {
+                          club: buyerName,
+                          fee: formatMoneyForCopy(t, latestBoardResolution.fee),
+                        })
+                      : t('clubHome.forcedSalePlayer', {
+                          player: sold.name,
+                          club: buyerName,
+                        });
+                  const replacementDetail =
+                    replacement === undefined
+                      ? t('clubHome.forcedSaleVacancyFilled')
+                      : t('clubHome.forcedSaleAcademyPromoted', {
+                          player: replacement.name,
+                        });
+                  return {
+                    kind: 'FORCED_SALE' as const,
+                    headline: t('clubHome.forcedSaleHeadline'),
+                    detail: t('clubHome.forcedSaleDetail', {
+                      sale: saleDetail,
+                      replacement: replacementDetail,
+                    }),
+                    ...(sold === undefined
+                      ? {}
+                      : {
+                          soldPlayer: {
+                            id: sold.id,
+                            name: sold.name,
+                            role: sold.role,
+                            lookId: sold.lookId,
+                            buyerName,
+                            fee: latestBoardResolution.fee,
+                          },
+                        }),
+                    ...(replacement === undefined
+                      ? {}
+                      : {
+                          replacementPlayer: {
+                            id: replacement.id,
+                            name: replacement.name,
+                            role: replacement.role,
+                            lookId: replacement.lookId,
+                            age: replacement.age ?? 17,
+                            weeklyWage: replacement.weeklyWage,
+                          },
+                        }),
+                    fansLost: latestBoardResolution.fansLost,
+                    moraleDelta: latestBoardResolution.moraleDelta,
+                  };
+                })(),
+        }),
     table: standings.slice(tableStart, tableStart + 5),
   };
 }
@@ -2758,24 +3573,38 @@ export function leagueTableViewModel(
   t: CopyFn = englishCopy(),
 ): LeagueTableViewModel {
   const standings = leagueStandings(state);
-  const user = standings.find(row => row.clubId === state.userClubId);
-  if (user === undefined) throw new Error('the user club has no league standing');
-  const seasonFixtures = state.fixtures.filter(fixture => fixture.season === state.season);
+  const user = standings.find((row) => row.clubId === state.userClubId);
+  if (user === undefined)
+    throw new Error('the user club has no league standing');
+  const seasonFixtures = state.fixtures.filter(
+    (fixture) => fixture.season === state.season,
+  );
   const userFixtures = seasonFixtures
-    .filter(fixture => fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
+    .filter(
+      (fixture) =>
+        fixture.homeClubId === state.userClubId ||
+        fixture.awayClubId === state.userClubId,
+    )
     .slice()
-    .sort((left, right) => left.week - right.week || left.round - right.round || left.id.localeCompare(right.id));
+    .sort(
+      (left, right) =>
+        left.week - right.week ||
+        left.round - right.round ||
+        left.id.localeCompare(right.id),
+    );
 
   return {
     divisionLabel: careerDivisionLabel(state, t),
     seasonLabel: t('leagueTable.seasonLabel', { season: state.season }),
     weekLabel: t('leagueTable.weekLabel', { week: state.week }),
-    matchesPlayed: seasonFixtures.filter(fixture => fixture.status === 'played').length,
+    matchesPlayed: seasonFixtures.filter(
+      (fixture) => fixture.status === 'played',
+    ).length,
     matchesTotal: seasonFixtures.length,
     userPosition: user.position,
     userPoints: user.points,
     leaderPoints: standings[0]?.points ?? 0,
-    rows: standings.map(row => ({
+    rows: standings.map((row) => ({
       position: row.position,
       clubId: row.clubId,
       clubName: clubName(state, row.clubId),
@@ -2788,13 +3617,15 @@ export function leagueTableViewModel(
       isUserClub: row.clubId === state.userClubId,
       inPromotionPlaces: row.position <= 2,
     })),
-    leagueFixtures: userFixtures.map(fixture => leagueFixtureViewModel(
-      fixture,
-      state.userClubId,
-      state.week,
-      clubId => clubName(state, clubId),
-      t,
-    )),
+    leagueFixtures: userFixtures.map((fixture) =>
+      leagueFixtureViewModel(
+        fixture,
+        state.userClubId,
+        state.week,
+        (clubId) => clubName(state, clubId),
+        t,
+      ),
+    ),
   };
 }
 
@@ -2805,19 +3636,26 @@ export function matchDayViewModel(
   t: CopyFn = englishCopy(),
 ): MatchDayViewModel {
   const matchday = activeCareerMatchday(state);
-  if (matchday === undefined) throw new Error('the current matchday has no user fixture');
+  if (matchday === undefined)
+    throw new Error('the current matchday has no user fixture');
   const fixture = matchday.fixture;
 
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
   if (lineup === undefined) throw new Error('the user club has no lineup');
   const roster = rosterForClub(state, state.userClubId);
-  const playerById = new Map(roster.map(player => [player.id, player]));
-  const powerNames = new Map(content.powers.powers.map(
-    power => [power.id, powerDisplayName(content, power.id, t) ?? power.name],
-  ));
-  const lineupPlayers = lineup.playerIds.map(playerId => {
+  const playerById = new Map(roster.map((player) => [player.id, player]));
+  const powerNames = new Map(
+    content.powers.powers.map((power) => [
+      power.id,
+      powerDisplayName(content, power.id, t) ?? power.name,
+    ]),
+  );
+  const lineupPlayers = lineup.playerIds.map((playerId) => {
     const player = playerById.get(playerId);
-    if (player === undefined) throw new Error(`lineup references unknown player ${playerId}`);
+    if (player === undefined)
+      throw new Error(`lineup references unknown player ${playerId}`);
     return player;
   });
   const lineupIds = new Set(lineup.playerIds);
@@ -2829,19 +3667,22 @@ export function matchDayViewModel(
       t,
       matchday.kind === 'national-cup'
         ? t('fixtureMatchDay.heroCupRound', {
-          round: matchday.cupRoundLabel === undefined
-            ? t('fixtureMatchDay.knockoutTie')
-            : cupRoundNameWith(matchday.cupRoundLabel, t),
-        })
+            round:
+              matchday.cupRoundLabel === undefined
+                ? t('fixtureMatchDay.knockoutTie')
+                : cupRoundNameWith(matchday.cupRoundLabel, t),
+          })
         : undefined,
     ),
     formationLabel: formation.replaceAll('-', '–'),
     selectedTacticId: 'balanced',
-    tactics: [{
-      id: 'balanced',
-      label: 'Balanced',
-      detail: t('fixtureMatchDay.balancedTacticDetail'),
-    }],
+    tactics: [
+      {
+        id: 'balanced',
+        label: 'Balanced',
+        detail: t('fixtureMatchDay.balancedTacticDetail'),
+      },
+    ],
     lineup: lineupPlayers.map((player, index) => {
       return {
         id: player.id,
@@ -2855,41 +3696,55 @@ export function matchDayViewModel(
         condition: player.condition ?? 100,
       };
     }),
-    bench: roster.filter(player => !lineupIds.has(player.id)).map(player => {
-      const unlicensedHero = player.power !== undefined && !player.licensed;
-      return {
-        id: player.id,
-        name: player.name,
-        role: player.role,
-        lookId: player.lookId,
-        shirtNumber: player.shirtNumber ?? roster.findIndex(candidate => candidate.id === player.id) + 1,
-        isHero: player.power !== undefined,
-        overall: overall(player.role, player.attrs),
-        condition: player.condition ?? 100,
-        injuryWeeks: player.injuryWeeks,
-        awayWeeks: player.awayWeeks ?? 0,
-        licensed: player.licensed,
-        canStart: isAvailableForSelection(player) && !unlicensedHero,
-        // Injury outranks leave for the label: a manager can act on an injury —
-        // the Medical Bay shortens it — and can only wait out a granted holiday.
-        ...(player.injuryWeeks > 0
-          ? { unavailableLabel: `OUT · ${weekCountLabel(player.injuryWeeks, t)}` }
-          : (player.awayWeeks ?? 0) > 0
-            ? { unavailableLabel: `ON LEAVE · ${weekCountLabel(player.awayWeeks!, t)}` }
-            : unlicensedHero
-              ? { unavailableLabel: t('fixtureMatchDay.heroLicenseRequired') }
-              : {}),
-      };
-    }),
+    bench: roster
+      .filter((player) => !lineupIds.has(player.id))
+      .map((player) => {
+        const unlicensedHero = player.power !== undefined && !player.licensed;
+        return {
+          id: player.id,
+          name: player.name,
+          role: player.role,
+          lookId: player.lookId,
+          shirtNumber:
+            player.shirtNumber ??
+            roster.findIndex((candidate) => candidate.id === player.id) + 1,
+          isHero: player.power !== undefined,
+          overall: overall(player.role, player.attrs),
+          condition: player.condition ?? 100,
+          injuryWeeks: player.injuryWeeks,
+          awayWeeks: player.awayWeeks ?? 0,
+          licensed: player.licensed,
+          canStart: isAvailableForSelection(player) && !unlicensedHero,
+          // Injury outranks leave for the label: a manager can act on an injury —
+          // the Medical Bay shortens it — and can only wait out a granted holiday.
+          ...(player.injuryWeeks > 0
+            ? {
+                unavailableLabel: `OUT · ${weekCountLabel(player.injuryWeeks, t)}`,
+              }
+            : (player.awayWeeks ?? 0) > 0
+              ? {
+                  unavailableLabel: `ON LEAVE · ${weekCountLabel(player.awayWeeks!, t)}`,
+                }
+              : unlicensedHero
+                ? { unavailableLabel: t('fixtureMatchDay.heroLicenseRequired') }
+                : {}),
+        };
+      }),
     heroLimit: careerHeroLimit(state),
-    heroes: roster.filter(player => player.power !== undefined).map(player => ({
-      playerId: player.id,
-      playerName: player.name,
-      powerName: powerNames.get(player.power!) ?? player.power!,
-      licensed: player.licensed,
-    })),
-    licenseReady: lineupPlayers.every(player => player.power === undefined || player.licensed)
-      && lineupPlayers.filter(player => player.licensed).length <= careerHeroLimit(state),
+    heroes: roster
+      .filter((player) => player.power !== undefined)
+      .map((player) => ({
+        playerId: player.id,
+        playerName: player.name,
+        powerName: powerNames.get(player.power!) ?? player.power!,
+        licensed: player.licensed,
+      })),
+    licenseReady:
+      lineupPlayers.every(
+        (player) => player.power === undefined || player.licensed,
+      ) &&
+      lineupPlayers.filter((player) => player.licensed).length <=
+        careerHeroLimit(state),
   };
 }
 
@@ -2900,36 +3755,48 @@ export function squadTrainingViewModel(
   t: CopyFn = englishCopy(),
 ): SquadTrainingViewModel {
   const club = requireUserClub(state);
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
-  if (lineup === undefined) throw new Error('the user club has no starting lineup');
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  if (lineup === undefined)
+    throw new Error('the user club has no starting lineup');
   const starterIds = new Set(lineup.playerIds);
   const roster = rosterForClub(state, state.userClubId);
   const createdPlayerId = state.onboarding?.createdPlayerId;
   // Keep the first-training cue and its created-player target above the fold.
-  const createdPlayer = createdPlayerId === undefined
-    ? undefined
-    : roster.find(player => player.id === createdPlayerId);
-  const orderedRoster = createdPlayer === undefined
-    ? roster
-    : [createdPlayer, ...roster.filter(player => player.id !== createdPlayerId)];
-  const playerById = new Map(roster.map(player => [player.id, player]));
-  const injuryRiskReductionPercent = state.facilities.grid === undefined
-    ? 0
-    : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
+  const createdPlayer =
+    createdPlayerId === undefined
+      ? undefined
+      : roster.find((player) => player.id === createdPlayerId);
+  const orderedRoster =
+    createdPlayer === undefined
+      ? roster
+      : [
+          createdPlayer,
+          ...roster.filter((player) => player.id !== createdPlayerId),
+        ];
+  const playerById = new Map(roster.map((player) => [player.id, player]));
+  const injuryRiskReductionPercent =
+    state.facilities.grid === undefined
+      ? 0
+      : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
 
   // The drill's name is content, not save data: `trainingRules.focusDrills`
   // bakes the id, costs and gains into the career and never the label, so a
   // language change relabels every drill a save already owns.
   const drillName = (drillId: string): string => {
-    const authored = content.training.focusDrills.find(candidate => candidate.id === drillId)?.name;
+    const authored = content.training.focusDrills.find(
+      (candidate) => candidate.id === drillId,
+    )?.name;
     return authored === undefined
       ? drillId
       : copyOrEnglish(t, `drill.${drillId}.name`, authored);
   };
 
-  const selectedPlayer = selectedPlayerId === undefined
-    ? undefined
-    : playerById.get(selectedPlayerId);
+  const selectedPlayer =
+    selectedPlayerId === undefined
+      ? undefined
+      : playerById.get(selectedPlayerId);
 
   return {
     resources: {
@@ -2937,8 +3804,10 @@ export function squadTrainingViewModel(
       trainingPoints: state.trainingPoints,
       fans: club.fans,
     },
-    ...(createdPlayer === undefined ? {} : { createdPlayerId: createdPlayer.id }),
-    players: orderedRoster.map(player => {
+    ...(createdPlayer === undefined
+      ? {}
+      : { createdPlayerId: createdPlayer.id }),
+    players: orderedRoster.map((player) => {
       // The column reports how fast this player still improves, not the raw
       // talent they were generated with — that grade flattered a thirty-year-old
       // who could no longer reach it.
@@ -2948,7 +3817,7 @@ export function squadTrainingViewModel(
       // growth grade would print odds the drill does not use.
       const personalCaps = playerAttributeCaps(player);
       const positionAttributes = POSITION_TRAINING_ATTRIBUTES[player.role]
-        .map(attribute => attribute.toUpperCase())
+        .map((attribute) => attribute.toUpperCase())
         .join(', ');
       return {
         id: player.id,
@@ -2957,9 +3826,11 @@ export function squadTrainingViewModel(
         lookId: player.lookId,
         overall: overall(player.role, player.attrs),
         potentialGrade,
-        superChancePercent: superTrainingChancePercent(playerPotentialGrade(player)),
-        ...((player.priorityDrillsRemaining ?? 0) > 0
-          && hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
+        superChancePercent: superTrainingChancePercent(
+          playerPotentialGrade(player),
+        ),
+        ...((player.priorityDrillsRemaining ?? 0) > 0 &&
+        hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
           ? { priorityDrillsRemaining: player.priorityDrillsRemaining }
           : {}),
         injuryRiskPercent: overtrainingInjuryChancePercent(
@@ -2979,78 +3850,112 @@ export function squadTrainingViewModel(
         archetype: player.archetype ?? 'All-Rounder',
         archetypeLabel: archetypeName(t, player.archetype ?? 'All-Rounder'),
         personality: player.personality ?? 'Professional',
-        personalityLabel: personalityName(t, player.personality ?? 'Professional'),
+        personalityLabel: personalityName(
+          t,
+          player.personality ?? 'Professional',
+        ),
         morale: player.morale,
         loyalty: playerLoyalty(player, state.careerSeed),
         fame: player.fame ?? 0,
         weeklyWage: player.weeklyWage,
-        contractLabel: player.contractSeasonsRemaining === 0
-          ? t('squadTraining.contractExpiredRenewalDue')
-          : t('squadTraining.contractSeasonsLeft', {
-            n: player.contractSeasonsRemaining,
-            count: player.contractSeasonsRemaining,
-          }),
-        ...(player.contractPromise === undefined ? {} : {
-          contractPromiseLabel: contractPromiseLabel(player.contractPromise.perk, t),
-        }),
+        contractLabel:
+          player.contractSeasonsRemaining === 0
+            ? t('squadTraining.contractExpiredRenewalDue')
+            : t('squadTraining.contractSeasonsLeft', {
+                n: player.contractSeasonsRemaining,
+                count: player.contractSeasonsRemaining,
+              }),
+        ...(player.contractPromise === undefined
+          ? {}
+          : {
+              contractPromiseLabel: contractPromiseLabel(
+                player.contractPromise.perk,
+                t,
+              ),
+            }),
         // Absent while retirement is more than a season away. The squad list
         // deliberately knows less than the negotiating table does.
         ...retirementLabelField(player, state.careerSeed, t),
-        ...(player.shirtNumber === undefined ? {} : { shirtNumber: player.shirtNumber }),
+        ...(player.shirtNumber === undefined
+          ? {}
+          : { shirtNumber: player.shirtNumber }),
         isCaptain: player.isCaptain === true,
-        ...(player.power ? {
-          powerName: t('squadTraining.powerAndTier', {
-            power: powerDisplayName(content, player.power, t) ?? player.power,
-            tier: player.powerTier ?? 1,
-          }),
-        } : {}),
+        ...(player.power
+          ? {
+              powerName: t('squadTraining.powerAndTier', {
+                power:
+                  powerDisplayName(content, player.power, t) ?? player.power,
+                tier: player.powerTier ?? 1,
+              }),
+            }
+          : {}),
         licensed: player.licensed,
-        attributes: (Object.entries(player.attrs) as Array<[keyof typeof player.attrs, number]>).map(
-          ([attribute]) => ({
-            label: attribute.toUpperCase() as 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF',
-            // Display only — a keeper's Reflexes runs ahead of the stored stat
-            // so the halved Keeper Drills ladder reads like the outfield one.
-            value: displayedAttributeValue(player, attribute),
-            cap: personalCaps[attribute],
-          }),
-        ),
+        attributes: (
+          Object.entries(player.attrs) as Array<
+            [keyof typeof player.attrs, number]
+          >
+        ).map(([attribute]) => ({
+          label: attribute.toUpperCase() as
+            'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF',
+          // Display only — a keeper's Reflexes runs ahead of the stored stat
+          // so the halved Keeper Drills ladder reads like the outfield one.
+          value: displayedAttributeValue(player, attribute),
+          cap: personalCaps[attribute],
+        })),
       };
     }),
-    ...(selectedPlayer === undefined ? {} : {
-      selectedPlayerStatOptions: TRAINING_PATHS
-        .filter(path => attributeAffectsPlay(selectedPlayer.role, path.attribute))
-        .map(path => {
-          const drill = resolveTrainingDrillForPath(state, path.pathId);
-          const gain = displayedDrillGain(state, drill.id, drill.gains[path.attribute] ?? 0);
-          const currentValue = displayedAttributeValue(selectedPlayer, path.attribute);
-          const preview = instantTrainingPreview(state, selectedPlayer.id, path.pathId);
-          return {
-            pathId: path.pathId,
-            label: copyOrEnglish(t, path.labelKey, path.label),
-            shortCode: path.attribute.toUpperCase() as TrainingSlotStatOption['shortCode'],
-            drillName: drillName(drill.id),
-            tpCost: drill.tpCost,
-            gain,
-            currentValue,
-            baseValueAfter: preview.baseAfter,
-            trainingAdjustment: preview.adjustment,
-            trainingModifiers: preview.modifiers.map(modifier => ({
-              label: trainingModifierLabel(t, modifier),
-              helps: modifier.helps,
-            })),
-            // The stored value, never the displayed one: a keeper whose card
-            // has stalled at 999 may still have real room to train.
-            atSafetyCeiling: selectedPlayer.attrs[path.attribute] >= 999,
-            affordable: drill.tpCost <= state.trainingPoints,
-          };
+    ...(selectedPlayer === undefined
+      ? {}
+      : {
+          selectedPlayerStatOptions: TRAINING_PATHS.filter((path) =>
+            attributeAffectsPlay(selectedPlayer.role, path.attribute),
+          ).map((path) => {
+            const drill = resolveTrainingDrillForPath(state, path.pathId);
+            const gain = displayedDrillGain(
+              state,
+              drill.id,
+              drill.gains[path.attribute] ?? 0,
+            );
+            const currentValue = displayedAttributeValue(
+              selectedPlayer,
+              path.attribute,
+            );
+            const preview = instantTrainingPreview(
+              state,
+              selectedPlayer.id,
+              path.pathId,
+            );
+            return {
+              pathId: path.pathId,
+              label: copyOrEnglish(t, path.labelKey, path.label),
+              shortCode:
+                path.attribute.toUpperCase() as TrainingSlotStatOption['shortCode'],
+              drillName: drillName(drill.id),
+              tpCost: drill.tpCost,
+              gain,
+              currentValue,
+              baseValueAfter: preview.baseAfter,
+              trainingAdjustment: preview.adjustment,
+              trainingModifiers: preview.modifiers.map((modifier) => ({
+                label: trainingModifierLabel(t, modifier),
+                helps: modifier.helps,
+              })),
+              // The stored value, never the displayed one: a keeper whose card
+              // has stalled at 999 may still have real room to train.
+              atSafetyCeiling: selectedPlayer.attrs[path.attribute] >= 999,
+              affordable: drill.tpCost <= state.trainingPoints,
+            };
+          }),
         }),
-    }),
-    drillUpgrades: TRAINING_PATHS.map(path => {
+    drillUpgrades: TRAINING_PATHS.map((path) => {
       const owned = resolveTrainingDrillForPath(state, path.pathId);
       const offer = nextTrainingUpgradeOffer(state, path.pathId);
-      const next = offer === undefined
-        ? undefined
-        : content.training.focusDrills.find(candidate => candidate.id === offer.drillId);
+      const next =
+        offer === undefined
+          ? undefined
+          : content.training.focusDrills.find(
+              (candidate) => candidate.id === offer.drillId,
+            );
       return {
         pathId: path.pathId,
         label: copyOrEnglish(t, path.labelKey, path.label),
@@ -3058,17 +3963,27 @@ export function squadTrainingViewModel(
         ownedTier: trainingDrillTier(owned.id),
         // The upgrade panel sits on the same screen as the drill rows, so it
         // has to quote the same ladder they do or the defect just moves down.
-        ownedGain: displayedDrillGain(state, owned.id, owned.gains[path.attribute] ?? 0),
+        ownedGain: displayedDrillGain(
+          state,
+          owned.id,
+          owned.gains[path.attribute] ?? 0,
+        ),
         ownedTpCost: owned.tpCost,
-        ...(offer === undefined || next === undefined ? {} : {
-          nextTier: offer.tier,
-          nextGain: displayedDrillGain(state, next.id, next.gains[path.attribute] ?? 0),
-          nextTpCost: next.tpCost,
-          cost: offer.cost,
-          ...(offer.blockedReason === undefined
-            ? {}
-            : { blockedReason: resolveRingCopy(t, offer.blockedReason) }),
-        }),
+        ...(offer === undefined || next === undefined
+          ? {}
+          : {
+              nextTier: offer.tier,
+              nextGain: displayedDrillGain(
+                state,
+                next.id,
+                next.gains[path.attribute] ?? 0,
+              ),
+              nextTpCost: next.tpCost,
+              cost: offer.cost,
+              ...(offer.blockedReason === undefined
+                ? {}
+                : { blockedReason: resolveRingCopy(t, offer.blockedReason) }),
+            }),
       };
     }),
     ...(() => {
@@ -3085,16 +4000,20 @@ function retirementLabelField(
   t: CopyFn,
 ): { retirementLabel?: string } {
   const copy = retirementCardCopy(player, careerSeed);
-  return copy === undefined ? {} : { retirementLabel: resolveRingCopy(t, copy) };
+  return copy === undefined
+    ? {}
+    : { retirementLabel: resolveRingCopy(t, copy) };
 }
 
 function contractPromiseLabel(
   perk: 'GUARANTEED_STARTER' | 'CAPTAINCY' | 'TRAINING_PRIORITY' | 'JERSEY_10',
   t: CopyFn,
 ): string {
-  if (perk === 'GUARANTEED_STARTER') return t('squadTraining.promiseStartingXi');
+  if (perk === 'GUARANTEED_STARTER')
+    return t('squadTraining.promiseStartingXi');
   if (perk === 'CAPTAINCY') return t('squadTraining.promiseCaptaincy');
-  if (perk === 'TRAINING_PRIORITY') return t('squadTraining.promiseTrainingPriority');
+  if (perk === 'TRAINING_PRIORITY')
+    return t('squadTraining.promiseTrainingPriority');
   return t('squadTraining.promiseShirt10');
 }
 
@@ -3117,27 +4036,32 @@ function ledgerLineIcons(
   line: { kind: LedgerLineKind; labelKey?: string; reveal?: LedgerLineReveal },
 ): readonly LedgerIconViewModel[] | undefined {
   if (line.kind === 'merch') {
-    const count = line.reveal?.source === 'merch'
-      ? line.reveal.facilityCount
-      : commercialFacilitySummary(state).shopCount;
+    const count =
+      line.reveal?.source === 'merch'
+        ? line.reveal.facilityCount
+        : commercialFacilitySummary(state).shopCount;
     if (count < 1) return undefined;
     return [{ id: 'shops', kind: 'facility', facility: 'fan-shop', count }];
   }
 
   if (line.kind === 'tickets') {
-    const count = line.reveal?.source === 'merch'
-      ? 0
-      : line.reveal?.facilityCount ?? commercialFacilitySummary(state).standCount;
+    const count =
+      line.reveal?.source === 'merch'
+        ? 0
+        : (line.reveal?.facilityCount ??
+          commercialFacilitySummary(state).standCount);
     if (count < 1) return undefined;
-    return [{ id: 'stands', kind: 'facility', facility: 'stadium-stand', count }];
+    return [
+      { id: 'stands', kind: 'facility', facility: 'stadium-stand', count },
+    ];
   }
 
   if (line.kind === 'facilities') {
     const grid = state.facilities.grid;
     if (grid === undefined) return undefined;
     const icons = grid.buildings
-      .filter(building => isFacilityOperational(grid, building.id))
-      .map(building => ({
+      .filter((building) => isFacilityOperational(grid, building.id))
+      .map((building) => ({
         id: building.id,
         kind: 'facility' as const,
         facility: building.type,
@@ -3155,12 +4079,17 @@ function ledgerLineIcons(
     const icons = [
       { role: 'head', coach: state.market?.headCoach },
       { role: 'assistant', coach: state.market?.assistantCoach },
-    ]
-      .flatMap(({ role, coach }) => (coach === undefined ? [] : [{
-        id: role,
-        kind: 'coach' as const,
-        portraitId: coach.portraitId ?? coach.id,
-      }]));
+    ].flatMap(({ role, coach }) =>
+      coach === undefined
+        ? []
+        : [
+            {
+              id: role,
+              kind: 'coach' as const,
+              portraitId: coach.portraitId ?? coach.id,
+            },
+          ],
+    );
     return icons.length === 0 ? undefined : icons;
   }
 
@@ -3176,27 +4105,31 @@ export function weeklyReviewViewModel(
   const clubAfter = requireUserClub(after);
   const ledger = after.ledgers[after.ledgers.length - 1];
   if (
-    ledger === undefined
-    || ledger.season !== before.season
-    || ledger.week !== before.week
+    ledger === undefined ||
+    ledger.season !== before.season ||
+    ledger.week !== before.week
   ) {
     throw new Error('weekly review requires a newly settled weekly ledger');
   }
 
-  const nextFixture = after.fixtures
-    .filter(fixture =>
-      fixture.status === 'scheduled'
-      && fixture.season === after.season
-      && fixture.week === after.week
-      && (fixture.homeClubId === after.userClubId || fixture.awayClubId === after.userClubId),
-    )[0];
+  const nextFixture = after.fixtures.filter(
+    (fixture) =>
+      fixture.status === 'scheduled' &&
+      fixture.season === after.season &&
+      fixture.week === after.week &&
+      (fixture.homeClubId === after.userClubId ||
+        fixture.awayClubId === after.userClubId),
+  )[0];
   const completedFacility = facilityCompletion(before, after, t);
 
   return {
-    completedWeekLabel: t('weeklyReview.completedWeekLabel', { week: before.week }),
-    nextWeekLabel: after.phase === 'season-end' || after.phase === 'complete'
-      ? t('seasonEnd.seasonReview')
-      : t('weeklyReview.nextWeekLabel', { week: after.week }),
+    completedWeekLabel: t('weeklyReview.completedWeekLabel', {
+      week: before.week,
+    }),
+    nextWeekLabel:
+      after.phase === 'season-end' || after.phase === 'complete'
+        ? t('seasonEnd.seasonReview')
+        : t('weeklyReview.nextWeekLabel', { week: after.week }),
     clubName: clubAfter.name,
     cashBefore: clubBefore.cash,
     cashAfter: clubAfter.cash,
@@ -3210,13 +4143,18 @@ export function weeklyReviewViewModel(
         id: `weekly-review-${ledger.season}-${ledger.week}-${index}`,
         label: copyOrEnglish(t, line.labelKey, line.label, line.labelParams),
         amount: line.amount,
-        kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
+        kind:
+          line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
         ...(icons === undefined ? {} : { icons }),
       };
     }),
     updates: weekUpdates(before, after, t),
-    ...(completedFacility === undefined ? {} : { facilityCompletion: completedFacility }),
-    ...(nextFixture === undefined ? {} : { nextFixture: fixtureViewModel(after, nextFixture, t) }),
+    ...(completedFacility === undefined
+      ? {}
+      : { facilityCompletion: completedFacility }),
+    ...(nextFixture === undefined
+      ? {}
+      : { nextFixture: fixtureViewModel(after, nextFixture, t) }),
   };
 }
 
@@ -3229,29 +4167,44 @@ export function postMatchViewModel(
   buzzPowerFiredPlayerIds?: readonly string[],
   t: CopyFn = englishCopy(),
 ): PostMatchViewModel {
-  const leagueFixture = before.fixtures.find(candidate => candidate.id === fixtureId);
+  const leagueFixture = before.fixtures.find(
+    (candidate) => candidate.id === fixtureId,
+  );
   const cupRound = before.m2?.nationalCups
-    .flatMap(cup => cup.rounds)
-    .find(round => round.fixtures.some(fixture => fixture.id === fixtureId));
-  const cupFixture = cupRound?.fixtures.find(candidate => candidate.id === fixtureId);
+    .flatMap((cup) => cup.rounds)
+    .find((round) =>
+      round.fixtures.some((fixture) => fixture.id === fixtureId),
+    );
+  const cupFixture = cupRound?.fixtures.find(
+    (candidate) => candidate.id === fixtureId,
+  );
   const fixture = leagueFixture ?? cupFixture;
   if (fixture === undefined) throw new Error(`unknown fixture ${fixtureId}`);
   const isHome = fixture.homeClubId === before.userClubId;
   const goalsFor = isHome ? score.homeGoals : score.awayGoals;
   const goalsAgainst = isHome ? score.awayGoals : score.homeGoals;
   const latestLedger = after.ledgers[after.ledgers.length - 1];
-  const ledger = latestLedger?.season === before.season && latestLedger.week === before.week
-    ? latestLedger
-    : undefined;
-  const cupWinnerClubId = cupRound === undefined
-    ? undefined
-    : after.m2?.nationalCups
-      .flatMap(cup => cup.rounds)
-      .flatMap(round => round.fixtures)
-      .find(candidate => candidate.id === fixtureId)?.winnerClubId;
-  const outcomeLabel = cupWinnerClubId === undefined
-    ? goalsFor > goalsAgainst ? 'WIN' : goalsFor < goalsAgainst ? 'LOSS' : 'DRAW'
-    : cupWinnerClubId === before.userClubId ? 'WIN' : 'LOSS';
+  const ledger =
+    latestLedger?.season === before.season && latestLedger.week === before.week
+      ? latestLedger
+      : undefined;
+  const cupWinnerClubId =
+    cupRound === undefined
+      ? undefined
+      : after.m2?.nationalCups
+          .flatMap((cup) => cup.rounds)
+          .flatMap((round) => round.fixtures)
+          .find((candidate) => candidate.id === fixtureId)?.winnerClubId;
+  const outcomeLabel =
+    cupWinnerClubId === undefined
+      ? goalsFor > goalsAgainst
+        ? 'WIN'
+        : goalsFor < goalsAgainst
+          ? 'LOSS'
+          : 'DRAW'
+      : cupWinnerClubId === before.userClubId
+        ? 'WIN'
+        : 'LOSS';
   const completedFacility = facilityCompletion(before, after, t);
   const opponentClubId = isHome ? fixture.awayClubId : fixture.homeClubId;
   const pool = coachLinePool(before, {
@@ -3264,35 +4217,49 @@ export function postMatchViewModel(
       ? {}
       : { cupTie: { opponentClubId, season: cupFixture.season } }),
   });
-  const reaction = fulltimeReaction(after, fixtureId, score, outcomeLabel, pool, t);
-  const buzz = buzzPowerFiredPlayerIds === undefined || before.season < 3
-    ? undefined
-    : postMatchBuzzViewModel(
-        before,
-        after,
-        outcomeLabel,
-        goalsFor,
-        buzzPowerFiredPlayerIds,
-      );
+  const reaction = fulltimeReaction(
+    after,
+    fixtureId,
+    score,
+    outcomeLabel,
+    pool,
+    t,
+  );
+  const buzz =
+    buzzPowerFiredPlayerIds === undefined || before.season < 3
+      ? undefined
+      : postMatchBuzzViewModel(
+          before,
+          after,
+          outcomeLabel,
+          goalsFor,
+          buzzPowerFiredPlayerIds,
+        );
 
   return {
     result: {
       fixtureId,
-      competition: cupRound === undefined
-        ? careerDivisionLabel(before, t)
-        : t('postMatchSummary.heroCupRound', { round: cupRoundNameWith(cupRound.label, t) }),
+      competition:
+        cupRound === undefined
+          ? careerDivisionLabel(before, t)
+          : t('postMatchSummary.heroCupRound', {
+              round: cupRoundNameWith(cupRound.label, t),
+            }),
       homeTeam: clubName(before, fixture.homeClubId),
       awayTeam: clubName(before, fixture.awayClubId),
       homeScore: score.homeGoals,
       awayScore: score.awayGoals,
       outcomeLabel,
-      winner: cupWinnerClubId === fixture.homeClubId
-        ? 'home'
-        : cupWinnerClubId === fixture.awayClubId
-          ? 'away'
-          : score.homeGoals > score.awayGoals
-            ? 'home'
-            : score.awayGoals > score.homeGoals ? 'away' : null,
+      winner:
+        cupWinnerClubId === fixture.homeClubId
+          ? 'home'
+          : cupWinnerClubId === fixture.awayClubId
+            ? 'away'
+            : score.homeGoals > score.awayGoals
+              ? 'home'
+              : score.awayGoals > score.homeGoals
+                ? 'away'
+                : null,
       cupExit: cupRound !== undefined && outcomeLabel === 'LOSS',
     },
     ledger: (ledger?.lines ?? []).map((line, index) => {
@@ -3301,20 +4268,26 @@ export function postMatchViewModel(
         id: `${before.season}-${before.week}-${index}`,
         label: copyOrEnglish(t, line.labelKey, line.label, line.labelParams),
         amount: line.amount,
-        kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
+        kind:
+          line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
         ...(line.reveal === undefined ? {} : { reveal: line.reveal }),
         ...(icons === undefined ? {} : { icons }),
       };
     }),
     settlementSeason: before.season,
     settlementWeek: before.week,
-    netAmount: (ledger?.lines ?? []).reduce((sum, line) => sum + line.amount, 0),
+    netAmount: (ledger?.lines ?? []).reduce(
+      (sum, line) => sum + line.amount,
+      0,
+    ),
     trainingPointsGained: after.trainingPoints - before.trainingPoints,
     fanDelta: requireUserClub(after).fans - requireUserClub(before).fans,
     ...(buzz === undefined ? {} : { buzz }),
     highlights,
     updates: weekUpdates(before, after, t),
-    ...(completedFacility === undefined ? {} : { facilityCompletion: completedFacility }),
+    ...(completedFacility === undefined
+      ? {}
+      : { facilityCompletion: completedFacility }),
     ...(reaction === undefined ? {} : { reaction }),
   };
 }
@@ -3331,25 +4304,31 @@ function postMatchBuzzViewModel(
   const heroMoments = new Set(powerFiredPlayerIds).size * 2;
   const rawEarned = win + goals + heroMoments;
   const pendingBefore = before.clubBusiness.pendingUserMatchImpacts.reduce(
-    (sum, impact) => sum + impact.buzzWin + impact.buzzGoals + impact.buzzHeroMoments,
+    (sum, impact) =>
+      sum + impact.buzzWin + impact.buzzGoals + impact.buzzHeroMoments,
     0,
   );
-  const valueBeforeThisMatch = Math.min(100, before.clubBusiness.buzz.value + pendingBefore);
+  const valueBeforeThisMatch = Math.min(
+    100,
+    before.clubBusiness.buzz.value + pendingBefore,
+  );
   const earned = Math.min(rawEarned, 100 - valueBeforeThisMatch);
   const pendingAfter = after.clubBusiness.pendingUserMatchImpacts.reduce(
-    (sum, impact) => sum + impact.buzzWin + impact.buzzGoals + impact.buzzHeroMoments,
+    (sum, impact) =>
+      sum + impact.buzzWin + impact.buzzGoals + impact.buzzHeroMoments,
     0,
   );
-  const valueAfter = after.clubBusiness.pendingUserMatchImpacts.length > 0
-    ? Math.min(100, after.clubBusiness.buzz.value + pendingAfter)
-    : after.clubBusiness.buzz.value;
+  const valueAfter =
+    after.clubBusiness.pendingUserMatchImpacts.length > 0
+      ? Math.min(100, after.clubBusiness.buzz.value + pendingAfter)
+      : after.clubBusiness.buzz.value;
   const previousSettlement = before.clubBusiness.buzz.lastSettlementSummary;
   const settlement = after.clubBusiness.buzz.lastSettlementSummary;
-  const newSettlement = settlement !== undefined && (
-    previousSettlement === undefined
-    || settlement.season !== previousSettlement.season
-    || settlement.half !== previousSettlement.half
-  );
+  const newSettlement =
+    settlement !== undefined &&
+    (previousSettlement === undefined ||
+      settlement.season !== previousSettlement.season ||
+      settlement.half !== previousSettlement.half);
   return {
     earned,
     rawEarned,
@@ -3395,7 +4374,8 @@ function coachLinePool(
   if (cupTie === undefined || outcomeLabel === 'DRAW') {
     if (outcomeLabel === 'DRAW') return 'leagueDraw';
     const heavy = margin >= BLOWOUT_MARGIN;
-    if (outcomeLabel === 'WIN') return heavy ? 'leagueWinBig' : 'leagueWinClose';
+    if (outcomeLabel === 'WIN')
+      return heavy ? 'leagueWinBig' : 'leagueWinClose';
     return heavy ? 'leagueLossBig' : 'leagueLossClose';
   }
   const tiersAbove = cupOpponentTiersAbove(state, cupTie);
@@ -3430,9 +4410,9 @@ function cupOpponentTiersAbove(
   state: GameState,
   cupTie: { opponentClubId: string; season: number },
 ): number {
-  const divisions = state.m2?.nationalCups
-    .find(cup => cup.season === cupTie.season)
-    ?.seedDivisionByClubId;
+  const divisions = state.m2?.nationalCups.find(
+    (cup) => cup.season === cupTie.season,
+  )?.seedDivisionByClubId;
   const userDivision = divisions?.[state.userClubId];
   const opponentDivision = divisions?.[cupTie.opponentClubId];
   if (userDivision === undefined || opponentDivision === undefined) return 0;
@@ -3472,9 +4452,9 @@ function fulltimeReaction(
 
   const assistant = state.market?.assistantCoach;
   if (
-    outcomeLabel === 'LOSS'
-    && assistant !== undefined
-    && hashString(`blame:${draw}`) % BLAME_ROLL_IN === 0
+    outcomeLabel === 'LOSS' &&
+    assistant !== undefined &&
+    hashString(`blame:${draw}`) % BLAME_ROLL_IN === 0
   ) {
     const blamePool = LAUNCH_CONTENT.fulltimeBlameLines.lines;
     return {
@@ -3484,13 +4464,18 @@ function fulltimeReaction(
       assistantName: assistant.name,
       // A second, independent draw: the roll decides whether he speaks, the line
       // decides what he says, and one must not narrow the other.
-      line: spokenLine('coach.blame', blamePool[hashString(`blame-line:${draw}`) % blamePool.length]!, t),
+      line: spokenLine(
+        'coach.blame',
+        blamePool[hashString(`blame-line:${draw}`) % blamePool.length]!,
+        t,
+      ),
     };
   }
 
   const lines = LAUNCH_CONTENT.fulltimeCoachLines[pool];
   return {
-    pose: outcomeLabel === 'WIN' ? 'joy' : outcomeLabel === 'DRAW' ? 'rest' : 'cry',
+    pose:
+      outcomeLabel === 'WIN' ? 'joy' : outcomeLabel === 'DRAW' ? 'rest' : 'cry',
     ...coach,
     // Keyed apart from the blame draw so the two pools cannot shadow each other:
     // the same match must be free to pick line 3 of either.
@@ -3528,9 +4513,15 @@ function powerDisplayName(
   t: CopyFn,
 ): string | undefined {
   if (powerId === undefined) return undefined;
-  const authored = content.powers.powers.find(power => power.id === powerId)?.name;
+  const authored = content.powers.powers.find(
+    (power) => power.id === powerId,
+  )?.name;
   if (authored === undefined) return undefined;
-  return copyOrEnglish(t, `powerEffect.${powerCopySlug(powerId)}.name`, authored);
+  return copyOrEnglish(
+    t,
+    `powerEffect.${powerCopySlug(powerId)}.name`,
+    authored,
+  );
 }
 
 /** FNV-1a, the same shape the game ring uses to turn an id into a stable draw. */
@@ -3548,74 +4539,104 @@ function weekUpdates(
   after: GameState,
   t: CopyFn,
 ): WeeklyReviewViewModel['updates'] {
-  const afterPlayers = new Map(after.players.map(player => [player.id, player]));
-  const beforeLineup = before.lineups.find(lineup => lineup.clubId === before.userClubId);
-  const afterLineup = after.lineups.find(lineup => lineup.clubId === after.userClubId);
+  const afterPlayers = new Map(
+    after.players.map((player) => [player.id, player]),
+  );
+  const beforeLineup = before.lineups.find(
+    (lineup) => lineup.clubId === before.userClubId,
+  );
+  const afterLineup = after.lineups.find(
+    (lineup) => lineup.clubId === after.userClubId,
+  );
   const updates: WeeklyReviewViewModel['updates'][number][] = [];
   const completedFacility = facilityCompletion(before, after, t);
   if (completedFacility !== undefined) {
     updates.push({
       id: `facility-complete-${completedFacility.type}-${completedFacility.level}`,
-      title: t('weeklyReview.facilityCompleteTitle', { facility: completedFacility.name }),
-      detail: completedFacility.kind === 'BUILD'
-        ? t('weeklyReview.facilityBuiltDetail', { level: completedFacility.level })
-        : t('weeklyReview.facilityUpgradedDetail', { level: completedFacility.level }),
+      title: t('weeklyReview.facilityCompleteTitle', {
+        facility: completedFacility.name,
+      }),
+      detail:
+        completedFacility.kind === 'BUILD'
+          ? t('weeklyReview.facilityBuiltDetail', {
+              level: completedFacility.level,
+            })
+          : t('weeklyReview.facilityUpgradedDetail', {
+              level: completedFacility.level,
+            }),
       tone: 'positive',
     });
   }
-  for (const playerBefore of before.players.filter(player => player.clubId === before.userClubId)) {
+  for (const playerBefore of before.players.filter(
+    (player) => player.clubId === before.userClubId,
+  )) {
     const playerAfter = afterPlayers.get(playerBefore.id);
     if (playerAfter === undefined) continue;
     if (playerBefore.injuryWeeks === 0 && playerAfter.injuryWeeks > 0) {
-      const starterSlot = beforeLineup?.playerIds.indexOf(playerBefore.id) ?? -1;
-      const replacementId = starterSlot >= 0 ? afterLineup?.playerIds[starterSlot] : undefined;
-      const replacement = replacementId === undefined || replacementId === playerBefore.id
-        ? undefined
-        : afterPlayers.get(replacementId);
+      const starterSlot =
+        beforeLineup?.playerIds.indexOf(playerBefore.id) ?? -1;
+      const replacementId =
+        starterSlot >= 0 ? afterLineup?.playerIds[starterSlot] : undefined;
+      const replacement =
+        replacementId === undefined || replacementId === playerBefore.id
+          ? undefined
+          : afterPlayers.get(replacementId);
       updates.push({
         id: `injury-${playerBefore.id}`,
         title: t('weeklyReview.ruledOutTitle', { player: playerBefore.name }),
-        detail: replacement === undefined
-          ? t('weeklyReview.ruledOutDetail', {
-            weeks: weekCountLabel(playerAfter.injuryWeeks, t),
-          })
-          : t('weeklyReview.ruledOutDetailWithReplacement', {
-            weeks: weekCountLabel(playerAfter.injuryWeeks, t),
-            player: replacement.name,
-          }),
+        detail:
+          replacement === undefined
+            ? t('weeklyReview.ruledOutDetail', {
+                weeks: weekCountLabel(playerAfter.injuryWeeks, t),
+              })
+            : t('weeklyReview.ruledOutDetailWithReplacement', {
+                weeks: weekCountLabel(playerAfter.injuryWeeks, t),
+                player: replacement.name,
+              }),
         tone: 'warning',
       });
     } else if (playerBefore.injuryWeeks > playerAfter.injuryWeeks) {
       updates.push({
         id: `injury-${playerBefore.id}`,
-        title: playerAfter.injuryWeeks === 0
-          ? t('weeklyReview.clearedToPlayTitle', { player: playerBefore.name })
-          : t('weeklyReview.recoveringTitle', { player: playerBefore.name }),
-        detail: playerAfter.injuryWeeks === 0
-          ? t('weeklyReview.clearedToPlayDetail')
-          : t('weeklyReview.recoveringDetail', {
-            n: playerAfter.injuryWeeks,
-            count: playerAfter.injuryWeeks,
-          }),
+        title:
+          playerAfter.injuryWeeks === 0
+            ? t('weeklyReview.clearedToPlayTitle', {
+                player: playerBefore.name,
+              })
+            : t('weeklyReview.recoveringTitle', { player: playerBefore.name }),
+        detail:
+          playerAfter.injuryWeeks === 0
+            ? t('weeklyReview.clearedToPlayDetail')
+            : t('weeklyReview.recoveringDetail', {
+                n: playerAfter.injuryWeeks,
+                count: playerAfter.injuryWeeks,
+              }),
         tone: 'positive',
       });
     }
-    if (playerBefore.contractSeasonsRemaining > playerAfter.contractSeasonsRemaining) {
+    if (
+      playerBefore.contractSeasonsRemaining >
+      playerAfter.contractSeasonsRemaining
+    ) {
       updates.push({
         id: `contract-${playerBefore.id}`,
-        title: playerAfter.contractSeasonsRemaining === 0
-          ? t('weeklyReview.contractExpiredTitle', { player: playerBefore.name })
-          : t('weeklyReview.finalSeasonTitle', { player: playerBefore.name }),
-        detail: playerAfter.contractSeasonsRemaining === 0
-          ? t('weeklyReview.contractExpiredDetail')
-          : t('weeklyReview.finalSeasonDetail'),
+        title:
+          playerAfter.contractSeasonsRemaining === 0
+            ? t('weeklyReview.contractExpiredTitle', {
+                player: playerBefore.name,
+              })
+            : t('weeklyReview.finalSeasonTitle', { player: playerBefore.name }),
+        detail:
+          playerAfter.contractSeasonsRemaining === 0
+            ? t('weeklyReview.contractExpiredDetail')
+            : t('weeklyReview.finalSeasonDetail'),
         tone: 'warning',
       });
     }
   }
   if (
-    after.pendingEvent !== undefined
-    && after.pendingEvent.eventId !== before.pendingEvent?.eventId
+    after.pendingEvent !== undefined &&
+    after.pendingEvent.eventId !== before.pendingEvent?.eventId
   ) {
     updates.push({
       id: `event-${after.pendingEvent.eventId}`,
@@ -3636,7 +4657,9 @@ function facilityCompletion(
   if (project === undefined || project.weeksRemaining !== 1) return undefined;
   const afterProject = after.facilities.grid?.construction;
   if (afterProject?.buildingId === project.buildingId) return undefined;
-  const building = after.facilities.grid?.buildings.find(candidate => candidate.id === project.buildingId);
+  const building = after.facilities.grid?.buildings.find(
+    (candidate) => candidate.id === project.buildingId,
+  );
   if (building === undefined) return undefined;
   return {
     type: building.type,
@@ -3682,7 +4705,10 @@ function fixtureViewModel(
     // opponent club. Report the character who is there so this team sheet
     // agrees with the rival introduction that just played.
     opponentHeroCount: state.players.filter(
-      player => player.clubId === opponentId && player.power !== undefined && player.licensed,
+      (player) =>
+        player.clubId === opponentId &&
+        player.power !== undefined &&
+        player.licensed,
     ).length,
     matchdayReady: state.phase === 'matchday' && fixture.week === state.week,
   };
@@ -3700,7 +4726,10 @@ function careerDivision(state: GameState): 1 | 2 | 3 | 4 | 5 {
  * both. A cup tie landing on it would still not be the league finale, which is
  * why the competition is part of the test.
  */
-function isSeasonFinaleLeagueWeek(state: GameState, kind: 'league' | 'national-cup'): boolean {
+function isSeasonFinaleLeagueWeek(
+  state: GameState,
+  kind: 'league' | 'national-cup',
+): boolean {
   return kind === 'league' && state.week === SEASON_WEEKS;
 }
 
@@ -3722,9 +4751,9 @@ export function matchDayBannerViewModel(
   if (matchday === undefined) return null;
   const isCup = matchday.kind === 'national-cup';
   const competitionLabel = isCup
-    // `m2League.heroCup` is the catalog's only standalone name for the cup;
-    // every other key bakes it into a longer sentence.
-    ? t('m2League.heroCup')
+    ? // `m2League.heroCup` is the catalog's only standalone name for the cup;
+      // every other key bakes it into a longer sentence.
+      t('m2League.heroCup')
     : t(DIVISION_NAME_KEYS[careerDivision(state)]);
   const isFinale = isSeasonFinaleLeagueWeek(state, matchday.kind);
   return {
@@ -3733,37 +4762,60 @@ export function matchDayBannerViewModel(
     // The two flags are independent: the season's last week can itself be a
     // cup tie, and it should read as the final game AND draw the cabinet.
     isCup,
-    headline: t(isFinale ? 'matchDayBanner.finalGame' : 'matchDayBanner.headline', {
-      competition: competitionLabel,
-    }),
+    headline: t(
+      isFinale ? 'matchDayBanner.finalGame' : 'matchDayBanner.headline',
+      {
+        competition: competitionLabel,
+      },
+    ),
     accessibilityLabel: t(
-      isFinale ? 'matchDayBanner.a11y.finalGame' : 'matchDayBanner.a11y.matchDay',
+      isFinale
+        ? 'matchDayBanner.a11y.finalGame'
+        : 'matchDayBanner.a11y.matchDay',
       { competition: competitionLabel },
     ),
   };
 }
 
-function careerDivisionLabel(state: GameState, t: CopyFn = englishCopy()): string {
+function careerDivisionLabel(
+  state: GameState,
+  t: CopyFn = englishCopy(),
+): string {
   return divisionTierLabelWith(careerDivision(state), t);
 }
 
 function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {
-  return state.fixtures
-    .filter(fixture =>
-      fixture.status === 'played' && fixture.score !== undefined &&
-      (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId),
-    )
-    .sort((left, right) => right.season - left.season || right.week - left.week)
-    // A season's worth, because the strip fills whatever row it is given: a
-    // phone shows nine or ten of these and a desktop shows the lot.
-    .slice(0, FORM_STRIP_MAX)
-    .reverse()
-    .map(fixture => {
-      const isHome = fixture.homeClubId === state.userClubId;
-      const goalsFor = isHome ? fixture.score!.homeGoals : fixture.score!.awayGoals;
-      const goalsAgainst = isHome ? fixture.score!.awayGoals : fixture.score!.homeGoals;
-      return goalsFor > goalsAgainst ? 'W' : goalsFor < goalsAgainst ? 'L' : 'D';
-    });
+  return (
+    state.fixtures
+      .filter(
+        (fixture) =>
+          fixture.status === 'played' &&
+          fixture.score !== undefined &&
+          (fixture.homeClubId === state.userClubId ||
+            fixture.awayClubId === state.userClubId),
+      )
+      .sort(
+        (left, right) => right.season - left.season || right.week - left.week,
+      )
+      // A season's worth, because the strip fills whatever row it is given: a
+      // phone shows nine or ten of these and a desktop shows the lot.
+      .slice(0, FORM_STRIP_MAX)
+      .reverse()
+      .map((fixture) => {
+        const isHome = fixture.homeClubId === state.userClubId;
+        const goalsFor = isHome
+          ? fixture.score!.homeGoals
+          : fixture.score!.awayGoals;
+        const goalsAgainst = isHome
+          ? fixture.score!.awayGoals
+          : fixture.score!.homeGoals;
+        return goalsFor > goalsAgainst
+          ? 'W'
+          : goalsFor < goalsAgainst
+            ? 'L'
+            : 'D';
+      })
+  );
 }
 
 function describeEventChoiceOutcome(
@@ -3771,11 +4823,16 @@ function describeEventChoiceOutcome(
   t: CopyFn,
   state: GameState,
 ): string {
-  if (!choice.risky) return describeSafeOutcome(choice.outcomes[0]?.effects ?? [], t, state);
-  const success = choice.outcomes.find(outcome => outcome.effects.some(effect => effect.type !== 'flag'));
+  if (!choice.risky)
+    return describeSafeOutcome(choice.outcomes[0]?.effects ?? [], t, state);
+  const success = choice.outcomes.find((outcome) =>
+    outcome.effects.some((effect) => effect.type !== 'flag'),
+  );
   if (success === undefined) return t('storyEvent.noGuaranteedReward');
   const reward = describeEventEffects(success.effects, t, state);
-  const hasEmptyFailure = choice.outcomes.some(outcome => outcome.effects.length === 0);
+  const hasEmptyFailure = choice.outcomes.some(
+    (outcome) => outcome.effects.length === 0,
+  );
   return hasEmptyFailure
     ? t('storyEvent.riskyChanceOrNothing', { percent: success.weight, reward })
     : t('storyEvent.riskyChance', { percent: success.weight, reward });
@@ -3799,8 +4856,10 @@ function describeEventEffects(
   // inside an otherwise translated consequence hint on 38 risky outcomes, in all
   // six languages — invisible to both instruments, because it is composed from
   // already-resolved values and never appears as a literal beside a key.
-  return eventRewardLabels(effects, t, state).join(t('storyEvent.rewardJoiner'))
-    || t('storyEvent.unknownReward');
+  return (
+    eventRewardLabels(effects, t, state).join(t('storyEvent.rewardJoiner')) ||
+    t('storyEvent.unknownReward')
+  );
 }
 
 function eventRewardLabels(
@@ -3808,7 +4867,7 @@ function eventRewardLabels(
   t: CopyFn,
   state: GameState,
 ): string[] {
-  return eventRewardItems(effects, t, state).map(reward => reward.label);
+  return eventRewardItems(effects, t, state).map((reward) => reward.label);
 }
 
 /**
@@ -3821,70 +4880,101 @@ function eventRewardItems(
   t: CopyFn,
   state: GameState,
 ): NonNullable<StoryEventViewModel['outcomeRewards']> {
-  const rewards: NonNullable<StoryEventViewModel['outcomeRewards']>[number][] = [];
-  const money = effects.reduce((sum, effect) => effect.type === 'money' ? sum + effect.amount : sum, 0);
+  const rewards: NonNullable<StoryEventViewModel['outcomeRewards']>[number][] =
+    [];
+  const money = effects.reduce(
+    (sum, effect) => (effect.type === 'money' ? sum + effect.amount : sum),
+    0,
+  );
   const playerMorale = effects.reduce(
-    (sum, effect) => effect.type === 'morale' ? sum + effect.amount : sum,
+    (sum, effect) => (effect.type === 'morale' ? sum + effect.amount : sum),
     0,
   );
   const squadMorale = effects.reduce(
-    (sum, effect) => effect.type === 'squadMorale' ? sum + effect.amount : sum,
+    (sum, effect) =>
+      effect.type === 'squadMorale' ? sum + effect.amount : sum,
     0,
   );
-  const fans = effects.reduce((sum, effect) => effect.type === 'fans' ? sum + effect.amount : sum, 0);
-  const trainingPoints = effects.reduce((sum, effect) => effect.type === 'tp' ? sum + effect.amount : sum, 0);
-  if (money !== 0) rewards.push({ label: formatMoney(money, true), kind: 'money', positive: money > 0 });
-  const playerSale = effects.find(effect => effect.type === 'playerSale');
+  const fans = effects.reduce(
+    (sum, effect) => (effect.type === 'fans' ? sum + effect.amount : sum),
+    0,
+  );
+  const trainingPoints = effects.reduce(
+    (sum, effect) => (effect.type === 'tp' ? sum + effect.amount : sum),
+    0,
+  );
+  if (money !== 0)
+    rewards.push({
+      label: formatMoneyForCopy(t, money, true),
+      kind: 'money',
+      positive: money > 0,
+    });
+  const playerSale = effects.find((effect) => effect.type === 'playerSale');
   if (playerSale?.type === 'playerSale') {
     const playerName = state.players.find(
-      player => player.id === state.pendingEvent?.selectedPlayerId,
+      (player) => player.id === state.pendingEvent?.selectedPlayerId,
     )?.name;
     rewards.push({
-      label: formatMoney(playerSale.fee, true),
+      label: formatMoneyForCopy(t, playerSale.fee, true),
       kind: 'money',
       positive: true,
     });
     rewards.push({
-      label: playerName === undefined
-        ? t('storyEvent.rewardLoseSelectedPlayer')
-        : t('storyEvent.rewardLosePlayer', { player: playerName }),
+      label:
+        playerName === undefined
+          ? t('storyEvent.rewardLoseSelectedPlayer')
+          : t('storyEvent.rewardLosePlayer', { player: playerName }),
       kind: 'stat',
       positive: false,
     });
   }
-  if (playerMorale !== 0) rewards.push({
-    label: t('storyEvent.rewardPlayerMorale', { amount: signedAmount(playerMorale) }),
-    kind: 'morale',
-    positive: playerMorale > 0,
-  });
-  if (squadMorale !== 0) rewards.push({
-    label: t('storyEvent.rewardSquadMorale', { amount: signedAmount(squadMorale) }),
-    kind: 'morale',
-    positive: squadMorale > 0,
-  });
-  if (fans !== 0) rewards.push({
-    label: t('storyEvent.rewardFans', { amount: `${fans > 0 ? '+' : ''}${fans}` }),
-    kind: 'fans',
-    positive: fans > 0,
-  });
-  if (trainingPoints !== 0) rewards.push({
-    label: `${trainingPoints > 0 ? '+' : ''}${trainingPoints} TP`,
-    kind: 'training-points',
-    positive: trainingPoints > 0,
-  });
+  if (playerMorale !== 0)
+    rewards.push({
+      label: t('storyEvent.rewardPlayerMorale', {
+        amount: signedAmount(t, playerMorale),
+      }),
+      kind: 'morale',
+      positive: playerMorale > 0,
+    });
+  if (squadMorale !== 0)
+    rewards.push({
+      label: t('storyEvent.rewardSquadMorale', {
+        amount: signedAmount(t, squadMorale),
+      }),
+      kind: 'morale',
+      positive: squadMorale > 0,
+    });
+  if (fans !== 0)
+    rewards.push({
+      label: t('storyEvent.rewardFans', {
+        amount: formatIntegerForCopy(t, fans, true),
+      }),
+      kind: 'fans',
+      positive: fans > 0,
+    });
+  if (trainingPoints !== 0)
+    rewards.push({
+      label: `${formatIntegerForCopy(t, trainingPoints, true)} TP`,
+      kind: 'training-points',
+      positive: trainingPoints > 0,
+    });
   for (const effect of effects) {
     if (effect.type === 'statDelta' && effect.amount !== 0) {
       rewards.push({
-        label: `${effect.amount > 0 ? '+' : ''}${effect.amount} ${effect.attribute.toUpperCase()}`,
+        label: `${formatIntegerForCopy(t, effect.amount, true)} ${effect.attribute.toUpperCase()}`,
         kind: 'stat',
         positive: effect.amount > 0,
       });
     }
     if (effect.type === 'statDeltaSessions' && effect.sessions !== 0) {
-      const points = trainingSessionPoints(state, effect.attribute, effect.sessions);
+      const points = trainingSessionPoints(
+        state,
+        effect.attribute,
+        effect.sessions,
+      );
       if (points !== 0) {
         rewards.push({
-          label: `${points > 0 ? '+' : ''}${points} ${effect.attribute.toUpperCase()}`,
+          label: `${formatIntegerForCopy(t, points, true)} ${effect.attribute.toUpperCase()}`,
           kind: 'stat',
           positive: points > 0,
         });
@@ -3892,28 +4982,37 @@ function eventRewardItems(
     }
     if (effect.type === 'loyalty' && effect.amount !== 0) {
       rewards.push({
-        label: t('storyEvent.rewardLoyalty', { amount: `${effect.amount > 0 ? '+' : ''}${effect.amount}` }),
+        label: t('storyEvent.rewardLoyalty', {
+          amount: formatIntegerForCopy(t, effect.amount, true),
+        }),
         kind: 'stat',
         positive: effect.amount > 0,
       });
     }
     if (effect.type === 'condition' && effect.amount !== 0) {
       rewards.push({
-        label: t('storyEvent.rewardCondition', { amount: `${effect.amount > 0 ? '+' : ''}${effect.amount}` }),
+        label: t('storyEvent.rewardCondition', {
+          amount: formatIntegerForCopy(t, effect.amount, true),
+        }),
         kind: 'stat',
         positive: effect.amount > 0,
       });
     }
     if (effect.type === 'fame' && effect.amount !== 0) {
       rewards.push({
-        label: t('storyEvent.rewardFame', { amount: `${effect.amount > 0 ? '+' : ''}${effect.amount}` }),
+        label: t('storyEvent.rewardFame', {
+          amount: formatIntegerForCopy(t, effect.amount, true),
+        }),
         kind: 'stat',
         positive: effect.amount > 0,
       });
     }
     if (effect.type === 'injury') {
       rewards.push({
-        label: t('storyEvent.rewardWeeksInjured', { n: effect.weeks, count: effect.weeks }),
+        label: t('storyEvent.rewardWeeksInjured', {
+          n: effect.weeks,
+          count: effect.weeks,
+        }),
         kind: 'injury',
         positive: false,
       });
@@ -3935,7 +5034,7 @@ function eventRewardItems(
             ? 'storyEvent.rewardCoachTp'
             : 'storyEvent.rewardCoachMotivator';
       rewards.push({
-        label: t(key, { amount: signedAmount(effect.amount) }),
+        label: t(key, { amount: signedAmount(t, effect.amount) }),
         kind: 'stat',
         positive: effect.amount > 0,
       });
@@ -3952,7 +5051,7 @@ function eventRewardItems(
     if (effect.type === 'facilityTpBonus' && effect.percent !== 0) {
       rewards.push({
         label: t('storyEvent.rewardFacilityTp', {
-          amount: signedAmount(effect.percent),
+          amount: signedAmount(t, effect.percent),
         }),
         kind: 'stat',
         positive: effect.percent > 0,
@@ -3961,7 +5060,7 @@ function eventRewardItems(
     if (effect.type === 'facilityTrainingBonus' && effect.percent !== 0) {
       rewards.push({
         label: t('storyEvent.rewardFacilityTraining', {
-          amount: signedAmount(effect.percent),
+          amount: signedAmount(t, effect.percent),
         }),
         kind: 'stat',
         positive: effect.percent > 0,
@@ -3970,7 +5069,7 @@ function eventRewardItems(
     if (effect.type === 'facilityRecoveryBonus' && effect.amount !== 0) {
       rewards.push({
         label: t('storyEvent.rewardFacilityRecovery', {
-          amount: signedAmount(effect.amount),
+          amount: signedAmount(t, effect.amount),
         }),
         kind: 'stat',
         positive: effect.amount > 0,
@@ -3979,7 +5078,7 @@ function eventRewardItems(
     if (effect.type === 'facilityIncomeBonus' && effect.percent !== 0) {
       rewards.push({
         label: t('storyEvent.rewardFacilityIncome', {
-          amount: signedAmount(effect.percent),
+          amount: signedAmount(t, effect.percent),
         }),
         kind: 'stat',
         positive: effect.percent > 0,
@@ -3987,10 +5086,14 @@ function eventRewardItems(
     }
   }
   if (
-    rewards.length === 0
-    && effects.some(effect => effect.type === 'flag' && effect.value)
+    rewards.length === 0 &&
+    effects.some((effect) => effect.type === 'flag' && effect.value)
   ) {
-    rewards.push({ label: t('storyEvent.rewardClubStorySecured'), kind: 'story', positive: true });
+    rewards.push({
+      label: t('storyEvent.rewardClubStorySecured'),
+      kind: 'story',
+      positive: true,
+    });
   }
   return rewards;
 }
@@ -4002,29 +5105,25 @@ function overall(
   return roleOverall(role, attrs);
 }
 
-function formatMoney(value: number, signed = false): string {
-  // ASCII hyphen, matching Scorecard's formatCurrency: Silkscreen has no
-  // U+2212 glyph, and money strings render in the pixel face.
-  const sign = value < 0 ? '-' : signed && value > 0 ? '+' : '';
-  return `${sign}$${Math.abs(Math.trunc(value)).toLocaleString('en-US')}`;
-}
-
-function signedAmount(value: number): string {
-  return `${value > 0 ? '+' : ''}${value}`;
+function signedAmount(t: CopyFn, value: number): string {
+  return formatIntegerForCopy(t, value, true);
 }
 
 function clubName(state: GameState, clubId: string): string {
-  const club = state.clubs.find(candidate => candidate.id === clubId);
+  const club = state.clubs.find((candidate) => candidate.id === clubId);
   if (club !== undefined) return club.name;
   const pyramidClub = state.m2?.pyramid.divisions
-    .flatMap(division => division.clubs)
-    .find(candidate => candidate.id === clubId);
+    .flatMap((division) => division.clubs)
+    .find((candidate) => candidate.id === clubId);
   if (pyramidClub === undefined) throw new Error(`unknown club ${clubId}`);
   return pyramidClub.name;
 }
 
 function requireUserClub(state: GameState) {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
   return club;
 }

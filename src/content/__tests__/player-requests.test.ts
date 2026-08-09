@@ -12,35 +12,49 @@ describe('validated player request catalog', () => {
     const catalog = loadLaunchContent().playerRequests;
 
     expect(catalog.requests).toHaveLength(30);
-    expect(new Set(catalog.requests.map(request => request.id)).size).toBe(30);
+    expect(new Set(catalog.requests.map((request) => request.id)).size).toBe(
+      30,
+    );
   });
 
   test('covers every cost archetype, so the tab is not thirty invoices', () => {
-    const kinds = new Set(loadLaunchContent().playerRequests.requests.map(r => r.cost.kind));
+    const kinds = new Set(
+      loadLaunchContent().playerRequests.requests.map((r) => r.cost.kind),
+    );
 
-    expect(kinds).toEqual(new Set([
-      'MONEY_PLAYER',
-      'MONEY_SQUAD',
-      'ABSENCE',
-      'CONDITION_SQUAD',
-      'DRILL_PLAYER',
-      'DRILL_SQUAD',
-    ]));
+    expect(kinds).toEqual(
+      new Set([
+        'MONEY_PLAYER',
+        'MONEY_SQUAD',
+        'ABSENCE',
+        'CONDITION_SQUAD',
+        'DRILL_PLAYER',
+        'DRILL_SQUAD',
+      ]),
+    );
   });
 
   test('carries no status perk, which would collide with contractPromise', () => {
-    const kinds = loadLaunchContent().playerRequests.requests.map(r => r.cost.kind as string);
+    const kinds = loadLaunchContent().playerRequests.requests.map(
+      (r) => r.cost.kind as string,
+    );
 
     // A request must never write contractPromise: it holds one object per
     // player, so granting a perk would destroy whatever was agreed in talks.
-    for (const banned of ['ARMBAND', 'SHIRT_TEN', 'GUARANTEED_START', 'TRAINING_PRIORITY']) {
+    for (const banned of [
+      'ARMBAND',
+      'SHIRT_TEN',
+      'GUARANTEED_START',
+      'TRAINING_PRIORITY',
+    ]) {
       expect(kinds).not.toContain(banned);
     }
   });
 
   test('gives a themed bonus only to squad requests, never to an individual ask', () => {
-    const withBonus = loadLaunchContent().playerRequests.requests
-      .filter(request => request.grantBonus !== undefined);
+    const withBonus = loadLaunchContent().playerRequests.requests.filter(
+      (request) => request.grantBonus !== undefined,
+    );
 
     expect(withBonus.length).toBeGreaterThan(0);
     for (const request of withBonus) {
@@ -52,10 +66,15 @@ describe('validated player request catalog', () => {
     const catalog = loadLaunchContent().playerRequests;
     const duplicated = {
       ...catalog,
-      requests: [catalog.requests[0], { ...catalog.requests[1], id: catalog.requests[0].id }],
+      requests: [
+        catalog.requests[0],
+        { ...catalog.requests[1], id: catalog.requests[0].id },
+      ],
     };
 
-    expect(() => PlayerRequestCatalogSchema.parse(duplicated)).toThrow('request ID');
+    expect(() => PlayerRequestCatalogSchema.parse(duplicated)).toThrow(
+      'request ID',
+    );
   });
 
   test('rejects artwork that names a sprite the game does not have', () => {
@@ -65,7 +84,9 @@ describe('validated player request catalog', () => {
       requests: [{ ...catalog.requests[0], art: ['money-bag', 'unicorn'] }],
     };
 
-    expect(() => PlayerRequestCatalogSchema.parse(broken)).toThrow('unknown request art sprite');
+    expect(() => PlayerRequestCatalogSchema.parse(broken)).toThrow(
+      'unknown request art sprite',
+    );
   });
 
   test('rejects a cadence whose guarantee is not after its floor', () => {
@@ -76,13 +97,18 @@ describe('validated player request catalog', () => {
         ...catalog.tuning,
         cadence: {
           ...catalog.tuning.cadence,
-          COZY: { ...catalog.tuning.cadence.COZY, minWeeks: 12, guaranteeWeeks: 12 },
+          COZY: {
+            ...catalog.tuning.cadence.COZY,
+            minWeeks: 12,
+            guaranteeWeeks: 12,
+          },
         },
       },
     };
 
-    expect(() => PlayerRequestCatalogSchema.parse(broken))
-      .toThrow('minWeeks must be below guaranteeWeeks');
+    expect(() => PlayerRequestCatalogSchema.parse(broken)).toThrow(
+      'minWeeks must be below guaranteeWeeks',
+    );
   });
 
   test('rejects a star window that is slower than the ordinary one', () => {
@@ -93,20 +119,27 @@ describe('validated player request catalog', () => {
         ...catalog.tuning,
         cadence: {
           ...catalog.tuning.cadence,
-          CHAIRMAN: { ...catalog.tuning.cadence.CHAIRMAN, starMinWeeks: 9, starGuaranteeWeeks: 12 },
+          CHAIRMAN: {
+            ...catalog.tuning.cadence.CHAIRMAN,
+            starMinWeeks: 9,
+            starGuaranteeWeeks: 12,
+          },
         },
       },
     };
 
     // Owning stars is what makes the dressing room noisy; a slower star window
     // would invert the whole point of the fame weighting.
-    expect(() => PlayerRequestCatalogSchema.parse(broken))
-      .toThrow('must not wait longer');
+    expect(() => PlayerRequestCatalogSchema.parse(broken)).toThrow(
+      'must not wait longer',
+    );
   });
 
   test('is rejected by the launch content schema when a request is malformed', () => {
     const content = cloneContent(loadLaunchContent());
-    (content.playerRequests.requests[0].cost as { wageMultiple: number }).wageMultiple = 0;
+    (
+      content.playerRequests.requests[0].cost as { wageMultiple: number }
+    ).wageMultiple = 0;
 
     expect(() => parseLaunchContent(content)).toThrow();
   });

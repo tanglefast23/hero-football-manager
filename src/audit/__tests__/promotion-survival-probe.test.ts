@@ -86,7 +86,11 @@ import {
 const content = loadLaunchContent();
 const SEED_COUNT = positiveIntegerEnv('PROMOTION_SURVIVAL_SEEDS', 3, 10_000);
 const D4_WEEKS = positiveIntegerEnv('PROMOTION_SURVIVAL_WEEKS', 30, 30);
-const SEED_OFFSET = nonNegativeIntegerEnv('PROMOTION_SURVIVAL_SEED_OFFSET', 0, 40_000);
+const SEED_OFFSET = nonNegativeIntegerEnv(
+  'PROMOTION_SURVIVAL_SEED_OFFSET',
+  0,
+  40_000,
+);
 const SUMMARY_DIR = optionalNonemptyEnv('PROMOTION_SURVIVAL_SUMMARY_DIR');
 const PRESEASON_LAST_WEEK = 4;
 const FINAL_SEASON_WEEK = 30;
@@ -97,11 +101,12 @@ const DRILL_UPGRADE_CASH_RESERVE = 12_000;
 const DIFFICULTIES = promotionSurvivalDifficulties(
   process.env.PROMOTION_SURVIVAL_DIFFICULTY,
 );
-const POWER_IDS = content.powers.powers.map(power => power.id);
-const TRIGGER_IDS = content.onboarding.triggers.map(trigger => trigger.id);
+const POWER_IDS = content.powers.powers.map((power) => power.id);
+const TRIGGER_IDS = content.onboarding.triggers.map((trigger) => trigger.id);
 const AWAKENING_TUNING = {
   chancePercent: content.powers.awakening.postMatchChancePercent,
-  secondInSeasonChancePercent: content.powers.awakening.secondInSeasonChancePercent,
+  secondInSeasonChancePercent:
+    content.powers.awakening.secondInSeasonChancePercent,
   maxPerSeason: content.powers.awakening.maxPerSeason,
   minimumMatchesBetween: content.powers.awakening.minimumMatchesBetween,
 };
@@ -188,37 +193,54 @@ describe('promoted-club survival probe', () => {
 
   it.each(DIFFICULTIES)(
     'measures a naturally promoted managed career through its first D4 season on %s',
-    difficulty => {
+    (difficulty) => {
       const runs = Array.from({ length: SEED_COUNT }, (_, index) => {
         const seedIndex = SEED_OFFSET + index;
         const seed = promotionSurvivalSeed(seedIndex);
         const promoted = createPromotedCareer(seed, difficulty);
         if (promoted.difficulty !== difficulty) {
           throw new Error(
-            `promotion seed ${seed} lost ${difficulty} difficulty identity`
-            + ` (received ${String(promoted.difficulty)})`,
+            `promotion seed ${seed} lost ${difficulty} difficulty identity` +
+              ` (received ${String(promoted.difficulty)})`,
           );
         }
         const prepared = runD4Season(promoted, seed, true);
         const control = runD4Season(promoted, seed, false);
-        return { seedIndex, seed, promotedInSeason: promoted.season, prepared, control };
+        return {
+          seedIndex,
+          seed,
+          promotedInSeason: promoted.season,
+          prepared,
+          control,
+        };
       });
 
       expect(runs).toHaveLength(SEED_COUNT);
-      expect(runs.every(run => run.promotedInSeason <= MAX_D5_SEASONS)).toBe(true);
-      expect(runs.every(run => run.prepared.played === run.control.played)).toBe(true);
-      expect(runs.every(run => run.prepared.preWindowStrength > 0)).toBe(true);
+      expect(runs.every((run) => run.promotedInSeason <= MAX_D5_SEASONS)).toBe(
+        true,
+      );
+      expect(
+        runs.every((run) => run.prepared.played === run.control.played),
+      ).toBe(true);
+      expect(runs.every((run) => run.prepared.preWindowStrength > 0)).toBe(
+        true,
+      );
       if (D4_WEEKS === FINAL_SEASON_WEEK) {
-        expect(runs.every(run => run.prepared.completed && run.control.completed)).toBe(true);
-        expect(runs.every(run => run.prepared.played === 18)).toBe(true);
-        expect(runs.every(run => recruitmentWindowResolved(run.prepared))).toBe(true);
+        expect(
+          runs.every((run) => run.prepared.completed && run.control.completed),
+        ).toBe(true);
+        expect(runs.every((run) => run.prepared.played === 18)).toBe(true);
+        expect(
+          runs.every((run) => recruitmentWindowResolved(run.prepared)),
+        ).toBe(true);
       }
 
       const summary = promotionSurvivalShardSummary(runs, difficulty);
       emitPromotionSurvivalShardSummary(summary);
-      const isCanonicalAggregate = D4_WEEKS === FINAL_SEASON_WEEK
-        && SEED_OFFSET === 0
-        && SEED_COUNT === AGGREGATE_SEED_COUNT;
+      const isCanonicalAggregate =
+        D4_WEEKS === FINAL_SEASON_WEEK &&
+        SEED_OFFSET === 0 &&
+        SEED_COUNT === AGGREGATE_SEED_COUNT;
       report(runs, difficulty, isCanonicalAggregate);
       if (isCanonicalAggregate) {
         aggregatePromotionSurvivalShards([summary], {
@@ -238,11 +260,16 @@ describe('promoted-club survival probe', () => {
  * weekly training. A club that cannot earn promotion within two seasons is a
  * real red result; the probe must never manufacture a table position for it.
  */
-function createPromotedCareer(seed: number, difficulty: DifficultyMode): GameState {
+function createPromotedCareer(
+  seed: number,
+  difficulty: DifficultyMode,
+): GameState {
   let state = addCreatedPlayer(
-    beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-      seed, undefined, content, difficulty,
-    ))),
+    beginStoryOnboarding(
+      createCareer(
+        createLaunchCareerSetup(seed, undefined, content, difficulty),
+      ),
+    ),
     {
       name: 'Promotion Probe Hero',
       ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 },
@@ -253,7 +280,10 @@ function createPromotedCareer(seed: number, difficulty: DifficultyMode): GameSta
     let guard = 0;
     while (state.phase !== 'season-end') {
       guard += 1;
-      if (guard > 180) throw new Error(`promotion seed ${seed} exceeded its D5 transition guard`);
+      if (guard > 180)
+        throw new Error(
+          `promotion seed ${seed} exceeded its D5 transition guard`,
+        );
       if (state.phase === 'manage') {
         state = choosePromotionHeroLicenses(state);
         state = buildManagedFacilities(state);
@@ -266,31 +296,43 @@ function createPromotedCareer(seed: number, difficulty: DifficultyMode): GameSta
         state = settleMeasuredMatchday(state);
         continue;
       }
-      throw new Error(`promotion seed ${seed} entered unsupported phase ${state.phase}`);
+      throw new Error(
+        `promotion seed ${seed} entered unsupported phase ${state.phase}`,
+      );
     }
 
-    const finish = leagueStandings(state).find(row => row.clubId === state.userClubId);
-    if (finish === undefined) throw new Error(`promotion seed ${seed} lost its D5 standing`);
+    const finish = leagueStandings(state).find(
+      (row) => row.clubId === state.userClubId,
+    );
+    if (finish === undefined)
+      throw new Error(`promotion seed ${seed} lost its D5 standing`);
     state = renewExpiringPlayers(state);
     if (finish.position <= 2) return state;
     if (d5Season < MAX_D5_SEASONS) state = startNextSeason(state);
   }
-  throw new Error(`promotion seed ${seed} did not earn D4 within ${MAX_D5_SEASONS} seasons`);
+  throw new Error(
+    `promotion seed ${seed} did not earn D4 within ${MAX_D5_SEASONS} seasons`,
+  );
 }
 
 function renewExpiringPlayers(state: GameState): GameState {
   let next = state;
-  for (const player of state.players.filter(candidate => (
-    candidate.clubId === state.userClubId
-    && candidate.contractSeasonsRemaining === 0
-    && !willRetireAtSeasonTransition(candidate, state.season)
-  ))) {
+  for (const player of state.players.filter(
+    (candidate) =>
+      candidate.clubId === state.userClubId &&
+      candidate.contractSeasonsRemaining === 0 &&
+      !willRetireAtSeasonTransition(candidate, state.season),
+  )) {
     next = renewCareerPlayer(next, player.id, 4, 2);
   }
   return next;
 }
 
-function runD4Season(promoted: GameState, seed: number, prepared: boolean): SeasonOutcome {
+function runD4Season(
+  promoted: GameState,
+  seed: number,
+  prepared: boolean,
+): SeasonOutcome {
   let state = choosePromotionHeroLicenses(startNextSeason(promoted));
   if (state.m2 === undefined || currentUserDivision(state.m2) !== 4) {
     throw new Error(`promotion seed ${seed} did not enter Division 4`);
@@ -319,7 +361,9 @@ function runD4Season(promoted: GameState, seed: number, prepared: boolean): Seas
   while (prep.state.phase !== 'season-end' && prep.state.week <= D4_WEEKS) {
     guard += 1;
     if (guard > D4_WEEKS * 5 + 30) {
-      throw new Error(`promotion seed ${seed} exceeded its D4 transition guard`);
+      throw new Error(
+        `promotion seed ${seed} exceeded its D4 transition guard`,
+      );
     }
     if (prep.state.phase === 'manage') {
       // Later D4 awakenings also require the manager to revisit the limited
@@ -332,9 +376,10 @@ function runD4Season(promoted: GameState, seed: number, prepared: boolean): Seas
       // working, then resumes the same capital purchases as the control. Buying
       // newly unlocked drill tiers first made the later signing impossible and
       // compared two spending orders while calling one of them recruitment.
-      const transferWindowPending = prepared
-        && prep.state.week <= PRESEASON_LAST_WEEK
-        && !prep.signingResolved;
+      const transferWindowPending =
+        prepared &&
+        prep.state.week <= PRESEASON_LAST_WEEK &&
+        !prep.signingResolved;
       if (!transferWindowPending) {
         prep.state = buildManagedFacilities(prep.state);
         prep.state = buyManagedDrillUpgrades(prep.state);
@@ -345,8 +390,10 @@ function runD4Season(promoted: GameState, seed: number, prepared: boolean): Seas
       try {
         prep.state = advanceWeek(prep.state);
       } catch (error) {
-        const lineup = userLineupIds(prep.state).map(id => {
-          const player = prep.state.players.find(candidate => candidate.id === id)!;
+        const lineup = userLineupIds(prep.state).map((id) => {
+          const player = prep.state.players.find(
+            (candidate) => candidate.id === id,
+          )!;
           return {
             id,
             power: player.power,
@@ -356,12 +403,13 @@ function runD4Season(promoted: GameState, seed: number, prepared: boolean): Seas
           };
         });
         const benchedHeroes = prep.state.players
-          .filter(player => (
-            player.clubId === prep.state.userClubId
-            && player.power !== undefined
-            && !userLineupIds(prep.state).includes(player.id)
-          ))
-          .map(player => ({
+          .filter(
+            (player) =>
+              player.clubId === prep.state.userClubId &&
+              player.power !== undefined &&
+              !userLineupIds(prep.state).includes(player.id),
+          )
+          .map((player) => ({
             id: player.id,
             power: player.power,
             licensed: player.licensed,
@@ -369,13 +417,16 @@ function runD4Season(promoted: GameState, seed: number, prepared: boolean): Seas
             promise: player.contractPromise?.perk,
           }));
         throw new Error(
-          `D4 advance failed for seed ${seed} (${prepared ? 'prepared' : 'control'})`
-          + ` in week ${prep.state.week}; lineup=${JSON.stringify(lineup)}`
-          + `; benchedHeroes=${JSON.stringify(benchedHeroes)}`,
+          `D4 advance failed for seed ${seed} (${prepared ? 'prepared' : 'control'})` +
+            ` in week ${prep.state.week}; lineup=${JSON.stringify(lineup)}` +
+            `; benchedHeroes=${JSON.stringify(benchedHeroes)}`,
           { cause: error },
         );
       }
-      if (prep.state.week > PRESEASON_LAST_WEEK && postWindowStrength === undefined) {
+      if (
+        prep.state.week > PRESEASON_LAST_WEEK &&
+        postWindowStrength === undefined
+      ) {
         postWindowStrength = startingElevenStrength(prep.state);
         postWindowHeroes = licensedStarterProfile(prep.state);
         postWindowOpponentStrengths = activeOpponentStrengthRange(prep.state);
@@ -387,19 +438,26 @@ function runD4Season(promoted: GameState, seed: number, prepared: boolean): Seas
       prep.state = settleMeasuredMatchday(prep.state);
       continue;
     }
-    throw new Error(`promotion seed ${seed} entered unsupported D4 phase ${prep.state.phase}`);
+    throw new Error(
+      `promotion seed ${seed} entered unsupported D4 phase ${prep.state.phase}`,
+    );
   }
-  if (prepared && !prep.signingResolved && prep.state.week > PRESEASON_LAST_WEEK) {
+  if (
+    prepared &&
+    !prep.signingResolved &&
+    prep.state.week > PRESEASON_LAST_WEEK
+  ) {
     prep.signingResolved = true;
     prep.signingStopReason = 'SCOUT_INCOMPLETE';
   }
   postWindowStrength ??= startingElevenStrength(prep.state);
   postWindowHeroes ??= licensedStarterProfile(prep.state);
   postWindowOpponentStrengths ??= activeOpponentStrengthRange(prep.state);
-  const row = leagueStandings(prep.state, 2).find(candidate => (
-    candidate.clubId === prep.state.userClubId
-  ));
-  if (row === undefined) throw new Error(`promotion seed ${seed} lost its D4 standing`);
+  const row = leagueStandings(prep.state, 2).find(
+    (candidate) => candidate.clubId === prep.state.userClubId,
+  );
+  if (row === undefined)
+    throw new Error(`promotion seed ${seed} lost its D4 standing`);
   return {
     completed: prep.state.phase === 'season-end',
     position: row.position,
@@ -440,7 +498,10 @@ function runD4Season(promoted: GameState, seed: number, prepared: boolean): Seas
 function choosePromotionHeroLicenses(state: GameState): GameState {
   const lineupIds = new Set(userLineupIds(state));
   const selectedHeroIds = state.players
-    .filter(player => player.clubId === state.userClubId && player.power !== undefined)
+    .filter(
+      (player) =>
+        player.clubId === state.userClubId && player.power !== undefined,
+    )
     .slice()
     .sort((left, right) => {
       const leftPromise = hasActiveStartingPromise(left);
@@ -449,15 +510,17 @@ function choosePromotionHeroLicenses(state: GameState): GameState {
       const leftStarts = lineupIds.has(left.id);
       const rightStarts = lineupIds.has(right.id);
       if (leftStarts !== rightStarts) return leftStarts ? -1 : 1;
-      return roleOverall(right.role, right.attrs) - roleOverall(left.role, left.attrs)
-        || left.id.localeCompare(right.id);
+      return (
+        roleOverall(right.role, right.attrs) -
+          roleOverall(left.role, left.attrs) || left.id.localeCompare(right.id)
+      );
     })
     .slice(0, careerHeroLimit(state))
-    .map(player => player.id);
+    .map((player) => player.id);
   let next = restoreCareerContractPromiseLineup(
     selectCareerLicensedHeroes(state, selectedHeroIds),
   );
-  const playerById = new Map(next.players.map(player => [player.id, player]));
+  const playerById = new Map(next.players.map((player) => [player.id, player]));
   const lineup = [...userLineupIds(next)];
   const selected = new Set(lineup);
   for (let slot = 0; slot < lineup.length; slot += 1) {
@@ -465,22 +528,28 @@ function choosePromotionHeroLicenses(state: GameState): GameState {
     if (starter.power === undefined || starter.licensed) continue;
     selected.delete(starter.id);
     const eligible = next.players
-      .filter(candidate => (
-        candidate.clubId === next.userClubId
-        && !selected.has(candidate.id)
-        && candidate.injuryWeeks === 0
-        && !(candidate.power !== undefined && !candidate.licensed)
-        && (slot === 0 ? candidate.role === 'GK' : candidate.role !== 'GK')
-      ))
+      .filter(
+        (candidate) =>
+          candidate.clubId === next.userClubId &&
+          !selected.has(candidate.id) &&
+          candidate.injuryWeeks === 0 &&
+          !(candidate.power !== undefined && !candidate.licensed) &&
+          (slot === 0 ? candidate.role === 'GK' : candidate.role !== 'GK'),
+      )
       .sort((left, right) => {
         const leftRolePenalty = left.role === starter.role ? 0 : 1;
         const rightRolePenalty = right.role === starter.role ? 0 : 1;
-        return leftRolePenalty - rightRolePenalty
-          || roleOverall(right.role, right.attrs) - roleOverall(left.role, left.attrs)
-          || left.id.localeCompare(right.id);
+        return (
+          leftRolePenalty - rightRolePenalty ||
+          roleOverall(right.role, right.attrs) -
+            roleOverall(left.role, left.attrs) ||
+          left.id.localeCompare(right.id)
+        );
       })[0];
     if (eligible === undefined) {
-      throw new Error(`unlicensed promoted hero ${starter.id} has no eligible replacement`);
+      throw new Error(
+        `unlicensed promoted hero ${starter.id} has no eligible replacement`,
+      );
     }
     lineup[slot] = eligible.id;
     selected.add(eligible.id);
@@ -490,25 +559,30 @@ function choosePromotionHeroLicenses(state: GameState): GameState {
 }
 
 function hasActiveStartingPromise(player: CareerPlayer): boolean {
-  return hasActiveCareerContractPromise(player)
-    && (player.contractPromise?.perk === 'GUARANTEED_STARTER'
-      || player.contractPromise?.perk === 'CAPTAINCY');
+  return (
+    hasActiveCareerContractPromise(player) &&
+    (player.contractPromise?.perk === 'GUARANTEED_STARTER' ||
+      player.contractPromise?.perk === 'CAPTAINCY')
+  );
 }
 
 function openPromotionWindow(prep: PreparationState): void {
   const state = prep.state;
   const market = state.market;
-  if (market === undefined) throw new Error('promoted career has no transfer market');
+  if (market === undefined)
+    throw new Error('promoted career has no transfer market');
   const focusRole = weakestStartingRole(state);
   const options = careerMarketScoutOptions(state);
   const selected = options
     .slice()
-    .sort((left, right) => (
-      promotionScoutPriority(left.focus, focusRole)
-      - promotionScoutPriority(right.focus, focusRole)
-      || left.id.localeCompare(right.id)
-    ))[0];
-  if (selected === undefined) throw new Error('promoted career has no production scouting brief');
+    .sort(
+      (left, right) =>
+        promotionScoutPriority(left.focus, focusRole) -
+          promotionScoutPriority(right.focus, focusRole) ||
+        left.id.localeCompare(right.id),
+    )[0];
+  if (selected === undefined)
+    throw new Error('promoted career has no production scouting brief');
   const mission = startCareerScoutMission(
     state,
     market,
@@ -527,7 +601,8 @@ function promotionScoutPriority(
   weakestRole: Role,
 ): number {
   if (focus.kind === 'POSITION' && focus.role === weakestRole) return 0;
-  if (focus.kind === 'AGE' && focus.minimumAge >= 22 && focus.maximumAge <= 29) return 1;
+  if (focus.kind === 'AGE' && focus.minimumAge >= 22 && focus.maximumAge <= 29)
+    return 1;
   if (focus.kind === 'POSITION') return 2;
   return 3;
 }
@@ -535,14 +610,17 @@ function promotionScoutPriority(
 function tryCompletePromotionSigning(prep: PreparationState): void {
   if (prep.signingResolved || !prep.scoutStarted) return;
   const market = prep.state.market;
-  if (market === undefined) throw new Error('promotion preparation lost its transfer market');
+  if (market === undefined)
+    throw new Error('promotion preparation lost its transfer market');
   if (market.activeScoutMission !== undefined) return;
   prep.scoutReports = market.scoutReports.length;
   prep.signingResolved = true;
   for (let signing = 0; signing < MAX_PRESEASON_SIGNINGS; signing += 1) {
     const currentMarket = prep.state.market;
-    if (currentMarket === undefined) throw new Error('promotion signing lost its market');
-    const rosterFull = userCareerRosterCount(prep.state) >= careerRosterCapacity(prep.state);
+    if (currentMarket === undefined)
+      throw new Error('promotion signing lost its market');
+    const rosterFull =
+      userCareerRosterCount(prep.state) >= careerRosterCapacity(prep.state);
     // This is a transfer-prepared policy, so it funds each arrival with the
     // weakest ordinary reserve even when a retirement has already opened a
     // roster slot. Selling only when the roster was full left Chairman with a
@@ -558,25 +636,31 @@ function tryCompletePromotionSigning(prep: PreparationState): void {
       return;
     }
     const eligible = currentMarket.scoutReports
-      .map(report => signingCandidate(prep.state, currentMarket, report))
-      .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== undefined);
+      .map((report) => signingCandidate(prep.state, currentMarket, report))
+      .filter(
+        (candidate): candidate is NonNullable<typeof candidate> =>
+          candidate !== undefined,
+      );
     if (eligible.length === 0) {
       prep.signingStopReason = 'NO_ELIGIBLE_ORDINARY_TARGETS';
       return;
     }
-    const upgrades = eligible.filter(candidate => candidate.reportedUpgrade > 0);
+    const upgrades = eligible.filter(
+      (candidate) => candidate.reportedUpgrade > 0,
+    );
     if (upgrades.length === 0) {
       prep.signingStopReason = 'NO_REPORTED_UPGRADES';
       return;
     }
     const candidates = upgrades
-      .filter(candidate => candidate.fee <= availableCash)
-      .sort((left, right) => (
-        right.reportedUpgrade - left.reportedUpgrade
-        || right.reportedPotential - left.reportedPotential
-        || left.fee - right.fee
-        || left.report.playerId.localeCompare(right.report.playerId)
-    ));
+      .filter((candidate) => candidate.fee <= availableCash)
+      .sort(
+        (left, right) =>
+          right.reportedUpgrade - left.reportedUpgrade ||
+          right.reportedPotential - left.reportedPotential ||
+          left.fee - right.fee ||
+          left.report.playerId.localeCompare(right.report.playerId),
+      );
     const selected = candidates[0];
     if (selected === undefined) {
       prep.signingStopReason = 'NO_AFFORDABLE_UPGRADES';
@@ -612,22 +696,29 @@ function sellPromotionReserve(
 ) {
   const lineupIds = new Set(userLineupIds(state));
   const reserve = state.players
-    .filter(player => (
-      player.clubId === state.userClubId
-      && !lineupIds.has(player.id)
-      && player.role !== 'GK'
-      && player.power === undefined
-      && player.contractPromise === undefined
-    ))
-    .sort((left, right) => (
-      roleOverall(left.role, left.attrs) - roleOverall(right.role, right.attrs)
-      || left.id.localeCompare(right.id)
-    ))[0];
+    .filter(
+      (player) =>
+        player.clubId === state.userClubId &&
+        !lineupIds.has(player.id) &&
+        player.role !== 'GK' &&
+        player.power === undefined &&
+        player.contractPromise === undefined,
+    )
+    .sort(
+      (left, right) =>
+        roleOverall(left.role, left.attrs) -
+          roleOverall(right.role, right.attrs) ||
+        left.id.localeCompare(right.id),
+    )[0];
   if (reserve === undefined) return undefined;
   const buyer = state.clubs
-    .filter(club => club.id !== state.userClubId)
-    .sort((left, right) => right.cash - left.cash || left.id.localeCompare(right.id))[0];
-  if (buyer === undefined) throw new Error('promoted career has no transfer buyer');
+    .filter((club) => club.id !== state.userClubId)
+    .sort(
+      (left, right) =>
+        right.cash - left.cash || left.id.localeCompare(right.id),
+    )[0];
+  if (buyer === undefined)
+    throw new Error('promoted career has no transfer buyer');
   return sellCareerPlayer(state, market, reserve.id, buyer.id, 4);
 }
 
@@ -635,14 +726,16 @@ function signingCandidate(
   state: GameState,
   market: NonNullable<GameState['market']>,
   report: ScoutReport,
-): {
-  report: ScoutReport;
-  market: NonNullable<GameState['market']>;
-  fee: number;
-  weeklyAsk: number;
-  reportedUpgrade: number;
-  reportedPotential: number;
-} | undefined {
+):
+  | {
+      report: ScoutReport;
+      market: NonNullable<GameState['market']>;
+      fee: number;
+      weeklyAsk: number;
+      reportedUpgrade: number;
+      reportedPotential: number;
+    }
+  | undefined {
   const target = careerTransferTarget(state, report.playerId, 4);
   const player = target?.player;
   // A normal signing is enough for this gate. Do not let an extra hidden hero
@@ -650,30 +743,38 @@ function signingCandidate(
   if (player === undefined || player.power !== undefined) return undefined;
   const weakest = weakestStarterForRole(state, report.role);
   if (weakest === undefined) return undefined;
-  const candidateMarket = beginCareerTransferTalks(state, market, report.playerId);
+  const candidateMarket = beginCareerTransferTalks(
+    state,
+    market,
+    report.playerId,
+  );
   const talks = candidateMarket.transferTalks!;
   return {
     report,
     market: candidateMarket,
     fee: talks.transferQuote.fee,
     weeklyAsk: talks.negotiation.weeklyAsk,
-    reportedUpgrade: reportedOverall(report) - roleOverall(weakest.role, weakest.attrs),
-    reportedPotential: (report.potentialRange.minimum + report.potentialRange.maximum) / 2,
+    reportedUpgrade:
+      reportedOverall(report) - roleOverall(weakest.role, weakest.attrs),
+    reportedPotential:
+      (report.potentialRange.minimum + report.potentialRange.maximum) / 2,
   };
 }
 
 function settleMeasuredMatchday(state: GameState): GameState {
   const matchday = activeCareerMatchday(state);
-  if (matchday === undefined) throw new Error('survival probe entered matchday without a fixture');
+  if (matchday === undefined)
+    throw new Error('survival probe entered matchday without a fixture');
   const fixture = matchday.fixture;
-  const teams = buildCareerMatchTeams(
-    state,
-    [...new Set(matchday.fixtures.flatMap(candidate => [
-      candidate.homeClubId,
-      candidate.awayClubId,
-    ]))],
-  );
-  const quickMatches = matchday.fixtures.map(candidate => ({
+  const teams = buildCareerMatchTeams(state, [
+    ...new Set(
+      matchday.fixtures.flatMap((candidate) => [
+        candidate.homeClubId,
+        candidate.awayClubId,
+      ]),
+    ),
+  ]);
+  const quickMatches = matchday.fixtures.map((candidate) => ({
     fixture: candidate,
     quick: quickMatchForFixture(
       candidate,
@@ -687,12 +788,15 @@ function settleMeasuredMatchday(state: GameState): GameState {
         : undefined,
     ),
   }));
-  const userQuick = quickMatches.find(candidate => candidate.fixture.id === fixture.id)?.quick;
-  if (userQuick === undefined) throw new Error('survival probe lost the user Quick Result replay');
+  const userQuick = quickMatches.find(
+    (candidate) => candidate.fixture.id === fixture.id,
+  )?.quick;
+  if (userQuick === undefined)
+    throw new Error('survival probe lost the user Quick Result replay');
   if (userQuick.production === undefined) {
     throw new Error('survival probe did not produce user match facts');
   }
-  const results = quickMatches.map(candidate => candidate.quick.result);
+  const results = quickMatches.map((candidate) => candidate.quick.result);
   const settled = completeMatchday(state, results, userQuick.production);
   const completed = isFirstOnboardingFixture(state, fixture.id)
     ? completeFirstOnboardingMatch(settled, fixture.id)
@@ -715,7 +819,9 @@ function settleMeasuredMatchday(state: GameState): GameState {
 function buildManagedFacilities(state: GameState): GameState {
   const grid = state.facilities.grid;
   if (grid === undefined || grid.construction !== undefined) return state;
-  const pitch = grid.buildings.find(building => building.type === 'training-pitch');
+  const pitch = grid.buildings.find(
+    (building) => building.type === 'training-pitch',
+  );
   try {
     if (pitch === undefined) {
       return buildCareerFacility(state, 'training-pitch', { x: 0, y: 0 }).state;
@@ -730,7 +836,13 @@ function buildManagedFacilities(state: GameState): GameState {
 /** Buys the same useful core drill tiers as the natural division-entry policy. */
 function buyManagedDrillUpgrades(state: GameState): GameState {
   let next = state;
-  for (const pathId of ['finishing', 'duels', 'keeper-drills', 'rondo', 'first-touch']) {
+  for (const pathId of [
+    'finishing',
+    'duels',
+    'keeper-drills',
+    'rondo',
+    'first-touch',
+  ]) {
     const offer = nextTrainingUpgradeOffer(next, pathId);
     if (offer === undefined || offer.blockedReason !== undefined) continue;
     if (userCash(next) - offer.cost < DRILL_UPGRADE_CASH_RESERVE) continue;
@@ -740,17 +852,28 @@ function buyManagedDrillUpgrades(state: GameState): GameState {
 }
 
 /** Trains one healthy core starter per role, every management week. */
-function trainManagedCore(state: GameState): { state: GameState; drills: number } {
+function trainManagedCore(state: GameState): {
+  state: GameState;
+  drills: number;
+} {
   const starters = userLineupIds(state)
-    .map(id => state.players.find(player => player.id === id))
-    .filter((player): player is CareerPlayer => player !== undefined && player.injuryWeeks === 0);
+    .map((id) => state.players.find((player) => player.id === id))
+    .filter(
+      (player): player is CareerPlayer =>
+        player !== undefined && player.injuryWeeks === 0,
+    );
   const core = (['GK', 'DEF', 'MID', 'FWD'] as const)
-    .map(role => starters
-      .filter(player => player.role === role)
-      .sort((left, right) => (
-        roleOverall(right.role, right.attrs) - roleOverall(left.role, left.attrs)
-        || left.id.localeCompare(right.id)
-      ))[0])
+    .map(
+      (role) =>
+        starters
+          .filter((player) => player.role === role)
+          .sort(
+            (left, right) =>
+              roleOverall(right.role, right.attrs) -
+                roleOverall(left.role, left.attrs) ||
+              left.id.localeCompare(right.id),
+          )[0],
+    )
     .filter((player): player is CareerPlayer => player !== undefined);
   const pathByAttribute = {
     pac: 'sprints',
@@ -767,13 +890,17 @@ function trainManagedCore(state: GameState): { state: GameState; drills: number 
   let drills = 0;
   for (let index = 0; index < order.length; index += 1) {
     const player = order[index];
-    const attributes = player.role === 'GK'
-      ? (['ref'] as const)
-      : POSITION_TRAINING_ATTRIBUTES[player.role];
-    const attribute = attributes[(state.season * 30 + state.week + index) % attributes.length];
-    if (player.attrs[attribute] >= playerAttributeCaps(player)[attribute]) continue;
+    const attributes =
+      player.role === 'GK'
+        ? (['ref'] as const)
+        : POSITION_TRAINING_ATTRIBUTES[player.role];
+    const attribute =
+      attributes[(state.season * 30 + state.week + index) % attributes.length];
+    if (player.attrs[attribute] >= playerAttributeCaps(player)[attribute])
+      continue;
     const pathId = pathByAttribute[attribute];
-    if (resolveTrainingDrillForPath(next, pathId).tpCost > next.trainingPoints) continue;
+    if (resolveTrainingDrillForPath(next, pathId).tpCost > next.trainingPoints)
+      continue;
     try {
       next = trainPlayerInstantly(next, player.id, pathId).state;
       drills += 1;
@@ -785,34 +912,46 @@ function trainManagedCore(state: GameState): { state: GameState; drills: number 
 }
 
 function weakestStartingRole(state: GameState): Role {
-  const players = userLineupIds(state).map(id => state.players.find(player => player.id === id)!);
+  const players = userLineupIds(state).map((id) =>
+    state.players.find((player) => player.id === id)!,
+  );
   return players
     .slice()
-    .sort((left, right) => (
-      roleOverall(left.role, left.attrs) - roleOverall(right.role, right.attrs)
-      || left.id.localeCompare(right.id)
-    ))[0].role;
+    .sort(
+      (left, right) =>
+        roleOverall(left.role, left.attrs) -
+          roleOverall(right.role, right.attrs) ||
+        left.id.localeCompare(right.id),
+    )[0].role;
 }
 
-function weakestStarterForRole(state: GameState, role: Role): CareerPlayer | undefined {
+function weakestStarterForRole(
+  state: GameState,
+  role: Role,
+): CareerPlayer | undefined {
   return userLineupIds(state)
-    .map(id => state.players.find(player => player.id === id)!)
-    .filter(player => (
-      player.role === role
-      && player.contractPromise?.perk !== 'GUARANTEED_STARTER'
-      && player.contractPromise?.perk !== 'CAPTAINCY'
-    ))
-    .sort((left, right) => (
-      roleOverall(left.role, left.attrs) - roleOverall(right.role, right.attrs)
-      || left.id.localeCompare(right.id)
-    ))[0];
+    .map((id) => state.players.find((player) => player.id === id)!)
+    .filter(
+      (player) =>
+        player.role === role &&
+        player.contractPromise?.perk !== 'GUARANTEED_STARTER' &&
+        player.contractPromise?.perk !== 'CAPTAINCY',
+    )
+    .sort(
+      (left, right) =>
+        roleOverall(left.role, left.attrs) -
+          roleOverall(right.role, right.attrs) ||
+        left.id.localeCompare(right.id),
+    )[0];
 }
 
 function reportedOverall(report: ScoutReport): number {
-  const attrs = Object.fromEntries(Object.entries(report.statRanges).map(([key, range]) => [
-    key,
-    Math.round((range.minimum + range.maximum) / 2),
-  ])) as unknown as Attrs;
+  const attrs = Object.fromEntries(
+    Object.entries(report.statRanges).map(([key, range]) => [
+      key,
+      Math.round((range.minimum + range.maximum) / 2),
+    ]),
+  ) as unknown as Attrs;
   return roleOverall(report.role, attrs);
 }
 
@@ -822,52 +961,65 @@ function startingElevenStrength(state: GameState): number {
 
 function clubStartingElevenStrength(state: GameState, clubId: string): number {
   const team = buildCareerMatchTeamDef(state, clubId);
-  return Math.round((team.players.reduce(
-    (sum, player) => sum + roleOverall(player.role, player.attrs),
-    0,
-  ) / team.players.length) * 100) / 100;
+  return (
+    Math.round(
+      (team.players.reduce(
+        (sum, player) => sum + roleOverall(player.role, player.attrs),
+        0,
+      ) /
+        team.players.length) *
+        100,
+    ) / 100
+  );
 }
 
 function licensedStarterProfile(state: GameState): LicensedStarterProfile {
   const starters = new Set(userLineupIds(state));
-  const powered = state.players.filter(player => (
-    player.clubId === state.userClubId
-    && starters.has(player.id)
-    && player.power !== undefined
-    && player.licensed
-  ));
+  const powered = state.players.filter(
+    (player) =>
+      player.clubId === state.userClubId &&
+      starters.has(player.id) &&
+      player.power !== undefined &&
+      player.licensed,
+  );
   return {
     powers: powered.length,
-    tier1: powered.filter(player => (player.powerTier ?? 1) === 1).length,
-    tier2: powered.filter(player => player.powerTier === 2).length,
-    tier3: powered.filter(player => player.powerTier === 3).length,
+    tier1: powered.filter((player) => (player.powerTier ?? 1) === 1).length,
+    tier2: powered.filter((player) => player.powerTier === 2).length,
+    tier3: powered.filter((player) => player.powerTier === 3).length,
   };
 }
 
 function activeOpponentStrengthRange(state: GameState): StrengthRange {
   const strengths = state.clubs
-    .filter(club => club.id !== state.userClubId)
-    .map(club => clubStartingElevenStrength(state, club.id))
+    .filter((club) => club.id !== state.userClubId)
+    .map((club) => clubStartingElevenStrength(state, club.id))
     .sort((left, right) => left - right);
-  if (strengths.length === 0) throw new Error('D4 survival requires active opponents');
+  if (strengths.length === 0)
+    throw new Error('D4 survival requires active opponents');
   const middle = Math.floor(strengths.length / 2);
   return {
     minimum: strengths[0],
-    median: strengths.length % 2 === 0
-      ? (strengths[middle - 1] + strengths[middle]) / 2
-      : strengths[middle],
+    median:
+      strengths.length % 2 === 0
+        ? (strengths[middle - 1] + strengths[middle]) / 2
+        : strengths[middle],
     maximum: strengths[strengths.length - 1],
   };
 }
 
 function userLineupIds(state: GameState): readonly string[] {
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
   if (lineup === undefined) throw new Error('career lost the user lineup');
   return lineup.playerIds;
 }
 
 function userCash(state: GameState): number {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
   if (club === undefined) throw new Error('career lost the user club');
   return club.cash;
 }
@@ -883,7 +1035,7 @@ function promotionSurvivalShardSummary(
     seedOffset: SEED_OFFSET,
     seedCount: SEED_COUNT,
     throughWeek: D4_WEEKS,
-    runs: runs.map(run => ({
+    runs: runs.map((run) => ({
       seedIndex: run.seedIndex,
       seed: run.seed,
       promotedInSeason: run.promotedInSeason,
@@ -907,7 +1059,9 @@ function promotionSurvivalShardSummary(
   };
 }
 
-function emitPromotionSurvivalShardSummary(summary: PromotionSurvivalShardSummary): void {
+function emitPromotionSurvivalShardSummary(
+  summary: PromotionSurvivalShardSummary,
+): void {
   const compact = JSON.stringify(summary);
   // The marker makes captured test output machine-readable even when no shared
   // output directory was configured.
@@ -922,7 +1076,11 @@ function emitPromotionSurvivalShardSummary(summary: PromotionSurvivalShardSummar
     `offset-${String(summary.seedOffset).padStart(5, '0')}`,
     `count-${String(summary.seedCount).padStart(5, '0')}.json`,
   ].join('-');
-  writeFileSync(join(directory, name), `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+  writeFileSync(
+    join(directory, name),
+    `${JSON.stringify(summary, null, 2)}\n`,
+    'utf8',
+  );
 }
 
 function report(
@@ -930,12 +1088,12 @@ function report(
   difficulty: DifficultyMode,
   isCanonicalAggregate: boolean,
 ): void {
-  const average = (pick: (run: PairedRun) => number): number => Math.round(
-    (runs.reduce((sum, run) => sum + pick(run), 0) / runs.length) * 100,
-  ) / 100;
-  const rate = (predicate: (run: PairedRun) => boolean): number => Math.round(
-    (runs.filter(predicate).length / runs.length) * 1000,
-  ) / 10;
+  const average = (pick: (run: PairedRun) => number): number =>
+    Math.round(
+      (runs.reduce((sum, run) => sum + pick(run), 0) / runs.length) * 100,
+    ) / 100;
+  const rate = (predicate: (run: PairedRun) => boolean): number =>
+    Math.round((runs.filter(predicate).length / runs.length) * 1000) / 10;
   const median = (values: readonly number[]): number => {
     const sorted = [...values].sort((left, right) => left - right);
     const middle = Math.floor(sorted.length / 2);
@@ -951,12 +1109,15 @@ function report(
       .map(([value, count]) => `${value} ${count}/${values.length}`)
       .join(', ');
   };
-  const fullSeason = D4_WEEKS === FINAL_SEASON_WEEK
-    && runs.every(run => run.prepared.completed && run.control.completed);
-  const signingRate = rate(run => run.prepared.signed);
-  const recruitmentResolutionRate = rate(run => recruitmentWindowResolved(run.prepared));
-  const survivalRate = rate(run => run.prepared.position <= 8);
-  const medianPosition = median(runs.map(run => run.prepared.position));
+  const fullSeason =
+    D4_WEEKS === FINAL_SEASON_WEEK &&
+    runs.every((run) => run.prepared.completed && run.control.completed);
+  const signingRate = rate((run) => run.prepared.signed);
+  const recruitmentResolutionRate = rate((run) =>
+    recruitmentWindowResolved(run.prepared),
+  );
+  const survivalRate = rate((run) => run.prepared.position <= 8);
+  const medianPosition = median(runs.map((run) => run.prepared.position));
   const classification = !fullSeason
     ? 'DIRECTIONAL ONLY — rerun through Week 30 before judging survival.'
     : recruitmentResolutionRate < 100
@@ -970,43 +1131,43 @@ function report(
   const lines = [
     '',
     `=== D5 -> D4 PROMOTION SURVIVAL · ${difficulty} (${runs.length} paired careers, seed offset ${SEED_OFFSET}, through D4 Week ${D4_WEEKS}) ===`,
-    `natural D5 promotion season: ${breakdown(runs.map(run => String(run.promotedInSeason)))}`,
+    `natural D5 promotion season: ${breakdown(runs.map((run) => String(run.promotedInSeason)))}`,
     'shared policy: build/upgrade the Training Pitch, buy useful drill tiers, train a healthy core through every management week,',
     '               and play every fixture through production Quick Result (4-4-2, Auto Subs off)',
     'prepared-only window: one reserve sale per completed signing, one production scouting brief, up to two affordable reported upgrades',
-    `preparation: scouting resolved ${recruitmentResolutionRate}%  signed ${signingRate}%`
-      + `  avg signings ${average(run => run.prepared.signings)}`
-      + `  reports ${average(run => run.prepared.scoutReports)}`
-      + `  avg sale ${average(run => run.prepared.saleFee)}`
-      + `  avg fee ${average(run => run.prepared.transferFee)}`
-      + `  training weeks ${average(run => run.prepared.trainingWeeks)}`,
-    `production briefs: ${breakdown(runs.map(run => run.prepared.scoutBriefId))}`,
-    `signing stop reasons: ${breakdown(runs.map(run => run.prepared.signingStopReason))}`,
-    `XI strength: ${average(run => run.prepared.preWindowStrength)}`
-      + ` -> ${average(run => run.prepared.postWindowStrength)}`
-      + `  signed-XI gain ${average(run => run.prepared.signedUpgrade)}`,
-    `licensed starters: powers ${average(run => run.prepared.licensedStarterPowers)}`
-      + `  tiers T1/T2/T3 ${average(run => run.prepared.licensedStarterTier1)}`
-      + `/${average(run => run.prepared.licensedStarterTier2)}`
-      + `/${average(run => run.prepared.licensedStarterTier3)}`,
-    `D4 opponent XI strength: min ${average(run => run.prepared.opponentStrengthMinimum)}`
-      + `  median ${average(run => run.prepared.opponentStrengthMedian)}`
-      + `  max ${average(run => run.prepared.opponentStrengthMaximum)}`,
-    `prepared: position ${average(run => run.prepared.position)}`
-      + ` (median ${medianPosition})  survival/top-8 ${survivalRate}%`
-      + `  PPM ${average(run => run.prepared.points / Math.max(1, run.prepared.played))}`
-      + `  W/D/L ${average(run => run.prepared.won)}/${average(run => run.prepared.drawn)}/${average(run => run.prepared.lost)}`
-      + `  GD ${average(run => run.prepared.goalDifference)}`
-      + `  cash ${average(run => run.prepared.endingCash)}`,
-    `prepared position distribution: ${breakdown(runs.map(run => String(run.prepared.position)))}`,
-    `control:  position ${average(run => run.control.position)}`
-      + `  survival/top-8 ${rate(run => run.control.position <= 8)}%`
-      + `  PPM ${average(run => run.control.points / Math.max(1, run.control.played))}`
-      + `  GD ${average(run => run.control.goalDifference)}`
-      + `  cash ${average(run => run.control.endingCash)}`,
-    `paired preparation delta: position ${average(run => run.control.position - run.prepared.position)}`
-      + `  points ${average(run => run.prepared.points - run.control.points)}`
-      + `  GD ${average(run => run.prepared.goalDifference - run.control.goalDifference)}`,
+    `preparation: scouting resolved ${recruitmentResolutionRate}%  signed ${signingRate}%` +
+      `  avg signings ${average((run) => run.prepared.signings)}` +
+      `  reports ${average((run) => run.prepared.scoutReports)}` +
+      `  avg sale ${average((run) => run.prepared.saleFee)}` +
+      `  avg fee ${average((run) => run.prepared.transferFee)}` +
+      `  training weeks ${average((run) => run.prepared.trainingWeeks)}`,
+    `production briefs: ${breakdown(runs.map((run) => run.prepared.scoutBriefId))}`,
+    `signing stop reasons: ${breakdown(runs.map((run) => run.prepared.signingStopReason))}`,
+    `XI strength: ${average((run) => run.prepared.preWindowStrength)}` +
+      ` -> ${average((run) => run.prepared.postWindowStrength)}` +
+      `  signed-XI gain ${average((run) => run.prepared.signedUpgrade)}`,
+    `licensed starters: powers ${average((run) => run.prepared.licensedStarterPowers)}` +
+      `  tiers T1/T2/T3 ${average((run) => run.prepared.licensedStarterTier1)}` +
+      `/${average((run) => run.prepared.licensedStarterTier2)}` +
+      `/${average((run) => run.prepared.licensedStarterTier3)}`,
+    `D4 opponent XI strength: min ${average((run) => run.prepared.opponentStrengthMinimum)}` +
+      `  median ${average((run) => run.prepared.opponentStrengthMedian)}` +
+      `  max ${average((run) => run.prepared.opponentStrengthMaximum)}`,
+    `prepared: position ${average((run) => run.prepared.position)}` +
+      ` (median ${medianPosition})  survival/top-8 ${survivalRate}%` +
+      `  PPM ${average((run) => run.prepared.points / Math.max(1, run.prepared.played))}` +
+      `  W/D/L ${average((run) => run.prepared.won)}/${average((run) => run.prepared.drawn)}/${average((run) => run.prepared.lost)}` +
+      `  GD ${average((run) => run.prepared.goalDifference)}` +
+      `  cash ${average((run) => run.prepared.endingCash)}`,
+    `prepared position distribution: ${breakdown(runs.map((run) => String(run.prepared.position)))}`,
+    `control:  position ${average((run) => run.control.position)}` +
+      `  survival/top-8 ${rate((run) => run.control.position <= 8)}%` +
+      `  PPM ${average((run) => run.control.points / Math.max(1, run.control.played))}` +
+      `  GD ${average((run) => run.control.goalDifference)}` +
+      `  cash ${average((run) => run.control.endingCash)}`,
+    `paired preparation delta: position ${average((run) => run.control.position - run.prepared.position)}` +
+      `  points ${average((run) => run.prepared.points - run.control.points)}` +
+      `  GD ${average((run) => run.prepared.goalDifference - run.control.goalDifference)}`,
     `INTERPRETATION: ${classification}`,
   ];
   // eslint-disable-next-line no-console
@@ -1014,31 +1175,47 @@ function report(
 }
 
 function recruitmentWindowResolved(outcome: SeasonOutcome): boolean {
-  return outcome.scoutReports > 0
-    && outcome.signingStopReason !== 'NOT_ATTEMPTED'
-    && outcome.signingStopReason !== 'SCOUT_IN_PROGRESS'
-    && outcome.signingStopReason !== 'SCOUT_INCOMPLETE'
-    && outcome.signingStopReason !== 'NO_REPORTS';
+  return (
+    outcome.scoutReports > 0 &&
+    outcome.signingStopReason !== 'NOT_ATTEMPTED' &&
+    outcome.signingStopReason !== 'SCOUT_IN_PROGRESS' &&
+    outcome.signingStopReason !== 'SCOUT_INCOMPLETE' &&
+    outcome.signingStopReason !== 'NO_REPORTS'
+  );
 }
 
-function positiveIntegerEnv(name: string, fallback: number, maximum: number): number {
+function positiveIntegerEnv(
+  name: string,
+  fallback: number,
+  maximum: number,
+): number {
   const raw = process.env[name];
   if (raw === undefined) return fallback;
-  if (!/^[1-9]\d*$/.test(raw)) throw new Error(`${name} must be a positive integer`);
+  if (!/^[1-9]\d*$/.test(raw))
+    throw new Error(`${name} must be a positive integer`);
   const value = Number(raw);
   if (!Number.isSafeInteger(value) || value > maximum) {
-    throw new Error(`${name} must be a safe positive integer no greater than ${maximum}`);
+    throw new Error(
+      `${name} must be a safe positive integer no greater than ${maximum}`,
+    );
   }
   return value;
 }
 
-function nonNegativeIntegerEnv(name: string, fallback: number, maximum: number): number {
+function nonNegativeIntegerEnv(
+  name: string,
+  fallback: number,
+  maximum: number,
+): number {
   const raw = process.env[name];
   if (raw === undefined) return fallback;
-  if (!/^\d+$/.test(raw)) throw new Error(`${name} must be a nonnegative integer`);
+  if (!/^\d+$/.test(raw))
+    throw new Error(`${name} must be a nonnegative integer`);
   const value = Number(raw);
   if (!Number.isSafeInteger(value) || value > maximum) {
-    throw new Error(`${name} must be a safe nonnegative integer no greater than ${maximum}`);
+    throw new Error(
+      `${name} must be a safe nonnegative integer no greater than ${maximum}`,
+    );
   }
   return value;
 }
@@ -1051,8 +1228,12 @@ function optionalNonemptyEnv(name: string): string | undefined {
   return value;
 }
 
-function promotionSurvivalDifficulties(raw: string | undefined): readonly DifficultyMode[] {
+function promotionSurvivalDifficulties(
+  raw: string | undefined,
+): readonly DifficultyMode[] {
   if (raw === undefined || raw === 'ALL') return ['COZY', 'CHAIRMAN'];
   if (raw === 'COZY' || raw === 'CHAIRMAN') return [raw];
-  throw new Error('PROMOTION_SURVIVAL_DIFFICULTY must be ALL, COZY, or CHAIRMAN');
+  throw new Error(
+    'PROMOTION_SURVIVAL_DIFFICULTY must be ALL, COZY, or CHAIRMAN',
+  );
 }

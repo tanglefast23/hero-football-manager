@@ -1,6 +1,9 @@
 import { mulberry32, type Rng } from '../sim/rng';
 import type { Attrs, Role } from '../sim/types';
-import { developmentPotentialCeiling, potentialTierForDivision } from './archetype-caps';
+import {
+  developmentPotentialCeiling,
+  potentialTierForDivision,
+} from './archetype-caps';
 import { nextDistinctPlayerLook } from './player-appearance';
 import type {
   CareerPlayer,
@@ -47,16 +50,24 @@ interface YouthIntakeTransaction {
  * one explicit roster slot instead of letting the effective cap drift with the
  * current squad size.
  */
-export function careerRosterCapacity(state: Pick<GameState, 'onboarding' | 'players' | 'userClubId'>): number {
+export function careerRosterCapacity(
+  state: Pick<GameState, 'onboarding' | 'players' | 'userClubId'>,
+): number {
   const createdPlayerId = state.onboarding?.createdPlayerId;
-  const hasCreatedPlayer = createdPlayerId !== undefined && state.players.some(player => (
-    player.id === createdPlayerId && player.clubId === state.userClubId
-  ));
+  const hasCreatedPlayer =
+    createdPlayerId !== undefined &&
+    state.players.some(
+      (player) =>
+        player.id === createdPlayerId && player.clubId === state.userClubId,
+    );
   return BASE_ROSTER_CAPACITY + (hasCreatedPlayer ? 1 : 0);
 }
 
-export function userCareerRosterCount(state: Pick<GameState, 'players' | 'userClubId'>): number {
-  return state.players.filter(player => player.clubId === state.userClubId).length;
+export function userCareerRosterCount(
+  state: Pick<GameState, 'players' | 'userClubId'>,
+): number {
+  return state.players.filter((player) => player.clubId === state.userClubId)
+    .length;
 }
 
 export function assertUserCareerRosterSpace(
@@ -88,12 +99,39 @@ const PERSONALITIES: readonly PlayerPersonality[] = [
   'Timid',
 ];
 const FIRST_NAMES = [
-  'Ari', 'Cal', 'Dara', 'Eli', 'Finn', 'Gio', 'Ivo', 'Jae', 'Kai', 'Milo', 'Nico', 'Remy',
+  'Ari',
+  'Cal',
+  'Dara',
+  'Eli',
+  'Finn',
+  'Gio',
+  'Ivo',
+  'Jae',
+  'Kai',
+  'Milo',
+  'Nico',
+  'Remy',
 ] as const;
 const LAST_NAMES = [
-  'Ash', 'Cole', 'Flint', 'Gray', 'Hart', 'Lane', 'Moss', 'Oak', 'Reed', 'Stone', 'Vale', 'Ward',
+  'Ash',
+  'Cole',
+  'Flint',
+  'Gray',
+  'Hart',
+  'Lane',
+  'Moss',
+  'Oak',
+  'Reed',
+  'Stone',
+  'Vale',
+  'Ward',
 ] as const;
-const ROLE_TARGETS: Readonly<Record<Role, number>> = { GK: 2, DEF: 5, MID: 5, FWD: 4 };
+const ROLE_TARGETS: Readonly<Record<Role, number>> = {
+  GK: 2,
+  DEF: 5,
+  MID: 5,
+  FWD: 4,
+};
 const SIGNING_BONUS_BY_FIELD_LEVEL = [500, 750, 1000, 1250] as const;
 
 /** Generates the season's one or two offers. A full roster blocks signing, not discovery. */
@@ -102,7 +140,9 @@ export function createPreseasonYouthIntake(state: GameState): YouthIntakeState {
   validateSeed(state.careerSeed);
   const roster = userRoster(state);
 
-  const random = mulberry32(mixSeed(state.careerSeed, state.season, 'youth-intake'));
+  const random = mulberry32(
+    mixSeed(state.careerSeed, state.season, 'youth-intake'),
+  );
   const offeredCount = 1 + integerRoll(random, 0, 1);
   const fieldLevel = youthFieldLevel(state);
   const roles = youthRoles(roster, offeredCount, random);
@@ -128,7 +168,9 @@ export function createPreseasonYouthIntake(state: GameState): YouthIntakeState {
 }
 
 /** Creates this season's open intake or an explicit closed clock state. */
-export function initializeSeasonYouthIntake(state: GameState): YouthIntakeState {
+export function initializeSeasonYouthIntake(
+  state: GameState,
+): YouthIntakeState {
   if (isYouthIntakeWindowOpen(state)) return createPreseasonYouthIntake(state);
   validateSeason(state.season);
   userClub(state);
@@ -140,22 +182,23 @@ export function reconcileStoryYouthIntake(state: GameState): GameState {
   if (!isStoryFeaturePacingActive(state)) return expireYouthIntakeWindow(state);
   const intake = state.youthIntake;
   if (!isStoryYouthUnlocked(state)) {
-    if (intake?.status === 'CLOSED'
-      && intake.offers.length === 0
-      && intake.signedPlayerIds.length === 0
-      && !intake.declined) {
+    if (
+      intake?.status === 'CLOSED' &&
+      intake.offers.length === 0 &&
+      intake.signedPlayerIds.length === 0 &&
+      !intake.declined
+    ) {
       return state;
     }
     return { ...state, youthIntake: closedYouthIntake(state.season) };
   }
   if (
-    state.week <= 4
-    && (intake === undefined || (
-      intake.status === 'CLOSED'
-      && intake.offers.length === 0
-      && intake.signedPlayerIds.length === 0
-      && !intake.declined
-    ))
+    state.week <= 4 &&
+    (intake === undefined ||
+      (intake.status === 'CLOSED' &&
+        intake.offers.length === 0 &&
+        intake.signedPlayerIds.length === 0 &&
+        !intake.declined))
   ) {
     return { ...state, youthIntake: createPreseasonYouthIntake(state) };
   }
@@ -165,7 +208,11 @@ export function reconcileStoryYouthIntake(state: GameState): GameState {
 /** Clears stale offers as soon as the career moves beyond pre-season Week 4. */
 function expireYouthIntakeWindow(state: GameState): GameState {
   const intake = state.youthIntake;
-  if (intake === undefined || intake.status === 'CLOSED' || isYouthIntakeWindowOpen(state)) {
+  if (
+    intake === undefined ||
+    intake.status === 'CLOSED' ||
+    isYouthIntakeWindowOpen(state)
+  ) {
     return state;
   }
   return {
@@ -190,41 +237,52 @@ export function signYouthIntakeOffer(
   if (typeof playerId !== 'string' || playerId.trim().length === 0) {
     throw new Error('youth offer player ID must be a non-empty string');
   }
-  const offer = intake.offers.find(candidate => candidate.player.id === playerId);
-  if (offer === undefined) throw new Error(`unknown youth intake offer ${playerId}`);
+  const offer = intake.offers.find(
+    (candidate) => candidate.player.id === playerId,
+  );
+  if (offer === undefined)
+    throw new Error(`unknown youth intake offer ${playerId}`);
   if (offer.player.clubId !== state.userClubId) {
     throw new Error('youth intake offer belongs to a different club');
   }
-  if (state.players.some(player => player.id === playerId)) {
+  if (state.players.some((player) => player.id === playerId)) {
     throw new Error(`player ID ${playerId} is already in the career`);
   }
   const roster = userRoster(state);
   const rosterCapacity = careerRosterCapacity(state);
   assertUserCareerRosterSpace(state);
   const club = userClub(state);
-  if (club.cash < offer.signingBonus) throw new Error('the youth signing bonus is not affordable');
+  if (club.cash < offer.signingBonus)
+    throw new Error('the youth signing bonus is not affordable');
 
   const signedPlayer = clonePlayer({
     ...offer.player,
-    lookId: offer.player.lookId ?? nextDistinctPlayerLook(offer.player, state.players),
+    lookId:
+      offer.player.lookId ??
+      nextDistinctPlayerLook(offer.player, state.players),
   });
   const players = [...state.players, signedPlayer];
-  const clubs = state.clubs.map(candidate => candidate.id === state.userClubId
-    ? {
-        ...candidate,
-        cash: candidate.cash - offer.signingBonus,
-        weeklyWages: checkedAdd(
-          candidate.weeklyWages,
-          signedPlayer.weeklyWage,
-          'club weekly wages after youth signing',
-        ),
-      }
-    : candidate);
+  const clubs = state.clubs.map((candidate) =>
+    candidate.id === state.userClubId
+      ? {
+          ...candidate,
+          cash: candidate.cash - offer.signingBonus,
+          weeklyWages: checkedAdd(
+            candidate.weeklyWages,
+            signedPlayer.weeklyWage,
+            'club weekly wages after youth signing',
+          ),
+        }
+      : candidate,
+  );
   const remainingSlots = rosterCapacity - (roster.length + 1);
   const storyChoiceComplete = isStoryFeaturePacingActive(state);
-  const remainingOffers = remainingSlots > 0 && !storyChoiceComplete
-    ? intake.offers.filter(candidate => candidate.player.id !== playerId).map(cloneOffer)
-    : [];
+  const remainingOffers =
+    remainingSlots > 0 && !storyChoiceComplete
+      ? intake.offers
+          .filter((candidate) => candidate.player.id !== playerId)
+          .map(cloneOffer)
+      : [];
   const nextIntake: YouthIntakeState = {
     ...intake,
     status: remainingOffers.length > 0 ? 'OPEN' : 'CLOSED',
@@ -232,12 +290,17 @@ export function signYouthIntakeOffer(
     signedPlayerIds: [...intake.signedPlayerIds, playerId],
   };
 
-  const signedState = recordCashTransaction({ ...state, players, clubs }, {
-    kind: 'youth-signing',
-    label: `Youth signing · ${signedPlayer.name}`,
-    amount: -offer.signingBonus,
-    referenceId: playerId,
-  });
+  const signedState = recordCashTransaction(
+    { ...state, players, clubs },
+    {
+      kind: 'youth-signing',
+      label: `Youth signing · ${signedPlayer.name}`,
+      labelKey: 'ledger.youthSigning',
+      labelParams: { player: signedPlayer.name },
+      amount: -offer.signingBonus,
+      referenceId: playerId,
+    },
+  );
   return {
     state: signedState,
     intake: nextIntake,
@@ -268,7 +331,9 @@ export function declineYouthIntakeOffers(
 }
 
 /** The best operational field wins; `.find()` used to take the first one built. */
-export function youthFieldLevel(state: Pick<GameState, 'facilities'>): 0 | 1 | 2 | 3 {
+export function youthFieldLevel(
+  state: Pick<GameState, 'facilities'>,
+): 0 | 1 | 2 | 3 {
   const grid = state.facilities.grid;
   if (grid === undefined) return 0;
   let level: 0 | 1 | 2 | 3 = 0;
@@ -295,20 +360,23 @@ export function createEmergencyYouthReplacement(
   sourceId: string,
 ): CareerPlayer {
   validateSeed(state.careerSeed);
-  if (!ROLES.includes(role)) throw new Error(`unknown emergency youth role ${String(role)}`);
+  if (!ROLES.includes(role))
+    throw new Error(`unknown emergency youth role ${String(role)}`);
   if (typeof sourceId !== 'string' || sourceId.length === 0) {
     throw new Error('emergency youth source ID must be a non-empty string');
   }
-  const random = mulberry32(mixSeed(
-    state.careerSeed,
-    state.season,
-    `board-relief:${state.week}:${sourceId}:${role}`,
-  ));
+  const random = mulberry32(
+    mixSeed(
+      state.careerSeed,
+      state.season,
+      `board-relief:${state.week}:${sourceId}:${role}`,
+    ),
+  );
   const fieldLevel = youthFieldLevel(state);
   const targetStrength = 27 + fieldLevel * 3 + integerRoll(random, 0, 4);
   const attrs = generateAttributes(targetStrength, role, random);
   const id = `board-relief-s${state.season}-w${state.week}-${hashString(`${sourceId}:${role}`).toString(16)}`;
-  if (state.players.some(player => player.id === id)) {
+  if (state.players.some((player) => player.id === id)) {
     throw new Error(`player ID ${id} is already in the career`);
   }
   return {
@@ -327,7 +395,13 @@ export function createEmergencyYouthReplacement(
     age: 17,
     archetype: 'All-Rounder',
     potential: 2,
-    potentialCeiling: developmentPotentialCeiling({ id, role, attrs, age: 17, potential: 2 }),
+    potentialCeiling: developmentPotentialCeiling({
+      id,
+      role,
+      attrs,
+      age: 17,
+      potential: 2,
+    }),
     consistency: 50 + integerRoll(random, 0, 10),
     personality: 'Professional',
     condition: 100,
@@ -336,7 +410,10 @@ export function createEmergencyYouthReplacement(
     retirementAge: 35,
     retirementAnnounced: false,
     consecutiveLowMoraleWeeks: 0,
-    signingStatTotal: Object.values(attrs).reduce((sum, value) => sum + value, 0),
+    signingStatTotal: Object.values(attrs).reduce(
+      (sum, value) => sum + value,
+      0,
+    ),
   };
 }
 
@@ -347,25 +424,27 @@ function createOffer(
   fieldLevel: 0 | 1 | 2 | 3,
   random: Rng,
 ): YouthIntakeOffer {
-  const division = state.m2?.pyramid.divisions.find(candidate =>
-    candidate.clubs.some(club => club.id === state.userClubId),
-  )?.level ?? 5;
-  const targetStrength = 32
-    + fieldLevel * 5
-    + (5 - division) * 3
-    + integerRoll(random, 0, 6);
+  const division =
+    state.m2?.pyramid.divisions.find((candidate) =>
+      candidate.clubs.some((club) => club.id === state.userClubId),
+    )?.level ?? 5;
+  const targetStrength =
+    32 + fieldLevel * 5 + (5 - division) * 3 + integerRoll(random, 0, 6);
   const paceTarget = Math.max(
     targetStrength,
     DIVISION_TYPICAL_PACE[division] - 10 + fieldLevel * 2,
   );
   const attrs = generateAttributes(targetStrength, role, random, paceTarget);
   const id = `youth-s${state.season}-${index + 1}`;
-  if (state.players.some(player => player.id === id)) {
+  if (state.players.some((player) => player.id === id)) {
     throw new Error(`player ID ${id} is already in the career`);
   }
   // Better youth fields improve the roll within the current division's talent
   // pool. They cannot reveal A-range talent before D1.
-  const potentialRoll = Math.max(0, integerRoll(random, 0, 99) - fieldLevel * 10);
+  const potentialRoll = Math.max(
+    0,
+    integerRoll(random, 0, 99) - fieldLevel * 10,
+  );
   const potential = potentialTierForDivision(division, potentialRoll);
   const age = integerRoll(random, 16, 17);
   const retirementAge = 33 + integerRoll(random, 0, 5);
@@ -392,30 +471,38 @@ function createOffer(
       potential,
     }),
     consistency: 45 + integerRoll(random, 0, 30),
-    personality: PERSONALITIES[integerRoll(random, 0, PERSONALITIES.length - 1)],
+    personality:
+      PERSONALITIES[integerRoll(random, 0, PERSONALITIES.length - 1)],
     condition: 100,
     seasonsAtClub: 0,
     fame: 0,
     retirementAge,
     retirementAnnounced: false,
     consecutiveLowMoraleWeeks: 0,
-    signingStatTotal: Object.values(attrs).reduce((sum, value) => sum + value, 0),
+    signingStatTotal: Object.values(attrs).reduce(
+      (sum, value) => sum + value,
+      0,
+    ),
   };
   return { player, signingBonus: youthSigningBonus(fieldLevel) };
 }
 
-function youthRoles(roster: readonly CareerPlayer[], count: number, random: Rng): Role[] {
+function youthRoles(
+  roster: readonly CareerPlayer[],
+  count: number,
+  random: Rng,
+): Role[] {
   const counts: Record<Role, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
   for (const player of roster) counts[player.role] += 1;
   const roles: Role[] = [];
   for (let index = 0; index < count; index += 1) {
-    const shuffledRoles = ROLES
-      .map(role => ({ role, tie: random() }))
-      .sort((left, right) => {
+    const shuffledRoles = ROLES.map((role) => ({ role, tie: random() })).sort(
+      (left, right) => {
         const leftDeficit = ROLE_TARGETS[left.role] - counts[left.role];
         const rightDeficit = ROLE_TARGETS[right.role] - counts[right.role];
         return rightDeficit - leftDeficit || left.tie - right.tie;
-      });
+      },
+    );
     const role = shuffledRoles[0].role;
     roles.push(role);
     counts[role] += 1;
@@ -436,7 +523,8 @@ function generateAttributes(
     FWD: { pac: 4, sho: 7, pas: 0, def: -5, tec: 3, sta: 0, ref: -5 },
   };
   const nudges = roleNudges[role];
-  const value = (nudge: number) => clampRating(target + nudge + integerRoll(random, -3, 3));
+  const value = (nudge: number) =>
+    clampRating(target + nudge + integerRoll(random, -3, 3));
   return {
     pac: clampRating(paceTarget + nudges.pac + integerRoll(random, -3, 3)),
     sho: value(nudges.sho),
@@ -452,15 +540,21 @@ function validateYouthIntake(intake: YouthIntakeState, season: number): void {
   if (intake.schemaVersion !== YOUTH_INTAKE_SCHEMA_VERSION) {
     throw new Error(`unsupported youth intake schema ${intake.schemaVersion}`);
   }
-  if (!Number.isSafeInteger(intake.season) || intake.season < 1 || intake.season !== season) {
+  if (
+    !Number.isSafeInteger(intake.season) ||
+    intake.season < 1 ||
+    intake.season !== season
+  ) {
     throw new Error('youth intake belongs to a different season');
   }
   if (intake.status !== 'OPEN' && intake.status !== 'CLOSED') {
     throw new Error('youth intake status is invalid');
   }
-  if (typeof intake.declined !== 'boolean') throw new Error('youth intake declined flag is invalid');
-  const offerIds = intake.offers.map(offer => offer.player.id);
-  if (new Set(offerIds).size !== offerIds.length) throw new Error('youth offer player IDs must be unique');
+  if (typeof intake.declined !== 'boolean')
+    throw new Error('youth intake declined flag is invalid');
+  const offerIds = intake.offers.map((offer) => offer.player.id);
+  if (new Set(offerIds).size !== offerIds.length)
+    throw new Error('youth offer player IDs must be unique');
   if (new Set(intake.signedPlayerIds).size !== intake.signedPlayerIds.length) {
     throw new Error('signed youth player IDs must be unique');
   }
@@ -468,7 +562,10 @@ function validateYouthIntake(intake: YouthIntakeState, season: number): void {
     if (!Number.isSafeInteger(offer.signingBonus) || offer.signingBonus < 0) {
       throw new Error('youth signing bonus must be a nonnegative safe integer');
     }
-    if (offer.player.clubId.trim().length === 0 || offer.player.id.trim().length === 0) {
+    if (
+      offer.player.clubId.trim().length === 0 ||
+      offer.player.id.trim().length === 0
+    ) {
       throw new Error('youth offers require player and club IDs');
     }
     if (offer.player.age !== 16 && offer.player.age !== 17) {
@@ -478,31 +575,41 @@ function validateYouthIntake(intake: YouthIntakeState, season: number): void {
 }
 
 function userRoster(state: GameState): CareerPlayer[] {
-  return state.players.filter(player => player.clubId === state.userClubId);
+  return state.players.filter((player) => player.clubId === state.userClubId);
 }
 
 function userClub(state: GameState) {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
   return club;
 }
 
 function assertPreseasonManagePhase(state: GameState): void {
-  if (state.phase !== 'manage') throw new Error('youth intake decisions require the manage phase');
+  if (state.phase !== 'manage')
+    throw new Error('youth intake decisions require the manage phase');
   validateSeason(state.season);
   if (!Number.isSafeInteger(state.week) || state.week < 1 || state.week > 4) {
-    throw new Error('youth intake is available only during pre-season weeks 1-4');
+    throw new Error(
+      'youth intake is available only during pre-season weeks 1-4',
+    );
   }
   userClub(state);
 }
 
-function isYouthIntakeWindowOpen(state: Pick<GameState, 'phase' | 'season' | 'week'>): boolean {
-  return state.phase === 'manage'
-    && Number.isSafeInteger(state.season)
-    && state.season >= 1
-    && Number.isSafeInteger(state.week)
-    && state.week >= 1
-    && state.week <= 4;
+function isYouthIntakeWindowOpen(
+  state: Pick<GameState, 'phase' | 'season' | 'week'>,
+): boolean {
+  return (
+    state.phase === 'manage' &&
+    Number.isSafeInteger(state.season) &&
+    state.season >= 1 &&
+    Number.isSafeInteger(state.week) &&
+    state.week >= 1 &&
+    state.week <= 4
+  );
 }
 
 function validateSeason(season: number): void {
@@ -529,7 +636,10 @@ function validateSeed(seed: number): void {
 }
 
 function cloneOffer(offer: YouthIntakeOffer): YouthIntakeOffer {
-  return { player: clonePlayer(offer.player), signingBonus: offer.signingBonus };
+  return {
+    player: clonePlayer(offer.player),
+    signingBonus: offer.signingBonus,
+  };
 }
 
 function clonePlayer(player: CareerPlayer): CareerPlayer {
@@ -538,7 +648,8 @@ function clonePlayer(player: CareerPlayer): CareerPlayer {
 
 function checkedAdd(left: number, right: number, label: string): number {
   const result = left + right;
-  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(result))
+    throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }
 
@@ -552,10 +663,11 @@ function integerRoll(random: Rng, minimum: number, maximum: number): number {
 
 function mixSeed(careerSeed: number, season: number, key: string): number {
   return (
-    careerSeed
-    ^ Math.imul(season, 0x9e3779b1)
-    ^ Math.imul(hashString(key), 0x85ebca6b)
-  ) >>> 0;
+    (careerSeed ^
+      Math.imul(season, 0x9e3779b1) ^
+      Math.imul(hashString(key), 0x85ebca6b)) >>>
+    0
+  );
 }
 
 function hashString(value: string): number {

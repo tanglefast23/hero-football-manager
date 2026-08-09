@@ -41,7 +41,10 @@ export function advisorMilestonesToBank(
 
   const milestones: AssistantGuideMilestone[] = [];
   const add = (milestone: AssistantGuideMilestone) => {
-    if (!hasAssistantGuideMilestone(state, milestone) && !milestones.includes(milestone)) {
+    if (
+      !hasAssistantGuideMilestone(state, milestone) &&
+      !milestones.includes(milestone)
+    ) {
       milestones.push(milestone);
     }
   };
@@ -50,9 +53,9 @@ export function advisorMilestonesToBank(
     add('intro-complete');
   }
   if (
-    context.viewingHome
-    && state.season === 1
-    && state.week === firstUserFixtureWeek(state)
+    context.viewingHome &&
+    state.season === 1 &&
+    state.week === firstUserFixtureWeek(state)
   ) {
     add('desk-intro-complete');
   }
@@ -60,13 +63,14 @@ export function advisorMilestonesToBank(
     add('condition-warning-seen');
   }
   if (
-    context.viewingSquad
-    && (state.season > 1 || (state.season === 1 && state.week >= 6))
+    context.viewingSquad &&
+    (state.season > 1 || (state.season === 1 && state.week >= 6))
   ) {
     add('quick-train-seen');
   }
   if (context.enteredManagement) {
-    for (const adjacency of state.facilities.grid?.discoveredAdjacencies ?? []) {
+    for (const adjacency of state.facilities.grid?.discoveredAdjacencies ??
+      []) {
       const presentation = facilityAdjacencyPresentation(adjacency);
       if (presentation !== undefined) add(presentation.milestone);
     }
@@ -87,8 +91,13 @@ function firstUserFixtureWeek(state: GameState): number | undefined {
   let earliest: number | undefined;
   for (const fixture of state.fixtures) {
     if (fixture.season !== state.season) continue;
-    if (fixture.homeClubId !== state.userClubId && fixture.awayClubId !== state.userClubId) continue;
-    if (earliest === undefined || fixture.week < earliest) earliest = fixture.week;
+    if (
+      fixture.homeClubId !== state.userClubId &&
+      fixture.awayClubId !== state.userClubId
+    )
+      continue;
+    if (earliest === undefined || fixture.week < earliest)
+      earliest = fixture.week;
   }
   return earliest;
 }

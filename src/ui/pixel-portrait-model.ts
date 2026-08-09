@@ -32,11 +32,15 @@ export function portraitSpriteKey(
 
 export function portraitSpriteRows(spriteKey: string): string[] {
   const rows = portraitSheet.sprites[spriteKey];
-  if (rows === undefined) throw new Error(`unknown portrait sprite ${spriteKey}`);
+  if (rows === undefined)
+    throw new Error(`unknown portrait sprite ${spriteKey}`);
   return rows;
 }
 
-export function portraitPixelRuns(rows: string[], idPrefix: string): PixelRun[] {
+export function portraitPixelRuns(
+  rows: string[],
+  idPrefix: string,
+): PixelRun[] {
   const runs: PixelRun[] = [];
 
   rows.forEach((row, y) => {

@@ -11,7 +11,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { PlayerRunSprite } from '../../render/PlayerRunSprite';
 import { playManagementActionSfx } from '../../render/management-sfx';
-import type { SeasonPodiumPlaceViewModel, SeasonPodiumViewModel } from '../models';
+import type {
+  SeasonPodiumPlaceViewModel,
+  SeasonPodiumViewModel,
+} from '../models';
 import { useCopy } from '../../i18n';
 
 /**
@@ -34,7 +37,14 @@ import { useCopy } from '../../i18n';
 
 const CUTSCENE_MS = 7_600;
 const REDUCED_MOTION_MS = 4_800;
-const CONFETTI_COLORS = ['#edb54a', '#d94f52', '#5a8fd6', '#f4f1ea', '#5cb85c', '#f7d894'];
+const CONFETTI_COLORS = [
+  '#edb54a',
+  '#d94f52',
+  '#5a8fd6',
+  '#f4f1ea',
+  '#5cb85c',
+  '#f7d894',
+];
 const CONFETTI_COUNT = 28;
 /** Tallest to shortest, in the order the steps are read out. */
 const BLOCK_HEIGHT: Record<1 | 2 | 3, number> = { 1: 92, 2: 66, 3: 48 };
@@ -62,15 +72,20 @@ export function SeasonPodiumScreen({
 }: SeasonPodiumScreenProps) {
   const t = useCopy();
   const { width, height } = useWindowDimensions();
-  const titleProgress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const titleProgress = useRef(
+    new Animated.Value(reduceMotion ? 1 : 0),
+  ).current;
   const riseProgress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const confettiProgress = useRef(new Animated.Value(0)).current;
-  const tableProgress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const tableProgress = useRef(
+    new Animated.Value(reduceMotion ? 1 : 0),
+  ).current;
   const finished = useRef(false);
   const confetti = useMemo(() => makeConfetti(width), [width]);
-  const placeByPosition = useMemo(() => new Map(
-    viewModel.places.map(place => [place.position, place]),
-  ), [viewModel.places]);
+  const placeByPosition = useMemo(
+    () => new Map(viewModel.places.map((place) => [place.position, place])),
+    [viewModel.places],
+  );
 
   const completeOnce = useCallback(() => {
     if (finished.current) return;
@@ -80,7 +95,10 @@ export function SeasonPodiumScreen({
 
   useEffect(() => {
     playManagementActionSfx('success');
-    const timeout = setTimeout(completeOnce, reduceMotion ? REDUCED_MOTION_MS : CUTSCENE_MS);
+    const timeout = setTimeout(
+      completeOnce,
+      reduceMotion ? REDUCED_MOTION_MS : CUTSCENE_MS,
+    );
     if (reduceMotion) return () => clearTimeout(timeout);
 
     const rise = Animated.timing(riseProgress, {
@@ -108,12 +126,14 @@ export function SeasonPodiumScreen({
         useNativeDriver: true,
       }),
     ]);
-    const fall = Animated.loop(Animated.timing(confettiProgress, {
-      toValue: 1,
-      duration: 3_400,
-      easing: Easing.linear,
-      useNativeDriver: true,
-    }));
+    const fall = Animated.loop(
+      Animated.timing(confettiProgress, {
+        toValue: 1,
+        duration: 3_400,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
 
     const animations = [rise, title, table, fall];
     for (const animation of animations) animation.start();
@@ -121,20 +141,41 @@ export function SeasonPodiumScreen({
       clearTimeout(timeout);
       for (const animation of animations) animation.stop();
     };
-  }, [completeOnce, confettiProgress, reduceMotion, riseProgress, tableProgress, titleProgress]);
+  }, [
+    completeOnce,
+    confettiProgress,
+    reduceMotion,
+    riseProgress,
+    tableProgress,
+    titleProgress,
+  ]);
 
-  const titleStyle = reduceMotion ? undefined : {
-    opacity: titleProgress,
-    transform: [
-      { scale: titleProgress.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) },
-    ],
-  };
-  const tableStyle = reduceMotion ? undefined : {
-    opacity: tableProgress,
-    transform: [
-      { translateY: tableProgress.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) },
-    ],
-  };
+  const titleStyle = reduceMotion
+    ? undefined
+    : {
+        opacity: titleProgress,
+        transform: [
+          {
+            scale: titleProgress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.7, 1],
+            }),
+          },
+        ],
+      };
+  const tableStyle = reduceMotion
+    ? undefined
+    : {
+        opacity: tableProgress,
+        transform: [
+          {
+            translateY: tableProgress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [18, 0],
+            }),
+          },
+        ],
+      };
 
   return (
     <SafeAreaView
@@ -156,7 +197,8 @@ export function SeasonPodiumScreen({
                 {
                   left: `${(index * 41 + index * index * 7) % 100}%`,
                   top: 8 + ((index * 29 + index * index * 11) % 176),
-                  backgroundColor: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+                  backgroundColor:
+                    CONFETTI_COLORS[index % CONFETTI_COLORS.length],
                 },
               ]}
             />
@@ -171,7 +213,7 @@ export function SeasonPodiumScreen({
 
       {!reduceMotion ? (
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          {confetti.map(piece => (
+          {confetti.map((piece) => (
             <Animated.View
               key={piece.id}
               style={[
@@ -210,10 +252,15 @@ export function SeasonPodiumScreen({
         accessibilityRole="button"
         accessibilityLabel={t('seasonPodium.a11y.skip')}
         onPress={completeOnce}
-        style={({ pressed }) => [styles.skipButton, { opacity: pressed ? 0.65 : 1 }]}
+        style={({ pressed }) => [
+          styles.skipButton,
+          { opacity: pressed ? 0.65 : 1 },
+        ]}
       >
         {/* '›' is in Silkscreen; '▸' is not and renders in the fallback face. */}
-        <Text className="font-pixel text-xs uppercase text-white">{t('seasonPodium.skip')}</Text>
+        <Text className="text-center font-pixel text-xs uppercase text-white">
+          {t('seasonPodium.skip')}
+        </Text>
       </Pressable>
 
       <View style={styles.content}>
@@ -229,7 +276,10 @@ export function SeasonPodiumScreen({
             {viewModel.headline}
           </Text>
           <View className="mt-2 self-center border-2 border-b-4 border-ink bg-gold px-3 py-1">
-            <Text className="text-center font-pixel text-sm uppercase text-ink" numberOfLines={1}>
+            <Text
+              className="text-center font-pixel text-sm uppercase text-ink"
+              numberOfLines={1}
+            >
               {viewModel.clubName}
             </Text>
           </View>
@@ -240,46 +290,49 @@ export function SeasonPodiumScreen({
             the thing it is a picture of. */}
         <View style={styles.stage}>
           <View style={styles.podium}>
-          {BLOCK_ORDER.map((position, index) => {
-            const place = placeByPosition.get(position);
-            if (place === undefined) return null;
-            return (
-              <PodiumStep
-                key={position}
-                place={place}
-                phase={index}
-                riseProgress={riseProgress}
-                reduceMotion={reduceMotion}
-              />
-            );
-          })}
-        </View>
+            {BLOCK_ORDER.map((position, index) => {
+              const place = placeByPosition.get(position);
+              if (place === undefined) return null;
+              return (
+                <PodiumStep
+                  key={position}
+                  place={place}
+                  phase={index}
+                  riseProgress={riseProgress}
+                  reduceMotion={reduceMotion}
+                />
+              );
+            })}
+          </View>
 
-        <Animated.View style={[styles.table, tableStyle]}>
-          {viewModel.places.map(place => (
-            <View
-              key={place.position}
-              style={[styles.tableRow, place.isUserClub ? styles.tableRowOurs : null]}
-            >
-              <View style={styles.tableOrdinal}>
+          <Animated.View style={[styles.table, tableStyle]}>
+            {viewModel.places.map((place) => (
+              <View
+                key={place.position}
+                style={[
+                  styles.tableRow,
+                  place.isUserClub ? styles.tableRowOurs : null,
+                ]}
+              >
+                <View style={styles.tableOrdinal}>
+                  <Text
+                    className="font-pixel text-sm uppercase"
+                    style={{ color: MEDAL_COLOR[place.position] }}
+                  >
+                    {t(ORDINAL_KEYS[place.position])}
+                  </Text>
+                </View>
                 <Text
-                  className="font-pixel text-sm uppercase"
-                  style={{ color: MEDAL_COLOR[place.position] }}
+                  className="flex-1 font-pixel text-sm uppercase text-ink"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
                 >
-                  {t(ORDINAL_KEYS[place.position])}
+                  {place.clubName}
                 </Text>
               </View>
-              <Text
-                className="flex-1 font-pixel text-sm uppercase text-ink"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.7}
-              >
-                {place.clubName}
-              </Text>
-            </View>
-          ))}
-        </Animated.View>
+            ))}
+          </Animated.View>
         </View>
       </View>
     </SafeAreaView>
@@ -315,44 +368,57 @@ function PodiumStep({
     // monotonic, which is the one thing `interpolate` cannot take.
     const animation = Animated.sequence([
       Animated.delay(900 + phase * HOP_STAGGER_MS),
-      Animated.loop(Animated.sequence([
-        Animated.timing(hop, {
-          toValue: 1,
-          duration: 520,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(hop, {
-          toValue: 0,
-          duration: 520,
-          easing: Easing.in(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.delay(460),
-      ])),
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(hop, {
+            toValue: 1,
+            duration: 520,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(hop, {
+            toValue: 0,
+            duration: 520,
+            easing: Easing.in(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.delay(460),
+        ]),
+      ),
     ]);
     animation.start();
     return () => animation.stop();
   }, [hop, phase, reduceMotion]);
 
-  const riseStyle = reduceMotion ? undefined : {
-    opacity: riseProgress.interpolate({
-      inputRange: [0, 0.25, 1],
-      outputRange: [0, 1, 1],
-    }),
-    transform: [{
-      translateY: riseProgress.interpolate({
-        inputRange: [0, 1],
-        // Taller blocks travel further, so all three land together.
-        outputRange: [blockHeight + 40, 0],
-      }),
-    }],
-  };
-  const hopStyle = reduceMotion ? undefined : {
-    transform: [{
-      translateY: hop.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }),
-    }],
-  };
+  const riseStyle = reduceMotion
+    ? undefined
+    : {
+        opacity: riseProgress.interpolate({
+          inputRange: [0, 0.25, 1],
+          outputRange: [0, 1, 1],
+        }),
+        transform: [
+          {
+            translateY: riseProgress.interpolate({
+              inputRange: [0, 1],
+              // Taller blocks travel further, so all three land together.
+              outputRange: [blockHeight + 40, 0],
+            }),
+          },
+        ],
+      };
+  const hopStyle = reduceMotion
+    ? undefined
+    : {
+        transform: [
+          {
+            translateY: hop.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, -6],
+            }),
+          },
+        ],
+      };
 
   return (
     <Animated.View style={[styles.step, riseStyle]}>
@@ -415,7 +481,7 @@ interface ConfettiPiece {
 function makeConfetti(width: number): ConfettiPiece[] {
   return Array.from({ length: CONFETTI_COUNT }, (_unused, index) => ({
     id: `confetti-${index}`,
-    left: ((index * 37) % 100) / 100 * Math.max(width - 12, 12),
+    left: (((index * 37) % 100) / 100) * Math.max(width - 12, 12),
     top: -40 - ((index * 53) % 260),
     width: 4 + (index % 3) * 2,
     height: 6 + (index % 2) * 4,
@@ -499,6 +565,10 @@ const styles = StyleSheet.create({
     right: 16,
     top: 48,
     zIndex: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#f4f1ea',
     backgroundColor: 'rgba(36, 31, 46, 0.75)',

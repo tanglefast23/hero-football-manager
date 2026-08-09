@@ -13,12 +13,16 @@ describe('transfer talk referential integrity', () => {
 
     const restored = parseStoredGameState(serializeGameState(state));
 
-    expect(restored.market?.transferTalks?.playerId)
-      .toBe(state.market?.transferTalks?.playerId);
+    expect(restored.market?.transferTalks?.playerId).toBe(
+      state.market?.transferTalks?.playerId,
+    );
   });
 
   test('refuses to save talks whose target is gone', () => {
-    const state = retargetTalks(withTransferTalks(baseCareer()), 'retired-hero-nobody-has');
+    const state = retargetTalks(
+      withTransferTalks(baseCareer()),
+      'retired-hero-nobody-has',
+    );
 
     expect(() => serializeGameState(state)).toThrow(InvalidGameStateError);
     expect(() => serializeGameState(state)).toThrow('transferTalks');
@@ -27,7 +31,10 @@ describe('transfer talk referential integrity', () => {
   test('loads a save that already contains dangling talks by dropping them', () => {
     // The shape a save written before the schema required the reference has:
     // legal JSON, unreadable market. Dropping the negotiation keeps the career.
-    const state = retargetTalks(withTransferTalks(baseCareer()), 'retired-hero-nobody-has');
+    const state = retargetTalks(
+      withTransferTalks(baseCareer()),
+      'retired-hero-nobody-has',
+    );
 
     const restored = parseStoredGameState(JSON.stringify(state));
 
@@ -38,7 +45,9 @@ describe('transfer talk referential integrity', () => {
 
   test('drops talks that now point at a player of the user club', () => {
     const career = baseCareer();
-    const ownPlayer = career.players.find(player => player.clubId === career.userClubId)!;
+    const ownPlayer = career.players.find(
+      (player) => player.clubId === career.userClubId,
+    )!;
     const state = retargetTalks(withTransferTalks(career), ownPlayer.id);
 
     const restored = parseStoredGameState(JSON.stringify(state));
@@ -47,12 +56,17 @@ describe('transfer talk referential integrity', () => {
   });
 
   test('keeps the rest of the market when it drops the talks', () => {
-    const state = retargetTalks(withTransferTalks(baseCareer()), 'retired-hero-nobody-has');
+    const state = retargetTalks(
+      withTransferTalks(baseCareer()),
+      'retired-hero-nobody-has',
+    );
 
     const restored = parseStoredGameState(JSON.stringify(state));
 
     expect(restored.market?.scoutReports).toHaveLength(1);
-    expect(restored.market?.nextMissionNumber).toBe(state.market?.nextMissionNumber);
+    expect(restored.market?.nextMissionNumber).toBe(
+      state.market?.nextMissionNumber,
+    );
   });
 
   test('keeps malformed talks so the validator still reports a corrupt save', () => {
@@ -65,10 +79,12 @@ describe('transfer talk referential integrity', () => {
     };
     stored.market.transferTalks.negotiation.playerId = 'someone-else-entirely';
 
-    expect(() => parseStoredGameState(JSON.stringify(stored)))
-      .toThrow(CorruptCareerSaveError);
-    expect(() => parseStoredGameState(JSON.stringify(stored)))
-      .toThrow('transferTalks');
+    expect(() => parseStoredGameState(JSON.stringify(stored))).toThrow(
+      CorruptCareerSaveError,
+    );
+    expect(() => parseStoredGameState(JSON.stringify(stored))).toThrow(
+      'transferTalks',
+    );
   });
 });
 
@@ -97,12 +113,21 @@ function withTransferTalks(state: GameState): GameState {
     role: 'MID',
     age: 24,
     statRanges: {
-      pac: range, sho: range, pas: range, def: range, tec: range, sta: range, ref: range,
+      pac: range,
+      sho: range,
+      pas: range,
+      def: range,
+      tec: range,
+      sta: range,
+      ref: range,
     },
     potentialRange: { minimum: 3, maximum: 4 },
   };
   const scouted = { ...state.market!, scoutReports: [report] };
-  return { ...state, market: beginCareerTransferTalks(state, scouted, playerId) };
+  return {
+    ...state,
+    market: beginCareerTransferTalks(state, scouted, playerId),
+  };
 }
 
 /** Repoints every reference inside the talks, i.e. a consistent but stale target. */

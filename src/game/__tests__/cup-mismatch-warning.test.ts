@@ -25,37 +25,51 @@ describe('Bert Cup mismatch warning', () => {
       title: 'Four divisions. I checked twice.',
       lossCopy: 'counted with both hands',
     },
-  ])('uses the escalating $gap-division warning tier', ({ gap, title, lossCopy }) => {
-    const warning = cupMismatchWarning(cupCareer(gap, 1));
+  ])(
+    'uses the escalating $gap-division warning tier',
+    ({ gap, title, lossCopy }) => {
+      const warning = cupMismatchWarning(cupCareer(gap, 1));
 
-    expect(warning).toMatchObject({ divisionGap: gap, title });
-    expect(warning?.body).toHaveLength(1);
-    expect(warning?.body[0]).toContain(lossCopy);
-  });
+      expect(warning).toMatchObject({ divisionGap: gap, title });
+      expect(warning?.body).toHaveLength(1);
+      expect(warning?.body[0]).toContain(lossCopy);
+    },
+  );
 
   it('appears only for a current Cup opponent at least two divisions above', () => {
     expect(cupMismatchWarning(cupCareer(1, 1))).toBeUndefined();
 
     const leagueWeek = cupCareer(2, 1);
-    const firstLeagueFixture = leagueWeek.fixtures.find(fixture => (
-      fixture.homeClubId === leagueWeek.userClubId
-      || fixture.awayClubId === leagueWeek.userClubId
-    ))!;
-    expect(cupMismatchWarning({
-      ...leagueWeek,
-      week: firstLeagueFixture.week,
-      phase: 'matchday',
-    })).toBeUndefined();
+    const firstLeagueFixture = leagueWeek.fixtures.find(
+      (fixture) =>
+        fixture.homeClubId === leagueWeek.userClubId ||
+        fixture.awayClubId === leagueWeek.userClubId,
+    )!;
+    expect(
+      cupMismatchWarning({
+        ...leagueWeek,
+        week: firstLeagueFixture.week,
+        phase: 'matchday',
+      }),
+    ).toBeUndefined();
   });
 
   it('uses a deterministic exact 50/50 star callout without reading assistant mode', () => {
-    const callouts = Array.from({ length: 100 }, (_, matchSeed) => (
-      cupMismatchWarning(cupCareer(2, matchSeed))?.starPlayer !== undefined
-    ));
+    const callouts = Array.from(
+      { length: 100 },
+      (_, matchSeed) =>
+        cupMismatchWarning(cupCareer(2, matchSeed))?.starPlayer !== undefined,
+    );
 
     expect(callouts.filter(Boolean)).toHaveLength(50);
-    const teacher = cupMismatchWarning({ ...cupCareer(2, 2), assistantMode: 'teacher' });
-    const advisor = cupMismatchWarning({ ...cupCareer(2, 2), assistantMode: 'advisor' });
+    const teacher = cupMismatchWarning({
+      ...cupCareer(2, 2),
+      assistantMode: 'teacher',
+    });
+    const advisor = cupMismatchWarning({
+      ...cupCareer(2, 2),
+      assistantMode: 'advisor',
+    });
     expect(advisor).toEqual(teacher);
     expect(advisor?.body).toHaveLength(2);
   });
@@ -64,14 +78,18 @@ describe('Bert Cup mismatch warning', () => {
     const state = cupCareer(3, 2);
     const warning = cupMismatchWarning(state)!;
     const opponentClubId = warningFixtureOpponent(state);
-    const starterIds = state.lineups.find(lineup => lineup.clubId === opponentClubId)!.playerIds;
-    const targetId = starterIds.find(playerId => (
-      state.players.find(player => player.id === playerId)?.role === 'FWD'
-    ))!;
+    const starterIds = state.lineups.find(
+      (lineup) => lineup.clubId === opponentClubId,
+    )!.playerIds;
+    const targetId = starterIds.find(
+      (playerId) =>
+        state.players.find((player) => player.id === playerId)?.role === 'FWD',
+    )!;
     const tuned = {
       ...state,
-      players: state.players.map(player => {
-        if (player.clubId !== opponentClubId || player.role === 'GK') return player;
+      players: state.players.map((player) => {
+        if (player.clubId !== opponentClubId || player.role === 'GK')
+          return player;
         return player.id === targetId
           ? {
               ...player,
@@ -95,52 +113,69 @@ describe('Bert Cup mismatch warning', () => {
 
     expect(completed.eventFlags).toContain(cupMismatchWarningFlag(fixtureId));
     expect(cupMismatchWarning(completed)).toBeUndefined();
-    expect(() => completeCupMismatchWarning(completed))
-      .toThrow('there is no Cup mismatch warning to complete');
+    expect(() => completeCupMismatchWarning(completed)).toThrow(
+      'there is no Cup mismatch warning to complete',
+    );
   });
 });
 
 function cupCareer(divisionGap: number, matchSeed: number): GameState {
   const state = createCareer(createLaunchCareerSetup(20260805));
-  const cup = state.m2!.nationalCups.find(candidate => candidate.season === state.season)!;
-  const fixture = cup.rounds[0].fixtures.find(candidate => (
-    candidate.homeClubId === state.userClubId || candidate.awayClubId === state.userClubId
-  ))!;
-  const opponentClubId = fixture.homeClubId === state.userClubId
-    ? fixture.awayClubId
-    : fixture.homeClubId;
+  const cup = state.m2!.nationalCups.find(
+    (candidate) => candidate.season === state.season,
+  )!;
+  const fixture = cup.rounds[0].fixtures.find(
+    (candidate) =>
+      candidate.homeClubId === state.userClubId ||
+      candidate.awayClubId === state.userClubId,
+  )!;
+  const opponentClubId =
+    fixture.homeClubId === state.userClubId
+      ? fixture.awayClubId
+      : fixture.homeClubId;
   return {
     ...state,
     week: CUP_SETTLEMENT_WEEKS[0],
     phase: 'matchday',
     m2: {
       ...state.m2!,
-      nationalCups: state.m2!.nationalCups.map(candidate => candidate.season !== cup.season
-        ? candidate
-        : {
-            ...candidate,
-            seedDivisionByClubId: {
-              ...candidate.seedDivisionByClubId,
-              [state.userClubId]: 5,
-              [opponentClubId]: (5 - divisionGap) as DivisionLevel,
+      nationalCups: state.m2!.nationalCups.map((candidate) =>
+        candidate.season !== cup.season
+          ? candidate
+          : {
+              ...candidate,
+              seedDivisionByClubId: {
+                ...candidate.seedDivisionByClubId,
+                [state.userClubId]: 5,
+                [opponentClubId]: (5 - divisionGap) as DivisionLevel,
+              },
+              rounds: candidate.rounds.map((round, roundIndex) =>
+                roundIndex !== 0
+                  ? round
+                  : {
+                      ...round,
+                      fixtures: round.fixtures.map((candidateFixture) =>
+                        candidateFixture.id === fixture.id
+                          ? { ...candidateFixture, matchSeed }
+                          : candidateFixture,
+                      ),
+                    },
+              ),
             },
-            rounds: candidate.rounds.map((round, roundIndex) => roundIndex !== 0
-              ? round
-              : {
-                  ...round,
-                  fixtures: round.fixtures.map(candidateFixture => candidateFixture.id === fixture.id
-                    ? { ...candidateFixture, matchSeed }
-                    : candidateFixture),
-                }),
-          }),
+      ),
     },
   };
 }
 
 function warningFixtureOpponent(state: GameState): string {
   const warning = cupMismatchWarning(state)!;
-  const cup = state.m2!.nationalCups.find(candidate => candidate.season === state.season)!;
-  const fixture = cup.rounds.flatMap(round => round.fixtures)
-    .find(candidate => candidate.id === warning.fixtureId)!;
-  return fixture.homeClubId === state.userClubId ? fixture.awayClubId : fixture.homeClubId;
+  const cup = state.m2!.nationalCups.find(
+    (candidate) => candidate.season === state.season,
+  )!;
+  const fixture = cup.rounds
+    .flatMap((round) => round.fixtures)
+    .find((candidate) => candidate.id === warning.fixtureId)!;
+  return fixture.homeClubId === state.userClubId
+    ? fixture.awayClubId
+    : fixture.homeClubId;
 }

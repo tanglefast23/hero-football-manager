@@ -35,17 +35,25 @@
  */
 import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';
-import { buildCareerMatchTeams, createCareer, generateSeasonFixtures } from '../../game';
+import {
+  buildCareerMatchTeams,
+  createCareer,
+  generateSeasonFixtures,
+} from '../../game';
 import { attributedPlayerIndex } from '../../sim/entities';
 import { createMatch, runMatch, tick } from '../../sim/match';
 import type { MatchEvent, MatchState, Role, TeamDef } from '../../sim/types';
 
-const describeProbe = process.env.STAT_YIELD_PROBE === '1' ? describe : describe.skip;
+const describeProbe =
+  process.env.STAT_YIELD_PROBE === '1' ? describe : describe.skip;
 const content = loadLaunchContent();
 
 const MATCHES_PER_DIVISION = positiveIntegerEnv('STAT_YIELD_MATCHES', 90);
 const CAREER_SEED = 4_000_000;
-const POLICIES = { homePolicy: 'FIRE_WHEN_READY' as const, awayPolicy: 'FIRE_WHEN_READY' as const };
+const POLICIES = {
+  homePolicy: 'FIRE_WHEN_READY' as const,
+  awayPolicy: 'FIRE_WHEN_READY' as const,
+};
 
 /**
  * Candidate "the pass must be recent" windows, in ticks. A half is HALF_TICKS
@@ -107,11 +115,13 @@ function assistsIn(events: readonly MatchEvent[]): AssistCount {
       const event = events[index];
       if (event.kind === 'KICKOFF' || event.kind === 'GOAL') break;
 
-      if (event.kind === 'PASS'
-        && event.ok
-        && event.to === scorer
-        && event.from !== scorer
-        && teamOfSlot(event.from) === scoringTeam) {
+      if (
+        event.kind === 'PASS' &&
+        event.ok &&
+        event.to === scorer &&
+        event.from !== scorer &&
+        teamOfSlot(event.from) === scoringTeam
+      ) {
         if (strictOpen && !strictFound) {
           strictFound = true;
           gap = goal.t - event.t;
@@ -126,24 +136,41 @@ function assistsIn(events: readonly MatchEvent[]): AssistCount {
       // was not the thing that created it. The scorer's own shot is the one
       // exception: every goal is preceded by the shot that scored it.
       const scorersOwnShot = event.kind === 'SHOT' && event.by === scorer;
-      if (!scorersOwnShot && (event.kind === 'PASS' || event.kind === 'SHOT'
-        || event.kind === 'MISS' || event.kind === 'TACKLE' || event.kind === 'SAVE')) {
+      if (
+        !scorersOwnShot &&
+        (event.kind === 'PASS' ||
+          event.kind === 'SHOT' ||
+          event.kind === 'MISS' ||
+          event.kind === 'TACKLE' ||
+          event.kind === 'SAVE')
+      ) {
         adjacentOpen = false;
       }
 
       // Any on-ball action by the defending side ends the move.
-      const actor = event.kind === 'PASS' ? event.from
-        : (event.kind === 'SHOT' || event.kind === 'MISS' || event.kind === 'TACKLE'
-          || event.kind === 'SAVE') ? event.by
-          : undefined;
-      if (actor !== undefined && teamOfSlot(actor) !== scoringTeam) possessionOpen = false;
+      const actor =
+        event.kind === 'PASS'
+          ? event.from
+          : event.kind === 'SHOT' ||
+              event.kind === 'MISS' ||
+              event.kind === 'TACKLE' ||
+              event.kind === 'SAVE'
+            ? event.by
+            : undefined;
+      if (actor !== undefined && teamOfSlot(actor) !== scoringTeam)
+        possessionOpen = false;
 
       if (!strictOpen) continue;
       // A save means the goal came from a rebound; a tackle won by the other
       // side means possession turned over. Neither leaves an assist behind.
       if (event.kind === 'SAVE') strictOpen = false;
-      if (event.kind === 'TACKLE' && event.won && teamOfSlot(event.by) === scoringTeam
-        && teamOfSlot(event.on) !== scoringTeam) strictOpen = false;
+      if (
+        event.kind === 'TACKLE' &&
+        event.won &&
+        teamOfSlot(event.by) === scoringTeam &&
+        teamOfSlot(event.on) !== scoringTeam
+      )
+        strictOpen = false;
     }
 
     if (strictFound) {
@@ -204,9 +231,10 @@ function play(division: number, home: TeamDef, away: TeamDef): Row {
   const per = (total: number) => total / MATCHES_PER_DIVISION;
   const within: Record<number, number> = {};
   for (const window of GAP_WINDOWS) {
-    within[window] = allGaps.length === 0
-      ? 0
-      : allGaps.filter(gap => gap <= window).length / allGaps.length;
+    within[window] =
+      allGaps.length === 0
+        ? 0
+        : allGaps.filter((gap) => gap <= window).length / allGaps.length;
   }
   return {
     division,
@@ -224,16 +252,25 @@ function play(division: number, home: TeamDef, away: TeamDef): Row {
 
 describeProbe('division-leader stat yield', () => {
   it('reports whether each proposed category produces enough events to rank', () => {
-    const state = createCareer(createLaunchCareerSetup(CAREER_SEED, undefined, content));
+    const state = createCareer(
+      createLaunchCareerSetup(CAREER_SEED, undefined, content),
+    );
     const pyramid = state.m2?.pyramid;
-    if (pyramid === undefined) throw new Error('the career must have a pyramid');
+    if (pyramid === undefined)
+      throw new Error('the career must have a pyramid');
 
     const rows: Row[] = [];
     for (const division of [5, 3, 1]) {
-      const clubs = pyramid.divisions.find(candidate => candidate.level === division)?.clubs ?? [];
-      if (clubs.length < 4) throw new Error(`division ${division} has too few clubs`);
-      const ranked = [...clubs].sort((left, right) => right.squadStrength - left.squadStrength);
-      const teamsFor = (clubId: string) => buildCareerMatchTeams(state, [clubId])[clubId];
+      const clubs =
+        pyramid.divisions.find((candidate) => candidate.level === division)
+          ?.clubs ?? [];
+      if (clubs.length < 4)
+        throw new Error(`division ${division} has too few clubs`);
+      const ranked = [...clubs].sort(
+        (left, right) => right.squadStrength - left.squadStrength,
+      );
+      const teamsFor = (clubId: string) =>
+        buildCareerMatchTeams(state, [clubId])[clubId];
       const midA = ranked[Math.floor(ranked.length / 2) - 1];
       const midB = ranked[Math.floor(ranked.length / 2)];
       rows.push(play(division, teamsFor(midA.id), teamsFor(midB.id)));
@@ -248,38 +285,49 @@ describeProbe('division-leader stat yield', () => {
     ];
     for (const row of rows) {
       lines.push(
-        `D${row.division} ${row.goals.toFixed(2).padStart(8)}`
-        + ` ${row.assistsAdjacent.toFixed(2).padStart(12)}`
-        + ` ${row.assistsPossession.toFixed(2).padStart(13)}`
-        + ` ${row.assistsStrict.toFixed(2).padStart(15)}`
-        + ` ${row.assistsLoose.toFixed(2).padStart(14)}`
-        + ` ${row.tacklesOpen.toFixed(2).padStart(14)}`
-        + ` ${row.tacklesPower.toFixed(2).padStart(15)}`
-        + ` ${row.saves.toFixed(2).padStart(7)}`,
+        `D${row.division} ${row.goals.toFixed(2).padStart(8)}` +
+          ` ${row.assistsAdjacent.toFixed(2).padStart(12)}` +
+          ` ${row.assistsPossession.toFixed(2).padStart(13)}` +
+          ` ${row.assistsStrict.toFixed(2).padStart(15)}` +
+          ` ${row.assistsLoose.toFixed(2).padStart(14)}` +
+          ` ${row.tacklesOpen.toFixed(2).padStart(14)}` +
+          ` ${row.tacklesPower.toFixed(2).padStart(15)}` +
+          ` ${row.saves.toFixed(2).padStart(7)}`,
       );
     }
     lines.push('');
-    lines.push(`=== PROJECTED CLUB TOTALS OVER AN ${SEASON_MATCHES}-MATCH SEASON (both sides) ===`);
-    lines.push('div   goals  assist(strict)  assist(loose)  tackles(open)   saves   strict assist rate');
+    lines.push(
+      `=== PROJECTED CLUB TOTALS OVER AN ${SEASON_MATCHES}-MATCH SEASON (both sides) ===`,
+    );
+    lines.push(
+      'div   goals  assist(strict)  assist(loose)  tackles(open)   saves   strict assist rate',
+    );
     for (const row of rows) {
-      const season = (perMatch: number) => (perMatch * SEASON_MATCHES).toFixed(0).padStart(7);
+      const season = (perMatch: number) =>
+        (perMatch * SEASON_MATCHES).toFixed(0).padStart(7);
       const rate = row.goals === 0 ? 0 : row.assistsStrict / row.goals;
       lines.push(
-        `D${row.division} ${season(row.goals)}`
-        + ` ${season(row.assistsStrict).padStart(15)}`
-        + ` ${season(row.assistsLoose).padStart(14)}`
-        + ` ${season(row.tacklesOpen).padStart(14)}`
-        + ` ${season(row.saves).padStart(7)}`
-        + ` ${`${(rate * 100).toFixed(0)}%`.padStart(18)}`,
+        `D${row.division} ${season(row.goals)}` +
+          ` ${season(row.assistsStrict).padStart(15)}` +
+          ` ${season(row.assistsLoose).padStart(14)}` +
+          ` ${season(row.tacklesOpen).padStart(14)}` +
+          ` ${season(row.saves).padStart(7)}` +
+          ` ${`${(rate * 100).toFixed(0)}%`.padStart(18)}`,
       );
     }
     lines.push('');
-    lines.push('=== HOW RECENT IS THE CREDITING PASS? (share of strict assists within N ticks) ===');
-    lines.push(`div  ${GAP_WINDOWS.map(window => `<=${window}t`.padStart(7)).join('')}`);
+    lines.push(
+      '=== HOW RECENT IS THE CREDITING PASS? (share of strict assists within N ticks) ===',
+    );
+    lines.push(
+      `div  ${GAP_WINDOWS.map((window) => `<=${window}t`.padStart(7)).join('')}`,
+    );
     for (const row of rows) {
       lines.push(
-        `D${row.division}  `
-        + GAP_WINDOWS.map(window => `${(row.within[window] * 100).toFixed(0)}%`.padStart(7)).join(''),
+        `D${row.division}  ` +
+          GAP_WINDOWS.map((window) =>
+            `${(row.within[window] * 100).toFixed(0)}%`.padStart(7),
+          ).join(''),
       );
     }
     // eslint-disable-next-line no-console
@@ -324,11 +372,14 @@ describeProbe('division-leader stat yield', () => {
 // and the test fixtures are not built to be representative of one.
 const MIDFIELD_DIVISIONS = [5, 3, 1] as const;
 /** Extra career seeds, comma separated, to check a finding is not one seed's. */
-const MIDFIELD_CAREER_SEEDS = (process.env.STAT_YIELD_CAREER_SEEDS ?? String(CAREER_SEED))
+const MIDFIELD_CAREER_SEEDS = (
+  process.env.STAT_YIELD_CAREER_SEEDS ?? String(CAREER_SEED)
+)
   .split(',')
   .map((raw: string) => {
     const parsed = Number(raw);
-    if (!Number.isSafeInteger(parsed)) throw new Error(`bad career seed ${raw}`);
+    if (!Number.isSafeInteger(parsed))
+      throw new Error(`bad career seed ${raw}`);
     return parsed;
   });
 /** Week the LEADERS tab unlocks — a board nobody can read yet is not a board. */
@@ -342,7 +393,8 @@ const ROLE_ORDER: readonly Role[] = ['GK', 'DEF', 'MID', 'FWD'];
  * (entities 22/23 have no slot of their own).
  */
 interface ResolvedEvent {
-  readonly kind: 'PASS' | 'SHOT' | 'GOAL' | 'SAVE' | 'MISS' | 'TACKLE' | 'KICKOFF';
+  readonly kind:
+    'PASS' | 'SHOT' | 'GOAL' | 'SAVE' | 'MISS' | 'TACKLE' | 'KICKOFF';
   readonly team: 0 | 1;
   readonly byId?: string;
   readonly toId?: string;
@@ -350,13 +402,18 @@ interface ResolvedEvent {
   readonly assistedById?: string;
 }
 
-function resolveMatch(seed: number, home: TeamDef, away: TeamDef): ResolvedEvent[] {
+function resolveMatch(
+  seed: number,
+  home: TeamDef,
+  away: TeamDef,
+): ResolvedEvent[] {
   const state: MatchState = createMatch(seed, home, away, POLICIES);
   const resolved: ResolvedEvent[] = [];
   const idOf = (entity: number): string | undefined =>
     state.players[attributedPlayerIndex(state, entity)]?.def.id;
   const teamOf = (entity: number): 0 | 1 =>
-    state.players[attributedPlayerIndex(state, entity)]?.team ?? teamOfSlot(entity);
+    state.players[attributedPlayerIndex(state, entity)]?.team ??
+    teamOfSlot(entity);
 
   let read = 0;
   while (state.phase !== 'fulltime') {
@@ -365,18 +422,37 @@ function resolveMatch(seed: number, home: TeamDef, away: TeamDef): ResolvedEvent
       const event = state.events[read];
       if (event.kind === 'PASS') {
         resolved.push({
-          kind: 'PASS', team: teamOf(event.from), byId: idOf(event.from),
-          toId: idOf(event.to), ok: event.ok,
+          kind: 'PASS',
+          team: teamOf(event.from),
+          byId: idOf(event.from),
+          toId: idOf(event.to),
+          ok: event.ok,
         });
       } else if (event.kind === 'SHOT') {
-        resolved.push({ kind: 'SHOT', team: teamOf(event.by), byId: idOf(event.by) });
+        resolved.push({
+          kind: 'SHOT',
+          team: teamOf(event.by),
+          byId: idOf(event.by),
+        });
       } else if (event.kind === 'GOAL') {
         resolved.push({
-          kind: 'GOAL', team: event.team, byId: idOf(event.by),
-          ...(event.assistedById === undefined ? {} : { assistedById: event.assistedById }),
+          kind: 'GOAL',
+          team: event.team,
+          byId: idOf(event.by),
+          ...(event.assistedById === undefined
+            ? {}
+            : { assistedById: event.assistedById }),
         });
-      } else if (event.kind === 'SAVE' || event.kind === 'MISS' || event.kind === 'TACKLE') {
-        resolved.push({ kind: event.kind, team: teamOf(event.by), byId: idOf(event.by) });
+      } else if (
+        event.kind === 'SAVE' ||
+        event.kind === 'MISS' ||
+        event.kind === 'TACKLE'
+      ) {
+        resolved.push({
+          kind: event.kind,
+          team: teamOf(event.by),
+          byId: idOf(event.by),
+        });
       } else if (event.kind === 'KICKOFF') {
         resolved.push({ kind: 'KICKOFF', team: 0 });
       }
@@ -391,13 +467,25 @@ function resolveMatch(seed: number, home: TeamDef, away: TeamDef): ResolvedEvent
  * rule clears its candidate: a restart, a goal, a save or any touch by the
  * defending side ends the move.
  */
-function chanceCreator(events: readonly ResolvedEvent[], shotIndex: number): string | undefined {
+function chanceCreator(
+  events: readonly ResolvedEvent[],
+  shotIndex: number,
+): string | undefined {
   const shot = events[shotIndex];
   for (let index = shotIndex - 1; index >= 0; index -= 1) {
     const event = events[index];
-    if (event.kind === 'KICKOFF' || event.kind === 'GOAL' || event.kind === 'SAVE') return undefined;
+    if (
+      event.kind === 'KICKOFF' ||
+      event.kind === 'GOAL' ||
+      event.kind === 'SAVE'
+    )
+      return undefined;
     if (event.team !== shot.team) return undefined;
-    if (event.kind === 'PASS' && event.ok === true && event.toId === shot.byId) {
+    if (
+      event.kind === 'PASS' &&
+      event.ok === true &&
+      event.toId === shot.byId
+    ) {
       return event.byId === shot.byId ? undefined : event.byId;
     }
   }
@@ -415,10 +503,19 @@ interface MetricTallies {
 }
 
 function emptyTallies(): MetricTallies {
-  return { assists: new Map(), passes: new Map(), chances: new Map(), goals: 0, shots: 0 };
+  return {
+    assists: new Map(),
+    passes: new Map(),
+    chances: new Map(),
+    goals: 0,
+    shots: 0,
+  };
 }
 
-function tallyMatch(events: readonly ResolvedEvent[], targets: readonly MetricTallies[]): void {
+function tallyMatch(
+  events: readonly ResolvedEvent[],
+  targets: readonly MetricTallies[],
+): void {
   const bump = (tally: Tally, playerId: string | undefined): void => {
     if (playerId === undefined) return;
     tally.set(playerId, (tally.get(playerId) ?? 0) + 1);
@@ -444,17 +541,24 @@ function tallyMatch(events: readonly ResolvedEvent[], targets: readonly MetricTa
 }
 
 function measureDivisionSeason(careerSeed: number, level: number): string[] {
-  const state = createCareer(createLaunchCareerSetup(careerSeed, undefined, content));
+  const state = createCareer(
+    createLaunchCareerSetup(careerSeed, undefined, content),
+  );
   const pyramid = state.m2?.pyramid;
   if (pyramid === undefined) throw new Error('the career must have a pyramid');
-  const division = pyramid.divisions.find(candidate => candidate.level === level);
+  const division = pyramid.divisions.find(
+    (candidate) => candidate.level === level,
+  );
   if (division === undefined) throw new Error(`no division ${level}`);
 
-  const clubIds = division.clubs.map(club => club.id);
+  const clubIds = division.clubs.map((club) => club.id);
   const teams = buildCareerMatchTeams(state, clubIds);
   const roleById = new Map<string, Role>();
   for (const clubId of clubIds) {
-    for (const player of [...teams[clubId].players, ...(teams[clubId].bench ?? [])]) {
+    for (const player of [
+      ...teams[clubId].players,
+      ...(teams[clubId].bench ?? []),
+    ]) {
       roleById.set(player.id, player.role);
     }
   }
@@ -467,7 +571,10 @@ function measureDivisionSeason(careerSeed: number, level: number): string[] {
       teams[fixture.homeClubId],
       teams[fixture.awayClubId],
     );
-    tallyMatch(events, fixture.week <= LEADERS_UNLOCK_WEEK ? [season, atUnlock] : [season]);
+    tallyMatch(
+      events,
+      fixture.week <= LEADERS_UNLOCK_WEEK ? [season, atUnlock] : [season],
+    );
   }
 
   const headcount: Record<Role, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
@@ -475,9 +582,9 @@ function measureDivisionSeason(careerSeed: number, level: number): string[] {
 
   const lines: string[] = [
     '',
-    `=== D${level}, career seed ${careerSeed}: one division season `
-    + `(${season.goals} goals, ${season.shots} shots over 90 matches) ===`,
-    `squad make-up  ${ROLE_ORDER.map(role => `${role} ${headcount[role]}`).join('  ')}`,
+    `=== D${level}, career seed ${careerSeed}: one division season ` +
+      `(${season.goals} goals, ${season.shots} shots over 90 matches) ===`,
+    `squad make-up  ${ROLE_ORDER.map((role) => `${role} ${headcount[role]}`).join('  ')}`,
     'metric                GK    DEF    MID    FWD  total |  GK%  DEF%  MID%  FWD% | MIDs>0  top-5 MID board',
   ];
   const report = (label: string, tally: Tally): void => {
@@ -488,19 +595,25 @@ function measureDivisionSeason(careerSeed: number, level: number): string[] {
     }
     const total = ROLE_ORDER.reduce((sum, role) => sum + byRole[role], 0);
     const share = (role: Role): string =>
-      (total === 0 ? '0%' : `${((byRole[role] / total) * 100).toFixed(0)}%`).padStart(5);
+      (total === 0
+        ? '0%'
+        : `${((byRole[role] / total) * 100).toFixed(0)}%`
+      ).padStart(5);
     const mids = [...tally.entries()]
       .filter(([playerId]) => roleById.get(playerId) === 'MID')
       .map(([, value]) => value)
-      .filter(value => value > 0)
+      .filter((value) => value > 0)
       .sort((left, right) => right - left);
     lines.push(
-      label.padEnd(18)
-      + ROLE_ORDER.map(role => String(byRole[role]).padStart(7)).join('')
-      + String(total).padStart(7)
-      + ' |' + ROLE_ORDER.map(share).join('')
-      + ' | ' + String(mids.length).padStart(6)
-      + '  ' + (mids.slice(0, 5).join(', ') || '-'),
+      label.padEnd(18) +
+        ROLE_ORDER.map((role) => String(byRole[role]).padStart(7)).join('') +
+        String(total).padStart(7) +
+        ' |' +
+        ROLE_ORDER.map(share).join('') +
+        ' | ' +
+        String(mids.length).padStart(6) +
+        '  ' +
+        (mids.slice(0, 5).join(', ') || '-'),
     );
   };
   report('assists', season.assists);

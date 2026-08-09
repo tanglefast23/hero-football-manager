@@ -17,7 +17,7 @@ import type { TeamDef } from '../sim/types';
 export function scaleTeam(team: TeamDef, delta: number): TeamDef {
   return {
     ...team,
-    players: team.players.map(player => ({
+    players: team.players.map((player) => ({
       ...player,
       attrs: Object.fromEntries(
         Object.entries(player.attrs).map(([key, value]) => [

@@ -67,7 +67,9 @@ export function DrillGainReveal({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={t('drillGain.a11y.tapToContinue', { gain: gainLabel })}
+      accessibilityLabel={t('drillGain.a11y.tapToContinue', {
+        gain: gainLabel,
+      })}
       onPress={completeOnce}
       style={StyleSheet.absoluteFill}
     >
@@ -112,17 +114,28 @@ export function DrillGainReveal({
         <Animated.View
           style={[
             styles.plateShadow,
-            reduceMotion ? null : {
-              opacity: punch,
-              transform: [{
-                scale: punch.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] }),
-              }],
-            },
+            reduceMotion
+              ? null
+              : {
+                  opacity: punch,
+                  transform: [
+                    {
+                      scale: punch.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.35, 1],
+                      }),
+                    },
+                  ],
+                },
           ]}
         >
           <View style={styles.plate}>
             <Text style={styles.kicker}>{t('drillGain.sessionGain')}</Text>
-            <Text adjustsFontSizeToFit numberOfLines={1} style={styles.headline}>
+            <Text
+              adjustsFontSizeToFit
+              numberOfLines={1}
+              style={styles.headline}
+            >
               {gainLabel.toUpperCase()}
             </Text>
           </View>
@@ -132,56 +145,61 @@ export function DrillGainReveal({
   );
 }
 
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  backdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(36,31,46,0.9)',
-    zIndex: 30,
-  },
-  burstLayer: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  spoke: {
-    position: 'absolute',
-    width: 6,
-    height: 40,
-    borderRadius: 3,
-    backgroundColor: '#f6c744',
-  },
-  plateShadow: {
-    paddingRight: 6,
-    paddingBottom: 8,
-    backgroundColor: '#16121f',
-  },
-  plate: {
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#241f2e',
-    backgroundColor: '#3f8a4a',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  kicker: {
-    color: '#8fd98f',
-    fontFamily: faces.data,
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  headline: {
-    marginTop: 8,
-    color: '#ffffff',
-    fontFamily: faces.display,
-    fontSize: 34,
-    letterSpacing: 1,
-    textShadowColor: '#241f2e',
-    textShadowOffset: { width: 3, height: 3 },
-    textShadowRadius: 0,
-  },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    backdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      overflow: 'hidden',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+      backgroundColor: 'rgba(36,31,46,0.9)',
+      zIndex: 30,
+    },
+    burstLayer: {
+      position: 'absolute',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    spoke: {
+      position: 'absolute',
+      width: 6,
+      height: 40,
+      borderRadius: 3,
+      backgroundColor: '#f6c744',
+    },
+    plateShadow: {
+      paddingRight: 6,
+      paddingBottom: 8,
+      backgroundColor: '#16121f',
+    },
+    plate: {
+      alignItems: 'center',
+      borderWidth: 3,
+      borderColor: '#241f2e',
+      backgroundColor: '#3f8a4a',
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+    },
+    kicker: {
+      color: '#8fd98f',
+      fontFamily: faces.data,
+      fontSize: 10,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+    },
+    headline: {
+      marginTop: 8,
+      color: '#ffffff',
+      fontFamily: faces.display,
+      fontSize: 34,
+      letterSpacing: 1,
+      textShadowColor: '#241f2e',
+      textShadowOffset: { width: 3, height: 3 },
+      textShadowRadius: 0,
+    },
+  });

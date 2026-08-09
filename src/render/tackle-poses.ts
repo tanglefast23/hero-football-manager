@@ -72,12 +72,16 @@ export function tacklePoses(input: TacklePoseInput): TacklePoseResult {
   const dy = input.target.y - input.challenger.y;
   const magnitude = Math.hypot(dx, dy);
   // Toward the target; the sign convention below flips it for the loser.
-  const direction = magnitude > 0
-    ? { x: dx / magnitude, y: dy / magnitude }
-    : { x: 0, y: input.challengerTeam === 0 ? -1 : 1 };
+  const direction =
+    magnitude > 0
+      ? { x: dx / magnitude, y: dy / magnitude }
+      : { x: 0, y: input.challengerTeam === 0 ? -1 : 1 };
   const rotation = direction.x >= 0 ? Math.PI / 2 : -Math.PI / 2;
 
-  if (input.targetOutUntilTick !== null && input.targetOutUntilTick > input.tick) {
+  if (
+    input.targetOutUntilTick !== null &&
+    input.targetOutUntilTick > input.tick
+  ) {
     return {
       target: {
         kind: 'knockdown',
@@ -94,9 +98,13 @@ export function tacklePoses(input: TacklePoseInput): TacklePoseResult {
   // only knockdown honours an untilTick, so the get-up lands exactly on the sim's
   // recovery tick instead of running `fall`'s hardcoded ten. Going to ground
   // outranks a stale pose, so this sits above the challengerBusy guard.
-  if (input.dropped && input.contact && !input.won
-    && input.challengerRecoveryUntil !== undefined
-    && onPitch(input.challenger)) {
+  if (
+    input.dropped &&
+    input.contact &&
+    !input.won &&
+    input.challengerRecoveryUntil !== undefined &&
+    onPitch(input.challenger)
+  ) {
     return {
       challenger: {
         kind: 'knockdown',

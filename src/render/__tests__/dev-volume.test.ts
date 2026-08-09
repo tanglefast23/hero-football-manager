@@ -1,4 +1,9 @@
-import { adjustDevVolume, devVolumePercent, DEV_VOLUME_LEVELS, nextDevVolume } from '../dev-volume';
+import {
+  adjustDevVolume,
+  devVolumePercent,
+  DEV_VOLUME_LEVELS,
+  nextDevVolume,
+} from '../dev-volume';
 
 describe('development volume steps', () => {
   it('cycles from the current 100% mix through mute and each quarter step', () => {

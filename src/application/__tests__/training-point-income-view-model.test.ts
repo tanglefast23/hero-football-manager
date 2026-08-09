@@ -15,21 +15,28 @@ import { clubFinancesViewModel } from '../view-models';
 /** Runs the crew off the board so whatever was ordered is standing. */
 function finishConstruction(state: GameState): GameState {
   let grid = state.facilities.grid!;
-  while (grid.construction !== undefined) grid = advanceFacilityConstruction(grid).grid;
-  return { ...state, facilities: { ...state.facilities, trainingGroundBuilt: true, grid } };
+  while (grid.construction !== undefined)
+    grid = advanceFacilityConstruction(grid).grid;
+  return {
+    ...state,
+    facilities: { ...state.facilities, trainingGroundBuilt: true, grid },
+  };
 }
 
 describe('training point income view model', () => {
   const content = loadLaunchContent();
-  const career = () => createCareer(createLaunchCareerSetup(20260803, undefined, content));
+  const career = () =>
+    createCareer(createLaunchCareerSetup(20260803, undefined, content));
 
   it('shows the baseline alone before anything is built or hired', () => {
     const income = clubFinancesViewModel(career()).trainingPointIncome;
 
-    expect(income.rows).toEqual([expect.objectContaining({
-      label: 'Club baseline',
-      points: BASE_WEEKLY_TRAINING_POINTS,
-    })]);
+    expect(income.rows).toEqual([
+      expect.objectContaining({
+        label: 'Club baseline',
+        points: BASE_WEEKLY_TRAINING_POINTS,
+      }),
+    ]);
     expect(income.total).toBe(BASE_WEEKLY_TRAINING_POINTS);
   });
 
@@ -39,10 +46,14 @@ describe('training point income view model', () => {
     );
     const income = clubFinancesViewModel(built).trainingPointIncome;
 
-    expect(income.rows.map(row => row.label))
-      .toEqual(['Club baseline', 'Training Pitch · Level 1']);
+    expect(income.rows.map((row) => row.label)).toEqual([
+      'Club baseline',
+      'Training Pitch · Level 1',
+    ]);
     expect(income.rows[1].points).toBe(TRAINING_PITCH_TP_PER_LEVEL);
-    expect(income.total).toBe(BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL);
+    expect(income.total).toBe(
+      BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL,
+    );
   });
 
   it('gives a hired coach their own row, under their own name', () => {
@@ -54,12 +65,17 @@ describe('training point income view model', () => {
       candidate.id,
       'HEAD',
     );
-    const income = clubFinancesViewModel({ ...initial, market }).trainingPointIncome;
+    const income = clubFinancesViewModel({
+      ...initial,
+      market,
+    }).trainingPointIncome;
 
-    expect(income.rows[1]).toEqual(expect.objectContaining({
-      label: candidate.name,
-      detail: 'Head coach · Level 1',
-    }));
+    expect(income.rows[1]).toEqual(
+      expect.objectContaining({
+        label: candidate.name,
+        detail: 'Head coach · Level 1',
+      }),
+    );
     expect(income.rows[1].points).toBeGreaterThan(0);
   });
 
@@ -91,15 +107,24 @@ describe('training point income view model', () => {
     };
     const full = {
       ...withHead,
-      market: hireCareerCoach(withHead, withHead.market, assistant.id, 'ASSISTANT'),
+      market: hireCareerCoach(
+        withHead,
+        withHead.market,
+        assistant.id,
+        'ASSISTANT',
+      ),
     };
 
     for (const state of [initial, withOffice, built, withHead, full]) {
       const income = clubFinancesViewModel(state).trainingPointIncome;
-      expect(income.rows.reduce((sum, row) => sum + row.points, 0)).toBe(income.total);
+      expect(income.rows.reduce((sum, row) => sum + row.points, 0)).toBe(
+        income.total,
+      );
       expect(income.total).toBe(weeklyAmbientTrainingPoints(state));
     }
     expect(full.market.assistantCoach).toBeDefined();
-    expect(clubFinancesViewModel(full).trainingPointIncome.rows).toHaveLength(4);
+    expect(clubFinancesViewModel(full).trainingPointIncome.rows).toHaveLength(
+      4,
+    );
   });
 });

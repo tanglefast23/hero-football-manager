@@ -1,10 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Animated, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WeeklyReviewViewModel } from '../models';
 import {
@@ -13,7 +8,10 @@ import {
   formatCompactNumber,
   formatCurrency,
 } from '../components/Scorecard';
-import { ChalkboardBackdrop, StageSection } from '../components/ChalkboardStage';
+import {
+  ChalkboardBackdrop,
+  StageSection,
+} from '../components/ChalkboardStage';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { FacilityCompletionCard } from '../components/FacilityCompletionCard';
 import { scaledBody } from '../text-scale';
@@ -40,7 +38,8 @@ export function WeeklyReviewScreen({
 }: WeeklyReviewScreenProps) {
   const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
-  const [balanceAnimationsComplete, setBalanceAnimationsComplete] = useState(reduceMotion);
+  const [balanceAnimationsComplete, setBalanceAnimationsComplete] =
+    useState(reduceMotion);
   const balanceAnimationsStarted = reduceMotion || animationsReady;
   const balanceComplete = reduceMotion || balanceAnimationsComplete;
 
@@ -67,15 +66,17 @@ export function WeeklyReviewScreen({
 
   const cashMovement = (
     <View className="flex-row items-center justify-between border-2 border-ink bg-ink px-3 py-2.5">
-      <Text className="font-pixel text-[12px] uppercase text-paper/75">{t('weeklyReview.cashMovement')}</Text>
+      <Text className="font-pixel text-[12px] uppercase text-paper/75">
+        {t('weeklyReview.cashMovement')}
+      </Text>
       <Text className="font-mono text-base text-paper">
-        {formatCurrency(viewModel.cashBefore)} →{' '}
+        {formatCurrency(t, viewModel.cashBefore)} →{' '}
         <AnimatedCount
           from={viewModel.cashBefore}
           to={viewModel.cashAfter}
           started={balanceAnimationsStarted}
           complete={balanceComplete}
-          format={value => formatCurrency(value)}
+          format={(value) => formatCurrency(t, value)}
         />
       </Text>
     </View>
@@ -87,20 +88,31 @@ export function WeeklyReviewScreen({
       title={t('weeklyReview.weeklyStatement')}
       stamp={t('weeklyReview.recorded')}
     >
-      {viewModel.ledger.map(line => (
-        <View key={line.id} className="flex-row items-center border-b border-ink/10 py-2.5 last:border-b-0">
+      {viewModel.ledger.map((line) => (
+        <View
+          key={line.id}
+          className="flex-row items-center border-b border-ink/10 py-2.5 last:border-b-0"
+        >
           {/* Wrapping, so a long label carries its icons onto the next line
               instead of pinning them against the amount. */}
           <View className="min-w-0 flex-1 flex-row flex-wrap items-center">
-            <Text className="text-ink" style={scaledBody(textScale)}>{line.label}</Text>
-            {line.icons === undefined ? null : <LedgerRowIcons icons={line.icons} />}
+            <Text className="text-ink" style={scaledBody(textScale)}>
+              {line.label}
+            </Text>
+            {line.icons === undefined ? null : (
+              <LedgerRowIcons icons={line.icons} />
+            )}
           </View>
-          <Text className={line.amount < 0
-            ? 'font-mono text-base text-stamp'
-            : line.amount > 0
-              ? 'font-mono text-base text-pitch-ink'
-              : 'font-mono text-base text-ink'}>
-            {formatCurrency(line.amount, true)}
+          <Text
+            className={
+              line.amount < 0
+                ? 'font-mono text-base text-stamp'
+                : line.amount > 0
+                  ? 'font-mono text-base text-pitch-ink'
+                  : 'font-mono text-base text-ink'
+            }
+          >
+            {formatCurrency(t, line.amount, true)}
           </Text>
         </View>
       ))}
@@ -108,14 +120,29 @@ export function WeeklyReviewScreen({
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-pitch-ink" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView
+      className="flex-1 bg-pitch-ink"
+      edges={['top', 'left', 'right', 'bottom']}
+    >
       <ChalkboardBackdrop wide={wide} />
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
-        <View className={wide ? 'w-full max-w-[1180px] self-center px-4 pb-7 pt-4' : 'w-full px-4 pb-7 pt-4'}>
+        <View
+          className={
+            wide
+              ? 'w-full max-w-[1180px] self-center px-4 pb-7 pt-4'
+              : 'w-full px-4 pb-7 pt-4'
+          }
+        >
           <View className="border-b-2 border-paper/15 pb-3">
-            <Text className="font-pixel text-[10px] uppercase tracking-[2px] text-gold-light">{t('weeklyReview.weeklyReview')}</Text>
-            <Text className="mt-1 font-pixel text-[18px] uppercase text-white">{viewModel.completedWeekLabel}</Text>
-            <Text className="mt-2 font-pixel text-[12px] uppercase text-paper/75">{viewModel.clubName}</Text>
+            <Text className="font-pixel text-[10px] uppercase tracking-[2px] text-gold-light">
+              {t('weeklyReview.weeklyReview')}
+            </Text>
+            <Text className="mt-1 font-pixel text-[18px] uppercase text-white">
+              {viewModel.completedWeekLabel}
+            </Text>
+            <Text className="mt-2 font-pixel text-[12px] uppercase text-paper/75">
+              {viewModel.clubName}
+            </Text>
           </View>
 
           {viewModel.facilityCompletion ? (
@@ -153,7 +180,9 @@ export function WeeklyReviewScreen({
             // ▸ has no Silkscreen glyph, so it is appended here rather than
             // baked into a catalog entry a translator would inherit.
             label={`${t('weeklyReview.startWeek', { week: viewModel.nextWeekLabel })}  ▸`}
-            accessibilityLabel={t('weeklyReview.a11y.finishAndStart', { week: viewModel.nextWeekLabel })}
+            accessibilityLabel={t('weeklyReview.a11y.finishAndStart', {
+              week: viewModel.nextWeekLabel,
+            })}
             onPress={onContinue}
           />
         </View>
@@ -184,7 +213,9 @@ function WeeklyBalanceCard({
   const t = useCopy();
   return (
     <View className="min-w-0 flex-1 border-2 border-b-4 border-ink bg-white px-3 py-2">
-      <PixelText className="text-right text-[12px] uppercase text-ink/50">{label}</PixelText>
+      <PixelText className="text-right text-[12px] uppercase text-ink/50">
+        {label}
+      </PixelText>
       <AnimatedBalanceAmount
         from={startingAmount}
         to={currentAmount}
@@ -196,7 +227,12 @@ function WeeklyBalanceCard({
         <PixelText className="text-right text-[12px] uppercase text-ink/50">
           {t(kind === 'money' ? 'weeklyReview.net' : 'weeklyReview.netTp')}
         </PixelText>
-        <AnimatedNetAmount amount={netAmount} started={started} complete={complete} kind={kind} />
+        <AnimatedNetAmount
+          amount={netAmount}
+          started={started}
+          complete={complete}
+          kind={kind}
+        />
       </View>
     </View>
   );
@@ -214,29 +250,49 @@ function AnimatedNetAmount({
   kind: WeeklyBalanceKind;
 }) {
   const t = useCopy();
-  const { value: displayAmount, impact } = useCelebratoryNumber(0, amount, started, complete, 850);
+  const { value: displayAmount, impact } = useCelebratoryNumber(
+    0,
+    amount,
+    started,
+    complete,
+    850,
+  );
 
   return (
     <Animated.View
       style={{
         alignSelf: 'stretch',
-        transform: [{
-          scale: impact.interpolate({ inputRange: [0, 1], outputRange: [1, 1.13] }),
-        }],
+        transform: [
+          {
+            scale: impact.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 1.13],
+            }),
+          },
+        ],
       }}
     >
       <Text
         accessible
         accessibilityLabel={t('weeklyReview.a11y.net', {
-          sign: amount < 0
-            ? t('weeklyReview.a11y.minus')
-            : amount > 0 ? t('weeklyReview.a11y.plus') : '',
+          sign:
+            amount < 0
+              ? t('weeklyReview.a11y.minus')
+              : amount > 0
+                ? t('weeklyReview.a11y.plus')
+                : '',
           amount: Math.abs(amount),
-          unit: t(kind === 'money' ? 'weeklyReview.a11y.dollars' : 'weeklyReview.a11y.trainingPoints'),
+          unit: t(
+            kind === 'money'
+              ? 'weeklyReview.a11y.dollars'
+              : 'weeklyReview.a11y.trainingPoints',
+          ),
         })}
-        className={amount < 0
-          ? 'mt-1 text-right font-mono text-[18px] text-stamp'
-          : 'mt-1 text-right font-mono text-[18px] text-pitch-ink'}
+        className={
+          amount < 0
+            ? 'mt-1 text-right font-mono text-[18px] text-stamp'
+            : 'mt-1 text-right font-mono text-[18px] text-pitch-ink'
+        }
         numberOfLines={1}
         adjustsFontSizeToFit
       >
@@ -245,7 +301,7 @@ function AnimatedNetAmount({
             — see formatCompactNumber in components/Scorecard.tsx. */}
         {displayAmount > 0 ? '+' : displayAmount < 0 ? '-' : ''}
         {kind === 'money' ? '$' : ''}
-        {formatCompactNumber(Math.abs(displayAmount))}
+        {formatCompactNumber(t, Math.abs(displayAmount))}
         {kind === 'training-points' ? ' TP' : ''}
       </Text>
     </Animated.View>
@@ -266,24 +322,41 @@ function AnimatedBalanceAmount({
   kind: WeeklyBalanceKind;
 }) {
   const t = useCopy();
-  const { value, impact } = useCelebratoryNumber(from, to, started, complete, 1050);
-  const movementClass = to < from
-    ? 'text-stamp'
-    : to > from
-      ? 'text-pitch-ink'
-      : 'text-ink';
+  const { value, impact } = useCelebratoryNumber(
+    from,
+    to,
+    started,
+    complete,
+    1050,
+  );
+  const movementClass =
+    to < from ? 'text-stamp' : to > from ? 'text-pitch-ink' : 'text-ink';
   return (
     <Animated.View
       style={{
         transform: [
-          { scale: impact.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) },
-          { translateY: impact.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) },
+          {
+            scale: impact.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 1.1],
+            }),
+          },
+          {
+            translateY: impact.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, -3],
+            }),
+          },
         ],
       }}
     >
       <Text
         accessibilityLabel={t('weeklyReview.a11y.balanceMovement', {
-          label: t(kind === 'money' ? 'weeklyReview.money' : 'weeklyReview.trainingPoints'),
+          label: t(
+            kind === 'money'
+              ? 'weeklyReview.money'
+              : 'weeklyReview.trainingPoints',
+          ),
           from,
           to,
         })}
@@ -291,7 +364,9 @@ function AnimatedBalanceAmount({
         numberOfLines={1}
         adjustsFontSizeToFit
       >
-        {kind === 'money' ? formatCurrency(value) : `${formatCompactNumber(value)} TP`}
+        {kind === 'money'
+          ? formatCurrency(t, value)
+          : `${formatCompactNumber(t, value)} TP`}
       </Text>
     </Animated.View>
   );
@@ -347,7 +422,11 @@ function useCelebratoryNumber(
         return;
       }
       landingAnimation = Animated.sequence([
-        Animated.timing(impact, { toValue: 1, duration: 90, useNativeDriver: true }),
+        Animated.timing(impact, {
+          toValue: 1,
+          duration: 90,
+          useNativeDriver: true,
+        }),
         Animated.spring(impact, {
           toValue: 0,
           damping: 7,

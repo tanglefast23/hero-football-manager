@@ -15,58 +15,79 @@ const app = read('App.tsx');
  */
 describe("Bert's first-fans lesson", () => {
   it('waits for a crowd the club actually won', () => {
-    expect(app).toContain('hasEverGainedFans(store.career)');
-    expect(app).toContain("!hasAssistantGuideMilestone(store.career, 'first-fans-seen')");
+    expect(app).toContainSource('hasEverGainedFans(store.career)');
+    expect(app).toContainSource(
+      "!hasAssistantGuideMilestone(store.career, 'first-fans-seen')",
+    );
   });
 
   it('congratulates on the desk and tours the ledger, never the other way round', () => {
     // The desk beat is home-tab only; the ledger beat needs the Finances board
     // showing AND the desk beat already banked, so the two cannot swap places.
-    expect(app).toMatch(/fansLessonVisible = [\s\S]{0,200}store\.activeTab === 'home'/);
-    expect(app).toMatch(/fansLedgerTourVisible = [\s\S]{0,200}store\.activeTab === 'club'/);
-    expect(app).toMatch(/fansLedgerTourVisible = [\s\S]{0,300}clubOfficeTab === 'finances'/);
-    expect(app).toMatch(
+    expect(app).toMatchSource(
+      /fansLessonVisible = [\s\S]{0,200}store\.activeTab === 'home'/,
+    );
+    expect(app).toMatchSource(
+      /fansLedgerTourVisible = [\s\S]{0,200}store\.activeTab === 'club'/,
+    );
+    expect(app).toMatchSource(
+      /fansLedgerTourVisible = [\s\S]{0,300}clubOfficeTab === 'finances'/,
+    );
+    expect(app).toMatchSource(
       /fansLedgerTourVisible = [\s\S]{0,400}hasAssistantGuideMilestone\(store\.career, 'first-fans-seen'\)/,
     );
   });
 
   it('takes the manager to the ledger itself rather than telling them to go', () => {
-    expect(app).toMatch(
+    expect(app).toMatchSource(
       /completeGuideMilestone\('first-fans-seen'\);[\s\S]{0,200}setClubOfficeTab\('finances'\);[\s\S]{0,120}setActiveTab\('club'\)/,
     );
   });
 
   it('banks each beat separately so a closed career resumes on the half it owes', () => {
-    expect(app).toContain("store.completeGuideMilestone('first-fans-seen')");
-    expect(app).toContain("store.completeGuideMilestone('first-fans-ledger-seen')");
+    expect(app).toContainSource(
+      "store.completeGuideMilestone('first-fans-seen')",
+    );
+    expect(app).toContainSource(
+      "store.completeGuideMilestone('first-fans-ledger-seen')",
+    );
   });
 
   it('holds the rest of the screen while he is talking', () => {
-    expect(app).toMatch(/guideOverlayVisible = \([\s\S]{0,400}\|\| fansLessonVisible/);
-    expect(app).toMatch(/guideOverlayVisible = \([\s\S]{0,400}\|\| fansLedgerTourVisible/);
+    expect(app).toMatchSource(
+      /guideOverlayVisible = \([\s\S]{0,400}\|\| fansLessonVisible/,
+    );
+    expect(app).toMatchSource(
+      /guideOverlayVisible = \([\s\S]{0,400}\|\| fansLedgerTourVisible/,
+    );
   });
 
   it('sends the manager after income rather than dwelling on the bills', () => {
-    expect(app).toContain('make sure you have income streams');
-    expect(app).toContain('help with fans or income if you’re short on cash');
+    expect(app).toContainSource('make sure you have income streams');
+    expect(app).toContainSource(
+      'help with fans or income if you’re short on cash',
+    );
   });
 
   /** The owner's rule: the face is chosen for the line, never left to the fallback run. */
   it('wears an authored face on each beat', () => {
     // Both beats are authored in App.tsx as a custom message, so they carry the
     // shape the walk-on builds for one rather than a content page's focus.
-    const twoBeats: BriefingBeat[] = [0, 1].map(pageIndex => ({
+    const twoBeats: BriefingBeat[] = [0, 1].map((pageIndex) => ({
       text: `beat ${pageIndex}`,
       focus: 'money',
       kind: 'body',
       pageIndex,
     }));
-    const threeBeats: BriefingBeat[] = [...twoBeats, {
-      text: 'beat 2',
-      focus: 'money',
-      kind: 'body',
-      pageIndex: 2,
-    }];
+    const threeBeats: BriefingBeat[] = [
+      ...twoBeats,
+      {
+        text: 'beat 2',
+        focus: 'money',
+        kind: 'body',
+        pageIndex: 2,
+      },
+    ];
     const desk = briefingMoments('first-fans', twoBeats);
     const ledger = briefingMoments('first-fans-ledger', threeBeats);
 
@@ -75,6 +96,8 @@ describe("Bert's first-fans lesson", () => {
     // Good news opens delighted; the ledger opens on the joke. The two beats
     // must not arrive wearing the same face as each other.
     expect(BERT_MOMENTS[desk[0]].expression).toBe('delighted');
-    expect(BERT_MOMENTS[ledger[0]].expression).not.toBe(BERT_MOMENTS[desk[0]].expression);
+    expect(BERT_MOMENTS[ledger[0]].expression).not.toBe(
+      BERT_MOMENTS[desk[0]].expression,
+    );
   });
 });

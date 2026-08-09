@@ -7,7 +7,11 @@ import {
   createCareer,
   startNextSeason,
 } from '../career';
-import { AWARD_CATEGORIES, PODIUM_SIZE, divisionPodium } from '../division-leaders';
+import {
+  AWARD_CATEGORIES,
+  PODIUM_SIZE,
+  divisionPodium,
+} from '../division-leaders';
 import { resolveMatchday } from '../matchday';
 import { prunedStatLines } from '../season-recap';
 import { buildCareerMatchTeams, renewCareerPlayer } from '../squad';
@@ -47,8 +51,11 @@ describe('pruning dead stat rows', () => {
       [line('p_live'), line('p_retired')],
     );
 
-    expect(prunedStatLines(state).map(row => row.playerId).sort())
-      .toEqual(['p_live', 'p_retired']);
+    expect(
+      prunedStatLines(state)
+        .map((row) => row.playerId)
+        .sort(),
+    ).toEqual(['p_live', 'p_retired']);
   });
 
   it('drops rows for players who exist nowhere', () => {
@@ -58,8 +65,11 @@ describe('pruning dead stat rows', () => {
       [line('p_live'), line('p_retired'), line('p_regenerated_rival')],
     );
 
-    expect(prunedStatLines(state).map(row => row.playerId).sort())
-      .toEqual(['p_live', 'p_retired']);
+    expect(
+      prunedStatLines(state)
+        .map((row) => row.playerId)
+        .sort(),
+    ).toEqual(['p_live', 'p_retired']);
   });
 
   /**
@@ -74,7 +84,7 @@ describe('pruning dead stat rows', () => {
       3,
     );
 
-    expect(prunedStatLines(state).map(row => row.season)).toEqual([3]);
+    expect(prunedStatLines(state).map((row) => row.season)).toEqual([3]);
   });
 
   it('keeps the season that just finished', () => {
@@ -96,8 +106,11 @@ describe('pruning dead stat rows', () => {
       2,
     );
 
-    expect(prunedStatLines(state).map(row => `${row.playerId}:${row.season}`).sort())
-      .toEqual(['p_live:2', 'p_retired:2']);
+    expect(
+      prunedStatLines(state)
+        .map((row) => `${row.playerId}:${row.season}`)
+        .sort(),
+    ).toEqual(['p_live:2', 'p_retired:2']);
   });
 });
 
@@ -127,7 +140,8 @@ beforeAll(() => {
 describe('division award snapshots', () => {
   it('records a renderable podium for every category', () => {
     const awards = recapFor(seasonEnd, seasonEnd.season).divisionAwards;
-    if (awards === undefined) throw new Error('the recap recorded no division awards');
+    if (awards === undefined)
+      throw new Error('the recap recorded no division awards');
 
     expect(Object.keys(awards).sort()).toEqual(CATEGORY_IDS.slice().sort());
     expect(placings(awards).length).toBeGreaterThan(0);
@@ -140,8 +154,12 @@ describe('division award snapshots', () => {
         expect(placing.value).toBeGreaterThan(0);
       }
       // Descending, so the ceremony can read the order straight off the array.
-      expect(awards[category].map(placing => placing.value))
-        .toEqual(awards[category].map(placing => placing.value).slice().sort((a, b) => b - a));
+      expect(awards[category].map((placing) => placing.value)).toEqual(
+        awards[category]
+          .map((placing) => placing.value)
+          .slice()
+          .sort((a, b) => b - a),
+      );
     }
   });
 
@@ -151,8 +169,11 @@ describe('division award snapshots', () => {
    */
   it('leaves every placed club name derivable from the persisted pyramid', () => {
     const awards = recapFor(seasonEnd, seasonEnd.season).divisionAwards!;
-    const pyramidClubIds = new Set((nextSeason.m2?.pyramid.divisions ?? [])
-      .flatMap(division => division.clubs.map(club => club.id)));
+    const pyramidClubIds = new Set(
+      (nextSeason.m2?.pyramid.divisions ?? []).flatMap((division) =>
+        division.clubs.map((club) => club.id),
+      ),
+    );
 
     expect(placings(awards).length).toBeGreaterThan(0);
     for (const placing of placings(awards)) {
@@ -169,30 +190,43 @@ describe('division award snapshots', () => {
   it('snapshots the podiums before the transition prunes the rows behind them', () => {
     const completedSeason = seasonEnd.season;
     const stored = recapFor(nextSeason, completedSeason).divisionAwards!;
-    const survivingRows = new Set((nextSeason.seasonStatLines ?? []).map(row => row.playerId));
+    const survivingRows = new Set(
+      (nextSeason.seasonStatLines ?? []).map((row) => row.playerId),
+    );
 
-    expect((nextSeason.seasonStatLines ?? []).length)
-      .toBeLessThan((seasonEnd.seasonStatLines ?? []).length);
-    const orphaned = placings(stored).filter(placing => !survivingRows.has(placing.playerId));
+    expect((nextSeason.seasonStatLines ?? []).length).toBeLessThan(
+      (seasonEnd.seasonStatLines ?? []).length,
+    );
+    const orphaned = placings(stored).filter(
+      (placing) => !survivingRows.has(placing.playerId),
+    );
     expect(orphaned.length).toBeGreaterThan(0);
     for (const placing of orphaned) {
-      expect(nextSeason.players.some(candidate => candidate.id === placing.playerId)).toBe(false);
+      expect(
+        nextSeason.players.some(
+          (candidate) => candidate.id === placing.playerId,
+        ),
+      ).toBe(false);
     }
 
     // What a prune-then-snapshot order would have produced instead.
-    const rebuilt = Object.fromEntries(CATEGORY_IDS.map(category => [
-      category,
-      divisionPodium({
+    const rebuilt = Object.fromEntries(
+      CATEGORY_IDS.map((category) => [
         category,
-        season: completedSeason,
-        players: nextSeason.players,
-        statLines: nextSeason.seasonStatLines ?? [],
-      }),
-    ])) as Record<AwardCategoryId, DivisionAwardPlacement[]>;
+        divisionPodium({
+          category,
+          season: completedSeason,
+          players: nextSeason.players,
+          statLines: nextSeason.seasonStatLines ?? [],
+        }),
+      ]),
+    ) as Record<AwardCategoryId, DivisionAwardPlacement[]>;
 
     // The vacated places refill from below, so the loss shows as substitution
     // rather than a shorter podium: every orphaned placing is simply gone.
-    const rebuiltIds = new Set(placings(rebuilt).map(placing => placing.playerId));
+    const rebuiltIds = new Set(
+      placings(rebuilt).map((placing) => placing.playerId),
+    );
     for (const placing of orphaned) {
       expect(rebuiltIds.has(placing.playerId)).toBe(false);
     }
@@ -211,7 +245,9 @@ describe('bounded stat-line growth', () => {
     expect(rowsAfterTransition).toHaveLength(SEASONS_PLAYED);
     rowsAfterTransition.forEach((rows, index) => {
       expect(rows.length).toBeGreaterThan(0);
-      expect([...new Set(rows.map(row => row.season))]).toEqual([completedSeasons[index]]);
+      expect([...new Set(rows.map((row) => row.season))]).toEqual([
+        completedSeasons[index],
+      ]);
     });
   });
 
@@ -222,7 +258,7 @@ describe('bounded stat-line growth', () => {
    * gets close.
    */
   it('does not grow with the number of seasons played', () => {
-    const counts = rowsAfterTransition.map(rows => rows.length);
+    const counts = rowsAfterTransition.map((rows) => rows.length);
 
     expect(Math.max(...counts)).toBeLessThanOrEqual(counts[0]! * 2);
   });
@@ -231,9 +267,11 @@ describe('bounded stat-line growth', () => {
 /** Renews what expired, since an unresolved contract blocks the transition. */
 function startNextCareerSeason(state: GameState): GameState {
   let renewed = state;
-  for (const player of state.players.filter(candidate => (
-    candidate.clubId === state.userClubId && candidate.contractSeasonsRemaining === 0
-  ))) {
+  for (const player of state.players.filter(
+    (candidate) =>
+      candidate.clubId === state.userClubId &&
+      candidate.contractSeasonsRemaining === 0,
+  )) {
     renewed = renewCareerPlayer(renewed, player.id, 4, 1);
   }
   return startNextSeason(renewed);
@@ -247,10 +285,16 @@ function simulatedSeason(initialState: GameState): GameState {
       continue;
     }
     const matchday = activeCareerMatchday(state);
-    if (matchday === undefined) throw new Error('the career lost its active matchday');
-    const clubIds = [...new Set(matchday.fixtures.flatMap(
-      fixture => [fixture.homeClubId, fixture.awayClubId],
-    ))];
+    if (matchday === undefined)
+      throw new Error('the career lost its active matchday');
+    const clubIds = [
+      ...new Set(
+        matchday.fixtures.flatMap((fixture) => [
+          fixture.homeClubId,
+          fixture.awayClubId,
+        ]),
+      ),
+    ];
     state = completeMatchday(
       state,
       resolveMatchday(matchday.fixtures, buildCareerMatchTeams(state, clubIds)),
@@ -260,15 +304,18 @@ function simulatedSeason(initialState: GameState): GameState {
 }
 
 function recapFor(state: GameState, season: number): SeasonRecap {
-  const recap = state.seasonRecaps?.find(candidate => candidate.season === season);
-  if (recap === undefined) throw new Error(`no recap recorded for season ${season}`);
+  const recap = state.seasonRecaps?.find(
+    (candidate) => candidate.season === season,
+  );
+  if (recap === undefined)
+    throw new Error(`no recap recorded for season ${season}`);
   return recap;
 }
 
 function placings(
   awards: Record<AwardCategoryId, DivisionAwardPlacement[]>,
 ): DivisionAwardPlacement[] {
-  return CATEGORY_IDS.flatMap(category => awards[category]);
+  return CATEGORY_IDS.flatMap((category) => awards[category]);
 }
 
 function stateWith(
@@ -277,7 +324,12 @@ function stateWith(
   seasonStatLines: PlayerSeasonStatLine[],
   season = 1,
 ): GameState {
-  return { season, players, retiredPlayers, seasonStatLines } as unknown as GameState;
+  return {
+    season,
+    players,
+    retiredPlayers,
+    seasonStatLines,
+  } as unknown as GameState;
 }
 
 function player(id: string, clubId: string, role: Role = 'FWD'): CareerPlayer {
@@ -296,7 +348,11 @@ function player(id: string, clubId: string, role: Role = 'FWD'): CareerPlayer {
   };
 }
 
-function line(playerId: string, season = 1, clubId = 'club_a'): PlayerSeasonStatLine {
+function line(
+  playerId: string,
+  season = 1,
+  clubId = 'club_a',
+): PlayerSeasonStatLine {
   return {
     season,
     playerId,

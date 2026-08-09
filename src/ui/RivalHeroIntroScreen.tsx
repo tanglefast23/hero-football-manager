@@ -4,22 +4,26 @@ import {
   AppState,
   BackHandler,
   Easing,
-  Image,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
-  type ImageSourcePropType,
-  type ImageStyle,
 } from 'react-native';
+import {
+  Canvas,
+  Image as SkiaImage,
+  useImage,
+  type DataSourceParam,
+} from '@shopify/react-native-skia';
 import type { RivalHeroIntroViewModel } from '../application/rival-hero-intro';
 import type { CopyParams } from '../i18n';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
 import type { RivalHeroIntroHeroId } from '../game/rival-hero-intro';
 import { PLAYER_SPRITE_CELL } from '../render/PlayerRunSprite';
 import { PowerTitleTakeover } from '../render/PowerTitleTakeover';
+import { PIXEL_ART_SAMPLING } from '../render/pixel-art-sampling';
 import {
   bertVoiceDurationMs,
   playBertVoice,
@@ -56,7 +60,7 @@ const ABSOLUTE_FILL = {
 };
 
 export const RIVAL_HERO_INTRO_BACKDROPS: Readonly<
-  Record<RivalHeroIntroHeroId, ImageSourcePropType>
+  Record<RivalHeroIntroHeroId, Exclude<DataSourceParam, null | undefined>>
 > = Object.freeze({
   'special-f171': require('../../assets/images/rival-hero-intros/barry-allan.png'),
   'special-f178': require('../../assets/images/rival-hero-intros/scott-somers.png'),
@@ -69,6 +73,44 @@ export interface RivalHeroIntroScreenProps {
   viewModel: RivalHeroIntroViewModel;
   reduceMotion?: boolean;
   onComplete: (heroId: RivalHeroIntroHeroId) => void;
+}
+
+interface RivalHeroBackdropProps {
+  source: Exclude<DataSourceParam, null | undefined>;
+  left: number;
+  top: number;
+  size: number;
+  testID: string;
+  onError: (error: Error) => void;
+}
+
+/** Skia makes nearest-neighbour sampling explicit on native and web. */
+function RivalHeroBackdrop({
+  source,
+  left,
+  top,
+  size,
+  testID,
+  onError,
+}: RivalHeroBackdropProps) {
+  const image = useImage(source, onError);
+  return (
+    <Canvas
+      pointerEvents="none"
+      style={{ position: 'absolute', left, top, width: size, height: size }}
+      testID={testID}
+    >
+      <SkiaImage
+        fit="fill"
+        height={size}
+        image={image}
+        sampling={PIXEL_ART_SAMPLING}
+        width={size}
+        x={0}
+        y={0}
+      />
+    </Canvas>
+  );
 }
 
 /**
@@ -251,17 +293,6 @@ export function RivalHeroIntroScreen({
           },
         ],
   };
-  const backdropImageStyle = {
-    position: 'absolute' as const,
-    left: backdropLeft,
-    top: backdropTop,
-    width: backdropSize,
-    height: backdropSize,
-    ...(Platform.OS === 'web'
-      ? ({ imageRendering: 'pixelated' } as unknown as ImageStyle)
-      : {}),
-  };
-
   return (
     <View
       style={styles.root}
@@ -269,14 +300,13 @@ export function RivalHeroIntroScreen({
       testID="rival-hero-intro-screen"
     >
       {backdropFailed ? null : (
-        <Image
-          accessible={false}
-          fadeDuration={0}
+        <RivalHeroBackdrop
+          left={backdropLeft}
           onError={() => setBackdropFailed(true)}
-          resizeMode="stretch"
+          size={backdropSize}
           source={RIVAL_HERO_INTRO_BACKDROPS[viewModel.heroId]}
-          style={backdropImageStyle}
           testID={`rival-hero-backdrop-${viewModel.heroId}`}
+          top={backdropTop}
         />
       )}
       <View

@@ -55,7 +55,13 @@ import {
  * Named once because adding a single cue used to shift every later assertion in
  * the file — see the management-sfx suite for the same trap.
  */
-const MUSIC = { opening: 0, management: 1, event: 2, awards: 3, rival: 4 } as const;
+const MUSIC = {
+  opening: 0,
+  management: 1,
+  event: 2,
+  awards: 3,
+  rival: 4,
+} as const;
 const SFX = { advanceWeek: 5, planLocked: 6, leagueChampions: 7 } as const;
 const PLAYERS_PER_BUILD = 8;
 /** The same player after a session death rebuilt the whole set. */
@@ -92,8 +98,12 @@ describe('non-match music ownership', () => {
    */
   it('keeps the opening theme running under the Quick Result face-off', () => {
     expect(menuThemeForScreen('faceoff', 1)).toBe('opening');
-    expect(menuThemeForScreen('faceoff', 1)).toBe(menuThemeForScreen('matchday', 1));
-    expect(menuThemeForScreen('faceoff', 1)).toBe(menuThemeForScreen('postmatch', 1));
+    expect(menuThemeForScreen('faceoff', 1)).toBe(
+      menuThemeForScreen('matchday', 1),
+    );
+    expect(menuThemeForScreen('faceoff', 1)).toBe(
+      menuThemeForScreen('postmatch', 1),
+    );
   });
 
   it('uses the opening theme for the full-time report, then restores the office theme', () => {
@@ -130,7 +140,9 @@ describe('non-match music ownership', () => {
     // The podium opens the ceremony, so the bed has to start there or the
     // music arrives a screen late and the medal scene plays in silence.
     expect(menuThemeForScreen('season-podium', 1)).toBe('awards');
-    expect(menuThemeForScreen('season-podium', 1)).toBe(menuThemeForScreen('awards-ceremony', 1));
+    expect(menuThemeForScreen('season-podium', 1)).toBe(
+      menuThemeForScreen('awards-ceremony', 1),
+    );
     // The new season's desk drops it for the ordinary office bed, and a club
     // legend on the way there gets the event bed — either way the ceremony
     // music ends with the ceremony.
@@ -147,8 +159,10 @@ describe('non-match music ownership', () => {
     setMenuTheme('opening');
 
     expect(mockPlayers).toHaveLength(PLAYERS_PER_BUILD);
-    expect(MUSIC_INDEXES.every(i => mockPlayers[i].loop)).toBe(true);
-    expect(mockPlayers.slice(MUSIC_INDEXES.length).every(player => !player.loop)).toBe(true);
+    expect(MUSIC_INDEXES.every((i) => mockPlayers[i].loop)).toBe(true);
+    expect(
+      mockPlayers.slice(MUSIC_INDEXES.length).every((player) => !player.loop),
+    ).toBe(true);
     expect(mockPlayers[MUSIC.opening].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[MUSIC.management].play).not.toHaveBeenCalled();
     expect(mockPlayers[MUSIC.event].play).not.toHaveBeenCalled();
@@ -211,20 +225,30 @@ describe('non-match music ownership', () => {
     setMenuMasterVolume(0.5);
     setMenuTheme('opening');
 
-    expect(MUSIC_INDEXES.every(i => mockPlayers[i].volume === 0.25)).toBe(true);
+    expect(MUSIC_INDEXES.every((i) => mockPlayers[i].volume === 0.25)).toBe(
+      true,
+    );
     expect(mockPlayers[SFX.advanceWeek].volume).toBe(0.5);
-    expect(setAudioModeAsync).toHaveBeenCalledWith({ playsInSilentMode: false });
+    expect(setAudioModeAsync).toHaveBeenCalledWith({
+      playsInSilentMode: false,
+    });
 
     setMenuMasterVolume(0);
-    expect(mockPlayers.every(player => player.volume === 0)).toBe(true);
+    expect(mockPlayers.every((player) => player.volume === 0)).toBe(true);
   });
 
   it('never dips the music around a UI cue', () => {
     // Ducking was added to rescue stepper taps that seemed to vanish under the
     // bed. They were not quiet, they were not playing (see management-sfx-
     // voices.test.ts); the dip was audible pumping bought for nothing.
-    const audio = readFileSync(join(process.cwd(), 'src/render/menu-audio.ts'), 'utf8');
-    const sounds = readFileSync(join(process.cwd(), 'src/render/management-sfx.ts'), 'utf8');
+    const audio = readFileSync(
+      join(process.cwd(), 'src/render/menu-audio.ts'),
+      'utf8',
+    );
+    const sounds = readFileSync(
+      join(process.cwd(), 'src/render/management-sfx.ts'),
+      'utf8',
+    );
 
     expect(audio).not.toContain('duckMenuMusicForSfx');
     expect(audio).not.toContain('DUCKED_MUSIC_VOLUME');
@@ -232,7 +256,9 @@ describe('non-match music ownership', () => {
 
     setMenuTheme('management');
     setMenuMasterVolume(1);
-    expect(MUSIC_INDEXES.every(i => mockPlayers[i].volume === 0.5)).toBe(true);
+    expect(MUSIC_INDEXES.every((i) => mockPlayers[i].volume === 0.5)).toBe(
+      true,
+    );
   });
 
   it('recovers the active theme if a native player stops at the end', async () => {
@@ -262,8 +288,10 @@ describe('non-match music ownership', () => {
     setMenuTheme('management');
 
     expect(mockPlayers).toHaveLength(PLAYERS_PER_BUILD * 2);
-    expect(mockPlayers[rebuilt(MUSIC.management)].play).toHaveBeenCalledTimes(1);
-    expect(MUSIC_INDEXES.every(i => mockPlayers[rebuilt(i)].loop)).toBe(true);
+    expect(mockPlayers[rebuilt(MUSIC.management)].play).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(MUSIC_INDEXES.every((i) => mockPlayers[rebuilt(i)].loop)).toBe(true);
     expect(setAudioModeAsync).toHaveBeenCalledTimes(2);
   });
 
@@ -271,7 +299,8 @@ describe('non-match music ownership', () => {
     setMenuTheme('management');
     mockPlayers[MUSIC.management].play.mockClear();
     mockPlayers[SFX.advanceWeek].seekTo.mockImplementation(() =>
-      Promise.reject(new Error('Unable to find the native shared object')));
+      Promise.reject(new Error('Unable to find the native shared object')),
+    );
 
     playAdvanceWeekSfx();
     await Promise.resolve();
@@ -279,8 +308,12 @@ describe('non-match music ownership', () => {
     await Promise.resolve();
 
     expect(mockPlayers).toHaveLength(PLAYERS_PER_BUILD * 2);
-    expect(mockPlayers[rebuilt(MUSIC.management)].play).toHaveBeenCalledTimes(1);
-    expect(mockPlayers[rebuilt(SFX.advanceWeek)].seekTo).toHaveBeenCalledWith(0);
+    expect(mockPlayers[rebuilt(MUSIC.management)].play).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(mockPlayers[rebuilt(SFX.advanceWeek)].seekTo).toHaveBeenCalledWith(
+      0,
+    );
     await Promise.resolve();
     expect(mockPlayers[rebuilt(SFX.advanceWeek)].play).toHaveBeenCalledTimes(1);
   });

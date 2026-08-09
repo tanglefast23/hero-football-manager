@@ -3,7 +3,10 @@ import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Canvas, Fill, Line, Rect } from '@shopify/react-native-skia';
 import type { PowerId } from '../sim/types';
 import { PowerEffectScene } from './PowerEffectScene';
-import { powerEffectDescriptor, powerEffectFrame } from './power-effect-descriptors';
+import {
+  powerEffectDescriptor,
+  powerEffectFrame,
+} from './power-effect-descriptors';
 
 export interface PowerEffectPreviewProps {
   power: PowerId;
@@ -25,10 +28,13 @@ export function PowerEffectPreview({
   reduceMotion = false,
 }: PowerEffectPreviewProps) {
   const viewport = useWindowDimensions();
-  const width = requestedWidth ?? Math.min(520, Math.max(280, viewport.width - 32));
+  const width =
+    requestedWidth ?? Math.min(520, Math.max(280, viewport.width - 32));
   const height = Math.round(width * 0.62);
   const descriptor = powerEffectDescriptor(power);
-  const [elapsedMs, setElapsedMs] = useState(reduceMotion ? descriptor.durationMs * 0.76 : 0);
+  const [elapsedMs, setElapsedMs] = useState(
+    reduceMotion ? descriptor.durationMs * 0.76 : 0,
+  );
 
   useEffect(() => {
     if (reduceMotion) {
@@ -41,16 +47,21 @@ export function PowerEffectPreview({
     const animate = (now: number) => {
       const elapsed = Math.min(descriptor.durationMs, now - startedAt);
       setElapsedMs(elapsed);
-      if (elapsed < descriptor.durationMs) frame = requestAnimationFrame(animate);
+      if (elapsed < descriptor.durationMs)
+        frame = requestAnimationFrame(animate);
     };
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
   }, [descriptor.durationMs, power, reduceMotion, replayKey]);
 
   const timeline = powerEffectFrame(power, elapsedMs, reduceMotion);
-  const progressWidth = `${Math.round(timeline.progress * 100)}%` as `${number}%`;
+  const progressWidth =
+    `${Math.round(timeline.progress * 100)}%` as `${number}%`;
   const accessibilityLabel = `${descriptor.name}. ${descriptor.accessibilityLabel} ${timeline.beat.label}.`;
-  const pitchStripeXs = useMemo(() => Array.from({ length: 7 }, (_, index) => index * width / 6), [width]);
+  const pitchStripeXs = useMemo(
+    () => Array.from({ length: 7 }, (_, index) => (index * width) / 6),
+    [width],
+  );
 
   return (
     <View
@@ -59,14 +70,18 @@ export function PowerEffectPreview({
       style={[styles.frame, { width }]}
     >
       <View style={styles.header}>
-        <View style={[styles.colorChip, { backgroundColor: descriptor.primary }]} />
+        <View
+          style={[styles.colorChip, { backgroundColor: descriptor.primary }]}
+        />
         <View style={styles.titleBlock}>
           <Text style={styles.kicker}>POWER EFFECT</Text>
           <Text style={styles.title}>{descriptor.name.toUpperCase()}</Text>
         </View>
-        <Text style={[styles.beat, { color: descriptor.highlight }]}>{timeline.beat.label}</Text>
+        <Text style={[styles.beat, { color: descriptor.highlight }]}>
+          {timeline.beat.label}
+        </Text>
       </View>
-      <View style={[styles.canvasFrame, { width: width - 12, height }] }>
+      <View style={[styles.canvasFrame, { width: width - 12, height }]}>
         <Canvas style={{ width: width - 12, height }}>
           <Fill color="#265b30" />
           {pitchStripeXs.map((x, index) => (
@@ -80,7 +95,13 @@ export function PowerEffectPreview({
               opacity={0.9}
             />
           ))}
-          <Line p1={{ x: (width - 12) / 2, y: 0 }} p2={{ x: (width - 12) / 2, y: height }} color="#acd6ad" strokeWidth={1.5} opacity={0.5} />
+          <Line
+            p1={{ x: (width - 12) / 2, y: 0 }}
+            p2={{ x: (width - 12) / 2, y: height }}
+            color="#acd6ad"
+            strokeWidth={1.5}
+            opacity={0.5}
+          />
           <PowerEffectScene
             power={power}
             elapsedMs={elapsedMs}
@@ -95,19 +116,34 @@ export function PowerEffectPreview({
       <View style={styles.timeline}>
         {descriptor.beats.map((beat, index) => (
           <View key={beat.id} style={styles.timelineBeat}>
-            <View style={[
-              styles.timelineDot,
-              index <= timeline.beatIndex ? { backgroundColor: descriptor.primary } : null,
-            ]} />
-            <Text style={[
-              styles.timelineLabel,
-              index === timeline.beatIndex ? { color: descriptor.highlight } : null,
-            ]}>{beat.label}</Text>
+            <View
+              style={[
+                styles.timelineDot,
+                index <= timeline.beatIndex
+                  ? { backgroundColor: descriptor.primary }
+                  : null,
+              ]}
+            />
+            <Text
+              style={[
+                styles.timelineLabel,
+                index === timeline.beatIndex
+                  ? { color: descriptor.highlight }
+                  : null,
+              ]}
+            >
+              {beat.label}
+            </Text>
           </View>
         ))}
       </View>
       <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: progressWidth, backgroundColor: descriptor.primary }]} />
+        <View
+          style={[
+            styles.progressFill,
+            { width: progressWidth, backgroundColor: descriptor.primary },
+          ]}
+        />
       </View>
     </View>
   );

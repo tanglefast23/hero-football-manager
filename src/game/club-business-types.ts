@@ -1,6 +1,7 @@
 export type SponsorProfileId = 'STEADY' | 'BALANCED' | 'BOLD';
 type SponsorObjectiveLevel = 'EASY' | 'NORMAL' | 'HARD';
-export type SponsorObjectiveKind = 'LEAGUE_WINS' | 'LEAGUE_GOALS' | 'LEAGUE_FINISH';
+export type SponsorObjectiveKind =
+  'LEAGUE_WINS' | 'LEAGUE_GOALS' | 'LEAGUE_FINISH';
 
 interface SponsorBrandDefinition {
   readonly id: string;
@@ -14,7 +15,9 @@ interface SponsorProfileDefinition {
   /** Default objective bonus, retained for old schema-4 rules and common families. */
   readonly bonusPercent: number;
   /** Family-specific measured overrides; absent keys use `bonusPercent`. */
-  readonly bonusPercentByObjective?: Readonly<Partial<Record<SponsorObjectiveKind, number>>>;
+  readonly bonusPercentByObjective?: Readonly<
+    Partial<Record<SponsorObjectiveKind, number>>
+  >;
 }
 
 interface SponsorObjectiveDefinition {
@@ -28,7 +31,9 @@ interface SponsorObjectiveDefinition {
 /** Authored sponsor content baked into each career by the application ring. */
 export interface SponsorRules {
   readonly brands: readonly SponsorBrandDefinition[];
-  readonly profiles: Readonly<Record<SponsorProfileId, SponsorProfileDefinition>>;
+  readonly profiles: Readonly<
+    Record<SponsorProfileId, SponsorProfileDefinition>
+  >;
   readonly objectives: readonly SponsorObjectiveDefinition[];
 }
 

@@ -27,7 +27,8 @@ export function AgentFinalDemandGate({
   negotiation,
   reduceMotion = false,
 }: AgentFinalDemandGateProps) {
-  const demandId = negotiation?.finalDemand === undefined ? undefined : negotiation.id;
+  const demandId =
+    negotiation?.finalDemand === undefined ? undefined : negotiation.id;
   // Which negotiation's ultimatum has already been delivered. Comparing against
   // the current id is what re-arms the entrance for the next player without
   // letting the current one repeat — no effect needed, and no stale flag to

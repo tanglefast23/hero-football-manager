@@ -24,7 +24,10 @@ function tables(buffer: Buffer): Map<string, number> {
   const count = buffer.readUInt16BE(4);
   for (let index = 0; index < count; index += 1) {
     const entry = 12 + index * 16;
-    found.set(buffer.toString('ascii', entry, entry + 4), buffer.readUInt32BE(entry + 8));
+    found.set(
+      buffer.toString('ascii', entry, entry + 4),
+      buffer.readUInt32BE(entry + 8),
+    );
   }
   return found;
 }
@@ -36,7 +39,10 @@ function codepointToGlyph(buffer: Buffer, cmap: number): Map<number, number> {
   let best: number | undefined;
   for (let index = 0; index < subtables; index += 1) {
     const record = cmap + 4 + index * 8;
-    if (buffer.readUInt16BE(record) === 3 && buffer.readUInt16BE(record + 2) === 1) {
+    if (
+      buffer.readUInt16BE(record) === 3 &&
+      buffer.readUInt16BE(record + 2) === 1
+    ) {
       best = cmap + buffer.readUInt32BE(record + 4);
     }
   }
@@ -80,7 +86,12 @@ function metricsFor(family: string): Metrics {
   const hhea = offsets.get('hhea');
   const hmtx = offsets.get('hmtx');
   const cmap = offsets.get('cmap');
-  if (head === undefined || hhea === undefined || hmtx === undefined || cmap === undefined) {
+  if (
+    head === undefined ||
+    hhea === undefined ||
+    hmtx === undefined ||
+    cmap === undefined
+  ) {
     throw new Error(`${family} is missing a metric table`);
   }
 
@@ -108,7 +119,9 @@ export function advanceEm(text: string, family: string): number {
   for (const character of text) {
     const units = advances.get(character.codePointAt(0) ?? -1);
     if (units === undefined) {
-      throw new Error(`${family} cannot draw ${JSON.stringify(character)} in ${JSON.stringify(text)}`);
+      throw new Error(
+        `${family} cannot draw ${JSON.stringify(character)} in ${JSON.stringify(text)}`,
+      );
     }
     total += units;
   }

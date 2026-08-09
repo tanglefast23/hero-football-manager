@@ -25,7 +25,7 @@ export const EVENT_SPRITE_ROWS: Readonly<Record<string, readonly string[]>> = {
     '...KKKKKKKKKK...',
     '................',
   ],
-  'headphones': [
+  headphones: [
     '................',
     '.....KKKKKK.....',
     '...KKNNNNNNKK...',
@@ -61,7 +61,7 @@ export const EVENT_SPRITE_ROWS: Readonly<Record<string, readonly string[]>> = {
     '..KKK......KKK..',
     '................',
   ],
-  'microphone': [
+  microphone: [
     '................',
     '......KKKK......',
     '.....KMMMMK.....',
@@ -95,9 +95,9 @@ export const EVENT_SPRITE_ROWS: Readonly<Record<string, readonly string[]>> = {
     '....KHK.........',
     '..KKKKKKK.......',
     '.KLLLLLLLK......',
-    '................',
+    '..KKKKKKK.......',
   ],
-  'plane': [
+  plane: [
     '................',
     '................',
     '.........KK.....',
@@ -109,13 +109,13 @@ export const EVENT_SPRITE_ROWS: Readonly<Record<string, readonly string[]>> = {
     'KWWWCCCCCCCWWWWK',
     'KKKKKKWWWWWKKKKK',
     '......KWWWWK....',
-    '.....KWWWK......',
-    '....KWWK........',
-    '....KK..........',
+    '.....KWWWKK.....',
+    '....KWWKK.......',
+    '....KKK.........',
     '................',
     '................',
   ],
-  'scissors': [
+  scissors: [
     '................',
     '..KK........KK..',
     '.KBBK......KBBK.',
@@ -133,7 +133,7 @@ export const EVENT_SPRITE_ROWS: Readonly<Record<string, readonly string[]>> = {
     '..KK........KK..',
     '................',
   ],
-  'speaker': [
+  speaker: [
     '................',
     '..KKKKKKKKKKKK..',
     '..KHHHHHHHHHHK..',
@@ -357,7 +357,7 @@ export const EVENT_SPRITE_ROWS: Readonly<Record<string, readonly string[]>> = {
     '................',
     '................',
     '................',
-    '.......KKK......',
+    '...KK..KKK......',
     '..KLLK.KNK......',
     '..KKKKKKKKKKKK..',
     '..KNNNNNNNNNNK..',
@@ -466,7 +466,7 @@ export const EVENT_SPRITE_ROWS: Readonly<Record<string, readonly string[]>> = {
     '................',
     '.......KK.......',
     '......KPPK......',
-    '.....KPPPPK.....',
+    '....KKPPPPKK....',
     '...KPPPPPPPPK...',
     '..KKKKKKKKKKKK..',
     '..KPKPPPPPPKPK..',
@@ -479,7 +479,7 @@ export const EVENT_SPRITE_ROWS: Readonly<Record<string, readonly string[]>> = {
     '................',
   ],
   flask: [
-    '................',
+    '......KKKK......',
     '......KWWK......',
     '......KWWK......',
     '......KTTK......',
@@ -1001,7 +1001,7 @@ export const EVENT_SPRITE_ROWS: Readonly<Record<string, readonly string[]>> = {
     '................',
   ],
   'tuning-fork': [
-    '................',
+    '...KKK...KKK....',
     '...KMK...KNK....',
     '...KMK...KNK....',
     '...KMK...KNK....',

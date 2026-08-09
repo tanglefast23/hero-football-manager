@@ -18,7 +18,12 @@ export function TutorialSpotlight({
   viewportHeight: number;
 }) {
   if (!anchor) {
-    return <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.dimPane]} />;
+    return (
+      <View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, styles.dimPane]}
+      />
+    );
   }
 
   const padding = 4;
@@ -30,10 +35,24 @@ export function TutorialSpotlight({
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={[styles.dimPane, { left: 0, top: 0, right: 0, height: top }]} />
-      <View style={[styles.dimPane, { left: 0, top, width: left, height: spotlightHeight }]} />
-      <View style={[styles.dimPane, { left: right, top, right: 0, height: spotlightHeight }]} />
-      <View style={[styles.dimPane, { left: 0, top: bottom, right: 0, bottom: 0 }]} />
+      <View
+        style={[styles.dimPane, { left: 0, top: 0, right: 0, height: top }]}
+      />
+      <View
+        style={[
+          styles.dimPane,
+          { left: 0, top, width: left, height: spotlightHeight },
+        ]}
+      />
+      <View
+        style={[
+          styles.dimPane,
+          { left: right, top, right: 0, height: spotlightHeight },
+        ]}
+      />
+      <View
+        style={[styles.dimPane, { left: 0, top: bottom, right: 0, bottom: 0 }]}
+      />
     </View>
   );
 }
@@ -50,12 +69,15 @@ export function NavigationRing({ anchor }: { anchor: TutorialAnchorLayout }) {
   return (
     <View
       pointerEvents="none"
-      style={[styles.navTourRing, {
-        left: anchor.x,
-        top: anchor.y,
-        width: anchor.width,
-        height: anchor.height,
-      }]}
+      style={[
+        styles.navTourRing,
+        {
+          left: anchor.x,
+          top: anchor.y,
+          width: anchor.width,
+          height: anchor.height,
+        },
+      ]}
     />
   );
 }

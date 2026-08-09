@@ -20,12 +20,15 @@ for (let index = 0; index < SCENARIOS; index += 1) {
   const outgoing = weights.map(() => 35 + Math.floor(random() * 21));
   const replacement = weights.map(() => 35 + Math.floor(random() * 21));
   const condition = 30 + Math.floor(random() * 31);
-  const outgoingScore = outgoing.reduce((sum, rating, attributeIndex) => (
-    sum + conditionedAttribute(rating, condition) * weights[attributeIndex]
-  ), 0);
-  const replacementScore = replacement.reduce((sum, rating, attributeIndex) => (
-    sum + rating * weights[attributeIndex]
-  ), 0);
+  const outgoingScore = outgoing.reduce(
+    (sum, rating, attributeIndex) =>
+      sum + conditionedAttribute(rating, condition) * weights[attributeIndex],
+    0,
+  );
+  const replacementScore = replacement.reduce(
+    (sum, rating, attributeIndex) => sum + rating * weights[attributeIndex],
+    0,
+  );
   const clears = replacementScore >= outgoingScore + 300;
   baselineBits += clears ? '1' : '0';
   accepted += Number(clears);
@@ -52,13 +55,13 @@ writeFileSync(
 
 function conditionedAttribute(raw, condition) {
   const bounded = Math.max(0, Math.min(100, condition));
-  return Math.max(1, Math.round(raw * (0.75 + 0.25 * bounded / 100)));
+  return Math.max(1, Math.round(raw * (0.75 + (0.25 * bounded) / 100)));
 }
 
 function mulberry32(seed) {
   let value = seed >>> 0;
   return () => {
-    value = (value + 0x6D2B79F5) >>> 0;
+    value = (value + 0x6d2b79f5) >>> 0;
     let output = value;
     output = Math.imul(output ^ (output >>> 15), output | 1);
     output ^= output + Math.imul(output ^ (output >>> 7), output | 61);

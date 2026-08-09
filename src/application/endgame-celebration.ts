@@ -1,4 +1,9 @@
-import { leagueStandings, rosterForClub, type CareerPlayer, type GameState } from '../game';
+import {
+  leagueStandings,
+  rosterForClub,
+  type CareerPlayer,
+  type GameState,
+} from '../game';
 import { playerLookId } from '../render/sprites/player-look';
 import { celebrationCoaches } from './celebration-staff';
 import { copyFor, type CopyFn } from '../i18n';
@@ -44,9 +49,9 @@ const GLOBAL_LEAGUE = 1;
  * "not D1", never a crash.
  */
 function userDivision(state: GameState): number | undefined {
-  const matches = (state.m2?.pyramid.divisions ?? []).filter(division => (
-    division.clubs.some(club => club.id === state.userClubId)
-  ));
+  const matches = (state.m2?.pyramid.divisions ?? []).filter((division) =>
+    division.clubs.some((club) => club.id === state.userClubId),
+  );
   return matches.length === 1 ? matches[0].level : undefined;
 }
 
@@ -66,7 +71,9 @@ export function isGlobalLeagueChampion(state: GameState): boolean {
 
 /** Whether the club has ever lifted the Hero Cup. Cups are never dropped. */
 export function hasWonNationalCup(state: GameState): boolean {
-  return (state.m2?.nationalCups ?? []).some(cup => cup.championClubId === state.userClubId);
+  return (state.m2?.nationalCups ?? []).some(
+    (cup) => cup.championClubId === state.userClubId,
+  );
 }
 
 /**
@@ -78,8 +85,11 @@ export function hasWonNationalCup(state: GameState): boolean {
  * two cutscenes back to back, where the first one tells the manager to go and
  * do the thing he has already done.
  */
-export function pendingEndgameCelebration(state: GameState): EndgameCelebrationKind | undefined {
-  if (state.phase !== 'season-end' && state.phase !== 'complete') return undefined;
+export function pendingEndgameCelebration(
+  state: GameState,
+): EndgameCelebrationKind | undefined {
+  if (state.phase !== 'season-end' && state.phase !== 'complete')
+    return undefined;
   const flags = state.eventFlags;
   if (flags.includes(TRUE_ENDING_SEEN_FLAG)) return undefined;
   const leagueFlagged = flags.includes(GLOBAL_LEAGUE_WON_FLAG);
@@ -151,11 +161,12 @@ export function markEndgameCelebrationComplete(state: GameState): GameState {
 export function highestFamePlayer(
   squad: readonly CareerPlayer[],
 ): CareerPlayer | undefined {
-  return [...squad].sort((left, right) => (
-    (right.fame ?? 0) - (left.fame ?? 0)
-    || (right.seasonsAtClub ?? 0) - (left.seasonsAtClub ?? 0)
-    || compareIds(left.id, right.id)
-  ))[0];
+  return [...squad].sort(
+    (left, right) =>
+      (right.fame ?? 0) - (left.fame ?? 0) ||
+      (right.seasonsAtClub ?? 0) - (left.seasonsAtClub ?? 0) ||
+      compareIds(left.id, right.id),
+  )[0];
 }
 
 /**
@@ -172,12 +183,15 @@ export function endgameCelebrationViewModel(
   kind = pendingEndgameCelebration(state) ?? 'true-ending',
   t: CopyFn = englishCopy(),
 ): EndgameCelebrationViewModel {
-  const clubName = state.clubs.find(club => club.id === state.userClubId)?.name
-    ?? t('endgameCelebration.yourClub');
+  const clubName =
+    state.clubs.find((club) => club.id === state.userClubId)?.name ??
+    t('endgameCelebration.yourClub');
   const squad = rosterForClub(state, state.userClubId);
   const star = highestFamePlayer(squad);
   const spriteSide = finalFixtureSide(state);
-  const toViewModel = (player: CareerPlayer): EndgameCelebrationPlayerViewModel => ({
+  const toViewModel = (
+    player: CareerPlayer,
+  ): EndgameCelebrationPlayerViewModel => ({
     id: player.id,
     name: player.name,
     role: player.role,
@@ -208,7 +222,7 @@ export function endgameCelebrationViewModel(
     // curtain call, and a screen holding no squad would have had nobody to
     // bring on for the last thing the game ever shows.
     squad: squad
-      .filter(player => player.id !== star?.id)
+      .filter((player) => player.id !== star?.id)
       .sort((left, right) => compareIds(left.id, right.id))
       .map(toViewModel),
     coaches: celebrationCoaches(state),
@@ -242,10 +256,14 @@ function celebrationCopy(
   if (kind === 'global-league') {
     return {
       headline: t('endgameCelebration.globalLeague.headline'),
-      subheading: t('endgameCelebration.globalLeague.subheading', { club: clubName }),
+      subheading: t('endgameCelebration.globalLeague.subheading', {
+        club: clubName,
+      }),
       lines: [
         t('endgameCelebration.globalLeague.noDivisionAbove'),
-        t('endgameCelebration.globalLeague.climbedEveryRung', { star: starName }),
+        t('endgameCelebration.globalLeague.climbedEveryRung', {
+          star: starName,
+        }),
         t('endgameCelebration.globalLeague.oneTrophyLeft'),
       ],
     };
@@ -253,7 +271,9 @@ function celebrationCopy(
   if (kind === 'cup-winners') {
     return {
       headline: t('endgameCelebration.cupWinners.headline'),
-      subheading: t('endgameCelebration.cupWinners.subheading', { club: clubName }),
+      subheading: t('endgameCelebration.cupWinners.subheading', {
+        club: clubName,
+      }),
       lines: [
         t('endgameCelebration.cupWinners.everyRoundASingleTie'),
         t('endgameCelebration.cupWinners.carriedTheRun', { star: starName }),
@@ -263,7 +283,9 @@ function celebrationCopy(
   }
   return {
     headline: t('endgameCelebration.trueEnding.headline'),
-    subheading: t('endgameCelebration.trueEnding.subheading', { club: clubName }),
+    subheading: t('endgameCelebration.trueEnding.subheading', {
+      club: clubName,
+    }),
     // One bubble per entry. He is talking to the manager, not to a camera.
     lines: [
       t('endgameCelebration.trueEnding.beforeAnyoneElse'),
@@ -282,9 +304,15 @@ function celebrationCopy(
  */
 function finalFixtureSide(state: GameState): 'r' | 'u' {
   const finalFixture = state.fixtures
-    .filter(fixture => fixture.status === 'played'
-      && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId))
-    .sort((left, right) => right.week - left.week || compareIds(right.id, left.id))[0];
+    .filter(
+      (fixture) =>
+        fixture.status === 'played' &&
+        (fixture.homeClubId === state.userClubId ||
+          fixture.awayClubId === state.userClubId),
+    )
+    .sort(
+      (left, right) => right.week - left.week || compareIds(right.id, left.id),
+    )[0];
   return finalFixture?.awayClubId === state.userClubId ? 'u' : 'r';
 }
 

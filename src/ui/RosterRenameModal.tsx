@@ -1,12 +1,25 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import { ActionButton } from './components/Scorecard';
 import { PixelText } from './components/PixelText';
 import { useLayoutMode } from './layout/use-layout-mode';
 import { playManagementHaptic } from '../render/haptics';
-import { TYPED_NAME_MAX_LENGTH, TYPED_NAME_MIN_LENGTH, type InheritedSquadMember } from '../game';
+import {
+  TYPED_NAME_MAX_LENGTH,
+  TYPED_NAME_MIN_LENGTH,
+  type InheritedSquadMember,
+} from '../game';
 import { useCopy } from '../i18n';
 
 export interface RosterRenameModalProps {
@@ -36,13 +49,16 @@ export function RosterRenameModal({
   const t = useCopy();
   const wide = useLayoutMode() === 'twoColumn';
   const [drafts, setDrafts] = useState<Readonly<Record<string, string>>>(() =>
-    Object.fromEntries(roster.map(player => [player.id, renames[player.id] ?? player.name])));
+    Object.fromEntries(
+      roster.map((player) => [player.id, renames[player.id] ?? player.name]),
+    ),
+  );
   const [cleared, setCleared] = useState<Readonly<Record<string, boolean>>>({});
   const [saveAttempted, setSaveAttempted] = useState(false);
 
   // A field left blank keeps the name it started with, so the only bad entry is
   // a name too short to print.
-  const tooShort = roster.filter(player => {
+  const tooShort = roster.filter((player) => {
     const typed = (drafts[player.id] ?? '').trim();
     return typed.length > 0 && typed.length < TYPED_NAME_MIN_LENGTH;
   }).length;
@@ -69,17 +85,31 @@ export function RosterRenameModal({
       onRequestClose={onCancel}
       statusBarTranslucent
     >
-      <SafeAreaView className="flex-1" edges={['top', 'left', 'right', 'bottom']}>
+      <SafeAreaView
+        className="flex-1"
+        edges={['top', 'left', 'right', 'bottom']}
+      >
         <KeyboardAvoidingView
           className="flex-1"
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View
             accessibilityViewIsModal
-            className={wide ? 'flex-1 items-center justify-center px-3 py-6' : 'flex-1 justify-end px-3 pb-3'}
+            className={
+              wide
+                ? 'flex-1 items-center justify-center px-3 py-6'
+                : 'flex-1 justify-end px-3 pb-3'
+            }
           >
-            <Pressable accessible={false} style={StyleSheet.absoluteFill} onPress={onCancel}>
-              <View className="flex-1" style={{ backgroundColor: 'rgba(36,31,46,0.62)' }} />
+            <Pressable
+              accessible={false}
+              style={StyleSheet.absoluteFill}
+              onPress={onCancel}
+            >
+              <View
+                className="flex-1"
+                style={{ backgroundColor: 'rgba(36,31,46,0.62)' }}
+              />
             </Pressable>
 
             <View
@@ -109,7 +139,9 @@ export function RosterRenameModal({
               </View>
 
               <View className="border-b border-ink/20 bg-white px-4 py-2">
-                <Text className="text-xs leading-4 text-ink/60">{t('rosterRename.hint')}</Text>
+                <Text className="text-xs leading-4 text-ink/60">
+                  {t('rosterRename.hint')}
+                </Text>
               </View>
 
               <ScrollView
@@ -117,24 +149,38 @@ export function RosterRenameModal({
                 contentContainerStyle={{ padding: 16, paddingBottom: 8 }}
                 keyboardShouldPersistTaps="handled"
               >
-                {roster.map(player => (
-                  <View key={player.id} className="mb-2 flex-row items-center gap-2">
+                {roster.map((player) => (
+                  <View
+                    key={player.id}
+                    className="mb-2 flex-row items-center gap-2"
+                  >
                     <PixelText className="w-12 shrink-0 text-sm uppercase text-blue-dark">
                       {player.role}
                     </PixelText>
                     <TextInput
-                      accessibilityLabel={t('rosterRename.a11y.playerName', { player: player.name })}
+                      accessibilityLabel={t('rosterRename.a11y.playerName', {
+                        player: player.name,
+                      })}
                       value={drafts[player.id] ?? ''}
-                      onChangeText={value => {
-                        setDrafts(current => ({ ...current, [player.id]: value }));
+                      onChangeText={(value) => {
+                        setDrafts((current) => ({
+                          ...current,
+                          [player.id]: value,
+                        }));
                       }}
                       // The first tap clears the field; later taps leave what
                       // the manager typed alone, or a stray tap on a finished
                       // name would wipe it.
                       onFocus={() => {
                         if (cleared[player.id] === true) return;
-                        setCleared(current => ({ ...current, [player.id]: true }));
-                        setDrafts(current => ({ ...current, [player.id]: '' }));
+                        setCleared((current) => ({
+                          ...current,
+                          [player.id]: true,
+                        }));
+                        setDrafts((current) => ({
+                          ...current,
+                          [player.id]: '',
+                        }));
                       }}
                       placeholder={player.name}
                       placeholderTextColor="#6b6675"

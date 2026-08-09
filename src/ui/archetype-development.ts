@@ -29,7 +29,9 @@ export interface ArchetypeDevelopmentSummary {
 }
 
 /** @i18n-fallback — see `ArchetypeDevelopmentSummary`. */
-const ARCHETYPE_DEVELOPMENT: Readonly<Record<PlayerArchetype, ArchetypeDevelopmentSummary>> = {
+const ARCHETYPE_DEVELOPMENT: Readonly<
+  Record<PlayerArchetype, ArchetypeDevelopmentSummary>
+> = {
   Speedster: {
     strengths: '+15% PAC',
     strengthsKey: 'archetype.speedster.strengths',
@@ -95,6 +97,10 @@ const UNKNOWN_ARCHETYPE: ArchetypeDevelopmentSummary = {
  * but the table is typed by the enum, so a renamed archetype breaks the build
  * rather than quietly falling through here.
  */
-export function archetypeDevelopmentSummary(archetype: string): ArchetypeDevelopmentSummary {
-  return ARCHETYPE_DEVELOPMENT[archetype as PlayerArchetype] ?? UNKNOWN_ARCHETYPE;
+export function archetypeDevelopmentSummary(
+  archetype: string,
+): ArchetypeDevelopmentSummary {
+  return (
+    ARCHETYPE_DEVELOPMENT[archetype as PlayerArchetype] ?? UNKNOWN_ARCHETYPE
+  );
 }

@@ -21,12 +21,19 @@ import {
 } from '../../game';
 import { createMatch, queueInput, tick } from '../../sim/match';
 import type { PowerId, TeamDef } from '../../sim/types';
-import { EVEN_DELTA, STRENGTH_LADDER, scaleTeam as scale } from '../probe-calibration';
+import {
+  EVEN_DELTA,
+  STRENGTH_LADDER,
+  scaleTeam as scale,
+} from '../probe-calibration';
 import { shouldQueueWellTappedPower } from '../hero-value-tap-policy';
 
 const content = loadLaunchContent();
-const POWERS = content.powers.powers.map(power => power.id) as PowerId[];
-const SELECTED_POWERS = selectedPowerFilter(process.env.POWER_FIRING_ONLY, POWERS);
+const POWERS = content.powers.powers.map((power) => power.id) as PowerId[];
+const SELECTED_POWERS = selectedPowerFilter(
+  process.env.POWER_FIRING_ONLY,
+  POWERS,
+);
 const SEEDS = positiveIntegerEnv('POWER_FIRING_SEEDS', 200);
 const CALIBRATION_ONLY = process.env.POWER_FIRING_CALIBRATION_ONLY === '1';
 
@@ -69,7 +76,9 @@ describe('power firing diagnostic', () => {
     const { user } = openingTeams();
     expect(Object.keys(CARRIER_SLOT).sort()).toEqual([...POWERS].sort());
     for (const power of POWERS) {
-      expect(grantPower(user, power).players[CARRIER_SLOT[power]].power).toBe(power);
+      expect(grantPower(user, power).players[CARRIER_SLOT[power]].power).toBe(
+        power,
+      );
     }
   });
 
@@ -77,7 +86,7 @@ describe('power firing diagnostic', () => {
     const { user, opponent } = openingTeams();
     const evenOpponent = scale(opponent, EVEN_DELTA);
 
-    const ladder = LADDER.map(delta => ({
+    const ladder = LADDER.map((delta) => ({
       delta,
       ppm: run(user, scale(opponent, delta), false).ppm,
     }));
@@ -88,7 +97,10 @@ describe('power firing diagnostic', () => {
       `=== NO-HERO BASELINE at even strength: ppm ${baseline.ppm.toFixed(3)} ===`,
       '',
       '=== NO-HERO CALIBRATION LADDER ===',
-      ...ladder.map(row => `opponent delta ${String(row.delta).padStart(3)}: ppm ${row.ppm.toFixed(3)}`),
+      ...ladder.map(
+        (row) =>
+          `opponent delta ${String(row.delta).padStart(3)}: ppm ${row.ppm.toFixed(3)}`,
+      ),
     ];
     if (CALIBRATION_ONLY) {
       // eslint-disable-next-line no-console
@@ -101,15 +113,17 @@ describe('power firing diagnostic', () => {
       '=== AUTO-FIRE (Quick Result) ===',
       'power              zones/match  fires/match  expired  fire%   ppm     worth',
     );
-    const autoRows = SELECTED_POWERS.map(power => {
+    const autoRows = SELECTED_POWERS.map((power) => {
       const sample = run(grantPower(user, power), evenOpponent, false);
       lines.push(formatRow(power, sample, ladder));
       return { power, sample };
     });
 
     lines.push('', '=== CONTEXT-GATED TAP (skilled watched play) ===');
-    lines.push('power              zones/match  fires/match  expired  fire%   ppm     worth');
-    const tapRows = SELECTED_POWERS.map(power => {
+    lines.push(
+      'power              zones/match  fires/match  expired  fire%   ppm     worth',
+    );
+    const tapRows = SELECTED_POWERS.map((power) => {
       const sample = run(grantPower(user, power), evenOpponent, true);
       lines.push(formatRow(power, sample, ladder));
       return { power, sample };
@@ -120,10 +134,10 @@ describe('power firing diagnostic', () => {
       const auto = autoRows[index].sample;
       const tapped = tapRows[index].sample;
       lines.push(
-        `${SELECTED_POWERS[index].padEnd(19)}`
-        + `fires ${auto.fires.toFixed(2)} -> ${tapped.fires.toFixed(2)}   `
-        + `ppm ${auto.ppm.toFixed(3)} -> ${tapped.ppm.toFixed(3)}   `
-        + `(${(tapped.ppm - auto.ppm >= 0 ? '+' : '')}${(tapped.ppm - auto.ppm).toFixed(3)})`,
+        `${SELECTED_POWERS[index].padEnd(19)}` +
+          `fires ${auto.fires.toFixed(2)} -> ${tapped.fires.toFixed(2)}   ` +
+          `ppm ${auto.ppm.toFixed(3)} -> ${tapped.ppm.toFixed(3)}   ` +
+          `(${tapped.ppm - auto.ppm >= 0 ? '+' : ''}${(tapped.ppm - auto.ppm).toFixed(3)})`,
       );
     }
 
@@ -159,8 +173,15 @@ function run(home: TeamDef, away: TeamDef, contextTaps: boolean): Sample {
             tappedThisWindow[slot] = false;
             continue;
           }
-          if (!tappedThisWindow[slot] && shouldQueueWellTappedPower(match, slot)) {
-            queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: slot });
+          if (
+            !tappedThisWindow[slot] &&
+            shouldQueueWellTappedPower(match, slot)
+          ) {
+            queueInput(match, {
+              tick: match.tick + 1,
+              kind: 'POWER_TAP',
+              player: slot,
+            });
             tappedThisWindow[slot] = true;
           }
         }
@@ -193,15 +214,21 @@ function formatRow(
   sample: Sample,
   ladder: readonly { delta: number; ppm: number }[],
 ): string {
-  const firePercent = sample.zones === 0 ? 0 : (sample.fires / sample.zones) * 100;
-  return `${power.padEnd(19)}${sample.zones.toFixed(2).padEnd(13)}`
-    + `${sample.fires.toFixed(2).padEnd(13)}${sample.expired.toFixed(2).padEnd(9)}`
-    + `${`${firePercent.toFixed(0)}%`.padEnd(8)}${sample.ppm.toFixed(3).padEnd(8)}`
-    + worthLabel(ladder, sample.ppm);
+  const firePercent =
+    sample.zones === 0 ? 0 : (sample.fires / sample.zones) * 100;
+  return (
+    `${power.padEnd(19)}${sample.zones.toFixed(2).padEnd(13)}` +
+    `${sample.fires.toFixed(2).padEnd(13)}${sample.expired.toFixed(2).padEnd(9)}` +
+    `${`${firePercent.toFixed(0)}%`.padEnd(8)}${sample.ppm.toFixed(3).padEnd(8)}` +
+    worthLabel(ladder, sample.ppm)
+  );
 }
 
 /** Reads the strength delta that would produce this points-per-match. */
-function worthLabel(ladder: readonly { delta: number; ppm: number }[], ppm: number): string {
+function worthLabel(
+  ladder: readonly { delta: number; ppm: number }[],
+  ppm: number,
+): string {
   const sorted = [...ladder].sort((left, right) => right.delta - left.delta);
   for (let index = 0; index < sorted.length - 1; index += 1) {
     const high = sorted[index];
@@ -219,12 +246,19 @@ function worthLabel(ladder: readonly { delta: number; ppm: number }[], ppm: numb
 
 function openingTeams(): { user: TeamDef; opponent: TeamDef } {
   const state = addCreatedPlayer(
-    beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-      4_000_000, undefined, content, 'COZY',
-    ))),
-    { name: 'Probe Rookie', ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 } },
+    beginStoryOnboarding(
+      createCareer(
+        createLaunchCareerSetup(4_000_000, undefined, content, 'COZY'),
+      ),
+    ),
+    {
+      name: 'Probe Rookie',
+      ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 },
+    },
   );
-  const opponentId = content.clubs.clubs.map(club => club.id).find(id => id !== state.userClubId)!;
+  const opponentId = content.clubs.clubs
+    .map((club) => club.id)
+    .find((id) => id !== state.userClubId)!;
   const teams = buildCareerMatchTeams(state, [state.userClubId, opponentId]);
   return {
     user: withoutPowers(teams[state.userClubId]),
@@ -242,7 +276,9 @@ function openingTeams(): { user: TeamDef; opponent: TeamDef } {
  * because isolating it removes the only thing it can target. The companion sits
  * in slot 9, which is inside RALLY_CRY_RANGE (2600) of slot 6 in a 4-4-2.
  */
-const COMPANION_POWER: Partial<Record<PowerId, { power: PowerId; slot: number }>> = {
+const COMPANION_POWER: Partial<
+  Record<PowerId, { power: PowerId; slot: number }>
+> = {
   RALLY_CRY: { power: 'SUPER_SPEED', slot: 9 },
 };
 
@@ -255,13 +291,21 @@ const COMPANION_POWER: Partial<Record<PowerId, { power: PowerId; slot: number }>
 function grantPower(team: TeamDef, power: PowerId): TeamDef {
   const slot = CARRIER_SLOT[power];
   const carrier = team.players[slot];
-  if (carrier === undefined || !powerIsCompatibleWithRole(power, carrier.role)) {
-    throw new Error(`slot ${slot} cannot carry ${power} (role ${carrier?.role})`);
+  if (
+    carrier === undefined ||
+    !powerIsCompatibleWithRole(power, carrier.role)
+  ) {
+    throw new Error(
+      `slot ${slot} cannot carry ${power} (role ${carrier?.role})`,
+    );
   }
   const companion = COMPANION_POWER[power];
   if (companion !== undefined) {
     const mate = team.players[companion.slot];
-    if (mate === undefined || !powerIsCompatibleWithRole(companion.power, mate.role)) {
+    if (
+      mate === undefined ||
+      !powerIsCompatibleWithRole(companion.power, mate.role)
+    ) {
       throw new Error(
         `slot ${companion.slot} cannot carry companion ${companion.power} for ${power}`,
       );
@@ -285,16 +329,25 @@ function grantPower(team: TeamDef, power: PowerId): TeamDef {
 function positiveIntegerEnv(name: string, fallback: number): number {
   const raw = process.env[name];
   if (raw === undefined) return fallback;
-  if (!/^[1-9]\d*$/.test(raw)) throw new Error(`${name} must be a positive integer`);
+  if (!/^[1-9]\d*$/.test(raw))
+    throw new Error(`${name} must be a positive integer`);
   const value = Number(raw);
-  if (!Number.isSafeInteger(value)) throw new Error(`${name} must be a safe positive integer`);
+  if (!Number.isSafeInteger(value))
+    throw new Error(`${name} must be a safe positive integer`);
   return value;
 }
 
-function selectedPowerFilter(value: string | undefined, available: readonly PowerId[]): PowerId[] {
+function selectedPowerFilter(
+  value: string | undefined,
+  available: readonly PowerId[],
+): PowerId[] {
   if (value === undefined) return [...available];
-  const requested = value.split(',').map(power => power.trim()).filter(Boolean);
-  if (requested.length === 0) throw new Error('POWER_FIRING_ONLY must name at least one power');
+  const requested = value
+    .split(',')
+    .map((power) => power.trim())
+    .filter(Boolean);
+  if (requested.length === 0)
+    throw new Error('POWER_FIRING_ONLY must name at least one power');
   const availableIds: ReadonlySet<string> = new Set(available);
   for (const power of requested) {
     if (!availableIds.has(power)) {
@@ -302,5 +355,5 @@ function selectedPowerFilter(value: string | undefined, available: readonly Powe
     }
   }
   const selected = new Set(requested);
-  return available.filter(power => selected.has(power));
+  return available.filter((power) => selected.has(power));
 }

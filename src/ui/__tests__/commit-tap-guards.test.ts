@@ -18,19 +18,26 @@ describe('committing taps are guarded', () => {
     // The effect re-runs on every new `options` identity, and a resolved drill
     // produces one. Without the consume the confirmation reopened itself after
     // each drill, proposing a spend nobody asked for.
-    expect(modal).toContain('onQuickTrainConsumed?.();');
-    expect(modal).toContain('}, [onQuickTrainConsumed, options, quickTrainPathId]);');
-    expect(screen).toContain('onQuickTrainConsumed={forgetQuickTrainRequest}');
-    expect(screen).toContain('setQuickTrainPathId(undefined);');
+    expect(modal).toContainSource('onQuickTrainConsumed?.();');
+    expect(modal).toContainSource(
+      '}, [onQuickTrainConsumed, options, quickTrainPathId]);',
+    );
+    expect(screen).toContainSource(
+      'onQuickTrainConsumed={forgetQuickTrainRequest}',
+    );
+    expect(screen).toContainSource('setQuickTrainPathId(undefined);');
   });
 
   it('guards the three commits whose button re-renders holding the next decision', () => {
-    expect(read('src/ui/screens/MarketScreen.tsx'))
-      .toContain('onPress={() => guardTap(() => onSubmitContractOffer(');
-    expect(read('src/ui/screens/SeasonEndScreen.tsx'))
-      .toContain('onPress={() => guardTap(() => onRenewContract(');
-    expect(read('src/ui/screens/ClubLegacyScreen.tsx'))
-      .toContain('onPress={() => guardTap(() => onChoose(choice.id))}');
+    expect(read('src/ui/screens/MarketScreen.tsx')).toContainSource(
+      'onPress={() => guardTap(() => onSubmitContractOffer(',
+    );
+    expect(read('src/ui/screens/SeasonEndScreen.tsx')).toContainSource(
+      'onPress={() => guardTap(() => onRenewContract(',
+    );
+    expect(read('src/ui/screens/ClubLegacyScreen.tsx')).toContainSource(
+      'onPress={() => guardTap(() => onChoose(choice.id))}',
+    );
   });
 
   it('re-arms the match-day hand-off when the store refuses it', () => {
@@ -38,9 +45,11 @@ describe('committing taps are guarded', () => {
 
     // A blocked save leaves the screen mounted; without the re-arm both Watch
     // and Quick Result stayed dead for that fixture with only Back as a way out.
-    expect(source).toContain('reArmRef.current = setTimeout(');
-    expect(source).toContain('handedOffRef.current = false;');
-    expect(source).toContain('if (reArmRef.current !== null) clearTimeout(reArmRef.current);');
+    expect(source).toContainSource('reArmRef.current = setTimeout(');
+    expect(source).toContainSource('handedOffRef.current = false;');
+    expect(source).toContainSource(
+      'if (reArmRef.current !== null) clearTimeout(reArmRef.current);',
+    );
   });
 
   it('starts the week on the first tap instead of spending it on an animation skip', () => {
@@ -49,18 +58,22 @@ describe('committing taps are guarded', () => {
     // The press used to be swallowed for 2.8s after the screen mounted — about
     // twice the longest count-up — so a manager who tapped once the numbers had
     // settled heard the button's chime and stayed on the review.
-    expect(source).toContain('onPress={onContinue}');
-    expect(source).not.toContain('setBalanceAnimationsComplete(true);\n  };');
+    expect(source).toContainSource('onPress={onContinue}');
+    expect(source).not.toContainSource(
+      'setBalanceAnimationsComplete(true);\n  };',
+    );
   });
 
   it('answers a refused management action instead of failing silently', () => {
     const source = read('App.tsx');
-    expect(source).toContain("playManagementActionSfx('warning');");
+    expect(source).toContainSource("playManagementActionSfx('warning');");
     // The confirmation sheet no longer adds a second cue on top of the button's.
-    expect(source).not.toContain("playManagementActionSfx('select');\n    setPendingConfirmation");
+    expect(source).not.toContainSource(
+      "playManagementActionSfx('select');\n    setPendingConfirmation",
+    );
   });
 
   it('keeps the last-resort database reset from failing in silence', () => {
-    expect(read('App.tsx')).toContain('The save could not be deleted.');
+    expect(read('App.tsx')).toContainSource('The save could not be deleted.');
   });
 });

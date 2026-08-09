@@ -49,7 +49,9 @@ describe('persisted copy carries keys alongside English', () => {
   test('English stays required, so a writer cannot emit keys alone', () => {
     const { label: _dropped, ...withoutEnglish } = ENGLISH_LINE;
 
-    expect(() => roundTrip({ ...withoutEnglish, labelKey: 'ledger.merch' })).toThrow();
+    expect(() =>
+      roundTrip({ ...withoutEnglish, labelKey: 'ledger.merch' }),
+    ).toThrow();
   });
 
   test('parameters refuse a structured value — raw strings and numbers only', () => {
@@ -57,10 +59,12 @@ describe('persisted copy carries keys alongside English', () => {
     // placement into SQLite, which is the bug this pair exists to prevent. The
     // schema refuses anything that is not a plain scalar; a formatted *string*
     // is caught by review and the placeholder-parity gate instead.
-    expect(() => roundTrip({
-      ...ENGLISH_LINE,
-      labelKey: 'ledger.merch',
-      labelParams: { fee: { amount: 240_000 } },
-    })).toThrow();
+    expect(() =>
+      roundTrip({
+        ...ENGLISH_LINE,
+        labelKey: 'ledger.merch',
+        labelParams: { fee: { amount: 240_000 } },
+      }),
+    ).toThrow();
   });
 });

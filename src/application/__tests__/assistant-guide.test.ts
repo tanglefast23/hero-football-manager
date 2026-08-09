@@ -1,4 +1,8 @@
-import { advanceWeek, createCareer, CUP_SETTLEMENT_WEEKS } from '../../game/career';
+import {
+  advanceWeek,
+  createCareer,
+  CUP_SETTLEMENT_WEEKS,
+} from '../../game/career';
 import { advanceFacilityConstruction } from '../../game/facilities';
 import { buildTrainingGround } from '../../game/squad';
 import { buildCareerFacility } from '../../game/management';
@@ -32,8 +36,9 @@ import { homeViewModel, reconcileHomeAssistantInbox } from '../view-models';
 function clearOtherGuideFirsts(state: GameState): GameState {
   let next = state;
   for (let pass = 0; pass < M2_ASSISTANT_GUIDE_SEQUENCE_IDS.length; pass += 1) {
-    const remaining = dueAssistantInboxGuideSequences(next)
-      .filter(sequenceId => sequenceId !== 'facility-upgrade');
+    const remaining = dueAssistantInboxGuideSequences(next).filter(
+      (sequenceId) => sequenceId !== 'facility-upgrade',
+    );
     if (remaining.length === 0) return next;
     for (const sequenceId of remaining) {
       next = completeAssistantGuideSequence(next, sequenceId);
@@ -43,9 +48,13 @@ function clearOtherGuideFirsts(state: GameState): GameState {
 }
 
 function completeOpeningPitch(state: GameState): GameState {
-  const started = buildCareerFacility(state, 'training-pitch', { x: 0, y: 0 }).state;
+  const started = buildCareerFacility(state, 'training-pitch', {
+    x: 0,
+    y: 0,
+  }).state;
   let grid = started.facilities.grid!;
-  while (grid.construction !== undefined) grid = advanceFacilityConstruction(grid).grid;
+  while (grid.construction !== undefined)
+    grid = advanceFacilityConstruction(grid).grid;
   return {
     ...started,
     facilities: { ...started.facilities, trainingGroundBuilt: true, grid },
@@ -58,7 +67,9 @@ function managedSponsorCareer(options: {
   readonly withActionableOffer: boolean;
   readonly phase?: GameState['phase'];
 }): GameState {
-  const state = createCareer(createLaunchCareerSetup(9_800 + options.season * 30 + options.week));
+  const state = createCareer(
+    createLaunchCareerSetup(9_800 + options.season * 30 + options.week),
+  );
   const contract = {
     contractId: `continuity-s${options.season}-slot0`,
     sponsorContentId: 'continuity',
@@ -111,19 +122,34 @@ describe('assistant guide application flow', () => {
       withActionableOffer: true,
     });
 
-    expect(dueAssistantInboxGuideSequences(promotionMorning)).toContain('sponsor-desk');
-    expect(dueAssistantInboxGuideSequences(promotionMorning)).not.toContain('sponsor-desk-continuity');
-    expect(dueAssistantInboxGuideSequences({ ...promotionMorning, phase: 'season-end' }))
-      .not.toContain('sponsor-desk');
-    expect(homeViewModel(reconcileHomeAssistantInbox(promotionMorning)).alerts).toContainEqual(
+    expect(dueAssistantInboxGuideSequences(promotionMorning)).toContain(
+      'sponsor-desk',
+    );
+    expect(dueAssistantInboxGuideSequences(promotionMorning)).not.toContain(
+      'sponsor-desk-continuity',
+    );
+    expect(
+      dueAssistantInboxGuideSequences({
+        ...promotionMorning,
+        phase: 'season-end',
+      }),
+    ).not.toContain('sponsor-desk');
+    expect(
+      homeViewModel(reconcileHomeAssistantInbox(promotionMorning)).alerts,
+    ).toContainEqual(
       expect.objectContaining({
         guideSequenceId: 'sponsor-desk',
         destination: 'club-finances',
       }),
     );
 
-    const completed = completeAssistantGuideSequence(promotionMorning, 'sponsor-desk');
-    expect(dueAssistantInboxGuideSequences(completed)).not.toContain('sponsor-desk');
+    const completed = completeAssistantGuideSequence(
+      promotionMorning,
+      'sponsor-desk',
+    );
+    expect(dueAssistantInboxGuideSequences(completed)).not.toContain(
+      'sponsor-desk',
+    );
   });
 
   test('queues Buzz on the first Season 3 management morning even while managed sponsors stay locked', () => {
@@ -135,10 +161,15 @@ describe('assistant guide application flow', () => {
       phase: 'manage',
     };
 
-    expect(dueAssistantInboxGuideSequences(seasonThreeD5)).toContain('sponsor-buzz');
-    expect(dueAssistantInboxGuideSequences(seasonThreeD5)).not.toContain('sponsor-desk');
-    expect(dueAssistantInboxGuideSequences({ ...seasonThreeD5, phase: 'matchday' }))
-      .not.toContain('sponsor-buzz');
+    expect(dueAssistantInboxGuideSequences(seasonThreeD5)).toContain(
+      'sponsor-buzz',
+    );
+    expect(dueAssistantInboxGuideSequences(seasonThreeD5)).not.toContain(
+      'sponsor-desk',
+    );
+    expect(
+      dueAssistantInboxGuideSequences({ ...seasonThreeD5, phase: 'matchday' }),
+    ).not.toContain('sponsor-buzz');
   });
 
   test('replaces an impossible Week 5 Sponsor Desk objective with continuity copy', () => {
@@ -156,12 +187,21 @@ describe('assistant guide application flow', () => {
       ],
     };
 
-    const repaired = reconcileSatisfiedAssistantGuideSequences(staleStandardGuide);
+    const repaired =
+      reconcileSatisfiedAssistantGuideSequences(staleStandardGuide);
 
-    expect(repaired.eventFlags.some(flag => flag.endsWith('guide:sponsor-desk'))).toBe(false);
-    expect(dueAssistantInboxGuideSequences(repaired)).toContain('sponsor-desk-continuity');
-    expect(dueAssistantInboxGuideSequences(repaired)).not.toContain('sponsor-desk');
-    expect(homeViewModel(reconcileHomeAssistantInbox(repaired)).alerts).toContainEqual(
+    expect(
+      repaired.eventFlags.some((flag) => flag.endsWith('guide:sponsor-desk')),
+    ).toBe(false);
+    expect(dueAssistantInboxGuideSequences(repaired)).toContain(
+      'sponsor-desk-continuity',
+    );
+    expect(dueAssistantInboxGuideSequences(repaired)).not.toContain(
+      'sponsor-desk',
+    );
+    expect(
+      homeViewModel(reconcileHomeAssistantInbox(repaired)).alerts,
+    ).toContainEqual(
       expect.objectContaining({
         guideSequenceId: 'sponsor-desk-continuity',
         destination: 'club-finances',
@@ -182,53 +222,79 @@ describe('assistant guide application flow', () => {
       ],
     };
     const repaired = reconcileSatisfiedAssistantGuideSequences(exposed);
-    expect(repaired.eventFlags.some(flag => flag.includes('sponsor-desk'))).toBe(false);
+    expect(
+      repaired.eventFlags.some((flag) => flag.includes('sponsor-desk')),
+    ).toBe(false);
 
     const promoted = managedSponsorCareer({
       season: 3,
       week: 1,
       withActionableOffer: true,
     });
-    const alerts = homeViewModel(reconcileHomeAssistantInbox({
-      ...promoted,
-      eventFlags: repaired.eventFlags,
-    })).alerts;
-    expect(alerts).toContainEqual(expect.objectContaining({ guideSequenceId: 'sponsor-desk' }));
-    expect(alerts).not.toContainEqual(expect.objectContaining({ guideSequenceId: 'sponsor-buzz' }));
+    const alerts = homeViewModel(
+      reconcileHomeAssistantInbox({
+        ...promoted,
+        eventFlags: repaired.eventFlags,
+      }),
+    ).alerts;
+    expect(alerts).toContainEqual(
+      expect.objectContaining({ guideSequenceId: 'sponsor-desk' }),
+    );
+    expect(alerts).not.toContainEqual(
+      expect.objectContaining({ guideSequenceId: 'sponsor-buzz' }),
+    );
   });
 
   test('flags the fixture on the morning of match week, once', () => {
     let state = createCareer(createLaunchCareerSetup(932));
     state = completeAssistantGuideSequence(state, 'management-intro');
-    const firstFixtureWeek = Math.min(...state.fixtures
-      .filter(fixture => fixture.season === state.season
-        && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId))
-      .map(fixture => fixture.week));
+    const firstFixtureWeek = Math.min(
+      ...state.fixtures
+        .filter(
+          (fixture) =>
+            fixture.season === state.season &&
+            (fixture.homeClubId === state.userClubId ||
+              fixture.awayClubId === state.userClubId),
+        )
+        .map((fixture) => fixture.week),
+    );
     // The briefing has to land on a week of its own, after the intro's.
     expect(firstFixtureWeek).toBeGreaterThan(1);
 
     // Quiet on the weeks between the intro and the match.
-    expect(pendingAssistantGuideSequence({ ...state, week: firstFixtureWeek - 1 }, 'home')).toBeNull();
+    expect(
+      pendingAssistantGuideSequence(
+        { ...state, week: firstFixtureWeek - 1 },
+        'home',
+      ),
+    ).toBeNull();
 
     const matchWeek = { ...state, week: firstFixtureWeek };
     expect(pendingAssistantGuideSequence(matchWeek, 'home')).toBe('desk-intro');
     // Reading it retires it: this was dead content precisely because nothing
     // ever asked for it, and a briefing that reappears every match week is the
     // opposite failure.
-    expect(pendingAssistantGuideSequence(
-      completeAssistantGuideSequence(matchWeek, 'desk-intro'),
-      'home',
-    )).toBeNull();
+    expect(
+      pendingAssistantGuideSequence(
+        completeAssistantGuideSequence(matchWeek, 'desk-intro'),
+        'home',
+      ),
+    ).toBeNull();
   });
 
   test('reveals one task and one follow-up sequence at a time', () => {
     let state = createCareer(createLaunchCareerSetup(932));
-    expect(pendingAssistantGuideSequence(state, 'home')).toBe('management-intro');
+    expect(pendingAssistantGuideSequence(state, 'home')).toBe(
+      'management-intro',
+    );
     expect(currentAssistantObjective(state, 'home')).toBeNull();
 
     state = completeAssistantGuideSequence(state, 'management-intro');
     expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
-    expect(currentAssistantObjective(state, 'home')).toEqual({ text: 'OPEN SQUAD.', target: 'squad-tab' });
+    expect(currentAssistantObjective(state, 'home')).toEqual({
+      text: 'OPEN SQUAD.',
+      target: 'squad-tab',
+    });
     expect(pendingAssistantGuideSequence(state, 'squad')).toBeNull();
     expect(currentAssistantObjective(state, 'squad')).toEqual({
       text: 'TAP + ON A PLAYER AND TRAIN A STAT.',
@@ -236,7 +302,10 @@ describe('assistant guide application flow', () => {
     });
 
     state = completeAssistantGuideMilestone(state, 'first-training-complete');
-    expect(currentAssistantObjective(state, 'squad')).toEqual({ text: 'RETURN HOME.', target: 'home-tab' });
+    expect(currentAssistantObjective(state, 'squad')).toEqual({
+      text: 'RETURN HOME.',
+      target: 'home-tab',
+    });
     expect(pendingAssistantGuideSequence(state, 'squad')).toBeNull();
     expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
 
@@ -253,13 +322,23 @@ describe('assistant guide application flow', () => {
       ...state,
       facilities: { ...state.facilities, trainingGroundBuilt: true },
     };
-    expect(currentAssistantObjective(state, 'club')).toEqual({ text: 'RETURN HOME.', target: 'home-tab' });
+    expect(currentAssistantObjective(state, 'club')).toEqual({
+      text: 'RETURN HOME.',
+      target: 'home-tab',
+    });
     expect(pendingAssistantGuideSequence(state, 'club')).toBeNull();
     expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
 
     // Hiring the head coach is the other first-week inbox job; the desk only
     // clears once both are done.
-    state = { ...state, market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id) };
+    state = {
+      ...state,
+      market: hireCareerCoach(
+        state,
+        state.market!,
+        state.market!.coachCandidates[0].id,
+      ),
+    };
     expect(currentAssistantObjective(state, 'home')).toEqual({
       text: 'INBOX CLEAR. ADVANCE WEEK.',
       target: 'advance-week',
@@ -275,7 +354,9 @@ describe('assistant guide application flow', () => {
 
     expect(pendingAssistantGuideSequence(staleWeekTwoSave, 'home')).toBeNull();
     expect(currentAssistantObjective(staleWeekTwoSave, 'home')).toBeNull();
-    expect(pendingAssistantGuideSequence(staleLaterSeasonSave, 'home')).toBeNull();
+    expect(
+      pendingAssistantGuideSequence(staleLaterSeasonSave, 'home'),
+    ).toBeNull();
     expect(currentAssistantObjective(staleLaterSeasonSave, 'home')).toBeNull();
   });
 
@@ -284,7 +365,14 @@ describe('assistant guide application flow', () => {
     state = completeAssistantGuideSequence(state, 'management-intro');
     state = completeAssistantGuideMilestone(state, 'first-training-complete');
     state = buildTrainingGround(state);
-    state = { ...state, market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id) };
+    state = {
+      ...state,
+      market: hireCareerCoach(
+        state,
+        state.market!,
+        state.market!.coachCandidates[0].id,
+      ),
+    };
 
     expect(state.facilities.trainingGroundBuilt).toBe(false);
     expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
@@ -301,7 +389,11 @@ describe('assistant guide application flow', () => {
     state = buildCareerFacility(state, 'gym', { x: 0, y: 0 }).state;
     state = {
       ...state,
-      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+      market: hireCareerCoach(
+        state,
+        state.market!,
+        state.market!.coachCandidates[0].id,
+      ),
     };
 
     expect(openingTrainingPitchRequired(state)).toBe(true);
@@ -323,11 +415,12 @@ describe('assistant guide application flow', () => {
       week: 3,
       facilities: { ...state.facilities, grid: finishedGrid },
     };
-    expect(dueAssistantInboxGuideSequences(recoveredWeekThree)).toEqual(expect.arrayContaining([
-      'facility-placement',
+    expect(dueAssistantInboxGuideSequences(recoveredWeekThree)).toEqual(
+      expect.arrayContaining(['facility-placement', 'coaching-office']),
+    );
+    expect(outstandingInboxDuties(recoveredWeekThree)).not.toContain(
       'coaching-office',
-    ]));
-    expect(outstandingInboxDuties(recoveredWeekThree)).not.toContain('coaching-office');
+    );
   });
 
   test('waits for both first-week inbox jobs before pointing to Advance Week', () => {
@@ -342,7 +435,11 @@ describe('assistant guide application flow', () => {
 
     state = {
       ...state,
-      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+      market: hireCareerCoach(
+        state,
+        state.market!,
+        state.market!.coachCandidates[0].id,
+      ),
     };
     expect(currentAssistantObjective(state, 'home')).toEqual({
       text: 'INBOX CLEAR. ADVANCE WEEK.',
@@ -359,13 +456,21 @@ describe('assistant guide application flow', () => {
         ...state.eventFlags,
         'guide:bert:inbox:queued:head-coach-hire',
       ],
-      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+      market: hireCareerCoach(
+        state,
+        state.market!,
+        state.market!.coachCandidates[0].id,
+      ),
     };
 
     const reconciled = reconcileSatisfiedAssistantGuideSequences(state);
 
-    expect(dueAssistantInboxGuideSequences(reconciled)).not.toContain('head-coach-hire');
-    expect(reconciled.eventFlags).toContain('guide:bert:sequence-complete:head-coach-hire');
+    expect(dueAssistantInboxGuideSequences(reconciled)).not.toContain(
+      'head-coach-hire',
+    );
+    expect(reconciled.eventFlags).toContain(
+      'guide:bert:sequence-complete:head-coach-hire',
+    );
   });
 
   test('saves the first facility upgrade for a quiet week after the story season', () => {
@@ -378,14 +483,20 @@ describe('assistant guide application flow', () => {
     // The pitch opens in Week 3 of the story season, days after the player paid
     // for it. "Upgrade a facility" there reads as "build that again".
     expect(state.facilities.trainingGroundBuilt).toBe(true);
-    expect(dueAssistantInboxGuideSequences(state)).not.toContain('facility-upgrade');
+    expect(dueAssistantInboxGuideSequences(state)).not.toContain(
+      'facility-upgrade',
+    );
 
     // Season 2 opens with firsts of its own, and the upgrade queues behind all
     // of them rather than taking one of the three weekly slots.
     const seasonTwo = { ...state, season: 2 };
-    expect(dueAssistantInboxGuideSequences(seasonTwo)).not.toContain('facility-upgrade');
+    expect(dueAssistantInboxGuideSequences(seasonTwo)).not.toContain(
+      'facility-upgrade',
+    );
     const quietWeek = clearOtherGuideFirsts(seasonTwo);
-    expect(dueAssistantInboxGuideSequences(quietWeek)).toEqual(['facility-upgrade']);
+    expect(dueAssistantInboxGuideSequences(quietWeek)).toEqual([
+      'facility-upgrade',
+    ]);
 
     // Nothing left to teach once every building sits at the current ceiling.
     const atCeiling = {
@@ -394,13 +505,16 @@ describe('assistant guide application flow', () => {
         ...quietWeek.facilities,
         grid: {
           ...quietWeek.facilities.grid!,
-          buildings: quietWeek.facilities.grid!.buildings.map(building => (
-            { ...building, level: 2 as const }
-          )),
+          buildings: quietWeek.facilities.grid!.buildings.map((building) => ({
+            ...building,
+            level: 2 as const,
+          })),
         },
       },
     };
-    expect(dueAssistantInboxGuideSequences(atCeiling)).not.toContain('facility-upgrade');
+    expect(dueAssistantInboxGuideSequences(atCeiling)).not.toContain(
+      'facility-upgrade',
+    );
   });
 
   test('strips an upgrade lesson a story-season save was already handed', () => {
@@ -419,7 +533,9 @@ describe('assistant guide application flow', () => {
 
     const repaired = reconcileSatisfiedAssistantGuideSequences(weekThreeSave);
 
-    expect(repaired.eventFlags.some(flag => flag.includes('facility-upgrade'))).toBe(false);
+    expect(
+      repaired.eventFlags.some((flag) => flag.includes('facility-upgrade')),
+    ).toBe(false);
   });
 
   test('keeps the upgrade card off a desk that already has real work on it', () => {
@@ -429,31 +545,43 @@ describe('assistant guide application flow', () => {
     state = advanceWeek(state);
     state = clearOtherGuideFirsts({ ...state, season: 2 });
 
-    const upgradeCard = expect.objectContaining({ guideSequenceId: 'facility-upgrade' });
-    expect(homeViewModel(reconcileHomeAssistantInbox(state)).alerts).toContainEqual(upgradeCard);
+    const upgradeCard = expect.objectContaining({
+      guideSequenceId: 'facility-upgrade',
+    });
+    expect(
+      homeViewModel(reconcileHomeAssistantInbox(state)).alerts,
+    ).toContainEqual(upgradeCard);
 
     const injured = {
       ...state,
-      players: state.players.map((player, index) => (
+      players: state.players.map((player, index) =>
         player.clubId === state.userClubId && index === 0
           ? { ...player, injuryWeeks: 2 }
-          : player
-      )),
+          : player,
+      ),
     };
-    expect(homeViewModel(reconcileHomeAssistantInbox(injured)).alerts).not.toContainEqual(upgradeCard);
+    expect(
+      homeViewModel(reconcileHomeAssistantInbox(injured)).alerts,
+    ).not.toContainEqual(upgradeCard);
   });
 
   it('offers Youth Intake in Week 2 and delays the Coaching Office prompt until Week 3', () => {
     let state = createCareer(createLaunchCareerSetup(415));
     state = {
       ...state,
-      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+      market: hireCareerCoach(
+        state,
+        state.market!,
+        state.market!.coachCandidates[0].id,
+      ),
     };
 
     const weekTwo = reconcileStoryYouthIntake({ ...state, week: 2 });
     expect(weekTwo.youthIntake).toMatchObject({ status: 'OPEN' });
     expect(dueAssistantInboxGuideSequences(weekTwo)).toContain('youth-intake');
-    expect(dueAssistantInboxGuideSequences(weekTwo)).not.toContain('coaching-office');
+    expect(dueAssistantInboxGuideSequences(weekTwo)).not.toContain(
+      'coaching-office',
+    );
 
     const repairedWeekTwo = reconcileSatisfiedAssistantGuideSequences({
       ...weekTwo,
@@ -463,25 +591,42 @@ describe('assistant guide application flow', () => {
         'guide:bert:inbox:delivered:s1:w2:guide:coaching-office',
       ],
     });
-    expect(repairedWeekTwo.eventFlags.some(flag => flag.includes('coaching-office'))).toBe(false);
+    expect(
+      repairedWeekTwo.eventFlags.some((flag) =>
+        flag.includes('coaching-office'),
+      ),
+    ).toBe(false);
 
-    const afterYouth = completeAssistantGuideSequence(repairedWeekTwo, 'youth-intake');
+    const afterYouth = completeAssistantGuideSequence(
+      repairedWeekTwo,
+      'youth-intake',
+    );
     const weekThree = { ...afterYouth, week: 3 };
-    expect(dueAssistantInboxGuideSequences(weekThree)).toContain('coaching-office');
-    expect(dueAssistantInboxGuideSequences(weekThree)).not.toContain('youth-intake');
+    expect(dueAssistantInboxGuideSequences(weekThree)).toContain(
+      'coaching-office',
+    );
+    expect(dueAssistantInboxGuideSequences(weekThree)).not.toContain(
+      'youth-intake',
+    );
   });
 
   it('holds the week open for the opening inbox duties and lets it go afterwards', () => {
     let state = createCareer(createLaunchCareerSetup(415));
     state = {
       ...state,
-      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+      market: hireCareerCoach(
+        state,
+        state.market!,
+        state.market!.coachCandidates[0].id,
+      ),
     };
 
     // Week 1 must never be walled: the training pitch is due from the first
     // morning, and refusing the opening Advance Week of every career is a much
     // bigger change than teaching the desk.
-    expect(dueAssistantInboxGuideSequences(state)).toContain('facility-placement');
+    expect(dueAssistantInboxGuideSequences(state)).toContain(
+      'facility-placement',
+    );
     expect(outstandingInboxDuties(state)).toEqual([]);
 
     state = completeOpeningPitch(state);
@@ -497,11 +642,16 @@ describe('assistant guide application flow', () => {
 
     // Starting construction clears it — the building joins the grid at once,
     // which is what the desk reads. Finishing it is not required.
-    const building = buildCareerFacility(weekThree, 'coaching-office', { x: 1, y: 4 }).state;
+    const building = buildCareerFacility(weekThree, 'coaching-office', {
+      x: 1,
+      y: 4,
+    }).state;
     expect(outstandingInboxDuties(building)).toEqual([]);
 
     // Week 4 onwards the desk is the manager's own business.
-    expect(outstandingInboxDuties({ ...weekThree, week: LAST_GATED_INBOX_WEEK + 1 })).toEqual([]);
+    expect(
+      outstandingInboxDuties({ ...weekThree, week: LAST_GATED_INBOX_WEEK + 1 }),
+    ).toEqual([]);
     expect(outstandingInboxDuties({ ...weekThree, season: 2 })).toEqual([]);
   });
 
@@ -509,7 +659,11 @@ describe('assistant guide application flow', () => {
     let state = createCareer(createLaunchCareerSetup(415));
     state = {
       ...state,
-      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+      market: hireCareerCoach(
+        state,
+        state.market!,
+        state.market!.coachCandidates[0].id,
+      ),
     };
     state = { ...completeOpeningPitch(state), week: 3 };
     expect(outstandingInboxDuties(state)).toContain('coaching-office');
@@ -520,11 +674,11 @@ describe('assistant guide application flow', () => {
     // desk — it is still the job — it just stops holding the clock.
     const broke = {
       ...state,
-      clubs: state.clubs.map(club => (
+      clubs: state.clubs.map((club) =>
         club.id === state.userClubId
           ? { ...club, cash: FACILITY_CATALOG['coaching-office'].buildCost - 1 }
-          : club
-      )),
+          : club,
+      ),
     };
     expect(dueAssistantInboxGuideSequences(broke)).toContain('coaching-office');
     expect(outstandingInboxDuties(broke)).not.toContain('coaching-office');
@@ -533,36 +687,54 @@ describe('assistant guide application flow', () => {
   it('keeps the Training Pitch objective unfinished until construction completes', () => {
     let state = createCareer(createLaunchCareerSetup(413));
     expect(state.facilities.grid?.buildings).toHaveLength(0);
-    expect(dueAssistantInboxGuideSequences(state)).toContain('facility-placement');
+    expect(dueAssistantInboxGuideSequences(state)).toContain(
+      'facility-placement',
+    );
 
     state = completeAssistantGuideSequence(state, 'facility-placement');
-    expect(hasAssistantGuideSequenceCompleted(state, 'facility-placement')).toBe(false);
+    expect(
+      hasAssistantGuideSequenceCompleted(state, 'facility-placement'),
+    ).toBe(false);
 
     state = buildCareerFacility(state, 'training-pitch', { x: 4, y: 2 }).state;
-    expect(dueAssistantInboxGuideSequences(state)).not.toContain('facility-placement');
-    expect(hasAssistantGuideSequenceCompleted(state, 'facility-placement')).toBe(false);
+    expect(dueAssistantInboxGuideSequences(state)).not.toContain(
+      'facility-placement',
+    );
+    expect(
+      hasAssistantGuideSequenceCompleted(state, 'facility-placement'),
+    ).toBe(false);
 
     state = advanceWeek(state);
     state = reconcileSatisfiedAssistantGuideSequences(state);
     expect(state.facilities.trainingGroundBuilt).toBe(false);
-    expect(hasAssistantGuideSequenceCompleted(state, 'facility-placement')).toBe(false);
+    expect(
+      hasAssistantGuideSequenceCompleted(state, 'facility-placement'),
+    ).toBe(false);
 
     state = advanceWeek(state);
     state = reconcileSatisfiedAssistantGuideSequences(state);
     expect(state.facilities.trainingGroundBuilt).toBe(true);
-    expect(hasAssistantGuideSequenceCompleted(state, 'facility-placement')).toBe(true);
+    expect(
+      hasAssistantGuideSequenceCompleted(state, 'facility-placement'),
+    ).toBe(true);
   });
 
   it('waits until the Coaching Office opens before offering assistant-coach hiring', () => {
     let state = createCareer(createLaunchCareerSetup(414));
     state = {
       ...state,
-      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+      market: hireCareerCoach(
+        state,
+        state.market!,
+        state.market!.coachCandidates[0].id,
+      ),
     };
     state = buildCareerFacility(state, 'coaching-office', { x: 2, y: 0 }).state;
 
     expect(state.facilities.grid?.construction?.type).toBe('coaching-office');
-    expect(dueAssistantInboxGuideSequences(state)).not.toContain('assistant-coach-hire');
+    expect(dueAssistantInboxGuideSequences(state)).not.toContain(
+      'assistant-coach-hire',
+    );
 
     const premature = {
       ...state,
@@ -574,45 +746,63 @@ describe('assistant guide application flow', () => {
       ],
     };
     const repaired = reconcileSatisfiedAssistantGuideSequences(premature);
-    expect(repaired.eventFlags.some(flag => flag.includes('assistant-coach-hire'))).toBe(false);
+    expect(
+      repaired.eventFlags.some((flag) => flag.includes('assistant-coach-hire')),
+    ).toBe(false);
     const repairedLaterSeason = reconcileSatisfiedAssistantGuideSequences({
       ...premature,
       season: 2,
     });
-    expect(repairedLaterSeason.eventFlags.some(flag => flag.includes('assistant-coach-hire')))
-      .toBe(false);
+    expect(
+      repairedLaterSeason.eventFlags.some((flag) =>
+        flag.includes('assistant-coach-hire'),
+      ),
+    ).toBe(false);
 
     state = advanceWeek(repaired);
     state = reconcileSatisfiedAssistantGuideSequences(state);
 
     expect(state.facilities.grid?.construction).toBeUndefined();
-    expect(dueAssistantInboxGuideSequences(state)).toContain('assistant-coach-hire');
+    expect(dueAssistantInboxGuideSequences(state)).toContain(
+      'assistant-coach-hire',
+    );
 
     const scheduled = reconcileHomeAssistantInbox(state);
-    expect(homeViewModel(scheduled).alerts).toContainEqual(expect.objectContaining({
-      guideSequenceId: 'assistant-coach-hire',
-      destination: 'coach-market',
-    }));
+    expect(homeViewModel(scheduled).alerts).toContainEqual(
+      expect.objectContaining({
+        guideSequenceId: 'assistant-coach-hire',
+        destination: 'coach-market',
+      }),
+    );
   });
 
   test('opens the division leaders briefing when the boards themselves open', () => {
     const drawn = createCareer(createLaunchCareerSetup(551));
-    const noCup: GameState = { ...drawn, m2: { ...drawn.m2!, nationalCups: [] } };
+    const noCup: GameState = {
+      ...drawn,
+      m2: { ...drawn.m2!, nationalCups: [] },
+    };
     const firstCupWeek = CUP_SETTLEMENT_WEEKS[0];
 
     // A career with no cup drawn has no leaders tab and must never be sent to
     // one, however late the season gets.
-    expect(dueAssistantInboxGuideSequences({ ...noCup, week: firstCupWeek + 3 }))
-      .not.toContain('division-leaders');
-    expect(dueAssistantInboxGuideSequences({ ...drawn, week: firstCupWeek + 2 }))
-      .not.toContain('division-leaders');
+    expect(
+      dueAssistantInboxGuideSequences({ ...noCup, week: firstCupWeek + 3 }),
+    ).not.toContain('division-leaders');
+    expect(
+      dueAssistantInboxGuideSequences({ ...drawn, week: firstCupWeek + 2 }),
+    ).not.toContain('division-leaders');
 
     const unlocked = { ...drawn, week: firstCupWeek + 3 };
-    expect(dueAssistantInboxGuideSequences(unlocked)).toContain('division-leaders');
+    expect(dueAssistantInboxGuideSequences(unlocked)).toContain(
+      'division-leaders',
+    );
     // Reading it retires it, on the same completion flag as every other first.
-    expect(dueAssistantInboxGuideSequences(
-      completeAssistantGuideSequence(unlocked, 'division-leaders'),
-    )).not.toContain('division-leaders');
+    expect(
+      dueAssistantInboxGuideSequences(
+        completeAssistantGuideSequence(unlocked, 'division-leaders'),
+      ),
+    ).not.toContain('division-leaders');
   });
 
   test('sends the delivered division leaders card to the leaders board', () => {
@@ -623,9 +813,14 @@ describe('assistant guide application flow', () => {
     };
     // Only three cards reach a desk in a week, so the older firsts are read
     // off it first — otherwise this asserts the tranche, not the routing.
-    for (let pass = 0; pass < M2_ASSISTANT_GUIDE_SEQUENCE_IDS.length; pass += 1) {
-      const others = dueAssistantInboxGuideSequences(state)
-        .filter(sequenceId => sequenceId !== 'division-leaders');
+    for (
+      let pass = 0;
+      pass < M2_ASSISTANT_GUIDE_SEQUENCE_IDS.length;
+      pass += 1
+    ) {
+      const others = dueAssistantInboxGuideSequences(state).filter(
+        (sequenceId) => sequenceId !== 'division-leaders',
+      );
       if (others.length === 0) break;
       for (const sequenceId of others) {
         state = completeAssistantGuideSequence(state, sequenceId);
@@ -633,9 +828,11 @@ describe('assistant guide application flow', () => {
     }
 
     const scheduled = reconcileHomeAssistantInbox(state);
-    expect(homeViewModel(scheduled).alerts).toContainEqual(expect.objectContaining({
-      guideSequenceId: 'division-leaders',
-      destination: 'league-leaders',
-    }));
+    expect(homeViewModel(scheduled).alerts).toContainEqual(
+      expect.objectContaining({
+        guideSequenceId: 'division-leaders',
+        destination: 'league-leaders',
+      }),
+    );
   });
 });

@@ -29,13 +29,23 @@ const SEED = 23;
 const SEASON = 1;
 const WEEK = 6;
 
-function opponentInDivision(state: GameState, division: number): string | undefined {
-  const seeds = state.m2?.nationalCups.find(cup => cup.season === SEASON)?.seedDivisionByClubId;
+function opponentInDivision(
+  state: GameState,
+  division: number,
+): string | undefined {
+  const seeds = state.m2?.nationalCups.find(
+    (cup) => cup.season === SEASON,
+  )?.seedDivisionByClubId;
   if (seeds === undefined) return undefined;
-  return Object.keys(seeds).find(clubId => clubId !== state.userClubId && seeds[clubId] === division);
+  return Object.keys(seeds).find(
+    (clubId) => clubId !== state.userClubId && seeds[clubId] === division,
+  );
 }
 
-function upsetFixture(state: GameState, opponentClubId: string): NationalCupFixture {
+function upsetFixture(
+  state: GameState,
+  opponentClubId: string,
+): NationalCupFixture {
   return {
     id: `dev-harness-upset-${opponentClubId}`,
     season: SEASON,
@@ -51,7 +61,9 @@ describe('the Cup giant-killing reel', () => {
   const state = devHarnessCareerAtWeek(SEASON, WEEK, SEED);
 
   it('opens on a season where the club is bottom of the pyramid', () => {
-    const seeds = state.m2?.nationalCups.find(cup => cup.season === SEASON)?.seedDivisionByClubId;
+    const seeds = state.m2?.nationalCups.find(
+      (cup) => cup.season === SEASON,
+    )?.seedDivisionByClubId;
 
     expect(seeds).toBeDefined();
     expect(seeds![state.userClubId]).toBe(5);
@@ -88,14 +100,26 @@ describe('the Cup giant-killing reel', () => {
       const opponentClubId = opponentInDivision(state, division)!;
       queued = queueCupGiantKillingCelebration(
         queued,
-        cupGiantKillingCelebration(queued, upsetFixture(state, opponentClubId), state.userClubId),
+        cupGiantKillingCelebration(
+          queued,
+          upsetFixture(state, opponentClubId),
+          state.userClubId,
+        ),
       );
     }
 
-    expect(queued.pendingCupGiantKillingCelebrations?.map(item => item.divisionGap)).toEqual([1, 2, 4]);
+    expect(
+      queued.pendingCupGiantKillingCelebrations?.map(
+        (item) => item.divisionGap,
+      ),
+    ).toEqual([1, 2, 4]);
 
     const second = completeCupGiantKillingCelebration(queued);
-    expect(second.pendingCupGiantKillingCelebrations?.map(item => item.divisionGap)).toEqual([2, 4]);
+    expect(
+      second.pendingCupGiantKillingCelebrations?.map(
+        (item) => item.divisionGap,
+      ),
+    ).toEqual([2, 4]);
 
     const drained = completeCupGiantKillingCelebration(
       completeCupGiantKillingCelebration(second),
@@ -107,11 +131,13 @@ describe('the Cup giant-killing reel', () => {
   it('says nothing about beating an equal', () => {
     const opponentClubId = opponentInDivision(state, 5)!;
 
-    expect(cupGiantKillingCelebration(
-      state,
-      upsetFixture(state, opponentClubId),
-      state.userClubId,
-    )).toBeUndefined();
+    expect(
+      cupGiantKillingCelebration(
+        state,
+        upsetFixture(state, opponentClubId),
+        state.userClubId,
+      ),
+    ).toBeUndefined();
   });
 
   /**

@@ -39,7 +39,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run format:check
       - run: npx tsc --noEmit
+      - run: npm run web:first-load:check
       - run: npx jest --ci --silent --testPathIgnorePatterns "$SLOW_SUITES"
 
   full:
@@ -54,3 +56,44 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx jest --ci --silent
+
+  native-release:
+    name: native iOS Release
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run deps:check
+      - run: npm run release:check
+      - name: Native suspend and audio lifecycle tests
+        run: >-
+          npx jest --ci --runInBand
+          src/ui/__tests__/suspend-flush-lifecycle.test.ts
+          src/application/__tests__/suspend-save-flush.test.ts
+          src/render/__tests__/audio-lifecycle.test.ts
+      - name: Generate the iOS project
+        env:
+          EXPO_NO_GIT_STATUS: "1"
+        run: npx expo prebuild --clean --platform ios --no-install
+      - name: Install CocoaPods
+        run: pod install --project-directory=ios
+      - name: Build unsigned Release app
+        run: >-
+          xcodebuild
+          -workspace ios/HeroFootballManager.xcworkspace
+          -scheme HeroFootballManager
+          -configuration Release
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath "$RUNNER_TEMP/hfm-derived"
+          CODE_SIGNING_ALLOWED=NO
+          build
+      - name: Inspect the built app and font license
+        run: >-
+          npm run release:inspect --
+          "$RUNNER_TEMP/hfm-derived/Build/Products/Release-iphonesimulator/HeroFootballManager.app"

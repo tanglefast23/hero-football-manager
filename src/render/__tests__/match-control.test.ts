@@ -1,4 +1,7 @@
-import { matchPoliciesForControlledTeam, retainedCarrierIndex } from '../match-control';
+import {
+  matchPoliciesForControlledTeam,
+  retainedCarrierIndex,
+} from '../match-control';
 
 describe('retainedCarrierIndex', () => {
   it('holds the last carrier through passes, shots, and loose-ball frames', () => {

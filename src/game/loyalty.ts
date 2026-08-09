@@ -35,7 +35,11 @@ export const LOYALTY_WARNING_THRESHOLD = 40;
  * feature — and nothing has to remember to do it.
  */
 export function initialLoyalty(careerSeed: number, playerId: string): number {
-  if (!Number.isInteger(careerSeed) || careerSeed < 0 || careerSeed > 4294967295) {
+  if (
+    !Number.isInteger(careerSeed) ||
+    careerSeed < 0 ||
+    careerSeed > 4294967295
+  ) {
     throw new Error('loyalty career seed must be a uint32');
   }
   if (typeof playerId !== 'string' || playerId.trim().length === 0) {
@@ -56,7 +60,8 @@ export function playerLoyalty(
 
 export function adjustLoyalty(loyalty: number, delta: number): number {
   validateLoyalty(loyalty);
-  if (!Number.isInteger(delta)) throw new Error('loyalty delta must be an integer');
+  if (!Number.isInteger(delta))
+    throw new Error('loyalty delta must be an integer');
   return Math.max(0, Math.min(100, loyalty + delta));
 }
 

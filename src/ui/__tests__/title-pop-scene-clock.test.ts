@@ -35,7 +35,9 @@ describe('title pop scene clock', () => {
     // The interval belongs to the leaf, and only the leaf.
     expect(leaf).toContain('setInterval');
     expect(popSlot).not.toContain('setInterval');
-    expect(source.slice(0, source.indexOf('function PopSlot'))).not.toContain('setInterval');
+    expect(source.slice(0, source.indexOf('function PopSlot'))).not.toContain(
+      'setInterval',
+    );
 
     // No elapsed-time prop threading: that was the mechanism of the old cost.
     expect(source).not.toMatch(/elapsedMs=\{elapsedMs\}/);
@@ -59,8 +61,12 @@ describe('title pop scene clock', () => {
     // only safe because both are positioned with an explicit zIndex — order in
     // the tree does not decide what paints on top. Lose either and the FX layer
     // silently jumps in front of the hero.
-    expect(source).toMatch(/powerFx: \{[\s\S]*?position: 'absolute'[\s\S]*?zIndex: -1/);
-    expect(source).toMatch(/targetSprite: \{[\s\S]*?position: 'absolute'[\s\S]*?zIndex: -2/);
+    expect(source).toMatch(
+      /powerFx: \{[\s\S]*?position: 'absolute'[\s\S]*?zIndex: -1/,
+    );
+    expect(source).toMatch(
+      /targetSprite: \{[\s\S]*?position: 'absolute'[\s\S]*?zIndex: -2/,
+    );
   });
 
   it('renders the leaf as a fragment so the scene keeps its layout', () => {

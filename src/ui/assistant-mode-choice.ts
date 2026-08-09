@@ -35,13 +35,19 @@ export interface AssistantModeChoiceCopy {
  */
 const MOMENT: BertMomentId = 'sizing-you-up';
 
-function option(mode: AssistantMode, slug: string, t: CopyFn): AssistantModeOption {
+function option(
+  mode: AssistantMode,
+  slug: string,
+  t: CopyFn,
+): AssistantModeOption {
   const label = t(`assistantModeChoice.${slug}.label`);
   const detail = t(`assistantModeChoice.${slug}.detail`);
   return { mode, label, detail, accessibilityLabel: `${label}. ${detail}` };
 }
 
-export function assistantModeChoice(t: CopyFn = englishCopy()): AssistantModeChoiceCopy {
+export function assistantModeChoice(
+  t: CopyFn = englishCopy(),
+): AssistantModeChoiceCopy {
   return {
     kicker: t('assistantModeChoice.kicker'),
     line: t('assistantModeChoice.line'),

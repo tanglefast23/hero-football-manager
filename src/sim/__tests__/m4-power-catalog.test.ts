@@ -14,8 +14,17 @@ import { ROVERS, UNITED } from '../teams';
 import type { MatchState, PowerId, TeamDef } from '../types';
 
 const POWER_IDS: readonly PowerId[] = [
-  'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
-  'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+  'SUPER_SPEED',
+  'BLINK_RUN',
+  'THUNDER_STRIKE',
+  'FIRE_TORCH',
+  'PHASE_RUN',
+  'PORTAL_PASS',
+  'DECOY_DOUBLE',
+  'FUTURE_SIGHT',
+  'SUPER_STRENGTH',
+  'WEB_TRAP',
+  'ELASTIC_KEEPER',
   'GUST',
 ];
 
@@ -31,10 +40,17 @@ function matchWith(power: PowerId): { match: MatchState; hero: number } {
     })),
   };
   // SAVE_FOR_TAP keeps rigged Zones inert so each test fires its power itself.
-  return { match: createMatch(20260721, home, UNITED, { homePolicy: 'SAVE_FOR_TAP' }), hero: slot };
+  return {
+    match: createMatch(20260721, home, UNITED, { homePolicy: 'SAVE_FOR_TAP' }),
+    hero: slot,
+  };
 }
 
-function prepareActivation(match: MatchState, hero: number, power: PowerId): void {
+function prepareActivation(
+  match: MatchState,
+  hero: number,
+  power: PowerId,
+): void {
   if (power === 'FIRE_TORCH') {
     match.ball = { kind: 'held', by: hero };
     match.players[hero].pos = { x: 2250, y: 4000 };
@@ -44,7 +60,8 @@ function prepareActivation(match: MatchState, hero: number, power: PowerId): voi
     match.ball = { kind: 'held', by: hero };
     match.players[hero].pos = { x: 1000, y: 4000 };
     match.players[9].pos = { x: 3400, y: 3300 };
-    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 600, y: 7000 };
+    for (let idx = 11; idx < 22; idx += 1)
+      match.players[idx].pos = { x: 600, y: 7000 };
   }
   if (power === 'DECOY_DOUBLE') {
     match.ball = { kind: 'held', by: hero };
@@ -83,55 +100,84 @@ function activationTarget(power: PowerId): number | undefined {
 }
 
 describe('M4 twelve-power catalog', () => {
-  it.each(POWER_IDS)('%s has a deterministic activation lifecycle', power => {
+  it.each(POWER_IDS)('%s has a deterministic activation lifecycle', (power) => {
     const { match, hero } = matchWith(power);
     match.rng = () => 0.99;
     prepareActivation(match, hero, power);
     activatePower(match, hero, 1, activationTarget(power));
 
-    expect(match.events).toContainEqual(expect.objectContaining({ kind: 'POWER_FIRED', player: hero, power, strength: 1 }));
+    expect(match.events).toContainEqual(
+      expect.objectContaining({
+        kind: 'POWER_FIRED',
+        player: hero,
+        power,
+        strength: 1,
+      }),
+    );
     if (power === 'SUPER_STRENGTH') {
       expect(match.players[hero].powerState).toEqual({ kind: 'idle' });
-      expect(match.events).toContainEqual(expect.objectContaining({ kind: 'TACKLE', by: hero, won: true }));
+      expect(match.events).toContainEqual(
+        expect.objectContaining({ kind: 'TACKLE', by: hero, won: true }),
+      );
     } else {
       expect(match.players[hero].powerState).toMatchObject({ kind: 'active' });
-      expect(match.players[hero].powerState.kind === 'active'
-        ? match.players[hero].powerState.strength : 0).toBeGreaterThan(1);
+      expect(
+        match.players[hero].powerState.kind === 'active'
+          ? match.players[hero].powerState.strength
+          : 0,
+      ).toBeGreaterThan(1);
     }
   });
 
-  it.each(POWER_IDS)('%s rewards a well-placed tap above contextual auto', power => {
-    const auto = matchWith(power);
-    const manual = matchWith(power);
-    prepareActivation(auto.match, auto.hero, power);
-    prepareActivation(manual.match, manual.hero, power);
-    activatePower(auto.match, auto.hero, 0.85, activationTarget(power));
-    activatePower(manual.match, manual.hero, 1, activationTarget(power));
+  it.each(POWER_IDS)(
+    '%s rewards a well-placed tap above contextual auto',
+    (power) => {
+      const auto = matchWith(power);
+      const manual = matchWith(power);
+      prepareActivation(auto.match, auto.hero, power);
+      prepareActivation(manual.match, manual.hero, power);
+      activatePower(auto.match, auto.hero, 0.85, activationTarget(power));
+      activatePower(manual.match, manual.hero, 1, activationTarget(power));
 
-    const autoState = auto.match.players[auto.hero].powerState;
-    const manualState = manual.match.players[manual.hero].powerState;
-    if (power === 'SUPER_STRENGTH') {
-      expect(autoState.kind).toBe('idle');
-      expect(manualState.kind).toBe('idle');
-      expect(auto.match.players[11].outUntilTick).toBeGreaterThan(auto.match.tick);
-      expect(manual.match.players[11].outUntilTick).toBeGreaterThan(auto.match.players[11].outUntilTick);
-      expect(auto.match.events).toContainEqual(expect.objectContaining({ kind: 'POWER_FIRED', strength: 0.85 }));
-      expect(manual.match.events).toContainEqual(expect.objectContaining({ kind: 'POWER_FIRED', strength: 1 }));
-      return;
-    }
-    expect(autoState.kind).toBe('active');
-    expect(manualState.kind).toBe('active');
-    const autoStrength = autoState.kind === 'active' ? autoState.strength : 0;
-    const manualStrength = manualState.kind === 'active' ? manualState.strength : 0;
-    expect(manualStrength).toBeGreaterThan(autoStrength);
-    if (power !== 'PORTAL_PASS') {
-      const autoUntil = autoState.kind === 'active' ? autoState.untilTick : 0;
-      const manualUntil = manualState.kind === 'active' ? manualState.untilTick : 0;
-      expect(manualUntil).toBeGreaterThan(autoUntil);
-    }
-    expect(auto.match.events).toContainEqual(expect.objectContaining({ kind: 'POWER_FIRED', strength: 0.85 }));
-    expect(manual.match.events).toContainEqual(expect.objectContaining({ kind: 'POWER_FIRED', strength: 1 }));
-  });
+      const autoState = auto.match.players[auto.hero].powerState;
+      const manualState = manual.match.players[manual.hero].powerState;
+      if (power === 'SUPER_STRENGTH') {
+        expect(autoState.kind).toBe('idle');
+        expect(manualState.kind).toBe('idle');
+        expect(auto.match.players[11].outUntilTick).toBeGreaterThan(
+          auto.match.tick,
+        );
+        expect(manual.match.players[11].outUntilTick).toBeGreaterThan(
+          auto.match.players[11].outUntilTick,
+        );
+        expect(auto.match.events).toContainEqual(
+          expect.objectContaining({ kind: 'POWER_FIRED', strength: 0.85 }),
+        );
+        expect(manual.match.events).toContainEqual(
+          expect.objectContaining({ kind: 'POWER_FIRED', strength: 1 }),
+        );
+        return;
+      }
+      expect(autoState.kind).toBe('active');
+      expect(manualState.kind).toBe('active');
+      const autoStrength = autoState.kind === 'active' ? autoState.strength : 0;
+      const manualStrength =
+        manualState.kind === 'active' ? manualState.strength : 0;
+      expect(manualStrength).toBeGreaterThan(autoStrength);
+      if (power !== 'PORTAL_PASS') {
+        const autoUntil = autoState.kind === 'active' ? autoState.untilTick : 0;
+        const manualUntil =
+          manualState.kind === 'active' ? manualState.untilTick : 0;
+        expect(manualUntil).toBeGreaterThan(autoUntil);
+      }
+      expect(auto.match.events).toContainEqual(
+        expect.objectContaining({ kind: 'POWER_FIRED', strength: 0.85 }),
+      );
+      expect(manual.match.events).toContainEqual(
+        expect.objectContaining({ kind: 'POWER_FIRED', strength: 1 }),
+      );
+    },
+  );
 
   it('applies every movement, possession, misdirection, and prediction spike visibly', () => {
     const blink = matchWith('BLINK_RUN');
@@ -144,10 +190,13 @@ describe('M4 twelve-power catalog', () => {
     portal.match.ball = { kind: 'held', by: 6 };
     portal.match.players[6].pos = { x: 1000, y: 4000 };
     portal.match.players[9].pos = { x: 3400, y: 3300 };
-    for (let idx = 11; idx < 22; idx += 1) portal.match.players[idx].pos = { x: 600, y: 7000 };
+    for (let idx = 11; idx < 22; idx += 1)
+      portal.match.players[idx].pos = { x: 600, y: 7000 };
     activatePower(portal.match, portal.hero, 1);
     expect(portal.match.ball).toMatchObject({ kind: 'held' });
-    expect(portal.match.ball.kind === 'held' ? portal.match.ball.by : 6).not.toBe(6);
+    expect(
+      portal.match.ball.kind === 'held' ? portal.match.ball.by : 6,
+    ).not.toBe(6);
 
     const decoy = matchWith('DECOY_DOUBLE');
     decoy.match.ball = { kind: 'held', by: decoy.hero };
@@ -172,10 +221,14 @@ describe('M4 twelve-power catalog', () => {
     future.match.ball = { kind: 'held', by: 11 };
     activatePower(future.match, future.hero, 1);
     launchPass(future.match, 11, 12, false);
-    expect(future.match.ball).toMatchObject({ kind: 'pass', interceptor: future.hero });
+    expect(future.match.ball).toMatchObject({
+      kind: 'pass',
+      interceptor: future.hero,
+    });
     expect(future.match.players[future.hero].powerState.kind).toBe('active');
     expect(future.match.players[future.hero].powerState).toMatchObject({
-      kind: 'active', commitment: 'POWER_OUTLET',
+      kind: 'active',
+      commitment: 'POWER_OUTLET',
     });
 
     const web = matchWith('WEB_TRAP');
@@ -185,7 +238,9 @@ describe('M4 twelve-power catalog', () => {
     activatePower(web.match, web.hero, 1, 11);
     expect(web.match.players[web.hero].powerState.kind).toBe('active');
     powerTick(web.match);
-    expect(web.match.players[11].webbedUntilTick).toBeGreaterThan(web.match.tick);
+    expect(web.match.players[11].webbedUntilTick).toBeGreaterThan(
+      web.match.tick,
+    );
     expect(web.match.ball.kind).toBe('loose');
     expect(web.match.players[web.hero].powerState.kind).toBe('idle');
   });
@@ -198,12 +253,15 @@ describe('M4 twelve-power catalog', () => {
     portal.match.players[carrier].pos = { x: 3000, y: 4000 };
     portal.match.players[9].pos = { x: 3400, y: 3300 };
     portal.match.players[marker].pos = { x: 3050, y: 4000 };
-    for (let idx = 12; idx < 22; idx += 1) portal.match.players[idx].pos = { x: 600, y: 7000 };
+    for (let idx = 12; idx < 22; idx += 1)
+      portal.match.players[idx].pos = { x: 600, y: 7000 };
 
     expect(inUsefulContext(portal.match, portal.hero)).toBe(true);
     activatePower(portal.match, portal.hero, 1);
     expect(portal.match.ball).toMatchObject({ kind: 'held' });
-    expect(portal.match.ball.kind === 'held' ? portal.match.ball.by : carrier).not.toBe(carrier);
+    expect(
+      portal.match.ball.kind === 'held' ? portal.match.ball.by : carrier,
+    ).not.toBe(carrier);
   });
 
   it('lets Decoy Double trigger while a teammate carries', () => {
@@ -258,18 +316,24 @@ describe('M4 twelve-power catalog', () => {
     activatePower(tier1.match, tier1.hero, 1);
     activatePower(tier3.match, tier3.hero, 1);
 
-    expect(tier3.match.players[tier3.hero].pos.y).toBeLessThan(tier1.match.players[tier1.hero].pos.y);
+    expect(tier3.match.players[tier3.hero].pos.y).toBeLessThan(
+      tier1.match.players[tier1.hero].pos.y,
+    );
     const tier1State = tier1.match.players[tier1.hero].powerState;
     const tier3State = tier3.match.players[tier3.hero].powerState;
     expect(tier1State.kind).toBe('active');
     expect(tier3State.kind).toBe('active');
-    const tier1Strength = tier1State.kind === 'active' ? tier1State.strength : 0;
-    const tier3Strength = tier3State.kind === 'active' ? tier3State.strength : 0;
+    const tier1Strength =
+      tier1State.kind === 'active' ? tier1State.strength : 0;
+    const tier3Strength =
+      tier3State.kind === 'active' ? tier3State.strength : 0;
     expect(tier3Strength).toBeCloseTo(tier1Strength * 1.45, 12);
-    expect(tier1.match.events.find(event => event.kind === 'POWER_FIRED'))
-      .toMatchObject({ kind: 'POWER_FIRED', strength: 1 });
-    expect(tier3.match.events.find(event => event.kind === 'POWER_FIRED'))
-      .toMatchObject({ kind: 'POWER_FIRED', strength: 1 });
+    expect(
+      tier1.match.events.find((event) => event.kind === 'POWER_FIRED'),
+    ).toMatchObject({ kind: 'POWER_FIRED', strength: 1 });
+    expect(
+      tier3.match.events.find((event) => event.kind === 'POWER_FIRED'),
+    ).toMatchObject({ kind: 'POWER_FIRED', strength: 1 });
   });
 
   it('keeps Portal Pass active cooldown constant across tiers', () => {
@@ -283,8 +347,14 @@ describe('M4 twelve-power catalog', () => {
     activatePower(tier1.match, tier1.hero, 1);
     activatePower(tier3.match, tier3.hero, 1);
 
-    expect(tier1.match.players[tier1.hero].powerState).toMatchObject({ kind: 'active', untilTick: 40 });
-    expect(tier3.match.players[tier3.hero].powerState).toMatchObject({ kind: 'active', untilTick: 40 });
+    expect(tier1.match.players[tier1.hero].powerState).toMatchObject({
+      kind: 'active',
+      untilTick: 40,
+    });
+    expect(tier3.match.players[tier3.hero].powerState).toMatchObject({
+      kind: 'active',
+      untilTick: 40,
+    });
     tier1.match.tick = 40;
     tier3.match.tick = 40;
     powerTick(tier1.match);
@@ -298,11 +368,15 @@ describe('M4 twelve-power catalog', () => {
   it('does not let Future Sight cash out while its hero is recovering', () => {
     const future = matchWith('FUTURE_SIGHT');
     future.match.players[future.hero].firePolicy = 'FIRE_WHEN_READY';
-    future.match.players[future.hero].powerState = { kind: 'zone', remainingTicks: 70 };
+    future.match.players[future.hero].powerState = {
+      kind: 'zone',
+      remainingTicks: 70,
+    };
     future.match.players[future.hero].pos = { x: 3000, y: 5000 };
     future.match.players[11].pos = { x: 3200, y: 5000 };
     future.match.ball = { kind: 'held', by: 11 };
-    future.match.players[future.hero].tackleRecoveryUntil = future.match.tick + 5;
+    future.match.players[future.hero].tackleRecoveryUntil =
+      future.match.tick + 5;
 
     powerTick(future.match);
     expect(future.match.ball).toEqual({ kind: 'held', by: 11 });
@@ -310,70 +384,119 @@ describe('M4 twelve-power catalog', () => {
   });
 
   it.each([
-    'PORTAL_PASS', 'DECOY_DOUBLE', 'FUTURE_SIGHT',
-    'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER', 'GUST',
-  ] as const)('%s holds its Zone rather than auto-firing without its useful target', power => {
-    const { match, hero } = matchWith(power);
-    match.players[hero].firePolicy = 'FIRE_WHEN_READY';
-    match.players[hero].powerState = { kind: 'zone', remainingTicks: 20 };
-    match.ball = power === 'ELASTIC_KEEPER' || power === 'GUST'
-      ? { kind: 'held', by: hero }
-      : { kind: 'held', by: 11 };
-    match.players[11].pos = { x: 200, y: 9000 };
-    match.players[hero].pos = { x: 4300, y: 1000 };
+    'PORTAL_PASS',
+    'DECOY_DOUBLE',
+    'FUTURE_SIGHT',
+    'SUPER_STRENGTH',
+    'WEB_TRAP',
+    'ELASTIC_KEEPER',
+    'GUST',
+  ] as const)(
+    '%s holds its Zone rather than auto-firing without its useful target',
+    (power) => {
+      const { match, hero } = matchWith(power);
+      match.players[hero].firePolicy = 'FIRE_WHEN_READY';
+      match.players[hero].powerState = { kind: 'zone', remainingTicks: 20 };
+      match.ball =
+        power === 'ELASTIC_KEEPER' || power === 'GUST'
+          ? { kind: 'held', by: hero }
+          : { kind: 'held', by: 11 };
+      match.players[11].pos = { x: 200, y: 9000 };
+      match.players[hero].pos = { x: 4300, y: 1000 };
 
-    powerTick(match);
+      powerTick(match);
 
-    // The Zone no longer counts down (engine m1.27): a charged power waits for
-    // its context instead of decaying. What matters here is unchanged — a power
-    // that needs a target must never fire without one.
-    expect(match.players[hero].powerState.kind).toBe('zone');
-    expect(match.events).not.toContainEqual(expect.objectContaining({ kind: 'POWER_FIRED', player: hero }));
-    expect(match.events).not.toContainEqual(expect.objectContaining({ kind: 'POWER_EXPIRED', player: hero }));
-  });
+      // The Zone no longer counts down (engine m1.27): a charged power waits for
+      // its context instead of decaying. What matters here is unchanged — a power
+      // that needs a target must never fire without one.
+      expect(match.players[hero].powerState.kind).toBe('zone');
+      expect(match.events).not.toContainEqual(
+        expect.objectContaining({ kind: 'POWER_FIRED', player: hero }),
+      );
+      expect(match.events).not.toContainEqual(
+        expect.objectContaining({ kind: 'POWER_EXPIRED', player: hero }),
+      );
+    },
+  );
 
   it.each([
-    'PORTAL_PASS', 'DECOY_DOUBLE', 'FUTURE_SIGHT',
-    'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER', 'GUST',
-  ] as const)('%s arms a manual tap without its useful context', power => {
+    'PORTAL_PASS',
+    'DECOY_DOUBLE',
+    'FUTURE_SIGHT',
+    'SUPER_STRENGTH',
+    'WEB_TRAP',
+    'ELASTIC_KEEPER',
+    'GUST',
+  ] as const)('%s arms a manual tap without its useful context', (power) => {
     const { match, hero } = matchWith(power);
     match.players[hero].powerState = { kind: 'zone', remainingTicks: 60 };
-    match.ball = power === 'ELASTIC_KEEPER' || power === 'GUST'
-      ? { kind: 'held', by: hero }
-      : { kind: 'held', by: 11 };
+    match.ball =
+      power === 'ELASTIC_KEEPER' || power === 'GUST'
+        ? { kind: 'held', by: hero }
+        : { kind: 'held', by: 11 };
     match.players[11].pos = { x: 200, y: 9000 };
     match.players[hero].pos = { x: 4300, y: 1000 };
 
     powerTick(match, [{ tick: match.tick, kind: 'POWER_TAP', player: hero }]);
 
-    expect(match.players[hero].powerState).toEqual({ kind: 'armed', remainingTicks: 20 });
-    expect(match.events).not.toContainEqual(expect.objectContaining({ kind: 'POWER_FIRED', player: hero }));
+    expect(match.players[hero].powerState).toEqual({
+      kind: 'armed',
+      remainingTicks: 20,
+    });
+    expect(match.events).not.toContainEqual(
+      expect.objectContaining({ kind: 'POWER_FIRED', player: hero }),
+    );
   });
 
-  it.each(POWER_IDS)('%s starts through its authored useful context', power => {
-    const { match, hero } = matchWith(power);
-    const opponent = power === 'FIRE_TORCH' ? 12 : 11;
-    match.players[hero].firePolicy = 'FIRE_WHEN_READY';
-    match.players[hero].powerState = { kind: 'zone', remainingTicks: 60 };
-    const heroY = power === 'ELASTIC_KEEPER' ? 8500 : power === 'THUNDER_STRIKE' ? 2500 : 3500;
-    match.players[hero].pos = { x: 2250, y: heroY };
-    match.players[opponent].pos = { x: 2350, y: power === 'ELASTIC_KEEPER' ? 8000 : heroY };
-
-    if (power === 'ELASTIC_KEEPER') {
-      match.ball = {
-        kind: 'shot', pos: { x: 3400, y: 9800 }, vel: { x: 0, y: 300 }, by: opponent,
-        shotStrengthD64: 0, power: 40, targetX: 3400, z: 0, vz: 0,
-        trajectory: 'driven', keeperChecked: false,
+  it.each(POWER_IDS)(
+    '%s starts through its authored useful context',
+    (power) => {
+      const { match, hero } = matchWith(power);
+      const opponent = power === 'FIRE_TORCH' ? 12 : 11;
+      match.players[hero].firePolicy = 'FIRE_WHEN_READY';
+      match.players[hero].powerState = { kind: 'zone', remainingTicks: 60 };
+      const heroY =
+        power === 'ELASTIC_KEEPER'
+          ? 8500
+          : power === 'THUNDER_STRIKE'
+            ? 2500
+            : 3500;
+      match.players[hero].pos = { x: 2250, y: heroY };
+      match.players[opponent].pos = {
+        x: 2350,
+        y: power === 'ELASTIC_KEEPER' ? 8000 : heroY,
       };
-    } else if (power === 'FUTURE_SIGHT' || power === 'SUPER_STRENGTH' || power === 'WEB_TRAP'
-      || power === 'GUST') {
-      match.ball = { kind: 'held', by: opponent };
-    } else {
-      match.ball = { kind: 'held', by: hero };
-    }
 
-    powerTick(match);
+      if (power === 'ELASTIC_KEEPER') {
+        match.ball = {
+          kind: 'shot',
+          pos: { x: 3400, y: 9800 },
+          vel: { x: 0, y: 300 },
+          by: opponent,
+          shotStrengthD64: 0,
+          power: 40,
+          targetX: 3400,
+          z: 0,
+          vz: 0,
+          trajectory: 'driven',
+          keeperChecked: false,
+        };
+      } else if (
+        power === 'FUTURE_SIGHT' ||
+        power === 'SUPER_STRENGTH' ||
+        power === 'WEB_TRAP' ||
+        power === 'GUST'
+      ) {
+        match.ball = { kind: 'held', by: opponent };
+      } else {
+        match.ball = { kind: 'held', by: hero };
+      }
 
-    expect(match.players[hero].powerState.kind).toBe(power === 'ELASTIC_KEEPER' ? 'active' : 'winding');
-  });
+      powerTick(match);
+
+      expect(match.players[hero].powerState.kind).toBe(
+        power === 'ELASTIC_KEEPER' ? 'active' : 'winding',
+      );
+    },
+  );
 });

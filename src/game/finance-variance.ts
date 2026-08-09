@@ -36,7 +36,11 @@ export function matchdayVarianceRoll(
   week: number,
   source: VarianceSource,
 ): VarianceRoll {
-  if (!Number.isSafeInteger(careerSeed) || careerSeed < 0 || careerSeed > 0xffffffff) {
+  if (
+    !Number.isSafeInteger(careerSeed) ||
+    careerSeed < 0 ||
+    careerSeed > 0xffffffff
+  ) {
     throw new Error('variance careerSeed must be a uint32');
   }
   if (!Number.isSafeInteger(season) || season < 1) {
@@ -45,12 +49,12 @@ export function matchdayVarianceRoll(
   if (!Number.isSafeInteger(week) || week < 1) {
     throw new Error('variance week must be a positive integer');
   }
-  const seed = (
-    careerSeed
-    ^ Math.imul(season, 0x9e3779b1)
-    ^ Math.imul(week, 0x85ebca6b)
-    ^ SOURCE_SALT[source]
-  ) >>> 0;
+  const seed =
+    (careerSeed ^
+      Math.imul(season, 0x9e3779b1) ^
+      Math.imul(week, 0x85ebca6b) ^
+      SOURCE_SALT[source]) >>>
+    0;
   const rng = mulberry32(seed);
   const surge = Math.floor(rng() * 10) === 0;
   if (surge) return { percent: 11 + Math.floor(rng() * 10), surge };

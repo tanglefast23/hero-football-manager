@@ -7,8 +7,18 @@ const app = () => readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
 /** The two lines, as beats, so the pairing can be read the way he delivers it. */
 const BEATS: BriefingBeat[] = [
-  { text: 'The cup run is over.', focus: 'assistant', kind: 'body', pageIndex: 0 },
-  { text: 'We can slay these giants.', focus: 'assistant', kind: 'body', pageIndex: 1 },
+  {
+    text: 'The cup run is over.',
+    focus: 'assistant',
+    kind: 'body',
+    pageIndex: 0,
+  },
+  {
+    text: 'We can slay these giants.',
+    focus: 'assistant',
+    kind: 'body',
+    pageIndex: 1,
+  },
 ];
 
 describe('Bert on the first cup exit', () => {
@@ -18,8 +28,8 @@ describe('Bert on the first cup exit', () => {
     // The report is where the manager is standing when the run ends. Waiting
     // for the office would deliver the consolation a screen too late, after
     // they had already clicked past the defeat.
-    expect(source).toContain("store.screen === 'postmatch'");
-    expect(source).toContain('store.postMatch?.result.cupExit === true');
+    expect(source).toContainSource("store.screen === 'postmatch'");
+    expect(source).toContainSource('store.postMatch?.result.cupExit === true');
   });
 
   it('stays as Cup flavour when tutorial guidance is off', () => {
@@ -29,17 +39,21 @@ describe('Bert on the first cup exit', () => {
       source.indexOf('const fansLessonVisible ='),
     );
 
-    expect(declaration).not.toContain('careerTeaches');
+    expect(declaration).not.toContainSource('careerTeaches');
   });
 
   it('says it once a career and never again', () => {
     const source = app();
 
-    expect(source).toContain("hasAssistantGuideMilestone(store.career, 'first-cup-exit-seen')");
-    expect(source).toContain("store.completeGuideMilestone('first-cup-exit-seen')");
+    expect(source).toContainSource(
+      "hasAssistantGuideMilestone(store.career, 'first-cup-exit-seen')",
+    );
+    expect(source).toContainSource(
+      "store.completeGuideMilestone('first-cup-exit-seen')",
+    );
     // Losing a knockout tie is the ordinary shape of this competition. He
     // explains that once; a gaffer who says it every season is a nag.
-    expect(source).toContain('cupExitConsolationVisible');
+    expect(source).toContainSource('cupExitConsolationVisible');
   });
 
   it('holds the screen the way every other briefing does', () => {
@@ -47,14 +61,18 @@ describe('Bert on the first cup exit', () => {
 
     // Without this the tab rail's keyboard shortcuts stay live under a
     // full-screen overlay that is already swallowing the mouse.
-    expect(source).toMatch(/guideOverlayVisible = \([^)]*\|\| cupExitConsolationVisible/s);
+    expect(source).toMatchSource(
+      /guideOverlayVisible = \([^)]*\|\| cupExitConsolationVisible/s,
+    );
   });
 
   it('carries the two lines the defeat was written for', () => {
     const source = app();
 
-    expect(source).toContain('The cup run is over. But that’s understandable.');
-    expect(source).toContain(
+    expect(source).toContainSource(
+      'The cup run is over. But that’s understandable.',
+    );
+    expect(source).toContainSource(
       'You’re playing against the very best teams and leagues. We can slay these giants in the future!',
     );
   });

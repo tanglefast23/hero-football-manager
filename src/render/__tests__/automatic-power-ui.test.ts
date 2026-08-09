@@ -4,22 +4,37 @@ import { matchPoliciesForControlledTeam } from '../match-control';
 
 describe('automatic superpower presentation', () => {
   it('shows only the actual power name when contextual automatic activation fires', () => {
-    const source = readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
-    const takeover = readFileSync(join(process.cwd(), 'src/render/PowerTitleTakeover.tsx'), 'utf8');
-    const rail = readFileSync(join(process.cwd(), 'src/render/MatchControlRail.tsx'), 'utf8');
+    const source = readFileSync(
+      join(process.cwd(), 'src/render/MatchScreen.tsx'),
+      'utf8',
+    );
+    const takeover = readFileSync(
+      join(process.cwd(), 'src/render/PowerTitleTakeover.tsx'),
+      'utf8',
+    );
+    const rail = readFileSync(
+      join(process.cwd(), 'src/render/MatchControlRail.tsx'),
+      'utf8',
+    );
 
     expect(takeover).toContain('{presentation.name}');
     expect(takeover).toContain('{ backgroundColor: teamColor }');
     expect(takeover).toContain("{ending ? 'POWER COMPLETE' : 'SUPER POWER'}");
     expect(source).toContain('<PowerTitleTakeover');
     expect(source).toContain('layout="mobile"');
-    expect(rail).toContain('<PowerTitleTakeover {...powerTakeover} layout="desktop" />');
-    expect(source).toContain("text: `⚡ ${e.power.replace(/_/g, ' ')} · ${firingPlayer.def.name}`");
+    expect(rail).toContain(
+      '<PowerTitleTakeover {...powerTakeover} layout="desktop" />',
+    );
+    expect(source).toContain(
+      "text: `⚡ ${e.power.replace(/_/g, ' ')} · ${firingPlayer.def.name}`",
+    );
     expect(source).not.toContain('SUPER POWER READY');
     expect(source).not.toContain('heroPowerReady');
-    expect(source).toContain('if (player.team !== controlledTeam) rivalHeroPlayers.push(index);');
+    expect(source).toContain(
+      'if (player.team !== controlledTeam) rivalHeroPlayers.push(index);',
+    );
     expect(source).not.toContain('Superpower control');
-    expect(source).not.toContain('kind: \'POWER_TAP\', player: index');
+    expect(source).not.toContain("kind: 'POWER_TAP', player: index");
     expect(source).not.toContain('>MANUAL</Text>');
   });
 
@@ -37,9 +52,17 @@ describe('automatic superpower presentation', () => {
       awayFormation: '3-5-2',
     });
 
-    const renderPolicy = readFileSync(join(process.cwd(), 'src/render/match-control.ts'), 'utf8');
-    const sharedPolicy = readFileSync(join(process.cwd(), 'src/game/match-policy.ts'), 'utf8');
-    expect(renderPolicy).toContain('return controlledMatchOptions(controlledTeam, initialFormation);');
+    const renderPolicy = readFileSync(
+      join(process.cwd(), 'src/render/match-control.ts'),
+      'utf8',
+    );
+    const sharedPolicy = readFileSync(
+      join(process.cwd(), 'src/game/match-policy.ts'),
+      'utf8',
+    );
+    expect(renderPolicy).toContain(
+      'return controlledMatchOptions(controlledTeam, initialFormation);',
+    );
     expect(`${renderPolicy}\n${sharedPolicy}`).not.toContain('SAVE_FOR_TAP');
   });
 
@@ -47,10 +70,17 @@ describe('automatic superpower presentation', () => {
     // The manual hero tap was removed for good on 2026-07-25 (see docs/04). The
     // sim keeps POWER_TAP as test instrumentation, but nothing the player can
     // reach may queue one, and the tap-confirm sound must stay gone.
-    expect(existsSync(join(process.cwd(), 'src/render/autoPower.ts'))).toBe(false);
-    expect(existsSync(join(process.cwd(), 'assets/audio/sfx/tap-fire.wav'))).toBe(false);
+    expect(existsSync(join(process.cwd(), 'src/render/autoPower.ts'))).toBe(
+      false,
+    );
+    expect(
+      existsSync(join(process.cwd(), 'assets/audio/sfx/tap-fire.wav')),
+    ).toBe(false);
 
-    const audio = readFileSync(join(process.cwd(), 'src/render/audio.ts'), 'utf8');
+    const audio = readFileSync(
+      join(process.cwd(), 'src/render/audio.ts'),
+      'utf8',
+    );
     expect(audio).not.toContain('TAP_STRENGTH');
     expect(audio).not.toContain("'tap-fire'");
     expect(audio).not.toContain('e.strength === 1');

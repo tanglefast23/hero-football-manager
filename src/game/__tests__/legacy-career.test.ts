@@ -10,7 +10,10 @@ import { createClubBusinessState } from '../club-business';
 
 const USER_CLUB_ID = 'user-club';
 
-function player(id: string, overrides: Partial<CareerPlayer> = {}): CareerPlayer {
+function player(
+  id: string,
+  overrides: Partial<CareerPlayer> = {},
+): CareerPlayer {
   return {
     id,
     clubId: USER_CLUB_ID,
@@ -39,7 +42,9 @@ function player(id: string, overrides: Partial<CareerPlayer> = {}): CareerPlayer
   };
 }
 
-function market(coachCandidates: readonly CoachCandidate[] = []): CareerMarketState {
+function market(
+  coachCandidates: readonly CoachCandidate[] = [],
+): CareerMarketState {
   return {
     nextMissionNumber: 1,
     scoutReports: [],
@@ -58,15 +63,17 @@ function state(overrides: Partial<GameState> = {}): GameState {
     season: 4,
     week: 1,
     phase: 'manage',
-    clubs: [{
-      id: USER_CLUB_ID,
-      name: 'Caped Ball FC',
-      cash: 25_000,
-      fans: 500,
-      ticketPrice: 4,
-      sponsorMonthlyFee: 2_000,
-      weeklyWages: 4_000,
-    }],
+    clubs: [
+      {
+        id: USER_CLUB_ID,
+        name: 'Caped Ball FC',
+        cash: 25_000,
+        fans: 500,
+        ticketPrice: 4,
+        sponsorMonthlyFee: 2_000,
+        weeklyWages: 4_000,
+      },
+    ],
     fixtures: [],
     players: [],
     lineups: [{ clubId: USER_CLUB_ID, playerIds: [] }],
@@ -97,16 +104,31 @@ describe('career club-legend queue', () => {
         { ...legend, name: 'Duplicate record' },
         second,
       ],
-      pendingLegacyPlayerIds: ['missing', 'ineligible', 'foreign', 'legend', 'legend', 'second'],
+      pendingLegacyPlayerIds: [
+        'missing',
+        'ineligible',
+        'foreign',
+        'legend',
+        'legend',
+        'second',
+      ],
     });
     const next = nextPendingClubLegend(input);
 
     expect(next).toMatchObject({ id: 'legend', name: 'Ari Flint' });
     expect(next).not.toBe(input.retiredPlayers?.[2]);
-    expect(reconcilePendingClubLegends(input).pendingLegacyPlayerIds).toEqual(['legend', 'second']);
-    expect(nextPendingClubLegend(state({ pendingLegacyPlayerIds: ['missing'] }))).toBeUndefined();
-    expect(reconcilePendingClubLegends(state({ pendingLegacyPlayerIds: ['missing'] })).pendingLegacyPlayerIds)
-      .toEqual([]);
+    expect(reconcilePendingClubLegends(input).pendingLegacyPlayerIds).toEqual([
+      'legend',
+      'second',
+    ]);
+    expect(
+      nextPendingClubLegend(state({ pendingLegacyPlayerIds: ['missing'] })),
+    ).toBeUndefined();
+    expect(
+      reconcilePendingClubLegends(
+        state({ pendingLegacyPlayerIds: ['missing'] }),
+      ).pendingLegacyPlayerIds,
+    ).toEqual([]);
   });
 });
 
@@ -140,8 +162,14 @@ describe('career club-legend transactions', () => {
 
   it('does not duplicate a coach that was already added before its queue ID cleared', () => {
     const initial = state();
-    const created = resolveNextClubLegendLegacy(initial, 'coach-candidate').coachCandidate!;
-    const retried = resolveNextClubLegendLegacy(state({ market: market([created]) }), 'coach-candidate');
+    const created = resolveNextClubLegendLegacy(
+      initial,
+      'coach-candidate',
+    ).coachCandidate!;
+    const retried = resolveNextClubLegendLegacy(
+      state({ market: market([created]) }),
+      'coach-candidate',
+    );
 
     expect(retried.state.market?.coachCandidates).toHaveLength(1);
     expect(retried.state.pendingLegacyPlayerIds).toEqual([]);
@@ -156,11 +184,13 @@ describe('career club-legend transactions', () => {
    * roster is no longer a reason a legend cannot be honoured.
    */
   it('resolves a legacy over a full 16-player roster', () => {
-    const fullRoster = Array.from({ length: 16 }, (_, index) => player(`active-${index + 1}`, {
-      age: 24,
-      retirementAnnounced: false,
-      contractSeasonsRemaining: 2,
-    }));
+    const fullRoster = Array.from({ length: 16 }, (_, index) =>
+      player(`active-${index + 1}`, {
+        age: 24,
+        retirementAnnounced: false,
+        contractSeasonsRemaining: 2,
+      }),
+    );
     const resolved = resolveNextClubLegendLegacy(
       state({ players: fullRoster }),
       'coach-candidate',
@@ -190,7 +220,9 @@ describe('career club-legend transactions', () => {
     expect(declined.state.players).toEqual(input.players);
     expect(declined.state.clubs).toEqual(input.clubs);
     // Still on the club's roll of former players: declined, not erased.
-    expect(declined.state.retiredPlayers?.map(retired => retired.id)).toEqual(['legend']);
+    expect(declined.state.retiredPlayers?.map((retired) => retired.id)).toEqual(
+      ['legend'],
+    );
     expect(JSON.stringify(input)).toBe(before);
     expect(JSON.parse(JSON.stringify(declined))).toEqual(declined);
     // And he is gone from the queue for good, which is what the choice costs.
@@ -211,20 +243,29 @@ describe('career club-legend transactions', () => {
     expect(nextPendingClubLegend(first.state)).toMatchObject({ id: 'second' });
     // The two choices are interchangeable as queue operations, so a mixed queue
     // resolves in one pass either way round.
-    expect(resolveNextClubLegendLegacy(first.state, 'coach-candidate').state.pendingLegacyPlayerIds)
-      .toEqual([]);
+    expect(
+      resolveNextClubLegendLegacy(first.state, 'coach-candidate').state
+        .pendingLegacyPlayerIds,
+    ).toEqual([]);
   });
 
   it('requires a market, an eligible pending legend, and a choice it knows', () => {
     for (const choice of ['coach-candidate', 'farewell'] as const) {
-      expect(() => resolveNextClubLegendLegacy(state({ market: undefined }), choice))
-        .toThrow('require a career market');
-      expect(() => resolveNextClubLegendLegacy(state({ pendingLegacyPlayerIds: [] }), choice))
-        .toThrow('no eligible pending');
+      expect(() =>
+        resolveNextClubLegendLegacy(state({ market: undefined }), choice),
+      ).toThrow('require a career market');
+      expect(() =>
+        resolveNextClubLegendLegacy(
+          state({ pendingLegacyPlayerIds: [] }),
+          choice,
+        ),
+      ).toThrow('no eligible pending');
     }
-    expect(() => resolveNextClubLegendLegacy(
-      state(),
-      'mentor-youth' as unknown as 'coach-candidate',
-    )).toThrow('unknown club-legend legacy choice mentor-youth');
+    expect(() =>
+      resolveNextClubLegendLegacy(
+        state(),
+        'mentor-youth' as unknown as 'coach-candidate',
+      ),
+    ).toThrow('unknown club-legend legacy choice mentor-youth');
   });
 });

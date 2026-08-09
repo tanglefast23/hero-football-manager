@@ -8,7 +8,10 @@ import {
   TACKLE_TRAIL_SAMPLES,
 } from '../slide-tackle-effects';
 
-const source = readFileSync(join(process.cwd(), 'src/render/WorkletMatchOverlays.tsx'), 'utf8');
+const source = readFileSync(
+  join(process.cwd(), 'src/render/WorkletMatchOverlays.tsx'),
+  'utf8',
+);
 // Scoped to this component: other hard-edged overlays in the same file
 // (WorkletSpeedLines) also disable AA and snap their geometry, and a whole-file
 // count would make these assertions fail every time one is added.
@@ -46,11 +49,15 @@ describe('slide-tackle debris', () => {
   });
 
   it('covers the whole travelled path with more debris than the body spray alone', () => {
-    expect(TACKLE_TRAIL_SAMPLES.length).toBeGreaterThan(TACKLE_DUST_PIXELS.length);
+    expect(TACKLE_TRAIL_SAMPLES.length).toBeGreaterThan(
+      TACKLE_DUST_PIXELS.length,
+    );
     expect(TACKLE_TRAIL_SAMPLES[0].progress).toBeLessThanOrEqual(0.05);
     expect(TACKLE_TRAIL_SAMPLES.at(-1)!.progress).toBeGreaterThanOrEqual(0.9);
-    expect(TACKLE_TRAIL_SAMPLES.map(sample => sample.progress)).toEqual(
-      [...TACKLE_TRAIL_SAMPLES].map(sample => sample.progress).sort((a, b) => a - b),
+    expect(TACKLE_TRAIL_SAMPLES.map((sample) => sample.progress)).toEqual(
+      [...TACKLE_TRAIL_SAMPLES]
+        .map((sample) => sample.progress)
+        .sort((a, b) => a - b),
     );
   });
 
@@ -76,7 +83,9 @@ describe('slide-tackle debris', () => {
     // span cannot put the far edge back on a sub-pixel phase.
     const builders = component.match(/builder\.moveTo\(/g) ?? [];
     expect(builders).toHaveLength(4);
-    expect(component.match(/snapDevicePixels\(/g)).toHaveLength(builders.length * 4);
+    expect(component.match(/snapDevicePixels\(/g)).toHaveLength(
+      builders.length * 4,
+    );
     // ...and it is the shared helper, never a local re-implementation.
     expect(source).toContain("import { snapDevicePixels } from './pixel-grid'");
     expect(component).not.toMatch(/Math\.round\(/);
@@ -84,7 +93,10 @@ describe('slide-tackle debris', () => {
   });
 
   it('receives the real device pixel ratio from MatchScreen at both layers', () => {
-    const screen = readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
+    const screen = readFileSync(
+      join(process.cwd(), 'src/render/MatchScreen.tsx'),
+      'utf8',
+    );
     const uses = screen.match(/<WorkletSlideTackleEffects\b[\s\S]*?\/>/g) ?? [];
     expect(uses).toHaveLength(2);
     for (const use of uses) {

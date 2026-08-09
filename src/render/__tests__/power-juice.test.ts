@@ -35,7 +35,10 @@ describe('matchPlaybackRate', () => {
 describe('per-power juice flavour', () => {
   it('gives the shake to the strength power only', () => {
     expect(powerJuice('SUPER_STRENGTH')).toEqual({
-      shake: true, flash: false, speedLines: false, punchIn: false,
+      shake: true,
+      flash: false,
+      speedLines: false,
+      punchIn: false,
     });
     expect(powerJuice('SUPER_SPEED').shake).toBe(false);
     expect(powerJuice('ELASTIC_KEEPER').shake).toBe(false);
@@ -113,16 +116,30 @@ describe('matchCameraOffset', () => {
   const height = 260;
 
   it('is identity at 1x apart from the shake', () => {
-    const offset = matchCameraOffset(12, 200, width, height, 1, { x: 0, y: 0 }, 3);
+    const offset = matchCameraOffset(
+      12,
+      200,
+      width,
+      height,
+      1,
+      { x: 0, y: 0 },
+      3,
+    );
     expect(offset).toEqual({ translateX: 0, translateY: 0, zoom: 1 });
   });
 
   it('snaps a fractional zoom request to an integer magnification step', () => {
     // A continuous zoom multiplies the snapped sprite magnification and puts
     // every source texel back on a fraction of a device pixel.
-    expect(matchCameraOffset(100, 100, width, height, 1.5, { x: 0, y: 0 }, 2).zoom).toBe(2);
-    expect(matchCameraOffset(100, 100, width, height, 2.4, { x: 0, y: 0 }, 2).zoom).toBe(2);
-    expect(matchCameraOffset(100, 100, width, height, 0.4, { x: 0, y: 0 }, 2).zoom).toBe(1);
+    expect(
+      matchCameraOffset(100, 100, width, height, 1.5, { x: 0, y: 0 }, 2).zoom,
+    ).toBe(2);
+    expect(
+      matchCameraOffset(100, 100, width, height, 2.4, { x: 0, y: 0 }, 2).zoom,
+    ).toBe(2);
+    expect(
+      matchCameraOffset(100, 100, width, height, 0.4, { x: 0, y: 0 }, 2).zoom,
+    ).toBe(1);
   });
 
   it('keeps an integer zoom on the device-pixel grid for every focus point', () => {
@@ -148,11 +165,21 @@ describe('matchCameraOffset', () => {
     // an integer camera zoom multiplies it and must leave it a whole number.
     const snapped = snapSpriteScale(390 / 680, 17, 3);
     expect(Number.isInteger(snapped.devicePixels)).toBe(true);
-    expect(Number.isInteger(snapped.devicePixels * POWER_JUICE_PUNCH_ZOOM)).toBe(true);
+    expect(
+      Number.isInteger(snapped.devicePixels * POWER_JUICE_PUNCH_ZOOM),
+    ).toBe(true);
   });
 
   it('centres on the focus point but never shows past the touchline', () => {
-    const centred = matchCameraOffset(width / 2, height / 2, width, height, 2, { x: 0, y: 0 }, 1);
+    const centred = matchCameraOffset(
+      width / 2,
+      height / 2,
+      width,
+      height,
+      2,
+      { x: 0, y: 0 },
+      1,
+    );
     expect(centred).toEqual({
       translateX: -width / 2,
       translateY: -height / 2,
@@ -162,53 +189,80 @@ describe('matchCameraOffset', () => {
     // A keeper sits on the goal line; the window clamps to the pitch edge, so a
     // punch-in never reveals void beyond it. Visible left edge = -tx / zoom.
     for (const focus of [0, 5, width, width - 5]) {
-      const offset = matchCameraOffset(focus, height / 2, width, height, 2, { x: 0, y: 0 }, 1);
+      const offset = matchCameraOffset(
+        focus,
+        height / 2,
+        width,
+        height,
+        2,
+        { x: 0, y: 0 },
+        1,
+      );
       const visibleLeft = -offset.translateX / offset.zoom;
       expect(visibleLeft).toBeGreaterThanOrEqual(0);
-      expect(visibleLeft + width / offset.zoom).toBeLessThanOrEqual(width + 1e-9);
+      expect(visibleLeft + width / offset.zoom).toBeLessThanOrEqual(
+        width + 1e-9,
+      );
     }
   });
 });
 
 describe('renderer juice wiring', () => {
   const renderDir = join(process.cwd(), 'src', 'render');
-  const matchSource = () => readFileSync(join(renderDir, 'MatchScreen.tsx'), 'utf8');
+  const matchSource = () =>
+    readFileSync(join(renderDir, 'MatchScreen.tsx'), 'utf8');
 
   it('keeps activation visuals out of the frame accumulator', () => {
     const source = matchSource();
 
-    expect(source).toContain('acc + (now - last) * matchPlaybackRate(speedRef.current)');
-    expect(source).not.toContain('powerJuiceDilation');
-    expect(source).not.toContain('dilationRef');
+    expect(source).toContainSource(
+      'acc + (now - last) * matchPlaybackRate(speedRef.current)',
+    );
+    expect(source).not.toContainSource('powerJuiceDilation');
+    expect(source).not.toContainSource('dilationRef');
     // The sim still sees the same fixed-step tick(s) in the same order.
-    expect(source).toMatch(/if \(!heldForPowerReview\) \{\s*tick\(s\);/);
-    expect(source).not.toContain('tick(s, ');
+    expect(source).toMatchSource(/if \(!heldForPowerReview\) \{\s*tick\(s\);/);
+    expect(source).not.toContainSource('tick(s, ');
   });
 
   it('draws the whole pitch through one camera group, with the backdrop outside it', () => {
     const source = matchSource();
 
-    expect(source).toContain('<Group transform={cameraTransform}>');
-    expect(source).toContain('<Fill color="#3f8a4a" />\n              {/* The one match camera.');
-    expect(source).toContain('{ scale: cameraZoom.value },');
+    expect(source).toContainSource('<Group transform={cameraTransform}>');
+    expect(source).toContainSource(
+      '<Fill color="#3f8a4a" />\n              {/* The one match camera.',
+    );
+    expect(source).toContainSource('{ scale: cameraZoom.value },');
   });
 
   it('reaches the camera only through the pixel-grid-safe helpers', () => {
     const source = matchSource();
 
-    expect(source).toContain('matchCameraOffset(');
-    expect(source).toContain('matchShakeOffset(elapsed, POWER_JUICE_SHAKE_MS, MATCH_SHAKE_AMPLITUDE_PT)');
+    expect(source).toContainSource('matchCameraOffset(');
+    expect(source).toContainSource(
+      'matchShakeOffset(elapsed, POWER_JUICE_SHAKE_MS, MATCH_SHAKE_AMPLITUDE_PT)',
+    );
     // No hand-rolled zoom ramp: the punch is a step between integers.
-    expect(source).toContain('? POWER_JUICE_PUNCH_ZOOM\n        : 1;');
+    expect(source).toContainSource('? POWER_JUICE_PUNCH_ZOOM\n        : 1;');
   });
 
   it('gives Reduce Motion none of it', () => {
     const source = matchSource();
-    const takeover = readFileSync(join(renderDir, 'PowerTitleTakeover.tsx'), 'utf8');
+    const takeover = readFileSync(
+      join(renderDir, 'PowerTitleTakeover.tsx'),
+      'utf8',
+    );
 
-    expect(source).toContain('const startJuice = (power: PowerId, player: number, now: number) => {\n      if (reduceMotion) return;');
-    expect(takeover).toContain('reduceMotion ? null : shellStyle');
-    expect(takeover).toContain('reduceMotion ? styles.sheenHidden : sheenStyle');
+    expect(source).toContainSource(
+      'const suppressCosmeticEffects = reduceMotion || reducedEffects;',
+    );
+    expect(source).toContainSource(
+      'const startJuice = (power: PowerId, player: number, now: number) => {\n      if (suppressCosmeticEffects) return;',
+    );
+    expect(takeover).toContainSource('reduceMotion ? null : shellStyle');
+    expect(takeover).toContainSource(
+      'reduceMotion ? styles.sheenHidden : sheenStyle',
+    );
   });
 
   it('keeps the activation non-blocking — no pause reason, no full-screen panel', () => {
@@ -217,66 +271,98 @@ describe('renderer juice wiring', () => {
     // docs/03 keeps the match on a static wide view and power-cut-in.ts records
     // that full-pitch panels failed playtesting. The control-area title never
     // stops the match or lights the PAUSED chrome mid-activation.
-    expect(source).not.toContain("automaticPauseReasonsRef.current.add('cut-in')");
-    expect(powerCutInGroupPolicy([{ skippable: true }]).shouldPause).toBe(false);
+    expect(source).not.toContainSource(
+      "automaticPauseReasonsRef.current.add('cut-in')",
+    );
+    expect(powerCutInGroupPolicy([{ skippable: true }]).shouldPause).toBe(
+      false,
+    );
   });
 
   it('batches the speed lines into one hard-edged path', () => {
-    const overlays = readFileSync(join(renderDir, 'WorkletMatchOverlays.tsx'), 'utf8');
+    const overlays = readFileSync(
+      join(renderDir, 'WorkletMatchOverlays.tsx'),
+      'utf8',
+    );
 
-    expect(overlays).toContain('export function WorkletSpeedLines(');
-    expect(overlays).toContain('color={SPEED_LINE_COLOR} opacity={opacity} antiAlias={false}');
+    expect(overlays).toContainSource('export function WorkletSpeedLines(');
+    expect(overlays).toContainSource(
+      'color={SPEED_LINE_COLOR} opacity={opacity} antiAlias={false}',
+    );
     // One usePathValue for all sixteen wedges, following WorkletSlideTackleEffects.
     const speedLineBody = overlays.slice(
       overlays.indexOf('export function WorkletSpeedLines('),
       overlays.indexOf('export function WorkletBallShadow('),
     );
     expect((speedLineBody.match(/usePathValue\(/g) ?? []).length).toBe(1);
-    expect((speedLineBody.match(/<Path /g) ?? []).length).toBe(1);
+    expect((speedLineBody.match(/<Path\s/g) ?? []).length).toBe(1);
   });
 
   it('lets the interpolation window stretch below one tick', () => {
-    const worklet = readFileSync(join(renderDir, 'worklet-atlas-frame.ts'), 'utf8');
+    const worklet = readFileSync(
+      join(renderDir, 'worklet-atlas-frame.ts'),
+      'utf8',
+    );
 
-    expect(worklet).not.toContain('Math.max(1, speed)');
-    expect((worklet.match(/Math\.max\(MIN_MATCH_PLAYBACK_RATE, speed\)/g) ?? []).length).toBe(2);
+    expect(worklet).not.toContainSource('Math.max(1, speed)');
+    expect(
+      (worklet.match(/Math\.max\(MIN_MATCH_PLAYBACK_RATE, speed\)/g) ?? [])
+        .length,
+    ).toBe(2);
     // A mid-tick re-issue only has the unfinished fraction left to cover, and
     // that read happens inside the scheduled UI worklet rather than blocking JS.
-    expect(worklet).toContain('const remaining = Math.max(0, Math.min(1, 1 - progress.value));');
-    expect(worklet).toContain('duration: tickDuration * remaining');
-    expect(worklet).toContain('runOnAtlasRuntime(\n      resumeAtlasFrameOnUI,');
+    expect(worklet).toContainSource(
+      'const remaining = Math.max(0, Math.min(1, 1 - progress.value));',
+    );
+    expect(worklet).toContainSource('duration: tickDuration * remaining');
+    expect(worklet).toContainSource(
+      'runOnAtlasRuntime(\n      resumeAtlasFrameOnUI,',
+    );
   });
 });
 
 describe('awakening cutscene juice', () => {
-  const cutsceneSource = () => readFileSync(
-    join(process.cwd(), 'src', 'ui', 'screens', 'AwakeningCutsceneScreen.tsx'),
-    'utf8',
-  );
+  const cutsceneSource = () =>
+    readFileSync(
+      join(
+        process.cwd(),
+        'src',
+        'ui',
+        'screens',
+        'AwakeningCutsceneScreen.tsx',
+      ),
+      'utf8',
+    );
 
   it('shakes the scene open and punches in on the hobbling walk', () => {
     const source = cutsceneSource();
 
-    expect(source).toContain('shakePhase.value = withTiming(1, {');
-    expect(source).toContain('withTiming(HOBBLE_PUNCH_ZOOM, {');
+    expect(source).toContainSource('shakePhase.value = withTiming(1, {');
+    expect(source).toContainSource('withTiming(HOBBLE_PUNCH_ZOOM, {');
     // The punch is a prefix on the existing push, so beat 1 still lands on 1.42
     // and every downstream ready/advance timing is untouched.
-    expect(source).toContain('duration: LIMP_DURATION_MS + HUDDLE_DURATION_MS - HOBBLE_PUNCH_MS,');
-    expect(source).toContain('withTiming(1.42, {');
+    expect(source).toContainSource(
+      'duration: LIMP_DURATION_MS + HUDDLE_DURATION_MS - HOBBLE_PUNCH_MS,',
+    );
+    expect(source).toContainSource('withTiming(1.42, {');
   });
 
   it('flashes white as the power arrives, before the rise', () => {
     const source = cutsceneSource();
 
-    expect(source).toContain('revealFlash.value = withSequence(');
-    expect(source).toContain('withTiming(REVEAL_FLASH_OPACITY, {');
-    expect(source).toContain('opacity={revealFlash}');
+    expect(source).toContainSource('revealFlash.value = withSequence(');
+    expect(source).toContainSource('withTiming(REVEAL_FLASH_OPACITY, {');
+    expect(source).toContainSource('opacity={revealFlash}');
   });
 
   it('gives Reduce Motion neither the jolt nor the flash', () => {
     const source = cutsceneSource();
 
-    expect(source).toContain('if (reduceMotion) {\n        cameraZoom.value = withTiming(1.2, { duration: 0 });');
-    expect(source).toContain('if (!reduceMotion) {\n        revealFlash.value = withSequence(');
+    expect(source).toContainSource(
+      'if (reduceMotion) {\n        cameraZoom.value = withTiming(1.2, { duration: 0 });',
+    );
+    expect(source).toContainSource(
+      'if (!reduceMotion) {\n        revealFlash.value = withSequence(',
+    );
   });
 });

@@ -50,7 +50,9 @@ const BASE_ATTRS: Attrs = {
 
 function marketPlayer(
   id: string,
-  options: Partial<Omit<ScoutablePlayer, 'id' | 'attrs'>> & { attrs?: Attrs } = {},
+  options: Partial<Omit<ScoutablePlayer, 'id' | 'attrs'>> & {
+    attrs?: Attrs;
+  } = {},
 ): ScoutablePlayer {
   return {
     id,
@@ -114,16 +116,22 @@ describe('deterministic scouting', () => {
     expect(mission.dueWeek - mission.startWeek).toBeLessThanOrEqual(3);
     expect(mission.cost).toBeGreaterThanOrEqual(1000);
     expect(mission.cost).toBeLessThanOrEqual(5000);
-    expect(() => resolveScoutMission(mission, mission.dueWeek - 1, candidates)).toThrow(
-      'not complete yet',
-    );
+    expect(() =>
+      resolveScoutMission(mission, mission.dueWeek - 1, candidates),
+    ).toThrow('not complete yet');
 
     const first = resolveScoutMission(mission, mission.dueWeek, candidates);
-    const reordered = resolveScoutMission(mission, mission.dueWeek, candidates.slice().reverse());
+    const reordered = resolveScoutMission(
+      mission,
+      mission.dueWeek,
+      candidates.slice().reverse(),
+    );
 
     expect(JSON.stringify(first)).toBe(JSON.stringify(reordered));
     expect(first.reports).toHaveLength(3);
-    expect(first.reports.every(report => report.playerId.startsWith('mid-'))).toBe(true);
+    expect(
+      first.reports.every((report) => report.playerId.startsWith('mid-')),
+    ).toBe(true);
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);
   });
 
@@ -133,24 +141,36 @@ describe('deterministic scouting', () => {
     const levelThree = scoutAttributeRanges(BASE_ATTRS, 3, 99);
 
     for (const attribute of Object.keys(BASE_ATTRS) as Array<keyof Attrs>) {
-      expect(levelOne[attribute].maximum - levelOne[attribute].minimum).toBe(30);
-      expect(levelTwo[attribute].maximum - levelTwo[attribute].minimum).toBe(18);
-      expect(levelThree[attribute].maximum - levelThree[attribute].minimum).toBe(8);
-      expect(levelThree[attribute].minimum).toBeLessThanOrEqual(BASE_ATTRS[attribute]);
-      expect(levelThree[attribute].maximum).toBeGreaterThanOrEqual(BASE_ATTRS[attribute]);
+      expect(levelOne[attribute].maximum - levelOne[attribute].minimum).toBe(
+        30,
+      );
+      expect(levelTwo[attribute].maximum - levelTwo[attribute].minimum).toBe(
+        18,
+      );
+      expect(
+        levelThree[attribute].maximum - levelThree[attribute].minimum,
+      ).toBe(8);
+      expect(levelThree[attribute].minimum).toBeLessThanOrEqual(
+        BASE_ATTRS[attribute],
+      );
+      expect(levelThree[attribute].maximum).toBeGreaterThanOrEqual(
+        BASE_ATTRS[attribute],
+      );
     }
   });
 
   it('makes rumored heroes a rare real lead, confirms exact powers only at level 3, and gates the focus to Div 3+', () => {
-    expect(() => startScoutMission({
-      careerSeed: 5,
-      missionId: 'too-early',
-      startWeek: 1,
-      region: 'SOUTH_AMERICA',
-      focus: { kind: 'RUMORED_HERO' },
-      scoutOfficeLevel: 1,
-      division: 4,
-    })).toThrow('D3 · Regional League');
+    expect(() =>
+      startScoutMission({
+        careerSeed: 5,
+        missionId: 'too-early',
+        startWeek: 1,
+        region: 'SOUTH_AMERICA',
+        focus: { kind: 'RUMORED_HERO' },
+        scoutOfficeLevel: 1,
+        division: 4,
+      }),
+    ).toThrow('D3 · Regional League');
 
     let hits = 0;
     for (let seed = 1; seed <= 100; seed += 1) {
@@ -163,32 +183,45 @@ describe('deterministic scouting', () => {
         scoutOfficeLevel: 1,
         division: 3,
       });
-      const result = resolveScoutMission(mission, mission.dueWeek, candidates, 5);
-      const hero = result.reports.find(report => report.playerId === 'mid-c');
+      const result = resolveScoutMission(
+        mission,
+        mission.dueWeek,
+        candidates,
+        5,
+      );
+      const hero = result.reports.find((report) => report.playerId === 'mid-c');
       if (hero !== undefined) {
         hits += 1;
         expect(hero).toMatchObject({ rumoredHeroLead: true });
         expect(hero.power).toBeUndefined();
       }
-      expect(resolveScoutMission(mission, mission.dueWeek, candidates, 5)).toEqual(result);
+      expect(
+        resolveScoutMission(mission, mission.dueWeek, candidates, 5),
+      ).toEqual(result);
     }
     expect(hits).toBeGreaterThanOrEqual(15);
     expect(hits).toBeLessThanOrEqual(35);
 
     const confirmingMission = startScoutMission({
-      careerSeed: Array.from({ length: 100 }, (_, index) => index + 1).find(seed => {
-        const mission = startScoutMission({
-          careerSeed: seed,
-          missionId: 'hero-search',
-          startWeek: 1,
-          region: 'EUROPE',
-          focus: { kind: 'RUMORED_HERO' },
-          scoutOfficeLevel: 3,
-          division: 3,
-        });
-        return resolveScoutMission(mission, mission.dueWeek, candidates, 5)
-          .reports.some(report => report.playerId === 'mid-c');
-      })!,
+      careerSeed: Array.from({ length: 100 }, (_, index) => index + 1).find(
+        (seed) => {
+          const mission = startScoutMission({
+            careerSeed: seed,
+            missionId: 'hero-search',
+            startWeek: 1,
+            region: 'EUROPE',
+            focus: { kind: 'RUMORED_HERO' },
+            scoutOfficeLevel: 3,
+            division: 3,
+          });
+          return resolveScoutMission(
+            mission,
+            mission.dueWeek,
+            candidates,
+            5,
+          ).reports.some((report) => report.playerId === 'mid-c');
+        },
+      )!,
       missionId: 'hero-search',
       startWeek: 1,
       region: 'EUROPE',
@@ -201,20 +234,22 @@ describe('deterministic scouting', () => {
       confirmingMission.dueWeek,
       candidates,
       5,
-    ).reports.find(report => report.playerId === 'mid-c');
+    ).reports.find((report) => report.playerId === 'mid-c');
     expect(confirmed?.power).toBe('SUPER_SPEED');
   });
 
   it('unlocks Elite Prospect searches in D2 and returns only young 4-5 star players', () => {
-    expect(() => startScoutMission({
-      careerSeed: 9,
-      missionId: 'elite-too-early',
-      startWeek: 1,
-      region: 'EUROPE',
-      focus: { kind: 'ELITE_PROSPECT' },
-      scoutOfficeLevel: 2,
-      division: 3,
-    })).toThrow('D2 · National League');
+    expect(() =>
+      startScoutMission({
+        careerSeed: 9,
+        missionId: 'elite-too-early',
+        startWeek: 1,
+        region: 'EUROPE',
+        focus: { kind: 'ELITE_PROSPECT' },
+        scoutOfficeLevel: 2,
+        division: 3,
+      }),
+    ).toThrow('D2 · National League');
 
     const mission = startScoutMission({
       careerSeed: 9,
@@ -232,13 +267,18 @@ describe('deterministic scouting', () => {
       marketPlayer('too-low', { age: 20, potential: 3 }),
     ]);
 
-    expect(result.reports.map(report => report.playerId).sort()).toEqual(['elite-a', 'elite-b']);
+    expect(result.reports.map((report) => report.playerId).sort()).toEqual([
+      'elite-a',
+      'elite-b',
+    ]);
   });
 });
 
 describe('transfer rules and valuations', () => {
   it('opens only in pre-season and the two mid-season weeks', () => {
-    expect([1, 2, 3, 4, 17, 18].filter(isTransferWindowOpen)).toEqual([1, 2, 3, 4, 17, 18]);
+    expect([1, 2, 3, 4, 17, 18].filter(isTransferWindowOpen)).toEqual([
+      1, 2, 3, 4, 17, 18,
+    ]);
     expect([0, 5, 16, 19, 30, 31].some(isTransferWindowOpen)).toBe(false);
   });
 
@@ -250,31 +290,43 @@ describe('transfer rules and valuations', () => {
 
     expect(playerValuation(ordinary, 5)).toBeGreaterThanOrEqual(5000);
     expect(playerValuation(ordinary, 5)).toBeLessThanOrEqual(15000);
-    expect(playerValuation(stronger, 5)).toBeGreaterThan(playerValuation(ordinary, 5));
-    expect(playerValuation(valuationPlayer('prime', { age: 27 }), 5)).toBeGreaterThan(
-      playerValuation(valuationPlayer('old', { age: 36 }), 5),
+    expect(playerValuation(stronger, 5)).toBeGreaterThan(
+      playerValuation(ordinary, 5),
     );
-    expect(playerValuation(valuationPlayer('potential', { potential: 5 }), 5)).toBeGreaterThan(
+    expect(
+      playerValuation(valuationPlayer('prime', { age: 27 }), 5),
+    ).toBeGreaterThan(playerValuation(valuationPlayer('old', { age: 36 }), 5));
+    expect(
+      playerValuation(valuationPlayer('potential', { potential: 5 }), 5),
+    ).toBeGreaterThan(
       playerValuation(valuationPlayer('low-potential', { potential: 1 }), 5),
     );
-    expect(playerValuation(
-      valuationPlayer('hero', { power: 'SUPER_SPEED', powerTier: 3 }),
-      5,
-    )).toBeGreaterThan(playerValuation(ordinary, 5) * 6);
-    expect(playerValuation(
-      valuationPlayer('long-contract', { contractSeasonsRemaining: 3 }),
-      5,
-    )).toBeGreaterThan(playerValuation(
-      valuationPlayer('expiring', { contractSeasonsRemaining: 0 }),
-      5,
-    ));
-    const supportPlayer = (division: DivisionLevel) => valuationPlayer(`support-d${division}`, {
-      attrs: Object.fromEntries(
-        Object.keys(BASE_ATTRS).map(attribute => (
-          [attribute, DIVISION_SUPPORT_STRENGTHS[division]]
-        )),
-      ) as unknown as Attrs,
-    });
+    expect(
+      playerValuation(
+        valuationPlayer('hero', { power: 'SUPER_SPEED', powerTier: 3 }),
+        5,
+      ),
+    ).toBeGreaterThan(playerValuation(ordinary, 5) * 6);
+    expect(
+      playerValuation(
+        valuationPlayer('long-contract', { contractSeasonsRemaining: 3 }),
+        5,
+      ),
+    ).toBeGreaterThan(
+      playerValuation(
+        valuationPlayer('expiring', { contractSeasonsRemaining: 0 }),
+        5,
+      ),
+    );
+    const supportPlayer = (division: DivisionLevel) =>
+      valuationPlayer(`support-d${division}`, {
+        attrs: Object.fromEntries(
+          Object.keys(BASE_ATTRS).map((attribute) => [
+            attribute,
+            DIVISION_SUPPORT_STRENGTHS[division],
+          ]),
+        ) as unknown as Attrs,
+      });
     expect(playerValuation(supportPlayer(1), 1)).toBeGreaterThan(
       playerValuation(supportPlayer(5), 5),
     );
@@ -284,25 +336,35 @@ describe('transfer rules and valuations', () => {
     const pyramid = generateLeaguePyramid(7_729);
     for (const division of pyramid.divisions) {
       const level = division.level;
-      const players = division.clubs.flatMap(club => club.squad);
+      const players = division.clubs.flatMap((club) => club.squad);
       const valuations = players
-        .map(player => playerValuation({
-          ...player,
-          potential: 3,
-          contractSeasonsRemaining: 2,
-        }, level))
+        .map((player) =>
+          playerValuation(
+            {
+              ...player,
+              potential: 3,
+              contractSeasonsRemaining: 2,
+            },
+            level,
+          ),
+        )
         .sort((left, right) => left - right);
       const wages = players
-        .map(player => generatedPlayerWeeklyWage(player.attrs, level))
+        .map((player) => generatedPlayerWeeklyWage(player.attrs, level))
         .sort((left, right) => left - right);
-      const weeklyGrossIncome = Math.floor(divisionFans(level) * 0.6)
-        * divisionTicketPrice(level) * 9 / 30
-        + divisionSponsorMonthlyFee(level) / 4;
+      const weeklyGrossIncome =
+        (Math.floor(divisionFans(level) * 0.6) *
+          divisionTicketPrice(level) *
+          9) /
+          30 +
+        divisionSponsorMonthlyFee(level) / 4;
 
-      expect(valuations[Math.floor(valuations.length / 2)])
-        .toBeLessThanOrEqual(weeklyGrossIncome * 10);
-      expect(wages[Math.floor(wages.length / 2)])
-        .toBeLessThanOrEqual(weeklyGrossIncome * 0.2);
+      expect(valuations[Math.floor(valuations.length / 2)]).toBeLessThanOrEqual(
+        weeklyGrossIncome * 10,
+      );
+      expect(wages[Math.floor(wages.length / 2)]).toBeLessThanOrEqual(
+        weeklyGrossIncome * 0.2,
+      );
       expect(DIVISION_TRANSFER_VALUE_ANCHORS[level]).toBeGreaterThan(0);
       expect(DIVISION_WEEKLY_WAGE_ANCHORS[level]).toBeGreaterThan(0);
     }
@@ -311,7 +373,10 @@ describe('transfer rules and valuations', () => {
   it('keeps the awakening renewal cliff at the locked three-to-five times wage', () => {
     const weeklyWage = generatedPlayerWeeklyWage(
       Object.fromEntries(
-        Object.keys(BASE_ATTRS).map(attribute => [attribute, DIVISION_SUPPORT_STRENGTHS[3]]),
+        Object.keys(BASE_ATTRS).map((attribute) => [
+          attribute,
+          DIVISION_SUPPORT_STRENGTHS[3],
+        ]),
       ) as unknown as Attrs,
       3,
     );
@@ -321,18 +386,22 @@ describe('transfer rules and valuations', () => {
       power: 'SUPER_SPEED' as const,
       onHeroWage: false,
     };
-    expect(renewalContractAsk(player, {
-      growthSinceSigningPercent: 0,
-      famePercent: 0,
-      heroMultiplier: 3,
-      loyaltyPercent: 0,
-    })).toBe(weeklyWage * 3);
-    expect(renewalContractAsk(player, {
-      growthSinceSigningPercent: 0,
-      famePercent: 0,
-      heroMultiplier: 5,
-      loyaltyPercent: 0,
-    })).toBe(weeklyWage * 5);
+    expect(
+      renewalContractAsk(player, {
+        growthSinceSigningPercent: 0,
+        famePercent: 0,
+        heroMultiplier: 3,
+        loyaltyPercent: 0,
+      }),
+    ).toBe(weeklyWage * 3);
+    expect(
+      renewalContractAsk(player, {
+        growthSinceSigningPercent: 0,
+        famePercent: 0,
+        heroMultiplier: 5,
+        loyaltyPercent: 0,
+      }),
+    ).toBe(weeklyWage * 5);
   });
 
   it('discounts the renewal ask for a loyal player and inflates it for a disloyal one', () => {
@@ -341,11 +410,21 @@ describe('transfer rules and valuations', () => {
       personality: 'PROFESSIONAL' as const,
       onHeroWage: false,
     };
-    const factors = { growthSinceSigningPercent: 0, famePercent: 0, heroMultiplier: 4 };
+    const factors = {
+      growthSinceSigningPercent: 0,
+      famePercent: 0,
+      heroMultiplier: 4,
+    };
 
-    expect(renewalContractAsk(player, { ...factors, loyaltyPercent: -20 })).toBe(800);
-    expect(renewalContractAsk(player, { ...factors, loyaltyPercent: 0 })).toBe(1000);
-    expect(renewalContractAsk(player, { ...factors, loyaltyPercent: 20 })).toBe(1200);
+    expect(
+      renewalContractAsk(player, { ...factors, loyaltyPercent: -20 }),
+    ).toBe(800);
+    expect(renewalContractAsk(player, { ...factors, loyaltyPercent: 0 })).toBe(
+      1000,
+    );
+    expect(renewalContractAsk(player, { ...factors, loyaltyPercent: 20 })).toBe(
+      1200,
+    );
   });
 
   it('rejects a loyalty factor outside the signed band the design allows', () => {
@@ -354,12 +433,18 @@ describe('transfer rules and valuations', () => {
       personality: 'PROFESSIONAL' as const,
       onHeroWage: false,
     };
-    const factors = { growthSinceSigningPercent: 0, famePercent: 0, heroMultiplier: 4 };
+    const factors = {
+      growthSinceSigningPercent: 0,
+      famePercent: 0,
+      heroMultiplier: 4,
+    };
 
-    expect(() => renewalContractAsk(player, { ...factors, loyaltyPercent: 21 }))
-      .toThrow('renewal loyalty factor');
-    expect(() => renewalContractAsk(player, { ...factors, loyaltyPercent: -21 }))
-      .toThrow('renewal loyalty factor');
+    expect(() =>
+      renewalContractAsk(player, { ...factors, loyaltyPercent: 21 }),
+    ).toThrow('renewal loyalty factor');
+    expect(() =>
+      renewalContractAsk(player, { ...factors, loyaltyPercent: -21 }),
+    ).toThrow('renewal loyalty factor');
   });
 
   it('creates repeatable buying asks and selling bids inside their valuation bands', () => {
@@ -373,7 +458,9 @@ describe('transfer rules and valuations', () => {
     const buy = buyingTransferQuote(player, context);
     const sell = sellingTransferQuote(player, context);
 
-    expect(buy).toEqual(buyingTransferQuote({ ...player, attrs: { ...player.attrs } }, context));
+    expect(buy).toEqual(
+      buyingTransferQuote({ ...player, attrs: { ...player.attrs } }, context),
+    );
     expect(buy.bandPercent).toBeGreaterThanOrEqual(105);
     expect(buy.bandPercent).toBeLessThanOrEqual(125);
     expect(sell.bandPercent).toBeGreaterThanOrEqual(80);
@@ -383,13 +470,14 @@ describe('transfer rules and valuations', () => {
 });
 
 describe('contract negotiation', () => {
-  const PERSONALITY_THAT_LOVES: Readonly<Record<PitchCard, PlayerPersonality>> = {
-    FLATTERY: 'JOKER',
-    TROPHY_PROMISE: 'FIERY',
-    HOMETOWN_TIES: 'LOYAL',
-    MONEY_TALKS: 'GREEDY',
-    STRAIGHT_TALK: 'PROFESSIONAL',
-  };
+  const PERSONALITY_THAT_LOVES: Readonly<Record<PitchCard, PlayerPersonality>> =
+    {
+      FLATTERY: 'JOKER',
+      TROPHY_PROMISE: 'FIERY',
+      HOMETOWN_TIES: 'LOYAL',
+      MONEY_TALKS: 'GREEDY',
+      STRAIGHT_TALK: 'PROFESSIONAL',
+    };
 
   it('deals 3 deterministic unique cards and caps their effective-ask influence at +/-20%', () => {
     const hand = dealPitchCards(777, 'talks-1');
@@ -411,7 +499,11 @@ describe('contract negotiation', () => {
       personality,
       weeklyAsk: 1000,
     });
-    const offer = { weeklyWage: 800, termSeasons: 3, perk: 'GUARANTEED_STARTER' as const };
+    const offer = {
+      weeklyWage: 800,
+      termSeasons: 3,
+      perk: 'GUARANTEED_STARTER' as const,
+    };
     const accepted = submitContractOffer(initial, offer, firstCard);
 
     expect(pitchCardAffinity(personality, firstCard)).toBe(1);
@@ -444,14 +536,18 @@ describe('contract negotiation', () => {
       personality: 'PROFESSIONAL',
       weeklyAsk: 1000,
     });
-    const lowOffer = { weeklyWage: 600, termSeasons: 1, perk: 'JERSEY_10' as const };
+    const lowOffer = {
+      weeklyWage: 600,
+      termSeasons: 1,
+      perk: 'JERSEY_10' as const,
+    };
     talks = submitContractOffer(talks, lowOffer);
     talks = submitContractOffer(talks, lowOffer);
     talks = submitContractOffer(talks, lowOffer);
 
     expect(talks.round).toBe(3);
     expect(talks.status).toBe('REJECTED');
-    expect(talks.history.map(record => record.outcome)).toEqual([
+    expect(talks.history.map((record) => record.outcome)).toEqual([
       'COUNTER',
       'COUNTER',
       'WALKED_AWAY',
@@ -478,7 +574,12 @@ describe('contract negotiation', () => {
   it('builds renewal asks from growth, fame, personality, and the delayed hero wage cliff', () => {
     const ordinary = renewalContractAsk(
       { weeklyWage: 200, personality: 'GREEDY', onHeroWage: false },
-      { growthSinceSigningPercent: 25, famePercent: 10, heroMultiplier: 4, loyaltyPercent: 0 },
+      {
+        growthSinceSigningPercent: 25,
+        famePercent: 10,
+        heroMultiplier: 4,
+        loyaltyPercent: 0,
+      },
     );
     const hero = renewalContractAsk(
       {
@@ -487,7 +588,12 @@ describe('contract negotiation', () => {
         power: 'SUPER_SPEED',
         onHeroWage: false,
       },
-      { growthSinceSigningPercent: 25, famePercent: 10, heroMultiplier: 4, loyaltyPercent: 0 },
+      {
+        growthSinceSigningPercent: 25,
+        famePercent: 10,
+        heroMultiplier: 4,
+        loyaltyPercent: 0,
+      },
     );
     const alreadyOnHeroRate = renewalContractAsk(
       {
@@ -496,7 +602,12 @@ describe('contract negotiation', () => {
         power: 'SUPER_SPEED',
         onHeroWage: true,
       },
-      { growthSinceSigningPercent: 0, famePercent: 0, heroMultiplier: 5, loyaltyPercent: 0 },
+      {
+        growthSinceSigningPercent: 0,
+        famePercent: 0,
+        heroMultiplier: 5,
+        loyaltyPercent: 0,
+      },
     );
 
     // The hero premium is still x4 of the ordinary ask in principle — 330 x 4
@@ -534,13 +645,18 @@ describe('contract negotiation', () => {
     // silently costs five times the old wage.
     const modest = renewalContractAsk(
       { weeklyWage: 100, personality: 'LOYAL', onHeroWage: false },
-      { growthSinceSigningPercent: 10, famePercent: 0, heroMultiplier: 4, loyaltyPercent: -10 },
+      {
+        growthSinceSigningPercent: 10,
+        famePercent: 0,
+        heroMultiplier: 4,
+        loyaltyPercent: -10,
+      },
     );
     expect(modest).toBeLessThan(100 * MAX_RENEWAL_ASK_MULTIPLE);
   });
 });
 
-  describe('coach market', () => {
+describe('coach market', () => {
   it('generates 3-5 byte-identical eligible candidates with two distinct specialties', () => {
     const setup = { careerSeed: 444, season: 3, division: 3, fame: 300 };
     const first = generateCoachMarket(setup);
@@ -549,31 +665,62 @@ describe('contract negotiation', () => {
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
     expect(first.length).toBeGreaterThanOrEqual(3);
     expect(first.length).toBeLessThanOrEqual(5);
-    expect(first.every(candidate => candidate.specialties[0] !== candidate.specialties[1])).toBe(true);
-    expect(first.every(candidate => isCoachCandidateEligible(candidate, 3, 300))).toBe(true);
-    expect(first.every(candidate => candidate.level <= maxCoachLevelForClub(3, 300))).toBe(true);
-    expect(new Set(first.map(candidate => candidate.name)).size).toBe(first.length);
-    expect(new Set(first.map(candidate => candidate.portraitId)).size).toBe(first.length);
-    expect(first.every(candidate => !candidate.name.startsWith('Coach Prospect'))).toBe(true);
-    expect(first.every(candidate => candidate.age !== undefined && candidate.age >= 30 && candidate.age <= 60)).toBe(true);
+    expect(
+      first.every(
+        (candidate) => candidate.specialties[0] !== candidate.specialties[1],
+      ),
+    ).toBe(true);
+    expect(
+      first.every((candidate) => isCoachCandidateEligible(candidate, 3, 300)),
+    ).toBe(true);
+    expect(
+      first.every(
+        (candidate) => candidate.level <= maxCoachLevelForClub(3, 300),
+      ),
+    ).toBe(true);
+    expect(new Set(first.map((candidate) => candidate.name)).size).toBe(
+      first.length,
+    );
+    expect(new Set(first.map((candidate) => candidate.portraitId)).size).toBe(
+      first.length,
+    );
+    expect(
+      first.every((candidate) => !candidate.name.startsWith('Coach Prospect')),
+    ).toBe(true);
+    expect(
+      first.every(
+        (candidate) =>
+          candidate.age !== undefined &&
+          candidate.age >= 30 &&
+          candidate.age <= 60,
+      ),
+    ).toBe(true);
   });
 
   it('gates coach quality by both division and fame and progresses one level per two seasons', () => {
     expect(maxCoachLevelForClub(5, 9999)).toBe(1);
     expect(maxCoachLevelForClub(1, 0)).toBe(1);
     expect(maxCoachLevelForClub(1, 900)).toBe(5);
-    expect(Math.max(...generateCoachMarket({
-      careerSeed: 1,
-      season: 1,
-      division: 5,
-      fame: 9999,
-    }).map(candidate => candidate.level))).toBe(1);
-    expect(Math.max(...generateCoachMarket({
-      careerSeed: 1,
-      season: 1,
-      division: 1,
-      fame: 900,
-    }).map(candidate => candidate.level))).toBe(5);
+    expect(
+      Math.max(
+        ...generateCoachMarket({
+          careerSeed: 1,
+          season: 1,
+          division: 5,
+          fame: 9999,
+        }).map((candidate) => candidate.level),
+      ),
+    ).toBe(1);
+    expect(
+      Math.max(
+        ...generateCoachMarket({
+          careerSeed: 1,
+          season: 1,
+          division: 1,
+          fame: 900,
+        }).map((candidate) => candidate.level),
+      ),
+    ).toBe(5);
     expect(coachLevelAfterSeasons(2, 1)).toBe(2);
     expect(coachLevelAfterSeasons(2, 2)).toBe(3);
     expect(coachLevelAfterSeasons(4, 10)).toBe(5);
@@ -586,16 +733,20 @@ describe('contract negotiation', () => {
       division: 2,
       fame: 800,
       unlockIds: ['formation-343', 'drill-hero-fitness'],
-      retiredLegends: [{
-        playerId: 'legend-7',
-        name: 'Ari Flint',
-        personality: 'LOYAL',
-        fame: 750,
-        seasonsAtClub: 7,
-        specialties: ['ATTACK', 'MOTIVATOR'],
-      }],
+      retiredLegends: [
+        {
+          playerId: 'legend-7',
+          name: 'Ari Flint',
+          personality: 'LOYAL',
+          fame: 750,
+          seasonsAtClub: 7,
+          specialties: ['ATTACK', 'MOTIVATOR'],
+        },
+      ],
     });
-    const legend = market.find(candidate => candidate.retiredLegendPlayerId === 'legend-7');
+    const legend = market.find(
+      (candidate) => candidate.retiredLegendPlayerId === 'legend-7',
+    );
 
     expect(legend).toMatchObject({
       name: 'Ari Flint',
@@ -613,11 +764,17 @@ describe('contract negotiation', () => {
       season: 2,
       division: 1,
       fame: 900,
-      unlockIds: ['formation:a', 'formation:b', 'formation:c', 'formation:d', 'formation:e'],
+      unlockIds: [
+        'formation:a',
+        'formation:b',
+        'formation:c',
+        'formation:d',
+        'formation:e',
+      ],
     });
-    const unlocks = market.map(candidate => candidate.unlockId);
+    const unlocks = market.map((candidate) => candidate.unlockId);
 
-    expect(unlocks.every(id => id !== undefined)).toBe(true);
+    expect(unlocks.every((id) => id !== undefined)).toBe(true);
     expect(new Set(unlocks).size).toBe(unlocks.length);
   });
 
@@ -630,7 +787,11 @@ describe('contract negotiation', () => {
       unlockIds: ['formation:4-3-3'],
     });
 
-    expect(market.filter(candidate => candidate.unlockId === 'formation:4-3-3')).toHaveLength(1);
-    expect(market.filter(candidate => candidate.unlockId !== undefined)).toHaveLength(1);
+    expect(
+      market.filter((candidate) => candidate.unlockId === 'formation:4-3-3'),
+    ).toHaveLength(1);
+    expect(
+      market.filter((candidate) => candidate.unlockId !== undefined),
+    ).toHaveLength(1);
   });
 });

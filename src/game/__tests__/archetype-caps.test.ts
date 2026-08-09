@@ -30,11 +30,21 @@ const BASE_ATTRS: Attrs = {
 describe('open-ended player development', () => {
   test('uses the exact E- through A+ potential bonus ladder', () => {
     expect(POTENTIAL_GRADES).toEqual([
-      'E-', 'E', 'E+',
-      'D-', 'D', 'D+',
-      'C-', 'C', 'C+',
-      'B-', 'B', 'B+',
-      'A-', 'A', 'A+',
+      'E-',
+      'E',
+      'E+',
+      'D-',
+      'D',
+      'D+',
+      'C-',
+      'C',
+      'C+',
+      'B-',
+      'B',
+      'B+',
+      'A-',
+      'A',
+      'A+',
     ]);
   });
 
@@ -45,50 +55,83 @@ describe('open-ended player development', () => {
     ['Anchor', { def: 15, sta: 15 }],
     ['Wall', { def: 15, ref: 15 }],
     ['Engine', { pac: 15, sta: 15 }],
-    ['All-Rounder', Object.fromEntries(ATTRIBUTES.map(attribute => [attribute, 5]))],
-    ['Prodigy', Object.fromEntries(ATTRIBUTES.map(attribute => [attribute, 20]))],
-  ] as const)('%s exposes its exact innate training bonuses', (archetype, expected) => {
-    for (const attribute of ATTRIBUTES) {
-      expect(archetypeTrainingBonusPercent(archetype, attribute))
-        .toBe(expected[attribute as keyof typeof expected] ?? 0);
-    }
-  });
+    [
+      'All-Rounder',
+      Object.fromEntries(ATTRIBUTES.map((attribute) => [attribute, 5])),
+    ],
+    [
+      'Prodigy',
+      Object.fromEntries(ATTRIBUTES.map((attribute) => [attribute, 20])),
+    ],
+  ] as const)(
+    '%s exposes its exact innate training bonuses',
+    (archetype, expected) => {
+      for (const attribute of ATTRIBUTES) {
+        expect(archetypeTrainingBonusPercent(archetype, attribute)).toBe(
+          expected[attribute as keyof typeof expected] ?? 0,
+        );
+      }
+    },
+  );
 
-  test.each(Object.entries(POSITION_TRAINING_ATTRIBUTES) as [Role, readonly (keyof Attrs)[]][])(
+  test.each(
+    Object.entries(POSITION_TRAINING_ATTRIBUTES) as [
+      Role,
+      readonly (keyof Attrs)[],
+    ][],
+  )(
     '%s gains +5%% only on its three position attributes',
     (role, positionAttributes) => {
       expect(positionAttributes).toHaveLength(3);
       for (const attribute of ATTRIBUTES) {
-        expect(positionTrainingBonusPercent(role, attribute))
-          .toBe(positionAttributes.includes(attribute) ? 5 : 0);
+        expect(positionTrainingBonusPercent(role, attribute)).toBe(
+          positionAttributes.includes(attribute) ? 5 : 0,
+        );
       }
     },
   );
 
   test('never steers a role toward an attribute its matches ignore', () => {
-    for (const [role, positionAttributes] of Object.entries(POSITION_TRAINING_ATTRIBUTES) as
-      [Role, readonly (keyof Attrs)[]][]) {
+    for (const [role, positionAttributes] of Object.entries(
+      POSITION_TRAINING_ATTRIBUTES,
+    ) as [Role, readonly (keyof Attrs)[]][]) {
       for (const attribute of positionAttributes) {
-        expect([role, attribute, attributeAffectsPlay(role, attribute)])
-          .toEqual([role, attribute, true]);
+        expect([
+          role,
+          attribute,
+          attributeAffectsPlay(role, attribute),
+        ]).toEqual([role, attribute, true]);
       }
     }
   });
 
   test('derives a stable three-step grade inside each persisted talent tier', () => {
     for (const potential of [1, 2, 3, 4, 5] as const) {
-      const first = playerPotentialGrade({ id: `player-${potential}`, potential });
-      const second = playerPotentialGrade({ id: `player-${potential}`, potential });
+      const first = playerPotentialGrade({
+        id: `player-${potential}`,
+        potential,
+      });
+      const second = playerPotentialGrade({
+        id: `player-${potential}`,
+        potential,
+      });
       expect(first).toBe(second);
-      expect(POTENTIAL_GRADES.indexOf(first)).toBeGreaterThanOrEqual((potential - 1) * 3);
+      expect(POTENTIAL_GRADES.indexOf(first)).toBeGreaterThanOrEqual(
+        (potential - 1) * 3,
+      );
       expect(POTENTIAL_GRADES.indexOf(first)).toBeLessThan(potential * 3);
     }
   });
 
   test('gates talent so A-range players first appear in D1', () => {
-    const tiersByDivision = ([5, 4, 3, 2, 1] as const).map(division => (
-      new Set(Array.from({ length: 100 }, (_, roll) => potentialTierForDivision(division, roll)))
-    ));
+    const tiersByDivision = ([5, 4, 3, 2, 1] as const).map(
+      (division) =>
+        new Set(
+          Array.from({ length: 100 }, (_, roll) =>
+            potentialTierForDivision(division, roll),
+          ),
+        ),
+    );
     expect(tiersByDivision[0]).toEqual(new Set([1, 2]));
     expect(tiersByDivision[1]).toEqual(new Set([1, 2, 3]));
     expect(tiersByDivision[2]).toEqual(new Set([1, 2, 3, 4]));
@@ -96,10 +139,11 @@ describe('open-ended player development', () => {
     expect(tiersByDivision[4]).toEqual(new Set([4, 5]));
     expect(potentialTierForDivision(1, 0)).toBe(5);
     expect(potentialTierForDivision(2, 0)).not.toBe(5);
-    const d1TopTierGrades = new Set(Array.from(
-      { length: 200 },
-      (_, index) => playerPotentialGrade({ id: `d1-candidate-${index}`, potential: 5 }),
-    ));
+    const d1TopTierGrades = new Set(
+      Array.from({ length: 200 }, (_, index) =>
+        playerPotentialGrade({ id: `d1-candidate-${index}`, potential: 5 }),
+      ),
+    );
     expect(d1TopTierGrades).toEqual(new Set(['A-', 'A', 'A+']));
   });
 
@@ -109,8 +153,15 @@ describe('open-ended player development', () => {
     expect(roleOverall('GK', attrs)).toBe(45);
     // Potential buys a better SUPER roll and nothing else — it contributes no
     // percent to an ordinary drill, which is what the market label used to claim.
-    expect(superTrainingChancePercent(playerPotentialGrade({ id: 'fast-learner', potential: 5 })))
-      .toBeGreaterThan(superTrainingChancePercent(playerPotentialGrade({ id: 'slow-learner', potential: 1 })));
+    expect(
+      superTrainingChancePercent(
+        playerPotentialGrade({ id: 'fast-learner', potential: 5 }),
+      ),
+    ).toBeGreaterThan(
+      superTrainingChancePercent(
+        playerPotentialGrade({ id: 'slow-learner', potential: 1 }),
+      ),
+    );
   });
 
   test('allows growth through 99 and stops only at the universal 999 safety ceiling', () => {
@@ -132,14 +183,17 @@ describe('open-ended player development', () => {
       ref: 999,
     });
     expect(capPlayerTrainingGain(player, 'sho', 98, 105)).toBe(105);
-    expect(capPlayerTrainingGain(player, 'sho', 998, 1_020)).toBe(MAX_PLAYER_ATTRIBUTE);
+    expect(capPlayerTrainingGain(player, 'sho', 998, 1_020)).toBe(
+      MAX_PLAYER_ATTRIBUTE,
+    );
   });
 
   test('reports only the remaining room to the rare universal ceiling', () => {
-    expect(remainingDevelopmentPotential('Wall', BASE_ATTRS))
-      .toBe(ATTRIBUTES.length * (MAX_PLAYER_ATTRIBUTE - 50));
+    expect(remainingDevelopmentPotential('Wall', BASE_ATTRS)).toBe(
+      ATTRIBUTES.length * (MAX_PLAYER_ATTRIBUTE - 50),
+    );
     const maximums = Object.fromEntries(
-      ATTRIBUTES.map(attribute => [attribute, MAX_PLAYER_ATTRIBUTE]),
+      ATTRIBUTES.map((attribute) => [attribute, MAX_PLAYER_ATTRIBUTE]),
     ) as unknown as Attrs;
     expect(remainingDevelopmentPotential('Prodigy', maximums)).toBe(0);
   });
@@ -147,9 +201,12 @@ describe('open-ended player development', () => {
   test('defines every supported archetype without using it as a cap', () => {
     expect(PLAYER_ARCHETYPES).toHaveLength(8);
     for (const archetype of PLAYER_ARCHETYPES) {
-      expect(ATTRIBUTES.some(attribute => (
-        archetypeTrainingBonusPercent(archetype, attribute) > 0
-      ))).toBe(true);
+      expect(
+        ATTRIBUTES.some(
+          (attribute) =>
+            archetypeTrainingBonusPercent(archetype, attribute) > 0,
+        ),
+      ).toBe(true);
     }
   });
 });

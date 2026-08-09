@@ -64,6 +64,9 @@ export function listStaggerDelay(index: number, maxRows = 8): number {
  * jumping: a duration of 0 keeps every call site's shape (still a timing, still
  * an onComplete) while removing the travel.
  */
-export function motionDuration(step: MotionStep, reduceMotion: boolean): number {
+export function motionDuration(
+  step: MotionStep,
+  reduceMotion: boolean,
+): number {
   return reduceMotion ? 0 : MOTION_MS[step];
 }

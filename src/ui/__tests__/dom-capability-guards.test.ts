@@ -9,7 +9,9 @@
 // body runs synchronously in this repo's node test environment (no jsdom, and
 // no renderer that could mount a component).
 jest.mock('react-native', () => ({ Platform: { OS: 'web' } }));
-jest.mock('../../application/store', () => ({ flushPendingCareerSave: jest.fn() }));
+jest.mock('../../application/store', () => ({
+  flushPendingCareerSave: jest.fn(),
+}));
 jest.mock('react', () => {
   const cleanups: Array<() => void> = [];
   return {
@@ -27,7 +29,10 @@ import { useKeyBindings } from '../use-key-bindings';
 import { useSuspendFlush } from '../use-suspend-flush';
 
 const effects = jest.requireMock('react') as { __cleanups: Array<() => void> };
-const globals = globalThis as unknown as { window?: unknown; document?: unknown };
+const globals = globalThis as unknown as {
+  window?: unknown;
+  document?: unknown;
+};
 
 type Listener = (event: unknown) => void;
 
@@ -57,7 +62,7 @@ function installDom({ modalOpen = false } = {}) {
   const page = Object.assign(fakeEventTarget(), {
     hidden: false,
     querySelector: (selector: string): unknown =>
-      (modalOpen && selector === '[aria-modal="true"]' ? {} : null),
+      modalOpen && selector === '[aria-modal="true"]' ? {} : null,
   });
   globals.window = view;
   globals.document = page;

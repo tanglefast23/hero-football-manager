@@ -95,24 +95,32 @@ function restedWeek(state: GameState, playerId: string): GameState {
   return {
     ...state,
     trainingPoints: 1_000_000,
-    players: state.players.map(player => (player.id === playerId
-      ? { ...player, condition: 100, injuryWeeks: 0, awayWeeks: 0 }
-      : player)),
+    players: state.players.map((player) =>
+      player.id === playerId
+        ? { ...player, condition: 100, injuryWeeks: 0, awayWeeks: 0 }
+        : player,
+    ),
   };
 }
 
 describe('keeper display drift', () => {
   it('stays inside its documented bound across a long keeper career', () => {
     const content = loadLaunchContent();
-    let state = createCareer(createLaunchCareerSetup(20260804, undefined, content));
+    let state = createCareer(
+      createLaunchCareerSetup(20260804, undefined, content),
+    );
     const keeper = state.players.find(
-      player => player.clubId === state.userClubId && player.role === 'GK',
+      (player) => player.clubId === state.userClubId && player.role === 'GK',
     )!;
 
     let previousBonus = 0;
     for (let tap = 0; tap < KEEPER_DISPLAY_DRIFT_TAPS; tap += 1) {
-      state = trainPlayerInstantly(restedWeek(state, keeper.id), keeper.id, 'keeper-drills').state;
-      const trained = state.players.find(player => player.id === keeper.id)!;
+      state = trainPlayerInstantly(
+        restedWeek(state, keeper.id),
+        keeper.id,
+        'keeper-drills',
+      ).state;
+      const trained = state.players.find((player) => player.id === keeper.id)!;
       const bonus = trained.refDisplayBonus ?? 0;
 
       // The bonus records how far the display has been *allowed* to run ahead,
@@ -124,26 +132,37 @@ describe('keeper display drift', () => {
 
       // Whatever the bonus says, nothing on screen may print above the ceiling
       // every other attribute is validated against.
-      expect(Math.min(MAX_PLAYER_ATTRIBUTE, trained.attrs.ref + bonus))
-        .toBeLessThanOrEqual(MAX_PLAYER_ATTRIBUTE);
+      expect(
+        Math.min(MAX_PLAYER_ATTRIBUTE, trained.attrs.ref + bonus),
+      ).toBeLessThanOrEqual(MAX_PLAYER_ATTRIBUTE);
     }
 
-    const finished = state.players.find(player => player.id === keeper.id)!;
-    expect(finished.refDisplayBonus ?? 0).toBeLessThanOrEqual(MAXIMUM_KEEPER_DISPLAY_DRIFT);
+    const finished = state.players.find((player) => player.id === keeper.id)!;
+    expect(finished.refDisplayBonus ?? 0).toBeLessThanOrEqual(
+      MAXIMUM_KEEPER_DISPLAY_DRIFT,
+    );
   });
 
   it('never banks a bonus for an outfield player', () => {
     const content = loadLaunchContent();
-    let state = createCareer(createLaunchCareerSetup(20260804, undefined, content));
+    let state = createCareer(
+      createLaunchCareerSetup(20260804, undefined, content),
+    );
     const outfielder = state.players.find(
-      player => player.clubId === state.userClubId && player.role !== 'GK',
+      (player) => player.clubId === state.userClubId && player.role !== 'GK',
     )!;
 
     for (let tap = 0; tap < 20; tap += 1) {
-      state = trainPlayerInstantly(restedWeek(state, outfielder.id), outfielder.id, 'sprints').state;
+      state = trainPlayerInstantly(
+        restedWeek(state, outfielder.id),
+        outfielder.id,
+        'sprints',
+      ).state;
     }
 
-    expect(state.players.find(player => player.id === outfielder.id)!.refDisplayBonus)
-      .toBeUndefined();
+    expect(
+      state.players.find((player) => player.id === outfielder.id)!
+        .refDisplayBonus,
+    ).toBeUndefined();
   });
 });

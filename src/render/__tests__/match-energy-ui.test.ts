@@ -7,7 +7,11 @@ import {
   energyBand,
   summarizeTeamEnergy,
 } from '../match-energy-ui';
-import { AWAY_KIT_COLOR, HOME_KIT_COLOR, HOME_KIT_COLOR_SAFE } from '../team-kit-ui';
+import {
+  AWAY_KIT_COLOR,
+  HOME_KIT_COLOR,
+  HOME_KIT_COLOR_SAFE,
+} from '../team-kit-ui';
 
 /** WCAG 2.1 relative luminance of a #rrggbb colour. */
 function luminance(hex: string): number {
@@ -23,7 +27,8 @@ function contrastRatio(a: string, b: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-const sourceOf = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
+const sourceOf = (path: string) =>
+  readFileSync(join(process.cwd(), path), 'utf8');
 
 describe('match energy UI', () => {
   test('uses the same three visible energy bands at their exact boundaries', () => {
@@ -73,8 +78,9 @@ describe('energy fill colours', () => {
   });
 
   test('frames the possession-card track in ink so any kit still shows an edge', () => {
-    expect(sourceOf('src/render/match-screen-styles.ts'))
-      .toMatch(/energyTrack: \{[^}]*borderColor: KIT_PANEL_BORDER_COLOR/);
+    expect(sourceOf('src/render/match-screen-styles.ts')).toMatch(
+      /energyTrack: \{[^}]*borderColor: KIT_PANEL_BORDER_COLOR/,
+    );
   });
 
   test('drives every energy bar from the one table', () => {

@@ -1,12 +1,18 @@
 import { AWARD_CATEGORIES, PODIUM_SIZE } from '../game/division-leaders';
-import { divisionAwardPrize, divisionAwardPrizeCashPerCategory } from '../game/division-award-prize';
+import {
+  divisionAwardPrize,
+  divisionAwardPrizeCashPerCategory,
+} from '../game/division-award-prize';
 import type {
   AwardCategoryId,
   DivisionAwardPlacement,
   DivisionAwardPrize,
   SeasonRecap,
 } from '../game/types';
-import { awardCeremonySpeeches, type AwardCeremonySpeaker } from '../ui/award-ceremony-lines';
+import {
+  awardCeremonySpeeches,
+  type AwardCeremonySpeaker,
+} from '../ui/award-ceremony-lines';
 import type {
   AwardCeremonyBeatViewModel,
   AwardCeremonyPlacingViewModel,
@@ -32,7 +38,10 @@ function englishCopy(): CopyFn {
  * which states the other half of this.
  */
 const REVEAL_ORDER: readonly AwardCategoryId[] = [
-  'saves', 'tacklesWon', 'passesCompleted', 'goals',
+  'saves',
+  'tacklesWon',
+  'passesCompleted',
+  'goals',
 ];
 
 export interface AwardCeremonyViewModelSource {
@@ -61,7 +70,7 @@ export function awardCeremonyViewModel(
   source: AwardCeremonyViewModelSource,
   t: CopyFn = englishCopy(),
 ): AwardCeremonyViewModel {
-  const podiums = REVEAL_ORDER.map(categoryId => ({
+  const podiums = REVEAL_ORDER.map((categoryId) => ({
     categoryId,
     // Podium order here (winner first) because the speaker is read off the
     // front; the beat reverses it for the reveal. Cut to three again, so the
@@ -77,45 +86,73 @@ export function awardCeremonyViewModel(
   // Every line for the whole ceremony in one pass, so the de-duplication can
   // see all four speakers before the first card renders. Speakers are handed
   // over in reveal order, which is the order the probe resolves collisions in.
-  const speakers: AwardCeremonySpeaker[] = podiums.flatMap(({ categoryId, placings }) => {
-    const speaking = speakingPlacing(placings);
-    if (speaking === undefined) return [];
-    return [{ category: categoryId, playerId: speaking.playerId, tone: speechTone(speaking) }];
-  });
-  const lines = new Map(awardCeremonySpeeches(speakers, source.recap.season, t)
-    .map(speech => [speech.category, speech.line]));
+  const speakers: AwardCeremonySpeaker[] = podiums.flatMap(
+    ({ categoryId, placings }) => {
+      const speaking = speakingPlacing(placings);
+      if (speaking === undefined) return [];
+      return [
+        {
+          category: categoryId,
+          playerId: speaking.playerId,
+          tone: speechTone(speaking),
+        },
+      ];
+    },
+  );
+  const lines = new Map(
+    awardCeremonySpeeches(speakers, source.recap.season, t).map((speech) => [
+      speech.category,
+      speech.line,
+    ]),
+  );
 
-  const beats: AwardCeremonyBeatViewModel[] = podiums.map(({ categoryId, placings }) => {
-    const category = AWARD_CATEGORIES[categoryId];
-    const speaking = speakingPlacing(placings);
-    const line = lines.get(categoryId);
-    return {
-      categoryId,
-      // The pure ring writes the English and the key; the club reads whichever
-      // of the two its language has. See `AWARD_CATEGORIES`.
-      boardLabel: copyOrEnglish(t, category.boardLabelKey, category.boardLabel),
-      metricLabel: copyOrEnglish(t, category.metricLabelKey, category.metricLabel),
-      placings: [...placings].reverse(),
-      emptyLabel: t('awardsCeremony.noneRecordedThisSeason', {
-        metric: copyOrEnglish(
+  const beats: AwardCeremonyBeatViewModel[] = podiums.map(
+    ({ categoryId, placings }) => {
+      const category = AWARD_CATEGORIES[categoryId];
+      const speaking = speakingPlacing(placings);
+      const line = lines.get(categoryId);
+      return {
+        categoryId,
+        // The pure ring writes the English and the key; the club reads whichever
+        // of the two its language has. See `AWARD_CATEGORIES`.
+        boardLabel: copyOrEnglish(
           t,
-          category.metricInlineLabelKey,
-          category.metricLabel.toLowerCase(),
+          category.boardLabelKey,
+          category.boardLabel,
         ),
-      }),
-      ...(speaking === undefined || line === undefined
-        ? {}
-        : { speaker: { placing: speaking, tone: speechTone(speaking), line } }),
-      wonByUserPlayer: wonCategories.has(categoryId),
-    };
-  });
+        metricLabel: copyOrEnglish(
+          t,
+          category.metricLabelKey,
+          category.metricLabel,
+        ),
+        placings: [...placings].reverse(),
+        emptyLabel: t('awardsCeremony.noneRecordedThisSeason', {
+          metric: copyOrEnglish(
+            t,
+            category.metricInlineLabelKey,
+            category.metricLabel.toLowerCase(),
+          ),
+        }),
+        ...(speaking === undefined || line === undefined
+          ? {}
+          : {
+              speaker: { placing: speaking, tone: speechTone(speaking), line },
+            }),
+        wonByUserPlayer: wonCategories.has(categoryId),
+      };
+    },
+  );
 
   return {
-    seasonLabel: t('endgameCelebration.seasonLabel', { season: source.recap.season }),
+    seasonLabel: t('endgameCelebration.seasonLabel', {
+      season: source.recap.season,
+    }),
     beats,
     prize: {
       totalMoney: prize.money,
-      perCategoryMoney: divisionAwardPrizeCashPerCategory(source.targetDivision),
+      perCategoryMoney: divisionAwardPrizeCashPerCategory(
+        source.targetDivision,
+      ),
       boardsWon: prize.categoriesWon.length,
     },
   };
@@ -130,11 +167,14 @@ export function awardCeremonyViewModel(
  * projection from the same pure function the transition will grant from.
  */
 function awardPrize(source: AwardCeremonyViewModelSource): DivisionAwardPrize {
-  return source.recap.divisionAwardPrize ?? divisionAwardPrize({
-    recap: completeAwards(source.recap),
-    userClubId: source.userClubId,
-    targetDivision: source.targetDivision,
-  });
+  return (
+    source.recap.divisionAwardPrize ??
+    divisionAwardPrize({
+      recap: completeAwards(source.recap),
+      userClubId: source.userClubId,
+      targetDivision: source.targetDivision,
+    })
+  );
 }
 
 /**
@@ -151,11 +191,13 @@ function awardPrize(source: AwardCeremonyViewModelSource): DivisionAwardPrize {
 function speakingPlacing(
   placings: readonly AwardCeremonyPlacingViewModel[],
 ): AwardCeremonyPlacingViewModel | undefined {
-  return placings.find(candidate => candidate.isUserPlayer);
+  return placings.find((candidate) => candidate.isUserPlayer);
 }
 
 /** Winning the board is the only thing that draws from the winner's pool. */
-function speechTone(placing: AwardCeremonyPlacingViewModel): AwardCeremonySpeechTone {
+function speechTone(
+  placing: AwardCeremonyPlacingViewModel,
+): AwardCeremonySpeechTone {
   return placing.position === 1 ? 'winner' : 'runner-up';
 }
 
@@ -195,9 +237,11 @@ function completeAwards(recap: SeasonRecap): SeasonRecap {
   if (recap.divisionAwards === undefined) return recap;
   return {
     ...recap,
-    divisionAwards: Object.fromEntries(REVEAL_ORDER.map(categoryId => [
-      categoryId,
-      [...placementsFor(recap, categoryId)],
-    ])) as Record<AwardCategoryId, DivisionAwardPlacement[]>,
+    divisionAwards: Object.fromEntries(
+      REVEAL_ORDER.map((categoryId) => [
+        categoryId,
+        [...placementsFor(recap, categoryId)],
+      ]),
+    ) as Record<AwardCategoryId, DivisionAwardPlacement[]>,
   };
 }

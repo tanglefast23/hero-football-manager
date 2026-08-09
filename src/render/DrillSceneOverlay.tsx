@@ -18,7 +18,11 @@ import {
   type SkImage,
   type SkRect,
 } from '@shopify/react-native-skia';
-import { useFrameCallback, useSharedValue, type FrameInfo } from 'react-native-reanimated';
+import {
+  useFrameCallback,
+  useSharedValue,
+  type FrameInfo,
+} from 'react-native-reanimated';
 import { SfxPressable as Pressable } from '../ui/components/SfxPressable';
 import { playDrillProgressSfx, stopDrillProgressSfx } from './management-sfx';
 import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
@@ -54,8 +58,17 @@ export type DrillActivityId =
 /** Maps a training path to the sprite activity the player performs on stage. */
 export function drillActivityId(pathId: string): DrillActivityId {
   if (pathId === 'first-touch') return 'rondo';
-  const known: DrillActivityId[] = ['sprints', 'finishing', 'rondo', 'duels', 'circuit', 'keeper-drills'];
-  return known.includes(pathId as DrillActivityId) ? (pathId as DrillActivityId) : 'generic';
+  const known: DrillActivityId[] = [
+    'sprints',
+    'finishing',
+    'rondo',
+    'duels',
+    'circuit',
+    'keeper-drills',
+  ];
+  return known.includes(pathId as DrillActivityId)
+    ? (pathId as DrillActivityId)
+    : 'generic';
 }
 
 const ACTIVITY_CODE: Record<DrillActivityId, number> = {
@@ -110,7 +123,9 @@ export function DrillSceneOverlay({
   const stageWidth = Math.min(460, Math.max(260, viewportWidth - 48));
   const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const pop = useRef(new Animated.Value(1)).current;
-  const [countedValue, setCountedValue] = useState(reduceMotion ? after : before);
+  const [countedValue, setCountedValue] = useState(
+    reduceMotion ? after : before,
+  );
   // The fill is a full-width bar slid in from the left behind a clipped track,
   // which is what lets it animate on the native driver. It needs the track's
   // measured width to know how far left "empty" is; until the first layout it
@@ -118,7 +133,9 @@ export function DrillSceneOverlay({
   const [progressTrackWidth, setProgressTrackWidth] = useState(stageWidth);
   const handleProgressTrackLayout = useCallback((event: LayoutChangeEvent) => {
     const measured = event.nativeEvent.layout.width;
-    setProgressTrackWidth(current => (Math.abs(current - measured) < 0.5 ? current : measured));
+    setProgressTrackWidth((current) =>
+      Math.abs(current - measured) < 0.5 ? current : measured,
+    );
   }, []);
   const completedRef = useRef(false);
   const completeOnce = useCallback(() => {
@@ -130,16 +147,18 @@ export function DrillSceneOverlay({
   useEffect(() => {
     const duration = reduceMotion ? REDUCED_MOTION_MS : DRILL_SCENE_MS;
     progress.setValue(reduceMotion ? 1 : 0);
-    const animation = reduceMotion ? null : Animated.timing(progress, {
-      toValue: 1,
-      duration,
-      easing: Easing.linear,
-      // The fill slides in on translateX rather than growing a percentage
-      // width, so the one bar that runs for the whole drill scene stays off the
-      // JS thread — a width animation cannot use the native driver, and this
-      // was the only `useNativeDriver: false` left in the app.
-      useNativeDriver: true,
-    });
+    const animation = reduceMotion
+      ? null
+      : Animated.timing(progress, {
+          toValue: 1,
+          duration,
+          easing: Easing.linear,
+          // The fill slides in on translateX rather than growing a percentage
+          // width, so the one bar that runs for the whole drill scene stays off the
+          // JS thread — a width animation cannot use the native driver, and this
+          // was the only `useNativeDriver: false` left in the app.
+          useNativeDriver: true,
+        });
     animation?.start();
 
     if (reduceMotion) {
@@ -157,7 +176,10 @@ export function DrillSceneOverlay({
     let sounding = false;
     const timer = setInterval(() => {
       const elapsed = Date.now() - startedAt;
-      const ratio = Math.max(0, Math.min(1, (elapsed - COUNT_START_MS) / COUNT_UP_MS));
+      const ratio = Math.max(
+        0,
+        Math.min(1, (elapsed - COUNT_START_MS) / COUNT_UP_MS),
+      );
       if (!sounding && elapsed >= COUNT_START_MS) {
         sounding = true;
         playDrillProgressSfx();
@@ -167,8 +189,16 @@ export function DrillSceneOverlay({
         clearInterval(timer);
         stopDrillProgressSfx();
         Animated.sequence([
-          Animated.spring(pop, { toValue: 1.3, friction: 4, useNativeDriver: true }),
-          Animated.spring(pop, { toValue: 1, friction: 5, useNativeDriver: true }),
+          Animated.spring(pop, {
+            toValue: 1.3,
+            friction: 4,
+            useNativeDriver: true,
+          }),
+          Animated.spring(pop, {
+            toValue: 1,
+            friction: 5,
+            useNativeDriver: true,
+          }),
         ]).start();
       }
     }, 40);
@@ -199,15 +229,21 @@ export function DrillSceneOverlay({
         <View style={styles.titleBar}>
           {/* The star is drawn from the system fallback face, as it always
               was, so it stays out of the catalog and out of the glyph gate. */}
-          <Text style={styles.kicker}>{isSuper
-            ? `★ ${t('trainingDrill.superSession')}`
-            : t('trainingDrill.puttingInTheWork')}</Text>
+          <Text style={styles.kicker}>
+            {isSuper
+              ? `★ ${t('trainingDrill.superSession')}`
+              : t('trainingDrill.puttingInTheWork')}
+          </Text>
           <Text style={styles.timerLabel}>{t('trainingDrill.tapToSkip')}</Text>
         </View>
 
         <View style={styles.heading}>
-          <Text style={styles.title} numberOfLines={1}>{playerName}</Text>
-          <Text style={styles.drillList} numberOfLines={1}>{drillName.toUpperCase()}</Text>
+          <Text style={styles.title} numberOfLines={1}>
+            {playerName}
+          </Text>
+          <Text style={styles.drillList} numberOfLines={1}>
+            {drillName.toUpperCase()}
+          </Text>
         </View>
 
         <View style={styles.stageFrame}>
@@ -223,7 +259,9 @@ export function DrillSceneOverlay({
         </View>
 
         <View style={styles.gainRow}>
-          <Animated.Text style={[styles.gainValue, { transform: [{ scale: pop }] }]}>
+          <Animated.Text
+            style={[styles.gainValue, { transform: [{ scale: pop }] }]}
+          >
             {countedValue}
           </Animated.Text>
         </View>
@@ -234,12 +272,14 @@ export function DrillSceneOverlay({
               styles.progressFill,
               isSuper && styles.progressFillSuper,
               {
-                transform: [{
-                  translateX: progress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-progressTrackWidth, 0],
-                  }),
-                }],
+                transform: [
+                  {
+                    translateX: progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-progressTrackWidth, 0],
+                    }),
+                  },
+                ],
               },
             ]}
           />
@@ -291,13 +331,21 @@ function DrillAtlasStage({
     activityCode.value = ACTIVITY_CODE[activityId];
   }, [activityCode, activityId]);
   useEffect(() => {
-    playerMagnification.value = snapSpriteScale(1, NOMINAL_PLAYER_SCALE, devicePixelRatio).drawScale;
-    ballMagnification.value = snapSpriteScale(1, NOMINAL_BALL_SCALE, devicePixelRatio).drawScale;
+    playerMagnification.value = snapSpriteScale(
+      1,
+      NOMINAL_PLAYER_SCALE,
+      devicePixelRatio,
+    ).drawScale;
+    ballMagnification.value = snapSpriteScale(
+      1,
+      NOMINAL_BALL_SCALE,
+      devicePixelRatio,
+    ).drawScale;
   }, [ballMagnification, devicePixelRatio, playerMagnification]);
 
   useEffect(() => {
     if (reduceMotion) return undefined;
-    const timer = setInterval(() => setSpriteFrame(frame => frame + 1), 130);
+    const timer = setInterval(() => setSpriteFrame((frame) => frame + 1), 130);
     return () => clearInterval(timer);
   }, [reduceMotion]);
 
@@ -317,9 +365,12 @@ function DrillAtlasStage({
 
   const sprites: SkRect[] = useMemo(() => {
     const frame = spriteFrame % 2 === 0 ? 'run0' : 'run1';
-    const keeperFrame = activityId === 'keeper-drills' && role === 'GK'
-      ? spriteFrame % 2 === 0 ? 'ready0' : 'ready1'
-      : frame;
+    const keeperFrame =
+      activityId === 'keeper-drills' && role === 'GK'
+        ? spriteFrame % 2 === 0
+          ? 'ready0'
+          : 'ready1'
+        : frame;
     const player = atlas.rectFor(`${visualId}:${keeperFrame}`);
     const ball = atlas.rectFor('ball');
     return [
@@ -328,11 +379,14 @@ function DrillAtlasStage({
     ];
   }, [atlas, activityId, role, visualId, spriteFrame]);
 
-  const onFrame = useCallback((info: FrameInfo) => {
-    'worklet';
-    if (startedAt.value < 0) startedAt.value = info.timestamp;
-    elapsed.value = (info.timestamp - startedAt.value) / 1000;
-  }, [elapsed, startedAt]);
+  const onFrame = useCallback(
+    (info: FrameInfo) => {
+      'worklet';
+      if (startedAt.value < 0) startedAt.value = info.timestamp;
+      elapsed.value = (info.timestamp - startedAt.value) / 1000;
+    },
+    [elapsed, startedAt],
+  );
   useFrameCallback(onFrame, !reduceMotion);
 
   const transforms = useRSXformBuffer(2, (transform, index) => {
@@ -423,9 +477,20 @@ function DrillAtlasStage({
   });
 
   return (
-    <Canvas style={{ width, height: STAGE_HEIGHT }} accessibilityLabel={t('trainingDrill.a11y.onTheTrainingPitch', { player: playerName })}>
+    <Canvas
+      style={{ width, height: STAGE_HEIGHT }}
+      accessibilityLabel={t('trainingDrill.a11y.onTheTrainingPitch', {
+        player: playerName,
+      })}
+    >
       <Fill color="#31703f" />
-      <Rect x={5} y={8} width={width - 10} height={STAGE_HEIGHT - 16} color="#3f8a4a" />
+      <Rect
+        x={5}
+        y={8}
+        width={width - 10}
+        height={STAGE_HEIGHT - 16}
+        color="#3f8a4a"
+      />
       <Atlas
         image={atlas.image as SkImage}
         sprites={sprites}
@@ -436,62 +501,79 @@ function DrillAtlasStage({
   );
 }
 
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    zIndex: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(36, 31, 46, 0.86)',
-    paddingHorizontal: 16,
-  },
-  card: {
-    overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: '#241f2e',
-    backgroundColor: '#f4f1ea',
-    shadowColor: '#16121f',
-    shadowOffset: { width: 6, height: 7 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-  },
-  titleHighlight: { height: 5, backgroundColor: '#a3c8f0' },
-  titleBar: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#3f6fb5',
-    paddingHorizontal: 14,
-  },
-  kicker: { color: '#ffffff', fontFamily: faces.display, fontSize: 15, letterSpacing: 1 },
-  timerLabel: { color: '#c8ddf0', fontFamily: faces.data, fontSize: 10 },
-  heading: { paddingHorizontal: 14, paddingBottom: 10, paddingTop: 12 },
-  title: { color: '#241f2e', fontFamily: faces.display, fontSize: 18 },
-  drillList: { marginTop: 6, color: '#3f6fb5', fontFamily: faces.data, fontSize: 10, lineHeight: 16 },
-  stageFrame: { marginHorizontal: 8, overflow: 'hidden', borderWidth: 2, borderColor: '#241f2e' },
-  gainRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'center',
-    gap: 10,
-    paddingTop: 12,
-    paddingBottom: 12,
-  },
-  // Green while it climbs and after it lands: the number itself is the gain.
-  gainValue: { color: '#3f8a4a', fontFamily: faces.display, fontSize: 30 },
-  // `overflow: hidden` is what makes the slid-in fill read as a growing bar.
-  progressTrack: {
-    height: 9,
-    borderTopWidth: 2,
-    borderColor: '#241f2e',
-    backgroundColor: '#c9c5d0',
-    overflow: 'hidden',
-  },
-  progressFill: { width: '100%', height: '100%', backgroundColor: '#3f6fb5' },
-  progressFillSuper: { backgroundColor: '#edb54a' },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    overlay: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      zIndex: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(36, 31, 46, 0.86)',
+      paddingHorizontal: 16,
+    },
+    card: {
+      overflow: 'hidden',
+      borderWidth: 3,
+      borderColor: '#241f2e',
+      backgroundColor: '#f4f1ea',
+      shadowColor: '#16121f',
+      shadowOffset: { width: 6, height: 7 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
+    },
+    titleHighlight: { height: 5, backgroundColor: '#a3c8f0' },
+    titleBar: {
+      minHeight: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: '#3f6fb5',
+      paddingHorizontal: 14,
+    },
+    kicker: {
+      color: '#ffffff',
+      fontFamily: faces.display,
+      fontSize: 15,
+      letterSpacing: 1,
+    },
+    timerLabel: { color: '#c8ddf0', fontFamily: faces.data, fontSize: 10 },
+    heading: { paddingHorizontal: 14, paddingBottom: 10, paddingTop: 12 },
+    title: { color: '#241f2e', fontFamily: faces.display, fontSize: 18 },
+    drillList: {
+      marginTop: 6,
+      color: '#3f6fb5',
+      fontFamily: faces.data,
+      fontSize: 10,
+      lineHeight: 16,
+    },
+    stageFrame: {
+      marginHorizontal: 8,
+      overflow: 'hidden',
+      borderWidth: 2,
+      borderColor: '#241f2e',
+    },
+    gainRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'center',
+      gap: 10,
+      paddingTop: 12,
+      paddingBottom: 12,
+    },
+    // Green while it climbs and after it lands: the number itself is the gain.
+    gainValue: { color: '#3f8a4a', fontFamily: faces.display, fontSize: 30 },
+    // `overflow: hidden` is what makes the slid-in fill read as a growing bar.
+    progressTrack: {
+      height: 9,
+      borderTopWidth: 2,
+      borderColor: '#241f2e',
+      backgroundColor: '#c9c5d0',
+      overflow: 'hidden',
+    },
+    progressFill: { width: '100%', height: '100%', backgroundColor: '#3f6fb5' },
+    progressFillSuper: { backgroundColor: '#edb54a' },
+  });

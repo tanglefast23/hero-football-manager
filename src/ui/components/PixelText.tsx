@@ -40,13 +40,20 @@ export type PixelTextProps = TextProps & {
  * `style`, because mixing the two for one visual property lets either win
  * unpredictably on native.
  */
-export function PixelText({ variant = 'display', className, ...props }: PixelTextProps) {
+export function PixelText({
+  variant = 'display',
+  className,
+  ...props
+}: PixelTextProps) {
   const face = VARIANT_CLASS[variant];
-  const merged = className === undefined || className.length === 0
-    ? face
-    : face.length === 0
-      ? className
-      : `${face} ${className}`;
+  const merged =
+    className === undefined || className.length === 0
+      ? face
+      : face.length === 0
+        ? className
+        : `${face} ${className}`;
 
-  return <Text {...props} className={merged.length === 0 ? undefined : merged} />;
+  return (
+    <Text {...props} className={merged.length === 0 ? undefined : merged} />
+  );
 }

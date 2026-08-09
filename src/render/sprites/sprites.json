@@ -30,6 +30,78 @@
     "y": "#3d2a22",
     "z": "#534537"
   },
+  "rearHeads": {
+    "f168": {
+      "head": "K",
+      "lower": "S"
+    },
+    "f169": {
+      "head": "x",
+      "lower": "S"
+    },
+    "f170": {
+      "head": "K",
+      "lower": "m"
+    },
+    "f171": {
+      "head": "o",
+      "lower": "n"
+    },
+    "f172": {
+      "head": "r",
+      "lower": "n"
+    },
+    "f173": {
+      "head": "A",
+      "lower": "A"
+    },
+    "f174": {
+      "head": "b",
+      "lower": "S"
+    },
+    "f175": {
+      "head": "z",
+      "lower": "z"
+    },
+    "f176": {
+      "head": "K",
+      "lower": "T"
+    },
+    "f177": {
+      "head": "K",
+      "lower": "n"
+    },
+    "f178": {
+      "head": "y",
+      "lower": "m",
+      "bands": [
+        {
+          "row": 8,
+          "token": "R"
+        },
+        {
+          "row": 9,
+          "token": "r"
+        }
+      ]
+    },
+    "f179": {
+      "head": "g",
+      "lower": "S"
+    },
+    "f180": {
+      "head": "K",
+      "lower": "d"
+    },
+    "f181": {
+      "head": "z",
+      "lower": "z"
+    },
+    "f182": {
+      "head": "T",
+      "lower": "T"
+    }
+  },
   "sprites": {
     "r:f00:run0": [
       "......KKKKKKKKKKKK......",
@@ -544,7 +616,7 @@
       ".........KK.KWWK........"
     ],
     "r:f08:run0": [
-      "......KFKFKFKFKFK.......",
+      "......KKKKKKKKKKK.......",
       "......KFKFKFKFKFK.......",
       "......KFKFKFKFKFK.......",
       "......KRKRKRKRKRK.......",
@@ -576,7 +648,7 @@
       "........KWWK.KK........."
     ],
     "r:f08:run1": [
-      "......KFKFKFKFKFK.......",
+      "......KKKKKKKKKKK.......",
       "......KFKFKFKFKFK.......",
       "......KFKFKFKFKFK.......",
       "......KRKRKRKRKRK.......",
@@ -928,7 +1000,7 @@
       ".........KK.KWWK........"
     ],
     "r:f14:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "........KKKxxKKK........",
       ".......KxxxxxxxxK.......",
@@ -960,7 +1032,7 @@
       "........KWWK.KK........."
     ],
     "r:f14:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "........KKKxxKKK........",
       ".......KxxxxxxxxK.......",
@@ -1248,7 +1320,7 @@
       ".........KK.KWWK........"
     ],
     "r:f19:run0": [
-      ".........KxyyxK.........",
+      ".........KKKKKK.........",
       ".........KxyyxK.........",
       ".........KxyyxK.........",
       ".......KKKxyyxKKK.......",
@@ -1280,7 +1352,7 @@
       "........KWWK.KK........."
     ],
     "r:f19:run1": [
-      ".........KxyyxK.........",
+      ".........KKKKKK.........",
       ".........KxyyxK.........",
       ".........KxyyxK.........",
       ".......KKKxyyxKKK.......",
@@ -1391,9 +1463,9 @@
       "....KyySyyKyyKyynyyK....",
       "....KyySyySyySyynyyK....",
       "....KyyKKKnyynKKKyyK....",
-      ".....KKKKKKKKKKKKKK.....",
-      "......KREErrrrEERK......",
-      "......KREERRRRRRRK......",
+      "....KyyKKKKKKKKKKKK.....",
+      ".....KKREErrrrEERK......",
+      ".....KKREERRRRRRRK......",
       "......KREERRRRRrRK......",
       "......KSEERWWRRrSK......",
       "......KSEERWWRRrSK......",
@@ -1423,9 +1495,9 @@
       "....KyySyyKyyKyynyyK....",
       "....KyySyySyySyynyyK....",
       "....KyyKKKnyynKKKyyK....",
-      ".....KKKKKKKKKKKKKK.....",
-      "......KREErrrrEERK......",
-      "......KREERRRRRRRK......",
+      "....KyyKKKKKKKKKKKK.....",
+      ".....KKREErrrrEERK......",
+      ".....KKREERRRRRRRK......",
       "......KREERRRRRrRK......",
       "......KSEERWWRRrSK......",
       "......KSEERWWRRrSK......",
@@ -1504,7 +1576,7 @@
       ".........KK.KWWK........"
     ],
     "r:f23:run0": [
-      "........KzWWWWzK........",
+      "........KKKKKKKK........",
       "........KzWWWWzK........",
       ".......KzzzzzzzzK.......",
       "......KWWzzzzzzzzK......",
@@ -1536,7 +1608,7 @@
       "........KWWK.KK........."
     ],
     "r:f23:run1": [
-      "........KzWWWWzK........",
+      "........KKKKKKKK........",
       "........KzWWWWzK........",
       ".......KzzzzzzzzK.......",
       "......KWWzzzzzzzzK......",
@@ -1840,9 +1912,9 @@
       "...KxxxddddddddxxdKK....",
       "...KxxxdddddddddddK.....",
       "...KxxxdddxxxxdddKK.....",
-      "....KREEEErrrrEEEERK....",
+      "...KxREEEErrrrEEEERK....",
       "...KRREERRRRRRRRRRRRK...",
-      "...KdREERRRRRRRRRrRdK...",
+      "...KKREERRRRRRRRRrRdK...",
       "....KdEERRRWWRRRRrdK....",
       "....KdEERRRWWRRRRrdK....",
       "....KdEERRRRRRRRRrdK....",
@@ -1872,9 +1944,9 @@
       "...KxxxddddddddxxdKK....",
       "...KxxxdddddddddddK.....",
       "...KxxxdddxxxxdddKK.....",
-      "....KREEEErrrrEEEERK....",
+      "...KxREEEErrrrEEEERK....",
       "...KRREERRRRRRRRRRRRK...",
-      "...KdREERRRRRRRRRrRdK...",
+      "...KKREERRRRRRRRRrRdK...",
       "....KdEERRRWWRRRRrdK....",
       "....KdEERRRWWRRRRrdK....",
       "....KdEERRRRRRRRRrdK....",
@@ -1888,7 +1960,7 @@
       ".........KK.KWWK........"
     ],
     "r:f29:run0": [
-      "...KBCCCCCBBBK..........",
+      "...KKKKKKKKKKK..........",
       "...KBCCCCCBBBKKKKK......",
       "...KBBBBBBBBBBBBBBK.....",
       "...KBBBBBBBBBBBBBBK.....",
@@ -1920,7 +1992,7 @@
       "........KWWK.KK........."
     ],
     "r:f29:run1": [
-      "...KBCCCCCBBBK..........",
+      "...KKKKKKKKKKK..........",
       "...KBCCCCCBBBKKKKK......",
       "...KBBBBBBBBBBBBBBK.....",
       "...KBBBBBBBBBBBBBBK.....",
@@ -2016,7 +2088,7 @@
       ".........KK.KWWK........"
     ],
     "r:f31:run0": [
-      "........KyyyyyyyyK......",
+      "........KKKKKKKKKK......",
       ".....KKKKyyyyyyyyKK.....",
       "....KxxxxyyyyyyyyxxK....",
       "....KxxxxyyyyyyyyxWK....",
@@ -2048,7 +2120,7 @@
       "........KWWK.KK........."
     ],
     "r:f31:run1": [
-      "........KyyyyyyyyK......",
+      "........KKKKKKKKKK......",
       ".....KKKKyyyyyyyyKK.....",
       "....KxxxxyyyyyyyyxxK....",
       "....KxxxxyyyyyyyyxWK....",
@@ -2080,12 +2152,12 @@
       ".........KK.KWWK........"
     ],
     "r:f32:run0": [
-      "..........KyyyK.........",
+      "..........KKKKK.........",
       "..........KxxxK.........",
-      "..........KyyyK.........",
-      "..........KxxxK.........",
-      ".......KKKKyyyKKK.......",
-      "......KKKKKxxxKKKK......",
+      ".........KyyyyyK........",
+      "........KxxxxxxxK.......",
+      ".......KKKKKKKKKK.......",
+      "......KKKKKKKKKKKK......",
       ".....KdKKKKKKKKKKdK.....",
       ".....KdmmmddddddddK.....",
       ".....KddWWddddWWddK.....",
@@ -2112,12 +2184,12 @@
       "........KWWK.KK........."
     ],
     "r:f32:run1": [
-      "..........KyyyK.........",
+      "..........KKKKK.........",
       "..........KxxxK.........",
-      "..........KyyyK.........",
-      "..........KxxxK.........",
-      ".......KKKKyyyKKK.......",
-      "......KKKKKxxxKKKK......",
+      ".........KyyyyyK........",
+      "........KxxxxxxxK.......",
+      ".......KKKKKKKKKK.......",
+      "......KKKKKKKKKKKK......",
       ".....KdKKKKKKKKKKdK.....",
       ".....KdmmmddddddddK.....",
       ".....KddWWddddWWddK.....",
@@ -2275,7 +2347,7 @@
       "........KKKKKKKK........",
       ".......KyzzzzyyyK.......",
       ".......KyzzzzyyyK.......",
-      ".......KyyyyyyyyK.......",
+      "......KyyyyyyyyyK.......",
       "......KnyyyyyyyynK......",
       ".....KxxxxxxxxxxxxK.....",
       ".....KxxxxxxxxxxxxK.....",
@@ -2307,7 +2379,7 @@
       "........KKKKKKKK........",
       ".......KyzzzzyyyK.......",
       ".......KyzzzzyyyK.......",
-      ".......KyyyyyyyyK.......",
+      "......KyyyyyyyyyK.......",
       "......KnyyyyyyyynK......",
       ".....KxxxxxxxxxxxxK.....",
       ".....KxxxxxxxxxxxxK.....",
@@ -2528,7 +2600,7 @@
       ".........KK.KWWK........"
     ],
     "r:f39:run0": [
-      "......KyxyxyxyxyxK......",
+      "......KKKKKKKKKKKK......",
       "......KxxxxxxxxxxK......",
       "......KxxxxxxxxxxK......",
       "......KxxxxxxxxxxK......",
@@ -2560,7 +2632,7 @@
       "........KWWK.KK........."
     ],
     "r:f39:run1": [
-      "......KyxyxyxyxyxK......",
+      "......KKKKKKKKKKKK......",
       "......KxxxxxxxxxxK......",
       "......KxxxxxxxxxxK......",
       "......KxxxxxxxxxxK......",
@@ -2799,9 +2871,9 @@
       "...KyynyynyyKyymyymyyK..",
       "...KWynWynWynWymWynWyK..",
       "...KyynyynyynyynyyKyyK..",
-      "....KKKKKKmmmmKKKKKKK...",
-      "....KREEEErrrrEEEERK....",
-      "...KRREERRRRRRRRRRRRK...",
+      "...KyyKyyKyymyyKyyKyyK..",
+      "....KREEEErrrrEEEERKK...",
+      "...KKREERRRRRRRRRRRRK...",
       "...KnREERRRRRRRRRrRnK...",
       "....KnEERRRWWRRRRrnK....",
       "....KnEERRRWWRRRRrnK....",
@@ -2831,9 +2903,9 @@
       "...KyynyynyyKyymyymyyK..",
       "...KWynWynWynWymWynWyK..",
       "...KyynyynyynyynyyKyyK..",
-      "....KKKKKKmmmmKKKKKKK...",
-      "....KREEEErrrrEEEERK....",
-      "...KRREERRRRRRRRRRRRK...",
+      "...KyyKyyKyymyyKyyKyyK..",
+      "....KREEEErrrrEEEERKK...",
+      "...KKREERRRRRRRRRRRRK...",
       "...KnREERRRRRRRRRrRnK...",
       "....KnEERRRWWRRRRrnK....",
       "....KnEERRRWWRRRRrnK....",
@@ -2980,8 +3052,8 @@
       "........KKKKKKKK........",
       ".......KxxxxxxxxK.......",
       ".......KxxxxxxxxK.......",
-      "......KmxxxxxxxxmK......",
-      "......KKKxxxxxxKKK......",
+      "......KxxxxxxxxxmK......",
+      ".......KKxxxxxxKKK......",
       "......KKKxxxxxxKKK......",
       "......KKKmmmmmmKKK......",
       ".....KKKKWmmmmWKKKK.....",
@@ -3012,8 +3084,8 @@
       "........KKKKKKKK........",
       ".......KxxxxxxxxK.......",
       ".......KxxxxxxxxK.......",
-      "......KmxxxxxxxxmK......",
-      "......KKKxxxxxxKKK......",
+      "......KxxxxxxxxxmK......",
+      ".......KKxxxxxxKKK......",
       "......KKKxxxxxxKKK......",
       "......KKKmmmmmmKKK......",
       ".....KKKKWmmmmWKKKK.....",
@@ -3552,7 +3624,7 @@
       ".........KK.KWWK........"
     ],
     "r:f55:run0": [
-      "....KxxxxK....KxxxxK....",
+      "....KKKKKK....KKKKKK....",
       "....KxxxxKKKKKKxxxxK....",
       "....KxxxxxxxxxxxxxxK....",
       "....KxxxxyxxxxxxxxxK....",
@@ -3584,7 +3656,7 @@
       "........KWWK.KK........."
     ],
     "r:f55:run1": [
-      "....KxxxxK....KxxxxK....",
+      "....KKKKKK....KKKKKK....",
       "....KxxxxKKKKKKxxxxK....",
       "....KxxxxxxxxxxxxxxK....",
       "....KxxxxyxxxxxxxxxK....",
@@ -3936,7 +4008,7 @@
       ".........KK.KWWK........"
     ],
     "r:f61:run0": [
-      "......KyzzzzyyyyyK......",
+      "......KKKKKKKKKKKK......",
       "......KyzzzzyyyyyK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
@@ -3968,7 +4040,7 @@
       "........KWWK.KK........."
     ],
     "r:f61:run1": [
-      "......KyzzzzyyyyyK......",
+      "......KKKKKKKKKKKK......",
       "......KyzzzzyyyyyK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
@@ -4128,7 +4200,7 @@
       ".........KK.KWWK........"
     ],
     "r:f64:run0": [
-      ".........KFzzFK.........",
+      ".........KKKKKK.........",
       ".........KFzzFK.........",
       ".........KFzzFK.........",
       ".......KKKFzzFKKK.......",
@@ -4160,7 +4232,7 @@
       "........KWWK.KK........."
     ],
     "r:f64:run1": [
-      ".........KFzzFK.........",
+      ".........KKKKKK.........",
       ".........KFzzFK.........",
       ".........KFzzFK.........",
       ".......KKKFzzFKKK.......",
@@ -4192,7 +4264,7 @@
       ".........KK.KWWK........"
     ],
     "r:f65:run0": [
-      ".........KzWzzK.........",
+      ".........KKKKKK.........",
       ".........KzzzzK.........",
       ".........KzWzzK.........",
       ".......KKKzzzzKKK.......",
@@ -4224,7 +4296,7 @@
       "........KWWK.KK........."
     ],
     "r:f65:run1": [
-      ".........KzWzzK.........",
+      ".........KKKKKK.........",
       ".........KzzzzK.........",
       ".........KzWzzK.........",
       ".......KKKzzzzKKK.......",
@@ -4720,9 +4792,9 @@
       "...KyyzzzSSSSSSnnyyyK...",
       "...KyyzzzSSSSSSSSyyyK...",
       "...KyyzzzKnnnnKKKyyyK...",
-      "....KREEEErrrrEEEERK....",
+      "...KyREEEErrrrEEEERyK...",
       "...KRREERRRRRRRRRRRRK...",
-      "...KSREERRRRRRRRRrRSK...",
+      "...KKREERRRRRRRRRrRSK...",
       "....KSEERRRWWRRRRrSK....",
       "....KSEERRRWWRRRRrSK....",
       "....KSEERRRRRRRRRrSK....",
@@ -4752,9 +4824,9 @@
       "...KyyzzzSSSSSSnnyyyK...",
       "...KyyzzzSSSSSSSSyyyK...",
       "...KyyzzzKnnnnKKKyyyK...",
-      "....KREEEErrrrEEEERK....",
+      "...KyREEEErrrrEEEERyK...",
       "...KRREERRRRRRRRRRRRK...",
-      "...KSREERRRRRRRRRrRSK...",
+      "...KKREERRRRRRRRRrRSK...",
       "....KSEERRRWWRRRRrSK....",
       "....KSEERRRWWRRRRrSK....",
       "....KSEERRRRRRRRRrSK....",
@@ -4896,7 +4968,7 @@
       ".........KK.KWWK........"
     ],
     "r:f76:run0": [
-      ".....KxyyyyxxxxxxxK.....",
+      ".....KKKKKKKKKKKKKK.....",
       ".....KxyyyyxxxxxxxK.....",
       ".....KxyyyyxxxxxxxK.....",
       ".....KxxxxxxxxxxxxK.....",
@@ -4928,7 +5000,7 @@
       "........KWWK.KK........."
     ],
     "r:f76:run1": [
-      ".....KxyyyyxxxxxxxK.....",
+      ".....KKKKKKKKKKKKKK.....",
       ".....KxyyyyxxxxxxxK.....",
       ".....KxyyyyxxxxxxxK.....",
       ".....KxxxxxxxxxxxxK.....",
@@ -5280,7 +5352,7 @@
       ".........KK.KWWK........"
     ],
     "r:f82:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -5312,7 +5384,7 @@
       "........KWWK.KK........."
     ],
     "r:f82:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -5344,7 +5416,7 @@
       ".........KK.KWWK........"
     ],
     "r:f83:run0": [
-      "........KyzzzzyK........",
+      "........KKKKKKKK........",
       "........KyzzzzyK........",
       ".......KyyyyyyyyK.......",
       "......KzzyyyyyyyyK......",
@@ -5376,7 +5448,7 @@
       "........KWWK.KK........."
     ],
     "r:f83:run1": [
-      "........KyzzzzyK........",
+      "........KKKKKKKK........",
       "........KyzzzzyK........",
       ".......KyyyyyyyyK.......",
       "......KzzyyyyyyyyK......",
@@ -5680,9 +5752,9 @@
       "...KyyynnnnnnnnmmnnK....",
       "...KyyynnnnnnnnnnnK.....",
       "...KyyyKKKmmmmKKKK......",
-      "....KKREEErrrrEEERK.....",
-      ".....KREERRRRRRRRRK.....",
-      ".....KREERRRRRRRrRK.....",
+      "...KyyREEErrrrEEERK.....",
+      "....KKREERRRRRRRRRK.....",
+      "....KKREERRRRRRRrRK.....",
       ".....KnEERRWWRRRrnK.....",
       ".....KnEERRWWRRRrnK.....",
       ".....KnEERRRRRRRrnK.....",
@@ -5712,9 +5784,9 @@
       "...KyyynnnnnnnnmmnnK....",
       "...KyyynnnnnnnnnnnK.....",
       "...KyyyKKKmmmmKKKK......",
-      "....KKREEErrrrEEERK.....",
-      ".....KREERRRRRRRRRK.....",
-      ".....KREERRRRRRRrRK.....",
+      "...KyyREEErrrrEEERK.....",
+      "....KKREERRRRRRRRRK.....",
+      "....KKREERRRRRRRrRK.....",
       ".....KnEERRWWRRRrnK.....",
       ".....KnEERRWWRRRrnK.....",
       ".....KnEERRRRRRRrnK.....",
@@ -5728,7 +5800,7 @@
       ".........KK.KWWK........"
     ],
     "r:f89:run0": [
-      "...KGWWWWWGGGK..........",
+      "...KKKKKKKKKKK..........",
       "...KGWWWWWGGGKKKKK......",
       "...KGGGGGGGGGGGGGGK.....",
       "...KGGGGGGGGGGGGGGK.....",
@@ -5760,7 +5832,7 @@
       "........KWWK.KK........."
     ],
     "r:f89:run1": [
-      "...KGWWWWWGGGK..........",
+      "...KKKKKKKKKKK..........",
       "...KGWWWWWGGGKKKKK......",
       "...KGGGGGGGGGGGGGGK.....",
       "...KGGGGGGGGGGGGGGK.....",
@@ -5856,7 +5928,7 @@
       ".........KK.KWWK........"
     ],
     "r:f91:run0": [
-      "........KzzzzzzzzK......",
+      "........KKKKKKKKKK......",
       ".....KKKKzzzzzzzzKK.....",
       "....KyyyyzzzzzzzzyyK....",
       "....KyyyyzzzzzzzzyWK....",
@@ -5888,7 +5960,7 @@
       "........KWWK.KK........."
     ],
     "r:f91:run1": [
-      "........KzzzzzzzzK......",
+      "........KKKKKKKKKK......",
       ".....KKKKzzzzzzzzKK.....",
       "....KyyyyzzzzzzzzyyK....",
       "....KyyyyzzzzzzzzyWK....",
@@ -5920,12 +5992,12 @@
       ".........KK.KWWK........"
     ],
     "r:f92:run0": [
-      "..........KEEEK.........",
+      "..........KKKKK.........",
       "..........KRRRK.........",
-      "..........KEEEK.........",
-      ".......KKKKRRRKKK.......",
-      "......KooooEEEoooK......",
-      ".....KnooooRRRooonK.....",
+      ".........KEEEEEK........",
+      ".......KKRRRRRRRK.......",
+      "......KooooooooooK......",
+      ".....KnoooooooooonK.....",
       ".....KnoooooooooonK.....",
       ".....KnWWWnnnnWWWnK.....",
       ".....KnWWWnnnnWWWnK.....",
@@ -5952,12 +6024,12 @@
       "........KWWK.KK........."
     ],
     "r:f92:run1": [
-      "..........KEEEK.........",
+      "..........KKKKK.........",
       "..........KRRRK.........",
-      "..........KEEEK.........",
-      ".......KKKKRRRKKK.......",
-      "......KooooEEEoooK......",
-      ".....KnooooRRRooonK.....",
+      ".........KEEEEEK........",
+      ".......KKRRRRRRRK.......",
+      "......KooooooooooK......",
+      ".....KnoooooooooonK.....",
       ".....KnoooooooooonK.....",
       ".....KnWWWnnnnWWWnK.....",
       ".....KnWWWnnnnWWWnK.....",
@@ -6115,7 +6187,7 @@
       "........KKKKKKKK........",
       ".......KzWWWWzzzK.......",
       ".......KzWWWWzzzK.......",
-      ".......KzzzzzzzzK.......",
+      "......KzzzzzzzzzK.......",
       "......KKzzzzzzzzKK......",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
@@ -6147,7 +6219,7 @@
       "........KKKKKKKK........",
       ".......KzWWWWzzzK.......",
       ".......KzWWWWzzzK.......",
-      ".......KzzzzzzzzK.......",
+      "......KzzzzzzzzzK.......",
       "......KKzzzzzzzzKK......",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
@@ -6368,7 +6440,7 @@
       ".........KK.KWWK........"
     ],
     "r:f99:run0": [
-      "......KzyzyzyzyzyK......",
+      "......KKKKKKKKKKKK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
@@ -6400,7 +6472,7 @@
       "........KWWK.KK........."
     ],
     "r:f99:run1": [
-      "......KzyzyzyzyzyK......",
+      "......KKKKKKKKKKKK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
@@ -6639,9 +6711,9 @@
       "...KyymyymyyKyydyyKyyK..",
       "...KWymWymWymWydWyKWyK..",
       "...KyymyymyymyymyyKyyK..",
-      "....KKKmmmddddmmmK.KK...",
-      ".....KREEErrrrEEERK.....",
-      ".....KREERRRRRRRRRK.....",
+      "...KyyKyymyydyymyyKyyK..",
+      "....KKREEErrrrEEERKKK...",
+      "....KKREERRRRRRRRRK.....",
       ".....KREERRRRRRRrRK.....",
       ".....KmEERRWWRRRrmK.....",
       ".....KmEERRWWRRRrmK.....",
@@ -6671,9 +6743,9 @@
       "...KyymyymyyKyydyyKyyK..",
       "...KWymWymWymWydWyKWyK..",
       "...KyymyymyymyymyyKyyK..",
-      "....KKKmmmddddmmmK.KK...",
-      ".....KREEErrrrEEERK.....",
-      ".....KREERRRRRRRRRK.....",
+      "...KyyKyymyydyymyyKyyK..",
+      "....KKREEErrrrEEERKKK...",
+      "....KKREERRRRRRRRRK.....",
       ".....KREERRRRRRRrRK.....",
       ".....KmEERRWWRRRrmK.....",
       ".....KmEERRWWRRRrmK.....",
@@ -6820,8 +6892,8 @@
       "........KKKKKKKK........",
       ".......KxxxxxxxxK.......",
       ".......KxxxxxxxxK.......",
-      ".......KxxxxxxxxK.......",
-      ".....KKKKxxxxxxKKKK.....",
+      "......KxxxxxxxxxK.......",
+      ".....K.KKxxxxxxKKKK.....",
       "....KSKKKxxxxxxKKKSK....",
       "....KSKKKKKSSKKKKKSK....",
       "....KSKKKSSSSSSKKKSK....",
@@ -6852,8 +6924,8 @@
       "........KKKKKKKK........",
       ".......KxxxxxxxxK.......",
       ".......KxxxxxxxxK.......",
-      ".......KxxxxxxxxK.......",
-      ".....KKKKxxxxxxKKKK.....",
+      "......KxxxxxxxxxK.......",
+      ".....K.KKxxxxxxKKKK.....",
       "....KSKKKxxxxxxKKKSK....",
       "....KSKKKKKSSKKKKKSK....",
       "....KSKKKSSSSSSKKKSK....",
@@ -7392,7 +7464,7 @@
       ".........KK.KWWK........"
     ],
     "r:f115:run0": [
-      "....KyyyyK....KyyyyK....",
+      "....KKKKKK....KKKKKK....",
       "....KyyyyKKKKKKyyyyK....",
       "....KyyyyyyyyyyyyyyK....",
       "....KyyyyzyyyyyyyyyK....",
@@ -7424,7 +7496,7 @@
       "........KWWK.KK........."
     ],
     "r:f115:run1": [
-      "....KyyyyK....KyyyyK....",
+      "....KKKKKK....KKKKKK....",
       "....KyyyyKKKKKKyyyyK....",
       "....KyyyyyyyyyyyyyyK....",
       "....KyyyyzyyyyyyyyyK....",
@@ -7776,7 +7848,7 @@
       ".........KK.KWWK........"
     ],
     "r:f121:run0": [
-      "......KyzzzzyyyyyK......",
+      "......KKKKKKKKKKKK......",
       "......KyzzzzyyyyyK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
@@ -7808,7 +7880,7 @@
       "........KWWK.KK........."
     ],
     "r:f121:run1": [
-      "......KyzzzzyyyyyK......",
+      "......KKKKKKKKKKKK......",
       "......KyzzzzyyyyyK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
@@ -7968,7 +8040,7 @@
       ".........KK.KWWK........"
     ],
     "r:f124:run0": [
-      ".........KTCCTK.........",
+      ".........KKKKKK.........",
       ".........KTCCTK.........",
       ".........KTCCTK.........",
       ".........KTCCTK.........",
@@ -8000,7 +8072,7 @@
       "........KWWK.KK........."
     ],
     "r:f124:run1": [
-      ".........KTCCTK.........",
+      ".........KKKKKK.........",
       ".........KTCCTK.........",
       ".........KTCCTK.........",
       ".........KTCCTK.........",
@@ -8032,7 +8104,7 @@
       ".........KK.KWWK........"
     ],
     "r:f125:run0": [
-      ".........KGWGGK.........",
+      ".........KKKKKK.........",
       ".........KGGGGK.........",
       ".........KGWGGK.........",
       ".........KGGGGK.........",
@@ -8064,7 +8136,7 @@
       "........KWWK.KK........."
     ],
     "r:f125:run1": [
-      ".........KGWGGK.........",
+      ".........KKKKKK.........",
       ".........KGGGGK.........",
       ".........KGWGGK.........",
       ".........KGGGGK.........",
@@ -8560,9 +8632,9 @@
       "...KxxyyyddddddxxxxxK...",
       "...KxxyyyddddddddxxxK...",
       "...KxxyyydxxxxdddxxxK...",
-      "....KKREEErrrrEEERKK....",
-      ".....KREERRRRRRRRRK.....",
-      ".....KREERRRRRRRrRK.....",
+      "...KxxREEErrrrEEERxxK...",
+      "....KKREERRRRRRRRRKK....",
+      "....KKREERRRRRRRrRK.....",
       ".....KdEERRWWRRRrdK.....",
       ".....KdEERRWWRRRrdK.....",
       ".....KdEERRRRRRRrdK.....",
@@ -8592,9 +8664,9 @@
       "...KxxyyyddddddxxxxxK...",
       "...KxxyyyddddddddxxxK...",
       "...KxxyyydxxxxdddxxxK...",
-      "....KKREEErrrrEEERKK....",
-      ".....KREERRRRRRRRRK.....",
-      ".....KREERRRRRRRrRK.....",
+      "...KxxREEErrrrEEERxxK...",
+      "....KKREERRRRRRRRRKK....",
+      "....KKREERRRRRRRrRK.....",
       ".....KdEERRWWRRRrdK.....",
       ".....KdEERRWWRRRrdK.....",
       ".....KdEERRRRRRRrdK.....",
@@ -8736,7 +8808,7 @@
       ".........KK.KWWK........"
     ],
     "r:f136:run0": [
-      ".....KyzzzzyyyyyyyK.....",
+      ".....KKKKKKKKKKKKKK.....",
       ".....KyzzzzyyyyyyyK.....",
       ".....KyzzzzyyyyyyyK.....",
       ".....KyyyyyyyyyyyyK.....",
@@ -8768,7 +8840,7 @@
       "........KWWK.KK........."
     ],
     "r:f136:run1": [
-      ".....KyzzzzyyyyyyyK.....",
+      ".....KKKKKKKKKKKKKK.....",
       ".....KyzzzzyyyyyyyK.....",
       ".....KyzzzzyyyyyyyK.....",
       ".....KyyyyyyyyyyyyK.....",
@@ -9184,7 +9256,7 @@
       ".........KK.KWWK........"
     ],
     "r:f143:run0": [
-      "......KxxKKKK...........",
+      "......KKKKKKK...........",
       "......KKKxxKKKKKKK......",
       "......KKKKKxxKKKKK......",
       "......KKKKKKKKKKKK......",
@@ -9216,7 +9288,7 @@
       "........KWWK.KK........."
     ],
     "r:f143:run1": [
-      "......KxxKKKK...........",
+      "......KKKKKKK...........",
       "......KKKxxKKKKKKK......",
       "......KKKKKxxKKKKK......",
       "......KKKKKKKKKKKK......",
@@ -9262,9 +9334,9 @@
       "...KyyySSSSnnSSnnyyyK...",
       "...KyyySSSKKKKSnnyyyK...",
       "...KzKSSSSSSSSSnnyyyK...",
-      "....KKSSSSSSSSSSSSzK....",
-      "......KSSSnnnnSSSKK.....",
-      "......KREErrrrEERK......",
+      "...KzKSSSSSSSSSSSSzK....",
+      "....K.KSSSnnnnSSSKK.....",
+      "....K.KREErrrrEERK......",
       "......KREERRRRRRRK......",
       "......KREERRRRRrRK......",
       "......KSEERWWRRrSK......",
@@ -9294,9 +9366,9 @@
       "...KyyySSSSnnSSnnyyyK...",
       "...KyyySSSKKKKSnnyyyK...",
       "...KzKSSSSSSSSSnnyyyK...",
-      "....KKSSSSSSSSSSSSzK....",
-      "......KSSSnnnnSSSKK.....",
-      "......KREErrrrEERK......",
+      "...KzKSSSSSSSSSSSSzK....",
+      "....K.KSSSnnnnSSSKK.....",
+      "....K.KREErrrrEERK......",
       "......KREERRRRRRRK......",
       "......KREERRRRRrRK......",
       "......KSEERWWRRrSK......",
@@ -9902,7 +9974,7 @@
       "....KSSSSSSnnSSnnnnK....",
       "....KSSSSSKKKKSnnnnK....",
       "....KSSSSSSSSSSnnSSK....",
-      ".....KSSSSSSSSSSSSK.....",
+      "....KKSSSSSSSSSSSSK.....",
       "......KKKKnnnnKKKK......",
       "......KREErrrrEERK......",
       "......KREERRRRRRRK......",
@@ -9934,7 +10006,7 @@
       "....KSSSSSSnnSSnnnnK....",
       "....KSSSSSKKKKSnnnnK....",
       "....KSSSSSSSSSSnnSSK....",
-      ".....KSSSSSSSSSSSSK.....",
+      "....KKSSSSSSSSSSSSK.....",
       "......KKKKnnnnKKKK......",
       "......KREErrrrEERK......",
       "......KREERRRRRRRK......",
@@ -10660,7 +10732,7 @@
       "......KxKKxKKxKKxK......",
       ".......KK.KK.KK.KK......",
       ".......KK.KK.KK.KK......",
-      ".......KKKKKKKKKKK......",
+      "......KKKKKKKKKKKK......",
       "......KKKKKKKKKKKK......",
       ".....KdKKKKKKKKKKdK.....",
       ".....KmnnnmmmmmmmmK.....",
@@ -10692,7 +10764,7 @@
       "......KxKKxKKxKKxK......",
       ".......KK.KK.KK.KK......",
       ".......KK.KK.KK.KK......",
-      ".......KKKKKKKKKKK......",
+      "......KKKKKKKKKKKK......",
       "......KKKKKKKKKKKK......",
       ".....KdKKKKKKKKKKdK.....",
       ".....KmnnnmmmmmmmmK.....",
@@ -10981,8 +11053,8 @@
       "..K.KooooooooooooooK.K..",
       ".KAKKorrrrrooooooooKKAK.",
       ".KAAAorrrrrAoooooooAAAK.",
-      ".KAAAoooooAAAAoooooAAAK.",
-      "..KKoAooooooAoooooAoKK..",
+      "..KAAoooooAAAAoooooAAK..",
+      "...KoAooooooAoooooAoK...",
       "...KooooooooooooooooK...",
       "...KonnnWWnnnnWWnnnoK...",
       "...KnnnnWKnnnnKWnnnnK...",
@@ -11013,8 +11085,8 @@
       "..K.KooooooooooooooK.K..",
       ".KAKKorrrrrooooooooKKAK.",
       ".KAAAorrrrrAoooooooAAAK.",
-      ".KAAAoooooAAAAoooooAAAK.",
-      "..KKoAooooooAoooooAoKK..",
+      "..KAAoooooAAAAoooooAAK..",
+      "...KoAooooooAoooooAoK...",
       "...KooooooooooooooooK...",
       "...KonnnWWnnnnWWnnnoK...",
       "...KnnnnWKnnnnKWnnnnK...",
@@ -11829,8 +11901,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -11957,8 +12029,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -12085,8 +12157,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -12213,8 +12285,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -12341,8 +12413,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -12469,8 +12541,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -12597,8 +12669,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -12725,8 +12797,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -12853,8 +12925,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -12981,8 +13053,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -13039,7 +13111,7 @@
       "....KyySyyKyyKyynyyK....",
       "....KyySyySyySyynyyK....",
       "....KyySSSSyySSSSyyK....",
-      ".....KKKKKnnnnKKKKK.....",
+      "....KyyKKKnnnnKKKKK.....",
       ".....KTWWWKKKKWWWTK.....",
       ".....KTTTTTTTTTTTTK.....",
       ".....KTTTTTTTTTTTTK.....",
@@ -13071,7 +13143,7 @@
       "....KyySyyKyyKyynyyK....",
       "....KyySyySyySyynyyK....",
       "....KyySSSSyySSSSyyK....",
-      ".....KKKKKnnnnKKKKK.....",
+      "....KyyKKKnnnnKKKKK.....",
       ".....KTWWWKKKKWWWTK.....",
       ".....KTTTTTTTTTTTTK.....",
       ".....KTTTTTTTTTTTTK.....",
@@ -13103,14 +13175,14 @@
       "....KyySyyKyyKyynyyK....",
       "....KyySyySyySyynyyK....",
       "....KyySSSSyySSSSyyK....",
-      ".....KKKKKnnnnKKKKK.....",
+      "....KyyKKKnnnnKKKKK.....",
       ".....KKWWWKKKKWWWKK.....",
-      "....KTTTTTTTTTTTTTTK....",
+      "....KKTTTTTTTTTTTTTK....",
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -13135,9 +13207,9 @@
       "....KyySyyKyyKyynyyK....",
       "....KyySyySyySyynyyK....",
       "....KyySSSSyySSSSyyK....",
-      ".....KKKKKnnnnKKKKK.....",
+      "....KyyKKKnnnnKKKKK.....",
       "....KKKWWWKKKKWWWKKK....",
-      "...KTTTTTTTTTTTTTTTTK...",
+      "...KTKTTTTTTTTTTTTTTK...",
       "...KTTTTTTTTTTTTTTTTK...",
       "...KWWKTTTTKKTTTTKWWK...",
       "...KWWKTTTTKKTTTTKWWK...",
@@ -13168,7 +13240,7 @@
       "...KxKKxmmxmmxmdxKKxK...",
       "...KxKKxKKxddxKKxKKxK...",
       "....K.KKKKKKKKKKKK.K....",
-      ".....KTWWWKKKKWWWTK.....",
+      "....KKTWWWKKKKWWWTK.....",
       ".....KTTTTTTTTTTTTK.....",
       ".....KTTTTTTTTTTTTK.....",
       ".....KWTTTTKKTTTTWK.....",
@@ -13200,7 +13272,7 @@
       "...KxKKxmmxmmxmdxKKxK...",
       "...KxKKxKKxddxKKxKKxK...",
       "....K.KKKKKKKKKKKK.K....",
-      ".....KTWWWKKKKWWWTK.....",
+      "....KKTWWWKKKKWWWTK.....",
       ".....KTTTTTTTTTTTTK.....",
       ".....KTTTTTTTTTTTTK.....",
       ".....KWTTTTKKTTTTWK.....",
@@ -13232,13 +13304,13 @@
       "...KxKKxmmxmmxmdxKKxK...",
       "...KxKKxKKxddxKKxKKxK...",
       "....K..KKKKKKKKKK..K....",
-      ".....KKWWWKKKKWWWKK.....",
+      "....KKKWWWKKKKWWWKK.....",
       "....KTTTTTTTTTTTTTTK....",
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -13280,7 +13352,7 @@
       "......KKK......KKK......"
     ],
     "r:g12:run0": [
-      "........KyzzzzyK........",
+      "........KKKKKKKK........",
       "........KyzzzzyK........",
       ".......KyyyyyyyyK.......",
       "......KzzyyyyyyyyK......",
@@ -13312,7 +13384,7 @@
       "........KWWK.KK........."
     ],
     "r:g12:run1": [
-      "........KyzzzzyK........",
+      "........KKKKKKKK........",
       "........KyzzzzyK........",
       ".......KyyyyyyyyK.......",
       "......KzzyyyyyyyyK......",
@@ -13344,7 +13416,7 @@
       ".........KK.KWWK........"
     ],
     "r:g12:ready0": [
-      "........KyzzzzyK........",
+      "........KKKKKKKK........",
       "........KyzzzzyK........",
       ".......KyyyyyyyyK.......",
       "......KzzyyyyyyyyK......",
@@ -13365,8 +13437,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -13376,7 +13448,7 @@
       ".......KKK....KKK......."
     ],
     "r:g12:ready1": [
-      "........KyzzzzyK........",
+      "........KKKKKKKK........",
       "........KyzzzzyK........",
       ".......KyyyyyyyyK.......",
       "......KzzyyyyyyyyK......",
@@ -13493,8 +13565,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -13621,8 +13693,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -13749,8 +13821,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -13877,8 +13949,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -13936,9 +14008,9 @@
       "...KyyyKdddddddxxKKK....",
       "...KyyyKKKxxxxKKK.......",
       "...KyyyKKKKKKKKKKK......",
-      "....KKTWWWKKKKWWWTK.....",
-      ".....KTTTTTTTTTTTTK.....",
-      ".....KTTTTTTTTTTTTK.....",
+      "...KyyTWWWKKKKWWWTK.....",
+      "....KKTTTTTTTTTTTTK.....",
+      "....KKTTTTTTTTTTTTK.....",
       ".....KWTTTTKKTTTTWK.....",
       ".....KWTTTTKKTTTTWK.....",
       "......KTTTTTTTTTTK......",
@@ -13968,9 +14040,9 @@
       "...KyyyKdddddddxxKKK....",
       "...KyyyKKKxxxxKKK.......",
       "...KyyyKKKKKKKKKKK......",
-      "....KKTWWWKKKKWWWTK.....",
-      ".....KTTTTTTTTTTTTK.....",
-      ".....KTTTTTTTTTTTTK.....",
+      "...KyyTWWWKKKKWWWTK.....",
+      "....KKTTTTTTTTTTTTK.....",
+      "....KKTTTTTTTTTTTTK.....",
       ".....KWTTTTKKTTTTWK.....",
       ".....KWTTTTKKTTTTWK.....",
       "......KTTTTTTTTTTK......",
@@ -14000,13 +14072,13 @@
       "...KyyyKdddddddxxKKK....",
       "...KyyyKKKxxxxKKK.......",
       "...KyyyKKKKKKKKKK.......",
-      "....KKKWWWKKKKWWWKK.....",
+      "...KyyyWWWKKKKWWWKK.....",
       "....KTTTTTTTTTTTTTTK....",
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -14032,9 +14104,9 @@
       "...KyyyKdddddddxxKKK....",
       "...KyyyKKKxxxxKKK.......",
       "...KyyyKKKKKKKKKK.......",
-      "....KKKWWWKKKKWWWKKK....",
+      "...KyyyWWWKKKKWWWKKK....",
       "...KTTTTTTTTTTTTTTTTK...",
-      "...KTTTTTTTTTTTTTTTTK...",
+      "...KKTTTTTTTTTTTTTTTK...",
       "...KWWKTTTTKKTTTTKWWK...",
       "...KWWKTTTTKKTTTTKWWK...",
       "....KKKTTTTTTTTTTKKK....",
@@ -14048,7 +14120,7 @@
       "......KKK......KKK......"
     ],
     "r:g18:run0": [
-      "...KyzzzzzyyyK..........",
+      "...KKKKKKKKKKK..........",
       "...KyzzzzzyyyKKKKK......",
       "...KyyyyyyyyyyyyyyK.....",
       "...KyyyyyyyyyyyyyyK.....",
@@ -14080,7 +14152,7 @@
       "........KWWK.KK........."
     ],
     "r:g18:run1": [
-      "...KyzzzzzyyyK..........",
+      "...KKKKKKKKKKK..........",
       "...KyzzzzzyyyKKKKK......",
       "...KyyyyyyyyyyyyyyK.....",
       "...KyyyyyyyyyyyyyyK.....",
@@ -14112,7 +14184,7 @@
       ".........KK.KWWK........"
     ],
     "r:g18:ready0": [
-      "...KyzzzzzyyyK..........",
+      "...KKKKKKKKKKK..........",
       "...KyzzzzzyyyKKKKK......",
       "...KyyyyyyyyyyyyyyK.....",
       "...KyyyyyyyyyyyyyyK.....",
@@ -14133,8 +14205,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -14144,7 +14216,7 @@
       ".......KKK....KKK......."
     ],
     "r:g18:ready1": [
-      "...KyzzzzzyyyK..........",
+      "...KKKKKKKKKKK..........",
       "...KyzzzzzyyyKKKKK......",
       "...KyyyyyyyyyyyyyyK.....",
       "...KyyyyyyyyyyyyyyK.....",
@@ -14261,8 +14333,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -14304,7 +14376,7 @@
       "......KKK......KKK......"
     ],
     "r:g20:run0": [
-      "........KzzzzzzzzK......",
+      "........KKKKKKKKKK......",
       ".....KKKKzzzzzzzzKK.....",
       "....KyyyyzzzzzzzzyyK....",
       "....KyyyyzzzzzzzzyWK....",
@@ -14336,7 +14408,7 @@
       "........KWWK.KK........."
     ],
     "r:g20:run1": [
-      "........KzzzzzzzzK......",
+      "........KKKKKKKKKK......",
       ".....KKKKzzzzzzzzKK.....",
       "....KyyyyzzzzzzzzyyK....",
       "....KyyyyzzzzzzzzyWK....",
@@ -14368,7 +14440,7 @@
       ".........KK.KWWK........"
     ],
     "r:g20:ready0": [
-      "........KzzzzzzzzK......",
+      "........KKKKKKKKKK......",
       ".....KKKKzzzzzzzzKK.....",
       "....KyyyyzzzzzzzzyyK....",
       "....KyyyyzzzzzzzzyWK....",
@@ -14389,8 +14461,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -14400,7 +14472,7 @@
       ".......KKK....KKK......."
     ],
     "r:g20:ready1": [
-      "........KzzzzzzzzK......",
+      "........KKKKKKKKKK......",
       ".....KKKKzzzzzzzzKK.....",
       "....KyyyyzzzzzzzzyyK....",
       "....KyyyyzzzzzzzzyWK....",
@@ -14432,12 +14504,12 @@
       "......KKK......KKK......"
     ],
     "r:g21:run0": [
-      "..........KyyyK.........",
+      "..........KKKKK.........",
       "..........KxxxK.........",
-      "..........KyyyK.........",
-      "..........KxxxK.........",
-      "......KKKKKyyyKKKK......",
-      ".....KdKKKKxxxKKKdK.....",
+      ".........KyyyyyK........",
+      "........KxxxxxxxK.......",
+      "......KKKKKKKKKKKK......",
+      ".....KdKKKKKKKKKKdK.....",
       ".....KdKKKKKKKKKKdK.....",
       ".....KddddddddddddK.....",
       ".....KddWWddddWWddK.....",
@@ -14464,12 +14536,12 @@
       "........KWWK.KK........."
     ],
     "r:g21:run1": [
-      "..........KyyyK.........",
+      "..........KKKKK.........",
       "..........KxxxK.........",
-      "..........KyyyK.........",
-      "..........KxxxK.........",
-      "......KKKKKyyyKKKK......",
-      ".....KdKKKKxxxKKKdK.....",
+      ".........KyyyyyK........",
+      "........KxxxxxxxK.......",
+      "......KKKKKKKKKKKK......",
+      ".....KdKKKKKKKKKKdK.....",
       ".....KdKKKKKKKKKKdK.....",
       ".....KddddddddddddK.....",
       ".....KddWWddddWWddK.....",
@@ -14496,12 +14568,12 @@
       ".........KK.KWWK........"
     ],
     "r:g21:ready0": [
-      "..........KyyyK.........",
+      "..........KKKKK.........",
       "..........KxxxK.........",
-      "..........KyyyK.........",
-      "..........KxxxK.........",
-      "......KKKKKyyyKKKK......",
-      ".....KdKKKKxxxKKKdK.....",
+      ".........KyyyyyK........",
+      "........KxxxxxxxK.......",
+      "......KKKKKKKKKKKK......",
+      ".....KdKKKKKKKKKKdK.....",
       ".....KdKKKKKKKKKKdK.....",
       ".....KddddddddddddK.....",
       ".....KddWWddddWWddK.....",
@@ -14517,8 +14589,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -14528,12 +14600,12 @@
       ".......KKK....KKK......."
     ],
     "r:g21:ready1": [
-      "..........KyyyK.........",
+      "..........KKKKK.........",
       "..........KxxxK.........",
-      "..........KyyyK.........",
-      "..........KxxxK.........",
-      "......KKKKKyyyKKKK......",
-      ".....KdKKKKxxxKKKdK.....",
+      ".........KyyyyyK........",
+      "........KxxxxxxxK.......",
+      "......KKKKKKKKKKKK......",
+      ".....KdKKKKKKKKKKdK.....",
       ".....KdKKKKKKKKKKdK.....",
       ".....KddddddddddddK.....",
       ".....KddWWddddWWddK.....",
@@ -14645,8 +14717,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -14773,8 +14845,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -14901,8 +14973,8 @@
       "....KTTTTTTTTTTTTTTK....",
       "....KWWTTTTKKTTTTWWK....",
       "....KWWTTTTKKTTTTWWK....",
-      ".....KKTTTTTTTTTTKK.....",
-      "......KTTTTTTTTTTK......",
+      "....KWKTTTTTTTTTTKWK....",
+      "....KKKTTTTTTTTTTKK.....",
       "......KTTTTTTTTTTK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -15456,7 +15528,7 @@
       ".........KK.KWWK........"
     ],
     "u:f08:run0": [
-      "......KFKFKFKFKFK.......",
+      "......KKKKKKKKKKK.......",
       "......KFKFKFKFKFK.......",
       "......KFKFKFKFKFK.......",
       "......KRKRKRKRKRK.......",
@@ -15488,7 +15560,7 @@
       "........KWWK.KK........."
     ],
     "u:f08:run1": [
-      "......KFKFKFKFKFK.......",
+      "......KKKKKKKKKKK.......",
       "......KFKFKFKFKFK.......",
       "......KFKFKFKFKFK.......",
       "......KRKRKRKRKRK.......",
@@ -15840,7 +15912,7 @@
       ".........KK.KWWK........"
     ],
     "u:f14:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "........KKKxxKKK........",
       ".......KxxxxxxxxK.......",
@@ -15872,7 +15944,7 @@
       "........KWWK.KK........."
     ],
     "u:f14:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "........KKKxxKKK........",
       ".......KxxxxxxxxK.......",
@@ -16160,7 +16232,7 @@
       ".........KK.KWWK........"
     ],
     "u:f19:run0": [
-      ".........KxyyxK.........",
+      ".........KKKKKK.........",
       ".........KxyyxK.........",
       ".........KxyyxK.........",
       ".......KKKxyyxKKK.......",
@@ -16192,7 +16264,7 @@
       "........KWWK.KK........."
     ],
     "u:f19:run1": [
-      ".........KxyyxK.........",
+      ".........KKKKKK.........",
       ".........KxyyxK.........",
       ".........KxyyxK.........",
       ".......KKKxyyxKKK.......",
@@ -16303,9 +16375,9 @@
       "....KyySyyKyyKyynyyK....",
       "....KyySyySyySyynyyK....",
       "....KyyKKKnyynKKKyyK....",
-      ".....KKKKKKKKKKKKKK.....",
-      "......KBCCbbbbCCBK......",
-      "......KBCCBBBBBBBK......",
+      "....KyyKKKKKKKKKKKK.....",
+      ".....KKBCCbbbbCCBK......",
+      ".....KKBCCBBBBBBBK......",
       "......KBCCBBBBBbBK......",
       "......KSCCBWWBBbSK......",
       "......KSCCBWWBBbSK......",
@@ -16335,9 +16407,9 @@
       "....KyySyyKyyKyynyyK....",
       "....KyySyySyySyynyyK....",
       "....KyyKKKnyynKKKyyK....",
-      ".....KKKKKKKKKKKKKK.....",
-      "......KBCCbbbbCCBK......",
-      "......KBCCBBBBBBBK......",
+      "....KyyKKKKKKKKKKKK.....",
+      ".....KKBCCbbbbCCBK......",
+      ".....KKBCCBBBBBBBK......",
       "......KBCCBBBBBbBK......",
       "......KSCCBWWBBbSK......",
       "......KSCCBWWBBbSK......",
@@ -16416,7 +16488,7 @@
       ".........KK.KWWK........"
     ],
     "u:f23:run0": [
-      "........KzWWWWzK........",
+      "........KKKKKKKK........",
       "........KzWWWWzK........",
       ".......KzzzzzzzzK.......",
       "......KWWzzzzzzzzK......",
@@ -16448,7 +16520,7 @@
       "........KWWK.KK........."
     ],
     "u:f23:run1": [
-      "........KzWWWWzK........",
+      "........KKKKKKKK........",
       "........KzWWWWzK........",
       ".......KzzzzzzzzK.......",
       "......KWWzzzzzzzzK......",
@@ -16752,9 +16824,9 @@
       "...KxxxddddddddxxdKK....",
       "...KxxxdddddddddddK.....",
       "...KxxxdddxxxxdddKK.....",
-      "....KBCCCCbbbbCCCCBK....",
+      "...KxBCCCCbbbbCCCCBK....",
       "...KBBCCBBBBBBBBBBBBK...",
-      "...KdBCCBBBBBBBBBbBdK...",
+      "...KKBCCBBBBBBBBBbBdK...",
       "....KdCCBBBWWBBBBbdK....",
       "....KdCCBBBWWBBBBbdK....",
       "....KdCCBBBBBBBBBbdK....",
@@ -16784,9 +16856,9 @@
       "...KxxxddddddddxxdKK....",
       "...KxxxdddddddddddK.....",
       "...KxxxdddxxxxdddKK.....",
-      "....KBCCCCbbbbCCCCBK....",
+      "...KxBCCCCbbbbCCCCBK....",
       "...KBBCCBBBBBBBBBBBBK...",
-      "...KdBCCBBBBBBBBBbBdK...",
+      "...KKBCCBBBBBBBBBbBdK...",
       "....KdCCBBBWWBBBBbdK....",
       "....KdCCBBBWWBBBBbdK....",
       "....KdCCBBBBBBBBBbdK....",
@@ -16800,7 +16872,7 @@
       ".........KK.KWWK........"
     ],
     "u:f29:run0": [
-      "...KBCCCCCBBBK..........",
+      "...KKKKKKKKKKK..........",
       "...KBCCCCCBBBKKKKK......",
       "...KBBBBBBBBBBBBBBK.....",
       "...KBBBBBBBBBBBBBBK.....",
@@ -16832,7 +16904,7 @@
       "........KWWK.KK........."
     ],
     "u:f29:run1": [
-      "...KBCCCCCBBBK..........",
+      "...KKKKKKKKKKK..........",
       "...KBCCCCCBBBKKKKK......",
       "...KBBBBBBBBBBBBBBK.....",
       "...KBBBBBBBBBBBBBBK.....",
@@ -16928,7 +17000,7 @@
       ".........KK.KWWK........"
     ],
     "u:f31:run0": [
-      "........KyyyyyyyyK......",
+      "........KKKKKKKKKK......",
       ".....KKKKyyyyyyyyKK.....",
       "....KxxxxyyyyyyyyxxK....",
       "....KxxxxyyyyyyyyxWK....",
@@ -16960,7 +17032,7 @@
       "........KWWK.KK........."
     ],
     "u:f31:run1": [
-      "........KyyyyyyyyK......",
+      "........KKKKKKKKKK......",
       ".....KKKKyyyyyyyyKK.....",
       "....KxxxxyyyyyyyyxxK....",
       "....KxxxxyyyyyyyyxWK....",
@@ -16992,12 +17064,12 @@
       ".........KK.KWWK........"
     ],
     "u:f32:run0": [
-      "..........KyyyK.........",
+      "..........KKKKK.........",
       "..........KxxxK.........",
-      "..........KyyyK.........",
-      "..........KxxxK.........",
-      ".......KKKKyyyKKK.......",
-      "......KKKKKxxxKKKK......",
+      ".........KyyyyyK........",
+      "........KxxxxxxxK.......",
+      ".......KKKKKKKKKK.......",
+      "......KKKKKKKKKKKK......",
       ".....KdKKKKKKKKKKdK.....",
       ".....KdmmmddddddddK.....",
       ".....KddWWddddWWddK.....",
@@ -17024,12 +17096,12 @@
       "........KWWK.KK........."
     ],
     "u:f32:run1": [
-      "..........KyyyK.........",
+      "..........KKKKK.........",
       "..........KxxxK.........",
-      "..........KyyyK.........",
-      "..........KxxxK.........",
-      ".......KKKKyyyKKK.......",
-      "......KKKKKxxxKKKK......",
+      ".........KyyyyyK........",
+      "........KxxxxxxxK.......",
+      ".......KKKKKKKKKK.......",
+      "......KKKKKKKKKKKK......",
       ".....KdKKKKKKKKKKdK.....",
       ".....KdmmmddddddddK.....",
       ".....KddWWddddWWddK.....",
@@ -17187,7 +17259,7 @@
       "........KKKKKKKK........",
       ".......KyzzzzyyyK.......",
       ".......KyzzzzyyyK.......",
-      ".......KyyyyyyyyK.......",
+      "......KyyyyyyyyyK.......",
       "......KnyyyyyyyynK......",
       ".....KxxxxxxxxxxxxK.....",
       ".....KxxxxxxxxxxxxK.....",
@@ -17219,7 +17291,7 @@
       "........KKKKKKKK........",
       ".......KyzzzzyyyK.......",
       ".......KyzzzzyyyK.......",
-      ".......KyyyyyyyyK.......",
+      "......KyyyyyyyyyK.......",
       "......KnyyyyyyyynK......",
       ".....KxxxxxxxxxxxxK.....",
       ".....KxxxxxxxxxxxxK.....",
@@ -17440,7 +17512,7 @@
       ".........KK.KWWK........"
     ],
     "u:f39:run0": [
-      "......KyxyxyxyxyxK......",
+      "......KKKKKKKKKKKK......",
       "......KxxxxxxxxxxK......",
       "......KxxxxxxxxxxK......",
       "......KxxxxxxxxxxK......",
@@ -17472,7 +17544,7 @@
       "........KWWK.KK........."
     ],
     "u:f39:run1": [
-      "......KyxyxyxyxyxK......",
+      "......KKKKKKKKKKKK......",
       "......KxxxxxxxxxxK......",
       "......KxxxxxxxxxxK......",
       "......KxxxxxxxxxxK......",
@@ -17711,9 +17783,9 @@
       "...KyynyynyyKyymyymyyK..",
       "...KWynWynWynWymWynWyK..",
       "...KyynyynyynyynyyKyyK..",
-      "....KKKKKKmmmmKKKKKKK...",
-      "....KBCCCCbbbbCCCCBK....",
-      "...KBBCCBBBBBBBBBBBBK...",
+      "...KyyKyyKyymyyKyyKyyK..",
+      "....KBCCCCbbbbCCCCBKK...",
+      "...KKBCCBBBBBBBBBBBBK...",
       "...KnBCCBBBBBBBBBbBnK...",
       "....KnCCBBBWWBBBBbnK....",
       "....KnCCBBBWWBBBBbnK....",
@@ -17743,9 +17815,9 @@
       "...KyynyynyyKyymyymyyK..",
       "...KWynWynWynWymWynWyK..",
       "...KyynyynyynyynyyKyyK..",
-      "....KKKKKKmmmmKKKKKKK...",
-      "....KBCCCCbbbbCCCCBK....",
-      "...KBBCCBBBBBBBBBBBBK...",
+      "...KyyKyyKyymyyKyyKyyK..",
+      "....KBCCCCbbbbCCCCBKK...",
+      "...KKBCCBBBBBBBBBBBBK...",
       "...KnBCCBBBBBBBBBbBnK...",
       "....KnCCBBBWWBBBBbnK....",
       "....KnCCBBBWWBBBBbnK....",
@@ -17892,8 +17964,8 @@
       "........KKKKKKKK........",
       ".......KxxxxxxxxK.......",
       ".......KxxxxxxxxK.......",
-      "......KmxxxxxxxxmK......",
-      "......KKKxxxxxxKKK......",
+      "......KxxxxxxxxxmK......",
+      ".......KKxxxxxxKKK......",
       "......KKKxxxxxxKKK......",
       "......KKKmmmmmmKKK......",
       ".....KKKKWmmmmWKKKK.....",
@@ -17924,8 +17996,8 @@
       "........KKKKKKKK........",
       ".......KxxxxxxxxK.......",
       ".......KxxxxxxxxK.......",
-      "......KmxxxxxxxxmK......",
-      "......KKKxxxxxxKKK......",
+      "......KxxxxxxxxxmK......",
+      ".......KKxxxxxxKKK......",
       "......KKKxxxxxxKKK......",
       "......KKKmmmmmmKKK......",
       ".....KKKKWmmmmWKKKK.....",
@@ -18464,7 +18536,7 @@
       ".........KK.KWWK........"
     ],
     "u:f55:run0": [
-      "....KxxxxK....KxxxxK....",
+      "....KKKKKK....KKKKKK....",
       "....KxxxxKKKKKKxxxxK....",
       "....KxxxxxxxxxxxxxxK....",
       "....KxxxxyxxxxxxxxxK....",
@@ -18496,7 +18568,7 @@
       "........KWWK.KK........."
     ],
     "u:f55:run1": [
-      "....KxxxxK....KxxxxK....",
+      "....KKKKKK....KKKKKK....",
       "....KxxxxKKKKKKxxxxK....",
       "....KxxxxxxxxxxxxxxK....",
       "....KxxxxyxxxxxxxxxK....",
@@ -18848,7 +18920,7 @@
       ".........KK.KWWK........"
     ],
     "u:f61:run0": [
-      "......KyzzzzyyyyyK......",
+      "......KKKKKKKKKKKK......",
       "......KyzzzzyyyyyK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
@@ -18880,7 +18952,7 @@
       "........KWWK.KK........."
     ],
     "u:f61:run1": [
-      "......KyzzzzyyyyyK......",
+      "......KKKKKKKKKKKK......",
       "......KyzzzzyyyyyK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
@@ -19040,7 +19112,7 @@
       ".........KK.KWWK........"
     ],
     "u:f64:run0": [
-      ".........KFzzFK.........",
+      ".........KKKKKK.........",
       ".........KFzzFK.........",
       ".........KFzzFK.........",
       ".......KKKFzzFKKK.......",
@@ -19072,7 +19144,7 @@
       "........KWWK.KK........."
     ],
     "u:f64:run1": [
-      ".........KFzzFK.........",
+      ".........KKKKKK.........",
       ".........KFzzFK.........",
       ".........KFzzFK.........",
       ".......KKKFzzFKKK.......",
@@ -19104,7 +19176,7 @@
       ".........KK.KWWK........"
     ],
     "u:f65:run0": [
-      ".........KzWzzK.........",
+      ".........KKKKKK.........",
       ".........KzzzzK.........",
       ".........KzWzzK.........",
       ".......KKKzzzzKKK.......",
@@ -19136,7 +19208,7 @@
       "........KWWK.KK........."
     ],
     "u:f65:run1": [
-      ".........KzWzzK.........",
+      ".........KKKKKK.........",
       ".........KzzzzK.........",
       ".........KzWzzK.........",
       ".......KKKzzzzKKK.......",
@@ -19632,9 +19704,9 @@
       "...KyyzzzSSSSSSnnyyyK...",
       "...KyyzzzSSSSSSSSyyyK...",
       "...KyyzzzKnnnnKKKyyyK...",
-      "....KBCCCCbbbbCCCCBK....",
+      "...KyBCCCCbbbbCCCCByK...",
       "...KBBCCBBBBBBBBBBBBK...",
-      "...KSBCCBBBBBBBBBbBSK...",
+      "...KKBCCBBBBBBBBBbBSK...",
       "....KSCCBBBWWBBBBbSK....",
       "....KSCCBBBWWBBBBbSK....",
       "....KSCCBBBBBBBBBbSK....",
@@ -19664,9 +19736,9 @@
       "...KyyzzzSSSSSSnnyyyK...",
       "...KyyzzzSSSSSSSSyyyK...",
       "...KyyzzzKnnnnKKKyyyK...",
-      "....KBCCCCbbbbCCCCBK....",
+      "...KyBCCCCbbbbCCCCByK...",
       "...KBBCCBBBBBBBBBBBBK...",
-      "...KSBCCBBBBBBBBBbBSK...",
+      "...KKBCCBBBBBBBBBbBSK...",
       "....KSCCBBBWWBBBBbSK....",
       "....KSCCBBBWWBBBBbSK....",
       "....KSCCBBBBBBBBBbSK....",
@@ -19808,7 +19880,7 @@
       ".........KK.KWWK........"
     ],
     "u:f76:run0": [
-      ".....KxyyyyxxxxxxxK.....",
+      ".....KKKKKKKKKKKKKK.....",
       ".....KxyyyyxxxxxxxK.....",
       ".....KxyyyyxxxxxxxK.....",
       ".....KxxxxxxxxxxxxK.....",
@@ -19840,7 +19912,7 @@
       "........KWWK.KK........."
     ],
     "u:f76:run1": [
-      ".....KxyyyyxxxxxxxK.....",
+      ".....KKKKKKKKKKKKKK.....",
       ".....KxyyyyxxxxxxxK.....",
       ".....KxyyyyxxxxxxxK.....",
       ".....KxxxxxxxxxxxxK.....",
@@ -20192,7 +20264,7 @@
       ".........KK.KWWK........"
     ],
     "u:f82:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -20224,7 +20296,7 @@
       "........KWWK.KK........."
     ],
     "u:f82:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -20256,7 +20328,7 @@
       ".........KK.KWWK........"
     ],
     "u:f83:run0": [
-      "........KyzzzzyK........",
+      "........KKKKKKKK........",
       "........KyzzzzyK........",
       ".......KyyyyyyyyK.......",
       "......KzzyyyyyyyyK......",
@@ -20288,7 +20360,7 @@
       "........KWWK.KK........."
     ],
     "u:f83:run1": [
-      "........KyzzzzyK........",
+      "........KKKKKKKK........",
       "........KyzzzzyK........",
       ".......KyyyyyyyyK.......",
       "......KzzyyyyyyyyK......",
@@ -20592,9 +20664,9 @@
       "...KyyynnnnnnnnmmnnK....",
       "...KyyynnnnnnnnnnnK.....",
       "...KyyyKKKmmmmKKKK......",
-      "....KKBCCCbbbbCCCBK.....",
-      ".....KBCCBBBBBBBBBK.....",
-      ".....KBCCBBBBBBBbBK.....",
+      "...KyyBCCCbbbbCCCBK.....",
+      "....KKBCCBBBBBBBBBK.....",
+      "....KKBCCBBBBBBBbBK.....",
       ".....KnCCBBWWBBBbnK.....",
       ".....KnCCBBWWBBBbnK.....",
       ".....KnCCBBBBBBBbnK.....",
@@ -20624,9 +20696,9 @@
       "...KyyynnnnnnnnmmnnK....",
       "...KyyynnnnnnnnnnnK.....",
       "...KyyyKKKmmmmKKKK......",
-      "....KKBCCCbbbbCCCBK.....",
-      ".....KBCCBBBBBBBBBK.....",
-      ".....KBCCBBBBBBBbBK.....",
+      "...KyyBCCCbbbbCCCBK.....",
+      "....KKBCCBBBBBBBBBK.....",
+      "....KKBCCBBBBBBBbBK.....",
       ".....KnCCBBWWBBBbnK.....",
       ".....KnCCBBWWBBBbnK.....",
       ".....KnCCBBBBBBBbnK.....",
@@ -20640,7 +20712,7 @@
       ".........KK.KWWK........"
     ],
     "u:f89:run0": [
-      "...KGWWWWWGGGK..........",
+      "...KKKKKKKKKKK..........",
       "...KGWWWWWGGGKKKKK......",
       "...KGGGGGGGGGGGGGGK.....",
       "...KGGGGGGGGGGGGGGK.....",
@@ -20672,7 +20744,7 @@
       "........KWWK.KK........."
     ],
     "u:f89:run1": [
-      "...KGWWWWWGGGK..........",
+      "...KKKKKKKKKKK..........",
       "...KGWWWWWGGGKKKKK......",
       "...KGGGGGGGGGGGGGGK.....",
       "...KGGGGGGGGGGGGGGK.....",
@@ -20768,7 +20840,7 @@
       ".........KK.KWWK........"
     ],
     "u:f91:run0": [
-      "........KzzzzzzzzK......",
+      "........KKKKKKKKKK......",
       ".....KKKKzzzzzzzzKK.....",
       "....KyyyyzzzzzzzzyyK....",
       "....KyyyyzzzzzzzzyWK....",
@@ -20800,7 +20872,7 @@
       "........KWWK.KK........."
     ],
     "u:f91:run1": [
-      "........KzzzzzzzzK......",
+      "........KKKKKKKKKK......",
       ".....KKKKzzzzzzzzKK.....",
       "....KyyyyzzzzzzzzyyK....",
       "....KyyyyzzzzzzzzyWK....",
@@ -20832,12 +20904,12 @@
       ".........KK.KWWK........"
     ],
     "u:f92:run0": [
-      "..........KEEEK.........",
+      "..........KKKKK.........",
       "..........KRRRK.........",
-      "..........KEEEK.........",
-      ".......KKKKRRRKKK.......",
-      "......KooooEEEoooK......",
-      ".....KnooooRRRooonK.....",
+      ".........KEEEEEK........",
+      ".......KKRRRRRRRK.......",
+      "......KooooooooooK......",
+      ".....KnoooooooooonK.....",
       ".....KnoooooooooonK.....",
       ".....KnWWWnnnnWWWnK.....",
       ".....KnWWWnnnnWWWnK.....",
@@ -20864,12 +20936,12 @@
       "........KWWK.KK........."
     ],
     "u:f92:run1": [
-      "..........KEEEK.........",
+      "..........KKKKK.........",
       "..........KRRRK.........",
-      "..........KEEEK.........",
-      ".......KKKKRRRKKK.......",
-      "......KooooEEEoooK......",
-      ".....KnooooRRRooonK.....",
+      ".........KEEEEEK........",
+      ".......KKRRRRRRRK.......",
+      "......KooooooooooK......",
+      ".....KnoooooooooonK.....",
       ".....KnoooooooooonK.....",
       ".....KnWWWnnnnWWWnK.....",
       ".....KnWWWnnnnWWWnK.....",
@@ -21027,7 +21099,7 @@
       "........KKKKKKKK........",
       ".......KzWWWWzzzK.......",
       ".......KzWWWWzzzK.......",
-      ".......KzzzzzzzzK.......",
+      "......KzzzzzzzzzK.......",
       "......KKzzzzzzzzKK......",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
@@ -21059,7 +21131,7 @@
       "........KKKKKKKK........",
       ".......KzWWWWzzzK.......",
       ".......KzWWWWzzzK.......",
-      ".......KzzzzzzzzK.......",
+      "......KzzzzzzzzzK.......",
       "......KKzzzzzzzzKK......",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
@@ -21280,7 +21352,7 @@
       ".........KK.KWWK........"
     ],
     "u:f99:run0": [
-      "......KzyzyzyzyzyK......",
+      "......KKKKKKKKKKKK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
@@ -21312,7 +21384,7 @@
       "........KWWK.KK........."
     ],
     "u:f99:run1": [
-      "......KzyzyzyzyzyK......",
+      "......KKKKKKKKKKKK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
@@ -21551,9 +21623,9 @@
       "...KyymyymyyKyydyyKyyK..",
       "...KWymWymWymWydWyKWyK..",
       "...KyymyymyymyymyyKyyK..",
-      "....KKKmmmddddmmmK.KK...",
-      ".....KBCCCbbbbCCCBK.....",
-      ".....KBCCBBBBBBBBBK.....",
+      "...KyyKyymyydyymyyKyyK..",
+      "....KKBCCCbbbbCCCBKKK...",
+      "....KKBCCBBBBBBBBBK.....",
       ".....KBCCBBBBBBBbBK.....",
       ".....KmCCBBWWBBBbmK.....",
       ".....KmCCBBWWBBBbmK.....",
@@ -21583,9 +21655,9 @@
       "...KyymyymyyKyydyyKyyK..",
       "...KWymWymWymWydWyKWyK..",
       "...KyymyymyymyymyyKyyK..",
-      "....KKKmmmddddmmmK.KK...",
-      ".....KBCCCbbbbCCCBK.....",
-      ".....KBCCBBBBBBBBBK.....",
+      "...KyyKyymyydyymyyKyyK..",
+      "....KKBCCCbbbbCCCBKKK...",
+      "....KKBCCBBBBBBBBBK.....",
       ".....KBCCBBBBBBBbBK.....",
       ".....KmCCBBWWBBBbmK.....",
       ".....KmCCBBWWBBBbmK.....",
@@ -21732,8 +21804,8 @@
       "........KKKKKKKK........",
       ".......KxxxxxxxxK.......",
       ".......KxxxxxxxxK.......",
-      ".......KxxxxxxxxK.......",
-      ".....KKKKxxxxxxKKKK.....",
+      "......KxxxxxxxxxK.......",
+      ".....K.KKxxxxxxKKKK.....",
       "....KSKKKxxxxxxKKKSK....",
       "....KSKKKKKSSKKKKKSK....",
       "....KSKKKSSSSSSKKKSK....",
@@ -21764,8 +21836,8 @@
       "........KKKKKKKK........",
       ".......KxxxxxxxxK.......",
       ".......KxxxxxxxxK.......",
-      ".......KxxxxxxxxK.......",
-      ".....KKKKxxxxxxKKKK.....",
+      "......KxxxxxxxxxK.......",
+      ".....K.KKxxxxxxKKKK.....",
       "....KSKKKxxxxxxKKKSK....",
       "....KSKKKKKSSKKKKKSK....",
       "....KSKKKSSSSSSKKKSK....",
@@ -22304,7 +22376,7 @@
       ".........KK.KWWK........"
     ],
     "u:f115:run0": [
-      "....KyyyyK....KyyyyK....",
+      "....KKKKKK....KKKKKK....",
       "....KyyyyKKKKKKyyyyK....",
       "....KyyyyyyyyyyyyyyK....",
       "....KyyyyzyyyyyyyyyK....",
@@ -22336,7 +22408,7 @@
       "........KWWK.KK........."
     ],
     "u:f115:run1": [
-      "....KyyyyK....KyyyyK....",
+      "....KKKKKK....KKKKKK....",
       "....KyyyyKKKKKKyyyyK....",
       "....KyyyyyyyyyyyyyyK....",
       "....KyyyyzyyyyyyyyyK....",
@@ -22688,7 +22760,7 @@
       ".........KK.KWWK........"
     ],
     "u:f121:run0": [
-      "......KyzzzzyyyyyK......",
+      "......KKKKKKKKKKKK......",
       "......KyzzzzyyyyyK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
@@ -22720,7 +22792,7 @@
       "........KWWK.KK........."
     ],
     "u:f121:run1": [
-      "......KyzzzzyyyyyK......",
+      "......KKKKKKKKKKKK......",
       "......KyzzzzyyyyyK......",
       "......KyyyyyyyyyyK......",
       "......KyyyyyyyyyyK......",
@@ -22880,7 +22952,7 @@
       ".........KK.KWWK........"
     ],
     "u:f124:run0": [
-      ".........KTCCTK.........",
+      ".........KKKKKK.........",
       ".........KTCCTK.........",
       ".........KTCCTK.........",
       ".........KTCCTK.........",
@@ -22912,7 +22984,7 @@
       "........KWWK.KK........."
     ],
     "u:f124:run1": [
-      ".........KTCCTK.........",
+      ".........KKKKKK.........",
       ".........KTCCTK.........",
       ".........KTCCTK.........",
       ".........KTCCTK.........",
@@ -22944,7 +23016,7 @@
       ".........KK.KWWK........"
     ],
     "u:f125:run0": [
-      ".........KGWGGK.........",
+      ".........KKKKKK.........",
       ".........KGGGGK.........",
       ".........KGWGGK.........",
       ".........KGGGGK.........",
@@ -22976,7 +23048,7 @@
       "........KWWK.KK........."
     ],
     "u:f125:run1": [
-      ".........KGWGGK.........",
+      ".........KKKKKK.........",
       ".........KGGGGK.........",
       ".........KGWGGK.........",
       ".........KGGGGK.........",
@@ -23472,9 +23544,9 @@
       "...KxxyyyddddddxxxxxK...",
       "...KxxyyyddddddddxxxK...",
       "...KxxyyydxxxxdddxxxK...",
-      "....KKBCCCbbbbCCCBKK....",
-      ".....KBCCBBBBBBBBBK.....",
-      ".....KBCCBBBBBBBbBK.....",
+      "...KxxBCCCbbbbCCCBxxK...",
+      "....KKBCCBBBBBBBBBKK....",
+      "....KKBCCBBBBBBBbBK.....",
       ".....KdCCBBWWBBBbdK.....",
       ".....KdCCBBWWBBBbdK.....",
       ".....KdCCBBBBBBBbdK.....",
@@ -23504,9 +23576,9 @@
       "...KxxyyyddddddxxxxxK...",
       "...KxxyyyddddddddxxxK...",
       "...KxxyyydxxxxdddxxxK...",
-      "....KKBCCCbbbbCCCBKK....",
-      ".....KBCCBBBBBBBBBK.....",
-      ".....KBCCBBBBBBBbBK.....",
+      "...KxxBCCCbbbbCCCBxxK...",
+      "....KKBCCBBBBBBBBBKK....",
+      "....KKBCCBBBBBBBbBK.....",
       ".....KdCCBBWWBBBbdK.....",
       ".....KdCCBBWWBBBbdK.....",
       ".....KdCCBBBBBBBbdK.....",
@@ -23648,7 +23720,7 @@
       ".........KK.KWWK........"
     ],
     "u:f136:run0": [
-      ".....KyzzzzyyyyyyyK.....",
+      ".....KKKKKKKKKKKKKK.....",
       ".....KyzzzzyyyyyyyK.....",
       ".....KyzzzzyyyyyyyK.....",
       ".....KyyyyyyyyyyyyK.....",
@@ -23680,7 +23752,7 @@
       "........KWWK.KK........."
     ],
     "u:f136:run1": [
-      ".....KyzzzzyyyyyyyK.....",
+      ".....KKKKKKKKKKKKKK.....",
       ".....KyzzzzyyyyyyyK.....",
       ".....KyzzzzyyyyyyyK.....",
       ".....KyyyyyyyyyyyyK.....",
@@ -24096,7 +24168,7 @@
       ".........KK.KWWK........"
     ],
     "u:f143:run0": [
-      "......KxxKKKK...........",
+      "......KKKKKKK...........",
       "......KKKxxKKKKKKK......",
       "......KKKKKxxKKKKK......",
       "......KKKKKKKKKKKK......",
@@ -24128,7 +24200,7 @@
       "........KWWK.KK........."
     ],
     "u:f143:run1": [
-      "......KxxKKKK...........",
+      "......KKKKKKK...........",
       "......KKKxxKKKKKKK......",
       "......KKKKKxxKKKKK......",
       "......KKKKKKKKKKKK......",
@@ -24174,9 +24246,9 @@
       "...KyyySSSSnnSSnnyyyK...",
       "...KyyySSSKKKKSnnyyyK...",
       "...KzKSSSSSSSSSnnyyyK...",
-      "....KKSSSSSSSSSSSSzK....",
-      "......KSSSnnnnSSSKK.....",
-      "......KBCCbbbbCCBK......",
+      "...KzKSSSSSSSSSSSSzK....",
+      "....K.KSSSnnnnSSSKK.....",
+      "....K.KBCCbbbbCCBK......",
       "......KBCCBBBBBBBK......",
       "......KBCCBBBBBbBK......",
       "......KSCCBWWBBbSK......",
@@ -24206,9 +24278,9 @@
       "...KyyySSSSnnSSnnyyyK...",
       "...KyyySSSKKKKSnnyyyK...",
       "...KzKSSSSSSSSSnnyyyK...",
-      "....KKSSSSSSSSSSSSzK....",
-      "......KSSSnnnnSSSKK.....",
-      "......KBCCbbbbCCBK......",
+      "...KzKSSSSSSSSSSSSzK....",
+      "....K.KSSSnnnnSSSKK.....",
+      "....K.KBCCbbbbCCBK......",
       "......KBCCBBBBBBBK......",
       "......KBCCBBBBBbBK......",
       "......KSCCBWWBBbSK......",
@@ -24814,7 +24886,7 @@
       "....KSSSSSSnnSSnnnnK....",
       "....KSSSSSKKKKSnnnnK....",
       "....KSSSSSSSSSSnnSSK....",
-      ".....KSSSSSSSSSSSSK.....",
+      "....KKSSSSSSSSSSSSK.....",
       "......KKKKnnnnKKKK......",
       "......KBCCbbbbCCBK......",
       "......KBCCBBBBBBBK......",
@@ -24846,7 +24918,7 @@
       "....KSSSSSSnnSSnnnnK....",
       "....KSSSSSKKKKSnnnnK....",
       "....KSSSSSSSSSSnnSSK....",
-      ".....KSSSSSSSSSSSSK.....",
+      "....KKSSSSSSSSSSSSK.....",
       "......KKKKnnnnKKKK......",
       "......KBCCbbbbCCBK......",
       "......KBCCBBBBBBBK......",
@@ -25572,7 +25644,7 @@
       "......KxKKxKKxKKxK......",
       ".......KK.KK.KK.KK......",
       ".......KK.KK.KK.KK......",
-      ".......KKKKKKKKKKK......",
+      "......KKKKKKKKKKKK......",
       "......KKKKKKKKKKKK......",
       ".....KdKKKKKKKKKKdK.....",
       ".....KmnnnmmmmmmmmK.....",
@@ -25604,7 +25676,7 @@
       "......KxKKxKKxKKxK......",
       ".......KK.KK.KK.KK......",
       ".......KK.KK.KK.KK......",
-      ".......KKKKKKKKKKK......",
+      "......KKKKKKKKKKKK......",
       "......KKKKKKKKKKKK......",
       ".....KdKKKKKKKKKKdK.....",
       ".....KmnnnmmmmmmmmK.....",
@@ -25893,8 +25965,8 @@
       "..K.KooooooooooooooK.K..",
       ".KAKKorrrrrooooooooKKAK.",
       ".KAAAorrrrrAoooooooAAAK.",
-      ".KAAAoooooAAAAoooooAAAK.",
-      "..KKoAooooooAoooooAoKK..",
+      "..KAAoooooAAAAoooooAAK..",
+      "...KoAooooooAoooooAoK...",
       "...KooooooooooooooooK...",
       "...KonnnWWnnnnWWnnnoK...",
       "...KnnnnWKnnnnKWnnnnK...",
@@ -25925,8 +25997,8 @@
       "..K.KooooooooooooooK.K..",
       ".KAKKorrrrrooooooooKKAK.",
       ".KAAAorrrrrAoooooooAAAK.",
-      ".KAAAoooooAAAAoooooAAAK.",
-      "..KKoAooooooAoooooAoKK..",
+      "..KAAoooooAAAAoooooAAK..",
+      "...KoAooooooAoooooAoK...",
       "...KooooooooooooooooK...",
       "...KonnnWWnnnnWWnnnoK...",
       "...KnnnnWKnnnnKWnnnnK...",
@@ -26741,8 +26813,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -26869,8 +26941,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -26997,8 +27069,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -27125,8 +27197,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -27253,8 +27325,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -27381,8 +27453,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -27509,8 +27581,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -27637,8 +27709,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -27765,8 +27837,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -27893,8 +27965,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -27951,7 +28023,7 @@
       "....KyySyyKyyKyynyyK....",
       "....KyySyySyySyynyyK....",
       "....KyySSSSyySSSSyyK....",
-      ".....KKKKKnnnnKKKKK.....",
+      "....KyyKKKnnnnKKKKK.....",
       ".....KAWWWKKKKWWWAK.....",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
@@ -27983,7 +28055,7 @@
       "....KyySyyKyyKyynyyK....",
       "....KyySyySyySyynyyK....",
       "....KyySSSSyySSSSyyK....",
-      ".....KKKKKnnnnKKKKK.....",
+      "....KyyKKKnnnnKKKKK.....",
       ".....KAWWWKKKKWWWAK.....",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
@@ -28015,14 +28087,14 @@
       "....KyySyyKyyKyynyyK....",
       "....KyySyySyySyynyyK....",
       "....KyySSSSyySSSSyyK....",
-      ".....KKKKKnnnnKKKKK.....",
+      "....KyyKKKnnnnKKKKK.....",
       ".....KKWWWKKKKWWWKK.....",
-      "....KAAAAAAAAAAAAAAK....",
+      "....KKAAAAAAAAAAAAAK....",
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -28047,9 +28119,9 @@
       "....KyySyyKyyKyynyyK....",
       "....KyySyySyySyynyyK....",
       "....KyySSSSyySSSSyyK....",
-      ".....KKKKKnnnnKKKKK.....",
+      "....KyyKKKnnnnKKKKK.....",
       "....KKKWWWKKKKWWWKKK....",
-      "...KAAAAAAAAAAAAAAAAK...",
+      "...KAKAAAAAAAAAAAAAAK...",
       "...KAAAAAAAAAAAAAAAAK...",
       "...KWWKAAAAKKAAAAKWWK...",
       "...KWWKAAAAKKAAAAKWWK...",
@@ -28080,7 +28152,7 @@
       "...KxKKxmmxmmxmdxKKxK...",
       "...KxKKxKKxddxKKxKKxK...",
       "....K.KKKKKKKKKKKK.K....",
-      ".....KAWWWKKKKWWWAK.....",
+      "....KKAWWWKKKKWWWAK.....",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
       ".....KWAAAAKKAAAAWK.....",
@@ -28112,7 +28184,7 @@
       "...KxKKxmmxmmxmdxKKxK...",
       "...KxKKxKKxddxKKxKKxK...",
       "....K.KKKKKKKKKKKK.K....",
-      ".....KAWWWKKKKWWWAK.....",
+      "....KKAWWWKKKKWWWAK.....",
       ".....KAAAAAAAAAAAAK.....",
       ".....KAAAAAAAAAAAAK.....",
       ".....KWAAAAKKAAAAWK.....",
@@ -28144,13 +28216,13 @@
       "...KxKKxmmxmmxmdxKKxK...",
       "...KxKKxKKxddxKKxKKxK...",
       "....K..KKKKKKKKKK..K....",
-      ".....KKWWWKKKKWWWKK.....",
+      "....KKKWWWKKKKWWWKK.....",
       "....KAAAAAAAAAAAAAAK....",
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -28192,7 +28264,7 @@
       "......KKK......KKK......"
     ],
     "u:g12:run0": [
-      "........KyzzzzyK........",
+      "........KKKKKKKK........",
       "........KyzzzzyK........",
       ".......KyyyyyyyyK.......",
       "......KzzyyyyyyyyK......",
@@ -28224,7 +28296,7 @@
       "........KWWK.KK........."
     ],
     "u:g12:run1": [
-      "........KyzzzzyK........",
+      "........KKKKKKKK........",
       "........KyzzzzyK........",
       ".......KyyyyyyyyK.......",
       "......KzzyyyyyyyyK......",
@@ -28256,7 +28328,7 @@
       ".........KK.KWWK........"
     ],
     "u:g12:ready0": [
-      "........KyzzzzyK........",
+      "........KKKKKKKK........",
       "........KyzzzzyK........",
       ".......KyyyyyyyyK.......",
       "......KzzyyyyyyyyK......",
@@ -28277,8 +28349,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -28288,7 +28360,7 @@
       ".......KKK....KKK......."
     ],
     "u:g12:ready1": [
-      "........KyzzzzyK........",
+      "........KKKKKKKK........",
       "........KyzzzzyK........",
       ".......KyyyyyyyyK.......",
       "......KzzyyyyyyyyK......",
@@ -28405,8 +28477,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -28533,8 +28605,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -28661,8 +28733,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -28789,8 +28861,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -28848,9 +28920,9 @@
       "...KyyyKdddddddxxKKK....",
       "...KyyyKKKxxxxKKK.......",
       "...KyyyKKKKKKKKKKK......",
-      "....KKAWWWKKKKWWWAK.....",
-      ".....KAAAAAAAAAAAAK.....",
-      ".....KAAAAAAAAAAAAK.....",
+      "...KyyAWWWKKKKWWWAK.....",
+      "....KKAAAAAAAAAAAAK.....",
+      "....KKAAAAAAAAAAAAK.....",
       ".....KWAAAAKKAAAAWK.....",
       ".....KWAAAAKKAAAAWK.....",
       "......KAAAAAAAAAAK......",
@@ -28880,9 +28952,9 @@
       "...KyyyKdddddddxxKKK....",
       "...KyyyKKKxxxxKKK.......",
       "...KyyyKKKKKKKKKKK......",
-      "....KKAWWWKKKKWWWAK.....",
-      ".....KAAAAAAAAAAAAK.....",
-      ".....KAAAAAAAAAAAAK.....",
+      "...KyyAWWWKKKKWWWAK.....",
+      "....KKAAAAAAAAAAAAK.....",
+      "....KKAAAAAAAAAAAAK.....",
       ".....KWAAAAKKAAAAWK.....",
       ".....KWAAAAKKAAAAWK.....",
       "......KAAAAAAAAAAK......",
@@ -28912,13 +28984,13 @@
       "...KyyyKdddddddxxKKK....",
       "...KyyyKKKxxxxKKK.......",
       "...KyyyKKKKKKKKKK.......",
-      "....KKKWWWKKKKWWWKK.....",
+      "...KyyyWWWKKKKWWWKK.....",
       "....KAAAAAAAAAAAAAAK....",
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -28944,9 +29016,9 @@
       "...KyyyKdddddddxxKKK....",
       "...KyyyKKKxxxxKKK.......",
       "...KyyyKKKKKKKKKK.......",
-      "....KKKWWWKKKKWWWKKK....",
+      "...KyyyWWWKKKKWWWKKK....",
       "...KAAAAAAAAAAAAAAAAK...",
-      "...KAAAAAAAAAAAAAAAAK...",
+      "...KKAAAAAAAAAAAAAAAK...",
       "...KWWKAAAAKKAAAAKWWK...",
       "...KWWKAAAAKKAAAAKWWK...",
       "....KKKAAAAAAAAAAKKK....",
@@ -28960,7 +29032,7 @@
       "......KKK......KKK......"
     ],
     "u:g18:run0": [
-      "...KyzzzzzyyyK..........",
+      "...KKKKKKKKKKK..........",
       "...KyzzzzzyyyKKKKK......",
       "...KyyyyyyyyyyyyyyK.....",
       "...KyyyyyyyyyyyyyyK.....",
@@ -28992,7 +29064,7 @@
       "........KWWK.KK........."
     ],
     "u:g18:run1": [
-      "...KyzzzzzyyyK..........",
+      "...KKKKKKKKKKK..........",
       "...KyzzzzzyyyKKKKK......",
       "...KyyyyyyyyyyyyyyK.....",
       "...KyyyyyyyyyyyyyyK.....",
@@ -29024,7 +29096,7 @@
       ".........KK.KWWK........"
     ],
     "u:g18:ready0": [
-      "...KyzzzzzyyyK..........",
+      "...KKKKKKKKKKK..........",
       "...KyzzzzzyyyKKKKK......",
       "...KyyyyyyyyyyyyyyK.....",
       "...KyyyyyyyyyyyyyyK.....",
@@ -29045,8 +29117,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -29056,7 +29128,7 @@
       ".......KKK....KKK......."
     ],
     "u:g18:ready1": [
-      "...KyzzzzzyyyK..........",
+      "...KKKKKKKKKKK..........",
       "...KyzzzzzyyyKKKKK......",
       "...KyyyyyyyyyyyyyyK.....",
       "...KyyyyyyyyyyyyyyK.....",
@@ -29173,8 +29245,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -29216,7 +29288,7 @@
       "......KKK......KKK......"
     ],
     "u:g20:run0": [
-      "........KzzzzzzzzK......",
+      "........KKKKKKKKKK......",
       ".....KKKKzzzzzzzzKK.....",
       "....KyyyyzzzzzzzzyyK....",
       "....KyyyyzzzzzzzzyWK....",
@@ -29248,7 +29320,7 @@
       "........KWWK.KK........."
     ],
     "u:g20:run1": [
-      "........KzzzzzzzzK......",
+      "........KKKKKKKKKK......",
       ".....KKKKzzzzzzzzKK.....",
       "....KyyyyzzzzzzzzyyK....",
       "....KyyyyzzzzzzzzyWK....",
@@ -29280,7 +29352,7 @@
       ".........KK.KWWK........"
     ],
     "u:g20:ready0": [
-      "........KzzzzzzzzK......",
+      "........KKKKKKKKKK......",
       ".....KKKKzzzzzzzzKK.....",
       "....KyyyyzzzzzzzzyyK....",
       "....KyyyyzzzzzzzzyWK....",
@@ -29301,8 +29373,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -29312,7 +29384,7 @@
       ".......KKK....KKK......."
     ],
     "u:g20:ready1": [
-      "........KzzzzzzzzK......",
+      "........KKKKKKKKKK......",
       ".....KKKKzzzzzzzzKK.....",
       "....KyyyyzzzzzzzzyyK....",
       "....KyyyyzzzzzzzzyWK....",
@@ -29344,12 +29416,12 @@
       "......KKK......KKK......"
     ],
     "u:g21:run0": [
-      "..........KyyyK.........",
+      "..........KKKKK.........",
       "..........KxxxK.........",
-      "..........KyyyK.........",
-      "..........KxxxK.........",
-      "......KKKKKyyyKKKK......",
-      ".....KdKKKKxxxKKKdK.....",
+      ".........KyyyyyK........",
+      "........KxxxxxxxK.......",
+      "......KKKKKKKKKKKK......",
+      ".....KdKKKKKKKKKKdK.....",
       ".....KdKKKKKKKKKKdK.....",
       ".....KddddddddddddK.....",
       ".....KddWWddddWWddK.....",
@@ -29376,12 +29448,12 @@
       "........KWWK.KK........."
     ],
     "u:g21:run1": [
-      "..........KyyyK.........",
+      "..........KKKKK.........",
       "..........KxxxK.........",
-      "..........KyyyK.........",
-      "..........KxxxK.........",
-      "......KKKKKyyyKKKK......",
-      ".....KdKKKKxxxKKKdK.....",
+      ".........KyyyyyK........",
+      "........KxxxxxxxK.......",
+      "......KKKKKKKKKKKK......",
+      ".....KdKKKKKKKKKKdK.....",
       ".....KdKKKKKKKKKKdK.....",
       ".....KddddddddddddK.....",
       ".....KddWWddddWWddK.....",
@@ -29408,12 +29480,12 @@
       ".........KK.KWWK........"
     ],
     "u:g21:ready0": [
-      "..........KyyyK.........",
+      "..........KKKKK.........",
       "..........KxxxK.........",
-      "..........KyyyK.........",
-      "..........KxxxK.........",
-      "......KKKKKyyyKKKK......",
-      ".....KdKKKKxxxKKKdK.....",
+      ".........KyyyyyK........",
+      "........KxxxxxxxK.......",
+      "......KKKKKKKKKKKK......",
+      ".....KdKKKKKKKKKKdK.....",
       ".....KdKKKKKKKKKKdK.....",
       ".....KddddddddddddK.....",
       ".....KddWWddddWWddK.....",
@@ -29429,8 +29501,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -29440,12 +29512,12 @@
       ".......KKK....KKK......."
     ],
     "u:g21:ready1": [
-      "..........KyyyK.........",
+      "..........KKKKK.........",
       "..........KxxxK.........",
-      "..........KyyyK.........",
-      "..........KxxxK.........",
-      "......KKKKKyyyKKKK......",
-      ".....KdKKKKxxxKKKdK.....",
+      ".........KyyyyyK........",
+      "........KxxxxxxxK.......",
+      "......KKKKKKKKKKKK......",
+      ".....KdKKKKKKKKKKdK.....",
       ".....KdKKKKKKKKKKdK.....",
       ".....KddddddddddddK.....",
       ".....KddWWddddWWddK.....",
@@ -29557,8 +29629,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -29685,8 +29757,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -29813,8 +29885,8 @@
       "....KAAAAAAAAAAAAAAK....",
       "....KWWAAAAKKAAAAWWK....",
       "....KWWAAAAKKAAAAWWK....",
-      ".....KKAAAAAAAAAAKK.....",
-      "......KAAAAAAAAAAK......",
+      "....KWKAAAAAAAAAAKWK....",
+      "....KKKAAAAAAAAAAKK.....",
       "......KAAAAAAAAAAK......",
       "......KWWWWWWWWWWK......",
       "......KwwwwwwwwwwK......",
@@ -31392,7 +31464,7 @@
       ".........KK.KWWK........"
     ],
     "r:c024:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -31424,7 +31496,7 @@
       "........KWWK.KK........."
     ],
     "r:c024:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -31456,7 +31528,7 @@
       ".........KK.KWWK........"
     ],
     "r:c025:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -31488,7 +31560,7 @@
       "........KWWK.KK........."
     ],
     "r:c025:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -31520,7 +31592,7 @@
       ".........KK.KWWK........"
     ],
     "r:c026:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -31552,7 +31624,7 @@
       "........KWWK.KK........."
     ],
     "r:c026:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -31584,7 +31656,7 @@
       ".........KK.KWWK........"
     ],
     "r:c027:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -31616,7 +31688,7 @@
       "........KWWK.KK........."
     ],
     "r:c027:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -31648,7 +31720,7 @@
       ".........KK.KWWK........"
     ],
     "r:c028:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -31680,7 +31752,7 @@
       "........KWWK.KK........."
     ],
     "r:c028:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -31712,7 +31784,7 @@
       ".........KK.KWWK........"
     ],
     "r:c029:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -31744,7 +31816,7 @@
       "........KWWK.KK........."
     ],
     "r:c029:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -31776,7 +31848,7 @@
       ".........KK.KWWK........"
     ],
     "r:c030:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -31808,7 +31880,7 @@
       "........KWWK.KK........."
     ],
     "r:c030:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -31840,7 +31912,7 @@
       ".........KK.KWWK........"
     ],
     "r:c031:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -31872,7 +31944,7 @@
       "........KWWK.KK........."
     ],
     "r:c031:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -32160,7 +32232,7 @@
       ".........KK.KWWK........"
     ],
     "r:c036:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -32192,7 +32264,7 @@
       "........KWWK.KK........."
     ],
     "r:c036:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -32224,7 +32296,7 @@
       ".........KK.KWWK........"
     ],
     "r:c037:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -32256,7 +32328,7 @@
       "........KWWK.KK........."
     ],
     "r:c037:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -32288,7 +32360,7 @@
       ".........KK.KWWK........"
     ],
     "r:c038:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -32320,7 +32392,7 @@
       "........KWWK.KK........."
     ],
     "r:c038:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -32352,7 +32424,7 @@
       ".........KK.KWWK........"
     ],
     "r:c039:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -32384,7 +32456,7 @@
       "........KWWK.KK........."
     ],
     "r:c039:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -33952,7 +34024,7 @@
       ".........KK.KWWK........"
     ],
     "r:c064:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -33984,7 +34056,7 @@
       "........KWWK.KK........."
     ],
     "r:c064:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -34016,7 +34088,7 @@
       ".........KK.KWWK........"
     ],
     "r:c065:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -34048,7 +34120,7 @@
       "........KWWK.KK........."
     ],
     "r:c065:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -34080,7 +34152,7 @@
       ".........KK.KWWK........"
     ],
     "r:c066:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -34112,7 +34184,7 @@
       "........KWWK.KK........."
     ],
     "r:c066:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -34144,7 +34216,7 @@
       ".........KK.KWWK........"
     ],
     "r:c067:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -34176,7 +34248,7 @@
       "........KWWK.KK........."
     ],
     "r:c067:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -34208,7 +34280,7 @@
       ".........KK.KWWK........"
     ],
     "r:c068:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -34240,7 +34312,7 @@
       "........KWWK.KK........."
     ],
     "r:c068:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -34272,7 +34344,7 @@
       ".........KK.KWWK........"
     ],
     "r:c069:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -34304,7 +34376,7 @@
       "........KWWK.KK........."
     ],
     "r:c069:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -34336,7 +34408,7 @@
       ".........KK.KWWK........"
     ],
     "r:c070:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -34368,7 +34440,7 @@
       "........KWWK.KK........."
     ],
     "r:c070:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -34400,7 +34472,7 @@
       ".........KK.KWWK........"
     ],
     "r:c071:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -34432,7 +34504,7 @@
       "........KWWK.KK........."
     ],
     "r:c071:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -34720,7 +34792,7 @@
       ".........KK.KWWK........"
     ],
     "r:c076:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -34752,7 +34824,7 @@
       "........KWWK.KK........."
     ],
     "r:c076:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -34784,7 +34856,7 @@
       ".........KK.KWWK........"
     ],
     "r:c077:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -34816,7 +34888,7 @@
       "........KWWK.KK........."
     ],
     "r:c077:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -34848,7 +34920,7 @@
       ".........KK.KWWK........"
     ],
     "r:c078:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -34880,7 +34952,7 @@
       "........KWWK.KK........."
     ],
     "r:c078:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -34912,7 +34984,7 @@
       ".........KK.KWWK........"
     ],
     "r:c079:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -34944,7 +35016,7 @@
       "........KWWK.KK........."
     ],
     "r:c079:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -36512,7 +36584,7 @@
       ".........KK.KWWK........"
     ],
     "r:c104:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -36544,7 +36616,7 @@
       "........KWWK.KK........."
     ],
     "r:c104:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -36576,7 +36648,7 @@
       ".........KK.KWWK........"
     ],
     "r:c105:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -36608,7 +36680,7 @@
       "........KWWK.KK........."
     ],
     "r:c105:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -36640,7 +36712,7 @@
       ".........KK.KWWK........"
     ],
     "r:c106:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -36672,7 +36744,7 @@
       "........KWWK.KK........."
     ],
     "r:c106:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -36704,7 +36776,7 @@
       ".........KK.KWWK........"
     ],
     "r:c107:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -36736,7 +36808,7 @@
       "........KWWK.KK........."
     ],
     "r:c107:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -36768,7 +36840,7 @@
       ".........KK.KWWK........"
     ],
     "r:c108:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -36800,7 +36872,7 @@
       "........KWWK.KK........."
     ],
     "r:c108:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -36832,7 +36904,7 @@
       ".........KK.KWWK........"
     ],
     "r:c109:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -36864,7 +36936,7 @@
       "........KWWK.KK........."
     ],
     "r:c109:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -36896,7 +36968,7 @@
       ".........KK.KWWK........"
     ],
     "r:c110:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -36928,7 +37000,7 @@
       "........KWWK.KK........."
     ],
     "r:c110:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -36960,7 +37032,7 @@
       ".........KK.KWWK........"
     ],
     "r:c111:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -36992,7 +37064,7 @@
       "........KWWK.KK........."
     ],
     "r:c111:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -37280,7 +37352,7 @@
       ".........KK.KWWK........"
     ],
     "r:c116:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -37312,7 +37384,7 @@
       "........KWWK.KK........."
     ],
     "r:c116:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -37344,7 +37416,7 @@
       ".........KK.KWWK........"
     ],
     "r:c117:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -37376,7 +37448,7 @@
       "........KWWK.KK........."
     ],
     "r:c117:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -37408,7 +37480,7 @@
       ".........KK.KWWK........"
     ],
     "r:c118:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -37440,7 +37512,7 @@
       "........KWWK.KK........."
     ],
     "r:c118:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -37472,7 +37544,7 @@
       ".........KK.KWWK........"
     ],
     "r:c119:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -37504,7 +37576,7 @@
       "........KWWK.KK........."
     ],
     "r:c119:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -39072,7 +39144,7 @@
       ".........KK.KWWK........"
     ],
     "r:c144:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -39104,7 +39176,7 @@
       "........KWWK.KK........."
     ],
     "r:c144:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -39136,7 +39208,7 @@
       ".........KK.KWWK........"
     ],
     "r:c145:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -39168,7 +39240,7 @@
       "........KWWK.KK........."
     ],
     "r:c145:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -39200,7 +39272,7 @@
       ".........KK.KWWK........"
     ],
     "r:c146:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -39232,7 +39304,7 @@
       "........KWWK.KK........."
     ],
     "r:c146:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -39264,7 +39336,7 @@
       ".........KK.KWWK........"
     ],
     "r:c147:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -39296,7 +39368,7 @@
       "........KWWK.KK........."
     ],
     "r:c147:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -39328,7 +39400,7 @@
       ".........KK.KWWK........"
     ],
     "r:c148:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -39360,7 +39432,7 @@
       "........KWWK.KK........."
     ],
     "r:c148:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -39392,7 +39464,7 @@
       ".........KK.KWWK........"
     ],
     "r:c149:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -39424,7 +39496,7 @@
       "........KWWK.KK........."
     ],
     "r:c149:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -39456,7 +39528,7 @@
       ".........KK.KWWK........"
     ],
     "r:c150:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -39488,7 +39560,7 @@
       "........KWWK.KK........."
     ],
     "r:c150:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -39520,7 +39592,7 @@
       ".........KK.KWWK........"
     ],
     "r:c151:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -39552,7 +39624,7 @@
       "........KWWK.KK........."
     ],
     "r:c151:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -39840,7 +39912,7 @@
       ".........KK.KWWK........"
     ],
     "r:c156:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -39872,7 +39944,7 @@
       "........KWWK.KK........."
     ],
     "r:c156:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -39904,7 +39976,7 @@
       ".........KK.KWWK........"
     ],
     "r:c157:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -39936,7 +40008,7 @@
       "........KWWK.KK........."
     ],
     "r:c157:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -39968,7 +40040,7 @@
       ".........KK.KWWK........"
     ],
     "r:c158:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -40000,7 +40072,7 @@
       "........KWWK.KK........."
     ],
     "r:c158:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -40032,7 +40104,7 @@
       ".........KK.KWWK........"
     ],
     "r:c159:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -40064,7 +40136,7 @@
       "........KWWK.KK........."
     ],
     "r:c159:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -41632,7 +41704,7 @@
       ".........KK.KWWK........"
     ],
     "r:c184:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -41664,7 +41736,7 @@
       "........KWWK.KK........."
     ],
     "r:c184:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -41696,7 +41768,7 @@
       ".........KK.KWWK........"
     ],
     "r:c185:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -41728,7 +41800,7 @@
       "........KWWK.KK........."
     ],
     "r:c185:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -41760,7 +41832,7 @@
       ".........KK.KWWK........"
     ],
     "r:c186:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -41792,7 +41864,7 @@
       "........KWWK.KK........."
     ],
     "r:c186:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -41824,7 +41896,7 @@
       ".........KK.KWWK........"
     ],
     "r:c187:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -41856,7 +41928,7 @@
       "........KWWK.KK........."
     ],
     "r:c187:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -41888,7 +41960,7 @@
       ".........KK.KWWK........"
     ],
     "r:c188:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -41920,7 +41992,7 @@
       "........KWWK.KK........."
     ],
     "r:c188:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -41952,7 +42024,7 @@
       ".........KK.KWWK........"
     ],
     "r:c189:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -41984,7 +42056,7 @@
       "........KWWK.KK........."
     ],
     "r:c189:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -42016,7 +42088,7 @@
       ".........KK.KWWK........"
     ],
     "r:c190:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -42048,7 +42120,7 @@
       "........KWWK.KK........."
     ],
     "r:c190:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -42080,7 +42152,7 @@
       ".........KK.KWWK........"
     ],
     "r:c191:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -42112,7 +42184,7 @@
       "........KWWK.KK........."
     ],
     "r:c191:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -42400,7 +42472,7 @@
       ".........KK.KWWK........"
     ],
     "r:c196:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -42432,7 +42504,7 @@
       "........KWWK.KK........."
     ],
     "r:c196:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -42464,7 +42536,7 @@
       ".........KK.KWWK........"
     ],
     "r:c197:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -42496,7 +42568,7 @@
       "........KWWK.KK........."
     ],
     "r:c197:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -42528,7 +42600,7 @@
       ".........KK.KWWK........"
     ],
     "r:c198:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -42560,7 +42632,7 @@
       "........KWWK.KK........."
     ],
     "r:c198:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -42592,7 +42664,7 @@
       ".........KK.KWWK........"
     ],
     "r:c199:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -42624,7 +42696,7 @@
       "........KWWK.KK........."
     ],
     "r:c199:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -44192,7 +44264,7 @@
       ".........KK.KWWK........"
     ],
     "r:c224:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -44224,7 +44296,7 @@
       "........KWWK.KK........."
     ],
     "r:c224:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -44256,7 +44328,7 @@
       ".........KK.KWWK........"
     ],
     "r:c225:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -44288,7 +44360,7 @@
       "........KWWK.KK........."
     ],
     "r:c225:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -44320,7 +44392,7 @@
       ".........KK.KWWK........"
     ],
     "r:c226:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -44352,7 +44424,7 @@
       "........KWWK.KK........."
     ],
     "r:c226:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -44384,7 +44456,7 @@
       ".........KK.KWWK........"
     ],
     "r:c227:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -44416,7 +44488,7 @@
       "........KWWK.KK........."
     ],
     "r:c227:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -44448,7 +44520,7 @@
       ".........KK.KWWK........"
     ],
     "r:c228:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -44480,7 +44552,7 @@
       "........KWWK.KK........."
     ],
     "r:c228:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -44512,7 +44584,7 @@
       ".........KK.KWWK........"
     ],
     "r:c229:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -44544,7 +44616,7 @@
       "........KWWK.KK........."
     ],
     "r:c229:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -44576,7 +44648,7 @@
       ".........KK.KWWK........"
     ],
     "r:c230:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -44608,7 +44680,7 @@
       "........KWWK.KK........."
     ],
     "r:c230:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -44640,7 +44712,7 @@
       ".........KK.KWWK........"
     ],
     "r:c231:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -44672,7 +44744,7 @@
       "........KWWK.KK........."
     ],
     "r:c231:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -44960,7 +45032,7 @@
       ".........KK.KWWK........"
     ],
     "r:c236:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -44992,7 +45064,7 @@
       "........KWWK.KK........."
     ],
     "r:c236:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -45024,7 +45096,7 @@
       ".........KK.KWWK........"
     ],
     "r:c237:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -45056,7 +45128,7 @@
       "........KWWK.KK........."
     ],
     "r:c237:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -45088,7 +45160,7 @@
       ".........KK.KWWK........"
     ],
     "r:c238:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -45120,7 +45192,7 @@
       "........KWWK.KK........."
     ],
     "r:c238:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -45152,7 +45224,7 @@
       ".........KK.KWWK........"
     ],
     "r:c239:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -45184,7 +45256,7 @@
       "........KWWK.KK........."
     ],
     "r:c239:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -46752,7 +46824,7 @@
       ".........KK.KWWK........"
     ],
     "u:c024:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -46784,7 +46856,7 @@
       "........KWWK.KK........."
     ],
     "u:c024:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -46816,7 +46888,7 @@
       ".........KK.KWWK........"
     ],
     "u:c025:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -46848,7 +46920,7 @@
       "........KWWK.KK........."
     ],
     "u:c025:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -46880,7 +46952,7 @@
       ".........KK.KWWK........"
     ],
     "u:c026:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -46912,7 +46984,7 @@
       "........KWWK.KK........."
     ],
     "u:c026:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -46944,7 +47016,7 @@
       ".........KK.KWWK........"
     ],
     "u:c027:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -46976,7 +47048,7 @@
       "........KWWK.KK........."
     ],
     "u:c027:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -47008,7 +47080,7 @@
       ".........KK.KWWK........"
     ],
     "u:c028:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -47040,7 +47112,7 @@
       "........KWWK.KK........."
     ],
     "u:c028:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -47072,7 +47144,7 @@
       ".........KK.KWWK........"
     ],
     "u:c029:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -47104,7 +47176,7 @@
       "........KWWK.KK........."
     ],
     "u:c029:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -47136,7 +47208,7 @@
       ".........KK.KWWK........"
     ],
     "u:c030:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -47168,7 +47240,7 @@
       "........KWWK.KK........."
     ],
     "u:c030:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -47200,7 +47272,7 @@
       ".........KK.KWWK........"
     ],
     "u:c031:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -47232,7 +47304,7 @@
       "........KWWK.KK........."
     ],
     "u:c031:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -47520,7 +47592,7 @@
       ".........KK.KWWK........"
     ],
     "u:c036:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -47552,7 +47624,7 @@
       "........KWWK.KK........."
     ],
     "u:c036:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -47584,7 +47656,7 @@
       ".........KK.KWWK........"
     ],
     "u:c037:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -47616,7 +47688,7 @@
       "........KWWK.KK........."
     ],
     "u:c037:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -47648,7 +47720,7 @@
       ".........KK.KWWK........"
     ],
     "u:c038:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -47680,7 +47752,7 @@
       "........KWWK.KK........."
     ],
     "u:c038:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -47712,7 +47784,7 @@
       ".........KK.KWWK........"
     ],
     "u:c039:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -47744,7 +47816,7 @@
       "........KWWK.KK........."
     ],
     "u:c039:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -49312,7 +49384,7 @@
       ".........KK.KWWK........"
     ],
     "u:c064:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -49344,7 +49416,7 @@
       "........KWWK.KK........."
     ],
     "u:c064:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -49376,7 +49448,7 @@
       ".........KK.KWWK........"
     ],
     "u:c065:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -49408,7 +49480,7 @@
       "........KWWK.KK........."
     ],
     "u:c065:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -49440,7 +49512,7 @@
       ".........KK.KWWK........"
     ],
     "u:c066:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -49472,7 +49544,7 @@
       "........KWWK.KK........."
     ],
     "u:c066:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -49504,7 +49576,7 @@
       ".........KK.KWWK........"
     ],
     "u:c067:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -49536,7 +49608,7 @@
       "........KWWK.KK........."
     ],
     "u:c067:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -49568,7 +49640,7 @@
       ".........KK.KWWK........"
     ],
     "u:c068:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -49600,7 +49672,7 @@
       "........KWWK.KK........."
     ],
     "u:c068:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -49632,7 +49704,7 @@
       ".........KK.KWWK........"
     ],
     "u:c069:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -49664,7 +49736,7 @@
       "........KWWK.KK........."
     ],
     "u:c069:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -49696,7 +49768,7 @@
       ".........KK.KWWK........"
     ],
     "u:c070:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -49728,7 +49800,7 @@
       "........KWWK.KK........."
     ],
     "u:c070:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -49760,7 +49832,7 @@
       ".........KK.KWWK........"
     ],
     "u:c071:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -49792,7 +49864,7 @@
       "........KWWK.KK........."
     ],
     "u:c071:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -50080,7 +50152,7 @@
       ".........KK.KWWK........"
     ],
     "u:c076:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -50112,7 +50184,7 @@
       "........KWWK.KK........."
     ],
     "u:c076:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -50144,7 +50216,7 @@
       ".........KK.KWWK........"
     ],
     "u:c077:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -50176,7 +50248,7 @@
       "........KWWK.KK........."
     ],
     "u:c077:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -50208,7 +50280,7 @@
       ".........KK.KWWK........"
     ],
     "u:c078:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -50240,7 +50312,7 @@
       "........KWWK.KK........."
     ],
     "u:c078:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -50272,7 +50344,7 @@
       ".........KK.KWWK........"
     ],
     "u:c079:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -50304,7 +50376,7 @@
       "........KWWK.KK........."
     ],
     "u:c079:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -51872,7 +51944,7 @@
       ".........KK.KWWK........"
     ],
     "u:c104:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -51904,7 +51976,7 @@
       "........KWWK.KK........."
     ],
     "u:c104:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -51936,7 +52008,7 @@
       ".........KK.KWWK........"
     ],
     "u:c105:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -51968,7 +52040,7 @@
       "........KWWK.KK........."
     ],
     "u:c105:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -52000,7 +52072,7 @@
       ".........KK.KWWK........"
     ],
     "u:c106:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -52032,7 +52104,7 @@
       "........KWWK.KK........."
     ],
     "u:c106:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -52064,7 +52136,7 @@
       ".........KK.KWWK........"
     ],
     "u:c107:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -52096,7 +52168,7 @@
       "........KWWK.KK........."
     ],
     "u:c107:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -52128,7 +52200,7 @@
       ".........KK.KWWK........"
     ],
     "u:c108:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -52160,7 +52232,7 @@
       "........KWWK.KK........."
     ],
     "u:c108:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -52192,7 +52264,7 @@
       ".........KK.KWWK........"
     ],
     "u:c109:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -52224,7 +52296,7 @@
       "........KWWK.KK........."
     ],
     "u:c109:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -52256,7 +52328,7 @@
       ".........KK.KWWK........"
     ],
     "u:c110:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -52288,7 +52360,7 @@
       "........KWWK.KK........."
     ],
     "u:c110:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -52320,7 +52392,7 @@
       ".........KK.KWWK........"
     ],
     "u:c111:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -52352,7 +52424,7 @@
       "........KWWK.KK........."
     ],
     "u:c111:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -52640,7 +52712,7 @@
       ".........KK.KWWK........"
     ],
     "u:c116:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -52672,7 +52744,7 @@
       "........KWWK.KK........."
     ],
     "u:c116:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -52704,7 +52776,7 @@
       ".........KK.KWWK........"
     ],
     "u:c117:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -52736,7 +52808,7 @@
       "........KWWK.KK........."
     ],
     "u:c117:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -52768,7 +52840,7 @@
       ".........KK.KWWK........"
     ],
     "u:c118:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -52800,7 +52872,7 @@
       "........KWWK.KK........."
     ],
     "u:c118:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -52832,7 +52904,7 @@
       ".........KK.KWWK........"
     ],
     "u:c119:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -52864,7 +52936,7 @@
       "........KWWK.KK........."
     ],
     "u:c119:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -54432,7 +54504,7 @@
       ".........KK.KWWK........"
     ],
     "u:c144:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -54464,7 +54536,7 @@
       "........KWWK.KK........."
     ],
     "u:c144:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -54496,7 +54568,7 @@
       ".........KK.KWWK........"
     ],
     "u:c145:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -54528,7 +54600,7 @@
       "........KWWK.KK........."
     ],
     "u:c145:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -54560,7 +54632,7 @@
       ".........KK.KWWK........"
     ],
     "u:c146:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -54592,7 +54664,7 @@
       "........KWWK.KK........."
     ],
     "u:c146:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -54624,7 +54696,7 @@
       ".........KK.KWWK........"
     ],
     "u:c147:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -54656,7 +54728,7 @@
       "........KWWK.KK........."
     ],
     "u:c147:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -54688,7 +54760,7 @@
       ".........KK.KWWK........"
     ],
     "u:c148:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -54720,7 +54792,7 @@
       "........KWWK.KK........."
     ],
     "u:c148:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -54752,7 +54824,7 @@
       ".........KK.KWWK........"
     ],
     "u:c149:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -54784,7 +54856,7 @@
       "........KWWK.KK........."
     ],
     "u:c149:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -54816,7 +54888,7 @@
       ".........KK.KWWK........"
     ],
     "u:c150:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -54848,7 +54920,7 @@
       "........KWWK.KK........."
     ],
     "u:c150:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -54880,7 +54952,7 @@
       ".........KK.KWWK........"
     ],
     "u:c151:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -54912,7 +54984,7 @@
       "........KWWK.KK........."
     ],
     "u:c151:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -55200,7 +55272,7 @@
       ".........KK.KWWK........"
     ],
     "u:c156:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -55232,7 +55304,7 @@
       "........KWWK.KK........."
     ],
     "u:c156:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -55264,7 +55336,7 @@
       ".........KK.KWWK........"
     ],
     "u:c157:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -55296,7 +55368,7 @@
       "........KWWK.KK........."
     ],
     "u:c157:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -55328,7 +55400,7 @@
       ".........KK.KWWK........"
     ],
     "u:c158:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -55360,7 +55432,7 @@
       "........KWWK.KK........."
     ],
     "u:c158:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -55392,7 +55464,7 @@
       ".........KK.KWWK........"
     ],
     "u:c159:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -55424,7 +55496,7 @@
       "........KWWK.KK........."
     ],
     "u:c159:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -56992,7 +57064,7 @@
       ".........KK.KWWK........"
     ],
     "u:c184:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -57024,7 +57096,7 @@
       "........KWWK.KK........."
     ],
     "u:c184:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -57056,7 +57128,7 @@
       ".........KK.KWWK........"
     ],
     "u:c185:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -57088,7 +57160,7 @@
       "........KWWK.KK........."
     ],
     "u:c185:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -57120,7 +57192,7 @@
       ".........KK.KWWK........"
     ],
     "u:c186:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -57152,7 +57224,7 @@
       "........KWWK.KK........."
     ],
     "u:c186:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -57184,7 +57256,7 @@
       ".........KK.KWWK........"
     ],
     "u:c187:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -57216,7 +57288,7 @@
       "........KWWK.KK........."
     ],
     "u:c187:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -57248,7 +57320,7 @@
       ".........KK.KWWK........"
     ],
     "u:c188:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -57280,7 +57352,7 @@
       "........KWWK.KK........."
     ],
     "u:c188:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -57312,7 +57384,7 @@
       ".........KK.KWWK........"
     ],
     "u:c189:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -57344,7 +57416,7 @@
       "........KWWK.KK........."
     ],
     "u:c189:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -57376,7 +57448,7 @@
       ".........KK.KWWK........"
     ],
     "u:c190:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -57408,7 +57480,7 @@
       "........KWWK.KK........."
     ],
     "u:c190:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -57440,7 +57512,7 @@
       ".........KK.KWWK........"
     ],
     "u:c191:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -57472,7 +57544,7 @@
       "........KWWK.KK........."
     ],
     "u:c191:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -57760,7 +57832,7 @@
       ".........KK.KWWK........"
     ],
     "u:c196:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -57792,7 +57864,7 @@
       "........KWWK.KK........."
     ],
     "u:c196:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -57824,7 +57896,7 @@
       ".........KK.KWWK........"
     ],
     "u:c197:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -57856,7 +57928,7 @@
       "........KWWK.KK........."
     ],
     "u:c197:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -57888,7 +57960,7 @@
       ".........KK.KWWK........"
     ],
     "u:c198:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -57920,7 +57992,7 @@
       "........KWWK.KK........."
     ],
     "u:c198:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -57952,7 +58024,7 @@
       ".........KK.KWWK........"
     ],
     "u:c199:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -57984,7 +58056,7 @@
       "........KWWK.KK........."
     ],
     "u:c199:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -59552,7 +59624,7 @@
       ".........KK.KWWK........"
     ],
     "u:c224:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -59584,7 +59656,7 @@
       "........KWWK.KK........."
     ],
     "u:c224:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -59616,7 +59688,7 @@
       ".........KK.KWWK........"
     ],
     "u:c225:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -59648,7 +59720,7 @@
       "........KWWK.KK........."
     ],
     "u:c225:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -59680,7 +59752,7 @@
       ".........KK.KWWK........"
     ],
     "u:c226:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -59712,7 +59784,7 @@
       "........KWWK.KK........."
     ],
     "u:c226:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -59744,7 +59816,7 @@
       ".........KK.KWWK........"
     ],
     "u:c227:run0": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -59776,7 +59848,7 @@
       "........KWWK.KK........."
     ],
     "u:c227:run1": [
-      "..........KxxK..........",
+      "..........KKKK..........",
       "..........KxxK..........",
       "..........KxxK..........",
       "..........KxxK..........",
@@ -59808,7 +59880,7 @@
       ".........KK.KWWK........"
     ],
     "u:c228:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -59840,7 +59912,7 @@
       "........KWWK.KK........."
     ],
     "u:c228:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -59872,7 +59944,7 @@
       ".........KK.KWWK........"
     ],
     "u:c229:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -59904,7 +59976,7 @@
       "........KWWK.KK........."
     ],
     "u:c229:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -59936,7 +60008,7 @@
       ".........KK.KWWK........"
     ],
     "u:c230:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -59968,7 +60040,7 @@
       "........KWWK.KK........."
     ],
     "u:c230:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -60000,7 +60072,7 @@
       ".........KK.KWWK........"
     ],
     "u:c231:run0": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -60032,7 +60104,7 @@
       "........KWWK.KK........."
     ],
     "u:c231:run1": [
-      "......KxKxKxKxKxK.......",
+      "......KKKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
       ".......KKKKKKKKKK.......",
@@ -60320,7 +60392,7 @@
       ".........KK.KWWK........"
     ],
     "u:c236:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -60352,7 +60424,7 @@
       "........KWWK.KK........."
     ],
     "u:c236:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -60384,7 +60456,7 @@
       ".........KK.KWWK........"
     ],
     "u:c237:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -60416,7 +60488,7 @@
       "........KWWK.KK........."
     ],
     "u:c237:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -60448,7 +60520,7 @@
       ".........KK.KWWK........"
     ],
     "u:c238:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -60480,7 +60552,7 @@
       "........KWWK.KK........."
     ],
     "u:c238:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -60512,7 +60584,7 @@
       ".........KK.KWWK........"
     ],
     "u:c239:run0": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",
@@ -60544,7 +60616,7 @@
       "........KWWK.KK........."
     ],
     "u:c239:run1": [
-      ".........KxxxxK.........",
+      ".........KKKKKK.........",
       ".........KxxxxK.........",
       ".......KKKKKKKKK........",
       "......KxxKKKKKKKK.......",

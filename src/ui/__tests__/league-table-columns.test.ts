@@ -54,7 +54,8 @@ describe('league table column widths', () => {
     // this looked correct in review and broke in the hand. The reader's text
     // size is the missing term: xxLarge scales every font by 1.235.
     const xxLarge = 1.235;
-    const goalDifference = LEAGUE_CELL_ADVANCE_EM['+10'] * LEAGUE_CELL_FONT_SIZE.goalDifference;
+    const goalDifference =
+      LEAGUE_CELL_ADVANCE_EM['+10'] * LEAGUE_CELL_FONT_SIZE.goalDifference;
     const pointsHeader = LEAGUE_HEADER_ADVANCE_EM.PTS * LEAGUE_HEADER_FONT_SIZE;
 
     expect(goalDifference).toBeLessThan(w9);
@@ -63,10 +64,12 @@ describe('league table column widths', () => {
     expect(pointsHeader * xxLarge).toBeGreaterThan(w9);
 
     // And both clear their new columns at the full 1.6 the app allows.
-    expect(goalDifference * CELL_MAX_FONT_MULTIPLIER)
-      .toBeLessThanOrEqual(LEAGUE_COLUMN_WIDTH.goalDifference);
-    expect(pointsHeader * HEADER_MAX_FONT_MULTIPLIER)
-      .toBeLessThanOrEqual(LEAGUE_COLUMN_WIDTH.points);
+    expect(goalDifference * CELL_MAX_FONT_MULTIPLIER).toBeLessThanOrEqual(
+      LEAGUE_COLUMN_WIDTH.goalDifference,
+    );
+    expect(pointsHeader * HEADER_MAX_FONT_MULTIPLIER).toBeLessThanOrEqual(
+      LEAGUE_COLUMN_WIDTH.points,
+    );
   });
 
   it('caps headers tighter than cells, and both below the app maximum', () => {

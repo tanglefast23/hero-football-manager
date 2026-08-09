@@ -23,7 +23,11 @@ import {
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
 import type { PostMatchViewModel } from '../../ui';
 import { loadLaunchContent } from '../../content';
-import { awakeningCutsceneViewModel, clubFinancesViewModel, storyEventViewModel } from '../view-models';
+import {
+  awakeningCutsceneViewModel,
+  clubFinancesViewModel,
+  storyEventViewModel,
+} from '../view-models';
 import { careerMarketScoutOptions } from '../market-source-adapter';
 import { withRivalHeroIntrosSeen } from './rival-hero-intro-test-helper';
 import { copyFor } from '../../i18n';
@@ -39,11 +43,15 @@ describe('M1 app store integration', () => {
     const broke = {
       ...career,
       week: 15,
-      clubs: career.clubs.map(club => club.id === career.userClubId
-        ? { ...club, cash: 0 }
-        : club),
+      clubs: career.clubs.map((club) =>
+        club.id === career.userClubId ? { ...club, cash: 0 } : club,
+      ),
     };
-    useM1Store.setState({ career: broke, screen: 'management', activeTab: 'market' });
+    useM1Store.setState({
+      career: broke,
+      screen: 'management',
+      activeTab: 'market',
+    });
     const option = careerMarketScoutOptions(broke)[0];
 
     useM1Store.getState().startScoutMission(option.id);
@@ -77,8 +85,9 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState()).toMatchObject({ screen: 'matchday' });
     expect(useM1Store.getState().career?.phase).toBe('matchday');
 
-    expect(pendingRivalHeroIntro(useM1Store.getState().career!))
-      .toMatchObject({ heroId: 'special-f171' });
+    expect(pendingRivalHeroIntro(useM1Store.getState().career!)).toMatchObject({
+      heroId: 'special-f171',
+    });
     useM1Store.getState().completeRivalHeroIntro('special-f171');
 
     useM1Store.getState().quickResult();
@@ -100,8 +109,9 @@ describe('M1 app store integration', () => {
       stage: 'reveal',
       awakenedPower: expect.any(String),
     });
-    expect(loadLaunchContent().powers.powers.map(power => power.id))
-      .toContain(useM1Store.getState().career?.onboarding?.awakenedPower);
+    expect(
+      loadLaunchContent().powers.powers.map((power) => power.id),
+    ).toContain(useM1Store.getState().career?.onboarding?.awakenedPower);
     expect(useM1Store.getState().career?.awakening.pending).toMatchObject({
       firstHero: true,
       triggerId: 'glowing-caterpillar',
@@ -161,14 +171,23 @@ describe('M1 app store integration', () => {
     useM1Store.getState().watchMatch();
 
     const watched = useM1Store.getState().watchedMatch!;
-    const createdPlayerId = useM1Store.getState().career?.onboarding?.createdPlayerId;
+    const createdPlayerId =
+      useM1Store.getState().career?.onboarding?.createdPlayerId;
     expect(createdPlayerId).toBeDefined();
-    const match = createMatch(watched.fixture.matchSeed, watched.home, watched.away, {
-      controlledTeam: watched.controlledTeam,
-    });
-    const playerIndex = match.players.findIndex(player => player.def.id === createdPlayerId);
-    const replacement = match.bench[watched.controlledTeam]
-      .find(player => player.role === match.players[playerIndex].def.role);
+    const match = createMatch(
+      watched.fixture.matchSeed,
+      watched.home,
+      watched.away,
+      {
+        controlledTeam: watched.controlledTeam,
+      },
+    );
+    const playerIndex = match.players.findIndex(
+      (player) => player.def.id === createdPlayerId,
+    );
+    const replacement = match.bench[watched.controlledTeam].find(
+      (player) => player.role === match.players[playerIndex].def.role,
+    );
     expect(playerIndex).toBeGreaterThanOrEqual(0);
     expect(replacement).toBeDefined();
 
@@ -179,17 +198,24 @@ describe('M1 app store integration', () => {
       replacementId: replacement!.id,
     });
     tick(match);
-    expect(match.events).toContainEqual(expect.objectContaining({
-      kind: 'SUBSTITUTION',
-      outPlayerId: createdPlayerId,
-      inPlayerId: replacement!.id,
-    }));
-    expect(match.players.some(player => player.def.id === createdPlayerId)).toBe(false);
+    expect(match.events).toContainEqual(
+      expect.objectContaining({
+        kind: 'SUBSTITUTION',
+        outPlayerId: createdPlayerId,
+        inPlayerId: replacement!.id,
+      }),
+    );
+    expect(
+      match.players.some((player) => player.def.id === createdPlayerId),
+    ).toBe(false);
 
     match.phase = 'fulltime';
     useM1Store.getState().finishWatchedMatch(match);
 
-    expect(useM1Store.getState()).toMatchObject({ screen: 'awakening', error: null });
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'awakening',
+      error: null,
+    });
     expect(useM1Store.getState().career?.awakening.pending).toMatchObject({
       playerId: createdPlayerId,
       firstHero: true,
@@ -199,23 +225,33 @@ describe('M1 app store integration', () => {
   it('awards the spider mascot success bonuses without awakening anyone', () => {
     startAwakenedCareer(3);
     const career = useM1Store.getState().career!;
-    useM1Store.setState({ career: { ...career, week: 7, phase: 'manage' }, screen: 'management' });
+    useM1Store.setState({
+      career: { ...career, week: 7, phase: 'manage' },
+      screen: 'management',
+    });
 
     // Stories land on the desk when the week is reconciled, not as an ambush on
     // the way out of it; the card is then opened from the inbox.
     useM1Store.getState().reconcileAssistantInbox();
-    expect(useM1Store.getState().career?.pendingEvent?.eventId).toBe('giant-spider-arrives');
+    expect(useM1Store.getState().career?.pendingEvent?.eventId).toBe(
+      'giant-spider-arrives',
+    );
     useM1Store.getState().openDeskStory();
     expect(useM1Store.getState().screen).toBe('event');
     const beforeChoice = useM1Store.getState().career!;
-    const userClub = beforeChoice.clubs.find(club => club.id === beforeChoice.userClubId)!;
+    const userClub = beforeChoice.clubs.find(
+      (club) => club.id === beforeChoice.userClubId,
+    )!;
     const moraleBefore = beforeChoice.players
-      .filter(player => player.clubId === beforeChoice.userClubId)
-      .map(player => ({ id: player.id, morale: player.morale }));
-    expect(storyEventViewModel(beforeChoice, loadLaunchContent()).choices).toEqual([
+      .filter((player) => player.clubId === beforeChoice.userClubId)
+      .map((player) => ({ id: player.id, morale: player.morale }));
+    expect(
+      storyEventViewModel(beforeChoice, loadLaunchContent()).choices,
+    ).toEqual([
       expect.objectContaining({
         id: 'adopt-spider',
-        consequenceHint: '35% chance: +10 squad morale and +100 fans. Otherwise nothing.',
+        consequenceHint:
+          '35% chance: +10 squad morale and +100 fans. Otherwise nothing.',
         tone: 'risky',
       }),
       expect.objectContaining({
@@ -228,10 +264,14 @@ describe('M1 app store integration', () => {
     useM1Store.getState().chooseEvent('adopt-spider');
     const resolved = useM1Store.getState().career!;
     expect(resolved.eventFlags).toContain('spider-adopted');
-    expect(resolved.clubs.find(club => club.id === resolved.userClubId)?.fans).toBe(userClub.fans + 100);
+    expect(
+      resolved.clubs.find((club) => club.id === resolved.userClubId)?.fans,
+    ).toBe(userClub.fans + 100);
     for (const player of moraleBefore) {
-      expect(resolved.players.find(candidate => candidate.id === player.id)?.morale)
-        .toBe(Math.min(100, player.morale + 10));
+      expect(
+        resolved.players.find((candidate) => candidate.id === player.id)
+          ?.morale,
+      ).toBe(Math.min(100, player.morale + 10));
     }
     // No hasFollowUp: a resolved story only chains into a milestone recognition
     // when the club has an unseen one banked, and by this point in the fixture
@@ -239,22 +279,31 @@ describe('M1 app store integration', () => {
     // opening opponent means that match is now a defeat, so the first win comes
     // later and so does the beat that celebrates it. The chaining itself is
     // covered where it belongs, by the milestone tests.
-    expect(storyEventViewModel(resolved, loadLaunchContent()).successCutscene).toEqual({
+    expect(
+      storyEventViewModel(resolved, loadLaunchContent()).successCutscene,
+    ).toEqual({
       artKey: 'event-giant-spider-success',
       headline: 'A mascot is born',
       rewards: ['+10 squad morale', '+100 fans'],
     });
     expect(userHeroes()).toHaveLength(1);
     useM1Store.getState().continueAfterEvent();
-    expect(useM1Store.getState().career?.resolvedEventIds).toContain('giant-spider-arrives');
-    expect(useM1Store.getState().career?.eventFlags).toContain('m4:event-guide-seen');
+    expect(useM1Store.getState().career?.resolvedEventIds).toContain(
+      'giant-spider-arrives',
+    );
+    expect(useM1Store.getState().career?.eventFlags).toContain(
+      'm4:event-guide-seen',
+    );
   });
 
   it('gives no reward when the spider mascot gamble fails', () => {
     startAwakenedCareer(456);
     const career = useM1Store.getState().career!;
     useM1Store.setState({
-      career: offerCareerEvent({ ...career, week: 7, phase: 'manage', pendingEvent: undefined }, 'giant-spider-arrives'),
+      career: offerCareerEvent(
+        { ...career, week: 7, phase: 'manage', pendingEvent: undefined },
+        'giant-spider-arrives',
+      ),
       screen: 'event',
     });
     const beforeChoice = useM1Store.getState().career!;
@@ -272,7 +321,10 @@ describe('M1 app store integration', () => {
     startAwakenedCareer(456);
     const career = useM1Store.getState().career!;
     useM1Store.setState({
-      career: offerCareerEvent({ ...career, week: 7, phase: 'manage', pendingEvent: undefined }, 'giant-spider-arrives'),
+      career: offerCareerEvent(
+        { ...career, week: 7, phase: 'manage', pendingEvent: undefined },
+        'giant-spider-arrives',
+      ),
       screen: 'event',
     });
     const beforeChoice = useM1Store.getState().career!;
@@ -437,7 +489,9 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().error).toBeNull();
     expect(useM1Store.getState().screen).not.toBe('event');
     expect(useM1Store.getState().career?.pendingEvent).toBeUndefined();
-    expect(useM1Store.getState().career?.resolvedEventIds).toContain('rival-bid-arrives');
+    expect(useM1Store.getState().career?.resolvedEventIds).toContain(
+      'rival-bid-arrives',
+    );
   });
 
   /**
@@ -476,7 +530,9 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().screen).toBe('management');
     expect(useM1Store.getState().career?.week).toBe(8);
     expect(useM1Store.getState().career?.pendingEvent).toBeUndefined();
-    expect(useM1Store.getState().career?.resolvedEventIds).toContain('rival-bid-arrives');
+    expect(useM1Store.getState().career?.resolvedEventIds).toContain(
+      'rival-bid-arrives',
+    );
   });
 
   it('trains a player the moment a drill is tapped and reviews the week without it', () => {
@@ -484,8 +540,11 @@ describe('M1 app store integration', () => {
     const before = useM1Store.getState().career!;
     const playerId = 'bramble-rovers-created-player';
     const unassignedPlayerId = 'bramble-rovers-p14';
-    const beforePac = before.players.find(player => player.id === playerId)!.attrs.pac;
-    const beforeUnassignedSta = before.players.find(player => player.id === unassignedPlayerId)!.attrs.sta;
+    const beforePac = before.players.find((player) => player.id === playerId)!
+      .attrs.pac;
+    const beforeUnassignedSta = before.players.find(
+      (player) => player.id === unassignedPlayerId,
+    )!.attrs.sta;
 
     useM1Store.getState().buildFacility();
     useM1Store.getState().trainPlayer(playerId, 'sprints');
@@ -501,16 +560,24 @@ describe('M1 app store integration', () => {
       sequence: 1,
     });
     expect(result.after).toBeGreaterThan(result.before);
-    expect(trained.players.find(player => player.id === playerId)?.attrs.pac).toBe(result.after);
+    expect(
+      trained.players.find((player) => player.id === playerId)?.attrs.pac,
+    ).toBe(result.after);
     expect(trained.trainingPoints).toBe(before.trainingPoints - 10);
-    expect(trained.players.find(player => player.id === unassignedPlayerId)?.attrs.sta)
-      .toBe(beforeUnassignedSta);
+    expect(
+      trained.players.find((player) => player.id === unassignedPlayerId)?.attrs
+        .sta,
+    ).toBe(beforeUnassignedSta);
     expect(trained.eventFlags).toContain('guide:bert:first-training-complete');
 
     // Chain-tap: the popup stays live and the next result re-sequences.
     useM1Store.getState().trainPlayer(playerId, 'sprints');
-    expect(useM1Store.getState().lastDrillResult).toMatchObject({ sequence: 2 });
-    expect(useM1Store.getState().career?.trainingPoints).toBe(before.trainingPoints - 20);
+    expect(useM1Store.getState().lastDrillResult).toMatchObject({
+      sequence: 2,
+    });
+    expect(useM1Store.getState().career?.trainingPoints).toBe(
+      before.trainingPoints - 20,
+    );
 
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().screen).toBe('week-review');
@@ -522,7 +589,9 @@ describe('M1 app store integration', () => {
     // Development now happens live in the drill popup, never in the review.
     expect(review).not.toHaveProperty('development');
     // The pitch takes two weeks: still building after the first settlement.
-    expect(useM1Store.getState().career?.facilities.trainingGroundBuilt).toBe(false);
+    expect(useM1Store.getState().career?.facilities.trainingGroundBuilt).toBe(
+      false,
+    );
     expect(review.facilityCompletion).toBeUndefined();
 
     useM1Store.getState().continueWeekReview();
@@ -532,7 +601,9 @@ describe('M1 app store integration', () => {
     expect(answerRefusedDeskDuty()).toBe(true);
     useM1Store.getState().advanceCareer();
     const secondReview = useM1Store.getState().weekReview!;
-    expect(useM1Store.getState().career?.facilities.trainingGroundBuilt).toBe(true);
+    expect(useM1Store.getState().career?.facilities.trainingGroundBuilt).toBe(
+      true,
+    );
     expect(secondReview.facilityCompletion).toMatchObject({
       type: 'training-pitch',
       name: 'Training Pitch',
@@ -544,7 +615,9 @@ describe('M1 app store integration', () => {
   it('kindly refuses a non-pitch facility as the opening build', () => {
     startCreatedCareer(20260805);
     const before = useM1Store.getState().career!;
-    const cashBefore = before.clubs.find(club => club.id === before.userClubId)!.cash;
+    const cashBefore = before.clubs.find(
+      (club) => club.id === before.userClubId,
+    )!.cash;
 
     useM1Store.getState().buildClubFacility('gym', { x: 0, y: 0 });
 
@@ -552,10 +625,13 @@ describe('M1 app store integration', () => {
     expect(after.error).toBeNull();
     expect(after.notice).toEqual({
       tone: 'info',
-      message: 'Let\'s build the Training Pitch first. The other facilities will open up once it is underway.',
+      message:
+        "Let's build the Training Pitch first. The other facilities will open up once it is underway.",
     });
     expect(after.career?.facilities.grid?.buildings).toEqual([]);
-    expect(after.career?.clubs.find(club => club.id === before.userClubId)?.cash).toBe(cashBefore);
+    expect(
+      after.career?.clubs.find((club) => club.id === before.userClubId)?.cash,
+    ).toBe(cashBefore);
   });
 
   it('lets an already-stuck opening save advance its wrong project', () => {
@@ -568,10 +644,15 @@ describe('M1 app store integration', () => {
 
     useM1Store.getState().advanceCareer();
 
-    expect(useM1Store.getState()).toMatchObject({ screen: 'week-review', error: null });
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'week-review',
+      error: null,
+    });
     expect(useM1Store.getState().career).toMatchObject({
       week: 2,
-      facilities: { grid: { construction: { type: 'gym', weeksRemaining: 1 } } },
+      facilities: {
+        grid: { construction: { type: 'gym', weeksRemaining: 1 } },
+      },
     });
   });
 
@@ -602,9 +683,12 @@ describe('M1 app store integration', () => {
     // All three counted: the TP, the tally, and the stat itself.
     expect(finished.trainingPoints).toBe(before.trainingPoints - 30);
     expect(finished.totalInstantDrills).toBe(3);
-    expect(useM1Store.getState().lastDrillResult).toMatchObject({ sequence: 3 });
-    expect(finished.players.find(player => player.id === playerId)!.attrs.pac)
-      .toBeGreaterThan(watched.after);
+    expect(useM1Store.getState().lastDrillResult).toMatchObject({
+      sequence: 3,
+    });
+    expect(
+      finished.players.find((player) => player.id === playerId)!.attrs.pac,
+    ).toBeGreaterThan(watched.after);
   });
 
   it('trains nobody when the skipped batch belongs to a player who has pulled up', () => {
@@ -615,9 +699,9 @@ describe('M1 app store integration', () => {
     useM1Store.setState({
       career: {
         ...career,
-        players: career.players.map(player => player.id === playerId
-          ? { ...player, injuryWeeks: 3 }
-          : player),
+        players: career.players.map((player) =>
+          player.id === playerId ? { ...player, injuryWeeks: 3 } : player,
+        ),
       },
     });
     const before = useM1Store.getState().career!;
@@ -626,7 +710,9 @@ describe('M1 app store integration', () => {
 
     // Silently, and without an error banner: the batch simply has nowhere to go.
     expect(useM1Store.getState().error).toBeNull();
-    expect(useM1Store.getState().career?.trainingPoints).toBe(before.trainingPoints);
+    expect(useM1Store.getState().career?.trainingPoints).toBe(
+      before.trainingPoints,
+    );
     expect(useM1Store.getState().career?.totalInstantDrills ?? 0).toBe(0);
   });
 
@@ -637,15 +723,19 @@ describe('M1 app store integration', () => {
       ratings: DEFAULT_CREATION_RATINGS,
     });
     const career = useM1Store.getState().career!;
-    const trainee = career.players.find(player => (
-      player.clubId === career.userClubId && player.contractPromise === undefined
-    ))!;
+    const trainee = career.players.find(
+      (player) =>
+        player.clubId === career.userClubId &&
+        player.contractPromise === undefined,
+    )!;
     const seasonEndCareer: GameState = {
       ...career,
       phase: 'season-end',
-      players: career.players.map(player => player.id === trainee.id
-        ? { ...player, contractSeasonsRemaining: 0 }
-        : player),
+      players: career.players.map((player) =>
+        player.id === trainee.id
+          ? { ...player, contractSeasonsRemaining: 0 }
+          : player,
+      ),
     };
     useM1Store.setState({ career: seasonEndCareer });
 
@@ -661,11 +751,14 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career?.market?.renewalTalks).toBeUndefined();
     // The promise is a debt: the player is now owed their next five drills,
     // which block other training until the countdown drains.
-    expect(useM1Store.getState().career?.players.find(player => player.id === trainee.id))
-      .toMatchObject({
-        contractPromise: expect.objectContaining({ perk: 'TRAINING_PRIORITY' }),
-        priorityDrillsRemaining: 5,
-      });
+    expect(
+      useM1Store
+        .getState()
+        .career?.players.find((player) => player.id === trainee.id),
+    ).toMatchObject({
+      contractPromise: expect.objectContaining({ perk: 'TRAINING_PRIORITY' }),
+      priorityDrillsRemaining: 5,
+    });
   });
 
   it('lands a third-hero renewal during the D4 promotion review that unlocks license three', () => {
@@ -673,19 +766,31 @@ describe('M1 app store integration', () => {
     const initial = useM1Store.getState().career!;
     const contractsReady: GameState = {
       ...initial,
-      players: initial.players.map(player => player.clubId === initial.userClubId
-        ? { ...player, contractSeasonsRemaining: Math.max(2, player.contractSeasonsRemaining) }
-        : player),
+      players: initial.players.map((player) =>
+        player.clubId === initial.userClubId
+          ? {
+              ...player,
+              contractSeasonsRemaining: Math.max(
+                2,
+                player.contractSeasonsRemaining,
+              ),
+            }
+          : player,
+      ),
     };
     const d4 = startNextSeason(completedSeasonForUser(contractsReady));
     expect(currentUserDivision(d4.m2!)).toBe(4);
-    const userPlayers = d4.players.filter(player => player.clubId === d4.userClubId);
-    const licensedIds = new Set(userPlayers.slice(0, 2).map(player => player.id));
+    const userPlayers = d4.players.filter(
+      (player) => player.clubId === d4.userClubId,
+    );
+    const licensedIds = new Set(
+      userPlayers.slice(0, 2).map((player) => player.id),
+    );
     const target = userPlayers[2]!;
     const promotionEnd = completedSeasonForUser({
       ...d4,
       market: { ...d4.market!, renewalTalks: undefined },
-      players: d4.players.map(player => {
+      players: d4.players.map((player) => {
         if (player.id === target.id) {
           return {
             ...player,
@@ -701,18 +806,31 @@ describe('M1 app store integration', () => {
         if (licensedIds.has(player.id)) {
           return {
             ...player,
-            contractSeasonsRemaining: Math.max(1, player.contractSeasonsRemaining),
+            contractSeasonsRemaining: Math.max(
+              1,
+              player.contractSeasonsRemaining,
+            ),
             power: 'FIRE_TORCH' as never,
             licensed: true,
           };
         }
         return player.clubId === d4.userClubId
-          ? { ...player, licensed: false, contractSeasonsRemaining: Math.max(1, player.contractSeasonsRemaining) }
+          ? {
+              ...player,
+              licensed: false,
+              contractSeasonsRemaining: Math.max(
+                1,
+                player.contractSeasonsRemaining,
+              ),
+            }
           : player;
       }),
     });
-    expect(leagueStandings(promotionEnd).find(row => row.clubId === promotionEnd.userClubId)?.position)
-      .toBe(1);
+    expect(
+      leagueStandings(promotionEnd).find(
+        (row) => row.clubId === promotionEnd.userClubId,
+      )?.position,
+    ).toBe(1);
     expect(careerHeroLimit(promotionEnd)).toBe(2);
     useM1Store.setState({ career: promotionEnd, error: null });
 
@@ -725,24 +843,31 @@ describe('M1 app store integration', () => {
 
     expect(useM1Store.getState().error).toBeNull();
     expect(useM1Store.getState().career?.market?.renewalTalks).toBeUndefined();
-    expect(useM1Store.getState().career?.players.find(player => player.id === target.id))
-      .toMatchObject({
-        contractSeasonsRemaining: 1,
-        licensed: true,
-        contractPromise: expect.objectContaining({ perk: 'GUARANTEED_STARTER' }),
-      });
+    expect(
+      useM1Store
+        .getState()
+        .career?.players.find((player) => player.id === target.id),
+    ).toMatchObject({
+      contractSeasonsRemaining: 1,
+      licensed: true,
+      contractPromise: expect.objectContaining({ perk: 'GUARANTEED_STARTER' }),
+    });
   });
 
   it('localizes the typed promise backstop if a blocked offer is submitted anyway', () => {
     startCreatedCareer(20260809);
     const initial = useM1Store.getState().career!;
-    const userPlayers = initial.players.filter(player => player.clubId === initial.userClubId);
-    const licensedIds = new Set(userPlayers.slice(0, 2).map(player => player.id));
+    const userPlayers = initial.players.filter(
+      (player) => player.clubId === initial.userClubId,
+    );
+    const licensedIds = new Set(
+      userPlayers.slice(0, 2).map((player) => player.id),
+    );
     const target = userPlayers[2]!;
     const capped: GameState = {
       ...initial,
       phase: 'season-end',
-      players: initial.players.map(player => {
+      players: initial.players.map((player) => {
         if (player.id === target.id) {
           return {
             ...player,
@@ -758,7 +883,10 @@ describe('M1 app store integration', () => {
         return licensedIds.has(player.id)
           ? {
               ...player,
-              contractSeasonsRemaining: Math.max(1, player.contractSeasonsRemaining),
+              contractSeasonsRemaining: Math.max(
+                1,
+                player.contractSeasonsRemaining,
+              ),
               power: 'FIRE_TORCH' as never,
               licensed: true,
             }
@@ -779,7 +907,9 @@ describe('M1 app store integration', () => {
       expect(useM1Store.getState().error).toBe(
         vietnamese('market.promiseBlockedHeroLicense', { player: target.name }),
       );
-      expect(useM1Store.getState().error).not.toContain('No Hero License is free');
+      expect(useM1Store.getState().error).not.toContain(
+        'No Hero License is free',
+      );
       expect(useM1Store.getState().career?.market?.renewalTalks).toBeDefined();
     } finally {
       setStoreCopy(copyFor('en'));
@@ -789,15 +919,20 @@ describe('M1 app store integration', () => {
   it('surfaces a tap the bank cannot afford without advancing anything', () => {
     startCreatedCareer(794);
     const career = useM1Store.getState().career!;
-    const playerId = career.players.find(player => player.clubId === career.userClubId)!.id;
+    const playerId = career.players.find(
+      (player) => player.clubId === career.userClubId,
+    )!.id;
     useM1Store.setState({ career: { ...career, trainingPoints: 0 } });
 
     useM1Store.getState().trainPlayer(playerId, 'sprints');
 
     expect(useM1Store.getState().error).toContain('needs 10 TP');
     expect(useM1Store.getState().lastDrillResult).toBeNull();
-    expect(useM1Store.getState().career?.players.find(player => player.id === playerId)?.attrs)
-      .toEqual(career.players.find(player => player.id === playerId)?.attrs);
+    expect(
+      useM1Store
+        .getState()
+        .career?.players.find((player) => player.id === playerId)?.attrs,
+    ).toEqual(career.players.find((player) => player.id === playerId)?.attrs);
   });
 
   it('updates the Starting XI through the app store', () => {
@@ -808,7 +943,9 @@ describe('M1 app store integration', () => {
     useM1Store.getState().swapStartingPlayer(starterId, replacementId);
 
     const after = useM1Store.getState().career!;
-    const nextLineup = after.lineups.find(candidate => candidate.clubId === after.userClubId)!;
+    const nextLineup = after.lineups.find(
+      (candidate) => candidate.clubId === after.userClubId,
+    )!;
     expect(nextLineup.playerIds).toContain(replacementId);
     expect(nextLineup.playerIds).not.toContain(starterId);
     expect(useM1Store.getState().error).toBeNull();
@@ -821,12 +958,19 @@ describe('M1 app store integration', () => {
 
     expect(useM1Store.getState().screen).toBe('week-review');
     useM1Store.getState().continueWeekReview();
-    expect(useM1Store.getState()).toMatchObject({ screen: 'management', weekReview: null });
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'management',
+      weekReview: null,
+    });
   });
 
   it('returns Home beneath the statement, then dismisses it', () => {
     const postMatch = examplePostMatch();
-    useM1Store.setState({ screen: 'postmatch', postMatch, postMatchOverlay: null });
+    useM1Store.setState({
+      screen: 'postmatch',
+      postMatch,
+      postMatchOverlay: null,
+    });
 
     useM1Store.getState().continueAfterMatch();
     expect(useM1Store.getState()).toMatchObject({
@@ -847,21 +991,27 @@ describe('M1 app store integration', () => {
     startCreatedCareer(790);
     useM1Store.getState().completeAssistantGuide('management-intro');
     useM1Store.getState().setActiveTab('squad');
-    useM1Store.getState().trainPlayer('bramble-rovers-created-player', 'sprints');
+    useM1Store
+      .getState()
+      .trainPlayer('bramble-rovers-created-player', 'sprints');
     useM1Store.getState().setActiveTab('home');
     useM1Store.getState().setActiveTab('club');
     useM1Store.getState().buildFacility();
     useM1Store.getState().setActiveTab('home');
 
-    expect(useM1Store.getState().career?.eventFlags).toEqual(expect.arrayContaining([
-      'guide:bert:intro-complete',
-      'guide:bert:first-training-complete',
-    ]));
+    expect(useM1Store.getState().career?.eventFlags).toEqual(
+      expect.arrayContaining([
+        'guide:bert:intro-complete',
+        'guide:bert:first-training-complete',
+      ]),
+    );
 
     const coachId = useM1Store.getState().career!.market!.coachCandidates[0].id;
     useM1Store.getState().hireCoach(coachId);
     useM1Store.getState().advanceCareer();
-    expect(useM1Store.getState().career?.eventFlags).toContain('guide:bert:first-week-advanced');
+    expect(useM1Store.getState().career?.eventFlags).toContain(
+      'guide:bert:first-week-advanced',
+    );
   });
 
   it('blocks advancing until the first guided training plan is finished', () => {
@@ -876,7 +1026,9 @@ describe('M1 app store integration', () => {
       'Train a player before advancing the week.',
     );
 
-    useM1Store.getState().trainPlayer('bramble-rovers-created-player', 'sprints');
+    useM1Store
+      .getState()
+      .trainPlayer('bramble-rovers-created-player', 'sprints');
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(weekBefore);
     expect(useM1Store.getState().error).toBe(
@@ -894,7 +1046,9 @@ describe('M1 app store integration', () => {
     useM1Store.getState().buildFacility();
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(weekBefore);
-    expect(useM1Store.getState().error).toBe('Return home before advancing the week.');
+    expect(useM1Store.getState().error).toBe(
+      'Return home before advancing the week.',
+    );
 
     useM1Store.getState().setActiveTab('home');
     const coachId = useM1Store.getState().career!.market!.coachCandidates[0].id;
@@ -911,7 +1065,9 @@ describe('M1 app store integration', () => {
     });
     useM1Store.getState().completeAssistantGuide('management-intro');
     useM1Store.getState().setActiveTab('squad');
-    useM1Store.getState().trainPlayer('bramble-rovers-created-player', 'sprints');
+    useM1Store
+      .getState()
+      .trainPlayer('bramble-rovers-created-player', 'sprints');
     useM1Store.getState().setActiveTab('club');
     useM1Store.getState().buildClubFacility('training-pitch', { x: 0, y: 0 });
     useM1Store.getState().setActiveTab('home');
@@ -926,8 +1082,9 @@ describe('M1 app store integration', () => {
       tone: 'info',
       message: 'You still have 1 inbox item left to deal with first.',
     });
-    expect(useM1Store.getState().career?.eventFlags)
-      .not.toContain('guide:bert:desk-intro-complete');
+    expect(useM1Store.getState().career?.eventFlags).not.toContain(
+      'guide:bert:desk-intro-complete',
+    );
 
     const coachId = useM1Store.getState().career!.market!.coachCandidates[0].id;
     useM1Store.getState().hireCoach(coachId);
@@ -935,7 +1092,7 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career?.week).toBe(weekBefore + 1);
   });
 
-  it('takes the first week\'s two inbox jobs in either order', () => {
+  it("takes the first week's two inbox jobs in either order", () => {
     // Bert points at the pitch, but the coach is a job too, not a queue
     // position. Doing them the other way round has to reach the same week 2.
     useM1Store.getState().startNewCareer(793);
@@ -945,7 +1102,9 @@ describe('M1 app store integration', () => {
     });
     useM1Store.getState().completeAssistantGuide('management-intro');
     useM1Store.getState().setActiveTab('squad');
-    useM1Store.getState().trainPlayer('bramble-rovers-created-player', 'sprints');
+    useM1Store
+      .getState()
+      .trainPlayer('bramble-rovers-created-player', 'sprints');
     useM1Store.getState().setActiveTab('home');
     const weekBefore = useM1Store.getState().career!.week;
 
@@ -968,53 +1127,83 @@ describe('M1 app store integration', () => {
   it('completes the real default two-season store flow through events, licenses, and renewal', () => {
     startCreatedCareer(24680);
     useM1Store.getState().buildFacility();
-    useM1Store.getState().trainPlayer('bramble-rovers-created-player', 'sprints');
+    useM1Store
+      .getState()
+      .trainPlayer('bramble-rovers-created-player', 'sprints');
 
-    driveStoreUntil(state => state.career?.phase === 'season-end');
+    driveStoreUntil((state) => state.career?.phase === 'season-end');
     const seasonOne = useM1Store.getState().career!;
     expect(seasonOne.season).toBe(1);
-    expect(seasonOne.clubs.find(club => club.id === seasonOne.userClubId)?.cash)
-      .toBeGreaterThanOrEqual(0);
+    expect(
+      seasonOne.clubs.find((club) => club.id === seasonOne.userClubId)?.cash,
+    ).toBeGreaterThanOrEqual(0);
     expect(userHeroes().length).toBeGreaterThanOrEqual(1);
-    expect(userHeroes().filter(player => player.licensed).length).toBeLessThanOrEqual(2);
-    expect(seasonOne.players.filter(player =>
-      player.clubId === seasonOne.userClubId && player.contractSeasonsRemaining === 0,
-    )).toHaveLength(1);
+    expect(
+      userHeroes().filter((player) => player.licensed).length,
+    ).toBeLessThanOrEqual(2);
+    expect(
+      seasonOne.players.filter(
+        (player) =>
+          player.clubId === seasonOne.userClubId &&
+          player.contractSeasonsRemaining === 0,
+      ),
+    ).toHaveLength(1);
 
-    const expiredHero = seasonOne.players.find(player =>
-      player.clubId === seasonOne.userClubId
-      && player.power !== undefined
-      && player.contractSeasonsRemaining === 0,
+    const expiredHero = seasonOne.players.find(
+      (player) =>
+        player.clubId === seasonOne.userClubId &&
+        player.power !== undefined &&
+        player.contractSeasonsRemaining === 0,
     )!;
     useM1Store.getState().renewPlayer(expiredHero.id, 1);
     useM1Store.getState().advanceCareer();
-    driveStoreUntil(state => state.career?.season === 2 && state.career?.phase === 'season-end');
+    driveStoreUntil(
+      (state) =>
+        state.career?.season === 2 && state.career?.phase === 'season-end',
+    );
 
-    expect(useM1Store.getState().career).toMatchObject({ season: 2, phase: 'season-end' });
+    expect(useM1Store.getState().career).toMatchObject({
+      season: 2,
+      phase: 'season-end',
+    });
   });
 
   it('survives a save/kill/relaunch checkpoint after every persisted journey boundary', async () => {
     const database = new FakePersistenceDatabase();
     const careerRepository = await createCareerRepository(database);
     const replayRepository = await createReplayRepository(database);
-    await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
+    await useM1Store
+      .getState()
+      .initializePersistence(careerRepository, replayRepository);
 
     useM1Store.getState().startNewCareer(97531);
-    let checkpoints = await relaunchCheckpoint(careerRepository, replayRepository);
+    let checkpoints = await relaunchCheckpoint(
+      careerRepository,
+      replayRepository,
+    );
     useM1Store.getState().completePlayerCreation({
       name: 'Jo Rook',
       ratings: DEFAULT_CREATION_RATINGS,
     });
     checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
-    const { starterId, replacementId } = firstAvailableLineupSwap(useM1Store.getState().career!);
+    const { starterId, replacementId } = firstAvailableLineupSwap(
+      useM1Store.getState().career!,
+    );
     useM1Store.getState().swapStartingPlayer(starterId, replacementId);
     checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
-    expect(useM1Store.getState().career?.lineups
-      .find(lineup => lineup.clubId === useM1Store.getState().career?.userClubId)?.playerIds)
-      .toContain(replacementId);
+    expect(
+      useM1Store
+        .getState()
+        .career?.lineups.find(
+          (lineup) =>
+            lineup.clubId === useM1Store.getState().career?.userClubId,
+        )?.playerIds,
+    ).toContain(replacementId);
     useM1Store.getState().buildFacility();
     checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
-    useM1Store.getState().trainPlayer('bramble-rovers-created-player', 'sprints');
+    useM1Store
+      .getState()
+      .trainPlayer('bramble-rovers-created-player', 'sprints');
     checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
 
     let watchedMatches = 0;
@@ -1029,12 +1218,17 @@ describe('M1 app store integration', () => {
     for (let step = 0; step < 600; step += 1) {
       const current = useM1Store.getState();
       const career = current.career;
-      if (career === null) throw new Error('career disappeared during persisted journey');
-      const cupFixtures = (career.m2?.nationalCups ?? [])
-        .flatMap(cup => cup.rounds.flatMap(round => round.fixtures));
+      if (career === null)
+        throw new Error('career disappeared during persisted journey');
+      const cupFixtures = (career.m2?.nationalCups ?? []).flatMap((cup) =>
+        cup.rounds.flatMap((round) => round.fixtures),
+      );
       for (const fixture of [...career.fixtures, ...cupFixtures]) {
         if (fixture.score === undefined) continue;
-        scoreByFixtureId.set(fixture.id, [fixture.score.homeGoals, fixture.score.awayGoals]);
+        scoreByFixtureId.set(fixture.id, [
+          fixture.score.homeGoals,
+          fixture.score.awayGoals,
+        ]);
       }
       // The career is endless, so the journey stops at Season 2's boundary.
       if (career.season === 2 && career.phase === 'season-end') {
@@ -1053,7 +1247,8 @@ describe('M1 app store integration', () => {
         } else if (watchedMatches === 0) {
           current.watchMatch();
           const watched = useM1Store.getState().watchedMatch;
-          if (watched === null) throw new Error('watched match context was not created');
+          if (watched === null)
+            throw new Error('watched match context was not created');
           const match = createMatch(
             watched.fixture.matchSeed,
             watched.home,
@@ -1064,8 +1259,16 @@ describe('M1 app store integration', () => {
               awayPolicy: 'FIRE_WHEN_READY',
             },
           );
-          queueInput(match, { tick: 1, kind: 'SET_FORMATION', formation: '4-3-3' });
-          queueInput(match, { tick: 1, kind: 'SET_MENTALITY', mentality: 'ATTACK' });
+          queueInput(match, {
+            tick: 1,
+            kind: 'SET_FORMATION',
+            formation: '4-3-3',
+          });
+          queueInput(match, {
+            tick: 1,
+            kind: 'SET_MENTALITY',
+            mentality: 'ATTACK',
+          });
           while (match.phase !== 'fulltime') tick(match);
           useM1Store.getState().finishWatchedMatch(match);
           watchedMatches += 1;
@@ -1078,8 +1281,10 @@ describe('M1 app store integration', () => {
         current.completeAwardsCeremony();
       } else if (current.screen === 'season-end') {
         if (career.phase === 'season-end') {
-          const expired = career.players.find(player =>
-            player.clubId === career.userClubId && player.contractSeasonsRemaining === 0,
+          const expired = career.players.find(
+            (player) =>
+              player.clubId === career.userClubId &&
+              player.contractSeasonsRemaining === 0,
           );
           if (expired !== undefined) current.renewPlayer(expired.id, 1);
           else current.advanceCareer();
@@ -1090,16 +1295,17 @@ describe('M1 app store integration', () => {
         // Quick Result opens the face-off first; the manager taps through it.
         current.completeFaceOff();
       } else if (
-        current.screen === 'management'
-        || current.screen === 'postmatch'
-        || current.screen === 'week-review'
+        current.screen === 'management' ||
+        current.screen === 'postmatch' ||
+        current.screen === 'week-review'
       ) {
         // League/Cup double-headers deliberately checkpoint the first match
         // before exposing the second. Await that persisted boundary before the
         // test kills and relaunches the app, exactly as the UI does.
         if (current.screen === 'postmatch') await current.continueAfterMatch();
         else if (current.screen === 'week-review') current.continueWeekReview();
-        else if (current.postMatchOverlay === 'summary') current.dismissPostMatchSummary();
+        else if (current.postMatchOverlay === 'summary')
+          current.dismissPostMatchSummary();
         // A story waits on the desk as an inbox card now, so the journey has to
         // open it the way a manager would rather than advance past it.
         else if (career.pendingEvent !== undefined) current.openDeskStory();
@@ -1112,10 +1318,15 @@ describe('M1 app store integration', () => {
           answerRefusedDeskDuty();
         }
       } else {
-        throw new Error(`unexpected persisted journey screen ${current.screen}`);
+        throw new Error(
+          `unexpected persisted journey screen ${current.screen}`,
+        );
       }
 
-      checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
+      checkpoints += await relaunchCheckpoint(
+        careerRepository,
+        replayRepository,
+      );
     }
 
     const completed = useM1Store.getState().career!;
@@ -1123,17 +1334,25 @@ describe('M1 app store integration', () => {
     expect(completed).toMatchObject({ season: 2, phase: 'season-end' });
     expect(completed.ledgers).toHaveLength(60);
     expect(userHeroes().length).toBeGreaterThanOrEqual(1);
-    expect(userHeroes().filter(player => player.licensed).length).toBeLessThanOrEqual(2);
+    expect(
+      userHeroes().filter((player) => player.licensed).length,
+    ).toBeLessThanOrEqual(2);
     expect(watchedMatches).toBe(1);
     expect(checkpoints).toBeGreaterThan(80);
 
-    const replays = await replayRepository.listForCareer(`m1-career-${completed.careerSeed}`);
+    const replays = await replayRepository.listForCareer(
+      `m1-career-${completed.careerSeed}`,
+    );
     expect(replays.length).toBeGreaterThan(20);
-    expect(replays.some(replay => replay.envelope.inputs.some(input => input.kind === 'SET_FORMATION')))
-      .toBe(true);
+    expect(
+      replays.some((replay) =>
+        replay.envelope.inputs.some((input) => input.kind === 'SET_FORMATION'),
+      ),
+    ).toBe(true);
     for (const replay of replays) {
       const score = scoreByFixtureId.get(replay.fixtureId);
-      if (score === undefined) throw new Error(`missing played fixture ${replay.fixtureId}`);
+      if (score === undefined)
+        throw new Error(`missing played fixture ${replay.fixtureId}`);
       expect(runReplay(replay.envelope).score).toEqual(score);
     }
   }, 300000);
@@ -1144,19 +1363,24 @@ describe('M1 app store integration', () => {
     const replayRepository = await createReplayRepository(database);
     startAwakenedCareer(8642);
     const current = useM1Store.getState().career!;
-    const candidate = current.players.find(player =>
-      player.clubId === current.userClubId && player.power === undefined,
+    const candidate = current.players.find(
+      (player) =>
+        player.clubId === current.userClubId && player.power === undefined,
     )!;
-    const fixture = current.fixtures.find(item =>
-      item.status === 'played'
-      && (item.homeClubId === current.userClubId || item.awayClubId === current.userClubId),
+    const fixture = current.fixtures.find(
+      (item) =>
+        item.status === 'played' &&
+        (item.homeClubId === current.userClubId ||
+          item.awayClubId === current.userClubId),
     )!;
     const pendingCareer = {
       ...current,
       phase: 'season-end' as const,
-      players: current.players.map(player => player.id === candidate.id
-        ? { ...player, power: 'SUPER_STRENGTH' as const }
-        : player),
+      players: current.players.map((player) =>
+        player.id === candidate.id
+          ? { ...player, power: 'SUPER_STRENGTH' as const }
+          : player,
+      ),
       awakening: {
         matchesSinceLastAwakening: 0,
         usedTriggerIds: ['glowing-caterpillar'],
@@ -1172,7 +1396,9 @@ describe('M1 app store integration', () => {
     await careerRepository.save(pendingCareer);
 
     useM1Store.setState(useM1Store.getInitialState(), true);
-    await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
+    await useM1Store
+      .getState()
+      .initializePersistence(careerRepository, replayRepository);
     useM1Store.getState().continueCareer();
     expect(useM1Store.getState().screen).toBe('awakening');
 
@@ -1189,21 +1415,30 @@ describe('M1 app store integration', () => {
     let careerSaveCalls = 0;
     let replayResetCalls = 0;
     const careerRepository = stubCareerRepository({
-      async load() { throw new Error('database read failed'); },
-      async save() { careerSaveCalls += 1; },
+      async load() {
+        throw new Error('database read failed');
+      },
+      async save() {
+        careerSaveCalls += 1;
+      },
     });
     const replayRepository: ReplayRepository = {
       async save() {},
-      async load() { return null; },
-      async listForCareer() { return []; },
+      async load() {
+        return null;
+      },
+      async listForCareer() {
+        return [];
+      },
       async delete() {},
-      async deleteAllForCareer() { replayResetCalls += 1; },
+      async deleteAllForCareer() {
+        replayResetCalls += 1;
+      },
     };
 
-    await useM1Store.getState().initializePersistence(
-      careerRepository,
-      replayRepository,
-    );
+    await useM1Store
+      .getState()
+      .initializePersistence(careerRepository, replayRepository);
     useM1Store.getState().startNewCareer(999);
 
     expect(useM1Store.getState().career).toBeNull();
@@ -1220,18 +1455,30 @@ describe('M1 app store integration', () => {
   it('discards an unreadable save on request and unblocks a fresh career', async () => {
     let deleteCalls = 0;
     const careerRepository = stubCareerRepository({
-      async load() { throw new Error('career save is corrupt'); },
-      async delete() { deleteCalls += 1; },
+      async load() {
+        throw new Error('career save is corrupt');
+      },
+      async delete() {
+        deleteCalls += 1;
+      },
     });
     const replayRepository: ReplayRepository = {
       async save() {},
-      async load() { return null; },
-      async listForCareer() { return []; },
+      async load() {
+        return null;
+      },
+      async listForCareer() {
+        return [];
+      },
       async delete() {},
       async deleteAllForCareer() {},
     };
-    await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
-    expect(useM1Store.getState().persistenceLoadError).toContain('career save is corrupt');
+    await useM1Store
+      .getState()
+      .initializePersistence(careerRepository, replayRepository);
+    expect(useM1Store.getState().persistenceLoadError).toContain(
+      'career save is corrupt',
+    );
 
     await useM1Store.getState().discardUnreadableSave();
 
@@ -1246,58 +1493,12 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().error).toBeNull();
   });
 
-  it('exports the raw payload before reset and blocks deletion after a requested export fails', async () => {
-    let deleteCalls = 0;
-    const raw = '{"schemaVersion":1,"careerSeed":777}';
-    const careerRepository = stubCareerRepository({
-      async load() { throw new Error('game state schema 1 is unsupported'); },
-      async loadRaw() { return { schemaVersion: 1, stateJson: raw }; },
-      async delete() { deleteCalls += 1; },
-    });
-    await useM1Store.getState().initializePersistence(careerRepository);
-
-    await useM1Store.getState().exportUnreadableSave(async () => {
-      throw new Error('share sheet failed');
-    });
-    await useM1Store.getState().discardUnreadableSave();
-
-    expect(deleteCalls).toBe(0);
-    expect(useM1Store.getState().persistenceLoadError).toContain('has not been deleted');
-
-    const shared: string[] = [];
-    await useM1Store.getState().exportUnreadableSave(async (fileName, contents) => {
-      shared.push(fileName, contents);
-    });
-    await useM1Store.getState().discardUnreadableSave();
-
-    expect(shared).toEqual(['hero-football-manager-raw-schema-1.json', raw]);
-    expect(deleteCalls).toBe(1);
-    expect(useM1Store.getState().persistenceLoadError).toBeNull();
-  });
-
-  it('leaves an incompatible save untouched when the recovery flow is relaunched or cancelled', async () => {
-    let deleteCalls = 0;
-    const repository = stubCareerRepository({
-      async load() { throw new Error('game state schema 1 is unsupported'); },
-      async loadRaw() { return { schemaVersion: 1, stateJson: '{"schemaVersion":1}' }; },
-      async delete() { deleteCalls += 1; },
-    });
-    await useM1Store.getState().initializePersistence(repository);
-    await useM1Store.getState().exportUnreadableSave(async () => {
-      throw new Error('cancelled');
-    });
-    expect(deleteCalls).toBe(0);
-
-    useM1Store.setState(useM1Store.getInitialState(), true);
-    await useM1Store.getState().initializePersistence(repository);
-    expect(useM1Store.getState().rawExportRequired).toBe(false);
-    expect(deleteCalls).toBe(0);
-  });
-
   it('never deletes a save that loaded cleanly', async () => {
     let deleteCalls = 0;
     const careerRepository = stubCareerRepository({
-      async delete() { deleteCalls += 1; },
+      async delete() {
+        deleteCalls += 1;
+      },
     });
     await useM1Store.getState().initializePersistence(careerRepository);
 
@@ -1308,14 +1509,20 @@ describe('M1 app store integration', () => {
 
   it('keeps the boot failure visible when discarding the save fails', async () => {
     const careerRepository = stubCareerRepository({
-      async load() { throw new Error('career save is corrupt'); },
-      async delete() { throw new Error('disk is on fire'); },
+      async load() {
+        throw new Error('career save is corrupt');
+      },
+      async delete() {
+        throw new Error('disk is on fire');
+      },
     });
     await useM1Store.getState().initializePersistence(careerRepository);
 
     await useM1Store.getState().discardUnreadableSave();
 
-    expect(useM1Store.getState().persistenceLoadError).toContain('disk is on fire');
+    expect(useM1Store.getState().persistenceLoadError).toContain(
+      'disk is on fire',
+    );
   });
 
   it('warns while progress is unsaved and pauses the season after repeated failures', async () => {
@@ -1324,7 +1531,9 @@ describe('M1 app store integration', () => {
     await useM1Store.getState().initializePersistence(repository);
     startCreatedCareer(31337);
     // `hasSavedCareer` flips optimistically, so wait for the row itself.
-    await waitFor(() => database.careerRow !== null && !useM1Store.getState().saving);
+    await waitFor(
+      () => database.careerRow !== null && !useM1Store.getState().saving,
+    );
 
     // The disk fills. The first failed week is a dismissible toast today, which
     // is how a player keeps advancing a career that only exists in memory.
@@ -1341,7 +1550,9 @@ describe('M1 app store integration', () => {
     useM1Store.getState().retrySave();
     await waitFor(() => useM1Store.getState().saveBlocked);
 
-    expect(useM1Store.getState().consecutiveSaveFailures).toBe(SAVE_FAILURE_BLOCK_LIMIT);
+    expect(useM1Store.getState().consecutiveSaveFailures).toBe(
+      SAVE_FAILURE_BLOCK_LIMIT,
+    );
     expect(useM1Store.getState().saveWarning).toContain('paused');
 
     // Back to management first: the advance above raised a week review, and
@@ -1378,11 +1589,16 @@ describe('M1 app store integration', () => {
     const repository = await createCareerRepository(database);
     await useM1Store.getState().initializePersistence(repository);
     startCreatedCareer(24601);
-    await waitFor(() => database.backupRow !== null && !useM1Store.getState().saving);
+    await waitFor(
+      () => database.backupRow !== null && !useM1Store.getState().saving,
+    );
 
     // The live row survives as unreadable bytes; before the backup existed this
     // was the whole career gone.
-    database.seedCareerRow({ schema_version: 1, state_json: '{"schemaVersion":1}' });
+    database.seedCareerRow({
+      schema_version: 1,
+      state_json: '{"schemaVersion":1}',
+    });
     useM1Store.setState(useM1Store.getInitialState(), true);
     await useM1Store.getState().initializePersistence(repository);
 
@@ -1403,14 +1619,20 @@ describe('M1 app store integration', () => {
 
   it('reports a failed restore without clearing the boot failure', async () => {
     const careerRepository = stubCareerRepository({
-      async load() { throw new Error('career save is corrupt'); },
-      async restoreBackup() { throw new Error('backup row is corrupt too'); },
+      async load() {
+        throw new Error('career save is corrupt');
+      },
+      async restoreBackup() {
+        throw new Error('backup row is corrupt too');
+      },
     });
     await useM1Store.getState().initializePersistence(careerRepository);
 
     await useM1Store.getState().restoreBackupSave();
 
-    expect(useM1Store.getState().persistenceLoadError).toContain('backup row is corrupt too');
+    expect(useM1Store.getState().persistenceLoadError).toContain(
+      'backup row is corrupt too',
+    );
     expect(useM1Store.getState().career).toBeNull();
   });
 
@@ -1428,63 +1650,83 @@ describe('M1 app store integration', () => {
     };
     useM1Store.setState(useM1Store.getInitialState(), true);
 
-    await useM1Store.getState().initializePersistence(stubCareerRepository({
-      async load() { return retiredTrigger; },
-    }));
+    await useM1Store.getState().initializePersistence(
+      stubCareerRepository({
+        async load() {
+          return retiredTrigger;
+        },
+      }),
+    );
 
     // The cutscene view model throws on an unknown trigger, and the pending
     // awakening is persisted, so it would throw again on every relaunch.
-    expect(useM1Store.getState().career?.awakening.pending?.triggerId)
-      .toBe(loadLaunchContent().onboarding.triggers[0].id);
-    expect(() => awakeningCutsceneViewModel(
-      useM1Store.getState().career!,
-      loadLaunchContent(),
-    )).not.toThrow();
+    expect(useM1Store.getState().career?.awakening.pending?.triggerId).toBe(
+      loadLaunchContent().onboarding.triggers[0].id,
+    );
+    expect(() =>
+      awakeningCutsceneViewModel(
+        useM1Store.getState().career!,
+        loadLaunchContent(),
+      ),
+    ).not.toThrow();
   });
 
   it('drops a saved awakening whose power content no longer ships', async () => {
     const pendingCareer = careerWithPendingAwakening(112358);
     const pending = pendingCareer.awakening.pending!;
-    const retiredPower = withRetiredAwakeningPower(pendingCareer, pending.playerId);
+    const retiredPower = withRetiredAwakeningPower(
+      pendingCareer,
+      pending.playerId,
+    );
     useM1Store.setState(useM1Store.getInitialState(), true);
 
-    await useM1Store.getState().initializePersistence(stubCareerRepository({
-      async load() { return retiredPower; },
-    }));
+    await useM1Store.getState().initializePersistence(
+      stubCareerRepository({
+        async load() {
+          return retiredPower;
+        },
+      }),
+    );
 
     expect(useM1Store.getState().career?.awakening.pending).toBeUndefined();
     // The power the player already earned is untouched; only the cutscene goes.
-    expect(useM1Store.getState().career?.players
-      .find(player => player.id === pending.playerId)?.power).toBe('MAGNET_TOUCH');
+    expect(
+      useM1Store
+        .getState()
+        .career?.players.find((player) => player.id === pending.playerId)
+        ?.power,
+    ).toBe('MAGNET_TOUCH');
     expect(useM1Store.getState().career?.onboarding?.stage).toBe('complete');
   });
 
   it('saves a replacement career before clearing its replay namespace', async () => {
     const operations: string[] = [];
     const careerRepository = stubCareerRepository({
-      async save(career) { operations.push(`save:${career.careerSeed}`); },
+      async save(career) {
+        operations.push(`save:${career.careerSeed}`);
+      },
     });
     const replayRepository: ReplayRepository = {
       async save() {},
-      async load() { return null; },
-      async listForCareer() { return []; },
+      async load() {
+        return null;
+      },
+      async listForCareer() {
+        return [];
+      },
       async delete() {},
       async deleteAllForCareer(careerId) {
         operations.push(`reset:${careerId}`);
       },
     };
-    await useM1Store.getState().initializePersistence(
-      careerRepository,
-      replayRepository,
-    );
+    await useM1Store
+      .getState()
+      .initializePersistence(careerRepository, replayRepository);
 
     useM1Store.getState().startNewCareer(20260718);
     await waitFor(() => operations.length === 2);
 
-    expect(operations).toEqual([
-      'save:20260718',
-      'reset:m1-career-20260718',
-    ]);
+    expect(operations).toEqual(['save:20260718', 'reset:m1-career-20260718']);
   });
 
   it('erases replaced replay namespaces only after saving the new career', async () => {
@@ -1494,19 +1736,29 @@ describe('M1 app store integration', () => {
 
     const operations: string[] = [];
     const careerRepository = stubCareerRepository({
-      async load() { return existingCareer; },
-      async save(career) { operations.push(`save:${career.careerSeed}`); },
+      async load() {
+        return existingCareer;
+      },
+      async save(career) {
+        operations.push(`save:${career.careerSeed}`);
+      },
     });
     const replayRepository: ReplayRepository = {
       async save() {},
-      async load() { return null; },
-      async listForCareer() { return []; },
+      async load() {
+        return null;
+      },
+      async listForCareer() {
+        return [];
+      },
       async delete() {},
       async deleteAllForCareer(careerId) {
         operations.push(`reset:${careerId}`);
       },
     };
-    await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
+    await useM1Store
+      .getState()
+      .initializePersistence(careerRepository, replayRepository);
 
     useM1Store.getState().startNewCareer(222);
     await waitFor(() => operations.length === 5);
@@ -1530,22 +1782,30 @@ describe('M1 app store integration', () => {
 
     const replayDeletes: string[] = [];
     const careerRepository = stubCareerRepository({
-      async load() { return existingCareer; },
+      async load() {
+        return existingCareer;
+      },
       async save(career) {
-        if (career.careerSeed === 222) throw new Error('replacement save failed');
+        if (career.careerSeed === 222)
+          throw new Error('replacement save failed');
       },
     });
     const replayRepository: ReplayRepository = {
       async save() {},
-      async load() { return null; },
-      async listForCareer() { return []; },
+      async load() {
+        return null;
+      },
+      async listForCareer() {
+        return [];
+      },
       async delete() {},
-      async deleteAllForCareer(careerId) { replayDeletes.push(careerId); },
+      async deleteAllForCareer(careerId) {
+        replayDeletes.push(careerId);
+      },
     };
-    await useM1Store.getState().initializePersistence(
-      careerRepository,
-      replayRepository,
-    );
+    await useM1Store
+      .getState()
+      .initializePersistence(careerRepository, replayRepository);
 
     useM1Store.getState().startNewCareer(222);
     // Queued while the replacement is still only in memory: its own save has to
@@ -1554,7 +1814,11 @@ describe('M1 app store integration', () => {
       name: 'Jo Rook',
       ratings: DEFAULT_CREATION_RATINGS,
     });
-    await waitFor(() => useM1Store.getState().error?.includes('replacement save failed') ?? false);
+    await waitFor(
+      () =>
+        useM1Store.getState().error?.includes('replacement save failed') ??
+        false,
+    );
     await flushMicrotasks();
 
     // The write that failed is the one that would have replaced the save, so the
@@ -1575,10 +1839,13 @@ describe('M1 app store integration', () => {
     let durableCareer = diskCareer;
     const savedSeeds: number[] = [];
     const careerRepository = stubCareerRepository({
-      async load() { return durableCareer; },
+      async load() {
+        return durableCareer;
+      },
       async save(career) {
         savedSeeds.push(career.careerSeed);
-        if (career.careerSeed === 222) throw new Error('replacement save failed');
+        if (career.careerSeed === 222)
+          throw new Error('replacement save failed');
         durableCareer = career;
       },
     });
@@ -1594,22 +1861,33 @@ describe('M1 app store integration', () => {
     // module-level coalesced payload when replacement starts synchronously.
     useM1Store.getState().startNewCareer(222);
 
-    await waitFor(() => useM1Store.getState().error?.includes('replacement save failed') ?? false);
+    await waitFor(
+      () =>
+        useM1Store.getState().error?.includes('replacement save failed') ??
+        false,
+    );
     await flushMicrotasks();
 
     expect(savedSeeds).toEqual([111, 222]);
     expect(useM1Store.getState().career).toBe(queuedOldCareer);
     expect(useM1Store.getState().lastPersistedCareer).toBe(queuedOldCareer);
     expect(durableCareer).toBe(queuedOldCareer);
-    expect(durableCareer.lineups.find(lineup => lineup.clubId === durableCareer.userClubId)?.playerIds)
-      .toContain(replacementId);
+    expect(
+      durableCareer.lineups.find(
+        (lineup) => lineup.clubId === durableCareer.userClubId,
+      )?.playerIds,
+    ).toContain(replacementId);
 
     // A relaunch must load the same checkpoint the rollback screen showed.
     useM1Store.setState(useM1Store.getInitialState(), true);
     await useM1Store.getState().initializePersistence(careerRepository);
-    expect(useM1Store.getState().career?.lineups
-      .find(lineup => lineup.clubId === durableCareer.userClubId)?.playerIds)
-      .toContain(replacementId);
+    expect(
+      useM1Store
+        .getState()
+        .career?.lineups.find(
+          (lineup) => lineup.clubId === durableCareer.userClubId,
+        )?.playerIds,
+    ).toContain(replacementId);
   });
 
   it('never lets a withdrawn save task write a payload queued after a replacement', async () => {
@@ -1620,7 +1898,9 @@ describe('M1 app store integration', () => {
     let durableCareer = diskCareer;
     const savedStates: GameState[] = [];
     const careerRepository = stubCareerRepository({
-      async load() { return durableCareer; },
+      async load() {
+        return durableCareer;
+      },
       async save(career) {
         savedStates.push(career);
         durableCareer = career;
@@ -1632,7 +1912,9 @@ describe('M1 app store integration', () => {
 
     // Queue save A for the old career. Do not yield: it must still be waiting
     // on the coalesced payload when the replacement withdraws it.
-    const { starterId, replacementId } = firstAvailableLineupSwap(useM1Store.getState().career!);
+    const { starterId, replacementId } = firstAvailableLineupSwap(
+      useM1Store.getState().career!,
+    );
     useM1Store.getState().swapStartingPlayer(starterId, replacementId);
     useM1Store.getState().startNewCareer(222);
     // Save B, queued for the replacement AFTER the withdrawal. Only its own
@@ -1663,7 +1945,9 @@ describe('M1 app store integration', () => {
     let saveCalls = 0;
     const savedStates: GameState[] = [];
     const careerRepository = stubCareerRepository({
-      async load() { return existingCareer; },
+      async load() {
+        return existingCareer;
+      },
       async save(career) {
         if (!armed) return;
         saveCalls += 1;
@@ -1686,7 +1970,11 @@ describe('M1 app store integration', () => {
       ratings: DEFAULT_CREATION_RATINGS,
     });
 
-    await waitFor(() => useM1Store.getState().error?.includes('replacement save failed') ?? false);
+    await waitFor(
+      () =>
+        useM1Store.getState().error?.includes('replacement save failed') ??
+        false,
+    );
     await flushMicrotasks();
 
     // The creation save queued for the abandoned replacement shares the
@@ -1714,15 +2002,22 @@ describe('M1 app store integration', () => {
     useM1Store.setState(useM1Store.getInitialState(), true);
 
     const repository = stubCareerRepository({
-      async load() { throw new Error('career save is corrupt'); },
-      async restoreBackup() { return staleBackup; },
-      async save() { throw new Error('disk is full'); },
+      async load() {
+        throw new Error('career save is corrupt');
+      },
+      async restoreBackup() {
+        return staleBackup;
+      },
+      async save() {
+        throw new Error('disk is full');
+      },
     });
     await useM1Store.getState().initializePersistence(repository);
     await useM1Store.getState().restoreBackupSave();
 
-    expect(useM1Store.getState().career?.awakening.pending?.triggerId)
-      .toBe(loadLaunchContent().onboarding.triggers[0].id);
+    expect(useM1Store.getState().career?.awakening.pending?.triggerId).toBe(
+      loadLaunchContent().onboarding.triggers[0].id,
+    );
     await waitFor(() => useM1Store.getState().saveWarning !== null);
     // The reconciliation save failed, so disk still holds the pre-reconcile
     // backup; memory must not claim the reconciled shape is persisted.
@@ -1734,19 +2029,33 @@ describe('M1 app store integration', () => {
     const existingCareer = useM1Store.getState().career!;
     useM1Store.setState(useM1Store.getInitialState(), true);
     const careerRepository = stubCareerRepository({
-      async load() { return existingCareer; },
+      async load() {
+        return existingCareer;
+      },
     });
     const replayRepository: ReplayRepository = {
       async save() {},
-      async load() { return null; },
-      async listForCareer() { return []; },
+      async load() {
+        return null;
+      },
+      async listForCareer() {
+        return [];
+      },
       async delete() {},
-      async deleteAllForCareer() { throw new Error('cleanup failed'); },
+      async deleteAllForCareer() {
+        throw new Error('cleanup failed');
+      },
     };
-    await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
+    await useM1Store
+      .getState()
+      .initializePersistence(careerRepository, replayRepository);
 
     useM1Store.getState().startNewCareer(222);
-    await waitFor(() => useM1Store.getState().notice?.message.includes('cleanup failed') ?? false);
+    await waitFor(
+      () =>
+        useM1Store.getState().notice?.message.includes('cleanup failed') ??
+        false,
+    );
 
     expect(useM1Store.getState().career?.careerSeed).toBe(222);
     expect(useM1Store.getState().hasSavedCareer).toBe(true);
@@ -1755,19 +2064,24 @@ describe('M1 app store integration', () => {
 
   it('warns rather than rolling back when there was no career to replace', async () => {
     const careerRepository = stubCareerRepository({
-      async save() { throw new Error('new career write failed'); },
+      async save() {
+        throw new Error('new career write failed');
+      },
     });
     const replayRepository: ReplayRepository = {
       async save() {},
-      async load() { return null; },
-      async listForCareer() { return []; },
+      async load() {
+        return null;
+      },
+      async listForCareer() {
+        return [];
+      },
       async delete() {},
       async deleteAllForCareer() {},
     };
-    await useM1Store.getState().initializePersistence(
-      careerRepository,
-      replayRepository,
-    );
+    await useM1Store
+      .getState()
+      .initializePersistence(careerRepository, replayRepository);
 
     useM1Store.getState().startNewCareer(4242);
     await waitFor(() => useM1Store.getState().saveWarning !== null);
@@ -1790,8 +2104,12 @@ describe('M1 app store integration', () => {
       async save(careerId, fixtureId, sortOrder, envelope) {
         saved.push({ careerId, fixtureId, sortOrder, envelope });
       },
-      async load() { return null; },
-      async listForCareer() { return []; },
+      async load() {
+        return null;
+      },
+      async listForCareer() {
+        return [];
+      },
       async delete() {},
       async deleteAllForCareer() {},
     };
@@ -1803,8 +2121,11 @@ describe('M1 app store integration', () => {
     useM1Store.getState().advanceCareer();
     const before = useM1Store.getState().career!;
     const fixtureId = before.onboarding?.firstFixtureId;
-    const fixture = before.fixtures.find(candidate => candidate.id === fixtureId)!;
-    const controlledTeam: 0 | 1 = fixture.homeClubId === before.userClubId ? 0 : 1;
+    const fixture = before.fixtures.find(
+      (candidate) => candidate.id === fixtureId,
+    )!;
+    const controlledTeam: 0 | 1 =
+      fixture.homeClubId === before.userClubId ? 0 : 1;
     useM1Store.getState().quickResult({ initialFormation: '3-5-2' });
     await waitFor(() => saved.length === 1);
 
@@ -1827,20 +2148,32 @@ describe('M1 app store integration', () => {
         ? { homeFormation: '3-5-2' }
         : { awayFormation: '3-5-2' }),
     });
-    expect(saved[0].fixtureId).toBe(useM1Store.getState().career?.onboarding?.firstFixtureId);
+    expect(saved[0].fixtureId).toBe(
+      useM1Store.getState().career?.onboarding?.firstFixtureId,
+    );
     expect(saved[0].envelope.home.players).toHaveLength(11);
     expect(saved[0].envelope.away.players).toHaveLength(11);
-    expect(saved[0].envelope.home.players.every(player => player.power === undefined)).toBe(true);
-    expect(saved[0].envelope.away.players.every(player => player.power === undefined)).toBe(true);
+    expect(
+      saved[0].envelope.home.players.every(
+        (player) => player.power === undefined,
+      ),
+    ).toBe(true);
+    expect(
+      saved[0].envelope.away.players.every(
+        (player) => player.power === undefined,
+      ),
+    ).toBe(true);
   });
 
   it('keeps the user controllable in an away fixture and maps the score back to league order', () => {
     startCreatedCareer(1357);
     const career = useM1Store.getState().career!;
-    const awayFixture = career.fixtures.find(fixture =>
-      fixture.season === 1 && fixture.awayClubId === career.userClubId,
+    const awayFixture = career.fixtures.find(
+      (fixture) =>
+        fixture.season === 1 && fixture.awayClubId === career.userClubId,
     );
-    if (awayFixture === undefined) throw new Error('expected a Season-1 away fixture');
+    if (awayFixture === undefined)
+      throw new Error('expected a Season-1 away fixture');
     useM1Store.setState({
       career: { ...career, week: awayFixture.week, phase: 'matchday' },
       screen: 'matchday',
@@ -1853,12 +2186,18 @@ describe('M1 app store integration', () => {
     expect(watched.home.id).toBe(awayFixture.homeClubId);
     expect(watched.away.id).toBe(career.userClubId);
 
-    const result = createMatch(awayFixture.matchSeed, watched.home, watched.away);
+    const result = createMatch(
+      awayFixture.matchSeed,
+      watched.home,
+      watched.away,
+    );
     result.score = [2, 1];
     result.phase = 'fulltime';
     useM1Store.getState().finishWatchedMatch(result);
 
-    const played = useM1Store.getState().career?.fixtures.find(fixture => fixture.id === awayFixture.id);
+    const played = useM1Store
+      .getState()
+      .career?.fixtures.find((fixture) => fixture.id === awayFixture.id);
     expect(played?.score).toEqual({ homeGoals: 2, awayGoals: 1 });
   });
 });
@@ -1868,7 +2207,7 @@ async function waitFor(predicate: () => boolean): Promise<void> {
   // turns, so the budget has to cover several of them back to back.
   for (let attempt = 0; attempt < 200; attempt += 1) {
     if (predicate()) return;
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
   }
   throw new Error('timed out waiting for queued save');
 }
@@ -1880,7 +2219,9 @@ async function relaunchCheckpoint(
   await waitFor(() => !useM1Store.getState().saving);
   const expected = structuredClone(useM1Store.getState().career);
   useM1Store.setState(useM1Store.getInitialState(), true);
-  await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
+  await useM1Store
+    .getState()
+    .initializePersistence(careerRepository, replayRepository);
   // A load-time reconciliation is itself a persisted boundary. In particular,
   // the Cup safety guard must see that write finish before the test immediately
   // presses Quick Result on the second match of a double-header.
@@ -1888,24 +2229,30 @@ async function relaunchCheckpoint(
   // Boot re-runs the story feature pacing, which closes a Season 1 Week 1
   // youth intake that has not reached its unlock week yet. Everything else
   // about the career must come back exactly as it was saved.
-  expect(withoutYouthIntake(useM1Store.getState().career))
-    .toEqual(withoutYouthIntake(expected));
+  expect(withoutYouthIntake(useM1Store.getState().career)).toEqual(
+    withoutYouthIntake(expected),
+  );
   useM1Store.getState().continueCareer();
   return 1;
 }
 
-function withoutYouthIntake(career: GameState | null): Omit<GameState, 'youthIntake'> | null {
+function withoutYouthIntake(
+  career: GameState | null,
+): Omit<GameState, 'youthIntake'> | null {
   if (career === null) return null;
   const { youthIntake: _intake, ...rest } = career;
   return rest;
 }
 
-function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) => boolean): void {
+function driveStoreUntil(
+  done: (state: ReturnType<typeof useM1Store.getState>) => boolean,
+): void {
   for (let step = 0; step < 300; step += 1) {
     const current = useM1Store.getState();
     if (done(current)) return;
     const career = current.career;
-    if (career === null) throw new Error('career disappeared during the default journey');
+    if (career === null)
+      throw new Error('career disappeared during the default journey');
 
     if (current.screen === 'awakening') {
       current.continueAfterAwakening();
@@ -1944,7 +2291,8 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
       continue;
     }
     if (current.screen === 'management') {
-      if (current.postMatchOverlay === 'summary') current.dismissPostMatchSummary();
+      if (current.postMatchOverlay === 'summary')
+        current.dismissPostMatchSummary();
       else {
         // An opening-week duty refuses the advance; answering it is what a
         // manager does next. Done in the same step so a journey that reloads
@@ -1959,16 +2307,22 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
   throw new Error('default journey exceeded its step budget');
 }
 
-function progressJourneyEvent(current: ReturnType<typeof useM1Store.getState>): void {
+function progressJourneyEvent(
+  current: ReturnType<typeof useM1Store.getState>,
+): void {
   const career = current.career;
   const pending = career?.pendingEvent;
-  if (career === null || pending === undefined) throw new Error('event screen lost its pending event');
+  if (career === null || pending === undefined)
+    throw new Error('event screen lost its pending event');
   if (pending.resolvedChoiceId !== undefined) {
     current.continueAfterEvent();
     return;
   }
   const viewModel = storyEventViewModel(career, loadLaunchContent());
-  if (viewModel.playerSelectionRequired && viewModel.selectedPlayer === undefined) {
+  if (
+    viewModel.playerSelectionRequired &&
+    viewModel.selectedPlayer === undefined
+  ) {
     current.selectEventPlayer(viewModel.playerChoices[0]!.id);
     return;
   }
@@ -1986,9 +2340,12 @@ function progressJourneyEvent(current: ReturnType<typeof useM1Store.getState>): 
     current.selectEventFacility(viewModel.facilityChoices[0]!.buildingId);
     return;
   }
-  const choice = viewModel.choices.find(candidate => !candidate.disabled && candidate.tone === 'safe')
-    ?? viewModel.choices.find(candidate => !candidate.disabled);
-  if (choice === undefined) throw new Error(`journey event ${pending.eventId} has no available choice`);
+  const choice =
+    viewModel.choices.find(
+      (candidate) => !candidate.disabled && candidate.tone === 'safe',
+    ) ?? viewModel.choices.find((candidate) => !candidate.disabled);
+  if (choice === undefined)
+    throw new Error(`journey event ${pending.eventId} has no available choice`);
   current.chooseEvent(choice.id);
 }
 
@@ -1998,13 +2355,27 @@ describe('financial report reveals', () => {
     for (let attempt = 0; attempt < 40; attempt += 1) {
       const state = useM1Store.getState();
       if (state.screen === 'matchday') return;
-      if (state.screen === 'week-review') { state.continueWeekReview(); continue; }
-      if (state.screen === 'faceoff') { state.completeFaceOff(); continue; }
-      if (state.screen === 'postmatch') { state.continueAfterMatch(); continue; }
-      if (state.screen !== 'management') {
-        throw new Error(`advanceToNextMatchday stopped on the ${state.screen} screen`);
+      if (state.screen === 'week-review') {
+        state.continueWeekReview();
+        continue;
       }
-      if (state.postMatchOverlay === 'summary') { state.dismissPostMatchSummary(); continue; }
+      if (state.screen === 'faceoff') {
+        state.completeFaceOff();
+        continue;
+      }
+      if (state.screen === 'postmatch') {
+        state.continueAfterMatch();
+        continue;
+      }
+      if (state.screen !== 'management') {
+        throw new Error(
+          `advanceToNextMatchday stopped on the ${state.screen} screen`,
+        );
+      }
+      if (state.postMatchOverlay === 'summary') {
+        state.dismissPostMatchSummary();
+        continue;
+      }
       state.advanceCareer();
       answerRefusedDeskDuty();
     }
@@ -2019,12 +2390,13 @@ describe('financial report reveals', () => {
     for (let attempt = 0; attempt < 6; attempt += 1) {
       advanceToNextMatchday();
       const career = useM1Store.getState().career!;
-      const isHome = career.fixtures.some(fixture => (
-        fixture.season === career.season
-        && fixture.week === career.week
-        && fixture.homeClubId === career.userClubId
-        && fixture.status === 'scheduled'
-      ));
+      const isHome = career.fixtures.some(
+        (fixture) =>
+          fixture.season === career.season &&
+          fixture.week === career.week &&
+          fixture.homeClubId === career.userClubId &&
+          fixture.status === 'scheduled',
+      );
       if (isHome) return;
       useM1Store.getState().quickResult();
       if (useM1Store.getState().screen === 'awakening') {
@@ -2050,7 +2422,11 @@ describe('financial report reveals', () => {
     expect(useM1Store.getState().screen).toBe('postmatch');
     const career = useM1Store.getState().career!;
     const postMatch = useM1Store.getState().postMatch!;
-    return { settled: career.ledgers[career.ledgers.length - 1], postMatch, career };
+    return {
+      settled: career.ledgers[career.ledgers.length - 1],
+      postMatch,
+      career,
+    };
   }
 
   it('banks identical reveal ledgers through Quick Result and a watched match', () => {
@@ -2061,9 +2437,14 @@ describe('financial report reveals', () => {
     parkOnNextHomeMatchday(20260806);
     useM1Store.getState().watchMatch();
     const watched = useM1Store.getState().watchedMatch!;
-    const match = createMatch(watched.fixture.matchSeed, watched.home, watched.away, {
-      controlledTeam: watched.controlledTeam,
-    });
+    const match = createMatch(
+      watched.fixture.matchSeed,
+      watched.home,
+      watched.away,
+      {
+        controlledTeam: watched.controlledTeam,
+      },
+    );
     let guard = 0;
     while (match.phase !== 'fulltime') {
       if (guard++ > 100_000) throw new Error('watched match never finished');
@@ -2073,7 +2454,9 @@ describe('financial report reveals', () => {
     const seen = settleCurrentMatchAndCapture();
 
     // The settled money — including every reveal — is path-independent.
-    expect(JSON.stringify(quick.settled.lines)).toBe(JSON.stringify(seen.settled.lines));
+    expect(JSON.stringify(quick.settled.lines)).toBe(
+      JSON.stringify(seen.settled.lines),
+    );
     expect(quick.postMatch.ledger).toEqual(seen.postMatch.ledger);
   });
 
@@ -2082,8 +2465,12 @@ describe('financial report reveals', () => {
     useM1Store.getState().quickResult();
     const { settled, postMatch, career } = settleCurrentMatchAndCapture();
 
-    const settledGate = settled.lines.find(line => line.label === 'League home gate');
-    const shownGate = postMatch.ledger.find(line => line.label === 'League home gate');
+    const settledGate = settled.lines.find(
+      (line) => line.label === 'League home gate',
+    );
+    const shownGate = postMatch.ledger.find(
+      (line) => line.label === 'League home gate',
+    );
     expect(settledGate?.reveal).toBeDefined();
     expect(shownGate?.reveal).toEqual(settledGate?.reveal);
     expect(postMatch.settlementSeason).toBe(settled.season);
@@ -2107,25 +2494,38 @@ function startCreatedCareer(seed: number): void {
   useM1Store.setState({ career: withRivalHeroIntrosSeen(career) });
 }
 
-function firstAvailableLineupSwap(career: GameState): { starterId: string; replacementId: string } {
-  const lineup = career.lineups.find(candidate => candidate.clubId === career.userClubId)!;
-  const roster = career.players.filter(player => player.clubId === career.userClubId);
+function firstAvailableLineupSwap(career: GameState): {
+  starterId: string;
+  replacementId: string;
+} {
+  const lineup = career.lineups.find(
+    (candidate) => candidate.clubId === career.userClubId,
+  )!;
+  const roster = career.players.filter(
+    (player) => player.clubId === career.userClubId,
+  );
   const starter = lineup.playerIds
-    .map(playerId => roster.find(player => player.id === playerId)!)
-    .find(player => roster.some(candidate => (
-      candidate.role === player.role
-      && !lineup.playerIds.includes(candidate.id)
-      && candidate.injuryWeeks === 0
-      && candidate.power === undefined
-    )));
-  if (starter === undefined) throw new Error('test career has no swappable starter');
-  const replacement = roster.find(player => (
-    player.role === starter.role
-    && !lineup.playerIds.includes(player.id)
-    && player.injuryWeeks === 0
-    && player.power === undefined
-  ));
-  if (replacement === undefined) throw new Error('test career has no eligible replacement');
+    .map((playerId) => roster.find((player) => player.id === playerId)!)
+    .find((player) =>
+      roster.some(
+        (candidate) =>
+          candidate.role === player.role &&
+          !lineup.playerIds.includes(candidate.id) &&
+          candidate.injuryWeeks === 0 &&
+          candidate.power === undefined,
+      ),
+    );
+  if (starter === undefined)
+    throw new Error('test career has no swappable starter');
+  const replacement = roster.find(
+    (player) =>
+      player.role === starter.role &&
+      !lineup.playerIds.includes(player.id) &&
+      player.injuryWeeks === 0 &&
+      player.power === undefined,
+  );
+  if (replacement === undefined)
+    throw new Error('test career has no eligible replacement');
   return { starterId: starter.id, replacementId: replacement.id };
 }
 
@@ -2142,7 +2542,14 @@ function examplePostMatch(): PostMatchViewModel {
       winner: 'home',
       cupExit: false,
     },
-    ledger: [{ id: 'tickets', label: 'League home gate', amount: 1200, kind: 'income' }],
+    ledger: [
+      {
+        id: 'tickets',
+        label: 'League home gate',
+        amount: 1200,
+        kind: 'income',
+      },
+    ],
     settlementSeason: 1,
     settlementWeek: 3,
     netAmount: 1200,
@@ -2195,17 +2602,20 @@ function completedSeasonForUser(state: GameState): GameState {
   return {
     ...state,
     phase: 'season-end',
-    fixtures: state.fixtures.map(fixture => fixture.season === state.season
-      ? {
-          ...fixture,
-          status: 'played' as const,
-          score: fixture.homeClubId === state.userClubId
-            ? { homeGoals: 3, awayGoals: 0 }
-            : fixture.awayClubId === state.userClubId
-              ? { homeGoals: 0, awayGoals: 3 }
-              : { homeGoals: 0, awayGoals: 0 },
-        }
-      : fixture),
+    fixtures: state.fixtures.map((fixture) =>
+      fixture.season === state.season
+        ? {
+            ...fixture,
+            status: 'played' as const,
+            score:
+              fixture.homeClubId === state.userClubId
+                ? { homeGoals: 3, awayGoals: 0 }
+                : fixture.awayClubId === state.userClubId
+                  ? { homeGoals: 0, awayGoals: 3 }
+                  : { homeGoals: 0, awayGoals: 0 },
+          }
+        : fixture,
+    ),
   };
 }
 
@@ -2224,7 +2634,9 @@ function answerRefusedDeskDuty(): boolean {
   if (refused === null) return false;
   useM1Store.getState().dismissInboxDutyReminder();
   if (!refused.includes('youth-intake')) {
-    throw new Error(`the desk refused with ${refused.join(', ')}, which this helper cannot clear`);
+    throw new Error(
+      `the desk refused with ${refused.join(', ')}, which this helper cannot clear`,
+    );
   }
   useM1Store.getState().declineYouth();
   return true;
@@ -2240,14 +2652,17 @@ function startAwakenedCareer(seed: number): void {
 
 function userHeroes() {
   const career = useM1Store.getState().career;
-  return career?.players.filter(player =>
-    player.clubId === career.userClubId && player.power !== undefined,
-  ) ?? [];
+  return (
+    career?.players.filter(
+      (player) =>
+        player.clubId === career.userClubId && player.power !== undefined,
+    ) ?? []
+  );
 }
 
 async function flushMicrotasks(): Promise<void> {
   for (let turn = 0; turn < 5; turn += 1) {
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
   }
 }
 
@@ -2270,7 +2685,10 @@ function careerWithPendingAwakening(seed: number): GameState {
  * MAGNET_TOUCH once was. A power id dropped from the type can only reach the game
  * through stored JSON, so the state is built the same way.
  */
-function withRetiredAwakeningPower(state: GameState, playerId: string): GameState {
+function withRetiredAwakeningPower(
+  state: GameState,
+  playerId: string,
+): GameState {
   const stored = JSON.parse(JSON.stringify(state)) as {
     players: { id: string; power?: string }[];
     awakening: { pending?: { power: string } };
@@ -2290,13 +2708,23 @@ function stubCareerRepository(
   overrides: Partial<CareerRepository> = {},
 ): CareerRepository {
   return {
-    async load() { return null; },
-    async loadRaw() { return null; },
+    async load() {
+      return null;
+    },
+    async loadRaw() {
+      return null;
+    },
     async save() {},
     async delete() {},
-    async backupSummary() { return null; },
-    async restoreBackup() { throw new MissingCareerBackupError(); },
-    async checkIntegrity() { return true; },
+    async backupSummary() {
+      return null;
+    },
+    async restoreBackup() {
+      throw new MissingCareerBackupError();
+    },
+    async checkIntegrity() {
+      return true;
+    },
     ...overrides,
   };
 }

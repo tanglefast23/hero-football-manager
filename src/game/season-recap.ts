@@ -13,12 +13,14 @@ import type {
 } from './types';
 
 export function buildSeasonRecap(state: GameState): SeasonRecap {
-  const fixtures = state.fixtures.filter(fixture => (
-    fixture.season === state.season
-    && fixture.status === 'played'
-    && fixture.score !== undefined
-    && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
-  ));
+  const fixtures = state.fixtures.filter(
+    (fixture) =>
+      fixture.season === state.season &&
+      fixture.status === 'played' &&
+      fixture.score !== undefined &&
+      (fixture.homeClubId === state.userClubId ||
+        fixture.awayClubId === state.userClubId),
+  );
   let won = 0;
   let drawn = 0;
   let lost = 0;
@@ -35,35 +37,52 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
     else drawn += 1;
   }
 
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
   const cashChange = club.cash - seasonOpeningCash(state, club.cash);
-  const roster = state.players.filter(player => player.clubId === state.userClubId);
+  const roster = state.players.filter(
+    (player) => player.clubId === state.userClubId,
+  );
   // Both competitions: the Golden Boot is the club's own award, and it counted
   // cup goals before stat lines were split by competition. Only the division
   // board is league-only.
   const goalsByPlayer = new Map<string, number>();
   for (const line of state.seasonStatLines ?? []) {
     if (line.season !== state.season) continue;
-    goalsByPlayer.set(line.playerId, (goalsByPlayer.get(line.playerId) ?? 0) + line.goals);
+    goalsByPlayer.set(
+      line.playerId,
+      (goalsByPlayer.get(line.playerId) ?? 0) + line.goals,
+    );
   }
-  const sortedScorers = roster.slice().sort((left, right) => (
-    (goalsByPlayer.get(right.id) ?? 0) - (goalsByPlayer.get(left.id) ?? 0)
-    || playerScore(right) - playerScore(left)
-    || compareIds(left.id, right.id)
-  ));
-  const sortedPlayers = roster.slice().sort((left, right) => (
-    playerSeasonScore(right, goalsByPlayer) - playerSeasonScore(left, goalsByPlayer)
-    || compareIds(left.id, right.id)
-  ));
-  const topScorerGoals = sortedScorers[0] === undefined
-    ? 0
-    : goalsByPlayer.get(sortedScorers[0].id) ?? 0;
-  const young = sortedPlayers.filter(player => (player.age ?? 99) <= 21)[0];
-  const hero = sortedPlayers.filter(player => player.power !== undefined)[0];
+  const sortedScorers = roster
+    .slice()
+    .sort(
+      (left, right) =>
+        (goalsByPlayer.get(right.id) ?? 0) -
+          (goalsByPlayer.get(left.id) ?? 0) ||
+        playerScore(right) - playerScore(left) ||
+        compareIds(left.id, right.id),
+    );
+  const sortedPlayers = roster
+    .slice()
+    .sort(
+      (left, right) =>
+        playerSeasonScore(right, goalsByPlayer) -
+          playerSeasonScore(left, goalsByPlayer) ||
+        compareIds(left.id, right.id),
+    );
+  const topScorerGoals =
+    sortedScorers[0] === undefined
+      ? 0
+      : (goalsByPlayer.get(sortedScorers[0].id) ?? 0);
+  const young = sortedPlayers.filter((player) => (player.age ?? 99) <= 21)[0];
+  const hero = sortedPlayers.filter((player) => player.power !== undefined)[0];
   const position = finalPosition(state);
   const latestResolvedEvent = state.resolvedEventHistory
-    ?.filter(event => event.season === state.season)
+    ?.filter((event) => event.season === state.season)
     .at(-1)?.eventId;
 
   return {
@@ -83,44 +102,54 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
     trainingCapsReached: 0,
     ...cupResult(state),
     divisionAwards: divisionAwards(state),
-    ...(latestResolvedEvent === undefined ? {} : { memorableEventId: latestResolvedEvent }),
+    ...(latestResolvedEvent === undefined
+      ? {}
+      : { memorableEventId: latestResolvedEvent }),
     // A Golden Boot for nobody is worse than no Golden Boot at all.
-    ...(topScorerGoals === 0 || sortedScorers[0] === undefined ? {} : {
-      topScorer: award(
-        sortedScorers[0],
-        'Golden Boot',
-        `${topScorerGoals} goals`,
-        'recap.award.goldenBoot',
-        { goals: topScorerGoals },
-        topScorerGoals,
-      ),
-    }),
-    ...(sortedPlayers[0] === undefined ? {} : {
-      playerOfSeason: award(
-        sortedPlayers[0],
-        'Player of the Season',
-        'Goals, form, morale, and development',
-        'recap.award.playerOfTheSeason',
-      ),
-    }),
-    ...(young === undefined ? {} : {
-      youngPlayer: award(
-        young,
-        'Young Player',
-        `Age ${young.age ?? 21} breakout season`,
-        'recap.award.youngPlayer',
-        { age: young.age ?? 21 },
-      ),
-    }),
-    ...(hero === undefined ? {} : {
-      heroOfSeason: award(
-        hero,
-        'Hero of the Season',
-        `${hero.power!.replaceAll('_', ' ')} made the difference`,
-        'recap.award.heroOfSeason',
-        { power: hero.power!.replaceAll('_', ' ') },
-      ),
-    }),
+    ...(topScorerGoals === 0 || sortedScorers[0] === undefined
+      ? {}
+      : {
+          topScorer: award(
+            sortedScorers[0],
+            'Golden Boot',
+            `${topScorerGoals} goals`,
+            'recap.award.goldenBoot',
+            { goals: topScorerGoals },
+            topScorerGoals,
+          ),
+        }),
+    ...(sortedPlayers[0] === undefined
+      ? {}
+      : {
+          playerOfSeason: award(
+            sortedPlayers[0],
+            'Player of the Season',
+            'Goals, form, morale, and development',
+            'recap.award.playerOfTheSeason',
+          ),
+        }),
+    ...(young === undefined
+      ? {}
+      : {
+          youngPlayer: award(
+            young,
+            'Young Player',
+            `Age ${young.age ?? 21} breakout season`,
+            'recap.award.youngPlayer',
+            { age: young.age ?? 21 },
+          ),
+        }),
+    ...(hero === undefined
+      ? {}
+      : {
+          heroOfSeason: award(
+            hero,
+            'Hero of the Season',
+            `${hero.power!.replaceAll('_', ' ')} made the difference`,
+            'recap.award.heroOfSeason',
+            { power: hero.power!.replaceAll('_', ' ') },
+          ),
+        }),
   };
 }
 
@@ -129,13 +158,14 @@ function seasonOpeningCash(state: GameState, closingCash: number): number {
   // Compatibility for saves created before M4. Reconstruct the opening balance
   // from every persisted cash movement we can identify in the current season.
   const ledgerChange = state.ledgers
-    .filter(ledger => ledger.season === state.season)
+    .filter((ledger) => ledger.season === state.season)
     .reduce(
-      (total, ledger) => total + ledger.lines.reduce((sum, line) => sum + line.amount, 0),
+      (total, ledger) =>
+        total + ledger.lines.reduce((sum, line) => sum + line.amount, 0),
       0,
     );
   const transactionChange = (state.cashTransactions ?? [])
-    .filter(transaction => transaction.season === state.season)
+    .filter((transaction) => transaction.season === state.season)
     .reduce((total, transaction) => total + transaction.amount, 0);
   return closingCash - ledgerChange - transactionChange;
 }
@@ -147,7 +177,9 @@ function seasonOpeningCash(state: GameState, closingCash: number): number {
  * only inside a display string. The ceremony renders a club beside each placing
  * and compares the values numerically.
  */
-function divisionAwards(state: GameState): Record<AwardCategoryId, DivisionAwardPlacement[]> {
+function divisionAwards(
+  state: GameState,
+): Record<AwardCategoryId, DivisionAwardPlacement[]> {
   const division = {
     season: state.season,
     players: state.players,
@@ -155,7 +187,10 @@ function divisionAwards(state: GameState): Record<AwardCategoryId, DivisionAward
   };
   return {
     goals: divisionPodium({ ...division, category: 'goals' }),
-    passesCompleted: divisionPodium({ ...division, category: 'passesCompleted' }),
+    passesCompleted: divisionPodium({
+      ...division,
+      category: 'passesCompleted',
+    }),
     tacklesWon: divisionPodium({ ...division, category: 'tacklesWon' }),
     saves: divisionPodium({ ...division, category: 'saves' }),
   };
@@ -188,11 +223,11 @@ function divisionAwards(state: GameState): Record<AwardCategoryId, DivisionAward
  */
 export function prunedStatLines(state: GameState): PlayerSeasonStatLine[] {
   const known = new Set([
-    ...state.players.map(player => player.id),
-    ...(state.retiredPlayers ?? []).map(player => player.id),
+    ...state.players.map((player) => player.id),
+    ...(state.retiredPlayers ?? []).map((player) => player.id),
   ]);
   return (state.seasonStatLines ?? []).filter(
-    line => line.season >= state.season && known.has(line.playerId),
+    (line) => line.season >= state.season && known.has(line.playerId),
   );
 }
 
@@ -201,14 +236,18 @@ export function recordSeasonRecap(state: GameState): GameState {
   return {
     ...state,
     seasonRecaps: [
-      ...(state.seasonRecaps ?? []).filter(candidate => candidate.season !== recap.season),
+      ...(state.seasonRecaps ?? []).filter(
+        (candidate) => candidate.season !== recap.season,
+      ),
       recap,
     ].sort((left, right) => left.season - right.season),
   };
 }
 
 export function latestSeasonRecap(state: GameState): SeasonRecap | undefined {
-  return state.seasonRecaps?.find(candidate => candidate.season === state.season);
+  return state.seasonRecaps?.find(
+    (candidate) => candidate.season === state.season,
+  );
 }
 
 /**
@@ -250,11 +289,16 @@ function playerScore(player: CareerPlayer): number {
  * here longest, every year, forever. A tenth keeps it worth what it was worth
  * when the ceiling was 99: a nudge between close candidates.
  */
-function playerSeasonScore(player: CareerPlayer, goals: ReadonlyMap<string, number>): number {
-  return playerScore(player)
-    + (goals.get(player.id) ?? 0) * 30
-    + (player.morale ?? 0)
-    + Math.round((player.fame ?? 0) / 10);
+function playerSeasonScore(
+  player: CareerPlayer,
+  goals: ReadonlyMap<string, number>,
+): number {
+  return (
+    playerScore(player) +
+    (goals.get(player.id) ?? 0) * 30 +
+    (player.morale ?? 0) +
+    Math.round((player.fame ?? 0) / 10)
+  );
 }
 
 /**
@@ -269,23 +313,33 @@ function playerSeasonScore(player: CareerPlayer, goals: ReadonlyMap<string, numb
  * promotion cutoff the ceremony could frame a promotion that never happened.
  */
 function finalPosition(state: GameState): number {
-  const rows = state.clubs.map(club => {
-    let points = 0;
-    let goalDifference = 0;
-    let goalsFor = 0;
-    for (const fixture of state.fixtures) {
-      if (fixture.season !== state.season || fixture.status !== 'played' || fixture.score === undefined) continue;
-      if (fixture.homeClubId !== club.id && fixture.awayClubId !== club.id) continue;
-      const home = fixture.homeClubId === club.id;
-      const scored = home ? fixture.score.homeGoals : fixture.score.awayGoals;
-      const conceded = home ? fixture.score.awayGoals : fixture.score.homeGoals;
-      goalDifference += scored - conceded;
-      goalsFor += scored;
-      points += scored > conceded ? 3 : scored === conceded ? 1 : 0;
-    }
-    return { clubId: club.id, points, goalDifference, goalsFor };
-  }).sort(compareStandings);
-  const index = rows.findIndex(row => row.clubId === state.userClubId);
+  const rows = state.clubs
+    .map((club) => {
+      let points = 0;
+      let goalDifference = 0;
+      let goalsFor = 0;
+      for (const fixture of state.fixtures) {
+        if (
+          fixture.season !== state.season ||
+          fixture.status !== 'played' ||
+          fixture.score === undefined
+        )
+          continue;
+        if (fixture.homeClubId !== club.id && fixture.awayClubId !== club.id)
+          continue;
+        const home = fixture.homeClubId === club.id;
+        const scored = home ? fixture.score.homeGoals : fixture.score.awayGoals;
+        const conceded = home
+          ? fixture.score.awayGoals
+          : fixture.score.homeGoals;
+        goalDifference += scored - conceded;
+        goalsFor += scored;
+        points += scored > conceded ? 3 : scored === conceded ? 1 : 0;
+      }
+      return { clubId: club.id, points, goalDifference, goalsFor };
+    })
+    .sort(compareStandings);
+  const index = rows.findIndex((row) => row.clubId === state.userClubId);
   if (index >= 0) return index + 1;
   return rows.length;
 }
@@ -301,18 +355,30 @@ function finalPosition(state: GameState): number {
  * on the panel title in all six languages. `CUP_ROUND_NAME_KEYS` supplies the
  * key; the English stays as the fallback for recaps written before it did.
  */
-function cupResult(state: GameState): Pick<SeasonRecap, 'cupResult' | 'cupResultKey'> {
-  const cup = state.m2?.nationalCups.find(candidate => candidate.season === state.season);
-  if (cup === undefined) return { cupResult: 'Not entered', cupResultKey: 'recap.cupNotEntered' };
+function cupResult(
+  state: GameState,
+): Pick<SeasonRecap, 'cupResult' | 'cupResultKey'> {
+  const cup = state.m2?.nationalCups.find(
+    (candidate) => candidate.season === state.season,
+  );
+  if (cup === undefined)
+    return { cupResult: 'Not entered', cupResultKey: 'recap.cupNotEntered' };
   if (cup.championClubId === state.userClubId) {
     return { cupResult: 'Winners', cupResultKey: 'recap.cupWinners' };
   }
   const lastRound = cup.rounds
-    .filter(round => round.fixtures.some(fixture => (
-      fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId
-    )))
+    .filter((round) =>
+      round.fixtures.some(
+        (fixture) =>
+          fixture.homeClubId === state.userClubId ||
+          fixture.awayClubId === state.userClubId,
+      ),
+    )
     .at(-1);
   return lastRound?.label === undefined
     ? { cupResult: 'Entered', cupResultKey: 'recap.cupEntered' }
-    : { cupResult: lastRound.label, cupResultKey: CUP_ROUND_NAME_KEYS[lastRound.label] };
+    : {
+        cupResult: lastRound.label,
+        cupResultKey: CUP_ROUND_NAME_KEYS[lastRound.label],
+      };
 }

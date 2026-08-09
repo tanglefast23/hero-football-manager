@@ -10,20 +10,24 @@ describe("manager's tip navigation", () => {
     expect(home).toContain('showManagerTips');
     expect(home).toContain("note.kind !== 'tip'");
     expect(home).toContain('note.destination');
-    expect(home).toContain('label={`${t(\'clubHome.takeMeThere\')}  ▸`}');
+    expect(home).toContain("label={`${t('clubHome.takeMeThere')}  ▸`}");
     expect(home).toContain('onOpenManagerTipDestination(note.destination)');
   });
 
   it('routes each actionable tip to a fresh squad guide request', () => {
     const app = read('App.tsx');
 
-    expect(app).toContain("target: ManagerTipDestination;");
+    expect(app).toContain('target: ManagerTipDestination;');
     expect(app).toContain('setManagerTipGuideRequest');
     expect(app).toContain('skipNextGuidanceDismissRef.current = true;');
     expect(app).toContain("store.setActiveTab('squad');");
-    expect(app).toContain('onOpenManagerTipDestination={openManagerTipDestination}');
+    expect(app).toContain(
+      'onOpenManagerTipDestination={openManagerTipDestination}',
+    );
     expect(app).toContain('showManagerTips={careerTeaches}');
-    expect(app).toContain('managerTipGuideRequest={visibleManagerTipGuideRequest ?? undefined}');
+    expect(app).toContain(
+      'managerTipGuideRequest={visibleManagerTipGuideRequest ?? undefined}',
+    );
   });
 
   it('focuses the requested drill-shop target and dismisses its cue on the next tap', () => {

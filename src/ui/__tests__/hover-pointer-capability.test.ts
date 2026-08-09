@@ -12,9 +12,12 @@ type MatchMedia = (query: string) => { matches: boolean };
 function loadForWeb(matchMedia?: MatchMedia): () => boolean {
   jest.resetModules();
   jest.doMock('react-native', () => ({ Platform: { OS: 'web' } }));
-  (globalThis as { window?: unknown }).window = matchMedia === undefined ? {} : { matchMedia };
+  (globalThis as { window?: unknown }).window =
+    matchMedia === undefined ? {} : { matchMedia };
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  return (require('../pointer-capability') as typeof import('../pointer-capability')).hasHoverPointer;
+  return (
+    require('../pointer-capability') as typeof import('../pointer-capability')
+  ).hasHoverPointer;
 }
 
 afterEach(() => {
@@ -25,7 +28,7 @@ afterEach(() => {
 describe('hover capability', () => {
   it('asks the browser whether its pointer can hover, not whether it is a browser', () => {
     const queries: string[] = [];
-    const hasHoverPointer = loadForWeb(query => {
+    const hasHoverPointer = loadForWeb((query) => {
       queries.push(query);
       return { matches: true };
     });
@@ -64,13 +67,15 @@ describe('hover capability', () => {
     // module-scope read would break them at import.
     jest.doMock('react-native', () => ({}));
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const bare = require('../pointer-capability') as typeof import('../pointer-capability');
+    const bare =
+      require('../pointer-capability') as typeof import('../pointer-capability');
     expect(bare.hasHoverPointer()).toBe(false);
 
     jest.resetModules();
     jest.doMock('react-native', () => ({ Platform: { OS: 'ios' } }));
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const native = require('../pointer-capability') as typeof import('../pointer-capability');
+    const native =
+      require('../pointer-capability') as typeof import('../pointer-capability');
     expect(native.hasHoverPointer()).toBe(false);
   });
 });
@@ -82,13 +87,15 @@ describe('hover-only surfaces', () => {
     const board = read('src/render/SubstitutionBoard.tsx');
 
     for (const source of [pressable, infoTip, board]) {
-      expect(source).toContain('hasHoverPointer');
-      expect(source).not.toContain("Platform?.OS === 'web'");
+      expect(source).toContainSource('hasHoverPointer');
+      expect(source).not.toContainSource("Platform?.OS === 'web'");
     }
-    expect(pressable).toContain('const pointer = hasHoverPointer();');
-    expect(infoTip).toContain('onPointerEnter={pointer ? () => setShown(true) : undefined}');
+    expect(pressable).toContainSource('const pointer = hasHoverPointer();');
+    expect(infoTip).toContainSource(
+      'onPointerEnter={pointer ? () => setShown(true) : undefined}',
+    );
     // The hold stays: a touch screen keeps its way into the same sentence.
-    expect(infoTip).toContain('onLongPress={showForTouch}');
+    expect(infoTip).toContainSource('onLongPress={showForTouch}');
   });
 
   it('ends the hover when a press ends, so a stray hover cannot outlive a tap', () => {
@@ -96,18 +103,28 @@ describe('hover-only surfaces', () => {
 
     // Second line of defence for a touch screen that claims a hovering pointer:
     // the synthetic hover arrives with the touch, and the release clears it.
-    expect(pressable).toContain('setPressed(false);\n        setHovered(false);');
-    expect(pressable).toContain('onPointerUp={pointer ? () => setHovered(false) : undefined}');
+    expect(pressable).toContainSource(
+      'setPressed(false);\n        setHovered(false);',
+    );
+    expect(pressable).toContainSource(
+      'onPointerUp={pointer ? () => setHovered(false) : undefined}',
+    );
   });
 
-  it('leaves a caller\'s own hover work unwired without a pointer', () => {
+  it("leaves a caller's own hover work unwired without a pointer", () => {
     const pressable = read('src/ui/components/SfxPressable.tsx');
     const finances = read('src/ui/screens/ClubFinancesScreen.tsx');
 
     // The facilities grid previews a footprint from hover. On a tablet that
     // preview stuck to the last tapped square.
-    expect(finances).toContain('onHoverIn={() => setPreviewCell({ x, y })}');
-    expect(pressable).toContain('onHoverIn={!pointer ? undefined : event => {');
-    expect(pressable).toContain('onHoverOut={!pointer ? undefined : event => {');
+    expect(finances).toContainSource(
+      'onHoverIn={() => setPreviewCell({ x, y })}',
+    );
+    expect(pressable).toContainSource(
+      'onHoverIn={!pointer ? undefined : event => {',
+    );
+    expect(pressable).toContainSource(
+      'onHoverOut={!pointer ? undefined : event => {',
+    );
   });
 });

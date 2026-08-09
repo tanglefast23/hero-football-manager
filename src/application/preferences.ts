@@ -14,7 +14,6 @@ function englishCopy(): CopyFn {
   return (englishCopyFn ??= copyFor('en'));
 }
 
-
 export interface LoadedPreferences {
   preferences: AppPreferences;
   warning?: string;
@@ -52,7 +51,10 @@ export async function loadPreferencesFailSoft(
   }
 }
 
-export function markPowerCutInSeen(preferences: AppPreferences, power: PowerId): AppPreferences {
+export function markPowerCutInSeen(
+  preferences: AppPreferences,
+  power: PowerId,
+): AppPreferences {
   if (preferences.seenPowerCutIns.includes(power)) return preferences;
   return {
     ...preferences,

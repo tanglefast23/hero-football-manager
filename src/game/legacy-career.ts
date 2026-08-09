@@ -40,7 +40,9 @@ interface CareerLegendLegacyTransaction {
 }
 
 /** Returns a defensive copy of the first valid, unique legend still awaiting a choice. */
-export function nextPendingClubLegend(state: GameState): CareerPlayer | undefined {
+export function nextPendingClubLegend(
+  state: GameState,
+): CareerPlayer | undefined {
   const playerId = eligiblePendingLegendIds(state)[0];
   if (playerId === undefined) return undefined;
   const player = uniqueRetiredPlayers(state).get(playerId)!;
@@ -50,7 +52,8 @@ export function nextPendingClubLegend(state: GameState): CareerPlayer | undefine
 /** Drops stale, ineligible, foreign-club, and repeated IDs without resolving a choice. */
 export function reconcilePendingClubLegends(state: GameState): GameState {
   const pendingLegacyPlayerIds = eligiblePendingLegendIds(state);
-  if (sameStrings(state.pendingLegacyPlayerIds ?? [], pendingLegacyPlayerIds)) return state;
+  if (sameStrings(state.pendingLegacyPlayerIds ?? [], pendingLegacyPlayerIds))
+    return state;
   return { ...state, pendingLegacyPlayerIds };
 }
 
@@ -62,13 +65,15 @@ export function resolveNextClubLegendLegacy(
   state: GameState,
   choice: CareerLegendLegacyChoice,
 ): CareerLegendLegacyTransaction {
-  if (state.market === undefined) throw new Error('club-legend legacy choices require a career market');
+  if (state.market === undefined)
+    throw new Error('club-legend legacy choices require a career market');
   if (choice !== 'coach-candidate' && choice !== 'farewell') {
     throw new Error(`unknown club-legend legacy choice ${String(choice)}`);
   }
   const eligibleIds = eligiblePendingLegendIds(state);
   const legendId = eligibleIds[0];
-  if (legendId === undefined) throw new Error('there is no eligible pending club legend');
+  if (legendId === undefined)
+    throw new Error('there is no eligible pending club legend');
   const pendingLegacyPlayerIds = eligibleIds.slice(1);
   if (choice === 'farewell') {
     // Resolved by the same rule the coach path resolves by: the legend is off
@@ -89,9 +94,10 @@ export function resolveNextClubLegendLegacy(
     legacy.coachCandidate,
     pyramidLegend,
   );
-  const alreadyPresent = state.market.coachCandidates.some(candidate =>
-    candidate.id === coachCandidate.id
-    || candidate.retiredLegendPlayerId === coachCandidate.retiredLegendPlayerId,
+  const alreadyPresent = state.market.coachCandidates.some(
+    (candidate) =>
+      candidate.id === coachCandidate.id ||
+      candidate.retiredLegendPlayerId === coachCandidate.retiredLegendPlayerId,
   );
   return {
     state: {
@@ -119,10 +125,13 @@ function eligiblePendingLegendIds(state: GameState): string[] {
     seen.add(playerId);
     const retired = retiredById.get(playerId);
     if (retired === undefined || retired.clubId !== state.userClubId) continue;
-    if (!isClubLegend({
-      seasonsAtClub: retired.seasonsAtClub ?? 0,
-      fame: retired.fame ?? 0,
-    })) continue;
+    if (
+      !isClubLegend({
+        seasonsAtClub: retired.seasonsAtClub ?? 0,
+        fame: retired.fame ?? 0,
+      })
+    )
+      continue;
     eligible.push(playerId);
   }
   return eligible;
@@ -168,8 +177,14 @@ function legacyCoachToMarketCandidate(
   legend: PyramidPlayer,
 ): CoachCandidate {
   const level = legendCoachLevel(legend.fame);
-  const baseWage = checkedMultiply(COACH_WAGE_PER_LEVEL, level, 'club-legend coach wage');
-  const weeklyWage = Math.round(baseWage * (100 - legacy.loyaltyDiscountPercent) / 100);
+  const baseWage = checkedMultiply(
+    COACH_WAGE_PER_LEVEL,
+    level,
+    'club-legend coach wage',
+  );
+  const weeklyWage = Math.round(
+    (baseWage * (100 - legacy.loyaltyDiscountPercent)) / 100,
+  );
   const requiredFame = COACH_FAME_GATES[level];
   return {
     id: legacy.id,
@@ -189,7 +204,9 @@ function legacyCoachToMarketCandidate(
   };
 }
 
-function marketCoachSpecialty(specialty: LegacyCoachSpecialty): MarketCoachSpecialty {
+function marketCoachSpecialty(
+  specialty: LegacyCoachSpecialty,
+): MarketCoachSpecialty {
   const values: Readonly<Record<LegacyCoachSpecialty, MarketCoachSpecialty>> = {
     Attack: 'ATTACK',
     Defense: 'DEFENSE',
@@ -218,15 +235,28 @@ function cloneCareerPlayer(player: CareerPlayer): CareerPlayer {
 }
 
 function cloneCoachCandidate(candidate: CoachCandidate): CoachCandidate {
-  return { ...candidate, specialties: [...candidate.specialties] as [MarketCoachSpecialty, MarketCoachSpecialty] };
+  return {
+    ...candidate,
+    specialties: [...candidate.specialties] as [
+      MarketCoachSpecialty,
+      MarketCoachSpecialty,
+    ],
+  };
 }
 
 function checkedMultiply(left: number, right: number, label: string): number {
   const value = left * right;
-  if (!Number.isSafeInteger(value)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(value))
+    throw new Error(`${label} exceeds the safe integer range`);
   return value;
 }
 
-function sameStrings(left: readonly string[], right: readonly string[]): boolean {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
+function sameStrings(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
+  );
 }

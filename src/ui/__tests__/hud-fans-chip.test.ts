@@ -19,29 +19,39 @@ describe('the HUD fans chip', () => {
   const viewModels = read('src/application/view-models.ts');
 
   it('rides beside money and TP, drawn rather than lettered', () => {
-    expect(shell).toContain('<ResourceChip icon={<FansGlyph />}');
-    expect(shell).toContain("value={resources.fans}");
+    expect(shell).toContainSource('<ResourceChip icon={<FansGlyph />}');
+    expect(shell).toContainSource('value={resources.fans}');
     // The three chips share one cluster, in this order.
     const cluster = shell.slice(
       shell.indexOf('const resourceCluster = ('),
       shell.indexOf('return (\n    <SafeAreaView'),
     );
-    expect(cluster.indexOf('glyph="$"')).toBeLessThan(cluster.indexOf('glyph="TP"'));
-    expect(cluster.indexOf('glyph="TP"')).toBeLessThan(cluster.indexOf('<FansGlyph />'));
+    expect(cluster.indexOf('glyph="$"')).toBeLessThan(
+      cluster.indexOf('glyph="TP"'),
+    );
+    expect(cluster.indexOf('glyph="TP"')).toBeLessThan(
+      cluster.indexOf('<FansGlyph />'),
+    );
   });
 
   it('carries fans on the same summary the other two figures come from', () => {
-    expect(models).toMatch(/ResourceSummaryViewModel \{[\s\S]{0,400}fans: number;/);
+    expect(models).toMatchSource(
+      /ResourceSummaryViewModel \{[\s\S]{0,400}fans: number;/,
+    );
     // Every construction site fills it, or the chip renders undefined.
-    const built = viewModels.match(/trainingPoints: state\.trainingPoints,\n {6}fans: /g);
+    const built = viewModels.match(
+      /trainingPoints: state\.trainingPoints,\n {6}fans: /g,
+    );
     expect(built).toHaveLength(3);
   });
 
   it('draws two of the report crowd, overlapping without merging their outlines', () => {
-    expect(glyph).toContain("const PAIR: readonly FinanceSpriteId[] = ['fan-cheer-b', 'fan-cheer-d'];");
-    expect(glyph).toContain('const OVERLAP_COLUMNS = 7;');
+    expect(glyph).toContainSource(
+      "const PAIR: readonly FinanceSpriteId[] = ['fan-cheer-b', 'fan-cheer-d'];",
+    );
+    expect(glyph).toContainSource('const OVERLAP_COLUMNS = 7;');
     for (const id of ['fan-cheer-b', 'fan-cheer-d'] as const) {
-      expect(CROWD_SPRITE_IDS).toContain(id);
+      expect(CROWD_SPRITE_IDS).toContainSource(id);
     }
   });
 
@@ -56,16 +66,26 @@ describe('the HUD fans chip', () => {
 
     const headRowGaps = (shift: number): number => {
       const headRow = 2; // the first row of the head outline in both sprites
-      const merged = Array.from({ length: FINANCE_SPRITE_CELL + shift }, () => '.');
-      for (const [offset, rows] of [[0, back], [shift, front]] as const) {
+      const merged = Array.from(
+        { length: FINANCE_SPRITE_CELL + shift },
+        () => '.',
+      );
+      for (const [offset, rows] of [
+        [0, back],
+        [shift, front],
+      ] as const) {
         [...rows[headRow]].forEach((cell, x) => {
           if (cell !== '.') merged[offset + x] = cell;
         });
       }
       // Gaps strictly inside the drawn span — the empty margins do not count.
-      const first = merged.findIndex(cell => cell !== '.');
-      const last = merged.length - 1 - [...merged].reverse().findIndex(cell => cell !== '.');
-      return merged.slice(first, last + 1).filter(cell => cell === '.').length;
+      const first = merged.findIndex((cell) => cell !== '.');
+      const last =
+        merged.length -
+        1 -
+        [...merged].reverse().findIndex((cell) => cell !== '.');
+      return merged.slice(first, last + 1).filter((cell) => cell === '.')
+        .length;
     };
 
     expect(headRowGaps(7)).toBeGreaterThan(0);

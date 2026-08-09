@@ -66,7 +66,11 @@ function tables(buffer: Buffer): Map<string, TableRecord> {
 }
 
 /** cmap format 4 — the segmented mapping every Latin face in this project uses. */
-function readFormat4(buffer: Buffer, subtable: number, into: Set<number>): void {
+function readFormat4(
+  buffer: Buffer,
+  subtable: number,
+  into: Set<number>,
+): void {
   const segCountX2 = buffer.readUInt16BE(subtable + 6);
   const segCount = segCountX2 / 2;
   const endOffset = subtable + 14;
@@ -97,7 +101,11 @@ function readFormat4(buffer: Buffer, subtable: number, into: Set<number>): void 
 }
 
 /** cmap format 12 — needed by any face reaching beyond the BMP. */
-function readFormat12(buffer: Buffer, subtable: number, into: Set<number>): void {
+function readFormat12(
+  buffer: Buffer,
+  subtable: number,
+  into: Set<number>,
+): void {
   const groups = buffer.readUInt32BE(subtable + 12);
   for (let group = 0; group < groups; group += 1) {
     const at = subtable + 16 + group * 12;
@@ -135,8 +143,13 @@ export function glyphSet(ttfPath: string): ReadonlySet<number> {
 }
 
 /** Which characters of `text` the face cannot draw. Empty means it is safe. */
-export function missingGlyphs(text: string, covered: ReadonlySet<number>): string[] {
-  return [...text].filter(character => !covered.has(character.codePointAt(0) ?? -1));
+export function missingGlyphs(
+  text: string,
+  covered: ReadonlySet<number>,
+): string[] {
+  return [...text].filter(
+    (character) => !covered.has(character.codePointAt(0) ?? -1),
+  );
 }
 
 /* ------------------------------------------------------------------------- *
@@ -197,7 +210,11 @@ export interface Face {
   readonly indexToLocFormat: number;
   readonly cmap: ReadonlyMap<number, number>;
   readonly metrics: readonly GlyphMetric[];
-  readonly hhea: { readonly ascender: number; readonly descender: number; readonly lineGap: number };
+  readonly hhea: {
+    readonly ascender: number;
+    readonly descender: number;
+    readonly lineGap: number;
+  };
   readonly os2: {
     readonly xAvgCharWidth: number;
     readonly sTypoAscender: number;
@@ -213,7 +230,10 @@ export interface Face {
 function tableMap(buffer: Buffer): Map<string, Buffer> {
   const found = new Map<string, Buffer>();
   for (const [tag, record] of tables(buffer)) {
-    found.set(tag, buffer.subarray(record.offset, record.offset + record.length));
+    found.set(
+      tag,
+      buffer.subarray(record.offset, record.offset + record.length),
+    );
   }
   return found;
 }
@@ -243,7 +263,11 @@ export function readFace(ttfPath: string): Face {
 
   const offsets: number[] = [];
   for (let index = 0; index <= numGlyphs; index += 1) {
-    offsets.push(indexToLocFormat === 0 ? loca.readUInt16BE(index * 2) * 2 : loca.readUInt32BE(index * 4));
+    offsets.push(
+      indexToLocFormat === 0
+        ? loca.readUInt16BE(index * 2) * 2
+        : loca.readUInt32BE(index * 4),
+    );
   }
 
   const metrics: GlyphMetric[] = [];
@@ -251,9 +275,12 @@ export function readFace(ttfPath: string): Face {
     const index = Math.min(id, numberOfHMetrics - 1);
     metrics.push({
       advance: hmtx.readUInt16BE(index * 4),
-      lsb: id < numberOfHMetrics
-        ? hmtx.readInt16BE(index * 4 + 2)
-        : hmtx.readInt16BE(numberOfHMetrics * 4 + (id - numberOfHMetrics) * 2),
+      lsb:
+        id < numberOfHMetrics
+          ? hmtx.readInt16BE(index * 4 + 2)
+          : hmtx.readInt16BE(
+              numberOfHMetrics * 4 + (id - numberOfHMetrics) * 2,
+            ),
     });
   }
 
@@ -264,14 +291,18 @@ export function readFace(ttfPath: string): Face {
     const parsed = readGlyph(glyf.subarray(offsets[id], offsets[id + 1]));
     const resolved: Glyph = {
       ...parsed,
-      outline: parsed.components === null
-        ? parsed.contours
-        : parsed.components.flatMap(component => glyph(component.glyph).outline.map(contour =>
-          contour.map(point => ({
-            x: Math.round(point.x * component.scaleX) + component.dx,
-            y: Math.round(point.y * component.scaleY) + component.dy,
-            onCurve: point.onCurve,
-          })))),
+      outline:
+        parsed.components === null
+          ? parsed.contours
+          : parsed.components.flatMap((component) =>
+              glyph(component.glyph).outline.map((contour) =>
+                contour.map((point) => ({
+                  x: Math.round(point.x * component.scaleX) + component.dx,
+                  y: Math.round(point.y * component.scaleY) + component.dy,
+                  onCurve: point.onCurve,
+                })),
+              ),
+            ),
     };
     cache.set(id, resolved);
     return resolved;
@@ -303,24 +334,36 @@ export function readFace(ttfPath: string): Face {
       sTypoLineGap: os2.readInt16BE(72),
       usWinAscent: os2.readUInt16BE(74),
       usWinDescent: os2.readUInt16BE(76),
-      ulUnicodeRange: [42, 46, 50, 54].map(at => os2.readUInt32BE(at)),
+      ulUnicodeRange: [42, 46, 50, 54].map((at) => os2.readUInt32BE(at)),
     },
     glyph,
   };
 }
 
 function readGlyph(bytes: Buffer): Omit<Glyph, 'outline'> {
-  if (bytes.length === 0) return { contours: [], components: null, instructions: '' };
+  if (bytes.length === 0)
+    return { contours: [], components: null, instructions: '' };
   const numberOfContours = bytes.readInt16BE(0);
-  if (numberOfContours < 0) return { contours: [], components: readComponents(bytes), instructions: '' };
+  if (numberOfContours < 0)
+    return {
+      contours: [],
+      components: readComponents(bytes),
+      instructions: '',
+    };
 
   const endPoints: number[] = [];
-  for (let index = 0; index < numberOfContours; index += 1) endPoints.push(bytes.readUInt16BE(10 + index * 2));
-  const pointCount = numberOfContours === 0 ? 0 : endPoints[endPoints.length - 1]! + 1;
+  for (let index = 0; index < numberOfContours; index += 1)
+    endPoints.push(bytes.readUInt16BE(10 + index * 2));
+  const pointCount =
+    numberOfContours === 0 ? 0 : endPoints[endPoints.length - 1]! + 1;
 
   let at = 10 + numberOfContours * 2;
   const instructionLength = bytes.readUInt16BE(at);
-  const instructions = bytes.toString('hex', at + 2, at + 2 + instructionLength);
+  const instructions = bytes.toString(
+    'hex',
+    at + 2,
+    at + 2 + instructionLength,
+  );
   at += 2 + instructionLength;
 
   const flags: number[] = [];
@@ -360,7 +403,11 @@ function readGlyph(bytes: Buffer): Omit<Glyph, 'outline'> {
   for (const end of endPoints) {
     const contour: GlyphPoint[] = [];
     for (let index = start; index <= end; index += 1) {
-      contour.push({ x: xs[index]!, y: ys[index]!, onCurve: (flags[index]! & 1) !== 0 });
+      contour.push({
+        x: xs[index]!,
+        y: ys[index]!,
+        onCurve: (flags[index]! & 1) !== 0,
+      });
     }
     contours.push(contour);
     start = end + 1;
@@ -386,7 +433,10 @@ function readComponents(bytes: Buffer): GlyphComponent[] {
       dy = bytes.readInt8(at + 1);
       at += 2;
     }
-    if (!(flags & 2)) { dx = 0; dy = 0; } // point matching, not an offset
+    if (!(flags & 2)) {
+      dx = 0;
+      dy = 0;
+    } // point matching, not an offset
     let scaleX = 1;
     let scaleY = 1;
     if (flags & 8) {
@@ -406,7 +456,11 @@ function readComponents(bytes: Buffer): GlyphComponent[] {
 }
 
 /** cmap format 4 and 12, keeping the glyph ids rather than only the codepoints. */
-function readCmapGlyphs(buffer: Buffer, cmap: number, into: Map<number, number>): void {
+function readCmapGlyphs(
+  buffer: Buffer,
+  cmap: number,
+  into: Map<number, number>,
+): void {
   const subtables = buffer.readUInt16BE(cmap + 2);
   for (let index = 0; index < subtables; index += 1) {
     const record = cmap + 4 + index * 8;

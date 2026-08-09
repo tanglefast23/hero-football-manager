@@ -49,14 +49,23 @@ const MAXIMUM_ASSISTED_GOAL_SHARE = 0.99;
 const SEEDS = 20;
 
 /** Both sides auto-fire: the watched-match default is asymmetric by design. */
-const POLICIES = { homePolicy: 'FIRE_WHEN_READY' as const, awayPolicy: 'FIRE_WHEN_READY' as const };
+const POLICIES = {
+  homePolicy: 'FIRE_WHEN_READY' as const,
+  awayPolicy: 'FIRE_WHEN_READY' as const,
+};
 
 describe('assist yield rail', () => {
   it('keeps assisted goals inside the band the Midfielders board was built on', () => {
     let goals = 0;
     let assists = 0;
     for (let index = 0; index < SEEDS; index += 1) {
-      const result = runMatch(900_000 + index * 7919, ROVERS, UNITED, [], POLICIES);
+      const result = runMatch(
+        900_000 + index * 7919,
+        ROVERS,
+        UNITED,
+        [],
+        POLICIES,
+      );
       for (const event of result.events) {
         if (event.kind !== 'GOAL') continue;
         goals += 1;
@@ -70,9 +79,11 @@ describe('assist yield rail', () => {
 
     const share = assists / goals;
     // eslint-disable-next-line no-console
-    console.log(`ASSIST YIELD RAIL: ${assists}/${goals} goals assisted`
-      + ` (${(share * 100).toFixed(1)}%, ${(assists / SEEDS).toFixed(2)} assists/match)`
-      + ` over ${SEEDS} seeds`);
+    console.log(
+      `ASSIST YIELD RAIL: ${assists}/${goals} goals assisted` +
+        ` (${(share * 100).toFixed(1)}%, ${(assists / SEEDS).toFixed(2)} assists/match)` +
+        ` over ${SEEDS} seeds`,
+    );
 
     expect(share).toBeGreaterThanOrEqual(MINIMUM_ASSISTED_GOAL_SHARE);
     expect(share).toBeLessThanOrEqual(MAXIMUM_ASSISTED_GOAL_SHARE);

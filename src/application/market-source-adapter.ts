@@ -33,11 +33,7 @@ import type {
   TransferListingSource,
 } from './market-view-model';
 
-const ROTATING_REGIONS: readonly ScoutRegion[] = [
-  'EUROPE',
-  'AFRICA',
-  'ASIA',
-];
+const ROTATING_REGIONS: readonly ScoutRegion[] = ['EUROPE', 'AFRICA', 'ASIA'];
 
 /**
  * English copy, for every caller that has not threaded a locale through yet.
@@ -59,73 +55,97 @@ export function careerMarketViewModelSource(
   t: CopyFn = englishCopy(),
 ): MarketViewModelSource {
   const market = suppliedMarket ?? state.market;
-  if (market === undefined) throw new Error('the career market has not been initialized');
-  const userClub = state.clubs.find(club => club.id === state.userClubId);
-  if (userClub === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  if (market === undefined)
+    throw new Error('the career market has not been initialized');
+  const userClub = state.clubs.find((club) => club.id === state.userClubId);
+  if (userClub === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
   const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
   const storyPacing = isStoryFeaturePacingActive(state);
   const youthUnlocked = isStoryYouthUnlocked(state);
-  const scoutingUnlocked = isStoryScoutingUnlocked(state)
-    || market.activeScoutMission !== undefined
-    || market.scoutReports.length > 0;
-  const rosterCount = state.players.filter(player => player.clubId === state.userClubId).length;
+  const scoutingUnlocked =
+    isStoryScoutingUnlocked(state) ||
+    market.activeScoutMission !== undefined ||
+    market.scoutReports.length > 0;
+  const rosterCount = state.players.filter(
+    (player) => player.clubId === state.userClubId,
+  ).length;
   const rosterCapacity = careerRosterCapacity(state);
-  const savedSellListings = new Map((market.transferListings ?? []).map(listing => [
-    listing.playerId,
-    listing,
-  ]));
-  const playerSalesUnlocked = !storyPacing
-    || savedSellListings.size > 0
-    || (scoutingUnlocked && rosterCount >= rosterCapacity);
-  const transferDealsUnlocked = !storyPacing
-    || market.scoutReports.length > 0
-    || market.transferTalks !== undefined
-    || playerSalesUnlocked;
+  const savedSellListings = new Map(
+    (market.transferListings ?? []).map((listing) => [
+      listing.playerId,
+      listing,
+    ]),
+  );
+  const playerSalesUnlocked =
+    !storyPacing ||
+    savedSellListings.size > 0 ||
+    (scoutingUnlocked && rosterCount >= rosterCapacity);
+  const transferDealsUnlocked =
+    !storyPacing ||
+    market.scoutReports.length > 0 ||
+    market.transferTalks !== undefined ||
+    playerSalesUnlocked;
   const unlockedSections: MarketSectionId[] = [
     ...(youthUnlocked ? ['YOUTH' as const] : []),
     ...(scoutingUnlocked ? ['SCOUT' as const] : []),
     ...(transferDealsUnlocked ? ['TRANSFERS' as const] : []),
     'COACHES',
   ];
-  const reportByPlayerId = new Map(market.scoutReports.map(report => [report.playerId, report]));
-  const playerById = new Map(state.players.map(player => [player.id, player]));
+  const reportByPlayerId = new Map(
+    market.scoutReports.map((report) => [report.playerId, report]),
+  );
+  const playerById = new Map(
+    state.players.map((player) => [player.id, player]),
+  );
   for (const report of market.scoutReports) {
     const target = careerTransferTarget(state, report.playerId, division);
     if (target !== undefined) playerById.set(report.playerId, target.player);
   }
-  if (market.transferTalks !== undefined && !playerById.has(market.transferTalks.playerId)) {
-    const target = careerTransferTarget(state, market.transferTalks.playerId, division);
+  if (
+    market.transferTalks !== undefined &&
+    !playerById.has(market.transferTalks.playerId)
+  ) {
+    const target = careerTransferTarget(
+      state,
+      market.transferTalks.playerId,
+      division,
+    );
     if (target !== undefined) playerById.set(target.player.id, target.player);
   }
   const scoutResult = currentScoutResult(state, market);
-  const buyListings = market.scoutReports
-    .map(report => {
-      const player = playerById.get(report.playerId);
-      if (player === undefined || player.clubId === state.userClubId) {
-        throw new Error(`scout report ${report.playerId} does not reference a transfer target`);
-      }
-      return transferListing(
-        player,
-        t,
-        'BUY',
-        divisionForClub(state, player.clubId, division),
-        report.power !== undefined,
+  const buyListings = market.scoutReports.map((report) => {
+    const player = playerById.get(report.playerId);
+    if (player === undefined || player.clubId === state.userClubId) {
+      throw new Error(
+        `scout report ${report.playerId} does not reference a transfer target`,
       );
-    });
+    }
+    return transferListing(
+      player,
+      t,
+      'BUY',
+      divisionForClub(state, player.clubId, division),
+      report.power !== undefined,
+    );
+  });
   const sellListings = state.players
-    .filter(player => (
-      playerSalesUnlocked
-      &&
-      player.clubId === state.userClubId
-      && player.contractSeasonsRemaining > 0
-    ))
-    .map(player => {
+    .filter(
+      (player) =>
+        playerSalesUnlocked &&
+        player.clubId === state.userClubId &&
+        player.contractSeasonsRemaining > 0,
+    )
+    .map((player) => {
       const saved = savedSellListings.get(player.id);
-      const bestBid = saved === undefined
-        ? undefined
-        : [...saved.bids].sort((left, right) => (
-          right.quote.fee - left.quote.fee || left.id.localeCompare(right.id)
-        ))[0];
+      const bestBid =
+        saved === undefined
+          ? undefined
+          : [...saved.bids].sort(
+              (left, right) =>
+                right.quote.fee - left.quote.fee ||
+                left.id.localeCompare(right.id),
+            )[0];
       return transferListing(
         player,
         t,
@@ -134,19 +154,24 @@ export function careerMarketViewModelSource(
         true,
         saved !== undefined,
         bestBid?.quote,
-        saved?.bids.map(bid => ({
+        saved?.bids.map((bid) => ({
           id: bid.id,
-          buyerName: state.clubs.find(club => club.id === bid.buyerClubId)?.name ?? bid.buyerClubId,
+          buyerName:
+            state.clubs.find((club) => club.id === bid.buyerClubId)?.name ??
+            bid.buyerClubId,
           quote: bid.quote,
         })),
         saleBlockedReason(state, player, t),
       );
     });
-  const transferListings = [...buyListings, ...sellListings].sort((left, right) => {
-    if (left.direction !== right.direction) return left.direction === 'BUY' ? -1 : 1;
-    return stableTextCompare(left.player.id, right.player.id);
-  });
-  const identities = market.scoutReports.map(report => {
+  const transferListings = [...buyListings, ...sellListings].sort(
+    (left, right) => {
+      if (left.direction !== right.direction)
+        return left.direction === 'BUY' ? -1 : 1;
+      return stableTextCompare(left.player.id, right.player.id);
+    },
+  );
+  const identities = market.scoutReports.map((report) => {
     const player = playerById.get(report.playerId)!;
     return {
       id: player.id,
@@ -155,40 +180,43 @@ export function careerMarketViewModelSource(
       ...(report.power === undefined || player.power === undefined
         ? {}
         : {
-          powerName: t('market.powerAndTier', {
-            power: powerDisplayName(t, player.power),
-            tier: player.powerTier ?? 1,
+            powerName: t('market.powerAndTier', {
+              power: powerDisplayName(t, player.power),
+              tier: player.powerTier ?? 1,
+            }),
           }),
-        }),
     };
   });
   const talks = market.transferTalks;
-  const negotiation = talks === undefined
-    ? undefined
-    : (() => {
-        const player = playerById.get(talks.playerId);
-        if (player === undefined || player.clubId === state.userClubId) {
-          throw new Error(`transfer talks ${talks.playerId} do not reference a transfer target`);
-        }
-        return {
-          state: talks.negotiation,
-          playerName: player.name,
-          playerRole: player.role,
-          lookId: player.lookId,
-          openingWeeklyWage: player.weeklyWage,
-          wageStep: wageStepFor(player.weeklyWage),
-          // Signing, not renewal: the window is open mid-season, so week 30 will
-          // still decrement this contract once before the season ends and the
-          // term has to cover the season in progress too.
-          maxTermSeasons: maxSigningTermSeasons(player, state.careerSeed),
-          playerAge: player.age ?? 24,
-          contractPromiseContext: {
-            state,
-            player,
-            heroLimit: careerContractPromiseHeroLimit(state),
-          },
-        };
-      })();
+  const negotiation =
+    talks === undefined
+      ? undefined
+      : (() => {
+          const player = playerById.get(talks.playerId);
+          if (player === undefined || player.clubId === state.userClubId) {
+            throw new Error(
+              `transfer talks ${talks.playerId} do not reference a transfer target`,
+            );
+          }
+          return {
+            state: talks.negotiation,
+            playerName: player.name,
+            playerRole: player.role,
+            lookId: player.lookId,
+            openingWeeklyWage: player.weeklyWage,
+            wageStep: wageStepFor(player.weeklyWage),
+            // Signing, not renewal: the window is open mid-season, so week 30 will
+            // still decrement this contract once before the season ends and the
+            // term has to cover the season in progress too.
+            maxTermSeasons: maxSigningTermSeasons(player, state.careerSeed),
+            playerAge: player.age ?? 24,
+            contractPromiseContext: {
+              state,
+              player,
+              heroLimit: careerContractPromiseHeroLimit(state),
+            },
+          };
+        })();
 
   return {
     careerSeed: state.careerSeed,
@@ -213,13 +241,21 @@ export function careerMarketViewModelSource(
     ...(identities.length === 0 ? {} : { scoutedPlayerIdentities: identities }),
     transferListings,
     coachCandidates: market.coachCandidates.map(cloneCoachCandidate),
-    ...(market.headCoach === undefined ? {} : { headCoach: cloneCoachCandidate(market.headCoach) }),
-    assistantSlotUnlocked: state.facilities.grid?.buildings.some(building => (
-      building.type === 'coaching-office'
-      && isFacilityOperational(state.facilities.grid!, building.id)
-    )) === true,
-    ...(market.headCoach === undefined ? {} : { headCoachId: market.headCoach.id }),
-    ...(market.assistantCoach === undefined ? {} : { assistantCoachId: market.assistantCoach.id }),
+    ...(market.headCoach === undefined
+      ? {}
+      : { headCoach: cloneCoachCandidate(market.headCoach) }),
+    assistantSlotUnlocked:
+      state.facilities.grid?.buildings.some(
+        (building) =>
+          building.type === 'coaching-office' &&
+          isFacilityOperational(state.facilities.grid!, building.id),
+      ) === true,
+    ...(market.headCoach === undefined
+      ? {}
+      : { headCoachId: market.headCoach.id }),
+    ...(market.assistantCoach === undefined
+      ? {}
+      : { assistantCoachId: market.assistantCoach.id }),
     ...(state.youthIntake === undefined || !youthUnlocked
       ? {}
       : {
@@ -228,7 +264,7 @@ export function careerMarketViewModelSource(
             declined: state.youthIntake.declined,
             rosterCount,
             rosterCapacity,
-            offers: state.youthIntake.offers.map(offer => ({
+            offers: state.youthIntake.offers.map((offer) => ({
               player: {
                 id: offer.player.id,
                 name: offer.player.name,
@@ -250,10 +286,15 @@ export function careerMarketViewModelSource(
 
 /** Promotion adds briefs without replacing the familiar searches below them. */
 export function careerMarketScoutOptions(
-  state: Pick<GameState, 'careerSeed' | 'season' | 'week'> & Partial<Pick<GameState, 'm2'>>,
+  state: Pick<GameState, 'careerSeed' | 'season' | 'week'> &
+    Partial<Pick<GameState, 'm2'>>,
   t: CopyFn = englishCopy(),
 ): ScoutMissionOptionSource[] {
-  if (!Number.isInteger(state.careerSeed) || state.careerSeed < 0 || state.careerSeed > 4294967295) {
+  if (
+    !Number.isInteger(state.careerSeed) ||
+    state.careerSeed < 0 ||
+    state.careerSeed > 4294967295
+  ) {
     throw new Error('market option career seed must be a uint32');
   }
   if (!Number.isSafeInteger(state.season) || state.season < 1) {
@@ -266,9 +307,13 @@ export function careerMarketScoutOptions(
   const secondRegion = ROTATING_REGIONS[cursor % ROTATING_REGIONS.length];
   const heroRegion = ROTATING_REGIONS[(cursor + 1) % ROTATING_REGIONS.length];
   const eliteRegion = ROTATING_REGIONS[(cursor + 2) % ROTATING_REGIONS.length];
-  const progressionDivision = state.m2 === undefined
-    ? 5
-    : Math.min(currentUserDivision(state.m2), state.m2.highestDivisionReached ?? 5);
+  const progressionDivision =
+    state.m2 === undefined
+      ? 5
+      : Math.min(
+          currentUserDivision(state.m2),
+          state.m2.highestDivisionReached ?? 5,
+        );
 
   const options: ScoutMissionOptionSource[] = [
     {
@@ -285,28 +330,27 @@ export function careerMarketScoutOptions(
       detail: t('market.scoutBrief.firstTeamDefender'),
     },
   ];
-  if (progressionDivision <= 4) options.push(
-    {
+  if (progressionDivision <= 4)
+    options.push({
       id: `scout-brief-s${state.season}-w${state.week}-${secondRegion.toLowerCase()}-prime`,
       region: secondRegion,
       focus: { kind: 'AGE', minimumAge: 22, maximumAge: 29 },
       detail: t('market.scoutBrief.primeYears'),
-    },
-  );
-  if (progressionDivision <= 3) options.push(
-    {
+    });
+  if (progressionDivision <= 3)
+    options.push({
       id: `scout-brief-s${state.season}-w${state.week}-${heroRegion.toLowerCase()}-hero`,
       region: heroRegion,
       focus: { kind: 'RUMORED_HERO' },
       detail: t('market.scoutBrief.powerRumor'),
-    },
-  );
-  if (progressionDivision <= 2) options.push({
-    id: `scout-brief-s${state.season}-w${state.week}-${eliteRegion.toLowerCase()}-elite`,
-    region: eliteRegion,
-    focus: { kind: 'ELITE_PROSPECT' },
-    detail: t('market.scoutBrief.eliteProspect'),
-  });
+    });
+  if (progressionDivision <= 2)
+    options.push({
+      id: `scout-brief-s${state.season}-w${state.week}-${eliteRegion.toLowerCase()}-elite`,
+      region: eliteRegion,
+      focus: { kind: 'ELITE_PROSPECT' },
+      detail: t('market.scoutBrief.eliteProspect'),
+    });
   return options;
 }
 
@@ -330,7 +374,9 @@ function transferListing(
   sellingClubDivision: number,
   revealPower: boolean,
   listed = false,
-  savedQuote?: NonNullable<CareerMarketState['transferListings']>[number]['bids'][number]['quote'],
+  savedQuote?: NonNullable<
+    CareerMarketState['transferListings']
+  >[number]['bids'][number]['quote'],
   bids?: TransferListingSource['bids'],
   saleBlockedReason?: string,
 ): TransferListingSource {
@@ -341,11 +387,11 @@ function transferListing(
       lookId: player.lookId,
       ...(revealPower && player.power !== undefined
         ? {
-          powerName: t('market.powerAndTier', {
-            power: powerDisplayName(t, player.power),
-            tier: player.powerTier ?? 1,
-          }),
-        }
+            powerName: t('market.powerAndTier', {
+              power: powerDisplayName(t, player.power),
+              tier: player.powerTier ?? 1,
+            }),
+          }
         : {}),
     },
     direction,
@@ -376,8 +422,10 @@ function valuationPlayer(player: CareerPlayer): ValuationPlayer {
  * injury weeks AND no away weeks), and not a bench-locked unlicensed hero.
  */
 function isEligibleCoverPlayer(candidate: CareerPlayer): boolean {
-  return isAvailableForSelection(candidate)
-    && !(candidate.power !== undefined && !candidate.licensed);
+  return (
+    isAvailableForSelection(candidate) &&
+    !(candidate.power !== undefined && !candidate.licensed)
+  );
 }
 
 /**
@@ -393,46 +441,69 @@ function saleBlockedReason(
   player: CareerPlayer,
   t: CopyFn,
 ): string | undefined {
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
   if (lineup === undefined) return undefined;
-  const eligibleSpares = (starters: ReadonlySet<string>) => state.players.filter(candidate => (
-    candidate.clubId === state.userClubId
-    && candidate.id !== player.id
-    && !starters.has(candidate.id)
-    && isEligibleCoverPlayer(candidate)
-  ));
+  const eligibleSpares = (starters: ReadonlySet<string>) =>
+    state.players.filter(
+      (candidate) =>
+        candidate.clubId === state.userClubId &&
+        candidate.id !== player.id &&
+        !starters.has(candidate.id) &&
+        isEligibleCoverPlayer(candidate),
+    );
   let starters = new Set(lineup.playerIds);
   if (starters.has(player.id)) {
     const benchSpares = eligibleSpares(starters);
-    const replacement = benchSpares.find(candidate => candidate.role === player.role)
-      ?? (player.role === 'GK'
+    const replacement =
+      benchSpares.find((candidate) => candidate.role === player.role) ??
+      (player.role === 'GK'
         ? undefined
-        : benchSpares.find(candidate => candidate.role !== 'GK'));
+        : benchSpares.find((candidate) => candidate.role !== 'GK'));
     if (replacement === undefined) {
       return t('market.saleNeedsReplacement');
     }
-    starters = new Set(lineup.playerIds.map(id => id === player.id ? replacement.id : id));
+    starters = new Set(
+      lineup.playerIds.map((id) => (id === player.id ? replacement.id : id)),
+    );
   }
   const spares = eligibleSpares(starters);
-  const covered = spares.some(candidate => candidate.role === 'GK')
-    && spares.some(candidate => candidate.role !== 'GK');
+  const covered =
+    spares.some((candidate) => candidate.role === 'GK') &&
+    spares.some((candidate) => candidate.role !== 'GK');
   if (!covered) {
     return t('market.saleNeedsCover');
   }
   return undefined;
 }
 
-function divisionForClub(state: GameState, clubId: string, fallback: number): number {
+function divisionForClub(
+  state: GameState,
+  clubId: string,
+  fallback: number,
+): number {
   if (state.m2 === undefined) return fallback;
-  return state.m2.pyramid.divisions.find(division =>
-    division.clubs.some(club => club.id === clubId),
-  )?.level ?? fallback;
+  return (
+    state.m2.pyramid.divisions.find((division) =>
+      division.clubs.some((club) => club.id === clubId),
+    )?.level ?? fallback
+  );
 }
 
 function clubFame(state: GameState): number {
-  return Math.max(0, Math.min(CAREER_CLUB_FAME_CEILING, state.players
-    .filter(player => player.clubId === state.userClubId)
-    .reduce((total, player) => total + (player.fame ?? 0), state.market?.clubFameAdjustment ?? 0)));
+  return Math.max(
+    0,
+    Math.min(
+      CAREER_CLUB_FAME_CEILING,
+      state.players
+        .filter((player) => player.clubId === state.userClubId)
+        .reduce(
+          (total, player) => total + (player.fame ?? 0),
+          state.market?.clubFameAdjustment ?? 0,
+        ),
+    ),
+  );
 }
 
 /** 0 when the club owns no Scout Office; the best operational office wins. */
@@ -458,7 +529,9 @@ function wageStepFor(weeklyWage: number): number {
   return 50;
 }
 
-function cloneScoutMission(mission: NonNullable<CareerMarketState['activeScoutMission']>) {
+function cloneScoutMission(
+  mission: NonNullable<CareerMarketState['activeScoutMission']>,
+) {
   return { ...mission, focus: { ...mission.focus } };
 }
 
@@ -485,12 +558,16 @@ function cloneCoachCandidate(candidate: CoachCandidate): CoachCandidate {
   };
 }
 
-function marketCursor(careerSeed: number, season: number, week: number): number {
-  let value = (
-    careerSeed
-    ^ Math.imul(season, 0x9e3779b1)
-    ^ Math.imul(week, 0x85ebca6b)
-  ) >>> 0;
+function marketCursor(
+  careerSeed: number,
+  season: number,
+  week: number,
+): number {
+  let value =
+    (careerSeed ^
+      Math.imul(season, 0x9e3779b1) ^
+      Math.imul(week, 0x85ebca6b)) >>>
+    0;
   value = Math.imul(value ^ (value >>> 16), 0x7feb352d) >>> 0;
   value = Math.imul(value ^ (value >>> 15), 0x846ca68b) >>> 0;
   return (value ^ (value >>> 16)) >>> 0;

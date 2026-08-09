@@ -64,7 +64,10 @@ export function contentStrings(): Readonly<Record<string, string>> {
       put(`event.${event.id}.${choice.id}.label`, choice.label);
       for (const outcome of choice.outcomes) {
         put(`event.${event.id}.${choice.id}.${outcome.id}.text`, outcome.text);
-        put(`event.${event.id}.${choice.id}.${outcome.id}.headline`, outcome.successHeadline);
+        put(
+          `event.${event.id}.${choice.id}.${outcome.id}.headline`,
+          outcome.successHeadline,
+        );
       }
     }
   }
@@ -87,7 +90,10 @@ export function contentStrings(): Readonly<Record<string, string>> {
     put(`glossary.${category.id}.title`, category.title);
     for (const entry of category.entries) {
       put(`glossary.${category.id}.${proseSlug(entry.term)}.term`, entry.term);
-      put(`glossary.${category.id}.${proseSlug(entry.term)}.definition`, entry.definition);
+      put(
+        `glossary.${category.id}.${proseSlug(entry.term)}.definition`,
+        entry.definition,
+      );
     }
   }
 
@@ -110,7 +116,10 @@ export function contentStrings(): Readonly<Record<string, string>> {
      */
     sequence.pages.forEach((page, pageIndex) => {
       page.body.forEach((paragraph, bodyIndex) => {
-        put(`bert.guide.${sequence.id}.page${pageIndex + 1}.body${bodyIndex + 1}`, paragraph);
+        put(
+          `bert.guide.${sequence.id}.page${pageIndex + 1}.body${bodyIndex + 1}`,
+          paragraph,
+        );
       });
     });
   }
@@ -140,7 +149,10 @@ export function contentStrings(): Readonly<Record<string, string>> {
    * same namespace, so there is never a second competing name for a power.
    */
   for (const power of content.powers.powers) {
-    put(`powerEffect.${powerCopySlug(power.id)}.description`, power.description);
+    put(
+      `powerEffect.${powerCopySlug(power.id)}.description`,
+      power.description,
+    );
   }
 
   for (const drill of content.training.focusDrills) {

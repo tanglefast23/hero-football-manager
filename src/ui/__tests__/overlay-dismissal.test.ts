@@ -1,7 +1,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
+const source = (path: string) =>
+  readFileSync(join(process.cwd(), path), 'utf8');
 
 /**
  * An outside tap closes anything the player is only reading, and anything whose
@@ -16,13 +17,17 @@ describe('overlay dismissal', () => {
     ['facility project notice', 'src/ui/FacilityProjectNotice.tsx'],
     ['player signing receipt', 'src/ui/PlayerSigningOverlay.tsx'],
     ['coach staff overlay', 'src/ui/CoachStaffOverlay.tsx'],
-    ['facility placement confirmation', 'src/ui/FacilityPlacementConfirmation.tsx'],
+    [
+      'facility placement confirmation',
+      'src/ui/FacilityPlacementConfirmation.tsx',
+    ],
     ['club decision sheet', 'src/ui/components/ConfirmationSheet.tsx'],
   ] as const;
 
   it.each(dismissable)('closes %s on an outside tap', (_label, path) => {
     const file = source(path);
-    const hasBackdropPressable = /className="absolute inset-0"|style={StyleSheet.absoluteFill}/.test(file);
+    const hasBackdropPressable =
+      /className="absolute inset-0"|style={StyleSheet.absoluteFill}/.test(file);
 
     expect(hasBackdropPressable).toBe(true);
     // The backdrop is a sibling of the panel, never its parent, so taps on the
@@ -46,11 +51,16 @@ describe('overlay dismissal', () => {
   it('cancels rather than commits when the club decision sheet is tapped away', () => {
     const file = source('src/ui/components/ConfirmationSheet.tsx');
     const sheet = file.slice(file.indexOf('export function ConfirmationSheet'));
-    const backdrop = /<Pressable[\s\S]*?className="absolute inset-0"[\s\S]*?\/>/.exec(sheet)?.[0];
+    const backdrop =
+      /<Pressable[\s\S]*?className="absolute inset-0"[\s\S]*?\/>/.exec(
+        sheet,
+      )?.[0];
 
     expect(backdrop).toBeDefined();
     expect(backdrop).toContain('onPress={cancel}');
-    expect(sheet).toMatch(/const cancel = useCallback\(\(\) => \{[\s\S]*?onCancel\(\);/);
+    expect(sheet).toMatch(
+      /const cancel = useCallback\(\(\) => \{[\s\S]*?onCancel\(\);/,
+    );
     expect(backdrop).not.toContain('onPress={onConfirm}');
   });
 
@@ -58,7 +68,9 @@ describe('overlay dismissal', () => {
     const file = source('src/ui/FacilityPlacementConfirmation.tsx');
 
     expect(file).toContain('onPress={onCancel}');
-    expect(file).not.toContain('className="absolute inset-0" onPress={onConfirm}');
+    expect(file).not.toContain(
+      'className="absolute inset-0" onPress={onConfirm}',
+    );
   });
 
   it('keeps forced beats undismissable', () => {
@@ -134,10 +146,14 @@ describe('overlay dismissal', () => {
 
     expect(bert).toMatch(/<CharacterSpeechOverlay[\s\S]*?\n\s+instant\n/);
     expect(bert).toMatch(/<CharacterSpeechOverlay[\s\S]*?\n\s+typewriter\n/);
-    expect(matchdayBert).toMatch(/<CharacterSpeechOverlay[\s\S]*?\n\s+typewriter\n/);
+    expect(matchdayBert).toMatch(
+      /<CharacterSpeechOverlay[\s\S]*?\n\s+typewriter\n/,
+    );
     expect(bert).toContain('walking={false}');
     expect(rookie).not.toMatch(/<CharacterSpeechOverlay[\s\S]*?\n\s+instant\n/);
-    expect(rookie).not.toMatch(/<CharacterSpeechOverlay[\s\S]*?\n\s+typewriter\n/);
+    expect(rookie).not.toMatch(
+      /<CharacterSpeechOverlay[\s\S]*?\n\s+typewriter\n/,
+    );
     expect(overlay).toContain("reduce || instant ? 'speaking' : 'arriving'");
     expect(overlay).toContain('if (instant) {');
     expect(overlay).toContain('onDone();');

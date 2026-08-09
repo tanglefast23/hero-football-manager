@@ -20,11 +20,15 @@ describe('Hero Cup fan rewards', () => {
 
   it('pays more the further a club goes', () => {
     const run = Object.values(FANS_BY_ROUND);
-    for (let i = 1; i < run.length; i += 1) expect(run[i]).toBeGreaterThan(run[i - 1]);
+    for (let i = 1; i < run.length; i += 1)
+      expect(run[i]).toBeGreaterThan(run[i - 1]);
   });
 
   it('stays under the step a promotion gives, so the league stays the main driver', () => {
-    const fullRun = Object.values(FANS_BY_ROUND).reduce((total, fans) => total + fans, 0);
+    const fullRun = Object.values(FANS_BY_ROUND).reduce(
+      (total, fans) => total + fans,
+      0,
+    );
     // One division is worth 500 fans; a whole cup run is worth less than two.
     const oneDivisionStep = divisionFans(4) - divisionFans(5);
     expect(oneDivisionStep).toBe(500);
@@ -35,7 +39,9 @@ describe('Hero Cup fan rewards', () => {
   });
 
   it('matches the schedule the career actually awards', () => {
-    const rounds = Object.keys(FANS_BY_ROUND) as Array<keyof typeof FANS_BY_ROUND>;
+    const rounds = Object.keys(FANS_BY_ROUND) as Array<
+      keyof typeof FANS_BY_ROUND
+    >;
     for (const [index, round] of rounds.entries()) {
       const awards = nationalCupRoundSettlementAwards({
         clubId: 'bramble-rovers',
@@ -43,7 +49,9 @@ describe('Hero Cup fan rewards', () => {
         roundNumber: index + 1,
         roundLabel: round,
       });
-      expect(resolveWeeklySettlementAwards([], awards).fanGain).toBe(FANS_BY_ROUND[round]);
+      expect(resolveWeeklySettlementAwards([], awards).fanGain).toBe(
+        FANS_BY_ROUND[round],
+      );
     }
   });
 });

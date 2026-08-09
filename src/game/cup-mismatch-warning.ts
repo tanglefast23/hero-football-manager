@@ -55,18 +55,24 @@ interface WarningCopy {
 const WARNING_COPY_BY_TIER: Readonly<Record<2 | 3 | 4, WarningCopy>> = {
   2: {
     title: 'Two divisions above us',
-    body: opponentName => `Boss, ${opponentName} are two divisions above us. On paper, we are expected to lose by a couple. Keep it tight, and this can still become the funny kind of Cup story.`,
-    starBody: playerName => `One more thing: ${playerName} is their likeliest scorer. Give them less room than a budget-airline seat.`,
+    body: (opponentName) =>
+      `Boss, ${opponentName} are two divisions above us. On paper, we are expected to lose by a couple. Keep it tight, and this can still become the funny kind of Cup story.`,
+    starBody: (playerName) =>
+      `One more thing: ${playerName} is their likeliest scorer. Give them less room than a budget-airline seat.`,
   },
   3: {
     title: 'Three divisions. Oh dear.',
-    body: opponentName => `Boss, ${opponentName} are three divisions above us. A three or four-goal defeat would not shock the statisticians. Their substitutes probably have substitutes.`,
-    starBody: playerName => `${playerName} is their main goal threat. If they look unmarked, that is not a tactical shape. That is an emergency.`,
+    body: (opponentName) =>
+      `Boss, ${opponentName} are three divisions above us. A three or four-goal defeat would not shock the statisticians. Their substitutes probably have substitutes.`,
+    starBody: (playerName) =>
+      `${playerName} is their main goal threat. If they look unmarked, that is not a tactical shape. That is an emergency.`,
   },
   4: {
     title: 'Four divisions. I checked twice.',
-    body: opponentName => `Boss, ${opponentName} are four divisions above us — the full pyramid. We are expected to lose by the kind of score normally counted with both hands. If they stop at four, I may send a thank-you card.`,
-    starBody: playerName => `${playerName} is their likeliest scorer. I would say double-mark them, but I do not want the other ten to feel ignored.`,
+    body: (opponentName) =>
+      `Boss, ${opponentName} are four divisions above us — the full pyramid. We are expected to lose by the kind of score normally counted with both hands. If they stop at four, I may send a thank-you card.`,
+    starBody: (playerName) =>
+      `${playerName} is their likeliest scorer. I would say double-mark them, but I do not want the other ten to feel ignored.`,
   },
 };
 
@@ -75,7 +81,10 @@ const WARNING_COPY_BY_TIER: Readonly<Record<2 | 3 | 4, WarningCopy>> = {
  * post-win speech. The tier is already the identity of the row, so no second
  * lookup table can drift out of step with the English one above.
  */
-function cupMismatchCopyKey(tier: 2 | 3 | 4, part: 'title' | 'body' | 'star'): string {
+function cupMismatchCopyKey(
+  tier: 2 | 3 | 4,
+  part: 'title' | 'body' | 'star',
+): string {
   return `cupMismatch.${tier}.${part}`;
 }
 
@@ -86,28 +95,33 @@ function cupMismatchCopyKey(tier: 2 | 3 | 4, part: 'title' | 'body' | 'star'): s
  * post-win giant-killing speech. The assistant mode is deliberately not read:
  * this is a Cup story beat, not a lesson, so Advisor careers keep it too.
  */
-export function cupMismatchWarning(state: GameState): CupMismatchWarning | undefined {
+export function cupMismatchWarning(
+  state: GameState,
+): CupMismatchWarning | undefined {
   const matchday = activeCareerMatchday(state);
   if (matchday?.kind !== 'national-cup') return undefined;
-  if (state.eventFlags.includes(cupMismatchWarningFlag(matchday.fixture.id))) return undefined;
+  if (state.eventFlags.includes(cupMismatchWarningFlag(matchday.fixture.id)))
+    return undefined;
 
   const cup = state.m2?.nationalCups.find(
-    candidate => candidate.season === matchday.fixture.season,
+    (candidate) => candidate.season === matchday.fixture.season,
   );
   const divisions = cup?.seedDivisionByClubId;
   if (divisions === undefined) return undefined;
 
-  const opponentClubId = matchday.fixture.homeClubId === state.userClubId
-    ? matchday.fixture.awayClubId
-    : matchday.fixture.homeClubId;
+  const opponentClubId =
+    matchday.fixture.homeClubId === state.userClubId
+      ? matchday.fixture.awayClubId
+      : matchday.fixture.homeClubId;
   const userDivision = divisions[state.userClubId];
   const opponentDivision = divisions[opponentClubId];
-  if (userDivision === undefined || opponentDivision === undefined) return undefined;
+  if (userDivision === undefined || opponentDivision === undefined)
+    return undefined;
 
   const divisionGap = userDivision - opponentDivision;
   if (divisionGap < 2) return undefined;
 
-  const opponent = state.clubs.find(club => club.id === opponentClubId);
+  const opponent = state.clubs.find((club) => club.id === opponentClubId);
   if (opponent === undefined) return undefined;
   const tier: 2 | 3 | 4 = divisionGap >= 4 ? 4 : divisionGap === 3 ? 3 : 2;
   const copy = WARNING_COPY_BY_TIER[tier];
@@ -121,11 +135,15 @@ export function cupMismatchWarning(state: GameState): CupMismatchWarning | undef
       textKey: cupMismatchCopyKey(tier, 'body'),
       textParams: { opponent: opponent.name },
     },
-    ...(star === undefined ? [] : [{
-      text: copy.starBody(star.name),
-      textKey: cupMismatchCopyKey(tier, 'star'),
-      textParams: { player: star.name },
-    }]),
+    ...(star === undefined
+      ? []
+      : [
+          {
+            text: copy.starBody(star.name),
+            textKey: cupMismatchCopyKey(tier, 'star'),
+            textParams: { player: star.name },
+          },
+        ]),
   ];
 
   return {
@@ -133,21 +151,27 @@ export function cupMismatchWarning(state: GameState): CupMismatchWarning | undef
     divisionGap,
     title: copy.title,
     titleKey: cupMismatchCopyKey(tier, 'title'),
-    body: bodyLines.map(line => line.text),
+    body: bodyLines.map((line) => line.text),
     bodyLines,
-    ...(star === undefined ? {} : {
-      starPlayer: { playerId: star.id, playerName: star.name },
-    }),
+    ...(star === undefined
+      ? {}
+      : {
+          starPlayer: { playerId: star.id, playerName: star.name },
+        }),
   };
 }
 
 /** Retires the current tie's warning without turning a story beat into a tutorial milestone. */
 export function completeCupMismatchWarning(state: GameState): GameState {
   const warning = cupMismatchWarning(state);
-  if (warning === undefined) throw new Error('there is no Cup mismatch warning to complete');
+  if (warning === undefined)
+    throw new Error('there is no Cup mismatch warning to complete');
   return {
     ...state,
-    eventFlags: [...state.eventFlags, cupMismatchWarningFlag(warning.fixtureId)],
+    eventFlags: [
+      ...state.eventFlags,
+      cupMismatchWarningFlag(warning.fixtureId),
+    ],
   };
 }
 
@@ -172,21 +196,25 @@ function likeliestOpponentScorer(
   state: GameState,
   opponentClubId: string,
 ): CareerPlayer | undefined {
-  const lineup = state.lineups.find(candidate => candidate.clubId === opponentClubId);
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === opponentClubId,
+  );
   if (lineup === undefined) return undefined;
   const starters = new Set(lineup.playerIds);
   return state.players
-    .filter(player => (
-      player.clubId === opponentClubId
-      && starters.has(player.id)
-      && player.role !== 'GK'
-    ))
+    .filter(
+      (player) =>
+        player.clubId === opponentClubId &&
+        starters.has(player.id) &&
+        player.role !== 'GK',
+    )
     .slice()
-    .sort((left, right) => (
-      scoringThreat(right) - scoringThreat(left)
-      || scoringRoleRank(right.role) - scoringRoleRank(left.role)
-      || compareIds(left.id, right.id)
-    ))[0];
+    .sort(
+      (left, right) =>
+        scoringThreat(right) - scoringThreat(left) ||
+        scoringRoleRank(right.role) - scoringRoleRank(left.role) ||
+        compareIds(left.id, right.id),
+    )[0];
 }
 
 function scoringThreat(player: CareerPlayer): number {

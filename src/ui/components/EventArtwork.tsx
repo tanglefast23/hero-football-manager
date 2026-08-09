@@ -1,7 +1,8 @@
 import { View } from 'react-native';
 import { EventPixelScene, type EventPixelSceneLayout } from './EventPixelScene';
 
-export type EventArtCategory = 'mystery' | 'club' | 'media' | 'sponsor' | 'player' | 'medical' | 'fan';
+export type EventArtCategory =
+  'mystery' | 'club' | 'media' | 'sponsor' | 'player' | 'medical' | 'fan';
 
 interface EventArtworkProps {
   artKey: string;
@@ -43,7 +44,9 @@ export function EventArtwork({
         reduceMotion={reduceMotion}
         success={success}
         {...(sceneLayout === undefined ? {} : { layout: sceneLayout })}
-        {...(sceneBottomInset === undefined ? {} : { bottomInset: sceneBottomInset })}
+        {...(sceneBottomInset === undefined
+          ? {}
+          : { bottomInset: sceneBottomInset })}
       />
       {children}
     </View>

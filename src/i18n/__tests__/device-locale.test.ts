@@ -54,8 +54,10 @@ describe('matchDeviceLocale', () => {
 
   test('every auto locale is one the game actually ships', () => {
     for (const locale of AUTO_LOCALES) {
-      expect({ locale, enabled: ENABLED_LOCALES.includes(locale) })
-        .toEqual({ locale, enabled: true });
+      expect({ locale, enabled: ENABLED_LOCALES.includes(locale) }).toEqual({
+        locale,
+        enabled: true,
+      });
     }
   });
 });

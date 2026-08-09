@@ -134,7 +134,8 @@ export function playBertVoice(durationMs: number): void {
   // it stopped — the same metronomic problem the randomised duration above
   // exists to avoid, moved from the length to the content.
   const offset = Math.random() * (VOICE_CLIP_SECONDS - LONGEST_LINE_SECONDS);
-  active.seekTo(offset)
+  active
+    .seekTo(offset)
     .then(() => {
       if (token !== playToken) return;
       active.play();

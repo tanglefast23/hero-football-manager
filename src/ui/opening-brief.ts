@@ -3,6 +3,8 @@ export interface CareerProgress {
   week: number;
 }
 
-export function shouldShowOpeningBrief(progress: CareerProgress | null): boolean {
+export function shouldShowOpeningBrief(
+  progress: CareerProgress | null,
+): boolean {
   return progress === null || (progress.season === 1 && progress.week === 1);
 }

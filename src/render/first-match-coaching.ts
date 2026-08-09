@@ -18,9 +18,9 @@ function firstTiredControlledPlayer(
   controlledTeam: 0 | 1,
 ): number | null {
   if (
-    state.phase === 'fulltime'
-    || state.substitutionsUsed[controlledTeam] >= MAX_SUBSTITUTIONS
-    || state.bench[controlledTeam].length === 0
+    state.phase === 'fulltime' ||
+    state.substitutionsUsed[controlledTeam] >= MAX_SUBSTITUTIONS ||
+    state.bench[controlledTeam].length === 0
   ) {
     return null;
   }
@@ -29,19 +29,22 @@ function firstTiredControlledPlayer(
   const last = first + 11;
   const candidate = state.players
     .map((player, index) => ({ player, index }))
-    .filter(({ player, index }) => (
-      index >= first
-      && index < last
-      && player.outReason !== 'redcard'
-      && player.condition <= FIRST_MATCH_RED_ENERGY_THRESHOLD
-      && state.bench[controlledTeam].some(replacement => (
-        (player.def.role === 'GK') === (replacement.role === 'GK')
-      ))
-    ))
-    .sort((left, right) => (
-      left.player.condition - right.player.condition
-      || left.index - right.index
-    ))[0];
+    .filter(
+      ({ player, index }) =>
+        index >= first &&
+        index < last &&
+        player.outReason !== 'redcard' &&
+        player.condition <= FIRST_MATCH_RED_ENERGY_THRESHOLD &&
+        state.bench[controlledTeam].some(
+          (replacement) =>
+            (player.def.role === 'GK') === (replacement.role === 'GK'),
+        ),
+    )
+    .sort(
+      (left, right) =>
+        left.player.condition - right.player.condition ||
+        left.index - right.index,
+    )[0];
 
   return candidate?.index ?? null;
 }

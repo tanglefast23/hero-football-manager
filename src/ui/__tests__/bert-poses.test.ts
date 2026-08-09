@@ -43,11 +43,15 @@ describe('bert pose set', () => {
       for (const rect of parts) {
         expect(rect.width).toBeGreaterThan(0);
         expect(rect.height).toBeGreaterThan(0);
-        expect(rect.color).toMatch(/^#[0-9a-f]{6}$/i);
+        expect(rect.color).toMatchSource(/^#[0-9a-f]{6}$/i);
         // Exactly one anchor per axis, or the rectangle is stretched between
         // two edges instead of placed at one.
-        expect([rect.left, rect.right].filter(value => value !== undefined)).toHaveLength(1);
-        expect([rect.top, rect.bottom].filter(value => value !== undefined)).toHaveLength(1);
+        expect(
+          [rect.left, rect.right].filter((value) => value !== undefined),
+        ).toHaveLength(1);
+        expect(
+          [rect.top, rect.bottom].filter((value) => value !== undefined),
+        ).toHaveLength(1);
       }
     }
     for (const id of POSTURE_IDS) {
@@ -61,8 +65,10 @@ describe('bert pose set', () => {
     // Painting order is the fix, so assert the order rather than the geometry.
     for (const id of EXPRESSION_IDS) {
       const parts = bertExpressionParts(id);
-      const nose = parts.findIndex(rect => rect.top === 48 && rect.width === 25);
-      const darkest = parts.findIndex(rect => rect.color === '#241f2e');
+      const nose = parts.findIndex(
+        (rect) => rect.top === 48 && rect.width === 25,
+      );
+      const darkest = parts.findIndex((rect) => rect.color === '#241f2e');
       expect(nose).toBeGreaterThanOrEqual(0);
       expect(darkest).toBeGreaterThan(nose);
     }
@@ -71,7 +77,10 @@ describe('bert pose set', () => {
   it('reuses the authored geometry for the neutral standing pairing', () => {
     // Guards against the pose data and the StyleSheet drifting apart: the
     // rectangles below are read straight out of the component.
-    const source = readFileSync(join(process.cwd(), 'src/ui/BertFullBody.tsx'), 'utf8');
+    const source = readFileSync(
+      join(process.cwd(), 'src/ui/BertFullBody.tsx'),
+      'utf8',
+    );
     const parts = [
       ...bertPostureParts('stand'),
       ...bertExpressionParts('neutral'),
@@ -81,11 +90,17 @@ describe('bert pose set', () => {
       "bertTie: { position: 'absolute', left: 49, top: 96, width: 9, height: 35",
       "bertHeadFace: { position: 'absolute', left: 24, top: 27, width: 58, height: 48",
     ];
-    for (const line of authored) expect(source).toContain(line);
+    for (const line of authored) expect(source).toContainSource(line);
 
-    expect(parts).toContainEqual(expect.objectContaining({ left: 23, top: 88, width: 60, height: 51 }));
-    expect(parts).toContainEqual(expect.objectContaining({ left: 49, top: 96, width: 9, height: 35 }));
-    expect(parts).toContainEqual(expect.objectContaining({ left: 24, top: 27, width: 58, height: 48 }));
+    expect(parts).toContainEqual(
+      expect.objectContaining({ left: 23, top: 88, width: 60, height: 51 }),
+    );
+    expect(parts).toContainEqual(
+      expect.objectContaining({ left: 49, top: 96, width: 9, height: 35 }),
+    );
+    expect(parts).toContainEqual(
+      expect.objectContaining({ left: 24, top: 27, width: 58, height: 48 }),
+    );
   });
 
   it('only hides the face for the pose that turns his back', () => {
@@ -96,7 +111,9 @@ describe('bert pose set', () => {
   it('seats the head on the shoulder for the rebuilt postures', () => {
     // Regression: the lying pose left the head floating above the collar.
     expect(bertHeadOffset('lie-prop')).toEqual({ x: 22, y: 40 });
-    expect(bertHeadOffset('sit-slump').y).toBeGreaterThan(bertHeadOffset('sit-edge').y);
+    expect(bertHeadOffset('sit-slump').y).toBeGreaterThan(
+      bertHeadOffset('sit-edge').y,
+    );
     expect(bertHeadOffset('stand')).toEqual({ x: 0, y: 0 });
   });
 
@@ -115,7 +132,11 @@ describe('briefing moment selection', () => {
   });
 
   it('never repeats a face on the same body back to back', () => {
-    for (const sequenceId of ['management-intro', 'unknown-sequence', 'desk-intro']) {
+    for (const sequenceId of [
+      'management-intro',
+      'unknown-sequence',
+      'desk-intro',
+    ]) {
       const moments = briefingMoments(sequenceId, beats(8));
       for (let index = 1; index < moments.length; index += 1) {
         const previous = BERT_MOMENTS[moments[index - 1]];
@@ -144,8 +165,12 @@ describe('briefing moment selection', () => {
 
   it('clamps a beat index at either edge', () => {
     const sequence = beats(3);
-    expect(beatMoment('management-intro', sequence, -2)).toBe(beatMoment('management-intro', sequence, 0));
-    expect(beatMoment('management-intro', sequence, 99)).toBe(beatMoment('management-intro', sequence, 2));
+    expect(beatMoment('management-intro', sequence, -2)).toBe(
+      beatMoment('management-intro', sequence, 0),
+    );
+    expect(beatMoment('management-intro', sequence, 99)).toBe(
+      beatMoment('management-intro', sequence, 2),
+    );
     expect(beatMoment('management-intro', [], 0)).toBeUndefined();
   });
 });

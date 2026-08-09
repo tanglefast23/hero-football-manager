@@ -32,14 +32,25 @@ import {
 } from '../opening/runner';
 import { bootstrapProportion, mean } from '../opening/stats';
 
-const describeProbe = process.env.PATH_LEVERAGE_PROBE === '1' ? describe : describe.skip;
+const describeProbe =
+  process.env.PATH_LEVERAGE_PROBE === '1' ? describe : describe.skip;
 const content = loadLaunchContent();
 const LAUNCH_TP = productionLaunchTrainingPoints(content);
 
 const SEEDS = positiveIntegerEnv('PATH_LEVERAGE_SEEDS', 150);
 const OFFSET = nonNegativeIntegerEnv('PATH_LEVERAGE_OFFSET', 0);
-const SEED_LIST = Array.from({ length: SEEDS }, (_, index) => 4_000_000 + (index + OFFSET) * 7919);
-const CREATION: CreationRatings = { pac: 50, sho: 65, pas: 50, def: 50, tec: 50, sta: 50 };
+const SEED_LIST = Array.from(
+  { length: SEEDS },
+  (_, index) => 4_000_000 + (index + OFFSET) * 7919,
+);
+const CREATION: CreationRatings = {
+  pac: 50,
+  sho: 65,
+  pas: 50,
+  def: 50,
+  tec: 50,
+  sta: 50,
+};
 
 /**
  * `bare` isolates the contest-structure value of each path. `pitch` adds the
@@ -81,51 +92,76 @@ describeProbe('training path leverage per TP', () => {
 
     for (const kit of KITS) {
       // Matched control: same coach and facility state, no drills.
-      const baseline = SEED_LIST.map(seed => runOpening({
-        seed,
-        difficulty: 'COZY',
-        policy: kitOnlyPolicy(kit),
-        creation: CREATION,
-        content,
-      }));
-      const baselineStrength = mean(baseline.map(run => run.opener.userStrength));
+      const baseline = SEED_LIST.map((seed) =>
+        runOpening({
+          seed,
+          difficulty: 'COZY',
+          policy: kitOnlyPolicy(kit),
+          creation: CREATION,
+          content,
+        }),
+      );
+      const baselineStrength = mean(
+        baseline.map((run) => run.opener.userStrength),
+      );
       const baselineGoalDifference = mean(
-        baseline.map(run => run.opener.goalsFor - run.opener.goalsAgainst),
+        baseline.map((run) => run.opener.goalsFor - run.opener.goalsAgainst),
       );
 
       for (const policy of singlePathPolicies(kit)) {
-        const pathId = policy.id.replace(/^single-path-/, '').replace(/-(bare|kit)$/, '');
-        const runs = SEED_LIST.map(seed => {
+        const pathId = policy.id
+          .replace(/^single-path-/, '')
+          .replace(/-(bare|kit)$/, '');
+        const runs = SEED_LIST.map((seed) => {
           const run = runOpening({
-            seed, difficulty: 'COZY', policy, creation: CREATION, content,
+            seed,
+            difficulty: 'COZY',
+            policy,
+            creation: CREATION,
+            content,
           });
           reconcileTrainingPoints(run, LAUNCH_TP);
           return run;
         });
 
-        const tpSpent = mean(runs.map(run => run.tpSpent));
-        const statPoints = mean(runs.map(run => run.statGains.reduce(
-          (sum, gain) => sum + (gain.after - gain.before),
-          0,
-        )));
-        const strength = mean(runs.map(run => run.opener.userStrength));
-        const goalDifference = mean(runs.map(run => run.opener.goalsFor - run.opener.goalsAgainst));
-        const per100 = (value: number) => (tpSpent === 0 ? 0 : (value / tpSpent) * 100);
+        const tpSpent = mean(runs.map((run) => run.tpSpent));
+        const statPoints = mean(
+          runs.map((run) =>
+            run.statGains.reduce(
+              (sum, gain) => sum + (gain.after - gain.before),
+              0,
+            ),
+          ),
+        );
+        const strength = mean(runs.map((run) => run.opener.userStrength));
+        const goalDifference = mean(
+          runs.map((run) => run.opener.goalsFor - run.opener.goalsAgainst),
+        );
+        const per100 = (value: number) =>
+          tpSpent === 0 ? 0 : (value / tpSpent) * 100;
 
         rows.push({
           kit: kit.name,
           pathId,
-          winRate: bootstrapProportion(runs.map(run => run.opener.outcome === 'W')).rate,
-          drawRate: bootstrapProportion(runs.map(run => run.opener.outcome === 'D')).rate,
-          lossRate: bootstrapProportion(runs.map(run => run.opener.outcome === 'L')).rate,
+          winRate: bootstrapProportion(
+            runs.map((run) => run.opener.outcome === 'W'),
+          ).rate,
+          drawRate: bootstrapProportion(
+            runs.map((run) => run.opener.outcome === 'D'),
+          ).rate,
+          lossRate: bootstrapProportion(
+            runs.map((run) => run.opener.outcome === 'L'),
+          ).rate,
           meanGoalDifference: round2(goalDifference),
-          taps: round2(mean(runs.map(run => run.tapCount))),
+          taps: round2(mean(runs.map((run) => run.tapCount))),
           tpSpent: round2(tpSpent),
           statPointsGained: round2(statPoints),
           statPointsPer100Tp: round2(per100(statPoints)),
           strengthLift: round2(strength - baselineStrength),
           strengthLiftPer100Tp: round2(per100(strength - baselineStrength)),
-          goalDifferenceLiftPer100Tp: round2(per100(goalDifference - baselineGoalDifference)),
+          goalDifferenceLiftPer100Tp: round2(
+            per100(goalDifference - baselineGoalDifference),
+          ),
         });
       }
     }
@@ -133,39 +169,49 @@ describeProbe('training path leverage per TP', () => {
     for (const kit of KITS) {
       lines.push('', `--- kit: ${kit.name} ---`);
       lines.push(
-        'path            taps   TP   statPts  statPts/100TP  strength+  str+/100TP'
-        + '   GD+/100TP     W%     D%     L%',
+        'path            taps   TP   statPts  statPts/100TP  strength+  str+/100TP' +
+          '   GD+/100TP     W%     D%     L%',
       );
-      const kitRows = rows.filter(row => row.kit === kit.name)
-        .sort((left, right) => right.goalDifferenceLiftPer100Tp - left.goalDifferenceLiftPer100Tp);
+      const kitRows = rows
+        .filter((row) => row.kit === kit.name)
+        .sort(
+          (left, right) =>
+            right.goalDifferenceLiftPer100Tp - left.goalDifferenceLiftPer100Tp,
+        );
       for (const row of kitRows) {
         lines.push(
-          `${row.pathId.padEnd(14)}`
-          + ` ${row.taps.toFixed(1).padStart(4)}`
-          + ` ${row.tpSpent.toFixed(0).padStart(4)}`
-          + ` ${row.statPointsGained.toFixed(1).padStart(8)}`
-          + ` ${row.statPointsPer100Tp.toFixed(1).padStart(14)}`
-          + ` ${row.strengthLift.toFixed(2).padStart(10)}`
-          + ` ${row.strengthLiftPer100Tp.toFixed(2).padStart(11)}`
-          + ` ${row.goalDifferenceLiftPer100Tp.toFixed(3).padStart(11)}`
-          + ` ${pct(row.winRate)} ${pct(row.drawRate)} ${pct(row.lossRate)}`,
+          `${row.pathId.padEnd(14)}` +
+            ` ${row.taps.toFixed(1).padStart(4)}` +
+            ` ${row.tpSpent.toFixed(0).padStart(4)}` +
+            ` ${row.statPointsGained.toFixed(1).padStart(8)}` +
+            ` ${row.statPointsPer100Tp.toFixed(1).padStart(14)}` +
+            ` ${row.strengthLift.toFixed(2).padStart(10)}` +
+            ` ${row.strengthLiftPer100Tp.toFixed(2).padStart(11)}` +
+            ` ${row.goalDifferenceLiftPer100Tp.toFixed(3).padStart(11)}` +
+            ` ${pct(row.winRate)} ${pct(row.drawRate)} ${pct(row.lossRate)}`,
         );
       }
     }
 
     // The headline the question asks for: Duels against Finishing, per TP.
     for (const kit of KITS) {
-      const duels = rows.find(row => row.kit === kit.name && row.pathId === 'duels')!;
-      const finishing = rows.find(row => row.kit === kit.name && row.pathId === 'finishing')!;
-      const keeper = rows.find(row => row.kit === kit.name && row.pathId === 'keeper-drills')!;
+      const duels = rows.find(
+        (row) => row.kit === kit.name && row.pathId === 'duels',
+      )!;
+      const finishing = rows.find(
+        (row) => row.kit === kit.name && row.pathId === 'finishing',
+      )!;
+      const keeper = rows.find(
+        (row) => row.kit === kit.name && row.pathId === 'keeper-drills',
+      )!;
       lines.push(
         '',
-        `[${kit.name}] per 100 TP -- duels GD+${duels.goalDifferenceLiftPer100Tp.toFixed(3)}`
-        + ` | keeper-drills GD+${keeper.goalDifferenceLiftPer100Tp.toFixed(3)}`
-        + ` | finishing GD+${finishing.goalDifferenceLiftPer100Tp.toFixed(3)}`,
-        `[${kit.name}] stat points per 100 TP -- duels ${duels.statPointsPer100Tp.toFixed(1)}`
-        + ` | keeper-drills ${keeper.statPointsPer100Tp.toFixed(1)}`
-        + ` | finishing ${finishing.statPointsPer100Tp.toFixed(1)}`,
+        `[${kit.name}] per 100 TP -- duels GD+${duels.goalDifferenceLiftPer100Tp.toFixed(3)}` +
+          ` | keeper-drills GD+${keeper.goalDifferenceLiftPer100Tp.toFixed(3)}` +
+          ` | finishing GD+${finishing.goalDifferenceLiftPer100Tp.toFixed(3)}`,
+        `[${kit.name}] stat points per 100 TP -- duels ${duels.statPointsPer100Tp.toFixed(1)}` +
+          ` | keeper-drills ${keeper.statPointsPer100Tp.toFixed(1)}` +
+          ` | finishing ${finishing.statPointsPer100Tp.toFixed(1)}`,
       );
     }
 

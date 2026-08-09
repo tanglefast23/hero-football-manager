@@ -16,7 +16,12 @@ import type { GameState } from '../types';
  * below asserts a *produced* figure, never that the field was written.
  */
 
-function building(id: string, type: FacilityType, level: 1 | 2 | 3, x: number): PlacedFacility {
+function building(
+  id: string,
+  type: FacilityType,
+  level: 1 | 2 | 3,
+  x: number,
+): PlacedFacility {
   return { id, type, level, capitalInvested: 1000, x, y: 0 };
 }
 
@@ -58,20 +63,29 @@ describe('pointing a story at a building', () => {
         },
       },
     };
-    expect(() => selectCareerEventFacility(mid, 'facility-1')).toThrow('still under construction');
+    expect(() => selectCareerEventFacility(mid, 'facility-1')).toThrow(
+      'still under construction',
+    );
   });
 
   it('accepts a finished one', () => {
     const state = careerWith([building('facility-1', 'training-pitch', 2, 0)]);
-    expect(selectCareerEventFacility(state, 'facility-1').pendingEvent?.selectedFacilityId)
-      .toBe('facility-1');
+    expect(
+      selectCareerEventFacility(state, 'facility-1').pendingEvent
+        ?.selectedFacilityId,
+    ).toBe('facility-1');
   });
 });
 
 describe('the boost reaches the number, not just the record', () => {
-  it('moves the pitch\'s weekly training points', () => {
+  it("moves the pitch's weekly training points", () => {
     const before = careerWith([building('facility-1', 'training-pitch', 2, 0)]);
-    const after = applyFacilityEventEffect(before, 'facility-1', 'tpBonusPercent', 20);
+    const after = applyFacilityEventEffect(
+      before,
+      'facility-1',
+      'tpBonusPercent',
+      20,
+    );
 
     const pointsBefore = weeklyAmbientTrainingPoints(before);
     const pointsAfter = weeklyAmbientTrainingPoints(after);
@@ -80,20 +94,33 @@ describe('the boost reaches the number, not just the record', () => {
     // TP source is scaled by TRAINING_POINT_SCALE_PERCENT and a literal would
     // go stale the next time that dial moves.
     const pitchContribution = 2 * TRAINING_PITCH_TP_PER_LEVEL;
-    expect(pointsAfter - pointsBefore)
-      .toBe(Math.round(pitchContribution * 1.2) - pitchContribution);
+    expect(pointsAfter - pointsBefore).toBe(
+      Math.round(pitchContribution * 1.2) - pitchContribution,
+    );
   });
 
   it('takes points away again when the story goes badly', () => {
     const before = careerWith([building('facility-1', 'training-pitch', 2, 0)]);
-    const after = applyFacilityEventEffect(before, 'facility-1', 'tpBonusPercent', -15);
-    expect(weeklyAmbientTrainingPoints(after)).toBeLessThan(weeklyAmbientTrainingPoints(before));
+    const after = applyFacilityEventEffect(
+      before,
+      'facility-1',
+      'tpBonusPercent',
+      -15,
+    );
+    expect(weeklyAmbientTrainingPoints(after)).toBeLessThan(
+      weeklyAmbientTrainingPoints(before),
+    );
   });
 
   it('accumulates across stories and stops at the cap', () => {
     let state = careerWith([building('facility-1', 'training-pitch', 2, 0)]);
     for (let round = 0; round < 5; round += 1) {
-      state = applyFacilityEventEffect(state, 'facility-1', 'tpBonusPercent', 10);
+      state = applyFacilityEventEffect(
+        state,
+        'facility-1',
+        'tpBonusPercent',
+        10,
+      );
     }
     // Five +10s is +50 unclamped; the cap is +20.
     expect(state.facilities.grid?.buildings[0].boosts?.tpBonusPercent).toBe(20);
@@ -104,9 +131,16 @@ describe('the boost reaches the number, not just the record', () => {
       building('facility-1', 'training-pitch', 2, 0),
       building('facility-2', 'gym', 1, 3),
     ]);
-    state = applyFacilityEventEffect(state, 'facility-2', 'trainingBonusPercent', 10);
+    state = applyFacilityEventEffect(
+      state,
+      'facility-2',
+      'trainingBonusPercent',
+      10,
+    );
     expect(state.facilities.grid?.buildings[0].boosts).toBeUndefined();
-    expect(state.facilities.grid?.buildings[1].boosts?.trainingBonusPercent).toBe(10);
+    expect(
+      state.facilities.grid?.buildings[1].boosts?.trainingBonusPercent,
+    ).toBe(10);
   });
 
   it('refuses to change a building that is still going up', () => {
@@ -128,8 +162,9 @@ describe('the boost reaches the number, not just the record', () => {
         },
       },
     };
-    expect(() => applyFacilityEventEffect(mid, 'facility-1', 'trainingBonusPercent', 10))
-      .toThrow('still being built');
+    expect(() =>
+      applyFacilityEventEffect(mid, 'facility-1', 'trainingBonusPercent', 10),
+    ).toThrow('still being built');
   });
 });
 
@@ -148,8 +183,18 @@ describe('the training multiplier scales the bonus, not the whole thing', () => 
   it('takes its cut of the bonus only', () => {
     const none = careerWith([]);
     const gym = careerWith([building('facility-1', 'gym', 3, 0)]);
-    const worse = applyFacilityEventEffect(gym, 'facility-1', 'trainingBonusPercent', -20);
-    const better = applyFacilityEventEffect(gym, 'facility-1', 'trainingBonusPercent', 20);
+    const worse = applyFacilityEventEffect(
+      gym,
+      'facility-1',
+      'trainingBonusPercent',
+      -20,
+    );
+    const better = applyFacilityEventEffect(
+      gym,
+      'facility-1',
+      'trainingBonusPercent',
+      20,
+    );
 
     expect(trainingResultFor(none)).toBe(42);
     expect(trainingResultFor(gym)).toBe(47);
@@ -163,6 +208,8 @@ describe('the training multiplier scales the bonus, not the whole thing', () => 
 
 /** The value a PAC drill would actually leave the player on — the gym's number. */
 function trainingResultFor(state: GameState): number {
-  const player = state.players.find(candidate => candidate.clubId === state.userClubId)!;
+  const player = state.players.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  )!;
   return instantTrainingPreview(state, player.id, 'sprints').adjustedAfter;
 }

@@ -1,5 +1,9 @@
 /** Wraps in both directions so ‹ from the first option lands on the last. */
-export function stepChoice(current: number, delta: -1 | 1, count: number): number {
+export function stepChoice(
+  current: number,
+  delta: -1 | 1,
+  count: number,
+): number {
   return (current + delta + count) % count;
 }
 
@@ -40,5 +44,8 @@ export function stepperValueWidthEm(
   voice: keyof typeof SILKSCREEN_ADVANCE_EM,
 ): number {
   const { digit, narrow } = SILKSCREEN_ADVANCE_EM[voice];
-  return [...value].reduce((total, char) => total + (char === '1' || char === '/' ? narrow : digit), 0);
+  return [...value].reduce(
+    (total, char) => total + (char === '1' || char === '/' ? narrow : digit),
+    0,
+  );
 }

@@ -95,10 +95,14 @@ export function applySupporterImpacts(
     if (impact.outcome === 'LOSS') {
       consecutiveLosses += 1;
       if (consecutiveLosses >= 3) {
-        const penaltyUnits = consecutiveLosses === 3 ? 3 : consecutiveLosses === 4 ? 4 : 5;
+        const penaltyUnits =
+          consecutiveLosses === 3 ? 3 : consecutiveLosses === 4 ? 4 : 5;
         resultDelta = -penaltyUnits * impact.divisionScale;
         // Even four heroes cannot make sustained losing look like growth.
-        realizedDelta = Math.min(-impact.divisionScale, resultDelta + heroDelta);
+        realizedDelta = Math.min(
+          -impact.divisionScale,
+          resultDelta + heroDelta,
+        );
       }
     } else {
       consecutiveLosses = 0;
@@ -120,16 +124,17 @@ export function applySupporterImpacts(
     });
   }
 
-  const summary: SupporterWeekSummary | undefined = impacts.length === 0
-    ? state.lastAppliedImpact
-    : {
-        season,
-        week,
-        before: currentFans,
-        after: fanCount,
-        totalDelta: fanCount - currentFans,
-        impacts: summaries,
-      };
+  const summary: SupporterWeekSummary | undefined =
+    impacts.length === 0
+      ? state.lastAppliedImpact
+      : {
+          season,
+          week,
+          before: currentFans,
+          after: fanCount,
+          totalDelta: fanCount - currentFans,
+          impacts: summaries,
+        };
   return {
     supporters: {
       consecutiveLosses,
@@ -150,7 +155,10 @@ export function applyBuzzImpacts(
 ): AppliedBuzzWeek {
   requirePositiveInteger(season, 'season');
   requirePositiveInteger(week, 'week');
-  requireNonnegativeInteger(actualMonthlySponsorIncome, 'actual monthly sponsor income');
+  requireNonnegativeInteger(
+    actualMonthlySponsorIncome,
+    'actual monthly sponsor income',
+  );
   requireNonnegativeInteger(state.value, 'Buzz');
   if (state.value > MAX_BUZZ) throw new Error(`Buzz cannot exceed ${MAX_BUZZ}`);
   assertUniqueOrderedImpacts(impacts);
@@ -158,7 +166,10 @@ export function applyBuzzImpacts(
   if (season < BUZZ_UNLOCK_SEASON) return { buzz: state };
 
   const summaries = impacts.map(buzzSummaryForImpact);
-  const rawEarned = summaries.reduce((sum, summary) => sum + summary.rawEarned, 0);
+  const rawEarned = summaries.reduce(
+    (sum, summary) => sum + summary.rawEarned,
+    0,
+  );
   const before = state.value;
   const prePayoutValue = Math.min(MAX_BUZZ, before + rawEarned);
   const realizedEarned = prePayoutValue - before;
@@ -173,7 +184,9 @@ export function applyBuzzImpacts(
     return { buzz: state };
   }
 
-  const payout = Math.round(actualMonthlySponsorIncome * prePayoutValue / MAX_BUZZ);
+  const payout = Math.round(
+    (actualMonthlySponsorIncome * prePayoutValue) / MAX_BUZZ,
+  );
   const lastSettlementSummary: BuzzSettlementSummary = {
     season,
     half,
@@ -198,8 +211,12 @@ export function applyBuzzImpacts(
       idempotencyKey: `buzz/${season}/half-${half}`,
       // Dual-written like every other ledger line: the English is the save
       // fallback, the key is what a translated statement renders.
-      label: half === 1 ? 'Buzz payout · First half' : 'Buzz payout · Season end',
-      labelKey: half === 1 ? 'ledger.buzzPayoutFirstHalf' : 'ledger.buzzPayoutSeasonEnd',
+      label:
+        half === 1 ? 'Buzz payout · First half' : 'Buzz payout · Season end',
+      labelKey:
+        half === 1
+          ? 'ledger.buzzPayoutFirstHalf'
+          : 'ledger.buzzPayoutSeasonEnd',
     },
   };
 }
@@ -220,18 +237,27 @@ export function migratedEmptyBuzzState(options: {
 
   const settled = new Set(options.settledLedgerWeeks);
   if (options.week < 15 || (options.week === 15 && !settled.has(15))) {
-    return { value: 0, lastSettledSeason: options.season - 1, lastSettledHalf: 2 };
+    return {
+      value: 0,
+      lastSettledSeason: options.season - 1,
+      lastSettledHalf: 2,
+    };
   }
-  if (options.week < 30 || (options.week === 30
-    && !settled.has(30)
-    && options.phase !== 'season-end'
-    && options.phase !== 'complete')) {
+  if (
+    options.week < 30 ||
+    (options.week === 30 &&
+      !settled.has(30) &&
+      options.phase !== 'season-end' &&
+      options.phase !== 'complete')
+  ) {
     return { value: 0, lastSettledSeason: options.season, lastSettledHalf: 1 };
   }
   return { value: 0, lastSettledSeason: options.season, lastSettledHalf: 2 };
 }
 
-function buzzSummaryForImpact(impact: PendingUserMatchImpact): BuzzMatchSummary {
+function buzzSummaryForImpact(
+  impact: PendingUserMatchImpact,
+): BuzzMatchSummary {
   validateImpactComponents(impact);
   const rawEarned = impact.buzzWin + impact.buzzGoals + impact.buzzHeroMoments;
   return {
@@ -244,19 +270,34 @@ function buzzSummaryForImpact(impact: PendingUserMatchImpact): BuzzMatchSummary 
 }
 
 function validateImpactComponents(impact: PendingUserMatchImpact): void {
-  requirePositiveInteger(impact.divisionScale, `${impact.fixtureId} division scale`);
-  requireNonnegativeInteger(impact.supporterWinUnits, `${impact.fixtureId} supporter win`);
-  requireNonnegativeInteger(impact.supporterHeroUnits, `${impact.fixtureId} supporter heroes`);
+  requirePositiveInteger(
+    impact.divisionScale,
+    `${impact.fixtureId} division scale`,
+  );
+  requireNonnegativeInteger(
+    impact.supporterWinUnits,
+    `${impact.fixtureId} supporter win`,
+  );
+  requireNonnegativeInteger(
+    impact.supporterHeroUnits,
+    `${impact.fixtureId} supporter heroes`,
+  );
   requireNonnegativeInteger(impact.buzzWin, `${impact.fixtureId} Buzz win`);
   requireNonnegativeInteger(impact.buzzGoals, `${impact.fixtureId} Buzz goals`);
-  requireNonnegativeInteger(impact.buzzHeroMoments, `${impact.fixtureId} Buzz heroes`);
+  requireNonnegativeInteger(
+    impact.buzzHeroMoments,
+    `${impact.fixtureId} Buzz heroes`,
+  );
 }
 
-function assertUniqueOrderedImpacts(impacts: readonly PendingUserMatchImpact[]): void {
+function assertUniqueOrderedImpacts(
+  impacts: readonly PendingUserMatchImpact[],
+): void {
   const ids = new Set<string>();
   let previousOrder = -1;
   for (const impact of impacts) {
-    if (ids.has(impact.fixtureId)) throw new Error(`duplicate match impact ${impact.fixtureId}`);
+    if (ids.has(impact.fixtureId))
+      throw new Error(`duplicate match impact ${impact.fixtureId}`);
     if (impact.settlementOrder < previousOrder) {
       throw new Error('match impacts must settle league before Cup');
     }
@@ -266,9 +307,11 @@ function assertUniqueOrderedImpacts(impacts: readonly PendingUserMatchImpact[]):
 }
 
 function requirePositiveInteger(value: number, label: string): void {
-  if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${label} must be a positive safe integer`);
+  if (!Number.isSafeInteger(value) || value <= 0)
+    throw new Error(`${label} must be a positive safe integer`);
 }
 
 function requireNonnegativeInteger(value: number, label: string): void {
-  if (!Number.isSafeInteger(value) || value < 0) throw new Error(`${label} must be a nonnegative safe integer`);
+  if (!Number.isSafeInteger(value) || value < 0)
+    throw new Error(`${label} must be a nonnegative safe integer`);
 }

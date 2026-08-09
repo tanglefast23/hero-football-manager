@@ -22,7 +22,6 @@ const MENTALITY_LABEL_KEYS: Readonly<Record<Mentality, string>> = {
   PROTECT: 'matchScreen.playstyleMode.protect',
 };
 
-
 /**
  * The playstyle word the player reads — "BALANCED", "ATTACK", "PROTECT".
  *
@@ -32,6 +31,9 @@ const MENTALITY_LABEL_KEYS: Readonly<Record<Mentality, string>> = {
  * own confirmation named the same tactic differently, at the same moment.
  * Owner's call, 2026-08-07: the rail says what the banner says.
  */
-export function mentalityLabel(mentality: Mentality, t: CopyFn = englishCopy()): string {
+export function mentalityLabel(
+  mentality: Mentality,
+  t: CopyFn = englishCopy(),
+): string {
   return t(MENTALITY_LABEL_KEYS[mentality]);
 }

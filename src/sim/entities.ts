@@ -16,24 +16,34 @@ function decoyTeamForIndex(index: number): 0 | 1 | null {
   return null;
 }
 
-export function decoyCloneAt(state: MatchState, index: number): DecoyCloneState | null {
+export function decoyCloneAt(
+  state: MatchState,
+  index: number,
+): DecoyCloneState | null {
   const team = decoyTeamForIndex(index);
   return team === null ? null : state.decoyClones[team];
 }
 
-export function playerAt(state: MatchState, index: number): SimPlayer | undefined {
+export function playerAt(
+  state: MatchState,
+  index: number,
+): SimPlayer | undefined {
   if (index >= 0 && index < BASE_PLAYER_COUNT) return state.players[index];
   return decoyCloneAt(state, index) ?? undefined;
 }
 
 export function requirePlayerAt(state: MatchState, index: number): SimPlayer {
   const player = playerAt(state, index);
-  if (player === undefined) throw new Error(`missing match player entity ${index}`);
+  if (player === undefined)
+    throw new Error(`missing match player entity ${index}`);
   return player;
 }
 
 export function activePlayerIndices(state: MatchState): number[] {
-  const indices = Array.from({ length: BASE_PLAYER_COUNT }, (_, index) => index);
+  const indices = Array.from(
+    { length: BASE_PLAYER_COUNT },
+    (_, index) => index,
+  );
   if (state.decoyClones[0] !== null) indices.push(HOME_DECOY_INDEX);
   if (state.decoyClones[1] !== null) indices.push(AWAY_DECOY_INDEX);
   return indices;
@@ -46,12 +56,18 @@ function activeTeamPlayerIndices(state: MatchState, team: 0 | 1): number[] {
   return indices;
 }
 
-export function formationSlotForEntity(state: MatchState, index: number): number {
+export function formationSlotForEntity(
+  state: MatchState,
+  index: number,
+): number {
   if (index >= 0 && index < BASE_PLAYER_COUNT) return index % 11;
   return decoyCloneAt(state, index)?.formationSlot ?? 9;
 }
 
 /** Match reports credit clone actions to the copied real forward. */
-export function attributedPlayerIndex(state: MatchState, index: number): number {
+export function attributedPlayerIndex(
+  state: MatchState,
+  index: number,
+): number {
   return decoyCloneAt(state, index)?.sourceIdx ?? index;
 }

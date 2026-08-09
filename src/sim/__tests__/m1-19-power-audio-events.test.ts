@@ -4,7 +4,10 @@ import { activatePower, powerTick } from '../powers';
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState, PowerId } from '../types';
 
-function matchWith(power: PowerId, slot = 10): { match: MatchState; hero: number } {
+function matchWith(
+  power: PowerId,
+  slot = 10,
+): { match: MatchState; hero: number } {
   const home = {
     ...ROVERS,
     players: ROVERS.players.map((player, idx) => ({
@@ -14,11 +17,16 @@ function matchWith(power: PowerId, slot = 10): { match: MatchState; hero: number
     })),
   };
   // SAVE_FOR_TAP keeps rigged activations at tap semantics (m2.1 default flip).
-  return { match: createMatch(119, home, UNITED, { homePolicy: 'SAVE_FOR_TAP' }), hero: slot };
+  return {
+    match: createMatch(119, home, UNITED, { homePolicy: 'SAVE_FOR_TAP' }),
+    hero: slot,
+  };
 }
 
 function impacts(match: MatchState, power: PowerId) {
-  return match.events.filter(event => event.kind === 'POWER_IMPACT' && event.power === power);
+  return match.events.filter(
+    (event) => event.kind === 'POWER_IMPACT' && event.power === power,
+  );
 }
 
 describe('m1.19 authored power audio events', () => {
@@ -27,7 +35,10 @@ describe('m1.19 authored power audio events', () => {
     match.ball = { kind: 'held', by: hero };
     match.players[hero].pos = { x: 2250, y: 5000 };
     for (let idx = 11; idx < 22; idx += 1) {
-      match.players[idx].pos = { x: 1200 + (idx % 2) * 1800, y: 3400 + (idx - 11) * 80 };
+      match.players[idx].pos = {
+        x: 1200 + (idx % 2) * 1800,
+        y: 3400 + (idx - 11) * 80,
+      };
     }
     const before = { ...match.players[hero].pos };
 
@@ -45,16 +56,20 @@ describe('m1.19 authored power audio events', () => {
     match.ball = { kind: 'held', by: carrier };
     match.players[carrier].pos = { x: 2250, y: 4200 };
     for (let idx = 0; idx < 11; idx += 1) {
-      if (idx !== carrier && idx !== hero) match.players[idx].pos = { x: 3400, y: 6500 };
+      if (idx !== carrier && idx !== hero)
+        match.players[idx].pos = { x: 3400, y: 6500 };
     }
-    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 500, y: 8500 };
+    for (let idx = 11; idx < 22; idx += 1)
+      match.players[idx].pos = { x: 500, y: 8500 };
 
     activatePower(match, hero, 1);
 
     if (match.ball.kind !== 'held') throw new Error('expected Portal receiver');
     const receiver = match.ball.by;
     expect(receiver).not.toBe(carrier);
-    expect(match.players[receiver].portalProtectedUntilTick).toBeGreaterThan(match.tick);
+    expect(match.players[receiver].portalProtectedUntilTick).toBeGreaterThan(
+      match.tick,
+    );
     expect(impacts(match, 'PORTAL_PASS')).toEqual([
       expect.objectContaining({ player: hero, target: receiver }),
     ]);
@@ -69,7 +84,9 @@ describe('m1.19 authored power audio events', () => {
 
     activatePower(match, hero, 1, challenger);
 
-    expect(match.players[hero].pos.y).toBeLessThan(match.players[challenger].pos.y);
+    expect(match.players[hero].pos.y).toBeLessThan(
+      match.players[challenger].pos.y,
+    );
     expect(impacts(match, 'PHASE_RUN')).toEqual([
       expect.objectContaining({ player: hero, target: challenger }),
     ]);
@@ -77,7 +94,7 @@ describe('m1.19 authored power audio events', () => {
 
   it.each(['WEB_TRAP', 'ICE_RINK'] as const)(
     'emits %s only when the placed trap springs',
-    power => {
+    (power) => {
       const { match, hero } = matchWith(power, 2);
       const victim = 11;
       match.players[hero].pos = { x: 1000, y: 5000 };
@@ -127,7 +144,10 @@ describe('m1.19 authored power audio events', () => {
     activatePower(match, hero, 1);
     launchPass(match, passer, receiver, false);
     expect(impacts(match, 'FUTURE_SIGHT')).toEqual([]);
-    const flight = match.ball as unknown as Extract<MatchState['ball'], { kind: 'pass' }>;
+    const flight = match.ball as unknown as Extract<
+      MatchState['ball'],
+      { kind: 'pass' }
+    >;
     if (flight.kind !== 'pass') throw new Error('expected predicted pass');
     flight.pos = { ...match.players[hero].pos };
     possessionTick(match);

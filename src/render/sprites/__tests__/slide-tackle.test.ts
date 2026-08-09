@@ -8,25 +8,53 @@ import {
 } from '../slide-tackle';
 
 const CURRENT_IDS = [
-  'r:g00', 'r:f00', 'r:f01', 'r:f02', 'r:f03', 'r:f04', 'r:f05', 'r:f06', 'r:f07', 'r:f08', 'r:f09',
-  'u:g01', 'u:f10', 'u:f11', 'u:f12', 'u:f13', 'u:f14', 'u:f15', 'u:f16', 'u:f17', 'u:f18', 'u:f19',
+  'r:g00',
+  'r:f00',
+  'r:f01',
+  'r:f02',
+  'r:f03',
+  'r:f04',
+  'r:f05',
+  'r:f06',
+  'r:f07',
+  'r:f08',
+  'r:f09',
+  'u:g01',
+  'u:f10',
+  'u:f11',
+  'u:f12',
+  'u:f13',
+  'u:f14',
+  'u:f15',
+  'u:f16',
+  'u:f17',
+  'u:f18',
+  'u:f19',
 ] as const;
 
 function paintedBounds(rows: readonly string[]) {
-  const points = rows.flatMap((row, y) => [...row].flatMap((token, x) => (
-    token === '.' ? [] : [{ x, y }]
-  )));
+  const points = rows.flatMap((row, y) =>
+    [...row].flatMap((token, x) => (token === '.' ? [] : [{ x, y }])),
+  );
   return {
-    width: Math.max(...points.map(point => point.x)) - Math.min(...points.map(point => point.x)) + 1,
-    height: Math.max(...points.map(point => point.y)) - Math.min(...points.map(point => point.y)) + 1,
+    width:
+      Math.max(...points.map((point) => point.x)) -
+      Math.min(...points.map((point) => point.x)) +
+      1,
+    height:
+      Math.max(...points.map((point) => point.y)) -
+      Math.min(...points.map((point) => point.y)) +
+      1,
   };
 }
 
 function paintedComponentSizes(rows: readonly string[]): number[] {
   const painted = new Set<string>();
-  rows.forEach((row, y) => [...row].forEach((token, x) => {
-    if (token !== '.') painted.add(`${x},${y}`);
-  }));
+  rows.forEach((row, y) =>
+    [...row].forEach((token, x) => {
+      if (token !== '.') painted.add(`${x},${y}`);
+    }),
+  );
   const componentSizes: number[] = [];
   while (painted.size > 0) {
     let size = 0;
@@ -36,7 +64,12 @@ function paintedComponentSizes(rows: readonly string[]): number[] {
     while (queue.length > 0) {
       size += 1;
       const [x, y] = queue.pop()!.split(',').map(Number);
-      for (const [nextX, nextY] of [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]) {
+      for (const [nextX, nextY] of [
+        [x - 1, y],
+        [x + 1, y],
+        [x, y - 1],
+        [x, y + 1],
+      ]) {
         const key = `${nextX},${nextY}`;
         if (!painted.delete(key)) continue;
         queue.push(key);
@@ -54,7 +87,9 @@ describe('derived slide-tackle sprites', () => {
       for (let frame = 0; frame < SLIDE_TACKLE_FRAME_COUNT; frame += 1) {
         const rows = sheet.sprites[`${id}:${slideTackleSpriteFrame(frame)}`];
         expect(rows).toHaveLength(SLIDE_TACKLE_CELL.h);
-        expect(rows.every(row => row.length === SLIDE_TACKLE_CELL.w)).toBe(true);
+        expect(rows.every((row) => row.length === SLIDE_TACKLE_CELL.w)).toBe(
+          true,
+        );
         for (const row of rows) {
           for (const token of row) expect(token in sheet.palette).toBe(true);
         }
@@ -63,14 +98,18 @@ describe('derived slide-tackle sprites', () => {
         expect(bounds.height).toBeLessThanOrEqual(30);
       }
     }
-    expect(paintedBounds(sheet.sprites['r:f00:slide5']).width).toBeGreaterThanOrEqual(30);
+    expect(
+      paintedBounds(sheet.sprites['r:f00:slide5']).width,
+    ).toBeGreaterThanOrEqual(30);
   });
 
   it('keeps plant, crouch, knee-plant, rise, and stand silhouettes connected', () => {
     const sheet = loadSpriteSheet();
     for (const id of CURRENT_IDS) {
       for (const frame of [0, 1, 7, 8, 9]) {
-        const components = paintedComponentSizes(sheet.sprites[`${id}:${slideTackleSpriteFrame(frame)}`]);
+        const components = paintedComponentSizes(
+          sheet.sprites[`${id}:${slideTackleSpriteFrame(frame)}`],
+        );
         const paintedPixels = components.reduce((sum, size) => sum + size, 0);
         // A one-pixel hair accent may remain detached after nearest-neighbour
         // rotation; a head, torso, or limb never may.
@@ -88,7 +127,7 @@ describe('derived slide-tackle sprites', () => {
   });
 
   it('uses positive head motion and reaches an almost-horizontal deepest slide', () => {
-    expect(SLIDE_TACKLE_HEAD_ANGLES.every(angle => angle > 0)).toBe(true);
+    expect(SLIDE_TACKLE_HEAD_ANGLES.every((angle) => angle > 0)).toBe(true);
     expect(Math.max(...SLIDE_TACKLE_HEAD_ANGLES)).toBe(78);
   });
 
@@ -96,8 +135,12 @@ describe('derived slide-tackle sprites', () => {
     const sheet = loadSpriteSheet();
     for (const frame of [2, 3, 4, 5, 6]) {
       const rows = sheet.sprites[`r:f00:${slideTackleSpriteFrame(frame)}`];
-      const neckTokens = rows.slice(10, 13).flatMap(row => [...row.slice(12, 15)]);
-      expect(neckTokens.filter(token => token === 'K').length).toBeLessThan(5);
+      const neckTokens = rows
+        .slice(10, 13)
+        .flatMap((row) => [...row.slice(12, 15)]);
+      expect(neckTokens.filter((token) => token === 'K').length).toBeLessThan(
+        5,
+      );
     }
   });
 
@@ -112,7 +155,9 @@ describe('derived slide-tackle sprites', () => {
       },
     });
     for (let frame = 0; frame < SLIDE_TACKLE_FRAME_COUNT; frame += 1) {
-      expect(future.sprites).toHaveProperty(`r:future:${slideTackleSpriteFrame(frame)}`);
+      expect(future.sprites).toHaveProperty(
+        `r:future:${slideTackleSpriteFrame(frame)}`,
+      );
     }
   });
 });

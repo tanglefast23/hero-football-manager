@@ -100,7 +100,10 @@ export function PowerTitleTakeover({
     titleReveal.value = 0;
     sheen.value = 0;
     intro.value = withSequence(
-      withTiming(INTRO_OVERSHOOT, { duration: 130, easing: Easing.out(Easing.cubic) }),
+      withTiming(INTRO_OVERSHOOT, {
+        duration: 130,
+        easing: Easing.out(Easing.cubic),
+      }),
       withTiming(1, { duration: 110, easing: Easing.inOut(Easing.quad) }),
     );
     titleReveal.value = withDelay(
@@ -122,7 +125,10 @@ export function PowerTitleTakeover({
     // card for 1.1s, then spend the final 0.4s on the exit.
     outro.value = withDelay(
       OUTRO_DELAY_MS,
-      withTiming(1, { duration: OUTRO_ANIMATION_MS, easing: Easing.in(Easing.cubic) }),
+      withTiming(1, {
+        duration: OUTRO_ANIMATION_MS,
+        easing: Easing.in(Easing.cubic),
+      }),
     );
   }, [ending, reduceMotion]);
 
@@ -152,9 +158,11 @@ export function PowerTitleTakeover({
       ref={pressableRef}
       accessibilityRole={skippable ? 'button' : 'text'}
       accessibilityLabel={accessibilityLabel}
-      accessibilityHint={skippable
-        ? accessibilityHint ?? t('matchScreen.a11y.dismissPowerTitle')
-        : undefined}
+      accessibilityHint={
+        skippable
+          ? (accessibilityHint ?? t('matchScreen.a11y.dismissPowerTitle'))
+          : undefined
+      }
       accessibilityViewIsModal={focusOnMount}
       onAccessibilityEscape={onAccessibilityEscape}
       disabled={!skippable}
@@ -179,11 +187,16 @@ export function PowerTitleTakeover({
           {Array.from({ length: desktop ? 8 : 12 }, (_, index) => (
             <View
               key={index}
-              style={[styles.railPixel, index % 2 === 0 ? styles.railPixelBright : null]}
+              style={[
+                styles.railPixel,
+                index % 2 === 0 ? styles.railPixelBright : null,
+              ]}
             />
           ))}
         </View>
-        <Animated.View style={[styles.sheen, reduceMotion ? styles.sheenHidden : sheenStyle]} />
+        <Animated.View
+          style={[styles.sheen, reduceMotion ? styles.sheenHidden : sheenStyle]}
+        />
         <View style={[styles.corner, styles.cornerTopLeft]} />
         <View style={[styles.corner, styles.cornerTopRight]} />
         <View style={[styles.corner, styles.cornerBottomLeft]} />
@@ -191,16 +204,22 @@ export function PowerTitleTakeover({
 
         <View style={styles.copy}>
           <View style={styles.statusPill}>
-            <Text style={styles.statusText}>{ending ? 'POWER COMPLETE' : 'SUPER POWER'}</Text>
+            <Text style={styles.statusText}>
+              {ending ? 'POWER COMPLETE' : 'SUPER POWER'}
+            </Text>
           </View>
-          <Text style={[
-            styles.glyph,
-            desktop ? styles.glyphDesktop : null,
-            compact && !desktop ? styles.glyphCompact : null,
-          ]}>
+          <Text
+            style={[
+              styles.glyph,
+              desktop ? styles.glyphDesktop : null,
+              compact && !desktop ? styles.glyphCompact : null,
+            ]}
+          >
             {presentation.glyph}
           </Text>
-          <Animated.View style={[styles.titleWrap, reduceMotion ? null : titleStyle]}>
+          <Animated.View
+            style={[styles.titleWrap, reduceMotion ? null : titleStyle]}
+          >
             <Text
               adjustsFontSizeToFit
               minimumFontScale={0.55}
@@ -217,7 +236,10 @@ export function PowerTitleTakeover({
           {showPlayerName ? (
             <Text
               numberOfLines={1}
-              style={[styles.playerName, compact && !desktop ? styles.playerNameCompact : null]}
+              style={[
+                styles.playerName,
+                compact && !desktop ? styles.playerNameCompact : null,
+              ]}
             >
               {playerName}
             </Text>
@@ -233,116 +255,131 @@ export function PowerTitleTakeover({
   );
 }
 
-
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  pressable: { width: '100%', flex: 1 },
-  pressableMobile: { minHeight: 150 },
-  pressableMobileCompact: { minHeight: 124 },
-  pressableDesktop: {},
-  shell: {
-    flex: 1,
-    overflow: 'hidden',
-    borderWidth: 3,
-    borderBottomWidth: 7,
-    borderColor: KIT_PANEL_BORDER_COLOR,
-    borderRadius: 4,
-  },
-  shellMobile: {
-    minHeight: 150,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  shellMobileCompact: { minHeight: 124, paddingVertical: 6 },
-  shellDesktop: {
-    justifyContent: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 28,
-  },
-  copy: { alignItems: 'center', justifyContent: 'center', zIndex: 2 },
-  statusPill: {
-    borderWidth: 2,
-    borderColor: KIT_PANEL_BORDER_COLOR,
-    backgroundColor: '#f4f1eadd',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  statusText: {
-    color: KIT_PANEL_TEXT_COLOR,
-    fontFamily: faces.display,
-    fontSize: 10,
-    letterSpacing: 1.5,
-  },
-  glyph: {
-    color: KIT_PANEL_TEXT_COLOR,
-    fontFamily: faces.display,
-    fontSize: 34,
-    lineHeight: 40,
-    marginTop: 4,
-  },
-  glyphCompact: { fontSize: 27, lineHeight: 31, marginTop: 2 },
-  glyphDesktop: { fontSize: 54, lineHeight: 62, marginTop: 18 },
-  titleWrap: { width: '100%' },
-  title: {
-    color: KIT_PANEL_TEXT_COLOR,
-    fontFamily: faces.display,
-    fontSize: 27,
-    lineHeight: 31,
-    letterSpacing: 1,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  titleCompact: { fontSize: 21, lineHeight: 24 },
-  titleDesktop: { fontSize: 33, lineHeight: 40, letterSpacing: 1.5 },
-  playerName: {
-    color: KIT_PANEL_TEXT_COLOR,
-    fontFamily: faces.display,
-    fontSize: 12,
-    letterSpacing: 1,
-    marginTop: 5,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  playerNameCompact: { fontSize: 10, marginTop: 2 },
-  additional: {
-    color: KIT_PANEL_TEXT_COLOR,
-    fontFamily: faces.data,
-    fontSize: 9,
-    letterSpacing: 0.8,
-    marginTop: 5,
-    textAlign: 'center',
-  },
-  topPixelRail: {
-    position: 'absolute',
-    left: 8,
-    right: 8,
-    top: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  railPixel: {
-    width: 9,
-    height: 5,
-    backgroundColor: '#241f2e99',
-  },
-  railPixelBright: { backgroundColor: '#f4f1eaaa' },
-  sheen: {
-    position: 'absolute',
-    top: -80,
-    bottom: -80,
-    width: 62,
-    backgroundColor: '#ffffff88',
-    zIndex: 1,
-  },
-  sheenHidden: { opacity: 0 },
-  corner: {
-    position: 'absolute',
-    width: 16,
-    height: 16,
-    borderColor: '#f4f1eadd',
-  },
-  cornerTopLeft: { left: 7, top: 7, borderLeftWidth: 3, borderTopWidth: 3 },
-  cornerTopRight: { right: 7, top: 7, borderRightWidth: 3, borderTopWidth: 3 },
-  cornerBottomLeft: { left: 7, bottom: 7, borderLeftWidth: 3, borderBottomWidth: 3 },
-  cornerBottomRight: { right: 7, bottom: 7, borderRightWidth: 3, borderBottomWidth: 3 },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    pressable: { width: '100%', flex: 1 },
+    pressableMobile: { minHeight: 150 },
+    pressableMobileCompact: { minHeight: 124 },
+    pressableDesktop: {},
+    shell: {
+      flex: 1,
+      overflow: 'hidden',
+      borderWidth: 3,
+      borderBottomWidth: 7,
+      borderColor: KIT_PANEL_BORDER_COLOR,
+      borderRadius: 4,
+    },
+    shellMobile: {
+      minHeight: 150,
+      justifyContent: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+    },
+    shellMobileCompact: { minHeight: 124, paddingVertical: 6 },
+    shellDesktop: {
+      justifyContent: 'center',
+      paddingHorizontal: 18,
+      paddingVertical: 28,
+    },
+    copy: { alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+    statusPill: {
+      borderWidth: 2,
+      borderColor: KIT_PANEL_BORDER_COLOR,
+      backgroundColor: '#f4f1eadd',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+    statusText: {
+      color: KIT_PANEL_TEXT_COLOR,
+      fontFamily: faces.display,
+      fontSize: 10,
+      letterSpacing: 1.5,
+    },
+    glyph: {
+      color: KIT_PANEL_TEXT_COLOR,
+      fontFamily: faces.display,
+      fontSize: 34,
+      lineHeight: 40,
+      marginTop: 4,
+    },
+    glyphCompact: { fontSize: 27, lineHeight: 31, marginTop: 2 },
+    glyphDesktop: { fontSize: 54, lineHeight: 62, marginTop: 18 },
+    titleWrap: { width: '100%' },
+    title: {
+      color: KIT_PANEL_TEXT_COLOR,
+      fontFamily: faces.display,
+      fontSize: 27,
+      lineHeight: 31,
+      letterSpacing: 1,
+      textAlign: 'center',
+      textTransform: 'uppercase',
+    },
+    titleCompact: { fontSize: 21, lineHeight: 24 },
+    titleDesktop: { fontSize: 33, lineHeight: 40, letterSpacing: 1.5 },
+    playerName: {
+      color: KIT_PANEL_TEXT_COLOR,
+      fontFamily: faces.display,
+      fontSize: 12,
+      letterSpacing: 1,
+      marginTop: 5,
+      textAlign: 'center',
+      textTransform: 'uppercase',
+    },
+    playerNameCompact: { fontSize: 10, marginTop: 2 },
+    additional: {
+      color: KIT_PANEL_TEXT_COLOR,
+      fontFamily: faces.data,
+      fontSize: 9,
+      letterSpacing: 0.8,
+      marginTop: 5,
+      textAlign: 'center',
+    },
+    topPixelRail: {
+      position: 'absolute',
+      left: 8,
+      right: 8,
+      top: 8,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    railPixel: {
+      width: 9,
+      height: 5,
+      backgroundColor: '#241f2e99',
+    },
+    railPixelBright: { backgroundColor: '#f4f1eaaa' },
+    sheen: {
+      position: 'absolute',
+      top: -80,
+      bottom: -80,
+      width: 62,
+      backgroundColor: '#ffffff88',
+      zIndex: 1,
+    },
+    sheenHidden: { opacity: 0 },
+    corner: {
+      position: 'absolute',
+      width: 16,
+      height: 16,
+      borderColor: '#f4f1eadd',
+    },
+    cornerTopLeft: { left: 7, top: 7, borderLeftWidth: 3, borderTopWidth: 3 },
+    cornerTopRight: {
+      right: 7,
+      top: 7,
+      borderRightWidth: 3,
+      borderTopWidth: 3,
+    },
+    cornerBottomLeft: {
+      left: 7,
+      bottom: 7,
+      borderLeftWidth: 3,
+      borderBottomWidth: 3,
+    },
+    cornerBottomRight: {
+      right: 7,
+      bottom: 7,
+      borderRightWidth: 3,
+      borderBottomWidth: 3,
+    },
+  });

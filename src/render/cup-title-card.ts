@@ -60,9 +60,13 @@ export function cupTitleCard(
   return {
     title: t(CUP_TITLE_CARD_TITLE_KEY),
     roundLabel: roundName.toUpperCase(),
-    durationMs: reduceMotion ? CUP_TITLE_CARD_REDUCED_MOTION_MS : CUP_TITLE_CARD_MS,
+    durationMs: reduceMotion
+      ? CUP_TITLE_CARD_REDUCED_MOTION_MS
+      : CUP_TITLE_CARD_MS,
     showBall: !reduceMotion,
-    accessibilityLabel: t('matchScreen.a11y.heroCupRound', { round: roundName }),
+    accessibilityLabel: t('matchScreen.a11y.heroCupRound', {
+      round: roundName,
+    }),
   };
 }
 

@@ -18,7 +18,8 @@ const GOAL0: Vec = { x: GOAL_CENTER_X, y: PITCH_H };
 // In-pitch probe grid (edges, near-edges, thirds, center — movement-rework style).
 const IN_PITCH: Vec[] = [];
 for (const x of [0, 137, 1700, 3400, 5100, 6663, 6800]) {
-  for (const y of [0, 251, 2625, 5250, 7875, 10249, 10500]) IN_PITCH.push({ x, y });
+  for (const y of [0, 251, 2625, 5250, 7875, 10249, 10500])
+    IN_PITCH.push({ x, y });
 }
 
 // Wider sweep including out-of-pitch transients (a shot-flight ball can sit
@@ -34,7 +35,9 @@ describe('GK angle-narrowing: ray collinearity', () => {
       const d = Math.hypot(ball.x - GOAL0.x, ball.y - GOAL0.y);
       if (d === 0) continue; // degenerate ray, asserted separately below
       const p = gkTarget(0, ball);
-      const cross = (ball.x - GOAL0.x) * (p.y - GOAL0.y) - (ball.y - GOAL0.y) * (p.x - GOAL0.x);
+      const cross =
+        (ball.x - GOAL0.x) * (p.y - GOAL0.y) -
+        (ball.y - GOAL0.y) * (p.x - GOAL0.x);
       expect(Math.abs(cross) / d).toBeLessThanOrEqual(1); // perpendicular distance off the ray
     }
   });
@@ -59,14 +62,22 @@ describe('GK angle-narrowing: depth ramp', () => {
   // the far clamp holds to d = 4000, then the ramp adds 1 cm of depth per 5 cm
   // of approach down to d = 1000.
   const RAMP: Array<[number, number]> = [
-    [5250, 200], [4500, 200], [4000, 200], [3500, 300], [3000, 400],
-    [2500, 500], [2000, 600], [1500, 700], [1000, 800],
+    [5250, 200],
+    [4500, 200],
+    [4000, 200],
+    [3500, 300],
+    [3000, 400],
+    [2500, 500],
+    [2000, 600],
+    [1500, 700],
+    [1000, 800],
   ];
 
   it('depth grows monotonically as the ball approaches, both teams (exact expected values)', () => {
     let prev = -1;
     for (const [d, expected] of RAMP) {
-      const depth0 = PITCH_H - gkTarget(0, { x: GOAL_CENTER_X, y: PITCH_H - d }).y;
+      const depth0 =
+        PITCH_H - gkTarget(0, { x: GOAL_CENTER_X, y: PITCH_H - d }).y;
       const depth1 = gkTarget(1, { x: GOAL_CENTER_X, y: d }).y; // team 1 defends y = 0
       expect(depth0).toBe(expected);
       expect(depth1).toBe(expected);
@@ -120,7 +131,10 @@ describe('GK angle-narrowing: kickoff/restart legality', () => {
     restartKickoff(m, 1); // e.g. after a home goal — same placement rule
     expect(m.players[0].pos).toEqual({ x: 3400, y: 9408 });
     expect(m.players[11].pos).toEqual({ x: 3400, y: 1092 });
-    for (const [idx, ownHalf] of [[0, (y: number) => y >= PITCH_H / 2], [11, (y: number) => y <= PITCH_H / 2]] as const) {
+    for (const [idx, ownHalf] of [
+      [0, (y: number) => y >= PITCH_H / 2],
+      [11, (y: number) => y <= PITCH_H / 2],
+    ] as const) {
       const p = m.players[idx].pos;
       expect(ownHalf(p.y)).toBe(true);
       expect(p.x).toBeGreaterThanOrEqual(GOAL_CENTER_X - 2015);

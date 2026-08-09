@@ -109,9 +109,13 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       this.createTableExecutions += 1;
       return;
     }
-    if (sql === 'ALTER TABLE career_save_backups ADD COLUMN saved_career_seed INTEGER') {
+    if (
+      sql ===
+      'ALTER TABLE career_save_backups ADD COLUMN saved_career_seed INTEGER'
+    ) {
       this.assertBackupTable();
-      if (this.backupSeedColumnExists) throw new Error('duplicate column name: saved_career_seed');
+      if (this.backupSeedColumnExists)
+        throw new Error('duplicate column name: saved_career_seed');
       this.backupSeedColumnExists = true;
       // The column arrives on existing rows as NULL, the same as SQLite.
       if (this.backupRow !== null) this.backupRow.saved_career_seed = null;
@@ -153,7 +157,14 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
 
     if (sql.startsWith('INSERT INTO career_save_backups')) {
       this.assertBackupSeedColumn();
-      const [slot, schemaVersion, stateJson, savedSeason, savedWeek, savedCareerSeed] = values;
+      const [
+        slot,
+        schemaVersion,
+        stateJson,
+        savedSeason,
+        savedWeek,
+        savedCareerSeed,
+      ] = values;
       if (
         slot !== 1 ||
         typeof schemaVersion !== 'number' ||
@@ -236,12 +247,20 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
     }
 
     if (sql.startsWith('INSERT INTO app_preferences')) {
-      if (!this.preferencesTableExists) throw new Error('app_preferences table does not exist');
+      if (!this.preferencesTableExists)
+        throw new Error('app_preferences table does not exist');
       const [slot, schemaVersion, preferencesJson] = values;
-      if (slot !== 1 || typeof schemaVersion !== 'number' || typeof preferencesJson !== 'string') {
+      if (
+        slot !== 1 ||
+        typeof schemaVersion !== 'number' ||
+        typeof preferencesJson !== 'string'
+      ) {
         throw new Error('invalid fake preferences upsert parameters');
       }
-      this.preferencesRow = { schema_version: schemaVersion, preferences_json: preferencesJson };
+      this.preferencesRow = {
+        schema_version: schemaVersion,
+        preferences_json: preferencesJson,
+      };
       return { lastInsertRowId: 1, changes: 1 };
     }
 
@@ -258,15 +277,15 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
         saveSequence,
       ] = values;
       if (
-        typeof slot !== 'string'
-        || !['1', '2', '3', '4', '5', 'A', 'B', 'C', 'D', 'E'].includes(slot)
-        || (kind !== 'AUTO' && kind !== 'MANUAL')
-        || typeof schemaVersion !== 'number'
-        || typeof stateJson !== 'string'
-        || typeof savedSeason !== 'number'
-        || typeof savedWeek !== 'number'
-        || typeof savedCareerSeed !== 'number'
-        || typeof saveSequence !== 'number'
+        typeof slot !== 'string' ||
+        !['1', '2', '3', '4', '5', 'A', 'B', 'C', 'D', 'E'].includes(slot) ||
+        (kind !== 'AUTO' && kind !== 'MANUAL') ||
+        typeof schemaVersion !== 'number' ||
+        typeof stateJson !== 'string' ||
+        typeof savedSeason !== 'number' ||
+        typeof savedWeek !== 'number' ||
+        typeof savedCareerSeed !== 'number' ||
+        typeof saveSequence !== 'number'
       ) {
         throw new Error('invalid fake developer save upsert parameters');
       }
@@ -332,16 +351,22 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       return { quick_check: this.integrity } as T;
     }
 
-    if (sql.startsWith(
-      'SELECT schema_version, state_json, saved_season, saved_week, saved_career_seed FROM career_save_backups',
-    )) {
+    if (
+      sql.startsWith(
+        'SELECT schema_version, state_json, saved_season, saved_week, saved_career_seed FROM career_save_backups',
+      )
+    ) {
       this.assertBackupSeedColumn();
       const values = arrayParams(params);
       if (values[0] !== 1) throw new Error('invalid fake backup load slot');
       return this.backupRow === null ? null : ({ ...this.backupRow } as T);
     }
 
-    if (sql.startsWith('SELECT saved_season, saved_week, saved_career_seed FROM career_save_backups')) {
+    if (
+      sql.startsWith(
+        'SELECT saved_season, saved_week, saved_career_seed FROM career_save_backups',
+      )
+    ) {
       this.assertBackupSeedColumn();
       const values = arrayParams(params);
       if (values[0] !== 1) throw new Error('invalid fake backup summary slot');
@@ -376,25 +401,44 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       return row === undefined ? null : ({ ...row } as T);
     }
 
-    if (sql.startsWith('SELECT schema_version, preferences_json FROM app_preferences')) {
-      if (!this.preferencesTableExists) throw new Error('app_preferences table does not exist');
+    if (
+      sql.startsWith(
+        'SELECT schema_version, preferences_json FROM app_preferences',
+      )
+    ) {
+      if (!this.preferencesTableExists)
+        throw new Error('app_preferences table does not exist');
       const values = arrayParams(params);
-      if (values[0] !== 1) throw new Error('invalid fake preferences load slot');
-      return this.preferencesRow === null ? null : ({ ...this.preferencesRow } as T);
+      if (values[0] !== 1)
+        throw new Error('invalid fake preferences load slot');
+      return this.preferencesRow === null
+        ? null
+        : ({ ...this.preferencesRow } as T);
     }
 
-    if (sql.startsWith('SELECT MAX(save_sequence) AS max_sequence FROM developer_saves')) {
+    if (
+      sql.startsWith(
+        'SELECT MAX(save_sequence) AS max_sequence FROM developer_saves',
+      )
+    ) {
       this.assertDeveloperSaveTable();
       const values = arrayParams(params);
       const careerSeed = values[0];
-      if (typeof careerSeed !== 'number') throw new Error('invalid fake developer save career');
+      if (typeof careerSeed !== 'number')
+        throw new Error('invalid fake developer save career');
       const sequences = Array.from(this.developerSaveRows.values())
-        .filter(row => row.kind === 'AUTO' && row.saved_career_seed === careerSeed)
-        .map(row => row.save_sequence as number);
-      return { max_sequence: sequences.length === 0 ? null : Math.max(...sequences) } as T;
+        .filter(
+          (row) => row.kind === 'AUTO' && row.saved_career_seed === careerSeed,
+        )
+        .map((row) => row.save_sequence as number);
+      return {
+        max_sequence: sequences.length === 0 ? null : Math.max(...sequences),
+      } as T;
     }
 
-    if (sql.startsWith('SELECT schema_version, state_json FROM developer_saves')) {
+    if (
+      sql.startsWith('SELECT schema_version, state_json FROM developer_saves')
+    ) {
       this.assertDeveloperSaveTable();
       const values = arrayParams(params);
       const [slot, careerSeed] = values;
@@ -404,7 +448,10 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       const row = this.developerSaveRows.get(slot);
       return row === undefined || row.saved_career_seed !== careerSeed
         ? null
-        : ({ schema_version: row.schema_version, state_json: row.state_json } as T);
+        : ({
+            schema_version: row.schema_version,
+            state_json: row.state_json,
+          } as T);
     }
 
     throw new Error(`fake database does not support query SQL: ${sql}`);
@@ -416,22 +463,30 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
   ): Promise<T[]> {
     const sql = normalizeSql(source);
     this.executedSql.push(sql);
-    if (sql.startsWith("SELECT name FROM sqlite_master")) {
-      return this.existingTables().map(name => ({ name }) as T);
+    if (sql.startsWith('SELECT name FROM sqlite_master')) {
+      return this.existingTables().map((name) => ({ name }) as T);
     }
-    if (sql.startsWith('SELECT slot, kind, saved_season, saved_week FROM developer_saves')) {
+    if (
+      sql.startsWith(
+        'SELECT slot, kind, saved_season, saved_week FROM developer_saves',
+      )
+    ) {
       this.assertDeveloperSaveTable();
       const values = arrayParams(params);
       const careerSeed = values[0];
-      if (typeof careerSeed !== 'number') throw new Error('invalid fake developer save list career');
+      if (typeof careerSeed !== 'number')
+        throw new Error('invalid fake developer save list career');
       return Array.from(this.developerSaveRows.values())
-        .filter(row => row.saved_career_seed === careerSeed)
-        .map(row => ({
-          slot: row.slot,
-          kind: row.kind,
-          saved_season: row.saved_season,
-          saved_week: row.saved_week,
-        }) as T);
+        .filter((row) => row.saved_career_seed === careerSeed)
+        .map(
+          (row) =>
+            ({
+              slot: row.slot,
+              kind: row.kind,
+              saved_season: row.saved_season,
+              saved_week: row.saved_week,
+            }) as T,
+        );
     }
     if (
       !sql.startsWith(
@@ -466,7 +521,8 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       replayRows: new Map(
         Array.from(this.replayRows, ([key, row]) => [key, { ...row }]),
       ),
-      preferencesRow: this.preferencesRow === null ? null : { ...this.preferencesRow },
+      preferencesRow:
+        this.preferencesRow === null ? null : { ...this.preferencesRow },
       developerSaveRows: new Map(
         Array.from(this.developerSaveRows, ([key, row]) => [key, { ...row }]),
       ),

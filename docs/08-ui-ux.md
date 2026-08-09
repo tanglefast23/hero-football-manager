@@ -11,14 +11,14 @@ Portrait, one-handed, thumb-first. The design language follows the house rules (
 - **Action colour carries meaning, not decoration** (the shared families live in [11-art-style.md](11-art-style.md)): **blue** confirm/primary and neutral action · **red** cancel/destructive · **gold** hero/reward only · **grey** disabled. Button faces are the one place the palette is allowed to shout against the calm cream canvas; blue is therefore the primary-action colour across management screens (Advance Week, confirms, guided cards) and is not a second brand accent competing with gold. Violet is retired from the UI palette (2026-07-24).
 - **User-facing numbers read as things the manager receives**: name the player or thing and show the result — never surface a raw negative modifier or penalty label (no "Fans −3").
 - Pixel-art portraits and icons on clean flat UI (the Kairosoft contrast: crunchy sprites, calm chrome).
-- Type: one UI sans (4 sizes: 13/15/18/24) + monospace for numerals. Weights: regular + bold only.
+- Type: one UI sans with four semantic content sizes — caption 13, body 15, heading 18, display 24 — plus monospace for numerals. Weights: regular + bold only. Wordmark and decorative-glyph sizes are art geometry, not content levels; each exception must be named in `src/ui/ui-tokens.ts` and held by a source test.
 
 ## Navigation & screen map
 
 Bottom tab bar, 5 tabs; a persistent **Advance Week ▸** button lives above it on every management screen (the Kairosoft heartbeat button).
 
 1. **Home** — club hub: next fixture card, cash/TP strip, alerts (renewals due, event waiting, injuries), league position snippet.
-2. **Squad** — roster list (sortable chips) → Player Card (large portrait with customization/paper-doll layers, raw stats, exact Archetype/Position/Potential training bonuses, contract, morale, and power panel). Stats have no personal cap; a value of 999 is labelled as the universal maximum.
+2. **Squad** — roster list (sortable chips) → Player Card (large portrait with customization/paper-doll layers, raw stats, exact Archetype/Position training bonuses, Potential grade and SUPER chance, contract, morale, and power panel). Stats have no personal cap; a value of 999 is labelled as the universal maximum.
 3. **Club** — facilities grid (build/upgrade/move with adjacency glows), staff (coach card, hire market), finances (ledger, sponsors, loan status).
 4. **Market** — scouting missions, transfer listings, negotiation flow (mood face + Pitch Cards), youth intake.
 5. **League** — named five-division ladder, current standings, fixtures/results, cup progress, and a live comparison between your squad strength and each division's club strength range.

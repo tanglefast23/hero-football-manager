@@ -15,8 +15,12 @@ describe('division goalkeeper balance acceptance gate', () => {
     const [minimumSaveRate, maximumSaveRate] = artifact.rails.saveRate;
 
     for (const sample of Object.values(artifact.divisions)) {
-      expect(sample.goalsPerMatch).toBe(sample.goals / artifact.matchesPerDivision);
-      expect(sample.saveRate).toBe(sample.saves / (sample.saves + sample.goals));
+      expect(sample.goalsPerMatch).toBe(
+        sample.goals / artifact.matchesPerDivision,
+      );
+      expect(sample.saveRate).toBe(
+        sample.saves / (sample.saves + sample.goals),
+      );
       expect(sample.goalsPerMatch).toBeGreaterThanOrEqual(minimumGoals);
       expect(sample.goalsPerMatch).toBeLessThanOrEqual(maximumGoals);
       expect(sample.saveRate).toBeGreaterThanOrEqual(minimumSaveRate);

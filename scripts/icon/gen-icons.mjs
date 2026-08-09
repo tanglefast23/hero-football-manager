@@ -192,23 +192,31 @@ const CONCEPT_C = {
 // Validation: exact 32x32, every char in the palette, <=16 colors per concept.
 // ---------------------------------------------------------------------------
 function validateConcept(name, { rows, palette }) {
-  if (rows.length !== N) throw new Error(`${name}: expected ${N} rows, got ${rows.length}`);
+  if (rows.length !== N)
+    throw new Error(`${name}: expected ${N} rows, got ${rows.length}`);
   const keys = new Set(Object.keys(palette));
-  if (keys.size > 16) throw new Error(`${name}: ${keys.size} palette entries (max 16)`);
+  if (keys.size > 16)
+    throw new Error(`${name}: ${keys.size} palette entries (max 16)`);
   for (const key of keys) {
-    if (!/^#[0-9a-f]{6}$/.test(palette[key])) throw new Error(`${name}: bad hex for '${key}'`);
+    if (!/^#[0-9a-f]{6}$/.test(palette[key]))
+      throw new Error(`${name}: bad hex for '${key}'`);
   }
   const used = new Set();
   rows.forEach((row, y) => {
-    if (row.length !== N) throw new Error(`${name}: row ${y} is ${row.length} chars, expected ${N}`);
+    if (row.length !== N)
+      throw new Error(
+        `${name}: row ${y} is ${row.length} chars, expected ${N}`,
+      );
     for (let x = 0; x < N; x++) {
       const ch = row[x];
-      if (!keys.has(ch)) throw new Error(`${name}: unknown char '${ch}' at (${x},${y})`);
+      if (!keys.has(ch))
+        throw new Error(`${name}: unknown char '${ch}' at (${x},${y})`);
       used.add(ch);
     }
   });
   for (const key of keys) {
-    if (!used.has(key)) throw new Error(`${name}: palette entry '${key}' is never used`);
+    if (!used.has(key))
+      throw new Error(`${name}: palette entry '${key}' is never used`);
   }
 }
 
@@ -222,7 +230,8 @@ function rasterizeRows(rows, palette) {
     const row = rows[y];
     for (let x = 0; x < n; x++) {
       const hex = palette[row[x]];
-      if (!hex) throw new Error(`missing palette entry for '${row[x]}' at (${x},${y})`);
+      if (!hex)
+        throw new Error(`missing palette entry for '${row[x]}' at (${x},${y})`);
       const i = (y * n + x) * 4;
       buf[i] = parseInt(hex.slice(1, 3), 16);
       buf[i + 1] = parseInt(hex.slice(3, 5), 16);
@@ -240,8 +249,12 @@ function upscaleNearest(buf, srcN, destN) {
     const sy = Math.min(srcN - 1, Math.floor(y / scale));
     for (let x = 0; x < destN; x++) {
       const sx = Math.min(srcN - 1, Math.floor(x / scale));
-      const si = (sy * srcN + sx) * 4, di = (y * destN + x) * 4;
-      out[di] = buf[si]; out[di + 1] = buf[si + 1]; out[di + 2] = buf[si + 2]; out[di + 3] = 255;
+      const si = (sy * srcN + sx) * 4,
+        di = (y * destN + x) * 4;
+      out[di] = buf[si];
+      out[di + 1] = buf[si + 1];
+      out[di + 2] = buf[si + 2];
+      out[di + 3] = 255;
     }
   }
   return out;
@@ -249,7 +262,10 @@ function upscaleNearest(buf, srcN, destN) {
 
 function assertOpaque(buf, label) {
   for (let i = 3; i < buf.length; i += 4) {
-    if (buf[i] !== 255) throw new Error(`${label}: non-opaque pixel (alpha=${buf[i]}) at byte ${i}`);
+    if (buf[i] !== 255)
+      throw new Error(
+        `${label}: non-opaque pixel (alpha=${buf[i]}) at byte ${i}`,
+      );
   }
 }
 
@@ -259,27 +275,37 @@ function assertOpaque(buf, label) {
 function decodePNG(buf) {
   const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
   if (!buf.subarray(0, 8).equals(sig)) throw new Error('bad PNG signature');
-  let offset = 8, width, height, bitDepth, colorType;
+  let offset = 8,
+    width,
+    height,
+    bitDepth,
+    colorType;
   const idatParts = [];
   while (offset < buf.length) {
     const len = buf.readUInt32BE(offset);
     const type = buf.toString('ascii', offset + 4, offset + 8);
     const data = buf.subarray(offset + 8, offset + 8 + len);
     if (type === 'IHDR') {
-      width = data.readUInt32BE(0); height = data.readUInt32BE(4);
-      bitDepth = data[8]; colorType = data[9];
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      bitDepth = data[8];
+      colorType = data[9];
     } else if (type === 'IDAT') idatParts.push(data);
     else if (type === 'IEND') break;
     offset += 12 + len;
   }
   if (width == null) throw new Error('missing IHDR chunk');
-  if (bitDepth !== 8 || colorType !== 6) throw new Error(`expected 8-bit RGBA, got depth=${bitDepth} type=${colorType}`);
+  if (bitDepth !== 8 || colorType !== 6)
+    throw new Error(
+      `expected 8-bit RGBA, got depth=${bitDepth} type=${colorType}`,
+    );
   const raw = inflateSync(Buffer.concat(idatParts));
   const stride = width * 4;
   const pixels = Buffer.alloc(width * height * 4);
   for (let y = 0; y < height; y++) {
     const rowStart = y * (stride + 1);
-    if (raw[rowStart] !== 0) throw new Error(`unexpected filter type ${raw[rowStart]} on row ${y}`);
+    if (raw[rowStart] !== 0)
+      throw new Error(`unexpected filter type ${raw[rowStart]} on row ${y}`);
     raw.copy(pixels, y * stride, rowStart + 1, rowStart + 1 + stride);
   }
   return { width, height, bitDepth, colorType, pixels };
@@ -292,7 +318,11 @@ function main() {
     ['concept-b', CONCEPT_B],
     ['concept-c', CONCEPT_C],
   ];
-  const sizes = [[1024, ''], [180, '-180'], [120, '-120']];
+  const sizes = [
+    [1024, ''],
+    [180, '-180'],
+    [120, '-120'],
+  ];
   const report = [];
 
   for (const [name, concept] of concepts) {
@@ -309,16 +339,25 @@ function main() {
       const onDisk = readFileSync(filePath);
       const decoded = decodePNG(onDisk);
       if (decoded.width !== size || decoded.height !== size) {
-        throw new Error(`${filePath}: expected ${size}x${size}, got ${decoded.width}x${decoded.height}`);
+        throw new Error(
+          `${filePath}: expected ${size}x${size}, got ${decoded.width}x${decoded.height}`,
+        );
       }
       for (let i = 3; i < decoded.pixels.length; i += 4) {
-        if (decoded.pixels[i] !== 255) throw new Error(`${filePath}: non-opaque pixel on re-parse at byte ${i}`);
+        if (decoded.pixels[i] !== 255)
+          throw new Error(
+            `${filePath}: non-opaque pixel on re-parse at byte ${i}`,
+          );
       }
-      report.push(`  ${name}${suffix}.png: ${size}x${size}, ${onDisk.length}B, signature OK, opaque OK (re-parsed)`);
+      report.push(
+        `  ${name}${suffix}.png: ${size}x${size}, ${onDisk.length}B, signature OK, opaque OK (re-parsed)`,
+      );
     }
   }
 
-  console.log(`Generated ${concepts.length * sizes.length} PNGs in ${OUT_DIR}:`);
+  console.log(
+    `Generated ${concepts.length * sizes.length} PNGs in ${OUT_DIR}:`,
+  );
   console.log(report.join('\n'));
 
   // -------------------------------------------------------------------------
@@ -336,10 +375,15 @@ function main() {
     writeFileSync(filePath, encodePNG(size, size, upscaled));
     const decoded = decodePNG(readFileSync(filePath));
     if (decoded.width !== size || decoded.height !== size) {
-      throw new Error(`${filePath}: expected ${size}x${size}, got ${decoded.width}x${decoded.height}`);
+      throw new Error(
+        `${filePath}: expected ${size}x${size}, got ${decoded.width}x${decoded.height}`,
+      );
     }
     for (let i = 3; i < decoded.pixels.length; i += 4) {
-      if (decoded.pixels[i] !== 255) throw new Error(`${filePath}: non-opaque pixel on re-parse at byte ${i}`);
+      if (decoded.pixels[i] !== 255)
+        throw new Error(
+          `${filePath}: non-opaque pixel on re-parse at byte ${i}`,
+        );
     }
     return filePath;
   };
@@ -355,8 +399,10 @@ function main() {
     writeShipped(['public', 'icon-192.png'], 192),
     writeShipped(['public', 'icon-512.png'], 512),
   ];
-  console.log('Exported shipped icon (Concept A "Caped Ball", user pick 2026-07-18):');
-  console.log(shippedPaths.map(filePath => `  ${filePath}`).join('\n'));
+  console.log(
+    'Exported shipped icon (Concept A "Caped Ball", user pick 2026-07-18):',
+  );
+  console.log(shippedPaths.map((filePath) => `  ${filePath}`).join('\n'));
 }
 
 main();

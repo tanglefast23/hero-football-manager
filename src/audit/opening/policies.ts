@@ -11,7 +11,11 @@
 import { OVERTRAINING_CONDITION_THRESHOLD, roleOverall } from '../../game';
 import type { Role } from '../../sim/types';
 import type { OpeningIntent } from './intents';
-import type { OpeningObservation, VisibleCoachCandidate, VisiblePlayer } from './observation';
+import type {
+  OpeningObservation,
+  VisibleCoachCandidate,
+  VisiblePlayer,
+} from './observation';
 
 export interface OpeningPolicy {
   readonly id: string;
@@ -74,37 +78,53 @@ function roundRobinPolicy(config: RoundRobinConfig): OpeningPolicy {
     description: config.description,
     plan(observation) {
       const intents: OpeningIntent[] = [
-        ...openingKitIntents(observation, config.coach, config.buildTrainingPitch),
+        ...openingKitIntents(
+          observation,
+          config.coach,
+          config.buildTrainingPitch,
+        ),
       ];
 
       const core = selectCore(observation, config.core);
       if (core.length === 0) return intents;
 
-      const rotation = config.passOrder === 'rotate-weekly'
-        ? (observation.week - 1) % core.length
-        : 0;
+      const rotation =
+        config.passOrder === 'rotate-weekly'
+          ? (observation.week - 1) % core.length
+          : 0;
       const ordered = [...core.slice(rotation), ...core.slice(0, rotation)];
 
       const tapsByPlayer = new Map<string, number>();
       const attributeValues = new Map<string, number>();
       let trainingPoints = observation.trainingPoints;
-      const maxPasses = config.weeklyBudget === 'one-cycle'
-        ? 1
-        : config.maxTapsPerPlayerPerWeek;
+      const maxPasses =
+        config.weeklyBudget === 'one-cycle'
+          ? 1
+          : config.maxTapsPerPlayerPerWeek;
 
       for (let pass = 0; pass < maxPasses; pass += 1) {
         let tappedThisPass = false;
         for (const player of ordered) {
-          if ((tapsByPlayer.get(player.id) ?? 0) >= config.maxTapsPerPlayerPerWeek) continue;
+          if (
+            (tapsByPlayer.get(player.id) ?? 0) >= config.maxTapsPerPlayerPerWeek
+          )
+            continue;
           const choice = chooseDrill(player, attributeValues);
           if (choice === undefined) continue;
           if (choice.tpCost > trainingPoints) continue;
-          intents.push({ kind: 'train', playerId: player.id, pathId: choice.pathId });
+          intents.push({
+            kind: 'train',
+            playerId: player.id,
+            pathId: choice.pathId,
+          });
           trainingPoints -= choice.tpCost;
           tapsByPlayer.set(player.id, (tapsByPlayer.get(player.id) ?? 0) + 1);
           // Track the projected value so a second tap in the same week prices
           // its own headroom instead of re-reading the stale opening preview.
-          attributeValues.set(`${player.id}:${choice.attribute}`, choice.adjustedAfter);
+          attributeValues.set(
+            `${player.id}:${choice.attribute}`,
+            choice.adjustedAfter,
+          );
           tappedThisPass = true;
         }
         if (!tappedThisPass) break;
@@ -123,7 +143,10 @@ function roundRobinPolicy(config: RoundRobinConfig): OpeningPolicy {
 function singlePathPolicy(
   pathId: string,
   targetRole: Role,
-  options: { readonly coach: CoachChoice; readonly buildTrainingPitch: boolean },
+  options: {
+    readonly coach: CoachChoice;
+    readonly buildTrainingPitch: boolean;
+  },
 ): OpeningPolicy {
   const kit = options.buildTrainingPitch ? 'kit' : 'bare';
   return {
@@ -132,7 +155,11 @@ function singlePathPolicy(
     description: `every affordable opening tap into ${pathId} on the best ${targetRole}`,
     plan(observation) {
       const intents: OpeningIntent[] = [
-        ...openingKitIntents(observation, options.coach, options.buildTrainingPitch),
+        ...openingKitIntents(
+          observation,
+          options.coach,
+          options.buildTrainingPitch,
+        ),
       ];
       const target = selectCore(observation, [targetRole])[0];
       if (target === undefined) return intents;
@@ -147,7 +174,8 @@ function singlePathPolicy(
         // Never start a drill below the overtraining threshold: an injury would
         // be a policy blunder, not a measurement of the path's value.
         if (condition < OVERTRAINING_CONDITION_THRESHOLD) break;
-        const projectedAfter = value + Math.max(0, drill.adjustedAfter - drill.currentValue);
+        const projectedAfter =
+          value + Math.max(0, drill.adjustedAfter - drill.currentValue);
         if (projectedAfter <= value) break; // the card shows no improvement
         intents.push({ kind: 'train', playerId: target.id, pathId });
         trainingPoints -= drill.tpCost;
@@ -166,17 +194,20 @@ function openingKitIntents(
 ): OpeningIntent[] {
   const intents: OpeningIntent[] = [];
   if (coach !== 'none' && !observation.headCoachHired) {
-    const candidate = coach === 'first-eligible'
-      ? observation.coachCandidates[0]
-      : bestSpecialtyCoach(observation);
+    const candidate =
+      coach === 'first-eligible'
+        ? observation.coachCandidates[0]
+        : bestSpecialtyCoach(observation);
     if (candidate !== undefined && observation.cash >= candidate.weeklyWage) {
       intents.push({ kind: 'hire-head-coach', coachId: candidate.id });
     }
   }
   if (
-    buildTrainingPitch
-    && !observation.constructionInProgress
-    && !observation.facilities.some(facility => facility.type === 'training-pitch')
+    buildTrainingPitch &&
+    !observation.constructionInProgress &&
+    !observation.facilities.some(
+      (facility) => facility.type === 'training-pitch',
+    )
   ) {
     intents.push({
       kind: 'build-facility',
@@ -196,21 +227,25 @@ function bestSpecialtyCoach(
   observation: OpeningObservation,
 ): VisibleCoachCandidate | undefined {
   const wanted = new Set(
-    selectCore(observation, ['FWD', 'DEF', 'GK', 'MID'])
-      .map(player => PATH_SPECIALTY[ROLE_PATH_ORDER[player.role][0]]),
+    selectCore(observation, ['FWD', 'DEF', 'GK', 'MID']).map(
+      (player) => PATH_SPECIALTY[ROLE_PATH_ORDER[player.role][0]],
+    ),
   );
   return observation.coachCandidates
     .map((candidate, order) => ({
       candidate,
       order,
-      matches: candidate.specialties.filter(specialty => wanted.has(specialty)).length,
+      matches: candidate.specialties.filter((specialty) =>
+        wanted.has(specialty),
+      ).length,
     }))
-    .sort((left, right) => (
-      right.matches - left.matches
-      || right.candidate.level - left.candidate.level
-      || left.candidate.weeklyWage - right.candidate.weeklyWage
-      || left.order - right.order
-    ))[0]?.candidate;
+    .sort(
+      (left, right) =>
+        right.matches - left.matches ||
+        right.candidate.level - left.candidate.level ||
+        left.candidate.weeklyWage - right.candidate.weeklyWage ||
+        left.order - right.order,
+    )[0]?.candidate;
 }
 
 /**
@@ -227,20 +262,26 @@ function selectCore(
 ): VisiblePlayer[] {
   const chosen: VisiblePlayer[] = [];
   for (const role of roles) {
-    const eligible = observation.players.filter(player => (
-      player.role === role
-      && player.isStarter
-      && player.injuryWeeks === 0
-      && !chosen.some(already => already.id === player.id)
-    ));
-    const created = role === 'FWD'
-      ? eligible.find(player => player.isCreatedPlayer)
-      : undefined;
-    const best = created ?? eligible.sort((left, right) => (
-      roleOverall(right.role, right.attrs) - roleOverall(left.role, left.attrs)
-      || left.lineupOrder - right.lineupOrder
-      || left.id.localeCompare(right.id)
-    ))[0];
+    const eligible = observation.players.filter(
+      (player) =>
+        player.role === role &&
+        player.isStarter &&
+        player.injuryWeeks === 0 &&
+        !chosen.some((already) => already.id === player.id),
+    );
+    const created =
+      role === 'FWD'
+        ? eligible.find((player) => player.isCreatedPlayer)
+        : undefined;
+    const best =
+      created ??
+      eligible.sort(
+        (left, right) =>
+          roleOverall(right.role, right.attrs) -
+            roleOverall(left.role, left.attrs) ||
+          left.lineupOrder - right.lineupOrder ||
+          left.id.localeCompare(right.id),
+      )[0];
     if (best !== undefined) chosen.push(best);
   }
   return chosen;
@@ -253,11 +294,15 @@ function selectCore(
 function chooseDrill(
   player: VisiblePlayer,
   attributeValues: ReadonlyMap<string, number>,
-): { pathId: string; attribute: string; tpCost: number; adjustedAfter: number } | undefined {
+):
+  | { pathId: string; attribute: string; tpCost: number; adjustedAfter: number }
+  | undefined {
   for (const pathId of ROLE_PATH_ORDER[player.role]) {
-    const drill = player.drills.find(option => option.pathId === pathId);
+    const drill = player.drills.find((option) => option.pathId === pathId);
     if (drill === undefined) continue;
-    const current = attributeValues.get(`${player.id}:${drill.attribute}`) ?? drill.currentValue;
+    const current =
+      attributeValues.get(`${player.id}:${drill.attribute}`) ??
+      drill.currentValue;
     const projected = current + drill.visibleGain;
     if (projected <= current) continue;
     return {
@@ -271,7 +316,7 @@ function chooseDrill(
 }
 
 function drillFor(player: VisiblePlayer, pathId: string) {
-  return player.drills.find(option => option.pathId === pathId);
+  return player.drills.find((option) => option.pathId === pathId);
 }
 
 /**
@@ -282,7 +327,8 @@ function drillFor(player: VisiblePlayer, pathId: string) {
 export const ORDINARY_POLICY = roundRobinPolicy({
   id: 'ordinary',
   version: 1,
-  description: 'coach + pitch, one tap each on FWD/DEF/GK per week, banks the remainder',
+  description:
+    'coach + pitch, one tap each on FWD/DEF/GK per week, banks the remainder',
   coach: 'first-eligible',
   buildTrainingPitch: true,
   core: ['FWD', 'DEF', 'GK'],
@@ -308,7 +354,8 @@ export const SMART_BREADTH_POLICY = roundRobinPolicy({
 export const SMART_EXTRA_FWD_POLICY = roundRobinPolicy({
   id: 'smart-extra-fwd',
   version: 1,
-  description: 'specialty coach + pitch, three-player core, spare taps to the created FWD',
+  description:
+    'specialty coach + pitch, three-player core, spare taps to the created FWD',
   coach: 'best-specialty',
   buildTrainingPitch: true,
   core: ['FWD', 'DEF', 'GK'],
@@ -324,7 +371,8 @@ export const SMART_CONCENTRATION_POLICY: OpeningPolicy = {
     buildTrainingPitch: true,
   }),
   id: 'smart-concentration',
-  description: 'specialty coach + pitch, every safe affordable tap into the created FWD',
+  description:
+    'specialty coach + pitch, every safe affordable tap into the created FWD',
 };
 
 /**
@@ -334,7 +382,8 @@ export const SMART_CONCENTRATION_POLICY: OpeningPolicy = {
 export const JOE_OBSERVED_COACH_POLICY = roundRobinPolicy({
   id: 'joe-observed-coach',
   version: 1,
-  description: 'coach + pitch, role-correct drills, <=3 taps per player per week, spends the bank',
+  description:
+    'coach + pitch, role-correct drills, <=3 taps per player per week, spends the bank',
   coach: 'first-eligible',
   buildTrainingPitch: true,
   core: ['FWD', 'DEF', 'GK'],
@@ -347,7 +396,8 @@ export const JOE_OBSERVED_COACH_POLICY = roundRobinPolicy({
 export const JOE_OBSERVED_NO_COACH_POLICY = roundRobinPolicy({
   id: 'joe-observed-no-coach',
   version: 1,
-  description: 'pitch only, role-correct drills, <=3 taps per player per week, spends the bank',
+  description:
+    'pitch only, role-correct drills, <=3 taps per player per week, spends the bank',
   coach: 'none',
   buildTrainingPitch: true,
   core: ['FWD', 'DEF', 'GK'],
@@ -360,7 +410,8 @@ export const JOE_OBSERVED_NO_COACH_POLICY = roundRobinPolicy({
 export const PAC_CONTROL_POLICY = roundRobinPolicy({
   id: 'pac-control',
   version: 1,
-  description: 'legacy control: no coach, no build, one Sprints tap each on three starters',
+  description:
+    'legacy control: no coach, no build, one Sprints tap each on three starters',
   coach: 'none',
   buildTrainingPitch: false,
   core: ['FWD', 'DEF', 'MID'],
@@ -383,14 +434,16 @@ export const NO_TRAINING_POLICY: OpeningPolicy = {
  * career keeps the reported lift attributable to the drills instead of to the
  * Training Pitch's own presence.
  */
-export function kitOnlyPolicy(
-  options: { readonly coach: CoachChoice; readonly buildTrainingPitch: boolean },
-): OpeningPolicy {
+export function kitOnlyPolicy(options: {
+  readonly coach: CoachChoice;
+  readonly buildTrainingPitch: boolean;
+}): OpeningPolicy {
   return {
     id: `kit-only-${options.buildTrainingPitch ? 'pitch' : 'bare'}`,
     version: 1,
     description: 'control: the opening kit with no drills at all',
-    plan: observation => openingKitIntents(observation, options.coach, options.buildTrainingPitch),
+    plan: (observation) =>
+      openingKitIntents(observation, options.coach, options.buildTrainingPitch),
   };
 }
 
@@ -409,10 +462,13 @@ const SINGLE_PATH_TARGETS: readonly (readonly [string, Role])[] = [
  * per-TP value of Duels can be read directly against Finishing at the roster
  * and facility state a real opening actually has.
  */
-export function singlePathPolicies(
-  options: { readonly coach: CoachChoice; readonly buildTrainingPitch: boolean },
-): readonly OpeningPolicy[] {
-  return SINGLE_PATH_TARGETS.map(([pathId, role]) => singlePathPolicy(pathId, role, options));
+export function singlePathPolicies(options: {
+  readonly coach: CoachChoice;
+  readonly buildTrainingPitch: boolean;
+}): readonly OpeningPolicy[] {
+  return SINGLE_PATH_TARGETS.map(([pathId, role]) =>
+    singlePathPolicy(pathId, role, options),
+  );
 }
 
 export const REALISTIC_POLICIES: readonly OpeningPolicy[] = [

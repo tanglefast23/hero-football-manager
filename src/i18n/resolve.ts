@@ -59,6 +59,7 @@ export function resolveCopy(
   key: string,
   params?: CopyParams,
 ): string {
-  const template = lookup(strings, key, locale, params) ?? lookup(fallback, key, 'en', params);
+  const template =
+    lookup(strings, key, locale, params) ?? lookup(fallback, key, 'en', params);
   return template === undefined ? key : interpolate(template, params);
 }

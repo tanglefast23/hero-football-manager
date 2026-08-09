@@ -1,7 +1,11 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import type { AssistantGuideContent } from '../../content/schemas';
-import { MAX_BRIEFING_BEATS, beatFocus, briefingBeats } from '../bert-briefing-beats';
+import {
+  MAX_BRIEFING_BEATS,
+  beatFocus,
+  briefingBeats,
+} from '../bert-briefing-beats';
 
 const guide = JSON.parse(
   readFileSync(join(process.cwd(), 'content/assistant-guide.json'), 'utf8'),
@@ -20,7 +24,9 @@ describe('briefing beats', () => {
 
   it('never exceeds what the schema can produce', () => {
     for (const sequence of guide.sequences) {
-      expect(briefingBeats(guide, sequence.id).length).toBeLessThanOrEqual(MAX_BRIEFING_BEATS);
+      expect(briefingBeats(guide, sequence.id).length).toBeLessThanOrEqual(
+        MAX_BRIEFING_BEATS,
+      );
     }
   });
 
@@ -29,46 +35,57 @@ describe('briefing beats', () => {
     // One entrance, not three: all three pages' copy in a single list. Two
     // paragraphs, two paragraphs, one — the longest sequence in the game.
     expect(beats).toHaveLength(5);
-    expect(beats.map(beat => beat.pageIndex)).toEqual([0, 0, 1, 1, 2]);
-    expect(beats.map(beat => beat.focus)).toEqual([
-      'assistant', 'assistant', 'money', 'money', 'navigation',
+    expect(beats.map((beat) => beat.pageIndex)).toEqual([0, 0, 1, 1, 2]);
+    expect(beats.map((beat) => beat.focus)).toEqual([
+      'assistant',
+      'assistant',
+      'money',
+      'money',
+      'navigation',
     ]);
-    expect(beats.every(beat => beat.kind === 'body')).toBe(true);
+    expect(beats.every((beat) => beat.kind === 'body')).toBe(true);
   });
 
   it('is the longest sequence in shipped content', () => {
     const longest = Math.max(
-      ...guide.sequences.map(sequence => briefingBeats(guide, sequence.id).length),
+      ...guide.sequences.map(
+        (sequence) => briefingBeats(guide, sequence.id).length,
+      ),
     );
     expect(longest).toBe(5);
   });
 
   it('leaves CTA objectives to the tooltip and progression layer', () => {
     const beats = briefingBeats(guide, 'head-coach-market');
-    const objective = guide.sequences
-      .find(s => s.id === 'head-coach-market')
+    const objective = guide.sequences.find((s) => s.id === 'head-coach-market')
       ?.pages[0].objective;
 
     expect(objective).toBeDefined();
-    expect(beats.map(beat => beat.text)).not.toContain(objective);
-    expect(beats.every(beat => beat.kind === 'body')).toBe(true);
+    expect(beats.map((beat) => beat.text)).not.toContainSource(objective);
+    expect(beats.every((beat) => beat.kind === 'body')).toBe(true);
   });
 
   it('emits only body beats for a page with no objective', () => {
     const beats = briefingBeats(guide, 'desk-intro');
-    expect(beats.every(beat => beat.kind === 'body')).toBe(true);
+    expect(beats.every((beat) => beat.kind === 'body')).toBe(true);
   });
 
   it('includes a division-leaders beat pointing at the leaders tab', () => {
-    const beat = guide.sequences.find(sequence => sequence.id === 'division-leaders');
+    const beat = guide.sequences.find(
+      (sequence) => sequence.id === 'division-leaders',
+    );
     expect(beat).toBeDefined();
     expect(beat?.destination).toBe('league-leaders');
     expect(beat?.pages.length).toBeGreaterThan(0);
-    expect(beat?.pages.every(page => page.focus === 'division-leaders')).toBe(true);
+    expect(beat?.pages.every((page) => page.focus === 'division-leaders')).toBe(
+      true,
+    );
   });
 
   it('routes what that beat carries to the League screen leaders board', () => {
-    const beat = guide.sequences.find(sequence => sequence.id === 'division-leaders')!;
+    const beat = guide.sequences.find(
+      (sequence) => sequence.id === 'division-leaders',
+    )!;
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
     // The destination picks the tab; the focus picks the board. The focus is
     // read from the live briefing first and only then from the concierge the
@@ -79,14 +96,20 @@ describe('briefing beats', () => {
 
     // Read out of the content rather than typed here, so renaming either value
     // fails this instead of quietly pointing Bert at nothing.
-    expect(app).toMatch(
-      new RegExp(`destination === '${beat.destination}'[\\s\\S]{0,40}?\\?\\s*'league'`),
+    expect(app).toMatchSource(
+      new RegExp(
+        `destination === '${beat.destination}'[\\s\\S]{0,40}?\\?\\s*'league'`,
+      ),
     );
-    expect(app).toContain(
+    expect(app).toContainSource(
       'const leagueGuideFocus = visibleConciergeFocus ?? assistantSequence?.pages.at(-1)?.focus;',
     );
-    expect(app).toMatch(new RegExp(`leagueGuideFocus === '${focus}'[\\s\\S]{0,40}?\\?\\s*'leaders'`));
-    expect(app).toContain('guideSubTab={leagueGuideSubTab}');
+    expect(app).toMatchSource(
+      new RegExp(
+        `leagueGuideFocus === '${focus}'[\\s\\S]{0,120}?\\?\\s*\\(?['"]leaders['"]`,
+      ),
+    );
+    expect(app).toContainSource('guideSubTab={leagueGuideSubTab}');
   });
 
   it('lifts the briefing scrim off the sub-tab it is talking about', () => {
@@ -95,7 +118,10 @@ describe('briefing beats', () => {
       join(process.cwd(), 'src/ui/screens/M2LeagueScreen.tsx'),
       'utf8',
     );
-    const walkOn = readFileSync(join(process.cwd(), 'src/ui/BertBriefingWalkOn.tsx'), 'utf8');
+    const walkOn = readFileSync(
+      join(process.cwd(), 'src/ui/BertBriefingWalkOn.tsx'),
+      'utf8',
+    );
 
     // Selecting the tab makes it look chosen; it still sat under the same
     // dimming as the boards he was NOT pointing at. The screen measures it, App
@@ -104,12 +130,20 @@ describe('briefing beats', () => {
       join(process.cwd(), 'src/ui/components/ScreenTabs.tsx'),
       'utf8',
     );
-    expect(league).toContain('ref: guidedSubTabAnchor.anchorRef,');
-    expect(league).toContain('onLayout: guidedSubTabAnchor.scheduleMeasurement,');
-    expect(tabs).toContain('tab.id === anchor.id ? anchor.ref : undefined');
-    expect(app).toContain('onGuideSubTabAnchorChange={setLeagueSubTabGuideAnchor}');
-    expect(app).toContain('subTabAnchor={leagueSubTabGuideAnchor}');
-    expect(walkOn).toContain("focus === 'division-leaders' || focus === 'national-cup'");
+    expect(league).toContainSource('ref: guidedSubTabAnchor.anchorRef,');
+    expect(league).toContainSource(
+      'onLayout: guidedSubTabAnchor.scheduleMeasurement,',
+    );
+    expect(tabs).toContainSource(
+      'tab.id === anchor.id ? anchor.ref : undefined',
+    );
+    expect(app).toContainSource(
+      'onGuideSubTabAnchorChange={setLeagueSubTabGuideAnchor}',
+    );
+    expect(app).toContainSource('subTabAnchor={leagueSubTabGuideAnchor}');
+    expect(walkOn).toContainSource(
+      "focus === 'division-leaders' || focus === 'national-cup'",
+    );
   });
 
   it('lets Bert explain the cup page instead of pointing a tap cue at it', () => {
@@ -121,18 +155,18 @@ describe('briefing beats', () => {
 
     // The cue said "Tap here" over a bracket with nothing tappable in it, and
     // the tap only bounced the manager back to the top of the page.
-    expect(league).not.toContain('TutorialTapCue');
+    expect(league).not.toContainSource('TutorialTapCue');
     expect(beats).toHaveLength(2);
-    expect(beats[1].text).toContain('scores come in live');
-    expect(beats.every(beat => beat.focus === 'national-cup')).toBe(true);
+    expect(beats[1].text).toContainSource('scores come in live');
+    expect(beats.every((beat) => beat.focus === 'national-cup')).toBe(true);
   });
 
   it('carries every paragraph of every page, in order', () => {
     for (const sequence of guide.sequences) {
-      const expected = sequence.pages.flatMap(page => [
-        ...page.body,
-      ]);
-      expect(briefingBeats(guide, sequence.id).map(beat => beat.text)).toEqual(expected);
+      const expected = sequence.pages.flatMap((page) => [...page.body]);
+      expect(
+        briefingBeats(guide, sequence.id).map((beat) => beat.text),
+      ).toEqual(expected);
     }
   });
 });

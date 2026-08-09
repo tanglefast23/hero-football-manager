@@ -1,5 +1,5 @@
 import type { EventCatalog } from '../content';
-import { copyFor, type CopyFn } from '../i18n';
+import { copyFor, formatMoneyForCopy, type CopyFn } from '../i18n';
 import { facilityNameFromId, personalityName } from './name-copy';
 import {
   careerEventPlayerSaleBlocker,
@@ -66,9 +66,10 @@ export function eventOfferForWeek(
   if (state.onboarding !== undefined && state.onboarding.stage !== 'complete') {
     return { eventClock: { ...state.eventClock } };
   }
-  const hadStoryLastWeek = state.resolvedEventHistory?.some(entry => (
-    entry.season === state.season && entry.week === state.week - 1
-  )) ?? false;
+  const hadStoryLastWeek =
+    state.resolvedEventHistory?.some(
+      (entry) => entry.season === state.season && entry.week === state.week - 1,
+    ) ?? false;
   if (hadStoryLastWeek) {
     return {
       eventClock: {
@@ -78,10 +79,14 @@ export function eventOfferForWeek(
     };
   }
 
-  const spider = catalog.events.find(event => event.id === 'giant-spider-arrives');
-  if (spider !== undefined
-    && eventIsEligible(state, spider)
-    && !state.resolvedEventIds.includes(spider.id)) {
+  const spider = catalog.events.find(
+    (event) => event.id === 'giant-spider-arrives',
+  );
+  if (
+    spider !== undefined &&
+    eventIsEligible(state, spider) &&
+    !state.resolvedEventIds.includes(spider.id)
+  ) {
     return {
       eventId: spider.id,
       eventClock: { ...state.eventClock, weeksWithoutEvent: 0 },
@@ -104,8 +109,9 @@ export function eventOfferForWeek(
    * Unlike the Giant Spider one-shot above, this waits for a clear desk and
    * never resets the counter. Those two differences are the whole design.
    */
-  const milestone = (state.pendingMilestones ?? [])
-    .find(entry => catalog.events.some(event => event.id === entry.eventId));
+  const milestone = (state.pendingMilestones ?? []).find((entry) =>
+    catalog.events.some((event) => event.id === entry.eventId),
+  );
   if (milestone !== undefined) {
     return { eventId: milestone.eventId, eventClock: { ...state.eventClock } };
   }
@@ -121,16 +127,20 @@ export function eventOfferForWeek(
 
   const carriedOnly = carriedOnlyCareerEventIds(catalog);
   const candidates = catalog.events
-    .filter(event => event.id !== 'giant-spider-arrives')
+    .filter((event) => event.id !== 'giant-spider-arrives')
     // Recognition has its own lane above. Milestone cards carry a `requiredFlag`
     // that the club has by definition once earned, so without this they would
     // also sit in the random deck and could be drawn out of queue order.
-    .filter(event => !isCareerMilestoneEventId(event.id))
+    .filter((event) => !isCareerMilestoneEventId(event.id))
     // Authored chapters arrive only from their opener. Letting one sit in the
     // random deck would either re-cast its target or show part two first.
-    .filter(event => !carriedOnly.has(event.id))
-    .filter(event => eventIsEligible(state, event))
-    .filter(event => event.trigger.repeatable === true || !state.resolvedEventIds.includes(event.id))
+    .filter((event) => !carriedOnly.has(event.id))
+    .filter((event) => eventIsEligible(state, event))
+    .filter(
+      (event) =>
+        event.trigger.repeatable === true ||
+        !state.resolvedEventIds.includes(event.id),
+    )
     .sort((left, right) => left.id.localeCompare(right.id));
   if (candidates.length === 0) {
     return {
@@ -141,7 +151,7 @@ export function eventOfferForWeek(
     };
   }
 
-  const weights = candidates.map(event => RARITY_WEIGHT[event.rarity]);
+  const weights = candidates.map((event) => RARITY_WEIGHT[event.rarity]);
   const total = weights.reduce((sum, weight) => sum + weight, 0);
   const roll = deterministicCareerEventRoll(
     eventRollContext(state),
@@ -150,12 +160,13 @@ export function eventOfferForWeek(
     total,
   );
   let cumulative = 0;
-  const index = weights.findIndex(weight => {
+  const index = weights.findIndex((weight) => {
     cumulative += weight;
     return roll < cumulative;
   });
   const selected = candidates[index];
-  if (selected === undefined) throw new Error('event catalog selection did not resolve');
+  if (selected === undefined)
+    throw new Error('event catalog selection did not resolve');
 
   return {
     eventId: selected.id,
@@ -184,14 +195,17 @@ export function eventIsEligible(
   // Authored season is the first eligible season. Unseen one-shot stories stay
   // in the deck in later years instead of silently expiring after Year 1/2.
   const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
-  return state.season >= trigger.season
-    && state.week >= trigger.minWeek
-    && state.week <= trigger.maxWeek
-    && (trigger.requiredFlag === undefined || state.eventFlags.includes(trigger.requiredFlag))
-    && (trigger.minDivision === undefined || division >= trigger.minDivision)
-    && (trigger.maxDivision === undefined || division <= trigger.maxDivision)
-    && careerEventHasLegalTarget(state, event)
-    && requirementsMet(state, trigger);
+  return (
+    state.season >= trigger.season &&
+    state.week >= trigger.minWeek &&
+    state.week <= trigger.maxWeek &&
+    (trigger.requiredFlag === undefined ||
+      state.eventFlags.includes(trigger.requiredFlag)) &&
+    (trigger.minDivision === undefined || division >= trigger.minDivision) &&
+    (trigger.maxDivision === undefined || division <= trigger.maxDivision) &&
+    careerEventHasLegalTarget(state, event) &&
+    requirementsMet(state, trigger)
+  );
 }
 
 export function eventChoiceUnavailableReason(
@@ -200,23 +214,25 @@ export function eventChoiceUnavailableReason(
   t: CopyFn = englishCopy(),
 ): string | undefined {
   const requirements = choice.requires;
-  const requirementReason = requirements === undefined
-    ? undefined
-    : requirementFailure(state, requirements, t);
+  const requirementReason =
+    requirements === undefined
+      ? undefined
+      : requirementFailure(state, requirements, t);
   if (requirementReason !== undefined) return requirementReason;
 
-  const sale = choice.outcomes.flatMap(outcome => outcome.effects)
-    .find(effect => effect.type === 'playerSale');
+  const sale = choice.outcomes
+    .flatMap((outcome) => outcome.effects)
+    .find((effect) => effect.type === 'playerSale');
   const playerId = state.pendingEvent?.selectedPlayerId;
   if (sale?.type !== 'playerSale' || playerId === undefined) return undefined;
-  const player = state.players.find(candidate => candidate.id === playerId);
+  const player = state.players.find((candidate) => candidate.id === playerId);
   const blocker = careerEventPlayerSaleBlocker(state, playerId, sale.fee);
   if (blocker === 'squad-cover' && player !== undefined) {
     return t('storyEvent.requiresSaleCover', { player: player.name });
   }
   if (blocker === 'no-buyer') {
     return t('storyEvent.requiresSaleBuyer', {
-      amount: `$${sale.fee.toLocaleString()}`,
+      amount: formatMoneyForCopy(t, sale.fee),
     });
   }
   if (blocker !== undefined) {
@@ -247,12 +263,21 @@ function requirementFailure(
   },
   t: CopyFn = englishCopy(),
 ): string | undefined {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (requirements.minMoney !== undefined && (club?.cash ?? 0) < requirements.minMoney) {
-    return t('storyEvent.requiresCash', { amount: `$${requirements.minMoney.toLocaleString()}` });
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (
+    requirements.minMoney !== undefined &&
+    (club?.cash ?? 0) < requirements.minMoney
+  ) {
+    return t('storyEvent.requiresCash', {
+      amount: formatMoneyForCopy(t, requirements.minMoney),
+    });
   }
   if (requirements.requiredFacility !== undefined) {
-    const legacyTrainingPitch = requirements.requiredFacility === 'training-pitch' && state.facilities.trainingGroundBuilt;
+    const legacyTrainingPitch =
+      requirements.requiredFacility === 'training-pitch' &&
+      state.facilities.trainingGroundBuilt;
     const grid = state.facilities.grid;
     /**
      * Built means finished, not started.
@@ -262,9 +287,13 @@ function requirementFailure(
      * is operational. Testing only for existence let a story about the pitch
      * fire at a pitch nobody could train on yet.
      */
-    const built = legacyTrainingPitch || grid?.buildings.some(building => (
-      building.type === requirements.requiredFacility && isFacilityOperational(grid, building.id)
-    ));
+    const built =
+      legacyTrainingPitch ||
+      grid?.buildings.some(
+        (building) =>
+          building.type === requirements.requiredFacility &&
+          isFacilityOperational(grid, building.id),
+      );
     if (!built) {
       // The raw id used to be dashed-into-words here, so a translated sentence
       // asked a German manager for a "training pitch". The building already has
@@ -274,14 +303,23 @@ function requirementFailure(
       });
     }
   }
-  const roster = state.players.filter(player => player.clubId === state.userClubId);
-  if (requirements.requiredPersonality !== undefined
-    && !roster.some(player => player.personality === requirements.requiredPersonality)) {
+  const roster = state.players.filter(
+    (player) => player.clubId === state.userClubId,
+  );
+  if (
+    requirements.requiredPersonality !== undefined &&
+    !roster.some(
+      (player) => player.personality === requirements.requiredPersonality,
+    )
+  ) {
     return t('storyEvent.requiresPersonality', {
       personality: personalityName(t, requirements.requiredPersonality),
     });
   }
-  if (requirements.requiresHero === true && !roster.some(player => player.power !== undefined)) {
+  if (
+    requirements.requiresHero === true &&
+    !roster.some((player) => player.power !== undefined)
+  ) {
     return t('storyEvent.requiresHero');
   }
   return undefined;

@@ -7,7 +7,7 @@ export function useReducedMotion(preferenceEnabled: boolean): boolean {
 
   useEffect(() => {
     let active = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then(enabled => {
+    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
       if (active) setSystemEnabled(enabled);
     });
     const subscription = AccessibilityInfo.addEventListener(

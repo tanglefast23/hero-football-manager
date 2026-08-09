@@ -10,19 +10,19 @@ describe('staff and youth screen ownership', () => {
     const squad = source('src/ui/screens/SquadTrainingScreen.tsx');
     const club = source('src/ui/screens/ClubFinancesScreen.tsx');
 
-    expect(squad).not.toContain('title="Coaching staff"');
-    expect(squad).not.toContain('viewModel.coachingStaff');
-    expect(club).toContain("title={t('clubFinances.coachingStaff')}");
-    expect(club).toContain('viewModel.coachingStaff.map(coach =>');
-    expect(club).toContain('coach.effectLabels.map(effect =>');
-    expect(club).toContain('onDismissCoach(coach.role)');
+    expect(squad).not.toContainSource('title="Coaching staff"');
+    expect(squad).not.toContainSource('viewModel.coachingStaff');
+    expect(club).toContainSource("title={t('clubFinances.coachingStaff')}");
+    expect(club).toContainSource('viewModel.coachingStaff.map(coach =>');
+    expect(club).toContainSource('coach.effectLabels.map(effect =>');
+    expect(club).toContainSource('onDismissCoach(coach.role)');
   });
 
   test('does not point at the first youth offer while preserving its Sign action', () => {
     const market = source('src/ui/screens/MarketScreen.tsx');
 
-    expect(market).not.toContain('detail="Review this youth"');
-    expect(market).toContain(
+    expect(market).not.toContainSource('detail="Review this youth"');
+    expect(market).toContainSource(
       "accessibilityLabel={t('market.a11y.signYouthPlayer', { player: offer.playerName })}",
     );
   });

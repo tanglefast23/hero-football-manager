@@ -14,15 +14,16 @@ export function qaRootRoutesEnabled(isDev: boolean, platform: string): boolean {
  * Deliberately a hand-flipped constant rather than `__DEV__`. The rail is the
  * only way to reach a mid-career state without replaying to it, and the
  * surfaces where that is most needed — static web exports, TestFlight builds —
- * are exactly the ones where `__DEV__` is false. So it is on everywhere by
- * default and switched off once, by hand, for an App Store archive.
+ * are exactly the ones where `__DEV__` is false. It is nevertheless off in the
+ * release source: a forgotten manual switch must fail closed, not ship player-
+ * visible developer storage controls.
  *
  * Forgetting that switch is the obvious failure, so it is not left to memory:
- * `npm run release:check` fails while this is `true`. Flip it to `false`,
- * archive, flip it back.
+ * `npm run release:check` fails while this is `true`. A temporary QA build can
+ * turn it on in a bounded branch, but production stays false.
  *
  * Typed `boolean` rather than inferred so both settings compile without the
  * literal type turning the other branch into dead code TypeScript complains
  * about.
  */
-export const DEVELOPER_MODE_AVAILABLE: boolean = true;
+export const DEVELOPER_MODE_AVAILABLE: boolean = false;

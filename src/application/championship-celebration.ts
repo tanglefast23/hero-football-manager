@@ -1,4 +1,9 @@
-import { leagueStandings, rosterForClub, type CareerPlayer, type GameState } from '../game';
+import {
+  leagueStandings,
+  rosterForClub,
+  type CareerPlayer,
+  type GameState,
+} from '../game';
 import type { ChampionshipCelebrationViewModel } from '../ui';
 import { playerLookId } from '../render/sprites/player-look';
 import { celebrationCoaches } from './celebration-staff';
@@ -30,15 +35,20 @@ export function hasPendingChampionshipCelebration(state: GameState): boolean {
   if (state.phase !== 'season-end' && state.phase !== 'complete') return false;
   if (endgameSupersedesLeagueTitle(state)) return false;
   const champions = leagueStandings(state)[0];
-  return champions?.clubId === state.userClubId
-    && !state.eventFlags.includes(championshipCelebrationFlag(state.season));
+  return (
+    champions?.clubId === state.userClubId &&
+    !state.eventFlags.includes(championshipCelebrationFlag(state.season))
+  );
 }
 
 export function completeChampionshipCelebration(state: GameState): GameState {
   if (!hasPendingChampionshipCelebration(state)) return state;
   return {
     ...state,
-    eventFlags: [...state.eventFlags, championshipCelebrationFlag(state.season)],
+    eventFlags: [
+      ...state.eventFlags,
+      championshipCelebrationFlag(state.season),
+    ],
   };
 }
 
@@ -55,13 +65,20 @@ export function championshipCelebrationViewModel(
   assistantName: string,
   t: CopyFn = englishCopy(),
 ): ChampionshipCelebrationViewModel {
-  const clubName = state.clubs.find(candidate => candidate.id === state.userClubId)?.name
-    ?? t('endgameCelebration.yourClub');
+  const clubName =
+    state.clubs.find((candidate) => candidate.id === state.userClubId)?.name ??
+    t('endgameCelebration.yourClub');
   const squad = rosterForClub(state, state.userClubId);
   const finalFixture = state.fixtures
-    .filter(fixture => fixture.status === 'played'
-      && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId))
-    .sort((left, right) => right.week - left.week || compareIds(right.id, left.id))[0];
+    .filter(
+      (fixture) =>
+        fixture.status === 'played' &&
+        (fixture.homeClubId === state.userClubId ||
+          fixture.awayClubId === state.userClubId),
+    )
+    .sort(
+      (left, right) => right.week - left.week || compareIds(right.id, left.id),
+    )[0];
   const spriteSide = finalFixture?.awayClubId === state.userClubId ? 'u' : 'r';
 
   // Summed across competitions: a player now owns one row per competition, and
@@ -69,12 +86,18 @@ export function championshipCelebrationViewModel(
   const goalsByPlayerId = new Map<string, number>();
   for (const line of state.seasonStatLines ?? []) {
     if (line.season !== state.season) continue;
-    goalsByPlayerId.set(line.playerId, (goalsByPlayerId.get(line.playerId) ?? 0) + line.goals);
+    goalsByPlayerId.set(
+      line.playerId,
+      (goalsByPlayerId.get(line.playerId) ?? 0) + line.goals,
+    );
   }
   const sorted = [...squad].sort((left, right) => {
-    const goalDifference = (goalsByPlayerId.get(right.id) ?? 0) - (goalsByPlayerId.get(left.id) ?? 0);
+    const goalDifference =
+      (goalsByPlayerId.get(right.id) ?? 0) -
+      (goalsByPlayerId.get(left.id) ?? 0);
     if (goalDifference !== 0) return goalDifference;
-    if (left.attrs.sho !== right.attrs.sho) return right.attrs.sho - left.attrs.sho;
+    if (left.attrs.sho !== right.attrs.sho)
+      return right.attrs.sho - left.attrs.sho;
     return compareIds(left.id, right.id);
   });
   const star = sorted[0];
@@ -89,15 +112,16 @@ export function championshipCelebrationViewModel(
   };
   // A club with nobody left still parades: the screen's shape requires a star,
   // so an unnamed captain stands in for him.
-  const starViewModel = star === undefined
-    ? {
-        id: 'championship-celebration-star',
-        name: t('endgameCelebration.yourCaptain'),
-        role: 'FWD' as const,
-        isHero: false,
-        spriteKey: `${spriteSide}:${playerLookId('championship-celebration-star', 'FWD')}:run0`,
-      }
-    : playerViewModel(star);
+  const starViewModel =
+    star === undefined
+      ? {
+          id: 'championship-celebration-star',
+          name: t('endgameCelebration.yourCaptain'),
+          role: 'FWD' as const,
+          isHero: false,
+          spriteKey: `${spriteSide}:${playerLookId('championship-celebration-star', 'FWD')}:run0`,
+        }
+      : playerViewModel(star);
 
   return {
     seasonLabel: t('endgameCelebration.seasonLabel', { season: state.season }),
@@ -105,11 +129,11 @@ export function championshipCelebrationViewModel(
     assistantName,
     star: {
       ...starViewModel,
-      goals: star === undefined ? 0 : goalsByPlayerId.get(star.id) ?? 0,
+      goals: star === undefined ? 0 : (goalsByPlayerId.get(star.id) ?? 0),
       hasRecordedGoals: goalsByPlayerId.size > 0,
     },
     squad: squad
-      .filter(player => player.id !== star?.id)
+      .filter((player) => player.id !== star?.id)
       .sort((left, right) => compareIds(left.id, right.id))
       .map(playerViewModel),
     coaches: celebrationCoaches(state),

@@ -28,7 +28,7 @@ export const AWAKENING_PIXEL_PALETTE = {
 } as const;
 
 export type AwakeningPixelColor =
-  typeof AWAKENING_PIXEL_PALETTE[keyof typeof AWAKENING_PIXEL_PALETTE];
+  (typeof AWAKENING_PIXEL_PALETTE)[keyof typeof AWAKENING_PIXEL_PALETTE];
 
 export type AwakeningPixelBlock = readonly [
   x: number,
@@ -66,18 +66,20 @@ export function AwakeningPixelSprite({
 
   return (
     <>
-      {blocks.map(([blockX, blockY, blockWidth, blockHeight, color, opacity], index) => (
-        <Rect
-          key={`${blockX}:${blockY}:${blockWidth}:${blockHeight}:${index}`}
-          x={left + blockX * scale}
-          y={top + blockY * scale}
-          width={blockWidth * scale}
-          height={blockHeight * scale}
-          color={color}
-          opacity={opacity}
-          antiAlias={false}
-        />
-      ))}
+      {blocks.map(
+        ([blockX, blockY, blockWidth, blockHeight, color, opacity], index) => (
+          <Rect
+            key={`${blockX}:${blockY}:${blockWidth}:${blockHeight}:${index}`}
+            x={left + blockX * scale}
+            y={top + blockY * scale}
+            width={blockWidth * scale}
+            height={blockHeight * scale}
+            color={color}
+            opacity={opacity}
+            antiAlias={false}
+          />
+        ),
+      )}
     </>
   );
 }

@@ -11,7 +11,11 @@ import {
 
 describe('finance pixel art', () => {
   it('every sprite is a 16x16 grid over known palette keys', () => {
-    for (const id of [...CROWD_SPRITE_IDS, ...CUP_SPRITE_IDS, ...MERCH_TOY_IDS]) {
+    for (const id of [
+      ...CROWD_SPRITE_IDS,
+      ...CUP_SPRITE_IDS,
+      ...MERCH_TOY_IDS,
+    ]) {
       const rows = financeSpriteRows(id);
       expect(rows).toHaveLength(16);
       for (const row of rows) {
@@ -42,12 +46,12 @@ describe('finance pixel art', () => {
   it('stands every cup on the same shelf line', () => {
     // A row of cups floating at different heights reads as three objects, not
     // a cabinet: each sprite's last inked row must be the same.
-    const baselines = CUP_SPRITE_IDS.map(id => (
+    const baselines = CUP_SPRITE_IDS.map((id) =>
       financeSpriteRows(id).reduce(
         (lowest, row, y) => (row.replace(/\./g, '') === '' ? lowest : y),
         -1,
-      )
-    ));
+      ),
+    );
     expect(new Set(baselines).size).toBe(1);
   });
 

@@ -19,9 +19,12 @@ jest.mock('expo-audio', () => ({
       loop: false,
       play: jest.fn(),
       pause: jest.fn(),
-      seekTo: jest.fn(() => new Promise<void>(resolve => {
-        pendingSeeks.push(() => resolve());
-      })),
+      seekTo: jest.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            pendingSeeks.push(() => resolve());
+          }),
+      ),
       remove: jest.fn(),
       release: jest.fn(),
     };
@@ -48,10 +51,12 @@ async function settleSeeks(): Promise<void> {
   await Promise.resolve();
 }
 
-const SHORT_LINE = 'So. You\'re the new manager.';
-const REGULAR_LINE = 'All you gotta do is win games, gain fans, get sponsors. Not hard right?';
-const LONG_LINE = 'Starting from week 10, all divisions play against each other. Stronger clubs'
-  + ' receive opening byes. The winner takes the cup and the prize money that comes with it.';
+const SHORT_LINE = "So. You're the new manager.";
+const REGULAR_LINE =
+  'All you gotta do is win games, gain fans, get sponsors. Not hard right?';
+const LONG_LINE =
+  'Starting from week 10, all divisions play against each other. Stronger clubs' +
+  ' receive opening byes. The winner takes the cup and the prize money that comes with it.';
 
 describe('bert voice', () => {
   beforeEach(() => {
@@ -155,7 +160,8 @@ describe('bert voice', () => {
     await settleSeeks();
     jest.advanceTimersByTime(SHORT_MESSAGE_MS);
     await settleSeeks();
-    for (const player of mockPlayers) expect(player.play).not.toHaveBeenCalled();
+    for (const player of mockPlayers)
+      expect(player.play).not.toHaveBeenCalled();
     setBertVoiceMasterVolume(1);
   });
 });

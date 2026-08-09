@@ -15,9 +15,13 @@ import type {
 describe('division leader boards', () => {
   it('gives every position line exactly one award it can win', () => {
     const ids = Object.keys(AWARD_CATEGORIES) as AwardCategoryId[];
-    expect(ids.map(id => AWARD_CATEGORIES[id].id)).toEqual(ids);
-    expect(ids.map(id => AWARD_CATEGORIES[id].role).sort())
-      .toEqual(['DEF', 'FWD', 'GK', 'MID']);
+    expect(ids.map((id) => AWARD_CATEGORIES[id].id)).toEqual(ids);
+    expect(ids.map((id) => AWARD_CATEGORIES[id].role).sort()).toEqual([
+      'DEF',
+      'FWD',
+      'GK',
+      'MID',
+    ]);
     expect(AWARD_CATEGORIES.goals.boardLabel).toBe('Strikers');
     expect(AWARD_CATEGORIES.passesCompleted.boardLabel).toBe('Midfielders');
     expect(AWARD_CATEGORIES.passesCompleted.metricLabel).toBe('Passes');
@@ -34,12 +38,18 @@ describe('division leader boards', () => {
       player('p_fwd', 'FWD', 'club_b'),
     ];
     const statLines = [
-      line('p_mid', 'club_a', { goals: 30, tacklesWon: 9, saves: 2, passesCompleted: 4 }),
+      line('p_mid', 'club_a', {
+        goals: 30,
+        tacklesWon: 9,
+        saves: 2,
+        passesCompleted: 4,
+      }),
       line('p_fwd', 'club_b', { goals: 3 }),
     ];
-    const boardIds = (category: AwardCategoryId): string[] => divisionLeaderBoard(
-      { category, season: 1, players, statLines },
-    ).map(entry => entry.playerId);
+    const boardIds = (category: AwardCategoryId): string[] =>
+      divisionLeaderBoard({ category, season: 1, players, statLines }).map(
+        (entry) => entry.playerId,
+      );
 
     expect(boardIds('goals')).toEqual(['p_fwd']);
     expect(boardIds('tacklesWon')).toEqual([]);
@@ -48,18 +58,38 @@ describe('division leader boards', () => {
   });
 
   it('counts league rows only, so cup goals never inflate a division board', () => {
-    const players = [player('p_a', 'FWD', 'club_a'), player('p_b', 'FWD', 'club_b')];
+    const players = [
+      player('p_a', 'FWD', 'club_a'),
+      player('p_b', 'FWD', 'club_b'),
+    ];
     const statLines = [
       line('p_a', 'club_a', { goals: 4 }),
       line('p_a', 'club_a', { goals: 9 }, 'cup'),
       line('p_b', 'club_b', { goals: 6 }),
     ];
 
-    const board = divisionLeaderBoard({ category: 'goals', season: 1, players, statLines });
+    const board = divisionLeaderBoard({
+      category: 'goals',
+      season: 1,
+      players,
+      statLines,
+    });
 
     expect(board).toEqual([
-      { position: 1, playerId: 'p_b', playerName: 'p_b name', clubId: 'club_b', value: 6 },
-      { position: 2, playerId: 'p_a', playerName: 'p_a name', clubId: 'club_a', value: 4 },
+      {
+        position: 1,
+        playerId: 'p_b',
+        playerName: 'p_b name',
+        clubId: 'club_b',
+        value: 6,
+      },
+      {
+        position: 2,
+        playerId: 'p_a',
+        playerName: 'p_a name',
+        clubId: 'club_a',
+        value: 4,
+      },
     ]);
   });
 
@@ -70,10 +100,21 @@ describe('division leader boards', () => {
       { ...line('p_a', 'club_a', { saves: 7 }), season: 2 },
     ];
 
-    const board = divisionLeaderBoard({ category: 'saves', season: 2, players, statLines });
+    const board = divisionLeaderBoard({
+      category: 'saves',
+      season: 2,
+      players,
+      statLines,
+    });
 
     expect(board).toEqual([
-      { position: 1, playerId: 'p_a', playerName: 'p_a name', clubId: 'club_a', value: 7 },
+      {
+        position: 1,
+        playerId: 'p_a',
+        playerName: 'p_a name',
+        clubId: 'club_a',
+        value: 7,
+      },
     ]);
   });
 
@@ -83,18 +124,38 @@ describe('division leader boards', () => {
    * the tally he actually finished the season on.
    */
   it('sums a transferred player into one placing under his current club', () => {
-    const players = [player('p_mover', 'DEF', 'club_new'), player('p_rival', 'DEF', 'club_c')];
+    const players = [
+      player('p_mover', 'DEF', 'club_new'),
+      player('p_rival', 'DEF', 'club_c'),
+    ];
     const statLines = [
       line('p_mover', 'club_old', { tacklesWon: 20 }),
       line('p_mover', 'club_new', { tacklesWon: 15 }),
       line('p_rival', 'club_c', { tacklesWon: 30 }),
     ];
 
-    const board = divisionLeaderBoard({ category: 'tacklesWon', season: 1, players, statLines });
+    const board = divisionLeaderBoard({
+      category: 'tacklesWon',
+      season: 1,
+      players,
+      statLines,
+    });
 
     expect(board).toEqual([
-      { position: 1, playerId: 'p_mover', playerName: 'p_mover name', clubId: 'club_new', value: 35 },
-      { position: 2, playerId: 'p_rival', playerName: 'p_rival name', clubId: 'club_c', value: 30 },
+      {
+        position: 1,
+        playerId: 'p_mover',
+        playerName: 'p_mover name',
+        clubId: 'club_new',
+        value: 35,
+      },
+      {
+        position: 2,
+        playerId: 'p_rival',
+        playerName: 'p_rival name',
+        clubId: 'club_c',
+        value: 30,
+      },
     ]);
   });
 
@@ -112,9 +173,14 @@ describe('division leader boards', () => {
       line('p_d', 'club_d', { goals: 8 }),
     ];
 
-    const board = divisionLeaderBoard({ category: 'goals', season: 1, players, statLines });
+    const board = divisionLeaderBoard({
+      category: 'goals',
+      season: 1,
+      players,
+      statLines,
+    });
 
-    expect(board.map(entry => [entry.playerId, entry.position])).toEqual([
+    expect(board.map((entry) => [entry.playerId, entry.position])).toEqual([
       ['p_a', 1],
       ['p_b', 2],
       ['p_c', 2],
@@ -136,7 +202,10 @@ describe('division leader boards', () => {
     ];
 
     const board = divisionLeaderBoard({
-      category: 'passesCompleted', season: 1, players: roster, statLines,
+      category: 'passesCompleted',
+      season: 1,
+      players: roster,
+      statLines,
     });
     const reversed = divisionLeaderBoard({
       category: 'passesCompleted',
@@ -145,33 +214,53 @@ describe('division leader boards', () => {
       statLines: statLines.slice().reverse(),
     });
 
-    expect(board.map(entry => entry.playerId)).toEqual(['p_alpha', 'p_bravo', 'p_charlie']);
+    expect(board.map((entry) => entry.playerId)).toEqual([
+      'p_alpha',
+      'p_bravo',
+      'p_charlie',
+    ]);
     expect(reversed).toEqual(board);
   });
 
   it('omits a player who scored nothing in the category', () => {
-    const players = [player('p_a', 'GK', 'club_a'), player('p_b', 'GK', 'club_b')];
+    const players = [
+      player('p_a', 'GK', 'club_a'),
+      player('p_b', 'GK', 'club_b'),
+    ];
     const statLines = [
       line('p_a', 'club_a', { saves: 0, tacklesWon: 5 }),
       line('p_b', 'club_b', { saves: 2 }),
     ];
 
-    const board = divisionLeaderBoard({ category: 'saves', season: 1, players, statLines });
+    const board = divisionLeaderBoard({
+      category: 'saves',
+      season: 1,
+      players,
+      statLines,
+    });
 
-    expect(board.map(entry => entry.playerId)).toEqual(['p_b']);
+    expect(board.map((entry) => entry.playerId)).toEqual(['p_b']);
   });
 
   it('honours an explicit limit', () => {
-    const players = ['p_a', 'p_b', 'p_c'].map(id => player(id, 'FWD', `club_${id}`));
+    const players = ['p_a', 'p_b', 'p_c'].map((id) =>
+      player(id, 'FWD', `club_${id}`),
+    );
     const statLines = [
       line('p_a', 'club_p_a', { goals: 9 }),
       line('p_b', 'club_p_b', { goals: 6 }),
       line('p_c', 'club_p_c', { goals: 3 }),
     ];
 
-    const board = divisionLeaderBoard({ category: 'goals', season: 1, players, statLines, limit: 2 });
+    const board = divisionLeaderBoard({
+      category: 'goals',
+      season: 1,
+      players,
+      statLines,
+      limit: 2,
+    });
 
-    expect(board.map(entry => entry.playerId)).toEqual(['p_a', 'p_b']);
+    expect(board.map((entry) => entry.playerId)).toEqual(['p_a', 'p_b']);
   });
 
   /**
@@ -180,7 +269,7 @@ describe('division leader boards', () => {
    */
   it('caps the podium at three even when four players tie for third', () => {
     const ids = ['p_a', 'p_b', 'p_c', 'p_d', 'p_e', 'p_f'];
-    const players = ids.map(id => player(id, 'FWD', `club_${id}`));
+    const players = ids.map((id) => player(id, 'FWD', `club_${id}`));
     const statLines = [
       line('p_a', 'club_p_a', { goals: 20 }),
       line('p_b', 'club_p_b', { goals: 15 }),
@@ -190,10 +279,19 @@ describe('division leader boards', () => {
       line('p_f', 'club_p_f', { goals: 7 }),
     ];
 
-    const podium = divisionPodium({ category: 'goals', season: 1, players, statLines });
+    const podium = divisionPodium({
+      category: 'goals',
+      season: 1,
+      players,
+      statLines,
+    });
 
     expect(podium).toHaveLength(PODIUM_SIZE);
-    expect(podium.map(placing => placing.playerId)).toEqual(['p_a', 'p_b', 'p_c']);
+    expect(podium.map((placing) => placing.playerId)).toEqual([
+      'p_a',
+      'p_b',
+      'p_c',
+    ]);
     expect(podium[2]).toEqual({
       playerId: 'p_c',
       playerName: 'p_c name',
@@ -203,12 +301,14 @@ describe('division leader boards', () => {
   });
 
   it('returns an empty podium when nobody in the role recorded anything', () => {
-    expect(divisionPodium({
-      category: 'saves',
-      season: 1,
-      players: [player('p_a', 'FWD', 'club_a')],
-      statLines: [line('p_a', 'club_a', { goals: 12 })],
-    })).toEqual([]);
+    expect(
+      divisionPodium({
+        category: 'saves',
+        season: 1,
+        players: [player('p_a', 'FWD', 'club_a')],
+        statLines: [line('p_a', 'club_a', { goals: 12 })],
+      }),
+    ).toEqual([]);
   });
 });
 
@@ -231,9 +331,12 @@ function player(id: string, role: Role, clubId: string): CareerPlayer {
 function line(
   playerId: string,
   clubId: string,
-  counts: Partial<Pick<
-    PlayerSeasonStatLine, 'goals' | 'assists' | 'tacklesWon' | 'saves' | 'passesCompleted'
-  >>,
+  counts: Partial<
+    Pick<
+      PlayerSeasonStatLine,
+      'goals' | 'assists' | 'tacklesWon' | 'saves' | 'passesCompleted'
+    >
+  >,
   competition: AwardCompetition = 'league',
 ): PlayerSeasonStatLine {
   return {

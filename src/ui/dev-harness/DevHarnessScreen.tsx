@@ -8,7 +8,10 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DevHarnessButton, devHarnessControlStyles } from './DevHarnessControls';
+import {
+  DevHarnessButton,
+  devHarnessControlStyles,
+} from './DevHarnessControls';
 import { DEV_HARNESS_ENTRIES, type DevHarnessEntry } from './registry';
 import {
   devHarnessGroups,
@@ -48,7 +51,9 @@ export function DevHarnessScreen() {
   // They part company whenever an address was incomplete or stale: `#/dev/x`
   // with no case gains the first one, and an id the registry no longer holds
   // falls back to the menu. Corrected in place, never as a history entry.
-  const resolvedHash = formatDevHarnessHash(resolvedDevHarnessRoute(resolution));
+  const resolvedHash = formatDevHarnessHash(
+    resolvedDevHarnessRoute(resolution),
+  );
   useEffect(() => {
     if (formatDevHarnessHash(route) !== resolvedHash) {
       replace(resolvedDevHarnessRoute(resolution));
@@ -61,15 +66,20 @@ export function DevHarnessScreen() {
     return (
       <DevHarnessMenu
         entries={DEV_HARNESS_ENTRIES}
-        onOpen={entry => push({ entryId: entry.id, caseId: entry.cases[0]?.id })}
+        onOpen={(entry) =>
+          push({ entryId: entry.id, caseId: entry.cases[0]?.id })
+        }
       />
     );
   }
 
-  const entry = DEV_HARNESS_ENTRIES.find(candidate => candidate.id === resolution.entryId);
+  const entry = DEV_HARNESS_ENTRIES.find(
+    (candidate) => candidate.id === resolution.entryId,
+  );
   // Unreachable: the resolution just found it. Belt and braces, because the
   // alternative to a menu here is a blank screen with no way off it.
-  if (entry === undefined) return <DevHarnessMenu entries={DEV_HARNESS_ENTRIES} onOpen={() => {}} />;
+  if (entry === undefined)
+    return <DevHarnessMenu entries={DEV_HARNESS_ENTRIES} onOpen={() => {}} />;
 
   return (
     <DevHarnessHost
@@ -79,7 +89,7 @@ export function DevHarnessScreen() {
       key={`${entry.id}:${resolution.caseId}`}
       entry={entry}
       caseId={resolution.caseId}
-      onSelectCase={caseId => push({ entryId: entry.id, caseId })}
+      onSelectCase={(caseId) => push({ entryId: entry.id, caseId })}
       onMenu={openMenu}
     />
   );
@@ -106,17 +116,18 @@ function DevHarnessMenu({
       >
         <Text style={styles.menuTitle}>DEV HARNESS</Text>
         <Text style={styles.menuBlurb}>
-          Development builds only. Deep link with #/dev/&lt;entry&gt;/&lt;case&gt;.
+          Development builds only. Deep link with
+          #/dev/&lt;entry&gt;/&lt;case&gt;.
         </Text>
 
         {groups.length === 0 ? (
           <Text style={styles.menuBlurb}>Nothing registered.</Text>
         ) : null}
 
-        {groups.map(group => (
+        {groups.map((group) => (
           <View key={group.name} style={styles.group}>
             <Text style={styles.groupName}>{group.name.toUpperCase()}</Text>
-            {group.entries.map(entry => (
+            {group.entries.map((entry) => (
               <Pressable
                 key={entry.id}
                 accessibilityRole="button"
@@ -168,7 +179,7 @@ function DevHarnessHost({
   const [barVisible, setBarVisible] = useState(true);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const activeCase = entry.cases.find(candidate => candidate.id === caseId);
+  const activeCase = entry.cases.find((candidate) => candidate.id === caseId);
   const maxWidth = Math.max(MIN_BAR_WIDTH, width - FEATURE_TOP_RIGHT_COLUMN);
 
   return (
@@ -192,11 +203,13 @@ function DevHarnessHost({
                 hint="Hide the harness bar"
                 onPress={() => setBarVisible(false)}
               />
-              <Text style={styles.barTitle} numberOfLines={1}>{entry.title}</Text>
+              <Text style={styles.barTitle} numberOfLines={1}>
+                {entry.title}
+              </Text>
             </View>
 
             <View style={devHarnessControlStyles.row}>
-              {entry.cases.map(entryCase => (
+              {entry.cases.map((entryCase) => (
                 <DevHarnessButton
                   key={entryCase.id}
                   label={entryCase.label}

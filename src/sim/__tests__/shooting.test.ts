@@ -6,7 +6,7 @@ describe('shooting and goals', () => {
     let totalGoals = 0;
     for (let seed = 1; seed <= 30; seed++) {
       const r = runMatch(seed, ROVERS, UNITED);
-      const goals = r.events.filter(e => e.kind === 'GOAL').length;
+      const goals = r.events.filter((e) => e.kind === 'GOAL').length;
       expect(goals).toBe(r.score[0] + r.score[1]);
       expect(goals).toBeLessThanOrEqual(15);
       totalGoals += goals;
@@ -17,7 +17,9 @@ describe('shooting and goals', () => {
 
   it('saves deplete GK Resolve', () => {
     for (let seed = 1; seed <= 30; seed++) {
-      const save = runMatch(seed, ROVERS, UNITED).events.find(e => e.kind === 'SAVE') as { resolveLeft: number } | undefined;
+      const save = runMatch(seed, ROVERS, UNITED).events.find(
+        (e) => e.kind === 'SAVE',
+      ) as { resolveLeft: number } | undefined;
       if (save) {
         expect(save.resolveLeft).toBeLessThan(100);
         return;
@@ -29,7 +31,8 @@ describe('shooting and goals', () => {
   it('a much weaker GK concedes more (500-match aggregate)', () => {
     const weakGk = structuredClone(UNITED);
     weakGk.players[0].attrs.ref = 20;
-    let vsNormal = 0, vsWeak = 0;
+    let vsNormal = 0,
+      vsWeak = 0;
     for (let seed = 1; seed <= 500; seed++) {
       vsNormal += runMatch(seed, ROVERS, UNITED).score[0];
       vsWeak += runMatch(seed, ROVERS, weakGk).score[0];

@@ -71,7 +71,10 @@ export function PlayerWalkOnWelcome({
       groundOffset={groundOffset}
       autoAdvanceMs={Math.max(MIN_LINE_MS, line.length * MS_PER_CHARACTER)}
       reduceMotion={reduceMotion}
-      accessibilityLabel={t('awardsCeremony.a11y.playerSays', { player: player.playerName, line })}
+      accessibilityLabel={t('awardsCeremony.a11y.playerSays', {
+        player: player.playerName,
+        line,
+      })}
       onDone={onDone}
     >
       <WalkingPlayer player={player} />

@@ -91,7 +91,12 @@ describe('contract renewal', () => {
     expect(renewalQuote(regular, 4)).toBe(240);
     expect(renewalQuote(hero, 4)).toBe(960);
     expect(renewalQuote(hero, 3.5)).toBe(840);
-    expect(renewalQuote(player('odd-wage-hero', { power: 'FIRE_TORCH', wage: 201 }), 3.5)).toBe(704);
+    expect(
+      renewalQuote(
+        player('odd-wage-hero', { power: 'FIRE_TORCH', wage: 201 }),
+        3.5,
+      ),
+    ).toBe(704);
 
     const renewed = renewContract(hero, 4, 3);
     expect(renewed).toMatchObject({
@@ -115,16 +120,16 @@ describe('contract renewal', () => {
   });
 
   it('rejects early renewals, invalid multipliers, and terms outside the M1 contract rules', () => {
-    const hero = player('hero', { power: 'SUPER_SPEED', contractSeasonsRemaining: 0 });
+    const hero = player('hero', {
+      power: 'SUPER_SPEED',
+      contractSeasonsRemaining: 0,
+    });
     expect(() => renewalQuote(hero, 2)).toThrow();
     expect(() => renewalQuote(hero, 6)).toThrow();
     expect(() => renewContract(hero, 4, 0)).toThrow();
     expect(() => renewContract(hero, 4, 4)).toThrow();
-    expect(() => renewContract(
-      { ...hero, contractSeasonsRemaining: 1 },
-      4,
-      2,
-    )).toThrow(/only after it expires/);
+    expect(() =>
+      renewContract({ ...hero, contractSeasonsRemaining: 1 }, 4, 2),
+    ).toThrow(/only after it expires/);
   });
 });
-

@@ -26,7 +26,7 @@ export const TitleMatchSprite = memo(function TitleMatchSprite({
         height: titleMatchSpriteSheet.cell.h * scale,
       }}
     >
-      {runs.map(run => (
+      {runs.map((run) => (
         <Rect
           key={run.id}
           x={run.x * scale}

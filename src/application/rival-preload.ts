@@ -37,9 +37,9 @@ export function createPreloadPump(
 
   const skipSettled = (): void => {
     while (
-      current === null
-      && index < fixtures.length
-      && hasRivalResult(fixtures[index], teamsByClubId)
+      current === null &&
+      index < fixtures.length &&
+      hasRivalResult(fixtures[index], teamsByClubId)
     ) {
       index += 1;
     }
@@ -54,7 +54,8 @@ export function createPreloadPump(
     step(maxTicks: number): void {
       skipSettled();
       if (index >= fixtures.length) return;
-      if (current === null) current = makeResolver(fixtures[index], teamsByClubId);
+      if (current === null)
+        current = makeResolver(fixtures[index], teamsByClubId);
 
       current.advance(maxTicks);
       if (!current.done) return;

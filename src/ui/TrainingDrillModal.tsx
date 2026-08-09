@@ -4,11 +4,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import { SuperTrainingCelebration } from './components/SuperTrainingCelebration';
 import { DrillGainReveal } from './components/DrillGainReveal';
-import { DrillSceneOverlay, drillActivityId } from '../render/DrillSceneOverlay';
+import {
+  DrillSceneOverlay,
+  drillActivityId,
+} from '../render/DrillSceneOverlay';
 import { BertFullBody } from './BertFullBody';
 import { energyBand } from '../render/match-energy-ui';
 import { INSTANT_DRILL_CONDITION_COST } from '../game/training';
-import { playDrillResultSfx, playSuperTrainingSfx, playManagementActionSfx, playTrainingStatDing } from '../render/management-sfx';
+import {
+  playDrillResultSfx,
+  playSuperTrainingSfx,
+  playManagementActionSfx,
+  playTrainingStatDing,
+} from '../render/management-sfx';
 import { playManagementHaptic } from '../render/haptics';
 import { useLayoutMode } from './layout/use-layout-mode';
 import type { DrillResultViewModel, TrainingSlotStatOption } from './models';
@@ -128,22 +136,32 @@ export function TrainingDrillModal({
   // Phones get the bottom sheet; wide viewports get a centered dialog so the
   // picker never stretches across the whole desktop window.
   const wide = useLayoutMode() === 'twoColumn';
-  const [activeResult, setActiveResult] = useState<DrillResultViewModel | null>(null);
+  const [activeResult, setActiveResult] = useState<DrillResultViewModel | null>(
+    null,
+  );
   const [stage, setStage] = useState<ResultStage>(null);
   // A drill you cannot afford stays tappable so it can say why. Silently doing
   // nothing reads as a broken button. `bert` puts the assistant in the card for
   // anything that is advice rather than a rule.
-  const [notice, setNotice] = useState<{ title: string; detail: string; bert?: boolean } | null>(null);
+  const [notice, setNotice] = useState<{
+    title: string;
+    detail: string;
+    bert?: boolean;
+  } | null>(null);
   /**
    * The drill awaiting a yes. Nothing spends TP until this is confirmed —
    * training used to fire on the first tap, which made an accidental brush of
    * the list an irreversible spend.
    */
-  const [pendingConfirm, setPendingConfirm] = useState<TrainingSlotStatOption | null>(null);
+  const [pendingConfirm, setPendingConfirm] =
+    useState<TrainingSlotStatOption | null>(null);
   const [repeatCount, setRepeatCount] = useState(1);
   const [confirmingHighRisk, setConfirmingHighRisk] = useState(false);
   const batchRef = useRef<DrillBatch | null>(null);
-  const [batchProgress, setBatchProgress] = useState<Pick<DrillBatch, 'current' | 'total'> | null>(null);
+  const [batchProgress, setBatchProgress] = useState<Pick<
+    DrillBatch,
+    'current' | 'total'
+  > | null>(null);
   const repeatScrollRef = useRef<ScrollView | null>(null);
   /**
    * Set only while the manager's own finger is moving the number row. Tapping a
@@ -172,7 +190,9 @@ export function TrainingDrillModal({
 
   useEffect(() => {
     if (quickTrainPathId === undefined) return;
-    const option = options.find(candidate => candidate.pathId === quickTrainPathId);
+    const option = options.find(
+      (candidate) => candidate.pathId === quickTrainPathId,
+    );
     if (option === undefined) return;
     setPendingConfirm(option);
     setRepeatCount(1);
@@ -188,7 +208,7 @@ export function TrainingDrillModal({
       1,
       maximumAffordableTrainingRuns(trainingPoints, pendingConfirm.tpCost),
     );
-    setRepeatCount(current => Math.min(current, maximum));
+    setRepeatCount((current) => Math.min(current, maximum));
   }, [pendingConfirm, trainingPoints]);
 
   useEffect(() => {
@@ -248,11 +268,15 @@ export function TrainingDrillModal({
   const advanceStage = useCallback(() => {
     // One climax per drill: a SUPER session's fireworks already headline the
     // gain, so the "+N Stat" super is for every other result.
-    const next: ResultStage = stage === 'scene'
-      ? (activeResult?.isSuper === true ? 'super' : 'reveal')
-      : (stage === 'reveal' || stage === 'super') && activeResult?.injury !== undefined
-        ? 'injury'
-        : null;
+    const next: ResultStage =
+      stage === 'scene'
+        ? activeResult?.isSuper === true
+          ? 'super'
+          : 'reveal'
+        : (stage === 'reveal' || stage === 'super') &&
+            activeResult?.injury !== undefined
+          ? 'injury'
+          : null;
     setStage(next);
     // The doc-08 promise: the "+N Stat" reveal plays a short ding as the gain
     // lands. A SUPER result skips it — its celebration owns the moment.
@@ -269,9 +293,9 @@ export function TrainingDrillModal({
       setActiveResult(null);
       const batch = batchRef.current;
       if (
-        batch !== null
-        && batch.remaining > 0
-        && activeResult?.injury === undefined
+        batch !== null &&
+        batch.remaining > 0 &&
+        activeResult?.injury === undefined
       ) {
         const nextBatch: DrillBatch = {
           ...batch,
@@ -279,7 +303,10 @@ export function TrainingDrillModal({
           remaining: batch.remaining - 1,
         };
         batchRef.current = nextBatch;
-        setBatchProgress({ current: nextBatch.current, total: nextBatch.total });
+        setBatchProgress({
+          current: nextBatch.current,
+          total: nextBatch.total,
+        });
         onTrainDrill(playerId, nextBatch.pathId);
         return;
       }
@@ -287,28 +314,37 @@ export function TrainingDrillModal({
       setBatchProgress(null);
       showPendingConditionWarning();
     }
-  }, [activeResult, onTrainDrill, playerId, showPendingConditionWarning, stage]);
+  }, [
+    activeResult,
+    onTrainDrill,
+    playerId,
+    showPendingConditionWarning,
+    stage,
+  ]);
 
-  const startTrainingBatch = useCallback((
-    option: TrainingSlotStatOption,
-    runs: number,
-  ) => {
-    const queuedRuns = Math.max(
-      1,
-      Math.min(runs, maximumAffordableTrainingRuns(trainingPoints, option.tpCost)),
-    );
-    const batch: DrillBatch = {
-      pathId: option.pathId,
-      total: queuedRuns,
-      current: 1,
-      remaining: queuedRuns - 1,
-    };
-    batchRef.current = batch;
-    setBatchProgress({ current: 1, total: queuedRuns });
-    setConfirmingHighRisk(false);
-    setPendingConfirm(null);
-    onTrainDrill(playerId, option.pathId);
-  }, [onTrainDrill, playerId, trainingPoints]);
+  const startTrainingBatch = useCallback(
+    (option: TrainingSlotStatOption, runs: number) => {
+      const queuedRuns = Math.max(
+        1,
+        Math.min(
+          runs,
+          maximumAffordableTrainingRuns(trainingPoints, option.tpCost),
+        ),
+      );
+      const batch: DrillBatch = {
+        pathId: option.pathId,
+        total: queuedRuns,
+        current: 1,
+        remaining: queuedRuns - 1,
+      };
+      batchRef.current = batch;
+      setBatchProgress({ current: 1, total: queuedRuns });
+      setConfirmingHighRisk(false);
+      setPendingConfirm(null);
+      onTrainDrill(playerId, option.pathId);
+    },
+    [onTrainDrill, playerId, trainingPoints],
+  );
 
   const dismiss = useCallback(() => {
     const batch = batchRef.current;
@@ -320,29 +356,40 @@ export function TrainingDrillModal({
     // the one on screen still run — they just run without their cards. An
     // injury on the drill being watched still ends the batch, exactly as it
     // does when the manager sits through it.
-    if (batch !== null && batch.remaining > 0 && activeResult?.injury === undefined) {
+    if (
+      batch !== null &&
+      batch.remaining > 0 &&
+      activeResult?.injury === undefined
+    ) {
       onTrainDrillBatch(playerId, batch.pathId, batch.remaining);
     }
     onDismiss();
   }, [activeResult, onDismiss, onTrainDrillBatch, playerId]);
 
-  const resultOption = activeResult === null
-    ? undefined
-    : options.find(option => option.pathId === activeResult.pathId);
+  const resultOption =
+    activeResult === null
+      ? undefined
+      : options.find((option) => option.pathId === activeResult.pathId);
   const riskTone = injuryRiskPercent >= 25 ? 'red' : 'amber';
   const injured = injuryWeeks > 0;
-  const owedHere = promiseGate !== undefined && promiseGate.playerId === playerId;
-  const blockedByPromise = promiseGate !== undefined && promiseGate.playerId !== playerId;
+  const owedHere =
+    promiseGate !== undefined && promiseGate.playerId === playerId;
+  const blockedByPromise =
+    promiseGate !== undefined && promiseGate.playerId !== playerId;
   const conditionBadge = conditionBadgeStyle(condition);
-  const maximumAffordableRuns = pendingConfirm === null
-    ? 1
-    : Math.max(
-      1,
-      maximumAffordableTrainingRuns(trainingPoints, pendingConfirm.tpCost),
-    );
+  const maximumAffordableRuns =
+    pendingConfirm === null
+      ? 1
+      : Math.max(
+          1,
+          maximumAffordableTrainingRuns(trainingPoints, pendingConfirm.tpCost),
+        );
   const maximumSafeRuns = maximumSafeTrainingRuns(condition);
   const selectedRiskyRuns = riskyTrainingRunCount(condition, repeatCount);
-  const repeatOptions = Array.from({ length: maximumAffordableRuns }, (_, index) => index + 1);
+  const repeatOptions = Array.from(
+    { length: maximumAffordableRuns },
+    (_, index) => index + 1,
+  );
   const selectRepeatCount = (runs: number, scroll = true) => {
     setRepeatCount(runs);
     if (scroll) {
@@ -368,7 +415,10 @@ export function TrainingDrillModal({
     <Pressable
       key={runs}
       accessibilityRole="button"
-      accessibilityLabel={t('trainingDrill.a11y.runThisDrill', { n: runs, count: runs })}
+      accessibilityLabel={t('trainingDrill.a11y.runThisDrill', {
+        n: runs,
+        count: runs,
+      })}
       accessibilityState={{ selected: repeatCount === runs }}
       onPress={() => selectRepeatCount(runs)}
       style={[
@@ -377,10 +427,12 @@ export function TrainingDrillModal({
         repeatCount === runs ? styles.repeatOptionSelected : null,
       ]}
     >
-      <Text style={[
-        styles.repeatOptionText,
-        repeatCount === runs ? styles.repeatOptionTextSelected : null,
-      ]}>
+      <Text
+        style={[
+          styles.repeatOptionText,
+          repeatCount === runs ? styles.repeatOptionTextSelected : null,
+        ]}
+      >
         {runs}
       </Text>
     </Pressable>
@@ -394,22 +446,34 @@ export function TrainingDrillModal({
       onRequestClose={dismiss}
       statusBarTranslucent
     >
-      <SafeAreaView className="flex-1" edges={['top', 'left', 'right', 'bottom']}>
+      <SafeAreaView
+        className="flex-1"
+        edges={['top', 'left', 'right', 'bottom']}
+      >
         <View
           accessibilityViewIsModal
-          className={wide ? 'flex-1 items-center justify-center px-3 py-6' : 'flex-1 justify-end px-3 pb-3'}
+          className={
+            wide
+              ? 'flex-1 items-center justify-center px-3 py-6'
+              : 'flex-1 justify-end px-3 pb-3'
+          }
         >
           <Pressable
             accessible={false}
             style={StyleSheet.absoluteFill}
             onPress={dismiss}
           >
-            <View className="flex-1" style={{ backgroundColor: 'rgba(36,31,46,0.62)' }} />
+            <View
+              className="flex-1"
+              style={{ backgroundColor: 'rgba(36,31,46,0.62)' }}
+            />
           </Pressable>
           <View
-            className={wide
-              ? 'w-full max-w-[560px] overflow-hidden border-2 border-b-4 border-ink bg-paper'
-              : 'w-full overflow-hidden border-2 border-b-4 border-ink bg-paper'}
+            className={
+              wide
+                ? 'w-full max-w-[560px] overflow-hidden border-2 border-b-4 border-ink bg-paper'
+                : 'w-full overflow-hidden border-2 border-b-4 border-ink bg-paper'
+            }
             style={{ maxHeight: '92%' }}
           >
             <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
@@ -420,20 +484,30 @@ export function TrainingDrillModal({
                 {/* The position rides with the name: which drills are worth
                     buying depends on where they play, and the popup covers the
                     roster row that would otherwise tell you. */}
-                <Text className="mt-1 font-pixel text-xl uppercase text-ink" numberOfLines={1}>
+                <Text
+                  className="mt-1 font-pixel text-xl uppercase text-ink"
+                  numberOfLines={1}
+                >
                   {playerName}
-                  <Text className="font-pixel text-base uppercase text-blue-dark">  {playerRole}</Text>
+                  <Text className="font-pixel text-base uppercase text-blue-dark">
+                    {' '}
+                    {playerRole}
+                  </Text>
                 </Text>
               </View>
               <View className="mr-3 items-end">
                 <Text className="font-pixel text-sm uppercase text-ink/50">
                   {t('trainingDrill.trainingPointsShort')}
                 </Text>
-                <Text className="font-pixel text-lg text-ink">{trainingPoints}</Text>
+                <Text className="font-pixel text-lg text-ink">
+                  {trainingPoints}
+                </Text>
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t('trainingDrill.a11y.closeTrainingFor', { player: playerName })}
+                accessibilityLabel={t('trainingDrill.a11y.closeTrainingFor', {
+                  player: playerName,
+                })}
                 onPress={dismiss}
                 className="h-11 w-11 items-center justify-center border-2 border-ink bg-white"
                 // Explicit points: h-11 is 38.5pt on native, under the 44pt
@@ -448,11 +522,17 @@ export function TrainingDrillModal({
               <View
                 accessible
                 accessibilityRole="alert"
-                accessibilityLabel={t('trainingDrill.a11y.saveProblem', { message: saveWarning })}
+                accessibilityLabel={t('trainingDrill.a11y.saveProblem', {
+                  message: saveWarning,
+                })}
                 className="border-b-2 border-stamp bg-red-light px-4 py-2"
               >
-                <Text className="font-pixel text-sm uppercase text-stamp">{t('trainingDrill.yourClubIsNotSaving')}</Text>
-                <Text className="mt-1 text-xs leading-4 text-ink/70">{saveWarning}</Text>
+                <Text className="font-pixel text-sm uppercase text-stamp">
+                  {t('trainingDrill.yourClubIsNotSaving')}
+                </Text>
+                <Text className="mt-1 text-xs leading-4 text-ink/70">
+                  {saveWarning}
+                </Text>
               </View>
             ) : null}
 
@@ -463,13 +543,17 @@ export function TrainingDrillModal({
                     typed inside the pixel string it flipped the face mid-word. */}
                 <Text className="text-sm text-ink">★</Text>
                 <Text className="font-pixel text-sm uppercase text-ink">
-                  {t('trainingDrill.superChancePercent', { percent: superChancePercent })}
+                  {t('trainingDrill.superChancePercent', {
+                    percent: superChancePercent,
+                  })}
                 </Text>
               </View>
               {owedHere ? (
                 <View className="border-2 border-blue-dark bg-blue-light px-2 py-1">
                   <Text className="font-pixel text-sm uppercase text-blue-dark">
-                    {t('trainingDrill.promiseOwed', { count: promiseGate.remaining })}
+                    {t('trainingDrill.promiseOwed', {
+                      count: promiseGate.remaining,
+                    })}
                   </Text>
                 </View>
               ) : null}
@@ -479,46 +563,65 @@ export function TrainingDrillModal({
                 </Text>
               </View>
               {injuryRiskPercent > 0 ? (
-                <View className={riskTone === 'red'
-                  ? 'border-2 border-stamp bg-red-light px-2 py-1'
-                  : 'border border-gold-dark bg-gold-light px-2 py-1'}
+                <View
+                  className={
+                    riskTone === 'red'
+                      ? 'border-2 border-stamp bg-red-light px-2 py-1'
+                      : 'border border-gold-dark bg-gold-light px-2 py-1'
+                  }
                 >
-                  <Text className={riskTone === 'red'
-                    ? 'font-pixel text-sm uppercase text-stamp'
-                    : 'font-pixel text-sm uppercase text-gold-dark'}
+                  <Text
+                    className={
+                      riskTone === 'red'
+                        ? 'font-pixel text-sm uppercase text-stamp'
+                        : 'font-pixel text-sm uppercase text-gold-dark'
+                    }
                   >
                     {/* Glyph-only node: ⚠ is in neither Silkscreen weight, so it
                         stands alone and falls back to the system face rather than
                         flipping the label's typeface mid-string. Keeping it inside
                         the translated string is what the glyph gate caught. */}
                     <Text>⚠ </Text>
-                    {t('trainingDrill.injuryRiskPercent', { percent: injuryRiskPercent })}
+                    {t('trainingDrill.injuryRiskPercent', {
+                      percent: injuryRiskPercent,
+                    })}
                   </Text>
                 </View>
               ) : null}
             </View>
 
-            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 16 }}>
+            <ScrollView
+              contentContainerStyle={{ padding: 16, paddingBottom: 16 }}
+            >
               {blockedByPromise ? (
                 <View className="border-2 border-b-4 border-blue-dark bg-blue-light p-4">
                   <Text className="font-pixel text-sm uppercase text-blue-dark">
-                    {t('trainingDrill.remindsYou', { player: promiseGate.playerName })}
+                    {t('trainingDrill.remindsYou', {
+                      player: promiseGate.playerName,
+                    })}
                   </Text>
                   <Text className="mt-2 text-base font-bold text-ink">
                     {t('trainingDrill.promiseQuote', {
-                      n: promiseGate.remaining, count: promiseGate.remaining,
+                      n: promiseGate.remaining,
+                      count: promiseGate.remaining,
                     })}
                   </Text>
                   {onSwitchToPromised !== undefined ? (
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={t('trainingDrill.trainInstead', { player: promiseGate.playerName })}
+                      accessibilityLabel={t('trainingDrill.trainInstead', {
+                        player: promiseGate.playerName,
+                      })}
                       onPress={() => onSwitchToPromised(promiseGate.playerId)}
                       className="mt-3 min-h-11 items-center justify-center border-2 border-b-4 border-ink bg-blue px-4 py-2"
-                      style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+                      style={({ pressed }) => ({
+                        opacity: pressed ? 0.65 : undefined,
+                      })}
                     >
                       <Text className="font-pixel text-base uppercase text-white">
-                        {t('trainingDrill.trainInstead', { player: promiseGate.playerName })}
+                        {t('trainingDrill.trainInstead', {
+                          player: promiseGate.playerName,
+                        })}
                         {/* ▸ is not in Silkscreen either — same deliberate fallback. */}
                         <Text> ▸</Text>
                       </Text>
@@ -527,32 +630,41 @@ export function TrainingDrillModal({
                 </View>
               ) : null}
               <View className="gap-2">
-                {options.map(option => {
-                  const blocked = injured || blockedByPromise || option.atSafetyCeiling;
+                {options.map((option) => {
+                  const blocked =
+                    injured || blockedByPromise || option.atSafetyCeiling;
                   const unaffordable = !blocked && !option.affordable;
                   const disabled = blocked;
-                  const isResultRow = stage === null && activeResult?.pathId === option.pathId;
+                  const isResultRow =
+                    stage === null && activeResult?.pathId === option.pathId;
                   return (
                     <Pressable
                       key={option.pathId}
                       accessibilityRole="button"
                       accessibilityLabel={t('trainingDrill.a11y.trainStatNow', {
-                        player: playerName, stat: option.label,
+                        player: playerName,
+                        stat: option.label,
                       })}
-                      accessibilityHint={injured
-                        ? t('trainingDrill.a11y.injuredCannotTrain', { player: playerName })
-                        : unaffordable
-                          ? t('trainingDrill.a11y.costsTrainingPoints', {
-                            cost: option.tpCost, available: trainingPoints,
-                          })
-                          : t('trainingDrill.a11y.drillHint', {
-                            drill: option.drillName,
-                            cost: option.tpCost,
-                            value: option.currentValue,
-                            risk: injuryRiskPercent > 0
-                              ? ` ${t('trainingDrill.a11y.percentInjuryRisk', { percent: injuryRiskPercent })}`
-                              : '',
-                          })}
+                      accessibilityHint={
+                        injured
+                          ? t('trainingDrill.a11y.injuredCannotTrain', {
+                              player: playerName,
+                            })
+                          : unaffordable
+                            ? t('trainingDrill.a11y.costsTrainingPoints', {
+                                cost: option.tpCost,
+                                available: trainingPoints,
+                              })
+                            : t('trainingDrill.a11y.drillHint', {
+                                drill: option.drillName,
+                                cost: option.tpCost,
+                                value: option.currentValue,
+                                risk:
+                                  injuryRiskPercent > 0
+                                    ? ` ${t('trainingDrill.a11y.percentInjuryRisk', { percent: injuryRiskPercent })}`
+                                    : '',
+                              })
+                      }
                       accessibilityState={{ disabled }}
                       disabled={disabled}
                       onPress={() => {
@@ -560,7 +672,11 @@ export function TrainingDrillModal({
                         // presentation, and never on the tail of the tap that
                         // just dismissed one.
                         if (stage !== null) return;
-                        if (Date.now() - presentationClosedAtRef.current < PRESENTATION_SETTLE_MS) return;
+                        if (
+                          Date.now() - presentationClosedAtRef.current <
+                          PRESENTATION_SETTLE_MS
+                        )
+                          return;
                         if (unaffordable) {
                           playManagementActionSfx('warning');
                           setNotice({
@@ -573,12 +689,16 @@ export function TrainingDrillModal({
                         setConfirmingHighRisk(false);
                         setPendingConfirm(option);
                       }}
-                      className={disabled || unaffordable
-                        ? 'flex-row items-center justify-between border-2 border-ink/20 bg-white px-3 py-3 opacity-40'
-                        : isResultRow
-                          ? 'flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-3'
-                          : 'flex-row items-center justify-between border-2 border-ink/30 bg-white px-3 py-3'}
-                      style={({ pressed }) => ({ opacity: pressed && !disabled ? 0.65 : undefined })}
+                      className={
+                        disabled || unaffordable
+                          ? 'flex-row items-center justify-between border-2 border-ink/20 bg-white px-3 py-3 opacity-40'
+                          : isResultRow
+                            ? 'flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-3'
+                            : 'flex-row items-center justify-between border-2 border-ink/30 bg-white px-3 py-3'
+                      }
+                      style={({ pressed }) => ({
+                        opacity: pressed && !disabled ? 0.65 : undefined,
+                      })}
                     >
                       {/* Desktop rows have the width to spare, so each drill gets
                           its prop — cone, target, glove. The phone sheet stays
@@ -587,22 +707,39 @@ export function TrainingDrillModal({
                           label is still all a screen reader hears. */}
                       {wide ? (
                         <View className="mr-3">
-                          <ManagementSprite spriteKey={`drill:${option.pathId}`} width={32} />
+                          <ManagementSprite
+                            spriteKey={`drill:${option.pathId}`}
+                            width={32}
+                          />
                         </View>
                       ) : null}
                       <View className="min-w-0 flex-1 pr-2">
-                        <PixelText className="text-base uppercase text-ink" numberOfLines={1}>
+                        <PixelText
+                          className="text-base uppercase text-ink"
+                          numberOfLines={1}
+                        >
                           {option.drillName}
-                          <Text className="font-mono text-sm text-ink/60"> ({option.tpCost} TP)</Text>
+                          <Text className="font-mono text-sm text-ink/60">
+                            {' '}
+                            ({option.tpCost} TP)
+                          </Text>
                         </PixelText>
-                        <Text className="mt-0.5 font-mono text-sm text-ink/60" numberOfLines={1}>
+                        <Text
+                          className="mt-0.5 font-mono text-sm text-ink/60"
+                          numberOfLines={1}
+                        >
                           {option.currentValue} {option.shortCode}
-                          {!injured && !option.affordable && !option.atSafetyCeiling
+                          {!injured &&
+                          !option.affordable &&
+                          !option.atSafetyCeiling
                             ? ` · ${t('trainingDrill.notEnoughTp')}`
                             : ''}
                         </Text>
                       </View>
-                      <Text className="font-mono text-base text-ink" numberOfLines={1}>
+                      <Text
+                        className="font-mono text-base text-ink"
+                        numberOfLines={1}
+                      >
                         +{option.gain} {option.label}
                       </Text>
                     </Pressable>
@@ -614,12 +751,16 @@ export function TrainingDrillModal({
                   <Text className="font-pixel text-base uppercase text-red-dark">
                     OUT · {injuryWeeks} {injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
                   </Text>
-                  <Text className="mt-1 text-sm text-ink/70">{t('trainingDrill.noTrainingUntilTheyRecover')}</Text>
+                  <Text className="mt-1 text-sm text-ink/70">
+                    {t('trainingDrill.noTrainingUntilTheyRecover')}
+                  </Text>
                 </View>
               ) : null}
             </ScrollView>
 
-            {stage === 'scene' && activeResult !== null && resultOption !== undefined ? (
+            {stage === 'scene' &&
+            activeResult !== null &&
+            resultOption !== undefined ? (
               <DrillSceneOverlay
                 playerId={playerId}
                 playerName={playerName}
@@ -656,7 +797,8 @@ export function TrainingDrillModal({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('trainingDrill.a11y.gotInjured', {
-                  player: playerName, weeks: activeResult.injury.recoveryWeeks,
+                  player: playerName,
+                  weeks: activeResult.injury.recoveryWeeks,
                 })}
                 // The cue now plays when the card appears; acknowledging it is
                 // an ordinary tap and takes the ordinary click.
@@ -665,12 +807,18 @@ export function TrainingDrillModal({
               >
                 <View style={styles.injuryBackdrop}>
                   <View className="border-2 border-b-4 border-red-dark bg-red-light px-5 py-4">
-                    <Text className="text-center font-pixel text-xl uppercase text-red-dark">{t('trainingDrill.pulledUp')}</Text>
+                    <Text className="text-center font-pixel text-xl uppercase text-red-dark">
+                      {t('trainingDrill.pulledUp')}
+                    </Text>
                     <Text className="mt-2 text-center font-pixel text-base uppercase text-ink">
-                      OUT · {activeResult.injury.recoveryWeeks} {activeResult.injury.recoveryWeeks === 1 ? 'WEEK' : 'WEEKS'}
+                      OUT · {activeResult.injury.recoveryWeeks}{' '}
+                      {activeResult.injury.recoveryWeeks === 1
+                        ? 'WEEK'
+                        : 'WEEKS'}
                     </Text>
                     <Text className="mt-2 text-center text-sm text-ink/70">
-                      {t('trainingDrill.theDrillStillCounted')}</Text>
+                      {t('trainingDrill.theDrillStillCounted')}
+                    </Text>
                   </View>
                 </View>
               </Pressable>
@@ -699,8 +847,12 @@ export function TrainingDrillModal({
                   contentContainerStyle={styles.confirmScrollContent}
                 >
                   <PixelText className="text-sm uppercase tracking-wide text-blue-dark">
-                    {t('trainingDrill.confirmTraining')}</PixelText>
-                  <PixelText className="mt-1 text-xl uppercase text-ink" numberOfLines={2}>
+                    {t('trainingDrill.confirmTraining')}
+                  </PixelText>
+                  <PixelText
+                    className="mt-1 text-xl uppercase text-ink"
+                    numberOfLines={2}
+                  >
                     {pendingConfirm.drillName}
                   </PixelText>
                   <Text className="mt-1 text-sm text-ink/60">
@@ -712,10 +864,14 @@ export function TrainingDrillModal({
                   <View className="mt-3 gap-2">
                     <View className="flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-2">
                       <PixelText className="text-sm uppercase text-ink">
-                        {t('trainingDrill.basePerDrill', { label: pendingConfirm.label })}
+                        {t('trainingDrill.basePerDrill', {
+                          label: pendingConfirm.label,
+                        })}
                       </PixelText>
                       <Text className="font-pixel text-base text-ink">
-                        +{pendingConfirm.baseValueAfter - pendingConfirm.currentValue}
+                        +
+                        {pendingConfirm.baseValueAfter -
+                          pendingConfirm.currentValue}
                       </Text>
                     </View>
                     {/* What this player's own modifiers deliver — the result,
@@ -756,9 +912,13 @@ export function TrainingDrillModal({
                       // on the green box 2.5:1, against the 4.5:1 a body of text
                       // needs — the second was only passable because the hues
                       // were close, not because it was legible.
-                      <View className={pendingConfirm.trainingAdjustment >= 0
-                        ? 'flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light/40 px-3 py-2'
-                        : 'flex-row items-center justify-between border-2 border-red-dark bg-red-light/40 px-3 py-2'}>
+                      <View
+                        className={
+                          pendingConfirm.trainingAdjustment >= 0
+                            ? 'flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light/40 px-3 py-2'
+                            : 'flex-row items-center justify-between border-2 border-red-dark bg-red-light/40 px-3 py-2'
+                        }
+                      >
                         <PixelText
                           className="min-w-0 flex-1 pr-2 text-xs uppercase text-ink"
                           numberOfLines={2}
@@ -769,14 +929,19 @@ export function TrainingDrillModal({
                               emphasised, which emphasises nothing, and forced a
                               green-on-red pairing no tint could rescue. The
                               bonuses are the expected case and read as ink. */}
-                          {pendingConfirm.trainingModifiers.map((modifier, index) => (
-                            <PixelText
-                              key={modifier.label}
-                              className={modifier.helps ? 'text-ink' : 'text-red-dark'}
-                            >
-                              {index === 0 ? '' : ' + '}{modifier.label}
-                            </PixelText>
-                          ))}
+                          {pendingConfirm.trainingModifiers.map(
+                            (modifier, index) => (
+                              <PixelText
+                                key={modifier.label}
+                                className={
+                                  modifier.helps ? 'text-ink' : 'text-red-dark'
+                                }
+                              >
+                                {index === 0 ? '' : ' + '}
+                                {modifier.label}
+                              </PixelText>
+                            ),
+                          )}
                         </PixelText>
                         <Text className="font-pixel text-base text-ink">
                           {pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}
@@ -785,40 +950,69 @@ export function TrainingDrillModal({
                       </View>
                     ) : null}
                     <View className="flex-row items-center justify-between px-1">
-                      <Text className="text-sm text-ink/60">{t('trainingDrill.trainingPoints')}</Text>
-                      <Text className={pendingConfirm.affordable
-                        ? 'font-mono text-sm text-ink'
-                        : 'font-pixel text-sm text-stamp'}>
-                        {pendingConfirm.tpCost * repeatCount} of {trainingPoints}
+                      <Text className="text-sm text-ink/60">
+                        {t('trainingDrill.trainingPoints')}
+                      </Text>
+                      <Text
+                        className={
+                          pendingConfirm.affordable
+                            ? 'font-mono text-sm text-ink'
+                            : 'font-pixel text-sm text-stamp'
+                        }
+                      >
+                        {pendingConfirm.tpCost * repeatCount} of{' '}
+                        {trainingPoints}
                       </Text>
                     </View>
                     <View className="flex-row items-center justify-between px-1">
-                      <Text className="text-sm text-ink/60">{t('trainingDrill.conditionAfter')}</Text>
+                      <Text className="text-sm text-ink/60">
+                        {t('trainingDrill.conditionAfter')}
+                      </Text>
                       <Text className="font-mono text-sm text-ink">
-                        {condition}% → {Math.max(0, condition - INSTANT_DRILL_CONDITION_COST * repeatCount)}%
+                        {condition}% →{' '}
+                        {Math.max(
+                          0,
+                          condition -
+                            INSTANT_DRILL_CONDITION_COST * repeatCount,
+                        )}
+                        %
                       </Text>
                     </View>
                     <View className="flex-row items-center justify-between px-1">
-                      <Text className="text-sm text-ink/60">{t('trainingDrill.injuryRisk')}</Text>
-                      <Text className={(injuryRiskPercent > 0
-                        || selectedRiskyRuns > 0)
-                        ? 'font-pixel text-sm text-stamp'
-                        : 'font-mono text-sm text-ink'}>
+                      <Text className="text-sm text-ink/60">
+                        {t('trainingDrill.injuryRisk')}
+                      </Text>
+                      <Text
+                        className={
+                          injuryRiskPercent > 0 || selectedRiskyRuns > 0
+                            ? 'font-pixel text-sm text-stamp'
+                            : 'font-mono text-sm text-ink'
+                        }
+                      >
                         {selectedRiskyRuns > 0
                           ? t('trainingDrill.riskyOfDrills', {
-                            risky: selectedRiskyRuns, total: repeatCount,
-                          })
+                              risky: selectedRiskyRuns,
+                              total: repeatCount,
+                            })
                           : injuryRiskPercent > 0
-                            ? t('trainingDrill.percentEachDrill', { percent: injuryRiskPercent })
+                            ? t('trainingDrill.percentEachDrill', {
+                                percent: injuryRiskPercent,
+                              })
                             : t('trainingDrill.none')}
                       </Text>
                     </View>
                     <View className="flex-row items-center justify-between px-1">
-                      <Text className="text-sm text-ink/60">{t('trainingDrill.superChance')}</Text>
+                      <Text className="text-sm text-ink/60">
+                        {t('trainingDrill.superChance')}
+                      </Text>
                       <View className="flex-row items-center gap-1">
                         {/* Glyph-only ★ node — not in Silkscreen, deliberate system fallback. */}
                         <Text className="text-sm text-gold-dark">★</Text>
-                        <Text className="font-mono text-sm text-gold-dark">{t('trainingDrill.percentEach', { percent: superChancePercent })}</Text>
+                        <Text className="font-mono text-sm text-gold-dark">
+                          {t('trainingDrill.percentEach', {
+                            percent: superChancePercent,
+                          })}
+                        </Text>
                       </View>
                     </View>
                   </View>
@@ -828,9 +1022,12 @@ export function TrainingDrillModal({
                   <View className="mt-4 border-t-2 border-ink/20 pt-3">
                     <View className="mb-2 flex-row items-center justify-between">
                       <PixelText className="text-xs uppercase tracking-wide text-ink/60">
-                        {t('trainingDrill.runsInARow')}</PixelText>
+                        {t('trainingDrill.runsInARow')}
+                      </PixelText>
                       <View className="border-2 border-blue-dark bg-blue-light px-2 py-1">
-                        <PixelText className="text-sm text-blue-dark">{repeatCount}×</PixelText>
+                        <PixelText className="text-sm text-blue-dark">
+                          {repeatCount}×
+                        </PixelText>
                       </View>
                     </View>
                     {wide ? (
@@ -847,19 +1044,22 @@ export function TrainingDrillModal({
                         snapToAlignment="start"
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.repeatScrollContent}
-                        onScrollBeginDrag={() => { draggingRepeatRef.current = true; }}
-                        onScrollEndDrag={event => (
+                        onScrollBeginDrag={() => {
+                          draggingRepeatRef.current = true;
+                        }}
+                        onScrollEndDrag={(event) =>
                           selectRepeatOffset(event.nativeEvent.contentOffset.x)
-                        )}
-                        onMomentumScrollEnd={event => (
+                        }
+                        onMomentumScrollEnd={(event) =>
                           selectRepeatOffset(event.nativeEvent.contentOffset.x)
-                        )}
+                        }
                       >
                         {repeatOptions.map(repeatButton)}
                       </ScrollView>
                     )}
                     <Text className="mt-2 text-xs leading-4 text-ink/55">
-                      {t('trainingDrill.eachRunKeepsIts')}</Text>
+                      {t('trainingDrill.eachRunKeepsIts')}
+                    </Text>
                   </View>
                 </ScrollView>
 
@@ -869,7 +1069,9 @@ export function TrainingDrillModal({
                     accessibilityLabel={t('trainingDrill.a11y.cancelTraining')}
                     onPress={() => setPendingConfirm(null)}
                     className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
-                    style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+                    style={({ pressed }) => ({
+                      opacity: pressed ? 0.65 : undefined,
+                    })}
                   >
                     <PixelText className="text-base uppercase text-ink">
                       {t('trainingDrill.cancel')}
@@ -877,15 +1079,21 @@ export function TrainingDrillModal({
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={pendingConfirm.affordable
-                      ? t('trainingDrill.a11y.runDrillForPoints', {
-                        n: repeatCount,
-                        drill: pendingConfirm.drillName,
-                        count: repeatCount,
-                        cost: pendingConfirm.tpCost * repeatCount,
-                      })
-                      : t('trainingDrill.a11y.notEnoughPointsFor', { drill: pendingConfirm.drillName })}
-                    accessibilityState={{ disabled: !pendingConfirm.affordable }}
+                    accessibilityLabel={
+                      pendingConfirm.affordable
+                        ? t('trainingDrill.a11y.runDrillForPoints', {
+                            n: repeatCount,
+                            drill: pendingConfirm.drillName,
+                            count: repeatCount,
+                            cost: pendingConfirm.tpCost * repeatCount,
+                          })
+                        : t('trainingDrill.a11y.notEnoughPointsFor', {
+                            drill: pendingConfirm.drillName,
+                          })
+                    }
+                    accessibilityState={{
+                      disabled: !pendingConfirm.affordable,
+                    }}
                     disabled={!pendingConfirm.affordable}
                     onPress={() => {
                       const chosen = pendingConfirm;
@@ -895,14 +1103,22 @@ export function TrainingDrillModal({
                       }
                       startTrainingBatch(chosen, repeatCount);
                     }}
-                    className={pendingConfirm.affordable
-                      ? 'min-h-12 flex-[1.4] items-center justify-center border-2 border-b-4 border-ink bg-blue px-3'
-                      : 'min-h-12 flex-[1.4] items-center justify-center border-2 border-ink/20 bg-ink/10 px-3'}
-                    style={({ pressed }) => ({ opacity: pressed && pendingConfirm.affordable ? 0.65 : undefined })}
+                    className={
+                      pendingConfirm.affordable
+                        ? 'min-h-12 flex-[1.4] items-center justify-center border-2 border-b-4 border-ink bg-blue px-3'
+                        : 'min-h-12 flex-[1.4] items-center justify-center border-2 border-ink/20 bg-ink/10 px-3'
+                    }
+                    style={({ pressed }) => ({
+                      opacity:
+                        pressed && pendingConfirm.affordable ? 0.65 : undefined,
+                    })}
                   >
-                    <PixelText className={pendingConfirm.affordable
-                      ? 'text-base uppercase text-white'
-                      : 'text-base uppercase text-ink/40'}
+                    <PixelText
+                      className={
+                        pendingConfirm.affordable
+                          ? 'text-base uppercase text-white'
+                          : 'text-base uppercase text-ink/40'
+                      }
                       adjustsFontSizeToFit
                       minimumFontScale={0.72}
                       numberOfLines={1}
@@ -929,38 +1145,51 @@ export function TrainingDrillModal({
               <View
                 accessibilityRole="alert"
                 accessibilityLabel={t('trainingDrill.a11y.highRiskSummary', {
-                  risky: selectedRiskyRuns, total: repeatCount,
+                  risky: selectedRiskyRuns,
+                  total: repeatCount,
                 })}
                 className="w-[88%] max-w-[420px] border-2 border-b-4 border-red-dark bg-paper p-4"
               >
                 <PixelText className="text-sm uppercase tracking-wide text-red-dark">
-                  {t('trainingDrill.safetyCheck')}</PixelText>
+                  {t('trainingDrill.safetyCheck')}
+                </PixelText>
                 <PixelText className="mt-2 text-xl uppercase leading-7 text-ink">
-                  {t('trainingDrill.highRiskOfInjuryContinue')}</PixelText>
+                  {t('trainingDrill.highRiskOfInjuryContinue')}
+                </PixelText>
                 <Text className="mt-3 text-sm leading-5 text-ink/70">
                   {t('trainingDrill.riskyRunsBody', {
-                    risky: selectedRiskyRuns, total: repeatCount,
+                    risky: selectedRiskyRuns,
+                    total: repeatCount,
                   })}
                 </Text>
 
                 <View className="mt-4 gap-2">
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={t('trainingDrill.a11y.continueAllDespiteRisk', { count: repeatCount })}
-                    onPress={() => startTrainingBatch(pendingConfirm, repeatCount)}
+                    accessibilityLabel={t(
+                      'trainingDrill.a11y.continueAllDespiteRisk',
+                      { count: repeatCount },
+                    )}
+                    onPress={() =>
+                      startTrainingBatch(pendingConfirm, repeatCount)
+                    }
                     className="min-h-12 items-center justify-center border-2 border-b-4 border-red-dark bg-red px-3"
                   >
                     <PixelText className="text-center text-sm uppercase text-white">
-                      {t('trainingDrill.continueAnyway', { count: repeatCount })}
+                      {t('trainingDrill.continueAnyway', {
+                        count: repeatCount,
+                      })}
                     </PixelText>
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={maximumSafeRuns > 0
-                      ? t('trainingDrill.a11y.continueMaxSafe', {
-                        count: Math.min(repeatCount, maximumSafeRuns),
-                      })
-                      : t('trainingDrill.a11y.noDrillsWithoutRisk')}
+                    accessibilityLabel={
+                      maximumSafeRuns > 0
+                        ? t('trainingDrill.a11y.continueMaxSafe', {
+                            count: Math.min(repeatCount, maximumSafeRuns),
+                          })
+                        : t('trainingDrill.a11y.noDrillsWithoutRisk')
+                    }
                     accessibilityState={{ disabled: maximumSafeRuns === 0 }}
                     disabled={maximumSafeRuns === 0}
                     onPress={() => {
@@ -968,23 +1197,31 @@ export function TrainingDrillModal({
                       setRepeatCount(saferRuns);
                       startTrainingBatch(pendingConfirm, saferRuns);
                     }}
-                    className={maximumSafeRuns > 0
-                      ? 'min-h-12 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue px-3'
-                      : 'min-h-12 items-center justify-center border-2 border-ink/20 bg-ink/10 px-3'}
+                    className={
+                      maximumSafeRuns > 0
+                        ? 'min-h-12 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue px-3'
+                        : 'min-h-12 items-center justify-center border-2 border-ink/20 bg-ink/10 px-3'
+                    }
                   >
-                    <PixelText className={maximumSafeRuns > 0
-                      ? 'text-center text-sm uppercase text-white'
-                      : 'text-center text-sm uppercase text-ink/35'}>
+                    <PixelText
+                      className={
+                        maximumSafeRuns > 0
+                          ? 'text-center text-sm uppercase text-white'
+                          : 'text-center text-sm uppercase text-ink/35'
+                      }
+                    >
                       {maximumSafeRuns > 0
                         ? t('trainingDrill.continueMaxSafe', {
-                          count: Math.min(repeatCount, maximumSafeRuns),
-                        })
+                            count: Math.min(repeatCount, maximumSafeRuns),
+                          })
                         : t('trainingDrill.noSafeDrillsAvailable')}
                     </PixelText>
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={t('trainingDrill.a11y.cancelAndReturnToTheNumberPicker')}
+                    accessibilityLabel={t(
+                      'trainingDrill.a11y.cancelAndReturnToTheNumberPicker',
+                    )}
                     onPress={() => setConfirmingHighRisk(false)}
                     className="min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
                   >
@@ -1014,9 +1251,12 @@ export function TrainingDrillModal({
                   accessibilityLabel={`${notice.title}. ${notice.detail}`}
                   className="w-full max-w-[340px] border-2 border-b-4 border-ink bg-paper px-5 py-4"
                 >
-                  <PixelText className={notice.bert === true
-                    ? 'text-center text-lg uppercase text-blue-dark'
-                    : 'text-center text-lg uppercase text-stamp'}
+                  <PixelText
+                    className={
+                      notice.bert === true
+                        ? 'text-center text-lg uppercase text-blue-dark'
+                        : 'text-center text-lg uppercase text-stamp'
+                    }
                   >
                     {notice.title}
                   </PixelText>
@@ -1025,7 +1265,9 @@ export function TrainingDrillModal({
                       <BertFullBody pointing />
                     </View>
                   ) : null}
-                  <Text className="mt-2 text-center text-sm leading-5 text-ink/75">{notice.detail}</Text>
+                  <Text className="mt-2 text-center text-sm leading-5 text-ink/75">
+                    {notice.detail}
+                  </Text>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={t('trainingDrill.a11y.dismiss')}
@@ -1072,80 +1314,88 @@ function conditionBadgeStyle(condition: number): { box: string; text: string } {
   };
 }
 
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  repeatDesktopRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  repeatScrollContent: {
-    alignItems: 'center',
-  },
-  repeatOption: {
-    width: REPEAT_PICKER_CELL_WIDTH - 4,
-    minHeight: 48,
-    marginHorizontal: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderBottomWidth: 4,
-    borderColor: '#9a95a4',
-    backgroundColor: '#ffffff',
-  },
-  repeatOptionSelected: {
-    borderColor: '#2f55b8',
-    backgroundColor: '#a3c8f0',
-  },
-  repeatOptionWide: {
-    width: 42,
-    minHeight: 44,
-    marginHorizontal: 1,
-  },
-  repeatOptionText: {
-    // The loaded Silkscreen bold cut — 'PixelFont' was never registered, so iOS
-    // silently fell back to San Francisco. Tabular numerals per the doc-11
-    // numerals rule (same pattern as SubstitutionBoard's counter).
-    fontFamily: faces.display,
-    fontSize: 16,
-    fontVariant: ['tabular-nums'],
-    color: '#7d7887',
-  },
-  repeatOptionTextSelected: {
-    color: '#2f55b8',
-  },
-  // Sits above the drill scene and the injury card: it is the newest thing the
-  // player did, so it owns the popup until dismissed. These layers are siblings
-  // of the sheet rather than children of it — the sheet is `overflow-hidden` and
-  // only as tall as its own content, which clipped the top and bottom off any
-  // card taller than it.
-  noticeLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 30 },
-  noticeBackdrop: { flex: 1, backgroundColor: 'rgba(36,31,46,0.78)' },
-  noticeCenter: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-  },
-  // Shrinks to the space the layer above leaves it instead of overflowing it.
-  confirmCard: { maxHeight: '100%', flexShrink: 1 },
-  // flexGrow 0 keeps a short card at its content height; flexShrink 1 hands the
-  // overflow to the scroller once it is taller than the screen allows.
-  confirmScroll: { flexGrow: 0, flexShrink: 1 },
-  confirmScrollContent: { padding: 16 },
-  injuryBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'stretch',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    backgroundColor: 'rgba(36,31,46,0.78)',
-    zIndex: 25,
-  },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    repeatDesktopRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+    },
+    repeatScrollContent: {
+      alignItems: 'center',
+    },
+    repeatOption: {
+      width: REPEAT_PICKER_CELL_WIDTH - 4,
+      minHeight: 48,
+      marginHorizontal: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderBottomWidth: 4,
+      borderColor: '#9a95a4',
+      backgroundColor: '#ffffff',
+    },
+    repeatOptionSelected: {
+      borderColor: '#2f55b8',
+      backgroundColor: '#a3c8f0',
+    },
+    repeatOptionWide: {
+      width: 42,
+      minHeight: 44,
+      marginHorizontal: 1,
+    },
+    repeatOptionText: {
+      // The loaded Silkscreen bold cut — 'PixelFont' was never registered, so iOS
+      // silently fell back to San Francisco. Tabular numerals per the doc-11
+      // numerals rule (same pattern as SubstitutionBoard's counter).
+      fontFamily: faces.display,
+      fontSize: 16,
+      fontVariant: ['tabular-nums'],
+      color: '#7d7887',
+    },
+    repeatOptionTextSelected: {
+      color: '#2f55b8',
+    },
+    // Sits above the drill scene and the injury card: it is the newest thing the
+    // player did, so it owns the popup until dismissed. These layers are siblings
+    // of the sheet rather than children of it — the sheet is `overflow-hidden` and
+    // only as tall as its own content, which clipped the top and bottom off any
+    // card taller than it.
+    noticeLayer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 30,
+    },
+    noticeBackdrop: { flex: 1, backgroundColor: 'rgba(36,31,46,0.78)' },
+    noticeCenter: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 24,
+      paddingVertical: 24,
+    },
+    // Shrinks to the space the layer above leaves it instead of overflowing it.
+    confirmCard: { maxHeight: '100%', flexShrink: 1 },
+    // flexGrow 0 keeps a short card at its content height; flexShrink 1 hands the
+    // overflow to the scroller once it is taller than the screen allows.
+    confirmScroll: { flexGrow: 0, flexShrink: 1 },
+    confirmScrollContent: { padding: 16 },
+    injuryBackdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      alignItems: 'stretch',
+      justifyContent: 'center',
+      paddingHorizontal: 24,
+      backgroundColor: 'rgba(36,31,46,0.78)',
+      zIndex: 25,
+    },
+  });

@@ -29,7 +29,13 @@ export type MasterVolume = 0 | 0.25 | 0.5 | 0.75 | 1;
 export type HudSide = 'left' | 'right';
 export type TextScale = 1 | 1.15 | 1.3;
 export type CutInMode = 'full' | 'banner';
-export const SQUAD_SORT_KEYS = ['role', 'player', 'overall', 'potential', 'condition'] as const;
+export const SQUAD_SORT_KEYS = [
+  'role',
+  'player',
+  'overall',
+  'potential',
+  'condition',
+] as const;
 export type SquadSortKey = (typeof SQUAD_SORT_KEYS)[number];
 export type SquadSortDirection = 'descending' | 'ascending';
 
@@ -37,6 +43,13 @@ export type SquadSortDirection = 'descending' | 'ascending';
 export interface SquadSort {
   key: SquadSortKey;
   direction: SquadSortDirection;
+}
+
+export interface MatchPerformanceLimit {
+  maxMatchSpeed: 2;
+  reason: 'frame-pacing';
+  setAt: number;
+  expiresAt: number;
 }
 
 export interface AppPreferences {
@@ -74,6 +87,8 @@ export interface AppPreferences {
    * `language` holds the answer.
    */
   languageOffered: boolean;
+  /** Temporary proof that this device could not keep 3x paced smoothly. */
+  performanceLimit?: MatchPerformanceLimit | null;
 }
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
@@ -94,6 +109,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   developerMode: false,
   language: 'en',
   languageOffered: false,
+  performanceLimit: null,
 };
 
 const FormationSchema = z.enum(FORMATION_IDS);
@@ -101,16 +117,43 @@ const FormationSchema = z.enum(FORMATION_IDS);
 // they are dropped on the way through rather than rejected.
 const RETIRED_POWER_IDS = ['MAGNET_TOUCH'] as const;
 const PowerIdSchema = z.enum([
-  'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
-  'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
-  'RALLY_CRY', 'ICE_RINK', 'SHADOW_MARK', 'GRAVITY_WELL', 'GIANT_GK', 'GUST',
+  'SUPER_SPEED',
+  'BLINK_RUN',
+  'THUNDER_STRIKE',
+  'FIRE_TORCH',
+  'PHASE_RUN',
+  'PORTAL_PASS',
+  'DECOY_DOUBLE',
+  'FUTURE_SIGHT',
+  'SUPER_STRENGTH',
+  'WEB_TRAP',
+  'ELASTIC_KEEPER',
+  'RALLY_CRY',
+  'ICE_RINK',
+  'SHADOW_MARK',
+  'GRAVITY_WELL',
+  'GIANT_GK',
+  'GUST',
 ]);
-const StoredPowerIdSchema = z.enum([...PowerIdSchema.options, ...RETIRED_POWER_IDS]);
+const StoredPowerIdSchema = z.enum([
+  ...PowerIdSchema.options,
+  ...RETIRED_POWER_IDS,
+]);
 const V9PreferencesSchema = z.strictObject({
-  formationPresets: z.tuple([FormationSchema, FormationSchema, FormationSchema])
-    .refine(values => new Set(values).size === 3, 'formation presets must be unique'),
+  formationPresets: z
+    .tuple([FormationSchema, FormationSchema, FormationSchema])
+    .refine(
+      (values) => new Set(values).size === 3,
+      'formation presets must be unique',
+    ),
   autoPowers: z.boolean(),
-  masterVolume: z.union([z.literal(0), z.literal(0.25), z.literal(0.5), z.literal(0.75), z.literal(1)]),
+  masterVolume: z.union([
+    z.literal(0),
+    z.literal(0.25),
+    z.literal(0.5),
+    z.literal(0.75),
+    z.literal(1),
+  ]),
   reduceMotion: z.boolean(),
   hudSide: z.enum(['left', 'right']),
   hapticsEnabled: z.boolean(),
@@ -119,11 +162,19 @@ const V9PreferencesSchema = z.strictObject({
   colorSafeKits: z.boolean(),
   cutInMode: z.enum(['full', 'banner']),
   climbCompleted: z.boolean(),
-  seenPowerCutIns: z.array(StoredPowerIdSchema).max(20)
-    .transform(ids => ids.filter((id): id is z.infer<typeof PowerIdSchema> => (
-      !(RETIRED_POWER_IDS as readonly string[]).includes(id)
-    )))
-    .refine(values => new Set(values).size === values.length, 'seen power cut-ins must be unique'),
+  seenPowerCutIns: z
+    .array(StoredPowerIdSchema)
+    .max(20)
+    .transform((ids) =>
+      ids.filter(
+        (id): id is z.infer<typeof PowerIdSchema> =>
+          !(RETIRED_POWER_IDS as readonly string[]).includes(id),
+      ),
+    )
+    .refine(
+      (values) => new Set(values).size === values.length,
+      'seen power cut-ins must be unique',
+    ),
   autoSubs: z.boolean(),
   squadSort: z.union([
     z.null(),
@@ -158,6 +209,15 @@ const PreferencesSchema = V9PreferencesSchema.extend({
    * exactly what an older row means.
    */
   languageOffered: z.boolean().default(false),
+  performanceLimit: z
+    .strictObject({
+      maxMatchSpeed: z.literal(2),
+      reason: z.literal('frame-pacing'),
+      setAt: z.number().finite().nonnegative(),
+      expiresAt: z.number().finite().positive(),
+    })
+    .nullable()
+    .default(null),
 });
 
 const LegacyPreferencesSchema = V9PreferencesSchema.pick({
@@ -186,16 +246,24 @@ const CutInHistoryPreferencesSchema = V9PreferencesSchema.omit({
   climbCompleted: true,
   developerMode: true,
 });
-const ManagerTipsPreferencesSchema = V9PreferencesSchema
-  .omit({ autoSubs: true, squadSort: true, climbCompleted: true, developerMode: true })
-  .extend(RetiredTipsShape);
-const AutoSubsPreferencesSchema = V9PreferencesSchema
-  .omit({ squadSort: true, climbCompleted: true, developerMode: true })
-  .extend(RetiredTipsShape);
-const SquadSortPreferencesSchema = V9PreferencesSchema
-  .omit({ climbCompleted: true, developerMode: true })
-  .extend(RetiredTipsShape);
-const ClimbCompletedPreferencesSchema = V9PreferencesSchema.omit({ developerMode: true });
+const ManagerTipsPreferencesSchema = V9PreferencesSchema.omit({
+  autoSubs: true,
+  squadSort: true,
+  climbCompleted: true,
+  developerMode: true,
+}).extend(RetiredTipsShape);
+const AutoSubsPreferencesSchema = V9PreferencesSchema.omit({
+  squadSort: true,
+  climbCompleted: true,
+  developerMode: true,
+}).extend(RetiredTipsShape);
+const SquadSortPreferencesSchema = V9PreferencesSchema.omit({
+  climbCompleted: true,
+  developerMode: true,
+}).extend(RetiredTipsShape);
+const ClimbCompletedPreferencesSchema = V9PreferencesSchema.omit({
+  developerMode: true,
+});
 
 const UPSERT_SQL = `
   INSERT INTO app_preferences (slot, schema_version, preferences_json)
@@ -226,7 +294,9 @@ export async function createPreferencesRepository(
   await migrateDatabase(database);
   return {
     async load() {
-      const row = await database.getFirstAsync<StoredPreferencesRow>(LOAD_SQL, [PRIMARY_SLOT]);
+      const row = await database.getFirstAsync<StoredPreferencesRow>(LOAD_SQL, [
+        PRIMARY_SLOT,
+      ]);
       if (row === null) return clonePreferences(DEFAULT_APP_PREFERENCES);
       if (typeof row.preferences_json !== 'string') {
         throw new Error('Saved settings use an unsupported or corrupt format.');
@@ -235,7 +305,9 @@ export async function createPreferencesRepository(
       if (row.schema_version === LEGACY_PREFERENCES_SCHEMA_VERSION) {
         const legacy = LegacyPreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+          throw new Error(
+            `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
+          );
         }
         const migrated: AppPreferences = {
           ...legacy.data,
@@ -254,6 +326,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -265,7 +338,9 @@ export async function createPreferencesRepository(
       if (row.schema_version === M2_PREFERENCES_SCHEMA_VERSION) {
         const legacy = M2PreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+          throw new Error(
+            `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
+          );
         }
         const migrated: AppPreferences = {
           ...legacy.data,
@@ -282,6 +357,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -293,7 +369,9 @@ export async function createPreferencesRepository(
       if (row.schema_version === M4_PREFERENCES_SCHEMA_VERSION) {
         const legacy = M4PreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+          throw new Error(
+            `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
+          );
         }
         const migrated: AppPreferences = {
           ...legacy.data,
@@ -305,6 +383,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -316,7 +395,9 @@ export async function createPreferencesRepository(
       if (row.schema_version === CUT_IN_HISTORY_PREFERENCES_SCHEMA_VERSION) {
         const legacy = CutInHistoryPreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+          throw new Error(
+            `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
+          );
         }
         const migrated: AppPreferences = {
           ...legacy.data,
@@ -328,6 +409,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -339,7 +421,9 @@ export async function createPreferencesRepository(
       if (row.schema_version === MANAGER_TIPS_PREFERENCES_SCHEMA_VERSION) {
         const legacy = ManagerTipsPreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+          throw new Error(
+            `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
+          );
         }
         const { managerTipsEnabled: _retired, ...carried } = legacy.data;
         const migrated: AppPreferences = {
@@ -352,6 +436,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -363,7 +448,9 @@ export async function createPreferencesRepository(
       if (row.schema_version === AUTO_SUBS_PREFERENCES_SCHEMA_VERSION) {
         const legacy = AutoSubsPreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+          throw new Error(
+            `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
+          );
         }
         const { managerTipsEnabled: _retired, ...carried } = legacy.data;
         const migrated: AppPreferences = {
@@ -375,6 +462,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -386,18 +474,24 @@ export async function createPreferencesRepository(
       if (row.schema_version === SQUAD_SORT_PREFERENCES_SCHEMA_VERSION) {
         const legacy = SquadSortPreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+          throw new Error(
+            `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
+          );
         }
         const { managerTipsEnabled: _retired, ...carried } = legacy.data;
         const migrated: AppPreferences = {
           ...carried,
           formationPresets: [...legacy.data.formationPresets],
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
-          squadSort: legacy.data.squadSort === null ? null : { ...legacy.data.squadSort },
+          squadSort:
+            legacy.data.squadSort === null
+              ? null
+              : { ...legacy.data.squadSort },
           climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -409,16 +503,22 @@ export async function createPreferencesRepository(
       if (row.schema_version === CLIMB_COMPLETED_PREFERENCES_SCHEMA_VERSION) {
         const legacy = ClimbCompletedPreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+          throw new Error(
+            `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
+          );
         }
         const migrated: AppPreferences = {
           ...legacy.data,
           formationPresets: [...legacy.data.formationPresets],
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
-          squadSort: legacy.data.squadSort === null ? null : { ...legacy.data.squadSort },
+          squadSort:
+            legacy.data.squadSort === null
+              ? null
+              : { ...legacy.data.squadSort },
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -430,15 +530,21 @@ export async function createPreferencesRepository(
       if (row.schema_version === DEVELOPER_MODE_PREFERENCES_SCHEMA_VERSION) {
         const legacy = V9PreferencesSchema.safeParse(decoded);
         if (!legacy.success) {
-          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+          throw new Error(
+            `Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`,
+          );
         }
         const migrated: AppPreferences = {
           ...legacy.data,
           formationPresets: [...legacy.data.formationPresets],
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
-          squadSort: legacy.data.squadSort === null ? null : { ...legacy.data.squadSort },
+          squadSort:
+            legacy.data.squadSort === null
+              ? null
+              : { ...legacy.data.squadSort },
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -451,12 +557,19 @@ export async function createPreferencesRepository(
         throw new Error('Saved settings use an unsupported or corrupt format.');
       }
       const parsed = PreferencesSchema.safeParse(decoded);
-      if (!parsed.success) throw new Error(`Saved settings are invalid: ${parsed.error.issues[0]?.message ?? 'unknown error'}`);
+      if (!parsed.success)
+        throw new Error(
+          `Saved settings are invalid: ${parsed.error.issues[0]?.message ?? 'unknown error'}`,
+        );
       return clonePreferences(parsed.data);
     },
     async save(preferences) {
       const parsed = PreferencesSchema.parse(preferences);
-      await database.runAsync(UPSERT_SQL, [PRIMARY_SLOT, PREFERENCES_SCHEMA_VERSION, JSON.stringify(parsed)]);
+      await database.runAsync(UPSERT_SQL, [
+        PRIMARY_SLOT,
+        PREFERENCES_SCHEMA_VERSION,
+        JSON.stringify(parsed),
+      ]);
     },
   };
 }
@@ -466,7 +579,12 @@ function clonePreferences(preferences: AppPreferences): AppPreferences {
     ...preferences,
     formationPresets: [...preferences.formationPresets],
     seenPowerCutIns: [...preferences.seenPowerCutIns],
-    squadSort: preferences.squadSort === null ? null : { ...preferences.squadSort },
+    squadSort:
+      preferences.squadSort === null ? null : { ...preferences.squadSort },
+    performanceLimit:
+      preferences.performanceLimit == null
+        ? null
+        : { ...preferences.performanceLimit },
   };
 }
 
@@ -476,18 +594,24 @@ export function replaceFormationPreset(
   coachUnlockedFormationIds: readonly string[] = [],
 ): AppPreferences {
   if (!Number.isInteger(slot) || slot < 0 || slot > 2) return preferences;
-  const available = availableFormationIds(preferences, coachUnlockedFormationIds);
+  const available = availableFormationIds(
+    preferences,
+    coachUnlockedFormationIds,
+  );
   const current = preferences.formationPresets[slot];
   let index = available.indexOf(current);
   index = (index + 1) % available.length;
   const next = available[index];
-  const formationPresets: [FormationId, FormationId, FormationId] = [...preferences.formationPresets];
+  const formationPresets: [FormationId, FormationId, FormationId] = [
+    ...preferences.formationPresets,
+  ];
   const occupiedSlot = formationPresets.indexOf(next);
   formationPresets[slot] = next;
   // When every available base formation already occupies one of the three
   // slots, tapping still reorders the live-match cycle instead of doing
   // nothing. A newly taught fourth shape simply replaces the selected slot.
-  if (occupiedSlot >= 0 && occupiedSlot !== slot) formationPresets[occupiedSlot] = current;
+  if (occupiedSlot >= 0 && occupiedSlot !== slot)
+    formationPresets[occupiedSlot] = current;
   return { ...preferences, formationPresets };
 }
 
@@ -503,10 +627,14 @@ export function availableFormationIds(
 ): FormationId[] {
   const available = new Set<FormationId>(DEFAULT_FORMATION_PRESETS);
   for (const formation of coachUnlockedFormationIds) {
-    if (isFormationId(formation) && COACHING_FORMATION_IDS.includes(formation)) {
+    if (
+      isFormationId(formation) &&
+      COACHING_FORMATION_IDS.includes(formation)
+    ) {
       available.add(formation);
     }
   }
-  for (const formation of preferences.formationPresets) available.add(formation);
-  return FORMATION_IDS.filter(formation => available.has(formation));
+  for (const formation of preferences.formationPresets)
+    available.add(formation);
+  return FORMATION_IDS.filter((formation) => available.has(formation));
 }

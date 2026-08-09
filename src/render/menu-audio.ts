@@ -7,26 +7,39 @@ import type { AudioPlayer, AudioSource } from 'expo-audio';
 import type { M1Screen } from '../application/store';
 import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
 
-export type MenuTheme = 'opening' | 'management' | 'event' | 'awards' | 'rival' | null;
+export type MenuTheme =
+  'opening' | 'management' | 'event' | 'awards' | 'rival' | null;
 type MenuSfx = 'advance-week' | 'plan-locked' | 'league-champions';
 
-export function menuThemeForScreen(screen: M1Screen, awakeningBeat: number): MenuTheme {
+export function menuThemeForScreen(
+  screen: M1Screen,
+  awakeningBeat: number,
+): MenuTheme {
   // 'faceoff' sits between matchday and postmatch, both of which play this
   // bed. Leaving it out would stop the music for the scene's two seconds and
   // start it again immediately after — an audible hole in the middle of the
   // flow, not a deliberate silence.
-  if (screen === 'welcome' || screen === 'matchday' || screen === 'postmatch'
-    || screen === 'faceoff') {
+  if (
+    screen === 'welcome' ||
+    screen === 'matchday' ||
+    screen === 'postmatch' ||
+    screen === 'faceoff'
+  ) {
     return 'opening';
   }
-  if (screen === 'create-player' || screen === 'management') return 'management';
+  if (screen === 'create-player' || screen === 'management')
+    return 'management';
   // The awakening carries the event bed from the bite onwards. Beat 1 is left
   // to the sad limp cue alone, because that beat IS the silence before it; from
   // beat 2 the bed plays under the limp's tail and stays through the rise, so
   // the scene never drops to nothing while the manager reads. a49f006 dropped
   // this line and left two short one-shots in a tap-paced scene — the reveal
   // card was read in silence.
-  if (screen === 'event' || screen === 'legacy' || (screen === 'awakening' && awakeningBeat >= 2)) {
+  if (
+    screen === 'event' ||
+    screen === 'legacy' ||
+    (screen === 'awakening' && awakeningBeat >= 2)
+  ) {
     return 'event';
   }
   // The season boundary gets its own arcade bed, unbroken across all three of
@@ -37,7 +50,11 @@ export function menuThemeForScreen(screen: M1Screen, awakeningBeat: number): Men
   // their own music. The championship/endgame celebrations stay null on
   // purpose: those screens play the celebration anthem through
   // celebration-audio.ts, and a bed here would loop underneath it.
-  if (screen === 'season-podium' || screen === 'awards-ceremony' || screen === 'season-end') {
+  if (
+    screen === 'season-podium' ||
+    screen === 'awards-ceremony' ||
+    screen === 'season-end'
+  ) {
     return 'awards';
   }
   return null;
@@ -188,7 +205,8 @@ export function releaseMenuThemeToMatch(): void {
 }
 
 function playActiveTheme(): void {
-  if (!ready || activeTheme === null || audioIsSuspended() || yieldedToMatch) return;
+  if (!ready || activeTheme === null || audioIsSuspended() || yieldedToMatch)
+    return;
   try {
     players.get(activeTheme)?.play();
   } catch (error) {
@@ -234,7 +252,13 @@ function startLoopWatchdog(): void {
     const theme = activeTheme;
     // A yielded bed is paused on purpose, not stalled — reviving it here would
     // restart the exact overlap the yield exists to prevent.
-    if (!ready || theme === null || yieldedToMatch || recoveringThemes.has(theme)) return;
+    if (
+      !ready ||
+      theme === null ||
+      yieldedToMatch ||
+      recoveringThemes.has(theme)
+    )
+      return;
     const player = players.get(theme);
     if (player === undefined) return;
     try {
@@ -242,21 +266,25 @@ function startLoopWatchdog(): void {
       // platform player still lands at the end instead of wrapping around.
       player.loop = true;
       const duration = player.duration;
-      const ended = player.isLoaded
-        && !player.playing
-        && Number.isFinite(duration)
-        && duration > 0
-        && player.currentTime >= duration - 0.05;
+      const ended =
+        player.isLoaded &&
+        !player.playing &&
+        Number.isFinite(duration) &&
+        duration > 0 &&
+        player.currentTime >= duration - 0.05;
       if (!ended) return;
       recoveringThemes.add(theme);
-      player.seekTo(0)
+      player
+        .seekTo(0)
         .then(() => {
           if (ready && activeTheme === theme && !yieldedToMatch) {
             player.loop = true;
             player.play();
           }
         })
-        .catch((error: unknown) => warnOnce(`${theme} loop recovery failed`, error))
+        .catch((error: unknown) =>
+          warnOnce(`${theme} loop recovery failed`, error),
+        )
         .finally(() => recoveringThemes.delete(theme));
     } catch (error) {
       recoveringThemes.delete(theme);
@@ -273,11 +301,12 @@ function stopLoopWatchdog(): void {
 
 function armWebAudioUnlock(): void {
   if (
-    !IS_WEB
-    || webPlaybackUnlocked
-    || removeWebUnlockListeners !== null
-    || typeof document === 'undefined'
-  ) return;
+    !IS_WEB ||
+    webPlaybackUnlocked ||
+    removeWebUnlockListeners !== null ||
+    typeof document === 'undefined'
+  )
+    return;
 
   const unlock = () => {
     webPlaybackUnlocked = true;
@@ -304,10 +333,13 @@ export function initMenuAudio(): void {
   initAttempted = true;
   try {
     const audio = require('expo-audio') as typeof import('expo-audio');
-    audio.setAudioModeAsync({ playsInSilentMode: false })
+    audio
+      .setAudioModeAsync({ playsInSilentMode: false })
       .catch((error: unknown) => warnOnce('setAudioModeAsync failed', error));
 
-    for (const theme of Object.keys(MENU_SOURCES) as Array<Exclude<MenuTheme, null>>) {
+    for (const theme of Object.keys(MENU_SOURCES) as Array<
+      Exclude<MenuTheme, null>
+    >) {
       try {
         const player = audio.createAudioPlayer(MENU_SOURCES[theme]);
         player.loop = true;
@@ -368,7 +400,8 @@ function playMenuSfx(key: MenuSfx): void {
     try {
       const player = sfxPlayers.get(key);
       if (!player) return;
-      player.seekTo(0)
+      player
+        .seekTo(0)
         .then(() => player.play())
         .catch((error: unknown) => recoverOr(`${key} seek/play failed`, error));
     } catch (error) {

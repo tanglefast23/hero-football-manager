@@ -13,7 +13,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const SFX_DIR = join(__dirname, '../../assets/audio/sfx');
 const MUSIC_DIR = join(__dirname, '../../assets/audio/music');
 
-const ALL = [...SFX_CATALOG.map((e) => ({ ...e, dir: SFX_DIR })), ...MUSIC_CATALOG.map((e) => ({ ...e, dir: MUSIC_DIR }))];
+const ALL = [
+  ...SFX_CATALOG.map((e) => ({ ...e, dir: SFX_DIR })),
+  ...MUSIC_CATALOG.map((e) => ({ ...e, dir: MUSIC_DIR })),
+];
 
 let failures = 0;
 let checks = 0;
@@ -29,7 +32,10 @@ function ok(name, msg) {
 
 // ---- WAV parsing (independent of wav.mjs, so this actually checks the file) ----
 function parseWav(buf) {
-  if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') {
+  if (
+    buf.toString('ascii', 0, 4) !== 'RIFF' ||
+    buf.toString('ascii', 8, 12) !== 'WAVE'
+  ) {
     throw new Error('not a RIFF/WAVE file');
   }
   let offset = 12;
@@ -39,7 +45,13 @@ function parseWav(buf) {
     const id = buf.toString('ascii', offset, offset + 4);
     const size = buf.readUInt32LE(offset + 4);
     const body = offset + 8;
-    if (id === 'fmt ') fmt = { audioFormat: buf.readUInt16LE(body), channels: buf.readUInt16LE(body + 2), sampleRate: buf.readUInt32LE(body + 4), bitsPerSample: buf.readUInt16LE(body + 14) };
+    if (id === 'fmt ')
+      fmt = {
+        audioFormat: buf.readUInt16LE(body),
+        channels: buf.readUInt16LE(body + 2),
+        sampleRate: buf.readUInt32LE(body + 4),
+        bitsPerSample: buf.readUInt16LE(body + 14),
+      };
     if (id === 'data') data = { offset: body, size };
     offset = body + size + (size % 2); // chunks are word-aligned
   }
@@ -69,7 +81,8 @@ function dcOffsetFraction(samples) {
 
 function peakLinear(samples) {
   let peak = 0;
-  for (let i = 0; i < samples.length; i++) peak = Math.max(peak, Math.abs(samples[i]));
+  for (let i = 0; i < samples.length; i++)
+    peak = Math.max(peak, Math.abs(samples[i]));
   return peak;
 }
 
@@ -87,23 +100,29 @@ for (const entry of ALL) {
   const { fmt, samples } = parseWav(buf);
   const problems = [];
 
-  if (fmt.sampleRate !== SAMPLE_RATE) problems.push(`sample rate ${fmt.sampleRate} != ${SAMPLE_RATE}`);
-  if (fmt.bitsPerSample !== 16) problems.push(`bit depth ${fmt.bitsPerSample} != 16`);
+  if (fmt.sampleRate !== SAMPLE_RATE)
+    problems.push(`sample rate ${fmt.sampleRate} != ${SAMPLE_RATE}`);
+  if (fmt.bitsPerSample !== 16)
+    problems.push(`bit depth ${fmt.bitsPerSample} != 16`);
   if (fmt.channels !== 1) problems.push(`channels ${fmt.channels} != 1`);
 
   const durationMs = (samples.length / fmt.sampleRate) * 1000;
   if (durationMs < entry.minMs || durationMs > entry.maxMs) {
-    problems.push(`duration ${durationMs.toFixed(0)}ms outside [${entry.minMs}, ${entry.maxMs}]`);
+    problems.push(
+      `duration ${durationMs.toFixed(0)}ms outside [${entry.minMs}, ${entry.maxMs}]`,
+    );
   }
 
   // Tolerance accounts for 16-bit quantization: normalize() targets the exact
   // dB in float, but int16 rounding of the peak sample can round UP by a
   // fraction of an LSB (~0.0003dB near -1dBFS) — not audible, not clipping.
   const peak = peakDb(samples);
-  if (peak > -1.0 + 0.02) problems.push(`peak ${peak.toFixed(2)}dBFS exceeds -1dBFS ceiling`);
+  if (peak > -1.0 + 0.02)
+    problems.push(`peak ${peak.toFixed(2)}dBFS exceeds -1dBFS ceiling`);
 
   const dcFrac = dcOffsetFraction(samples);
-  if (dcFrac > 0.01) problems.push(`DC offset ${(dcFrac * 100).toFixed(2)}% of peak exceeds 1%`);
+  if (dcFrac > 0.01)
+    problems.push(`DC offset ${(dcFrac * 100).toFixed(2)}% of peak exceeds 1%`);
 
   if (entry.loop) {
     // A downbeat is allowed to be louder than the end of the previous bar;
@@ -112,13 +131,17 @@ for (const entry of ALL) {
     const seamJump = Math.abs(samples[0] - samples[samples.length - 1]);
     const seamLimit = Math.max(0.01, peakLinear(samples) * 0.03);
     if (seamJump > seamLimit) {
-      problems.push(`loop seam jumps ${(seamJump * 100).toFixed(2)}%FS (limit ${(seamLimit * 100).toFixed(2)}%FS) — click risk`);
+      problems.push(
+        `loop seam jumps ${(seamJump * 100).toFixed(2)}%FS (limit ${(seamLimit * 100).toFixed(2)}%FS) — click risk`,
+      );
     }
     if (entry.loopPeriodMs !== undefined) {
       const toleranceMs = 1000 / fmt.sampleRate;
       const delta = Math.abs(durationMs - entry.loopPeriodMs);
       if (delta > toleranceMs) {
-        problems.push(`loop period ${durationMs.toFixed(3)}ms != ${entry.loopPeriodMs}ms`);
+        problems.push(
+          `loop period ${durationMs.toFixed(3)}ms != ${entry.loopPeriodMs}ms`,
+        );
       }
     }
   }
@@ -126,33 +149,60 @@ for (const entry of ALL) {
   if (problems.length) {
     fail(entry.name, problems.join('; '));
   } else {
-    ok(entry.name, `${durationMs.toFixed(0)}ms, peak ${peak.toFixed(2)}dBFS, DC ${(dcFrac * 100).toFixed(2)}%${entry.loop ? ', loop seam OK' : ''}`);
+    ok(
+      entry.name,
+      `${durationMs.toFixed(0)}ms, peak ${peak.toFixed(2)}dBFS, DC ${(dcFrac * 100).toFixed(2)}%${entry.loop ? ', loop seam OK' : ''}`,
+    );
   }
 }
 
 console.log('\n--- encoded loop periods ---');
-for (const entry of ALL.filter((candidate) => candidate.loopPeriodMs !== undefined)) {
+for (const entry of ALL.filter(
+  (candidate) => candidate.loopPeriodMs !== undefined,
+)) {
   checks++;
   const path = join(entry.dir, `${entry.name}.m4a`);
   try {
-    const raw = execFileSync('ffprobe', [
-      '-v', 'error', '-select_streams', 'a:0',
-      '-show_entries', 'stream=duration', '-of', 'json', path,
-    ], { encoding: 'utf8' });
+    const raw = execFileSync(
+      'ffprobe',
+      [
+        '-v',
+        'error',
+        '-select_streams',
+        'a:0',
+        '-show_entries',
+        'stream=duration',
+        '-of',
+        'json',
+        path,
+      ],
+      { encoding: 'utf8' },
+    );
     const durationMs = Number(JSON.parse(raw).streams[0]?.duration) * 1000;
     const toleranceMs = 1000 / SAMPLE_RATE;
     const delta = Math.abs(durationMs - entry.loopPeriodMs);
     if (!Number.isFinite(durationMs) || delta > toleranceMs) {
-      fail(entry.name, `encoded loop period ${durationMs.toFixed(3)}ms != ${entry.loopPeriodMs}ms — codec padding will be audible`);
+      fail(
+        entry.name,
+        `encoded loop period ${durationMs.toFixed(3)}ms != ${entry.loopPeriodMs}ms — codec padding will be audible`,
+      );
     } else {
-      ok(entry.name, `encoded loop period ${durationMs.toFixed(3)}ms (no playable codec padding)`);
+      ok(
+        entry.name,
+        `encoded loop period ${durationMs.toFixed(3)}ms (no playable codec padding)`,
+      );
     }
   } catch (error) {
-    fail(entry.name, `could not inspect encoded loop period (${error.message})`);
+    fail(
+      entry.name,
+      `could not inspect encoded loop period (${error.message})`,
+    );
   }
 }
 
-console.log('\n--- regeneration determinism (byte-identical across two runs) ---');
+console.log(
+  '\n--- regeneration determinism (byte-identical across two runs) ---',
+);
 const tmpA = mkdtempSync(join(tmpdir(), 'hfm-audio-verify-a-'));
 const tmpB = mkdtempSync(join(tmpdir(), 'hfm-audio-verify-b-'));
 try {
@@ -160,10 +210,34 @@ try {
   const genMusicPath = join(__dirname, 'gen-music.mjs');
   const genMenuMusicPath = join(__dirname, 'gen-menu-music.mjs');
 
-  for (const [label, tmpDir] of [['A', tmpA], ['B', tmpB]]) {
-    execFileSync(process.execPath, ['-e', `import('${pathToFileUrl(genSfxPath)}').then(m => m.generateAllSfx('${tmpDir}'))`], { stdio: 'pipe' });
-    execFileSync(process.execPath, ['-e', `import('${pathToFileUrl(genMusicPath)}').then(m => m.generateMusic('${tmpDir}'))`], { stdio: 'pipe' });
-    execFileSync(process.execPath, ['-e', `import('${pathToFileUrl(genMenuMusicPath)}').then(m => m.generateMenuMusic('${tmpDir}'))`], { stdio: 'pipe' });
+  for (const [label, tmpDir] of [
+    ['A', tmpA],
+    ['B', tmpB],
+  ]) {
+    execFileSync(
+      process.execPath,
+      [
+        '-e',
+        `import('${pathToFileUrl(genSfxPath)}').then(m => m.generateAllSfx('${tmpDir}'))`,
+      ],
+      { stdio: 'pipe' },
+    );
+    execFileSync(
+      process.execPath,
+      [
+        '-e',
+        `import('${pathToFileUrl(genMusicPath)}').then(m => m.generateMusic('${tmpDir}'))`,
+      ],
+      { stdio: 'pipe' },
+    );
+    execFileSync(
+      process.execPath,
+      [
+        '-e',
+        `import('${pathToFileUrl(genMenuMusicPath)}').then(m => m.generateMenuMusic('${tmpDir}'))`,
+      ],
+      { stdio: 'pipe' },
+    );
   }
 
   for (const entry of ALL) {
@@ -171,9 +245,15 @@ try {
     const a = readFileSync(join(tmpA, `${entry.name}.wav`));
     const b = readFileSync(join(tmpB, `${entry.name}.wav`));
     if (Buffer.compare(a, b) === 0) {
-      ok(entry.name, `deterministic (${a.length} bytes, byte-identical across two runs)`);
+      ok(
+        entry.name,
+        `deterministic (${a.length} bytes, byte-identical across two runs)`,
+      );
     } else {
-      fail(entry.name, `regeneration NOT byte-identical (${a.length} vs ${b.length} bytes)`);
+      fail(
+        entry.name,
+        `regeneration NOT byte-identical (${a.length} vs ${b.length} bytes)`,
+      );
     }
   }
 } finally {

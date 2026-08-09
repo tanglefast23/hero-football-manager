@@ -18,15 +18,15 @@ describe('Bert Cup giant-killing celebrations', () => {
     });
     expect(TWO_DIVISION_CUP_UPSET_COPY).toEqual({
       title: 'Two divisions up!',
-      body: "Boss. Two divisions. TWO. Clubs like ours are not supposed to get past sides like that, and we just did it in front of everyone.",
+      body: 'Boss. Two divisions. TWO. Clubs like ours are not supposed to get past sides like that, and we just did it in front of everyone.',
     });
     expect(THREE_DIVISION_CUP_UPSET_COPY).toEqual({
       title: 'THREE DIVISIONS!',
-      body: "Boss, I have run out of professional composure. Three divisions above us. Three! They will be talking about this one in the town for years.",
+      body: 'Boss, I have run out of professional composure. Three divisions above us. Three! They will be talking about this one in the town for years.',
     });
     expect(GIANT_KILLING_CUP_UPSET_COPY).toEqual({
       title: 'GIANT-KILLERS!',
-      body: "BOSS. Four divisions. The whole way up the pyramid, in one afternoon. Nobody does this. I have watched football my entire life and I have never, never seen anything like it.",
+      body: 'BOSS. Four divisions. The whole way up the pyramid, in one afternoon. Nobody does this. I have watched football my entire life and I have never, never seen anything like it.',
     });
   });
 
@@ -41,8 +41,8 @@ describe('Bert Cup giant-killing celebrations', () => {
       THREE_DIVISION_CUP_UPSET_COPY,
       GIANT_KILLING_CUP_UPSET_COPY,
     ];
-    expect(new Set(copies.map(copy => copy.title)).size).toBe(4);
-    expect(new Set(copies.map(copy => copy.body)).size).toBe(4);
+    expect(new Set(copies.map((copy) => copy.title)).size).toBe(4);
+    expect(new Set(copies.map((copy) => copy.body)).size).toBe(4);
   });
 
   it('uses frozen draw divisions and queues every qualifying player win FIFO', () => {
@@ -50,9 +50,10 @@ describe('Bert Cup giant-killing celebrations', () => {
     const cup = state.m2!.nationalCups[0];
     const divisions = cup.seedDivisionByClubId!;
     const userDivision = divisions[state.userClubId];
-    const opponentByGap = (gap: number) => Object.keys(divisions).find(
-      clubId => divisions[clubId] === userDivision - gap,
-    )!;
+    const opponentByGap = (gap: number) =>
+      Object.keys(divisions).find(
+        (clubId) => divisions[clubId] === userDivision - gap,
+      )!;
     const fixture = (opponentClubId: string, id: string) => ({
       id,
       season: 1,
@@ -77,15 +78,27 @@ describe('Bert Cup giant-killing celebrations', () => {
       two,
     );
 
-    expect(one).toMatchObject({ divisionGap: 1, ...ONE_DIVISION_CUP_UPSET_COPY });
-    expect(two).toMatchObject({ divisionGap: 2, ...TWO_DIVISION_CUP_UPSET_COPY });
-    expect(queued.pendingCupGiantKillingCelebrations?.map(item => item.fixtureId))
-      .toEqual(['one-gap', 'two-gap']);
+    expect(one).toMatchObject({
+      divisionGap: 1,
+      ...ONE_DIVISION_CUP_UPSET_COPY,
+    });
+    expect(two).toMatchObject({
+      divisionGap: 2,
+      ...TWO_DIVISION_CUP_UPSET_COPY,
+    });
+    expect(
+      queued.pendingCupGiantKillingCelebrations?.map((item) => item.fixtureId),
+    ).toEqual(['one-gap', 'two-gap']);
     const afterOne = completeCupGiantKillingCelebration(queued);
-    expect(afterOne.pendingCupGiantKillingCelebrations?.map(item => item.fixtureId))
-      .toEqual(['two-gap']);
-    expect(completeCupGiantKillingCelebration(afterOne).pendingCupGiantKillingCelebrations)
-      .toBeUndefined();
+    expect(
+      afterOne.pendingCupGiantKillingCelebrations?.map(
+        (item) => item.fixtureId,
+      ),
+    ).toEqual(['two-gap']);
+    expect(
+      completeCupGiantKillingCelebration(afterOne)
+        .pendingCupGiantKillingCelebrations,
+    ).toBeUndefined();
   });
 
   it('does not interrupt for defeats, AI upsets, or same-division wins', () => {
@@ -93,9 +106,11 @@ describe('Bert Cup giant-killing celebrations', () => {
     const started = state;
     const cup = started.m2!.nationalCups[0];
     const divisions = cup.seedDivisionByClubId!;
-    const sameDivisionOpponent = Object.keys(divisions).find(clubId => (
-      clubId !== state.userClubId && divisions[clubId] === divisions[state.userClubId]
-    ))!;
+    const sameDivisionOpponent = Object.keys(divisions).find(
+      (clubId) =>
+        clubId !== state.userClubId &&
+        divisions[clubId] === divisions[state.userClubId],
+    )!;
     const fixture = {
       id: 'same',
       season: 1,
@@ -105,7 +120,11 @@ describe('Bert Cup giant-killing celebrations', () => {
       matchSeed: 1,
       status: 'scheduled' as const,
     };
-    expect(cupGiantKillingCelebration(started, fixture, state.userClubId)).toBeUndefined();
-    expect(cupGiantKillingCelebration(started, fixture, sameDivisionOpponent)).toBeUndefined();
+    expect(
+      cupGiantKillingCelebration(started, fixture, state.userClubId),
+    ).toBeUndefined();
+    expect(
+      cupGiantKillingCelebration(started, fixture, sameDivisionOpponent),
+    ).toBeUndefined();
   });
 });

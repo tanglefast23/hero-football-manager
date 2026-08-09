@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Modal,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Modal, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MatchScreen, type PowerMatchQaConfig } from '../render/MatchScreen';
 import {
@@ -77,7 +72,7 @@ export function PowerAcquiredDemoModal({
 
   const replay = useCallback(() => {
     setFrozen(false);
-    setReplayKey(key => key + 1);
+    setReplayKey((key) => key + 1);
   }, []);
 
   /**
@@ -109,6 +104,7 @@ export function PowerAcquiredDemoModal({
             reduceMotion={reduceMotion}
             cutInMode="full"
             maximumSpeed={1}
+            audioProfile="showcase"
             powerMatchQa={powerMatchQa}
             presentationOnly
             onPowerShowcaseComplete={showResult}
@@ -119,22 +115,29 @@ export function PowerAcquiredDemoModal({
           {frozen ? (
             <View
               accessibilityViewIsModal
-              accessibilityLabel={t('powerAcquiredDemo.a11y.demonstrationComplete', {
-                player: playerName,
-                power: powerName,
-                description,
-              })}
+              accessibilityLabel={t(
+                'powerAcquiredDemo.a11y.demonstrationComplete',
+                {
+                  player: playerName,
+                  power: powerName,
+                  description,
+                },
+              )}
               style={styles.freezeOverlay}
             >
               <View style={styles.resultCard}>
-                <Text style={styles.kicker}>{t('powerAcquiredDemo.powerSeenInAMatch')}</Text>
+                <Text style={styles.kicker}>
+                  {t('powerAcquiredDemo.powerSeenInAMatch')}
+                </Text>
                 <Text style={styles.powerName}>{powerName}</Text>
                 <Text style={styles.description}>{description}</Text>
                 <View style={styles.buttonRow}>
                   <View style={styles.button}>
                     <ActionButton
                       label={t('powerAcquiredDemo.replay')}
-                      accessibilityLabel={t('powerAcquiredDemo.a11y.replay', { power: powerName })}
+                      accessibilityLabel={t('powerAcquiredDemo.a11y.replay', {
+                        power: powerName,
+                      })}
                       variant="paper"
                       pressSfx="click"
                       onPress={replay}
@@ -167,73 +170,74 @@ export function PowerAcquiredDemoModal({
   );
 }
 
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#16121f',
-  },
-  match: {
-    flex: 1,
-  },
-  inputShield: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: 'transparent',
-  },
-  freezeOverlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    // MatchScreen's possession card is deliberately raised above the pitch.
-    // Raise the completed demo above the whole match HUD so that card can never
-    // cover the power name or explanation.
-    zIndex: 10,
-    elevation: 10,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(22, 18, 31, 0.18)',
-    padding: 14,
-  },
-  resultCard: {
-    width: '100%',
-    maxWidth: 600,
-    alignSelf: 'center',
-    borderWidth: 3,
-    borderBottomWidth: 7,
-    borderColor: '#241f2e',
-    backgroundColor: '#f4f1ea',
-    padding: 14,
-  },
-  kicker: {
-    color: '#c8862a',
-    fontFamily: faces.display,
-    fontSize: 10,
-    letterSpacing: 1.6,
-  },
-  powerName: {
-    marginTop: 4,
-    color: '#241f2e',
-    fontFamily: faces.display,
-    fontSize: 22,
-    lineHeight: 28,
-    textTransform: 'uppercase',
-  },
-  description: {
-    marginTop: 6,
-    color: '#3a3350',
-    fontSize: 14,
-    lineHeight: 19,
-  },
-  buttonRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    gap: 10,
-  },
-  button: {
-    flex: 1,
-  },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: '#16121f',
+    },
+    match: {
+      flex: 1,
+    },
+    inputShield: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      backgroundColor: 'transparent',
+    },
+    freezeOverlay: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      // MatchScreen's possession card is deliberately raised above the pitch.
+      // Raise the completed demo above the whole match HUD so that card can never
+      // cover the power name or explanation.
+      zIndex: 10,
+      elevation: 10,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(22, 18, 31, 0.18)',
+      padding: 14,
+    },
+    resultCard: {
+      width: '100%',
+      maxWidth: 600,
+      alignSelf: 'center',
+      borderWidth: 3,
+      borderBottomWidth: 7,
+      borderColor: '#241f2e',
+      backgroundColor: '#f4f1ea',
+      padding: 14,
+    },
+    kicker: {
+      color: '#c8862a',
+      fontFamily: faces.display,
+      fontSize: 10,
+      letterSpacing: 1.6,
+    },
+    powerName: {
+      marginTop: 4,
+      color: '#241f2e',
+      fontFamily: faces.display,
+      fontSize: 22,
+      lineHeight: 28,
+      textTransform: 'uppercase',
+    },
+    description: {
+      marginTop: 6,
+      color: '#3a3350',
+      fontSize: 14,
+      lineHeight: 19,
+    },
+    buttonRow: {
+      marginTop: 12,
+      flexDirection: 'row',
+      gap: 10,
+    },
+    button: {
+      flex: 1,
+    },
+  });

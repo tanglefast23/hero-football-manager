@@ -15,19 +15,26 @@ import { serializeGameState } from '../../persistence/game-state-codec';
  */
 describe('Hero Cup bracket retention', () => {
   const state = runHeadlessFullCareer(createLaunchCareerSetup(8_311), 14);
-  const cups = state.m2!.nationalCups.slice().sort((left, right) => left.season - right.season);
+  const cups = state
+    .m2!.nationalCups.slice()
+    .sort((left, right) => left.season - right.season);
 
   test('keeps a cup record for every season ever played', () => {
-    expect(cups.map(cup => cup.season)).toEqual(
+    expect(cups.map((cup) => cup.season)).toEqual(
       Array.from({ length: 14 }, (unused, index) => index + 1),
     );
   });
 
   test('keeps the full bracket only for the most recent seasons', () => {
-    const withRounds = cups.filter(cup => cup.rounds.length > 0).map(cup => cup.season);
+    const withRounds = cups
+      .filter((cup) => cup.rounds.length > 0)
+      .map((cup) => cup.season);
 
     expect(withRounds).toEqual(
-      Array.from({ length: RETAINED_CUP_BRACKET_SEASONS }, (unused, index) => 14 - index).reverse(),
+      Array.from(
+        { length: RETAINED_CUP_BRACKET_SEASONS },
+        (unused, index) => 14 - index,
+      ).reverse(),
     );
   });
 
@@ -36,7 +43,7 @@ describe('Hero Cup bracket retention', () => {
    * read. Dropping it with the bracket would rewrite the player's history.
    */
   test('keeps the champion of every pruned season', () => {
-    const pruned = cups.filter(cup => cup.rounds.length === 0);
+    const pruned = cups.filter((cup) => cup.rounds.length === 0);
 
     expect(pruned.length).toBeGreaterThan(0);
     for (const cup of pruned) {
@@ -47,7 +54,8 @@ describe('Hero Cup bracket retention', () => {
 
   test('never prunes a cup that is still being played', () => {
     for (const cup of cups) {
-      if (cup.championClubId === undefined) expect(cup.rounds.length).toBeGreaterThan(0);
+      if (cup.championClubId === undefined)
+        expect(cup.rounds.length).toBeGreaterThan(0);
     }
   });
 
@@ -57,8 +65,8 @@ describe('Hero Cup bracket retention', () => {
    * "Season N cup has no rounds".
    */
   test('offers only browsable seasons in the Cup tab picker', () => {
-    const division = state.m2!.pyramid.divisions.find(candidate =>
-      candidate.clubs.some(club => club.id === state.userClubId),
+    const division = state.m2!.pyramid.divisions.find((candidate) =>
+      candidate.clubs.some((club) => club.id === state.userClubId),
     )!;
     const view = m2LeagueViewModel({
       career: state.m2!,
@@ -77,8 +85,12 @@ describe('Hero Cup bracket retention', () => {
         points: Math.max(0, 7 - index) * 3 + (index % 2),
       })),
     });
-    const offered = view.cup.seasonOptions.map(option => option.season).sort((a, b) => a - b);
-    const browsable = cups.filter(cup => cup.rounds.length > 0).map(cup => cup.season);
+    const offered = view.cup.seasonOptions
+      .map((option) => option.season)
+      .sort((a, b) => a - b);
+    const browsable = cups
+      .filter((cup) => cup.rounds.length > 0)
+      .map((cup) => cup.season);
 
     expect(offered).toEqual(browsable);
     expect(offered).toHaveLength(RETAINED_CUP_BRACKET_SEASONS);
@@ -94,9 +106,9 @@ describe('Hero Cup bracket retention', () => {
   test('keys the cup result of every season, including the round it ended at', () => {
     const de = copyFor('de');
     const recaps = state.seasonRecaps ?? [];
-    const namedRounds = recaps.filter(recap => (
-      recap.cupResultKey?.startsWith('m2League.cupRound.') === true
-    ));
+    const namedRounds = recaps.filter(
+      (recap) => recap.cupResultKey?.startsWith('m2League.cupRound.') === true,
+    );
 
     expect(recaps.length).toBe(14);
     expect(namedRounds.length).toBeGreaterThan(0);
@@ -107,7 +119,9 @@ describe('Hero Cup bracket retention', () => {
       expect(german).not.toBe(recap.cupResultKey);
     }
     for (const recap of namedRounds) {
-      expect(copyOrEnglish(de, recap.cupResultKey, recap.cupResult)).not.toBe(recap.cupResult);
+      expect(copyOrEnglish(de, recap.cupResultKey, recap.cupResult)).not.toBe(
+        recap.cupResult,
+      );
     }
   });
 

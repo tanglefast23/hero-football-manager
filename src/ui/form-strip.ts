@@ -39,7 +39,9 @@ export const FORM_STRIP_MAX = 24;
  */
 export function formStripCapacity(width: number): number {
   if (!Number.isFinite(width) || width < FORM_CELL_SIZE) return 0;
-  const fit = Math.floor((width + FORM_CELL_GAP) / (FORM_CELL_SIZE + FORM_CELL_GAP));
+  const fit = Math.floor(
+    (width + FORM_CELL_GAP) / (FORM_CELL_SIZE + FORM_CELL_GAP),
+  );
   return Math.min(fit, FORM_STRIP_MAX);
 }
 
@@ -67,7 +69,10 @@ export function formStripWidthEstimate(windowWidth: number): number {
 }
 
 /** The most recent `capacity` results, newest last — the order the strip reads. */
-export function visibleForm<T>(form: readonly T[], capacity: number): readonly T[] {
+export function visibleForm<T>(
+  form: readonly T[],
+  capacity: number,
+): readonly T[] {
   if (capacity <= 0) return [];
   return form.length <= capacity ? form : form.slice(form.length - capacity);
 }
@@ -136,7 +141,13 @@ function encodeTrophy(): TrophyRun[] {
     let color: string | undefined;
     const flush = (end: number) => {
       if (start >= 0 && color !== undefined) {
-        runs.push({ id: `trophy:${y}:${start}`, x: start, y, width: end - start, color });
+        runs.push({
+          id: `trophy:${y}:${start}`,
+          x: start,
+          y,
+          width: end - start,
+          color,
+        });
       }
       start = -1;
       color = undefined;

@@ -11,8 +11,12 @@ describe('runtime golden replay', () => {
   // branch while still looking like it covers assists.
   it('hashes a scoring match with both assisted and unassisted goals', () => {
     const { events } = goalGoldenMatch();
-    const assisted = events.filter(event => event.kind === 'GOAL' && event.assistedById !== undefined);
-    const unassisted = events.filter(event => event.kind === 'GOAL' && event.assistedById === undefined);
+    const assisted = events.filter(
+      (event) => event.kind === 'GOAL' && event.assistedById !== undefined,
+    );
+    const unassisted = events.filter(
+      (event) => event.kind === 'GOAL' && event.assistedById === undefined,
+    );
     expect(assisted.length).toBeGreaterThan(0);
     expect(unassisted.length).toBeGreaterThan(0);
   });

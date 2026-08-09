@@ -1,4 +1,7 @@
-import { livePowerEffectActors, superSpeedAfterimageActors } from '../live-power-effect-actors';
+import {
+  livePowerEffectActors,
+  superSpeedAfterimageActors,
+} from '../live-power-effect-actors';
 import { powerEffectDescriptor } from '../power-effect-descriptors';
 
 const base = {
@@ -7,7 +10,10 @@ const base = {
   width: 500,
   height: 800,
   origin: { x: 240, y: 600 },
-  targets: [{ x: 260, y: 420 }, { x: 340, y: 360 }],
+  targets: [
+    { x: 260, y: 420 },
+    { x: 340, y: 360 },
+  ],
   direction: -1 as const,
 };
 
@@ -19,7 +25,7 @@ describe('live power effect actors', () => {
       elapsedMs: 2100,
     });
     expect(phase).toHaveLength(3);
-    expect(phase.every(actor => actor.player === 7)).toBe(true);
+    expect(phase.every((actor) => actor.player === 7)).toBe(true);
 
     const decoy = livePowerEffectActors({
       ...base,
@@ -51,17 +57,28 @@ describe('live power effect actors', () => {
   });
 
   it('leaves ordinary moving bodies to the main player atlas', () => {
-    for (const power of ['BLINK_RUN', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'ICE_RINK', 'GRAVITY_WELL'] as const) {
-      expect(livePowerEffectActors({ ...base, power, elapsedMs: 2100 })).toEqual([]);
+    for (const power of [
+      'BLINK_RUN',
+      'FUTURE_SIGHT',
+      'SUPER_STRENGTH',
+      'ICE_RINK',
+      'GRAVITY_WELL',
+    ] as const) {
+      expect(
+        livePowerEffectActors({ ...base, power, elapsedMs: 2100 }),
+      ).toEqual([]);
     }
   });
 
   it('builds speed afterimages from the real movement trail without duplicating the live player', () => {
     const actors = superSpeedAfterimageActors(4, [
-      { x: 10, y: 10 }, { x: 10, y: 20 }, { x: 10, y: 30 }, { x: 10, y: 40 },
+      { x: 10, y: 10 },
+      { x: 10, y: 20 },
+      { x: 10, y: 30 },
+      { x: 10, y: 40 },
     ]);
     expect(actors).toHaveLength(3);
     expect(actors[0]).toMatchObject({ player: 4, at: { x: 10, y: 20 } });
-    expect(actors.some(actor => actor.at.y === 10)).toBe(false);
+    expect(actors.some((actor) => actor.at.y === 10)).toBe(false);
   });
 });

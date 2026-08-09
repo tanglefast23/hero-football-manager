@@ -94,9 +94,8 @@ export function devHarnessCareerAtWeek(
     id: `week:${seed}:${season}:${week}`,
     seed,
     seasonBudget: season + 1,
-    stopAt: state => (
-      state.phase === 'manage' && state.season === season && state.week >= week
-    ),
+    stopAt: (state) =>
+      state.phase === 'manage' && state.season === season && state.week >= week,
   });
 }
 
@@ -114,7 +113,7 @@ export function devHarnessCareerAtSeasonEnd(
     id: `season-end:${seed}:${season}`,
     seed,
     seasonBudget: season + 1,
-    stopAt: state => state.phase === 'season-end' && state.season === season,
+    stopAt: (state) => state.phase === 'season-end' && state.season === season,
   });
 }
 
@@ -130,7 +129,9 @@ function runCareer(request: DevHarnessCareerRequest): GameState {
     if (request.stopAt(state)) return state;
     state = nextState(state);
   }
-  throw new Error(`dev harness career "${request.id}" never reached its stopping point`);
+  throw new Error(
+    `dev harness career "${request.id}" never reached its stopping point`,
+  );
 }
 
 /**
@@ -144,9 +145,14 @@ function nextState(state: GameState): GameState {
   if (state.phase === 'matchday') {
     const matchday = activeCareerMatchday(state);
     if (matchday === undefined) {
-      throw new Error('a dev harness career entered matchday with no active fixture');
+      throw new Error(
+        'a dev harness career entered matchday with no active fixture',
+      );
     }
-    return completeMatchday(state, matchday.fixtures.map(deterministicFixtureScore));
+    return completeMatchday(
+      state,
+      matchday.fixtures.map(deterministicFixtureScore),
+    );
   }
 
   if (state.phase === 'season-end') {
@@ -159,11 +165,12 @@ function nextState(state: GameState): GameState {
     // him a renewal, and `renewCareerPlayer` now refuses one outright — so
     // renewing him here was work the shipped game never does.
     let renewed = state;
-    for (const player of state.players.filter(candidate => (
-      candidate.clubId === state.userClubId
-      && candidate.contractSeasonsRemaining === 0
-      && !willRetireAtSeasonTransition(candidate, state.season)
-    ))) {
+    for (const player of state.players.filter(
+      (candidate) =>
+        candidate.clubId === state.userClubId &&
+        candidate.contractSeasonsRemaining === 0 &&
+        !willRetireAtSeasonTransition(candidate, state.season),
+    )) {
       renewed = renewCareerPlayer(renewed, player.id, 4, 1);
     }
     return startNextSeason(renewed);

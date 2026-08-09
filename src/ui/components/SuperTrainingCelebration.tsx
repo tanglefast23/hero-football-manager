@@ -8,7 +8,14 @@ import {
 } from '../../render/management-sfx';
 import { useCopy } from '../../i18n';
 
-const CONFETTI_COLORS = ['#f6c744', '#d94f52', '#5b3a91', '#f4f1ea', '#63c56b', '#62b5e5'];
+const CONFETTI_COLORS = [
+  '#f6c744',
+  '#d94f52',
+  '#5b3a91',
+  '#f4f1ea',
+  '#63c56b',
+  '#62b5e5',
+];
 /** A SUPER session is the rarest thing in a training week; it gets held. */
 export const SUPER_CELEBRATION_MS = 3400;
 const REDUCED_MOTION_SUPER_CELEBRATION_MS = 800;
@@ -34,7 +41,9 @@ export function SuperTrainingCelebration({
 }: SuperTrainingCelebrationProps) {
   const t = useCopy();
   const confettiProgress = useRef(new Animated.Value(0)).current;
-  const fireworkProgress = useRef(FIREWORK_DELAYS_MS.map(() => new Animated.Value(0))).current;
+  const fireworkProgress = useRef(
+    FIREWORK_DELAYS_MS.map(() => new Animated.Value(0)),
+  ).current;
   const titleProgress = useRef(new Animated.Value(0)).current;
   const completedRef = useRef(false);
   const completeOnce = useRef(() => {
@@ -60,7 +69,10 @@ export function SuperTrainingCelebration({
 
   useEffect(() => {
     if (reduceMotion) {
-      const timer = setTimeout(completeOnce, REDUCED_MOTION_SUPER_CELEBRATION_MS);
+      const timer = setTimeout(
+        completeOnce,
+        REDUCED_MOTION_SUPER_CELEBRATION_MS,
+      );
       return () => clearTimeout(timer);
     }
     const confetti = Animated.timing(confettiProgress, {
@@ -69,18 +81,22 @@ export function SuperTrainingCelebration({
       easing: Easing.linear,
       useNativeDriver: true,
     });
-    const fireworks = Animated.parallel(fireworkProgress.map((value, index) => Animated.sequence([
-      Animated.delay(FIREWORK_DELAYS_MS[index]),
-      Animated.loop(
-        Animated.timing(value, {
-          toValue: 1,
-          duration: 700,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-        { iterations: 3, resetBeforeIteration: true },
+    const fireworks = Animated.parallel(
+      fireworkProgress.map((value, index) =>
+        Animated.sequence([
+          Animated.delay(FIREWORK_DELAYS_MS[index]),
+          Animated.loop(
+            Animated.timing(value, {
+              toValue: 1,
+              duration: 700,
+              easing: Easing.out(Easing.quad),
+              useNativeDriver: true,
+            }),
+            { iterations: 3, resetBeforeIteration: true },
+          ),
+        ]),
       ),
-    ])));
+    );
     const title = Animated.spring(titleProgress, {
       toValue: 1,
       friction: 5,
@@ -97,7 +113,13 @@ export function SuperTrainingCelebration({
       fireworks.stop();
       title.stop();
     };
-  }, [completeOnce, confettiProgress, fireworkProgress, reduceMotion, titleProgress]);
+  }, [
+    completeOnce,
+    confettiProgress,
+    fireworkProgress,
+    reduceMotion,
+    titleProgress,
+  ]);
 
   return (
     <Pressable
@@ -107,69 +129,108 @@ export function SuperTrainingCelebration({
       style={StyleSheet.absoluteFill}
     >
       <View style={styles.backdrop}>
-        {reduceMotion ? null : makeConfetti(320).map(piece => (
-          <Animated.View
-            key={piece.id}
-            style={[
-              styles.confetti,
-              {
-                left: piece.left,
-                width: piece.width,
-                height: piece.height,
-                backgroundColor: piece.color,
-                opacity: confettiProgress.interpolate({
-                  inputRange: [0, 0.1, 0.9, 1],
-                  outputRange: [0, 1, 1, 0],
-                }),
-                transform: [
+        {reduceMotion
+          ? null
+          : makeConfetti(320).map((piece) => (
+              <Animated.View
+                key={piece.id}
+                style={[
+                  styles.confetti,
                   {
-                    translateY: confettiProgress.interpolate({
-                      inputRange: [0, 1],
-                      // Further to fall, so a longer hold does not turn into slow-motion.
-                      outputRange: [piece.top, 660],
+                    left: piece.left,
+                    width: piece.width,
+                    height: piece.height,
+                    backgroundColor: piece.color,
+                    opacity: confettiProgress.interpolate({
+                      inputRange: [0, 0.1, 0.9, 1],
+                      outputRange: [0, 1, 1, 0],
                     }),
+                    transform: [
+                      {
+                        translateY: confettiProgress.interpolate({
+                          inputRange: [0, 1],
+                          // Further to fall, so a longer hold does not turn into slow-motion.
+                          outputRange: [piece.top, 660],
+                        }),
+                      },
+                      {
+                        rotate: confettiProgress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', `${piece.turns * 360}deg`],
+                        }),
+                      },
+                    ],
                   },
-                  {
-                    rotate: confettiProgress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0deg', `${piece.turns * 360}deg`],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          />
-        ))}
+                ]}
+              />
+            ))}
         {reduceMotion ? null : (
           <>
-            <Firework progress={fireworkProgress[0]} color="#f6c744" left={52} top={74} radius={52} />
-            <Firework progress={fireworkProgress[1]} color="#62b5e5" left={258} top={126} radius={44} />
-            <Firework progress={fireworkProgress[2]} color="#63c56b" left={132} top={228} radius={40} />
-            <Firework progress={fireworkProgress[3]} color="#d94f52" left={286} top={286} radius={46} />
+            <Firework
+              progress={fireworkProgress[0]}
+              color="#f6c744"
+              left={52}
+              top={74}
+              radius={52}
+            />
+            <Firework
+              progress={fireworkProgress[1]}
+              color="#62b5e5"
+              left={258}
+              top={126}
+              radius={44}
+            />
+            <Firework
+              progress={fireworkProgress[2]}
+              color="#63c56b"
+              left={132}
+              top={228}
+              radius={40}
+            />
+            <Firework
+              progress={fireworkProgress[3]}
+              color="#d94f52"
+              left={286}
+              top={286}
+              radius={46}
+            />
           </>
         )}
         <Animated.View
           style={[
             styles.titleCard,
-            reduceMotion ? null : {
-              opacity: titleProgress,
-              transform: [{
-                scale: titleProgress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.4, 1],
-                }),
-              }],
-            },
+            reduceMotion
+              ? null
+              : {
+                  opacity: titleProgress,
+                  transform: [
+                    {
+                      scale: titleProgress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.4, 1],
+                      }),
+                    },
+                  ],
+                },
           ]}
         >
-          <Text className="text-center font-pixel text-3xl uppercase text-gold" style={styles.titleGlow}>
-            {t('superTraining.title')}</Text>
-          <Text className="text-center font-pixel text-3xl uppercase text-gold" style={styles.titleGlow}>
+          <Text
+            className="text-center font-pixel text-3xl uppercase text-gold"
+            style={styles.titleGlow}
+          >
+            {t('superTraining.title')}
+          </Text>
+          <Text
+            className="text-center font-pixel text-3xl uppercase text-gold"
+            style={styles.titleGlow}
+          >
             session!
           </Text>
           <View className="mt-4 items-center">
             <View className="border-[3px] border-b-[6px] border-ink bg-gold px-6 py-3">
-              <Text className="font-pixel text-2xl uppercase text-ink">1.5× · {gainLabel}</Text>
+              <Text className="font-pixel text-2xl uppercase text-ink">
+                1.5× · {gainLabel}
+              </Text>
             </View>
           </View>
         </Animated.View>
@@ -261,6 +322,15 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 0,
   },
-  confetti: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(36,31,46,0.25)' },
-  fireworkSpark: { position: 'absolute', width: 4, height: 14, borderRadius: 2 },
+  confetti: {
+    position: 'absolute',
+    borderWidth: 1,
+    borderColor: 'rgba(36,31,46,0.25)',
+  },
+  fireworkSpark: {
+    position: 'absolute',
+    width: 4,
+    height: 14,
+    borderRadius: 2,
+  },
 });

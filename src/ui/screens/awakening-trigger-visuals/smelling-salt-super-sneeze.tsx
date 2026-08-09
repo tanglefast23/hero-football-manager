@@ -2,7 +2,7 @@ import {
   AWAKENING_PIXEL_PALETTE,
   AwakeningPixelSprite,
   type AwakeningPixelBlock,
-} from "./AwakeningPixelArt";
+} from './AwakeningPixelArt';
 
 const P = AWAKENING_PIXEL_PALETTE;
 

@@ -1,4 +1,8 @@
-import { DEFAULT_CREATION_RATINGS, type CareerPlayer, type GameState } from '../../game';
+import {
+  DEFAULT_CREATION_RATINGS,
+  type CareerPlayer,
+  type GameState,
+} from '../../game';
 import { clubLegacyViewModel } from '../view-models';
 import { useM1Store } from '../store';
 
@@ -14,13 +18,13 @@ describe('club-legend app flow', () => {
       ratings: DEFAULT_CREATION_RATINGS,
     });
     const current = useM1Store.getState().career!;
-    const retiredLegend = legendFrom(current.players.find(player =>
-      player.clubId === current.userClubId,
-    )!);
+    const retiredLegend = legendFrom(
+      current.players.find((player) => player.clubId === current.userClubId)!,
+    );
     const seasonEnd: GameState = {
       ...current,
       phase: 'season-end',
-      fixtures: current.fixtures.map(fixture => {
+      fixtures: current.fixtures.map((fixture) => {
         const userIsHome = fixture.homeClubId === current.userClubId;
         const userIsAway = fixture.awayClubId === current.userClubId;
         return {
@@ -56,17 +60,16 @@ describe('club-legend app flow', () => {
       queueLabel: 'Final legacy decision',
       // Two choices. "Mentor a prospect" is not one of them: it needed a
       // seventeenth roster place the season transition never leaves free.
-      choices: [
-        { id: 'coach-candidate' },
-        { id: 'farewell' },
-      ],
+      choices: [{ id: 'coach-candidate' }, { id: 'farewell' }],
     });
 
     useM1Store.getState().chooseLegacy('coach-candidate');
 
     expect(useM1Store.getState().screen).toBe('management');
     expect(useM1Store.getState().career?.pendingLegacyPlayerIds).toEqual([]);
-    expect(useM1Store.getState().career?.market?.coachCandidates).toContainEqual(
+    expect(
+      useM1Store.getState().career?.market?.coachCandidates,
+    ).toContainEqual(
       expect.objectContaining({
         name: 'Ari Flint',
         retiredLegendPlayerId: retiredLegend.id,
@@ -81,9 +84,9 @@ describe('club-legend app flow', () => {
       ratings: DEFAULT_CREATION_RATINGS,
     });
     const current = useM1Store.getState().career!;
-    const retiredLegend = legendFrom(current.players.find(player =>
-      player.clubId === current.userClubId,
-    )!);
+    const retiredLegend = legendFrom(
+      current.players.find((player) => player.clubId === current.userClubId)!,
+    );
     useM1Store.setState({
       career: {
         ...current,
@@ -110,9 +113,9 @@ describe('club-legend app flow', () => {
       ratings: DEFAULT_CREATION_RATINGS,
     });
     const current = useM1Store.getState().career!;
-    const retiredLegend = legendFrom(current.players.find(player =>
-      player.clubId === current.userClubId,
-    )!);
+    const retiredLegend = legendFrom(
+      current.players.find((player) => player.clubId === current.userClubId)!,
+    );
     const coachesBefore = current.market?.coachCandidates ?? [];
     useM1Store.setState({
       career: {
@@ -128,7 +131,9 @@ describe('club-legend app flow', () => {
     expect(useM1Store.getState().screen).toBe('management');
     expect(useM1Store.getState().error).toBeNull();
     expect(useM1Store.getState().career?.pendingLegacyPlayerIds).toEqual([]);
-    expect(useM1Store.getState().career?.market?.coachCandidates).toEqual(coachesBefore);
+    expect(useM1Store.getState().career?.market?.coachCandidates).toEqual(
+      coachesBefore,
+    );
     expect(useM1Store.getState().career?.players).toEqual(current.players);
   });
 });

@@ -4,16 +4,35 @@ import {
   type CareerCoachRole,
   type CareerMarketState,
 } from './market-career';
-import { COACH_BOOST_CAPS, type CoachBoosts, type CoachSpecialty } from './market';
+import {
+  COACH_BOOST_CAPS,
+  type CoachBoosts,
+  type CoachSpecialty,
+} from './market';
 import { scaledTrainingPoints } from './training-point-income';
 
-const TRAINING_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
+const TRAINING_ATTRIBUTES = [
+  'pac',
+  'sho',
+  'pas',
+  'def',
+  'tec',
+  'sta',
+  'ref',
+] as const;
 
-type TrainingAttribute = typeof TRAINING_ATTRIBUTES[number];
+type TrainingAttribute = (typeof TRAINING_ATTRIBUTES)[number];
 
-export function coachTrainingBonusPercent(level: number, role: CareerCoachRole): number {
+export function coachTrainingBonusPercent(
+  level: number,
+  role: CareerCoachRole,
+): number {
   validateCoachLevel(level, role === 'HEAD' ? 'head coach' : 'assistant coach');
-  return checkedMultiply(level, role === 'HEAD' ? 10 : 5, `${role.toLowerCase()} training bonus`);
+  return checkedMultiply(
+    level,
+    role === 'HEAD' ? 10 : 5,
+    `${role.toLowerCase()} training bonus`,
+  );
 }
 
 /** A story's permanent change to one coach, clamped to its lifetime cap. */
@@ -22,7 +41,8 @@ export function cappedCoachBoost(
   facet: keyof typeof COACH_BOOST_CAPS,
 ): number {
   const raw = boosts?.[facet] ?? 0;
-  if (!Number.isSafeInteger(raw)) throw new Error(`coach ${facet} boost must be a safe integer`);
+  if (!Number.isSafeInteger(raw))
+    throw new Error(`coach ${facet} boost must be a safe integer`);
   const cap = COACH_BOOST_CAPS[facet];
   return Math.max(-cap, Math.min(cap, raw));
 }
@@ -40,11 +60,16 @@ export function cappedCoachBoost(
  * another lever on the club's weekly income, so the 20% cut does not apply
  * to it twice.
  */
-export function coachWeeklyTrainingPoints(level: number, role: CareerCoachRole): number {
+export function coachWeeklyTrainingPoints(
+  level: number,
+  role: CareerCoachRole,
+): number {
   validateCoachLevel(level, role === 'HEAD' ? 'head coach' : 'assistant coach');
-  return scaledTrainingPoints(role === 'HEAD'
-    ? 10 + checkedMultiply(level, 2, 'head coach TP')
-    : 5 + level);
+  return scaledTrainingPoints(
+    role === 'HEAD'
+      ? 10 + checkedMultiply(level, 2, 'head coach TP')
+      : 5 + level,
+  );
 }
 
 /** Weekly TP including whatever a story has permanently changed about him. */
@@ -56,34 +81,44 @@ export function coachWeeklyTrainingPointsWithBoosts(
   // it can never make employing him cost the club training points.
   return Math.max(
     0,
-    coachWeeklyTrainingPoints(coach.level, role) + cappedCoachBoost(coach.boosts, 'weeklyTp'),
+    coachWeeklyTrainingPoints(coach.level, role) +
+      cappedCoachBoost(coach.boosts, 'weeklyTp'),
   );
 }
 
 /** Motivator strength in half-levels: a head level is 5%, an assistant level is 2.5%. */
-export function coachMotivatorStrengthHalfLevels(market: CareerMarketState): number {
-  const head = market.headCoach?.specialties.includes('MOTIVATOR') === true
-    ? checkedMultiply(
-        validatedCoachLevel(market.headCoach.level, 'head coach'),
-        2,
-        'head coach Motivator strength',
-      ) + cappedCoachBoost(market.headCoach.boosts, 'motivatorHalfLevels')
-    : 0;
-  const assistant = market.assistantCoach?.specialties.includes('MOTIVATOR') === true
-    ? validatedCoachLevel(market.assistantCoach.level, 'assistant coach')
-      + cappedCoachBoost(market.assistantCoach.boosts, 'motivatorHalfLevels')
-    : 0;
+export function coachMotivatorStrengthHalfLevels(
+  market: CareerMarketState,
+): number {
+  const head =
+    market.headCoach?.specialties.includes('MOTIVATOR') === true
+      ? checkedMultiply(
+          validatedCoachLevel(market.headCoach.level, 'head coach'),
+          2,
+          'head coach Motivator strength',
+        ) + cappedCoachBoost(market.headCoach.boosts, 'motivatorHalfLevels')
+      : 0;
+  const assistant =
+    market.assistantCoach?.specialties.includes('MOTIVATOR') === true
+      ? validatedCoachLevel(market.assistantCoach.level, 'assistant coach') +
+        cappedCoachBoost(market.assistantCoach.boosts, 'motivatorHalfLevels')
+      : 0;
   // A boost only counts on a coach who actually holds MOTIVATOR, and the total
   // cannot go negative — the effect cancels his own strength, not the club's.
   return Math.max(0, head + assistant);
 }
 
-export function coachMotivatorBonusPercent(level: number, role: CareerCoachRole): number {
+export function coachMotivatorBonusPercent(
+  level: number,
+  role: CareerCoachRole,
+): number {
   validateCoachLevel(level, role === 'HEAD' ? 'head coach' : 'assistant coach');
   return level * (role === 'HEAD' ? 5 : 2.5);
 }
 
-const SPECIALTY_BY_ATTRIBUTE: Readonly<Record<TrainingAttribute, CoachSpecialty>> = {
+const SPECIALTY_BY_ATTRIBUTE: Readonly<
+  Record<TrainingAttribute, CoachSpecialty>
+> = {
   pac: 'FITNESS',
   sho: 'ATTACK',
   pas: 'TECHNIQUE',
@@ -101,28 +136,38 @@ interface CareerCoachTrainingModifiers {
   readonly specialtyBonusPercent: number;
   readonly specialties: readonly CoachSpecialty[];
   /** Integer percent scales, where 100 means no coach bonus. */
-  readonly gainScalePercentByAttribute: Readonly<Record<TrainingAttribute, number>>;
+  readonly gainScalePercentByAttribute: Readonly<
+    Record<TrainingAttribute, number>
+  >;
 }
 
 /** Negative when a coach is employed, ready to append to a weekly ledger. */
 export function careerCoachWageLedgerAmount(market: CareerMarketState): number {
   const wage = careerCoachWeeklyWage(market);
   if (!Number.isSafeInteger(wage) || wage < 0) {
-    throw new Error('head coach weekly wage must be a non-negative safe integer');
+    throw new Error(
+      'head coach weekly wage must be a non-negative safe integer',
+    );
   }
   return wage === 0 ? 0 : -wage;
 }
 
 /** Stable weekly TP created by employed staff, independent of match results. */
-export function careerCoachWeeklyTrainingPoints(market: CareerMarketState): number {
+export function careerCoachWeeklyTrainingPoints(
+  market: CareerMarketState,
+): number {
   const head = market.headCoach;
   const assistant = market.assistantCoach;
-  if (head !== undefined) validateCoach(head.level, head.specialties, 'head coach');
-  if (assistant !== undefined) validateCoach(assistant.level, assistant.specialties, 'assistant coach');
-  const headPoints = head === undefined ? 0 : coachWeeklyTrainingPointsWithBoosts(head, 'HEAD');
-  const assistantPoints = assistant === undefined
-    ? 0
-    : coachWeeklyTrainingPointsWithBoosts(assistant, 'ASSISTANT');
+  if (head !== undefined)
+    validateCoach(head.level, head.specialties, 'head coach');
+  if (assistant !== undefined)
+    validateCoach(assistant.level, assistant.specialties, 'assistant coach');
+  const headPoints =
+    head === undefined ? 0 : coachWeeklyTrainingPointsWithBoosts(head, 'HEAD');
+  const assistantPoints =
+    assistant === undefined
+      ? 0
+      : coachWeeklyTrainingPointsWithBoosts(assistant, 'ASSISTANT');
   return headPoints + assistantPoints;
 }
 
@@ -144,20 +189,21 @@ export function careerCoachTrainingModifiers(
     };
   }
 
-  if (coach !== undefined) validateCoach(coach.level, coach.specialties, 'head coach');
-  if (assistant !== undefined) validateCoach(assistant.level, assistant.specialties, 'assistant coach');
-  const specialtyBonusPercent = coach === undefined
-    ? 0
-    : coachTrainingBonusPercent(coach.level, 'HEAD');
+  if (coach !== undefined)
+    validateCoach(coach.level, coach.specialties, 'head coach');
+  if (assistant !== undefined)
+    validateCoach(assistant.level, assistant.specialties, 'assistant coach');
+  const specialtyBonusPercent =
+    coach === undefined ? 0 : coachTrainingBonusPercent(coach.level, 'HEAD');
   // The assistant contributes half strength so the second slot is meaningful
   // without doubling the established M2 training curve.
-  const assistantBonusPercent = assistant === undefined
-    ? 0
-    : coachTrainingBonusPercent(assistant.level, 'ASSISTANT');
-  const specialties = Array.from(new Set([
-    ...(coach?.specialties ?? []),
-    ...(assistant?.specialties ?? []),
-  ]));
+  const assistantBonusPercent =
+    assistant === undefined
+      ? 0
+      : coachTrainingBonusPercent(assistant.level, 'ASSISTANT');
+  const specialties = Array.from(
+    new Set([...(coach?.specialties ?? []), ...(assistant?.specialties ?? [])]),
+  );
   /**
    * Clamped into the band the validator will accept, not merely added.
    *
@@ -170,12 +216,20 @@ export function careerCoachTrainingModifiers(
    * benefit" rather than making a coached club worse than an uncoached one.
    */
   const gainScale = (attribute: TrainingAttribute): number => {
-    const coachMatches = coach?.specialties.includes(SPECIALTY_BY_ATTRIBUTE[attribute]) === true;
-    const assistantMatches = assistant?.specialties.includes(SPECIALTY_BY_ATTRIBUTE[attribute]) === true;
-    const raw = 100
-      + (coachMatches ? specialtyBonusPercent + cappedCoachBoost(coach?.boosts, 'trainingPercent') : 0)
-      + (assistantMatches
-        ? assistantBonusPercent + cappedCoachBoost(assistant?.boosts, 'trainingPercent')
+    const coachMatches =
+      coach?.specialties.includes(SPECIALTY_BY_ATTRIBUTE[attribute]) === true;
+    const assistantMatches =
+      assistant?.specialties.includes(SPECIALTY_BY_ATTRIBUTE[attribute]) ===
+      true;
+    const raw =
+      100 +
+      (coachMatches
+        ? specialtyBonusPercent +
+          cappedCoachBoost(coach?.boosts, 'trainingPercent')
+        : 0) +
+      (assistantMatches
+        ? assistantBonusPercent +
+          cappedCoachBoost(assistant?.boosts, 'trainingPercent')
         : 0);
     return Math.max(100, Math.min(175, raw));
   };
@@ -210,11 +264,22 @@ export function applyCareerCoachTrainingModifier(
   if (!TRAINING_ATTRIBUTES.includes(attribute as TrainingAttribute)) {
     throw new Error(`unknown training attribute ${String(attribute)}`);
   }
-  const scalePercent = modifiers.gainScalePercentByAttribute[attribute as TrainingAttribute];
-  if (!Number.isSafeInteger(scalePercent) || scalePercent < 100 || scalePercent > 175) {
-    throw new Error('coach training scale must be an integer percent from 100 to 175');
+  const scalePercent =
+    modifiers.gainScalePercentByAttribute[attribute as TrainingAttribute];
+  if (
+    !Number.isSafeInteger(scalePercent) ||
+    scalePercent < 100 ||
+    scalePercent > 175
+  ) {
+    throw new Error(
+      'coach training scale must be an integer percent from 100 to 175',
+    );
   }
-  const scaled = checkedMultiply(gain, scalePercent, 'coach-adjusted training gain');
+  const scaled = checkedMultiply(
+    gain,
+    scalePercent,
+    'coach-adjusted training gain',
+  );
   return Math.round(scaled / 100);
 }
 
@@ -254,6 +319,7 @@ function scaleRecord(scalePercent: number): Record<TrainingAttribute, number> {
 
 function checkedMultiply(left: number, right: number, label: string): number {
   const result = left * right;
-  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  if (!Number.isSafeInteger(result))
+    throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }

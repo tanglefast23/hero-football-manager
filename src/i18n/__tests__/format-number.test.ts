@@ -21,6 +21,11 @@ describe('formatInteger', () => {
     expect(formatInteger('en', -1240000)).toBe('-1,240,000');
   });
 
+  test('adds a positive sign only when requested', () => {
+    expect(formatInteger('de', 1240, true)).toBe('+1.240');
+    expect(formatInteger('de', 0, true)).toBe('0');
+  });
+
   test('truncates toward zero rather than rounding', () => {
     expect(formatInteger('en', 1240.9)).toBe('1,240');
     expect(formatInteger('en', -1240.9)).toBe('-1,240');
@@ -49,5 +54,10 @@ describe('formatMoney', () => {
 
   test('zero is not special-cased into a blank', () => {
     expect(formatMoney('en', 0)).toBe('$0');
+  });
+
+  test('adds a positive sign before the symbol only when requested', () => {
+    expect(formatMoney('de', 1240, true)).toBe('+$1.240');
+    expect(formatMoney('de', 0, true)).toBe('$0');
   });
 });

@@ -1,17 +1,29 @@
-import { buildSpriteAtlas, clearSpriteAtlasCache, type SkiaApi } from '../buildAtlas';
+import {
+  buildSpriteAtlas,
+  clearSpriteAtlasCache,
+  type SkiaApi,
+} from '../buildAtlas';
 import { loadSpriteSheet } from '../loader';
 
 /**
  * Counts what the builder asks of Skia, so the two costs that made entering a
  * match and tapping a drill hitch stay measured rather than assumed.
  */
-function countingSkia(): { api: SkiaApi; drawRects: () => number; paints: () => number } {
+function countingSkia(): {
+  api: SkiaApi;
+  drawRects: () => number;
+  paints: () => number;
+} {
   let drawRects = 0;
   let paints = 0;
   const api: SkiaApi = {
     Surface: {
       MakeOffscreen: () => ({
-        getCanvas: () => ({ drawRect: () => { drawRects += 1; } }),
+        getCanvas: () => ({
+          drawRect: () => {
+            drawRects += 1;
+          },
+        }),
         flush: () => undefined,
         makeImageSnapshot: () => ({ makeNonTextureImage: () => ({}) }),
       }),

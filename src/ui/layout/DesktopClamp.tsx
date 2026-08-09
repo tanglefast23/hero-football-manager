@@ -22,7 +22,11 @@ export const DESKTOP_CONTENT_MAX_WIDTH = 1180;
  */
 export function useDesktopContentStyle(): ViewStyle | null {
   return useLayoutMode() === 'twoColumn'
-    ? { width: '100%', maxWidth: DESKTOP_CONTENT_MAX_WIDTH, alignSelf: 'center' }
+    ? {
+        width: '100%',
+        maxWidth: DESKTOP_CONTENT_MAX_WIDTH,
+        alignSelf: 'center',
+      }
     : null;
 }
 
@@ -37,7 +41,9 @@ export function DesktopClamp({ children, className }: DesktopClampProps) {
   const wide = useLayoutMode() === 'twoColumn';
   const measure = wide ? 'w-full max-w-[1180px] self-center' : 'w-full';
   return (
-    <View className={className === undefined ? measure : `${measure} ${className}`}>
+    <View
+      className={className === undefined ? measure : `${measure} ${className}`}
+    >
       {children}
     </View>
   );

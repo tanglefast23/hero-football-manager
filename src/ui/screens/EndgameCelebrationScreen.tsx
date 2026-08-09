@@ -28,14 +28,23 @@ import {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { playLeagueChampionsSfx, stopLeagueChampionsSfx } from '../../render/menu-audio';
+import {
+  playLeagueChampionsSfx,
+  stopLeagueChampionsSfx,
+} from '../../render/menu-audio';
 import {
   playCelebrationAnthem,
   playEndingFarewell,
   stopCelebrationAudio,
 } from '../../render/celebration-audio';
-import { PLAYER_SPRITE_CELL, PlayerRunSprite } from '../../render/PlayerRunSprite';
-import { buildFallbackAtlas, buildSpriteAtlas } from '../../render/sprites/buildAtlas';
+import {
+  PLAYER_SPRITE_CELL,
+  PlayerRunSprite,
+} from '../../render/PlayerRunSprite';
+import {
+  buildFallbackAtlas,
+  buildSpriteAtlas,
+} from '../../render/sprites/buildAtlas';
 import { PIXEL_ART_SAMPLING } from '../../render/pixel-art-sampling';
 import { BertFullBody } from '../BertFullBody';
 import { CelebrationCoachRow } from '../components/CelebrationCoachRow';
@@ -93,11 +102,12 @@ const FIREWORK_COLORS = ['#f6c744', '#d94f52', '#62b5e5'];
  * inflated the Cup past the summit it is supposed to sit below, so it gets
  * three — enough for a sky that keeps going, not enough to out-shout D1.
  */
-const FIREWORK_COUNTS: Readonly<Record<EndgameCelebrationKind, number>> = Object.freeze({
-  'global-league': 5,
-  'cup-winners': 3,
-  'true-ending': 5,
-});
+const FIREWORK_COUNTS: Readonly<Record<EndgameCelebrationKind, number>> =
+  Object.freeze({
+    'global-league': 5,
+    'cup-winners': 3,
+    'true-ending': 5,
+  });
 /** One firing cycle of the whole sky, shared by every shell. */
 const FIREWORK_LOOP_MS = 2_600;
 const FALLBACK_SPRITE = 24;
@@ -197,7 +207,11 @@ export function EndgameCelebrationScreen({
           onDone={returnToTitleOnce}
         />
       ) : (
-        <TrophyScene viewModel={viewModel} reduceMotion={reduceMotion} onDone={completeOnce} />
+        <TrophyScene
+          viewModel={viewModel}
+          reduceMotion={reduceMotion}
+          onDone={completeOnce}
+        />
       )}
     </View>
   );
@@ -248,7 +262,7 @@ function Ground() {
         style={{ width, height }}
       >
         <Group>
-          {scene.sky.map(rect => (
+          {scene.sky.map((rect) => (
             <Rect
               key={rect.id}
               x={rect.x}
@@ -260,7 +274,7 @@ function Ground() {
           ))}
         </Group>
         <Group>
-          {scene.glows.map(glow => (
+          {scene.glows.map((glow) => (
             <Circle
               key={glow.id}
               cx={glow.cx}
@@ -272,7 +286,7 @@ function Ground() {
           ))}
         </Group>
         <Group>
-          {scene.rects.map(rect => (
+          {scene.rects.map((rect) => (
             <Rect
               key={rect.id}
               x={rect.x}
@@ -300,7 +314,7 @@ function useCelebrationAtlas(
   players: readonly EndgameCelebrationPlayerViewModel[],
 ): CelebrationAtlas {
   const visualIds = useMemo(
-    () => players.map(player => player.spriteKey.slice(0, -':run0'.length)),
+    () => players.map((player) => player.spriteKey.slice(0, -':run0'.length)),
     [players],
   );
   return useMemo<CelebrationAtlas>(() => {
@@ -316,7 +330,10 @@ function useCelebrationAtlas(
 /** Where a celebration's feet belong: up in the near grass, not on the floor. */
 function useGrassFootline(): number {
   const { height } = useWindowDimensions();
-  return Math.max(SPEECH_GROUND_FLOOR, (height - grassTopFor(height)) * SPEECH_GRASS_FRACTION);
+  return Math.max(
+    SPEECH_GROUND_FLOOR,
+    (height - grassTopFor(height)) * SPEECH_GRASS_FRACTION,
+  );
 }
 
 /**
@@ -336,7 +353,12 @@ function FireworkSky({
   const { width, height } = useWindowDimensions();
   const progress = useRef(new Animated.Value(0)).current;
   const bursts = useMemo(
-    () => fireworkBursts(sceneKey, FIREWORK_COUNTS[sceneKey], FIREWORK_COLORS.length),
+    () =>
+      fireworkBursts(
+        sceneKey,
+        FIREWORK_COUNTS[sceneKey],
+        FIREWORK_COLORS.length,
+      ),
     [sceneKey],
   );
 
@@ -346,19 +368,21 @@ function FireworkSky({
       return undefined;
     }
     progress.setValue(0);
-    const loop = Animated.loop(Animated.timing(progress, {
-      toValue: 1,
-      duration: FIREWORK_LOOP_MS,
-      easing: Easing.linear,
-      useNativeDriver: true,
-    }));
+    const loop = Animated.loop(
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: FIREWORK_LOOP_MS,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
     loop.start();
     return () => loop.stop();
   }, [progress, reduceMotion]);
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {bursts.map(burst => (
+      {bursts.map((burst) => (
         <FireworkShell
           key={burst.id}
           burst={burst}
@@ -400,20 +424,34 @@ function FireworkShell({
   const stops = wraps ? [0, gone, open, peak, 1] : [0, open, peak, gone, 1];
   const values = wraps ? [1, 0, 0, 1, 1] : [0, 0, 1, 0, 0];
 
-  const animated = reduceMotion ? undefined : {
-    opacity: progress.interpolate({ inputRange: stops, outputRange: values }),
-    transform: [{
-      scale: progress.interpolate({
-        inputRange: stops,
-        outputRange: wraps ? [1, 0.35, 0.35, 1, 1] : [0.35, 0.35, 1, 1.12, 1.12],
-      }),
-    }],
-  };
+  const animated = reduceMotion
+    ? undefined
+    : {
+        opacity: progress.interpolate({
+          inputRange: stops,
+          outputRange: values,
+        }),
+        transform: [
+          {
+            scale: progress.interpolate({
+              inputRange: stops,
+              outputRange: wraps
+                ? [1, 0.35, 0.35, 1, 1]
+                : [0.35, 0.35, 1, 1.12, 1.12],
+            }),
+          },
+        ],
+      };
 
   return (
-    <Animated.View style={[{ position: 'absolute', left, top, width: size, height: size }, animated]}>
+    <Animated.View
+      style={[
+        { position: 'absolute', left, top, width: size, height: size },
+        animated,
+      ]}
+    >
       <Canvas style={{ width: size, height: size }}>
-        {runs.map(run => (
+        {runs.map((run) => (
           <Rect
             key={run.id}
             x={run.x * pixel}
@@ -450,31 +488,41 @@ function TrophyScene({
   const { width } = useWindowDimensions();
   const jump = useRef(new Animated.Value(0)).current;
   const summit = viewModel.kind === 'global-league';
-  const spriteAtlas = useCelebrationAtlas(useMemo(
-    () => [...(viewModel.star === undefined ? [] : [viewModel.star]), ...viewModel.squad],
-    [viewModel.squad, viewModel.star],
-  ));
+  const spriteAtlas = useCelebrationAtlas(
+    useMemo(
+      () => [
+        ...(viewModel.star === undefined ? [] : [viewModel.star]),
+        ...viewModel.squad,
+      ],
+      [viewModel.squad, viewModel.star],
+    ),
+  );
 
   useEffect(() => {
     playLeagueChampionsSfx();
     playCelebrationAnthem();
-    const timeout = setTimeout(onDone, reduceMotion ? REDUCED_MOTION_MS : TROPHY_SCENE_MS);
+    const timeout = setTimeout(
+      onDone,
+      reduceMotion ? REDUCED_MOTION_MS : TROPHY_SCENE_MS,
+    );
     if (reduceMotion) return () => clearTimeout(timeout);
-    const animation = Animated.loop(Animated.sequence([
-      Animated.timing(jump, {
-        toValue: 1,
-        duration: 420,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(jump, {
-        toValue: 0,
-        duration: 380,
-        easing: Easing.in(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.delay(140),
-    ]));
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(jump, {
+          toValue: 1,
+          duration: 420,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(jump, {
+          toValue: 0,
+          duration: 380,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.delay(140),
+      ]),
+    );
     animation.start();
     return () => {
       clearTimeout(timeout);
@@ -482,104 +530,127 @@ function TrophyScene({
     };
   }, [jump, onDone, reduceMotion]);
 
-  const jumpStyle = reduceMotion ? undefined : {
-    transform: [{
-      translateY: jump.interpolate({ inputRange: [0, 1], outputRange: [0, summit ? -34 : -22] }),
-    }],
-  };
+  const jumpStyle = reduceMotion
+    ? undefined
+    : {
+        transform: [
+          {
+            translateY: jump.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, summit ? -34 : -22],
+            }),
+          },
+        ],
+      };
 
   return (
     <CelebrationSafeArea accessibilityLabel={viewModel.accessibilityLabel}>
-    <ScrollView style={styles.scene} contentContainerStyle={styles.sceneContent}>
-      <View style={styles.headerBlock}>
-        <PixelText
-          style={SKY_TEXT_HALO}
-          className="text-center text-xs uppercase tracking-[4px] text-gold"
-        >
-          {viewModel.seasonLabel}
-        </PixelText>
-        <PixelText
-          style={SKY_TEXT_HALO}
-          className={`mt-2 text-center uppercase text-white ${summit ? 'text-3xl leading-9' : 'text-2xl leading-7'}`}
-          adjustsFontSizeToFit
-          numberOfLines={2}
-        >
-          {viewModel.headline}
-        </PixelText>
-        <View style={styles.subheadingBand}>
-          <PixelText className="text-center text-xs uppercase text-gold" numberOfLines={2}>
-            {viewModel.subheading}
+      <ScrollView
+        style={styles.scene}
+        contentContainerStyle={styles.sceneContent}
+      >
+        <View style={styles.headerBlock}>
+          <PixelText
+            style={SKY_TEXT_HALO}
+            className="text-center text-xs uppercase tracking-[4px] text-gold"
+          >
+            {viewModel.seasonLabel}
           </PixelText>
+          <PixelText
+            style={SKY_TEXT_HALO}
+            className={`mt-2 text-center uppercase text-white ${summit ? 'text-3xl leading-9' : 'text-2xl leading-7'}`}
+            adjustsFontSizeToFit
+            numberOfLines={2}
+          >
+            {viewModel.headline}
+          </PixelText>
+          <View style={styles.subheadingBand}>
+            <PixelText
+              className="text-center text-xs uppercase text-gold"
+              numberOfLines={2}
+            >
+              {viewModel.subheading}
+            </PixelText>
+          </View>
         </View>
-      </View>
 
-      {/* The copy sits in the sky with the title. Down on the grass it would
+        {/* The copy sits in the sky with the title. Down on the grass it would
           need a panel behind it to stay readable, and a panel there is one more
           box standing between the player and the men he sent out. */}
-      <View style={styles.copyBlock}>
-        {viewModel.lines.map(line => (
-          <PixelText
-            key={line}
-            variant="body"
-            style={SKY_TEXT_HALO}
-            className="mb-2 text-center text-sm leading-5 text-paper"
-          >
-            {line}
-          </PixelText>
-        ))}
-      </View>
+        <View style={styles.copyBlock}>
+          {viewModel.lines.map((line) => (
+            <PixelText
+              key={line}
+              variant="body"
+              style={SKY_TEXT_HALO}
+              className="mb-2 text-center text-sm leading-5 text-paper"
+            >
+              {line}
+            </PixelText>
+          ))}
+        </View>
 
-      {/* Everything below is pushed down onto the grass. */}
-      <View style={styles.skyGap} />
+        {/* Everything below is pushed down onto the grass. */}
+        <View style={styles.skyGap} />
 
-      <Animated.View style={[styles.squadRow, jumpStyle]}>
-        <CelebrationSpriteRow
-          atlas={spriteAtlas}
-          players={[
-            ...(viewModel.star === undefined ? [] : [viewModel.star]),
-            ...viewModel.squad,
-          ].slice(0, summit ? 11 : 7)}
-          width={Math.max(280, width - 32)}
-          height={summit ? 92 : 74}
-          maxScale={summit ? 2.1 : 1.6}
-        />
-      </Animated.View>
+        <Animated.View style={[styles.squadRow, jumpStyle]}>
+          <CelebrationSpriteRow
+            atlas={spriteAtlas}
+            players={[
+              ...(viewModel.star === undefined ? [] : [viewModel.star]),
+              ...viewModel.squad,
+            ].slice(0, summit ? 11 : 7)}
+            width={Math.max(280, width - 32)}
+            height={summit ? 92 : 74}
+            maxScale={summit ? 2.1 : 1.6}
+          />
+        </Animated.View>
 
-      <View style={styles.bertRow}>
-        {/* Beside Bert, on the same grass line: the bench, watching the club
+        <View style={styles.bertRow}>
+          {/* Beside Bert, on the same grass line: the bench, watching the club
             they built come out with the trophy. */}
-        <CelebrationCoachRow coaches={viewModel.coaches} spriteWidth={30} />
-        {/* Sized through his own scale prop rather than a transform: a
+          <CelebrationCoachRow coaches={viewModel.coaches} spriteWidth={30} />
+          {/* Sized through his own scale prop rather than a transform: a
             transformed box still takes its full height in layout, and the 47pt
             it was quietly holding is 47pt of grass the squad never got to
             stand on. */}
-        <BertFullBody pointing={false} scale={BERT_SCALE} />
-        <View style={styles.bertLabel}>
-          <PixelText className="text-[10px] uppercase text-white">{viewModel.assistantName}</PixelText>
+          <BertFullBody pointing={false} scale={BERT_SCALE} />
+          <View style={styles.bertLabel}>
+            <PixelText className="text-[10px] uppercase text-white">
+              {viewModel.assistantName}
+            </PixelText>
+          </View>
         </View>
-      </View>
 
-      {viewModel.star === undefined ? null : (
-        <View style={styles.nameplate}>
-          <PixelText className="text-center text-base uppercase text-ink" numberOfLines={1}>
-            {viewModel.star.name}
-          </PixelText>
-          <PixelText variant="data" className="mt-1 text-center text-[10px] uppercase text-ink/70">
-            {t('endgameCelebration.fame', { fame: viewModel.star.fame })}
-          </PixelText>
-        </View>
-      )}
+        {viewModel.star === undefined ? null : (
+          <View style={styles.nameplate}>
+            <PixelText
+              className="text-center text-base uppercase text-ink"
+              numberOfLines={1}
+            >
+              {viewModel.star.name}
+            </PixelText>
+            <PixelText
+              variant="data"
+              className="mt-1 text-center text-[10px] uppercase text-ink/70"
+            >
+              {t('endgameCelebration.fame', { fame: viewModel.star.fame })}
+            </PixelText>
+          </View>
+        )}
 
-      <SfxPressable
-        accessibilityRole="button"
-        accessibilityLabel={t('endgameCelebration.a11y.continue')}
-        onPress={onDone}
-        style={styles.control}
-      >
-        {/* '›' is in Silkscreen; '▸' is not and rendered in the fallback face. */}
-        <PixelText className="text-xs uppercase text-white">{t('endgameCelebration.continue')}</PixelText>
-      </SfxPressable>
-    </ScrollView>
+        <SfxPressable
+          accessibilityRole="button"
+          accessibilityLabel={t('endgameCelebration.a11y.continue')}
+          onPress={onDone}
+          style={styles.control}
+        >
+          {/* '›' is in Silkscreen; '▸' is not and rendered in the fallback face. */}
+          <PixelText className="text-xs uppercase text-white">
+            {t('endgameCelebration.continue')}
+          </PixelText>
+        </SfxPressable>
+      </ScrollView>
     </CelebrationSafeArea>
   );
 }
@@ -627,16 +698,26 @@ function TrueEnding({
   // Leaving for the title screen must not carry a song with it.
   useEffect(() => () => stopCelebrationAudio(), []);
 
-  const performers = useMemo(() => (
-    [...(star === undefined ? [] : [star]), ...viewModel.squad].map(player => ({
-      id: player.id,
-      spriteKey: player.spriteKey,
-      isStar: player.id === star?.id,
-    }))
-  ), [star, viewModel.squad]);
-  const stage = useMemo(() => finaleStage(performers, width, height), [performers, width, height]);
+  const performers = useMemo(
+    () =>
+      [...(star === undefined ? [] : [star]), ...viewModel.squad].map(
+        (player) => ({
+          id: player.id,
+          spriteKey: player.spriteKey,
+          isStar: player.id === star?.id,
+        }),
+      ),
+    [star, viewModel.squad],
+  );
+  const stage = useMemo(
+    () => finaleStage(performers, width, height),
+    [performers, width, height],
+  );
   const atlas = useCelebrationAtlas(
-    useMemo(() => [...(star === undefined ? [] : [star]), ...viewModel.squad], [star, viewModel.squad]),
+    useMemo(
+      () => [...(star === undefined ? [] : [star]), ...viewModel.squad],
+      [star, viewModel.squad],
+    ),
   );
 
   return (
@@ -645,16 +726,24 @@ function TrueEnding({
           window coordinates, on grass that runs to the edges of the glass. */}
       {curtainCall ? (
         <>
-          <CurtainCall spots={stage.spots} atlas={atlas} reduceMotion={reduceMotion} />
+          <CurtainCall
+            spots={stage.spots}
+            atlas={atlas}
+            reduceMotion={reduceMotion}
+          />
           {/* Stood over Bert, who is flat out in the near grass. He keeps his
               mark and his moment; the staff fill the space beside him that the
               squad never reaches, on the same footline he lies on. */}
           <View
             pointerEvents="none"
-            style={[styles.finaleCoaches, {
-              bottom: stage.bert.up,
-              right: width * BERT_REST_FROM_RIGHT + stage.bert.boxWidth * 0.75,
-            }]}
+            style={[
+              styles.finaleCoaches,
+              {
+                bottom: stage.bert.up,
+                right:
+                  width * BERT_REST_FROM_RIGHT + stage.bert.boxWidth * 0.75,
+              },
+            ]}
           >
             <CelebrationCoachRow coaches={viewModel.coaches} spriteWidth={32} />
           </View>
@@ -662,68 +751,74 @@ function TrueEnding({
       ) : null}
 
       <CelebrationSafeArea accessibilityLabel={viewModel.accessibilityLabel}>
-      {/* The speech overlay makes the whole screen its button, so the title
+        {/* The speech overlay makes the whole screen its button, so the title
           sits above it and takes no touches of its own. */}
-      <View pointerEvents="none" style={styles.trueEndingHeader}>
-        <PixelText
-          style={SKY_TEXT_HALO}
-          className="text-center text-xs uppercase tracking-[4px] text-gold"
-        >
-          {viewModel.seasonLabel}
-        </PixelText>
-        <PixelText
-          style={SKY_TEXT_HALO}
-          className="mt-2 text-center text-3xl uppercase leading-9 text-white"
-          adjustsFontSizeToFit
-          numberOfLines={2}
-        >
-          {viewModel.headline}
-        </PixelText>
-        <View style={styles.subheadingBand}>
-          <PixelText className="text-center text-xs uppercase text-gold" numberOfLines={2}>
-            {viewModel.subheading}
+        <View pointerEvents="none" style={styles.trueEndingHeader}>
+          <PixelText
+            style={SKY_TEXT_HALO}
+            className="text-center text-xs uppercase tracking-[4px] text-gold"
+          >
+            {viewModel.seasonLabel}
           </PixelText>
+          <PixelText
+            style={SKY_TEXT_HALO}
+            className="mt-2 text-center text-3xl uppercase leading-9 text-white"
+            adjustsFontSizeToFit
+            numberOfLines={2}
+          >
+            {viewModel.headline}
+          </PixelText>
+          <View style={styles.subheadingBand}>
+            <PixelText
+              className="text-center text-xs uppercase text-gold"
+              numberOfLines={2}
+            >
+              {viewModel.subheading}
+            </PixelText>
+          </View>
         </View>
-      </View>
 
-      {still ? (
-        <>
-          {/* The talking Bert is placed by the speech overlay; the silent one
+        {still ? (
+          <>
+            {/* The talking Bert is placed by the speech overlay; the silent one
               has to be placed here, on the same mark and in the same box, so
               reduced motion shows the scene the tapped version builds. */}
-          <View
-            pointerEvents="none"
-            style={[styles.stillBert, {
-              bottom: stage.bert.up,
-              right: width * BERT_REST_FROM_RIGHT - stage.bert.boxWidth / 2,
-            }]}
-          >
-            <LyingBert bert={stage.bert} />
-          </View>
-          <StaticFarewell viewModel={viewModel} onDone={onDone} />
-        </>
-      ) : curtainCall ? (
-        <BertSignOff bert={stage.bert} onDone={onDone} />
-      ) : (
-        <CharacterSpeechOverlay
-          lines={viewModel.lines}
-          characterWidth={PLAYER_SPRITE_CELL.width * SPEECH_SPRITE_SCALE}
-          characterHeight={PLAYER_SPRITE_CELL.height * SPEECH_SPRITE_SCALE}
-          groundOffset={groundOffset}
-          bubbleScale={1.1}
-          accessibilityLabel={viewModel.accessibilityLabel}
-          renderCharacter={({ walking }) => (
-            <PlayerRunSprite
-              playerId={star.id}
-              role={star.role}
-              {...(star.lookId === undefined ? {} : { lookId: star.lookId })}
-              scale={SPEECH_SPRITE_SCALE}
-              walking={walking}
-            />
-          )}
-          onDone={() => setWalkedOff(true)}
-        />
-      )}
+            <View
+              pointerEvents="none"
+              style={[
+                styles.stillBert,
+                {
+                  bottom: stage.bert.up,
+                  right: width * BERT_REST_FROM_RIGHT - stage.bert.boxWidth / 2,
+                },
+              ]}
+            >
+              <LyingBert bert={stage.bert} />
+            </View>
+            <StaticFarewell viewModel={viewModel} onDone={onDone} />
+          </>
+        ) : curtainCall ? (
+          <BertSignOff bert={stage.bert} onDone={onDone} />
+        ) : (
+          <CharacterSpeechOverlay
+            lines={viewModel.lines}
+            characterWidth={PLAYER_SPRITE_CELL.width * SPEECH_SPRITE_SCALE}
+            characterHeight={PLAYER_SPRITE_CELL.height * SPEECH_SPRITE_SCALE}
+            groundOffset={groundOffset}
+            bubbleScale={1.1}
+            accessibilityLabel={viewModel.accessibilityLabel}
+            renderCharacter={({ walking }) => (
+              <PlayerRunSprite
+                playerId={star.id}
+                role={star.role}
+                {...(star.lookId === undefined ? {} : { lookId: star.lookId })}
+                scale={SPEECH_SPRITE_SCALE}
+                walking={walking}
+              />
+            )}
+            onDone={() => setWalkedOff(true)}
+          />
+        )}
       </CelebrationSafeArea>
     </>
   );
@@ -775,7 +870,9 @@ function BertSignOff({
 function LyingBert({ bert }: { bert: FinaleBert }) {
   return (
     <View style={{ width: bert.boxWidth, height: bert.visibleHeight }}>
-      <View style={{ position: 'absolute', left: 0, bottom: -bert.boxFloorGap }}>
+      <View
+        style={{ position: 'absolute', left: 0, bottom: -bert.boxFloorGap }}
+      >
         <BertFullBody
           pointing={false}
           moment={FINALE_BERT_MOMENT}
@@ -820,17 +917,24 @@ function CurtainCall({
     }
     bounce.value = 0;
     bounce.value = withRepeat(
-      withTiming(1, { duration: CURTAIN_LOOP_MS, easing: ReanimatedEasing.linear }),
+      withTiming(1, {
+        duration: CURTAIN_LOOP_MS,
+        easing: ReanimatedEasing.linear,
+      }),
       -1,
       false,
     );
     return () => cancelAnimation(bounce);
   }, [bounce, reduceMotion]);
 
-  const sprites: SkRect[] = useMemo(() => spots.map(spot => {
-    const rect = atlas.rectFor(spot.spriteKey);
-    return Skia.XYWHRect(rect.x, rect.y, rect.w, rect.h);
-  }), [atlas, spots]);
+  const sprites: SkRect[] = useMemo(
+    () =>
+      spots.map((spot) => {
+        const rect = atlas.rectFor(spot.spriteKey);
+        return Skia.XYWHRect(rect.x, rect.y, rect.w, rect.h);
+      }),
+    [atlas, spots],
+  );
 
   const transforms = useRSXformBuffer(spots.length, (transform, index) => {
     'worklet';
@@ -840,7 +944,9 @@ function CurtainCall({
     // A jumper is off the floor for half his cycle and stood on it for the
     // other half, which is what a person jumping actually does; a full sine
     // would sink him into the grass on the way back.
-    const lift = spot.dancing ? 0 : Math.max(0, wave) * JUMP_HEIGHT * spot.scale;
+    const lift = spot.dancing
+      ? 0
+      : Math.max(0, wave) * JUMP_HEIGHT * spot.scale;
     const rotation = spot.dancing ? wave * DANCE_RADIANS : 0;
     const cos = Math.cos(rotation) * spot.scale;
     const sin = Math.sin(rotation) * spot.scale;
@@ -854,7 +960,7 @@ function CurtainCall({
     );
   });
 
-  const dancer = spots.find(spot => spot.dancing);
+  const dancer = spots.find((spot) => spot.dancing);
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -870,7 +976,11 @@ function CurtainCall({
           // seen from the touchline: a circle here would stand up like a hoop.
           <Oval
             x={dancer.x - (FINALE_CELL.width * dancer.scale) / 2}
-            y={dancer.y + FINALE_CELL.height * dancer.scale - FINALE_CELL.width * dancer.scale * 0.2}
+            y={
+              dancer.y +
+              FINALE_CELL.height * dancer.scale -
+              FINALE_CELL.width * dancer.scale * 0.2
+            }
             width={FINALE_CELL.width * dancer.scale * 2}
             height={FINALE_CELL.width * dancer.scale * 0.4}
             color="#f6c744"
@@ -904,23 +1014,30 @@ function StaticFarewell({
   const t = useCopy();
   return (
     <View style={styles.farewell}>
-      <ScrollView style={styles.farewellList} contentContainerStyle={styles.farewellScroll}>
+      <ScrollView
+        style={styles.farewellList}
+        contentContainerStyle={styles.farewellScroll}
+      >
         {viewModel.star === undefined ? null : (
           <PixelText className="mb-3 text-center text-sm uppercase text-gold">
             {viewModel.star.name}
           </PixelText>
         )}
-        {viewModel.lines.map(line => (
+        {viewModel.lines.map((line) => (
           <View key={line} style={styles.farewellBubble}>
-            <PixelText variant="body" className="text-sm leading-5 text-ink">{line}</PixelText>
+            <PixelText variant="body" className="text-sm leading-5 text-ink">
+              {line}
+            </PixelText>
           </View>
         ))}
         <PixelText className="mb-3 mt-4 text-center text-sm uppercase text-gold">
           {viewModel.assistantName}
         </PixelText>
-        {bertSignoffLines(t).map(line => (
+        {bertSignoffLines(t).map((line) => (
           <View key={line} style={styles.farewellBubble}>
-            <PixelText variant="body" className="text-sm leading-5 text-ink">{line}</PixelText>
+            <PixelText variant="body" className="text-sm leading-5 text-ink">
+              {line}
+            </PixelText>
           </View>
         ))}
       </ScrollView>
@@ -930,7 +1047,9 @@ function StaticFarewell({
         onPress={onDone}
         style={styles.control}
       >
-        <PixelText className="text-xs uppercase text-white">{t('endgameCelebration.finish')}</PixelText>
+        <PixelText className="text-xs uppercase text-white">
+          {t('endgameCelebration.finish')}
+        </PixelText>
       </SfxPressable>
     </View>
   );
@@ -959,7 +1078,8 @@ function CelebrationSpriteRow({
     const availableWidth = width - gap * (players.length - 1);
     const scale = Math.min(maxScale, availableWidth / (players.length * 24));
     const spriteWidth = 24 * scale;
-    const totalWidth = spriteWidth * players.length + gap * (players.length - 1);
+    const totalWidth =
+      spriteWidth * players.length + gap * (players.length - 1);
     const startX = (width - totalWidth) / 2;
     const y = height - 30 * scale;
     return {
@@ -971,13 +1091,19 @@ function CelebrationSpriteRow({
       })),
     };
   }, [height, maxScale, players, width]);
-  const sprites: SkRect[] = useMemo(() => geometry.entries.map(({ player }) => {
-    const rect = atlas.rectFor(player.spriteKey);
-    return Skia.XYWHRect(rect.x, rect.y, rect.w, rect.h);
-  }), [atlas, geometry.entries]);
-  const transforms: SkRSXform[] = useMemo(() => geometry.entries.map(({ x, y }) => (
-    Skia.RSXform(geometry.scale, 0, x, y)
-  )), [geometry]);
+  const sprites: SkRect[] = useMemo(
+    () =>
+      geometry.entries.map(({ player }) => {
+        const rect = atlas.rectFor(player.spriteKey);
+        return Skia.XYWHRect(rect.x, rect.y, rect.w, rect.h);
+      }),
+    [atlas, geometry.entries],
+  );
+  const transforms: SkRSXform[] = useMemo(
+    () =>
+      geometry.entries.map(({ x, y }) => Skia.RSXform(geometry.scale, 0, x, y)),
+    [geometry],
+  );
 
   return (
     <Canvas
@@ -985,16 +1111,18 @@ function CelebrationSpriteRow({
       importantForAccessibility="no-hide-descendants"
       style={{ width, height }}
     >
-      {geometry.entries.map(({ player, x, y }) => player.isHero ? (
-        <Circle
-          key={player.id}
-          cx={x + 12 * geometry.scale}
-          cy={y + 15 * geometry.scale}
-          r={14 * geometry.scale}
-          color="#f6c744"
-          opacity={0.35}
-        />
-      ) : null)}
+      {geometry.entries.map(({ player, x, y }) =>
+        player.isHero ? (
+          <Circle
+            key={player.id}
+            cx={x + 12 * geometry.scale}
+            cy={y + 15 * geometry.scale}
+            r={14 * geometry.scale}
+            color="#f6c744"
+            opacity={0.35}
+          />
+        ) : null,
+      )}
       <Atlas
         image={atlas.image as SkImage}
         sprites={sprites}
@@ -1009,7 +1137,13 @@ const styles = StyleSheet.create({
   scene: { flex: 1 },
   sceneContent: { flexGrow: 1, paddingHorizontal: 16, paddingVertical: 16 },
   headerBlock: { width: '100%' },
-  trueEndingHeader: { position: 'absolute', left: 16, right: 16, top: 16, zIndex: 5 },
+  trueEndingHeader: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    top: 16,
+    zIndex: 5,
+  },
   subheadingBand: {
     marginTop: 12,
     alignSelf: 'center',
@@ -1023,7 +1157,13 @@ const styles = StyleSheet.create({
   // instead of leaving it hanging where the old empty band used to be.
   skyGap: { flex: 1, minHeight: 24 },
   squadRow: { alignItems: 'center' },
-  bertRow: { marginTop: 8, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 8 },
+  bertRow: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: 8,
+  },
   bertLabel: {
     borderWidth: 2,
     borderColor: '#f6c744',
@@ -1063,7 +1203,12 @@ const styles = StyleSheet.create({
   stillBert: { position: 'absolute' },
   finaleCoaches: { position: 'absolute', zIndex: 2 },
   // Below the fixed title band, which is about 150pt tall at the 375pt floor.
-  farewell: { flex: 1, paddingHorizontal: 16, paddingBottom: 16, paddingTop: 180 },
+  farewell: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 180,
+  },
   farewellList: { flex: 1 },
   farewellScroll: { paddingBottom: 16 },
   farewellBubble: {

@@ -9,7 +9,6 @@ import type { PotentialGrade } from '../game/archetype-caps';
 import type { AwardCategoryId, LedgerLineReveal } from '../game/types';
 import type { PowerId, Role } from '../sim/types';
 
-
 export type ManagementTab = 'home' | 'squad' | 'club' | 'market' | 'league';
 
 /**
@@ -605,7 +604,11 @@ export interface SquadTrainingViewModel {
   /** The drill shop: one row per training path, in TRAINING_PATHS order. */
   drillUpgrades: readonly TrainingUpgradeViewModel[];
   /** Set while a fit promised player is still owed drills: only they may train. */
-  trainingPromiseGate?: { playerId: string; playerName: string; remaining: number };
+  trainingPromiseGate?: {
+    playerId: string;
+    playerName: string;
+    remaining: number;
+  };
 }
 
 export interface TrainingGroundDecisionViewModel {
@@ -908,13 +911,7 @@ export interface StoryEventChoiceViewModel {
 }
 
 export type StoryEventRewardKind =
-  | 'money'
-  | 'morale'
-  | 'fans'
-  | 'training-points'
-  | 'stat'
-  | 'injury'
-  | 'story';
+  'money' | 'morale' | 'fans' | 'training-points' | 'stat' | 'injury' | 'story';
 
 export interface StoryEventRewardViewModel {
   label: string;
@@ -961,7 +958,8 @@ export interface StoryEventFacilityViewModel {
 export interface StoryEventViewModel {
   id: string;
   artKey: string;
-  category: 'mystery' | 'club' | 'media' | 'sponsor' | 'player' | 'medical' | 'fan';
+  category:
+    'mystery' | 'club' | 'media' | 'sponsor' | 'player' | 'medical' | 'fan';
   weekLabel: string;
   categoryLabel: string;
   title: string;
@@ -1255,7 +1253,8 @@ export interface SeasonPodiumViewModel {
  * still to get — and each points at the other. `true-ending` is the pair being
  * completed, in whichever order the manager completed it.
  */
-export type EndgameCelebrationKind = 'global-league' | 'cup-winners' | 'true-ending';
+export type EndgameCelebrationKind =
+  'global-league' | 'cup-winners' | 'true-ending';
 
 export interface EndgameCelebrationPlayerViewModel {
   readonly id: string;
@@ -1448,4 +1447,5 @@ export interface HallOfFameRecordViewModel {
   readonly accessibilityLabel: string;
 }
 
-export type HallOfFameViewModel = HallOfFameLockedViewModel | HallOfFameRecordViewModel;
+export type HallOfFameViewModel =
+  HallOfFameLockedViewModel | HallOfFameRecordViewModel;

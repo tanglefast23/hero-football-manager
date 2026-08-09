@@ -30,7 +30,9 @@ describe('bert walk frames', () => {
 
   it('names the same parts in every frame, so none can drift', () => {
     for (const frame of BERT_WALK_FRAMES) {
-      expect(Object.keys(frame.parts).sort()).toEqual([...BERT_WALK_PARTS].sort());
+      expect(Object.keys(frame.parts).sort()).toEqual(
+        [...BERT_WALK_PARTS].sort(),
+      );
     }
   });
 
@@ -49,8 +51,12 @@ describe('bert walk frames', () => {
     for (const frame of BERT_WALK_FRAMES) {
       expect(Math.abs(frame.bodyDy)).toBeLessThanOrEqual(4);
       for (const part of BERT_WALK_PARTS) {
-        expect(Math.abs(frame.parts[part].dy)).toBeLessThan(BERT_SPRITE_SIZE.height / 4);
-        expect(Math.abs(frame.parts[part].dh ?? 0)).toBeLessThan(BERT_SPRITE_SIZE.height / 4);
+        expect(Math.abs(frame.parts[part].dy)).toBeLessThan(
+          BERT_SPRITE_SIZE.height / 4,
+        );
+        expect(Math.abs(frame.parts[part].dh ?? 0)).toBeLessThan(
+          BERT_SPRITE_SIZE.height / 4,
+        );
       }
     }
   });
@@ -81,7 +87,10 @@ describe('bert walk frames', () => {
   });
 
   it('rotates nothing, because the pixel grid forbids half-pixels', () => {
-    const source = readFileSync(join(process.cwd(), 'src/ui/bert-walk-frames.ts'), 'utf8');
+    const source = readFileSync(
+      join(process.cwd(), 'src/ui/bert-walk-frames.ts'),
+      'utf8',
+    );
     expect(source).not.toContain('rotate');
   });
 });

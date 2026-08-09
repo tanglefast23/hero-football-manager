@@ -24,7 +24,10 @@ export const RESOURCE_ROLL_MS = 520;
  * counting up from zero on every mount would tell the player they had just
  * earned everything they own. Reduced motion pins it to the target too.
  */
-export function useCountUpNumber(target: number, reduceMotion: boolean): number {
+export function useCountUpNumber(
+  target: number,
+  reduceMotion: boolean,
+): number {
   const [shown, setShown] = useState(target);
   const fromRef = useRef(target);
   const frameRef = useRef<number | undefined>(undefined);
@@ -50,7 +53,8 @@ export function useCountUpNumber(target: number, reduceMotion: boolean): number 
     };
     frameRef.current = requestAnimationFrame(step);
     return () => {
-      if (frameRef.current !== undefined) cancelAnimationFrame(frameRef.current);
+      if (frameRef.current !== undefined)
+        cancelAnimationFrame(frameRef.current);
     };
   }, [reduceMotion, target]);
 

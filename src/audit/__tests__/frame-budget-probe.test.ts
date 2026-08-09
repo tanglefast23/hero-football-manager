@@ -24,6 +24,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
+import { execFileSync } from 'node:child_process';
 import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';
 import {
@@ -32,7 +33,10 @@ import {
   buildCareerMatchTeams,
   createCareer,
 } from '../../game';
-import { createFixtureResolver, quickResultForFixture } from '../../game/matchday';
+import {
+  createFixtureResolver,
+  quickResultForFixture,
+} from '../../game/matchday';
 import { controlledMatchOptions } from '../../game/match-policy';
 import { generateSeasonFixtures } from '../../game/schedule';
 import { createMatch, tick } from '../../sim/match';
@@ -42,6 +46,14 @@ const content = loadLaunchContent();
 const CAREER_SEED = 4_000_000;
 const MAX_TICKS = 20_000; // hard guard — a match is ~2k ticks of 100ms, nowhere near this
 const TICKS_PER_BURST = 8; // mirror of use-rival-preload.ts
+// Manual probe limits, measured on the production-shaped Node path. The probe
+// is opt-in because CI runner speed varies, but a run must now fail when it
+// exceeds the accepted frame/cold-result envelope instead of only writing data.
+const BUDGET = {
+  watchedP99Ms: 4,
+  pumpP99Ms: 16,
+  coldWorstCase4xMs: 4_000,
+} as const;
 
 interface TickStats {
   count: number;
@@ -85,12 +97,15 @@ describe('frame-budget probe', () => {
 
     const result = {
       node: process.version,
-      commit: '96f45b1f',
+      sourceRevision: sourceRevision(),
+      budget: BUDGET,
       watchedMatch: watched,
       pump: { ...stats(burstMs), ticksPerBurst: TICKS_PER_BURST },
       coldWorstCase4xMs: round2(coldWorstCase4xMs),
     };
-    const out = path.resolve('artifacts/polish-audit-2026-08-06/frame-budget.json');
+    const out = path.resolve(
+      'artifacts/polish-audit-2026-08-06/frame-budget.json',
+    );
     mkdirSync(path.dirname(out), { recursive: true });
     writeFileSync(out, `${JSON.stringify(result, null, 2)}\n`);
     // eslint-disable-next-line no-console
@@ -98,11 +113,33 @@ describe('frame-budget probe', () => {
 
     expect(watched.count).toBeGreaterThan(0);
     expect(burstMs.length).toBeGreaterThan(0);
+    expect(watched.p99Ms).toBeLessThanOrEqual(BUDGET.watchedP99Ms);
+    expect(result.pump.p99Ms).toBeLessThanOrEqual(BUDGET.pumpP99Ms);
+    expect(coldWorstCase4xMs).toBeLessThanOrEqual(BUDGET.coldWorstCase4xMs);
   }, 900_000);
 });
 
+function sourceRevision(): string {
+  const commit = execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], {
+    encoding: 'utf8',
+  }).trim();
+  const dirty = execFileSync(
+    'git',
+    ['status', '--porcelain', '--untracked-files=no'],
+    {
+      encoding: 'utf8',
+    },
+  ).trim();
+  return dirty === '' ? commit : `${commit}+dirty`;
+}
+
 function timeMatchTicks(seed: number, home: TeamDef, away: TeamDef): TickStats {
-  const state = createMatch(seed, home, away, controlledMatchOptions(0, '4-4-2'));
+  const state = createMatch(
+    seed,
+    home,
+    away,
+    controlledMatchOptions(0, '4-4-2'),
+  );
   const tickMs: number[] = [];
   let guard = 0;
   while (state.phase === 'play' && guard < MAX_TICKS) {
@@ -123,9 +160,14 @@ function buildProbeWorld(): {
 } {
   const state = addCreatedPlayer(
     beginStoryOnboarding(
-      createCareer(createLaunchCareerSetup(CAREER_SEED, undefined, content, 'COZY')),
+      createCareer(
+        createLaunchCareerSetup(CAREER_SEED, undefined, content, 'COZY'),
+      ),
     ),
-    { name: 'Probe Rookie', ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 } },
+    {
+      name: 'Probe Rookie',
+      ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 },
+    },
   );
   const allIds = content.clubs.clubs.map((club) => club.id);
   const divisionIds = [
@@ -134,12 +176,15 @@ function buildProbeWorld(): {
   ].slice(0, 10);
   const nonUser = generateSeasonFixtures(divisionIds, 1, CAREER_SEED).filter(
     (fixture) =>
-      fixture.homeClubId !== state.userClubId && fixture.awayClubId !== state.userClubId,
+      fixture.homeClubId !== state.userClubId &&
+      fixture.awayClubId !== state.userClubId,
   );
   // Match weeks don't start at 1 (the season opener sits weeks into the calendar), so take
   // the earliest week that has rival fixtures — that IS the production settle shape.
   const firstWeek = Math.min(...nonUser.map((fixture) => fixture.week));
-  const rivalFixtures = nonUser.filter((fixture) => fixture.week === firstWeek).slice(0, 4);
+  const rivalFixtures = nonUser
+    .filter((fixture) => fixture.week === firstWeek)
+    .slice(0, 4);
   expect(rivalFixtures.length).toBe(4); // the production shape: 4 rival fixtures per week
   const involved = [
     state.userClubId,
@@ -174,7 +219,10 @@ function stats(samples: number[]): TickStats {
   return {
     count: sorted.length,
     meanMs: round2(total / Math.max(1, sorted.length)),
-    p99Ms: round2(sorted[Math.min(sorted.length - 1, Math.floor(0.99 * sorted.length))] ?? 0),
+    p99Ms: round2(
+      sorted[Math.min(sorted.length - 1, Math.floor(0.99 * sorted.length))] ??
+        0,
+    ),
     worstMs: round2(sorted[sorted.length - 1] ?? 0),
     totalMs: round2(total),
   };

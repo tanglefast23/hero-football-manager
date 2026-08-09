@@ -42,15 +42,21 @@ export const HEADER_LABEL_ADVANCE_EM: Readonly<Record<string, number>> = {
 export const HEADER_FONT_SIZE = { phone: 10, wide: 10.5 } as const;
 
 /**
- * How far a header may grow with the reader's text size. The app allows 1.6
- * everywhere and the shell already holds its chrome to a lower cap for the
- * same reason: a five-letter abbreviation labelling a fixed column cannot grow
+ * How far a header may grow with the reader's text size. A five-letter
+ * abbreviation labelling a fixed column cannot grow
  * without pushing its neighbour off the row, and the sentence a header stands
  * for is on the Pressable's accessibility label at any size. 1.25 is above the
  * xxLarge multiplier (1.235), so the largest text size in ordinary use renders
  * unchanged and only the accessibility sizes are held back.
  */
 export const HEADER_MAX_FONT_MULTIPLIER = 1.25;
+
+/**
+ * Fixed numeric cells cannot reflow independently of their table row. They keep
+ * the former measured 1.6 ceiling locally, while prose and player actions use
+ * the full system Dynamic Type selection.
+ */
+export const CELL_MAX_FONT_MULTIPLIER = 1.6;
 
 /**
  * The sort arrow is drawn, not typed, so it is exactly this wide at every text
@@ -81,15 +87,17 @@ export const TRAIN_BUTTON_HIT_SLOP = 5;
 export const MINIMUM_TOUCH_TARGET = 44;
 
 /**
- * The row values, which are not capped: a number the manager is reading is
- * exactly what a larger text size is for, so the columns hold them at the
- * app-wide 1.6 instead. `text-base` is 1rem (14pt) and `text-sm` 0.875rem
- * (12.25pt), and the widest thing each column ever shows is two characters
- * except condition, which shows "100%".
+ * The row values use the local fixed-cell cap above. `text-base` is 1rem (14pt)
+ * and `text-sm` 0.875rem (12.25pt), and the widest thing each column ever shows
+ * is two characters except condition, which shows "100%".
  */
 export const CELL_FONT_SIZE = { value: 14, condition: 12.25 } as const;
 /** Silkscreen Regular advances, same source as the header measurements. */
-export const CELL_WIDEST_VALUE_EM = { overall: 1.5, potential: 1.5, condition: 3 } as const;
+export const CELL_WIDEST_VALUE_EM = {
+  overall: 1.5,
+  potential: 1.5,
+  condition: 3,
+} as const;
 /** The potential cell's `pr-1`, which is 0.25rem. */
 export const POTENTIAL_CELL_PADDING_RIGHT = 3.5;
 
@@ -114,5 +122,9 @@ export function headerWidthDemand(label: string, fontSize: number): number {
   if (advanceEm === undefined) {
     throw new Error(`No measured Silkscreen advance for the header "${label}"`);
   }
-  return advanceEm * fontSize * HEADER_MAX_FONT_MULTIPLIER + SORT_ARROW_GAP + SORT_ARROW_WIDTH;
+  return (
+    advanceEm * fontSize * HEADER_MAX_FONT_MULTIPLIER +
+    SORT_ARROW_GAP +
+    SORT_ARROW_WIDTH
+  );
 }

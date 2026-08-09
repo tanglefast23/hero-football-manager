@@ -49,7 +49,10 @@ let unregisterLifecycle: (() => void) | null = null;
 let spinGeneration = 0;
 let surgeGeneration = 0;
 let crackleActive = false;
-const thunkVoiceGenerations: number[] = Array.from({ length: THUNK_VOICES }, () => 0);
+const thunkVoiceGenerations: number[] = Array.from(
+  { length: THUNK_VOICES },
+  () => 0,
+);
 let nextThunkVoice = 0;
 let stopEpoch = 0;
 let suspendEpoch = 0;
@@ -102,7 +105,9 @@ function allCues(): Cue[] {
 function init(): void {
   if (ready) return;
   spinCue = makeCue(SPIN_SOURCE, SPIN_GAIN, false);
-  thunkCues = Array.from({ length: THUNK_VOICES }, () => makeCue(THUNK_SOURCE, THUNK_GAIN, false));
+  thunkCues = Array.from({ length: THUNK_VOICES }, () =>
+    makeCue(THUNK_SOURCE, THUNK_GAIN, false),
+  );
   flameUpCue = makeCue(FLAME_UP_SOURCE, FLAME_UP_GAIN, false);
   crackleCue = makeCue(CRACKLE_SOURCE, CRACKLE_GAIN, true);
   ready = true;
@@ -122,7 +127,11 @@ function pauseCue(cue: Cue | null): void {
   }
 }
 
-function seekThenPlay(cue: Cue, isCurrent: () => boolean, allowRecovery = true): void {
+function seekThenPlay(
+  cue: Cue,
+  isCurrent: () => boolean,
+  allowRecovery = true,
+): void {
   if (suspended || audioIsSuspended()) return;
   const player = cue.player ?? (allowRecovery ? recreatePlayer(cue) : null);
   if (player === null) return;
@@ -147,7 +156,8 @@ function seekThenPlay(cue: Cue, isCurrent: () => boolean, allowRecovery = true):
       },
     );
   } catch {
-    if (allowRecovery && recreatePlayer(cue) !== null) seekThenPlay(cue, isCurrent, false);
+    if (allowRecovery && recreatePlayer(cue) !== null)
+      seekThenPlay(cue, isCurrent, false);
   }
 }
 
@@ -181,7 +191,10 @@ export function playLedgerThunk(): void {
   thunkVoiceGenerations[voice] += 1;
   const generation = thunkVoiceGenerations[voice];
   const epochs = epochGuard();
-  seekThenPlay(cue, () => generation === thunkVoiceGenerations[voice] && epochs());
+  seekThenPlay(
+    cue,
+    () => generation === thunkVoiceGenerations[voice] && epochs(),
+  );
 }
 
 export function playSurgeIgnition(): void {
@@ -190,7 +203,8 @@ export function playSurgeIgnition(): void {
   crackleActive = true;
   const generation = surgeGeneration;
   const epochs = epochGuard();
-  const isCurrent = () => generation === surgeGeneration && crackleActive && epochs();
+  const isCurrent = () =>
+    generation === surgeGeneration && crackleActive && epochs();
   if (flameUpCue !== null) seekThenPlay(flameUpCue, isCurrent);
   if (crackleCue !== null) seekThenPlay(crackleCue, isCurrent);
 }
@@ -224,7 +238,10 @@ export function resumeFinancialReportSfx(): void {
   if (!crackleActive || crackleCue === null) return;
   const generation = surgeGeneration;
   const epochs = epochGuard();
-  seekThenPlay(crackleCue, () => generation === surgeGeneration && crackleActive && epochs());
+  seekThenPlay(
+    crackleCue,
+    () => generation === surgeGeneration && crackleActive && epochs(),
+  );
 }
 
 export function setFinancialReportSfxMasterVolume(volume: number): void {

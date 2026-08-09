@@ -1,4 +1,15 @@
-import { dist, dist2, moveToward, clamp, PITCH_W, PITCH_H, GOAL_W, GOAL_CENTER_X, TICK_MS, HALF_TICKS } from '../geometry';
+import {
+  dist,
+  dist2,
+  moveToward,
+  clamp,
+  PITCH_W,
+  PITCH_H,
+  GOAL_W,
+  GOAL_CENTER_X,
+  TICK_MS,
+  HALF_TICKS,
+} from '../geometry';
 
 describe('geometry', () => {
   it('constants match the design doc', () => {
@@ -16,8 +27,14 @@ describe('geometry', () => {
   });
 
   it('moveToward advances by speed, never overshoots, stays integer', () => {
-    expect(moveToward({ x: 0, y: 0 }, { x: 100, y: 0 }, 60)).toEqual({ x: 60, y: 0 });
-    expect(moveToward({ x: 0, y: 0 }, { x: 30, y: 0 }, 60)).toEqual({ x: 30, y: 0 });
+    expect(moveToward({ x: 0, y: 0 }, { x: 100, y: 0 }, 60)).toEqual({
+      x: 60,
+      y: 0,
+    });
+    expect(moveToward({ x: 0, y: 0 }, { x: 30, y: 0 }, 60)).toEqual({
+      x: 30,
+      y: 0,
+    });
     const p = moveToward({ x: 0, y: 0 }, { x: 1000, y: 1000 }, 100);
     expect(Number.isInteger(p.x) && Number.isInteger(p.y)).toBe(true);
   });

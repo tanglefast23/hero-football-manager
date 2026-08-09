@@ -1,4 +1,8 @@
-import { FilterMode, MipmapMode, type SamplingOptions } from '@shopify/react-native-skia';
+import {
+  FilterMode,
+  MipmapMode,
+  type SamplingOptions,
+} from '@shopify/react-native-skia';
 
 /**
  * Pixel art must never blend source texels. Reuse this on every image-backed

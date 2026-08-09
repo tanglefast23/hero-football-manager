@@ -13,21 +13,31 @@ describe('the shut-window lesson', () => {
   it('fires once, on the screen that is refusing', () => {
     // A scouting report is the permission to negotiate, so holding one while
     // the desk says SHUT reads as a broken report rather than the calendar.
-    expect(app).toContain('const transferWindowLessonVisible = careerTeaches');
-    expect(app).toContain("store.activeTab === 'market'");
-    expect(app).toContain('(store.career.market?.scoutReports.length ?? 0) > 0');
-    expect(app).toContain('!isTransferWindowOpen(store.career.week)');
-    expect(app).toContain("!hasAssistantGuideMilestone(store.career, 'transfer-window-seen')");
-    expect(app).toContain("store.completeGuideMilestone('transfer-window-seen')");
+    expect(app).toContainSource(
+      'const transferWindowLessonVisible = careerTeaches',
+    );
+    expect(app).toContainSource("store.activeTab === 'market'");
+    expect(app).toContainSource(
+      '(store.career.market?.scoutReports.length ?? 0) > 0',
+    );
+    expect(app).toContainSource('!isTransferWindowOpen(store.career.week)');
+    expect(app).toContainSource(
+      "!hasAssistantGuideMilestone(store.career, 'transfer-window-seen')",
+    );
+    expect(app).toContainSource(
+      "store.completeGuideMilestone('transfer-window-seen')",
+    );
   });
 
   it('names both windows so the manager can plan around them', () => {
-    expect(app).toContain('Weeks 1 to 4, then Weeks 17 and 18');
+    expect(app).toContainSource('Weeks 1 to 4, then Weeks 17 and 18');
   });
 
   it('banks itself silently in Advisor mode', () => {
     const advisor = source('src/ui/advisor-milestones.ts');
-    expect(advisor).toContain("if (context.viewingShutMarket) add('transfer-window-seen');");
+    expect(advisor).toContainSource(
+      "if (context.viewingShutMarket) add('transfer-window-seen');",
+    );
   });
 });
 
@@ -36,16 +46,22 @@ describe('the emergency-loan briefing', () => {
     const club = source('src/ui/screens/ClubFinancesScreen.tsx');
     // He explained the bailout, the tutorial waited for a tap, and only then
     // reached the part about building something that earns. One run now.
-    expect(club).not.toContain('Review the loan and recurring costs');
+    expect(club).not.toContainSource('Review the loan and recurring costs');
     // The clearance that only existed to make room for that cue goes with it.
     // (The grounds section keeps its own mt-20 for a cue it still shows.)
-    expect(club).not.toContain("guideFocus === 'emergency-loan' ? 'relative mt-20");
+    expect(club).not.toContainSource(
+      "guideFocus === 'emergency-loan' ? 'relative mt-20",
+    );
     // The panel stays lit, so his words still have something to point at.
-    expect(club).toContain("guideFocus === 'emergency-loan' ? 'relative border-2 border-blue-dark bg-blue-light p-1'");
+    expect(club).toContainSource(
+      "guideFocus === 'emergency-loan' ? 'relative border-2 border-blue-dark bg-blue-light p-1'",
+    );
   });
 
   it('keeps a focus value for the panel it lights', () => {
-    expect(AssistantGuideFocusSchema.safeParse('emergency-loan').success).toBe(true);
+    expect(AssistantGuideFocusSchema.safeParse('emergency-loan').success).toBe(
+      true,
+    );
   });
 });
 
@@ -55,33 +71,46 @@ describe('the insulting-offer warning', () => {
     // The rule used to read "an offer below half their ask ends talks
     // immediately" — the half was never worked out, so the first a manager
     // knew of it was the talks being over and the player sulking.
-    expect(market).not.toContain('An offer below half their ask ends talks immediately.');
-    expect(market).toContain('const walksOut = weeklyWage < viewModel.walkOutWeeklyWage;');
-    expect(market).toContain(
+    expect(market).not.toContainSource(
+      'An offer below half their ask ends talks immediately.',
+    );
+    expect(market).toContainSource(
+      'const walksOut = weeklyWage < viewModel.walkOutWeeklyWage;',
+    );
+    expect(market).toContainSource(
       "label={walksOut ? t('market.theyWillWalkOut') : t('market.makeTheOfferArrow')}",
     );
     // The warning moved into the copy catalog with the wage and the floor as
     // placeholders. Asserting the key and the English keeps the guarantee —
     // that the manager is told the number before the talks end, not after.
-    expect(market).toContain("t('market.walkOutInsult'");
-    expect(loadCatalog('en').strings['market.walkOutInsult'])
-      .toContain('is an insult. They walk out below');
+    expect(market).toContainSource("t('market.walkOutInsult'");
+    expect(loadCatalog('en').strings['market.walkOutInsult']).toContainSource(
+      'is an insult. They walk out below',
+    );
   });
 
   it('derives the floor from the rule the engine enforces', () => {
     const engine = source('src/game/market.ts');
     const viewModel = source('src/application/market-view-model.ts');
 
-    expect(engine).toContain('const insulting = offer.weeklyWage < insultingOfferFloor(negotiation.weeklyAsk);');
-    expect(engine).toContain('export function insultingOfferFloor(weeklyAsk: number): number {');
-    expect(viewModel).toContain('walkOutWeeklyWage: insultingOfferFloor(negotiation.weeklyAsk),');
+    expect(engine).toContainSource(
+      'const insulting = offer.weeklyWage < insultingOfferFloor(negotiation.weeklyAsk);',
+    );
+    expect(engine).toContainSource(
+      'export function insultingOfferFloor(weeklyAsk: number): number {',
+    );
+    expect(viewModel).toContainSource(
+      'walkOutWeeklyWage: insultingOfferFloor(negotiation.weeklyAsk),',
+    );
   });
 
   it('renews with the club’s own squad rather than the transfer list', () => {
     const career = source('src/game/market-career.ts');
     // The transfer lookup skips the user's club by design, so using it for a
     // renewal threw `unknown negotiation player <yourPlayer>`.
-    expect(career).toContain('? careerSquadNegotiationTarget(state, talks.playerId)');
-    expect(career).toContain('function careerSquadNegotiationTarget(');
+    expect(career).toContainSource(
+      '? careerSquadNegotiationTarget(state, talks.playerId)',
+    );
+    expect(career).toContainSource('function careerSquadNegotiationTarget(');
   });
 });

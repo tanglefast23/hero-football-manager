@@ -22,16 +22,24 @@ function withUserResults(
   results: ReadonlyArray<{ goalsFor: number; goalsAgainst: number }>,
 ): GameState {
   const userFixtures = state.fixtures
-    .filter(fixture => fixture.season === state.season
-      && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId))
+    .filter(
+      (fixture) =>
+        fixture.season === state.season &&
+        (fixture.homeClubId === state.userClubId ||
+          fixture.awayClubId === state.userClubId),
+    )
     .slice()
-    .sort((left, right) => left.week - right.week || compareIds(left.id, right.id))
+    .sort(
+      (left, right) => left.week - right.week || compareIds(left.id, right.id),
+    )
     .slice(0, results.length);
-  const resultByFixtureId = new Map(userFixtures.map((fixture, index) => [fixture.id, results[index]]));
+  const resultByFixtureId = new Map(
+    userFixtures.map((fixture, index) => [fixture.id, results[index]]),
+  );
 
   return {
     ...state,
-    fixtures: state.fixtures.map(fixture => {
+    fixtures: state.fixtures.map((fixture) => {
       const result = resultByFixtureId.get(fixture.id);
       if (result === undefined) return fixture;
       const atHome = fixture.homeClubId === state.userClubId;
@@ -58,7 +66,7 @@ describe('the milestone set', () => {
    * a season" were the same congratulation three more times.
    */
   it('recognises six beats a manager would actually retell', () => {
-    expect(CAREER_MILESTONES.map(milestone => milestone.id)).toEqual([
+    expect(CAREER_MILESTONES.map((milestone) => milestone.id)).toEqual([
       'hat-trick',
       'unbeaten-four',
       'first-cup-win',
@@ -93,8 +101,9 @@ describe('the milestone set', () => {
       goalsFor: 1,
       goalsAgainst: 1,
     }));
-    expect(earnedCareerMilestoneFlags(withUserResults(career(), draws)))
-      .toContain('milestone:unbeaten-four');
+    expect(
+      earnedCareerMilestoneFlags(withUserResults(career(), draws)),
+    ).toContain('milestone:unbeaten-four');
 
     const broken = [
       { goalsFor: 1, goalsAgainst: 1 },
@@ -102,14 +111,17 @@ describe('the milestone set', () => {
       { goalsFor: 1, goalsAgainst: 1 },
       { goalsFor: 1, goalsAgainst: 1 },
     ];
-    expect(earnedCareerMilestoneFlags(withUserResults(career(), broken)))
-      .not.toContain('milestone:unbeaten-four');
+    expect(
+      earnedCareerMilestoneFlags(withUserResults(career(), broken)),
+    ).not.toContain('milestone:unbeaten-four');
   });
 
   /** The first milestone that is not a celebration. */
   it('remembers a hammering, and only at six', () => {
     const five = withUserResults(career(), [{ goalsFor: 0, goalsAgainst: 5 }]);
-    expect(earnedCareerMilestoneFlags(five)).not.toContain('milestone:heavy-defeat');
+    expect(earnedCareerMilestoneFlags(five)).not.toContain(
+      'milestone:heavy-defeat',
+    );
 
     const six = withUserResults(career(), [
       { goalsFor: 0, goalsAgainst: CAREER_MILESTONE_HEAVY_DEFEAT_MARGIN },
@@ -121,34 +133,82 @@ describe('the milestone set', () => {
     const base = career();
     const big: GameState = {
       ...base,
-      clubs: base.clubs.map(club => (
-        club.id === base.userClubId ? { ...club, fans: CAREER_MILESTONE_CROWD } : club
-      )),
+      clubs: base.clubs.map((club) =>
+        club.id === base.userClubId
+          ? { ...club, fans: CAREER_MILESTONE_CROWD }
+          : club,
+      ),
     };
-    expect(earnedCareerMilestoneFlags(big)).toContain('milestone:crowd-thousand');
+    expect(earnedCareerMilestoneFlags(big)).toContain(
+      'milestone:crowd-thousand',
+    );
 
     const rivalsOnly: GameState = {
       ...base,
-      clubs: base.clubs.map(club => (
-        club.id === base.userClubId ? club : { ...club, fans: 99_999 }
-      )),
+      clubs: base.clubs.map((club) =>
+        club.id === base.userClubId ? club : { ...club, fans: 99_999 },
+      ),
     };
-    expect(earnedCareerMilestoneFlags(rivalsOnly)).not.toContain('milestone:crowd-thousand');
+    expect(earnedCareerMilestoneFlags(rivalsOnly)).not.toContain(
+      'milestone:crowd-thousand',
+    );
   });
 
   it('earns the merchandise beat from a surge the report actually showed', () => {
     const base = career();
     const quiet: GameState = {
       ...base,
-      ledgers: [{ season: 1, week: 1, lines: [{ source: 'merch', amount: 100, reveal: { source: 'merch', base: 100, variancePercent: 4, surge: false, multiplierTimes: 1, facilityCount: 1 } }] }],
+      ledgers: [
+        {
+          season: 1,
+          week: 1,
+          lines: [
+            {
+              source: 'merch',
+              amount: 100,
+              reveal: {
+                source: 'merch',
+                base: 100,
+                variancePercent: 4,
+                surge: false,
+                multiplierTimes: 1,
+                facilityCount: 1,
+              },
+            },
+          ],
+        },
+      ],
     } as unknown as GameState;
-    expect(earnedCareerMilestoneFlags(quiet)).not.toContain('milestone:merch-surge');
+    expect(earnedCareerMilestoneFlags(quiet)).not.toContain(
+      'milestone:merch-surge',
+    );
 
     const surged: GameState = {
       ...base,
-      ledgers: [{ season: 1, week: 1, lines: [{ source: 'merch', amount: 100, reveal: { source: 'merch', base: 100, variancePercent: 15, surge: true, multiplierTimes: 1, facilityCount: 1 } }] }],
+      ledgers: [
+        {
+          season: 1,
+          week: 1,
+          lines: [
+            {
+              source: 'merch',
+              amount: 100,
+              reveal: {
+                source: 'merch',
+                base: 100,
+                variancePercent: 15,
+                surge: true,
+                multiplierTimes: 1,
+                facilityCount: 1,
+              },
+            },
+          ],
+        },
+      ],
     } as unknown as GameState;
-    expect(earnedCareerMilestoneFlags(surged)).toContain('milestone:merch-surge');
+    expect(earnedCareerMilestoneFlags(surged)).toContain(
+      'milestone:merch-surge',
+    );
   });
 
   /**
@@ -157,7 +217,10 @@ describe('the milestone set', () => {
    * banked when it happens and read back from the flag, never recomputed.
    */
   it('reads the hat-trick from its banked flag, because it cannot be recomputed', () => {
-    const banked: GameState = { ...career(), eventFlags: ['milestone:hat-trick'] };
+    const banked: GameState = {
+      ...career(),
+      eventFlags: ['milestone:hat-trick'],
+    };
     expect(earnedCareerMilestoneFlags(banked)).toContain('milestone:hat-trick');
   });
 
@@ -166,28 +229,38 @@ describe('the milestone set', () => {
       { goalsFor: 1, goalsAgainst: 1 },
       { goalsFor: 0, goalsAgainst: 6 },
     ]);
-    expect(earnedCareerMilestoneFlags(state)).toEqual(earnedCareerMilestoneFlags(state));
+    expect(earnedCareerMilestoneFlags(state)).toEqual(
+      earnedCareerMilestoneFlags(state),
+    );
   });
 });
 
 describe('the recognition queue', () => {
-  const heavyDefeat = () => withUserResults(career(), [{ goalsFor: 0, goalsAgainst: 7 }]);
+  const heavyDefeat = () =>
+    withUserResults(career(), [{ goalsFor: 0, goalsAgainst: 7 }]);
 
   it('queues a beat when its flag is banked', () => {
     const recorded = recordCareerMilestones(heavyDefeat());
     expect(recorded.eventFlags).toContain('milestone:heavy-defeat');
-    expect(recorded.pendingMilestones).toEqual([{ eventId: 'milestone-heavy-defeat' }]);
+    expect(recorded.pendingMilestones).toEqual([
+      { eventId: 'milestone-heavy-defeat' },
+    ]);
   });
 
   it('queues each beat once, however often the week is settled', () => {
     const once = recordCareerMilestones(heavyDefeat());
     const twice = recordCareerMilestones(once);
-    expect(twice.pendingMilestones).toEqual([{ eventId: 'milestone-heavy-defeat' }]);
+    expect(twice.pendingMilestones).toEqual([
+      { eventId: 'milestone-heavy-defeat' },
+    ]);
   });
 
   it('drains a beat once its card has been offered', () => {
     const recorded = recordCareerMilestones(heavyDefeat());
-    expect(drainPendingMilestone(recorded, 'milestone-heavy-defeat').pendingMilestones).toEqual([]);
+    expect(
+      drainPendingMilestone(recorded, 'milestone-heavy-defeat')
+        .pendingMilestones,
+    ).toEqual([]);
   });
 
   /**
@@ -199,17 +272,27 @@ describe('the recognition queue', () => {
     const queued: GameState = {
       ...base,
       pendingMilestones: [
-        { eventId: 'milestone-hat-trick', selectedPlayerId: 'someone-who-left' },
+        {
+          eventId: 'milestone-hat-trick',
+          selectedPlayerId: 'someone-who-left',
+        },
         { eventId: 'milestone-crowd-thousand' },
       ],
     };
-    expect(drainPendingMilestone(queued, 'milestone-crowd-thousand').pendingMilestones).toEqual([]);
+    expect(
+      drainPendingMilestone(queued, 'milestone-crowd-thousand')
+        .pendingMilestones,
+    ).toEqual([]);
   });
 
   it('seeds a save that banked a flag before the queue existed', () => {
-    const banked: GameState = { ...career(), eventFlags: ['milestone:crowd-thousand'] };
-    expect(seedPendingMilestones(banked).pendingMilestones)
-      .toEqual([{ eventId: 'milestone-crowd-thousand' }]);
+    const banked: GameState = {
+      ...career(),
+      eventFlags: ['milestone:crowd-thousand'],
+    };
+    expect(seedPendingMilestones(banked).pendingMilestones).toEqual([
+      { eventId: 'milestone-crowd-thousand' },
+    ]);
   });
 
   it('never seeds a beat the manager has already seen', () => {
@@ -239,9 +322,9 @@ describe('a story no longer drags a milestone along behind it', () => {
    * straight off a failure screen.
    */
   it('never invents a follow-up the author did not write', () => {
-    const earned = recordCareerMilestones(withUserResults(career(), [
-      { goalsFor: 0, goalsAgainst: 8 },
-    ]));
+    const earned = recordCareerMilestones(
+      withUserResults(career(), [{ goalsFor: 0, goalsAgainst: 8 }]),
+    );
     const resolved = applyCareerEventOutcome(
       offerCareerEvent(earned, 'player-slump'),
       'a-choice',
@@ -252,7 +335,9 @@ describe('a story no longer drags a milestone along behind it', () => {
 
     expect(resolved.pendingEvent?.resolvedNextEventId).toBeUndefined();
     // The beat is not lost — it is waiting in its own lane instead.
-    expect(resolved.pendingMilestones).toEqual([{ eventId: 'milestone-heavy-defeat' }]);
+    expect(resolved.pendingMilestones).toEqual([
+      { eventId: 'milestone-heavy-defeat' },
+    ]);
   });
 
   it('still carries an authored chain', () => {
@@ -261,8 +346,15 @@ describe('a story no longer drags a milestone along behind it', () => {
       'a-choice',
       'The bid lands.',
       {},
-      { outcomeIndex: 0, risky: false, success: false, nextEventId: 'rival-bid-deadline-day' },
+      {
+        outcomeIndex: 0,
+        risky: false,
+        success: false,
+        nextEventId: 'rival-bid-deadline-day',
+      },
     );
-    expect(resolved.pendingEvent?.resolvedNextEventId).toBe('rival-bid-deadline-day');
+    expect(resolved.pendingEvent?.resolvedNextEventId).toBe(
+      'rival-bid-deadline-day',
+    );
   });
 });

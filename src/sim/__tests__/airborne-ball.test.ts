@@ -43,7 +43,8 @@ describe('deterministic 2.5D ball flight', () => {
 
     possessionTick(m);
     expect(m.ball.kind).toBe('pass');
-    if (m.ball.kind !== 'pass') throw new Error('airborne pass was controlled too early');
+    if (m.ball.kind !== 'pass')
+      throw new Error('airborne pass was controlled too early');
     expect(m.ball.z).toBeGreaterThan(BALL_CONTROL_HEIGHT);
 
     possessionTick(m);
@@ -93,7 +94,10 @@ describe('deterministic 2.5D ball flight', () => {
     m.tick++;
     possessionTick(m);
     expect(m.ball).toMatchObject({ kind: 'pass' });
-    const distribution = m.ball as unknown as Extract<BallState, { kind: 'pass' }>;
+    const distribution = m.ball as unknown as Extract<
+      BallState,
+      { kind: 'pass' }
+    >;
     expect(distribution.vz).toBeGreaterThan(0);
     expect(distribution.speed).toBeGreaterThan(0);
     expect(m.players[keeper].gauge).toBe(35);
@@ -120,7 +124,9 @@ describe('deterministic 2.5D ball flight', () => {
 
     shotFlightTick(m);
 
-    expect(m.events).toContainEqual(expect.objectContaining({ kind: 'MISS', by: shooter }));
+    expect(m.events).toContainEqual(
+      expect.objectContaining({ kind: 'MISS', by: shooter }),
+    );
     expect(m.players[keeper].gauge).toBe(10);
   });
 

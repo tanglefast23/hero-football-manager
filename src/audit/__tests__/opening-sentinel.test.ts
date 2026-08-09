@@ -11,7 +11,10 @@
  * snapshot to refresh.
  */
 import { loadLaunchContent } from '../../content';
-import { BASE_WEEKLY_TRAINING_POINTS, coachWeeklyTrainingPoints } from '../../game';
+import {
+  BASE_WEEKLY_TRAINING_POINTS,
+  coachWeeklyTrainingPoints,
+} from '../../game';
 import {
   JOE_OBSERVED_COACH_POLICY,
   JOE_OBSERVED_NO_COACH_POLICY,
@@ -32,8 +35,18 @@ import {
 
 const content = loadLaunchContent();
 const LAUNCH_TP = productionLaunchTrainingPoints(content);
-const SEEDS = [4_000_000, 4_007_919, 4_015_838, 4_023_757, 4_031_676, 4_039_595, 4_047_514, 4_055_433];
-const CREATION: CreationRatings = { pac: 50, sho: 65, pas: 50, def: 50, tec: 50, sta: 50 };
+const SEEDS = [
+  4_000_000, 4_007_919, 4_015_838, 4_023_757, 4_031_676, 4_039_595, 4_047_514,
+  4_055_433,
+];
+const CREATION: CreationRatings = {
+  pac: 50,
+  sho: 65,
+  pas: 50,
+  def: 50,
+  tec: 50,
+  sta: 50,
+};
 
 const ARMS: readonly OpeningPolicy[] = [
   ORDINARY_POLICY,
@@ -46,21 +59,27 @@ const ARMS: readonly OpeningPolicy[] = [
 ];
 
 function runArm(policy: OpeningPolicy): OpeningRun[] {
-  return SEEDS.map(seed => {
-    const run = runOpening({ seed, difficulty: 'COZY', policy, creation: CREATION, content });
+  return SEEDS.map((seed) => {
+    const run = runOpening({
+      seed,
+      difficulty: 'COZY',
+      policy,
+      creation: CREATION,
+      content,
+    });
     reconcileTrainingPoints(run, LAUNCH_TP);
     return run;
   });
 }
 
 function outcomeDigest(runs: readonly OpeningRun[]): string {
-  return runs.map(run => run.opener.outcome).join('');
+  return runs.map((run) => run.opener.outcome).join('');
 }
 
 describe('opening sentinel', () => {
-  const byArm = new Map(ARMS.map(policy => [policy.id, runArm(policy)]));
+  const byArm = new Map(ARMS.map((policy) => [policy.id, runArm(policy)]));
 
-  it.each(ARMS.map(policy => [policy.id, policy] as const))(
+  it.each(ARMS.map((policy) => [policy.id, policy] as const))(
     'keeps %s on a reconciled production ledger',
     (_id, policy) => {
       const runs = byArm.get(policy.id)!;
@@ -71,8 +90,12 @@ describe('opening sentinel', () => {
         // The whole pre-kickoff bank: the launch grant plus two weekly
         // settlements, each the baseline plus a Level 1 coach once hired.
         expect(run.tpSpent + run.tpBanked).toBe(
-          LAUNCH_TP + (BASE_WEEKLY_TRAINING_POINTS
-            + (usesCoach(policy.id) ? coachWeeklyTrainingPoints(1, 'HEAD') : 0)) * 2,
+          LAUNCH_TP +
+            (BASE_WEEKLY_TRAINING_POINTS +
+              (usesCoach(policy.id)
+                ? coachWeeklyTrainingPoints(1, 'HEAD')
+                : 0)) *
+              2,
         );
       }
     },
@@ -82,20 +105,42 @@ describe('opening sentinel', () => {
     // Tap counts follow from the bank, so they move whenever the launch grant
     // does. Asserted as absolutes because a silent change in how much
     // preparation the opener allows is exactly what this sentinel is for.
-    expect(byArm.get('ordinary')!.every(run => run.tapCount === 8 && run.tpBanked === 4)).toBe(true);
-    expect(byArm.get('smart-breadth')!.every(run => run.tapCount === 8 && run.tpBanked === 4)).toBe(true);
-    expect(byArm.get('smart-extra-fwd')!.every(run => run.tapCount === 8)).toBe(true);
-    expect(byArm.get('joe-observed-no-coach')!.every(run => run.tapCount === 6)).toBe(true);
-    expect(byArm.get('no-training')!.every(run => (
-      run.tapCount === 0 && run.tpBanked === LAUNCH_TP + BASE_WEEKLY_TRAINING_POINTS * 2
-    ))).toBe(true);
+    expect(
+      byArm
+        .get('ordinary')!
+        .every((run) => run.tapCount === 8 && run.tpBanked === 4),
+    ).toBe(true);
+    expect(
+      byArm
+        .get('smart-breadth')!
+        .every((run) => run.tapCount === 8 && run.tpBanked === 4),
+    ).toBe(true);
+    expect(
+      byArm.get('smart-extra-fwd')!.every((run) => run.tapCount === 8),
+    ).toBe(true);
+    expect(
+      byArm.get('joe-observed-no-coach')!.every((run) => run.tapCount === 6),
+    ).toBe(true);
+    expect(
+      byArm
+        .get('no-training')!
+        .every(
+          (run) =>
+            run.tapCount === 0 &&
+            run.tpBanked === LAUNCH_TP + BASE_WEEKLY_TRAINING_POINTS * 2,
+        ),
+    ).toBe(true);
   });
 
   it('keeps every trained arm ahead of the untrained control on squad strength', () => {
-    const control = mean(byArm.get('no-training')!.map(run => run.opener.userStrength));
+    const control = mean(
+      byArm.get('no-training')!.map((run) => run.opener.userStrength),
+    );
     for (const policy of ARMS) {
       if (policy.id === 'no-training') continue;
-      const armStrength = mean(byArm.get(policy.id)!.map(run => run.opener.userStrength));
+      const armStrength = mean(
+        byArm.get(policy.id)!.map((run) => run.opener.userStrength),
+      );
       expect(armStrength).toBeGreaterThan(control);
     }
   });
@@ -111,7 +156,7 @@ describe('opening sentinel', () => {
 
   it('matches the recorded opening digest', () => {
     const digests = Object.fromEntries(
-      ARMS.map(policy => [policy.id, outcomeDigest(byArm.get(policy.id)!)]),
+      ARMS.map((policy) => [policy.id, outcomeDigest(byArm.get(policy.id)!)]),
     );
     // Updated 2026-08-02 for two owner-approved changes that both push the
     // opener the same way: the outfield drill ladder cut to four fifths
@@ -166,11 +211,17 @@ describe('opening sentinel', () => {
 });
 
 function usesCoach(policyId: string): boolean {
-  return policyId !== 'joe-observed-no-coach' && policyId !== 'no-training' && policyId !== 'pac-control';
+  return (
+    policyId !== 'joe-observed-no-coach' &&
+    policyId !== 'no-training' &&
+    policyId !== 'pac-control'
+  );
 }
 
 function minCondition(runs: readonly OpeningRun[]): number {
-  return Math.min(...runs.flatMap(run => Object.values(run.kickoffCondition)));
+  return Math.min(
+    ...runs.flatMap((run) => Object.values(run.kickoffCondition)),
+  );
 }
 
 function mean(values: readonly number[]): number {

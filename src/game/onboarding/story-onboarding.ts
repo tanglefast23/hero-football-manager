@@ -1,7 +1,10 @@
 import type { Role, TeamDef } from '../../sim/types';
 import { developmentPotentialCeiling } from '../archetype-caps';
 import { compareIds } from '../ordering';
-import { assignDistinctPlayerLooks, createdAppearanceLookId } from '../player-appearance';
+import {
+  assignDistinctPlayerLooks,
+  createdAppearanceLookId,
+} from '../player-appearance';
 import type { CareerPlayer, GameState, LeagueFixture } from '../types';
 import { STORY_STARTING_ROSTER_SIZE } from '../story-progression';
 import { reconcileStoryYouthIntake } from '../youth-intake';
@@ -14,7 +17,12 @@ import {
 const CREATED_PLAYER_ID_SUFFIX = 'created-player';
 
 /** Sheet order for the rename list: back to front, the way a team sheet reads. */
-const ROSTER_ROLE_ORDER: Readonly<Record<Role, number>> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
+const ROSTER_ROLE_ORDER: Readonly<Record<Role, number>> = {
+  GK: 0,
+  DEF: 1,
+  MID: 2,
+  FWD: 3,
+};
 
 export interface InheritedSquadMember {
   id: string;
@@ -27,74 +35,106 @@ export interface InheritedSquadMember {
  * on the first-hire screen. The created player is deliberately absent: they do
  * not exist yet, and their name is the field above the sheet.
  */
-export function inheritedSquad(state: GameState): readonly InheritedSquadMember[] {
+export function inheritedSquad(
+  state: GameState,
+): readonly InheritedSquadMember[] {
   return state.players
-    .filter(player => player.clubId === state.userClubId)
+    .filter((player) => player.clubId === state.userClubId)
     .slice()
-    .sort((left, right) => (
-      ROSTER_ROLE_ORDER[left.role] - ROSTER_ROLE_ORDER[right.role]
-      || compareIds(left.id, right.id)
-    ))
+    .sort(
+      (left, right) =>
+        ROSTER_ROLE_ORDER[left.role] - ROSTER_ROLE_ORDER[right.role] ||
+        compareIds(left.id, right.id),
+    )
     .map(({ id, name, role }) => ({ id, name, role }));
 }
 
 /** The manager's own club, which the first-hire screen offers to rename. */
 export function userClubName(state: GameState): string {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const club = state.clubs.find(
+    (candidate) => candidate.id === state.userClubId,
+  );
+  if (club === undefined)
+    throw new Error(`unknown user club ${state.userClubId}`);
   return club.name;
 }
 
 export function beginStoryOnboarding(state: GameState): GameState {
   if (state.phase !== 'manage' || state.season !== 1 || state.week !== 1) {
-    throw new Error('Story onboarding must begin at Season 1, Week 1 management');
+    throw new Error(
+      'Story onboarding must begin at Season 1, Week 1 management',
+    );
   }
-  const userPlayers = state.players.filter(player => player.clubId === state.userClubId);
-  if (userPlayers.length === 0) throw new Error('Story onboarding requires a user-club roster');
+  const userPlayers = state.players.filter(
+    (player) => player.clubId === state.userClubId,
+  );
+  if (userPlayers.length === 0)
+    throw new Error('Story onboarding requires a user-club roster');
   const prepared = trimStoryLaunchRoster(state, userPlayers);
   return reconcileStoryYouthIntake({
     ...prepared,
-    players: prepared.players.map(player => player.clubId === state.userClubId
-      ? { ...player, power: undefined, licensed: false, onHeroWage: false }
-      : player),
+    players: prepared.players.map((player) =>
+      player.clubId === state.userClubId
+        ? { ...player, power: undefined, licensed: false, onHeroWage: false }
+        : player,
+    ),
     onboarding: { stage: 'create-player' },
   });
 }
 
-function trimStoryLaunchRoster(state: GameState, userPlayers: readonly CareerPlayer[]): GameState {
+function trimStoryLaunchRoster(
+  state: GameState,
+  userPlayers: readonly CareerPlayer[],
+): GameState {
   const targetBeforeCreatedPlayer = STORY_STARTING_ROSTER_SIZE - 1;
-  const removalCount = Math.max(0, userPlayers.length - targetBeforeCreatedPlayer);
+  const removalCount = Math.max(
+    0,
+    userPlayers.length - targetBeforeCreatedPlayer,
+  );
   if (removalCount === 0) return state;
 
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
-  if (lineup === undefined) throw new Error('Story onboarding requires a user-club lineup');
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  if (lineup === undefined)
+    throw new Error('Story onboarding requires a user-club lineup');
   const starters = new Set(lineup.playerIds);
   const removable = userPlayers
-    .filter(player => !starters.has(player.id) && player.role !== 'GK')
+    .filter((player) => !starters.has(player.id) && player.role !== 'GK')
     .slice()
-    .sort((left, right) => (
-      Number(right.role === 'FWD') - Number(left.role === 'FWD')
-      || left.weeklyWage - right.weeklyWage
-      || compareIds(left.id, right.id)
-    ));
+    .sort(
+      (left, right) =>
+        Number(right.role === 'FWD') - Number(left.role === 'FWD') ||
+        left.weeklyWage - right.weeklyWage ||
+        compareIds(left.id, right.id),
+    );
   if (removable.length < removalCount) {
-    throw new Error('Story onboarding needs enough reserve outfield players to open two roster slots');
+    throw new Error(
+      'Story onboarding needs enough reserve outfield players to open two roster slots',
+    );
   }
 
-  const removed = new Set(removable.slice(0, removalCount).map(player => player.id));
+  const removed = new Set(
+    removable.slice(0, removalCount).map((player) => player.id),
+  );
   const removedWages = removable
     .slice(0, removalCount)
     .reduce((total, player) => total + player.weeklyWage, 0);
   return {
     ...state,
-    players: state.players.filter(player => !removed.has(player.id)),
-    clubs: state.clubs.map(club => club.id === state.userClubId
-      ? { ...club, weeklyWages: club.weeklyWages - removedWages }
-      : club),
+    players: state.players.filter((player) => !removed.has(player.id)),
+    clubs: state.clubs.map((club) =>
+      club.id === state.userClubId
+        ? { ...club, weeklyWages: club.weeklyWages - removedWages }
+        : club,
+    ),
   };
 }
 
-export function addCreatedPlayer(state: GameState, draft: CreatedPlayerDraft): GameState {
+export function addCreatedPlayer(
+  state: GameState,
+  draft: CreatedPlayerDraft,
+): GameState {
   if (state.onboarding?.stage !== 'create-player') {
     throw new Error('A player can only be created at the start of onboarding');
   }
@@ -105,18 +145,26 @@ export function addCreatedPlayer(state: GameState, draft: CreatedPlayerDraft): G
   // prototype and be assigned as somebody's name.
   const renames = new Map(Object.entries(rosterNames));
   const squadIds = new Set(
-    state.players.filter(player => player.clubId === state.userClubId).map(player => player.id),
+    state.players
+      .filter((player) => player.clubId === state.userClubId)
+      .map((player) => player.id),
   );
   for (const id of renames.keys()) {
-    if (!squadIds.has(id)) throw new Error(`Cannot rename ${id}: it is not on the manager's roster`);
+    if (!squadIds.has(id))
+      throw new Error(`Cannot rename ${id}: it is not on the manager's roster`);
   }
   const playerId = `${state.userClubId}-${CREATED_PLAYER_ID_SUFFIX}`;
-  if (state.players.some(player => player.id === playerId)) {
+  if (state.players.some((player) => player.id === playerId)) {
     throw new Error('The created player already exists');
   }
-  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
-  if (lineup === undefined) throw new Error('The user club has no starting lineup');
-  const playerById = new Map(state.players.map(player => [player.id, player]));
+  const lineup = state.lineups.find(
+    (candidate) => candidate.clubId === state.userClubId,
+  );
+  if (lineup === undefined)
+    throw new Error('The user club has no starting lineup');
+  const playerById = new Map(
+    state.players.map((player) => [player.id, player]),
+  );
   let replacementIndex = -1;
   for (let index = lineup.playerIds.length - 1; index >= 0; index -= 1) {
     if (playerById.get(lineup.playerIds[index])?.role === 'FWD') {
@@ -124,7 +172,8 @@ export function addCreatedPlayer(state: GameState, draft: CreatedPlayerDraft): G
       break;
     }
   }
-  if (replacementIndex < 0) throw new Error('The starting lineup needs an outfield forward slot');
+  if (replacementIndex < 0)
+    throw new Error('The starting lineup needs an outfield forward slot');
   const firstFixture = firstUserFixture(state);
   const created: CareerPlayer = {
     id: playerId,
@@ -161,32 +210,41 @@ export function addCreatedPlayer(state: GameState, draft: CreatedPlayerDraft): G
   // The explicit paper-doll choice owns its atlas slot. Move a colliding
   // generated player instead of silently changing the selected appearance.
   const assignedLooks = assignDistinctPlayerLooks([created, ...state.players]);
-  const assignedById = new Map(assignedLooks.map(player => [player.id, player]));
+  const assignedById = new Map(
+    assignedLooks.map((player) => [player.id, player]),
+  );
   return {
     ...state,
     difficulty,
-    clubs: state.clubs.map(club => club.id === state.userClubId
-      ? {
-          ...club,
-          ...(clubName === undefined ? {} : { name: clubName }),
-          weeklyWages: safeAdd(club.weeklyWages, CREATED_PLAYER_ROOKIE_WAGE),
-        }
-      : club),
+    clubs: state.clubs.map((club) =>
+      club.id === state.userClubId
+        ? {
+            ...club,
+            ...(clubName === undefined ? {} : { name: clubName }),
+            weeklyWages: safeAdd(club.weeklyWages, CREATED_PLAYER_ROOKIE_WAGE),
+          }
+        : club,
+    ),
     players: [
-      ...state.players.map(player => {
+      ...state.players.map((player) => {
         const assigned = assignedById.get(player.id)!;
         const renamed = renames.get(assigned.id);
-        return renamed === undefined ? assigned : { ...assigned, name: renamed };
+        return renamed === undefined
+          ? assigned
+          : { ...assigned, name: renamed };
       }),
       assignedById.get(created.id)!,
     ],
-    lineups: state.lineups.map(candidate => candidate.clubId === state.userClubId
-      ? {
-          ...candidate,
-          playerIds: candidate.playerIds.map((id, index) =>
-            index === replacementIndex ? playerId : id),
-        }
-      : candidate),
+    lineups: state.lineups.map((candidate) =>
+      candidate.clubId === state.userClubId
+        ? {
+            ...candidate,
+            playerIds: candidate.playerIds.map((id, index) =>
+              index === replacementIndex ? playerId : id,
+            ),
+          }
+        : candidate,
+    ),
     onboarding: {
       stage: 'first-match',
       createdPlayerId: playerId,
@@ -195,17 +253,28 @@ export function addCreatedPlayer(state: GameState, draft: CreatedPlayerDraft): G
   };
 }
 
-export function isFirstOnboardingFixture(state: GameState, fixtureId: string): boolean {
-  return state.onboarding?.stage === 'first-match'
-    && state.onboarding.firstFixtureId === fixtureId;
+export function isFirstOnboardingFixture(
+  state: GameState,
+  fixtureId: string,
+): boolean {
+  return (
+    state.onboarding?.stage === 'first-match' &&
+    state.onboarding.firstFixtureId === fixtureId
+  );
 }
 
-export function completeFirstOnboardingMatch(state: GameState, fixtureId: string): GameState {
+export function completeFirstOnboardingMatch(
+  state: GameState,
+  fixtureId: string,
+): GameState {
   if (!isFirstOnboardingFixture(state, fixtureId)) {
     throw new Error('The completed fixture is not the onboarding match');
   }
-  const fixture = state.fixtures.find(candidate => candidate.id === fixtureId);
-  if (fixture?.status !== 'played') throw new Error('The onboarding fixture must be played first');
+  const fixture = state.fixtures.find(
+    (candidate) => candidate.id === fixtureId,
+  );
+  if (fixture?.status !== 'played')
+    throw new Error('The onboarding fixture must be played first');
   return {
     ...state,
     onboarding: { ...state.onboarding, stage: 'collapse' },
@@ -215,7 +284,7 @@ export function completeFirstOnboardingMatch(state: GameState, fixtureId: string
 export function withoutPowers(team: TeamDef): TeamDef {
   return {
     ...team,
-    players: team.players.map(player => {
+    players: team.players.map((player) => {
       const { power: _power, ...regular } = player;
       return { ...regular, attrs: { ...regular.attrs } };
     }),
@@ -224,21 +293,36 @@ export function withoutPowers(team: TeamDef): TeamDef {
 
 export function createdPlayer(state: GameState): CareerPlayer | undefined {
   const id = state.onboarding?.createdPlayerId;
-  return id === undefined ? undefined : state.players.find(player => player.id === id);
+  return id === undefined
+    ? undefined
+    : state.players.find((player) => player.id === id);
 }
 
 function firstUserFixture(state: GameState): LeagueFixture {
   const fixture = state.fixtures
-    .filter(candidate => candidate.season === 1 && (
-      candidate.homeClubId === state.userClubId || candidate.awayClubId === state.userClubId
-    ))
-    .sort((left, right) => left.week - right.week || left.round - right.round || compareIds(left.id, right.id))[0];
-  if (fixture === undefined) throw new Error('The career has no first user fixture');
+    .filter(
+      (candidate) =>
+        candidate.season === 1 &&
+        (candidate.homeClubId === state.userClubId ||
+          candidate.awayClubId === state.userClubId),
+    )
+    .sort(
+      (left, right) =>
+        left.week - right.week ||
+        left.round - right.round ||
+        compareIds(left.id, right.id),
+    )[0];
+  if (fixture === undefined)
+    throw new Error('The career has no first user fixture');
   return fixture;
 }
 
 function safeAdd(left: number, right: number): number {
-  if (!Number.isSafeInteger(left) || !Number.isSafeInteger(right) || !Number.isSafeInteger(left + right)) {
+  if (
+    !Number.isSafeInteger(left) ||
+    !Number.isSafeInteger(right) ||
+    !Number.isSafeInteger(left + right)
+  ) {
     throw new Error('The created player wage exceeds the safe integer range');
   }
   return left + right;

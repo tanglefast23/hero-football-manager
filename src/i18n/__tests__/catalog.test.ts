@@ -13,28 +13,48 @@ describe('catalog schema', () => {
   });
 
   test('rejects a locale we do not ship', () => {
-    expect(() => CatalogSchema.parse({ schemaVersion: 1, locale: 'pt', strings: {} })).toThrow();
+    expect(() =>
+      CatalogSchema.parse({ schemaVersion: 1, locale: 'pt', strings: {} }),
+    ).toThrow();
   });
 
   test('rejects an empty string value, which is always a mistake', () => {
-    expect(() => CatalogSchema.parse({ schemaVersion: 1, locale: 'en', strings: { 'a.b': '' } }))
-      .toThrow();
+    expect(() =>
+      CatalogSchema.parse({
+        schemaVersion: 1,
+        locale: 'en',
+        strings: { 'a.b': '' },
+      }),
+    ).toThrow();
   });
 
   test('rejects a key that is not dot-namespaced', () => {
-    expect(() => CatalogSchema.parse({ schemaVersion: 1, locale: 'en', strings: { nodots: 'x' } }))
-      .toThrow();
+    expect(() =>
+      CatalogSchema.parse({
+        schemaVersion: 1,
+        locale: 'en',
+        strings: { nodots: 'x' },
+      }),
+    ).toThrow();
   });
 
   test('rejects an unknown top-level field', () => {
-    expect(() => CatalogSchema.parse({ schemaVersion: 1, locale: 'en', strings: {}, extra: 1 }))
-      .toThrow();
+    expect(() =>
+      CatalogSchema.parse({
+        schemaVersion: 1,
+        locale: 'en',
+        strings: {},
+        extra: 1,
+      }),
+    ).toThrow();
   });
 });
 
 describe('loadCatalog', () => {
   test('loads English', () => {
-    expect(loadCatalog('en').strings['settings.language.title']).toBe('Language');
+    expect(loadCatalog('en').strings['settings.language.title']).toBe(
+      'Language',
+    );
   });
 
   test('every shipped locale has a parseable catalog file', () => {

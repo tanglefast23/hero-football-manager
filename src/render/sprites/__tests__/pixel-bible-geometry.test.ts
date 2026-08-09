@@ -3,7 +3,10 @@ import spriteData from '../sprites.json';
 import managementData from '../management-sprites.json';
 import { EVENT_PALETTE } from '../../../ui/event-pixel-art';
 import { EVENT_SPRITE_ROWS } from '../../../ui/event-pixel-sprites';
-import { FINANCE_PALETTE, SPRITE_ROWS as FINANCE_SPRITE_ROWS } from '../../../ui/finance-pixel-art';
+import {
+  FINANCE_PALETTE,
+  SPRITE_ROWS as FINANCE_SPRITE_ROWS,
+} from '../../../ui/finance-pixel-art';
 
 /**
  * The docs/11 rules a colour grep cannot reach: outline weight, outline colour,
@@ -34,33 +37,45 @@ const SOURCES: readonly {
   palette: Palette;
   sprites: Sprites;
   backdrop: string;
-  /**
-   * Exact number of edge pixels currently known to be an un-outlined fill that
-   * cannot separate from the backdrop. An absolute baseline, never a budget: a
-   * percentage would let new debt hide behind a growing sheet, and would hand
-   * the three clean sources an allowance they have not earned. Zero means zero.
-   * Lower a number when the art is fixed; never raise one.
-   */
-  knownDissolving: number;
 }[] = [
-  // Backlog: 54 px, mostly #ffffff and #a3c8f0 meeting cream.
-  { name: 'portraits', ...(portraitData as { palette: Palette; sprites: Sprites }), backdrop: '#f4f1ea', knownDissolving: 54 },
-  // Backlog: 104 px — #ff6a00, #a3c8f0, #b9b4c2, #f2938c, #1d9e75 on turf.
-  { name: 'match sprites', ...(spriteData as { palette: Palette; sprites: Sprites }), backdrop: '#5cb85c', knownDissolving: 104 },
-  // Backlog: #c9c5d0 x80 and #f4f1ea x36 meet cream with no outline.
-  { name: 'management sprites', ...(managementData as { palette: Palette; sprites: Sprites }), backdrop: '#f4f1ea', knownDissolving: 116 },
-  // Backlog: #f7d894 x9, #ffffff x5, #c9c5d0 x1, and two pixels of cream fill
-  // touching the cream backdrop — invisible at any size.
-  { name: 'event objects', palette: EVENT_PALETTE, sprites: EVENT_SPRITE_ROWS, backdrop: '#f4f1ea', knownDissolving: 17 },
-  { name: 'finance icons', palette: FINANCE_PALETTE, sprites: FINANCE_SPRITE_ROWS, backdrop: '#f4f1ea', knownDissolving: 0 },
+  {
+    name: 'portraits',
+    ...(portraitData as { palette: Palette; sprites: Sprites }),
+    backdrop: '#f4f1ea',
+  },
+  {
+    name: 'match sprites',
+    ...(spriteData as { palette: Palette; sprites: Sprites }),
+    backdrop: '#5cb85c',
+  },
+  {
+    name: 'management sprites',
+    ...(managementData as { palette: Palette; sprites: Sprites }),
+    backdrop: '#f4f1ea',
+  },
+  {
+    name: 'event objects',
+    palette: EVENT_PALETTE,
+    sprites: EVENT_SPRITE_ROWS,
+    backdrop: '#f4f1ea',
+  },
+  {
+    name: 'finance icons',
+    palette: FINANCE_PALETTE,
+    sprites: FINANCE_SPRITE_ROWS,
+    backdrop: '#f4f1ea',
+  },
 ];
 
-const toRgb = (hex: string): number[] => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const toRgb = (hex: string): number[] =>
+  [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
 function luminance(hex: string): number {
   const channels = toRgb(hex).map((value) => {
     const scaled = value / 255;
-    return scaled <= 0.03928 ? scaled / 12.92 : ((scaled + 0.055) / 1.055) ** 2.4;
+    return scaled <= 0.03928
+      ? scaled / 12.92
+      : ((scaled + 0.055) / 1.055) ** 2.4;
   });
   return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
 }
@@ -76,7 +91,9 @@ const OUTLINE_MAX_LUMINANCE = 0.1;
 function outlineKeys(palette: Palette): Set<string> {
   return new Set(
     Object.entries(palette)
-      .filter(([, hex]) => hex !== null && luminance(hex) < OUTLINE_MAX_LUMINANCE)
+      .filter(
+        ([, hex]) => hex !== null && luminance(hex) < OUTLINE_MAX_LUMINANCE,
+      )
       .map(([key]) => key),
   );
 }
@@ -91,8 +108,16 @@ interface EdgePixel {
 }
 
 /** Two sheets declare no `cell`, so the grid comes from the rows themselves. */
-const reader = (rows: readonly string[]) => (x: number, y: number): string =>
-  y < 0 || y >= rows.length || rows[y] === undefined || x < 0 || x >= rows[y].length ? EMPTY : rows[y][x];
+const reader =
+  (rows: readonly string[]) =>
+  (x: number, y: number): string =>
+    y < 0 ||
+    y >= rows.length ||
+    rows[y] === undefined ||
+    x < 0 ||
+    x >= rows[y].length
+      ? EMPTY
+      : rows[y][x];
 
 function edgePixels(rows: readonly string[]): EdgePixel[] {
   const at = reader(rows);
@@ -101,7 +126,12 @@ function edgePixels(rows: readonly string[]): EdgePixel[] {
     for (let x = 0; x < rows[y].length; x++) {
       const key = at(x, y);
       if (key === EMPTY) continue;
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      for (const [dx, dy] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ]) {
         if (at(x + dx, y + dy) === EMPTY) {
           found.push({ key, dx: -dx, dy: -dy, x, y });
           break;
@@ -112,45 +142,75 @@ function edgePixels(rows: readonly string[]): EdgePixel[] {
   return found;
 }
 
-describe.each(SOURCES)('$name obey the pixel bible', ({ palette, sprites, backdrop, knownDissolving }) => {
-  const outlines = outlineKeys(palette);
-  const names = Object.keys(sprites);
+describe.each(SOURCES)(
+  '$name obey the pixel bible',
+  ({ palette, sprites, backdrop }) => {
+    const outlines = outlineKeys(palette);
+    const names = Object.keys(sprites);
 
-  it('never outlines with pure black, only dark tints (docs/11 Track B)', () => {
-    const black = Object.entries(palette).filter(([, hex]) => hex !== null && /^#0{6}$/i.test(hex));
-    expect(black).toEqual([]);
-    expect(outlines.size).toBeGreaterThan(0);
-  });
+    it('never outlines with pure black, only dark tints (docs/11 Track B)', () => {
+      const black = Object.entries(palette).filter(
+        ([, hex]) => hex !== null && /^#0{6}$/i.test(hex),
+      );
+      expect(black).toEqual([]);
+      expect(outlines.size).toBeGreaterThan(0);
+    });
 
-  it('keeps the outline band one pixel thick almost everywhere (rule 8)', () => {
-    let single = 0;
-    let outlined = 0;
-    for (const name of names) {
-      const rows = sprites[name];
-      const at = reader(rows);
+    it('keeps the outline band one pixel thick almost everywhere (rule 8)', () => {
+      let single = 0;
+      let outlined = 0;
+      for (const name of names) {
+        const rows = sprites[name];
+        const at = reader(rows);
+        for (const edge of edgePixels(rows)) {
+          if (!outlines.has(edge.key)) continue;
+          outlined++;
+          let depth = 0;
+          while (
+            at(edge.x + edge.dx * depth, edge.y + edge.dy * depth) === edge.key
+          )
+            depth++;
+          if (depth === 1) single++;
+        }
+      }
+      // A thicker band at a chin or a boot sole is authored weight, not drift;
+      // the floor catches a sprite family drawn at the wrong weight throughout.
+      expect(single / outlined).toBeGreaterThan(0.65);
+    });
+
+    it('does not let a bare fill dissolve into its own background (rule 10)', () => {
+      const dissolving: string[] = [];
+      for (const name of names) {
+        for (const edge of edgePixels(sprites[name])) {
+          if (outlines.has(edge.key)) continue;
+          const hex = palette[edge.key];
+          if (
+            hex !== null &&
+            hex !== undefined &&
+            contrastRatio(hex, backdrop) < 1.6
+          ) {
+            dissolving.push(`${name}@${edge.x},${edge.y}:${hex}`);
+          }
+        }
+      }
+      expect(dissolving).toEqual([]);
+    });
+  },
+);
+
+describe('portrait silhouettes have a complete one-pixel outline', () => {
+  const sheet = portraitData as { palette: Palette; sprites: Sprites };
+  const outlines = outlineKeys(sheet.palette);
+
+  it('leaves no bare fill exposed to the portrait background', () => {
+    const bare: string[] = [];
+    for (const [name, rows] of Object.entries(sheet.sprites)) {
       for (const edge of edgePixels(rows)) {
-        if (!outlines.has(edge.key)) continue;
-        outlined++;
-        let depth = 0;
-        while (at(edge.x + edge.dx * depth, edge.y + edge.dy * depth) === edge.key) depth++;
-        if (depth === 1) single++;
+        if (!outlines.has(edge.key))
+          bare.push(`${name}@${edge.x},${edge.y}:${edge.key}`);
       }
     }
-    // A thicker band at a chin or a boot sole is authored weight, not drift;
-    // the floor catches a sprite family drawn at the wrong weight throughout.
-    expect(single / outlined).toBeGreaterThan(0.65);
-  });
-
-  it('does not let a bare fill dissolve into its own background (rule 10)', () => {
-    let dissolving = 0;
-    for (const name of names) {
-      for (const edge of edgePixels(sprites[name])) {
-        if (outlines.has(edge.key)) continue;
-        const hex = palette[edge.key];
-        if (hex !== null && hex !== undefined && contrastRatio(hex, backdrop) < 1.6) dissolving++;
-      }
-    }
-    expect(dissolving).toBe(knownDissolving);
+    expect(bare).toEqual([]);
   });
 });
 
@@ -185,12 +245,19 @@ describe('portrait cast varies where it exaggerates (rule 3)', () => {
       const inkIn = (from: number, to: number): number => {
         let n = 0;
         for (let y = from; y <= to && y < rows.length; y++) {
-          for (const key of rows[y]) if (key !== EMPTY && outlines.has(key)) n++;
+          for (const key of rows[y])
+            if (key !== EMPTY && outlines.has(key)) n++;
         }
         return n;
       };
-      const eyes = inkIn(top + Math.round(height * 0.28), top + Math.round(height * 0.52));
-      const jaw = inkIn(top + Math.round(height * 0.55), top + Math.round(height * 0.8));
+      const eyes = inkIn(
+        top + Math.round(height * 0.28),
+        top + Math.round(height * 0.52),
+      );
+      const jaw = inkIn(
+        top + Math.round(height * 0.55),
+        top + Math.round(height * 0.8),
+      );
       return eyes / (jaw || 1);
     })
     .sort((a, b) => a - b);
@@ -235,8 +302,14 @@ describe('the cast-spread metric can fail', () => {
       }
       return n;
     };
-    const eyes = inkIn(top + Math.round(height * 0.28), top + Math.round(height * 0.52));
-    const jaw = inkIn(top + Math.round(height * 0.55), top + Math.round(height * 0.8));
+    const eyes = inkIn(
+      top + Math.round(height * 0.28),
+      top + Math.round(height * 0.52),
+    );
+    const jaw = inkIn(
+      top + Math.round(height * 0.55),
+      top + Math.round(height * 0.8),
+    );
     return eyes / (jaw || 1);
   };
 
@@ -268,14 +341,20 @@ function maroonedSteps(rows: readonly string[]): number {
   for (let y = 0; y < rows.length; y++) {
     let x = -1;
     for (let i = 0; i < rows[y].length; i++) {
-      if (rows[y][i] !== EMPTY) { x = i; break; }
+      if (rows[y][i] !== EMPTY) {
+        x = i;
+        break;
+      }
     }
     edge.push(x < 0 ? null : x);
   }
   const runs: { x: number; len: number }[] = [];
   let i = 0;
   while (i < rows.length) {
-    if (edge[i] === null) { i++; continue; }
+    if (edge[i] === null) {
+      i++;
+      continue;
+    }
     let j = i;
     while (j + 1 < rows.length && edge[j + 1] === edge[i]) j++;
     runs.push({ x: edge[i] as number, len: j - i + 1 });
@@ -286,9 +365,15 @@ function maroonedSteps(rows: readonly string[]): number {
   let seg = [runs[0]];
   for (let k = 1; k < runs.length; k++) {
     const dir = Math.sign(runs[k].x - runs[k - 1].x);
-    const prev = seg.length > 1 ? Math.sign(seg[seg.length - 1].x - seg[seg.length - 2].x) : dir;
+    const prev =
+      seg.length > 1
+        ? Math.sign(seg[seg.length - 1].x - seg[seg.length - 2].x)
+        : dir;
     if (dir !== 0 && dir === prev) seg.push(runs[k]);
-    else { if (seg.length >= 3) segments.push(seg); seg = [runs[k - 1], runs[k]]; }
+    else {
+      if (seg.length >= 3) segments.push(seg);
+      seg = [runs[k - 1], runs[k]];
+    }
   }
   if (seg.length >= 3) segments.push(seg);
 
@@ -296,19 +381,22 @@ function maroonedSteps(rows: readonly string[]): number {
   for (const segment of segments) {
     const lengths = segment.slice(0, -1).map((r) => r.len);
     for (let k = 1; k < lengths.length - 1; k++) {
-      if (lengths[k] === 1 && lengths[k - 1] >= 3 && lengths[k + 1] >= 3) found++;
+      if (lengths[k] === 1 && lengths[k - 1] >= 3 && lengths[k + 1] >= 3)
+        found++;
     }
   }
   return found;
 }
 
 describe.each([
-  { name: 'portraits', sheet: portraitData as { sprites: Sprites }, known: 18 },
-  { name: 'match sprites', sheet: spriteData as { sprites: Sprites }, known: 110 },
-])('$name curves do not stumble (rule 7)', ({ sheet, known }) => {
-  it('holds the known count of marooned single steps', () => {
-    const total = Object.keys(sheet.sprites).reduce((sum, name) => sum + maroonedSteps(sheet.sprites[name]), 0);
-    // Absolute, like the rule-10 baseline. Lower it when art is fixed.
-    expect(total).toBe(known);
+  { name: 'portraits', sheet: portraitData as { sprites: Sprites } },
+  { name: 'match sprites', sheet: spriteData as { sprites: Sprites } },
+])('$name curves do not stumble (rule 7)', ({ sheet }) => {
+  it('has no marooned single steps', () => {
+    const offenders = Object.keys(sheet.sprites).flatMap((name) => {
+      const count = maroonedSteps(sheet.sprites[name]);
+      return count === 0 ? [] : [`${name}:${count}`];
+    });
+    expect(offenders).toEqual([]);
   });
 });

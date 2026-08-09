@@ -17,10 +17,17 @@ import {
   type SkImage,
   type SkRect,
 } from '@shopify/react-native-skia';
-import { useFrameCallback, useSharedValue, type FrameInfo } from 'react-native-reanimated';
+import {
+  useFrameCallback,
+  useSharedValue,
+  type FrameInfo,
+} from 'react-native-reanimated';
 import { SfxPressable as Pressable } from '../ui/components/SfxPressable';
 import type { QuickResultFaceOffViewModel } from '../ui/models';
-import { playQuickResultFaceOffSfx, stopQuickResultFaceOffSfx } from './management-sfx';
+import {
+  playQuickResultFaceOffSfx,
+  stopQuickResultFaceOffSfx,
+} from './management-sfx';
 import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
 import { playerLookId } from './sprites/player-look';
 import { snapSpriteScale } from './interpolate';
@@ -68,7 +75,9 @@ const POST_STRIKE_HOLD_MS = 500;
 const DRAW_HOLD_MS = 1_000;
 
 /** How long the whole scene runs, which depends on how the ball finishes. */
-export function faceOffDurationMs(strike: QuickResultFaceOffViewModel['strike']): number {
+export function faceOffDurationMs(
+  strike: QuickResultFaceOffViewModel['strike'],
+): number {
   return strike === 'bounce'
     ? STRIKE_START_MS + DRAW_PASS_MS * DRAW_PASSES + DRAW_HOLD_MS
     : STRIKE_START_MS + STRIKE_MS + POST_STRIKE_HOLD_MS;
@@ -98,7 +107,11 @@ export interface QuickResultFaceOffProps {
   readonly onDone: () => void;
 }
 
-export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResultFaceOffProps) {
+export function QuickResultFaceOff({
+  faceOff,
+  reduceMotion,
+  onDone,
+}: QuickResultFaceOffProps) {
   const t = useCopy();
   const styles = usePixelStyles(makeStyles);
   const { width, height, scale: devicePixelRatio } = useWindowDimensions();
@@ -134,7 +147,10 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
     });
     animation.start();
 
-    const idle = setInterval(() => setIdleFrame(frame => frame + 1), IDLE_FRAME_MS);
+    const idle = setInterval(
+      () => setIdleFrame((frame) => frame + 1),
+      IDLE_FRAME_MS,
+    );
 
     return () => {
       clearTimeout(hold);
@@ -152,7 +168,8 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
     [club.playerId, club.role, club.lookId],
   );
   const opponentVisualId = useMemo(
-    () => `r:${playerLookId(opponent.playerId, opponent.role, opponent.lookId)}`,
+    () =>
+      `r:${playerLookId(opponent.playerId, opponent.role, opponent.lookId)}`,
     [opponent.playerId, opponent.role, opponent.lookId],
   );
 
@@ -167,8 +184,16 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
     }
   }, [clubVisualId, opponentVisualId]);
 
-  const playerScale = snapSpriteScale(1, NOMINAL_PLAYER_SCALE, devicePixelRatio).drawScale;
-  const ballScale = snapSpriteScale(1, NOMINAL_BALL_SCALE, devicePixelRatio).drawScale;
+  const playerScale = snapSpriteScale(
+    1,
+    NOMINAL_PLAYER_SCALE,
+    devicePixelRatio,
+  ).drawScale;
+  const ballScale = snapSpriteScale(
+    1,
+    NOMINAL_BALL_SCALE,
+    devicePixelRatio,
+  ).drawScale;
 
   const stageY = height * 0.42;
   const clubX = width * 0.24;
@@ -181,7 +206,11 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
       return Skia.XYWHRect(rect.x, rect.y, rect.w, rect.h);
     };
     const ball = atlas.rectFor('ball');
-    return [pick(clubVisualId), pick(opponentVisualId), Skia.XYWHRect(ball.x, ball.y, ball.w, ball.h)];
+    return [
+      pick(clubVisualId),
+      pick(opponentVisualId),
+      Skia.XYWHRect(ball.x, ball.y, ball.w, ball.h),
+    ];
   }, [atlas, clubVisualId, opponentVisualId, idleFrame]);
 
   /**
@@ -202,7 +231,13 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
    * an unseeded coin flip here cannot reach anything that is replayed.
    */
   const drawStartSide = useSharedValue(Math.random() < 0.5 ? 0 : 1);
-  const geometry = useSharedValue({ clubX, opponentX, stageY, playerScale, ballScale });
+  const geometry = useSharedValue({
+    clubX,
+    opponentX,
+    stageY,
+    playerScale,
+    ballScale,
+  });
 
   useEffect(() => {
     strikeCode.value = STRIKE_CODE[faceOff.strike];
@@ -211,16 +246,25 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
     geometry.value = { clubX, opponentX, stageY, playerScale, ballScale };
   }, [ballScale, clubX, geometry, opponentX, playerScale, stageY]);
 
-  const onFrame = useCallback((info: FrameInfo) => {
-    'worklet';
-    if (startedAt.value < 0) startedAt.value = info.timestamp;
-    elapsedMs.value = info.timestamp - startedAt.value;
-  }, [elapsedMs, startedAt]);
+  const onFrame = useCallback(
+    (info: FrameInfo) => {
+      'worklet';
+      if (startedAt.value < 0) startedAt.value = info.timestamp;
+      elapsedMs.value = info.timestamp - startedAt.value;
+    },
+    [elapsedMs, startedAt],
+  );
   useFrameCallback(onFrame, !reduceMotion);
 
   const transforms = useRSXformBuffer(sprites.length, (transform, index) => {
     'worklet';
-    const { clubX: left, opponentX: right, stageY: y, playerScale: ps, ballScale: bs } = geometry.value;
+    const {
+      clubX: left,
+      opponentX: right,
+      stageY: y,
+      playerScale: ps,
+      ballScale: bs,
+    } = geometry.value;
     // RSXform translates the sprite's TOP-LEFT, so every anchor below is
     // shifted by half the drawn sprite to sit where the layout expects it.
     // 24x30 is the source cell the drill stage measures against; the ball is
@@ -240,7 +284,10 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
     // Reduce Motion the clock never runs, so the ball simply rests at the foot
     // it started on and the scene is a still frame.
     const travelMs = code === 2 ? DRAW_PASS_MS * DRAW_PASSES : STRIKE_MS;
-    const t = Math.max(0, Math.min(1, (elapsedMs.value - STRIKE_START_MS) / travelMs));
+    const t = Math.max(
+      0,
+      Math.min(1, (elapsedMs.value - STRIKE_START_MS) / travelMs),
+    );
     // Which pass of a drawn rally is in flight, and how far through it is.
     const pass = Math.min(DRAW_PASSES - 1, Math.floor(t * DRAW_PASSES));
     const passT = t * DRAW_PASSES - pass;
@@ -268,25 +315,36 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
     // the shove into the ball is all the body language available. In a rally
     // that is whoever the ball is leaving, which changes with every pass.
     const isClub = index === 0;
-    const lunging = code === 2
-      ? isClub === passFromClub
-      : (code === 0 && isClub) || (code === 1 && !isClub);
+    const lunging =
+      code === 2
+        ? isClub === passFromClub
+        : (code === 0 && isClub) || (code === 1 && !isClub);
     const lungeT = code === 2 ? passT : t;
-    const lunge = lunging ? Math.sin(Math.min(lungeT, 0.5) * Math.PI * 2) * 10 : 0;
+    const lunge = lunging
+      ? Math.sin(Math.min(lungeT, 0.5) * Math.PI * 2) * 10
+      : 0;
     const towards = isClub ? 1 : -1;
     const anchorX = isClub ? left : right;
-    transform.set(ps, 0, anchorX + lunge * towards - halfPlayerW, y - halfPlayerH);
+    transform.set(
+      ps,
+      0,
+      anchorX + lunge * towards - halfPlayerW,
+      y - halfPlayerH,
+    );
   });
 
-  const entranceShift = (from: number) => entrance.interpolate({
-    inputRange: [0, 1],
-    outputRange: [from, 0],
-  });
+  const entranceShift = (from: number) =>
+    entrance.interpolate({
+      inputRange: [0, 1],
+      outputRange: [from, 0],
+    });
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={t('matchScreen.a11y.tapToSkip', { label: faceOff.accessibilityLabel })}
+      accessibilityLabel={t('matchScreen.a11y.tapToSkip', {
+        label: faceOff.accessibilityLabel,
+      })}
       onPress={finishOnce}
       style={styles.overlay}
     >
@@ -318,7 +376,12 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
             top: stageY - 44,
             opacity: entrance,
             transform: [
-              { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [1.6, 1] }) },
+              {
+                scale: entrance.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1.6, 1],
+                }),
+              },
               { rotate: '-4deg' },
             ],
           },
@@ -332,11 +395,18 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
         style={[
           styles.nameplate,
           { left: 0, width: width * 0.48, top: stageY + 70 },
-          { opacity: entrance, transform: [{ translateX: entranceShift(-width * 0.3) }] },
+          {
+            opacity: entrance,
+            transform: [{ translateX: entranceShift(-width * 0.3) }],
+          },
         ]}
       >
-        <Text style={styles.playerName} numberOfLines={1}>{club.playerName}</Text>
-        <Text style={styles.clubName} numberOfLines={1}>{club.clubName}</Text>
+        <Text style={styles.playerName} numberOfLines={1}>
+          {club.playerName}
+        </Text>
+        <Text style={styles.clubName} numberOfLines={1}>
+          {club.clubName}
+        </Text>
       </Animated.View>
 
       <Animated.View
@@ -344,11 +414,18 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
         style={[
           styles.nameplate,
           { right: 0, width: width * 0.48, top: stageY + 70 },
-          { opacity: entrance, transform: [{ translateX: entranceShift(width * 0.3) }] },
+          {
+            opacity: entrance,
+            transform: [{ translateX: entranceShift(width * 0.3) }],
+          },
         ]}
       >
-        <Text style={styles.playerName} numberOfLines={1}>{opponent.playerName}</Text>
-        <Text style={styles.clubName} numberOfLines={1}>{opponent.clubName}</Text>
+        <Text style={styles.playerName} numberOfLines={1}>
+          {opponent.playerName}
+        </Text>
+        <Text style={styles.clubName} numberOfLines={1}>
+          {opponent.clubName}
+        </Text>
       </Animated.View>
 
       <View pointerEvents="none" style={styles.skipHint}>
@@ -358,51 +435,56 @@ export function QuickResultFaceOff({ faceOff, reduceMotion, onDone }: QuickResul
   );
 }
 
-const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    zIndex: 40,
-    backgroundColor: TURF,
-  },
-  versus: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  versusText: {
-    fontFamily: faces.display,
-    fontSize: 64,
-    lineHeight: 76,
-    color: '#f4f1ea',
-    textShadowColor: '#241f2e',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 0,
-  },
-  nameplate: { position: 'absolute', alignItems: 'center', paddingHorizontal: 8 },
-  playerName: {
-    fontFamily: faces.data,
-    fontSize: 15,
-    lineHeight: 20,
-    color: '#f4f1ea',
-    textShadowColor: '#241f2e',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 0,
-  },
-  clubName: {
-    fontFamily: faces.data,
-    fontSize: 11,
-    lineHeight: 16,
-    color: 'rgba(244, 241, 234, 0.7)',
-  },
-  skipHint: { position: 'absolute', right: 16, bottom: 20 },
-  skipHintText: {
-    fontFamily: faces.data,
-    fontSize: 11,
-    color: 'rgba(244, 241, 234, 0.75)',
-  },
-});
+const makeStyles = (faces: LocaleFaces) =>
+  StyleSheet.create({
+    overlay: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      zIndex: 40,
+      backgroundColor: TURF,
+    },
+    versus: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+    },
+    versusText: {
+      fontFamily: faces.display,
+      fontSize: 64,
+      lineHeight: 76,
+      color: '#f4f1ea',
+      textShadowColor: '#241f2e',
+      textShadowOffset: { width: 0, height: 4 },
+      textShadowRadius: 0,
+    },
+    nameplate: {
+      position: 'absolute',
+      alignItems: 'center',
+      paddingHorizontal: 8,
+    },
+    playerName: {
+      fontFamily: faces.data,
+      fontSize: 15,
+      lineHeight: 20,
+      color: '#f4f1ea',
+      textShadowColor: '#241f2e',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 0,
+    },
+    clubName: {
+      fontFamily: faces.data,
+      fontSize: 11,
+      lineHeight: 16,
+      color: 'rgba(244, 241, 234, 0.7)',
+    },
+    skipHint: { position: 'absolute', right: 16, bottom: 20 },
+    skipHintText: {
+      fontFamily: faces.data,
+      fontSize: 11,
+      color: 'rgba(244, 241, 234, 0.75)',
+    },
+  });

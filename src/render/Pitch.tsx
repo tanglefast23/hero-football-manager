@@ -54,8 +54,15 @@ const POST_W = 4; // pt — thicker than LINE_W so the goal mouth reads as posts
  */
 export const Pitch = memo(PitchMarkings);
 
-function PitchMarkings({ scale, devicePixelRatio = 1 }: { scale: number; devicePixelRatio?: number }) {
-  const snap = (value: number): number => snapDevicePixels(value, devicePixelRatio);
+function PitchMarkings({
+  scale,
+  devicePixelRatio = 1,
+}: {
+  scale: number;
+  devicePixelRatio?: number;
+}) {
+  const snap = (value: number): number =>
+    snapDevicePixels(value, devicePixelRatio);
   const w = snap(PITCH_W * scale);
   const h = snap(PITCH_H * scale);
   const stripeH = h / STRIPE_COUNT; // left fractional; the band edges below are snapped so they still tile seamlessly
@@ -96,9 +103,29 @@ function PitchMarkings({ scale, devicePixelRatio = 1 }: { scale: number; deviceP
         strokeWidth={LINE_W}
         antiAlias={false}
       />
-      <Line p1={{ x: 0, y: midY }} p2={{ x: w, y: midY }} color={LINE_COLOR} strokeWidth={LINE_W} antiAlias={false} />
-      <Circle cx={midX} cy={midY} r={centerR} color={LINE_COLOR} style="stroke" strokeWidth={LINE_W} antiAlias={false} />
-      <Circle cx={midX} cy={midY} r={spotR} color={LINE_COLOR} antiAlias={false} />
+      <Line
+        p1={{ x: 0, y: midY }}
+        p2={{ x: w, y: midY }}
+        color={LINE_COLOR}
+        strokeWidth={LINE_W}
+        antiAlias={false}
+      />
+      <Circle
+        cx={midX}
+        cy={midY}
+        r={centerR}
+        color={LINE_COLOR}
+        style="stroke"
+        strokeWidth={LINE_W}
+        antiAlias={false}
+      />
+      <Circle
+        cx={midX}
+        cy={midY}
+        r={spotR}
+        color={LINE_COLOR}
+        antiAlias={false}
+      />
 
       {/* Top penalty box, goal box, goal mouth + posts */}
       <Rect

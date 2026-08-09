@@ -35,28 +35,39 @@ describe('possession', () => {
     expect(match.ball).toEqual({ kind: 'held', by: carrier });
     expect(match.players[shadow].powerState.kind).toBe('active');
     tackleTick(match);
-    expect(match.events).not.toContainEqual(expect.objectContaining({ kind: 'TACKLE', by: shadow }));
+    expect(match.events).not.toContainEqual(
+      expect.objectContaining({ kind: 'TACKLE', by: shadow }),
+    );
     match.tick = 20;
     powerTick(match);
-    expect(match.events).toContainEqual(expect.objectContaining({
-      kind: 'TACKLE', by: shadow, on: carrier, style: 'power', contact: false, won: true,
-    }));
+    expect(match.events).toContainEqual(
+      expect.objectContaining({
+        kind: 'TACKLE',
+        by: shadow,
+        on: carrier,
+        style: 'power',
+        contact: false,
+        won: true,
+      }),
+    );
     expect(match.ball).toEqual({ kind: 'held', by: shadow });
     expect(match.players[shadow].powerState.kind).toBe('idle');
   });
 
   it('passes happen and both teams touch the ball', () => {
     const r = runMatch(42, ROVERS, UNITED);
-    const passes = r.events.filter(e => e.kind === 'PASS');
+    const passes = r.events.filter((e) => e.kind === 'PASS');
     expect(passes.length).toBeGreaterThan(10);
-    const passers = new Set(passes.map(e => (e as { from: number }).from));
-    expect([...passers].some(i => i < 11)).toBe(true);
-    expect([...passers].some(i => i >= 11)).toBe(true);
+    const passers = new Set(passes.map((e) => (e as { from: number }).from));
+    expect([...passers].some((i) => i < 11)).toBe(true);
+    expect([...passers].some((i) => i >= 11)).toBe(true);
   });
 
   it('some passes fail (interceptions exist)', () => {
     const r = runMatch(42, ROVERS, UNITED);
-    expect(r.events.some(e => e.kind === 'PASS' && !(e as { ok: boolean }).ok)).toBe(true);
+    expect(
+      r.events.some((e) => e.kind === 'PASS' && !(e as { ok: boolean }).ok),
+    ).toBe(true);
   });
 
   it('passes TRAVEL — the ball is observably in a pass state between launch and arrival', () => {
@@ -77,7 +88,8 @@ describe('possession', () => {
     m.ball = { kind: 'held', by: passer };
     m.players[passer].pos = { x: 1000, y: 5000 };
     m.players[receiver].pos = { x: 3000, y: 5000 };
-    for (let index = 11; index < 22; index++) m.players[index].pos = { x: 6500, y: 10000 };
+    for (let index = 11; index < 22; index++)
+      m.players[index].pos = { x: 6500, y: 10000 };
     m.players[interceptor].pos = { ...m.players[receiver].pos };
     m.players[passer].def.attrs.pas = 1;
     m.players[interceptor].def.attrs.def = 99;
@@ -112,7 +124,12 @@ describe('possession', () => {
 
     launchPass(m, passer, receiver, false);
 
-    expect(m.events.at(-1)).toMatchObject({ kind: 'PASS', from: passer, to: receiver, ok: true });
+    expect(m.events.at(-1)).toMatchObject({
+      kind: 'PASS',
+      from: passer,
+      to: receiver,
+      ok: true,
+    });
     expect(m.ball).toMatchObject({
       kind: 'pass',
       willSucceed: true,
@@ -127,12 +144,20 @@ describe('possession', () => {
   });
 
   it('remains deterministic', () => {
-    expect(runMatch(9, ROVERS, UNITED).events).toEqual(runMatch(9, ROVERS, UNITED).events);
+    expect(runMatch(9, ROVERS, UNITED).events).toEqual(
+      runMatch(9, ROVERS, UNITED).events,
+    );
   });
 
   it('loose balls decay and get picked up by the nearest available player', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    m.ball = { kind: 'loose', pos: { x: 3400, y: 5250 }, vel: { x: 200, y: 0 }, z: 0, vz: 0 } as BallState;
+    m.ball = {
+      kind: 'loose',
+      pos: { x: 3400, y: 5250 },
+      vel: { x: 200, y: 0 },
+      z: 0,
+      vz: 0,
+    } as BallState;
     const before = m.ball.kind === 'loose' ? { ...m.ball.vel } : { x: 0, y: 0 };
     tick(m);
     if (m.ball.kind === 'loose') {
@@ -149,7 +174,13 @@ describe('possession', () => {
   it('out players cannot pick up a loose ball', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const nearIdx = 6;
-    m.ball = { kind: 'loose', pos: { ...m.players[nearIdx].pos }, vel: { x: 0, y: 0 }, z: 0, vz: 0 } as BallState;
+    m.ball = {
+      kind: 'loose',
+      pos: { ...m.players[nearIdx].pos },
+      vel: { x: 0, y: 0 },
+      z: 0,
+      vz: 0,
+    } as BallState;
     m.players[nearIdx].outUntilTick = m.tick + 500;
     m.players[nearIdx].outReason = 'ko';
     tick(m);
@@ -158,12 +189,19 @@ describe('possession', () => {
     }
   });
 
-  it('a pass target KO\'d mid-flight cannot receive the ball unconscious (phantom-pass bug)', () => {
+  it("a pass target KO'd mid-flight cannot receive the ball unconscious (phantom-pass bug)", () => {
     const m = createMatch(42, ROVERS, UNITED);
     const targetPos = { ...m.players[6].pos };
     m.ball = {
-      kind: 'pass', pos: { x: targetPos.x - 2000, y: targetPos.y }, from: 5, to: 6,
-      willSucceed: true, interceptor: -1, z: 0, vz: 0, speed: 250,
+      kind: 'pass',
+      pos: { x: targetPos.x - 2000, y: targetPos.y },
+      from: 5,
+      to: 6,
+      willSucceed: true,
+      interceptor: -1,
+      z: 0,
+      vz: 0,
+      speed: 250,
     } as BallState;
     m.players[6].outUntilTick = m.tick + 300;
     m.players[6].outReason = 'ko';
@@ -200,17 +238,24 @@ describe('tackling', () => {
 
   it('tackles occur, some won and some lost', () => {
     const r = runMatch(42, ROVERS, UNITED);
-    const tackles = r.events.filter(e => e.kind === 'TACKLE') as Array<{ won: boolean }>;
+    const tackles = r.events.filter((e) => e.kind === 'TACKLE') as Array<{
+      won: boolean;
+    }>;
     expect(tackles.length).toBeGreaterThan(5);
-    expect(tackles.some(t => t.won)).toBe(true);
-    expect(tackles.some(t => !t.won)).toBe(true);
+    expect(tackles.some((t) => t.won)).toBe(true);
+    expect(tackles.some((t) => !t.won)).toBe(true);
   });
 
   it('uses a standing tackle inside 2m instead of turning every challenge into a slide', () => {
     const { m, tacklerIdx } = rigChallenge(150);
     tackleTick(m);
-    const tackle = m.events.find(e => e.kind === 'TACKLE');
-    expect(tackle).toMatchObject({ kind: 'TACKLE', by: tacklerIdx, style: 'standing', contact: true });
+    const tackle = m.events.find((e) => e.kind === 'TACKLE');
+    expect(tackle).toMatchObject({
+      kind: 'TACKLE',
+      by: tacklerIdx,
+      style: 'standing',
+      contact: true,
+    });
     expect(m.players[tacklerIdx].slideTackle).toBeUndefined();
   });
 
@@ -222,10 +267,16 @@ describe('tackling', () => {
     const conditionBefore = m.players[tacklerIdx].condition;
 
     tackleTick(m);
-    expect(m.events.at(-1)).toMatchObject({ kind: 'SLIDE_STARTED', by: tacklerIdx, on: carrierIdx });
+    expect(m.events.at(-1)).toMatchObject({
+      kind: 'SLIDE_STARTED',
+      by: tacklerIdx,
+      on: carrierIdx,
+    });
     expect(m.players[tacklerIdx].slideTackle).toBeDefined();
     expect(m.players[tacklerIdx].condition).toBeLessThan(conditionBefore);
-    expect(m.players[tacklerIdx].tackleCooldownUntil).toBeGreaterThanOrEqual(m.tick + 20);
+    expect(m.players[tacklerIdx].tackleCooldownUntil).toBeGreaterThanOrEqual(
+      m.tick + 20,
+    );
 
     const launchPos = { ...m.players[tacklerIdx].pos };
     m.tick++;
@@ -242,13 +293,22 @@ describe('tackling', () => {
       tackleTick(m);
     }
 
-    const resolved = m.events.find(e => e.kind === 'TACKLE' && e.style === 'slide');
-    expect(resolved).toMatchObject({ by: tacklerIdx, on: carrierIdx, won: true, contact: true });
+    const resolved = m.events.find(
+      (e) => e.kind === 'TACKLE' && e.style === 'slide',
+    );
+    expect(resolved).toMatchObject({
+      by: tacklerIdx,
+      on: carrierIdx,
+      won: true,
+      contact: true,
+    });
     expect(m.players[tacklerIdx].slideTackle).toBeUndefined();
     expect(m.players[tacklerIdx].tackleRecoveryUntil).toBeGreaterThan(m.tick);
 
     const landingPos = { ...m.players[tacklerIdx].pos };
-    expect(Math.hypot(landingPos.x - launchPos.x, landingPos.y - launchPos.y)).toBeGreaterThanOrEqual(800);
+    expect(
+      Math.hypot(landingPos.x - launchPos.x, landingPos.y - launchPos.y),
+    ).toBeGreaterThanOrEqual(800);
     m.tick++;
     movementTick(m);
     expect(m.players[tacklerIdx].pos).toEqual(landingPos);
@@ -267,10 +327,12 @@ describe('tackling', () => {
       tackleTick(m);
     }
 
-    expect(Math.hypot(
-      m.players[tacklerIdx].pos.x - launchPos.x,
-      m.players[tacklerIdx].pos.y - launchPos.y,
-    )).toBeGreaterThanOrEqual(800);
+    expect(
+      Math.hypot(
+        m.players[tacklerIdx].pos.x - launchPos.x,
+        m.players[tacklerIdx].pos.y - launchPos.y,
+      ),
+    ).toBeGreaterThanOrEqual(800);
     expect(m.events.at(-1)).toMatchObject({
       kind: 'TACKLE',
       by: tacklerIdx,
@@ -295,7 +357,9 @@ describe('tackling', () => {
     closerMiddling.m.players[closerMiddling.tacklerIdx].def.attrs.def = 1;
     closerMiddling.m.players[closerMiddling.carrierIdx].def.attrs.tec = 99;
     tackleTick(closerMiddling.m);
-    expect(closerMiddling.m.players[closerMiddling.tacklerIdx].slideTackle).toBeDefined();
+    expect(
+      closerMiddling.m.players[closerMiddling.tacklerIdx].slideTackle,
+    ).toBeDefined();
 
     const emergency = rigChallenge(900, 40);
     emergency.m.players[emergency.carrierIdx].pos = { x: 3400, y: 1000 };
@@ -312,11 +376,29 @@ describe('tackling', () => {
     expect(m.ball.kind).toBe('held');
     if (m.ball.kind !== 'held') return;
     const carrier = m.ball.by;
-    const presser = m.players.map((p, i) => ({ i, d: p.team !== m.players[carrier].team ? Math.hypot(p.pos.x - m.players[carrier].pos.x, p.pos.y - m.players[carrier].pos.y) : Infinity }))
+    const presser = m.players
+      .map((p, i) => ({
+        i,
+        d:
+          p.team !== m.players[carrier].team
+            ? Math.hypot(
+                p.pos.x - m.players[carrier].pos.x,
+                p.pos.y - m.players[carrier].pos.y,
+              )
+            : Infinity,
+      }))
       .sort((a, b) => a.d - b.d)[0];
     const dBefore = presser.d;
-    for (let i = 0; i < 20 && m.ball.kind === 'held' && m.ball.by === carrier; i++) tick(m);
-    const dAfter = Math.hypot(m.players[presser.i].pos.x - m.players[carrier].pos.x, m.players[presser.i].pos.y - m.players[carrier].pos.y);
+    for (
+      let i = 0;
+      i < 20 && m.ball.kind === 'held' && m.ball.by === carrier;
+      i++
+    )
+      tick(m);
+    const dAfter = Math.hypot(
+      m.players[presser.i].pos.x - m.players[carrier].pos.x,
+      m.players[presser.i].pos.y - m.players[carrier].pos.y,
+    );
     expect(dAfter).toBeLessThan(dBefore);
   });
 
@@ -332,14 +414,15 @@ describe('tackling', () => {
     m.players[11].tackleCooldownUntil = 0;
     m.players[16].tackleCooldownUntil = 0;
     tick(m);
-    const tackle = m.events.filter(e => e.kind === 'TACKLE').pop() as { by: number } | undefined;
+    const tackle = m.events.filter((e) => e.kind === 'TACKLE').pop() as
+      { by: number } | undefined;
     expect(tackle).toBeDefined();
     expect(tackle?.by).toBe(16);
   });
 });
 
 describe('beaten defenders go down', () => {
-  const CARRIER = 5;   // Rovers MID, no power — keeps the duel free of power interactions
+  const CARRIER = 5; // Rovers MID, no power — keeps the duel free of power interactions
   const DEFENDER = 13; // United DEF u2
   const MIDFIELDER = 16; // United MID u5
   const KEEPER = 11;
@@ -364,7 +447,10 @@ describe('beaten defenders go down', () => {
   }
 
   /** Advance past the standing-tackle cooldown without running a whole tick. */
-  function readyForNextChallenge(m: ReturnType<typeof createMatch>, tacklerIdx: number) {
+  function readyForNextChallenge(
+    m: ReturnType<typeof createMatch>,
+    tacklerIdx: number,
+  ) {
     m.tick += 10;
     m.players[tacklerIdx].tackleCooldownUntil = m.tick;
   }
@@ -376,10 +462,19 @@ describe('beaten defenders go down', () => {
     tackleTick(m);
 
     expect(m.events.at(-1)).toMatchObject({
-      kind: 'TACKLE', by: tacklerIdx, on: CARRIER, won: false, style: 'standing', dropped: true,
+      kind: 'TACKLE',
+      by: tacklerIdx,
+      on: CARRIER,
+      won: false,
+      style: 'standing',
+      dropped: true,
     });
-    expect(m.players[tacklerIdx].tackleRecoveryUntil).toBe(m.tick + BEATEN_FALL_TICKS);
-    expect(m.players[tacklerIdx].tackleCooldownUntil).toBeGreaterThan(m.tick + BEATEN_FALL_TICKS);
+    expect(m.players[tacklerIdx].tackleRecoveryUntil).toBe(
+      m.tick + BEATEN_FALL_TICKS,
+    );
+    expect(m.players[tacklerIdx].tackleCooldownUntil).toBeGreaterThan(
+      m.tick + BEATEN_FALL_TICKS,
+    );
     expect(m.ball).toEqual({ kind: 'held', by: CARRIER });
   });
 
@@ -390,7 +485,11 @@ describe('beaten defenders go down', () => {
     tackleTick(m);
 
     const tackle = m.events.at(-1);
-    expect(tackle).toMatchObject({ kind: 'TACKLE', won: false, style: 'standing' });
+    expect(tackle).toMatchObject({
+      kind: 'TACKLE',
+      won: false,
+      style: 'standing',
+    });
     expect(tackle).not.toHaveProperty('dropped');
     expect(m.players[tacklerIdx].tackleRecoveryUntil).toBe(0);
   });
@@ -407,8 +506,14 @@ describe('beaten defenders go down', () => {
     readyForNextChallenge(m, tacklerIdx);
     tackleTick(m);
 
-    expect(m.events.at(-1)).toMatchObject({ kind: 'TACKLE', won: false, dropped: true });
-    expect(m.players[tacklerIdx].tackleRecoveryUntil).toBe(m.tick + BEATEN_FALL_TICKS);
+    expect(m.events.at(-1)).toMatchObject({
+      kind: 'TACKLE',
+      won: false,
+      dropped: true,
+    });
+    expect(m.players[tacklerIdx].tackleRecoveryUntil).toBe(
+      m.tick + BEATEN_FALL_TICKS,
+    );
   });
 
   it('restarts the count when the defender turns to a different carrier', () => {
@@ -428,7 +533,10 @@ describe('beaten defenders go down', () => {
     readyForNextChallenge(m, tacklerIdx);
     tackleTick(m);
 
-    expect(m.players[tacklerIdx].beatenStreak).toMatchObject({ targetIdx: otherCarrier, count: 1 });
+    expect(m.players[tacklerIdx].beatenStreak).toMatchObject({
+      targetIdx: otherCarrier,
+      count: 1,
+    });
     expect(m.players[tacklerIdx].tackleRecoveryUntil).toBe(0);
   });
 
@@ -455,7 +563,11 @@ describe('beaten defenders go down', () => {
 
     tackleTick(m);
 
-    expect(m.events.at(-1)).toMatchObject({ kind: 'TACKLE', by: KEEPER, won: false });
+    expect(m.events.at(-1)).toMatchObject({
+      kind: 'TACKLE',
+      by: KEEPER,
+      won: false,
+    });
     expect(m.events.at(-1)).not.toHaveProperty('dropped');
     expect(m.players[KEEPER].tackleRecoveryUntil).toBe(0);
   });
@@ -464,7 +576,7 @@ describe('beaten defenders go down', () => {
     const { m, tacklerIdx } = rigEvenDuel();
     m.rng = () => 0.99;
     tackleTick(m);
-    const tackleCount = m.events.filter(e => e.kind === 'TACKLE').length;
+    const tackleCount = m.events.filter((e) => e.kind === 'TACKLE').length;
     const floorPos = { ...m.players[tacklerIdx].pos };
 
     m.tick += 1;
@@ -472,14 +584,20 @@ describe('beaten defenders go down', () => {
     tackleTick(m);
 
     expect(m.players[tacklerIdx].pos).toEqual(floorPos);
-    expect(m.events.filter(e => e.kind === 'TACKLE')).toHaveLength(tackleCount);
+    expect(m.events.filter((e) => e.kind === 'TACKLE')).toHaveLength(
+      tackleCount,
+    );
   });
 
   it('hands the press to the covering defender on the tick after the drop', () => {
     const { m, tacklerIdx } = rigEvenDuel();
     const cover = MIDFIELDER;
     m.players[cover].pos = { x: 3400, y: 3900 };
-    m.movement = { ...m.movement, presserIdx: tacklerIdx, presserSinceTick: m.tick };
+    m.movement = {
+      ...m.movement,
+      presserIdx: tacklerIdx,
+      presserSinceTick: m.tick,
+    };
     m.rng = () => 0.99;
 
     tackleTick(m);
@@ -515,8 +633,8 @@ describe('beaten defenders go down', () => {
 describe('only defenders slide, even on a breakaway', () => {
   const CARRIER = 5;
   const MIDFIELDER = 16; // United MID
-  const FORWARD = 20;    // United FWD
-  const FLOORED = 13;    // United DEF, already on the grass
+  const FORWARD = 20; // United FWD
+  const FLOORED = 13; // United DEF, already on the grass
 
   function rigLaunchOpportunity(sliderIdx: number) {
     const m = createMatch(42, ROVERS, UNITED);
@@ -540,7 +658,11 @@ describe('only defenders slide, even on a breakaway', () => {
     tackleTick(m);
 
     expect(m.players[12].slideTackle).toBeDefined();
-    expect(m.events.at(-1)).toMatchObject({ kind: 'SLIDE_STARTED', by: 12, on: CARRIER });
+    expect(m.events.at(-1)).toMatchObject({
+      kind: 'SLIDE_STARTED',
+      by: 12,
+      on: CARRIER,
+    });
   });
 
   it('refuses the same opportunity to a midfielder', () => {
@@ -549,7 +671,7 @@ describe('only defenders slide, even on a breakaway', () => {
     tackleTick(m);
 
     expect(m.players[MIDFIELDER].slideTackle).toBeUndefined();
-    expect(m.events.filter(e => e.kind === 'SLIDE_STARTED')).toHaveLength(0);
+    expect(m.events.filter((e) => e.kind === 'SLIDE_STARTED')).toHaveLength(0);
   });
 
   it('refuses the same opportunity to a forward', () => {
@@ -598,10 +720,18 @@ describe('condition and STA', () => {
 
     m.players[shooter].def.attrs.sho = 50;
     m.players[keeper].def.attrs.ref = 50;
-    const lowScale = keeperSaveProbability(m, keeper, executionStat(m, shooter, 'sho'));
+    const lowScale = keeperSaveProbability(
+      m,
+      keeper,
+      executionStat(m, shooter, 'sho'),
+    );
     m.players[shooter].def.attrs.sho = 500;
     m.players[keeper].def.attrs.ref = 500;
-    const highScale = keeperSaveProbability(m, keeper, executionStat(m, shooter, 'sho'));
+    const highScale = keeperSaveProbability(
+      m,
+      keeper,
+      executionStat(m, shooter, 'sho'),
+    );
     expect(Math.abs(lowScale - highScale)).toBeLessThanOrEqual(0.001);
 
     for (const [rating, gain] of [
@@ -613,9 +743,17 @@ describe('condition and STA', () => {
     ] as const) {
       m.players[shooter].def.attrs.sho = rating;
       m.players[keeper].def.attrs.ref = rating;
-      const beforeDrill = keeperSaveProbability(m, keeper, executionStat(m, shooter, 'sho'));
+      const beforeDrill = keeperSaveProbability(
+        m,
+        keeper,
+        executionStat(m, shooter, 'sho'),
+      );
       m.players[shooter].def.attrs.sho = rating + gain;
-      const afterDrill = keeperSaveProbability(m, keeper, executionStat(m, shooter, 'sho'));
+      const afterDrill = keeperSaveProbability(
+        m,
+        keeper,
+        executionStat(m, shooter, 'sho'),
+      );
       expect(beforeDrill - afterDrill).toBeGreaterThanOrEqual(0.01);
     }
   });
@@ -656,9 +794,12 @@ describe('condition and STA', () => {
       expect(high.players[runner].movementResidue).toBeDefined();
 
       restartKickoff(high, 0);
-      expect(high.players.every(player => (
-        player.movementResidue?.x === 0 && player.movementResidue?.y === 0
-      ))).toBe(true);
+      expect(
+        high.players.every(
+          (player) =>
+            player.movementResidue?.x === 0 && player.movementResidue?.y === 0,
+        ),
+      ).toBe(true);
     }
   });
 
@@ -695,7 +836,11 @@ describe('condition and STA', () => {
   });
 
   it('applies Energy Use to real off-ball movement but never to carrier speed', () => {
-    const movement = (energyUse: 'SAVE_ENERGY' | 'BALANCED' | 'ALL_OUT', condition: number, playerIndex: number) => {
+    const movement = (
+      energyUse: 'SAVE_ENERGY' | 'BALANCED' | 'ALL_OUT',
+      condition: number,
+      playerIndex: number,
+    ) => {
       const m = createMatch(42, ROVERS, UNITED);
       m.tactics[0].energyUse = energyUse;
       m.players[playerIndex].condition = condition;
@@ -712,8 +857,14 @@ describe('condition and STA', () => {
     const allOut = movement('ALL_OUT', 100, 5);
     expect(saved).toBeLessThan(balanced);
     expect(balanced).toBeLessThan(allOut);
-    expect(movement('ALL_OUT', 0, 5)).toBeCloseTo(movement('BALANCED', 0, 5), 5);
-    expect(movement('SAVE_ENERGY', 100, 9)).toBeCloseTo(movement('ALL_OUT', 100, 9), 5);
+    expect(movement('ALL_OUT', 0, 5)).toBeCloseTo(
+      movement('BALANCED', 0, 5),
+      5,
+    );
+    expect(movement('SAVE_ENERGY', 100, 9)).toBeCloseTo(
+      movement('ALL_OUT', 100, 9),
+      5,
+    );
   });
 
   it('applies the selected Energy Use multiplier to slide-tackle condition cost', () => {
