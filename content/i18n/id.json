@@ -30,6 +30,7 @@
     "app.a11y.tapToDismiss": "{sentence} Ketuk buat tutup.",
     "app.a11y.trySavingYourCareerAgain": "Coba simpan lagi",
     "app.bootTimeout": "Data simpanan gagal dibuka sampai selesai. Coba lagi mungkin berhasil.",
+    "app.browserDatabaseInUse": "Tab game lain masih membuka berkas klub. Tutup semua tab Hero Football Manager lainnya, lalu tekan Coba lagi. Simpananmu aman.",
     "app.deleteSaveStartFresh": "Hapus simpanan · mulai baru",
     "app.dev.awakeningReviewFixture": "Tinjauan {index}/{total} · Usai",
     "app.dev.awakeningReviewOmen": "Rumput amblas di bawah telapak {name}. Semua yang melingkar merasakan hentakannya sebelum dengar.",

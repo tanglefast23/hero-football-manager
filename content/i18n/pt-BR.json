@@ -30,6 +30,7 @@
     "app.a11y.tapToDismiss": "{sentence} Toque pra fechar.",
     "app.a11y.trySavingYourCareerAgain": "Tentar salvar de novo",
     "app.bootTimeout": "Os dados do save não abriram até o fim. Tentar de novo pode resolver.",
+    "app.browserDatabaseInUse": "Outra aba do jogo ainda está com os arquivos do clube abertos. Feche as outras abas do Hero Football Manager e toque em Repetir. Seu save está seguro.",
     "app.deleteSaveStartFresh": "Apagar save · começar do zero",
     "app.dev.awakeningReviewFixture": "Revisão {index}/{total} · Fim de jogo",
     "app.dev.awakeningReviewOmen": "O gramado afunda sob a mão de {name}. Todo mundo na roda sente o baque antes de ouvir.",

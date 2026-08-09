@@ -29,7 +29,9 @@ import {
   createReplayRepository,
   DEFAULT_APP_PREFERENCES,
   DEVELOPER_MANUAL_SAVE_SLOTS,
+  isBrowserDatabaseLockError,
   migrateDatabase,
+  reloadBrowserDocument,
   replaceFormationPreset,
   requestPersistentStorage,
   resetCareerDatabase,
@@ -1921,6 +1923,10 @@ function GameApp() {
     playManagementHaptic('select');
   }, [store.setActiveTab]);
 
+  const browserDatabaseLock = bootError !== null
+    && Platform.OS === 'web'
+    && isBrowserDatabaseLockError(bootError);
+
   let screen;
   let lowConditionMatchdayStarter: ReturnType<typeof matchdayConditionWarningPlayer> = null;
   if (!fontsLoaded && !fontError && bootError === null) {
@@ -1933,8 +1939,14 @@ function GameApp() {
     screen = (
       <BootFailure
         message={bootError}
-        onRetry={() => setBootAttempt(attempt => attempt + 1)}
-        onStartFresh={() => {
+        guidance={browserDatabaseLock ? t('app.browserDatabaseInUse') : undefined}
+        onRetry={() => {
+          // Expo SQLite caches the failed browser VFS. Re-running this effect
+          // cannot repair it; only a fresh document can create a new handle.
+          if (browserDatabaseLock && reloadBrowserDocument()) return;
+          setBootAttempt(attempt => attempt + 1);
+        }}
+        onStartFresh={browserDatabaseLock ? undefined : () => {
           void resetCareerDatabase({
             openDatabase: () => openDatabaseAsync(DATABASE_NAME),
             deleteDatabaseFile: () => deleteDatabaseAsync(DATABASE_NAME),
@@ -3268,12 +3280,14 @@ function BootFailureButton({
 
 function BootFailure({
   message,
+  guidance,
   onRetry,
   onStartFresh,
   onExportRaw,
   onRestoreBackup,
 }: {
   message: string;
+  guidance?: string;
   onRetry: () => void;
   onStartFresh?: () => void;
   onExportRaw?: () => void;
@@ -3293,6 +3307,9 @@ function BootFailure({
       <View className="w-full border-2 border-stamp bg-paper p-5">
         <Text className="font-pixel text-lg uppercase text-stamp">{t('app.weCouldNotOpen')}</Text>
         <Text className="mt-3 text-sm leading-5 text-ink/70">{t('app.yourSavedCareerHas')}</Text>
+        {guidance !== undefined && (
+          <Text className="mt-3 text-sm leading-5 text-ink">{guidance}</Text>
+        )}
         <Text className="mt-2 text-xs leading-4 text-ink/50">{t('app.technicalDetail', { detail: message })}</Text>
         <BootFailureButton
           tone="primary"
