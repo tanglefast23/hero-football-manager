@@ -21,8 +21,10 @@ import {
   TACKLE_DUST_OPACITY,
   TACKLE_DUST_PIXELS,
   TACKLE_GRASS_COLOR,
+  TACKLE_GRASS_FOOT_OFFSET,
   TACKLE_GRASS_OPACITY,
   TACKLE_GRASS_PIXELS,
+  TACKLE_GRASS_WIDTH_SCALE,
   TACKLE_TRAIL_SAMPLES,
 } from './slide-tackle-effects';
 import {
@@ -109,7 +111,7 @@ const SPEED_LINE_COLOR = '#ffffff';
 /**
  * Pixel-clustered tackle debris. The body spray follows the player while a
  * ground-locked trail spans the real launch-to-current path. Dust is batched
- * into one hard-edged path at exactly 65% opacity; grass is a second opaque
+ * into one hard-edged path at exactly 65% opacity; grass is a second 40%-opacity
  * path. No blur/filter nodes.
  *
  * Every rect corner goes through `snapDevicePixels`, the same single rounding
@@ -216,11 +218,12 @@ export function WorkletSlideTackleEffects({
       } else {
         for (let index = 0; index < TACKLE_TRAIL_SAMPLES.length; index += 1) {
           const sample = TACKLE_TRAIL_SAMPLES[index];
+          const footSide = sample.side + TACKLE_GRASS_FOOT_OFFSET;
           const rawBaseX =
-            originX + travelX * sample.progress + sideX * sample.side * pixel;
+            originX + travelX * sample.progress + sideX * footSide * pixel;
           const rawBaseY =
-            originY + travelY * sample.progress + sideY * sample.side * pixel;
-          const width = Math.max(1, pixel);
+            originY + travelY * sample.progress + sideY * footSide * pixel;
+          const width = Math.max(1, pixel * TACKLE_GRASS_WIDTH_SCALE);
           const height = sample.grassHeight * pixel;
           const baseX = snapDevicePixels(rawBaseX, devicePixelRatio);
           const baseY = snapDevicePixels(rawBaseY, devicePixelRatio);
@@ -241,9 +244,10 @@ export function WorkletSlideTackleEffects({
           const blade = TACKLE_GRASS_PIXELS[index];
           const rise = Math.min(7, age + index * 0.7);
           const along = blade.along - age * 0.35;
-          const rawBaseX = cx + (ux * along + sideX * blade.side) * pixel;
-          const rawBaseY = cy + (uy * along + sideY * blade.side) * pixel;
-          const width = Math.max(1, pixel * 1.5);
+          const footSide = blade.side + TACKLE_GRASS_FOOT_OFFSET;
+          const rawBaseX = cx + (ux * along + sideX * footSide) * pixel;
+          const rawBaseY = cy + (uy * along + sideY * footSide) * pixel;
+          const width = Math.max(1, pixel * 1.5 * TACKLE_GRASS_WIDTH_SCALE);
           const height = (blade.height + rise) * pixel;
           const baseX = snapDevicePixels(rawBaseX, devicePixelRatio);
           const baseY = snapDevicePixels(rawBaseY, devicePixelRatio);

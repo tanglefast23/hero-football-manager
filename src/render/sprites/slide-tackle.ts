@@ -155,9 +155,12 @@ function cropPainted(grid: Grid): Grid {
   return result;
 }
 
-/** Positive angles turn counter-clockwise, using nearest-neighbour sampling. */
+/** Positive angles turn counter-clockwise on the screen, using nearest-neighbour sampling. */
 function rotateNearest(source: Grid, angleDegrees: number): Grid {
-  const angle = (angleDegrees * Math.PI) / 180;
+  // Sprite coordinates use a downward-positive Y axis. Negate the authored
+  // angle so positive values keep their conventional counter-clockwise meaning
+  // after the pixels are mapped back onto the screen grid.
+  const angle = (-angleDegrees * Math.PI) / 180;
   const cosine = Math.cos(angle);
   const sine = Math.sin(angle);
   const sourceWidth = source[0].length;
