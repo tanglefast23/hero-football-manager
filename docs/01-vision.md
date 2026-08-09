@@ -37,7 +37,7 @@ Lighthearted sports comedy with superhero flavor. The referee carries a fire ext
 
 - Kairosoft fans, Retro Bowl players, casual management-sim players on phones.
 - Session shape: 5–15 minutes (one or two match weeks). A season is ~1.5–2.5 hours.
-- Fully offline, no account, no server. Respect the player's time and wallet ($0.99, everything included).
+- Fully offline, no account, no server. Respect the player's time and wallet (US$3.99, everything included).
 
 ## What this game is NOT
 

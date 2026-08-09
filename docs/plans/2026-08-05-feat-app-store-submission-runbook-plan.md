@@ -89,33 +89,33 @@ The following table tells the operator what can be prefilled, what must be rever
 |---|---|---:|---|
 | Product | Cozy, lighthearted, single-player football club-management game with fictional superhero players, auto-played matches, live coaching, training, finances, facilities, promotion, and comic effects | `VERIFIED_REPO` | Verify final binary still matches |
 | Platform | iOS app built with Expo/React Native | `VERIFIED_REPO` | Verify processed build metadata |
-| Store name | `Hero Football Manager` is configured, but project docs call it a **working title** | `BLOCKED` | Joe approves final name after availability/rights check |
+| Store name | `Hero Football Manager`; Joe authorized creation of the App Store Connect record with this name on August 9, 2026 | `OWNER_CONFIRMED` | Recheck name and rights before submission; the record remains editable while version 1.0 is in Prepare for Submission |
 | Bundle ID | `com.tanglefast.herofootballmanager` | `VERIFIED_REPO` | Check correct Apple team, duplicate App ID/record, and final archive |
 | Version | `1.0.0` | `VERIFIED_REPO` | Verify final archive and ASC version |
-| Build number | Durable `expo.ios.buildNumber` is `1`; the local Release build reports `CFBundleVersion=1`, and no HFM app record exists in the signed-in ASC account | `VERIFIED_REPO` | Recheck Developer identifiers and confirm no prior upload before using build 1 for the signed archive |
+| Build number | Durable `expo.ios.buildNumber` is `1`; App Store Connect has the HFM record and version 1.0, but no uploaded build as of August 9, 2026 | `VERIFIED_REPO` and `VERIFIED_ACCOUNT` | Choose and verify the final build number against the signed archive before upload |
 | Minimum iOS | Today's ignored/generated native snapshot says iOS 16.4; the durable Expo source does not explicitly pin that value | `BLOCKED` | Regenerate with the approved release config, then verify the target and final archive before stating support |
 | Devices | Joe chose one universal iPhone+iPad app | `OWNER_CONFIRMED` | Retain universal support only if the final iPad matrix and screenshot set pass |
 | Orientation | iPhone is portrait-first. iPad supports all orientations and multitasking; widths below 1100pt use the mobile composition and wider landscape windows use the desktop composition | `VERIFIED_BUILD` for current local Release | Repeat portrait, both landscape directions, resizing/multitasking, and common-flow QA on the final archive |
-| Language | Product plan says English-only at launch | `VERIFIED_REPO` | Confirm primary localization, proposed English (U.S.) |
-| Business model | Paid once, everything included, no IAP or gacha; approximately US$0.99 is only a planning target | `VERIFIED_REPO` | Joe authorizes exact price point and base storefront |
+| Language | The app currently enables English, Spanish, Brazilian Portuguese, French, German, Indonesian, and Vietnamese in `CFBundleLocalizations` and its in-game language picker | `VERIFIED_REPO` | Keep English (U.S.) as the primary App Store metadata localization for the unfinished release; verify the final archive advertises all seven app languages, then add each storefront localization only after its marketing copy and screenshots are reviewed |
+| Business model | Paid once, everything included, no IAP or gacha; Joe approved US$3.99 and App Store Connect now uses that price with the United States as the base storefront. Apple supplies equivalent prices in other storefronts | `OWNER_CONFIRMED` and `VERIFIED_ACCOUNT` on 2026-08-09 | Recheck the live schedule before submission; do not add manual regional overrides without approval |
 | Accounts/login | No account or login found | `VERIFIED_REPO` | Verify final archive; then reviewer credentials are not applicable |
 | Ads/IAP | No ads or in-app purchases found | `VERIFIED_REPO` | Verify dependencies and final archive |
 | Network/cloud | Designed fully offline; no server, multiplayer, cloud save, or networking integration found | `VERIFIED_REPO` | Verify release network activity and SDK behavior |
 | Data behavior | Current source/dependency audit found no developer or third-party data collection or tracking | `VERIFIED_REPO` | Archive/privacy-report/network audit before selecting “Data Not Collected” |
 | Native privacy manifest | The regenerated local Release app declares no collected data/tracking and lists required reasons for User Defaults, file timestamps, system boot time, and disk space | `VERIFIED_BUILD` for current local Release | Inspect the final signed archive's combined privacy report and every bundled SDK |
 | Local data | Player-entered name and career save remain in local SQLite; the user can reset/delete them | `VERIFIED_REPO` | Explain accurately in privacy policy |
-| Save sharing | Export is user-initiated through the iOS share sheet, not automatic developer collection | `VERIFIED_REPO` | Verify final behavior and policy wording |
 | Encryption | Config says the app does not use non-exempt encryption | `VERIFIED_REPO` | Inspect archive and all SDKs before answering export compliance |
 | Game Center | No entitlement or integration found | `VERIFIED_REPO` | Verify archive; otherwise do not configure it |
 | Notifications/permissions | No push, camera, location, contacts, microphone, tracking, or other purpose strings found | `VERIFIED_REPO` | Verify archive's entitlements and Info.plist |
 | Fictional content | Players, clubs, and leagues are fictional/procedurally generated | `VERIFIED_REPO` | Check final screenshots and copy use only fictional data |
 | App icon | Source and compiled device icons contain only fully opaque pixels; the generated 1024px App Store icon has no alpha channel and the local Release build passed Xcode validation | `VERIFIED_BUILD` for current local Release | Revalidate the final signed archive |
-| Privacy URL | Liquid Calendar's saved privacy URL currently returns 404; no live HFM-specific policy exists | `BLOCKED` | Publish and approve a live HFM-specific URL |
-| In-app privacy area | Privacy & Support is accessible from title Settings and in-career Settings, with local-data/export wording, version/build, support, and license notice | `VERIFIED_BUILD` | Add the exact live web-policy action once the HFM URL exists, then retest it online and offline |
-| Support URL/contact | Liquid Calendar's support page works and publishes the same email now used by the in-game Email Support action, but it is app-specific | `PROPOSED` | Joe confirms the email and a live HFM-specific support URL is published |
-| Copyright/legal owner | Liquid Calendar version metadata uses `2026 Otaku Games` | `VERIFIED_ACCOUNT` clue | Joe confirms the current rights-owner wording for this game |
-| Age rating | Light comic fantasy sports contact plus mild fear/medical imagery exists; frequency is unmeasured | `BLOCKED` | Inspect final content and complete live questionnaire truthfully |
-| Content rights | Joe confirmed all visual art is original/programmatically drawn and, on 2026-08-06, confirmed every supplied audio recording/cue is authorized for commercial/public App Store use; generated music/SFX are also documented in the repository | `OWNER_CONFIRMED` | Re-run the inventory against the final archive, retain notices and any private underlying evidence, then Joe approves the final content-rights declaration |
+| Privacy URL | The HFM-specific privacy page is live over public HTTPS and saved in App Store Connect | `VERIFIED_ACCOUNT` | Verify the final policy still matches the signed archive |
+| In-app privacy area | Privacy & Support is accessible from title Settings and in-career Settings, with local-data wording, version/build, support, and license notice; the current panel has no action that opens the live privacy policy | `VERIFIED_REPO` with a `BLOCKED` release action | Add the exact live web-policy action, then retest it online and offline before submission |
+| Support URL/contact | The HFM-specific support page is live over public HTTPS and saved in App Store Connect; the in-game Email Support action uses the published support address | `VERIFIED_ACCOUNT` and `VERIFIED_REPO` | Verify the inbox is monitored before submission |
+| Copyright/legal owner | Version 1.0 uses `2026 Otaku Games`, following the verified Liquid Calendar account convention and Joe's instruction to apply reusable account facts to HFM | `OWNER_CONFIRMED` | Reconfirm the rights-owner wording before submission if ownership changes |
+| Age rating | App Store Connect calculated and saved 9+ from no online/social/advertising/gambling features, infrequent mild fear, infrequent mild cartoon/fantasy violence, and all other content descriptors at none. Current regional results include Brazil 10 and Korea All | `VERIFIED_ACCOUNT` on 2026-08-09 | Recheck only if final content adds or materially increases a rated descriptor |
+| Accessibility | Reduced Motion is saved as an unpublished draft for iPhone and iPad. No VoiceOver, Voice Control, Larger Text, contrast, color, captions, or audio-description claim was made | `VERIFIED_ACCOUNT` on 2026-08-09 | Run common-task QA on the final iPhone and iPad build; publish only supported claims after a live version exists |
+| Content rights | Joe confirmed `awards-theme.m4a` is free for commercial use, but final asset evidence and the superhero-homage IP review are not complete | `BLOCKED` | Finish the rights ledger, retain commercial-use evidence, resolve or approve the homage designs through qualified review, inventory the final archive, then Joe approves the declaration |
 | Screenshots | Existing July captures are stale and include removed behavior; no iPad set exists | `BLOCKED` | Fresh final-build captures and Joe approval |
 | Release archive | A fresh unsigned iPhone+iPad Release simulator app builds and launches with embedded JS; it is not uploadable | `BLOCKED` | Fresh signed `.xcarchive` from the approved final release commit, Organizer validation, and device install |
 
@@ -280,7 +280,7 @@ Inspect before interviewing Joe:
 | Privacy-domain convention | Prior listing and live policy | Create/update an HFM-specific policy; do not copy prior privacy claims blindly |
 | Marketing domain | Prior listing | Optional; verify ownership and relevance |
 | Copyright-owner wording | Prior listing | Joe confirms current rights owner and year |
-| Primary language/localization convention | Prior listing | Clue only; HFM's launch plan currently says English-only |
+| Primary language/localization convention | Prior listing | Clue only; HFM uses English (U.S.) as the App Store metadata fallback while the current binary plan includes seven in-game languages |
 | Price base region and territory convention | Pricing/Availability | Clue only; Joe authorizes HFM choices |
 | Manual/automatic release convention | Prior release settings | Clue only; Joe chooses for this release |
 | DSA/account compliance status | Account compliance | Use current account state, never an old screenshot |
@@ -305,11 +305,11 @@ Ask in this order because later work depends on earlier answers:
 5. “The configured name is **Hero Football Manager**, but the project still calls it a working title. Is that the final storefront name after the availability/rights check?”
 6. “Should version 1.0 support iPad? Keeping it requires fresh 13-inch iPad screenshots plus portrait, both landscapes, resizing, and multitasking QA. Otherwise the binary must be made iPhone-only before archive.”
 7. “Should the iPhone/iPad app be offered on Apple-silicon Macs or Apple Vision Pro?” Recommend opting out unless Joe authorizes testing and the final build passes there.
-8. “Is English (U.S.) the intended primary language and the only launch localization?”
+8. “Is English (U.S.) the intended primary App Store metadata language? The app currently includes seven in-game languages. Which additional storefront localizations have native-reviewed marketing copy and final screenshot coverage?”
 
 #### 2C. Commercial launch decisions
 
-9. “What exact paid price point and base storefront do you authorize?” Show the current price-point UI; do not convert the approximate `$0.99` planning note into a final instruction.
+9. “Do you still authorize the saved US$3.99 price with the United States as the base storefront?” Show the current price schedule and any pending changes before submission.
 10. “Which storefronts should be included?” Explicitly surface the China mainland and Vietnam license gates before offering “all.”
 11. “Do you have the required game-publishing documents for China mainland or Vietnam?” If no, exclude those storefronts.
 12. “For first release, do you want manual, automatic, or scheduled release after approval?” Recommend manual release for control, but require Joe's decision.
@@ -362,7 +362,7 @@ Test a clean install and an upgraded/reinstalled path as applicable:
 - first launch, character creation, onboarding, first home screen;
 - week advance, first match, second match/first visible hero power, pause/resume, formation, playstyle, substitution, and Energy Use;
 - Quick Result parity at a practical smoke-test level;
-- training, facilities, finances, hiring/transfers/contracts, events, league/cup progress, save/load, restart, import, and user-directed export;
+- training, facilities, finances, hiring/transfers/contracts, events, league/cup progress, save/load, restart, and recovery/error paths;
 - offline launch and continued play in airplane mode;
 - background/foreground, interruption, low-memory relaunch, and device restart;
 - silent switch, volume, haptics, and no unintended background audio;
@@ -401,7 +401,6 @@ The HFM policy must accurately cover the final archive, including:
 - effective date;
 - the fact that gameplay, created-player name, settings, and saves are stored on device if final verification supports it;
 - what “no data collected” means and whether any SDK/partner receives data;
-- the user-initiated save export/share-sheet behavior;
 - local deletion/reset behavior;
 - children/age treatment appropriate to the final audience decision;
 - policy-change and contact process.
@@ -583,11 +582,21 @@ Copy rules:
 
 - describe the current release, not planned powers, platforms, online services, or future features;
 - make the first lines useful because they appear before expansion;
-- do not say “free,” `$0.99`, “sale,” or use territory-specific price claims in metadata;
+- do not say “free,” “sale,” or use territory-specific price claims in metadata;
 - do not mention Apple competitors, internal inspirations, review status, beta/testing, or ranking claims;
 - avoid real football league/club/player names and unlicensed marks;
 - proofread on phone and desktop;
-- use English-only metadata if that is the confirmed launch scope; every added localization needs accurate copy and an appropriate screenshot set/process.
+- keep English (U.S.) as the fallback metadata while the game is unfinished; every added storefront localization needs accurate, human-reviewed copy and an appropriate screenshot set/process.
+
+#### Binary languages versus App Store metadata localizations
+
+Treat these as two separate release surfaces:
+
+1. **In-game languages** come from the signed app bundle. HFM currently declares `en`, `es`, `pt-BR`, `fr`, `de`, `id`, and `vi` in `CFBundleLocalizations`, and its language resolver selects by the device language subtag. A player's country does not require a separate in-game build or a country-specific language rule.
+2. **App Store product-page localizations** are added manually in App Store Connect. Apple does not translate the name, subtitle, description, keywords, or promotional text from the binary. If only English (U.S.) metadata exists, Apple displays that fallback where no added localization matches the customer's settings.
+3. Do not add a storefront localization only because the binary contains that language. Add it when the localized name/subtitle/description/keywords are reviewed, any localized screenshot text is truthful, and the final screenshot process covers that localization.
+4. Before submission, inspect the processed build's language list and compare it with `CFBundleLocalizations` and `ENABLED_LOCALES`. A missing language is a binary/configuration defect; missing localized storefront copy is a product-page scope decision.
+5. For version 1.0, it is valid to submit the seven-language app with only English (U.S.) App Store metadata. Create the other six product-page localizations later or before submission once their marketing packages pass review.
 
 After metadata is entered, inspect Apple's suggested App Tags (currently surfaced to U.S. customers) and deselect any inaccurate tag. Do not accept a generated tag merely because Apple suggested it.
 
@@ -629,10 +638,9 @@ This declaration is separate from the privacy manifest.
 1. Inventory every data type leaving the device from app code and each SDK in the final archive.
 2. Inspect dependencies, production configuration, the Xcode privacy report, runtime network traffic, and any external partner Joe identifies.
 3. Determine whether data is linked to identity or used for tracking using Apple's current definitions.
-4. User-directed save export through the system share sheet is not developer collection if neither the developer nor an SDK receives it; describe it accurately in the policy.
-5. If final evidence still shows no data transmitted to Joe or third parties, the proposed answer is **No, this app does not collect data**.
-6. If any archive/network evidence conflicts, stop, fix the product/policy or disclose the actual data; never preserve the desired answer over evidence.
-7. Publish the App Privacy answers only after Joe approves the evidence summary.
+4. If final evidence still shows no data transmitted to Joe or third parties, the proposed answer is **No, this app does not collect data**.
+5. If any archive/network evidence conflicts, stop, fix the product/policy or disclose the actual data; never preserve the desired answer over evidence.
+6. Publish the App Privacy answers only after Joe approves the evidence summary.
 
 With no account, in-app account deletion is `NOT_APPLICABLE`; verify the final app does not silently create a guest/server account. With no cross-company tracking, ATT and `NSUserTrackingUsageDescription` are `NOT_APPLICABLE`; verify first.
 
@@ -666,7 +674,7 @@ Apple's current page describes these labels as voluntary “to start,” but rec
 
 - **European Union:** DSA trader/non-trader status must be declared. If trader and distributing in the EU, verified public address/PO box, phone, and email are required; Joe makes the legal determination and approves publication.
 - **China mainland:** a game requires NPPA approval information and supporting ISBN approval/response documentation/business-license information, with other ICP requirements where applicable. Exclude mainland China unless Joe has a compliant publishing path and documents.
-- **Vietnam:** Apple states games distributed in Vietnam must be licensed. Exclude Vietnam unless Joe has the required game-publishing license/compliant local path. Joe's current physical location does not establish distribution rights.
+- **Vietnam:** Vietnam is a target market, not a permanent exclusion. Keep it unavailable until a verified Vietnamese publisher with the required G2/G3/G4 authority files HFM's G4 release notice and supplies the issued number, date, and verification code. Prefer a Vietnam-only agreement with no upfront fee or minimum guarantee and a share of Vietnam net App Store receipts only. Verify the publisher in the National Business Registration Portal and the official game-license register; do not give the publisher the Apple account, bundle ID, source-code ownership, worldwide rights, or control of non-Vietnam revenue.
 - **Republic of Korea:** complete a Rating Classification Number only when Apple's current criteria/UI say it applies, such as the listed high-intensity content categories; do not invent a number.
 - **Japan / Trade Representative field:** Apple's current public required-properties table does not identify a Japan-specific Trade Representative submission field. Do not invent one from a reviewer claim. If the live account/app UI nevertheless presents **Trade Representative Contact Information**, recover the existing verified value from the account or a prior app, have Joe confirm it privately, and complete it only when the live UI marks it applicable.
 - **Brazil and other tax/compliance regions:** complete requested account forms from Joe's legal facts; never infer CNPJ/CPF, treaty, or residence answers.
@@ -701,7 +709,7 @@ For the current verified design, **Sign-in required = No** and demo credentials 
 
 Create final review notes only after a clean-install timing test. A safe evidence-backed structure is:
 
-> Hero Football Manager is a paid, single-player, offline club-management game. The submitted build has no account/login, ads, in-app purchases, tracking, analytics, or cloud service [retain only facts verified from the archive]. All clubs and players are fictional. Progress is stored on device; Export Save opens the iOS share sheet only at the user's request. To reach the first watched match from a clean install: [exact verified taps and approximate time]. To see the first hero power: [exact verified path; current design introduces it in Match 2/Week 4]. [Explain any non-obvious control, permission, or reviewer attachment.]
+> Hero Football Manager is a paid, single-player, offline club-management game. The submitted build has no account/login, ads, in-app purchases, tracking, analytics, or cloud service [retain only facts verified from the archive]. All clubs and players are fictional. Progress is stored on device. To reach the first watched match from a clean install: [exact verified taps and approximate time]. To see the first hero power: [exact verified path]. [Explain any non-obvious control, permission, or reviewer attachment.]
 
 Do not paste roadmap claims into review notes. If the reviewer path is slow or unreliable, improve the release experience or provide a truthful review aid; do not ship a secret dev harness or claim a path that was not tested.
 

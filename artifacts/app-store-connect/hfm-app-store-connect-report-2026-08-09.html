@@ -1,0 +1,1024 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Hero Football Manager — App Store Connect Field Report</title>
+  <style>
+    :root {
+      --night: #071a17;
+      --night-2: #0d2922;
+      --pitch: #176b45;
+      --pitch-bright: #26a269;
+      --chalk: #f7f1d5;
+      --paper: #e9dfbd;
+      --ink: #13221c;
+      --gold: #ffd447;
+      --orange: #ff8c42;
+      --red: #ff5b5b;
+      --sky: #67d4ff;
+      --muted: #a8baa9;
+      --line: rgba(247, 241, 213, 0.18);
+      --pixel: 4px;
+      --shadow: 8px 8px 0 #020a08;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--night);
+    }
+
+    body {
+      margin: 0;
+      color: var(--chalk);
+      background:
+        linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px),
+        radial-gradient(circle at 50% -10%, #1b654a 0, var(--night) 43%);
+      background-size: 24px 24px, 24px 24px, auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      line-height: 1.55;
+      min-height: 100vh;
+    }
+
+    a { color: var(--sky); text-underline-offset: 3px; }
+    a:hover { color: white; }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 88px;
+    }
+
+    .scoreboard {
+      position: relative;
+      overflow: hidden;
+      border: var(--pixel) solid var(--chalk);
+      background: #06110f;
+      box-shadow: var(--shadow);
+      padding: clamp(22px, 5vw, 56px);
+      margin-bottom: 28px;
+    }
+
+    .scoreboard::before,
+    .scoreboard::after {
+      content: "";
+      position: absolute;
+      background: var(--pitch);
+      opacity: .35;
+      pointer-events: none;
+    }
+
+    .scoreboard::before {
+      width: 240px;
+      height: 240px;
+      border: 4px solid var(--chalk);
+      border-radius: 50%;
+      right: -92px;
+      top: -92px;
+    }
+
+    .scoreboard::after {
+      width: 110px;
+      height: 180px;
+      border: 4px solid var(--chalk);
+      left: -58px;
+      bottom: -110px;
+      background: transparent;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 12px;
+      height: 12px;
+      background: var(--gold);
+      box-shadow: 4px 0 0 var(--gold), 0 4px 0 var(--gold);
+    }
+
+    h1, h2, h3 {
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      font-weight: 900;
+      letter-spacing: .035em;
+      line-height: .98;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    h1 {
+      max-width: 850px;
+      font-size: clamp(44px, 8.4vw, 94px);
+      margin-top: 18px;
+      text-shadow: 4px 4px 0 var(--pitch);
+    }
+
+    .subtitle {
+      max-width: 760px;
+      margin: 22px 0 0;
+      color: var(--paper);
+      font-size: clamp(15px, 2vw, 20px);
+    }
+
+    .stamp-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .stamp {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 6px 12px;
+      border: 2px solid currentColor;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      box-shadow: 3px 3px 0 #000;
+    }
+
+    .stamp.good { color: #78f2ad; background: #0d3a29; }
+    .stamp.wait { color: var(--gold); background: #3c3107; }
+    .stamp.info { color: var(--sky); background: #0c3343; }
+
+    .jump {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin: 22px 0 34px;
+    }
+
+    .jump a {
+      display: grid;
+      place-items: center;
+      min-height: 52px;
+      border: 2px solid var(--line);
+      background: rgba(5, 19, 15, .72);
+      color: var(--chalk);
+      text-decoration: none;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .jump a:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+      transform: translateY(-2px);
+    }
+
+    .section {
+      margin-top: 46px;
+      scroll-margin-top: 18px;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    .section-no {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      color: var(--night);
+      background: var(--gold);
+      border: 3px solid var(--chalk);
+      font-weight: 1000;
+      box-shadow: 4px 4px 0 #000;
+    }
+
+    h2 { font-size: clamp(28px, 4.5vw, 48px); }
+    h3 { font-size: 22px; line-height: 1.1; }
+
+    .lede {
+      color: var(--muted);
+      margin: 8px 0 0 56px;
+      max-width: 820px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+    }
+
+    .card {
+      position: relative;
+      grid-column: span 4;
+      border: 3px solid var(--line);
+      background: rgba(7, 26, 23, .92);
+      padding: 20px;
+      min-width: 0;
+    }
+
+    .card.wide { grid-column: span 8; }
+    .card.full { grid-column: 1 / -1; }
+    .card.half { grid-column: span 6; }
+    .card.good { border-color: rgba(120, 242, 173, .55); }
+    .card.wait { border-color: rgba(255, 212, 71, .62); }
+    .card.stop { border-color: rgba(255, 91, 91, .65); }
+
+    .card-kicker {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .big-stat {
+      color: var(--gold);
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      font-size: clamp(40px, 7vw, 74px);
+      letter-spacing: .02em;
+      line-height: .9;
+    }
+
+    .big-label { margin-top: 10px; color: var(--paper); font-weight: 800; }
+    .small { color: var(--muted); font-size: 12px; }
+
+    .pitch-map {
+      min-height: 190px;
+      display: grid;
+      place-items: center;
+      background:
+        linear-gradient(90deg, transparent 49.5%, rgba(247,241,213,.55) 49.5%, rgba(247,241,213,.55) 50.5%, transparent 50.5%),
+        repeating-linear-gradient(90deg, #176b45 0 12.5%, #1b7950 12.5% 25%);
+      border: 4px solid var(--chalk);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pitch-map::before {
+      content: "";
+      width: 88px;
+      height: 88px;
+      border: 4px solid rgba(247,241,213,.7);
+      border-radius: 50%;
+      position: absolute;
+    }
+
+    .pitch-map::after {
+      content: "FOUNDATION COMPLETE";
+      z-index: 1;
+      background: #071a17;
+      color: #78f2ad;
+      border: 3px solid #78f2ad;
+      padding: 11px 14px;
+      font-weight: 1000;
+      letter-spacing: .08em;
+      box-shadow: 5px 5px 0 rgba(0,0,0,.6);
+    }
+
+    .status-list,
+    .clean-list {
+      list-style: none;
+      padding: 0;
+      margin: 16px 0 0;
+    }
+
+    .status-list li,
+    .clean-list li {
+      position: relative;
+      padding: 10px 0 10px 30px;
+      border-top: 1px solid var(--line);
+    }
+
+    .status-list li::before,
+    .clean-list li::before {
+      position: absolute;
+      left: 2px;
+      top: 11px;
+      width: 16px;
+      height: 16px;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 1000;
+    }
+
+    .status-list li::before { content: "✓"; color: var(--night); background: #78f2ad; }
+    .clean-list li::before { content: "›"; color: var(--gold); border: 1px solid var(--gold); }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 3px solid var(--line);
+      background: rgba(7, 26, 23, .9);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 13px 14px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      color: var(--night);
+      background: var(--gold);
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    tbody tr:hover { background: rgba(255, 212, 71, .055); }
+    td:first-child { color: var(--paper); font-weight: 900; width: 22%; }
+    td:nth-child(2) { width: 44%; }
+    td:last-child { color: var(--muted); }
+
+    .pill {
+      display: inline-block;
+      white-space: nowrap;
+      padding: 3px 7px;
+      border: 1px solid currentColor;
+      font-size: 10px;
+      font-weight: 1000;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .pill.good { color: #78f2ad; }
+    .pill.wait { color: var(--gold); }
+    .pill.blank { color: #ff9c9c; }
+    .pill.info { color: var(--sky); }
+
+    .field-copy {
+      border: 3px solid var(--line);
+      background: var(--chalk);
+      color: var(--ink);
+      padding: clamp(18px, 3vw, 32px);
+      box-shadow: var(--shadow);
+    }
+
+    .field-copy h3 { color: #0c5136; margin-bottom: 16px; }
+    .field-copy pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .field-copy + .field-copy { margin-top: 20px; }
+
+    .language-board {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .language {
+      min-height: 96px;
+      display: grid;
+      align-content: center;
+      text-align: center;
+      border: 2px solid var(--line);
+      background: #0a201b;
+      padding: 9px;
+    }
+
+    .language strong { color: var(--gold); font-size: 16px; }
+    .language span { color: var(--muted); font-size: 10px; margin-top: 5px; }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .callout {
+      border-left: 8px solid var(--gold);
+      background: rgba(255,212,71,.1);
+      padding: 18px 20px;
+      margin-top: 18px;
+    }
+
+    .callout.danger {
+      border-color: var(--red);
+      background: rgba(255,91,91,.095);
+    }
+
+    .callout strong {
+      display: block;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .callout.danger strong { color: #ff9292; }
+
+    .timeline {
+      position: relative;
+      margin: 12px 0 0;
+      padding-left: 32px;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: 7px;
+      bottom: 8px;
+      width: 4px;
+      background: var(--line);
+    }
+
+    .timeline article {
+      position: relative;
+      padding: 0 0 24px 18px;
+    }
+
+    .timeline article::before {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: -29px;
+      top: 4px;
+      background: var(--gold);
+      border: 3px solid var(--night);
+      box-shadow: 0 0 0 2px var(--gold);
+    }
+
+    .timeline h3 { font-size: 17px; color: var(--paper); }
+    .timeline p { color: var(--muted); margin: 7px 0 0; }
+
+    .source-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .source-grid a {
+      display: block;
+      border: 2px solid var(--line);
+      padding: 12px;
+      background: #081e18;
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    .footer {
+      margin-top: 56px;
+      padding-top: 20px;
+      border-top: 4px solid var(--gold);
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    code {
+      color: var(--sky);
+      font: inherit;
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 880px) {
+      .jump { grid-template-columns: repeat(2, 1fr); }
+      .card, .card.wide, .card.half { grid-column: 1 / -1; }
+      .language-board { grid-template-columns: repeat(2, 1fr); }
+      .split { grid-template-columns: 1fr; }
+      .source-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .shell { width: min(100% - 20px, 1180px); padding-top: 10px; }
+      .scoreboard { box-shadow: 5px 5px 0 #020a08; }
+      .jump { grid-template-columns: 1fr 1fr; }
+      .language-board { grid-template-columns: 1fr 1fr; }
+      .footer { flex-direction: column; }
+      th, td { padding: 11px 10px; }
+    }
+
+    @media print {
+      body { background: white; color: #111; }
+      .shell { width: 100%; padding: 0; }
+      .jump { display: none; }
+      .scoreboard, .card, .table-wrap { box-shadow: none; break-inside: avoid; }
+      .section { break-before: auto; }
+      a { color: #0645ad; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="scoreboard">
+      <div class="eyebrow">App Store Connect · Field Report</div>
+      <h1>Hero Football Manager</h1>
+      <p class="subtitle">
+        A complete readback of the storefront record, saved 9+ rating,
+        accessibility drafts, seven-language plan, and remaining release gates.
+      </p>
+      <div class="stamp-row">
+        <span class="stamp good">Store foundation saved</span>
+        <span class="stamp good">Age rating saved</span>
+        <span class="stamp info">Apple ID 6799600157</span>
+        <span class="stamp wait">Not submitted</span>
+      </div>
+    </header>
+
+    <nav class="jump" aria-label="Report sections">
+      <a href="#status">Status</a>
+      <a href="#identity">Identity</a>
+      <a href="#storefront">Storefront</a>
+      <a href="#languages">Languages</a>
+      <a href="#copy">Exact copy</a>
+      <a href="#commercial">Commercial</a>
+      <a href="#deferred">Deferred</a>
+      <a href="#sources">Evidence</a>
+    </nav>
+
+    <section class="section" id="status">
+      <div class="section-head">
+        <span class="section-no">01</span>
+        <h2>Current score</h2>
+      </div>
+      <p class="lede">
+        The stable App Store record is complete. Submission data that depends on
+        the finished binary is empty by design.
+      </p>
+      <div class="grid">
+        <article class="card wide good">
+          <div class="pitch-map" aria-label="Store foundation complete"></div>
+        </article>
+        <article class="card good">
+          <div class="card-kicker">Live record</div>
+          <div class="big-stat">1.0</div>
+          <div class="big-label">Prepare for Submission</div>
+          <p class="small">Record created. Metadata saved. No build selected.</p>
+        </article>
+        <article class="card">
+          <div class="card-kicker">Price</div>
+          <div class="big-stat">$3.99</div>
+          <div class="big-label">United States base</div>
+          <p class="small">Saved in App Store Connect. Apple manages equivalent prices in other storefronts.</p>
+        </article>
+        <article class="card">
+          <div class="card-kicker">Availability</div>
+          <div class="big-stat">173</div>
+          <div class="big-label">Countries or regions</div>
+          <p class="small">China mainland excluded. Vietnam waits for a licensed G4 publishing partner.</p>
+        </article>
+        <article class="card">
+          <div class="card-kicker">Release evidence</div>
+          <div class="big-stat">0</div>
+          <div class="big-label">Builds · screenshots</div>
+          <p class="small">Correct for an unfinished game.</p>
+        </article>
+      </div>
+      <div class="callout">
+        <strong>Safe stopping point</strong>
+        Age rating is saved. Reduced Motion is drafted for iPhone and iPad but cannot
+        publish before a live version. App Privacy, content rights, screenshots,
+        build selection, and submission still wait for their release evidence.
+      </div>
+    </section>
+
+    <section class="section" id="identity">
+      <div class="section-head">
+        <span class="section-no">02</span>
+        <h2>Identity & ownership</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Field</th><th>Saved value</th><th>Basis</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>App name</td><td>Hero Football Manager</td><td><span class="pill good">Saved</span> User authorized record creation.</td></tr>
+            <tr><td>Apple ID</td><td><code>6799600157</code></td><td><span class="pill good">Verified live</span> Apple-generated identifier.</td></tr>
+            <tr><td>Platform</td><td>iOS</td><td><span class="pill good">Saved</span> iPhone and iPad binary plan.</td></tr>
+            <tr><td>Bundle ID</td><td><code>com.tanglefast.herofootballmanager</code></td><td><span class="pill good">Saved</span> Matches <code>app.json</code> and the registered explicit App ID.</td></tr>
+            <tr><td>SKU</td><td><code>com.tanglefast.hero-football-manager</code></td><td><span class="pill good">Saved</span> Internal, stable, not customer-facing.</td></tr>
+            <tr><td>Primary language</td><td>English (U.S.) · <code>en-US</code></td><td><span class="pill good">Saved</span> Product-page fallback.</td></tr>
+            <tr><td>Made for Kids</td><td>No</td><td><span class="pill good">Saved</span> The game is not enrolled in Apple’s Kids Category.</td></tr>
+            <tr><td>Copyright</td><td>2026 Otaku Games</td><td><span class="pill info">LC convention</span> Reused from the existing account record under the user’s instruction.</td></tr>
+            <tr><td>Version</td><td>1.0</td><td><span class="pill good">Saved</span> State: Prepare for Submission.</td></tr>
+            <tr><td>Custom EULA</td><td>None configured</td><td><span class="pill info">Default</span> Apple’s standard EULA remains in effect.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="storefront">
+      <div class="section-head">
+        <span class="section-no">03</span>
+        <h2>Product page</h2>
+      </div>
+      <div class="grid">
+        <article class="card good">
+          <div class="card-kicker">Primary category</div>
+          <h3>Games</h3>
+          <ul class="status-list">
+            <li>Sports</li>
+            <li>Simulation</li>
+          </ul>
+        </article>
+        <article class="card good">
+          <div class="card-kicker">Subtitle</div>
+          <h3>Build a Superpowered Club</h3>
+          <p class="small">27 of Apple’s 30 characters.</p>
+        </article>
+        <article class="card good">
+          <div class="card-kicker">Links</div>
+          <ul class="status-list">
+            <li><a href="https://tanglefast23.github.io/hero-football-manager-legal/support.html">Support page</a></li>
+            <li><a href="https://tanglefast23.github.io/hero-football-manager-legal/privacy.html">Privacy policy</a></li>
+            <li>Both returned HTTP 200</li>
+          </ul>
+        </article>
+        <article class="card full">
+          <div class="card-kicker">Every product-page field</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Field</th><th>Value</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>Name</td><td>Hero Football Manager</td><td><span class="pill good">Saved</span></td></tr>
+                <tr><td>Subtitle</td><td>Build a Superpowered Club</td><td><span class="pill good">Saved</span></td></tr>
+                <tr><td>Promotional text</td><td>Build a humble club into a global force. Train your squad, grow your ground, make the big calls, and watch ordinary players awaken extraordinary powers.</td><td><span class="pill good">Saved</span></td></tr>
+                <tr><td>Description</td><td>Build a small football club into a global force. A cozy, single-player club-management game where ordinary footballers can awaken extraordinary powers. <a href="#copy">Read the full saved description.</a></td><td><span class="pill good">Saved</span></td></tr>
+                <tr><td>Keywords</td><td><code>soccer,club,strategy,simulation,pixel,superhero,offline,team,tactics,career,sports</code></td><td><span class="pill good">Saved</span> 82 bytes</td></tr>
+                <tr><td>Support URL</td><td><a href="https://tanglefast23.github.io/hero-football-manager-legal/support.html">HFM Support</a></td><td><span class="pill good">Saved & live</span></td></tr>
+                <tr><td>Privacy Policy URL</td><td><a href="https://tanglefast23.github.io/hero-football-manager-legal/privacy.html">HFM Privacy</a></td><td><span class="pill good">Saved & live</span></td></tr>
+                <tr><td>Marketing URL</td><td>Blank</td><td><span class="pill info">Intentional</span> No polished marketing site yet.</td></tr>
+                <tr><td>Privacy Choices URL</td><td>Blank</td><td><span class="pill info">Optional</span></td></tr>
+                <tr><td>What’s New</td><td>Blank</td><td><span class="pill info">Correct</span> Not used for the first version.</td></tr>
+                <tr><td>Secondary category</td><td>Blank</td><td><span class="pill info">Intentional</span> Games + Sports + Simulation is precise.</td></tr>
+                <tr><td>App preview</td><td>None</td><td><span class="pill info">Optional</span> Avoids premature video work.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="languages">
+      <div class="section-head">
+        <span class="section-no">04</span>
+        <h2>Language plan</h2>
+      </div>
+      <p class="lede">
+        Apple treats the languages inside the app and the languages on the App
+        Store product page as two different systems.
+      </p>
+      <div class="language-board" aria-label="Seven in-game languages">
+        <div class="language"><strong>EN</strong><span>English</span></div>
+        <div class="language"><strong>ES</strong><span>Español</span></div>
+        <div class="language"><strong>PT-BR</strong><span>Português</span></div>
+        <div class="language"><strong>FR</strong><span>Français</span></div>
+        <div class="language"><strong>DE</strong><span>Deutsch</span></div>
+        <div class="language"><strong>ID</strong><span>Bahasa Indonesia</span></div>
+        <div class="language"><strong>VI</strong><span>Tiếng Việt</span></div>
+      </div>
+      <div class="split" style="margin-top:16px">
+        <article class="card full good">
+          <div class="card-kicker">In the app</div>
+          <h3>Seven languages are configured</h3>
+          <p>
+            <code>CFBundleLocalizations</code> and the in-game language registry
+            both list <code>en, es, pt-BR, fr, de, id, vi</code>. The game chooses
+            by the device language, not the player’s country.
+          </p>
+          <p class="small">
+            Example: a Vietnamese-speaking player in Canada can get Vietnamese.
+            A Spanish-speaking player in the United States can get Spanish.
+          </p>
+        </article>
+        <article class="card full wait">
+          <div class="card-kicker">On the App Store</div>
+          <h3>English (U.S.) only, for now</h3>
+          <p>
+            Apple does not translate the subtitle, description, keywords, or
+            screenshots from the binary. With only English metadata, Apple uses
+            English as the fallback in storefronts without another matching
+            localization.
+          </p>
+          <p class="small">
+            This is valid for version 1.0 while the game and marketing package
+            are unfinished.
+          </p>
+        </article>
+      </div>
+      <div class="table-wrap" style="margin-top:16px">
+        <table>
+          <thead><tr><th>Game locale</th><th>Later App Store choice</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td>English</td><td>English (U.S.) is already primary</td><td>Extra U.K., Australia, or Canada variants are optional marketing choices.</td></tr>
+            <tr><td>Spanish</td><td>Spanish (Spain) and/or Spanish (Mexico)</td><td>The game’s one <code>es</code> catalog can serve Spanish devices, but Apple offers two product-page locales. Review regional marketing copy before adding either.</td></tr>
+            <tr><td>Portuguese</td><td>Portuguese (Brazil)</td><td>Matches the game’s <code>pt-BR</code> content.</td></tr>
+            <tr><td>French</td><td>French and optionally French (Canada)</td><td>The game’s <code>fr</code> catalog serves both; storefront copy can remain separate.</td></tr>
+            <tr><td>German</td><td>German</td><td>Add after human review and final screenshot coverage.</td></tr>
+            <tr><td>Indonesian</td><td>Indonesian</td><td>Add after human review and final screenshot coverage.</td></tr>
+            <tr><td>Vietnamese</td><td>Vietnamese</td><td>The app supports Vietnamese, but the Vietnam storefront remains unavailable because the required game-publishing documents are not present.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout">
+        <strong>Answer to “does Apple detect it?”</strong>
+        The processed build should report its in-game languages automatically.
+        Product-page localizations must be added manually. No country-specific
+        app build is needed.
+      </div>
+    </section>
+
+    <section class="section" id="copy">
+      <div class="section-head">
+        <span class="section-no">05</span>
+        <h2>Exact saved copy</h2>
+      </div>
+      <div class="field-copy">
+        <h3>Description</h3>
+        <pre>Build a small football club into a global force—one week, one decision, and one impossible comeback at a time.
+
+Hero Football Manager is a cozy, single-player club-management game where ordinary footballers can awaken extraordinary powers.
+
+BUILD THE WHOLE CLUB
+• Train players and shape their development.
+• Recruit staff, scout the market, and manage contracts.
+• Upgrade your ground and facilities.
+• Balance wages, sponsorships, match income, and long-term growth.
+• Guide a fictional club through five divisions and the Hero Cup.
+
+WATCH EVERY PLAN PLAY OUT
+Matches unfold in lively pixel art. Adjust your formation, playstyle, substitutions, and energy use while your team plays. Heroes build toward automatic, context-sensitive powers that can turn a match into a comic-book spectacle.
+
+A COMPLETE, PLAYER-FIRST GAME
+• One purchase. No ads or in-app purchases.
+• No account, analytics, or tracking.
+• Designed for offline play.
+• Your career stays on your device.
+• Seven languages: English, Spanish, Brazilian Portuguese, French, German, Indonesian, and Vietnamese.
+
+Build the club. Discover your heroes. Climb from the district leagues to the global stage.</pre>
+      </div>
+      <div class="field-copy">
+        <h3>App Review notes</h3>
+        <pre>Hero Football Manager is a paid, single-player football club-management game. No account or sign-in is required. The game has no ads or in-app purchases and is designed to work offline. All clubs and players are fictional, and career progress is stored on the device.
+
+The game starts with character creation and a guided first week. Watched matches play automatically. During a match, the player can adjust Formation, Playstyle, substitutions, and Energy Use. Superpowers activate automatically when their match context occurs.
+
+No reviewer account, demo credentials, permission grant, or special access is required.</pre>
+      </div>
+      <div class="callout danger">
+        <strong>Reverify before submission</strong>
+        This copy matches the current planned product. Compare every claim with the
+        finished signed build. Remove or revise any claim that changes during
+        development.
+      </div>
+    </section>
+
+    <section class="section" id="commercial">
+      <div class="section-head">
+        <span class="section-no">06</span>
+        <h2>Commercial & distribution choices</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Option</th><th>Selected value</th><th>Why it represents HFM</th></tr></thead>
+          <tbody>
+            <tr><td>Business model</td><td>Paid app, one purchase</td><td>No in-app purchases, subscriptions, ads, or gacha configured.</td></tr>
+            <tr><td>Base storefront</td><td>United States · USD</td><td>Reuses the established Liquid Calendar account convention.</td></tr>
+            <tr><td>Price</td><td>US$3.99 saved</td><td>Joe approved this price on August 9, 2026. It matches Football Chairman Pro 2 and remains below Kairosoft's core US$4.99–US$5.99 paid range.</td></tr>
+            <tr><td>Localized prices</td><td>Apple automatic equivalents</td><td>Apple can adjust non-base prices for tax and foreign exchange changes.</td></tr>
+            <tr><td>Public distribution</td><td>Yes</td><td>The game is for the public App Store, not a private custom-app channel.</td></tr>
+            <tr><td>Availability</td><td>173 of 175 territories</td><td>Broad release without claiming missing regulated-game documents.</td></tr>
+            <tr><td>China mainland</td><td>Not available</td><td>Required publishing documentation has not been provided.</td></tr>
+            <tr><td>Vietnam</td><td>Pending licensed publisher</td><td>Target market. Enable only after a verified Vietnamese publisher files HFM's G4 release notice and supplies the issued license details.</td></tr>
+            <tr><td>New storefronts</td><td>Do not add automatically</td><td>New territories require a compliance check before sale.</td></tr>
+            <tr><td>Pre-order</td><td>No</td><td>The game is unfinished and has no approved launch date.</td></tr>
+            <tr><td>Release method</td><td>Manual release</td><td>Keeps a separate approval step after App Review approval.</td></tr>
+            <tr><td>Apple Silicon Mac</td><td>Not available</td><td>No completed Mac compatibility test.</td></tr>
+            <tr><td>Apple Vision Pro</td><td>Not available</td><td>No completed Vision Pro compatibility test.</td></tr>
+            <tr><td>iPhone + iPad</td><td>Planned</td><td><code>supportsTablet: true</code>; final iPad QA and screenshots remain required.</td></tr>
+            <tr><td>Tax category</td><td>App Store software</td><td>Apple default retained; no unsupported special tax class selected.</td></tr>
+            <tr><td>School Manager</td><td>Reduced volume price enabled</td><td>Matches the existing Liquid Calendar account convention.</td></tr>
+            <tr><td>Streamlined purchasing</td><td>Enabled</td><td>Apple account default; HFM has no separate purchase flow.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid" style="margin-top:16px">
+        <article class="card half good">
+          <div class="card-kicker">Account status checked live</div>
+          <ul class="status-list">
+            <li>Paid Apps Agreement: Active</li>
+            <li>Free Apps Agreement: Active</li>
+            <li>Banking status: Active</li>
+            <li>Required tax forms shown: Active</li>
+            <li>Digital Services Act status: Active</li>
+          </ul>
+        </article>
+        <article class="card half stop">
+          <div class="card-kicker">Time-sensitive account gate</div>
+          <h3>Agreements show an Aug 11 end date</h3>
+          <p>
+            Apple showed both current app agreements ending on August 11, 2026.
+            Check for a replacement agreement before any paid submission.
+          </p>
+          <p class="small">No agreement, tax, banking, or legal attestation was changed.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="review">
+      <div class="section-head">
+        <span class="section-no">07</span>
+        <h2>App Review packet</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Saved selection</th><th>Privacy handling</th></tr></thead>
+          <tbody>
+            <tr><td>Review contact</td><td>Joseph Vu</td><td>Email and phone reused from Liquid Calendar; masked in this report.</td></tr>
+            <tr><td>Sign-in required</td><td>No</td><td>No reviewer account created.</td></tr>
+            <tr><td>Demo username</td><td>Blank</td><td>Not applicable.</td></tr>
+            <tr><td>Demo password</td><td>Blank</td><td>Not applicable.</td></tr>
+            <tr><td>Review notes</td><td>Saved; full text in section 05</td><td>No private credentials.</td></tr>
+            <tr><td>Attachment</td><td>None</td><td>Not required for the unfinished version.</td></tr>
+            <tr><td>Build</td><td>None selected</td><td>The release archive does not exist yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="deferred">
+      <div class="section-head">
+        <span class="section-no">08</span>
+        <h2>Intentionally deferred</h2>
+      </div>
+      <p class="lede">
+        These are not omissions. Each answer would be unreliable before the game
+        or final-release evidence is not ready.
+      </p>
+      <div class="grid">
+        <article class="card half wait">
+          <div class="card-kicker">App Privacy</div>
+          <h3>Get Started · not published</h3>
+          <p>Wait for the final dependency inventory, signed archive privacy report, and release network audit.</p>
+        </article>
+        <article class="card half good">
+          <div class="card-kicker">Age rating</div>
+          <h3>9+ saved</h3>
+          <p>Apple calculated 9+ from infrequent mild fear and infrequent mild cartoon/fantasy violence. Brazil is 10; Korea is All. Recheck if final content changes.</p>
+        </article>
+        <article class="card half stop">
+          <div class="card-kicker">Content rights</div>
+          <h3>No declaration saved</h3>
+          <p><code>awards-theme.m4a</code> is owner-confirmed for commercial use, but the evidence ledger and superhero-homage IP review are not complete.</p>
+        </article>
+        <article class="card half good">
+          <div class="card-kicker">Accessibility</div>
+          <h3>Reduced Motion · draft</h3>
+          <p>Saved for iPhone and iPad. Apple will not publish the draft before a live version exists. Other features remain unclaimed until common-task QA proves them.</p>
+        </article>
+        <article class="card half wait">
+          <div class="card-kicker">Screenshots</div>
+          <h3>0 screenshot sets</h3>
+          <p>Capture truthful final iPhone and iPad screens from the release experience. Do not reuse stale audit images.</p>
+        </article>
+        <article class="card half wait">
+          <div class="card-kicker">Build & export compliance</div>
+          <h3>0 builds uploaded</h3>
+          <p><code>ITSAppUsesNonExemptEncryption=false</code> exists in source, but the final archive and SDKs must support that answer.</p>
+        </article>
+        <article class="card half wait">
+          <div class="card-kicker">Store localizations</div>
+          <h3>6 language packages waiting</h3>
+          <p>Add Spanish, Brazilian Portuguese, French, German, Indonesian, and Vietnamese metadata only after human review and screenshot planning.</p>
+        </article>
+        <article class="card half stop">
+          <div class="card-kicker">Submission & release</div>
+          <h3>Not started</h3>
+          <p>No Add for Review, Submit for Review, automatic release, or Release This Version action was taken.</p>
+        </article>
+      </div>
+      <div class="callout danger">
+        <strong>One app change still needed before submission</strong>
+        The in-game Privacy & Support panel shows privacy text but does not open
+        the live HTTPS privacy policy. Add and test that action before the final
+        submission.
+      </div>
+    </section>
+
+    <section class="section" id="next">
+      <div class="section-head">
+        <span class="section-no">09</span>
+        <h2>Finish-line sequence</h2>
+      </div>
+      <div class="timeline">
+        <article>
+          <h3>1 · Finish and freeze the game</h3>
+          <p>Resolve release bugs, lock content, finalize rights, and choose the release commit.</p>
+        </article>
+        <article>
+          <h3>2 · Build the signed release</h3>
+          <p>Archive, validate, inspect privacy manifests, verify encryption, install, and complete offline/device QA.</p>
+        </article>
+        <article>
+          <h3>3 · Complete truthful declarations</h3>
+          <p>App Privacy, age rating, content rights, accessibility, and any account compliance prompts.</p>
+        </article>
+        <article>
+          <h3>4 · Create final store media</h3>
+          <p>Approved iPhone and iPad screenshot sets, followed by optional localized product-page packages.</p>
+        </article>
+        <article>
+          <h3>5 · Select the build and read everything back</h3>
+          <p>Recheck product claims, price, territories, links, reviewer path, metadata, and processed build identity.</p>
+        </article>
+        <article>
+          <h3>6 · Submit, then release separately</h3>
+          <p>Submit only with explicit authorization. Manual release remains a second controlled action after approval.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="sources">
+      <div class="section-head">
+        <span class="section-no">10</span>
+        <h2>Verification & sources</h2>
+      </div>
+      <div class="grid">
+        <article class="card half good">
+          <div class="card-kicker">Verified August 9, 2026</div>
+          <ul class="status-list">
+            <li>Live App Store Connect API readback</li>
+            <li>Live App Store Connect UI readback</li>
+            <li>All three HFM HTTPS pages returned 200</li>
+            <li>Availability API: 173 available, 2 unavailable</li>
+            <li>Age rating API: 9+ · Brazil 10 · Korea All</li>
+            <li>Accessibility UI: Reduced Motion drafted for iPhone and iPad</li>
+            <li>Build API: 0 builds</li>
+            <li>Screenshot API: 0 screenshot sets</li>
+            <li>Runbook patch passed <code>git diff --check</code></li>
+          </ul>
+        </article>
+        <article class="card half">
+          <div class="card-kicker">Updated internal guide</div>
+          <h3>Release runbook corrected</h3>
+          <p>
+            The runbook now records seven in-game languages, explains manual
+            App Store localization, removes routine Export/Import Save claims,
+            and records the live HFM web-page and App Store state.
+          </p>
+          <p><a href="../../docs/plans/2026-08-05-feat-app-store-submission-runbook-plan.md">Open the updated runbook</a></p>
+        </article>
+      </div>
+      <div class="source-grid">
+        <a href="https://developer.apple.com/help/app-store-connect/manage-app-information/localize-app-information">Apple · Localize app information</a>
+        <a href="https://developer.apple.com/help/app-store-connect/reference/app-information/app-store-localizations">Apple · App Store localizations</a>
+        <a href="https://developer.apple.com/help/app-store-connect/manage-app-pricing/set-a-price">Apple · Set a price</a>
+        <a href="https://developer.apple.com/help/app-store-connect/manage-your-apps-availability/manage-availability-for-your-app-on-the-app-store">Apple · Manage availability</a>
+        <a href="https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy/">Apple · Manage App Privacy</a>
+        <a href="https://developer.apple.com/help/app-store-connect/manage-app-information/set-an-app-age-rating/">Apple · Set an age rating</a>
+        <a href="https://developer.apple.com/help/app-store-connect/manage-app-accessibility/manage-accessibility-nutrition-labels">Apple · Accessibility nutrition labels</a>
+        <a href="https://game.gov.vn/so-lieu-thong-ke">Vietnam · Official game-license register</a>
+        <a href="https://gamota.com/en_GB/">Gamota · Revenue-sharing co-publishing</a>
+        <a href="https://developer.apple.com/help/app-store-connect/reference/app-information/required-localizable-and-editable-properties/">Apple · Required App Store fields</a>
+        <a href="https://github.com/tanglefast23/hero-football-manager-legal">HFM · Public legal pages repository</a>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>Hero Football Manager · App Store Connect field report</span>
+      <span>Evidence cut: 2026-08-09 · Asia/Ho_Chi_Minh</span>
+    </footer>
+  </main>
+</body>
+</html>
