@@ -160,7 +160,14 @@ import {
   trainingDrillTier,
 } from '../game/promotion-progression';
 import { renewalOpeningOfferWage } from '../game/market';
-import { copyFor, powerCopySlug, proseSlug, type CopyFn } from '../i18n';
+import {
+  copyFor,
+  formatIntegerForCopy,
+  formatMoneyForCopy,
+  powerCopySlug,
+  proseSlug,
+  type CopyFn,
+} from '../i18n';
 
 /**
  * English copy, for every caller that has not threaded a locale through yet.
@@ -841,7 +848,7 @@ function clubSponsorshipViewModel(
         ...(state.clubBusiness.buzz.lastSettlementSummary === undefined ? {} : {
           lastSettlementLabel: t('clubFinances.buzzLastSettlementLabel', {
             reached: state.clubBusiness.buzz.lastSettlementSummary.prePayoutValue,
-            amount: `$${state.clubBusiness.buzz.lastSettlementSummary.payout.toLocaleString()}`,
+            amount: formatMoneyForCopy(t, state.clubBusiness.buzz.lastSettlementSummary.payout),
           }),
         }),
       };
@@ -1371,16 +1378,16 @@ export function storyEventViewModel(
         const boosts = building.boosts;
         const earned = [
           boosts?.tpBonusPercent
-            ? t('storyEvent.rewardFacilityTp', { amount: signedAmount(boosts.tpBonusPercent) })
+            ? t('storyEvent.rewardFacilityTp', { amount: signedAmount(t, boosts.tpBonusPercent) })
             : undefined,
           boosts?.trainingBonusPercent
-            ? t('storyEvent.rewardFacilityTraining', { amount: signedAmount(boosts.trainingBonusPercent) })
+            ? t('storyEvent.rewardFacilityTraining', { amount: signedAmount(t, boosts.trainingBonusPercent) })
             : undefined,
           boosts?.recoveryBonus
-            ? t('storyEvent.rewardFacilityRecovery', { amount: signedAmount(boosts.recoveryBonus) })
+            ? t('storyEvent.rewardFacilityRecovery', { amount: signedAmount(t, boosts.recoveryBonus) })
             : undefined,
           boosts?.incomeBonusPercent
-            ? t('storyEvent.rewardFacilityIncome', { amount: signedAmount(boosts.incomeBonusPercent) })
+            ? t('storyEvent.rewardFacilityIncome', { amount: signedAmount(t, boosts.incomeBonusPercent) })
             : undefined,
         ].filter((line): line is string => line !== undefined);
         return earned.length === 0 ? {} : { earnedLine: earned.join(' · ') };
@@ -1719,7 +1726,7 @@ export function seasonEndViewModel(
                 Object.entries(reward.params).map(([name, value]) => [
                   name,
                   (name === 'cost' || name === 'amount') && typeof value === 'number'
-                    ? formatMoney(value)
+                    ? formatMoneyForCopy(t, value)
                     : value,
                 ]),
               );
@@ -1859,7 +1866,7 @@ function drillShopAlert(state: GameState, t: CopyFn): ClubAlertViewModel | undef
   return {
     id: `training-upgrade:tier-${offer.tier}`,
     title: t('clubHome.drillShopTitle', { tier: offer.tier }),
-    detail: t('clubHome.drillShopDetail', { cost: formatMoney(offer.cost), tier: offer.tier }),
+    detail: t('clubHome.drillShopDetail', { cost: formatMoneyForCopy(t, offer.cost), tier: offer.tier }),
     tone: 'info',
   };
 }
@@ -1968,10 +1975,10 @@ export function homeProductAlerts(
         ? t('clubHome.emergencyLoanDetailRepaying', {
           n: loan.remainingWeeks,
           count: loan.remainingWeeks,
-          amount: formatMoney(loan.remainingBalance),
+          amount: formatMoneyForCopy(t, loan.remainingBalance),
         })
         : t('clubHome.emergencyLoanDetailPending', {
-          amount: formatMoney(loan.remainingBalance),
+          amount: formatMoneyForCopy(t, loan.remainingBalance),
           season: loan.repaymentStartsSeason,
         }),
       tone: 'info' as const,
@@ -1998,7 +2005,7 @@ export function homeProductAlerts(
           player: state.players.find(player => player.id === latestBoardResolution.playerId)?.name
             ?? t('clubHome.aPlayer'),
           club: clubName(state, latestBoardResolution.buyerClubId),
-          fee: formatMoney(latestBoardResolution.fee),
+          fee: formatMoneyForCopy(t, latestBoardResolution.fee),
         }),
       tone: latestBoardResolution.kind === 'TARGET_MET' ? 'info' as const : 'urgent' as const,
     }]),
@@ -2172,7 +2179,7 @@ export function boardFinanceBriefing(
         t('clubHome.briefingWeeksInTheRed', {
           n: weeks,
           count: weeks,
-          amount: formatMoney(cash),
+          amount: formatMoneyForCopy(t, cash),
         }),
         graceWeeks > 0
           ? t('clubHome.briefingLockedWithGrace', {
@@ -2197,7 +2204,7 @@ export function boardFinanceBriefing(
     return {
       title: t('clubHome.emergencyLoanTitle'),
       body: [
-        t('clubHome.briefingLoanLanded', { amount: formatMoney(loan.remainingBalance) }),
+        t('clubHome.briefingLoanLanded', { amount: formatMoneyForCopy(t, loan.remainingBalance) }),
         repaying
           ? t('clubHome.briefingLoanRepaying', {
             n: loan.remainingWeeks,
@@ -2242,7 +2249,7 @@ function namesWithOverflow(names: readonly string[], t: CopyFn, shown = 3): stri
 function boardTargetLabel(targetCash: number, t: CopyFn): string {
   return targetCash <= 0
     ? t('clubHome.boardTargetPositiveBalance')
-    : t('clubHome.boardTargetCash', { amount: formatMoney(targetCash) });
+    : t('clubHome.boardTargetCash', { amount: formatMoneyForCopy(t, targetCash) });
 }
 
 export function reconcileHomeAssistantInbox(state: GameState): GameState {
@@ -2715,7 +2722,7 @@ export function homeViewModel(state: GameState, t: CopyFn = englishCopy()): Home
             const saleDetail = sold === undefined
               ? t('clubHome.forcedSaleUnknownPlayer', {
                 club: buyerName,
-                fee: formatMoney(latestBoardResolution.fee),
+                fee: formatMoneyForCopy(t, latestBoardResolution.fee),
               })
               : t('clubHome.forcedSalePlayer', { player: sold.name, club: buyerName });
             const replacementDetail = replacement === undefined
@@ -3833,14 +3840,14 @@ function eventRewardItems(
   );
   const fans = effects.reduce((sum, effect) => effect.type === 'fans' ? sum + effect.amount : sum, 0);
   const trainingPoints = effects.reduce((sum, effect) => effect.type === 'tp' ? sum + effect.amount : sum, 0);
-  if (money !== 0) rewards.push({ label: formatMoney(money, true), kind: 'money', positive: money > 0 });
+  if (money !== 0) rewards.push({ label: formatMoneyForCopy(t, money, true), kind: 'money', positive: money > 0 });
   const playerSale = effects.find(effect => effect.type === 'playerSale');
   if (playerSale?.type === 'playerSale') {
     const playerName = state.players.find(
       player => player.id === state.pendingEvent?.selectedPlayerId,
     )?.name;
     rewards.push({
-      label: formatMoney(playerSale.fee, true),
+      label: formatMoneyForCopy(t, playerSale.fee, true),
       kind: 'money',
       positive: true,
     });
@@ -3853,29 +3860,29 @@ function eventRewardItems(
     });
   }
   if (playerMorale !== 0) rewards.push({
-    label: t('storyEvent.rewardPlayerMorale', { amount: signedAmount(playerMorale) }),
+    label: t('storyEvent.rewardPlayerMorale', { amount: signedAmount(t, playerMorale) }),
     kind: 'morale',
     positive: playerMorale > 0,
   });
   if (squadMorale !== 0) rewards.push({
-    label: t('storyEvent.rewardSquadMorale', { amount: signedAmount(squadMorale) }),
+    label: t('storyEvent.rewardSquadMorale', { amount: signedAmount(t, squadMorale) }),
     kind: 'morale',
     positive: squadMorale > 0,
   });
   if (fans !== 0) rewards.push({
-    label: t('storyEvent.rewardFans', { amount: `${fans > 0 ? '+' : ''}${fans}` }),
+    label: t('storyEvent.rewardFans', { amount: formatIntegerForCopy(t, fans, true) }),
     kind: 'fans',
     positive: fans > 0,
   });
   if (trainingPoints !== 0) rewards.push({
-    label: `${trainingPoints > 0 ? '+' : ''}${trainingPoints} TP`,
+    label: `${formatIntegerForCopy(t, trainingPoints, true)} TP`,
     kind: 'training-points',
     positive: trainingPoints > 0,
   });
   for (const effect of effects) {
     if (effect.type === 'statDelta' && effect.amount !== 0) {
       rewards.push({
-        label: `${effect.amount > 0 ? '+' : ''}${effect.amount} ${effect.attribute.toUpperCase()}`,
+        label: `${formatIntegerForCopy(t, effect.amount, true)} ${effect.attribute.toUpperCase()}`,
         kind: 'stat',
         positive: effect.amount > 0,
       });
@@ -3884,7 +3891,7 @@ function eventRewardItems(
       const points = trainingSessionPoints(state, effect.attribute, effect.sessions);
       if (points !== 0) {
         rewards.push({
-          label: `${points > 0 ? '+' : ''}${points} ${effect.attribute.toUpperCase()}`,
+          label: `${formatIntegerForCopy(t, points, true)} ${effect.attribute.toUpperCase()}`,
           kind: 'stat',
           positive: points > 0,
         });
@@ -3892,21 +3899,21 @@ function eventRewardItems(
     }
     if (effect.type === 'loyalty' && effect.amount !== 0) {
       rewards.push({
-        label: t('storyEvent.rewardLoyalty', { amount: `${effect.amount > 0 ? '+' : ''}${effect.amount}` }),
+        label: t('storyEvent.rewardLoyalty', { amount: formatIntegerForCopy(t, effect.amount, true) }),
         kind: 'stat',
         positive: effect.amount > 0,
       });
     }
     if (effect.type === 'condition' && effect.amount !== 0) {
       rewards.push({
-        label: t('storyEvent.rewardCondition', { amount: `${effect.amount > 0 ? '+' : ''}${effect.amount}` }),
+        label: t('storyEvent.rewardCondition', { amount: formatIntegerForCopy(t, effect.amount, true) }),
         kind: 'stat',
         positive: effect.amount > 0,
       });
     }
     if (effect.type === 'fame' && effect.amount !== 0) {
       rewards.push({
-        label: t('storyEvent.rewardFame', { amount: `${effect.amount > 0 ? '+' : ''}${effect.amount}` }),
+        label: t('storyEvent.rewardFame', { amount: formatIntegerForCopy(t, effect.amount, true) }),
         kind: 'stat',
         positive: effect.amount > 0,
       });
@@ -3935,7 +3942,7 @@ function eventRewardItems(
             ? 'storyEvent.rewardCoachTp'
             : 'storyEvent.rewardCoachMotivator';
       rewards.push({
-        label: t(key, { amount: signedAmount(effect.amount) }),
+        label: t(key, { amount: signedAmount(t, effect.amount) }),
         kind: 'stat',
         positive: effect.amount > 0,
       });
@@ -3952,7 +3959,7 @@ function eventRewardItems(
     if (effect.type === 'facilityTpBonus' && effect.percent !== 0) {
       rewards.push({
         label: t('storyEvent.rewardFacilityTp', {
-          amount: signedAmount(effect.percent),
+          amount: signedAmount(t, effect.percent),
         }),
         kind: 'stat',
         positive: effect.percent > 0,
@@ -3961,7 +3968,7 @@ function eventRewardItems(
     if (effect.type === 'facilityTrainingBonus' && effect.percent !== 0) {
       rewards.push({
         label: t('storyEvent.rewardFacilityTraining', {
-          amount: signedAmount(effect.percent),
+          amount: signedAmount(t, effect.percent),
         }),
         kind: 'stat',
         positive: effect.percent > 0,
@@ -3970,7 +3977,7 @@ function eventRewardItems(
     if (effect.type === 'facilityRecoveryBonus' && effect.amount !== 0) {
       rewards.push({
         label: t('storyEvent.rewardFacilityRecovery', {
-          amount: signedAmount(effect.amount),
+          amount: signedAmount(t, effect.amount),
         }),
         kind: 'stat',
         positive: effect.amount > 0,
@@ -3979,7 +3986,7 @@ function eventRewardItems(
     if (effect.type === 'facilityIncomeBonus' && effect.percent !== 0) {
       rewards.push({
         label: t('storyEvent.rewardFacilityIncome', {
-          amount: signedAmount(effect.percent),
+          amount: signedAmount(t, effect.percent),
         }),
         kind: 'stat',
         positive: effect.percent > 0,
@@ -4002,15 +4009,8 @@ function overall(
   return roleOverall(role, attrs);
 }
 
-function formatMoney(value: number, signed = false): string {
-  // ASCII hyphen, matching Scorecard's formatCurrency: Silkscreen has no
-  // U+2212 glyph, and money strings render in the pixel face.
-  const sign = value < 0 ? '-' : signed && value > 0 ? '+' : '';
-  return `${sign}$${Math.abs(Math.trunc(value)).toLocaleString('en-US')}`;
-}
-
-function signedAmount(value: number): string {
-  return `${value > 0 ? '+' : ''}${value}`;
+function signedAmount(t: CopyFn, value: number): string {
+  return formatIntegerForCopy(t, value, true);
 }
 
 function clubName(state: GameState, clubId: string): string {

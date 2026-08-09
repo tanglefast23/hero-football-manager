@@ -574,7 +574,11 @@ export function CharacterSpeechOverlay({
       onPress={advance}
       style={StyleSheet.absoluteFill}
     >
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <View
+        testID="character-speech-visual-viewport"
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, styles.visualViewport]}
+      >
         {phase === 'speaking' ? (
           <Animated.View
             onLayout={onBubbleLayout}
@@ -663,6 +667,11 @@ export function CharacterSpeechOverlay({
 }
 
 const styles = StyleSheet.create({
+  // The character starts and ends beyond the right edge. Web includes transformed
+  // descendants in page overflow unless the full-screen visual layer clips them.
+  // Keep clipping off the Pressable itself so its input and modal semantics still
+  // cover the complete screen.
+  visualViewport: { overflow: 'hidden' },
   character: { position: 'absolute', left: 0 },
   groundShadow: {
     position: 'absolute',

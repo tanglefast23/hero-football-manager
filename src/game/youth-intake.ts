@@ -235,6 +235,8 @@ export function signYouthIntakeOffer(
   const signedState = recordCashTransaction({ ...state, players, clubs }, {
     kind: 'youth-signing',
     label: `Youth signing · ${signedPlayer.name}`,
+    labelKey: 'ledger.youthSigning',
+    labelParams: { player: signedPlayer.name },
     amount: -offer.signingBonus,
     referenceId: playerId,
   });

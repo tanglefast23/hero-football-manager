@@ -1856,6 +1856,7 @@ function recordStatLines(
       if (clubId === undefined) continue;
       const key = `${state.season}:${contribution.playerId}:${clubId}:${competition}`;
       const previous = totals.get(key);
+      /** @i18n-fallback Developer-only overflow label; never rendered. */
       const label = `${contribution.playerId} season`;
       totals.set(key, {
         season: state.season,

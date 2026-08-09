@@ -18,7 +18,7 @@ import { useGuideAnchor } from './use-guide-anchor';
 import { useCountUpNumber } from './use-count-up-number';
 import { IdleAttract } from './components/IdleAttract';
 import type { DeveloperSaveSlot, DeveloperSaveSummary } from '../persistence';
-import { useCopy } from '../i18n';
+import { useCopy, type CopyFn } from '../i18n';
 
 const TABS: ReadonlyArray<{
   id: ManagementTab; labelKey: string; glyph: string; available: boolean; tipKey: string;
@@ -32,10 +32,10 @@ const TABS: ReadonlyArray<{
 
 const ADVANCE_WEEK_TIP_KEY = 'managementShell.advanceWeekTip';
 
-// Persistent chrome must not consume the screen when iOS Dynamic Type is at
-// its accessibility maximum. The full names remain available to assistive
-// technology through accessibilityLabel.
-const CHROME_MAX_FONT_SIZE_MULTIPLIER = 1.3;
+// This one-line status header labels fixed desk data. Its complete sentence is
+// also exposed through accessibilityLabel. Player actions below are not capped:
+// they grow with the selected Dynamic Type category.
+const FIXED_HEADER_MAX_FONT_SIZE_MULTIPLIER = 1.3;
 
 // The shell paints its own safe-area padding instead of letting SafeAreaView
 // letterbox the screen: the status-bar/Dynamic Island strip then carries the
@@ -50,11 +50,11 @@ const DEVELOPER_AUTO_SLOT_LABELS = ['1', '2', '3', '4', '5'] as const;
 const DEVELOPER_MANUAL_SLOT_LABELS = ['A', 'B', 'C', 'D', 'E'] as const;
 
 /** Compact top-bar numerals: commas under 10k, then k / M so three fit on one row. */
-function abbrev(n: number): string {
+function abbrev(t: CopyFn, n: number): string {
   const abs = Math.abs(n);
   if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
   if (abs >= 10_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
-  return formatCompactNumber(n);
+  return formatCompactNumber(t, n);
 }
 
 function ResourceChip({
@@ -100,7 +100,7 @@ function ResourceChip({
   const shownValue = useCountUpNumber(value, reduceMotion);
   const spoken = t('managementShell.a11y.resourceChip', {
     name,
-    value: money ? formatCurrency(value) : formatCompactNumber(value),
+    value: money ? formatCurrency(t, value) : formatCompactNumber(t, value),
     explainer,
   });
   return (
@@ -125,7 +125,7 @@ function ResourceChip({
         </Text>
       )}
       <Text maxFontSizeMultiplier={1.2} adjustsFontSizeToFit numberOfLines={1} className={hero ? 'font-mono text-sm text-gold-dark' : 'font-mono text-sm text-ink'}>
-        {abbrev(shownValue)}
+        {abbrev(t, shownValue)}
       </Text>
     </View>
     </InfoTip>
@@ -407,7 +407,7 @@ export function ManagementShell({
             accessibilityLabel={developerManualSaveSelecting
               ? t('managementShell.dev.a11y.chooseManualSaveSlotAThroughE')
               : headerLine.spoken}
-            maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
+            maxFontSizeMultiplier={FIXED_HEADER_MAX_FONT_SIZE_MULTIPLIER}
           >
             {developerManualSaveSelecting ? t('managementShell.dev.chooseASlotToSave') : headerLine.visible}
           </Text>
@@ -496,7 +496,6 @@ export function ManagementShell({
               onPress={onAdvanceWeek}
               disabled={advanceWeekDisabled}
               compact
-              maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
             />
           </IdleAttract>
         </HoverTipAnchor>
@@ -559,7 +558,6 @@ export function ManagementShell({
                   className={selected ? 'font-pixel text-lg text-ink' : 'font-mono text-lg text-ink/50'}
                   numberOfLines={1}
                   adjustsFontSizeToFit
-                  maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
                 >
                   {tab.glyph}
                 </Text>
@@ -567,7 +565,6 @@ export function ManagementShell({
                   className={selected ? 'mt-1 text-sm uppercase text-ink' : 'mt-1 text-sm uppercase text-ink/50'}
                   numberOfLines={1}
                   adjustsFontSizeToFit
-                  maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
                 >
                   {tabLabel}
                 </PixelText>

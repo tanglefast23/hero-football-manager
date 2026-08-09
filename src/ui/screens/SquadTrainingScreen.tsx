@@ -27,6 +27,7 @@ import {
   type SquadSortKey,
 } from '../squad-sort';
 import {
+  CELL_MAX_FONT_MULTIPLIER,
   HEADER_MAX_FONT_MULTIPLIER,
   REGISTER_COLUMN_WIDTH,
   SORT_ARROW_GAP,
@@ -799,11 +800,12 @@ function RosterSection({
                     </View>
                   ) : null}
                 </View>
-                <Text style={columns.overall} className="text-right font-mono text-base text-ink" numberOfLines={1}>{player.overall}</Text>
-                <Text style={columns.potential} className="pr-1 text-right font-mono text-base text-gold-dark" numberOfLines={1}>{player.potentialGrade}</Text>
+                <Text style={columns.overall} className="text-right font-mono text-base text-ink" maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER} numberOfLines={1}>{player.overall}</Text>
+                <Text style={columns.potential} className="pr-1 text-right font-mono text-base text-gold-dark" maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER} numberOfLines={1}>{player.potentialGrade}</Text>
                 <Text
                   style={columns.condition}
                   className={`text-right font-mono text-sm ${CONDITION_TONE[energyBand(player.condition)]}`}
+                  maxFontSizeMultiplier={CELL_MAX_FONT_MULTIPLIER}
                   numberOfLines={1}
                 >
                   {player.condition}%
@@ -879,7 +881,7 @@ function DrillShopSection({ upgrades, money, onBuy }: DrillShopSectionProps) {
       <SectionLabel
         eyebrow={t('squadTraining.drillShop')}
         title={t('squadTraining.upgradeAPath')}
-        right={<StatusChip label={formatCurrency(money)} />}
+        right={<StatusChip label={formatCurrency(t, money)} />}
       />
       <View className="border-2 border-ink bg-white">
         {upgrades.map(upgrade => {
@@ -925,7 +927,7 @@ function DrillShopSection({ upgrades, money, onBuy }: DrillShopSectionProps) {
                     ? t('squadTraining.a11y.buyDrill', {
                       path: upgrade.label,
                       tier: upgrade.nextTier ?? '',
-                      price: formatCurrency(upgrade.cost ?? 0),
+                      price: formatCurrency(t, upgrade.cost ?? 0),
                     })
                     : t('squadTraining.a11y.drillUnavailable', {
                       path: upgrade.label,
@@ -940,7 +942,7 @@ function DrillShopSection({ upgrades, money, onBuy }: DrillShopSectionProps) {
                     : 'h-11 w-24 items-center justify-center border border-ink/20 bg-paper-dark'}
                 >
                   <Text className={buyable ? 'font-mono text-sm text-ink' : 'font-mono text-sm text-ink/40'}>
-                    {formatCurrency(upgrade.cost ?? 0)}
+                    {formatCurrency(t, upgrade.cost ?? 0)}
                   </Text>
                 </Pressable>
               )}
@@ -1024,7 +1026,7 @@ function PlayerFileSection({
             tone={energyBand(selectedPlayer.condition) === 'red' ? 'negative' : 'positive'}
           />
         </InfoTip>
-        <Metric label={t('squadTraining.wagePerWeek')} value={formatCurrency(selectedPlayer.weeklyWage)} />
+        <Metric label={t('squadTraining.wagePerWeek')} value={formatCurrency(t, selectedPlayer.weeklyWage)} />
       </View>
       <View className="mt-2 flex-row gap-2">
         <Metric label={t('squadTraining.age')} value={String(selectedPlayer.age)} />

@@ -840,6 +840,7 @@ function replenishUserSquad(
   return result;
 }
 
+/** @i18n-fallback Generated player names are product data and stay English. */
 function academyPlayer(
   id: string,
   clubId: string,

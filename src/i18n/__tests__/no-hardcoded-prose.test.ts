@@ -1,4 +1,7 @@
-import { allOffenders } from '../hardcoded-prose';
+import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { allOffenders, offendersIn } from '../hardcoded-prose';
 
 /**
  * Player-facing prose must live in the catalog, not in a component.
@@ -11,12 +14,30 @@ import { allOffenders } from '../hardcoded-prose';
  * the honest measure of how much copy is still in the source, and `MAX_REMAINING`
  * is what stops it going back up. It returns to a hard zero when the sweep ends.
  */
-const MAX_REMAINING = 71;
+const MAX_REMAINING = 0;
 
 test('hardcoded player-facing prose only ever decreases', () => {
   const remaining = allOffenders().length;
 
   // eslint-disable-next-line no-console
-  console.log(`hardcoded prose remaining: ${remaining} (ceiling ${MAX_REMAINING})`);
+  console.log(
+    `hardcoded prose remaining: ${remaining} (ceiling ${MAX_REMAINING})`,
+  );
   expect(remaining).toBeLessThanOrEqual(MAX_REMAINING);
+});
+
+test('the scanner rejects new visible source prose', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'hfm-hardcoded-prose-'));
+  const file = join(dir, 'BadSurface.tsx');
+  try {
+    writeFileSync(
+      file,
+      'export const BadSurface = () => <Text>Uncatalogued player copy</Text>;',
+    );
+    expect(offendersIn(file)).toEqual([
+      expect.objectContaining({ text: 'Uncatalogued player copy' }),
+    ]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

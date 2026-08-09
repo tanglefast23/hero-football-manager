@@ -3,7 +3,9 @@ import { LOCALES } from '../locales';
 
 describe('copyFor', () => {
   test('returns a bound t() for the active locale', () => {
-    expect(copyFor('en')('settings.language.title')).toBe('Language');
+    const t = copyFor('en');
+    expect(t('settings.language.title')).toBe('Language');
+    expect(t.locale).toBe('en');
   });
 
   test('every shipped locale returns its own copy, not the English fallback', () => {
@@ -31,7 +33,10 @@ describe('facesFor', () => {
     for (const locale of LOCALES) {
       expect({ locale, faces: facesFor(locale) }).toEqual({
         locale,
-        faces: { display: 'HFMSilkscreen_700Bold', data: 'HFMSilkscreen_400Regular' },
+        faces: {
+          display: 'HFMSilkscreen_700Bold',
+          data: 'HFMSilkscreen_400Regular',
+        },
       });
     }
   });

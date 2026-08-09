@@ -12,7 +12,7 @@ import type {
   PlayerRequestDefinition,
   PlayerRequestResolution,
 } from '../game/types';
-import { copyFor, type CopyFn } from '../i18n';
+import { copyFor, formatIntegerForCopy, type CopyFn } from '../i18n';
 import { copyOrEnglish } from './copy-fallback';
 
 /**
@@ -141,7 +141,7 @@ function grantLabel(
 ): string {
   const cost = definition.cost;
   if (cost.kind === 'MONEY_PLAYER' || cost.kind === 'MONEY_SQUAD') {
-    return `-${(costAmount ?? 0).toLocaleString('en-GB')}`;
+    return formatIntegerForCopy(t, -(costAmount ?? 0));
   }
   if (cost.kind === 'ABSENCE') {
     const weeks = absenceWeeksFor(cost.weeks, difficulty);

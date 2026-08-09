@@ -159,7 +159,13 @@ import {
 } from './endgame-celebration';
 import { recordHallOfFame } from './hall-of-fame';
 import { projectedSeasonEndContractPromiseHeroLimit } from './contract-promise-projection';
-import { copyFor, type CopyFn, type CopyParams } from '../i18n';
+import {
+  copyFor,
+  formatIntegerForCopy,
+  formatMoneyForCopy,
+  type CopyFn,
+  type CopyParams,
+} from '../i18n';
 
 /**
  * The store's own `t`.
@@ -1851,12 +1857,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
               message: actualSigned === undefined || actualSigned === signed.nominalMonthlyFee
                 ? t('store.sponsorSigned', {
                     sponsor: signed.sponsorName,
-                    amount: signed.nominalMonthlyFee.toLocaleString(),
+                    amount: formatIntegerForCopy(t, signed.nominalMonthlyFee),
                   })
                 : t('store.sponsorSignedChairman', {
                     sponsor: signed.sponsorName,
-                    nominal: signed.nominalMonthlyFee.toLocaleString(),
-                    actual: actualSigned.toLocaleString(),
+                    nominal: formatIntegerForCopy(t, signed.nominalMonthlyFee),
+                    actual: formatIntegerForCopy(t, actualSigned),
                   }),
             },
       });
@@ -2069,7 +2075,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
             tone: 'info',
             message: t('store.coachingOfficeClosed', {
               facility: facilityName(t, building.type),
-              amount: `${net < 0 ? '-' : net > 0 ? '+' : ''}$${Math.abs(net).toLocaleString()}`,
+              amount: formatMoneyForCopy(t, net, true),
             }),
           },
         });
@@ -2087,7 +2093,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
             ? t('store.facilityClosed', { facility: facilityName(t, building.type) })
             : t('store.facilityClosedRefund', {
                 facility: facilityName(t, building.type),
-                amount: refund.toLocaleString(),
+                amount: formatIntegerForCopy(t, refund),
               }),
         },
       });
@@ -2186,7 +2192,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           tone: 'success',
           message: t('store.transferSold', {
             club: buyer?.name ?? t('store.theBuyingClub'),
-            fee: bid.quote.fee.toLocaleString(),
+            fee: formatIntegerForCopy(t, bid.quote.fee),
           }),
         },
       });

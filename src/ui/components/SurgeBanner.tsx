@@ -100,7 +100,7 @@ export function SurgeBanner({
     : pickMerchToys(settlementSeason, settlementWeek);
   const headline = t(attendance ? 'surgeBanner.extremeAttendance' : 'surgeBanner.trendingMerchandise');
 
-  const bonusLabel = head.bonusAmount > 0 ? `+${formatCurrency(head.bonusAmount)}` : null;
+  const bonusLabel = head.bonusAmount > 0 ? `+${formatCurrency(t, head.bonusAmount)}` : null;
 
   return (
     // items-center: the card shrink-wraps its content instead of spanning the

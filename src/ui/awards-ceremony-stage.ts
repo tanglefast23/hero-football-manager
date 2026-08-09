@@ -1,5 +1,5 @@
 import { countUpValue } from './count-up';
-import { copyFor, type CopyFn } from '../i18n';
+import { copyFor, formatMoneyForCopy, type CopyFn } from '../i18n';
 
 import type {
   AwardCeremonyBeatViewModel,
@@ -15,8 +15,8 @@ import type {
  * the ceremony's stage order can be tested with no DOM and no react-native, and
  * reaching into a component file for a string helper would drag both in.
  */
-function formatPrizeMoney(value: number): string {
-  return `$${Math.abs(Math.trunc(value)).toLocaleString('en-US')}`;
+function formatPrizeMoney(t: CopyFn, value: number): string {
+  return formatMoneyForCopy(t, value);
 }
 
 /**
@@ -292,7 +292,7 @@ export function prizeDetailLine(
   if (!prizeCountsUp(prize)) return t('awardsCeremony.noBoardWon');
   return t('awardsCeremony.prizeDetail', {
     boards: t('awardsCeremony.boardsWon', { n: prize.boardsWon, count: prize.boardsWon }),
-    amount: formatPrizeMoney(prize.perCategoryMoney),
+    amount: formatPrizeMoney(t, prize.perCategoryMoney),
   });
 }
 
@@ -302,7 +302,7 @@ export function prizeAccessibilityLabel(
 ): string {
   return prizeCountsUp(prize)
     ? t('awardsCeremony.a11y.prizeAmount', {
-      amount: formatPrizeMoney(prize.totalMoney),
+        amount: formatPrizeMoney(t, prize.totalMoney),
       detail: prizeDetailLine(prize, t),
     })
     : t('awardsCeremony.a11y.prizeNothing', { detail: prizeDetailLine(prize, t) });

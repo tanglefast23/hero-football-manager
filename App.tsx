@@ -215,19 +215,6 @@ import { marketViewModel } from './src/application/market-view-model';
 import { careerMarketViewModelSource } from './src/application/market-source-adapter';
 import { rivalHeroIntroViewModel } from './src/application/rival-hero-intro';
 
-// Dynamic Type still grows every player-facing label, but the simulator's
-// largest accessibility category is more than 3x and makes the fixed-width
-// management cards collapse into single letters. Keep a generous global cap;
-// individual compact chrome controls use a tighter cap in ManagementShell.
-const APP_MAX_FONT_SIZE_MULTIPLIER = 1.6;
-const appText = Text as typeof Text & {
-  defaultProps?: { maxFontSizeMultiplier?: number };
-};
-appText.defaultProps = {
-  ...appText.defaultProps,
-  maxFontSizeMultiplier: APP_MAX_FONT_SIZE_MULTIPLIER,
-};
-
 // The Debug build pings the packager port it was compiled with before falling
 // back to the active one; the resulting warning toast is pure dev noise.
 LogBox.ignoreLogs([/Packager status check returned unexpected result/]);
@@ -2349,7 +2336,7 @@ function GameApp() {
               const upgrade = squadTrainingVm!.drillUpgrades.find(row => row.pathId === pathId);
               requestConfirmation({
                 title: `Buy ${upgrade?.label ?? 'drill'} Tier ${upgrade?.nextTier ?? ''}?`,
-                detail: `Spend ${upgrade === undefined ? 'the shown cost' : formatCurrency(upgrade.cost ?? 0)} once. Every ${upgrade?.label ?? ''} drill from now on gives +${upgrade?.nextGain ?? 0} for ${upgrade?.nextTpCost ?? 0} TP.`,
+                detail: `Spend ${upgrade === undefined ? 'the shown cost' : formatCurrency(t, upgrade.cost ?? 0)} once. Every ${upgrade?.label ?? ''} drill from now on gives +${upgrade?.nextGain ?? 0} for ${upgrade?.nextTpCost ?? 0} TP.`,
                 confirmLabel: 'Buy upgrade',
                 onConfirm: () => store.purchaseTrainingUpgrade(pathId),
               });
@@ -2388,7 +2375,7 @@ function GameApp() {
               const building = finances.facilities.buildings.find(candidate => candidate.id === buildingId);
               requestConfirmation({
                 title: `Upgrade ${building?.name ?? 'facility'}?`,
-                detail: `Spend ${building?.upgradeCost === undefined ? 'the shown cost' : formatCurrency(building.upgradeCost)} now. Weekly upkeep will rise with the new level.`,
+                detail: `Spend ${building?.upgradeCost === undefined ? 'the shown cost' : formatCurrency(t, building.upgradeCost)} now. Weekly upkeep will rise with the new level.`,
                 confirmLabel: 'Approve upgrade',
                 onConfirm: () => upgradeClubFacilityWithFeedback(buildingId),
               });
@@ -2412,12 +2399,12 @@ function GameApp() {
                   ? building?.closeRefund === 0
                     ? 'The club never paid to put this up, so nothing comes back. Its bonus and its square go straight away.'
                     : `You will only get half your investment back${
-                      building === undefined ? '' : `, ${formatCurrency(building.closeRefund)}`
+                      building === undefined ? '' : `, ${formatCurrency(t, building.closeRefund)}`
                     }. Are you sure?`
-                  : `This also dismisses ${staffedOffice.assistantName}. The facility returns ${formatCurrency(staffedOffice.facilityRefund)} and severance costs ${formatCurrency(staffedOffice.severanceCost)}. ${
+                  : `This also dismisses ${staffedOffice.assistantName}. The facility returns ${formatCurrency(t, staffedOffice.facilityRefund)} and severance costs ${formatCurrency(t, staffedOffice.severanceCost)}. ${
                     staffedOffice.canConfirm
-                      ? `Net cash change ${formatCurrency(staffedOffice.netCashEffect, true)}; balance after ${formatCurrency(staffedOffice.cashAfter)}.`
-                      : `The club needs ${formatCurrency(staffedOffice.shortage)} more after the refund, so this cannot be completed.`
+                      ? `Net cash change ${formatCurrency(t, staffedOffice.netCashEffect, true)}; balance after ${formatCurrency(t, staffedOffice.cashAfter)}.`
+                      : `The club needs ${formatCurrency(t, staffedOffice.shortage)} more after the refund, so this cannot be completed.`
                   }`,
                 confirmLabel: 'Close it',
                 tone: 'danger',
@@ -2443,14 +2430,14 @@ function GameApp() {
             onDismissCoach={beginCoachDismissal}
             onReviewSponsorOffer={(offer, slot) => requestConfirmation({
               title: `Sign ${offer.sponsorName}?`,
-              detail: `${slot.slotLabel}. Contract ${formatCurrency(offer.nominalMonthlyFee)} per month.${
+              detail: `${slot.slotLabel}. Contract ${formatCurrency(t, offer.nominalMonthlyFee)} per month.${
                 offer.actualMonthlyFee === offer.nominalMonthlyFee
                   ? ''
-                  : ` On Chairman, the club receives ${formatCurrency(offer.actualMonthlyFee)} per month.`
-              } Objective: ${offer.objectiveLabel}. Target bonus ${formatCurrency(offer.nominalBonus)}.${
+                  : ` On Chairman, the club receives ${formatCurrency(t, offer.actualMonthlyFee)} per month.`
+              } Objective: ${offer.objectiveLabel}. Target bonus ${formatCurrency(t, offer.nominalBonus)}.${
                 offer.actualBonus === offer.nominalBonus
                   ? ''
-                  : ` The club receives ${formatCurrency(offer.actualBonus)} on Chairman.`
+                  : ` The club receives ${formatCurrency(t, offer.actualBonus)} on Chairman.`
               }`,
               confirmLabel: 'Sign deal',
               returnFocusId: `sponsor-slots-panel-${slot.slot}`,
@@ -2497,7 +2484,7 @@ function GameApp() {
                   ? `Accept ${bid?.buyerName ?? 'this club'} bid?`
                   : `List ${listing?.playerName ?? 'this player'}?`,
                 detail: acceptingBid
-                  ? `Receive ${bid === undefined ? 'the shown fee' : formatCurrency(bid.fee)} for ${listing?.playerName ?? 'the player'}. The player leaves immediately and will be removed from the Starting XI and training plan.`
+                  ? `Receive ${bid === undefined ? 'the shown fee' : formatCurrency(t, bid.fee)} for ${listing?.playerName ?? 'the player'}. The player leaves immediately and will be removed from the Starting XI and training plan.`
                   : 'The transfer office will request up to three club bids. Listing does not sell the player; you will compare every offer first.',
                 confirmLabel: acceptingBid ? 'Accept bid' : 'Request bids',
                 tone: acceptingBid ? 'danger' : 'normal',
@@ -2516,7 +2503,7 @@ function GameApp() {
               const roleLabel = role === 'HEAD' ? 'head coach' : 'assistant coach';
               requestConfirmation({
                 title: current ? `Replace ${current.name}?` : `Hire ${coach?.name ?? 'this coach'}?`,
-                detail: `${coach?.name ?? 'The coach'} will become ${roleLabel} and costs ${coach === undefined ? 'the shown wage' : formatCurrency(coach.weeklyWage)} each week.${current ? ` The current ${roleLabel} leaves immediately.` : ''}`,
+                detail: `${coach?.name ?? 'The coach'} will become ${roleLabel} and costs ${coach === undefined ? 'the shown wage' : formatCurrency(t, coach.weeklyWage)} each week.${current ? ` The current ${roleLabel} leaves immediately.` : ''}`,
                 confirmLabel: current ? 'Replace coach' : 'Hire coach',
                 tone: current ? 'danger' : 'normal',
                 onConfirm: () => hireCoachWithFeedback(coachId, role),

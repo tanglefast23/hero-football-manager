@@ -1,5 +1,5 @@
 import type { EventCatalog } from '../content';
-import { copyFor, type CopyFn } from '../i18n';
+import { copyFor, formatMoneyForCopy, type CopyFn } from '../i18n';
 import { facilityNameFromId, personalityName } from './name-copy';
 import {
   careerEventPlayerSaleBlocker,
@@ -216,7 +216,7 @@ export function eventChoiceUnavailableReason(
   }
   if (blocker === 'no-buyer') {
     return t('storyEvent.requiresSaleBuyer', {
-      amount: `$${sale.fee.toLocaleString()}`,
+      amount: formatMoneyForCopy(t, sale.fee),
     });
   }
   if (blocker !== undefined) {
@@ -249,7 +249,7 @@ function requirementFailure(
 ): string | undefined {
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
   if (requirements.minMoney !== undefined && (club?.cash ?? 0) < requirements.minMoney) {
-    return t('storyEvent.requiresCash', { amount: `$${requirements.minMoney.toLocaleString()}` });
+    return t('storyEvent.requiresCash', { amount: formatMoneyForCopy(t, requirements.minMoney) });
   }
   if (requirements.requiredFacility !== undefined) {
     const legacyTrainingPitch = requirements.requiredFacility === 'training-pitch' && state.facilities.trainingGroundBuilt;

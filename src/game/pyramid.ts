@@ -275,6 +275,7 @@ export function divisionTierLabelWith(
  * League and Hero Cup" is one trophy said twice. "Hero" belongs to no rung
  * and to the whole game.
  */
+/** @i18n-fallback Persisted competition name; app consumers resolve `CUP_NAME_KEY`. */
 export const CUP_DISPLAY_NAME = 'Hero Cup';
 
 /**
@@ -1113,6 +1114,7 @@ function highLowPairingOrder(seededClubIds: readonly string[]): string[] {
   return stronger.flatMap((clubId, index) => [clubId, weaker[index]]);
 }
 
+/** @i18n-fallback Persisted cup-round enum values; app consumers resolve their keys. */
 function cupRoundLabel(round: number): NationalCupRound['label'] {
   const labels: NationalCupRound['label'][] = [
     'Play-in', 'Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final',
@@ -1342,4 +1344,3 @@ function clamp(value: number, min: number, max: number): number {
 function pad2(value: number): string {
   return value.toString().padStart(2, '0');
 }
-

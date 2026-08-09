@@ -22,6 +22,9 @@ import { ClubFinancesScreen } from '../../screens/ClubFinancesScreen';
 import { SeasonEndScreen } from '../../screens/SeasonEndScreen';
 import { devHarnessCareerAtWeek } from '../career';
 import type { DevHarnessEntry } from '../registry';
+import { copyFor } from '../../../i18n';
+
+const harnessCopy = copyFor('en');
 
 /** Production Sponsor Desk states used for the required 375pt review matrix. */
 type ClubBusinessCaseId =
@@ -184,14 +187,14 @@ function sponsorConfirmation(
 ): ConfirmationRequest {
   return {
     title: `Sign ${offer.sponsorName}?`,
-    detail: `${slot.slotLabel}. Contract ${formatCurrency(offer.nominalMonthlyFee)} per month.${
+    detail: `${slot.slotLabel}. Contract ${formatCurrency(harnessCopy, offer.nominalMonthlyFee)} per month.${
       offer.actualMonthlyFee === offer.nominalMonthlyFee
         ? ''
-        : ` On Chairman, the club receives ${formatCurrency(offer.actualMonthlyFee)} per month.`
-    } Objective: ${offer.objectiveLabel}. Target bonus ${formatCurrency(offer.nominalBonus)}.${
+        : ` On Chairman, the club receives ${formatCurrency(harnessCopy, offer.actualMonthlyFee)} per month.`
+    } Objective: ${offer.objectiveLabel}. Target bonus ${formatCurrency(harnessCopy, offer.nominalBonus)}.${
       offer.actualBonus === offer.nominalBonus
         ? ''
-        : ` The club receives ${formatCurrency(offer.actualBonus)} on Chairman.`
+        : ` The club receives ${formatCurrency(harnessCopy, offer.actualBonus)} on Chairman.`
     }`,
     confirmLabel: 'Sign deal',
     returnFocusId: `sponsor-slots-panel-${slot.slot}`,

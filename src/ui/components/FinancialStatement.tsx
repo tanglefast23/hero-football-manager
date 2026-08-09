@@ -193,7 +193,7 @@ export function FinancialStatement({
                 : netAmount < 0
                   ? 'financialStatement.a11y.netCashChangeMinus'
                   : 'financialStatement.a11y.netCashChange',
-              { amount: formatCurrency(Math.abs(netAmount)) },
+              { amount: formatCurrency(t, Math.abs(netAmount)) },
             )}
             className={netAmount < 0
               ? 'mt-3 flex-row items-center justify-between border-2 border-red-dark bg-red-light px-3 py-3'
@@ -346,7 +346,7 @@ function facilityCount(reveal: LedgerLineReveal, t: CopyFn): string {
  * reels, and identity reveals never narrate "times 1".
  */
 function rowAccessibilityLabel(line: PostMatchLedgerLineViewModel, t: CopyFn): string {
-  const money = (value: number) => formatCurrency(Math.abs(value));
+  const money = (value: number) => formatCurrency(t, Math.abs(value));
   // "plus"/"minus" are spoken words, so the signed amount is a catalog string
   // rather than a prefix glued onto a number.
   const signed = line.amount === 0

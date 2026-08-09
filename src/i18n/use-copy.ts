@@ -3,7 +3,10 @@ import { loadCatalog } from './load-catalogs';
 import { localeMeta, type Locale, type LocaleFaces } from './locales';
 import { resolveCopy, type CopyParams } from './resolve';
 
-export type CopyFn = (key: string, params?: CopyParams) => string;
+export type CopyFn = ((key: string, params?: CopyParams) => string) & {
+  /** Locale marker used by number and money formatters at the UI boundary. */
+  readonly locale?: Locale;
+};
 
 /**
  * Pure, and exported for tests.
@@ -26,7 +29,11 @@ function englishStrings(): Readonly<Record<string, string>> {
 export function copyFor(locale: Locale): CopyFn {
   const english = englishStrings();
   const strings = locale === 'en' ? english : loadCatalog(locale).strings;
-  return (key, params) => resolveCopy(locale, strings, english, key, params);
+  return Object.assign(
+    (key: string, params?: CopyParams) =>
+      resolveCopy(locale, strings, english, key, params),
+    { locale },
+  );
 }
 
 export function facesFor(locale: Locale): LocaleFaces {

@@ -24,7 +24,7 @@ export function PostMatchBuzzCard({ buzz, className = '' }: {
     capped ? t('postMatchBuzzCard.a11y.capLimited') : undefined,
     buzz.payout === undefined
       ? t('postMatchBuzzCard.a11y.currentBuzz', { value: buzz.valueAfter })
-      : t('postMatchBuzzCard.a11y.paidOutAndReset', { amount: formatCurrency(buzz.payout) }),
+      : t('postMatchBuzzCard.a11y.paidOutAndReset', { amount: formatCurrency(t, buzz.payout) }),
   ].filter(Boolean).join(' ');
   return (
     <View
@@ -49,7 +49,7 @@ export function PostMatchBuzzCard({ buzz, className = '' }: {
       {buzz.payout === undefined ? null : (
         <View className="mt-3 border-2 border-ink bg-white px-3 py-2">
           <Text className="text-sm font-bold text-ink">
-            {t('postMatchBuzz.paidOut', { amount: formatCurrency(buzz.payout) })}
+            {t('postMatchBuzz.paidOut', { amount: formatCurrency(t, buzz.payout) })}
           </Text>
         </View>
       )}

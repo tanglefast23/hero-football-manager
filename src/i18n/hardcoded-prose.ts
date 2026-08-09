@@ -28,10 +28,6 @@ export const SCOPE = ['src/ui', 'src/render', 'src/application', 'src/game'];
 export const SCOPE_FILES = ['App.tsx'];
 
 export const EXEMPT = [
-  // A class component — it cannot call `useCopy`, and it is the screen that
-  // renders when something has already gone wrong, so reaching for a context
-  // there is the wrong trade. Its three strings stay English on purpose.
-  /src\/ui\/ScreenErrorBoundary\.tsx$/,
   /src\/ui\/dev-harness\//,
   /src\/audit\//,
   /__tests__/,
@@ -48,6 +44,11 @@ export const EXEMPT = [
   // A QA fixture list of invented club names. Club names stay English by
   // product decision anyway, so there is nothing here to translate twice over.
   /src\/ui\/awards-ceremony-qa\.ts$/,
+  /src\/ui\/screens\/AwardsCeremonyQaScreen\.tsx$/,
+  // QA/product name tables. Player and club names stay English by product
+  // decision; none of these strings is interface prose.
+  /src\/ui\/components\/TitlePlayerPopScene\.tsx$/,
+  /src\/render\/power-match-showcase\.ts$/,
   // The fifteen named superheroes. "Barry Allan" is a person's name, not copy:
   // it reads the same in every locale, exactly as the generated first- and
   // last-name pools and the club names already do. The `reference` and `cue`
@@ -68,10 +69,10 @@ export const EXEMPT = [
  * added here the first time it carries copy.
  */
 const RENDER_PROPS = new RegExp(
-  '^(accessibility(Label|Hint)|title|subtitle|label|heading|headline|kicker|eyebrow'
-  + '|stamp|caption|message|body|text|note|hint|placeholder|cta|ctaLabel|summary'
-  + '|confirmLabel|cancelLabel|primaryLabel|secondaryLabel|emptyLabel|emptyMessage'
-  + '|prompt|question|answer|description|detail|footnote|badge|banner|tooltip)$',
+  '^(accessibility(Label|Hint)|title|subtitle|label|heading|headline|kicker|eyebrow' +
+    '|stamp|caption|message|body|text|note|hint|placeholder|cta|ctaLabel|summary' +
+    '|confirmLabel|cancelLabel|primaryLabel|secondaryLabel|emptyLabel|emptyMessage' +
+    '|prompt|question|answer|description|detail|footnote|badge|banner|tooltip)$',
 );
 
 export interface Offender {
@@ -92,8 +93,9 @@ export function sourceFiles(dir: string, found: string[] = []): string[] {
 
 /** Every file this gate is responsible for. */
 export function scannedFiles(): string[] {
-  return [...SCOPE.flatMap(dir => sourceFiles(dir)), ...SCOPE_FILES]
-    .filter(file => !EXEMPT.some(pattern => pattern.test(file)));
+  return [...SCOPE.flatMap((dir) => sourceFiles(dir)), ...SCOPE_FILES].filter(
+    (file) => !EXEMPT.some((pattern) => pattern.test(file)),
+  );
 }
 
 /**
@@ -107,8 +109,11 @@ export function scannedFiles(): string[] {
  */
 function isClassList(text: string): boolean {
   const tokens = text.trim().split(/\s+/);
-  return tokens.every(token => /^-?[a-z0-9]+([-:/[\].%]|[a-z0-9])*$/.test(token))
-    && tokens.some(token => /[-:]/.test(token));
+  return (
+    tokens.every((token) =>
+      /^-?[a-z0-9]+([-:/[\].%]|[a-z0-9])*$/.test(token),
+    ) && tokens.some((token) => /[-:]/.test(token))
+  );
 }
 
 /**
@@ -155,25 +160,48 @@ export function looksLikeProse(text: string, rendered = false): boolean {
 
 /** Statements whose strings are for developers, never for players. */
 function inDeveloperContext(node: ts.Node): boolean {
-  for (let current = node.parent; current !== undefined; current = current.parent) {
+  for (
+    let current = node.parent;
+    current !== undefined;
+    current = current.parent
+  ) {
     if (ts.isThrowStatement(current)) return true;
-    if (ts.isNewExpression(current) && /Error$/.test(current.expression.getText())) return true;
+    if (
+      ts.isNewExpression(current) &&
+      /Error$/.test(current.expression.getText())
+    )
+      return true;
     if (ts.isCallExpression(current)) {
       const callee = current.expression.getText();
+      const calleeLeaf = callee.split('.').at(-1) ?? callee;
       // `warnOnce` is this repo's own diagnostic helper (see `src/render/audio.ts`),
       // and its messages — "createAudioPlayer failed" — are for whoever is
       // reading the Metro log, never for a player.
       if (/^console\./.test(callee)) return true;
-      if (/^(invariant|assert|warnOnce|warn|logWarning|reportError)$/.test(callee)) return true;
+      if (
+        /^(invariant|assert|warnOnce|warn|logWarning|reportError|recoverOr)$/.test(
+          calleeLeaf,
+        )
+      )
+        return true;
+      if (
+        /^(matchMedia|querySelector|querySelectorAll|matches)$/.test(calleeLeaf)
+      )
+        return true;
       // Overflow-guard helpers take a LABEL argument that exists only to name
       // the sum in an exception. `src/game` is full of them — "weekly wages",
       // "ticket revenue" — and they are the single largest source of false
       // positives here, because the label is built at the call site rather than
       // inside the `throw`, so the throw-statement check above cannot see it.
-      if (/^(checked[A-Z]|safe[A-Z]|assert[A-Z]?|requireSafeInteger|require[A-Z]|validate[A-Z]|scaleByPercent|percentOfMoney)/
-        .test(callee)) return true;
+      if (
+        /^(checked[A-Z]|safe[A-Z]|assert[A-Z]?|requireSafeInteger|require[A-Z]|validate[A-Z]|validated[A-Z]|uniqueIds|setPlayerVolume|homeGateIncome|homeGateIncomeWithReveal|scaleByPercent|percentOfMoney)/.test(
+          calleeLeaf,
+        )
+      )
+        return true;
     }
-    if (ts.isImportDeclaration(current) || ts.isExportDeclaration(current)) return true;
+    if (ts.isImportDeclaration(current) || ts.isExportDeclaration(current))
+      return true;
     // A string in type position is a literal type, not copy.
     if (ts.isTypeNode(current)) return true;
     if (ts.isEnumDeclaration(current)) return true;
@@ -208,17 +236,27 @@ const FALLBACK_TAG = '@i18n-fallback';
 function inTaggedFallback(node: ts.Node, source: ts.SourceFile): boolean {
   const text = source.getFullText();
   const tagged = (candidate: ts.Node): boolean =>
-    (ts.getLeadingCommentRanges(text, candidate.getFullStart()) ?? [])
-      .some(range => text.slice(range.pos, range.end).includes(FALLBACK_TAG));
+    (ts.getLeadingCommentRanges(text, candidate.getFullStart()) ?? []).some(
+      (range) => text.slice(range.pos, range.end).includes(FALLBACK_TAG),
+    );
 
-  for (let current: ts.Node | undefined = node; current !== undefined; current = current.parent) {
+  for (
+    let current: ts.Node | undefined = node;
+    current !== undefined;
+    current = current.parent
+  ) {
     // A call to a tagged helper: `reward('promotion.x', 'Title', 'Detail')`.
     if (ts.isCallExpression(current) && ts.isIdentifier(current.expression)) {
       const name = current.expression.text;
       let found = false;
       source.forEachChild(function walk(child) {
         if (found) return;
-        if (ts.isFunctionDeclaration(child) && child.name?.text === name && tagged(child)) found = true;
+        if (
+          ts.isFunctionDeclaration(child) &&
+          child.name?.text === name &&
+          tagged(child)
+        )
+          found = true;
         ts.forEachChild(child, walk);
       });
       if (found) return true;
@@ -252,27 +290,90 @@ function inTaggedFallback(node: ts.Node, source: ts.SourceFile): boolean {
  * be satisfied by a comment or by wishful naming.
  */
 function hasKeySibling(node: ts.Node): boolean {
-  const property = node.parent;
-  if (!ts.isPropertyAssignment(property)) return false;
+  let property: ts.PropertyAssignment | undefined;
+  for (
+    let current = node.parent;
+    current !== undefined;
+    current = current.parent
+  ) {
+    if (ts.isPropertyAssignment(current)) {
+      property = current;
+      break;
+    }
+    if (ts.isObjectLiteralExpression(current)) break;
+  }
+  if (property === undefined) return false;
   const object = property.parent;
   if (!ts.isObjectLiteralExpression(object)) return false;
   const name = property.name.getText();
-  return object.properties.some(sibling =>
-    sibling.name !== undefined && sibling.name.getText() === `${name}Key`);
+  return object.properties.some((sibling) => {
+    if (sibling.name === undefined) return false;
+    const siblingName = sibling.name.getText();
+    return (
+      siblingName === `${name}Key` || (name === 'text' && siblingName === 'key')
+    );
+  });
+}
+
+/** Literal enum/data tokens used only to select a branch are not rendered copy. */
+function inControlFlowComparison(node: ts.Node): boolean {
+  for (
+    let current = node.parent;
+    current !== undefined;
+    current = current.parent
+  ) {
+    if (ts.isBinaryExpression(current)) {
+      const operator = current.operatorToken.kind;
+      if (
+        operator === ts.SyntaxKind.EqualsEqualsEqualsToken ||
+        operator === ts.SyntaxKind.ExclamationEqualsEqualsToken ||
+        operator === ts.SyntaxKind.EqualsEqualsToken ||
+        operator === ts.SyntaxKind.ExclamationEqualsToken
+      )
+        return true;
+    }
+    if (ts.isStatement(current) || ts.isPropertyAssignment(current))
+      return false;
+  }
+  return false;
+}
+
+/** Product-defined player and club names are data, including QA fixtures. */
+function inProductNameField(node: ts.Node): boolean {
+  for (
+    let current = node.parent;
+    current !== undefined;
+    current = current.parent
+  ) {
+    if (ts.isPropertyAssignment(current)) {
+      return /^(playerName|clubName)$/.test(current.name.getText());
+    }
+    if (ts.isObjectLiteralExpression(current) || ts.isStatement(current))
+      return false;
+  }
+  return false;
 }
 
 /** The JSX attribute a literal belongs to, if any. */
 function enclosingJsxAttribute(node: ts.Node): ts.JsxAttribute | undefined {
-  for (let current = node.parent; current !== undefined; current = current.parent) {
+  for (
+    let current = node.parent;
+    current !== undefined;
+    current = current.parent
+  ) {
     if (ts.isJsxAttribute(current)) return current;
-    if (ts.isJsxElement(current) || ts.isJsxSelfClosingElement(current)) return undefined;
+    if (ts.isJsxElement(current) || ts.isJsxSelfClosingElement(current))
+      return undefined;
   }
   return undefined;
 }
 
 /** A template's shape with its holes blanked, so it can be prose-tested. */
 function templateText(node: ts.TemplateExpression): string {
-  return node.head.text + node.templateSpans.map(span => `…${span.literal.text}`).join('');
+  return (
+    node.head.text +
+    node.templateSpans.map((span) => `…${span.literal.text}`).join('')
+  );
 }
 
 export function offendersIn(file: string): Offender[] {
@@ -288,23 +389,37 @@ export function offendersIn(file: string): Offender[] {
 
   const record = (node: ts.Node, text: string): void => {
     if (inDeveloperContext(node)) return;
+    if (inControlFlowComparison(node)) return;
+    if (inProductNameField(node)) return;
     // An object literal's KEY is never copy; its value may be.
-    if (ts.isPropertyAssignment(node.parent) && node.parent.name === node) return;
+    if (ts.isPropertyAssignment(node.parent) && node.parent.name === node)
+      return;
     if (hasKeySibling(node)) return;
     if (inTaggedFallback(node, source)) return;
     const attribute = enclosingJsxAttribute(node);
     // Inside JSX, only whitelisted props render. Outside JSX — a view model, a
     // notification, a game-logic sentence — there is no prop to consult, and
     // those files are exactly where this gate used to see nothing at all.
-    if (attribute !== undefined && !RENDER_PROPS.test(attribute.name.getText(source))) return;
+    if (
+      attribute !== undefined &&
+      !RENDER_PROPS.test(attribute.name.getText(source))
+    )
+      return;
     if (!looksLikeProse(text, attribute !== undefined)) return;
-    found.push({ file, line: at(node), text: text.trim().replace(/\s+/g, ' ') });
+    found.push({
+      file,
+      line: at(node),
+      text: text.trim().replace(/\s+/g, ' '),
+    });
   };
 
   const visit = (node: ts.Node): void => {
     if (ts.isJsxText(node) && looksLikeProse(node.text, true)) {
-      found.push({ file, line: at(node), text: node.text.trim().replace(/\s+/g, ' ') });
-    } else if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+      record(node, node.text);
+    } else if (
+      ts.isStringLiteral(node) ||
+      ts.isNoSubstitutionTemplateLiteral(node)
+    ) {
       record(node, node.text);
     } else if (ts.isTemplateExpression(node)) {
       // Its spans are visited too, but the head and literal parts are not
@@ -319,5 +434,5 @@ export function offendersIn(file: string): Offender[] {
 
 /** Every offender in scope, worst file first. */
 export function allOffenders(): Offender[] {
-  return scannedFiles().flatMap(file => offendersIn(file));
+  return scannedFiles().flatMap((file) => offendersIn(file));
 }

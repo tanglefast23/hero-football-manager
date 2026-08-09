@@ -58,7 +58,7 @@ import {
   type ContractPromiseBlockedReason,
 } from '../game/contract-promises';
 import type { CareerPlayer, GameState } from '../game/types';
-import { copyFor, type CopyFn } from '../i18n';
+import { copyFor, formatMoneyForCopy, type CopyFn } from '../i18n';
 
 /**
  * English copy, for every caller that has not threaded a locale through yet.
@@ -569,7 +569,7 @@ function scoutingStatus(
       ? t('market.scoutBriefFeeWaived', { focus: focusLabel(mission.focus, t) })
       : t('market.scoutBriefPaid', {
         focus: focusLabel(mission.focus, t),
-        cost: formatMoney(mission.cost),
+        cost: formatMoneyForCopy(t, mission.cost),
       }),
     progressLabel: t('market.scoutWeeksLeft', { n: weeksRemaining, count: weeksRemaining }),
   };
@@ -826,7 +826,7 @@ export function marketNegotiationViewModel(
           termSeasons,
           perk,
           line: copyOrEnglish(t, `agent.final.${proseSlug(authored)}`, authored, {
-            wage: formatMoney(weeklyWage),
+            wage: formatMoneyForCopy(t, weeklyWage),
           }),
         };
       })();
@@ -946,12 +946,4 @@ function unlockName(unlockId: string, t: CopyFn): string {
     if (resolved !== key) return resolved;
   }
   return readableToken(unlockId);
-}
-
-function formatMoney(value: number): string {
-  // Sign before the symbol, matching the other money formatters: the naive
-  // form rendered a negative as "$-1,000".
-  const sign = value < 0 ? '-' : '';
-  const digits = String(Math.abs(Math.trunc(value)));
-  return `${sign}$${digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 }

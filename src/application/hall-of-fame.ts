@@ -96,6 +96,7 @@ export function goldenBootGoals(award: { detail: string; goals?: number }): numb
  * no other exit. A throw here would strand a save on the last screen of the
  * game. A career missing its recaps records zeroes and keeps its trophies.
  */
+/** @i18n-fallback Club names are persisted product data and stay English. */
 export function captureHallOfFameRecord(state: GameState): HallOfFameRecord {
   const recaps = [...(state.seasonRecaps ?? [])].sort((left, right) => left.season - right.season);
   // NOT catalog copy, deliberately. This is written into the save and read back

@@ -1778,6 +1778,7 @@ function careerClubFame(state: GameState, market: CareerMarketState): number {
     .reduce((sum, player) => checkedAdd(sum, player.fame ?? 0, 'club fame'), market.clubFameAdjustment ?? 0)));
 }
 
+/** @i18n-fallback Role labels below are developer-only overflow-check names. */
 function progressEmployedCoach(
   coach: CoachCandidate | undefined,
   previousSeasonsEmployed: number | undefined,

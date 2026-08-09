@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, PixelRatio, StyleSheet, Text, View } from 'react-native';
 import { formatCurrency } from './Scorecard';
+import { useCopy } from '../../i18n';
 
 /**
  * The slot-machine amount: every digit is a vertical reel that cycles fast
@@ -76,14 +77,15 @@ export function SlotAmount({
   reduceMotion,
   onSettled,
 }: SlotAmountProps) {
+  const t = useCopy();
   const fontScale = PixelRatio.getFontScale();
   const baseSize = (large ? 18 : 14) * fontScale;
   const surgeSettled = surge && phase === 'settled';
   const fontSize = surgeSettled ? baseSize + 2 * fontScale : baseSize;
   const lineHeight = Math.ceil(fontSize * 1.3);
   const digitWidth = Math.ceil(fontSize * DIGIT_EM);
-  const formatted = formatCurrency(value, true);
-  const sizing = formatCurrency(finalValue, true);
+  const formatted = formatCurrency(t, value, true);
+  const sizing = formatCurrency(t, finalValue, true);
   const color = surgeSettled ? SURGE_SETTLED_COLOR : TONE_COLORS[tone];
   const fontClass = surgeSettled ? 'font-pixel' : 'font-mono';
   // The halo that makes a surged total read as lit rather than merely tinted.

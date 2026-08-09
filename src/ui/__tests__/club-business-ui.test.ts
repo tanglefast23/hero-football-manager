@@ -86,7 +86,7 @@ describe('Club Business phone and accessibility contracts', () => {
     expect(seasonEnd).toContain('viewModel.clubBusinessSettlement');
     expect(seasonEnd).toContain("t('seasonEnd.seasonEndPayday')");
     expect(seasonEnd).toContain("label={result.met ? t('seasonEnd.targetMet') : t('seasonEnd.targetMissed')}");
-    expect(seasonEnd).toContain("t('seasonEnd.clubReceived', { amount: formatCurrency(result.actualBonus) })");
+    expect(seasonEnd).toContain("t('seasonEnd.clubReceived', { amount: formatCurrency(t, result.actualBonus) })");
     expect(loadCatalog('en').strings['seasonEnd.clubReceived']).toBe('Club received {amount}');
     expect(seasonEnd).toContain('viewModel.clubBusinessSettlement.buzz.actualPayout');
   });

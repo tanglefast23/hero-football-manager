@@ -142,7 +142,7 @@ export function SeasonEndScreen({
           <Text className="mt-2 max-w-sm text-center text-paper/75" style={scaledBody(textScale)}>{viewModel.summary}</Text>
           <View className="mt-4 flex-row gap-2">
             <StatusChip label={t('seasonEnd.finishedPosition', { position: viewModel.finalPosition })} tone={outcomeTone} />
-            <StatusChip label={t('seasonEnd.prize', { amount: formatCurrency(viewModel.prizeMoney) })} />
+            <StatusChip label={t('seasonEnd.prize', { amount: formatCurrency(t, viewModel.prizeMoney) })} />
             <StatusChip
               label={t(viewModel.difficultyLabel === 'CHAIRMAN'
                 ? 'settings.difficulty.chairman'
@@ -158,7 +158,7 @@ export function SeasonEndScreen({
             <PaperPanel
               kicker={t('seasonEnd.cashActuallyReceived')}
               title={t('seasonEnd.sponsorsAndBuzz')}
-              stamp={`+${formatCurrency(viewModel.clubBusinessSettlement.actualPayoutTotal)}`}
+              stamp={`+${formatCurrency(t, viewModel.clubBusinessSettlement.actualPayoutTotal)}`}
             >
               {viewModel.clubBusinessSettlement.buzz ? (
                 <View
@@ -166,7 +166,7 @@ export function SeasonEndScreen({
                   accessible
                   accessibilityLabel={t('seasonEnd.a11y.buzzPayout', {
                     reached: viewModel.clubBusinessSettlement.buzz.reached,
-                    amount: formatCurrency(viewModel.clubBusinessSettlement.buzz.actualPayout),
+                    amount: formatCurrency(t, viewModel.clubBusinessSettlement.buzz.actualPayout),
                     resetTo: viewModel.clubBusinessSettlement.buzz.resetTo,
                   })}
                 >
@@ -177,7 +177,7 @@ export function SeasonEndScreen({
                   <Text className="mt-2 text-sm leading-5 text-ink">
                     {t('seasonEnd.buzzSettlement', {
                       reached: viewModel.clubBusinessSettlement.buzz.reached,
-                      amount: formatCurrency(viewModel.clubBusinessSettlement.buzz.actualPayout),
+                      amount: formatCurrency(t, viewModel.clubBusinessSettlement.buzz.actualPayout),
                       resetTo: viewModel.clubBusinessSettlement.buzz.resetTo,
                     })}
                   </Text>
@@ -199,7 +199,7 @@ export function SeasonEndScreen({
                         : 'seasonEnd.a11y.sponsorTargetMissed', {
                         sponsor: result.sponsorName,
                         objective: result.objectiveLabel,
-                        amount: formatCurrency(result.actualBonus),
+                        amount: formatCurrency(t, result.actualBonus),
                       })}
                     >
                       <View className="flex-row flex-wrap items-start justify-between gap-2">
@@ -216,14 +216,14 @@ export function SeasonEndScreen({
                         ? 'mt-2 font-mono text-base text-pitch-ink'
                         : 'mt-2 font-mono text-base text-red-dark'}
                       >
-                        {t('seasonEnd.clubReceived', { amount: formatCurrency(result.actualBonus) })}
+                        {t('seasonEnd.clubReceived', { amount: formatCurrency(t, result.actualBonus) })}
                       </Text>
                     </View>
                   ))}
                   <View className="flex-row flex-wrap items-center justify-between gap-2 border-t-2 border-ink pt-3">
                     <PixelText className="text-sm uppercase text-ink/70">{t('seasonEnd.objectiveBonuses')}</PixelText>
                     <Text className="font-mono text-lg text-ink">
-                      {formatCurrency(viewModel.clubBusinessSettlement.objectiveBonusTotal)}
+                      {formatCurrency(t, viewModel.clubBusinessSettlement.objectiveBonusTotal)}
                     </Text>
                   </View>
                 </View>
@@ -245,8 +245,8 @@ export function SeasonEndScreen({
               <Metric label={t('seasonEnd.goals')} value={viewModel.recap.goals} />
             </View>
             <View className="mt-2 flex-row gap-2">
-              <Metric label={t('seasonEnd.cashChange')} value={`${viewModel.recap.cashChange >= 0 ? '+' : ''}${formatCurrency(viewModel.recap.cashChange)}`} />
-              <Metric label={t('seasonEnd.closingCash')} value={formatCurrency(viewModel.recap.closingCash)} />
+              <Metric label={t('seasonEnd.cashChange')} value={`${viewModel.recap.cashChange >= 0 ? '+' : ''}${formatCurrency(t, viewModel.recap.cashChange)}`} />
+              <Metric label={t('seasonEnd.closingCash')} value={formatCurrency(t, viewModel.recap.closingCash)} />
             </View>
             <PaperPanel kicker={t('seasonEnd.cupAndDevelopment')} title={viewModel.recap.cupResult} stamp={t('seasonEnd.capsReached', { count: viewModel.recap.trainingCapsReached })} className="mt-3">
               <Text className="text-sm leading-5 text-ink/60">
@@ -365,11 +365,11 @@ export function SeasonEndScreen({
                   <View className="mt-2 flex-row items-center gap-2">
                     {contract.isHeroWageCliff ? (
                       <Text className="font-mono text-base text-ink/40 line-through">
-                        {formatCurrency(contract.currentWeeklyWage)}
+                        {formatCurrency(t, contract.currentWeeklyWage)}
                       </Text>
                     ) : null}
                     <Text className="font-mono text-xl text-stamp">
-                      {formatCurrency(contract.quotedWeeklyWage)}
+                      {formatCurrency(t, contract.quotedWeeklyWage)}
                     </Text>
                     {contract.isHeroWageCliff ? <StatusChip label={t('seasonEnd.heroRate')} tone="hero" /> : null}
                   </View>
@@ -416,11 +416,11 @@ export function SeasonEndScreen({
                       )}
                       <View className="mt-3">
                         <ActionButton
-                          label={t('seasonEnd.signNow', { wage: formatCurrency(contract.quotedWeeklyWage) })}
+                          label={t('seasonEnd.signNow', { wage: formatCurrency(t, contract.quotedWeeklyWage) })}
                           accessibilityLabel={t('seasonEnd.a11y.signPlayer', {
                             player: contract.playerName,
                             seasons: contract.selectedTerm,
-                            wage: formatCurrency(contract.quotedWeeklyWage),
+                            wage: formatCurrency(t, contract.quotedWeeklyWage),
                           })}
                           onPress={() => guardTap(() => onRenewContract(contract.playerId, contract.selectedTerm))}
                         />
