@@ -8,6 +8,9 @@ export type CopyFn = ((key: string, params?: CopyParams) => string) & {
   readonly locale?: Locale;
 };
 
+let cachedEnglishStrings: Readonly<Record<string, string>> | undefined;
+const cachedCopyFunctions = new Map<Locale, CopyFn>();
+
 /**
  * Pure, and exported for tests.
  *
@@ -23,17 +26,26 @@ export type CopyFn = ((key: string, params?: CopyParams) => string) & {
  * because a chrome key is the one someone wrote on purpose.
  */
 function englishStrings(): Readonly<Record<string, string>> {
-  return { ...contentStrings(), ...loadCatalog('en').strings };
+  cachedEnglishStrings ??= Object.freeze({
+    ...contentStrings(),
+    ...loadCatalog('en').strings,
+  });
+  return cachedEnglishStrings;
 }
 
 export function copyFor(locale: Locale): CopyFn {
+  const cached = cachedCopyFunctions.get(locale);
+  if (cached !== undefined) return cached;
+
   const english = englishStrings();
   const strings = locale === 'en' ? english : loadCatalog(locale).strings;
-  return Object.assign(
+  const copy = Object.assign(
     (key: string, params?: CopyParams) =>
       resolveCopy(locale, strings, english, key, params),
     { locale },
   );
+  cachedCopyFunctions.set(locale, copy);
+  return copy;
 }
 
 export function facesFor(locale: Locale): LocaleFaces {
