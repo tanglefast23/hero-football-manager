@@ -21,10 +21,8 @@ import {
   TACKLE_DUST_OPACITY,
   TACKLE_DUST_PIXELS,
   TACKLE_GRASS_COLOR,
-  TACKLE_GRASS_FOOT_OFFSET,
   TACKLE_GRASS_OPACITY,
   TACKLE_GRASS_PIXELS,
-  TACKLE_GRASS_WIDTH_SCALE,
   TACKLE_TRAIL_SAMPLES,
 } from './slide-tackle-effects';
 import {
@@ -218,12 +216,12 @@ export function WorkletSlideTackleEffects({
       } else {
         for (let index = 0; index < TACKLE_TRAIL_SAMPLES.length; index += 1) {
           const sample = TACKLE_TRAIL_SAMPLES[index];
-          const footSide = sample.side + TACKLE_GRASS_FOOT_OFFSET;
+          const footSide = sample.side + 12;
           const rawBaseX =
             originX + travelX * sample.progress + sideX * footSide * pixel;
           const rawBaseY =
             originY + travelY * sample.progress + sideY * footSide * pixel;
-          const width = Math.max(1, pixel * TACKLE_GRASS_WIDTH_SCALE);
+          const width = Math.max(1, pixel * 0.6);
           const height = sample.grassHeight * pixel;
           const baseX = snapDevicePixels(rawBaseX, devicePixelRatio);
           const baseY = snapDevicePixels(rawBaseY, devicePixelRatio);
@@ -244,10 +242,10 @@ export function WorkletSlideTackleEffects({
           const blade = TACKLE_GRASS_PIXELS[index];
           const rise = Math.min(7, age + index * 0.7);
           const along = blade.along - age * 0.35;
-          const footSide = blade.side + TACKLE_GRASS_FOOT_OFFSET;
+          const footSide = blade.side + 12;
           const rawBaseX = cx + (ux * along + sideX * footSide) * pixel;
           const rawBaseY = cy + (uy * along + sideY * footSide) * pixel;
-          const width = Math.max(1, pixel * 1.5 * TACKLE_GRASS_WIDTH_SCALE);
+          const width = Math.max(1, pixel * 0.9);
           const height = (blade.height + rise) * pixel;
           const baseX = snapDevicePixels(rawBaseX, devicePixelRatio);
           const baseY = snapDevicePixels(rawBaseY, devicePixelRatio);

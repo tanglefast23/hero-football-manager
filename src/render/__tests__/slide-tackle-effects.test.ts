@@ -3,10 +3,8 @@ import { join } from 'path';
 import {
   TACKLE_DUST_OPACITY,
   TACKLE_DUST_PIXELS,
-  TACKLE_GRASS_FOOT_OFFSET,
   TACKLE_GRASS_OPACITY,
   TACKLE_GRASS_PIXELS,
-  TACKLE_GRASS_WIDTH_SCALE,
   TACKLE_TRAIL_SAMPLES,
 } from '../slide-tackle-effects';
 
@@ -29,10 +27,10 @@ describe('slide-tackle debris', () => {
   });
 
   it('makes grass 40% narrower and shifts both grass builders toward the feet', () => {
-    expect(TACKLE_GRASS_WIDTH_SCALE).toBe(0.6);
-    expect(TACKLE_GRASS_FOOT_OFFSET).toBe(12);
-    expect(component.match(/TACKLE_GRASS_WIDTH_SCALE/g)).toHaveLength(2);
-    expect(component.match(/TACKLE_GRASS_FOOT_OFFSET/g)).toHaveLength(2);
+    expect(component).toContain('sample.side + 12');
+    expect(component).toContain('blade.side + 12');
+    expect(component).toContain('Math.max(1, pixel * 0.6)');
+    expect(component).toContain('Math.max(1, pixel * 0.9)');
   });
 
   it('uses integer-sized pixel clusters rather than blurred geometry', () => {

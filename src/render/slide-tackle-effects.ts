@@ -3,9 +3,6 @@ export const TACKLE_DUST_COLOR = '#cf9268';
 export const TACKLE_DUST_OPACITY = 0.65;
 export const TACKLE_GRASS_COLOR = '#5cb85c';
 export const TACKLE_GRASS_OPACITY = 0.4;
-export const TACKLE_GRASS_WIDTH_SCALE = 0.6;
-/** Local sprite-pixel shift toward the feet side of the rotated tackle pose. */
-export const TACKLE_GRASS_FOOT_OFFSET = 12;
 
 export const TACKLE_DUST_PIXELS = [
   { along: -13, side: -2, size: 5 },
