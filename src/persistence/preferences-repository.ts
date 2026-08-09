@@ -39,6 +39,13 @@ export interface SquadSort {
   direction: SquadSortDirection;
 }
 
+export interface MatchPerformanceLimit {
+  maxMatchSpeed: 2;
+  reason: 'frame-pacing';
+  setAt: number;
+  expiresAt: number;
+}
+
 export interface AppPreferences {
   formationPresets: [FormationId, FormationId, FormationId];
   autoPowers: boolean;
@@ -74,6 +81,8 @@ export interface AppPreferences {
    * `language` holds the answer.
    */
   languageOffered: boolean;
+  /** Temporary proof that this device could not keep 3x paced smoothly. */
+  performanceLimit?: MatchPerformanceLimit | null;
 }
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
@@ -94,6 +103,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   developerMode: false,
   language: 'en',
   languageOffered: false,
+  performanceLimit: null,
 };
 
 const FormationSchema = z.enum(FORMATION_IDS);
@@ -158,6 +168,15 @@ const PreferencesSchema = V9PreferencesSchema.extend({
    * exactly what an older row means.
    */
   languageOffered: z.boolean().default(false),
+  performanceLimit: z
+    .strictObject({
+      maxMatchSpeed: z.literal(2),
+      reason: z.literal('frame-pacing'),
+      setAt: z.number().finite().nonnegative(),
+      expiresAt: z.number().finite().positive(),
+    })
+    .nullable()
+    .default(null),
 });
 
 const LegacyPreferencesSchema = V9PreferencesSchema.pick({
@@ -254,6 +273,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -282,6 +302,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -305,6 +326,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -328,6 +350,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -352,6 +375,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -375,6 +399,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -398,6 +423,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -419,6 +445,7 @@ export async function createPreferencesRepository(
           developerMode: DEFAULT_APP_PREFERENCES.developerMode,
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -439,6 +466,7 @@ export async function createPreferencesRepository(
           squadSort: legacy.data.squadSort === null ? null : { ...legacy.data.squadSort },
           language: DEFAULT_APP_PREFERENCES.language,
           languageOffered: DEFAULT_APP_PREFERENCES.languageOffered,
+          performanceLimit: DEFAULT_APP_PREFERENCES.performanceLimit,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -467,6 +495,10 @@ function clonePreferences(preferences: AppPreferences): AppPreferences {
     formationPresets: [...preferences.formationPresets],
     seenPowerCutIns: [...preferences.seenPowerCutIns],
     squadSort: preferences.squadSort === null ? null : { ...preferences.squadSort },
+    performanceLimit:
+      preferences.performanceLimit == null
+        ? null
+        : { ...preferences.performanceLimit },
   };
 }
 

@@ -30,6 +30,12 @@ describe('match pause reasons', () => {
     expect(shouldPauseMatch(false, new Set<AutomaticMatchPauseReason>(['showcase']))).toBe(true);
   });
 
+  it('holds the simulation while the graphics context is unavailable', () => {
+    expect(
+      shouldPauseMatch(false, new Set<AutomaticMatchPauseReason>(['graphics'])),
+    ).toBe(true);
+  });
+
   it('automatically releases only the background pause when the app returns', () => {
     const backgroundOnly = new Set<AutomaticMatchPauseReason>();
     syncBackgroundPauseReason(backgroundOnly, false);

@@ -41,6 +41,7 @@ import {
   type PreferencesRepository,
 } from './src/persistence';
 import { MatchScreen, type PowerCutInQaEntry } from './src/render/MatchScreen';
+import { isMatchPerformanceLimitActive } from './src/render/match-performance';
 import { PowerEffectPreview } from './src/render/PowerEffectPreview';
 import { QuickResultFaceOff } from './src/render/QuickResultFaceOff';
 import {
@@ -669,6 +670,9 @@ function GameApp() {
   const lastSeasonReviewCueRef = useRef<string | null>(null);
   const devVolume = preferences.masterVolume as DevVolume;
   const reduceMotion = useReducedMotion(preferences.reduceMotion);
+  const performanceLimitActive = isMatchPerformanceLimitActive(
+    preferences.performanceLimit,
+  );
 
   const savePreferences = useCallback((next: AppPreferences) => {
     // Ahead of the render, so two changes made before React re-renders — a
@@ -699,6 +703,19 @@ function GameApp() {
         }
       });
   }, []);
+
+  useEffect(() => {
+    if (
+      preferences.performanceLimit !== null &&
+      preferences.performanceLimit !== undefined &&
+      !performanceLimitActive
+    ) {
+      savePreferences({
+        ...preferencesRef.current,
+        performanceLimit: null,
+      });
+    }
+  }, [performanceLimitActive, preferences.performanceLimit, savePreferences]);
 
   // Every one of these composes from `preferencesRef`, never from the rendered
   // `preferences`: a settings screen is a column of controls the player can hit
@@ -787,6 +804,15 @@ function GameApp() {
   }, []);
   const saveAutoSubs = useCallback((autoSubs: boolean) => {
     savePreferences({ ...preferencesRef.current, autoSubs });
+  }, [savePreferences]);
+  const saveMatchPerformanceLimit = useCallback(
+    (performanceLimit: AppPreferences['performanceLimit']) => {
+      savePreferences({ ...preferencesRef.current, performanceLimit });
+    },
+    [savePreferences],
+  );
+  const retryThreeTimesSpeed = useCallback(() => {
+    savePreferences({ ...preferencesRef.current, performanceLimit: null });
   }, [savePreferences]);
   const saveSquadSort = useCallback((squadSort: AppPreferences['squadSort']) => {
     savePreferences({ ...preferencesRef.current, squadSort });
@@ -2055,6 +2081,8 @@ function GameApp() {
         colorSafeKits={preferences.colorSafeKits}
         autoSubs={preferences.autoSubs}
         onAutoSubsChange={saveAutoSubs}
+        performanceLimit={preferences.performanceLimit}
+        onPerformanceLimitChange={saveMatchPerformanceLimit}
         pausedExternally={globalSettingsOpen}
         firstMatchTutorial={careerTeaches && isFirstOnboardingFixture(
           store.career,
@@ -2782,6 +2810,7 @@ function GameApp() {
           highContrast={preferences.highContrast}
           colorSafeKits={preferences.colorSafeKits}
           cutInMode={preferences.cutInMode}
+          performanceLimited={performanceLimitActive}
           developerMode={DEVELOPER_MODE_AVAILABLE ? preferences.developerMode : undefined}
           assistantMode={store.career === null
             ? undefined
@@ -2803,6 +2832,7 @@ function GameApp() {
           onToggleHighContrast={toggleHighContrast}
           onToggleColorSafeKits={toggleColorSafeKits}
           onToggleCutInMode={toggleCutInMode}
+          onRetry3x={retryThreeTimesSpeed}
           onEmailSupport={emailSupport}
           onToggleDeveloperMode={DEVELOPER_MODE_AVAILABLE ? toggleDeveloperMode : undefined}
           onSetAssistantMode={store.career === null ? undefined : handleSetAssistantMode}

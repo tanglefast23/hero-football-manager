@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Atlas, Canvas, Circle, Fill, Group, Rect, Skia, type SkColor, type SkImage, type SkRect, type SkRSXform } from '@shopify/react-native-skia';
+import { Atlas, Circle, Fill, Group, Rect, Skia, type SkColor, type SkImage, type SkRect, type SkRSXform } from '@shopify/react-native-skia';
 import {
   Easing as ReanimatedEasing,
   useDerivedValue,
@@ -22,7 +22,7 @@ import {
   playerAt,
   RENDER_PLAYER_COUNT,
 } from '../sim/entities';
-import type { HudSide } from '../persistence';
+import type { HudSide, MatchPerformanceLimit } from '../persistence';
 import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
 import { keeperReadyFrameFacingBall, runFrameFacingBall } from './sprites/facing';
 import { webbedSpriteKey } from './sprites/loader';
@@ -156,6 +156,7 @@ import { teamKitColor } from './team-kit-ui';
 import { CARRIER_CARD_CONTENT_WIDTH, useMatchScreenStyles } from './match-screen-styles';
 import { useCopy } from '../i18n';
 import {
+  type MatchAudioProfile,
   initAudio,
   playForEvent,
   startFireAmbience,
@@ -164,6 +165,17 @@ import {
   stopTheme,
   teardownAudio,
 } from './audio';
+import { RecoverableSkiaCanvas } from './RecoverableSkiaCanvas';
+import { hasWeakDeviceHardwareHint } from './device-performance-hint';
+import { advanceGraphicsRecoveryChunk } from './match-graphics-recovery';
+import {
+  createFramePacingMonitor,
+  createMatchPerformanceLimit,
+  isMatchPerformanceLimitActive,
+  performanceAdaptationDecision,
+  recordFrameGap,
+  resetFramePacingMonitor,
+} from './match-performance';
 
 const MAX_CATCHUP_TICKS = 5;
 const TOTAL_TICKS = HALF_TICKS * 2;
@@ -349,6 +361,9 @@ export function MatchScreen({
   autoSubs: initialAutoSubs = false,
   onAutoSubsChange,
   maximumSpeed = 3,
+  performanceLimit,
+  onPerformanceLimitChange,
+  audioProfile = 'full',
   cupRoundLabel,
   powerCutInQaEntries,
   powerMatchQa,
@@ -377,6 +392,11 @@ export function MatchScreen({
   onAutoSubsChange?: (autoSubs: boolean) => void;
   /** Seasons 1–2 cap at 2×; the veteran 3× option unlocks in Season 3. */
   maximumSpeed?: MatchSpeed;
+  /** A time-limited device cap created from measured frame pacing. */
+  performanceLimit?: MatchPerformanceLimit | null;
+  onPerformanceLimitChange?: (limit: MatchPerformanceLimit | null) => void;
+  /** The awakening clip omits sounds that cannot occur in its short showcase. */
+  audioProfile?: MatchAudioProfile;
   /** Set only for a Hero Cup tie; it opens the match on the title card. */
   cupRoundLabel?: CupRoundLabel;
   /** Dev-only held fixture for visual QA. Ignored by production bundles. */
@@ -394,6 +414,11 @@ export function MatchScreen({
   // changes — Silkscreen cannot draw Vietnamese.
   const styles = useMatchScreenStyles();
   const t = useCopy();
+  const performanceLimitActive = isMatchPerformanceLimitActive(performanceLimit);
+  const effectiveMaximumSpeed = Math.min(
+    maximumSpeed,
+    performanceLimitActive ? 2 : 3,
+  ) as MatchSpeed;
   const seenPowerCutInsRef = useRef(new Set<PowerId>(seenPowerCutIns));
   for (const power of seenPowerCutIns) seenPowerCutInsRef.current.add(power);
   const onPowerCutInSeenRef = useRef(onPowerCutInSeen);
@@ -535,6 +560,28 @@ export function MatchScreen({
     visualTick: 0,
   });
   const [speed, setSpeed] = useState<MatchSpeed>(1);
+  const [reducedEffects, setReducedEffects] = useState(false);
+  const reducedEffectsRef = useRef(false);
+  const [performanceNotice, setPerformanceNotice] = useState(false);
+  const performanceMonitorRef = useRef(createFramePacingMonitor());
+  const performanceBadWindowsRef = useRef(0);
+  const weakDeviceHardwareHint = useMemo(hasWeakDeviceHardwareHint, []);
+  const performanceResumeAtRef = useRef(
+    performance.now() + (weakDeviceHardwareHint ? 1000 : 2000),
+  );
+  const performanceLimitActiveRef = useRef(performanceLimitActive);
+  performanceLimitActiveRef.current = performanceLimitActive;
+  const onPerformanceLimitChangeRef = useRef(onPerformanceLimitChange);
+  onPerformanceLimitChangeRef.current = onPerformanceLimitChange;
+  const [graphicsGeneration, setGraphicsGeneration] = useState(0);
+  const graphicsGenerationRef = useRef(0);
+  const graphicsRestartAttemptsRef = useRef(0);
+  const [graphicsStatus, setGraphicsStatus] = useState<
+    'ok' | 'restarting' | 'failed' | 'finishing'
+  >('ok');
+  const graphicsStatusRef = useRef(graphicsStatus);
+  graphicsStatusRef.current = graphicsStatus;
+  const suppressCosmeticEffects = reduceMotion || reducedEffects;
   /** Opt-in bench cover: a manager who only wants to watch should not be
    * punished with eleven exhausted players and five unused substitutions.
    * Seeded from the saved preference, so the choice is made once, not weekly. */
@@ -658,7 +705,7 @@ export function MatchScreen({
       console.warn('MatchScreen: buildSpriteAtlas failed — rendering placeholder rects', err);
       return { ...buildFallbackAtlas(Skia, FALLBACK_SPRITE), fallbackMode: true };
     }
-  }, [colorSafeKits, matchVisualIds]);
+  }, [colorSafeKits, graphicsGeneration, matchVisualIds]);
 
   // Sprite-rect cache, keyed by atlas because rectFor's layout is derived from
   // the sheet this atlas was built from. `sprites` below asks for 25 rects on
@@ -731,6 +778,105 @@ export function MatchScreen({
   const syncPauseReasons = () => {
     setPausedBoth(shouldPauseMatch(userPausedRef.current, automaticPauseReasonsRef.current));
   };
+
+  const pauseForGraphicsFailure = useCallback(() => {
+    automaticPauseReasonsRef.current.add('graphics');
+    pausedRef.current = true;
+    pauseAtlasFrame();
+    setPaused(true);
+    resetFramePacingMonitor(performanceMonitorRef.current);
+  }, [pauseAtlasFrame]);
+
+  const handleGraphicsContextLost = useCallback(
+    (generation: number) => {
+      if (
+        generation !== graphicsGenerationRef.current ||
+        graphicsStatusRef.current === 'failed' ||
+        graphicsStatusRef.current === 'finishing'
+      ) {
+        return;
+      }
+      pauseForGraphicsFailure();
+      if (graphicsRestartAttemptsRef.current >= 1) {
+        graphicsStatusRef.current = 'failed';
+        setGraphicsStatus('failed');
+        return;
+      }
+      graphicsRestartAttemptsRef.current += 1;
+      graphicsStatusRef.current = 'restarting';
+      setGraphicsStatus('restarting');
+      const nextGeneration = graphicsGenerationRef.current + 1;
+      graphicsGenerationRef.current = nextGeneration;
+      setGraphicsGeneration(nextGeneration);
+    },
+    [pauseForGraphicsFailure],
+  );
+
+  const handleGraphicsContextReady = useCallback(
+    (generation: number) => {
+      if (
+        generation !== graphicsGenerationRef.current ||
+        graphicsStatusRef.current !== 'restarting'
+      ) {
+        return;
+      }
+      graphicsStatusRef.current = 'ok';
+      setGraphicsStatus('ok');
+      automaticPauseReasonsRef.current.delete('graphics');
+      const shouldPause = shouldPauseMatch(
+        userPausedRef.current,
+        automaticPauseReasonsRef.current,
+      );
+      pausedRef.current = shouldPause;
+      if (shouldPause) pauseAtlasFrame();
+      else resumeAtlasFrame(matchPlaybackRate(speedRef.current));
+      setPaused(shouldPause);
+      performanceResumeAtRef.current = performance.now() + 1000;
+    },
+    [pauseAtlasFrame, resumeAtlasFrame],
+  );
+
+  const finishGraphicsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const finishAfterGraphicsFailure = useCallback(() => {
+    if (presentationOnly) {
+      onOpenSettings();
+      return;
+    }
+    if (graphicsStatusRef.current === 'finishing') return;
+    graphicsStatusRef.current = 'finishing';
+    setGraphicsStatus('finishing');
+    const advance = () => {
+      const state = stateRef.current!;
+      if (advanceGraphicsRecoveryChunk(state, autoSubsRef.current)) {
+        handedOffRef.current = true;
+        onDone(state);
+        return;
+      }
+      finishGraphicsTimerRef.current = setTimeout(advance, 0);
+    };
+    advance();
+  }, [onDone, onOpenSettings, presentationOnly]);
+
+  const reloadAfterGraphicsFailure = useCallback(() => {
+    if (typeof window !== 'undefined') window.location.reload();
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (finishGraphicsTimerRef.current !== null) {
+        clearTimeout(finishGraphicsTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    resetFramePacingMonitor(performanceMonitorRef.current);
+    performanceBadWindowsRef.current = 0;
+    performanceResumeAtRef.current = performance.now() + 1000;
+  }, [height, width]);
 
   useEffect(() => {
     if (pausedExternally) automaticPauseReasonsRef.current.add('settings');
@@ -848,7 +994,7 @@ export function MatchScreen({
   // no menu bed to silence, so this is a no-op; it earns its keep when a match
   // is shown *over* a menu screen, as the power demo does over the awakening.
   useEffect(() => {
-    initAudio();
+    initAudio(audioProfile, powerMatchQa?.power);
     yieldMenuThemeToMatch();
     startTheme();
     return () => {
@@ -859,7 +1005,7 @@ export function MatchScreen({
       teardownAudio();
       releaseMenuThemeToMatch();
     };
-  }, []);
+  }, [audioProfile, powerMatchQa?.power]);
 
   // The opening KICKOFF is emitted by createMatch before the RAF loop below
   // starts slicing newEvents, so its whistle would be skipped — play any events
@@ -881,6 +1027,9 @@ export function MatchScreen({
 
     const sub = AppState.addEventListener('change', (next) => {
       const appIsActive = next === 'active';
+      resetFramePacingMonitor(performanceMonitorRef.current);
+      performanceBadWindowsRef.current = 0;
+      performanceResumeAtRef.current = performance.now() + 1000;
       if (appIsActive) {
         // Resume from the same simulation instant instead of catching up while hidden.
         last = performance.now();
@@ -915,7 +1064,7 @@ export function MatchScreen({
     };
 
     const startJuice = (power: PowerId, player: number, now: number) => {
-      if (reduceMotion) return;
+      if (suppressCosmeticEffects) return;
       const juice = powerJuice(power);
       const { scale: pitchScale } = layoutRef.current;
       juiceRef.current = {
@@ -1000,8 +1149,44 @@ export function MatchScreen({
         // the setFrame/setHud work, so a paused match doesn't re-render at
         // display refresh rate.
         last = now;
+        resetFramePacingMonitor(performanceMonitorRef.current);
+        performanceBadWindowsRef.current = 0;
+        performanceResumeAtRef.current = now + 1000;
         raf = requestAnimationFrame(loop);
         return;
+      }
+      const wallGap = now - last;
+      if (speedRef.current >= 2 && now >= performanceResumeAtRef.current) {
+        const pacing = recordFrameGap(performanceMonitorRef.current, wallGap);
+        if (pacing !== null) {
+          const decision = performanceAdaptationDecision(
+            performanceBadWindowsRef.current,
+            reducedEffectsRef.current,
+            pacing.bad,
+          );
+          performanceBadWindowsRef.current = decision.consecutiveBadWindows;
+          if (decision.action !== 'none') {
+            performanceResumeAtRef.current = now + 1000;
+            if (decision.action === 'reduce-effects') {
+              reducedEffectsRef.current = true;
+              setReducedEffects(true);
+            } else if (!performanceLimitActiveRef.current) {
+              performanceLimitActiveRef.current = true;
+              onPerformanceLimitChangeRef.current?.(
+                createMatchPerformanceLimit(Date.now()),
+              );
+              setPerformanceNotice(true);
+              if (speedRef.current === 3) {
+                speedRef.current = 2;
+                resumeAtlasFrame(matchPlaybackRate(2));
+                setSpeed(2);
+              }
+            }
+          }
+        }
+      } else if (performanceMonitorRef.current.gaps.length > 0) {
+        resetFramePacingMonitor(performanceMonitorRef.current);
+        performanceBadWindowsRef.current = 0;
       }
       // Ledger item 7 — capped catch-up: never simulate more than
       // MAX_CATCHUP_TICKS in one frame, however long the JS thread stalled.
@@ -1070,7 +1255,7 @@ export function MatchScreen({
         }
 
         const speedster = s.players.find((p, i) => nextRef.current!.statuses[i] === 'active' && p.def.power === 'SUPER_SPEED');
-        trailRef.current = !reduceMotion && speedster
+        trailRef.current = !suppressCosmeticEffects && speedster
           ? [{ ...speedster.pos }, ...trailRef.current].slice(0, 7)
           : [];
 
@@ -1123,7 +1308,7 @@ export function MatchScreen({
           torchCasterPos = { ...nextRef.current!.players[e.player] };
         }
         const shotActor = e.kind === 'SHOT' ? e.actor ?? e.by : -1;
-        if (!reduceMotion && e.kind === 'SHOT' && playerAt(s, shotActor) !== undefined) {
+        if (!suppressCosmeticEffects && e.kind === 'SHOT' && playerAt(s, shotActor) !== undefined) {
           // Kick up a dust puff at the striker's feet — the visual "he hit it".
           const o = playerAt(s, shotActor)!.pos;
           puffRef.current = { x: o.x, y: o.y, tick: e.t };
@@ -1582,6 +1767,7 @@ export function MatchScreen({
     publishAtlasFrame,
     reduceMotion,
     resumeAtlasFrame,
+    suppressCosmeticEffects,
   ]);
 
   // Distance, not wall-clock ticks, advances the run cycle. The action pose
@@ -2117,8 +2303,12 @@ export function MatchScreen({
   // The tap cue stays at each call site: the dock plays it explicitly, and the
   // rail's SfxPressable plays it for every chip.
   const applySpeed = (next: MatchSpeed) => {
-    const allowed = next <= maximumSpeed ? next : maximumSpeed;
+    const allowed =
+      next <= effectiveMaximumSpeed ? next : effectiveMaximumSpeed;
     speedRef.current = allowed;
+    resetFramePacingMonitor(performanceMonitorRef.current);
+    performanceBadWindowsRef.current = 0;
+    performanceResumeAtRef.current = performance.now() + 1000;
     if (!pausedRef.current) resumeAtlasFrame(matchPlaybackRate(allowed));
     setSpeed(allowed);
   };
@@ -2237,7 +2427,7 @@ export function MatchScreen({
               accessibilityLabel={t('matchScreen.a11y.matchSpeed', { speed })}
               hitSlop={10}
               onPress={() => {
-                applySpeed(nextMatchSpeed(speed, maximumSpeed));
+                applySpeed(nextMatchSpeed(speed, effectiveMaximumSpeed));
               }}
             >
               <Text style={styles.ctrlText}>×{speed}</Text>
@@ -2265,7 +2455,7 @@ export function MatchScreen({
             scoreFlash={hud.scoreFlash}
             paused={paused}
             speed={speed}
-            maximumSpeed={maximumSpeed}
+            maximumSpeed={effectiveMaximumSpeed}
             onSelectSpeed={applySpeed}
             onTogglePause={toggleUserPause}
             onOpenSettings={onOpenSettings}
@@ -2289,10 +2479,18 @@ export function MatchScreen({
             heroTiles={railHeroTiles}
             powerTakeover={powerTakeover}
           />
-        ) : null}
+          ) : null}
         <View style={railLayout ? styles.desktopPitchPane : null}>
           <View style={pitchFrameStyle}>
-            <Canvas style={canvasStyle}>
+            {graphicsStatus === 'failed' ||
+            graphicsStatus === 'finishing' ? null : (
+              <RecoverableSkiaCanvas
+                key={graphicsGeneration}
+                generation={graphicsGeneration}
+                onContextLost={handleGraphicsContextLost}
+                onContextReady={handleGraphicsContextReady}
+                style={canvasStyle}
+              >
               {/* Pitch base = pixel-bible pitch-dark (#3f8a4a); Pitch.tsx paints the
                   brighter base #5cb85c on alternating mow bands over it. Kept
                   OUTSIDE the camera group so a punched-in frame still has a
@@ -2492,7 +2690,8 @@ export function MatchScreen({
                 color="#ffffff"
                 opacity={activationFlash}
               />
-            </Canvas>
+              </RecoverableSkiaCanvas>
+            )}
             {carrier ? (
               <View
                 pointerEvents="none"
@@ -2549,6 +2748,19 @@ export function MatchScreen({
             </Text>
           ))}
         </View>
+      ) : null}
+      {performanceNotice ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('matchScreen.performance.dismiss')}
+          onPress={() => setPerformanceNotice(false)}
+          style={styles.performanceNotice}
+        >
+          <Text style={styles.performanceNoticeText}>
+            {t('matchScreen.performance.limited')}
+          </Text>
+          <Text style={styles.performanceNoticeDismiss}>×</Text>
+        </Pressable>
       ) : null}
       {/* Desktop moves every dock control into the left rail. */}
       {presentationOnly ? null : railLayout ? null : powerTakeover !== undefined ? (
@@ -2761,6 +2973,53 @@ export function MatchScreen({
       {/* Last child, so the cup card covers the whole match screen. */}
       {titleCard !== null && titleCardShowing ? (
         <CupTitleCard card={titleCard} onDone={dismissTitleCard} />
+      ) : null}
+      {graphicsStatus !== 'ok' ? (
+        <View
+          accessibilityViewIsModal
+          style={styles.graphicsRecoveryOverlay}
+        >
+          <View style={styles.graphicsRecoveryCard}>
+            <Text style={styles.graphicsRecoveryTitle}>
+              {graphicsStatus === 'restarting'
+                ? t('graphics.restarting')
+                : graphicsStatus === 'finishing'
+                  ? t('graphics.finishingMatch')
+                  : t('graphics.pitchStopped')}
+            </Text>
+            {graphicsStatus === 'failed' ? (
+              <>
+                <Text style={styles.graphicsRecoveryDetail}>
+                  {presentationOnly
+                    ? t('graphics.showcaseDetail')
+                    : t('graphics.matchDetail')}
+                </Text>
+                <View style={styles.graphicsRecoveryButtons}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={reloadAfterGraphicsFailure}
+                    style={styles.graphicsRecoveryButton}
+                  >
+                    <Text style={styles.graphicsRecoveryButtonText}>
+                      {t('graphics.reload')}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={finishAfterGraphicsFailure}
+                    style={styles.graphicsRecoveryButtonPrimary}
+                  >
+                    <Text style={styles.graphicsRecoveryButtonText}>
+                      {presentationOnly
+                        ? t('graphics.returnToAwakening')
+                        : t('graphics.finishMatch')}
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
+          </View>
+        </View>
       ) : null}
     </View>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   StyleSheet,
@@ -10,7 +10,6 @@ import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Atlas,
-  Canvas,
   Circle,
   Fill,
   Group,
@@ -42,6 +41,7 @@ import { AwakeningTriggerVisual } from './awakening-trigger-visuals/AwakeningTri
 import { awakeningViewportHeight, nextAwakeningAction } from './awakening-progression';
 import { PowerAcquiredDemoModal } from '../PowerAcquiredDemoModal';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
+import { RecoverableSkiaCanvas } from '../../render/RecoverableSkiaCanvas';
 
 const FOCUS_INDEX = 4;
 /** How far the CTA halo dips between breaths; never to nothing, so it still reads as lit. */
@@ -116,6 +116,15 @@ export function AwakeningCutsceneScreen({
   const skipBeatRef = useRef<(() => void) | null>(null);
   const [triggerPropVisible, setTriggerPropVisible] = useState(false);
   const [demoVisible, setDemoVisible] = useState(false);
+  const [canvasGeneration, setCanvasGeneration] = useState(0);
+  const canvasGenerationRef = useRef(0);
+  const [sceneGeneration, setSceneGeneration] = useState(0);
+  const graphicsRestartAttemptsRef = useRef(0);
+  const [graphicsStatus, setGraphicsStatus] = useState<
+    'ok' | 'restarting' | 'failed'
+  >('ok');
+  const graphicsStatusRef = useRef(graphicsStatus);
+  graphicsStatusRef.current = graphicsStatus;
   const cameraZoom = useSharedValue(1);
   // 0 -> 1 across the opening jolt; 1 means settled.
   const shakePhase = useSharedValue(1);
@@ -143,7 +152,7 @@ export function AwakeningCutsceneScreen({
       console.warn('AwakeningCutsceneScreen: sprite atlas failed, using fallback', error);
       return { ...buildFallbackAtlas(Skia, FALLBACK_SPRITE), fallbackMode: true };
     }
-  }, [cutsceneVisualIds]);
+  }, [canvasGeneration, cutsceneVisualIds]);
   const sprites: SkRect[] = useMemo(() => cutsceneSpriteKeys.map(key => {
     const rect = atlas.rectFor(key);
     return Skia.XYWHRect(rect.x, rect.y, rect.w, rect.h);
@@ -370,8 +379,72 @@ export function AwakeningCutsceneScreen({
     reduceMotion,
     revealFlash,
     rush,
+    sceneGeneration,
     shakePhase,
   ]);
+
+  const restartCanvas = useCallback((restartStory: boolean) => {
+    graphicsStatusRef.current = 'restarting';
+    setGraphicsStatus('restarting');
+    if (restartStory) {
+      setBeat(1);
+      setAdvanceReady(false);
+    }
+    setSceneGeneration((generation) => generation + 1);
+    const nextGeneration = canvasGenerationRef.current + 1;
+    canvasGenerationRef.current = nextGeneration;
+    setCanvasGeneration(nextGeneration);
+  }, []);
+
+  const handleGraphicsContextLost = useCallback(
+    (generation: number) => {
+      if (
+        generation !== canvasGenerationRef.current ||
+        graphicsStatusRef.current === 'failed'
+      ) {
+        return;
+      }
+      if (graphicsRestartAttemptsRef.current >= 1) {
+        graphicsStatusRef.current = 'failed';
+        setGraphicsStatus('failed');
+        setAdvanceReady(false);
+        return;
+      }
+      graphicsRestartAttemptsRef.current += 1;
+      restartCanvas(true);
+    },
+    [restartCanvas],
+  );
+
+  const handleGraphicsContextReady = useCallback((generation: number) => {
+    if (
+      generation !== canvasGenerationRef.current ||
+      graphicsStatusRef.current !== 'restarting'
+    ) {
+      return;
+    }
+    graphicsStatusRef.current = 'ok';
+    setGraphicsStatus('ok');
+  }, []);
+
+  const retryAwakeningGraphics = useCallback(() => {
+    graphicsRestartAttemptsRef.current = 0;
+    restartCanvas(true);
+  }, [restartCanvas]);
+
+  const reloadAfterGraphicsFailure = useCallback(() => {
+    if (typeof window !== 'undefined') window.location.reload();
+  }, []);
+
+  const closeDemo = useCallback(() => {
+    setDemoVisible(false);
+    // CanvasKit images belong to their WebGL context. Returning from the demo
+    // creates a new context, so rebuild the awakening atlas for it too.
+    setSceneGeneration((generation) => generation + 1);
+    const nextGeneration = canvasGenerationRef.current + 1;
+    canvasGenerationRef.current = nextGeneration;
+    setCanvasGeneration(nextGeneration);
+  }, []);
 
   const current = beat === 2
     ? { number: '02', kicker: viewModel.triggerKicker, title: viewModel.triggerTitle }
@@ -429,6 +502,27 @@ export function AwakeningCutsceneScreen({
       : t('awakening.a11y.tapToWatchDemonstration')
     : t('awakening.a11y.tapToSkipToEndOfBeat');
 
+  // The match demo replaces the awakening stage instead of opening over it.
+  // Web Skia therefore owns one live CanvasKit context during this transition.
+  if (demoVisible) {
+    return (
+      <PowerAcquiredDemoModal
+        visible
+        playerName={viewModel.playerName}
+        powerId={viewModel.powerId}
+        powerName={viewModel.powerName}
+        description={viewModel.powerDescription}
+        continueLabel={viewModel.continueLabel}
+        reduceMotion={reduceMotion}
+        onClose={closeDemo}
+        onContinue={() => {
+          setDemoVisible(false);
+          onContinue();
+        }}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.flex}>
@@ -457,7 +551,14 @@ export function AwakeningCutsceneScreen({
         </View>
 
         <View style={[styles.viewport, { height: viewportHeight }]}>
-          <Canvas style={{ width, height: viewportHeight }}>
+          {graphicsStatus === 'failed' ? null : (
+            <RecoverableSkiaCanvas
+              key={canvasGeneration}
+              generation={canvasGeneration}
+              onContextLost={handleGraphicsContextLost}
+              onContextReady={handleGraphicsContextReady}
+              style={{ width, height: viewportHeight }}
+            >
             <Fill color="#3f8a4a" />
             <Group
               origin={{ x: centerX, y: centerY }}
@@ -491,7 +592,8 @@ export function AwakeningCutsceneScreen({
               color="#ffffff"
               opacity={revealFlash}
             />
-          </Canvas>
+            </RecoverableSkiaCanvas>
+          )}
           <View style={styles.fullTimeBug}>
             <Text style={styles.fullTimeText}>{t('awakening.fullTime')}</Text>
           </View>
@@ -557,20 +659,47 @@ export function AwakeningCutsceneScreen({
           </View>
         </Pressable>
       </View>
-      <PowerAcquiredDemoModal
-        visible={demoVisible}
-        playerName={viewModel.playerName}
-        powerId={viewModel.powerId}
-        powerName={viewModel.powerName}
-        description={viewModel.powerDescription}
-        continueLabel={viewModel.continueLabel}
-        reduceMotion={reduceMotion}
-        onClose={() => setDemoVisible(false)}
-        onContinue={() => {
-          setDemoVisible(false);
-          onContinue();
-        }}
-      />
+      {graphicsStatus !== 'ok' ? (
+        <View
+          accessibilityViewIsModal
+          style={styles.graphicsRecoveryOverlay}
+        >
+          <View style={styles.graphicsRecoveryCard}>
+            <Text style={styles.graphicsRecoveryTitle}>
+              {graphicsStatus === 'restarting'
+                ? t('graphics.restarting')
+                : t('graphics.awakeningStopped')}
+            </Text>
+            {graphicsStatus === 'failed' ? (
+              <>
+                <Text style={styles.graphicsRecoveryDetail}>
+                  {t('graphics.awakeningDetail')}
+                </Text>
+                <View style={styles.graphicsRecoveryButtons}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={reloadAfterGraphicsFailure}
+                    style={styles.graphicsRecoveryButton}
+                  >
+                    <Text style={styles.graphicsRecoveryButtonText}>
+                      {t('graphics.reload')}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={retryAwakeningGraphics}
+                    style={styles.graphicsRecoveryButtonPrimary}
+                  >
+                    <Text style={styles.graphicsRecoveryButtonText}>
+                      {t('graphics.restartAwakening')}
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -826,11 +955,79 @@ const makeStyles = (faces: LocaleFaces) => StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  ctaText: {
-    fontFamily: faces.display,
-    color: '#edb54a',
-    fontSize: 10,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-});
+    ctaText: {
+      fontFamily: faces.display,
+      color: '#edb54a',
+      fontSize: 10,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    graphicsRecoveryOverlay: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      zIndex: 60,
+      elevation: 60,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(22,18,31,0.9)',
+      padding: 18,
+    },
+    graphicsRecoveryCard: {
+      width: '100%',
+      maxWidth: 520,
+      borderWidth: 3,
+      borderBottomWidth: 7,
+      borderColor: '#241f2e',
+      backgroundColor: '#f4f1ea',
+      padding: 16,
+    },
+    graphicsRecoveryTitle: {
+      color: '#241f2e',
+      fontFamily: faces.display,
+      fontSize: 18,
+      lineHeight: 24,
+      textTransform: 'uppercase',
+    },
+    graphicsRecoveryDetail: {
+      marginTop: 8,
+      color: '#3a3350',
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    graphicsRecoveryButtons: {
+      marginTop: 16,
+      flexDirection: 'row',
+      gap: 10,
+    },
+    graphicsRecoveryButton: {
+      flex: 1,
+      minHeight: 46,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderBottomWidth: 5,
+      borderColor: '#241f2e',
+      backgroundColor: '#6b6675',
+      paddingHorizontal: 8,
+    },
+    graphicsRecoveryButtonPrimary: {
+      flex: 1,
+      minHeight: 46,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderBottomWidth: 5,
+      borderColor: '#241f2e',
+      backgroundColor: '#2f55b8',
+      paddingHorizontal: 8,
+    },
+    graphicsRecoveryButtonText: {
+      color: '#f4f1ea',
+      fontFamily: faces.display,
+      fontSize: 11,
+      textAlign: 'center',
+    },
+  });

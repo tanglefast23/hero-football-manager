@@ -119,6 +119,7 @@ export interface SettingsOverlayProps {
   highContrast: boolean;
   colorSafeKits: boolean;
   cutInMode: CutInMode;
+  performanceLimited?: boolean;
   /** Omitted in Release builds so Developer Mode cannot be discovered or enabled. */
   developerMode?: boolean;
   /** Omit both values when no career is loaded; there is nothing to advise. */
@@ -152,6 +153,7 @@ export interface SettingsOverlayProps {
   onToggleHighContrast: () => void;
   onToggleColorSafeKits: () => void;
   onToggleCutInMode: () => void;
+  onRetry3x?: () => void;
   onToggleDeveloperMode?: () => void;
   onGlossaryOpenChange: (open: boolean) => void;
   onPrivacySupportOpenChange: (open: boolean) => void;
@@ -203,6 +205,7 @@ export function SettingsOverlay({
   highContrast,
   colorSafeKits,
   cutInMode,
+  performanceLimited = false,
   developerMode,
   assistantMode,
   onSetAssistantMode,
@@ -225,6 +228,7 @@ export function SettingsOverlay({
   onToggleHighContrast,
   onToggleColorSafeKits,
   onToggleCutInMode,
+  onRetry3x,
   onToggleDeveloperMode,
   onGlossaryOpenChange,
   onPrivacySupportOpenChange,
@@ -403,6 +407,21 @@ export function SettingsOverlay({
               <Pressable accessibilityRole="button" accessibilityLabel={t('settings.powerLabels.a11y', { mode: t(cutInMode === 'full' ? 'settings.powerLabels.a11yPlayerCard' : 'settings.powerLabels.a11yBanner') })} onPress={onToggleCutInMode} className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2">
                 <Text className="font-pixel text-sm uppercase text-ink">{t('settings.powerLabels.label')}</Text><Text className="font-pixel text-base uppercase text-blue-dark">{t(cutInMode === 'full' ? 'settings.powerLabels.player' : 'settings.powerLabels.banner')}</Text>
               </Pressable>
+              {performanceLimited && onRetry3x !== undefined ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('settings.performance.retryA11y')}
+                  onPress={onRetry3x}
+                  className="min-h-12 flex-row items-center justify-between border-2 border-blue-dark bg-blue-light px-3 py-2"
+                >
+                  <Text className="font-pixel text-sm uppercase text-ink">
+                    {t('settings.performance.label')}
+                  </Text>
+                  <Text className="font-pixel text-sm text-blue-dark">
+                    {t('settings.performance.try3x')}
+                  </Text>
+                </Pressable>
+              ) : null}
               <Pressable
                 accessibilityRole="button"
                 // `hudSide` is a persisted code ('left' | 'right'), so the name

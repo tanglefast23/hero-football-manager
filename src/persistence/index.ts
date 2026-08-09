@@ -76,6 +76,7 @@ export {
   type CutInMode,
   type HudSide,
   type MasterVolume,
+  type MatchPerformanceLimit,
   type PreferencesRepository,
   type SquadSort,
   type SquadSortDirection,

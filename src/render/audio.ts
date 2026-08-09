@@ -23,7 +23,7 @@ import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
 // checks. The match theme likewise uses its compressed .m4a build. See
 // scripts/audio/catalog.mjs for the full SFX inventory — only the subset
 // below has a wired trigger.
-type SfxKey =
+export type SfxKey =
   | 'kickoff-whistle'
   | 'halftime-whistle'
   | 'fulltime-whistle'
@@ -168,6 +168,44 @@ const POWER_AUDIO: Record<PowerId, {
   GUST: { activation: ['super-speed-whoosh'], impact: [] },
 };
 
+export type MatchAudioProfile = 'full' | 'showcase';
+
+const SHOWCASE_BASE_SFX: readonly SfxKey[] = [
+  'kickoff-whistle',
+  'kick-pass',
+  'kick-shot',
+  'tackle-thud',
+  'grunt',
+  'body-fall',
+  'duel-scuff',
+  'goal-fanfare',
+  'goal-celebration',
+  'goal-net-hit',
+  'goal-crowd',
+  'zone-enter',
+  'save-slap',
+  'crowd-ooh',
+  'power-interrupt',
+];
+
+/** The awakening demo loads only its short clip's possible sounds. */
+export function audioKeysForProfile(
+  profile: MatchAudioProfile,
+  showcasePower?: PowerId,
+): readonly SfxKey[] {
+  if (profile === 'full') return Object.keys(SFX_SOURCES) as SfxKey[];
+  const selected = new Set<SfxKey>(SHOWCASE_BASE_SFX);
+  if (showcasePower !== undefined) {
+    for (const key of POWER_AUDIO[showcasePower].activation) selected.add(key);
+    for (const key of POWER_AUDIO[showcasePower].impact) selected.add(key);
+    if (showcasePower === 'FIRE_TORCH') {
+      selected.add('flame-hit');
+      selected.add('extinguisher-spray');
+    }
+  }
+  return [...selected];
+}
+
 // -- Event -> file table ------------------------------------------------
 // The single source of truth for what plays on what: swapping a sound is a
 // one-line change here (plus its require() above).
@@ -269,6 +307,8 @@ let fireLoopPlayer: AudioPlayer | null = null;
 /** What the match asked for, so backgrounding can pause and returning can restore. */
 let themeWanted = false;
 let fireWanted = false;
+let activeProfile: MatchAudioProfile = 'full';
+let activeShowcasePower: PowerId | undefined;
 
 // Only the first failure of the session warns (whatever it is) — the point
 // is one diagnostic line, not a per-frame warning flood.
@@ -306,9 +346,14 @@ export function setMasterVolume(volume: number): void {
   applyMasterVolume();
 }
 
-export function initAudio(): void {
+export function initAudio(
+  profile: MatchAudioProfile = 'full',
+  showcasePower?: PowerId,
+): void {
   if (initAttempted) return; // one attempt per mount; teardownAudio() resets this
   initAttempted = true;
+  activeProfile = profile;
+  activeShowcasePower = showcasePower;
   try {
     // Lazy `require`, not a static import — see the file header comment for
     // why this specific call must be the one wrapped in try/catch.
@@ -324,7 +369,7 @@ export function initAudio(): void {
     //
     // Per-player try/catch: one bad asset/player must not abort the rest
     // (playForEvent already skips missing map entries).
-    for (const key of Object.keys(SFX_SOURCES) as SfxKey[]) {
+    for (const key of audioKeysForProfile(profile, showcasePower)) {
       try {
         sfxPlayers.set(key, mod.createAudioPlayer(SFX_SOURCES[key]));
       } catch (err) {
@@ -338,12 +383,14 @@ export function initAudio(): void {
       themePlayer = null;
       warnOnce('createAudioPlayer failed (match-theme)', err);
     }
-    try {
-      fireLoopPlayer = mod.createAudioPlayer(FIRE_LOOP_SOURCE);
-      fireLoopPlayer.loop = true;
-    } catch (err) {
-      fireLoopPlayer = null;
-      warnOnce('createAudioPlayer failed (flame-loop)', err);
+    if (profile === 'full' || showcasePower === 'FIRE_TORCH') {
+      try {
+        fireLoopPlayer = mod.createAudioPlayer(FIRE_LOOP_SOURCE);
+        fireLoopPlayer.loop = true;
+      } catch (err) {
+        fireLoopPlayer = null;
+        warnOnce('createAudioPlayer failed (flame-loop)', err);
+      }
     }
     ready = true;
     // Preserve a dev volume chosen before the match screen mounted. This also
@@ -398,6 +445,8 @@ export function teardownAudio(): void {
   // with teardownAudio().
   themeWanted = false;
   fireWanted = false;
+  activeProfile = 'full';
+  activeShowcasePower = undefined;
   ready = false;
   initAttempted = false; // allow the next mount to retry init
   lastRecoveryAt = 0;
@@ -436,7 +485,7 @@ function tryRecoverMatchAudio(): boolean {
   fireLoopPlayer = null;
   ready = false;
   initAttempted = false;
-  initAudio();
+  initAudio(activeProfile, activeShowcasePower);
   if (!ready) return false;
   resumeWantedLoops();
   return true;

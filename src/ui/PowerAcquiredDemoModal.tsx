@@ -109,6 +109,7 @@ export function PowerAcquiredDemoModal({
             reduceMotion={reduceMotion}
             cutInMode="full"
             maximumSpeed={1}
+            audioProfile="showcase"
             powerMatchQa={powerMatchQa}
             presentationOnly
             onPowerShowcaseComplete={showResult}
