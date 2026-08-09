@@ -29,19 +29,24 @@ describe('club finances two-column layout', () => {
   });
 
   it('gives the transactions and legacy training ground sections a spread-conditional weight', () => {
-    expect(source).toContain('...(viewModel.recentTransactions.length > 0 ? [{');
+    expect(source).toContain(
+      '...(viewModel.recentTransactions.length > 0 ? [{',
+    );
     expect(source).toContain('...(viewModel.legacyTrainingGroundVisible ? [{');
   });
 
   it('keeps the cash-position guide mt-20 wrapper literal byte-identical', () => {
-    expect(source).toContain("'relative mt-20 border-2 border-blue-dark bg-blue-light p-1'");
+    expect(source).toContain(
+      "'relative mt-20 border-2 border-blue-dark bg-blue-light p-1'",
+    );
   });
 });
 
 /**
  * The Facility board used to be one section: the grid, the build menu and the
  * pair bonuses in a single panel, so a wide window balanced nothing and the
- * grid rendered 1180pt across. The grounds are the left column now.
+ * grid rendered 1180pt across. The build menu is the left column now, so it
+ * also comes first above the grounds on a phone.
  */
 describe('the facility board columns', () => {
   const source = readFileSync(
@@ -49,13 +54,17 @@ describe('the facility board columns', () => {
     'utf8',
   );
 
-  it('breaks the column at the build menu so the grid keeps the left to itself', () => {
+  it('puts the build menu first and breaks the wide layout at the grounds', () => {
     const facility = /const facilitySections[\s\S]*?\n  \];/.exec(source);
     expect(facility).not.toBeNull();
-    const keys = [...facility![0].matchAll(/key: '([a-z-]+)'/g)].map(match => match[1]);
-    expect(keys[0]).toBe('grounds');
-    expect(keys).toContain('build-menu');
-    expect(facility![0]).toMatch(/key: 'build-menu',[\s\S]{0,120}startsColumn: true,/);
+    const keys = [...facility![0].matchAll(/key: '([a-z-]+)'/g)].map(
+      (match) => match[1],
+    );
+    expect(keys[0]).toBe('build-menu');
+    expect(keys[1]).toBe('grounds');
+    expect(facility![0]).toMatch(
+      /key: 'grounds',[\s\S]{0,120}startsColumn: true,/,
+    );
   });
 
   it('files the catalog and the pairs under their own sections', () => {
@@ -70,9 +79,10 @@ describe('the facility board columns', () => {
     expect(grounds).not.toContain('discoveredAdjacencies.map');
   });
 
-  it('drops the scroll-up cue when the menu is already beside the grid', () => {
-    expect(source).toMatch(
-      /showCoachingOfficeScrollCue=\{[\s\S]{0,200}layoutMode === 'single'/,
+  it('does not tell the manager to scroll up after the menu moves first', () => {
+    expect(source).not.toContain('showCoachingOfficeScrollCue');
+    expect(source).not.toContain(
+      "detail={t('clubFinances.thenTapAPlusSquare')}",
     );
   });
 });
@@ -88,7 +98,9 @@ describe('the staff board columns', () => {
   );
 
   it('gives every coach their own section', () => {
-    expect(source).toMatch(/viewModel\.coachingStaff\.map\(coach => \(\{[\s\S]{0,120}key: `coach-\$\{coach\.role\}`/);
+    expect(source).toMatch(
+      /viewModel\.coachingStaff\.map\(coach => \(\{[\s\S]{0,120}key: `coach-\$\{coach\.role\}`/,
+    );
     expect(source).toContain('<CoachCardSection');
   });
 

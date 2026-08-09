@@ -26,7 +26,7 @@ describe('club office boards', () => {
     // Facility carries the grid and the legacy pitch; Staff the coaches; the
     // rest is the accounts.
     expect(club).toContain("key: 'grounds',");
-    expect(club).toMatch(/facilitySections[\s\S]{0,200}key: 'grounds',/);
+    expect(club).toMatch(/facilitySections[\s\S]{0,200}key: 'build-menu',/);
     expect(club).toMatch(/staffSections[\s\S]{0,200}key: 'coaching-staff',/);
     expect(club).toMatch(/financeSections[\s\S]{0,200}key: 'cash-position',/);
     expect(club).toContain("activeTab === 'facility'");
