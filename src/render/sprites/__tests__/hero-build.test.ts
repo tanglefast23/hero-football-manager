@@ -72,6 +72,15 @@ describe('superhero homage looks', () => {
     expect(new Set(silhouettes).size).toBe(15);
   });
 
+  it('uses the intro portrait head unchanged on every front-facing match frame', () => {
+    for (const id of HERO_IDS) {
+      const introHead = (portraits as Sheet).sprites[`${id}:rest`].slice(0, 15);
+      for (const side of SIDES) for (const frame of RUN_FRAMES) {
+        expect(heroSheet.sprites[`${side}:${id}:${frame}`].slice(0, 15)).toEqual(introHead);
+      }
+    }
+  });
+
   /**
    * The gamma ramp is not in the generator's SKIN_KEYS, so separateHairFromSkin
    * skips this head entirely and its authored hair keys survive. That is the

@@ -12,7 +12,18 @@ import {
 export interface SpriteSheet {
   cell: { w: number; h: number };
   palette: Record<string, string | null>;
+  /** Feature-authored rear head colours, keyed by look ID rather than player ID. */
+  rearHeads?: Record<string, RearHeadStyle>;
   sprites: Record<string, string[]>;
+}
+
+export interface RearHeadStyle {
+  /** Rows 7-12: rear hair, helmet, mask, cowl, or hood. */
+  readonly head: string;
+  /** Rows 13-14: lower rear head, neck, trailing hair, or hood. */
+  readonly lower: string;
+  /** Details that wrap around the head, such as Scott Somers's visor strap. */
+  readonly bands?: readonly { readonly row: number; readonly token: string }[];
 }
 
 const PLAYER_IDS = ['r', 'u'].flatMap(side => [
@@ -110,12 +121,15 @@ function withRearSoles(rows: readonly string[]): string[] {
  * near boot sole-side out. This runs once while the atlas is built, never
  * during a match frame.
  */
-export function deriveBackFacingFrame(front: readonly string[]): string[] {
+export function deriveBackFacingFrame(
+  front: readonly string[],
+  rearHead?: RearHeadStyle,
+): string[] {
   const hair = mostCommonToken(front, 0, 6, new Set(['.', 'K']));
   const skin = mostCommonToken(front, 7, 14, new Set(['.', 'K', 'W', 'w']));
   const kit = mostCommonToken(front, 16, 23, new Set(['.', 'K', 'W', 'w', skin]));
 
-  return withRearSoles(front.map((source, row) => {
+  const rear = front.map((source, row) => {
     if (row < 7 || row > 23) return source;
     const tokens = [...source];
     const painted = tokens.flatMap((token, column) => token === '.' ? [] : [column]);
@@ -124,12 +138,22 @@ export function deriveBackFacingFrame(front: readonly string[]): string[] {
     const last = painted[painted.length - 1];
     for (let column = first + 1; column < last; column += 1) {
       if (tokens[column] === '.') continue;
-      if (row <= 12) tokens[column] = hair;
-      else if (row <= 14) tokens[column] = skin;
+      if (row <= 12) tokens[column] = rearHead?.head ?? hair;
+      else if (row <= 14) tokens[column] = rearHead?.lower ?? skin;
       else if (tokens[column] === 'W' || tokens[column] === 'w') tokens[column] = kit;
     }
     return tokens.join('');
-  }));
+  });
+
+  for (const band of rearHead?.bands ?? []) {
+    const tokens = [...rear[band.row]];
+    const painted = tokens.flatMap((token, column) => token === '.' ? [] : [column]);
+    for (let column = painted[0] + 1; column < painted[painted.length - 1]; column += 1) {
+      if (tokens[column] !== '.') tokens[column] = band.token;
+    }
+    rear[band.row] = tokens.join('');
+  }
+  return withRearSoles(rear);
 }
 
 function backFrameName(frontFrame: string): string {
@@ -145,7 +169,11 @@ function withBackFacingSprites(sheet: SpriteSheet): SpriteSheet {
     const match = key.match(FRONT_FRAME_PATTERN);
     if (!match) continue;
     const visualId = key.slice(0, -match[0].length);
-    sprites[`${visualId}:${backFrameName(match[1])}`] = deriveBackFacingFrame(rows);
+    const lookId = visualId.split(':')[1];
+    sprites[`${visualId}:${backFrameName(match[1])}`] = deriveBackFacingFrame(
+      rows,
+      sheet.rearHeads?.[lookId],
+    );
   }
   return { ...sheet, sprites };
 }

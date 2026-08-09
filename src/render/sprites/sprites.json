@@ -30,6 +30,78 @@
     "y": "#3d2a22",
     "z": "#534537"
   },
+  "rearHeads": {
+    "f168": {
+      "head": "K",
+      "lower": "S"
+    },
+    "f169": {
+      "head": "x",
+      "lower": "S"
+    },
+    "f170": {
+      "head": "K",
+      "lower": "m"
+    },
+    "f171": {
+      "head": "o",
+      "lower": "n"
+    },
+    "f172": {
+      "head": "r",
+      "lower": "n"
+    },
+    "f173": {
+      "head": "A",
+      "lower": "A"
+    },
+    "f174": {
+      "head": "b",
+      "lower": "S"
+    },
+    "f175": {
+      "head": "z",
+      "lower": "z"
+    },
+    "f176": {
+      "head": "K",
+      "lower": "T"
+    },
+    "f177": {
+      "head": "K",
+      "lower": "n"
+    },
+    "f178": {
+      "head": "y",
+      "lower": "m",
+      "bands": [
+        {
+          "row": 8,
+          "token": "R"
+        },
+        {
+          "row": 9,
+          "token": "r"
+        }
+      ]
+    },
+    "f179": {
+      "head": "g",
+      "lower": "S"
+    },
+    "f180": {
+      "head": "K",
+      "lower": "d"
+    },
+    "f181": {
+      "head": "z",
+      "lower": "z"
+    },
+    "f182": {
+      "head": "T",
+      "lower": "T"
+    }
+  },
   "sprites": {
     "r:f00:run0": [
       "......KKKKKKKKKKKK......",

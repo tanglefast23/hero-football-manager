@@ -1,6 +1,7 @@
 import { createCareer } from '../career';
 import { createLaunchCareerSetup } from '../../application/launch';
 import { runHeadlessFullCareer } from '../headless';
+import { buildCareerMatchTeamDef } from '../squad';
 import { roleOverall } from '../archetype-caps';
 import { isReservedFieldLook } from '../player-appearance';
 import {
@@ -102,6 +103,11 @@ describe('placement in a career', () => {
     // order, so an appended hero would sit on the bench for ever.
     const lineup = career.lineups.find(line => line.clubId === hero.clubId)!;
     expect(lineup.playerIds).toContain(hero.id);
+
+    // The intro and the pitch both receive this exact fixed face. Losing it at
+    // the match boundary would fall back to a generated ordinary head.
+    const matchTeam = buildCareerMatchTeamDef(career, hero.clubId);
+    expect(matchTeam.players.find(player => player.id === hero.id)?.lookId).toBe(hero.lookId);
   });
 
   it('never lets an ordinary player wear a reserved face', () => {
