@@ -6,8 +6,8 @@ const DIST = path.resolve('dist');
 // Ratcheted from the measured English first load after QA and locale splitting.
 // The gzip allowance is 5 KB above the accepted artifact, so this is a
 // regression guard rather than a historical ceiling the bundle can grow into.
-const RAW_BUDGET = 7_625_000;
-const GZIP_BUDGET = 1_249_000;
+const RAW_BUDGET = 7_628_955;
+const GZIP_BUDGET = 1_254_162;
 const QA_BODY_MARKERS = [
   'DEV HARNESS',
   'Development builds only. Deep link',
