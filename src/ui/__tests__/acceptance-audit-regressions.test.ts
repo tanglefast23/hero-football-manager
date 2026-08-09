@@ -102,7 +102,7 @@ describe('player-facing acceptance audit regressions', () => {
     expect(loadCatalog('en').strings['financialReport.tpChange']).toBe('TP change');
     // The count-up formatter keeps the signed presentation the old
     // formatSignedCompactNumber call guaranteed.
-    expect(body).toContain("format={amount => `${amount > 0 ? '+' : ''}${formatCompactNumber(amount)}`}");
+    expect(body).toContain("format={amount => `${amount > 0 ? '+' : ''}${formatCompactNumber(t, amount)}`}");
     expect(body).not.toContain('value={`+${formatCompactNumber(viewModel.trainingPointsGained)}`}');
   });
 

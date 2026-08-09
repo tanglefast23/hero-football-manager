@@ -519,6 +519,7 @@ function cupRoundViewModel(
  * The bracket's shape. `label` is the lookup into `CUP_ROUND_COPY_KEYS` rather
  * than anything drawn — nothing here reaches a screen without `cupRoundLabel`.
  */
+/** @i18n-fallback Persisted cup-round enum values; consumers resolve their keys. */
 const CUP_ROAD: readonly {
   number: number;
   label: NationalCupRound['label'];

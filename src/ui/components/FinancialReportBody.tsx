@@ -57,7 +57,7 @@ export function FinancialReportBody({
             value={(
               <CountUpText
                 value={viewModel.trainingPointsGained}
-                format={amount => `${amount > 0 ? '+' : ''}${formatCompactNumber(amount)}`}
+                format={amount => `${amount > 0 ? '+' : ''}${formatCompactNumber(t, amount)}`}
                 reduceMotion={reduceMotion}
                 colorClass={viewModel.trainingPointsGained < 0 ? 'text-red-dark' : 'text-pitch-ink'}
               />
@@ -69,7 +69,7 @@ export function FinancialReportBody({
             value={(
               <CountUpText
                 value={viewModel.fanDelta}
-                format={amount => `${amount > 0 ? '+' : ''}${formatCompactNumber(amount)}`}
+                format={amount => `${amount > 0 ? '+' : ''}${formatCompactNumber(t, amount)}`}
                 reduceMotion={reduceMotion}
                 colorClass={viewModel.fanDelta < 0 ? 'text-red-dark' : 'text-pitch-ink'}
               />

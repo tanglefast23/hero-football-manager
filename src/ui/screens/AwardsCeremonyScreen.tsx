@@ -387,7 +387,7 @@ function PrizePanel({
           {t('awardsCeremony.awardPrize')}</PixelText>
         {counts ? (
           <PixelText variant="data" className="mt-2 text-4xl text-ink">
-            {formatCurrency(shown)}
+            {formatCurrency(t, shown)}
           </PixelText>
         ) : (
           <PixelText className="mt-2 text-2xl uppercase text-ink">{t('awardsCeremony.nothingThisYear')}</PixelText>

@@ -54,7 +54,7 @@ export function FacilityPlacementConfirmation({
       confirmHint: t('facilityPlacementConfirmation.a11y.approveBuilding', {
         building: placement.catalog.name,
         cell: cellLabel,
-        cost: formatCurrency(placement.catalog.buildCost),
+        cost: formatCurrency(t, placement.catalog.buildCost),
       }),
     }
     : {
@@ -75,7 +75,7 @@ export function FacilityPlacementConfirmation({
       confirmHint: t('facilityPlacementConfirmation.a11y.approveMoving', {
         building: placement.building.name,
         cell: cellLabel,
-        cost: formatCurrency(placement.building.relocationFee),
+        cost: formatCurrency(t, placement.building.relocationFee),
       }),
     };
 
@@ -105,10 +105,10 @@ export function FacilityPlacementConfirmation({
             </View>
 
             <View className="mt-4 flex-row gap-2">
-              <Metric label={order.costLabel} value={formatCurrency(order.cost)} tone="negative" />
+              <Metric label={order.costLabel} value={formatCurrency(t, order.cost)} tone="negative" />
               <Metric
                 label={t('facilityPlacementConfirmation.upkeep')}
-                value={t('clubFinances.perWeekShort', { amount: formatCurrency(order.upkeep) })}
+                value={t('clubFinances.perWeekShort', { amount: formatCurrency(t, order.upkeep) })}
                 tone="negative"
               />
             </View>

@@ -28,4 +28,13 @@ describe('where the language control lives', () => {
     expect(button).toContain('fontFamily: current.faces.display');
     expect(button).toContain('fontFamily: row.face');
   });
+
+  test('the button keeps a 44-point target and the seven-row picker can scroll', () => {
+    const button = source('src/ui/components/LanguageButton.tsx');
+
+    expect(button).toContain('style={{ minWidth: 44, minHeight: 44 }}');
+    expect(button).toContain('<ScrollView');
+    expect(button).toContain('viewportHeight - 48');
+    expect(button).toContain('flexShrink: 1');
+  });
 });

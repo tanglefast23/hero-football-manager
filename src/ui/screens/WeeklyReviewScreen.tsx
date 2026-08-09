@@ -69,13 +69,13 @@ export function WeeklyReviewScreen({
     <View className="flex-row items-center justify-between border-2 border-ink bg-ink px-3 py-2.5">
       <Text className="font-pixel text-[12px] uppercase text-paper/75">{t('weeklyReview.cashMovement')}</Text>
       <Text className="font-mono text-base text-paper">
-        {formatCurrency(viewModel.cashBefore)} →{' '}
+        {formatCurrency(t, viewModel.cashBefore)} →{' '}
         <AnimatedCount
           from={viewModel.cashBefore}
           to={viewModel.cashAfter}
           started={balanceAnimationsStarted}
           complete={balanceComplete}
-          format={value => formatCurrency(value)}
+          format={value => formatCurrency(t, value)}
         />
       </Text>
     </View>
@@ -100,7 +100,7 @@ export function WeeklyReviewScreen({
             : line.amount > 0
               ? 'font-mono text-base text-pitch-ink'
               : 'font-mono text-base text-ink'}>
-            {formatCurrency(line.amount, true)}
+            {formatCurrency(t, line.amount, true)}
           </Text>
         </View>
       ))}
@@ -245,7 +245,7 @@ function AnimatedNetAmount({
             — see formatCompactNumber in components/Scorecard.tsx. */}
         {displayAmount > 0 ? '+' : displayAmount < 0 ? '-' : ''}
         {kind === 'money' ? '$' : ''}
-        {formatCompactNumber(Math.abs(displayAmount))}
+        {formatCompactNumber(t, Math.abs(displayAmount))}
         {kind === 'training-points' ? ' TP' : ''}
       </Text>
     </Animated.View>
@@ -291,7 +291,7 @@ function AnimatedBalanceAmount({
         numberOfLines={1}
         adjustsFontSizeToFit
       >
-        {kind === 'money' ? formatCurrency(value) : `${formatCompactNumber(value)} TP`}
+        {kind === 'money' ? formatCurrency(t, value) : `${formatCompactNumber(t, value)} TP`}
       </Text>
     </Animated.View>
   );

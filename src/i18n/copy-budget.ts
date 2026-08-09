@@ -39,7 +39,12 @@ export type BudgetClass = 'spoken' | 'prose' | 'boxed';
  * split exists to end, and being glyph-checked against a face nothing draws
  * them in. `[A-Z]` catches the appended form and `$` the bare tail.
  */
-const isSpoken = (key: string): boolean => /\.a11y(\.|[A-Z]|$)/.test(key);
+const isSpoken = (key: string): boolean =>
+  /\.a11y(\.|[A-Z]|$)/.test(key) ||
+  // These legacy keys are used only as accessibilityLabel values. Keeping
+  // them boxed forced German to replace the correct noun with a shorter one.
+  key === 'settings.open' ||
+  key === 'settings.close';
 
 /**
  * Character speech, which shares the wrapping bubble Bert speaks out of.
@@ -50,10 +55,10 @@ const isSpoken = (key: string): boolean => /\.a11y(\.|[A-Z]|$)/.test(key);
  * surfaces, so the rule keys on the leaf.
  */
 const isSpeech = (key: string): boolean =>
-  /^playerRequest\.[^.]+\.line$/.test(key)
-  || key.startsWith('playerArrival.')
-  || key.startsWith('titlePlayerPop.bubble.')
-  || key.startsWith('characterSpeech.');
+  /^playerRequest\.[^.]+\.line$/.test(key) ||
+  key.startsWith('playerArrival.') ||
+  key.startsWith('titlePlayerPop.bubble.') ||
+  key.startsWith('characterSpeech.');
 
 /**
  * Note the coupling to `voiceOf`, which is easy to change by accident.
@@ -122,7 +127,11 @@ function coinedTermFloor(source: string, locale: Locale): number {
   return floor;
 }
 
-export function copyBudget(key: string, source: string, locale: Locale): number {
+export function copyBudget(
+  key: string,
+  source: string,
+  locale: Locale,
+): number {
   const n = source.length;
   const expansion = localeMeta(locale).expansion;
   switch (budgetClass(key)) {

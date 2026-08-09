@@ -3,28 +3,26 @@ import { Pressable, Text, View } from 'react-native';
 import { playDangerSfx, playPositiveSfx, playUiClickSfx } from '../../render/management-sfx';
 import { PixelText } from './PixelText';
 import { createPressCueGate, type PressCueGate } from '../press-cue-gate';
+import {
+  formatIntegerForCopy,
+  formatMoneyForCopy,
+  type CopyFn,
+} from '../../i18n';
 
 function cx(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
 }
 
-export function formatCompactNumber(value: number): string {
-  // ASCII hyphen-minus on purpose: Silkscreen has no U+2212 glyph, so a true
-  // minus rendered every negative number's sign in the system fallback face
-  // mid-string. Reachable in normal play — the fail-soft economy goes negative.
-  const sign = value < 0 ? '-' : '';
-  const digits = String(Math.abs(Math.trunc(value)));
-  return `${sign}${digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+export function formatCompactNumber(t: CopyFn, value: number): string {
+  return formatIntegerForCopy(t, value);
 }
 
-export function formatSignedCompactNumber(value: number): string {
-  const sign = value > 0 ? '+' : '';
-  return `${sign}${formatCompactNumber(value)}`;
+export function formatSignedCompactNumber(t: CopyFn, value: number): string {
+  return formatIntegerForCopy(t, value, true);
 }
 
-export function formatCurrency(value: number, signed = false): string {
-  const sign = value < 0 ? '-' : signed && value > 0 ? '+' : '';
-  return `${sign}$${formatCompactNumber(Math.abs(value))}`;
+export function formatCurrency(t: CopyFn, value: number, signed = false): string {
+  return formatMoneyForCopy(t, value, signed);
 }
 
 export interface PaperPanelProps {
@@ -96,7 +94,6 @@ interface ActionButtonProps {
   disabled?: boolean;
   variant?: ButtonVariant;
   compact?: boolean;
-  maxFontSizeMultiplier?: number;
   /**
    * Large action buttons confirm or commit by default; use 'click' only for a
    * non-committing action. Left unset the variant decides: a `danger` button
@@ -118,7 +115,6 @@ export function ActionButton({
   disabled = false,
   variant = 'primary',
   compact = false,
-  maxFontSizeMultiplier,
   pressSfx,
 }: ActionButtonProps) {
   // Dismissing a coach, erasing a save and releasing a player all landed on the
@@ -184,10 +180,7 @@ export function ActionButton({
       {/* dark bottom lip — the raised depth */}
       <View pointerEvents="none" className={cx('absolute inset-x-0 bottom-0 h-2', ramp.lip)} />
       <Text
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        maxFontSizeMultiplier={maxFontSizeMultiplier}
-        className={cx('font-pixel text-sm uppercase', ramp.text)}
+        className={cx('text-center font-pixel text-sm uppercase', ramp.text)}
         style={{ textShadowColor: 'rgba(36,31,46,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 0 }}
       >
         {label}

@@ -328,7 +328,7 @@ export function ClubHomeScreen({
                       <PixelPortrait playerId={viewModel.boardResolution.soldPlayer.id} role={viewModel.boardResolution.soldPlayer.role} lookId={viewModel.boardResolution.soldPlayer.lookId} expression="rest" />
                     </View>
                     <Text className="mt-2 text-center text-sm font-bold text-ink" numberOfLines={1}>{viewModel.boardResolution.soldPlayer.name}</Text>
-                    <Text className="mt-1 text-center font-mono text-sm text-stamp">{t('clubHome.soldFor', { fee: formatCurrency(viewModel.boardResolution.soldPlayer.fee) })}</Text>
+                    <Text className="mt-1 text-center font-mono text-sm text-stamp">{t('clubHome.soldFor', { fee: formatCurrency(t, viewModel.boardResolution.soldPlayer.fee) })}</Text>
                   </View>
                   <Text className="font-mono text-2xl font-bold text-ink">→</Text>
                   <View className="flex-1 items-center border-2 border-pitch-dark bg-white p-2">
@@ -338,7 +338,7 @@ export function ClubHomeScreen({
                     <Text className="mt-2 text-center text-sm font-bold text-ink" numberOfLines={1}>{viewModel.boardResolution.replacementPlayer.name}</Text>
                     <Text className="mt-1 text-center font-mono text-sm text-pitch-ink">{t('clubHome.replacementTerms', {
                       age: viewModel.boardResolution.replacementPlayer.age,
-                      wage: formatCurrency(viewModel.boardResolution.replacementPlayer.weeklyWage),
+                      wage: formatCurrency(t, viewModel.boardResolution.replacementPlayer.weeklyWage),
                     })}</Text>
                   </View>
                 </View>
@@ -351,7 +351,7 @@ export function ClubHomeScreen({
                   {(viewModel.boardResolution.fansLost ?? 0) > 0 ? (
                     <Metric
                       label={t('clubHome.fansWalkedAway')}
-                      value={formatCompactNumber(viewModel.boardResolution.fansLost ?? 0)}
+                      value={formatCompactNumber(t, viewModel.boardResolution.fansLost ?? 0)}
                       tone="negative"
                     />
                   ) : null}
@@ -394,7 +394,7 @@ export function ClubHomeScreen({
               })}
             </Text>
             <View className="mt-3 flex-row gap-2">
-              <Metric label={t('clubHome.cashNeeded')} value={formatCurrency(viewModel.boardUltimatum.cashNeeded)} tone="negative" />
+              <Metric label={t('clubHome.cashNeeded')} value={formatCurrency(t, viewModel.boardUltimatum.cashNeeded)} tone="negative" />
               <Metric label={t('clubHome.deadline')} value={t('clubHome.deadlineWeeks', { count: viewModel.boardUltimatum.weeksRemaining })} />
             </View>
             <View className="mt-4 gap-2">
@@ -411,8 +411,8 @@ export function ClubHomeScreen({
                       : 'clubHome.a11y.candidateProtect', {
                       player: candidate.playerName,
                       role: candidate.role,
-                      wage: formatCurrency(candidate.weeklyWage),
-                      fee: formatCurrency(candidate.forcedSaleFee),
+                      wage: formatCurrency(t, candidate.weeklyWage),
+                      fee: formatCurrency(t, candidate.forcedSaleFee),
                     })}
                     accessibilityState={{ selected: protectedPlayer }}
                     onPress={() => onProtectBoardCandidate(candidate.playerId)}
@@ -432,8 +432,8 @@ export function ClubHomeScreen({
                       <Text className="mt-1 font-mono text-sm text-ink/65">
                         {t('clubHome.candidateTerms', {
                           role: candidate.role,
-                          wage: formatCurrency(candidate.weeklyWage),
-                          fee: formatCurrency(candidate.forcedSaleFee),
+                          wage: formatCurrency(t, candidate.weeklyWage),
+                          fee: formatCurrency(t, candidate.forcedSaleFee),
                         })}
                       </Text>
                     </View>

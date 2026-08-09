@@ -287,7 +287,7 @@ function RegistrationDesk({ viewModel, flush = false }: RegistrationDeskProps) {
       className={flush ? undefined : 'mt-5'}
     >
       <View className="flex-row gap-2">
-        <Metric label={t('market.cash')} value={formatCurrency(viewModel.cash)} />
+        <Metric label={t('market.cash')} value={formatCurrency(t, viewModel.cash)} />
         <Metric label={t('market.level')} value={viewModel.divisionLabel} />
         <Metric
           label={t('market.window')}
@@ -361,8 +361,8 @@ function YouthDesk({
               </View>
               <YouthStatLine stats={offer.stats} />
               <View className="mt-3 flex-row gap-2">
-                <Metric label={t('market.signing')} value={formatCurrency(offer.signingBonus)} tone="negative" />
-                <Metric label={t('market.weeklyWage')} value={formatCurrency(offer.weeklyWage)} />
+                <Metric label={t('market.signing')} value={formatCurrency(t, offer.signingBonus)} tone="negative" />
+                <Metric label={t('market.weeklyWage')} value={formatCurrency(t, offer.weeklyWage)} />
               </View>
               <View className="mt-3 flex-row items-center justify-between gap-3">
                 <Text className="flex-1 text-sm text-stamp">
@@ -521,7 +521,7 @@ function ScoutingDesk({
                   <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">{choice.focusLabel}</Text>
                 </View>
                 <Text className="font-mono text-base text-ink">
-                  {choice.feeWaived === true ? t('market.free') : formatCurrency(choice.cost)}
+                  {choice.feeWaived === true ? t('market.free') : formatCurrency(t, choice.cost)}
                 </Text>
               </View>
               <Text className="mt-2 text-sm leading-5 text-ink/60">{choice.detail}</Text>
@@ -606,10 +606,10 @@ function TransferDesk({
                     already marks the power. */}
                 {listing.powerLabel ? <StatusChip label={listing.powerLabel} tone="hero" /> : null}
                 <View className={listing.powerLabel ? 'mt-3 flex-row gap-2' : 'flex-row gap-2'}>
-                  <Metric label={t('market.valuation')} value={formatCurrency(listing.valuation)} />
+                  <Metric label={t('market.valuation')} value={formatCurrency(t, listing.valuation)} />
                   <Metric
                     label={listing.quoteLabel}
-                    value={formatCurrency(listing.quote)}
+                    value={formatCurrency(t, listing.quote)}
                     tone={listing.direction === 'BUY' ? 'negative' : 'positive'}
                   />
                 </View>
@@ -645,7 +645,7 @@ function TransferDesk({
                         <View className="flex-1">
                           <Text className="font-bold text-ink">{index + 1}. {bid.buyerName}</Text>
                           <Text className="mt-1 font-mono text-sm text-pitch-ink">
-                            {t('market.feeAmount', { fee: formatCurrency(bid.fee) })}
+                            {t('market.feeAmount', { fee: formatCurrency(t, bid.fee) })}
                           </Text>
                         </View>
                         <GuidedAction enabled={guideFocus === 'transfer-bid' && listing === guidedListing && index === 0} detail={t('market.reviewThisBid')}>
@@ -653,7 +653,7 @@ function TransferDesk({
                             label={t('market.accept')}
                             accessibilityLabel={t('market.a11y.acceptBid', {
                               club: bid.buyerName,
-                              fee: formatCurrency(bid.fee),
+                              fee: formatCurrency(t, bid.fee),
                               player: listing.playerName,
                             })}
                             disabled={!listing.available}
@@ -731,10 +731,10 @@ function CoachDesk({
                 <Text className="font-pixel text-sm uppercase text-ink">
                   {coach.assistantSlotUnlocked
                     ? t('market.coachWagesWithAssistant', {
-                      head: formatCurrency(coach.headWeeklyWage),
-                      assistant: formatCurrency(coach.assistantWeeklyWage),
+                      head: formatCurrency(t, coach.headWeeklyWage),
+                      assistant: formatCurrency(t, coach.assistantWeeklyWage),
                     })
-                    : t('market.coachWages', { head: formatCurrency(coach.headWeeklyWage) })}
+                    : t('market.coachWages', { head: formatCurrency(t, coach.headWeeklyWage) })}
                 </Text>
                 <View className="mt-2 border-t border-blue-dark/25 pt-2">
                   <Text className="font-pixel text-sm uppercase text-blue-dark">{t('market.asHeadCoach')}</Text>
@@ -965,7 +965,7 @@ export function NegotiationPanel({
               {t('market.perWeek')}
             </PixelText>
             <Text className="font-mono text-2xl text-stamp">
-              {formatCurrency(finalDemand.weeklyWage)}
+              {formatCurrency(t, finalDemand.weeklyWage)}
             </Text>
           </View>
           <Text className="mt-2 text-center text-sm text-ink/50">
@@ -978,10 +978,10 @@ export function NegotiationPanel({
           <View className="mt-3">
             <ActionButton
               label={t('market.signAtTheirPrice', {
-                wage: formatCurrency(finalDemand.weeklyWage),
+                wage: formatCurrency(t, finalDemand.weeklyWage),
               })}
               accessibilityLabel={t('market.a11y.offerPerWeekForSeasons', {
-                wage: formatCurrency(finalDemand.weeklyWage),
+                wage: formatCurrency(t, finalDemand.weeklyWage),
                 seasons: finalDemand.termSeasons,
               })}
               variant="confirm"
@@ -1015,7 +1015,7 @@ export function NegotiationPanel({
               ? 'font-mono text-xl text-pitch-ink'
               : 'font-mono text-xl text-stamp'}
             >
-              {requiredWage === undefined ? '—' : formatCurrency(requiredWage)}
+              {requiredWage === undefined ? '—' : formatCurrency(t, requiredWage)}
             </Text>
           </View>
           <View className="mt-4">
@@ -1023,7 +1023,7 @@ export function NegotiationPanel({
             <View className="mt-2 flex-row items-stretch gap-2">
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t('market.a11y.reduceWeeklyWageBy', { amount: formatCurrency(viewModel.wageStep) })}
+                accessibilityLabel={t('market.a11y.reduceWeeklyWageBy', { amount: formatCurrency(t, viewModel.wageStep) })}
                 onPress={() => setWeeklyWage(value => Math.max(viewModel.wageStep, value - viewModel.wageStep))}
                 className="h-12 w-12 items-center justify-center border-2 border-b-4 border-ink bg-paper-dark"
                 // Explicit points: h-12 is 42pt on native, under the 44pt
@@ -1033,11 +1033,11 @@ export function NegotiationPanel({
                 <Text className="font-mono text-2xl font-bold text-ink">-</Text>
               </Pressable>
               <View className="h-12 flex-1 items-center justify-center border-2 border-ink bg-white">
-                <Text className="font-mono text-xl text-ink">{t('market.perWeekAmount', { amount: formatCurrency(weeklyWage) })}</Text>
+                <Text className="font-mono text-xl text-ink">{t('market.perWeekAmount', { amount: formatCurrency(t, weeklyWage) })}</Text>
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t('market.a11y.increaseWeeklyWageBy', { amount: formatCurrency(viewModel.wageStep) })}
+                accessibilityLabel={t('market.a11y.increaseWeeklyWageBy', { amount: formatCurrency(t, viewModel.wageStep) })}
                 onPress={() => setWeeklyWage(value => value + viewModel.wageStep)}
                 className="h-12 w-12 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light"
                 style={{ minWidth: 44, minHeight: 44 }}
@@ -1197,11 +1197,11 @@ export function NegotiationPanel({
               label={walksOut ? t('market.theyWillWalkOut') : t('market.makeTheOfferArrow')}
               accessibilityLabel={walksOut
                 ? t('market.a11y.offerBelowWalkOut', {
-                  wage: formatCurrency(weeklyWage),
-                  floor: formatCurrency(viewModel.walkOutWeeklyWage),
+                  wage: formatCurrency(t, weeklyWage),
+                  floor: formatCurrency(t, viewModel.walkOutWeeklyWage),
                 })
                 : t('market.a11y.offerPerWeekForSeasons', {
-                  wage: formatCurrency(weeklyWage),
+                  wage: formatCurrency(t, weeklyWage),
                   seasons: termSeasons,
                 })}
               variant="confirm"
@@ -1216,14 +1216,14 @@ export function NegotiationPanel({
           {walksOut ? (
             <Text className="mt-2 text-center text-sm font-bold text-stamp">
               {t('market.walkOutInsult', {
-                wage: formatCurrency(weeklyWage),
-                floor: formatCurrency(viewModel.walkOutWeeklyWage),
+                wage: formatCurrency(t, weeklyWage),
+                floor: formatCurrency(t, viewModel.walkOutWeeklyWage),
               })}
             </Text>
           ) : (
             <Text className="mt-2 text-center text-sm text-ink/50">
               {t('market.threeRoundsMaximum', {
-                floor: formatCurrency(viewModel.walkOutWeeklyWage),
+                floor: formatCurrency(t, viewModel.walkOutWeeklyWage),
               })}
             </Text>
           )}

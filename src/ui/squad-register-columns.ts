@@ -53,6 +53,13 @@ export const HEADER_FONT_SIZE = { phone: 10, wide: 10.5 } as const;
 export const HEADER_MAX_FONT_MULTIPLIER = 1.25;
 
 /**
+ * Fixed numeric cells cannot reflow independently of their table row. They keep
+ * the former measured 1.6 ceiling locally, while prose and player actions use
+ * the full system Dynamic Type selection.
+ */
+export const CELL_MAX_FONT_MULTIPLIER = 1.6;
+
+/**
  * The sort arrow is drawn, not typed, so it is exactly this wide at every text
  * size — which is the whole reason the widths below can be proven. Even, so
  * that each half is a whole point: an odd 7 gave the triangle two 3.5pt border
@@ -81,11 +88,9 @@ export const TRAIN_BUTTON_HIT_SLOP = 5;
 export const MINIMUM_TOUCH_TARGET = 44;
 
 /**
- * The row values, which are not capped: a number the manager is reading is
- * exactly what a larger text size is for, so the columns hold them at the
- * app-wide 1.6 instead. `text-base` is 1rem (14pt) and `text-sm` 0.875rem
- * (12.25pt), and the widest thing each column ever shows is two characters
- * except condition, which shows "100%".
+ * The row values use the local fixed-cell cap above. `text-base` is 1rem (14pt)
+ * and `text-sm` 0.875rem (12.25pt), and the widest thing each column ever shows
+ * is two characters except condition, which shows "100%".
  */
 export const CELL_FONT_SIZE = { value: 14, condition: 12.25 } as const;
 /** Silkscreen Regular advances, same source as the header measurements. */

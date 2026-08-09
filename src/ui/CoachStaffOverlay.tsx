@@ -94,11 +94,11 @@ export function CoachStaffOverlay({
             </View>
 
             <View className="mt-3 flex-row gap-2">
-              <Metric label={t('coachStaff.weeklyWage')} value={formatCurrency(coach.weeklyWage)} />
+              <Metric label={t('coachStaff.weeklyWage')} value={formatCurrency(t, coach.weeklyWage)} />
               <Metric
                 label={isDismissConfirmation ? t('coachStaff.severance') : t('coachStaff.specialties')}
                 value={isDismissConfirmation
-                  ? formatCurrency(coach.severanceCost ?? coach.weeklyWage)
+                  ? formatCurrency(t, coach.severanceCost ?? coach.weeklyWage)
                   : String(coach.specialtyLabels.length)}
                 tone={isDismissConfirmation ? 'negative' : 'positive'}
               />
@@ -124,7 +124,7 @@ export function CoachStaffOverlay({
                 : mode === 'dismissed'
                   ? t('coachStaff.positionVacant', { role: roleLabelLower })
                   : t('coachStaff.severanceNotice', {
-                    amount: formatCurrency(coach.severanceCost ?? coach.weeklyWage),
+                    amount: formatCurrency(t, coach.severanceCost ?? coach.weeklyWage),
                   })}
             </Text>
 
@@ -133,7 +133,7 @@ export function CoachStaffOverlay({
                 <>
                   <ActionButton
                     label={t('coachStaff.payAndDismiss', {
-                      amount: formatCurrency(coach.severanceCost ?? coach.weeklyWage),
+                      amount: formatCurrency(t, coach.severanceCost ?? coach.weeklyWage),
                     })}
                     accessibilityLabel={t('coachStaff.a11y.paySeveranceAndDismiss', { name: coach.name })}
                     variant="danger"

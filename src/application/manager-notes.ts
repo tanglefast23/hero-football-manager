@@ -180,6 +180,7 @@ function seasonEndNotes(state: GameState, t: CopyFn): ManagerNoteViewModel[] {
  * The labels are data, and data stays English; `cupRoundNameWith` turns the
  * one it returns into a word the player reads, at the interpolation.
  */
+/** @i18n-fallback Persisted round enum values; `cupRoundNameWith` translates them. */
 const CUP_ROUND_ORDER: readonly NationalCupRoundLabel[] = [
   'Play-in', 'Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final',
 ];
