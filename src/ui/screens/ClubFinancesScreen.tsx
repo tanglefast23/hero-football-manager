@@ -59,6 +59,10 @@ import {
 } from '../concierge-targets';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { ScreenTabs, type ScreenTab } from '../components/ScreenTabs';
+import {
+  GuidanceDoubleFlash,
+  type GuidanceNudgeTarget,
+} from '../GuidanceDoubleFlash';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { useCopy, type CopyFn } from '../../i18n';
@@ -158,6 +162,12 @@ export interface ClubFinancesScreenProps {
   onOpenLedgerLine?: (ledgerLineId: string) => void;
   onBuildTrainingGround: () => void;
   onBuildFacility?: (type: FacilityTypeViewModel, x: number, y: number) => void;
+  /** The only new facility this week's required desk job permits. */
+  requiredBuildType?: FacilityTypeViewModel;
+  guidanceNudgeTarget?: GuidanceNudgeTarget;
+  guidanceNudgeToken?: number;
+  /** Explains a refused catalog choice through Bert instead of a silent disabled card. */
+  onRequiredBuildTypeBlocked?: (required: FacilityTypeViewModel) => void;
   onUpgradeFacility?: (buildingId: string) => void;
   onRelocateFacility?: (buildingId: string, x: number, y: number) => void;
   onCloseFacility?: (buildingId: string) => void;
@@ -181,6 +191,10 @@ export function ClubFinancesScreen({
   onOpenLedgerLine,
   onBuildTrainingGround,
   onBuildFacility,
+  requiredBuildType,
+  guidanceNudgeTarget,
+  guidanceNudgeToken,
+  onRequiredBuildTypeBlocked,
   onUpgradeFacility,
   onRelocateFacility,
   onCloseFacility,
@@ -856,6 +870,11 @@ export function ClubFinancesScreen({
           setRelocatingBuildingId={setRelocatingBuildingId}
           buildMenuReminder={buildMenuReminder}
           setBuildMenuReminder={setBuildMenuReminder}
+          requiredBuildType={requiredBuildType}
+          guidanceNudgeTarget={guidanceNudgeTarget}
+          guidanceNudgeToken={guidanceNudgeToken}
+          reduceMotion={reduceMotion}
+          onRequiredBuildTypeBlocked={onRequiredBuildTypeBlocked}
           facilityGuideBuildTargetRef={facilityGuideBuildTargetRef}
           scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
           coachingOfficeBuildTargetRef={coachingOfficeBuildTargetRef}
@@ -995,6 +1014,15 @@ export function ClubFinancesScreen({
                 tabs={CLUB_OFFICE_TABS(t)}
                 activeId={activeTab}
                 onSelect={onSelectTab}
+                flashTabId={
+                  (guidanceNudgeTarget === 'coaching-office' ||
+                    guidanceNudgeTarget === 'training-ground-facility') &&
+                  activeTab !== 'facility'
+                    ? 'facility'
+                    : undefined
+                }
+                flashToken={guidanceNudgeToken}
+                reduceMotion={reduceMotion}
               />
               {/* The Staff board is a row of peer coach cards — one per column on a
             wide window — so its label belongs to the board, not to the card
@@ -2950,6 +2978,11 @@ interface BuildMenuSectionProps {
   setRelocatingBuildingId: Dispatch<SetStateAction<string | null>>;
   buildMenuReminder: string | null;
   setBuildMenuReminder: Dispatch<SetStateAction<string | null>>;
+  requiredBuildType?: FacilityTypeViewModel;
+  guidanceNudgeTarget?: GuidanceNudgeTarget;
+  guidanceNudgeToken?: number;
+  reduceMotion: boolean;
+  onRequiredBuildTypeBlocked?: (required: FacilityTypeViewModel) => void;
   facilityGuideBuildTargetRef: RefObject<View | null>;
   scrollFacilityGuideTargetIntoView: (phase: GuidedFirstFacilityPhase) => void;
   coachingOfficeBuildTargetRef: RefObject<View | null>;
@@ -2977,6 +3010,11 @@ function BuildMenuSection({
   setRelocatingBuildingId,
   buildMenuReminder,
   setBuildMenuReminder,
+  requiredBuildType,
+  guidanceNudgeTarget,
+  guidanceNudgeToken,
+  reduceMotion,
+  onRequiredBuildTypeBlocked,
   facilityGuideBuildTargetRef,
   scrollFacilityGuideTargetIntoView,
   coachingOfficeBuildTargetRef,
@@ -3032,10 +3070,18 @@ function BuildMenuSection({
             const guideAllowsType =
               !guidedFirstFacility ||
               guidedFirstFacilityAllowsBuildType(entry.type);
+            const requiredBuildChoiceBlocked =
+              requiredBuildType !== undefined &&
+              entry.type !== requiredBuildType;
             const entryEnabled =
-              entry.available && entry.affordable && guideAllowsType;
+              entry.available &&
+              entry.affordable &&
+              guideAllowsType &&
+              !requiredBuildChoiceBlocked;
             const openingPitchChoiceBlocked =
               entry.blockedByOpeningTrainingPitch || !guideAllowsType;
+            const blockedChoiceCanExplain =
+              openingPitchChoiceBlocked || requiredBuildChoiceBlocked;
             const guidedIncome =
               guideIncomeFacilities && isIncomeFacilityType(entry.type);
             // Sentence per catalog key, joined with a space — the same shape
@@ -3159,8 +3205,16 @@ function BuildMenuSection({
                     accessibilityRole="button"
                     accessibilityLabel={cardAccessibilityLabel}
                     accessibilityState={{ disabled: !entryEnabled, selected }}
-                    disabled={!entryEnabled && !openingPitchChoiceBlocked}
+                    disabled={!entryEnabled && !blockedChoiceCanExplain}
                     onPress={() => {
+                      if (requiredBuildChoiceBlocked) {
+                        setSelectedBuildType(null);
+                        setSelectedBuildingId(null);
+                        setRelocatingBuildingId(null);
+                        setBuildMenuReminder(null);
+                        onRequiredBuildTypeBlocked?.(requiredBuildType);
+                        return;
+                      }
                       if (openingPitchChoiceBlocked) {
                         setBuildMenuReminder(
                           t('clubFinances.buildTrainingPitchFirstReminder'),
@@ -3180,14 +3234,14 @@ function BuildMenuSection({
                     }}
                     className={
                       selected
-                        ? 'min-h-36 w-full border-2 border-b-4 border-blue-dark bg-blue-light/30 p-2'
+                        ? 'relative min-h-36 w-full border-2 border-b-4 border-blue-dark bg-blue-light/30 p-2'
                         : (guideFocus === 'coaching-office' &&
                               entry.type === 'coaching-office') ||
                             guidedIncome
-                          ? 'min-h-36 w-full border-2 border-b-4 border-gold-dark bg-gold-light/25 p-2'
+                          ? 'relative min-h-36 w-full border-2 border-b-4 border-gold-dark bg-gold-light/25 p-2'
                           : entryEnabled
-                            ? 'min-h-36 w-full border-2 border-b-4 border-ink bg-white p-2'
-                            : 'min-h-36 w-full border-2 border-ink/20 bg-ink/5 p-2'
+                            ? 'relative min-h-36 w-full border-2 border-b-4 border-ink bg-white p-2'
+                            : 'relative min-h-36 w-full border-2 border-ink/20 bg-ink/5 p-2'
                     }
                     // Lit even when the club cannot afford it yet: the point
                     // of the highlight is which buildings earn, and a shop
@@ -3200,6 +3254,17 @@ function BuildMenuSection({
                         : undefined
                     }
                   >
+                    <GuidanceDoubleFlash
+                      trigger={
+                        (guidanceNudgeTarget === 'coaching-office' &&
+                          entry.type === 'coaching-office') ||
+                        (guidanceNudgeTarget === 'training-ground-facility' &&
+                          entry.type === 'training-pitch')
+                          ? guidanceNudgeToken
+                          : undefined
+                      }
+                      reduceMotion={reduceMotion}
+                    />
                     <View className="mb-2 flex-row items-start gap-2">
                       <View style={{ opacity: entryEnabled ? 1 : 0.35 }}>
                         <FacilitySprite

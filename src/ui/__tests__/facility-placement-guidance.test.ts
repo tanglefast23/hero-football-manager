@@ -119,6 +119,56 @@ describe('first facility placement guidance', () => {
     );
   });
 
+  it('blocks the wrong Week 3 build at the card and again in the store', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'),
+      'utf8',
+    );
+    const appSource = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    const storeSource = readFileSync(
+      join(process.cwd(), 'src/application/store.ts'),
+      'utf8',
+    );
+
+    expect(source).toContainSource('const requiredBuildChoiceBlocked =');
+    expect(source).toContainSource(
+      'onRequiredBuildTypeBlocked?.(requiredBuildType);',
+    );
+    expect(appSource).toContainSource(
+      "store.notifyInboxDutyBlocked('coaching-office')",
+    );
+    expect(appSource).toContainSource(
+      't(`${inboxDutyCopyStem(store.inboxDutyReminder[0])}.body`)',
+    );
+    const english = JSON.parse(
+      readFileSync(join(process.cwd(), 'content/i18n/en.json'), 'utf8'),
+    ) as { strings: Record<string, string> };
+    expect(english.strings['inboxDuty.coachingOffice.body']).toContain(
+      'You need to build the Coaching Office this week.',
+    );
+    expect(storeSource).toContainSource(
+      "outstandingInboxDuties(career).includes('coaching-office')",
+    );
+    expect(storeSource).toContainSource(
+      "inboxDutyReminder: ['coaching-office']",
+    );
+  });
+
+  it('starts new construction without a second acknowledgement modal', () => {
+    const appSource = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+
+    expect(appSource).toContainSource(
+      'const showStartedFacilityProject = useCallback((showNotice = true)',
+    );
+    expect(appSource).toContainSource('if (!showNotice) return;');
+    expect(appSource).toMatchSource(
+      /buildClubFacilityWithFeedback[\s\S]*?showStartedFacilityProject\(false\)/,
+    );
+    expect(appSource).toMatchSource(
+      /upgradeClubFacilityWithFeedback[\s\S]*?showStartedFacilityProject\(\)/,
+    );
+  });
+
   it('scrolls coaching-office guidance to its build card without a grounds tooltip', () => {
     const source = readFileSync(
       join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'),

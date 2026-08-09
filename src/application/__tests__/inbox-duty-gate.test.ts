@@ -1,9 +1,45 @@
 import { DEFAULT_CREATION_RATINGS } from '../../game';
+import { completeAssistantGuideSequence } from '../../game/assistant-guide';
+import { advanceFacilityConstruction } from '../../game/facilities';
+import { buildCareerFacility } from '../../game/management';
+import { hireCareerCoach } from '../../game/market-career';
+import type { GameState } from '../../game/types';
 import {
   dueAssistantInboxGuideSequences,
   outstandingInboxDuties,
 } from '../assistant-guide';
 import { useM1Store } from '../store';
+
+function coachingOfficeDutyCareer(state: GameState): GameState {
+  const withHeadCoach = {
+    ...state,
+    market: hireCareerCoach(
+      state,
+      state.market!,
+      state.market!.coachCandidates[0].id,
+    ),
+  };
+  const started = buildCareerFacility(withHeadCoach, 'training-pitch', {
+    x: 0,
+    y: 0,
+  }).state;
+  let grid = started.facilities.grid!;
+  while (grid.construction !== undefined) {
+    grid = advanceFacilityConstruction(grid).grid;
+  }
+  return completeAssistantGuideSequence(
+    {
+      ...started,
+      week: 3,
+      facilities: {
+        ...started.facilities,
+        trainingGroundBuilt: true,
+        grid,
+      },
+    },
+    'youth-intake',
+  );
+}
 
 function startTeacherCareer(): void {
   useM1Store.setState(useM1Store.getInitialState(), true);
@@ -172,5 +208,37 @@ describe('opening blue inbox jobs', () => {
     useM1Store.getState().hireCoach(coachId, 'HEAD');
     expect(useM1Store.getState().career?.market?.headCoach?.id).toBe(coachId);
     expect(useM1Store.getState().inboxDutyFocus).toBeNull();
+  });
+
+  it('refuses a wrong facility before it spends cash and brings Bert on', () => {
+    const due = coachingOfficeDutyCareer(useM1Store.getState().career!);
+    expect(outstandingInboxDuties(due)).toContain('coaching-office');
+    useM1Store.setState({ career: due, inboxDutyReminder: null, notice: null });
+    const cashBefore = due.clubs.find(
+      (club) => club.id === due.userClubId,
+    )!.cash;
+    const buildingsBefore = due.facilities.grid!.buildings;
+
+    useM1Store.getState().buildClubFacility('medical-bay', { x: 2, y: 0 });
+
+    const refused = useM1Store.getState();
+    expect(refused.career?.facilities.grid?.buildings).toEqual(buildingsBefore);
+    expect(
+      refused.career?.clubs.find((club) => club.id === due.userClubId)?.cash,
+    ).toBe(cashBefore);
+    expect(refused.inboxDutyReminder).toEqual(['coaching-office']);
+    expect(refused.error).toBeNull();
+  });
+
+  it('still starts the required Coaching Office immediately', () => {
+    const due = coachingOfficeDutyCareer(useM1Store.getState().career!);
+    useM1Store.setState({ career: due, inboxDutyReminder: null, notice: null });
+
+    useM1Store.getState().buildClubFacility('coaching-office', { x: 2, y: 0 });
+
+    expect(
+      useM1Store.getState().career?.facilities.grid?.construction,
+    ).toMatchObject({ type: 'coaching-office' });
+    expect(useM1Store.getState().inboxDutyReminder).toBeNull();
   });
 });

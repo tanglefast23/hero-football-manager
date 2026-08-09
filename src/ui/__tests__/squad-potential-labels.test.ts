@@ -112,7 +112,7 @@ describe('squad potential labels', () => {
       '<View className={ROSTER_TRAIN_COLUMN_CLASS} />',
     );
     expect(source).toContainSource(
-      "'ml-1 h-10 w-10 items-center justify-center rounded-full",
+      "'relative ml-1 h-10 w-10 items-center justify-center rounded-full",
     );
     // 35pt of circle plus hitSlop, summed and checked in squad-register-columns.
     expect(source).toContainSource('hitSlop={TRAIN_BUTTON_HIT_SLOP}');

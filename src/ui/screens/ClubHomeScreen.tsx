@@ -25,6 +25,10 @@ import { useDesktopContentStyle } from '../layout/DesktopClamp';
 import type { ManagerTipDestination } from '../../content';
 import { FormStrip } from '../components/FormStrip';
 import { useCopy } from '../../i18n';
+import {
+  GuidanceDoubleFlash,
+  type GuidanceNudgeTarget,
+} from '../GuidanceDoubleFlash';
 
 const HORIZONTAL_MARQUEE_BULBS = Array.from(
   { length: 12 },
@@ -115,6 +119,8 @@ export interface ClubHomeScreenProps {
   onOpenLeague: () => void;
   onProtectBoardCandidate: (playerId: string) => void;
   guideAlertId?: string;
+  guidanceNudgeTarget?: GuidanceNudgeTarget;
+  guidanceNudgeToken?: number;
   /**
    * Clears the optional manager's notes off the desk so the guided row is the
    * loudest thing on it. It does NOT disable the other alerts: the first week's
@@ -148,6 +154,8 @@ export function ClubHomeScreen({
   onOpenLeague,
   onProtectBoardCandidate,
   guideAlertId,
+  guidanceNudgeTarget,
+  guidanceNudgeToken,
   focusGuidedAlert = false,
   glowGuidedAlert = false,
   guideBoard = false,
@@ -262,6 +270,13 @@ export function ClubHomeScreen({
             ) : null}
             {viewModel.alerts.map((alert) => {
               const guided = alert.id === guideAlertId;
+              const nudged =
+                (guidanceNudgeTarget === 'training-ground-alert' &&
+                  alert.id === 'training-ground') ||
+                (guidanceNudgeTarget === 'coaching-office' &&
+                  alert.guideSequenceId === 'coaching-office') ||
+                (guidanceNudgeTarget === 'youth-intake' &&
+                  alert.guideSequenceId === 'youth-intake');
               return (
                 <Pressable
                   key={alert.id}
@@ -284,6 +299,10 @@ export function ClubHomeScreen({
                     ...(guided && glowGuidedAlert ? GUIDED_ALERT_GLOW : {}),
                   })}
                 >
+                  <GuidanceDoubleFlash
+                    trigger={nudged ? guidanceNudgeToken : undefined}
+                    reduceMotion={reduceMotion}
+                  />
                   {guided ? (
                     <TutorialTapCue
                       detail={t('clubHome.buildTheFacility')}

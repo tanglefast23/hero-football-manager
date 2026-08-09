@@ -2,6 +2,7 @@ import { useId, type RefObject } from 'react';
 import { Platform, View } from 'react-native';
 import { SfxPressable as Pressable } from './SfxPressable';
 import { PixelText } from './PixelText';
+import { GuidanceDoubleFlash } from '../GuidanceDoubleFlash';
 
 export interface ScreenTab<Id extends string> {
   readonly id: Id;
@@ -31,6 +32,9 @@ export interface ScreenTabsProps<Id extends string> {
   readonly linkPanels?: boolean;
   /** A one-slot Sponsor Desk is still a real tab/panel relationship. */
   readonly showSingleTab?: boolean;
+  readonly flashTabId?: Id;
+  readonly flashToken?: number;
+  readonly reduceMotion?: boolean;
 }
 
 /**
@@ -50,6 +54,9 @@ export function ScreenTabs<Id extends string>({
   idPrefix,
   linkPanels = false,
   showSingleTab = false,
+  flashTabId,
+  flashToken,
+  reduceMotion = false,
 }: ScreenTabsProps<Id>) {
   const generatedId = useId().replace(/:/g, '');
   const tabSetId = idPrefix ?? `screen-tabs-${generatedId}`;
@@ -121,11 +128,15 @@ export function ScreenTabs<Id extends string>({
             // height ever depends on it.
             className={
               selected
-                ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-1'
-                : 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink/40 bg-white px-1'
+                ? 'relative min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-1'
+                : 'relative min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink/40 bg-white px-1'
             }
             style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
           >
+            <GuidanceDoubleFlash
+              trigger={tab.id === flashTabId ? flashToken : undefined}
+              reduceMotion={reduceMotion}
+            />
             <PixelText
               className={
                 selected

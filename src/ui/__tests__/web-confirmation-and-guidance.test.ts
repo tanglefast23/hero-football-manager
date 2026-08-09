@@ -144,7 +144,7 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
       'guideTarget={hideCoachHiringCues ? undefined : visibleAssistantObjectiveTarget}',
     );
     expect(appSource).toContainSource(
-      'guideObjective={assistantObjective?.text}',
+      'focusedInboxDutyId === undefined ? displayedGuideObjective : undefined',
     );
     expect(appSource).not.toContainSource(
       'guideObjective={visibleAssistantObjective',

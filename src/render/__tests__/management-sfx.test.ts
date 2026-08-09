@@ -144,6 +144,17 @@ describe('management feedback sounds', () => {
     expect(mockImpactAsync).toHaveBeenCalledWith('light');
   });
 
+  it('uses the supplied work cue when facility construction starts', () => {
+    const sounds = readFileSync(
+      join(process.cwd(), 'src/render/management-sfx.ts'),
+      'utf8',
+    );
+
+    expect(sounds).toContainSource(
+      "'facility-start': require('../../assets/audio/sfx/facility-start-work.wav')",
+    );
+  });
+
   it('answers a risky career event with the fanfare, and never with the old cheer', () => {
     const sounds = readFileSync(
       join(process.cwd(), 'src/render/management-sfx.ts'),
@@ -359,7 +370,7 @@ describe('management feedback sounds', () => {
     // whether the celebration played out or was tapped away.
     expect(celebration).toContainSource('playSuperTrainingYaySfx()');
     expect(celebration).toContainSource(
-      'export const SUPER_CELEBRATION_MS = 3400',
+      'export const SUPER_CELEBRATION_MS = drillPresentationMs(3_400)',
     );
     expect(celebration).toContainSource('FIREWORK_DELAYS_MS');
 

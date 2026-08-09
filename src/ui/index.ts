@@ -16,6 +16,7 @@ export * from './PlayerRequestDecisionCard';
 export * from './RivalHeroIntroScreen';
 export * from './CharacterSpeechOverlay';
 export * from './TutorialTapCue';
+export * from './GuidanceDoubleFlash';
 export * from './ScreenErrorBoundary';
 export * from './models';
 export * from './market-models';

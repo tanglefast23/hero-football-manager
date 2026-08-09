@@ -17,6 +17,7 @@ import {
   isPlayerLookIdForRole,
   nextDistinctPlayerLook,
 } from '../game/player-appearance';
+import { SPECIAL_HERO_ROSTER } from '../game/special-heroes';
 import { playerLookId } from '../render/sprites/player-look';
 
 export const DEFAULT_CAREER_SEED = 20260718;
@@ -33,6 +34,10 @@ const PLAYER_PERSONALITIES: readonly PlayerPersonality[] = [
   'Professional',
   'Timid',
 ];
+
+const SPECIAL_HERO_BY_ID = new Map(
+  SPECIAL_HERO_ROSTER.map((hero) => [hero.id, hero] as const),
+);
 
 /** Produces a fresh uint32 seed without importing nondeterminism into the sim. */
 export function generateCareerSeed(now = Date.now()): number {
@@ -469,16 +474,26 @@ function reconcileSponsorBusiness(state: GameState): GameState {
 }
 
 function reconcileCareerPlayerLooks(state: GameState): GameState {
-  const appearanceCandidates = state.players.map((player) =>
-    player.clubId === state.userClubId && player.lookId === undefined
+  const appearanceCandidates = state.players.map((player) => {
+    const specialHero = SPECIAL_HERO_BY_ID.get(player.id);
+    if (specialHero !== undefined) {
+      return {
+        ...player,
+        name: specialHero.name,
+        lookId: specialHero.lookId,
+      };
+    }
+    return player.clubId === state.userClubId && player.lookId === undefined
       ? { ...player, lookId: playerLookId(player.id, player.role) }
-      : player,
-  );
+      : player;
+  });
   const players = assignDistinctPlayerLooks(appearanceCandidates, (player) =>
     playerLookId(player.id, player.role),
   );
   const playersChanged = players.some(
-    (player, index) => player.lookId !== state.players[index].lookId,
+    (player, index) =>
+      player.lookId !== state.players[index].lookId ||
+      player.name !== state.players[index].name,
   );
   const activeLookById = new Map(
     players.map((player) => [player.id, player.lookId]),

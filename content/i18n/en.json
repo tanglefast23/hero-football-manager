@@ -1190,7 +1190,7 @@
     "inboxDuty.youth.body": "We still need to sign one youth player, boss. Pick one before you leave the Youth desk.",
     "inboxDuty.coachingOffice.objective": "Build the Coaching Office.",
     "inboxDuty.coachingOffice.title": "Coaching Office first",
-    "inboxDuty.coachingOffice.body": "We still need to start the Coaching Office, boss. Finish this job before you leave the Facility board.",
+    "inboxDuty.coachingOffice.body": "You need to build the Coaching Office this week. No other facility can start, and the week cannot advance, until it is under construction.",
     "managementShell.bertsJob": "Bert's job",
     "managementShell.cueAdvanceWeek": "Advance week",
     "managementShell.cueOpenSquad": "Open squad",
