@@ -75,7 +75,7 @@ describe('first facility placement guidance', () => {
       'onTouchStart={dismissFacilityPlacementHelper}',
     );
     expect(source).toContainSource(
-      'onPress={() => {\n                            setHoveredCell(null);\n                            dismissFacilityPlacementHelper();',
+      'onPress={() => {\n                            dismissFacilityPlacementHelper();',
     );
     expect(source).toMatchSource(
       /if \(Platform\.OS === 'web'\) \{[\s\S]*?\.focus\?\.\(\{ preventScroll: true \}\);\s*return;\s*\}\s*const handle = findNodeHandle\(target\);/,
@@ -107,8 +107,11 @@ describe('first facility placement guidance', () => {
       /<Pressable[\s\S]*?tip=\{[\s\S]*?clubFinances\.buildHereColumnRow/,
     );
     expect(source).toContainSource('styles.facilityPlacementHoverTip');
-    expect(source).toContainSource('left: hoveredTipLeft');
-    expect(source).toContainSource('hoveredCell.y === 0');
+    expect(source).not.toContainSource('hoveredCell');
+    expect(source).toContainSource('placementActive && previewCell');
+    expect(source).toContainSource('top: 8');
+    expect(source).toContainSource('left: 8');
+    expect(source).toContainSource('width: 176');
     expect(source).toContainSource('zIndex: 100');
     expect(source).toContainSource('elevation: 30');
     expect(source).toMatchSource(

@@ -66,8 +66,6 @@ import { useCopy, type CopyFn } from '../../i18n';
 const FACILITY_GUIDE_TARGET_TOP = 170;
 const FACILITY_PLACEMENT_PLUS_SIZE = 16;
 const FACILITY_PLACEMENT_PLUS_THICKNESS = 4;
-const FACILITY_PLACEMENT_HOVER_TIP_WIDTH = 176;
-const FACILITY_PLACEMENT_HOVER_TIP_MARGIN = 8;
 
 /** Scrolls the ScrollView so the given target (a rendered View) is margin px
  * below the viewport top. Works regardless of column nesting because both
@@ -2171,41 +2169,6 @@ function GroundsSection({
 }: GroundsSectionProps) {
   const t = useCopy();
   const facilities = viewModel.facilities;
-  const [hoveredCell, setHoveredCell] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const hoveredCellSize = facilityGridWidth / facilities.width;
-  const hoveredTipWidth = Math.min(
-    FACILITY_PLACEMENT_HOVER_TIP_WIDTH,
-    Math.max(0, facilityGridWidth - FACILITY_PLACEMENT_HOVER_TIP_MARGIN * 2),
-  );
-  const hoveredTipLeft =
-    hoveredCell === null
-      ? FACILITY_PLACEMENT_HOVER_TIP_MARGIN
-      : Math.min(
-          Math.max(
-            FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
-            (hoveredCell.x + 0.5) * hoveredCellSize - hoveredTipWidth / 2,
-          ),
-          Math.max(
-            FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
-            facilityGridWidth -
-              hoveredTipWidth -
-              FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
-          ),
-        );
-  const hoveredCellBuildable =
-    hoveredCell !== null &&
-    placementActive &&
-    (!guidedFirstFacility ||
-      guidedFirstFacilityAllowsPlacement(
-        selectedBuildType,
-        hoveredCell.x,
-        hoveredCell.y,
-      )) &&
-    !cellIsOccupied(hoveredCell.x, hoveredCell.y) &&
-    canPlaceAt(hoveredCell.x, hoveredCell.y);
   return (
     <View
       ref={groundsRef}
@@ -2408,7 +2371,6 @@ function GroundsSection({
                           // the click that means the tap landed.
                           pressSfx={buildable ? 'click' : 'warning'}
                           onPress={() => {
-                            setHoveredCell(null);
                             dismissFacilityPlacementHelper();
                             handleGridCell(x, y);
                           }}
@@ -2417,14 +2379,8 @@ function GroundsSection({
                           // A mouse has a hover phase, so the fits/blocked footprint
                           // tracks the cursor instead of forcing a click-and-hold on
                           // every square to discover whether the building fits.
-                          onHoverIn={() => {
-                            setHoveredCell({ x, y });
-                            setPreviewCell({ x, y });
-                          }}
-                          onHoverOut={() => {
-                            setHoveredCell(null);
-                            setPreviewCell(null);
-                          }}
+                          onHoverIn={() => setPreviewCell({ x, y })}
+                          onHoverOut={() => setPreviewCell(null)}
                           style={{
                             flex: 1,
                             backgroundColor: occupied
@@ -2627,35 +2583,16 @@ function GroundsSection({
               />
             ) : null}
 
-            {placementActive && hoveredCell && hoveredTipWidth > 0 ? (
+            {placementActive && previewCell ? (
               <View
                 pointerEvents="none"
-                style={[
-                  styles.facilityPlacementHoverTip,
-                  {
-                    left: hoveredTipLeft,
-                    width: hoveredTipWidth,
-                    ...(hoveredCell.y === 0
-                      ? {
-                          top:
-                            hoveredCellSize +
-                            FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
-                        }
-                      : {
-                          bottom:
-                            facilityGridWidth *
-                              (facilities.height / facilities.width) -
-                            hoveredCell.y * hoveredCellSize +
-                            FACILITY_PLACEMENT_HOVER_TIP_MARGIN,
-                        }),
-                  },
-                ]}
+                style={styles.facilityPlacementHoverTip}
               >
                 <Text className="font-mono text-[10px] leading-4 text-paper">
-                  {hoveredCellBuildable
+                  {canPlaceAt(previewCell.x, previewCell.y)
                     ? t('clubFinances.buildHereColumnRow', {
-                        column: hoveredCell.x + 1,
-                        row: hoveredCell.y + 1,
+                        column: previewCell.x + 1,
+                        row: previewCell.y + 1,
                       })
                     : t('clubFinances.blockedFootprintDoesNotFit')}
                 </Text>
@@ -3567,6 +3504,9 @@ const styles = StyleSheet.create({
   },
   facilityPlacementHoverTip: {
     position: 'absolute',
+    top: 8,
+    left: 8,
+    width: 176,
     zIndex: 100,
     elevation: 30,
     borderWidth: 2,
