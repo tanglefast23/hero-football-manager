@@ -153,7 +153,7 @@ describe('the money-making buildings', () => {
     // The same gold treatment the guided Coaching Office card wears, so the two
     // read as one instruction rather than two unrelated highlights.
     expect(club).toMatchSource(
-      /\|\| guidedIncome\s*\n\s*\? 'min-h-36 w-full border-2 border-b-4 border-gold-dark/,
+      /\|\| guidedIncome\s*\n\s*\? 'relative min-h-36 w-full border-2 border-b-4 border-gold-dark/,
     );
     expect(club).toMatchSource(
       /\|\| guidedIncome\s*\n\s*\? styles\.guidedFacilityGlow/,

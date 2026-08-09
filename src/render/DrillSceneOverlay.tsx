@@ -30,13 +30,14 @@ import { snapSpriteScale } from './interpolate';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playerLookId } from './sprites/player-look';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../i18n';
+import { drillPresentationMs } from './drill-presentation-timing';
 
 /** Per-drill sprite scene: fast enough to chain-tap, always tap-to-skip. */
-export const DRILL_SCENE_MS = 2_200;
-const REDUCED_MOTION_MS = 450;
+export const DRILL_SCENE_MS = drillPresentationMs(2_200);
+const REDUCED_MOTION_MS = drillPresentationMs(450);
 /** The number holds for a beat, then climbs; the gain only names itself after. */
-const COUNT_START_MS = 300;
-export const COUNT_UP_MS = 1_400;
+const COUNT_START_MS = drillPresentationMs(300);
+export const COUNT_UP_MS = drillPresentationMs(1_400);
 const STAGE_HEIGHT = 200;
 const FALLBACK_SPRITE = 24;
 // Nominal stage magnifications, sized for the ~200pt stage. Never drawn raw:
@@ -100,7 +101,7 @@ export interface DrillSceneOverlayProps {
 
 /**
  * A single player runs their drill on a pitch stage while the stat counts up.
- * Plays for ~2.2s, but a tap anywhere ends it instantly and jumps back to the
+ * Plays for ~1.76s, but a tap anywhere ends it instantly and jumps back to the
  * Drills popup so chain-training stays snappy.
  */
 export function DrillSceneOverlay({
@@ -145,6 +146,8 @@ export function DrillSceneOverlay({
   }, [onComplete]);
 
   useEffect(() => {
+    // Only the surrounding presentation clock is faster. DrillAtlasStage owns
+    // the player's real-time movement and sprite cadence, so neither is scaled.
     const duration = reduceMotion ? REDUCED_MOTION_MS : DRILL_SCENE_MS;
     progress.setValue(reduceMotion ? 1 : 0);
     const animation = reduceMotion
@@ -191,12 +194,14 @@ export function DrillSceneOverlay({
         Animated.sequence([
           Animated.spring(pop, {
             toValue: 1.3,
-            friction: 4,
+            friction: 5,
+            tension: 62.5,
             useNativeDriver: true,
           }),
           Animated.spring(pop, {
             toValue: 1,
-            friction: 5,
+            friction: 6.25,
+            tension: 62.5,
             useNativeDriver: true,
           }),
         ]).start();

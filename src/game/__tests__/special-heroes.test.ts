@@ -105,7 +105,7 @@ describe('placement in a career', () => {
   it('gives division five its one hero, on the strongest rival, in the starting eleven', () => {
     const career = createCareer(createLaunchCareerSetup(20260720));
     const specials = specialsIn(career);
-    expect(specials.map((player) => player.name)).toEqual(['Barry Allan']);
+    expect(specials.map((player) => player.name)).toEqual(['Larry Alan']);
 
     const hero = specials[0];
     expect(hero.clubId).not.toBe(career.userClubId);

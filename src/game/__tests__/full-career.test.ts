@@ -65,7 +65,7 @@ describe('full M2 career clock', () => {
     // club, and it was already the hardest of the five, so both raise the peak
     // rather than reshaping the curve: the opening fixture gets +5 on each of
     // that club's position attributes, worth about a point of squad strength,
-    // and the strongest rival in the division now fields Barry Allan, worth
+    // and the strongest rival in the division now fields Larry Alan, worth
     // another.
     expect(Math.max(...strengths.values())).toBe(52);
     expect(openingOpponents).toEqual([
@@ -89,7 +89,7 @@ describe('full M2 career clock', () => {
       (player) =>
         player.clubId !== full.userClubId && player.power !== undefined,
     );
-    expect(poweredRivals.map((player) => player.name)).toEqual(['Barry Allan']);
+    expect(poweredRivals.map((player) => player.name)).toEqual(['Larry Alan']);
     expect(poweredRivals.every((player) => isSpecialHeroId(player.id))).toBe(
       true,
     );

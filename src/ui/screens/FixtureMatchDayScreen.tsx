@@ -211,6 +211,11 @@ export function FixtureMatchDayScreen({
               <PixelText className="max-w-40 text-sm uppercase text-ink">
                 {hero.name}
               </PixelText>
+              <View className="border-2 border-b-4 border-gold-dark bg-gold-light px-2 py-1">
+                <PixelText className="text-[10px] uppercase text-gold-dark">
+                  {t('rivalHeroIntro.divisionRival')}
+                </PixelText>
+              </View>
             </View>
           ))}
         </View>

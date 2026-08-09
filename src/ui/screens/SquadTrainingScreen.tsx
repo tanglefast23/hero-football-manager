@@ -69,6 +69,10 @@ import { GUIDED_ALERT_GLOW } from '../guidance-glow';
 import { SquadRequestsPanel } from './SquadRequestsPanel';
 import type { PlayerRequestViewModel } from '../../application/player-request-view-model';
 import { useCopy, type CopyFn } from '../../i18n';
+import {
+  GuidanceDoubleFlash,
+  type GuidanceNudgeTarget,
+} from '../GuidanceDoubleFlash';
 import { copyOrEnglish } from '../../application/copy-fallback';
 
 /**
@@ -195,6 +199,8 @@ export interface SquadTrainingScreenProps {
   lastDrillResult: DrillResultViewModel | null;
   trainingPoints: number;
   guideTraining?: boolean;
+  guidanceNudgeTarget?: GuidanceNudgeTarget;
+  guidanceNudgeToken?: number;
   guideFocus?: AssistantGuideFocus;
   reduceMotion?: boolean;
   /** Bumped by the app shell to pop the drill popup for the selected player (inbox deep link). */
@@ -246,6 +252,8 @@ export function SquadTrainingScreen({
   lastDrillResult,
   trainingPoints,
   guideTraining = false,
+  guidanceNudgeTarget,
+  guidanceNudgeToken,
   guideFocus,
   reduceMotion = false,
   drillPickerRequestToken,
@@ -469,6 +477,9 @@ export function SquadTrainingScreen({
           trainingPoints={trainingPoints}
           selectedPlayerId={selectedPlayerId}
           guideQuickTrain={guideQuickTrain}
+          guidanceNudgeTarget={guidanceNudgeTarget}
+          guidanceNudgeToken={guidanceNudgeToken}
+          reduceMotion={reduceMotion}
           guideFocus={guideFocus}
           showSortHint={showSortHint}
           onSelectPlayer={onSelectPlayer}
@@ -661,6 +672,9 @@ interface RosterSectionProps {
   trainingPoints: number;
   selectedPlayerId?: string;
   guideQuickTrain: boolean;
+  guidanceNudgeTarget?: GuidanceNudgeTarget;
+  guidanceNudgeToken?: number;
+  reduceMotion: boolean;
   guideFocus?: AssistantGuideFocus;
   showSortHint: boolean;
   onSelectPlayer: (playerId: string) => void;
@@ -682,6 +696,9 @@ function RosterSection({
   trainingPoints,
   selectedPlayerId,
   guideQuickTrain,
+  guidanceNudgeTarget,
+  guidanceNudgeToken,
+  reduceMotion,
   guideFocus,
   showSortHint,
   onSelectPlayer,
@@ -1050,12 +1067,12 @@ function RosterSection({
                   hitSlop={TRAIN_BUTTON_HIT_SLOP}
                   className={
                     !player.canTrain
-                      ? 'ml-1 h-10 w-10 items-center justify-center rounded-full border border-ink/20 bg-paper-dark'
+                      ? 'relative ml-1 h-10 w-10 items-center justify-center rounded-full border border-ink/20 bg-paper-dark'
                       : player.priorityDrillsRemaining !== undefined
-                        ? 'ml-1 h-10 w-10 items-center justify-center rounded-full border-2 border-blue-dark bg-blue-light'
+                        ? 'relative ml-1 h-10 w-10 items-center justify-center rounded-full border-2 border-blue-dark bg-blue-light'
                         : glowAssignmentButton
-                          ? 'ml-1 h-10 w-10 items-center justify-center rounded-full border-2 border-gold-dark bg-gold-light'
-                          : 'ml-1 h-10 w-10 items-center justify-center rounded-full border border-ink/30'
+                          ? 'relative ml-1 h-10 w-10 items-center justify-center rounded-full border-2 border-gold-dark bg-gold-light'
+                          : 'relative ml-1 h-10 w-10 items-center justify-center rounded-full border border-ink/30'
                   }
                   style={({ pressed }) => [
                     {
@@ -1065,6 +1082,16 @@ function RosterSection({
                     glowAssignmentButton ? styles.assignmentButtonGlow : null,
                   ]}
                 >
+                  <GuidanceDoubleFlash
+                    trigger={
+                      guidanceNudgeTarget === 'training-plan' &&
+                      player.id === viewModel.createdPlayerId
+                        ? guidanceNudgeToken
+                        : undefined
+                    }
+                    reduceMotion={reduceMotion}
+                    className="rounded-full"
+                  />
                   <Text
                     className={
                       player.injuryWeeks > 0

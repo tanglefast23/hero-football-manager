@@ -118,7 +118,7 @@ describe('hover-only surfaces', () => {
     // The facilities grid previews a footprint from hover. On a tablet that
     // preview stuck to the last tapped square.
     expect(finances).toContainSource(
-      'onHoverIn={() => setPreviewCell({ x, y })}',
+      'onHoverIn={() => {\n                            setHoveredCell({ x, y });\n                            setPreviewCell({ x, y });\n                          }}',
     );
     expect(pressable).toContainSource(
       'onHoverIn={!pointer ? undefined : event => {',

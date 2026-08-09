@@ -172,6 +172,7 @@ import {
   bertBriefingBackgroundProps,
   shouldShowOpeningBrief,
   type ConfirmationRequest,
+  type GuidanceNudgeTarget,
 } from './src/ui';
 import {
   activeCareerMatchday,
@@ -215,6 +216,7 @@ import { setStoreCopy, useM1Store } from './src/application/store';
 import { ScreenErrorBoundary } from './src/ui/ScreenErrorBoundary';
 import {
   currentAssistantObjective,
+  outstandingInboxDuties,
   pendingAssistantGuideSequence,
   type OpeningInboxDutyId,
 } from './src/application/assistant-guide';
@@ -459,6 +461,7 @@ function GameApp() {
   // they describe. The objective remains authoritative; only its cue is hidden.
   const [dismissedAssistantObjectiveKey, setDismissedAssistantObjectiveKey] =
     useState<string | null>(null);
+  const [guidanceNudgeToken, setGuidanceNudgeToken] = useState(0);
   const [tipDismissSequence, setTipDismissSequence] = useState(0);
   const [marketSectionRequest, setMarketSectionRequest] = useState<{
     section: MarketSectionId;
@@ -833,7 +836,7 @@ function GameApp() {
     }
   }, []);
 
-  const showStartedFacilityProject = useCallback(() => {
+  const showStartedFacilityProject = useCallback((showNotice = true) => {
     const career = useM1Store.getState().career;
     if (career === null) return;
     const activeProject = clubFinancesViewModel(career, copyRef.current)
@@ -845,6 +848,9 @@ function GameApp() {
     playFacilityStartSfx();
     playManagementHaptic('success');
     setConciergeFocus(null);
+    // A new build already had its cost confirmation. Construction begins now;
+    // do not stop it behind a second "Let them build" acknowledgement.
+    if (!showNotice) return;
     setFacilityProjectNotice({
       type: building.type,
       name: activeProject.name,
@@ -972,7 +978,8 @@ function GameApp() {
     const before = useM1Store.getState().career?.facilities.grid?.construction;
     useM1Store.getState().buildFacility();
     const after = useM1Store.getState().career?.facilities.grid?.construction;
-    if (after !== undefined && after !== before) showStartedFacilityProject();
+    if (after !== undefined && after !== before)
+      showStartedFacilityProject(false);
   }, [showStartedFacilityProject]);
 
   const buildClubFacilityWithFeedback = useCallback(
@@ -988,7 +995,7 @@ function GameApp() {
       const after = useM1Store.getState().career?.facilities.grid?.construction;
       if (after !== undefined && after !== before) {
         setConciergeFocus(null);
-        showStartedFacilityProject();
+        showStartedFacilityProject(false);
       }
     },
     [showStartedFacilityProject, visibleConciergeFocus],
@@ -1899,6 +1906,40 @@ function GameApp() {
     focusedInboxDutyId === undefined
       ? undefined
       : t(`${inboxDutyCopyStem(focusedInboxDutyId)}.objective`);
+  const outstandingDuties =
+    store.career === null ? [] : outstandingInboxDuties(store.career);
+  const blockingInboxDuty = focusedInboxDutyId ?? outstandingDuties[0];
+  const assistantBlocksAdvance =
+    assistantObjective !== null && assistantObjective.target !== 'advance-week';
+  const advanceWeekGuidanceBlocked =
+    assistantBlocksAdvance || blockingInboxDuty !== undefined;
+  const dutyNudgeTarget: GuidanceNudgeTarget | undefined =
+    blockingInboxDuty === 'facility-placement'
+      ? 'training-ground-facility'
+      : blockingInboxDuty === 'head-coach-market' ||
+          blockingInboxDuty === 'coaching-office' ||
+          blockingInboxDuty === 'youth-intake'
+        ? blockingInboxDuty
+        : undefined;
+  const guidanceNudgeTarget: GuidanceNudgeTarget | undefined =
+    dutyNudgeTarget ??
+    (assistantBlocksAdvance ? assistantObjective.target : undefined);
+  const blockingDutyObjective =
+    blockingInboxDuty === undefined
+      ? undefined
+      : t(`${inboxDutyCopyStem(blockingInboxDuty)}.objective`);
+  // Keep the strip sentence aligned with the thing a blocked press will flash.
+  // A required inbox duty owns both the sentence and the control flash. The
+  // assistant objective is used only when no mapped duty is blocking the week.
+  const displayedGuideObjective =
+    dutyNudgeTarget !== undefined
+      ? blockingDutyObjective
+      : (assistantObjective?.text ?? blockingDutyObjective);
+  const requiredFacilityBuildType = outstandingDuties.includes(
+    'coaching-office',
+  )
+    ? ('coaching-office' as const)
+    : undefined;
   const assistantObjectiveKey =
     assistantObjective === null
       ? null
@@ -2054,7 +2095,13 @@ function GameApp() {
   // goes out the moment the tablet or tab leaves the screen.
   useSuspendFlush();
 
-  const handleAdvanceWeek = advanceCareerWithSfx;
+  const handleAdvanceWeek = useCallback(() => {
+    if (advanceWeekGuidanceBlocked) {
+      setGuidanceNudgeToken((token) => token + 1);
+      return;
+    }
+    advanceCareerWithSfx();
+  }, [advanceCareerWithSfx, advanceWeekGuidanceBlocked]);
 
   useEffect(() => {
     setActiveGuideFocus(undefined);
@@ -2615,15 +2662,12 @@ function GameApp() {
         advanceWeekLabel={
           store.saving ? t('app.saving') : t('managementShell.advanceWeek')
         }
-        // `saveBlocked` already refuses the advance in the store; the button has
-        // to say so too, or the only feedback for a paused season is a toast
-        // repeating what the warning banner above it already says.
-        advanceWeekDisabled={
-          store.saving ||
-          store.saveBlocked ||
-          (assistantObjective !== null &&
-            assistantObjective.target !== 'advance-week')
-        }
+        // Save failures are hard-disabled. Bert's unfinished job keeps the same
+        // grey face but remains pressable so that press can nudge the job twice.
+        advanceWeekDisabled={store.saving || store.saveBlocked}
+        advanceWeekGuidanceBlocked={advanceWeekGuidanceBlocked}
+        guidanceNudgeTarget={guidanceNudgeTarget}
+        guidanceNudgeToken={guidanceNudgeToken}
         guideFocus={
           careerTeaches &&
           (activeGuideFocus === 'money' || activeGuideFocus === 'navigation')
@@ -2633,7 +2677,9 @@ function GameApp() {
         // The helper sentence is the durable first-week flow. Only the
         // floating arrow retires after a general screen tap; losing the text
         // left a glowing control and a blocked Advance Week with no explanation.
-        guideObjective={assistantObjective?.text}
+        guideObjective={
+          focusedInboxDutyId === undefined ? displayedGuideObjective : undefined
+        }
         onGuideObjectivePress={
           assistantObjectiveTargetTab !== undefined &&
           assistantObjectiveTargetTab !== store.activeTab
@@ -2695,6 +2741,8 @@ function GameApp() {
             lastDrillResult={store.lastDrillResult}
             trainingPoints={store.career?.trainingPoints ?? 0}
             guideTraining={visibleAssistantObjectiveTarget === 'training-plan'}
+            guidanceNudgeTarget={guidanceNudgeTarget}
+            guidanceNudgeToken={guidanceNudgeToken}
             guideFocus={visibleConciergeFocus ?? undefined}
             dismissTipsToken={tipDismissSequence}
             managerTipGuideRequest={visibleManagerTipGuideRequest ?? undefined}
@@ -2737,6 +2785,12 @@ function GameApp() {
             }}
             onBuildTrainingGround={buildTrainingGroundWithSfx}
             onBuildFacility={buildClubFacilityWithFeedback}
+            requiredBuildType={requiredFacilityBuildType}
+            guidanceNudgeTarget={guidanceNudgeTarget}
+            guidanceNudgeToken={guidanceNudgeToken}
+            onRequiredBuildTypeBlocked={() =>
+              store.notifyInboxDutyBlocked('coaching-office')
+            }
             onUpgradeFacility={(buildingId) => {
               const finances = clubFinancesViewModel(
                 useM1Store.getState().career!,
@@ -2848,6 +2902,9 @@ function GameApp() {
               careerMarketViewModelSource(store.career, undefined, t),
               t,
             )}
+            guidanceNudgeTarget={guidanceNudgeTarget}
+            guidanceNudgeToken={guidanceNudgeToken}
+            reduceMotion={reduceMotion}
             onStartScoutMission={(optionId) =>
               performManagementAction(
                 () => store.startScoutMission(optionId),
@@ -3107,6 +3164,8 @@ function GameApp() {
                     )?.id
                   : undefined
             }
+            guidanceNudgeTarget={guidanceNudgeTarget}
+            guidanceNudgeToken={guidanceNudgeToken}
             focusGuidedAlert={
               assistantObjective?.target === 'training-ground-alert'
             }

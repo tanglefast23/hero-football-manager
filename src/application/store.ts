@@ -2336,6 +2336,20 @@ export const useM1Store = create<M1Store>((set, get) => ({
         return;
       }
       const career = requireCareer(current);
+      if (
+        type !== 'coaching-office' &&
+        outstandingInboxDuties(career).includes('coaching-office')
+      ) {
+        // Keep this guard below the UI as well. A stale confirmation, keyboard
+        // action, or direct store call must not spend money on the wrong build
+        // while the Coaching Office is this week's required desk job.
+        set({
+          inboxDutyReminder: ['coaching-office'],
+          error: null,
+          notice: null,
+        });
+        return;
+      }
       if (type !== 'training-pitch' && openingTrainingPitchRequired(career)) {
         set({
           error: null,

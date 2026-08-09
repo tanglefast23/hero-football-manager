@@ -2,10 +2,11 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SfxPressable as Pressable } from './SfxPressable';
 import { playDrillGainRevealSfx } from '../../render/management-sfx';
+import { drillPresentationMs } from '../../render/drill-presentation-timing';
 import { useCopy, usePixelStyles, type LocaleFaces } from '../../i18n';
 
-export const DRILL_GAIN_REVEAL_MS = 1_400;
-const REDUCED_MOTION_GAIN_REVEAL_MS = 700;
+export const DRILL_GAIN_REVEAL_MS = drillPresentationMs(1_400);
+const REDUCED_MOTION_GAIN_REVEAL_MS = drillPresentationMs(700);
 const SPOKE_COUNT = 12;
 
 export interface DrillGainRevealProps {
@@ -44,13 +45,13 @@ export function DrillGainReveal({
     }
     const plate = Animated.spring(punch, {
       toValue: 1,
-      friction: 4,
-      tension: 120,
+      friction: 5,
+      tension: 188,
       useNativeDriver: true,
     });
     const rays = Animated.timing(burst, {
       toValue: 1,
-      duration: 520,
+      duration: drillPresentationMs(520),
       easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     });

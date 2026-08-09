@@ -49,7 +49,7 @@ export const EXEMPT = [
   // decision; none of these strings is interface prose.
   /src\/ui\/components\/TitlePlayerPopScene\.tsx$/,
   /src\/render\/power-match-showcase\.ts$/,
-  // The fifteen named superheroes. "Barry Allan" is a person's name, not copy:
+  // The fifteen named superheroes. "Larry Alan" is a person's name, not copy:
   // it reads the same in every locale, exactly as the generated first- and
   // last-name pools and the club names already do. The `reference` and `cue`
   // fields beside them are development notes that never reach a screen.
