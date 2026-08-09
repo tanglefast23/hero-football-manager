@@ -80,6 +80,13 @@ function paintedComponentSizes(rows: readonly string[]): number[] {
   return componentSizes.sort((a, b) => b - a);
 }
 
+function averageTokenX(rows: readonly string[], tokens: ReadonlySet<string>) {
+  const columns = rows.flatMap((row) =>
+    [...row].flatMap((token, x) => (tokens.has(token) ? [x] : [])),
+  );
+  return columns.reduce((sum, column) => sum + column, 0) / columns.length;
+}
+
 describe('derived slide-tackle sprites', () => {
   it('keeps every approved pose on the hard pixel grid and within the intended scale', () => {
     const sheet = loadSpriteSheet();
@@ -129,6 +136,21 @@ describe('derived slide-tackle sprites', () => {
   it('uses positive head motion and reaches an almost-horizontal deepest slide', () => {
     expect(SLIDE_TACKLE_HEAD_ANGLES.every((angle) => angle > 0)).toBe(true);
     expect(Math.max(...SLIDE_TACKLE_HEAD_ANGLES)).toBe(78);
+  });
+
+  it('renders frames 3 through 7 with counter-clockwise head rotation', () => {
+    const sheet = loadSpriteSheet();
+    const hairTokens = new Set(['x', 'y']);
+    const skinTokens = new Set(['d', 'm', 'n', 'S', 'L']);
+    for (const frame of [3, 4, 5, 6, 7]) {
+      const rows = sheet.sprites[`r:f00:${slideTackleSpriteFrame(frame)}`];
+      // At the low point of a left-facing tackle, counter-clockwise rotation
+      // puts the top/back of this asymmetric head to the left of its face.
+      // The old screen-space sign placed it to the right in every frame here.
+      expect(averageTokenX(rows, hairTokens)).toBeLessThan(
+        averageTokenX(rows, skinTokens),
+      );
+    }
   });
 
   it('does not recreate the removed solid black neck bridge', () => {
