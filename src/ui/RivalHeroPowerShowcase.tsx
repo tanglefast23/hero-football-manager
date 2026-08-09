@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -254,89 +254,96 @@ export function RivalHeroPowerShowcase({
     active && viewModel.power === 'SUPER_SPEED' && !reduceMotion;
 
   return (
-    <View
-      accessible={false}
-      importantForAccessibility="no-hide-descendants"
-      pointerEvents="none"
-      style={styles.fill}
-      testID={`rival-hero-power-showcase-${viewModel.heroId}`}
-    >
-      {active && showcaseProp !== undefined ? (
+    <Fragment>
+      <View
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
+        pointerEvents="none"
+        style={styles.fill}
+        testID={`rival-hero-power-showcase-${viewModel.heroId}`}
+      >
+        {active && showcaseProp !== undefined ? (
+          <Animated.View
+            style={[
+              styles.showcaseProp,
+              {
+                bottom: heroGroundOffset,
+                left: targetX,
+              },
+              propAnimatedStyle,
+            ]}
+            testID={`rival-hero-showcase-target-${showcaseProp}`}
+          >
+            <ShowcaseTarget kind={showcaseProp} />
+          </Animated.View>
+        ) : null}
+
+        {showAfterimages
+          ? [-1, 1].map((direction, index) => (
+              <Animated.View
+                key={direction}
+                style={[
+                  styles.afterimage,
+                  {
+                    bottom: heroGroundOffset,
+                    height: heroHeight,
+                    left: heroCentreX,
+                    marginLeft: -heroWidth / 2,
+                    opacity: index === 0 ? 0.2 : 0.12,
+                    transform: [
+                      {
+                        translateX: Animated.add(
+                          heroX,
+                          direction *
+                            Math.round(heroWidth * (0.32 + index * 0.2)),
+                        ),
+                      },
+                    ],
+                    width: heroWidth,
+                  },
+                ]}
+              >
+                <PlayerRunSprite
+                  playerId={viewModel.heroId}
+                  lookId={viewModel.lookId}
+                  role={viewModel.role}
+                  scale={heroScale}
+                  walking
+                />
+              </Animated.View>
+            ))
+          : null}
+
         <Animated.View
           style={[
-            styles.showcaseProp,
+            styles.hero,
             {
               bottom: heroGroundOffset,
-              left: targetX,
+              height: heroHeight,
+              left: heroCentreX,
+              marginLeft: -heroWidth / 2,
+              width: heroWidth,
             },
-            propAnimatedStyle,
+            heroAnimatedStyle,
           ]}
-          testID={`rival-hero-showcase-target-${showcaseProp}`}
         >
-          <ShowcaseTarget kind={showcaseProp} />
+          <PlayerRunSprite
+            playerId={viewModel.heroId}
+            lookId={viewModel.lookId}
+            role={viewModel.role}
+            scale={heroScale}
+            walking={heroWalking}
+          />
         </Animated.View>
-      ) : null}
-
-      {showAfterimages
-        ? [-1, 1].map((direction, index) => (
-            <Animated.View
-              key={direction}
-              style={[
-                styles.afterimage,
-                {
-                  bottom: heroGroundOffset,
-                  height: heroHeight,
-                  left: heroCentreX,
-                  marginLeft: -heroWidth / 2,
-                  opacity: index === 0 ? 0.2 : 0.12,
-                  transform: [
-                    {
-                      translateX: Animated.add(
-                        heroX,
-                        direction *
-                          Math.round(heroWidth * (0.32 + index * 0.2)),
-                      ),
-                    },
-                  ],
-                  width: heroWidth,
-                },
-              ]}
-            >
-              <PlayerRunSprite
-                playerId={viewModel.heroId}
-                lookId={viewModel.lookId}
-                role={viewModel.role}
-                scale={heroScale}
-                walking
-              />
-            </Animated.View>
-          ))
-        : null}
-
-      <Animated.View
-        style={[
-          styles.hero,
-          {
-            bottom: heroGroundOffset,
-            height: heroHeight,
-            left: heroCentreX,
-            marginLeft: -heroWidth / 2,
-            width: heroWidth,
-          },
-          heroAnimatedStyle,
-        ]}
-      >
-        <PlayerRunSprite
-          playerId={viewModel.heroId}
-          lookId={viewModel.lookId}
-          role={viewModel.role}
-          scale={heroScale}
-          walking={heroWalking}
-        />
-      </Animated.View>
+      </View>
 
       {active && viewModel.power !== 'SUPER_SPEED' ? (
-        <Canvas style={styles.effects} testID="rival-hero-showcase-effects">
+        <Canvas
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+          style={styles.foregroundEffects}
+          testID="rival-hero-showcase-effects"
+        >
           <PowerEffectScene
             anchor={{
               x: Math.round((origin.x + targetX) / 2),
@@ -354,7 +361,7 @@ export function RivalHeroPowerShowcase({
           />
         </Canvas>
       ) : null}
-    </View>
+    </Fragment>
   );
 }
 
@@ -583,13 +590,14 @@ const styles = StyleSheet.create({
     top: 0,
     zIndex: 3,
   },
-  effects: {
+  foregroundEffects: {
     bottom: 0,
     left: 0,
+    pointerEvents: 'none',
     position: 'absolute',
     right: 0,
     top: 0,
-    zIndex: 4,
+    zIndex: 10,
   },
   hero: {
     position: 'absolute',
