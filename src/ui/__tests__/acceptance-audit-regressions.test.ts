@@ -25,7 +25,7 @@ describe('player-facing acceptance audit regressions', () => {
       'useState<DifficultyMode>(initialDifficulty)',
     );
     expect(app).toContainSource(
-      "initialDifficulty={store.career.difficulty ?? 'COZY'}",
+      "initialDifficulty={store.career.difficulty ?? 'CHAIRMAN'}",
     );
   });
 
