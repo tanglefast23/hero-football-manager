@@ -117,19 +117,31 @@ function advanceToMatchday(): void {
       );
     }
     state.advanceCareer();
-    // The opening weeks hold Advance Week until the desk is clear. This test is
-    // about match stat lines, so it answers the duty the cheapest way there is
-    // — declining the youth intake is free and closes the window — and carries
-    // on to the fixture it came for.
+    // The opening weeks hold Advance Week until the real desk jobs are done.
+    // This test is about match stat lines, so it performs each requested action
+    // and carries on to the fixture it came for.
     const refused = useM1Store.getState().inboxDutyReminder;
     if (refused !== null) {
       useM1Store.getState().dismissInboxDutyReminder();
-      if (!refused.includes('youth-intake')) {
-        throw new Error(
-          `the desk refused with ${refused.join(', ')} before a matchday`,
-        );
+      for (const duty of refused) {
+        const current = useM1Store.getState();
+        const career = current.career!;
+        if (duty === 'facility-placement') {
+          current.buildClubFacility('training-pitch', { x: 0, y: 0 });
+        } else if (duty === 'head-coach-market') {
+          const coachId = career.market?.coachCandidates[0]?.id;
+          if (coachId === undefined)
+            throw new Error('the opening coach candidate disappeared');
+          current.hireCoach(coachId, 'HEAD');
+        } else if (duty === 'youth-intake') {
+          const youthId = career.youthIntake?.offers[0]?.player.id;
+          if (youthId === undefined)
+            throw new Error('the opening youth offer disappeared');
+          current.signYouth(youthId);
+        } else {
+          current.buildClubFacility('coaching-office', { x: 2, y: 0 });
+        }
       }
-      useM1Store.getState().declineYouth();
     }
   }
   throw new Error('the career never reached a matchday');

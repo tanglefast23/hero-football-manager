@@ -4,9 +4,11 @@ import {
   hasAssistantGuideMilestone,
   highestDivisionReached,
   careerRosterCapacity,
+  buildCareerFacility,
+  hireCareerCoach,
+  signYouthIntakeOffer,
   completeAssistantGuideSequence,
   deferAssistantGuideSequencesUntilUnlock,
-  FACILITY_CATALOG,
   isDivisionLeadersUnlocked,
   isFacilityOperational,
   isStoryCupGuideUnlocked,
@@ -244,7 +246,18 @@ export function dueAssistantInboxGuideSequences(
     );
   }
 
-  const pending = due.filter((sequenceId) => !completed(sequenceId));
+  const pending = due.filter((sequenceId) => {
+    if (!completed(sequenceId)) return true;
+    const duty = openingInboxDutyForGuideSequence(sequenceId);
+    return (
+      assistantTeaches(state) &&
+      state.season === 1 &&
+      state.week <= LAST_GATED_INBOX_WEEK &&
+      duty !== undefined &&
+      isOpeningInboxDutyIncomplete(state, duty) &&
+      isInboxDutyCompletable(state, duty)
+    );
+  });
 
   /*
    * The upgrade lesson is the only guide nothing is waiting on: the pitch
@@ -267,7 +280,7 @@ export function dueAssistantInboxGuideSequences(
 }
 
 /**
- * The desk jobs that hold the week open: the opening's two assigned tasks.
+ * The four blue desk jobs that hold the opening weeks open.
  *
  * Three rules decide what may be on this list, and between them they exclude
  * most of the inbox.
@@ -276,21 +289,60 @@ export function dueAssistantInboxGuideSequences(
  * market, the cup format, the league boards — have nothing to finish, so
  * gating on one would hold the week shut with no way to open it.
  *
- * It must not wall the first press of the career. `facility-placement` is a
- * real duty by the first test and is still deliberately absent: the training
- * pitch is already due in week 1 and stays due until it is built, so blocking
- * on it would refuse the opening Advance Week of every new career. Week 1 asks
- * for the pitch through the objective line instead, which is the gentler
- * instrument and the one the opening was written around.
+ * Completion must be a durable game fact. Reading Bert is never completion,
+ * and declining the opening youth choice is not the requested signing.
  *
- * It must be completable *this week* — see `affordable` below. A duty the club
- * cannot pay for would otherwise trap a career that has no way to earn until
- * the week moves, and nothing in this game is allowed to end that way.
+ * It must also be completable *this week*. A duty the club cannot pay for,
+ * place, or fit in the roster would otherwise trap a career with no way to
+ * earn or make space until the clock moves.
  */
-const BLOCKING_INBOX_DUTIES: readonly AssistantInboxGuideSequenceId[] = [
-  'coaching-office',
+export type OpeningInboxDutyId =
+  | 'facility-placement'
+  | 'head-coach-market'
+  | 'youth-intake'
+  | 'coaching-office';
+
+const BLOCKING_INBOX_DUTIES: readonly OpeningInboxDutyId[] = [
+  'facility-placement',
+  'head-coach-market',
   'youth-intake',
+  'coaching-office',
 ];
+
+/** One durable job ID even when the coach lesson moves to its second briefing. */
+export function openingInboxDutyForGuideSequence(
+  sequenceId: AssistantInboxGuideSequenceId,
+): OpeningInboxDutyId | undefined {
+  if (sequenceId === 'head-coach-hire') return 'head-coach-market';
+  return BLOCKING_INBOX_DUTIES.find((duty) => duty === sequenceId);
+}
+
+export function isOpeningInboxDutyIncomplete(
+  state: GameState,
+  duty: OpeningInboxDutyId | undefined,
+): boolean {
+  if (duty === undefined) return false;
+  if (duty === 'facility-placement') {
+    return !(
+      state.facilities.trainingGroundBuilt ||
+      (state.facilities.grid?.buildings.some(
+        (building) => building.type === 'training-pitch',
+      ) ??
+        false)
+    );
+  }
+  if (duty === 'head-coach-market') {
+    return state.market?.headCoach === undefined;
+  }
+  if (duty === 'youth-intake') {
+    return (state.youthIntake?.signedPlayerIds.length ?? 0) === 0;
+  }
+  return !(
+    state.facilities.grid?.buildings.some(
+      (building) => building.type === 'coaching-office',
+    ) ?? false
+  );
+}
 
 export const OPENING_TRAINING_PITCH_BLOCKED_REASON_KEY =
   'clubFinances.a11y.buildTheTrainingPitchFirst';
@@ -319,24 +371,64 @@ export function openingTrainingPitchRequired(state: GameState): boolean {
 /**
  * Whether the club could actually clear this duty right now.
  *
- * The youth intake is always answerable — declining closes it and costs
- * nothing — so only the build has availability to check. Cash, the one works
- * crew, and the opening Training Pitch rule all have to permit the office, so
- * the week gate lifts whenever the button it points at would refuse.
+ * The pure transactions are the authority. They include cash, eligibility,
+ * roster space, the works crew, the building footprint, and the pitch-first
+ * rule. Trying them against the immutable state keeps this check aligned with
+ * the button without duplicating all those rules here.
  */
-function isInboxDutyAffordable(
+function isInboxDutyCompletable(
   state: GameState,
-  duty: AssistantInboxGuideSequenceId,
+  duty: OpeningInboxDutyId,
 ): boolean {
-  if (duty !== 'coaching-office') return true;
-  // A wrong opening project in an older save must be allowed to finish, and a
-  // newly started pitch must be allowed to finish too. Asking for the office
-  // while either rule owns the one works crew would deadlock Advance Week.
-  if (openingTrainingPitchRequired(state)) return false;
+  if (
+    duty === 'coaching-office' &&
+    state.week < STORY_COACHING_OFFICE_GUIDE_WEEK
+  ) {
+    return false;
+  }
+  if (duty === 'head-coach-market') {
+    if (state.market === undefined) return false;
+    return state.market.coachCandidates.some((candidate) => {
+      try {
+        hireCareerCoach(state, state.market!, candidate.id, 'HEAD');
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  }
+  if (duty === 'youth-intake') {
+    const intake = state.youthIntake;
+    if (intake?.status !== 'OPEN') return false;
+    return intake.offers.some((offer) => {
+      try {
+        signYouthIntakeOffer(state, intake, offer.player.id);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  }
+
+  // A wrong opening project in an older save must be allowed to finish. A job
+  // which cannot use the one works crew must not deadlock Advance Week.
   if (state.facilities.grid?.construction !== undefined) return false;
-  const cash =
-    state.clubs.find((club) => club.id === state.userClubId)?.cash ?? 0;
-  return cash >= FACILITY_CATALOG['coaching-office'].buildCost;
+  const type =
+    duty === 'facility-placement' ? 'training-pitch' : 'coaching-office';
+  if (type === 'coaching-office' && openingTrainingPitchRequired(state)) {
+    return false;
+  }
+  for (let y = 0; y < 6; y += 1) {
+    for (let x = 0; x < 8; x += 1) {
+      try {
+        buildCareerFacility(state, type, { x, y });
+        return true;
+      } catch {
+        // Try the next square. The pure transaction does not change `state`.
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -353,20 +445,17 @@ export const LAST_GATED_INBOX_WEEK = 3;
 /**
  * The duties still owed this week, or none once the opening is over.
  *
- * Reads the same `dueAssistantInboxGuideSequences` the desk itself renders, so
- * a duty disappears from here at the exact moment it leaves the inbox — the
- * coaching office clears when construction *starts*, because that is when its
- * building joins the grid, and the youth intake clears on a signing or a
- * decline alike.
+ * A duty disappears only when its real result exists: the two buildings clear
+ * when construction starts, the coach clears on hire, and Youth clears only
+ * after a successful signing. A briefing flag cannot alter this list.
  */
-export function outstandingInboxDuties(
-  state: GameState,
-): AssistantInboxGuideSequenceId[] {
+export function outstandingInboxDuties(state: GameState): OpeningInboxDutyId[] {
   if (!assistantTeaches(state)) return [];
   if (state.season !== 1 || state.week > LAST_GATED_INBOX_WEEK) return [];
-  const due = new Set(dueAssistantInboxGuideSequences(state));
   return BLOCKING_INBOX_DUTIES.filter(
-    (duty) => due.has(duty) && isInboxDutyAffordable(state, duty),
+    (duty) =>
+      isOpeningInboxDutyIncomplete(state, duty) &&
+      isInboxDutyCompletable(state, duty),
   );
 }
 
@@ -402,13 +491,23 @@ export function reconcileSatisfiedAssistantGuideSequences(
             building.type === 'training-pitch' &&
             isFacilityOperational(grid, building.id),
         );
-  if (hasOperationalTrainingPitch) {
+  const hasStartedTrainingPitch =
+    state.facilities.trainingGroundBuilt ||
+    (grid?.buildings.some((building) => building.type === 'training-pitch') ??
+      false);
+  if (hasStartedTrainingPitch) {
     next = completeAssistantGuideSequence(next, 'facility-placement');
   }
   if (hasCoachingOffice)
     next = completeAssistantGuideSequence(next, 'coaching-office');
   if (state.market?.assistantCoach !== undefined) {
     next = completeAssistantGuideSequence(next, 'assistant-coach-hire');
+  }
+  if (
+    (state.youthIntake?.signedPlayerIds.length ?? 0) > 0 ||
+    state.youthIntake?.declined === true
+  ) {
+    next = completeAssistantGuideSequence(next, 'youth-intake');
   }
   if (
     state.market?.activeScoutMission !== undefined ||

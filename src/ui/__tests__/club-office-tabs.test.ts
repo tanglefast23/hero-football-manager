@@ -47,7 +47,11 @@ describe('club office boards', () => {
       'const [clubOfficeTab, setClubOfficeTab] = useState<ClubOfficeTab>',
     );
     expect(app).toContainSource('activeTab={clubOfficeTab}');
-    expect(app).toContainSource('onSelectTab={setClubOfficeTab}');
+    expect(app).toContainSource('onSelectTab={(tab) => {');
+    expect(app).toContainSource('setClubOfficeTab(tab);');
+    expect(app).toContainSource(
+      'store.notifyInboxDutyBlocked(focusedInboxDutyId);',
+    );
   });
 
   it('opens the board the desk is sending the manager to', () => {
@@ -70,6 +74,14 @@ describe('club office boards', () => {
     expect(app).toMatchSource(
       /onOpenCoachMarket=\{\(\) => \{[\s\S]{0,400}section: 'COACHES',/,
     );
+  });
+
+  it('locks the board after a blue inbox job is selected', () => {
+    expect(app).toContainSource('store.focusInboxDuty(alert.mustDoDutyId);');
+    expect(app).toContainSource("? 'COACHES'");
+    expect(app).toContainSource("? 'YOUTH'");
+    expect(market).toContainSource('nextSection !== lockedSection');
+    expect(market).toContainSource('onBlockedSectionChange?.();');
   });
 });
 

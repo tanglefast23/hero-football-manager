@@ -203,8 +203,10 @@ import { leagueFixtureViewModel } from './m2-league-view-model';
 import { coachRoleEffectLabels } from './coach-effects';
 import {
   dueAssistantInboxGuideSequences,
+  openingInboxDutyForGuideSequence,
   OPENING_TRAINING_PITCH_BLOCKED_REASON_KEY,
   openingTrainingPitchRequired,
+  outstandingInboxDuties,
   reconcileSatisfiedAssistantGuideSequences,
 } from './assistant-guide';
 import { eventChoiceUnavailableReason } from './event-selection';
@@ -3252,6 +3254,7 @@ export function homeViewModel(
   const careerTeaches = assistantTeaches(assistantState);
   const productAlerts = homeProductAlerts(assistantState, t);
   const dueGuides = dueAssistantInboxGuideSequences(assistantState);
+  const mustDoDuties = new Set(outstandingInboxDuties(assistantState));
   const inboxPlan = scheduleAssistantInboxWeek(assistantState, {
     dueGuideSequenceIds: standaloneInboxGuides(dueGuides, productAlerts),
     heldGuideSequenceIds: quietDeskInboxGuides(assistantState, productAlerts),
@@ -3320,6 +3323,10 @@ export function homeViewModel(
         ...alert,
         guideSequenceId,
         destination: sequence.destination,
+        ...(alert.id === 'training-ground' &&
+        mustDoDuties.has('facility-placement')
+          ? { mustDoDutyId: 'facility-placement' as const }
+          : {}),
       };
     });
   const guideAlerts: ClubAlertViewModel[] = (
@@ -3331,6 +3338,7 @@ export function homeViewModel(
     if (sequence?.inbox === undefined || sequence.destination === undefined) {
       throw new Error(`assistant guide ${sequenceId} is missing inbox routing`);
     }
+    const mustDoDutyId = openingInboxDutyForGuideSequence(sequenceId);
     return {
       id: `assistant-guide:${sequenceId}`,
       // Resolved here rather than in the row, because a PRODUCT alert also
@@ -3352,6 +3360,9 @@ export function homeViewModel(
           : 'event',
       guideSequenceId: sequenceId,
       destination: sequence.destination,
+      ...(mustDoDutyId !== undefined && mustDoDuties.has(mustDoDutyId)
+        ? { mustDoDutyId }
+        : {}),
     };
   });
   // Ordered by the priority that bought each row its slot, not by how the row
@@ -3362,10 +3373,14 @@ export function homeViewModel(
   // itself sitting over the explainer's card.
   const productPriority = (alert: ClubAlertViewModel) =>
     assistantProductPriority(alert, dueGuides);
-  const scheduledAlerts = [
+  const scheduledCandidates = [
     ...selectedProducts.filter((alert) => productPriority(alert) === 'urgent'),
     ...guideAlerts,
     ...selectedProducts.filter((alert) => productPriority(alert) !== 'urgent'),
+  ];
+  const scheduledAlerts = [
+    ...scheduledCandidates.filter((alert) => alert.mustDoDutyId !== undefined),
+    ...scheduledCandidates.filter((alert) => alert.mustDoDutyId === undefined),
   ].slice(0, 3);
   // A quiet week's own contents, in the order they earn attention: the story
   // that landed this week, the shop the club has not found yet, and only if

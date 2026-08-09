@@ -101,10 +101,10 @@ function MatchWeekMarquee({
 }
 
 /** Full-card tint per alert tone — bible palette only, never off-palette Tailwind hues. */
-function alertPalette(tone: ClubAlertViewModel['tone']): string {
-  if (tone === 'urgent') return 'border-red-dark bg-red-light';
-  if (tone === 'event') return 'border-blue-dark bg-blue-light';
-  return 'border-blue-dark bg-blue-light';
+function alertPalette(alert: ClubAlertViewModel): string {
+  if (alert.mustDoDutyId !== undefined) return 'border-blue-dark bg-blue-light';
+  if (alert.tone === 'urgent') return 'border-red-dark bg-red-light';
+  return 'border-grey-dark bg-paper-dark';
 }
 
 export interface ClubHomeScreenProps {
@@ -266,9 +266,16 @@ export function ClubHomeScreen({
                 <Pressable
                   key={alert.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`${alert.title}. ${alert.detail}`}
+                  accessibilityLabel={
+                    alert.mustDoDutyId === undefined
+                      ? `${alert.title}. ${alert.detail}`
+                      : t('clubHome.a11y.mustDoAlert', {
+                          title: alert.title,
+                          detail: alert.detail,
+                        })
+                  }
                   onPress={() => onOpenAlert(alert.id)}
-                  className={`relative min-h-14 flex-row items-center justify-between border-2 border-b-4 p-3 ${alertPalette(alert.tone)}`}
+                  className={`relative min-h-14 flex-row items-center justify-between border-2 border-b-4 p-3 ${alertPalette(alert)}`}
                   // Kept in the existing function form rather than split into an
                   // array: switching a Pressable's style to or from a function
                   // has twice collapsed layout on iOS only in this project.
@@ -294,6 +301,12 @@ export function ClubHomeScreen({
                       </PixelText>
                       {alert.isHero ? (
                         <StatusChip label={t('clubHome.hero')} tone="hero" />
+                      ) : null}
+                      {alert.mustDoDutyId !== undefined ? (
+                        <StatusChip
+                          label={t('clubHome.mustDo')}
+                          tone="normal"
+                        />
                       ) : null}
                     </View>
                     <Text

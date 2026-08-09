@@ -104,6 +104,7 @@ import {
   playFacilityStartSfx,
   playTransactionConfirmSfx,
   playManagementActionSfx,
+  prewarmManagementSfx,
   setManagementSfxMasterVolume,
   teardownManagementSfx,
 } from './src/render/management-sfx';
@@ -215,6 +216,7 @@ import { ScreenErrorBoundary } from './src/ui/ScreenErrorBoundary';
 import {
   currentAssistantObjective,
   pendingAssistantGuideSequence,
+  type OpeningInboxDutyId,
 } from './src/application/assistant-guide';
 import {
   loadPreferencesFailSoft,
@@ -255,6 +257,13 @@ const QaRootApp = lazy(async () => {
   const module = await import('./src/ui/qa/QaRootApp');
   return { default: module.default };
 });
+
+function inboxDutyCopyStem(dutyId: OpeningInboxDutyId): string {
+  if (dutyId === 'facility-placement') return 'inboxDuty.trainingPitch';
+  if (dutyId === 'head-coach-market') return 'inboxDuty.headCoach';
+  if (dutyId === 'youth-intake') return 'inboxDuty.youth';
+  return 'inboxDuty.coachingOffice';
+}
 
 // The Debug build pings the packager port it was compiled with before falling
 // back to the active one; the resulting warning toast is pure dev noise.
@@ -346,6 +355,7 @@ export default function App() {
             // recover with his lecture floating over the landing view, and a stale
             // watched match holds live-match props no screen consumes.
             inboxDutyReminder: null,
+            inboxDutyFocus: null,
             watchedMatch: null,
           })
         }
@@ -380,8 +390,8 @@ function GameApp() {
    * `facesFor(preferences.language)` further down always read state directly and
    * was always correct. This is the same source; now it is the only one.
    *
-   * `t` is memoised because `copyFor` returns a fresh closure per call and
-   * several memos below key on its identity.
+   * `copyFor` also caches one pure function per locale. The memo keeps this
+   * component's dependency explicit and avoids a lookup on unrelated renders.
    */
   const locale = preferences.language;
   const t = useMemo(() => copyFor(locale), [locale]);
@@ -1188,6 +1198,36 @@ function GameApp() {
     setHapticsEnabled(preferences.hapticsEnabled);
   }, [preferences.hapticsEnabled]);
 
+  useEffect(() => {
+    if (
+      Platform.OS === 'web' ||
+      bootError !== null ||
+      !store.persistenceReady ||
+      store.persistenceLoadError !== null ||
+      store.screen !== 'welcome' ||
+      landingView !== 'title'
+    )
+      return undefined;
+
+    let warmTimer: ReturnType<typeof setTimeout> | undefined;
+    const titleFrame = requestAnimationFrame(() => {
+      // Effects run after the title commit. Crossing its next frame and then
+      // yielding once more keeps 33 player allocations out of the title paint.
+      warmTimer = setTimeout(prewarmManagementSfx, 0);
+    });
+
+    return () => {
+      cancelAnimationFrame(titleFrame);
+      if (warmTimer !== undefined) clearTimeout(warmTimer);
+    };
+  }, [
+    bootError,
+    landingView,
+    store.persistenceLoadError,
+    store.persistenceReady,
+    store.screen,
+  ]);
+
   /**
    * The face-off is decoration, and decoration must never be able to strand a
    * settled match. `quickResult` only ever sets this screen in the same `set()`
@@ -1851,6 +1891,14 @@ function GameApp() {
     store.career === null
       ? null
       : currentAssistantObjective(store.career, store.activeTab);
+  const focusedInboxDutyId =
+    store.inboxDutyFocus?.mode === 'focused'
+      ? store.inboxDutyFocus.dutyId
+      : undefined;
+  const focusedInboxDutyObjective =
+    focusedInboxDutyId === undefined
+      ? undefined
+      : t(`${inboxDutyCopyStem(focusedInboxDutyId)}.objective`);
   const assistantObjectiveKey =
     assistantObjective === null
       ? null
@@ -2235,7 +2283,7 @@ function GameApp() {
   } else if (store.screen === 'create-player' && store.career !== null) {
     screen = (
       <CharacterCreationScreen
-        initialDifficulty={store.career.difficulty ?? 'COZY'}
+        initialDifficulty={store.career.difficulty ?? 'CHAIRMAN'}
         defaultClubName={userClubName(store.career)}
         roster={inheritedSquad(store.career)}
         reduceMotion={reduceMotion}
@@ -2543,11 +2591,12 @@ function GameApp() {
         reduceMotion={reduceMotion}
         activeTab={store.activeTab}
         onTabChange={(tab) => {
+          store.setActiveTab(tab);
+          if (useM1Store.getState().activeTab !== tab) return;
           setConciergeFocus(null);
           setMarketSectionRequest(null);
           setDrillFocusToken(null);
           setManagerTipGuideRequest(null);
-          store.setActiveTab(tab);
         }}
         onAdvanceWeek={handleAdvanceWeek}
         keyboardShortcutsEnabled={!guideOverlayVisible}
@@ -2597,6 +2646,17 @@ function GameApp() {
         onMoneyGuideAnchorChange={setMoneyGuideAnchor}
         onNavigationGuideAnchorChange={setNavigationGuideAnchor}
         onDismissGuidance={dismissVisibleTips}
+        mustDoObjective={focusedInboxDutyObjective}
+        onBackToInboxDuties={
+          focusedInboxDutyId === undefined
+            ? undefined
+            : () => {
+                setRequestedAssistantSequenceId(null);
+                setConciergeFocus(null);
+                setMarketSectionRequest(null);
+                store.backToInboxDuties();
+              }
+        }
       >
         {store.activeTab === 'squad' ? (
           <SquadTrainingScreen
@@ -2668,7 +2728,13 @@ function GameApp() {
           <ClubFinancesScreen
             viewModel={clubFinancesViewModel(store.career, t)}
             activeTab={clubOfficeTab}
-            onSelectTab={setClubOfficeTab}
+            onSelectTab={(tab) => {
+              if (focusedInboxDutyId !== undefined && tab !== 'facility') {
+                store.notifyInboxDutyBlocked(focusedInboxDutyId);
+                return;
+              }
+              setClubOfficeTab(tab);
+            }}
             onBuildTrainingGround={buildTrainingGroundWithSfx}
             onBuildFacility={buildClubFacilityWithFeedback}
             onUpgradeFacility={(buildingId) => {
@@ -2833,6 +2899,13 @@ function GameApp() {
               });
             }}
             onHireCoach={(coachId, role) => {
+              if (
+                focusedInboxDutyId === 'head-coach-market' &&
+                role !== 'HEAD'
+              ) {
+                store.notifyInboxDutyBlocked(focusedInboxDutyId);
+                return;
+              }
               const career = useM1Store.getState().career!;
               const market = marketViewModel(
                 careerMarketViewModelSource(career, undefined, t),
@@ -2866,7 +2939,11 @@ function GameApp() {
                 onConfirm: () => signYouthWithFeedback(playerId),
               })
             }
-            onDeclineYouth={() =>
+            onDeclineYouth={() => {
+              if (focusedInboxDutyId === 'youth-intake') {
+                store.notifyInboxDutyBlocked(focusedInboxDutyId);
+                return;
+              }
               requestConfirmation({
                 title: 'Decline the youth intake?',
                 detail:
@@ -2879,14 +2956,24 @@ function GameApp() {
                     'warning',
                     'warning',
                   ),
-              })
-            }
+              });
+            }}
             onSubmitContractOffer={submitTransferOfferWithFeedback}
             onCloseNegotiation={store.closeTransferTalks}
             onDismissGuideFocus={() => setConciergeFocus(null)}
             guideFocus={visibleConciergeFocus ?? undefined}
             requestedSection={marketSectionRequest?.section}
             requestedSectionToken={marketSectionRequest?.token}
+            lockedSection={
+              focusedInboxDutyId === 'head-coach-market'
+                ? 'COACHES'
+                : focusedInboxDutyId === 'youth-intake'
+                  ? 'YOUTH'
+                  : undefined
+            }
+            onBlockedSectionChange={() =>
+              store.notifyInboxDutyBlocked(focusedInboxDutyId)
+            }
           />
         ) : store.activeTab === 'league' && store.career.m2 !== undefined ? (
           <M2LeagueScreen
@@ -2936,13 +3023,15 @@ function GameApp() {
             onOpenManagerTipDestination={openManagerTipDestination}
             showManagerTips={careerTeaches}
             onOpenAlert={(alertId) => {
-              // Every row on the desk opens, including while Bert is pointing at
-              // the pitch. He points at one first-week job and bars neither: the
-              // Market tab was never gated, so gating only the card that
-              // advertises the coach market made that card a dead tap.
+              // Every row opens from the desk. A blue row becomes the one focused
+              // job before its destination opens, so no intermediate render can
+              // change boards without passing the same guard as a later tap.
               const alert = home.alerts.find(
                 (candidate) => candidate.id === alertId,
               );
+              if (alert?.mustDoDutyId !== undefined) {
+                store.focusInboxDuty(alert.mustDoDutyId);
+              }
               if (
                 alert?.guideSequenceId !== undefined &&
                 alert.destination !== undefined
@@ -3438,10 +3527,11 @@ function GameApp() {
                 // just refused the manager.
                 sequenceId="inbox-duty-reminder"
                 customMessage={{
-                  title: 'Desk not clear',
+                  title: t(
+                    `${inboxDutyCopyStem(store.inboxDutyReminder[0])}.title`,
+                  ),
                   body: [
-                    'Clear every job in the inbox before you move the week on.',
-                    'I know, it’s tough work. But someone’s got to be the boss, and they gave you the chair.',
+                    t(`${inboxDutyCopyStem(store.inboxDutyReminder[0])}.body`),
                   ],
                 }}
                 navigationAnchor={navigationGuideAnchor}

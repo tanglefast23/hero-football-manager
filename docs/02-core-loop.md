@@ -52,5 +52,5 @@ The user should feel money pressure without fearing a game-over screen.
 
 ## Difficulty settings
 
-- **Cozy** (default): as above.
-- **Chairman mode**: a harder game, not just a leaner budget — Season-1 subsidy cut to 40% (vs 50%), sponsor income at 80%, a half-size 10,000 emergency loan base, the board steps in after 2 negative weeks (vs 4), rivals grow 4%/season with an 800 attribute cap (vs 3%/700), the balance may sink to a −30,000 floor (vs −15,000) before board rescues clamp it, and harsher sponsor objectives (`chairmanDelta` in `content/sponsors.json`). For Kairosoft veterans who found Pocket League Story too easy (a common review complaint — we keep real money tension available).
+- **Chairman mode** (default): a harder game, not just a leaner budget — Season-1 subsidy cut to 40% (vs 50%), sponsor income at 80%, a half-size 10,000 emergency loan base, the board steps in after 2 negative weeks (vs 4), rivals grow 4%/season with an 800 attribute cap (vs 3%/700), the balance may sink to a −30,000 floor (vs −15,000) before board rescues clamp it, and harsher sponsor objectives (`chairmanDelta` in `content/sponsors.json`). For Kairosoft veterans who found Pocket League Story too easy (a common review complaint — we keep real money tension available).
+- **Cozy**: the lower-pressure alternative that uses the safety net above.

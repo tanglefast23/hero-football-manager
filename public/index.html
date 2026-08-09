@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="%LANG_ISO_CODE%">
   <head>
     <meta charset="utf-8" />
@@ -23,11 +23,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <!-- The shell is dark, so a light status bar would read as a white strip. -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta name="apple-mobile-web-app-title" content="Hero Football Manager" />
     <meta name="theme-color" content="#241f2e" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
+    <link
+      rel="preload"
+      href="/canvaskit.wasm"
+      as="fetch"
+      type="application/wasm"
+      crossorigin
+    />
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
       /* These styles make the body full-height */
@@ -37,6 +47,7 @@
       }
       /* These styles disable body scrolling if you are using <ScrollView> */
       body {
+        margin: 0;
         overflow: hidden;
         /*
          * The same colour global.css paints, repeated here on purpose: that
@@ -50,16 +61,98 @@
         display: flex;
         height: 100%;
         flex: 1;
+        width: 100%;
+      }
+      .startup-shell {
+        align-items: center;
+        background: #241f2e;
+        display: flex;
+        flex: 1;
+        justify-content: center;
+      }
+      .startup-mark {
+        border: 4px solid #f4ead0;
+        box-shadow: 6px 6px 0 #17131e;
+        height: 54px;
+        position: relative;
+        width: 88px;
+      }
+      .startup-mark::before {
+        border: 3px solid #f4ead0;
+        border-radius: 50%;
+        content: '';
+        height: 26px;
+        left: 50%;
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 26px;
+      }
+      .startup-mark::after {
+        background: #f4ead0;
+        content: '';
+        height: 54px;
+        left: 42px;
+        position: absolute;
+        top: 0;
+        width: 4px;
+      }
+      .startup-progress {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 20px;
+      }
+      .startup-progress > span {
+        animation: startup-pulse 900ms steps(1, end) infinite;
+        background: #e8c85a;
+        box-shadow: 2px 2px 0 #17131e;
+        height: 8px;
+        width: 16px;
+      }
+      .startup-progress > span:nth-child(2) {
+        animation-delay: 300ms;
+      }
+      .startup-progress > span:nth-child(3) {
+        animation-delay: 600ms;
+      }
+      @keyframes startup-pulse {
+        0%,
+        33% {
+          opacity: 1;
+        }
+        34%,
+        100% {
+          opacity: 0.28;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .startup-progress > span {
+          animation: none;
+          opacity: 1;
+        }
       }
     </style>
   </head>
 
   <body>
     <!-- Use static rendering with Expo Router to support running without JavaScript. -->
-    <noscript>
-      You need to enable JavaScript to run this app.
-    </noscript>
+    <noscript> You need to enable JavaScript to run this app. </noscript>
     <!-- The root element for your Expo app. -->
-    <div id="root"></div>
+    <div id="root">
+      <div
+        class="startup-shell"
+        role="status"
+        aria-label="Hero Football Manager"
+        aria-busy="true"
+      >
+        <div aria-hidden="true">
+          <div class="startup-mark"></div>
+          <div class="startup-progress">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

@@ -26,6 +26,7 @@ describe('training-ground inbox letter', () => {
       expect.objectContaining({
         id: 'training-ground',
         guideSequenceId: 'facility-placement',
+        mustDoDutyId: 'facility-placement',
       }),
     );
   });
@@ -40,9 +41,14 @@ describe('training-ground inbox letter', () => {
       createLaunchCareerSetup(20260804, undefined, content),
     );
 
-    expect(homeViewModel(fresh).alerts.map((alert) => alert.id)).toEqual([
+    const alerts = homeViewModel(fresh).alerts;
+    expect(alerts.map((alert) => alert.id)).toEqual([
       'training-ground',
       'assistant-guide:head-coach-market',
+    ]);
+    expect(alerts.map((alert) => alert.mustDoDutyId)).toEqual([
+      'facility-placement',
+      'head-coach-market',
     ]);
   });
 
