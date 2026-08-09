@@ -195,7 +195,7 @@ export function ClubFinancesScreen({
   const [placementRejection, setPlacementRejection] = useState<string | null>(null);
   const [buildMenuReminder, setBuildMenuReminder] = useState<string | null>(null);
   const [facilityGridWidth, setFacilityGridWidth] = useState(0);
-  const [coachingOfficeScrollCueDismissed, setCoachingOfficeScrollCueDismissed] = useState(false);
+  const [facilityPlacementHelperVisible, setFacilityPlacementHelperVisible] = useState(false);
   const [selectedSponsorSlot, setSelectedSponsorSlot] = useState(0);
   const selectedBuilding = facilities.buildings.find(
     building => building.id === selectedBuildingId,
@@ -252,6 +252,11 @@ export function ClubFinancesScreen({
     setPreviewCell(null);
     setPlacementRejection(null);
     setBuildMenuReminder(null);
+    setFacilityPlacementHelperVisible(false);
+  }, []);
+
+  const dismissFacilityPlacementHelper = useCallback(() => {
+    setFacilityPlacementHelperVisible(false);
   }, []);
 
   const handleGridCell = useCallback((x: number, y: number) => {
@@ -295,6 +300,7 @@ export function ClubFinancesScreen({
     onBuildFacility?.(pendingPlacement.catalog.type, pendingPlacement.x, pendingPlacement.y);
     setPendingPlacement(null);
     setSelectedBuildType(null);
+    setFacilityPlacementHelperVisible(false);
   }, [onBuildFacility, onRelocateFacility, pendingPlacement]);
 
   const scrollFacilityGuideTargetIntoView = useCallback((phase: GuidedFirstFacilityPhase) => {
@@ -398,15 +404,10 @@ export function ClubFinancesScreen({
   useEffect(() => {
     if (guideFocus !== 'coaching-office') {
       coachingOfficeScrolledRef.current = false;
-      setCoachingOfficeScrollCueDismissed(false);
       return;
     }
     scrollToCoachingOffice();
   }, [guideFocus, scrollToCoachingOffice]);
-
-  const dismissCoachingOfficeScrollCue = useCallback(() => {
-    setCoachingOfficeScrollCueDismissed(true);
-  }, []);
 
   useEffect(() => {
     if (guideFocus !== 'facility-grid') return;
@@ -414,6 +415,7 @@ export function ClubFinancesScreen({
     setSelectedBuildingId(null);
     setRelocatingBuildingId(null);
     setPreviewCell(null);
+    setFacilityPlacementHelperVisible(false);
     facilityGuideScrolledPhaseRef.current = null;
   }, [guideFocus]);
 
@@ -536,11 +538,12 @@ export function ClubFinancesScreen({
   const layoutMode = useLayoutMode();
 
   /**
-   * On a phone the build menu sits below the grounds, so arming a building
-   * otherwise leaves every valid placement square off-screen. Wide layouts
+   * On a phone the build menu sits above the grounds. Arming a building moves
+   * the viewport to the grid and briefly marks the place to tap. Wide layouts
    * already show the menu beside the grid and must not move the manager.
    */
   const revealMobileFacilityPlacement = useCallback(() => {
+    setFacilityPlacementHelperVisible(true);
     if (layoutMode !== 'single' || facilityPlacementTargetRef.current === null) return;
     if (facilityPlacementScrollFrameRef.current !== null) {
       cancelAnimationFrame(facilityPlacementScrollFrameRef.current);
@@ -650,8 +653,38 @@ export function ClubFinancesScreen({
 
   const facilitySections: FlowSection[] = [
     {
+      key: 'build-menu',
+      weight: 4 + viewModel.facilities.catalog.length,
+      node: (
+        <BuildMenuSection
+          viewModel={viewModel}
+          guideFocus={guideFocus}
+          guidedFirstFacility={guidedFirstFacility}
+          guidedFacilityPhase={guidedFacilityPhase}
+          selectedBuildType={selectedBuildType}
+          setSelectedBuildType={setSelectedBuildType}
+          setSelectedBuildingId={setSelectedBuildingId}
+          setRelocatingBuildingId={setRelocatingBuildingId}
+          buildMenuReminder={buildMenuReminder}
+          setBuildMenuReminder={setBuildMenuReminder}
+          facilityGuideBuildTargetRef={facilityGuideBuildTargetRef}
+          scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
+          coachingOfficeBuildTargetRef={coachingOfficeBuildTargetRef}
+          scrollToCoachingOffice={scrollToCoachingOffice}
+          revealMobileFacilityPlacement={revealMobileFacilityPlacement}
+          guideIncomeFacilities={guideIncomeFacilities}
+          incomeFacilityBuildTargetRef={incomeFacilityBuildTargetRef}
+          scrollToIncomeFacilities={scrollToIncomeFacilities}
+        />
+      ),
+    },
+    // Opens the second column on a wide screen. The build menu comes first on
+    // a phone and owns the left column on desktop; the grounds follow below or
+    // beside it. Asked for rather than estimated so their order cannot drift.
+    {
       key: 'grounds',
       weight: 10 + viewModel.facilities.height * 2,
+      startsColumn: true,
       node: (
         <GroundsSection
           viewModel={viewModel}
@@ -688,46 +721,10 @@ export function ClubFinancesScreen({
           facilityPlacementFocusRef={facilityPlacementFocusRef}
           showMobileBuildPlacementHelper={layoutMode === 'single'
             && selectedBuildType !== null
-            && !guidedFirstFacility}
+            && !guidedFirstFacility
+            && facilityPlacementHelperVisible}
+          dismissFacilityPlacementHelper={dismissFacilityPlacementHelper}
           scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
-        />
-      ),
-    },
-    // Opens the second column on a wide screen. The grounds are the board —
-    // the grid on the left, and everything the manager does *to* it reading
-    // down the right: the menu to build from, the pairs found so far, the
-    // register and the legacy pitch. Asked for rather than estimated, so no
-    // content count can lift a build card up beside the grid.
-    {
-      key: 'build-menu',
-      weight: 4 + viewModel.facilities.catalog.length,
-      startsColumn: true,
-      node: (
-        <BuildMenuSection
-          viewModel={viewModel}
-          guideFocus={guideFocus}
-          guidedFirstFacility={guidedFirstFacility}
-          guidedFacilityPhase={guidedFacilityPhase}
-          selectedBuildType={selectedBuildType}
-          setSelectedBuildType={setSelectedBuildType}
-          setSelectedBuildingId={setSelectedBuildingId}
-          setRelocatingBuildingId={setRelocatingBuildingId}
-          buildMenuReminder={buildMenuReminder}
-          setBuildMenuReminder={setBuildMenuReminder}
-          facilityGuideBuildTargetRef={facilityGuideBuildTargetRef}
-          scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
-          coachingOfficeBuildTargetRef={coachingOfficeBuildTargetRef}
-          scrollToCoachingOffice={scrollToCoachingOffice}
-          // Two columns put the grid beside the menu instead of above it, so
-          // there is nothing to scroll up to and the cue would be a lie.
-          showCoachingOfficeScrollCue={layoutMode === 'single'
-            && guideFocus === 'coaching-office'
-            && !coachingOfficeScrollCueDismissed}
-          dismissCoachingOfficeScrollCue={dismissCoachingOfficeScrollCue}
-          revealMobileFacilityPlacement={revealMobileFacilityPlacement}
-          guideIncomeFacilities={guideIncomeFacilities}
-          incomeFacilityBuildTargetRef={incomeFacilityBuildTargetRef}
-          scrollToIncomeFacilities={scrollToIncomeFacilities}
         />
       ),
     },
@@ -1655,6 +1652,7 @@ interface GroundsSectionProps {
   facilityPlacementTargetRef: RefObject<View | null>;
   facilityPlacementFocusRef: RefObject<View | null>;
   showMobileBuildPlacementHelper: boolean;
+  dismissFacilityPlacementHelper: () => void;
   scrollFacilityGuideTargetIntoView: (phase: GuidedFirstFacilityPhase) => void;
 }
 
@@ -1692,6 +1690,7 @@ function GroundsSection({
   facilityPlacementTargetRef,
   facilityPlacementFocusRef,
   showMobileBuildPlacementHelper,
+  dismissFacilityPlacementHelper,
   scrollFacilityGuideTargetIntoView,
 }: GroundsSectionProps) {
   const t = useCopy();
@@ -1757,24 +1756,6 @@ function GroundsSection({
             </View>
           ) : null}
           <View ref={facilityPlacementTargetRef} collapsable={false}>
-            {showMobileBuildPlacementHelper ? (
-              <View
-                ref={facilityPlacementFocusRef}
-                collapsable={false}
-                accessible
-                accessibilityRole="header"
-                accessibilityLabel={t('clubFinances.placeYourBuilding')}
-                {...guideHeadingProps()}
-                className="mb-2 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
-              >
-                <PixelText
-                  accessibilityLiveRegion="polite"
-                  className="text-center text-sm uppercase text-blue-dark"
-                >
-                  {t('clubFinances.placeYourBuilding')}
-                </PixelText>
-              </View>
-            ) : null}
             <View
               ref={facilityGuideGridTargetRef}
               collapsable={false}
@@ -1786,28 +1767,50 @@ function GroundsSection({
                 setFacilityGridWidth(event.nativeEvent.layout.width);
                 if (guidedFacilityPhase === 'grid') scrollFacilityGuideTargetIntoView('grid');
               }}
+              onPointerMove={dismissFacilityPlacementHelper}
+              onTouchStart={dismissFacilityPlacementHelper}
             >
-            {guidedFirstFacility && guidedFacilityPhase === 'grid' && facilityGridWidth > 0 ? (
-              <TutorialTapCue
-                label={t('clubFinances.bertSays')}
-                detail={t('clubFinances.placeYourBuilding')}
+              {showMobileBuildPlacementHelper ? (
+                <View
+                  ref={facilityPlacementFocusRef}
+                  collapsable={false}
+                  accessible
+                  accessibilityRole="header"
+                  accessibilityLabel={t('clubFinances.tapHereToPlace')}
+                  pointerEvents="none"
+                  {...guideHeadingProps()}
+                  className="border-2 border-b-4 border-gold-dark bg-gold-light px-3 py-3"
+                  style={[styles.guidedFacilityGlow, styles.facilityPlacementHelper]}
+                >
+                  <PixelText
+                    accessibilityLiveRegion="polite"
+                    className="text-center text-sm uppercase text-ink"
+                  >
+                    {t('clubFinances.tapHereToPlace')}
+                  </PixelText>
+                </View>
+              ) : null}
+              {guidedFirstFacility && guidedFacilityPhase === 'grid' && facilityGridWidth > 0 ? (
+                <TutorialTapCue
+                  label={t('clubFinances.bertSays')}
+                  detail={t('clubFinances.placeYourBuilding')}
+                  style={{
+                    left: facilityGridWidth / facilities.width / 2,
+                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                    bottom: '100%',
+                  }}
+                />
+              ) : null}
+              <View
                 style={{
-                  left: facilityGridWidth / facilities.width / 2,
-                  marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                  bottom: '100%',
+                  position: 'relative',
+                  flex: 1,
+                  // Do not make the cell layer its own stacking context. The
+                  // shared hover-tip host raises only the active cell; trapping
+                  // it under a layer below the facility art made buildings paint
+                  // through the placement message.
                 }}
-              />
-            ) : null}
-            <View
-              style={{
-                position: 'relative',
-                flex: 1,
-                // Do not make the cell layer its own stacking context. The
-                // shared hover-tip host raises only the active cell; trapping
-                // it under a layer below the facility art made buildings paint
-                // through the placement message.
-              }}
-            >
+              >
               {Array.from({ length: facilities.height }, (_, y) => (
                 <View key={`facility-row-${y}`} style={{ flex: 1, flexDirection: 'row' }}>
                   {Array.from({ length: facilities.width }, (_, x) => {
@@ -1840,7 +1843,10 @@ function GroundsSection({
                           // A blocked square answers with the refusal cue, not
                           // the click that means the tap landed.
                           pressSfx={buildable ? 'click' : 'warning'}
-                          onPress={() => handleGridCell(x, y)}
+                          onPress={() => {
+                            dismissFacilityPlacementHelper();
+                            handleGridCell(x, y);
+                          }}
                           onPressIn={() => setPreviewCell({ x, y })}
                           onPressOut={() => setPreviewCell(null)}
                           // A mouse has a hover phase, so the fits/blocked footprint
@@ -2274,8 +2280,6 @@ interface BuildMenuSectionProps {
   scrollFacilityGuideTargetIntoView: (phase: GuidedFirstFacilityPhase) => void;
   coachingOfficeBuildTargetRef: RefObject<View | null>;
   scrollToCoachingOffice: () => void;
-  showCoachingOfficeScrollCue: boolean;
-  dismissCoachingOfficeScrollCue: () => void;
   revealMobileFacilityPlacement: () => void;
   /** Lights the Fan Shop and Stadium Stand after the board's loan lands. */
   guideIncomeFacilities: boolean;
@@ -2285,8 +2289,8 @@ interface BuildMenuSectionProps {
 
 /**
  * The catalog, lifted out of the grounds panel so a wide window can stand it
- * beside the grid instead of below it. Its own board section on a phone too:
- * the order down the page is unchanged, it just carries its own label now.
+ * beside the grid instead of below it. Its own board section comes first on a
+ * phone, so a choice leads forward to the grounds instead of jumping upward.
  */
 function BuildMenuSection({
   viewModel,
@@ -2303,8 +2307,6 @@ function BuildMenuSection({
   scrollFacilityGuideTargetIntoView,
   coachingOfficeBuildTargetRef,
   scrollToCoachingOffice,
-  showCoachingOfficeScrollCue,
-  dismissCoachingOfficeScrollCue,
   revealMobileFacilityPlacement,
   guideIncomeFacilities,
   incomeFacilityBuildTargetRef,
@@ -2429,23 +2431,6 @@ function BuildMenuSection({
                       marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
                       top: -82,
                     }}
-                  />
-                ) : null}
-                {/* Selecting the card arms the build, but the grid it drops
-                    onto is off the top of the screen — the tap looked like
-                    it did nothing. Points back up at the grid, and gets out
-                    of the way on a tap for anyone who already knows. */}
-                {showCoachingOfficeScrollCue && entry.type === 'coaching-office' && selected ? (
-                  <TutorialTapCue
-                    label={t('clubFinances.scrollUp')}
-                    detail={t('clubFinances.thenTapAPlusSquare')}
-                    direction="up"
-                    style={{
-                      left: '50%',
-                      marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                      top: -92,
-                    }}
-                    onDismiss={dismissCoachingOfficeScrollCue}
                   />
                 ) : null}
                 {guidedFirstFacility
@@ -2713,6 +2698,13 @@ function facilityColor(building: ClubFacilityBuildingViewModel): string {
  * Bert is asking for a specific tap.
  */
 const styles = StyleSheet.create({
+  facilityPlacementHelper: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    zIndex: 30,
+  },
   guidedFacilityGlow: {
     boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)',
     shadowColor: '#edb54a',
